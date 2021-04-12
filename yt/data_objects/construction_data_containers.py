@@ -8,6 +8,7 @@ from re import finditer
 from tempfile import NamedTemporaryFile, TemporaryFile
 
 import numpy as np
+from tqdm import tqdm
 
 from yt.config import ytcfg
 from yt.data_objects.field_data import YTFieldData
@@ -16,10 +17,9 @@ from yt.data_objects.selection_objects.data_selection_objects import (
     YTSelectionContainer2D,
     YTSelectionContainer3D,
 )
-from yt.extern.tqdm import tqdm
 from yt.fields.field_exceptions import NeedsGridType, NeedsOriginalGrid
 from yt.frontends.sph.data_structures import ParticleDataset
-from yt.funcs import ensure_list, get_memory_usage, iterable, mylog, only_on_root
+from yt.funcs import get_memory_usage, is_sequence, iter_fields, mylog, only_on_root
 from yt.geometry import particle_deposit as particle_deposit
 from yt.geometry.coordinates.cartesian_coordinates import all_data
 from yt.loaders import load_uniform_grid
@@ -134,7 +134,7 @@ class YTStreamline(YTSelectionContainer1D):
             self.positions <= grid.RightEdge, axis=1
         )
         pids = np.where(points_in_grid)[0]
-        mask = np.zeros(points_in_grid.sum(), dtype="int")
+        mask = np.zeros(points_in_grid.sum(), dtype="int64")
         dts = np.zeros(points_in_grid.sum(), dtype="float64")
         ts = np.zeros(points_in_grid.sum(), dtype="float64")
         for mi, (i, pos) in enumerate(zip(pids, self.positions[points_in_grid])):
@@ -171,7 +171,7 @@ class YTProj(YTSelectionContainer2D):
         field_parameters=None,
         max_level=None,
     ):
-        super(YTProj, self).__init__(axis, ds, field_parameters)
+        super().__init__(axis, ds, field_parameters)
         # Style is deprecated, but if it is set, then it trumps method
         # keyword.  TODO: Remove this keyword and this check at some point in
         # the future.
@@ -204,14 +204,11 @@ class YTProj(YTSelectionContainer2D):
         else:
             self.weight_field = self._determine_fields(weight_field)[0]
 
-        field = field or []
-        field = self._determine_fields(ensure_list(field))
-
-        for f in field:
+        for f in self._determine_fields(field):
             nodal_flag = self.ds._get_field_info(f).nodal_flag
             if any(nodal_flag):
                 raise RuntimeError(
-                    "Nodal fields are currently not supported " "for projections."
+                    "Nodal fields are currently not supported for projections."
                 )
 
     @property
@@ -223,8 +220,7 @@ class YTProj(YTSelectionContainer2D):
         return [k for k in self.field_data.keys() if k not in self._container_fields]
 
     def get_data(self, fields=None):
-        fields = fields or []
-        fields = self._determine_fields(ensure_list(fields))
+        fields = self._determine_fields(fields)
         # We need a new tree for every single set of fields we add
         if len(fields) == 0:
             return
@@ -385,7 +381,7 @@ class YTParticleProj(YTProj):
         field_parameters=None,
         max_level=None,
     ):
-        super(YTParticleProj, self).__init__(
+        super().__init__(
             field,
             axis,
             weight_field,
@@ -478,7 +474,7 @@ class YTQuadTreeProj(YTProj):
         field_parameters=None,
         max_level=None,
     ):
-        super(YTQuadTreeProj, self).__init__(
+        super().__init__(
             field,
             axis,
             weight_field,
@@ -500,7 +496,7 @@ class YTQuadTreeProj(YTProj):
         return MinimalProjectionData(self)
 
     def deserialize(self, fields):
-        if not ytcfg.getboolean("yt", "serialize"):
+        if not ytcfg.get("yt", "serialize"):
             return False
         for field in fields:
             self[field] = None
@@ -519,7 +515,7 @@ class YTQuadTreeProj(YTProj):
         return deserialized_successfully
 
     def serialize(self):
-        if not ytcfg.getboolean("yt", "serialize"):
+        if not ytcfg.get("yt", "serialize"):
             return
         self._mrep.store(self.ds.parameter_filename + ".yt")
 
@@ -689,7 +685,11 @@ class YTCoveringGrid(YTSelectionContainer3D):
         coords = {}
         for f in fields or self.field_data.keys():
             data[f] = {
-                "dims": ("x", "y", "z",),
+                "dims": (
+                    "x",
+                    "y",
+                    "z",
+                ),
                 "data": self[f],
                 "attrs": {"units": str(self[f].uq)},
             }
@@ -738,12 +738,12 @@ class YTCoveringGrid(YTSelectionContainer3D):
         return tr
 
     def set_field_parameter(self, name, val):
-        super(YTCoveringGrid, self).set_field_parameter(name, val)
+        super().set_field_parameter(name, val)
         if self._data_source is not None:
             self._data_source.set_field_parameter(name, val)
 
     def _sanitize_dims(self, dims):
-        if not iterable(dims):
+        if not is_sequence(dims):
             dims = [dims] * len(self.ds.domain_left_edge)
         if len(dims) != len(self.ds.domain_left_edge):
             raise RuntimeError(
@@ -752,7 +752,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
         return np.array(dims, dtype="int32")
 
     def _sanitize_edge(self, edge):
-        if not iterable(edge):
+        if not is_sequence(edge):
             edge = [edge] * len(self.ds.domain_left_edge)
         if len(edge) != len(self.ds.domain_left_edge):
             raise RuntimeError(
@@ -786,7 +786,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
     def get_data(self, fields=None):
         if fields is None:
             return
-        fields = self._determine_fields(ensure_list(fields))
+        fields = self._determine_fields(fields)
         fields_to_get = [f for f in fields if f not in self.field_data]
         fields_to_get = self._identify_dependencies(fields_to_get)
         if len(fields_to_get) == 0:
@@ -979,7 +979,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
             "int64"
         ) * self.ds.relative_refinement(0, self.level)
         refine_by = self.ds.refine_by
-        if not iterable(self.ds.refine_by):
+        if not is_sequence(self.ds.refine_by):
             refine_by = [refine_by, refine_by, refine_by]
         refine_by = np.array(refine_by, dtype="i8")
         for chunk in parallel_objects(self._data_source.chunks(fields, "io")):
@@ -1112,7 +1112,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
 
     def _get_grid_bounds_size(self):
         dd = self.ds.domain_width / 2 ** self.level
-        bounds = np.zeros(6, dtype=float)
+        bounds = np.zeros(6, dtype="float64")
 
         bounds[0] = self.left_edge[0].in_base("code")
         bounds[1] = bounds[0] + dd[0].d * self.ActiveDimensions[0]
@@ -1120,7 +1120,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
         bounds[3] = bounds[2] + dd[1].d * self.ActiveDimensions[1]
         bounds[4] = self.left_edge[2].in_base("code")
         bounds[5] = bounds[4] + dd[2].d * self.ActiveDimensions[2]
-        size = np.ones(3, dtype=int) * 2 ** self.level
+        size = np.ones(3, dtype="int64") * 2 ** self.level
 
         return bounds, size
 
@@ -1143,7 +1143,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
 
         if length_unit is None:
             length_unit = self.ds.length_unit
-        fields = ensure_list(fields)
+        fields = list(iter_fields(fields))
         fid = FITSImageData(self, fields, length_unit=length_unit)
         return fid
 
@@ -1224,7 +1224,7 @@ class YTArbitraryGrid(YTCoveringGrid):
             self[field] = self.ds.arr(dest, fi.units)
 
     def _get_grid_bounds_size(self):
-        bounds = np.empty(6, dtype=float)
+        bounds = np.empty(6, dtype="float64")
         bounds[0] = self.left_edge[0].in_base("code")
         bounds[2] = self.left_edge[1].in_base("code")
         bounds[4] = self.left_edge[2].in_base("code")
@@ -1299,7 +1299,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
 
     def _setup_data_source(self, level_state=None):
         if level_state is None:
-            super(YTSmoothedCoveringGrid, self)._setup_data_source()
+            super()._setup_data_source()
             return
         # We need a buffer region to allow for zones that contribute to the
         # interpolation but are not directly inside our bounds
@@ -1360,7 +1360,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         # NOTE: This usage of "refine_by" is actually *okay*, because it's
         # being used with respect to iref, which is *already* scaled!
         refine_by = self.ds.refine_by
-        if not iterable(self.ds.refine_by):
+        if not is_sequence(self.ds.refine_by):
             refine_by = [refine_by, refine_by, refine_by]
         refine_by = np.array(refine_by, dtype="i8")
 
@@ -1400,7 +1400,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
                 self.ds.__class__,
                 category=RuntimeWarning,
             )
-            mylog.debug(f"Caught {runtime_errors_count} runtime errors.")
+            mylog.debug("Caught %d runtime errors.", runtime_errors_count)
         for name, v in zip(fields, ls.fields):
             if self.level > 0:
                 v = v[1:-1, 1:-1, 1:-1]
@@ -1550,7 +1550,7 @@ class YTSurface(YTSelectionContainer3D):
                 self.field_value = data_source.ds.quan(field_value, finfo.units)
         self.vertex_samples = YTFieldData()
         center = data_source.get_field_parameter("center")
-        super(YTSurface, self).__init__(center=center, ds=ds)
+        super().__init__(center=center, ds=ds)
 
     def _generate_container_field(self, field):
         self.get_data(field)
@@ -2467,7 +2467,7 @@ class YTSurface(YTSelectionContainer3D):
         SketchFab.com.  It requires an API key, which can be found on your
         SketchFab.com dashboard.  You can either supply the API key to this
         routine directly or you can place it in the variable
-        "sketchfab_api_key" in your ~/.config/yt/ytrc file.  This function is
+        "sketchfab_api_key" in your ~/.config/yt/yt.toml file.  This function is
         parallel-safe.
 
         Parameters
@@ -2559,7 +2559,7 @@ class YTSurface(YTSelectionContainer3D):
 
     @parallel_root_only
     def _upload_to_sketchfab(self, data, files):
-        import requests
+        from yt.utilities.on_demand_imports import _requests as requests
 
         SKETCHFAB_DOMAIN = "sketchfab.com"
         SKETCHFAB_API_URL = f"https://api.{SKETCHFAB_DOMAIN}/v2/models"
@@ -2567,8 +2567,8 @@ class YTSurface(YTSelectionContainer3D):
 
         try:
             r = requests.post(SKETCHFAB_API_URL, data=data, files=files, verify=False)
-        except requests.exceptions.RequestException as e:
-            mylog.error("An error occured: %s", e)
+        except requests.exceptions.RequestException:
+            mylog.exception("An error has occured")
             return
 
         result = r.json()
@@ -2758,7 +2758,7 @@ class YTOctree(YTSelectionContainer3D):
     def _sanitize_edge(self, edge, default):
         if edge is None:
             return default.copy()
-        if not iterable(edge):
+        if not is_sequence(edge):
             edge = [edge] * len(self.ds.domain_left_edge)
         if len(edge) != len(self.ds.domain_left_edge):
             raise RuntimeError(

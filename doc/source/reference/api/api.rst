@@ -79,11 +79,11 @@ These will almost never need to be instantiated on their own.
 .. autosummary::
 
    ~yt.data_objects.data_containers.YTDataContainer
-   ~yt.data_objects.data_containers.YTSelectionContainer
-   ~yt.data_objects.data_containers.YTSelectionContainer0D
-   ~yt.data_objects.data_containers.YTSelectionContainer1D
-   ~yt.data_objects.data_containers.YTSelectionContainer2D
-   ~yt.data_objects.data_containers.YTSelectionContainer3D
+   ~yt.data_objects.selection_objects.data_selection_objects.YTSelectionContainer
+   ~yt.data_objects.selection_objects.data_selection_objects.YTSelectionContainer0D
+   ~yt.data_objects.selection_objects.data_selection_objects.YTSelectionContainer1D
+   ~yt.data_objects.selection_objects.data_selection_objects.YTSelectionContainer2D
+   ~yt.data_objects.selection_objects.data_selection_objects.YTSelectionContainer3D
 
 Selection Objects
 +++++++++++++++++
@@ -93,18 +93,22 @@ geometric.
 
 .. autosummary::
 
-   ~yt.data_objects.selection_data_containers.YTPoint
-   ~yt.data_objects.selection_data_containers.YTOrthoRay
-   ~yt.data_objects.selection_data_containers.YTRay
-   ~yt.data_objects.selection_data_containers.YTSlice
-   ~yt.data_objects.selection_data_containers.YTCuttingPlane
-   ~yt.data_objects.selection_data_containers.YTDisk
-   ~yt.data_objects.selection_data_containers.YTRegion
-   ~yt.data_objects.selection_data_containers.YTDataCollection
-   ~yt.data_objects.selection_data_containers.YTSphere
-   ~yt.data_objects.selection_data_containers.YTEllipsoid
-   ~yt.data_objects.selection_data_containers.YTCutRegion
-   ~yt.data_objects.grid_patch.AMRGridPatch
+   ~yt.data_objects.selection_objects.point.YTPoint
+   ~yt.data_objects.selection_objects.ray.YTOrthoRay
+   ~yt.data_objects.selection_objects.ray.YTRay
+   ~yt.data_objects.selection_objects.slices.YTSlice
+   ~yt.data_objects.selection_objects.slices.YTCuttingPlane
+   ~yt.data_objects.selection_objects.disk.YTDisk
+   ~yt.data_objects.selection_objects.region.YTRegion
+   ~yt.data_objects.selection_objects.object_collection.YTDataCollection
+   ~yt.data_objects.selection_objects.spheroids.YTSphere
+   ~yt.data_objects.selection_objects.spheroids.YTEllipsoid
+   ~yt.data_objects.selection_objects.cur_region.YTCutRegion
+   ~yt.data_objects.index_subobjects.grid_patch.AMRGridPatch
+   ~yt.data_objects.index_subobjects.octree_subset.OctreeSubset
+   ~yt.data_objects.index_subobjects.particle_container.ParticleContainer
+   ~yt.data_objects.index_subobjects.unstructured_mesh.UnstructuredMesh
+   ~yt.data_objects.index_subobjects.unstructured_mesh.SemiStructuredMesh
 
 Construction Objects
 ++++++++++++++++++++
@@ -132,6 +136,7 @@ datasets.
 
    ~yt.data_objects.time_series.DatasetSeries
    ~yt.data_objects.time_series.DatasetSeriesObject
+   ~yt.data_objects.time_series.SimulationTimeSeries
    ~yt.data_objects.time_series.TimeSeriesQuantitiesContainer
    ~yt.data_objects.time_series.AnalysisTaskProxy
    ~yt.data_objects.particle_trajectories.ParticleTrajectories
@@ -721,18 +726,16 @@ Function List
 
 .. autosummary::
 
-   ~yt.convenience.load
    ~yt.frontends.ytdata.utilities.save_as_dataset
    ~yt.data_objects.static_output.Dataset.all_data
    ~yt.data_objects.static_output.Dataset.box
-   ~yt.funcs.deprecate
-   ~yt.funcs.ensure_list
    ~yt.funcs.enable_plugins
    ~yt.funcs.get_pbar
    ~yt.funcs.humanize_time
    ~yt.funcs.insert_ipython
    ~yt.funcs.is_root
-   ~yt.funcs.iterable
+   ~yt.funcs.is_sequence
+   ~yt.funcs.iter_fields
    ~yt.funcs.just_one
    ~yt.funcs.only_on_root
    ~yt.funcs.paste_traceback

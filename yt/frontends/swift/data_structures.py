@@ -107,9 +107,9 @@ class SwiftDataset(SPHDataset):
         periodic = int(runtime_parameters["PeriodicBoundariesOn"])
 
         if periodic:
-            self.periodicity = [True] * self.dimensionality
+            self._periodicity = [True] * self.dimensionality
         else:
-            self.periodicity = [False] * self.dimensionality
+            self._periodicity = [False] * self.dimensionality
 
         # Units get attached to this
         self.current_time = float(header["Time"])
@@ -127,11 +127,9 @@ class SwiftDataset(SPHDataset):
                 self.hubble_constant = float(parameters["Cosmology:h"])
             except KeyError:
                 mylog.warning(
-                    (
-                        "Could not find cosmology information in Parameters, "
-                        "despite having ran with -c signifying a cosmological "
-                        "run."
-                    )
+                    "Could not find cosmology information in Parameters, "
+                    "despite having ran with -c signifying a cosmological "
+                    "run."
                 )
                 mylog.info("Setting up as a non-cosmological run. Check this!")
                 self.cosmological_simulation = 0
@@ -162,20 +160,19 @@ class SwiftDataset(SPHDataset):
         return
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         """
         Checks to see if the file is a valid output from SWIFT.
         This requires the file to have the Code attribute set in the
         Header dataset to "SWIFT".
         """
-        filename = args[0]
         valid = True
         # Attempt to open the file, if it's not a hdf5 then this will fail:
         try:
             handle = h5py.File(filename, mode="r")
             valid = handle["Header"].attrs["Code"].decode("utf-8") == "SWIFT"
             handle.close()
-        except (IOError, KeyError, ImportError):
+        except (OSError, KeyError, ImportError):
             valid = False
 
         return valid

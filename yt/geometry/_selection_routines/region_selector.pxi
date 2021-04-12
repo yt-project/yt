@@ -66,8 +66,8 @@ cdef class RegionSelector(SelectorObject):
                         "up to the domain boundary. Two possible solutions are to "
                         "select a smaller region that does not border domain edge "
                         "(see https://yt-project.org/docs/analyzing/objects.html?highlight=region)\n"
-                        "or override the periodicity with e.g\n"
-                        "ds.periodicity = 3*[True]" % \
+                        "or override the periodicity with\n"
+                        "ds.force_periodicity()" % \
                         (i, dobj.left_edge[i], dobj.right_edge[i],
                          dobj.ds.domain_left_edge[i], dobj.ds.domain_right_edge[i])
                     )
@@ -209,4 +209,3 @@ cdef class RegionSelector(SelectorObject):
                 'is_all_data', 'loose_selection')
 
 region_selector = RegionSelector
-

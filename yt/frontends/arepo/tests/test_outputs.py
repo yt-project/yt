@@ -72,7 +72,7 @@ def test_index_override():
     )
     assert isinstance(ds, ArepoHDF5Dataset)
     ds.index
-    assert len(open(tmpname, "r").read()) == 0
+    assert len(open(tmpname).read()) == 0
 
 
 @requires_file(tng59_h5)

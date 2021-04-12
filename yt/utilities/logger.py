@@ -54,13 +54,13 @@ def set_log_level(level):
     if level == "ALL":  # non-standard alias
         level = 1
     ytLogger.setLevel(level)
-    ytLogger.debug("Set log level to %d", level)
+    ytLogger.debug("Set log level to %s", level)
 
 
 ufstring = "%(name)-3s: [%(levelname)-9s] %(asctime)s %(message)s"
 cfstring = "%(name)-3s: [%(levelname)-18s] %(asctime)s %(message)s"
 
-if ytcfg.getboolean("yt", "stdoutStreamLogging"):
+if ytcfg.get("yt", "stdout_stream_logging"):
     stream = sys.stdout
 else:
     stream = sys.stderr
@@ -84,6 +84,28 @@ class DuplicateFilter(logging.Filter):
 ytLogger.addFilter(DuplicateFilter())
 
 
+class DeprecatedFieldFilter(logging.Filter):
+    """A filter that suppresses repeated logging of deprecated field warnings"""
+
+    def __init__(self, name=""):
+        self.logged_fields = []
+        super().__init__(name=name)
+
+    def filter(self, record):
+        if not record.msg.startswith("The Derived Field"):
+            return True
+
+        field = record.args[0]
+        if field in self.logged_fields:
+            return False
+
+        self.logged_fields.append(field)
+        return True
+
+
+ytLogger.addFilter(DeprecatedFieldFilter())
+
+
 def disable_stream_logging():
     if len(ytLogger.handlers) > 0:
         ytLogger.removeHandler(ytLogger.handlers[0])
@@ -104,14 +126,14 @@ def uncolorize_logging():
         yt_sh.emit = original_emitter
     except NameError:
         # yt_sh and original_emitter are not defined because
-        # suppressStreamLogging is True, so we continue since there is nothing
+        # suppress_stream_logging is True, so we continue since there is nothing
         # to uncolorize
         pass
 
 
-_level = min(max(ytcfg.getint("yt", "loglevel"), 0), 50)
+_level = min(max(ytcfg.get("yt", "log_level"), 0), 50)
 
-if ytcfg.getboolean("yt", "suppressStreamLogging"):
+if ytcfg.get("yt", "suppress_stream_logging"):
     disable_stream_logging()
 else:
     yt_sh = logging.StreamHandler(stream=stream)
@@ -125,5 +147,5 @@ else:
 
     original_emitter = yt_sh.emit
 
-    if ytcfg.getboolean("yt", "coloredlogs"):
+    if ytcfg.get("yt", "colored_logs"):
         colorize_logging()

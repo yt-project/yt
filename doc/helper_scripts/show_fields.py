@@ -1,17 +1,20 @@
 import inspect
-from yt.testing import fake_random_ds
+
 import numpy as np
-from yt.utilities.cosmology import Cosmology
-from yt.frontends.stream.fields import StreamFieldInfo
-from yt.frontends.api import _frontends
-from yt.fields.derived_field import NullFunc
+
 import yt.frontends as frontends_module
-from yt.units.yt_array import Unit
+from yt.config import ytcfg
+from yt.fields.derived_field import NullFunc
+from yt.frontends.api import _frontends
+from yt.frontends.stream.fields import StreamFieldInfo
+from yt.testing import fake_random_ds
 from yt.units import dimensions
+from yt.units.yt_array import Unit
+from yt.utilities.cosmology import Cosmology
 
 fields, units = [], []
 
-for fname, (code_units, aliases, dn) in StreamFieldInfo.known_other_fields:
+for fname, (code_units, _aliases, _dn) in StreamFieldInfo.known_other_fields:
     fields.append(("gas", fname))
     units.append(code_units)
 base_ds = fake_random_ds(4, fields=fields, units=units)
@@ -19,9 +22,8 @@ base_ds.index
 base_ds.cosmological_simulation = 1
 base_ds.cosmology = Cosmology()
 
-from yt.config import ytcfg
 
-ytcfg["yt", "__withintesting"] = "True"
+ytcfg["yt", "internals", "within_testing"] = True
 np.seterr(all="ignore")
 
 
@@ -41,7 +43,7 @@ ds.parameters["HydroMethod"] = "streaming"
 ds.parameters["EOSType"] = 1.0
 ds.parameters["EOSSoundSpeed"] = 1.0
 ds.conversion_factors["Time"] = 1.0
-ds.conversion_factors.update(dict((f, 1.0) for f in fields))
+ds.conversion_factors.update({f: 1.0 for f in fields})
 ds.gamma = 5.0 / 3.0
 ds.current_redshift = 0.0001
 ds.cosmological_simulation = 1
@@ -55,7 +57,7 @@ ds.cosmology = Cosmology(
     unit_registry=ds.unit_registry,
 )
 for my_unit in ["m", "pc", "AU", "au"]:
-    new_unit = "%scm" % my_unit
+    new_unit = f"{my_unit}cm"
     my_u = Unit(my_unit, registry=ds.unit_registry)
     ds.unit_registry.add(
         new_unit,
@@ -132,14 +134,14 @@ def fix_units(units, in_cgs=False):
     if in_cgs:
         unit_object = unit_object.get_cgs_equivalent()
     latex = unit_object.latex_representation()
-    return latex.replace("\ ", "~")
+    return latex.replace(r"\ ", "~")
 
 
 def print_all_fields(fl):
     for fn in sorted(fl):
         df = fl[fn]
         f = df._function
-        s = "%s" % (df.name,)
+        s = f"{df.name}"
         print(s)
         print("^" * len(s))
         print()
@@ -161,10 +163,10 @@ def print_all_fields(fl):
                 "y",
                 "z",
             ]:
-                print("   * Units: :math:`%s`" % fix_units(df.units))
+                print(f"   * Units: :math:`{fix_units(df.units)}`")
             else:
-                print("   * Units: :math:`%s`" % fix_units(df.units, in_cgs=True))
-        print("   * Sampling Method: %s" % (df.sampling_type))
+                print(f"   * Units: :math:`{fix_units(df.units, in_cgs=True)}`")
+        print(f"   * Sampling Method: {df.sampling_type}")
         print()
         print("**Field Source**")
         print()
@@ -192,16 +194,16 @@ class FieldInfo:
         self.units = ""
         u = field[1][0]
         if len(u) > 0:
-            self.units = ":math:`\mathrm{%s}`" % fix_units(u)
-        a = ["``%s``" % f for f in field[1][1] if f]
+            self.units = r":math:`\mathrm{%s}`" % fix_units(u)
+        a = [f"``{f}``" for f in field[1][1] if f]
         self.aliases = " ".join(a)
         self.dname = ""
         if field[1][2] is not None:
-            self.dname = ":math:`{}`".format(field[1][2])
+            self.dname = f":math:`{field[1][2]}`"
 
-        if ftype is not "particle_type":
-            ftype = "'" + ftype + "'"
-        self.name = "(%s, '%s')" % (ftype, name)
+        if ftype != "particle_type":
+            ftype = f"'{ftype}'"
+        self.name = f"({ftype}, '{name}')"
         self.ptype = ptype
 
 
@@ -248,8 +250,8 @@ for frontend in current_frontends:
         else:
             known_particle_fields = []
         if nfields > 0:
-            print(".. _%s_specific_fields:\n" % dset_name.replace("Dataset", ""))
-            h = "%s-Specific Fields" % dset_name.replace("Dataset", "")
+            print(f".. _{dset_name.replace('Dataset', '')}_specific_fields:\n")
+            h = f"{dset_name.replace('Dataset', '')}-Specific Fields"
             print(h)
             print("-" * len(h) + "\n")
 

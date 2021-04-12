@@ -461,11 +461,10 @@ class GravFieldFileHandler(FieldFileHandler):
         ndim = ds.dimensionality
 
         if nvar == ndim + 1:
-            fields = ["potential"] + [f"{k}-acceleration" for k in "xyz"[:ndim]]
-            ndetected = ndim
+            fields = ["Potential"] + [f"{k}-acceleration" for k in "xyz"[:ndim]]
         else:
             fields = [f"{k}-acceleration" for k in "xyz"[:ndim]]
-            ndetected = ndim
+        ndetected = len(fields)
 
         if ndetected != nvar and not ds._warned_extra_fields["gravity"]:
             mylog.warning("Detected %s extra gravity fields.", nvar - ndetected)
@@ -509,7 +508,7 @@ class RTFieldFileHandler(FieldFileHandler):
             p, v = line.split("=")
             rheader[p.strip()] = cast(v)
 
-        with open(fname, "r") as f:
+        with open(fname) as f:
             # Read nRTvar, nions, ngroups, iions
             for _ in range(4):
                 read_rhs(int)

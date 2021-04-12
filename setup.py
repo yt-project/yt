@@ -1,14 +1,12 @@
 import glob
 import os
-import sys
 from collections import defaultdict
 from distutils.ccompiler import get_default_compiler
-from distutils.version import LooseVersion
 
-import pkg_resources
 from setuptools import Distribution, find_packages, setup
 
 from setupext import (
+    check_CPP14_flags,
     check_for_openmp,
     check_for_pyembree,
     create_build_ext,
@@ -16,18 +14,6 @@ from setupext import (
 )
 
 install_ccompiler()
-
-try:
-    distribute_ver = LooseVersion(pkg_resources.get_distribution("distribute").version)
-    if distribute_ver < LooseVersion("0.7.3"):
-        print("Distribute is a legacy package obsoleted by setuptools.")
-        print("We strongly recommend that you just uninstall it.")
-        print("If for some reason you cannot do it, you'll need to upgrade it")
-        print("to latest version before proceeding:")
-        print("    pip install -U distribute")
-        sys.exit(1)
-except pkg_resources.DistributionNotFound:
-    pass  # yay!
 
 VERSION = "4.0.dev0"
 
@@ -38,11 +24,10 @@ with open("README.md") as file:
     long_description = file.read()
 
 CPP14_CONFIG = defaultdict(
-    lambda: ["-std=c++14"], {"unix": ["-std=c++14"], "msvc": ["/std:c++14"]}
+    lambda: check_CPP14_flags(["-std=c++14", "-std=c++1y", "-std=gnu++0x"]),
+    {"msvc": ["/std:c++14"]},
 )
-CPP03_CONFIG = defaultdict(
-    lambda: ["-std=c++03"], {"unix": ["-std=c++03"], "msvc": ["/std:c++03"]}
-)
+CPP03_CONFIG = defaultdict(lambda: ["-std=c++03"], {"msvc": ["/std:c++03"]})
 
 _COMPILER = get_default_compiler()
 
@@ -121,6 +106,7 @@ if __name__ == "__main__":
             "Programming Language :: Python :: 3.6",
             "Programming Language :: Python :: 3.7",
             "Programming Language :: Python :: 3.8",
+            "Programming Language :: Python :: 3.9",
             "Topic :: Scientific/Engineering :: Astronomy",
             "Topic :: Scientific/Engineering :: Physics",
             "Topic :: Scientific/Engineering :: Visualization",
@@ -128,20 +114,26 @@ if __name__ == "__main__":
         ],
         keywords="astronomy astrophysics visualization " + "amr adaptivemeshrefinement",
         entry_points={
-            "console_scripts": ["yt = yt.utilities.command_line:run_main",],
+            "console_scripts": [
+                "yt = yt.utilities.command_line:run_main",
+            ],
             "nose.plugins.0.10": [
                 "answer-testing = yt.utilities.answer_testing.framework:AnswerTesting"
             ],
         },
         packages=find_packages(),
         include_package_data=True,
+        package_data={"yt": ["sample_data_registry.json"]},
         install_requires=[
-            "matplotlib>=1.5.3",
+            "matplotlib>=2.0.2,<3.4",
             "setuptools>=19.6",
             "sympy>=1.2",
             "numpy>=1.10.4",
             "IPython>=1.0",
             "unyt>=2.7.2",
+            "more_itertools>=8.4",
+            "tqdm>=3.4.0",
+            "toml>=0.10.2",
         ],
         extras_require={"hub": ["girder_client"], "mapserver": ["bottle"]},
         cmdclass={"sdist": sdist, "build_ext": build_ext},

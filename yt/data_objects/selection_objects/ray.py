@@ -1,7 +1,6 @@
 import numpy as np
 from unyt import udot, unorm
 
-from yt import YTArray, YTQuantity
 from yt.data_objects.selection_objects.data_selection_objects import (
     YTSelectionContainer,
     YTSelectionContainer1D,
@@ -13,9 +12,10 @@ from yt.funcs import (
     validate_3d_array,
     validate_axis,
     validate_float,
-    validate_iterable,
     validate_object,
+    validate_sequence,
 )
+from yt.units import YTArray, YTQuantity
 from yt.utilities.lib.pixelization_routines import SPHKernelInterpolationTable
 from yt.utilities.logger import ytLogger as mylog
 
@@ -74,13 +74,13 @@ class YTOrthoRay(YTSelectionContainer1D):
 
     def __init__(self, axis, coords, ds=None, field_parameters=None, data_source=None):
         validate_axis(ds, axis)
-        validate_iterable(coords)
+        validate_sequence(coords)
         for c in coords:
             validate_float(c)
         validate_object(ds, Dataset)
         validate_object(field_parameters, dict)
         validate_object(data_source, YTSelectionContainer)
-        super(YTOrthoRay, self).__init__(ds, field_parameters, data_source)
+        super().__init__(ds, field_parameters, data_source)
         self.axis = fix_axis(axis, self.ds)
         xax = self.ds.coordinates.x_axis[self.axis]
         yax = self.ds.coordinates.y_axis[self.axis]
@@ -164,7 +164,7 @@ class YTRay(YTSelectionContainer1D):
         validate_object(ds, Dataset)
         validate_object(field_parameters, dict)
         validate_object(data_source, YTSelectionContainer)
-        super(YTRay, self).__init__(ds, field_parameters, data_source)
+        super().__init__(ds, field_parameters, data_source)
         if isinstance(start_point, YTArray):
             self.start_point = self.ds.arr(start_point).to("code_length")
         else:
@@ -178,7 +178,7 @@ class YTRay(YTSelectionContainer1D):
         ).any():
             mylog.warning(
                 "Ray start or end is outside the domain. "
-                + "Returned data will only be for the ray section inside the domain."
+                "Returned data will only be for the ray section inside the domain."
             )
         self.vec = self.end_point - self.start_point
         self._set_center(self.start_point)

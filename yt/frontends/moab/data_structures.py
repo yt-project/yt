@@ -90,16 +90,15 @@ class MoabHex8Dataset(Dataset):
         self.unique_identifier = self.parameter_filename
         self.cosmological_simulation = False
         self.num_ghost_zones = 0
-        self.current_redshift = (
-            self.omega_lambda
-        ) = (
-            self.omega_matter
-        ) = self.hubble_constant = self.cosmological_simulation = 0.0
+        self.current_redshift = 0.0
+        self.omega_lambda = 0.0
+        self.omega_matter = 0.0
+        self.hubble_constant = 0.0
+        self.cosmological_simulation = 0
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        fname = args[0]
-        return fname.endswith(".h5m")
+    def _is_valid(cls, filename, *args, **kwargs):
+        return filename.endswith(".h5m")
 
     def __repr__(self):
         return self.basename.rsplit(".", 1)[0]
@@ -118,7 +117,7 @@ class PyneMeshHex8Hierarchy(UnstructuredIndex):
         self.directory = os.getcwd()
         self.pyne_mesh = ds.pyne_mesh
 
-        super(PyneMeshHex8Hierarchy, self).__init__(ds, dataset_type)
+        super().__init__(ds, dataset_type)
 
     def _initialize_mesh(self):
         from pymoab import types
@@ -191,14 +190,14 @@ class PyneMoabHex8Dataset(Dataset):
         self.unique_identifier = self.parameter_filename
         self.cosmological_simulation = False
         self.num_ghost_zones = 0
-        self.current_redshift = (
-            self.omega_lambda
-        ) = (
-            self.omega_matter
-        ) = self.hubble_constant = self.cosmological_simulation = 0.0
+        self.current_redshift = 0.0
+        self.omega_lambda = 0.0
+        self.omega_matter = 0.0
+        self.hubble_constant = 0.0
+        self.cosmological_simulation = 0
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         return False
 
     def __repr__(self):

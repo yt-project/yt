@@ -22,8 +22,8 @@ of available callbacks.  For example:
 
 .. code-block:: python
 
-   slc = SlicePlot(ds,0,'density')
-   slc.annotate_title('This is a Density plot')
+   slc = SlicePlot(ds, 0, "density")
+   slc.annotate_title("This is a Density plot")
 
 would add the :func:`~yt.visualization.plot_modifications.TitleCallback` to
 the plot object.  All of the callbacks listed below are available via
@@ -266,12 +266,12 @@ Axis-Aligned Data Sources
    :class:`~yt.visualization.plot_modifications.QuiverCallback`.)
 
    Adds a 'quiver' plot to any plot, using the ``field_x`` and ``field_y`` from
-   the associated data, skipping every ``factor`` datapoints in the 
-   discretization. ``scale`` is the data units per arrow length unit using 
-   ``scale_units``. If ``normalize`` is ``True``, the fields will be scaled by 
-   their local (in-plane) length, allowing morphological features to be more 
-   clearly seen for fields with substantial variation in field strength. 
-   Additional arguments can be passed to the ``plot_args`` dictionary, see 
+   the associated data, skipping every ``factor`` datapoints in the
+   discretization. ``scale`` is the data units per arrow length unit using
+   ``scale_units``. If ``normalize`` is ``True``, the fields will be scaled by
+   their local (in-plane) length, allowing morphological features to be more
+   clearly seen for fields with substantial variation in field strength.
+   Additional arguments can be passed to the ``plot_args`` dictionary, see
    matplotlib.axes.Axes.quiver for more info.
 
 .. python-script::
@@ -280,7 +280,7 @@ Axis-Aligned Data Sources
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    p = yt.ProjectionPlot(ds, 'z', 'density', center=[0.5, 0.5, 0.5],
                          weight_field='density', width=(20, 'kpc'))
-   p.annotate_quiver('velocity_x', 'velocity_y', factor=16, 
+   p.annotate_quiver('velocity_x', 'velocity_y', factor=16,
                      plot_args={"color": "purple"})
    p.save()
 
@@ -293,13 +293,13 @@ Off-Axis Data Sources
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.CuttingQuiverCallback`.)
 
-   Get a quiver plot on top of a cutting plane, using the ``field_x`` and 
+   Get a quiver plot on top of a cutting plane, using the ``field_x`` and
    ``field_y`` from the associated data, skipping every ``factor`` datapoints in
-   the discretization. ``scale`` is the data units per arrow length unit using 
-   ``scale_units``. If ``normalize`` is ``True``, the fields will be scaled by 
-   their local (in-plane) length, allowing morphological features to be more 
-   clearly seen for fields with substantial variation in field strength. 
-   Additional arguments can be passed to the ``plot_args`` dictionary, see 
+   the discretization. ``scale`` is the data units per arrow length unit using
+   ``scale_units``. If ``normalize`` is ``True``, the fields will be scaled by
+   their local (in-plane) length, allowing morphological features to be more
+   clearly seen for fields with substantial variation in field strength.
+   Additional arguments can be passed to the ``plot_args`` dictionary, see
    matplotlib.axes.Axes.quiver for more info.
 
 .. python-script::
@@ -307,7 +307,7 @@ Off-Axis Data Sources
    import yt
    ds = yt.load("Enzo_64/DD0043/data0043")
    s = yt.OffAxisSlicePlot(ds, [1,1,0], ["density"], center="c")
-   s.annotate_cquiver('cutting_plane_velocity_x', 'cutting_plane_velocity_y', 
+   s.annotate_cquiver('cutting_plane_velocity_x', 'cutting_plane_velocity_y',
                       factor=10, plot_args={'color':'orange'})
    s.zoom(1.5)
    s.save()
@@ -453,12 +453,12 @@ Overplot Magnetic Field Quivers
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.MagFieldCallback`.)
 
-   Adds a 'quiver' plot of magnetic field to the plot, skipping every ``factor`` 
-   datapoints in the discretization. ``scale`` is the data units per arrow 
-   length unit using ``scale_units``. If ``normalize`` is ``True``, the 
-   magnetic fields will be scaled by their local (in-plane) length, allowing 
-   morphological features to be more clearly seen for fields with substantial 
-   variation in field strength. Additional arguments can be passed to the 
+   Adds a 'quiver' plot of magnetic field to the plot, skipping every ``factor``
+   datapoints in the discretization. ``scale`` is the data units per arrow
+   length unit using ``scale_units``. If ``normalize`` is ``True``, the
+   magnetic fields will be scaled by their local (in-plane) length, allowing
+   morphological features to be more clearly seen for fields with substantial
+   variation in field strength. Additional arguments can be passed to the
    ``plot_args`` dictionary, see matplotlib.axes.Axes.quiver for more info.
 
 .. python-script::
@@ -664,12 +664,12 @@ Overplot Quivers for the Velocity Field
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.VelocityCallback`.)
 
-   Adds a 'quiver' plot of velocity to the plot, skipping every ``factor`` 
-   datapoints in the discretization. ``scale`` is the data units per arrow 
-   length unit using ``scale_units``. If ``normalize`` is ``True``, the 
-   velocity fields will be scaled by their local (in-plane) length, allowing 
-   morphological features to be more clearly seen for fields with substantial 
-   variation in field strength. Additional arguments can be passed to the 
+   Adds a 'quiver' plot of velocity to the plot, skipping every ``factor``
+   datapoints in the discretization. ``scale`` is the data units per arrow
+   length unit using ``scale_units``. If ``normalize`` is ``True``, the
+   velocity fields will be scaled by their local (in-plane) length, allowing
+   morphological features to be more clearly seen for fields with substantial
+   variation in field strength. Additional arguments can be passed to the
    ``plot_args`` dictionary, see matplotlib.axes.Axes.quiver for more info.
 
 .. python-script::
@@ -718,7 +718,7 @@ Add a Physical Scale Bar
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. function:: annotate_scale(corner='lower_right', coeff=None, \
-                             unit=None, pos=None, 
+                             unit=None, pos=None,
                              scale_text_format="{scale} {units}", \
                              max_frac=0.16, min_frac=0.015, \
                              coord_system='axis', text_args=None, \
@@ -801,8 +801,8 @@ Annotate Mesh Lines Callback
    :class:`~yt.visualization.plot_modifications.MeshLinesCallback`.)
 
    This draws the mesh line boundaries over a plot using a Matplotlib
-   line collection. This callback is only useful for unstructured or 
-   semi-structured mesh datasets. 
+   line collection. This callback is only useful for unstructured or
+   semi-structured mesh datasets.
 
 .. python-script::
 

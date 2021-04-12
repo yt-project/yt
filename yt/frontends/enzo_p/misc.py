@@ -1,6 +1,5 @@
 import numpy as np
-
-from yt.funcs import ensure_tuple
+from more_itertools import always_iterable
 
 
 def bdecode(block):
@@ -66,7 +65,7 @@ def get_block_info(block, min_dim=3):
 
 def get_root_blocks(block, min_dim=3):
     mybs, dim = get_block_string_and_dim(block, min_dim=min_dim)
-    nb = np.ones(dim, dtype=int)
+    nb = np.ones(dim, dtype="int64")
     for i, myb in enumerate(mybs):
         if myb == "":
             continue
@@ -77,7 +76,7 @@ def get_root_blocks(block, min_dim=3):
 
 def get_root_block_id(block, min_dim=3):
     mybs, dim = get_block_string_and_dim(block, min_dim=min_dim)
-    rbid = np.zeros(dim, dtype=int)
+    rbid = np.zeros(dim, dtype="int64")
     for i, myb in enumerate(mybs):
         if myb == "":
             continue
@@ -115,12 +114,10 @@ def nested_dict_get(pdict, keys, default=None):
     then nested_dict_get(a, ('b', 'c')) returns 'd'.
     """
 
-    keys = ensure_tuple(keys)
     val = pdict
-    for key in keys:
-        if val is None:
-            break
-        val = val.get(key)
-    if val is None:
-        val = default
+    for key in always_iterable(keys):
+        try:
+            val = val[key]
+        except KeyError:
+            return default
     return val

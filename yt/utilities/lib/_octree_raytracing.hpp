@@ -279,7 +279,7 @@ private:
     */
     void proc_subtree(const F tx0, const F ty0, const F tz0,
                       const F tx1, const F ty1, const F tz1,
-                      const Node *n, const unsigned char a, 
+                      const Node *n, const unsigned char a,
                       keyVector &keyList, std::vector<F> &tList, int lvl=0) {
         // Check if exit face is not in our back
         if (tx1 < 0 || ty1 < 0 || tz1 < 0) return;
@@ -296,7 +296,7 @@ private:
             assert(n->children == nullptr);
             return;
         }
-        
+
         // Early break for leafs without children that aren't terminal
         if (n->children == nullptr) return;
 
@@ -350,7 +350,7 @@ private:
     }
 
     // From "An Efficient Parametric Algorithm for Octree Traversal" by Revelles, Urena, & Lastra
-    inline unsigned char first_node(const F tx0, const F ty0, const F tz0, 
+    inline unsigned char first_node(const F tx0, const F ty0, const F tz0,
                                     const F txm, const F tym, const F tzm) {
         unsigned char index = 0;
         if (tx0 >= std::max(ty0, tz0)) {         // enters YZ plane

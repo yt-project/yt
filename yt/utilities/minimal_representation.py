@@ -5,7 +5,7 @@ from uuid import uuid4
 
 import numpy as np
 
-from yt.funcs import compare_dicts, iterable
+from yt.funcs import compare_dicts, is_sequence
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.on_demand_imports import _h5py as h5py
 
@@ -47,7 +47,7 @@ def _deserialize_from_h5(g, ds):
         if item == "chunks":
             continue
         if "units" in g[item].attrs:
-            if iterable(g[item]):
+            if is_sequence(g[item]):
                 result[item] = ds.arr(g[item][:], g[item].attrs["units"])
             else:
                 result[item] = ds.quan(g[item][()], g[item].attrs["units"])
@@ -99,7 +99,7 @@ class MinimalRepresentation(metaclass=abc.ABCMeta):
 
     @property
     def _attrs(self):
-        return dict(((attr, getattr(self, attr)) for attr in self._attr_list))
+        return {attr: getattr(self, attr) for attr in self._attr_list}
 
     @classmethod
     def _from_metadata(cls, metadata):
@@ -168,7 +168,7 @@ class MinimalDataset(MinimalRepresentation):
     type = "simulation_output"
 
     def __init__(self, obj):
-        super(MinimalDataset, self).__init__(obj)
+        super().__init__(obj)
         self.output_hash = obj._hash()
         self.name = str(obj)
 
@@ -288,7 +288,7 @@ class MinimalNotebook(MinimalRepresentation):
     def __init__(self, filename, title=None):
         # First we read in the data
         if not os.path.isfile(filename):
-            raise IOError(filename)
+            raise OSError(filename)
         self.data = open(filename).read()
         if title is None:
             title = json.loads(self.data)["metadata"]["name"]

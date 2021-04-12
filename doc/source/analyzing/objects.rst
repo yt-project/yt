@@ -28,6 +28,7 @@ example for creating a ``Region`` object that covers all of your data volume.
 .. code-block:: python
 
    import yt
+
    ds = yt.load("RedshiftOutput0005")
    ad = ds.all_data()
 
@@ -37,8 +38,9 @@ Alternatively, we could create a sphere object of radius 1 kpc on location
 .. code-block:: python
 
    import yt
+
    ds = yt.load("RedshiftOutput0005")
-   sp = ds.sphere([0.5, 0.5, 0.5], (1, 'kpc'))
+   sp = ds.sphere([0.5, 0.5, 0.5], (1, "kpc"))
 
 After an object has been created, it can be used as a data_source to certain
 tasks like ``ProjectionPlot`` (see
@@ -51,8 +53,9 @@ dataset you could:
 .. code-block:: python
 
    import yt
+
    ds = yt.load("RedshiftOutput0005")
-   sp = ds.sphere([0.5, 0.5, 0.5], (1, 'kpc'))
+   sp = ds.sphere([0.5, 0.5, 0.5], (1, "kpc"))
 
    # Show all temperature values
    print(sp["temperature"])
@@ -61,16 +64,19 @@ dataset you could:
    print("(x,  y,  z) Temperature")
    print("-----------------------")
    for i in range(sp["temperature"].size):
-       print("(%f,  %f,  %f)    %f" %
-             (sp["x"][i], sp["y"][i], sp["z"][i], sp["temperature"][i]))
+       print(
+           "(%f,  %f,  %f)    %f"
+           % (sp["x"][i], sp["y"][i], sp["z"][i], sp["temperature"][i])
+       )
 
 Data objects can also be cloned; for instance:
 
 .. code-block:: python
 
    import yt
+
    ds = yt.load("RedshiftOutput0005")
-   sp = ds.sphere([0.5, 0.5, 0.5], (1, 'kpc'))
+   sp = ds.sphere([0.5, 0.5, 0.5], (1, "kpc"))
    sp_copy = sp.clone()
 
 This can be useful for when manually chunking data or exploring different field
@@ -131,7 +137,7 @@ instance, you could specify it like so:
 
 .. code-block:: python
 
-   ds.r[(100, 'kpc'):(200,'kpc'),:,:]
+   ds.r[(100, "kpc"):(200, "kpc"), :, :]
 
 This would return a region that included everything between 100 kpc from the
 left edge of the dataset to 200 kpc from the left edge of the dataset in the
@@ -145,7 +151,7 @@ can easily select, for instance, one hemisphere with a region selection:
 
 .. code-block:: python
 
-   ds.r[:,-180:0,:]
+   ds.r[:, -180:0, :]
 
 If you specify a single slice, it will be repeated along all three dimensions.
 For instance, this will give all data:
@@ -181,8 +187,7 @@ could supply:
 
 .. code-block:: python
 
-   region = ds.r[(20,'m'):(30,'m'):24j, (30,'m'):(40,'m'):24j,
-                 (7,'m'):(17,'m'):24j]
+   region = ds.r[(20, "m"):(30, "m"):24j, (30, "m"):(40, "m"):24j, (7, "m"):(17, "m"):24j]
 
 This can select both particles and mesh fields.  Mesh fields will be 3D arrays,
 and generated through volume-weighted overlap calculations.
@@ -197,21 +202,20 @@ you can very simply specify the full domain along two axes:
 
 .. code-block:: python
 
-    sl = ds.r[:,:,0.25]
+    sl = ds.r[:, :, 0.25]
 
 This can also be very easily plotted:
 
 .. code-block:: python
 
-   sl = ds.r[:,:,0.25]
+   sl = ds.r[:, :, 0.25]
    sl.plot()
 
 This accepts arguments the same way:
 
 .. code-block:: python
 
-   sl = ds.r[(20.1, 'km'):(31.0, 'km'), (504.143,'m'):(1000.0,'m'),
-             (900.1, 'm')]
+   sl = ds.r[(20.1, "km"):(31.0, "km"), (504.143, "m"):(1000.0, "m"), (900.1, "m")]
    sl.plot()
 
 Making Image Buffers
@@ -234,7 +238,7 @@ and it will return arrays of shape (1024, 1024).
 Making Rays
 ^^^^^^^^^^^
 
-The slicing syntax can also be used select 1D rays of points, whether along 
+The slicing syntax can also be used select 1D rays of points, whether along
 an axis or off-axis. To create a ray along an axis:
 
 .. code-block:: python
@@ -246,8 +250,8 @@ of the ray:
 
 .. code-block:: python
 
-   start = [0.1, 0.2, 0.3] # interpreted in code_length
-   end = [0.4, 0.5, 0.6] # interpreted in code_length
+   start = [0.1, 0.2, 0.3]  # interpreted in code_length
+   end = [0.4, 0.5, 0.6]  # interpreted in code_length
    ray = ds.r[start:end]
 
 As for the other slicing options, combinations of unitful quantities with even
@@ -268,14 +272,14 @@ works for rays directed along an axis:
 
 .. code-block:: python
 
-   ortho_ray = ds.r[(0.1:0.6:500j,0.3,0.2]
-    
+   ortho_ray = ds.r[0.1:0.6:500j, 0.3, 0.2]
+
 or off-axis rays as well:
 
 .. code-block:: python
 
-   start = [0.1, 0.2, 0.3] # interpreted in code_length
-   end = [0.4, 0.5, 0.6] # interpreted in code_length
+   start = [0.1, 0.2, 0.3]  # interpreted in code_length
+   end = [0.4, 0.5, 0.6]  # interpreted in code_length
    ray = ds.r[start:end:100j]
 
 Selecting Points
@@ -286,7 +290,7 @@ a single coordinate for every axis:
 
 .. code-block:: python
 
-   pt = ds.r[(10.0, 'km'), (200, 'm'), (1.0,'km')]
+   pt = ds.r[(10.0, "km"), (200, "m"), (1.0, "km")]
 
 Querying this object for fields will give you the value of the field at that
 point.
@@ -517,19 +521,25 @@ all the cells contained in a sphere at the center of our dataset.
 .. code-block:: python
 
    import yt
+
    ds = yt.load("my_data")
-   sp = ds.sphere('c', (10, 'kpc'))
+   sp = ds.sphere("c", (10, "kpc"))
    print(sp.quantities.angular_momentum_vector())
 
-Some quantities can be calculated for a specific particle type only. For example, to 
+Some quantities can be calculated for a specific particle type only. For example, to
 get the center of mass of only the stars within the sphere:
 
 .. code-block:: python
 
    import yt
+
    ds = yt.load("my_data")
-   sp = ds.sphere('c',(10,'kpc'))
-   print(sp.quantities.center_of_mass(use_gas=False,use_particles=True,particle_type='star'))
+   sp = ds.sphere("c", (10, "kpc"))
+   print(
+       sp.quantities.center_of_mass(
+           use_gas=False, use_particles=True, particle_type="star"
+       )
+   )
 
 
 Quickly Processing Data
@@ -550,6 +560,7 @@ after ``max`` will be considerably faster.  Here is an example.
 .. code-block:: python
 
    import yt
+
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    reg = ds.r[0.3:0.6, 0.2:0.4, 0.9:0.95]
    min_rho = reg.min("density")
@@ -593,8 +604,7 @@ This is equivalent to:
 .. code-block:: python
 
    mean_rho = reg.quantities.weighted_average("density", weight_field="ones")
-   rho_by_vol = reg.quantities.weighted_average("density",
-                     weight_field="cell_volume")
+   rho_by_vol = reg.quantities.weighted_average("density", weight_field="cell_volume")
 
 If an axis is provided, it will project along that axis and return it to you:
 
@@ -658,7 +668,7 @@ Available Derived Quantities
     | Class :class:`~yt.data_objects.derived_quantities.BulkVelocity`
     | Usage: ``bulk_velocity(use_gas=True, use_particles=True, particle_type='all')``
     | The mass-weighted average velocity of the particles, gas, or both.
-      The quantity can be calculated for all particles or a given 
+      The quantity can be calculated for all particles or a given
       particle_type only.
 
 **Center of Mass**
@@ -700,7 +710,7 @@ Available Derived Quantities
 **Spin Parameter**
     | Class :class:`~yt.data_objects.derived_quantities.SpinParameter`
     | Usage: ``spin_parameter(use_gas=True, use_particles=True, particle_type='all')``
-    | The spin parameter for the baryons using the particles, gas, or both. The 
+    | The spin parameter for the baryons using the particles, gas, or both. The
       quantity can be calculated for all particles or a given particle_type only.
 
 **Total Mass**
@@ -721,12 +731,12 @@ Available Derived Quantities
       over an entire data object.  If you want an unweighted average,
       then set your weight to be the field: ``ones``.
 
-**Weighted Variance of a Field**
-    | Class :class:`~yt.data_objects.derived_quantities.WeightedVariance`
-    | Usage: ``weighted_variance(fields, weight)``
-    | The weighted variance of a field (or list of fields)
+**Weighted Standard Deviation of a Field**
+    | Class :class:`~yt.data_objects.derived_quantities.WeightedStandardDeviation`
+    | Usage: ``weighted_standard_deviation(fields, weight)``
+    | The weighted standard deviation of a field (or list of fields)
       over an entire data object and the weighted mean.
-      If you want an unweighted variance, then
+      If you want an unweighted standard deviation, then
       set your weight to be the field: ``ones``.
 
 .. _arbitrary-grid:
@@ -751,10 +761,10 @@ the deposited particle density, like so:
 .. code-block:: python
 
    import yt
+
    ds = yt.load("snapshot_010.hdf5")
 
-   obj = ds.arbitrary_grid([0.0, 0.0, 0.0], [0.99, 0.99, 0.99],
-                          dims=[128, 128, 128])
+   obj = ds.arbitrary_grid([0.0, 0.0, 0.0], [0.99, 0.99, 0.99], dims=[128, 128, 128])
    print(obj["deposit", "all_density"])
 
 While these cannot yet be used as input to projections or slices, slices and
@@ -783,6 +793,7 @@ Here are some examples:
 .. code-block:: python
 
    import yt
+
    ds = yt.load("snapshot_010.hdf5")
 
    sp1 = ds.sphere("c", (0.1, "unitary"))
@@ -804,13 +815,14 @@ will yield slightly higher performance than a sequence of calls to ``+`` or
 .. code-block:: python
 
    import yt
-   ds = yt.load("Enzo_64/DD0043/data0043")
-   sp1 = ds.sphere( (0.1, 0.2, 0.3), (0.05, "unitary"))
-   sp2 = ds.sphere( (0.2, 0.2, 0.3), (0.10, "unitary"))
-   sp3 = ds.sphere( (0.3, 0.2, 0.3), (0.15, "unitary"))
 
-   isp = ds.intersection( [sp1, sp2, sp3] )
-   usp = ds.union( [sp1, sp2, sp3] )
+   ds = yt.load("Enzo_64/DD0043/data0043")
+   sp1 = ds.sphere((0.1, 0.2, 0.3), (0.05, "unitary"))
+   sp2 = ds.sphere((0.2, 0.2, 0.3), (0.10, "unitary"))
+   sp3 = ds.sphere((0.3, 0.2, 0.3), (0.15, "unitary"))
+
+   isp = ds.intersection([sp1, sp2, sp3])
+   usp = ds.union([sp1, sp2, sp3])
 
 The ``isp`` and ``usp`` objects will act the same as a set of chained ``&`` and
 ``|`` operations (respectively) but are somewhat easier to construct.
@@ -835,9 +847,8 @@ whether or not to conduct it in log space.
 
 .. code-block:: python
 
-   sp = ds.sphere("max", (1.0, 'pc'))
-   contour_values, connected_sets = sp.extract_connected_sets(
-        "density", 3, 1e-30, 1e-20)
+   sp = ds.sphere("max", (1.0, "pc"))
+   contour_values, connected_sets = sp.extract_connected_sets("density", 3, 1e-30, 1e-20)
 
 The first item, ``contour_values``, will be an array of the min value for each
 set of level sets.  The second (``connected_sets``) will be a dict of dicts.

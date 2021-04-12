@@ -22,8 +22,7 @@ cdef class ObjectPool:
     cdef np.uint64_t n_con
     cdef AllocationContainer* containers
     cdef void allocate_objs(self, int n_objs, np.int64_t con_id = ?) except *
-    cdef void setup_objs(self, void *obj, np.uint64_t count, 
+    cdef void setup_objs(self, void *obj, np.uint64_t count,
                          np.uint64_t offset, np.int64_t con_id)
     cdef void teardown_objs(self, void *obj, np.uint64_t n, np.uint64_t offset,
                            np.int64_t con_id)
-

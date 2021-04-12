@@ -19,7 +19,7 @@ class IOHandlerSPH(BaseIOHandler):
     def _count_particles_chunks(self, psize, chunks, ptf, selector):
         if getattr(selector, "is_all_data", False):
             chunks = list(chunks)
-            data_files = set([])
+            data_files = set()
             for chunk in chunks:
                 for obj in chunk.objs:
                     data_files.update(obj.data_files)

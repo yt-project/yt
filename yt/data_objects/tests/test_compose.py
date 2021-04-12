@@ -7,7 +7,7 @@ from yt.units.yt_array import YTArray, uintersect1d
 def setup():
     from yt.config import ytcfg
 
-    ytcfg["yt", "__withintesting"] = "True"
+    ytcfg["yt", "internals", "within_testing"] = True
 
 
 # Copied from test_boolean for computing a unique identifier for

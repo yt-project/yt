@@ -1,4 +1,3 @@
-import io
 import os
 import re
 import string
@@ -7,12 +6,13 @@ import weakref
 from collections import defaultdict
 
 import numpy as np
+from more_itertools import always_iterable
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.fields.field_info_container import NullFunc
 from yt.frontends.enzo.misc import cosmology_get_units
-from yt.funcs import ensure_list, ensure_tuple, get_pbar, setdefaultattr
+from yt.funcs import get_pbar, iter_fields, setdefaultattr
 from yt.geometry.geometry_handler import YTDataChunk
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.logger import ytLogger as mylog
@@ -72,10 +72,10 @@ class EnzoGrid(AMRGridPatch):
         if not hasattr(self.index, "grid_active_particle_count"):
             return {}
         id = self.id - self._id_offset
-        nap = dict(
-            (ptype, self.index.grid_active_particle_count[ptype][id])
+        nap = {
+            ptype: self.index.grid_active_particle_count[ptype][id]
             for ptype in self.index.grid_active_particle_count
-        )
+        }
         return nap
 
 
@@ -129,7 +129,7 @@ class EnzoGridGZ(EnzoGrid):
         sl = tuple([slice(start_zone, end_zone) for i in range(3)])
         if fields is None:
             return cube
-        for field in ensure_list(fields):
+        for field in iter_fields(fields):
             if field in self.field_list:
                 conv_factor = 1.0
                 if field in self.ds.field_info:
@@ -157,7 +157,7 @@ class EnzoHierarchy(GridIndex):
             self._bn = "%s.cpu%%04i"
         self.index_filename = os.path.abspath(f"{ds.parameter_filename}.hierarchy")
         if os.path.getsize(self.index_filename) == 0:
-            raise IOError(-1, "File empty", self.index_filename)
+            raise OSError(-1, "File empty", self.index_filename)
         self.directory = os.path.dirname(self.index_filename)
 
         # For some reason, r8 seems to want Float64
@@ -225,7 +225,7 @@ class EnzoHierarchy(GridIndex):
 
         pattern = r"Pointer: Grid\[(\d*)\]->NextGrid(Next|This)Level = (\d*)\s+$"
         patt = re.compile(pattern)
-        f = open(self.index_filename, "rt")
+        f = open(self.index_filename)
         self.grids = [self.grid(1, self)]
         self.grids[0].Level = 0
         si, ei, LE, RE, fn, npart = [], [], [], [], [], []
@@ -236,12 +236,12 @@ class EnzoHierarchy(GridIndex):
             version = float(params["Internal"]["Provenance"]["VersionNumber"])
         if version >= 3.0:
             active_particles = True
-            nap = dict(
-                (ap_type, [])
+            nap = {
+                ap_type: []
                 for ap_type in params["Physics"]["ActiveParticles"][
                     "ActiveParticlesEnabled"
                 ]
-            )
+            }
         else:
             if "AppendActiveParticleType" in self.parameters:
                 nap = {}
@@ -289,14 +289,14 @@ class EnzoHierarchy(GridIndex):
         self.filenames = fn
 
     def _initialize_grid_arrays(self):
-        super(EnzoHierarchy, self)._initialize_grid_arrays()
+        super()._initialize_grid_arrays()
         if "AppendActiveParticleType" in self.parameters.keys() and len(
             self.parameters["AppendActiveParticleType"]
         ):
-            gac = dict(
-                (ptype, np.zeros(self.num_grids, dtype="i4"))
+            gac = {
+                ptype: np.zeros(self.num_grids, dtype="i4")
                 for ptype in self.parameters["AppendActiveParticleType"]
-            )
+            }
             self.grid_active_particle_count = gac
 
     def _fill_arrays(self, ei, si, LE, RE, npart, nap):
@@ -360,7 +360,7 @@ class EnzoHierarchy(GridIndex):
 
     def _detect_active_particle_fields(self):
         ap_list = self.dataset["AppendActiveParticleType"]
-        _fields = dict((ap, []) for ap in ap_list)
+        _fields = {ap: [] for ap in ap_list}
         fields = []
         for ptype in self.dataset["AppendActiveParticleType"]:
             select_grids = self.grid_active_particle_count[ptype].flat
@@ -370,24 +370,32 @@ class EnzoHierarchy(GridIndex):
                 self.dataset.particle_types = new_ptypes
                 self.dataset.particle_types_raw = new_ptypes
                 continue
-            gs = self.grids[select_grids > 0]
-            g = gs[0]
-            handle = h5py.File(g.filename, mode="r")
-            node = handle["/Grid%08i/Particles/" % g.id]
-            for ptype in (str(p) for p in node):
-                if ptype not in _fields:
-                    continue
-                for field in (str(f) for f in node[ptype]):
-                    _fields[ptype].append(field)
-                    sh = node[ptype][field].shape
-                    if len(sh) > 1:
-                        self.io._array_fields[field] = (sh[1],)
-                fields += [(ptype, field) for field in _fields.pop(ptype)]
-            handle.close()
+            if ptype != "DarkMatter":
+                gs = self.grids[select_grids > 0]
+                g = gs[0]
+                handle = h5py.File(g.filename, "r")
+                grid_group = handle[f"/Grid{g.id:08d}"]
+                for pname in ["Active Particles", "Particles"]:
+                    if pname in grid_group:
+                        break
+                else:
+                    raise RuntimeError("Could not find active particle group in data.")
+                node = grid_group[pname]
+                for ptype in (str(p) for p in node):
+                    if ptype not in _fields:
+                        continue
+                    for field in (str(f) for f in node[ptype]):
+                        _fields[ptype].append(field)
+                        if node[ptype][field].ndim > 1:
+                            self.io._array_fields[field] = (
+                                node[ptype][field].shape[1:],
+                            )
+                    fields += [(ptype, field) for field in _fields.pop(ptype)]
+                handle.close()
         return set(fields)
 
     def _setup_derived_fields(self):
-        super(EnzoHierarchy, self)._setup_derived_fields()
+        super()._setup_derived_fields()
         aps = self.dataset.parameters.get("AppendActiveParticleType", [])
         for fname, field in self.ds.field_info.items():
             if not field.sampling_type == "particle":
@@ -414,7 +422,7 @@ class EnzoHierarchy(GridIndex):
                 try:
                     gf = self.io._read_field_names(grid)
                 except self.io._read_exception as e:
-                    raise IOError("Grid %s is a bit funky?", grid.id) from e
+                    raise OSError("Grid %s is a bit funky?", grid.id) from e
                 mylog.debug("Grid %s has: %s", grid.id, gf)
                 field_list = field_list.union(gf)
             if "AppendActiveParticleType" in self.dataset.parameters:
@@ -467,7 +475,7 @@ class EnzoHierarchy(GridIndex):
                 ret[ptype] = self.grid_active_particle_count[ptype].sum()
             return ret
         except AttributeError:
-            return super(EnzoHierarchy, self)._get_particle_type_counts()
+            return super()._get_particle_type_counts()
 
     def find_particles_by_type(self, ptype, max_num=None, additional_fields=None):
         """
@@ -759,7 +767,7 @@ class EnzoDataset(Dataset):
         dictionaries.
         """
         # Let's read the file
-        with io.open(self.parameter_filename, "r") as f:
+        with open(self.parameter_filename) as f:
             line = f.readline().strip()
             f.seek(0)
             if line == "Internal:":
@@ -773,7 +781,7 @@ class EnzoDataset(Dataset):
         internal = p["Internal"]
         phys = p["Physics"]
         self.refine_by = sim["AMR"]["RefineBy"]
-        self.periodicity = tuple(
+        self._periodicity = tuple(
             a == 3 for a in sim["Domain"]["LeftFaceBoundaryCondition"]
         )
         self.dimensionality = sim["Domain"]["TopGridRank"]
@@ -797,11 +805,11 @@ class EnzoDataset(Dataset):
             self.omega_matter = cosmo["OmegaMatterNow"]
             self.hubble_constant = cosmo["HubbleConstantNow"]
         else:
-            self.current_redshift = (
-                self.omega_lambda
-            ) = (
-                self.omega_matter
-            ) = self.hubble_constant = self.cosmological_simulation = 0.0
+            self.current_redshift = 0.0
+            self.omega_lambda = 0.0
+            self.omega_matter = 0.0
+            self.hubble_constant = 0.0
+            self.cosmological_simulation = 0
         self.particle_types = ["DarkMatter"] + phys["ActiveParticles"][
             "ActiveParticlesEnabled"
         ]
@@ -852,8 +860,8 @@ class EnzoDataset(Dataset):
             else:
                 self.parameters[param] = vals
         self.refine_by = self.parameters["RefineBy"]
-        self.periodicity = ensure_tuple(
-            self.parameters["LeftFaceBoundaryCondition"] == 3
+        _periodicity = tuple(
+            always_iterable(self.parameters["LeftFaceBoundaryCondition"] == 3)
         )
         self.dimensionality = self.parameters["TopGridRank"]
         if "MetaDataDatasetUUID" in self.parameters:
@@ -866,7 +874,7 @@ class EnzoDataset(Dataset):
                 tmp = self.domain_dimensions.tolist()
                 tmp.append(1)
                 self.domain_dimensions = np.array(tmp)
-                self.periodicity += (False,)
+                _periodicity += (False,)
             self.domain_left_edge = np.array(
                 self.parameters["DomainLeftEdge"], "float64"
             ).copy()
@@ -883,7 +891,9 @@ class EnzoDataset(Dataset):
             self.domain_dimensions = np.array(
                 [self.parameters["TopGridDimensions"], 1, 1]
             )
-            self.periodicity += (False, False)
+            _periodicity += (False, False)
+        assert len(_periodicity) == 3
+        self._periodicity = _periodicity
 
         self.gamma = self.parameters["Gamma"]
         if self.parameters["ComovingCoordinates"]:
@@ -896,11 +906,11 @@ class EnzoDataset(Dataset):
             )
             self.hubble_constant = self.parameters["CosmologyHubbleConstantNow"]
         else:
-            self.current_redshift = (
-                self.omega_lambda
-            ) = (
-                self.omega_matter
-            ) = self.hubble_constant = self.cosmological_simulation = 0.0
+            self.current_redshift = 0.0
+            self.omega_lambda = 0.0
+            self.omega_matter = 0.0
+            self.hubble_constant = 0.0
+            self.cosmological_simulation = 0
         self.particle_types = []
         self.current_time = self.parameters["InitialTime"]
         if (
@@ -971,10 +981,10 @@ class EnzoDataset(Dataset):
         setdefaultattr(self, "magnetic_unit", self.quan(magnetic_unit, "gauss"))
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
-        if (f"{args[0]}").endswith(".hierarchy"):
+    def _is_valid(cls, filename, *args, **kwargs):
+        if str(filename).endswith(".hierarchy"):
             return True
-        return os.path.exists(f"{args[0]}.hierarchy")
+        return os.path.exists(f"{filename}.hierarchy")
 
     @classmethod
     def _guess_candidates(cls, base, directories, files):
@@ -1030,8 +1040,8 @@ class EnzoDatasetInMemory(EnzoDataset):
         for p, v in self._conversion_override.items():
             self.conversion_factors[p] = v
         self.refine_by = self.parameters["RefineBy"]
-        self.periodicity = ensure_tuple(
-            self.parameters["LeftFaceBoundaryCondition"] == 3
+        self._periodicity = tuple(
+            always_iterable(self.parameters["LeftFaceBoundaryCondition"] == 3)
         )
         self.dimensionality = self.parameters["TopGridRank"]
         self.domain_dimensions = self.parameters["TopGridDimensions"]
@@ -1045,11 +1055,11 @@ class EnzoDatasetInMemory(EnzoDataset):
             self.omega_matter = self.parameters["CosmologyOmegaMatterNow"]
             self.hubble_constant = self.parameters["CosmologyHubbleConstantNow"]
         else:
-            self.current_redshift = (
-                self.omega_lambda
-            ) = (
-                self.omega_matter
-            ) = self.hubble_constant = self.cosmological_simulation = 0.0
+            self.current_redshift = 0.0
+            self.omega_lambda = 0.0
+            self.omega_matter = 0.0
+            self.hubble_constant = 0.0
+            self.cosmological_simulation = 0
 
     def _obtain_enzo(self):
         import enzo
@@ -1057,7 +1067,7 @@ class EnzoDatasetInMemory(EnzoDataset):
         return enzo
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         return False
 
 
@@ -1102,6 +1112,5 @@ def rlines(f, keepends=False):
         if lines:
             lines.reverse()
             buf = lines.pop()  # Last line becomes end of new first line.
-            for line in lines:
-                yield line
+            yield from lines
     yield buf  # First line.

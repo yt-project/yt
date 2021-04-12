@@ -13,14 +13,17 @@ from yt.testing import (
 def setup():
     from yt.config import ytcfg
 
-    ytcfg["yt", "__withintesting"] = "True"
+    ytcfg["yt", "internals", "within_testing"] = True
 
 
 def test_cut_region():
     # We decompose in different ways
     for nprocs in [1, 2, 4, 8]:
         ds = fake_random_ds(
-            64, nprocs=nprocs, fields=("density", "temperature", "velocity_x")
+            64,
+            nprocs=nprocs,
+            fields=("density", "temperature", "velocity_x"),
+            units=("g/cm**3", "K", "cm/s"),
         )
         # We'll test two objects
         dd = ds.all_data()

@@ -57,12 +57,12 @@ const npy_uint8 hex_face_defs[MAX_NUM_FACES][2][2] = {
 };
 
 /* http://www.mscsoftware.com/training_videos/patran/Reverb_help/index.html#page/Finite%2520Element%2520Modeling/elem_lib_topics.16.6.html
- 
+
   F1    1   2   3
   F2    1   5   4
   F3    2   6   5
   F4    3   4   6
- 
+
   The edges are then defined by:
   E1    1   2
   E2    2   3
@@ -98,7 +98,7 @@ const npy_uint8 tetra_face_defs[MAX_NUM_FACES][2][2] = {
   F3    1   8   4   7
   F4    2   9   5   8
   F5    3   7   6   9
- 
+
   The edges are then defined by:
   E1    2   1
   E2    1   3

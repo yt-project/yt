@@ -114,4 +114,3 @@ cdef class OrthoRaySelector(SelectorObject):
         return ("px_ax", "py_ax", "px", "py", "axis")
 
 ortho_ray_selector = OrthoRaySelector
-

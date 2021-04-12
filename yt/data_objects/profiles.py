@@ -3,13 +3,7 @@ import numpy as np
 from yt.data_objects.field_data import YTFieldData
 from yt.fields.derived_field import DerivedField
 from yt.frontends.ytdata.utilities import save_as_dataset
-from yt.funcs import (
-    ensure_list,
-    get_output_filename,
-    issue_deprecation_warning,
-    iterable,
-    mylog,
-)
+from yt.funcs import get_output_filename, is_sequence, iter_fields, mylog
 from yt.units.unit_object import Unit
 from yt.units.yt_array import YTQuantity, array_like_field
 from yt.utilities.exceptions import (
@@ -91,15 +85,6 @@ class ProfileND(ParallelAnalysisInterface):
         self.weight_field = weight_field
         self.field_units = {}
         ParallelAnalysisInterface.__init__(self, comm=data_source.comm)
-
-    @property
-    def variance(self):
-        issue_deprecation_warning(
-            """
-profile.variance incorrectly returns the profile standard deviation and has
-been deprecated, use profile.standard_deviation instead."""
-        )
-        return self.standard_deviation
 
     def add_fields(self, fields):
         """Add fields to profile
@@ -381,9 +366,7 @@ been deprecated, use profile.standard_deviation instead."""
         std = "standard_deviation"
         if self.weight_field is not None:
             std_data = getattr(self, std)
-            data.update(
-                dict(((std, field[1]), std_data[field]) for field in self.field_data)
-            )
+            data.update({(std, field[1]): std_data[field] for field in self.field_data})
 
         dimensionality = 0
         bin_data = []
@@ -406,9 +389,9 @@ been deprecated, use profile.standard_deviation instead."""
             data[getattr(self, f"{ax}_field")] = bin_fields[i]
 
         extra_attrs["dimensionality"] = dimensionality
-        ftypes = dict([(field, "data") for field in data if field[0] != std])
+        ftypes = {field: "data" for field in data if field[0] != std}
         if self.weight_field is not None:
-            ftypes.update(dict(((std, field[1]), std) for field in self.field_data))
+            ftypes.update({(std, field[1]): std for field in self.field_data})
         save_as_dataset(
             self.ds, filename, data, field_types=ftypes, extra_attrs=extra_attrs
         )
@@ -492,7 +475,7 @@ class Profile1D(ProfileND):
         weight_field=None,
         override_bins_x=None,
     ):
-        super(Profile1D, self).__init__(data_source, weight_field)
+        super().__init__(data_source, weight_field)
         self.x_field = data_source._determine_fields(x_field)[0]
         self.field_info[self.x_field] = self.data_source.ds.field_info[self.x_field]
         self.x_log = x_log
@@ -566,7 +549,6 @@ class Profile1D(ProfileND):
         if fields is None:
             fields = self.field_data.keys()
         else:
-            fields = ensure_list(fields)
             fields = self.data_source._determine_fields(fields)
         return idxs, masked, fields
 
@@ -600,12 +582,10 @@ class Profile1D(ProfileND):
         >>> df1 = p.to_dataframe()
         >>> df2 = p.to_dataframe(fields="density", only_used=True)
         """
-        from collections import OrderedDict
-
-        import pandas as pd
+        from yt.utilities.on_demand_imports import _pandas as pd
 
         idxs, masked, fields = self._export_prep(fields, only_used)
-        pdata = OrderedDict([(self.x_field[-1], self.x[idxs])])
+        pdata = {self.x_field[-1]: self.x[idxs]}
         for field in fields:
             pdata[field[-1]] = self[field][idxs]
         df = pd.DataFrame(pdata)
@@ -731,7 +711,7 @@ class Profile2D(ProfileND):
         override_bins_x=None,
         override_bins_y=None,
     ):
-        super(Profile2D, self).__init__(data_source, weight_field)
+        super().__init__(data_source, weight_field)
         # X
         self.x_field = data_source._determine_fields(x_field)[0]
         self.x_log = x_log
@@ -908,7 +888,7 @@ class ParticleProfile(Profile2D):
 
         # set the log parameters to False (since that doesn't make much sense
         # for deposited data) and also turn off the weight field.
-        super(ParticleProfile, self).__init__(
+        super().__init__(
             data_source,
             x_field,
             x_n,
@@ -1056,7 +1036,7 @@ class Profile3D(ProfileND):
         override_bins_y=None,
         override_bins_z=None,
     ):
-        super(Profile3D, self).__init__(data_source, weight_field)
+        super().__init__(data_source, weight_field)
         # X
         self.x_field = data_source._determine_fields(x_field)[0]
         self.x_log = x_log
@@ -1271,7 +1251,7 @@ def create_profile(
 
     """
     bin_fields = data_source._determine_fields(bin_fields)
-    fields = ensure_list(fields)
+    fields = list(iter_fields(fields))
     is_pfield = [
         data_source.ds._get_field_info(f).sampling_type == "particle"
         for f in bin_fields + fields
@@ -1339,9 +1319,9 @@ def create_profile(
         wf = data_source.ds._get_field_info(weight_field)
         if not wf.sampling_type == "particle":
             weight_field = None
-    if not iterable(n_bins):
+    if not is_sequence(n_bins):
         n_bins = [n_bins] * len(bin_fields)
-    if not iterable(accumulation):
+    if not is_sequence(accumulation):
         accumulation = [accumulation] * len(bin_fields)
     if logs is None:
         logs = {}
@@ -1373,7 +1353,7 @@ def create_profile(
                     field_ex = list(extrema[bin_field])
                 except KeyError:
                     raise RuntimeError(
-                        "Could not find field {0} or {1} in extrema".format(
+                        "Could not find field {} or {} in extrema".format(
                             bin_field[-1], bin_field
                         )
                     ) from e
@@ -1407,10 +1387,10 @@ def create_profile(
                     fe = data_source.ds.arr(field_ex, bf_units)
             fe.convert_to_units(bf_units)
             field_ex = [fe[0].v, fe[1].v]
-            if iterable(field_ex[0]):
+            if is_sequence(field_ex[0]):
                 field_ex[0] = data_source.ds.quan(field_ex[0][0], field_ex[0][1])
                 field_ex[0] = field_ex[0].in_units(bf_units)
-            if iterable(field_ex[1]):
+            if is_sequence(field_ex[1]):
                 field_ex[1] = data_source.ds.quan(field_ex[1][0], field_ex[1][1])
                 field_ex[1] = field_ex[1].in_units(bf_units)
             ex.append(field_ex)

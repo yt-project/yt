@@ -16,10 +16,10 @@ class GAMERFieldInfo(FieldInfoContainer):
     known_other_fields = (
         # hydro fields on disk (GAMER outputs conservative variables)
         ("Dens", (rho_units, ["density"], r"\rho")),
-        ("MomX", (mom_units, ["momentum_x"], None)),
-        ("MomY", (mom_units, ["momentum_y"], None)),
-        ("MomZ", (mom_units, ["momentum_z"], None)),
-        ("Engy", (erg_units, ["total_energy_per_volume"], None)),
+        ("MomX", (mom_units, ["momentum_density_x"], None)),
+        ("MomY", (mom_units, ["momentum_density_y"], None)),
+        ("MomZ", (mom_units, ["momentum_density_z"], None)),
+        ("Engy", (erg_units, ["total_energy_density"], None)),
         ("Pote", (pot_units, ["gravitational_potential"], None)),
         # MHD fields on disk (CC=cell-centered)
         ("CCMagX", (b_units, [], "B_x")),
@@ -45,7 +45,7 @@ class GAMERFieldInfo(FieldInfoContainer):
     )
 
     def __init__(self, ds, field_list):
-        super(GAMERFieldInfo, self).__init__(ds, field_list)
+        super().__init__(ds, field_list)
 
     # add primitive and other derived variables
     def setup_fluid_fields(self):
@@ -56,7 +56,7 @@ class GAMERFieldInfo(FieldInfoContainer):
         # velocity
         def velocity_xyz(v):
             def _velocity(field, data):
-                return data["gas", f"momentum_{v}"] / data["gas", "density"]
+                return data["gas", f"momentum_density_{v}"] / data["gas", "density"]
 
             return _velocity
 
@@ -70,12 +70,12 @@ class GAMERFieldInfo(FieldInfoContainer):
 
         # ============================================================================
         # note that yt internal fields assume
-        #    [thermal_energy]          = [energy per mass]
-        #    [kinetic_energy]          = [energy per volume]
-        #    [magnetic_energy]         = [energy per volume]
+        #    [specific_thermal_energy]          = [energy per mass]
+        #    [kinetic_energy_density]           = [energy per volume]
+        #    [magnetic_energy_density]          = [energy per volume]
         # and we further adopt
-        #    [total_energy]            = [energy per mass]
-        #    [total_energy_per_volume] = [energy per volume]
+        #    [specific_total_energy]            = [energy per mass]
+        #    [total_energy_density]             = [energy per volume]
         # ============================================================================
 
         # kinetic energy per volume
@@ -95,28 +95,28 @@ class GAMERFieldInfo(FieldInfoContainer):
             Et = data["gamer", "Engy"] - ek(data)
             if self.ds.mhd:
                 # magnetic_energy is a yt internal field
-                Et -= data["gas", "magnetic_energy"]
+                Et -= data["gas", "magnetic_energy_density"]
             return Et
 
         # thermal energy per mass (i.e., specific)
-        def _thermal_energy(field, data):
+        def _specific_thermal_energy(field, data):
             return et(data) / data["gamer", "Dens"]
 
         self.add_field(
-            ("gas", "thermal_energy"),
+            ("gas", "specific_thermal_energy"),
             sampling_type="cell",
-            function=_thermal_energy,
+            function=_specific_thermal_energy,
             units=unit_system["specific_energy"],
         )
 
         # total energy per mass
-        def _total_energy(field, data):
+        def _specific_total_energy(field, data):
             return data["gamer", "Engy"] / data["gamer", "Dens"]
 
         self.add_field(
-            ("gas", "total_energy"),
+            ("gas", "specific_total_energy"),
             sampling_type="cell",
-            function=_total_energy,
+            function=_specific_total_energy,
             units=unit_system["specific_energy"],
         )
 
@@ -165,4 +165,4 @@ class GAMERFieldInfo(FieldInfoContainer):
             setup_magnetic_field_aliases(self, "gamer", [f"CCMag{v}" for v in "XYZ"])
 
     def setup_particle_fields(self, ptype):
-        super(GAMERFieldInfo, self).setup_particle_fields(ptype)
+        super().setup_particle_fields(ptype)

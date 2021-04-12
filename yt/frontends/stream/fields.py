@@ -10,7 +10,7 @@ class StreamFieldInfo(FieldInfoContainer):
         ),
         ("number_density", ("1/code_length**3", ["number_density"], None)),
         ("pressure", ("dyne/code_length**2", ["pressure"], None)),
-        ("thermal_energy", ("erg / g", ["thermal_energy"], None)),
+        ("specific_thermal_energy", ("erg / g", ["specific_thermal_energy"], None)),
         ("temperature", ("K", ["temperature"], None)),
         ("velocity_x", ("code_length/code_time", ["velocity_x"], None)),
         ("velocity_y", ("code_length/code_time", ["velocity_y"], None)),
@@ -94,4 +94,4 @@ class StreamFieldInfo(FieldInfoContainer):
     def add_output_field(self, name, sampling_type, **kwargs):
         if name in self.ds.stream_handler.field_units:
             kwargs["units"] = self.ds.stream_handler.field_units[name]
-        super(StreamFieldInfo, self).add_output_field(name, sampling_type, **kwargs)
+        super().add_output_field(name, sampling_type, **kwargs)

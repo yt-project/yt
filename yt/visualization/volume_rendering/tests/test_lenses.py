@@ -13,7 +13,7 @@ def setup():
     """Test specific setup."""
     from yt.config import ytcfg
 
-    ytcfg["yt", "__withintesting"] = "True"
+    ytcfg["yt", "internals", "within_testing"] = True
 
 
 class LensTest(TestCase):
@@ -30,7 +30,7 @@ class LensTest(TestCase):
             self.curdir, self.tmpdir = None, None
 
         self.field = ("gas", "density")
-        self.ds = fake_random_ds(32, fields=self.field)
+        self.ds = fake_random_ds(32, fields=(self.field,), units=("g/cm**3",))
         self.ds.index
 
     def tearDown(self):

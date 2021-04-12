@@ -4,7 +4,6 @@ from collections import defaultdict
 
 import numpy as np
 
-import yt.geometry.particle_deposit as particle_deposit
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.index_subobjects.octree_subset import OctreeSubset
 from yt.data_objects.particle_unions import ParticleUnion
@@ -17,6 +16,7 @@ from yt.frontends.artio._artio_caller import (
 )
 from yt.frontends.artio.fields import ARTIOFieldInfo
 from yt.funcs import mylog, setdefaultattr
+from yt.geometry import particle_deposit as particle_deposit
 from yt.geometry.geometry_handler import Index, YTDataChunk
 from yt.utilities.exceptions import YTParticleDepositionNotImplemented
 
@@ -67,7 +67,7 @@ class ARTIOOctreeSubset(OctreeSubset):
         self.oct_handler.fill_sfc(
             levels, cell_inds, file_inds, domain_counts, field_indices, tr
         )
-        tr = dict((field, v) for field, v in zip(fields, tr))
+        tr = {field: v for field, v in zip(fields, tr)}
         return tr
 
     def fill_particles(self, fields):
@@ -113,7 +113,7 @@ class ARTIORootMeshSubset(ARTIOOctreeSubset):
         ]
         tr = self.oct_handler.fill_sfc(selector, field_indices)
         self.data_size = tr[0].size
-        tr = dict((field, v) for field, v in zip(fields, tr))
+        tr = {field: v for field, v in zip(fields, tr)}
         return tr
 
     def deposit(self, positions, fields=None, method=None, kernel_name="cubic"):
@@ -154,7 +154,7 @@ class ARTIOIndex(Index):
         self.max_level = ds.max_level
         self.range_handlers = {}
         self.float_type = np.float64
-        super(ARTIOIndex, self).__init__(ds, dataset_type)
+        super().__init__(ds, dataset_type)
 
     @property
     def max_range(self):
@@ -483,10 +483,10 @@ class ARTIODataset(Dataset):
             self.parameters["unit_m"] = self.artio_parameters["mass_unit"][0]
 
         # hard coded assumption of 3D periodicity
-        self.periodicity = (True, True, True)
+        self._periodicity = (True, True, True)
 
     def create_field_info(self):
-        super(ARTIODataset, self).create_field_info()
+        super().create_field_info()
         # only make the particle union if there are multiple DM species.
         # If there are multiple, "N-BODY_0" will be the first species. If there
         # are not multiple, they will be all under "N-BODY"
@@ -501,13 +501,9 @@ class ARTIODataset(Dataset):
             self.add_particle_union(pu)
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        from sys import version
-
+    def _is_valid(cls, filename, *args, **kwargs):
         # a valid artio header file starts with a prefix and ends with .art
-        if not args[0].endswith(".art"):
+        name, _, ext = filename.rpartition(".")
+        if ext != "art":
             return False
-        if version < "3":
-            return artio_is_valid(args[0][:-4])
-        else:
-            return artio_is_valid(bytes(args[0][:-4], "utf-8"))
+        return artio_is_valid(bytes(name, "utf-8"))

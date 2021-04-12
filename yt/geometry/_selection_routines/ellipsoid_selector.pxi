@@ -146,4 +146,3 @@ cdef class EllipsoidSelector(SelectorObject):
 
 
 ellipsoid_selector = EllipsoidSelector
-

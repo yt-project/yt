@@ -23,6 +23,29 @@ Updating to yt 4.0 from Old Versions (and going back)
 Converting Old Scripts to Work with yt 4.0
 ------------------------------------------
 
+Energy and Momentum Field Name Conventions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Fields representing energy and momentum quantities are now given names which
+reflect their dimensionality. For example, the ``"gas", "kinetic_energy"``
+field was actually a field for kinetic energy density, and so it has been
+renamed to ``"gas", "kinetic_energy_density"``. The old name still exists
+as an alias as of yt v4.0.0, but it will be removed in yt v4.1.0. See
+:ref:`deprecated_field_names` below for more information.
+
+Other examples include ``"gas", "specific_thermal_energy"`` for thermal
+energy per unit mass, and ``"gas", "momentum_density_x"`` for the x-axis
+component of momentum density. See :ref:`efields` for more information.
+
+Deprecated Field Names
+^^^^^^^^^^^^^^^^^^^^^^
+Certain field names are deprecated within yt v4.0.0, and will be removed in
+yt v4.1.0. For example, ``"gas", "kinetic_energy"`` has been renamed to
+``"gas", "kinetic_energy_density"``, though the former name has been added
+as an alias. Other fields, such as ``"gas", "cylindrical_tangential_velocity_absolute"``,
+are being removed entirely. When the deprecated field names are used for the
+first time in a session, a warning will be logged, so it is advisable to set
+your logging level to ``WARNING`` at a minimum to catch these.
 
 Cool New Things
 ---------------
@@ -74,20 +97,19 @@ method:
 
     import yt
 
-    ds = yt.load('snapshot_033/snap_033.0.hdf5')
+    ds = yt.load("snapshot_033/snap_033.0.hdf5")
 
-    plot = yt.SlicePlot(ds, 2, ('gas', 'density'))
+    plot = yt.SlicePlot(ds, 2, ("gas", "density"))
     plot.save()
 
-    plot = yt.ProjectionPlot(ds, 2, ('gas', 'density'))
+    plot = yt.ProjectionPlot(ds, 2, ("gas", "density"))
     plot.save()
 
-    arbitrary_grid = ds.arbitrary_grid([0.0, 0.0, 0.0], [25, 25, 25],
-                                       dims=[16, 16, 16])
-    ag_density = arbitrary_grid[('gas', 'density')]
+    arbitrary_grid = ds.arbitrary_grid([0.0, 0.0, 0.0], [25, 25, 25], dims=[16, 16, 16])
+    ag_density = arbitrary_grid[("gas", "density")]
 
     covering_grid = ds.covering_grid(4, 0, 16)
-    cg_density = covering_grid[('gas', 'density')]
+    cg_density = covering_grid[("gas", "density")]
 
 In the above example the ``covering_grid`` and the ``arbitrary_grid`` will return
 the same data. In fact, these containers are very similar but provide a
@@ -118,17 +140,17 @@ The following is a code example:
 
     import yt
 
-    ds = yt.load('Data/GadgetDiskGalaxy/snapshot_200.hdf5')
+    ds = yt.load("Data/GadgetDiskGalaxy/snapshot_200.hdf5")
 
-    smoothing_field = ('gas', 'density')
+    smoothing_field = ("gas", "density")
 
     _, center = ds.find_max(smoothing_field)
 
-    sp = ds.sphere(center, (10, 'kpc'))
+    sp = ds.sphere(center, (10, "kpc"))
 
     normal_vector = sp.quantities.angular_momentum_vector()
 
-    prj = yt.OffAxisProjectionPlot(ds, normal_vector, smoothing_field, center, (20, 'kpc'))
+    prj = yt.OffAxisProjectionPlot(ds, normal_vector, smoothing_field, center, (20, "kpc"))
 
     prj.save()
 
@@ -152,18 +174,18 @@ It should be noted that the
     import yt
     import numpy as np
 
-    ds = yt.load('GadgetDiskGalaxy/snapshot_200.hdf5')
-    left = np.array([0, 0, 0], dtype='float64')
-    right = np.array([64000, 64000, 64000], dtype='float64')
+    ds = yt.load("GadgetDiskGalaxy/snapshot_200.hdf5")
+    left = np.array([0, 0, 0], dtype="float64")
+    right = np.array([64000, 64000, 64000], dtype="float64")
 
     # generate an octree
     octree = ds.octree(left, right, n_ref=64)
 
     # the density will be calculated using SPH scatter
-    density = octree[('PartType0', 'density')]
+    density = octree[("PartType0", "density")]
 
     # this will return the x positions of the octs
-    x = octree[('index', 'x')]
+    x = octree[("index", "x")]
 
 The above code can be modified to use the scatter approach by using
 ``ds.sph_smoothing_style = 'gather'`` before any field access. The octree also

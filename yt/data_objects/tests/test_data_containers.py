@@ -65,7 +65,7 @@ class TestDataContainers(unittest.TestCase):
         sp = ds.sphere(ds.domain_center, 0.25)
         sp.write_out(filename, fields=["cell_volume"])
 
-        with open(filename, "r") as file:
+        with open(filename) as file:
             file_row_1 = file.readline()
             file_row_2 = file.readline()
             file_row_2 = np.array(file_row_2.split("\t"), dtype=np.float64)
@@ -106,7 +106,10 @@ class TestDataContainers(unittest.TestCase):
     def test_to_frb(self):
         # Test cylindrical geometry
         fields = ["density", "cell_mass"]
-        ds = fake_amr_ds(fields=fields, geometry="cylindrical", particles=16 ** 3)
+        units = ["g/cm**3", "g"]
+        ds = fake_amr_ds(
+            fields=fields, units=units, geometry="cylindrical", particles=16 ** 3
+        )
         dd = ds.all_data()
         proj = ds.proj("density", weight_field="cell_mass", axis=1, data_source=dd)
         frb = proj.to_frb((1.0, "unitary"), 64)
@@ -115,7 +118,9 @@ class TestDataContainers(unittest.TestCase):
 
     def test_extract_isocontours(self):
         # Test isocontour properties for AMRGridData
-        ds = fake_amr_ds(fields=["density", "cell_mass"], particles=16 ** 3)
+        fields = ["density", "cell_mass"]
+        units = ["g/cm**3", "g"]
+        ds = fake_amr_ds(fields=fields, units=units, particles=16 ** 3)
         dd = ds.all_data()
         q = dd.quantities["WeightedAverageQuantity"]
         rho = q("density", weight="cell_mass")

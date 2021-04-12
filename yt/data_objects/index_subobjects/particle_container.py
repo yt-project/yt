@@ -1,10 +1,11 @@
 import contextlib
 
+from more_itertools import always_iterable
+
 from yt.data_objects.data_containers import YTFieldData
 from yt.data_objects.selection_objects.data_selection_objects import (
     YTSelectionContainer,
 )
-from yt.funcs import ensure_list
 from yt.utilities.exceptions import (
     YTDataSelectorNotImplemented,
     YTNonIndexedDataContainer,
@@ -22,26 +23,25 @@ class ParticleContainer(YTSelectionContainer):
     _spatial = False
     _type_name = "particle_container"
     _skip_add = True
-    _con_args = ("base_region", "data_files", "overlap_files")
+    _con_args = ("base_region", "base_selector", "data_files", "overlap_files")
 
-    def __init__(self, base_region, data_files, overlap_files=None, domain_id=-1):
+    def __init__(
+        self, base_region, base_selector, data_files, overlap_files=None, domain_id=-1
+    ):
         if overlap_files is None:
             overlap_files = []
         self.field_data = YTFieldData()
         self.field_parameters = {}
-        self.data_files = ensure_list(data_files)
-        self.overlap_files = ensure_list(overlap_files)
+        self.data_files = list(always_iterable(data_files))
+        self.overlap_files = list(always_iterable(overlap_files))
         self.ds = self.data_files[0].ds
         self._last_mask = None
         self._last_selector_id = None
         self._current_particle_type = "all"
         # self._current_fluid_type = self.ds.default_fluid_type
-        if hasattr(base_region, "base_selector"):
-            self.base_selector = base_region.base_selector
-            self.base_region = base_region.base_region
-        else:
-            self.base_region = base_region
-            self.base_selector = base_region.selector
+
+        self.base_region = base_region
+        self.base_selector = base_selector
         self._octree = None
         self._temp_spatial = False
         if isinstance(base_region, ParticleContainer):
@@ -49,6 +49,12 @@ class ParticleContainer(YTSelectionContainer):
             self._octree = base_region._octree
         # To ensure there are not domains if global octree not used
         self.domain_id = -1
+
+    def __reduce__(self):
+        # we need to override the __reduce__ from data_containers as this method is not
+        # a registered dataset method (i.e., ds.particle_container does not exist)
+        arg_tuple = tuple(getattr(self, attr) for attr in self._con_args)
+        return (self.__class__, arg_tuple)
 
     @property
     def selector(self):
@@ -73,6 +79,7 @@ class ParticleContainer(YTSelectionContainer):
         gz_oct = self.octree.retrieve_ghost_zones(ngz, coarse_ghosts=coarse_ghosts)
         gz = ParticleContainer(
             gz_oct.base_region,
+            gz_oct.base_selector,
             gz_oct.data_files,
             overlap_files=gz_oct.overlap_files,
             selector_mask=gz_oct.selector_mask,

@@ -1,6 +1,5 @@
 import sys
-
-from pkg_resources import parse_version
+from distutils.version import LooseVersion
 
 
 class NotAModule:
@@ -234,18 +233,18 @@ _cartopy = cartopy_imports()
 
 class pooch_imports:
     _name = "pooch"
+    _module = None
 
-    _pooch = None
+    def __init__(self):
+        try:
+            import pooch as myself
 
-    @property
-    def pooch(self):
-        if self._pooch is None:
-            try:
-                import pooch as pooch
-            except ImportError:
-                pooch = NotAModule(self._name)
-            self._pooch = pooch
-        return self._pooch
+            self._module = myself
+        except ImportError:
+            self._module = NotAModule(self._name)
+
+    def __getattr__(self, attr):
+        return getattr(self._module, attr)
 
 
 _pooch = pooch_imports()
@@ -361,7 +360,7 @@ class h5py_imports:
         try:
             import h5py
 
-            if parse_version(h5py.__version__) < parse_version("2.4.0"):
+            if LooseVersion(h5py.__version__) < LooseVersion("2.4.0"):
                 self._err = RuntimeError(
                     "yt requires h5py version 2.4.0 or newer, "
                     'please update h5py with e.g. "pip install -U h5py" '
@@ -369,7 +368,7 @@ class h5py_imports:
                 )
         except ImportError:
             pass
-        super(h5py_imports, self).__init__()
+        super().__init__()
 
     _File = None
 
@@ -582,7 +581,7 @@ _yaml = yaml_imports()
 
 class NotMiniball(NotAModule):
     def __init__(self, pkg_name):
-        super(NotMiniball, self).__init__(pkg_name)
+        super().__init__(pkg_name)
         str = (
             "This functionality requires the %s package to be installed. "
             "Installation instructions can be found at "
@@ -610,7 +609,7 @@ class miniball_imports:
 _miniball = miniball_imports()
 
 
-class f90nml_imports(object):
+class f90nml_imports:
     _name = "f90nml"
     _module = None
 
@@ -627,3 +626,41 @@ class f90nml_imports(object):
 
 
 _f90nml = f90nml_imports()
+
+
+class requests_imports:
+    _name = "requests"
+    _module = None
+
+    def __init__(self):
+        try:
+            import requests as myself
+
+            self._module = myself
+        except ImportError:
+            self._module = NotAModule(self._name)
+
+    def __getattr__(self, attr):
+        return getattr(self._module, attr)
+
+
+_requests = requests_imports()
+
+
+class pandas_imports:
+    _name = "pandas"
+    _module = None
+
+    def __init__(self):
+        try:
+            import pandas as myself
+
+            self._module = myself
+        except ImportError:
+            self._module = NotAModule(self._name)
+
+    def __getattr__(self, attr):
+        return getattr(self._module, attr)
+
+
+_pandas = pandas_imports()

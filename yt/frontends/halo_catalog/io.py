@@ -18,7 +18,7 @@ class IOHandlerYTHaloCatalog(BaseIOHandler):
     def _read_particle_coords(self, chunks, ptf):
         # This will read chunks and yield the results.
         chunks = list(chunks)
-        data_files = set([])
+        data_files = set()
         # Only support halo reading for now.
         assert len(ptf) == 1
         assert list(ptf.keys())[0] == "halos"
@@ -48,7 +48,7 @@ class IOHandlerYTHaloCatalog(BaseIOHandler):
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate
         chunks = list(chunks)
-        data_files = set([])
+        data_files = set()
         # Only support halo reading for now.
         assert len(ptf) == 1
         assert list(ptf.keys())[0] == "halos"
@@ -83,9 +83,7 @@ class IOHandlerYTHaloCatalog(BaseIOHandler):
             fields = [
                 ("halos", field) for field in f if not isinstance(f[field], h5py.Group)
             ]
-            units = dict(
-                [(("halos", field), parse_h5_attr(f[field], "units")) for field in f]
-            )
+            units = {("halos", field): parse_h5_attr(f[field], "units") for field in f}
         return fields, units
 
 
@@ -126,9 +124,7 @@ class IOHandlerYTHalo(HaloDatasetIOHandler, IOHandlerYTHaloCatalog):
             scalar_fields = [
                 ("halos", field) for field in f if not isinstance(f[field], h5py.Group)
             ]
-            units = dict(
-                [(("halos", field), parse_h5_attr(f[field], "units")) for field in f]
-            )
+            units = {("halos", field): parse_h5_attr(f[field], "units") for field in f}
             if "particles" in f:
                 id_fields = [("halos", field) for field in f["particles"]]
             else:

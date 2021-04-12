@@ -1,7 +1,5 @@
-from distutils.version import LooseVersion
 from io import BytesIO
 
-import matplotlib
 import numpy as np
 
 from yt.data_objects.profiles import create_profile
@@ -50,9 +48,7 @@ class TransferFunctionHelper:
             in the dataset.  This can be slow for very large datasets.
         """
         if bounds is None:
-            bounds = self.ds.h.all_data().quantities["Extrema"](
-                self.field, non_zero=True
-            )
+            bounds = self.ds.all_data().quantities["Extrema"](self.field, non_zero=True)
             bounds = [b.ndarray_view() for b in bounds]
         self.bounds = bounds
 
@@ -129,11 +125,7 @@ class TransferFunctionHelper:
         transfer function to produce a natural contrast ratio.
 
         """
-        if LooseVersion(matplotlib.__version__) < LooseVersion("2.0.0"):
-            colormap_name = "spectral"
-        else:
-            colormap_name = "nipy_spectral"
-        self.tf.add_layers(10, colormap=colormap_name)
+        self.tf.add_layers(10, colormap="nipy_spectral")
         factor = self.tf.funcs[-1].y.size / self.tf.funcs[-1].y.sum()
         self.tf.funcs[-1].y *= 2 * factor
 

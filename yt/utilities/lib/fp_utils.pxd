@@ -58,4 +58,3 @@ cdef inline _ensure_code(arr):
             return arr
         arr.convert_to_units("code_length")
     return arr
-

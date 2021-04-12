@@ -30,7 +30,7 @@ class HaloCatalogFile(ParticleFile):
     """
 
     def __init__(self, ds, io, filename, file_id, frange):
-        super(HaloCatalogFile, self).__init__(ds, io, filename, file_id, frange)
+        super().__init__(ds, io, filename, file_id, frange)
 
     def _read_particle_positions(self, ptype, f=None):
         raise NotImplementedError
@@ -62,13 +62,11 @@ class YTHaloCatalogFile(HaloCatalogFile):
 
     def __init__(self, ds, io, filename, file_id, frange):
         with h5py.File(filename, mode="r") as f:
-            self.header = dict(
-                (field, parse_h5_attr(f, field)) for field in f.attrs.keys()
-            )
+            self.header = {field: parse_h5_attr(f, field) for field in f.attrs.keys()}
             pids = f.get("particles/ids")
             self.total_ids = 0 if pids is None else pids.size
             self.group_length_sum = self.total_ids
-        super(YTHaloCatalogFile, self).__init__(ds, io, filename, file_id, frange)
+        super().__init__(ds, io, filename, file_id, frange)
 
     def _read_particle_positions(self, ptype, f=None):
         """
@@ -124,7 +122,7 @@ class YTHaloCatalogDataset(SavedDataset):
         unit_system="cgs",
     ):
         self.index_order = validate_index_order(index_order)
-        super(YTHaloCatalogDataset, self).__init__(
+        super().__init__(
             filename,
             dataset_type,
             units_override=units_override,
@@ -132,7 +130,7 @@ class YTHaloCatalogDataset(SavedDataset):
         )
 
     def add_field(self, *args, **kwargs):
-        super(YTHaloCatalogDataset, self).add_field(*args, **kwargs)
+        super().add_field(*args, **kwargs)
         self._halos_ds.add_field(*args, **kwargs)
 
     @property
@@ -152,7 +150,7 @@ class YTHaloCatalogDataset(SavedDataset):
         return self._instantiated_halo_ds
 
     def _setup_classes(self):
-        super(YTHaloCatalogDataset, self)._setup_classes()
+        super()._setup_classes()
         self.halo = partial(YTHaloCatalogHaloContainer, ds=self._halos_ds)
         self.halo.__doc__ = YTHaloCatalogHaloContainer.__doc__
 
@@ -160,19 +158,19 @@ class YTHaloCatalogDataset(SavedDataset):
         self.refine_by = 2
         self.dimensionality = 3
         self.domain_dimensions = np.ones(self.dimensionality, "int32")
-        self.periodicity = (True, True, True)
+        self._periodicity = (True, True, True)
         prefix = ".".join(self.parameter_filename.rsplit(".", 2)[:-2])
         self.filename_template = f"{prefix}.%(num)s{self._suffix}"
         self.file_count = len(glob.glob(prefix + "*" + self._suffix))
         self.particle_types = ("halos",)
         self.particle_types_raw = ("halos",)
-        super(YTHaloCatalogDataset, self)._parse_parameter_file()
+        super()._parse_parameter_file()
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        if not args[0].endswith(".h5"):
+    def _is_valid(cls, filename, *args, **kwargs):
+        if not filename.endswith(".h5"):
             return False
-        with h5py.File(args[0], mode="r") as f:
+        with h5py.File(filename, mode="r") as f:
             if (
                 "data_type" in f.attrs
                 and parse_h5_attr(f, "data_type") == "halo_catalog"
@@ -188,7 +186,7 @@ class YTHaloParticleIndex(ParticleIndex):
 
     def __init__(self, ds, dataset_type):
         self.real_ds = weakref.proxy(ds.real_ds)
-        super(YTHaloParticleIndex, self).__init__(ds, dataset_type)
+        super().__init__(ds, dataset_type)
 
     def _calculate_particle_index_starts(self):
         """
@@ -197,9 +195,9 @@ class YTHaloParticleIndex(ParticleIndex):
         particle_count = defaultdict(int)
         offset_count = 0
         for data_file in self.data_files:
-            data_file.index_start = dict(
-                [(ptype, particle_count[ptype]) for ptype in data_file.total_particles]
-            )
+            data_file.index_start = {
+                ptype: particle_count[ptype] for ptype in data_file.total_particles
+            }
             data_file.offset_start = offset_count
             for ptype in data_file.total_particles:
                 particle_count[ptype] += data_file.total_particles[ptype]
@@ -219,7 +217,7 @@ class YTHaloParticleIndex(ParticleIndex):
         for ptype in self.ds.particle_types_raw:
             d = [df.total_particles[ptype] for df in self.data_files]
             pc.update({ptype: sum(d)})
-        found_fields = dict([(ptype, False) for ptype, pnum in pc.items() if pnum > 0])
+        found_fields = {ptype: False for ptype, pnum in pc.items() if pnum > 0}
         has_ids = False
 
         for data_file in self.data_files:
@@ -237,7 +235,7 @@ class YTHaloParticleIndex(ParticleIndex):
         self.scalar_field_list = scalar_field_list
         ds = self.dataset
         ds.scalar_field_list = scalar_field_list
-        ds.particle_types = tuple(set(pt for pt, ds in field_list))
+        ds.particle_types = tuple({pt for pt, ds in field_list})
         ds.field_units.update(units)
         ds.particle_types_raw = ds.particle_types
 
@@ -303,7 +301,7 @@ class YTHaloParticleIndex(ParticleIndex):
         return fields_to_return, fields_to_generate
 
     def _setup_data_io(self):
-        super(YTHaloParticleIndex, self)._setup_data_io()
+        super()._setup_data_io()
         if self.real_ds._instantiated_index is None:
             self.real_ds.index
 
@@ -326,11 +324,11 @@ class HaloDataset(ParticleDataset):
             "file_count",
             "particle_types_raw",
             "particle_types",
-            "periodicity",
+            "_periodicity",
         ]:
             setattr(self, attr, getattr(self.real_ds, attr))
 
-        super(HaloDataset, self).__init__(self.real_ds.parameter_filename, dataset_type)
+        super().__init__(self.real_ds.parameter_filename, dataset_type)
 
     def print_key_parameters(self):
         pass
@@ -379,7 +377,7 @@ class YTHaloDataset(HaloDataset):
     _field_info_class = YTHaloCatalogHaloFieldInfo
 
     def __init__(self, ds, dataset_type="ythalo"):
-        super(YTHaloDataset, self).__init__(ds, dataset_type)
+        super().__init__(ds, dataset_type)
 
     def _set_code_unit_attributes(self):
         pass
@@ -408,7 +406,7 @@ class HaloContainer(YTSelectionContainer):
 
         self.ptype = ptype
         self._current_particle_type = ptype
-        super(HaloContainer, self).__init__(ds, {})
+        super().__init__(ds, {})
 
         self._set_identifiers(particle_identifier)
 
@@ -470,9 +468,7 @@ class HaloContainer(YTSelectionContainer):
         my_data = self.index._get_halo_values(
             self.ptype, np.array([self.particle_identifier]), halo_fields
         )
-        self._io_data = dict(
-            (field, np.int64(val[0])) for field, val in my_data.items()
-        )
+        self._io_data = {field: np.int64(val[0]) for field, val in my_data.items()}
 
     def __repr__(self):
         return f"{self.ds}_{self.ptype}_{self.particle_identifier:09d}"

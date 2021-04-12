@@ -316,9 +316,7 @@ class OpenPMDHierarchy(GridIndex):
                 0, domain_dimension[0], num_grids + 1, dtype=np.int32
             )
             grid_edge_offset = (
-                grid_dim_offset
-                * np.float(domain_dimension[0]) ** -1
-                * (gre[0] - gle[0])
+                grid_dim_offset * float(domain_dimension[0]) ** -1 * (gre[0] - gle[0])
                 + gle[0]
             )
             mesh_names = []
@@ -549,15 +547,14 @@ class OpenPMDDataset(Dataset):
         setdefaultattr(self, "magnetic_unit", self.quan(1.0, "T"))
 
     def _parse_parameter_file(self):
-        """Read in metadata describing the overall data on-disk.
-        """
+        """Read in metadata describing the overall data on-disk."""
         f = self._handle
         bp = self.base_path
         mp = self.meshes_path
 
         self.unique_identifier = 0
         self.parameters = 0
-        self.periodicity = np.zeros(3, dtype=np.bool)
+        self._periodicity = np.zeros(3, dtype="bool")
         self.refine_by = 1
         self.cosmological_simulation = 0
 
@@ -607,12 +604,11 @@ class OpenPMDDataset(Dataset):
         self.current_time = f[bp].attrs["time"] * f[bp].attrs["timeUnitSI"]
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        """Checks whether the supplied file can be read by this frontend.
-        """
-        warn_h5py(args[0])
+    def _is_valid(cls, filename, *args, **kwargs):
+        """Checks whether the supplied file can be read by this frontend."""
+        warn_h5py(filename)
         try:
-            with h5py.File(args[0], mode="r") as f:
+            with h5py.File(filename, mode="r") as f:
                 attrs = list(f["/"].attrs.keys())
                 for i in opmd_required_attributes:
                     if i not in attrs:
@@ -640,11 +636,11 @@ class OpenPMDDatasetSeries(DatasetSeries):
     mixed_dataset_types = False
 
     def __init__(self, filename):
-        super(OpenPMDDatasetSeries, self).__init__([])
+        super().__init__([])
         self.handle = h5py.File(filename, mode="r")
         self.filename = filename
         self._pre_outputs = sorted(
-            np.asarray(list(self.handle["/data"].keys()), dtype=np.int)
+            np.asarray(list(self.handle["/data"].keys()), dtype="int64")
         )
 
     def __iter__(self):
@@ -669,16 +665,16 @@ class OpenPMDGroupBasedDataset(Dataset):
     _index_class = OpenPMDHierarchy
     _field_info_class = OpenPMDFieldInfo
 
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls, filename, *args, **kwargs):
         ret = object.__new__(OpenPMDDatasetSeries)
-        ret.__init__(args[0])
+        ret.__init__(filename)
         return ret
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        warn_h5py(args[0])
+    def _is_valid(cls, filename, *args, **kwargs):
+        warn_h5py(filename)
         try:
-            with h5py.File(args[0], mode="r") as f:
+            with h5py.File(filename, mode="r") as f:
                 attrs = list(f["/"].attrs.keys())
                 for i in opmd_required_attributes:
                     if i not in attrs:

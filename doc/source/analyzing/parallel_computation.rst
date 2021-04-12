@@ -95,6 +95,7 @@ in the simulation and then makes a plot of the projected density:
 .. code-block:: python
 
    import yt
+
    yt.enable_parallelism()
 
    ds = yt.load("RD0035/RedshiftOutput0035")
@@ -146,6 +147,7 @@ so:
 .. code-block:: python
 
    import yt
+
    yt.enable_parallelism()
 
    ds = yt.load("RD0035/RedshiftOutput0035")
@@ -166,12 +168,15 @@ how to use it:
 .. code-block:: python
 
    import yt
+
    yt.enable_parallelism()
+
 
    def print_and_save_plot(v, c, plot, verbose=True):
        if verbose:
-          print(v, c)
+           print(v, c)
        plot.save()
+
 
    ds = yt.load("RD0035/RedshiftOutput0035")
    v, c = ds.find_max("density")
@@ -237,7 +242,7 @@ processor.  In serial processing, you might iterate over a DatasetSeries by:
 .. code-block:: python
 
     for dataset in dataset_series:
-        <process>
+        ...  # process
 
 But in parallel, you can use ``piter()`` to force each dataset to go to
 a different processor:
@@ -246,7 +251,7 @@ a different processor:
 
     yt.enable_parallelism()
     for dataset in dataset_series.piter():
-        <process>
+        ...  # process
 
 In order to store information from the parallel processing step to
 a data structure that exists on all of the processors operating in parallel
@@ -264,9 +269,9 @@ and you can access the contents:
     yt.enable_parallelism()
     my_dictionary = {}
     for sto, dataset in dataset_series.piter(storage=my_dictionary):
-        <process>
-        sto.result = <some information processed for this dataset>
-        sto.result_id = <some identifier for this dataset>
+        ...  # process
+        sto.result = ...  # some information processed for this dataset
+        sto.result_id = ...  # some identifier for this dataset
 
     print(my_dictionary)
 
@@ -295,6 +300,7 @@ processors (or cores).  Please see this heavily-commented example:
 
    # As always...
    import yt
+
    yt.enable_parallelism()
 
    import glob
@@ -324,7 +330,7 @@ processors (or cores).  Please see this heavily-commented example:
    # If data does not need to be combined after the loop is done, the line
    # would look like:
    #       for fn in parallel_objects(fns, num_procs):
-   for sto, fn in yt.parallel_objects(fns, num_procs, storage = my_storage):
+   for sto, fn in yt.parallel_objects(fns, num_procs, storage=my_storage):
 
        # Open a data file, remembering that fn is different on each task.
        ds = yt.load(fn)
@@ -345,7 +351,7 @@ processors (or cores).  Please see this heavily-commented example:
    # tasks have produced.
    # Below, the values in my_storage are printed by only one task. The other
    # tasks do nothing.
-   if yt.is_root()
+   if yt.is_root():
        for fn, vals in sorted(my_storage.items()):
            print(fn, vals)
 
@@ -367,6 +373,7 @@ density cell in a large number of simulation outputs:
 .. code-block:: python
 
    import yt
+
    yt.enable_parallelism()
 
    # Load all of the DD*/output_* files into a DatasetSeries object
@@ -402,12 +409,13 @@ processors.  Note that parallel=1 implies that the analysis will be run using
 .. code-block:: python
 
    import yt
+
    yt.enable_parallelism()
 
-   ts = yt.DatasetSeries("DD*/output_*", parallel = 4)
+   ts = yt.DatasetSeries("DD*/output_*", parallel=4)
 
    for ds in ts.piter():
-       sphere = ds.sphere("max", (1.0, "pc))
+       sphere = ds.sphere("max", (1.0, "pc"))
        L_vecs = sphere.quantities.angular_momentum_vector()
 
 If you do not want to use ``parallel_objects`` parallelism when using a
@@ -426,9 +434,10 @@ data structures.
 .. code-block:: python
 
    import yt
+
    yt.enable_parallelism()
 
-   ts = yt.DatasetSeries("DD*/output_*", parallel = 4)
+   ts = yt.DatasetSeries("DD*/output_*", parallel=4)
 
    for ds in ts.piter():
        # do analysis here
@@ -455,16 +464,17 @@ separate processor.
 .. code-block:: python
 
    import yt
+
    yt.enable_parallelism()
 
    # assume 6 total cores
    # allocate 3 work groups of 2 cores each
-   for ax in yt.parallel_objects('xyz', njobs=3):
+   for ax in yt.parallel_objects("xyz", njobs=3):
 
-        # project each field with one of the two cores in the workgroup
-        for field in yt.parallel_objects(['density', 'temperature']):
-            p = yt.ProjectionPlot(ds, ax, field, weight_field='density')
-            p.save('figures/')
+       # project each field with one of the two cores in the workgroup
+       for field in yt.parallel_objects(["density", "temperature"]):
+           p = yt.ProjectionPlot(ds, ax, field, weight_field="density")
+           p.save("figures/")
 
 Note, in the above example, if the inner
 :func:`~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_objects`
@@ -536,7 +546,7 @@ chunk-based fashion.
 * **Cutting planes**: cutting planes are parallelized exactly as slices are.
   However, in contrast to slices, because the data-selection operation can be
   much more time consuming, cutting planes often benefit from parallelism.
-  
+
 * **Covering Grids**: covering grids are parallelized exactly as slices are.
 
 Object-Based
@@ -643,7 +653,7 @@ Additional Tips
        SaveTinyMiniStuffToDisk("out%06d.txt" % i, array)
    t2 = time.time()
 
-   if yt.is_root()
+   if yt.is_root():
        print("BigStuff took %.5e sec, TinyStuff took %.5e sec" % (t1 - t0, t2 - t1))
 
 * Remember that if the script handles disk IO explicitly, and does not use
@@ -655,7 +665,7 @@ Additional Tips
 
 .. code-block:: python
 
-   if yt.is_root()
+   if yt.is_root():
        file = open("out.txt", "w")
        file.write(stuff)
        file.close()

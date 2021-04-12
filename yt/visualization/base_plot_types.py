@@ -6,35 +6,34 @@ import numpy as np
 
 from yt.funcs import (
     get_brewer_cmap,
-    get_image_suffix,
     get_interactivity,
-    iterable,
+    is_sequence,
     matplotlib_style_context,
     mylog,
 )
 
-backend_dict = {
+from ._commons import get_canvas, validate_image_name
+
+BACKEND_SPECS = {
     "GTK": ["backend_gtk", "FigureCanvasGTK", "FigureManagerGTK"],
-    "GTKAgg": ["backend_gtkagg", "FigureCanvasGTKAgg"],
-    "GTKCairo": ["backend_gtkcairo", "FigureCanvasGTKCairo"],
+    "GTKAgg": ["backend_gtkagg", "FigureCanvasGTKAgg", None],
+    "GTKCairo": ["backend_gtkcairo", "FigureCanvasGTKCairo", None],
     "MacOSX": ["backend_macosx", "FigureCanvasMac", "FigureManagerMac"],
-    "Qt4Agg": ["backend_qt4agg", "FigureCanvasQTAgg"],
-    "Qt5Agg": ["backend_qt5agg", "FigureCanvasQTAgg"],
-    "TkAgg": ["backend_tkagg", "FigureCanvasTkAgg"],
-    "WX": ["backend_wx", "FigureCanvasWx"],
-    "WXAgg": ["backend_wxagg", "FigureCanvasWxAgg"],
+    "Qt4Agg": ["backend_qt4agg", "FigureCanvasQTAgg", None],
+    "Qt5Agg": ["backend_qt5agg", "FigureCanvasQTAgg", None],
+    "TkAgg": ["backend_tkagg", "FigureCanvasTkAgg", None],
+    "WX": ["backend_wx", "FigureCanvasWx", None],
+    "WXAgg": ["backend_wxagg", "FigureCanvasWxAgg", None],
     "GTK3Cairo": [
         "backend_gtk3cairo",
         "FigureCanvasGTK3Cairo",
         "FigureManagerGTK3Cairo",
     ],
     "GTK3Agg": ["backend_gtk3agg", "FigureCanvasGTK3Agg", "FigureManagerGTK3Agg"],
-    "WebAgg": ["backend_webagg", "FigureCanvasWebAgg"],
+    "WebAgg": ["backend_webagg", "FigureCanvasWebAgg", None],
     "nbAgg": ["backend_nbagg", "FigureCanvasNbAgg", "FigureManagerNbAgg"],
-    "agg": ["backend_agg", "FigureCanvasAgg"],
+    "agg": ["backend_agg", "FigureCanvasAgg", None],
 }
-
-_AGG_FORMATS = (".png", ".jpg", ".jpeg", ".raw", ".rgba", ".tif", ".tiff")
 
 
 class CallbackWrapper:
@@ -53,6 +52,7 @@ class CallbackWrapper:
         self.ds = frb.ds
         self.xlim = viewer.xlim
         self.ylim = viewer.ylim
+        self._axes_unit_names = viewer._axes_unit_names
         if "OffAxisSlice" in viewer._plot_type:
             self._type_name = "CuttingPlane"
         else:
@@ -64,9 +64,7 @@ class CallbackWrapper:
 
 
 class PlotMPL:
-    """A base class for all yt plots made using matplotlib, that is backend independent.
-
-    """
+    """A base class for all yt plots made using matplotlib, that is backend independent."""
 
     def __init__(self, fsize, axrect, figure, axes):
         """Initialize PlotMPL class"""
@@ -74,7 +72,7 @@ class PlotMPL:
 
         self._plot_valid = True
         if figure is None:
-            if not iterable(fsize):
+            if not is_sequence(fsize):
                 fsize = (fsize, fsize)
             self.figure = matplotlib.figure.Figure(figsize=fsize, frameon=True)
         else:
@@ -86,10 +84,13 @@ class PlotMPL:
             axes.cla()
             axes.set_position(axrect)
             self.axes = axes
-        canvas_classes = self._set_canvas()
-        self.canvas = canvas_classes[0](self.figure)
-        if len(canvas_classes) > 1:
-            self.manager = canvas_classes[1](self.canvas, 1)
+        self.interactivity = get_interactivity()
+
+        figure_canvas, figure_manager = self._get_canvas_classes()
+        self.canvas = figure_canvas(self.figure)
+        if figure_manager is not None:
+            self.manager = figure_manager(self.canvas, 1)
+
         for which in ["major", "minor"]:
             for axis in "xy":
                 self.axes.tick_params(
@@ -99,38 +100,35 @@ class PlotMPL:
     def _create_axes(self, axrect):
         self.axes = self.figure.add_axes(axrect)
 
-    def _set_canvas(self):
-        self.interactivity = get_interactivity()
-        if self.interactivity:
-            backend = str(matplotlib.get_backend())
-        else:
-            backend = "agg"
+    def _get_canvas_classes(self):
 
-        for key in backend_dict.keys():
-            if key == backend:
-                mod = __import__(
-                    "matplotlib.backends",
-                    globals(),
-                    locals(),
-                    [backend_dict[key][0]],
-                    0,
-                )
-                submod = getattr(mod, backend_dict[key][0])
-                FigureCanvas = getattr(submod, backend_dict[key][1])
-                if len(backend_dict[key]) > 2:
-                    FigureManager = getattr(submod, backend_dict[key][2])
-                    return [FigureCanvas, FigureManager]
-                else:
-                    return [FigureCanvas]
+        if self.interactivity:
+            key = str(matplotlib.get_backend())
+        else:
+            key = "agg"
+
+        try:
+            module, fig_canvas, fig_manager = BACKEND_SPECS[key]
+        except KeyError:
+            return
+
+        mod = __import__(
+            "matplotlib.backends",
+            globals(),
+            locals(),
+            [module],
+            0,
+        )
+        submod = getattr(mod, module)
+        FigureCanvas = getattr(submod, fig_canvas)
+        if fig_manager is not None:
+            FigureManager = getattr(submod, fig_manager)
+            return FigureCanvas, FigureManager
+
+        return FigureCanvas, None
 
     def save(self, name, mpl_kwargs=None, canvas=None):
         """Choose backend and save image to disk"""
-        from ._mpl_imports import (
-            FigureCanvasAgg,
-            FigureCanvasPdf,
-            FigureCanvasPS,
-            FigureCanvasSVG,
-        )
 
         if mpl_kwargs is None:
             mpl_kwargs = {}
@@ -139,25 +137,14 @@ class PlotMPL:
         ) < LooseVersion("3.3.0"):
             mpl_kwargs["papertype"] = "auto"
 
-        suffix = get_image_suffix(name)
-        if suffix == "":
-            suffix = ".png"
-            name = f"{name}{suffix}"
+        name = validate_image_name(name)
 
-        mylog.info("Saving plot %s", name)
-
-        if suffix in _AGG_FORMATS:
-            canvas = FigureCanvasAgg(self.figure)
-        elif suffix in (".svg", ".svgz"):
-            canvas = FigureCanvasSVG(self.figure)
-        elif suffix == ".pdf":
-            canvas = FigureCanvasPdf(self.figure)
-        elif suffix in (".eps", ".ps"):
-            canvas = FigureCanvasPS(self.figure)
-        else:
-            mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
+        try:
+            canvas = get_canvas(self.figure, name)
+        except ValueError:
             canvas = self.canvas
 
+        mylog.info("Saving plot %s", name)
         with matplotlib_style_context():
             canvas.print_figure(name, **mpl_kwargs)
         return name
@@ -200,13 +187,11 @@ class PlotMPL:
 
 
 class ImagePlotMPL(PlotMPL):
-    """A base class for yt plots made using imshow
-
-    """
+    """A base class for yt plots made using imshow"""
 
     def __init__(self, fsize, axrect, caxrect, zlim, figure, axes, cax):
         """Initialize ImagePlotMPL class object"""
-        super(ImagePlotMPL, self).__init__(fsize, axrect, figure, axes)
+        super().__init__(fsize, axrect, figure, axes)
         self.zmin, self.zmax = zlim
         if cax is None:
             self.cax = self.figure.add_axes(caxrect)
@@ -291,11 +276,7 @@ class ImagePlotMPL(PlotMPL):
             transform=transform,
         )
         if cbnorm == "symlog":
-            if LooseVersion(matplotlib.__version__) < LooseVersion("2.0.0"):
-                formatter_kwargs = {}
-            else:
-                formatter_kwargs = dict(linthresh=cblinthresh)
-            formatter = matplotlib.ticker.LogFormatterMathtext(**formatter_kwargs)
+            formatter = matplotlib.ticker.LogFormatterMathtext(linthresh=cblinthresh)
             self.cb = self.figure.colorbar(self.image, self.cax, format=formatter)
             if np.nanmin(data) >= 0.0:
                 yticks = [np.nanmin(data).v] + list(
@@ -306,16 +287,19 @@ class ImagePlotMPL(PlotMPL):
                     )
                 )
             elif np.nanmax(data) <= 0.0:
-                yticks = list(
-                    -(
-                        10
-                        ** np.arange(
-                            np.floor(np.log10(-np.nanmin(data))),
-                            np.rint(np.log10(cblinthresh)) - 1,
-                            -1,
+                yticks = (
+                    list(
+                        -(
+                            10
+                            ** np.arange(
+                                np.floor(np.log10(-np.nanmin(data))),
+                                np.rint(np.log10(cblinthresh)) - 1,
+                                -1,
+                            )
                         )
                     )
-                ) + [np.nanmax(data).v]
+                    + [np.nanmax(data).v]
+                )
             else:
                 yticks = (
                     list(
@@ -346,7 +330,7 @@ class ImagePlotMPL(PlotMPL):
     def _get_best_layout(self):
 
         # Ensure the figure size along the long axis is always equal to _figure_size
-        if iterable(self._figure_size):
+        if is_sequence(self._figure_size):
             x_fig_size = self._figure_size[0]
             y_fig_size = self._figure_size[1]
         else:
@@ -426,10 +410,6 @@ class ImagePlotMPL(PlotMPL):
             draw_frame = choice
         self._draw_axes = choice
         self._draw_frame = draw_frame
-        if LooseVersion(matplotlib.__version__) < LooseVersion("2.0.0"):
-            fc = self.axes.get_axis_bgcolor()
-        else:
-            fc = self.axes.get_facecolor()
         self.axes.set_frame_on(draw_frame)
         self.axes.get_xaxis().set_visible(choice)
         self.axes.get_yaxis().set_visible(choice)
@@ -437,10 +417,6 @@ class ImagePlotMPL(PlotMPL):
         self.axes.set_position(axrect)
         self.cax.set_position(caxrect)
         self.figure.set_size_inches(*size)
-        if LooseVersion(matplotlib.__version__) < LooseVersion("2.0.0"):
-            self.axes.set_axis_bgcolor(fc)
-        else:
-            self.axes.set_facecolor(fc)
 
     def _toggle_colorbar(self, choice):
         """
@@ -456,7 +432,7 @@ class ImagePlotMPL(PlotMPL):
         self.figure.set_size_inches(*size)
 
     def _get_labels(self):
-        labels = super(ImagePlotMPL, self)._get_labels()
+        labels = super()._get_labels()
         cbax = self.cb.ax
         labels += cbax.yaxis.get_ticklabels()
         labels += [cbax.yaxis.label, cbax.yaxis.get_offset_text()]

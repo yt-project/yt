@@ -345,7 +345,9 @@ def test_bitmap_select():
                     else:
                         ans_gf = [i - 1, i + 1]
                     assert_equal(
-                        len(gf), len(ans_gf), f"selector {i}, number of ghost files",
+                        len(gf),
+                        len(ans_gf),
+                        f"selector {i}, number of ghost files",
                     )
                     for i in range(len(gf)):
                         assert_equal(gf[i], ans_gf[i], f"selector {i}, ghost files")
@@ -542,7 +544,7 @@ def fake_decomp_hilbert_gaussian(
     hpos = get_hilbert_points(order, hlist)
     iLE = np.empty((len(hlist), 3), dtype="float")
     iRE = np.empty((len(hlist), 3), dtype="float")
-    count = np.zeros(3, dtype="int")
+    count = np.zeros(3, dtype="int64")
     pos = np.empty((npart, 3), dtype="float")
     for k in range(3):
         iLE[:, k] = DLE[k] + hdiv[k] * hpos[:, k]

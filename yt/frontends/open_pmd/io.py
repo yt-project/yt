@@ -175,7 +175,7 @@ class IOHandlerOpenPMDHDF5(BaseIOHandler):
                 raise RuntimeError
 
         if size is None:
-            size = sum((g.count(selector) for chunk in chunks for g in chunk.objs))
+            size = sum(g.count(selector) for chunk in chunks for g in chunk.objs)
         for field in fields:
             rv[field] = np.empty(size, dtype=np.float64)
             ind[field] = 0

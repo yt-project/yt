@@ -7,15 +7,17 @@ from functools import wraps
 
 import matplotlib
 import numpy as np
+from more_itertools.more import always_iterable, unzip
 
 from yt.data_objects.profiles import create_profile, sanitize_field_tuple_keys
 from yt.data_objects.static_output import Dataset
 from yt.frontends.ytdata.data_structures import YTProfileDataset
-from yt.funcs import ensure_list, get_image_suffix, iterable, matplotlib_style_context
+from yt.funcs import is_sequence, iter_fields, matplotlib_style_context
 from yt.utilities.exceptions import YTNotInsideNotebook
 from yt.utilities.logger import ytLogger as mylog
 
 from ..data_objects.selection_objects.data_selection_objects import YTSelectionContainer
+from ._commons import validate_image_name
 from .base_plot_types import ImagePlotMPL, PlotMPL
 from .plot_container import (
     ImagePlotContainer,
@@ -27,25 +29,6 @@ from .plot_container import (
 )
 
 MPL_VERSION = LooseVersion(matplotlib.__version__)
-
-
-def get_canvas(name):
-    from . import _mpl_imports as mpl
-
-    suffix = get_image_suffix(name)
-
-    if suffix == "":
-        suffix = ".png"
-    if suffix == ".png":
-        canvas_cls = mpl.FigureCanvasAgg
-    elif suffix == ".pdf":
-        canvas_cls = mpl.FigureCanvasPdf
-    elif suffix in (".eps", ".ps"):
-        canvas_cls = mpl.FigureCanvasPS
-    else:
-        mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
-        canvas_cls = mpl.FigureCanvasAgg
-    return canvas_cls
 
 
 def invalidate_profile(f):
@@ -68,7 +51,7 @@ class PlotContainerDict(OrderedDict):
 class FigureContainer(OrderedDict):
     def __init__(self, plots):
         self.plots = plots
-        super(FigureContainer, self).__init__()
+        super().__init__()
 
     def __missing__(self, key):
         self[key] = self.plots[key].figure
@@ -83,31 +66,41 @@ class AxesContainer(OrderedDict):
         self.plots = plots
         self.ylim = {}
         self.xlim = (None, None)
-        super(AxesContainer, self).__init__()
+        super().__init__()
 
     def __missing__(self, key):
         self[key] = self.plots[key].axes
         return self[key]
 
     def __setitem__(self, key, value):
-        super(AxesContainer, self).__setitem__(key, value)
+        super().__setitem__(key, value)
         self.ylim[key] = (None, None)
 
 
-def sanitize_label(label, nprofiles):
-    label = ensure_list(label)
+def sanitize_label(labels, nprofiles):
+    labels = list(always_iterable(labels)) or [None]
 
-    if len(label) == 1:
-        label = label * nprofiles
+    if len(labels) == 1:
+        labels = labels * nprofiles
 
-    if len(label) != nprofiles:
-        raise RuntimeError("Number of labels must match number of profiles")
+    if len(labels) != nprofiles:
+        raise ValueError(
+            f"Number of labels {len(labels)} must match number of profiles {nprofiles}"
+        )
 
-    for l in label:
-        if l is not None and not isinstance(l, str):
-            raise RuntimeError("All labels must be None or a string")
+    invalid_data = [
+        (label, type(label))
+        for label in labels
+        if label is not None and not isinstance(label, str)
+    ]
+    if invalid_data:
+        invalid_labels, types = unzip(invalid_data)
+        raise TypeError(
+            "All labels must be None or a string, "
+            f"received {invalid_labels} with type {types}"
+        )
 
-    return label
+    return labels
 
 
 def data_object_or_all_data(data_source):
@@ -237,7 +230,7 @@ class ProfilePlot:
     ):
 
         data_source = data_object_or_all_data(data_source)
-        y_fields = ensure_list(y_fields)
+        y_fields = list(iter_fields(y_fields))
         logs = {x_field: bool(x_log)}
         if isinstance(y_log, bool):
             y_log = {y_field: y_log for y_field in y_fields}
@@ -266,7 +259,7 @@ class ProfilePlot:
         ProfilePlot._initialize_instance(self, profiles, label, plot_spec, y_log)
 
     @validate_plot
-    def save(self, name=None, suffix=None, mpl_kwargs=None):
+    def save(self, name=None, suffix=".png", mpl_kwargs=None):
         r"""
         Saves a 1d profile plot.
 
@@ -287,39 +280,30 @@ class ProfilePlot:
             iters = zip(range(len(unique)), sorted(unique))
         else:
             iters = self.plots.items()
-        if not suffix:
-            suffix = "png"
-        suffix = f".{suffix}"
-        fullname = False
+
         if name is None:
             if len(self.profiles) == 1:
-                prefix = self.profiles[0].ds
+                name = str(self.profiles[0].ds)
             else:
-                prefix = "Multi-data"
-            name = f"{prefix}{suffix}"
-        else:
-            sfx = get_image_suffix(name)
-            if sfx != "":
-                suffix = sfx
-                prefix = name[: name.rfind(suffix)]
-                fullname = True
-            else:
-                prefix = name
+                name = "Multi-data"
+
+        name = validate_image_name(name, suffix)
+        prefix, suffix = os.path.splitext(name)
+
         xfn = self.profiles[0].x_field
         if isinstance(xfn, tuple):
             xfn = xfn[1]
-        fns = []
+
+        names = []
         for uid, plot in iters:
             if isinstance(uid, tuple):
                 uid = uid[1]
-            if fullname:
-                fns.append(f"{prefix}{suffix}")
-            else:
-                fns.append(f"{prefix}_1d-Profile_{xfn}_{uid}{suffix}")
-            mylog.info("Saving %s", fns[-1])
+            uid_name = f"{prefix}_1d-Profile_{xfn}_{uid}{suffix}"
+            names.append(uid_name)
+            mylog.info("Saving %s", uid_name)
             with matplotlib_style_context():
-                plot.save(fns[-1], mpl_kwargs=mpl_kwargs)
-        return fns
+                plot.save(uid_name, mpl_kwargs=mpl_kwargs)
+        return names
 
     @validate_plot
     def show(self):
@@ -363,8 +347,8 @@ class ProfilePlot:
                 img = plot._repr_png_()
             img = base64.b64encode(img).decode()
             ret += (
-                r'<img style="max-width:100%%;max-height:100%%;" '
-                r'src="data:image/png;base64,{0}"><br>'.format(img)
+                r'<img style="max-width:100%;max-height:100%;" '
+                r'src="data:image/png;base64,{}"><br>'.format(img)
             )
         return ret
 
@@ -426,7 +410,7 @@ class ProfilePlot:
 
         obj._font_properties = FontProperties(family="stixgeneral", size=18)
         obj._font_color = None
-        obj.profiles = ensure_list(profiles)
+        obj.profiles = list(always_iterable(profiles))
         obj.x_log = None
         obj.y_log = sanitize_field_tuple_keys(y_log, obj.profiles[0].data_source) or {}
         obj.y_title = {}
@@ -696,10 +680,7 @@ class ProfilePlot:
         >>> pp.save()
 
         """
-        if field == "all":
-            fields = list(self.axes.keys())
-        else:
-            fields = ensure_list(field)
+        fields = list(self.axes.keys()) if field == "all" else field
         for profile in self.profiles:
             for field in profile.data_source._determine_fields(fields):
                 if field in profile.field_map:
@@ -730,9 +711,9 @@ class ProfilePlot:
             field = field[1]
         if field_name is None:
             field_name = r"$\rm{" + field + r"}$"
-            field_name = r"$\rm{" + field.replace("_", "\ ").title() + r"}$"
+            field_name = r"$\rm{" + field.replace("_", r"\ ").title() + r"}$"
         elif field_name.find("$") == -1:
-            field_name = field_name.replace(" ", "\ ")
+            field_name = field_name.replace(" ", r"\ ")
             field_name = r"$\rm{" + field_name + r"}$"
         if fractional:
             label = field_name + r"$\rm{\ Probability\ Density}$"
@@ -780,10 +761,7 @@ class ProfilePlot:
                                 ["temperature", "dark_matter_density"])
 
         """
-        if field == "all":
-            fields = list(self.axes.keys())
-        else:
-            fields = ensure_list(field)
+        fields = list(self.axes.keys()) if field == "all" else field
         for profile in self.profiles:
             for field in profile.data_source._determine_fields(fields):
                 if field in profile.field_map:
@@ -833,10 +811,7 @@ class ProfilePlot:
         >>>  plot.save()
 
         """
-        if field == "all":
-            fields = list(self.axes.keys())
-        else:
-            fields = ensure_list(field)
+        fields = list(self.axes.keys()) if field == "all" else field
         for profile in self.profiles:
             for field in profile.data_source._determine_fields(fields):
                 if field in profile.field_map:
@@ -953,7 +928,7 @@ class PhasePlot(ImagePlotContainer):
             profile = create_profile(
                 data_source,
                 [x_field, y_field],
-                ensure_list(z_fields),
+                list(always_iterable(z_fields)),
                 n_bins=[x_bins, y_bins],
                 weight_field=weight_field,
                 accumulation=accumulation,
@@ -1011,9 +986,9 @@ class PhasePlot(ImagePlotContainer):
             field = field[1]
         if field_name is None:
             field_name = r"$\rm{" + field + r"}$"
-            field_name = r"$\rm{" + field.replace("_", "\ ").title() + r"}$"
+            field_name = r"$\rm{" + field.replace("_", r"\ ").title() + r"}$"
         elif field_name.find("$") == -1:
-            field_name = field_name.replace(" ", "\ ")
+            field_name = field_name.replace(" ", r"\ ")
             field_name = r"$\rm{" + field_name + r"}$"
         if fractional:
             label = field_name + r"$\rm{\ Probability\ Density}$"
@@ -1108,7 +1083,7 @@ class PhasePlot(ImagePlotContainer):
             if splat_color is not None:
                 cmap = matplotlib.colors.ListedColormap(splat_color, "dummy")
             else:
-                cmap = self._colormaps[f]
+                cmap = self._colormap_config[f]
 
             self.plots[f] = PhasePlotMPL(
                 self.profile.x,
@@ -1139,10 +1114,7 @@ class PhasePlot(ImagePlotContainer):
 
             color = self._background_color[f]
 
-            if MPL_VERSION < LooseVersion("2.0.0"):
-                self.plots[f].axes.set_axis_bgcolor(color)
-            else:
-                self.plots[f].axes.set_facecolor(color)
+            self.plots[f].axes.set_facecolor(color)
 
             if f in self._plot_text:
                 self.plots[f].axes.text(
@@ -1272,7 +1244,7 @@ class PhasePlot(ImagePlotContainer):
         return self
 
     @validate_plot
-    def save(self, name=None, suffix=None, mpl_kwargs=None):
+    def save(self, name=None, suffix=".png", mpl_kwargs=None):
         r"""
         Saves a 2d profile plot.
 
@@ -1312,21 +1284,22 @@ class PhasePlot(ImagePlotContainer):
             if splitname[0] != "" and not os.path.isdir(splitname[0]):
                 os.makedirs(splitname[0])
             if os.path.isdir(name) and name != str(self.profile.ds):
-                prefix = name + (os.sep if name[-1] != os.sep else "")
-                prefix += str(self.profile.ds)
-            else:
-                prefix = name
-            if suffix is None:
-                suffix = get_image_suffix(name)
-                if suffix != "":
-                    for v in self.plots.values():
-                        names.append(v.save(name, mpl_kwargs))
-                    return names
-                else:
-                    suffix = "png"
-            fn = f"{prefix}_{middle}.{suffix}"
-            names.append(fn)
-            self.plots[f].save(fn, mpl_kwargs)
+                name = name + (os.sep if name[-1] != os.sep else "")
+                name += str(self.profile.ds)
+
+            new_name = validate_image_name(name, suffix)
+            if new_name == name:
+                for v in self.plots.values():
+                    out_name = v.save(name, mpl_kwargs)
+                    names.append(out_name)
+                return names
+
+            name = new_name
+            prefix, suffix = os.path.splitext(name)
+            name = f"{prefix}_{middle}{suffix}"
+
+            names.append(name)
+            self.plots[f].save(name, mpl_kwargs)
         return names
 
     @invalidate_plot
@@ -1360,7 +1333,7 @@ class PhasePlot(ImagePlotContainer):
               demi, bold, heavy, extra bold, or black
 
             See the matplotlib font manager API documentation for more details.
-            https://matplotlib.org/api/font_manager_api.html
+            https://matplotlib.org/stable/api/font_manager_api.html
 
         Notes
         -----
@@ -1572,7 +1545,7 @@ class PhasePlot(ImagePlotContainer):
     def _recreate_profile(self):
         p = self._profile
         units = {p.x_field: str(p.x.units), p.y_field: str(p.y.units)}
-        zunits = dict((field, str(p.field_units[field])) for field in p.field_units)
+        zunits = {field: str(p.field_units[field]) for field in p.field_units}
         extrema = {p.x_field: self._xlim, p.y_field: self._ylim}
         if self.x_log is not None or self.y_log is not None:
             logs = {}
@@ -1634,7 +1607,7 @@ class PhasePlotMPL(ImagePlotMPL):
         if fontscale < 1.0:
             fontscale = np.sqrt(fontscale)
 
-        if iterable(figure_size):
+        if is_sequence(figure_size):
             self._cb_size = 0.0375 * figure_size[0]
         else:
             self._cb_size = 0.0375 * figure_size
@@ -1644,9 +1617,7 @@ class PhasePlotMPL(ImagePlotMPL):
 
         size, axrect, caxrect = self._get_best_layout()
 
-        super(PhasePlotMPL, self).__init__(
-            size, axrect, caxrect, zlim, figure, axes, cax
-        )
+        super().__init__(size, axrect, caxrect, zlim, figure, axes, cax)
 
         self._init_image(x_data, y_data, data, x_scale, y_scale, z_scale, zlim, cmap)
 

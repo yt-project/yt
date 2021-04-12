@@ -43,4 +43,3 @@ cdef class AlwaysSelector(SelectorObject):
         return ("always", 1,)
 
 always_selector = AlwaysSelector
-

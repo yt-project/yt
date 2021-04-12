@@ -11,11 +11,10 @@ from yt.data_objects.level_sets.clump_handling import Clump
 from yt.data_objects.selection_objects.cut_region import YTCutRegion
 from yt.data_objects.static_output import Dataset
 from yt.frontends.ytdata.data_structures import YTClumpContainer
-from yt.funcs import iterable, mylog, validate_width_tuple
+from yt.funcs import is_sequence, mylog, validate_width_tuple
 from yt.geometry.geometry_handler import is_curvilinear
 from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
 from yt.units import dimensions
-from yt.units.unit_object import Unit
 from yt.units.yt_array import YTArray, YTQuantity, uhstack
 from yt.utilities.exceptions import YTDataTypeUnsupported
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
@@ -103,14 +102,12 @@ class PlotCallback:
                 # right-handed coord system
                 coord = (y, x)
             else:
-                raise SyntaxError(
-                    "Object being plot must have a `data.axis` " "defined"
-                )
+                raise ValueError("Object being plot must have a `data.axis` defined")
 
         # if the position is already two-coords, it is expected to be
         # in the proper projected orientation
         else:
-            raise SyntaxError("'data' coordinates must be 3 dimensions")
+            raise ValueError("'data' coordinates must be 3 dimensions")
         return coord
 
     def _convert_to_plot(self, plot, coord, offset=True):
@@ -203,8 +200,8 @@ class PlotCallback:
         # if in data coords, project them to plot coords
         if coord_system == "data":
             if len(coord) < 3:
-                raise SyntaxError(
-                    "Coordinates in 'data' coordinate system " "need to be in 3D"
+                raise ValueError(
+                    "Coordinates in 'data' coordinate system need to be in 3D"
                 )
             coord = self._project_coords(plot, coord)
             coord = self._convert_to_plot(plot, coord)
@@ -216,8 +213,8 @@ class PlotCallback:
         if coord_system == "axis":
             self.transform = plot._axes.transAxes
             if len(coord) > 2:
-                raise SyntaxError(
-                    "Coordinates in 'axis' coordinate system " "need to be in 2D"
+                raise ValueError(
+                    "Coordinates in 'axis' coordinate system need to be in 2D"
                 )
             return coord
         # if in figure coords, define the transform correctly
@@ -225,7 +222,7 @@ class PlotCallback:
             self.transform = plot._figure.transFigure
             return coord
         else:
-            raise SyntaxError(
+            raise ValueError(
                 "Argument coord_system must have a value of "
                 "'data', 'plot', 'axis', or 'figure'."
             )
@@ -362,6 +359,10 @@ class VelocityCallback(PlotCallback):
                 # orthogonal planes are generically Cartesian
                 xv = f"velocity_{axis_names[xax]}"
                 yv = f"velocity_{axis_names[yax]}"
+
+            # determine the full fields including field type
+            xv = plot.data._determine_fields(xv)[0]
+            yv = plot.data._determine_fields(yv)[0]
 
             qcb = QuiverCallback(
                 xv,
@@ -1075,9 +1076,7 @@ class ImageLineCallback(LinePlotCallback):
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
 
     def __init__(self, p1, p2, data_coords=False, coord_system="axis", plot_args=None):
-        super(ImageLineCallback, self).__init__(
-            p1, p2, data_coords, coord_system, plot_args
-        )
+        super().__init__(p1, p2, data_coords, coord_system, plot_args)
         warnings.warn(
             "The ImageLineCallback (annotate_image_line()) is "
             "deprecated.  Please use the LinePlotCallback "
@@ -1085,7 +1084,7 @@ class ImageLineCallback(LinePlotCallback):
         )
 
     def __call__(self, plot):
-        super(ImageLineCallback, self).__call__(plot)
+        super().__call__(plot)
 
 
 class CuttingQuiverCallback(PlotCallback):
@@ -1380,7 +1379,7 @@ class ArrowCallback(PlotCallback):
                 "the length keyword in 'axis' units instead. "
                 "Setting code_size overrides length value."
             )
-            if iterable(self.code_size):
+            if is_sequence(self.code_size):
                 self.code_size = plot.data.ds.quan(self.code_size[0], self.code_size[1])
                 self.code_size = np.float64(self.code_size.in_units(plot.xlim[0].units))
             self.code_size = self.code_size * self._pixel_scale(plot)[0]
@@ -1588,7 +1587,7 @@ class SphereCallback(PlotCallback):
     def __call__(self, plot):
         from matplotlib.patches import Circle
 
-        if iterable(self.radius):
+        if is_sequence(self.radius):
             self.radius = plot.data.ds.quan(self.radius[0], self.radius[1])
             self.radius = np.float64(self.radius.in_units(plot.xlim[0].units))
         if isinstance(self.radius, YTQuantity):
@@ -1751,7 +1750,7 @@ class PointAnnotateCallback(TextLabelCallback):
         text_args=None,
         inset_box_args=None,
     ):
-        super(PointAnnotateCallback, self).__init__(
+        super().__init__(
             pos, text, data_coords, coord_system, text_args, inset_box_args
         )
         warnings.warn(
@@ -1761,7 +1760,7 @@ class PointAnnotateCallback(TextLabelCallback):
         )
 
     def __call__(self, plot):
-        super(PointAnnotateCallback, self).__call__(plot)
+        super().__call__(plot)
 
 
 class HaloCatalogCallback(PlotCallback):
@@ -2042,7 +2041,7 @@ class ParticleCallback(PlotCallback):
 
     def __call__(self, plot):
         data = plot.data
-        if iterable(self.width):
+        if is_sequence(self.width):
             validate_width_tuple(self.width)
             self.width = plot.data.ds.quan(self.width[0], self.width[1])
         elif isinstance(self.width, YTQuantity):
@@ -2196,7 +2195,7 @@ class MeshLinesCallback(PlotCallback):
     _supported_geometries = ("cartesian", "spectral_cube")
 
     def __init__(self, plot_args=None):
-        super(MeshLinesCallback, self).__init__()
+        super().__init__()
         self.plot_args = plot_args
 
     def promote_2d_to_3d(self, coords, indices, plot):
@@ -2263,7 +2262,7 @@ class TriangleFacetsCallback(PlotCallback):
     _supported_geometries = ("cartesian", "spectral_cube")
 
     def __init__(self, triangle_vertices, plot_args=None):
-        super(TriangleFacetsCallback, self).__init__()
+        super().__init__()
         self.plot_args = {} if plot_args is None else plot_args
         self.vertices = triangle_vertices
 
@@ -2459,7 +2458,7 @@ class TimestampCallback(PlotCallback):
                 self.text_args["horizontalalignment"] = "center"
                 self.text_args["verticalalignment"] = "center"
             else:
-                raise SyntaxError(
+                raise ValueError(
                     "Argument 'corner' must be set to "
                     "'upper_left', 'upper_right', 'lower_left', "
                     "'lower_right', or None"
@@ -2471,10 +2470,9 @@ class TimestampCallback(PlotCallback):
         if self.time:
             # If no time_units are set, then identify a best fit time unit
             if self.time_unit is None:
-                if plot.ds.unit_system.name.startswith("us"):
-                    # if the unit system name startswith "us", that means it is
-                    # in code units and we should not convert to seconds for
-                    # the plot.
+                if plot.ds.unit_system._code_flag:
+                    # if the unit system is in code units
+                    # we should not convert to seconds for the plot.
                     self.time_unit = plot.ds.unit_system.base_units[dimensions.time]
                 else:
                     # in the case of non- code units then we
@@ -2492,15 +2490,16 @@ class TimestampCallback(PlotCallback):
                         "'time_offset' must be a float, tuple, or" "YTQuantity!"
                     )
                 t -= toffset.in_units(self.time_unit)
-            if isinstance(self.time_unit, Unit):
+            try:
                 # here the time unit will be in brackets on the annotation.
-                # This will most likely be in "code_time".
                 un = self.time_unit.latex_representation()
                 time_unit = r"$\ \ (" + un + r")$"
-            else:
-                # the 'smallest_appropriate_unit' function will return a
-                # string, so we shouldn't need to format it further.
-                time_unit = self.time_unit
+            except AttributeError as err:
+                if plot.ds.unit_system._code_flag == "code":
+                    raise RuntimeError(
+                        "The time unit str repr didn't match expectations, something is wrong."
+                    ) from err
+                time_unit = str(self.time_unit).replace("_", " ")
             self.text += self.time_format.format(time=float(t), units=time_unit)
 
         # If time and redshift both shown, do one on top of the other
@@ -2518,7 +2517,7 @@ class TimestampCallback(PlotCallback):
             # Replace instances of -0.0* with 0.0* to avoid
             # negative null redshifts (e.g., "-0.00").
             self.text += self.redshift_format.format(redshift=float(z))
-            self.text = re.sub("-(0.0*)$", "\g<1>", self.text)
+            self.text = re.sub("-(0.0*)$", r"\g<1>", self.text)
 
         # This is just a fancy wrapper around the TextLabelCallback
         tcb = TextLabelCallback(
@@ -2692,7 +2691,7 @@ class ScaleCallback(PlotCallback):
             elif self.corner is None:
                 self.pos = (0.5, 0.5)
             else:
-                raise SyntaxError(
+                raise ValueError(
                     "Argument 'corner' must be set to "
                     "'upper_left', 'upper_right', 'lower_left', "
                     "'lower_right', or None"
@@ -2704,17 +2703,22 @@ class ScaleCallback(PlotCallback):
         max_scale = self.max_frac * xsize
         min_scale = self.min_frac * xsize
 
-        # If no units are set, then identify a best fit distance unit
+        # If no units are set, pick something sensible.
         if self.unit is None:
-            min_scale = plot.ds.get_smallest_appropriate_unit(
-                min_scale, return_quantity=True
-            )
-            max_scale = plot.ds.get_smallest_appropriate_unit(
-                max_scale, return_quantity=True
-            )
-            if self.coeff is None:
-                self.coeff = max_scale.v
-            self.unit = max_scale.units
+            # User has set the axes units and supplied a coefficient.
+            if plot._axes_unit_names is not None and self.coeff is not None:
+                self.unit = plot._axes_unit_names[0]
+            # Nothing provided; identify a best fit distance unit.
+            else:
+                min_scale = plot.ds.get_smallest_appropriate_unit(
+                    min_scale, return_quantity=True
+                )
+                max_scale = plot.ds.get_smallest_appropriate_unit(
+                    max_scale, return_quantity=True
+                )
+                if self.coeff is None:
+                    self.coeff = max_scale.v
+                self.unit = max_scale.units
         elif self.coeff is None:
             self.coeff = 1
         self.scale = plot.ds.quan(self.coeff, self.unit)
@@ -2876,7 +2880,7 @@ class RayCallback(PlotCallback):
             start_coord, end_coord = self._process_light_ray(plot)
 
         else:
-            raise SyntaxError("ray must be a YTRay, YTOrthoRay, or " "LightRay object.")
+            raise ValueError("ray must be a YTRay, YTOrthoRay, or LightRay object.")
 
         # if start_coord and end_coord are all False, it means no intersecting
         # ray segment with this plot.
@@ -3012,7 +3016,7 @@ class LineIntegralConvolutionCallback(PlotCallback):
         if self.texture is None:
             self.texture = np.random.rand(nx, ny).astype(np.double)
         elif self.texture.shape != (nx, ny):
-            raise SyntaxError(
+            raise ValueError(
                 "'texture' must have the same shape "
                 "with that of output image (%d, %d)" % (nx, ny)
             )

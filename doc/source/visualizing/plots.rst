@@ -29,7 +29,7 @@ environments (Qt, GTK, WX, etc.) simply call the ``toggle_interactivity()`` func
 example in a jupyter notebook environment, but the same command should work
 in other environments as well:
 
-.. code-block:: python
+.. code-block:: IPython
 
    %matplotlib notebook
    import yt
@@ -61,8 +61,8 @@ of fixed size. This is accomplished behind the scenes using
 
 The :class:`~yt.visualization.plot_window.PlotWindow` class exposes the
 underlying matplotlib
-`figure <https://matplotlib.org/api/_as_gen/matplotlib.figure.Figure.html#matplotlib.figure.Figure>`_
-and `axes <https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes>`_
+`figure <https://matplotlib.org/stable/api/_as_gen/matplotlib.figure.Figure.html#matplotlib.figure.Figure>`_
+and `axes <https://matplotlib.org/stable/api/axes_api.html#matplotlib.axes.Axes>`_
 objects, making it easy to customize your plots and
 add new annotations.  See :ref:`matplotlib-customization` for more information.
 
@@ -82,7 +82,7 @@ opened and stored in ``ds``:
 
 .. code-block:: python
 
-    slc = yt.SlicePlot(ds, 'z', 'density')
+    slc = yt.SlicePlot(ds, "z", "density")
     slc.save()
 
 These two commands will create a slice object and store it in a variable we've
@@ -95,7 +95,7 @@ stick around, you can accomplish the same thing in one line:
 
 .. code-block:: python
 
-    yt.SlicePlot(ds, 'z', 'density').save()
+    yt.SlicePlot(ds, "z", "density").save()
 
 It's nice to keep the slice object around if you want to modify the plot.  By
 default, the plot width will be set to the size of the simulation box.  To zoom
@@ -104,9 +104,9 @@ object:
 
 .. code-block:: python
 
-    slc = yt.SlicePlot(ds, 'z', 'density')
+    slc = yt.SlicePlot(ds, "z", "density")
     slc.zoom(10)
-    slc.save('zoom')
+    slc.save("zoom")
 
 This will save a new plot to disk with a different filename - prepended with
 'zoom' instead of the name of the dataset. If you want to set the width
@@ -117,9 +117,10 @@ save it to disk.
 .. code-block:: python
 
     from yt.units import kpc
-    slc = yt.SlicePlot(ds, 'z', 'density')
-    slc.set_width(10*kpc)
-    slc.save('10kpc')
+
+    slc = yt.SlicePlot(ds, "z", "density")
+    slc.set_width(10 * kpc)
+    slc.save("10kpc")
 
 The plot width can be specified independently along the x and y direction by
 passing a tuple of widths.  An individual width can also be represented using a
@@ -129,17 +130,17 @@ set the width of the plot to 200 kiloparsecs in the ``x`` and ``y`` direction.
 .. code-block:: python
 
     from yt.units import kpc
-    slc.set_width(200*kpc)
-    slc.set_width((200, 'kpc'))
-    slc.set_width((200*kpc, 200*kpc))
+
+    slc.set_width(200 * kpc)
+    slc.set_width((200, "kpc"))
+    slc.set_width((200 * kpc, 200 * kpc))
 
 The ``SlicePlot`` also optionally accepts the coordinate to center the plot on
 and the width of the plot:
 
 .. code-block:: python
 
-    yt.SlicePlot(ds, 'z', 'density', center=[0.2, 0.3, 0.8],
-                 width = (10,'kpc')).save()
+    yt.SlicePlot(ds, "z", "density", center=[0.2, 0.3, 0.8], width=(10, "kpc")).save()
 
 Note that, by default,
 :class:`~yt.visualization.plot_window.SlicePlot` shifts the
@@ -164,7 +165,7 @@ in the image itself) can be controlled with the ``buff_size`` argument:
 
 .. code-block:: python
 
-    yt.SlicePlot(ds, 'z', 'density', buff_size=(1000, 1000))
+    yt.SlicePlot(ds, "z", "density", buff_size=(1000, 1000))
 
 
 Here is an example that combines all of the options we just discussed.
@@ -286,8 +287,8 @@ example:
                            weight_field='density', buff_size=(1000, 1000))
    prj.save()
 
-will create a density-weighted projection of the temperature field along 
-the x axis with 1000 resolution elements per side, plot it, and then save 
+will create a density-weighted projection of the temperature field along
+the x axis with 1000 resolution elements per side, plot it, and then save
 the plot to a png image file.
 
 Like :ref:`slice-plots`, annotations and modifications can be applied
@@ -843,14 +844,14 @@ accessed via the ``plots`` dictionary attached to each
 
 .. code-block:: python
 
-    slc = SlicePlot(ds, 2, ['density', 'temperature']
-    dens_plot = slc.plots['density']
+    slc = SlicePlot(ds, 2, ["density", "temperature"])
+    dens_plot = slc.plots["density"]
 
 In this example ``dens_plot`` is an instance of
 :class:`~yt.visualization.plot_window.WindowPlotMPL`, an object that wraps the
 matplotlib
-`figure <https://matplotlib.org/api/_as_gen/matplotlib.figure.Figure.html#matplotlib.figure.Figure>`_
-and `axes <https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes>`_
+`figure <https://matplotlib.org/stable/api/_as_gen/matplotlib.figure.Figure.html#matplotlib.figure.Figure>`_
+and `axes <https://matplotlib.org/stable/api/axes_api.html#matplotlib.axes.Axes>`_
 objects.  We can access these matplotlib primitives via attributes of
 ``dens_plot``.
 
@@ -861,8 +862,8 @@ objects.  We can access these matplotlib primitives via attributes of
     colorbar_axes = dens_plot.cax
 
 These are the
-`figure <https://matplotlib.org/api/_as_gen/matplotlib.figure.Figure.html#matplotlib.figure.Figure>`_
-and `axes <https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes>`_
+`figure <https://matplotlib.org/stable/api/_as_gen/matplotlib.figure.Figure.html#matplotlib.figure.Figure>`_
+and `axes <https://matplotlib.org/stable/api/axes_api.html#matplotlib.axes.Axes>`_
 objects that control the actual drawing of the plot.  Arbitrary plot
 customizations are possible by manipulating these objects.  See
 :ref:`matplotlib-primitives` for an example.
@@ -943,13 +944,12 @@ The profiled fields can be accessed from the dictionary ``field_data``.
 
 .. code-block:: python
 
-   plot = ProfilePlot(my_sphere, "temperature", ["cell_mass"],
-                      weight_field=None)
+   plot = ProfilePlot(my_sphere, "temperature", ["cell_mass"], weight_field=None)
    profile = plot.profiles[0]
    # print the bin field, in this case temperature
    print(profile.x)
    # print the profiled cell_mass field
-   print(profile['cell_mass'])
+   print(profile["cell_mass"])
 
 Other options, such as the number of bins, are also configurable. See the
 documentation for :class:`~yt.visualization.profile_plotter.ProfilePlot` for
@@ -1093,9 +1093,9 @@ Setting axis labels
 The axis labels can be manipulated via the
 :meth:`~yt.visualization.profile_plotter.ProfilePlot.set_ylabel` and
 :meth:`~yt.visualization.profile_plotter.ProfilePlot.set_xlabel` functions.  The
-:meth:`~yt.visualization.profile_plotter.ProfilePlot.set_ylabel` function accepts a field name 
+:meth:`~yt.visualization.profile_plotter.ProfilePlot.set_ylabel` function accepts a field name
 and a string with the desired label. The :meth:`~yt.visualization.profile_plotter.ProfilePlot.set_xlabel`
-function just accepts the desired label and applies this to all of the plots. 
+function just accepts the desired label and applies this to all of the plots.
 
 In the following example we create a plot of the average x-velocity and density as a
 function of radius. The xlabel is set to "Radius", for all plots, and the ylabel is set to
@@ -1175,19 +1175,26 @@ To add annotations to a particular set of fields we need to pass in the list of 
 
 .. code-block:: python
 
-   plot.annotate_text(1e-30, 1e7,"Annotation", ["field1", "field2"])
+   plot.annotate_text(1e-30, 1e7, "Annotation", ["field1", "field2"])
 
 
 To change the text annotated text properties, we need to pass the matplotlib ``axes.text`` arguments as follows:
 
 .. code-block:: python
 
-  plot.annotate_text(1e-30, 1e7,"Annotation", fontsize=20, bbox=dict(facecolor='red', alpha=0.5),
-                      horizontalalignment='center', verticalalignment='center')
+  plot.annotate_text(
+      1e-30,
+      1e7,
+      "Annotation",
+      fontsize=20,
+      bbox=dict(facecolor="red", alpha=0.5),
+      horizontalalignment="center",
+      verticalalignment="center",
+  )
 
 The above example will set the fontsize of annotation to 20, add a bounding box of red color and center align
 horizontally and vertically. The is just an example to modify the text properties, for further options please check
-`matplotlib.axes.Axes.text <https://matplotlib.org/api/_as_gen/matplotlib.axes.Axes.text.html>`_.
+`matplotlib.axes.Axes.text <https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.text.html>`_.
 
 Altering Line Properties
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1234,7 +1241,7 @@ The below code snippet illustrates how this is done:
 .. code-block:: python
 
    ds = yt.load("SecondOrderTris/RZ_p_no_parts_do_nothing_bcs_cone_out.e", step=-1)
-   plot = yt.LinePlot(ds, [('all', 'v'), ('all', 'u')], (0, 0, 0), (0, 1, 0), 1000)
+   plot = yt.LinePlot(ds, [("all", "v"), ("all", "u")], (0, 0, 0), (0, 1, 0), 1000)
    plot.save()
 
 If working in a Jupyter Notebook, ``LinePlot`` also has the ``show()`` method.
@@ -1333,7 +1340,7 @@ Similarly to 1D profile plots, :class:`~yt.visualization.profile_plotter.PhasePl
 can be customized via ``set_unit``,
 ``set_xlim``, ``set_ylim``, and ``set_zlim``.  The following example illustrates
 how to manipulate these functions. :class:`~yt.visualization.profile_plotter.PhasePlot`
-can also be customized in a similar manner as 
+can also be customized in a similar manner as
 :class:`~yt.visualization.plot_window.SlicePlot`, such as with ``hide_colorbar``
 and ``show_colorbar``.
 
@@ -1411,7 +1418,7 @@ is to use the convenience routine. This has the syntax:
 
 .. code-block:: python
 
-   p = yt.ParticlePlot(ds, 'particle_position_x', 'particle_position_y')
+   p = yt.ParticlePlot(ds, "particle_position_x", "particle_position_y")
    p.save()
 
 Here, ``ds`` is a dataset we've previously opened. The commands create a particle
@@ -1423,7 +1430,7 @@ The above example is equivalent to the following:
 
 .. code-block:: python
 
-   p = yt.ParticleProjectionPlot(ds, 'z')
+   p = yt.ParticleProjectionPlot(ds, "z")
    p.save()
 
 Most of the callbacks the work for slice and projection plots also work for
@@ -1432,21 +1439,21 @@ For instance, we can zoom in:
 
 .. code-block:: python
 
-   p = yt.ParticlePlot(ds, 'particle_position_x', 'particle_position_y')
+   p = yt.ParticlePlot(ds, "particle_position_x", "particle_position_y")
    p.zoom(10)
-   p.save('zoom')
+   p.save("zoom")
 
 change the width:
 
 .. code-block:: python
 
-   p.set_width((500, 'kpc'))
+   p.set_width((500, "kpc"))
 
 or change the axis units:
 
 .. code-block:: python
 
-   p.set_unit('particle_position_x', 'Mpc')
+   p.set_unit("particle_position_x", "Mpc")
 
 Here is a full example that shows the simplest way to use
 :class:`~yt.visualization.particle_plots.ParticlePlot`:
@@ -1659,8 +1666,9 @@ the plot filenames. If you don't care what the filenames are, just calling the
 .. code-block:: python
 
    import yt
+
    ds = yt.load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0100")
-   slc = yt.SlicePlot(ds, "z", ["kT","density"], width=(500.0,"kpc"))
+   slc = yt.SlicePlot(ds, "z", ["kT", "density"], width=(500.0, "kpc"))
    slc.save()
 
 which will yield PNG plots with the filenames
@@ -1744,8 +1752,7 @@ more information, see :ref:`saving_data`.
 
 .. code-block:: python
 
-   p = yt.ProjectionPlot(ds, "x", "density",
-                         weight_field="density")
+   p = yt.ProjectionPlot(ds, "x", "density", weight_field="density")
    fn = p.data_source.save_as_dataset()
 
 This function will optionally take a ``filename`` keyword that follows
@@ -1759,8 +1766,7 @@ arguments.  One can now continue to tweak the figure to one's liking.
 .. code-block:: python
 
    new_ds = yt.load(fn)
-   new_p = yt.ProjectionPlot(new_ds, "x", "density",
-                             weight_field="density")
+   new_p = yt.ProjectionPlot(new_ds, "x", "density", weight_field="density")
    new_p.save()
 
 The same functionality is available for profile and phase plots.  In
@@ -1772,15 +1778,13 @@ For ``ProfilePlot``:
 .. code-block:: python
 
    ad = ds.all_data()
-   p1 = yt.ProfilePlot(ad, "density", "temperature",
-                       weight_field="cell_mass")
+   p1 = yt.ProfilePlot(ad, "density", "temperature", weight_field="cell_mass")
 
    # note that ProfilePlots can hold a list of profiles
    fn = p1.profiles[0].save_as_dataset()
 
    new_ds = yt.load(fn)
-   p2 = yt.ProfilePlot(new_ds.data, "density", "temperature",
-                       weight_field="cell_mass")
+   p2 = yt.ProfilePlot(new_ds.data, "density", "temperature", weight_field="cell_mass")
    p2.save()
 
 For ``PhasePlot``:
@@ -1788,13 +1792,11 @@ For ``PhasePlot``:
 .. code-block:: python
 
    ad = ds.all_data()
-   p1 = yt.PhasePlot(ad, "density", "temperature",
-                     "cell_mass", weight_field=None)
+   p1 = yt.PhasePlot(ad, "density", "temperature", "cell_mass", weight_field=None)
    fn = p1.profile.save_as_dataset()
 
    new_ds = yt.load(fn)
-   p2 = yt.PhasePlot(new_ds.data, "density", "temperature",
-                     "cell_mass", weight_field=None)
+   p2 = yt.PhasePlot(new_ds.data, "density", "temperature", "cell_mass", weight_field=None)
    p2.save()
 
 .. _eps-writer:
@@ -1827,11 +1829,12 @@ EPS or PDF figure.  For example,
 .. code-block:: python
 
     import yt.visualization.eps_writer as eps
-    slc = yt.SlicePlot(ds, 'z', 'density')
-    slc.set_width(25, 'kpc')
+
+    slc = yt.SlicePlot(ds, "z", "density")
+    slc.set_width(25, "kpc")
     eps_fig = eps.single_plot(slc)
-    eps_fig.save_fig('zoom', format='eps')
-    eps_fig.save_fig('zoom-pdf', format='pdf')
+    eps_fig.save_fig("zoom", format="eps")
+    eps_fig.save_fig("zoom-pdf", format="pdf")
 
 The ``eps_fig`` object exposes all of the low-level functionality of
 ``PyX`` for further customization (see the `PyX documentation
@@ -1840,8 +1843,8 @@ convenience routines in ``eps_writer``, such as drawing a circle,
 
 .. code-block:: python
 
-    eps_fig.circle(radius=0.2, loc=(0.5,0.5))
-    eps_fig.sav_fig('zoom-circle', format='eps')
+    eps_fig.circle(radius=0.2, loc=(0.5, 0.5))
+    eps_fig.sav_fig("zoom-circle", format="eps")
 
 with a radius of 0.2 at a center of (0.5, 0.5), both of which are in
 units of the figure's field of view.  The
@@ -1854,12 +1857,13 @@ from a PlotWindow.  For example,
     import yt
     import yt.visualization.eps_writer as eps
 
-    slc = yt.SlicePlot(ds, 'z', ['density', 'temperature', 'pressure',
-                       'velocity_magnitude'])
-    slc.set_width(25, 'kpc')
+    slc = yt.SlicePlot(
+        ds, "z", ["density", "temperature", "pressure", "velocity_magnitude"]
+    )
+    slc.set_width(25, "kpc")
     eps_fig = eps.multiplot_yt(2, 2, slc, bare_axes=True)
-    eps_fig.scale_line(0.2, '5 kpc')
-    eps_fig.save_fig('multi', format='eps')
+    eps_fig.scale_line(0.2, "5 kpc")
+    eps_fig.save_fig("multi", format="eps")
 
 will produce a 2x2 panel figure with a scale bar indicating 5 kpc.
 The routine will try its best to place the colorbars in the optimal
@@ -1875,22 +1879,29 @@ an example that includes slices and phase plots:
     from yt import SlicePlot, PhasePlot
     from yt.visualization.eps_writer import multiplot_yt
 
-    ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
-    p1 = SlicePlot(ds, 0, 'density')
-    p1.set_width(10, 'kpc')
+    p1 = SlicePlot(ds, 0, "density")
+    p1.set_width(10, "kpc")
 
-    p2 = SlicePlot(ds, 0, 'temperature')
-    p2.set_width(10, 'kpc')
-    p2.set_cmap('temperature', 'hot')
+    p2 = SlicePlot(ds, 0, "temperature")
+    p2.set_width(10, "kpc")
+    p2.set_cmap("temperature", "hot")
 
-    sph = ds.sphere(ds.domain_center, (10, 'kpc'))
-    p3 = PhasePlot(sph, 'radius', 'density', 'temperature',
-                   weight_field='cell_mass')
+    sph = ds.sphere(ds.domain_center, (10, "kpc"))
+    p3 = PhasePlot(sph, "radius", "density", "temperature", weight_field="cell_mass")
 
-    p4 = PhasePlot(sph, 'radius', 'density', 'pressure', 'cell_mass')
+    p4 = PhasePlot(sph, "radius", "density", "pressure", "cell_mass")
 
-    mp = multiplot_yt(2, 2, [p1, p2, p3, p4], savefig="yt", shrink_cb=0.9,
-                      bare_axes=False, yt_nocbar=False, margins=(0.5,0.5))
+    mp = multiplot_yt(
+        2,
+        2,
+        [p1, p2, p3, p4],
+        savefig="yt",
+        shrink_cb=0.9,
+        bare_axes=False,
+        yt_nocbar=False,
+        margins=(0.5, 0.5),
+    )
 
-    mp.save_fig('multi_slice_phase')
+    mp.save_fig("multi_slice_phase")

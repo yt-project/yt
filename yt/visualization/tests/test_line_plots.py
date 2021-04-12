@@ -11,7 +11,7 @@ def setup():
     """Test specific setup."""
     from yt.config import ytcfg
 
-    ytcfg["yt", "__withintesting"] = "True"
+    ytcfg["yt", "internals", "within_testing"] = True
 
 
 def compare(ds, plot, test_prefix, test_name, decimals=12):
@@ -70,9 +70,9 @@ def test_line_buffer():
     assert_equal(lb["density"].size, 512)
     lb["density"] = 0
     assert_equal(lb["density"], 0)
-    assert_equal(set(lb.keys()), set(["density", "velocity_x"]))
+    assert_equal(set(lb.keys()), {"density", "velocity_x"})
     del lb["velocity_x"]
-    assert_equal(set(lb.keys()), set(["density"]))
+    assert_equal(set(lb.keys()), {"density"})
 
 
 def test_validate_point():

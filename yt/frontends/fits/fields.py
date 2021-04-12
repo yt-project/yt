@@ -5,7 +5,7 @@ class FITSFieldInfo(FieldInfoContainer):
     known_other_fields = ()
 
     def __init__(self, ds, field_list, slice_info=None):
-        super(FITSFieldInfo, self).__init__(ds, field_list, slice_info=slice_info)
+        super().__init__(ds, field_list, slice_info=slice_info)
         for field in ds.field_list:
             if field[0] == "fits":
                 self[field].take_log = False
@@ -20,7 +20,7 @@ class YTFITSFieldInfo(FieldInfoContainer):
         ),
         ("number_density", ("1/code_length**3", ["number_density"], None)),
         ("pressure", ("dyne/code_length**2", ["pressure"], None)),
-        ("thermal_energy", ("erg / g", ["thermal_energy"], None)),
+        ("thermal_energy", ("erg / g", ["specific_thermal_energy"], None)),
         ("temperature", ("K", ["temperature"], None)),
         ("velocity_x", ("code_length/code_time", ["velocity_x"], None)),
         ("velocity_y", ("code_length/code_time", ["velocity_y"], None)),
@@ -45,7 +45,7 @@ class YTFITSFieldInfo(FieldInfoContainer):
     )
 
     def __init__(self, ds, field_list, slice_info=None):
-        super(YTFITSFieldInfo, self).__init__(ds, field_list, slice_info=slice_info)
+        super().__init__(ds, field_list, slice_info=slice_info)
 
 
 class WCSFITSFieldInfo(FITSFieldInfo):

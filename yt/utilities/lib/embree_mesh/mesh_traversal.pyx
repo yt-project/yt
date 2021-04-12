@@ -51,7 +51,7 @@ cdef class EmbreeMeshSampler(ImageSampler):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def __call__(self, 
+    def __call__(self,
                  YTEmbreeScene scene,
                  int num_threads = 0):
         '''

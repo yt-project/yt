@@ -1,4 +1,5 @@
 import numpy as np
+from more_itertools import always_iterable
 
 import yt.geometry
 from yt.data_objects.selection_objects.data_selection_objects import (
@@ -6,11 +7,11 @@ from yt.data_objects.selection_objects.data_selection_objects import (
     YTSelectionContainer3D,
 )
 from yt.data_objects.static_output import Dataset
-from yt.funcs import ensure_list, validate_iterable, validate_object
+from yt.funcs import validate_object, validate_sequence
 
 
 class YTBooleanContainer(YTSelectionContainer3D):
-    """
+    r"""
     This is a boolean operation, accepting AND, OR, XOR, and NOT for combining
     multiple data objects.
 
@@ -94,17 +95,14 @@ class YTIntersectionContainer3D(YTSelectionContainer3D):
     _con_args = ("data_objects",)
 
     def __init__(self, data_objects, ds=None, field_parameters=None, data_source=None):
-        validate_iterable(data_objects)
+        validate_sequence(data_objects)
         for obj in data_objects:
             validate_object(obj, YTSelectionContainer)
         validate_object(ds, Dataset)
         validate_object(field_parameters, dict)
         validate_object(data_source, YTSelectionContainer)
         YTSelectionContainer3D.__init__(self, None, ds, field_parameters, data_source)
-        # ensure_list doesn't check for tuples
-        if isinstance(data_objects, tuple):
-            data_objects = list(data_objects)
-        self.data_objects = ensure_list(data_objects)
+        self.data_objects = list(always_iterable(data_objects))
 
 
 class YTDataObjectUnion(YTSelectionContainer3D):
@@ -137,14 +135,11 @@ class YTDataObjectUnion(YTSelectionContainer3D):
     _con_args = ("data_objects",)
 
     def __init__(self, data_objects, ds=None, field_parameters=None, data_source=None):
-        validate_iterable(data_objects)
+        validate_sequence(data_objects)
         for obj in data_objects:
             validate_object(obj, YTSelectionContainer)
         validate_object(ds, Dataset)
         validate_object(field_parameters, dict)
         validate_object(data_source, YTSelectionContainer)
         YTSelectionContainer3D.__init__(self, None, ds, field_parameters, data_source)
-        # ensure_list doesn't check for tuples
-        if isinstance(data_objects, tuple):
-            data_objects = list(data_objects)
-        self.data_objects = ensure_list(data_objects)
+        self.data_objects = list(always_iterable(data_objects))

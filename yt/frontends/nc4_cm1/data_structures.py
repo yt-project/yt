@@ -18,7 +18,7 @@ class CM1Grid(AMRGridPatch):
     _id_offset = 0
 
     def __init__(self, id, index, level, dimensions):
-        super(CM1Grid, self).__init__(id, filename=index.index_filename, index=index)
+        super().__init__(id, filename=index.index_filename, index=index)
         self.Parent = None
         self.Children = []
         self.Level = level
@@ -39,7 +39,7 @@ class CM1Hierarchy(GridIndex):
         self.directory = os.path.dirname(self.index_filename)
         # float type for the simulation edges and must be float64 now
         self.float_type = np.float64
-        super(CM1Hierarchy, self).__init__(ds, dataset_type)
+        super().__init__(ds, dataset_type)
 
     def _detect_output_fields(self):
         # build list of on-disk fields for dataset_type 'cm1'
@@ -83,7 +83,7 @@ class CM1Dataset(Dataset):
         self._handle = NetCDF4FileHandler(filename)
         # refinement factor between a grid and its subgrid
         self.refine_by = 1
-        super(CM1Dataset, self).__init__(
+        super().__init__(
             filename,
             dataset_type,
             units_override=units_override,
@@ -95,7 +95,7 @@ class CM1Dataset(Dataset):
     def _setup_coordinate_handler(self):
         # ensure correct ordering of axes so plots aren't rotated (z should always be
         # on the vertical axis).
-        super(CM1Dataset, self)._setup_coordinate_handler()
+        super()._setup_coordinate_handler()
         self.coordinates._x_pairs = (("x", "y"), ("y", "x"), ("z", "x"))
         self.coordinates._y_pairs = (("x", "z"), ("y", "z"), ("z", "y"))
 
@@ -160,7 +160,7 @@ class CM1Dataset(Dataset):
 
         self.dimensionality = 3
         self.domain_dimensions = np.array(dims, dtype="int64")
-        self.periodicity = (False, False, False)
+        self._periodicity = (False, False, False)
 
         # Set cosmological information to zero for non-cosmological.
         self.cosmological_simulation = 0
@@ -196,7 +196,8 @@ class CM1Dataset(Dataset):
                     mylog.warning(
                         "Trying to load a cm1_lofs netcdf file but the "
                         "coordinates of the following fields do not match the "
-                        f"coordinates of the dataset: {failed_vars}"
+                        "coordinates of the dataset: %s",
+                        failed_vars,
                     )
                     return False
 

@@ -51,7 +51,7 @@ cdef class MatchPointsToGrids:
     cdef GridTree tree
     cdef np.int64_t *point_grids
     cdef np.uint8_t check_position(self,
-                                   np.int64_t pt_index, 
+                                   np.int64_t pt_index,
                                    np.float64_t x,
                                    np.float64_t y,
                                    np.float64_t z,

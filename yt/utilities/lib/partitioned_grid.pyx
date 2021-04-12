@@ -157,4 +157,3 @@ cdef class PartitionedGrid:
         if vel_mag[0] != 0.0:
             for i in range(3):
                 vel[i] /= vel_mag[0]
-

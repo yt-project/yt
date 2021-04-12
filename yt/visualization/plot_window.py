@@ -6,20 +6,15 @@ from numbers import Number
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+from more_itertools import always_iterable, zip_equal
 from mpl_toolkits.axes_grid1 import ImageGrid
 from unyt.exceptions import UnitConversionError
 
+from yt._maintenance.deprecation import issue_deprecation_warning
+from yt.config import ytcfg
 from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
-from yt.funcs import (
-    ensure_list,
-    fix_axis,
-    fix_unitary,
-    issue_deprecation_warning,
-    iterable,
-    mylog,
-    obj_length,
-)
+from yt.funcs import fix_axis, fix_unitary, is_sequence, iter_fields, mylog, obj_length
 from yt.units.unit_object import Unit
 from yt.units.unit_registry import UnitParseError
 from yt.units.yt_array import YTArray, YTQuantity
@@ -100,10 +95,10 @@ def get_axes_unit(width, ds):
     """
     if ds.no_cgs_equiv_length:
         return ("code_length",) * 2
-    if iterable(width):
+    if is_sequence(width):
         if isinstance(width[1], str):
             axes_unit = (width[1], width[1])
-        elif iterable(width[1]):
+        elif is_sequence(width[1]):
             axes_unit = (width[0][1], width[1][1])
         elif isinstance(width[0], YTArray):
             axes_unit = (str(width[0].units), str(width[1].units))
@@ -204,13 +199,11 @@ class PlotWindow(ImagePlotContainer):
 
         self.aspect = aspect
         skip = list(FixedResolutionBuffer._exclude_fields) + data_source._key_fields
-        if fields is None:
-            fields = []
-        else:
-            fields = ensure_list(fields)
+
+        fields = list(iter_fields(fields))
         self.override_fields = list(set(fields).intersection(set(skip)))
         self.fields = [f for f in fields if f not in skip]
-        super(PlotWindow, self).__init__(data_source, window_size, fontsize)
+        super().__init__(data_source, window_size, fontsize)
 
         self._set_window(bounds)  # this automatically updates the data and plot
         self.origin = origin
@@ -236,6 +229,14 @@ class PlotWindow(ImagePlotContainer):
                 self._field_transform[field] = log_transform
             else:
                 self._field_transform[field] = linear_transform
+
+            log, linthresh = self._log_config[field]
+            if log is not None:
+                self.set_log(field, log, linthresh=linthresh)
+
+            # Access the dictionary to force the key to be created
+            self._units_config[field]
+
         self.setup_callbacks()
         self._setup_plots()
 
@@ -298,15 +299,56 @@ class PlotWindow(ImagePlotContainer):
         # At this point the frb has the valid bounds, size, aliasing, etc.
         if old_fields is None:
             self._frb._get_data_source_fields()
+
+            # New frb, apply default units (if any)
+            for field, field_unit in self._units_config.items():
+                if field_unit is None:
+                    continue
+
+                field_unit = Unit(field_unit, registry=self.ds.unit_registry)
+                is_projected = getattr(self, "projected", False)
+                if is_projected:
+                    # Obtain config
+                    path_length_units = Unit(
+                        ytcfg.get_most_specific(
+                            "plot", *field, "path_length_units", fallback="cm"
+                        ),
+                        registry=self.ds.unit_registry,
+                    )
+                    units = field_unit * path_length_units
+                else:
+                    units = field_unit
+                try:
+                    self.frb[field].convert_to_units(units)
+                except UnitConversionError:
+                    msg = (
+                        "Could not apply default units from configuration.\n"
+                        "Tried converting projected field %s from %s to %s, retaining units %s:\n"
+                        "\tgot units for field: %s"
+                    )
+                    args = [
+                        field,
+                        self.frb[field].units,
+                        units,
+                        field_unit,
+                        units,
+                    ]
+                    if is_projected:
+                        msg += "\n\tgot units for integration length: %s"
+                        args += [path_length_units]
+
+                    msg += "\nCheck your configuration file."
+
+                    mylog.error(msg, *args)
         else:
             # Restore the old fields
-            for key, unit in zip(old_fields, old_units):
+            for key, units in zip(old_fields, old_units):
                 self._frb[key]
                 equiv = self._equivalencies[key]
                 if equiv[0] is None:
-                    self._frb[key].convert_to_units(unit)
+                    self._frb[key].convert_to_units(units)
                 else:
-                    self.frb.set_unit(key, unit, equiv[0], equiv[1])
+                    self.frb.set_unit(key, units, equiv[0], equiv[1])
 
         # Restore the override fields
         for key in self.override_fields:
@@ -421,13 +463,7 @@ class PlotWindow(ImagePlotContainer):
         if equivalency_kwargs is None:
             equivalency_kwargs = {}
         field = self.data_source._determine_fields(field)[0]
-        field = ensure_list(field)
-        new_unit = ensure_list(new_unit)
-        if len(field) > 1 and len(new_unit) != len(field):
-            raise RuntimeError(
-                f"Field list {field} and unit list {new_unit} are incompatible"
-            )
-        for f, u in zip(field, new_unit):
+        for f, u in zip_equal(iter_fields(field), always_iterable(new_unit)):
             self.frb.set_unit(f, u, equivalency, equivalency_kwargs)
             self._equivalencies[f] = (equivalency, equivalency_kwargs)
         return self
@@ -682,7 +718,7 @@ class PlotWindow(ImagePlotContainer):
         )
         if new_center is None:
             self.center = None
-        elif iterable(new_center):
+        elif is_sequence(new_center):
             if len(new_center) != 2:
                 raise error
             for el in new_center:
@@ -716,18 +752,21 @@ class PlotWindow(ImagePlotContainer):
             The number of data elements in the buffer on the x and y axes.
             If a scalar is provided,  then the buffer is assumed to be square.
         """
-        if iterable(size):
+        if is_sequence(size):
             self.buff_size = size
         else:
             self.buff_size = (size, size)
         return self
 
     def set_window_size(self, size):
-        """This calls set_figure_size to adjust the size of the plot window.
+        """This calls set_figure_size to adjust the size of the plot window."""
+        from yt._maintenance.deprecation import issue_deprecation_warning
 
-        This is equivalent to set_figure_size but it still available to maintain
-        backwards compatibility.
-        """
+        issue_deprecation_warning(
+            "`PlotWindow.set_window_size` is a deprecated alias "
+            "for `PlotWindow.set_figure_size`.",
+            removal="4.1.0",
+        )
         self.set_figure_size(size)
         return self
 
@@ -800,9 +839,7 @@ class PlotWindow(ImagePlotContainer):
 
 
 class PWViewerMPL(PlotWindow):
-    """Viewer using matplotlib as a backend via the WindowPlotMPL.
-
-    """
+    """Viewer using matplotlib as a backend via the WindowPlotMPL."""
 
     _current_field = None
     _frb_generator = None
@@ -827,10 +864,10 @@ class PWViewerMPL(PlotWindow):
             origin = tuple(origin.split("-"))[:3]
         if 1 == len(origin):
             origin = ("lower", "left") + origin
-        elif 2 == len(origin) and origin[0] in set(["left", "right", "center"]):
+        elif 2 == len(origin) and origin[0] in {"left", "right", "center"}:
             o0map = {"left": "lower", "right": "upper", "center": "center"}
             origin = (o0map[origin[0]],) + origin
-        elif 2 == len(origin) and origin[0] in set(["lower", "upper", "center"]):
+        elif 2 == len(origin) and origin[0] in {"lower", "upper", "center"}:
             origin = (origin[0], "center", origin[-1])
         elif 3 == len(origin) and isinstance(origin[0], (int, float)):
             xc = self.ds.quan(origin[0], "code_length")
@@ -856,7 +893,7 @@ class PWViewerMPL(PlotWindow):
         else:
             mylog.warning("origin = %s", origin)
             msg = (
-                'origin keyword "{0}" not recognized, must declare "domain" '
+                'origin keyword "{}" not recognized, must declare "domain" '
                 'or "center" as the last term in origin.'
             ).format(self.origin)
             raise RuntimeError(msg)
@@ -916,7 +953,7 @@ class PWViewerMPL(PlotWindow):
             axis_index = self.data_source.axis
 
             xc, yc = self._setup_origin()
-            if self.ds.unit_system.name.startswith("us") or self.ds.no_cgs_equiv_length:
+            if self.ds.unit_system._code_flag or self.ds.no_cgs_equiv_length:
                 # this should happen only if the dataset was initialized with
                 # argument unit_system="code" or if it's set to have no CGS
                 # equivalent.  This only needs to happen here in the specific
@@ -969,16 +1006,36 @@ class PWViewerMPL(PlotWindow):
                 elif np.nanmax(image) > 0.0 and np.nanmin(image) < 0:
                     msg = (
                         "Plot image for field %s has both positive "
-                        "and negative values. Min = %f, Max = %f."
+                        "and negative/zero values. Min = %f, Max = %f."
                         % (f, np.nanmin(image), np.nanmax(image))
                     )
                     use_symlog = True
+                elif np.nanmax(image) > 0.0 and np.nanmin(image) == 0:
+                    # normally, a LogNorm scaling would still be OK here because
+                    # LogNorm will mask 0 values when calculating vmin. But
+                    # due to a bug in matplotlib's imshow, if the data range
+                    # spans many orders of magnitude while containing zero points
+                    # vmin can get rescaled to 0, resulting in an error when the image
+                    # gets drawn. So here we switch to symlog to avoid that until
+                    # a fix is in -- see PR #3161 and linked issue.
+                    cutoff_sigdigs = 15
+                    if (
+                        np.log10(np.nanmax(image[np.isfinite(image)]))
+                        - np.log10(np.nanmin(image[image > 0]))
+                        > cutoff_sigdigs
+                    ):
+                        msg = (
+                            "Plot image for field %s has both positive "
+                            "and zero values with large dynamic range." % (f,)
+                        )
+                        use_symlog = True
                 if msg is not None:
                     mylog.warning(msg)
                     if use_symlog:
                         mylog.warning(
-                            "Switching to symlog colorbar scaling "
-                            "unless linear scaling is specified later"
+                            "Log-scaling specified: switching to symlog "
+                            "colorbar scaling unless linear scaling is "
+                            "specified later"
                         )
                         self._field_transform[f] = symlog_transform
                         self._field_transform[f].func = None
@@ -1021,7 +1078,7 @@ class PWViewerMPL(PlotWindow):
                 ia,
                 self._field_transform[f].name,
                 self._field_transform[f].func,
-                self._colormaps[f],
+                self._colormap_config[f],
                 extent,
                 zlim,
                 self.figure_size,
@@ -1089,10 +1146,7 @@ class PWViewerMPL(PlotWindow):
 
             color = self._background_color[f]
 
-            if LooseVersion(matplotlib.__version__) < LooseVersion("2.0.0"):
-                self.plots[f].axes.set_axis_bgcolor(color)
-            else:
-                self.plots[f].axes.set_facecolor(color)
+            self.plots[f].axes.set_facecolor(color)
 
             # Determine the units of the data
             units = Unit(self.frb[f].units, registry=self.ds.unit_registry)
@@ -1228,8 +1282,10 @@ class PWViewerMPL(PlotWindow):
         :py:meth:`yt.visualization.plot_window.PWViewerMPL.clear_annotations`
         """
         issue_deprecation_warning(
-            '"annotate_clear" has been deprecated'
-            ' in favor of "clear_annotations". Using "clear_annotations".'
+            "`annotate_clear` has been deprecated "
+            "in favor of `clear_annotations`. Using `clear_annotations`.",
+            since="4.0.0",
+            removal="4.1.0",
         )
         self.clear_annotations(index=index)
 
@@ -1727,9 +1783,11 @@ class ProjectionPlot(PWViewerMPL):
         ):
             mylog.info("Setting origin='native' for %s geometry.", ds.geometry)
             origin = "native"
-        # proj_style is deprecated, but if someone specifies then it trumps
-        # method.
         if proj_style is not None:
+            issue_deprecation_warning(
+                "`proj_style` parameter is deprecated, use `method` instead.",
+                removal="4.1.0",
+            )
             method = proj_style
         # If a non-weighted integral projection, assure field-label reflects that
         if weight_field is None and method == "integrate":
@@ -2087,7 +2145,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
         (bounds, center_rot) = get_oblique_window_parameters(
             normal, center, width, ds, depth=depth
         )
-        fields = ensure_list(fields)[:]
+        fields = list(iter_fields(fields))[:]
         oap_width = ds.arr(
             (bounds[1] - bounds[0], bounds[3] - bounds[2], bounds[5] - bounds[4])
         )
@@ -2172,7 +2230,7 @@ class WindowPlotMPL(ImagePlotMPL):
         if fontscale < 1.0:
             fontscale = np.sqrt(fontscale)
 
-        if iterable(figure_size):
+        if is_sequence(figure_size):
             fsize = figure_size[0]
         else:
             fsize = figure_size
@@ -2184,9 +2242,7 @@ class WindowPlotMPL(ImagePlotMPL):
 
         size, axrect, caxrect = self._get_best_layout()
 
-        super(WindowPlotMPL, self).__init__(
-            size, axrect, caxrect, zlim, figure, axes, cax
-        )
+        super().__init__(size, axrect, caxrect, zlim, figure, axes, cax)
 
         self._init_image(data, cbname, cblinthresh, cmap, extent, aspect)
 
@@ -2353,7 +2409,9 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
     if axis is not None:
         issue_deprecation_warning(
             "SlicePlot's argument 'axis' is a deprecated alias for 'normal', it "
-            "will be removed in a future version of yt."
+            "will be removed in a future version of yt.",
+            since="4.0.0",
+            removal="4.1.0",
         )
         if normal is not None:
             raise TypeError(
@@ -2370,7 +2428,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
 
     # use an AxisAlignedSlicePlot where possible, e.g.:
     # maybe someone passed normal=[0,0,0.2] when they should have just used "z"
-    if iterable(normal) and not isinstance(normal, str):
+    if is_sequence(normal) and not isinstance(normal, str):
         if np.count_nonzero(normal) == 1:
             normal = ("x", "y", "z")[np.nonzero(normal)[0][0]]
         else:
@@ -2378,7 +2436,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
             np.divide(normal, np.dot(normal, normal), normal)
 
     # by now the normal should be properly set to get either a On/Off Axis plot
-    if iterable(normal) and not isinstance(normal, str):
+    if is_sequence(normal) and not isinstance(normal, str):
         # OffAxisSlicePlot has hardcoded origin; remove it if in kwargs
         if "origin" in kwargs:
             mylog.warning(

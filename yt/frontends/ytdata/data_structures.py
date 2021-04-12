@@ -29,6 +29,7 @@ from yt.utilities.tree_container import TreeContainer
 from .fields import YTDataContainerFieldInfo, YTGridFieldInfo
 
 _grid_data_containers = ["arbitrary_grid", "covering_grid", "smoothed_covering_grid"]
+_set_attrs = {"periodicity": "_periodicity"}
 
 
 class SavedDataset(Dataset):
@@ -103,7 +104,13 @@ class SavedDataset(Dataset):
             del self.parameters[par]
 
         for attr in self._con_attrs:
-            setattr(self, attr, self.parameters.get(attr))
+            try:
+                sattr = _set_attrs.get(attr, attr)
+                setattr(self, sattr, self.parameters.get(attr))
+            except TypeError:
+                # some Dataset attributes are properties with setters
+                # which may not accept None as an input
+                pass
 
         if self.geometry is None:
             self.geometry = "cartesian"
@@ -118,7 +125,7 @@ class SavedDataset(Dataset):
             self._set_code_unit_attributes()
             del self.parameters["unit_registry_json"]
         else:
-            super(SavedDataset, self).set_units()
+            super().set_units()
 
     def _set_code_unit_attributes(self):
         attrs = (
@@ -173,13 +180,11 @@ class YTDataset(SavedDataset):
     )
 
     def _with_parameter_file_open(self, f):
-        self.num_particles = dict(
-            [
-                (group, parse_h5_attr(f[group], "num_elements"))
-                for group in f
-                if group != self.default_fluid_type
-            ]
-        )
+        self.num_particles = {
+            group: parse_h5_attr(f[group], "num_elements")
+            for group in f
+            if group != self.default_fluid_type
+        }
 
     def create_field_info(self):
         self.field_dependencies = {}
@@ -214,11 +219,9 @@ class YTDataset(SavedDataset):
 class YTDataHDF5File(ParticleFile):
     def __init__(self, ds, io, filename, file_id, range):
         with h5py.File(filename, mode="r") as f:
-            self.header = dict(
-                (field, parse_h5_attr(f, field)) for field in f.attrs.keys()
-            )
+            self.header = {field: parse_h5_attr(f, field) for field in f.attrs.keys()}
 
-        super(YTDataHDF5File, self).__init__(ds, io, filename, file_id, range)
+        super().__init__(ds, io, filename, file_id, range)
 
 
 class YTDataContainerDataset(YTDataset):
@@ -241,7 +244,7 @@ class YTDataContainerDataset(YTDataset):
     ):
         self.index_order = validate_index_order(index_order)
         self.index_filename = index_filename
-        super(YTDataContainerDataset, self).__init__(
+        super().__init__(
             filename,
             dataset_type,
             units_override=units_override,
@@ -249,7 +252,7 @@ class YTDataContainerDataset(YTDataset):
         )
 
     def _parse_parameter_file(self):
-        super(YTDataContainerDataset, self)._parse_parameter_file()
+        super()._parse_parameter_file()
         self.particle_types_raw = tuple(self.num_particles.keys())
         self.particle_types = self.particle_types_raw
         self.filename_template = self.parameter_filename
@@ -293,10 +296,10 @@ class YTDataContainerDataset(YTDataset):
         return self._data_obj
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        if not args[0].endswith(".h5"):
+    def _is_valid(cls, filename, *args, **kwargs):
+        if not filename.endswith(".h5"):
             return False
-        with h5py.File(args[0], mode="r") as f:
+        with h5py.File(filename, mode="r") as f:
             data_type = parse_h5_attr(f, "data_type")
             cont_type = parse_h5_attr(f, "container_type")
             if data_type is None:
@@ -313,7 +316,7 @@ class YTDataLightRayDataset(YTDataContainerDataset):
     """Dataset for saved LightRay objects."""
 
     def _parse_parameter_file(self):
-        super(YTDataLightRayDataset, self)._parse_parameter_file()
+        super()._parse_parameter_file()
         self._restore_light_ray_solution()
 
     def _restore_light_ray_solution(self):
@@ -340,10 +343,10 @@ class YTDataLightRayDataset(YTDataContainerDataset):
                 self.light_ray_solution[i][field_name] = self.parameters[field][i]
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        if not args[0].endswith(".h5"):
+    def _is_valid(cls, filename, *args, **kwargs):
+        if not filename.endswith(".h5"):
             return False
-        with h5py.File(args[0], mode="r") as f:
+        with h5py.File(filename, mode="r") as f:
             data_type = parse_h5_attr(f, "data_type")
             if data_type in ["yt_light_ray"]:
                 return True
@@ -356,12 +359,10 @@ class YTSpatialPlotDataset(YTDataContainerDataset):
     _field_info_class = YTGridFieldInfo
 
     def __init__(self, *args, **kwargs):
-        super(YTSpatialPlotDataset, self).__init__(
-            *args, dataset_type="ytspatialplot_hdf5", **kwargs
-        )
+        super().__init__(*args, dataset_type="ytspatialplot_hdf5", **kwargs)
 
     def _parse_parameter_file(self):
-        super(YTSpatialPlotDataset, self)._parse_parameter_file()
+        super()._parse_parameter_file()
         if self.parameters["container_type"] == "proj":
             if (
                 isinstance(self.parameters["weight_field"], str)
@@ -372,10 +373,10 @@ class YTSpatialPlotDataset(YTDataContainerDataset):
                 self.parameters["weight_field"] = tuple(self.parameters["weight_field"])
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        if not args[0].endswith(".h5"):
+    def _is_valid(cls, filename, *args, **kwargs):
+        if not filename.endswith(".h5"):
             return False
-        with h5py.File(args[0], mode="r") as f:
+        with h5py.File(filename, mode="r") as f:
             data_type = parse_h5_attr(f, "data_type")
             cont_type = parse_h5_attr(f, "container_type")
             if data_type == "yt_data_container" and cont_type in [
@@ -425,7 +426,7 @@ class YTDataHierarchy(GridIndex):
         self.float_type = "float64"
         self.dataset = weakref.proxy(ds)
         self.directory = os.getcwd()
-        super(YTDataHierarchy, self).__init__(ds, dataset_type)
+        super().__init__(ds, dataset_type)
 
     def _count_grids(self):
         self.num_grids = 1
@@ -483,13 +484,11 @@ class YTGridDataset(YTDataset):
     fluid_types = ("grid", "gas", "deposit", "index")
 
     def __init__(self, filename, unit_system="cgs"):
-        super(YTGridDataset, self).__init__(
-            filename, self._dataset_type, unit_system=unit_system
-        )
+        super().__init__(filename, self._dataset_type, unit_system=unit_system)
         self.data = self.index.grids[0]
 
     def _parse_parameter_file(self):
-        super(YTGridDataset, self)._parse_parameter_file()
+        super()._parse_parameter_file()
         self.num_particles.pop(self.default_fluid_type, None)
         self.particle_types_raw = tuple(self.num_particles.keys())
         self.particle_types = self.particle_types_raw
@@ -519,12 +518,13 @@ class YTGridDataset(YTDataset):
                     self.domain_right_edge - self.domain_left_edge
                 ) / self.domain_dimensions
 
-            self.periodicity = (
+            periodicity = (
                 np.abs(self.domain_left_edge - self.base_domain_left_edge) < 0.5 * dx
             )
-            self.periodicity &= (
+            periodicity &= (
                 np.abs(self.domain_right_edge - self.base_domain_right_edge) < 0.5 * dx
             )
+            self._periodicity = periodicity
 
         elif self.data_type == "yt_frb":
             dle = self.domain_left_edge
@@ -547,10 +547,10 @@ class YTGridDataset(YTDataset):
                 self.field_info.alias(("gas", field), ("grid", field))
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        if not args[0].endswith(".h5"):
+    def _is_valid(cls, filename, *args, **kwargs):
+        if not filename.endswith(".h5"):
             return False
-        with h5py.File(args[0], mode="r") as f:
+        with h5py.File(filename, mode="r") as f:
             data_type = parse_h5_attr(f, "data_type")
             cont_type = parse_h5_attr(f, "container_type")
             if data_type == "yt_frb":
@@ -564,7 +564,7 @@ class YTNonspatialGrid(AMRGridPatch):
     _id_offset = 0
 
     def __init__(self, gid, index, filename=None):
-        super(YTNonspatialGrid, self).__init__(gid, filename=filename, index=index)
+        super().__init__(gid, filename=filename, index=index)
         self._children_ids = []
         self._parent_id = -1
         self.Level = 0
@@ -728,10 +728,10 @@ class YTNonspatialDataset(YTGridDataset):
         # set some defaults just to make things go
         default_attrs = {
             "dimensionality": 3,
-            "domain_dimensions": np.ones(3, dtype="int"),
+            "domain_dimensions": np.ones(3, dtype="int64"),
             "domain_left_edge": np.zeros(3),
             "domain_right_edge": np.ones(3),
-            "periodicity": np.ones(3, dtype="bool"),
+            "_periodicity": np.ones(3, dtype="bool"),
         }
         for att, val in default_attrs.items():
             if getattr(self, att, None) is None:
@@ -766,10 +766,10 @@ class YTNonspatialDataset(YTGridDataset):
         mylog.warning("Geometric data selection not available for this dataset type.")
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        if not args[0].endswith(".h5"):
+    def _is_valid(cls, filename, *args, **kwargs):
+        if not filename.endswith(".h5"):
             return False
-        with h5py.File(args[0], mode="r") as f:
+        with h5py.File(filename, mode="r") as f:
             data_type = parse_h5_attr(f, "data_type")
             if data_type == "yt_array_data":
                 return True
@@ -782,7 +782,7 @@ class YTProfileDataset(YTNonspatialDataset):
     fluid_types = ("data", "gas", "standard_deviation")
 
     def __init__(self, filename, unit_system="cgs"):
-        super(YTProfileDataset, self).__init__(filename, unit_system=unit_system)
+        super().__init__(filename, unit_system=unit_system)
 
     _profile = None
 
@@ -822,7 +822,7 @@ class YTProfileDataset(YTNonspatialDataset):
         self.base_domain_right_edge = self.domain_right_edge
         self.base_domain_dimensions = self.domain_dimensions
 
-        domain_dimensions = np.ones(3, dtype="int")
+        domain_dimensions = np.ones(3, dtype="int64")
         domain_dimensions[: self.dimensionality] = self.profile_dimensions
         self.domain_dimensions = domain_dimensions
         domain_left_edge = np.zeros(3)
@@ -857,7 +857,7 @@ class YTProfileDataset(YTNonspatialDataset):
                 self.field_info.alias(("gas", field), (ftype, field))
 
     def create_field_info(self):
-        super(YTProfileDataset, self).create_field_info()
+        super().create_field_info()
         if self.parameters["weight_field"] is not None:
             self.field_info.alias(
                 self.parameters["weight_field"], (self.default_fluid_type, "weight")
@@ -877,13 +877,13 @@ class YTProfileDataset(YTNonspatialDataset):
             ]:
                 v = getattr(self, a)
                 mylog.info("Parameters: %-25s = %s", a, v)
-        super(YTProfileDataset, self).print_key_parameters()
+        super().print_key_parameters()
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        if not args[0].endswith(".h5"):
+    def _is_valid(cls, filename, *args, **kwargs):
+        if not filename.endswith(".h5"):
             return False
-        with h5py.File(args[0], mode="r") as f:
+        with h5py.File(filename, mode="r") as f:
             data_type = parse_h5_attr(f, "data_type")
             if data_type == "yt_profile":
                 return True
@@ -929,7 +929,7 @@ class YTClumpTreeDataset(YTNonspatialDataset):
     """Dataset for saved clump-finder data."""
 
     def __init__(self, filename, unit_system="cgs"):
-        super(YTClumpTreeDataset, self).__init__(filename, unit_system=unit_system)
+        super().__init__(filename, unit_system=unit_system)
         self._load_tree()
 
     def _load_tree(self):
@@ -962,10 +962,10 @@ class YTClumpTreeDataset(YTNonspatialDataset):
         return self._leaves
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        if not args[0].endswith(".h5"):
+    def _is_valid(cls, filename, *args, **kwargs):
+        if not filename.endswith(".h5"):
             return False
-        with h5py.File(args[0], mode="r") as f:
+        with h5py.File(filename, mode="r") as f:
             data_type = parse_h5_attr(f, "data_type")
             if data_type is None:
                 return False

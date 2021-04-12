@@ -9,39 +9,63 @@ This customization is done through :ref:`configuration-file` and
 
 .. _configuration-file:
 
-The Configuration File
-----------------------
+The Configuration
+-----------------
 
-The configuration is a simple text file setting internal yt variables to
-custom default values to be used in future sessions.
+The configuration is stored in simple text files (in the `toml <https://github.com/toml-lang/toml>`_ format).
+The files allow to set internal yt variables to custom default values to be used in future sessions.
+The configuration can either be stored :ref:`globally<Global Configuration>` or :ref:`locally<Local Configuration>`.
 
-Configuration File Format
-^^^^^^^^^^^^^^^^^^^^^^^^^
+Global Configuration
+^^^^^^^^^^^^^^^^^^^^
 
-yt will look for and recognize the file ``$HOME/.config/yt/ytrc`` as a configuration
-file, containing several options that can be modified and adjusted to control
-runtime behavior.  For example, a sample ``$HOME/.config/yt/ytrc`` file could look
+If no local configuration file exists, yt will look for and recognize the file
+``$HOME/.config/yt/yt.toml`` as a configuration file, containing several options
+that can be modified and adjusted to control runtime behavior.  For example, a sample
+``$HOME/.config/yt/yt.toml`` file could look
 like:
 
 .. code-block:: none
 
    [yt]
-   loglevel = 1
-   maximumstoreddatasets = 10000
+   log_level = 1
+   maximum_stored_datasets = 10000
 
 This configuration file would set the logging threshold much lower, enabling
 much more voluminous output from yt.  Additionally, it increases the number of
 datasets tracked between instantiations of yt. The configuration file can be
-managed using the ``yt config`` helper. It can list, add, modify and remove
+managed using the ``yt config --global`` helper. It can list, add, modify and remove
 options from the configuration file, e.g.:
 
 .. code-block:: none
 
    $ yt config -h
    $ yt config list
-   $ yt config set yt loglevel 1
-   $ yt config rm yt maximumstoreddatasets
+   $ yt config set yt log_level 1
+   $ yt config rm yt maximum_stored_datasets
 
+
+Local Configuration
+^^^^^^^^^^^^^^^^^^^
+
+yt will look for a file named ``yt.toml`` in the current directory. If present, its options
+are loaded and the global configuration is not read. Local configuration files
+can contain the same options as the global one.
+
+Local configuration files can either be edited manually, or alternatively they
+can be managed using ``yt config --local``. It can list, add, modify and remove
+options, and display the path to the local configuration file, e.g.:
+
+.. code-block:: none
+
+   $ yt config -h
+   $ yt config list --local
+   $ yt config set --local yt log_level 1
+   $ yt config rm --local yt maximum_stored_datasets
+   $ yt config print-path --local
+
+If no local configuration file is present, these commands will create an (empty) one
+in the current working directory.
 
 Configuration Options At Runtime
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -63,29 +87,30 @@ Here is an example script, where we adjust the logging at startup:
 .. code-block:: python
 
    import yt
+
    yt.set_log_level(1)
 
    ds = yt.load("my_data0001")
    ds.print_stats()
 
-This has the same effect as setting ``loglevel = 1`` in the configuration
+This has the same effect as setting ``log_level = 1`` in the configuration
 file. Note that a log level of 1 means that all log messages are printed to
 stdout.  To disable logging, set the log level to 50.
 
 
-Available Configuration Options
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. _global-config:
+
+Available Global Configuration Options
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The following external parameters are available.  A number of parameters are
 used internally.
 
-* ``coloredlogs`` (default: ``False``): Should logs be colored?
+* ``colored_logs`` (default: ``False``): Should logs be colored?
 * ``default_colormap`` (default: ``arbre``): What colormap should be used by
   default for yt-produced images?
-* ``pluginfilename``  (default ``my_plugins.py``) The name of our plugin file.
-* ``logfile`` (default: ``False``): Should we output to a log file in the
-  filesystem?
-* ``loglevel`` (default: ``20``): What is the threshold (0 to 50) for
+* ``plugin_filename``  (default ``my_plugins.py``) The name of our plugin file.
+* ``log_level`` (default: ``20``): What is the threshold (0 to 50) for
   outputting log files?
 * ``test_data_dir`` (default: ``/does/not/exist``): The default path the
   ``load()`` function searches for datasets when it cannot find a dataset in the
@@ -108,14 +133,53 @@ used internally.
   :ref:`object serialization <object-serialization>`
 * ``sketchfab_api_key`` (default: empty): API key for https://sketchfab.com/ for
   uploading AMRSurface objects.
-* ``suppressStreamLogging`` (default: ``False``): If true, execution mode will be
+* ``suppress_stream_logging`` (default: ``False``): If true, execution mode will be
   quiet.
-* ``stdoutStreamLogging`` (default: ``False``): If true, logging is directed
+* ``stdout_stream_logging`` (default: ``False``): If true, logging is directed
   to stdout rather than stderr
 * ``skip_dataset_cache`` (default: ``False``): If true, automatic caching of datasets
   is turned off.
 * ``supp_data_dir`` (default: ``/does/not/exist``): The default path certain
   submodules of yt look in for supplemental data files.
+
+
+.. _per-field-config:
+
+Available per-field Configuration Options
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+It is possible to customize the default behaviour of plots using per-field configuration.
+The default options for plotting a given field can be specified in the configuration file
+in ``[plot.field_type.field_name]`` blocks. The available keys are
+
+* ``cmap`` (default: ``yt.default_colormap``, see :ref:`global-config`): the colormap to
+  use for the field.
+* ``log`` (default: ``True``): use a log scale (or symlog if ``linthresh`` is also set).
+* ``linthresh`` (default: ``None``): if set to a float different than ``None`` and ``log`` is
+  ``True``, use a symlog normalization with the given linear threshold.
+* ``units`` (defaults to the units of the field): the units to use to represent the field.
+* ``path_length_units`` (default: ``cm``): the unit of the integration length when doing
+  e.g. projections. This always has the dimensions of a length. Note that this will only
+  be used if ``units`` is also set for the field. The final units will then be
+  ``units*path_length_units``.
+
+You can also set defaults for all fields of a given field type by omitting the field name,
+as illustrated below in the deposit block.
+
+.. code-block:: toml
+
+  [plot.gas.density]
+  cmap = "plasma"
+  log = true
+  units = "mp/cm**3"
+
+  [plot.gas.velocity_divergence]
+  cmap = "bwr"  # use a diverging colormap
+  log = false   # and a linear scale
+
+  [plot.deposit]
+  path_length_units = "kpc"  # use kpc for deposition projections
+
 
 .. _plugin-file:
 
@@ -133,8 +197,8 @@ Global system plugin file
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 yt will look for and recognize the file ``$HOME/.config/yt/my_plugins.py`` as a
-plugin file. It is possible to rename this file to ``$HOME/.config/yt/<pluginfilename>.py``
-by defining ``pluginfilename`` in your ytrc file, as mentioned above.
+plugin file. It is possible to rename this file to ``$HOME/.config/yt/<plugin_filename>.py``
+by defining ``plugin_filename`` in your `yt.toml` file, as mentioned above.
 
 .. note::
 
@@ -142,6 +206,7 @@ by defining ``pluginfilename`` in your ytrc file, as mentioned above.
    message when you import yt.  Note that both the ``yt load`` and ``iyt``
    command line entry points parse the plugin file, so the ``my_plugins.py``
    file will be parsed if you enter yt that way.
+
 
 Local project plugin file
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -162,8 +227,15 @@ For example, if I created a plugin file containing:
 
    def _myfunc(field, data):
        return np.random.random(data["density"].shape)
-   add_field('random', function=_myfunc,
-             dimensions='dimensionless', units='auto')
+
+
+   add_field(
+       "random",
+       function=_myfunc,
+       sampling_type="cell",
+       dimensions="dimensionless",
+       units="auto",
+   )
 
 then all of my data objects would have access to the field ``random``.
 
@@ -175,8 +247,9 @@ modules:
 
    import os
 
-   HOMEDIR="/home/username/"
-   RUNDIR="/scratch/runs/"
+   HOMEDIR = "/home/username/"
+   RUNDIR = "/scratch/runs/"
+
 
    def load_run(fn):
        if not os.path.exists(RUNDIR + fn):
@@ -190,6 +263,7 @@ use this function:
 .. code-block:: python
 
    import yt
+
    yt.enable_plugins()
 
    my_run = yt.load_run("hotgasflow/DD0040/DD0040")

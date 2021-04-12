@@ -1,6 +1,7 @@
-import yt
 import matplotlib.pyplot as plt
 import numpy as np
+
+import yt
 
 # Enable parallelism in the script (assuming it was called with
 # `mpirun -np <n_procs>` )

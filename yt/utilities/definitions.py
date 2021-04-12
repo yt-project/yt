@@ -32,8 +32,8 @@ mpc_conversion = {
 # Nicely formatted versions of common length units
 formatted_length_unit_names = {
     "au": "AU",
-    "rsun": "R_\odot",
-    "code_length": "code\ length",
+    "rsun": r"R_\odot",
+    "code_length": r"code\ length",
 }
 
 # How many seconds are in each thing

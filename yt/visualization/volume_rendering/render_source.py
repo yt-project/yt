@@ -5,7 +5,7 @@ import numpy as np
 
 from yt.config import ytcfg
 from yt.data_objects.image_array import ImageArray
-from yt.funcs import ensure_numpy_array, iterable, mylog
+from yt.funcs import ensure_numpy_array, is_sequence, mylog
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.geometry.oct_geometry_handler import OctreeIndex
 from yt.utilities.amr_kdtree.api import AMRKDTree
@@ -54,7 +54,7 @@ def invalidate_volume(f):
     def wrapper(*args, **kwargs):
         ret = f(*args, **kwargs)
         obj = args[0]
-        if isinstance(obj.transfer_function, ProjectionTransferFunction):
+        if isinstance(obj._transfer_function, ProjectionTransferFunction):
             obj.sampler_type = "projection"
             obj._log_field = False
             obj._use_ghost_zones = False
@@ -95,7 +95,7 @@ class RenderSource(ParallelAnalysisInterface):
     volume_method = None
 
     def __init__(self):
-        super(RenderSource, self).__init__()
+        super().__init__()
         self.opaque = False
         self.zbuffer = None
 
@@ -116,7 +116,7 @@ class OpaqueSource(RenderSource):
     """
 
     def __init__(self):
-        super(OpaqueSource, self).__init__()
+        super().__init__()
         self.opaque = True
 
     def set_zbuffer(self, zbuffer):
@@ -186,7 +186,7 @@ class VolumeSource(RenderSource, abc.ABC):
 
     def __init__(self, data_source, field):
         r"""Initialize a new volumetric source for rendering."""
-        super(VolumeSource, self).__init__()
+        super().__init__()
         self.data_source = data_source_or_all(data_source)
         field = self.data_source._determine_fields(field)[0]
         self.current_image = None
@@ -558,14 +558,14 @@ class KDTreeVolumeSource(VolumeSource):
         if self._volume is not None:
             image = self.volume.reduce_tree_images(image, camera.lens.viewpoint)
 
-        return super(KDTreeVolumeSource, self).finalize_image(camera, image)
+        return super().finalize_image(camera, image)
 
 
 class OctreeVolumeSource(VolumeSource):
     volume_method = "Octree"
 
     def __init__(self, *args, **kwa):
-        super(OctreeVolumeSource, self).__init__(*args, **kwa)
+        super().__init__(*args, **kwa)
         self.set_use_ghost_zones(True)
 
     def _get_volume(self):
@@ -621,7 +621,7 @@ class OctreeVolumeSource(VolumeSource):
             1, len(dx), 14, 1
         )
         mask = np.full(dt.shape[1:], 1, dtype=np.uint8)
-        dims = np.array([1, 1, 1], dtype=int)
+        dims = np.array([1, 1, 1], dtype="int64")
         pg = PartitionedGrid(0, dt, mask, LE.flatten(), RE.flatten(), dims, n_fields=1)
 
         mylog.debug("Casting rays")
@@ -666,7 +666,7 @@ class MeshSource(OpaqueSource):
 
     def __init__(self, data_source, field):
         r"""Initialize a new unstructured mesh source for rendering."""
-        super(MeshSource, self).__init__()
+        super().__init__()
         self.data_source = data_source_or_all(data_source)
         field = self.data_source._determine_fields(field)[0]
         self.field = field
@@ -901,7 +901,7 @@ class MeshSource(OpaqueSource):
         if color is None:
             color = np.array([0, 0, 0, alpha])
 
-        locs = [self.sampler.amesh_lines == 1]
+        locs = (self.sampler.amesh_lines == 1,)
 
         self.current_image[:, :, 0][locs] = color[0]
         self.current_image[:, :, 1][locs] = color[1]
@@ -1001,7 +1001,7 @@ class PointSource(OpaqueSource):
         if colors is not None:
             assert colors.ndim == 2 and colors.shape[1] == 4
             assert colors.shape[0] == positions.shape[0]
-        if not iterable(radii):
+        if not is_sequence(radii):
             if radii is not None:  # broadcast the value
                 radii = radii * np.ones(positions.shape[0], dtype="int64")
             else:  # default radii to 0 pixels (i.e. point is 1 pixel wide)
@@ -1120,7 +1120,7 @@ class LineSource(OpaqueSource):
     data_source = None
 
     def __init__(self, positions, colors=None, color_stride=1):
-        super(LineSource, self).__init__()
+        super().__init__()
 
         assert positions.ndim == 3
         assert positions.shape[1] == 2
@@ -1264,7 +1264,7 @@ class BoxSource(LineSource):
             vertices[:, i] = corners[order, i, ...].ravel(order="F")
         vertices = vertices.reshape((12, 2, 3))
 
-        super(BoxSource, self).__init__(vertices, color, color_stride=24)
+        super().__init__(vertices, color, color_stride=24)
 
 
 class GridSource(LineSource):
@@ -1378,7 +1378,7 @@ class GridSource(LineSource):
             vertices[:, i] = corners[order, i, ...].ravel(order="F")
         vertices = vertices.reshape((corners.shape[2] * 12, 2, 3))
 
-        super(GridSource, self).__init__(vertices, colors, color_stride=24)
+        super().__init__(vertices, colors, color_stride=24)
 
 
 class CoordinateVectorSource(OpaqueSource):
@@ -1415,7 +1415,7 @@ class CoordinateVectorSource(OpaqueSource):
     """
 
     def __init__(self, colors=None, alpha=1.0):
-        super(CoordinateVectorSource, self).__init__()
+        super().__init__()
         # If colors aren't individually set, make black with full opacity
         if colors is None:
             colors = np.zeros((3, 4))

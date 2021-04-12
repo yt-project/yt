@@ -20,43 +20,65 @@ import urllib.request
 import warnings
 from distutils.version import LooseVersion
 from functools import lru_cache, wraps
-from math import ceil, floor
 from numbers import Number as numeric_type
+from typing import Any, Callable, Type
 
 import matplotlib
 import numpy as np
+from more_itertools import always_iterable, collapse, first
+from tqdm import tqdm
 
-from yt.extern.tqdm import tqdm
 from yt.units import YTArray, YTQuantity
 from yt.utilities.exceptions import YTInvalidWidthError
 from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.on_demand_imports import _requests as requests
 
 # Some functions for handling sequences and other types
 
 
-def iterable(obj):
+def is_sequence(obj):
     """
     Grabbed from Python Cookbook / matplotlib.cbook.  Returns true/false for
     *obj* iterable.
     """
     try:
         len(obj)
+        return True
     except TypeError:
         return False
-    return True
 
 
-def ensure_list(obj):
+def iter_fields(field_or_fields):
     """
-    This function ensures that *obj* is a list.  Typically used to convert a
-    string to a list, for instance ensuring the *fields* as an argument is a
-    list.
+    Create an iterator for field names, specified as single strings or tuples(fname,
+    ftype) alike.
+    This can safely be used in places where we accept a single field or a list as input.
+
+    Parameters
+    ----------
+    obj: str, tuple(str, str), or any iterable of the previous types.
+
+    Examples
+    --------
+
+    >>> fields = "density"
+    >>> for field in iter_fields(fields):
+    ...     print(field)
+    density
+
+    >>> fields = ("gas", "density")
+    >>> for field in iter_fields(fields):
+    ...     print(field)
+    ('gas', 'density')
+
+    >>> fields = ["density", "temperature", ("index", "dx")]
+    >>> for field in iter_fields(fields):
+    ...     print(field)
+    density
+    temperature
+    ('index', 'dx')
     """
-    if obj is None:
-        return [obj]
-    if not isinstance(obj, list):
-        return [obj]
-    return obj
+    return always_iterable(field_or_fields, base_type=(tuple, str, bytes))
 
 
 def ensure_numpy_array(obj):
@@ -75,20 +97,6 @@ def ensure_numpy_array(obj):
         return np.asarray([obj])
 
 
-def ensure_tuple(obj):
-    """
-    This function ensures that *obj* is a tuple.  Typically used to convert
-    scalar, list, or array arguments specified by a user in a context where
-    we assume a tuple internally
-    """
-    if isinstance(obj, tuple):
-        return obj
-    elif isinstance(obj, (list, np.ndarray)):
-        return tuple(obj)
-    else:
-        return (obj,)
-
-
 def read_struct(f, fmt):
     """
     This reads a struct, and only that struct, from an open file.
@@ -99,13 +107,7 @@ def read_struct(f, fmt):
 
 def just_one(obj):
     # If we have an iterable, sometimes we only want one item
-    if hasattr(obj, "flat"):
-        if isinstance(obj, YTArray):
-            return YTQuantity(obj.flat[0], obj.units, registry=obj.units.registry)
-        return obj.flat[0]
-    elif iterable(obj):
-        return obj[0]
-    return obj
+    return first(collapse(obj))
 
 
 def compare_dicts(dict1, dict2):
@@ -119,8 +121,8 @@ def compare_dicts(dict1, dict2):
                 else:
                     return False
             try:
-                comparison = (dict1[key] == dict2[key]).all()
-            except AttributeError:
+                comparison = np.array_equal(dict1[key], dict2[key])
+            except TypeError:
                 comparison = dict1[key] == dict2[key]
             if not comparison:
                 return False
@@ -172,7 +174,7 @@ def get_memory_usage(subtract_share=False):
 def time_execution(func):
     r"""
     Decorator for seeing how long a given function takes, depending on whether
-    or not the global 'yt.timefunctions' config parameter is set.
+    or not the global 'yt.time_functions' config parameter is set.
     """
 
     @wraps(func)
@@ -185,7 +187,7 @@ def time_execution(func):
 
     from yt.config import ytcfg
 
-    if ytcfg.getboolean("yt", "timefunctions"):
+    if ytcfg.get("yt", "time_functions"):
         return wrapper
     else:
         return func
@@ -201,7 +203,8 @@ def print_tb(func):
     .. code-block:: python
 
        @print_tb
-       def some_deeply_nested_function(...):
+       def some_deeply_nested_function(*args, **kwargs):
+           ...
 
     """
 
@@ -224,58 +227,18 @@ def rootonly(func):
     .. code-block:: python
 
        @rootonly
-       def some_root_only_function(...):
-
+       def some_root_only_function(*args, **kwargs):
+           ...
     """
     from yt.config import ytcfg
 
     @wraps(func)
     def check_parallel_rank(*args, **kwargs):
-        if ytcfg.getint("yt", "__topcomm_parallel_rank") > 0:
+        if ytcfg.get("yt", "internals", "topcomm_parallel_rank") > 0:
             return
         return func(*args, **kwargs)
 
     return check_parallel_rank
-
-
-class VisibleDeprecationWarning(UserWarning):
-    """Visible deprecation warning, adapted from NumPy
-
-    By default python does not show users deprecation warnings.
-    This ensures that a deprecation warning is visible to users
-    if that is desired.
-    """
-
-    pass
-
-
-def deprecate(replacement):
-    def real_deprecate(func):
-        """
-        This decorator issues a deprecation warning.
-
-        This can be used like so:
-
-        .. code-block:: python
-
-        @deprecate("new_function")
-        def some_really_old_function(...):
-
-        """
-
-        @wraps(func)
-        def run_func(*args, **kwargs):
-            message = "%s has been deprecated and may be removed without notice!"
-            if replacement is not None:
-                message += f" Use {replacement} instead."
-            warnings.warn(
-                message % func.__name__, VisibleDeprecationWarning, stacklevel=2
-            )
-            func(*args, **kwargs)
-
-        return run_func
-
-    return real_deprecate
 
 
 def pdb_run(func):
@@ -288,7 +251,8 @@ def pdb_run(func):
     .. code-block:: python
 
        @pdb_run
-       def some_function_to_debug(...):
+       def some_function_to_debug(*args, **kwargs):
+           ...
 
     """
 
@@ -375,47 +339,7 @@ class DummyProgressBar:
         return
 
 
-class ParallelProgressBar:
-    # This is just a simple progress bar
-    # that prints on start/stop
-    def __init__(self, title, maxval):
-        self.title = title
-        mylog.info("Starting '%s'", title)
-
-    def update(self, *args, **kwargs):
-        return
-
-    def finish(self):
-        mylog.info("Finishing '%s'", self.title)
-
-
-class GUIProgressBar:
-    def __init__(self, title, maxval):
-        import wx
-
-        self.maxval = maxval
-        self.last = 0
-        self._pbar = wx.ProgressDialog(
-            "Working...",
-            title,
-            maximum=maxval,
-            style=wx.PD_REMAINING_TIME | wx.PD_ELAPSED_TIME | wx.PD_APP_MODAL,
-        )
-
-    def update(self, val):
-        # An update is only meaningful if it's on the order of 1/100 or greater
-        if (
-            ceil(100 * self.last / self.maxval) + 1 == floor(100 * val / self.maxval)
-            or val == self.maxval
-        ):
-            self._pbar.Update(val)
-            self.last = val
-
-    def finish(self):
-        self._pbar.Destroy()
-
-
-def get_pbar(title, maxval, parallel=False):
+def get_pbar(title, maxval):
     """
     This returns a progressbar of the most appropriate type, given a *title*
     and a *maxval*.
@@ -424,22 +348,13 @@ def get_pbar(title, maxval, parallel=False):
     from yt.config import ytcfg
 
     if (
-        ytcfg.getboolean("yt", "suppressStreamLogging")
-        or ytcfg.getboolean("yt", "__withintesting")
+        ytcfg.get("yt", "suppress_stream_logging")
+        or ytcfg.get("yt", "internals", "within_testing")
         or maxval == 1
+        or not is_root()
     ):
         return DummyProgressBar()
-    elif ytcfg.getboolean("yt", "__parallel"):
-        # If parallel is True, update progress on root only.
-        if parallel:
-            if is_root():
-                return TqdmProgressBar(title, maxval)
-            else:
-                return DummyProgressBar()
-        else:
-            return ParallelProgressBar(title, maxval)
-    pbar = TqdmProgressBar(title, maxval)
-    return pbar
+    return TqdmProgressBar(title, maxval)
 
 
 def only_on_root(func, *args, **kwargs):
@@ -451,12 +366,12 @@ def only_on_root(func, *args, **kwargs):
     from yt.config import ytcfg
 
     if kwargs.pop("global_rootonly", False):
-        cfg_option = "__global_parallel_rank"
+        cfg_option = "global_parallel_rank"
     else:
-        cfg_option = "__topcomm_parallel_rank"
-    if not ytcfg.getboolean("yt", "__parallel"):
+        cfg_option = "topcomm_parallel_rank"
+    if not ytcfg.get("yt", "internals", "parallel"):
         return func(*args, **kwargs)
-    if ytcfg.getint("yt", cfg_option) > 0:
+    if ytcfg.get("yt", "internals", cfg_option) > 0:
         return
     return func(*args, **kwargs)
 
@@ -468,12 +383,9 @@ def is_root():
     """
     from yt.config import ytcfg
 
-    cfg_option = "__topcomm_parallel_rank"
-    if not ytcfg.getboolean("yt", "__parallel"):
+    if not ytcfg.get("yt", "internals", "parallel"):
         return True
-    if ytcfg.getint("yt", cfg_option) > 0:
-        return False
-    return True
+    return ytcfg.get("yt", "internals", "topcomm_parallel_rank") == 0
 
 
 #
@@ -559,13 +471,6 @@ class YTEmptyClass:
     pass
 
 
-def update_hg_or_git(path):
-    if os.path.exists(os.sep.join([path, ".hg"])):
-        update_hg(path)
-    elif os.path.exists(os.sep.join([path, ".git"])):
-        update_git(path)
-
-
 def update_git(path):
     try:
         import git
@@ -583,19 +488,19 @@ def update_git(path):
             print("")
             print(f"    $ cd {path}")
             print("    $ git stash")
-            print("    $ git checkout master")
+            print("    $ git checkout main")
             print("    $ git pull")
             print("    $ git stash pop")
             print(f"    $ {sys.executable} setup.py develop")
             print("")
             return 1
-        if repo.active_branch.name != "master":
-            print("yt repository is not tracking the master branch so I won't ")
+        if repo.active_branch.name != "main":
+            print("yt repository is not tracking the main branch so I won't ")
             print("update the code. You will have to do this yourself.")
             print("Here's a set of sample commands:")
             print("")
             print(f"    $ cd {path}")
-            print("    $ git checkout master")
+            print("    $ git checkout main")
             print("    $ git pull")
             print(f"    $ {sys.executable} setup.py develop")
             print("")
@@ -610,48 +515,14 @@ def update_git(path):
                 "yt_upstream", url="https://github.com/yt-project/yt"
             )
             remote.fetch()
-        master = repo.heads.master
-        master.set_tracking_branch(remote.refs.master)
-        master.checkout()
+        main = repo.heads.main
+        main.set_tracking_branch(remote.refs.main)
+        main.checkout()
         remote.pull()
         new_version = repo.git.rev_parse("HEAD", short=12)
         f.write(f"Updated from {old_version} to {new_version}\n\n")
         rebuild_modules(path, f)
     print("Updated successfully")
-
-
-def update_hg(path):
-    try:
-        import hglib
-    except ImportError:
-        print("Updating requires python-hglib to be installed.")
-        print("Try: pip install python-hglib")
-        return -1
-    f = open(os.path.join(path, "yt_updater.log"), "a")
-    with hglib.open(path) as repo:
-        repo.pull(b"https://bitbucket.org/yt_analysis/yt")
-        ident = repo.identify().decode("utf-8")
-        if "+" in ident:
-            print("Changes have been made to the yt source code so I won't ")
-            print("update the code. You will have to do this yourself.")
-            print("Here's a set of sample commands:")
-            print("")
-            print(f"    $ cd {path}")
-            print("    $ hg up -C yt  # This will delete any unsaved changes")
-            print(f"    $ {sys.executable} setup.py develop")
-            print("")
-            return 1
-        print("Updating the repository")
-        f.write("Updating the repository\n\n")
-        books = repo.bookmarks()[0]
-        books = [b[0].decode("utf8") for b in books]
-        if "master" in books:
-            repo.update("master", check=True)
-        else:
-            repo.update("yt", check=True)
-        f.write(f"Updated from {ident} to {repo.identify()}\n\n")
-        rebuild_modules(path, f)
-    print("Updated successfully.")
 
 
 def rebuild_modules(path, f):
@@ -671,14 +542,6 @@ def rebuild_modules(path, f):
     f.write("Successful!\n")
 
 
-def get_hg_or_git_version(path):
-    if os.path.exists(os.sep.join([path, ".hg"])):
-        return get_hg_version(path)
-    elif os.path.exists(os.sep.join([path, ".git"])):
-        return get_git_version(path)
-    return None
-
-
 def get_git_version(path):
     try:
         import git
@@ -695,29 +558,7 @@ def get_git_version(path):
         return None
 
 
-def get_hg_version(path):
-    try:
-        import hglib
-    except ImportError:
-        print("Updating and precise version information requires ")
-        print("python-hglib to be installed.")
-        print("Try: pip install python-hglib")
-        return None
-    try:
-        with hglib.open(path) as repo:
-            return repo.identify().decode("utf-8")
-    except hglib.error.ServerError:
-        # path is not an hg repository
-        return None
-
-
 def get_yt_version():
-    try:
-        from yt.__hg_version__ import hg_version
-
-        return hg_version
-    except ImportError:
-        pass
     import pkg_resources
 
     yt_provider = pkg_resources.get_provider("yt")
@@ -755,11 +596,11 @@ def get_script_contents():
 
 
 def download_file(url, filename):
-    requests = get_requests()
-    if requests is None:
-        return simple_download_file(url, filename)
-    else:
+    try:
         return fancy_download_file(url, filename, requests)
+    except ImportError:
+        # fancy_download_file requires requests
+        return simple_download_file(url, filename)
 
 
 def fancy_download_file(url, filename, requests=None):
@@ -814,38 +655,6 @@ def bb_apicall(endpoint, data, use_pass=True):
     return urllib.request.urlopen(req).read()
 
 
-def get_yt_supp():
-    import hglib
-
-    supp_path = os.path.join(os.environ["YT_DEST"], "src", "yt-supplemental")
-    # Now we check that the supplemental repository is checked out.
-    if not os.path.isdir(supp_path):
-        print()
-        print("*** The yt-supplemental repository is not checked ***")
-        print("*** out.  I can do this for you, but because this ***")
-        print("*** is a delicate act, I require you to respond   ***")
-        print("*** to the prompt with the word 'yes'.            ***")
-        print()
-        response = input("Do you want me to try to check it out? ")
-        if response != "yes":
-            print()
-            print("Okay, I understand.  You can check it out yourself.")
-            print("This command will do it:")
-            print()
-            print(
-                "$ hg clone http://bitbucket.org/yt_analysis/yt-supplemental/ ", end=" "
-            )
-            print(f"{supp_path}")
-            print()
-            sys.exit(1)
-        rv = hglib.clone("http://bitbucket.org/yt_analysis/yt-supplemental/", supp_path)
-        if rv:
-            print("Something has gone wrong.  Quitting.")
-            sys.exit(1)
-    # Now we think we have our supplemental repository.
-    return supp_path
-
-
 def fix_length(length, ds):
     registry = ds.unit_registry
     if isinstance(length, YTArray):
@@ -895,8 +704,8 @@ def parallel_profile(prefix):
 
     fn = "%s_%04i_%04i.cprof" % (
         prefix,
-        ytcfg.getint("yt", "__topcomm_parallel_size"),
-        ytcfg.getint("yt", "__topcomm_parallel_rank"),
+        ytcfg.get("yt", "internals", "topcomm_parallel_size"),
+        ytcfg.get("yt", "internals", "topcomm_parallel_rank"),
     )
     p = cProfile.Profile()
     p.enable()
@@ -908,7 +717,7 @@ def parallel_profile(prefix):
 def get_num_threads():
     from .config import ytcfg
 
-    nt = ytcfg.getint("yt", "numthreads")
+    nt = ytcfg.get("yt", "num_threads")
     if nt < 0:
         return os.environ.get("OMP_NUM_THREADS", 0)
     return nt
@@ -916,16 +725,6 @@ def get_num_threads():
 
 def fix_axis(axis, ds):
     return ds.coordinates.axis_id.get(axis, axis)
-
-
-def get_image_suffix(name):
-    suffix = os.path.splitext(name)[1]
-    supported_suffixes = [".png", ".eps", ".ps", ".pdf", ".jpg", ".jpeg"]
-    if suffix in supported_suffixes or suffix == "":
-        return suffix
-    else:
-        mylog.warning("Unsupported image suffix requested (%s)", suffix)
-        return ""
 
 
 def get_output_filename(name, keyword, suffix):
@@ -999,7 +798,7 @@ def ensure_dir(path):
 
 
 def validate_width_tuple(width):
-    if not iterable(width) or len(width) != 2:
+    if not is_sequence(width) or len(width) != 2:
         raise YTInvalidWidthError(f"width ({width}) is not a two element tuple")
     is_numeric = isinstance(width[0], numeric_type)
     length_has_units = isinstance(width[0], YTArray)
@@ -1022,7 +821,7 @@ def camelcase_to_underscore(name):
 
 def set_intersection(some_list):
     if len(some_list) == 0:
-        return set([])
+        return set()
     # This accepts a list of iterables, which we get the intersection of.
     s = set(some_list[0])
     for l in some_list[1:]:
@@ -1062,7 +861,7 @@ def memory_checker(interval=15, dest=None):
 
         def run(self):
             while not self.event.wait(self.interval):
-                print("MEMORY: %0.3e gb" % (get_memory_usage() / 1024.0), file=dest)
+                print(f"MEMORY: {get_memory_usage() / 1024.0:0.3e} gb", file=dest)
 
     e = threading.Event()
     mem_check = MemoryChecker(e, interval)
@@ -1073,29 +872,14 @@ def memory_checker(interval=15, dest=None):
         e.set()
 
 
-def deprecated_class(cls):
-    @wraps(cls)
-    def _func(*args, **kwargs):
-        # Note we use SyntaxWarning because by default, DeprecationWarning is
-        # not shown.
-        warnings.warn(
-            f"This usage is deprecated.  Please use {cls.__name__} instead.",
-            SyntaxWarning,
-            stacklevel=2,
-        )
-        return cls(*args, **kwargs)
-
-    return _func
-
-
-def enable_plugins(pluginfilename=None):
+def enable_plugins(plugin_filename=None):
     """Forces a plugin file to be parsed.
 
     A plugin file is a means of creating custom fields, quantities,
     data objects, colormaps, and other code classes and objects to be used
     in yt scripts without modifying the yt source directly.
 
-    If <pluginfilename> is omited, this function will look for a plugin file at
+    If ``plugin_filename`` is omitted, this function will look for a plugin file at
     ``$HOME/.config/yt/my_plugins.py``, which is the prefered behaviour for a
     system-level configuration.
 
@@ -1103,11 +887,11 @@ def enable_plugins(pluginfilename=None):
     file is shared with it.
     """
     import yt
-    from yt.config import CONFIG_DIR, ytcfg
+    from yt.config import config_dir, old_config_dir, ytcfg
     from yt.fields.my_plugin_fields import my_plugins_fields
 
-    if pluginfilename is not None:
-        _fn = pluginfilename
+    if plugin_filename is not None:
+        _fn = plugin_filename
         if not os.path.isfile(_fn):
             raise FileNotFoundError(_fn)
     else:
@@ -1115,21 +899,20 @@ def enable_plugins(pluginfilename=None):
         # - absolute path
         # - CONFIG_DIR
         # - obsolete config dir.
-        my_plugin_name = ytcfg.get("yt", "pluginfilename")
-        old_config_dir = os.path.join(os.path.expanduser("~"), ".yt")
-        for base_prefix in ("", CONFIG_DIR, old_config_dir):
+        my_plugin_name = ytcfg.get("yt", "plugin_filename")
+        for base_prefix in ("", config_dir(), old_config_dir()):
             if os.path.isfile(os.path.join(base_prefix, my_plugin_name)):
                 _fn = os.path.join(base_prefix, my_plugin_name)
                 break
         else:
             raise FileNotFoundError("Could not find a global system plugin file.")
 
-        if _fn.startswith(old_config_dir):
+        if _fn.startswith(old_config_dir()):
             mylog.warning(
                 "Your plugin file is located in a deprecated directory. "
                 "Please move it from %s to %s",
-                os.path.join(old_config_dir, my_plugin_name),
-                os.path.join(CONFIG_DIR, my_plugin_name),
+                os.path.join(old_config_dir(), my_plugin_name),
+                os.path.join(config_dir(), my_plugin_name),
             )
 
     mylog.info("Loading plugins from %s", _fn)
@@ -1240,14 +1023,6 @@ def get_brewer_cmap(cmap):
     return bmap.get_mpl_colormap(N=cmap[2])
 
 
-def get_requests():
-    try:
-        import requests
-    except ImportError:
-        requests = None
-    return requests
-
-
 @contextlib.contextmanager
 def dummy_context_manager(*args, **kwargs):
     yield
@@ -1325,14 +1100,8 @@ def parse_h5_attr(f, attr):
         return val
 
 
-def issue_deprecation_warning(msg, stacklevel=3):
-    from numpy import VisibleDeprecationWarning
-
-    warnings.warn(msg, VisibleDeprecationWarning, stacklevel=stacklevel)
-
-
 def obj_length(v):
-    if iterable(v):
+    if is_sequence(v):
         return len(v)
     else:
         # If something isn't iterable, we return 0
@@ -1361,7 +1130,7 @@ def array_like_field(data, x, field):
 
 
 def validate_3d_array(obj):
-    if not iterable(obj) or len(obj) != 3:
+    if not is_sequence(obj) or len(obj) != 3:
         raise TypeError(
             "Expected an array of size (3,), received '%s' of "
             "length %s" % (str(type(obj)).split("'")[1], len(obj))
@@ -1413,15 +1182,15 @@ def validate_float(obj):
             )
         else:
             return
-    if iterable(obj) and (len(obj) != 1 or not isinstance(obj[0], numeric_type)):
+    if is_sequence(obj) and (len(obj) != 1 or not isinstance(obj[0], numeric_type)):
         raise TypeError(
             "Expected a numeric value (or size-1 array), "
             "received '%s' of length %s" % (str(type(obj)).split("'")[1], len(obj))
         )
 
 
-def validate_iterable(obj):
-    if obj is not None and not iterable(obj):
+def validate_sequence(obj):
+    if obj is not None and not is_sequence(obj):
         raise TypeError(
             "Expected an iterable object,"
             " received '%s'" % str(type(obj)).split("'")[1]
@@ -1461,7 +1230,7 @@ def validate_center(center):
                 "'m', 'max', 'min'] or the prefix to be "
                 "'max_'/'min_', received '%s'." % center
             )
-    elif not isinstance(center, (numeric_type, YTQuantity)) and not iterable(center):
+    elif not isinstance(center, (numeric_type, YTQuantity)) and not is_sequence(center):
         raise TypeError(
             "Expected 'center' to be a numeric object of type "
             "list/tuple/np.ndarray/YTArray/YTQuantity, "
@@ -1474,3 +1243,33 @@ def sglob(pattern):
     Return the results of a glob through the sorted() function.
     """
     return sorted(glob.glob(pattern))
+
+
+def dictWithFactory(factory: Callable[[Any], Any]) -> Type:
+    """
+    Create a dictionary class with a default factory function.
+    Contrary to `collections.defaultdict`, the factory takes
+    the missing key as input parameter.
+
+    Parameters
+    ----------
+    factory : callable(key) -> value
+        The factory to call when hitting a missing key
+
+    Returns
+    -------
+    DictWithFactory class
+        A class to create new dictionaries handling missing keys.
+    """
+
+    class DictWithFactory(dict):
+        def __init__(self, *args, **kwargs):
+            self.factory = factory
+            super().__init__(*args, **kwargs)
+
+        def __missing__(self, key):
+            val = self.factory(key)
+            self[key] = val
+            return val
+
+    return DictWithFactory

@@ -172,7 +172,7 @@ cdef class BooleanXORSelector(BooleanSelector):
         cdef int rv1 = self.sel1.select_bbox_edge(left_edge, right_edge)
         cdef int rv2 = self.sel2.select_bbox_edge(left_edge, right_edge)
         if rv1 == rv2:
-            if rv1 == 2: 
+            if rv1 == 2:
                 # If not identical, part of the bbox will be touched by one
                 # selector and not the other.
                 # if self.sel1 == self.sel2: return 0  # requires gil
@@ -230,7 +230,7 @@ cdef class BooleanNEGSelector(BooleanSelector):
         # If sel2 is partial, then sel1 - sel2 will be partial as long
         # as sel1 != sel2
         # if self.sel1 == self.sel2: return 0  # requires gil
-        return 2  
+        return 2
 
     cdef int select_grid(self, np.float64_t left_edge[3],
                          np.float64_t right_edge[3], np.int32_t level,

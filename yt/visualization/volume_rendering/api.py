@@ -1,6 +1,5 @@
 from .camera import Camera
 from .image_handling import export_rgba, import_rgba, plot_channel, plot_rgb
-from .interactive_vr_helpers import interactive_render
 from .off_axis_projection import off_axis_projection
 from .render_source import (
     BoxSource,

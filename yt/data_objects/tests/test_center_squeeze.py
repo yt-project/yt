@@ -5,8 +5,8 @@ def test_center_squeeze():
     # checks that the center is reshaped correctly
 
     # create and test amr, random and particle data
-    check_single_ds(fake_amr_ds(fields=("Density",)))
-    check_single_ds(fake_random_ds(16, fields=("Density",)))
+    check_single_ds(fake_amr_ds(fields=("Density",), units=("g/cm**3",)))
+    check_single_ds(fake_random_ds(16, fields=("Density",), units=("g/cm**3",)))
     check_single_ds(fake_particle_ds(npart=100))
 
 

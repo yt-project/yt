@@ -5,7 +5,7 @@ import numpy as np
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
-from yt.funcs import ensure_tuple, mylog, sglob
+from yt.funcs import mylog, sglob
 from yt.geometry.geometry_handler import YTDataChunk
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.chemical_formulas import default_mu
@@ -371,7 +371,7 @@ class AthenaHierarchy(GridIndex):
                     [slc[0].start, slc[1].start, slc[2].start] for slc in slices
                 ]
                 read_dims += [
-                    np.array([gdims[i][0], gdims[i][1], shape[2]], dtype="int")
+                    np.array([gdims[i][0], gdims[i][1], shape[2]], dtype="int64")
                     for shape in shapes
                 ]
             self.num_grids *= self.dataset.nprocs
@@ -484,18 +484,6 @@ class AthenaDataset(Dataset):
         self.specified_parameters = parameters.copy()
         if units_override is None:
             units_override = {}
-        # This is for backwards-compatibility
-        already_warned = False
-        for k in list(self.specified_parameters.keys()):
-            if k.endswith("_unit") and k not in units_override:
-                if not already_warned:
-                    mylog.warning(
-                        "Supplying unit conversions from the parameters dict "
-                        "is deprecated, and will be removed in a future release. "
-                        "Use units_override instead."
-                    )
-                    already_warned = True
-                units_override[k] = self.specified_parameters.pop(k)
         Dataset.__init__(
             self,
             filename,
@@ -591,14 +579,9 @@ class AthenaDataset(Dataset):
         self.num_ghost_zones = 0
         self.field_ordering = "fortran"
         self.boundary_conditions = [1] * 6
-        if "periodicity" in self.specified_parameters:
-            self.periodicity = ensure_tuple(self.specified_parameters["periodicity"])
-        else:
-            self.periodicity = (
-                True,
-                True,
-                True,
-            )
+        self._periodicity = tuple(
+            self.specified_parameters.get("periodicity", (True, True, True))
+        )
         if "gamma" in self.specified_parameters:
             self.gamma = float(self.specified_parameters["gamma"])
         else:
@@ -626,11 +609,11 @@ class AthenaDataset(Dataset):
         ]
         self.nvtk = len(gridlistread) + 1
 
-        self.current_redshift = (
-            self.omega_lambda
-        ) = (
-            self.omega_matter
-        ) = self.hubble_constant = self.cosmological_simulation = 0.0
+        self.current_redshift = 0.0
+        self.omega_lambda = 0.0
+        self.omega_matter = 0.0
+        self.hubble_constant = 0.0
+        self.cosmological_simulation = 0
         self.parameters["Time"] = self.current_time  # Hardcode time conversion for now.
         self.parameters[
             "HydroMethod"
@@ -644,9 +627,9 @@ class AthenaDataset(Dataset):
         self.mu = self.specified_parameters.get("mu", default_mu)
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         try:
-            if "vtk" in args[0]:
+            if "vtk" in filename:
                 return True
         except Exception:
             pass

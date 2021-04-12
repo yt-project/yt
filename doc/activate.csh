@@ -52,4 +52,3 @@ set prompt = "[$env_name] $prompt"
 unset env_name
 
 rehash
-

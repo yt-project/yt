@@ -6,7 +6,6 @@ import numpy as np
 
 from yt.data_objects.static_output import ParticleFile
 from yt.frontends.sph.data_structures import SPHDataset, SPHParticleIndex
-from yt.funcs import deprecate
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.physical_constants import G
 from yt.utilities.physical_ratios import cm_per_kpc
@@ -16,7 +15,7 @@ from .fields import TipsyFieldInfo
 
 class TipsyFile(ParticleFile):
     def __init__(self, ds, io, filename, file_id, range=None):
-        super(TipsyFile, self).__init__(ds, io, filename, file_id, range)
+        super().__init__(ds, io, filename, file_id, range)
         if not hasattr(io, "_field_list"):
             io._create_dtypes(self)
             # Check automatically what the domain size is
@@ -100,7 +99,7 @@ class TipsyDataset(SPHDataset):
                 "units_override is not supported for TipsyDataset. "
                 + "Use unit_base instead."
             )
-        super(TipsyDataset, self).__init__(
+        super().__init__(
             filename,
             dataset_type=dataset_type,
             unit_system=unit_system,
@@ -120,14 +119,12 @@ class TipsyDataset(SPHDataset):
 
         f = open(self.parameter_filename, "rb")
         hh = self.endian + "".join(["%s" % (b) for a, b in self._header_spec])
-        hvals = dict(
-            [
-                (a, c)
-                for (a, b), c in zip(
-                    self._header_spec, struct.unpack(hh, f.read(struct.calcsize(hh)))
-                )
-            ]
-        )
+        hvals = {
+            a: c
+            for (a, b), c in zip(
+                self._header_spec, struct.unpack(hh, f.read(struct.calcsize(hh)))
+            )
+        }
         self.parameters.update(hvals)
         self._header_offset = f.tell()
 
@@ -168,7 +165,7 @@ class TipsyDataset(SPHDataset):
         self.domain_dimensions = np.ones(3, "int32")
         periodic = self.parameters.get("bPeriodic", True)
         period = self.parameters.get("dPeriod", None)
-        self.periodicity = (periodic, periodic, periodic)
+        self._periodicity = (periodic, periodic, periodic)
         self.cosmological_simulation = float(
             self.parameters.get("bComove", self._cosmology_parameters is not None)
         )
@@ -229,7 +226,7 @@ class TipsyDataset(SPHDataset):
             self.domain_left_edge = np.array([np.nan, np.nan, np.nan])
             self.domain_right_edge = np.array([np.nan, np.nan, np.nan])
             self.index
-        super(TipsyDataset, self)._set_derived_attrs()
+        super()._set_derived_attrs()
 
     def _set_code_unit_attributes(self):
         # First try to set units based on parameter file
@@ -309,7 +306,7 @@ class TipsyDataset(SPHDataset):
             f.seek(0, os.SEEK_SET)
             # Read in the header
             t, n, ndim, ng, nd, ns = struct.unpack("<diiiii", f.read(28))
-        except (IOError, struct.error):
+        except (OSError, struct.error):
             return False, 1
         endianswap = "<"
         # Check Endianness
@@ -334,15 +331,5 @@ class TipsyDataset(SPHDataset):
         return True, endianswap
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        return TipsyDataset._validate_header(args[0])[0]
-
-    @property
-    @deprecate(replacement="cosmological_simulation")
-    def comoving(self):
-        return self.cosmological_simulation == 1.0
-
-    # _instantiated_index = None
-    # @property
-    # def index(self):
-    #     index_nosoft = super(TipsyDataset, self).index
+    def _is_valid(cls, filename, *args, **kwargs):
+        return TipsyDataset._validate_header(filename)[0]

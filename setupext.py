@@ -19,17 +19,6 @@ from pkg_resources import resource_filename
 from setuptools.command.build_ext import build_ext as _build_ext
 from setuptools.command.sdist import sdist as _sdist
 
-CCODE = """
-#include <omp.h>
-#include <stdio.h>
-int main() {
-  omp_set_num_threads(2);
-  #pragma omp parallel
-  printf("nthreads=%d\\n", omp_get_num_threads());
-  return 0;
-}
-"""
-
 
 @contextlib.contextmanager
 def stdchannel_redirected(stdchannel, dest_filename):
@@ -72,6 +61,17 @@ def check_for_openmp():
 
     tmp_dir = tempfile.mkdtemp()
     start_dir = os.path.abspath(".")
+
+    CCODE = """
+    #include <omp.h>
+    #include <stdio.h>
+    int main() {
+        omp_set_num_threads(2);
+        #pragma omp parallel
+        printf("nthreads=%d\\n", omp_get_num_threads());
+        return 0;
+    }
+    """
 
     # TODO: test more known compilers:
     # MinGW, AppleClang with libomp, MSVC, ICC, XL, PGI, ...
@@ -143,6 +143,61 @@ def check_for_openmp():
         return compile_flags, link_flags
     else:
         return [], []
+
+
+def check_CPP14_flag(compile_flags):
+    # Create a temporary directory
+    ccompiler = new_compiler()
+    customize_compiler(ccompiler)
+
+    tmp_dir = tempfile.mkdtemp()
+    start_dir = os.path.abspath(".")
+
+    # Note: This code requires C++14 functionalities (also required to compile yt)
+    # It compiles on gcc 4.7.4 (together with the entirety of yt) with the flag "-std=gnu++0x".
+    # It does not compile on gcc 4.6.4 (neither does yt).
+    CPPCODE = """
+    #include <vector>
+
+    struct node {
+        std::vector<int> vic;
+        bool visited = false;
+    };
+
+    int main() {
+        return 0;
+    }
+    """
+
+    os.chdir(tmp_dir)
+    try:
+        with open("test_cpp14.cpp", "w") as f:
+            f.write(CPPCODE)
+
+        os.mkdir("objects")
+
+        # Compile, link, and run test program
+        with stdchannel_redirected(sys.stderr, os.devnull):
+            ccompiler.compile(
+                ["test_cpp14.cpp"], output_dir="objects", extra_postargs=compile_flags
+            )
+        return True
+    except CompileError:
+        return False
+    finally:
+        os.chdir(start_dir)
+
+
+def check_CPP14_flags(possible_compile_flags):
+    for flags in possible_compile_flags:
+        if check_CPP14_flag([flags]):
+            return flags
+
+    log.warn(
+        "Your compiler seems to be too old to support C++14. "
+        "yt may not be able to compile. Please use a newer version."
+    )
+    return []
 
 
 def check_for_pyembree(std_libs):

@@ -6,7 +6,7 @@ from yt.funcs import mylog
 from yt.utilities.lib._octree_raytracing import _OctreeRayTracing
 
 
-class OctreeRayTracing(object):
+class OctreeRayTracing:
     octree = None
     data_source = None
     log_fields = None

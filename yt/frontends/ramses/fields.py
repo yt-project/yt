@@ -3,12 +3,11 @@ import os
 import numpy as np
 
 from yt import units
-from yt.fields.field_detector import FieldDetector
 from yt.fields.field_info_container import FieldInfoContainer
 from yt.frontends.ramses.io import convert_ramses_ages
-from yt.funcs import issue_deprecation_warning, mylog
 from yt.utilities.cython_fortran_utils import FortranFile
 from yt.utilities.linear_interpolators import BilinearFieldInterpolator
+from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.physical_constants import (
     boltzmann_constant_cgs,
     mass_hydrogen_cgs,
@@ -24,14 +23,15 @@ rho_units = "code_density"
 vel_units = "code_velocity"
 pressure_units = "code_pressure"
 ener_units = "code_mass * code_velocity**2"
+specific_ener_units = "code_velocity**2"
 ang_mom_units = "code_mass * code_velocity * code_length"
 cooling_function_units = " erg * cm**3 /s"
 cooling_function_prime_units = " erg * cm**3 /s/K"
 flux_unit = "1 / code_length**2 / code_time"
 number_density_unit = "1 / code_length**3"
 
-known_species_masses = dict(
-    (sp, mh * v)
+known_species_masses = {
+    sp: mh * v
     for sp, v in [
         ("HI", 1.0),
         ("HII", 1.0),
@@ -46,7 +46,7 @@ known_species_masses = dict(
         ("DII", 2.0),
         ("HDI", 3.0),
     ]
-)
+}
 
 _cool_axes = ("lognH", "logT")  # , "logTeq")
 _cool_arrs = (
@@ -91,7 +91,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
         ("x-acceleration", (ra_units, ["acceleration_x"], None)),
         ("y-acceleration", (ra_units, ["acceleration_y"], None)),
         ("z-acceleration", (ra_units, ["acceleration_z"], None)),
-        ("Potential", (ener_units, ["potential"], None)),
+        ("Potential", (specific_ener_units, ["potential"], None)),
         ("B_x_left", (b_units, ["magnetic_field_x_left"], None)),
         ("B_x_right", (b_units, ["magnetic_field_x_right"], None)),
         ("B_y_left", (b_units, ["magnetic_field_y_left"], None)),
@@ -141,31 +141,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
     )
 
     def setup_particle_fields(self, ptype):
-        super(RAMSESFieldInfo, self).setup_particle_fields(ptype)
-
-        def particle_age(field, data):
-            msg = (
-                "The RAMSES particle_age field has been deprecated since "
-                "it did not actually represent particle ages in all "
-                "cases. To get the time when a particle was formed use "
-                "the particle_birth_time field instead. To get the "
-                "age of a star particle, use the star_age field"
-            )
-            if not isinstance(data, FieldDetector):
-                issue_deprecation_warning(msg, stacklevel=2)
-            if data.ds.cosmological_simulation:
-                conformal_age = data[ptype, "conformal_birth_time"]
-                ret = convert_ramses_ages(data.ds, conformal_age)
-                return data.ds.arr(ret, "code_time")
-            else:
-                return data[ptype, "particle_birth_time"]
-
-        self.add_field(
-            (ptype, "particle_age"),
-            sampling_type="particle",
-            function=particle_age,
-            units=self.ds.unit_system["time"],
-        )
+        super().setup_particle_fields(ptype)
 
         def star_age(field, data):
             if data.ds.cosmological_simulation:
@@ -205,6 +181,21 @@ class RAMSESFieldInfo(FieldInfoContainer):
         # Load magnetic fields
         if ("gas", "magnetic_field_x_left") in self:
             self.create_magnetic_fields()
+
+        # Potential field
+        if ("gravity", "Potential") in self:
+            self.create_gravity_fields()
+
+    def create_gravity_fields(self):
+        def potential_energy(field, data):
+            return data["gas", "potential"] * data["gas", "cell_mass"]
+
+        self.add_field(
+            ("gas", "potential_energy"),
+            sampling_type="cell",
+            function=potential_energy,
+            units=self.ds.unit_system["energy"],
+        )
 
     def create_magnetic_fields(self):
         # Calculate cell-centred magnetic fields from face-centred
@@ -312,9 +303,9 @@ class RAMSESFieldInfo(FieldInfoContainer):
 
             return _photon_flux
 
-        flux_unit = str(
+        flux_unit = (
             1 / self.ds.unit_system["time"] / self.ds.unit_system["length"] ** 2
-        )
+        ).units
         for key in "xyz":
             for igroup in range(ngroups):
                 self.add_field(

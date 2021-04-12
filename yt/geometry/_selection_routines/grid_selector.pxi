@@ -36,4 +36,3 @@ cdef class GridSelector(SelectorObject):
         return (self.ind,)
 
 grid_selector = GridSelector
-

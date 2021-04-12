@@ -41,7 +41,7 @@ cdef class SelectorObject:
                               OctVisitor visitor, int i, int j, int k)
     cdef int select_grid(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3],
-                               np.int32_t level, Oct *o = ?) nogil 
+                               np.int32_t level, Oct *o = ?) nogil
     cdef int select_grid_edge(self, np.float64_t left_edge[3],
                                     np.float64_t right_edge[3],
                                     np.int32_t level, Oct *o = ?) nogil
@@ -59,6 +59,12 @@ cdef class SelectorObject:
                                              np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask,
                                              np.ndarray[np.uint8_t, ndim=3] mask,
                                              int level)
+    cdef int fill_mask_selector(self, np.float64_t left_edge[3],
+                                np.float64_t right_edge[3],
+                                np.float64_t dds[3], int dim[3],
+                                np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask,
+                                np.ndarray[np.uint8_t, ndim=3] mask,
+                                int level)
     cdef void visit_grid_cells(self, GridVisitorData *data,
                     grid_visitor_function *func, np.uint8_t *cached_mask = ?)
 

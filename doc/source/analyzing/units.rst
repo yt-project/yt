@@ -57,7 +57,7 @@ multiplication with a ``Unit`` object. For convenience, each yt dataset has a
 
 All units known to the dataset will be available via ``ds.units``, including
 code units and comoving units.
-   
+
 Derived Field Units
 -------------------
 
@@ -69,7 +69,7 @@ square root of the gas density:
 
     >>> import yt
     >>> import numpy as np
-    
+
     >>> def root_density(field, data):
     ...     return np.sqrt(data['gas', 'density'])
 
@@ -209,9 +209,9 @@ Using parsec as an example,
 
   * ``pc/h``
     Proper parsecs, normalized by the scaled hubble constant, :math:`\rm{pc}/h`.
-    
-Overriding Code Unit Defintions
--------------------------------   
+
+Overriding Code Unit Definitions
+--------------------------------
 
 On occasion, you might have a dataset for a supported frontend that does not
 have the conversions to code units accessible or you may want to change them
@@ -299,7 +299,7 @@ And another from low redshift:
     unyt_quantity(128, 'Mpccm/h')
     >>> ds2.length_unit.in_cgs()
     unyt_quantity(5.55517285e+26, 'cm')
-    
+
 Now despite the fact that ``'Mpccm/h'`` means different things for the two
 datasets, it's still a well-defined operation to take the ratio of the two
 length units:
@@ -332,4 +332,3 @@ second example returns data in low-redshift comoving megaparsecs.
 Wherever possible it's best to do calculations in physical units when working
 with more than one dataset. If you need to use comoving units or code units then
 extra care must be taken in your code to avoid ambiguity.
-

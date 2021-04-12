@@ -24,7 +24,7 @@ class IOHandlerAthenaPP(BaseIOHandler):
     _dataset_type = "athena_pp"
 
     def __init__(self, ds):
-        super(IOHandlerAthenaPP, self).__init__(ds)
+        super().__init__(ds)
         self._handle = ds._handle
 
     def _read_particles(

@@ -364,7 +364,7 @@ cdef class NonlinearSolveSampler3D(ElementSampler):
                  than 1e-3 will not significantly reduce the residual, but we
                  set to 1e-6 just to be safe
         '''
-        
+
         cdef int i
         cdef double d, lam
         cdef double[3] f
@@ -398,7 +398,7 @@ cdef class NonlinearSolveSampler3D(ElementSampler):
             xk[2] = x[2] + s_n[2]
             self.func(f, xk, vertices, physical_x)
             err_plus = maxnorm(f, 3)
-            
+
             lam = 1
             while err_plus > err_c * (1. - alpha * lam) and lam > min_lam:
                 lam = lam / 2
@@ -820,7 +820,7 @@ cdef class NonlinearSolveSampler2D(ElementSampler):
                  than 1e-3 will not significantly reduce the residual, but we
                  set to 1e-6 just to be safe
         '''
-        
+
         cdef int i
         cdef double d, lam
         cdef double[2] f
@@ -850,7 +850,7 @@ cdef class NonlinearSolveSampler2D(ElementSampler):
             xk[1] = x[1] + s_n[1]
             self.func(f, xk, vertices, physical_x)
             err_plus = maxnorm(f, 2)
-            
+
             lam = 1
             while err_plus > err_c * (1. - alpha * lam) and lam > min_lam:
                 lam = lam / 2
@@ -969,7 +969,7 @@ cdef class Q2Sampler2D(NonlinearSolveSampler2D):
             return 0
         return 1
 
-    
+
 cdef class T2Sampler2D(NonlinearSolveSampler2D):
 
     '''

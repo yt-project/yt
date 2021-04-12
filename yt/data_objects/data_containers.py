@@ -8,7 +8,7 @@ from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.profiles import create_profile
 from yt.fields.field_exceptions import NeedsGridType
 from yt.frontends.ytdata.utilities import save_as_dataset
-from yt.funcs import ensure_list, get_output_filename, iterable, mylog
+from yt.funcs import get_output_filename, is_sequence, iter_fields, mylog
 from yt.units.yt_array import YTArray, YTQuantity, uconcatenate
 from yt.utilities.amr_kdtree.api import AMRKDTree
 from yt.utilities.exceptions import (
@@ -45,7 +45,7 @@ def _get_ipython_key_completion(ds):
     # with earlier versions, completion works with fname only
     # this implementation should work transparently with all IPython versions
     tuple_keys = ds.field_list + ds.derived_field_list
-    fnames = list(set(k[1] for k in tuple_keys))
+    fnames = list({k[1] for k in tuple_keys})
     return tuple_keys + fnames
 
 
@@ -512,10 +512,9 @@ class YTDataContainer:
         >>> dd = ds.all_data()
         >>> df = dd.to_dataframe(["density", "temperature"])
         """
-        import pandas as pd
+        from yt.utilities.on_demand_imports import _pandas as pd
 
         data = {}
-        fields = ensure_list(fields)
         fields = self._determine_fields(fields)
         for field in fields:
             data[field[-1]] = self[field]
@@ -545,7 +544,6 @@ class YTDataContainer:
         from astropy.table import QTable
 
         t = QTable()
-        fields = ensure_list(fields)
         fields = self._determine_fields(fields)
         for field in fields:
             t[field[-1]] = self[field].to_astropy()
@@ -650,12 +648,9 @@ class YTDataContainer:
                     ftypes[g_field] = "grid"
                     data[g_field] = self[g_field]
 
-        extra_attrs = dict(
-            [
-                (arg, getattr(self, arg, None))
-                for arg in self._con_args + self._tds_attrs
-            ]
-        )
+        extra_attrs = {
+            arg: getattr(self, arg, None) for arg in self._con_args + self._tds_attrs
+        }
         extra_attrs["con_args"] = repr(self._con_args)
         extra_attrs["data_type"] = "yt_data_container"
         extra_attrs["container_type"] = self._type_name
@@ -678,7 +673,7 @@ class YTDataContainer:
 
         from yt.config import ytcfg
 
-        if ytcfg.getboolean("yt", "__withintesting"):
+        if ytcfg.get("yt", "internals", "within_testing"):
             from glue.core.application_base import Application as GlueApplication
         else:
             try:
@@ -713,74 +708,74 @@ class YTDataContainer:
         dataset_name="yt",
     ):
         r"""This function links a region of data stored in a yt dataset
-            to the Python frontend API for [Firefly](github.com/ageller/Firefly),
-            a browser-based particle visualization platform.
+        to the Python frontend API for [Firefly](github.com/ageller/Firefly),
+        a browser-based particle visualization platform.
 
-            Parameters
-            ----------
-            path_to_firefly : string
-                The (ideally) absolute path to the direction containing the index.html
-                file of Firefly.
+        Parameters
+        ----------
+        path_to_firefly : string
+            The (ideally) absolute path to the direction containing the index.html
+            file of Firefly.
 
-            fields_to_include : array_like of strings
-                A list of fields that you want to include in your
-                Firefly visualization for on-the-fly filtering and
-                colormapping.
+        fields_to_include : array_like of strings
+            A list of fields that you want to include in your
+            Firefly visualization for on-the-fly filtering and
+            colormapping.
 
-            default_decimation_factor : integer
-                The factor by which you want to decimate each particle group
-                by (e.g. if there are 1e7 total particles in your simulation
-                you might want to set this to 100 at first). Randomly samples
-                your data like `shuffled_data[::decimation_factor]` so as to
-                not overtax a system. This is adjustable on a per particle group
-                basis by changing the returned reader's
-                `reader.particleGroup[i].decimation_factor` before calling
-                `reader.dumpToJSON()`.
+        default_decimation_factor : integer
+            The factor by which you want to decimate each particle group
+            by (e.g. if there are 1e7 total particles in your simulation
+            you might want to set this to 100 at first). Randomly samples
+            your data like `shuffled_data[::decimation_factor]` so as to
+            not overtax a system. This is adjustable on a per particle group
+            basis by changing the returned reader's
+            `reader.particleGroup[i].decimation_factor` before calling
+            `reader.dumpToJSON()`.
 
-            velocity_units : string
-                The units that the velocity should be converted to in order to
-                show streamlines in Firefly. Defaults to km/s.
+        velocity_units : string
+            The units that the velocity should be converted to in order to
+            show streamlines in Firefly. Defaults to km/s.
 
-            coordinate_units: string
-                The units that the coordinates should be converted to. Defaults to
-                kpc.
+        coordinate_units: string
+            The units that the coordinates should be converted to. Defaults to
+            kpc.
 
-            show_unused_fields: boolean
-                A flag to optionally print the fields that are available, in the
-                dataset but were not explicitly requested to be tracked.
+        show_unused_fields: boolean
+            A flag to optionally print the fields that are available, in the
+            dataset but were not explicitly requested to be tracked.
 
-            dataset_name: string
-                The name of the subdirectory the JSON files will be stored in
-                (and the name that will appear in startup.json and in the dropdown
-                menu at startup). e.g. `yt` -> json files will appear in
-                `Firefly/data/yt`.
+        dataset_name: string
+            The name of the subdirectory the JSON files will be stored in
+            (and the name that will appear in startup.json and in the dropdown
+            menu at startup). e.g. `yt` -> json files will appear in
+            `Firefly/data/yt`.
 
-            Returns
-            -------
-            reader : firefly_api.reader.Reader object
-                A reader object from the firefly_api, configured
-                to output
+        Returns
+        -------
+        reader : firefly_api.reader.Reader object
+            A reader object from the firefly_api, configured
+            to output
 
-            Examples
-            --------
+        Examples
+        --------
 
-                >>> ramses_ds = yt.load(
-                ...     "/Users/agurvich/Desktop/yt_workshop/"+
-                ...     "DICEGalaxyDisk_nonCosmological/output_00002/info_00002.txt")
+            >>> ramses_ds = yt.load(
+            ...     "/Users/agurvich/Desktop/yt_workshop/"+
+            ...     "DICEGalaxyDisk_nonCosmological/output_00002/info_00002.txt")
 
-                >>> region = ramses_ds.sphere(ramses_ds.domain_center,(1000,'kpc'))
+            >>> region = ramses_ds.sphere(ramses_ds.domain_center,(1000,'kpc'))
 
-                >>> reader = region.create_firefly_object(
-                ...     path_to_firefly="/Users/agurvich/research/repos/Firefly",
-                ...     fields_to_include=[
-                ...     'particle_extra_field_1',
-                ...     'particle_extra_field_2'],
-                ...     fields_units = ['dimensionless','dimensionless'],
-                ...     dataset_name = 'IsoGalaxyRamses')
+            >>> reader = region.create_firefly_object(
+            ...     path_to_firefly="/Users/agurvich/research/repos/Firefly",
+            ...     fields_to_include=[
+            ...     'particle_extra_field_1',
+            ...     'particle_extra_field_2'],
+            ...     fields_units = ['dimensionless','dimensionless'],
+            ...     dataset_name = 'IsoGalaxyRamses')
 
-                >>> reader.options['color']['io']=[1,1,0,1]
-                >>> reader.particleGroups[0].decimation_factor=100
-                >>> reader.dumpToJSON()
+            >>> reader.options['color']['io']=[1,1,0,1]
+            >>> reader.particleGroups[0].decimation_factor=100
+            >>> reader.dumpToJSON()
         """
 
         ## attempt to import firefly_api
@@ -1008,14 +1003,10 @@ class YTDataContainer:
         >>> max_temp_proj = reg.max("temperature", axis="x")
         """
         if axis is None:
-            rv = ()
-            fields = ensure_list(field)
-            for f in fields:
-                rv += (self._compute_extrema(f)[1],)
-            if len(fields) == 1:
+            rv = tuple(self._compute_extrema(f)[1] for f in iter_fields(field))
+            if len(rv) == 1:
                 return rv[0]
-            else:
-                return rv
+            return rv
         elif axis in self.ds.coordinates.axis_name:
             r = self.ds.proj(field, axis, data_source=self, method="mip")
             return r
@@ -1046,14 +1037,9 @@ class YTDataContainer:
         >>> min_temp = reg.min("temperature")
         """
         if axis is None:
-            rv = ()
-            fields = ensure_list(field)
-            for f in ensure_list(fields):
-                rv += (self._compute_extrema(f)[0],)
-            if len(fields) == 1:
+            rv = tuple(self._compute_extrema(f)[0] for f in iter_fields(field))
+            if len(rv) == 1:
                 return rv[0]
-            else:
-                return rv
             return rv
         elif axis in self.ds.coordinates.axis_name:
             raise NotImplementedError(
@@ -1063,25 +1049,25 @@ class YTDataContainer:
             raise NotImplementedError(f"Unknown axis {axis}")
 
     def std(self, field, weight=None):
-        """Compute the variance of a field.
+        """Compute the standard deviation of a field.
 
-        This will, in a parallel-ware fashion, compute the variance of
-        the given field.
+        This will, in a parallel-ware fashion, compute the standard
+        deviation of the given field.
 
         Parameters
         ----------
         field : string or tuple field name
-            The field to calculate the variance of
+            The field to calculate the standard deviation of
         weight : string or tuple field name
-            The field to weight the variance calculation by. Defaults to
-            unweighted if unset.
+            The field to weight the standard deviation calculation
+            by. Defaults to unweighted if unset.
 
         Returns
         -------
         Scalar
         """
         weight_field = sanitize_weight_field(self.ds, field, weight)
-        return self.quantities.weighted_variance(field, weight_field)[0]
+        return self.quantities.weighted_standard_deviation(field, weight_field)[0]
 
     def ptp(self, field):
         r"""Compute the range of values (maximum - minimum) of a field.
@@ -1350,14 +1336,14 @@ class YTDataContainer:
         []
         """
         args = self.__reduce__()
-        return args[0](self.ds, *args[1][1:])[1]
+        return args[0](self.ds, *args[1][1:])
 
     def __repr__(self):
         # We'll do this the slow way to be clear what's going on
         s = f"{self.__class__.__name__} ({self.ds}): "
         for i in self._con_args:
             try:
-                s += ", %s=%s" % (
+                s += ", {}={}".format(
                     i,
                     getattr(self, i).in_base(unit_system=self.ds.unit_system),
                 )
@@ -1401,7 +1387,7 @@ class YTDataContainer:
         except AttributeError:
             pass
 
-        if iterable(field) and not isinstance(field, str):
+        if is_sequence(field) and not isinstance(field, str):
             try:
                 ftype, fname = field
                 if not all(isinstance(_, str) for _ in field):
@@ -1437,9 +1423,8 @@ class YTDataContainer:
         raise YTFieldNotParseable(field)
 
     def _determine_fields(self, fields):
-        fields = ensure_list(fields)
         explicit_fields = []
-        for field in fields:
+        for field in iter_fields(fields):
             if field in self._container_fields:
                 explicit_fields.append(field)
                 continue
@@ -1498,29 +1483,16 @@ class YTDataContainer:
                 o.field_parameters = cache_fp
 
 
-# Many of these items are set up specifically to ensure that
-# we are not breaking old pickle files.  This means we must only call the
-# _reconstruct_object and that we cannot mandate any additional arguments to
-# the reconstruction function.
+# PR3124: Given that save_as_dataset is now the recommended method for saving
+# objects (see Issue 2021 and references therein), the following has been re-written.
+#
+# Original comments (still true):
 #
 # In the future, this would be better off being set up to more directly
 # reference objects or retain state, perhaps with a context manager.
 #
 # One final detail: time series or multiple datasets in a single pickle
 # seems problematic.
-
-
-class ReconstructedObject(tuple):
-    pass
-
-
-def _check_nested_args(arg, ref_ds):
-    if not isinstance(arg, (tuple, list, ReconstructedObject)):
-        return arg
-    elif isinstance(arg, ReconstructedObject) and ref_ds == arg[0]:
-        return arg[1]
-    narg = [_check_nested_args(a, ref_ds) for a in arg]
-    return narg
 
 
 def _get_ds_by_hash(hash):
@@ -1537,17 +1509,31 @@ def _get_ds_by_hash(hash):
 
 
 def _reconstruct_object(*args, **kwargs):
-    dsid = args[0]
-    dtype = args[1]
+    # returns a reconstructed YTDataContainer. As of PR 3124, we now return
+    # the actual YTDataContainer rather than a (ds, YTDataContainer) tuple.
+
+    # pull out some arguments
+    dsid = args[0]  # the hash id
+    dtype = args[1]  # DataContainer type (e.g., 'region')
+    field_parameters = args[-1]  # the field parameters
+
+    # re-instantiate the base dataset from the hash and ParameterFileStore
     ds = _get_ds_by_hash(dsid)
+    override_weakref = False
     if not ds:
+        override_weakref = True
         datasets = ParameterFileStore()
         ds = datasets.get_ds_hash(dsid)
-    field_parameters = args[-1]
-    # will be much nicer when we can do dsid, *a, fp = args
-    args = args[2:-1]
-    new_args = [_check_nested_args(a, ds) for a in args]
+
+    # instantiate the class with remainder of the args and adjust the state
     cls = getattr(ds, dtype)
-    obj = cls(*new_args)
+    obj = cls(*args[2:-1])
     obj.field_parameters.update(field_parameters)
-    return ReconstructedObject((ds, obj))
+
+    # any nested ds references are weakref.proxy(ds), so need to ensure the ds
+    # we just loaded persists when we leave this function (nosetests fail without
+    # this) if we did not have an actual dataset as an argument.
+    if hasattr(obj, "ds") and override_weakref:
+        obj.ds = ds
+
+    return obj

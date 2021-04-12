@@ -65,8 +65,8 @@ def standard_small_simulation(ds_fn, fields):
     if not can_run_ds(ds_fn):
         return
     dso = [None]
-    tolerance = ytcfg.getint("yt", "answer_testing_tolerance")
-    bitwise = ytcfg.getboolean("yt", "answer_testing_bitwise")
+    tolerance = ytcfg.get("yt", "answer_testing_tolerance")
+    bitwise = ytcfg.get("yt", "answer_testing_bitwise")
     for field in fields:
         if bitwise:
             yield GridValuesTest(ds_fn, field)

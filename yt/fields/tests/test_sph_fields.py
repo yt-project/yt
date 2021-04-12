@@ -20,7 +20,10 @@ iso_kwargs = dict(
 
 load_kwargs = defaultdict(dict)
 load_kwargs.update(
-    {isothermal_h5: iso_kwargs, isothermal_bin: iso_kwargs,}
+    {
+        isothermal_h5: iso_kwargs,
+        isothermal_bin: iso_kwargs,
+    }
 )
 
 gas_fields_to_particle_fields = {

@@ -1,17 +1,20 @@
 # The yt Project
 
+![Supported Python Version](https://img.shields.io/badge/python%20version-≥%203.6-important)
+[![Latest Documentation](https://img.shields.io/badge/docs-latest-brightgreen.svg)](http://yt-project.org/docs/dev/)
 [![Users' Mailing List](https://img.shields.io/badge/Users-List-lightgrey.svg)](https://mail.python.org/archives/list/yt-users@python.org//)
 [![Devel Mailing List](https://img.shields.io/badge/Devel-List-lightgrey.svg)](https://mail.python.org/archives/list/yt-dev@python.org//)
-[![Build Status](https://img.shields.io/travis/yt-project/yt.svg?branch=master)](https://travis-ci.org/yt-project/yt)
-[![Latest Documentation](https://img.shields.io/badge/docs-latest-brightgreen.svg)](http://yt-project.org/docs/dev/)
 [![Data Hub](https://img.shields.io/badge/data-hub-orange.svg)](https://hub.yt/)
 [![Powered by NumFOCUS](https://img.shields.io/badge/powered%20by-NumFOCUS-orange.svg?style=flat&colorA=E1523D&colorB=007D8A)](http://numfocus.org)
 [![Sponsor our Project](https://img.shields.io/badge/donate-to%20yt-blueviolet)](https://numfocus.salsalabs.org/donate-to-yt/index.html)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-<!---
-[![codecov](https://codecov.io/gh/yt-project/yt/branch/master/graph/badge.svg)](https://codecov.io/gh/yt-project/yt)
---->
+<!--- Tests and style --->
+![Build and Test](https://github.com/yt-project/yt/workflows/Build%20and%20Test/badge.svg?branch=main)
+[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/yt-project/yt/main.svg)](https://results.pre-commit.ci/latest/github/yt-project/yt/main)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
+<!--- [![codecov](https://codecov.io/gh/yt-project/yt/branch/main/graph/badge.svg)](https://codecov.io/gh/yt-project/yt) --->
+
 <a href="http://yt-project.org"><img src="doc/source/_static/yt_logo.png" width="300"></a>
 
 yt is an open-source, permissively-licensed python package for analyzing and
@@ -40,26 +43,26 @@ guide](http://yt-project.org/docs/dev/developing/developing.html#yt-community-co
 You can install the most recent stable version of yt either with conda from
 [conda-forge](https://conda-forge.org/):
 
-```
+```shell
 conda install -c conda-forge yt
 ```
 
 or with pip:
 
-```
+```shell
 pip install yt
 ```
 
 To get set up with a development version, you want to clone this repository:
 
-```
+```shell
 git clone https://github.com/yt-project/yt yt-git
 cd yt-git
 ```
 
 and work within a conda environment:
 
-```
+```shell
 # Create a conda environment named yt-git
 $ conda create -n yt-git python=3.6
 # Activate it
@@ -80,10 +83,10 @@ $ conda env export
 Alternatively, you can install yt in a
 [virtualenv](https://packaging.python.org/installing/#creating-virtual-environments):
 
-```
+```shell
 # It is conventional to create virtualenvs at ~/.virtualenv/
 $ mkdir -p ~/.virtualenv
-# Assuming your version of Python 3 is 3.4 or higher,
+# Assuming your version of Python 3 meets the minimal requirement
 # create a virtualenv named yt-git
 $ python3 -m venv ~/.virtualenv/yt-git
 # Activate it
@@ -159,11 +162,23 @@ We have some community and documentation resources available.
  * You can also join us on Slack at yt-project.slack.com ([request an
    invite](https://yt-project.org/slack.html))
 
+Is your code compatible with yt ? Great ! Please consider giving us a shoutout as a shiny badge in your README
+
+- markdown
+```markdown
+[![yt-project](https://img.shields.io/static/v1?label="works%20with"&message="yt"&color="blueviolet")](https://yt-project.org)
+```
+- rst
+```reStructuredText
+|yt-project|
+
+.. |yt-project| image:: https://img.shields.io/static/v1?label="works%20with"&message="yt"&color="blueviolet"
+   :target: https://yt-project.org
+```
+
 ## Powered by NumFOCUS
 
-yt is a fiscally sponsored project of [NumFOCUS](https://numfocus.org/). 
+yt is a fiscally sponsored project of [NumFOCUS](https://numfocus.org/).
 If you're interested in
 supporting the active maintenance and development of this project, consider
-[donating to the project](https://numfocus.salsalabs.org/donate-to-yt/index.html). 
-
-
+[donating to the project](https://numfocus.salsalabs.org/donate-to-yt/index.html).

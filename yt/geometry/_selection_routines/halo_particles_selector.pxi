@@ -12,4 +12,3 @@ cdef class HaloParticlesSelector(SelectorObject):
         return ("halo_particles", self.halo_id)
 
 halo_particles_selector = HaloParticlesSelector
-

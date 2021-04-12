@@ -129,7 +129,7 @@ class PannableMapServer:
         elif path[-3:].lower() == ".js":
             bottle.response.headers["Content-Type"] = "text/javascript"
         full_path = os.path.join(os.path.join(local_dir, "html"), path)
-        return open(full_path, "r").read()
+        return open(full_path).read()
 
     def list_fields(self):
         d = {}
