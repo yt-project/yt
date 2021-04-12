@@ -101,6 +101,8 @@ class YTFieldNotFound(YTException):
         suggestions = {}
         if not isinstance(field, tuple):
             ftype, fname = None, field
+        elif field[1] is None:
+            ftype, fname = None, field[0]
         else:
             ftype, fname = field
 
