@@ -130,6 +130,11 @@ def levenshtein(seq1, seq2, max_dist):
                 matrix[x, y] = min(
                     matrix[x - 1, y] + 1, matrix[x - 1, y - 1] + 1, matrix[x, y - 1] + 1
                 )
+
+        # Early break: the minimum distance is already larger than
+        # maximum allow value, can return safely.
+        if matrix[x].min() > max_dist:
+            return max_dist + 1
     return matrix[size_x - 1, size_y - 1]
 
 
