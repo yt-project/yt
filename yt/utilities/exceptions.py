@@ -3,8 +3,6 @@ import os.path
 
 from unyt.exceptions import UnitOperationError
 
-from yt.funcs import levenshtein
-
 
 class YTException(Exception):
     def __init__(self, message=None, ds=None):
@@ -95,6 +93,8 @@ class YTFieldNotFound(YTException):
         self._find_suggestions()
 
     def _find_suggestions(self):
+        from yt.funcs import levenshtein
+
         field = self.field
         ds = self.ds
 
