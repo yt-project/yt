@@ -8,7 +8,7 @@ from yt.utilities.answer_testing.framework import (
 
 _fields = (
     ("gas", "density"),
-    ("gas", "velocity_magnitude"),  # ("gas", "velocity_divergence"),
+    ("gas", "velocity_magnitude"),
     ("gas", "magnetic_field_x"),
 )
 
