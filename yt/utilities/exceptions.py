@@ -106,7 +106,13 @@ class YTFieldNotFound(YTException):
         else:
             ftype, fname = field
 
-        max_distance = 4
+        # Limit the suggestions to at a distance of 3 (at most 3 edits)
+        # This is very arbitrary, but is picked so that...
+        # - small typos lead to meaningful suggestions (e.g. `densty` -> `density`)
+        # - we don't suggest unrelated things (e.g. `pressure` -> `density` has a distance
+        #   of 6, we definitely do not want it)
+        # A threshold of 3 seems like a good middle point.
+        max_distance = 3
 
         # Suggest (ftype, fname), with alternative ftype
         for ft, fn in ds.derived_field_list:
