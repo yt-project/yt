@@ -15,7 +15,6 @@ import time
 import urllib
 import zlib
 from collections import defaultdict
-from itertools import combinations, product
 
 import numpy as np
 from matplotlib import image as mpimg
@@ -51,38 +50,6 @@ run_big_data = False
 _latest = ytcfg.get("yt", "gold_standard_filename")
 _latest_local = ytcfg.get("yt", "local_standard_filename")
 _url_path = ytcfg.get("yt", "answer_tests_url")
-
-
-def _enumerate_all_combi_helper(element, depth=0):
-    if not isinstance(element, tuple):
-        return [element]
-
-    tmp = []
-    for e in element:
-        if isinstance(e, tuple):
-            tmp.append(_enumerate_all_combi_helper(e, depth + 1))
-        else:
-            tmp.append([e])
-
-    ret = []
-    for i in range(1, len(element) + 1):
-        for combis in combinations(tmp, i):
-            ret.extend(product(*combis))
-    return [_ if len(_) > 1 else _[0] for _ in ret] + [
-        (_,) if len(_) > 1 else (_[0],) for _ in ret
-    ]
-
-
-def enumerate_all_combi(element):
-    tmp1 = [str(element)]
-    tmp2 = [str(_) for _ in _enumerate_all_combi_helper(element)]
-    tmp3 = []
-    if isinstance(element, tuple):
-        if not isinstance(element[0], tuple):
-            tmp3 += [str(((element[0],), *element[1:]))]
-    if isinstance(element, dict):
-        tmp3 += [str((tuple(), element))]
-    return sorted(tmp1 + tmp2 + tmp3, key=lambda e: -len(e))
 
 
 class AnswerTesting(Plugin):
@@ -401,18 +368,6 @@ def sim_dir_load(sim_fn, path=None, sim_type="Enzo", find_outputs=False):
     )
 
 
-def lax_getter(key, dict_like):
-    tries = [key]
-    if isinstance(key, (tuple, list)):
-        tries.extend(key)
-
-    for t in tries:
-        if t in dict_like:
-            return dict_like[t]
-
-    raise AssertionError(f"{key} not in {dict_like}")
-
-
 class AnswerTestingTest:
     reference_storage = None
     result_storage = None
@@ -466,28 +421,14 @@ class AnswerTestingTest:
         if self.reference_storage.reference_name is not None:
             # Compare test generated values against the golden answer
             dd = self.reference_storage.get(self.storage_name)
-            desc_tried = []
-            if dd is None:
-                raise YTNoOldAnswer(f"{self.storage_name} does not exist.")
-
-            for desc in self.brute_force_description:
-                desc_tried.append(desc)
-                if desc in dd:
-                    break
-            else:
-                err_msg = f"Storage_name: '{self.storage_name}'.\nTried the following keys:\n\t"
-                err_msg += "\n\t".join(desc_tried)
-                err_msg += "\nAvailable keys:\n\t"
-                err_msg += "\n\t".join(list(dd.keys()))
-
-                raise YTNoOldAnswer(err_msg)
-            ov = dd[desc]
+            if dd is None or self.description not in dd:
+                raise YTNoOldAnswer(f"{self.storage_name} : {self.description}")
+            ov = dd[self.description]
             self.compare(nv, ov)
         else:
             # Store results, hence do nothing (in case of --answer-store arg)
             ov = None
-            desc = self.description
-        self.result_storage[self.storage_name][desc] = nv
+        self.result_storage[self.storage_name][self.description] = nv
 
     @property
     def storage_name(self):
@@ -544,30 +485,6 @@ class AnswerTestingTest:
         if suffix:
             args.append(suffix)
         return "_".join(args).replace(".", "_")
-
-    @property
-    def brute_force_description(self):
-        obj_type = getattr(self, "obj_type", None)
-        if obj_type is None:
-            oname = "all"
-        else:
-            oname = "_".join(str(s) for s in obj_type)
-
-        # If a field enters the answer test name, we only
-        # keep the field name and drop the field type, i.e.
-        # ("gas", "density") -> "density"
-        combinations = []
-        for an in self._attrs:
-            tmp = getattr(self, an)
-            combinations.append(enumerate_all_combi(tmp))
-        suffix = getattr(self, "suffix", None)
-
-        for elem in product(*combinations):
-            args = [self._type_name, str(self.ds), oname]
-            args.extend(elem)
-            if suffix:
-                args.append(suffix)
-            yield "_".join(args).replace(".", "_")
 
 
 class FieldValuesTest(AnswerTestingTest):
@@ -680,10 +597,10 @@ class ProjectionValuesTest(AnswerTestingTest):
         assert len(new_result) == len(old_result)
         nind, oind = None, None
         for k in new_result:
-            old_val = lax_getter(k, old_result)
+            assert k in old_result
             if oind is None:
-                oind = np.array(np.isnan(old_val))
-            np.logical_or(oind, np.isnan(old_val), oind)
+                oind = np.array(np.isnan(old_result[k]))
+            np.logical_or(oind, np.isnan(old_result[k]), oind)
             if nind is None:
                 nind = np.array(np.isnan(new_result[k]))
             np.logical_or(nind, np.isnan(new_result[k]), nind)
@@ -699,8 +616,7 @@ class ProjectionValuesTest(AnswerTestingTest):
                 # can do a unitful comparison for the other fields.  So we do
                 # not do the test here.
                 continue
-            nres = new_result[k][nind]
-            ores = lax_getter(k, old_result)[oind]
+            nres, ores = new_result[k][nind], old_result[k][oind]
             if hasattr(nres, "d"):
                 nres = nres.d
             if hasattr(ores, "d"):
@@ -752,17 +668,15 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
     def compare(self, new_result, old_result):
         assert len(new_result) == len(old_result)
         for k in new_result:
-            lax_getter(k, old_result)
-
+            assert k in old_result
         for k in new_result:
             # weight_field does not have units, so we do not directly compare them
             if k == "weight_field_sum":
                 continue
             try:
-                old_val = lax_getter(k, old_result)
-                assert_allclose_units(new_result[k], old_val, 1e-10)
+                assert_allclose_units(new_result[k], old_result[k], 1e-10)
             except AssertionError:
-                dump_images(new_result[k], old_val)
+                dump_images(new_result[k], old_result[k])
                 raise
 
 
@@ -792,14 +706,13 @@ class GridValuesTest(AnswerTestingTest):
     def compare(self, new_result, old_result):
         assert len(new_result) == len(old_result)
         for k in new_result:
-            lax_getter(k, old_result)
+            assert k in old_result
         for k in new_result:
             if hasattr(new_result[k], "d"):
                 new_result[k] = new_result[k].d
-            old_val = lax_getter(k, old_result)
-            if hasattr(old_val, "d"):
-                old_val = old_val.d
-            assert_equal(new_result[k], old_val)
+            if hasattr(old_result[k], "d"):
+                old_result[k] = old_result[k].d
+            assert_equal(new_result[k], old_result[k])
 
 
 class VerifySimulationSameTest(AnswerTestingTest):
@@ -846,10 +759,9 @@ class GridHierarchyTest(AnswerTestingTest):
         for k in new_result:
             if hasattr(new_result[k], "d"):
                 new_result[k] = new_result[k].d
-            old_val = lax_getter(k, old_result)
-            if hasattr(old_val, "d"):
-                old_val = old_val
-            assert_equal(new_result[k], old_val)
+            if hasattr(old_result[k], "d"):
+                old_result[k] = old_result[k].d
+            assert_equal(new_result[k], old_result[k])
 
 
 class ParentageRelationshipsTest(AnswerTestingTest):
@@ -1101,13 +1013,14 @@ class GenericArrayTest(AnswerTestingTest):
         for k in new_result:
             if hasattr(new_result[k], "d"):
                 new_result[k] = new_result[k].d
-            old_val = lax_getter(k, old_result)
-            if hasattr(old_val, "d"):
-                old_val = old_val.d
+            if hasattr(old_result[k], "d"):
+                old_result[k] = old_result[k].d
             if self.decimals is None:
-                assert_almost_equal(new_result[k], old_val)
+                assert_almost_equal(new_result[k], old_result[k])
             else:
-                assert_allclose_units(new_result[k], old_val, 10 ** (-self.decimals))
+                assert_allclose_units(
+                    new_result[k], old_result[k], 10 ** (-self.decimals)
+                )
 
 
 class GenericImageTest(AnswerTestingTest):
@@ -1188,13 +1101,14 @@ class AxialPixelizationTest(AnswerTestingTest):
         for k in new_result:
             if hasattr(new_result[k], "d"):
                 new_result[k] = new_result[k].d
-            old_val = lax_getter(k, old_result)
-            if hasattr(old_val, "d"):
-                old_val = old_val.d
+            if hasattr(old_result[k], "d"):
+                old_result[k] = old_result[k].d
             if self.decimals is None:
-                assert_almost_equal(new_result[k], old_val)
+                assert_almost_equal(new_result[k], old_result[k])
             else:
-                assert_allclose_units(new_result[k], old_val, 10 ** (-self.decimals))
+                assert_allclose_units(
+                    new_result[k], old_result[k], 10 ** (-self.decimals)
+                )
 
 
 def requires_sim(sim_fn, sim_type, big_data=False, file_check=False):
