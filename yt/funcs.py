@@ -1275,7 +1275,7 @@ def dictWithFactory(factory: Callable[[Any], Any]) -> Type:
     return DictWithFactory
 
 
-def levenshtein(seq1, seq2, max_dist):
+def levenshtein_distance(seq1, seq2, max_dist=None):
     """
     Compute the levenshtein distance between seq1 and seq2.
     From https://stackabuse.com/levenshtein-distance-and-text-similarity-in-python/
@@ -1285,7 +1285,7 @@ def levenshtein(seq1, seq2, max_dist):
     seq1, seq2 : str
         The strings to compute the distance between
     max_dist : integer
-        Maximum distance returned (see notes)
+        If not None, maximum distance returned (see notes).
 
     Returns
     -------
@@ -1300,6 +1300,9 @@ def levenshtein(seq1, seq2, max_dist):
     """
     size_x = len(seq1) + 1
     size_y = len(seq2) + 1
+    if max_dist is None:
+        max_dist = max(size_x, size_y)
+
     if abs(size_x - size_y) > max_dist:
         return max_dist + 1
     matrix = np.zeros((size_x, size_y), dtype=int)

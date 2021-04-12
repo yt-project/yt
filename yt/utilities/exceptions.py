@@ -93,7 +93,7 @@ class YTFieldNotFound(YTException):
         self._find_suggestions()
 
     def _find_suggestions(self):
-        from yt.funcs import levenshtein
+        from yt.funcs import levenshtein_distance
 
         field = self.field
         ds = self.ds
@@ -108,7 +108,9 @@ class YTFieldNotFound(YTException):
 
         # Suggest (ftype, fname), with alternative ftype
         for ft, fn in ds.derived_field_list:
-            if fn.lower() == fname.lower() and ft.lower() != ftype.lower():
+            if fn.lower() == fname.lower() and (
+                ftype is None or ft.lower() != ftype.lower()
+            ):
                 suggestions[ft, fn] = 0
 
         if ftype is not None:
@@ -117,7 +119,7 @@ class YTFieldNotFound(YTException):
             field_str = str(field).lower()
 
             for (ft, fn), fs in fields_str.items():
-                distance = levenshtein(field_str, fs, max_dist=max_distance)
+                distance = levenshtein_distance(field_str, fs, max_dist=max_distance)
                 if distance < max_distance:
                     if (ft, fn) in suggestions:
                         continue
