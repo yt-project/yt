@@ -666,3 +666,5 @@ def test_print_stats():
 
     # Should work
     ds.print_stats()
+
+    # FIXME #3197: use `capsys` with pytest to make sure the print_stats function works as intended
