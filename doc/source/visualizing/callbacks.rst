@@ -894,7 +894,7 @@ Applying filters on the final image
 
 It is also possible to operate on the plotted image directly by using
 one of the fixed resolution buffer filter as described in
-:ref:`frb-filters`. 
+:ref:`frb-filters`.
 
 .. python-script::
 
@@ -904,4 +904,3 @@ one of the fixed resolution buffer filter as described in
    p = yt.SlicePlot(ds, 'z', 'density')
    p.frb.apply_gauss_beam(sigma=30)
    p.save()
-

@@ -64,7 +64,10 @@ class FixedResolutionBufferGaussBeamFilter(FixedResolutionBufferFilter):
         from yt.utilities.on_demand_imports import _scipy
 
         spl = _scipy.ndimage.gaussian_filter(
-            buff, self.sigma, truncate=self.truncate, **self.extra_args,
+            buff,
+            self.sigma,
+            truncate=self.truncate,
+            **self.extra_args,
         )
         return spl
 

@@ -642,9 +642,7 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         periodic=False,
         filters=None,
     ):
-        super(ParticleImageBuffer, self).__init__(
-            data_source, radius, buff_size, antialias, periodic, filters
-        )
+        super().__init__(data_source, radius, buff_size, antialias, periodic, filters)
 
         # set up the axis field names
         axis = self.axis
