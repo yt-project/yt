@@ -1900,7 +1900,7 @@ class ParticleDataset(Dataset):
 
 def validate_index_order(index_order):
     if index_order is None:
-        index_order = (7, 5)
+        index_order = (5, 3)
     elif not is_sequence(index_order):
         index_order = (int(index_order), 1)
     else:

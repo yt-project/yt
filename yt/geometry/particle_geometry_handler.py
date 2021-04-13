@@ -163,12 +163,16 @@ class ParticleIndex(Index):
         )
 
         # Load Morton index from file if provided
-        if getattr(ds, "index_filename", None) is None:
-            fname = ds.parameter_filename + ".index{}_{}.ewah".format(
-                self.regions.index_order1, self.regions.index_order2
-            )
-        else:
-            fname = ds.index_filename
+        def _current_fname():
+            if getattr(ds, "index_filename", None) is None:
+                fname = ds.parameter_filename + ".index{}_{}.ewah".format(
+                    self.regions.index_order1, self.regions.index_order2
+                )
+            else:
+                fname = ds.index_filename
+            return fname
+
+        fname = _current_fname()
 
         dont_load = dont_cache and not hasattr(ds, "index_filename")
         try:
@@ -183,6 +187,8 @@ class ParticleIndex(Index):
             self.regions.reset_bitmasks()
             self._initialize_coarse_index()
             self._initialize_refined_index()
+            # We now update fname since index_order2 may have changed
+            fname = _current_fname()
             wdir = os.path.dirname(fname)
             if not dont_cache and os.access(wdir, os.W_OK):
                 # Sometimes os mis-reports whether a directory is writable,
@@ -195,6 +201,7 @@ class ParticleIndex(Index):
 
     def _initialize_coarse_index(self):
         pb = get_pbar("Initializing coarse index ", len(self.data_files))
+        max_hsml = 0.0
         for i, data_file in enumerate(self.data_files):
             pb.update(i)
             for ptype, pos in self.io._yield_coordinates(data_file):
@@ -203,12 +210,19 @@ class ParticleIndex(Index):
                     hsml = self.io._get_smoothing_length(
                         data_file, pos.dtype, pos.shape
                     )
+                    max_hsml = max(max_hsml, hsml.max())
                 else:
                     hsml = None
                 self.regions._coarse_index_data_file(pos, hsml, data_file.file_id)
             self.regions._set_coarse_index_data_file(data_file.file_id)
         pb.finish()
         self.regions.find_collisions_coarse()
+        if max_hsml > 0.0:
+            new_order2 = self.regions.update_mi2(max_hsml)
+            mylog.info(
+                "Updating index_order2 from %s to %s", ds.index_order[1], new_order2
+            )
+            self.ds.index_order = (self.ds.index_order[0], new_order2)
 
     def _initialize_refined_index(self):
         mask = self.regions.masks.sum(axis=1).astype("uint8")
