@@ -8,7 +8,7 @@ writing code that embeds input, output, and explanatory text into one document.
 
 yt has deep integration with the IPython notebook, explained in-depth in the
 other example notebooks and the rest of the yt documentation.  This page is here
-to give a brief introduction to the notebook its self.
+to give a brief introduction to the notebook itself.
 
 To start the notebook, enter the following command at the bash command line:
 

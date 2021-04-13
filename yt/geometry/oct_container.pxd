@@ -6,24 +6,19 @@ Oct definitions file
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
 cimport cython
 cimport numpy as np
-from yt.utilities.lib.fp_utils cimport *
 cimport oct_visitors
 cimport selection_routines
-from .oct_visitors cimport OctVisitor, Oct, cind
-from libc.stdlib cimport bsearch, qsort, realloc, malloc, free
 from libc.math cimport floor
-from yt.utilities.lib.allocation_container cimport \
-    ObjectPool, AllocationContainer
+from libc.stdlib cimport bsearch, free, malloc, qsort, realloc
+
+from yt.utilities.lib.allocation_container cimport AllocationContainer, ObjectPool
+from yt.utilities.lib.fp_utils cimport *
+
+from .oct_visitors cimport Oct, OctInfo, OctVisitor, cind
+
 
 cdef int ORDER_MAX
 
@@ -33,12 +28,6 @@ cdef struct OctKey:
     # These next two are for particle sparse octrees.
     np.int64_t *indices
     np.int64_t pcount
-
-cdef struct OctInfo:
-    np.float64_t left_edge[3]
-    np.float64_t dds[3]
-    np.int64_t ipos[3]
-    np.int32_t level
 
 cdef struct OctList
 
@@ -75,8 +64,8 @@ cdef class OctreeContainer:
     cdef public np.int64_t nocts
     cdef public int num_domains
     cdef Oct *get(self, np.float64_t ppos[3], OctInfo *oinfo = ?,
-                  int max_level = ?)
-    cdef int get_root(self, int ind[3], Oct **o)
+                  int max_level = ?) nogil
+    cdef int get_root(self, int ind[3], Oct **o) nogil
     cdef Oct **neighbors(self, OctInfo *oinfo, np.int64_t *nneighbors,
                          Oct *o, bint periodicity[3])
     # This function must return the offset from global-to-local domains; i.e.,
@@ -87,7 +76,7 @@ cdef class OctreeContainer:
                         OctVisitor visitor,
                         int vc = ?, np.int64_t *indices = ?)
     cdef Oct *next_root(self, int domain_id, int ind[3])
-    cdef Oct *next_child(self, int domain_id, int ind[3], Oct *parent)
+    cdef Oct *next_child(self, int domain_id, int ind[3], Oct *parent) except? NULL
     cdef void append_domain(self, np.int64_t domain_count)
     # The fill_style is the ordering, C or F, of the octs in the file.  "o"
     # corresponds to C, and "r" is for Fortran.
@@ -99,7 +88,7 @@ cdef class SparseOctreeContainer(OctreeContainer):
     cdef int num_root
     cdef int max_root
     cdef void key_to_ipos(self, np.int64_t key, np.int64_t pos[3])
-    cdef np.int64_t ipos_to_key(self, int pos[3])
+    cdef np.int64_t ipos_to_key(self, int pos[3]) nogil
 
 cdef class RAMSESOctreeContainer(SparseOctreeContainer):
     pass

@@ -1,0 +1,7 @@
+# We need this file mostly because of Cartopy..
+numpy>=1.19.4
+cython>=0.29.21
+
+# this is sometimes useful to avoid CI breakage when a dependency release comes out
+# but some wheels (typically windows) are missing for a few hours/days
+wheel

@@ -28,6 +28,7 @@ example for creating a ``Region`` object that covers all of your data volume.
 .. code-block:: python
 
    import yt
+
    ds = yt.load("RedshiftOutput0005")
    ad = ds.all_data()
 
@@ -37,8 +38,9 @@ Alternatively, we could create a sphere object of radius 1 kpc on location
 .. code-block:: python
 
    import yt
+
    ds = yt.load("RedshiftOutput0005")
-   sp = ds.sphere([0.5, 0.5, 0.5], (1, 'kpc'))
+   sp = ds.sphere([0.5, 0.5, 0.5], (1, "kpc"))
 
 After an object has been created, it can be used as a data_source to certain
 tasks like ``ProjectionPlot`` (see
@@ -51,8 +53,9 @@ dataset you could:
 .. code-block:: python
 
    import yt
+
    ds = yt.load("RedshiftOutput0005")
-   sp = ds.sphere([0.5, 0.5, 0.5], (1, 'kpc'))
+   sp = ds.sphere([0.5, 0.5, 0.5], (1, "kpc"))
 
    # Show all temperature values
    print(sp["temperature"])
@@ -61,16 +64,19 @@ dataset you could:
    print("(x,  y,  z) Temperature")
    print("-----------------------")
    for i in range(sp["temperature"].size):
-       print("(%f,  %f,  %f)    %f" %
-             (sp["x"][i], sp["y"][i], sp["z"][i], sp["temperature"][i]))
+       print(
+           "(%f,  %f,  %f)    %f"
+           % (sp["x"][i], sp["y"][i], sp["z"][i], sp["temperature"][i])
+       )
 
 Data objects can also be cloned; for instance:
 
 .. code-block:: python
 
    import yt
+
    ds = yt.load("RedshiftOutput0005")
-   sp = ds.sphere([0.5, 0.5, 0.5], (1, 'kpc'))
+   sp = ds.sphere([0.5, 0.5, 0.5], (1, "kpc"))
    sp_copy = sp.clone()
 
 This can be useful for when manually chunking data or exploring different field
@@ -127,9 +133,11 @@ z, y, x for instance, this would be in z, y, x order).
 
 The slices can have both position and, optionally, unit values.  These define
 the value with respect to the ``domain_left_edge`` of the dataset.  So for
-instance, you could specify it like so:::
+instance, you could specify it like so:
 
-   ds.r[(100, 'kpc'):(200,'kpc'),:,:]
+.. code-block:: python
+
+   ds.r[(100, "kpc"):(200, "kpc"), :, :]
 
 This would return a region that included everything between 100 kpc from the
 left edge of the dataset to 200 kpc from the left edge of the dataset in the
@@ -139,17 +147,23 @@ code units of the dataset.
 
 This works in all types of datasets, as well.  For instance, if you have a
 geographic dataset (which is usually ordered latitude, longitude, altitude) you
-can easily select, for instance, one hemisphere with a region selection:::
+can easily select, for instance, one hemisphere with a region selection:
 
-   ds.r[:,-180:0,:]
+.. code-block:: python
+
+   ds.r[:, -180:0, :]
 
 If you specify a single slice, it will be repeated along all three dimensions.
-For instance, this will give all data:::
+For instance, this will give all data:
+
+.. code-block:: python
 
    ds.r[:]
 
 And this will select a box running from 0.4 to 0.6 along all three
-dimensions:::
+dimensions:
+
+.. code-block:: python
 
    ds.r[0.4:0.6]
 
@@ -161,16 +175,19 @@ voxels.  This returns an :ref:`arbitrary-grid` object.  It can be created by
 specifying a complex slice "step", where the start and stop follow the same
 rules as above.  This is similar to how the numpy ``mgrid`` operation works.
 For instance, this code block will generate a grid covering the full domain,
-but converted to being 21x35x100 dimensions:::
+but converted to being 21x35x100 dimensions:
 
-  region = ds.r[::21j, ::35j, ::100j]
+.. code-block:: python
+
+   region = ds.r[::21j, ::35j, ::100j]
 
 The left and right edges, as above, can be specified to provide bounds as well.
 For instance, to select a 10 meter cube, with 24 cells in each dimension, we
-could supply:::
+could supply:
 
-  region = ds.r[(20,'m'):(30,'m'):24j, (30,'m'):(40,'m'):24j,
-                (7,'m'):(17,'m'):24j]
+.. code-block:: python
+
+   region = ds.r[(20, "m"):(30, "m"):24j, (30, "m"):(40, "m"):24j, (7, "m"):(17, "m"):24j]
 
 This can select both particles and mesh fields.  Mesh fields will be 3D arrays,
 and generated through volume-weighted overlap calculations.
@@ -181,22 +198,25 @@ Selecting Slices
 If one dimension is specified as a single value, that will be the dimension
 along which a slice is made.  This provides a simple means of generating a
 slice from a subset of the data.  For instance, to create a slice of a dataset,
-you can very simply specify the full domain along two axes:::
+you can very simply specify the full domain along two axes:
 
-   sl = ds.r[:,:,0.25]
+.. code-block:: python
 
-This can also be very easily plotted:::
+    sl = ds.r[:, :, 0.25]
 
-   sl = ds.r[:,:,0.25]
+This can also be very easily plotted:
+
+.. code-block:: python
+
+   sl = ds.r[:, :, 0.25]
    sl.plot()
 
-This accepts arguments the same way:::
+This accepts arguments the same way:
 
+.. code-block:: python
 
-   sl = ds.r[(20.1, 'km'):(31.0, 'km'), (504.143,'m'):(1000.0,'m'),
-             (900.1, 'm')]
+   sl = ds.r[(20.1, "km"):(31.0, "km"), (504.143, "m"):(1000.0, "m"), (900.1, "m")]
    sl.plot()
-
 
 Making Image Buffers
 ^^^^^^^^^^^^^^^^^^^^
@@ -206,7 +226,9 @@ imaginary step value you can obtain a
 :class:`~yt.visualization.api.FixedResolutionBuffer` of the chosen resolution.
 
 For instance, to obtain a 1024 by 1024 buffer covering the entire
-domain but centered at 0.5 in code units, you can do:::
+domain but centered at 0.5 in code units, you can do:
+
+.. code-block:: python
 
    frb = ds.r[0.5, ::1024j, ::1024j]
 
@@ -216,47 +238,59 @@ and it will return arrays of shape (1024, 1024).
 Making Rays
 ^^^^^^^^^^^
 
-The slicing syntax can also be used select 1D rays of points, whether along 
-an axis or off-axis. To create a ray along an axis:::
+The slicing syntax can also be used select 1D rays of points, whether along
+an axis or off-axis. To create a ray along an axis:
 
-    ortho_ray = ds.r[(500.0, "kpc"), (200, "kpc"):(300.0, "kpc"), (-2.0, "Mpc")]
+.. code-block:: python
+
+   ortho_ray = ds.r[(500.0, "kpc"), (200, "kpc"):(300.0, "kpc"), (-2.0, "Mpc")]
 
 To create a ray off-axis, use a single slice between the start and end points
-of the ray:::
+of the ray:
 
-    start = [0.1, 0.2, 0.3] # interpreted in code_length
-    end = [0.4, 0.5, 0.6] # interpreted in code_length
-    ray = ds.r[start:end]
+.. code-block:: python
+
+   start = [0.1, 0.2, 0.3]  # interpreted in code_length
+   end = [0.4, 0.5, 0.6]  # interpreted in code_length
+   ray = ds.r[start:end]
 
 As for the other slicing options, combinations of unitful quantities with even
-different units can be used. Here's a somewhat convoluted (yet working) example:::
+different units can be used. Here's a somewhat convoluted (yet working) example:
 
-    start = ((500.0, "kpc"), (0.2, "Mpc"), (100.0, "kpc"))
-    end = ((1.0, "Mpc"), (300.0, "kpc"), (0.0, "kpc"))
-    ray = ds.r[start:end]
+.. code-block:: python
+
+   start = ((500.0, "kpc"), (0.2, "Mpc"), (100.0, "kpc"))
+   end = ((1.0, "Mpc"), (300.0, "kpc"), (0.0, "kpc"))
+   ray = ds.r[start:end]
 
 Making Fixed-Resolution Rays
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Rays can also be constructed to have fixed resolution if an imaginary step value
 is provided, similar to the 2 and 3-dimensional cases described above. This
-works for rays directed along an axis:::
+works for rays directed along an axis:
 
-    ortho_ray = ds.r[(0.1:0.6:500j,0.3,0.2]
-    
-or off-axis rays as well:::
+.. code-block:: python
 
-    start = [0.1, 0.2, 0.3] # interpreted in code_length
-    end = [0.4, 0.5, 0.6] # interpreted in code_length
-    ray = ds.r[start:end:100j]
+   ortho_ray = ds.r[0.1:0.6:500j, 0.3, 0.2]
+
+or off-axis rays as well:
+
+.. code-block:: python
+
+   start = [0.1, 0.2, 0.3]  # interpreted in code_length
+   end = [0.4, 0.5, 0.6]  # interpreted in code_length
+   ray = ds.r[start:end:100j]
 
 Selecting Points
 ^^^^^^^^^^^^^^^^
 
 Finally, you can quickly select a single point within the domain by providing
-a single coordinate for every axis:::
+a single coordinate for every axis:
 
-    pt = ds.r[(10.0, 'km'), (200, 'm'), (1.0,'km')]
+.. code-block:: python
+
+   pt = ds.r[(10.0, "km"), (200, "m"), (1.0, "km")]
 
 Querying this object for fields will give you the value of the field at that
 point.
@@ -361,19 +395,27 @@ for the grid cell to be incorporated.
     | A cylinder defined by a point at the center of one of the circular bases,
       a normal vector to it defining the orientation of the length of the
       cylinder, and radius and height values for the cylinder's dimensions.
+      Note: ``height`` is the distance from midplane to the top or bottom of the
+      cylinder, i.e., ``height`` is half that of the cylinder object that is
+      created.
 
 **Ellipsoid**
     | Class :class:`~yt.data_objects.selection_data_containers.YTEllipsoid`
     | Usage: ``ellipsoid(center, semi_major_axis_length, semi_medium_axis_length, semi_minor_axis_length, semi_major_vector, tilt, fields=None, ds=None, field_parameters=None, data_source=None)``
-    | An ellipsoid with axis magnitudes set by semi_major_axis_length,
-     semi_medium_axis_length, and semi_minor_axis_length.  semi_major_vector
-     sets the direction of the semi_major_axis.  tilt defines the orientation
+    | An ellipsoid with axis magnitudes set by ``semi_major_axis_length``,
+     ``semi_medium_axis_length``, and ``semi_minor_axis_length``.  ``semi_major_vector``
+     sets the direction of the ``semi_major_axis``.  ``tilt`` defines the orientation
      of the semi-medium and semi_minor axes.
 
 **Sphere**
     | Class :class:`~yt.data_objects.selection_data_containers.YTSphere`
     | Usage: ``sphere(center, radius, ds=None, field_parameters=None, data_source=None)``
     | A sphere defined by a central coordinate and a radius.
+
+**Minimal Bounding Sphere**
+    | Class :class:`~yt.data_objects.selection_data_containers.YTMinimalSphere`
+    | Usage: ``minimal_sphere(points, ds=None, field_parameters=None, data_source=None)``
+    | A sphere that contains all the points passed as argument.
 
 .. _collection-objects:
 
@@ -478,9 +520,27 @@ all the cells contained in a sphere at the center of our dataset.
 
 .. code-block:: python
 
-   ds = load("my_data")
-   sp = ds.sphere('c', (10, 'kpc'))
+   import yt
+
+   ds = yt.load("my_data")
+   sp = ds.sphere("c", (10, "kpc"))
    print(sp.quantities.angular_momentum_vector())
+
+Some quantities can be calculated for a specific particle type only. For example, to
+get the center of mass of only the stars within the sphere:
+
+.. code-block:: python
+
+   import yt
+
+   ds = yt.load("my_data")
+   sp = ds.sphere("c", (10, "kpc"))
+   print(
+       sp.quantities.center_of_mass(
+           use_gas=False, use_particles=True, particle_type="star"
+       )
+   )
+
 
 Quickly Processing Data
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -495,26 +555,36 @@ These operations are parallelized.
 
 You can compute the extrema of a field by using the ``max`` or ``min``
 functions.  This will cache the extrema in between, so calling ``min`` right
-after ``max`` will be considerably faster.  Here is an example:::
+after ``max`` will be considerably faster.  Here is an example.
 
-  ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-  reg = ds.r[0.3:0.6, 0.2:0.4, 0.9:0.95]
-  min_rho = reg.min("density")
-  max_rho = reg.max("density")
+.. code-block:: python
 
-This is equivalent to:::
+   import yt
 
-  min_rho, max_rho = reg.quantities.extrema("density")
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   reg = ds.r[0.3:0.6, 0.2:0.4, 0.9:0.95]
+   min_rho = reg.min("density")
+   max_rho = reg.max("density")
 
-The ``max`` operation can also compute the maximum intensity projection:::
+This is equivalent to:
 
-  proj = reg.max("density", axis="x")
-  proj.plot()
+.. code-block:: python
 
-This is equivalent to:::
+   min_rho, max_rho = reg.quantities.extrema("density")
 
-  proj = ds.proj("density", "x", data_source=reg, method="mip")
-  proj.plot()
+The ``max`` operation can also compute the maximum intensity projection:
+
+.. code-block:: python
+
+   proj = reg.max("density", axis="x")
+   proj.plot()
+
+This is equivalent to:
+
+.. code-block:: python
+
+   proj = ds.proj("density", "x", data_source=reg, method="mip")
+   proj.plot()
 
 The ``min`` operator does not do this, however, as a minimum intensity
 projection is not currently implemented.
@@ -522,52 +592,65 @@ projection is not currently implemented.
 You can also compute the ``mean`` value, which accepts a field, axis and wight
 function.  If the axis is not specified, it will return the average value of
 the specified field, weighted by the weight argument.  The weight argument
-defaults to ``ones``, which performs an arithmetic average.  For instance:::
+defaults to ``ones``, which performs an arithmetic average.  For instance:
 
-  mean_rho = reg.mean("density")
-  rho_by_vol = reg.mean("density", weight="cell_volume")
+.. code-block:: python
 
-This is equivalent to:::
+   mean_rho = reg.mean("density")
+   rho_by_vol = reg.mean("density", weight="cell_volume")
 
-  mean_rho = reg.quantities.weighted_average("density", weight_field="ones")
-  rho_by_vol = reg.quantities.weighted_average("density",
-                    weight_field="cell_volume")
+This is equivalent to:
 
-If an axis is provided, it will project along that axis and return it to you:::
+.. code-block:: python
 
-  rho_proj = reg.mean("temperature", axis="y", weight="density")
-  rho_proj.plot()
+   mean_rho = reg.quantities.weighted_average("density", weight_field="ones")
+   rho_by_vol = reg.quantities.weighted_average("density", weight_field="cell_volume")
+
+If an axis is provided, it will project along that axis and return it to you:
+
+.. code-block:: python
+
+   rho_proj = reg.mean("temperature", axis="y", weight="density")
+   rho_proj.plot()
 
 The ``sum`` function will add all the values in the data object.  It accepts a
 field and, optionally, an axis.  If the axis is left unspecified, it will sum
-the values in the object:::
+the values in the object:
 
-  vol = reg.sum("cell_volume")
+.. code-block:: python
+
+   vol = reg.sum("cell_volume")
 
 If the axis is specified, it will compute a projection using the method ``sum``
 (which does *not* take into account varying path length!) and return that to
-you.::
+you.
 
-  cell_count = reg.sum("ones", axis="z")
-  cell_count.plot()
+.. code-block:: python
+
+   cell_count = reg.sum("ones", axis="z")
+   cell_count.plot()
 
 To compute a projection where the path length *is* taken into account, you can
-use the ``integrate`` function:::
+use the ``integrate`` function:
 
-  proj = reg.integrate("density", "x")
+.. code-block:: python
+
+   proj = reg.integrate("density", "x")
 
 All of these projections supply the data object as their base input.
 
 Often, it can be useful to sample a field at the minimum and maximum of a
 different field.  You can use the ``argmax`` and ``argmin`` operations to do
-this.::
+this.
 
-  reg.argmin("density", axis="temperature")
+.. code-block:: python
+
+   reg.argmin("density", axis="temperature")
 
 This will return the temperature at the minimum density.
 
 If you don't specify an ``axis``, it will return the spatial position of
-the maximum value of the queried field.  Here is an example:::
+the maximum value of the queried field.  Here is an example::
 
   x, y, z = reg.argmin("density")
 
@@ -576,21 +659,26 @@ Available Derived Quantities
 
 **Angular Momentum Vector**
     | Class :class:`~yt.data_objects.derived_quantities.AngularMomentumVector`
-    | Usage: ``angular_momentum_vector(use_gas=True, use_particles=True)``
+    | Usage: ``angular_momentum_vector(use_gas=True, use_particles=True, particle_type='all')``
     | The mass-weighted average angular momentum vector of the particles, gas,
-      or both.
+      or both. The quantity can be calculated for all particles or a given
+      particle_type only.
 
 **Bulk Velocity**
     | Class :class:`~yt.data_objects.derived_quantities.BulkVelocity`
-    | Usage: ``bulk_velocity(use_gas=True, use_particles=True)``
+    | Usage: ``bulk_velocity(use_gas=True, use_particles=True, particle_type='all')``
     | The mass-weighted average velocity of the particles, gas, or both.
+      The quantity can be calculated for all particles or a given
+      particle_type only.
 
 **Center of Mass**
     | Class :class:`~yt.data_objects.derived_quantities.CenterOfMass`
-    | Usage: ``center_of_mass(use_cells=True, use_particles=False)``
+    | Usage: ``center_of_mass(use_cells=True, use_particles=False, particle_type='all')``
     | The location of the center of mass. By default, it computes of
       the *non-particle* data in the object, but it can be used on
-      particles, gas, or both.
+      particles, gas, or both. The quantity can be
+      calculated for all particles or a given particle_type only.
+
 
 **Extrema**
     | Class :class:`~yt.data_objects.derived_quantities.Extrema`
@@ -621,8 +709,9 @@ Available Derived Quantities
 
 **Spin Parameter**
     | Class :class:`~yt.data_objects.derived_quantities.SpinParameter`
-    | Usage: ``spin_parameter(use_gas=True, use_particles=True)``
-    | The spin parameter for the baryons using the particles, gas, or both.
+    | Usage: ``spin_parameter(use_gas=True, use_particles=True, particle_type='all')``
+    | The spin parameter for the baryons using the particles, gas, or both. The
+      quantity can be calculated for all particles or a given particle_type only.
 
 **Total Mass**
     | Class :class:`~yt.data_objects.derived_quantities.TotalMass`
@@ -642,12 +731,12 @@ Available Derived Quantities
       over an entire data object.  If you want an unweighted average,
       then set your weight to be the field: ``ones``.
 
-**Weighted Variance of a Field**
-    | Class :class:`~yt.data_objects.derived_quantities.WeightedVariance`
-    | Usage: ``weighted_variance(fields, weight)``
-    | The weighted variance of a field (or list of fields)
+**Weighted Standard Deviation of a Field**
+    | Class :class:`~yt.data_objects.derived_quantities.WeightedStandardDeviation`
+    | Usage: ``weighted_standard_deviation(fields, weight)``
+    | The weighted standard deviation of a field (or list of fields)
       over an entire data object and the weighted mean.
-      If you want an unweighted variance, then
+      If you want an unweighted standard deviation, then
       set your weight to be the field: ``ones``.
 
 .. _arbitrary-grid:
@@ -672,10 +761,10 @@ the deposited particle density, like so:
 .. code-block:: python
 
    import yt
+
    ds = yt.load("snapshot_010.hdf5")
 
-   obj = ds.arbitrary_grid([0.0, 0.0, 0.0], [0.99, 0.99, 0.99],
-                          dims=[128, 128, 128])
+   obj = ds.arbitrary_grid([0.0, 0.0, 0.0], [0.99, 0.99, 0.99], dims=[128, 128, 128])
    print(obj["deposit", "all_density"])
 
 While these cannot yet be used as input to projections or slices, slices and
@@ -704,6 +793,7 @@ Here are some examples:
 .. code-block:: python
 
    import yt
+
    ds = yt.load("snapshot_010.hdf5")
 
    sp1 = ds.sphere("c", (0.1, "unitary"))
@@ -725,13 +815,14 @@ will yield slightly higher performance than a sequence of calls to ``+`` or
 .. code-block:: python
 
    import yt
-   ds = yt.load("Enzo_64/DD0043/data0043")
-   sp1 = ds.sphere( (0.1, 0.2, 0.3), (0.05, "unitary"))
-   sp2 = ds.sphere( (0.2, 0.2, 0.3), (0.10, "unitary"))
-   sp3 = ds.sphere( (0.3, 0.2, 0.3), (0.15, "unitary"))
 
-   isp = ds.intersection( [sp1, sp2, sp3] )
-   usp = ds.union( [sp1, sp2, sp3] )
+   ds = yt.load("Enzo_64/DD0043/data0043")
+   sp1 = ds.sphere((0.1, 0.2, 0.3), (0.05, "unitary"))
+   sp2 = ds.sphere((0.2, 0.2, 0.3), (0.10, "unitary"))
+   sp3 = ds.sphere((0.3, 0.2, 0.3), (0.15, "unitary"))
+
+   isp = ds.intersection([sp1, sp2, sp3])
+   usp = ds.union([sp1, sp2, sp3])
 
 The ``isp`` and ``usp`` objects will act the same as a set of chained ``&`` and
 ``|`` operations (respectively) but are somewhat easier to construct.
@@ -756,9 +847,8 @@ whether or not to conduct it in log space.
 
 .. code-block:: python
 
-   sp = ds.sphere("max", (1.0, 'pc'))
-   contour_values, connected_sets = sp.extract_connected_sets(
-        "density", 3, 1e-30, 1e-20)
+   sp = ds.sphere("max", (1.0, "pc"))
+   contour_values, connected_sets = sp.extract_connected_sets("density", 3, 1e-30, 1e-20)
 
 The first item, ``contour_values``, will be an array of the min value for each
 set of level sets.  The second (``connected_sets``) will be a dict of dicts.

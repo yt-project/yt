@@ -10,7 +10,7 @@ Surface Objects and Extracting Isocontour Information
 -----------------------------------------------------
 
 yt contains an implementation of the `Marching Cubes
-<https://en.wikipedia.org/wiki/Marching_cubes>`_ algorithm, which can operate on
+<https://en.wikipedia.org/wiki/Marching_cubes>`__ algorithm, which can operate on
 3D data objects.  This provides two things.  The first is to identify
 isocontours and return either the geometry of those isocontours or to return
 another field value sampled along that isocontour.  The second piece of
@@ -35,10 +35,9 @@ at the center of each face of the surface, and flux of a given field could be
 calculated over the surface.  This means you can, for instance, extract an
 isocontour in density and calculate the mass flux over that isocontour.  It
 also means you can export a surface from yt and view it in something like
-`Blender <https://www.blender.org/>`_, `MeshLab
-<http://www.meshlab.net>`_, or even on your Android or iOS device in
-`MeshPad <http://www.meshpad.org/>`_ or `MeshLab Android
-<https://play.google.com/store/apps/details?id=it.isticnr.meshlab&hl=en>`_.
+`Blender <https://www.blender.org/>`__, `MeshLab
+<http://www.meshlab.net>`__, or even on your Android or iOS device in
+`MeshPad <http://www.meshpad.org/>`__.
 
 To extract geometry or sample a field, call
 :meth:`~yt.data_objects.data_containers.YTSelectionContainer3D.extract_isocontours`.  To
@@ -55,6 +54,7 @@ value.  For example:
 .. code-block:: python
 
    import yt
+
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    sphere = ds.sphere("max", (1.0, "Mpc"))
    surface = ds.surface(sphere, "density", 1e-27)
@@ -80,13 +80,13 @@ If you want to export this to a `PLY file
 ``export_ply``, which will write to a file and optionally sample a field at
 every face or vertex, outputting a color value to the file as well.  This file
 can then be viewed in MeshLab, Blender or on the website `Sketchfab.com
-<https://sketchfab.com>`_.  But if you want to view it on Sketchfab, there's an
+<https://sketchfab.com>`__.  But if you want to view it on Sketchfab, there's an
 even easier way!
 
 Exporting to Sketchfab
 ----------------------
 
-`Sketchfab <https://sketchfab.com>`_ is a website that uses WebGL, a relatively
+`Sketchfab <https://sketchfab.com>`__ is a website that uses WebGL, a relatively
 new technology for displaying 3D graphics in any browser.  It's very fast and
 typically requires no plugins.  Plus, it means that you can share data with
 anyone and they can view it immersively without having to download the data or
@@ -105,7 +105,7 @@ The ``YTSurface`` object includes a method to upload directly to Sketchfab,
 but it requires that you get an API key first.  You can get this API key by
 creating an account and then going to your "dashboard," where it will be listed
 on the right hand side.  Once you've obtained it, put it into your
-``~/.config/yt/ytrc`` file under the heading ``[yt]`` as the variable
+``~/.config/yt/yt.toml`` file under the heading ``[yt]`` as the variable
 ``sketchfab_api_key``.  If you don't want to do this, you can also supply it as
 an argument to the function ``export_sketchfab``.
 
@@ -115,11 +115,12 @@ Now you can run a script like this:
 
     import yt
     from yt.units import kpc
+
     ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
     dd = ds.sphere(ds.domain_center, (500, "kpc"))
     rho = 1e-28
 
-    bounds = [[dd.center[i] - 250*kpc, dd.center[i] + 250*kpc] for i in range(3)]
+    bounds = [[dd.center[i] - 250 * kpc, dd.center[i] + 250 * kpc] for i in range(3)]
 
     surf = ds.surface(dd, "density", rho)
 
@@ -129,8 +130,8 @@ Now you can run a script like this:
         color_field="temperature",
         color_map="hot",
         color_log=True,
-        bounds=bounds
-   )
+        bounds=bounds,
+    )
 
 and yt will extract a surface, convert to a format that Sketchfab.com
 understands (PLY, in a zip file) and then upload it using your API key.  For
@@ -152,9 +153,9 @@ OBJ and MTL Files
 -----------------
 
 If the ability to maneuver around an isosurface of your 3D simulation in
-`Sketchfab <https://sketchfab.com>`_ cost you half a day of work (let's be
+`Sketchfab <https://sketchfab.com>`__ cost you half a day of work (let's be
 honest, 2 days), prepare to be even less productive.  With a new  `OBJ file
-<https://en.wikipedia.org/wiki/Wavefront_.obj_file>`_ exporter, you can now
+<https://en.wikipedia.org/wiki/Wavefront_.obj_file>`__ exporter, you can now
 upload multiple surfaces of different transparencies in the same file.
 The following code snippet produces two files which contain the vertex info
 (surfaces.obj) and color/transparency info (surfaces.mtl) for a 3D
@@ -167,15 +168,17 @@ galaxy simulation:
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    rho = [2e-27, 1e-27]
    trans = [1.0, 0.5]
-   filename = './surfaces'
+   filename = "./surfaces"
 
    sphere = ds.sphere("max", (1.0, "Mpc"))
-   for i,r in enumerate(rho):
-       surf = ds.surface(sphere, 'density', r)
-       surf.export_obj(filename, transparency = trans[i], color_field='temperature', plot_index = i)
+   for i, r in enumerate(rho):
+       surf = ds.surface(sphere, "density", r)
+       surf.export_obj(
+           filename, transparency=trans[i], color_field="temperature", plot_index=i
+       )
 
 The calling sequence is fairly similar to the ``export_ply`` function
-`previously used <http://blog.yt-project.org/post/3DSurfacesAndSketchFab.html>`_
+`previously used <https://blog.yt-project.org/post/3DSurfacesAndSketchFab/>`__
 to export 3D surfaces.  However, one can now specify a transparency for each
 surface of interest, and each surface is enumerated in the OBJ files with ``plot_index``.
 This means one could potentially add surfaces to a previously
@@ -201,7 +204,7 @@ surface to their own min and max values.
 Uploading to SketchFab
 ----------------------
 
-To upload to `Sketchfab <https://sketchfab.com>`_ one only needs to zip the
+To upload to `Sketchfab <https://sketchfab.com>`__ one only needs to zip the
 OBJ and MTL files together, and then upload via your dashboard prompts in
 the usual way.  For example, the above script produces:
 
@@ -216,9 +219,9 @@ Importing to MeshLab and Blender
 --------------------------------
 
 The new OBJ formatting will produce multi-colored surfaces in both
-`MeshLab <http://meshlab.sourceforge.net/>`_ and `Blender <http://www.blender.org/>`_,
+`MeshLab <http://www.meshlab.net/>`__ and `Blender <https://www.blender.org/>`__,
 a feature not possible with the
-`previous PLY exporter <http://blog.yt-project.org/post/3DSurfacesAndSketchFab.html>`_.
+`previous PLY exporter <https://blog.yt-project.org/post/3DSurfacesAndSketchFab/>`__.
 To see colors in MeshLab go to the "Render" tab and
 select "Color -> Per Face".  Note in both MeshLab and Blender, unlike Sketchfab, you can't see
 transparencies until you render.
@@ -234,23 +237,30 @@ to output one more type of variable on your surfaces.  For example:
 
 .. code-block:: python
 
-   import yt
+    import yt
 
-   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   rho = [2e-27, 1e-27]
-   trans = [1.0, 0.5]
-   filename = './surfaces'
+    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    rho = [2e-27, 1e-27]
+    trans = [1.0, 0.5]
+    filename = "./surfaces"
 
-   def emissivity(field, data):
-       return (data['density']*data['density']*np.sqrt(data['temperature']))
-   add_field("emissivity", function=_Emissivity, units=r"g*K/cm**6")
 
-   sphere = ds.sphere("max", (1.0, "Mpc"))
-   for i,r in enumerate(rho):
-       surf = ds.surface(sphere, 'density', r)
-       surf.export_obj(filename, transparency = trans[i],
-                       color_field='temperature', emit_field = 'emissivity',
-		       plot_index = i)
+    def emissivity(field, data):
+        return data["density"] * data["density"] * np.sqrt(data["temperature"])
+
+
+    add_field("emissivity", function=_Emissivity, sampling_type="cell", units=r"g*K/cm**6")
+
+    sphere = ds.sphere("max", (1.0, "Mpc"))
+    for i, r in enumerate(rho):
+        surf = ds.surface(sphere, "density", r)
+        surf.export_obj(
+            filename,
+            transparency=trans[i],
+            color_field="temperature",
+            emit_field="emissivity",
+            plot_index=i,
+        )
 
 will output the same OBJ and MTL as in our previous example, but it will scale
 an emissivity parameter by our new field.  Technically, this makes our outputs
@@ -264,7 +274,7 @@ scripts in Blender.  For example, on a Mac, you would modify the file
 "/Applications/Blender/blender.app/Contents/MacOS/2.65/scripts/addons/io_scene_obj/import_obj.py",
 in the function "create_materials" with:
 
-.. code-block:: python
+.. code-block:: patch
 
    # ...
 
@@ -281,7 +291,7 @@ in the function "create_materials" with:
    # ...
 
 To use this in Blender, you might create a
-`Blender script <http://cgcookie.com/blender/2011/08/26/introduction-to-scripting-with-python-in-blender/>`_
+`Blender script <https://docs.blender.org/manual/en/latest/advanced/scripting/introduction.html>`__
 like the following:
 
 .. code-block:: python
@@ -289,23 +299,23 @@ like the following:
    import bpy
    from math import *
 
-   bpy.ops.import_scene.obj(filepath='./surfaces.obj') # will use new importer
+   bpy.ops.import_scene.obj(filepath="./surfaces.obj")  # will use new importer
 
    # set up lighting = indirect
-   bpy.data.worlds['World'].light_settings.use_indirect_light = True
-   bpy.data.worlds['World'].horizon_color = [0.0, 0.0, 0.0] # background = black
+   bpy.data.worlds["World"].light_settings.use_indirect_light = True
+   bpy.data.worlds["World"].horizon_color = [0.0, 0.0, 0.0]  # background = black
    # have to use approximate, not ray tracing for emitting objects ...
    #   ... for now...
-   bpy.data.worlds['World'].light_settings.gather_method = 'APPROXIMATE'
-   bpy.data.worlds['World'].light_settings.indirect_factor=20. # turn up all emiss
+   bpy.data.worlds["World"].light_settings.gather_method = "APPROXIMATE"
+   bpy.data.worlds["World"].light_settings.indirect_factor = 20.0  # turn up all emiss
 
    # set up camera to be on -x axis, facing toward your object
    scene = bpy.data.scenes["Scene"]
-   scene.camera.location = [-0.12, 0.0, 0.0] # location
-   scene.camera.rotation_euler = [radians(90.), 0.0, radians(-90.)] # face to (0,0,0)
+   scene.camera.location = [-0.12, 0.0, 0.0]  # location
+   scene.camera.rotation_euler = [radians(90.0), 0.0, radians(-90.0)]  # face to (0,0,0)
 
    # render
-   scene.render.filepath ='/Users/jillnaiman/surfaces_blender' # needs full path
+   scene.render.filepath = "/Users/jillnaiman/surfaces_blender"  # needs full path
    bpy.ops.render.render(write_still=True)
 
 This above bit of code would produce an image like so:

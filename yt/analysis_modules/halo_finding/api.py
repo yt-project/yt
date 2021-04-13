@@ -1,31 +1,7 @@
-"""
-API for halo_finding
+from yt.utilities.exceptions import YTModuleRemoved
 
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
-from .halo_objects import \
-    Halo, \
-    HOPHalo, \
-    LoadedHalo, \
-    FOFHalo, \
-    HaloList, \
-    HOPHaloList, \
-    FOFHaloList, \
-    LoadedHaloList, \
-    GenericHaloFinder, \
-    HOPHaloFinder, \
-    FOFHaloFinder, \
-    HaloFinder, \
-    LoadHaloes, \
-    LoadTextHalos, \
-    LoadTextHaloes
+raise YTModuleRemoved(
+    "halo_finding",
+    "https://github.com/yt-project/yt_astro_analysis",
+    "https://yt-astro-analysis.readthedocs.io/",
+)

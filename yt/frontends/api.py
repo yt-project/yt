@@ -1,58 +1,53 @@
-"""
-API for yt.frontends
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
-import sys, types, os, glob, time, importlib
-from yt.extern.six.moves import cPickle as pickle
+import glob
+import importlib
+import os
+import sys
+import time
+import types
 
 _frontends = [
-    'ahf',
-    'art',
-    'artio',
-    'athena',
-    'athena_pp',
-    'boxlib',
-    'chombo',
-    'eagle',
-    'enzo',
-    'enzo_p',
-    'exodus_ii',
-    'fits',
-    'flash',
-    'gadget',
-    'gadget_fof',
-    'gamer',
-    'gdf',
-    'gizmo',
-    'halo_catalog',
-    'http_stream',
-    'moab',
-    'open_pmd',
-    'owls',
-    'owls_subfind',
-    'ramses',
-    'rockstar',
-    'sdf',
-    'stream',
-    'tipsy',
-    'ytdata',
+    "adaptahop",
+    "ahf",
+    "amrvac",
+    "art",
+    "arepo",
+    "artio",
+    "athena",
+    "athena_pp",
+    "boxlib",
+    "chombo",
+    "eagle",
+    "enzo_p",
+    "enzo",
+    "exodus_ii",
+    "fits",
+    "flash",
+    "gadget",
+    "gadget_fof",
+    "gamer",
+    "gdf",
+    "gizmo",
+    "halo_catalog",
+    "http_stream",
+    "moab",
+    "nc4_cm1",
+    "open_pmd",
+    "owls",
+    "owls_subfind",
+    "ramses",
+    "rockstar",
+    "sdf",
+    "stream",
+    "swift",
+    "tipsy",
+    "ytdata",
 ]
+
 
 class _frontend_container:
     def __init__(self):
         for frontend in _frontends:
-            _mod = "yt.frontends.%s.api" % frontend
+            _mod = f"yt.frontends.{frontend}.api"
             setattr(self, frontend, importlib.import_module(_mod))
-        setattr(self, 'api', importlib.import_module('yt.frontends.api'))
-        setattr(self, '__name__', 'yt.frontends.api')
+        setattr(self, "api", importlib.import_module("yt.frontends.api"))
+        setattr(self, "__name__", "yt.frontends.api")

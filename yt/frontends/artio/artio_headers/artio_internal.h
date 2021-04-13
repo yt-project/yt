@@ -118,7 +118,7 @@ typedef struct artio_grid_file_struct {
 	double *next_level_pos;
 	double *cur_level_pos;
 	int next_level_oct;
-	
+
 } artio_grid_file;
 
 typedef struct parameter_struct {
@@ -153,7 +153,7 @@ struct artio_fileset_struct {
 	int sfc_type;
 	int nBitsPerDim;
 	int num_grid;
-	
+
 	parameter_list *parameters;
 	artio_grid_file *grid;
 	artio_particle_file *particle;
@@ -162,7 +162,7 @@ struct artio_fileset_struct {
 struct artio_selection_struct {
     int64_t *list;
     int size;
-    int num_ranges; 
+    int num_ranges;
 	int cursor;
 	int64_t subcycle;
 	artio_fileset *fileset;

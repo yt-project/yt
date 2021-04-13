@@ -32,7 +32,7 @@ What do Unit Tests Do
 
 Unit tests are tests that operate on some small set of machinery, and verify
 that the machinery works.  yt uses the `Nose
-<http://nose.readthedocs.org/en/latest/>`_ framework for running unit tests.  In
+<https://nose.readthedocs.io/en/latest/>`_ framework for running unit tests.  In
 practice, what this means is that we write scripts that assert statements, and
 Nose identifies those scripts, runs them, and verifies that the assertions are
 true and the code runs without crashing.
@@ -46,6 +46,7 @@ that can import the yt module:
 .. code-block:: python
 
    import yt
+
    yt.run_nose()
 
 If you are developing new functionality, it is sometimes more convenient to use
@@ -69,6 +70,32 @@ run:
 .. code-block:: bash
 
    $ nosetests yt/visualization/tests/test_plotwindow.py
+
+Handling yt dependencies
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+We attempt to make yt compatible with a wide variety of upstream software
+versions. However, sometimes a specific version of a project that yt depends on
+causes some breakage and must be blacklisted in the tests or a more
+experimental project that yt depends on optionally might change sufficiently
+that the yt community decides not to support an old version of that project.
+
+To handle cases like this, the versions of upstream software projects installed
+on the machines running the yt test suite are pinned to specific version
+numbers that must be updated manually. This prevents breaking the yt tests when
+a new version of an upstream dependency is released and allows us to manage
+updates in upstream projects at our pace.
+
+If you would like to add a new dependency for yt (even an optional dependency)
+or would like to update a version of a yt dependency, you must edit the
+``tests/test_requirements.txt`` file, this path is relative to the root of the
+repository. This file contains an enumerated list of direct dependencies and
+pinned version numbers. For new dependencies, simply append the name of the new
+dependency to the end of the file, along with a pin to the latest version
+number of the package. To update a package's version, simply update the version
+number in the entry for that package.
+
+Finally, we also run a set of tests with "minimal" dependencies installed. Please make sure any new tests you add that depend on an optional dependency are properly set up so that the test is not run if the dependency is not installed. If for some reason you need to update the listing of packages that are installed for the "minimal" dependency tests, you will need to edit ``tests/test_minimal_requirements.txt``.
 
 How to Write Unit Tests
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -102,7 +129,7 @@ To create new unit tests:
 #. Inside that file, create one or more routines prefixed with ``test_`` that
    accept no arguments. The test function should do some work that tests some
    functionality and should also verify that the results are correct using
-   assert statements or functions.  
+   assert statements or functions.
 #. Tests can ``yield`` a tuple of the form ``function``, ``argument_one``,
    ``argument_two``, etc.  For example ``yield my_test, 'banana', 2.0`` would be
    captured by nose and the ``my_test`` function will be run with the provided
@@ -183,121 +210,23 @@ How to Run the Answer Tests
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The very first step is to make a directory and copy over the data against which
-you want to test.  Currently, we test:
-
-NMSU ART
-~~~~~~~~
-
-* ``D9p_500/10MpcBox_HartGal_csf_a0.500.d``
-
-ARTIO
-~~~~~
-
-* ``sizmbhloz-clref04SNth-rs9_a0.9011/sizmbhloz-clref04SNth-rs9_a0.9011.art``
-
-Athena
-~~~~~~
-
-* ``ShockCloud/id0/Cloud.0050.vtk``
-* ``MHDBlast/id0/Blast.0100.vtk``
-* ``RamPressureStripping/id0/rps.0062.vtk``
-* ``MHDSloshing/virgo_low_res.0054.vtk``
-
-Boxlib
-~~~~~~
-
-* ``RadAdvect/plt00000``
-* ``RadTube/plt00500``
-* ``StarParticles/plrd01000``
-
-Chombo
-~~~~~~
-
-* ``TurbBoxLowRes/data.0005.3d.hdf5``
-* ``GaussianCloud/data.0077.3d.hdf5``
-* ``IsothermalSphere/data.0000.3d.hdf5``
-* ``ZeldovichPancake/plt32.2d.hdf5``
-* ``KelvinHelmholtz/data.0004.hdf5``
-
-Enzo
-~~~~
-
-* ``DD0010/moving7_0010`` (available in ``tests/`` in the yt distribution)
-* ``IsolatedGalaxy/galaxy0030/galaxy0030``
-* ``enzo_tiny_cosmology/DD0046/DD0046``
-* ``enzo_cosmology_pluts/DD0046/DD0046``
-
-FITS
-~~~~
-
-* ``radio_fits/grs-50-cube.fits``
-* ``UnigridData/velocity_field_20.fits``
-
-FLASH
-~~~~~
-
-* ``WindTunnel/windtunnel_4lev_hdf5_plt_cnt_0030``
-* ``GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0300``
-
-Gadget
-~~~~~~
-
-* ``IsothermalCollapse/snap_505``
-* ``IsothermalCollapse/snap_505.hdf5``
-* ``GadgetDiskGalaxy/snapshot_200.hdf5``
-
-GAMER
-~~~~~~
-
-* ``InteractingJets/jet_000002``
-* ``WaveDarkMatter/psiDM_000020``
-* ``Plummer/plummer_000000``
-
-Halo Catalog
-~~~~~~~~~~~~
-
-* ``owls_fof_halos/groups_001/group_001.0.hdf5``
-* ``owls_fof_halos/groups_008/group_008.0.hdf5``
-* ``gadget_fof_halos/groups_005/fof_subhalo_tab_005.0.hdf5``
-* ``gadget_fof_halos/groups_042/fof_subhalo_tab_042.0.hdf5``
-* ``rockstar_halos/halos_0.0.bin``
-
-MOAB
-~~~~
-
-* ``c5/c5.h5m``
-
-
-RAMSES
-~~~~~~
-
-* ``output_00080/info_00080.txt``
-
-Tipsy
-~~~~~
-
-* ``halo1e11_run1.00400/halo1e11_run1.00400``
-* ``agora_1e11.00400/agora_1e11.00400``
-* ``TipsyGalaxy/galaxy.00300``
-
-OWLS
-~~~~
-
-* ``snapshot_033/snap_033.0.hdf5``
-
-These datasets are available at http://yt-project.org/data/.
-
-Next, add the config parameter ``test_data_dir`` pointing to 
+you want to test. Next, add the config parameter ``test_data_dir`` pointing to
 directory with the test data you want to test with, e.g.:
 
-.. code-block:: none
+.. code-block:: bash
 
    $ yt config set yt test_data_dir /Users/tomservo/src/yt-data
 
-More data will be added over time.  To run the answer tests, you must first
-generate a set of test answers locally on a "known good" revision, then update
-to the revision you want to test, and run the tests again using the locally
-stored answers.
+We use a number of real-world datasets for the tests that must be downloaded and
+unzipped in the ``test_data_dir`` path you have set. The test datasets, can be
+downloaded from https://yt-project.org/data/. We do not explicitly list the
+datasets we use in the tests here because the list of necessary datasets changes
+regularly, instead you should take a look at the tests you would like to run and
+make sure that the necessary data files are downloaded before running the tests.
+
+To run the answer tests, you must first generate a set of test answers locally
+on a "known good" revision, then update to the revision you want to test, and
+run the tests again using the locally stored answers.
 
 Let's focus on running the answer tests for a single frontend. It's possible to
 run the answer tests for **all** the frontends, but due to the large number of
@@ -312,7 +241,7 @@ project's contiguous integration server.
 This command will create a set of local answers from the tipsy frontend tests
 and store them in ``$HOME/Documents/test`` (this can but does not have to be the
 same directory as the ``test_data_dir`` configuration variable defined in your
-``~/.config/yt/ytrc`` file) in a file named ``local-tipsy``. To run the tipsy
+``~/.config/yt/yt.toml`` file) in a file named ``local-tipsy``. To run the tipsy
 frontend's answer tests using a different yt changeset, update to that
 changeset, recompile if necessary, and run the tests using the following
 command:
@@ -347,6 +276,7 @@ You can find examples there of how to write a test.  Here is a trivial example:
    class MaximumValueTest(AnswerTestingTest):
        _type_name = "MaximumValue"
        _attrs = ("field",)
+
        def __init__(self, ds_fn, field):
            super(MaximumValueTest, self).__init__(ds_fn)
            self.field = field
@@ -450,10 +380,14 @@ Here is an example test function:
 
 .. code-block:: python
 
-   from yt.utilities.answer_testing.framework import \
-       GenericImageTest, requires_ds, data_dir_load
+   from yt.utilities.answer_testing.framework import (
+       GenericImageTest,
+       requires_ds,
+       data_dir_load,
+   )
 
    from matplotlib import pyplot as plt
+
 
    @requires_ds(my_ds)
    def test_my_ds():
@@ -461,7 +395,8 @@ Here is an example test function:
 
        def create_image(filename_prefix):
            plt.plot([1, 2], [1, 2])
-           plt.savefig(filename_prefix)
+           plt.savefig("%s_lineplot" % filename_prefix)
+
        test = GenericImageTest(ds, create_image, 12)
 
        # this ensures the test has a unique key in the
@@ -472,6 +407,9 @@ Here is an example test function:
        test_my_ds.__name__ = test.description
 
        yield test
+
+.. note:: The inner function ``create_image`` can create any number of images,
+   as long as the corresponding filenames conform to the prefix.
 
 Another good example of an image comparison test is the
 ``PlotWindowAttributeTest`` defined in the answer testing framework and used in
@@ -487,7 +425,7 @@ Enabling Answer Tests on Jenkins
 Before any code is added to or modified in the yt codebase, each incoming
 changeset is run against all available unit and answer tests on our `continuous
 integration server <https://tests.yt-project.org>`_. While unit tests are
-autodiscovered by `nose <http://nose.readthedocs.org/en/latest/>`_ itself,
+autodiscovered by `nose <https://nose.readthedocs.io/en/latest/>`_ itself,
 answer tests require definition of which set of tests constitute to a given
 answer. Configuration for the integration server is stored in
 *tests/tests.yaml* in the main yt repository:
@@ -537,13 +475,13 @@ change the answer name in *tests/tests.yaml* e.g.:
 
       local_pw_000:
 
-would regenerate answers for OWLS frontend. 
+would regenerate answers for OWLS frontend.
 
-When adding tests to an existing set of answers (like ``local_owls_000`` or ``local_varia_000``), 
-it is considered best practice to first submit a pull request adding the tests WITHOUT incrementing 
+When adding tests to an existing set of answers (like ``local_owls_000`` or ``local_varia_000``),
+it is considered best practice to first submit a pull request adding the tests WITHOUT incrementing
 the version number. Then, allow the tests to run (resulting in "no old answer" errors for the missing
 answers). If no other failures are present, you can then increment the version number to regenerate
-the answers. This way, we can avoid accidentally covering up test breakages. 
+the answers. This way, we can avoid accidentally covering up test breakages.
 
 Adding New Answer Tests
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -565,19 +503,3 @@ In order to add a new set of answer tests, it is sufficient to extend the
    +
     other_tests:
       unittests:
-
-Restricting Python Versions for Answer Tests
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-If for some reason a test can be run only for a specific version of python it is
-possible to indicate this by adding a ``[py2]`` or ``[py3]`` tag. For example:
-
-.. code-block:: yaml
-
-   answer_tests:
-      local_test_000:
-         - yt/test_A.py  # [py2]
-         - yt/test_B.py  # [py3]
-
-would result in ``test_A.py`` being run only for *python2* and ``test_B.py``
-being run only for *python3*.

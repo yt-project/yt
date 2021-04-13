@@ -5,22 +5,13 @@ Utilities for line integral convolution annotation
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2015, yt Development Team.
-#
-# Code originally from Scipy Cookbook (http://wiki.scipy.org/Cookbook/LineIntegralConvolution),
-# with bug fixed which leads to crash when non equal-size vector field in two
-# dimensions is provided.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
 
 import numpy as np
-cimport numpy as np
+
 cimport cython
+cimport numpy as np
+
 
 @cython.cdivision(True)
 cdef void _advance_2d(double vx, double vy,
@@ -81,11 +72,13 @@ def line_integral_convolution_2d(
 
     for i in range(w):
         for j in range(h):
+            if vectors[i,j,0]==0 and vectors[i,j,1]==0:
+                continue
             x = i
             y = j
             fx = 0.5
             fy = 0.5
-            
+
             l = kernellen//2
             result[i,j] += kernel[l]*texture[x,y]
             while l<kernellen-1:
@@ -93,16 +86,16 @@ def line_integral_convolution_2d(
                         &x, &y, &fx, &fy, w, h)
                 l+=1
                 result[i,j] += kernel[l]*texture[x,y]
-            
+
             x = i
             y = j
             fx = 0.5
             fy = 0.5
-            
+
             while l>0:
                 _advance_2d(-vectors[x,y,0],-vectors[x,y,1],
                         &x, &y, &fx, &fy, w, h)
                 l-=1
                 result[i,j] += kernel[l]*texture[x,y]
-                    
+
     return result

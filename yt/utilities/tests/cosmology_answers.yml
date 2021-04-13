@@ -1,0 +1,76 @@
+cosmologies:
+  EdS: {hubble_constant: 0.7, omega_lambda: 0.0, omega_matter: 1.0, omega_radiation: 0.0}
+  LCDM: {hubble_constant: 0.7, omega_lambda: 0.7, omega_matter: 0.3, omega_radiation: 0.0}
+  omega_radiation: {hubble_constant: 0.7, omega_lambda: 0.7, omega_matter: 0.2999,
+    omega_radiation: 0.0001}
+  open: {hubble_constant: 0.7, omega_lambda: 0.0, omega_matter: 0.3, omega_radiation: 0.0}
+functions:
+  age_integrand:
+    answers: {EdS: 0.17677669529663687, LCDM: 0.28398091712353246, omega_radiation: 0.2839442815151592,
+      open: 0.21926450482675733}
+    args: [1]
+  angular_diameter_distance:
+    answers: {EdS: -47.63859400006291, LCDM: 74.71628440466395, omega_radiation: 74.61156201248941,
+      open: 114.42229537588507}
+    args: [1, 2]
+    units: Mpc
+  angular_scale:
+    answers: {EdS: -47.63859400006291, LCDM: 74.71628440466395, omega_radiation: 74.61156201248941,
+      open: 114.42229537588507}
+    args: [1, 2]
+    units: Mpc/radian
+  comoving_radial_distance:
+    answers: {EdS: 1111.3289801408714, LCDM: 1875.857637458183, omega_radiation: 1875.4640874252457,
+      open: 1448.958605095395}
+    args: [1, 2]
+    units: Mpc
+  comoving_transverse_distance:
+    answers: {EdS: 1111.3289801408714, LCDM: 1875.857637458183, omega_radiation: 1875.4640874252457,
+      open: 1468.3857559045264}
+    args: [1, 2]
+    units: Mpc
+  comoving_volume:
+    answers: {EdS: 5.749320615429804, LCDM: 27.64956077763837, omega_radiation: 27.632162011458195,
+      open: 82.84024895030079}
+    args: [1, 2]
+    units: Gpc**3
+  critical_density:
+    answers: {EdS: 1088.0152888198547, LCDM: 421.6059244176937, omega_radiation: 421.7147259465755,
+      open: 707.2099377329054}
+    args: [1]
+    units: Msun/kpc**3
+  expansion_factor:
+    answers: {EdS: 2.8284271247461903, LCDM: 1.7606816861659007, omega_radiation: 1.7609088562444108,
+      open: 2.2803508501982757}
+    args: [1]
+  hubble_distance:
+    answers: {EdS: 4282.749400000001, LCDM: 4282.749400000001, omega_radiation: 4282.749400000001,
+      open: 4282.749400000001}
+    units: Mpc
+  hubble_parameter:
+    answers: {EdS: 197.98989873223329, LCDM: 123.24771803161306, omega_radiation: 123.26361993710874,
+      open: 159.6245595138793}
+    args: [1]
+    units: km/s/Mpc
+  inverse_expansion_factor:
+    answers: {EdS: 0.35355339059327373, LCDM: 0.5679618342470649, omega_radiation: 0.5678885630303184,
+      open: 0.43852900965351466}
+    args: [1]
+  lookback_time:
+    answers: {EdS: 1500.1343648374723, LCDM: 2524.828936828046, omega_radiation: 2524.3141825048465,
+      open: 1949.3932768737345}
+    args: [1, 2]
+    units: Myr
+  luminosity_distance:
+    answers: {EdS: 5842.669112528931, LCDM: 8931.175468218224, omega_radiation: 8929.836295237686,
+      open: 8369.418267416617}
+    args: [1, 2]
+    units: Mpc
+  path_length:
+    answers: {EdS: 1.5782728314065704, LCDM: 2.679181396559161, omega_radiation: 2.6785873459658784,
+      open: 2.0714508064868244}
+    args: [1, 2]
+  path_length_function:
+    answers: {EdS: 1.414213562373095, LCDM: 2.2718473369882597, omega_radiation: 2.2715542521212737,
+      open: 1.7541160386140586}
+    args: [1]

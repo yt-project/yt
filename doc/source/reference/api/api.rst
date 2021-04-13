@@ -79,11 +79,11 @@ These will almost never need to be instantiated on their own.
 .. autosummary::
 
    ~yt.data_objects.data_containers.YTDataContainer
-   ~yt.data_objects.data_containers.YTSelectionContainer
-   ~yt.data_objects.data_containers.YTSelectionContainer0D
-   ~yt.data_objects.data_containers.YTSelectionContainer1D
-   ~yt.data_objects.data_containers.YTSelectionContainer2D
-   ~yt.data_objects.data_containers.YTSelectionContainer3D
+   ~yt.data_objects.selection_objects.data_selection_objects.YTSelectionContainer
+   ~yt.data_objects.selection_objects.data_selection_objects.YTSelectionContainer0D
+   ~yt.data_objects.selection_objects.data_selection_objects.YTSelectionContainer1D
+   ~yt.data_objects.selection_objects.data_selection_objects.YTSelectionContainer2D
+   ~yt.data_objects.selection_objects.data_selection_objects.YTSelectionContainer3D
 
 Selection Objects
 +++++++++++++++++
@@ -93,18 +93,22 @@ geometric.
 
 .. autosummary::
 
-   ~yt.data_objects.selection_data_containers.YTPoint
-   ~yt.data_objects.selection_data_containers.YTOrthoRay
-   ~yt.data_objects.selection_data_containers.YTRay
-   ~yt.data_objects.selection_data_containers.YTSlice
-   ~yt.data_objects.selection_data_containers.YTCuttingPlane
-   ~yt.data_objects.selection_data_containers.YTDisk
-   ~yt.data_objects.selection_data_containers.YTRegion
-   ~yt.data_objects.selection_data_containers.YTDataCollection
-   ~yt.data_objects.selection_data_containers.YTSphere
-   ~yt.data_objects.selection_data_containers.YTEllipsoid
-   ~yt.data_objects.selection_data_containers.YTCutRegion
-   ~yt.data_objects.grid_patch.AMRGridPatch
+   ~yt.data_objects.selection_objects.point.YTPoint
+   ~yt.data_objects.selection_objects.ray.YTOrthoRay
+   ~yt.data_objects.selection_objects.ray.YTRay
+   ~yt.data_objects.selection_objects.slices.YTSlice
+   ~yt.data_objects.selection_objects.slices.YTCuttingPlane
+   ~yt.data_objects.selection_objects.disk.YTDisk
+   ~yt.data_objects.selection_objects.region.YTRegion
+   ~yt.data_objects.selection_objects.object_collection.YTDataCollection
+   ~yt.data_objects.selection_objects.spheroids.YTSphere
+   ~yt.data_objects.selection_objects.spheroids.YTEllipsoid
+   ~yt.data_objects.selection_objects.cur_region.YTCutRegion
+   ~yt.data_objects.index_subobjects.grid_patch.AMRGridPatch
+   ~yt.data_objects.index_subobjects.octree_subset.OctreeSubset
+   ~yt.data_objects.index_subobjects.particle_container.ParticleContainer
+   ~yt.data_objects.index_subobjects.unstructured_mesh.UnstructuredMesh
+   ~yt.data_objects.index_subobjects.unstructured_mesh.SemiStructuredMesh
 
 Construction Objects
 ++++++++++++++++++++
@@ -132,6 +136,7 @@ datasets.
 
    ~yt.data_objects.time_series.DatasetSeries
    ~yt.data_objects.time_series.DatasetSeriesObject
+   ~yt.data_objects.time_series.SimulationTimeSeries
    ~yt.data_objects.time_series.TimeSeriesQuantitiesContainer
    ~yt.data_objects.time_series.AnalysisTaskProxy
    ~yt.data_objects.particle_trajectories.ParticleTrajectories
@@ -172,11 +177,24 @@ These classes and functions enable yt's symbolic unit handling system.
    ~yt.units.yt_array.uvstack
    ~yt.units.yt_array.uhstack
    ~yt.units.yt_array.ustack
+   ~yt.units.yt_array.display_ytarray
 
 Frontends
 ---------
 
 .. autosummary::
+
+AMRVAC
+^^^^^^
+
+.. autosummary::
+
+   ~yt.frontends.amrvac.data_structures.AMRVACGrid
+   ~yt.frontends.amrvac.data_structures.AMRVACHierarchy
+   ~yt.frontends.amrvac.data_structures.AMRVACDataset
+   ~yt.frontends.amrvac.fields.AMRVACFieldInfo
+   ~yt.frontends.amrvac.io.AMRVACIOHandler
+   ~yt.frontends.amrvac.io.read_amrvac_namelist
 
 ARTIO
 ^^^^^
@@ -304,11 +322,11 @@ Halo Catalogs
    ~yt.frontends.gadget_fof.io.IOHandlerGadgetFOFHDF5
    ~yt.frontends.gadget_fof.io.IOHandlerGadgetFOFHaloHDF5
    ~yt.frontends.gadget_fof.fields.GadgetFOFFieldInfo
-   ~yt.frontends.gadget_fof.fields.GadgetFIFHaloFieldInfo
-   ~yt.frontends.halo_catalog.data_structures.HaloCatalogHDF5File
-   ~yt.frontends.halo_catalog.data_structures.HaloCatalogDataset
-   ~yt.frontends.halo_catalog.fields.HaloCatalogFieldInfo
-   ~yt.frontends.halo_catalog.io.IOHandlerHaloCatalogHDF5
+   ~yt.frontends.gadget_fof.fields.GadgetFOFHaloFieldInfo
+   ~yt.frontends.halo_catalog.data_structures.YTHaloCatalogFile
+   ~yt.frontends.halo_catalog.data_structures.YTHaloCatalogDataset
+   ~yt.frontends.halo_catalog.fields.YTHaloCatalogFieldInfo
+   ~yt.frontends.halo_catalog.io.IOHandlerYTHaloCatalog
    ~yt.frontends.owls_subfind.data_structures.OWLSSubfindParticleIndex
    ~yt.frontends.owls_subfind.data_structures.OWLSSubfindHDF5File
    ~yt.frontends.owls_subfind.data_structures.OWLSSubfindDataset
@@ -433,13 +451,15 @@ Loading Data
 
 .. autosummary::
 
-   ~yt.convenience.load
-   ~yt.convenience.simulation
-   ~yt.frontends.stream.data_structures.load_uniform_grid
-   ~yt.frontends.stream.data_structures.load_amr_grids
-   ~yt.frontends.stream.data_structures.load_particles
-   ~yt.frontends.stream.data_structures.load_hexahedral_mesh
-   ~yt.frontends.stream.data_structures.load_unstructured_mesh
+   ~yt.loaders.load
+   ~yt.loaders.simulation
+   ~yt.loaders.load_uniform_grid
+   ~yt.loaders.load_amr_grids
+   ~yt.loaders.load_particles
+   ~yt.loaders.load_octree
+   ~yt.loaders.load_hexahedral_mesh
+   ~yt.loaders.load_unstructured_mesh
+   ~yt.loaders.load_sample
 
 Derived Datatypes
 -----------------
@@ -472,71 +492,24 @@ of topologically disconnected structures, i.e., clump finding.
 
 .. autosummary::
 
-   ~yt.analysis_modules.level_sets.clump_handling.Clump
-   ~yt.analysis_modules.level_sets.clump_handling.Clump.add_info_item
-   ~yt.analysis_modules.level_sets.clump_handling.Clump.add_validator
-   ~yt.analysis_modules.level_sets.clump_handling.Clump.save_as_dataset
-   ~yt.analysis_modules.level_sets.clump_handling.find_clumps
-   ~yt.analysis_modules.level_sets.clump_handling.get_lowest_clumps
-   ~yt.analysis_modules.level_sets.clump_info_items.add_clump_info
-   ~yt.analysis_modules.level_sets.clump_validators.add_validator
+   ~yt.data_objects.level_sets.clump_handling.Clump
+   ~yt.data_objects.level_sets.clump_handling.Clump.add_info_item
+   ~yt.data_objects.level_sets.clump_handling.Clump.add_validator
+   ~yt.data_objects.level_sets.clump_handling.Clump.save_as_dataset
+   ~yt.data_objects.level_sets.clump_handling.find_clumps
+   ~yt.data_objects.level_sets.clump_info_items.add_clump_info
+   ~yt.data_objects.level_sets.clump_validators.add_validator
 
-.. _halo_analysis_ref:
+X-ray Emission Fields
+^^^^^^^^^^^^^^^^^^^^^
 
-Halo Analysis
-^^^^^^^^^^^^^
-
-The ``HaloCatalog`` object is the primary means for performing custom analysis
-on cosmological halos.  It is also the primary interface for halo finding.
+This can be used to create derived fields of X-ray emission in
+different energy bands.
 
 .. autosummary::
 
-   ~yt.analysis_modules.halo_analysis.halo_catalog.HaloCatalog
-   ~yt.analysis_modules.halo_analysis.halo_finding_methods.HaloFindingMethod
-   ~yt.analysis_modules.halo_analysis.halo_callbacks.HaloCallback
-   ~yt.analysis_modules.halo_analysis.halo_callbacks.delete_attribute
-   ~yt.analysis_modules.halo_analysis.halo_callbacks.halo_sphere
-   ~yt.analysis_modules.halo_analysis.halo_callbacks.iterative_center_of_mass
-   ~yt.analysis_modules.halo_analysis.halo_callbacks.load_profiles
-   ~yt.analysis_modules.halo_analysis.halo_callbacks.phase_plot
-   ~yt.analysis_modules.halo_analysis.halo_callbacks.profile
-   ~yt.analysis_modules.halo_analysis.halo_callbacks.save_profiles
-   ~yt.analysis_modules.halo_analysis.halo_callbacks.sphere_bulk_velocity
-   ~yt.analysis_modules.halo_analysis.halo_callbacks.sphere_field_max_recenter
-   ~yt.analysis_modules.halo_analysis.halo_callbacks.virial_quantities
-   ~yt.analysis_modules.halo_analysis.halo_filters.HaloFilter
-   ~yt.analysis_modules.halo_analysis.halo_filters.not_subhalo
-   ~yt.analysis_modules.halo_analysis.halo_filters.quantity_value
-   ~yt.analysis_modules.halo_analysis.halo_quantities.HaloQuantity
-   ~yt.analysis_modules.halo_analysis.halo_quantities.bulk_velocity
-   ~yt.analysis_modules.halo_analysis.halo_quantities.center_of_mass
-   ~yt.analysis_modules.halo_analysis.halo_recipes.HaloRecipe
-   ~yt.analysis_modules.halo_analysis.halo_recipes.calculate_virial_quantities
-
-Halo Finding
-^^^^^^^^^^^^
-
-These provide direct access to the halo finders.  However, it is strongly recommended
-to use the ``HaloCatalog``.
-
-.. autosummary::
-
-   ~yt.analysis_modules.halo_finding.halo_objects.FOFHaloFinder
-   ~yt.analysis_modules.halo_finding.halo_objects.HOPHaloFinder
-   ~yt.analysis_modules.halo_finding.rockstar.rockstar.RockstarHaloFinder
-
-Two Point Functions
-^^^^^^^^^^^^^^^^^^^
-
-These functions are designed to create correlations or other results of
-operations acting on two spatially-distinct points in a data source.  See also
-:ref:`two_point_functions`.
-
-
-.. autosummary::
-
-   ~yt.analysis_modules.two_point_functions.two_point_functions.TwoPointFunctions
-   ~yt.analysis_modules.two_point_functions.two_point_functions.FcnSet
+   ~yt.fields.xray_emission_fields.XrayEmissivityIntegrator
+   ~yt.fields.xray_emission_fields.add_xray_emissivity_field
 
 Field Types
 -----------
@@ -578,57 +551,6 @@ writing to bitmaps.
 .. autosummary::
 
    ~yt.data_objects.image_array.ImageArray
-
-Extension Types
----------------
-
-Cosmology, Star Particle Analysis, and Simulated Observations
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-For the generation of stellar SEDs.  (See also :ref:`star_analysis`.)
-
-
-.. autosummary::
-
-   ~yt.analysis_modules.star_analysis.sfr_spectrum.StarFormationRate
-   ~yt.analysis_modules.star_analysis.sfr_spectrum.SpectrumBuilder
-
-Light cone generation and simulation analysis.  (See also
-:ref:`light-cone-generator`.)
-
-
-.. autosummary::
-
-   ~yt.analysis_modules.cosmological_observation.light_cone.light_cone.LightCone
-   ~yt.analysis_modules.cosmological_observation.light_ray.light_ray.LightRay
-
-Absorption and X-ray spectra and spectral lines:
-
-.. autosummary::
-
-   ~yt.analysis_modules.absorption_spectrum.absorption_spectrum.AbsorptionSpectrum
-   ~yt.fields.xray_emission_fields.XrayEmissivityIntegrator
-   ~yt.fields.xray_emission_fields.add_xray_emissivity_field
-
-Absorption spectra fitting:
-
-.. autosummary::
-
-   ~yt.analysis_modules.absorption_spectrum.absorption_spectrum_fit.generate_total_fit
-
-Sunrise exporting:
-
-.. autosummary::
-
-   ~yt.analysis_modules.sunrise_export.sunrise_exporter.export_to_sunrise
-   ~yt.analysis_modules.sunrise_export.sunrise_exporter.export_to_sunrise_from_halolist
-
-RADMC-3D exporting:
-
-.. autosummary::
-
-   ~yt.analysis_modules.radmc3d_export.RadMC3DInterface.RadMC3DLayer
-   ~yt.analysis_modules.radmc3d_export.RadMC3DInterface.RadMC3DWriter
 
 Volume Rendering
 ^^^^^^^^^^^^^^^^
@@ -722,6 +644,7 @@ particularly with complicated layouts.
    ~yt.visualization.eps_writer.multiplot
    ~yt.visualization.eps_writer.multiplot_yt
    ~yt.visualization.eps_writer.return_cmap
+   ~yt.visualization.eps_writer.return_colormap
 
 .. _derived-quantities-api:
 
@@ -759,6 +682,7 @@ See also :ref:`callbacks`.
 .. autosummary::
 
    ~yt.visualization.plot_window.PWViewerMPL.annotate_clear
+   ~yt.visualization.plot_window.PWViewerMPL.clear_annotations
    ~yt.visualization.plot_modifications.ArrowCallback
    ~yt.visualization.plot_modifications.CellEdgesCallback
    ~yt.visualization.plot_modifications.ClumpContourCallback
@@ -792,6 +716,7 @@ See also :ref:`colormaps`.
 .. autosummary::
 
    ~yt.visualization.color_maps.add_cmap
+   ~yt.visualization.color_maps.add_colormap
    ~yt.visualization.color_maps.make_colormap
    ~yt.visualization.color_maps.show_colormaps
 
@@ -801,18 +726,16 @@ Function List
 
 .. autosummary::
 
-   ~yt.convenience.load
    ~yt.frontends.ytdata.utilities.save_as_dataset
    ~yt.data_objects.static_output.Dataset.all_data
    ~yt.data_objects.static_output.Dataset.box
-   ~yt.funcs.deprecate
-   ~yt.funcs.ensure_list
    ~yt.funcs.enable_plugins
    ~yt.funcs.get_pbar
    ~yt.funcs.humanize_time
    ~yt.funcs.insert_ipython
    ~yt.funcs.is_root
-   ~yt.funcs.iterable
+   ~yt.funcs.is_sequence
+   ~yt.funcs.iter_fields
    ~yt.funcs.just_one
    ~yt.funcs.only_on_root
    ~yt.funcs.paste_traceback
@@ -820,7 +743,7 @@ Function List
    ~yt.funcs.print_tb
    ~yt.funcs.rootonly
    ~yt.funcs.time_execution
-   ~yt.analysis_modules.level_sets.contour_finder.identify_contours
+   ~yt.data_objects.level_sets.contour_finder.identify_contours
    ~yt.utilities.parallel_tools.parallel_analysis_interface.enable_parallelism
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_blocking_call
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_objects
@@ -848,7 +771,6 @@ Math Utilities
    ~yt.utilities.math_utils.ortho_find
    ~yt.utilities.math_utils.quartiles
    ~yt.utilities.math_utils.get_rotation_matrix
-   ~yt.utilities.math_utils.get_ortho_basis
    ~yt.utilities.math_utils.get_sph_r
    ~yt.utilities.math_utils.resize_vector
    ~yt.utilities.math_utils.get_sph_theta
@@ -926,3 +848,31 @@ These are yt-provided functions:
    ~yt.testing.amrspace
    ~yt.testing.fake_random_ds
    ~yt.testing.expand_keywords
+
+These are for the pytest infrastructure:
+
+.. autosummary::
+
+    ~conftest.tempdir
+    ~conftest.answer_file
+    ~conftest.hashing
+    ~yt.utilities.answer_testing.answer_tests.grid_hierarchy
+    ~yt.utilities.answer_testing.answer_tests.parentage_relationships
+    ~yt.utilities.answer_testing.answer_tests.grid_values
+    ~yt.utilities.answer_testing.answer_tests.projection_values
+    ~yt.utilities.answer_testing.answer_tests.field_values
+    ~yt.utilities.answer_testing.answer_tests.pixelized_projection_values
+    ~yt.utilities.answer_testing.answer_tests.simulated_halo_mass_function
+    ~yt.utilities.answer_testing.answer_tests.analytic_halo_mass_function
+    ~yt.utilities.answer_testing.answer_tests.small_patch_amr
+    ~yt.utilities.answer_testing.answer_tests.big_patch_amr
+    ~yt.utilities.answer_testing.answer_tests.generic_array
+    ~yt.utilities.answer_testing.answer_tests.sph_answer
+    ~yt.utilities.answer_testing.answer_tests.get_field_size_and_mean
+    ~yt.utilities.answer_testing.answer_tests.plot_window_attribute
+    ~yt.utilities.answer_testing.answer_tests.phase_plot_attribute
+    ~yt.utilities.answer_testing.answer_tests.generic_image
+    ~yt.utilities.answer_testing.answer_tests.axial_pixelization
+    ~yt.utilities.answer_testing.answer_tests.light_cone_projection
+    ~yt.utilities.answer_testing.answer_tests.extract_connected_sets
+    ~yt.utilities.answer_testing.answer_tests.VR_image_comparison

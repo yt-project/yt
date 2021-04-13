@@ -27,20 +27,30 @@ be classified into a couple categories:
  * Data reading: This is the set of routines that actually perform a read of
    either all data in a region or a subset of that data.
 
+
+If you are interested in adding a new code, be sure to drop us a line on
+`yt-dev <https://mail.python.org/archives/list/yt-dev@python.org/>`_!
+
+
+Boostraping a new frontend
+--------------------------
+
+To get started
+
+* make a new directory in ``yt/frontends`` with the name of your code and add the name
+into ``yt/frontends/api.py:_frontends`` (in alphabetical order).
+
+* copy the contents of the ``yt/frontends/_skeleton`` directory, and replace every
+occurence of ``Skeleton`` with your frontend's name (preserving case). This adds a lot of
+boilerplate for the required classes and methods that are needed.
+
+
 Data Meaning Structures
 -----------------------
 
-If you are interested in adding a new code, be sure to drop us a line on
-`yt-dev <https://mail.python.org/mm3/archives/list/yt-dev@python.org/>`_!
-
-To get started, make a new directory in ``yt/frontends`` with the name
-of your code and add the name into ``yt/frontends/api.py``.
-Copying the contents of the ``yt/frontends/_skeleton``
-directory will add a lot of boilerplate for the required classes and
-methods that are needed.  In particular, you'll have to create a
-subclass of ``Dataset`` in the data_structures.py file. This subclass
-will need to handle conversion between the different physical units
-and the code units (typically in the ``_set_code_unit_attributes()``
+You will need to create a subclass of ``Dataset`` in the ``data_structures.py``
+file. This subclass will need to handle conversion between the different physical
+units and the code units (typically in the ``_set_code_unit_attributes()``
 method), read in metadata describing the overall data on disk (via the
 ``_parse_parameter_file()`` method), and provide a ``classmethod``
 called ``_is_valid()`` that lets the ``yt.load`` method help identify an
@@ -59,51 +69,60 @@ your code. Here is a snippet from the base BoxLib field container:
 .. code-block:: python
 
     from yt.fields.field_info_container import FieldInfoContainer
+
+
     class BoxlibFieldInfo(FieldInfoContainer):
         known_other_fields = (
             ("density", (rho_units, ["density"], None)),
-	    ("eden", (eden_units, ["energy_density"], None)),
-	    ("xmom", (mom_units, ["momentum_x"], None)),
-	    ("ymom", (mom_units, ["momentum_y"], None)),
-	    ("zmom", (mom_units, ["momentum_z"], None)),
-	    ("temperature", ("K", ["temperature"], None)),
-	    ("Temp", ("K", ["temperature"], None)),
-	    ("x_velocity", ("cm/s", ["velocity_x"], None)),
-	    ("y_velocity", ("cm/s", ["velocity_y"], None)),
-	    ("z_velocity", ("cm/s", ["velocity_z"], None)),
-	    ("xvel", ("cm/s", ["velocity_x"], None)),
-	    ("yvel", ("cm/s", ["velocity_y"], None)),
-	    ("zvel", ("cm/s", ["velocity_z"], None)),
-	)
+            ("eden", (eden_units, ["energy_density"], None)),
+            ("xmom", (mom_units, ["momentum_x"], None)),
+            ("ymom", (mom_units, ["momentum_y"], None)),
+            ("zmom", (mom_units, ["momentum_z"], None)),
+            ("temperature", ("K", ["temperature"], None)),
+            ("Temp", ("K", ["temperature"], None)),
+            ("x_velocity", ("cm/s", ["velocity_x"], None)),
+            ("y_velocity", ("cm/s", ["velocity_y"], None)),
+            ("z_velocity", ("cm/s", ["velocity_z"], None)),
+            ("xvel", ("cm/s", ["velocity_x"], None)),
+            ("yvel", ("cm/s", ["velocity_y"], None)),
+            ("zvel", ("cm/s", ["velocity_z"], None)),
+        )
 
-	known_particle_fields = (
-	    ("particle_mass", ("code_mass", [], None)),
-	    ("particle_position_x", ("code_length", [], None)),
-	    ("particle_position_y", ("code_length", [], None)),
-	    ("particle_position_z", ("code_length", [], None)),
-	    ("particle_momentum_x", (mom_units, [], None)),
-	    ("particle_momentum_y", (mom_units, [], None)),
-	    ("particle_momentum_z", (mom_units, [], None)),
-	    ("particle_angmomen_x", ("code_length**2/code_time", [], None)),
-	    ("particle_angmomen_y", ("code_length**2/code_time", [], None)),
-	    ("particle_angmomen_z", ("code_length**2/code_time", [], None)),
-	    ("particle_id", ("", ["particle_index"], None)),
-	    ("particle_mdot", ("code_mass/code_time", [], None)),
-	)
+        known_particle_fields = (
+            ("particle_mass", ("code_mass", [], None)),
+            ("particle_position_x", ("code_length", [], None)),
+            ("particle_position_y", ("code_length", [], None)),
+            ("particle_position_z", ("code_length", [], None)),
+            ("particle_momentum_x", (mom_units, [], None)),
+            ("particle_momentum_y", (mom_units, [], None)),
+            ("particle_momentum_z", (mom_units, [], None)),
+            ("particle_angmomen_x", ("code_length**2/code_time", [], None)),
+            ("particle_angmomen_y", ("code_length**2/code_time", [], None)),
+            ("particle_angmomen_z", ("code_length**2/code_time", [], None)),
+            ("particle_id", ("", ["particle_index"], None)),
+            ("particle_mdot", ("code_mass/code_time", [], None)),
+        )
 
-The tuples, ``known_other_fields`` and ``known_particle_fields``
-contain entries, which are tuples of the form ``("name", ("units",
-["fields", "to", "alias"], "display_name"))``.  ``"name"`` is the name
-of a field stored on-disk in the dataset. ``"units"`` corresponds to
-the units of that field.  The list ``["fields", "to", "alias"]``
-allows you to specify additional aliases to this particular field; for
-example, if your on-disk field for the x-direction velocity were
-``"x-direction-velocity"``, maybe you'd prefer to alias to the more
-terse name of ``"xvel"``.  ``"display_name"`` is an optional parameter
-that can be used to specify how you want the field to be displayed on
-a plot; this can be LaTeX code, for example the density field could
-have a display name of ``r"\rho"``.  Omitting the ``"display_name"``
-will result in using a capitalized version of the ``"name"``.
+The tuples, ``known_other_fields`` and ``known_particle_fields`` contain
+entries, which are tuples of the form ``("name", ("units", ["fields", "to",
+"alias"], "display_name"))``.  ``"name"`` is the name of a field stored on-disk
+in the dataset. ``"units"`` corresponds to the units of that field.  The list
+``["fields", "to", "alias"]`` allows you to specify additional aliases to this
+particular field; for example, if your on-disk field for the x-direction
+velocity were ``"x-direction-velocity"``, maybe you'd prefer to alias to the
+more terse name of ``"xvel"``.  By convention in yt we use a set of "universal"
+fields. Currently these fields are enumerated in the stream frontend. If you
+take a look at ``yt/frontends/stream/fields.py``, you will see a listing of
+fields following the format described above with field names that will be
+recognized by the rest of the built-in yt field system. In the example from the
+boxlib frontend above many of the fields in the ``known_other_fields`` tuple
+follow this convention. If you would like your frontend to mesh nicely with the
+rest of yt's built-in fields, it is probably a good idea to alias your
+frontend's field names to the yt "universal" field names. Finally,
+"display_name"`` is an optional parameter that can be used to specify how you
+want the field to be displayed on a plot; this can be LaTeX code, for example
+the density field could have a display name of ``r"\rho"``.  Omitting the
+``"display_name"`` will result in using a capitalized version of the ``"name"``.
 
 .. _bfields-frontend:
 
@@ -124,16 +143,15 @@ example of how this is implemented in the FLASH frontend:
 
     class FLASHFieldInfo(FieldInfoContainer):
         known_other_fields = (
-            ...
-            ("magx", (b_units, [], "B_x")), # Note there is no alias here
+            ...("magx", (b_units, [], "B_x")),  # Note there is no alias here
             ("magy", (b_units, [], "B_y")),
             ("magz", (b_units, [], "B_z")),
-            ...
+            ...,
         )
 
         def setup_fluid_fields(self):
-            from yt.fields.magnetic_field import \
-                setup_magnetic_field_aliases
+            from yt.fields.magnetic_field import setup_magnetic_field_aliases
+
             ...
             setup_magnetic_field_aliases(self, "flash", ["mag%s" % ax for ax in "xyz"])
 
@@ -219,10 +237,10 @@ that is needed:
     class ChomboGrid(AMRGridPatch):
         _id_offset = 0
         __slots__ = ["_level_id"]
-        def __init__(self, id, index, level = -1):
-            AMRGridPatch.__init__(self, id, filename = index.index_filename,
-                                  index = index)
-            self.Parent = []
+
+        def __init__(self, id, index, level=-1):
+            AMRGridPatch.__init__(self, id, filename=index.index_filename, index=index)
+            self.Parent = None
             self.Children = []
             self.Level = level
 
@@ -269,6 +287,6 @@ fashion, but the ``yt.frontends.boxlib.io.IOHandlerBoxlib`` is a
 decent place to start.
 
 And that just about covers it. Please feel free to email
-`yt-users <https://mail.python.org/mm3/archives/list/yt-users@python.org/>`_ or
-`yt-dev <https://mail.python.org/mm3/archives/list/yt-dev@python.org/>`_ with
+`yt-users <https://mail.python.org/archives/list/yt-users@python.org/>`_ or
+`yt-dev <https://mail.python.org/archives/list/yt-dev@python.org/>`_ with
 any questions, or to let us know you're thinking about adding a new code to yt.

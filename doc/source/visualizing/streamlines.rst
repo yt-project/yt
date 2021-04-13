@@ -55,7 +55,7 @@ Example Script
 
     import yt
     import numpy as np
-    import matplotlib.pylab as pl
+    import matplotlib.pyplot as plt
 
     from yt.visualization.api import Streamlines
     from yt.units import Mpc
@@ -80,14 +80,14 @@ Example Script
     streamlines.integrate_through_volume()
 
     # Create a 3D plot, trace the streamlines through the 3D volume of the plot
-    fig=pl.figure()
+    fig=plt.figure()
     ax = Axes3D(fig)
     for stream in streamlines.streamlines:
         stream = stream[np.all(stream != 0.0, axis=1)]
         ax.plot3D(stream[:,0], stream[:,1], stream[:,2], alpha=0.1)
 
     # Save the plot to disk.
-    pl.savefig('streamlines.png')
+    plt.savefig('streamlines.png')
 
 
 Data Access Along the Streamline
@@ -117,11 +117,11 @@ Example Script
     import yt
     from yt.visualization.api import Streamlines
 
-    ds = yt.load('DD1701') # Load ds
+    ds = yt.load("DD1701")  # Load ds
     streamlines = Streamlines(ds, ds.domain_center)
     streamlines.integrate_through_volume()
     stream = streamlines.path(0)
-    matplotlib.pylab.semilogy(stream['t'], stream['density'], '-x')
+    matplotlib.pylab.semilogy(stream["t"], stream["density"], "-x")
 
 
 Running in Parallel

@@ -5,25 +5,20 @@ Wrapping code for voro++
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
-from cython.operator cimport dereference as deref, preincrement as inc
-from libc.stdlib cimport malloc, free, abs, calloc, labs
 cimport libcpp
+from cython.operator cimport dereference as deref, preincrement as inc
+from libc.stdlib cimport abs, calloc, free, labs, malloc
 
 import numpy as np
-cimport numpy as np
+
 cimport cython
+cimport numpy as np
+
 
 cdef extern from "voro++.hh" namespace "voro":
     cdef cppclass c_loop_all
-    
+
     cdef cppclass voronoicell:
         double volume()
 
@@ -35,7 +30,7 @@ cdef extern from "voro++.hh" namespace "voro":
         void store_cell_volumes(double *vols)
         int compute_cell(voronoicell c, c_loop_all vl)
         double sum_cell_volumes()
-		
+
     cdef cppclass c_loop_all:
         c_loop_all(container &con)
         int inc()

@@ -14,11 +14,13 @@ renderer, as well as when annotating mesh lines on regular slices.
 """
 
 import numpy as np
-cimport numpy as np
+
 cimport cython
-from libc.stdlib cimport malloc, free
+cimport numpy as np
+from libc.stdlib cimport free, malloc
 
 from yt.utilities.exceptions import YTElementTypeNotRecognized
+
 
 cdef extern from "mesh_triangulation.h":
     enum:

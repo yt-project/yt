@@ -95,6 +95,7 @@ in the simulation and then makes a plot of the projected density:
 .. code-block:: python
 
    import yt
+
    yt.enable_parallelism()
 
    ds = yt.load("RD0035/RedshiftOutput0035")
@@ -110,7 +111,7 @@ processes using the following Bash command:
 
 .. code-block:: bash
 
-   $ mpirun -np 16 python2.7 my_script.py
+   $ mpirun -np 16 python my_script.py
 
 .. note::
 
@@ -146,6 +147,7 @@ so:
 .. code-block:: python
 
    import yt
+
    yt.enable_parallelism()
 
    ds = yt.load("RD0035/RedshiftOutput0035")
@@ -166,12 +168,15 @@ how to use it:
 .. code-block:: python
 
    import yt
+
    yt.enable_parallelism()
+
 
    def print_and_save_plot(v, c, plot, verbose=True):
        if verbose:
-          print(v, c)
+           print(v, c)
        plot.save()
+
 
    ds = yt.load("RD0035/RedshiftOutput0035")
    v, c = ds.find_max("density")
@@ -221,7 +226,7 @@ Parallelization over Multiple Objects and Datasets
 
 If you have a set of computational steps that need to apply identically and
 independently to several different objects or datasets, a so-called
-`embarrassingly parallel <http://en.wikipedia.org/wiki/Embarrassingly_parallel>`_
+`embarrassingly parallel <https://en.wikipedia.org/wiki/Embarrassingly_parallel>`_
 task, yt can do that easily.  See the sections below on
 :ref:`parallelizing-your-analysis` and :ref:`parallel-time-series-analysis`.
 
@@ -229,14 +234,15 @@ Use of ``piter()``
 ^^^^^^^^^^^^^^^^^^
 
 If you use parallelism over objects or datasets, you will encounter
-the ``piter()`` function.  ``piter`` is a parallel iterator, which effectively
-doles out each item of a DatasetSeries object to a different processor.  In
-serial processing, you might iterate over a DatasetSeries by:
+the :func:`~yt.data_objects.time_series.DatasetSeries.piter` function.
+:func:`~yt.data_objects.time_series.DatasetSeries.piter` is a parallel iterator,
+which effectively doles out each item of a DatasetSeries object to a different
+processor.  In serial processing, you might iterate over a DatasetSeries by:
 
 .. code-block:: python
 
     for dataset in dataset_series:
-        <process>
+        ...  # process
 
 But in parallel, you can use ``piter()`` to force each dataset to go to
 a different processor:
@@ -245,13 +251,15 @@ a different processor:
 
     yt.enable_parallelism()
     for dataset in dataset_series.piter():
-        <process>
+        ...  # process
 
 In order to store information from the parallel processing step to
 a data structure that exists on all of the processors operating in parallel
-we offer the ``storage`` keyword in the ``piter`` function.
+we offer the ``storage`` keyword in the
+:func:`~yt.data_objects.time_series.DatasetSeries.piter` function.
 You may define an empty dictionary and include it as the keyword argument
-``storage`` to ``piter()``.  Then, during the processing step, you can access
+``storage`` to :func:`~yt.data_objects.time_series.DatasetSeries.piter`.
+Then, during the processing step, you can access
 this dictionary as the ``sto`` object.  After the
 loop is finished, the dictionary is re-aggregated from all of the processors,
 and you can access the contents:
@@ -261,11 +269,21 @@ and you can access the contents:
     yt.enable_parallelism()
     my_dictionary = {}
     for sto, dataset in dataset_series.piter(storage=my_dictionary):
-        <process>
-        sto.result = <some information processed for this dataset>
-        sto.result_id = <some identifier for this dataset>
+        ...  # process
+        sto.result = ...  # some information processed for this dataset
+        sto.result_id = ...  # some identifier for this dataset
 
     print(my_dictionary)
+
+By default, the dataset series will be divided as equally as possible
+among the cores.  Often some datasets will require more work than
+others.  We offer the ``dynamic`` keyword in the
+:func:`~yt.data_objects.time_series.DatasetSeries.piter` function to
+enable dynamic load balancing with a task queue.  Dynamic load
+balancing works best with more cores and a variable workload.  Here
+one process will act as a server to assign the next available dataset
+to any free client.  For example, a 16 core job will have 15 cores
+analyzing the data with 1 core acting as the task manager.
 
 .. _parallelizing-your-analysis:
 
@@ -282,6 +300,7 @@ processors (or cores).  Please see this heavily-commented example:
 
    # As always...
    import yt
+
    yt.enable_parallelism()
 
    import glob
@@ -311,7 +330,7 @@ processors (or cores).  Please see this heavily-commented example:
    # If data does not need to be combined after the loop is done, the line
    # would look like:
    #       for fn in parallel_objects(fns, num_procs):
-   for sto, fn in yt.parallel_objects(fns, num_procs, storage = my_storage):
+   for sto, fn in yt.parallel_objects(fns, num_procs, storage=my_storage):
 
        # Open a data file, remembering that fn is different on each task.
        ds = yt.load(fn)
@@ -332,7 +351,7 @@ processors (or cores).  Please see this heavily-commented example:
    # tasks have produced.
    # Below, the values in my_storage are printed by only one task. The other
    # tasks do nothing.
-   if yt.is_root()
+   if yt.is_root():
        for fn, vals in sorted(my_storage.items()):
            print(fn, vals)
 
@@ -354,6 +373,7 @@ density cell in a large number of simulation outputs:
 .. code-block:: python
 
    import yt
+
    yt.enable_parallelism()
 
    # Load all of the DD*/output_* files into a DatasetSeries object
@@ -389,12 +409,13 @@ processors.  Note that parallel=1 implies that the analysis will be run using
 .. code-block:: python
 
    import yt
+
    yt.enable_parallelism()
 
-   ts = yt.DatasetSeries("DD*/output_*", parallel = 4)
+   ts = yt.DatasetSeries("DD*/output_*", parallel=4)
 
    for ds in ts.piter():
-       sphere = ds.sphere("max", (1.0, "pc))
+       sphere = ds.sphere("max", (1.0, "pc"))
        L_vecs = sphere.quantities.angular_momentum_vector()
 
 If you do not want to use ``parallel_objects`` parallelism when using a
@@ -403,6 +424,70 @@ this will use all of the available processors to evaluate the requested
 operation on each simulation output.  Some care and possibly trial and error
 might be necessary to estimate the correct settings for your simulation
 outputs.
+
+Note, when iterating over several large datasets, running out of memory may
+become an issue as the internal data structures associated with each dataset
+may not be properly de-allocated at the end of an iteration. If memory use
+becomes a problem, it may be necessary to manually delete some of the larger
+data structures.
+
+.. code-block:: python
+
+   import yt
+
+   yt.enable_parallelism()
+
+   ts = yt.DatasetSeries("DD*/output_*", parallel=4)
+
+   for ds in ts.piter():
+       # do analysis here
+
+       ds.index.clear_all_data()
+
+Multi-level Parallelism
+-----------------------
+
+By default, the
+:func:`~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_objects`
+and :func:`~yt.data_objects.time_series.DatasetSeries.piter` functions will allocate a
+single processor to each iteration of the parallelized loop. However, there may be
+situations in which it is advantageous to have multiple processors working together
+on each loop iteration. Like with any traditional for loop, nested loops with multiple
+calls to :func:`~yt.utilities.parallel_tools.parallel_analysis_interface.enable_parallelism`
+can be used to parallelize the functionality within a given loop iteration.
+
+In the example below, we will create projections along the x, y, and z axis of the
+density and temperature fields. We will assume a total of 6 processors are available,
+allowing us to allocate to processors to each axis and project each field with a
+separate processor.
+
+.. code-block:: python
+
+   import yt
+
+   yt.enable_parallelism()
+
+   # assume 6 total cores
+   # allocate 3 work groups of 2 cores each
+   for ax in yt.parallel_objects("xyz", njobs=3):
+
+       # project each field with one of the two cores in the workgroup
+       for field in yt.parallel_objects(["density", "temperature"]):
+           p = yt.ProjectionPlot(ds, ax, field, weight_field="density")
+           p.save("figures/")
+
+Note, in the above example, if the inner
+:func:`~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_objects`
+call were removed from the loop, the two-processor work group would work together to
+project each of the density and temperature fields. This is because the projection
+functionality itself is parallelized internally.
+
+The :func:`~yt.data_objects.time_series.DatasetSeries.piter` function can also be used
+in the above manner with nested
+:func:`~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_objects`
+loops to allocate multiple processors to work on each dataset. As discussed above in
+:ref:`parallel-time-series-analysis`, the ``parallel`` keyword is used to control
+the number of workgroups created for iterating over multiple datasets.
 
 Parallel Performance, Resources, and Tuning
 -------------------------------------------
@@ -461,7 +546,7 @@ chunk-based fashion.
 * **Cutting planes**: cutting planes are parallelized exactly as slices are.
   However, in contrast to slices, because the data-selection operation can be
   much more time consuming, cutting planes often benefit from parallelism.
-  
+
 * **Covering Grids**: covering grids are parallelized exactly as slices are.
 
 Object-Based
@@ -568,19 +653,19 @@ Additional Tips
        SaveTinyMiniStuffToDisk("out%06d.txt" % i, array)
    t2 = time.time()
 
-   if yt.is_root()
+   if yt.is_root():
        print("BigStuff took %.5e sec, TinyStuff took %.5e sec" % (t1 - t0, t2 - t1))
 
 * Remember that if the script handles disk IO explicitly, and does not use
   a built-in yt function to write data to disk,
   care must be taken to
-  avoid `race-conditions <http://en.wikipedia.org/wiki/Race_conditions>`_.
+  avoid `race-conditions <https://en.wikipedia.org/wiki/Race_conditions>`_.
   Be explicit about which MPI task writes to disk using a construction
   something like this:
 
 .. code-block:: python
 
-   if yt.is_root()
+   if yt.is_root():
        file = open("out.txt", "w")
        file.write(stuff)
        file.close()

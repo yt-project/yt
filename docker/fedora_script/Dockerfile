@@ -17,4 +17,4 @@ RUN curl -O https://bitbucket.org/yt_analysis/yt/raw/tip/doc/install_script.sh &
 RUN yum install -y `grep -oP '(?<=yum install ).*?(?="|$) | tr "\n" " "' install_script.sh`
 
 USER ytuser
-RUN echo "" | bash install_script.sh 
+RUN echo "" | bash install_script.sh
