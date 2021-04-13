@@ -2,7 +2,7 @@ from functools import wraps
 
 import numpy as np
 
-from yt.funcs import issue_deprecation_warning
+from yt._maintenance.deprecation import issue_deprecation_warning
 
 filter_registry = {}
 
