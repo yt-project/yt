@@ -577,8 +577,8 @@ class RAMSESIndex(OctreeIndex):
             )
         for level in range(self.max_level + 1):
             self.level_stats[level + self.dataset.min_level + 1]["numcells"] = levels[
-                level
-            ]
+                :, level
+            ].sum()
 
     def _get_particle_type_counts(self):
         npart = 0
