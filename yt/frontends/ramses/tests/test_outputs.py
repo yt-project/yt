@@ -638,7 +638,7 @@ def test_max_level():
         assert any(ds.r["index", "grid_level"] == 2)
 
 
-@requires_file(ramses_new_format)
+@requires_file(output_00080)
 def test_invalid_max_level():
     invalid_value_args = (
         (1, None),
@@ -658,3 +658,13 @@ def test_invalid_max_level():
     for lvl, convention in invalid_type_args:
         with assert_raises(TypeError):
             yt.load(output_00080, max_level=lvl, max_level_convention=convention)
+
+
+@requires_file(ramses_new_format)
+def test_print_stats():
+    ds = yt.load(ramses_new_format)
+
+    # Should work
+    ds.print_stats()
+
+    # FIXME #3197: use `capsys` with pytest to make sure the print_stats function works as intended

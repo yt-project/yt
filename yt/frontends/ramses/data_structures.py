@@ -566,7 +566,7 @@ class RAMSESIndex(OctreeIndex):
 
     def _initialize_level_stats(self):
         levels = sum([dom.level_count for dom in self.domains])
-        desc = {"names": ["numcells", "level"], "formats": ["Int64"] * 2}
+        desc = {"names": ["numcells", "level"], "formats": ["int64"] * 2}
         max_level = self.dataset.min_level + self.dataset.max_level + 2
         self.level_stats = blankRecordArray(desc, max_level)
         self.level_stats["level"] = [i for i in range(max_level)]
@@ -577,8 +577,8 @@ class RAMSESIndex(OctreeIndex):
             )
         for level in range(self.max_level + 1):
             self.level_stats[level + self.dataset.min_level + 1]["numcells"] = levels[
-                level
-            ]
+                :, level
+            ].sum()
 
     def _get_particle_type_counts(self):
         npart = 0
