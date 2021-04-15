@@ -284,8 +284,8 @@ def test_stream_sph_projection():
     assert image.max() > 0
     assert image.shape == (256, 256)
 
-
-def test_stream_non_cartesian_particles_unigrid():
+@pytest.mark.parametrize("loader", (load_uniform_grid, load_amr_grid))
+def test_stream_non_cartesian_particles(loader):
     eps = 1e-6
     r, theta, phi = np.mgrid[
         0.0 : 1.0 - eps : 64j, 0.0 : np.pi - eps : 64j, 0.0 : 2.0 * np.pi - eps : 64j
