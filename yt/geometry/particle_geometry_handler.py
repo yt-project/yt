@@ -210,7 +210,8 @@ class ParticleIndex(Index):
                     hsml = self.io._get_smoothing_length(
                         data_file, pos.dtype, pos.shape
                     )
-                    max_hsml = max(max_hsml, hsml.max())
+                    if hsml is not None and hsml.size > 0.0:
+                        max_hsml = max(max_hsml, hsml.max())
                 else:
                     hsml = None
                 self.regions._coarse_index_data_file(pos, hsml, data_file.file_id)
