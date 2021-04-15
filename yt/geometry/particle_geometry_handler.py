@@ -217,7 +217,7 @@ class ParticleIndex(Index):
             self.regions._set_coarse_index_data_file(data_file.file_id)
         pb.finish()
         self.regions.find_collisions_coarse()
-        if max_hsml > 0.0:
+        if max_hsml > 0.0 and len(self.data_files) > 1:
             new_order2 = self.regions.update_mi2(max_hsml)
             mylog.info(
                 "Updating index_order2 from %s to %s", ds.index_order[1], new_order2
