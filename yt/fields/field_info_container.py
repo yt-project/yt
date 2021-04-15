@@ -2,7 +2,6 @@ from numbers import Number as numeric_type
 from typing import Optional, Tuple
 
 import numpy as np
-from unyt.exceptions import UnitConversionError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.fields.field_exceptions import NeedsConfiguration
