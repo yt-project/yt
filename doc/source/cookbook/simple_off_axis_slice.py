@@ -13,5 +13,5 @@ print(f"Angular momentum vector: {L}")
 
 # Create an OffAxisSlicePlot of density centered on the object with the L
 # vector as its normal and a width of 25 kpc on a side
-p = yt.OffAxisSlicePlot(ds, L, "density", sp.center, (25, "kpc"))
+p = yt.OffAxisSlicePlot(ds, L, ("gas", "density"), sp.center, (25, "kpc"))
 p.save()

@@ -27,7 +27,7 @@ class YTCutRegion(YTSelectionContainer3D):
         A list of conditionals that will be evaluated.  In the namespace
         available, these conditionals will have access to 'obj' which is a data
         object of unknown shape, and they must generate a boolean array.  For
-        instance, conditionals = ["obj['temperature'] < 1e3"]
+        instance, conditionals = ["obj['gas', 'temperature'] < 1e3"]
 
     Examples
     --------
@@ -35,7 +35,7 @@ class YTCutRegion(YTSelectionContainer3D):
     >>> import yt
     >>> ds = yt.load("RedshiftOutput0005")
     >>> sp = ds.sphere("max", (1.0, 'Mpc'))
-    >>> cr = ds.cut_region(sp, ["obj['temperature'] < 1e3"])
+    >>> cr = ds.cut_region(sp, ["obj['gas', 'temperature'] < 1e3"])
     """
 
     _type_name = "cut_region"

@@ -17,10 +17,10 @@ def test_AM_value():
 
     sp.set_field_parameter("bulk_velocity", v0)
 
-    X = (ds.arr([sp[k] for k in "xyz"]) - x0[:, None]).T
-    V = (ds.arr([sp["velocity_" + k] for k in "xyz"]) - v0[:, None]).T
+    X = (ds.arr([sp[("index", k)] for k in "xyz"]) - x0[:, None]).T
+    V = (ds.arr([sp[("gas", f"velocity_{k}")] for k in "xyz"]) - v0[:, None]).T
 
     sAM_manual = ds.arr(np.cross(X, V), X.units * V.units)
-    sAM = ds.arr([sp["specific_angular_momentum_" + k] for k in "xyz"]).T
+    sAM = ds.arr([sp[("gas", f"specific_angular_momentum_{k}")] for k in "xyz"]).T
 
     assert_allclose_units(sAM_manual, sAM)

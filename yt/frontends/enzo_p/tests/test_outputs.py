@@ -11,15 +11,20 @@ from yt.utilities.answer_testing.framework import (
 )
 from yt.utilities.on_demand_imports import _h5py as h5py
 
-_fields = ("density", "total_energy", "velocity_x", "velocity_y")
+_fields = (
+    ("gas", "density"),
+    ("gas", "total_energy"),
+    ("gas", "velocity_x"),
+    ("gas", "velocity_y"),
+)
 
 _pfields = (
-    "particle_position_x",
-    "particle_position_y",
-    "particle_position_z",
-    "particle_velocity_x",
-    "particle_velocity_y",
-    "particle_velocity_z",
+    ("all", "particle_position_x"),
+    ("all", "particle_position_y"),
+    ("all", "particle_position_z"),
+    ("all", "particle_velocity_x"),
+    ("all", "particle_velocity_y"),
+    ("all", "particle_velocity_z"),
 )
 
 hello_world = "hello-0210/hello-0210.block_list"
@@ -39,13 +44,13 @@ def test_hello_world():
     for dobj_name in dso:
         for field in _fields:
             for axis in [0, 1, 2]:
-                for weight_field in [None, "density"]:
+                for weight_field in [None, ("gas", "density")]:
                     yield PixelizedProjectionValuesTest(
                         hello_world, axis, field, weight_field, dobj_name
                     )
             yield FieldValuesTest(hello_world, field, dobj_name)
         dobj = create_obj(ds, dobj_name)
-        s1 = dobj["ones"].sum()
+        s1 = dobj[("index", "ones")].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         assert_equal(s1, s2)
 
@@ -59,7 +64,7 @@ def test_particle_fields():
         for field in _pfields:
             yield FieldValuesTest(ep_cosmo, field, dobj_name, particle_type=True)
         dobj = create_obj(ds, dobj_name)
-        s1 = dobj["ones"].sum()
+        s1 = dobj[("index", "ones")].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         assert_equal(s1, s2)
 

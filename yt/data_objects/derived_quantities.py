@@ -24,7 +24,7 @@ def get_position_fields(field, data):
             ftype = finfo.name[0]
         position_fields = [(ftype, f"particle_position_{d}") for d in axis_names]
     else:
-        position_fields = axis_names
+        position_fields = [("index", ax_name) for ax_name in axis_names]
 
     return position_fields
 
@@ -650,7 +650,7 @@ class SampleAtMaxFieldValues(DerivedQuantity):
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
     >>> print(ad.quantities.sample_at_max_field_values(("gas", "density"),
-    ...         ["temperature", "velocity_magnitude"]))
+    ...         [("gas", "temperature"), ("gas", "velocity_magnitude")]))
 
     """
 
@@ -731,7 +731,7 @@ class SampleAtMinFieldValues(SampleAtMaxFieldValues):
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
     >>> print(ad.quantities.sample_at_min_field_values(("gas", "density"),
-    ...         ["temperature", "velocity_magnitude"]))
+    ...         [("gas", "temperature"), ("gas", "velocity_magnitude")]))
 
     """
 

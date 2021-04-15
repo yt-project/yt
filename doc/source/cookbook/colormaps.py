@@ -10,9 +10,9 @@ p.save()
 # Change the colormap to 'dusk' and save again.  We must specify
 # a different filename here or it will save it over the top of
 # our first projection.
-p.set_cmap(field="density", cmap="dusk")
+p.set_cmap(field=("gas", "density"), cmap="dusk")
 p.save("proj_with_dusk_cmap.png")
 
 # Change the colormap to 'hot' and save again.
-p.set_cmap(field="density", cmap="hot")
+p.set_cmap(field=("gas", "density"), cmap="hot")
 p.save("proj_with_hot_cmap.png")

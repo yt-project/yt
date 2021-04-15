@@ -179,8 +179,8 @@ class ProfilePlot:
     >>> import yt
     >>> ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
     >>> ad = ds.all_data()
-    >>> plot = yt.ProfilePlot(ad, "density", ["temperature", "velocity_x"],
-    ...                    weight_field="cell_mass",
+    >>> plot = yt.ProfilePlot(ad, ("gas", "density"), [("gas", "temperature"), ("gas", "velocity_x")],
+    ...                    weight_field=("gas", "cell_mass"),
     ...                    plot_spec=dict(color='red', linestyle="--"))
     >>> plot.save()
 
@@ -194,9 +194,9 @@ class ProfilePlot:
     >>> plot_specs = []
     >>> for ds in es[-4:]:
     ...     ad = ds.all_data()
-    ...     profiles.append(create_profile(ad, ["density"],
-    ...                                    fields=["temperature",
-    ...                                            "velocity_x"]))
+    ...     profiles.append(create_profile(ad, [("gas", "density")],
+    ...                                    fields=[("gas", "temperature"),
+    ...                                            ("gas", "velocity_x")]))
     ...     labels.append(ds.current_redshift)
     ...     plot_specs.append(dict(linestyle="--", alpha=0.7))
     >>>
@@ -219,7 +219,7 @@ class ProfilePlot:
         data_source,
         x_field,
         y_fields,
-        weight_field="cell_mass",
+        weight_field=("gas", "cell_mass"),
         n_bins=64,
         accumulation=False,
         fractional=False,
@@ -456,9 +456,9 @@ class ProfilePlot:
         >>> plot_specs = []
         >>> for ds in es[-4:]:
         ...     ad = ds.all_data()
-        ...     profiles.append(create_profile(ad, ["Density"],
-        ...                                    fields=["Temperature",
-        ...                                            "x-velocity"]))
+        ...     profiles.append(create_profile(ad, [("gas, "density")],
+        ...                                    fields=[("gas", "temperature"),
+        ...                                            ("gas", "velocity_x")]))
         ...     labels.append(ds.current_redshift)
         ...     plot_specs.append(dict(linestyle="--", alpha=0.7))
         >>>
@@ -754,7 +754,7 @@ class ProfilePlot:
         >>> plot.annotate_title("This is a Profile Plot")
 
         >>> # To set title for specific fields:
-        >>> plot.annotate_title("Profile Plot for Temperature", "temperature")
+        >>> plot.annotate_title("Profile Plot for Temperature", ("gas", "temperature"))
 
         >>> # Setting same plot title for both the given fields
         >>> plot.annotate_title("Profile Plot: Temperature-Dark Matter Density",
@@ -795,18 +795,18 @@ class ProfilePlot:
         >>>  from yt.units import kpc
         >>>  ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
         >>>  my_galaxy = ds.disk(ds.domain_center, [0.0, 0.0, 1.0], 10*kpc, 3*kpc)
-        >>>  plot = yt.ProfilePlot(my_galaxy, "density", ["temperature"])
+        >>>  plot = yt.ProfilePlot(my_galaxy, ("gas", "density"), [("gas", "temperature")])
 
         >>>  # Annotate text for all the fields
         >>>  plot.annotate_text(1e-26, 1e5, "This is annotated text in the plot area.")
         >>>  plot.save()
 
         >>>  # Annotate text for a given field
-        >>>  plot.annotate_text(1e-26, 1e5, "Annotated text", "Temperature")
+        >>>  plot.annotate_text(1e-26, 1e5, "Annotated text", ("gas", "temperature"))
         >>>  plot.save()
 
         >>>  # Annotate text for multiple fields
-        >>>  fields = ["temperature", "density"]
+        >>>  fields = [("gas", "temperature"), ("gas", "density")]
         >>>  plot.annotate_text(1e-26, 1e5, "Annotated text", fields)
         >>>  plot.save()
 
@@ -885,13 +885,13 @@ class PhasePlot(ImagePlotContainer):
     >>> import yt
     >>> ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
     >>> ad = ds.all_data()
-    >>> plot = yt.PhasePlot(ad, "density", "temperature", ["cell_mass"],
+    >>> plot = yt.PhasePlot(ad, ("gas", "density"), ("gas", "temperature"), [("gas", "cell_mass")],
     ...                  weight_field=None)
     >>> plot.save()
 
     >>> # Change plot properties.
-    >>> plot.set_cmap("cell_mass", "jet")
-    >>> plot.set_zlim("cell_mass", 1e8, 1e13)
+    >>> plot.set_cmap(("gas", "cell_mass"), "jet")
+    >>> plot.set_zlim(("gas", "cell_mass"), 1e8, 1e13)
     >>> plot.annotate_title("This is a phase plot")
 
     """
@@ -910,7 +910,7 @@ class PhasePlot(ImagePlotContainer):
         x_field,
         y_field,
         z_fields,
-        weight_field="cell_mass",
+        weight_field=("gas", "cell_mass"),
         x_bins=128,
         y_bins=128,
         accumulation=False,
@@ -922,13 +922,17 @@ class PhasePlot(ImagePlotContainer):
 
         data_source = data_object_or_all_data(data_source)
 
+        if isinstance(z_fields, tuple):
+            z_fields = [z_fields]
+        z_fields = list(always_iterable(z_fields))
+
         if isinstance(data_source.ds, YTProfileDataset):
             profile = data_source.ds.profile
         else:
             profile = create_profile(
                 data_source,
                 [x_field, y_field],
-                list(always_iterable(z_fields)),
+                z_fields,
                 n_bins=[x_bins, y_bins],
                 weight_field=weight_field,
                 accumulation=accumulation,
@@ -1378,7 +1382,7 @@ class PhasePlot(ImagePlotContainer):
         Examples
         --------
 
-        >>> plot.set_title("cell_mass", "This is a phase plot")
+        >>> plot.set_title(("gas", "cell_mass"), "This is a phase plot")
 
         """
         self.plot_title[self.data_source._determine_fields(field)[0]] = title

@@ -16,7 +16,7 @@ from yt.utilities.answer_testing.framework import (
     small_patch_amr,
 )
 
-_fields = ("temperature", "density", "velocity_magnitude")
+_fields = (("gas", "temperature"), ("gas", "density"), ("gas", "velocity_magnitude"))
 
 sloshing = "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0300"
 
@@ -30,7 +30,7 @@ def test_sloshing():
         yield test
 
 
-_fields_2d = ("temperature", "density")
+_fields_2d = (("gas", "temperature"), ("gas", "density"))
 
 wt = "WindTunnel/windtunnel_4lev_hdf5_plt_cnt_0030"
 
@@ -100,7 +100,7 @@ def test_FLASH25_dataset():
 
     assert_equal(ds.index.num_grids, 73)
     dd = ds.all_data()
-    dd["density"]
+    dd[("gas", "density")]
 
 
 @requires_ds(fid_1to3_b1, big_data=True)

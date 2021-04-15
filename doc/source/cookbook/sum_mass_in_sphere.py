@@ -10,7 +10,7 @@ sp = ds.sphere("max", (1.0, "Mpc"))
 # values of the cell_mass and particle_mass fields
 # within the sphere.
 baryon_mass, particle_mass = sp.quantities.total_quantity(
-    ["cell_mass", "particle_mass"]
+    [("gas", "cell_mass"), ("all", "particle_mass")]
 )
 
 print(

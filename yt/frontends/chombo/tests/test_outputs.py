@@ -7,9 +7,9 @@ from yt.utilities.answer_testing.framework import (
 )
 
 _fields = (
-    "density",
-    "velocity_magnitude",  # "velocity_divergence",
-    "magnetic_field_x",
+    ("gas", "density"),
+    ("gas", "velocity_magnitude"),
+    ("gas", "magnetic_field_x"),
 )
 
 gc = "GaussianCloud/data.0077.3d.hdf5"
@@ -48,7 +48,7 @@ def test_iso():
         yield test
 
 
-_zp_fields = ("rhs", "phi")
+_zp_fields = (("chombo", "rhs"), ("chombo", "phi"))
 zp = "ZeldovichPancake/plt32.2d.hdf5"
 
 

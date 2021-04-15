@@ -53,14 +53,16 @@ class WCSFITSFieldInfo(FITSFieldInfo):
         wcs_2d = getattr(self.ds, "wcs_2d", self.ds.wcs)
 
         def _pixel(field, data):
-            return data.ds.arr(data["ones"], "pixel")
+            return data.ds.arr(data[("index", "ones")], "pixel")
 
         self.add_field(
             ("fits", "pixel"), sampling_type="cell", function=_pixel, units="pixel"
         )
 
         def _get_2d_wcs(data, axis):
-            w_coords = wcs_2d.wcs_pix2world(data["x"], data["y"], 1)
+            w_coords = wcs_2d.wcs_pix2world(
+                data[("index", "x")], data[("index", "y")], 1
+            )
             return w_coords[axis]
 
         def world_f(axis, unit):
@@ -90,7 +92,7 @@ class WCSFITSFieldInfo(FITSFieldInfo):
             def _spec(field, data):
                 axis = "xyz"[data.ds.spec_axis]
                 sp = (
-                    data[axis].ndarray_view() - self.ds._p0
+                    data[("fits", axis)].ndarray_view() - self.ds._p0
                 ) * self.ds._dz + self.ds._z0
                 return data.ds.arr(sp, data.ds.spec_unit)
 

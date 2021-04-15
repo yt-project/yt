@@ -20,7 +20,14 @@ pos = c + pos_dx
 
 # Create the streamlines from these positions with the velocity fields as the
 # fields to be traced
-streamlines = Streamlines(ds, pos, "velocity_x", "velocity_y", "velocity_z", length=1.0)
+streamlines = Streamlines(
+    ds,
+    pos,
+    ("gas", "velocity_x"),
+    ("gas", "velocity_y"),
+    ("gas", "velocity_z"),
+    length=1.0,
+)
 streamlines.integrate_through_volume()
 
 # Create a 3D matplotlib figure for visualizing the streamlines
@@ -48,10 +55,10 @@ for stream in streamlines.streamlines:
 sphere = ds.sphere("max", (1.0, "Mpc"))
 
 # Identify the isodensity surface in this sphere with density = 1e-24 g/cm^3
-surface = ds.surface(sphere, "density", 1e-24)
+surface = ds.surface(sphere, ("gas", "density"), 1e-24)
 
 # Color this isodensity surface according to the log of the temperature field
-colors = yt.apply_colormap(np.log10(surface["temperature"]), cmap_name="hot")
+colors = yt.apply_colormap(np.log10(surface[("gas", "temperature")]), cmap_name="hot")
 
 # Render this surface
 p3dc = Poly3DCollection(surface.triangles, linewidth=0.0)

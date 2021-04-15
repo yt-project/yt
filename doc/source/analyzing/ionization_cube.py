@@ -11,7 +11,9 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import communicatio
     name="IonizedHydrogen", units="", display_name=r"\frac{\rho_{HII}}{\rho_H}"
 )
 def IonizedHydrogen(field, data):
-    return data["HII_Density"] / (data["HI_Density"] + data["HII_Density"])
+    return data[("gas", "HII_Density")] / (
+        data[("gas", "HI_Density")] + data[("gas", "HII_Density")]
+    )
 
 
 ts = yt.DatasetSeries("SED800/DD*/*.index", parallel=8)
