@@ -1338,7 +1338,8 @@ def load_sample(fn, progressbar: bool = True, timeout=None, **kwargs):
 
     try:
         save_dir = _get_test_data_dir_path()
-    except FileNotFoundError:
+        assert save_dir.is_dir()
+    except (OSError, AssertionError):
         mylog.warning(
             "yt test data directory is not properly set up. "
             "Data will be saved to the current work directory instead."
