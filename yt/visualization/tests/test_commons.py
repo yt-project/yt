@@ -1,31 +1,38 @@
-from pathlib import Path
+import pytest
 
-from yt.visualization._commons import SUPPORTED_FORMATS, validate_image_name
-
-filename_no_ext = Path("a_file_is_no_one")
-filename_png = filename_no_ext.with_suffix(".png")
-filename_pdf = filename_no_ext.with_suffix(".pdf")
+from yt.visualization._commons import validate_image_name
 
 
-def test_default():
-    result = validate_image_name(filename_no_ext)
-    expected = f"{filename_no_ext}.png"
-    assert result == expected
-
-    result = validate_image_name(filename_png)
-    assert result == expected
-
-    result = validate_image_name(filename_pdf)
-    expected = str(filename_pdf)
+@pytest.mark.parametrize(
+    "name, expected",
+    [
+        ("noext", "noext.png"),
+        ("nothing.png", "nothing.png"),
+        ("nothing.pdf", "nothing.pdf"),
+        ("version.1.2.3", "version.1.2.3.png"),
+    ],
+)
+def test_default(name, expected):
+    result = validate_image_name(name)
     assert result == expected
 
 
-def test_custom_valid_ext():
-    for dext in SUPPORTED_FORMATS:
-        ext = dext.replace(".", "")
-        result1 = validate_image_name(filename_no_ext, suffix=ext)
-        result2 = validate_image_name(filename_no_ext, suffix=dext)
-        expected = f"{filename_no_ext}.{ext}"
+@pytest.mark.parametrize(
+    "name, suffix, expected",
+    [
+        ("noext", ".png", "noext.png"),
+        ("nothing.png", ".png", "nothing.png"),
+        ("nothing.png", ".pdf", "nothing.pdf"),
+        ("nothing.pdf", ".pdf", "nothing.pdf"),
+        ("nothing.pdf", ".png", "nothing.png"),
+        ("version.1.2.3", ".png", "version.1.2.3.png"),
+        ("version.1.2.3", ".pdf", "version.1.2.3.pdf"),
+    ],
+)
+def test_custom_valid_ext(name, suffix, expected):
+    alt_suffix = suffix.replace(".", "")
+    result1 = validate_image_name(name, suffix=suffix)
+    result2 = validate_image_name(name, suffix=alt_suffix)
 
-        assert result1 == expected
-        assert result2 == expected
+    assert result1 == expected
+    assert result2 == expected

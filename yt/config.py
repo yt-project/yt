@@ -5,7 +5,7 @@ import toml
 from more_itertools import always_iterable
 
 from yt._maintenance.deprecation import issue_deprecation_warning
-from yt.utilities.configuration_tree import ConfigNode
+from yt.utilities.configuration_tree import ConfigLeaf, ConfigNode
 
 ytcfg_defaults = {}
 
@@ -99,13 +99,13 @@ class YTConfig:
             defaults = {}
         self.config_root = ConfigNode(None)
 
-    def get(self, section, *keys, callback=None, **kwargs):
-        if callback is None:
-
-            def callback(leaf):
-                return leaf.value
-
-        return self.config_root.get_leaf(section, *keys, callback=callback)
+    def get(self, section, *keys, callback=None):
+        node_or_leaf = self.config_root.get(section, *keys)
+        if isinstance(node_or_leaf, ConfigLeaf):
+            if callback is not None:
+                return callback(node_or_leaf)
+            return node_or_leaf.value
+        return node_or_leaf
 
     def get_most_specific(self, section, *keys, **kwargs):
         use_fallback = "fallback" in kwargs
@@ -148,14 +148,6 @@ class YTConfig:
             [section] + list(keys), value, extra_data=metadata
         )
 
-    def __setitem__(self, args, value):
-        section, *keys = args
-        self.set(section, *keys, value, metadata=None)
-
-    def __getitem__(self, key):
-        section, *keys = key
-        return self.get(section, *keys)
-
     def remove(self, *args):
         self.config_root.pop_leaf(args)
 
@@ -189,6 +181,22 @@ class YTConfig:
     @staticmethod
     def get_local_config_file():
         return os.path.join(os.path.abspath(os.curdir), "yt.toml")
+
+    def __setitem__(self, args, value):
+        section, *keys = always_iterable(args)
+        self.set(section, *keys, value, metadata=None)
+
+    def __getitem__(self, key):
+        section, *keys = always_iterable(key)
+        return self.get(section, *keys)
+
+    def __contains__(self, item):
+        return item in self.config_root
+
+    # Add support for IPython rich display
+    # see https://ipython.readthedocs.io/en/stable/config/integrating.html
+    def _repr_json_(self):
+        return self.config_root._repr_json_()
 
 
 _global_config_file = YTConfig.get_global_config_file()

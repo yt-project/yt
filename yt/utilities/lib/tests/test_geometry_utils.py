@@ -13,6 +13,7 @@ from yt.utilities.lib.misc_utilities import (
 )
 
 _fields = ("density", "velocity_x", "velocity_y", "velocity_z")
+_units = ("g/cm**3", "cm/s", "cm/s", "cm/s")
 
 # TODO: error compact/spread bits for incorrect size
 # TODO: test msdb for [0,0], [1,1], [2,2] etc.
@@ -954,7 +955,7 @@ def test_knn_direct(seed=1):
 
 def test_obtain_position_vector():
     ds = fake_random_ds(
-        64, nprocs=8, fields=_fields, negative=[False, True, True, True]
+        64, nprocs=8, fields=_fields, units=_units, negative=[False, True, True, True]
     )
 
     dd = ds.sphere((0.5, 0.5, 0.5), 0.2)
@@ -970,13 +971,13 @@ def test_obtain_position_vector():
 
 def test_obtain_relative_velocity_vector():
     ds = fake_random_ds(
-        64, nprocs=8, fields=_fields, negative=[False, True, True, True]
+        64, nprocs=8, fields=_fields, units=_units, negative=[False, True, True, True]
     )
 
     dd = ds.all_data()
 
     vels = obtain_relative_velocity_vector(dd)
 
-    assert_array_equal(vels[0, :], dd["velocity_x"])
-    assert_array_equal(vels[1, :], dd["velocity_y"])
-    assert_array_equal(vels[2, :], dd["velocity_z"])
+    assert_array_equal(vels[0, :], dd[("gas", "velocity_x")])
+    assert_array_equal(vels[1, :], dd[("gas", "velocity_y")])
+    assert_array_equal(vels[2, :], dd[("gas", "velocity_z")])

@@ -750,7 +750,7 @@ class SDFIndex:
         inter[self.dim_slices[0]] = rep1
         inter[self.dim_slices[1]] = rep2
         inter[self.dim_slices[2]] = rep3
-        return int(inter.tostring(), 2)
+        return int(inter.tobytes(), 2)
 
     def get_key_ijk(self, i1, i2, i3, level=None):
         return self.get_key(np.array([i1, i2, i3]), level=level)
@@ -759,7 +759,7 @@ class SDFIndex:
         slb = np.binary_repr(ind, width=self.level)
         expanded = np.array([0] * self.level * 3, dtype="c")
         expanded[self.dim_slices[dim]] = slb
-        return int(expanded.tostring(), 2)
+        return int(expanded.tobytes(), 2)
 
     def get_ind_from_key(self, key, dim="r"):
         ind = [0, 0, 0]

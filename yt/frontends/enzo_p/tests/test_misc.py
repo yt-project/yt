@@ -20,7 +20,7 @@ def get_random_block_string(max_n=64, random_state=None, level=None):
         random_state = np.random.RandomState()
 
     max_l = int(np.log2(max_n))
-    form = "%0" + str(max_l) + "d"
+    form = f"%0{max_l}d"
     num10 = random_state.randint(0, high=max_n)
     num2 = form % int(bin(num10)[2:])  # the slice clips the '0b' prefix
 

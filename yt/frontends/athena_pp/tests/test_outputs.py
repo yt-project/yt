@@ -28,7 +28,7 @@ def test_disk():
     vol = (ds.domain_right_edge[0] ** 3 - ds.domain_left_edge[0] ** 3) / 3.0
     vol *= np.cos(ds.domain_left_edge[1]) - np.cos(ds.domain_right_edge[1])
     vol *= ds.domain_right_edge[2].v - ds.domain_left_edge[2].v
-    assert_allclose(dd.quantities.total_quantity("cell_volume"), vol)
+    assert_allclose(dd.quantities.total_quantity(("gas", "cell_volume")), vol)
     for field in _fields_disk:
 
         def field_func(name):

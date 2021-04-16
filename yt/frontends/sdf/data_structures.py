@@ -1,22 +1,15 @@
-import contextlib
 import os
 
 import numpy as np
 
 from yt.data_objects.static_output import ParticleDataset, ParticleFile
-from yt.funcs import get_requests, setdefaultattr
+from yt.funcs import setdefaultattr
 from yt.geometry.particle_geometry_handler import ParticleIndex
 from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.on_demand_imports import _requests as requests
 from yt.utilities.sdf import HTTPSDFRead, SDFIndex, SDFRead
 
 from .fields import SDFFieldInfo
-
-
-@contextlib.contextmanager
-def safeopen(*args, **kwargs):
-    with open(*args, **kwargs) as f:
-        yield f
-
 
 # currently specified by units_2HOT == 2 in header
 # in future will read directly from file
@@ -185,16 +178,17 @@ class SDFDataset(ParticleDataset):
     def _is_valid(cls, filename, *args, **kwargs):
         sdf_header = kwargs.get("sdf_header", filename)
         if sdf_header.startswith("http"):
-            requests = get_requests()
-            if requests is None:
+            try:
+                hreq = requests.get(sdf_header, stream=True)
+            except ImportError:
+                # requests is not installed
                 return False
-            hreq = requests.get(sdf_header, stream=True)
             if hreq.status_code != 200:
                 return False
             # Grab a whole 4k page.
             line = next(hreq.iter_content(4096))
         elif os.path.isfile(sdf_header):
-            with safeopen(sdf_header, "r", encoding="ISO-8859-1") as f:
+            with open(sdf_header, encoding="ISO-8859-1") as f:
                 line = f.read(10).strip()
         else:
             return False

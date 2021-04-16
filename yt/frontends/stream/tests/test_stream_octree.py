@@ -48,5 +48,5 @@ def test_octree():
         partial_coverage=0,
     )
 
-    proj = ds.proj("density", "x")
-    proj["density"]
+    proj = ds.proj(("gas", "density"), "x")
+    proj[("gas", "density")]

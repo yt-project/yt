@@ -271,7 +271,7 @@ class YTNoFilenamesMatchPattern(YTException):
         self.pattern = pattern
 
     def __str__(self):
-        return "No filenames were found to match the pattern: " + f"'{self.pattern}'"
+        return f"No filenames were found to match the pattern: '{self.pattern}'"
 
 
 class YTNoOldAnswer(YTException):
@@ -279,7 +279,7 @@ class YTNoOldAnswer(YTException):
         self.path = path
 
     def __str__(self):
-        return "There is no old answer available.\n" + str(self.path)
+        return f"There is no old answer available.\n{self.path}"
 
 
 class YTNoAnswerNameSpecified(YTException):

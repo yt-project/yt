@@ -86,7 +86,7 @@ Alternatively, you can install yt in a
 ```shell
 # It is conventional to create virtualenvs at ~/.virtualenv/
 $ mkdir -p ~/.virtualenv
-# Assuming your version of Python 3 is 3.4 or higher,
+# Assuming your version of Python 3 meets the minimal requirement
 # create a virtualenv named yt-git
 $ python3 -m venv ~/.virtualenv/yt-git
 # Activate it
@@ -161,6 +161,20 @@ We have some community and documentation resources available.
    better suited for more development issues
  * You can also join us on Slack at yt-project.slack.com ([request an
    invite](https://yt-project.org/slack.html))
+
+Is your code compatible with yt ? Great ! Please consider giving us a shoutout as a shiny badge in your README
+
+- markdown
+```markdown
+[![yt-project](https://img.shields.io/static/v1?label="works%20with"&message="yt"&color="blueviolet")](https://yt-project.org)
+```
+- rst
+```reStructuredText
+|yt-project|
+
+.. |yt-project| image:: https://img.shields.io/static/v1?label="works%20with"&message="yt"&color="blueviolet"
+   :target: https://yt-project.org
+```
 
 ## Powered by NumFOCUS
 

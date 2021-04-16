@@ -6,11 +6,12 @@ from functools import wraps
 
 import matplotlib
 import numpy as np
+from more_itertools.more import always_iterable
 
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.data_objects.time_series import DatasetSeries
-from yt.funcs import ensure_dir, is_sequence, iter_fields, mylog
+from yt.funcs import dictWithFactory, ensure_dir, is_sequence, iter_fields, mylog
 from yt.units import YTQuantity
 from yt.units.unit_object import Unit
 from yt.utilities.definitions import formatted_length_unit_names
@@ -210,6 +211,11 @@ class PlotContainer:
     _plot_type = None
     _plot_valid = False
 
+    # Plot defaults
+    _colormap_config: dict
+    _log_config: dict
+    _units_config: dict
+
     def __init__(self, data_source, figure_size, fontsize):
         from matplotlib.font_manager import FontProperties
 
@@ -227,6 +233,34 @@ class PlotContainer:
         self._ylabel = None
         self._minorticks = {}
         self._field_transform = {}
+
+        self.setup_defaults()
+
+    def setup_defaults(self):
+        def default_from_config(keys, defaults):
+            _keys = list(always_iterable(keys))
+            _defaults = list(always_iterable(defaults))
+
+            def getter(field):
+                ftype, fname = self.data_source._determine_fields(field)[0]
+                ret = [
+                    ytcfg.get_most_specific("plot", ftype, fname, key, fallback=default)
+                    for key, default in zip(_keys, _defaults)
+                ]
+                if len(ret) == 1:
+                    return ret[0]
+                return ret
+
+            return getter
+
+        default_cmap = ytcfg.get("yt", "default_colormap")
+        self._colormap_config = dictWithFactory(
+            default_from_config("cmap", default_cmap)
+        )()
+        self._log_config = dictWithFactory(
+            default_from_config(["log", "linthresh"], [None, None])
+        )()
+        self._units_config = dictWithFactory(default_from_config("units", [None]))()
 
     @accepts_all_fields
     @invalidate_plot
@@ -550,7 +584,7 @@ class PlotContainer:
         --------
 
         >>> from yt.mods import SlicePlot
-        >>> slc = SlicePlot(ds, "x", ["Density", "VelocityMagnitude"])
+        >>> slc = SlicePlot(ds, "x", [("gas", "density"), ("gas", "velocity_magnitude")])
         >>> slc.show()
 
         """
@@ -814,7 +848,6 @@ class ImagePlotContainer(PlotContainer):
         super().__init__(data_source, figure_size, fontsize)
         self.plots = PlotDictionary(data_source)
         self._callbacks = []
-        self._colormaps = defaultdict(lambda: ytcfg.get("yt", "default_colormap"))
         self._cbar_minorticks = {}
         self._background_color = PlotDictionary(self.data_source, lambda: "w")
         self._colorbar_label = PlotDictionary(self.data_source, lambda: None)
@@ -837,7 +870,7 @@ class ImagePlotContainer(PlotContainer):
 
         """
         self._colorbar_valid = False
-        self._colormaps[field] = cmap
+        self._colormap_config[field] = cmap
         return self
 
     @accepts_all_fields
@@ -857,7 +890,7 @@ class ImagePlotContainer(PlotContainer):
 
         """
         if color is None:
-            cmap = self._colormaps[field]
+            cmap = self._colormap_config[field]
             if isinstance(cmap, str):
                 try:
                     cmap = yt_colormaps[cmap]
@@ -988,7 +1021,7 @@ class ImagePlotContainer(PlotContainer):
         label : str
           The new label
 
-        >>>  plot.set_colorbar_label("density", "Dark Matter Density (g cm$^{-3}$)")
+        >>>  plot.set_colorbar_label(("gas", "density"), "Dark Matter Density (g cm$^{-3}$)")
 
         """
         self._colorbar_label[field] = label
