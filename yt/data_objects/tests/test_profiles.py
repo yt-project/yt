@@ -642,6 +642,7 @@ class TestBadProfiles(unittest.TestCase):
                 ("gas", "cell_mass"),
             )
 
+
 def test_index_field_units():
     # see #1849
     ds = fake_random_ds(16, length_unit=2)
