@@ -147,11 +147,9 @@ class YTFieldNotFound(YTException):
 
     def __str__(self):
         msg = f"Could not find field {self.field} in {self.ds}."
-        suggestions = self.suggestions
-
-        if len(suggestions) > 0:
+        if self.suggestions:
             msg += "\nDid you mean:\n\t"
-            msg += "\n\t".join(str(_) for _ in suggestions)
+            msg += "\n\t".join(str(_) for _ in self.suggestions)
         return msg
 
 
