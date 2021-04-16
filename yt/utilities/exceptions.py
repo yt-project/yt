@@ -90,7 +90,13 @@ class YTFieldNotFound(YTException):
     def __init__(self, field, ds):
         self.field = field
         self.ds = ds
-        self._find_suggestions()
+        self.suggestions = []
+        try:
+            self._find_suggestions()
+        except AttributeError:
+            # This may happen if passing a field that is e.g. an Ellipsis
+            # e.g. when using ds.r[...]
+            pass
 
     def _find_suggestions(self):
         from yt.funcs import levenshtein_distance
