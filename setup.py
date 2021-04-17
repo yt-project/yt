@@ -131,7 +131,7 @@ if __name__ == "__main__":
             "numpy>=1.10.4",
             "IPython>=1.0",
             "unyt>=2.7.2",
-            "more_itertools>=8.4",
+            "more-itertools>=8.4",
             "tqdm>=3.4.0",
             "toml>=0.10.2",
         ],
