@@ -28,7 +28,7 @@ def test_clone_cut_region():
     ds = fake_random_ds(64, nprocs=4, fields=fields, units=units)
     dd = ds.all_data()
     reg1 = dd.cut_region(
-        ["obj['gas', 'temperature'] > 0.5", "obj['gas', 'density'] < 0.75"]
+        ["obj[('gas', 'temperature')] > 0.5", "obj[('gas', 'density')] < 0.75"]
     )
     reg2 = reg1.clone()
     assert_array_equal(reg1[("gas", "density")], reg2[("gas", "density")])
