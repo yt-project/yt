@@ -47,6 +47,27 @@ are being removed entirely. When the deprecated field names are used for the
 first time in a session, a warning will be logged, so it is advisable to set
 your logging level to ``WARNING`` at a minimum to catch these.
 
+Colormaps
+^^^^^^^^^
+yt previously included ``cmocean`` colormaps.  Due to collisions between some
+of our dependencies, you now have to explicitly import the ``cmocean`` module
+and prefix ``cmocean`` colormaps (like ``balance``) with ``cmo.``.  Example:
+
+Old Script (no longer works):
+.. code-block:: python
+import yt
+ds = yt.testing.fake_amr_ds()
+p = yt.SlicePlot(ds, "z", "Density")
+p.set_cmap("Density", "balance")
+
+New Script:
+.. code-block:: python
+import yt
+import cmocean
+ds = yt.testing.fake_amr_ds()
+p = yt.SlicePlot(ds, "z", "Density")
+p.set_cmap("Density", "cmo.balance")
+
 Cool New Things
 ---------------
 
