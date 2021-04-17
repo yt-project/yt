@@ -516,10 +516,10 @@ class Profile1D(ProfileND):
     def set_x_unit(self, new_unit):
         """Sets a new unit for the x field
 
-        parameters
+        Parameters
         ----------
         new_unit : string or Unit object
-           The name of the new unit.
+            The name of the new unit.
         """
         self.x_bins.convert_to_units(new_unit)
         self.x = 0.5 * (self.x_bins[1:] + self.x_bins[:-1])
@@ -769,10 +769,10 @@ class Profile2D(ProfileND):
     def set_x_unit(self, new_unit):
         """Sets a new unit for the x field
 
-        parameters
+        Parameters
         ----------
         new_unit : string or Unit object
-           The name of the new unit.
+            The name of the new unit.
         """
         self.x_bins.convert_to_units(new_unit)
         self.x = 0.5 * (self.x_bins[1:] + self.x_bins[:-1])
@@ -780,10 +780,10 @@ class Profile2D(ProfileND):
     def set_y_unit(self, new_unit):
         """Sets a new unit for the y field
 
-        parameters
+        Parameters
         ----------
         new_unit : string or Unit object
-           The name of the new unit.
+            The name of the new unit.
         """
         self.y_bins.convert_to_units(new_unit)
         self.y = 0.5 * (self.y_bins[1:] + self.y_bins[:-1])
@@ -1117,10 +1117,10 @@ class Profile3D(ProfileND):
     def set_x_unit(self, new_unit):
         """Sets a new unit for the x field
 
-        parameters
+        Parameters
         ----------
         new_unit : string or Unit object
-           The name of the new unit.
+            The name of the new unit.
         """
         self.x_bins.convert_to_units(new_unit)
         self.x = 0.5 * (self.x_bins[1:] + self.x_bins[:-1])
@@ -1128,10 +1128,10 @@ class Profile3D(ProfileND):
     def set_y_unit(self, new_unit):
         """Sets a new unit for the y field
 
-        parameters
+        Parameters
         ----------
         new_unit : string or Unit object
-           The name of the new unit.
+            The name of the new unit.
         """
         self.y_bins.convert_to_units(new_unit)
         self.y = 0.5 * (self.y_bins[1:] + self.y_bins[:-1])
@@ -1139,10 +1139,10 @@ class Profile3D(ProfileND):
     def set_z_unit(self, new_unit):
         """Sets a new unit for the z field
 
-        parameters
+        Parameters
         ----------
         new_unit : string or Unit object
-           The name of the new unit.
+            The name of the new unit.
         """
         self.z_bins.convert_to_units(new_unit)
         self.z = 0.5 * (self.z_bins[1:] + self.z_bins[:-1])

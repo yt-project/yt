@@ -94,10 +94,9 @@ class ImageArray(YTArray):
 
         Parameters
         ----------
-        filename: string
+        filename : string
         The filename to create and write a dataset to
-
-        dataset_name: string
+        dataset_name : string
             The name of the dataset to create in the file.
 
         Examples
@@ -144,7 +143,8 @@ class ImageArray(YTArray):
                * 4-element array [r,g,b,a]: arbitrary rgba setting.
 
             Default: 'black'
-        inline: boolean, optional
+
+        inline : boolean, optional
             If True, original ImageArray is modified. If False, a copy is first
             created, then modified. Default: True
 
@@ -193,13 +193,13 @@ class ImageArray(YTArray):
 
         Parameters
         ----------
-        cmax: float, optional
+        cmax : float, optional
             Normalization value to use for rgb channels. Defaults to None,
             corresponding to using the maximum value in the rgb channels.
-        amax: float, optional
+        amax : float, optional
             Normalization value to use for alpha channel. Defaults to None,
             corresponding to using the maximum value in the alpha channel.
-        inline: boolean, optional
+        inline : boolean, optional
             Specifies whether or not the rescaling is done inline. If false,
             a new copy of the ImageArray will be created, returned.
             Default:True.
@@ -261,10 +261,11 @@ class ImageArray(YTArray):
 
         Parameters
         ----------
-        filename: string
+        filename : string
             Filename to save to.  If None, PNG contents will be returned as a
             string.
-        sigma_clip: float, optional
+
+        sigma_clip : float, optional
             Image will be clipped before saving to the standard deviation
             of the image multiplied by this value.  Useful for enhancing
             images. Default: None
@@ -278,7 +279,8 @@ class ImageArray(YTArray):
                * 4-element array [r,g,b,a]: arbitrary rgba setting.
 
             Default: 'black'
-        rescale: boolean, optional
+
+        rescale : boolean, optional
             If True, will write out a rescaled image (without modifying the
             original image). Default: True
 
@@ -337,7 +339,7 @@ class ImageArray(YTArray):
 
         Parameters
         ----------
-        filename: string
+        filename : string
             Note filename not be modified.
 
         Other Parameters

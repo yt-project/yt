@@ -2112,10 +2112,6 @@ class YTSurface(YTSelectionContainer3D):
 
         Parameters
         ----------
-        filename : string
-            The file this will be exported to.  This cannot be a file-like object.
-            Note - there are no file extentions included - both obj & mtl files
-            are created.
         transparency : float
             This gives the transparency of the output surface plot.  Values
             from 0.0 (invisible) to 1.0 (opaque).
