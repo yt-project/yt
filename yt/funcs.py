@@ -22,6 +22,7 @@ from functools import lru_cache, wraps
 from numbers import Number as numeric_type
 from typing import Any, Callable, Type, Optional, Sequence, Union
 
+
 import matplotlib
 import numpy as np
 from more_itertools import always_iterable, collapse, first
