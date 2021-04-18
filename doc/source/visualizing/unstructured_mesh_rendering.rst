@@ -88,7 +88,7 @@ Examples
 
 First, here is an example of rendering an 8-node, hexahedral MOOSE dataset.
 
-.. python-script::
+.. code-block:: python
 
     import yt
 
@@ -99,13 +99,13 @@ First, here is an example of rendering an 8-node, hexahedral MOOSE dataset.
 
     # override the default colormap
     ms = sc.get_source()
-    ms.cmap = 'Eos A'
+    ms.cmap = "Eos A"
 
     # adjust the camera position and orientation
     cam = sc.camera
-    cam.focus = ds.arr([0.0, 0.0, 0.0], 'code_length')
-    cam_pos = ds.arr([-3.0, 3.0, -3.0], 'code_length')
-    north_vector = ds.arr([0.0, -1.0, -1.0], 'dimensionless')
+    cam.focus = ds.arr([0.0, 0.0, 0.0], "code_length")
+    cam_pos = ds.arr([-3.0, 3.0, -3.0], "code_length")
+    north_vector = ds.arr([0.0, -1.0, -1.0], "dimensionless")
     cam.set_position(cam_pos, north_vector)
 
     # increase the default resolution
@@ -116,7 +116,7 @@ First, here is an example of rendering an 8-node, hexahedral MOOSE dataset.
 
 You can also overplot the mesh boundaries:
 
-.. python-script::
+.. code-block:: python
 
     import yt
 
@@ -127,13 +127,13 @@ You can also overplot the mesh boundaries:
 
     # override the default colormap
     ms = sc.get_source()
-    ms.cmap = 'Eos A'
+    ms.cmap = "Eos A"
 
     # adjust the camera position and orientation
     cam = sc.camera
-    cam.focus = ds.arr([0.0, 0.0, 0.0], 'code_length')
-    cam_pos = ds.arr([-3.0, 3.0, -3.0], 'code_length')
-    north_vector = ds.arr([0.0, -1.0, -1.0], 'dimensionless')
+    cam.focus = ds.arr([0.0, 0.0, 0.0], "code_length")
+    cam_pos = ds.arr([-3.0, 3.0, -3.0], "code_length")
+    north_vector = ds.arr([0.0, -1.0, -1.0], "dimensionless")
     cam.set_position(cam_pos, north_vector)
 
     # increase the default resolution
@@ -148,24 +148,24 @@ As with slices, you can visualize different meshes and different fields. For exa
 Here is a script similar to the above that plots the "diffused" variable
 using the mesh labelled by "connect2":
 
-.. python-script::
+.. code-block:: python
 
     import yt
 
     ds = yt.load("MOOSE_sample_data/out.e-s010")
 
     # create a default scene
-    sc = yt.create_scene(ds, ('connect2', 'diffused'))
+    sc = yt.create_scene(ds, ("connect2", "diffused"))
 
     # override the default colormap
     ms = sc.get_source()
-    ms.cmap = 'Eos A'
+    ms.cmap = "Eos A"
 
     # adjust the camera position and orientation
     cam = sc.camera
-    cam.focus = ds.arr([0.0, 0.0, 0.0], 'code_length')
-    cam_pos = ds.arr([-3.0, 3.0, -3.0], 'code_length')
-    north_vector = ds.arr([0.0, -1.0, -1.0], 'dimensionless')
+    cam.focus = ds.arr([0.0, 0.0, 0.0], "code_length")
+    cam_pos = ds.arr([-3.0, 3.0, -3.0], "code_length")
+    north_vector = ds.arr([0.0, -1.0, -1.0], "dimensionless")
     cam.set_position(cam_pos, north_vector)
 
     # increase the default resolution
@@ -178,7 +178,7 @@ Next, here is an example of rendering a dataset with tetrahedral mesh elements.
 Note that in this dataset, there are multiple "steps" per file, so we specify
 that we want to look at the last one.
 
-.. python-script::
+.. code-block:: python
 
     import yt
 
@@ -190,13 +190,13 @@ that we want to look at the last one.
 
     # override the default colormap
     ms = sc.get_source()
-    ms.cmap = 'Eos A'
+    ms.cmap = "Eos A"
 
     # adjust the camera position and orientation
     cam = sc.camera
-    camera_position = ds.arr([3.0, 3.0, 3.0], 'code_length')
-    cam.set_width(ds.arr([2.0, 2.0, 2.0], 'code_length'))
-    north_vector = ds.arr([0.0, -1.0, 0.0], 'dimensionless')
+    camera_position = ds.arr([3.0, 3.0, 3.0], "code_length")
+    cam.set_width(ds.arr([2.0, 2.0, 2.0], "code_length"))
+    north_vector = ds.arr([0.0, -1.0, 0.0], "dimensionless")
     cam.set_position(camera_position, north_vector)
 
     # increase the default resolution
@@ -207,23 +207,23 @@ that we want to look at the last one.
 
 Here is an example using 6-node wedge elements:
 
-.. python-script::
+.. code-block:: python
 
    import yt
 
    ds = yt.load("MOOSE_sample_data/wedge_out.e")
 
    # create a default scene
-   sc = yt.create_scene(ds, ('connect2', 'diffused'))
+   sc = yt.create_scene(ds, ("connect2", "diffused"))
 
    # override the default colormap
    ms = sc.get_source()
-   ms.cmap = 'Eos A'
+   ms.cmap = "Eos A"
 
    # adjust the camera position and orientation
    cam = sc.camera
-   cam.set_position(ds.arr([1.0, -1.0, 1.0], 'code_length'))
-   cam.width = ds.arr([1.5, 1.5, 1.5], 'code_length')
+   cam.set_position(ds.arr([1.0, -1.0, 1.0], "code_length"))
+   cam.width = ds.arr([1.5, 1.5, 1.5], "code_length")
 
    # render and save
    sc.save()
@@ -231,7 +231,7 @@ Here is an example using 6-node wedge elements:
 Another example, this time plotting the temperature field from a 20-node hex
 MOOSE dataset:
 
-.. python-script::
+.. code-block:: python
 
     import yt
 
@@ -244,14 +244,14 @@ MOOSE dataset:
     # override the default colormap. This time we also override
     # the default color bounds
     ms = sc.get_source()
-    ms.cmap = 'hot'
+    ms.cmap = "hot"
     ms.color_bounds = (500.0, 1700.0)
 
     # adjust the camera position and orientation
     cam = sc.camera
-    camera_position = ds.arr([-1.0, 1.0, -0.5], 'code_length')
-    north_vector = ds.arr([0.0, -1.0, -1.0], 'dimensionless')
-    cam.width = ds.arr([0.04, 0.04, 0.04], 'code_length')
+    camera_position = ds.arr([-1.0, 1.0, -0.5], "code_length")
+    north_vector = ds.arr([0.0, -1.0, -1.0], "dimensionless")
+    cam.width = ds.arr([0.04, 0.04, 0.04], "code_length")
     cam.set_position(camera_position, north_vector)
 
     # increase the default resolution
@@ -267,13 +267,16 @@ opportunity to demonstrate their use. The following example is exactly like the
 above, except we scale the displacements by a factor of a 10.0, and additionally
 add an offset to the mesh by 1.0 unit in the x-direction:
 
-.. python-script::
+.. code-block:: python
 
     import yt
 
     # We load the last time frame
-    ds = yt.load("MOOSE_sample_data/mps_out.e", step=-1,
-                 displacements={'connect2': (10.0, [0.01, 0.0, 0.0])})
+    ds = yt.load(
+        "MOOSE_sample_data/mps_out.e",
+        step=-1,
+        displacements={"connect2": (10.0, [0.01, 0.0, 0.0])},
+    )
 
     # create a default scene
     sc = yt.create_scene(ds, ("connect2", "temp"))
@@ -281,14 +284,14 @@ add an offset to the mesh by 1.0 unit in the x-direction:
     # override the default colormap. This time we also override
     # the default color bounds
     ms = sc.get_source()
-    ms.cmap = 'hot'
+    ms.cmap = "hot"
     ms.color_bounds = (500.0, 1700.0)
 
     # adjust the camera position and orientation
     cam = sc.camera
-    camera_position = ds.arr([-1.0, 1.0, -0.5], 'code_length')
-    north_vector = ds.arr([0.0, -1.0, -1.0], 'dimensionless')
-    cam.width = ds.arr([0.05, 0.05, 0.05], 'code_length')
+    camera_position = ds.arr([-1.0, 1.0, -0.5], "code_length")
+    north_vector = ds.arr([0.0, -1.0, -1.0], "dimensionless")
+    cam.width = ds.arr([0.05, 0.05, 0.05], "code_length")
     cam.set_position(camera_position, north_vector)
 
     # increase the default resolution
@@ -303,7 +306,7 @@ As with other volume renderings in yt, you can swap out different lenses. Here i
 an example that uses a "perspective" lens, for which the rays diverge from the
 camera position according to some opening angle:
 
-.. python-script::
+.. code-block:: python
 
     import yt
 
@@ -314,13 +317,13 @@ camera position according to some opening angle:
 
     # override the default colormap
     ms = sc.get_source()
-    ms.cmap = 'Eos A'
+    ms.cmap = "Eos A"
 
     # Create a perspective Camera
-    cam = sc.add_camera(ds, lens_type='perspective')
-    cam.focus = ds.arr([0.0, 0.0, 0.0], 'code_length')
-    cam_pos = ds.arr([-4.5, 4.5, -4.5], 'code_length')
-    north_vector = ds.arr([0.0, -1.0, -1.0], 'dimensionless')
+    cam = sc.add_camera(ds, lens_type="perspective")
+    cam.focus = ds.arr([0.0, 0.0, 0.0], "code_length")
+    cam_pos = ds.arr([-4.5, 4.5, -4.5], "code_length")
+    north_vector = ds.arr([0.0, -1.0, -1.0], "dimensionless")
     cam.set_position(cam_pos, north_vector)
 
     # increase the default resolution
@@ -336,7 +339,7 @@ will keep track of the depth information for each source separately, and composi
 the final image accordingly. In the next example, we show how to render a scene
 with two meshes on it:
 
-.. python-script::
+.. code-block:: python
 
     import yt
     from yt.visualization.volume_rendering.api import MeshSource, Scene
@@ -348,15 +351,16 @@ with two meshes on it:
 
     # set up our Camera
     cam = sc.add_camera(ds)
-    cam.focus = ds.arr([0.0, 0.0, 0.0], 'code_length')
-    cam.set_position(ds.arr([-3.0, 3.0, -3.0], 'code_length'),
-                     ds.arr([0.0, -1.0, 0.0], 'dimensionless'))
-    cam.set_width = ds.arr([8.0, 8.0, 8.0], 'code_length')
+    cam.focus = ds.arr([0.0, 0.0, 0.0], "code_length")
+    cam.set_position(
+        ds.arr([-3.0, 3.0, -3.0], "code_length"), ds.arr([0.0, -1.0, 0.0], "dimensionless")
+    )
+    cam.set_width = ds.arr([8.0, 8.0, 8.0], "code_length")
     cam.resolution = (800, 800)
 
     # create two distinct MeshSources from 'connect1' and 'connect2'
-    ms1 = MeshSource(ds, ('connect1', 'diffused'))
-    ms2 = MeshSource(ds, ('connect2', 'diffused'))
+    ms1 = MeshSource(ds, ("connect1", "diffused"))
+    ms2 = MeshSource(ds, ("connect2", "diffused"))
 
     sc.add_source(ms1)
     sc.add_source(ms2)
@@ -372,7 +376,7 @@ This discontinuous color is due to an independent colormap setting for the two
 mesh sources. To fix it, we can explicitly specify the colormap bound for each
 mesh source as follows:
 
-.. python-script::
+.. code-block:: python
 
     import yt
     from yt.visualization.volume_rendering.api import MeshSource, Scene
@@ -384,15 +388,16 @@ mesh source as follows:
 
     # set up our Camera
     cam = sc.add_camera(ds)
-    cam.focus = ds.arr([0.0, 0.0, 0.0], 'code_length')
-    cam.set_position(ds.arr([-3.0, 3.0, -3.0], 'code_length'),
-                     ds.arr([0.0, -1.0, 0.0], 'dimensionless'))
-    cam.set_width = ds.arr([8.0, 8.0, 8.0], 'code_length')
+    cam.focus = ds.arr([0.0, 0.0, 0.0], "code_length")
+    cam.set_position(
+        ds.arr([-3.0, 3.0, -3.0], "code_length"), ds.arr([0.0, -1.0, 0.0], "dimensionless")
+    )
+    cam.set_width = ds.arr([8.0, 8.0, 8.0], "code_length")
     cam.resolution = (800, 800)
 
     # create two distinct MeshSources from 'connect1' and 'connect2'
-    ms1 = MeshSource(ds, ('connect1', 'diffused'))
-    ms2 = MeshSource(ds, ('connect2', 'diffused'))
+    ms1 = MeshSource(ds, ("connect1", "diffused"))
+    ms2 = MeshSource(ds, ("connect2", "diffused"))
 
     # add the following lines to set the range of the two mesh sources
     ms1.color_bounds = (0.0, 3.0)

@@ -32,24 +32,26 @@ the FRB returns a fully pixelized image. The simplest way to
 generate an FRB is to use the ``.to_frb(width, resolution, center=None)`` method
 of any data two-dimensional data object:
 
-.. python-script::
+.. code-block:: python
 
    import matplotlib
-   matplotlib.use('Agg')
+
+   matplotlib.use("Agg")
    from matplotlib import pyplot as plt
    import numpy as np
    import yt
+
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
-   c = ds.find_max('density')[1]
-   proj = ds.proj('density', 0)
+   c = ds.find_max("density")[1]
+   proj = ds.proj("density", 0)
 
-   width = (10, 'kpc') # we want a 1.5 mpc view
-   res = [1000, 1000] # create an image with 1000x1000 pixels
+   width = (10, "kpc")  # we want a 1.5 mpc view
+   res = [1000, 1000]  # create an image with 1000x1000 pixels
    frb = proj.to_frb(width, res, center=c)
 
-   plt.imshow(np.array(frb['density']))
-   plt.savefig('my_perfect_figure.png')
+   plt.imshow(np.array(frb["density"]))
+   plt.savefig("my_perfect_figure.png")
 
 Note that in the above example the axes tick marks indicate pixel indices.  If you
 want to represent physical distances on your plot axes, you will need to use the
@@ -76,21 +78,22 @@ create realistically looking, mock observation images out of simulation data.
 Applying filter is an irreversible operation, hence the order in which you are
 using them matters.
 
-.. python-script::
+.. code-block:: python
 
    import matplotlib
-   matplotlib.use('Agg')
+
+   matplotlib.use("Agg")
    from matplotlib import pyplot as plt
 
    import yt
 
-   ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-   slc = ds.slice('z', 0.5)
-   frb = slc.to_frb((20, 'kpc'), 512)
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = ds.slice("z", 0.5)
+   frb = slc.to_frb((20, "kpc"), 512)
    frb.apply_gauss_beam(nbeam=30, sigma=2.0)
    frb.apply_white_noise(5e-23)
-   plt.imshow(frb['density'].d)
-   plt.savefig('frb_filters.png')
+   plt.imshow(frb["density"].d)
+   plt.savefig("frb_filters.png")
 
 Currently available filters:
 
@@ -128,10 +131,11 @@ direct dictionary access. As a simple example, take a
 :class:`~yt.data_objects.selection_data_containers.YTOrthoRay` object, which can be
 created from a index by calling ``pf.ortho_ray(axis, center)``.
 
-.. python-script::
+.. code-block:: python
 
    import matplotlib
-   matplotlib.use('Agg')
+
+   matplotlib.use("Agg")
    from matplotlib import pyplot as plt
 
    import yt
@@ -139,22 +143,22 @@ created from a index by calling ``pf.ortho_ray(axis, center)``.
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    c = ds.find_max("density")[1]
-   ax = 0 # take a line cut along the x axis
+   ax = 0  # take a line cut along the x axis
 
    # cutting through the y0,z0 such that we hit the max density
    ray = ds.ortho_ray(ax, (c[1], c[2]))
 
    # Sort the ray values by 'x' so there are no discontinuities
    # in the line plot
-   srt = np.argsort(ray['x'])
+   srt = np.argsort(ray["x"])
 
    plt.subplot(211)
-   plt.semilogy(np.array(ray['x'][srt]), np.array(ray['density'][srt]))
-   plt.ylabel('density')
+   plt.semilogy(np.array(ray["x"][srt]), np.array(ray["density"][srt]))
+   plt.ylabel("density")
    plt.subplot(212)
-   plt.semilogy(np.array(ray['x'][srt]), np.array(ray['temperature'][srt]))
-   plt.xlabel('x')
-   plt.ylabel('temperature')
+   plt.semilogy(np.array(ray["x"][srt]), np.array(ray["temperature"][srt]))
+   plt.xlabel("x")
+   plt.ylabel("temperature")
 
    plt.savefig("den_temp_xsweep.png")
 
