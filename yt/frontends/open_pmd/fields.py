@@ -15,18 +15,18 @@ def setup_poynting_vector(self):
             u = mu_0 ** -1
             if axis in "x":
                 return u * (
-                    data["E_y"] * data["magnetic_field_z"]
-                    - data["E_z"] * data["magnetic_field_y"]
+                    data[("openPMD", "E_y")] * data[("gas", "magnetic_field_z")]
+                    - data[("openPMD", "E_z")] * data[("gas", "magnetic_field_y")]
                 )
             elif axis in "y":
                 return u * (
-                    data["E_z"] * data["magnetic_field_x"]
-                    - data["E_x"] * data["magnetic_field_z"]
+                    data[("openPMD", "E_z")] * data[("gas", "magnetic_field_x")]
+                    - data[("openPMD", "E_x")] * data[("gas", "magnetic_field_z")]
                 )
             elif axis in "z":
                 return u * (
-                    data["E_x"] * data["magnetic_field_y"]
-                    - data["E_y"] * data["magnetic_field_x"]
+                    data[("openPMD", "E_x")] * data[("gas", "magnetic_field_y")]
+                    - data[("openPMD", "E_y")] * data[("gas", "magnetic_field_x")]
                 )
 
         return poynting
@@ -156,7 +156,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                     # This appears to be a vector field of single dimensionality
                     ytname = str("_".join([fname.replace("_", "-")]))
                     parsed = parse_unit_dimension(
-                        np.asarray(field.attrs["unitDimension"], dtype=np.int)
+                        np.asarray(field.attrs["unitDimension"], dtype="int64")
                     )
                     unit = str(YTQuantity(1, parsed).units)
                     aliases = []
@@ -169,7 +169,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                     for axis in field.keys():
                         ytname = str("_".join([fname.replace("_", "-"), axis]))
                         parsed = parse_unit_dimension(
-                            np.asarray(field.attrs["unitDimension"], dtype=np.int)
+                            np.asarray(field.attrs["unitDimension"], dtype="int64")
                         )
                         unit = str(YTQuantity(1, parsed).units)
                         aliases = []

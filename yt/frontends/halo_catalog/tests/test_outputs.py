@@ -39,9 +39,7 @@ class HaloCatalogTest(TempDirTest):
     def test_halo_catalog(self):
         rs = np.random.RandomState(3670474)
         n_halos = 100
-        fields = [
-            f"particle_{name}" for name in ["mass"] + [f"position_{ax}" for ax in "xyz"]
-        ]
+        fields = ["particle_mass"] + [f"particle_position_{ax}" for ax in "xyz"]
         units = ["g"] + ["cm"] * 3
         data = {
             field: YTArray(rs.random_sample(n_halos), unit)
@@ -56,7 +54,7 @@ class HaloCatalogTest(TempDirTest):
         for field in fields:
             f1 = data[field].in_base()
             f1.sort()
-            f2 = ds.r[field].in_base()
+            f2 = ds.r[("all", field)].in_base()
             f2.sort()
             assert_array_equal(f1, f2)
 
@@ -64,9 +62,7 @@ class HaloCatalogTest(TempDirTest):
     def test_halo_catalog_boundary_particles(self):
         rs = np.random.RandomState(3670474)
         n_halos = 100
-        fields = [
-            f"particle_{name}" for name in ["mass"] + [f"position_{ax}" for ax in "xyz"]
-        ]
+        fields = ["particle_mass"] + [f"particle_position_{ax}" for ax in "xyz"]
         units = ["g"] + ["cm"] * 3
         data = {
             field: YTArray(rs.random_sample(n_halos), unit)
@@ -85,10 +81,10 @@ class HaloCatalogTest(TempDirTest):
 
         assert type(ds) is YTHaloCatalogDataset
 
-        for field in ["particle_mass"]:
+        for field in fields:
             f1 = data[field].in_base()
             f1.sort()
-            f2 = ds.r[field].in_base()
+            f2 = ds.r[("all", field)].in_base()
             f2.sort()
             assert_array_equal(f1, f2)
 

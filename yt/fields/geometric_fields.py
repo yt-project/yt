@@ -162,16 +162,10 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         units=unit_system["length"],
     )
 
-    def _spherical_r(field, data):
-        """This field is deprecated and will be removed in a future release"""
-        return data["index", "spherical_radius"]
-
-    registry.add_field(
+    registry.alias(
         ("index", "spherical_r"),
-        sampling_type="cell",
-        function=_spherical_r,
-        validators=[ValidateParameter("center")],
-        units=unit_system["length"],
+        ("index", "spherical_radius"),
+        deprecate=("4.0.0", "4.1.0"),
     )
 
     def _spherical_theta(field, data):
@@ -236,16 +230,10 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         units=unit_system["length"],
     )
 
-    def _cylindrical_r(field, data):
-        """This field is deprecated and will be removed in a future release"""
-        return data["index", "cylindrical_radius"]
-
-    registry.add_field(
+    registry.alias(
         ("index", "cylindrical_r"),
-        sampling_type="cell",
-        function=_cylindrical_r,
-        validators=[ValidateParameter("center")],
-        units=unit_system["length"],
+        ("index", "cylindrical_radius"),
+        deprecate=("4.0.0", "4.1.0"),
     )
 
     def _cylindrical_z(field, data):
@@ -289,29 +277,12 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         units="",
     )
 
-    def _disk_angle(field, data):
-        """This field is dprecated and will be removed in a future release"""
-        return data["index", "spherical_theta"]
-
-    registry.add_field(
+    registry.alias(
         ("index", "disk_angle"),
-        sampling_type="cell",
-        function=_disk_angle,
-        take_log=False,
-        display_field=False,
-        validators=[ValidateParameter("center"), ValidateParameter("normal")],
-        units="",
+        ("index", "spherical_theta"),
+        deprecate=("4.0.0", "4.1.0"),
     )
 
-    def _height(field, data):
-        """This field is deprecated and will be removed in a future release"""
-        return data["index", "cylindrical_z"]
-
-    registry.add_field(
-        ("index", "height"),
-        sampling_type="cell",
-        function=_height,
-        validators=[ValidateParameter("center"), ValidateParameter("normal")],
-        units=unit_system["length"],
-        display_field=False,
+    registry.alias(
+        ("index", "height"), ("index", "cylindrical_z"), deprecate=("4.0.0", "4.1.0")
     )

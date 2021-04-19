@@ -371,7 +371,7 @@ class AthenaHierarchy(GridIndex):
                     [slc[0].start, slc[1].start, slc[2].start] for slc in slices
                 ]
                 read_dims += [
-                    np.array([gdims[i][0], gdims[i][1], shape[2]], dtype="int")
+                    np.array([gdims[i][0], gdims[i][1], shape[2]], dtype="int64")
                     for shape in shapes
                 ]
             self.num_grids *= self.dataset.nprocs
@@ -609,11 +609,11 @@ class AthenaDataset(Dataset):
         ]
         self.nvtk = len(gridlistread) + 1
 
-        self.current_redshift = (
-            self.omega_lambda
-        ) = (
-            self.omega_matter
-        ) = self.hubble_constant = self.cosmological_simulation = 0.0
+        self.current_redshift = 0.0
+        self.omega_lambda = 0.0
+        self.omega_matter = 0.0
+        self.hubble_constant = 0.0
+        self.cosmological_simulation = 0
         self.parameters["Time"] = self.current_time  # Hardcode time conversion for now.
         self.parameters[
             "HydroMethod"

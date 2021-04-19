@@ -1,9 +1,7 @@
 import numpy as np
 
 from yt.funcs import mylog
-from yt.utilities.exceptions import YTDomainOverflow
 from yt.utilities.io_handler import BaseIOHandler
-from yt.utilities.lib.geometry_utils import compute_morton
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 
@@ -102,57 +100,6 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
                                     field_data = field_data[:, findex]
                         data = field_data[mask]
                         yield (ptype, field), data
-
-    def _initialize_index(self, data_file, regions):
-        pcount = sum(data_file.total_particles.values())
-        morton = np.empty(pcount, dtype="uint64")
-        if pcount == 0:
-            return morton
-        mylog.debug(
-            "Initializing index % 5i (% 7i particles)", data_file.file_id, pcount
-        )
-        ind = 0
-        with h5py.File(data_file.filename, mode="r") as f:
-            if not f.keys():
-                return None
-            dx = np.finfo(f["FOF"]["CenterOfMass"].dtype).eps
-            dx = 2.0 * self.ds.quan(dx, "code_length")
-
-            for ptype in data_file.ds.particle_types_raw:
-                if data_file.total_particles[ptype] == 0:
-                    continue
-                pos = f[ptype]["CenterOfMass"][()].astype("float64")
-                pos = np.resize(pos, (data_file.total_particles[ptype], 3))
-                pos = data_file.ds.arr(pos, "code_length")
-
-                # These are 32 bit numbers, so we give a little lee-way.
-                # Otherwise, for big sets of particles, we often will bump into the
-                # domain edges.  This helps alleviate that.
-                np.clip(
-                    pos,
-                    self.ds.domain_left_edge + dx,
-                    self.ds.domain_right_edge - dx,
-                    pos,
-                )
-                if np.any(pos.min(axis=0) < self.ds.domain_left_edge) or np.any(
-                    pos.max(axis=0) > self.ds.domain_right_edge
-                ):
-                    raise YTDomainOverflow(
-                        pos.min(axis=0),
-                        pos.max(axis=0),
-                        self.ds.domain_left_edge,
-                        self.ds.domain_right_edge,
-                    )
-                regions.add_data_file(pos, data_file.file_id)
-                morton[ind : ind + pos.shape[0]] = compute_morton(
-                    pos[:, 0],
-                    pos[:, 1],
-                    pos[:, 2],
-                    data_file.ds.domain_left_edge,
-                    data_file.ds.domain_right_edge,
-                )
-                ind += pos.shape[0]
-        return morton
 
     def _count_particles(self, data_file):
         with h5py.File(data_file.filename, mode="r") as f:

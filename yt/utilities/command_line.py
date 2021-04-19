@@ -22,10 +22,10 @@ from yt.funcs import (
     enable_plugins,
     ensure_dir,
     ensure_dir_exists,
-    get_hg_or_git_version,
+    get_git_version,
     get_yt_version,
     mylog,
-    update_hg_or_git,
+    update_git,
 )
 from yt.loaders import load
 from yt.utilities.configure import set_config
@@ -133,7 +133,7 @@ def _print_installation_information(path):
     print()
     print("---")
     print(f"Version = {yt.__version__}")
-    vstring = get_hg_or_git_version(path)
+    vstring = get_git_version(path)
     if vstring is not None:
         print(f"Changeset = {vstring.strip()}")
     print("---")
@@ -276,8 +276,8 @@ _common_options = dict(
         default=False,
         action="store_true",
         help=(
-            "Reinstall the full yt stack in the current location."
-            "This option has been deprecated and will not have any"
+            "Reinstall the full yt stack in the current location. "
+            "This option has been deprecated and will not have any "
             "effect."
         ),
     ),
@@ -327,7 +327,7 @@ _common_options = dict(
         type=str,
         dest="field",
         default="density",
-        help=("Field to color by, " "use a comma to separate field tuple values"),
+        help=("Field to color by, use a comma to separate field tuple values"),
     ),
     weight=dict(
         short="-g",
@@ -802,10 +802,8 @@ class YTHubRegisterCmd(YTCommand):
         """
 
     def __call__(self, args):
-        try:
-            import requests
-        except ImportError as e:
-            raise YTCommandRequiresModule("requests") from e
+        from yt.utilities.on_demand_imports import _requests as requests
+
         hub_api_key, config_file = ytcfg.get(
             "yt",
             "hub_api_key",
@@ -913,7 +911,7 @@ class YTInstInfoCmd(YTCommand):
             action="store",
             default=None,
             dest="outputfile",
-            help="File into which the current revision number will be" + "stored",
+            help="File into which the current revision number will be stored",
         ),
     )
     description = """
@@ -930,7 +928,7 @@ class YTInstInfoCmd(YTCommand):
         if vstring is not None:
             print("This installation CAN be automatically updated.")
             if opts.update_source:
-                update_hg_or_git(path)
+                update_git(path)
         elif opts.update_source:
             _print_failed_source_update()
         if vstring is not None and opts.outputfile is not None:
@@ -1523,7 +1521,7 @@ class YTUpdateCmd(YTCommand):
         if vstring is not None:
             print()
             print("This installation CAN be automatically updated.")
-            update_hg_or_git(path)
+            update_git(path)
         else:
             _print_failed_source_update(opts.reinstall)
 
@@ -1617,10 +1615,7 @@ class YTUploadFileCmd(YTCommand):
     name = "upload"
 
     def __call__(self, args):
-        try:
-            import requests
-        except ImportError as e:
-            raise YTCommandRequiresModule("requests") from e
+        from yt.utilities.on_demand_imports import _requests as requests
 
         fs = iter(FileStreamer(open(args.file, "rb")))
         upload_url = ytcfg.get("yt", "curldrop_upload_url")
@@ -1911,7 +1906,7 @@ class YTDownloadData(YTCommand):
             )
         elif not args.location:
             raise RuntimeError(
-                "You need to specify download location. See " "--help for details."
+                "You need to specify download location. See --help for details."
             )
         data_url = f"http://yt-project.org/data/{args.filename}"
         if args.location in ["test_data_dir", "supp_data_dir"]:

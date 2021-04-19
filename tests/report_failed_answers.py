@@ -204,7 +204,7 @@ def generate_answers(answer_dir, answers):
     ]
 
     for job in answers:
-        log.info("\n Generating answers for " + job)
+        log.info("\n Generating answers for %s", job)
         status &= nose.run(
             argv=test_argv + [job], addplugins=[AnswerTesting()], exit=False
         )
@@ -387,14 +387,14 @@ if __name__ == "__main__":
         "-m",
         "--upload-missing-answers",
         action="store_true",
-        help="Upload tests' answers that are not found in " "answer-store.",
+        help="Upload tests' answers that are not found in answer-store.",
     )
     parser.add_argument(
         "--xunit-file",
         action="store",
         dest="nosetest_xml",
         required=True,
-        help="Name of the nosetests xml file to parse for " "failed answer tests.",
+        help="Name of the nosetests xml file to parse for failed answer tests.",
     )
     args = parser.parse_args()
 

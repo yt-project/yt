@@ -127,7 +127,7 @@ class DatasetSeries:
     >>> ts = DatasetSeries(
             "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0[0-6][0-9]0")
     >>> for ds in ts:
-    ...     SlicePlot(ds, "x", "Density").save()
+    ...     SlicePlot(ds, "x", ("gas", "density")).save()
     ...
     >>> def print_time(ds):
     ...     print(ds.current_time)
@@ -137,7 +137,7 @@ class DatasetSeries:
     ...      setup_function = print_time)
     ...
     >>> for ds in ts:
-    ...     SlicePlot(ds, "x", "Density").save()
+    ...     SlicePlot(ds, "x", ("gas", "density")).save()
 
     """
 
@@ -194,22 +194,12 @@ class DatasetSeries:
         pattern = outputs
         epattern = os.path.expanduser(pattern)
         data_dir = ytcfg.get("yt", "test_data_dir")
-        # if not match if found from the current work dir,
+        # if no match if found from the current work dir,
         # we try to match the pattern from the test data dir
         file_list = glob.glob(epattern) or glob.glob(os.path.join(data_dir, epattern))
         if not file_list:
             raise FileNotFoundError(f"No match found for pattern : {pattern}")
         return sorted(file_list)
-
-    def __iter__(self):
-        # We can make this fancier, but this works
-        for o in self._pre_outputs:
-            try:
-                ds = self._load(o, **self.kwargs)
-                self._setup_function(ds)
-                yield ds
-            except TypeError:
-                yield o
 
     def __getitem__(self, key):
         if isinstance(key, slice):
@@ -220,11 +210,9 @@ class DatasetSeries:
                 self._pre_outputs[key], parallel=self.parallel, **self.kwargs
             )
         o = self._pre_outputs[key]
-        try:
+        if isinstance(o, (str, os.PathLike)):
             o = self._load(o, **self.kwargs)
             self._setup_function(o)
-        except TypeError:
-            pass
         return o
 
     def __len__(self):
@@ -277,7 +265,7 @@ class DatasetSeries:
 
         >>> ts = DatasetSeries("DD*/DD*.index")
         >>> for ds in ts.piter():
-        ...    SlicePlot(ds, "x", "Density").save()
+        ...    SlicePlot(ds, "x", ("gas", "density")).save()
         ...
 
         This demonstrates how one might store results:
@@ -290,7 +278,7 @@ class DatasetSeries:
         ...
         >>> my_storage = {}
         >>> for sto, ds in ts.piter(storage=my_storage):
-        ...     v, c = ds.find_max("density")
+        ...     v, c = ds.find_max(("gas", "density"))
         ...     sto.result = (v, c)
         ...
         >>> for i, (v, c) in sorted(my_storage.items()):
@@ -302,7 +290,7 @@ class DatasetSeries:
         >>> ts = DatasetSeries("DD*/DD*.index",
         ...                     parallel = 4)
         >>> for ds in ts.piter():
-        ...     ProjectionPlot(ds, "x", "Density").save()
+        ...     ProjectionPlot(ds, "x", ("gas", "density")).save()
         ...
 
         """
@@ -403,7 +391,7 @@ class DatasetSeries:
         ...      setup_function = print_time)
         ...
         >>> for ds in ts:
-        ...     SlicePlot(ds, "x", "Density").save()
+        ...     SlicePlot(ds, "x", ("gas", "density")).save()
 
         """
         issue_deprecation_warning(
@@ -466,16 +454,16 @@ class DatasetSeries:
         --------
         >>> my_fns = glob.glob("orbit_hdf5_chk_00[0-9][0-9]")
         >>> my_fns.sort()
-        >>> fields = ["particle_position_x", "particle_position_y",
-        >>>           "particle_position_z", "particle_velocity_x",
-        >>>           "particle_velocity_y", "particle_velocity_z"]
+        >>> fields = [("all", "particle_position_x"), ("all", "particle_position_y"),
+        >>>           ("all", "particle_position_z"), ("all", "particle_velocity_x"),
+        >>>           ("all", "particle_velocity_y"), ("all", "particle_velocity_z")]
         >>> ds = load(my_fns[0])
         >>> init_sphere = ds.sphere(ds.domain_center, (.5, "unitary"))
-        >>> indices = init_sphere["particle_index"].astype("int")
+        >>> indices = init_sphere[("all", "particle_index")].astype("int")
         >>> ts = DatasetSeries(my_fns)
         >>> trajs = ts.particle_trajectories(indices, fields=fields)
         >>> for t in trajs :
-        >>>     print(t["particle_velocity_x"].max(), t["particle_velocity_x"].min())
+        >>>     print(t[("all", "particle_velocity_x")].max(), t[("all", "particle_velocity_x")].min())
 
         Note
         ----

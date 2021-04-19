@@ -306,11 +306,11 @@ class StreamDataset(Dataset):
             self.omega_matter = self.stream_handler.omega_matter
             self.hubble_constant = self.stream_handler.hubble_constant
         else:
-            self.current_redshift = (
-                self.omega_lambda
-            ) = (
-                self.omega_matter
-            ) = self.hubble_constant = self.cosmological_simulation = 0.0
+            self.current_redshift = 0.0
+            self.omega_lambda = 0.0
+            self.omega_matter = 0.0
+            self.hubble_constant = 0.0
+            self.cosmological_simulation = 0
 
     def _set_units(self):
         self.field_units = self.stream_handler.field_units
@@ -666,7 +666,9 @@ class StreamOctreeSubset(OctreeSubset):
 
         if num_ghost_zones > 0:
             if not all(ds.periodicity):
-                mylog.warn("Ghost zones will wrongly assume the domain to be periodic.")
+                mylog.warning(
+                    "Ghost zones will wrongly assume the domain to be periodic."
+                )
             base_grid = StreamOctreeSubset(
                 base_region, ds, oct_handler, over_refine_factor
             )

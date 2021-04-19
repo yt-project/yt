@@ -54,7 +54,7 @@ def invalidate_volume(f):
     def wrapper(*args, **kwargs):
         ret = f(*args, **kwargs)
         obj = args[0]
-        if isinstance(obj.transfer_function, ProjectionTransferFunction):
+        if isinstance(obj._transfer_function, ProjectionTransferFunction):
             obj.sampler_type = "projection"
             obj._log_field = False
             obj._use_ghost_zones = False
@@ -621,7 +621,7 @@ class OctreeVolumeSource(VolumeSource):
             1, len(dx), 14, 1
         )
         mask = np.full(dt.shape[1:], 1, dtype=np.uint8)
-        dims = np.array([1, 1, 1], dtype=int)
+        dims = np.array([1, 1, 1], dtype="int64")
         pg = PartitionedGrid(0, dt, mask, LE.flatten(), RE.flatten(), dims, n_fields=1)
 
         mylog.debug("Casting rays")
@@ -688,7 +688,7 @@ class MeshSource(OpaqueSource):
         assert self.data_source is not None
         if self.field[0] == "all":
             raise NotImplementedError(
-                "Mesh unions are not implemented " "for 3D rendering"
+                "Mesh unions are not implemented for 3D rendering"
             )
 
         if self.engine == "embree":
@@ -698,7 +698,7 @@ class MeshSource(OpaqueSource):
             self.build_volume_bvh()
         else:
             raise NotImplementedError(
-                "Invalid ray-tracing engine selected. " "Choices are 'embree' and 'yt'."
+                "Invalid ray-tracing engine selected. Choices are 'embree' and 'yt'."
             )
 
     def cmap():
@@ -901,7 +901,7 @@ class MeshSource(OpaqueSource):
         if color is None:
             color = np.array([0, 0, 0, alpha])
 
-        locs = [self.sampler.amesh_lines == 1]
+        locs = (self.sampler.amesh_lines == 1,)
 
         self.current_image[:, :, 0][locs] = color[0]
         self.current_image[:, :, 1][locs] = color[1]

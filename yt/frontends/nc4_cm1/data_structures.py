@@ -196,7 +196,8 @@ class CM1Dataset(Dataset):
                     mylog.warning(
                         "Trying to load a cm1_lofs netcdf file but the "
                         "coordinates of the following fields do not match the "
-                        f"coordinates of the dataset: {failed_vars}"
+                        "coordinates of the dataset: %s",
+                        failed_vars,
                     )
                     return False
 

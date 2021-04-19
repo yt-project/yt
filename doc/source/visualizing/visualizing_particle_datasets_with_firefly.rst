@@ -42,16 +42,15 @@ Here is an example of how to use yt to export data to Firefly using some
 
    ramses_ds = yt.load("DICEGalaxyDisk_nonCosmological/output_00002/info_00002.txt")
 
-   region = ramses_ds.sphere(ramses_ds.domain_center,(1000,'kpc'))
+   region = ramses_ds.sphere(ramses_ds.domain_center, (1000, "kpc"))
 
    reader = region.create_firefly_object(
        path_to_firefly="repos/Firefly",
-       fields_to_include=[
-       'particle_extra_field_1',
-       'particle_extra_field_2'],
-       fields_units = ['dimensionless','dimensionless'],
-       dataset_name = 'IsoGalaxyRamses')
+       fields_to_include=["particle_extra_field_1", "particle_extra_field_2"],
+       fields_units=["dimensionless", "dimensionless"],
+       dataset_name="IsoGalaxyRamses",
+   )
 
-   reader.options['color']['io']=[1,1,0,1]
-   reader.particleGroups[0].decimation_factor=100
+   reader.options["color"]["io"] = [1, 1, 0, 1]
+   reader.particleGroups[0].decimation_factor = 100
    reader.dumpToJSON()

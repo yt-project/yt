@@ -198,7 +198,7 @@ class Camera(ParallelAnalysisInterface):
             self.rotation_vector = self.orienter.unit_vectors[1]
         self._setup_box_properties(width, center, self.orienter.unit_vectors)
         if fields is None:
-            fields = ["density"]
+            fields = [("gas", "density")]
         self.fields = fields
         if transfer_function is None:
             transfer_function = ProjectionTransferFunction()
@@ -1713,7 +1713,7 @@ class FisheyeCamera(Camera):
             transfer_function = ProjectionTransferFunction()
         self.transfer_function = transfer_function
         if fields is None:
-            fields = ["density"]
+            fields = [("gas", "density")]
         dd = self.ds.all_data()
         fields = dd._determine_fields(fields)
         self.fields = fields
@@ -1839,7 +1839,7 @@ class MosaicCamera(Camera):
         self.north_vector = north_vector
         self.normal_vector = normal_vector
         if fields is None:
-            fields = ["density"]
+            fields = [("gas", "density")]
         self.fields = fields
         if transfer_function is None:
             transfer_function = ProjectionTransferFunction()

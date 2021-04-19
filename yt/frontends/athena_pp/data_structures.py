@@ -71,8 +71,8 @@ class AthenaPPLogarithmicIndex(UnstructuredIndex):
         nbx, nby, nbz = tuple(np.max(log_loc, axis=0) + 1)
         nlevel = self._handle.attrs["MaxLevel"] + 1
 
-        nb = np.array([nbx, nby, nbz], dtype="int")
-        self.mesh_factors = np.ones(3, dtype="int") * ((nb > 1).astype("int") + 1)
+        nb = np.array([nbx, nby, nbz], dtype="int64")
+        self.mesh_factors = np.ones(3, dtype="int64") * ((nb > 1).astype("int") + 1)
 
         block_grid = -np.ones((nbx, nby, nbz, nlevel), dtype=np.int)
         block_grid[log_loc[:, 0], log_loc[:, 1], log_loc[:, 2], levels[:]] = np.arange(
@@ -339,11 +339,11 @@ class AthenaPPDataset(Dataset):
         else:
             self.gamma = 5.0 / 3.0
 
-        self.current_redshift = (
-            self.omega_lambda
-        ) = (
-            self.omega_matter
-        ) = self.hubble_constant = self.cosmological_simulation = 0.0
+        self.current_redshift = 0.0
+        self.omega_lambda = 0.0
+        self.omega_matter = 0.0
+        self.hubble_constant = 0.0
+        self.cosmological_simulation = 0
         self.parameters["Time"] = self.current_time  # Hardcode time conversion for now.
         self.parameters[
             "HydroMethod"

@@ -402,25 +402,22 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
             validators=[ValidateParameter("normal")],
         )
 
-        def _cylindrical_radial(field, data):
-            """This field is deprecated and will be removed in a future version"""
-            return data[ftype, f"{basename}_cylindrical_radius"]
-
-        registry.add_field(
+        registry.alias(
             (ftype, f"cylindrical_radial_{basename}"),
-            sampling_type="local",
-            function=_cylindrical_radial,
-            units=field_units,
+            (ftype, f"{basename}_cylindrical_radius"),
+            deprecate=("4.0.0", "4.1.0"),
         )
 
         def _cylindrical_radial_absolute(field, data):
             """This field is deprecated and will be removed in a future version"""
             return np.abs(data[ftype, f"{basename}_cylindrical_radius"])
 
-        registry.add_field(
+        registry.add_deprecated_field(
             (ftype, f"cylindrical_radial_{basename}_absolute"),
-            sampling_type="local",
             function=_cylindrical_radial_absolute,
+            sampling_type="local",
+            since="4.0.0",
+            removal="4.1.0",
             units=field_units,
             validators=[ValidateParameter("normal")],
         )
@@ -451,25 +448,22 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
             ],
         )
 
-        def _cylindrical_tangential(field, data):
-            """This field is deprecated and will be removed in a future release"""
-            return data[ftype, f"{basename}_cylindrical_theta"]
-
         def _cylindrical_tangential_absolute(field, data):
             """This field is deprecated and will be removed in a future release"""
             return np.abs(data[ftype, f"cylindrical_tangential_{basename}"])
 
-        registry.add_field(
+        registry.alias(
             (ftype, f"cylindrical_tangential_{basename}"),
-            sampling_type="local",
-            function=_cylindrical_tangential,
-            units=field_units,
+            (ftype, f"{basename}_cylindrical_theta"),
+            deprecate=("4.0.0", "4.1.0"),
         )
 
-        registry.add_field(
+        registry.add_deprecated_field(
             (ftype, f"cylindrical_tangential_{basename}_absolute"),
-            sampling_type="local",
             function=_cylindrical_tangential_absolute,
+            sampling_type="local",
+            since="4.0.0",
+            removal="4.1.0",
             units=field_units,
         )
 
@@ -502,32 +496,37 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
         def _cartesian_x(field, data):
             if registry.ds.geometry == "polar":
 
-                return data[f"{basename}_r"] * np.cos(data["theta"])
+                return data[(ftype, f"{basename}_r")] * np.cos(data[(ftype, "theta")])
 
             elif registry.ds.geometry == "cylindrical":
 
                 if data.ds.dimensionality == 2:
-                    return data[f"{basename}_r"]
+                    return data[(ftype, f"{basename}_r")]
                 elif data.ds.dimensionality == 3:
-                    return data[f"{basename}_r"] * np.cos(data["theta"]) - data[
-                        f"{basename}_theta"
-                    ] * np.sin(data["theta"])
+                    return data[(ftype, f"{basename}_r")] * np.cos(
+                        data[(ftype, "theta")]
+                    ) - data[(ftype, f"{basename}_theta")] * np.sin(
+                        data[(ftype, "theta")]
+                    )
 
             elif registry.ds.geometry == "spherical":
 
                 if data.ds.dimensionality == 2:
-                    return data[f"{basename}_r"] * np.sin(data["theta"]) + data[
-                        f"{basename}_theta"
-                    ] * np.cos(data["theta"])
+                    return data[(ftype, f"{basename}_r")] * np.sin(
+                        data[(ftype, "theta")]
+                    ) + data[(ftype, f"{basename}_theta")] * np.cos(
+                        data[(ftype, "theta")]
+                    )
                 elif data.ds.dimensionality == 3:
                     return (
-                        data[f"{basename}_r"]
-                        * np.sin(data["theta"])
-                        * np.cos(data["phi"])
-                        + data[f"{basename}_theta"]
-                        * np.cos(data["theta"])
-                        * np.cos(["phi"])
-                        - data[f"{basename}_phi"] * np.sin(data["phi"])
+                        data[(ftype, f"{basename}_r")]
+                        * np.sin(data[(ftype, "theta")])
+                        * np.cos(data[(ftype, "phi")])
+                        + data[(ftype, f"{basename}_theta")]
+                        * np.cos(data[(ftype, "theta")])
+                        * np.cos([(ftype, "phi")])
+                        - data[(ftype, f"{basename}_phi")]
+                        * np.sin(data[(ftype, "phi")])
                     )
 
         # it's redundant to define a cartesian x field for 1D data
@@ -541,35 +540,37 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
             )
 
         def _cartesian_y(field, data):
-
             if registry.ds.geometry == "polar":
 
-                return data[f"{basename}_r"] * np.sin(data["theta"])
+                return data[(ftype, f"{basename}_r")] * np.sin(data[(ftype, "theta")])
 
             elif registry.ds.geometry == "cylindrical":
 
                 if data.ds.dimensionality == 2:
-                    return data[f"{basename}_z"]
+                    return data[(ftype, f"{basename}_z")]
                 elif data.ds.dimensionality == 3:
-                    return data[f"{basename}_r"] * np.sin(data["theta"]) + data[
-                        f"{basename}_theta"
-                    ] * np.cos(data["theta"])
+                    return data[(ftype, f"{basename}_r")] * np.sin(
+                        data[(ftype, "theta")]
+                    ) + data[(ftype, f"{basename}_theta")] * np.cos(
+                        data[(ftype, "theta")]
+                    )
 
             elif registry.ds.geometry == "spherical":
 
                 if data.ds.dimensionality == 2:
-                    return data[f"{basename}_r"] * np.cos(data["theta"]) - data[
-                        f"{basename}_theta"
-                    ] * np.sin(data["theta"])
+                    return data[(ftype, f"{basename}_r")] * np.cos(
+                        data[(ftype, "theta")]
+                    ) - data[f"{basename}_theta"] * np.sin(data[(ftype, "theta")])
                 elif data.ds.dimensionality == 3:
                     return (
-                        data[f"{basename}_r"]
-                        * np.sin(data["theta"])
-                        * np.sin(data["phi"])
-                        + data[f"{basename}_theta"]
-                        * np.cos(data["theta"])
-                        * np.sin(["phi"])
-                        + data[f"{basename}_phi"] * np.cos(data["phi"])
+                        data[(ftype, f"{basename}_r")]
+                        * np.sin(data[(ftype, "theta")])
+                        * np.sin(data[(ftype, "phi")])
+                        + data[(ftype, f"{basename}_theta")]
+                        * np.cos(data[(ftype, "theta")])
+                        * np.sin([(ftype, "phi")])
+                        + data[(ftype, f"{basename}_phi")]
+                        * np.cos(data[(ftype, "phi")])
                     )
 
         if registry.ds.dimensionality >= 2:
@@ -582,13 +583,12 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
             )
 
         def _cartesian_z(field, data):
-
             if registry.ds.geometry == "cylindrical":
-                return data[f"{basename}_z"]
+                return data[(ftype, f"{basename}_z")]
             elif registry.ds.geometry == "spherical":
-                return data[f"{basename}_r"] * np.cos(data["theta"]) - data[
-                    f"{basename}_theta"
-                ] * np.sin(data["theta"])
+                return data[(ftype, f"{basename}_r")] * np.cos(
+                    data[(ftype, "theta")]
+                ) - data[(ftype, f"{basename}_theta")] * np.sin(data[(ftype, "theta")])
 
         if registry.ds.dimensionality == 3:
             registry.add_field(
@@ -615,13 +615,19 @@ def create_averaged_field(
     validators += [ValidateSpatial(1, [(ftype, basename)])]
 
     def _averaged_field(field, data):
-        nx, ny, nz = data[(ftype, basename)].shape
+        def atleast_4d(array):
+            if array.ndim == 3:
+                return array[..., None]
+            else:
+                return array
+
+        nx, ny, nz, ngrids = atleast_4d(data[(ftype, basename)]).shape
         new_field = data.ds.arr(
-            np.zeros((nx - 2, ny - 2, nz - 2), dtype=np.float64),
+            np.zeros((nx - 2, ny - 2, nz - 2, ngrids), dtype=np.float64),
             (just_one(data[(ftype, basename)]) * just_one(data[(ftype, weight)])).units,
         )
         weight_field = data.ds.arr(
-            np.zeros((nx - 2, ny - 2, nz - 2), dtype=np.float64),
+            np.zeros((nx - 2, ny - 2, nz - 2, ngrids), dtype=np.float64),
             data[(ftype, weight)].units,
         )
         i_i, j_i, k_i = np.mgrid[0:3, 0:3, 0:3]
@@ -632,13 +638,22 @@ def create_averaged_field(
                 slice(j, ny - (2 - j)),
                 slice(k, nz - (2 - k)),
             )
-            new_field += data[(ftype, basename)][sl] * data[(ftype, weight)][sl]
-            weight_field += data[(ftype, weight)][sl]
+            new_field += (
+                atleast_4d(data[(ftype, basename)])[sl]
+                * atleast_4d(data[(ftype, weight)])[sl]
+            )
+            weight_field += atleast_4d(data[(ftype, weight)])[sl]
 
         # Now some fancy footwork
-        new_field2 = data.ds.arr(np.zeros((nx, ny, nz)), data[(ftype, basename)].units)
+        new_field2 = data.ds.arr(
+            np.zeros((nx, ny, nz, ngrids)), data[(ftype, basename)].units
+        )
         new_field2[1:-1, 1:-1, 1:-1] = new_field / weight_field
-        return new_field2
+
+        if data[(ftype, basename)].ndim == 3:
+            return new_field2[..., 0]
+        else:
+            return new_field2
 
     registry.add_field(
         (ftype, f"averaged_{basename}"),

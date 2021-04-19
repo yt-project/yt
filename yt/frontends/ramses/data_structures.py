@@ -443,9 +443,10 @@ class RAMSESDomainSubset(OctreeSubset):
     def retrieve_ghost_zones(self, ngz, fields, smoothed=False):
         if smoothed:
             mylog.warning(
-                f"{self}.retrieve_ghost_zones was called with the "
-                f"`smoothed` argument set to True. This is not supported, "
-                "ignoring it."
+                "%s.retrieve_ghost_zones was called with the "
+                "`smoothed` argument set to True. This is not supported, "
+                "ignoring it.",
+                self,
             )
             smoothed = False
 
@@ -565,7 +566,7 @@ class RAMSESIndex(OctreeIndex):
 
     def _initialize_level_stats(self):
         levels = sum([dom.level_count for dom in self.domains])
-        desc = {"names": ["numcells", "level"], "formats": ["Int64"] * 2}
+        desc = {"names": ["numcells", "level"], "formats": ["int64"] * 2}
         max_level = self.dataset.min_level + self.dataset.max_level + 2
         self.level_stats = blankRecordArray(desc, max_level)
         self.level_stats["level"] = [i for i in range(max_level)]
@@ -576,8 +577,8 @@ class RAMSESIndex(OctreeIndex):
             )
         for level in range(self.max_level + 1):
             self.level_stats[level + self.dataset.min_level + 1]["numcells"] = levels[
-                level
-            ]
+                :, level
+            ].sum()
 
     def _get_particle_type_counts(self):
         npart = 0
@@ -950,9 +951,10 @@ class RAMSESDataset(Dataset):
                     nml = f90nml.read(f)
             except ImportError as e:
                 nml = f"An error occurred when reading the namelist: {str(e)}"
-            except (ValueError, StopIteration) as e:
+            except (ValueError, StopIteration) as err:
                 mylog.warning(
-                    "Could not parse `namelist.txt` file as it was malformed: %s", e
+                    "Could not parse `namelist.txt` file as it was malformed:",
+                    exc_info=err,
                 )
                 return
 

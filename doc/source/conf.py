@@ -254,7 +254,7 @@ intersphinx_mapping = {
     "https://docs.python.org/3/": None,
     "https://ipython.readthedocs.io/en/stable/": None,
     "https://docs.scipy.org/doc/numpy/": None,
-    "https://matplotlib.org/": None,
+    "https://matplotlib.org/stable/": None,
     "https://docs.astropy.org/en/stable": None,
     "https://pandas.pydata.org/pandas-docs/stable": None,
     "trident": ("https://trident.readthedocs.io/en/latest/", None),

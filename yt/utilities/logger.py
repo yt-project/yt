@@ -54,7 +54,7 @@ def set_log_level(level):
     if level == "ALL":  # non-standard alias
         level = 1
     ytLogger.setLevel(level)
-    ytLogger.debug("Set log level to %d", level)
+    ytLogger.debug("Set log level to %s", level)
 
 
 ufstring = "%(name)-3s: [%(levelname)-9s] %(asctime)s %(message)s"
@@ -82,6 +82,28 @@ class DuplicateFilter(logging.Filter):
 
 
 ytLogger.addFilter(DuplicateFilter())
+
+
+class DeprecatedFieldFilter(logging.Filter):
+    """A filter that suppresses repeated logging of deprecated field warnings"""
+
+    def __init__(self, name=""):
+        self.logged_fields = []
+        super().__init__(name=name)
+
+    def filter(self, record):
+        if not record.msg.startswith("The Derived Field"):
+            return True
+
+        field = record.args[0]
+        if field in self.logged_fields:
+            return False
+
+        self.logged_fields.append(field)
+        return True
+
+
+ytLogger.addFilter(DeprecatedFieldFilter())
 
 
 def disable_stream_logging():

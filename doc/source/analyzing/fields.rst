@@ -88,8 +88,8 @@ standard python syntax:
 .. code-block:: python
 
    # these examples evaluate to True for a dataset that has ('gas', 'density')
-   'density' in ds.fields.gas
-   ('gas', 'density') in ds.fields.gas
+   "density" in ds.fields.gas
+   ("gas", "density") in ds.fields.gas
    ds.fields.gas.density in ds.fields.gas
 
 For a more programmatic method of accessing fields, you can utilize the
@@ -128,13 +128,13 @@ following:
     ad = ds.all_data()
 
     # just a field name
-    density = ad['density']
+    density = ad["density"]
 
     # field tuple with no parentheses
-    density = ad['gas', 'density']
+    density = ad["gas", "density"]
 
     # full field tuple
-    density = ad[('gas', 'density')]
+    density = ad[("gas", "density")]
 
     # through the ds.fields object
     density = ad[ds.fields.gas.density]
@@ -350,6 +350,37 @@ second sets the corresponding ``value``. Currently available format properties a
     * ``ionization_label``: sets how the ionization state of ions are labeled. Available
             options are ``"plus_minus"`` and ``"roman_numeral"``
 
+.. _efields:
+
+Energy and Momemtum Fields
+--------------------------
+
+Fields in yt representing energy and momentum quantities follow a specific
+naming convention (as of yt-4.x). In hydrodynamic simulations, the relevant
+quantities are often energy per unit mass or volume, momentum, or momentum
+density To distinguish clearly between the different types of fields, the
+following naming convention is adhered to:
+
+* Energy per unit mass fields are named as ``specific_*_energy``
+* Energy per unit volume fields are named as ``*_energy_density``
+* Momentum fields should be named ``momentum_density_*`` for momentum per
+  unit density, or ``momentum_*`` for momentum, where the ``*`` indicates
+  one of three coordinate axes in any supported coordinate system.
+
+For example, in the case of kinetic energy, the fields should be
+``kinetic_energy_density`` and ``specific_kinetic_energy``.
+
+In versions of yt previous to v4.0.0, these conventions were not adopted, and so
+energy fields in particular could be ambiguous with respect to units. For
+example, the ``kinetic_energy`` field was actually kinetic energy per unit
+volume, whereas the ``thermal_energy`` field, usually defined by various
+frontends, was typically thermal energy per unit mass. The above scheme
+rectifies these problems, but for the time being the previous field names are
+mapped to the current field naming scheme with a deprecation warning. These
+aliases will be removed in yt v4.1.0. Following this, new fields will be created
+which have dimensions of energy, which will simply be named ``*_energy`` as
+above.
+
 .. _bfields:
 
 Magnetic Fields
@@ -508,7 +539,7 @@ and want to calculate the gradient of that field, you can do it like so:
 .. code-block:: python
 
     ds = yt.load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150")
-    grad_fields = ds.add_gradient_fields(("gas","temperature"))
+    grad_fields = ds.add_gradient_fields(("gas", "temperature"))
 
 where the ``grad_fields`` list will now have a list of new field names that can be used
 in calculations, representing the 3 different components of the field and the magnitude
@@ -571,16 +602,18 @@ this will be handled automatically:
 
 .. code-block:: python
 
-    prj = yt.ProjectionPlot(ds, "z", ("gas", "velocity_los"),
-                            weight_field=("gas", "density"))
+    prj = yt.ProjectionPlot(
+        ds, "z", ("gas", "velocity_los"), weight_field=("gas", "density")
+    )
 
 Which, because the axis is ``"z"``, will give you the same result if you had
 projected the `"velocity_z"`` field. This also works for off-axis projections:
 
 .. code-block:: python
 
-    prj = yt.OffAxisProjectionPlot(ds, [0.1, -0.2, 0.3], ("gas", "velocity_los"),
-                                   weight_field=("gas", "density"))
+    prj = yt.OffAxisProjectionPlot(
+        ds, [0.1, -0.2, 0.3], ("gas", "velocity_los"), weight_field=("gas", "density")
+    )
 
 
 This shows that the projection axis can be along a principle axis of the domain
@@ -665,10 +698,12 @@ defined on each dataset to depose any particle field onto the mesh like so:
    import yt
 
    ds = yt.load("output_00080/info_00080.txt")
-   fname = ds.add_deposited_particle_field(('all', 'particle_velocity_x'), method='nearest')
+   fname = ds.add_deposited_particle_field(
+       ("all", "particle_velocity_x"), method="nearest"
+   )
 
-   print('The velocity of the particles are (stored in %s)' % fname)
-   print(ds.r['deposit', 'all_nn_particle_velocity_x'])
+   print("The velocity of the particles are (stored in %s)" % fname)
+   print(ds.r["deposit", "all_nn_particle_velocity_x"])
 
 Possible deposition methods are:
 
@@ -716,10 +751,10 @@ function defined on each dataset to impose a field onto the particles like so:
    import yt
 
    ds = yt.load("output_00080/info_00080.txt")
-   ds.add_mesh_sampling_particle_field(('gas', 'temperature'), ptype='all')
+   ds.add_mesh_sampling_particle_field(("gas", "temperature"), ptype="all")
 
-   print('The temperature at the location of the particles is')
-   print(ds.r['all', 'cell_gas_temperature'])
+   print("The temperature at the location of the particles is")
+   print(ds.r["all", "cell_gas_temperature"])
 
 For octree codes (e.g. RAMSES), you can trigger the build of an index so
 that the next sampling operations will be mush faster
@@ -729,11 +764,13 @@ that the next sampling operations will be mush faster
    import yt
 
    ds = yt.load("output_00080/info_00080.txt")
-   ds.add_mesh_sampling_particle_field(('gas', 'temperature'), ptype='all')
+   ds.add_mesh_sampling_particle_field(("gas", "temperature"), ptype="all")
 
    ad = ds.all_data()
-   ad['all', 'cell_index']            # Trigger the build of the index of the cell containing the particles
-   ad['all', 'cell_gas_temperature']  # This is now much faster
+   ad[
+       "all", "cell_index"
+   ]  # Trigger the build of the index of the cell containing the particles
+   ad["all", "cell_gas_temperature"]  # This is now much faster
 
 .. _sph-fields:
 
@@ -755,11 +792,10 @@ yt defines this field as a plugin, and it can be added like so:
 .. code-block:: python
 
    import yt
-   from yt.fields.particle_fields import \
-     add_nearest_neighbor_field
+   from yt.fields.particle_fields import add_nearest_neighbor_field
 
    ds = yt.load("snapshot_033/snap_033.0.hdf5")
-   fn, = add_nearest_neighbor_field("all", "particle_position", ds)
+   (fn,) = add_nearest_neighbor_field("all", "particle_position", ds)
 
    dd = ds.all_data()
    print(dd[fn])
@@ -782,13 +818,13 @@ from the nearest particle.
 .. code-block:: python
 
    import yt
-   from yt.fields.particle_fields import \
-     add_nearest_neighbor_value_field
+   from yt.fields.particle_fields import add_nearest_neighbor_value_field
 
    ds = yt.load("snapshot_033/snap_033.0.hdf5")
    ds.index
-   fn, = add_nearest_neighbor_value_field("all", "particle_position",
-                "particle_velocity_magnitude", ds.field_info)
+   (fn,) = add_nearest_neighbor_value_field(
+       "all", "particle_position", "particle_velocity_magnitude", ds.field_info
+   )
 
    dd = ds.all_data()
    print(dd[fn])

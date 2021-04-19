@@ -42,7 +42,7 @@ def test_bad_disk_input():
             (20, "kpc"),
             fields=YTQuantity(1, "kpc"),
         )
-    desired = "Expected an iterable object, received" " 'unyt.array.unyt_quantity'"
+    desired = "Expected an iterable object, received 'unyt.array.unyt_quantity'"
     assert_equal(str(ex.exception), desired)
 
     # Test invalid object

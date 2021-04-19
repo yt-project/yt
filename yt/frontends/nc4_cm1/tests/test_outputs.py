@@ -9,7 +9,7 @@ from yt.utilities.answer_testing.framework import (
     small_patch_amr,
 )
 
-_fields = ("thrhopert", "zvort")
+_fields = (("cm1", "thrhopert"), ("cm1", "zvort"))
 cm1sim = "cm1_tornado_lofs/nc4_cm1_lofs_tornado_test.nc"
 
 
@@ -28,7 +28,7 @@ def test_cm1_mesh_fields():
     # ProjectionValuesTest for this field)
     if can_run_ds(ds):
         dso = [None, ("sphere", (ic, (0.1, "unitary")))]
-        for field in ["dbz"]:
+        for field in [("cm1", "dbz")]:
             yield GridValuesTest(ds, field)
             for dobj_name in dso:
                 yield FieldValuesTest(ds, field, dobj_name)

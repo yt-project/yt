@@ -20,8 +20,8 @@ import urllib.request
 import warnings
 from distutils.version import LooseVersion
 from functools import lru_cache, wraps
-from math import ceil, floor
 from numbers import Number as numeric_type
+from typing import Any, Callable, Type
 
 import matplotlib
 import numpy as np
@@ -31,6 +31,7 @@ from tqdm import tqdm
 from yt.units import YTArray, YTQuantity
 from yt.utilities.exceptions import YTInvalidWidthError
 from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.on_demand_imports import _requests as requests
 
 # Some functions for handling sequences and other types
 
@@ -60,7 +61,7 @@ def iter_fields(field_or_fields):
     Examples
     --------
 
-    >>> fields = "density"
+    >>> fields = ("gas", "density")
     >>> for field in iter_fields(fields):
     ...     print(field)
     density
@@ -70,7 +71,7 @@ def iter_fields(field_or_fields):
     ...     print(field)
     ('gas', 'density')
 
-    >>> fields = ["density", "temperature", ("index", "dx")]
+    >>> fields = [("gas", "density"), ("gas", "temperature"), ("index", "dx")]
     >>> for field in iter_fields(fields):
     ...     print(field)
     density
@@ -120,8 +121,8 @@ def compare_dicts(dict1, dict2):
                 else:
                     return False
             try:
-                comparison = (dict1[key] == dict2[key]).all()
-            except AttributeError:
+                comparison = np.array_equal(dict1[key], dict2[key])
+            except TypeError:
                 comparison = dict1[key] == dict2[key]
             if not comparison:
                 return False
@@ -202,7 +203,8 @@ def print_tb(func):
     .. code-block:: python
 
        @print_tb
-       def some_deeply_nested_function(...):
+       def some_deeply_nested_function(*args, **kwargs):
+           ...
 
     """
 
@@ -225,8 +227,8 @@ def rootonly(func):
     .. code-block:: python
 
        @rootonly
-       def some_root_only_function(...):
-
+       def some_root_only_function(*args, **kwargs):
+           ...
     """
     from yt.config import ytcfg
 
@@ -249,7 +251,8 @@ def pdb_run(func):
     .. code-block:: python
 
        @pdb_run
-       def some_function_to_debug(...):
+       def some_function_to_debug(*args, **kwargs):
+           ...
 
     """
 
@@ -336,47 +339,7 @@ class DummyProgressBar:
         return
 
 
-class ParallelProgressBar:
-    # This is just a simple progress bar
-    # that prints on start/stop
-    def __init__(self, title, maxval):
-        self.title = title
-        mylog.info("Starting '%s'", title)
-
-    def update(self, *args, **kwargs):
-        return
-
-    def finish(self):
-        mylog.info("Finishing '%s'", self.title)
-
-
-class GUIProgressBar:
-    def __init__(self, title, maxval):
-        import wx
-
-        self.maxval = maxval
-        self.last = 0
-        self._pbar = wx.ProgressDialog(
-            "Working...",
-            title,
-            maximum=maxval,
-            style=wx.PD_REMAINING_TIME | wx.PD_ELAPSED_TIME | wx.PD_APP_MODAL,
-        )
-
-    def update(self, val):
-        # An update is only meaningful if it's on the order of 1/100 or greater
-        if (
-            ceil(100 * self.last / self.maxval) + 1 == floor(100 * val / self.maxval)
-            or val == self.maxval
-        ):
-            self._pbar.Update(val)
-            self.last = val
-
-    def finish(self):
-        self._pbar.Destroy()
-
-
-def get_pbar(title, maxval, parallel=False):
+def get_pbar(title, maxval):
     """
     This returns a progressbar of the most appropriate type, given a *title*
     and a *maxval*.
@@ -388,19 +351,10 @@ def get_pbar(title, maxval, parallel=False):
         ytcfg.get("yt", "suppress_stream_logging")
         or ytcfg.get("yt", "internals", "within_testing")
         or maxval == 1
+        or not is_root()
     ):
         return DummyProgressBar()
-    elif ytcfg.get("yt", "internals", "parallel"):
-        # If parallel is True, update progress on root only.
-        if parallel:
-            if is_root():
-                return TqdmProgressBar(title, maxval)
-            else:
-                return DummyProgressBar()
-        else:
-            return ParallelProgressBar(title, maxval)
-    pbar = TqdmProgressBar(title, maxval)
-    return pbar
+    return TqdmProgressBar(title, maxval)
 
 
 def only_on_root(func, *args, **kwargs):
@@ -412,12 +366,12 @@ def only_on_root(func, *args, **kwargs):
     from yt.config import ytcfg
 
     if kwargs.pop("global_rootonly", False):
-        cfg_option = "__global_parallel_rank"
+        cfg_option = "global_parallel_rank"
     else:
-        cfg_option = "__topcomm_parallel_rank"
+        cfg_option = "topcomm_parallel_rank"
     if not ytcfg.get("yt", "internals", "parallel"):
         return func(*args, **kwargs)
-    if ytcfg.get("yt", cfg_option) > 0:
+    if ytcfg.get("yt", "internals", cfg_option) > 0:
         return
     return func(*args, **kwargs)
 
@@ -429,12 +383,9 @@ def is_root():
     """
     from yt.config import ytcfg
 
-    cfg_option = "__topcomm_parallel_rank"
     if not ytcfg.get("yt", "internals", "parallel"):
         return True
-    if ytcfg.get("yt", cfg_option) > 0:
-        return False
-    return True
+    return ytcfg.get("yt", "internals", "topcomm_parallel_rank") == 0
 
 
 #
@@ -520,13 +471,6 @@ class YTEmptyClass:
     pass
 
 
-def update_hg_or_git(path):
-    if os.path.exists(os.sep.join([path, ".hg"])):
-        update_hg(path)
-    elif os.path.exists(os.sep.join([path, ".git"])):
-        update_git(path)
-
-
 def update_git(path):
     try:
         import git
@@ -581,40 +525,6 @@ def update_git(path):
     print("Updated successfully")
 
 
-def update_hg(path):
-    try:
-        import hglib
-    except ImportError:
-        print("Updating requires python-hglib to be installed.")
-        print("Try: pip install python-hglib")
-        return -1
-    f = open(os.path.join(path, "yt_updater.log"), "a")
-    with hglib.open(path) as repo:
-        repo.pull(b"https://bitbucket.org/yt_analysis/yt")
-        ident = repo.identify().decode("utf-8")
-        if "+" in ident:
-            print("Changes have been made to the yt source code so I won't ")
-            print("update the code. You will have to do this yourself.")
-            print("Here's a set of sample commands:")
-            print("")
-            print(f"    $ cd {path}")
-            print("    $ hg up -C yt  # This will delete any unsaved changes")
-            print(f"    $ {sys.executable} setup.py develop")
-            print("")
-            return 1
-        print("Updating the repository")
-        f.write("Updating the repository\n\n")
-        books = repo.bookmarks()[0]
-        books = [b[0].decode("utf8") for b in books]
-        if "main" in books:
-            repo.update("main", check=True)
-        else:
-            repo.update("yt", check=True)
-        f.write(f"Updated from {ident} to {repo.identify()}\n\n")
-        rebuild_modules(path, f)
-    print("Updated successfully.")
-
-
 def rebuild_modules(path, f):
     f.write("Rebuilding modules\n\n")
     p = subprocess.Popen(
@@ -630,14 +540,6 @@ def rebuild_modules(path, f):
         print(f"BROKEN: See {os.path.join(path, 'yt_updater.log')}")
         sys.exit(1)
     f.write("Successful!\n")
-
-
-def get_hg_or_git_version(path):
-    if os.path.exists(os.sep.join([path, ".hg"])):
-        return get_hg_version(path)
-    elif os.path.exists(os.sep.join([path, ".git"])):
-        return get_git_version(path)
-    return None
 
 
 def get_git_version(path):
@@ -656,29 +558,7 @@ def get_git_version(path):
         return None
 
 
-def get_hg_version(path):
-    try:
-        import hglib
-    except ImportError:
-        print("Updating and precise version information requires ")
-        print("python-hglib to be installed.")
-        print("Try: pip install python-hglib")
-        return None
-    try:
-        with hglib.open(path) as repo:
-            return repo.identify().decode("utf-8")
-    except hglib.error.ServerError:
-        # path is not an hg repository
-        return None
-
-
 def get_yt_version():
-    try:
-        from yt.__hg_version__ import hg_version
-
-        return hg_version
-    except ImportError:
-        pass
     import pkg_resources
 
     yt_provider = pkg_resources.get_provider("yt")
@@ -716,11 +596,11 @@ def get_script_contents():
 
 
 def download_file(url, filename):
-    requests = get_requests()
-    if requests is None:
-        return simple_download_file(url, filename)
-    else:
+    try:
         return fancy_download_file(url, filename, requests)
+    except ImportError:
+        # fancy_download_file requires requests
+        return simple_download_file(url, filename)
 
 
 def fancy_download_file(url, filename, requests=None):
@@ -773,38 +653,6 @@ def bb_apicall(endpoint, data, use_pass=True):
         upw = f"{username}:{password}"
         req.add_header("Authorization", f"Basic {base64.b64encode(upw).strip()}")
     return urllib.request.urlopen(req).read()
-
-
-def get_yt_supp():
-    import hglib
-
-    supp_path = os.path.join(os.environ["YT_DEST"], "src", "yt-supplemental")
-    # Now we check that the supplemental repository is checked out.
-    if not os.path.isdir(supp_path):
-        print()
-        print("*** The yt-supplemental repository is not checked ***")
-        print("*** out.  I can do this for you, but because this ***")
-        print("*** is a delicate act, I require you to respond   ***")
-        print("*** to the prompt with the word 'yes'.            ***")
-        print()
-        response = input("Do you want me to try to check it out? ")
-        if response != "yes":
-            print()
-            print("Okay, I understand.  You can check it out yourself.")
-            print("This command will do it:")
-            print()
-            print(
-                "$ hg clone http://bitbucket.org/yt_analysis/yt-supplemental/ ", end=" "
-            )
-            print(f"{supp_path}")
-            print()
-            sys.exit(1)
-        rv = hglib.clone("http://bitbucket.org/yt_analysis/yt-supplemental/", supp_path)
-        if rv:
-            print("Something has gone wrong.  Quitting.")
-            sys.exit(1)
-    # Now we think we have our supplemental repository.
-    return supp_path
 
 
 def fix_length(length, ds):
@@ -877,16 +725,6 @@ def get_num_threads():
 
 def fix_axis(axis, ds):
     return ds.coordinates.axis_id.get(axis, axis)
-
-
-def get_image_suffix(name):
-    suffix = os.path.splitext(name)[1]
-    supported_suffixes = [".png", ".eps", ".ps", ".pdf", ".jpg", ".jpeg"]
-    if suffix in supported_suffixes or suffix == "":
-        return suffix
-    else:
-        mylog.warning("Unsupported image suffix requested (%s)", suffix)
-        return ""
 
 
 def get_output_filename(name, keyword, suffix):
@@ -1049,7 +887,7 @@ def enable_plugins(plugin_filename=None):
     file is shared with it.
     """
     import yt
-    from yt.config import CONFIG_DIR, ytcfg
+    from yt.config import config_dir, old_config_dir, ytcfg
     from yt.fields.my_plugin_fields import my_plugins_fields
 
     if plugin_filename is not None:
@@ -1062,20 +900,19 @@ def enable_plugins(plugin_filename=None):
         # - CONFIG_DIR
         # - obsolete config dir.
         my_plugin_name = ytcfg.get("yt", "plugin_filename")
-        old_config_dir = os.path.join(os.path.expanduser("~"), ".yt")
-        for base_prefix in ("", CONFIG_DIR, old_config_dir):
+        for base_prefix in ("", config_dir(), old_config_dir()):
             if os.path.isfile(os.path.join(base_prefix, my_plugin_name)):
                 _fn = os.path.join(base_prefix, my_plugin_name)
                 break
         else:
             raise FileNotFoundError("Could not find a global system plugin file.")
 
-        if _fn.startswith(old_config_dir):
+        if _fn.startswith(old_config_dir()):
             mylog.warning(
                 "Your plugin file is located in a deprecated directory. "
                 "Please move it from %s to %s",
-                os.path.join(old_config_dir, my_plugin_name),
-                os.path.join(CONFIG_DIR, my_plugin_name),
+                os.path.join(old_config_dir(), my_plugin_name),
+                os.path.join(config_dir(), my_plugin_name),
             )
 
     mylog.info("Loading plugins from %s", _fn)
@@ -1184,14 +1021,6 @@ def get_brewer_cmap(cmap):
     else:
         raise RuntimeError("Please install palettable to use colorbrewer colormaps")
     return bmap.get_mpl_colormap(N=cmap[2])
-
-
-def get_requests():
-    try:
-        import requests
-    except ImportError:
-        requests = None
-    return requests
 
 
 @contextlib.contextmanager
@@ -1414,3 +1243,33 @@ def sglob(pattern):
     Return the results of a glob through the sorted() function.
     """
     return sorted(glob.glob(pattern))
+
+
+def dictWithFactory(factory: Callable[[Any], Any]) -> Type:
+    """
+    Create a dictionary class with a default factory function.
+    Contrary to `collections.defaultdict`, the factory takes
+    the missing key as input parameter.
+
+    Parameters
+    ----------
+    factory : callable(key) -> value
+        The factory to call when hitting a missing key
+
+    Returns
+    -------
+    DictWithFactory class
+        A class to create new dictionaries handling missing keys.
+    """
+
+    class DictWithFactory(dict):
+        def __init__(self, *args, **kwargs):
+            self.factory = factory
+            super().__init__(*args, **kwargs)
+
+        def __missing__(self, key):
+            val = self.factory(key)
+            self[key] = val
+            return val
+
+    return DictWithFactory

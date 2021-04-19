@@ -19,7 +19,7 @@ from yt.fields.field_info_container import FieldInfoContainer
 
 b_units = "code_magnetic"
 pres_units = "code_mass/(code_length*code_time**2)"
-erg_units = "code_mass * (code_length/code_time)**2"
+en_units = "code_mass * (code_length/code_time)**2"
 rho_units = "code_mass / code_length**3"
 
 
@@ -39,9 +39,9 @@ class FLASHFieldInfo(FieldInfoContainer):
         ("pion", (pres_units, [], None)),
         ("pele", (pres_units, [], "Electron Pressure, P_e")),
         ("prad", (pres_units, [], "Radiation Pressure")),
-        ("eion", (erg_units, [], "Ion Internal Energy")),
-        ("eele", (erg_units, [], "Electron Internal Energy")),
-        ("erad", (erg_units, [], "Radiation Internal Energy")),
+        ("eion", (en_units, [], "Ion Internal Specific Energy")),
+        ("eele", (en_units, [], "Electron Internal Specific Energy")),
+        ("erad", (en_units, [], "Radiation Internal Specific Energy")),
         ("pden", (rho_units, [], "Particle Mass Density")),
         ("depo", ("code_length**2/code_time**2", [], None)),
         ("ye", ("", [], "Y_e")),
@@ -95,6 +95,7 @@ class FLASHFieldInfo(FieldInfoContainer):
                 units="",
                 display_name=f"Energy Group {i}",
             )
+
         # Add energy fields
         def ekin(data):
             ek = data["flash", "velx"] ** 2
@@ -111,10 +112,11 @@ class FLASHFieldInfo(FieldInfoContainer):
                 units="code_length**2/code_time**2",
             )
             self.alias(
-                ("gas", "total_energy"),
+                ("gas", "specific_total_energy"),
                 ("flash", "ener"),
                 units=unit_system["specific_energy"],
             )
+
         else:
 
             def _ener(field, data):
@@ -126,7 +128,7 @@ class FLASHFieldInfo(FieldInfoContainer):
                 return ener
 
             self.add_field(
-                ("gas", "total_energy"),
+                ("gas", "specific_total_energy"),
                 sampling_type="cell",
                 function=_ener,
                 units=unit_system["specific_energy"],
@@ -138,7 +140,7 @@ class FLASHFieldInfo(FieldInfoContainer):
                 units="code_length**2/code_time**2",
             )
             self.alias(
-                ("gas", "thermal_energy"),
+                ("gas", "specific_thermal_energy"),
                 ("flash", "eint"),
                 units=unit_system["specific_energy"],
             )
@@ -153,7 +155,7 @@ class FLASHFieldInfo(FieldInfoContainer):
                 return eint
 
             self.add_field(
-                ("gas", "thermal_energy"),
+                ("gas", "specific_thermal_energy"),
                 sampling_type="cell",
                 function=_eint,
                 units=unit_system["specific_energy"],

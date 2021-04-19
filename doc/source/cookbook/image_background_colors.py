@@ -7,7 +7,7 @@ import yt
 # a standard volume rendering.
 
 ds = yt.load("Enzo_64/DD0043/data0043")
-im, sc = yt.volume_render(ds, "density")
+im, sc = yt.volume_render(ds, ("gas", "density"))
 im.write_png("original.png", sigma_clip=8.0)
 
 # Our image array can now be transformed to include different background

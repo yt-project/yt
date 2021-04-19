@@ -14,7 +14,6 @@ from yt.frontends.art.definitions import (
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.fortran_utils import read_vector, skip
 from yt.utilities.io_handler import BaseIOHandler
-from yt.utilities.lib.geometry_utils import compute_morton
 from yt.utilities.logger import ytLogger as mylog
 
 
@@ -122,7 +121,7 @@ class IOHandlerART(BaseIOHandler):
                 off = 1.0 / dd
                 tr[field] = rp(fields=[ax])[0] / dd - off
             if fname.startswith(f"particle_velocity_{ax}"):
-                (tr[field],) = rp(["v" + ax])
+                (tr[field],) = rp(fields=["v" + ax])
         if fname.startswith("particle_mass"):
             a = 0
             data = np.zeros(npa, dtype="f8")
@@ -135,7 +134,7 @@ class IOHandlerART(BaseIOHandler):
             tr[field] = np.arange(idxa, idxb)
         elif fname == "particle_type":
             a = 0
-            data = np.zeros(npa, dtype="int")
+            data = np.zeros(npa, dtype="int64")
             for i, (ptb, size) in enumerate(zip(pbool, sizes)):
                 if ptb:
                     data[a : a + size] = i
@@ -185,26 +184,6 @@ class IOHandlerDarkMatterART(IOHandlerART):
             for i, k in enumerate(self.ds.particle_types_raw)
         }
 
-    def _initialize_index(self, data_file, regions):
-        totcount = 4096 ** 2  # file is always this size
-        count = data_file.ds.parameters["lspecies"][-1]
-        DLE = data_file.ds.domain_left_edge
-        DRE = data_file.ds.domain_right_edge
-        with open(data_file.filename, "rb") as f:
-            # The first total_particles * 3 values are positions
-            pp = np.fromfile(f, dtype=">f4", count=totcount * 3)
-            pp.shape = (3, totcount)
-            pp = pp[:, :count]  # remove zeros
-            pp = np.transpose(pp).astype(
-                np.float32
-            )  # cast as float32 for compute_morton
-            pp = (pp - 1.0) / data_file.ds.parameters[
-                "ng"
-            ]  # correct the dm particle units
-        regions.add_data_file(pp, data_file.file_id)
-        morton = compute_morton(pp[:, 0], pp[:, 1], pp[:, 2], DLE, DRE)
-        return morton
-
     def _identify_fields(self, domain):
         field_list = []
         self.particle_field_list = [f for f in particle_fields]
@@ -248,7 +227,7 @@ class IOHandlerDarkMatterART(IOHandlerART):
             tr[field] = np.arange(idxa, idxb)
         elif fname == "particle_type":
             a = 0
-            data = np.zeros(npa, dtype="int")
+            data = np.zeros(npa, dtype="int64")
             for i, (ptb, size) in enumerate(zip(pbool, sizes)):
                 if ptb:
                     data[a : a + size] = i
@@ -520,7 +499,7 @@ def _read_child_mask_level(f, level_child_offsets, level, nLevel, nhydro_vars):
 
 
 nchem = 8 + 2
-dtyp = np.dtype(">i4,>i8,>i8" + f",>{nchem}f4" + ",>%sf4" % (2) + ",>i4")
+dtyp = np.dtype(f">i4,>i8,>i8,>{nchem}f4,>2f4,>i4")
 
 
 def _read_child_level(

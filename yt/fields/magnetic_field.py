@@ -45,26 +45,32 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
         units=u,
     )
 
-    def _magnetic_energy(field, data):
+    def _magnetic_energy_density(field, data):
         B = data[ftype, "magnetic_field_strength"]
         return 0.5 * B * B / mag_factors(B.units.dimensions)
 
     registry.add_field(
-        (ftype, "magnetic_energy"),
+        (ftype, "magnetic_energy_density"),
         sampling_type="local",
-        function=_magnetic_energy,
+        function=_magnetic_energy_density,
         units=unit_system["pressure"],
     )
 
+    registry.alias(
+        (ftype, "magnetic_energy"),
+        (ftype, "magnetic_energy_density"),
+        deprecate=("4.0.0", "4.1.0"),
+    )
+
     def _plasma_beta(field, data):
-        return data[ftype, "pressure"] / data[ftype, "magnetic_energy"]
+        return data[ftype, "pressure"] / data[ftype, "magnetic_energy_density"]
 
     registry.add_field(
         (ftype, "plasma_beta"), sampling_type="local", function=_plasma_beta, units=""
     )
 
     def _magnetic_pressure(field, data):
-        return data[ftype, "magnetic_energy"]
+        return data[ftype, "magnetic_energy_density"]
 
     registry.add_field(
         (ftype, "magnetic_pressure"),

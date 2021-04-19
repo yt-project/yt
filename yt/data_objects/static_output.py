@@ -52,6 +52,7 @@ from yt.utilities.parameter_file_storage import NoParameterShelf, ParameterFileS
 # When such a thing comes to pass, I'll move all the stuff that is constant up
 # to here, and then have it instantiate EnzoDatasets as appropriate.
 
+
 _cached_datasets = weakref.WeakValueDictionary()
 _ds_store = ParameterFileStore()
 
@@ -127,6 +128,7 @@ class Dataset(abc.ABC):
     _particle_type_counts = None
     _proj_type = "quad_proj"
     _ionization_label_format = "roman_numeral"
+    fields_detected = False
 
     # these are set in self._parse_parameter_file()
     domain_left_edge = MutableAttribute(True)
@@ -225,17 +227,16 @@ class Dataset(abc.ABC):
         self.setup_cosmology()
         self._assign_unit_system(unit_system)
         self._setup_coordinate_handler()
-
+        self.print_key_parameters()
+        self._set_derived_attrs()
         # Because we need an instantiated class to check the ds's existence in
         # the cache, we move that check to here from __new__.  This avoids
         # double-instantiation.
+        # PR 3124: _set_derived_attrs() can change the hash, check store here
         try:
             _ds_store.check_ds(self)
         except NoParameterShelf:
             pass
-        self.print_key_parameters()
-
-        self._set_derived_attrs()
         self._setup_classes()
 
     @property
@@ -602,6 +603,9 @@ class Dataset(abc.ABC):
         self.field_dependencies.update(deps)
         self.fields = FieldTypeContainer(self)
         self.index.field_list = sorted(self.field_list)
+        # Now that we've detected the fields, set this flag so that
+        # deprecated fields will be logged if they are used
+        self.fields_detected = True
         self._last_freq = (None, None)
 
     def set_field_label_format(self, format_property, value):
@@ -625,7 +629,7 @@ class Dataset(abc.ABC):
                 )
         else:
             raise ValueError(
-                "{} not a recognized format_property. Available"
+                "{} not a recognized format_property. Available "
                 "properties are: {}".format(
                     format_property, list(available_formats.keys())
                 )
@@ -929,9 +933,10 @@ class Dataset(abc.ABC):
         if to_array:
             if any(x.units.is_dimensionless for x in coords):
                 mylog.warning(
-                    f"dataset {self} has angular coordinates. "
+                    "dataset `%s` has angular coordinates. "
                     "Use 'to_array=False' to preserve "
-                    "dimensionality in each coordinate."
+                    "dimensionality in each coordinate.",
+                    str(self),
                 )
 
             # force conversion to length
@@ -1109,6 +1114,9 @@ class Dataset(abc.ABC):
         )
         if unit_system != "code":
             us = unit_system_registry[str(unit_system).lower()]
+
+        us._code_flag = unit_system == "code"
+
         self.unit_system = us
         self.unit_registry.unit_system = self.unit_system
 
@@ -1557,7 +1565,7 @@ class Dataset(abc.ABC):
         return self.index._add_mesh_sampling_particle_field(sample_field, ftype, ptype)
 
     def add_deposited_particle_field(
-        self, deposit_field, method, kernel_name="cubic", weight_field="particle_mass"
+        self, deposit_field, method, kernel_name="cubic", weight_field=None
     ):
         """Add a new deposited particle field
 
@@ -1580,8 +1588,9 @@ class Dataset(abc.ABC):
            the `simple_smooth` method and is otherwise ignored. Current
            supported kernel names include `cubic`, `quartic`, `quintic`,
            `wendland2`, `wendland4`, and `wendland6`.
-        weight_field : string, default 'particle_mass'
+        weight_field : (field_type, field_name) or None
            Weighting field name for deposition method `weighted_mean`.
+           If None, use the particle mass.
 
         Returns
         -------
@@ -1594,6 +1603,8 @@ class Dataset(abc.ABC):
         else:
             raise RuntimeError
 
+        if weight_field is None:
+            weight_field = (ptype, "particle_mass")
         units = self.field_info[ptype, deposit_field].output_units
         take_log = self.field_info[ptype, deposit_field].take_log
         name_map = {
@@ -1674,7 +1685,7 @@ class Dataset(abc.ABC):
         The field name tuple for the newly created field.
         """
         issue_deprecation_warning(
-            "This method is deprecated."
+            "This method is deprecated. "
             "Since yt-4.0, it's no longer necessary to add a field specifically for "
             "smoothing, because the global octree is removed. The old behavior of "
             "interpolating onto a grid structure can be recovered through data objects "
@@ -1716,7 +1727,7 @@ class Dataset(abc.ABC):
         Examples
         --------
 
-        >>> grad_fields = ds.add_gradient_fields(("gas","density"))
+        >>> grad_fields = ds.add_gradient_fields(("gas", "density"))
         >>> print(grad_fields)
         ... [('gas', 'density_gradient_x'), ('gas', 'density_gradient_y'),
         ...  ('gas', 'density_gradient_z'), ('gas', 'density_gradient_magnitude')]

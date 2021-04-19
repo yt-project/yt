@@ -90,11 +90,11 @@ class MoabHex8Dataset(Dataset):
         self.unique_identifier = self.parameter_filename
         self.cosmological_simulation = False
         self.num_ghost_zones = 0
-        self.current_redshift = (
-            self.omega_lambda
-        ) = (
-            self.omega_matter
-        ) = self.hubble_constant = self.cosmological_simulation = 0.0
+        self.current_redshift = 0.0
+        self.omega_lambda = 0.0
+        self.omega_matter = 0.0
+        self.hubble_constant = 0.0
+        self.cosmological_simulation = 0
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
@@ -159,7 +159,7 @@ class PyneMoabHex8Dataset(Dataset):
         unit_system="cgs",
     ):
         self.fluid_types += ("pyne",)
-        filename = "pyne_mesh_" + str(id(pyne_mesh))
+        filename = f"pyne_mesh_{id(pyne_mesh)}"
         self.pyne_mesh = pyne_mesh
         Dataset.__init__(
             self,
@@ -190,11 +190,11 @@ class PyneMoabHex8Dataset(Dataset):
         self.unique_identifier = self.parameter_filename
         self.cosmological_simulation = False
         self.num_ghost_zones = 0
-        self.current_redshift = (
-            self.omega_lambda
-        ) = (
-            self.omega_matter
-        ) = self.hubble_constant = self.cosmological_simulation = 0.0
+        self.current_redshift = 0.0
+        self.omega_lambda = 0.0
+        self.omega_matter = 0.0
+        self.hubble_constant = 0.0
+        self.cosmological_simulation = 0
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):

@@ -379,14 +379,14 @@ source include:
 
 - ``git``
 - A C compiler such as ``gcc`` or ``clang``
-- ``Python >= 3.5``
+- ``Python >= 3.6``
 
 In addition, building yt from source requires ``numpy`` and ``cython``
 which can be installed with ``pip``:
 
 .. code-block:: bash
 
-  $ pip install numpy cython
+  $ pip install --upgrade numpy cython
 
 You may also want to install some of yt's optional dependencies, including
 ``jupyter``, ``h5py`` (which in turn depends on the HDF5 library), ``scipy``,

@@ -9,7 +9,7 @@ vel_units = "code_length / code_time"
 
 def velocity_field(j):
     def _velocity(field, data):
-        return data["athena_pp", "mom%d" % j] / data["athena_pp", "dens"]
+        return data["athena_pp", f"mom{j}"] / data["athena_pp", "dens"]
 
     return _velocity
 
@@ -64,7 +64,7 @@ class AthenaPPFieldInfo(FieldInfoContainer):
                 units=unit_system["pressure"],
             )
 
-            def _thermal_energy(field, data):
+            def _specific_thermal_energy(field, data):
                 return (
                     data["athena_pp", "press"]
                     / (data.ds.gamma - 1.0)
@@ -72,9 +72,9 @@ class AthenaPPFieldInfo(FieldInfoContainer):
                 )
 
             self.add_field(
-                ("gas", "thermal_energy"),
+                ("gas", "specific_thermal_energy"),
                 sampling_type="cell",
-                function=_thermal_energy,
+                function=_specific_thermal_energy,
                 units=unit_system["specific_energy"],
             )
         elif ("athena_pp", "Etot") in self.field_list:
@@ -82,18 +82,19 @@ class AthenaPPFieldInfo(FieldInfoContainer):
                 ("athena_pp", "Etot"), sampling_type="cell", units=pres_units
             )
 
-            def _thermal_energy(field, data):
-                eint = data["athena_pp", "Etot"] - data["gas", "kinetic_energy"]
+            def _specific_thermal_energy(field, data):
+                eint = data["athena_pp", "Etot"] - data["gas", "kinetic_energy_density"]
                 if ("athena_pp", "B1") in self.field_list:
-                    eint -= data["gas", "magnetic_energy"]
+                    eint -= data["gas", "magnetic_energy_density"]
                 return eint / data["athena_pp", "dens"]
 
             self.add_field(
-                ("gas", "thermal_energy"),
+                ("gas", "specific_thermal_energy"),
                 sampling_type="cell",
-                function=_thermal_energy,
+                function=_specific_thermal_energy,
                 units=unit_system["specific_energy"],
             )
+
         # Add temperature field
         def _temperature(field, data):
             return (
