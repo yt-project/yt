@@ -2665,7 +2665,9 @@ class YTOctree(YTSelectionContainer3D):
                 .d
             )
 
-        positions = np.concatenate(positions) if len(positions) > 0 else np.array(positions)
+        positions = (
+            np.concatenate(positions) if len(positions) > 0 else np.array(positions)
+        )
         if not positions.size:
             mylog.info("No particles found!")
             self._octree = None
