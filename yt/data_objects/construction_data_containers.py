@@ -2767,7 +2767,12 @@ class YTOctree(YTSelectionContainer3D):
         if fields is None:
             return
 
-        sph_ptypes = getattr(self.ds, "_sph_ptypes", ["PartType0"])
+        if hasattr(self.ds, "_sph_ptypes"):
+            sph_ptypes = self.ds._sph_ptypes
+        else:
+            sph_ptypes = tuple(value for value in self.ds.particle_types_raw if value in ["PartType0","Gas","gas","io"])
+            
+        if len(sph_ptypes) ==  0: raise RuntimeError 
         smoothing_style = self.sph_smoothing_style
         normalize = self.sph_normalize
 
