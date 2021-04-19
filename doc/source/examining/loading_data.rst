@@ -1095,7 +1095,7 @@ so:
 
 .. code-block:: python
 
-  from yt.frontends.fits.misc import setup_counts_fields, PlotWindowWCS, ds9_region
+  from yt.frontends.fits.misc import PlotWindowWCS, ds9_region, setup_counts_fields
 
 ``setup_counts_fields``
 """""""""""""""""""""""
@@ -1321,7 +1321,11 @@ and units.
 .. code-block:: python
 
    bbox = [[-600.0, 600.0], [-600.0, 600.0], [-600.0, 600.0]]
-   unit_base = {"length": (1.0, "kpc"), "velocity": (1.0, "km/s"), "mass": (1.0, "Msun")}
+   unit_base = {
+       "length": (1.0, "kpc"),
+       "velocity": (1.0, "km/s"),
+       "mass": (1.0, "Msun"),
+   }
 
    ds = yt.load("snap_004", unit_base=unit_base, bounding_box=bbox)
 
@@ -1734,8 +1738,9 @@ code:
 
 .. code-block:: python
 
-   import yt
    import numpy
+
+   import yt
 
    xgrid = numpy.array([-1, -0.65, 0, 0.65, 1])
    ygrid = numpy.array([-1, 0, 1])
@@ -1803,8 +1808,9 @@ Here is an example of how to load an in-memory, unstructured mesh dataset:
 
 .. code-block:: python
 
-   import yt
    import numpy as np
+
+   import yt
 
    coords = np.array([[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]], dtype=np.float64)
 
@@ -1835,8 +1841,9 @@ To load multiple meshes, you can do:
 
 .. code-block:: python
 
-   import yt
    import numpy as np
+
+   import yt
 
    coordsMulti = np.array(
        [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]], dtype=np.float64
@@ -2614,7 +2621,9 @@ It is possible to provide extra arguments to the load function when loading RAMS
           ds_all = yt.load("output_00080/info_00080.txt")
           ds_yt = yt.load("output_00080/info_00080.txt", max_level=2, max_level_convention="yt")
           ds_ramses = yt.load(
-              "output_00080/info_00080.txt", max_level=8, max_level_convention="ramses"
+              "output_00080/info_00080.txt",
+              max_level=8,
+              max_level_convention="ramses",
           )
 
           any(ds_all.r["index", "grid_level"] > 2)  # True

@@ -72,7 +72,9 @@ to blue.  These will be accessible for the rest of the yt session as
 .. code-block:: python
 
     yt.make_colormap(
-        [("blue", 20), ("white", 20), ("red", 20)], name="french_flag", interpolate=False
+        [("blue", 20), ("white", 20), ("red", 20)],
+        name="french_flag",
+        interpolate=False,
     )
     yt.make_colormap(
         [("black", 5), ("red", 10), ("green", 20), ("blue", 0)],
