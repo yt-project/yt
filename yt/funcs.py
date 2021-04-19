@@ -20,8 +20,7 @@ import urllib.request
 import warnings
 from functools import lru_cache, wraps
 from numbers import Number as numeric_type
-from typing import Any, Callable, Type, Optional, Sequence, Union
-
+from typing import Any, Callable, Optional, Sequence, Type, Union
 
 import matplotlib
 import numpy as np
