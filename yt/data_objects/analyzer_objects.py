@@ -20,7 +20,7 @@ class AnalysisTask:
     def __repr__(self):
         # Stolen from YTDataContainer.__repr__
         s = f"{self.__class__.__name__}: "
-        s += ", ".join(["{}={}".format(i, getattr(self, i)) for i in self._params])
+        s += ", ".join([f"{i}={getattr(self, i)}" for i in self._params])
         return s
 
 
