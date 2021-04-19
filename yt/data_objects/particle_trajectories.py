@@ -105,7 +105,7 @@ class ParticleTrajectories:
 
             sto.result_id = ds.parameter_filename
             sto.result = (ds.current_time, array_indices, pfields)
-            pbar.update(i)
+            pbar.update(i + 1)
         pbar.finish()
 
         if self.suppress_logging:
