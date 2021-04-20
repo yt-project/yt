@@ -1456,24 +1456,26 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         return ls
 
     def _minimal_box(self, dds):
+        dds = np.array(dds)
+        # Get left and right edges relative to domain left
+        left  = np.array(self.left_edge.d  - self.ds.domain_left_edge.d)
+        right = np.array(self.right_edge.d - self.ds.domain_left_edge.d)
+        # Adjust to include buffer region that fully encompasses the resolution
+        # of the final grid
+        left  -= self.nbuf*dds
+        right += self.nbuf*dds + (self.ActiveDimensions*np.array(self.dds)/dds % 1.0)*dds
         LL = self.left_edge.d - self.ds.domain_left_edge.d
         # Nudge in case we're on the edge
-        LL += np.finfo(np.float64).eps
-        LS = self.right_edge.d - self.ds.domain_left_edge.d
-        LS += np.finfo(np.float64).eps
-        cell_start = LL / dds  # This is the cell we're inside
-        cell_end = LS / dds
-        if self.level == 0:
-            start_index = np.array(np.floor(cell_start), dtype="int64")
-            end_index = np.array(np.ceil(cell_end), dtype="int64")
-            dims = np.rint((self.ActiveDimensions * self.dds.d) / dds).astype("int64")
-        else:
-            # Give us one buffer
-            start_index = np.rint(cell_start).astype("int64") - 1
-            # How many root cells do we occupy?
-            end_index = np.rint(cell_end).astype("int64")
-            dims = end_index - start_index + 1
-        return start_index, end_index.astype("int64"), dims.astype("int32")
+        left  += np.finfo(np.float64).eps
+        right += np.finfo(np.float64).eps
+        # Determine the index of the left and right that we are inside
+        ileft  = left/dds  
+        iright = right/dds
+        # Starting indicies, ending indicies and dimensions of grid
+        istart = np.rint(ileft).astype('int64')
+        iend   = np.rint(iright).astype('int64') - 1
+        dims   = iend - istart + 1
+        return istart, iend, dims
 
     def _update_level_state(self, level_state):
         ls = level_state
