@@ -60,9 +60,9 @@ Old Script (no longer works):
 
     import yt
 
-    ds = yt.testing.fake_amr_ds()
-    p = yt.SlicePlot(ds, "z", ("gas", "Density"))
-    p.set_cmap(("gas", "Density"), "balance")
+    ds = yt.testing.fake_random_ds(1)
+    p = yt.SlicePlot(ds, "z", ("gas", "density"))
+    p.set_cmap(("gas", "density"), "balance")
 
 New Script:
 
@@ -71,9 +71,9 @@ New Script:
     import yt
     import cmocean
 
-    ds = yt.testing.fake_amr_ds()
-    p = yt.SlicePlot(ds, "z", ("gas", "Density"))
-    p.set_cmap(("gas", "Density"), "cmo.balance")
+    ds = yt.testing.fake_random_ds(1)
+    p = yt.SlicePlot(ds, "z", ("gas", "density"))
+    p.set_cmap(("gas", "density"), "cmo.balance")
 
 Cool New Things
 ---------------
