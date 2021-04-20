@@ -53,7 +53,7 @@ yt used to automatically register colormaps from ``cmocean``, unprefixed.
 This unfortunately became unsustainable with the 3.4 release of Matplotlib,
 in which colormaps with colliding names raise errors. The fix is to explicitly
 import the ``cmocean`` module and prefix ``cmocean`` colormaps (like
-``balance``) with ``cmo.``.  Note that this solution works with any 
+``balance``) with ``cmo.``.  Note that this solution works with any
 yt-supported version of Matplotlib, but is not backward compatible with earlier
 versions of yt. Example:
 
