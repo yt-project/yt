@@ -57,7 +57,7 @@ import the ``cmocean`` module and prefix ``cmocean`` colormaps (like
 yt-supported version of Matplotlib, but is not backward compatible with earlier
 versions of yt. Example:
 
-Old Script (no longer works):
+Old Script (will not work in the near future):
 
 .. code-block:: python
 
