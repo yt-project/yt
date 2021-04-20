@@ -818,7 +818,7 @@ class Dataset(abc.ABC):
                 f"the following field types:\n {self.field_info._ambiguous_field_names[fn]}\n"
                 "Please specify the requested field as an explicit "
                 "tuple (ftype, fname).\n"
-                f"Defaulting to '({ft}, {fn})'."
+                f'Defaulting to \'("{ft}", "{fn}")\'.'
             )
             issue_deprecation_warning(msg, since="4.0.0", removal="4.1.0")
         return field_info
