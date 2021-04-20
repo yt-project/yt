@@ -821,16 +821,17 @@ class Dataset(abc.ABC):
         # storing this condition before altering it
         guessing_type = ftype == "unknown"
         if guessing_type:
+            ftype = self._last_freq[0] or ftype
             if fname in self.field_info._ambiguous_field_names:
                 msg = (
                     f"The requested field name '{fname}' "
                     "is ambiguous and corresponds to any one of "
                     f"the following field types\n {self.field_info._ambiguous_field_names[fname]}. "
                     "Please specify the requested field as an explicit "
-                    "tuple (ftype, fname)."
+                    "tuple (ftype, fname).\n"
+                    f"Defaulting to '({ftype}, {fname})'."
                 )
                 issue_deprecation_warning(msg, since="4.0.0", removal="4.1.0")
-            ftype = self._last_freq[0] or ftype
         field = (ftype, fname)
 
         if (
