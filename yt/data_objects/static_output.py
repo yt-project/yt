@@ -829,7 +829,7 @@ class Dataset(abc.ABC):
                     "Please specify the requested field as an explicit "
                     "tuple (ftype, fname)."
                 )
-                issue_deprecation_warning(msg, since="4.0.0", removal="4.0.1")
+                issue_deprecation_warning(msg, since="4.0.0", removal="4.1.0")
             ftype = self._last_freq[0] or ftype
         field = (ftype, fname)
 
