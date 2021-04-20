@@ -459,7 +459,7 @@ class EnzoPDataset(Dataset):
         magnetic_unit = np.float64(magnetic_unit.in_cgs())
         setdefaultattr(self, "magnetic_unit", self.quan(magnetic_unit, "gauss"))
 
-    def __repr__(self):
+    def __str__(self):
         return self.basename[: -len(self._suffix)]
 
     @classmethod

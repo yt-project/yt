@@ -367,5 +367,5 @@ class AthenaPPDataset(Dataset):
     def _skip_cache(self):
         return True
 
-    def __repr__(self):
+    def __str__(self):
         return self.basename.rsplit(".", 1)[0]

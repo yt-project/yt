@@ -39,7 +39,7 @@ class HTTPStreamDataset(ParticleDataset):
             index_filename=index_filename,
         )
 
-    def __repr__(self):
+    def __str__(self):
         return self.base_url
 
     def _parse_parameter_file(self):
