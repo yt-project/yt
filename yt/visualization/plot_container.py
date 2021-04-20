@@ -1,6 +1,7 @@
 import base64
 import builtins
 import os
+import textwrap
 from collections import defaultdict
 from functools import wraps
 
@@ -19,6 +20,36 @@ from yt.utilities.definitions import formatted_length_unit_names
 from yt.utilities.exceptions import YTNotInsideNotebook
 
 from ._commons import validate_image_name
+
+try:
+    import cmocean  # noqa
+except ImportError:
+    cmocean = None
+
+CMOCEAN_DEPR_MSG = textwrap.dedent(
+    """\
+    It looks like you requested a colormap from the cmocean library. In the future, yt won't
+    recognize this bare (unprefixed) name. Please follow the recommended usage from cmocean's doc:
+    add an explicit `import cmocean` to your script, and prefix their colormap names with 'cmo.'
+    See our release notes for why this change was necessary."""
+)
+
+
+def _sanitize_cmap(cmap):
+    # this function should be removed entierly after yt 4.0.0 is released
+    if not isinstance(cmap, str):
+        return cmap
+    if cmocean is not None:
+        try:
+            cmo_cmap = f"cmo.{cmap}"
+            get_cmap(cmo_cmap)
+            issue_deprecation_warning(CMOCEAN_DEPR_MSG, since="4.0.0", removal="4.1.0")
+            return cmo_cmap
+        except ValueError:
+            pass
+    get_cmap(cmap)
+    return cmap
+
 
 latex_prefixes = {
     "u": r"\mu",
@@ -870,7 +901,7 @@ class ImagePlotContainer(PlotContainer):
 
         """
         self._colorbar_valid = False
-        self._colormap_config[field] = cmap
+        self._colormap_config[field] = _sanitize_cmap(cmap)
         return self
 
     @accepts_all_fields
