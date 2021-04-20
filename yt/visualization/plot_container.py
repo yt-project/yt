@@ -6,6 +6,7 @@ from functools import wraps
 
 import matplotlib
 import numpy as np
+from matplotlib.cm import get_cmap
 from more_itertools.more import always_iterable
 
 from yt._maintenance.deprecation import issue_deprecation_warning
@@ -16,7 +17,6 @@ from yt.units import YTQuantity
 from yt.units.unit_object import Unit
 from yt.utilities.definitions import formatted_length_unit_names
 from yt.utilities.exceptions import YTNotInsideNotebook
-from yt.visualization.color_maps import yt_colormaps
 
 from ._commons import validate_image_name
 
@@ -892,10 +892,7 @@ class ImagePlotContainer(PlotContainer):
         if color is None:
             cmap = self._colormap_config[field]
             if isinstance(cmap, str):
-                try:
-                    cmap = yt_colormaps[cmap]
-                except KeyError:
-                    cmap = getattr(matplotlib.cm, cmap)
+                cmap = get_cmap(cmap)
             color = cmap(0)
         self._background_color[field] = color
         return self
