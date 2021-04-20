@@ -808,6 +808,22 @@ class Dataset(abc.ABC):
     _last_finfo = None
 
     def _get_field_info(self, ftype, fname=None):
+        field_info, ambiguous = self._get_field_info_helper(ftype, fname)
+
+        if ambiguous:
+            ft, fn = field_info.name
+            msg = (
+                f"The requested field name '{fn}' "
+                "is ambiguous and corresponds to any one of "
+                f"the following field types:\n {self.field_info._ambiguous_field_names[fn]}\n"
+                "Please specify the requested field as an explicit "
+                "tuple (ftype, fname).\n"
+                f"Defaulting to '({ft}, {fn})'."
+            )
+            issue_deprecation_warning(msg, since="4.0.0", removal="4.1.0")
+        return field_info
+
+    def _get_field_info_helper(self, ftype, fname=None):
         self.index
 
         # store the original inputs in case we need to raise an error
@@ -822,27 +838,20 @@ class Dataset(abc.ABC):
         guessing_type = ftype == "unknown"
         if guessing_type:
             ftype = self._last_freq[0] or ftype
-            if fname in self.field_info._ambiguous_field_names:
-                msg = (
-                    f"The requested field name '{fname}' "
-                    "is ambiguous and corresponds to any one of "
-                    f"the following field types\n {self.field_info._ambiguous_field_names[fname]}. "
-                    "Please specify the requested field as an explicit "
-                    "tuple (ftype, fname).\n"
-                    f"Defaulting to '({ftype}, {fname})'."
-                )
-                issue_deprecation_warning(msg, since="4.0.0", removal="4.1.0")
+            ambiguous = fname in self.field_info._ambiguous_field_names
+        else:
+            ambiguous = False
         field = (ftype, fname)
 
         if (
             field == self._last_freq
             and field not in self.field_info.field_aliases.values()
         ):
-            return self._last_finfo
+            return self._last_finfo, ambiguous
         if field in self.field_info:
             self._last_freq = field
             self._last_finfo = self.field_info[(ftype, fname)]
-            return self._last_finfo
+            return self._last_finfo, ambiguous
 
         try:
             # Sometimes, if guessing_type == True, this will be switched for
@@ -860,7 +869,7 @@ class Dataset(abc.ABC):
             ):
                 field = self.default_fluid_type, field[1]
             self._last_freq = field
-            return self._last_finfo
+            return self._last_finfo, ambiguous
         except KeyError:
             pass
 
@@ -876,7 +885,7 @@ class Dataset(abc.ABC):
                 if (ftype, fname) in self.field_info:
                     self._last_freq = (ftype, fname)
                     self._last_finfo = self.field_info[(ftype, fname)]
-                    return self._last_finfo
+                    return self._last_finfo, ambiguous
         raise YTFieldNotFound(field=INPUT, ds=self)
 
     def _setup_classes(self):
