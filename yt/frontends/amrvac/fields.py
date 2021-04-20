@@ -83,6 +83,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
         ("b1", ("code_magnetic", ["magnetic_1"], None)),
         ("b2", ("code_magnetic", ["magnetic_2"], None)),
         ("b3", ("code_magnetic", ["magnetic_3"], None)),
+        ("Te", ("code_temperature", ["temperature"], None)),
         *known_dust_fields,
     )
 
