@@ -330,6 +330,9 @@ class Dataset(abc.ABC):
         return (_reconstruct_ds, args)
 
     def __repr__(self):
+        return f"{self.__class__.__name__}: {self.parameter_filename}"
+
+    def __str__(self):
         return self.basename
 
     def _hash(self):
