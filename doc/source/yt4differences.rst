@@ -55,19 +55,25 @@ names raise errors. The fix is to explicitly import the ``cmocean`` module and p
 (like ``balance``) with ``cmo.``.  Note that this solution works with any yt-supported version of Matplotlib, but is not backward compatible with earlier versions of yt. Example:
 
 Old Script (no longer works):
+
 .. code-block:: python
-import yt
-ds = yt.testing.fake_amr_ds()
-p = yt.SlicePlot(ds, "z", "Density")
-p.set_cmap("Density", "balance")
+
+    import yt
+
+    ds = yt.testing.fake_amr_ds()
+    p = yt.SlicePlot(ds, "z", ("gas", "Density"))
+    p.set_cmap(("gas", "Density"), "balance")
 
 New Script:
+
 .. code-block:: python
-import yt
-import cmocean
-ds = yt.testing.fake_amr_ds()
-p = yt.SlicePlot(ds, "z", "Density")
-p.set_cmap("Density", "cmo.balance")
+
+    import yt
+    import cmocean
+
+    ds = yt.testing.fake_amr_ds()
+    p = yt.SlicePlot(ds, "z", ("gas", "Density"))
+    p.set_cmap(("gas", "Density"), "cmo.balance")
 
 Cool New Things
 ---------------
