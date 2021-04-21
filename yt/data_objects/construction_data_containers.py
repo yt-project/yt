@@ -1290,28 +1290,29 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
     _min_level = None
 
     @wraps(YTCoveringGrid.__init__)
-    def __init__(self, *args, interp='linear', nbuf=None, **kwargs):
-        ds = kwargs['ds']
-        self._base_dx = ((ds.domain_right_edge - ds.domain_left_edge) /
-                         ds.domain_dimensions.astype("float64"))
+    def __init__(self, *args, interp="linear", nbuf=None, **kwargs):
+        ds = kwargs["ds"]
+        self._base_dx = (
+            ds.domain_right_edge - ds.domain_left_edge
+        ) / ds.domain_dimensions.astype("float64")
         self.global_endindex = None
         YTCoveringGrid.__init__(self, *args, **kwargs)
         self._final_start_index = self.global_startindex
         # Assign order (covergence) based on interpolation method
-        if interp == 'linear':
-            order=2
-        elif interp == 'cubic': 
-            order=4
+        if interp == "linear":
+            order = 2
+        elif interp == "cubic":
+            order = 4
         else:
             raise NotImplementedError
         # Assess buffer region surrounding grid
         if nbuf is None:
-            if order > 0: 
-                nbuf = order//2
+            if order > 0:
+                nbuf = order // 2
             elif order == -1:
                 nbuf = 3
         elif nbuf < 1:
-           raise ValueError
+            raise ValueError
         # Set order and number of buffer cells to object
         self.order = order
         self.nbuf = nbuf
@@ -1458,23 +1459,26 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
     def _minimal_box(self, dds):
         dds = np.array(dds)
         # Get left and right edges relative to domain left
-        left  = np.array(self.left_edge.d  - self.ds.domain_left_edge.d)
+        left = np.array(self.left_edge.d - self.ds.domain_left_edge.d)
         right = np.array(self.right_edge.d - self.ds.domain_left_edge.d)
         # Adjust to include buffer region that fully encompasses the resolution
         # of the final grid
-        left  -= self.nbuf*dds
-        right += self.nbuf*dds + (self.ActiveDimensions*np.array(self.dds)/dds % 1.0)*dds
+        left -= self.nbuf * dds
+        right += (
+            self.nbuf * dds
+            + (self.ActiveDimensions * np.array(self.dds) / dds % 1.0) * dds
+        )
         LL = self.left_edge.d - self.ds.domain_left_edge.d
         # Nudge in case we're on the edge
-        left  += np.finfo(np.float64).eps
+        left += np.finfo(np.float64).eps
         right += np.finfo(np.float64).eps
         # Determine the index of the left and right that we are inside
-        ileft  = left/dds  
-        iright = right/dds
+        ileft = left / dds
+        iright = right / dds
         # Starting indicies, ending indicies and dimensions of grid
-        istart = np.rint(ileft).astype('int64')
-        iend   = np.rint(iright).astype('int64') - 1
-        dims   = iend - istart + 1
+        istart = np.rint(ileft).astype("int64")
+        iend = np.rint(iright).astype("int64") - 1
+        dims = iend - istart + 1
         return istart, iend, dims
 
     def _update_level_state(self, level_state):
