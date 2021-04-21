@@ -1500,7 +1500,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         # Define cell-centers of the leftmost cells for the input and output
         # fields assuming that the dx=1 for the input field
         input_left = level_state.old_global_startindex + 0.5
-        output_left = (level_state.global_startindex + 0.5)/rf
+        output_left = (level_state.global_startindex + 0.5) / rf
         # Interpolate fields to finer level
         new_fields = []
         for input_field in level_state.fields:
