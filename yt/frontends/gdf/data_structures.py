@@ -294,5 +294,5 @@ class GDFDataset(Dataset):
             pass
         return False
 
-    def __repr__(self):
+    def __str__(self):
         return self.basename.rsplit(".", 1)[0]

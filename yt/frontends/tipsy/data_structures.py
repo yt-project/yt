@@ -109,7 +109,7 @@ class TipsyDataset(SPHDataset):
             kernel_name=kernel_name,
         )
 
-    def __repr__(self):
+    def __str__(self):
         return os.path.basename(self.parameter_filename)
 
     def _parse_parameter_file(self):

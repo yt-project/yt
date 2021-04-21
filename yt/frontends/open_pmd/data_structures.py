@@ -59,7 +59,7 @@ class OpenPMDGrid(AMRGridPatch):
         self.Children = []
         self.Level = level
 
-    def __repr__(self):
+    def __str__(self):
         return "OpenPMDGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
 
 

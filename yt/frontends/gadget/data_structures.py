@@ -336,7 +336,7 @@ class GadgetDataset(SPHDataset):
             spec = _hs
         return spec
 
-    def __repr__(self):
+    def __str__(self):
         return os.path.basename(self.parameter_filename).split(".")[0]
 
     def _get_hvals(self):
