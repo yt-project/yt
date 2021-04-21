@@ -1323,20 +1323,11 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
             return
         # We need a buffer region to allow for zones that contribute to the
         # interpolation but are not directly inside our bounds
+        center = (level_state.left_edge + level_state.right_edge)/2.0
         level_state.data_source = self.ds.region(
-            self.center,
-            level_state.left_edge - level_state.current_dx,
-            level_state.right_edge + level_state.current_dx,
-        )
+            center, level_state.left_edge, level_state.right_edge)
         level_state.data_source.min_level = level_state.current_level
         level_state.data_source.max_level = level_state.current_level
-        self._pdata_source = self.ds.region(
-            self.center,
-            level_state.left_edge - level_state.current_dx,
-            level_state.right_edge + level_state.current_dx,
-        )
-        self._pdata_source.min_level = level_state.current_level
-        self._pdata_source.max_level = level_state.current_level
 
     def _compute_minimum_level(self):
         # This attempts to determine the minimum level that we should be
