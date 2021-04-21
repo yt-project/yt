@@ -13,7 +13,7 @@ import numpy as np
 cimport cython
 cimport numpy as np
 
-from yt.utilities.lib.fp_utils cimport fclip, fmax, fmin, iclip, imax, imin, ifloor
+from yt.utilities.lib.fp_utils cimport fclip, fmax, fmin, iclip, ifloor, imax, imin
 
 
 @cython.cdivision(True)
@@ -127,10 +127,10 @@ def ghost_zone_interpolate(int rf, int order,
     cdef double dxi = 1.0
     cdef double dxo = dxi/rf
     # Number of cells in the input and output grid
-    cdef int[3] nxi = [input_field.shape[0], 
+    cdef int[3] nxi = [input_field.shape[0],
                        input_field.shape[1],
                        input_field.shape[2]]
-    cdef int[3] nxo = [output_field.shape[0], 
+    cdef int[3] nxo = [output_field.shape[0],
                        output_field.shape[1],
                        output_field.shape[2]]
     # Number of cells in the interpolation stencil
@@ -180,7 +180,7 @@ def ghost_zone_interpolate(int rf, int order,
                             for n0,ni in enumerate(range(ki,ki+nxs[2])):
                                 output_field[io,jo,ko] += xw[l0]*yw[m0]*zw[n0]*\
                                                           input_field[li,mi,ni]
-                    
+
                     kposi += dxo
                 jposi += dxo
             iposi += dxo
@@ -188,7 +188,7 @@ def ghost_zone_interpolate(int rf, int order,
 @cython.cdivision(True)
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef lagrange_weights(double[::1] x, 
+cdef lagrange_weights(double[::1] x,
                      double xp):
     cdef int nx = x.size
     cdef double[::1] wgts = np.empty((nx))
