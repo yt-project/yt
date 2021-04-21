@@ -1,7 +1,5 @@
 import numpy as np
 
-from yt.funcs import mylog
-from yt.geometry.geometry_handler import is_curvilinear
 from yt.units.unit_object import Unit
 from yt.utilities.chemical_formulas import default_mu
 from yt.utilities.lib.misc_utilities import obtain_relative_velocity_vector
@@ -255,14 +253,6 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
 
 
 def setup_gradient_fields(registry, grad_field, field_units, slice_info=None):
-
-    geom = registry.ds.geometry
-    if is_curvilinear(geom):
-        mylog.warning(
-            "In %s geometry, gradient fields may contain "
-            "artifacts near cartesian axes.",
-            geom,
-        )
 
     assert isinstance(grad_field, tuple)
     ftype, fname = grad_field
