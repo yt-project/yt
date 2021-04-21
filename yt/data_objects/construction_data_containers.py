@@ -1299,18 +1299,13 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         YTCoveringGrid.__init__(self, *args, **kwargs)
         self._final_start_index = self.global_startindex
         # Assign order (covergence) based on interpolation method
-        if interp == "linear":
-            order = 2
-        elif interp == "cubic":
-            order = 4
-        elif interp == "quintic":
-            order = 6
-        elif interp == "akima":
-            order = -1
-        elif interp == "natural":
-            order = -2
-        else:
-            raise NotImplementedError
+        order = {
+            "natural": -2,
+            "akima": -1,
+            "linear": 2,
+            "cubic": 4,
+            "quintic": 6,
+           }[interp]
         # Assess buffer region surrounding grid
         if nbuf is None:
             if order > 0:
