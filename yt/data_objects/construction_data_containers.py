@@ -1303,13 +1303,19 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
             order = 2
         elif interp == "cubic":
             order = 4
+        elif interp == "quintic":
+            order = 6
+        elif interp == "akima":
+            order = -1
+        elif interp == "natural":
+            order = -2
         else:
             raise NotImplementedError
         # Assess buffer region surrounding grid
         if nbuf is None:
             if order > 0:
                 nbuf = order // 2
-            elif order == -1:
+            else:
                 nbuf = 3
         elif nbuf < 1:
             raise ValueError
