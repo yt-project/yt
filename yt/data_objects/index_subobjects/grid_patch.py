@@ -262,7 +262,7 @@ class AMRGridPatch(YTSelectionContainer):
                 level,
                 new_left_edge,
                 field_parameters=field_parameters,
-                interp="linear",
+                kind="linear",
                 **kwargs,
             )
         else:

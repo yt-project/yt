@@ -1290,7 +1290,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
     _min_level = None
 
     @wraps(YTCoveringGrid.__init__)
-    def __init__(self, *args, *, interp="linear", nbuf=None, **kwargs):
+    def __init__(self, *args, *, kind="linear", nbuf=None, **kwargs):
         ds = kwargs["ds"]
         self._base_dx = (
             ds.domain_right_edge - ds.domain_left_edge
@@ -1298,14 +1298,14 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         self.global_endindex = None
         YTCoveringGrid.__init__(self, *args, **kwargs)
         self._final_start_index = self.global_startindex
-        # Assign order (covergence) based on interpolation method
+        # Assign order (covergence) based on interpolation kind
         order = {
             "natural": -2,
             "akima": -1,
             "linear": 2,
             "cubic": 4,
             "quintic": 6,
-        }[interp]
+        }[kind]
         # Assess buffer region surrounding grid
         if nbuf is None:
             if order > 0:
