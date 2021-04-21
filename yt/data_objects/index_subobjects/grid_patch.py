@@ -259,7 +259,11 @@ class AMRGridPatch(YTSelectionContainer):
         field_parameters.update(self.field_parameters)
         if smoothed:
             cube = self.ds.smoothed_covering_grid(
-                level, new_left_edge, field_parameters=field_parameters, interp='linear', **kwargs
+                level,
+                new_left_edge,
+                field_parameters=field_parameters,
+                interp="linear",
+                **kwargs,
             )
         else:
             cube = self.ds.covering_grid(
