@@ -1305,13 +1305,13 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         else:
             raise NotImplementedError
         # Assess buffer region surrounding grid
-        if nbuf == None:
+        if nbuf is None:
             if order > 0: 
                 nbuf = order//2
             elif order == -1:
                 nbuf = 3
-        else:
-            assert nbuf >= 1
+        elif nbuf < 1:
+           raise ValueError
         # Set order and number of buffer cells to object
         self.order = order
         self.nbuf = nbuf
