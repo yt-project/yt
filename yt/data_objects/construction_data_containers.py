@@ -1290,7 +1290,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
     _min_level = None
 
     @wraps(YTCoveringGrid.__init__)
-    def __init__(self, *args, interp="linear", nbuf=None, **kwargs):
+    def __init__(self, *args, *, interp="linear", nbuf=None, **kwargs):
         ds = kwargs["ds"]
         self._base_dx = (
             ds.domain_right_edge - ds.domain_left_edge
