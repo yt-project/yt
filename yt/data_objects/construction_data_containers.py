@@ -1305,7 +1305,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
             "linear": 2,
             "cubic": 4,
             "quintic": 6,
-           }[interp]
+        }[interp]
         # Assess buffer region surrounding grid
         if nbuf is None:
             if order > 0:
