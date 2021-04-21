@@ -1461,7 +1461,6 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
             self.nbuf * dds
             + (self.ActiveDimensions * np.array(self.dds) / dds % 1.0) * dds
         )
-        LL = self.left_edge.d - self.ds.domain_left_edge.d
         # Nudge in case we're on the edge
         left += np.finfo(np.float64).eps
         right += np.finfo(np.float64).eps
