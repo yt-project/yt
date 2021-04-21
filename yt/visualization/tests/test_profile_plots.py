@@ -24,9 +24,9 @@ ATTR_ARGS = {
         (((5e-29, 5e7), "Hello YT"), {}),
         (((5e-29, 5e7), "Hello YT"), {"color": "b"}),
     ],
-    "set_title": [((("gas", "cell_mass"), "A phase plot."), {})],
-    "set_log": [((("gas", "cell_mass"), False), {})],
-    "set_unit": [((("gas", "cell_mass"), "Msun"), {})],
+    "set_title": [((("gas", "mass"), "A phase plot."), {})],
+    "set_log": [((("gas", "mass"), False), {})],
+    "set_unit": [((("gas", "mass"), "Msun"), {})],
     "set_xlim": [((1e-27, 1e-24), {})],
     "set_ylim": [((1e2, 1e6), {})],
 }
@@ -56,7 +56,7 @@ def test_phase_plot_attributes():
 
     x_field = ("gas", "density")
     y_field = ("gas", "temperature")
-    z_field = ("gas", "cell_mass")
+    z_field = ("gas", "mass")
     decimals = 12
     ds = fake_random_ds(16, fields=("density", "temperature"), units=("g/cm**3", "K"))
     for attr_name in ATTR_ARGS.keys():
@@ -78,9 +78,9 @@ def test_profile_plot():
     pr_fields = [
         [("gas", "density"), ("gas", "temperature")],
         [("gas", "density"), ("gas", "velocity_x")],
-        [("gas", "temperature"), ("gas", "cell_mass")],
+        [("gas", "temperature"), ("gas", "mass")],
         [("gas", "density"), ("index", "radius")],
-        [("gas", "velocity_magnitude"), ("gas", "cell_mass")],
+        [("gas", "velocity_magnitude"), ("gas", "mass")],
     ]
     profiles = []
     for reg in regions:
@@ -110,8 +110,8 @@ def test_phase_plot():
     regions = [test_ds.region([0.5] * 3, [0.4] * 3, [0.6] * 3), test_ds.all_data()]
     phases = []
     ph_fields = [
-        [("gas", "density"), ("gas", "temperature"), ("gas", "cell_mass")],
-        [("gas", "density"), ("gas", "velocity_x"), ("gas", "cell_mass")],
+        [("gas", "density"), ("gas", "temperature"), ("gas", "mass")],
+        [("gas", "density"), ("gas", "velocity_x"), ("gas", "mass")],
         [("index", "radius"), ("gas", "temperature"), ("gas", "velocity_magnitude")],
     ]
     for reg in regions:
@@ -139,13 +139,13 @@ def test_phase_plot():
         test_ds.all_data(),
         ("gas", "density"),
         ("gas", "temperature"),
-        ("gas", "cell_mass"),
+        ("gas", "mass"),
     )
     pp.set_xlim(0.3, 0.8)
     pp.set_ylim(0.4, 0.6)
     pp._setup_plots()
-    xlim = pp.plots[("gas", "cell_mass")].axes.get_xlim()
-    ylim = pp.plots[("gas", "cell_mass")].axes.get_ylim()
+    xlim = pp.plots[("gas", "mass")].axes.get_xlim()
+    ylim = pp.plots[("gas", "mass")].axes.get_ylim()
     assert_array_almost_equal(xlim, (0.3, 0.8))
     assert_array_almost_equal(ylim, (0.4, 0.6))
     phases.append(pp)
@@ -199,9 +199,7 @@ def test_set_units():
     ds = fake_random_ds(16, fields=fields, units=units)
     sp = ds.sphere("max", (1.0, "Mpc"))
     p1 = yt.ProfilePlot(sp, ("index", "radius"), ("gas", "density"))
-    p2 = yt.PhasePlot(
-        sp, ("gas", "density"), ("gas", "temperature"), ("gas", "cell_mass")
-    )
+    p2 = yt.PhasePlot(sp, ("gas", "density"), ("gas", "temperature"), ("gas", "mass"))
     # make sure we can set the units using the tuple without erroring out
     p1.set_unit(("gas", "density"), "Msun/kpc**3")
     p2.set_unit(("gas", "temperature"), "R")
@@ -242,13 +240,11 @@ def test_create_from_dataset():
         plot1.profiles[0]["velocity_x"], plot2.profiles[0]["velocity_x"]
     )
 
-    plot1 = yt.PhasePlot(
-        ds, ("gas", "density"), ("gas", "velocity_x"), ("gas", "cell_mass")
-    )
+    plot1 = yt.PhasePlot(ds, ("gas", "density"), ("gas", "velocity_x"), ("gas", "mass"))
     plot2 = yt.PhasePlot(
-        ds.all_data(), ("gas", "density"), ("gas", "velocity_x"), ("gas", "cell_mass")
+        ds.all_data(), ("gas", "density"), ("gas", "velocity_x"), ("gas", "mass")
     )
-    assert_allclose_units(plot1.profile["cell_mass"], plot2.profile["cell_mass"])
+    assert_allclose_units(plot1.profile["mass"], plot2.profile["mass"])
 
 
 class TestAnnotations(unittest.TestCase):
@@ -305,9 +301,7 @@ def test_phaseplot_set_log():
     ds = fake_random_ds(16, fields=fields, units=units)
     sp = ds.sphere("max", (1.0, "Mpc"))
     p1 = yt.ProfilePlot(sp, ("index", "radius"), ("gas", "density"))
-    p2 = yt.PhasePlot(
-        sp, ("gas", "density"), ("gas", "temperature"), ("gas", "cell_mass")
-    )
+    p2 = yt.PhasePlot(sp, ("gas", "density"), ("gas", "temperature"), ("gas", "mass"))
     # make sure we can set the log-scaling using the tuple without erroring out
     p1.set_log(("gas", "density"), False)
     p2.set_log(("gas", "temperature"), False)
@@ -335,9 +329,7 @@ def test_phaseplot_showhide_colorbar_axes():
     )
     ds = fake_random_ds(16, fields=fields, units=units)
     ad = ds.all_data()
-    plot = yt.PhasePlot(
-        ad, ("gas", "density"), ("gas", "temperature"), ("gas", "cell_mass")
-    )
+    plot = yt.PhasePlot(ad, ("gas", "density"), ("gas", "temperature"), ("gas", "mass"))
 
     # make sure we can hide colorbar
     plot.hide_colorbar()
