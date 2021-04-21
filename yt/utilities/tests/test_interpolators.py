@@ -107,7 +107,8 @@ def test_ghost_zone_extrapolation():
 
         xz = np.zeros(g.ActiveDimensions + 1)
         ghost_zone_interpolate(
-            1,
+            1, 
+            2,
             xc,
             np.array([0.5, 0.5, 0.5], dtype="f8"),
             xz,
