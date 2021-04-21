@@ -1357,7 +1357,7 @@ class PhasePlot(ImagePlotContainer):
         This sets the font to be 24-pt, blue, sans-serif, italic, and
         bold-face.
 
-        >>> prof = ProfilePlot(ds, ('gas', 'density'), ('gas', 'temperature'))
+        >>> prof = ProfilePlot(ds.all_data(), ('gas', 'density'), ('gas', 'temperature'))
         >>> slc.set_font({'family':'sans-serif', 'style':'italic',
         ...               'weight':'bold', 'size':24, 'color':'blue'})
 
@@ -1535,9 +1535,8 @@ class PhasePlot(ImagePlotContainer):
 
         >>> import yt
         >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>> pp = yt.PhasePlot(ds, ('gas', 'density'),
-        ...                       ('gas', 'temperature'),
-        ...                       ('gas', 'mass'))
+        >>> pp = yt.PhasePlot(ds.all_data(), ('gas', 'density'),
+        ...                   ('gas', 'temperature'), ('gas', 'mass'))
         >>> pp.set_ylim(1e4, 1e6)
         >>> pp.save()
 
