@@ -13,7 +13,7 @@ import numpy as np
 cimport cython
 cimport numpy as np
 
-from yt.utilities.lib.fp_utils cimport fclip, fmax, fmin, iclip, imax, imin
+from yt.utilities.lib.fp_utils cimport fclip, fmax, fmin, iclip, imax, imin, ifloor
 
 
 @cython.cdivision(True)
@@ -118,48 +118,94 @@ def ghost_zone_interpolate(int rf, int order,
                            np.ndarray[np.float64_t, ndim=1] input_left,
                            np.ndarray[np.float64_t, ndim=3] output_field,
                            np.ndarray[np.float64_t, ndim=1] output_left):
-    cdef int oi, oj, ok
-    cdef int ii, ij, ik
-    cdef np.float64_t xp, xm, yp, ym, zp, zm, temp
-    cdef np.float64_t ods[3]
-    cdef np.float64_t ids[3]
-    cdef np.float64_t iids[3]
-    cdef np.float64_t opos[3]
-    cdef np.float64_t ropos[3]
-    cdef int i
-    for i in range(3):
-        temp = input_left[i] + (rf * (input_field.shape[i] - 1))
-        ids[i] = (temp - input_left[i])/(input_field.shape[i]-1)
-        temp = output_left[i] + output_field.shape[i] - 1
-        ods[i] = (temp - output_left[i])/(output_field.shape[i]-1)
-        iids[i] = 1.0/ids[i]
-    opos[0] = output_left[0]
-    for oi in range(output_field.shape[0]):
-        ropos[0] = ((opos[0] - input_left[0]) * iids[0])
-        ii = iclip(<int> ropos[0], 0, input_field.shape[0] - 2)
-        xp = ropos[0] - ii
-        xm = 1.0 - xp
-        opos[1] = output_left[1]
-        for oj in range(output_field.shape[1]):
-            ropos[1] = ((opos[1] - input_left[1]) * iids[1])
-            ij = iclip(<int> ropos[1], 0, input_field.shape[1] - 2)
-            yp = ropos[1] - ij
-            ym = 1.0 - yp
-            opos[2] = output_left[2]
-            for ok in range(output_field.shape[2]):
-                ropos[2] = ((opos[2] - input_left[2]) * iids[2])
-                ik = iclip(<int> ropos[2], 0, input_field.shape[2] - 2)
-                zp = ropos[2] - ik
-                zm = 1.0 - zp
-                output_field[oi,oj,ok] = \
-                     input_field[ii  ,ij  ,ik  ] * (xm*ym*zm) \
-                   + input_field[ii+1,ij  ,ik  ] * (xp*ym*zm) \
-                   + input_field[ii  ,ij+1,ik  ] * (xm*yp*zm) \
-                   + input_field[ii  ,ij  ,ik+1] * (xm*ym*zp) \
-                   + input_field[ii+1,ij  ,ik+1] * (xp*ym*zp) \
-                   + input_field[ii  ,ij+1,ik+1] * (xm*yp*zp) \
-                   + input_field[ii+1,ij+1,ik  ] * (xp*yp*zm) \
-                   + input_field[ii+1,ij+1,ik+1] * (xp*yp*zp)
-                opos[2] += ods[2]
-            opos[1] += ods[1]
-        opos[0] += ods[0]
+    # Counting indices
+    cdef int io, jo, ko
+    cdef int ii, ji, ki, li, mi, ni
+    cdef int l0, m0, n0
+    cdef int i, j, k
+    # dx of the input and output fields
+    cdef double dxi = 1.0
+    cdef double dxo = dxi/rf
+    # Number of cells in the input and output grid
+    cdef int[3] nxi = [input_field.shape[0], 
+                       input_field.shape[1],
+                       input_field.shape[2]]
+    cdef int[3] nxo = [output_field.shape[0], 
+                       output_field.shape[1],
+                       output_field.shape[2]]
+    # Number of cells in the interpolation stencil
+    cdef int[3] nxs = [order, order, order]
+    if order == 0:  nxs = [1,1,1]
+    if order == -1: nxs = [6,6,6]
+    if order == -2: nxs = nxi
+    # Node locations for interpolation
+    cdef double[::1] xn = np.empty((nxs[0]))
+    cdef double[::1] yn = np.empty((nxs[1]))
+    cdef double[::1] zn = np.empty((nxs[2]))
+    # Weights at each of the nodes
+    cdef double[::1] xw = np.empty((nxs[0]))
+    cdef double[::1] yw = np.empty((nxs[1]))
+    cdef double[::1] zw = np.empty((nxs[2]))
+    # Current and initial (0th) index position with respect to input grid
+    cdef double iposi,  jposi,  kposi
+    cdef double iposi0, jposi0, kposi0
+
+    # Compute the leftmost cell-center index position in the grid
+    iposi0 = (output_left[0]+0.5/rf) - (input_left[0]+0.5) - (nxs[0]/2-1)
+    jposi0 = (output_left[1]+0.5/rf) - (input_left[1]+0.5) - (nxs[1]/2-1)
+    kposi0 = (output_left[2]+0.5/rf) - (input_left[2]+0.5) - (nxs[2]/2-1)
+
+    if order > 0:
+        iposi = iposi0
+        for io in range(nxo[0]):
+            ii = ifloor(iposi)
+            ii = iclip(ii, 0, nxi[0]-nxs[0])
+            for i in range(0,nxs[0]): xn[i]=ii+i-(nxs[0]/2-1)
+            xw = lagrange_weights(xn, iposi)
+            jposi = jposi0
+            for jo in range(nxo[1]):
+                ji = ifloor(jposi)
+                ji = iclip(ji, 0, nxi[1]-nxs[1])
+                for j in range(0,nxs[1]): yn[j]=ji+j-(nxs[1]/2-1)
+                yw = lagrange_weights(yn, jposi)
+                kposi = kposi0
+                for ko in range(nxo[2]):
+                    ki = ifloor(kposi)
+                    ki = iclip(ki, 0, nxi[2]-nxs[2])
+                    for k in range(0,nxs[2]): zn[k]=ki+k-(nxs[2]/2-1)
+                    zw = lagrange_weights(zn, kposi)
+                    output_field[io,jo,ko] = 0.0
+                    for l0,li in enumerate(range(ii,ii+nxs[0])):
+                        for m0,mi in enumerate(range(ji,ji+nxs[1])):
+                            for n0,ni in enumerate(range(ki,ki+nxs[2])):
+                                output_field[io,jo,ko] += xw[l0]*yw[m0]*zw[n0]*\
+                                                          input_field[li,mi,ni]
+                    
+                    kposi += dxo
+                jposi += dxo
+            iposi += dxo
+
+@cython.cdivision(True)
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef lagrange_weights(double[::1] x, 
+                     double xp):
+    cdef int nx = x.size
+    cdef double[::1] wgts = np.empty((nx))
+    cdef double c1, c2, c3, c4, c5
+    cdef int i, j
+    wgts[0] = 1.0
+    c1 = 1.0
+    c4 = x[0] - xp
+    for i in range(1,nx):
+        c2 = 1.0
+        c5 = c4
+        c4 = x[i] - xp
+        for j in range(i):
+            c3 = x[i] - x[j]
+            c2 = c2*c3
+            if j == i-1:
+                wgts[i] = -c1*c5*wgts[i-1]/c2
+            wgts[j] = c4*wgts[j]/c3
+        c1 = c2
+    return wgts
