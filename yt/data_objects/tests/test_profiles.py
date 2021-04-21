@@ -639,7 +639,7 @@ class TestBadProfiles(unittest.TestCase):
                 ds.data,
                 ("gas", "temperature"),
                 ("gas", "density"),
-                ("gas", "cell_mass"),
+                ("gas", "mass"),
             )
 
 
