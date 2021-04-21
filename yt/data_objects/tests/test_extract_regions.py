@@ -72,7 +72,7 @@ def test_region_and_particles():
     ds = fake_amr_ds(particles=10000)
 
     ad = ds.all_data()
-    reg = ad.cut_region('[("index", "x")] < .5')
+    reg = ad.cut_region('obj[("index", "x")] < .5')
 
     mask = ad[("all", "particle_position_x")] < 0.5
     expected = np.sort(ad[("all", "particle_position_x")][mask].value)
