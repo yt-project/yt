@@ -1497,10 +1497,10 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         )
         ls.left_edge = ls.global_startindex * ls.current_dx + self.ds.domain_left_edge.d
         ls.right_edge = ls.left_edge + ls.current_dims * ls.current_dx
-        # Define cell-centers of the leftmost cells for the input and output
+        # Define left edges of the leftmost cells for the input and output
         # fields assuming that the dx=1 for the input field
-        input_left = level_state.old_global_startindex + 0.5
-        output_left = (level_state.global_startindex + 0.5) / rf
+        input_left = level_state.old_global_startindex.astype("float64")
+        output_left = level_state.global_startindex.astype("float64") / rf
         # Interpolate fields to finer level
         new_fields = []
         for input_field in level_state.fields:
