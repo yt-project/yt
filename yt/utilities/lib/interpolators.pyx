@@ -113,7 +113,7 @@ def TrilinearlyInterpolate(np.ndarray[np.float64_t, ndim=3] table,
 @cython.cdivision(True)
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def ghost_zone_interpolate(int rf,
+def ghost_zone_interpolate(int rf, int order,
                            np.ndarray[np.float64_t, ndim=3] input_field,
                            np.ndarray[np.float64_t, ndim=1] input_left,
                            np.ndarray[np.float64_t, ndim=3] output_field,

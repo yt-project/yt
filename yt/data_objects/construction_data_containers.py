@@ -1506,7 +1506,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         for input_field in level_state.fields:
             output_field = np.zeros(ls.current_dims, dtype="float64")
             ghost_zone_interpolate(
-                rf, input_field, input_left, output_field, output_left
+                rf, self.order, input_field, input_left, output_field, output_left
             )
             new_fields.append(output_field)
         level_state.fields = new_fields
