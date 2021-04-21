@@ -1413,8 +1413,10 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
             )
             mylog.debug("Caught %d runtime errors.", runtime_errors_count)
         for name, v in zip(fields, ls.fields):
-            if self.level > 0:
-                v = v[1:-1, 1:-1, 1:-1]
+            # Remove buffer region
+            v = v[self.nbuf:-self.nbuf, \
+                  self.nbuf:-self.nbuf, \
+                  self.nbuf:-self.nbuf]
             fi = self.ds._get_field_info(*name)
             self[name] = self.ds.arr(v, fi.units)
 
