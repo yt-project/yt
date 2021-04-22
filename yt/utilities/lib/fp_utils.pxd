@@ -52,10 +52,6 @@ cdef inline np.int64_t i64min(np.int64_t i0, np.int64_t i1) nogil:
     if i0 < i1: return i0
     return i1
 
-cdef inline np.int64_t ifloor(np.float64_t f) nogil:
-    if f < 0.0: return (<int>f) - 1
-    return <int>f
-
 cdef inline _ensure_code(arr):
     if hasattr(arr, "units"):
         if "code_length" == str(arr.units):

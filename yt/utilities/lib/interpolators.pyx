@@ -209,14 +209,12 @@ def ghost_zone_interpolate(
                 output_field[:, jo, ko] = xfieldo
                 jposi += dxo
             kposi += dxo
-
     
     # Cubic and quintic interpolation -----------------------------------------
     elif order > 2:
         kposi = kposi0
         for ko in range(nxo[2]):
-            ki = ifloor(kposi)
-            ki = iclip(ki, 0, ki_max)
+            ki = iclip(<int>kposi, 0, ki_max)
             for k in range(nxs[2]):
                 zn[k] = ki + k - ilc[2]
             zw = lagrange_weights(zn, kposi)
@@ -230,8 +228,7 @@ def ghost_zone_interpolate(
 
             jposi = jposi0
             for jo in range(nxo[1]):
-                ji = ifloor(jposi)
-                ji = iclip(ji, 0, ji_max)
+                ji = iclip(<int>jposi, 0, ji_max)
                 for j in range(nxs[1]):
                     yn[j] = ji + j - ilc[1]
                 yw = lagrange_weights(yn, jposi)
@@ -244,8 +241,7 @@ def ghost_zone_interpolate(
 
                 iposi = iposi0
                 for io in range(nxo[0]):
-                    ii = ifloor(iposi)
-                    ii = iclip(ii, 0, ii_max)
+                    ii = iclip(<int>iposi, 0, ii_max)
                     for i in range(nxs[0]):
                         xn[i] = ii + i - ilc[0]
                     xw = lagrange_weights(xn, iposi)
@@ -285,44 +281,4 @@ cdef lagrange_weights(double[::1] x,
             wgts[j] = c4 * wgts[j] / c3
         c1 = c2
     return wgts
-
-# @cython.cdivision(True)
-# @cython.wraparound(False)
-# @cython.boundscheck(True)
-# cdef akima_interp(double[::1] x, 
-#                   double[::1] f, 
-#                   double xp):
-#     cdef int nx = x.size
-#     cdef double[::1] m = np.empty((nx+3))
-#     cdef double[::1] dm = np.empty((nx+2))
-#     cdef double dx = 1.0
-
-#     m = np.empty((nx+3))
-#     m[2:-2] = (f[1:] - f[:-1])/dx 
-#     m[1]  = 2.0*m[2] - m[3]
-#     m[0]  = 2.0*m[1] - m[2]
-#     m[-2] = 2.0*m[-3] - m[-4]
-#     m[-1] = 2.0*m[-2] - m[-3]
-
-#     dm = np.abs(m[1:] - m[:-1])
-#     a = dm[2:]   # a = |m[3]-m[2]|, |m[4]-m[3]|
-#     b = dm[:-2]  # b = |m[1]-m[0]|, |m[2]-m[1]|
-#     ab = a + b
-
-#     # t.size = x.size - 4, also scipy uses ab > 1e-9*ab.max() for some reason
-#     t = np.where(ab > 0.0, (a*m[1:-2] + b*m[2:-1]) / ab,
-#                  0.5*(m[1:-2] + m[2:-1]))
-
-#     # Polynomial coefficients between knots
-#     p1 = t[:-1]
-#     p2 = (3.0*m[2:-2] - 2.0*t[:-1] - t[1:])/dx
-#     p3 = (t[:-1] + t[1:] - 2.0*m[2:-2])/dx**2
-
-#     # Determine value at xp
-#     idx = np.searchsorted(x, xp) - 1
-#     w   = xp - x[idx]
-#     fp = f[idx] + p1[idx]*w + p2[idx]*w**2 + p3[idx]*w**3
-
-#     return fp
-
 
