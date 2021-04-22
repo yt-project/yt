@@ -113,11 +113,14 @@ def TrilinearlyInterpolate(np.ndarray[np.float64_t, ndim=3] table,
 @cython.cdivision(True)
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def ghost_zone_interpolate(int rf, int order,
-                           np.ndarray[np.float64_t, ndim=3] input_field,
-                           np.ndarray[np.float64_t, ndim=1] input_left,
-                           np.ndarray[np.float64_t, ndim=3] output_field,
-                           np.ndarray[np.float64_t, ndim=1] output_left):
+def ghost_zone_interpolate(
+    int rf,
+    int order,
+    np.ndarray[np.float64_t, ndim=3] input_field,
+    np.ndarray[np.float64_t, ndim=1] input_left,
+    np.ndarray[np.float64_t, ndim=3] output_field,
+    np.ndarray[np.float64_t, ndim=1] output_left
+):
     # Counting indices
     cdef int io, jo, ko
     cdef int ii, ji, ki, li, mi, ni
@@ -125,7 +128,7 @@ def ghost_zone_interpolate(int rf, int order,
     cdef int i, j, k
     # dx of the input and output fields
     cdef double dxi = 1.0
-    cdef double dxo = dxi/rf
+    cdef double dxo = dxi / rf
     # Number of cells in the input and output grid
     cdef int[3] nxi = [input_field.shape[0],
                        input_field.shape[1],
@@ -160,26 +163,29 @@ def ghost_zone_interpolate(int rf, int order,
         for io in range(nxo[0]):
             ii = ifloor(iposi)
             ii = iclip(ii, 0, nxi[0]-nxs[0])
-            for i in range(0,nxs[0]): xn[i]=ii+i-(nxs[0]/2-1)
+            for i in range(0, nxs[0]):
+                xn[i] = ii + i - (nxs[0] / 2 - 1)
             xw = lagrange_weights(xn, iposi)
             jposi = jposi0
             for jo in range(nxo[1]):
                 ji = ifloor(jposi)
                 ji = iclip(ji, 0, nxi[1]-nxs[1])
-                for j in range(0,nxs[1]): yn[j]=ji+j-(nxs[1]/2-1)
+                for j in range(0, nxs[1]):
+                    yn[j] = ji + j - (nxs[1] / 2 - 1)
                 yw = lagrange_weights(yn, jposi)
                 kposi = kposi0
                 for ko in range(nxo[2]):
                     ki = ifloor(kposi)
                     ki = iclip(ki, 0, nxi[2]-nxs[2])
-                    for k in range(0,nxs[2]): zn[k]=ki+k-(nxs[2]/2-1)
+                    for k in range(0, nxs[2]):
+                        zn[k] = ki + k - (nxs[2] / 2 - 1)
                     zw = lagrange_weights(zn, kposi)
                     output_field[io,jo,ko] = 0.0
-                    for l0,li in enumerate(range(ii,ii+nxs[0])):
-                        for m0,mi in enumerate(range(ji,ji+nxs[1])):
-                            for n0,ni in enumerate(range(ki,ki+nxs[2])):
-                                output_field[io,jo,ko] += xw[l0]*yw[m0]*zw[n0]*\
-                                                          input_field[li,mi,ni]
+                    for l0, li in enumerate(range(ii, ii + nxs[0])):
+                        for m0, mi in enumerate(range(ji, ji + nxs[1])):
+                            for n0, ni in enumerate(range(ki, ki + nxs[2])):
+                                output_field[io, jo, ko] += xw[l0] * yw[m0] * zw[n0] * \
+                                                          input_field[li, mi, ni]
 
                     kposi += dxo
                 jposi += dxo
@@ -203,9 +209,9 @@ cdef lagrange_weights(double[::1] x,
         c4 = x[i] - xp
         for j in range(i):
             c3 = x[i] - x[j]
-            c2 = c2*c3
-            if j == i-1:
-                wgts[i] = -c1*c5*wgts[i-1]/c2
-            wgts[j] = c4*wgts[j]/c3
+            c2 = c2 * c3
+            if j == i - 1:
+                wgts[i] = -c1 * c5 * wgts[i-1] / c2
+            wgts[j] = c4 * wgts[j] / c3
         c1 = c2
     return wgts
