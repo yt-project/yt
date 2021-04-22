@@ -11,7 +11,6 @@ import numpy as np
 from more_itertools import always_iterable
 
 from yt._maintenance.deprecation import issue_deprecation_warning
-from yt.config import ytcfg
 from yt.sample_data.api import lookup_on_disk_data
 from yt.utilities.decompose import decompose_array, get_psize
 from yt.utilities.exceptions import (
@@ -120,12 +119,7 @@ def load_simulation(fn, simulation_type, find_outputs=False):
         If simulation_type is unknown.
     """
 
-    if not os.path.exists(fn):
-        alt_fn = os.path.join(ytcfg.get("yt", "test_data_dir"), fn)
-        if os.path.exists(alt_fn):
-            fn = alt_fn
-        else:
-            raise FileNotFoundError(f"No such file or directory: '{fn}'")
+    fn = str(lookup_on_disk_data(fn))
 
     try:
         cls = simulation_time_series_registry[simulation_type]
