@@ -12,13 +12,13 @@ disk = ds.disk(center, [0, 0, 1], radius, height)
 
 profile = yt.create_profile(
     data_source=disk,
-    bin_fields=[("index", "radius"), ("gas", "cylindrical_tangential_velocity")],
+    bin_fields=[("index", "radius"), ("gas", "velocity_cylindrical_theta")],
     fields=[("gas", "cell_mass")],
     n_bins=256,
-    units=dict(radius="kpc", cylindrical_tangential_velocity="km/s", cell_mass="Msun"),
-    logs=dict(radius=False, cylindrical_tangential_velocity=False),
+    units=dict(radius="kpc", velocity_cylindrical_theta="km/s", cell_mass="Msun"),
+    logs=dict(radius=False, velocity_cylindrical_theta=False),
     weight_field=None,
-    extrema=dict(radius=(0, 40), cylindrical_tangential_velocity=(-250, 250)),
+    extrema=dict(radius=(0, 40), velocity_cylindrical_theta=(-250, 250)),
 )
 
 plot = yt.PhasePlot.from_profile(profile)
