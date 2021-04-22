@@ -161,8 +161,53 @@ def ghost_zone_interpolate(
     jposi0 = (output_left[1]+0.5/rf) - (input_left[1]+0.5) - (nxs[1]/2-1)
     kposi0 = (output_left[2]+0.5/rf) - (input_left[2]+0.5) - (nxs[2]/2-1)
 
-    # General function for linear, cubic, and quintic interpolation -----------
-    if order > 0:
+    # Linear interpolation ----------------------------------------------------
+    if order == 2:
+        iposi = iposi0
+        for io in range(nxo[0]):
+            ii = <int>iposi
+            xw[1] = iposi - ii
+            xw[0] = 1.0 - xw[1]
+
+            # Interpolate to the y-z plane after zeroing out
+            for ji in range(nxi[1]):
+                for ki in range(nxi[2]):
+                    yzfield[ji,ki] = 0.0
+            for i0, i in enumerate(range(ii, ii + 2)):
+                for ji in range(nxi[1]):
+                    for ki in range(nxi[2]):
+                        yzfield[ji,ki] += xw[i0] * input_field[i, ji, ki]
+
+            jposi = jposi0
+            for jo in range(nxo[1]):
+                ji = <int>jposi
+                yw[1] = jposi - ji
+                yw[0] = 1.0 - yw[1]
+
+                # Interpolate to z line after zeroing out
+                for ki in range(nxi[2]):
+                    zfield[ki] = 0.0
+                for j0, j in enumerate(range(ji, ji + 2)):
+                    for ki in range(nxi[2]):
+                        zfield[ki] += yw[j0] * yzfield[j, ki]
+
+                kposi = kposi0
+                for ko in range(nxo[2]):
+                    ki = <int>kposi
+                    zw[1] = kposi - ki
+                    zw[0] = 1.0 - zw[1]
+
+                    # Interpolate to points in output field
+                    output_field[io,jo,ko] = 0.0
+                    for k0, k in enumerate(range(ki, ki + 2)):
+                        output_field[io, jo, ko] += zw[k0] * zfield[k]
+
+                    kposi += dxo
+                jposi += dxo
+            iposi += dxo
+
+    # Cubic and quintic interpolation -----------------------------------------
+    elif order > 2:
         iposi = iposi0
         for io in range(nxo[0]):
             ii = ifloor(iposi)
@@ -211,6 +256,7 @@ def ghost_zone_interpolate(
                     kposi += dxo
                 jposi += dxo
             iposi += dxo
+            
 
 @cython.cdivision(True)
 @cython.wraparound(False)
