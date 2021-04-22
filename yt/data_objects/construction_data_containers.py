@@ -1304,7 +1304,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
             "akima": (-1, 3),
             "linear": (2, 1),
             "cubic": (4, 2),
-            "quintic": (6, 3)
+            "quintic": (6, 3),
         }
         try:
             order, nbuf_from_order = order_nbuf[kind]
