@@ -36,6 +36,7 @@ class TestPluginFile(unittest.TestCase):
         cls.xdg_config_home = os.environ.get("XDG_CONFIG_HOME")
         cls.tmpdir = tempfile.mkdtemp()
         os.environ["XDG_CONFIG_HOME"] = cls.tmpdir
+        os.makedirs(config_dir())
         with open(YTConfig.get_global_config_file(), mode="w") as fh:
             fh.write(_DUMMY_CFG_TOML)
         cls.plugin_path = os.path.join(config_dir(), ytcfg.get("yt", "plugin_filename"))

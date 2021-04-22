@@ -1,5 +1,6 @@
 import os
 import warnings
+from pathlib import Path
 
 import toml
 from more_itertools import always_iterable
@@ -157,17 +158,13 @@ class YTConfig:
 
         return file_names_read
 
-    def write(self, file_handler):
+    def write(self, filename):
         value = self.config_root.as_dict()
         config_as_str = toml.dumps(value)
 
-        try:
-            # Assuming file_handler has a write attribute
-            file_handler.write(config_as_str)
-        except AttributeError:
-            # Otherwise we expect a path to a file
-            with open(file_handler, mode="w") as fh:
-                fh.write(config_as_str)
+        os.makedirs(Path(filename).parent, exist_ok=True)
+        with open(filename, mode="w") as fh:
+            fh.write(config_as_str)
 
     @staticmethod
     def get_global_config_file():

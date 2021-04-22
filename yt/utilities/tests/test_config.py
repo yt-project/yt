@@ -9,7 +9,7 @@ from io import StringIO
 
 import yt.config
 import yt.utilities.command_line
-from yt.config import YTConfig, old_config_file
+from yt.config import YTConfig, config_dir, old_config_file
 
 _TEST_PLUGIN = "_test_plugin.py"
 # NOTE: the normalization of the crazy camel-case will be checked
@@ -145,6 +145,7 @@ class TestYTConfigGlobalLocal(TestYTConfig):
         super().setUp()
         with open(YTConfig.get_local_config_file(), mode="w") as f:
             f.writelines("[yt]\n")
+        os.makedirs(config_dir())
         with open(YTConfig.get_global_config_file(), mode="w") as f:
             f.writelines("[yt]\n")
 
