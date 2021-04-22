@@ -48,7 +48,10 @@ def write_config(config_file):
 
 
 def print_config(file=None):
-    print(CONFIG.dumps(), file=file)
+    conf_as_str = CONFIG.dumps()
+    if conf_as_str:
+        # print nothing if the config happens to be empty
+        print(conf_as_str, file=file)
 
 
 def migrate_config():
