@@ -201,11 +201,11 @@ class TotalMass(TotalQuantity):
         if ("gas", "mass") in fi:
             gas = super().__call__([("gas", "mass")])
         else:
-            gas = self.data_source.ds.arr([0], "g")
+            gas = self.data_source.ds.quan(0.0, "g")
         if ("nbody", "particle_mass") in fi:
             part = super().__call__([("nbody", "particle_mass")])
         else:
-            part = self.data_source.ds.arr([0], "g")
+            part = self.data_source.ds.quan(0.0, "g")
         return self.data_source.ds.arr([gas, part])
 
 
