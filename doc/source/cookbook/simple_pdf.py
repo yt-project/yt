@@ -9,7 +9,7 @@ ad = ds.all_data()
 # This is identical to the simple phase plot, except we supply
 # the fractional=True keyword to divide the profile data by the sum.
 plot = yt.PhasePlot(
-    ad, "density", "temperature", "cell_mass", weight_field=None, fractional=True
+    ad, "density", "temperature", "mass", weight_field=None, fractional=True
 )
 
 # Save the image.

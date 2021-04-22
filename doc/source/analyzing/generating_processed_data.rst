@@ -146,7 +146,7 @@ density within a sphere can be created in the following way:
            ("gas", "temperature"),  # profile field
            ("gas", "radial_velocity"),
        ],  # profile field
-       weight_field=("gas", "cell_mass"),
+       weight_field=("gas", "mass"),
    )
 
 The binning, weight, and profile data can now be access as:
@@ -181,7 +181,7 @@ temperature can be created as follows:
 
    profile2d = source.profile(
        [("gas", "density"), ("gas", "temperature")],  # the x bin field  # the y bin field
-       [("gas", "cell_mass")],  # the profile field
+       [("gas", "mass")],  # the profile field
        weight_field=None,
    )
 
@@ -191,7 +191,7 @@ Accessing the x, y, and profile fields work just as with one-dimensional profile
 
    print(profile2d.x)
    print(profile2d.y)
-   print(profile2d["gas", "cell_mass"])
+   print(profile2d["gas", "mass"])
 
 One of the more interesting things that is enabled with this approach is
 the generation of 1D profiles that correspond to 2D profiles.  For instance, a
@@ -219,7 +219,7 @@ for each bin field or ``None`` to use the default settings.
     custom_bins = np.array([1e-27, 1e-25, 2e-25, 5e-25, 1e-23])
     profile2d = source.profile(
         [("gas", "density"), ("gas", "temperature")],
-        [("gas", "cell_mass")],
+        [("gas", "mass")],
         override_bins={("gas", "density"): custom_bins, ("gas", "temperature"): None},
     )
 

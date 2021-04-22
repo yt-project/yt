@@ -71,4 +71,4 @@ print(cds.tree.children[1]["all", "particle_mass"])
 
 # Get all of the leaf clumps.
 print(cds.leaves)
-print(cds.leaves[0]["clump", "cell_mass"])
+print(cds.leaves[0]["clump", "mass"])
