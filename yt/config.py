@@ -72,11 +72,6 @@ def config_dir():
     )
     conf_dir = os.path.join(config_root, "yt")
 
-    if not os.path.exists(conf_dir):
-        try:
-            os.makedirs(conf_dir)
-        except OSError:
-            warnings.warn("unable to create yt config directory")
     return conf_dir
 
 
