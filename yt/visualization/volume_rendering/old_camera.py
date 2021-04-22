@@ -1,12 +1,12 @@
 import builtins
 from copy import deepcopy
-from functools import cached_property
 
 import numpy as np
 
 from yt.config import ytcfg
 from yt.data_objects.api import ImageArray
 from yt.funcs import ensure_numpy_array, get_num_threads, get_pbar, is_sequence, mylog
+from yt.geometry.geometry_handler import cached_property
 from yt.units.yt_array import YTArray
 from yt.utilities.amr_kdtree.api import AMRKDTree
 from yt.utilities.exceptions import YTNotInsideNotebook
