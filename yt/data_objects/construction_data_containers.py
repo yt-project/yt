@@ -1308,11 +1308,11 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         }
         try:
             order, nbuf_from_order = order_nbuf[kind]
-        except KeyError as k:
+        except KeyError as err:
             msg = f"Interpolation '{kind}' has not been implemented. "
             msg += "Only the following are supported: "
             msg += ", ".join(order_nbuf.keys())
-            raise NotImplementedError(msg) from k
+            raise NotImplementedError(msg) from err
         nbuf = nbuf or nbuf_from_order
         if nbuf < 1:
             raise ValueError
