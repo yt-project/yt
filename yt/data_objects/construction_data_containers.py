@@ -1299,20 +1299,22 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         YTCoveringGrid.__init__(self, *args, **kwargs)
         self._final_start_index = self.global_startindex
         # Assign order (covergence) based on interpolation kind
-        order = {
-            "natural": -2,
-            "akima": -1,
-            "linear": 2,
-            "cubic": 4,
-            "quintic": 6,
-        }[kind]
-        # Assess buffer region surrounding grid
-        if nbuf is None:
-            if order > 0:
-                nbuf = order // 2
-            else:
-                nbuf = 3
-        elif nbuf < 1:
+       order_nbuf = {
+            "natural": (-2, 3),
+            "akima": (-1, 3),
+            "linear": (2, 1),
+            "cubic": (4, 2),
+            "quintic": (6, 3)
+        }
+        try:
+            order, nbuf_from_order = order_nbuf[kind]
+        except KeyError:
+            msg = f"Interpolation '{kind}' has not been implemented. "
+            msg += "Only the following are supported: "
+            msg += ", ".join(order_nbuf.keys())
+            raise NotImplementedError(msg)
+        nbuf = nbuf or nbuf_from_order
+        if nbuf < 1:
             raise ValueError
         # Set order and number of buffer cells to object
         self.order = order
