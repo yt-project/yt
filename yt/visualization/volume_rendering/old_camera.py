@@ -1191,15 +1191,13 @@ class InteractiveCamera(Camera):
     frames = []
 
     def snapshot(self, fn=None, clip_ratio=None):
-        import matplolib.pyplot as plt
-
-        plt.figure(2)
+        self._pyplot.figure(2)
         self.transfer_function.show()
-        plt.draw()
+        self._pyplot.draw()
         im = Camera.snapshot(self, fn, clip_ratio)
-        plt.figure(1)
-        plt.imshow(im / im.max())
-        plt.draw()
+        self._pyplot.figure(1)
+        self._pyplot.imshow(im / im.max())
+        self._pyplot.draw()
         self.frames.append(im)
 
     def rotation(self, theta, n_steps, rot_vector=None):
