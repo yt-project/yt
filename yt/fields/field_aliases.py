@@ -22,7 +22,7 @@ _field_name_aliases = [
     ("cyl_RadialVelocity", "cylindrical_radial_velocity"),
     ("cyl_RadialVelocityABS", "cylindrical_radial_velocity_absolute"),
     ("cyl_TangentialVelocity", "velocity_cylindrical_theta"),
-    ("cyl_TangentialVelocityABS", "velocity_cylindrical_theta_absolute"),
+    ("cyl_TangentialVelocityABS", "velocity_cylindrical_theta"),
     ("DynamicalTime", "dynamical_time"),
     ("JeansMassMsun", "jeans_mass"),
     ("CellMass", "cell_mass"),
