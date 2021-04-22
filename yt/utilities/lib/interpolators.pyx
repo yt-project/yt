@@ -141,6 +141,14 @@ def ghost_zone_interpolate(
     if order == 0:  nxs = [1,1,1]
     if order == -1: nxs = [6,6,6]
     if order == -2: nxs = nxi
+    # Determine the index of the stencil that is left of the center
+    cdef int[3] ilc = [nxs[0]//2 - 1, 
+                       nxs[1]//2 - 1, 
+                       nxs[2]//2 - 1]
+    # Determine maximum ii, ji, ki values that are allowed
+    cdef int ii_max = nxi[0]-nxs[0]
+    cdef int ji_max = nxi[1]-nxs[1]
+    cdef int ki_max = nxi[2]-nxs[2]
     # Node locations for interpolation
     cdef double[::1] xn = np.empty((nxs[0]))
     cdef double[::1] yn = np.empty((nxs[1]))
@@ -157,9 +165,9 @@ def ghost_zone_interpolate(
     cdef double[::1] zfield = np.empty((nxi[2]))
 
     # Compute the leftmost cell-center index position in the grid
-    iposi0 = (output_left[0]+0.5/rf) - (input_left[0]+0.5) - (nxs[0]/2-1)
-    jposi0 = (output_left[1]+0.5/rf) - (input_left[1]+0.5) - (nxs[1]/2-1)
-    kposi0 = (output_left[2]+0.5/rf) - (input_left[2]+0.5) - (nxs[2]/2-1)
+    iposi0 = (output_left[0]+0.5/rf) - (input_left[0]+0.5) - ilc[0]
+    jposi0 = (output_left[1]+0.5/rf) - (input_left[1]+0.5) - ilc[1]
+    kposi0 = (output_left[2]+0.5/rf) - (input_left[2]+0.5) - ilc[2]
 
     # Linear interpolation ----------------------------------------------------
     if order == 2:
@@ -211,9 +219,9 @@ def ghost_zone_interpolate(
         iposi = iposi0
         for io in range(nxo[0]):
             ii = ifloor(iposi)
-            ii = iclip(ii, 0, nxi[0]-nxs[0])
+            ii = iclip(ii, 0, ii_max)
             for i in range(nxs[0]):
-                xn[i] = ii + i - (nxs[0] / 2 - 1)
+                xn[i] = ii + i - ilc[0]
             xw = lagrange_weights(xn, iposi)
 
             # Interpolate to the y-z plane after zeroing out
@@ -228,9 +236,9 @@ def ghost_zone_interpolate(
             jposi = jposi0
             for jo in range(nxo[1]):
                 ji = ifloor(jposi)
-                ji = iclip(ji, 0, nxi[1]-nxs[1])
+                ji = iclip(ji, 0, ji_max)
                 for j in range(nxs[1]):
-                    yn[j] = ji + j - (nxs[1] / 2 - 1)
+                    yn[j] = ji + j - ilc[1]
                 yw = lagrange_weights(yn, jposi)
 
                 # Interpolate to z line after zeroing out
@@ -243,9 +251,9 @@ def ghost_zone_interpolate(
                 kposi = kposi0
                 for ko in range(nxo[2]):
                     ki = ifloor(kposi)
-                    ki = iclip(ki, 0, nxi[2]-nxs[2])
+                    ki = iclip(ki, 0, ki_max)
                     for k in range(nxs[2]):
-                        zn[k] = ki + k - (nxs[2] / 2 - 1)
+                        zn[k] = ki + k - ilc[2]
                     zw = lagrange_weights(zn, kposi)
 
                     # Interpolate to points in output field
@@ -256,7 +264,6 @@ def ghost_zone_interpolate(
                     kposi += dxo
                 jposi += dxo
             iposi += dxo
-            
 
 @cython.cdivision(True)
 @cython.wraparound(False)
