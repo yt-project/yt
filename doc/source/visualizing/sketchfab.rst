@@ -296,7 +296,7 @@ like the following:
 
 .. code-block:: python
 
-   from math import *
+   from math import radians
 
    import bpy
 
