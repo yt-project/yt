@@ -112,7 +112,7 @@ def TrilinearlyInterpolate(np.ndarray[np.float64_t, ndim=3] table,
 
 @cython.cdivision(True)
 @cython.wraparound(False)
-@cython.boundscheck(False)
+@cython.boundscheck(True)
 def ghost_zone_interpolate(
     int rf,
     int order,
@@ -123,9 +123,9 @@ def ghost_zone_interpolate(
 ):
     # Counting indices
     cdef int io, jo, ko
-    cdef int ii, ji, ki, li, mi, ni
-    cdef int l0, m0, n0
+    cdef int ii, ji, ki
     cdef int i, j, k
+    cdef int i0, j0, k0
     # dx of the input and output fields
     cdef double dxi = 1.0
     cdef double dxo = dxi / rf
@@ -152,40 +152,61 @@ def ghost_zone_interpolate(
     # Current and initial (0th) index position with respect to input grid
     cdef double iposi,  jposi,  kposi
     cdef double iposi0, jposi0, kposi0
+    # Intermediate interpolated fields
+    cdef double[:,::1] yzfield = np.empty((nxi[1],nxi[2]))
+    cdef double[::1] zfield = np.empty((nxi[2]))
 
     # Compute the leftmost cell-center index position in the grid
     iposi0 = (output_left[0]+0.5/rf) - (input_left[0]+0.5) - (nxs[0]/2-1)
     jposi0 = (output_left[1]+0.5/rf) - (input_left[1]+0.5) - (nxs[1]/2-1)
     kposi0 = (output_left[2]+0.5/rf) - (input_left[2]+0.5) - (nxs[2]/2-1)
 
+    # General function for linear, cubic, and quintic interpolation -----------
     if order > 0:
         iposi = iposi0
         for io in range(nxo[0]):
             ii = ifloor(iposi)
             ii = iclip(ii, 0, nxi[0]-nxs[0])
-            for i in range(0, nxs[0]):
+            for i in range(nxs[0]):
                 xn[i] = ii + i - (nxs[0] / 2 - 1)
             xw = lagrange_weights(xn, iposi)
+
+            # Interpolate to the y-z plane after zeroing out
+            for ji in range(nxi[1]):
+                for ki in range(nxi[2]):
+                    yzfield[ji,ki] = 0.0
+            for i0, i in enumerate(range(ii, ii + nxs[0])):
+                for ji in range(nxi[1]):
+                    for ki in range(nxi[2]):
+                        yzfield[ji,ki] += xw[i0] * input_field[i, ji, ki]
+
             jposi = jposi0
             for jo in range(nxo[1]):
                 ji = ifloor(jposi)
                 ji = iclip(ji, 0, nxi[1]-nxs[1])
-                for j in range(0, nxs[1]):
+                for j in range(nxs[1]):
                     yn[j] = ji + j - (nxs[1] / 2 - 1)
                 yw = lagrange_weights(yn, jposi)
+
+                # Interpolate to z line after zeroing out
+                for ki in range(nxi[2]):
+                    zfield[ki] = 0.0
+                for j0, j in enumerate(range(ji, ji + nxs[1])):
+                    for ki in range(nxi[2]):
+                        zfield[ki] += yw[j0] * yzfield[j, ki]
+
                 kposi = kposi0
                 for ko in range(nxo[2]):
                     ki = ifloor(kposi)
                     ki = iclip(ki, 0, nxi[2]-nxs[2])
-                    for k in range(0, nxs[2]):
+                    for k in range(nxs[2]):
                         zn[k] = ki + k - (nxs[2] / 2 - 1)
                     zw = lagrange_weights(zn, kposi)
+
+                    # Interpolate to points in output field
                     output_field[io,jo,ko] = 0.0
-                    for l0, li in enumerate(range(ii, ii + nxs[0])):
-                        for m0, mi in enumerate(range(ji, ji + nxs[1])):
-                            for n0, ni in enumerate(range(ki, ki + nxs[2])):
-                                output_field[io, jo, ko] += xw[l0] * yw[m0] * zw[n0] * \
-                                                          input_field[li, mi, ni]
+                    for k0, k in enumerate(range(ki, ki + nxs[2])):
+                        output_field[io, jo, ko] += zw[k0] * zfield[k]
 
                     kposi += dxo
                 jposi += dxo
