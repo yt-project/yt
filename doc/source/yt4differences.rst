@@ -78,6 +78,17 @@ New Script:
     p = yt.SlicePlot(ds, "z", ("gas", "density"))
     p.set_cmap(("gas", "density"), "cmo.balance")
 
+Important New Aliases
+^^^^^^^^^^^^^^^^^^^^^
+
+With the advent of supporting SPH data at the particle level instead of smoothing
+onto an octree (see below), a new alias for both gas particle masses and cell masses
+has been created: ``("gas", "mass")``, which aliases to ``("gas", "cell_mass")`` for
+grid-based frontends and to the gas particle mass for SPH frontends. In a number of
+places in yt, code that used ``("gas", "cell_mass")`` has been replaced by
+``("gas", "mass")``. Since the latter is an alias for the former, old scripts which
+use ``("gas", "cell_mass")`` should not break.
+
 Cool New Things
 ---------------
 
