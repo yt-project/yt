@@ -1752,11 +1752,10 @@ class YTConfigListCmd(YTCommand, YTConfigLocalConfigHandler):
     args = _global_local_args
 
     def __call__(self, args):
-        from yt.utilities.configure import write_config
+        from yt.utilities.configure import print_config
 
         self.load_config(args)
-
-        write_config(sys.stdout)
+        print_config(file=sys.stdout)
 
 
 class YTConfigMigrateCmd(YTCommand, YTConfigLocalConfigHandler):

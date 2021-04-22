@@ -47,6 +47,10 @@ def write_config(config_file):
     CONFIG.write(config_file)
 
 
+def print_config(file=None):
+    print(CONFIG.dumps(), file=file)
+
+
 def migrate_config():
     if not os.path.exists(old_config_file()):
         print("Old config not found.")

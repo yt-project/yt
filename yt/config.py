@@ -158,13 +158,13 @@ class YTConfig:
 
         return file_names_read
 
-    def write(self, filename):
-        value = self.config_root.as_dict()
-        config_as_str = toml.dumps(value)
+    def dumps(self) -> str:
+        return toml.dumps(self.config_root.as_dict())
 
+    def write(self, filename):
         os.makedirs(Path(filename).parent, exist_ok=True)
         with open(filename, mode="w") as fh:
-            fh.write(config_as_str)
+            fh.write(self.dumps())
 
     @staticmethod
     def get_global_config_file():
