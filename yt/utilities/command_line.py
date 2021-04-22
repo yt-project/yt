@@ -1666,13 +1666,11 @@ class YTConfigLocalConfigHandler:
                 config_file = global_config_file
             sys.stderr.write(f"INFO: using configuration file: {config_file}.\n")
 
-        if not os.path.exists(config_file):
-            with open(config_file, "w") as f:
-                f.write("[yt]\n")
-
-        CONFIG.read(config_file)
-
-        self.config_file = config_file
+        try:
+            CONFIG.read(config_file)
+            self.config_file = config_file
+        except FileNotFoundError:
+            self.config_file = None
 
 
 _global_local_args = [
