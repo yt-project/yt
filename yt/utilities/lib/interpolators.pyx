@@ -282,3 +282,49 @@ cdef lagrange_weights(double[::1] x,
         c1 = c2
     return wgts
 
+@cython.cdivision(True)
+@cython.wraparound(False)
+@cython.boundscheck(True)
+cdef akima_interp(double[::1] x, 
+                  double[::1] f, 
+                  double xp):
+    cdef int nx = x.size
+    cdef double[::1] m = np.empty((nx+3))
+    cdef double[::1] dm = np.empty((nx+2))
+    cdef double[::1] t = np.empty((nx))
+    cdef double[::1] p1 = np.empty((nx-1))
+    cdef double[::1] p2 = np.empty((nx-1))
+    cdef double[::1] p3 = np.empty((nx-1))
+    cdef double a, b, ab
+    cdef int i, idx
+
+    # Compute derivative with extra conditions (note, dx==1 so not included)
+    for i in range(2,nx+1):
+        m[i] = f[i-1] - f[i-2]
+    m[1] = 2.0*m[2] - m[3]
+    m[0] = 2.0*m[1] - m[2]
+    m[nx+1] = 2.0*m[nx]   - m[nx-1]
+    m[nx+2] = 2.0*m[nx+1] - m[nx]
+    # Compute differences
+    for i in range(nx+2):
+        dm[i] = m[i+1] - m[i]
+    # Compute t at nodal values
+    for i in range(nx):
+        a = dm[i+2]
+        b = dm[i]
+        ab = a + b
+        if ab > 0.0:
+            t[i] = (a*m[i+1] + b*m[i+2]) / ab
+        else:
+            t[i] = 0.5*(m[i+1] + m[i+2])
+    # Compute polynomial coefficients between nodes
+    for i in range(nx-1):
+        p1[i] = t[i]
+        p2[i] = 3.0*m[i+2] - 2.0*t[i] - t[i+1]
+        p3[i] = t[i] + t[i+1] - 2.0*m[i+2]
+    # Determine value at xp
+    idx = <int>(xp-x[0])
+    w = xp - x[idx]
+    fp = f[idx] + p1[idx]*w + p2[idx]*w**2 + p3[idx]*w**3
+
+    return fp
