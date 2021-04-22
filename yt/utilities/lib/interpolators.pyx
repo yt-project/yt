@@ -13,7 +13,7 @@ import numpy as np
 cimport cython
 cimport numpy as np
 
-from yt.utilities.lib.fp_utils cimport fclip, fmax, fmin, iclip, ifloor, imax, imin
+from yt.utilities.lib.fp_utils cimport fclip, fmax, fmin, iclip, imax, imin
 
 
 @cython.cdivision(True)
@@ -250,6 +250,77 @@ def ghost_zone_interpolate(
                     xfieldo[io] = 0.0
                     for i0, i in enumerate(range(ii, ii + nxs[0])):
                         xfieldo[io] += xw[i0] * xfieldi[i]
+                    
+                    iposi += dxo
+                output_field[:, jo, ko] = xfieldo
+                jposi += dxo
+            kposi += dxo
+
+    # Akima spline interpolation ----------------------------------------------
+    elif order == -1:
+        kposi = kposi0
+        for ko in range(nxo[2]):
+            ki = iclip(<int>kposi, 0, ki_max)
+            for k in range(nxs[2]):
+                zn[k] = ki + k - ilc[2]
+
+            # Interpolate to the x-y plane
+            for ii in range(nxi[0]):
+                for ji in range(nxi[1]):
+                    xyfieldi[ii,ji] = akima_interp( 
+                        zn, 
+                        input_field[ii, ji, ki:ki+nxs[2]], 
+                        kposi
+                    )
+
+            # Interpolate to the x-y plane
+            # zw = lagrange_weights(zn, kposi)
+            # for ii in range(nxi[0]):
+            #     for ji in range(nxi[1]):
+            #         xyfieldi[ii,ji] = 0.0
+            #         for k0, k in enumerate(range(ki, ki + nxs[2])):
+            #             xyfieldi[ii,ji] += zw[k0] * input_field[ii, ji, k]
+                    
+            jposi = jposi0
+            for jo in range(nxo[1]):
+                ji = iclip(<int>jposi, 0, ji_max)
+                for j in range(nxs[1]):
+                    yn[j] = ji + j - ilc[1]
+
+                # Interpolate to the x line
+                for ii in range(nxi[0]):
+                    xfieldi[ii] = akima_interp( 
+                        yn, 
+                        xyfieldi[ii, ji:ji+nxs[1]], 
+                        jposi
+                    )
+
+                # Interpolate to the x line
+                # yw = lagrange_weights(yn, jposi)
+                # for ii in range(nxi[0]):
+                #     xfieldi[ii] = 0.0
+                #     for j0, j in enumerate(range(ji, ji + nxs[1])):
+                #         xfieldi[ii] += yw[j0] * xyfieldi[ii, j]
+
+                iposi = iposi0
+                for io in range(nxo[0]):
+                    ii = iclip(<int>iposi, 0, ii_max)
+                    for i in range(nxs[0]):
+                        xn[i] = ii + i - ilc[0]
+
+                    # Interpolate to points in output field
+                    xfieldo[io] = akima_interp( 
+                        xn, 
+                        xfieldi[ii:ii+nxs[0]], 
+                        iposi
+                    )
+
+                    # Interpolate to points in output field
+                    # xw = lagrange_weights(xn, iposi)
+                    # xfieldo[io] = 0.0
+                    # for i0, i in enumerate(range(ii, ii + nxs[0])):
+                    #     xfieldo[io] += xw[i0] * xfieldi[i]
+                    
                     
                     iposi += dxo
                 output_field[:, jo, ko] = xfieldo
