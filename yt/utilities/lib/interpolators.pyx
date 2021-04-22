@@ -161,8 +161,9 @@ def ghost_zone_interpolate(
     cdef double iposi,  jposi,  kposi
     cdef double iposi0, jposi0, kposi0
     # Intermediate interpolated fields
-    cdef double[:,::1] yzfield = np.empty((nxi[1],nxi[2]))
-    cdef double[::1] zfield = np.empty((nxi[2]))
+    cdef double[:,::1] xyfieldi = np.empty((nxi[0],nxi[1]))
+    cdef double[::1] xfieldi = np.empty((nxi[0]))
+    cdef double[::1] xfieldo = np.empty((nxo[0]))
 
     # Compute the leftmost cell-center index position in the grid
     iposi0 = (output_left[0]+0.5/rf) - (input_left[0]+0.5) - ilc[0]
@@ -171,20 +172,17 @@ def ghost_zone_interpolate(
 
     # Linear interpolation ----------------------------------------------------
     if order == 2:
-        iposi = iposi0
-        for io in range(nxo[0]):
-            ii = <int>iposi
-            xw[1] = iposi - ii
-            xw[0] = 1.0 - xw[1]
+        kposi = kposi0
+        for ko in range(nxo[2]):
+            ki = <int>kposi
+            zw[1] = kposi - ki
+            zw[0] = 1.0 - zw[1]
 
-            # Interpolate to the y-z plane after zeroing out
-            for ji in range(nxi[1]):
-                for ki in range(nxi[2]):
-                    yzfield[ji,ki] = 0.0
-            for i0, i in enumerate(range(ii, ii + 2)):
+            # Interpolate to the x-y plane
+            for ii in range(nxi[0]):
                 for ji in range(nxi[1]):
-                    for ki in range(nxi[2]):
-                        yzfield[ji,ki] += xw[i0] * input_field[i, ji, ki]
+                    xyfieldi[ii,ji] = zw[0] * input_field[ii, ji, ki] \
+                                    + zw[1] * input_field[ii, ji, ki+1]
 
             jposi = jposi0
             for jo in range(nxo[1]):
@@ -192,46 +190,43 @@ def ghost_zone_interpolate(
                 yw[1] = jposi - ji
                 yw[0] = 1.0 - yw[1]
 
-                # Interpolate to z line after zeroing out
-                for ki in range(nxi[2]):
-                    zfield[ki] = 0.0
-                for j0, j in enumerate(range(ji, ji + 2)):
-                    for ki in range(nxi[2]):
-                        zfield[ki] += yw[j0] * yzfield[j, ki]
+                # Interpolate to the x line
+                for ii in range(nxi[0]):
+                    xfieldi[ii] = yw[0] * xyfieldi[ii, ji] \
+                                + yw[1] * xyfieldi[ii, ji+1]
 
-                kposi = kposi0
-                for ko in range(nxo[2]):
-                    ki = <int>kposi
-                    zw[1] = kposi - ki
-                    zw[0] = 1.0 - zw[1]
+                iposi = iposi0
+                for io in range(nxo[0]):
+                    ii = <int>iposi
+                    xw[1] = iposi - ii
+                    xw[0] = 1.0 - xw[1]
 
                     # Interpolate to points in output field
-                    output_field[io,jo,ko] = 0.0
-                    for k0, k in enumerate(range(ki, ki + 2)):
-                        output_field[io, jo, ko] += zw[k0] * zfield[k]
-
-                    kposi += dxo
+                    xfieldo[io] = xw[0] * xfieldi[ii]  \
+                                + xw[1] * xfieldi[ii+1]
+                    
+                    iposi += dxo
+                output_field[:, jo, ko] = xfieldo
                 jposi += dxo
-            iposi += dxo
+            kposi += dxo
 
+    
     # Cubic and quintic interpolation -----------------------------------------
     elif order > 2:
-        iposi = iposi0
-        for io in range(nxo[0]):
-            ii = ifloor(iposi)
-            ii = iclip(ii, 0, ii_max)
-            for i in range(nxs[0]):
-                xn[i] = ii + i - ilc[0]
-            xw = lagrange_weights(xn, iposi)
+        kposi = kposi0
+        for ko in range(nxo[2]):
+            ki = ifloor(kposi)
+            ki = iclip(ki, 0, ki_max)
+            for k in range(nxs[2]):
+                zn[k] = ki + k - ilc[2]
+            zw = lagrange_weights(zn, kposi)
 
-            # Interpolate to the y-z plane after zeroing out
-            for ji in range(nxi[1]):
-                for ki in range(nxi[2]):
-                    yzfield[ji,ki] = 0.0
-            for i0, i in enumerate(range(ii, ii + nxs[0])):
+            # Interpolate to the x-y plane
+            for ii in range(nxi[0]):
                 for ji in range(nxi[1]):
-                    for ki in range(nxi[2]):
-                        yzfield[ji,ki] += xw[i0] * input_field[i, ji, ki]
+                    xyfieldi[ii,ji] = 0.0
+                    for k0, k in enumerate(range(ki, ki + nxs[2])):
+                        xyfieldi[ii,ji] += zw[k0] * input_field[ii, ji, k]
 
             jposi = jposi0
             for jo in range(nxo[1]):
@@ -241,35 +236,36 @@ def ghost_zone_interpolate(
                     yn[j] = ji + j - ilc[1]
                 yw = lagrange_weights(yn, jposi)
 
-                # Interpolate to z line after zeroing out
-                for ki in range(nxi[2]):
-                    zfield[ki] = 0.0
-                for j0, j in enumerate(range(ji, ji + nxs[1])):
-                    for ki in range(nxi[2]):
-                        zfield[ki] += yw[j0] * yzfield[j, ki]
+                # Interpolate to the x line
+                for ii in range(nxi[0]):
+                    xfieldi[ii] = 0.0
+                    for j0, j in enumerate(range(ji, ji + nxs[1])):
+                        xfieldi[ii] += yw[j0] * xyfieldi[ii, j]
 
-                kposi = kposi0
-                for ko in range(nxo[2]):
-                    ki = ifloor(kposi)
-                    ki = iclip(ki, 0, ki_max)
-                    for k in range(nxs[2]):
-                        zn[k] = ki + k - ilc[2]
-                    zw = lagrange_weights(zn, kposi)
+                iposi = iposi0
+                for io in range(nxo[0]):
+                    ii = ifloor(iposi)
+                    ii = iclip(ii, 0, ii_max)
+                    for i in range(nxs[0]):
+                        xn[i] = ii + i - ilc[0]
+                    xw = lagrange_weights(xn, iposi)
 
                     # Interpolate to points in output field
-                    output_field[io,jo,ko] = 0.0
-                    for k0, k in enumerate(range(ki, ki + nxs[2])):
-                        output_field[io, jo, ko] += zw[k0] * zfield[k]
-
-                    kposi += dxo
+                    xfieldo[io] = 0.0
+                    for i0, i in enumerate(range(ii, ii + nxs[0])):
+                        xfieldo[io] += xw[i0] * xfieldi[i]
+                    
+                    iposi += dxo
+                output_field[:, jo, ko] = xfieldo
                 jposi += dxo
-            iposi += dxo
+            kposi += dxo
+
 
 @cython.cdivision(True)
 @cython.wraparound(False)
-@cython.boundscheck(False)
+@cython.boundscheck(True)
 cdef lagrange_weights(double[::1] x,
-                     double xp):
+                      double xp):
     cdef int nx = x.size
     cdef double[::1] wgts = np.empty((nx))
     cdef double c1, c2, c3, c4, c5
@@ -289,3 +285,44 @@ cdef lagrange_weights(double[::1] x,
             wgts[j] = c4 * wgts[j] / c3
         c1 = c2
     return wgts
+
+# @cython.cdivision(True)
+# @cython.wraparound(False)
+# @cython.boundscheck(True)
+# cdef akima_interp(double[::1] x, 
+#                   double[::1] f, 
+#                   double xp):
+#     cdef int nx = x.size
+#     cdef double[::1] m = np.empty((nx+3))
+#     cdef double[::1] dm = np.empty((nx+2))
+#     cdef double dx = 1.0
+
+#     m = np.empty((nx+3))
+#     m[2:-2] = (f[1:] - f[:-1])/dx 
+#     m[1]  = 2.0*m[2] - m[3]
+#     m[0]  = 2.0*m[1] - m[2]
+#     m[-2] = 2.0*m[-3] - m[-4]
+#     m[-1] = 2.0*m[-2] - m[-3]
+
+#     dm = np.abs(m[1:] - m[:-1])
+#     a = dm[2:]   # a = |m[3]-m[2]|, |m[4]-m[3]|
+#     b = dm[:-2]  # b = |m[1]-m[0]|, |m[2]-m[1]|
+#     ab = a + b
+
+#     # t.size = x.size - 4, also scipy uses ab > 1e-9*ab.max() for some reason
+#     t = np.where(ab > 0.0, (a*m[1:-2] + b*m[2:-1]) / ab,
+#                  0.5*(m[1:-2] + m[2:-1]))
+
+#     # Polynomial coefficients between knots
+#     p1 = t[:-1]
+#     p2 = (3.0*m[2:-2] - 2.0*t[:-1] - t[1:])/dx
+#     p3 = (t[:-1] + t[1:] - 2.0*m[2:-2])/dx**2
+
+#     # Determine value at xp
+#     idx = np.searchsorted(x, xp) - 1
+#     w   = xp - x[idx]
+#     fp = f[idx] + p1[idx]*w + p2[idx]*w**2 + p3[idx]*w**3
+
+#     return fp
+
+
