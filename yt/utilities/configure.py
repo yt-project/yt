@@ -2,9 +2,9 @@ import configparser
 import os
 import sys
 
-from yt.config import YTConfig, old_config_file, ytcfg_defaults
+from yt.config import YTConfig, old_config_file, ytcfg, ytcfg_defaults
 
-CONFIG = YTConfig()
+CONFIG = ytcfg
 
 
 def _cast_bool_helper(value):

@@ -138,7 +138,7 @@ class TestYTConfigCommands(TestYTConfig):
     def test_get_from_missing_config_file(self):
         assert not os.path.exists(config_dir())
         info = self._runYTConfig(["get", "yt", "default_colormap"])
-        assert info["retcode"] == 0
+        assert info["rc"] == 0
         assert info["stdout"] == "arbre\n"
         assert info["stderr"] == ""
 

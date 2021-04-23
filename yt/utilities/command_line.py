@@ -1645,6 +1645,7 @@ class YTConfigLocalConfigHandler:
         elif getattr(args, "global", False):
             config_file = global_config_file
         else:
+            config_file = None
             if local_exists and global_exists:
                 s = (
                     "Yt detected a local and a global configuration file, refusing "
@@ -1662,9 +1663,10 @@ class YTConfigLocalConfigHandler:
                 sys.exit(s)
             elif local_exists:
                 config_file = local_config_file
-            else:
+            elif global_exists:
                 config_file = global_config_file
-            sys.stderr.write(f"INFO: using configuration file: {config_file}.\n")
+            if config_file is not None:
+                sys.stderr.write(f"INFO: using configuration file: {config_file}.\n")
 
         try:
             CONFIG.read(config_file)
