@@ -157,8 +157,36 @@ class YTConfig:
 
         return file_names_read
 
-    def dumps(self) -> str:
-        return toml.dumps(self.config_root.as_dict())
+    def dumps(self, filter_sources=None) -> str:
+        if filter_sources is None:
+            filter_sources = []
+
+        def mask_dict(d, mask):
+            rd = {}
+            for key, keep in mask.items():
+                if key not in d:
+                    continue
+                if isinstance(keep, dict):
+                    new = mask_dict(d[key], keep)
+                    if new:
+                        rd[key] = new
+                elif keep:
+                    rd[key] = d[key]
+            return rd
+
+        cr = self.config_root
+        crd = cr.as_dict()
+        for source in filter_sources:
+            mask = cr._as_dict_with_count(
+                lambda node: node.extra_data["source"] != source
+            )[0]
+            crd = mask_dict(crd, mask)
+
+        if "yt" in crd:
+            if "internals" in crd["yt"]:
+                crd["yt"].pop("internals")
+
+        return toml.dumps(crd)
 
     def write(self, filename):
         os.makedirs(Path(filename).parent, exist_ok=True)

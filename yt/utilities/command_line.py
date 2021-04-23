@@ -1669,7 +1669,9 @@ class YTConfigLocalConfigHandler:
                 sys.stderr.write(f"INFO: loading configuration from {config_file}\n")
 
         self.config_file = config_file
-        if config_file is not None:
+        if config_file is None:
+            print("INFO: no configuration file available")
+        else:
             CONFIG.read(config_file)
 
 
@@ -1755,7 +1757,7 @@ class YTConfigListCmd(YTCommand, YTConfigLocalConfigHandler):
         from yt.utilities.configure import print_config
 
         self.load_config(args)
-        print_config(file=sys.stdout)
+        print_config(filter_sources=["defaults", "runtime"], file=sys.stdout)
 
 
 class YTConfigMigrateCmd(YTCommand, YTConfigLocalConfigHandler):

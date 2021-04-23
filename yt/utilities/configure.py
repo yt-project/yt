@@ -47,8 +47,8 @@ def write_config(config_file):
     CONFIG.write(config_file)
 
 
-def print_config(file=None):
-    conf_as_str = CONFIG.dumps()
+def print_config(filter_sources=None, file=None):
+    conf_as_str = CONFIG.dumps(filter_sources)
     if conf_as_str:
         # print nothing if the config happens to be empty
         print(conf_as_str, file=file)
