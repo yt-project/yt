@@ -1666,7 +1666,7 @@ class YTConfigLocalConfigHandler:
             elif global_exists:
                 config_file = global_config_file
             if config_file is not None:
-                sys.stderr.write(f"INFO: using configuration file: {config_file}.\n")
+                sys.stderr.write(f"INFO: loading configuration from {config_file}\n")
 
         self.config_file = config_file
         if config_file is not None:
