@@ -1670,7 +1670,7 @@ class YTConfigLocalConfigHandler:
 
         self.config_file = config_file
         if config_file is None:
-            print("INFO: no configuration file available")
+            print("INFO: no configuration file available", file=sys.stderr)
         else:
             CONFIG.read(config_file)
 

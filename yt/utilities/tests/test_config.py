@@ -140,7 +140,7 @@ class TestYTConfigCommands(TestYTConfig):
         info = self._runYTConfig(["get", "yt", "default_colormap"])
         assert info["rc"] == 0
         assert info["stdout"] == "arbre\n"
-        assert info["stderr"] == ""
+        assert info["stderr"] == "INFO: no configuration file available\n"
 
     def tearDown(self):
         if os.path.exists(YTConfig.get_global_config_file()):

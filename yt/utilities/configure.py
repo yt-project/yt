@@ -2,7 +2,7 @@ import configparser
 import os
 import sys
 
-from yt.config import YTConfig, old_config_file, ytcfg, ytcfg_defaults
+from yt.config import YTConfig, config_dir, old_config_file, ytcfg, ytcfg_defaults
 
 CONFIG = ytcfg
 
@@ -44,6 +44,9 @@ def set_config(section, option, value, config_file):
 
 
 def write_config(config_file):
+    if config_file is None:
+        config_file = os.path.join(config_dir(), "yt.toml")
+        print(f"INFO: writing configuration to {config_file}", file=sys.stderr)
     CONFIG.write(config_file)
 
 
