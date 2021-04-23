@@ -1668,11 +1668,9 @@ class YTConfigLocalConfigHandler:
             if config_file is not None:
                 sys.stderr.write(f"INFO: using configuration file: {config_file}.\n")
 
-        try:
+        self.config_file = config_file
+        if config_file is not None:
             CONFIG.read(config_file)
-            self.config_file = config_file
-        except FileNotFoundError:
-            self.config_file = None
 
 
 _global_local_args = [
