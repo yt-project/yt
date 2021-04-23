@@ -7,6 +7,8 @@ import unittest
 import unittest.mock as mock
 from io import StringIO
 
+import toml
+
 import yt.config
 import yt.utilities.command_line
 from yt.config import YTConfig, config_dir, old_config_file
@@ -141,6 +143,20 @@ class TestYTConfigCommands(TestYTConfig):
         assert info["rc"] == 0
         assert info["stdout"] == "arbre\n"
         assert info["stderr"] == "INFO: no configuration file available\n"
+
+    def test_set_from_missing_config_file(self):
+        assert not os.path.exists(config_dir())
+        info = self._runYTConfig(["set", "yt", "default_colormap", "RdBu"])
+        assert info["rc"] == 0
+        assert info["stdout"] == ""
+        assert info["stderr"] == (
+            "INFO: no configuration file available\n"
+            f"INFO: writing configuration to {YTConfig.get_global_config_file()}\n"
+        )
+        self.assertEqual(
+            toml.load(YTConfig.get_global_config_file()),
+            {"yt": {"default_colormap": "RdBu"}},
+        )
 
     def tearDown(self):
         if os.path.exists(YTConfig.get_global_config_file()):
