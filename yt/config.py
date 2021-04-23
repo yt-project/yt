@@ -1,5 +1,4 @@
 import os
-import warnings
 from pathlib import Path
 
 import toml
@@ -212,16 +211,6 @@ if os.path.exists(old_config_file()):
             since="4.0.0",
             removal="4.1.0",
         )
-
-
-if not os.path.exists(_global_config_file):
-    cfg = {"yt": {}}
-    try:
-        with open(_global_config_file, mode="w") as fd:
-            toml.dump(cfg, fd)
-    except OSError:
-        warnings.warn("unable to write new config file")
-
 
 # Load the config
 ytcfg = YTConfig()

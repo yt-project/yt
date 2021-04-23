@@ -135,6 +135,13 @@ class TestYTConfigCommands(TestYTConfig):
         self._testKeyTypeError("foo.bar", 10, 20, expect_error=False)
         self._testKeyTypeError("foo.bar", "foo", "bar", expect_error=False)
 
+    def test_get_from_missing_config_file(self):
+        assert not os.path.exists(config_dir())
+        info = self._runYTConfig(["get", "yt", "default_colormap"])
+        assert info["retcode"] == 0
+        assert info["stdout"] == "arbre\n"
+        assert info["stderr"] == ""
+
     def tearDown(self):
         if os.path.exists(YTConfig.get_global_config_file()):
             os.remove(YTConfig.get_global_config_file())
