@@ -138,20 +138,23 @@ class TestYTConfigCommands(TestYTConfig):
         self._testKeyTypeError("foo.bar", "foo", "bar", expect_error=False)
 
     def test_get_from_missing_config_file(self):
-        assert not os.path.exists(config_dir())
+        self.assertFalse(os.path.exists(config_dir()))
         info = self._runYTConfig(["get", "yt", "default_colormap"])
-        assert info["rc"] == 0
-        assert info["stdout"] == "arbre\n"
-        assert info["stderr"] == "INFO: no configuration file available\n"
+        self.assertEqual(info["rc"], 0)
+        self.assertEqual(info["stdout"], "arbre\n")
+        self.assertEqual(info["stderr"], "INFO: no configuration file available\n")
 
     def test_set_from_missing_config_file(self):
-        assert not os.path.exists(config_dir())
+        self.assertFalse(os.path.exists(config_dir()))
         info = self._runYTConfig(["set", "yt", "default_colormap", "RdBu"])
-        assert info["rc"] == 0
-        assert info["stdout"] == ""
-        assert info["stderr"] == (
-            "INFO: no configuration file available\n"
-            f"INFO: writing configuration to {YTConfig.get_global_config_file()}\n"
+        self.assertEqual(info["rc"], 0)
+        self.assertEqual(info["stdout"], "")
+        self.assertEqual(
+            info["stderr"],
+            (
+                "INFO: no configuration file available\n"
+                f"INFO: writing configuration to {YTConfig.get_global_config_file()}\n"
+            ),
         )
         self.assertEqual(
             toml.load(YTConfig.get_global_config_file()),
