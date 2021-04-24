@@ -275,9 +275,9 @@ class FieldInfoContainer(dict):
 
         Parameters
         ----------
-        sampling_type: str
+        sampling_type : str
             One of "cell", "particle" or "local" (case insensitive)
-        particle_type: str
+        particle_type : str
             This is a deprecated argument of the add_field method,
             which was replaced by sampling_type.
 

@@ -921,14 +921,11 @@ class Dataset(abc.ABC):
 
         Parameters
         ----------
-        field: str or tuple(str, str)
-
-        ext: str
+        field : str or tuple(str, str)
+        ext : str
             'min' or 'max', select an extremum
-
-        source: a Yt data object
-
-        to_array: bool
+        source : a Yt data object
+        to_array : bool
             select the return type.
 
         Returns
