@@ -301,7 +301,7 @@ def standard_particle_fields(
     unit_system = registry.ds.unit_system
 
     def _particle_velocity_magnitude(field, data):
-        """ M{|v|} """
+        """M{|v|}"""
         return np.sqrt(
             data[ptype, f"relative_{svel % 'x'}"] ** 2
             + data[ptype, f"relative_{svel % 'y'}"] ** 2
