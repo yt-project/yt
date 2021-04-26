@@ -239,11 +239,7 @@ def fake_random_ds(
             negative = None
 
     fields, units, negative = _check_field_unit_args_helper(
-        {
-            "fields": fields,
-            "units": units,
-            "negative": negative,
-        },
+        {"fields": fields, "units": units, "negative": negative},
         {
             "fields": _fake_random_ds_default_fields,
             "units": _fake_random_ds_default_units,
@@ -309,14 +305,8 @@ def fake_amr_ds(
     from yt.loaders import load_amr_grids
 
     fields, units = _check_field_unit_args_helper(
-        {
-            "fields": fields,
-            "units": units,
-        },
-        {
-            "fields": _fake_amr_ds_default_fields,
-            "units": _fake_amr_ds_default_units,
-        },
+        {"fields": fields, "units": units},
+        {"fields": _fake_amr_ds_default_fields, "units": _fake_amr_ds_default_units},
     )
 
     prng = RandomState(0x4D3D3D3)
@@ -363,12 +353,7 @@ _fake_particle_ds_default_negative = (False, False, False, False, True, True, Tr
 
 
 def fake_particle_ds(
-    fields=None,
-    units=None,
-    negative=None,
-    npart=16 ** 3,
-    length_unit=1.0,
-    data=None,
+    fields=None, units=None, negative=None, npart=16 ** 3, length_unit=1.0, data=None,
 ):
     from yt.loaders import load_particles
 
@@ -377,11 +362,7 @@ def fake_particle_ds(
         negative = [negative for f in fields]
 
     fields, units, negative = _check_field_unit_args_helper(
-        {
-            "fields": fields,
-            "units": units,
-            "negative": negative,
-        },
+        {"fields": fields, "units": units, "negative": negative},
         {
             "fields": _fake_particle_ds_default_fields,
             "units": _fake_particle_ds_default_units,
@@ -917,8 +898,7 @@ def requires_module_pytest(*module_names):
 
         # note that order between these two decorators matters
         @pytest.mark.skipif(
-            missing,
-            reason=f"missing requirement(s): {', '.join(missing)}",
+            missing, reason=f"missing requirement(s): {', '.join(missing)}",
         )
         @functools.wraps(func)
         def inner_func(*args, **kwargs):
@@ -1315,9 +1295,7 @@ def assert_fname(fname):
     assert (
         image_type == extension
     ), "Expected an image of type '{}' but '{}' is an image of type '{}'".format(
-        extension,
-        fname,
-        image_type,
+        extension, fname, image_type,
     )
 
 

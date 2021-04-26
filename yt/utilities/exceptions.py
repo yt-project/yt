@@ -395,8 +395,7 @@ class YTNoAPIKey(YTException):
 
     def __str__(self):
         return "You need to set an API key for {} in ~/.config/yt/ytrc as {}".format(
-            self.service,
-            self.config_name,
+            self.service, self.config_name,
         )
 
 
@@ -452,10 +451,7 @@ class YTDomainOverflow(YTException):
 
     def __str__(self):
         return "Particle bounds {} and {} exceed domain bounds {} and {}".format(
-            self.mi,
-            self.ma,
-            self.dle,
-            self.dre,
+            self.mi, self.ma, self.dle, self.dre,
         )
 
 
@@ -476,9 +472,7 @@ class YTIllDefinedFilter(YTException):
 
     def __str__(self):
         return "Filter '{}' ill-defined.  Applied to shape {} but is shape {}.".format(
-            self.filter,
-            self.s1,
-            self.s2,
+            self.filter, self.s1, self.s2,
         )
 
 
@@ -558,8 +552,7 @@ class YTElementTypeNotRecognized(YTException):
 
     def __str__(self):
         return "Element type not recognized - dim = {}, num_nodes = {}".format(
-            self.dim,
-            self.num_nodes,
+            self.dim, self.num_nodes,
         )
 
 

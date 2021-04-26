@@ -450,12 +450,7 @@ def test_magnetic_callback():
                 "magnetic_field_y",
                 "magnetic_field_z",
             ),
-            units=(
-                "g/cm**3",
-                "G",
-                "G",
-                "G",
-            ),
+            units=("g/cm**3", "G", "G", "G",),
         )
         for ax in "xyz":
             p = ProjectionPlot(
@@ -501,12 +496,7 @@ def test_magnetic_callback():
                 "magnetic_field_theta",
                 "magnetic_field_phi",
             ),
-            units=(
-                "g/cm**3",
-                "G",
-                "G",
-                "G",
-            ),
+            units=("g/cm**3", "G", "G", "G",),
             geometry="spherical",
         )
         p = ProjectionPlot(ds, "r", ("gas", "density"))

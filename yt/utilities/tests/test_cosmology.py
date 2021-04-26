@@ -241,13 +241,8 @@ def test_cosmology_calculator_answers():
                 val.convert_to_units(units)
             val = float(val)
 
-            err_msg = (
-                "{} answer has changed for {} cosmology, old: {:f}, new: {:f}.".format(
-                    fname,
-                    cname,
-                    finfo["answers"][cname],
-                    val,
-                )
+            err_msg = "{} answer has changed for {} cosmology, old: {:f}, new: {:f}.".format(
+                fname, cname, finfo["answers"][cname], val,
             )
             assert_almost_equal(val, finfo["answers"][cname], 10, err_msg=err_msg)
 

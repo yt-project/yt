@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 from yt.visualization.accumulators import Accumulators
-from yt.visualization.accumulators import get_row_major_index
 
 
 g30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
@@ -18,14 +17,17 @@ def fake_path(request):
     x = np.linspace(0.1, 0.9, N)
     y = np.linspace(0.1, np.sqrt(0.9), N)
     z = np.linspace(0.1, np.cbrt(0.9), N)
-    path = np.stack([x,y,z], axis=1)
+    path = np.stack([x, y, z], axis=1)
     return path
 
 
 @pytest.mark.answer_test
-@pytest.mark.answer_big_data
+@pytest.mark.parametrize("ds", [g30], indirect=True)
 class TestAccumulators:
-    @pytest.mark.parametrize("ds", [g30], indirect=True)
+    answer_file = None
+    saved_hashes = None
+    answer_version = "000"
+
     def test_two_pts_same_cell_scalar(self, ds):
         r"""
         Integrates the density field between two points that are in the same
@@ -38,7 +40,6 @@ class TestAccumulators:
         answer = np.array([0.00270012])
         np.testing.assert_array_almost_equal(accumulator.accum, answer)
 
-    @pytest.mark.parametrize("ds", [g30], indirect=True)
     def test_two_pts_diff_cell_same_node_scalar(self, ds):
         r"""
         Integrates the density field between two points that are in the same
@@ -51,7 +52,6 @@ class TestAccumulators:
         answer = np.array([0.06582006])
         np.testing.assert_array_almost_equal(accumulator.accum, answer)
 
-    @pytest.mark.parametrize("ds", [g30], indirect=True)
     def test_two_pts_diff_nodes_scalar(self, ds):
         r"""
         Integrates the density field between two points that are in different
@@ -64,7 +64,6 @@ class TestAccumulators:
         answer = np.array([0.09374269])
         np.testing.assert_array_almost_equal(accumulator.accum, answer)
 
-    @pytest.mark.parametrize("ds", [g30], indirect=True)
     def test_npts_scalar(self, ds, fake_path):
         r"""
         Calculates the accumulation of the density field along the path
@@ -94,7 +93,6 @@ class TestAccumulators:
         )
         np.testing.assert_array_almost_equal(accumulator.accum, answer)
 
-    @pytest.mark.parametrize("ds", [g30], indirect=True)
     def test_two_pts_same_cell_vector(self, ds):
         r"""
         Integrates the velocity field between two points that are in the same
@@ -107,7 +105,6 @@ class TestAccumulators:
         answer = np.array([-0.00148564])
         np.testing.assert_array_almost_equal(accumulator.accum, answer)
 
-    @pytest.mark.parametrize("ds", [g30], indirect=True)
     def test_two_pts_diff_cell_same_node_vector(self, ds):
         r"""
         Integrates the velocity field between two points that are in the same
@@ -120,7 +117,6 @@ class TestAccumulators:
         answer = np.array([0.0264723435])
         np.testing.assert_array_almost_equal(accumulator.accum, answer)
 
-    @pytest.mark.parametrize("ds", [g30], indirect=True)
     def test_two_pts_diff_nodes_vector(self, ds):
         r"""
         Integrates the velocity field between two points that are in different
@@ -133,7 +129,6 @@ class TestAccumulators:
         answer = np.array([0.05266109])
         np.testing.assert_array_almost_equal(accumulator.accum, answer)
 
-    @pytest.mark.parametrize("ds", [g30], indirect=True)
     def test_npts_vector(self, ds, fake_path):
         r"""
         Calculates the accumulation of a test vector field and a test scalar

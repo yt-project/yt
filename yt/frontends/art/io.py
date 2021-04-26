@@ -259,14 +259,7 @@ class IOHandlerDarkMatterART(IOHandlerART):
 
 def _determine_field_size(pf, field, lspecies, ptmax):
     pbool = np.zeros(len(lspecies), dtype="bool")
-    idxas = np.concatenate(
-        (
-            [
-                0,
-            ],
-            lspecies[:-1],
-        )
-    )
+    idxas = np.concatenate(([0], lspecies[:-1]))
     idxbs = lspecies
     if "specie" in field:
         index = int(field.replace("specie", ""))

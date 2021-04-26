@@ -345,9 +345,7 @@ def test_bitmap_select():
                     else:
                         ans_gf = [i - 1, i + 1]
                     assert_equal(
-                        len(gf),
-                        len(ans_gf),
-                        f"selector {i}, number of ghost files",
+                        len(gf), len(ans_gf), f"selector {i}, number of ghost files",
                     )
                     for i in range(len(gf)):
                         assert_equal(gf[i], ans_gf[i], f"selector {i}, ghost files")

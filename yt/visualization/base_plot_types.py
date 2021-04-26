@@ -112,13 +112,7 @@ class PlotMPL:
         except KeyError:
             return
 
-        mod = __import__(
-            "matplotlib.backends",
-            globals(),
-            locals(),
-            [module],
-            0,
-        )
+        mod = __import__("matplotlib.backends", globals(), locals(), [module], 0,)
         submod = getattr(mod, module)
         FigureCanvas = getattr(submod, fig_canvas)
         if fig_manager is not None:
