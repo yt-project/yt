@@ -283,20 +283,7 @@ def ghost_zone_interpolate(
                         input_field[ii, ji, ki:ki+nxs[2]],
                         kposi
                     )
-<<<<<<< HEAD
-            
             # Iterate over y position
-=======
-
-            # Interpolate to the x-y plane
-            # zw = lagrange_weights(zn, kposi)
-            # for ii in range(nxi[0]):
-            #     for ji in range(nxi[1]):
-            #         xyfieldi[ii,ji] = 0.0
-            #         for k0, k in enumerate(range(ki, ki + nxs[2])):
-            #             xyfieldi[ii,ji] += zw[k0] * input_field[ii, ji, k]
-
->>>>>>> f5ce7b10add10f40ef8b7f8383f7f7821f1e8298
             jposi = jposi0
             for jo in range(nxo[1]):
                 ji = iclip(<int>jposi, 0, ji_max)
@@ -389,7 +376,6 @@ def ghost_zone_interpolate(
                 iposi = iposi0
                 for io in range(nxo[0]):
                     # Interpolate to points in output field
-<<<<<<< HEAD
                     xfieldo[io] = natural_interp( 
                         xn, 
                         xfieldi[0:nxs[0]], 
@@ -397,14 +383,6 @@ def ghost_zone_interpolate(
                         iposi
                     )
                     
-=======
-                    # xw = lagrange_weights(xn, iposi)
-                    # xfieldo[io] = 0.0
-                    # for i0, i in enumerate(range(ii, ii + nxs[0])):
-                    #     xfieldo[io] += xw[i0] * xfieldi[i]
-
-
->>>>>>> f5ce7b10add10f40ef8b7f8383f7f7821f1e8298
                     iposi += dxo
                 output_field[:, jo, ko] = xfieldo
                 jposi += dxo
