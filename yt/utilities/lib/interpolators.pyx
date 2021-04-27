@@ -441,7 +441,7 @@ cdef akima_interp(double[::1] x,
     m[nx+2] = 2.0*m[nx+1] - m[nx]
     # Compute differences
     for i in range(nx+2):
-        dm[i] = m[i+1] - m[i]
+        dm[i] = abs(m[i+1] - m[i])
     # Compute t at nodal values
     for i in range(nx):
         a = dm[i+2]
