@@ -1313,9 +1313,10 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
             msg += "Only the following are supported: "
             msg += ", ".join(order_nbuf.keys())
             raise NotImplementedError(msg) from err
+        # Assign default number of buffer cells if none is provided
         nbuf = nbuf or nbuf_from_order
         if nbuf < 1:
-            raise ValueError
+            raise ValueError("nbuf must be greater than or equal to one.")
         # Set order and number of buffer cells to object
         self.order = order
         self.nbuf = nbuf
