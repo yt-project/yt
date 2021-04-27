@@ -477,7 +477,7 @@ cdef spline_2nd_derive(double[::1] x,
         sig = (x[i] - x[i-1]) / (x[i+1] - x[i-1])
         p = sig * d2f[i-1] + 2.0
         d2f[i] = (sig - 1.0) / p
-        tmp[i] = (f[i+1] - f[i]) / (x[i+1] - x[i]) 
+        tmp[i] = (f[i+1] - f[i]) / (x[i+1] - x[i]) \
                - (f[i] - f[i-1]) / (x[i] - x[i-1])
         tmp[i] = (6.0 * tmp[i] / (x[i+1] - x[i-1]) - sig * tmp[i-1]) / p
     qn = 0.0
