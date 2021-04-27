@@ -413,7 +413,7 @@ class Dataset(abc.ABC):
         pass
 
     def __getitem__(self, key):
-        """ Returns units, parameters, or conversion_factors in that order. """
+        """Returns units, parameters, or conversion_factors in that order."""
         return self.parameters[key]
 
     def __iter__(self):
