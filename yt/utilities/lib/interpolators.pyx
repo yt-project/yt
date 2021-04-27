@@ -141,8 +141,8 @@ def ghost_zone_interpolate(
     if order == -1: nxs = [6,6,6]
     if order == -2: nxs = nxi
     # Determine the index of the stencil that is left of the center
-    cdef int[3] ilc = [nxs[0]//2 - 1, 
-                       nxs[1]//2 - 1, 
+    cdef int[3] ilc = [nxs[0]//2 - 1,
+                       nxs[1]//2 - 1,
                        nxs[2]//2 - 1]
     # Determine maximum ii, ji, ki values that are allowed
     cdef int ii_max = nxi[0]-nxs[0]
@@ -211,12 +211,12 @@ def ghost_zone_interpolate(
                     # Interpolate to points in output field
                     xfieldo[io] = xw[0] * xfieldi[ii]  \
                                 + xw[1] * xfieldi[ii+1]
-                    
+
                     iposi += dxo
                 output_field[:, jo, ko] = xfieldo
                 jposi += dxo
             kposi += dxo
-    
+
     # Cubic and quintic interpolation -----------------------------------------
     elif order > 2:
         # Iterate over z position
@@ -260,7 +260,7 @@ def ghost_zone_interpolate(
                     xfieldo[io] = 0.0
                     for i0, i in enumerate(range(ii, ii + nxs[0])):
                         xfieldo[io] += xw[i0] * xfieldi[i]
-                    
+
                     iposi += dxo
                 output_field[:, jo, ko] = xfieldo
                 jposi += dxo
@@ -278,13 +278,25 @@ def ghost_zone_interpolate(
             # Interpolate to the x-y plane
             for ii in range(nxi[0]):
                 for ji in range(nxi[1]):
-                    xyfieldi[ii,ji] = akima_interp( 
-                        zn, 
-                        input_field[ii, ji, ki:ki+nxs[2]], 
+                    xyfieldi[ii,ji] = akima_interp(
+                        zn,
+                        input_field[ii, ji, ki:ki+nxs[2]],
                         kposi
                     )
+<<<<<<< HEAD
             
             # Iterate over y position
+=======
+
+            # Interpolate to the x-y plane
+            # zw = lagrange_weights(zn, kposi)
+            # for ii in range(nxi[0]):
+            #     for ji in range(nxi[1]):
+            #         xyfieldi[ii,ji] = 0.0
+            #         for k0, k in enumerate(range(ki, ki + nxs[2])):
+            #             xyfieldi[ii,ji] += zw[k0] * input_field[ii, ji, k]
+
+>>>>>>> f5ce7b10add10f40ef8b7f8383f7f7821f1e8298
             jposi = jposi0
             for jo in range(nxo[1]):
                 ji = iclip(<int>jposi, 0, ji_max)
@@ -293,9 +305,9 @@ def ghost_zone_interpolate(
 
                 # Interpolate to the x line
                 for ii in range(nxi[0]):
-                    xfieldi[ii] = akima_interp( 
-                        yn, 
-                        xyfieldi[ii, ji:ji+nxs[1]], 
+                    xfieldi[ii] = akima_interp(
+                        yn,
+                        xyfieldi[ii, ji:ji+nxs[1]],
                         jposi
                     )
 
@@ -307,9 +319,9 @@ def ghost_zone_interpolate(
                         xn[i] = ii + i - ilc[0]
 
                     # Interpolate to points in output field
-                    xfieldo[io] = akima_interp( 
-                        xn, 
-                        xfieldi[ii:ii+nxs[0]], 
+                    xfieldo[io] = akima_interp(
+                        xn,
+                        xfieldi[ii:ii+nxs[0]],
                         iposi
                     )
                     
@@ -377,6 +389,7 @@ def ghost_zone_interpolate(
                 iposi = iposi0
                 for io in range(nxo[0]):
                     # Interpolate to points in output field
+<<<<<<< HEAD
                     xfieldo[io] = natural_interp( 
                         xn, 
                         xfieldi[0:nxs[0]], 
@@ -384,6 +397,14 @@ def ghost_zone_interpolate(
                         iposi
                     )
                     
+=======
+                    # xw = lagrange_weights(xn, iposi)
+                    # xfieldo[io] = 0.0
+                    # for i0, i in enumerate(range(ii, ii + nxs[0])):
+                    #     xfieldo[io] += xw[i0] * xfieldi[i]
+
+
+>>>>>>> f5ce7b10add10f40ef8b7f8383f7f7821f1e8298
                     iposi += dxo
                 output_field[:, jo, ko] = xfieldo
                 jposi += dxo
@@ -419,8 +440,8 @@ cdef lagrange_weights(double[::1] x,
 @cython.cdivision(True)
 @cython.wraparound(False)
 @cython.boundscheck(True)
-cdef akima_interp(double[::1] x, 
-                  double[::1] f, 
+cdef akima_interp(double[::1] x,
+                  double[::1] f,
                   double xp):
     cdef int nx = x.size
     cdef double[::1] m = np.empty((nx+3))
