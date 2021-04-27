@@ -167,7 +167,7 @@ def ghost_zone_interpolate(
     cdef double[:,:,::1] d2fdz2
     cdef double[:,::1] d2fdy2
     cdef double[::1] d2fdx2
-    cdef double[::1] tmp 
+    cdef double[::1] tmp
 
     # Compute the leftmost cell-center index position in the input grid
     iposi0 = (output_left[0]+0.5/rf) - (input_left[0]+0.5) - ilc[0]
@@ -312,7 +312,7 @@ def ghost_zone_interpolate(
                         xfieldi[ii:ii+nxs[0]],
                         iposi
                     )
-                    
+
                     iposi += dxo
                 output_field[:, jo, ko] = xfieldo
                 jposi += dxo
@@ -320,7 +320,7 @@ def ghost_zone_interpolate(
 
     # Natural spline interpolation --------------------------------------------
     elif order == -2:
-        # Initialize 
+        # Initialize
         d2fdz2 = np.empty((nxi[0],nxi[1],nxi[2]))
         d2fdy2 = np.empty((nxi[0],nxi[1]))
         d2fdx2 = np.empty((nxi[0]))
@@ -337,16 +337,16 @@ def ghost_zone_interpolate(
                 tmp = spline_2nd_derive(zn,input_field[ii,ji,0:nxs[2]])
                 for ki in range(nxi[2]):
                     d2fdz2[ii,ji,ki] = tmp[ki]
-        
+
         # Iterate over z position
         kposi = kposi0
         for ko in range(nxo[2]):
             # Interpolate to the x-y plane
             for ii in range(nxi[0]):
                 for ji in range(nxi[1]):
-                    xyfieldi[ii,ji] = natural_interp( 
-                        zn, 
-                        input_field[ii, ji, 0:nxs[2]], 
+                    xyfieldi[ii,ji] = natural_interp(
+                        zn,
+                        input_field[ii, ji, 0:nxs[2]],
                         d2fdz2[ii,ji,0:nxs[2]],
                         kposi
                     )
@@ -362,9 +362,9 @@ def ghost_zone_interpolate(
             for jo in range(nxo[1]):
                 # Interpolate to the x line
                 for ii in range(nxi[0]):
-                    xfieldi[ii] = natural_interp( 
-                        yn, 
-                        xyfieldi[ii, 0:nxs[1]], 
+                    xfieldi[ii] = natural_interp(
+                        yn,
+                        xyfieldi[ii, 0:nxs[1]],
                         d2fdy2[ii,0:nxs[1]],
                         jposi
                     )
@@ -377,18 +377,18 @@ def ghost_zone_interpolate(
                 iposi = iposi0
                 for io in range(nxo[0]):
                     # Interpolate to points in output field
-                    xfieldo[io] = natural_interp( 
-                        xn, 
-                        xfieldi[0:nxs[0]], 
+                    xfieldo[io] = natural_interp(
+                        xn,
+                        xfieldi[0:nxs[0]],
                         d2fdx2[0:nxs[0]],
                         iposi
                     )
-                    
+
                     iposi += dxo
                 output_field[:, jo, ko] = xfieldo
                 jposi += dxo
             kposi += dxo
-        
+
 
 
 @cython.cdivision(True)
@@ -466,7 +466,7 @@ cdef akima_interp(double[::1] x,
 @cython.cdivision(True)
 @cython.wraparound(False)
 @cython.boundscheck(True)
-cdef spline_2nd_derive(double[::1] x, 
+cdef spline_2nd_derive(double[::1] x,
                        double[::1] f):
     cdef int nx = x.size
     cdef double [::1] d2f = np.zeros((nx))
@@ -479,7 +479,7 @@ cdef spline_2nd_derive(double[::1] x,
         p = sig*d2f[i-1] + 2.0
         d2f[i] = (sig-1.0)/p
         tmp[i] = (f[i+1]-f[i])/(x[i+1]-x[i]) - (f[i]-f[i-1])/(x[i]-x[i-1])
-        tmp[i] = (6.0*tmp[i]/(x[i+1]-x[i-1]) - sig*tmp[i-1])/p 
+        tmp[i] = (6.0*tmp[i]/(x[i+1]-x[i-1]) - sig*tmp[i-1])/p
     qn = 0.0
     tmpn = 0.0
 
@@ -489,9 +489,9 @@ cdef spline_2nd_derive(double[::1] x,
 
     return d2f
 
-def natural_interp(double[::1] x, 
-                   double[::1] f, 
-                   double[::1] d2f, 
+def natural_interp(double[::1] x,
+                   double[::1] f,
+                   double[::1] d2f,
                    double xp):
     cdef int nx = x.size
     cdef int kl, kh

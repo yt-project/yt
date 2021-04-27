@@ -1460,34 +1460,34 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         left = np.array(self.left_edge.d - self.ds.domain_left_edge.d)
         right = np.array(self.right_edge.d - self.ds.domain_left_edge.d)
         # Adjust edges of the final grid to include the buffer region
-        left  -= self.nbuf * self_dds
+        left -= self.nbuf * self_dds
         right += self.nbuf * self_dds
-        # If this isn't the final level, update the edges so the final and 
+        # If this isn't the final level, update the edges so the final and
         # intermediate grids are fully nested
-        if any(dds/self_dds > 1.0):
+        if any(dds / self_dds > 1.0):
             # Compute number of levels to achieve self_dds resolution
             rf = int(self.ds.relative_refinement(0, 1))
-            nlev = int((dds[0]/self_dds[0])/rf)
+            nlev = int((dds[0] / self_dds[0]) / rf)
             # Iteratively update edges for each level
             for l in range(1, nlev + 1):
-                dx = rf**l * self_dds
-                # Determine the number of cells needed for edge alignment on 
+                dx = rf ** l * self_dds
+                # Determine the number of cells needed for edge alignment on
                 # one finer level
-                nl = ((-left % dx)/(dx/rf) - 1) % rf + 1
-                nr = ((right % dx)/(dx/rf) - 1) % rf + 1
+                nl = ((-left % dx) / (dx / rf) - 1) % rf + 1
+                nr = ((right % dx) / (dx / rf) - 1) % rf + 1
                 # Determine position where the edges align
-                lalign = left  + (dx/rf)*nl
-                ralign = right - (dx/rf)*nr
-                # Now compute the number of cells from edges for the current 
+                lalign = left + (dx / rf) * nl
+                ralign = right - (dx / rf) * nr
+                # Now compute the number of cells from edges for the current
                 # cell size
-                nl = np.ceil(2*nl/rf)
-                nr = np.ceil(2*nr/rf)
+                nl = np.ceil(2 * nl / rf)
+                nr = np.ceil(2 * nr / rf)
                 # Recompute left and right edges
-                left  = lalign - dx*nl
-                right = ralign + dx*nl
+                left = lalign - dx * nl
+                right = ralign + dx * nl
         # Starting indicies, ending indicies and dimensions of grid
-        istart = np.rint(left/dds).astype("int64")
-        iend = np.rint(right/dds).astype("int64") - 1
+        istart = np.rint(left / dds).astype("int64")
+        iend = np.rint(right / dds).astype("int64") - 1
         dims = iend - istart + 1
         return istart, iend, dims
 
