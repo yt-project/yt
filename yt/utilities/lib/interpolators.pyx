@@ -422,9 +422,9 @@ cdef akima_interp(double[::1] x,
                   double[::1] f,
                   double xp):
     cdef int nx = x.size
-    cdef double[::1] m = np.empty((nx+3))
+    cdef double[::1] m  = np.empty((nx+3))
     cdef double[::1] dm = np.empty((nx+2))
-    cdef double[::1] t = np.empty((nx))
+    cdef double[::1] t  = np.empty((nx))
     cdef double[::1] p1 = np.empty((nx-1))
     cdef double[::1] p2 = np.empty((nx-1))
     cdef double[::1] p3 = np.empty((nx-1))
@@ -432,7 +432,7 @@ cdef akima_interp(double[::1] x,
     cdef int i, idx
 
     # Compute derivative with extra conditions (note, dx==1 so not included)
-    for i in range(2,nx+1):
+    for i in range(2, nx+1):
         m[i] = f[i-1] - f[i-2]
     m[1] = 2.0*m[2] - m[3]
     m[0] = 2.0*m[1] - m[2]
@@ -456,7 +456,7 @@ cdef akima_interp(double[::1] x,
         p2[i] = 3.0*m[i+2] - 2.0*t[i] - t[i+1]
         p3[i] = t[i] + t[i+1] - 2.0*m[i+2]
     # Determine value at xp
-    idx = <int>(xp-x[0])
+    idx = <int>(xp - x[0])
     w = xp - x[idx]
     fp = f[idx] + p1[idx]*w + p2[idx]*w**2 + p3[idx]*w**3
 
@@ -473,19 +473,18 @@ cdef spline_2nd_derive(double[::1] x,
     cdef int i
     cdef double sig, p, qn, tmpn
 
-    for i in range(1,nx-1):
-        sig = (x[i]-x[i-1])/(x[i+1]-x[i-1])
-        p = sig*d2f[i-1] + 2.0
-        d2f[i] = (sig-1.0)/p
-        tmp[i] = (f[i+1]-f[i])/(x[i+1]-x[i]) - (f[i]-f[i-1])/(x[i]-x[i-1])
-        tmp[i] = (6.0*tmp[i]/(x[i+1]-x[i-1]) - sig*tmp[i-1])/p
+    for i in range(1, nx-1):
+        sig = (x[i] - x[i-1]) / (x[i+1] - x[i-1])
+        p = sig * d2f[i-1] + 2.0
+        d2f[i] = (sig - 1.0) / p
+        tmp[i] = (f[i+1] - f[i]) / (x[i+1] - x[i]) 
+               - (f[i] - f[i-1]) / (x[i] - x[i-1])
+        tmp[i] = (6.0 * tmp[i] / (x[i+1] - x[i-1]) - sig * tmp[i-1]) / p
     qn = 0.0
     tmpn = 0.0
-
-    d2f[nx-1] = (tmpn-qn*tmp[nx-2])/(qn*d2f[nx-3]+1.0)
-    for i in range(nx-2,-1,-1):
-        d2f[i] = d2f[i]*d2f[i+1] + tmp[i]
-
+    d2f[nx-1] = (tmpn - qn * tmp[nx-2]) / (qn * d2f[nx-3] + 1.0)
+    for i in range(nx-2, -1, -1):
+        d2f[i] = d2f[i] * d2f[i+1] + tmp[i]
     return d2f
 
 def natural_interp(double[::1] x,
@@ -495,9 +494,9 @@ def natural_interp(double[::1] x,
     cdef int nx = x.size
     cdef int kl, kh
     cdef double a, b, fp
-    kl = <int>(xp-x[0])
-    kh = kl+1
+    kl = <int>(xp - x[0])
+    kh = kl + 1
     a = x[kh] - xp
     b = xp - x[kl]
-    fp = a*f[kl] + b*f[kh] + ((a**3-a)*d2f[kl] + (b**3-b)*d2f[kh])/6
+    fp = a*f[kl] + b*f[kh] + ((a**3 - a)*d2f[kl] + (b**3 - b)*d2f[kh]) / 6
     return fp
