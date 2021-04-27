@@ -163,6 +163,11 @@ def ghost_zone_interpolate(
     cdef double[:,::1] xyfieldi = np.empty((nxi[0],nxi[1]))
     cdef double[::1] xfieldi = np.empty((nxi[0]))
     cdef double[::1] xfieldo = np.empty((nxo[0]))
+    # Second order derivative fields for natural splines
+    cdef double[:,:,::1] d2fdz2
+    cdef double[:,::1] d2fdy2
+    cdef double[::1] d2fdx2
+    cdef double[::1] tmp 
 
     # Compute the leftmost cell-center index position in the input grid
     iposi0 = (output_left[0]+0.5/rf) - (input_left[0]+0.5) - ilc[0]
@@ -307,18 +312,83 @@ def ghost_zone_interpolate(
                         xfieldi[ii:ii+nxs[0]], 
                         iposi
                     )
-
-                    # Interpolate to points in output field
-                    # xw = lagrange_weights(xn, iposi)
-                    # xfieldo[io] = 0.0
-                    # for i0, i in enumerate(range(ii, ii + nxs[0])):
-                    #     xfieldo[io] += xw[i0] * xfieldi[i]
-                    
                     
                     iposi += dxo
                 output_field[:, jo, ko] = xfieldo
                 jposi += dxo
             kposi += dxo
+
+    # Natural spline interpolation --------------------------------------------
+    elif order == -2:
+        # Initialize 
+        d2fdz2 = np.empty((nxi[0],nxi[1],nxi[2]))
+        d2fdy2 = np.empty((nxi[0],nxi[1]))
+        d2fdx2 = np.empty((nxi[0]))
+        for i in range(nxs[0]):
+            xn[i] = i - ilc[0]
+        for j in range(nxs[1]):
+            yn[j] = j - ilc[1]
+        for k in range(nxs[2]):
+            zn[k] = k - ilc[2]
+        # Compute second derivative in z
+        tmp = np.empty((nxi[2]))
+        for ii in range(nxi[0]):
+            for ji in range(nxi[1]):
+                tmp = spline_2nd_derive(zn,input_field[ii,ji,0:nxs[2]])
+                for ki in range(nxi[2]):
+                    d2fdz2[ii,ji,ki] = tmp[ki]
+        
+        # Iterate over z position
+        kposi = kposi0
+        for ko in range(nxo[2]):
+            # Interpolate to the x-y plane
+            for ii in range(nxi[0]):
+                for ji in range(nxi[1]):
+                    xyfieldi[ii,ji] = natural_interp( 
+                        zn, 
+                        input_field[ii, ji, 0:nxs[2]], 
+                        d2fdz2[ii,ji,0:nxs[2]],
+                        kposi
+                    )
+            # Compute second derivative in y
+            tmp = np.empty((nxi[1]))
+            for ii in range(nxi[0]):
+                tmp = spline_2nd_derive(yn,xyfieldi[ii,0:nxs[1]])
+                for ji in range(nxi[1]):
+                    d2fdy2[ii,ji] = tmp[ji]
+
+            # Iterate over y position
+            jposi = jposi0
+            for jo in range(nxo[1]):
+                # Interpolate to the x line
+                for ii in range(nxi[0]):
+                    xfieldi[ii] = natural_interp( 
+                        yn, 
+                        xyfieldi[ii, 0:nxs[1]], 
+                        d2fdy2[ii,0:nxs[1]],
+                        jposi
+                    )
+                # Compute second derivative in x
+                tmp = spline_2nd_derive(xn,xfieldi[0:nxs[1]])
+                for ii in range(nxi[0]):
+                    d2fdx2[ii] = tmp[ii]
+
+                # Iterate over x position
+                iposi = iposi0
+                for io in range(nxo[0]):
+                    # Interpolate to points in output field
+                    xfieldo[io] = natural_interp( 
+                        xn, 
+                        xfieldi[0:nxs[0]], 
+                        d2fdx2[0:nxs[0]],
+                        iposi
+                    )
+                    
+                    iposi += dxo
+                output_field[:, jo, ko] = xfieldo
+                jposi += dxo
+            kposi += dxo
+        
 
 
 @cython.cdivision(True)
@@ -391,4 +461,44 @@ cdef akima_interp(double[::1] x,
     w = xp - x[idx]
     fp = f[idx] + p1[idx]*w + p2[idx]*w**2 + p3[idx]*w**3
 
+    return fp
+
+@cython.cdivision(True)
+@cython.wraparound(False)
+@cython.boundscheck(True)
+cdef spline_2nd_derive(double[::1] x, 
+                       double[::1] f):
+    cdef int nx = x.size
+    cdef double [::1] d2f = np.zeros((nx))
+    cdef double [::1] tmp = np.zeros((nx-1))
+    cdef int i
+    cdef double sig, p, qn, tmpn
+
+    for i in range(1,nx-1):
+        sig = (x[i]-x[i-1])/(x[i+1]-x[i-1])
+        p = sig*d2f[i-1] + 2.0
+        d2f[i] = (sig-1.0)/p
+        tmp[i] = (f[i+1]-f[i])/(x[i+1]-x[i]) - (f[i]-f[i-1])/(x[i]-x[i-1])
+        tmp[i] = (6.0*tmp[i]/(x[i+1]-x[i-1]) - sig*tmp[i-1])/p 
+    qn = 0.0
+    tmpn = 0.0
+
+    d2f[nx-1] = (tmpn-qn*tmp[nx-2])/(qn*d2f[nx-3]+1.0)
+    for i in range(nx-2,-1,-1):
+        d2f[i] = d2f[i]*d2f[i+1] + tmp[i]
+
+    return d2f
+
+def natural_interp(double[::1] x, 
+                   double[::1] f, 
+                   double[::1] d2f, 
+                   double xp):
+    cdef int nx = x.size
+    cdef int kl, kh
+    cdef double a, b, fp
+    kl = <int>(xp-x[0])
+    kh = kl+1
+    a = x[kh] - xp
+    b = xp - x[kl]
+    fp = a*f[kl] + b*f[kh] + ((a**3-a)*d2f[kl] + (b**3-b)*d2f[kh])/6
     return fp
