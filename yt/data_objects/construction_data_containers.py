@@ -1462,13 +1462,6 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         # Adjust edges of the final grid to include the buffer region
         left  -= self.nbuf * self_dds
         right += self.nbuf * self_dds
-
-        # Ensure left and right are positive for the region we are looking at
-        # left = left % dds
-        # right = right % dds
-
-        print('dds/self_dds = {}'.format(dds/self_dds))
-        print(any(dds/self_dds > 1.0))
         # If this isn't the final level, update the edges so the final and 
         # intermediate grids are fully nested
         if any(dds/self_dds > 1.0):
