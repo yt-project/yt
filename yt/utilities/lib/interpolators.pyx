@@ -138,7 +138,6 @@ def ghost_zone_interpolate(
                        output_field.shape[2]]
     # Number of cells in the interpolation stencil
     cdef int[3] nxs = [order, order, order]
-    if order == 0:  nxs = [1,1,1]
     if order == -1: nxs = [6,6,6]
     if order == -2: nxs = nxi
     # Determine the index of the stencil that is left of the center
@@ -165,13 +164,14 @@ def ghost_zone_interpolate(
     cdef double[::1] xfieldi = np.empty((nxi[0]))
     cdef double[::1] xfieldo = np.empty((nxo[0]))
 
-    # Compute the leftmost cell-center index position in the grid
+    # Compute the leftmost cell-center index position in the input grid
     iposi0 = (output_left[0]+0.5/rf) - (input_left[0]+0.5) - ilc[0]
     jposi0 = (output_left[1]+0.5/rf) - (input_left[1]+0.5) - ilc[1]
     kposi0 = (output_left[2]+0.5/rf) - (input_left[2]+0.5) - ilc[2]
 
     # Linear interpolation ----------------------------------------------------
     if order == 2:
+        # Iterate over z position
         kposi = kposi0
         for ko in range(nxo[2]):
             ki = <int>kposi
@@ -184,6 +184,7 @@ def ghost_zone_interpolate(
                     xyfieldi[ii,ji] = zw[0] * input_field[ii, ji, ki] \
                                     + zw[1] * input_field[ii, ji, ki+1]
 
+            # Iterate over y position
             jposi = jposi0
             for jo in range(nxo[1]):
                 ji = <int>jposi
@@ -195,6 +196,7 @@ def ghost_zone_interpolate(
                     xfieldi[ii] = yw[0] * xyfieldi[ii, ji] \
                                 + yw[1] * xyfieldi[ii, ji+1]
 
+                # Iterate over x position
                 iposi = iposi0
                 for io in range(nxo[0]):
                     ii = <int>iposi
@@ -212,6 +214,7 @@ def ghost_zone_interpolate(
     
     # Cubic and quintic interpolation -----------------------------------------
     elif order > 2:
+        # Iterate over z position
         kposi = kposi0
         for ko in range(nxo[2]):
             ki = iclip(<int>kposi, 0, ki_max)
@@ -226,6 +229,7 @@ def ghost_zone_interpolate(
                     for k0, k in enumerate(range(ki, ki + nxs[2])):
                         xyfieldi[ii,ji] += zw[k0] * input_field[ii, ji, k]
 
+            # Iterate over y position
             jposi = jposi0
             for jo in range(nxo[1]):
                 ji = iclip(<int>jposi, 0, ji_max)
@@ -239,6 +243,7 @@ def ghost_zone_interpolate(
                     for j0, j in enumerate(range(ji, ji + nxs[1])):
                         xfieldi[ii] += yw[j0] * xyfieldi[ii, j]
 
+                # Iterate over x position
                 iposi = iposi0
                 for io in range(nxo[0]):
                     ii = iclip(<int>iposi, 0, ii_max)
@@ -258,6 +263,7 @@ def ghost_zone_interpolate(
 
     # Akima spline interpolation ----------------------------------------------
     elif order == -1:
+    # Iterate over z position
         kposi = kposi0
         for ko in range(nxo[2]):
             ki = iclip(<int>kposi, 0, ki_max)
@@ -272,15 +278,8 @@ def ghost_zone_interpolate(
                         input_field[ii, ji, ki:ki+nxs[2]], 
                         kposi
                     )
-
-            # Interpolate to the x-y plane
-            # zw = lagrange_weights(zn, kposi)
-            # for ii in range(nxi[0]):
-            #     for ji in range(nxi[1]):
-            #         xyfieldi[ii,ji] = 0.0
-            #         for k0, k in enumerate(range(ki, ki + nxs[2])):
-            #             xyfieldi[ii,ji] += zw[k0] * input_field[ii, ji, k]
-                    
+            
+            # Iterate over y position
             jposi = jposi0
             for jo in range(nxo[1]):
                 ji = iclip(<int>jposi, 0, ji_max)
@@ -295,13 +294,7 @@ def ghost_zone_interpolate(
                         jposi
                     )
 
-                # Interpolate to the x line
-                # yw = lagrange_weights(yn, jposi)
-                # for ii in range(nxi[0]):
-                #     xfieldi[ii] = 0.0
-                #     for j0, j in enumerate(range(ji, ji + nxs[1])):
-                #         xfieldi[ii] += yw[j0] * xyfieldi[ii, j]
-
+                # Iterate over x position
                 iposi = iposi0
                 for io in range(nxo[0]):
                     ii = iclip(<int>iposi, 0, ii_max)
