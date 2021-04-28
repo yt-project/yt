@@ -70,15 +70,14 @@ important changes.
   energy per unit mass, and ``"gas", "momentum_density_x"`` for the x-axis
   component of momentum density. See :ref:`efields` for more information.
 
-Deprecated Field Names
-^^^^^^^^^^^^^^^^^^^^^^
-Certain field names are deprecated within yt v4.0.0, and will be removed in
-yt v4.1.0. For example, ``"gas", "kinetic_energy"`` has been renamed to
-``"gas", "kinetic_energy_density"``, though the former name has been added
-as an alias. Other fields, such as ``"gas", "cylindrical_tangential_velocity_absolute"``,
-are being removed entirely. When the deprecated field names are used for the
-first time in a session, a warning will be logged, so it is advisable to set
-your logging level to ``WARNING`` at a minimum to catch these.
+* **Deprecated field names**
+  Certain field names are deprecated within yt v4.0 and will be removed in
+  yt v4.1. For example, ``"gas", "kinetic_energy"`` has been renamed to
+  ``"gas", "kinetic_energy_density"``, though the former name has been added
+  as an alias. Other fields, such as ``"gas", "cylindrical_tangential_velocity_absolute"``,
+  are being removed entirely. When the deprecated field names are used for the
+  first time in a session, a warning will be logged, so it is advisable to set
+  your logging level to ``WARNING`` at a minimum to catch these.
 
 Colormaps
 ^^^^^^^^^
