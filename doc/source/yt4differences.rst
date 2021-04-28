@@ -46,6 +46,19 @@ important changes.
   and :ref:`available field list <available-fields>` documentation for more
   information.
 
+* **Neutral ion fields changing format**
+  In previous versions, neutral ion fields were specified as
+  ``ELEMENT_number_density`` (e.g., ``H_number_density`` to represent H I
+  number density).  This led to a lot of confusion, because some people assumed
+  these fields were the total hydrogen density, not neutral hydrogen density.
+  In yt-4.0, we have resolved this issue by explicitly calling total hydrogen
+  number density ``H_nuclei_density`` and neutral hydrogen density
+  ``H_p0_number_density`` (where ``p0`` refers to plus 0 charge).  This syntax
+  follows the rule for other ions: H II = ``H_p1`` = ionized hydrogen.  Change
+  your scripts accordingly.  See
+  `YTEP-0003 <https://ytep.readthedocs.io/en/latest/YTEPs/YTEP-0003.html#molecular-and-atomic-species-names>`_
+  describing field names for more information.
+
 Energy and Momentum Field Name Conventions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
