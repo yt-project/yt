@@ -68,3 +68,10 @@ jobs:
       if: ${{ matrix.tests-type == 'answer' && failure() }}
       shell: bash
       run: python tests/report_failed_answers.py --xunit-file answers.xml
+    - name: Archive Regenerated Tests
+      if: ${{ matrix.tests-type == 'answer' && failure() }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: new-answers
+        path: artifacts/
+        if-no-files-found: ignore
