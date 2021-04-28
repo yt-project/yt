@@ -128,6 +128,7 @@ class Dataset(abc.ABC):
     _particle_type_counts = None
     _proj_type = "quad_proj"
     _ionization_label_format = "roman_numeral"
+    interpolation_method = None
     fields_detected = False
 
     # these are set in self._parse_parameter_file()
@@ -892,6 +893,17 @@ class Dataset(abc.ABC):
         obj = functools.partial(base, ds=weakref.proxy(self))
         obj.__doc__ = base.__doc__
         setattr(self, name, obj)
+
+    def set_smoothed_interpolation(self, kind):
+        # Listed of supported kinds
+        kinds = ["natural", "akima", "linear", "cubic", "quintic"]
+        if kind in kinds:
+            self.interpolation_method = kind
+        else:
+            msg = f"Interpolation '{kind}' has not been implemented. "
+            msg += "Only the following are supported: "
+            msg += ", ".join(kinds)
+            raise KeyError(msg)
 
     def _find_extremum(self, field, ext, source=None, to_array=True):
         """
