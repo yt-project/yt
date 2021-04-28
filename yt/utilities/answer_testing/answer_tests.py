@@ -262,8 +262,7 @@ def phase_plot_attribute(
 
 
 def generic_image(img_fname):
-    img_data = mpimg.imread(img_fname)
-    return img_data
+    return mpimg.imread(img_fname)
 
 
 def axial_pixelization(ds):

@@ -126,7 +126,10 @@ def _hash_results(results):
     # results in case those are to be saved
     hashed_results = {}
     for test_name, test_value in results.items():
-        hashed_results[test_name] = generate_hash(test_value)
+        if test_name.startswith("image_"):
+            hashed_results[test_name] = zlib.compress(test_value.dumps())
+        else:
+            hashed_results[test_name] = generate_hash(test_value)
     return hashed_results
 
 

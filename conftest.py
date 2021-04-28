@@ -8,6 +8,7 @@ import pytest
 import yaml
 
 from yt.config import ytcfg
+from yt.utilities.answer_testing.framework import compare_image_lists
 from yt.utilities.answer_testing.testing_utilities import (
     _compare_raw_arrays,
     _hash_results,
@@ -198,6 +199,7 @@ def _param_list(request):
     # clean way to separate them out from other other fixtures (that I
     # know of), so we do it explicitly
     blacklist = [
+        "bcrypt",
         "hashing",
         "answer_file",
         "request",
@@ -301,22 +303,37 @@ def hashing(request):
     hashes.update(params)
     # Add the function name as the "master" key to the hashes dict
     hashes = {request.node.name: hashes}
+
     # Save hashes
     if not no_hash and store_hash:
         _save_result(hashes, request.cls.answer_file)
-    # Compare hashes
-    elif not no_hash and not store_hash:
-        try:
-            for test_name, test_hash in hashes.items():
-                assert test_name in request.cls.saved_hashes
-                assert test_hash == request.cls.saved_hashes[test_name]
-        except AssertionError:
-            pytest.fail(f"Comparison failure: {request.node.name}", pytrace=False)
     # Save raw data
     if raw and raw_store:
         _save_raw_arrays(
             request.cls.hashes, request.cls.raw_answer_file, request.node.name
         )
+
+    # Compare hashes
+    if not no_hash and not store_hash:
+        try:
+            for class_name, answers in hashes.items():
+                assert class_name in request.cls.saved_hashes
+                old_images, new_images = [], []
+                for answer in list(answers.keys()):
+                    if not answer.startswith("image_"):
+                        continue
+                    new_images.append(answers.pop(answer))
+                    old_images.append(request.cls.saved_hashes[class_name].pop(answer))
+                assert answers == request.cls.saved_hashes[class_name]
+                if len(old_images) != len(new_images):
+                    pytest.fail(
+                        f"Missing image answer: {request.node.name}", pytrace=False
+                    )
+                if old_images:
+                    compare_image_lists(new_images, old_images, 10)
+        except AssertionError:
+            pytest.fail(f"Comparison failure: {request.node.name}", pytrace=False)
+
     # Compare raw data. This is done one test at a time because the
     # arrays can get quite large and storing everything in memory would
     # be bad
