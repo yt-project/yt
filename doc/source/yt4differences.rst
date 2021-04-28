@@ -23,6 +23,29 @@ Updating to yt 4.0 from Old Versions (and going back)
 Converting Old Scripts to Work with yt 4.0
 ------------------------------------------
 
+After installing yt-4.0, you’ll want to change your old scripts in a few key
+ways. After accounting for the changes described in the list below, try
+running your script. If it still fails, the callback failures in python
+are fairly descriptive and it may be possible to deduce what remaining
+changes are necessary. If you continue to have trouble, please don’t hesitate
+to :ref:`request help <asking-for-help>`.
+
+The list below is arranged in order of most important changes to least
+important changes.
+
+* **Fields should be specified as tuples not as strings**
+  In the past, you could specify fields as strings like ``"density"``, but
+  with the growth of yt and its many derived fields, there can be sometimes
+  be overlapping field names (e.g., ``("gas", "density")`` and
+  ``("PartType0", "density")``, where yt doesn't know which to use.  To avoid
+  these issues moving forward, please explicitly specify the full tuple form
+  of all fields. Just search for all field accesses in your scripts, and
+  replace strings with tuples (often just prefix your string with ``("gas",``).
+  There is a compatibility rule in yt-4.0 to allow strings to continue to work
+  until yt-4.1, but you may get unexpected behavior.  See our :ref:`fields`,
+  and :ref:`available field list <available-fields>` documentation for more
+  information.
+
 Energy and Momentum Field Name Conventions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
