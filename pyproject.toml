@@ -68,6 +68,10 @@ sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
 # -rsfE: The -r tells pytest to provide extra test summary info on the events
 # specified by the characters following the r. s: skipped, f: failed, E: error
 [tool.pytest.ini_options]
+markers = [
+    "no_data: marks answer tests that require no external data",
+    "answer_test",
+]
 addopts = '''
     -s
     -v
