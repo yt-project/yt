@@ -45,7 +45,6 @@ important changes.
   until yt-4.1, but you may get unexpected behavior.  See our :ref:`fields`,
   and :ref:`available field list <available-fields>` documentation for more
   information.
-
 * **Neutral ion fields changing format**
   In previous versions, neutral ion fields were specified as
   ``ELEMENT_number_density`` (e.g., ``H_number_density`` to represent H I
@@ -58,7 +57,6 @@ important changes.
   your scripts accordingly.  See
   `YTEP-0003 <https://ytep.readthedocs.io/en/latest/YTEPs/YTEP-0003.html#molecular-and-atomic-species-names>`_
   describing field names for more information.
-
 * **Change in energy and momentum field names**
   Fields representing energy and momentum quantities are now given names which
   reflect their dimensionality. For example, the ``"gas", "kinetic_energy"``
@@ -69,7 +67,6 @@ important changes.
   Other examples include ``"gas", "specific_thermal_energy"`` for thermal
   energy per unit mass, and ``"gas", "momentum_density_x"`` for the x-axis
   component of momentum density. See :ref:`efields` for more information.
-
 * **Deprecated field names**
   Certain field names are deprecated within yt v4.0 and will be removed in
   yt v4.1. For example, ``"gas", "kinetic_energy"`` has been renamed to
@@ -78,37 +75,15 @@ important changes.
   are being removed entirely. When the deprecated field names are used for the
   first time in a session, a warning will be logged, so it is advisable to set
   your logging level to ``WARNING`` at a minimum to catch these.
-
-Colormaps
-^^^^^^^^^
-yt used to automatically register colormaps from ``cmocean``, unprefixed.
-This unfortunately became unsustainable with the 3.4 release of Matplotlib,
-in which colormaps with colliding names raise errors. The fix is to explicitly
-import the ``cmocean`` module and prefix ``cmocean`` colormaps (like
-``balance``) with ``cmo.``.  Note that this solution works with any
-yt-supported version of Matplotlib, but is not backward compatible with earlier
-versions of yt. Example:
-
-Old Script (will not work in the near future):
-
-.. code-block:: python
-
-    import yt
-
-    ds = yt.testing.fake_random_ds(1)
-    p = yt.SlicePlot(ds, "z", ("gas", "density"))
-    p.set_cmap(("gas", "density"), "balance")
-
-New Script:
-
-.. code-block:: python
-
-    import yt
-    import cmocean
-
-    ds = yt.testing.fake_random_ds(1)
-    p = yt.SlicePlot(ds, "z", ("gas", "density"))
-    p.set_cmap(("gas", "density"), "cmo.balance")
+* ``cmocean`` **colormaps need prefixing**
+  yt used to automatically load and register external colormaps from the
+  ``cmocean`` package unprefixed (e.g., ``set_cmap(FIELD, "balance")``.  This
+  became unsustainable with the 3.4 release of Matplotlib, in which colormaps
+  with colliding names raise errors. The fix is to explicitly import the
+  ``cmocean`` module and prefix ``cmocean`` colormaps (like ``balance``) with
+  ``cmo.`` (e.g., ``cmo.balance``).  Note that this solution works with any
+  yt-supported version of Matplotlib, but is not backward compatible with
+  earlier versions of yt.
 
 Cool New Things
 ---------------
