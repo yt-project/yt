@@ -19,7 +19,7 @@ if __name__ == "__main__":
         "-v",
         "-rsfE",  # it means -r "sfE" (show skipped, failed, errors), no -r -s -f -E
         "--with-answer-testing",
-        "-m answer_test",
+        f"-m {os.environ.get('PYTEST_MARKERS', 'answer_test')}",
         f"-n {int(os.environ.get('NUM_WORKERS', 1))}",
         "--dist=loadscope",
     ]
