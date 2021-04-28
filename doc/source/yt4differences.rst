@@ -59,19 +59,16 @@ important changes.
   `YTEP-0003 <https://ytep.readthedocs.io/en/latest/YTEPs/YTEP-0003.html#molecular-and-atomic-species-names>`_
   describing field names for more information.
 
-Energy and Momentum Field Name Conventions
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Fields representing energy and momentum quantities are now given names which
-reflect their dimensionality. For example, the ``"gas", "kinetic_energy"``
-field was actually a field for kinetic energy density, and so it has been
-renamed to ``"gas", "kinetic_energy_density"``. The old name still exists
-as an alias as of yt v4.0.0, but it will be removed in yt v4.1.0. See
-:ref:`deprecated_field_names` below for more information.
-
-Other examples include ``"gas", "specific_thermal_energy"`` for thermal
-energy per unit mass, and ``"gas", "momentum_density_x"`` for the x-axis
-component of momentum density. See :ref:`efields` for more information.
+* **Change in energy and momentum field names**
+  Fields representing energy and momentum quantities are now given names which
+  reflect their dimensionality. For example, the ``"gas", "kinetic_energy"``
+  field was actually a field for kinetic energy density, and so it has been
+  renamed to ``"gas", "kinetic_energy_density"``. The old name still exists
+  as an alias as of yt v4.0.0, but it will be removed in yt v4.1.0. See
+  :ref:`deprecated_field_names` below for more information.
+  Other examples include ``"gas", "specific_thermal_energy"`` for thermal
+  energy per unit mass, and ``"gas", "momentum_density_x"`` for the x-axis
+  component of momentum density. See :ref:`efields` for more information.
 
 Deprecated Field Names
 ^^^^^^^^^^^^^^^^^^^^^^
