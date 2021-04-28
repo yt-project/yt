@@ -24,7 +24,7 @@ jobs:
         os: [macos-latest, windows-latest, ubuntu-18.04]
         python-version: [3.9]
         dependencies: [full]
-        tests-type: [unit]
+        tests-type: [unit, answer]
         include:
           - os: ubuntu-18.04
             python-version: 3.6
@@ -54,6 +54,17 @@ jobs:
         dependencies: ${{ matrix.dependencies }}
       run: source ./tests/ci_install.sh
     - name: Run Tests
+      if: ${{ matrix.tests-type == 'unit' }}
       env:
         testsuite: ${{ matrix.tests-type }}
-      run: pytest
+      run: pytest -m "not answer_test"
+    - name: Run Answer Tests
+      if: ${{ matrix.tests-type == 'answer' }}
+      env:
+        testsuite: ${{ matrix.tests-type }}
+        PYTEST_MARKERS: no_data
+      run: python tests/pytest_runner.py
+    - name: Report Failed Answers
+      if: ${{ matrix.tests-type == 'answer' && failure() }}
+      shell: bash
+      run: python tests/report_failed_answers.py --xunit-file answers.xml

@@ -9,6 +9,7 @@ for executing answer tests and optionally generating new answers.
 
 import glob
 import os
+import sys
 
 import pytest
 
@@ -23,7 +24,9 @@ if __name__ == "__main__":
         f"-n {int(os.environ.get('NUM_WORKERS', 1))}",
         "--dist=loadscope",
     ]
-    pytest.main(pytest_args + ["--local-dir=answer-store", "--junitxml=answers.xml"])
+    retval = pytest.main(
+        pytest_args + ["--local-dir=answer-store", "--junitxml=answers.xml"]
+    )
 
     if files := glob.glob("generate_test*.txt"):
         tests = set()
@@ -36,3 +39,4 @@ if __name__ == "__main__":
         pytest.main(
             pytest_args + [f"--local-dir={output_dir}", "--answer-store"] + list(tests)
         )
+    sys.exit(retval)

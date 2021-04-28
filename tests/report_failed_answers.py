@@ -335,17 +335,21 @@ def parse_nose_xml(nose_xml):
     failed_answers = collections.defaultdict(lambda: dict())
     missing_errors = ["No such file or directory", "There is no old answer available"]
     tree = ET.parse(nose_xml)
-    testsuite = tree.getroot()
-
-    for testcase in testsuite:
-        for error in testcase.iter("error"):
-            handle_error(
-                error, testcase, missing_errors, missing_answers, failed_answers
-            )
-        for error in testcase.iter("failure"):
-            handle_error(
-                error, testcase, missing_errors, missing_answers, failed_answers
-            )
+    root = tree.getroot()
+    if root.tag == "testsuites":
+        testsuites = list(root)
+    else:
+        testsuites = [root]
+    for testsuite in testsuites:
+        for testcase in testsuite:
+            for error in testcase.iter("error"):
+                handle_error(
+                    error, testcase, missing_errors, missing_answers, failed_answers
+                )
+            for error in testcase.iter("failure"):
+                handle_error(
+                    error, testcase, missing_errors, missing_answers, failed_answers
+                )
     return failed_answers, missing_answers
 
 
@@ -405,12 +409,11 @@ if __name__ == "__main__":
     FLAG_EMOJI = " \U0001F6A9 "
 
     failed_answers = missing_answers = None
-    if args.upload_failed_tests or args.upload_missing_answers:
-        failed_answers, missing_answers = parse_nose_xml(args.nosetest_xml)
+    failed_answers, missing_answers = parse_nose_xml(args.nosetest_xml)
 
-    if args.upload_failed_tests and failed_answers:
+    msg = ""
+    if failed_answers:
         response = upload_failed_answers(failed_answers)
-        msg = ""
         if response.ok:
             msg += (
                 "\n"
@@ -424,6 +427,7 @@ if __name__ == "__main__":
                 + FLAG_EMOJI
                 + "\n"
             )
+    if args.upload_failed_tests and failed_answers:
         response = upload_answers(failed_answers)
         if response.ok:
             msg += (
@@ -434,7 +438,6 @@ if __name__ == "__main__":
                 + " . Please commit these "
                 "answers in the repository's answer-store." + COLOR_RESET + FLAG_EMOJI
             )
-            log.info(msg)
 
     if args.upload_missing_answers and missing_answers:
         response = upload_answers(missing_answers)
@@ -447,4 +450,4 @@ if __name__ == "__main__":
                 + " . Please commit these "
                 "answers in the repository's answer-store." + COLOR_RESET + FLAG_EMOJI
             )
-            log.info(msg)
+    log.info(msg)
