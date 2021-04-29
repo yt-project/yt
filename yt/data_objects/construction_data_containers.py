@@ -1301,7 +1301,6 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         # Assign order (covergence) and nbuf based on interpolation kind
         if self.ds.interpolation_method is not None:
             kind = kind or self.ds.interpolation_method
-        if kind is None: kind = "linear"
         order_nbuf = {
             "natural": (-2, 3),
             "akima": (-1, 3),
