@@ -1299,8 +1299,8 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         YTCoveringGrid.__init__(self, *args, **kwargs)
         self._final_start_index = self.global_startindex
         # Assign order (covergence) and nbuf based on interpolation kind
-        if self.ds.interpolation_method is not None:
-            kind = kind or self.ds.interpolation_method
+        if self.ds.interpolation_method is not None and kind is "linear":
+            kind = self.ds.interpolation_method
         order_nbuf = {
             "natural": (-2, 3),
             "akima": (-1, 3),
