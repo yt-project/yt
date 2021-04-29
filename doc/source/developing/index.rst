@@ -27,3 +27,4 @@ and contributing code!
    creating_derived_quantities
    creating_frontend
    external_analysis
+   deprecating_features

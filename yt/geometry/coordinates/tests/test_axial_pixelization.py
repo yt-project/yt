@@ -1,7 +1,6 @@
-from yt.testing import \
-    fake_amr_ds, _geom_transforms
-from yt.utilities.answer_testing.framework import \
-    AxialPixelizationTest
+from yt.testing import _geom_transforms, fake_amr_ds
+from yt.utilities.answer_testing.framework import AxialPixelizationTest
+
 
 def test_axial_pixelization():
     for geom in sorted(_geom_transforms):

@@ -48,6 +48,16 @@ its attributes the fields themselves.  When one of these is printed, it returns
 information about the field and things like units and so on.  You can use this
 for tab-completing as well as easier access to information.
 
+Additionally, if you have `ipywidgets
+<https://ipywidgets.readthedocs.io/en/stable/>`_ installed and are in a `Jupyter
+environment <https://jupyter.org/>`_, you can view the rich representation of
+the fields (including source code) by either typing `ds.fields` as the last
+item in a cell or by calling `display(ds.fields)`.  The resulting output will
+have tabs and source:
+
+.. image:: _images/fields_ipywidget.png
+   :scale: 50%
+
 As an example, you might browse the available fields like so:
 
 .. code-block:: python
@@ -78,8 +88,8 @@ standard python syntax:
 .. code-block:: python
 
    # these examples evaluate to True for a dataset that has ('gas', 'density')
-   'density' in ds.fields.gas
-   ('gas', 'density') in ds.fields.gas
+   "density" in ds.fields.gas
+   ("gas", "density") in ds.fields.gas
    ds.fields.gas.density in ds.fields.gas
 
 For a more programmatic method of accessing fields, you can utilize the
@@ -118,13 +128,13 @@ following:
     ad = ds.all_data()
 
     # just a field name
-    density = ad['density']
+    density = ad["density"]
 
     # field tuple with no parentheses
-    density = ad['gas', 'density']
+    density = ad["gas", "density"]
 
     # full field tuple
-    density = ad[('gas', 'density')]
+    density = ad[("gas", "density")]
 
     # through the ds.fields object
     density = ad[ds.fields.gas.density]
@@ -340,6 +350,37 @@ second sets the corresponding ``value``. Currently available format properties a
     * ``ionization_label``: sets how the ionization state of ions are labeled. Available
             options are ``"plus_minus"`` and ``"roman_numeral"``
 
+.. _efields:
+
+Energy and Momemtum Fields
+--------------------------
+
+Fields in yt representing energy and momentum quantities follow a specific
+naming convention (as of yt-4.x). In hydrodynamic simulations, the relevant
+quantities are often energy per unit mass or volume, momentum, or momentum
+density To distinguish clearly between the different types of fields, the
+following naming convention is adhered to:
+
+* Energy per unit mass fields are named as ``specific_*_energy``
+* Energy per unit volume fields are named as ``*_energy_density``
+* Momentum fields should be named ``momentum_density_*`` for momentum per
+  unit density, or ``momentum_*`` for momentum, where the ``*`` indicates
+  one of three coordinate axes in any supported coordinate system.
+
+For example, in the case of kinetic energy, the fields should be
+``kinetic_energy_density`` and ``specific_kinetic_energy``.
+
+In versions of yt previous to v4.0.0, these conventions were not adopted, and so
+energy fields in particular could be ambiguous with respect to units. For
+example, the ``kinetic_energy`` field was actually kinetic energy per unit
+volume, whereas the ``thermal_energy`` field, usually defined by various
+frontends, was typically thermal energy per unit mass. The above scheme
+rectifies these problems, but for the time being the previous field names are
+mapped to the current field naming scheme with a deprecation warning. These
+aliases will be removed in yt v4.1.0. Following this, new fields will be created
+which have dimensions of energy, which will simply be named ``*_energy`` as
+above.
+
 .. _bfields:
 
 Magnetic Fields
@@ -370,6 +411,65 @@ detects on a per-frontend basis what units the magnetic should be in, and allows
 different magnetic field units in the different :ref:`unit systems <unit_systems>` as well. To
 determine how to set up special magnetic field handling when designing a new frontend, check out
 :ref:`bfields-frontend`.
+
+Species Fields
+--------------
+
+For many types of data, yt is able to detect different chemical elements and molecules
+within the dataset, as well as their abundances and ionization states. Examples include:
+
+* CO (Carbon monoxide)
+* Co (Cobalt)
+* OVI (Oxygen ionized five times)
+* H:math:`^{2+}` (Molecular Hydrogen ionized once)
+* H:math:`^{-}` (Hydrogen atom with an additional electron)
+
+The naming scheme for the fields starts with prefixes in the form ``MM[_[mp][NN]]``. ``MM``
+is the molecule, defined as a concatenation of atomic symbols and numbers, with no spaces or
+underscores. The second sequence is only required if ionization states are present in the
+dataset, and is of the form ``p`` and ``m`` to indicate "plus" or "minus" respectively,
+followed by the number. If a given species has no ionization states given, the prefix is
+simply ``MM``.
+
+For the examples above, the prefixes would be:
+
+* ``CO``
+* ``Co``
+* ``O_p5``
+* ``H2_p1``
+* ``H_m1``
+
+The name ``El`` is used for electron fields, as it is unambiguous and will not be
+utilized elsewhere. Neutral ionic species (e.g. H I, O I) are represented as ``MM_p0``.
+Additionally, the isotope of :math:`^2`H will be included as ``D``.
+
+Finally, in those frontends which are single-fluid, these fields for each species are
+defined:
+
+* ``MM[_[mp][NN]]_fraction``
+* ``MM[_[mp][NN]]_number_density``
+* ``MM[_[mp][NN]]_density``
+* ``MM[_[mp][NN]]_mass``
+
+To refer to the number density of the entirety of a single atom or molecule (regardless
+of its ionization state), please use the ``MM_nuclei_density`` fields.
+
+Finally, if the abundances of hydrogen and helium are not defined, it is assumed that
+assumed that these elements are fully ionized with primordial abundances In this case,
+the following fields are defined:
+
+* ``H_p1_number_density``
+* ``H_nuclei_density``
+* ``He_p2_number_density``
+* ``He_nuclei_density``
+* ``El_number_density``
+
+The ``mean_molecular_weight`` field will be constructed from the abundances of the elements
+in the dataset. If no element or molecule fields are defined, the above fields for the ionized
+primordial H/He plasma are defined, and the ``mean_molecular_weight`` field is correspondingly set
+to :math:`\mu \approx 0.6`. Some frontends do not directly store the gas temperature in their
+datasets, in which case it must be computed from the pressure and/or thermal energy as well
+as the mean molecular weight, so check this carefully!
 
 Particle Fields
 ---------------
@@ -426,18 +526,20 @@ Within a field function, these can then be retrieved and used in the same way.
 
 For a practical application of this, see :ref:`cookbook-radial-velocity`.
 
+.. _gradient_fields:
+
 Gradient Fields
 ---------------
 
 yt provides a way to compute gradients of spatial fields using the
-:meth:`~yt.frontends.flash.data_structures.FLASHDataset.add_gradient_fields`
+:meth:`~yt.data_objects.static_output.Dataset.add_gradient_fields`
 method. If you have a spatially-based field such as density or temperature,
 and want to calculate the gradient of that field, you can do it like so:
 
 .. code-block:: python
 
     ds = yt.load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150")
-    grad_fields = ds.add_gradient_fields(("gas","temperature"))
+    grad_fields = ds.add_gradient_fields(("gas", "temperature"))
 
 where the ``grad_fields`` list will now have a list of new field names that can be used
 in calculations, representing the 3 different components of the field and the magnitude
@@ -449,11 +551,107 @@ of how to create and use these fields, see :ref:`cookbook-complicated-derived-fi
 
     ``add_gradient_fields`` currently only supports Cartesian geometries!
 
+.. _relative_fields:
+
+Relative Vector Fields
+----------------------
+
+yt makes use of "relative" fields for certain vector fields, which are fields
+which have been defined relative to a particular origin in the space of that
+field. For example, relative particle positions can be specified relative to
+a center coordinate, and relative velocities can be specified relative to a
+bulk velocity. These origin points are specified by setting field parameters
+as detailed below (see :ref:`field_parameters` for more information).
+
+The relative fields which are currently supported for gas fields are:
+
+* ``("gas", "relative_velocity_{xyz}")``, defined by setting the
+  ``"bulk_velocity"`` field parameter
+* ``("gas", "relative_magnetic_field_{xyz}")``, defined by setting the
+  ``"bulk_magnetic_field"`` field parameter
+
+For particle fields, for a given particle type ``ptype``, the relative
+fields which are supported are:
+
+* ``(ptype, "relative_particle_position")``, defined by setting the
+  ``"center"`` field parameter
+* ``(ptype, "relative_particle_velocity")``, defined by setting the
+  ``"bulk_velocity"`` field parameter
+* ``(ptype, "relative_particle_position_{xyz}")``, defined by setting the
+  ``"center"`` field parameter
+* ``(ptype, "relative_particle_velocity_{xyz}")``, defined by setting the
+  ``"bulk_velocity"`` field parameter
+
+These fields are in use when defining magnitude fields, line-of-sight fields,
+etc.. The ``"bulk_{}"`` field parameters are ``[0.0, 0.0, 0.0]`` by default,
+and the ``"center"`` field parameter depends on the data container in use.
+
+There is currently no mechanism to create new relative fields, but one may be
+added at a later time.
+
+.. _los_fields:
+
+Line of Sight Fields
+--------------------
+
+In astrophysics applications, one often wants to know the component of a vector
+field along a given line of sight. If you are doing a projection of a vector
+field along an axis, or just want to obtain the values of a vector field
+component along an axis, you can use a line-of-sight field. For projections,
+this will be handled automatically:
+
+.. code-block:: python
+
+    prj = yt.ProjectionPlot(
+        ds, "z", ("gas", "velocity_los"), weight_field=("gas", "density")
+    )
+
+Which, because the axis is ``"z"``, will give you the same result if you had
+projected the `"velocity_z"`` field. This also works for off-axis projections:
+
+.. code-block:: python
+
+    prj = yt.OffAxisProjectionPlot(
+        ds, [0.1, -0.2, 0.3], ("gas", "velocity_los"), weight_field=("gas", "density")
+    )
+
+
+This shows that the projection axis can be along a principle axis of the domain
+or an arbitrary off-axis 3-vector (which will be automatically normalized). If
+you want to examine a line-of-sight vector within a 3-D data object, set the
+``"axis"`` field parameter:
+
+.. code-block:: python
+
+    dd = ds.all_data()
+    # Set to one of [0, 1, 2] for ["x", "y", "z"] axes
+    dd.set_field_parameter("axis", 1)
+    print(dd["gas", "magnetic_field_los"])
+    # Set to a three-vector for an off-axis component
+    dd.set_field_parameter("axis", [0.3, 0.4, -0.7])
+    print(dd["gas", "velocity_los"])
+
+.. warning::
+
+    If you need to change the axis of the line of sight on the *same* data container
+    (sphere, box, cylinder, or whatever), you will need to delete the field using
+    ``del dd["velocity_los"]`` and re-generate it.
+
+At this time, this functionality is enabled for the velocity and magnetic vector
+fields, ``("gas", "velocity_los")`` and ``("gas", "magnetic_field_los")``. The
+following fields built into yt make use of these line-of-sight fields:
+
+* ``("gas", "sz_kinetic")`` uses ``("gas", "velocity_los")``
+* ``("gas", "rotation_measure")`` uses ``("gas", "magnetic_field_los")``
+
+
 General Particle Fields
 -----------------------
 
 Every particle will contain both a ``particle_position`` and ``particle_velocity``
 that tracks the position and velocity (respectively) in code units.
+
+.. FIXME: Update the following sections to reflect differences in yt-4.0.
 
 .. _deposited-particle-fields:
 
@@ -491,54 +689,95 @@ available are:
 * ``smoothed`` - this is a special deposition type.  See discussion below for
   more information, in :ref:`sph-fields`.
 
+You can also directly use the
+:meth:`~yt.data_objects.static_outputs.add_deposited_particle_field` function
+defined on each dataset to depose any particle field onto the mesh like so:
+
+.. code-block:: python
+
+   import yt
+
+   ds = yt.load("output_00080/info_00080.txt")
+   fname = ds.add_deposited_particle_field(
+       ("all", "particle_velocity_x"), method="nearest"
+   )
+
+   print("The velocity of the particles are (stored in %s)" % fname)
+   print(ds.r["deposit", "all_nn_particle_velocity_x"])
+
+Possible deposition methods are:
+
+* ``simple_smooth`` - perform an SPH-like deposition of the field onto the mesh
+  optionally accepting a ``kernel_name``.
+* ``sum`` - sums the value of the particle field for all particles found in
+  each cell.
+* ``std`` - computes the standard deviation of the value of the particle field
+  for all particles found in each cell.
+* ``cic`` - performs cloud-in-cell interpolation (see `Section 2.2
+  <http://ta.twi.tudelft.nl/dv/users/lemmens/MThesis.TTH/chapter4.html>`_ for more
+  information) of the particle field on a given mesh zone.
+* ``weighted_mean`` - computes the mean of the particle field, weighted by
+  the field passed into ``weight_field`` (by default, it uses the particle
+  mass).
+* ``count`` - counts the number of particles in each cell.
+* ``nearest`` - assign to each cell the value of the closest particle.
+
+In addition, the :meth:`~yt.data_objects.static_outputs.add_deposited_particle_field` function
+returns the name of the newly created field.
+
+
+.. _mesh-sampling-particle-fields:
+
+Mesh Sampling Particle Fields
+-----------------------------
+
+In order to turn mesh fields into discrete particle field, yt provides
+a mechanism to do sample mesh fields at particle locations. This operation is
+the inverse operation of :ref:`deposited-particle-fields`: for each
+particle the cell containing the particle is found and the value of
+the field in the cell is assigned to the particle. This is for
+example useful when using tracer particles to have access to the
+Eulerian information for Lagrangian particles.
+
+The particle fields are named ``(ptype, cell_ftype_fname)`` where
+``ptype`` is the particle type onto which the deposition occurs,
+``ftype`` is the mesh field type (e.g. ``gas``) and ``fname`` is the
+field (e.g. ``temperature``, ``density``, ...). You can directly use
+the :meth:`~yt.data_objects.static_output.Dataset.add_mesh_sampling_particle_field`
+function defined on each dataset to impose a field onto the particles like so:
+
+.. code-block:: python
+
+   import yt
+
+   ds = yt.load("output_00080/info_00080.txt")
+   ds.add_mesh_sampling_particle_field(("gas", "temperature"), ptype="all")
+
+   print("The temperature at the location of the particles is")
+   print(ds.r["all", "cell_gas_temperature"])
+
+For octree codes (e.g. RAMSES), you can trigger the build of an index so
+that the next sampling operations will be mush faster
+
+.. code-block:: python
+
+   import yt
+
+   ds = yt.load("output_00080/info_00080.txt")
+   ds.add_mesh_sampling_particle_field(("gas", "temperature"), ptype="all")
+
+   ad = ds.all_data()
+   ad[
+       "all", "cell_index"
+   ]  # Trigger the build of the index of the cell containing the particles
+   ad["all", "cell_gas_temperature"]  # This is now much faster
+
 .. _sph-fields:
 
 SPH Fields
 ----------
 
-For gas particles from SPH simulations, each particle will typically carry
-a field for the smoothing length ``h``, which is roughly equivalent to
-``(m/\rho)^{1/3}``, where ``m`` and ``rho`` are the particle mass and density
-respectively.  This can be useful for doing neighbour finding.
-
-As a note, SPH fields are special cases of the "deposited" particle fields.
-They contain an additional piece of information about what is being examined,
-and any fields that are recognized as being identical to intrinsic yt fields
-will be aliased.  For example, in a Gadget dataset, the smoothed density of
-``Gas`` particles will be aliased to the mesh field ``("gas", "density")`` so
-that operations conducted on the mesh field ``density`` (which are frequent
-occurrences) will operate on the smoothed gas density from the SPH particles.
-
-The special deposition types based on smoothing (``smoothed``) are defined in
-the file ``yt/geometry/particle_smooth.pyx``, and they require non-local
-operations defined on a variable number of neighbors.  The default smoothing
-type utilizes a cubic spline kernel and uses 64 nearest neighbors, providing a
-volume-normalized smoothing.  Other types are possible, and yt provides
-functionality for many different types of non-local correlation between
-particles.  (For instance, a friends-of-friends grouper has been built on this
-same infrastructure.)
-
-Every particle field on a smoothed particle type is the source for a smoothed
-field; this is not always useful, but it errs on the side of extra fields,
-rather than too few fields.  (For instance, it may be unlikely that the
-smoothed angular momentum field will be useful.)  The naming scheme is an
-extension of the scheme described in :ref:`deposited-particle-fields`, and is
-defined as such: ``("deposit", "particletype_smoothed_fieldname")``, where
-``fieldname`` is the name of the field being smoothed.  For example, smoothed
-``Temperature`` of the ``Gas`` particle type would be ``("deposit",
-"Gas_smoothed_Temperature")``, which in most cases would be aliased to the
-field ``("gas", "temperature")`` for convenience.
-
-Other smoothing kernels besides the cubic spline one are available through a
-keyword argument ``kernel_name`` of the method ``add_smoothed_particle_field``.
-Current available kernel names include:
-
-* ``cubic``, ``quartic``, and ``quintic`` - spline kernels.
-* ``wendland2``, ``wendland4`` and ``wendland6`` - Wendland kernels.
-
-The added smoothed particle field can be accessed by
-``("deposit", "particletype_kernelname_smoothed_fieldname")`` (except for the
-cubic spline kernel, which obeys the naming scheme given above).
+See :ref:`yt4differences`.
 
 Computing the Nth Nearest Neighbor
 ----------------------------------
@@ -553,11 +792,10 @@ yt defines this field as a plugin, and it can be added like so:
 .. code-block:: python
 
    import yt
-   from yt.fields.particle_fields import \
-     add_nearest_neighbor_field
+   from yt.fields.particle_fields import add_nearest_neighbor_field
 
    ds = yt.load("snapshot_033/snap_033.0.hdf5")
-   fn, = add_nearest_neighbor_field("all", "particle_position", ds)
+   (fn,) = add_nearest_neighbor_field("all", "particle_position", ds)
 
    dd = ds.all_data()
    print(dd[fn])
@@ -571,3 +809,22 @@ default this is 64, but it can be supplied as the final argument to
 This can then be used as input to the function
 ``add_volume_weighted_smoothed_field``, which can enable smoothing particle
 types that would normally not be smoothed.
+
+Commonly, not just the identity of the nearest particle is interesting, but the
+value of a given field associated with that particle.  yt provides a function
+that can do this, as well.  This deposits into the indexing octree the value
+from the nearest particle.
+
+.. code-block:: python
+
+   import yt
+   from yt.fields.particle_fields import add_nearest_neighbor_value_field
+
+   ds = yt.load("snapshot_033/snap_033.0.hdf5")
+   ds.index
+   (fn,) = add_nearest_neighbor_value_field(
+       "all", "particle_position", "particle_velocity_magnitude", ds.field_info
+   )
+
+   dd = ds.all_data()
+   print(dd[fn])

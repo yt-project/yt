@@ -1,3 +1,5 @@
+
+# distutils: libraries = STD_LIBS
 """
 An allocation container and memory pool
 
@@ -5,16 +7,11 @@ An allocation container and memory pool
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2016, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
 cimport numpy as np
+
 import numpy as np
+
 
 cdef class ObjectPool:
     def __cinit__(self):
@@ -49,14 +46,14 @@ cdef class ObjectPool:
         specified as con_id.  Return value is a view on them."""
         self.allocate_objs(n_objs, con_id)
         return self[self.n_con - 1]
-        
+
     cdef void allocate_objs(self, int n_objs, np.int64_t con_id = -1) except *:
         cdef AllocationContainer *n_cont
         cdef AllocationContainer *prev
         cdef int n, i, j, k
         cdef char *obj # char so we can do pointer math
         self.containers = <AllocationContainer*> realloc(
-              self.containers, 
+              self.containers,
               sizeof(AllocationContainer) * (self.n_con + 1))
         n_cont = &self.containers[self.n_con]
         if self.n_con == 0:

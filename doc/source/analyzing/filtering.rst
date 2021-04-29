@@ -54,11 +54,11 @@ set a simple mask based on the contents of one of our fields.
     import yt
     ds = yt.load('Enzo_64/DD0042/data0042')
     ad = ds.all_data()
-    hot = ad["temperature"].in_units('K') > 1e6
-    print('Temperature of all data: ad["temperature"] = \n%s' % ad["temperature"])
+    hot = ad[("gas", "temperature")].in_units('K') > 1e6
+    print('Temperature of all data: ad[("gas", "temperature")] = \n%s' % ad[("gas", "temperature")])
     print("Boolean Mask: hot = \n%s" % hot)
-    print('Temperature of "hot" data: ad["temperature"][hot] = \n%s' %
-          ad['temperature'][hot])
+    print('Temperature of "hot" data: ad[("gas", "temperature")][hot] = \n%s' %
+          ad[("gas", "temperature")][hot])
 
 This was a simple example, but one can make the conditionals that define
 a boolean mask have multiple parts, and one can stack masks together to
@@ -71,9 +71,9 @@ used if you simply need to access the NumPy arrays:
     ds = yt.load('Enzo_64/DD0042/data0042')
     ad = ds.all_data()
     overpressure_and_fast = (ad["pressure"] > 1e-14) & (ad["velocity_magnitude"].in_units('km/s') > 1e2)
-    print('Density of all data: ad["density"] = \n%s' % ad['density'])
-    print('Density of "overpressure and fast" data: ad["density"][overpressure_and_fast] = \n%s' %
-          ad['density'][overpressure_and_fast])
+    print('Density of all data: ad[("gas", "density")] = \n%s' % ad[("gas", "density")])
+    print('Density of "overpressure and fast" data: overpressure_and_fast[("gas", "density")] = \n%s' %
+          overpressure_and_fast[("gas", "density")])
 
 .. _cut-regions:
 
@@ -86,8 +86,46 @@ other data object to generate images, examine its values, etc.
 
 .. notebook:: mesh_filter.ipynb
 
-Cut regions can also operator on particle fields, but a single cut region object
-cannot operate on both particle fields and mesh fields at the same time.
+In addition to inputting string parameters into cut_region to specify filters,
+wrapper functions exist that allow the user to use a simplified syntax for
+filtering out unwanted regions. Such wrapper functions are methods of
+:func: ``YTSelectionContainer3D``.
+
+.. notebook-cell::
+
+   import yt
+   ds = yt.load('Enzo_64/DD0042/data0042')
+   ad = ds.all_data()
+   overpressure_and_fast = ad.include_above(("gas", "pressure"), 1e-14)
+   # You can chain include_xx and exclude_xx to produce the intersection of cut regions
+   overpressure_and_fast = overpressure_and_fast.include_above(("gas", "velocity_magnitude"), 1e2, 'km/s')
+
+   print('Density of all data: ad[("gas", "density")] = \n%s' % ad[("gas", density")])
+   print('Density of "overpressure and fast" data: overpressure_and_fast[("gas", "density")] = \n%s' %
+          overpressure_and_fast[("gas", "density")])
+
+The following exclude and include functions are supported:
+   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.include_equal` - Only include values equal to given value
+   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.exclude_equal`- Exclude values equal to given value
+   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.include_inside` - Only include values inside closed interval
+   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.exclude_inside` - Exclude values inside closed interval
+   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.include_outside` - Only include values outside closed interval
+   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.exclude_outside` - Exclude values outside closed interval
+   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.exclude_nan` - Exclude NaN values
+   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.include_above` - Only include values above given value
+   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.exclude_above` - Exclude values above given value
+   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.include_below` - Only include values below given balue
+   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.exclude_below` - Exclude values below given value
+
+
+.. warning::
+
+    Cut regions are unstable when used on particle fields. Though you can create
+    a cut region using a mesh field or fields as a filter and then obtain a
+    particle field within that region, you cannot create a cut region using
+    particle fields in the filter, as yt will currently raise an error. If
+    you want to filter particle fields, see the next section
+    :ref:`filtering-particles` instead.
 
 .. _filtering-particles:
 
@@ -111,7 +149,7 @@ only the particles with ``particle_type`` (i.e.  field = ``('all',
 
 .. code-block:: python
 
-    @yt.particle_filter(requires=["particle_type"], filtered_type='all')
+    @yt.particle_filter(requires=["particle_type"], filtered_type="all")
     def stars(pfilter, data):
         filter = data[(pfilter.filtered_type, "particle_type")] == 2
         return filter
@@ -136,8 +174,10 @@ As an alternative syntax, you can also define a new particle filter via the
         filter = data[(pfilter.filtered_type, "particle_type")] == 2
         return filter
 
-    yt.add_particle_filter("stars", function=stars, filtered_type='all',
-                        requires=["particle_type"])
+
+    yt.add_particle_filter(
+        "stars", function=stars, filtered_type="all", requires=["particle_type"]
+    )
 
 This is equivalent to our use of the ``particle_filter`` decorator above.  The
 choice to use either the ``particle_filter`` decorator or the
@@ -150,15 +190,16 @@ create new filtered fields if the dataset has the required fields, though.
 .. code-block:: python
 
     import yt
-    ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    ds.add_particle_filter('stars')
+
+    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    ds.add_particle_filter("stars")
 
 And that's it!  We can now access all of the ('stars', field) fields from
 our dataset ``ds`` and treat them as any other particle field.  In addition,
 it created some ``deposit`` fields, where the particles were deposited on to
 the grid as mesh fields.
 
-We can create additional filters building on top of the filters we have. 
+We can create additional filters building on top of the filters we have.
 For example, we can identify the young stars based on their age, which is
 the difference between current time and their creation_time.
 
@@ -166,24 +207,30 @@ the difference between current time and their creation_time.
 
     def young_stars(pfilter, data):
         age = data.ds.current_time - data[pfilter.filtered_type, "creation_time"]
-        filter = np.logical_and(age.in_units('Myr') <= 5, age >= 0)
+        filter = np.logical_and(age.in_units("Myr") <= 5, age >= 0)
         return filter
 
-    yt.add_particle_filter("young_stars", function=young_stars,
-                        filtered_type='stars', requires=["creation_time"])
 
-If we properly define all the filters using the decorator ``yt.particle_filter`` 
+    yt.add_particle_filter(
+        "young_stars",
+        function=young_stars,
+        filtered_type="stars",
+        requires=["creation_time"],
+    )
+
+If we properly define all the filters using the decorator ``yt.particle_filter``
 or the function ``yt.add_particle_filter`` in advance. We can add the filter
 we need to the dataset. If the ``filtered_type`` is already defined but not
 added to the dataset, it will automatically add the filter first. For example,
-if we add the ``young_stars`` filter, which is filtered from ``stars``, 
+if we add the ``young_stars`` filter, which is filtered from ``stars``,
 to the dataset, it will also add ``stars`` filter to the dataset.
 
 .. code-block:: python
 
     import yt
-    ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    ds.add_particle_filter('young_stars')
+
+    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    ds.add_particle_filter("young_stars")
 
 
 .. notebook:: particle_filter.ipynb
@@ -208,8 +255,7 @@ accessible to this new particle type and it will add them.
 
 .. code-block:: python
 
-   from yt.data_objects.particle_unions import \
-       ParticleUnion
+   from yt.data_objects.particle_unions import ParticleUnion
 
    u = ParticleUnion("star", ["halo", "disk"])
    ds.add_particle_union(u)

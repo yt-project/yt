@@ -63,7 +63,7 @@ void artio_float_swap(float *src, int count) {
 	}
 }
 
-void artio_double_swap(double *src, int count) {	
+void artio_double_swap(double *src, int count) {
 	int i;
 	union
 	{

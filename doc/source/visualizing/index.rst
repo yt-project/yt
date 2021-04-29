@@ -17,6 +17,7 @@ interactively.
    volume_rendering
    unstructured_mesh_rendering
    interactive_data_visualization
+   visualizing_particle_datasets_with_firefly
    sketchfab
    mapserver
    streamlines

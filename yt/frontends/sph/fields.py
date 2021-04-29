@@ -1,24 +1,6 @@
-"""
-SPH fields
+from yt.fields.field_info_container import FieldInfoContainer
+from yt.fields.species_fields import setup_species_fields
 
-
-
-
-"""
-from __future__ import absolute_import
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
-from yt.fields.field_info_container import \
-    FieldInfoContainer
-from yt.fields.species_fields import \
-    setup_species_fields
 
 class SPHFieldInfo(FieldInfoContainer):
     known_other_fields = ()
@@ -30,7 +12,7 @@ class SPHFieldInfo(FieldInfoContainer):
         ("Velocity", ("code_velocity", ["particle_velocity"], None)),
         ("Velocities", ("code_velocity", ["particle_velocity"], None)),
         ("ParticleIDs", ("", ["particle_index"], None)),
-        ("InternalEnergy", ("code_specific_energy", ["thermal_energy"], None)),
+        ("InternalEnergy", ("code_specific_energy", ["specific_thermal_energy"], None)),
         ("SmoothingLength", ("code_length", ["smoothing_length"], None)),
         ("Density", ("code_mass / code_length**3", ["density"], None)),
         ("MaximumTemperature", ("K", [], None)),
@@ -45,7 +27,7 @@ class SPHFieldInfo(FieldInfoContainer):
     )
 
     def setup_particle_fields(self, ptype, *args, **kwargs):
-        super(SPHFieldInfo, self).setup_particle_fields(ptype, *args, **kwargs)
+        super().setup_particle_fields(ptype, *args, **kwargs)
         setup_species_fields(self, ptype)
 
     def setup_fluid_index_fields(self):

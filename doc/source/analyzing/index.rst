@@ -17,10 +17,11 @@ multiple processors to accomplish tasks faster.
    fields
    ../developing/creating_derived_fields
    objects
-   units/index
+   units
    filtering
    generating_processed_data
    saving_data
    time_series_analysis
    particle_trajectories
    parallel_computation
+   astropy_integrations

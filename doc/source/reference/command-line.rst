@@ -210,7 +210,7 @@ upload_notebook
 
 This command will accept the filename of a ``.ipynb`` file (generated from an
 IPython notebook session) and upload it to the `yt hub
-<https://hub.yt/>`__ where others will be able to view it, and
+<https://girder.hub.yt/>`__ where others will be able to view it, and
 download it.  This is an easy method for recording a sequence of commands,
 their output, narrative information, and then sharing that with others.  These
 notebooks will be viewable online, and the appropriate URLs will be returned on
@@ -254,7 +254,7 @@ share a piece of code that generates an image, or you're trying to
 debug image-generation scripts, it can be useful to send your
 co-authors a link to the image.  This subcommand makes such sharing
 a breeze.  By specifying the image to share, ``upload_image`` automatically
-uploads it anonymously to the website `imgur.com <http://imgur.com/>`_ and
+uploads it anonymously to the website `imgur.com <https://imgur.com/>`_ and
 provides you with a link to share with your collaborators.  Note that the
 image *must* be in the PNG format in order to use this function.
 
@@ -263,13 +263,13 @@ delete_image
 
 The image uploaded using ``upload_image`` is assigned with a unique hash that
 can be used to remove it. This subcommand provides an easy way to send a delete
-request directly to the `imgur.com <http://imgur.com/>`_.
+request directly to the `imgur.com <https://imgur.com/>`_.
 
 Hub helper
 ~~~~~~~~~~
 
 The :code:`yt hub` command-line tool allows to interact with the `yt hub
-<https://hub.yt>`__. The following subcommands are currently available:
+<https://girder.hub.yt>`__. The following subcommands are currently available:
 
 .. config_help:: yt hub
 
@@ -277,18 +277,18 @@ register
 ++++++++
 
 This subcommand starts an interactive process of creating an account on the `yt
-hub <https://hub.yt/>`__. Please note that the yt Hub also supports multiple OAuth
-providers such as Google, Bitbucket and GitHub for authentication. 
+hub <https://girder.hub.yt/>`__. Please note that the yt Hub also supports multiple OAuth
+providers such as Google, Bitbucket and GitHub for authentication.
 See :ref:`hub-APIkey` for more information.
 
 start
 +++++
 
-This subcommand launches the Jupyter Notebook on the `yt Hub <https://hub.yt>`__
+This subcommand launches the Jupyter Notebook on the `yt Hub <https://girder.hub.yt>`__
 with a chosen Hub folder mounted to the ``/data`` directory inside the notebook.
 If no path is given all the `example yt datasets
 <https://yt-project.org/data>`_ are mounted by default. The appropriate URL
-allowing to access the Notebook will be returned on the commandline. 
+allowing to access the Notebook will be returned on the commandline.
 
 Example:
 
@@ -300,12 +300,12 @@ Example:
 download
 ~~~~~~~~
 
-This subcommand downloads a file from http://yt-project.org/data. Using ``yt download``, 
+This subcommand downloads a file from https://yt-project.org/data. Using ``yt download``,
 one can download a file to:
 
-* ``"test_data_dir"``: Save the file to the location specified in 
+* ``"test_data_dir"``: Save the file to the location specified in
   the ``"test_data_dir"`` configuration entry for test data.
-* ``"supp_data_dir"``: Save the file to the location specified in 
+* ``"supp_data_dir"``: Save the file to the location specified in
   the ``"supp_data_dir"`` configuration entry for supplemental data.
 * Any valid path to a location on disk, e.g. ``/home/jzuhone/data``.
 
@@ -319,12 +319,12 @@ Examples:
 
    $ yt download GasSloshing.tar.gz test_data_dir
 
-.. code-block:: bash 
+.. code-block:: bash
 
    $ yt download ZeldovichPancake.tar.gz /Users/jzuhone/workspace
 
 If the configuration values ``"test_data_dir"`` or ``"supp_data_dir"`` have not
-been set by the user, an error will be thrown. 
+been set by the user, an error will be thrown.
 
 Config helper
 ~~~~~~~~~~~~~
@@ -341,19 +341,21 @@ This will print the list of available subcommands:
 
 .. config_help:: yt config
 
-Since the yt version 3.3.2, the previous location of the configuration file
-(``$HOME/.yt/config``) has been deprecated in favor of a location adhering to the
+
+Since yt version 4, the configuration file is located in ``$XDG_CONFIG_HOME/yt/yt.toml`` adhering to the
 `XDG Base Directory Specification
 <https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html>`_.
-(``$XDG_HOME_CONFIG/yt/ytrc``). In order to perform an automatic migration of
-the old config, you are encouraged to run:
+Unless customized, this defaults to ``$HOME/.config/`` on Unix-like systems (macOS, Linux, ...).
+The old configuration file (``$XDG_CONFIG_HOME/yt/ytrc``) is deprecated.
+In order to perform an automatic migration of the old config, you are
+encouraged to run:
 
 .. code-block:: bash
 
    yt config migrate
 
-that will copy your current config file to the new location and store a backup
-copy as ``$HOME/.yt/config.bak``.
+This will convert your old config file to the toml format. The original file
+will be moved to ``$XDG_CONFIG_HOME/yt/ytrc.bak``.
 
 Examples
 ++++++++
@@ -364,23 +366,23 @@ Listing current content of the config file:
 
    $ yt config list
    [yt]
-   loglevel = 50
+   log_level = 50
 
 Obtaining a single config value by name:
 
 .. code-block:: bash
 
-   $ yt config get yt loglevel
+   $ yt config get yt log_level
    50
 
 Changing a single config value:
 
 .. code-block:: bash
 
-   $ yt config set yt loglevel 10
+   $ yt config set yt log_level 10
 
 Removing a single config entry:
 
 .. code-block:: bash
 
-   $ yt config rm yt loglevel
+   $ yt config rm yt log_level

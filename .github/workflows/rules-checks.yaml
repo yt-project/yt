@@ -1,0 +1,33 @@
+name: Auto review bad practice
+on: [pull_request]
+
+jobs:
+  h5py-bad-practices:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@main
+    - name: check-h5py-import
+      # check that we don't alias h5py to h5
+      # reason: discoverability is important since this module's api
+      # is unstable and we want to be able to check for potential future failures
+      id: h5-import
+      run: |
+        grep -r -n "import _h5py as h5" yt | grep -v "import _h5py as h5py" | cat > h5-imports.log
+        if [ -s h5-imports.log ] ; then
+          echo "Please do not import h5py as h5. Here are the faulty lines."
+          cat h5-imports.log
+          exit 1
+        fi
+
+    - name: check-h5py-filemode
+      id: h5-file-mode
+      # check that a mode argument is always present in calls to h5py.File()
+      # reason: the default value is different in older versions 'w' VS newer ones 'r'
+      run: |
+        grep -E -r -n "h5py\.File\([^,]+\)" yt | cat > h5-mode.log
+        if [ -s h5-mode.log ] ; then
+          echo "h5py.File() should never be called without an explicit mode argument."
+          echo "Here are the faulty lines."
+          cat h5-mode.log
+          exit 1
+        fi

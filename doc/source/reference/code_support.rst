@@ -16,6 +16,8 @@ each supported output format using yt.
 | Capability ►          | Fluid      | Particles | Parameters | Units | Read on  | Load Raw | Part of    | Level of |
 | Code/Format ▼         | Quantities |           |            |       | Demand   | Data     | test suite | Support  |
 +=======================+============+===========+============+=======+==========+==========+============+==========+
+| AMRVAC                |     Y      |     N     |      Y     |   Y   |    Y     |    Y     |     Y      | Partial  |
++-----------------------+------------+-----------+------------+-------+----------+----------+------------+----------+
 | ART                   |     Y      |     Y     |      Y     |   Y   | Y [#f2]_ |    Y     |     N      |   Full   |
 +-----------------------+------------+-----------+------------+-------+----------+----------+------------+----------+
 | ARTIO                 |     Y      |     Y     |      Y     |   Y   |    Y     |    Y     |     Y      |   Full   |

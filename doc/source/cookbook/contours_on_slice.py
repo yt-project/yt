@@ -11,4 +11,4 @@ p.save()
 # then add temperature contours on the same density slice
 p = yt.SlicePlot(ds, "x", "density")
 p.annotate_contour("temperature")
-p.save(str(ds)+'_T_contour')
+p.save(str(ds) + "_T_contour")

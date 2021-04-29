@@ -1,8 +1,11 @@
+cimport cython
 cimport numpy as np
 from numpy cimport ndarray
-cimport cython
+
 import numpy as np
+
 from libc.math cimport fabs, fmax
+
 
 cdef class ElementSampler:
 
@@ -237,7 +240,7 @@ cdef class Q1Sampler2D(NonlinearSolveSampler2D):
 
     cdef int check_inside(self, double* mapped_coord) nogil
 
-    
+
 cdef class Q2Sampler2D(NonlinearSolveSampler2D):
 
     cdef void map_real_to_unit(self,
@@ -252,7 +255,7 @@ cdef class Q2Sampler2D(NonlinearSolveSampler2D):
 
     cdef int check_inside(self, double* mapped_coord) nogil
 
-    
+
 cdef class T2Sampler2D(NonlinearSolveSampler2D):
 
     cdef void map_real_to_unit(self,

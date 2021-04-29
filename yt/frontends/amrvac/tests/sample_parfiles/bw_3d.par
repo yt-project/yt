@@ -1,0 +1,57 @@
+!setup.pl -d=3
+ &filelist
+        typefilelog='regression_test'
+        base_filename='bw_3d'
+        saveprim=.true.
+        convert_type='vtuBCCmpi'
+        autoconvert=.true.
+        nwauxio=1
+ /
+
+ &savelist
+        dtsave_log = 1.d-3
+ /
+
+ &stoplist
+        time_max = 2.d-2
+/
+
+ &methodlist
+        time_integrator= 'threestep'
+        flux_scheme= 20*'hllc'
+        limiter= 20*'koren'
+ /
+
+ &boundlist
+        typeboundary_min1=5*'cont'
+        typeboundary_max1=5*'cont'
+        typeboundary_min2=5*'cont'
+        typeboundary_max2=5*'cont'
+        typeboundary_min3=5*'cont'
+        typeboundary_max3=5*'cont'
+ /
+
+ &meshlist
+        refine_criterion=3
+        refine_max_level=3
+        w_refine_weight(1)=0.5d0
+        w_refine_weight(5)=0.5d0
+        block_nx1=8
+        block_nx2=8
+        block_nx3=8
+        domain_nx1=16
+        domain_nx2=16
+        domain_nx3=16
+        iprob=1
+        xprobmin1=0.d0
+        xprobmax1=2.d0
+        xprobmin2=0.d0
+        xprobmax2=2.d0
+        xprobmin3=0.d0
+        xprobmax3=2.d0
+ /
+
+ &paramlist
+        typecourant='maxsum'
+        courantpar=0.5d0
+ /

@@ -1,3 +1,5 @@
+
+# distutils: libraries = STD_LIBS
 """
 This is a recursive function to return a depth-first octree
 
@@ -5,17 +7,12 @@ This is a recursive function to return a depth-first octree
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
 import numpy as np
-cimport numpy as np
+
 cimport cython
+cimport numpy as np
+
 
 cdef class position:
     cdef public int output_pos, refined_pos
@@ -52,7 +49,7 @@ cdef class OctreeGridList:
 @cython.boundscheck(False)
 def RecurseOctreeDepthFirst(int i_i, int j_i, int k_i,
                             int i_f, int j_f, int k_f,
-                            position curpos, int gi, 
+                            position curpos, int gi,
                             np.ndarray[np.float64_t, ndim=2] output,
                             np.ndarray[np.int32_t, ndim=1] refined,
                             OctreeGridList grids):
@@ -105,7 +102,7 @@ def RecurseOctreeDepthFirst(int i_i, int j_i, int k_i,
 def RecurseOctreeByLevels(int i_i, int j_i, int k_i,
                           int i_f, int j_f, int k_f,
                           np.ndarray[np.int32_t, ndim=1] curpos,
-                          int gi, 
+                          int gi,
                           np.ndarray[np.float64_t, ndim=2] output,
                           np.ndarray[np.int32_t, ndim=2] genealogy,
                           np.ndarray[np.float64_t, ndim=2] corners,
@@ -134,8 +131,8 @@ def RecurseOctreeByLevels(int i_i, int j_i, int k_i,
                 k = k_off + k_i
                 cz = (leftedges[2] + k*dx)
                 cp = curpos[level]
-                corners[cp, 0] = cx 
-                corners[cp, 1] = cy 
+                corners[cp, 0] = cx
+                corners[cp, 1] = cy
                 corners[cp, 2] = cz
                 genealogy[curpos[level], 2] = level
                 # always output data
@@ -150,7 +147,7 @@ def RecurseOctreeByLevels(int i_i, int j_i, int k_i,
                     child_j = int((cy-child_leftedges[1])/child_dx)
                     child_k = int((cz-child_leftedges[2])/child_dx)
                     # set current child id to id of next cell to examine
-                    genealogy[cp, 0] = curpos[level+1] 
+                    genealogy[cp, 0] = curpos[level+1]
                     # set next parent id to id of current cell
                     genealogy[curpos[level+1]:curpos[level+1]+8, 1] = cp
                     s = RecurseOctreeByLevels(child_i, child_j, child_k, 2, 2, 2,
@@ -158,4 +155,3 @@ def RecurseOctreeByLevels(int i_i, int j_i, int k_i,
                                               corners, grids)
                 curpos[level] += 1
     return s
-

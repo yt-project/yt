@@ -23,7 +23,7 @@
 #include "artio.h"
 #include "artio_internal.h"
 
-#ifndef ARTIO_MPI 
+#ifndef ARTIO_MPI
 
 #include <stdio.h>
 #include <string.h>
@@ -39,7 +39,7 @@ typedef __int32 int32_t;
 struct ARTIO_FH {
 	FILE *fh;
 	int mode;
-	char *data;                                                                                                  
+	char *data;
 	int bfptr;
 	int bfsize;
 	int bfend;
@@ -67,7 +67,7 @@ artio_fh *artio_file_fopen_i( char * filename, int mode, const artio_context *no
 	if ( ffh == NULL ) {
 		return NULL;
 	}
-	
+
 	ffh->mode = mode;
 	ffh->bfsize = -1;
 	ffh->bfend = -1;
@@ -80,7 +80,7 @@ artio_fh *artio_file_fopen_i( char * filename, int mode, const artio_context *no
 			free( ffh );
 			return NULL;
 		}
-	} 
+	}
 
 	return ffh;
 }
@@ -93,7 +93,7 @@ int artio_file_attach_buffer_i( artio_fh *handle, void *buf, int buf_size ) {
 	if ( handle->data != NULL ) {
 		return ARTIO_ERR_BUFFER_EXISTS;
 	}
-	
+
 	handle->bfsize = buf_size;
 	handle->bfend = -1;
 	handle->bfptr = 0;
@@ -112,7 +112,7 @@ int artio_file_detach_buffer_i( artio_fh *handle ) {
     handle->bfend = -1;
     handle->bfptr = -1;
 
-	return ARTIO_SUCCESS;	
+	return ARTIO_SUCCESS;
 }
 
 int artio_file_fwrite_i(artio_fh *handle, const void *buf, int64_t count, int type ) {
@@ -141,7 +141,7 @@ int artio_file_fwrite_i(artio_fh *handle, const void *buf, int64_t count, int ty
 	if ( handle->data == NULL ) {
 		/* force writes to 32-bit sizes */
 		while ( remain > 0 ) {
-			size32 = MIN( ARTIO_IO_MAX, remain );		
+			size32 = MIN( ARTIO_IO_MAX, remain );
 			if ( fwrite( p, 1, size32, handle->fh ) != size32 ) {
 				return ARTIO_ERR_IO_WRITE;
 			}
@@ -154,7 +154,7 @@ int artio_file_fwrite_i(artio_fh *handle, const void *buf, int64_t count, int ty
 	} else {
 		size32 = handle->bfsize - handle->bfptr;
 		memcpy( handle->data + handle->bfptr, p, size32 );
-		if ( fwrite( handle->data, 1, handle->bfsize, 
+		if ( fwrite( handle->data, 1, handle->bfsize,
 				handle->fh ) != handle->bfsize ) {
 			return ARTIO_ERR_IO_WRITE;
 		}
@@ -163,7 +163,7 @@ int artio_file_fwrite_i(artio_fh *handle, const void *buf, int64_t count, int ty
 
 		while ( remain > handle->bfsize ) {
 			/* write directly to file-handle in unbuffered case */
-			if ( fwrite( p, 1, handle->bfsize, 
+			if ( fwrite( p, 1, handle->bfsize,
 					handle->fh ) != handle->bfsize ) {
 				return ARTIO_ERR_IO_WRITE;
 			}
@@ -185,7 +185,7 @@ int artio_file_fflush_i(artio_fh *handle) {
 
     if ( handle->mode & ARTIO_MODE_WRITE ) {
 		if ( handle->bfptr > 0 ) {
-			if ( fwrite( handle->data, 1, handle->bfptr, 
+			if ( fwrite( handle->data, 1, handle->bfptr,
 					handle->fh ) != handle->bfptr ) {
 				return ARTIO_ERR_IO_WRITE;
 			}
@@ -239,8 +239,8 @@ int artio_file_fread_i(artio_fh *handle, void *buf, int64_t count, int type ) {
 		}
 
 		/* read from buffer */
-		while ( remain > 0 && 
-				handle->bfend > 0 && 
+		while ( remain > 0 &&
+				handle->bfend > 0 &&
 				handle->bfptr + remain >= handle->bfend ) {
 			avail = handle->bfend - handle->bfptr;
 			memcpy( p, handle->data + handle->bfptr, avail );
@@ -290,7 +290,7 @@ int artio_file_ftell_i( artio_fh *handle, int64_t *offset ) {
 
 	if ( handle->bfend > 0 ) {
 		current -= handle->bfend;
-	} 
+	}
 	if ( handle->bfptr > 0 ) {
 		current += handle->bfptr;
 	}
@@ -308,7 +308,7 @@ int artio_file_fseek_i(artio_fh *handle, int64_t offset, int whence ) {
 				return ARTIO_SUCCESS;
 			} else if ( handle->mode & ARTIO_MODE_READ &&
 					handle->bfend > 0 &&
-					handle->bfptr + offset >= 0 && 
+					handle->bfptr + offset >= 0 &&
 					handle->bfptr + offset < handle->bfend ) {
 				handle->bfptr += offset;
 				return ARTIO_SUCCESS;
@@ -325,8 +325,8 @@ int artio_file_fseek_i(artio_fh *handle, int64_t offset, int whence ) {
 		} else if ( whence == ARTIO_SEEK_SET ) {
 			current = ftell( handle->fh );
 			if ( handle->mode & ARTIO_MODE_WRITE &&
-					current <= offset && 
-					offset < current + handle->bfsize &&                                      
+					current <= offset &&
+					offset < current + handle->bfsize &&
 					handle->bfptr == offset - current ) {
 				return ARTIO_SUCCESS;
 			} else if ( handle->mode & ARTIO_MODE_READ &&

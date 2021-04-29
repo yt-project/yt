@@ -1,8 +1,10 @@
 import yt
-from yt.visualization.volume_rendering.interactive_vr import \
-    SceneGraph, BlockCollection, TrackballCamera
-from yt.visualization.volume_rendering.interactive_loop import \
-    RenderingContext
+from yt.visualization.volume_rendering.interactive_loop import RenderingContext
+from yt.visualization.volume_rendering.interactive_vr import (
+    BlockCollection,
+    SceneGraph,
+    TrackballCamera,
+)
 
 ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
@@ -20,8 +22,7 @@ scene.add_collection(collection)
 
 # Create default camera
 position = (1.0, 1.0, 1.0)
-c = TrackballCamera(position=position, focus=ds.domain_center,
-                    near_plane=0.1)
+c = TrackballCamera(position=position, focus=ds.domain_center, near_plane=0.1)
 
 # Start rendering loop
 rc.start_loop(scene, c)

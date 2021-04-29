@@ -1,27 +1,12 @@
-"""
-Volume rendering
-
-"""
-
-# ----------------------------------------------------------------------------
-# Copyright (c) 2014, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-# ----------------------------------------------------------------------------
-
-
-from .scene import Scene
-from .render_source import VolumeSource, \
-    MeshSource
-from .utils import data_source_or_all
 from yt.funcs import mylog
 from yt.utilities.exceptions import YTSceneFieldNotFound
 
+from .api import MeshSource, Scene, create_volume_source
+from .utils import data_source_or_all
 
-def create_scene(data_source, field=None, lens_type='plane-parallel'):
-    r""" Set up a scene object with sensible defaults for use in volume
+
+def create_scene(data_source, field=None, lens_type="plane-parallel"):
+    r"""Set up a scene object with sensible defaults for use in volume
     rendering.
 
     A helper function that creates a default camera view, transfer
@@ -68,23 +53,26 @@ def create_scene(data_source, field=None, lens_type='plane-parallel'):
     if field is None:
         field = data_source.ds.default_field
         if field not in data_source.ds.derived_field_list:
-            raise YTSceneFieldNotFound("""Could not find field '%s' in %s.
-                  Please specify a field in create_scene()""" % (field, data_source.ds))
-        mylog.info('Setting default field to %s' % field.__repr__())
+            raise YTSceneFieldNotFound(
+                f"""Could not find field '{field}' in {data_source.ds}.
+                  Please specify a field in create_scene()"""
+            )
+        mylog.info("Setting default field to %s", field.__repr__())
 
     if hasattr(data_source.ds.index, "meshes"):
         source = MeshSource(data_source, field=field)
     else:
-        source = VolumeSource(data_source, field=field)
+        source = create_volume_source(data_source, field=field)
 
     sc.add_source(source)
     sc.add_camera(data_source=data_source, lens_type=lens_type)
     return sc
 
 
-def volume_render(data_source, field=None, fname=None, sigma_clip=None,
-                  lens_type='plane-parallel'):
-    r""" Create a simple volume rendering of a data source.
+def volume_render(
+    data_source, field=None, fname=None, sigma_clip=None, lens_type="plane-parallel"
+):
+    r"""Create a simple volume rendering of a data source.
 
     A helper function that creates a default camera view, transfer
     function, and image size. Using these, it returns an image and
@@ -134,5 +122,5 @@ def volume_render(data_source, field=None, fname=None, sigma_clip=None,
     """
     sc = create_scene(data_source, field=field)
     im = sc.render()
-    sc.save(fname=fname, sigma_clip=sigma_clip)
+    sc.save(fname=fname, sigma_clip=sigma_clip, render=False)
     return im, sc

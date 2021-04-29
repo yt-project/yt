@@ -5,17 +5,12 @@ Bit array functions
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2015, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
 import numpy as np
-cimport numpy as np
+
 cimport cython
+cimport numpy as np
+
 
 cdef inline void ba_set_value(np.uint8_t *buf, np.uint64_t ind,
                               np.uint8_t val) nogil:

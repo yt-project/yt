@@ -25,7 +25,7 @@ as isocontours as well as interactive binning and rebinning of data from yt
 data objects, to be displayed as phase plots and profiles.
 
 .. note:: Working with the Hub requires additional dependencies to be installed.
-          You can obtain them by running: ``pip install yt[hub]``. 
+          You can obtain them by running: ``pip install yt[hub]``.
 
 .. _hub-APIkey:
 
@@ -37,7 +37,7 @@ available only for authenticated users. You can `log into
 <https://girder.hub.yt/#?dialog=login>`_ the Hub using your Google, GitHub or
 Bitbucket account. After you log in, an API key can be generated under the *My
 account* page, which can be accessed through the dropdown menu in the upper
-right corner. 
+right corner.
 
 .. image:: _static/apiKey01.jpg
    :width: 50 %
@@ -60,7 +60,7 @@ After the API Key is created you can obtain it by clicking *show* link:
    :width: 50 %
 
 For more information about API keys please see `this document
-<http://girder.readthedocs.io/en/latest/user-guide.html?highlight=API%20keys#api-keys>`__.
+<https://girder.readthedocs.io/en/latest/user-guide.html?highlight=API%20keys#api-keys>`__.
 
 After you have gotten your API key, update your config file:
 
@@ -92,7 +92,7 @@ Currently, the yt hub can accept these types of data:
 
  * Raw data files, scripts.
  * IPython notebooks: these are stored on the hub and are made available for
-   download and via the IPython `nbviewer <http://nbviewer.jupyter.org/>`_
+   download and via the IPython `nbviewer <https://nbviewer.jupyter.org/>`_
    service.
 
 How to Upload Data
@@ -100,7 +100,7 @@ How to Upload Data
 
 Uploading data can be performed using the ``girder-cli`` command tool or
 directly via the web interface. Please refer to ``girder-cli`` `documentation page
-<http://girder.readthedocs.io/en/latest/python-client.html>`_ for additional
+<https://girder.readthedocs.io/en/latest/python-client.html>`_ for additional
 information.
 
 Uploading Notebooks

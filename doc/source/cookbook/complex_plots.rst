@@ -15,23 +15,96 @@ See :ref:`slice-plots` for more information.
 
 .. yt_cookbook:: multi_width_image.py
 
+.. _image-resolution-primer:
+
+Varying the resolution of an image
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This illustrates the various parameters that control the resolution
+of an image, including the (deprecated) refinement level, the size of
+the :class:`~yt.visualization.fixed_resolution.FixedResolutionBuffer`,
+and the number of pixels in the output image.
+
+In brief, there are three parameters that control the final resolution,
+with a fourth entering for particle data that is deposited onto a mesh
+(i.e. pre-4.0).  Those are:
+
+1. `buff_size`, which can be altered with
+:meth:`~yt.visualization.plot_window.PlotWindow.set_buff_size`, which
+is inherited by
+:class:`~yt.visualization.plot_window.AxisAlignedSlicePlot`,
+:class:`~yt.visualization.plot_window.OffAxisSlicePlot`,
+:class:`~yt.visualization.plot_window.ProjectionPlot`, and
+:class:`~yt.visualization.plot_window.OffAxisProjectionPlot`.  This
+controls the number of resolution elements in the
+:class:`~yt.visualization.fixed_resolution.FixedResolutionBuffer`,
+which can be thought of as the number of individually colored
+squares (on a side) in a 2D image.  `buff_size` can be set
+after creating the image with
+:meth:`~yt.visualization.plot_window.PlotWindow.set_buff_size`,
+or during image creation with the `buff_size` argument to any
+of the four preceding classes.
+
+2. `figure_size`, which can be altered with either
+:meth:`~yt.visualization.plot_container.PlotContainer.set_figure_size`
+or with :meth:`~yt.visualization.plot_container.PlotWindow.set_window_size`
+(the latter simply calls
+:meth:`~yt.visualization.plot_container.PlotContainer.set_figure_size`),
+or can be set during image creation with the `window_size` argument.
+This sets the size of the final image (including the visualization and,
+if applicable, the axes and colorbar as well) in inches.
+
+3. `dpi`, i.e. the dots-per-inch in your final file, which can also
+be thought of as the actual resolution of your image.  This can
+only be set on save via the `mpl_kwargs` parameter to
+:meth:`~yt.visualization.plot_container.PlotContainer.save`.  The
+`dpi` and `figure_size` together set the true resolution of your
+image (final image will be `dpi` :math:`*` `figure_size` pixels on a
+side), so if these are set too low, then your `buff_size` will not
+matter.  On the other hand, increasing these without increasing
+`buff_size` accordingly will simply blow up your resolution
+elements to fill several real pixels.
+
+4. (only for meshed particle data) `n_ref`, the maximum nubmer of
+particles in a cell in the oct-tree allowed before it is refined
+(removed in yt-4.0 as particle data is no longer deposited onto
+an oct-tree).  For particle data, `n_ref` effectively sets the
+underlying resolution of your simulation.  Regardless, for either
+grid data or deposited particle data, your image will never be
+higher resolution than your simulation data.  In other words,
+if you are visualizing a region 50 kpc across that includes
+data that reaches a resolution of 100 pc, then there's no reason
+to set a `buff_size` (or a `dpi` :math:`*` `figure_size`) above
+50 kpc/ 100 pc = 500.
+
+The below script demonstrates how each of these can be varied.
+
+.. yt_cookbook:: image_resolution.py
+
+
 Multipanel with Axes Labels
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This illustrates how to use a SlicePlot to control a multipanel plot.  This
 plot uses axes labels to illustrate the length scales in the plot.
 See :ref:`slice-plots` and the
-`Matplotlib AxesGrid Object <http://matplotlib.org/mpl_toolkits/axes_grid/api/axes_grid_api.html>`_
+`Matplotlib AxesGrid Object <https://matplotlib.org/mpl_toolkits/axes_grid/api/axes_grid_api.html>`_
 for more information.
 
 .. yt_cookbook:: multiplot_2x2.py
+
+The above example gives you full control over the plots, but for most
+purposes, the ``export_to_mpl_figure`` method is a simpler option,
+allowing us to make a similar plot as:
+
+.. yt_cookbook:: multiplot_export_to_mpl.py
 
 Multipanel with PhasePlot
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This illustrates how to use PhasePlot in a multipanel plot.
 See :ref:`how-to-make-2d-profiles` and the
-`Matplotlib AxesGrid Object <http://matplotlib.org/mpl_toolkits/axes_grid/api/axes_grid_api.html>`_
+`Matplotlib AxesGrid Object <https://matplotlib.org/mpl_toolkits/axes_grid/api/axes_grid_api.html>`_
 for more information.
 
 .. yt_cookbook:: multiplot_phaseplot.py
@@ -41,7 +114,7 @@ Time Series Multipanel
 
 This illustrates how to create a multipanel plot of a time series dataset.
 See :ref:`projection-plots`, :ref:`time-series-analysis`, and the
-`Matplotlib AxesGrid Object <http://matplotlib.org/mpl_toolkits/axes_grid/api/axes_grid_api.html>`_
+`Matplotlib AxesGrid Object <https://matplotlib.org/mpl_toolkits/axes_grid/api/axes_grid_api.html>`_
 for more information.
 
 .. yt_cookbook:: multiplot_2x2_time_series.py
@@ -53,7 +126,7 @@ This illustrates how to create a multipanel plot of slices along the coordinate
 axes.  To focus on what's happening in the x-y plane, we make an additional
 Temperature slice for the bottom-right subpanel.
 See :ref:`slice-plots` and the
-`Matplotlib AxesGrid Object <http://matplotlib.org/mpl_toolkits/axes_grid/api/axes_grid_api.html>`_
+`Matplotlib AxesGrid Object <https://matplotlib.org/mpl_toolkits/axes_grid/api/axes_grid_api.html>`_
 for more information.
 
 .. yt_cookbook:: multiplot_2x2_coordaxes_slice.py
@@ -354,7 +427,7 @@ Advanced Interactive Data Visualization
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This recipe demonstrates how to manually create all components required to
-start the Interactive Data Visualization.  For more information see 
+start the Interactive Data Visualization.  For more information see
 :ref:`interactive_data_visualization`.
 
 .. yt_cookbook:: opengl_vr.py
@@ -363,7 +436,7 @@ Embedding Interactive Data Visualization
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This recipe demonstrates how to embed the Interactive Data Visualization inside
-the Jupyter notebook.  For more information see 
+the Jupyter notebook.  For more information see
 :ref:`interactive_data_visualization`.
 
 .. yt_cookbook:: opengl_ipython.py
