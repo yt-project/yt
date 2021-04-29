@@ -1312,11 +1312,11 @@ this in the constructor.  yt can accept units such as ``Mpc``, ``kpc``, ``cm``,
 ``Mpccm/h`` and so on.  In particular, note that ``Mpc/h`` and ``Mpccm/h``
 (``cm`` for comoving here) are usable unit definitions.
 
-yt will attempt to use units for ``mass``, ``length`` and ``time`` as supplied
-in the argument ``unit_base``.  The ``bounding_box`` argument is a list of
-two-item tuples or lists that describe the left and right extents of the
-particles. In this example we load a dataset with a custom bounding box
-and units.
+yt will attempt to use units for ``mass``, ``length``, ``time``, and
+``magnetic`` as supplied in the argument ``unit_base``.  The ``bounding_box``
+argument is a list of two-item tuples or lists that describe the left and right
+extents of the particles. In this example we load a dataset with a custom bounding
+box and units.
 
 .. code-block:: python
 
@@ -1326,9 +1326,10 @@ and units.
    ds = yt.load("snap_004", unit_base=unit_base, bounding_box=bbox)
 
 In addition, you can use ``UnitLength_in_cm``, ``UnitVelocity_in_cm_per_s``,
-and ``UnitMass_in_g`` as keys for the ``unit_base`` dictionary. These names
-come from the names used in the Gadget runtime parameter file. This example
-will initialize a dataset with the same units as the example above:
+``UnitMass_in_g``, and ``UnitMagneticField_in_gauss`` as keys for the
+``unit_base`` dictionary. These name come from the names used in the Gadget
+runtime parameter file. This example will initialize a dataset with the same
+units as the example above:
 
 .. code-block:: python
 
