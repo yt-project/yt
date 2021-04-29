@@ -18,7 +18,7 @@ def issue_deprecation_warning(msg, *, removal, since=None, stacklevel=3):
     """
     Parameters
     ----------
-    msg: str
+    msg : str
         A text message explaining that the code surrounding the call to this function is
         deprecated, and what should be changed on the user side to avoid it.
 
@@ -47,7 +47,7 @@ def issue_deprecation_warning(msg, *, removal, since=None, stacklevel=3):
     """
     msg += "\n"
     if since is not None:
-        msg += f"Deprecated since v{since} . "
+        msg += f"Deprecated since v{since}. "
 
     msg += f"This feature will be removed in v{removal}"
     warnings.warn(msg, VisibleDeprecationWarning, stacklevel=stacklevel)

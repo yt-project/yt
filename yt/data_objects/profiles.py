@@ -332,18 +332,18 @@ class ProfileND(ParallelAnalysisInterface):
         >>> ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
         >>> ad = ds.all_data()
         >>> profile = yt.create_profile(ad, [("gas", "density"), ("gas", "temperature")],
-        ...                            ("gas", "cell_mass"), weight_field=None,
+        ...                            ("gas", "mass"), weight_field=None,
         ...                             n_bins=(128, 128))
         >>> fn = profile.save_as_dataset()
         >>> prof_ds = yt.load(fn)
-        >>> print (prof_ds.data[("gas", "cell_mass")])
+        >>> print (prof_ds.data[("gas", "mass")])
         (128, 128)
         >>> print (prof_ds.data[("index", "x")].shape) # x bins as 1D array
         (128,)
         >>> print (prof_ds.data[("gas", "density")]) # x bins as 2D array
         (128, 128)
         >>> p = yt.PhasePlot(prof_ds.data, ("gas", "density"), ("gas", "temperature"),
-        ...                  ("gas", "cell_mass"), weight_field=None)
+        ...                  ("gas", "mass"), weight_field=None)
         >>> p.save()
 
         """
@@ -516,10 +516,10 @@ class Profile1D(ProfileND):
     def set_x_unit(self, new_unit):
         """Sets a new unit for the x field
 
-        parameters
+        Parameters
         ----------
         new_unit : string or Unit object
-           The name of the new unit.
+            The name of the new unit.
         """
         self.x_bins.convert_to_units(new_unit)
         self.x = 0.5 * (self.x_bins[1:] + self.x_bins[:-1])
@@ -769,10 +769,10 @@ class Profile2D(ProfileND):
     def set_x_unit(self, new_unit):
         """Sets a new unit for the x field
 
-        parameters
+        Parameters
         ----------
         new_unit : string or Unit object
-           The name of the new unit.
+            The name of the new unit.
         """
         self.x_bins.convert_to_units(new_unit)
         self.x = 0.5 * (self.x_bins[1:] + self.x_bins[:-1])
@@ -780,10 +780,10 @@ class Profile2D(ProfileND):
     def set_y_unit(self, new_unit):
         """Sets a new unit for the y field
 
-        parameters
+        Parameters
         ----------
         new_unit : string or Unit object
-           The name of the new unit.
+            The name of the new unit.
         """
         self.y_bins.convert_to_units(new_unit)
         self.y = 0.5 * (self.y_bins[1:] + self.y_bins[:-1])
@@ -1117,10 +1117,10 @@ class Profile3D(ProfileND):
     def set_x_unit(self, new_unit):
         """Sets a new unit for the x field
 
-        parameters
+        Parameters
         ----------
         new_unit : string or Unit object
-           The name of the new unit.
+            The name of the new unit.
         """
         self.x_bins.convert_to_units(new_unit)
         self.x = 0.5 * (self.x_bins[1:] + self.x_bins[:-1])
@@ -1128,10 +1128,10 @@ class Profile3D(ProfileND):
     def set_y_unit(self, new_unit):
         """Sets a new unit for the y field
 
-        parameters
+        Parameters
         ----------
         new_unit : string or Unit object
-           The name of the new unit.
+            The name of the new unit.
         """
         self.y_bins.convert_to_units(new_unit)
         self.y = 0.5 * (self.y_bins[1:] + self.y_bins[:-1])
@@ -1139,10 +1139,10 @@ class Profile3D(ProfileND):
     def set_z_unit(self, new_unit):
         """Sets a new unit for the z field
 
-        parameters
+        Parameters
         ----------
         new_unit : string or Unit object
-           The name of the new unit.
+            The name of the new unit.
         """
         self.z_bins.convert_to_units(new_unit)
         self.z = 0.5 * (self.z_bins[1:] + self.z_bins[:-1])
@@ -1175,7 +1175,7 @@ def create_profile(
     extrema=None,
     logs=None,
     units=None,
-    weight_field=("gas", "cell_mass"),
+    weight_field=("gas", "mass"),
     accumulation=False,
     fractional=False,
     deposition="ngp",
@@ -1213,7 +1213,7 @@ def create_profile(
     weight_field : str or tuple field identifier
         The weight field for computing weighted average for the profile
         values.  If None, the profile values are sums of the data in
-        each bin. Defaults to "cell_mass".
+        each bin. Defaults to ("gas", "mass").
     accumulation : bool or list of bools
         If True, the profile values for a bin n are the cumulative sum of
         all the values from bin 0 to n.  If -True, the sum is reversed so

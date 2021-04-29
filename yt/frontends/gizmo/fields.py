@@ -106,7 +106,7 @@ class GizmoFieldInfo(GadgetFieldInfo):
 
             def _el_number_density(field, data):
                 return (
-                    data[ptype, "ElectronAbundance"] * data[ptype, "H_number_density"]
+                    data[ptype, "ElectronAbundance"] * data[ptype, "H_nuclei_density"]
                 )
 
             self.add_field(

@@ -785,7 +785,7 @@ class RAMSESDataset(Dataset):
                 mylog.info("Adding particle_type: %s", k)
                 self.add_particle_filter(f"{k}")
 
-    def __repr__(self):
+    def __str__(self):
         return self.basename.rsplit(".", 1)[0]
 
     def _set_code_unit_attributes(self):

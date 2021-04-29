@@ -86,7 +86,7 @@ def test_covering_grid():
     for fn in [cyl_2d, cyl_3d]:
         ds = load(fn)
         ad = ds.all_data()
-        upper_ad = ad.cut_region(["obj['index', 'z'] > 0"])
+        upper_ad = ad.cut_region(["obj[('index', 'z')] > 0"])
         sp = ds.sphere((0, 0, 0), 0.5 * ds.domain_width[0], data_source=upper_ad)
         sp.quantities.total_mass()
 
@@ -177,7 +177,7 @@ def test_arbitrary_grid():
                 volume = ds.quan(np.product(dds), "cm**3")
 
                 obj = ds.arbitrary_grid(LE, RE, dims)
-                deposited_mass = obj["deposit", "all_density"].sum() * volume
+                deposited_mass = obj[("deposit", "all_density")].sum() * volume
 
                 assert_equal(deposited_mass, ds.quan(1.0, "g"))
 
@@ -186,7 +186,7 @@ def test_arbitrary_grid():
 
                 obj = ds.arbitrary_grid(LE, RE, dims)
 
-                deposited_mass = obj["deposit", "all_density"].sum()
+                deposited_mass = obj[("deposit", "all_density")].sum()
 
                 assert_equal(deposited_mass, 0)
 

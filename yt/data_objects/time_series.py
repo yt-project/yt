@@ -465,8 +465,8 @@ class DatasetSeries:
         >>> for t in trajs :
         >>>     print(t[("all", "particle_velocity_x")].max(), t[("all", "particle_velocity_x")].min())
 
-        Note
-        ----
+        Notes
+        -----
         This function will fail if there are duplicate particle ids or if some of the
         particle disappear.
         """
@@ -623,10 +623,10 @@ class SimulationTimeSeries(DatasetSeries):
 
         Parameters
         ----------
-        key: str
+        key : str
             The key by which to retrieve outputs, usually 'time' or
             'redshift'.
-        values: array_like
+        values : array_like
             A list of values, given as floats.
         tolerance : float
             If not None, do not return a dataset unless the value is

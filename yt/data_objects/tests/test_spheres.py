@@ -19,8 +19,8 @@ def setup():
 
 
 _fields_to_compare = (
-    "spherical_r",
-    "cylindrical_r",
+    "spherical_radius",
+    "cylindrical_radius",
     "spherical_theta",
     "cylindrical_theta",
     "spherical_phi",

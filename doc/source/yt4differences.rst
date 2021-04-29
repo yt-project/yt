@@ -47,6 +47,48 @@ are being removed entirely. When the deprecated field names are used for the
 first time in a session, a warning will be logged, so it is advisable to set
 your logging level to ``WARNING`` at a minimum to catch these.
 
+Colormaps
+^^^^^^^^^
+yt used to automatically register colormaps from ``cmocean``, unprefixed.
+This unfortunately became unsustainable with the 3.4 release of Matplotlib,
+in which colormaps with colliding names raise errors. The fix is to explicitly
+import the ``cmocean`` module and prefix ``cmocean`` colormaps (like
+``balance``) with ``cmo.``.  Note that this solution works with any
+yt-supported version of Matplotlib, but is not backward compatible with earlier
+versions of yt. Example:
+
+Old Script (will not work in the near future):
+
+.. code-block:: python
+
+    import yt
+
+    ds = yt.testing.fake_random_ds(1)
+    p = yt.SlicePlot(ds, "z", ("gas", "density"))
+    p.set_cmap(("gas", "density"), "balance")
+
+New Script:
+
+.. code-block:: python
+
+    import yt
+    import cmocean
+
+    ds = yt.testing.fake_random_ds(1)
+    p = yt.SlicePlot(ds, "z", ("gas", "density"))
+    p.set_cmap(("gas", "density"), "cmo.balance")
+
+Important New Aliases
+^^^^^^^^^^^^^^^^^^^^^
+
+With the advent of supporting SPH data at the particle level instead of smoothing
+onto an octree (see below), a new alias for both gas particle masses and cell masses
+has been created: ``("gas", "mass")``, which aliases to ``("gas", "cell_mass")`` for
+grid-based frontends and to the gas particle mass for SPH frontends. In a number of
+places in yt, code that used ``("gas", "cell_mass")`` has been replaced by
+``("gas", "mass")``. Since the latter is an alias for the former, old scripts which
+use ``("gas", "cell_mass")`` should not break.
+
 Cool New Things
 ---------------
 
@@ -159,15 +201,13 @@ Smoothing data onto an Octree
 
 Whilst the move away from the global octree is a promising one in terms of
 perfomance and dealing with SPH data in a more intuitive manner, it does remove
-a useful feature. We are aware that many uses will have older scripts which take
+a useful feature. We are aware that many users will have older scripts which take
 advantage of the global octree.
 
 As such, we have added support to smooth SPH data onto an octree when desired by
 the users. The new octree is designed to give results consistent with those of
 the previous octree, but the new octree takes advantage of the scatter and
 gather machinery also added.
-
-It should be noted that the
 
 .. code-block:: python
 
@@ -182,24 +222,24 @@ It should be noted that the
     # generate an octree
     octree = ds.octree(left, right, n_ref=64)
 
+    # Scatter deposition is the default now, and thus this will print scatter
+    print(octree.sph_smoothing_style)
+
     # the density will be calculated using SPH scatter
     density = octree[("PartType0", "density")]
 
     # this will return the x positions of the octs
     x = octree[("index", "x")]
 
-The above code can be modified to use the scatter approach by using
-``ds.sph_smoothing_style = 'gather'`` before any field access. The octree also
-accepts ``over_refine_factor`` which works just like the ``over_refine_factor``
-parameter in yt-3.0 that could be passed to ``yt.load``, and determines how many
-particles are in each leaf.
+The above code can be modified to use the gather approach by using
+``ds.sph_smoothing_style = 'gather'`` before any field access. The octree just
+uses the smoothing style and number of neighbors defined by the dataset.
 
-The ``density_factor`` keyword allows the construction of dense octrees
-trees. In a traditional octree, if a leaf has more particles that a critical
-value `n_ref`, then it divides into 8 new children (hence the name oct). The
-value of `density_factor` allows the node to divide into 2^(3*density_factor)
-zones instead. This creates an octree structure similar that used by AMR codes
-like FLASH that make use of an octree of grid patches.
+The octree implementation is very simple. It uses a recursive algorithm to build
+a ``depth-first`` which is consistent with the results from yt-3. Depth-first
+search (DFS) means that tree starts refining at the root node (this is the
+largest node which contains every particles) and refines as far as possible
+along each branch before backtracking.
 
 ``yt.units`` is now a wrapper for ``unyt``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

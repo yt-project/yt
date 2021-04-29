@@ -89,7 +89,7 @@ answer_tests:
     - yt/frontends/owls/tests/test_outputs.py:test_snapshot_033
     - yt/frontends/owls/tests/test_outputs.py:test_OWLS_particlefilter
 
-  local_pw_033:  # PR 2881
+  local_pw_034:  # PR 3153
     - yt/visualization/tests/test_plotwindow.py:test_attributes
     - yt/visualization/tests/test_plotwindow.py:test_attributes_wt
     - yt/visualization/tests/test_particle_plot.py:test_particle_projection_answers
@@ -165,7 +165,7 @@ answer_tests:
   local_axialpix_007:
     - yt/geometry/coordinates/tests/test_axial_pixelization.py:test_axial_pixelization
 
-  local_cylindrical_background_005:  # PR 2915
+  local_cylindrical_background_006:  # PR 3153
     - yt/geometry/coordinates/tests/test_cylindrical_coordinates.py:test_noise_plots
 
   #local_particle_trajectory_001:
@@ -181,6 +181,7 @@ other_tests:
      - '--ignore-files=test_load_errors.py'
      - '--ignore-files=test_commons.py'
      - '--ignore-files=test_load_sample.py'
+     - '--ignore-files=test_ambiguous_fields.py'
      - '--exclude-test=yt.frontends.gdf.tests.test_outputs.TestGDF'
   cookbook:
      - 'doc/source/cookbook/tests/test_cookbook.py'

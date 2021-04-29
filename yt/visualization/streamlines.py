@@ -153,7 +153,7 @@ class Streamlines(ParallelAnalysisInterface):
                 step = self._integrate_through_brick(
                     this_node, stream, step, mag=thismag
                 )
-            pbar.update(i)
+            pbar.update(i + 1)
         pbar.finish()
 
         self._finalize_parallel(None)

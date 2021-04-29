@@ -743,16 +743,13 @@ class YTDataContainer:
         velocity_units : string
             The units that the velocity should be converted to in order to
             show streamlines in Firefly. Defaults to km/s.
-
-        coordinate_units: string
+        coordinate_units : string
             The units that the coordinates should be converted to. Defaults to
             kpc.
-
-        show_unused_fields: boolean
+        show_unused_fields : boolean
             A flag to optionally print the fields that are available, in the
             dataset but were not explicitly requested to be tracked.
-
-        dataset_name: string
+        dataset_name : string
             The name of the subdirectory the JSON files will be stored in
             (and the name that will appear in startup.json and in the dropdown
             menu at startup). e.g. `yt` -> json files will appear in
@@ -1106,7 +1103,7 @@ class YTDataContainer:
         extrema=None,
         logs=None,
         units=None,
-        weight_field=("gas", "cell_mass"),
+        weight_field=("gas", "mass"),
         accumulation=False,
         fractional=False,
         deposition="ngp",
@@ -1273,7 +1270,7 @@ class YTDataContainer:
         ----------
         field : string or tuple field name
             The field to project.
-        weight: string or tuple field name
+        weight : string or tuple field name
             The field to weight the projection by
         axis : string
             The axis to project along.

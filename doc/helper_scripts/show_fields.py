@@ -187,7 +187,7 @@ print_all_fields(ds.field_info)
 
 
 class FieldInfo:
-    """ a simple container to hold the information about fields """
+    """a simple container to hold the information about fields"""
 
     def __init__(self, ftype, field, ptype):
         name = field[0]

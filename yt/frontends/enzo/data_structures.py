@@ -252,7 +252,7 @@ class EnzoHierarchy(GridIndex):
                 nap = None
                 active_particles = False
         for grid_id in range(self.num_grids):
-            pbar.update(grid_id)
+            pbar.update(grid_id + 1)
             # We will unroll this list
             si.append(_next_token_line("GridStartIndex", f))
             ei.append(_next_token_line("GridEndIndex", f))

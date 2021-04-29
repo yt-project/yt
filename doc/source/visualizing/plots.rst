@@ -959,7 +959,7 @@ For instance:
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    my_sphere = ds.sphere([0.5, 0.5, 0.5], (100, "kpc"))
-   plot = yt.ProfilePlot(my_sphere, "temperature", ["cell_mass"], weight_field=None)
+   plot = yt.ProfilePlot(my_sphere, "temperature", ["mass"], weight_field=None)
    plot.save()
 
 Note that because we have specified the weighting field to be ``None``, the
@@ -981,7 +981,7 @@ generate a plot of the enclosed mass in a sphere:
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    my_sphere = ds.sphere([0.5, 0.5, 0.5], (100, "kpc"))
    plot = yt.ProfilePlot(
-       my_sphere, "radius", ["cell_mass"], weight_field=None, accumulation=True
+       my_sphere, "radius", ["mass"], weight_field=None, accumulation=True
    )
    plot.save()
 
@@ -994,12 +994,12 @@ The profiled fields can be accessed from the dictionary ``field_data``.
 
 .. code-block:: python
 
-   plot = ProfilePlot(my_sphere, "temperature", ["cell_mass"], weight_field=None)
+   plot = ProfilePlot(my_sphere, "temperature", ["mass"], weight_field=None)
    profile = plot.profiles[0]
    # print the bin field, in this case temperature
    print(profile.x)
-   # print the profiled cell_mass field
-   print(profile["cell_mass"])
+   # print the profiled mass field
+   print(profile["mass"])
 
 Other options, such as the number of bins, are also configurable. See the
 documentation for :class:`~yt.visualization.profile_plotter.ProfilePlot` for
@@ -1034,11 +1034,12 @@ method and then given to the ProfilePlot object.
            yt.create_profile(
                ad,
                ["temperature"],
-               fields=["cell_mass"],
+               fields=["mass"],
                weight_field=None,
                accumulation=True,
            )
        )
+
        # Add labels
        labels.append("z = %.2f" % ds.current_redshift)
 
@@ -1389,7 +1390,7 @@ temperature bins, you can do:
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    my_sphere = ds.sphere("c", (50, "kpc"))
    plot = yt.PhasePlot(
-       my_sphere, "density", "temperature", ["cell_mass"], weight_field=None
+       my_sphere, "density", "temperature", ["mass"], weight_field=None
    )
    plot.save()
 
@@ -1427,9 +1428,9 @@ and ``show_colorbar``.
    rvir = ds.quan(1e-1, "Mpccm/h")
    sph = ds.sphere(center, rvir)
 
-   plot = yt.PhasePlot(sph, "density", "temperature", "cell_mass", weight_field=None)
+   plot = yt.PhasePlot(sph, "density", "temperature", "mass", weight_field=None)
    plot.set_unit("density", "Msun/pc**3")
-   plot.set_unit("cell_mass", "Msun")
+   plot.set_unit("mass", "Msun")
    plot.set_xlim(1e-5, 1e1)
    plot.set_ylim(1, 1e7)
    plot.save()
@@ -1455,7 +1456,7 @@ limits.  The following example illustrates this workflow:
        sph,
        ["density", "temperature"],
        n_bins=[128, 128],
-       fields=["cell_mass"],
+       fields=["mass"],
        weight_field=None,
        units=units,
        extrema=extrema,
@@ -1882,13 +1883,13 @@ For ``ProfilePlot``:
 .. code-block:: python
 
    ad = ds.all_data()
-   p1 = yt.ProfilePlot(ad, "density", "temperature", weight_field="cell_mass")
+   p1 = yt.ProfilePlot(ad, "density", "temperature", weight_field="mass")
 
    # note that ProfilePlots can hold a list of profiles
    fn = p1.profiles[0].save_as_dataset()
 
    new_ds = yt.load(fn)
-   p2 = yt.ProfilePlot(new_ds.data, "density", "temperature", weight_field="cell_mass")
+   p2 = yt.ProfilePlot(new_ds.data, "density", "temperature", weight_field="mass")
    p2.save()
 
 For ``PhasePlot``:
@@ -1896,11 +1897,11 @@ For ``PhasePlot``:
 .. code-block:: python
 
    ad = ds.all_data()
-   p1 = yt.PhasePlot(ad, "density", "temperature", "cell_mass", weight_field=None)
+   p1 = yt.PhasePlot(ad, "density", "temperature", "mass", weight_field=None)
    fn = p1.profile.save_as_dataset()
 
    new_ds = yt.load(fn)
-   p2 = yt.PhasePlot(new_ds.data, "density", "temperature", "cell_mass", weight_field=None)
+   p2 = yt.PhasePlot(new_ds.data, "density", "temperature", "mass", weight_field=None)
    p2.save()
 
 .. _eps-writer:
@@ -1993,9 +1994,9 @@ an example that includes slices and phase plots:
     p2.set_cmap("temperature", "hot")
 
     sph = ds.sphere(ds.domain_center, (10, "kpc"))
-    p3 = PhasePlot(sph, "radius", "density", "temperature", weight_field="cell_mass")
+    p3 = PhasePlot(sph, "radius", "density", "temperature", weight_field="mass")
 
-    p4 = PhasePlot(sph, "radius", "density", "pressure", "cell_mass")
+    p4 = PhasePlot(sph, "radius", "density", "pressure", "mass")
 
     mp = multiplot_yt(
         2,
