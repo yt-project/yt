@@ -3,7 +3,7 @@ import yt
 ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")  # load data
 
 field = "temperature"  # The field to average
-weight = "cell_mass"  # The weight for the average
+weight = "mass"  # The weight for the average
 
 ad = ds.all_data()  # This is a region describing the entire box,
 # but note it doesn't read anything in yet!

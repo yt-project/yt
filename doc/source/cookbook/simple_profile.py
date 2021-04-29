@@ -11,7 +11,7 @@ plot = yt.ProfilePlot(
     sphere,
     ("gas", "density"),
     [("gas", "temperature"), ("gas", "velocity_x")],
-    weight_field=("gas", "cell_mass"),
+    weight_field=("gas", "mass"),
 )
 plot.set_log(("gas", "velocity_x"), False)
 

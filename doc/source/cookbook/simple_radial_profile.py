@@ -11,7 +11,7 @@ plot = yt.ProfilePlot(
     my_sphere,
     ("index", "radius"),
     ("gas", "density"),
-    weight_field=("gas", "cell_mass"),
+    weight_field=("gas", "mass"),
 )
 
 # Change the units of the radius into kpc (and not the default in cgs)

@@ -14,12 +14,12 @@ plot = yt.PhasePlot(
     my_sphere,
     ("gas", "density"),
     ("gas", "temperature"),
-    ("gas", "cell_mass"),
+    ("gas", "mass"),
     weight_field=None,
 )
 
 # Set the units of mass to be in solar masses (not the default in cgs)
-plot.set_unit(("gas", "cell_mass"), "Msun")
+plot.set_unit(("gas", "mass"), "Msun")
 
 # Save the image.
 # Optionally, give a string as an argument
