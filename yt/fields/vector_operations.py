@@ -496,32 +496,37 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
         def _cartesian_x(field, data):
             if registry.ds.geometry == "polar":
 
-                return data[f"{basename}_r"] * np.cos(data["theta"])
+                return data[(ftype, f"{basename}_r")] * np.cos(data[(ftype, "theta")])
 
             elif registry.ds.geometry == "cylindrical":
 
                 if data.ds.dimensionality == 2:
-                    return data[f"{basename}_r"]
+                    return data[(ftype, f"{basename}_r")]
                 elif data.ds.dimensionality == 3:
-                    return data[f"{basename}_r"] * np.cos(data["theta"]) - data[
-                        f"{basename}_theta"
-                    ] * np.sin(data["theta"])
+                    return data[(ftype, f"{basename}_r")] * np.cos(
+                        data[(ftype, "theta")]
+                    ) - data[(ftype, f"{basename}_theta")] * np.sin(
+                        data[(ftype, "theta")]
+                    )
 
             elif registry.ds.geometry == "spherical":
 
                 if data.ds.dimensionality == 2:
-                    return data[f"{basename}_r"] * np.sin(data["theta"]) + data[
-                        f"{basename}_theta"
-                    ] * np.cos(data["theta"])
+                    return data[(ftype, f"{basename}_r")] * np.sin(
+                        data[(ftype, "theta")]
+                    ) + data[(ftype, f"{basename}_theta")] * np.cos(
+                        data[(ftype, "theta")]
+                    )
                 elif data.ds.dimensionality == 3:
                     return (
-                        data[f"{basename}_r"]
-                        * np.sin(data["theta"])
-                        * np.cos(data["phi"])
-                        + data[f"{basename}_theta"]
-                        * np.cos(data["theta"])
-                        * np.cos(["phi"])
-                        - data[f"{basename}_phi"] * np.sin(data["phi"])
+                        data[(ftype, f"{basename}_r")]
+                        * np.sin(data[(ftype, "theta")])
+                        * np.cos(data[(ftype, "phi")])
+                        + data[(ftype, f"{basename}_theta")]
+                        * np.cos(data[(ftype, "theta")])
+                        * np.cos([(ftype, "phi")])
+                        - data[(ftype, f"{basename}_phi")]
+                        * np.sin(data[(ftype, "phi")])
                     )
 
         # it's redundant to define a cartesian x field for 1D data
@@ -535,35 +540,37 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
             )
 
         def _cartesian_y(field, data):
-
             if registry.ds.geometry == "polar":
 
-                return data[f"{basename}_r"] * np.sin(data["theta"])
+                return data[(ftype, f"{basename}_r")] * np.sin(data[(ftype, "theta")])
 
             elif registry.ds.geometry == "cylindrical":
 
                 if data.ds.dimensionality == 2:
-                    return data[f"{basename}_z"]
+                    return data[(ftype, f"{basename}_z")]
                 elif data.ds.dimensionality == 3:
-                    return data[f"{basename}_r"] * np.sin(data["theta"]) + data[
-                        f"{basename}_theta"
-                    ] * np.cos(data["theta"])
+                    return data[(ftype, f"{basename}_r")] * np.sin(
+                        data[(ftype, "theta")]
+                    ) + data[(ftype, f"{basename}_theta")] * np.cos(
+                        data[(ftype, "theta")]
+                    )
 
             elif registry.ds.geometry == "spherical":
 
                 if data.ds.dimensionality == 2:
-                    return data[f"{basename}_r"] * np.cos(data["theta"]) - data[
-                        f"{basename}_theta"
-                    ] * np.sin(data["theta"])
+                    return data[(ftype, f"{basename}_r")] * np.cos(
+                        data[(ftype, "theta")]
+                    ) - data[f"{basename}_theta"] * np.sin(data[(ftype, "theta")])
                 elif data.ds.dimensionality == 3:
                     return (
-                        data[f"{basename}_r"]
-                        * np.sin(data["theta"])
-                        * np.sin(data["phi"])
-                        + data[f"{basename}_theta"]
-                        * np.cos(data["theta"])
-                        * np.sin(["phi"])
-                        + data[f"{basename}_phi"] * np.cos(data["phi"])
+                        data[(ftype, f"{basename}_r")]
+                        * np.sin(data[(ftype, "theta")])
+                        * np.sin(data[(ftype, "phi")])
+                        + data[(ftype, f"{basename}_theta")]
+                        * np.cos(data[(ftype, "theta")])
+                        * np.sin([(ftype, "phi")])
+                        + data[(ftype, f"{basename}_phi")]
+                        * np.cos(data[(ftype, "phi")])
                     )
 
         if registry.ds.dimensionality >= 2:
@@ -576,13 +583,12 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
             )
 
         def _cartesian_z(field, data):
-
             if registry.ds.geometry == "cylindrical":
-                return data[f"{basename}_z"]
+                return data[(ftype, f"{basename}_z")]
             elif registry.ds.geometry == "spherical":
-                return data[f"{basename}_r"] * np.cos(data["theta"]) - data[
-                    f"{basename}_theta"
-                ] * np.sin(data["theta"])
+                return data[(ftype, f"{basename}_r")] * np.cos(
+                    data[(ftype, "theta")]
+                ) - data[(ftype, f"{basename}_theta")] * np.sin(data[(ftype, "theta")])
 
         if registry.ds.dimensionality == 3:
             registry.add_field(

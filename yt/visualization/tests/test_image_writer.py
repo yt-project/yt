@@ -34,17 +34,19 @@ class TestImageWriter(unittest.TestCase):
         normal = [1, 1, 1]
         cut = ds.cutting(normal, center)
         frb = cut.to_frb((0.75, "unitary"), 64)
-        multi_image_composite("multi_channel1.png", frb["x"], frb["y"])
+        multi_image_composite(
+            "multi_channel1.png", frb[("index", "x")], frb[("index", "y")]
+        )
 
         # Test multi_image_composite with user specified scaling values
         mi = ds.quan(0.1, "code_length")
         ma = ds.quan(0.9, "code_length")
         multi_image_composite(
             "multi_channel2.png",
-            (frb["x"], mi, ma),
-            [frb["y"], mi, None],
-            green_channel=frb["z"],
-            alpha_channel=frb["density"],
+            (frb[("index", "x")], mi, ma),
+            [frb[("index", "y")], mi, None],
+            green_channel=frb[("index", "z")],
+            alpha_channel=frb[("gas", "density")],
         )
 
         # Test with numpy integer array

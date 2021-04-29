@@ -285,7 +285,7 @@ class DerivedField:
         self._unit_registry = old_registry
 
     def __call__(self, data):
-        """ Return the value of the field in a given *data* object. """
+        """Return the value of the field in a given *data* object."""
         self.check_available(data)
         original_fields = data.keys()  # Copy
         if self._function is NullFunc:

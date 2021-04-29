@@ -234,7 +234,7 @@ class OWLSFieldInfo(SPHFieldInfo):
                     self.alias(("gas", fname), (ptype, fname))
 
     def setup_gas_ion_particle_fields(self, ptype):
-        """ Sets up particle fields for gas ion densities. """
+        """Sets up particle fields for gas ion densities."""
 
         # loop over all ions and make fields
         # ----------------------------------------------

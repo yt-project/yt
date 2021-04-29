@@ -1050,7 +1050,7 @@ cdef class ParticleBitmap:
         # Read bitmap for each file
         pb = get_pbar("Loading particle index", nfiles)
         for ifile in range(nfiles):
-            pb.update(ifile)
+            pb.update(ifile+1)
             size_serial, = struct.unpack('Q', f.read(struct.calcsize('Q')))
             irflag = self.bitmasks._loads(ifile, f.read(size_serial))
             if irflag == 0:

@@ -34,8 +34,8 @@ p = yt.SlicePlot(ds, "z", fields)
 
 # Velocity is going to be both positive and negative, so let's make these
 # slices use a linear colorbar scale
-p.set_log("velocity_x", False)
-p.set_log("velocity_y", False)
+p.set_log(("gas", "velocity_x"), False)
+p.set_log(("gas", "velocity_y"), False)
 
 p.zoom(2)
 

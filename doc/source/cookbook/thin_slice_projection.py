@@ -27,7 +27,9 @@ region = ds.box(left_corner, right_corner)
 # Create a density projection and supply the region we have just created.
 # Only cells within the region will be included in the projection.
 # Try with another data container, like a sphere or disk.
-plot = yt.ProjectionPlot(ds, "x", "density", weight_field="density", data_source=region)
+plot = yt.ProjectionPlot(
+    ds, "x", ("gas", "density"), weight_field=("gas", "density"), data_source=region
+)
 
 # Save the image with the keyword.
 plot.save("Thin_Slice")

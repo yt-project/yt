@@ -743,10 +743,10 @@ def add_noise_fields(ds):
         """random data with mixed signs"""
         return 2 * prng.random_sample(data.size) - 1
 
-    ds.add_field("noise0", _binary_noise, sampling_type="cell")
-    ds.add_field("noise1", _positive_noise, sampling_type="cell")
-    ds.add_field("noise2", _negative_noise, sampling_type="cell")
-    ds.add_field("noise3", _even_noise, sampling_type="cell")
+    ds.add_field(("gas", "noise0"), _binary_noise, sampling_type="cell")
+    ds.add_field(("gas", "noise1"), _positive_noise, sampling_type="cell")
+    ds.add_field(("gas", "noise2"), _negative_noise, sampling_type="cell")
+    ds.add_field(("gas", "noise3"), _even_noise, sampling_type="cell")
 
 
 def expand_keywords(keywords, full=False):

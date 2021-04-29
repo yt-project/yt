@@ -1,11 +1,13 @@
 import base64
 import builtins
 import os
+import textwrap
 from collections import defaultdict
 from functools import wraps
 
 import matplotlib
 import numpy as np
+from matplotlib.cm import get_cmap
 from more_itertools.more import always_iterable
 
 from yt._maintenance.deprecation import issue_deprecation_warning
@@ -16,9 +18,38 @@ from yt.units import YTQuantity
 from yt.units.unit_object import Unit
 from yt.utilities.definitions import formatted_length_unit_names
 from yt.utilities.exceptions import YTNotInsideNotebook
-from yt.visualization.color_maps import yt_colormaps
 
 from ._commons import validate_image_name
+
+try:
+    import cmocean  # noqa
+except ImportError:
+    cmocean = None
+
+CMOCEAN_DEPR_MSG = textwrap.dedent(
+    """\
+    It looks like you requested a colormap from the cmocean library. In the future, yt won't
+    recognize this bare (unprefixed) name. Please follow the recommended usage from cmocean's doc:
+    add an explicit `import cmocean` to your script, and prefix their colormap names with 'cmo.'
+    See our release notes for why this change was necessary."""
+)
+
+
+def _sanitize_cmap(cmap):
+    # this function should be removed entierly after yt 4.0.0 is released
+    if not isinstance(cmap, str):
+        return cmap
+    if cmocean is not None:
+        try:
+            cmo_cmap = f"cmo.{cmap}"
+            get_cmap(cmo_cmap)
+            issue_deprecation_warning(CMOCEAN_DEPR_MSG, since="4.0.0", removal="4.1.0")
+            return cmo_cmap
+        except ValueError:
+            pass
+    get_cmap(cmap)
+    return cmap
+
 
 latex_prefixes = {
     "u": r"\mu",
@@ -584,7 +615,7 @@ class PlotContainer:
         --------
 
         >>> from yt.mods import SlicePlot
-        >>> slc = SlicePlot(ds, "x", ["Density", "VelocityMagnitude"])
+        >>> slc = SlicePlot(ds, "x", [("gas", "density"), ("gas", "velocity_magnitude")])
         >>> slc.show()
 
         """
@@ -870,7 +901,7 @@ class ImagePlotContainer(PlotContainer):
 
         """
         self._colorbar_valid = False
-        self._colormap_config[field] = cmap
+        self._colormap_config[field] = _sanitize_cmap(cmap)
         return self
 
     @accepts_all_fields
@@ -892,10 +923,7 @@ class ImagePlotContainer(PlotContainer):
         if color is None:
             cmap = self._colormap_config[field]
             if isinstance(cmap, str):
-                try:
-                    cmap = yt_colormaps[cmap]
-                except KeyError:
-                    cmap = getattr(matplotlib.cm, cmap)
+                cmap = get_cmap(cmap)
             color = cmap(0)
         self._background_color[field] = color
         return self
@@ -1021,7 +1049,7 @@ class ImagePlotContainer(PlotContainer):
         label : str
           The new label
 
-        >>>  plot.set_colorbar_label("density", "Dark Matter Density (g cm$^{-3}$)")
+        >>>  plot.set_colorbar_label(("gas", "density"), "Dark Matter Density (g cm$^{-3}$)")
 
         """
         self._colorbar_label[field] = label

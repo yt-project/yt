@@ -100,7 +100,7 @@ class MoabHex8Dataset(Dataset):
     def _is_valid(cls, filename, *args, **kwargs):
         return filename.endswith(".h5m")
 
-    def __repr__(self):
+    def __str__(self):
         return self.basename.rsplit(".", 1)[0]
 
 
@@ -200,5 +200,5 @@ class PyneMoabHex8Dataset(Dataset):
     def _is_valid(cls, filename, *args, **kwargs):
         return False
 
-    def __repr__(self):
+    def __str__(self):
         return self.basename.rsplit(".", 1)[0]

@@ -978,6 +978,6 @@ def test_obtain_relative_velocity_vector():
 
     vels = obtain_relative_velocity_vector(dd)
 
-    assert_array_equal(vels[0, :], dd["velocity_x"])
-    assert_array_equal(vels[1, :], dd["velocity_y"])
-    assert_array_equal(vels[2, :], dd["velocity_z"])
+    assert_array_equal(vels[0, :], dd[("gas", "velocity_x")])
+    assert_array_equal(vels[1, :], dd[("gas", "velocity_y")])
+    assert_array_equal(vels[2, :], dd[("gas", "velocity_z")])

@@ -130,7 +130,7 @@ class AthenaPPLogarithmicIndex(UnstructuredIndex):
                 np.array([nxm - 1, nym - 1, nzm - 1]),
             )
             self.meshes.append(mesh)
-            pbar.update(i)
+            pbar.update(i + 1)
         pbar.finish()
         mylog.debug("Done setting up meshes.")
 
@@ -367,5 +367,5 @@ class AthenaPPDataset(Dataset):
     def _skip_cache(self):
         return True
 
-    def __repr__(self):
+    def __str__(self):
         return self.basename.rsplit(".", 1)[0]

@@ -155,7 +155,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
 
         def _latitude_to_theta(field, data):
             # latitude runs from -90 to 90
-            return (data["latitude"] + 90) * np.pi / 180.0
+            return (data[("index", "latitude")] + 90) * np.pi / 180.0
 
         registry.add_field(
             ("index", "theta"),
@@ -165,7 +165,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
         )
 
         def _dlatitude_to_dtheta(field, data):
-            return data["dlatitude"] * np.pi / 180.0
+            return data[("index", "dlatitude")] * np.pi / 180.0
 
         registry.add_field(
             ("index", "dtheta"),
@@ -176,14 +176,14 @@ class GeographicCoordinateHandler(CoordinateHandler):
 
         def _longitude_to_phi(field, data):
             # longitude runs from -180 to 180
-            return (data["longitude"] + 180) * np.pi / 180.0
+            return (data[("index", "longitude")] + 180) * np.pi / 180.0
 
         registry.add_field(
             ("index", "phi"), sampling_type="cell", function=_longitude_to_phi, units=""
         )
 
         def _dlongitude_to_dphi(field, data):
-            return data["dlongitude"] * np.pi / 180.0
+            return data[("index", "dlongitude")] * np.pi / 180.0
 
         registry.add_field(
             ("index", "dphi"),
@@ -204,7 +204,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
                     surface_height = data.ds.surface_height
                 else:
                     surface_height = data.ds.quan(0.0, "code_length")
-            return data["altitude"] + surface_height
+            return data[("index", "altitude")] + surface_height
 
         registry.add_field(
             ("index", "r"),
@@ -472,7 +472,7 @@ class InternalGeographicCoordinateHandler(GeographicCoordinateHandler):
                     # so we can look at the domain right edge in depth.
                     rax = self.axis_id[self.radial_axis]
                     outer_radius = data.ds.domain_right_edge[rax]
-            return -1.0 * data["depth"] + outer_radius
+            return -1.0 * data[("index", "depth")] + outer_radius
 
         registry.add_field(
             ("index", "r"),

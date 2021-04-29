@@ -223,7 +223,7 @@ def load_uniform_grid(
     >>> ds = load_uniform_grid(data, arr.shape, length_unit='cm',
     ...                        bbox=bbox, nprocs=12)
     >>> dd = ds.all_data()
-    >>> dd['density']
+    >>> dd[('gas', 'density')]
     unyt_array([0.76017901, 0.96855994, 0.49205428, ..., 0.78798258,
                 0.97569432, 0.99453904], 'g/cm**3')
     """
@@ -443,7 +443,7 @@ def load_amr_grids(
     ... ]
     ...
     >>> for g in grid_data:
-    ...     g["density"] = (np.random.random(g["dimensions"])*2**g["level"], "g/cm**3")
+    ...     g[("gas", "density")] = (np.random.random(g["dimensions"])*2**g["level"], "g/cm**3")
     ...
     >>> ds = load_amr_grids(grid_data, [32, 32, 32], length_unit=1.0)
     """
@@ -1338,7 +1338,8 @@ def load_sample(fn, progressbar: bool = True, timeout=None, **kwargs):
 
     try:
         save_dir = _get_test_data_dir_path()
-    except FileNotFoundError:
+        assert save_dir.is_dir()
+    except (OSError, AssertionError):
         mylog.warning(
             "yt test data directory is not properly set up. "
             "Data will be saved to the current work directory instead."

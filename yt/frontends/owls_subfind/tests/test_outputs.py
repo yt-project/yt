@@ -10,10 +10,10 @@ from yt.utilities.answer_testing.framework import (
 # from yt.frontends.owls_subfind.api import OWLSSubfindDataset
 
 _fields = (
-    "particle_position_x",
-    "particle_position_y",
-    "particle_position_z",
-    "particle_mass",
+    ("all", "particle_position_x"),
+    ("all", "particle_position_y"),
+    ("all", "particle_position_z"),
+    ("all", "particle_mass"),
 )
 
 # a dataset with empty files

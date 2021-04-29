@@ -201,7 +201,7 @@ class ARTDataset(Dataset):
             else:
                 setattr(self, "_file_" + filetype, None)
 
-    def __repr__(self):
+    def __str__(self):
         return self._file_amr.split("/")[-1]
 
     def _set_code_unit_attributes(self):
@@ -482,7 +482,7 @@ class DarkMatterARTDataset(ARTDataset):
             else:
                 setattr(self, "_file_" + filetype, None)
 
-    def __repr__(self):
+    def __str__(self):
         return self._file_particle.split("/")[-1]
 
     def _set_code_unit_attributes(self):

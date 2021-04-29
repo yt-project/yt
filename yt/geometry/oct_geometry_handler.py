@@ -55,7 +55,7 @@ class OctreeIndex(Index):
                 if Nremaining == 0:
                     break
                 icell = (
-                    obj["index", "ones"].T.reshape(-1).astype(np.int64).cumsum().value
+                    obj[("index", "ones")].T.reshape(-1).astype(np.int64).cumsum().value
                     - 1
                 )
                 mesh_data = ((icell << Nbits) + i).astype(np.float64)

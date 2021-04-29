@@ -316,6 +316,7 @@ class VelocityCallback(PlotCallback):
         self.plot_args = plot_args
 
     def __call__(self, plot):
+        ftype = plot.data._current_fluid_type
         # Instantiation of these is cheap
         if plot._type_name == "CuttingPlane":
             if is_curvilinear(plot.data.ds.geometry):
@@ -326,8 +327,8 @@ class VelocityCallback(PlotCallback):
                 )
         if plot._type_name == "CuttingPlane":
             qcb = CuttingQuiverCallback(
-                "cutting_plane_velocity_x",
-                "cutting_plane_velocity_y",
+                (ftype, "cutting_plane_velocity_x"),
+                (ftype, "cutting_plane_velocity_y"),
                 self.factor,
                 scale=self.scale,
                 normalize=self.normalize,
@@ -352,13 +353,13 @@ class VelocityCallback(PlotCallback):
             ):
                 # polar_z and cyl_z is aligned with carteian_z
                 # should convert r-theta plane to x-y plane
-                xv = "velocity_cartesian_x"
-                yv = "velocity_cartesian_y"
+                xv = (ftype, "velocity_cartesian_x")
+                yv = (ftype, "velocity_cartesian_y")
             else:
                 # for other cases (even for cylindrical geometry),
                 # orthogonal planes are generically Cartesian
-                xv = f"velocity_{axis_names[xax]}"
-                yv = f"velocity_{axis_names[yax]}"
+                xv = (ftype, f"velocity_{axis_names[xax]}")
+                yv = (ftype, f"velocity_{axis_names[yax]}")
 
             # determine the full fields including field type
             xv = plot.data._determine_fields(xv)[0]
@@ -405,6 +406,7 @@ class MagFieldCallback(PlotCallback):
         self.plot_args = plot_args
 
     def __call__(self, plot):
+        ftype = plot.data._current_fluid_type
         # Instantiation of these is cheap
         if plot._type_name == "CuttingPlane":
             if is_curvilinear(plot.data.ds.geometry):
@@ -414,8 +416,8 @@ class MagFieldCallback(PlotCallback):
                     % plot.data.ds.geometry
                 )
             qcb = CuttingQuiverCallback(
-                "cutting_plane_magnetic_field_x",
-                "cutting_plane_magnetic_field_y",
+                (ftype, "cutting_plane_magnetic_field_x"),
+                (ftype, "cutting_plane_magnetic_field_y"),
                 self.factor,
                 scale=self.scale,
                 scale_units=self.scale_units,
@@ -433,13 +435,13 @@ class MagFieldCallback(PlotCallback):
             ):
                 # polar_z and cyl_z is aligned with carteian_z
                 # should convert r-theta plane to x-y plane
-                xv = "magnetic_field_cartesian_x"
-                yv = "magnetic_field_cartesian_y"
+                xv = (ftype, "magnetic_field_cartesian_x")
+                yv = (ftype, "magnetic_field_cartesian_y")
             else:
                 # for other cases (even for cylindrical geometry),
                 # orthogonal planes are generically Cartesian
-                xv = f"magnetic_field_{axis_names[xax]}"
-                yv = f"magnetic_field_{axis_names[yax]}"
+                xv = (ftype, f"magnetic_field_{axis_names[xax]}")
+                yv = (ftype, f"magnetic_field_{axis_names[yax]}")
 
             qcb = QuiverCallback(
                 xv,
@@ -1128,15 +1130,15 @@ class CuttingQuiverCallback(PlotCallback):
         xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
         nx = plot.image._A.shape[1] // self.factor
         ny = plot.image._A.shape[0] // self.factor
-        indices = np.argsort(plot.data["dx"])[::-1].astype(np.int_)
+        indices = np.argsort(plot.data["index", "dx"])[::-1].astype(np.int_)
 
         pixX = np.zeros((ny, nx), dtype="f8")
         pixY = np.zeros((ny, nx), dtype="f8")
         pixelize_off_axis_cartesian(
             pixX,
-            plot.data["x"].to("code_length"),
-            plot.data["y"].to("code_length"),
-            plot.data["z"].to("code_length"),
+            plot.data[("index", "x")].to("code_length"),
+            plot.data[("index", "y")].to("code_length"),
+            plot.data[("index", "z")].to("code_length"),
             plot.data["px"],
             plot.data["py"],
             plot.data["pdx"],
@@ -1150,9 +1152,9 @@ class CuttingQuiverCallback(PlotCallback):
         )
         pixelize_off_axis_cartesian(
             pixY,
-            plot.data["x"].to("code_length"),
-            plot.data["y"].to("code_length"),
-            plot.data["z"].to("code_length"),
+            plot.data[("index", "x")].to("code_length"),
+            plot.data[("index", "y")].to("code_length"),
+            plot.data[("index", "z")].to("code_length"),
             plot.data["px"],
             plot.data["py"],
             plot.data["pdx"],
@@ -1818,7 +1820,7 @@ class HaloCatalogCallback(PlotCallback):
     >>> import yt
     >>> dds = yt.load("Enzo_64/DD0043/data0043")
     >>> hds = yt.load("rockstar_halos/halos_0.0.bin")
-    >>> p = yt.ProjectionPlot(dds, "x", "density", weight_field="density")
+    >>> p = yt.ProjectionPlot(dds, "x", ("gas", "density"), weight_field=("gas", "density"))
     >>> p.annotate_halos(hds)
     >>> p.save()
 
@@ -1831,7 +1833,7 @@ class HaloCatalogCallback(PlotCallback):
     ...                   dds.domain_center + 0.25*dds.domain_width)
     >>> hregion = hds.box(hds.domain_center - 0.25*hds.domain_width,
     ...                   hds.domain_center + 0.25*hds.domain_width)
-    >>> p = yt.ProjectionPlot(dds, "x", "density", weight_field="density",
+    >>> p = yt.ProjectionPlot(dds, "x", ("gas", "density"), weight_field=("gas", "density"),
     ...                       data_source=dregion, width=0.5)
     >>> p.annotate_halos(hregion)
     >>> p.save()
@@ -1842,7 +1844,7 @@ class HaloCatalogCallback(PlotCallback):
     >>> dds = yt.load("Enzo_64/DD0043/data0043")
     >>> hds = yt.load("rockstar_halos/halos_0.0.bin")
     >>> hc = HaloCatalog(data_ds=dds, halos_ds=hds)
-    >>> p = yt.ProjectionPlot(dds, "x", "density", weight_field="density")
+    >>> p = yt.ProjectionPlot(dds, "x", ("gas", "density"), weight_field=("gas", "density"))
     >>> p.annotate_halos(hc)
     >>> p.save()
 
@@ -1936,8 +1938,8 @@ class HaloCatalogCallback(PlotCallback):
 
         # Convert halo positions to code units of the plotted data
         # and then to units of the plotted window
-        px = halo_data[field_x][:].in_units(units)
-        py = halo_data[field_y][:].in_units(units)
+        px = halo_data[("all", field_x)][:].in_units(units)
+        py = halo_data[("all", field_y)][:].in_units(units)
 
         xplotcenter = (plot.xlim[0] + plot.xlim[1]) / 2
         yplotcenter = (plot.ylim[0] + plot.ylim[1]) / 2
@@ -1960,11 +1962,11 @@ class HaloCatalogCallback(PlotCallback):
         px, py = self._convert_to_plot(plot, [px, py])
 
         # Convert halo radii to a radius in pixels
-        radius = halo_data[self.radius_field][:].in_units(units)
+        radius = halo_data[("all", self.radius_field)][:].in_units(units)
         radius = np.array(radius * pixel_scale * self.factor)
 
         if self.width:
-            pz = halo_data[field_z][:].in_units("code_length")
+            pz = halo_data[("all", field_z)][:].in_units("code_length")
             c = data.center[data.axis]
 
             # I should catch an error here if width isn't in this form
@@ -1984,7 +1986,7 @@ class HaloCatalogCallback(PlotCallback):
         plot._axes.set_ylim(yy0, yy1)
 
         if self.annotate_field:
-            annotate_dat = halo_data[self.annotate_field]
+            annotate_dat = halo_data[("all", self.annotate_field)]
             texts = [f"{float(dat):g}" for dat in annotate_dat]
             labels = []
             for pos_x, pos_y, t in zip(px, py, texts):
