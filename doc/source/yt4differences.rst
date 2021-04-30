@@ -45,6 +45,10 @@ important changes.
   until yt-4.1, but you may get unexpected behavior.  See our :ref:`fields`,
   and :ref:`available field list <available-fields>` documentation for more
   information.
+* **Use Newer Versions of Python**
+  The yt-4.0 release will be the final release of yt to support Python 3.6.
+  Starting with yt-4.1, python 3.6 will no longer be supported, so please
+  start using 3.7+ as soon as possible.
 * **Neutral ion fields changing format**
   In previous versions, neutral ion fields were specified as
   ``ELEMENT_number_density`` (e.g., ``H_number_density`` to represent H I
