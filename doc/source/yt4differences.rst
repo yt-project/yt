@@ -30,8 +30,7 @@ should be fairly descriptive and it may be possible to deduce what remaining
 changes are necessary. If you continue to have trouble, please don’t hesitate
 to :ref:`request help <asking-for-help>`.
 
-The list below is arranged in order of most important changes to least
-important changes.
+The list below is arranged in order of most to least important changes.
 
 * **Fields should be specified as tuples not as strings**
   In the past, you could specify fields as strings like ``"density"``, but
