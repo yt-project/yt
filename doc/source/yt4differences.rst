@@ -69,7 +69,7 @@ important changes.
   component of momentum density. See :ref:`efields` for more information.
 * **Deprecated field names**
   Certain field names are deprecated within yt v4.0 and will be removed in
-  yt v4.1. For example, ``"gas", "kinetic_energy"`` has been renamed to
+  yt v4.1. For example, ``("gas", "kinetic_energy")`` has been renamed to
   ``"gas", "kinetic_energy_density"``, though the former name has been added
   as an alias. Other fields, such as ``"gas", "cylindrical_tangential_velocity_absolute"``,
   are being removed entirely. When the deprecated field names are used for the
