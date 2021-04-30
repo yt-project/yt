@@ -25,8 +25,8 @@ Converting Old Scripts to Work with yt 4.0
 
 After installing yt-4.0, you’ll want to change your old scripts in a few key
 ways. After accounting for the changes described in the list below, try
-running your script. If it still fails, the callback failures in python
-are fairly descriptive and it may be possible to deduce what remaining
+running your script. If it still fails, the Python tracebacks
+should be fairly descriptive and it may be possible to deduce what remaining
 changes are necessary. If you continue to have trouble, please don’t hesitate
 to :ref:`request help <asking-for-help>`.
 
