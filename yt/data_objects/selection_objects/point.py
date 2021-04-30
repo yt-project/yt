@@ -32,7 +32,7 @@ class YTPoint(YTSelectionContainer0D):
 
     >>> import yt
     >>> ds = yt.load("RedshiftOutput0005")
-    >>> c = [0.5,0.5,0.5]
+    >>> c = [0.5, 0.5, 0.5]
     >>> point = ds.point(c)
     """
 

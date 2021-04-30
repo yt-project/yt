@@ -572,8 +572,8 @@ def hexahedral_connectivity(xgrid, ygrid, zgrid):
     Examples
     --------
 
-    >>> xgrid = np.array([-1,-0.25,0,0.25,1])
-    >>> coords, conn = hexahedral_connectivity(xgrid,xgrid,xgrid)
+    >>> xgrid = np.array([-1, -0.25, 0, 0.25, 1])
+    >>> coords, conn = hexahedral_connectivity(xgrid, xgrid, xgrid)
     >>> coords
     array([[-1.  , -1.  , -1.  ],
            [-1.  , -1.  , -0.25],

@@ -51,11 +51,11 @@ class Scene:
     and a Camera.
 
     >>> import yt
-    >>> from yt.visualization.volume_rendering.api import\
-    ...     Scene, create_volume_source, Camera
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> from yt.visualization.volume_rendering.api import (
+    ...     Camera, Scene, create_volume_source)
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> sc = Scene()
-    >>> source = create_volume_source(ds.all_data(), 'density')
+    >>> source = create_volume_source(ds.all_data(), "density")
     >>> sc.add_source(source)
     >>> cam = sc.add_camera()
     >>> im = sc.render()
@@ -64,7 +64,7 @@ class Scene:
     and then modify the Scene later:
 
     >>> import yt
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>>
     >>> sc = yt.create_scene(ds)
     >>> # Modify camera, sources, etc...
@@ -202,18 +202,18 @@ class Scene:
         --------
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
         >>>
         >>> sc = yt.create_scene(ds)
         >>> # Modify camera, sources, etc...
         >>> im = sc.render()
-        >>> sc.save(sigma_clip=4.0,render=False)
+        >>> sc.save(sigma_clip=4.0, render=False)
 
         Altneratively, if you do not need the image array, you can just call
         ``save`` as follows.
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
         >>>
         >>> sc = yt.create_scene(ds)
         >>> # Modify camera, sources, etc...
@@ -310,24 +310,24 @@ class Scene:
         --------
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
         >>>
         >>> sc = yt.create_scene(ds)
         >>> # Modify camera, sources, etc...
-        >>> sc.save('test.png', sigma_clip=4)
+        >>> sc.save("test.png", sigma_clip=4)
 
         When saving multiple images without modifying the scene (camera,
         sources,etc.), render=False can be used to avoid re-rendering.
         This is useful for generating images at a range of sigma_clip values:
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
         >>>
         >>> sc = yt.create_scene(ds)
         >>> # save with different sigma clipping values
-        >>> sc.save('raw.png')  # The initial render call happens here
-        >>> sc.save('clipped_2.png', sigma_clip=2, render=False)
-        >>> sc.save('clipped_4.png', sigma_clip=4, render=False)
+        >>> sc.save("raw.png")  # The initial render call happens here
+        >>> sc.save("clipped_2.png", sigma_clip=2, render=False)
+        >>> sc.save("clipped_4.png", sigma_clip=4, render=False)
 
         """
         fname = self._setup_save(fname, render)
@@ -415,14 +415,21 @@ class Scene:
         Examples
         --------
 
-        >>> sc.save_annotated("fig.png",
-        ...                   text_annotate=[[(0.05, 0.05),
-        ...                                   "t = {}".format(ds.current_time.d),
-        ...                                   dict(horizontalalignment="left")],
-        ...                                  [(0.5,0.95),
-        ...                                   "simulation title",
-        ...                                   dict(color="y", fontsize="24",
-        ...                                        horizontalalignment="center")]])
+        >>> sc.save_annotated(
+        ...     "fig.png",
+        ...     text_annotate=[
+        ...         [
+        ...             (0.05, 0.05),
+        ...             f"t = {ds.current_time.d}",
+        ...             dict(horizontalalignment="left"),
+        ...         ],
+        ...         [
+        ...             (0.5, 0.95),
+        ...             "simulation title",
+        ...             dict(color="y", fontsize="24", horizontalalignment="center"),
+        ...         ],
+        ...     ],
+        ... )
 
         """
         fname = self._setup_save(fname, render)
@@ -524,7 +531,7 @@ class Scene:
         --------
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
         >>>
         >>> sc = yt.create_scene(ds)
         >>> # Modify camera, sources, etc...
@@ -583,15 +590,15 @@ class Scene:
         to be reasonable for the argument Dataset.
 
         >>> import yt
-        >>> from yt.visualization.volume_rendering.api import Scene, Camera
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> from yt.visualization.volume_rendering.api import Camera, Scene
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
         >>> sc = Scene()
         >>> sc.add_camera()
 
         Here, we set the camera properties manually:
 
         >>> import yt
-        >>> from yt.visualization.volume_rendering.api import Scene, Camera
+        >>> from yt.visualization.volume_rendering.api import Camera, Scene
         >>> sc = Scene()
         >>> cam = sc.add_camera()
         >>> cam.position = np.array([0.5, 0.5, -1.0])
@@ -602,9 +609,9 @@ class Scene:
 
         >>> import yt
         >>> from yt.visualization.volume_rendering.api import Camera
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
         >>> sc = Scene()
-        >>> sc.add_camera(ds, lens_type='perspective')
+        >>> sc.add_camera(ds, lens_type="perspective")
 
         """
         self._camera = Camera(self, data_source, lens_type, auto)
@@ -702,7 +709,7 @@ class Scene:
         --------
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
         >>>
         >>> sc = yt.create_scene(ds)
         >>> sc.annotate_domain(ds)
@@ -741,7 +748,7 @@ class Scene:
         --------
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
         >>>
         >>> sc = yt.create_scene(ds)
         >>> sc.annotate_grids(ds.all_data())
@@ -801,7 +808,7 @@ class Scene:
         --------
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
         >>>
         >>> sc = yt.create_scene(ds)
         >>> sc.annotate_axes(alpha=0.5)
@@ -829,7 +836,7 @@ class Scene:
         --------
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
         >>>
         >>> sc = yt.create_scene(ds)
         >>> sc.show()
@@ -868,8 +875,8 @@ class Scene:
         Examples
         --------
 
-        >>> a = sc.arr([1, 2, 3], 'cm')
-        >>> b = sc.arr([4, 5, 6], 'm')
+        >>> a = sc.arr([1, 2, 3], "cm")
+        >>> b = sc.arr([4, 5, 6], "m")
         >>> a + b
         YTArray([ 401.,  502.,  603.]) cm
         >>> b + a
@@ -877,8 +884,8 @@ class Scene:
 
         Arrays returned by this function know about the scene's unit system
 
-        >>> a = sc.arr(np.ones(5), 'unitary')
-        >>> a.in_units('Mpc')
+        >>> a = sc.arr(np.ones(5), "unitary")
+        >>> a.in_units("Mpc")
         YTArray([ 1.00010449,  1.00010449,  1.00010449,  1.00010449,
                  1.00010449]) Mpc
 
@@ -913,8 +920,8 @@ class Scene:
         Examples
         --------
 
-        >>> a = sc.quan(1, 'cm')
-        >>> b = sc.quan(2, 'm')
+        >>> a = sc.quan(1, "cm")
+        >>> b = sc.quan(2, "m")
         >>> a + b
         201.0 cm
         >>> b + a
@@ -923,7 +930,7 @@ class Scene:
         Quantities created this way automatically know about the unit system
         of the scene
 
-        >>> a = ds.quan(5, 'unitary')
+        >>> a = ds.quan(5, "unitary")
         >>> a.in_cgs()
         1.543e+25 cm
 

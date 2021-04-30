@@ -504,7 +504,7 @@ class YTHaloCatalogHaloContainer(HaloContainer):
     0
     >>> print(halo.mass)
     8724990744704.453 Msun
-    >>> print (halo.radius)
+    >>> print(halo.radius)
     658.8140635766607 kpc
     >>> print(halo.position)
     [0.05496909 0.19451951 0.04056824] code_length

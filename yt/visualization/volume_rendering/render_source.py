@@ -160,7 +160,7 @@ class VolumeSource(RenderSource, abc.ABC):
     example shows how to do this and then access the resulting source:
 
     >>> import yt
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> im, sc = yt.volume_render(ds)
     >>> volume_source = sc.get_source(0)
 
@@ -169,11 +169,11 @@ class VolumeSource(RenderSource, abc.ABC):
     camera, and renders an image.
 
     >>> import yt
-    >>> from yt.visualization.volume_rendering.api import\
-    ...     Scene, create_volume_source, Camera
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> from yt.visualization.volume_rendering.api import (
+    ...     Camera, Scene, create_volume_source)
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> sc = Scene()
-    >>> source = create_volume_source(ds.all_data(), 'density')
+    >>> source = create_volume_source(ds.all_data(), "density")
     >>> sc.add_source(source)
     >>> sc.add_camera()
     >>> im = sc.render()
@@ -658,7 +658,7 @@ class MeshSource(OpaqueSource):
 
     Examples
     --------
-    >>> source = MeshSource(ds, ('connect1', 'convected'))
+    >>> source = MeshSource(ds, ("connect1", "convected"))
     """
 
     _image = None
@@ -977,14 +977,14 @@ class PointSource(OpaqueSource):
     >>> import numpy as np
     >>> from yt.visualization.volume_rendering.api import PointSource
     >>> from yt.units import kpc
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
     >>> im, sc = yt.volume_render(ds)
 
     >>> npoints = 1000
     >>> vertices = np.random.random([npoints, 3]) * 1000 * kpc
     >>> colors = np.random.random([npoints, 4])
-    >>> colors[:,3] = 1.0
+    >>> colors[:, 3] = 1.0
 
     >>> points = PointSource(vertices, colors=colors)
     >>> sc.add_source(points)
@@ -1100,14 +1100,14 @@ class LineSource(OpaqueSource):
     >>> import numpy as np
     >>> from yt.visualization.volume_rendering.api import LineSource
     >>> from yt.units import kpc
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
     >>> im, sc = yt.volume_render(ds)
 
     >>> nlines = 4
     >>> vertices = np.random.random([nlines, 2, 3]) * 600 * kpc
     >>> colors = np.random.random([nlines, 4])
-    >>> colors[:,3] = 1.0
+    >>> colors[:, 3] = 1.0
 
     >>> lines = LineSource(vertices, colors)
     >>> sc.add_source(lines)
@@ -1232,13 +1232,13 @@ class BoxSource(LineSource):
 
     >>> import yt
     >>> from yt.visualization.volume_rendering.api import BoxSource
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>>
     >>> im, sc = yt.volume_render(ds)
     >>>
-    >>> box_source = BoxSource(ds.domain_left_edge,
-    ...                       ds.domain_right_edge,
-    ...                       [1.0, 1.0, 1.0, 1.0])
+    >>> box_source = BoxSource(
+    ...     ds.domain_left_edge, ds.domain_right_edge, [1.0, 1.0, 1.0, 1.0]
+    ... )
     >>> sc.add_source(box_source)
     >>>
     >>> im = sc.render()
@@ -1294,7 +1294,7 @@ class GridSource(LineSource):
 
     >>> import yt
     >>> from yt.visualization.volume_rendering.api import GridSource
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>>
     >>> im, sc = yt.volume_render(ds)
     >>>
@@ -1310,7 +1310,7 @@ class GridSource(LineSource):
 
     >>> import yt
     >>> from yt.visualization.volume_rendering.api import GridSource
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>>
     >>> im, sc = yt.volume_render(ds)
     >>>
@@ -1401,8 +1401,9 @@ class CoordinateVectorSource(OpaqueSource):
     --------
 
     >>> import yt
-    >>> from yt.visualization.volume_rendering.api import CoordinateVectorSource
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> from yt.visualization.volume_rendering.api import \
+    ...     CoordinateVectorSource
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>>
     >>> im, sc = yt.volume_render(ds)
     >>>

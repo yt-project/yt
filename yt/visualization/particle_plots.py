@@ -190,8 +190,8 @@ class ParticleProjectionPlot(PWViewerMPL):
     'galaxy0030_Particle_z_particle_mass.png'
 
     >>> from yt import load
-    >>> ds = load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    >>> p = yt.ParticleProjectionPlot(ds, 2, 'particle_mass')
+    >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> p = yt.ParticleProjectionPlot(ds, 2, "particle_mass")
     >>> p.save()
 
     """
@@ -347,16 +347,21 @@ class ParticlePhasePlot(PhasePlot):
     >>> import yt
     >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
-    >>> plot = ParticlePhasePlot(ad, "particle_position_x,
-                                 "particle_position_y", ["particle_mass"],
-    ...                          x_bins=800, y_bins=800)
+    >>> plot = ParticlePhasePlot(
+    ...     ad,
+    ...     "particle_position_x",
+    ...     "particle_position_y",
+    ...     ["particle_mass"],
+    ...     x_bins=800,
+    ...     y_bins=800,
+    ... )
     >>> plot.save()
 
     >>> # Change plot properties.
-    >>> plot.set_log('particle_mass', True)
-    >>> plot.set_unit('particle_position_x', 'Mpc')
-    >>> plot.set_unit('particle_velocity_z', 'km/s')
-    >>> plot.set_unit('particle_mass', 'Msun')
+    >>> plot.set_log("particle_mass", True)
+    >>> plot.set_unit("particle_position_x", "Mpc")
+    >>> plot.set_unit("particle_velocity_z", "km/s")
+    >>> plot.set_unit("particle_mass", "Msun")
 
     """
     _plot_type = "ParticlePhase"
@@ -540,11 +545,15 @@ def ParticlePlot(ds, x_field, y_field, z_fields=None, color="b", *args, **kwargs
 
     >>> from yt import load
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    >>> p = yt.ParticlePlot(ds, 'particle_position_x', 'particle_position_y',
-    ...                     'particle_mass', width=(0.5, 0.5))
-    >>> p.set_unit('particle_mass', 'Msun')
-    >>> p = yt.ParticlePlot(ds, 'particle_position_x', 'particle_velocity_z',
-    ...                     color='g')
+    >>> p = yt.ParticlePlot(
+    ...     ds,
+    ...     "particle_position_x",
+    ...     "particle_position_y",
+    ...     "particle_mass",
+    ...     width=(0.5, 0.5),
+    ... )
+    >>> p.set_unit("particle_mass", "Msun")
+    >>> p = yt.ParticlePlot(ds, "particle_position_x", "particle_velocity_z", color="g")
 
     """
     dd = kwargs.get("data_source", None)

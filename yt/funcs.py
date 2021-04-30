@@ -692,10 +692,10 @@ def parallel_profile(prefix):
     >>> from yt import PhasePlot
     >>> from yt.testing import fake_random_ds
     ...
-    >>> fields = ('density', 'temperature', 'cell_mass')
-    >>> units = ('g/cm**3', 'K', 'g')
+    >>> fields = ("density", "temperature", "cell_mass")
+    >>> units = ("g/cm**3", "K", "g")
     >>> ds = fake_random_ds(16, fields=fields, units=units)
-    >>> with parallel_profile('my_profile'):
+    >>> with parallel_profile("my_profile"):
     ...     plot = PhasePlot(ds.all_data(), *fields)
     """
     import cProfile
@@ -843,7 +843,7 @@ def memory_checker(interval=15, dest=None):
     --------
 
     >>> with memory_checker(10):
-    ...     arr = np.zeros(1024*1024*1024, dtype="float64")
+    ...     arr = np.zeros(1024 * 1024 * 1024, dtype="float64")
     ...     time.sleep(15)
     ...     del arr
     MEMORY: -1.000e+00 gb
@@ -968,7 +968,7 @@ def get_hash(infile, algorithm="md5", BLOCKSIZE=65536):
     --------
     >>> from tempfile import NamedTemporaryFile
     >>> with NamedTemporaryFile() as file:
-    ...    get_hash(file.name)
+    ...     get_hash(file.name)
     'd41d8cd98f00b204e9800998ecf8427e'
     """
     import hashlib
@@ -1157,14 +1157,14 @@ def validate_float(obj):
     --------
     >>> validate_float(1)
     >>> validate_float(1.50)
-    >>> validate_float(YTQuantity(1,"cm"))
-    >>> validate_float((1,"cm"))
+    >>> validate_float(YTQuantity(1, "cm"))
+    >>> validate_float((1, "cm"))
     >>> validate_float([1, 1, 1])
     Traceback (most recent call last):
     ...
     TypeError: Expected a numeric value (or size-1 array), received 'list' of length 3
 
-    >>> validate_float([YTQuantity(1, "cm"), YTQuantity(2,"cm")])
+    >>> validate_float([YTQuantity(1, "cm"), YTQuantity(2, "cm")])
     Traceback (most recent call last):
     ...
     TypeError: Expected a numeric value (or size-1 array), received 'list' of length 2

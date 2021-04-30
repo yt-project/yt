@@ -34,7 +34,7 @@ class YTCutRegion(YTSelectionContainer3D):
 
     >>> import yt
     >>> ds = yt.load("RedshiftOutput0005")
-    >>> sp = ds.sphere("max", (1.0, 'Mpc'))
+    >>> sp = ds.sphere("max", (1.0, "Mpc"))
     >>> cr = ds.cut_region(sp, ["obj[('gas', 'temperature')] < 1e3"])
     """
 

@@ -202,10 +202,10 @@ class AdaptaHOPHaloContainer(YTSelectionContainer):
 
     >>> import yt
     >>> ds = yt.load(
-    ...      'output_00080_halos/tree_bricks080',
-    ...       parent_ds=yt.load('output_00080/info_00080.txt')
+    ...     "output_00080_halos/tree_bricks080",
+    ...     parent_ds=yt.load("output_00080/info_00080.txt"),
     ... )
-    >>> ds.halo(1, ptype='io')
+    >>> ds.halo(1, ptype="io")
     >>> print(halo.mass)
     119.22804260253906 100000000000.0*Msun
     >>> print(halo.position)
