@@ -90,7 +90,7 @@ important changes.
 Cool New Things
 ---------------
 
-Changes for working with SPH Data
+Changes for Working with SPH Data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In yt-3.0 most user-facing operations on SPH data are produced by interpolating
@@ -116,7 +116,7 @@ in yt.
 The new I/O method has opened up a new way of dealing with the particle data and
 in particular, SPH data.
 
-Scatter and gather approach for SPH data
+Scatter and Gather approach for SPH data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 As mentioned, previously operations such as slice, projection and arbitrary
@@ -194,7 +194,7 @@ The following is a code example:
 
     prj.save()
 
-Smoothing data onto an Octree
+Smoothing Data onto an Octree
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Whilst the move away from the global octree is a promising one in terms of
@@ -238,7 +238,7 @@ search (DFS) means that tree starts refining at the root node (this is the
 largest node which contains every particles) and refines as far as possible
 along each branch before backtracking.
 
-``yt.units`` is now a wrapper for ``unyt``
+``yt.units`` Is Now a Wrapper for ``unyt``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 We have extracted ``yt.units`` into ``unyt``, its own library that you can
