@@ -942,39 +942,13 @@ def load_octree(
     -------
 
     >>> import numpy as np
-    >>> oct_mask = [
-    ...     8,
-    ...     0,
-    ...     0,
-    ...     0,
-    ...     0,
-    ...     8,
-    ...     0,
-    ...     8,
-    ...     0,
-    ...     0,
-    ...     0,
-    ...     0,
-    ...     0,
-    ...     0,
-    ...     0,
-    ...     0,
-    ...     8,
-    ...     0,
-    ...     0,
-    ...     0,
-    ...     0,
-    ...     0,
-    ...     0,
-    ...     0,
-    ...     0,
-    ... ]
-    >>>
+    >>> oct_mask = np.zeros(25)
+    ... oct_mask[[0,  5,  7, 16]] = 8
     >>> octree_mask = np.array(oct_mask, dtype=np.uint8)
     >>> quantities = {}
     >>> quantities["gas", "density"] = np.random.random((22, 1))
     >>> bbox = np.array([[-10.0, 10.0], [-10.0, 10.0], [-10.0, 10.0]])
-    >>>
+
     >>> ds = load_octree(
     ...     octree_mask=octree_mask,
     ...     data=quantities,
