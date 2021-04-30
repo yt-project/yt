@@ -636,7 +636,7 @@ class Camera(Orientation):
         >>> import yt
         >>> import numpy as np
         >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-        >>>
+
         >>> im, sc = yt.volume_render(ds)
         >>> cam = sc.camera
         >>> for i in cam.iter_rotate(np.pi, 10):

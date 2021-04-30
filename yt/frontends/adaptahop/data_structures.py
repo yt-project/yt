@@ -214,11 +214,11 @@ class AdaptaHOPHaloContainer(YTSelectionContainer):
     [3306394.95849609 8584366.60766602 9982682.80029297] cm/s
     >>> print(halo["io", "particle_mass"])
     [3.19273578e-06 3.19273578e-06 ... 3.19273578e-06 3.19273578e-06] code_mass
-    >>>
+
     >>> # particle ids for this halo
     >>> print(halo.member_ids)
     [     48      64     176 ... 999947 1005471 1006779]
-    >>>
+
     """
 
     _type_name = "halo"

@@ -200,11 +200,9 @@ def print_tb(func):
 
     This can be used like so:
 
-    .. code-block:: python
-
-       @print_tb
-       def some_deeply_nested_function(*args, **kwargs):
-           ...
+    >>> @print_tb
+    ... def some_deeply_nested_function(*args, **kwargs):
+    ...     ...
 
     """
 
@@ -248,11 +246,9 @@ def pdb_run(func):
 
     This can be used like so:
 
-    .. code-block:: python
-
-       @pdb_run
-       def some_function_to_debug(*args, **kwargs):
-           ...
+    >>> @pdb_run
+    ... def some_function_to_debug(*args, **kwargs):
+    ...     ...
 
     """
 
@@ -691,7 +687,6 @@ def parallel_profile(prefix):
 
     >>> from yt import PhasePlot
     >>> from yt.testing import fake_random_ds
-    ...
     >>> fields = ("density", "temperature", "cell_mass")
     >>> units = ("g/cm**3", "K", "g")
     >>> ds = fake_random_ds(16, fields=fields, units=units)

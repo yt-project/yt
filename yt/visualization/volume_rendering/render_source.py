@@ -1233,14 +1233,14 @@ class BoxSource(LineSource):
     >>> import yt
     >>> from yt.visualization.volume_rendering.api import BoxSource
     >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    >>>
+
     >>> im, sc = yt.volume_render(ds)
-    >>>
+
     >>> box_source = BoxSource(
     ...     ds.domain_left_edge, ds.domain_right_edge, [1.0, 1.0, 1.0, 1.0]
     ... )
     >>> sc.add_source(box_source)
-    >>>
+
     >>> im = sc.render()
 
     """
@@ -1295,13 +1295,13 @@ class GridSource(LineSource):
     >>> import yt
     >>> from yt.visualization.volume_rendering.api import GridSource
     >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    >>>
+
     >>> im, sc = yt.volume_render(ds)
-    >>>
+
     >>> grid_source = GridSource(ds.all_data(), alpha=1.0)
-    >>>
+
     >>> sc.add_source(grid_source)
-    >>>
+
     >>> im = sc.render()
 
     This example does the same thing, except it only draws the grids
@@ -1311,14 +1311,14 @@ class GridSource(LineSource):
     >>> import yt
     >>> from yt.visualization.volume_rendering.api import GridSource
     >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    >>>
+
     >>> im, sc = yt.volume_render(ds)
-    >>>
+
     >>> dd = ds.sphere("c", (0.1, "unitary"))
     >>> grid_source = GridSource(dd, alpha=1.0)
-    >>>
+
     >>> sc.add_source(grid_source)
-    >>>
+
     >>> im = sc.render()
 
     """
@@ -1404,13 +1404,13 @@ class CoordinateVectorSource(OpaqueSource):
     >>> from yt.visualization.volume_rendering.api import \
     ...     CoordinateVectorSource
     >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    >>>
+
     >>> im, sc = yt.volume_render(ds)
-    >>>
+
     >>> coord_source = CoordinateVectorSource()
-    >>>
+
     >>> sc.add_source(coord_source)
-    >>>
+
     >>> im = sc.render()
 
     """

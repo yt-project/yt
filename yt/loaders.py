@@ -1133,17 +1133,17 @@ def load_unstructured_mesh(
       >>> # The indices in the coordinates array of mesh vertices.
       >>> # This mesh has two elements.
       >>> connectivity = np.array([[0, 1, 2, 4], [0, 1, 2, 3]])
-      >>>
+
       >>> # Field data defined at the centers of the two mesh elements.
       >>> elem_data = {("connect1", "elem_field"): np.array([1, 2])}
-      >>>
+
       >>> # Field data defined at node vertices
       >>> node_data = {
       ...     ("connect1", "node_field"): np.array(
       ...         [[0.0, 1.0, 2.0, 4.0], [0.0, 1.0, 2.0, 3.0]]
       ...     )
       ... }
-      >>>
+
       >>> ds = load_unstructured_mesh(
       ...     connectivity, coordinates, elem_data=elem_data, node_data=node_data
       ... )

@@ -2401,7 +2401,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
     >>> from yt import load
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> slc = SlicePlot(ds, "x", ("gas", "density"), center=[0.2, 0.3, 0.4])
-    >>>
+
     >>> slc = SlicePlot(
     ...     ds, [0.4, 0.2, -0.1], ("gas", "pressure"), north_vector=[0.2, -0.3, 0.1]
     ... )

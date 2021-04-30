@@ -65,7 +65,7 @@ class Scene:
 
     >>> import yt
     >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    >>>
+
     >>> sc = yt.create_scene(ds)
     >>> # Modify camera, sources, etc...
     >>> im = sc.render()
@@ -203,7 +203,7 @@ class Scene:
 
         >>> import yt
         >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-        >>>
+
         >>> sc = yt.create_scene(ds)
         >>> # Modify camera, sources, etc...
         >>> im = sc.render()
@@ -214,7 +214,7 @@ class Scene:
 
         >>> import yt
         >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-        >>>
+
         >>> sc = yt.create_scene(ds)
         >>> # Modify camera, sources, etc...
         >>> sc.save(sigma_clip=4.0)
@@ -311,7 +311,7 @@ class Scene:
 
         >>> import yt
         >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-        >>>
+
         >>> sc = yt.create_scene(ds)
         >>> # Modify camera, sources, etc...
         >>> sc.save("test.png", sigma_clip=4)
@@ -322,7 +322,7 @@ class Scene:
 
         >>> import yt
         >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-        >>>
+
         >>> sc = yt.create_scene(ds)
         >>> # save with different sigma clipping values
         >>> sc.save("raw.png")  # The initial render call happens here
@@ -532,7 +532,7 @@ class Scene:
 
         >>> import yt
         >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-        >>>
+
         >>> sc = yt.create_scene(ds)
         >>> # Modify camera, sources, etc...
         >>> im = sc.composite()
@@ -710,7 +710,7 @@ class Scene:
 
         >>> import yt
         >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-        >>>
+
         >>> sc = yt.create_scene(ds)
         >>> sc.annotate_domain(ds)
         >>> im = sc.render()
@@ -749,7 +749,7 @@ class Scene:
 
         >>> import yt
         >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-        >>>
+
         >>> sc = yt.create_scene(ds)
         >>> sc.annotate_grids(ds.all_data())
         >>> im = sc.render()
@@ -809,7 +809,7 @@ class Scene:
 
         >>> import yt
         >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-        >>>
+
         >>> sc = yt.create_scene(ds)
         >>> sc.annotate_axes(alpha=0.5)
         >>> im = sc.render()
@@ -837,7 +837,7 @@ class Scene:
 
         >>> import yt
         >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-        >>>
+
         >>> sc = yt.create_scene(ds)
         >>> sc.show()
 

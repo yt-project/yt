@@ -498,7 +498,7 @@ class YTHaloCatalogHaloContainer(HaloContainer):
 
     >>> import yt
     >>> ds = yt.load("tiny_fof_halos/DD0046/DD0046.0.h5")
-    >>>
+
     >>> halo = ds.halo("halos", 0)
     >>> print(halo.particle_identifier)
     0

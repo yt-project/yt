@@ -1505,18 +1505,18 @@ def multiplot_yt(ncol, nrow, plots, fields=None, **kwargs):
     --------
     >>> p1 = SlicePlot(ds, 0, "density")
     >>> p1.set_width(10, "kpc")
-    >>>
+
     >>> p2 = SlicePlot(ds, 0, "temperature")
     >>> p2.set_width(10, "kpc")
     >>> p2.set_colormap("temperature", "hot")
-    >>>
+
     >>> sph = ds.sphere(ds.domain_center, (10, "kpc"))
     >>> p3 = PhasePlot(
     ...     sph, "radius", "density", "temperature", weight_field="cell_mass"
     ... )
-    >>>
+
     >>> p4 = PhasePlot(sph, "radius", "density", "pressure", "cell_mass")
-    >>>
+
     >>> mp = multiplot_yt(
     ...     2,
     ...     2,

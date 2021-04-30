@@ -207,7 +207,7 @@ class ProfilePlot:
     ...     )
     ...     labels.append(ds.current_redshift)
     ...     plot_specs.append(dict(linestyle="--", alpha=0.7))
-    >>>
+
     >>> plot = yt.ProfilePlot.from_profiles(
     ...     profiles, labels=labels, plot_specs=plot_specs
     ... )
