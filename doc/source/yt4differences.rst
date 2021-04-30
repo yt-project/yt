@@ -69,10 +69,14 @@ important changes.
   Certain field names are deprecated within yt v4.0 and will be removed in
   yt v4.1. For example, ``("gas", "kinetic_energy")`` has been renamed to
   ``("gas", "kinetic_energy_density")``, though the former name has been added
-  as an alias. Other fields, such as ``("gas", "cylindrical_tangential_velocity_absolute")``,
-  are being removed entirely. When the deprecated field names are used for the
-  first time in a session, a warning will be logged, so it is advisable to set
-  your logging level to ``WARNING`` at a minimum to catch these.
+  as an alias. Other fields, such as
+  ``("gas", "cylindrical_tangential_velocity_absolute")``, are being removed
+  entirely. When the deprecated field names are used for the first time in a
+  session, a warning will be logged, so it is advisable to set
+  your logging level to ``WARNING`` (``yt.set_log_level("error")``) at a
+  minimum to catch these.  See :ref:`faq-log-level` for more information on
+  setting your log level and :ref:`available-fields` to see all available
+  fields.
 * ``cmocean`` **colormaps need prefixing**
   yt used to automatically load and register external colormaps from the
   ``cmocean`` package unprefixed (e.g., ``set_cmap(FIELD, "balance")``.  This
