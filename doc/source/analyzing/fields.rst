@@ -454,7 +454,7 @@ defined:
 To refer to the number density of the entirety of a single atom or molecule (regardless
 of its ionization state), please use the ``MM_nuclei_density`` fields.
 
-Finally, if the abundances of hydrogen and helium are not defined, it is assumed that
+Finally, if the abundances of hydrogen and helium are not defined, it is
 assumed that these elements are fully ionized with primordial abundances In this case,
 the following fields are defined:
 
