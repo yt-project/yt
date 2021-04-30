@@ -71,7 +71,7 @@ important changes.
   Certain field names are deprecated within yt v4.0 and will be removed in
   yt v4.1. For example, ``("gas", "kinetic_energy")`` has been renamed to
   ``("gas", "kinetic_energy_density")``, though the former name has been added
-  as an alias. Other fields, such as ``"gas", "cylindrical_tangential_velocity_absolute"``,
+  as an alias. Other fields, such as ``("gas", "cylindrical_tangential_velocity_absolute")``,
   are being removed entirely. When the deprecated field names are used for the
   first time in a session, a warning will be logged, so it is advisable to set
   your logging level to ``WARNING`` at a minimum to catch these.
