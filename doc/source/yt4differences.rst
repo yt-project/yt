@@ -40,7 +40,7 @@ important changes.
   ``("PartType0", "density")``, where yt doesn't know which to use.  To avoid
   these issues moving forward, please explicitly specify the full tuple form
   of all fields. Just search for all field accesses in your scripts, and
-  replace strings with tuples (often just prefix your string with ``("gas",``).
+  replace strings with tuples (e.g. replace ``"a"``  with ``("gas", "a" )``).
   There is a compatibility rule in yt-4.0 to allow strings to continue to work
   until yt-4.1, but you may get unexpected behavior.  See our :ref:`fields`,
   and :ref:`available field list <available-fields>` documentation for more
