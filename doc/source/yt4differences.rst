@@ -54,9 +54,7 @@ important changes.
   number density ``H_nuclei_density`` and neutral hydrogen density
   ``H_p0_number_density`` (where ``p0`` refers to plus 0 charge).  This syntax
   follows the rule for other ions: H II = ``H_p1`` = ionized hydrogen.  Change
-  your scripts accordingly.  See
-  `YTEP-0003 <https://ytep.readthedocs.io/en/latest/YTEPs/YTEP-0003.html#molecular-and-atomic-species-names>`_
-  describing field names for more information.
+  your scripts accordingly.  See :ref:`species-fields` for more information.
 * **Change in energy and momentum field names**
   Fields representing energy and momentum quantities are now given names which
   reflect their dimensionality. For example, the ``("gas", "kinetic_energy")``
