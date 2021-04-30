@@ -59,7 +59,7 @@ important changes.
   describing field names for more information.
 * **Change in energy and momentum field names**
   Fields representing energy and momentum quantities are now given names which
-  reflect their dimensionality. For example, the ``"gas", "kinetic_energy"``
+  reflect their dimensionality. For example, the ``("gas", "kinetic_energy")``
   field was actually a field for kinetic energy density, and so it has been
   renamed to ``"gas", "kinetic_energy_density"``. The old name still exists
   as an alias as of yt v4.0.0, but it will be removed in yt v4.1.0. See
