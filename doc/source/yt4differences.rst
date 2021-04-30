@@ -65,7 +65,7 @@ important changes.
   as an alias as of yt v4.0.0, but it will be removed in yt v4.1.0. See
   :ref:`deprecated_field_names` below for more information.
   Other examples include ``"gas", "specific_thermal_energy"`` for thermal
-  energy per unit mass, and ``"gas", "momentum_density_x"`` for the x-axis
+  energy per unit mass, and ``("gas", "momentum_density_x")`` for the x-axis
   component of momentum density. See :ref:`efields` for more information.
 * **Deprecated field names**
   Certain field names are deprecated within yt v4.0 and will be removed in
