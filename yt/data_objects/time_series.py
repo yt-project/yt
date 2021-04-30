@@ -155,6 +155,7 @@ class DatasetSeries:
             pass
         ret = super().__new__(cls)
         ret._pre_outputs = outputs[:]
+        ret.kwargs = {}
         return ret
 
     def __init__(
