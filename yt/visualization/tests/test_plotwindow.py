@@ -63,7 +63,7 @@ ATTR_ARGS = {
     "set_cmap": [(("density", "RdBu"), {}), (("density", "kamae"), {})],
     "set_font": [((OrderedDict(sorted(FPROPS.items(), key=lambda t: t[0])),), {})],
     "set_log": [(("density", False), {})],
-    "set_window_size": [((7.0,), {})],
+    "set_figure_size": [((7.0,), {})],
     "set_zlim": [
         (("density", 1e-25, 1e-23), {}),
         (("density", 1e-25, None), {"dynamic_range": 4}),

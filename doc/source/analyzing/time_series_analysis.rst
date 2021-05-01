@@ -95,7 +95,7 @@ To instantiate, give the parameter file and the simulation type.
 
   import yt
 
-  my_sim = yt.simulation("enzo_tiny_cosmology/32Mpc_32.enzo", "Enzo")
+  my_sim = yt.load_simulation("enzo_tiny_cosmology/32Mpc_32.enzo", "Enzo")
 
 Then, create a ``DatasetSeries`` object with the
 :meth:`frontends.enzo.simulation_handling.EnzoSimulation.get_time_series`

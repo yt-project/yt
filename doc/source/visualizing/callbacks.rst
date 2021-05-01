@@ -154,7 +154,7 @@ List Currently Applied Callbacks
 
    This function will print a list of each of the currently applied
    callbacks together with their index.  The index can be used with
-   :ref:`annotate_clear() function <annotate-clear>` to remove a
+   :ref:`clear_annotations() function <annotate-clear>` to remove a
    specific callback.
 
 .. python-script::
