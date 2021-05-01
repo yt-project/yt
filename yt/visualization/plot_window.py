@@ -12,7 +12,6 @@ from mpl_toolkits.axes_grid1 import ImageGrid
 from packaging.version import Version
 from unyt.exceptions import UnitConversionError
 
-from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
@@ -778,18 +777,6 @@ class PlotWindow(ImagePlotContainer):
             self.buff_size = (size, size)
         return self
 
-    def set_window_size(self, size):
-        """This calls set_figure_size to adjust the size of the plot window."""
-        from yt._maintenance.deprecation import issue_deprecation_warning
-
-        issue_deprecation_warning(
-            "`PlotWindow.set_window_size` is a deprecated alias "
-            "for `PlotWindow.set_figure_size`.",
-            removal="4.1.0",
-        )
-        self.set_figure_size(size)
-        return self
-
     @invalidate_plot
     def set_axes_unit(self, unit_name):
         r"""Set the unit for display on the x and y axes of the image.
@@ -1349,28 +1336,6 @@ class PWViewerMPL(PlotWindow):
                 return method
 
             self.__dict__["annotate_" + cbname] = closure()
-
-    def annotate_clear(self, index=None):
-        """
-        Clear callbacks from the plot.  If index is not set, clear all
-        callbacks.  If index is set, clear that index (ie 0 is the first one
-        created, 1 is the 2nd one created, -1 is the last one created, etc.)
-
-        .. note::
-
-            Deprecated in favor of `clear_annotations`.
-
-        See Also
-        --------
-        :py:meth:`yt.visualization.plot_window.PWViewerMPL.clear_annotations`
-        """
-        issue_deprecation_warning(
-            "`annotate_clear` has been deprecated "
-            "in favor of `clear_annotations`. Using `clear_annotations`.",
-            since="4.0.0",
-            removal="4.1.0",
-        )
-        self.clear_annotations(index=index)
 
     @invalidate_plot
     def clear_annotations(self, index=None):
@@ -2079,9 +2044,6 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
          just a straight summation of the field along the given axis. WARNING:
          This should only be used for uniform resolution grid datasets, as other
          datasets may result in unphysical images.
-    proj_style : string
-         The method of projection--same as method keyword.  Deprecated as of
-         version 3.0.2.  Please use method instead.
     window_size : float
          The size of the window in inches. Set to 8 by default.
     aspect : float
@@ -2127,7 +2089,6 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
         field_parameters=None,
         data_source=None,
         method="integrate",
-        proj_style=None,
         window_size=8.0,
         buff_size=(800, 800),
         aspect=None,
@@ -2141,12 +2102,6 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
         ):
             mylog.info("Setting origin='native' for %s geometry.", ds.geometry)
             origin = "native"
-        if proj_style is not None:
-            issue_deprecation_warning(
-                "`proj_style` parameter is deprecated, use `method` instead.",
-                removal="4.1.0",
-            )
-            method = proj_style
         # If a non-weighted integral projection, assure field-label reflects that
         if weight_field is None and method == "integrate":
             self.projected = True

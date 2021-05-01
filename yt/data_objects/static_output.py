@@ -274,25 +274,6 @@ class Dataset(abc.ABC):
             return (True, True, True)
         return self._periodicity
 
-    @periodicity.setter
-    def periodicity(self, val):
-        # remove this setter to break backward compatibility
-        issue_deprecation_warning(
-            "Dataset.periodicity should not be overridden manually. "
-            "In the future, this will become an error. "
-            "Use `Dataset.force_periodicity` instead.",
-            since="4.0.0",
-            removal="4.1.0",
-        )
-        err_msg = f"Expected a 3-element boolean tuple, received `{val}`."
-        if not is_sequence(val):
-            raise TypeError(err_msg)
-        if len(val) != 3:
-            raise ValueError(err_msg)
-        if any(not isinstance(p, (bool, np.bool_)) for p in val):
-            raise TypeError(err_msg)
-        self._periodicity = tuple(bool(p) for p in val)
-
     def force_periodicity(self, val=True):
         """
         Override box periodicity to (True, True, True).
@@ -1703,51 +1684,7 @@ class Dataset(abc.ABC):
         )
         return ("deposit", field_name)
 
-    def add_smoothed_particle_field(
-        self, smooth_field, method="volume_weighted", nneighbors=64, kernel_name="cubic"
-    ):
-        """Add a new smoothed particle field
-
-        WARNING: This method is deprecated since yt-4.0.
-
-        Creates a new smoothed field based on the particle *smooth_field*.
-
-        Parameters
-        ----------
-
-        smooth_field : tuple
-           The field name tuple of the particle field the smoothed field will
-           be created from.  This must be a field name tuple so yt can
-           appropriately infer the correct particle type.
-        method : string, default 'volume_weighted'
-           The particle smoothing method to use. Can only be 'volume_weighted'
-           for now.
-        nneighbors : int, default 64
-            The number of neighbors to examine during the process.
-        kernel_name : string, default `cubic`
-            This is the name of the smoothing kernel to use. Current supported
-            kernel names include `cubic`, `quartic`, `quintic`, `wendland2`,
-            `wendland4`, and `wendland6`.
-
-        Returns
-        -------
-
-        The field name tuple for the newly created field.
-        """
-        issue_deprecation_warning(
-            "This method is deprecated. "
-            "Since yt-4.0, it's no longer necessary to add a field specifically for "
-            "smoothing, because the global octree is removed. The old behavior of "
-            "interpolating onto a grid structure can be recovered through data objects "
-            "like ds.arbitrary_grid, ds.covering_grid, and most closely ds.octree. The "
-            "visualization machinery now treats SPH fields properly by smoothing onto "
-            "pixel locations. See this page to learn more: "
-            "https://yt-project.org/doc/yt4differences.html",
-            since="4.0.0",
-            removal="4.1.0",
-        )
-
-    def add_gradient_fields(self, fields=None, input_field=None):
+    def add_gradient_fields(self, fields=None):
         """Add gradient fields.
 
         Creates four new grid-based fields that represent the components of the gradient
@@ -1792,18 +1729,6 @@ class Dataset(abc.ABC):
         For instance, with cylindrical data, one gets 'density_gradient_<r,theta,z>'
 
         """
-        if input_field is not None:
-            issue_deprecation_warning(
-                "keyword argument 'input_field' is deprecated in favor of 'fields' "
-                "and will be removed in a future version of yt.",
-                since="4.0.0",
-                removal="4.1.0",
-            )
-            if fields is not None:
-                raise TypeError(
-                    "Can not use both 'fields' and 'input_field' keyword arguments"
-                )
-            fields = input_field
         if fields is None:
             raise TypeError("Missing required positional argument: fields")
 

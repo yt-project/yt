@@ -884,7 +884,7 @@ def enable_plugins(plugin_filename=None):
     file is shared with it.
     """
     import yt
-    from yt.config import config_dir, old_config_dir, ytcfg
+    from yt.config import config_dir, ytcfg
     from yt.fields.my_plugin_fields import my_plugins_fields
 
     if plugin_filename is not None:
@@ -897,20 +897,12 @@ def enable_plugins(plugin_filename=None):
         # - CONFIG_DIR
         # - obsolete config dir.
         my_plugin_name = ytcfg.get("yt", "plugin_filename")
-        for base_prefix in ("", config_dir(), old_config_dir()):
+        for base_prefix in ("", config_dir()):
             if os.path.isfile(os.path.join(base_prefix, my_plugin_name)):
                 _fn = os.path.join(base_prefix, my_plugin_name)
                 break
         else:
             raise FileNotFoundError("Could not find a global system plugin file.")
-
-        if _fn.startswith(old_config_dir()):
-            mylog.warning(
-                "Your plugin file is located in a deprecated directory. "
-                "Please move it from %s to %s",
-                os.path.join(old_config_dir(), my_plugin_name),
-                os.path.join(config_dir(), my_plugin_name),
-            )
 
     mylog.info("Loading plugins from %s", _fn)
     ytdict = yt.__dict__

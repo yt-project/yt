@@ -2,7 +2,6 @@ import base64
 import builtins
 import os
 import sys
-import textwrap
 import warnings
 from collections import defaultdict
 from functools import wraps
@@ -13,7 +12,6 @@ from matplotlib.cm import get_cmap
 from matplotlib.font_manager import FontProperties
 from more_itertools.more import always_iterable
 
-from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.data_objects.time_series import DatasetSeries
 from yt.funcs import dictWithFactory, ensure_dir, is_sequence, iter_fields, mylog
@@ -23,36 +21,6 @@ from yt.utilities.definitions import formatted_length_unit_names
 from yt.utilities.exceptions import YTNotInsideNotebook
 
 from ._commons import DEFAULT_FONT_PROPERTIES, validate_image_name
-
-try:
-    import cmocean
-except ImportError:
-    cmocean = None
-
-CMOCEAN_DEPR_MSG = textwrap.dedent(
-    """\
-    It looks like you requested a colormap from the cmocean library. In the future, yt won't
-    recognize this bare (unprefixed) name. Please follow the recommended usage from cmocean's doc:
-    add an explicit `import cmocean` to your script, and prefix their colormap names with 'cmo.'
-    See our release notes for why this change was necessary."""
-)
-
-
-def _sanitize_cmap(cmap):
-    # this function should be removed entierly after yt 4.0.0 is released
-    if not isinstance(cmap, str):
-        return cmap
-    if cmocean is not None:
-        try:
-            cmo_cmap = f"cmo.{cmap}"
-            get_cmap(cmo_cmap)
-            issue_deprecation_warning(CMOCEAN_DEPR_MSG, since="4.0.0", removal="4.1.0")
-            return cmo_cmap
-        except ValueError:
-            pass
-    get_cmap(cmap)
-    return cmap
-
 
 latex_prefixes = {
     "u": r"\mu",
@@ -390,12 +358,6 @@ class PlotContainer:
             the state indicating 'on' (True) or 'off' (False)
 
         """
-        if isinstance(state, str):
-            issue_deprecation_warning(
-                "Deprecated api, use bools for *state*.", removal="4.1.0"
-            )
-            state = {"on": True, "off": False}[state.lower()]
-
         self._minorticks[field] = state
         return self
 
@@ -959,7 +921,7 @@ class ImagePlotContainer(PlotContainer):
 
         """
         self._colorbar_valid = False
-        self._colormap_config[field] = _sanitize_cmap(cmap)
+        self._colormap_config[field] = cmap
         return self
 
     @accepts_all_fields
@@ -1054,27 +1016,6 @@ class ImagePlotContainer(PlotContainer):
             self.plots[field].zmin = myzmin
             self.plots[field].zmax = myzmax
         return self
-
-    @invalidate_plot
-    def set_cbar_minorticks(self, field, state):
-        """
-        turn colorbar minor ticks "on" or "off" in the current plot, following *state*
-
-        Parameters
-        ----------
-        field : string
-            the field to remove colorbar minorticks
-        state : string
-            the state indicating 'on' or 'off'
-        """
-        issue_deprecation_warning(
-            "`ImagePlotContainer.set_cbar_minorticks` is a deprecated alias "
-            "for `ImagePlotContainer.set_colorbar_minorticks`.",
-            removal="4.1.0",
-        )
-
-        boolstate = {"on": True, "off": False}[state.lower()]
-        return self.set_colorbar_minorticks(field, boolstate)
 
     @accepts_all_fields
     @invalidate_plot

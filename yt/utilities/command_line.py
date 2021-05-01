@@ -1446,20 +1446,6 @@ class YTConfigListCmd(YTCommand, YTConfigLocalConfigHandler):
         write_config(sys.stdout)
 
 
-class YTConfigMigrateCmd(YTCommand, YTConfigLocalConfigHandler):
-    subparser = "config"
-    name = "migrate"
-    description = "migrate old config file"
-    args = ()
-
-    def __call__(self, args):
-        from yt.utilities.configure import migrate_config
-
-        self.load_config(args)
-
-        migrate_config()
-
-
 class YTConfigPrintPath(YTCommand, YTConfigLocalConfigHandler):
     subparser = "config"
     name = "print-path"
