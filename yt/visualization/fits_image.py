@@ -12,7 +12,7 @@ from yt.funcs import fix_axis, is_sequence, iter_fields, mylog
 from yt.units import dimensions
 from yt.units.unit_object import Unit
 from yt.units.yt_array import YTArray, YTQuantity
-from yt.utilities.on_demand_imports import _astropy
+from yt.utilities.on_demand_imports import astropy
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_root_only
 from yt.visualization.fixed_resolution import FixedResolutionBuffer
 from yt.visualization.volume_rendering.off_axis_projection import off_axis_projection
@@ -170,10 +170,10 @@ class FITSImageData:
             "weight_field",
         ]
 
-        if isinstance(data, _astropy.pyfits.PrimaryHDU):
-            data = _astropy.pyfits.HDUList([data])
+        if isinstance(data, astropy.io.fits.PrimaryHDU):
+            data = astropy.io.fits.HDUList([data])
 
-        if isinstance(data, _astropy.pyfits.HDUList):
+        if isinstance(data, astropy.io.fits.HDUList):
             self.hdulist = data
             for hdu in data:
                 self.fields.append(hdu.header["btype"])
@@ -187,14 +187,14 @@ class FITSImageData:
                     key = " "
                 else:
                     key = name[-1]
-                w = _astropy.pywcs.WCS(
+                w = astropy.wcs.WCS(
                     header=self.hdulist[0].header, key=key, naxis=self.dimensionality
                 )
                 setattr(self, "wcs" + key.strip().lower(), w)
 
             return
 
-        self.hdulist = _astropy.pyfits.HDUList()
+        self.hdulist = astropy.io.fits.HDUList()
 
         if hasattr(data, "keys"):
             img_data = data
@@ -262,9 +262,9 @@ class FITSImageData:
                         self.shape = this_img.shape
                     this_img = np.asarray(this_img.T)
                 if is_first:
-                    hdu = _astropy.pyfits.PrimaryHDU(this_img)
+                    hdu = astropy.io.fits.PrimaryHDU(this_img)
                 else:
-                    hdu = _astropy.pyfits.ImageHDU(this_img)
+                    hdu = astropy.io.fits.ImageHDU(this_img)
                 hdu.name = name
                 hdu.header["btype"] = name
                 hdu.header["bunit"] = re.sub("()", "", self.field_units[name])
@@ -287,7 +287,7 @@ class FITSImageData:
         self.dimensionality = len(self.shape)
 
         if wcs is None:
-            w = _astropy.pywcs.WCS(
+            w = astropy.wcs.WCS(
                 header=self.hdulist[0].header, naxis=self.dimensionality
             )
             # FRBs and covering grids are special cases where
@@ -494,7 +494,7 @@ class FITSImageData:
         """
         if self.dimensionality == 3:
             raise RuntimeError("Convolution currently only works for 2D FITSImageData!")
-        conv = _astropy.conv
+        conv = astropy.convolution
         if field not in self.keys():
             raise KeyError(f"{field} not an image!")
         idx = self.fields.index(field)
@@ -619,7 +619,7 @@ class FITSImageData:
         if fields is None:
             hdus = self.hdulist
         else:
-            hdus = _astropy.pyfits.HDUList()
+            hdus = astropy.io.fits.HDUList()
             for field in fields:
                 hdus.append(self.hdulist[field])
         hdus.writeto(fileobj, overwrite=overwrite, **kwargs)
@@ -691,7 +691,7 @@ class FITSImageData:
         im = self.hdulist.pop(idx)
         self.field_units.pop(key)
         self.fields.remove(key)
-        f = _astropy.pyfits.PrimaryHDU(im.data, header=im.header)
+        f = astropy.io.fits.PrimaryHDU(im.data, header=im.header)
         return FITSImageData(f, current_time=f.header["TIME"], unit_header=f.header)
 
     def close(self):
@@ -708,7 +708,7 @@ class FITSImageData:
         filename : string
             The name of the file to open.
         """
-        f = _astropy.pyfits.open(filename, lazy_load_hdus=False)
+        f = astropy.io.fits.open(filename, lazy_load_hdus=False)
         return cls(f, current_time=f[0].header["TIME"], unit_header=f[0].header)
 
     @classmethod
@@ -734,10 +734,10 @@ class FITSImageData:
                 raise RuntimeError("Images do not have the same shape!")
             for hdu in fid.hdulist:
                 if is_first:
-                    data.append(_astropy.pyfits.PrimaryHDU(hdu.data, header=hdu.header))
+                    data.append(astropy.io.fits.PrimaryHDU(hdu.data, header=hdu.header))
                 else:
-                    data.append(_astropy.pyfits.ImageHDU(hdu.data, header=hdu.header))
-        data = _astropy.pyfits.HDUList(data)
+                    data.append(astropy.io.fits.ImageHDU(hdu.data, header=hdu.header))
+        data = astropy.io.fits.HDUList(data)
         return cls(
             data,
             current_time=first_image.current_time,
@@ -800,7 +800,7 @@ class FITSImageData:
         units = [str(unit) for unit in old_wcs.wcs.cunit]
         new_dx = (YTQuantity(-deltas[0], units[0]) * scaleq).in_units("deg")
         new_dy = (YTQuantity(deltas[1], units[1]) * scaleq).in_units("deg")
-        new_wcs = _astropy.pywcs.WCS(naxis=naxis)
+        new_wcs = astropy.wcs.WCS(naxis=naxis)
         cdelt = [new_dx.v, new_dy.v]
         cunit = ["deg"] * 2
         if naxis == 3:
@@ -882,7 +882,7 @@ def construct_image(ds, axis, data_source, center, image_res, width, length_unit
             frb = data_source.to_frb(width[0], (nx, ny), center=center, height=width[1])
     else:
         frb = None
-    w = _astropy.pywcs.WCS(naxis=2)
+    w = astropy.wcs.WCS(naxis=2)
     w.wcs.crpix = crpix
     w.wcs.cdelt = cdelt
     w.wcs.crval = crval

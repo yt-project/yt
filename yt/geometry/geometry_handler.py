@@ -9,7 +9,7 @@ from yt.units.yt_array import YTArray, uconcatenate
 from yt.utilities.exceptions import YTFieldNotFound
 from yt.utilities.io_handler import io_registry
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.on_demand_imports import _h5py as h5py
+from yt.utilities.on_demand_imports import h5py
 from yt.utilities.parallel_tools.parallel_analysis_interface import (
     ParallelAnalysisInterface,
     parallel_root_only,

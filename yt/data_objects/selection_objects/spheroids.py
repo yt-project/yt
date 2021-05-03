@@ -17,7 +17,7 @@ from yt.units import YTArray
 from yt.utilities.exceptions import YTEllipsoidOrdering, YTException, YTSphereTooSmall
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.math_utils import get_rotation_matrix
-from yt.utilities.on_demand_imports import _miniball
+from yt.utilities.on_demand_imports import miniball
 
 
 class YTSphere(YTSelectionContainer3D):
@@ -108,7 +108,7 @@ class YTMinimalSphere(YTSelectionContainer3D):
                 f"Not enough points. Expected at least 2, got {len(points)}"
             )
         mylog.debug("Building minimal sphere around points.")
-        mb = _miniball.Miniball(points)
+        mb = miniball.Miniball(points)
         if not mb.is_valid():
             raise YTException("Could not build valid sphere around points.")
 

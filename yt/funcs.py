@@ -31,7 +31,7 @@ from tqdm import tqdm
 from yt.units import YTArray, YTQuantity
 from yt.utilities.exceptions import YTInvalidWidthError
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.on_demand_imports import _requests as requests
+from yt.utilities.on_demand_imports import requests, resource
 
 # Some functions for handling sequences and other types
 
@@ -146,11 +146,6 @@ def humanize_time(secs):
 
 # we use the resource module to get the memory page size
 
-try:
-    import resource
-except ImportError:
-    pass
-
 
 def get_memory_usage(subtract_share=False):
     """
@@ -159,7 +154,7 @@ def get_memory_usage(subtract_share=False):
     pid = os.getpid()
     try:
         pagesize = resource.getpagesize()
-    except NameError:
+    except ImportError:
         return -1024
     status_file = f"/proc/{pid}/statm"
     if not os.path.isfile(status_file):

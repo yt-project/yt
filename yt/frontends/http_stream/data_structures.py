@@ -6,7 +6,7 @@ import numpy as np
 from yt.data_objects.static_output import ParticleDataset, ParticleFile
 from yt.frontends.sph.fields import SPHFieldInfo
 from yt.geometry.particle_geometry_handler import ParticleIndex
-from yt.utilities.on_demand_imports import _requests as requests
+from yt.utilities.on_demand_imports import requests
 
 
 class HTTPParticleFile(ParticleFile):

@@ -11,7 +11,7 @@ from more_itertools import always_iterable
 
 from yt.geometry.selection_routines import GridSelector
 from yt.utilities.io_handler import BaseIOHandler
-from yt.utilities.on_demand_imports import _f90nml as f90nml
+from yt.utilities.on_demand_imports import f90nml
 
 from .datfile_utils import get_single_block_field_data
 

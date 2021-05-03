@@ -25,7 +25,7 @@ from yt.utilities.lib.pixelization_routines import (
     pixelize_off_axis_cartesian,
 )
 from yt.utilities.math_utils import periodic_ray
-from yt.utilities.on_demand_imports import NotAModule
+from yt.utilities.on_demand_imports import yt_astro_analysis
 from yt.visualization.image_writer import apply_colormap
 
 callback_registry = {}
@@ -1868,11 +1868,7 @@ class HaloCatalogCallback(PlotCallback):
         font_kwargs=None,
         factor=1.0,
     ):
-
-        try:
-            from yt_astro_analysis.halo_analysis.api import HaloCatalog
-        except ImportError:
-            HaloCatalog = NotAModule("yt_astro_analysis")
+        HaloCatalog = yt_astro_analysis.halo_analysis.api.HaloCatalog
 
         PlotCallback.__init__(self)
         def_circle_args = {"edgecolor": "white", "facecolor": "None"}

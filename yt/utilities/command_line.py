@@ -35,6 +35,7 @@ from yt.utilities.exceptions import (
     YTUnidentifiedDataType,
 )
 from yt.utilities.metadata import get_metadata
+from yt.utilities.on_demand_imports import bottle, requests
 from yt.visualization.plot_window import ProjectionPlot, SlicePlot
 
 # isort: off
@@ -802,8 +803,6 @@ class YTHubRegisterCmd(YTCommand):
         """
 
     def __call__(self, args):
-        from yt.utilities.on_demand_imports import _requests as requests
-
         hub_api_key, config_file = ytcfg.get(
             "yt",
             "hub_api_key",
@@ -1055,14 +1054,6 @@ class YTMapserverCmd(YTCommand):
         p.set_cmap("all", args.cmap)
 
         PannableMapServer(p.data_source, args.field, args.takelog, args.cmap)
-        try:
-            import bottle
-        except ImportError as e:
-            raise ImportError(
-                "The mapserver functionality requires the bottle "
-                "package to be installed. Please install using `pip "
-                "install bottle`."
-            ) from e
         bottle.debug(True)
         if args.host is not None:
             colonpl = args.host.find(":")
@@ -1615,8 +1606,6 @@ class YTUploadFileCmd(YTCommand):
     name = "upload"
 
     def __call__(self, args):
-        from yt.utilities.on_demand_imports import _requests as requests
-
         fs = iter(FileStreamer(open(args.file, "rb")))
         upload_url = ytcfg.get("yt", "curldrop_upload_url")
         r = requests.put(upload_url + "/" + os.path.basename(args.file), data=fs)

@@ -22,7 +22,7 @@ from yt.frontends.ytdata.api import save_as_dataset
 from yt.loaders import load, load_simulation
 from yt.testing import assert_equal
 from yt.units.yt_array import YTArray, YTQuantity
-from yt.utilities.on_demand_imports import _h5py as h5py
+from yt.utilities.on_demand_imports import h5py
 from yt.visualization.volume_rendering.scene import Scene
 
 

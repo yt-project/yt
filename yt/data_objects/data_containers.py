@@ -22,6 +22,7 @@ from yt.utilities.exceptions import (
     YTSpatialFieldUnitError,
 )
 from yt.utilities.object_registries import data_object_registry
+from yt.utilities.on_demand_imports import firefly_api
 from yt.utilities.parameter_file_storage import ParameterFileStore
 
 
@@ -520,7 +521,7 @@ class YTDataContainer:
         >>> dd = ds.all_data()
         >>> df = dd.to_dataframe([("gas", "density"), ("gas", "temperature")])
         """
-        from yt.utilities.on_demand_imports import _pandas as pd
+        from yt.utilities.on_demand_imports import pandas as pd
 
         data = {}
         fields = self._determine_fields(fields)
@@ -783,17 +784,8 @@ class YTDataContainer:
             >>> reader.dumpToJSON()
         """
 
-        ## attempt to import firefly_api
-        try:
-            from firefly_api.particlegroup import ParticleGroup
-            from firefly_api.reader import Reader
-        except ImportError as e:
-            raise ImportError(
-                "Can't find firefly_api, ensure it "
-                "is in your python path or install it with "
-                "'$ pip install firefly_api'. It is also available "
-                "on github at github.com/agurvich/firefly_api"
-            ) from e
+        ParticleGroup = firefly_api.particlegroup.ParticleGroup
+        Reader = firefly_api.reader.Reader
 
         ## handle default arguments
         fields_to_include = [] if fields_to_include is None else fields_to_include

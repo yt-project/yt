@@ -21,7 +21,7 @@ from yt.utilities.answer_testing.framework import (
     data_dir_load,
     requires_ds,
 )
-from yt.utilities.on_demand_imports import _f90nml as f90nml
+from yt.utilities.on_demand_imports import f90nml
 
 _fields = (
     ("gas", "temperature"),

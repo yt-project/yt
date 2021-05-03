@@ -15,7 +15,7 @@ from yt.funcs import setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.file_handler import HDF5FileHandler, warn_h5py
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.on_demand_imports import _h5py as h5py
+from yt.utilities.on_demand_imports import h5py
 
 ompd_known_versions = [
     StrictVersion("1.0.0"),

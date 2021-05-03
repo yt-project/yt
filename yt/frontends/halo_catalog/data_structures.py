@@ -16,7 +16,7 @@ from yt.data_objects.static_output import (
 from yt.frontends.ytdata.data_structures import SavedDataset
 from yt.funcs import parse_h5_attr
 from yt.geometry.particle_geometry_handler import ParticleIndex
-from yt.utilities.on_demand_imports import _h5py as h5py
+from yt.utilities.on_demand_imports import h5py
 
 from .fields import YTHaloCatalogFieldInfo, YTHaloCatalogHaloFieldInfo
 

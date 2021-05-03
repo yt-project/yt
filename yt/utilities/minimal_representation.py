@@ -7,7 +7,7 @@ import numpy as np
 
 from yt.funcs import compare_dicts, is_sequence
 from yt.units.yt_array import YTArray, YTQuantity
-from yt.utilities.on_demand_imports import _h5py as h5py
+from yt.utilities.on_demand_imports import h5py
 
 
 def _sanitize_list(flist):

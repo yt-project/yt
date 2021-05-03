@@ -15,7 +15,7 @@ from yt.geometry.oct_container import RAMSESOctreeContainer
 from yt.geometry.oct_geometry_handler import OctreeIndex
 from yt.utilities.cython_fortran_utils import FortranFile as fpu
 from yt.utilities.lib.cosmology_time import friedman
-from yt.utilities.on_demand_imports import _f90nml as f90nml
+from yt.utilities.on_demand_imports import f90nml
 from yt.utilities.physical_constants import kb, mp
 
 from .definitions import (

@@ -7,7 +7,7 @@ import numpy as np
 from yt import __version__ as yt_version
 from yt.funcs import iter_fields
 from yt.utilities.exceptions import YTGDFAlreadyExists
-from yt.utilities.on_demand_imports import _h5py as h5py
+from yt.utilities.on_demand_imports import h5py
 from yt.utilities.parallel_tools.parallel_analysis_interface import (
     communication_system,
     parallel_objects,

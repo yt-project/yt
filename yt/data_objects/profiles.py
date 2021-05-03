@@ -582,7 +582,7 @@ class Profile1D(ProfileND):
         >>> df1 = p.to_dataframe()
         >>> df2 = p.to_dataframe(fields=("gas", "density"), only_used=True)
         """
-        from yt.utilities.on_demand_imports import _pandas as pd
+        from yt.utilities.on_demand_imports import pandas as pd
 
         idxs, masked, fields = self._export_prep(fields, only_used)
         pdata = {self.x_field[-1]: self.x[idxs]}

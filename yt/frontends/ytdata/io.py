@@ -4,7 +4,7 @@ from yt.funcs import mylog, parse_h5_attr
 from yt.geometry.selection_routines import GridSelector
 from yt.units.yt_array import uvstack
 from yt.utilities.io_handler import BaseIOHandler
-from yt.utilities.on_demand_imports import _h5py as h5py
+from yt.utilities.on_demand_imports import h5py
 
 
 class IOHandlerYTNonspatialhdf5(BaseIOHandler):

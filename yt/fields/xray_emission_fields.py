@@ -12,7 +12,7 @@ from yt.utilities.linear_interpolators import (
     BilinearFieldInterpolator,
     UnilinearFieldInterpolator,
 )
-from yt.utilities.on_demand_imports import _h5py as h5py
+from yt.utilities.on_demand_imports import h5py
 
 data_version = {"cloudy": 2, "apec": 3}
 

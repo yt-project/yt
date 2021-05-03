@@ -7,7 +7,7 @@ from yt.frontends.sph.data_structures import SPHDataset, SPHParticleIndex
 from yt.frontends.sph.fields import SPHFieldInfo
 from yt.funcs import only_on_root
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.on_demand_imports import _h5py as h5py
+from yt.utilities.on_demand_imports import h5py
 
 
 class SwiftDataset(SPHDataset):

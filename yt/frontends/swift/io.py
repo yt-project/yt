@@ -1,7 +1,7 @@
 import numpy as np
 
 from yt.frontends.sph.io import IOHandlerSPH
-from yt.utilities.on_demand_imports import _h5py as h5py
+from yt.utilities.on_demand_imports import h5py
 
 
 class IOHandlerSwift(IOHandlerSPH):

@@ -10,7 +10,7 @@ from yt.funcs import only_on_root, setdefaultattr
 from yt.geometry.particle_geometry_handler import ParticleIndex
 from yt.utilities.exceptions import YTException
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.on_demand_imports import _h5py as h5py
+from yt.utilities.on_demand_imports import h5py
 
 from .fields import OWLSSubfindFieldInfo
 

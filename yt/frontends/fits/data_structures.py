@@ -22,7 +22,7 @@ from yt.units.yt_array import YTQuantity
 from yt.utilities.decompose import decompose_array, get_psize
 from yt.utilities.file_handler import FITSFileHandler
 from yt.utilities.io_handler import io_registry
-from yt.utilities.on_demand_imports import NotAModule, _astropy
+from yt.utilities.on_demand_imports import astropy
 
 from .fields import FITSFieldInfo, WCSFITSFieldInfo, YTFITSFieldInfo
 
@@ -83,7 +83,7 @@ class FITSHierarchy(GridIndex):
         try:
             try:
                 # First let AstroPy attempt to figure the unit out
-                u = 1.0 * _astropy.units.Unit(bunit, format="fits")
+                u = 1.0 * astropy.units.Unit(bunit, format="fits")
                 u = YTQuantity.from_astropy(u).units
             except ValueError:
                 try:
@@ -128,7 +128,7 @@ class FITSHierarchy(GridIndex):
         for i, fits_file in enumerate(self.dataset._handle._fits_files):
             for j, hdu in enumerate(fits_file):
                 if (
-                    isinstance(hdu, _astropy.pyfits.BinTableHDU)
+                    isinstance(hdu, astropy.io.fits.BinTableHDU)
                     or hdu.header["naxis"] == 0
                 ):
                     continue
@@ -269,14 +269,10 @@ def check_fits_valid(filename):
         ext = filename.rsplit(".", 1)[0].rsplit(".", 1)[-1]
     if ext.upper() not in ("FITS", "FTS"):
         return None
-    elif isinstance(_astropy.pyfits, NotAModule):
-        raise RuntimeError(
-            "This appears to be a FITS file, but AstroPy is not installed."
-        )
     try:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=UserWarning, append=True)
-            fileh = _astropy.pyfits.open(filename)
+            fileh = astropy.io.fits.open(filename)
         header, _ = find_primary_header(fileh)
         if header["naxis"] >= 2:
             return fileh
@@ -350,24 +346,24 @@ class FITSDataset(Dataset):
             self.nan_mask = nan_mask
         self._handle = FITSFileHandler(self.filenames[0])
         if isinstance(
-            self.filenames[0], _astropy.pyfits.hdu.image._ImageBaseHDU
-        ) or isinstance(self.filenames[0], _astropy.pyfits.HDUList):
+            self.filenames[0], astropy.io.fits.hdu.image._ImageBaseHDU
+        ) or isinstance(self.filenames[0], astropy.io.fits.HDUList):
             fn = f"InMemoryFITSFile_{uuid.uuid4().hex}"
         else:
             fn = self.filenames[0]
         self._handle._fits_files.append(self._handle)
         if self.num_files > 1:
             for fits_file in auxiliary_files:
-                if isinstance(fits_file, _astropy.pyfits.hdu.image._ImageBaseHDU):
-                    f = _astropy.pyfits.HDUList([fits_file])
-                elif isinstance(fits_file, _astropy.pyfits.HDUList):
+                if isinstance(fits_file, astropy.io.fits.hdu.image._ImageBaseHDU):
+                    f = astropy.io.fits.HDUList([fits_file])
+                elif isinstance(fits_file, astropy.io.fits.HDUList):
                     f = fits_file
                 else:
                     if os.path.exists(fits_file):
                         fn = fits_file
                     else:
                         fn = os.path.join(ytcfg.get("yt", "test_data_dir"), fits_file)
-                    f = _astropy.pyfits.open(
+                    f = astropy.io.fits.open(
                         fn, memmap=True, do_not_scale_image_data=True, ignore_blank=True
                     )
                 self._handle._fits_files.append(f)
@@ -497,9 +493,9 @@ class FITSDataset(Dataset):
         ]
 
     def _determine_wcs(self):
-        wcs = _astropy.pywcs.WCS(header=self.primary_header)
+        wcs = astropy.wcs.WCS(header=self.primary_header)
         if self.naxis == 4:
-            self.wcs = _astropy.pywcs.WCS(naxis=3)
+            self.wcs = astropy.wcs.WCS(naxis=3)
             self.wcs.wcs.crpix = wcs.wcs.crpix[:3]
             self.wcs.wcs.cdelt = wcs.wcs.cdelt[:3]
             self.wcs.wcs.crval = wcs.wcs.crval[:3]
@@ -868,7 +864,7 @@ class EventsFITSDataset(SkyDataFITSDataset):
         self.naxis = 2
 
     def _determine_wcs(self):
-        self.wcs = _astropy.pywcs.WCS(naxis=2)
+        self.wcs = astropy.wcs.WCS(naxis=2)
         self.events_info = {}
         for k, v in self.primary_header.items():
             if k.startswith("TTYP"):

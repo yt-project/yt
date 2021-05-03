@@ -6,7 +6,7 @@ from yt.data_objects.static_output import ParticleDataset, ParticleFile
 from yt.funcs import setdefaultattr
 from yt.geometry.particle_geometry_handler import ParticleIndex
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.on_demand_imports import _requests as requests
+from yt.utilities.on_demand_imports import requests
 from yt.utilities.sdf import HTTPSDFRead, SDFIndex, SDFRead
 
 from .fields import SDFFieldInfo

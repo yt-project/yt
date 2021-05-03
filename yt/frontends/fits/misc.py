@@ -7,7 +7,7 @@ import numpy as np
 from yt.fields.derived_field import ValidateSpatial
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.on_demand_imports import _astropy
+from yt.utilities.on_demand_imports import astropy
 
 
 def _make_counts(emin, emax):
@@ -24,8 +24,8 @@ def _make_counts(emin, emax):
         else:
             sigma = None
         if sigma is not None and sigma > 0.0:
-            kern = _astropy.conv.Gaussian2DKernel(stddev=sigma)
-            img[:, :, 0] = _astropy.conv.convolve(img[:, :, 0], kern)
+            kern = astropy.convolution.Gaussian2DKernel(stddev=sigma)
+            img[:, :, 0] = astropy.convolution.convolve(img[:, :, 0], kern)
         return data.ds.arr(img, "counts/pixel")
 
     return _counts
@@ -207,7 +207,7 @@ class PlotWindowWCS:
     """
 
     def __init__(self, pw):
-        WCSAxes = _astropy.wcsaxes.WCSAxes
+        WCSAxes = astropy.visualization.wcsaxes.WCSAxes
 
         if pw.oblique:
             raise NotImplementedError("WCS axes are not implemented for oblique plots.")

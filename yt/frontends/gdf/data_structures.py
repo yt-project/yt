@@ -13,7 +13,7 @@ from yt.units.unit_systems import unit_system_registry
 from yt.utilities.exceptions import YTGDFUnknownGeometry
 from yt.utilities.lib.misc_utilities import get_box_grids_level
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.on_demand_imports import _h5py as h5py
+from yt.utilities.on_demand_imports import h5py
 
 from .fields import GDFFieldInfo
 

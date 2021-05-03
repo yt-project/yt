@@ -3,7 +3,7 @@ import numpy as np
 import yt.units
 from yt.frontends.gadget.data_structures import GadgetHDF5Dataset
 from yt.frontends.owls.fields import OWLSFieldInfo
-from yt.utilities.on_demand_imports import _h5py as h5py
+from yt.utilities.on_demand_imports import h5py
 
 from .fields import EagleNetworkFieldInfo
 

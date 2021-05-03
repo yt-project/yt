@@ -901,19 +901,17 @@ def requires_module_pytest(*module_names):
 
     So that it can be later renamed to `requires_module`.
     """
+    from importlib import import_module
+
     import pytest
 
-    from yt.utilities import on_demand_imports as odi
-
     def deco(func):
-        required_modules = {
-            name: getattr(odi, f"_{name}")._module for name in module_names
-        }
-        missing = [
-            name
-            for name, mod in required_modules.items()
-            if isinstance(mod, odi.NotAModule)
-        ]
+        missing = []
+        for name in module_names:
+            try:
+                import_module(name)
+            except ImportError:
+                missing.append(name)
 
         # note that order between these two decorators matters
         @pytest.mark.skipif(
@@ -1182,7 +1180,7 @@ def run_nose(
     import sys
 
     from yt.utilities.logger import ytLogger as mylog
-    from yt.utilities.on_demand_imports import _nose
+    from yt.utilities.on_demand_imports import nose
 
     orig_level = mylog.getEffectiveLevel()
     mylog.setLevel(50)
@@ -1217,7 +1215,7 @@ def run_nose(
         )
     os.chdir(yt_dir)
     try:
-        _nose.run(argv=nose_argv)
+        nose.run(argv=nose_argv)
     finally:
         os.chdir(initial_dir)
         mylog.setLevel(orig_level)

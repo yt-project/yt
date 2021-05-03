@@ -18,6 +18,7 @@ from yt.units.yt_array import YTArray
 from yt.utilities.exceptions import YTNoDataInObjectError
 from yt.utilities.lib.quad_tree import QuadTree, merge_quadtrees
 from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.on_demand_imports import mpi4py
 
 # We default to *no* parallelism unless it gets turned on, in which case this
 # will be changed.
@@ -86,12 +87,11 @@ def enable_parallelism(suppress_logging=False, communicator=None):
     """
     global parallel_capable, MPI
     try:
-        from mpi4py import MPI as _MPI
+        MPI = mpi4py.MPI
     except ImportError:
         mylog.info("mpi4py was not found. Disabling parallel computation")
         parallel_capable = False
         return
-    MPI = _MPI
     exe_name = os.path.basename(sys.executable)
 
     # if no communicator specified, set to COMM_WORLD

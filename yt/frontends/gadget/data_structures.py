@@ -11,7 +11,7 @@ from yt.utilities.chemical_formulas import default_mu
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.fortran_utils import read_record
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.on_demand_imports import _h5py as h5py
+from yt.utilities.on_demand_imports import h5py
 
 from .definitions import (
     SNAP_FORMAT_2_OFFSET,
