@@ -405,6 +405,7 @@ class EnzoPDataset(Dataset):
         # all blocks are the same size
         ablock = fh[list(fh.keys())[0]]
         self.current_time = ablock.attrs["time"][0]
+        self.current_cycle = ablock.attrs["cycle"][0]
         gsi = ablock.attrs["enzo_GridStartIndex"]
         gei = ablock.attrs["enzo_GridEndIndex"]
         self.ghost_zones = gsi[0]
