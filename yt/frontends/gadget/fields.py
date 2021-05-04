@@ -40,7 +40,7 @@ class GadgetFieldInfo(SPHFieldInfo):
         if name == "FourMetalFractions":
             metal_names = ["C", "O", "Si", "Fe"]
         elif name == "ElevenMetalFractions":
-            metal_names = ["C", "O", "Si", "Fe"]
+            metal_names = ["He", "C", "Ca", "O", "N", "Ne", "Mg", "S", "Si", "Fe", "Ej"]
         for i, metal_name in enumerate(metal_names):
 
             # add the metal fraction fields
@@ -68,6 +68,30 @@ class GadgetFieldInfo(SPHFieldInfo):
                 (ptype, metal_name + "_density"),
                 sampling_type="particle",
                 function=_Density_wrap(i),
+                units=self.ds.unit_system["density"],
+            )
+
+        if name == "ElevenMetalFractions":
+
+            # hydrogen fraction and density
+            def _h_fraction(field, data):
+                return 1.0 - data[(ptype, name)].sum(axis=1)
+
+            self.add_field(
+                (ptype, "H_fraction"),
+                sampling_type="particle",
+                function=_h_fraction,
+                units="",
+            )
+
+            def _h_density(field, data):
+                ret = 1.0 - data[(ptype, name)].sum(axis=1)
+                return ret * data[(ptype, "density")]
+
+            self.add_field(
+                (ptype, "H_density"),
+                sampling_type="particle",
+                function=_h_density,
                 units=self.ds.unit_system["density"],
             )
 
