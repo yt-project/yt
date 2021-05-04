@@ -83,8 +83,7 @@ class GadgetFieldInfo(SPHFieldInfo):
             def _Fraction_wrap(i):
                 def _Fraction(field, data):
                     return (
-                        data[(ptype, "ElevenMetalMasses")][:, i]
-                        / data[(ptype, "Mass")].d
+                        data[(ptype, "ElevenMetalMasses")][:, i] / data[(ptype, "Mass")]
                     )
 
                 return _Fraction
@@ -115,9 +114,7 @@ class GadgetFieldInfo(SPHFieldInfo):
 
         # hydrogen fraction and density
         def _h_fraction(field, data):
-            ret = (
-                data[(ptype, "ElevenMetalMasses")].sum(axis=1) / data[(ptype, "Mass")].d
-            )
+            ret = data[(ptype, "ElevenMetalMasses")].sum(axis=1) / data[(ptype, "Mass")]
             return 1.0 - ret
 
         self.add_field(
