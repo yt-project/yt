@@ -15,38 +15,31 @@ class GadgetFieldInfo(SPHFieldInfo):
         # setup some special fields that only make sense for SPH particles
 
         if (ptype, "FourMetalFractions") in self.ds.field_list:
-            self._setup_metal_fractions(ptype, "FourMetalFractions")
-        elif (ptype, "ElevenMetalFractions") in self.ds.field_list:
-            self._setup_metal_fractions(ptype, "ElevenMetalFractions")
+            self._setup_four_metal_fractions(ptype)
+        elif (ptype, "ElevenMetalMasses") in self.ds.field_list:
+            self._setup_eleven_metal_masses(ptype)
 
         super().setup_particle_fields(ptype, *args, **kwargs)
 
         if ptype in ("PartType0", "Gas"):
             self.setup_gas_particle_fields(ptype)
 
-    def _setup_metal_fractions(self, ptype, name):
+    def _setup_four_metal_fractions(self, ptype, name):
         """
-        This function breaks either the FourMetalFractions
-        or ElevenMetalFractions field (if present) into its
-        four or eleven component metal fraction fields and adds
-        corresponding metal density fields which will later get smoothed
+        This function breaks the FourMetalFractions field (if present) into its
+        four component metal fraction fields and adds corresponding metal density
+        fields which will later get smoothed
 
         The FourMetalFractions field gets used with the Gadget group0000 format
         as defined in the gadget_field_specs in frontends/gadget/definitions.py
-
-        The ElevenMetalFractions field gets used with the magneticum_box2_hr format
-        as defined in the gadget_field_specs in frontends/gadget/definitions.py
         """
-        if name == "FourMetalFractions":
-            metal_names = ["C", "O", "Si", "Fe"]
-        elif name == "ElevenMetalFractions":
-            metal_names = ["He", "C", "Ca", "O", "N", "Ne", "Mg", "S", "Si", "Fe", "Ej"]
+        metal_names = ["C", "O", "Si", "Fe"]
         for i, metal_name in enumerate(metal_names):
 
             # add the metal fraction fields
             def _Fraction_wrap(i):
                 def _Fraction(field, data):
-                    return data[(ptype, name)][:, i]
+                    return data[(ptype, "FourMetalFractions")][:, i]
 
                 return _Fraction
 
@@ -60,7 +53,10 @@ class GadgetFieldInfo(SPHFieldInfo):
             # add the metal density fields
             def _Density_wrap(i):
                 def _Metal_density(field, data):
-                    return data[(ptype, name)][:, i] * data[(ptype, "density")]
+                    return (
+                        data[(ptype, "FourMetalFractions")][:, i]
+                        * data[(ptype, "density")]
+                    )
 
                 return _Metal_density
 
@@ -71,29 +67,75 @@ class GadgetFieldInfo(SPHFieldInfo):
                 units=self.ds.unit_system["density"],
             )
 
-        if name == "ElevenMetalFractions":
+    def _setup_eleven_metal_masses(self, ptype):
+        """
+        This function breaks the ElevenMetalMasses field (if present) into
+        its eleven component metal fraction fields and adds corresponding metal
+        density fields which will later get smoothed
 
-            # hydrogen fraction and density
-            def _h_fraction(field, data):
-                return 1.0 - data[(ptype, name)].sum(axis=1)
+        The ElevenMetalMasses field gets used with the magneticum_box2_hr format
+        as defined in the gadget_field_specs in frontends/gadget/definitions.py
+        """
+        metal_names = ["He", "C", "Ca", "O", "N", "Ne", "Mg", "S", "Si", "Fe", "Ej"]
+        for i, metal_name in enumerate(metal_names):
+
+            # add the metal fraction fields
+            def _Fraction_wrap(i):
+                def _Fraction(field, data):
+                    return (
+                        data[(ptype, "ElevenMetalMasses")][:, i]
+                        / data[(ptype, "Mass")].d
+                    )
+
+                return _Fraction
 
             self.add_field(
-                (ptype, "H_fraction"),
+                (ptype, metal_name + "_fraction"),
                 sampling_type="particle",
-                function=_h_fraction,
+                function=_Fraction_wrap(i),
                 units="",
             )
 
-            def _h_density(field, data):
-                ret = 1.0 - data[(ptype, name)].sum(axis=1)
-                return ret * data[(ptype, "density")]
+            # add the metal density fields
+            def _Density_wrap(i):
+                def _Metal_density(field, data):
+                    return (
+                        data[(ptype, metal_name + "_fraction")]
+                        * data[(ptype, "density")]
+                    )
+
+                return _Metal_density
 
             self.add_field(
-                (ptype, "H_density"),
+                (ptype, metal_name + "_density"),
                 sampling_type="particle",
-                function=_h_density,
+                function=_Density_wrap(i),
                 units=self.ds.unit_system["density"],
             )
+
+        # hydrogen fraction and density
+        def _h_fraction(field, data):
+            ret = (
+                data[(ptype, "ElevenMetalMasses")].sum(axis=1) / data[(ptype, "Mass")].d
+            )
+            return 1.0 - ret
+
+        self.add_field(
+            (ptype, "H_fraction"),
+            sampling_type="particle",
+            function=_h_fraction,
+            units="",
+        )
+
+        def _h_density(field, data):
+            return data[(ptype, "H_fraction")] * data[(ptype, "density")]
+
+        self.add_field(
+            (ptype, "H_density"),
+            sampling_type="particle",
+            function=_h_density,
+            units=self.ds.unit_system["density"],
+        )
 
     def setup_gas_particle_fields(self, ptype):
         if (ptype, "ElectronAbundance") in self.ds.field_list:

@@ -312,7 +312,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
         ("Velocities", 3),
         ("MagneticField", 3),
         ("FourMetalFractions", 4),
-        ("ElevenMetalFractions", 11),
+        ("ElevenMetalMasses", 11),
     )
 
     # Particle types (Table 3 in GADGET-2 user guide)
