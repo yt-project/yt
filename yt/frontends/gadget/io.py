@@ -275,7 +275,10 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                     for j in gp.keys():
                         kk = j
                         fields.append((ptype, str(kk)))
-                elif k in ["Metallicity", "GFM_Metals", "PassiveScalars"] and len(g[k].shape) > 1:
+                elif (
+                    k in ["Metallicity", "GFM_Metals", "PassiveScalars"]
+                    and len(g[k].shape) > 1
+                ):
                     # Vector of metallicity or passive scalar
                     for i in range(g[k].shape[1]):
                         fields.append((ptype, "%s_%02i" % (k, i)))
@@ -309,6 +312,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
         ("Velocities", 3),
         ("MagneticField", 3),
         ("FourMetalFractions", 4),
+        ("ElevenMetalFractions", 11),
     )
 
     # Particle types (Table 3 in GADGET-2 user guide)

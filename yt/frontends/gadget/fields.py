@@ -15,29 +15,38 @@ class GadgetFieldInfo(SPHFieldInfo):
         # setup some special fields that only make sense for SPH particles
 
         if (ptype, "FourMetalFractions") in self.ds.field_list:
-            self._setup_four_metal_fractions(ptype)
+            self._setup_metal_fractions(ptype, "FourMetalFractions")
+        elif (ptype, "ElevenMetalFractions") in self.ds.field_list:
+            self._setup_metal_fractions(ptype, "ElevenMetalFractions")
 
         super().setup_particle_fields(ptype, *args, **kwargs)
 
         if ptype in ("PartType0", "Gas"):
             self.setup_gas_particle_fields(ptype)
 
-    def _setup_four_metal_fractions(self, ptype):
+    def _setup_metal_fractions(self, ptype, name):
         """
-        This function breaks the FourMetalFractions field (if present)
-        into its four component metal fraction fields and adds
+        This function breaks either the FourMetalFractions
+        or ElevenMetalFractions field (if present) into its
+        four or eleven component metal fraction fields and adds
         corresponding metal density fields which will later get smoothed
 
-        This gets used with the Gadget group0000 format
+        The FourMetalFractions field gets used with the Gadget group0000 format
+        as defined in the gadget_field_specs in frontends/gadget/definitions.py
+
+        The ElevenMetalFractions field gets used with the magneticum_box2_hr format
         as defined in the gadget_field_specs in frontends/gadget/definitions.py
         """
-        metal_names = ["C", "O", "Si", "Fe"]
+        if name == "FourMetalFractions":
+            metal_names = ["C", "O", "Si", "Fe"]
+        elif name == "ElevenMetalFractions":
+            metal_names = ["C", "O", "Si", "Fe"]
         for i, metal_name in enumerate(metal_names):
 
             # add the metal fraction fields
             def _Fraction_wrap(i):
                 def _Fraction(field, data):
-                    return data[(ptype, "FourMetalFractions")][:, i]
+                    return data[(ptype, name)][:, i]
 
                 return _Fraction
 
@@ -51,10 +60,7 @@ class GadgetFieldInfo(SPHFieldInfo):
             # add the metal density fields
             def _Density_wrap(i):
                 def _Metal_density(field, data):
-                    return (
-                        data[(ptype, "FourMetalFractions")][:, i]
-                        * data[(ptype, "density")]
-                    )
+                    return data[(ptype, name)][:, i] * data[(ptype, "density")]
 
                 return _Metal_density
 
@@ -77,19 +83,20 @@ class GadgetFieldInfo(SPHFieldInfo):
                 ret = data[ptype, "InternalEnergy"] * (gamma - 1) * mu * mp / kb
                 return ret.in_units(self.ds.unit_system["temperature"])
 
-        else:
+        elif (ptype, "Temperature") not in self.ds.field_list:
 
             def _temperature(field, data):
                 gamma = 5.0 / 3.0
                 ret = data[ptype, "InternalEnergy"] * (gamma - 1) * data.ds.mu * mp / kb
                 return ret.in_units(self.ds.unit_system["temperature"])
 
-        self.add_field(
-            (ptype, "Temperature"),
-            sampling_type="particle",
-            function=_temperature,
-            units=self.ds.unit_system["temperature"],
-        )
+            self.add_field(
+                (ptype, "Temperature"),
+                sampling_type="particle",
+                function=_temperature,
+                units=self.ds.unit_system["temperature"],
+            )
+
         self.alias((ptype, "temperature"), (ptype, "Temperature"))
         # need to do this manually since that automatic aliasing that happens
         # in the FieldInfoContainer base class has already happened at this
