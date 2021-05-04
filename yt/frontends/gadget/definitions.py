@@ -73,7 +73,7 @@ gadget_field_specs = dict(
         ("InternalEnergy", "Gas"),
         ("Density", "Gas"),
         ("SmoothingLength", "Gas"),
-        ("ColdFraction" "Gas"),
+        ("ColdFraction", "Gas"),
         ("Temperature", "Gas"),
         ("StellarAge", ("Stars", "Bndry")),
         "Potential",
