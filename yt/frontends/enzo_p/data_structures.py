@@ -405,7 +405,7 @@ class EnzoPDataset(Dataset):
         # all blocks are the same size
         ablock = fh[list(fh.keys())[0]]
         self.current_time = ablock.attrs["time"][0]
-        self.current_cycle = ablock.attrs["cycle"][0]
+        self.parameters["current_cycle"] = ablock.attrs["cycle"][0]
         gsi = ablock.attrs["enzo_GridStartIndex"]
         gei = ablock.attrs["enzo_GridEndIndex"]
         self.ghost_zones = gsi[0]
@@ -420,6 +420,8 @@ class EnzoPDataset(Dataset):
 
         self.periodicity += (False,) * (3 - self.dimensionality)
         self.gamma = nested_dict_get(self.parameters, ("Field", "gamma"))
+
+        
 
     def _set_code_unit_attributes(self):
         if self.cosmological_simulation:
