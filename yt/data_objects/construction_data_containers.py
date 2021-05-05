@@ -33,7 +33,7 @@ from yt.utilities.exceptions import (
 )
 from yt.utilities.grid_data_format.writer import write_to_gdf
 from yt.utilities.lib.cyoctree import CyOctree
-from yt.utilities.lib.interpolators import ghost_zone_interpolate
+from yt.utilities.lib.interpolators import ghost_zone_interpolate, ghost_zone_extrapolate
 from yt.utilities.lib.marching_cubes import march_cubes_grid, march_cubes_grid_flux
 from yt.utilities.lib.misc_utilities import fill_region, fill_region_float
 from yt.utilities.lib.pixelization_routines import (
@@ -1322,6 +1322,13 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         # Set order and number of buffer cells to object
         self.order = order
         self.nbuf = nbuf
+        # Set up extrapolation method for non-periodic data
+        extrap = [False, False, False]
+        for i in range(3): 
+            if self.left_edge[i]  < ds.domain_left_edge[i] or \
+               self.right_edge[i] > ds.domain_right_edge[i]:
+                extrap[i] = True
+        self.extrap = np.array(extrap)
 
     def _setup_data_source(self, level_state=None):
         if level_state is None:
@@ -1498,6 +1505,18 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         if ls.current_level >= self.level:
             return
         rf = float(self.ds.relative_refinement(ls.current_level, ls.current_level + 1))
+        # Prior to updating the level state, if we tried interpolating a grid 
+        # outside of the domain with a non-periodic data set, we need to 
+        # replace those cells using extrapolation
+        if any(self.extrap):
+            for field in level_state.fields:
+                ghost_zone_extrapolate(
+                    0,
+                    self.extrap.astype("int64"), 
+                    ls.global_startindex.astype("int64"), 
+                    (self.ds.domain_dimensions*rf**ls.current_level).astype("int64"), 
+                    field
+                )
         ls.current_level += 1
         nd = self.ds.dimensionality
         refinement = np.zeros_like(ls.base_dx)

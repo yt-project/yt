@@ -500,3 +500,65 @@ def natural_interp(double[::1] x,
     b = xp - x[kl]
     fp = a*f[kl] + b*f[kh] + ((a**3 - a)*d2f[kl] + (b**3 - b)*d2f[kh]) / 6
     return fp
+
+@cython.cdivision(True)
+@cython.wraparound(False)
+@cython.boundscheck(True)
+def ghost_zone_extrapolate(int order,
+                           np.ndarray[np.int64_t, ndim=1] extrap,
+                           np.ndarray[np.int64_t, ndim=1] ileft,
+                           np.ndarray[np.int64_t, ndim=1] ddims,
+                           np.ndarray[np.float64_t, ndim=3] field):
+    # print(ddims[0])
+    cdef int[3] nx = [field.shape[0], field.shape[1], field.shape[2]]
+    cdef int io, jo, ko
+    cdef int ii, ji, ki
+    cdef double xp, xm, yp, ym, zp, zm
+
+    # Zeroth order (nearest) extrapolation ------------------------------------
+    if order == 0:
+        for io in range(nx[0]):
+            ii = io
+            if extrap[0]:
+                ii = iclip(<int> ileft[0] + io, 0, ddims[0] - 1) - ileft[0]
+            for jo in range(nx[1]):
+                ji = jo
+                if extrap[1]:
+                    ji = iclip(<int> ileft[1] + jo, 0, ddims[1] - 1) - ileft[1]
+                for ko in range(nx[2]):
+                    ki = ko
+                    if extrap[2]:
+                        ki = iclip(<int> ileft[2] + ko, 0, ddims[2] - 1) - ileft[2]
+                    field[io, jo, ko] = field[ii, ji, ki]
+    
+    # First order (linear) extrapolation --------------------------------------
+    if order == 1:
+        for io in range(nx[0]):
+            ii = io
+            if extrap[0]:
+                ii = iclip(<int> ileft[0] + io, 0, ddims[0] - 2) - ileft[0]
+            if ii >= nx[0] - 1: ii -= 1
+            xp = io - ii
+            xm = 1.0 - xp
+            for jo in range(nx[1]):
+                ji = jo
+                if extrap[1]:
+                    ji = iclip(<int> ileft[1] + jo, 0, ddims[1] - 2) - ileft[1]
+                if ji >= nx[1] - 1: ji -= 1
+                yp = jo - ji
+                ym = 1.0 - yp
+                for ko in range(nx[2]):
+                    ki = ko
+                    if extrap[2]:
+                        ki = iclip(<int> ileft[2] + ko, 0, ddims[2] - 2) - ileft[2]
+                    if ki >= nx[2] - 1: ki -= 1
+                    zp = ko - ki
+                    zm = 1.0 - zp
+                    field[io, jo, ko] = field[ii  , ji  , ki  ] * (xm*ym*zm) \
+                                      + field[ii+1, ji  , ki  ] * (xp*ym*zm) \
+                                      + field[ii  , ji+1, ki  ] * (xm*yp*zm) \
+                                      + field[ii  , ji  , ki+1] * (xm*ym*zp) \
+                                      + field[ii+1, ji  , ki+1] * (xp*ym*zp) \
+                                      + field[ii  , ji+1, ki+1] * (xm*yp*zp) \
+                                      + field[ii+1, ji+1, ki  ] * (xp*yp*zm) \
+                                      + field[ii+1, ji+1, ki+1] * (xp*yp*zp)
