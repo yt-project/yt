@@ -1320,7 +1320,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         if nbuf < 1:
             raise ValueError("nbuf must be greater than or equal to one.")
         # Set order and number of buffer cells to object
-        self.order = order
+        self.interp_order = order
         self.nbuf = nbuf
         # Set up extrapolation method for non-periodic data
         extrap = [False, False, False]
@@ -1329,6 +1329,12 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
                self.right_edge[i] > ds.domain_right_edge[i]:
                 extrap[i] = True
         self.extrap = np.array(extrap)
+        # Use order set by user on entire ds
+        self.extrap_order = 0
+        if self.ds.extrapolation_method is not None:
+            order = {"nearest": 0, "linear": 1}
+            self.extrap_order = order[self.ds.extrapolation_method]
+        print(self.extrap_order)
 
     def _setup_data_source(self, level_state=None):
         if level_state is None:
@@ -1511,7 +1517,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         if any(self.extrap):
             for field in level_state.fields:
                 ghost_zone_extrapolate(
-                    0,
+                    self.extrap_order,
                     self.extrap.astype("int64"), 
                     ls.global_startindex.astype("int64"), 
                     (self.ds.domain_dimensions*rf**ls.current_level).astype("int64"), 
@@ -1538,7 +1544,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         for input_field in level_state.fields:
             output_field = np.zeros(ls.current_dims, dtype="float64")
             ghost_zone_interpolate(
-                rf, self.order, input_field, input_left, output_field, output_left
+                rf, self.interp_order, input_field, input_left, output_field, output_left
             )
             new_fields.append(output_field)
         level_state.fields = new_fields

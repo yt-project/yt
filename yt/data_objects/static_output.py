@@ -129,6 +129,7 @@ class Dataset(abc.ABC):
     _proj_type = "quad_proj"
     _ionization_label_format = "roman_numeral"
     interpolation_method = None
+    extrapolation_method = None
     fields_detected = False
 
     # these are set in self._parse_parameter_file()
@@ -901,6 +902,17 @@ class Dataset(abc.ABC):
             self.interpolation_method = kind
         else:
             msg = f"Interpolation '{kind}' has not been implemented. "
+            msg += "Only the following are supported: "
+            msg += ", ".join(kinds)
+            raise KeyError(msg)
+
+    def set_extrapolation(self, kind):
+        # Listed of supported kinds
+        kinds = ["nearest", "linear"]
+        if kind in kinds:
+            self.extrapolation_method = kind
+        else:
+            msg = f"Extrapolation '{kind}' has not been implemented. "
             msg += "Only the following are supported: "
             msg += ", ".join(kinds)
             raise KeyError(msg)
