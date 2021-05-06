@@ -1334,7 +1334,6 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         if self.ds.extrapolation_method is not None:
             order = {"nearest": 0, "linear": 1}
             self.extrap_order = order[self.ds.extrapolation_method]
-        print(self.extrap_order)
 
     def _setup_data_source(self, level_state=None):
         if level_state is None:
