@@ -268,7 +268,16 @@ def ghost_zone_interpolate(
 
     # Akima spline interpolation ----------------------------------------------
     elif order == -1:
-    # Iterate over z position
+        # Initialize
+        xn = np.empty((nxi[0]))
+        for i in range(nxi[0]):
+            xn[i] = i - ilc[0]
+        iposi = iposi0
+        tmp = np.empty((nxo[0]))
+        for i in range(nxo[0]):
+            tmp[i] = iposi
+            iposi += dxo
+        # Iterate over z position
         kposi = kposi0
         for ko in range(nxo[2]):
             ki = iclip(<int>kposi, 0, ki_max)
@@ -278,7 +287,7 @@ def ghost_zone_interpolate(
             # Interpolate to the x-y plane
             for ii in range(nxi[0]):
                 for ji in range(nxi[1]):
-                    xyfieldi[ii,ji] = akima_interp(
+                    xyfieldi[ii,ji] = akima_interp_point(
                         zn,
                         input_field[ii, ji, ki:ki+nxs[2]],
                         kposi
@@ -292,27 +301,18 @@ def ghost_zone_interpolate(
 
                 # Interpolate to the x line
                 for ii in range(nxi[0]):
-                    xfieldi[ii] = akima_interp(
+                    xfieldi[ii] = akima_interp_point(
                         yn,
                         xyfieldi[ii, ji:ji+nxs[1]],
                         jposi
                     )
 
-                # Iterate over x position
-                iposi = iposi0
-                for io in range(nxo[0]):
-                    ii = iclip(<int>iposi, 0, ii_max)
-                    for i in range(nxs[0]):
-                        xn[i] = ii + i - ilc[0]
-
-                    # Interpolate to points in output field
-                    xfieldo[io] = akima_interp(
-                        xn,
-                        xfieldi[ii:ii+nxs[0]],
-                        iposi
-                    )
-
-                    iposi += dxo
+                # Interpolate x points
+                xfieldo = akima_interp_points(
+                    xn,
+                    xfieldi[0:nxi[0]],
+                    tmp[0:nxo[0]]
+                )
                 output_field[:, jo, ko] = xfieldo
                 jposi += dxo
             kposi += dxo
@@ -368,7 +368,7 @@ def ghost_zone_interpolate(
                         jposi
                     )
                 # Compute second derivative in x
-                tmp = spline_2nd_derive(xn,xfieldi[0:nxs[1]])
+                tmp = spline_2nd_derive(xn,xfieldi[0:nxs[0]])
                 for ii in range(nxi[0]):
                     d2fdx2[ii] = tmp[ii]
 
@@ -418,9 +418,8 @@ cdef lagrange_weights(double[::1] x,
 @cython.cdivision(True)
 @cython.wraparound(False)
 @cython.boundscheck(True)
-cdef akima_interp(double[::1] x,
-                  double[::1] f,
-                  double xp):
+cdef akima_coeffs(double[::1] x,
+                  double[::1] f):
     cdef int nx = x.size
     cdef double[::1] m  = np.empty((nx+3))
     cdef double[::1] dm = np.empty((nx+2))
@@ -452,15 +451,57 @@ cdef akima_interp(double[::1] x,
             t[i] = 0.5*(m[i+1] + m[i+2])
     # Compute polynomial coefficients between nodes
     for i in range(nx-1):
-        p1[i] = t[i]
         p2[i] = 3.0*m[i+2] - 2.0*t[i] - t[i+1]
         p3[i] = t[i] + t[i+1] - 2.0*m[i+2]
+
+    return t, p2, p3
+
+@cython.cdivision(True)
+@cython.wraparound(False)
+@cython.boundscheck(True)
+cdef akima_interp_point(double[::1] x,
+                        double[::1] f,
+                        double xp):
+    cdef int nx = x.size
+    cdef double[::1] p1 = np.empty((nx-1))
+    cdef double[::1] p2 = np.empty((nx-1))
+    cdef double[::1] p3 = np.empty((nx-1))
+    cdef double a, b, ab, w
+    cdef int idx
+
+    # Compute polynomial coefficients between nodes
+    p1, p2, p3 = akima_coeffs(x, f)
     # Determine value at xp
     idx = <int>(xp - x[0])
     w = xp - x[idx]
     fp = f[idx] + p1[idx]*w + p2[idx]*w**2 + p3[idx]*w**3
 
     return fp
+
+@cython.cdivision(True)
+@cython.wraparound(False)
+@cython.boundscheck(True)
+cdef akima_interp_points(double[::1] x,
+                         double[::1] f,
+                         double[::1] xps):
+    cdef int nx = x.size
+    cdef int npt = xps.size
+    cdef double[::1] p1 = np.empty((nx-1))
+    cdef double[::1] p2 = np.empty((nx-1))
+    cdef double[::1] p3 = np.empty((nx-1))
+    cdef double[::1] fps = np.empty((npt))
+    cdef double a, b, ab, w
+    cdef int i, idx
+
+    # Compute polynomial coefficients between nodes
+    p1, p2, p3 = akima_coeffs(x, f)
+    # Determine value at different xps
+    for i, xp in enumerate(xps):
+        idx = <int>(xp - x[0])
+        w = xp - x[idx]
+        fps[i] = f[idx] + p1[idx]*w + p2[idx]*w**2 + p3[idx]*w**3
+
+    return fps
 
 @cython.cdivision(True)
 @cython.wraparound(False)
@@ -509,7 +550,7 @@ def ghost_zone_extrapolate(int order,
                            np.ndarray[np.int64_t, ndim=1] ileft,
                            np.ndarray[np.int64_t, ndim=1] ddims,
                            np.ndarray[np.float64_t, ndim=3] field):
-    # print(ddims[0])
+
     cdef int[3] nx = [field.shape[0], field.shape[1], field.shape[2]]
     cdef int io, jo, ko
     cdef int ii, ji, ki
