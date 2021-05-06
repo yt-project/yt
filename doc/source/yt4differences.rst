@@ -41,7 +41,7 @@ The list below is arranged in order of most to least important changes.
   of all fields. Just search for all field accesses in your scripts, and
   replace strings with tuples (e.g. replace ``"a"``  with ``("gas", "a" )``).
   There is a compatibility rule in yt-4.0 to allow strings to continue to work
-  until yt-4.1, but you may get unexpected behavior.  See our :ref:`fields`,
+  until yt-4.1, but you may get unexpected behavior.  Any field specifications that are ambiguous will throw an error in future versions of yt.  See our :ref:`fields`,
   and :ref:`available field list <available-fields>` documentation for more
   information.
 * **Use Newer Versions of Python**
