@@ -36,8 +36,8 @@ The list below is arranged in order of most to least important changes.
   In the past, you could specify fields as strings like ``"density"``, but
   with the growth of yt and its many derived fields, there can be sometimes
   be overlapping field names (e.g., ``("gas", "density")`` and
-  ``("PartType0", "density")``, where yt doesn't know which to use.  To avoid
-  these issues moving forward, please explicitly specify the full tuple form
+  ``("PartType0", "density")``, where yt doesn't know which to use.  To remove
+  any ambiguity, it is now strongly recommended to explicitly specify the full tuple form
   of all fields. Just search for all field accesses in your scripts, and
   replace strings with tuples (e.g. replace ``"a"``  with ``("gas", "a" )``).
   There is a compatibility rule in yt-4.0 to allow strings to continue to work
