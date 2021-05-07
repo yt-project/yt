@@ -158,7 +158,10 @@ dataset objects. The calling syntax is the same:
 
    ds = yt.load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0100")
    ds.add_field(
-       ("gas", "pressure"), function=_pressure, sampling_type="cell", units="dyne/cm**2"
+       ("gas", "pressure"),
+       function=_pressure,
+       sampling_type="cell",
+       units="dyne/cm**2",
    )
 
 If you specify fields in this way, you can take advantage of the dataset's
@@ -202,8 +205,9 @@ transparent and simple example).
 
 .. code-block:: python
 
-   from yt.fields.api import ValidateParameter
    import numpy as np
+
+   from yt.fields.api import ValidateParameter
 
 
    def _my_radial_velocity(field, data):

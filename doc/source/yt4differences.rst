@@ -211,8 +211,9 @@ gather machinery also added.
 
 .. code-block:: python
 
-    import yt
     import numpy as np
+
+    import yt
 
     ds = yt.load("GadgetDiskGalaxy/snapshot_200.hdf5")
     left = np.array([0, 0, 0], dtype="float64")

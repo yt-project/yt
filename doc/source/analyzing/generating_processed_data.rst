@@ -180,7 +180,10 @@ temperature can be created as follows:
 .. code-block:: python
 
    profile2d = source.profile(
-       [("gas", "density"), ("gas", "temperature")],  # the x bin field  # the y bin field
+       [
+           ("gas", "density"),
+           ("gas", "temperature"),
+       ],  # the x bin field  # the y bin field
        [("gas", "mass")],  # the profile field
        weight_field=None,
    )
