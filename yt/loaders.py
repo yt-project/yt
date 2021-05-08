@@ -1336,15 +1336,7 @@ def load_sample(fn, progressbar: bool = True, timeout=None, **kwargs):
             mylog.info("Ignoring the `timeout` keyword argument received.")
         return load(loadable_path, **kwargs)
 
-    try:
-        save_dir = _get_test_data_dir_path()
-        assert save_dir.is_dir()
-    except (OSError, AssertionError):
-        mylog.warning(
-            "yt test data directory is not properly set up. "
-            "Data will be saved to the current work directory instead."
-        )
-        save_dir = Path.cwd()
+    save_dir = _get_test_data_dir_path()
 
     # effectively silence the pooch's logger and create our own log instead
     pooch_logger.setLevel(100)

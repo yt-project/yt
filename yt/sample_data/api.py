@@ -129,10 +129,20 @@ def get_data_registry_table():
     return unified_table
 
 
+@lru_cache(maxsize=128)
 def _get_test_data_dir_path():
+    # the caching is mostly useful to avoid repeating the warning
     from yt.config import ytcfg
 
-    return Path(ytcfg.get("yt", "test_data_dir"))
+    p = Path(ytcfg.get("yt", "test_data_dir"))
+    if p.is_dir():
+        return p
+    mylog.warning(
+        "Storage directory from yt config doesn't exist "
+        f"(currently set to '{p}'). "
+        "Current working directory will be used instead."
+    )
+    return Path.cwd()
 
 
 def lookup_on_disk_data(fn):
