@@ -677,9 +677,9 @@ class FieldInfoContainer(dict):
         are linear.  For now, set linear to geometric fields: position and
         velocity coordinates.
         """
-        log_prefixes = ['', 'velocity_', 'particle_position_', 'particle_velocity_']
-        coords = ['x', 'y', 'z']
-        log_fields = [prefix+coord for prefix in log_prefixes for coord in coords]
+        non_log_prefixes = ('', 'velocity_', 'particle_position_', 'particle_velocity_')
+        coords = ('x', 'y', 'z')
+        non_log_fields = [prefix+coord for prefix in log_prefixes for coord in coords]
         for field in self.ds.derived_field_list:
-            if field[1] in log_fields:
+            if field[1] in non_log_fields:
                 self[field].take_log = False
