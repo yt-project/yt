@@ -1,5 +1,9 @@
+# setup.py
+
+import sys
 import glob
 import os
+import os.path
 from collections import defaultdict
 from distutils.ccompiler import get_default_compiler
 
@@ -78,6 +82,7 @@ build_ext, sdist = create_build_ext(lib_exts, cythonize_aliases)
 # Force setuptools to consider that there are ext modules, even if empty.
 # See https://github.com/yt-project/yt/issues/2922 and
 # https://stackoverflow.com/a/62668026/2601223 for the fix.
+# create class BinaryDistribution(Distribution):
 class BinaryDistribution(Distribution):
     """Distribution which always forces a binary package with platform name."""
 
