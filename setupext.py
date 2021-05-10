@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import os.path
 from textwrap import dedent
 from concurrent.futures import ThreadPoolExecutor
 from distutils import log
@@ -47,7 +48,7 @@ def stdchannel_redirected(stdchannel, dest_filename):
         if dest_file is not None:
             dest_file.close()
 
-
+# create def check_for_openmp():
 def check_for_openmp():
     """Returns OpenMP compiler and linker flags if local setup supports
     OpenMP or [], [] otherwise
@@ -145,7 +146,7 @@ def check_for_openmp():
     else:
         return [], []
 
-
+# create def check_CPP14_flag(compile_flags):
 def check_CPP14_flag(compile_flags):
     # Create a temporary directory
     ccompiler = new_compiler()
@@ -188,7 +189,7 @@ def check_CPP14_flag(compile_flags):
     finally:
         os.chdir(start_dir)
 
-
+# create def check_CPP14_flags(possible_compile_flags): 
 def check_CPP14_flags(possible_compile_flags):
     for flags in possible_compile_flags:
         if check_CPP14_flag([flags]):
@@ -200,7 +201,7 @@ def check_CPP14_flags(possible_compile_flags):
     )
     return []
 
-
+# create def check_for_pyembree(std_libs):
 def check_for_pyembree(std_libs):
     embree_libs = []
     embree_aliases = {}
@@ -230,11 +231,11 @@ def check_for_pyembree(std_libs):
 
     return embree_libs, embree_aliases
 
-
+# create def in_conda_env():
 def in_conda_env():
     return any(s in sys.version for s in ("Anaconda", "Continuum", "conda-forge"))
 
-
+# create def read_embree_location():
 def read_embree_location():
     """
 
@@ -319,7 +320,7 @@ def read_embree_location():
 
     return rd
 
-
+# create def get_cpu_count():
 def get_cpu_count():
     if platform.system() == "Windows":
         return 0
@@ -335,7 +336,7 @@ def get_cpu_count():
     max_cores = min(cpu_count, user_max_cores)
     return max_cores
 
-
+# create def install_compiler():
 def install_ccompiler():
     def _compile(
         self,
@@ -366,7 +367,7 @@ def install_ccompiler():
 
     CCompiler.compile = _compile
 
-
+# create def create_build_ext(lib_exts, cythonize_aliases):
 def create_build_ext(lib_exts, cythonize_aliases):
     class build_ext(_build_ext):
         # subclass setuptools extension builder to avoid importing cython and numpy
@@ -441,6 +442,7 @@ def create_build_ext(lib_exts, cythonize_aliases):
                 print(f"While building '{extension.name}' following error was raised:\n {exc}")
                 raise
 
+    #  create class sdist(_sdist):          
     class sdist(_sdist):
         # subclass setuptools source distribution builder to ensure cython
         # generated C files are included in source distribution.
