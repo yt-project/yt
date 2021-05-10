@@ -53,6 +53,9 @@ class AdaptaHOPFieldInfo(FieldInfoContainer):
         ("radius_50", (r_units, [], r"$R_\mathrm{50}$")),
         ("mass_200", (m_units, [], r"$M_\mathrm{200}$")),
         ("mass_50", (m_units, [], r"$M_\mathrm{50}$")),
+        # Contamination
+        ("contaminated", ("", [], "Contaminated")),
+        ("m_contam", (m_units, [], "Contaminated Mass")),
     )
 
     def setup_particle_fields(self, ptype):
