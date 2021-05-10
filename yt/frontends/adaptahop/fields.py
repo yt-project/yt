@@ -47,7 +47,7 @@ class AdaptaHOPFieldInfo(FieldInfoContainer):
         ("virial_velocity", (v_units, [], "Halo Virial Velocity")),
         # NFW parameters
         ("rho0", (dens_units, [], "Halo NFW Density")),
-        ("R_c", (dens_units, [], "Halo NFW Scale Radius")),
+        ("R_c", (r_units, [], "Halo NFW Scale Radius")),
         ("velocity_dispersion", ("km/s", [], "Velocity Dispersion")),
         ("radius_200", (r_units, [], r"$R_\mathrm{200}$")),
         ("radius_50", (r_units, [], r"$R_\mathrm{50}$")),
