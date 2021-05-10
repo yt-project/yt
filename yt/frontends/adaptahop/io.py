@@ -185,7 +185,7 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
 
     def members(self, ihalo):
         offset = self._offsets[ihalo, 1]
-        todo = _todo_from_attributes(("particle_identities",), self.ds.halo_attributes)
+        todo = _todo_from_attributes(("particle_identities",), self.ds._halo_attributes)
         with FortranFile(self.ds.parameter_filename) as fpu:
             fpu.seek(offset)
             if isinstance(todo[0], int):

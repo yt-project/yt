@@ -10,6 +10,7 @@ Data structures for AdaptaHOP frontend.
 import os
 import re
 import stat
+from itertools import product
 
 import numpy as np
 
@@ -78,8 +79,7 @@ class AdaptaHOPDataset(Dataset):
             )
         self.parent_ds = parent_ds
 
-        with FortranFile(filename) as fpu:
-            self._guess_headers_from_file(fpu)
+        self._guess_headers_from_file(filename)
 
         super().__init__(
             filename,
@@ -94,44 +94,44 @@ class AdaptaHOPDataset(Dataset):
         setdefaultattr(self, "velocity_unit", self.quan(1.0, "km / s"))
         setdefaultattr(self, "time_unit", self.length_unit / self.velocity_unit)
 
-    def _guess_headers_from_file(self, fpu: FortranFile) -> ATTR_T:
-        ok = False
-        for dp in (True, False):
-            for longint in (True, False):
+    def _guess_headers_from_file(self, filename) -> ATTR_T:
+        with FortranFile(filename) as fpu:
+            ok = False
+            for dp, longint in product((True, False), (True, False)):
+                fpu.seek(0)
                 try:
                     header_attributes = HEADER_ATTRIBUTES(double=dp, longint=longint)
                     fpu.read_attrs(header_attributes)
                     ok = True
                     break
                 except (ValueError, OSError):
-                    fpu.seek(0)
+                    pass
+
+            if not ok:
+                raise OSError("Could not read headers from file %s" % filename)
+
+            istart = fpu.tell()
+            fpu.seek(0, 2)
+            iend = fpu.tell()
+
+            # Try different templates
+            ok = False
+            for name, cls in ADAPTAHOP_TEMPLATES.items():
+                fpu.seek(istart)
+                attributes = cls(longint, dp).HALO_ATTRIBUTES
+                mylog.debug("Trying %s(longint=%s, dp=%s)", name, longint, dp)
+                try:
+                    # Try to read two halos to be sure
+                    fpu.read_attrs(attributes)
+                    if fpu.tell() < iend:
+                        fpu.read_attrs(attributes)
+                    ok = True
+                    break
+                except (ValueError, OSError):
                     continue
 
         if not ok:
-            raise Exception()
-
-        istart = fpu.tell()
-        fpu.seek(0, 2)
-        iend = fpu.tell()
-
-        # Try different templates
-        ok = False
-        for name, cls in ADAPTAHOP_TEMPLATES.items():
-            fpu.seek(istart)
-            attributes = cls(longint, dp).HALO_ATTRIBUTES
-            mylog.debug("Trying %s(longint=%s, dp=%s)", name, longint, dp)
-            try:
-                # Try to read two halos to be sure
-                fpu.read_attrs(attributes)
-                if fpu.tell() < iend:
-                    fpu.read_attrs(attributes)
-                ok = True
-                break
-            except (ValueError, OSError):
-                continue
-
-        if not ok:
-            raise Exception()
+            raise OSError("Could not guess fields from file %s" % filename)
 
         self._header_attributes = header_attributes
         self._halo_attributes = attributes
