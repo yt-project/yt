@@ -3,17 +3,16 @@
 Testing
 =======
 
-yt includes a testing suite that one can run on the code base to assure that no
+yt includes a testing suite that one can run on the code base to ensure that no
 breaks in functionality have occurred. This suite is based on the `pytest <https://docs.pytest.org/en/stable/>`_ testing framework and consists of two types of tests:
 
-* Unit tests. These confirm that an isolated piece of functionality runs without failure for inputs with known correct outputs.
+* Unit tests. These make sure that an small pieces of code run (or fail) as intended in predictable contexts. See :ref:`unit_testing`.
 
-* Answer tests. These generate output from user-visible yt functions and compare this output against the output produced using an older, "known good", version of yt.
+* Answer tests. These generate outputs from the user-facing yt API and compare them against the outputs produced using an older, "known good", version of yt. See :ref:`answer_testing`.
 
 These tests ensure consistency in results as development proceeds.
 
-The testing suite should be run locally by developers to make sure they aren't
-checking in any code that breaks existing functionality. Additionally, as a safeguard, the test suite is automatically run after each commit that is pushed to the yt repository on github.
+We recommend that developers run tests locally on changed features when developing to help ensure that the new code does not break any existing functionality. To further this goal and ensure that changes do not propagate errors or have unintentional consequences on the rest of the codebase, the full test suite is run through our continuous integration (CI) servers. CI is run on push on open pull requests on a variety of computational platforms using Github Actions and a `continuous integration server <https://tests.yt-project.org>`_ at the University of Illinois. The full test suite may take several hours to run, so we do not recommend running it locally.
 
 .. _unit_testing:
 
@@ -23,9 +22,9 @@ Unit Testing
 What Do Unit Tests Do
 ^^^^^^^^^^^^^^^^^^^^^
 
-Unit tests are tests that operate on some small piece of machinery and verify
-that the machinery works. In
-practice, this means that we make assertions about a piece of machinery and then pytest runs the machinery, verifies that the assertions are true, and ensures that the code runs without crashing. An example of a unit test is :func:`~yt.fields.tests.test_fields.test_all_fields`.
+Unit tests are tests that operate on some small piece of code and verify
+that it behaves as intended. In
+practice, this means that we write simple assertions (or ``assert`` statements) about results and then let pytest go through them. A test is considered a success when no error (in particular ``AssertionError``) occurs.
 
 How to Run the Unit Tests
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -48,36 +47,25 @@ run:
 
    $ pytest yt/visualization/tests/test_plotwindow.py
 
-Additionally, if you only want to run, say, ``test_all_fields`` in ``plot_window.py``, you can do so by running:
+from the yt source code root directory.
+
+Additionally, if you only want to run a specific test in a test file (rather than all of the tests contained in the file), such as, ``test_all_fields`` in ``plot_window.py``, you can do so by running:
 
 .. code-block:: bash
 
     $ pytest yt/visualization/tests/test_plotwindow.py::test_all_fields
 
-See this `link <https://docs.pytest.org/en/stable/usage.html?highlight=invocation>`_ for more on how to invoke pytest.
+from the yt source code rood directory.
+
+See the pytest documentation for more on how to `invoke pytest <https://docs.pytest.org/en/stable/usage.html?highlight=invocation>`_ and `select tests <https://docs.pytest.org/en/stable/usage.html#specifying-tests-selecting-tests>`_.
 
 
 Unit Test Tools
 ^^^^^^^^^^^^^^^
 
-yt provides several tools to assist with writing unit tests. These tools all reside in the ``yt.testing``
-module.  Describing them all in detail is somewhat outside the scope of this
-document. However, a few come
-in handy:
-
-* :func:`~yt.testing.fake_random_ds` provides the ability to create a random
-  dataset, with several fields and divided into several different
-  grids.
-* :func:`~yt.testing.assert_equal` can operate on arrays.
-* :func:`~yt.testing.assert_almost_equal` can operate on arrays and accepts a
-  relative allowable difference.
-* :func:`~yt.testing.assert_allclose_units` raises an error if two arrays are
-  not equal up to a desired absolute or relative tolerance. This wraps numpy's
-  :py:func:`numpy.testing.assert_allclose` to correctly verify unit consistency as well.
-* :func:`~yt.testing.amrspace` provides the ability to create AMR grid
-  structures.
-* :func:`~yt.testing.expand_keywords` provides the ability to iterate over
-  many values for keywords.
+yt provides several helper functions and decorators to write unit tests. These tools all reside in the ``yt.testing``
+module.  Describing them all in detail is outside the scope of this
+document, as in some cases they belong to other packages.
 
 How To Write New Unit Tests
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -85,20 +73,22 @@ How To Write New Unit Tests
 To create new unit tests:
 
 #. Create a new ``tests/`` directory next to the file containing the
-   machinery you want to test and add an empty ``__init__.py`` file to
+   functionality you want to test and add an empty ``__init__.py`` file to
    it.
+   #. If a ``tests/`` directory already exists, there is no need to create a new one.
 #. Inside this new ``tests/`` directory, create a new python file prefixed with ``test_`` and
-   including the name of the functionality.
+   including the name of the functionality or source file being tested.
+   #. If a file testing the functionality you're interested in already exists, please add your tests to the existing file.
 #. Inside this new ``test_`` file, create one or more routines prefixed with ``test_`` that
    accept no arguments.
 #. Each test function should do some work that tests some
    functionality and should also verify that the results are correct using
    assert statements or functions.
-#. If a dataset is needed, use ``fake_random_ds`` and be sure to test for
+#. If a dataset is needed, use ``fake_random_ds``, ``fake_amr_ds``, or ``fake_particle_ds`` (the former two of which have a particle ``True``/``False`` option that may be utilized) and be sure to test for
    several combinations of ``nproc`` so that domain decomposition can be
    tested as well.
 #. To iterate over multiple options, or combinations of options,
-   use the :ref:`@pytest.mark.parametrize <@pytest.mark.parametrize>` decorator.
+   use the `@pytest.mark.parametrize decorator <https://docs.pytest.org/en/6.2.x/parametrize.html#parametrizemark>`_.
 
 For an example of how to write unit tests, look at the file
 ``yt/data_objects/tests/test_covering_grid.py``, which covers a great deal of
@@ -106,28 +96,21 @@ functionality.
 
 Debugging Failing Tests
 ^^^^^^^^^^^^^^^^^^^^^^^
-
 When writing new tests, one often exposes bugs or writes a test incorrectly,
+
 causing an exception to be raised or a failed test. To help debug issues like
-this, ``pytest`` can drop into a debugger whenever a test fails or raises an
-exception. This can be accomplished by passing ``--pdb``
-to the ``pytest`` executable. Inside the
-debugger you can interactively print out variables and go up and down the call
-stack to determine the context for your failure or error.
-
-.. code-block:: bash
-
-    pytest --pdb
+this, ``pytest`` can `drop into a debugger <https://docs.pytest.org/en/6.2.x/usage.html#dropping-to-pdb-python-debugger-on-failures>`_ whenever a test fails or raises an
+exception.
 
 In addition, one can debug more crudely using print statements. To do this,
 you can add print statements to the code as normal. However, the test runner
 will capture all print output by default. To ensure that output gets printed
-to your terminal while the tests are running, pass ``-s`` to the ``pytest``
+to your terminal while the tests are running, pass ``-s`` (which will disable stdout and stderr capturing) to the ``pytest``
 executable.
 
 .. code-block:: bash
 
-    pytest -s
+    $ pytest -s
 
 Lastly, to quickly debug a specific failing test, it is best to only run that
 one test during your testing session. This can be accomplished by explicitly
@@ -139,7 +122,7 @@ following example:
     $ pytest yt/visualization/tests/test_plotwindow.py::TestSetWidth
 
 This pytest invocation will only run the tests defined by the
-``TestSetWidth`` class.
+``TestSetWidth`` class. See the `pytest documentation <https://docs.pytest.org/en/6.2.x/usage.html>`_ for more on the various ways to invoke pytest.
 
 Finally, to determine which test is failing while the tests are running, it helps
 to run the tests in "verbose" mode. This can be done by passing the ``-v`` option
@@ -156,13 +139,13 @@ or test failures, one would do:
 
 .. code-block:: bash
 
-    $ pytest --pdb -v -s yt/visualization/tests/test_plotwindow.py::TestSetWidth
+    $ pytest yt/visualization/tests/test_plotwindow.py::TestSetWidth -v -s --pdb
 
-More pytest options can be found by using the ``-h`` option
+More pytest options can be found by using the ``--help`` flag
 
 .. code-block:: bash
 
-    $ pytest -h
+    $ pytest --help
 
 .. _answer_testing:
 
@@ -172,11 +155,9 @@ Answer Testing
 What Do Answer Tests Do
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-Answer tests use `actual data <https://yt-project.org/data/>`_ to test reading, writing, and various manipulations of that data.
+Answer tests use `actual data <https://yt-project.org/data/>`_ to test reading, writing, and various manipulations of that data. Answer tests are how we test frontends, as opposed to operations, in yt.
 
-In order to ensure that each of these operations are performed correctly, yt has a set of yaml files containing the known correct results of having performed these operations. These files are called gold standard answer files. More generally, an answer file is a yaml file containing the results of having run the answer tests.
-
-When the answer tests are run, their output is compared to the gold standard answers to ensure that the results of operating on data do not change over time.
+In order to ensure that each of these operations are performed correctly, we store gold standard versions of yaml files called answer files. More generally, an answer file is a yaml file containing the results of having run the answer tests, which can be compared to a reference, enabling us to control that results do not drift over time.
 
 .. _run_answer_testing:
 
@@ -185,21 +166,23 @@ How to Run the Answer Tests
 
 In order to run the answer tests locally:
 
-* Create a directory to hold the data required by the answer tests one wishes to run
+* Create a directory to hold the data you'll be using for the answer tests you'll be writing or the answer tests you'll be running. This directory should be outside the yt git repository in a place that is logical to where you would normally store data.
 
-* Fill this directory with the required data
+* Add folders of the required data to this directory. Other yt data, such as ``IsolatedGalaxy``, can be downloaded to this directory as well.
 
-Next, yt needs to be made aware of where it can find the data. This is done by setting the config parameter ``test_data_dir`` to the
+* Tell yt where it can find the data. This is done by setting the config parameter ``test_data_dir`` to the path of the
 directory with the test data downloaded from https://yt-project.org/data/. For example,
 
 .. code-block:: bash
 
    $ yt config set yt test_data_dir /Users/tomservo/src/yt-data
 
-To run the answer tests locally, you must first generate a set of gold standard answer files using a "known good" version of yt. Once done, then update to the version of yt you want to test and
-run the tests again so that the results can be compared to those contained in the gold standard answer files.
+this should only need to be done once (unless you change where you're storing the data, in which case you'll need to repeat this step so yt looks in the right place).
 
-As an example, let's focus on running the answer tests for the tipsy frontend.
+* Generate or obtain a set of gold standard answer files. In order to generate gold standard answer files, wwitch to a "known good" version of yt and then run the answer tests as described below. Once done, switch back to the version of yt you wish to test.
+* Now you're ready to run the answer tests!
+
+As an example, let's focus on running the answer tests for the tipsy frontend. Let's also assume that we need to generate a gold standard answer file. To do this, we first switch to a "known good" version of yt and run the following command from the top of the yt git directory (i.e., `$YT_GIT`) in order to generate the gold standard answer file:
 
 .. note::
     It's possible to run the answer tests for **all** the frontends, but due to the large number of test datasets we currently use this is not normally done except on the yt project's contiguous integration server.
@@ -209,27 +192,27 @@ As an example, let's focus on running the answer tests for the tipsy frontend.
    $ cd $YT_GIT
    $ pytest --with-answer-testing --answer-store --local-dir="$HOME/Documents/test" -k "TestTipsy"
 
-This command will run the tipsy answer tests and, because of the presence of the ``--answer-store`` option, save the results in a local gold standard answer file in ``$HOME/Documents/test``.
+The `--with-answer-testing` tells pytest that we want to run answer tests. Without this option, the unit tests will be run instead of the answer tests. The `--answer-store` option tells pytest to save the results produced by each test to a local gold standard answer file. Omitting this option is how we tell pytest to compare the results to a gold standard. The `--local-dir` option specifies where the gold standard answer file will be saved (or is already located, in the case that ``--answer-store`` is omitted). The `-k` option tells pytest that we only want to run tests whose name matches the given pattern.
 
 .. note::
-    The path specified by ``--local-dir`` can, but does not have to be, the same directory as the ``test_data_dir`` configuration variable.
-
-The gold standard answer file will be named ``tipsy_answers_xyz.yaml``, where ``xyz`` denotes the version number of the gold standard answers.
+    The path specified by ``--local-dir`` can, but does not have to be, the same directory as the ``test_data_dir`` configuration variable. It is best practice to keep the data that serves as input to yt separate from the answers produced by yt's tests, however.
 
 .. note::
-    The answer version number is determined by the ``answer_version`` attribute of the class being tested (e.g., ``TestTipsy.answer_version``).
+    The value given to the `-k` option (e.g., `"TestTipsy"`) is the name of the class containing the answer tests. You do not need to specify the path.
+
+The newly generated gold standard answer file will be named ``tipsy_answers_xyz.yaml``, where ``xyz`` denotes the version number of the gold standard answers. The answer version number is determined by the ``answer_version`` attribute of the class being tested (e.g., ``TestTipsy.answer_version``).
 
 .. note::
-    Changes made to yt sometimes result in known, expected changes to the way certain operations behave. This necessitates updating the gold standard answer files. This process is accomplished by changing the version number specified in each answer test class (e.g., ``TestTipsy.answer_version``).
+    Changes made to yt sometimes result in known, expected changes to the way certain operations behave. This necessitates updating the gold standard answer files. This process is accomplished by changing the version number specified in each answer test class (e.g., ``TestTipsy.answer_version``). The answer version for each test class can be found as the attribute `answer_version` of that class.
 
-Once the gold standard answer file has been generated, update to the version of yt you wish to test, recompile if necessary, and run the tests using the following command:
+Once the gold standard answer file has been generated we switch back to the version of yt we want to test, recompile if necessary, and run the tests using the following command:
 
 .. code-block:: bash
 
    $ pytest --with-answer-testing --local-dir="$HOME/Documents/test" -k "TestTipsy"
 
-The result of each test is printed to STDOUT. If a test passes, pytest prints a period. If a test fails or encounters an
-exception or errors out for some reason, then an F is printed.  Explicit descriptions for each test
+The result of each test is printed to STDOUT. If a test passes, pytest prints a period. If a test fails, encounters an
+exception, or errors out for some reason, then an F is printed.  Explicit descriptions for each test
 are also printed if you pass ``-v`` to the ``pytest`` executable. Similar to the unit tests, the ``-s`` and ``--pdb`` options can be passed, as well.
 
 
@@ -308,7 +291,7 @@ differences, if any. Image comparison tests are used in the plotting and volume
 rendering machinery.
 
 The easiest way to use the image comparison tests is to make use of the
-``generic_image`` function. As an argument, this function takes a function the test machinery can call which will save an image to disk. The test will then find any images that get created and compare them with the  stored "correct" answer.
+``generic_image`` function. As an argument, this function takes a function the test machinery can call which will save an image to disk. The test will then find any images that get created and compare them with the stored "correct" answer.
 
 Here is an example test function (from ``yt/visualization/tests/test_raw_field_slices.py``):
 
@@ -334,6 +317,7 @@ Here is an example test function (from ``yt/visualization/tests/test_raw_field_s
         gi = generic_image(slice_image)
         # generic_image returns a list. In this case, there's only one entry,
         # which is a np array with the data we want
+        assert len(gi) == 1
         return gi[0]
 
 
