@@ -113,8 +113,8 @@ def CICDeposit_2(np.float64_t[:] posx,
         if (ypos < -0.5001) or (ypos > edgey):
             continue
 
-        i1  = <int> (xpos)
-        j1  = <int> (ypos)
+        i1  = <int> (xpos + 0.5)
+        j1  = <int> (ypos + 0.5)
 
         # Compute the weights
         ddx = (<np.float64_t> i1) + 0.5 - xpos
