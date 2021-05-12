@@ -23,9 +23,11 @@ Unit Testing
 What Do Unit Tests Do
 ^^^^^^^^^^^^^^^^^^^^^
 
-Unit tests are tests that operate on some small piece of machinery and verify
-that the machinery works. In
-practice, this means that we make assertions about a piece of machinery and then pytest runs the machinery, verifies that the assertions are true, and ensures that the code runs without crashing. An example of a unit test is :func:`~yt.fields.tests.test_fields.test_all_fields`.
+Unit tests are tests that operate on some small piece of code and verify that it behaves as intended.
+In practice, this means that we write simple assertions (or ``assert`` statements) about results and 
+let pytest go through them. A test is considered a success when no error (in particular 
+``AssertionError``) occurs.
+An example of such a test is :func:`~yt.fields.tests.test_fields.test_all_fields`.
 
 How to Run the Unit Tests
 ^^^^^^^^^^^^^^^^^^^^^^^^^
