@@ -924,17 +924,20 @@ class ParticleProfile(Profile2D):
             else:
                 deposit_vals = wdata * fdata[:, fi]
 
+            field_mask = np.zeros(storage.shape[-1:]).astype("int")
+
             func(
                 bf_x,
                 bf_y,
                 deposit_vals,
                 fdata[:, fi].size,
                 storage.values[:, :, fi],
+                field_mask,
                 self.x_bins,
                 self.y_bins,
             )
 
-            locs = storage.values[:, :, fi] != 0.0
+            locs = field_mask > 0
             storage.used[locs] = True
 
             if self.weight_field is not None:
@@ -944,6 +947,7 @@ class ParticleProfile(Profile2D):
                     wdata,
                     fdata[:, fi].size,
                     storage.weight_values,
+                    field_mask,
                     self.x_bins,
                     self.y_bins,
                 )
