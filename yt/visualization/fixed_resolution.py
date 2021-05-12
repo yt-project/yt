@@ -7,7 +7,7 @@ from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.utilities import save_as_dataset
 from yt.funcs import get_output_filename, iter_fields, mylog
 from yt.loaders import load_uniform_grid
-from yt.utilities.lib.api import add_points_to_greyscale_image
+from yt.utilities.lib.api import CICDeposit_2, add_points_to_greyscale_image
 from yt.utilities.lib.pixelization_routines import pixelize_cylinder
 from yt.utilities.on_demand_imports import _h5py as h5py
 
@@ -637,6 +637,8 @@ class ParticleImageBuffer(FixedResolutionBuffer):
                 b = float(b.in_units("code_length"))
             bounds.append(b)
 
+        splat_method = self.data_source.splat_method
+
         ftype = item[0]
         x_data = self.data_source.dd[ftype, self.x_field]
         y_data = self.data_source.dd[ftype, self.y_field]
@@ -665,10 +667,30 @@ class ParticleImageBuffer(FixedResolutionBuffer):
             weight_data = self.data_source.dd[weight_field]
         splat_vals = weight_data[mask] * data[mask]
 
+        x_bin_edges = np.linspace(0.0, 1.0, self.buff_size[0] + 1)
+        y_bin_edges = np.linspace(0.0, 1.0, self.buff_size[1] + 1)
+
         # splat particles
         buff = np.zeros(self.buff_size)
         buff_mask = np.zeros(self.buff_size).astype("int")
-        add_points_to_greyscale_image(buff, buff_mask, px[mask], py[mask], splat_vals)
+        if splat_method == "ngp":
+            add_points_to_greyscale_image(
+                buff, buff_mask, px[mask], py[mask], splat_vals
+            )
+        elif splat_method == "cic":
+            CICDeposit_2(
+                py[mask],
+                px[mask],
+                splat_vals,
+                mask.sum(),
+                buff,
+                buff_mask,
+                x_bin_edges,
+                y_bin_edges,
+            )
+        else:
+            raise NotImplementedError(f'Splat method "{splat_method}" not implemented!')
+
         # remove values in no-particle region
         buff[buff_mask == 0] = np.nan
         ia = ImageArray(buff, units=data.units, info=self._get_info(item))
@@ -677,9 +699,21 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         if weight_field is not None:
             weight_buff = np.zeros(self.buff_size)
             weight_buff_mask = np.zeros(self.buff_size).astype("int")
-            add_points_to_greyscale_image(
-                weight_buff, weight_buff_mask, px[mask], py[mask], weight_data[mask]
-            )
+            if splat_method == "ngp":
+                add_points_to_greyscale_image(
+                    weight_buff, weight_buff_mask, px[mask], py[mask], weight_data[mask]
+                )
+            elif splat_method == "cic":
+                CICDeposit_2(
+                    py[mask],
+                    px[mask],
+                    weight_data[mask],
+                    mask.sum(),
+                    weight_buff,
+                    weight_buff_mask,
+                    y_bin_edges,
+                    x_bin_edges,
+                )
             weight_array = ImageArray(
                 weight_buff, units=weight_data.units, info=self._get_info(item)
             )
