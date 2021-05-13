@@ -89,8 +89,6 @@ class ChollaDataset(Dataset):
         self.fluid_types += ("cholla",)
         super().__init__(filename, dataset_type, units_override=units_override)
         self.storage_filename = storage_filename
-        # refinement factor between a grid and its subgrid
-        # self.refine_by = 2
 
     def _set_code_unit_attributes(self):
         # This is where quantities are created that represent the various
@@ -98,10 +96,9 @@ class ChollaDataset(Dataset):
         # should be set, along with examples of how to set them to standard
         # values.
         #
-        # self.length_unit = self.quan(1.0, "cm")
-        # self.mass_unit = self.quan(1.0, "g")
-        # self.time_unit = self.quan(1.0, "s")
-        # self.time_unit = self.quan(1.0, "s")
+        self.length_unit = self.quan(1.0, "pc")
+        self.mass_unit = self.quan(1.0, "Msun")
+        self.time_unit = self.quan(1000, "yr")
         #
         # These can also be set:
         # self.velocity_unit = self.quan(1.0, "cm/s")
