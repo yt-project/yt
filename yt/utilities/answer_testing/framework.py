@@ -245,7 +245,7 @@ class AnswerTestCloudStorage(AnswerTestStorage):
         c = cf.get_container("yt-answer-tests")
         pb = get_pbar("Storing results ", len(result_storage))
         for i, ds_name in enumerate(result_storage):
-            pb.update(i)
+            pb.update(i + 1)
             rs = pickle.dumps(result_storage[ds_name])
             object_name = f"{self.answer_name}_{ds_name}"
             if object_name in c.get_object_names():
@@ -463,7 +463,7 @@ class AnswerTestingTest:
         This is a helper function to return the location of the most dense
         point.
         """
-        return self.ds.find_max("density")[1]
+        return self.ds.find_max(("gas", "density"))[1]
 
     @property
     def entire_simulation(self):
@@ -699,7 +699,7 @@ class GridValuesTest(AnswerTestingTest):
     def run(self):
         hashes = {}
         for g in self.ds.index.grids:
-            hashes[g.id] = hashlib.md5(g[self.field].tostring()).hexdigest()
+            hashes[g.id] = hashlib.md5(g[self.field].tobytes()).hexdigest()
             g.clear_data()
         return hashes
 
@@ -1082,8 +1082,8 @@ class AxialPixelizationTest(AnswerTestingTest):
             slc = ds.slice(axis, center[i])
             xax = ds.coordinates.axis_name[ds.coordinates.x_axis[axis]]
             yax = ds.coordinates.axis_name[ds.coordinates.y_axis[axis]]
-            pix_x = ds.coordinates.pixelize(axis, slc, xax, bounds, (512, 512))
-            pix_y = ds.coordinates.pixelize(axis, slc, yax, bounds, (512, 512))
+            pix_x = ds.coordinates.pixelize(axis, slc, ("gas", xax), bounds, (512, 512))
+            pix_y = ds.coordinates.pixelize(axis, slc, ("gas", yax), bounds, (512, 512))
             # Wipe out invalid values (fillers)
             pix_x[~np.isfinite(pix_x)] = 0.0
             pix_y[~np.isfinite(pix_y)] = 0.0
@@ -1186,7 +1186,7 @@ def requires_ds(ds_fn, big_data=False, file_check=False):
         return ftrue
 
 
-def small_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
+def small_patch_amr(ds_fn, fields, input_center="max", input_weight=("gas", "density")):
     if not can_run_ds(ds_fn):
         return
     dso = [None, ("sphere", (input_center, (0.1, "unitary")))]
@@ -1203,7 +1203,7 @@ def small_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
                 yield FieldValuesTest(ds_fn, field, dobj_name)
 
 
-def big_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
+def big_patch_amr(ds_fn, fields, input_center="max", input_weight=("gas", "density")):
     if not can_run_ds(ds_fn):
         return
     dso = [None, ("sphere", (input_center, (0.1, "unitary")))]

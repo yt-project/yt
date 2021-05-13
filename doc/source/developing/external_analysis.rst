@@ -17,8 +17,9 @@ them to apply radiative feedback, one could imagine calling it directly:
 
 .. code-block:: python
 
-   import yt
    import radtrans
+
+   import yt
 
    ds = yt.load("DD0010/DD0010")
    rt_grids = []
@@ -42,8 +43,9 @@ this:
 
 .. code-block:: python
 
-   import yt
    import pop_synthesis
+
+   import yt
 
    ds = yt.load("DD0010/DD0010")
    ad = ds.all_data()
@@ -139,6 +141,7 @@ Here's a rough outline of what should go in ``axes_calculator_setup.py``:
 
    from distutils.core import setup
    from distutils.extension import Extension
+
    from Cython.Distutils import build_ext
 
    ext_modules = [

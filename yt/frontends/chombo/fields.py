@@ -67,7 +67,10 @@ class Orion2FieldInfo(ChomboFieldInfo):
     def setup_particle_fields(self, ptype):
         def _get_vel(axis):
             def velocity(field, data):
-                return data[f"particle_momentum_{axis}"] / data["particle_mass"]
+                return (
+                    data[(ptype, f"particle_momentum_{axis}")]
+                    / data[(ptype, "particle_mass")]
+                )
 
             return velocity
 
@@ -89,45 +92,50 @@ class Orion2FieldInfo(ChomboFieldInfo):
         def _thermal_energy_density(field, data):
             try:
                 return (
-                    data["energy-density"]
-                    - data["kinetic_energy_density"]
-                    - data["magnetic_energy_density"]
+                    data[("chombo", "energy-density")]
+                    - data[("gas", "kinetic_energy_density")]
+                    - data[("gas", "magnetic_energy_density")]
                 )
             except YTFieldNotFound:
-                return data["energy-density"] - data["kinetic_energy_density"]
+                return (
+                    data[("chombo", "energy-density")]
+                    - data[("gas", "kinetic_energy_density")]
+                )
 
         def _specific_thermal_energy(field, data):
-            return data["thermal_energy_density"] / data["density"]
+            return data[("gas", "thermal_energy_density")] / data[("gas", "density")]
 
         def _magnetic_energy_density(field, data):
-            ret = data["X-magnfield"] ** 2
+            ret = data[("chombo", "X-magnfield")] ** 2
             if data.ds.dimensionality > 1:
-                ret = ret + data["Y-magnfield"] ** 2
+                ret = ret + data[("chombo", "Y-magnfield")] ** 2
             if data.ds.dimensionality > 2:
-                ret = ret + data["Z-magnfield"] ** 2
+                ret = ret + data[("chombo", "Z-magnfield")] ** 2
             return ret / 8.0 / np.pi
 
         def _specific_magnetic_energy(field, data):
-            return data["specific_magnetic_energy"] / data["density"]
+            return data[("gas", "specific_magnetic_energy")] / data[("gas", "density")]
 
         def _kinetic_energy_density(field, data):
-            p2 = data["X-momentum"] ** 2
+            p2 = data[("chombo", "X-momentum")] ** 2
             if data.ds.dimensionality > 1:
-                p2 = p2 + data["Y-momentum"] ** 2
+                p2 = p2 + data[("chombo", "Y-momentum")] ** 2
             if data.ds.dimensionality > 2:
-                p2 = p2 + data["Z-momentum"] ** 2
-            return 0.5 * p2 / data["density"]
+                p2 = p2 + data[("chombo", "Z-momentum")] ** 2
+            return 0.5 * p2 / data[("gas", "density")]
 
         def _specific_kinetic_energy(field, data):
-            return data["kinetic_energy_density"] / data["density"]
+            return data[("gas", "kinetic_energy_density")] / data[("gas", "density")]
 
         def _temperature(field, data):
             c_v = data.ds.quan(data.ds.parameters["radiation.const_cv"], "erg/g/K")
-            return data["specific_thermal_energy"] / c_v
+            return data[("gas", "specific_thermal_energy")] / c_v
 
         def _get_vel(axis):
             def velocity(field, data):
-                return data[f"momentum_density_{axis}"] / data["density"]
+                return (
+                    data[("gas", f"momentum_density_{axis}")] / data[("gas", "density")]
+                )
 
             return velocity
 
@@ -257,15 +265,15 @@ class ChomboPICFieldInfo3D(FieldInfoContainer):
 
 
 def _dummy_position(field, data):
-    return 0.5 * np.ones_like(data["particle_position_x"])
+    return 0.5 * np.ones_like(data[("all", "particle_position_x")])
 
 
 def _dummy_velocity(field, data):
-    return np.zeros_like(data["particle_velocity_x"])
+    return np.zeros_like(data[("all", "particle_velocity_x")])
 
 
 def _dummy_field(field, data):
-    return 0.0 * data["gravitational_field_x"]
+    return 0.0 * data[("chombo", "gravitational_field_x")]
 
 
 fluid_field_types = ["chombo", "gas"]

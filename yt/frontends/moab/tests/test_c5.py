@@ -30,9 +30,11 @@ def test_cantor_5():
     ]
     dd = ds.all_data()
     assert_almost_equal(ds.index.get_smallest_dx(), 0.00411522633744843, 10)
-    assert_equal(dd["x"].shape[0], 63 * 63 * 63)
+    assert_equal(dd[("gas", "x")].shape[0], 63 * 63 * 63)
     assert_almost_equal(
-        dd["cell_volume"].in_units("code_length**3").sum(dtype="float64").d, 1.0, 10
+        dd[("index", "cell_volume")].in_units("code_length**3").sum(dtype="float64").d,
+        1.0,
+        10,
     )
     for offset_1 in [1e-9, 1e-4, 0.1]:
         for offset_2 in [1e-9, 1e-4, 0.1]:

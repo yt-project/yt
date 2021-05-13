@@ -59,7 +59,7 @@ class OpenPMDGrid(AMRGridPatch):
         self.Children = []
         self.Level = level
 
-    def __repr__(self):
+    def __str__(self):
         return "OpenPMDGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
 
 
@@ -236,7 +236,7 @@ class OpenPMDHierarchy(GridIndex):
                     for (patch, size) in enumerate(
                         species["/particlePatches/numParticles"]
                     ):
-                        self.numparts[pname + "#" + str(patch)] = size
+                        self.numparts[f"{pname}#{patch}"] = size
                 else:
                     axis = list(species["/position"].keys())[0]
                     if is_const_component(species["/position/" + axis]):

@@ -187,7 +187,7 @@ class TestYTConfigMigration(TestYTConfig):
         self.assertFalse(os.path.exists(old_config_file()))
         self.assertTrue(os.path.exists(old_config_file() + ".bak"))
 
-        with open(YTConfig.get_global_config_file(), mode="r") as fh:
+        with open(YTConfig.get_global_config_file()) as fh:
             new_cfg = fh.read()
 
         self.assertEqual(new_cfg, _DUMMY_CFG_TOML)

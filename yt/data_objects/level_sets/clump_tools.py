@@ -70,7 +70,7 @@ def clump_list_sort(clump_list):
     """Returns a copy of clump_list, sorted by ascending minimum density.  This
     eliminates overlap when passing to
     yt.visualization.plot_modification.ClumpContourCallback"""
-    minDensity = [c["Density"].min() for c in clump_list]
+    minDensity = [c[("gas", "density")].min() for c in clump_list]
 
     args = np.argsort(minDensity)
     list = nar(clump_list)[args]

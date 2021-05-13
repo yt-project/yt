@@ -742,7 +742,7 @@ class DualEPS:
 
         # Convert the colormap into a string
         x = np.linspace(1, 0, 256)
-        cm_string = cm.get_cmap[name](x, bytes=True)[:, 0:3].tostring()
+        cm_string = cm.get_cmap[name](x, bytes=True)[:, 0:3].tobytes()
 
         cmap_im = pyx.bitmap.image(imsize[0], imsize[1], "RGB", cm_string)
         if orientation == "top" or orientation == "bottom":
@@ -859,7 +859,7 @@ class DualEPS:
         if field is not None:
             self.field = plot.data_source._determine_fields(field)[0]
         if isinstance(plot, (PlotWindow, PhasePlot)):
-            _cmap = plot._colormaps[self.field]
+            _cmap = plot._colormap_config[self.field]
         else:
             if plot.cmap is not None:
                 _cmap = plot.cmap.name

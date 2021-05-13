@@ -162,12 +162,12 @@ accessed through the ``.data`` attribute.
    ad = ds.all_data()
 
    profile_2d = yt.create_profile(ad, ["density", "temperature"],
-                                  "cell_mass", weight_field=None,
+                                  "mass", weight_field=None,
                                   n_bins=(128, 128))
    profile_2d.save_as_dataset()
 
    prof_2d_ds = yt.load("DD0046_Profile2D.h5")
-   print (prof_2d_ds.data["cell_mass"])
+   print (prof_2d_ds.data["mass"])
 
 The x, y (if at least 2D), and z (if 3D) bin fields can be accessed as 1D
 arrays with "x", "y", and "z".
@@ -193,9 +193,7 @@ primarily in the case of 1 and 2D profiles to create figures using
 
 .. code-block:: python
 
-   p = yt.PhasePlot(
-       prof_2d_ds.data, "density", "temperature", "cell_mass", weight_field=None
-   )
+   p = yt.PhasePlot(prof_2d_ds.data, "density", "temperature", "mass", weight_field=None)
    p.save()
 
 .. _saving-array-data:

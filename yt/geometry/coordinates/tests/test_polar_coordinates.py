@@ -24,7 +24,7 @@ def test_cylindrical_coordinates():
         assert_equal(dd[fi][mi] - dd[fd][mi] / 2.0, ds.domain_left_edge[i].d)
         assert_equal(dd[fd].max(), (ds.domain_width / ds.domain_dimensions)[i].d)
     assert_almost_equal(
-        dd["cell_volume"].sum(dtype="float64"),
+        dd[("index", "cell_volume")].sum(dtype="float64"),
         np.pi * ds.domain_width[0] ** 2 * ds.domain_width[2],
     )
     assert_equal(dd["index", "path_element_r"], dd["index", "dr"])

@@ -24,7 +24,7 @@ def get_position_fields(field, data):
             ftype = finfo.name[0]
         position_fields = [(ftype, f"particle_position_{d}") for d in axis_names]
     else:
-        position_fields = axis_names
+        position_fields = [("index", ax_name) for ax_name in axis_names]
 
     return position_fields
 
@@ -118,7 +118,7 @@ class WeightedAverageQuantity(DerivedQuantity):
     >>> ad = ds.all_data()
     >>> print(ad.quantities.weighted_average_quantity([("gas", "density"),
     ...                                                ("gas", "temperature")],
-    ...                                                ("gas", "cell_mass")))
+    ...                                                ("gas", "mass")))
 
     """
 
@@ -157,7 +157,7 @@ class TotalQuantity(DerivedQuantity):
 
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
-    >>> print(ad.quantities.total_quantity([("gas", "cell_mass")]))
+    >>> print(ad.quantities.total_quantity([("gas", "mass")]))
 
     """
 
@@ -201,11 +201,11 @@ class TotalMass(TotalQuantity):
         if ("gas", "mass") in fi:
             gas = super().__call__([("gas", "mass")])
         else:
-            gas = self.data_source.ds.arr([0], "g")
+            gas = self.data_source.ds.quan(0.0, "g")
         if ("nbody", "particle_mass") in fi:
             part = super().__call__([("nbody", "particle_mass")])
         else:
-            part = self.data_source.ds.arr([0], "g")
+            part = self.data_source.ds.quan(0.0, "g")
         return self.data_source.ds.arr([gas, part])
 
 
@@ -400,7 +400,7 @@ class WeightedStandardDeviation(DerivedQuantity):
     >>> ad = ds.all_data()
     >>> print(ad.quantities.weighted_standard_deviation([("gas", "density"),
     ...                                                  ("gas", "temperature")],
-    ...                                                  ("gas", "cell_mass")))
+    ...                                                  ("gas", "mass")))
 
     """
 
@@ -650,7 +650,7 @@ class SampleAtMaxFieldValues(DerivedQuantity):
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
     >>> print(ad.quantities.sample_at_max_field_values(("gas", "density"),
-    ...         ["temperature", "velocity_magnitude"]))
+    ...         [("gas", "temperature"), ("gas", "velocity_magnitude")]))
 
     """
 
@@ -731,7 +731,7 @@ class SampleAtMinFieldValues(SampleAtMaxFieldValues):
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
     >>> print(ad.quantities.sample_at_min_field_values(("gas", "density"),
-    ...         ["temperature", "velocity_magnitude"]))
+    ...         [("gas", "temperature"), ("gas", "velocity_magnitude")]))
 
     """
 

@@ -283,6 +283,7 @@ Here is what a minimal example might look like for a new frontend:
 
 Answer test examples can be found in ``yt/frontends/enzo/tests/test_outputs.py``.
 
+
 How to Write Image Comparison Tests
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -305,6 +306,7 @@ Here is an example test function (from ``yt/visualization/tests/test_raw_field_s
 
     # Test data
     raw_fields = "Laser/plt00015"
+
 
 
     def compare(ds, field):

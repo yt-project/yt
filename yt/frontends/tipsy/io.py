@@ -139,7 +139,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
         dtype = self._pdtypes["Gas"]["Coordinates"][0]
         with open(self.hsml_filename, "wb") as f:
             f.write(struct.pack("q", self.ds._file_hash))
-            f.write(hsml.astype(dtype).tostring())
+            f.write(hsml.astype(dtype).tobytes())
 
     def _read_smoothing_length(self, data_file, count):
         dtype = self._pdtypes["Gas"]["Coordinates"][0]

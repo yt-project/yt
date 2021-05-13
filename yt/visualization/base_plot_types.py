@@ -276,11 +276,7 @@ class ImagePlotMPL(PlotMPL):
             transform=transform,
         )
         if cbnorm == "symlog":
-            if LooseVersion(matplotlib.__version__) < LooseVersion("2.0.0"):
-                formatter_kwargs = {}
-            else:
-                formatter_kwargs = dict(linthresh=cblinthresh)
-            formatter = matplotlib.ticker.LogFormatterMathtext(**formatter_kwargs)
+            formatter = matplotlib.ticker.LogFormatterMathtext(linthresh=cblinthresh)
             self.cb = self.figure.colorbar(self.image, self.cax, format=formatter)
             if np.nanmin(data) >= 0.0:
                 yticks = [np.nanmin(data).v] + list(
@@ -414,10 +410,6 @@ class ImagePlotMPL(PlotMPL):
             draw_frame = choice
         self._draw_axes = choice
         self._draw_frame = draw_frame
-        if LooseVersion(matplotlib.__version__) < LooseVersion("2.0.0"):
-            fc = self.axes.get_axis_bgcolor()
-        else:
-            fc = self.axes.get_facecolor()
         self.axes.set_frame_on(draw_frame)
         self.axes.get_xaxis().set_visible(choice)
         self.axes.get_yaxis().set_visible(choice)
@@ -425,10 +417,6 @@ class ImagePlotMPL(PlotMPL):
         self.axes.set_position(axrect)
         self.cax.set_position(caxrect)
         self.figure.set_size_inches(*size)
-        if LooseVersion(matplotlib.__version__) < LooseVersion("2.0.0"):
-            self.axes.set_axis_bgcolor(fc)
-        else:
-            self.axes.set_facecolor(fc)
 
     def _toggle_colorbar(self, choice):
         """

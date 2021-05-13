@@ -167,7 +167,7 @@ class Clump(TreeContainer):
                 [f"obj['contours_{contour_key}'] == {cid}"],
                 {(f"contour_slices_{contour_key}"): cids},
             )
-            if new_clump["ones"].size == 0:
+            if new_clump[("index", "ones")].size == 0:
                 # This is to skip possibly duplicate clumps.
                 # Using "ones" here will speed things up.
                 continue
@@ -227,7 +227,7 @@ class Clump(TreeContainer):
         >>> master_clump.add_info_item("center_of_mass")
         >>> master_clump.add_validator("min_cells", 20)
         >>> find_clumps(master_clump, c_min, c_max, step)
-        >>> fn = master_clump.save_as_dataset(fields=["density", "particle_mass"])
+        >>> fn = master_clump.save_as_dataset(fields=[("gas", "density"), ("all", "particle_mass")])
         >>> new_ds = yt.load(fn)
         >>> print (ds.tree["clump", "cell_mass"])
         1296926163.91 Msun
@@ -428,7 +428,7 @@ def find_clumps(clump, min_val, max_val, d_clump):
             else:
                 mylog.info(
                     "Eliminating invalid, childless clump with %d cells.",
-                    len(child.data["ones"]),
+                    len(child.data[("index", "ones")]),
                 )
         if len(these_children) > 1:
             mylog.info(

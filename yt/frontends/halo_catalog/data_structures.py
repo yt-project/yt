@@ -360,7 +360,7 @@ class HaloDataset(ParticleDataset):
             setattr(self, my_unit, getattr(self.real_ds, my_unit, None))
         self.unit_registry = self.real_ds.unit_registry
 
-    def __repr__(self):
+    def __str__(self):
         return f"{self.real_ds}"
 
     def _setup_classes(self):

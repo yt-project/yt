@@ -245,7 +245,7 @@ class ExodusIIDataset(Dataset):
                 return []
             else:
                 return [
-                    sanitize_string(v.tostring()) for v in ds.variables["name_glo_var"]
+                    sanitize_string(v.tobytes()) for v in ds.variables["name_glo_var"]
                 ]
 
     def _get_elem_names(self):
@@ -261,7 +261,7 @@ class ExodusIIDataset(Dataset):
                 return []
             else:
                 return [
-                    sanitize_string(v.tostring()) for v in ds.variables["name_elem_var"]
+                    sanitize_string(v.tobytes()) for v in ds.variables["name_elem_var"]
                 ]
 
     def _get_nod_names(self):
@@ -277,7 +277,7 @@ class ExodusIIDataset(Dataset):
                 return []
             else:
                 return [
-                    sanitize_string(v.tostring()) for v in ds.variables["name_nod_var"]
+                    sanitize_string(v.tobytes()) for v in ds.variables["name_nod_var"]
                 ]
 
     def _read_coordinates(self):

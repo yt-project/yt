@@ -21,6 +21,7 @@ import warnings
 from distutils.version import LooseVersion
 from functools import lru_cache, wraps
 from numbers import Number as numeric_type
+from typing import Any, Callable, Type
 
 import matplotlib
 import numpy as np
@@ -30,6 +31,7 @@ from tqdm import tqdm
 from yt.units import YTArray, YTQuantity
 from yt.utilities.exceptions import YTInvalidWidthError
 from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.on_demand_imports import _requests as requests
 
 # Some functions for handling sequences and other types
 
@@ -59,7 +61,7 @@ def iter_fields(field_or_fields):
     Examples
     --------
 
-    >>> fields = "density"
+    >>> fields = ("gas", "density")
     >>> for field in iter_fields(fields):
     ...     print(field)
     density
@@ -69,7 +71,7 @@ def iter_fields(field_or_fields):
     ...     print(field)
     ('gas', 'density')
 
-    >>> fields = ["density", "temperature", ("index", "dx")]
+    >>> fields = [("gas", "density"), ("gas", "temperature"), ("index", "dx")]
     >>> for field in iter_fields(fields):
     ...     print(field)
     density
@@ -337,21 +339,7 @@ class DummyProgressBar:
         return
 
 
-class ParallelProgressBar:
-    # This is just a simple progress bar
-    # that prints on start/stop
-    def __init__(self, title, maxval):
-        self.title = title
-        mylog.info("Starting '%s'", title)
-
-    def update(self, *args, **kwargs):
-        return
-
-    def finish(self):
-        mylog.info("Finishing '%s'", self.title)
-
-
-def get_pbar(title, maxval, parallel=False):
+def get_pbar(title, maxval):
     """
     This returns a progressbar of the most appropriate type, given a *title*
     and a *maxval*.
@@ -363,19 +351,10 @@ def get_pbar(title, maxval, parallel=False):
         ytcfg.get("yt", "suppress_stream_logging")
         or ytcfg.get("yt", "internals", "within_testing")
         or maxval == 1
+        or not is_root()
     ):
         return DummyProgressBar()
-    elif ytcfg.get("yt", "internals", "parallel"):
-        # If parallel is True, update progress on root only.
-        if parallel:
-            if is_root():
-                return TqdmProgressBar(title, maxval)
-            else:
-                return DummyProgressBar()
-        else:
-            return ParallelProgressBar(title, maxval)
-    pbar = TqdmProgressBar(title, maxval)
-    return pbar
+    return TqdmProgressBar(title, maxval)
 
 
 def only_on_root(func, *args, **kwargs):
@@ -617,11 +596,11 @@ def get_script_contents():
 
 
 def download_file(url, filename):
-    requests = get_requests()
-    if requests is None:
-        return simple_download_file(url, filename)
-    else:
+    try:
         return fancy_download_file(url, filename, requests)
+    except ImportError:
+        # fancy_download_file requires requests
+        return simple_download_file(url, filename)
 
 
 def fancy_download_file(url, filename, requests=None):
@@ -1044,14 +1023,6 @@ def get_brewer_cmap(cmap):
     return bmap.get_mpl_colormap(N=cmap[2])
 
 
-def get_requests():
-    try:
-        import requests
-    except ImportError:
-        requests = None
-    return requests
-
-
 @contextlib.contextmanager
 def dummy_context_manager(*args, **kwargs):
     yield
@@ -1272,3 +1243,33 @@ def sglob(pattern):
     Return the results of a glob through the sorted() function.
     """
     return sorted(glob.glob(pattern))
+
+
+def dictWithFactory(factory: Callable[[Any], Any]) -> Type:
+    """
+    Create a dictionary class with a default factory function.
+    Contrary to `collections.defaultdict`, the factory takes
+    the missing key as input parameter.
+
+    Parameters
+    ----------
+    factory : callable(key) -> value
+        The factory to call when hitting a missing key
+
+    Returns
+    -------
+    DictWithFactory class
+        A class to create new dictionaries handling missing keys.
+    """
+
+    class DictWithFactory(dict):
+        def __init__(self, *args, **kwargs):
+            self.factory = factory
+            super().__init__(*args, **kwargs)
+
+        def __missing__(self, key):
+            val = self.factory(key)
+            self[key] = val
+            return val
+
+    return DictWithFactory

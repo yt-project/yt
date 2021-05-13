@@ -33,7 +33,7 @@ def test_geographic_coordinates():
     assert_equal(dd["index", "dphi"], dd["index", "dlongitude"] * np.pi / 180.0)
     # Note our terrible agreement here.
     assert_rel_equal(
-        dd["cell_volume"].sum(dtype="float64"),
+        dd[("index", "cell_volume")].sum(dtype="float64"),
         (4.0 / 3.0) * np.pi * (outer_r ** 3 - inner_r ** 3),
         10,
     )
@@ -82,7 +82,7 @@ def test_internal_geographic_coordinates():
     assert_equal(dd["index", "dtheta"], dd["index", "dlatitude"] * np.pi / 180.0)
     assert_equal(dd["index", "dphi"], dd["index", "dlongitude"] * np.pi / 180.0)
     assert_rel_equal(
-        dd["cell_volume"].sum(dtype="float64"),
+        dd[("index", "cell_volume")].sum(dtype="float64"),
         (4.0 / 3.0) * np.pi * (outer_r ** 3 - inner_r ** 3),
         10,
     )
