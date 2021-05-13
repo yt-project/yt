@@ -1564,10 +1564,16 @@ value can be changed when loading an Arepo dataset by setting the
 
    ds = yt.load("snapshot_100.hdf5", smoothing_factor=1.5)
 
-Currently, only Arepo HDF5 snapshots are supported. If the "GFM" metal fields are
-present in your dataset, they will be loaded in and aliased to the appropriate
-species fields in the `"GFM_Metals"` field on-disk. For more information, see
-the `Illustris TNG documentation <http://www.tng-project.org/data/docs/specifications/#sec1b>`_.
+Currently, only Arepo HDF5 snapshots are supported.
+
+If the "GFM" metal fields are present in your dataset, they will be loaded in
+and aliased to the appropriate species fields in the `"GFM_Metals"` field
+on-disk. For more information, see the
+`Illustris TNG documentation <http://www.tng-project.org/data/docs/specifications/#sec1b>`_.
+
+If passive scalar fields are present in your dataset, they will be loaded in
+and aliased to fields with the naming convention ``"PassiveScalars_XX"`` where
+``XX`` is the number of the passive scalar array, e.g. ``"00"``, ``"01"``, etc.
 
 .. _loading-gamer-data:
 
