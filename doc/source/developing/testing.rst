@@ -6,7 +6,7 @@ Testing
 yt includes a testing suite that one can run on the code base to ensure that no
 breaks in functionality have occurred. This suite is based on the `pytest <https://docs.pytest.org/en/stable/>`_ testing framework and consists of two types of tests:
 
-* Unit tests. These make sure that an small pieces of code run (or fail) as intended in predictable contexts. See :ref:`unit_testing`.
+* Unit tests. These make sure that small pieces of code run (or fail) as intended in predictable contexts. See :ref:`unit_testing`.
 
 * Answer tests. These generate outputs from the user-facing yt API and compare them against the outputs produced using an older, "known good", version of yt. See :ref:`answer_testing`.
 
@@ -78,13 +78,13 @@ To create new unit tests:
    #. If a ``tests/`` directory already exists, there is no need to create a new one.
 #. Inside this new ``tests/`` directory, create a new python file prefixed with ``test_`` and
    including the name of the functionality or source file being tested.
-   #. If a file testing the functionality you're interested in already exists, please add your tests to the existing file.
+   #. If a file testing the functionality you're interested in already exists, please add your tests to the existing there.
 #. Inside this new ``test_`` file, create one or more routines prefixed with ``test_`` that
    accept no arguments.
 #. Each test function should do some work that tests some
    functionality and should also verify that the results are correct using
    assert statements or functions.
-#. If a dataset is needed, use ``fake_random_ds``, ``fake_amr_ds``, or ``fake_particle_ds`` (the former two of which have a particle ``True``/``False`` option that may be utilized) and be sure to test for
+#. If a dataset is needed, use ``fake_random_ds``, ``fake_amr_ds``, or ``fake_particle_ds`` (the former two of which have support for particles that may be utilized) and be sure to test for
    several combinations of ``nproc`` so that domain decomposition can be
    tested as well.
 #. To iterate over multiple options, or combinations of options,
