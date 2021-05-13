@@ -112,7 +112,7 @@ class ChollaDataset(Dataset):
 
         h5f = h5py.File(self.parameter_filename, mode="r")
         attrs = h5f.attrs
-        self.parameters = attrs
+        self.parameters = {k:v for (k,v) in attrs.items()}
         self.domain_left_edge = attrs['bounds'][:]
         self.domain_right_edge = attrs['domain'][:]
         self.dimensionality = len(attrs['dims'][:])
