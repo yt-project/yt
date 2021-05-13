@@ -241,12 +241,17 @@ class FITSImageData:
             if name not in exclude_fields:
                 this_img = img_data[field]
                 if hasattr(img_data[field], "units"):
-                    if this_img.units.is_code_unit:
+                    has_code_unit = False
+                    for atom in this_img.units.expr.atoms():
+                        if str(atom).startswith("code"):
+                            has_code_unit = True
+                    if has_code_unit:
                         mylog.warning(
                             "Cannot generate an image with code "
                             "units. Converting to units in CGS."
                         )
                         funits = this_img.units.get_base_equivalent("cgs")
+                        this_img.convert_to_units(funits)
                     else:
                         funits = this_img.units
                     self.field_units[name] = str(funits)
