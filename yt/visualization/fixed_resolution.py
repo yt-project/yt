@@ -614,21 +614,25 @@ class ParticleImageBuffer(FixedResolutionBuffer):
 
         # set up the axis field names
         axis = self.axis
-        xax = self.ds.coordinates.x_axis[axis]
-        yax = self.ds.coordinates.y_axis[axis]
+        self.xax = self.ds.coordinates.x_axis[axis]
+        self.yax = self.ds.coordinates.y_axis[axis]
         ax_field_template = "particle_position_%s"
-        self.x_field = ax_field_template % self.ds.coordinates.axis_name[xax]
-        self.y_field = ax_field_template % self.ds.coordinates.axis_name[yax]
+        self.x_field = ax_field_template % self.ds.coordinates.axis_name[self.xax]
+        self.y_field = ax_field_template % self.ds.coordinates.axis_name[self.yax]
 
     def __getitem__(self, item):
         if item in self.data:
             return self.data[item]
 
+        splat_method = self.data_source.splat_method
+        density = self.data_source.density
+
         mylog.info(
-            "Splatting (%s) onto a %d by %d mesh",
+            "Splatting (%s) onto a %d by %d mesh using method %s",
             item,
             self.buff_size[0],
             self.buff_size[1],
+            splat_method,
         )
 
         bounds = []
@@ -636,8 +640,6 @@ class ParticleImageBuffer(FixedResolutionBuffer):
             if hasattr(b, "in_units"):
                 b = float(b.in_units("code_length"))
             bounds.append(b)
-
-        splat_method = self.data_source.splat_method
 
         ftype = item[0]
         x_data = self.data_source.dd[ftype, self.x_field]
@@ -693,7 +695,24 @@ class ParticleImageBuffer(FixedResolutionBuffer):
 
         # remove values in no-particle region
         buff[buff_mask == 0] = np.nan
-        ia = ImageArray(buff, units=data.units, info=self._get_info(item))
+
+        # Normalize by the surface area of the pixel or volume of pencil if
+        # requested
+        info = self._get_info(item)
+        if density:
+            width = self.data_source.width
+            if weight_field is None:
+                norm = width[self.xax] * width[self.yax] / np.prod(self.buff_size)
+            else:
+                norm = np.prod(width) / np.prod(self.buff_size)
+            norm = norm.in_base()
+            buff /= norm.v
+            units = data.units / norm.units
+            info["label"] = "%s $\\rm{Density}$" % info["label"]
+        else:
+            units = data.units
+
+        ia = ImageArray(buff, units=units, info=info)
 
         # divide by the weight_field, if needed
         if weight_field is not None:

@@ -27,6 +27,7 @@ class ParticleAxisAlignedDummyDataSource:
         field_parameters=None,
         data_source=None,
         splat_method="ngp",
+        density=False,
     ):
         self.center = center
         self.ds = ds
@@ -34,6 +35,7 @@ class ParticleAxisAlignedDummyDataSource:
         self.width = width
         self.weight_field = weight_field
         self.splat_method = splat_method
+        self.density = density
 
         if field_parameters is None:
             self.field_parameters = {}
@@ -222,6 +224,7 @@ class ParticleProjectionPlot(PWViewerMPL):
         aspect=None,
         data_source=None,
         splat_method="ngp",
+        density=False,
     ):
         # this will handle time series data and controllers
         ts = self._initialize_dataset(ds)
@@ -269,6 +272,7 @@ class ParticleProjectionPlot(PWViewerMPL):
             field_parameters=field_parameters,
             data_source=data_source,
             splat_method=splat_method,
+            density=density,
         )
 
         self.projected = weight_field is None
