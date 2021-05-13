@@ -124,9 +124,13 @@ class ArepoFieldInfo(GadgetFieldInfo):
             self.alias(("gas", "El_number_density"), (ptype, "El_number_density"))
 
         if (ptype, "CosmicRaySpecificEnergy") in self.field_list:
-            def _cr_energy_density(field, data):
-                return data["PartType0", "specific_cr_energy"]*data["gas", "density"]
 
-            self.add_field(("gas", "cr_energy_density"), _cr_energy_density,
-                           sampling_type='local',
-                           units=self.ds.unit_system["pressure"])
+            def _cr_energy_density(field, data):
+                return data["PartType0", "specific_cr_energy"] * data["gas", "density"]
+
+            self.add_field(
+                ("gas", "cr_energy_density"),
+                _cr_energy_density,
+                sampling_type="local",
+                units=self.ds.unit_system["pressure"],
+            )
