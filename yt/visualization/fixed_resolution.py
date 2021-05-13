@@ -628,7 +628,7 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         density = self.data_source.density
 
         mylog.info(
-            "Splatting (%s) onto a %d by %d mesh using method %s",
+            'Splatting (%s) onto a %d by %d mesh using method "%s"',
             item,
             self.buff_size[0],
             self.buff_size[1],
