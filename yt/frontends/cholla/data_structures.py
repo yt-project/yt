@@ -99,10 +99,8 @@ class ChollaDataset(Dataset):
         self.length_unit = self.quan(1.0, "pc")
         self.mass_unit = self.quan(1.0, "Msun")
         self.time_unit = self.quan(1000, "yr")
-        #
-        # These can also be set:
-        # self.velocity_unit = self.quan(1.0, "cm/s")
-        # self.magnetic_unit = self.quan(1.0, "gauss")
+        self.velocity_unit = self.quan(1.0, "cm/s")
+        self.magnetic_unit = self.quan(1.0, "gauss")
 
         # this minimalistic implementation fills the requirements for
         # this frontend to run, change it to make it run _correctly_ !
