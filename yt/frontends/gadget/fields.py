@@ -24,13 +24,13 @@ class GadgetFieldInfo(SPHFieldInfo):
         if ptype in ("PartType0", "Gas"):
             self.setup_gas_particle_fields(ptype)
 
-    def _setup_four_metal_fractions(self, ptype, name):
+    def _setup_four_metal_fractions(self, ptype):
         """
-        This function breaks the FourMetalFractions field (if present) into its
-        four component metal fraction fields and adds corresponding metal density
-        fields which will later get smoothed
+        This function breaks the FourMetalFractions field (if present)
+        into its four component metal fraction fields and adds
+        corresponding metal density fields which will later get smoothed
 
-        The FourMetalFractions field gets used with the Gadget group0000 format
+        This gets used with the Gadget group0000 format
         as defined in the gadget_field_specs in frontends/gadget/definitions.py
         """
         metal_names = ["C", "O", "Si", "Fe"]
@@ -69,11 +69,11 @@ class GadgetFieldInfo(SPHFieldInfo):
 
     def _setup_eleven_metal_masses(self, ptype):
         """
-        This function breaks the ElevenMetalMasses field (if present) into
-        its eleven component metal fraction fields and adds corresponding metal
-        density fields which will later get smoothed
+        This function breaks the ElevenMetalMasses field (if present)
+        into its eleven component metal fraction fields and adds
+        corresponding metal density fields which will later get smoothed
 
-        The ElevenMetalMasses field gets used with the magneticum_box2_hr format
+        This gets used with the magneticum_box2_hr format
         as defined in the gadget_field_specs in frontends/gadget/definitions.py
         """
         metal_names = ["He", "C", "Ca", "O", "N", "Ne", "Mg", "S", "Si", "Fe", "Ej"]
