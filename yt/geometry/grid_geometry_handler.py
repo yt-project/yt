@@ -17,7 +17,7 @@ from .grid_container import GridTree, MatchPointsToGrids
 
 
 class GridIndex(Index, abc.ABC):
-    """The index class for patch and block AMR datasets. """
+    """The index class for patch and block AMR datasets."""
 
     float_type = "float64"
     _preload_implemented = False

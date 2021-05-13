@@ -16,9 +16,9 @@ def _IDFIELD(field, data):
     width = data.ds.domain_right_edge - data.ds.domain_left_edge
     min_dx = YTArray(1.0 / 8192, units="code_length", registry=data.ds.unit_registry)
     delta = width / min_dx
-    x = data["x"] - min_dx / 2.0
-    y = data["y"] - min_dx / 2.0
-    z = data["z"] - min_dx / 2.0
+    x = data[("index", "x")] - min_dx / 2.0
+    y = data[("index", "y")] - min_dx / 2.0
+    z = data[("index", "z")] - min_dx / 2.0
     xi = x / min_dx
     yi = y / min_dx
     zi = z / min_dx
@@ -162,7 +162,7 @@ def test_compose_max_level_min_level():
     ad = ds.all_data()
     ad.max_level = 2
     slc = ds.slice("x", 0.5, data_source=ad)
-    assert slc["grid_level"].max() == 2
+    assert slc[("index", "grid_level")].max() == 2
     frb = slc.to_frb(1.0, 128)
-    assert np.all(frb["Density"] > 0)
-    assert frb["grid_level"].max() == 2
+    assert np.all(frb[("stream", "Density")] > 0)
+    assert frb[("index", "grid_level")].max() == 2

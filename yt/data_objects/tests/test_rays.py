@@ -33,16 +33,16 @@ def test_ray():
             dt = np.abs(dx / (p2 - p1))
             tin = uconcatenate(
                 [
-                    [(my_all["x"] - p1[0]) / (p2 - p1)[0] - 0.5 * dt[0]],
-                    [(my_all["y"] - p1[1]) / (p2 - p1)[1] - 0.5 * dt[1]],
-                    [(my_all["z"] - p1[2]) / (p2 - p1)[2] - 0.5 * dt[2]],
+                    [(my_all[("index", "x")] - p1[0]) / (p2 - p1)[0] - 0.5 * dt[0]],
+                    [(my_all[("index", "y")] - p1[1]) / (p2 - p1)[1] - 0.5 * dt[1]],
+                    [(my_all[("index", "z")] - p1[2]) / (p2 - p1)[2] - 0.5 * dt[2]],
                 ]
             )
             tout = uconcatenate(
                 [
-                    [(my_all["x"] - p1[0]) / (p2 - p1)[0] + 0.5 * dt[0]],
-                    [(my_all["y"] - p1[1]) / (p2 - p1)[1] + 0.5 * dt[1]],
-                    [(my_all["z"] - p1[2]) / (p2 - p1)[2] + 0.5 * dt[2]],
+                    [(my_all[("index", "x")] - p1[0]) / (p2 - p1)[0] + 0.5 * dt[0]],
+                    [(my_all[("index", "y")] - p1[1]) / (p2 - p1)[1] + 0.5 * dt[1]],
+                    [(my_all[("index", "z")] - p1[2]) / (p2 - p1)[2] + 0.5 * dt[2]],
                 ]
             )
             tin = tin.max(axis=0)
@@ -51,8 +51,8 @@ def test_ray():
 
             assert_equal(ray_cells.sum(), my_cells.sum())
             assert_rel_equal(
-                my_ray["density"][ray_cells].sum(),
-                my_all["density"][my_cells].sum(),
+                my_ray[("gas", "density")][ray_cells].sum(),
+                my_all[("gas", "density")][my_cells].sum(),
                 14,
             )
             assert_rel_equal(my_ray["dts"].sum(), unitary, 14)

@@ -9,10 +9,10 @@ from yt.utilities.answer_testing.framework import (
 )
 
 _fields = (
-    "particle_position_x",
-    "particle_position_y",
-    "particle_position_z",
-    "particle_mass",
+    ("all", "particle_position_x"),
+    ("all", "particle_position_y"),
+    ("all", "particle_position_z"),
+    ("all", "particle_mass"),
 )
 
 ahf_halos = "ahf_halos/snap_N64L16_135.parameter"
@@ -35,6 +35,6 @@ def test_AHFHalosDataset():
     ds = load(ahf_halos)
     assert isinstance(ds, AHFHalosDataset)
     ad = ds.all_data()
-    ad["particle_mass"]
+    ad[("all", "particle_mass")]
     psc = ParticleSelectionComparison(ds)
     psc.run_defaults()

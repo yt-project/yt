@@ -249,7 +249,7 @@ to output one more type of variable on your surfaces.  For example:
         return data["density"] * data["density"] * np.sqrt(data["temperature"])
 
 
-    add_field("emissivity", function=_Emissivity, units=r"g*K/cm**6")
+    add_field("emissivity", function=_Emissivity, sampling_type="cell", units=r"g*K/cm**6")
 
     sphere = ds.sphere("max", (1.0, "Mpc"))
     for i, r in enumerate(rho):
@@ -296,8 +296,9 @@ like the following:
 
 .. code-block:: python
 
+   from math import radians
+
    import bpy
-   from math import *
 
    bpy.ops.import_scene.obj(filepath="./surfaces.obj")  # will use new importer
 
@@ -312,7 +313,11 @@ like the following:
    # set up camera to be on -x axis, facing toward your object
    scene = bpy.data.scenes["Scene"]
    scene.camera.location = [-0.12, 0.0, 0.0]  # location
-   scene.camera.rotation_euler = [radians(90.0), 0.0, radians(-90.0)]  # face to (0,0,0)
+   scene.camera.rotation_euler = [
+       radians(90.0),
+       0.0,
+       radians(-90.0),
+   ]  # face to (0,0,0)
 
    # render
    scene.render.filepath = "/Users/jillnaiman/surfaces_blender"  # needs full path

@@ -1,5 +1,6 @@
 import os
 import weakref
+from collections import defaultdict
 from contextlib import contextmanager
 
 import numpy as np
@@ -154,6 +155,13 @@ class YTDataContainer:
         except AttributeError:
             return self.ds.arr(arr, units=units)
 
+    def _first_matching_field(self, field):
+        for ftype, fname in self.ds.derived_field_list:
+            if fname == field:
+                return (ftype, fname)
+
+        raise YTFieldNotFound(field, self.ds)
+
     def _set_center(self, center):
         if center is None:
             self.center = None
@@ -174,11 +182,13 @@ class YTDataContainer:
             elif center.lower() in ("max", "m"):
                 self.center = self.ds.find_max(("gas", "density"))[1]
             elif center.startswith("max_"):
-                self.center = self.ds.find_max(center[4:])[1]
+                field = self._first_matching_field(center[4:])
+                self.center = self.ds.find_max(field)[1]
             elif center.lower() == "min":
                 self.center = self.ds.find_min(("gas", "density"))[1]
             elif center.startswith("min_"):
-                self.center = self.ds.find_min(center[4:])[1]
+                field = self._first_matching_field(center[4:])
+                self.center = self.ds.find_min(field)[1]
         else:
             self.center = self.ds.arr(center, "code_length", dtype="float64")
 
@@ -462,25 +472,23 @@ class YTDataContainer:
         if self._key_fields is None:
             raise ValueError
 
-        field_order = self._key_fields
+        field_order = [("index", k) for k in self._key_fields]
         diff_fields = [field for field in fields if field not in field_order]
         field_order += diff_fields
         field_order = sorted(self._determine_fields(field_order))
-        field_types = {u for u, v in field_order}
 
-        if len(field_types) != 1:
-            diff_fields = self._determine_fields(diff_fields)
-            req_ftype = self._determine_fields(self._key_fields[0])[0][0]
-            f_type = {f for f in diff_fields if f[0] != req_ftype}
-            msg = (
-                "Field type %s of the supplied field %s is inconsistent"
-                " with field type '%s'."
-                % ([f[0] for f in f_type], [f[1] for f in f_type], req_ftype)
-            )
-            raise YTException(msg)
-
+        field_shapes = defaultdict(list)
         for field in field_order:
-            self[field]
+            shape = self[field].shape
+            field_shapes[shape].append(field)
+
+        # Check all fields have the same shape
+        if len(field_shapes) != 1:
+            err_msg = ["Got fields with different number of elements:\n"]
+            for shape, these_fields in field_shapes.items():
+                err_msg.append(f"\t {these_fields} with shape {shape}")
+            raise YTException("\n".join(err_msg))
+
         with open(filename, "w") as fid:
             field_header = [str(f) for f in field_order]
             fid.write("\t".join(["#"] + field_header + ["\n"]))
@@ -510,9 +518,9 @@ class YTDataContainer:
         Examples
         --------
         >>> dd = ds.all_data()
-        >>> df = dd.to_dataframe(["density", "temperature"])
+        >>> df = dd.to_dataframe([("gas", "density"), ("gas", "temperature")])
         """
-        import pandas as pd
+        from yt.utilities.on_demand_imports import _pandas as pd
 
         data = {}
         fields = self._determine_fields(fields)
@@ -539,7 +547,7 @@ class YTDataContainer:
         Examples
         --------
         >>> sp = ds.sphere("c", (1.0, "Mpc"))
-        >>> t = sp.to_astropy_table(["density","temperature"])
+        >>> t = sp.to_astropy_table([("gas", "density"),("gas", "temperature")])
         """
         from astropy.table import QTable
 
@@ -579,14 +587,14 @@ class YTDataContainer:
         >>> import yt
         >>> ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
         >>> sp = ds.sphere(ds.domain_center, (10, "Mpc"))
-        >>> fn = sp.save_as_dataset(fields=["density", "temperature"])
+        >>> fn = sp.save_as_dataset(fields=[("gas", "density"), ("gas", "temperature")])
         >>> sphere_ds = yt.load(fn)
         >>> # the original data container is available as the data attribute
-        >>> print (sds.data["density"])
+        >>> print (sds.data[("gas", "density")])
         [  4.46237613e-32   4.86830178e-32   4.46335118e-32 ...,   6.43956165e-30
            3.57339907e-30   2.83150720e-30] g/cm**3
         >>> ad = sphere_ds.all_data()
-        >>> print (ad["temperature"])
+        >>> print (ad[("gas", "temperature")])
         [  1.00000000e+00   1.00000000e+00   1.00000000e+00 ...,   4.40108359e+04
            4.54380547e+04   4.72560117e+04] K
 
@@ -735,16 +743,13 @@ class YTDataContainer:
         velocity_units : string
             The units that the velocity should be converted to in order to
             show streamlines in Firefly. Defaults to km/s.
-
-        coordinate_units: string
+        coordinate_units : string
             The units that the coordinates should be converted to. Defaults to
             kpc.
-
-        show_unused_fields: boolean
+        show_unused_fields : boolean
             A flag to optionally print the fields that are available, in the
             dataset but were not explicitly requested to be tracked.
-
-        dataset_name: string
+        dataset_name : string
             The name of the subdirectory the JSON files will be stored in
             (and the name that will appear in startup.json and in the dropdown
             menu at startup). e.g. `yt` -> json files will appear in
@@ -784,9 +789,9 @@ class YTDataContainer:
             from firefly_api.reader import Reader
         except ImportError as e:
             raise ImportError(
-                "Can't find firefly_api, ensure it"
-                "is in your python path or install it with"
-                "'$ pip install firefly_api'. It is also available"
+                "Can't find firefly_api, ensure it "
+                "is in your python path or install it with "
+                "'$ pip install firefly_api'. It is also available "
                 "on github at github.com/agurvich/firefly_api"
             ) from e
 
@@ -906,11 +911,11 @@ class YTDataContainer:
         Examples
         --------
 
-        >>> temp_at_max_rho = reg.argmax("density", axis="temperature")
-        >>> max_rho_xyz = reg.argmax("density")
-        >>> t_mrho, v_mrho = reg.argmax("density", axis=["temperature",
-        ...                 "velocity_magnitude"])
-        >>> x, y, z = reg.argmax("density")
+        >>> temp_at_max_rho = reg.argmax(("gas", "density"), axis=("gas", "temperature"))
+        >>> max_rho_xyz = reg.argmax(("gas", "density"))
+        >>> t_mrho, v_mrho = reg.argmax(("gas", "density"), axis=[("gas", "temperature"),
+        ...                 ("gas", "velocity_magnitude")])
+        >>> x, y, z = reg.argmax(("gas", "density"))
 
         """
         if axis is None:
@@ -948,11 +953,11 @@ class YTDataContainer:
         Examples
         --------
 
-        >>> temp_at_min_rho = reg.argmin("density", axis="temperature")
-        >>> min_rho_xyz = reg.argmin("density")
-        >>> t_mrho, v_mrho = reg.argmin("density", axis=["temperature",
-        ...                 "velocity_magnitude"])
-        >>> x, y, z = reg.argmin("density")
+        >>> temp_at_min_rho = reg.argmin(("gas", "density"), axis=("gas", "temperature"))
+        >>> min_rho_xyz = reg.argmin(("gas", "density"))
+        >>> t_mrho, v_mrho = reg.argmin(("gas", "density"), axis=[("gas", "temperature"),
+        ...                 ("gas", "velocity_magnitude")])
+        >>> x, y, z = reg.argmin(("gas", "density"))
 
         """
         if axis is None:
@@ -999,8 +1004,8 @@ class YTDataContainer:
         Examples
         --------
 
-        >>> max_temp = reg.max("temperature")
-        >>> max_temp_proj = reg.max("temperature", axis="x")
+        >>> max_temp = reg.max(("gas", "temperature"))
+        >>> max_temp_proj = reg.max(("gas", "temperature"), axis=("index", "x"))
         """
         if axis is None:
             rv = tuple(self._compute_extrema(f)[1] for f in iter_fields(field))
@@ -1034,7 +1039,7 @@ class YTDataContainer:
         Examples
         --------
 
-        >>> min_temp = reg.min("temperature")
+        >>> min_temp = reg.min(("gas", "temperature"))
         """
         if axis is None:
             rv = tuple(self._compute_extrema(f)[0] for f in iter_fields(field))
@@ -1042,9 +1047,7 @@ class YTDataContainer:
                 return rv[0]
             return rv
         elif axis in self.ds.coordinates.axis_name:
-            raise NotImplementedError(
-                "Minimum intensity projection not" " implemented."
-            )
+            raise NotImplementedError("Minimum intensity projection not implemented.")
         else:
             raise NotImplementedError(f"Unknown axis {axis}")
 
@@ -1087,7 +1090,7 @@ class YTDataContainer:
         Examples
         --------
 
-        >>> rho_range = reg.ptp("density")
+        >>> rho_range = reg.ptp(("gas", "density"))
         """
         ex = self._compute_extrema(field)
         return ex[1] - ex[0]
@@ -1100,7 +1103,7 @@ class YTDataContainer:
         extrema=None,
         logs=None,
         units=None,
-        weight_field="cell_mass",
+        weight_field=("gas", "mass"),
         accumulation=False,
         fractional=False,
         deposition="ngp",
@@ -1209,8 +1212,8 @@ class YTDataContainer:
         Examples
         --------
 
-        >>> avg_rho = reg.mean("density", weight="cell_volume")
-        >>> rho_weighted_T = reg.mean("temperature", axis="y", weight="density")
+        >>> avg_rho = reg.mean(("gas", "density"), weight="cell_volume")
+        >>> rho_weighted_T = reg.mean(("gas", "temperature"), axis=("index", "y"), weight=("gas", "density"))
         """
         weight_field = sanitize_weight_field(self.ds, field, weight)
         if axis in self.ds.coordinates.axis_name:
@@ -1244,7 +1247,7 @@ class YTDataContainer:
         --------
 
         >>> total_vol = reg.sum("cell_volume")
-        >>> cell_count = reg.sum("ones", axis="x")
+        >>> cell_count = reg.sum(("index", "ones"), axis=("index", "x"))
         """
         # Because we're using ``sum`` to specifically mean a sum or a
         # projection with the method="sum", we do not utilize the ``mean``
@@ -1267,7 +1270,7 @@ class YTDataContainer:
         ----------
         field : string or tuple field name
             The field to project.
-        weight: string or tuple field name
+        weight : string or tuple field name
             The field to weight the projection by
         axis : string
             The axis to project along.
@@ -1279,7 +1282,7 @@ class YTDataContainer:
         Examples
         --------
 
-        >>> column_density = reg.integrate("density", axis="z")
+        >>> column_density = reg.integrate(("gas", "density"), axis=("index", "z"))
         """
         if weight is not None:
             weight_field = sanitize_weight_field(self.ds, field, weight)
@@ -1329,14 +1332,14 @@ class YTDataContainer:
         >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
         >>> sp = ds.sphere("c", 0.1)
         >>> sp_clone = sp.clone()
-        >>> sp["density"]
+        >>> sp[("gas", "density")]
         >>> print(sp.field_data.keys())
         [("gas", "density")]
         >>> print(sp_clone.field_data.keys())
         []
         """
         args = self.__reduce__()
-        return args[0](self.ds, *args[1][1:])[1]
+        return args[0](self.ds, *args[1][1:])
 
     def __repr__(self):
         # We'll do this the slow way to be clear what's going on
@@ -1483,29 +1486,16 @@ class YTDataContainer:
                 o.field_parameters = cache_fp
 
 
-# Many of these items are set up specifically to ensure that
-# we are not breaking old pickle files.  This means we must only call the
-# _reconstruct_object and that we cannot mandate any additional arguments to
-# the reconstruction function.
+# PR3124: Given that save_as_dataset is now the recommended method for saving
+# objects (see Issue 2021 and references therein), the following has been re-written.
+#
+# Original comments (still true):
 #
 # In the future, this would be better off being set up to more directly
 # reference objects or retain state, perhaps with a context manager.
 #
 # One final detail: time series or multiple datasets in a single pickle
 # seems problematic.
-
-
-class ReconstructedObject(tuple):
-    pass
-
-
-def _check_nested_args(arg, ref_ds):
-    if not isinstance(arg, (tuple, list, ReconstructedObject)):
-        return arg
-    elif isinstance(arg, ReconstructedObject) and ref_ds == arg[0]:
-        return arg[1]
-    narg = [_check_nested_args(a, ref_ds) for a in arg]
-    return narg
 
 
 def _get_ds_by_hash(hash):
@@ -1522,17 +1512,31 @@ def _get_ds_by_hash(hash):
 
 
 def _reconstruct_object(*args, **kwargs):
-    dsid = args[0]
-    dtype = args[1]
+    # returns a reconstructed YTDataContainer. As of PR 3124, we now return
+    # the actual YTDataContainer rather than a (ds, YTDataContainer) tuple.
+
+    # pull out some arguments
+    dsid = args[0]  # the hash id
+    dtype = args[1]  # DataContainer type (e.g., 'region')
+    field_parameters = args[-1]  # the field parameters
+
+    # re-instantiate the base dataset from the hash and ParameterFileStore
     ds = _get_ds_by_hash(dsid)
+    override_weakref = False
     if not ds:
+        override_weakref = True
         datasets = ParameterFileStore()
         ds = datasets.get_ds_hash(dsid)
-    field_parameters = args[-1]
-    # will be much nicer when we can do dsid, *a, fp = args
-    args = args[2:-1]
-    new_args = [_check_nested_args(a, ds) for a in args]
+
+    # instantiate the class with remainder of the args and adjust the state
     cls = getattr(ds, dtype)
-    obj = cls(*new_args)
+    obj = cls(*args[2:-1])
     obj.field_parameters.update(field_parameters)
-    return ReconstructedObject((ds, obj))
+
+    # any nested ds references are weakref.proxy(ds), so need to ensure the ds
+    # we just loaded persists when we leave this function (nosetests fail without
+    # this) if we did not have an actual dataset as an argument.
+    if hasattr(obj, "ds") and override_weakref:
+        obj.ds = ds
+
+    return obj

@@ -54,11 +54,11 @@ set a simple mask based on the contents of one of our fields.
     import yt
     ds = yt.load('Enzo_64/DD0042/data0042')
     ad = ds.all_data()
-    hot = ad["temperature"].in_units('K') > 1e6
-    print('Temperature of all data: ad["temperature"] = \n%s' % ad["temperature"])
+    hot = ad[("gas", "temperature")].in_units('K') > 1e6
+    print('Temperature of all data: ad[("gas", "temperature")] = \n%s' % ad[("gas", "temperature")])
     print("Boolean Mask: hot = \n%s" % hot)
-    print('Temperature of "hot" data: ad["temperature"][hot] = \n%s' %
-          ad['temperature'][hot])
+    print('Temperature of "hot" data: ad[("gas", "temperature")][hot] = \n%s' %
+          ad[("gas", "temperature")][hot])
 
 This was a simple example, but one can make the conditionals that define
 a boolean mask have multiple parts, and one can stack masks together to
@@ -71,9 +71,9 @@ used if you simply need to access the NumPy arrays:
     ds = yt.load('Enzo_64/DD0042/data0042')
     ad = ds.all_data()
     overpressure_and_fast = (ad["pressure"] > 1e-14) & (ad["velocity_magnitude"].in_units('km/s') > 1e2)
-    print('Density of all data: ad["density"] = \n%s' % ad['density'])
-    print('Density of "overpressure and fast" data: overpressure_and_fast['density'] = \n%s' %
-          overpressure_and_fast['density'])
+    print('Density of all data: ad[("gas", "density")] = \n%s' % ad[("gas", "density")])
+    print('Density of "overpressure and fast" data: overpressure_and_fast[("gas", "density")] = \n%s' %
+          overpressure_and_fast[("gas", "density")])
 
 .. _cut-regions:
 
@@ -96,13 +96,13 @@ filtering out unwanted regions. Such wrapper functions are methods of
    import yt
    ds = yt.load('Enzo_64/DD0042/data0042')
    ad = ds.all_data()
-   overpressure_and_fast = ad.include_above('pressure', 1e-14)
+   overpressure_and_fast = ad.include_above(("gas", "pressure"), 1e-14)
    # You can chain include_xx and exclude_xx to produce the intersection of cut regions
-   overpressure_and_fast = overpressure_and_fast.include_above('velocity_magnitude', 1e2, 'km/s')
+   overpressure_and_fast = overpressure_and_fast.include_above(("gas", "velocity_magnitude"), 1e2, 'km/s')
 
-   print('Density of all data: ad["density"] = \n%s' % ad['density'])
-   print('Density of "overpressure and fast" data: overpressure_and_fast['density'] = \n%s' %
-          overpressure_and_fast['density'])
+   print('Density of all data: ad[("gas", "density")] = \n%s' % ad[("gas", density")])
+   print('Density of "overpressure and fast" data: overpressure_and_fast[("gas", "density")] = \n%s' %
+          overpressure_and_fast[("gas", "density")])
 
 The following exclude and include functions are supported:
    - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.include_equal` - Only include values equal to given value
@@ -118,8 +118,14 @@ The following exclude and include functions are supported:
    - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.exclude_below` - Exclude values below given value
 
 
-Cut regions can also operate on particle fields, but a single cut region object
-cannot operate on both particle fields and mesh fields at the same time.
+.. warning::
+
+    Cut regions are unstable when used on particle fields. Though you can create
+    a cut region using a mesh field or fields as a filter and then obtain a
+    particle field within that region, you cannot create a cut region using
+    particle fields in the filter, as yt will currently raise an error. If
+    you want to filter particle fields, see the next section
+    :ref:`filtering-particles` instead.
 
 .. _filtering-particles:
 

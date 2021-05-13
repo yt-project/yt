@@ -335,7 +335,7 @@ def add_xray_emissivity_field(
                     dist = ds.quan(*dist)
                 except (RuntimeError, TypeError):
                     raise TypeError(
-                        "dist should be a YTQuantity " "or a (value, unit) tuple!"
+                        "dist should be a YTQuantity or a (value, unit) tuple!"
                     ) from e
 
             angular_scale = dist / ds.quan(1.0, "radian")

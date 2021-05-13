@@ -106,7 +106,7 @@ class GizmoFieldInfo(GadgetFieldInfo):
 
             def _el_number_density(field, data):
                 return (
-                    data[ptype, "ElectronAbundance"] * data[ptype, "H_number_density"]
+                    data[ptype, "ElectronAbundance"] * data[ptype, "H_nuclei_density"]
                 )
 
             self.add_field(
@@ -147,11 +147,11 @@ class GizmoFieldInfo(GadgetFieldInfo):
     def setup_star_particle_fields(self, ptype):
         def _creation_time(field, data):
             if data.ds.cosmological_simulation:
-                a_form = data["StellarFormationTime"]
+                a_form = data[(ptype, "StellarFormationTime")]
                 z_form = 1 / a_form - 1
                 creation_time = data.ds.cosmology.t_from_z(z_form)
             else:
-                t_form = data["StellarFormationTime"]
+                t_form = data[(ptype, "StellarFormationTime")]
                 creation_time = data.ds.arr(t_form, "code_time")
             return creation_time
 
@@ -163,7 +163,7 @@ class GizmoFieldInfo(GadgetFieldInfo):
         )
 
         def _age(field, data):
-            return data.ds.current_time - data["creation_time"]
+            return data.ds.current_time - data[(ptype, "creation_time")]
 
         self.add_field(
             (ptype, "age"),

@@ -412,6 +412,8 @@ different magnetic field units in the different :ref:`unit systems <unit_systems
 determine how to set up special magnetic field handling when designing a new frontend, check out
 :ref:`bfields-frontend`.
 
+.. _species-fields:
+
 Species Fields
 --------------
 

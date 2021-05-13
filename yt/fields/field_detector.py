@@ -3,6 +3,7 @@ from collections import defaultdict
 import numpy as np
 
 from yt.units.yt_array import YTArray
+from yt.utilities.io_handler import io_registry
 
 from .field_exceptions import NeedsGridType
 
@@ -52,9 +53,10 @@ class FieldDetector(defaultdict):
             # required attrs
             ds = fake_dataset(lambda: 1)
             ds["Massarr"] = np.ones(6)
-            ds.current_redshift = (
-                ds.omega_lambda
-            ) = ds.omega_matter = ds.cosmological_simulation = 0.0
+            ds.current_redshift = 0.0
+            ds.omega_lambda = 0.0
+            ds.omega_matter = 0.0
+            ds.cosmological_simulation = 0
             ds.gamma = 5.0 / 3.0
             ds.hubble_constant = 0.7
             ds.domain_left_edge = np.zeros(3, "float64")
@@ -145,24 +147,17 @@ class FieldDetector(defaultdict):
                     self[item] = vv.ravel()
                 return self[item]
         elif finfo is not None and finfo.sampling_type == "particle":
-            if (
-                "particle_position" in (item, item[1])
-                or "particle_velocity" in (item, item[1])
-                or "particle_magnetic_field" in (item, item[1])
-                or "Velocity" in (item, item[1])
-                or "Velocities" in (item, item[1])
-                or "Coordinates" in (item, item[1])
-                or "MagneticField" in (item, item[1])
+            io = io_registry[self.ds.dataset_type](self.ds)
+            if hasattr(io, "_vector_fields") and (
+                item in io._vector_fields or item[1] in io._vector_fields
             ):
+                try:
+                    cols = io._vector_fields[item]
+                except KeyError:
+                    cols = io._vector_fields[item[1]]
                 # A vector
                 self[item] = YTArray(
-                    np.ones((self.NumberOfParticles, 3)),
-                    finfo.units,
-                    registry=self.ds.unit_registry,
-                )
-            elif "FourMetalFractions" in (item, item[1]):
-                self[item] = YTArray(
-                    np.ones((self.NumberOfParticles, 4)),
+                    np.ones((self.NumberOfParticles, cols)),
                     finfo.units,
                     registry=self.ds.unit_registry,
                 )

@@ -15,13 +15,13 @@ cam.position = ds.arr([1, 1, 1], "cm")
 cam.switch_orientation()
 
 # add rendering of density field
-dens = create_volume_source(ds, field="dens")
+dens = create_volume_source(ds, field=("flash", "dens"))
 dens.use_ghost_zones = True
 sc.add_source(dens)
 sc.save("density.png", sigma_clip=6)
 
 # add rendering of x-velocity field
-vel = create_volume_source(ds, field="velx")
+vel = create_volume_source(ds, field=("flash", "velx"))
 vel.use_ghost_zones = True
 sc.add_source(vel)
 sc.save("density_any_velocity.png", sigma_clip=6)

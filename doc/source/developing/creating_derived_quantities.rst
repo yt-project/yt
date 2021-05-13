@@ -20,8 +20,8 @@ single arrays, and returns the final values.  For an example, we look at the
 .. code-block:: python
 
    def _TotalMass(data):
-       baryon_mass = data["cell_mass"].sum()
-       particle_mass = data["ParticleMassMsun"].sum()
+       baryon_mass = data["mass"].sum()
+       particle_mass = data["particle_mass"].sum()
        return baryon_mass, particle_mass
 
 

@@ -105,9 +105,6 @@ class ConfigNode:
             retval[key] = child.serialize()
         return retval
 
-    def __repr__(self):
-        return f"<Node {self.key}>"
-
     @staticmethod
     def from_dict(other, parent=None, **kwa):
         me = ConfigNode(None, parent=parent)
@@ -136,6 +133,17 @@ class ConfigNode:
     def as_dict(self, callback=lambda child: child.value):
         data, _ = self._as_dict_with_count(callback)
         return data
+
+    def __repr__(self):
+        return f"<Node {self.key}>"
+
+    def __contains__(self, item):
+        return item in self.children
+
+    # Add support for IPython rich display
+    # see https://ipython.readthedocs.io/en/stable/config/integrating.html
+    def _repr_json_(self):
+        return self.as_dict()
 
 
 class ConfigLeaf:

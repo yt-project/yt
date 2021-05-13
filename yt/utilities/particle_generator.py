@@ -155,7 +155,7 @@ class ParticleGenerator:
         """
         pbar = get_pbar("Mapping fields to particles", self.num_grids)
         for i, grid in enumerate(self.ds.index.grids):
-            pbar.update(i)
+            pbar.update(i + 1)
             if self.NumberOfParticles[i] > 0:
                 start = self.ParticleGridIndices[i]
                 end = self.ParticleGridIndices[i + 1]
@@ -297,9 +297,9 @@ class LatticeParticleGenerator(ParticleGenerator):
         >>> dims = (128,128,128)
         >>> le = np.array([0.25,0.25,0.25])
         >>> re = np.array([0.75,0.75,0.75])
-        >>> fields = ["particle_position_x","particle_position_y",
-        ...           "particle_position_z",
-        ...           "particle_density","particle_temperature"]
+        >>> fields = [("all", "particle_position_x"),("all", "particle_position_y"),
+        ...           ("all", "particle_position_z"),
+        ...           ("all", "particle_density"),("all", "particle_temperature")]
         >>> particles = LatticeParticleGenerator(ds, dims, le, re, fields)
         """
 
@@ -343,7 +343,7 @@ class WithDensityParticleGenerator(ParticleGenerator):
         data_source,
         num_particles,
         field_list,
-        density_field="density",
+        density_field=("gas", "density"),
         ptype="io",
     ):
         r"""
@@ -360,7 +360,7 @@ class WithDensityParticleGenerator(ParticleGenerator):
             The number of particles to be generated
         field_list : list of strings
             A list of particle fields
-        density_field : string, optional
+        density_field : tuple, optional
             A density field which will serve as the distribution function for the
             particle positions. Theoretically, this could be any 'per-volume' field.
         ptype : string, optional
@@ -370,9 +370,9 @@ class WithDensityParticleGenerator(ParticleGenerator):
         --------
         >>> sphere = ds.sphere(ds.domain_center, 0.5)
         >>> num_p = 100000
-        >>> fields = ["particle_position_x","particle_position_y",
-        >>>           "particle_position_z",
-        >>>           "particle_density","particle_temperature"]
+        >>> fields = [("all", "particle_position_x"),("all", "particle_position_y"),
+        >>>           ("all", "particle_position_z"),
+        >>>           ("all", "particle_density"),("all", "particle_temperature")]
         >>> particles = WithDensityParticleGenerator(
         ...                ds,
         ...                sphere,
@@ -384,8 +384,10 @@ class WithDensityParticleGenerator(ParticleGenerator):
 
         super().__init__(ds, num_particles, field_list, ptype=ptype)
 
-        num_cells = len(data_source["x"].flat)
-        max_mass = (data_source[density_field] * data_source["cell_volume"]).max()
+        num_cells = len(data_source[("index", "x")].flat)
+        max_mass = (
+            data_source[density_field] * data_source[("gas", "cell_volume")]
+        ).max()
         num_particles_left = num_particles
         all_x = []
         all_y = []
@@ -397,30 +399,28 @@ class WithDensityParticleGenerator(ParticleGenerator):
         while num_particles_left > 0:
 
             m = np.random.uniform(high=1.01 * max_mass, size=num_particles_left)
-            idxs = np.random.random_integers(
-                low=0, high=num_cells - 1, size=num_particles_left
-            )
-            m_true = (data_source[density_field] * data_source["cell_volume"]).flat[
-                idxs
-            ]
+            idxs = np.random.randint(low=0, high=num_cells, size=num_particles_left)
+            m_true = (
+                data_source[density_field] * data_source[("gas", "cell_volume")]
+            ).flat[idxs]
             accept = m <= m_true
             num_accepted = accept.sum()
             accepted_idxs = idxs[accept]
 
             xpos = (
-                data_source["x"].flat[accepted_idxs]
+                data_source[("index", "x")].flat[accepted_idxs]
                 + np.random.uniform(low=-0.5, high=0.5, size=num_accepted)
-                * data_source["dx"].flat[accepted_idxs]
+                * data_source[("index", "dx")].flat[accepted_idxs]
             )
             ypos = (
-                data_source["y"].flat[accepted_idxs]
+                data_source[("index", "y")].flat[accepted_idxs]
                 + np.random.uniform(low=-0.5, high=0.5, size=num_accepted)
-                * data_source["dy"].flat[accepted_idxs]
+                * data_source[("index", "dy")].flat[accepted_idxs]
             )
             zpos = (
-                data_source["z"].flat[accepted_idxs]
+                data_source[("index", "z")].flat[accepted_idxs]
                 + np.random.uniform(low=-0.5, high=0.5, size=num_accepted)
-                * data_source["dz"].flat[accepted_idxs]
+                * data_source[("index", "dz")].flat[accepted_idxs]
             )
 
             all_x.append(xpos)

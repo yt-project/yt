@@ -65,14 +65,14 @@ def test_multi_line_plot():
 def test_line_buffer():
     ds = fake_random_ds(32)
     lb = yt.LineBuffer(ds, (0, 0, 0), (1, 1, 1), 512, label="diag")
-    lb["density"]
-    lb["velocity_x"]
-    assert_equal(lb["density"].size, 512)
-    lb["density"] = 0
-    assert_equal(lb["density"], 0)
-    assert_equal(set(lb.keys()), {"density", "velocity_x"})
-    del lb["velocity_x"]
-    assert_equal(set(lb.keys()), {"density"})
+    lb[("gas", "density")]
+    lb[("gas", "velocity_x")]
+    assert_equal(lb[("gas", "density")].size, 512)
+    lb[("gas", "density")] = 0
+    assert_equal(lb[("gas", "density")], 0)
+    assert_equal(set(lb.keys()), {("gas", "density"), ("gas", "velocity_x")})
+    del lb[("gas", "velocity_x")]
+    assert_equal(set(lb.keys()), {("gas", "density")})
 
 
 def test_validate_point():

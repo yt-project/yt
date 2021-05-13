@@ -425,7 +425,7 @@ class HydroFieldFileHandler(FieldFileHandler):
         # Allow some wiggle room for users to add too many variables
         count_extra = 0
         while len(fields) < nvar:
-            fields.append("var" + str(len(fields)))
+            fields.append(f"var_{len(fields)}")
             count_extra += 1
         if count_extra > 0:
             mylog.debug("Detected %s extra fluid fields.", count_extra)
@@ -461,7 +461,7 @@ class GravFieldFileHandler(FieldFileHandler):
         ndim = ds.dimensionality
 
         if nvar == ndim + 1:
-            fields = ["potential"] + [f"{k}-acceleration" for k in "xyz"[:ndim]]
+            fields = ["Potential"] + [f"{k}-acceleration" for k in "xyz"[:ndim]]
         else:
             fields = [f"{k}-acceleration" for k in "xyz"[:ndim]]
         ndetected = len(fields)

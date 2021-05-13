@@ -17,7 +17,7 @@ def test_preserve_geometric_properties():
         ad = ds1.all_data()
         with TemporaryDirectory() as tmpdir:
             tmpf = os.path.join(tmpdir, "savefile.h5")
-            fn = ad.save_as_dataset(tmpf, fields=["density"])
+            fn = ad.save_as_dataset(tmpf, fields=[("gas", "density")])
             ds2 = load(fn)
             assert isinstance(ds2, YTDataContainerDataset)
             dfl = ds2.derived_field_list

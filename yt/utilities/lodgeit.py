@@ -211,7 +211,7 @@ def create_paste(code, language, filename, mimetype, private):
     xmlrpc = get_xmlrpc_service()
     rv = xmlrpc.pastes.newPaste(language, code, None, filename, mimetype, private)
     if not rv:
-        fail("Could not create paste. Something went wrong " "on the server side.", 4)
+        fail("Could not create paste. Something went wrong on the server side.", 4)
     return rv
 
 

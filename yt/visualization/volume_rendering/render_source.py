@@ -54,7 +54,7 @@ def invalidate_volume(f):
     def wrapper(*args, **kwargs):
         ret = f(*args, **kwargs)
         obj = args[0]
-        if isinstance(obj.transfer_function, ProjectionTransferFunction):
+        if isinstance(obj._transfer_function, ProjectionTransferFunction):
             obj.sampler_type = "projection"
             obj._log_field = False
             obj._use_ghost_zones = False
@@ -688,7 +688,7 @@ class MeshSource(OpaqueSource):
         assert self.data_source is not None
         if self.field[0] == "all":
             raise NotImplementedError(
-                "Mesh unions are not implemented " "for 3D rendering"
+                "Mesh unions are not implemented for 3D rendering"
             )
 
         if self.engine == "embree":
@@ -698,7 +698,7 @@ class MeshSource(OpaqueSource):
             self.build_volume_bvh()
         else:
             raise NotImplementedError(
-                "Invalid ray-tracing engine selected. " "Choices are 'embree' and 'yt'."
+                "Invalid ray-tracing engine selected. Choices are 'embree' and 'yt'."
             )
 
     def cmap():

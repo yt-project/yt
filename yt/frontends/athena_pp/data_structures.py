@@ -130,7 +130,7 @@ class AthenaPPLogarithmicIndex(UnstructuredIndex):
                 np.array([nxm - 1, nym - 1, nzm - 1]),
             )
             self.meshes.append(mesh)
-            pbar.update(i)
+            pbar.update(i + 1)
         pbar.finish()
         mylog.debug("Done setting up meshes.")
 
@@ -339,11 +339,11 @@ class AthenaPPDataset(Dataset):
         else:
             self.gamma = 5.0 / 3.0
 
-        self.current_redshift = (
-            self.omega_lambda
-        ) = (
-            self.omega_matter
-        ) = self.hubble_constant = self.cosmological_simulation = 0.0
+        self.current_redshift = 0.0
+        self.omega_lambda = 0.0
+        self.omega_matter = 0.0
+        self.hubble_constant = 0.0
+        self.cosmological_simulation = 0
         self.parameters["Time"] = self.current_time  # Hardcode time conversion for now.
         self.parameters[
             "HydroMethod"
@@ -367,5 +367,5 @@ class AthenaPPDataset(Dataset):
     def _skip_cache(self):
         return True
 
-    def __repr__(self):
+    def __str__(self):
         return self.basename.rsplit(".", 1)[0]

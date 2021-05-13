@@ -24,10 +24,10 @@ from yt.utilities.answer_testing.framework import (
 from yt.utilities.on_demand_imports import _f90nml as f90nml
 
 _fields = (
-    "temperature",
-    "density",
-    "velocity_magnitude",
-    "pressure_gradient_magnitude",
+    ("gas", "temperature"),
+    ("gas", "density"),
+    ("gas", "velocity_magnitude"),
+    ("gas", "pressure_gradient_magnitude"),
 )
 
 output_00080 = "output_00080/info_00080.txt"
@@ -42,13 +42,13 @@ def test_output_00080():
     for dobj_name in dso:
         for field in _fields:
             for axis in [0, 1, 2]:
-                for weight_field in [None, "density"]:
+                for weight_field in [None, ("gas", "density")]:
                     yield PixelizedProjectionValuesTest(
                         output_00080, axis, field, weight_field, dobj_name
                     )
             yield FieldValuesTest(output_00080, field, dobj_name)
         dobj = create_obj(ds, dobj_name)
-        s1 = dobj["ones"].sum()
+        s1 = dobj[("index", "ones")].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         assert_equal(s1, s2)
 
@@ -193,9 +193,9 @@ def test_ramses_rt():
     for specie in species:
         special_fields.extend(
             [
-                ("gas", specie + "_fraction"),
-                ("gas", specie + "_density"),
-                ("gas", specie + "_mass"),
+                ("gas", f"{specie}_fraction"),
+                ("gas", f"{specie}_density"),
+                ("gas", f"{specie}_mass"),
             ]
         )
 
@@ -369,17 +369,28 @@ def test_custom_hydro_def():
 
 
 @requires_file(output_00080)
+@requires_file(ramses_sink)
 def test_grav_detection():
-    ds = yt.load(output_00080)
+    for path, has_potential in ((output_00080, False), (ramses_sink, True)):
+        ds = yt.load(path)
 
-    # Test detection
-    for k in "xyz":
-        assert ("gravity", f"{k}-acceleration") in ds.field_list
-        assert ("gas", f"acceleration_{k}") in ds.derived_field_list
+        # Test detection
+        for k in "xyz":
+            assert ("gravity", f"{k}-acceleration") in ds.field_list
+            assert ("gas", f"acceleration_{k}") in ds.derived_field_list
 
-    # Test access
-    for k in "xyz":
-        ds.r["gas", f"acceleration_{k}"]
+        if has_potential:
+            assert ("gravity", "Potential") in ds.field_list
+            assert ("gas", "potential") in ds.derived_field_list
+            assert ("gas", "potential_energy") in ds.derived_field_list
+
+        # Test access
+        for k in "xyz":
+            ds.r["gas", f"acceleration_{k}"].to("m/s**2")
+
+        if has_potential:
+            ds.r["gas", "potential"].to("m**2/s**2")
+            ds.r["gas", "potential_energy"].to("kg*m**2/s**2")
 
 
 @requires_file(ramses_sink)
@@ -426,14 +437,14 @@ def test_formation_time():
     assert ("io", "particle_metallicity") in ds.field_list
 
     ad = ds.all_data()
-    whstars = ad["conformal_birth_time"] != 0
-    assert np.all(ad["star_age"][whstars] > 0)
+    whstars = ad[("io", "conformal_birth_time")] != 0
+    assert np.all(ad[("io", "star_age")][whstars] > 0)
 
     # test semantics for non-cosmological new-style output format
     ds = yt.load(ramses_new_format)
     ad = ds.all_data()
     assert ("io", "particle_birth_time") in ds.field_list
-    assert np.all(ad["particle_birth_time"] > 0)
+    assert np.all(ad[("io", "particle_birth_time")] > 0)
 
     # test semantics for non-cosmological old-style output format
     ds = yt.load(ramsesNonCosmo, extra_particle_fields=extra_particle_fields)
@@ -441,9 +452,9 @@ def test_formation_time():
     assert ("io", "particle_birth_time") in ds.field_list
     # the dataset only includes particles with arbitrarily old ages
     # and particles that formed in the very first timestep
-    assert np.all(ad["particle_birth_time"] <= 0)
-    whdynstars = ad["particle_birth_time"] == 0
-    assert np.all(ad["star_age"][whdynstars] == ds.current_time)
+    assert np.all(ad[("io", "particle_birth_time")] <= 0)
+    whdynstars = ad[("io", "particle_birth_time")] == 0
+    assert np.all(ad[("io", "star_age")][whdynstars] == ds.current_time)
 
 
 @requires_file(ramses_new_format)
@@ -627,7 +638,7 @@ def test_max_level():
         assert any(ds.r["index", "grid_level"] == 2)
 
 
-@requires_file(ramses_new_format)
+@requires_file(output_00080)
 def test_invalid_max_level():
     invalid_value_args = (
         (1, None),
@@ -647,3 +658,13 @@ def test_invalid_max_level():
     for lvl, convention in invalid_type_args:
         with assert_raises(TypeError):
             yt.load(output_00080, max_level=lvl, max_level_convention=convention)
+
+
+@requires_file(ramses_new_format)
+def test_print_stats():
+    ds = yt.load(ramses_new_format)
+
+    # Should work
+    ds.print_stats()
+
+    # FIXME #3197: use `capsys` with pytest to make sure the print_stats function works as intended
