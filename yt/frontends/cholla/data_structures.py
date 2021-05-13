@@ -7,6 +7,7 @@ from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.funcs import setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
+from yt.utilities.on_demand_imports import _h5py as h5py
 
 from .fields import ChollaFieldInfo
 
@@ -157,4 +158,13 @@ class ChollaDataset(Dataset):
         # differentiate the frontend from others. Sometimes this means looking
         # for specific fields or attributes in the dataset in addition to
         # looking at the file name or extension.
+        try:
+            fileh = h5py.File(filename, mode="r")
+            attrs = fileh.attrs
+            if "bounds" in attrs and "domain" in attrs:
+                fileh.close()
+                return True
+            fileh.close()
+        except Exception:
+            pass
         return False
