@@ -1373,8 +1373,8 @@ non-standard from the default Gadget distribution format.  These can be
 specified in the call to ``GadgetDataset`` by either supplying one of the
 sets of field specifications as a string or by supplying a field specification
 itself.  As an example, yt has built-in definitions for ``default`` (the
-default) and ``agora_unlv``.  Field specifications must be tuples, and must be
-of this format:
+default), ``agora_unlv``, ``group0000``, and ``magneticum_box2_hr``.
+Field specifications must be tuples, and must be of this format:
 
 .. code-block:: python
 
