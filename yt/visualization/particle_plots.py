@@ -271,6 +271,8 @@ class ParticleProjectionPlot(PWViewerMPL):
             splat_method=splat_method,
         )
 
+        self.projected = weight_field is None
+
         PWViewerMPL.__init__(
             self,
             ParticleSource,
