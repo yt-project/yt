@@ -1373,7 +1373,13 @@ non-standard from the default Gadget distribution format.  These can be
 specified in the call to ``GadgetDataset`` by either supplying one of the
 sets of field specifications as a string or by supplying a field specification
 itself.  As an example, yt has built-in definitions for ``default`` (the
-default), ``agora_unlv``, ``group0000``, and ``magneticum_box2_hr``.
+default), ``agora_unlv``, ``group0000``, and ``magneticum_box2_hr``. They can
+be used like this:
+
+.. code-block:: python
+
+   ds = yt.load("snap_100", field_spec="group0000")
+
 Field specifications must be tuples, and must be of this format:
 
 .. code-block:: python
@@ -1397,6 +1403,8 @@ this:
 
 .. code-block:: python
 
+   import yt
+
    my_field_def = (
        "Coordinates",
        "Velocities",
@@ -1408,18 +1416,93 @@ this:
        ("SmoothingLength", "Gas"),
    )
 
+   ds = yt.load("snap_100", field_spec=my_field_def)
+
 To save time, you can utilize the plugins file for yt and use it to add items
 to the dictionary where these definitions are stored.  You could do this like
 so:
 
 .. code-block:: python
 
+   import yt
    from yt.frontends.gadget.definitions import gadget_field_specs
 
    gadget_field_specs["my_field_def"] = my_field_def
 
+   ds = yt.load("snap_100", field_spec="my_field_def")
+
 Please also feel free to issue a pull request with any new field
 specifications, as we're happy to include them in the main distribution!
+
+Magneticum halos downloaded using the SIMCUT method from the
+`Cosmological Web Portal <https://c2papcosmosim.uc.lrz.de/>`_ can be loaded
+using the ``"magneticum_box2_hr"`` value for the ``field_spec`` argumemt.
+However, this is strictly only true for halos downloaded after May 14, 2021,
+since before then the halos had the following signature (with the ``"StellarAge"``
+field for the ``"Bndry"`` particles missing):
+
+.. code-block:: python
+
+    magneticum_box2_hr = (
+        "Coordinates",
+        "Velocities",
+        "ParticleIDs",
+        "Mass",
+        ("InternalEnergy", "Gas"),
+        ("Density", "Gas"),
+        ("SmoothingLength", "Gas"),
+        ("ColdFraction", "Gas"),
+        ("Temperature", "Gas"),
+        ("StellarAge", "Stars"),
+        "Potential",
+        ("InitialMass", "Stars"),
+        ("ElevenMetalMasses", ("Gas", "Stars")),
+        ("StarFormationRate", "Gas"),
+        ("TrueMass", "Bndry"),
+        ("AccretionRate", "Bndry"),
+    )
+
+and before November 20, 2020, the field specification had the ``"ParticleIDs"`` and ``"Mass"``
+fields swapped:
+
+.. code-block:: python
+
+    magneticum_box2_hr = (
+        "Coordinates",
+        "Velocities",
+        "Mass",
+        "ParticleIDs",
+        ("InternalEnergy", "Gas"),
+        ("Density", "Gas"),
+        ("SmoothingLength", "Gas"),
+        ("ColdFraction", "Gas"),
+        ("Temperature", "Gas"),
+        ("StellarAge", "Stars"),
+        "Potential",
+        ("InitialMass", "Stars"),
+        ("ElevenMetalMasses", ("Gas", "Stars")),
+        ("StarFormationRate", "Gas"),
+        ("TrueMass", "Bndry"),
+        ("AccretionRate", "Bndry"),
+    )
+
+In general, to determine what fields are in your Gadget binary file, it may
+be useful to inspect them with the `g3read <https://github.com/aragagnin/g3read>`_
+code first.
+
+.. _gadget-long-ids:
+
+Long Particle IDs
+^^^^^^^^^^^^^^^^^
+
+Some Gadget binary files use 64-bit integers for particle IDs. To use these,
+simply set ``long_ids=True`` when loading the dataset:
+
+.. code-block:: python
+
+    import yt
+
+    ds = yt.load("snap_100", long_ids=True)
 
 .. _gadget-ptype-spec:
 
