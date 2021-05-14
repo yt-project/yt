@@ -7,6 +7,7 @@ from functools import lru_cache
 from itertools import chain
 from pathlib import Path
 from typing import Optional, Union
+from warnings import warn
 
 import pkg_resources
 
@@ -112,9 +113,8 @@ def get_data_registry_table():
     )
 
     # load local data
-    pooch_json = json.load(
-        pkg_resources.resource_stream("yt", "sample_data_registry.json")
-    )
+    with pkg_resources.resource_stream("yt", "sample_data_registry.json") as fh:
+        pooch_json = json.load(fh)
     pooch_table = pd.DataFrame(pooch_json.values())
 
     # merge tables
@@ -132,7 +132,15 @@ def get_data_registry_table():
 def _get_test_data_dir_path():
     from yt.config import ytcfg
 
-    return Path(ytcfg.get("yt", "test_data_dir"))
+    p = Path(ytcfg.get("yt", "test_data_dir"))
+    if p.is_dir():
+        return p
+    warn(
+        "Storage directory from yt config doesn't exist "
+        f"(currently set to '{p}'). "
+        "Current working directory will be used instead."
+    )
+    return Path.cwd()
 
 
 def lookup_on_disk_data(fn):
@@ -171,9 +179,8 @@ def _get_pooch_instance():
     data_registry = get_data_registry_table()
     cache_storage = _get_test_data_dir_path() / "yt_download_cache"
 
-    sample_data_registry = json.load(
-        pkg_resources.resource_stream("yt", "sample_data_registry.json")
-    )
+    with pkg_resources.resource_stream("yt", "sample_data_registry.json") as fh:
+        sample_data_registry = json.load(fh)
     registry = {k: v["hash"] for k, v in sample_data_registry.items()}
     return pooch.create(
         path=cache_storage, base_url="https://yt-project.org/data/", registry=registry
