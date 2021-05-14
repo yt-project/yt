@@ -71,7 +71,7 @@ def test_load_sample_small_dataset(
 
     text = textwrap.dedent(
         f"""
-            '{fn}' is not available locally. Looking up online.
+            '{fn.replace('/', os.path.sep)}' is not available locally. Looking up online.
             Downloading from https://yt-project.org/data/{archive}
             Untaring downloaded file to '{str(tmp_data_dir)}'
         """
