@@ -1262,13 +1262,18 @@ def load_unstructured_mesh(
 
 
 # --- Loader for yt sample datasets ---
-def load_sample(fn, progressbar: bool = True, timeout=None, **kwargs):
+def load_sample(fn=None, progressbar: bool = True, timeout=None, **kwargs):
     """
-    Load sample data with yt. Simple wrapper around `yt.load` to include fetching
-    data with pooch.
+    Load sample data with yt.
+
+    This is a simple wrapper around `yt.load` to include fetching
+    data with pooch from remote source.
+
+    yt sample data can be found at:
+    https://yt-project.org/data.
 
     The data registry table can be retrieved and visualized using
-    `yt.sample_data.api.get_data_registry_table`.
+    `yt.sample_data.api.get_data_registry_table()`.
 
     This function requires pandas and pooch to be installed.
 
@@ -1298,6 +1303,11 @@ def load_sample(fn, progressbar: bool = True, timeout=None, **kwargs):
     )
 
     pooch_logger = pooch.utils.get_logger()
+
+    if fn is None:
+        mylog.info("One can see which sample datasets are available at:\n" \
+                   "https://yt-project.org/data\n" \
+                   "or alternatively by running: yt.sample_data.api.get_data_registry_table()")
 
     topdir, _, specific_file = str(fn).partition(os.path.sep)
 
