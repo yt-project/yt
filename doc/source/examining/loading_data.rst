@@ -11,8 +11,8 @@ some important caveats about different data formats.
 Sample Data
 -----------
 
-The `yt` community has provided a large number of sample datasets, which are
-accessible from https://yt-project.org/data/ .  `yt` also provides a helper
+The yt community has provided a large number of sample datasets, which are
+accessible from https://yt-project.org/data/ .  yt also provides a helper
 function, `yt.load_sample`, that can load from a set of sample datasets.  The
 quickstart notebooks in this documentation utilize this.
 
