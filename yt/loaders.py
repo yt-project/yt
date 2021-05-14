@@ -1299,6 +1299,10 @@ def load_sample(fn, progressbar: bool = True, timeout=None, **kwargs):
 
     pooch_logger = pooch.utils.get_logger()
 
+    if isinstance(fn, str):
+        # normalize path for platform portability
+        fn = fn.replace("/", os.path.sep)
+
     topdir, _, specific_file = str(fn).partition(os.path.sep)
 
     registry_table = get_data_registry_table()
