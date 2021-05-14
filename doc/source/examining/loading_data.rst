@@ -1504,6 +1504,9 @@ simply set ``long_ids=True`` when loading the dataset:
 
     ds = yt.load("snap_100", long_ids=True)
 
+This is needed, for example, for Magneticum halos downloaded using the SIMCUT
+method from the `Cosmological Web Portal <https://c2papcosmosim.uc.lrz.de/>`_
+
 .. _gadget-ptype-spec:
 
 Particle Type Definitions
@@ -1657,6 +1660,20 @@ on-disk. For more information, see the
 If passive scalar fields are present in your dataset, they will be loaded in
 and aliased to fields with the naming convention ``"PassiveScalars_XX"`` where
 ``XX`` is the number of the passive scalar array, e.g. ``"00"``, ``"01"``, etc.
+
+For halo cutouts downloaded from the Illustris or TNG simulations, it is
+necessary to make some small edits to the HDF5 file for yt to recognize them as
+Arepo data:
+
+.. code-block:: python
+
+    import h5py
+    import numpy as np
+
+    with h5py.File(saved_filename, "r+") as f:
+        f["Header"].attrs["NumPart_Total"] = np.array(f["Header"].attrs["NumPart_ThisFile"])
+        f.create_group("Config")
+        f["/Config"].attrs["VORONOI"] = 1
 
 .. _loading-gamer-data:
 
