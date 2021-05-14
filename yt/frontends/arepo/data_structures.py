@@ -47,13 +47,14 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
         valid = True
         try:
             fh = h5py.File(filename, mode="r")
-            valid = (
+            valid = ((
                 all(ng in fh["/"] for ng in need_groups)
                 and not any(vg in fh["/"] for vg in veto_groups)
                 and (
                     "VORONOI" in fh["/Config"].attrs.keys()
                     or "AMR" in fh["/Config"].attrs.keys()
                 )
+                or ("GFM_Metals" in fh["/PartType0"]))
             )
             fh.close()
         except Exception:
