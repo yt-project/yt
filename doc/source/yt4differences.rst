@@ -89,6 +89,11 @@ The list below is arranged in order of most to least important changes.
   ``cmo.`` (e.g., ``cmo.balance``).  Note that this solution works with any
   yt-supported version of Matplotlib, but is not backward compatible with
   earlier versions of yt.
+* Position and velocity fields now default to using linear scaling in profiles
+  and phase plots, whereas previously behavior was determined by whether the
+  dataset was particle- or grid-based.  Efforts have been made to standardize
+  the treatment of other fields in profile and phase plots for particle and
+  grid datasets.
 
 Important New Aliases
 ^^^^^^^^^^^^^^^^^^^^^
