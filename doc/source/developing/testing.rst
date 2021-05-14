@@ -308,7 +308,6 @@ Here is an example test function (from ``yt/visualization/tests/test_raw_field_s
     raw_fields = "Laser/plt00015"
 
 
-
     def compare(ds, field):
         def slice_image(im_name):
             sl = yt.SlicePlot(ds, "z", field)
