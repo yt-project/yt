@@ -6,7 +6,6 @@ import numpy as np
 import pytest
 
 from yt.config import ytcfg
-from yt.frontends.enzo.api import EnzoDataset
 from yt.loaders import load_sample
 from yt.sample_data.api import get_data_registry_table
 from yt.testing import requires_module_pytest
@@ -40,42 +39,56 @@ def capturable_logger(caplog):
 
 @requires_module_pytest("pandas", "pooch")
 @pytest.mark.usefixtures("capturable_logger")
-def test_load_sample_small_dataset(tmp_data_dir, caplog):
-    ds = load_sample("ToroShockTube", progressbar=False, timeout=30)
-    assert isinstance(ds, EnzoDataset)
+@pytest.mark.parametrize(
+    "fn, archive, exact_loc, class_",
+    [
+        (
+            "ToroShockTube",
+            "ToroShockTube.tar.gz",
+            "ToroShockTube/DD0001/data0001",
+            "EnzoDataset",
+        ),
+        (
+            "KeplerianDisk",
+            "KeplerianDisk.tar.gz",
+            "KeplerianDisk/disk.out1.00000.athdf",
+            "AthenaPPDataset",
+        ),
+        # trying with an exact name as well
+        (
+            "KeplerianDisk/disk.out1.00000.athdf",
+            "KeplerianDisk.tar.gz",
+            "KeplerianDisk/disk.out1.00000.athdf",
+            "AthenaPPDataset",
+        ),
+    ],
+)
+def test_load_sample_small_dataset(
+    fn, archive, exact_loc, class_: str, tmp_data_dir, caplog
+):
+    ds = load_sample(fn, progressbar=False, timeout=30)
+    assert type(ds).__name__ == class_
 
     text = textwrap.dedent(
         f"""
-            'ToroShockTube' is not available locally. Looking up online.
-            Downloading from https://yt-project.org/data/ToroShockTube.tar.gz
+            '{fn}' is not available locally. Looking up online.
+            Downloading from https://yt-project.org/data/{archive}
             Untaring downloaded file to '{str(tmp_data_dir)}'
-            Parameters: current_time              = 0.2
-            Parameters: domain_dimensions         = [100   1   1]
-            Parameters: domain_left_edge          = [0. 0. 0.]
-            Parameters: domain_right_edge         = [1. 1. 1.]
-            Parameters: cosmological_simulation   = 0
         """
     ).strip("\n")
     expected = [("yt", 20, message) for message in text.split("\n")]
-    assert caplog.record_tuples == expected
+    assert caplog.record_tuples[:3] == expected
 
     caplog.clear()
     # loading a second time should not result in a download request
-    ds2 = load_sample("ToroShockTube")
-    assert isinstance(ds2, EnzoDataset)
+    ds2 = load_sample(fn)
+    assert type(ds2).__name__ == class_
 
-    text = textwrap.dedent(
-        f"""
-            Sample dataset found in '{os.path.join(str(tmp_data_dir), 'ToroShockTube')}'
-            Parameters: current_time              = 0.2
-            Parameters: domain_dimensions         = [100   1   1]
-            Parameters: domain_left_edge          = [0. 0. 0.]
-            Parameters: domain_right_edge         = [1. 1. 1.]
-            Parameters: cosmological_simulation   = 0
-        """
-    ).strip("\n")
-    expected = [("yt", 20, message) for message in text.split("\n")]
-    assert caplog.record_tuples == expected
+    assert caplog.record_tuples[0] == (
+        "yt",
+        20,
+        f"Sample dataset found in '{os.path.join(str(tmp_data_dir), exact_loc)}'",
+    )
 
 
 @requires_module_pytest("pandas", "pooch")
