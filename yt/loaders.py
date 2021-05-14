@@ -1324,14 +1324,17 @@ def load_sample(fn, progressbar: bool = True, timeout=None, **kwargs):
     kwargs = {**specs["load_kwargs"], **kwargs}
 
     try:
-        data_dir = lookup_on_disk_data(fn)
+        on_disk_path = lookup_on_disk_data(fn)
     except FileNotFoundError:
         mylog.info("'%s' is not available locally. Looking up online.", fn)
     else:
         # if the data is already available locally, `load_sample`
         # only acts as a thin wrapper around `load`
-        loadable_path = data_dir.joinpath(specs["load_name"], specific_file)
-        mylog.info("Sample dataset found in '%s'", data_dir)
+        if on_disk_path.is_file():
+            loadable_path = on_disk_path
+        else:
+            loadable_path = on_disk_path.joinpath(specs["load_name"], specific_file)
+        mylog.info("Sample dataset found in '%s'", loadable_path.resolve())
         if timeout is not None:
             mylog.info("Ignoring the `timeout` keyword argument received.")
         return load(loadable_path, **kwargs)
@@ -1369,9 +1372,11 @@ def load_sample(fn, progressbar: bool = True, timeout=None, **kwargs):
     else:
         os.replace(tmp_file, save_dir)
 
-    loadable_path = Path.joinpath(save_dir, fn, specs["load_name"], specific_file)
+    loadable_path = Path.joinpath(save_dir, fn)
+    if not specs["load_name"] in str(loadable_path):
+        loadable_path = loadable_path.joinpath(specs["load_name"], specific_file)
 
     if specific_file and not loadable_path.exists():
-        raise ValueError(f"Could not find file '{specific_file}'.")
+        raise ValueError(f"Could not find file '{loadable_path}'.")
 
     return load(loadable_path, **kwargs)
