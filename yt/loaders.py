@@ -1323,20 +1323,19 @@ def load_sample(fn, progressbar: bool = True, timeout=None, **kwargs):
 
     kwargs = {**specs["load_kwargs"], **kwargs}
 
-    try:
-        data_dir = lookup_on_disk_data(fn)
-    except FileNotFoundError:
-        mylog.info("'%s' is not available locally. Looking up online.", fn)
-    else:
+    save_dir = _get_test_data_dir_path()
+
+    data_path = save_dir.joinpath(fn)
+    if data_path.exists():
         # if the data is already available locally, `load_sample`
         # only acts as a thin wrapper around `load`
-        loadable_path = data_dir.joinpath(specs["load_name"], specific_file)
-        mylog.info("Sample dataset found in '%s'", data_dir)
+        loadable_path = data_path.joinpath(specific_file or specs["load_name"])
+        mylog.info("Sample dataset found in '%s'", data_path)
         if timeout is not None:
             mylog.info("Ignoring the `timeout` keyword argument received.")
         return load(loadable_path, **kwargs)
 
-    save_dir = _get_test_data_dir_path()
+    mylog.info("'%s' is not available locally. Looking up online.", fn)
 
     # effectively silence the pooch's logger and create our own log instead
     pooch_logger.setLevel(100)
