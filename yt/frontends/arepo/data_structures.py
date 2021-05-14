@@ -54,8 +54,8 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
                     "VORONOI" in fh["/Config"].attrs.keys()
                     or "AMR" in fh["/Config"].attrs.keys()
                 )
-                or ("GFM_Metals" in fh["/PartType0"]))
-            )
+                # Datasets with GFM_ fields present are AREPO
+                or any(True for field in fh["/PartType0"] if field.startswith("GFM_"))))
             fh.close()
         except Exception:
             valid = False
