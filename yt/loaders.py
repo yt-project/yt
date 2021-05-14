@@ -1296,6 +1296,11 @@ def load_sample(fn=None, progressbar: bool = True, timeout=None, **kwargs):
     the data registry, the ones passed to this function take priority.
     """
 
+    if fn is None:
+        print("One can see which sample datasets are available at: https://yt-project.org/data")
+        print("or alternatively by running: yt.sample_data.api.get_data_registry_table()")
+        return
+
     from yt.sample_data.api import (
         _download_sample_data_file,
         _get_test_data_dir_path,
@@ -1303,11 +1308,6 @@ def load_sample(fn=None, progressbar: bool = True, timeout=None, **kwargs):
     )
 
     pooch_logger = pooch.utils.get_logger()
-
-    if fn is None:
-        mylog.info("One can see which sample datasets are available at:\n" \
-                   "https://yt-project.org/data\n" \
-                   "or alternatively by running: yt.sample_data.api.get_data_registry_table()")
 
     topdir, _, specific_file = str(fn).partition(os.path.sep)
 
