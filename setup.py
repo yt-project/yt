@@ -3,7 +3,7 @@ import os
 from collections import defaultdict
 from distutils.ccompiler import get_default_compiler
 
-from setuptools import Distribution, find_packages, setup
+from setuptools import Distribution, setup
 
 from setupext import (
     check_CPP14_flags,
@@ -87,69 +87,7 @@ class BinaryDistribution(Distribution):
 
 if __name__ == "__main__":
     setup(
-        name="yt",
-        version=VERSION,
-        description="An analysis and visualization toolkit for volumetric data",
-        long_description=long_description,
-        long_description_content_type="text/markdown",
-        classifiers=[
-            "Development Status :: 5 - Production/Stable",
-            "Environment :: Console",
-            "Intended Audience :: Science/Research",
-            "License :: OSI Approved :: BSD License",
-            "Operating System :: MacOS :: MacOS X",
-            "Operating System :: POSIX :: AIX",
-            "Operating System :: POSIX :: Linux",
-            "Programming Language :: C",
-            "Programming Language :: Python :: 3",
-            "Programming Language :: Python :: 3.5",
-            "Programming Language :: Python :: 3.6",
-            "Programming Language :: Python :: 3.7",
-            "Programming Language :: Python :: 3.8",
-            "Programming Language :: Python :: 3.9",
-            "Topic :: Scientific/Engineering :: Astronomy",
-            "Topic :: Scientific/Engineering :: Physics",
-            "Topic :: Scientific/Engineering :: Visualization",
-            "Framework :: Matplotlib",
-        ],
-        keywords="astronomy astrophysics visualization " + "amr adaptivemeshrefinement",
-        entry_points={
-            "console_scripts": [
-                "yt = yt.utilities.command_line:run_main",
-            ],
-            "nose.plugins.0.10": [
-                "answer-testing = yt.utilities.answer_testing.framework:AnswerTesting"
-            ],
-        },
-        packages=find_packages(),
-        include_package_data=True,
-        package_data={"yt": ["sample_data_registry.json"]},
-        install_requires=[
-            "matplotlib>=2.0.2<3.5",
-            "setuptools>=19.6",
-            "sympy>=1.2",
-            "numpy>=1.10.4",
-            "IPython>=1.0",
-            "unyt>=2.7.2",
-            "more-itertools>=8.4",
-            "tqdm>=3.4.0",
-            "toml>=0.10.2",
-        ],
-        extras_require={"hub": ["girder_client"], "mapserver": ["bottle"]},
         cmdclass={"sdist": sdist, "build_ext": build_ext},
-        author="The yt project",
-        author_email="yt-dev@python.org",
-        url="https://github.com/yt-project/yt",
-        project_urls={
-            "Homepage": "https://yt-project.org/",
-            "Documentation": "https://yt-project.org/doc/",
-            "Source": "https://github.com/yt-project/yt/",
-            "Tracker": "https://github.com/yt-project/yt/issues",
-        },
-        license="BSD 3-Clause",
-        zip_safe=False,
-        scripts=["scripts/iyt"],
         distclass=BinaryDistribution,
         ext_modules=[],  # !!! We override this inside build_ext above
-        python_requires=">=3.6",
     )
