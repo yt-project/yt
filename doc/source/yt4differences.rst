@@ -348,5 +348,16 @@ You can also use alternate unit names in more complex algebraic unit expressions
 In this example the common british spelling ``"kilometre"`` is resolved to
 ``"km"`` and ``"hour"`` is resolved to ``"hr"``.
 
+New Method for Accessing Sample Datasets
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There is now a function entitled ``load_sample()`` that allows the user to
+automatically load sample data from the yt hub in a local yt session.
+Previously, users would have to explicitly download these data directly from
+`https://yt-project.org/data <https://yt-project.org/data>`_, unpackage them,
+and load them into a yt session, but now this occurs from within a python
+session.  For more information see:
+:ref:`Loading Sample Data <loading-sample-data>`
+
 API Changes
 -----------
