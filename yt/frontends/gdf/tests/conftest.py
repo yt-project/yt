@@ -19,6 +19,7 @@ test_params = {
     }
 }
 
+"""
 
 def pytest_generate_tests(metafunc):
     # Loop over each test in test_params
@@ -27,3 +28,4 @@ def pytest_generate_tests(metafunc):
             # Parametrize
             for param_name, param_vals in params.items():
                 metafunc.parametrize(param_name, param_vals[0], ids=param_vals[1])
+"""
