@@ -8,5 +8,6 @@ coverage~=4.5.1
 codecov~=2.0.15
 unyt~=2.8.0
 more-itertools==8.4
-pytest~=6.1
+pytest>=6.1; platform_system != "Windows"
+pytest<6.0; platform_system == "Windows"
 nose-exclude
