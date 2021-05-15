@@ -34,7 +34,7 @@ if [[ "${RUNNER_OS}" == "Windows" ]] && [[ ${dependencies} != "minimal" ]]; then
     CYTHON=$(grep cython tests/test_prerequirements.txt)
     NUMPY=$(grep numpy tests/test_prerequirements.txt)
 
-    CARTOPY=$(grep cartopy tests/test_requirements.txt)
+    #CARTOPY=$(grep cartopy tests/test_requirements.txt)
     H5PY=$(grep h5py tests/test_requirements.txt)
     MATPLOTLIB=$(grep matplotlib tests/test_requirements.txt)
     SCIPY=$(grep scipy tests/test_requirements.txt)
