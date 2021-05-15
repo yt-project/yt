@@ -624,7 +624,7 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         if item in self.data:
             return self.data[item]
 
-        splat_method = self.data_source.splat_method
+        deposition = self.data_source.deposition
         density = self.data_source.density
 
         mylog.info(
@@ -632,7 +632,7 @@ class ParticleImageBuffer(FixedResolutionBuffer):
             item,
             self.buff_size[0],
             self.buff_size[1],
-            splat_method,
+            deposition,
         )
 
         bounds = []
@@ -675,11 +675,11 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         # splat particles
         buff = np.zeros(self.buff_size)
         buff_mask = np.zeros(self.buff_size).astype("int")
-        if splat_method == "ngp":
+        if deposition == "ngp":
             add_points_to_greyscale_image(
                 buff, buff_mask, px[mask], py[mask], splat_vals
             )
-        elif splat_method == "cic":
+        elif deposition == "cic":
             CICDeposit_2(
                 py[mask],
                 px[mask],
@@ -691,7 +691,7 @@ class ParticleImageBuffer(FixedResolutionBuffer):
                 y_bin_edges,
             )
         else:
-            raise NotImplementedError(f'Splat method "{splat_method}" not implemented!')
+            raise NotImplementedError(f'Splat method "{deposition}" not implemented!')
 
         # remove values in no-particle region
         buff[buff_mask == 0] = np.nan
@@ -718,11 +718,11 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         if weight_field is not None:
             weight_buff = np.zeros(self.buff_size)
             weight_buff_mask = np.zeros(self.buff_size).astype("int")
-            if splat_method == "ngp":
+            if deposition == "ngp":
                 add_points_to_greyscale_image(
                     weight_buff, weight_buff_mask, px[mask], py[mask], weight_data[mask]
                 )
-            elif splat_method == "cic":
+            elif deposition == "cic":
                 CICDeposit_2(
                     py[mask],
                     px[mask],

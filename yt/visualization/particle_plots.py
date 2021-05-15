@@ -26,7 +26,7 @@ class ParticleAxisAlignedDummyDataSource:
         weight_field=None,
         field_parameters=None,
         data_source=None,
-        splat_method="ngp",
+        deposition="ngp",
         density=False,
     ):
         self.center = center
@@ -34,7 +34,7 @@ class ParticleAxisAlignedDummyDataSource:
         self.axis = axis
         self.width = width
         self.weight_field = weight_field
-        self.splat_method = splat_method
+        self.deposition = deposition
         self.density = density
 
         if field_parameters is None:
@@ -186,7 +186,7 @@ class ParticleProjectionPlot(PWViewerMPL):
     data_source : YTSelectionContainer Object
          Object to be used for data selection.  Defaults to a region covering
          the entire simulation.
-    splat_method : string, optional
+    deposition : string, optional
         Controls the order of the interpolation of the particles onto the
         mesh. "ngp" is 0th-order "nearest-grid-point" method (the default),
         "cic" is 1st-order "cloud-in-cell".
@@ -223,7 +223,7 @@ class ParticleProjectionPlot(PWViewerMPL):
         window_size=8.0,
         aspect=None,
         data_source=None,
-        splat_method="ngp",
+        deposition="ngp",
         density=False,
     ):
         # this will handle time series data and controllers
@@ -271,7 +271,7 @@ class ParticleProjectionPlot(PWViewerMPL):
             weight_field,
             field_parameters=field_parameters,
             data_source=data_source,
-            splat_method=splat_method,
+            deposition=deposition,
             density=density,
         )
 
@@ -361,7 +361,7 @@ class ParticlePhasePlot(PhasePlot):
     >>> import yt
     >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
-    >>> plot = ParticlePhasePlot(ad, "particle_position_x,
+    >>> plot = ParticlePhasePlot(ad, "particle_position_x",
                                  "particle_position_y", ["particle_mass"],
     ...                          x_bins=800, y_bins=800)
     >>> plot.save()
@@ -544,7 +544,6 @@ def ParticlePlot(ds, x_field, y_field, z_fields=None, color="b", *args, **kwargs
     deposition : str
         Either 'ngp' or 'cic'. Controls what type of interpolation will be
         used to deposit the particle z_fields onto the mesh. Defaults to 'ngp'.
-        This argument is only accepted by ``ParticlePhasePlot``.
     figure_size : int
         Size in inches of the image. Defaults to 8 (product an 8x8 inch figure).
         This argument is only accepted by ``ParticlePhasePlot``.

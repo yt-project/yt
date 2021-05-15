@@ -1146,7 +1146,7 @@ class FITSParticleProjection(FITSImageData):
         depth=(1, "1"),
         weight_field=None,
         length_unit=None,
-        splat_method="ngp",
+        deposition="ngp",
         density=False,
         field_parameters=None,
         data_source=None,
@@ -1169,7 +1169,7 @@ class FITSParticleProjection(FITSImageData):
             weight_field,
             field_parameters=field_parameters,
             data_source=data_source,
-            splat_method=splat_method,
+            deposition=deposition,
             density=density,
         )
         w, frb, lunit = construct_image(
