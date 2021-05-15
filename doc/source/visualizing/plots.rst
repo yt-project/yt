@@ -149,7 +149,7 @@ slice.  To instead use the coordinates as defined in the dataset, use
 the optional argument: ``origin="native"``
 
 If supplied without units, the center is assumed by in code units.  There are also
-the following alternative options for the `center` keyword:
+the following alternative options for the ``center`` keyword:
 
 * ``"center"``, ``"c"``: the domain center
 * ``"max"``, ``"m"``: the position of the maximum density
@@ -686,8 +686,8 @@ minimal plots that focus on the data:
    slc.hide_axes()
    slc.save()
 
-See the cookbook recipe :ref:`show-hide-axes-colorbar` and the
-`full function description ~yt.visualization.plot_window.PlotWindow` for more
+See the cookbook recipe :ref:`show-hide-axes-colorbar` and the full function
+description :class:`~yt.visualization.plot_window.PlotWindow` for more
 information.
 
 Fonts

@@ -51,8 +51,8 @@ for tab-completing as well as easier access to information.
 Additionally, if you have `ipywidgets
 <https://ipywidgets.readthedocs.io/en/stable/>`_ installed and are in a `Jupyter
 environment <https://jupyter.org/>`_, you can view the rich representation of
-the fields (including source code) by either typing `ds.fields` as the last
-item in a cell or by calling `display(ds.fields)`.  The resulting output will
+the fields (including source code) by either typing ``ds.fields`` as the last
+item in a cell or by calling ``display(ds.fields)``.  The resulting output will
 have tabs and source:
 
 .. image:: _images/fields_ipywidget.png
@@ -609,7 +609,7 @@ this will be handled automatically:
     )
 
 Which, because the axis is ``"z"``, will give you the same result if you had
-projected the `"velocity_z"`` field. This also works for off-axis projections:
+projected the ``"velocity_z"`` field. This also works for off-axis projections:
 
 .. code-block:: python
 
