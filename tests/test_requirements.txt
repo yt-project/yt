@@ -15,8 +15,8 @@ sympy~=1.5
 pyqt5~=5.15.2
 netCDF4~=1.5.3
 libconf~=1.0.1
-shapely
---no-binary=shapely
+#shapely
+#--no-binary=shapely
 #cartopy~=0.18.0
 pyaml~=17.10.0
 mpi4py~=3.0.3
