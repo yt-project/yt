@@ -1128,11 +1128,28 @@ class FITSParticleProjection(FITSImageData):
         kiloparsecs wide along the y axis.  In the other two examples, code
         units are assumed, for example (0.2, 0.3) specifies a width that has an
         x width of 0.2 and a y width of 0.3 in code units.
+    depth : A tuple or a float
+         A tuple containing the depth to project through and the string
+         key of the unit: (width, 'unit').  If set to a float, code units
+         are assumed. Defaults to the entire domain.
     weight_field : string
         The field used to weight the projection.
     length_unit : string, optional
         the length units that the coordinates are written in. The default
         is to use the default length unit of the dataset.
+    deposition : string, optional
+        Controls the order of the interpolation of the particles onto the
+        mesh. "ngp" is 0th-order "nearest-grid-point" method (the default),
+        "cic" is 1st-order "cloud-in-cell".
+    density : boolean, optional
+        If True, the quantity to be projected will be divided by the area of
+        the cells, to make a projected density of the quantity. Default: False
+    field_parameters : dictionary
+         A dictionary of field parameters than can be accessed by derived
+         fields.
+    data_source : yt.data_objects.data_containers.YTSelectionContainer, optional
+        If specified, this will be the data source used for selecting regions
+        to project.
     """
 
     def __init__(

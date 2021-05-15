@@ -190,6 +190,10 @@ class ParticleProjectionPlot(PWViewerMPL):
         Controls the order of the interpolation of the particles onto the
         mesh. "ngp" is 0th-order "nearest-grid-point" method (the default),
         "cic" is 1st-order "cloud-in-cell".
+    density : boolean, optional
+        If True, the quantity to be projected will be divided by the area of
+        the cells, to make a projected density of the quantity. The plot
+        name and units will also reflect this. Default: False
 
     Examples
     --------
