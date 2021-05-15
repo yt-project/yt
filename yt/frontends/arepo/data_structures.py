@@ -47,7 +47,7 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
         valid = True
         try:
             fh = h5py.File(filename, mode="r")
-            valid = ((
+            valid = (
                 all(ng in fh["/"] for ng in need_groups)
                 and not any(vg in fh["/"] for vg in veto_groups)
                 and (
@@ -55,7 +55,8 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
                     or "AMR" in fh["/Config"].attrs.keys()
                 )
                 # Datasets with GFM_ fields present are AREPO
-                or any(field.startswith("GFM_") for field in fh["/PartType0"])))
+                or any(field.startswith("GFM_") for field in fh["/PartType0"])
+            )
             fh.close()
         except Exception:
             valid = False
