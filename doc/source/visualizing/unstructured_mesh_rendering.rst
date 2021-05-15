@@ -372,7 +372,7 @@ with two meshes on it:
 
 However, in the rendered image above, we note that the color is discontinuous on
 in the middle and upper part of the cylinder's side. In the original data,
-there are two parts but the value of `diffused` is continuous at the interface.
+there are two parts but the value of ``diffused`` is continuous at the interface.
 This discontinuous color is due to an independent colormap setting for the two
 mesh sources. To fix it, we can explicitly specify the colormap bound for each
 mesh source as follows:
