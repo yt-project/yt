@@ -111,7 +111,7 @@ option of ``Mollweide`` will be displayed.
 
 If an option other than ``Mollweide`` is desired, the plot projection type can
 be set with the ``set_mpl_projection`` function. The next code block illustrates how to
-set the projection to a ``Robinson`` projection from the default `PlateCarree`.
+set the projection to a ``Robinson`` projection from the default ``PlateCarree``.
 
 .. code-block:: python
 

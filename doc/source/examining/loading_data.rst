@@ -621,7 +621,7 @@ call face-centered fields like this "nodal".  We define a field to be nodal in
 a given direction if the field data is defined at the "low" and "high" sides of
 the cell in that direction, rather than at the cell center.  Instead of
 returning one field value per cell selected, nodal fields return a number of
-values, depending on their centering. This centering is marked by a `nodal_flag`
+values, depending on their centering. This centering is marked by a ``nodal_flag``
 that describes whether the fields is nodal in each dimension.  ``nodal_flag =
 [0, 0, 0]`` means that the field is cell-centered, while ``nodal_flag = [0, 0,
 1]`` means that the field is nodal in the z direction and cell centered in the
@@ -1567,7 +1567,7 @@ value can be changed when loading an Arepo dataset by setting the
 
 Currently, only Arepo HDF5 snapshots are supported. If the "GFM" metal fields are
 present in your dataset, they will be loaded in and aliased to the appropriate
-species fields in the `"GFM_Metals"` field on-disk. For more information, see
+species fields in the ``"GFM_Metals"`` field on-disk. For more information, see
 the `Illustris TNG documentation <http://www.tng-project.org/data/docs/specifications/#sec1b>`_.
 
 .. _loading-gamer-data:
@@ -2035,9 +2035,9 @@ Halo Catalog Data
 yt has support for reading halo catalogs produced by the AdaptaHOP, Amiga Halo
 Finder (AHF), Rockstar and the inline FOF/SUBFIND halo finders of Gadget and
 OWLS.  The halo catalogs are treated as particle datasets where each particle
-represents a single halo.  For example, this means that the `particle_mass`
+represents a single halo.  For example, this means that the ``"particle_mass"``
 field refers to the mass of the halos.  For Gadget FOF/SUBFIND catalogs, the
-member particles for a given halo can be accessed by creating `halo` data
+member particles for a given halo can be accessed by creating ``halo`` data
 containers.  See :ref:`halo_containers` for more information.
 
 If you have access to both the halo catalog and the simulation snapshot from
