@@ -59,7 +59,7 @@ be thought of as the actual resolution of your image.  This can
 only be set on save via the ``mpl_kwargs`` parameter to
 :meth:`~yt.visualization.plot_container.PlotContainer.save`.  The
 ``dpi`` and ``figure_size`` together set the true resolution of your
-image (final image will be ``dpi`ù :math:`*` ``figure_size`` pixels on a
+image (final image will be ``dpi`` :math:`*` ``figure_size`` pixels on a
 side), so if these are set too low, then your ``buff_size`` will not
 matter.  On the other hand, increasing these without increasing
 ``buff_size`` accordingly will simply blow up your resolution
