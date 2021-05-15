@@ -701,10 +701,7 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         info = self._get_info(item)
         if density:
             width = self.data_source.width
-            if weight_field is None:
-                norm = width[self.xax] * width[self.yax] / np.prod(self.buff_size)
-            else:
-                norm = np.prod(width) / np.prod(self.buff_size)
+            norm = width[self.xax] * width[self.yax] / np.prod(self.buff_size)
             norm = norm.in_base()
             buff /= norm.v
             units = data.units / norm.units
