@@ -3,6 +3,7 @@ This module gathers all user-facing functions with a `load_` prefix.
 
 """
 import os
+import sys
 import tarfile
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -1297,8 +1298,11 @@ def load_sample(fn=None, progressbar: bool = True, timeout=None, **kwargs):
     """
 
     if fn is None:
-        print("One can see which sample datasets are available at: https://yt-project.org/data")
-        print("or alternatively by running: yt.sample_data.api.get_data_registry_table()")
+        print(
+            "One can see which sample datasets are available at: https://yt-project.org/data\n"
+            "or alternatively by running: yt.sample_data.api.get_data_registry_table()",
+            file=sys.stderr,
+        )
         return None
 
     from yt.sample_data.api import (
