@@ -1489,7 +1489,7 @@ Particle Plots
 Slice and projection plots both provide a callback for over-plotting particle
 positions onto gas fields. However, sometimes you want to plot the particle
 quantities by themselves, perhaps because the gas fields are not relevant to
-the your point, or perhaps because your dataset doesn't contain any gas fields
+your use case, or perhaps because your dataset doesn't contain any gas fields
 in the first place. Additionally, you may want to plot your particles with a
 third field, such as particle mass or age,  mapped to a colorbar.
 :class:`~yt.visualization.particle_plots.ParticlePlot` provides a convenient
@@ -1590,6 +1590,17 @@ along the line of sight. The inner region is dominated by low mass
 star particles, whereas the outer region is comprised of higher mass
 dark matter particles.
 
+Both :class:`~yt.visualization.particle_plots.ParticleProjectionPlot` and
+:class:`~yt.visualization.particle_plots.ParticlePhasePlot` objects
+accept a ``deposition`` argument which controls the order of the "splatting"
+of the particles onto the pixels in the plot. The default option, ``"ngp"``,
+corresponds to the "Nearest-Grid-Point" (0th-order) method, which simply
+finds the pixel the particle is located in and deposits all of the particle
+or its plotted quantity into that pixel. The other option, ``"cic"``,
+corresponds to the "Cloud-In-Cell" (1st-order) method, which linearly
+interpolates the particle or its plotted quantity into the four nearest
+pixels in the plot.
+
 Here is a complete example that uses the ``particle_mass`` field
 to set the colorbar and shows off some of the modification functions for
 :class:`~yt.visualization.particle_plots.ParticleProjectionPlot`:
@@ -1687,6 +1698,23 @@ to only consider the particles that lie within a 50 kpc sphere around the domain
    p.set_ylim(-400, 400)
    p.set_xlim(-400, 400)
 
+   p.save()
+
+:class:`~yt.visualization.particle_plots.ParticleProjectionPlot` objects also admit a ``density``
+argument, which allows one to plot the surface density of a projected quantity. This simply divides
+the quantity in each pixel of the plot by the area of that pixel. It also changes the label on the
+colorbar to reflect the new units and the fact that it is a density. This may make most sense in
+the case of plotting the projected particle mass, in which case you can plot the projected particle
+mass density:
+
+.. python-script::
+
+   import yt
+
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
+   p = yt.ParticleProjectionPlot(ds, 2, ["particle_mass"], width=(0.5, 0.5), density=True)
+   p.set_unit("particle_mass", "Msun/kpc**2") # Note that the dimensions of the plot have changed
    p.save()
 
 Finally, with 1D and 2D Profiles, you can create a :class:`~yt.data_objects.profiles.ParticleProfile`
