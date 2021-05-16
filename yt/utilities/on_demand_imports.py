@@ -63,7 +63,7 @@ class OnDemandImport:
 targets = [
     "astropy",
     "bottle",
-    "f90nml",
+    # "f90nml",
     "firefly_api",
     "h5py",
     "libconf",
