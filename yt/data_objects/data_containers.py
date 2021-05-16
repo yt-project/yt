@@ -23,7 +23,7 @@ from yt.utilities.exceptions import (
     YTSpatialFieldUnitError,
 )
 from yt.utilities.object_registries import data_object_registry
-from yt.utilities.on_demand_imports import _firefly as firefly
+from yt.utilities.on_demand_imports import Firefly
 from yt.utilities.parameter_file_storage import ParameterFileStore
 
 
@@ -518,7 +518,7 @@ class YTDataContainer(abc.ABC):
         >>> dd = ds.all_data()
         >>> df = dd.to_dataframe([("gas", "density"), ("gas", "temperature")])
         """
-        from yt.utilities.on_demand_imports import _pandas as pd
+        from yt.utilities.on_demand_imports import pandas as pd
 
         data = {}
         fields = self._determine_fields(fields)
@@ -794,8 +794,8 @@ class YTDataContainer(abc.ABC):
         ## for safety, in case someone passes a float just cast it
         default_decimation_factor = int(default_decimation_factor)
 
-        ## initialize a firefly reader instance
-        reader = firefly.data_reader.Reader(
+        ## initialize a Firefly reader instance
+        reader = Firefly.data_reader.Reader(
             JSONdir=JSONdir, clean_JSONdir=True, **kwargs
         )
 
@@ -853,8 +853,8 @@ class YTDataContainer(abc.ABC):
             tracked_filter_flags = np.ones(len(tracked_names))
             tracked_colormap_flags = np.ones(len(tracked_names))
 
-            ## create a firefly ParticleGroup for this particle type
-            pg = firefly.data_reader.ParticleGroup(
+            ## create a Firefly ParticleGroup for this particle type
+            pg = Firefly.data_reader.ParticleGroup(
                 UIname=ptype,
                 coordinates=self[ptype, "relative_particle_position"].in_units(
                     coordinate_units
@@ -866,7 +866,7 @@ class YTDataContainer(abc.ABC):
                 decimation_factor=default_decimation_factor,
             )
 
-            ## bind this particle group to the firefly reader object
+            ## bind this particle group to the Firefly reader object
             reader.addParticleGroup(pg)
 
         return reader

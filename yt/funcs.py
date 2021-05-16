@@ -31,7 +31,7 @@ from tqdm import tqdm
 from yt.units import YTArray, YTQuantity
 from yt.utilities.exceptions import YTInvalidWidthError
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.on_demand_imports import _requests as requests
+from yt.utilities.on_demand_imports import requests
 
 # Some functions for handling sequences and other types
 

@@ -1,7 +1,7 @@
 import numpy as np
 
 from yt.frontends.gadget.api import IOHandlerGadgetHDF5
-from yt.utilities.on_demand_imports import _h5py as h5py
+from yt.utilities.on_demand_imports import h5py
 
 
 class IOHandlerArepoHDF5(IOHandlerGadgetHDF5):

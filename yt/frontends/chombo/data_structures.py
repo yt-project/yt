@@ -13,7 +13,7 @@ from yt.funcs import mylog, setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.file_handler import HDF5FileHandler, warn_h5py
 from yt.utilities.lib.misc_utilities import get_box_grids_level
-from yt.utilities.on_demand_imports import _h5py as h5py
+from yt.utilities.on_demand_imports import h5py
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_root_only
 
 from .fields import (

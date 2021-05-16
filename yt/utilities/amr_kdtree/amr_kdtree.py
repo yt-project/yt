@@ -12,7 +12,7 @@ from yt.utilities.amr_kdtree.amr_kdtools import (
 from yt.utilities.lib.amr_kdtools import Node
 from yt.utilities.lib.partitioned_grid import PartitionedGrid
 from yt.utilities.math_utils import periodic_position
-from yt.utilities.on_demand_imports import _h5py as h5py
+from yt.utilities.on_demand_imports import h5py
 from yt.utilities.parallel_tools.parallel_analysis_interface import (
     ParallelAnalysisInterface,
 )

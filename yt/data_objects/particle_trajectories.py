@@ -6,7 +6,7 @@ from yt.funcs import get_pbar, mylog
 from yt.units.yt_array import array_like_field
 from yt.utilities.exceptions import YTIllDefinedParticleData
 from yt.utilities.lib.particle_mesh_operations import CICSample_3
-from yt.utilities.on_demand_imports import _h5py as h5py
+from yt.utilities.on_demand_imports import h5py
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_root_only
 
 

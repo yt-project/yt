@@ -2,7 +2,7 @@ import numpy as np
 
 from yt.funcs import mylog
 from yt.utilities.io_handler import BaseIOHandler
-from yt.utilities.on_demand_imports import _requests as requests
+from yt.utilities.on_demand_imports import requests
 
 
 class IOHandlerHTTPStream(BaseIOHandler):

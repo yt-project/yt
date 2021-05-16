@@ -1,11 +1,11 @@
 import os
 from functools import wraps
 
-import bottle
 import numpy as np
 
 from yt.fields.derived_field import ValidateSpatial
 from yt.utilities.lib.misc_utilities import get_color_bounds
+from yt.utilities.on_demand_imports import bottle
 from yt.utilities.png_writer import write_png_to_string
 from yt.visualization.fixed_resolution import FixedResolutionBuffer
 from yt.visualization.image_writer import apply_colormap

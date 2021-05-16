@@ -12,11 +12,7 @@ from warnings import warn
 import pkg_resources
 
 from yt.funcs import mylog
-from yt.utilities.on_demand_imports import (
-    _pandas as pd,
-    _pooch as pooch,
-    _requests as requests,
-)
+from yt.utilities.on_demand_imports import pandas as pd, pooch, requests
 
 num_exp = re.compile(r"\d*(\.\d*)?")
 byte_unit_exp = re.compile(r"[KMGT]?B")

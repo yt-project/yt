@@ -3,7 +3,7 @@ import numpy as np
 from yt import load
 from yt.frontends.swift.api import SwiftDataset
 from yt.testing import ParticleSelectionComparison, assert_almost_equal, requires_file
-from yt.utilities.on_demand_imports import _h5py as h5py
+from yt.utilities.on_demand_imports import h5py
 
 keplerian_ring = "KeplerianRing/keplerian_ring_0020.hdf5"
 EAGLE_6 = "EAGLE_6/eagle_0005.hdf5"

@@ -16,7 +16,7 @@ from yt.funcs import get_pbar, iter_fields, setdefaultattr
 from yt.geometry.geometry_handler import YTDataChunk
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.on_demand_imports import _h5py as h5py, _libconf as libconf
+from yt.utilities.on_demand_imports import h5py, libconf
 
 from .fields import EnzoFieldInfo
 

@@ -11,7 +11,7 @@ from yt.data_objects.static_output import Dataset
 from yt.funcs import iter_fields, validate_object, validate_sequence
 from yt.geometry.selection_routines import points_in_cells
 from yt.utilities.exceptions import YTIllDefinedCutRegion
-from yt.utilities.on_demand_imports import _scipy
+from yt.utilities.on_demand_imports import scipy
 
 
 class YTCutRegion(YTSelectionContainer3D):
@@ -196,7 +196,7 @@ class YTCutRegion(YTSelectionContainer3D):
             dx_loc = dx[lvl_mask]
             pos_loc = pos[lvl_mask]
 
-            grid_tree = _scipy.spatial.cKDTree(pos_loc, boxsize=1)
+            grid_tree = scipy.spatial.cKDTree(pos_loc, boxsize=1)
 
             # Compute closest cell for all remaining particles
             dist, icell = grid_tree.query(
@@ -238,7 +238,7 @@ class YTCutRegion(YTSelectionContainer3D):
         # implementation. Else, fall back onto the direct
         # brute-force algorithm.
         try:
-            _scipy.spatial.KDTree
+            scipy.spatial.KDTree
             return self._part_ind_KDTree(ptype)
         except ImportError:
             return self._part_ind_brute_force(ptype)

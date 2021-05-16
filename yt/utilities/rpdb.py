@@ -8,6 +8,7 @@ from xmlrpc.client import ServerProxy
 from xmlrpc.server import SimpleXMLRPCServer
 
 from yt.config import ytcfg
+from yt.utilities.on_demand_imports import mpi4py
 
 
 class PdbXMLRPCServer(SimpleXMLRPCServer):
@@ -48,13 +49,11 @@ def rpdb_excepthook(exc_type, exc, tb):
     server.serve_forever()
     server.server_close()
     if size > 1:
-        from mpi4py import MPI
-
         # This COMM_WORLD is okay.  We want to barrierize here, while waiting
         # for shutdown from the rest of the parallel group.  If you are running
         # with --rpdb it is assumed you know what you are doing and you won't
         # let this get out of hand.
-        MPI.COMM_WORLD.Barrier()
+        mpi4py.MPI.COMM_WORLD.Barrier()
 
 
 class pdb_handler:

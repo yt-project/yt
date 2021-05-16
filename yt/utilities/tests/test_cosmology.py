@@ -12,7 +12,7 @@ from yt.testing import (
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.answer_testing.framework import data_dir_load
 from yt.utilities.cosmology import Cosmology
-from yt.utilities.on_demand_imports import _yaml as yaml
+from yt.utilities.on_demand_imports import yaml
 
 local_dir = os.path.dirname(os.path.abspath(__file__))
 

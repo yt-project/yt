@@ -14,7 +14,7 @@ from yt.config import ytcfg
 from yt.data_objects.selection_objects.region import YTRegion
 from yt.data_objects.static_output import Dataset
 from yt.loaders import load, load_simulation
-from yt.utilities.on_demand_imports import _h5py as h5py
+from yt.utilities.on_demand_imports import h5py
 from yt.visualization.volume_rendering.scene import Scene
 
 

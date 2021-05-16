@@ -8,7 +8,7 @@ from yt.data_objects.static_output import Dataset
 from yt.funcs import setdefaultattr
 from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
 from yt.utilities.file_handler import HDF5FileHandler
-from yt.utilities.on_demand_imports import _h5py as h5py
+from yt.utilities.on_demand_imports import h5py
 
 from .fields import MoabFieldInfo, PyneFieldInfo
 

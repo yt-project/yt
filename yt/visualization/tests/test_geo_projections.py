@@ -70,7 +70,7 @@ class TestGeoProjections(unittest.TestCase):
     @requires_module("cartopy")
     def test_geo_projection_setup(self):
 
-        from yt.utilities.on_demand_imports import _cartopy as cartopy
+        from yt.utilities.on_demand_imports import cartopy
 
         axis = "altitude"
         self.slc = yt.SlicePlot(self.ds, axis, ("stream", "Density"), origin="native")
@@ -86,7 +86,7 @@ class TestGeoProjections(unittest.TestCase):
 
     @requires_module("cartopy")
     def test_geo_projections(self):
-        from yt.utilities.on_demand_imports import _cartopy as cartopy
+        from yt.utilities.on_demand_imports import cartopy
 
         self.slc = yt.SlicePlot(
             self.ds, "altitude", ("stream", "Density"), origin="native"
@@ -110,7 +110,7 @@ class TestGeoProjections(unittest.TestCase):
 
     @requires_module("cartopy")
     def test_projection_object(self):
-        from yt.utilities.on_demand_imports import _cartopy as cartopy
+        from yt.utilities.on_demand_imports import cartopy
 
         shortlist = ["Orthographic", "PlateCarree", "Mollweide"]
 
@@ -130,7 +130,7 @@ class TestGeoProjections(unittest.TestCase):
 
     @requires_module("cartopy")
     def test_nondefault_transform(self):
-        from yt.utilities.on_demand_imports import _cartopy as cartopy
+        from yt.utilities.on_demand_imports import cartopy
 
         axis = "altitude"
         self.ds.coordinates.data_transform[axis] = "Miller"

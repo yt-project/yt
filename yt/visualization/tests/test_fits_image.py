@@ -6,7 +6,7 @@ from numpy.testing import assert_allclose, assert_equal
 
 from yt.loaders import load
 from yt.testing import fake_random_ds, requires_file, requires_module
-from yt.utilities.on_demand_imports import _astropy
+from yt.utilities.on_demand_imports import astropy
 from yt.visualization.fits_image import (
     FITSImageData,
     FITSOffAxisProjection,
@@ -194,8 +194,8 @@ def test_fits_image():
     fid7.convolve("density", (3.0, "cm"))
 
     sigma = 3.0 / fid7.wcs.wcs.cdelt[0]
-    kernel = _astropy.conv.Gaussian2DKernel(x_stddev=sigma)
-    data_conv = _astropy.conv.convolve(fid4["density"].data.d, kernel)
+    kernel = astropy.convolution.Gaussian2DKernel(x_stddev=sigma)
+    data_conv = astropy.convolution.convolve(fid4["density"].data.d, kernel)
     assert_allclose(data_conv, fid7["density"].data.d)
 
     pfid = FITSParticleProjection(ds, "x", ("io", "particle_mass"))

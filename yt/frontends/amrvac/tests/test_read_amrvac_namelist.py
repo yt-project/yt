@@ -4,7 +4,7 @@ from pathlib import Path
 
 from yt.frontends.amrvac.api import read_amrvac_namelist
 from yt.testing import requires_module
-from yt.utilities.on_demand_imports import _f90nml as f90nml
+from yt.utilities.on_demand_imports import f90nml
 
 test_dir = os.path.dirname(os.path.abspath(__file__))
 blast_wave_parfile = os.path.join(test_dir, "sample_parfiles", "bw_3d.par")

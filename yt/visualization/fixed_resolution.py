@@ -12,7 +12,7 @@ from yt.utilities.lib.api import (  # type: ignore
     add_points_to_greyscale_image,
 )
 from yt.utilities.lib.pixelization_routines import pixelize_cylinder
-from yt.utilities.on_demand_imports import _h5py as h5py
+from yt.utilities.on_demand_imports import h5py
 
 from .fixed_resolution_filters import apply_filter, filter_registry
 from .volume_rendering.api import off_axis_projection

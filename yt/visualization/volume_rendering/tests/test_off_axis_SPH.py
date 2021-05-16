@@ -2,11 +2,8 @@ import numpy as np
 
 from yt.testing import assert_almost_equal, fake_sph_orientation_ds, requires_module
 from yt.utilities.lib.pixelization_routines import pixelize_sph_kernel_projection
-from yt.utilities.on_demand_imports import _scipy
+from yt.utilities.on_demand_imports import scipy
 from yt.visualization.volume_rendering import off_axis_projection as OffAP
-
-spatial = _scipy.spatial
-ndimage = _scipy.ndimage
 
 
 def test_no_rotation():
@@ -270,7 +267,7 @@ def test_center_3():
 @requires_module("scipy")
 def find_compare_maxima(expected_maxima, buf, resolution, width):
     buf_ndarray = buf.ndarray_view()
-    max_filter_buf = ndimage.filters.maximum_filter(buf_ndarray, size=5)
+    max_filter_buf = scipy.ndimage.filters.maximum_filter(buf_ndarray, size=5)
     maxima = np.isclose(max_filter_buf, buf_ndarray, rtol=1e-09)
 
     # ignore contributions from zones of no smoothing
@@ -299,7 +296,7 @@ def find_compare_maxima(expected_maxima, buf, resolution, width):
             x_coord /= x_scaling_factor
             y_coord /= y_scaling_factor
             if (
-                spatial.distance.euclidean(
+                scipy.spatial.distance.euclidean(
                     [x_coord, y_coord], [expected_maxima[0][i], expected_maxima[1][i]]
                 )
                 < pixel_tolerance

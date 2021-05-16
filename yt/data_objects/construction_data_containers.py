@@ -2595,7 +2595,7 @@ class YTSurface(YTSelectionContainer3D):
 
     @parallel_root_only
     def _upload_to_sketchfab(self, data, files):
-        from yt.utilities.on_demand_imports import _requests as requests
+        from yt.utilities.on_demand_imports import requests
 
         SKETCHFAB_DOMAIN = "sketchfab.com"
         SKETCHFAB_API_URL = f"https://api.{SKETCHFAB_DOMAIN}/v2/models"

@@ -27,6 +27,7 @@ from yt.funcs import (
 from yt.loaders import load
 from yt.utilities.exceptions import YTFieldNotParseable, YTUnidentifiedDataType
 from yt.utilities.metadata import get_metadata
+from yt.utilities.on_demand_imports import bottle
 from yt.visualization.plot_window import ProjectionPlot, SlicePlot
 
 # isort: off
@@ -807,14 +808,7 @@ class YTMapserverCmd(YTCommand):
         p.set_cmap("all", args.cmap)
 
         PannableMapServer(p.data_source, args.field, args.takelog, args.cmap)
-        try:
-            import bottle
-        except ImportError as e:
-            raise ImportError(
-                "The mapserver functionality requires the bottle "
-                "package to be installed. Please install using `pip "
-                "install bottle`."
-            ) from e
+
         bottle.debug(True)
         if args.host is not None:
             colonpl = args.host.find(":")
@@ -1300,7 +1294,7 @@ class YTUploadFileCmd(YTCommand):
     name = "upload"
 
     def __call__(self, args):
-        from yt.utilities.on_demand_imports import _requests as requests
+        from yt.utilities.on_demand_imports import requests
 
         fs = iter(FileStreamer(open(args.file, "rb")))
         upload_url = ytcfg.get("yt", "curldrop_upload_url")

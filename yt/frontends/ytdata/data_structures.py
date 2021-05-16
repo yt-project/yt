@@ -25,7 +25,7 @@ from yt.units.unit_registry import UnitRegistry  # type: ignore
 from yt.units.yt_array import YTQuantity, uconcatenate  # type: ignore
 from yt.utilities.exceptions import GenerationInProgress, YTFieldTypeNotFound
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.on_demand_imports import _h5py as h5py
+from yt.utilities.on_demand_imports import h5py
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_root_only
 from yt.utilities.tree_container import TreeContainer
 
