@@ -27,3 +27,4 @@ and contributing code!
    creating_frontend
    external_analysis
    deprecating_features
+   managing_optional_dependencies
