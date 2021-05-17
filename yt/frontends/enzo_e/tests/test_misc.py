@@ -1,6 +1,6 @@
 import numpy as np
 
-from yt.frontends.enzo_p.misc import (
+from yt.frontends.enzo_e.misc import (
     get_block_info,
     get_root_block_id,
     get_root_blocks,
