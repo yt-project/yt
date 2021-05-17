@@ -1,6 +1,6 @@
 from yt.fields.field_info_container import FieldInfoContainer
 from yt.fields.particle_fields import add_union_field
-from yt.frontends.enzo_p.misc import nested_dict_get
+from yt.frontends.enzo_e.misc import nested_dict_get
 
 rho_units = "code_mass / code_length**3"
 vel_units = "code_velocity"
@@ -10,7 +10,7 @@ energy_units = "code_velocity**2"
 known_species_names = {}
 
 
-class EnzoPFieldInfo(FieldInfoContainer):
+class EnzoEFieldInfo(FieldInfoContainer):
     known_other_fields = (
         ("velocity_x", (vel_units, ["velocity_x"], None)),
         ("velocity_y", (vel_units, ["velocity_y"], None)),
