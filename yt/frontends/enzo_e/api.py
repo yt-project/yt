@@ -1,6 +1,6 @@
 from . import tests
-from .data_structures import EnzoPDataset, EnzoPGrid, EnzoPHierarchy
-from .fields import EnzoPFieldInfo
-from .io import EnzoPIOHandler
+from .data_structures import EnzoEDataset, EnzoEGrid, EnzoEHierarchy
+from .fields import EnzoEFieldInfo
+from .io import EnzoEIOHandler
 
-add_enzop_field = EnzoPFieldInfo.add_field
+add_enzoe_field = EnzoEFieldInfo.add_field
