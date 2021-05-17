@@ -198,7 +198,7 @@ Global system plugin file
 
 yt will look for and recognize the file ``$HOME/.config/yt/my_plugins.py`` as a
 plugin file. It is possible to rename this file to ``$HOME/.config/yt/<plugin_filename>.py``
-by defining ``plugin_filename`` in your `yt.toml` file, as mentioned above.
+by defining ``plugin_filename`` in your ``yt.toml`` file, as mentioned above.
 
 .. note::
 
