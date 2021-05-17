@@ -7,9 +7,9 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 _particle_position_names = {}
 
 
-class EnzoPIOHandler(BaseIOHandler):
+class EnzoEIOHandler(BaseIOHandler):
 
-    _dataset_type = "enzo_p"
+    _dataset_type = "enzo_e"
     _base = slice(None)
     _field_dtype = "float64"
     _sep = "_"
@@ -43,7 +43,7 @@ class EnzoPIOHandler(BaseIOHandler):
             # mesh fields are "field <name>"
             if name.startswith("field"):
                 _, fname = name.split(self._sep, 1)
-                fields.append(("enzop", fname))
+                fields.append(("enzoe", fname))
                 dtypes.add(v.dtype)
             # particle fields are "particle <type> <name>"
             else:
