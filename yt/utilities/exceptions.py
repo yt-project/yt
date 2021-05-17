@@ -112,7 +112,7 @@ class YTFieldNotFound(YTException):
         else:
             ftype, fname = field
 
-        # Limit the suggestions to at a distance of 3 (at most 3 edits)
+        # Limit the suggestions to a distance of 3 (at most 3 edits)
         # This is very arbitrary, but is picked so that...
         # - small typos lead to meaningful suggestions (e.g. `densty` -> `density`)
         # - we don't suggest unrelated things (e.g. `pressure` -> `density` has a distance
@@ -128,7 +128,7 @@ class YTFieldNotFound(YTException):
                 suggestions[ft, fn] = 0
 
         if ftype is not None:
-            # Suggest close matches using levenstein distance
+            # Suggest close matches using levenshtein distance
             fields_str = {_: str(_).lower() for _ in ds.derived_field_list}
             field_str = str(field).lower()
 
