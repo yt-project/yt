@@ -180,7 +180,10 @@ temperature can be created as follows:
 .. code-block:: python
 
    profile2d = source.profile(
-       [("gas", "density"), ("gas", "temperature")],  # the x bin field  # the y bin field
+       [
+           ("gas", "density"),
+           ("gas", "temperature"),
+       ],  # the x bin field  # the y bin field
        [("gas", "mass")],  # the profile field
        weight_field=None,
    )
@@ -230,8 +233,8 @@ Exporting Profiles to DataFrame
 
 One-dimensional profile data can be exported to a :class:`~pandas.DataFrame` object
 using the :meth:`yt.data_objects.profiles.Profile1D.to_dataframe` method. Bins which
-do not have data will have their fields filled with `NaN`s, except for the bin field
-itself. If you only want to export the bins which are used, set `only_used=True`.
+do not have data will have their fields filled with ``NaN``, except for the bin field
+itself. If you only want to export the bins which are used, set ``only_used=True``.
 
 .. code-block:: python
 
@@ -253,8 +256,8 @@ Exporting Profiles to QTable
 One-dimensional profile data also can be exported to an AstroPy :class:`~astropy.table.QTable`
 object. This table can then be written to disk in a number of formats, such as ASCII text
 or FITS files, and manipulated in a number of ways. Bins which do not have data
-will have their mask values set to `False`. If you only want to export the bins
-which are used, set `only_used=True`. Units are preserved in the table by converting
+will have their mask values set to ``False``. If you only want to export the bins
+which are used, set ``only_used=True``. Units are preserved in the table by converting
 each :class:`~yt.units.yt_array.YTArray` to an :class:`~astropy.units.Quantity`.
 
 To export the 1D profile to a Table object, simply call
@@ -330,4 +333,4 @@ interoperability with anything that can take xarray data.  The classes that can 
    grid = ds.r[::256j, ::256j, ::256j]
    obj = grid.to_xarray(fields=["density", "temperature"])
 
-The returned object, `obj`, will now have the correct labeled axes and so forth.
+The returned object, ``obj``, will now have the correct labeled axes and so forth.

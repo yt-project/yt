@@ -51,8 +51,8 @@ for tab-completing as well as easier access to information.
 Additionally, if you have `ipywidgets
 <https://ipywidgets.readthedocs.io/en/stable/>`_ installed and are in a `Jupyter
 environment <https://jupyter.org/>`_, you can view the rich representation of
-the fields (including source code) by either typing `ds.fields` as the last
-item in a cell or by calling `display(ds.fields)`.  The resulting output will
+the fields (including source code) by either typing ``ds.fields`` as the last
+item in a cell or by calling ``display(ds.fields)``.  The resulting output will
 have tabs and source:
 
 .. image:: _images/fields_ipywidget.png
@@ -412,6 +412,8 @@ different magnetic field units in the different :ref:`unit systems <unit_systems
 determine how to set up special magnetic field handling when designing a new frontend, check out
 :ref:`bfields-frontend`.
 
+.. _species-fields:
+
 Species Fields
 --------------
 
@@ -454,7 +456,7 @@ defined:
 To refer to the number density of the entirety of a single atom or molecule (regardless
 of its ionization state), please use the ``MM_nuclei_density`` fields.
 
-Finally, if the abundances of hydrogen and helium are not defined, it is assumed that
+Finally, if the abundances of hydrogen and helium are not defined, it is
 assumed that these elements are fully ionized with primordial abundances In this case,
 the following fields are defined:
 
@@ -607,7 +609,7 @@ this will be handled automatically:
     )
 
 Which, because the axis is ``"z"``, will give you the same result if you had
-projected the `"velocity_z"`` field. This also works for off-axis projections:
+projected the ``"velocity_z"`` field. This also works for off-axis projections:
 
 .. code-block:: python
 
@@ -805,10 +807,6 @@ Note that ``fn`` here is the "field name" that yt adds.  It will be of the form
 default this is 64, but it can be supplied as the final argument to
 ``add_nearest_neighbor_field``.  For the example above, it would be
 ``nearest_neighbor_64``.
-
-This can then be used as input to the function
-``add_volume_weighted_smoothed_field``, which can enable smoothing particle
-types that would normally not be smoothed.
 
 Commonly, not just the identity of the nearest particle is interesting, but the
 value of a given field associated with that particle.  yt provides a function

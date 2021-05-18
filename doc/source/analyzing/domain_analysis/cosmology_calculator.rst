@@ -4,9 +4,9 @@ Cosmology Calculator
 ====================
 
 The cosmology calculator can be used to calculate cosmological distances and
-times given a set of cosmological parameters.  A cosmological dataset, `ds`,
+times given a set of cosmological parameters.  A cosmological dataset, ``ds``,
 will automatically have a cosmology calculator configured with the correct
-parameters associated with it as `ds.cosmology`.  A standalone
+parameters associated with it as ``ds.cosmology``.  A standalone
 :class:`~yt.utilities.cosmology.Cosmology` calculator object can be created
 in the following way:
 
@@ -77,8 +77,8 @@ redshift and time are available:
    x, x.to("Mpc") and x.to("Mpccm") will be the same.  The user should take
    care to understand which reference frame is correct for the given calculation.
 
-The helper functions, `co.quan`
-and `co.arr` exist to create unitful `YTQuantities` and `YTArray` with the
+The helper functions, ``co.quan``
+and ``co.arr`` exist to create unitful ``YTQuantities`` and ``YTArray`` with the
 unit registry of the cosmology calculator.  For more information on the usage
 and meaning of each calculation, consult the reference documentation at
 :ref:`cosmology-calculator-ref`.

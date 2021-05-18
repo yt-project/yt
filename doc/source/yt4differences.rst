@@ -23,60 +23,73 @@ Updating to yt 4.0 from Old Versions (and going back)
 Converting Old Scripts to Work with yt 4.0
 ------------------------------------------
 
-Energy and Momentum Field Name Conventions
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+After installing yt-4.0, you’ll want to change your old scripts in a few key
+ways. After accounting for the changes described in the list below, try
+running your script. If it still fails, the Python tracebacks
+should be fairly descriptive and it may be possible to deduce what remaining
+changes are necessary. If you continue to have trouble, please don’t hesitate
+to :ref:`request help <asking-for-help>`.
 
-Fields representing energy and momentum quantities are now given names which
-reflect their dimensionality. For example, the ``"gas", "kinetic_energy"``
-field was actually a field for kinetic energy density, and so it has been
-renamed to ``"gas", "kinetic_energy_density"``. The old name still exists
-as an alias as of yt v4.0.0, but it will be removed in yt v4.1.0. See
-:ref:`deprecated_field_names` below for more information.
+The list below is arranged in order of most to least important changes.
 
-Other examples include ``"gas", "specific_thermal_energy"`` for thermal
-energy per unit mass, and ``"gas", "momentum_density_x"`` for the x-axis
-component of momentum density. See :ref:`efields` for more information.
-
-Deprecated Field Names
-^^^^^^^^^^^^^^^^^^^^^^
-Certain field names are deprecated within yt v4.0.0, and will be removed in
-yt v4.1.0. For example, ``"gas", "kinetic_energy"`` has been renamed to
-``"gas", "kinetic_energy_density"``, though the former name has been added
-as an alias. Other fields, such as ``"gas", "cylindrical_tangential_velocity_absolute"``,
-are being removed entirely. When the deprecated field names are used for the
-first time in a session, a warning will be logged, so it is advisable to set
-your logging level to ``WARNING`` at a minimum to catch these.
-
-Colormaps
-^^^^^^^^^
-yt used to automatically register colormaps from ``cmocean``, unprefixed.
-This unfortunately became unsustainable with the 3.4 release of Matplotlib,
-in which colormaps with colliding names raise errors. The fix is to explicitly
-import the ``cmocean`` module and prefix ``cmocean`` colormaps (like
-``balance``) with ``cmo.``.  Note that this solution works with any
-yt-supported version of Matplotlib, but is not backward compatible with earlier
-versions of yt. Example:
-
-Old Script (will not work in the near future):
-
-.. code-block:: python
-
-    import yt
-
-    ds = yt.testing.fake_random_ds(1)
-    p = yt.SlicePlot(ds, "z", ("gas", "density"))
-    p.set_cmap(("gas", "density"), "balance")
-
-New Script:
-
-.. code-block:: python
-
-    import yt
-    import cmocean
-
-    ds = yt.testing.fake_random_ds(1)
-    p = yt.SlicePlot(ds, "z", ("gas", "density"))
-    p.set_cmap(("gas", "density"), "cmo.balance")
+* **Fields should be specified as tuples not as strings**
+  In the past, you could specify fields as strings like ``"density"``, but
+  with the growth of yt and its many derived fields, there can be sometimes
+  be overlapping field names (e.g., ``("gas", "density")`` and
+  ``("PartType0", "density")``, where yt doesn't know which to use.  To remove
+  any ambiguity, it is now strongly recommended to explicitly specify the full
+  tuple form of all fields. Just search for all field accesses in your scripts,
+  and replace strings with tuples (e.g. replace ``"a"``  with
+  ``("gas", "a" )``).  There is a compatibility rule in yt-4.0 to allow strings
+  to continue to work until yt-4.1, but you may get unexpected behavior.  Any
+  field specifications that are ambiguous will throw an error in future
+  versions of yt.  See our :ref:`fields`, and :ref:`available field list
+  <available-fields>` documentation for more information.
+* **Use Newer Versions of Python**
+  The yt-4.0 release will be the final release of yt to support Python 3.6.
+  Starting with yt-4.1, python 3.6 will no longer be supported, so please
+  start using 3.7+ as soon as possible.
+* **Neutral ion fields changing format**
+  In previous versions, neutral ion fields were specified as
+  ``ELEMENT_number_density`` (e.g., ``H_number_density`` to represent H I
+  number density).  This led to a lot of confusion, because some people assumed
+  these fields were the total hydrogen density, not neutral hydrogen density.
+  In yt-4.0, we have resolved this issue by explicitly calling total hydrogen
+  number density ``H_nuclei_density`` and neutral hydrogen density
+  ``H_p0_number_density`` (where ``p0`` refers to plus 0 charge).  This syntax
+  follows the rule for other ions: H II = ``H_p1`` = ionized hydrogen.  Change
+  your scripts accordingly.  See :ref:`species-fields` for more information.
+* **Change in energy and momentum field names**
+  Fields representing energy and momentum quantities are now given names which
+  reflect their dimensionality. For example, the ``("gas", "kinetic_energy")``
+  field was actually a field for kinetic energy density, and so it has been
+  renamed to ``"gas", "kinetic_energy_density"``. The old name still exists
+  as an alias as of yt v4.0.0, but it will be removed in yt v4.1.0. See
+  :ref:`deprecated_field_names` below for more information.
+  Other examples include ``"gas", "specific_thermal_energy"`` for thermal
+  energy per unit mass, and ``("gas", "momentum_density_x")`` for the x-axis
+  component of momentum density. See :ref:`efields` for more information.
+* **Deprecated field names**
+  Certain field names are deprecated within yt v4.0 and will be removed in
+  yt v4.1. For example, ``("gas", "kinetic_energy")`` has been renamed to
+  ``("gas", "kinetic_energy_density")``, though the former name has been added
+  as an alias. Other fields, such as
+  ``("gas", "cylindrical_tangential_velocity_absolute")``, are being removed
+  entirely. When the deprecated field names are used for the first time in a
+  session, a warning will be logged, so it is advisable to set
+  your logging level to ``WARNING`` (``yt.set_log_level("error")``) at a
+  minimum to catch these.  See :ref:`faq-log-level` for more information on
+  setting your log level and :ref:`available-fields` to see all available
+  fields.
+* ``cmocean`` **colormaps need prefixing**
+  yt used to automatically load and register external colormaps from the
+  ``cmocean`` package unprefixed (e.g., ``set_cmap(FIELD, "balance")``.  This
+  became unsustainable with the 3.4 release of Matplotlib, in which colormaps
+  with colliding names raise errors. The fix is to explicitly import the
+  ``cmocean`` module and prefix ``cmocean`` colormaps (like ``balance``) with
+  ``cmo.`` (e.g., ``cmo.balance``).  Note that this solution works with any
+  yt-supported version of Matplotlib, but is not backward compatible with
+  earlier versions of yt.
 
 Important New Aliases
 ^^^^^^^^^^^^^^^^^^^^^
@@ -92,7 +105,7 @@ use ``("gas", "cell_mass")`` should not break.
 Cool New Things
 ---------------
 
-Changes for working with SPH Data
+Changes for Working with SPH Data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In yt-3.0 most user-facing operations on SPH data are produced by interpolating
@@ -118,7 +131,7 @@ in yt.
 The new I/O method has opened up a new way of dealing with the particle data and
 in particular, SPH data.
 
-Scatter and gather approach for SPH data
+Scatter and Gather approach for SPH data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 As mentioned, previously operations such as slice, projection and arbitrary
@@ -196,7 +209,7 @@ The following is a code example:
 
     prj.save()
 
-Smoothing data onto an Octree
+Smoothing Data onto an Octree
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Whilst the move away from the global octree is a promising one in terms of
@@ -211,8 +224,9 @@ gather machinery also added.
 
 .. code-block:: python
 
-    import yt
     import numpy as np
+
+    import yt
 
     ds = yt.load("GadgetDiskGalaxy/snapshot_200.hdf5")
     left = np.array([0, 0, 0], dtype="float64")
@@ -240,7 +254,7 @@ search (DFS) means that tree starts refining at the root node (this is the
 largest node which contains every particles) and refines as far as possible
 along each branch before backtracking.
 
-``yt.units`` is now a wrapper for ``unyt``
+``yt.units`` Is Now a Wrapper for ``unyt``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 We have extracted ``yt.units`` into ``unyt``, its own library that you can
@@ -334,6 +348,17 @@ You can also use alternate unit names in more complex algebraic unit expressions
 
 In this example the common british spelling ``"kilometre"`` is resolved to
 ``"km"`` and ``"hour"`` is resolved to ``"hr"``.
+
+New Method for Accessing Sample Datasets
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There is now a function entitled ``load_sample()`` that allows the user to
+automatically load sample data from the yt hub in a local yt session.
+Previously, users would have to explicitly download these data directly from
+`https://yt-project.org/data <https://yt-project.org/data>`_, unpackage them,
+and load them into a yt session, but now this occurs from within a python
+session.  For more information see:
+:ref:`Loading Sample Data <loading-sample-data>`
 
 API Changes
 -----------

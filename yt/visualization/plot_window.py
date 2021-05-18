@@ -1306,7 +1306,7 @@ class PWViewerMPL(PlotWindow):
     def list_annotations(self):
         """
         List the current callbacks for the plot, along with their index.  This
-        index can be used with annotate_clear to remove a callback from the
+        index can be used with `clear_annotations` to remove a callback from the
         current plot.
         """
         for i, cb in enumerate(self._callbacks):

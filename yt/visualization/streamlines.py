@@ -229,7 +229,9 @@ class Streamlines(ParallelAnalysisInterface):
         >>> streamlines = Streamlines(ds, [0.5] * 3)
         >>> streamlines.integrate_through_volume()
         >>> stream = streamlines.path(0)
-        >>> matplotlib.pylab.semilogy(stream["t"], stream[("gas", "density")], "-x")
+        >>> fig, ax = plt.subplots()
+        >>> ax.set_yscale("log")
+        >>> ax.plot(stream["t"], stream[("gas", "density")], "-x")
 
         """
         return YTStreamline(

@@ -215,8 +215,8 @@ The ``leaves`` attribute returns a list of all leaf clumps.
 
    print(ds_clumps.leaves)
 
-Info items for each clump can be accessed with the `clump` field type.  Gas
-or grid fields should be accessed using the `grid` field type and particle
+Info items for each clump can be accessed with the ``"clump"`` field type.  Gas
+or grid fields should be accessed using the ``"grid"`` field type and particle
 fields should be access using the specific particle type.
 
 .. code:: python

@@ -3,6 +3,7 @@ This module gathers all user-facing functions with a `load_` prefix.
 
 """
 import os
+import sys
 import tarfile
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -11,7 +12,6 @@ import numpy as np
 from more_itertools import always_iterable
 
 from yt._maintenance.deprecation import issue_deprecation_warning
-from yt.config import ytcfg
 from yt.sample_data.api import lookup_on_disk_data
 from yt.utilities.decompose import decompose_array, get_psize
 from yt.utilities.exceptions import (
@@ -120,12 +120,7 @@ def load_simulation(fn, simulation_type, find_outputs=False):
         If simulation_type is unknown.
     """
 
-    if not os.path.exists(fn):
-        alt_fn = os.path.join(ytcfg.get("yt", "test_data_dir"), fn)
-        if os.path.exists(alt_fn):
-            fn = alt_fn
-        else:
-            raise FileNotFoundError(f"No such file or directory: '{fn}'")
+    fn = str(lookup_on_disk_data(fn))
 
     try:
         cls = simulation_time_series_registry[simulation_type]
@@ -1274,13 +1269,18 @@ def load_unstructured_mesh(
 
 
 # --- Loader for yt sample datasets ---
-def load_sample(fn, progressbar: bool = True, timeout=None, **kwargs):
+def load_sample(fn=None, progressbar: bool = True, timeout=None, **kwargs):
     """
-    Load sample data with yt. Simple wrapper around `yt.load` to include fetching
-    data with pooch.
+    Load sample data with yt.
+
+    This is a simple wrapper around `yt.load` to include fetching
+    data with pooch from remote source.
+
+    yt sample data can be found at:
+    https://yt-project.org/data.
 
     The data registry table can be retrieved and visualized using
-    `yt.sample_data.api.get_data_registry_table`.
+    `yt.sample_data.api.get_data_registry_table()`.
 
     This function requires pandas and pooch to be installed.
 
@@ -1302,6 +1302,14 @@ def load_sample(fn, progressbar: bool = True, timeout=None, **kwargs):
     Note that in case of collision with predefined keyword arguments as set in
     the data registry, the ones passed to this function take priority.
     """
+
+    if fn is None:
+        print(
+            "One can see which sample datasets are available at: https://yt-project.org/data\n"
+            "or alternatively by running: yt.sample_data.api.get_data_registry_table()",
+            file=sys.stderr,
+        )
+        return None
 
     from yt.sample_data.api import (
         _download_sample_data_file,
