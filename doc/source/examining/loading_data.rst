@@ -1651,10 +1651,10 @@ value can be changed when loading an Arepo dataset by setting the
 
    ds = yt.load("snapshot_100.hdf5", smoothing_factor=1.5)
 
-Currently, only Arepo HDF5 snapshots are supported. 
+Currently, only Arepo HDF5 snapshots are supported.
 
 If the "GFM" metal fields are present in your dataset, they will be loaded in
-and aliased to the appropriate species fields in the `"GFM_Metals"` field
+and aliased to the appropriate species fields in the ``"GFM_Metals"`` field
 on-disk. For more information, see the
 `Illustris TNG documentation <http://www.tng-project.org/data/docs/specifications/#sec1b>`_.
 
@@ -1662,17 +1662,16 @@ If passive scalar fields are present in your dataset, they will be loaded in
 and aliased to fields with the naming convention ``"PassiveScalars_XX"`` where
 ``XX`` is the number of the passive scalar array, e.g. ``"00"``, ``"01"``, etc.
 
-For halo cutouts downloaded from the Illustris or TNG simulations, it is
-necessary to make some small edits to the HDF5 file for yt to recognize them as
-Arepo data:
+HDF5 snapshots will be detected as Arepo data if they have the ``"GFM_Metals"``
+field present, or if they have a ``"Config"`` group in the header. If neither of
+these are the case, and your snapshot *is* Arepo data, you can fix this with the
+following:
 
 .. code-block:: python
 
     import h5py
-    import numpy as np
 
     with h5py.File(saved_filename, "r+") as f:
-        f["Header"].attrs["NumPart_Total"] = np.array(f["Header"].attrs["NumPart_ThisFile"])
         f.create_group("Config")
         f["/Config"].attrs["VORONOI"] = 1
 
