@@ -552,9 +552,9 @@ class PlotWindow(ImagePlotContainer):
         >>> import yt
         >>> ds = yt.load("")
         >>> p = yt.SlicePlot(ds, "altitude", "AIRDENS")
-        >>> p.set_mpl_projection('AIRDENS', 'Mollweide')
+        >>> p.set_mpl_projection("AIRDENS", "Mollweide")
         >>> p._setup_plots()
-        >>> p.plots['AIRDENS'].axes.coastlines()
+        >>> p.plots["AIRDENS"].axes.coastlines()
         >>> p.show()
 
         This will move the PlateCarree central longitude to 90 degrees and
@@ -563,11 +563,12 @@ class PlotWindow(ImagePlotContainer):
         >>> import yt
         >>> ds = yt.load("")
         >>> p = yt.SlicePlot(ds, "altitude", "AIRDENS")
-        >>> p.set_mpl_projection('AIRDENS', ('PlateCarree', () ,
-        ...                      {central_longitude=90, globe=None} ))
+        >>> p.set_mpl_projection(
+        ...     "AIRDENS", ("PlateCarree", (), {"central_longitude": 90, "globe": None})
+        ... )
         >>> p._setup_plots()
-        >>> p.plots['AIRDENS'].axes.set_global()
-        >>> p.plots['AIRDENS'].axes.coastlines()
+        >>> p.plots["AIRDENS"].axes.set_global()
+        >>> p.plots["AIRDENS"].axes.coastlines()
         >>> p.show()
 
 
@@ -579,10 +580,10 @@ class PlotWindow(ImagePlotContainer):
         >>> import yt
         >>> ds = yt.load("")
         >>> p = yt.SlicePlot(ds, "altitude", "AIRDENS")
-        >>> p.set_mpl_projection(('RotatedPole', (177.5, 37.5))
+        >>> p.set_mpl_projection("RotatedPole", (177.5, 37.5))
         >>> p._setup_plots()
-        >>> p.plots['AIRDENS'].axes.set_global()
-        >>> p.plots['AIRDENS'].axes.coastlines()
+        >>> p.plots["AIRDENS"].axes.set_global()
+        >>> p.plots["AIRDENS"].axes.coastlines()
         >>> p.show()
 
         This will create a RoatatedPole projection with the unrotated pole
@@ -592,11 +593,12 @@ class PlotWindow(ImagePlotContainer):
         >>> import yt
         >>> ds = yt.load("")
         >>> p = yt.SlicePlot(ds, "altitude", "AIRDENS")
-        >>> p.set_mpl_projection(('RotatedPole', (), {'pole_latitude':37.5,
-        ...                       'pole_longitude':177.5}))
+        >>> p.set_mpl_projection(
+        ...     ("RotatedPole", (), {"pole_latitude": 37.5, "pole_longitude": 177.5})
+        ... )
         >>> p._setup_plots()
-        >>> p.plots['AIRDENS'].axes.set_global()
-        >>> p.plots['AIRDENS'].axes.coastlines()
+        >>> p.plots["AIRDENS"].axes.set_global()
+        >>> p.plots["AIRDENS"].axes.coastlines()
         >>> p.show()
 
         """
@@ -1378,11 +1380,11 @@ class PWViewerMPL(PlotWindow):
 
         >>> import yt
         >>> ds = yt.load_sample("IsolatedGalaxy")
-        >>> fields = ['density', 'velocity_x', 'velocity_y', 'velocity_magnitude']
-        >>> p = yt.SlicePlot(ds, 'z', fields)
-        >>> p.set_log('velocity_x', False)
-        >>> p.set_log('velocity_y', False)
-        >>> fig = p.export_to_mpl_figure((2,2))
+        >>> fields = ["density", "velocity_x", "velocity_y", "velocity_magnitude"]
+        >>> p = yt.SlicePlot(ds, "z", fields)
+        >>> p.set_log("velocity_x", False)
+        >>> p.set_log("velocity_y", False)
+        >>> fig = p.export_to_mpl_figure((2, 2))
         >>> fig.tight_layout()
         >>> fig.savefig("test.png")
 
@@ -1527,9 +1529,9 @@ class AxisAlignedSlicePlot(PWViewerMPL):
     This will save an image in the file 'sliceplot_Density.png'
 
     >>> from yt import load
-    >>> ds = load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    >>> p = SlicePlot(ds, 2, 'density', 'c', (20, 'kpc'))
-    >>> p.save('sliceplot')
+    >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> p = SlicePlot(ds, 2, "density", "c", (20, "kpc"))
+    >>> p.save("sliceplot")
 
     """
     _plot_type = "Slice"
@@ -1744,7 +1746,7 @@ class ProjectionPlot(PWViewerMPL):
     center of the simulation box:
 
     >>> from yt import load
-    >>> ds = load('IsolateGalaxygalaxy0030/galaxy0030')
+    >>> ds = load("IsolateGalaxygalaxy0030/galaxy0030")
     >>> p = ProjectionPlot(ds, "z", ("gas", "density"), width=(20, "kpc"))
 
     """
@@ -2398,10 +2400,11 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
 
     >>> from yt import load
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    >>> slc = SlicePlot(ds, "x", ("gas", "density"), center=[0.2,0.3,0.4])
-    >>>
-    >>> slc = SlicePlot(ds, [0.4, 0.2, -0.1], ("gas", "pressure"),
-    ...                 north_vector=[0.2,-0.3,0.1])
+    >>> slc = SlicePlot(ds, "x", ("gas", "density"), center=[0.2, 0.3, 0.4])
+
+    >>> slc = SlicePlot(
+    ...     ds, [0.4, 0.2, -0.1], ("gas", "pressure"), north_vector=[0.2, -0.3, 0.1]
+    ... )
 
     """
     if axis is not None:

@@ -111,17 +111,18 @@ class FITSImageData:
         >>> prj = ds.proj(2, "kT", weight_field=("gas", "density"))
         >>> frb = prj.to_frb((0.5, "Mpc"), 800)
         >>> # This example just uses the FRB and puts the coords in kpc.
-        >>> f_kpc = FITSImageData(frb, fields="kT", length_unit="kpc",
-        ...                       time_unit=(1.0, "Gyr"))
+        >>> f_kpc = FITSImageData(
+        ...     frb, fields="kT", length_unit="kpc", time_unit=(1.0, "Gyr")
+        ... )
         >>> # This example specifies a specific WCS.
         >>> from astropy.wcs import WCS
         >>> w = WCS(naxis=self.dimensionality)
-        >>> w.wcs.crval = [30., 45.] # RA, Dec in degrees
-        >>> w.wcs.cunit = ["deg"]*2
+        >>> w.wcs.crval = [30.0, 45.0]  # RA, Dec in degrees
+        >>> w.wcs.cunit = ["deg"] * 2
         >>> nx, ny = 800, 800
-        >>> w.wcs.crpix = [0.5*(nx+1), 0.5*(ny+1)]
-        >>> w.wcs.ctype = ["RA---TAN","DEC--TAN"]
-        >>> scale = 1./3600. # One arcsec per pixel
+        >>> w.wcs.crpix = [0.5 * (nx + 1), 0.5 * (ny + 1)]
+        >>> w.wcs.ctype = ["RA---TAN", "DEC--TAN"]
+        >>> scale = 1.0 / 3600.0  # One arcsec per pixel
         >>> w.wcs.cdelt = [-scale, scale]
         >>> f_deg = FITSImageData(frb, fields="kT", wcs=w)
         >>> f_deg.writeto("temp.fits")

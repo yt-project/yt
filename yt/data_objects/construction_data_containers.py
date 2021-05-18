@@ -83,13 +83,12 @@ class YTStreamline(YTSelectionContainer1D):
     --------
 
     >>> from yt.visualization.api import Streamlines
-    >>> streamlines = Streamlines(ds, [0.5]*3)
+    >>> streamlines = Streamlines(ds, [0.5] * 3)
     >>> streamlines.integrate_through_volume()
     >>> stream = streamlines.path(0)
     >>> fig, ax = plt.subplots()
     >>> ax.set_yscale("log")
-    >>> ax.plot(stream['t'], stream[('gas', 'density')], '-x')
-
+    >>> ax.plot(stream["t"], stream[("gas", "density")], "-x")
     """
 
     _type_name = "streamline"
@@ -601,8 +600,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
 
     Examples
     --------
-    >>> cube = ds.covering_grid(2, left_edge=[0.0, 0.0, 0.0], \
-    ...                          dims=[128, 128, 128])
+    >>> cube = ds.covering_grid(2, left_edge=[0.0, 0.0, 0.0], dims=[128, 128, 128])
     """
 
     _spatial = True
@@ -1086,10 +1084,10 @@ class YTCoveringGrid(YTSelectionContainer3D):
         Examples
         --------
         >>> cube.write_to_gdf(
-        ...            "clumps.h5",
-        ...            [("gas", "density"), ("gas", "temperature")],
-        ...            nprocs=16,
-        ...            overwrite=True
+        ...     "clumps.h5",
+        ...     [("gas", "density"), ("gas", "temperature")],
+        ...     nprocs=16,
+        ...     overwrite=True,
         ... )
         """
         data = {}
@@ -1173,8 +1171,9 @@ class YTArbitraryGrid(YTCoveringGrid):
 
     Examples
     --------
-    >>> obj = ds.arbitrary_grid([0.0, 0.0, 0.0], [0.99, 0.99, 0.99],
-    ...                          dims=[128, 128, 128])
+    >>> obj = ds.arbitrary_grid(
+    ...     [0.0, 0.0, 0.0], [0.99, 0.99, 0.99], dims=[128, 128, 128]
+    ... )
     """
 
     _spatial = True
@@ -1521,13 +1520,14 @@ class YTSurface(YTSelectionContainer3D):
     output the vertices to "triangles.obj" after rescaling them.
 
     >>> from yt.units import kpc
-    >>> sp = ds.sphere("max", (10, "kpc")
+    >>> sp = ds.sphere("max", (10, "kpc"))
     >>> surf = ds.surface(sp, ("gas", "density"), 5e-27)
     >>> print(surf[("gas", "temperature")])
     >>> print(surf.vertices)
-    >>> bounds = [(sp.center[i] - 5.0*kpc,
-    ...            sp.center[i] + 5.0*kpc) for i in range(3)]
-    >>> surf.export_ply("my_galaxy.ply", bounds = bounds)
+    >>> bounds = [
+    ...     (sp.center[i] - 5.0 * kpc, sp.center[i] + 5.0 * kpc) for i in range(3)
+    ... ]
+    >>> surf.export_ply("my_galaxy.ply", bounds=bounds)
     """
     _type_name = "surface"
     _con_args = ("data_source", "surface_field", "field_value")
@@ -1675,10 +1675,14 @@ class YTSurface(YTSelectionContainer3D):
         This will create a data object, find a nice value in the center, and
         calculate the metal flux over it.
 
-        >>> sp = ds.sphere("max", (10, "kpc")
+        >>> sp = ds.sphere("max", (10, "kpc"))
         >>> surf = ds.surface(sp, ("gas", "density"), 5e-27)
         >>> flux = surf.calculate_flux(
-        ...     ("gas", "velocity_x"), ("gas", "velocity_y"), ("gas", "velocity_z"), ("gas", "metal_density"))
+        ...     ("gas", "velocity_x"),
+        ...     ("gas", "velocity_y"),
+        ...     ("gas", "velocity_z"),
+        ...     ("gas", "metal_density"),
+        ... )
         """
         flux = 0.0
         mylog.info("Fluxing %s", fluxing_field)
@@ -1825,30 +1829,44 @@ class YTSurface(YTSelectionContainer3D):
         >>> surf.export_obj("my_galaxy", transparency=trans)
 
         >>> sp = ds.sphere("max", (10, "kpc"))
-        >>> mi, ma = sp.quantities.extrema('temperature')
+        >>> mi, ma = sp.quantities.extrema("temperature")
         >>> rhos = [1e-24, 1e-25]
         >>> trans = [0.5, 1.0]
         >>> for i, r in enumerate(rhos):
-        ...     surf = ds.surface(sp,'density',r)
-        ...     surf.export_obj("my_galaxy", transparency=trans[i],
-        ...                      color_field='temperature'
-        ...                      plot_index = i, color_field_max = ma,
-        ...                      color_field_min = mi)
+        ...     surf = ds.surface(sp, "density", r)
+        ...     surf.export_obj(
+        ...         "my_galaxy",
+        ...         transparency=trans[i],
+        ...         color_field="temperature",
+        ...         plot_index=i,
+        ...         color_field_max=ma,
+        ...         color_field_min=mi,
+        ...     )
 
         >>> sp = ds.sphere("max", (10, "kpc"))
         >>> rhos = [1e-24, 1e-25]
         >>> trans = [0.5, 1.0]
         >>> def _Emissivity(field, data):
-        ...     return (data[('gas', 'density')]*data[('gas', 'density')] *
-        ...             np.sqrt(data[('gas', 'temperature')]))
-        >>> ds.add_field("emissivity", function=_Emissivity,
-        ...              sampling_type='cell', units=r"g**2*sqrt(K)/cm**6")
+        ...     return (
+        ...         data[("gas", "density")]
+        ...         * data[("gas", "density")]
+        ...         * np.sqrt(data[("gas", "temperature")])
+        ...     )
+        >>> ds.add_field(
+        ...     "emissivity",
+        ...     function=_Emissivity,
+        ...     sampling_type="cell",
+        ...     units=r"g**2*sqrt(K)/cm**6",
+        ... )
         >>> for i, r in enumerate(rhos):
-        ...     surf = ds.surface(sp,'density',r)
-        ...     surf.export_obj("my_galaxy", transparency=trans[i],
-        ...                      color_field='temperature',
-        ...                      emit_field='emissivity',
-        ...                      plot_index = i)
+        ...     surf = ds.surface(sp, "density", r)
+        ...     surf.export_obj(
+        ...         "my_galaxy",
+        ...         transparency=trans[i],
+        ...         color_field="temperature",
+        ...         emit_field="emissivity",
+        ...         plot_index=i,
+        ...     )
 
         """
         if color_map is None:
@@ -2150,27 +2168,39 @@ class YTSurface(YTSelectionContainer3D):
         >>> surf.export_obj("my_galaxy", transparency=trans)
 
         >>> sp = ds.sphere("max", (10, "kpc"))
-        >>> mi, ma = sp.quantities.extrema('temperature')[0]
+        >>> mi, ma = sp.quantities.extrema("temperature")[0]
         >>> rhos = [1e-24, 1e-25]
         >>> trans = [0.5, 1.0]
         >>> for i, r in enumerate(rhos):
-        ...     surf = ds.surface(sp,'density',r)
-        ...     surf.export_obj("my_galaxy", transparency=trans[i],
-        ...                      color_field='temperature',
-        ...                      plot_index = i, color_field_max = ma,
-        ...                      color_field_min = mi)
+        ...     surf = ds.surface(sp, "density", r)
+        ...     surf.export_obj(
+        ...         "my_galaxy",
+        ...         transparency=trans[i],
+        ...         color_field="temperature",
+        ...         plot_index=i,
+        ...         color_field_max=ma,
+        ...         color_field_min=mi,
+        ...     )
 
         >>> sp = ds.sphere("max", (10, "kpc"))
         >>> rhos = [1e-24, 1e-25]
         >>> trans = [0.5, 1.0]
         >>> def _Emissivity(field, data):
-        ...     return (data[('gas', 'density')]*data[('gas', 'density')]*np.sqrt(data[('gas', 'temperature')]))
+        ...     return (
+        ...         data[("gas", "density")]
+        ...         * data[("gas", "density")]
+        ...         * np.sqrt(data[("gas", "temperature")])
+        ...     )
         >>> ds.add_field("emissivity", function=_Emissivity, units="g / cm**6")
         >>> for i, r in enumerate(rhos):
-        ...     surf = ds.surface(sp,'density',r)
-        ...     surf.export_obj("my_galaxy", transparency=trans[i],
-        ...                      color_field='temperature', emit_field = 'emissivity',
-        ...                      plot_index = i)
+        ...     surf = ds.surface(sp, "density", r)
+        ...     surf.export_obj(
+        ...         "my_galaxy",
+        ...         transparency=trans[i],
+        ...         color_field="temperature",
+        ...         emit_field="emissivity",
+        ...         plot_index=i,
+        ...     )
 
         """
         if color_map is None:
@@ -2312,13 +2342,14 @@ class YTSurface(YTSelectionContainer3D):
         --------
 
         >>> from yt.units import kpc
-        >>> sp = ds.sphere("max", (10, "kpc")
+        >>> sp = ds.sphere("max", (10, "kpc"))
         >>> surf = ds.surface(sp, ("gas", "density"), 5e-27)
         >>> print(surf[("gas", "temperature")])
         >>> print(surf.vertices)
-        >>> bounds = [(sp.center[i] - 5.0*kpc,
-        ...            sp.center[i] + 5.0*kpc) for i in range(3)]
-        >>> surf.export_ply("my_galaxy.ply", bounds = bounds)
+        >>> bounds = [
+        ...     (sp.center[i] - 5.0 * kpc, sp.center[i] + 5.0 * kpc) for i in range(3)
+        ... ]
+        >>> surf.export_ply("my_galaxy.ply", bounds=bounds)
         """
         if color_map is None:
             color_map = ytcfg.get("yt", "default_colormap")
@@ -2493,17 +2524,20 @@ class YTSurface(YTSelectionContainer3D):
         >>> from yt.units import kpc
         >>> dd = ds.sphere("max", (200, "kpc"))
         >>> rho = 5e-27
-        >>> bounds = [(dd.center[i] - 100.0*kpc,
-        ...            dd.center[i] + 100.0*kpc) for i in range(3)]
+        >>> bounds = [
+        ...     (dd.center[i] - 100.0 * kpc, dd.center[i] + 100.0 * kpc)
+        ...     for i in range(3)
+        ... ]
         ...
         >>> surf = ds.surface(dd, ("gas", "density"), rho)
         >>> rv = surf.export_sketchfab(
-        ...     title = "Testing Upload",
-        ...     description = "A simple test of the uploader",
-        ...     color_field = "temperature",
-        ...     color_map = "hot",
-        ...     color_log = True,
-        ...     bounds = bounds)
+        ...     title="Testing Upload",
+        ...     description="A simple test of the uploader",
+        ...     color_field="temperature",
+        ...     color_map="hot",
+        ...     color_log=True,
+        ...     bounds=bounds,
+        ... )
         ...
         """
         if color_map is None:

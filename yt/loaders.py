@@ -212,13 +212,12 @@ def load_uniform_grid(
     Examples
     --------
     >>> np.random.seed(int(0x4D3D3D3))
-    >>> bbox = np.array([[0., 1.0], [-1.5, 1.5], [1.0, 2.5]])
+    >>> bbox = np.array([[0.0, 1.0], [-1.5, 1.5], [1.0, 2.5]])
     >>> arr = np.random.random((128, 128, 128))
     >>> data = dict(density=arr)
-    >>> ds = load_uniform_grid(data, arr.shape, length_unit='cm',
-    ...                        bbox=bbox, nprocs=12)
+    >>> ds = load_uniform_grid(data, arr.shape, length_unit="cm", bbox=bbox, nprocs=12)
     >>> dd = ds.all_data()
-    >>> dd[('gas', 'density')]
+    >>> dd[("gas", "density")]
     unyt_array([0.76017901, 0.96855994, 0.49205428, ..., 0.78798258,
                 0.97569432, 0.99453904], 'g/cm**3')
     """
@@ -425,20 +424,27 @@ def load_amr_grids(
     --------
 
     >>> grid_data = [
-    ...     dict(left_edge = [0.0, 0.0, 0.0],
-    ...          right_edge = [1.0, 1.0, 1.],
-    ...          level = 0,
-    ...          dimensions = [32, 32, 32],
-    ...          number_of_particles = 0),
-    ...     dict(left_edge = [0.25, 0.25, 0.25],
-    ...          right_edge = [0.75, 0.75, 0.75],
-    ...          level = 1,
-    ...          dimensions = [32, 32, 32],
-    ...          number_of_particles = 0)
+    ...     dict(
+    ...         left_edge=[0.0, 0.0, 0.0],
+    ...         right_edge=[1.0, 1.0, 1.0],
+    ...         level=0,
+    ...         dimensions=[32, 32, 32],
+    ...         number_of_particles=0,
+    ...     ),
+    ...     dict(
+    ...         left_edge=[0.25, 0.25, 0.25],
+    ...         right_edge=[0.75, 0.75, 0.75],
+    ...         level=1,
+    ...         dimensions=[32, 32, 32],
+    ...         number_of_particles=0,
+    ...     ),
     ... ]
     ...
     >>> for g in grid_data:
-    ...     g[("gas", "density")] = (np.random.random(g["dimensions"])*2**g["level"], "g/cm**3")
+    ...     g[("gas", "density")] = (
+    ...         np.random.random(g["dimensions"]) * 2 ** g["level"],
+    ...         "g/cm**3",
+    ...     )
     ...
     >>> ds = load_amr_grids(grid_data, [32, 32, 32], length_unit=1.0)
     """
@@ -623,11 +629,13 @@ def load_particles(
     Examples
     --------
 
-    >>> pos = [np.random.random(128*128*128) for i in range(3)]
-    >>> data = dict(particle_position_x = pos[0],
-    ...             particle_position_y = pos[1],
-    ...             particle_position_z = pos[2])
-    >>> bbox = np.array([[0., 1.0], [0.0, 1.0], [0.0, 1.0]])
+    >>> pos = [np.random.random(128 * 128 * 128) for i in range(3)]
+    >>> data = dict(
+    ...     particle_position_x=pos[0],
+    ...     particle_position_y=pos[1],
+    ...     particle_position_z=pos[2],
+    ... )
+    >>> bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]])
     >>> ds = load_particles(data, 3.08e24, bbox=bbox)
 
     """
@@ -929,21 +937,20 @@ def load_octree(
     -------
 
     >>> import numpy as np
-    >>> oct_mask = [8, 0, 0, 0, 0, 8, 0, 8,
-    ...             0, 0, 0, 0, 0, 0, 0, 0,
-    ...             8, 0, 0, 0, 0, 0, 0, 0,
-    ...             0]
-    >>>
+    >>> oct_mask = np.zeros(25)
+    ... oct_mask[[0,  5,  7, 16]] = 8
     >>> octree_mask = np.array(oct_mask, dtype=np.uint8)
     >>> quantities = {}
-    >>> quantities['gas', 'density'] = np.random.random((22, 1))
-    >>> bbox = np.array([[-10., 10.], [-10., 10.], [-10., 10.]])
-    >>>
-    >>> ds = load_octree(octree_mask=octree_mask,
-    ...                  data=quantities,
-    ...                  bbox=bbox,
-    ...                  over_refine_factor=0,
-    ...                  partial_coverage=0)
+    >>> quantities["gas", "density"] = np.random.random((22, 1))
+    >>> bbox = np.array([[-10.0, 10.0], [-10.0, 10.0], [-10.0, 10.0]])
+
+    >>> ds = load_octree(
+    ...     octree_mask=octree_mask,
+    ...     data=quantities,
+    ...     bbox=bbox,
+    ...     over_refine_factor=0,
+    ...     partial_coverage=0,
+    ... )
 
     """
     from yt.frontends.stream.data_structures import (
@@ -1109,27 +1116,32 @@ def load_unstructured_mesh(
     Load a simple mesh consisting of two tets.
 
       >>> # Coordinates for vertices of two tetrahedra
-      >>> coordinates = np.array([[0.0, 0.0, 0.5], [0.0, 1.0, 0.5],
-      ...                         [0.5, 1, 0.5], [0.5, 0.5, 0.0],
-      ...                         [0.5, 0.5, 1.0]])
+      >>> coordinates = np.array(
+      ...     [
+      ...         [0.0, 0.0, 0.5],
+      ...         [0.0, 1.0, 0.5],
+      ...         [0.5, 1, 0.5],
+      ...         [0.5, 0.5, 0.0],
+      ...         [0.5, 0.5, 1.0],
+      ...     ]
+      ... )
       >>> # The indices in the coordinates array of mesh vertices.
       >>> # This mesh has two elements.
       >>> connectivity = np.array([[0, 1, 2, 4], [0, 1, 2, 3]])
-      >>>
+
       >>> # Field data defined at the centers of the two mesh elements.
-      >>> elem_data = {
-      ...     ('connect1', 'elem_field'): np.array([1, 2])
-      ... }
-      >>>
+      >>> elem_data = {("connect1", "elem_field"): np.array([1, 2])}
+
       >>> # Field data defined at node vertices
       >>> node_data = {
-      ...     ('connect1', 'node_field'): np.array([[0.0, 1.0, 2.0, 4.0],
-      ...                                           [0.0, 1.0, 2.0, 3.0]])
+      ...     ("connect1", "node_field"): np.array(
+      ...         [[0.0, 1.0, 2.0, 4.0], [0.0, 1.0, 2.0, 3.0]]
+      ...     )
       ... }
-      >>>
-      >>> ds = load_unstructured_mesh(connectivity, coordinates,
-      ...                             elem_data=elem_data,
-      ...                             node_data=node_data)
+
+      >>> ds = load_unstructured_mesh(
+      ...     connectivity, coordinates, elem_data=elem_data, node_data=node_data
+      ... )
     """
     from yt.frontends.exodus_ii.util import get_num_pseudo_dims
     from yt.frontends.stream.data_structures import (

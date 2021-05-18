@@ -294,7 +294,7 @@ class SDFRead(dict):
 
         >>> sdf = SDFRead("data.sdf", header="data.hdr")
         >>> print(sdf.parameters)
-        >>> print(sdf['x'])
+        >>> print(sdf["x"])
 
         """
         self.filename = filename
@@ -470,7 +470,7 @@ class HTTPSDFRead(SDFRead):
 
     >>> sdf = SDFRead("data.sdf", header="data.hdr")
     >>> print(sdf.parameters)
-    >>> print(sdf['x'])
+    >>> print(sdf["x"])
 
     """
 
@@ -533,7 +533,7 @@ def load_sdf(filename, header=None):
 
     >>> sdf = SDFRead("data.sdf", header="data.hdr")
     >>> print(sdf.parameters)
-    >>> print(sdf['x'])
+    >>> print(sdf["x"])
 
     """
     if "http" in filename:
@@ -1380,8 +1380,9 @@ class SDFIndex:
 
         Examples
         --------
-        >>> chunks = midx.get_padded_bbox_data(6, np.array([128]*3),
-        ...                                    8.0, ['x','y','z','ident'])
+        >>> chunks = midx.get_padded_bbox_data(
+        ...     6, np.array([128] * 3), 8.0, ["x", "y", "z", "ident"]
+        ... )
 
         """
         _ensure_xyz_fields(fields)
