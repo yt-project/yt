@@ -6,8 +6,9 @@ import os
 import sys
 import tarfile
 from pathlib import Path
-from urllib.parse import urlsplit
 from typing import Optional
+from urllib.parse import urlsplit
+
 import numpy as np
 from more_itertools import always_iterable
 
@@ -1269,7 +1270,9 @@ def load_unstructured_mesh(
 
 
 # --- Loader for yt sample datasets ---
-def load_sample(fn:Optional[str]=None, progressbar: bool = True, timeout=None, **kwargs):
+def load_sample(
+    fn: Optional[str] = None, progressbar: bool = True, timeout=None, **kwargs
+):
     """
     Load sample data with yt.
 
