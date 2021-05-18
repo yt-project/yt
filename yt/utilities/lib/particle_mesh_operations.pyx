@@ -87,7 +87,7 @@ def CICDeposit_2(np.float64_t[:] posx,
                  np.float64_t[:] mass,
                  np.int64_t npositions,
                  np.float64_t[:, :] field,
-                 np.int_t[:, :] field_mask,
+                 np.uint8_t[:, :] field_mask,
                  np.float64_t[:] x_bin_edges,
                  np.float64_t[:] y_bin_edges):
 
@@ -145,7 +145,7 @@ def NGPDeposit_2(np.float64_t[:] posx,
                  np.float64_t[:] mass,
                  np.int64_t npositions,
                  np.float64_t[:, :] field,
-                 np.int_t[:, :] field_mask,
+                 np.uint8_t[:, :] field_mask,
                  np.float64_t[:] x_bin_edges,
                  np.float64_t[:] y_bin_edges):
 

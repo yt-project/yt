@@ -894,7 +894,7 @@ def construct_image(ds, axis, data_source, center, image_res, width, length_unit
             center[1] + width[1] / 2,
         )
         frb = ParticleImageBuffer(
-            data_source, bounds, (nx, ny), periodic=np.all(ds.periodicity)
+            data_source, bounds, (nx, ny), periodic=all(ds.periodicity)
         )
     else:
         frb = None
