@@ -651,7 +651,7 @@ Currently, slices and data selection are implemented for nodal
 fields. Projections, volume rendering, and many of the analysis modules will not
 work.
 
-.. _loading-enzop-data:
+.. _loading-enzoe-data:
 
 Enzo-E Data
 -----------
