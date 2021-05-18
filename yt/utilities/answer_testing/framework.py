@@ -438,15 +438,15 @@ class AnswerTestingTest:
     def compare(self, new_result, old_result):
         raise RuntimeError
 
-    def create_plot(self, ds, plot_type, plot_field, plot_axis, plot_kwargs=None):
+    def create_plot(self, ds, plot_type, plot_field, plot_axis, mpl_kwargs=None):
         # plot_type should be a string
-        # plot_kwargs should be a dict
+        # mpl_kwargs should be a dict
         if plot_type is None:
             raise RuntimeError("Must explicitly request a plot type")
         cls = getattr(pw, plot_type, None)
         if cls is None:
             cls = getattr(particle_plots, plot_type)
-        plot = cls(*(ds, plot_axis, plot_field), **plot_kwargs)
+        plot = cls(*(ds, plot_axis, plot_field), **mpl_kwargs)
         return plot
 
     @property
@@ -941,16 +941,16 @@ class PhasePlotAttributeTest(AnswerTestingTest):
         self.decimals = decimals
 
     def create_plot(
-        self, data_source, x_field, y_field, z_field, plot_type, plot_kwargs=None
+        self, data_source, x_field, y_field, z_field, plot_type, mpl_kwargs=None
     ):
         # plot_type should be a string
-        # plot_kwargs should be a dict
+        # mpl_kwargs should be a dict
         if plot_type is None:
             raise RuntimeError("Must explicitly request a plot type")
         cls = getattr(profile_plotter, plot_type, None)
         if cls is None:
             cls = getattr(particle_plots, plot_type)
-        plot = cls(*(data_source, x_field, y_field, z_field), **plot_kwargs)
+        plot = cls(*(data_source, x_field, y_field, z_field), **mpl_kwargs)
         return plot
 
     def run(self):

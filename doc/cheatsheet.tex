@@ -255,7 +255,7 @@ perpendicular to \textit{axis} (specified via 'x', 'y', or 'z') or a normal vect
 
 \subsection{Plot Annotations}
 \settowidth{\MyLen}{\texttt{multicol} }
-Plot callbacks are functions itemized in a registry that is attached to every plot object. They can be accessed and then called like \texttt{ prj.annotate\_velocity(factor=16, normalize=False)}. Most callbacks also accept a \textit{plot\_args} dict that is fed to matplotlib annotator. \\
+Plot callbacks are functions itemized in a registry that is attached to every plot object. They can be accessed and then called like \texttt{ prj.annotate\_velocity(factor=16, normalize=False)}. Most callbacks also accept a \textit{mpl\_kwargs} dict that is fed to matplotlib annotator. \\
 \texttt{velocity(\textit{factor=},\textit{scale=},\textit{scale\_units=}, \textit{normalize=})} \textemdash\ Uses field "x-velocity" to draw quivers\\
 \texttt{magnetic\_field(\textit{factor=},\textit{scale=},\textit{scale\_units=}, \textit{normalize=})} \textemdash\ Uses field "Bx" to draw quivers\\
 \texttt{quiver(\textit{field\_x},\textit{field\_y},\textit{factor=},\textit{scale=},\textit{scale\_units=}, \textit{normalize=})} \\

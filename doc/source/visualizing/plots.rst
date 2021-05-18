@@ -493,11 +493,11 @@ We can also annotate the mesh lines, as follows:
 
    ds = yt.load("MOOSE_sample_data/out.e-s010")
    sl = yt.SlicePlot(ds, "z", ("connect1", "diffused"))
-   sl.annotate_mesh_lines(plot_args={"color": "black"})
+   sl.annotate_mesh_lines(mpl_kwargs={"color": "black"})
    sl.zoom(0.75)
    sl.save()
 
-The ``plot_args`` parameter is a dictionary of keyword arguments that will be passed
+The ``mpl_kwargs`` parameter is a dictionary of keyword arguments that will be passed
 to matplotlib. It can be used to control the mesh line color, thickness, etc...
 
 The above examples all involve 8-node hexahedral mesh elements. Here is another example from

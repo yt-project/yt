@@ -12,7 +12,7 @@ sp.annotate_contour(
     ncont=3,
     clim=(1e-2, 1e-1),
     label=True,
-    plot_args={"colors": "red", "linewidths": 2},
+    mpl_kwargs={"colors": "red", "linewidths": 2},
 )
 
 # What about some nice temperature contours in blue?
@@ -21,7 +21,7 @@ sp.annotate_contour(
     ncont=3,
     clim=(1e-8, 1e-6),
     label=True,
-    plot_args={"colors": "blue", "linewidths": 2},
+    mpl_kwargs={"colors": "blue", "linewidths": 2},
 )
 
 # This is the plot object.

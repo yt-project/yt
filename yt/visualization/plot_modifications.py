@@ -2,10 +2,12 @@ import re
 import warnings
 from functools import wraps
 from numbers import Number
+from typing import Any, Dict
 
 import matplotlib
 import numpy as np
 
+from yt._maintenance.deprecation import DEPRECATED_DEFAULT, issue_deprecation_warning
 from yt.data_objects.data_containers import YTDataContainer
 from yt.data_objects.level_sets.clump_handling import Clump
 from yt.data_objects.selection_objects.cut_region import YTCutRegion
@@ -29,6 +31,21 @@ from yt.utilities.on_demand_imports import NotAModule
 from yt.visualization.image_writer import apply_colormap
 
 callback_registry = {}
+
+
+def _handle_kwarg_deprecation_warning(
+    old: str, new: str, namespace: Dict[str, Any]
+) -> None:
+    # old and new should be variable names
+    # namespace is normally supposed to be `locals()`
+    old_val = namespace[old]
+    new_val = namespace[new]
+    if old_val is not DEPRECATED_DEFAULT:
+        new_val.update(old_val)
+        warning = "keyword `{}` is deprecated, use `{}` instead."
+        issue_deprecation_warning(
+            warning.format(old, new), removal="4.3.0", since="4.1.0"
+        )
 
 
 def _verify_geometry(func):
@@ -295,7 +312,7 @@ class VelocityCallback(PlotCallback):
     """
     Adds a 'quiver' plot of velocity to the plot, skipping all but
     every *factor* datapoint. *scale* is the data units per arrow
-    length unit using *scale_units* and *plot_args* allows you to
+    length unit using *scale_units* and *mpl_kwargs* allows you to
     pass in matplotlib arguments (see matplotlib.axes.Axes.quiver
     for more info). if *normalize* is True, the velocity fields
     will be scaled by their local (in-plane) length, allowing
@@ -307,16 +324,23 @@ class VelocityCallback(PlotCallback):
     _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
 
     def __init__(
-        self, factor=16, scale=None, scale_units=None, normalize=False, plot_args=None
+        self,
+        factor=16,
+        scale=None,
+        scale_units=None,
+        normalize=False,
+        mpl_kwargs=None,
+        plot_args=DEPRECATED_DEFAULT,
     ):
         PlotCallback.__init__(self)
         self.factor = factor
         self.scale = scale
         self.scale_units = scale_units
         self.normalize = normalize
-        if plot_args is None:
-            plot_args = {}
-        self.plot_args = plot_args
+        if mpl_kwargs is None:
+            mpl_kwargs = {}
+        _handle_kwarg_deprecation_warning("plot_args", "mpl_kwargs", locals())
+        self.mpl_kwargs = mpl_kwargs
 
     def __call__(self, plot):
         ftype = plot.data._current_fluid_type
@@ -336,7 +360,7 @@ class VelocityCallback(PlotCallback):
                 scale=self.scale,
                 normalize=self.normalize,
                 scale_units=self.scale_units,
-                plot_args=self.plot_args,
+                mpl_kwargs=self.mpl_kwargs,
             )
         else:
             xax = plot.data.ds.coordinates.x_axis[plot.data.axis]
@@ -377,7 +401,7 @@ class VelocityCallback(PlotCallback):
                 normalize=self.normalize,
                 bv_x=bv_x,
                 bv_y=bv_y,
-                plot_args=self.plot_args,
+                mpl_kwargs=self.mpl_kwargs,
             )
         return qcb(plot)
 
@@ -386,7 +410,7 @@ class MagFieldCallback(PlotCallback):
     """
     Adds a 'quiver' plot of magnetic field to the plot, skipping all but
     every *factor* datapoint. *scale* is the data units per arrow
-    length unit using *scale_units* and *plot_args* allows you to pass
+    length unit using *scale_units* and *mpl_kwargs* allows you to pass
     in matplotlib arguments (see matplotlib.axes.Axes.quiver for more info).
     if *normalize* is True, the magnetic fields will be scaled by their
     local (in-plane) length, allowing morphological features to be more
@@ -397,16 +421,23 @@ class MagFieldCallback(PlotCallback):
     _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
 
     def __init__(
-        self, factor=16, scale=None, scale_units=None, normalize=False, plot_args=None
+        self,
+        factor=16,
+        scale=None,
+        scale_units=None,
+        normalize=False,
+        mpl_kwargs=None,
+        plot_args=DEPRECATED_DEFAULT,
     ):
         PlotCallback.__init__(self)
         self.factor = factor
         self.scale = scale
         self.scale_units = scale_units
         self.normalize = normalize
-        if plot_args is None:
-            plot_args = {}
-        self.plot_args = plot_args
+        if mpl_kwargs is None:
+            mpl_kwargs = {}
+        _handle_kwarg_deprecation_warning("plot_args", "mpl_kwargs", locals())
+        self.mpl_kwargs = mpl_kwargs
 
     def __call__(self, plot):
         ftype = plot.data._current_fluid_type
@@ -425,7 +456,7 @@ class MagFieldCallback(PlotCallback):
                 scale=self.scale,
                 scale_units=self.scale_units,
                 normalize=self.normalize,
-                plot_args=self.plot_args,
+                mpl_kwargs=self.mpl_kwargs,
             )
         else:
             xax = plot.data.ds.coordinates.x_axis[plot.data.axis]
@@ -453,7 +484,7 @@ class MagFieldCallback(PlotCallback):
                 scale=self.scale,
                 scale_units=self.scale_units,
                 normalize=self.normalize,
-                plot_args=self.plot_args,
+                mpl_kwargs=self.mpl_kwargs,
             )
         return qcb(plot)
 
@@ -463,7 +494,7 @@ class QuiverCallback(PlotCallback):
     Adds a 'quiver' plot to any plot, using the *field_x* and *field_y*
     from the associated data, skipping every *factor* datapoints.
     *scale* is the data units per arrow length unit using *scale_units*
-    and *plot_args* allows you to pass in matplotlib arguments (see
+    and *mpl_kwargs* allows you to pass in matplotlib arguments (see
     matplotlib.axes.Axes.quiver for more info). if *normalize* is True,
     the fields will be scaled by their local (in-plane) length, allowing
     morphological features to be more clearly seen for fields with
@@ -483,7 +514,8 @@ class QuiverCallback(PlotCallback):
         normalize=False,
         bv_x=0,
         bv_y=0,
-        plot_args=None,
+        mpl_kwargs=None,
+        plot_args=DEPRECATED_DEFAULT,
     ):
         PlotCallback.__init__(self)
         self.field_x = field_x
@@ -494,9 +526,10 @@ class QuiverCallback(PlotCallback):
         self.scale = scale
         self.scale_units = scale_units
         self.normalize = normalize
-        if plot_args is None:
-            plot_args = {}
-        self.plot_args = plot_args
+        if mpl_kwargs is None:
+            mpl_kwargs = {}
+        _handle_kwarg_deprecation_warning("plot_args", "mpl_kwargs", locals())
+        self.mpl_kwargs = mpl_kwargs
 
     def __call__(self, plot):
         x0, x1, y0, y1 = self._physical_bounds(plot)
@@ -564,7 +597,7 @@ class QuiverCallback(PlotCallback):
             pixY,
             scale=self.scale,
             scale_units=self.scale_units,
-            **self.plot_args,
+            **self.mpl_kwargs,
         )
         plot._axes.set_xlim(xx0, xx1)
         plot._axes.set_ylim(yy0, yy1)
@@ -589,34 +622,34 @@ class ContourCallback(PlotCallback):
         ncont=5,
         factor=4,
         clim=None,
-        plot_args=None,
+        mpl_kwargs=None,
         label=False,
         take_log=None,
-        label_args=None,
-        text_args=None,
+        label_args=DEPRECATED_DEFAULT,
+        text_kwargs=None,
         data_source=None,
+        plot_args=DEPRECATED_DEFAULT,
+        text_args=DEPRECATED_DEFAULT,
     ):
         PlotCallback.__init__(self)
-        def_plot_args = {"colors": "k", "linestyles": "solid"}
-        def_text_args = {"colors": "w"}
+        def_mpl_kwargs = {"colors": "k", "linestyles": "solid"}
+        def_text_kwargs = {"colors": "w"}
         self.ncont = ncont
         self.field = field
         self.factor = factor
         self.clim = clim
         self.take_log = take_log
-        if plot_args is None:
-            plot_args = def_plot_args
-        self.plot_args = plot_args
+        if mpl_kwargs is None:
+            mpl_kwargs = def_mpl_kwargs
+        _handle_kwarg_deprecation_warning("plot_args", "mpl_kwargs", locals())
+        self.mpl_kwargs = mpl_kwargs
         self.label = label
-        if label_args is not None:
-            text_args = label_args
-            warnings.warn(
-                "The label_args keyword is deprecated.  Please use "
-                "the text_args keyword instead."
-            )
-        if text_args is None:
-            text_args = def_text_args
-        self.text_args = text_args
+
+        if text_kwargs is None:
+            text_kwargs = def_text_kwargs
+        _handle_kwarg_deprecation_warning("label_args", "text_kwargs", locals())
+        _handle_kwarg_deprecation_warning("text_args", "text_kwargs", locals())
+        self.text_kwargs = text_kwargs
         self.data_source = data_source
 
     def __call__(self, plot):
@@ -699,12 +732,12 @@ class ContourCallback(PlotCallback):
         if self.clim is not None:
             self.ncont = np.linspace(self.clim[0], self.clim[1], self.ncont)
 
-        cset = plot._axes.contour(xi, yi, zi, self.ncont, **self.plot_args)
+        cset = plot._axes.contour(xi, yi, zi, self.ncont, **self.mpl_kwargs)
         plot._axes.set_xlim(xx0, xx1)
         plot._axes.set_ylim(yy0, yy1)
 
         if self.label:
-            plot._axes.clabel(cset, **self.text_args)
+            plot._axes.clabel(cset, **self.text_kwargs)
 
 
 class GridBoundaryCallback(PlotCallback):
@@ -911,19 +944,21 @@ class StreamlineCallback(PlotCallback):
         density=1,
         field_color=None,
         display_threshold=None,
-        plot_args=None,
+        mpl_kwargs=None,
+        plot_args=DEPRECATED_DEFAULT,
     ):
         PlotCallback.__init__(self)
-        def_plot_args = {}
+        def_mpl_kwargs = {}
         self.field_x = field_x
         self.field_y = field_y
         self.field_color = field_color
         self.factor = factor
         self.dens = density
         self.display_threshold = display_threshold
-        if plot_args is None:
-            plot_args = def_plot_args
-        self.plot_args = plot_args
+        if mpl_kwargs is None:
+            mpl_kwargs = def_mpl_kwargs
+        _handle_kwarg_deprecation_warning("plot_args", "mpl_kwargs", locals())
+        self.mpl_kwargs = mpl_kwargs
 
     def __call__(self, plot):
         bounds = self._physical_bounds(plot)
@@ -949,14 +984,14 @@ class StreamlineCallback(PlotCallback):
                 mask = field_colors > self.display_threshold
                 lwdefault = matplotlib.rcParams["lines.linewidth"]
 
-                if "linewidth" in self.plot_args:
-                    linewidth = self.plot_args["linewidth"]
+                if "linewidth" in self.mpl_kwargs:
+                    linewidth = self.mpl_kwargs["linewidth"]
                 else:
                     linewidth = lwdefault
 
                 try:
                     linewidth *= mask
-                    self.plot_args["linewidth"] = linewidth
+                    self.mpl_kwargs["linewidth"] = linewidth
                 except ValueError as e:
                     err_msg = (
                         "Error applying display threshold: linewidth"
@@ -972,7 +1007,7 @@ class StreamlineCallback(PlotCallback):
             np.linspace(xx0, xx1, nx, endpoint=True),
             np.linspace(yy0, yy1, ny, endpoint=True),
         )
-        streamplot_args = {
+        streammpl_kwargs = {
             "x": X,
             "y": Y,
             "u": pixX,
@@ -980,8 +1015,8 @@ class StreamlineCallback(PlotCallback):
             "density": self.dens,
             "color": field_colors,
         }
-        streamplot_args.update(self.plot_args)
-        plot._axes.streamplot(**streamplot_args)
+        streammpl_kwargs.update(self.mpl_kwargs)
+        plot._axes.streamplot(**streammpl_kwargs)
         plot._axes.set_xlim(xx0, xx1)
         plot._axes.set_ylim(yy0, yy1)
 
@@ -1011,7 +1046,7 @@ class LinePlotCallback(PlotCallback):
             "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1)
                         is upper right
 
-    plot_args : dictionary, optional
+    mpl_kwargs : dictionary, optional
         This dictionary is passed to the MPL plot function for generating
         the line.  By default, it is: {'color':'white', 'linewidth':2}
 
@@ -1035,7 +1070,7 @@ class LinePlotCallback(PlotCallback):
     ...     [0.1, 0.2, 0.3],
     ...     [0.5, 0.6, 0.7],
     ...     coord_system="data",
-    ...     plot_args={"color": "red", "lineStyles": "--"},
+    ...     mpl_kwargs={"color": "red", "lineStyles": "--"},
     ... )
     >>> s.save()
 
@@ -1044,19 +1079,27 @@ class LinePlotCallback(PlotCallback):
     _type_name = "line"
     _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
 
-    def __init__(self, p1, p2, data_coords=False, coord_system="data", plot_args=None):
+    def __init__(
+        self,
+        p1,
+        p2,
+        data_coords=False,
+        coord_system="data",
+        mpl_kwargs=None,
+        plot_args=DEPRECATED_DEFAULT,
+    ):
         PlotCallback.__init__(self)
-        def_plot_args = {"color": "white", "linewidth": 2}
         self.p1 = p1
         self.p2 = p2
-        if plot_args is None:
-            plot_args = def_plot_args
-        self.plot_args = plot_args
+        if mpl_kwargs is None:
+            mpl_kwargs = {"color": "white", "linewidth": 2}
+        _handle_kwarg_deprecation_warning("plot_args", "mpl_kwargs", locals())
+        self.mpl_kwargs = mpl_kwargs
         if data_coords:
             coord_system = "data"
-            warnings.warn(
-                "The data_coords keyword is deprecated.  Please set "
-                "the keyword coord_system='data' instead."
+            issue_deprecation_warning(
+                "`data_coords` keyword argument is deprecated. "
+                "Please set `coord_system='data'` instead."
             )
         self.coord_system = coord_system
         self.transform = None
@@ -1066,7 +1109,7 @@ class LinePlotCallback(PlotCallback):
         p2 = self._sanitize_coord_system(plot, self.p2, coord_system=self.coord_system)
         xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
         plot._axes.plot(
-            [p1[0], p2[0]], [p1[1], p2[1]], transform=self.transform, **self.plot_args
+            [p1[0], p2[0]], [p1[1], p2[1]], transform=self.transform, **self.mpl_kwargs
         )
         plot._axes.set_xlim(xx0, xx1)
         plot._axes.set_ylim(yy0, yy1)
@@ -1084,9 +1127,16 @@ class ImageLineCallback(LinePlotCallback):
     _type_name = "image_line"
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
 
-    def __init__(self, p1, p2, data_coords=False, coord_system="axis", plot_args=None):
-        super().__init__(p1, p2, data_coords, coord_system, plot_args)
-        warnings.warn(
+    def __init__(
+        self,
+        p1,
+        p2,
+        data_coords=False,
+        coord_system="axis",
+        plot_args=DEPRECATED_DEFAULT,
+    ):
+        super().__init__(p1, p2, data_coords, coord_system, mpl_kwargs=plot_args)
+        issue_deprecation_warning(
             "The ImageLineCallback (annotate_image_line()) is "
             "deprecated.  Please use the LinePlotCallback "
             "(annotate_line()) instead."
@@ -1101,7 +1151,7 @@ class CuttingQuiverCallback(PlotCallback):
     Get a quiver plot on top of a cutting plane, using *field_x* and
     *field_y*, skipping every *factor* datapoint in the discretization.
     *scale* is the data units per arrow length unit using *scale_units*
-    and *plot_args* allows you to pass in matplotlib arguments (see
+    and *mpl_kwargs* allows you to pass in matplotlib arguments (see
     matplotlib.axes.Axes.quiver for more info). if *normalize* is True,
     the fields will be scaled by their local (in-plane) length, allowing
     morphological features to be more clearly seen for fields with
@@ -1119,7 +1169,8 @@ class CuttingQuiverCallback(PlotCallback):
         scale=None,
         scale_units=None,
         normalize=False,
-        plot_args=None,
+        mpl_kwargs=None,
+        plot_args=DEPRECATED_DEFAULT,
     ):
         PlotCallback.__init__(self)
         self.field_x = field_x
@@ -1128,9 +1179,10 @@ class CuttingQuiverCallback(PlotCallback):
         self.scale = scale
         self.scale_units = scale_units
         self.normalize = normalize
-        if plot_args is None:
-            plot_args = {}
-        self.plot_args = plot_args
+        if mpl_kwargs is None:
+            mpl_kwargs = {}
+        _handle_kwarg_deprecation_warning("plot_args", "mpl_kwargs", locals())
+        self.mpl_kwargs = mpl_kwargs
 
     def __call__(self, plot):
         x0, x1, y0, y1 = self._physical_bounds(plot)
@@ -1190,7 +1242,7 @@ class CuttingQuiverCallback(PlotCallback):
             pixY,
             scale=self.scale,
             scale_units=self.scale_units,
-            **self.plot_args,
+            **self.mpl_kwargs,
         )
         plot._axes.set_xlim(xx0, xx1)
         plot._axes.set_ylim(yy0, yy1)
@@ -1204,13 +1256,14 @@ class ClumpContourCallback(PlotCallback):
     _type_name = "clumps"
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
 
-    def __init__(self, clumps, plot_args=None):
+    def __init__(self, clumps, mpl_kwargs=None, plot_args=DEPRECATED_DEFAULT):
         self.clumps = clumps
-        if plot_args is None:
-            plot_args = {}
-        if "color" in plot_args:
-            plot_args["colors"] = plot_args.pop("color")
-        self.plot_args = plot_args
+        if mpl_kwargs is None:
+            mpl_kwargs = {}
+        _handle_kwarg_deprecation_warning("plot_args", "mpl_kwargs", locals())
+        if "color" in mpl_kwargs:
+            mpl_kwargs["colors"] = mpl_kwargs.pop("color")
+        self.mpl_kwargs = mpl_kwargs
 
     def __call__(self, plot):
         bounds = self._physical_bounds(plot)
@@ -1255,7 +1308,7 @@ class ClumpContourCallback(PlotCallback):
             )
             buff = np.maximum(temp, buff)
         self.rv = plot._axes.contour(
-            buff, np.unique(buff), extent=extent, **self.plot_args
+            buff, np.unique(buff), extent=extent, **self.mpl_kwargs
         )
 
 
@@ -1316,7 +1369,7 @@ class ArrowCallback(PlotCallback):
             "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1)
                         is upper right
 
-    plot_args : dictionary, optional
+    mpl_kwargs : dictionary, optional
         This dictionary is passed to the MPL arrow function for generating
         the arrow.  By default, it is: {'color':'white'}
 
@@ -1336,7 +1389,7 @@ class ArrowCallback(PlotCallback):
     >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> s = yt.SlicePlot(ds, "z", "density")
     >>> s.annotate_arrow(
-    ...     [0.1, -0.1], length=0.06, coord_system="plot", plot_args={"color": "red"}
+    ...     [0.1, -0.1], length=0.06, coord_system="plot", mpl_kwargs={"color": "red"}
     ... )
     >>> s.save()
 
@@ -1355,9 +1408,10 @@ class ArrowCallback(PlotCallback):
         head_length=0.01,
         starting_pos=None,
         coord_system="data",
-        plot_args=None,
+        mpl_kwargs=None,
+        plot_args=DEPRECATED_DEFAULT,
     ):
-        def_plot_args = {"color": "white"}
+        def_mpl_kwargs = {"color": "white"}
         self.pos = pos
         self.code_size = code_size
         self.length = length
@@ -1367,9 +1421,10 @@ class ArrowCallback(PlotCallback):
         self.starting_pos = starting_pos
         self.coord_system = coord_system
         self.transform = None
-        if plot_args is None:
-            plot_args = def_plot_args
-        self.plot_args = plot_args
+        if mpl_kwargs is None:
+            mpl_kwargs = def_mpl_kwargs
+        _handle_kwarg_deprecation_warning("plot_args", "mpl_kwargs", locals())
+        self.mpl_kwargs = mpl_kwargs
 
     def __call__(self, plot):
         x, y = self._sanitize_coord_system(
@@ -1419,7 +1474,7 @@ class ArrowCallback(PlotCallback):
                 head_length=self.head_length,
                 transform=self.transform,
                 length_includes_head=True,
-                **self.plot_args,
+                **self.mpl_kwargs,
             )
         except ValueError:
             for i in range(len(x)):
@@ -1433,7 +1488,7 @@ class ArrowCallback(PlotCallback):
                     head_length=self.head_length,
                     transform=self.transform,
                     length_includes_head=True,
-                    **self.plot_args,
+                    **self.mpl_kwargs,
                 )
         plot._axes.set_xlim(xx0, xx1)
         plot._axes.set_ylim(yy0, yy1)
@@ -1468,7 +1523,7 @@ class MarkerAnnotateCallback(PlotCallback):
             "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1)
                         is upper right
 
-    plot_args : dictionary, optional
+    mpl_kwargs : dictionary, optional
         This dictionary is passed to the MPL scatter function for generating
         the marker.  By default, it is: {'color':'white', 's':50}
 
@@ -1490,7 +1545,7 @@ class MarkerAnnotateCallback(PlotCallback):
     ...     [0.1, 0.2],
     ...     marker="o",
     ...     coord_system="axis",
-    ...     plot_args={"color": "yellow", "s": 200},
+    ...     mpl_kwargs={"color": "yellow", "s": 200},
     ... )
     >>> s.save()
 
@@ -1499,13 +1554,20 @@ class MarkerAnnotateCallback(PlotCallback):
     _type_name = "marker"
     _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
 
-    def __init__(self, pos, marker="x", coord_system="data", plot_args=None):
-        def_plot_args = {"color": "w", "s": 50}
+    def __init__(
+        self,
+        pos,
+        marker="x",
+        coord_system="data",
+        mpl_kwargs=None,
+        plot_args=DEPRECATED_DEFAULT,
+    ):
         self.pos = pos
         self.marker = marker
-        if plot_args is None:
-            plot_args = def_plot_args
-        self.plot_args = plot_args
+        if mpl_kwargs is None:
+            mpl_kwargs = {"color": "w", "s": 50}
+        _handle_kwarg_deprecation_warning("plot_args", "mpl_kwargs", locals())
+        self.mpl_kwargs = mpl_kwargs
         self.coord_system = coord_system
         self.transform = None
 
@@ -1515,7 +1577,7 @@ class MarkerAnnotateCallback(PlotCallback):
         )
         xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
         plot._axes.scatter(
-            x, y, marker=self.marker, transform=self.transform, **self.plot_args
+            x, y, marker=self.marker, transform=self.transform, **self.mpl_kwargs
         )
         plot._axes.set_xlim(xx0, xx1)
         plot._axes.set_ylim(yy0, yy1)
@@ -1533,7 +1595,7 @@ class SphereCallback(PlotCallback):
     radius : YTArray, float, or (1, ('kpc')) style tuple
         The radius of the circle in code coordinates
 
-    circle_args : dict, optional
+    mpl_kwargs : dict, optional
         This dictionary is passed to the MPL circle object. By default,
         {'color':'white'}
 
@@ -1554,7 +1616,7 @@ class SphereCallback(PlotCallback):
     text : string, optional
         Optional text to include next to the circle.
 
-    text_args : dictionary, optional
+    text_kwargs : dictionary, optional
         This dictionary is passed to the MPL text function. By default,
         it is: {'color':'white'}
 
@@ -1577,24 +1639,27 @@ class SphereCallback(PlotCallback):
         self,
         center,
         radius,
-        circle_args=None,
+        mpl_kwargs=None,
         text=None,
         coord_system="data",
-        text_args=None,
+        text_kwargs=None,
+        circle_args=DEPRECATED_DEFAULT,
     ):
-        def_text_args = {"color": "white"}
-        def_circle_args = {"color": "white"}
+        def_text_kwargs = {"color": "white"}
+        def_mpl_kwargs = {"color": "white"}
         self.center = center
         self.radius = radius
-        if circle_args is None:
-            circle_args = def_circle_args
-        if "fill" not in circle_args:
-            circle_args["fill"] = False
-        self.circle_args = circle_args
+        if mpl_kwargs is None:
+            mpl_kwargs = def_mpl_kwargs
+        _handle_kwarg_deprecation_warning("circle_args", "mpl_kwargs", locals())
+
+        if "fill" not in mpl_kwargs:
+            mpl_kwargs["fill"] = False
+        self.mpl_kwargs = mpl_kwargs
         self.text = text
-        if text_args is None:
-            text_args = def_text_args
-        self.text_args = text_args
+        if text_kwargs is None:
+            text_kwargs = def_text_kwargs
+        self.text_kwargs = text_kwargs
         self.coord_system = coord_system
         self.transform = None
 
@@ -1624,15 +1689,15 @@ class SphereCallback(PlotCallback):
             plot, self.center, coord_system=self.coord_system
         )
 
-        cir = Circle((x, y), self.radius, transform=self.transform, **self.circle_args)
+        cir = Circle((x, y), self.radius, transform=self.transform, **self.mpl_kwargs)
         xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
 
         plot._axes.add_patch(cir)
         if self.text is not None:
             label = plot._axes.text(
-                x, y, self.text, transform=self.transform, **self.text_args
+                x, y, self.text, transform=self.transform, **self.text_kwargs
             )
-            self._set_font_properties(plot, [label], **self.text_args)
+            self._set_font_properties(plot, [label], **self.text_kwargs)
 
         plot._axes.set_xlim(xx0, xx1)
         plot._axes.set_ylim(yy0, yy1)
@@ -1641,7 +1706,7 @@ class SphereCallback(PlotCallback):
 class TextLabelCallback(PlotCallback):
     """
     Overplot text on the plot at a specified position. If you desire an inset
-    box around your text, set one with the inset_box_args dictionary
+    box around your text, set one with the inset_box_kwargs dictionary
     keyword.
 
     Parameters
@@ -1666,12 +1731,12 @@ class TextLabelCallback(PlotCallback):
             "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1)
                         is upper right
 
-    text_args : dictionary, optional
+    text_kwargs : dictionary, optional
         This dictionary is passed to the MPL text function for generating
         the text.  By default, it is: {'color':'white'} and uses the defaults
         for the other fonts in the image.
 
-    inset_box_args : dictionary, optional
+    inset_box_kwargs : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
         FancyBboxPatch object as the inset box around the text.  Default: {}
 
@@ -1694,7 +1759,7 @@ class TextLabelCallback(PlotCallback):
     ...     [0.2, 0.8],
     ...     "Here is a galaxy",
     ...     coord_system="axis",
-    ...     text_args={"color": "yellow"},
+    ...     text_kwargs={"color": "yellow"},
     ...     inset_box_args={
     ...         "boxstyle": "square,pad=0.3",
     ...         "facecolor": "black",
@@ -1715,10 +1780,10 @@ class TextLabelCallback(PlotCallback):
         text,
         data_coords=False,
         coord_system="data",
-        text_args=None,
-        inset_box_args=None,
+        text_kwargs=None,
+        inset_box_kwargs=None,
     ):
-        def_text_args = {"color": "white"}
+        def_text_kwargs = {"color": "white"}
         self.pos = pos
         self.text = text
         if data_coords:
@@ -1727,15 +1792,15 @@ class TextLabelCallback(PlotCallback):
                 "The data_coords keyword is deprecated.  Please set "
                 "the keyword coord_system='data' instead."
             )
-        if text_args is None:
-            text_args = def_text_args
-        self.text_args = text_args
-        self.inset_box_args = inset_box_args
+        if text_kwargs is None:
+            text_kwargs = def_text_kwargs
+        self.text_kwargs = text_kwargs
+        self.inset_box_kwargs = inset_box_kwargs
         self.coord_system = coord_system
         self.transform = None
 
     def __call__(self, plot):
-        kwargs = self.text_args.copy()
+        kwargs = self.text_kwargs.copy()
         x, y = self._sanitize_coord_system(
             plot, self.pos, coord_system=self.coord_system
         )
@@ -1743,8 +1808,8 @@ class TextLabelCallback(PlotCallback):
         # Set the font properties of text from this callback to be
         # consistent with other text labels in this figure
         xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
-        if self.inset_box_args is not None:
-            kwargs["bbox"] = self.inset_box_args
+        if self.inset_box_kwargs is not None:
+            kwargs["bbox"] = self.inset_box_kwargs
         label = plot._axes.text(x, y, self.text, transform=self.transform, **kwargs)
         self._set_font_properties(plot, [label], **kwargs)
         plot._axes.set_xlim(xx0, xx1)
@@ -1768,11 +1833,11 @@ class PointAnnotateCallback(TextLabelCallback):
         text,
         data_coords=False,
         coord_system="data",
-        text_args=None,
-        inset_box_args=None,
+        text_kwargs=None,
+        inset_box_kwargs=None,
     ):
         super().__init__(
-            pos, text, data_coords, coord_system, text_args, inset_box_args
+            pos, text, data_coords, coord_system, text_kwargs, inset_box_kwargs
         )
         warnings.warn(
             "The PointAnnotateCallback (annotate_point()) is "
@@ -1801,7 +1866,7 @@ class HaloCatalogCallback(PlotCallback):
         The object containing halos to be overplotted. This can
         be a HaloCatalog object, a loaded halo catalog dataset,
         or a data container from a halo catalog dataset.
-    circle_args : list
+    mpl_kwargs : list
         Contains the arguments controlling the
         appearance of the circles, supplied to the
         Matplotlib patch Circle.
@@ -1825,7 +1890,7 @@ class HaloCatalogCallback(PlotCallback):
         will result in the fields 'particle_position_x' for x
         'particle_position_y' for y, and 'particle_position_z'
         for z. Default: 'particle_position'.
-    text_args : dict
+    text_kwargs : dict
         Contains the arguments controlling the text
         appearance of the annotated field.
     factor : float
@@ -1891,15 +1956,17 @@ class HaloCatalogCallback(PlotCallback):
     def __init__(
         self,
         halo_catalog,
-        circle_args=None,
-        circle_kwargs=None,
         width=None,
         annotate_field=None,
         radius_field="virial_radius",
         center_field_prefix="particle_position",
-        text_args=None,
-        font_kwargs=None,
         factor=1.0,
+        mpl_kwargs=None,
+        text_kwargs=None,
+        circle_args=DEPRECATED_DEFAULT,
+        circle_kwargs=DEPRECATED_DEFAULT,
+        text_args=DEPRECATED_DEFAULT,
+        font_kwargs=DEPRECATED_DEFAULT,
     ):
 
         try:
@@ -1908,8 +1975,6 @@ class HaloCatalogCallback(PlotCallback):
             HaloCatalog = NotAModule("yt_astro_analysis")
 
         PlotCallback.__init__(self)
-        def_circle_args = {"edgecolor": "white", "facecolor": "None"}
-        def_text_args = {"color": "white"}
 
         if isinstance(halo_catalog, YTDataContainer):
             self.halo_data = halo_catalog
@@ -1930,25 +1995,21 @@ class HaloCatalogCallback(PlotCallback):
         self.radius_field = radius_field
         self.center_field_prefix = center_field_prefix
         self.annotate_field = annotate_field
-        if circle_kwargs is not None:
-            circle_args = circle_kwargs
-            warnings.warn(
-                "The circle_kwargs keyword is deprecated.  Please "
-                "use the circle_args keyword instead."
-            )
-        if font_kwargs is not None:
-            text_args = font_kwargs
-            warnings.warn(
-                "The font_kwargs keyword is deprecated.  Please use "
-                "the text_args keyword instead."
-            )
-        if circle_args is None:
-            circle_args = def_circle_args
-        self.circle_args = circle_args
-        if text_args is None:
-            text_args = def_text_args
-        self.text_args = text_args
         self.factor = factor
+
+        if mpl_kwargs is None:
+            mpl_kwargs = {"edgecolor": "white", "facecolor": "None"}
+
+        _handle_kwarg_deprecation_warning("circle_args", "mpl_kwargs", locals())
+        _handle_kwarg_deprecation_warning("circle_kwargs", "mpl_kwargs", locals())
+
+        if text_kwargs is None:
+            text_kwargs = {"color": "white"}
+        _handle_kwarg_deprecation_warning("text_args", "text_kwargs", locals())
+        _handle_kwarg_deprecation_warning("font_kwargs", "text_kwargs", locals())
+
+        self.mpl_kwargs = mpl_kwargs
+        self.text_kwargs = text_kwargs
 
     def __call__(self, plot):
         from matplotlib.patches import Circle
@@ -2013,7 +2074,7 @@ class HaloCatalogCallback(PlotCallback):
             radius = radius[indices]
 
         for x, y, r in zip(px, py, radius):
-            plot._axes.add_artist(Circle(xy=(x, y), radius=r, **self.circle_args))
+            plot._axes.add_artist(Circle(xy=(x, y), radius=r, **self.mpl_kwargs))
 
         plot._axes.set_xlim(xx0, xx1)
         plot._axes.set_ylim(yy0, yy1)
@@ -2023,11 +2084,11 @@ class HaloCatalogCallback(PlotCallback):
             texts = [f"{float(dat):g}" for dat in annotate_dat]
             labels = []
             for pos_x, pos_y, t in zip(px, py, texts):
-                labels.append(plot._axes.text(pos_x, pos_y, t, **self.text_args))
+                labels.append(plot._axes.text(pos_x, pos_y, t, **self.text_kwargs))
 
             # Set the font properties of text from this callback to be
             # consistent with other text labels in this figure
-            self._set_font_properties(plot, labels, **self.text_args)
+            self._set_font_properties(plot, labels, **self.text_kwargs)
 
 
 class ParticleCallback(PlotCallback):
@@ -2213,7 +2274,7 @@ class MeshLinesCallback(PlotCallback):
     Parameters
     ----------
 
-    plot_args:   dict, optional
+    mpl_kwargs:   dict, optional
         A dictionary of arguments that will be passed to matplotlib.
 
     Example
@@ -2222,16 +2283,16 @@ class MeshLinesCallback(PlotCallback):
     >>> import yt
     >>> ds = yt.load("MOOSE_sample_data/out.e-s010")
     >>> sl = yt.SlicePlot(ds, "z", ("connect2", "convected"))
-    >>> sl.annotate_mesh_lines(plot_args={"color": "black"})
-
+    >>> sl.annotate_mesh_lines(mpl_kwargs={"color": "black"})
     """
 
     _type_name = "mesh_lines"
     _supported_geometries = ("cartesian", "spectral_cube")
 
-    def __init__(self, plot_args=None):
+    def __init__(self, mpl_kwargs=None, plot_args=DEPRECATED_DEFAULT):
         super().__init__()
-        self.plot_args = plot_args
+        _handle_kwarg_deprecation_warning("plot_args", "mpl_kwargs", locals())
+        self.mpl_kwargs = mpl_kwargs
 
     def promote_2d_to_3d(self, coords, indices, plot):
         new_coords = np.zeros((2 * coords.shape[0], 3))
@@ -2278,7 +2339,7 @@ class MeshLinesCallback(PlotCallback):
             tri_indices = triangulate_indices(indices.astype(np.int_))
             points = coords[tri_indices]
 
-            tfc = TriangleFacetsCallback(points, plot_args=self.plot_args)
+            tfc = TriangleFacetsCallback(points, mpl_kwargs=self.mpl_kwargs)
             tfc(plot)
 
 
@@ -2296,9 +2357,13 @@ class TriangleFacetsCallback(PlotCallback):
     _type_name = "triangle_facets"
     _supported_geometries = ("cartesian", "spectral_cube")
 
-    def __init__(self, triangle_vertices, plot_args=None):
+    def __init__(
+        self, triangle_vertices, mpl_kwargs=None, plot_args=DEPRECATED_DEFAULT
+    ):
         super().__init__()
-        self.plot_args = {} if plot_args is None else plot_args
+
+        self.mpl_kwargs = {} if mpl_kwargs is None else mpl_kwargs
+        _handle_kwarg_deprecation_warning("plot_args", "mpl_kwargs", locals())
         self.vertices = triangle_vertices
 
     def __call__(self, plot):
@@ -2323,7 +2388,7 @@ class TriangleFacetsCallback(PlotCallback):
         # convert back to shape (nlines, 2, 2)
         l_cy = np.rollaxis(l_cy, 2, 0)
         # create line collection and add it to the plot
-        lc = matplotlib.collections.LineCollection(l_cy, **self.plot_args)
+        lc = matplotlib.collections.LineCollection(l_cy, **self.mpl_kwargs)
         plot._axes.add_collection(lc)
 
 
@@ -2377,7 +2442,7 @@ class TimestampCallback(PlotCallback):
 
     draw_inset_box : boolean, optional
         Whether or not an inset box should be included around the text
-        If so, it uses the inset_box_args to set the matplotlib FancyBboxPatch
+        If so, it uses the inset_box_kwargs to set the matplotlib FancyBboxPatch
         object.
 
     coord_system : string, optional
@@ -2395,12 +2460,12 @@ class TimestampCallback(PlotCallback):
         passed in, the value of the *time_unit* kwarg is used for the
         units. Default: None, meaning no offset.
 
-    text_args : dictionary, optional
+    text_kwargs : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
         text object.  Defaults: ``{'color':'white',
         'horizontalalignment':'center', 'verticalalignment':'top'}``.
 
-    inset_box_args : dictionary, optional
+    inset_box_kwargs : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
         FancyBboxPatch object as the inset box around the text.
         Defaults: ``{'boxstyle':'square', 'pad':0.3, 'facecolor':'black',
@@ -2431,16 +2496,18 @@ class TimestampCallback(PlotCallback):
         draw_inset_box=False,
         coord_system="axis",
         time_offset=None,
-        text_args=None,
-        inset_box_args=None,
+        text_kwargs=None,
+        inset_box_kwargs=None,
+        text_args=DEPRECATED_DEFAULT,
+        inset_box_args=DEPRECATED_DEFAULT,
     ):
 
-        def_text_args = {
+        def_text_kwargs = {
             "color": "white",
             "horizontalalignment": "center",
             "verticalalignment": "top",
         }
-        def_inset_box_args = {
+        def_inset_box_kwargs = {
             "boxstyle": "square,pad=0.3",
             "facecolor": "black",
             "linewidth": 3,
@@ -2458,40 +2525,46 @@ class TimestampCallback(PlotCallback):
         self.time_unit = time_unit
         self.coord_system = coord_system
         self.time_offset = time_offset
-        if text_args is None:
-            text_args = def_text_args
-        self.text_args = text_args
-        if inset_box_args is None:
-            inset_box_args = def_inset_box_args
-        self.inset_box_args = inset_box_args
+        if text_kwargs is None:
+            text_kwargs = def_text_kwargs
 
-        # if inset box is not desired, set inset_box_args to {}
+        _handle_kwarg_deprecation_warning("text_args", "text_kwargs", locals())
+        self.text_kwargs = text_kwargs
+
+        if inset_box_kwargs is None:
+            inset_box_kwargs = def_inset_box_kwargs
+        _handle_kwarg_deprecation_warning(
+            "inset_box_args", "inset_box_kwargs", locals()
+        )
+        self.inset_box_kwargs = inset_box_kwargs
+
+        # if inset box is not desired, set inset_box_kwargs to {}
         if not draw_inset_box:
-            self.inset_box_args = None
+            self.inset_box_kwargs = None
 
     def __call__(self, plot):
         # Setting pos overrides corner argument
         if self.pos[0] is None or self.pos[1] is None:
             if self.corner == "upper_left":
                 self.pos = (0.03, 0.96)
-                self.text_args["horizontalalignment"] = "left"
-                self.text_args["verticalalignment"] = "top"
+                self.text_kwargs["horizontalalignment"] = "left"
+                self.text_kwargs["verticalalignment"] = "top"
             elif self.corner == "upper_right":
                 self.pos = (0.97, 0.96)
-                self.text_args["horizontalalignment"] = "right"
-                self.text_args["verticalalignment"] = "top"
+                self.text_kwargs["horizontalalignment"] = "right"
+                self.text_kwargs["verticalalignment"] = "top"
             elif self.corner == "lower_left":
                 self.pos = (0.03, 0.03)
-                self.text_args["horizontalalignment"] = "left"
-                self.text_args["verticalalignment"] = "bottom"
+                self.text_kwargs["horizontalalignment"] = "left"
+                self.text_kwargs["verticalalignment"] = "bottom"
             elif self.corner == "lower_right":
                 self.pos = (0.97, 0.03)
-                self.text_args["horizontalalignment"] = "right"
-                self.text_args["verticalalignment"] = "bottom"
+                self.text_kwargs["horizontalalignment"] = "right"
+                self.text_kwargs["verticalalignment"] = "bottom"
             elif self.corner is None:
                 self.pos = (0.5, 0.5)
-                self.text_args["horizontalalignment"] = "center"
-                self.text_args["verticalalignment"] = "center"
+                self.text_kwargs["horizontalalignment"] = "center"
+                self.text_kwargs["verticalalignment"] = "center"
             else:
                 raise ValueError(
                     "Argument 'corner' must be set to "
@@ -2559,8 +2632,8 @@ class TimestampCallback(PlotCallback):
             self.pos,
             self.text,
             coord_system=self.coord_system,
-            text_args=self.text_args,
-            inset_box_args=self.inset_box_args,
+            text_kwargs=self.text_kwargs,
+            inset_box_kwargs=self.inset_box_kwargs,
         )
         return tcb(plot)
 
@@ -2574,9 +2647,9 @@ class ScaleCallback(PlotCallback):
     specified, an appropriate pair will be determined such that your scale bar
     is never smaller than min_frac or greater than max_frac of your plottable
     axis length.  Additional customization of the scale bar is possible by
-    adjusting the text_args and size_bar_args dictionaries.  The text_args
+    adjusting the text_kwargs and size_bar_kwargs dictionaries.  The text_kwargs
     dictionary accepts matplotlib's font_properties arguments to override
-    the default font_properties for the current plot.  The size_bar_args
+    the default font_properties for the current plot.  The size_bar_kwargs
     dictionary accepts keyword arguments for the AnchoredSizeBar class in
     matplotlib's axes_grid toolkit.
 
@@ -2620,13 +2693,13 @@ class ScaleCallback(PlotCallback):
         - "axis": MPL axis coordinates: (0,0) is lower left; (1,1) is upper right
         - "figure": MPL figure coordinates: (0,0) is lower left, (1,1) is upper right
 
-    text_args : dictionary, optional
+    text_kwargs : dictionary, optional
         A dictionary of parameters to used to update the font_properties
         for the text in this callback.  For any property not set, it will
-        use the defaults of the plot.  Thus one can modify the text size with
-        ``text_args={'size':24}``
+        use the defaults of the plot.  Thus one can modify the text size with:
+        ``text_kwargs={'size':24}``
 
-    size_bar_args : dictionary, optional
+    size_bar_kwargs : dictionary, optional
         A dictionary of parameters to be passed to the Matplotlib
         AnchoredSizeBar initializer.
         Defaults: ``{'pad': 0.25, 'sep': 5, 'borderpad': 1, 'color': 'w'}``
@@ -2634,7 +2707,7 @@ class ScaleCallback(PlotCallback):
     draw_inset_box : boolean, optional
         Whether or not an inset box should be included around the scale bar.
 
-    inset_box_args : dictionary, optional
+    inset_box_kwargs : dictionary, optional
         A dictionary of keyword arguments to be passed to the matplotlib Patch
         object that represents the inset box.
         Defaults: ``{'facecolor': 'black', 'linewidth': 3,
@@ -2668,23 +2741,15 @@ class ScaleCallback(PlotCallback):
         max_frac=0.16,
         min_frac=0.015,
         coord_system="axis",
-        text_args=None,
-        size_bar_args=None,
+        text_kwargs=None,
+        size_bar_kwargs=None,
         draw_inset_box=False,
-        inset_box_args=None,
+        inset_box_kwargs=None,
         scale_text_format="{scale} {units}",
+        text_args=DEPRECATED_DEFAULT,
+        inset_box_args=DEPRECATED_DEFAULT,
+        size_bar_args=DEPRECATED_DEFAULT,
     ):
-
-        def_size_bar_args = {"pad": 0.05, "sep": 5, "borderpad": 1, "color": "w"}
-
-        def_inset_box_args = {
-            "facecolor": "black",
-            "linewidth": 3,
-            "edgecolor": "white",
-            "alpha": 0.5,
-            "boxstyle": "square",
-        }
-
         # Set position based on corner argument.
         self.corner = corner
         self.coeff = coeff
@@ -2694,18 +2759,30 @@ class ScaleCallback(PlotCallback):
         self.min_frac = min_frac
         self.coord_system = coord_system
         self.scale_text_format = scale_text_format
-        if size_bar_args is None:
-            self.size_bar_args = def_size_bar_args
-        else:
-            self.size_bar_args = size_bar_args
-        if inset_box_args is None:
-            self.inset_box_args = def_inset_box_args
-        else:
-            self.inset_box_args = inset_box_args
+
+        if size_bar_kwargs is None:
+            size_bar_kwargs = {"pad": 0.05, "sep": 5, "borderpad": 1, "color": "w"}
+        _handle_kwarg_deprecation_warning("size_bar_args", "size_bar_kwargs", locals())
+        self.size_bar_kwargs = size_bar_kwargs
+
+        if inset_box_kwargs is None:
+            inset_box_kwargs = {
+                "facecolor": "black",
+                "linewidth": 3,
+                "edgecolor": "white",
+                "alpha": 0.5,
+                "boxstyle": "square",
+            }
+        _handle_kwarg_deprecation_warning(
+            "inset_box_args", "inset_box_kwargs", locals()
+        )
+        self.inset_box_kwargs = inset_box_kwargs
+
         self.draw_inset_box = draw_inset_box
-        if text_args is None:
-            text_args = {}
-        self.text_args = text_args
+        if text_kwargs is None:
+            text_kwargs = {}
+        _handle_kwarg_deprecation_warning("text_args", "text_kwargs", locals())
+        self.text_kwargs = text_kwargs
 
     def __call__(self, plot):
         from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
@@ -2761,27 +2838,27 @@ class ScaleCallback(PlotCallback):
         image_scale = (
             plot.frb.convert_distance_x(self.scale) / plot.frb.convert_distance_x(xsize)
         ).v
-        size_vertical = self.size_bar_args.pop("size_vertical", 0.005 * plot.aspect)
-        fontproperties = self.size_bar_args.pop(
+        size_vertical = self.size_bar_kwargs.pop("size_vertical", 0.005 * plot.aspect)
+        fontproperties = self.size_bar_kwargs.pop(
             "fontproperties", plot.font_properties.copy()
         )
-        frameon = self.size_bar_args.pop("frameon", self.draw_inset_box)
+        frameon = self.size_bar_kwargs.pop("frameon", self.draw_inset_box)
         # FontProperties instances use set_<property>() setter functions
-        for key, val in self.text_args.items():
+        for key, val in self.text_kwargs.items():
             setter_func = "set_" + key
             try:
                 getattr(fontproperties, setter_func)(val)
             except AttributeError as e:
                 raise AttributeError(
-                    "Cannot set text_args keyword "
+                    "Cannot set text_kwargs keyword "
                     "to include '%s' because MPL's fontproperties object does "
                     "not contain function '%s'." % (key, setter_func)
                 ) from e
 
         # this "anchors" the size bar to a box centered on self.pos in axis
         # coordinates
-        self.size_bar_args["bbox_to_anchor"] = self.pos
-        self.size_bar_args["bbox_transform"] = plot._axes.transAxes
+        self.size_bar_kwargs["bbox_to_anchor"] = self.pos
+        self.size_bar_kwargs["bbox_transform"] = plot._axes.transAxes
 
         bar = AnchoredSizeBar(
             plot._axes.transAxes,
@@ -2791,10 +2868,10 @@ class ScaleCallback(PlotCallback):
             size_vertical=size_vertical,
             fontproperties=fontproperties,
             frameon=frameon,
-            **self.size_bar_args,
+            **self.size_bar_kwargs,
         )
 
-        bar.patch.set(**self.inset_box_args)
+        bar.patch.set(**self.inset_box_kwargs)
 
         plot._axes.add_artist(bar)
 
@@ -2808,7 +2885,7 @@ class RayCallback(PlotCallback):
     annotate_ray() will properly account for periodic rays across the volume.
     If arrow is set to True, uses the MPL.pyplot.arrow function, otherwise
     uses the MPL.pyplot.plot function to plot a normal line.  Adjust
-    plot_args accordingly.
+    mpl_kwargs accordingly.
 
     Parameters
     ----------
@@ -2824,7 +2901,7 @@ class RayCallback(PlotCallback):
         direction
         Default: False
 
-    plot_args : dictionary, optional
+    mpl_kwargs : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
         line object.  Defaults: {'color':'white', 'linewidth':2}.
 
@@ -2858,14 +2935,15 @@ class RayCallback(PlotCallback):
     _type_name = "ray"
     _supported_geometries = ("cartesian", "spectral_cube", "force")
 
-    def __init__(self, ray, arrow=False, plot_args=None):
+    def __init__(self, ray, arrow=False, mpl_kwargs=None, plot_args=DEPRECATED_DEFAULT):
         PlotCallback.__init__(self)
-        def_plot_args = {"color": "white", "linewidth": 2}
+        def_mpl_kwargs = {"color": "white", "linewidth": 2}
         self.ray = ray
         self.arrow = arrow
-        if plot_args is None:
-            plot_args = def_plot_args
-        self.plot_args = plot_args
+        if mpl_kwargs is None:
+            mpl_kwargs = def_mpl_kwargs
+        _handle_kwarg_deprecation_warning("plot_args", "mpl_kwargs", locals())
+        self.mpl_kwargs = mpl_kwargs
 
     def _process_ray(self):
         """
@@ -2939,7 +3017,7 @@ class RayCallback(PlotCallback):
         # and all other ray segments are lines
         for segment in segments[:-1]:
             cb = LinePlotCallback(
-                segment[0], segment[1], coord_system="data", plot_args=self.plot_args
+                segment[0], segment[1], coord_system="data", mpl_kwargs=self.mpl_kwargs
             )
             cb(plot)
         segment = segments[-1]
@@ -2948,11 +3026,11 @@ class RayCallback(PlotCallback):
                 segment[1],
                 starting_pos=segment[0],
                 coord_system="data",
-                plot_args=self.plot_args,
+                mpl_kwargs=self.mpl_kwargs,
             )
         else:
             cb = LinePlotCallback(
-                segment[0], segment[1], coord_system="data", plot_args=self.plot_args
+                segment[0], segment[1], coord_system="data", mpl_kwargs=self.mpl_kwargs
             )
         cb(plot)
         return plot

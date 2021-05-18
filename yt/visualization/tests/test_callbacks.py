@@ -117,10 +117,10 @@ def test_scale_callback():
         p.annotate_scale(corner="upper_right", coeff=10.0, unit="kpc")
         assert_fname(p.save(prefix)[0])
         p = SlicePlot(ds, "x", ("gas", "density"))
-        p.annotate_scale(text_args={"size": 24})
+        p.annotate_scale(text_kwargs={"size": 24})
         assert_fname(p.save(prefix)[0])
         p = SlicePlot(ds, "x", ("gas", "density"))
-        p.annotate_scale(text_args={"font": 24})
+        p.annotate_scale(text_kwargs={"font": 24})
         assert_raises(YTPlotCallbackError)
 
     with _cleanup_fname() as prefix:
@@ -150,7 +150,7 @@ def test_line_callback():
         # Now we'll check a few additional minor things
         p = SlicePlot(ds, "x", ("gas", "density"))
         p.annotate_line(
-            [0.1, 0.1], [0.5, 0.5], coord_system="axis", plot_args={"color": "red"}
+            [0.1, 0.1], [0.5, 0.5], coord_system="axis", mpl_kwargs={"color": "red"}
         )
         p.save(prefix)
 
@@ -186,7 +186,7 @@ def test_ray_callback():
         # Now we'll check a few additional minor things
         p = SlicePlot(ds, "x", ("gas", "density"))
         p.annotate_ray(oray)
-        p.annotate_ray(ray, plot_args={"color": "red"})
+        p.annotate_ray(ray, mpl_kwargs={"color": "red"})
         p.save(prefix)
 
     with _cleanup_fname() as prefix:
@@ -364,7 +364,7 @@ def test_text_callback():
         # Now we'll check a few additional minor things
         p = SlicePlot(ds, "x", ("gas", "density"))
         p.annotate_text(
-            [0.5, 0.5], "dinosaurs!", coord_system="axis", text_args={"color": "red"}
+            [0.5, 0.5], "dinosaurs!", coord_system="axis", text_kwargs={"color": "red"}
         )
         p.save(prefix)
 
@@ -375,7 +375,7 @@ def test_text_callback():
         assert_raises(YTDataTypeUnsupported, p.save, prefix)
         p = ProjectionPlot(ds, "r", ("gas", "density"))
         p.annotate_text(
-            [0.5, 0.5], "dinosaurs!", coord_system="axis", text_args={"color": "red"}
+            [0.5, 0.5], "dinosaurs!", coord_system="axis", text_kwargs={"color": "red"}
         )
         assert_fname(p.save(prefix)[0])
 
@@ -614,9 +614,9 @@ def test_contour_callback():
             factor=8,
             take_log=False,
             clim=(0.4, 0.6),
-            plot_args={"linewidths": 2.0},
+            mpl_kwargs={"linewidths": 2.0},
             label=True,
-            text_args={"fontsize": "x-large"},
+            text_kwargs={"fontsize": "x-large"},
         )
         p.save(prefix)
 
@@ -628,9 +628,9 @@ def test_contour_callback():
             factor=8,
             take_log=False,
             clim=(0.4, 0.6),
-            plot_args={"linewidths": 2.0},
+            mpl_kwargs={"linewidths": 2.0},
             label=True,
-            text_args={"fontsize": "x-large"},
+            text_kwargs={"fontsize": "x-large"},
             data_source=s2,
         )
         p.save(prefix)
@@ -645,8 +645,8 @@ def test_contour_callback():
             take_log=False,
             clim=(1.0e-1, 1.0e1),
             label=True,
-            plot_args={"colors": ("c", "w"), "linewidths": 1},
-            text_args={"fmt": "%1.1f"},
+            mpl_kwargs={"colors": ("c", "w"), "linewidths": 1},
+            text_kwargs={"fmt": "%1.1f"},
         )
         assert_fname(slc.save(prefix)[0])
 
@@ -663,9 +663,9 @@ def test_contour_callback():
             factor=8,
             take_log=False,
             clim=(0.4, 0.6),
-            plot_args={"linewidths": 2.0},
+            mpl_kwargs={"linewidths": 2.0},
             label=True,
-            text_args={"fontsize": "x-large"},
+            text_kwargs={"fontsize": "x-large"},
         )
         assert_raises(YTDataTypeUnsupported, p.save, prefix)
 
@@ -764,13 +764,13 @@ def test_mesh_lines_callback():
         ds = fake_hexahedral_ds()
         for field in ds.field_list:
             sl = SlicePlot(ds, 1, field)
-            sl.annotate_mesh_lines(plot_args={"color": "black"})
+            sl.annotate_mesh_lines(mpl_kwargs={"color": "black"})
             assert_fname(sl.save(prefix)[0])
 
         ds = fake_tetrahedral_ds()
         for field in ds.field_list:
             sl = SlicePlot(ds, 1, field)
-            sl.annotate_mesh_lines(plot_args={"color": "black"})
+            sl.annotate_mesh_lines(mpl_kwargs={"color": "black"})
             assert_fname(sl.save(prefix)[0])
 
 
@@ -823,7 +823,7 @@ def test_streamline_callback():
                 ("gas", "velocity_y"),
                 field_color=("stream", "magvel"),
                 display_threshold=0.5,
-                plot_args={
+                mpl_kwargs={
                     "cmap": ytcfg.get("yt", "default_colormap"),
                     "arrowstyle": "->",
                 },

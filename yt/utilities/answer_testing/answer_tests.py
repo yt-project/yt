@@ -243,13 +243,13 @@ def phase_plot_attribute(
     attr_name,
     attr_args,
     plot_type="PhasePlot",
-    plot_kwargs=None,
+    mpl_kwargs=None,
 ):
-    if plot_kwargs is None:
-        plot_kwargs = {}
+    if mpl_kwargs is None:
+        mpl_kwargs = {}
     data_source = ds_fn.all_data()
     plot = _create_phase_plot_attribute_plot(
-        data_source, x_field, y_field, z_field, plot_type, plot_kwargs
+        data_source, x_field, y_field, z_field, plot_type, mpl_kwargs
     )
     attr = getattr(plot, attr_name)
     attr(*attr_args[0], **attr_args[1])

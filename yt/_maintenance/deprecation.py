@@ -1,5 +1,21 @@
 import warnings
 
+# This is a singleton object meant to be used as a default value for a deprecated
+# argument in a function signature.
+# Its name signals the deprecataion much better than a None and it is helpful to
+# have a clear distinction with None, which is a perfectly fine default value, in particular
+# for mutables.
+#
+# Intended usage:
+#
+# def foo(a, b_new=None, b_old=DEPRECATED_DEFAULT):
+#     if b_old is not DEPRECATED_DEFAULT:
+#         issue_deprecation_warning(...)
+#         # possibly do something else as redirecting the value
+#         # to another arguement, e.g.,
+#         b_new = b_old
+DEPRECATED_DEFAULT = object()
+
 
 class VisibleDeprecationWarning(UserWarning):
     """Visible deprecation warning, adapted from NumPy
