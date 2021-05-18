@@ -421,8 +421,6 @@ class EnzoPDataset(Dataset):
         self.periodicity += (False,) * (3 - self.dimensionality)
         self.gamma = nested_dict_get(self.parameters, ("Field", "gamma"))
 
-        
-
     def _set_code_unit_attributes(self):
         if self.cosmological_simulation:
             box_size = self.parameters["Physics"]["cosmology"]["comoving_box_size"]
