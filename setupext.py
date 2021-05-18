@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from textwrap import dedent
 from concurrent.futures import ThreadPoolExecutor
 from distutils import log
 from distutils.ccompiler import CCompiler, new_compiler
@@ -62,16 +63,16 @@ def check_for_openmp():
     tmp_dir = tempfile.mkdtemp()
     start_dir = os.path.abspath(".")
 
-    CCODE = """
-    #include <omp.h>
-    #include <stdio.h>
-    int main() {
-        omp_set_num_threads(2);
-        #pragma omp parallel
-        printf("nthreads=%d\\n", omp_get_num_threads());
-        return 0;
-    }
-    """
+    CCODE = dedent("""\
+        #include <omp.h>
+        #include <stdio.h>
+        int main() {
+            omp_set_num_threads(2);
+            #pragma omp parallel
+            printf("nthreads=%d\\n", omp_get_num_threads());
+            return 0;
+        }"""
+    )
 
     # TODO: test more known compilers:
     # MinGW, AppleClang with libomp, MSVC, ICC, XL, PGI, ...
@@ -156,18 +157,18 @@ def check_CPP14_flag(compile_flags):
     # Note: This code requires C++14 functionalities (also required to compile yt)
     # It compiles on gcc 4.7.4 (together with the entirety of yt) with the flag "-std=gnu++0x".
     # It does not compile on gcc 4.6.4 (neither does yt).
-    CPPCODE = """
-    #include <vector>
+    CPPCODE = dedent("""\
+        #include <vector>
 
-    struct node {
-        std::vector<int> vic;
-        bool visited = false;
-    };
+        struct node {
+            std::vector<int> vic;
+            bool visited = false;
+        };
 
-    int main() {
-        return 0;
-    }
-    """
+        int main() {
+            return 0;
+        }"""
+    )
 
     os.chdir(tmp_dir)
     try:
@@ -276,7 +277,13 @@ def read_embree_location():
         # Attempt to compile a test script.
         filename = r"test.cpp"
         file = open(filename, "wt", 1)
-        file.write('#include "embree2/rtcore.h"\n' "int main() {\n" "return 0;\n" "}")
+        CCODE = dedent("""\
+            #include "embree2/rtcore.h
+            int main() {
+                return 0;
+            }"""
+        )
+        file.write(CCODE)
         file.flush()
         p = Popen(
             compiler + ["-I%s/include/" % rd, filename],
@@ -289,7 +296,7 @@ def read_embree_location():
 
         if exit_code != 0:
             log.warn(
-                "Pyembree is installed, but I could not compile Embree " "test code."
+                "Pyembree is installed, but I could not compile Embree test code."
             )
             log.warn("The error message was: ")
             log.warn(err)
@@ -375,6 +382,7 @@ def create_build_ext(lib_exts, cythonize_aliases):
     the appropriate package manager for your python environment."""
                 ) from e
             if LooseVersion(cython.__version__) < LooseVersion("0.26.1"):
+                # keep in sync with pyproject.toml [build-system]
                 raise RuntimeError(
                     """Building yt from source requires Cython 0.26.1 or newer but
     Cython %s is installed. Please update Cython using the appropriate
@@ -382,6 +390,7 @@ def create_build_ext(lib_exts, cythonize_aliases):
                     % cython.__version__
                 )
             if LooseVersion(numpy.__version__) < LooseVersion("1.13.3"):
+                # keep in sync with pyproject.toml [build-system]
                 raise RuntimeError(
                     """Building yt from source requires NumPy 1.13.3 or newer but
     NumPy %s is installed. Please update NumPy using the appropriate

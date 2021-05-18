@@ -52,6 +52,7 @@ from yt.utilities.parameter_file_storage import NoParameterShelf, ParameterFileS
 # When such a thing comes to pass, I'll move all the stuff that is constant up
 # to here, and then have it instantiate EnzoDatasets as appropriate.
 
+
 _cached_datasets = weakref.WeakValueDictionary()
 _ds_store = ParameterFileStore()
 
@@ -226,17 +227,16 @@ class Dataset(abc.ABC):
         self.setup_cosmology()
         self._assign_unit_system(unit_system)
         self._setup_coordinate_handler()
-
+        self.print_key_parameters()
+        self._set_derived_attrs()
         # Because we need an instantiated class to check the ds's existence in
         # the cache, we move that check to here from __new__.  This avoids
         # double-instantiation.
+        # PR 3124: _set_derived_attrs() can change the hash, check store here
         try:
             _ds_store.check_ds(self)
         except NoParameterShelf:
             pass
-        self.print_key_parameters()
-
-        self._set_derived_attrs()
         self._setup_classes()
 
     @property
@@ -330,6 +330,9 @@ class Dataset(abc.ABC):
         return (_reconstruct_ds, args)
 
     def __repr__(self):
+        return f"{self.__class__.__name__}: {self.parameter_filename}"
+
+    def __str__(self):
         return self.basename
 
     def _hash(self):
@@ -410,7 +413,7 @@ class Dataset(abc.ABC):
         pass
 
     def __getitem__(self, key):
-        """ Returns units, parameters, or conversion_factors in that order. """
+        """Returns units, parameters, or conversion_factors in that order."""
         return self.parameters[key]
 
     def __iter__(self):
@@ -629,7 +632,7 @@ class Dataset(abc.ABC):
                 )
         else:
             raise ValueError(
-                "{} not a recognized format_property. Available"
+                "{} not a recognized format_property. Available "
                 "properties are: {}".format(
                     format_property, list(available_formats.keys())
                 )
@@ -808,6 +811,22 @@ class Dataset(abc.ABC):
     _last_finfo = None
 
     def _get_field_info(self, ftype, fname=None):
+        field_info, is_ambiguous = self._get_field_info_helper(ftype, fname)
+
+        if is_ambiguous:
+            ft, fn = field_info.name
+            msg = (
+                f"The requested field name '{fn}' "
+                "is ambiguous and corresponds to any one of "
+                f"the following field types:\n {self.field_info._ambiguous_field_names[fn]}\n"
+                "Please specify the requested field as an explicit "
+                "tuple (ftype, fname).\n"
+                f'Defaulting to \'("{ft}", "{fn}")\'.'
+            )
+            issue_deprecation_warning(msg, since="4.0.0", removal="4.1.0")
+        return field_info
+
+    def _get_field_info_helper(self, ftype, fname=None):
         self.index
 
         # store the original inputs in case we need to raise an error
@@ -822,17 +841,20 @@ class Dataset(abc.ABC):
         guessing_type = ftype == "unknown"
         if guessing_type:
             ftype = self._last_freq[0] or ftype
+            is_ambiguous = fname in self.field_info._ambiguous_field_names
+        else:
+            is_ambiguous = False
         field = (ftype, fname)
 
         if (
             field == self._last_freq
             and field not in self.field_info.field_aliases.values()
         ):
-            return self._last_finfo
+            return self._last_finfo, is_ambiguous
         if field in self.field_info:
             self._last_freq = field
             self._last_finfo = self.field_info[(ftype, fname)]
-            return self._last_finfo
+            return self._last_finfo, is_ambiguous
 
         try:
             # Sometimes, if guessing_type == True, this will be switched for
@@ -850,7 +872,7 @@ class Dataset(abc.ABC):
             ):
                 field = self.default_fluid_type, field[1]
             self._last_freq = field
-            return self._last_finfo
+            return self._last_finfo, is_ambiguous
         except KeyError:
             pass
 
@@ -866,7 +888,7 @@ class Dataset(abc.ABC):
                 if (ftype, fname) in self.field_info:
                     self._last_freq = (ftype, fname)
                     self._last_finfo = self.field_info[(ftype, fname)]
-                    return self._last_finfo
+                    return self._last_finfo, is_ambiguous
         raise YTFieldNotFound(field=INPUT, ds=self)
 
     def _setup_classes(self):
@@ -899,14 +921,11 @@ class Dataset(abc.ABC):
 
         Parameters
         ----------
-        field: str or tuple(str, str)
-
-        ext: str
+        field : str or tuple(str, str)
+        ext : str
             'min' or 'max', select an extremum
-
-        source: a Yt data object
-
-        to_array: bool
+        source : a Yt data object
+        to_array : bool
             select the return type.
 
         Returns
@@ -1114,6 +1133,9 @@ class Dataset(abc.ABC):
         )
         if unit_system != "code":
             us = unit_system_registry[str(unit_system).lower()]
+
+        us._code_flag = unit_system == "code"
+
         self.unit_system = us
         self.unit_registry.unit_system = self.unit_system
 
@@ -1393,9 +1415,9 @@ class Dataset(abc.ABC):
 
         >>> import yt
         >>> import numpy as np
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>> a = ds.arr([1, 2, 3], 'cm')
-        >>> b = ds.arr([4, 5, 6], 'm')
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+        >>> a = ds.arr([1, 2, 3], "cm")
+        >>> b = ds.arr([4, 5, 6], "m")
         >>> a + b
         YTArray([ 401.,  502.,  603.]) cm
         >>> b + a
@@ -1403,8 +1425,8 @@ class Dataset(abc.ABC):
 
         Arrays returned by this function know about the dataset's unit system
 
-        >>> a = ds.arr(np.ones(5), 'code_length')
-        >>> a.in_units('Mpccm/h')
+        >>> a = ds.arr(np.ones(5), "code_length")
+        >>> a.in_units("Mpccm/h")
         YTArray([ 1.00010449,  1.00010449,  1.00010449,  1.00010449,
                  1.00010449]) Mpc
 
@@ -1440,10 +1462,10 @@ class Dataset(abc.ABC):
         --------
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
-        >>> a = ds.quan(1, 'cm')
-        >>> b = ds.quan(2, 'm')
+        >>> a = ds.quan(1, "cm")
+        >>> b = ds.quan(2, "m")
         >>> a + b
         201.0 cm
         >>> b + a
@@ -1452,7 +1474,7 @@ class Dataset(abc.ABC):
         Quantities created this way automatically know about the unit system
         of the dataset.
 
-        >>> a = ds.quan(5, 'code_length')
+        >>> a = ds.quan(5, "code_length")
         >>> a.in_cgs()
         1.543e+25 cm
 
@@ -1541,16 +1563,16 @@ class Dataset(abc.ABC):
 
         Examples
         --------
-        >>> ds = yt.load('output_00080/info_00080.txt')
-        ... ds.add_mesh_sampling_particle_field(('gas', 'density'), ptype='all')
+        >>> ds = yt.load("output_00080/info_00080.txt")
+        ... ds.add_mesh_sampling_particle_field(("gas", "density"), ptype="all")
 
-        >>> print('The density at the location of the particle is:')
-        ... print(ds.r['all', 'cell_gas_density'])
+        >>> print("The density at the location of the particle is:")
+        ... print(ds.r["all", "cell_gas_density"])
         The density at the location of the particle is:
         [9.33886124e-30 1.22174333e-28 1.20402333e-28 ... 2.77410331e-30
          8.79467609e-31 3.50665136e-30] g/cm**3
 
-        >>> len(ds.r['all', 'cell_gas_density']) == len(ds.r['all', 'particle_ones'])
+        >>> len(ds.r["all", "cell_gas_density"]) == len(ds.r["all", "particle_ones"])
         True
 
         """
@@ -1562,7 +1584,7 @@ class Dataset(abc.ABC):
         return self.index._add_mesh_sampling_particle_field(sample_field, ftype, ptype)
 
     def add_deposited_particle_field(
-        self, deposit_field, method, kernel_name="cubic", weight_field="particle_mass"
+        self, deposit_field, method, kernel_name="cubic", weight_field=None
     ):
         """Add a new deposited particle field
 
@@ -1585,8 +1607,9 @@ class Dataset(abc.ABC):
            the `simple_smooth` method and is otherwise ignored. Current
            supported kernel names include `cubic`, `quartic`, `quintic`,
            `wendland2`, `wendland4`, and `wendland6`.
-        weight_field : string, default 'particle_mass'
+        weight_field : (field_type, field_name) or None
            Weighting field name for deposition method `weighted_mean`.
+           If None, use the particle mass.
 
         Returns
         -------
@@ -1599,6 +1622,8 @@ class Dataset(abc.ABC):
         else:
             raise RuntimeError
 
+        if weight_field is None:
+            weight_field = (ptype, "particle_mass")
         units = self.field_info[ptype, deposit_field].output_units
         take_log = self.field_info[ptype, deposit_field].take_log
         name_map = {
@@ -1679,7 +1704,7 @@ class Dataset(abc.ABC):
         The field name tuple for the newly created field.
         """
         issue_deprecation_warning(
-            "This method is deprecated."
+            "This method is deprecated. "
             "Since yt-4.0, it's no longer necessary to add a field specifically for "
             "smoothing, because the global octree is removed. The old behavior of "
             "interpolating onto a grid structure can be recovered through data objects "
@@ -1721,10 +1746,14 @@ class Dataset(abc.ABC):
         Examples
         --------
 
-        >>> grad_fields = ds.add_gradient_fields(("gas","density"))
+        >>> grad_fields = ds.add_gradient_fields(("gas", "density"))
         >>> print(grad_fields)
-        ... [('gas', 'density_gradient_x'), ('gas', 'density_gradient_y'),
-        ...  ('gas', 'density_gradient_z'), ('gas', 'density_gradient_magnitude')]
+        ... [
+        ...     ("gas", "density_gradient_x"),
+        ...     ("gas", "density_gradient_y"),
+        ...     ("gas", "density_gradient_z"),
+        ...     ("gas", "density_gradient_magnitude"),
+        ... ]
 
         Note that the above example assumes ds.geometry == 'cartesian'. In general,
         the function will create gradient components along the axes of the dataset

@@ -19,6 +19,7 @@ _fields = (
     ("gas", "temperature"),
     ("all", "particle_mass"),
     ("all", "particle_position_x"),
+    ("all", "particle_velocity_y"),
 )
 
 d9p = "D9p_500/10MpcBox_HartGal_csf_a0.500.d"
@@ -32,15 +33,24 @@ def test_d9p():
     assert_equal(str(ds), "10MpcBox_HartGal_csf_a0.500.d")
     dso = [None, ("sphere", ("max", (0.1, "unitary")))]
     for field in _fields:
-        for axis in [0, 1, 2]:
+        for axis in [0, 1]:
             for dobj_name in dso:
-                for weight_field in [None, "density"]:
+                for weight_field in [None, ("gas", "density")]:
                     if field[0] not in ds.particle_types:
                         yield PixelizedProjectionValuesTest(
                             d9p, axis, field, weight_field, dobj_name
                         )
-            yield FieldValuesTest(d9p, field, dobj_name)
+                yield FieldValuesTest(
+                    d9p,
+                    field,
+                    obj_type=dobj_name,
+                    particle_type=field[0] in ds.particle_types,
+                )
 
+
+@requires_ds(d9p, big_data=True)
+def test_d9p_global_values():
+    ds = data_dir_load(d9p)
     ad = ds.all_data()
     # 'Ana' variable values output from the ART Fortran 'ANA' analysis code
     AnaNStars = 6255
@@ -100,8 +110,8 @@ def test_d9p():
     AnaTotGasMass = YTQuantity(1.7826982029216785e13, "Msun")
     assert_almost_equal(ad[("gas", "cell_mass")].sum().in_units("Msun"), AnaTotGasMass)
 
-    AnaTotTemp = YTQuantity(150219844793.39072, "K")  # just leaves
-    assert_equal(ad[("gas", "temperature")].sum(), AnaTotTemp)
+    AnaTotTemp = YTQuantity(150219844793.3907, "K")  # just leaves
+    assert_almost_equal(ad[("gas", "temperature")].sum().in_units("K"), AnaTotTemp)
 
 
 @requires_file(d9p)

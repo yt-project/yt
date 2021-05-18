@@ -108,20 +108,21 @@ class FITSImageData:
 
         >>> # This example uses a FRB.
         >>> ds = load("sloshing_nomag2_hdf5_plt_cnt_0150")
-        >>> prj = ds.proj(2, "kT", weight_field="density")
+        >>> prj = ds.proj(2, "kT", weight_field=("gas", "density"))
         >>> frb = prj.to_frb((0.5, "Mpc"), 800)
         >>> # This example just uses the FRB and puts the coords in kpc.
-        >>> f_kpc = FITSImageData(frb, fields="kT", length_unit="kpc",
-        ...                       time_unit=(1.0, "Gyr"))
+        >>> f_kpc = FITSImageData(
+        ...     frb, fields="kT", length_unit="kpc", time_unit=(1.0, "Gyr")
+        ... )
         >>> # This example specifies a specific WCS.
         >>> from astropy.wcs import WCS
         >>> w = WCS(naxis=self.dimensionality)
-        >>> w.wcs.crval = [30., 45.] # RA, Dec in degrees
-        >>> w.wcs.cunit = ["deg"]*2
+        >>> w.wcs.crval = [30.0, 45.0]  # RA, Dec in degrees
+        >>> w.wcs.cunit = ["deg"] * 2
         >>> nx, ny = 800, 800
-        >>> w.wcs.crpix = [0.5*(nx+1), 0.5*(ny+1)]
-        >>> w.wcs.ctype = ["RA---TAN","DEC--TAN"]
-        >>> scale = 1./3600. # One arcsec per pixel
+        >>> w.wcs.crpix = [0.5 * (nx + 1), 0.5 * (ny + 1)]
+        >>> w.wcs.ctype = ["RA---TAN", "DEC--TAN"]
+        >>> scale = 1.0 / 3600.0  # One arcsec per pixel
         >>> w.wcs.cdelt = [-scale, scale]
         >>> f_deg = FITSImageData(frb, fields="kT", wcs=w)
         >>> f_deg.writeto("temp.fits")
@@ -203,7 +204,7 @@ class FITSImageData:
         elif isinstance(data, np.ndarray):
             if fields is None:
                 mylog.warning(
-                    "No field name given for this array. " "Calling it 'image_data'."
+                    "No field name given for this array. Calling it 'image_data'."
                 )
                 fn = "image_data"
                 fields = [fn]
@@ -279,6 +280,9 @@ class FITSImageData:
                         hdu.header[key] = float(value.value)
                         hdu.header.comments[key] = f"[{value.units}]"
                 hdu.header["time"] = float(self.current_time.value)
+                if hasattr(self, "current_redshift"):
+                    hdu.header["HUBBLE"] = self.hubble_constant
+                    hdu.header["REDSHIFT"] = self.current_redshift
                 self.hdulist.append(hdu)
 
         self.dimensionality = len(self.shape)
@@ -348,6 +352,10 @@ class FITSImageData:
         self.current_time = current_time.to(tunit)
 
     def _set_units(self, ds, base_units):
+        if ds is not None:
+            if getattr(ds, "cosmological_simulation", False):
+                self.hubble_constant = ds.hubble_constant
+                self.current_redshift = ds.current_redshift
         attrs = (
             "length_unit",
             "mass_unit",
@@ -385,6 +393,12 @@ class FITSImageData:
             else:
                 uq = None
 
+            if uq is not None and hasattr(self, "hubble_constant"):
+                # Don't store cosmology units
+                atoms = {str(a) for a in uq.units.expr.atoms()}
+                if str(uq.units).startswith("cm") or "h" in atoms or "a" in atoms:
+                    uq.convert_to_cgs()
+
             if uq is not None and uq.units.is_code_unit:
                 mylog.warning(
                     "Cannot use code units of '%s' "
@@ -395,12 +409,15 @@ class FITSImageData:
                 uq.convert_to_cgs()
 
             if attr == "length_unit" and uq.value != 1.0:
-                mylog.warning("Converting length units " "from %s to %s.", uq, uq.units)
+                mylog.warning("Converting length units from %s to %s.", uq, uq.units)
                 uq = YTQuantity(1.0, uq.units)
 
             setattr(self, attr, uq)
 
     def _set_units_from_header(self, header):
+        if "hubble" in header:
+            self.hubble_constant = header["HUBBLE"]
+            self.current_redshift = header["REDSHIFT"]
         for unit in ["length", "time", "mass", "velocity", "magnetic"]:
             if unit == "magnetic":
                 key = "BFUNIT"
@@ -408,8 +425,9 @@ class FITSImageData:
                 key = unit[0].upper() + "UNIT"
             if key not in header:
                 continue
-            u = YTQuantity(header[key], header.comments[key].strip("[]"))
-            setattr(self, unit + "_unit", u)
+            u = header.comments[key].strip("[]")
+            uq = YTQuantity(header[key], u)
+            setattr(self, unit + "_unit", uq)
 
     def set_wcs(self, wcs, wcsname=None, suffix=None):
         """
@@ -472,7 +490,7 @@ class FITSImageData:
 
         Examples
         --------
-        >>> fid = FITSSlice(ds, "z", "density")
+        >>> fid = FITSSlice(ds, "z", ("gas", "density"))
         >>> fid.convolve("density", (3.0, "kpc"))
         """
         if self.dimensionality == 3:
@@ -674,7 +692,8 @@ class FITSImageData:
         im = self.hdulist.pop(idx)
         self.field_units.pop(key)
         self.fields.remove(key)
-        return FITSImageData(_astropy.pyfits.PrimaryHDU(im.data, header=im.header))
+        f = _astropy.pyfits.PrimaryHDU(im.data, header=im.header)
+        return FITSImageData(f, current_time=f.header["TIME"], unit_header=f.header)
 
     def close(self):
         self.hdulist.close()
@@ -720,7 +739,11 @@ class FITSImageData:
                 else:
                     data.append(_astropy.pyfits.ImageHDU(hdu.data, header=hdu.header))
         data = _astropy.pyfits.HDUList(data)
-        return cls(data, current_time=first_image.current_time)
+        return cls(
+            data,
+            current_time=first_image.current_time,
+            unit_header=first_image[0].header,
+        )
 
     def create_sky_wcs(
         self,
@@ -772,7 +795,7 @@ class FITSImageData:
             scaleq = YTQuantity(sky_scale[0], sky_scale[1])
         if scaleq.units.dimensions != dimensions.angle / dimensions.length:
             raise RuntimeError(
-                f"sky_scale {sky_scale} not in correct " + "dimensions of angle/length!"
+                f"sky_scale {sky_scale} not in correct dimensions of angle/length!"
             )
         deltas = old_wcs.wcs.cdelt
         units = [str(unit) for unit in old_wcs.wcs.cunit]

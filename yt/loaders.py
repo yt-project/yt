@@ -2,14 +2,17 @@
 This module gathers all user-facing functions with a `load_` prefix.
 
 """
-
 import os
+import sys
+import tarfile
+from pathlib import Path
+from urllib.parse import urlsplit
 
 import numpy as np
 from more_itertools import always_iterable
 
 from yt._maintenance.deprecation import issue_deprecation_warning
-from yt.config import ytcfg
+from yt.sample_data.api import lookup_on_disk_data
 from yt.utilities.decompose import decompose_array, get_psize
 from yt.utilities.exceptions import (
     YTAmbiguousDataType,
@@ -25,7 +28,6 @@ from yt.utilities.object_registries import (
     simulation_time_series_registry,
 )
 from yt.utilities.on_demand_imports import _pooch as pooch
-from yt.utilities.sample_data import PoochHandle, _extensions_to_strip
 
 # --- Loaders for known data formats ---
 
@@ -72,18 +74,10 @@ def load(fn, *args, **kwargs):
 
         return DatasetSeries(fn, *args, **kwargs)
 
-    # Unless the dataset starts with http
-    # look for it using the path or relative to the data dir (in this order).
-    if not (os.path.exists(fn) or fn.startswith("http")):
-        data_dir = ytcfg.get("yt", "test_data_dir")
-        alt_fn = os.path.join(data_dir, fn)
-        if os.path.exists(alt_fn):
-            fn = alt_fn
-        else:
-            msg = f"No such file or directory: '{fn}'."
-            if os.path.exists(data_dir):
-                msg += f"\n(Also tried '{alt_fn}')."
-            raise FileNotFoundError(msg)
+    # This will raise FileNotFoundError if the path isn't matched
+    # either in the current dir or yt.config.ytcfg['data_dir_directory']
+    if not fn.startswith("http"):
+        fn = str(lookup_on_disk_data(fn))
 
     candidates = []
     for cls in output_type_registry.values():
@@ -126,12 +120,7 @@ def load_simulation(fn, simulation_type, find_outputs=False):
         If simulation_type is unknown.
     """
 
-    if not os.path.exists(fn):
-        alt_fn = os.path.join(ytcfg.get("yt", "test_data_dir"), fn)
-        if os.path.exists(alt_fn):
-            fn = alt_fn
-        else:
-            raise FileNotFoundError(f"No such file or directory: '{fn}'")
+    fn = str(lookup_on_disk_data(fn))
 
     try:
         cls = simulation_time_series_registry[simulation_type]
@@ -223,13 +212,12 @@ def load_uniform_grid(
     Examples
     --------
     >>> np.random.seed(int(0x4D3D3D3))
-    >>> bbox = np.array([[0., 1.0], [-1.5, 1.5], [1.0, 2.5]])
+    >>> bbox = np.array([[0.0, 1.0], [-1.5, 1.5], [1.0, 2.5]])
     >>> arr = np.random.random((128, 128, 128))
     >>> data = dict(density=arr)
-    >>> ds = load_uniform_grid(data, arr.shape, length_unit='cm',
-    ...                        bbox=bbox, nprocs=12)
+    >>> ds = load_uniform_grid(data, arr.shape, length_unit="cm", bbox=bbox, nprocs=12)
     >>> dd = ds.all_data()
-    >>> dd['density']
+    >>> dd[("gas", "density")]
     unyt_array([0.76017901, 0.96855994, 0.49205428, ..., 0.78798258,
                 0.97569432, 0.99453904], 'g/cm**3')
     """
@@ -436,20 +424,27 @@ def load_amr_grids(
     --------
 
     >>> grid_data = [
-    ...     dict(left_edge = [0.0, 0.0, 0.0],
-    ...          right_edge = [1.0, 1.0, 1.],
-    ...          level = 0,
-    ...          dimensions = [32, 32, 32],
-    ...          number_of_particles = 0),
-    ...     dict(left_edge = [0.25, 0.25, 0.25],
-    ...          right_edge = [0.75, 0.75, 0.75],
-    ...          level = 1,
-    ...          dimensions = [32, 32, 32],
-    ...          number_of_particles = 0)
+    ...     dict(
+    ...         left_edge=[0.0, 0.0, 0.0],
+    ...         right_edge=[1.0, 1.0, 1.0],
+    ...         level=0,
+    ...         dimensions=[32, 32, 32],
+    ...         number_of_particles=0,
+    ...     ),
+    ...     dict(
+    ...         left_edge=[0.25, 0.25, 0.25],
+    ...         right_edge=[0.75, 0.75, 0.75],
+    ...         level=1,
+    ...         dimensions=[32, 32, 32],
+    ...         number_of_particles=0,
+    ...     ),
     ... ]
     ...
     >>> for g in grid_data:
-    ...     g["density"] = (np.random.random(g["dimensions"])*2**g["level"], "g/cm**3")
+    ...     g[("gas", "density")] = (
+    ...         np.random.random(g["dimensions"]) * 2 ** g["level"],
+    ...         "g/cm**3",
+    ...     )
     ...
     >>> ds = load_amr_grids(grid_data, [32, 32, 32], length_unit=1.0)
     """
@@ -634,11 +629,13 @@ def load_particles(
     Examples
     --------
 
-    >>> pos = [np.random.random(128*128*128) for i in range(3)]
-    >>> data = dict(particle_position_x = pos[0],
-    ...             particle_position_y = pos[1],
-    ...             particle_position_z = pos[2])
-    >>> bbox = np.array([[0., 1.0], [0.0, 1.0], [0.0, 1.0]])
+    >>> pos = [np.random.random(128 * 128 * 128) for i in range(3)]
+    >>> data = dict(
+    ...     particle_position_x=pos[0],
+    ...     particle_position_y=pos[1],
+    ...     particle_position_z=pos[2],
+    ... )
+    >>> bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]])
     >>> ds = load_particles(data, 3.08e24, bbox=bbox)
 
     """
@@ -940,21 +937,20 @@ def load_octree(
     -------
 
     >>> import numpy as np
-    >>> oct_mask = [8, 0, 0, 0, 0, 8, 0, 8,
-    ...             0, 0, 0, 0, 0, 0, 0, 0,
-    ...             8, 0, 0, 0, 0, 0, 0, 0,
-    ...             0]
-    >>>
+    >>> oct_mask = np.zeros(25)
+    ... oct_mask[[0,  5,  7, 16]] = 8
     >>> octree_mask = np.array(oct_mask, dtype=np.uint8)
     >>> quantities = {}
-    >>> quantities['gas', 'density'] = np.random.random((22, 1))
-    >>> bbox = np.array([[-10., 10.], [-10., 10.], [-10., 10.]])
-    >>>
-    >>> ds = load_octree(octree_mask=octree_mask,
-    ...                  data=quantities,
-    ...                  bbox=bbox,
-    ...                  over_refine_factor=0,
-    ...                  partial_coverage=0)
+    >>> quantities["gas", "density"] = np.random.random((22, 1))
+    >>> bbox = np.array([[-10.0, 10.0], [-10.0, 10.0], [-10.0, 10.0]])
+
+    >>> ds = load_octree(
+    ...     octree_mask=octree_mask,
+    ...     data=quantities,
+    ...     bbox=bbox,
+    ...     over_refine_factor=0,
+    ...     partial_coverage=0,
+    ... )
 
     """
     from yt.frontends.stream.data_structures import (
@@ -1120,27 +1116,32 @@ def load_unstructured_mesh(
     Load a simple mesh consisting of two tets.
 
       >>> # Coordinates for vertices of two tetrahedra
-      >>> coordinates = np.array([[0.0, 0.0, 0.5], [0.0, 1.0, 0.5],
-      ...                         [0.5, 1, 0.5], [0.5, 0.5, 0.0],
-      ...                         [0.5, 0.5, 1.0]])
+      >>> coordinates = np.array(
+      ...     [
+      ...         [0.0, 0.0, 0.5],
+      ...         [0.0, 1.0, 0.5],
+      ...         [0.5, 1, 0.5],
+      ...         [0.5, 0.5, 0.0],
+      ...         [0.5, 0.5, 1.0],
+      ...     ]
+      ... )
       >>> # The indices in the coordinates array of mesh vertices.
       >>> # This mesh has two elements.
       >>> connectivity = np.array([[0, 1, 2, 4], [0, 1, 2, 3]])
-      >>>
+
       >>> # Field data defined at the centers of the two mesh elements.
-      >>> elem_data = {
-      ...     ('connect1', 'elem_field'): np.array([1, 2])
-      ... }
-      >>>
+      >>> elem_data = {("connect1", "elem_field"): np.array([1, 2])}
+
       >>> # Field data defined at node vertices
       >>> node_data = {
-      ...     ('connect1', 'node_field'): np.array([[0.0, 1.0, 2.0, 4.0],
-      ...                                           [0.0, 1.0, 2.0, 3.0]])
+      ...     ("connect1", "node_field"): np.array(
+      ...         [[0.0, 1.0, 2.0, 4.0], [0.0, 1.0, 2.0, 3.0]]
+      ...     )
       ... }
-      >>>
-      >>> ds = load_unstructured_mesh(connectivity, coordinates,
-      ...                             elem_data=elem_data,
-      ...                             node_data=node_data)
+
+      >>> ds = load_unstructured_mesh(
+      ...     connectivity, coordinates, elem_data=elem_data, node_data=node_data
+      ... )
     """
     from yt.frontends.exodus_ii.util import get_num_pseudo_dims
     from yt.frontends.stream.data_structures import (
@@ -1268,90 +1269,129 @@ def load_unstructured_mesh(
 
 
 # --- Loader for yt sample datasets ---
-# This utility will check to see if sample data exists on disc.
-# If not, it will download it.
-
-
-def load_sample(fn=None, specific_file=None, pbar=True):
+def load_sample(fn=None, progressbar: bool = True, timeout=None, **kwargs):
     """
-    Load sample data with yt. Simple wrapper around yt.load to include fetching
-    data with pooch.
+    Load sample data with yt.
+
+    This is a simple wrapper around `yt.load` to include fetching
+    data with pooch from remote source.
+
+    yt sample data can be found at:
+    https://yt-project.org/data.
+
+    The data registry table can be retrieved and visualized using
+    `yt.sample_data.api.get_data_registry_table()`.
+
+    This function requires pandas and pooch to be installed.
 
     Parameters
     ----------
-    fn : str or None
-        The name of the sample data to load. This is generally the name of the
-        folder of the dataset. For IsolatedGalaxy, the name would be
-        `IsolatedGalaxy`.  If `None` is supplied, the return value
-        will be a list of all known datasets (by name).
+    fn : str
+        The `filename` of the dataset to load, as defined in the data registry
+        table.
 
-    specific_file : str, optional
-        optional argument -- the name of the file to load that is located
-        within sample dataset of `name`. For the dataset `enzo_cosmology_plus`,
-        which has a number of timesteps available, one may wish to choose
-        DD0003. The file specifically would be
-        `enzo_cosmology_plus/DD0003/DD0003`, and the argument passed to this
-        variable would be `DD0003/DD0003`
+    progressbar: bool
+        display a progress bar (tqdm).
 
-    pbar: bool
-        display a progress bar
+    timeout: float or int (optional)
+        Maximal waiting time, in seconds, after which download is aborted.
+        `None` means "no limit". This parameter is directly passed to down to
+        requests.get via pooch.HTTPDownloader
 
+    Any additional keyword argument is passed down to `yt.load`.
+    Note that in case of collision with predefined keyword arguments as set in
+    the data registry, the ones passed to this function take priority.
     """
 
-    fido = PoochHandle()
-
     if fn is None:
-        keys = []
-        for key in fido._registry:
-            for ext in _extensions_to_strip:
-                if key.endswith(ext):
-                    key = key[: -len(ext)]
-            keys.append(key)
-        return keys
+        print(
+            "One can see which sample datasets are available at: https://yt-project.org/data\n"
+            "or alternatively by running: yt.sample_data.api.get_data_registry_table()",
+            file=sys.stderr,
+        )
+        return None
 
-    base_path = fido.pooch_obj.path
-
-    registered_fname, name, extension = fido._validate_sample_fname(
-        fn
-    )  # todo: make this part of the class
-
-    downloader = None
-    if pbar:
-        downloader = pooch.pooch.HTTPDownloader(progressbar=True)
-
-    if extension != "h5":
-        # we are going to assume most files that exist on the hub are
-        # compressed in .tar folders. Some may not.
-        processor = pooch.pooch.Untar()
-    else:
-        processor = None
-
-    storage_fname = fido.pooch_obj.fetch(
-        registered_fname, processor=processor, downloader=downloader
+    from yt.sample_data.api import (
+        _download_sample_data_file,
+        _get_test_data_dir_path,
+        get_data_registry_table,
     )
 
-    # The `folder_path` variable is used here to notify the user where the
-    # files have been unpacked to. However, we can't assume this is reliable
-    # because in some cases the common path will overlap with the `load_name`
-    # variable of the file.
-    folder_path = os.path.commonprefix(storage_fname)
-    mylog.info("Files located at %s", folder_path)
+    pooch_logger = pooch.utils.get_logger()
 
-    # Location of the file to load automatically, registered in the Fido class
-    info = fido[registered_fname]
-    file_lookup = info["load_name"]
-    optional_args = info["load_kwargs"]
+    topdir, _, specific_file = str(fn).partition(os.path.sep)
 
-    if specific_file is None:
-        # right now work on loading only untarred files. build out h5 later
-        mylog.info("Default to loading %s for %s dataset", file_lookup, name)
-        loaded_file = os.path.join(
-            base_path, f"{registered_fname}.untar", name, file_lookup
+    registry_table = get_data_registry_table()
+    # PR 3089
+    # note: in the future the registry table should be reindexed
+    # so that the following line can be replaced with
+    #
+    # specs = registry_table.loc[fn]
+    #
+    # however we don't want to do it right now because the "filename" column is
+    # currently incomplete
+
+    try:
+        specs = registry_table.query(f"`filename` == '{topdir}'").iloc[0]
+    except IndexError as err:
+        raise KeyError(f"Could not find '{fn}' in the registry.") from err
+
+    if not specs["load_name"]:
+        raise ValueError(
+            "Registry appears to be corrupted: could not find a 'load_name' entry for this dataset."
         )
+
+    kwargs = {**specs["load_kwargs"], **kwargs}
+
+    try:
+        data_dir = lookup_on_disk_data(fn)
+    except FileNotFoundError:
+        mylog.info("'%s' is not available locally. Looking up online.", fn)
     else:
-        mylog.info("Loading %s for %s dataset", specific_file, name)
-        loaded_file = os.path.join(
-            base_path, f"{registered_fname}.untar", name, specific_file
-        )
+        # if the data is already available locally, `load_sample`
+        # only acts as a thin wrapper around `load`
+        loadable_path = data_dir.joinpath(specs["load_name"], specific_file)
+        mylog.info("Sample dataset found in '%s'", data_dir)
+        if timeout is not None:
+            mylog.info("Ignoring the `timeout` keyword argument received.")
+        return load(loadable_path, **kwargs)
 
-    return load(loaded_file, **optional_args)
+    try:
+        save_dir = _get_test_data_dir_path()
+        assert save_dir.is_dir()
+    except (OSError, AssertionError):
+        mylog.warning(
+            "yt test data directory is not properly set up. "
+            "Data will be saved to the current work directory instead."
+        )
+        save_dir = Path.cwd()
+
+    # effectively silence the pooch's logger and create our own log instead
+    pooch_logger.setLevel(100)
+    mylog.info("Downloading from %s", specs["url"])
+
+    # downloading via a pooch.Pooch instance behind the scenes
+    filename = urlsplit(specs["url"]).path.split("/")[-1]
+
+    tmp_file = _download_sample_data_file(
+        filename, progressbar=progressbar, timeout=timeout
+    )
+
+    # pooch has functionalities to unpack downloaded archive files,
+    # but it needs to be told in advance that we are downloading a tarball.
+    # Since that information is not necessarily trival to guess from the filename,
+    # we rely on the standard library to perform a conditional unpacking instead.
+    if tarfile.is_tarfile(tmp_file):
+        mylog.info("Untaring downloaded file to '%s'", save_dir)
+        with tarfile.open(tmp_file) as fh:
+            fh.extractall(save_dir)
+        os.remove(tmp_file)
+    else:
+        os.replace(tmp_file, save_dir)
+
+    loadable_path = Path.joinpath(save_dir, fn, specs["load_name"], specific_file)
+
+    if specific_file and not loadable_path.exists():
+        raise ValueError(f"Could not find file '{specific_file}'.")
+
+    return load(loadable_path, **kwargs)

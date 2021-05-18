@@ -24,7 +24,7 @@ def get_position_fields(field, data):
             ftype = finfo.name[0]
         position_fields = [(ftype, f"particle_position_{d}") for d in axis_names]
     else:
-        position_fields = axis_names
+        position_fields = [("index", ax_name) for ax_name in axis_names]
 
     return position_fields
 
@@ -116,9 +116,11 @@ class WeightedAverageQuantity(DerivedQuantity):
 
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
-    >>> print(ad.quantities.weighted_average_quantity([("gas", "density"),
-    ...                                                ("gas", "temperature")],
-    ...                                                ("gas", "cell_mass")))
+    >>> print(
+    ...     ad.quantities.weighted_average_quantity(
+    ...         [("gas", "density"), ("gas", "temperature")], ("gas", "mass")
+    ...     )
+    ... )
 
     """
 
@@ -157,7 +159,7 @@ class TotalQuantity(DerivedQuantity):
 
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
-    >>> print(ad.quantities.total_quantity([("gas", "cell_mass")]))
+    >>> print(ad.quantities.total_quantity([("gas", "mass")]))
 
     """
 
@@ -201,11 +203,11 @@ class TotalMass(TotalQuantity):
         if ("gas", "mass") in fi:
             gas = super().__call__([("gas", "mass")])
         else:
-            gas = self.data_source.ds.arr([0], "g")
+            gas = self.data_source.ds.quan(0.0, "g")
         if ("nbody", "particle_mass") in fi:
             part = super().__call__([("nbody", "particle_mass")])
         else:
-            part = self.data_source.ds.arr([0], "g")
+            part = self.data_source.ds.quan(0.0, "g")
         return self.data_source.ds.arr([gas, part])
 
 
@@ -398,9 +400,11 @@ class WeightedStandardDeviation(DerivedQuantity):
 
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
-    >>> print(ad.quantities.weighted_standard_deviation([("gas", "density"),
-    ...                                                  ("gas", "temperature")],
-    ...                                                  ("gas", "cell_mass")))
+    >>> print(
+    ...     ad.quantities.weighted_standard_deviation(
+    ...         [("gas", "density"), ("gas", "temperature")], ("gas", "mass")
+    ...     )
+    ... )
 
     """
 
@@ -500,9 +504,9 @@ class AngularMomentumVector(DerivedQuantity):
 
     # Find angular momentum vector of gas disk in particle-based dataset
     >>> ds = load("FIRE_M12i_ref11/snapshot_600.hdf5")
-    >>> _, c = ds.find_max(('gas', 'density'))
-    >>> sp = ds.sphere(c, (10, 'kpc'))
-    >>> search_args = dict(use_gas=False, use_particles=True, particle_type='PartType0')
+    >>> _, c = ds.find_max(("gas", "density"))
+    >>> sp = ds.sphere(c, (10, "kpc"))
+    >>> search_args = dict(use_gas=False, use_particles=True, particle_type="PartType0")
     >>> print(sp.quantities.angular_momentum_vector(**search_args))
 
     """
@@ -592,8 +596,7 @@ class Extrema(DerivedQuantity):
 
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
-    >>> print(ad.quantities.extrema([("gas", "density"),
-    ...                              ("gas", "temperature")]))
+    >>> print(ad.quantities.extrema([("gas", "density"), ("gas", "temperature")]))
 
     """
 
@@ -650,7 +653,7 @@ class SampleAtMaxFieldValues(DerivedQuantity):
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
     >>> print(ad.quantities.sample_at_max_field_values(("gas", "density"),
-    ...         ["temperature", "velocity_magnitude"]))
+    ...         [("gas", "temperature"), ("gas", "velocity_magnitude")]))
 
     """
 
@@ -731,7 +734,7 @@ class SampleAtMinFieldValues(SampleAtMaxFieldValues):
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
     >>> print(ad.quantities.sample_at_min_field_values(("gas", "density"),
-    ...         ["temperature", "velocity_magnitude"]))
+    ...         [("gas", "temperature"), ("gas", "velocity_magnitude")]))
 
     """
 

@@ -115,7 +115,7 @@ important changes.
   information, you have to use spatial chunking and then access them.  See
   :ref:`here <grid-chunking>` for an example.  For datasets that use grid
   hierarchies, you can also access the grids for the entire dataset via
-  `ds.index.grids`.  This attribute is not defined for particle or octree
+  ``ds.index.grids``.  This attribute is not defined for particle or octree
   datasets.
 
 Cool New Things
@@ -265,7 +265,7 @@ Derived quantities can now be accessed via a function that hangs off of the
 ``quantities`` attribute of data objects. Instead of
 ``dd.quantities['TotalMass']()``, you can now use ``dd.quantities.total_mass()``
 to do the same thing. All derived quantities can be accessed via a function that
-hangs off of the `quantities` attribute of data objects.
+hangs off of the ``quantities`` attribute of data objects.
 
 Any derived quantities that *always* returned lists (like ``Extrema``, which
 would return a list even if you only ask for one field) now only returns a

@@ -108,24 +108,35 @@ class ExodusIIDataset(Dataset):
         the 2nd mesh without applying any scale or offset:
 
         >>> import yt
-        >>> ds = yt.load("MOOSE_sample_data/mps_out.e", step=10,
-                         displacements={'connect2': (1.0, [0.0, 0.0, 0.0])})
+        >>> ds = yt.load(
+        ...     "MOOSE_sample_data/mps_out.e",
+        ...     step=10,
+        ...     displacements={"connect2": (1.0, [0.0, 0.0, 0.0])},
+        ... )
 
         This will load the Dataset at index 10, scaling the displacements
         in the 2nd mesh by a factor of 5 while not applying an offset:
 
         >>> import yt
-        >>> ds = yt.load("MOOSE_sample_data/mps_out.e", step=10,
-                         displacements={'connect2': (1.0, [0.0, 0.0, 0.0])})
+        >>> ds = yt.load(
+        ...     "MOOSE_sample_data/mps_out.e",
+        ...     step=10,
+        ...     displacements={"connect2": (1.0, [0.0, 0.0, 0.0])},
+        ... )
 
         This will load the Dataset at index 10, scaling the displacements for
         the 2nd mesh by a factor of 5.0 and shifting all the vertices in
         the first mesh by 1.0 unit in the z direction.
 
         >>> import yt
-        >>> ds = yt.load("MOOSE_sample_data/mps_out.e", step=10,
-                         displacements={'connect1': (0.0, [0.0, 0.0, 1.0]),
-                                        'connect2': (5.0, [0.0, 0.0, 0.0])})
+        >>> ds = yt.load(
+        ...     "MOOSE_sample_data/mps_out.e",
+        ...     step=10,
+        ...     displacements={
+        ...         "connect1": (0.0, [0.0, 0.0, 1.0]),
+        ...         "connect2": (5.0, [0.0, 0.0, 0.0]),
+        ...     },
+        ... )
 
         """
         self.parameter_filename = filename
@@ -245,7 +256,7 @@ class ExodusIIDataset(Dataset):
                 return []
             else:
                 return [
-                    sanitize_string(v.tostring()) for v in ds.variables["name_glo_var"]
+                    sanitize_string(v.tobytes()) for v in ds.variables["name_glo_var"]
                 ]
 
     def _get_elem_names(self):
@@ -261,7 +272,7 @@ class ExodusIIDataset(Dataset):
                 return []
             else:
                 return [
-                    sanitize_string(v.tostring()) for v in ds.variables["name_elem_var"]
+                    sanitize_string(v.tobytes()) for v in ds.variables["name_elem_var"]
                 ]
 
     def _get_nod_names(self):
@@ -277,7 +288,7 @@ class ExodusIIDataset(Dataset):
                 return []
             else:
                 return [
-                    sanitize_string(v.tostring()) for v in ds.variables["name_nod_var"]
+                    sanitize_string(v.tobytes()) for v in ds.variables["name_nod_var"]
                 ]
 
     def _read_coordinates(self):

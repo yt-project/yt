@@ -44,8 +44,8 @@ def _sample_ray(ray, npoints, field):
     sample_dr = (end_point - start_point) / (npoints - 1)
     sample_points = [np.arange(npoints) * sample_dr[i] for i in range(3)]
     sample_points = uvstack(sample_points).T + start_point
-    ray_coordinates = uvstack([ray[d] for d in "xyz"]).T
-    ray_dds = uvstack([ray["d" + d] for d in "xyz"]).T
+    ray_coordinates = uvstack([ray[("index", d)] for d in "xyz"]).T
+    ray_dds = uvstack([ray[("index", f"d{d}")] for d in "xyz"]).T
     ray_field = ray[field]
     field_values = ray.ds.arr(np.zeros(npoints), ray_field.units)
     for i, sample_point in enumerate(sample_points):
@@ -228,7 +228,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
         """
         if npoints < 2:
             raise ValueError(
-                "Must have at least two sample points in order " "to draw a line plot."
+                "Must have at least two sample points in order to draw a line plot."
             )
         index = self.ds.index
         if hasattr(index, "meshes") and not isinstance(

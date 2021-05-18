@@ -6,7 +6,7 @@ sc = yt.create_scene(ds, lens_type="perspective")
 
 source = sc[0]
 
-source.set_field("density")
+source.set_field(("gas", "density"))
 source.set_log(True)
 
 # Set up the camera parameters: focus, width, resolution, and image orientation

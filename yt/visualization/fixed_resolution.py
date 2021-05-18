@@ -55,12 +55,11 @@ class FixedResolutionBuffer:
     To make a projection and then several images, you can generate a
     single FRB and then access multiple fields:
 
-    >>> proj = ds.proj(0, "density")
-    >>> frb1 = FixedResolutionBuffer(proj, (0.2, 0.3, 0.4, 0.5),
-    ...                              (1024, 1024))
-    >>> print(frb1["density"].max())
+    >>> proj = ds.proj(0, ("gas", "density"))
+    >>> frb1 = FixedResolutionBuffer(proj, (0.2, 0.3, 0.4, 0.5), (1024, 1024))
+    >>> print(frb1[("gas", "density")].max())
     1.0914e-9 g/cm**3
-    >>> print(frb1["temperature"].max())
+    >>> print(frb1[("gas", "temperature")].max())
     104923.1 K
     """
     _exclude_fields = (
@@ -380,8 +379,10 @@ class FixedResolutionBuffer:
         >>> import yt
         >>> ds = yt.load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150")
         >>> slc = ds.slice(2, 0.0)
-        >>> frb = slc.to_frb((500.,"kpc"), 500)
-        >>> ds2 = frb.export_dataset(fields=["density","temperature"], nprocs=32)
+        >>> frb = slc.to_frb((500.0, "kpc"), 500)
+        >>> ds2 = frb.export_dataset(
+        ...     fields=[("gas", "density"), ("gas", "temperature")], nprocs=32
+        ... )
         """
         nx, ny = self.buff_size
         data = {}
@@ -436,11 +437,11 @@ class FixedResolutionBuffer:
 
         >>> import yt
         >>> ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
-        >>> proj = ds.proj("density", "x", weight_field="density")
+        >>> proj = ds.proj(("gas", "density"), "x", weight_field=("gas", "density"))
         >>> frb = proj.to_frb(1.0, (800, 800))
-        >>> fn = frb.save_as_dataset(fields=["density"])
+        >>> fn = frb.save_as_dataset(fields=[("gas", "density")])
         >>> ds2 = yt.load(fn)
-        >>> print (ds2.data["density"])
+        >>> print(ds2.data[("gas", "density")])
         [[  1.25025353e-30   1.25025353e-30   1.25025353e-30 ...,   7.90820691e-31
             7.90820691e-31   7.90820691e-31]
          [  1.25025353e-30   1.25025353e-30   1.25025353e-30 ...,   7.90820691e-31

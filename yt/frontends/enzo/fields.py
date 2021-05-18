@@ -106,6 +106,10 @@ class EnzoFieldInfo(FieldInfoContainer):
         ("GridID", ("", [], None)),
         ("identifier", ("", ["particle_index"], None)),
         ("level", ("", [], None)),
+        ("AccretionRate", ("code_mass/code_time", [], None)),
+        ("AccretionRateTime", ("code_time", [], None)),
+        ("AccretionRadius", ("code_length", [], None)),
+        ("RadiationLifetime", ("code_time", [], None)),
     )
 
     def __init__(self, ds, field_list):
@@ -158,7 +162,7 @@ class EnzoFieldInfo(FieldInfoContainer):
         species_names = [sp for sp in species_names if sp in known_species_names]
 
         def _electron_density(field, data):
-            return data["Electron_Density"] * (me / mp)
+            return data[("enzo", "Electron_Density")] * (me / mp)
 
         self.add_field(
             ("gas", "El_density"),
@@ -216,11 +220,11 @@ class EnzoFieldInfo(FieldInfoContainer):
             self.alias(("gas", "specific_thermal_energy"), ("enzo", te_name))
 
             def _ge_plus_kin(field, data):
-                ret = data[te_name] + 0.5 * data["velocity_x"] ** 2.0
+                ret = data[("enzo", te_name)] + 0.5 * data[("gas", "velocity_x")] ** 2.0
                 if data.ds.dimensionality > 1:
-                    ret += 0.5 * data["velocity_y"] ** 2.0
+                    ret += 0.5 * data[("gas", "velocity_y")] ** 2.0
                 if data.ds.dimensionality > 2:
-                    ret += 0.5 * data["velocity_z"] ** 2.0
+                    ret += 0.5 * data[("gas", "velocity_z")] ** 2.0
                 return ret
 
             self.add_field(
@@ -253,12 +257,14 @@ class EnzoFieldInfo(FieldInfoContainer):
 
             # Subtract off B-field energy
             def _sub_b(field, data):
-                ret = data[te_name] - 0.5 * data["velocity_x"] ** 2.0
+                ret = data[("enzo", te_name)] - 0.5 * data[("gas", "velocity_x")] ** 2.0
                 if data.ds.dimensionality > 1:
-                    ret -= 0.5 * data["velocity_y"] ** 2.0
+                    ret -= 0.5 * data[("gas", "velocity_y")] ** 2.0
                 if data.ds.dimensionality > 2:
-                    ret -= 0.5 * data["velocity_z"] ** 2.0
-                ret -= data["magnetic_energy_density"] / data["density"]
+                    ret -= 0.5 * data[("gas", "velocity_z")] ** 2.0
+                ret -= (
+                    data[("gas", "magnetic_energy_density")] / data[("gas", "density")]
+                )
                 return ret
 
             self.add_field(
@@ -278,11 +284,11 @@ class EnzoFieldInfo(FieldInfoContainer):
             )
 
             def _tot_minus_kin(field, data):
-                ret = data[te_name] - 0.5 * data["velocity_x"] ** 2.0
+                ret = data[("enzo", te_name)] - 0.5 * data[("gas", "velocity_x")] ** 2.0
                 if data.ds.dimensionality > 1:
-                    ret -= 0.5 * data["velocity_y"] ** 2.0
+                    ret -= 0.5 * data[("gas", "velocity_y")] ** 2.0
                 if data.ds.dimensionality > 2:
-                    ret -= 0.5 * data["velocity_z"] ** 2.0
+                    ret -= 0.5 * data[("gas", "velocity_z")] ** 2.0
                 return ret
 
             self.add_field(
@@ -315,7 +321,7 @@ class EnzoFieldInfo(FieldInfoContainer):
 
     def setup_particle_fields(self, ptype):
         def _age(field, data):
-            return data.ds.current_time - data["creation_time"]
+            return data.ds.current_time - data[("all", "creation_time")]
 
         self.add_field(
             (ptype, "age"), sampling_type="particle", function=_age, units="yr"

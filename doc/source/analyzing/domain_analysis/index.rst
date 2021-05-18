@@ -72,5 +72,5 @@ Extensions
 There are a number of independent, yt-related packages for things
 like visual effects, interactive widgets, synthetic absorption
 spectra, X-ray observations, and merger-trees. See the
-`yt Extensions <http://yt-project.org/extensions.html>` page for
+`yt Extensions <http://yt-project.org/extensions.html>`_ page for
 a list of available extension packages.

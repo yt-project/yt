@@ -21,6 +21,7 @@ import warnings
 from distutils.version import LooseVersion
 from functools import lru_cache, wraps
 from numbers import Number as numeric_type
+from typing import Any, Callable, Type
 
 import matplotlib
 import numpy as np
@@ -30,6 +31,7 @@ from tqdm import tqdm
 from yt.units import YTArray, YTQuantity
 from yt.utilities.exceptions import YTInvalidWidthError
 from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.on_demand_imports import _requests as requests
 
 # Some functions for handling sequences and other types
 
@@ -59,7 +61,7 @@ def iter_fields(field_or_fields):
     Examples
     --------
 
-    >>> fields = "density"
+    >>> fields = ("gas", "density")
     >>> for field in iter_fields(fields):
     ...     print(field)
     density
@@ -69,7 +71,7 @@ def iter_fields(field_or_fields):
     ...     print(field)
     ('gas', 'density')
 
-    >>> fields = ["density", "temperature", ("index", "dx")]
+    >>> fields = [("gas", "density"), ("gas", "temperature"), ("index", "dx")]
     >>> for field in iter_fields(fields):
     ...     print(field)
     density
@@ -198,11 +200,9 @@ def print_tb(func):
 
     This can be used like so:
 
-    .. code-block:: python
-
-       @print_tb
-       def some_deeply_nested_function(*args, **kwargs):
-           ...
+    >>> @print_tb
+    ... def some_deeply_nested_function(*args, **kwargs):
+    ...     ...
 
     """
 
@@ -246,11 +246,9 @@ def pdb_run(func):
 
     This can be used like so:
 
-    .. code-block:: python
-
-       @pdb_run
-       def some_function_to_debug(*args, **kwargs):
-           ...
+    >>> @pdb_run
+    ... def some_function_to_debug(*args, **kwargs):
+    ...     ...
 
     """
 
@@ -337,21 +335,7 @@ class DummyProgressBar:
         return
 
 
-class ParallelProgressBar:
-    # This is just a simple progress bar
-    # that prints on start/stop
-    def __init__(self, title, maxval):
-        self.title = title
-        mylog.info("Starting '%s'", title)
-
-    def update(self, *args, **kwargs):
-        return
-
-    def finish(self):
-        mylog.info("Finishing '%s'", self.title)
-
-
-def get_pbar(title, maxval, parallel=False):
+def get_pbar(title, maxval):
     """
     This returns a progressbar of the most appropriate type, given a *title*
     and a *maxval*.
@@ -363,19 +347,10 @@ def get_pbar(title, maxval, parallel=False):
         ytcfg.get("yt", "suppress_stream_logging")
         or ytcfg.get("yt", "internals", "within_testing")
         or maxval == 1
+        or not is_root()
     ):
         return DummyProgressBar()
-    elif ytcfg.get("yt", "internals", "parallel"):
-        # If parallel is True, update progress on root only.
-        if parallel:
-            if is_root():
-                return TqdmProgressBar(title, maxval)
-            else:
-                return DummyProgressBar()
-        else:
-            return ParallelProgressBar(title, maxval)
-    pbar = TqdmProgressBar(title, maxval)
-    return pbar
+    return TqdmProgressBar(title, maxval)
 
 
 def only_on_root(func, *args, **kwargs):
@@ -617,11 +592,11 @@ def get_script_contents():
 
 
 def download_file(url, filename):
-    requests = get_requests()
-    if requests is None:
-        return simple_download_file(url, filename)
-    else:
+    try:
         return fancy_download_file(url, filename, requests)
+    except ImportError:
+        # fancy_download_file requires requests
+        return simple_download_file(url, filename)
 
 
 def fancy_download_file(url, filename, requests=None):
@@ -712,11 +687,10 @@ def parallel_profile(prefix):
 
     >>> from yt import PhasePlot
     >>> from yt.testing import fake_random_ds
-    ...
-    >>> fields = ('density', 'temperature', 'cell_mass')
-    >>> units = ('g/cm**3', 'K', 'g')
+    >>> fields = ("density", "temperature", "cell_mass")
+    >>> units = ("g/cm**3", "K", "g")
     >>> ds = fake_random_ds(16, fields=fields, units=units)
-    >>> with parallel_profile('my_profile'):
+    >>> with parallel_profile("my_profile"):
     ...     plot = PhasePlot(ds.all_data(), *fields)
     """
     import cProfile
@@ -864,7 +838,7 @@ def memory_checker(interval=15, dest=None):
     --------
 
     >>> with memory_checker(10):
-    ...     arr = np.zeros(1024*1024*1024, dtype="float64")
+    ...     arr = np.zeros(1024 * 1024 * 1024, dtype="float64")
     ...     time.sleep(15)
     ...     del arr
     MEMORY: -1.000e+00 gb
@@ -989,7 +963,7 @@ def get_hash(infile, algorithm="md5", BLOCKSIZE=65536):
     --------
     >>> from tempfile import NamedTemporaryFile
     >>> with NamedTemporaryFile() as file:
-    ...    get_hash(file.name)
+    ...     get_hash(file.name)
     'd41d8cd98f00b204e9800998ecf8427e'
     """
     import hashlib
@@ -1042,14 +1016,6 @@ def get_brewer_cmap(cmap):
     else:
         raise RuntimeError("Please install palettable to use colorbrewer colormaps")
     return bmap.get_mpl_colormap(N=cmap[2])
-
-
-def get_requests():
-    try:
-        import requests
-    except ImportError:
-        requests = None
-    return requests
 
 
 @contextlib.contextmanager
@@ -1186,14 +1152,14 @@ def validate_float(obj):
     --------
     >>> validate_float(1)
     >>> validate_float(1.50)
-    >>> validate_float(YTQuantity(1,"cm"))
-    >>> validate_float((1,"cm"))
+    >>> validate_float(YTQuantity(1, "cm"))
+    >>> validate_float((1, "cm"))
     >>> validate_float([1, 1, 1])
     Traceback (most recent call last):
     ...
     TypeError: Expected a numeric value (or size-1 array), received 'list' of length 3
 
-    >>> validate_float([YTQuantity(1, "cm"), YTQuantity(2,"cm")])
+    >>> validate_float([YTQuantity(1, "cm"), YTQuantity(2, "cm")])
     Traceback (most recent call last):
     ...
     TypeError: Expected a numeric value (or size-1 array), received 'list' of length 2
@@ -1272,3 +1238,87 @@ def sglob(pattern):
     Return the results of a glob through the sorted() function.
     """
     return sorted(glob.glob(pattern))
+
+
+def dictWithFactory(factory: Callable[[Any], Any]) -> Type:
+    """
+    Create a dictionary class with a default factory function.
+    Contrary to `collections.defaultdict`, the factory takes
+    the missing key as input parameter.
+
+    Parameters
+    ----------
+    factory : callable(key) -> value
+        The factory to call when hitting a missing key
+
+    Returns
+    -------
+    DictWithFactory class
+        A class to create new dictionaries handling missing keys.
+    """
+
+    class DictWithFactory(dict):
+        def __init__(self, *args, **kwargs):
+            self.factory = factory
+            super().__init__(*args, **kwargs)
+
+        def __missing__(self, key):
+            val = self.factory(key)
+            self[key] = val
+            return val
+
+    return DictWithFactory
+
+
+def levenshtein_distance(seq1, seq2, max_dist=None):
+    """
+    Compute the levenshtein distance between seq1 and seq2.
+    From https://stackabuse.com/levenshtein-distance-and-text-similarity-in-python/
+
+    Parameters
+    ----------
+    seq1, seq2 : str
+        The strings to compute the distance between
+    max_dist : integer
+        If not None, maximum distance returned (see notes).
+
+    Returns
+    -------
+    The Levensthein distance as an integer.
+
+    Notes
+    -----
+    This computes the Levenshtein distance, i.e. the number of edits to change
+    seq1 into seq2. If a maximum distance is passed, the algorithm will stop as soon
+    as the number of edits goes above the value. This allows for an earlier break
+    and speeds calculations up.
+    """
+    size_x = len(seq1) + 1
+    size_y = len(seq2) + 1
+    if max_dist is None:
+        max_dist = max(size_x, size_y)
+
+    if abs(size_x - size_y) > max_dist:
+        return max_dist + 1
+    matrix = np.zeros((size_x, size_y), dtype=int)
+    for x in range(size_x):
+        matrix[x, 0] = x
+    for y in range(size_y):
+        matrix[0, y] = y
+
+    for x in range(1, size_x):
+        for y in range(1, size_y):
+            if seq1[x - 1] == seq2[y - 1]:
+                matrix[x, y] = min(
+                    matrix[x - 1, y] + 1, matrix[x - 1, y - 1], matrix[x, y - 1] + 1
+                )
+            else:
+                matrix[x, y] = min(
+                    matrix[x - 1, y] + 1, matrix[x - 1, y - 1] + 1, matrix[x, y - 1] + 1
+                )
+
+        # Early break: the minimum distance is already larger than
+        # maximum allow value, can return safely.
+        if matrix[x].min() > max_dist:
+            return max_dist + 1
+    return matrix[size_x - 1, size_y - 1]

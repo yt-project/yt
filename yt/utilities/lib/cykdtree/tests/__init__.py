@@ -39,9 +39,9 @@ def call_subprocess(np, func, args, kwargs):
     # Create string with arguments & kwargs
     args_str = ""
     for a in args:
-        args_str += str(a) + ","
+        args_str += f"{a},"
     for k, v in kwargs.items():
-        args_str += k + "=" + str(v) + ","
+        args_str += f"{k}={v},"
     if args_str.endswith(","):
         args_str = args_str[:-1]
     cmd = [

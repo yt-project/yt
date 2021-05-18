@@ -118,7 +118,7 @@ def volume_render(
 
     >>> import yt
     >>> ds = yt.load("Enzo_64/DD0046/DD0046")
-    >>> im, sc = yt.volume_render(ds, fname='test.png', sigma_clip=4.0)
+    >>> im, sc = yt.volume_render(ds, fname="test.png", sigma_clip=4.0)
     """
     sc = create_scene(data_source, field=field)
     im = sc.render()

@@ -13,13 +13,13 @@ def test_clone_sphere():
     assert_equal(list(sp0.keys()), [])
 
     sp1 = sp0.clone()
-    sp0["density"]
+    sp0[("gas", "density")]
     assert_equal(list(sp0.keys()), (("gas", "density"),))
     assert_equal(list(sp1.keys()), [])
 
-    sp1["density"]
+    sp1[("gas", "density")]
 
-    assert_array_equal(sp0["density"], sp1["density"])
+    assert_array_equal(sp0[("gas", "density")], sp1[("gas", "density")])
 
 
 def test_clone_cut_region():
@@ -27,6 +27,8 @@ def test_clone_cut_region():
     units = ("g/cm**3", "K")
     ds = fake_random_ds(64, nprocs=4, fields=fields, units=units)
     dd = ds.all_data()
-    reg1 = dd.cut_region(["obj['temperature'] > 0.5", "obj['density'] < 0.75"])
+    reg1 = dd.cut_region(
+        ["obj[('gas', 'temperature')] > 0.5", "obj[('gas', 'density')] < 0.75"]
+    )
     reg2 = reg1.clone()
-    assert_array_equal(reg1["density"], reg2["density"])
+    assert_array_equal(reg1[("gas", "density")], reg2[("gas", "density")])

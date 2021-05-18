@@ -5,8 +5,8 @@ import numpy as np
 
 from yt.data_objects.static_output import ParticleDataset, ParticleFile
 from yt.frontends.sph.fields import SPHFieldInfo
-from yt.funcs import get_requests
 from yt.geometry.particle_geometry_handler import ParticleIndex
+from yt.utilities.on_demand_imports import _requests as requests
 
 
 class HTTPParticleFile(ParticleFile):
@@ -30,8 +30,6 @@ class HTTPStreamDataset(ParticleDataset):
         index_order=None,
         index_filename=None,
     ):
-        if get_requests() is None:
-            raise ImportError("This functionality depends on the requests package")
         self.base_url = base_url
         super().__init__(
             "",
@@ -41,7 +39,7 @@ class HTTPStreamDataset(ParticleDataset):
             index_filename=index_filename,
         )
 
-    def __repr__(self):
+    def __str__(self):
         return self.base_url
 
     def _parse_parameter_file(self):
@@ -50,7 +48,6 @@ class HTTPStreamDataset(ParticleDataset):
         self.parameters["HydroMethod"] = "sph"
 
         # Here's where we're going to grab the JSON index file
-        requests = get_requests()
         hreq = requests.get(self.base_url + "/yt_index.json")
         if hreq.status_code != 200:
             raise RuntimeError
@@ -97,10 +94,8 @@ class HTTPStreamDataset(ParticleDataset):
     def _is_valid(cls, filename, *args, **kwargs):
         if not filename.startswith("http://"):
             return False
-        requests = get_requests()
-        if requests is None:
+        try:
+            return requests.get(filename + "/yt_index.json").status_code == 200
+        except ImportError:
+            # requests is not installed
             return False
-        hreq = requests.get(filename + "/yt_index.json")
-        if hreq.status_code == 200:
-            return True
-        return False

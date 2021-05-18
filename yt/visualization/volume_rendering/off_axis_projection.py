@@ -102,8 +102,15 @@ def off_axis_projection(
     Examples
     --------
 
-    >>> image = off_axis_projection(ds, [0.5, 0.5, 0.5], [0.2,0.3,0.4],
-    ...                             0.2, N, "temperature", "density")
+    >>> image = off_axis_projection(
+    ...     ds,
+    ...     [0.5, 0.5, 0.5],
+    ...     [0.2, 0.3, 0.4],
+    ...     0.2,
+    ...     N,
+    ...     ("gas", "temperature"),
+    ...     ("gas", "density"),
+    ... )
     >>> write_image(np.log10(image), "offaxis.png")
 
     """

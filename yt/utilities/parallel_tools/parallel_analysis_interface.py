@@ -476,7 +476,7 @@ def parallel_objects(objects, njobs=0, storage=None, barrier=True, dynamic=False
     slice plots centered at each.
 
     >>> for c in parallel_objects(centers):
-    ...     SlicePlot(ds, "x", "Density", center = c).save()
+    ...     SlicePlot(ds, "x", "Density", center=c).save()
     ...
 
     Here's an example of calculating the angular momentum vector of a set of
@@ -582,18 +582,18 @@ def parallel_ring(objects, generator_func, mutable=False):
     Here is a simple example of a ring loop around a set of integers, with a
     custom dtype.
 
-    >>> dt = np.dtype([('x', 'float64'), ('y', 'float64'), ('z', 'float64')])
+    >>> dt = np.dtype([("x", "float64"), ("y", "float64"), ("z", "float64")])
     >>> def gfunc(o):
     ...     np.random.seed(o)
     ...     rv = np.empty(1000, dtype=dt)
-    ...     rv['x'] = np.random.random(1000)
-    ...     rv['y'] = np.random.random(1000)
-    ...     rv['z'] = np.random.random(1000)
+    ...     rv["x"] = np.random.random(1000)
+    ...     rv["y"] = np.random.random(1000)
+    ...     rv["z"] = np.random.random(1000)
     ...     return rv
     ...
     >>> obj = range(8)
     >>> for obj, arr in parallel_ring(obj, gfunc):
-    ...     print(arr['x'].sum(), arr['y'].sum(), arr['z'].sum())
+    ...     print(arr["x"].sum(), arr["y"].sum(), arr["z"].sum())
     ...
 
     """

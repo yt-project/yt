@@ -8,9 +8,12 @@ ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 # vs. density, weighted by mass.
 sphere = ds.sphere("c", (100.0, "kpc"))
 plot = yt.ProfilePlot(
-    sphere, "density", ["temperature", "velocity_x"], weight_field="cell_mass"
+    sphere,
+    ("gas", "density"),
+    [("gas", "temperature"), ("gas", "velocity_x")],
+    weight_field=("gas", "mass"),
 )
-plot.set_log("velocity_x", False)
+plot.set_log(("gas", "velocity_x"), False)
 
 # Save the image.
 # Optionally, give a string as an argument

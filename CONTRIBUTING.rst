@@ -244,9 +244,9 @@ If you're interested in participating in yt development, take a look at the
 <https://github.com/yt-project/yt/issues>`_.
 You can search by labels, indicating estimated level of difficulty or category,
 to find issues that you would like to contribute to.  Good first issues are
-marked with a label of `new contributor friendly`.  While we try to triage the
+marked with a label of *new contributor friendly*.  While we try to triage the
 issue tracker regularly to assign appropriate labels to every issue, it may be
-the case that issues not marked as `new contributor friendly` are actually
+the case that issues not marked as *new contributor friendly* are actually
 suitable for new contributors.
 
 Here are some predefined issue searches that might be useful:
@@ -726,8 +726,9 @@ It is recommended (though not required) that you install ``pre-commit`` on your 
 
 So that our hooks will run and update your changes on every commit.
 If you do not want to/are unable to configure ``pre-commit`` on your machine, note that
-after opening a pull request, a bot will run the hooks and validate your contribution by
-appending commits to your branch.
+after opening a pull request, it will still be run as a static checker as part of our CI.
+Some hooks also come with auto-fixing capabilities, which you can trigger manually in a
+PR by commenting ``pre-commit.ci run`` (see ` <https://pre-commit.ci/#features>`_).
 
 Here's a list of the main automated formatters we use along with a short description
 
@@ -738,9 +739,21 @@ Here's a list of the main automated formatters we use along with a short descrip
 
 The complete configuration is located in ``.pre-commit-config.yaml``.
 
-.. note:: It is not recommended to run formatters directly on the command line because
-    versions available in your system may conflict with the ones we run through
-    ``pre-commit`` hooks (which are updated periodically).
+Note that formatters should not be run directly on the command line as, for instance
+
+.. code-block:: bash
+
+    $ black yt
+
+But it can still be done as
+
+.. code-block:: bash
+
+    $ pre-commit run black --all-files
+
+The reason is that you may have a specific version of ``black`` installed which can
+produce different results, while the one that's installed with pre-commit is guaranteed
+to be in sync with the rest of contributors.
 
 Below are a list of additional guidelines for coding in yt, that are not automatically
 enforced.

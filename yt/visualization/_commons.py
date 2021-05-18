@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 
 from yt.utilities.logger import ytLogger as mylog
 
@@ -13,28 +14,39 @@ AGG_FORMATS = [".png", ".jpg", ".jpeg", ".raw", ".rgba", ".tif", ".tiff"]
 SUPPORTED_FORMATS = AGG_FORMATS + [".eps", ".ps", ".pdf", ".svg"]
 
 
-def validate_image_name(filename, suffix: str = ".png") -> str:
+def normalize_extension_string(s: str) -> str:
+    return f".{s.lstrip('.')}"
+
+
+def validate_image_name(filename, suffix: Optional[str] = None) -> str:
     """
     Build a valid image filename with a specified extension (default to png).
     The suffix parameter is ignored if the input filename has a valid extension already.
     Otherwise, suffix is appended to the filename, replacing any existing extension.
     """
-    # sanitizing: normalize leading '.'
-    suffix = f".{suffix.lstrip('.')}"
-
     name, psuffix = os.path.splitext(filename)
     if psuffix in SUPPORTED_FORMATS:
-        if suffix:
+        if suffix is not None:
+            suffix = normalize_extension_string(suffix)
+        if suffix in SUPPORTED_FORMATS and suffix != psuffix:
             mylog.warning(
-                "Ignoring supplied suffix '%s' in favour of '%s'", suffix, psuffix
+                "Received two valid image formats '%s' (from `filename`) "
+                "and '%s' (from `suffix`). The former is ignored.",
+                psuffix,
+                suffix,
             )
+            return f"{name}{suffix}"
         return str(filename)
-    elif psuffix:
-        mylog.warning(
-            "Found unsupported suffix '%s', using '%s' instead.", psuffix, suffix
-        )
 
-    return f"{name}{suffix}"
+    if suffix is None:
+        suffix = ".png"
+
+    suffix = normalize_extension_string(suffix)
+
+    if suffix not in SUPPORTED_FORMATS:
+        raise ValueError("Unsupported file format '{suffix}'.")
+
+    return f"{filename}{suffix}"
 
 
 def get_canvas(figure, filename):

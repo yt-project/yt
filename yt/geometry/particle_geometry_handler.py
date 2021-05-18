@@ -196,7 +196,7 @@ class ParticleIndex(Index):
     def _initialize_coarse_index(self):
         pb = get_pbar("Initializing coarse index ", len(self.data_files))
         for i, data_file in enumerate(self.data_files):
-            pb.update(i)
+            pb.update(i + 1)
             for ptype, pos in self.io._yield_coordinates(data_file):
                 ds = self.ds
                 if hasattr(ds, "_sph_ptypes") and ptype == ds._sph_ptypes[0]:
@@ -234,7 +234,7 @@ class ParticleIndex(Index):
         )
         for i, data_file in enumerate(self.data_files):
             coll = None
-            pb.update(i)
+            pb.update(i + 1)
             nsub_mi = 0
             for ptype, pos in self.io._yield_coordinates(data_file):
                 if pos.size == 0:
@@ -303,10 +303,25 @@ class ParticleIndex(Index):
                     )
                     nfiles = len(file_masks)
                 dobj._chunk_info = [None for _ in range(nfiles)]
+
+                # The following was moved here from ParticleContainer in order
+                # to make the ParticleContainer object pickleable. By having
+                # the base_selector as its own argument, we avoid having to
+                # rebuild the index on unpickling a ParticleContainer.
+                if hasattr(dobj, "base_selector"):
+                    base_selector = dobj.base_selector
+                    base_region = dobj.base_region
+                else:
+                    base_region = dobj
+                    base_selector = dobj.selector
+
                 for i in range(nfiles):
                     domain_id = i + 1
                     dobj._chunk_info[i] = ParticleContainer(
-                        dobj, [self.data_files[dfi[i]]], domain_id=domain_id
+                        base_region,
+                        base_selector,
+                        [self.data_files[dfi[i]]],
+                        domain_id=domain_id,
                     )
                 # NOTE: One fun thing about the way IO works is that it
                 # consolidates things quite nicely.  So we should feel free to
