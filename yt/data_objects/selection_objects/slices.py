@@ -347,11 +347,11 @@ class YTCuttingPlane(YTSelectionContainer2D):
         --------
 
         >>> v, c = ds.find_max(("gas", "density"))
-        >>> sp = ds.sphere(c, (100.0, 'au'))
+        >>> sp = ds.sphere(c, (100.0, "au"))
         >>> L = sp.quantities.angular_momentum_vector()
         >>> cutting = ds.cutting(L, c)
-        >>> frb = cutting.to_frb( (1.0, 'pc'), 1024)
-        >>> write_image(np.log10(frb[("gas", "density")]), 'density_1pc.png')
+        >>> frb = cutting.to_frb((1.0, "pc"), 1024)
+        >>> write_image(np.log10(frb[("gas", "density")]), "density_1pc.png")
         """
         if is_sequence(width):
             validate_width_tuple(width)

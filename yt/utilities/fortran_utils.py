@@ -46,7 +46,7 @@ def read_attrs(f, attrs, endian="="):
     Examples
     --------
 
-    >>> header = [ ("ncpu", 1, "i"), ("nfiles", 2, "i") ]
+    >>> header = [("ncpu", 1, "i"), ("nfiles", 2, "i")]
     >>> f = open("fort.3", "rb")
     >>> rv = read_attrs(f, header)
     """
@@ -124,7 +124,7 @@ def read_cattrs(f, attrs, endian="="):
     Examples
     --------
 
-    >>> header = [ ("ncpu", 1, "i"), ("nfiles", 2, "i") ]
+    >>> header = [("ncpu", 1, "i"), ("nfiles", 2, "i")]
     >>> f = open("cdata.bin", "rb")
     >>> rv = read_cattrs(f, header)
     """
@@ -184,7 +184,7 @@ def read_vector(f, d, endian="="):
     --------
 
     >>> f = open("fort.3", "rb")
-    >>> rv = read_vector(f, 'd')
+    >>> rv = read_vector(f, "d")
     """
     pad_fmt = f"{endian}I"
     pad_size = struct.calcsize(pad_fmt)
@@ -309,7 +309,7 @@ def read_record(f, rspec, endian="="):
     Examples
     --------
 
-    >>> header = [ ("ncpu", 1, "i"), ("nfiles", 2, "i") ]
+    >>> header = [("ncpu", 1, "i"), ("nfiles", 2, "i")]
     >>> f = open("fort.3", "rb")
     >>> rv = read_record(f, header)
     """

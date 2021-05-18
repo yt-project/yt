@@ -49,8 +49,8 @@ class YTDisk(YTSelectionContainer3D):
 
     >>> import yt
     >>> ds = yt.load("RedshiftOutput0005")
-    >>> c = [0.5,0.5,0.5]
-    >>> disk = ds.disk(c, [1,0,0], (1, 'kpc'), (10, 'kpc'))
+    >>> c = [0.5, 0.5, 0.5]
+    >>> disk = ds.disk(c, [1, 0, 0], (1, "kpc"), (10, "kpc"))
     """
 
     _type_name = "disk"

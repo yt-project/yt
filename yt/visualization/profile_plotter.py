@@ -179,9 +179,13 @@ class ProfilePlot:
     >>> import yt
     >>> ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
     >>> ad = ds.all_data()
-    >>> plot = yt.ProfilePlot(ad, ("gas", "density"), [("gas", "temperature"), ("gas", "velocity_x")],
-    ...                    weight_field=("gas", "mass"),
-    ...                    plot_spec=dict(color='red', linestyle="--"))
+    >>> plot = yt.ProfilePlot(
+    ...     ad,
+    ...     ("gas", "density"),
+    ...     [("gas", "temperature"), ("gas", "velocity_x")],
+    ...     weight_field=("gas", "mass"),
+    ...     plot_spec=dict(color="red", linestyle="--"),
+    ... )
     >>> plot.save()
 
     This creates profiles from a time series object.
@@ -194,14 +198,19 @@ class ProfilePlot:
     >>> plot_specs = []
     >>> for ds in es[-4:]:
     ...     ad = ds.all_data()
-    ...     profiles.append(create_profile(ad, [("gas", "density")],
-    ...                                    fields=[("gas", "temperature"),
-    ...                                            ("gas", "velocity_x")]))
+    ...     profiles.append(
+    ...         create_profile(
+    ...             ad,
+    ...             [("gas", "density")],
+    ...             fields=[("gas", "temperature"), ("gas", "velocity_x")],
+    ...         )
+    ...     )
     ...     labels.append(ds.current_redshift)
     ...     plot_specs.append(dict(linestyle="--", alpha=0.7))
-    >>>
-    >>> plot = yt.ProfilePlot.from_profiles(profiles, labels=labels,
-    ...                                  plot_specs=plot_specs)
+
+    >>> plot = yt.ProfilePlot.from_profiles(
+    ...     profiles, labels=labels, plot_specs=plot_specs
+    ... )
     >>> plot.save()
 
     Use set_line_property to change line properties of one or all profiles.
@@ -320,9 +329,8 @@ class ProfilePlot:
         --------
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>> pp = ProfilePlot(ds.all_data(), ('gas', 'density'),
-        ...                                 ('gas', 'temperature'))
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+        >>> pp = ProfilePlot(ds.all_data(), ("gas", "density"), ("gas", "temperature"))
         >>> pp.show()
 
         """
@@ -457,14 +465,18 @@ class ProfilePlot:
         >>> plot_specs = []
         >>> for ds in es[-4:]:
         ...     ad = ds.all_data()
-        ...     profiles.append(create_profile(ad, [("gas, "density")],
-        ...                                    fields=[("gas", "temperature"),
-        ...                                            ("gas", "velocity_x")]))
+        ...     profiles.append(
+        ...         create_profile(
+        ...             ad,
+        ...             [("gas", "density")],
+        ...             fields=[("gas", "temperature"), ("gas", "velocity_x")],
+        ...         )
+        ...     )
         ...     labels.append(ds.current_redshift)
         ...     plot_specs.append(dict(linestyle="--", alpha=0.7))
-        >>>
-        >>> plot = ProfilePlot.from_profiles(profiles, labels=labels,
-        ...                                  plot_specs=plot_specs)
+        >>> plot = ProfilePlot.from_profiles(
+        ...     profiles, labels=labels, plot_specs=plot_specs
+        ... )
         >>> plot.save()
 
         """
@@ -614,9 +626,10 @@ class ProfilePlot:
         --------
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>> pp = yt.ProfilePlot(ds.all_data(), ('gas', 'density'),
-        ...                                    ('gas', 'temperature'))
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+        >>> pp = yt.ProfilePlot(
+        ...     ds.all_data(), ("gas", "density"), ("gas", "temperature")
+        ... )
         >>> pp.set_xlim(1e-29, 1e-24)
         >>> pp.save()
 
@@ -676,11 +689,13 @@ class ProfilePlot:
         --------
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>> pp = yt.ProfilePlot(ds.all_data(), ('gas', 'density'),
-        ...                     [('gas', 'temperature'),
-        ...                      ('gas', 'velocity_x')])
-        >>> pp.set_ylim(('gas', 'temperature'), 1e4, 1e6)
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+        >>> pp = yt.ProfilePlot(
+        ...     ds.all_data(),
+        ...     ("gas", "density"),
+        ...     [("gas", "temperature"), ("gas", "velocity_x")],
+        ... )
+        >>> pp.set_ylim(("gas", "temperature"), 1e4, 1e6)
         >>> pp.save()
 
         """
@@ -761,9 +776,10 @@ class ProfilePlot:
         >>> plot.annotate_title("Profile Plot for Temperature", ("gas", "temperature"))
 
         >>> # Setting same plot title for both the given fields
-        >>> plot.annotate_title("Profile Plot: Temperature-Dark Matter Density",
-        ...                     [('gas', 'temperature'),
-        ...                      ('deposit', 'dark_matter_density')])
+        >>> plot.annotate_title(
+        ...     "Profile Plot: Temperature-Dark Matter Density",
+        ...     [("gas", "temperature"), ("deposit", "dark_matter_density")],
+        ... )
 
         """
         fields = list(self.axes.keys()) if field == "all" else field
@@ -796,24 +812,26 @@ class ProfilePlot:
         text_kwargs : dict
           Dictionary of text keyword arguments to be passed to matplotlib
 
-        >>>  import yt
-        >>>  from yt.units import kpc
-        >>>  ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>>  my_galaxy = ds.disk(ds.domain_center, [0.0, 0.0, 1.0], 10*kpc, 3*kpc)
-        >>>  plot = yt.ProfilePlot(my_galaxy, ("gas", "density"), [("gas", "temperature")])
+        >>> import yt
+        >>> from yt.units import kpc
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+        >>> my_galaxy = ds.disk(ds.domain_center, [0.0, 0.0, 1.0], 10 * kpc, 3 * kpc)
+        >>> plot = yt.ProfilePlot(
+        ...     my_galaxy, ("gas", "density"), [("gas", "temperature")]
+        ... )
 
-        >>>  # Annotate text for all the fields
-        >>>  plot.annotate_text(1e-26, 1e5, "This is annotated text in the plot area.")
-        >>>  plot.save()
+        >>> # Annotate text for all the fields
+        >>> plot.annotate_text(1e-26, 1e5, "This is annotated text in the plot area.")
+        >>> plot.save()
 
-        >>>  # Annotate text for a given field
-        >>>  plot.annotate_text(1e-26, 1e5, "Annotated text", ("gas", "temperature"))
-        >>>  plot.save()
+        >>> # Annotate text for a given field
+        >>> plot.annotate_text(1e-26, 1e5, "Annotated text", ("gas", "temperature"))
+        >>> plot.save()
 
-        >>>  # Annotate text for multiple fields
-        >>>  fields = [("gas", "temperature"), ("gas", "density")]
-        >>>  plot.annotate_text(1e-26, 1e5, "Annotated text", fields)
-        >>>  plot.save()
+        >>> # Annotate text for multiple fields
+        >>> fields = [("gas", "temperature"), ("gas", "density")]
+        >>> plot.annotate_text(1e-26, 1e5, "Annotated text", fields)
+        >>> plot.save()
 
         """
         fields = list(self.axes.keys()) if field == "all" else field
@@ -890,8 +908,13 @@ class PhasePlot(ImagePlotContainer):
     >>> import yt
     >>> ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
     >>> ad = ds.all_data()
-    >>> plot = yt.PhasePlot(ad, ("gas", "density"), ("gas", "temperature"), [("gas", "mass")],
-    ...                  weight_field=None)
+    >>> plot = yt.PhasePlot(
+    ...     ad,
+    ...     ("gas", "density"),
+    ...     ("gas", "temperature"),
+    ...     [("gas", "mass")],
+    ...     weight_field=None,
+    ... )
     >>> plot.save()
 
     >>> # Change plot properties.
@@ -1196,17 +1219,19 @@ class PhasePlot(ImagePlotContainer):
         --------
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
         >>> extrema = {
         ...     ("gas", "density"): (1e-31, 1e-24),
         ...     ("gas", "temperature"): (1e1, 1e8),
         ...     ("gas", "mass"): (1e-6, 1e-1),
         ... }
-        >>> profile = yt.create_profile(ds.all_data(),
-        ...                             [('gas', 'density'),
-        ...                              ('gas', 'temperature')],
-        ...                             fields=[('gas', 'mass')],
-        ...                             extrema=extrema, fractional=True)
+        >>> profile = yt.create_profile(
+        ...     ds.all_data(),
+        ...     [("gas", "density"), ("gas", "temperature")],
+        ...     fields=[("gas", "mass")],
+        ...     extrema=extrema,
+        ...     fractional=True,
+        ... )
         >>> ph = yt.PhasePlot.from_profile(profile)
         >>> ph.save()
         """
@@ -1236,7 +1261,7 @@ class PhasePlot(ImagePlotContainer):
         text_kwargs : dict
           Dictionary of text keyword arguments to be passed to matplotlib
 
-        >>>  plot.annotate_text(1e-15, 5e4, "Hello YT")
+        >>> plot.annotate_text(1e-15, 5e4, "Hello YT")
 
         """
         for f in self.data_source._determine_fields(list(self.plots.keys())):
@@ -1269,7 +1294,7 @@ class PhasePlot(ImagePlotContainer):
         mpl_kwargs : dict
            A dict of keyword arguments to be passed to matplotlib.
 
-        >>> plot.save(mpl_kwargs={'bbox_inches':'tight'})
+        >>> plot.save(mpl_kwargs={"bbox_inches": "tight"})
 
         """
         names = []
@@ -1357,9 +1382,18 @@ class PhasePlot(ImagePlotContainer):
         This sets the font to be 24-pt, blue, sans-serif, italic, and
         bold-face.
 
-        >>> prof = ProfilePlot(ds.all_data(), ('gas', 'density'), ('gas', 'temperature'))
-        >>> slc.set_font({'family':'sans-serif', 'style':'italic',
-        ...               'weight':'bold', 'size':24, 'color':'blue'})
+        >>> prof = ProfilePlot(
+        ...     ds.all_data(), ("gas", "density"), ("gas", "temperature")
+        ... )
+        >>> slc.set_font(
+        ...     {
+        ...         "family": "sans-serif",
+        ...         "style": "italic",
+        ...         "weight": "bold",
+        ...         "size": 24,
+        ...         "color": "blue",
+        ...     }
+        ... )
 
         """
         from matplotlib.font_manager import FontProperties
@@ -1496,8 +1530,8 @@ class PhasePlot(ImagePlotContainer):
         --------
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>> pp = yt.PhasePlot(ds.all_data(), 'density', 'temperature', ('gas', 'mass'))
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+        >>> pp = yt.PhasePlot(ds.all_data(), "density", "temperature", ("gas", "mass"))
         >>> pp.set_xlim(1e-29, 1e-24)
         >>> pp.save()
 
@@ -1534,9 +1568,13 @@ class PhasePlot(ImagePlotContainer):
         --------
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>> pp = yt.PhasePlot(ds.all_data(), ('gas', 'density'),
-        ...                   ('gas', 'temperature'), ('gas', 'mass'))
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+        >>> pp = yt.PhasePlot(
+        ...     ds.all_data(),
+        ...     ("gas", "density"),
+        ...     ("gas", "temperature"),
+        ...     ("gas", "mass"),
+        ... )
         >>> pp.set_ylim(1e4, 1e6)
         >>> pp.save()
 
