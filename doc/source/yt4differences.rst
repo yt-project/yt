@@ -37,13 +37,14 @@ The list below is arranged in order of most to least important changes.
   with the growth of yt and its many derived fields, there can be sometimes
   be overlapping field names (e.g., ``("gas", "density")`` and
   ``("PartType0", "density")``, where yt doesn't know which to use.  To remove
-  any ambiguity, it is now strongly recommended to explicitly specify the full tuple form
-  of all fields. Just search for all field accesses in your scripts, and
-  replace strings with tuples (e.g. replace ``"a"``  with ``("gas", "a" )``).
-  There is a compatibility rule in yt-4.0 to allow strings to continue to work
-  until yt-4.1, but you may get unexpected behavior.  Any field specifications that are ambiguous will throw an error in future versions of yt.  See our :ref:`fields`,
-  and :ref:`available field list <available-fields>` documentation for more
-  information.
+  any ambiguity, it is now strongly recommended to explicitly specify the full
+  tuple form of all fields. Just search for all field accesses in your scripts,
+  and replace strings with tuples (e.g. replace ``"a"``  with
+  ``("gas", "a" )``).  There is a compatibility rule in yt-4.0 to allow strings
+  to continue to work until yt-4.1, but you may get unexpected behavior.  Any
+  field specifications that are ambiguous will throw an error in future
+  versions of yt.  See our :ref:`fields`, and :ref:`available field list
+  <available-fields>` documentation for more information.
 * **Use Newer Versions of Python**
   The yt-4.0 release will be the final release of yt to support Python 3.6.
   Starting with yt-4.1, python 3.6 will no longer be supported, so please
@@ -347,6 +348,17 @@ You can also use alternate unit names in more complex algebraic unit expressions
 
 In this example the common british spelling ``"kilometre"`` is resolved to
 ``"km"`` and ``"hour"`` is resolved to ``"hr"``.
+
+New Method for Accessing Sample Datasets
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There is now a function entitled ``load_sample()`` that allows the user to
+automatically load sample data from the yt hub in a local yt session.
+Previously, users would have to explicitly download these data directly from
+`https://yt-project.org/data <https://yt-project.org/data>`_, unpackage them,
+and load them into a yt session, but now this occurs from within a python
+session.  For more information see:
+:ref:`Loading Sample Data <loading-sample-data>`
 
 API Changes
 -----------
