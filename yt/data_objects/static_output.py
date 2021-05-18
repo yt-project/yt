@@ -1216,6 +1216,9 @@ class Dataset(abc.ABC):
             w_a=w_a,
         )
 
+        if not hasattr(self, "current_time"):
+            self.current_time = self.cosmology.t_from_z(self.current_redshift)
+
         if getattr(self, "current_redshift", None) is not None:
             self.critical_density = self.cosmology.critical_density(
                 self.current_redshift
