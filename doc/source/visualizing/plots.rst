@@ -1018,7 +1018,7 @@ method and then given to the ProfilePlot object.
    import yt
 
    # Create a time-series object.
-   es = yt.simulation("enzo_tiny_cosmology/32Mpc_32.enzo", "Enzo")
+   es = yt.load_simulation("enzo_tiny_cosmology/32Mpc_32.enzo", "Enzo")
    es.get_time_series(redshifts=[5, 4, 3, 2, 1, 0])
 
    # Lists to hold profiles, labels, and plot specifications.

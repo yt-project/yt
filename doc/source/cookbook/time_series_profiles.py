@@ -1,7 +1,7 @@
 import yt
 
 # Create a time-series object.
-sim = yt.simulation("enzo_tiny_cosmology/32Mpc_32.enzo", "Enzo")
+sim = yt.load_simulation("enzo_tiny_cosmology/32Mpc_32.enzo", "Enzo")
 sim.get_time_series(redshifts=[5, 4, 3, 2, 1, 0])
 
 # Lists to hold profiles, labels, and plot specifications.

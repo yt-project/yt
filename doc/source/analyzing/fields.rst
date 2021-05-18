@@ -808,10 +808,6 @@ default this is 64, but it can be supplied as the final argument to
 ``add_nearest_neighbor_field``.  For the example above, it would be
 ``nearest_neighbor_64``.
 
-This can then be used as input to the function
-``add_volume_weighted_smoothed_field``, which can enable smoothing particle
-types that would normally not be smoothed.
-
 Commonly, not just the identity of the nearest particle is interesting, but the
 value of a given field associated with that particle.  yt provides a function
 that can do this, as well.  This deposits into the indexing octree the value
