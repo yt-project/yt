@@ -11,6 +11,7 @@ from yt.visualization.fits_image import (
     FITSImageData,
     FITSOffAxisProjection,
     FITSOffAxisSlice,
+    FITSParticleProjection,
     FITSProjection,
     FITSSlice,
     assert_same_wcs,
@@ -29,7 +30,9 @@ def test_fits_image():
         "g/cm**3",
         "K",
     )
-    ds = fake_random_ds(64, fields=fields, units=units, nprocs=16, length_unit=100.0)
+    ds = fake_random_ds(
+        64, fields=fields, units=units, nprocs=16, length_unit=100.0, particles=10000
+    )
 
     prj = ds.proj(("gas", "density"), 2)
     prj_frb = prj.to_frb((0.5, "unitary"), 128)
@@ -188,10 +191,32 @@ def test_fits_image():
     data_conv = _astropy.conv.convolve(fid4["density"].data.d, kernel)
     assert_allclose(data_conv, fid7["density"].data.d)
 
+    pfid = FITSParticleProjection(ds, "x", ("io", "particle_mass"))
+    assert pfid["particle_mass"].name == "particle_mass"
+    assert pfid["particle_mass"].header["BTYPE"] == "particle_mass"
+    assert pfid["particle_mass"].units == "g"
+
+    pdfid = FITSParticleProjection(ds, "x", ("io", "particle_mass"), density=True)
+    assert pdfid["particle_mass"].name == "particle_mass"
+    assert pdfid["particle_mass"].header["BTYPE"] == "particle_mass"
+    assert pdfid["particle_mass"].units == "g/cm**2"
+
     # We need to manually close all the file descriptors so
     # that windows can delete the folder that contains them.
     ds2.close()
-    for fid in (fid1, fid2, fid3, fid4, fid5, fid6, fid7, new_fid1, new_fid3):
+    for fid in (
+        fid1,
+        fid2,
+        fid3,
+        fid4,
+        fid5,
+        fid6,
+        fid7,
+        new_fid1,
+        new_fid3,
+        pfid,
+        pdfid,
+    ):
         fid.close()
 
     os.chdir(curdir)
@@ -213,3 +238,4 @@ def test_fits_cosmo():
     assert ds.current_redshift == fid.current_redshift
     assert fid["density"].header["HUBBLE"] == ds.hubble_constant
     assert fid["density"].header["REDSHIFT"] == ds.current_redshift
+    fid.close()
