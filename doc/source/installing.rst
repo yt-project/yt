@@ -126,7 +126,7 @@ the `miniconda python distribution <https://docs.conda.io/en/latest/miniconda.ht
 and will install yt's dependencies using the `conda
 <https://conda.io/en/latest/>`_ package manager. To avoid needing a
 compilation environment to run the install script, yt itself will also be
-installed using `conda`.
+installed using ``conda``.
 
 If you would like to customize your yt installation, you can edit the values of
 several variables that are defined at the top of the script.

@@ -240,7 +240,7 @@ information about the unit system used in the simulation or the output data, so
 yt cannot infer that information and must make an educated guess. In this case
 it incorrectly assumes the data are in CGS units.
 
-However, we know `a priori` what the unit system *should* be, and we can supply
+However, we know *a priori* what the unit system *should* be, and we can supply
 a ``units_override`` dictionary to ``yt.load`` to override the incorrect
 assumptions yt is making about this dataset. Let's define:
 

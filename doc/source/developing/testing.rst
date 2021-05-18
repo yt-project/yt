@@ -278,7 +278,7 @@ You can find examples there of how to write a test.  Here is a trivial example:
        _attrs = ("field",)
 
        def __init__(self, ds_fn, field):
-           super(MaximumValueTest, self).__init__(ds_fn)
+           super().__init__(ds_fn)
            self.field = field
 
        def run(self):
@@ -380,13 +380,13 @@ Here is an example test function:
 
 .. code-block:: python
 
+   from matplotlib import pyplot as plt
+
    from yt.utilities.answer_testing.framework import (
        GenericImageTest,
-       requires_ds,
        data_dir_load,
+       requires_ds,
    )
-
-   from matplotlib import pyplot as plt
 
 
    @requires_ds(my_ds)

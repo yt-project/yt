@@ -12,7 +12,7 @@ Filters can be generated based on spatial position, say in a sphere
 in the center of your dataset space, or more generally they can be
 defined by the properties of any field in the simulation.
 
-Because `mesh fields` are internally different from `particle fields`,
+Because *mesh fields* are internally different from *particle fields*,
 there are different ways of filtering each type as indicated below;
 however, filtering fields by spatial location (i.e. geometric
 objects) will apply to both types equally.
