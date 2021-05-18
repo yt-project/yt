@@ -244,9 +244,9 @@ If you're interested in participating in yt development, take a look at the
 <https://github.com/yt-project/yt/issues>`_.
 You can search by labels, indicating estimated level of difficulty or category,
 to find issues that you would like to contribute to.  Good first issues are
-marked with a label of `new contributor friendly`.  While we try to triage the
+marked with a label of *new contributor friendly*.  While we try to triage the
 issue tracker regularly to assign appropriate labels to every issue, it may be
-the case that issues not marked as `new contributor friendly` are actually
+the case that issues not marked as *new contributor friendly* are actually
 suitable for new contributors.
 
 Here are some predefined issue searches that might be useful:

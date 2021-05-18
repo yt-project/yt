@@ -209,8 +209,9 @@ def add_xray_emissivity_field(
     >>> import yt
     >>> ds = yt.load("sloshing_nomag2_hdf5_plt_cnt_0100")
     >>> yt.add_xray_emissivity_field(ds, 0.5, 2)
-    >>> p = yt.ProjectionPlot(ds, 'x', ("gas","xray_emissivity_0.5_2_keV"),
-    ...                       table_type='apec')
+    >>> p = yt.ProjectionPlot(
+    ...     ds, "x", ("gas", "xray_emissivity_0.5_2_keV"), table_type="apec"
+    ... )
     >>> p.save()
     """
     if not isinstance(metallicity, float) and metallicity is not None:

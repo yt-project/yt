@@ -717,7 +717,7 @@ The volume rendering in yt follows a relatively straightforward approach.
    a function of one or more variables. (:math:`f(v) \rightarrow (r,g,b,a)`)
    These can be functions of any field variable, weighted by independent
    fields, and even weighted by other evaluated transfer functions.  (See
-   `transfer_functions`.)
+   ref:`_transfer_functions`.)
 #. Partition all chunks into non-overlapping, fully domain-tiling "bricks."
    Each of these "bricks" contains the finest available data at any location.
 #. Generate vertex-centered data for all grids in the volume rendered domain.

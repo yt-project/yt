@@ -498,13 +498,13 @@ class YTHaloCatalogHaloContainer(HaloContainer):
 
     >>> import yt
     >>> ds = yt.load("tiny_fof_halos/DD0046/DD0046.0.h5")
-    >>>
+
     >>> halo = ds.halo("halos", 0)
     >>> print(halo.particle_identifier)
     0
     >>> print(halo.mass)
     8724990744704.453 Msun
-    >>> print (halo.radius)
+    >>> print(halo.radius)
     658.8140635766607 kpc
     >>> print(halo.position)
     [0.05496909 0.19451951 0.04056824] code_length
