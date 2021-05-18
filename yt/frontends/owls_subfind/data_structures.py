@@ -112,7 +112,8 @@ class OWLSSubfindDataset(ParticleDataset):
         self.refine_by = 2
 
         # Set standard values
-        self.current_time = self.quan(hvals["Time_GYR"], "Gyr")
+        if "Time_GYR" in hvals:
+            self.current_time = self.quan(hvals["Time_GYR"], "Gyr")
         self.domain_left_edge = np.zeros(3, "float64")
         self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
         self.domain_dimensions = np.ones(3, "int32")
