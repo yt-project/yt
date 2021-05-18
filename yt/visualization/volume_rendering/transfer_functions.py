@@ -199,15 +199,15 @@ class TransferFunction:
         >>> tf.plot("sample.png")
         """
         import matplotlib
+        import matplotlib.pyplot as plt
 
         matplotlib.use("Agg")
-        import pylab
 
-        pylab.clf()
-        pylab.plot(self.x, self.y, "xk-")
-        pylab.xlim(*self.x_bounds)
-        pylab.ylim(0.0, 1.0)
-        pylab.savefig(filename)
+        plt.clf()
+        plt.plot(self.x, self.y, "xk-")
+        plt.xlim(*self.x_bounds)
+        plt.ylim(0.0, 1.0)
+        plt.savefig(filename)
 
     def show(self):
         r"""Display an image of the transfer function
@@ -224,13 +224,13 @@ class TransferFunction:
         >>> tf.add_gaussian(-9.0, 0.01, 1.0)
         >>> tf.show()
         """
-        import pylab
+        import matplotlib.pyplot as plt
 
-        pylab.clf()
-        pylab.plot(self.x, self.y, "xk-")
-        pylab.xlim(*self.x_bounds)
-        pylab.ylim(0.0, 1.0)
-        pylab.draw()
+        plt.clf()
+        plt.plot(self.x, self.y, "xk-")
+        plt.xlim(*self.x_bounds)
+        plt.ylim(0.0, 1.0)
+        plt.draw()
 
     def clear(self):
         self.y[:] = 0.0
