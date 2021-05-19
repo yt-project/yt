@@ -47,9 +47,9 @@ answer_tests:
     - yt/frontends/enzo/tests/test_outputs.py:test_ecp
     - yt/frontends/enzo/tests/test_outputs.py:test_nuclei_density_fields
 
-  local_enzo_p_010: # PR 2945
-    - yt/frontends/enzo_p/tests/test_outputs.py:test_hello_world
-    - yt/frontends/enzo_p/tests/test_outputs.py:test_particle_fields
+  local_enzo_e_001: # PR 3273
+    - yt/frontends/enzo_e/tests/test_outputs.py:test_hello_world
+    - yt/frontends/enzo_e/tests/test_outputs.py:test_particle_fields
 
   local_fits_004:
     - yt/frontends/fits/tests/test_outputs.py:test_grs

@@ -651,12 +651,12 @@ Currently, slices and data selection are implemented for nodal
 fields. Projections, volume rendering, and many of the analysis modules will not
 work.
 
-.. _loading-enzop-data:
+.. _loading-enzoe-data:
 
-Enzo-P Data
+Enzo-E Data
 -----------
 
-Enzo-P outputs have three types of files.
+Enzo-E outputs have three types of files.
 
 .. code-block:: none
 
@@ -665,7 +665,7 @@ Enzo-P outputs have three types of files.
    hello-0200/hello-0200.file_list
    hello-0200/hello-0200.hello-c0020-p0000.h5
 
-To load Enzo-P data into yt, provide the block list file:
+To load Enzo-E data into yt, provide the block list file:
 
 .. code-block:: python
 
@@ -673,7 +673,7 @@ To load Enzo-P data into yt, provide the block list file:
 
    ds = yt.load("hello-0200/hello-0200.block_list")
 
-Mesh and particle fields are fully supported for 1, 2, and 3D datasets.  Enzo-P
+Mesh and particle fields are fully supported for 1, 2, and 3D datasets.  Enzo-E
 supports arbitrary particle types defined by the user.  The available particle
 types will be known as soon as the dataset index is created.
 
@@ -687,7 +687,7 @@ types will be known as soon as the dataset index is created.
 
 .. rubric:: Caveats
 
-* The Enzo-P output format is still evolving somewhat as the code is being
+* The Enzo-E output format is still evolving somewhat as the code is being
   actively developed. This frontend will be updated as development continues
   and backward compatibility may occasionally be broken until the file format
   has converged.
