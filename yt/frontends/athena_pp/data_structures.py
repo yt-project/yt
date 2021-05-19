@@ -240,6 +240,7 @@ class AthenaPPDataset(Dataset):
         parameters=None,
         units_override=None,
         unit_system="code",
+        default_species_fields=None,
     ):
         self.fluid_types += ("athena_pp",)
         if parameters is None:
@@ -263,6 +264,7 @@ class AthenaPPDataset(Dataset):
             dataset_type,
             units_override=units_override,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
         self.filename = filename
         if storage_filename is None:

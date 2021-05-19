@@ -476,6 +476,7 @@ class AthenaDataset(Dataset):
         units_override=None,
         nprocs=1,
         unit_system="cgs",
+        default_species_fields=None,
     ):
         self.fluid_types += ("athena",)
         self.nprocs = nprocs
@@ -490,6 +491,7 @@ class AthenaDataset(Dataset):
             dataset_type,
             units_override=units_override,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
         self.filename = filename
         if storage_filename is None:

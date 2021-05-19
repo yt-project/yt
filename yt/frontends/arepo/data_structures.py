@@ -22,6 +22,7 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
         bounding_box=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
         super().__init__(
             filename,
@@ -33,6 +34,7 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
             bounding_box=bounding_box,
             units_override=units_override,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
         # The "smoothing_factor" is a user-configurable parameter which
         # is multiplied by the radius of the sphere with a volume equal
