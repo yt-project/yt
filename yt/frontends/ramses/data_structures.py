@@ -655,6 +655,7 @@ class RAMSESDataset(Dataset):
         bbox=None,
         max_level=None,
         max_level_convention=None,
+        default_species_fields=None,
     ):
         # Here we want to initiate a traceback, if the reader is not built.
         if isinstance(fields, str):
@@ -710,6 +711,7 @@ class RAMSESDataset(Dataset):
             dataset_type,
             units_override=units_override,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
 
         # Add the particle types

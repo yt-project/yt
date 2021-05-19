@@ -174,6 +174,7 @@ class FLASHDataset(Dataset):
         particle_filename=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
 
         self.fluid_types += ("flash",)
@@ -223,6 +224,7 @@ class FLASHDataset(Dataset):
             dataset_type,
             units_override=units_override,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
         self.storage_filename = storage_filename
 

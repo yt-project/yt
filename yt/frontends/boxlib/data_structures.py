@@ -1545,7 +1545,6 @@ class WarpXDataset(BoxlibDataset):
         storage_filename=None,
         units_override=None,
         unit_system="mks",
-        default_species_fields=None,
     ):
 
         self.default_fluid_type = "mesh"
@@ -1560,7 +1559,6 @@ class WarpXDataset(BoxlibDataset):
             storage_filename,
             units_override,
             unit_system,
-            default_species_fields=default_species_fields,
         )
 
     def _parse_parameter_file(self):

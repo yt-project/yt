@@ -239,6 +239,7 @@ class GadgetDataset(SPHDataset):
         use_dark_factor=False,
         w_0=-1.0,
         w_a=0.0,
+        default_species_fields=None,
     ):
         if self._instantiated:
             return
@@ -313,6 +314,7 @@ class GadgetDataset(SPHDataset):
             index_filename=index_filename,
             kdtree_filename=kdtree_filename,
             kernel_name=kernel_name,
+            default_species_fields=default_species_fields,
         )
         if self.cosmological_simulation:
             self.time_unit.convert_to_units("s/h")
@@ -576,6 +578,7 @@ class GadgetHDF5Dataset(GadgetDataset):
         bounding_box=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
         self.storage_filename = None
         filename = os.path.abspath(filename)
@@ -593,6 +596,7 @@ class GadgetHDF5Dataset(GadgetDataset):
             kernel_name=kernel_name,
             bounding_box=bounding_box,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
 
     def _get_hvals(self):
