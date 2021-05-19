@@ -481,15 +481,17 @@ any default species fields. If the ``default_species_fields`` argument is not se
 More specifically, if ``default_species_fields="ionized"``, then these
 additional fields are defined:
 
-* ``H_p1_number_density``
-* ``He_p2_number_density``
+* ``H_p1_number_density`` (equal to the value of ``H_nuclei_density``)
+* ``He_p2_number_density`` (equal to the value of ``He_nuclei_density``)
 * ``El_number_density``
 
 Whereas if ``default_species_fields="neutral"``, then these additional
 fields are defined:
 
-* ``H_p0_number_density``
-* ``He_p0_number_density``
+* ``H_p0_number_density`` (equal to the value of ``H_nuclei_density``)
+* ``He_p0_number_density`` (equal to the value of ``He_nuclei_density``)
+
+In this latter case, because the gas is neutral, ``El_number_density`` is not defined.
 
 The ``mean_molecular_weight`` field will be constructed from the abundances of the elements
 in the dataset. If no element or molecule fields are defined, the value of this field
