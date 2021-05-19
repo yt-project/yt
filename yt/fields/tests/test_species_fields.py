@@ -8,7 +8,7 @@ sloshing = "GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0100"
 
 @requires_file(sloshing)
 def test_default_species_fields():
-    ds = data_dir_load(sloshing)
+    ds = data_dir_load(sloshing, kwargs={"default_species_fields": "ionized"})
     sp = ds.sphere("c", (0.2, "unitary"))
     amu_cgs = ds.units.physical_constants.amu_cgs
 

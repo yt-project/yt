@@ -7,7 +7,7 @@ import numpy as np
 from yt.data_objects.static_output import ParticleFile
 from yt.frontends.sph.data_structures import SPHDataset, SPHParticleIndex
 from yt.funcs import only_on_root
-from yt.utilities.chemical_formulas import default_mu
+from yt.utilities.chemical_formulas import compute_mu
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.fortran_utils import read_record
 from yt.utilities.logger import ytLogger as mylog
@@ -323,7 +323,7 @@ class GadgetDataset(SPHDataset):
             self.length_unit.convert_to_units("kpc")
             self.mass_unit.convert_to_units("Msun")
         if mean_molecular_weight is None:
-            self.mu = default_mu
+            self.mu = compute_mu(self.default_species_fields)
         else:
             self.mu = mean_molecular_weight
 

@@ -8,7 +8,7 @@ from yt.data_objects.static_output import Dataset
 from yt.funcs import mylog, sglob
 from yt.geometry.geometry_handler import YTDataChunk
 from yt.geometry.grid_geometry_handler import GridIndex
-from yt.utilities.chemical_formulas import default_mu
+from yt.utilities.chemical_formulas import compute_mu
 from yt.utilities.decompose import decompose_array, get_psize
 from yt.utilities.lib.misc_utilities import get_box_grids_level
 
@@ -624,7 +624,9 @@ class AthenaDataset(Dataset):
             self.parameters["Gamma"] = 5.0 / 3.0
         self.geometry = self.specified_parameters.get("geometry", "cartesian")
         self._handle.close()
-        self.mu = self.specified_parameters.get("mu", default_mu)
+        self.mu = self.specified_parameters.get(
+            "mu", compute_mu(self.default_species_fields)
+        )
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):

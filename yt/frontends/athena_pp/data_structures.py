@@ -10,7 +10,7 @@ from yt.data_objects.static_output import Dataset
 from yt.funcs import get_pbar, mylog
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
-from yt.utilities.chemical_formulas import default_mu
+from yt.utilities.chemical_formulas import compute_mu
 from yt.utilities.file_handler import HDF5FileHandler
 
 from .fields import AthenaPPFieldInfo
@@ -352,7 +352,9 @@ class AthenaPPDataset(Dataset):
             self.parameters["Gamma"] = self.specified_parameters["gamma"]
         else:
             self.parameters["Gamma"] = 5.0 / 3.0
-        self.mu = self.specified_parameters.get("mu", default_mu)
+        self.mu = self.specified_parameters.get(
+            "mu", compute_mu(self.default_species_fields)
+        )
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):

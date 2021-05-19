@@ -34,12 +34,15 @@ class ChemicalFormula:
         return self.formula_string
 
 
-def compute_mu():
+def compute_mu(ion_state):
     # Assume full ionization and cosmic abundances
     # This assumes full ionization!
-    muinv = 2.0 * _primordial_mass_fraction["H"] / ChemicalFormula("H").weight
-    muinv += 3.0 * _primordial_mass_fraction["He"] / ChemicalFormula("He").weight
+    if ion_state == "ionized" or ion_state is None:
+        Z_H = 2.0
+        Z_He = 3.0
+    elif ion_state == "neutral":
+        Z_H = 1.0
+        Z_He = 2.0
+    muinv = Z_H * _primordial_mass_fraction["H"] / ChemicalFormula("H").weight
+    muinv += Z_He * _primordial_mass_fraction["He"] / ChemicalFormula("He").weight
     return 1.0 / muinv
-
-
-default_mu = compute_mu()
