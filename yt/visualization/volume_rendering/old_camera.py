@@ -2003,7 +2003,7 @@ def plot_allsky_healpix(
     import matplotlib.figure
 
     if rotation is None:
-        rotation = np.eye(3).astype("float64")
+        rotation = np.eye(3, dtype="float64")
 
     img, count = pixelize_healpix(nside, image, resolution, resolution, rotation)
 

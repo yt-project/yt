@@ -645,8 +645,8 @@ class YTCoveringGrid(YTSelectionContainer3D):
         self._num_ghost_zones = num_ghost_zones
         self._use_pbar = use_pbar
         self.global_startindex = np.rint(
-            (self.left_edge - self.ds.domain_left_edge) / self.dds
-        ).astype("int64")
+            (self.left_edge - self.ds.domain_left_edge) / self.dds, dtype="int64"
+        )
         self._setup_data_source()
         self.get_data(fields)
 
@@ -1457,7 +1457,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
             # How many root cells do we occupy?
             end_index = np.rint(cell_end).astype("int64")
             dims = end_index - start_index + 1
-        return start_index, end_index.astype("int64"), dims.astype("int32")
+        return start_index, end_index, dims.astype("int32")
 
     def _update_level_state(self, level_state):
         ls = level_state
