@@ -208,30 +208,42 @@ def add_nuclei_density_fields(registry, ftype):
 
     # Here, we add default nuclei and number density fields for H and
     # He if they are not defined above. This assumes full ionization!
-    for element in ["H", "He"]:
-        if element in elements:
-            continue
-        registry.add_field(
-            (ftype, f"{element}_nuclei_density"),
-            sampling_type="local",
-            function=_default_nuclei_density,
-            units=unit_system["number_density"],
-        )
-        if element == "H":
-            registry.alias((ftype, "H_p1_number_density"), (ftype, "H_nuclei_density"))
-
-        if element == "He":
-            registry.alias(
-                (ftype, "He_p2_number_density"), (ftype, "He_nuclei_density")
+    if registry.ds.default_species_fields is not None:
+        dsf = registry.ds.default_species_fields
+        for element in ["H", "He"]:
+            if element in elements:
+                continue
+            registry.add_field(
+                (ftype, f"{element}_nuclei_density"),
+                sampling_type="local",
+                function=_default_nuclei_density,
+                units=unit_system["number_density"],
             )
+            if element == "H":
+                if dsf == "ionized":
+                    state = "p1"
+                elif dsf == "neutral":
+                    state = "p0"
+                registry.alias(
+                    (ftype, f"H_{state}_number_density"), (ftype, "H_nuclei_density")
+                )
 
-    if (ftype, "El_number_density") not in registry:
-        registry.add_field(
-            (ftype, "El_number_density"),
-            sampling_type="local",
-            function=_default_nuclei_density,
-            units=unit_system["number_density"],
-        )
+            if element == "He":
+                if dsf == "ionized":
+                    state = "p2"
+                elif dsf == "neutral":
+                    state = "p0"
+                registry.alias(
+                    (ftype, f"He_{state}_number_density"), (ftype, "He_nuclei_density")
+                )
+
+        if (ftype, "El_number_density") not in registry and dsf == "ionized":
+            registry.add_field(
+                (ftype, "El_number_density"),
+                sampling_type="local",
+                function=_default_nuclei_density,
+                units=unit_system["number_density"],
+            )
 
 
 def _default_nuclei_density(field, data):
@@ -239,7 +251,7 @@ def _default_nuclei_density(field, data):
     element = field.name[1][: field.name[1].find("_")]
     amu_cgs = data.ds.units.physical_constants.amu_cgs
     if element == "El":
-        # This assumes full ionization!
+        # If we got here, this assumes full ionization!
         muinv = 1.0 * _primordial_mass_fraction["H"] / ChemicalFormula("H").weight
         muinv += 2.0 * _primordial_mass_fraction["He"] / ChemicalFormula("He").weight
     else:

@@ -176,6 +176,7 @@ class Dataset(abc.ABC):
         file_style=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
         """
         Base class for generating new output types.  Principally consists of
@@ -194,6 +195,7 @@ class Dataset(abc.ABC):
         self.particle_unions = self.particle_unions or {}
         self.field_units = self.field_units or {}
         self.units_override = self.__class__._sanitize_units_override(units_override)
+        self.default_species_fields = default_species_fields
 
         # path stuff
         self.parameter_filename = str(filename)
