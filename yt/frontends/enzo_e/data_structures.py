@@ -307,6 +307,7 @@ class EnzoEDataset(Dataset):
         storage_filename=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
         """
         This class is a stripped down class that simply reads and parses
@@ -332,6 +333,7 @@ class EnzoEDataset(Dataset):
             file_style=file_style,
             units_override=units_override,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
         warnings.warn(
             "The Enzo-E file format is still under development and may "
