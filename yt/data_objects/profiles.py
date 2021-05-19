@@ -937,7 +937,7 @@ class ParticleProfile(Profile2D):
             else:
                 deposit_vals = wdata * fdata[:, fi]
 
-            field_mask = np.zeros(self.size).astype("uint8")
+            field_mask = np.zeros(self.size, dtype="uint8")
 
             func(
                 bf_x,
