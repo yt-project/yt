@@ -1918,6 +1918,7 @@ class ParticleDataset(Dataset):
         unit_system="cgs",
         index_order=None,
         index_filename=None,
+        default_species_fields=None,
     ):
         self.index_order = validate_index_order(index_order)
         self.index_filename = index_filename
@@ -1927,6 +1928,7 @@ class ParticleDataset(Dataset):
             file_style=file_style,
             units_override=units_override,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
 
 
