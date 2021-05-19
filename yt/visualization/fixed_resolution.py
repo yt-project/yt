@@ -675,7 +675,7 @@ class ParticleImageBuffer(FixedResolutionBuffer):
 
         # splat particles
         buff = np.zeros(self.buff_size)
-        buff_mask = np.zeros(self.buff_size).astype("int")
+        buff_mask = np.zeros(self.buff_size).astype("uint8")
         if deposition == "ngp":
             add_points_to_greyscale_image(
                 buff, buff_mask, px[mask], py[mask], splat_vals
@@ -715,7 +715,7 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         # divide by the weight_field, if needed
         if weight_field is not None:
             weight_buff = np.zeros(self.buff_size)
-            weight_buff_mask = np.zeros(self.buff_size).astype("int")
+            weight_buff_mask = np.zeros(self.buff_size).astype("uint8")
             if deposition == "ngp":
                 add_points_to_greyscale_image(
                     weight_buff, weight_buff_mask, px[mask], py[mask], weight_data[mask]
