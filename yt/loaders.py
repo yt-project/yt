@@ -1341,6 +1341,14 @@ def load_sample(fn=None, progressbar: bool = True, timeout=None, **kwargs):
             "Registry appears to be corrupted: could not find a 'load_name' entry for this dataset."
         )
 
+    if not isinstance(specs["load_kwargs"], dict):
+        raise ValueError(
+            "The requested dataset seems to be improperly registered.\n"
+            "Tip: the entry in yt/sample_data_registry.json may inconstistent with "
+            "https://github.com/yt-project/website/blob/master/data/datafiles.json\n"
+            "Please report this to https://github.com/yt-project/yt/issues/new"
+        )
+
     kwargs = {**specs["load_kwargs"], **kwargs}
 
     try:
