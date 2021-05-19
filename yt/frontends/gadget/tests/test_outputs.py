@@ -138,12 +138,16 @@ mag_fields = OrderedDict(
     ]
 )
 
-mag_kwargs = dict(long_ids=True, field_spec="magneticum_box2_hr")
+
+mag_kwargs = dict(
+    long_ids=True,
+    field_spec="magneticum_box2_hr",
+)
 
 
 @requires_ds(magneticum)
 def test_magneticum():
     ds = data_dir_load(magneticum, kwargs=mag_kwargs)
-    for test in sph_answer(ds, "snap_132", 3718111, mag_fields):
+    for test in sph_answer(ds, "snap_132", 3718111, mag_fields, center="max"):
         test_magneticum.__name__ = test.description
         yield test
