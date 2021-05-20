@@ -8,7 +8,7 @@ print(ds.max_level)
 # If we ask for *all* of the AMR data, we get back field
 # values sampled at about 3.6 million AMR zones
 ad = ds.all_data()
-print(ad[("gas", "density")].shape)
+print(ad["gas", "density"].shape)
 
 # Let's only sample data up to AMR level 2
 ad.max_level = 2
