@@ -6,7 +6,7 @@ from yt.data_objects.particle_filters import add_particle_filter
 
 
 def formed_star(pfilter, data):
-    filter = data["all", "creation_time"] > 0
+    filter = data[("all", "creation_time")] > 0
     return filter
 
 
@@ -19,8 +19,8 @@ filename = "IsolatedGalaxy/galaxy0030/galaxy0030"
 ds = yt.load(filename)
 ds.add_particle_filter("formed_star")
 ad = ds.all_data()
-masses = ad["formed_star", "particle_mass"].in_units("Msun")
-formation_time = ad["formed_star", "creation_time"].in_units("yr")
+masses = ad[("formed_star", "particle_mass")].in_units("Msun")
+formation_time = ad[("formed_star", "creation_time")].in_units("yr")
 
 time_range = [0, 5e8]  # years
 n_bins = 1000
