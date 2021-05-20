@@ -225,6 +225,7 @@ def fake_random_ds(
     length_unit=1.0,
     unit_system="cgs",
     bbox=None,
+    default_species_fields=None,
 ):
     from yt.loaders import load_uniform_grid
 
@@ -284,6 +285,7 @@ def fake_random_ds(
         nprocs=nprocs,
         unit_system=unit_system,
         bbox=bbox,
+        default_species_fields=default_species_fields,
     )
     return ug
 
