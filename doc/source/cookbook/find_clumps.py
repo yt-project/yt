@@ -65,9 +65,9 @@ prj.annotate_clumps(leaf_clumps_reloaded)
 prj.save("clumps_reloaded")
 
 # Query fields for clumps in the tree.
-print(cds.tree[("clump", "center_of_mass")])
-print(cds.tree.children[0][("grid", "density")])
-print(cds.tree.children[1][("all", "particle_mass")])
+print(cds.tree["clump", "center_of_mass"])
+print(cds.tree.children[0]["grid", "density"])
+print(cds.tree.children[1]["all", "particle_mass"])
 
 # Get all of the leaf clumps.
 print(cds.leaves)
