@@ -1595,7 +1595,7 @@ Both :class:`~yt.visualization.particle_plots.ParticleProjectionPlot` and
 accept a ``deposition`` argument which controls the order of the "splatting"
 of the particles onto the pixels in the plot. The default option, ``"ngp"``,
 corresponds to the "Nearest-Grid-Point" (0th-order) method, which simply
-finds the pixel the particle is located in and deposits all of the particle
+finds the pixel the particle is located in and deposits 100% of the particle
 or its plotted quantity into that pixel. The other option, ``"cic"``,
 corresponds to the "Cloud-In-Cell" (1st-order) method, which linearly
 interpolates the particle or its plotted quantity into the four nearest
@@ -1701,7 +1701,7 @@ to only consider the particles that lie within a 50 kpc sphere around the domain
    p.save()
 
 :class:`~yt.visualization.particle_plots.ParticleProjectionPlot` objects also admit a ``density``
-argument, which allows one to plot the surface density of a projected quantity. This simply divides
+flag, which allows one to plot the surface density of a projected quantity. This simply divides
 the quantity in each pixel of the plot by the area of that pixel. It also changes the label on the
 colorbar to reflect the new units and the fact that it is a density. This may make most sense in
 the case of plotting the projected particle mass, in which case you can plot the projected particle
@@ -1714,7 +1714,7 @@ mass density:
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
    p = yt.ParticleProjectionPlot(ds, 2, ["particle_mass"], width=(0.5, 0.5), density=True)
-   p.set_unit("particle_mass", "Msun/kpc**2") # Note that the dimensions of the plot have changed
+   p.set_unit("particle_mass", "Msun/kpc**2") # Note that the dimensions reflect the density flag
    p.save()
 
 Finally, with 1D and 2D Profiles, you can create a :class:`~yt.data_objects.profiles.ParticleProfile`

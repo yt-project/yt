@@ -629,7 +629,7 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         density = self.data_source.density
 
         mylog.info(
-            'Splatting (%s) onto a %d by %d mesh using method "%s"',
+            "Splatting (%s) onto a %d by %d mesh using method '%s'",
             item,
             self.buff_size[0],
             self.buff_size[1],
@@ -675,7 +675,7 @@ class ParticleImageBuffer(FixedResolutionBuffer):
 
         # splat particles
         buff = np.zeros(self.buff_size)
-        buff_mask = np.zeros(self.buff_size, dtype="uint8")
+        buff_mask = np.zeros_like(buff, dtype="uint8")
         if deposition == "ngp":
             add_points_to_greyscale_image(
                 buff, buff_mask, px[mask], py[mask], splat_vals
@@ -692,7 +692,7 @@ class ParticleImageBuffer(FixedResolutionBuffer):
                 y_bin_edges,
             )
         else:
-            raise NotImplementedError(f'Splat method "{deposition}" not implemented!')
+            raise ValueError(f"Received unknown deposition method '{deposition}'")
 
         # remove values in no-particle region
         buff[buff_mask == 0] = np.nan
