@@ -39,13 +39,9 @@ class ChollaHierarchy(GridIndex):
         super().__init__(ds, dataset_type)
 
     def _detect_output_fields(self):
-        # This needs to set a self.field_list that contains all the available,
-        # on-disk fields. No derived fields should be defined here.
-        # NOTE: Each should be a tuple, where the first element is the on-disk
-        # fluid type or particle type.  Convention suggests that the on-disk
-        # fluid type is usually the dataset_type and the on-disk particle type
-        # (for a single population of particles) is "io".
-        pass
+        f = open(self.index_filename, "rb")
+        self.field_list = [("cholla", k) for k in f.keys()]
+        f.close()
 
     def _count_grids(self):
         # This needs to set self.num_grids (int)
@@ -112,23 +108,23 @@ class ChollaDataset(Dataset):
 
         h5f = h5py.File(self.parameter_filename, mode="r")
         attrs = h5f.attrs
-        self.parameters = {k:v for (k,v) in attrs.items()}
-        self.domain_left_edge = attrs['bounds'][:]
-        self.domain_right_edge = attrs['domain'][:]
-        self.dimensionality = len(attrs['dims'][:])
-        self.domain_dimensions = attrs['dims'][:]
-        self.current_time = attrs['t'][:]
+        self.parameters = {k: v for (k, v) in attrs.items()}
+        self.domain_left_edge = attrs["bounds"][:]
+        self.domain_right_edge = attrs["domain"][:]
+        self.dimensionality = len(attrs["dims"][:])
+        self.domain_dimensions = attrs["dims"][:]
+        self.current_time = attrs["t"][:]
         h5f.close()
 
         # CHOLLA cannot yet be run as a cosmological simulation
         self.cosmological_simulation = 0
-        self.current_redshift        = 0
-        self.omega_lambda            = 0
-        self.omega_matter            = 0
-        self.hubble_constant         = 0
+        self.current_redshift = 0
+        self.omega_lambda = 0
+        self.omega_matter = 0
+        self.hubble_constant = 0
 
         # CHOLLA datasets are always unigrid cartesian
-        self.geometry = 'cartesian'
+        self.geometry = "cartesian"
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
