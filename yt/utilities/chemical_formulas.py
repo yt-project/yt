@@ -35,8 +35,6 @@ class ChemicalFormula:
 
 
 def compute_mu(ion_state):
-    # Assume full ionization and cosmic abundances
-    # This assumes full ionization!
     if ion_state == "ionized" or ion_state is None:
         Z_H = 2.0
         Z_He = 3.0
