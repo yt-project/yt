@@ -66,11 +66,11 @@ repos:
 - repo: https://github.com/nbQA-dev/nbQA
   rev: 0.8.1
   hooks:
+    - id: nbqa-pyupgrade
+      args: [--nbqa-mutate, --py36-plus]
     - id: nbqa-black
       args: [--nbqa-mutate]
       language_version: python3
-    - id: nbqa-pyupgrade
-      args: [--nbqa-mutate, --py36-plus]
     - id: nbqa-isort
       args: [--nbqa-mutate]
     - id: nbqa-flake8
