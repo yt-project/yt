@@ -20,6 +20,7 @@ cimport numpy as np
 from cython.view cimport array as cvarray
 
 from yt.utilities.lib.fp_utils cimport (
+    any_float,
     fabs,
     fmax,
     fmin,
@@ -86,11 +87,11 @@ cdef extern from "pixelization_constants.hpp":
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def pixelize_cartesian(np.float64_t[:,:] buff,
-                       np.float64_t[:] px,
-                       np.float64_t[:] py,
-                       np.float64_t[:] pdx,
-                       np.float64_t[:] pdy,
-                       np.float64_t[:] data,
+                       any_float[:] px,
+                       any_float[:] py,
+                       any_float[:] pdx,
+                       any_float[:] pdy,
+                       any_float[:] data,
                        bounds,
                        int antialias = 1,
                        period = None,
@@ -981,12 +982,12 @@ cdef class SPHKernelInterpolationTable:
 @cython.cdivision(True)
 def pixelize_sph_kernel_projection(
         np.float64_t[:, :] buff,
-        np.float64_t[:] posx,
-        np.float64_t[:] posy,
-        np.float64_t[:] hsml,
-        np.float64_t[:] pmass,
-        np.float64_t[:] pdens,
-        np.float64_t[:] quantity_to_smooth,
+        any_float[:] posx,
+        any_float[:] posy,
+        any_float[:] hsml,
+        any_float[:] pmass,
+        any_float[:] pdens,
+        any_float[:] quantity_to_smooth,
         bounds,
         kernel_name="cubic",
         weight_field=None,
