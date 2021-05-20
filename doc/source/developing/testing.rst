@@ -79,7 +79,7 @@ To create new unit tests:
 #. Inside this new ``tests/`` directory, create a new python file prefixed with ``test_`` and
    including the name of the functionality or source file being tested.
    #. If a file testing the functionality you're interested in already exists, please add your tests to the existing there.
-#. Inside this new ``test_`` file, create one or more routines prefixed with ``test_`` that
+#. Inside this new ``test_`` file, create functions  prefixed with ``test_`` that
    accept no arguments.
 #. Each test function should do some work that tests some
    functionality and should also verify that the results are correct using
