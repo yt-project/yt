@@ -418,7 +418,7 @@ class EnzoEDataset(Dataset):
         if self.cosmological_simulation:
             self.current_redshift = co.z_from_t(self.current_time * self.time_unit)
 
-        self.periodicity += (False,) * (3 - self.dimensionality)
+        self._periodicity += (False,) * (3 - self.dimensionality)
         self.gamma = nested_dict_get(self.parameters, ("Field", "gamma"))
 
     def _set_code_unit_attributes(self):
