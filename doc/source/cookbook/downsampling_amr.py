@@ -14,7 +14,7 @@ print(ad["gas", "density"].shape)
 ad.max_level = 2
 
 # Now we only sample from about 200,000 zones
-print(ad[("gas", "density")].shape)
+print(ad["gas", "density"].shape)
 
 # Note that this includes data at level 2 that would
 # normally be masked out. There aren't any "holes" in
