@@ -29,6 +29,10 @@ class ArepoFieldInfo(GadgetFieldInfo):
             ("GFM_Metals_06", ("", ["Mg_fraction"], None)),
             ("GFM_Metals_07", ("", ["Si_fraction"], None)),
             ("GFM_Metals_08", ("", ["Fe_fraction"], None)),
+            (
+                "CosmicRaySpecificEnergy",
+                ("code_specific_energy", ["specific_cr_energy"], None),
+            ),
         )
         super().__init__(ds, field_list, slice_info=slice_info)
 
@@ -118,3 +122,15 @@ class ArepoFieldInfo(GadgetFieldInfo):
                 units=self.ds.unit_system["number_density"],
             )
             self.alias(("gas", "El_number_density"), (ptype, "El_number_density"))
+
+        if (ptype, "CosmicRaySpecificEnergy") in self.field_list:
+
+            def _cr_energy_density(field, data):
+                return data["PartType0", "specific_cr_energy"] * data["gas", "density"]
+
+            self.add_field(
+                ("gas", "cr_energy_density"),
+                _cr_energy_density,
+                sampling_type="local",
+                units=self.ds.unit_system["pressure"],
+            )

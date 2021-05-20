@@ -62,10 +62,11 @@ answer_tests:
     - yt/frontends/flash/tests/test_outputs.py:test_wind_tunnel
     - yt/frontends/flash/tests/test_outputs.py:test_fid_1to3_b1
 
-  local_gadget_006:  # PR 2909
+  local_gadget_008:  # PR 3258
     - yt/frontends/gadget/tests/test_outputs.py:test_iso_collapse
     - yt/frontends/gadget/tests/test_outputs.py:test_pid_uniqueness
     - yt/frontends/gadget/tests/test_outputs.py:test_bigendian_field_access
+    - yt/frontends/gadget/tests/test_outputs.py:test_magneticum
 
   local_gamer_008:
     - yt/frontends/gamer/tests/test_outputs.py:test_jet

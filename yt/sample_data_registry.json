@@ -259,6 +259,15 @@
     "load_name": "plt00015",
     "url": "https://yt-project.org/data/Laser.tar.gz"
   },
+  "MagneticumCluster.tar.gz": {
+    "hash": "403c2224c205a44ee92a5925053be8aef6e5d530d9297c18151cdb0f588c32a7",
+    "load_kwargs": {
+      "long_ids": true,
+      "field_spec": "magneticum_box2_hr"
+    },
+    "load_name": "snap_132",
+    "url": "https://yt-project.org/data/MagneticumCluster.tar.gz"
+  },
   "MHDBlast.tar.gz": {
     "hash": "fee1139df19448bae966a5396775476935886e69e3898fd7cf71d54548c4e14b",
     "load_kwargs": {},
