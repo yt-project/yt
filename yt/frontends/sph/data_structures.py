@@ -111,12 +111,13 @@ class SPHParticleIndex(ParticleIndex):
             return
         positions = np.concatenate(positions)
         mylog.info("Allocating KDTree for %s particles", positions.shape[0])
+        num_neighbors = getattr(self.ds, "num_neighbors", 32)
         self._kdtree = PyKDTree(
             positions.astype("float64"),
             left_edge=self.ds.domain_left_edge,
             right_edge=self.ds.domain_right_edge,
             periodic=np.array(self.ds.periodicity),
-            leafsize=2 * int(self.ds.num_neighbors),
+            leafsize=2 * int(num_neighbors),
             data_version=self.ds._file_hash,
         )
         if fname is not None:

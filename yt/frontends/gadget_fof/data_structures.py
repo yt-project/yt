@@ -291,7 +291,7 @@ class GadgetFOFDataset(ParticleDataset):
             time_unit = (tu.d, tu.units)
         setdefaultattr(self, "time_unit", self.quan(time_unit[0], time_unit[1]))
 
-    def __repr__(self):
+    def __str__(self):
         return self.basename.split(".", 1)[0]
 
     @classmethod
@@ -476,7 +476,7 @@ class GadgetFOFHaloDataset(ParticleDataset):
             my_unit = f"{unit}_unit"
             setattr(self, my_unit, getattr(self.real_ds, my_unit, None))
 
-    def __repr__(self):
+    def __str__(self):
         return f"{self.real_ds}"
 
     def _setup_classes(self):

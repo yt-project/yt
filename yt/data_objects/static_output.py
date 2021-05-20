@@ -52,6 +52,7 @@ from yt.utilities.parameter_file_storage import NoParameterShelf, ParameterFileS
 # When such a thing comes to pass, I'll move all the stuff that is constant up
 # to here, and then have it instantiate EnzoDatasets as appropriate.
 
+
 _cached_datasets = weakref.WeakValueDictionary()
 _ds_store = ParameterFileStore()
 
@@ -329,6 +330,9 @@ class Dataset(abc.ABC):
         return (_reconstruct_ds, args)
 
     def __repr__(self):
+        return f"{self.__class__.__name__}: {self.parameter_filename}"
+
+    def __str__(self):
         return self.basename
 
     def _hash(self):
@@ -409,7 +413,7 @@ class Dataset(abc.ABC):
         pass
 
     def __getitem__(self, key):
-        """ Returns units, parameters, or conversion_factors in that order. """
+        """Returns units, parameters, or conversion_factors in that order."""
         return self.parameters[key]
 
     def __iter__(self):
@@ -807,6 +811,22 @@ class Dataset(abc.ABC):
     _last_finfo = None
 
     def _get_field_info(self, ftype, fname=None):
+        field_info, is_ambiguous = self._get_field_info_helper(ftype, fname)
+
+        if is_ambiguous:
+            ft, fn = field_info.name
+            msg = (
+                f"The requested field name '{fn}' "
+                "is ambiguous and corresponds to any one of "
+                f"the following field types:\n {self.field_info._ambiguous_field_names[fn]}\n"
+                "Please specify the requested field as an explicit "
+                "tuple (ftype, fname).\n"
+                f'Defaulting to \'("{ft}", "{fn}")\'.'
+            )
+            issue_deprecation_warning(msg, since="4.0.0", removal="4.1.0")
+        return field_info
+
+    def _get_field_info_helper(self, ftype, fname=None):
         self.index
 
         # store the original inputs in case we need to raise an error
@@ -821,17 +841,20 @@ class Dataset(abc.ABC):
         guessing_type = ftype == "unknown"
         if guessing_type:
             ftype = self._last_freq[0] or ftype
+            is_ambiguous = fname in self.field_info._ambiguous_field_names
+        else:
+            is_ambiguous = False
         field = (ftype, fname)
 
         if (
             field == self._last_freq
             and field not in self.field_info.field_aliases.values()
         ):
-            return self._last_finfo
+            return self._last_finfo, is_ambiguous
         if field in self.field_info:
             self._last_freq = field
             self._last_finfo = self.field_info[(ftype, fname)]
-            return self._last_finfo
+            return self._last_finfo, is_ambiguous
 
         try:
             # Sometimes, if guessing_type == True, this will be switched for
@@ -849,7 +872,7 @@ class Dataset(abc.ABC):
             ):
                 field = self.default_fluid_type, field[1]
             self._last_freq = field
-            return self._last_finfo
+            return self._last_finfo, is_ambiguous
         except KeyError:
             pass
 
@@ -865,7 +888,7 @@ class Dataset(abc.ABC):
                 if (ftype, fname) in self.field_info:
                     self._last_freq = (ftype, fname)
                     self._last_finfo = self.field_info[(ftype, fname)]
-                    return self._last_finfo
+                    return self._last_finfo, is_ambiguous
         raise YTFieldNotFound(field=INPUT, ds=self)
 
     def _setup_classes(self):
@@ -898,14 +921,11 @@ class Dataset(abc.ABC):
 
         Parameters
         ----------
-        field: str or tuple(str, str)
-
-        ext: str
+        field : str or tuple(str, str)
+        ext : str
             'min' or 'max', select an extremum
-
-        source: a Yt data object
-
-        to_array: bool
+        source : a Yt data object
+        to_array : bool
             select the return type.
 
         Returns
@@ -1564,7 +1584,7 @@ class Dataset(abc.ABC):
         return self.index._add_mesh_sampling_particle_field(sample_field, ftype, ptype)
 
     def add_deposited_particle_field(
-        self, deposit_field, method, kernel_name="cubic", weight_field="particle_mass"
+        self, deposit_field, method, kernel_name="cubic", weight_field=None
     ):
         """Add a new deposited particle field
 
@@ -1587,8 +1607,9 @@ class Dataset(abc.ABC):
            the `simple_smooth` method and is otherwise ignored. Current
            supported kernel names include `cubic`, `quartic`, `quintic`,
            `wendland2`, `wendland4`, and `wendland6`.
-        weight_field : string, default 'particle_mass'
+        weight_field : (field_type, field_name) or None
            Weighting field name for deposition method `weighted_mean`.
+           If None, use the particle mass.
 
         Returns
         -------
@@ -1601,6 +1622,8 @@ class Dataset(abc.ABC):
         else:
             raise RuntimeError
 
+        if weight_field is None:
+            weight_field = (ptype, "particle_mass")
         units = self.field_info[ptype, deposit_field].output_units
         take_log = self.field_info[ptype, deposit_field].take_log
         name_map = {
@@ -1723,7 +1746,7 @@ class Dataset(abc.ABC):
         Examples
         --------
 
-        >>> grad_fields = ds.add_gradient_fields(("gas","density"))
+        >>> grad_fields = ds.add_gradient_fields(("gas", "density"))
         >>> print(grad_fields)
         ... [('gas', 'density_gradient_x'), ('gas', 'density_gradient_y'),
         ...  ('gas', 'density_gradient_z'), ('gas', 'density_gradient_magnitude')]

@@ -153,7 +153,7 @@ class Streamlines(ParallelAnalysisInterface):
                 step = self._integrate_through_brick(
                     this_node, stream, step, mag=thismag
                 )
-            pbar.update(i)
+            pbar.update(i + 1)
         pbar.finish()
 
         self._finalize_parallel(None)
@@ -229,7 +229,7 @@ class Streamlines(ParallelAnalysisInterface):
         >>> streamlines = Streamlines(ds, [0.5]*3)
         >>> streamlines.integrate_through_volume()
         >>> stream = streamlines.path(0)
-        >>> matplotlib.pylab.semilogy(stream['t'], stream['Density'], '-x')
+        >>> matplotlib.pylab.semilogy(stream['t'], stream[('gas', 'density')], '-x')
 
         """
         return YTStreamline(

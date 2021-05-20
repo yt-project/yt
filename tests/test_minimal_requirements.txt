@@ -7,6 +7,6 @@ pyyaml>=4.2b1
 coverage~=4.5.1
 codecov~=2.0.15
 unyt~=2.8.0
-more_itertools==8.4
+more-itertools==8.4
 pytest~=6.1
 nose-exclude

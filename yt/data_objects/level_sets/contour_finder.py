@@ -58,7 +58,7 @@ def identify_contours(data_source, field, min_val, max_val, cached_fields=None):
         ff = pg.my_data[0].view("int64")
         update_joins(joins, ff, final_joins)
         contour_ids[pg.parent_grid_id].append((sl, ff))
-        pbar.update(i)
+        pbar.update(i + 1)
     pbar.finish()
     rv = dict()
     rv.update(contour_ids)

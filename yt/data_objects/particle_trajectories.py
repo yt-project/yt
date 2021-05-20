@@ -36,16 +36,16 @@ class ParticleTrajectories:
     --------
     >>> my_fns = glob.glob("orbit_hdf5_chk_00[0-9][0-9]")
     >>> my_fns.sort()
-    >>> fields = ["particle_position_x", "particle_position_y",
-    >>>           "particle_position_z", "particle_velocity_x",
-    >>>           "particle_velocity_y", "particle_velocity_z"]
+    >>> fields = [("all", "particle_position_x"), ("all", "particle_position_y"),
+    >>>           ("all", "particle_position_z"), ("all", "particle_velocity_x"),
+    >>>           ("all", "particle_velocity_y"), ("all", "particle_velocity_z")]
     >>> ds = load(my_fns[0])
     >>> init_sphere = ds.sphere(ds.domain_center, (.5, "unitary"))
-    >>> indices = init_sphere["particle_index"].astype("int")
+    >>> indices = init_sphere[("all", "particle_index")].astype("int")
     >>> ts = DatasetSeries(my_fns)
     >>> trajs = ts.particle_trajectories(indices, fields=fields)
     >>> for t in trajs :
-    >>>     print(t["particle_velocity_x"].max(), t["particle_velocity_x"].min())
+    >>>     print(t[("all", "particle_velocity_x")].max(), t[("all", "particle_velocity_x")].min())
     """
 
     def __init__(
@@ -105,7 +105,7 @@ class ParticleTrajectories:
 
             sto.result_id = ds.parameter_filename
             sto.result = (ds.current_time, array_indices, pfields)
-            pbar.update(i)
+            pbar.update(i + 1)
         pbar.finish()
 
         if self.suppress_logging:
@@ -200,7 +200,7 @@ class ParticleTrajectories:
         Examples
         ________
         >>> trajs = ParticleTrajectories(my_fns, indices)
-        >>> trajs.add_fields(["particle_mass", "particle_gpot"])
+        >>> trajs.add_fields([("all", "particle_mass"), ("all", "particle_gpot")])
         """
         self._get_data(fields)
 
@@ -319,7 +319,7 @@ class ParticleTrajectories:
         >>> import matplotlib.pyplot as plt
         >>> trajs = ParticleTrajectories(my_fns, indices)
         >>> traj = trajs.trajectory_from_index(indices[0])
-        >>> plt.plot(traj["particle_time"], traj["particle_position_x"], "-x")
+        >>> plt.plot(traj[("all", "particle_time")], traj[("all", "particle_position_x")], "-x")
         >>> plt.savefig("orbit")
         """
         mask = np.in1d(self.indices, (index,), assume_unique=True)

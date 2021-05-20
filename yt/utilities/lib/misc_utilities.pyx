@@ -568,7 +568,9 @@ def get_box_grids_below_level(
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def obtain_position_vector(
-    data, field_names = ('x', 'y', 'z')):
+    data,
+    field_names = (("index", "x"), ("index", "y"), ("index", "z"))
+):
     # This is just to let the pointers exist and whatnot.  We can't cdef them
     # inside conditionals.
     cdef np.ndarray[np.float64_t, ndim=1] xf
@@ -616,8 +618,10 @@ def obtain_position_vector(
 @cython.wraparound(False)
 @cython.cdivision(True)
 def obtain_relative_velocity_vector(
-        data, field_names = ("velocity_x", "velocity_y", "velocity_z"),
-        bulk_vector = "bulk_velocity"):
+        data,
+        field_names = (("gas", "velocity_x"), ("gas", "velocity_y"), ("gas", "velocity_z")),
+        bulk_vector = "bulk_velocity"
+    ):
     # This is just to let the pointers exist and whatnot.  We can't cdef them
     # inside conditionals.
     cdef np.ndarray[np.float64_t, ndim=1] vxf
@@ -705,14 +709,16 @@ def grow_flagging_field(oofield):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def fill_region(input_fields, output_fields,
-                np.int32_t output_level,
-                np.ndarray[np.int64_t, ndim=1] left_index,
-                np.ndarray[np.int64_t, ndim=2] ipos,
-                np.ndarray[np.int64_t, ndim=1] ires,
-                np.ndarray[np.int64_t, ndim=1] level_dims,
-                np.ndarray[np.int64_t, ndim=1] refine_by
-                ):
+def fill_region(
+    input_fields,
+    output_fields,
+    np.int32_t output_level,
+    np.ndarray[np.int64_t, ndim=1] left_index,
+    np.ndarray[np.int64_t, ndim=2] ipos,
+    np.ndarray[np.int64_t, ndim=1] ires,
+    np.ndarray[np.int64_t, ndim=1] level_dims,
+    np.ndarray[np.int64_t, ndim=1] refine_by
+):
     cdef int i, n
     cdef np.int64_t tot = 0, oi, oj, ok
     cdef np.int64_t rf[3]

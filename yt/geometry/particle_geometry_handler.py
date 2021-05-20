@@ -196,7 +196,7 @@ class ParticleIndex(Index):
     def _initialize_coarse_index(self):
         pb = get_pbar("Initializing coarse index ", len(self.data_files))
         for i, data_file in enumerate(self.data_files):
-            pb.update(i)
+            pb.update(i + 1)
             for ptype, pos in self.io._yield_coordinates(data_file):
                 ds = self.ds
                 if hasattr(ds, "_sph_ptypes") and ptype == ds._sph_ptypes[0]:
@@ -234,7 +234,7 @@ class ParticleIndex(Index):
         )
         for i, data_file in enumerate(self.data_files):
             coll = None
-            pb.update(i)
+            pb.update(i + 1)
             nsub_mi = 0
             for ptype, pos in self.io._yield_coordinates(data_file):
                 if pos.size == 0:

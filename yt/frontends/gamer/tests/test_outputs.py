@@ -7,7 +7,11 @@ from yt.utilities.answer_testing.framework import (
 )
 
 jet = "InteractingJets/jet_000002"
-_fields_jet = ("temperature", "density", "velocity_magnitude")
+_fields_jet = (
+    ("gas", "temperature"),
+    ("gas", "density"),
+    ("gas", "velocity_magnitude"),
+)
 jet_units = {
     "length_unit": (1.0, "kpc"),
     "time_unit": (3.08567758096e13, "s"),

@@ -637,8 +637,9 @@ Additional Tips
 
 .. code-block:: python
 
-   import yt
    import time
+
+   import yt
 
    yt.enable_parallelism()
 
@@ -654,7 +655,9 @@ Additional Tips
    t2 = time.time()
 
    if yt.is_root():
-       print("BigStuff took %.5e sec, TinyStuff took %.5e sec" % (t1 - t0, t2 - t1))
+       print(
+           "BigStuff took {:.5e} sec, TinyStuff took {:.5e} sec".format(t1 - t0, t2 - t1)
+       )
 
 * Remember that if the script handles disk IO explicitly, and does not use
   a built-in yt function to write data to disk,

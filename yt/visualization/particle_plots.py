@@ -237,8 +237,8 @@ class ParticleProjectionPlot(PWViewerMPL):
         self._use_cbar = True
         splat_color = None
         if fields is None:
-            fields = ["particle_ones"]
-            weight_field = "particle_ones"
+            fields = [("all", "particle_ones")]
+            weight_field = ("all", "particle_ones")
             self._use_cbar = False
             splat_color = color
 
@@ -381,7 +381,7 @@ class ParticlePhasePlot(PhasePlot):
         if z_fields is None:
             self.use_cbar = False
             self.splat_color = color
-            z_fields = ["particle_ones"]
+            z_fields = [("all", "particle_ones")]
 
         profile = create_profile(
             data_source,

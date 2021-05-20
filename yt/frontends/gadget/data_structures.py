@@ -336,7 +336,7 @@ class GadgetDataset(SPHDataset):
             spec = _hs
         return spec
 
-    def __repr__(self):
+    def __str__(self):
         return os.path.basename(self.parameter_filename).split(".")[0]
 
     def _get_hvals(self):
@@ -519,6 +519,16 @@ class GadgetDataset(SPHDataset):
             specific_energy_unit = (1, "(km/s) ** 2")
         specific_energy_unit = _fix_unit_ordering(specific_energy_unit)
         self.specific_energy_unit = self.quan(*specific_energy_unit)
+
+        if "magnetic" in unit_base:
+            magnetic_unit = unit_base["magnetic"]
+        elif "UnitMagneticField_in_gauss" in unit_base:
+            magnetic_unit = (unit_base["UnitMagneticField_in_gauss"], "gauss")
+        else:
+            # Sane default
+            magnetic_unit = (1.0, "gauss")
+        magnetic_unit = _fix_unit_ordering(magnetic_unit)
+        self.magnetic_unit = self.quan(*magnetic_unit)
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):

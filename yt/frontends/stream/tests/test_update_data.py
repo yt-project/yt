@@ -12,11 +12,11 @@ def test_update_data_grid():
         {"temperature": np.random.uniform(size=dims)} for i in range(ds.index.num_grids)
     ]
     ds.index.update_data(grid_data)
-    prj = ds.proj("temperature", 2)
-    prj["temperature"]
+    prj = ds.proj(("gas", "temperature"), 2)
+    prj[("gas", "temperature")]
     dd = ds.all_data()
-    profile = create_profile(dd, "density", "temperature", 10)
-    profile["temperature"]
+    profile = create_profile(dd, ("gas", "density"), ("gas", "temperature"), 10)
+    profile["gas", "temperature"]
 
 
 def test_update_data_particle():
@@ -26,4 +26,4 @@ def test_update_data_particle():
     ds.index.update_data(part_data)
     assert ("io", "temperature") in ds.field_list
     dd = ds.all_data()
-    dd["temperature"]
+    dd[("io", "temperature")]

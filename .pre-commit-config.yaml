@@ -12,8 +12,14 @@ yt/extern\
 |yt/visualization/_colormap_data.py\
 )"
 
-repos:
+ci:
+    autofix_prs: false
 
+repos:
+-   repo: https://github.com/asottile/setup-cfg-fmt
+    rev: v1.17.0
+    hooks:
+    -   id: setup-cfg-fmt
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v3.4.0
     hooks:
@@ -22,12 +28,12 @@ repos:
     - id: no-commit-to-branch
       args: [--branch, main]
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v2.11.0
+    rev: v2.15.0
     hooks:
     - id: pyupgrade
       args: [--py36-plus]
 -   repo: https://github.com/psf/black
-    rev: 20.8b1
+    rev: 21.5b1
     hooks:
     - id: black
       language_version: python3
@@ -37,7 +43,7 @@ repos:
     - id: isort
       additional_dependencies: [toml]
 -   repo: https://github.com/PyCQA/flake8
-    rev: '3.9.0'
+    rev: '3.9.2'
     hooks:
     - id: flake8
       additional_dependencies: [

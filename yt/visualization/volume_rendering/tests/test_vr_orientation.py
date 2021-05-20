@@ -91,7 +91,7 @@ def test_orientation():
 
     for i, orientation in enumerate(orientations):
         image = off_axis_projection(
-            ds, center, orientation, width, 512, "density", no_ghost=False
+            ds, center, orientation, width, 512, ("gas", "density"), no_ghost=False
         )
 
         def offaxis_image_func(filename_prefix):

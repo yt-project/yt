@@ -21,7 +21,7 @@ def h5rd(fname, path, dtype=None):
 
 class IonTableSpectrum:
 
-    """ A class to handle the HM01 spectra in the OWLS ionization tables. """
+    """A class to handle the HM01 spectra in the OWLS ionization tables."""
 
     def __init__(self, ion_file):
 
@@ -63,7 +63,7 @@ class IonTableSpectrum:
 
 class IonTableOWLS:
 
-    """ A class to handle OWLS ionization tables. """
+    """A class to handle OWLS ionization tables."""
 
     DELTA_nH = 0.25
     DELTA_T = 0.1

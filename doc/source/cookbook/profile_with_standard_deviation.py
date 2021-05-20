@@ -20,7 +20,7 @@ prof = yt.create_profile(
     ("gas", "velocity_magnitude"),
     units={"radius": "kpc"},
     extrema={"radius": ((0.1, "kpc"), (1000.0, "kpc"))},
-    weight_field="cell_mass",
+    weight_field=("gas", "mass"),
 )
 
 # Create arrays to plot.

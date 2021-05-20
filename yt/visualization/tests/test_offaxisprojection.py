@@ -85,14 +85,18 @@ class TestOffAxisProjection(unittest.TestCase):
 
 def test_field_cut_off_axis_octree():
     ds = fake_octree_ds()
-    cut = ds.all_data().cut_region('obj["density"]>0.5')
-    p1 = OffAxisProjectionPlot(ds, [1, 0, 0], "density")
-    p2 = OffAxisProjectionPlot(ds, [1, 0, 0], "density", data_source=cut)
-    assert_equal(p2.frb["density"].min() == 0.0, True)  # Lots of zeros
-    assert_equal((p1.frb["density"] == p2.frb["density"]).all(), False)
-    p3 = OffAxisSlicePlot(ds, [1, 0, 0], "density")
-    p4 = OffAxisSlicePlot(ds, [1, 0, 0], "density", data_source=cut)
-    assert_equal((p3.frb["density"] == p4.frb["density"]).all(), False)
-    p4rho = p4.frb["density"]
+    cut = ds.all_data().cut_region('obj[("gas", "density")]>0.5')
+    p1 = OffAxisProjectionPlot(ds, [1, 0, 0], ("gas", "density"))
+    p2 = OffAxisProjectionPlot(ds, [1, 0, 0], ("gas", "density"), data_source=cut)
+    assert_equal(p2.frb[("gas", "density")].min() == 0.0, True)  # Lots of zeros
+    assert_equal(
+        (p1.frb[("gas", "density")] == p2.frb[("gas", "density")]).all(), False
+    )
+    p3 = OffAxisSlicePlot(ds, [1, 0, 0], ("gas", "density"))
+    p4 = OffAxisSlicePlot(ds, [1, 0, 0], ("gas", "density"), data_source=cut)
+    assert_equal(
+        (p3.frb[("gas", "density")] == p4.frb[("gas", "density")]).all(), False
+    )
+    p4rho = p4.frb[("gas", "density")]
     assert_equal(p4rho.min() == 0.0, True)  # Lots of zeros
     assert_equal(p4rho[p4rho > 0.0].min() >= 0.5, True)

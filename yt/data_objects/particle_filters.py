@@ -97,9 +97,8 @@ def add_particle_filter(name, function, requires=None, filtered_type="all"):
     filtered_type : string
         The name of the particle type to be filtered.
 
-    Example
-    -------
-
+    Examples
+    --------
     >>> import yt
 
     >>> def _stars(pfilter, data):
@@ -144,18 +143,13 @@ def particle_filter(name=None, requires=None, filtered_type="all"):
         set by this name will be added to any dataset that enables this particle
         filter.  If not set, the name will be inferred from the name of the
         filter function.
-    function : reference to a function
-        The function that defines the particle filter.  The function should
-        accept two arguments: a reference to a particle filter object and a
-        reference to an abstract yt data object.  See the example below.
     requires : a list of field names
         A list of field names required by the particle filter definition.
     filtered_type : string
         The name of the particle type to be filtered.
 
-    Example
-    -------
-
+    Examples
+    --------
     >>> import yt
 
     >>> # define a filter named "stars"

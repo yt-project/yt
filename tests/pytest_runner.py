@@ -25,7 +25,7 @@ if __name__ == "__main__":
     ]
     pytest.main(pytest_args + ["--local-dir=answer-store", "--junitxml=answers.xml"])
 
-    if (files := glob.glob("generate_test*.txt")) :
+    if files := glob.glob("generate_test*.txt"):
         tests = set()
         for fname in files:
             with open(fname) as fp:
