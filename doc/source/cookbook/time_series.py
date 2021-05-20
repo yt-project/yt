@@ -9,7 +9,13 @@ yt.enable_parallelism()
 
 # By using wildcards such as ? and * with the load command, we can load up a
 # Time Series containing all of these datasets simultaneously.
-ts = yt.load("GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0*")
+# The "entropy" field that we will use below depends on the electron number
+# density, which is not in these datasets by default, so we assume full
+# ionization using the "default_species_fields" kwarg.
+ts = yt.load(
+    "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0*",
+    default_species_fields="ionized",
+)
 
 storage = {}
 
