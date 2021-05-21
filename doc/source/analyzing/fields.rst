@@ -481,15 +481,15 @@ any default species fields. If the ``default_species_fields`` argument is not se
 More specifically, if ``default_species_fields="ionized"``, then these
 additional fields are defined:
 
-* ``H_p1_number_density`` (equal to the value of ``H_nuclei_density``)
-* ``He_p2_number_density`` (equal to the value of ``He_nuclei_density``)
-* ``El_number_density``
+* ``H_p1_number_density`` (Ionized hydrogen: equal to the value of ``H_nuclei_density``)
+* ``He_p2_number_density`` (Doubly ionized helium: equal to the value of ``He_nuclei_density``)
+* ``El_number_density`` (Free electrons: assuming full ionization)
 
 Whereas if ``default_species_fields="neutral"``, then these additional
 fields are defined:
 
-* ``H_p0_number_density`` (equal to the value of ``H_nuclei_density``)
-* ``He_p0_number_density`` (equal to the value of ``He_nuclei_density``)
+* ``H_p0_number_density`` (Neutral hydrogen: equal to the value of ``H_nuclei_density``)
+* ``He_p0_number_density`` (Neutral helium: equal to the value of ``He_nuclei_density``)
 
 In this latter case, because the gas is neutral, ``El_number_density`` is not defined.
 
