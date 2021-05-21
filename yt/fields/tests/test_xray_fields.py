@@ -58,7 +58,7 @@ def test_d9p_cloudy():
 
 @requires_ds(d9p, big_data=True)
 def test_d9p_cloudy_local():
-    ds = data_dir_load(d9p)
+    ds = data_dir_load(d9p, kwargs={"default_species_fields": "ionized"})
     fields = add_xray_emissivity_field(
         ds,
         0.5,
