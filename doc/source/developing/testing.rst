@@ -182,7 +182,7 @@ this should only need to be done once (unless you change where you're storing th
 * Generate or obtain a set of gold standard answer files. In order to generate gold standard answer files, wwitch to a "known good" version of yt and then run the answer tests as described below. Once done, switch back to the version of yt you wish to test.
 * Now you're ready to run the answer tests!
 
-As an example, let's focus on running the answer tests for the tipsy frontend. Let's also assume that we need to generate a gold standard answer file. To do this, we first switch to a "known good" version of yt and run the following command from the top of the yt git directory (i.e., `$YT_GIT`) in order to generate the gold standard answer file:
+As an example, let's focus on running the answer tests for the tipsy frontend. Let's also assume that we need to generate a gold standard answer file. To do this, we first switch to a "known good" version of yt and run the following command from the top of the yt git directory (i.e., ``$YT_GIT``) in order to generate the gold standard answer file:
 
 .. note::
     It's possible to run the answer tests for **all** the frontends, but due to the large number of test datasets we currently use this is not normally done except on the yt project's contiguous integration server.
@@ -192,7 +192,7 @@ As an example, let's focus on running the answer tests for the tipsy frontend. L
    $ cd $YT_GIT
    $ pytest --with-answer-testing --answer-store --local-dir="$HOME/Documents/test" -k "TestTipsy"
 
-The `--with-answer-testing` tells pytest that we want to run answer tests. Without this option, the unit tests will be run instead of the answer tests. The `--answer-store` option tells pytest to save the results produced by each test to a local gold standard answer file. Omitting this option is how we tell pytest to compare the results to a gold standard. The `--local-dir` option specifies where the gold standard answer file will be saved (or is already located, in the case that ``--answer-store`` is omitted). The `-k` option tells pytest that we only want to run tests whose name matches the given pattern.
+The ``--with-answer-testing`` tells pytest that we want to run answer tests. Without this option, the unit tests will be run instead of the answer tests. The ``--answer-store`` option tells pytest to save the results produced by each test to a local gold standard answer file. Omitting this option is how we tell pytest to compare the results to a gold standard. The ``--local-dir`` option specifies where the gold standard answer file will be saved (or is already located, in the case that ``--answer-store`` is omitted). The ``-k`` option tells pytest that we only want to run tests whose name matches the given pattern.
 
 .. note::
     The path specified by ``--local-dir`` can, but does not have to be, the same directory as the ``test_data_dir`` configuration variable. It is best practice to keep the data that serves as input to yt separate from the answers produced by yt's tests, however.
