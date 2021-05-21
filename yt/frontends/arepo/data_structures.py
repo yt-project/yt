@@ -89,23 +89,26 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
         # units which are present in the Arepo dataset will be used
         # no matter what but that the user gets warned
         if arepo_unit_base is not None:
-            for unit in arepo_unit_base:
-                if unit == "cmcm":
-                    continue
-                short_unit = unit.split("_")[0][4:].lower()
-                if short_unit in self._unit_base:
-                    which_unit = short_unit
-                    self._unit_base.pop(short_unit, None)
-                elif unit in self._unit_base:
-                    which_unit = unit
-                else:
-                    which_unit = None
-                if which_unit is not None:
-                    msg = f"Overwriting '{which_unit}' in unit_base with what we found in the dataset."
-                    mylog.warning(msg)
-                self._unit_base[unit] = arepo_unit_base[unit]
-            if "cmcm" in arepo_unit_base:
-                self._unit_base["cmcm"] = arepo_unit_base["cmcm"]
+            if self._unit_base is None:
+                self._unit_base = arepo_unit_base
+            else:
+                for unit in arepo_unit_base:
+                    if unit == "cmcm":
+                        continue
+                    short_unit = unit.split("_")[0][4:].lower()
+                    if short_unit in self._unit_base:
+                        which_unit = short_unit
+                        self._unit_base.pop(short_unit, None)
+                    elif unit in self._unit_base:
+                        which_unit = unit
+                    else:
+                        which_unit = None
+                    if which_unit is not None:
+                        msg = f"Overwriting '{which_unit}' in unit_base with what we found in the dataset."
+                        mylog.warning(msg)
+                    self._unit_base[unit] = arepo_unit_base[unit]
+                if "cmcm" in arepo_unit_base:
+                    self._unit_base["cmcm"] = arepo_unit_base["cmcm"]
         super()._set_code_unit_attributes()
         munit = np.sqrt(self.mass_unit / (self.time_unit ** 2 * self.length_unit)).to(
             "gauss"
