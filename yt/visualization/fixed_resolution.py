@@ -7,7 +7,7 @@ from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.utilities import save_as_dataset
 from yt.funcs import get_output_filename, iter_fields, mylog
 from yt.loaders import load_uniform_grid
-from yt.utilities.lib.api import add_points_to_greyscale_image
+from yt.utilities.lib.api import CICDeposit_2, add_points_to_greyscale_image
 from yt.utilities.lib.pixelization_routines import pixelize_cylinder
 from yt.utilities.on_demand_imports import _h5py as h5py
 
@@ -615,21 +615,25 @@ class ParticleImageBuffer(FixedResolutionBuffer):
 
         # set up the axis field names
         axis = self.axis
-        xax = self.ds.coordinates.x_axis[axis]
-        yax = self.ds.coordinates.y_axis[axis]
+        self.xax = self.ds.coordinates.x_axis[axis]
+        self.yax = self.ds.coordinates.y_axis[axis]
         ax_field_template = "particle_position_%s"
-        self.x_field = ax_field_template % self.ds.coordinates.axis_name[xax]
-        self.y_field = ax_field_template % self.ds.coordinates.axis_name[yax]
+        self.x_field = ax_field_template % self.ds.coordinates.axis_name[self.xax]
+        self.y_field = ax_field_template % self.ds.coordinates.axis_name[self.yax]
 
     def __getitem__(self, item):
         if item in self.data:
             return self.data[item]
 
+        deposition = self.data_source.deposition
+        density = self.data_source.density
+
         mylog.info(
-            "Splatting (%s) onto a %d by %d mesh",
+            "Splatting (%s) onto a %d by %d mesh using method '%s'",
             item,
             self.buff_size[0],
             self.buff_size[1],
+            deposition,
         )
 
         bounds = []
@@ -666,21 +670,67 @@ class ParticleImageBuffer(FixedResolutionBuffer):
             weight_data = self.data_source.dd[weight_field]
         splat_vals = weight_data[mask] * data[mask]
 
+        x_bin_edges = np.linspace(0.0, 1.0, self.buff_size[0] + 1)
+        y_bin_edges = np.linspace(0.0, 1.0, self.buff_size[1] + 1)
+
         # splat particles
         buff = np.zeros(self.buff_size)
-        buff_mask = np.zeros(self.buff_size).astype("int")
-        add_points_to_greyscale_image(buff, buff_mask, px[mask], py[mask], splat_vals)
+        buff_mask = np.zeros_like(buff, dtype="uint8")
+        if deposition == "ngp":
+            add_points_to_greyscale_image(
+                buff, buff_mask, px[mask], py[mask], splat_vals
+            )
+        elif deposition == "cic":
+            CICDeposit_2(
+                py[mask],
+                px[mask],
+                splat_vals,
+                mask.sum(),
+                buff,
+                buff_mask,
+                x_bin_edges,
+                y_bin_edges,
+            )
+        else:
+            raise ValueError(f"Received unknown deposition method '{deposition}'")
+
         # remove values in no-particle region
         buff[buff_mask == 0] = np.nan
-        ia = ImageArray(buff, units=data.units, info=self._get_info(item))
+
+        # Normalize by the surface area of the pixel or volume of pencil if
+        # requested
+        info = self._get_info(item)
+        if density:
+            width = self.data_source.width
+            norm = width[self.xax] * width[self.yax] / np.prod(self.buff_size)
+            norm = norm.in_base()
+            buff /= norm.v
+            units = data.units / norm.units
+            info["label"] = "%s $\\rm{Density}$" % info["label"]
+        else:
+            units = data.units
+
+        ia = ImageArray(buff, units=units, info=info)
 
         # divide by the weight_field, if needed
         if weight_field is not None:
             weight_buff = np.zeros(self.buff_size)
-            weight_buff_mask = np.zeros(self.buff_size).astype("int")
-            add_points_to_greyscale_image(
-                weight_buff, weight_buff_mask, px[mask], py[mask], weight_data[mask]
-            )
+            weight_buff_mask = np.zeros(self.buff_size, dtype="uint8")
+            if deposition == "ngp":
+                add_points_to_greyscale_image(
+                    weight_buff, weight_buff_mask, px[mask], py[mask], weight_data[mask]
+                )
+            elif deposition == "cic":
+                CICDeposit_2(
+                    py[mask],
+                    px[mask],
+                    weight_data[mask],
+                    mask.sum(),
+                    weight_buff,
+                    weight_buff_mask,
+                    y_bin_edges,
+                    x_bin_edges,
+                )
             weight_array = ImageArray(
                 weight_buff, units=weight_data.units, info=self._get_info(item)
             )

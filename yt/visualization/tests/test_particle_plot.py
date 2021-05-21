@@ -350,17 +350,28 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
 
     def test_particle_plot(self):
         test_ds = fake_particle_ds()
+        particle_projs = []
         for dim in range(3):
-            pplot = ParticleProjectionPlot(test_ds, dim, ("all", "particle_mass"))
-            with mock.patch(
-                "yt.visualization._mpl_imports.FigureCanvasAgg.print_figure"
-            ), mock.patch(
-                "yt.visualization._mpl_imports.FigureCanvasPdf.print_figure"
-            ), mock.patch(
-                "yt.visualization._mpl_imports.FigureCanvasPS.print_figure"
-            ):
+            particle_projs += [
+                ParticleProjectionPlot(test_ds, dim, ("all", "particle_mass")),
+                ParticleProjectionPlot(
+                    test_ds, dim, ("all", "particle_mass"), deposition="cic"
+                ),
+                ParticleProjectionPlot(
+                    test_ds, dim, ("all", "particle_mass"), density=True
+                ),
+            ]
+        particle_projs[0]._repr_html_()
+        with mock.patch(
+            "yt.visualization._mpl_imports.FigureCanvasAgg.print_figure"
+        ), mock.patch(
+            "yt.visualization._mpl_imports.FigureCanvasPdf.print_figure"
+        ), mock.patch(
+            "yt.visualization._mpl_imports.FigureCanvasPS.print_figure"
+        ):
+            for p in particle_projs:
                 for fname in TEST_FLNMS:
-                    pplot.save(fname)[0]
+                    p.save(fname)[0]
 
     def test_particle_plot_ds(self):
         test_ds = fake_particle_ds()
