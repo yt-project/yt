@@ -685,13 +685,6 @@ types will be known as soon as the dataset index is created.
    print(ds.particle_type_counts)
    print(ds.r["dark", "particle_position"])
 
-.. rubric:: Caveats
-
-* The Enzo-E output format is still evolving somewhat as the code is being
-  actively developed. This frontend will be updated as development continues
-  and backward compatibility may occasionally be broken until the file format
-  has converged.
-
 .. _loading-exodusii-data:
 
 Exodus II Data

@@ -1,5 +1,4 @@
 import os
-import warnings
 
 import numpy as np
 
@@ -332,11 +331,6 @@ class EnzoEDataset(Dataset):
             file_style=file_style,
             units_override=units_override,
             unit_system=unit_system,
-        )
-        warnings.warn(
-            "The Enzo-E file format is still under development and may "
-            + "change. If loading fails, simulation data will need to be "
-            + "re-generated."
         )
 
     def _parse_parameter_file(self):
