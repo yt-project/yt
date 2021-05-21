@@ -65,24 +65,28 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
     def _get_uvals(self):
         handle = h5py.File(self.parameter_filename, mode="r")
         uvals = {}
-        missing = False
-        for unit in ["UnitLength_in_cm", "UnitMass_in_g", "UnitVelocity_in_cm_per_s"]:
+        missing = [False] * 3
+        for i, unit in enumerate(
+            ["UnitLength_in_cm", "UnitMass_in_g", "UnitVelocity_in_cm_per_s"]
+        ):
             if unit in handle["/Header"].attrs:
                 uvals[unit] = handle["/Header"].attrs[unit]
+                if unit == "UnitLength_in_cm":
+                    # We assume this is comoving, because in the absence of comoving
+                    # integration the redshift will be zero.
+                    uvals["cmcm"] = 1.0 / uvals[unit]
             else:
                 mylog.warning("Arepo header is missing %s!", unit)
-                missing = True
+                missing[i] = True
         handle.close()
-        if missing:
+        if all(missing):
             uvals = None
-        else:
-            # We assume this is comoving, because in the absence of comoving
-            # integration the redshift will be zero.
-            uvals["cmcm"] = 1.0 / uvals["UnitLength_in_cm"]
         return uvals
 
     def _set_code_unit_attributes(self):
-        self._unit_base = self._get_uvals()
+        arepo_unit_base = self._get_uvals()
+        if arepo_unit_base is not None:
+            self._unit_base.update(arepo_unit_base)
         super()._set_code_unit_attributes()
         munit = np.sqrt(self.mass_unit / (self.time_unit ** 2 * self.length_unit)).to(
             "gauss"
