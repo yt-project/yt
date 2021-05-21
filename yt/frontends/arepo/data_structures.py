@@ -85,8 +85,25 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
 
     def _set_code_unit_attributes(self):
         arepo_unit_base = self._get_uvals()
+        # This rather convoluted logic is required to ensure that
+        # units which are present in the Arepo dataset will be used
+        # no matter what but that the user gets warned
         if arepo_unit_base is not None:
-            self._unit_base.update(arepo_unit_base)
+            for unit in arepo_unit_base:
+                short_unit = unit.split("_")[0][4:].lower()
+                if short_unit in self._unit_base:
+                    which_unit = short_unit
+                    self._unit_base.pop(short_unit, None)
+                elif unit in self._unit_base:
+                    which_unit = unit
+                else:
+                    which_unit = None
+                if which_unit is not None:
+                    msg = f"Overwriting '{which_unit}' in unit_base with what we found in the dataset."
+                    mylog.warning(msg)
+                self._unit_base[unit] = arepo_unit_base[unit]
+            if "cmcm" in arepo_unit_base:
+                self._unit_base["cmcm"] = arepo_unit_base["cmcm"]
         super()._set_code_unit_attributes()
         munit = np.sqrt(self.mass_unit / (self.time_unit ** 2 * self.length_unit)).to(
             "gauss"
