@@ -9,13 +9,13 @@ from yt.data_objects.particle_filters import add_particle_filter
 # times arbitrarily far into the future, so stars with negative ages belong
 # in the old stars filter.
 def stars_10Myr(pfilter, data):
-    age = data.ds.current_time - data[("Stars", "creation_time")]
+    age = data.ds.current_time - data["Stars", "creation_time"]
     filter = np.logical_and(age >= 0, age.in_units("Myr") < 10)
     return filter
 
 
 def stars_100Myr(pfilter, data):
-    age = (data.ds.current_time - data[("Stars", "creation_time")]).in_units("Myr")
+    age = (data.ds.current_time - data["Stars", "creation_time"]).in_units("Myr")
     filter = np.logical_and(age >= 10, age < 100)
     return filter
 
