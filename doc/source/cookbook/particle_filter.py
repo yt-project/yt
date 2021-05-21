@@ -21,7 +21,7 @@ def stars_100Myr(pfilter, data):
 
 
 def stars_old(pfilter, data):
-    age = data.ds.current_time - data[("Stars", "creation_time")]
+    age = data.ds.current_time - data["Stars", "creation_time"]
     filter = np.logical_or(age < 0, age.in_units("Myr") >= 100)
     return filter
 
