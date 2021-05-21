@@ -90,6 +90,8 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
         # no matter what but that the user gets warned
         if arepo_unit_base is not None:
             for unit in arepo_unit_base:
+                if unit == "cmcm":
+                    continue
                 short_unit = unit.split("_")[0][4:].lower()
                 if short_unit in self._unit_base:
                     which_unit = short_unit
