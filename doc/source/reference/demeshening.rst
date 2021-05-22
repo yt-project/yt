@@ -15,7 +15,7 @@ backend.
 .. note::
 
    You may see scattered references to "the demeshening" (including in the
-   filename for this document!)  This was a humorous name used in the yt
+   filename for this document!). This was a humorous name used in the yt
    development process to refer to removing a global (octree) mesh for
    particle codes.
 
@@ -61,10 +61,10 @@ is assigned to the particle, within that coarse index.
 
 The index "order" values refer to the number of entries on a side that each
 index system is allowed.  For instance, if we allow the particles to be
-subdivided into 8 "bins" in each dimension, this would correspond to an index
+subdivided into 8 "bins" in each direction, this would correspond to an index
 order of 3 (as $2^3 = 8$); correspondingly, an index order of 5 would be 32
-bins in each dimension, and an index order of 7 would be 128 bins in each
-dimension.  Each particle is then assigned a set of i, j, k values for the bin
+bins in each direction, and an index order of 7 would be 128 bins in each
+direction.  Each particle is then assigned a set of i, j, k values for the bin
 value in each dimension, and these i, j, k values are combined into a single
 (64-bit) integer according to a space-filling curve.
 
