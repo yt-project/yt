@@ -992,15 +992,15 @@ class PWViewerMPL(PlotWindow):
                 if zlim != (None, None):
                     pass
                 elif np.nanmax(image) == np.nanmin(image):
-                    msg = "Plotting %s: All values = %f."(f, np.nanmax(image))
+                    msg = "Plotting %s: All values = %f" % (np.nanmax(image), f)
                 elif np.nanmax(image) <= 0:
-                    msg = "Plotting {}: All negative values. Max = {:f}.".format(
+                    msg = "Plotting %s: All negative values. Max = %f." % (
                         f,
                         np.nanmax(image),
                     )
                     use_symlog = True
                 elif not np.any(np.isfinite(image)):
-                    msg = "Plotting %s: All values = NaN." % f
+                    msg = "Plotting %s: All values = NaN." % (f,)
                 elif np.nanmax(image) > 0.0 and np.nanmin(image) < 0:
                     msg = (
                         "Plotting %s: Wide range of values. "
@@ -1021,9 +1021,7 @@ class PWViewerMPL(PlotWindow):
                         - np.log10(np.nanmin(image[image > 0]))
                         > cutoff_sigdigs
                     ):
-                        msg = "Plotting %s: Wide range and zeros."(
-                            f,
-                        )
+                        msg = "Plotting %s: Wide range and zeros." % (f,)
                         use_symlog = True
                 if msg is not None:
                     mylog.warning(msg)
