@@ -5,8 +5,8 @@ import yt
 
 ts = yt.load("GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_*")
 
-plot = yt.SlicePlot(ts[0], "z", "density")
-plot.set_zlim("density", 8e-29, 3e-26)
+plot = yt.SlicePlot(ts[0], "z", ("gas", "density"))
+plot.set_zlim(("gas", "density"), 8e-29, 3e-26)
 
 fig = plot.plots[("gas", "density")].figure
 

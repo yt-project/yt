@@ -13,7 +13,7 @@ sp = ds.sphere(ds.domain_center, (500.0, "kpc"))
 rp = yt.create_profile(
     sp,
     "radius",
-    ["density", "temperature"],
+    [("gas", "density"), ("gas", "temperature")],
     units={"radius": "kpc"},
     logs={"radius": False},
 )

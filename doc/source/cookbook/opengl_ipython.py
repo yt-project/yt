@@ -14,8 +14,8 @@ collection = BlockCollection()
 
 ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
-dd = ds.all_data()
-collection.add_data(dd, "density")
+ad = ds.all_data()
+collection.add_data(ad, ("gas", "density"))
 
 scene.add_collection(collection)
 

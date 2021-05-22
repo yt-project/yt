@@ -33,7 +33,7 @@ grid = AxesGrid(
 for i, fn in enumerate(fns):
     # Load the data and create a single plot
     ds = yt.load(fn)  # load data
-    p = yt.ProjectionPlot(ds, "z", "density", width=(55, "Mpccm"))
+    p = yt.ProjectionPlot(ds, "z", ("gas", "density"), width=(55, "Mpccm"))
 
     # Ensure the colorbar limits match for all plots
     p.set_zlim(("gas", "density"), 1e-4, 1e-2)

@@ -26,10 +26,10 @@ for i, SnapNum in enumerate([10, 40]):
     ad = ds.all_data()
     p = yt.PhasePlot(
         ad,
-        "density",
-        "temperature",
+        ("gas", "density"),
+        ("gas", "temperature"),
         [
-            "mass",
+            ("gas", "mass"),
         ],
         weight_field=None,
     )
