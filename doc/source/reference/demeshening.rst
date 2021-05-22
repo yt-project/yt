@@ -122,7 +122,10 @@ into 8 bins in each dimension (corresponding to an effective 256 bins across
 the full domain).
 
 If you are experiencing very long index times, this may be a productive
-parameter to modify.
+parameter to modify.  For instance, if you are seeing very rapid "coarse"
+indexing followed by very, very slow "refined" indexing, this likely plays a
+part; often this will be most obvious in small-ish (i.e., $256^3$ or smaller)
+datasets.
 
 Index Caching
 -------------
@@ -135,12 +138,24 @@ and ``JJ`` are ``index_order1`` and ``index_order2``.  So for instance, if
 ``snapshot_200.hdf5.index5_7.ewah``.  On subsequent loads, this index file will
 be reused, rather than re-generated.
 
-The filename scheme can be changed by supplying an alternate filename to the
-``load`` command with the argument ``index_filename``.  For instance, if you
-are accessing data in a read-only location, you can specify that the index will
-be cached in a location that is write-accessible to you.
+By *default* these sidecars are stored next to the dataset itself, in the same
+directory.  However, the filename scheme (and thus location) can be changed by
+supplying an alternate filename to the ``load`` command with the argument
+``index_filename``.  For instance, if you are accessing data in a read-only
+location, you can specify that the index will be cached in a location that is
+write-accessible to you.
 
 These files contain the *compressed* bitmap index values, along with some
 metadata that describes the version of the indexing system they use and so
 forth.  If the version of the index that yt uses has changed, they will be
-regenerated.
+regenerated; in general this will not vary very often (and should be much less
+frequent than, for instance, yt releases) and yt will provide a message to let
+you know it is doing it.
+
+The file size of these cached index files can be difficult to estimate; because
+it is based on a compressed bitmap arrays, it will depend on the spatial
+organization of the particles it is indexing, and how co-located they are
+according to the space filling curve.  For very small datasets it will be
+small, but we do not expect these index files to grow beyond a few hundred
+megabytes even in the extreme case of large datasets that have little to no
+coherence in their clustering.
