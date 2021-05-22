@@ -295,8 +295,15 @@ class PlotContainer:
 
     @accepts_all_fields
     @invalidate_plot
-    def set_log(self, field, log, linthresh=None):
-        """set a field to log or linear.
+    def set_log(self, field, log, linthresh=None, symlog_auto=False):
+        """set a field to log, linear, or symlog.
+
+        Symlog scaling is a combination of linear and log, where from 0 to a
+        threshold value, it operates as linear, and then beyond that it operates as
+        log.  Symlog can also work with negative values in log space as well as
+        negative and positive values simultaneously and symmetrically.  If symlog
+        scaling is desired, please set log=True and either set symlog_auto=True or
+        select a alue for linthresh.
 
         Parameters
         ----------
@@ -306,19 +313,24 @@ class PlotContainer:
         log : boolean
             Log on/off.
         linthresh : float (must be positive)
-            linthresh will be enabled for symlog scale only when log is true
+            manually setting linthresh will enable symlog scale
+        symlog_auto : boolean
+            if symlog_auto is True, then yt will use symlog scaling and attempt to
+            determine a linthresh automatically.  Setting a linthresh manually
+            overrides this value.
 
         """
+        if symlog_auto:
+            self._field_transform[field] = symlog_transform
         if log:
-            if linthresh is not None:
-                if not linthresh > 0.0:
-                    raise ValueError('"linthresh" must be positive')
-                self._field_transform[field] = symlog_transform
-                self._field_transform[field].func = linthresh
-            else:
-                self._field_transform[field] = log_transform
+            self._field_transform[field] = log_transform
         else:
             self._field_transform[field] = linear_transform
+        if linthresh is not None:
+            if not linthresh > 0.0:
+                raise ValueError('"linthresh" must be positive')
+            self._field_transform[field] = symlog_transform
+            self._field_transform[field].func = linthresh
         return self
 
     def get_log(self, field):
