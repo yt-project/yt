@@ -50,6 +50,41 @@ the default values and use values of 5 and 5 by specifying this argument to the
 So this is how you *change* the index order, but it doesn't explain precisely
 what this "index order" actually is.
 
+Indexing and Why yt Does it
+---------------------------
+
+yt is based on the idea that data should be selected and read only when it is
+needed.  So for instance, if you only want particles or grid cells from a small
+region in the center of your dataset, yt wants to avoid any reading of the data
+*outside* of that region.  Now, in practice, this isn't entirely possible --
+particularly with particles, you can't actually tell when something is inside
+or outside of a region *until* you read it, because the particle locations are
+*stored in the dataset*.
+
+One way to avoid this is to have an index of the data, so that yt can know that
+some of the data that is located *here* in space is located *there* in the file
+or files on disk.  So if you're able to say, I only care about data in "region
+A", you can look for those files that contain data within "region A," read
+those, and discard the parts of them that are *not* within "region A."
+
+The finer grained the index, the longer it takes to build that index -- and the
+larger than index is, and the longer it takes to query.  The cost of having too
+*coarse* an index, on the other hand, is that the IO conducted to read a given
+region is likely to be *too much*, and more particles will be discarded after
+being read, before being "selected" by the data selector (sphere, region, etc).
+
+An important note about all of this is that the index system is not meant to
+*replace* the positions stored on disk, but instead to speed up queries of
+those positions -- the index is meant to be lossy in representation, and only
+provides means of generating IO information.  Additionally, the atomic unit
+that yt considers when conducting IO or selection queries is called a "chunk"
+internally.  For situations where the individual *files* are very, very large,
+yt will "sub-chunk" these into smaller bits, which are by-default set to $64^3$
+particles.  Whenever indexing is done, it is done at this granular level, with
+offsets to individual particle collections stored.  For instance, if you had a
+(single) file with $1024^3$ particles in it, yt would instead regard this as a
+series of $64^3$ particle files, and index each one individually.
+
 Index Order
 -----------
 
