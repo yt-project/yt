@@ -65,6 +65,7 @@ class ChollaFieldInfo(FieldInfoContainer):
                      * (data["gas", "velocity_x"] * data["gas", "velocity_x"]
                       + data["gas", "velocity_y"] * data["gas", "velocity_y"]
                       + data["gas", "velocity_z"] * data["gas", "velocity_z"]
+                     )
             )
 
         # Add pressure field
@@ -78,11 +79,11 @@ class ChollaFieldInfo(FieldInfoContainer):
                units=unit_system["pressure"],
            )
 
-          def _pressure(field, data):
-              return (
+           def _pressure(field, data):
+               return (
                   (data.ds.gamma - 1.0)
                   * data["cholla", "GasEnergy"]
-              )
+               )
         else:
           def _pressure(field, data):
               return (
