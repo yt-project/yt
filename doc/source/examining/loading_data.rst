@@ -1655,8 +1655,10 @@ following:
 GAMER Data
 ----------
 
-GAMER HDF5 data is supported and cared for by Hsi-Yu Schive. You can load the
-data like this:
+GAMER HDF5 data is supported and cared for by Hsi-Yu Schive and John ZuHone.
+Datasets using hydrodynamics, particles, magnetohydrodynamics, wave dark matter,
+and special relativistic hydrodynamics are supported. You can load the data like
+this:
 
 .. code-block:: python
 
