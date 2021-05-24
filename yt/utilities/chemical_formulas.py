@@ -36,11 +36,12 @@ class ChemicalFormula:
 
 def compute_mu(ion_state):
     if ion_state == "ionized" or ion_state is None:
-        Z_H = 2.0
-        Z_He = 3.0
+        # full ionization
+        n_H = 2.0  # fully ionized hydrogen gives two particles
+        n_He = 3.0  # fully ionized helium gives three particles
     elif ion_state == "neutral":
-        Z_H = 1.0
-        Z_He = 2.0
-    muinv = Z_H * _primordial_mass_fraction["H"] / ChemicalFormula("H").weight
-    muinv += Z_He * _primordial_mass_fraction["He"] / ChemicalFormula("He").weight
+        n_H = 1.0  # neutral hydrogen gives one particle
+        n_He = 1.0  # neutral helium gives one particle
+    muinv = n_H * _primordial_mass_fraction["H"] / ChemicalFormula("H").weight
+    muinv += n_He * _primordial_mass_fraction["He"] / ChemicalFormula("He").weight
     return 1.0 / muinv

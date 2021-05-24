@@ -26,4 +26,4 @@ def test_formulas():
 def test_default_mu():
     assert_allclose(compute_mu(None), 0.5924489101195808)
     assert_allclose(compute_mu("ionized"), 0.5924489101195808)
-    assert_allclose(compute_mu("neutral"), 1.1442496928403585)
+    assert_allclose(compute_mu("neutral"), 1.2285402715185552)

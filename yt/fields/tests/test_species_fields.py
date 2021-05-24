@@ -73,7 +73,7 @@ def test_default_species_fields():
     assert_equal(spn["gas", "H_p0_number_density"], spn["gas", "H_nuclei_density"])
     assert_equal(spn["gas", "He_p0_number_density"], spn["gas", "He_nuclei_density"])
 
-    mu = 1.1442496928403585
+    mu = 1.2285402715185552
 
     assert_allclose_units(
         mu * spn["index", "ones"], spn["gas", "mean_molecular_weight"]
