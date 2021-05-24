@@ -209,47 +209,53 @@ def add_nuclei_density_fields(registry, ftype):
     # Here, we add default nuclei and number density fields for H and
     # He if they are not defined above, and if it was requested by
     # setting "default_species_fields"
-    if registry.ds.default_species_fields is not None:
-        dsf = registry.ds.default_species_fields
-        # Right now, this only handles default fields for H and He
-        for element in ["H", "He"]:
-            # If these elements are already present in the dataset,
-            # DO NOT set them
-            if element in elements:
-                continue
-            # First add the default nuclei density fields
-            registry.add_field(
-                (ftype, f"{element}_nuclei_density"),
-                sampling_type="local",
-                function=_default_nuclei_density,
-                units=unit_system["number_density"],
-            )
-            # Set up number density fields for hydrogen, either fully ionized or neutral.
-            if element == "H":
-                if dsf == "ionized":
-                    state = "p1"
-                elif dsf == "neutral":
-                    state = "p0"
-                registry.alias(
-                    (ftype, f"H_{state}_number_density"), (ftype, "H_nuclei_density")
+    if registry.ds.default_species_fields is None:
+        return
+
+    dsf = registry.ds.default_species_fields
+    # Right now, this only handles default fields for H and He
+    for element in ["H", "He"]:
+        # If these elements are already present in the dataset,
+        # DO NOT set them
+        if element in elements:
+            continue
+        # First add the default nuclei density fields
+        registry.add_field(
+            (ftype, f"{element}_nuclei_density"),
+            sampling_type="local",
+            function=_default_nuclei_density,
+            units=unit_system["number_density"],
+        )
+        # Set up number density fields for hydrogen, either fully ionized or neutral.
+        if element == "H":
+            if dsf == "ionized":
+                state = "p1"
+            elif dsf == "neutral":
+                state = "p0"
+            else:
+                raise NotImplementedError(
+                    f"'default_species_fields' option '{dsf}' is not implemented!"
                 )
-            # Set up number density fields for helium, either fully ionized or neutral.
-            if element == "He":
-                if dsf == "ionized":
-                    state = "p2"
-                elif dsf == "neutral":
-                    state = "p0"
-                registry.alias(
-                    (ftype, f"He_{state}_number_density"), (ftype, "He_nuclei_density")
-                )
-        # If we're fully ionized, we need to setup the electron number density field
-        if (ftype, "El_number_density") not in registry and dsf == "ionized":
-            registry.add_field(
-                (ftype, "El_number_density"),
-                sampling_type="local",
-                function=_default_nuclei_density,
-                units=unit_system["number_density"],
+            registry.alias(
+                (ftype, f"H_{state}_number_density"), (ftype, "H_nuclei_density")
             )
+        # Set up number density fields for helium, either fully ionized or neutral.
+        if element == "He":
+            if dsf == "ionized":
+                state = "p2"
+            elif dsf == "neutral":
+                state = "p0"
+            registry.alias(
+                (ftype, f"He_{state}_number_density"), (ftype, "He_nuclei_density")
+            )
+    # If we're fully ionized, we need to setup the electron number density field
+    if (ftype, "El_number_density") not in registry and dsf == "ionized":
+        registry.add_field(
+            (ftype, "El_number_density"),
+            sampling_type="local",
+            function=_default_nuclei_density,
+            units=unit_system["number_density"],
+        )
 
 
 def _default_nuclei_density(field, data):
