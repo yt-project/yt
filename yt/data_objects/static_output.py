@@ -1940,5 +1940,5 @@ def validate_index_order(index_order):
                 "index_order\nmust be an integer or a two-element tuple of "
                 "integers.".format(index_order)
             )
-        index_order = tuple([int(o) for o in index_order])
+        index_order = tuple(int(o) for o in index_order)
     return index_order

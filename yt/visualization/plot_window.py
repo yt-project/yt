@@ -1124,13 +1124,13 @@ class PWViewerMPL(PlotWindow):
                             0, self.xlim, self.ylim
                         )
                     else:
-                        xmin, xmax = [float(x) for x in extentx]
+                        xmin, xmax = (float(x) for x in extentx)
                     if yax in coordinates.axis_field:
                         ymin, ymax = coordinates.axis_field[yax](
                             1, self.xlim, self.ylim
                         )
                     else:
-                        ymin, ymax = [float(y) for y in extenty]
+                        ymin, ymax = (float(y) for y in extenty)
                     self.plots[f].image.set_extent((xmin, xmax, ymin, ymax))
                     self.plots[f].axes.set_aspect("auto")
 

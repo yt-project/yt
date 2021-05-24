@@ -93,9 +93,9 @@ class FLASHHierarchy(GridIndex):
             nyb = ds.parameters["nyb"]
             nzb = ds.parameters["nzb"]
         except KeyError:
-            nxb, nyb, nzb = [
+            nxb, nyb, nzb = (
                 int(f["/simulation parameters"][f"n{ax}b"]) for ax in "xyz"
-            ]
+            )
         self.grid_dimensions[:] *= (nxb, nyb, nzb)
         try:
             self.grid_particle_count[:] = f_part["/localnp"][:][:, None]
@@ -357,9 +357,9 @@ class FLASHDataset(Dataset):
             nyb = self.parameters["nyb"]
             nzb = self.parameters["nzb"]
         except KeyError:
-            nxb, nyb, nzb = [
+            nxb, nyb, nzb = (
                 int(self._handle["/simulation parameters"][f"n{ax}b"]) for ax in "xyz"
-            ]  # FLASH2 only!
+            )  # FLASH2 only!
 
         # Determine dimensionality
         try:

@@ -264,7 +264,7 @@ class EnzoEHierarchy(GridIndex):
 
     def _get_particle_type_counts(self):
         return {
-            ptype: sum([g.particle_count[ptype] for g in self.grids])
+            ptype: sum(g.particle_count[ptype] for g in self.grids)
             for ptype in self.ds.particle_types_raw
         }
 
