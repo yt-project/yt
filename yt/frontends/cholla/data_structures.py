@@ -57,17 +57,12 @@ class ChollaHierarchy(GridIndex):
         self.max_level = 1
 
     def _populate_grid_objects(self):
-        # the minimal form of this method is
-        #
-        # for g in self.grids:
-        #     g._prepare_grid()
-        #     g._setup_dx()
-        #
-        # This must also set:
-        #   g.Children <= list of child grids
-        #   g.Parent   <= parent grid
-        # This is handled by the frontend because often the children must be identified.
-        pass
+        self.grids = np.empty(self.num_grids, dtype="object")
+        for i in range(self.num_grids):
+            g = self.grid(i, self, self.grid_levels.flat[i])
+            g._prepare_grid()
+            g._setup_dx()
+            self.grids[i] = g
 
 
 class ChollaDataset(Dataset):
