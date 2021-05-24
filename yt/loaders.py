@@ -1350,9 +1350,10 @@ def load_sample(
     except IndexError as err:
         raise KeyError(f"Could not find '{fn}' in the registry.") from err
 
-    if not specs["load_name"]:
+    load_name = specific_file or specs["load_name"]
+    if not load_name:
         raise ValueError(
-            "Registry appears to be corrupted: could not find a 'load_name' entry for this dataset."
+            "Missing a 'load_name' entry for this dataset. This may be fixed by requesting the full path of the loadable file."
         )
 
     if not isinstance(specs["load_kwargs"], dict):
