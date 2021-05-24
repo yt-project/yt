@@ -16,6 +16,8 @@ osx|macOS)
     sudo mkdir -p /usr/local/man
     sudo chown -R "${USER}:admin" /usr/local/man
     brew update
+    # proj can be unpinned when upstream incompatibility issue is resolved. See
+    # https://github.com/SciTools/cartopy/issues/1140
     export LDFLAGS="$LDFLAGS -L/usr/local/opt/proj@7/lib"
     export CPPFLAGS="$CPPFLAGS -I/usr/local/opt/proj@7/include"
     export CFLAGS="$CFLAGS -I/usr/local/opt/proj@7/include"
