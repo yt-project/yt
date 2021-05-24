@@ -49,21 +49,12 @@ class ChollaHierarchy(GridIndex):
         self.num_grids = 1
 
     def _parse_index(self):
-        # This needs to fill the following arrays, where N is self.num_grids:
-        #   self.grid_left_edge         (N, 3) <= float64
-        #   self.grid_right_edge        (N, 3) <= float64
-        #   self.grid_dimensions        (N, 3) <= int
-        #   self.grid_particle_count    (N, 1) <= int
-        #   self.grid_levels            (N, 1) <= int
-        #   self.grids                  (N, 1) <= grid objects
-        #   self.max_level = self.grid_levels.max()
-        self.grid_left_edge = self.dataset.domain_left_edge
-        self.grid_right_edge = self.dataset.domain_right_edge
-        self.grid_dimensions = self.dataset.domain_dimensions
-        self.grid_particle_count = np.zeros([1, 1], dtype="int")
-        self.grid_levels = np.zeros([1, 1], dtype="int")
-        self.grids = np.ones([1, 1], dtype="int")
-        self.max_level = self.grid_levels.max()
+        self.grid_left_edge[0][:] = self.ds.domain_left_edge[:]
+        self.grid_right_edge[0][:] = self.ds.domain_right_edge[:]
+        self.grid_dimensions[0][:] = self.ds.domain_dimensions[:]
+        self.grid_particle_count[0][0] = 0
+        self.grid_levels[0][0] = 1
+        self.max_level = 1
 
     def _populate_grid_objects(self):
         # the minimal form of this method is
