@@ -140,8 +140,10 @@ class EnzoEIOHandler(BaseIOHandler):
                 for field in fields:
                     grid_dim = self.ds.grid_dimensions
                     nodal_flag = self.ds.field_info[field].nodal_flag
-                    dims = (grid_dim[:self.ds.dimensionality][::-1]
-                            + nodal_flag[:self.ds.dimensionality][::-1])
+                    dims = (
+                        grid_dim[: self.ds.dimensionality][::-1]
+                        + nodal_flag[: self.ds.dimensionality][::-1]
+                    )
                     data = np.empty(dims, dtype=self._field_dtype)
                     yield field, obj, self._read_obj_field(obj, field, (fid, data))
         if fid is not None:

@@ -106,6 +106,7 @@ def test_critical_density():
 
     assert np.abs(c1 - c2) / max(c1, c2) < 1e-3
 
+
 @requires_file(orszag_tang)
 def test_face_centered_bfields():
     # this is based on the enzo frontend test, test_face_centered_mhdct_fields
@@ -120,7 +121,7 @@ def test_face_centered_bfields():
 
         # the x and y domains are each split across 2 blocks. The z domain
         # is all located on a single block
-        block_dims = (dims[0]//2, dims[1]//2, dims[2])
+        block_dims = (dims[0] // 2, dims[1] // 2, dims[2])
         for grid in ds.index.grids:
             assert_equal(grid[field].shape, block_dims + (2 * sum(flag),))
 
