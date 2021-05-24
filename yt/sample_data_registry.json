@@ -229,6 +229,12 @@
     "load_name": "data.0000.3d.hdf5",
     "url": "https://yt-project.org/data/IsothermalSphere.tar.gz"
   },
+  "JetICMWall.tar.gz": {
+    "hash": "d0f75569c743836a2d9d140e4bc88f039d6788d3dc53284e8a081cf76b2edbd9",
+    "load_kwargs": {},
+    "load_name": "Data_000060",
+    "url": "https://yt-project.org/data/JetICMWall.tar.gz"
+  },
   "KelvinHelmholtz.tar.gz": {
     "hash": "a70ccdab287e6b24553881d24a08a4025079b0e40eea9097c7ef686166ce571d",
     "load_kwargs": {},
