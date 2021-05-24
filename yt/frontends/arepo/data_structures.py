@@ -76,7 +76,6 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
                     # integration the redshift will be zero.
                     uvals["cmcm"] = 1.0 / uvals[unit]
             else:
-                mylog.warning("Arepo header is missing %s!", unit)
                 missing[i] = True
         handle.close()
         if all(missing):
