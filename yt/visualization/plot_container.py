@@ -311,9 +311,12 @@ class PlotContainer:
             the field to set a transform
             if field == 'all', applies to all plots.
         log : boolean
-            Log on/off.
-        linthresh : float (must be positive)
-            manually setting linthresh will enable symlog scale
+            Log on/off: on means log scaling; off means linear scaling. Unless
+            a linthresh is set or symlog_auto is set in which case symlog is used.
+        linthresh : float, optional
+            when using symlog scaling, linthresh is the value at which scaling
+            transitions from linear to logarithmic.  linthresh must be positive.
+            Note: setting linthresh will automatically enable symlog scale
         symlog_auto : boolean
             if symlog_auto is True, then yt will use symlog scaling and attempt to
             determine a linthresh automatically.  Setting a linthresh manually
