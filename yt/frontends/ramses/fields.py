@@ -48,6 +48,21 @@ known_species_masses = {
     ]
 }
 
+known_species_names = {
+    "HI": "H_p0",
+    "HII": "H_p1",
+    "Electron": "El",
+    "HeI": "He_p0",
+    "HeII": "He_p1",
+    "HeIII": "He_p2",
+    "H2I": "H2_p0",
+    "H2II": "H2_p1",
+    "HM": "H_m1",
+    "DI": "D_p0",
+    "DII": "D_p1",
+    "HDI": "HD_p0",
+}
+
 _cool_axes = ("lognH", "logT")  # , "logTeq")
 _cool_arrs = (
     ("cooling_primordial", cooling_function_units),
@@ -172,6 +187,12 @@ class RAMSESFieldInfo(FieldInfoContainer):
             units=self.ds.unit_system["temperature"],
         )
         self.create_cooling_fields()
+
+        self.species_names = [
+            known_species_names[fn]
+            for ft, fn in self.field_list
+            if fn in known_species_names
+        ]
 
         # See if we need to load the rt fields
         rt_flag = RTFieldFileHandler.any_exist(self.ds)

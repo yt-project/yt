@@ -643,6 +643,7 @@ class BoxlibDataset(Dataset):
         storage_filename=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
         """
         The paramfile is usually called "inputs"
@@ -667,6 +668,7 @@ class BoxlibDataset(Dataset):
             dataset_type,
             units_override=units_override,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
 
         # These are still used in a few places.
@@ -1033,6 +1035,7 @@ class OrionDataset(BoxlibDataset):
         storage_filename=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
 
         BoxlibDataset.__init__(
@@ -1043,6 +1046,7 @@ class OrionDataset(BoxlibDataset):
             dataset_type,
             units_override=units_override,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
 
 
@@ -1085,6 +1089,7 @@ class CastroDataset(BoxlibDataset):
         storage_filename=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
 
         super().__init__(
@@ -1095,6 +1100,7 @@ class CastroDataset(BoxlibDataset):
             storage_filename,
             units_override,
             unit_system,
+            default_species_fields=default_species_fields,
         )
 
     def _parse_parameter_file(self):
@@ -1163,6 +1169,7 @@ class MaestroDataset(BoxlibDataset):
         storage_filename=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
 
         super().__init__(
@@ -1173,6 +1180,7 @@ class MaestroDataset(BoxlibDataset):
             storage_filename,
             units_override,
             unit_system,
+            default_species_fields=default_species_fields,
         )
 
     def _parse_parameter_file(self):
@@ -1253,6 +1261,7 @@ class NyxDataset(BoxlibDataset):
         storage_filename=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
 
         super().__init__(
@@ -1263,6 +1272,7 @@ class NyxDataset(BoxlibDataset):
             storage_filename,
             units_override,
             unit_system,
+            default_species_fields=default_species_fields,
         )
 
     def _parse_parameter_file(self):
@@ -1618,6 +1628,7 @@ class AMReXDataset(BoxlibDataset):
         storage_filename=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
 
         super().__init__(
@@ -1628,6 +1639,7 @@ class AMReXDataset(BoxlibDataset):
             storage_filename,
             units_override,
             unit_system,
+            default_species_fields=default_species_fields,
         )
 
     def _parse_parameter_file(self):

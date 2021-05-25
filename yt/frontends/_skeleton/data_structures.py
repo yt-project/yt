@@ -85,9 +85,17 @@ class SkeletonDataset(Dataset):
         dataset_type="skeleton",
         storage_filename=None,
         units_override=None,
+        unit_system="cgs",
+        default_species_fields=None,
     ):
         self.fluid_types += ("skeleton",)
-        super().__init__(filename, dataset_type, units_override=units_override)
+        super().__init__(
+            filename,
+            dataset_type,
+            units_override=units_override,
+            unit_system=unit_system,
+            default_species_fields=default_species_fields,
+        )
         self.storage_filename = storage_filename
         # refinement factor between a grid and its subgrid
         # self.refine_by = 2
