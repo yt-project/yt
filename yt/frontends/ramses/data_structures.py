@@ -565,7 +565,7 @@ class RAMSESIndex(OctreeIndex):
             yield YTDataChunk(dobj, "io", [subset], None, cache=cache)
 
     def _initialize_level_stats(self):
-        levels = sum([dom.level_count for dom in self.domains])
+        levels = sum(dom.level_count for dom in self.domains)
         desc = {"names": ["numcells", "level"], "formats": ["int64"] * 2}
         max_level = self.dataset.min_level + self.dataset.max_level + 2
         self.level_stats = blankRecordArray(desc, max_level)

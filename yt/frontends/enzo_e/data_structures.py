@@ -1,5 +1,4 @@
 import os
-import warnings
 
 import numpy as np
 
@@ -265,7 +264,7 @@ class EnzoEHierarchy(GridIndex):
 
     def _get_particle_type_counts(self):
         return {
-            ptype: sum([g.particle_count[ptype] for g in self.grids])
+            ptype: sum(g.particle_count[ptype] for g in self.grids)
             for ptype in self.ds.particle_types_raw
         }
 
@@ -332,11 +331,6 @@ class EnzoEDataset(Dataset):
             file_style=file_style,
             units_override=units_override,
             unit_system=unit_system,
-        )
-        warnings.warn(
-            "The Enzo-E file format is still under development and may "
-            + "change. If loading fails, simulation data will need to be "
-            + "re-generated."
         )
 
     def _parse_parameter_file(self):

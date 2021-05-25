@@ -351,7 +351,7 @@ def parse_nose_xml(nose_xml):
 
 def handle_error(error, testcase, missing_errors, missing_answers, failed_answers):
     attribs = ["classname", "name"]
-    test_name = ":".join([testcase.attrib[a] for a in attribs])
+    test_name = ":".join(testcase.attrib[a] for a in attribs)
     message = error.attrib["message"]
     if (
         missing_errors[0] in error.attrib["message"]

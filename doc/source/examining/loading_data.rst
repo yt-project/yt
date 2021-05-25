@@ -685,13 +685,6 @@ types will be known as soon as the dataset index is created.
    print(ds.particle_type_counts)
    print(ds.r["dark", "particle_position"])
 
-.. rubric:: Caveats
-
-* The Enzo-E output format is still evolving somewhat as the code is being
-  actively developed. This frontend will be updated as development continues
-  and backward compatibility may occasionally be broken until the file format
-  has converged.
-
 .. _loading-exodusii-data:
 
 Exodus II Data
@@ -1350,24 +1343,6 @@ units as the example above:
   }
 
   ds = yt.load("snap_004", unit_base=unit_base, bounding_box=bbox)
-
-.. _particle-indexing-criteria:
-
-Indexing Criteria
-^^^^^^^^^^^^^^^^^
-
-yt generates a global mesh index via octree that governs the resolution of
-volume elements.  This is governed by two parameters, ``n_ref`` and
-``over_refine_factor``.  They are weak proxies for each other.  The first,
-``n_ref``, governs how many particles in an oct results in that oct being
-refined into eight child octs.  Lower values mean higher resolution; the
-default is 64.  The second parameter, ``over_refine_factor``, governs how many
-cells are in a given oct; the default value of 1 corresponds to 8 cells.
-The number of cells in an oct is defined by the expression
-``2**(3*over_refine_factor)``.
-
-It's recommended that if you want higher-resolution, try reducing the value of
-``n_ref`` to 32 or 16.
 
 .. _gadget-field-spec:
 

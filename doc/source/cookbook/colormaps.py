@@ -4,7 +4,7 @@ import yt
 ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
 # Create a projection and save it with the default colormap ('algae')
-p = yt.ProjectionPlot(ds, "z", "density", width=(100, "kpc"))
+p = yt.ProjectionPlot(ds, "z", ("gas", "density"), width=(100, "kpc"))
 p.save()
 
 # Change the colormap to 'dusk' and save again.  We must specify
