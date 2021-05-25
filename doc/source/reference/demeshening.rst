@@ -127,7 +127,7 @@ correspond to that subregion.
 
 When reading data, yt will identify which "coarse" index regions are necessary
 to read.  If any of those coarse index regions are covered by more than one
-file, it will examine the "fine" index for those regions and see if it is able
+file, it will examine the "refined" index for those regions and see if it is able
 to subset more efficiently.  Because all of these operations can be done with
 logical operations, this considerably reduces the amount of data that needs to
 be read from disk before expensive selection operations are conducted.
@@ -142,14 +142,14 @@ Efficiency of Index Orders
 What this can lead to, however, is situations where (particularly at the edges
 of regions populated by SPH particles) the indexing system identifies
 collisions, but the relatively small number of particles and correspondingly
-large "smoothing lengths" result in a large number of "fine" index values that
+large "smoothing lengths" result in a large number of "refined" index values that
 need to be set.
 
-Counterintuitively, this actually means that occasionally the "fine" indexing
+Counterintuitively, this actually means that occasionally the "refined" indexing
 process can take an inordinately long amount of time for *small* datasets,
 rather than large datasets.
 
-In these situations, it is typically sufficient to set the "fine" index order
+In these situations, it is typically sufficient to set the "refined" index order
 to be much lower than its default value.  For instance, setting the
 ``index_order`` to (5, 3) means that the full domain will be subdivided into 32
 bins in each dimension, and any "collision" zones will be further subdivided
