@@ -264,7 +264,7 @@ class EnzoEHierarchy(GridIndex):
 
     def _get_particle_type_counts(self):
         return {
-            ptype: sum([g.particle_count[ptype] for g in self.grids])
+            ptype: sum(g.particle_count[ptype] for g in self.grids)
             for ptype in self.ds.particle_types_raw
         }
 
@@ -306,6 +306,7 @@ class EnzoEDataset(Dataset):
         storage_filename=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
         """
         This class is a stripped down class that simply reads and parses
@@ -331,6 +332,7 @@ class EnzoEDataset(Dataset):
             file_style=file_style,
             units_override=units_override,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
 
     def _parse_parameter_file(self):

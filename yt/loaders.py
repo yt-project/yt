@@ -160,6 +160,7 @@ def load_uniform_grid(
     periodicity=(True, True, True),
     geometry="cartesian",
     unit_system="cgs",
+    default_species_fields=None,
 ):
     r"""Load a uniform grid of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
@@ -209,6 +210,9 @@ def load_uniform_grid(
         be z, x, y, this would be: ("cartesian", ("z", "x", "y")).  The same
         can be done for other coordinates, for instance:
         ("spherical", ("theta", "phi", "r")).
+    default_species_fields : string, optional
+        If set, default species fields are created for H and He which also
+        determine the mean molecular weight. Options are "ionized" and "neutral".
 
     Examples
     --------
@@ -338,7 +342,12 @@ def load_uniform_grid(
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    sds = StreamDataset(handler, geometry=geometry, unit_system=unit_system)
+    sds = StreamDataset(
+        handler,
+        geometry=geometry,
+        unit_system=unit_system,
+        default_species_fields=default_species_fields,
+    )
 
     # Now figure out where the particles go
     if number_of_particles > 0:
@@ -362,6 +371,7 @@ def load_amr_grids(
     geometry="cartesian",
     refine_by=2,
     unit_system="cgs",
+    default_species_fields=None,
 ):
     r"""Load a set of grids of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
@@ -420,6 +430,9 @@ def load_amr_grids(
         instance, this can be used to say that some datasets have refinement of
         1 in one dimension, indicating that they span the full range in that
         dimension.
+    default_species_fields : string, optional
+        If set, default species fields are created for H and He which also
+        determine the mean molecular weight. Options are "ionized" and "neutral".
 
     Examples
     --------
@@ -566,7 +579,12 @@ def load_amr_grids(
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    sds = StreamDataset(handler, geometry=geometry, unit_system=unit_system)
+    sds = StreamDataset(
+        handler,
+        geometry=geometry,
+        unit_system=unit_system,
+        default_species_fields=default_species_fields,
+    )
     return sds
 
 
@@ -583,6 +601,7 @@ def load_particles(
     geometry="cartesian",
     unit_system="cgs",
     data_source=None,
+    default_species_fields=None,
 ):
     r"""Load a set of particles into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamParticleHandler`.
@@ -626,6 +645,9 @@ def load_particles(
     data_source : YTSelectionContainer, optional
         If set, parameters like `bbox`, `sim_time`, and code units are derived
         from it.
+    default_species_fields : string, optional
+        If set, default species fields are created for H and He which also
+        determine the mean molecular weight. Options are "ionized" and "neutral".
 
     Examples
     --------
@@ -731,7 +753,12 @@ def load_particles(
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    sds = StreamParticlesDataset(handler, geometry=geometry, unit_system=unit_system)
+    sds = StreamParticlesDataset(
+        handler,
+        geometry=geometry,
+        unit_system=unit_system,
+        default_species_fields=default_species_fields,
+    )
 
     return sds
 
@@ -891,6 +918,7 @@ def load_octree(
     over_refine_factor=1,
     partial_coverage=1,
     unit_system="cgs",
+    default_species_fields=None,
 ):
     r"""Load an octree mask into yt.
 
@@ -933,6 +961,9 @@ def load_octree(
     partial_coverage : boolean
         Whether or not an oct can be refined cell-by-cell, or whether all
         8 get refined.
+    default_species_fields : string, optional
+        If set, default species fields are created for H and He which also
+        determine the mean molecular weight. Options are "ionized" and "neutral".
 
     Example
     -------
@@ -1019,7 +1050,9 @@ def load_octree(
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    sds = StreamOctreeDataset(handler, unit_system=unit_system)
+    sds = StreamOctreeDataset(
+        handler, unit_system=unit_system, default_species_fields=default_species_fields
+    )
     sds.octree_mask = octree_mask
     sds.partial_coverage = partial_coverage
     sds.over_refine_factor = over_refine_factor

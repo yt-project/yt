@@ -83,12 +83,8 @@ class IOHandlerBoxlib(BaseIOHandler):
             arr = arr.reshape(shape, order="F")
         return arr[
             tuple(
-                [
-                    slice(None)
-                    if (nghost[dim] == 0)
-                    else slice(nghost[dim], -nghost[dim])
-                    for dim in range(self.ds.dimensionality)
-                ]
+                slice(None) if (nghost[dim] == 0) else slice(nghost[dim], -nghost[dim])
+                for dim in range(self.ds.dimensionality)
             )
         ]
 

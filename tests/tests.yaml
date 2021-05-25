@@ -184,6 +184,7 @@ other_tests:
      - '--ignore-files=test_load_sample.py'
      - '--ignore-files=test_field_access_pytest.py'
      - '--ignore-files=test_ambiguous_fields.py'
+     - "--ignore-files=test_save.py"
      - '--exclude-test=yt.frontends.gdf.tests.test_outputs.TestGDF'
   cookbook:
      - 'doc/source/cookbook/tests/test_cookbook.py'

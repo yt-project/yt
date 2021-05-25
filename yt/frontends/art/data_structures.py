@@ -151,6 +151,7 @@ class ARTDataset(Dataset):
         file_particle_stars=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
         self.fluid_types += ("art",)
         if fields is None:
@@ -175,6 +176,7 @@ class ARTDataset(Dataset):
             dataset_type,
             units_override=units_override,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
         self.storage_filename = storage_filename
 

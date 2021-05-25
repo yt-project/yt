@@ -408,13 +408,13 @@ class BoxlibHierarchy(GridIndex):
             assert lev == level
             nsteps = int(next(header_file))  # NOQA
             for gi in range(ngrids):
-                xlo, xhi = [float(v) for v in next(header_file).split()]
+                xlo, xhi = (float(v) for v in next(header_file).split())
                 if self.dimensionality > 1:
-                    ylo, yhi = [float(v) for v in next(header_file).split()]
+                    ylo, yhi = (float(v) for v in next(header_file).split())
                 else:
                     ylo, yhi = default_ybounds
                 if self.dimensionality > 2:
-                    zlo, zhi = [float(v) for v in next(header_file).split()]
+                    zlo, zhi = (float(v) for v in next(header_file).split())
                 else:
                     zlo, zhi = default_zbounds
                 self.grid_left_edge[grid_counter + gi, :] = [xlo, ylo, zlo]
@@ -643,6 +643,7 @@ class BoxlibDataset(Dataset):
         storage_filename=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
         """
         The paramfile is usually called "inputs"
@@ -667,6 +668,7 @@ class BoxlibDataset(Dataset):
             dataset_type,
             units_override=units_override,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
 
         # These are still used in a few places.
@@ -740,7 +742,7 @@ class BoxlibDataset(Dataset):
             return
         for line in (line.split("#")[0].strip() for line in open(self.cparam_filename)):
             try:
-                param, vals = [s.strip() for s in line.split("=")]
+                param, vals = (s.strip() for s in line.split("="))
             except ValueError:
                 continue
             if param == "amr.n_cell":
@@ -797,7 +799,7 @@ class BoxlibDataset(Dataset):
         if self.fparam_filename is None:
             return
         for line in (l for l in open(self.fparam_filename) if "=" in l):
-            param, vals = [v.strip() for v in line.split("=")]
+            param, vals = (v.strip() for v in line.split("="))
             # Now, there are a couple different types of parameters.
             # Some will be where you only have floating point values, others
             # will be where things are specified as string literals.
@@ -1033,6 +1035,7 @@ class OrionDataset(BoxlibDataset):
         storage_filename=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
 
         BoxlibDataset.__init__(
@@ -1043,6 +1046,7 @@ class OrionDataset(BoxlibDataset):
             dataset_type,
             units_override=units_override,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
 
 
@@ -1085,6 +1089,7 @@ class CastroDataset(BoxlibDataset):
         storage_filename=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
 
         super().__init__(
@@ -1095,6 +1100,7 @@ class CastroDataset(BoxlibDataset):
             storage_filename,
             units_override,
             unit_system,
+            default_species_fields=default_species_fields,
         )
 
     def _parse_parameter_file(self):
@@ -1163,6 +1169,7 @@ class MaestroDataset(BoxlibDataset):
         storage_filename=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
 
         super().__init__(
@@ -1173,6 +1180,7 @@ class MaestroDataset(BoxlibDataset):
             storage_filename,
             units_override,
             unit_system,
+            default_species_fields=default_species_fields,
         )
 
     def _parse_parameter_file(self):
@@ -1253,6 +1261,7 @@ class NyxDataset(BoxlibDataset):
         storage_filename=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
 
         super().__init__(
@@ -1263,6 +1272,7 @@ class NyxDataset(BoxlibDataset):
             storage_filename,
             units_override,
             unit_system,
+            default_species_fields=default_species_fields,
         )
 
     def _parse_parameter_file(self):
@@ -1618,6 +1628,7 @@ class AMReXDataset(BoxlibDataset):
         storage_filename=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
 
         super().__init__(
@@ -1628,6 +1639,7 @@ class AMReXDataset(BoxlibDataset):
             storage_filename,
             units_override,
             unit_system,
+            default_species_fields=default_species_fields,
         )
 
     def _parse_parameter_file(self):

@@ -494,7 +494,7 @@ class YTIllDefinedParticleFilter(YTException):
             "are not defined for this dataset."
         )
         f = self.filter
-        return msg.format("\n".join([str(m) for m in self.missing]), f.name)
+        return msg.format("\n".join(str(m) for m in self.missing), f.name)
 
 
 class YTIllDefinedBounds(YTException):
@@ -597,7 +597,7 @@ class YTIllDefinedCutRegion(Exception):
         r = """Can't mix particle/discrete and fluid/mesh conditions or
                quantities.  Conditions specified:
             """
-        r += "\n".join([c for c in self.conditions])
+        r += "\n".join(c for c in self.conditions)
         return r
 
 
@@ -610,7 +610,7 @@ class YTMixedCutRegion(Exception):
         r = f"""Can't mix particle/discrete and fluid/mesh conditions or
                quantities.  Field: {self.field} and Conditions specified:
             """
-        r += "\n".join([c for c in self.conditions])
+        r += "\n".join(c for c in self.conditions)
         return r
 
 

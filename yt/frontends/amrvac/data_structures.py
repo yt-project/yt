@@ -144,6 +144,7 @@ class AMRVACDataset(Dataset):
         unit_system="cgs",
         geometry_override=None,
         parfiles=None,
+        default_species_fields=None,
     ):
         """Instanciate AMRVACDataset.
 
@@ -180,6 +181,7 @@ class AMRVACDataset(Dataset):
             dataset_type,
             units_override=units_override,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
 
         self._parfiles = parfiles
