@@ -2035,6 +2035,11 @@ The ``load_particles`` function also accepts the following keyword parameters:
 ``bbox``
        The bounding box for the particle positions.
 
+.. _smooth-non-sph:
+
+Adding Smoothing Lengths for Non-SPH Particles
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 A novel use of the ``load_particles`` function is to facilitate SPH
 visualization of non-SPH particles. See the example below:
 

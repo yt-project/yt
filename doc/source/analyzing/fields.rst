@@ -727,6 +727,9 @@ Possible deposition methods are:
 In addition, the :meth:`~yt.data_objects.static_outputs.add_deposited_particle_field` function
 returns the name of the newly created field.
 
+Deposited particle fields can be useful for visualizing particle data, including
+particles without defined smoothing lengths. See :ref:`particle-plotting-workarounds`
+for more information.
 
 .. _mesh-sampling-particle-fields:
 
