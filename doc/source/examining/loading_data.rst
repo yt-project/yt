@@ -1684,6 +1684,21 @@ functionality:
 Particle data are supported and are always stored in the same file as the grid
 data.
 
+For special relativistic simulations, both the gamma-law and Taub-Mathews EOSes
+are supported, and the following fields are defined:
+
+* ``("gas", "density")``: Comoving rest-mass density :math:`\rho`
+* ``("gas", "frame_density")``: Coordinate-frame density :math:`D = \gamma\rho`
+* ``("gas", "gamma")``: Ratio of specific heats :math:`\Gamma`
+* ``("gas", "four_velocity_[txyz]")``: Four-velocity fields :math:`U_t, U_x, U_y, U_z`
+* ``("gas", "lorentz_factor")``: Lorentz factor :math:`\gamma = \sqrt{1+U_iU^i/c^2}`
+  (where :math:`i` runs over the spatial indices)
+
+These, and other fields following them (3-velocity, energy densities, etc.) are
+computed in the same manner as in the
+`GAMER-SR paper <https://ui.adsabs.harvard.edu/abs/2021MNRAS.504.3298T/abstract>`_
+to avoid catastrophic cancellations.
+
 .. rubric:: Caveats
 
 * GAMER data in raw binary format (i.e., ``OPT__OUTPUT_TOTAL = "C-binary"``) is not
