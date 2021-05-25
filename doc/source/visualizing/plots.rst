@@ -558,8 +558,8 @@ objects listed above. Then, use the
 function (see :ref:`saving_data`) to save a deposited particle field
 (see :ref:`deposited-particle-fields`) as a reloadable dataset. This dataset
 can then be loaded and visualized using both off-axis projections and slices.
-Note, the change in the field name from `("deposit", "nbody_mass")` to
-`("grid", "nbody_mass")` after reloading.
+Note, the change in the field name from ``("deposit", "nbody_mass")`` to
+``("grid", "nbody_mass")`` after reloading.
 
 .. python-script::
 
