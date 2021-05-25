@@ -73,6 +73,7 @@ answer_tests:
     - yt/frontends/gamer/tests/test_outputs.py:test_psiDM
     - yt/frontends/gamer/tests/test_outputs.py:test_plummer
     - yt/frontends/gamer/tests/test_outputs.py:test_mhdvortex
+    - yt/frontends/gamer/tests/test_outputs.py:test_jiw
 
   local_gdf_002:
     - yt/frontends/gdf/tests/test_outputs_nose.py:test_sedov_tunnel
