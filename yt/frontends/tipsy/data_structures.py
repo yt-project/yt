@@ -118,7 +118,7 @@ class TipsyDataset(SPHDataset):
         # the snapshot time and particle counts.
 
         f = open(self.parameter_filename, "rb")
-        hh = self.endian + "".join(["%s" % (b) for a, b in self._header_spec])
+        hh = self.endian + "".join("%s" % (b) for a, b in self._header_spec)
         hvals = {
             a: c
             for (a, b), c in zip(

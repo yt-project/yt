@@ -167,7 +167,7 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
     else:
         sl_left, sl_right, div_fac = slice_info
 
-    xn, yn, zn = [(ftype, f"{basename}_{ax}") for ax in "xyz"]
+    xn, yn, zn = ((ftype, f"{basename}_{ax}") for ax in "xyz")
 
     # Is this safe?
     if registry.ds.dimensionality < 3:

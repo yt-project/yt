@@ -126,7 +126,7 @@ class EnzoGridGZ(EnzoGrid):
             end_zone = None
         else:
             end_zone = -(NGZ - n_zones)
-        sl = tuple([slice(start_zone, end_zone) for i in range(3)])
+        sl = tuple(slice(start_zone, end_zone) for i in range(3))
         if fields is None:
             return cube
         for field in iter_fields(fields):

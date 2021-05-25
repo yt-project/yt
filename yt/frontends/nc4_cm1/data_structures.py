@@ -132,7 +132,7 @@ class CM1Dataset(Dataset):
             # are only handling the cell-centered grid ("xh","yh","zh") at present.
             # The cell-centered grid contains scalar fields and interpolated velocities.
             dims = [_handle.dimensions[i].size for i in ["xh", "yh", "zh"]]
-            xh, yh, zh = [_handle.variables[i][:] for i in ["xh", "yh", "zh"]]
+            xh, yh, zh = (_handle.variables[i][:] for i in ["xh", "yh", "zh"])
             self.domain_left_edge = np.array(
                 [xh.min(), yh.min(), zh.min()], dtype="float64"
             )
