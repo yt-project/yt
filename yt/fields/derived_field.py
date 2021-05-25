@@ -193,9 +193,6 @@ class DerivedField:
             dimensions = getattr(ytdims, dimensions)
         self.dimensions = dimensions
 
-        if self.display_name is None:
-            self.display_name = self.get_latex_display_name()
-
     def _copy_def(self):
         dd = {}
         dd["name"] = self.name

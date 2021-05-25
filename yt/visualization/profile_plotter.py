@@ -1017,9 +1017,9 @@ class PhasePlot(ImagePlotContainer):
         field_name = field_info.display_name
         if isinstance(field, tuple):
             field = field[1]
+
         if field_name is None:
-            field_name = r"$\rm{" + field + r"}$"
-            field_name = r"$\rm{" + field.replace("_", r"\ ").title() + r"}$"
+            field_name = field_info.get_latex_display_name()
         elif field_name.find("$") == -1:
             field_name = field_name.replace(" ", r"\ ")
             field_name = r"$\rm{" + field_name + r"}$"
@@ -1074,6 +1074,7 @@ class PhasePlot(ImagePlotContainer):
             zlim = (None, None)
             xlim = self._xlim
             ylim = self._ylim
+
             if f in self.plots:
                 draw_colorbar = self.plots[f]._draw_colorbar
                 draw_axes = self.plots[f]._draw_axes
