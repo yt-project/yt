@@ -1,4 +1,5 @@
 # We need this file mostly because of Cartopy..
+--pre
 numpy>=1.19.4
 cython>=0.29.21
 
