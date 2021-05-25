@@ -555,15 +555,24 @@ class PlotContainer:
         names = []
         if mpl_kwargs is None:
             mpl_kwargs = {}
-        if isinstance(name, (tuple, list)):
-            name = os.path.join(*name)
+
         if name is None:
             name = str(self.ds)
+
+        # ///// Magic area. Muggles, keep out !
+        if isinstance(name, (tuple, list)):
+            name = os.path.join(*name)
+
         name = os.path.expanduser(name)
-        if name[-1] == os.sep and not os.path.isdir(name):
-            ensure_dir(name)
-        if os.path.isdir(name) and name != str(self.ds):
-            name = name + (os.sep if name[-1] != os.sep else "") + str(self.ds)
+
+        parent_dir, _, prefix1 = name.replace(os.sep, "/").rpartition("/")
+        parent_dir = parent_dir.replace("/", os.sep)
+
+        if parent_dir and not os.path.isdir(parent_dir):
+            ensure_dir(parent_dir)
+
+        if name.endswith(("/", os.path.sep)):
+            name = os.path.join(name, str(self.ds))
 
         new_name = validate_image_name(name, suffix)
         if new_name == name:
