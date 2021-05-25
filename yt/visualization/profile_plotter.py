@@ -740,7 +740,7 @@ class ProfilePlot(PlotContainer):
         elif field_unit is None or field_unit == "":
             label = field_name
         else:
-            label = field_name + r"$\ \ (" + field_unit + r")$"
+            label = field_name + r"$\ \ \left(" + field_unit + r"\right)$"
         return label
 
     def _get_field_title(self, field_y, profile):
