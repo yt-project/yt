@@ -730,8 +730,7 @@ class ProfilePlot(PlotContainer):
         if isinstance(field, tuple):
             field = field[1]
         if field_name is None:
-            field_name = r"$\rm{" + field + r"}$"
-            field_name = r"$\rm{" + field.replace("_", r"\ ").title() + r"}$"
+            field_name = field_info.get_latex_display_name()
         elif field_name.find("$") == -1:
             field_name = field_name.replace(" ", r"\ ")
             field_name = r"$\rm{" + field_name + r"}$"
@@ -1017,7 +1016,6 @@ class PhasePlot(ImagePlotContainer):
         field_name = field_info.display_name
         if isinstance(field, tuple):
             field = field[1]
-
         if field_name is None:
             field_name = field_info.get_latex_display_name()
         elif field_name.find("$") == -1:
@@ -1028,7 +1026,7 @@ class PhasePlot(ImagePlotContainer):
         elif field_unit is None or field_unit == "":
             label = field_name
         else:
-            label = field_name + r"$\ \ (" + field_unit + r")$"
+            label = field_name + r"$\ \ \left(" + field_unit + r"\right)$"
         return label
 
     def _get_field_log(self, field_z, profile):
