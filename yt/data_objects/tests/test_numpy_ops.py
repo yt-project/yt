@@ -148,7 +148,12 @@ def test_argmin():
         if nprocs == -1:
             ds = fake_amr_ds(fields=fields, units=units)
         else:
-            ds = fake_random_ds(32, nprocs=nprocs, fields=fields, units=units,)
+            ds = fake_random_ds(
+                32,
+                nprocs=nprocs,
+                fields=fields,
+                units=units,
+            )
 
         ad = ds.all_data()
 
@@ -176,7 +181,12 @@ def test_argmax():
         if nprocs == -1:
             ds = fake_amr_ds(fields=fields, units=units)
         else:
-            ds = fake_random_ds(32, nprocs=nprocs, fields=fields, units=units,)
+            ds = fake_random_ds(
+                32,
+                nprocs=nprocs,
+                fields=fields,
+                units=units,
+            )
 
         ad = ds.all_data()
 

@@ -13,8 +13,14 @@ def test_multi_mesh():
 
     data1 = {}
     data2 = {}
-    data1["connect1", "test"] = np.array([[0.0, 1.0, 3.0]], dtype=np.float64,)
-    data2["connect2", "test"] = np.array([[1.0, 2.0, 3.0]], dtype=np.float64,)
+    data1["connect1", "test"] = np.array(
+        [[0.0, 1.0, 3.0]],
+        dtype=np.float64,
+    )
+    data2["connect2", "test"] = np.array(
+        [[1.0, 2.0, 3.0]],
+        dtype=np.float64,
+    )
 
     connectList = [connect1, connect2]
     dataList = [data1, data2]

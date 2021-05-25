@@ -68,7 +68,8 @@ def test_load_simulation_unidentified_data_file(tmp_path_with_empty_file):
     tmp_path, empty_file_path = tmp_path_with_empty_file
     with pytest.raises(YTSimulationNotIdentified):
         load_simulation(
-            empty_file_path, "unregistered_simulation_type",
+            empty_file_path,
+            "unregistered_simulation_type",
         )
 
 

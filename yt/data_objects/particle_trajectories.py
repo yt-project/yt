@@ -245,7 +245,8 @@ class ParticleTrajectories:
         step = int(0)
         fields_str = ", ".join(str(f) for f in missing_fields)
         pbar = get_pbar(
-            f"Generating [{fields_str}] fields in trajectories", self.num_steps,
+            f"Generating [{fields_str}] fields in trajectories",
+            self.num_steps,
         )
 
         # Note: we explicitly pass dynamic=False to prevent any change in piter from

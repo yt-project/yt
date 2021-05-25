@@ -81,7 +81,8 @@ class EnzoEIOHandler(BaseIOHandler):
                     f = h5py.File(g.filename, mode="r")
                 if g.particle_count is None:
                     fnstr = "{}/{}".format(
-                        g.block_name, self._sep.join(["particle", "%s", "%s"]),
+                        g.block_name,
+                        self._sep.join(["particle", "%s", "%s"]),
                     )
                     g.particle_count = {
                         ptype: f.get(fnstr % (ptype, self.sample_pfields[ptype])).size

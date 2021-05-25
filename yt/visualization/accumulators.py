@@ -98,7 +98,7 @@ def _accumulate_scalar_field(p, field_vals):
     p : YTArray
         The path to be integrated along
 
-    fieldVals : YTArray
+    field_vals : YTArray
         An array containing the values of the scalar field to be
         integrated at the location of the starting point of each
         path segment as well as the endpoint for the last segment
@@ -253,7 +253,7 @@ class Accumulators:
             # Make sure point is within domain
             left_check = path[idx] < self.left_edge
             right_check = path[idx] >= self.right_edge
-            if np.sum(np.logical_or(left_check, right_check)):
+            if np.any(left_check | right_check):
                 msg = f"Point `{path[idx]}` at index `{idx}` outside domain bounds."
                 msg += f"LE: `{self.left_edge}`, RE: `{self.right_edge}`"
                 raise ValueError(msg)

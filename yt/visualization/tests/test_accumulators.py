@@ -3,7 +3,6 @@ import pytest
 
 from yt.visualization.accumulators import Accumulators
 
-
 g30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
 
 

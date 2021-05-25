@@ -1347,7 +1347,8 @@ class YTDataContainer:
         for i in self._con_args:
             try:
                 s += ", {}={}".format(
-                    i, getattr(self, i).in_base(unit_system=self.ds.unit_system),
+                    i,
+                    getattr(self, i).in_base(unit_system=self.ds.unit_system),
                 )
             except AttributeError:
                 s += f", {i}={getattr(self, i)}"

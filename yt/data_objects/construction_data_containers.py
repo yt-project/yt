@@ -694,7 +694,11 @@ class YTCoveringGrid(YTSelectionContainer3D):
         coords = {}
         for f in fields or self.field_data.keys():
             data[f] = {
-                "dims": ("x", "y", "z",),
+                "dims": (
+                    "x",
+                    "y",
+                    "z",
+                ),
                 "data": self[f],
                 "attrs": {"units": str(self[f].uq)},
             }

@@ -213,7 +213,12 @@ class TestParticlePhasePlotSave(unittest.TestCase):
             for x_field, y_field, z_fields in PHASE_FIELDS:
                 particle_phases.append(
                     ParticlePhasePlot(
-                        source, x_field, y_field, z_fields, x_bins=16, y_bins=16,
+                        source,
+                        x_field,
+                        y_field,
+                        z_fields,
+                        x_bins=16,
+                        y_bins=16,
                     )
                 )
 
