@@ -738,8 +738,10 @@ class ProfilePlot(PlotContainer):
             label = field_name + r"$\rm{\ Probability\ Density}$"
         elif field_unit is None or field_unit == "":
             label = field_name
-        else:
+        elif "frac" in field_unit:
             label = field_name + r"$\ \ \left(" + field_unit + r"\right)$"
+        else:
+            label = field_name + r"$\ \ (" + field_unit + r")$"
         return label
 
     def _get_field_title(self, field_y, profile):
@@ -1025,8 +1027,10 @@ class PhasePlot(ImagePlotContainer):
             label = field_name + r"$\rm{\ Probability\ Density}$"
         elif field_unit is None or field_unit == "":
             label = field_name
-        else:
+        elif "frac" in field_unit:
             label = field_name + r"$\ \ \left(" + field_unit + r"\right)$"
+        else:
+            label = field_name + r"$\ \ (" + field_unit + r")$"
         return label
 
     def _get_field_log(self, field_z, profile):
