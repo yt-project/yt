@@ -1279,13 +1279,12 @@ def load_sample(
     This is a simple wrapper around `yt.load` to include fetching
     data with pooch from remote source.
 
-    yt sample data can be found at:
-    https://yt-project.org/data.
-
     The data registry table can be retrieved and visualized using
     `yt.sample_data.api.get_data_registry_table()`.
-
-    This function requires pandas and pooch to be installed.
+    The `filename` column therin contains usable keys that can be passed
+    as the first positional argument to `load_sample`.
+    Some data samples contain series of datasets. It may be required to
+    supply the relative path to a specific dataset.
 
     Parameters
     ----------
@@ -1303,6 +1302,7 @@ def load_sample(
 
     Notes
     -----
+    - This function is experimental as of yt 4.0.0, do not rely on its exact behaviour.
     - Any additional keyword argument is passed down to `yt.load`.
     - In case of collision with predefined keyword arguments as set in
     the data registry, the ones passed to this function take priority.
@@ -1310,6 +1310,8 @@ def load_sample(
       On the contrary, paths using backslashes '\' won't work outside of Windows, so
       it is recommended to favour the UNIX convention ('/') in scripts that are meant
       to be cross-platform.
+    - This function is requires pandas and pooch.
+    - Corresponding data lives in https://yt-project.org/data
     """
 
     if fn is None:
