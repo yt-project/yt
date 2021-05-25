@@ -19,10 +19,22 @@ backend.
    development process to refer to removing a global (octree) mesh for
    particle codes.
 
-Effectively, what this does is allow yt to treat the particles as discrete
-objects (or with an area of influence) and use their positions in a multi-level
-index to optimize and minimize the disk operations necessary to load only those
-particles it needs.
+By avoiding the use of octrees as a base mesh, yt is able to create *much* more
+accurate SPH visualizations.  We have a `gallery demonstrating
+this<https://matthewturk.github.io/yt4-gallery/>`_ but even in this
+side-by-side comparison the differences can be seen quite easily, with the left
+image being from the old, octree-based approach and the right image the new,
+meshless approach.
+
+.. image:: _images/yt3_p0010_proj_density_None_x_z002.png
+   :width: 45 %
+.. image:: _images/yt4_p0010_proj_density_None_x_z002.png
+   :width: 45 %
+
+Effectively, what "the demeshening" does is allow yt to treat the particles as
+discrete objects (or with an area of influence) and use their positions in a
+multi-level index to optimize and minimize the disk operations necessary to
+load only those particles it needs.
 
 .. note::
 
