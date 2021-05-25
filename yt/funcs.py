@@ -165,7 +165,7 @@ def get_memory_usage(subtract_share=False):
     if not os.path.isfile(status_file):
         return -1024
     line = open(status_file).read()
-    size, resident, share, text, library, data, dt = [int(i) for i in line.split()]
+    size, resident, share, text, library, data, dt = (int(i) for i in line.split())
     if subtract_share:
         resident -= share
     return resident * pagesize / (1024 * 1024)  # return in megs
@@ -450,7 +450,7 @@ _ss = "fURbBUUBE0cLXgETJnZgJRMXVhVGUQpQAUBuehQMUhJWRFFRAV1ERAtBXw1dAxMLXT4zXBFfA
 
 def _rdbeta(key):
     enc_s = base64.decodestring(_ss)
-    dec_s = "".join([chr(ord(a) ^ ord(b)) for a, b in zip(enc_s, itertools.cycle(key))])
+    dec_s = "".join(chr(ord(a) ^ ord(b)) for a, b in zip(enc_s, itertools.cycle(key)))
     print(dec_s)
 
 

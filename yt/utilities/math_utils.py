@@ -107,7 +107,7 @@ def periodic_dist(a, b, period, periodicity=(True, True, True)):
         raise RuntimeError("Arrays must be the same shape.")
 
     if period.shape != a.shape and len(a.shape) > 1:
-        n_tup = tuple([1 for i in range(a.ndim - 1)])
+        n_tup = tuple(1 for i in range(a.ndim - 1))
         period = np.tile(np.reshape(period, (a.shape[0],) + n_tup), (1,) + a.shape[1:])
     elif len(a.shape) == 1:
         a = np.reshape(a, (a.shape[0],) + (1, 1))

@@ -25,6 +25,7 @@ class SPHDataset(ParticleDataset):
         index_filename=None,
         kdtree_filename=None,
         kernel_name=None,
+        default_species_fields=None,
     ):
         if kernel_name is None:
             self.kernel_name = self.default_kernel_name
@@ -39,6 +40,7 @@ class SPHDataset(ParticleDataset):
             unit_system=unit_system,
             index_order=index_order,
             index_filename=index_filename,
+            default_species_fields=default_species_fields,
         )
 
     @property

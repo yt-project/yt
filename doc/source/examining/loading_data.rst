@@ -1258,6 +1258,11 @@ where :math:`n_e` and :math:`n_i` are the electron and ion number densities,
 Gadget Data
 -----------
 
+.. note::
+
+   For more information about how yt indexes and reads particle data, set the
+   section :ref:`demeshening`.
+
 yt has support for reading Gadget data in both raw binary and HDF5 formats.  It
 is able to access the particles as it would any other particle dataset, and it
 can apply smoothing kernels to the data to produce both quantitative analysis
@@ -1586,6 +1591,11 @@ yt will utilize length, mass and time to set up all other units.
 SWIFT Data
 ----------
 
+.. note::
+
+   For more information about how yt indexes and reads particle data, set the
+   section :ref:`demeshening`.
+
 yt has support for reading in SWIFT data from the HDF5 file format. It is able
 to access all particles and fields which are stored on-disk and it is also able
 to generate derived fields, i.e, linear momentum from on-disk fields.
@@ -1606,6 +1616,11 @@ SWIFT data in HDF5 format can be loaded with the ``load`` command:
 
 Arepo Data
 ----------
+
+.. note::
+
+   For more information about how yt indexes and reads discrete data, set the
+   section :ref:`demeshening`.
 
 Arepo data is currently treated as SPH data. The gas cells have smoothing lengths
 assigned using the following prescription for a given gas cell :math:`i`:
@@ -1985,6 +2000,11 @@ mesh will have the type ``connect1``, fields on the second will have ``connect2`
 Generic Particle Data
 ---------------------
 
+.. note::
+
+   For more information about how yt indexes and reads particle data, set the
+   section :ref:`demeshening`.
+
 See :ref:`generic-particle-data` and
 :func:`~yt.frontends.stream.data_structures.load_particles` for more detail.
 
@@ -2074,6 +2094,11 @@ SPH visualization to work.
 Gizmo Data
 ----------
 
+.. note::
+
+   For more information about how yt indexes and reads particle data, set the
+   section :ref:`demeshening`.
+
 Gizmo datasets, including FIRE outputs, can be loaded into yt in the usual
 manner.  Like other SPH data formats, yt loads Gizmo data as particle fields
 and then uses smoothing kernels to deposit those fields to an underlying
@@ -2111,6 +2136,11 @@ Gadget outputs.  See :ref:`loading-gadget-data` for more information.
 
 Halo Catalog Data
 -----------------
+
+.. note::
+
+   For more information about how yt indexes and reads particle data, set the
+   section :ref:`demeshening`.
 
 yt has support for reading halo catalogs produced by the AdaptaHOP, Amiga Halo
 Finder (AHF), Rockstar and the inline FOF/SUBFIND halo finders of Gadget and
@@ -2880,6 +2910,11 @@ dark matter particles.
 SPH Particle Data
 -----------------
 
+.. note::
+
+   For more information about how yt indexes and reads particle data, set the
+   section :ref:`demeshening`.
+
 For all of the SPH frontends, yt uses cython-based SPH smoothing onto an
 in-memory octree to create deposited mesh fields from individual SPH particle
 fields.
@@ -2901,6 +2936,11 @@ lower resolution.
 
 Tipsy Data
 ----------
+
+.. note::
+
+   For more information about how yt indexes and reads particle data, set the
+   section :ref:`demeshening`.
 
 See :ref:`tipsy-notebook` and :ref:`loading-sph-data` for more details.
 

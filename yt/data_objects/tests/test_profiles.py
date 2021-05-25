@@ -34,7 +34,7 @@ def test_profiles():
     e1, e2 = 0.9, 1.1
     for nb in [8, 16, 32, 64]:
         for input_units in ["mks", "cgs"]:
-            (rmi, rma), (tmi, tma), (dmi, dma) = [
+            (rmi, rma), (tmi, tma), (dmi, dma) = (
                 getattr(ex, f"in_{input_units}")()
                 for ex in dd.quantities["Extrema"](
                     [
@@ -43,7 +43,7 @@ def test_profiles():
                         ("stream", "dinosaurs"),
                     ]
                 )
-            ]
+            )
             # We log all the fields or don't log 'em all.  No need to do them
             # individually.
             for lf in [True, False]:

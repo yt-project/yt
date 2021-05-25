@@ -161,7 +161,7 @@ class TransferFunctionHelper:
             xfunc = np.linspace
             # Need to strip units off of the bounds to avoid a recursion error
             # in matplotlib 1.3.1
-            xmi, xma = [np.float64(b) for b in self.bounds]
+            xmi, xma = (np.float64(b) for b in self.bounds)
 
         x = xfunc(xmi, xma, tf.nbins)
         y = tf.funcs[3].y
