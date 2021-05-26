@@ -1314,7 +1314,7 @@ def load_sample(
 
     The data registry table can be retrieved and visualized using
     `yt.sample_data.api.get_data_registry_table()`.
-    The `filename` column therin contains usable keys that can be passed
+    The `filename` column contains usable keys that can be passed
     as the first positional argument to `load_sample`.
     Some data samples contain series of datasets. It may be required to
     supply the relative path to a specific dataset.
