@@ -1343,8 +1343,8 @@ def load_sample(
       On the contrary, paths using backslashes '\' won't work outside of Windows, so
       it is recommended to favour the UNIX convention ('/') in scripts that are meant
       to be cross-platform.
-    - This function is requires pandas and pooch.
-    - Corresponding data lives in https://yt-project.org/data
+    - This function requires pandas and pooch.
+    - Corresponding sample data live at https://yt-project.org/data
     """
 
     if fn is None:
