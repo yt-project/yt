@@ -6,6 +6,7 @@ import os
 import sys
 import tarfile
 from pathlib import Path
+from typing import Optional
 from urllib.parse import urlsplit
 
 import numpy as np
@@ -1302,20 +1303,21 @@ def load_unstructured_mesh(
 
 
 # --- Loader for yt sample datasets ---
-def load_sample(fn=None, progressbar: bool = True, timeout=None, **kwargs):
+def load_sample(
+    fn: Optional[str] = None, progressbar: bool = True, timeout=None, **kwargs
+):
     """
     Load sample data with yt.
 
     This is a simple wrapper around `yt.load` to include fetching
     data with pooch from remote source.
 
-    yt sample data can be found at:
-    https://yt-project.org/data.
-
     The data registry table can be retrieved and visualized using
     `yt.sample_data.api.get_data_registry_table()`.
-
-    This function requires pandas and pooch to be installed.
+    The `filename` column contains usable keys that can be passed
+    as the first positional argument to `load_sample`.
+    Some data samples contain series of datasets. It may be required to
+    supply the relative path to a specific dataset.
 
     Parameters
     ----------
@@ -1331,9 +1333,18 @@ def load_sample(fn=None, progressbar: bool = True, timeout=None, **kwargs):
         `None` means "no limit". This parameter is directly passed to down to
         requests.get via pooch.HTTPDownloader
 
-    Any additional keyword argument is passed down to `yt.load`.
-    Note that in case of collision with predefined keyword arguments as set in
+    Notes
+    -----
+    - This function is experimental as of yt 4.0.0, do not rely on its exact behaviour.
+    - Any additional keyword argument is passed down to `yt.load`.
+    - In case of collision with predefined keyword arguments as set in
     the data registry, the ones passed to this function take priority.
+    - Datasets with slashes '/' in their names can safely be used even on Windows.
+      On the contrary, paths using backslashes '\' won't work outside of Windows, so
+      it is recommended to favour the UNIX convention ('/') in scripts that are meant
+      to be cross-platform.
+    - This function requires pandas and pooch.
+    - Corresponding sample data live at https://yt-project.org/data
     """
 
     if fn is None:
@@ -1352,7 +1363,12 @@ def load_sample(fn=None, progressbar: bool = True, timeout=None, **kwargs):
 
     pooch_logger = pooch.utils.get_logger()
 
-    topdir, _, specific_file = str(fn).partition(os.path.sep)
+    # normalize path for platform portability
+    # for consistency with yt.load, we also convert to str explicitly,
+    # which gives us support Path objects for free
+    fn = str(fn).replace("/", os.path.sep)
+
+    topdir, _, specific_file = fn.partition(os.path.sep)
 
     registry_table = get_data_registry_table()
     # PR 3089
@@ -1369,9 +1385,10 @@ def load_sample(fn=None, progressbar: bool = True, timeout=None, **kwargs):
     except IndexError as err:
         raise KeyError(f"Could not find '{fn}' in the registry.") from err
 
-    if not specs["load_name"]:
+    load_name = specific_file or specs["load_name"]
+    if not load_name:
         raise ValueError(
-            "Registry appears to be corrupted: could not find a 'load_name' entry for this dataset."
+            "Missing a 'load_name' entry for this dataset. This may be fixed by requesting the full path of the loadable file."
         )
 
     if not isinstance(specs["load_kwargs"], dict):
@@ -1384,28 +1401,21 @@ def load_sample(fn=None, progressbar: bool = True, timeout=None, **kwargs):
 
     kwargs = {**specs["load_kwargs"], **kwargs}
 
-    try:
-        data_dir = lookup_on_disk_data(fn)
-    except FileNotFoundError:
-        mylog.info("'%s' is not available locally. Looking up online.", fn)
-    else:
+    save_dir = _get_test_data_dir_path()
+
+    data_path = save_dir.joinpath(fn)
+    if data_path.exists():
         # if the data is already available locally, `load_sample`
         # only acts as a thin wrapper around `load`
-        loadable_path = data_dir.joinpath(specs["load_name"], specific_file)
-        mylog.info("Sample dataset found in '%s'", data_dir)
+        appendum = specific_file or specs["load_name"]
+        if appendum not in str(data_path):
+            data_path = data_path.joinpath(appendum)
+        mylog.info("Sample dataset found in '%s'", data_path)
         if timeout is not None:
             mylog.info("Ignoring the `timeout` keyword argument received.")
-        return load(loadable_path, **kwargs)
+        return load(data_path, **kwargs)
 
-    try:
-        save_dir = _get_test_data_dir_path()
-        assert save_dir.is_dir()
-    except (OSError, AssertionError):
-        mylog.warning(
-            "yt test data directory is not properly set up. "
-            "Data will be saved to the current work directory instead."
-        )
-        save_dir = Path.cwd()
+    mylog.info("'%s' is not available locally. Looking up online.", fn)
 
     # effectively silence the pooch's logger and create our own log instead
     pooch_logger.setLevel(100)
@@ -1430,9 +1440,11 @@ def load_sample(fn=None, progressbar: bool = True, timeout=None, **kwargs):
     else:
         os.replace(tmp_file, save_dir)
 
-    loadable_path = Path.joinpath(save_dir, fn, specs["load_name"], specific_file)
+    loadable_path = Path.joinpath(save_dir, fn)
+    if not specs["load_name"] in str(loadable_path):
+        loadable_path = loadable_path.joinpath(specs["load_name"], specific_file)
 
     if specific_file and not loadable_path.exists():
-        raise ValueError(f"Could not find file '{specific_file}'.")
+        raise ValueError(f"Could not find file '{loadable_path}'.")
 
     return load(loadable_path, **kwargs)
