@@ -523,6 +523,57 @@ simply pass ``all`` as the first argument of the field tuple:
    sl = yt.SlicePlot(ds, "z", ("all", "diffused"))
    sl.save()
 
+.. _particle-plotting-workarounds:
+
+Additional Notes for Plotting Particle Data
+-------------------------------------------
+
+Below are some important caveats to note when visualizing particle data.
+
+1. Off axis slice plotting is not available for any particle data.
+   However, axis-aligned slice plots (as described in :ref:`slice-plots`)
+   will work.
+
+2. Off axis projections (as in :ref:`off-axis-projection`) will only work
+   for SPH particles, i.e., particles that have a defined smoothing length.
+
+Two workaround methods are available for plotting non-SPH particles with off-axis
+projections.
+
+1. :ref:`smooth-non-sph` - this method involves extracting particle data to be
+   reloaded with :ref:`~yt.loaders.load_particles` and using the
+   :ref:`~yt.frontends.stream.data_structures.add_SPH_fields` function to
+   create smoothing lengths. This works well for relatively small datasets,
+   but is not parallelized and may take too long for larger data.
+
+2. Plot from a saved
+   :class:`~yt.data_objects.construction_data_containers.YTCoveringGrid`,
+   :class:`~yt.data_objects.construction_data_containers.YTSmoothedCoveringGrid`,
+   or :class:`~yt.data_objects.construction_data_containers.YTArbitraryGrid`
+   dataset.
+
+This second method is illustrated below. First, construct one of the grid data
+objects listed above. Then, use the
+:func:`~yt.data_objects.data_containers.YTDataContainer.save_as_dataset`
+function (see :ref:`saving_data`) to save a deposited particle field
+(see :ref:`deposited-particle-fields`) as a reloadable dataset. This dataset
+can then be loaded and visualized using both off-axis projections and slices.
+Note, the change in the field name from ``("deposit", "nbody_mass")`` to
+``("grid", "nbody_mass")`` after reloading.
+
+.. python-script::
+
+   import yt
+
+   ds = yt.load("gadget_cosmology_plus/snap_N128L16_132.hdf5")
+   # create a 128^3 covering grid over the entire domain
+   L = 7
+   cg = ds.covering_grid(level=L, left_edge=ds.domain_left_edge, dims=[2**L]*3)
+
+   fn = cg.save_as_dataset(fields=[("deposit", "nbody_mass")])
+   ds_grid = yt.load(fn)
+   p = yt.OffAxisProjectionPlot(ds_grid, [1, 1, 1], ("grid", "nbody_mass"))
+   p.save()
 
 Plot Customization: Recentering, Resizing, Colormaps, and More
 --------------------------------------------------------------
