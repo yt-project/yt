@@ -242,7 +242,7 @@ Minor Enhancements and Bugfixes
   see `PR 2270 <https://github.com/yt-project/yt/pull/2270>`__.
 - raise a meaningful error on negative and zero zooming factors,
   see `PR 2443 <https://github.com/yt-project/yt/pull/2443>`__.
-- ensure Datasets are consistent in their `min_level` attribute.
+- ensure Datasets are consistent in their ``min_level`` attribute.
   See `PR 2478 <https://github.com/yt-project/yt/pull/2478>`__.
 - adding matplotlib to trove classifiers  `PR 2473 <https://github.com/yt-project/yt/pull/2473>`__.
 - Add support for saving additional formats supported by
@@ -272,14 +272,14 @@ Minor Enhancements and Bugfixes
   loaded with ``unit_system="code"``  `PR 2354 <https://github.com/yt-project/yt/pull/2354>`__.
 - deprecate ``ImagePlotContainer.set_cbar_minorticks``. See
   `PR 2444 <https://github.com/yt-project/yt/pull/2444>`__.
-- enzo-p frontend bugfix for single block datasets. See
+- enzo-e frontend bugfix for single block datasets. See
   `PR 2424 <https://github.com/yt-project/yt/pull/2424>`__.
 - explicitly default to solid lines in contour callback. See
   `PR 2330 <https://github.com/yt-project/yt/pull/2330>`__.
 - replace all bare ``Except`` statements `PR 2474 <https://github.com/yt-project/yt/pull/2474>`__.
 - fix an inconsistency between ``argmax`` and ``argmin`` methods in
   YTDataContainer class  `PR 2457 <https://github.com/yt-project/yt/pull/2457>`__.
-- fixed extra extension added by `ImageArray.save()`. See
+- fixed extra extension added by ``ImageArray.save()``. See
   `PR 2364 <https://github.com/yt-project/yt/pull/2364>`__.
 - fix incorrect usage of ``is`` comparison with ``==`` comparison throughout the codebase
   `PR 2351 <https://github.com/yt-project/yt/pull/2351>`__.
@@ -342,7 +342,7 @@ CI related support
   MacOSX `PR 2093 <https://github.com/yt-project/yt/pull/2093>`__.
 - add ``W504`` and ``W605`` to ignored flake8 errors, see
   `PR 2078 <https://github.com/yt-project/yt/pull/2078>`__.,
-- update pyyaml version in `test_requirements` file to address
+- update pyyaml version in ``test_requirements.txt`` file to address
   github warning `PR 2148 <https://github.com/yt-project/yt/pull/2148/files>`__.,
 - fix travis build errors resulting from numpy and cython being
   unavailable `PR 2171 <https://github.com/yt-project/yt/pull/2171>`__.
@@ -456,7 +456,7 @@ We would particularly like to recognize Corentin Cadiou for his tireless work ov
 Additional Improvements
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-- Added support for particle data in the Enzo-P frontend. See `PR 1490
+- Added support for particle data in the Enzo-E frontend. See `PR 1490
   <https://github.com/yt-project/yt/pull/1490>`__.
 - Added an ``equivalence`` keyword argument to ``YTArray.in_units()`` and
   ``YTArray.to()``. This makes it possible to specify an equivalence when
@@ -880,7 +880,7 @@ pull requests from 44 contributors including 18 new contributors.
    ``sampling_type`` will always need to be specified.
 -  Added support for the ``Athena++`` code. See `Bitbucket PR
    2149 <https://bitbucket.org/yt_analysis/yt/pull-requests/2149>`__.
--  Added support for the ``Enzo-p`` code. See `Github PR
+-  Added support for the ``Enzo-E`` code. See `Github PR
    1447 <https://github.com/yt-project/yt/pull/1447>`__, `Github PR
    1443 <https://github.com/yt-project/yt/pull/1443>`__ and `Github PR
    1439 <https://github.com/yt-project/yt/pull/1439>`__.
@@ -1871,7 +1871,7 @@ Most Visible Improvements
    2.4 was release on August 2nd, 2012.
  * numpy is now imported as np, not na.  na will continue to work for the
    foreseeable future.
- * You can now get a `yt cheat sheet <http://yt-project.org/docs/2.5/cheatsheet.pdf>`!
+ * You can now get a `yt cheat sheet <http://yt-project.org/docs/2.5/cheatsheet.pdf>`_!
  * yt can now load simulation data created by Athena.
  * The Rockstar halo finder can now be installed by the install script
  * SciPy can now be installed by the install script
@@ -2123,7 +2123,7 @@ Version 1.7
  * Preliminary support for the Tiger code
  * Default colormap is now ``algae``
  * Lightweight projection loading with ``projload``
- * Improvements to `yt.data_objects.time_series`
+ * Improvements to ``yt.data_objects.time_series``
  * Improvements to :class:`yt.extensions.EnzoSimulation` (See
    :ref:`analyzing-an-entire-simulation`)
  * Removed ``direct_ray_cast``

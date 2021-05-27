@@ -61,11 +61,15 @@ def write_to_gdf(
 
     Examples
     --------
-    >>> dataset_units = {"length_unit":(1.0,"Mpc"),
-    ...                  "time_unit":(1.0,"Myr")}
-    >>> write_to_gdf(ds, "clumps.h5", data_author="John ZuHone",
-    ...              dataset_units=dataset_units,
-    ...              data_comment="My Really Cool Dataset", overwrite=True)
+    >>> dataset_units = {"length_unit": (1.0, "Mpc"), "time_unit": (1.0, "Myr")}
+    >>> write_to_gdf(
+    ...     ds,
+    ...     "clumps.h5",
+    ...     data_author="John ZuHone",
+    ...     dataset_units=dataset_units,
+    ...     data_comment="My Really Cool Dataset",
+    ...     overwrite=True,
+    ... )
     """
     if fields is None:
         fields = ds.field_list

@@ -1,6 +1,6 @@
 import numpy as np
 
-from yt.frontends.enzo_p.api import EnzoPDataset
+from yt.frontends.enzo_e.api import EnzoEDataset
 from yt.testing import assert_array_equal, assert_equal, requires_file
 from yt.utilities.answer_testing.framework import (
     FieldValuesTest,
@@ -32,8 +32,8 @@ ep_cosmo = "ENZOP_DD0140/ENZOP_DD0140.block_list"
 
 
 @requires_file(hello_world)
-def test_EnzoPDataset():
-    assert isinstance(data_dir_load(hello_world), EnzoPDataset)
+def test_EnzoEDataset():
+    assert isinstance(data_dir_load(hello_world), EnzoEDataset)
 
 
 @requires_ds(hello_world)

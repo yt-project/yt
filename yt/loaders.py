@@ -3,15 +3,16 @@ This module gathers all user-facing functions with a `load_` prefix.
 
 """
 import os
+import sys
 import tarfile
 from pathlib import Path
+from typing import Optional
 from urllib.parse import urlsplit
 
 import numpy as np
 from more_itertools import always_iterable
 
 from yt._maintenance.deprecation import issue_deprecation_warning
-from yt.config import ytcfg
 from yt.sample_data.api import lookup_on_disk_data
 from yt.utilities.decompose import decompose_array, get_psize
 from yt.utilities.exceptions import (
@@ -120,12 +121,7 @@ def load_simulation(fn, simulation_type, find_outputs=False):
         If simulation_type is unknown.
     """
 
-    if not os.path.exists(fn):
-        alt_fn = os.path.join(ytcfg.get("yt", "test_data_dir"), fn)
-        if os.path.exists(alt_fn):
-            fn = alt_fn
-        else:
-            raise FileNotFoundError(f"No such file or directory: '{fn}'")
+    fn = str(lookup_on_disk_data(fn))
 
     try:
         cls = simulation_time_series_registry[simulation_type]
@@ -164,6 +160,7 @@ def load_uniform_grid(
     periodicity=(True, True, True),
     geometry="cartesian",
     unit_system="cgs",
+    default_species_fields=None,
 ):
     r"""Load a uniform grid of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
@@ -213,17 +210,19 @@ def load_uniform_grid(
         be z, x, y, this would be: ("cartesian", ("z", "x", "y")).  The same
         can be done for other coordinates, for instance:
         ("spherical", ("theta", "phi", "r")).
+    default_species_fields : string, optional
+        If set, default species fields are created for H and He which also
+        determine the mean molecular weight. Options are "ionized" and "neutral".
 
     Examples
     --------
     >>> np.random.seed(int(0x4D3D3D3))
-    >>> bbox = np.array([[0., 1.0], [-1.5, 1.5], [1.0, 2.5]])
+    >>> bbox = np.array([[0.0, 1.0], [-1.5, 1.5], [1.0, 2.5]])
     >>> arr = np.random.random((128, 128, 128))
     >>> data = dict(density=arr)
-    >>> ds = load_uniform_grid(data, arr.shape, length_unit='cm',
-    ...                        bbox=bbox, nprocs=12)
+    >>> ds = load_uniform_grid(data, arr.shape, length_unit="cm", bbox=bbox, nprocs=12)
     >>> dd = ds.all_data()
-    >>> dd[('gas', 'density')]
+    >>> dd[("gas", "density")]
     unyt_array([0.76017901, 0.96855994, 0.49205428, ..., 0.78798258,
                 0.97569432, 0.99453904], 'g/cm**3')
     """
@@ -343,7 +342,12 @@ def load_uniform_grid(
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    sds = StreamDataset(handler, geometry=geometry, unit_system=unit_system)
+    sds = StreamDataset(
+        handler,
+        geometry=geometry,
+        unit_system=unit_system,
+        default_species_fields=default_species_fields,
+    )
 
     # Now figure out where the particles go
     if number_of_particles > 0:
@@ -367,6 +371,7 @@ def load_amr_grids(
     geometry="cartesian",
     refine_by=2,
     unit_system="cgs",
+    default_species_fields=None,
 ):
     r"""Load a set of grids of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
@@ -425,25 +430,35 @@ def load_amr_grids(
         instance, this can be used to say that some datasets have refinement of
         1 in one dimension, indicating that they span the full range in that
         dimension.
+    default_species_fields : string, optional
+        If set, default species fields are created for H and He which also
+        determine the mean molecular weight. Options are "ionized" and "neutral".
 
     Examples
     --------
 
     >>> grid_data = [
-    ...     dict(left_edge = [0.0, 0.0, 0.0],
-    ...          right_edge = [1.0, 1.0, 1.],
-    ...          level = 0,
-    ...          dimensions = [32, 32, 32],
-    ...          number_of_particles = 0),
-    ...     dict(left_edge = [0.25, 0.25, 0.25],
-    ...          right_edge = [0.75, 0.75, 0.75],
-    ...          level = 1,
-    ...          dimensions = [32, 32, 32],
-    ...          number_of_particles = 0)
+    ...     dict(
+    ...         left_edge=[0.0, 0.0, 0.0],
+    ...         right_edge=[1.0, 1.0, 1.0],
+    ...         level=0,
+    ...         dimensions=[32, 32, 32],
+    ...         number_of_particles=0,
+    ...     ),
+    ...     dict(
+    ...         left_edge=[0.25, 0.25, 0.25],
+    ...         right_edge=[0.75, 0.75, 0.75],
+    ...         level=1,
+    ...         dimensions=[32, 32, 32],
+    ...         number_of_particles=0,
+    ...     ),
     ... ]
     ...
     >>> for g in grid_data:
-    ...     g[("gas", "density")] = (np.random.random(g["dimensions"])*2**g["level"], "g/cm**3")
+    ...     g[("gas", "density")] = (
+    ...         np.random.random(g["dimensions"]) * 2 ** g["level"],
+    ...         "g/cm**3",
+    ...     )
     ...
     >>> ds = load_amr_grids(grid_data, [32, 32, 32], length_unit=1.0)
     """
@@ -564,7 +579,12 @@ def load_amr_grids(
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    sds = StreamDataset(handler, geometry=geometry, unit_system=unit_system)
+    sds = StreamDataset(
+        handler,
+        geometry=geometry,
+        unit_system=unit_system,
+        default_species_fields=default_species_fields,
+    )
     return sds
 
 
@@ -581,6 +601,7 @@ def load_particles(
     geometry="cartesian",
     unit_system="cgs",
     data_source=None,
+    default_species_fields=None,
 ):
     r"""Load a set of particles into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamParticleHandler`.
@@ -624,15 +645,20 @@ def load_particles(
     data_source : YTSelectionContainer, optional
         If set, parameters like `bbox`, `sim_time`, and code units are derived
         from it.
+    default_species_fields : string, optional
+        If set, default species fields are created for H and He which also
+        determine the mean molecular weight. Options are "ionized" and "neutral".
 
     Examples
     --------
 
-    >>> pos = [np.random.random(128*128*128) for i in range(3)]
-    >>> data = dict(particle_position_x = pos[0],
-    ...             particle_position_y = pos[1],
-    ...             particle_position_z = pos[2])
-    >>> bbox = np.array([[0., 1.0], [0.0, 1.0], [0.0, 1.0]])
+    >>> pos = [np.random.random(128 * 128 * 128) for i in range(3)]
+    >>> data = dict(
+    ...     particle_position_x=pos[0],
+    ...     particle_position_y=pos[1],
+    ...     particle_position_z=pos[2],
+    ... )
+    >>> bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]])
     >>> ds = load_particles(data, 3.08e24, bbox=bbox)
 
     """
@@ -727,7 +753,12 @@ def load_particles(
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    sds = StreamParticlesDataset(handler, geometry=geometry, unit_system=unit_system)
+    sds = StreamParticlesDataset(
+        handler,
+        geometry=geometry,
+        unit_system=unit_system,
+        default_species_fields=default_species_fields,
+    )
 
     return sds
 
@@ -887,6 +918,7 @@ def load_octree(
     over_refine_factor=1,
     partial_coverage=1,
     unit_system="cgs",
+    default_species_fields=None,
 ):
     r"""Load an octree mask into yt.
 
@@ -929,26 +961,28 @@ def load_octree(
     partial_coverage : boolean
         Whether or not an oct can be refined cell-by-cell, or whether all
         8 get refined.
+    default_species_fields : string, optional
+        If set, default species fields are created for H and He which also
+        determine the mean molecular weight. Options are "ionized" and "neutral".
 
     Example
     -------
 
     >>> import numpy as np
-    >>> oct_mask = [8, 0, 0, 0, 0, 8, 0, 8,
-    ...             0, 0, 0, 0, 0, 0, 0, 0,
-    ...             8, 0, 0, 0, 0, 0, 0, 0,
-    ...             0]
-    >>>
+    >>> oct_mask = np.zeros(25)
+    ... oct_mask[[0,  5,  7, 16]] = 8
     >>> octree_mask = np.array(oct_mask, dtype=np.uint8)
     >>> quantities = {}
-    >>> quantities['gas', 'density'] = np.random.random((22, 1))
-    >>> bbox = np.array([[-10., 10.], [-10., 10.], [-10., 10.]])
-    >>>
-    >>> ds = load_octree(octree_mask=octree_mask,
-    ...                  data=quantities,
-    ...                  bbox=bbox,
-    ...                  over_refine_factor=0,
-    ...                  partial_coverage=0)
+    >>> quantities["gas", "density"] = np.random.random((22, 1))
+    >>> bbox = np.array([[-10.0, 10.0], [-10.0, 10.0], [-10.0, 10.0]])
+
+    >>> ds = load_octree(
+    ...     octree_mask=octree_mask,
+    ...     data=quantities,
+    ...     bbox=bbox,
+    ...     over_refine_factor=0,
+    ...     partial_coverage=0,
+    ... )
 
     """
     from yt.frontends.stream.data_structures import (
@@ -1016,7 +1050,9 @@ def load_octree(
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    sds = StreamOctreeDataset(handler, unit_system=unit_system)
+    sds = StreamOctreeDataset(
+        handler, unit_system=unit_system, default_species_fields=default_species_fields
+    )
     sds.octree_mask = octree_mask
     sds.partial_coverage = partial_coverage
     sds.over_refine_factor = over_refine_factor
@@ -1114,27 +1150,32 @@ def load_unstructured_mesh(
     Load a simple mesh consisting of two tets.
 
       >>> # Coordinates for vertices of two tetrahedra
-      >>> coordinates = np.array([[0.0, 0.0, 0.5], [0.0, 1.0, 0.5],
-      ...                         [0.5, 1, 0.5], [0.5, 0.5, 0.0],
-      ...                         [0.5, 0.5, 1.0]])
+      >>> coordinates = np.array(
+      ...     [
+      ...         [0.0, 0.0, 0.5],
+      ...         [0.0, 1.0, 0.5],
+      ...         [0.5, 1, 0.5],
+      ...         [0.5, 0.5, 0.0],
+      ...         [0.5, 0.5, 1.0],
+      ...     ]
+      ... )
       >>> # The indices in the coordinates array of mesh vertices.
       >>> # This mesh has two elements.
       >>> connectivity = np.array([[0, 1, 2, 4], [0, 1, 2, 3]])
-      >>>
+
       >>> # Field data defined at the centers of the two mesh elements.
-      >>> elem_data = {
-      ...     ('connect1', 'elem_field'): np.array([1, 2])
-      ... }
-      >>>
+      >>> elem_data = {("connect1", "elem_field"): np.array([1, 2])}
+
       >>> # Field data defined at node vertices
       >>> node_data = {
-      ...     ('connect1', 'node_field'): np.array([[0.0, 1.0, 2.0, 4.0],
-      ...                                           [0.0, 1.0, 2.0, 3.0]])
+      ...     ("connect1", "node_field"): np.array(
+      ...         [[0.0, 1.0, 2.0, 4.0], [0.0, 1.0, 2.0, 3.0]]
+      ...     )
       ... }
-      >>>
-      >>> ds = load_unstructured_mesh(connectivity, coordinates,
-      ...                             elem_data=elem_data,
-      ...                             node_data=node_data)
+
+      >>> ds = load_unstructured_mesh(
+      ...     connectivity, coordinates, elem_data=elem_data, node_data=node_data
+      ... )
     """
     from yt.frontends.exodus_ii.util import get_num_pseudo_dims
     from yt.frontends.stream.data_structures import (
@@ -1262,15 +1303,21 @@ def load_unstructured_mesh(
 
 
 # --- Loader for yt sample datasets ---
-def load_sample(fn, progressbar: bool = True, timeout=None, **kwargs):
+def load_sample(
+    fn: Optional[str] = None, progressbar: bool = True, timeout=None, **kwargs
+):
     """
-    Load sample data with yt. Simple wrapper around `yt.load` to include fetching
-    data with pooch.
+    Load sample data with yt.
+
+    This is a simple wrapper around `yt.load` to include fetching
+    data with pooch from remote source.
 
     The data registry table can be retrieved and visualized using
-    `yt.sample_data.api.get_data_registry_table`.
-
-    This function requires pandas and pooch to be installed.
+    `yt.sample_data.api.get_data_registry_table()`.
+    The `filename` column contains usable keys that can be passed
+    as the first positional argument to `load_sample`.
+    Some data samples contain series of datasets. It may be required to
+    supply the relative path to a specific dataset.
 
     Parameters
     ----------
@@ -1286,10 +1333,27 @@ def load_sample(fn, progressbar: bool = True, timeout=None, **kwargs):
         `None` means "no limit". This parameter is directly passed to down to
         requests.get via pooch.HTTPDownloader
 
-    Any additional keyword argument is passed down to `yt.load`.
-    Note that in case of collision with predefined keyword arguments as set in
+    Notes
+    -----
+    - This function is experimental as of yt 4.0.0, do not rely on its exact behaviour.
+    - Any additional keyword argument is passed down to `yt.load`.
+    - In case of collision with predefined keyword arguments as set in
     the data registry, the ones passed to this function take priority.
+    - Datasets with slashes '/' in their names can safely be used even on Windows.
+      On the contrary, paths using backslashes '\' won't work outside of Windows, so
+      it is recommended to favour the UNIX convention ('/') in scripts that are meant
+      to be cross-platform.
+    - This function requires pandas and pooch.
+    - Corresponding sample data live at https://yt-project.org/data
     """
+
+    if fn is None:
+        print(
+            "One can see which sample datasets are available at: https://yt-project.org/data\n"
+            "or alternatively by running: yt.sample_data.api.get_data_registry_table()",
+            file=sys.stderr,
+        )
+        return None
 
     from yt.sample_data.api import (
         _download_sample_data_file,
@@ -1299,7 +1363,12 @@ def load_sample(fn, progressbar: bool = True, timeout=None, **kwargs):
 
     pooch_logger = pooch.utils.get_logger()
 
-    topdir, _, specific_file = str(fn).partition(os.path.sep)
+    # normalize path for platform portability
+    # for consistency with yt.load, we also convert to str explicitly,
+    # which gives us support Path objects for free
+    fn = str(fn).replace("/", os.path.sep)
+
+    topdir, _, specific_file = fn.partition(os.path.sep)
 
     registry_table = get_data_registry_table()
     # PR 3089
@@ -1316,35 +1385,37 @@ def load_sample(fn, progressbar: bool = True, timeout=None, **kwargs):
     except IndexError as err:
         raise KeyError(f"Could not find '{fn}' in the registry.") from err
 
-    if not specs["load_name"]:
+    load_name = specific_file or specs["load_name"]
+    if not load_name:
         raise ValueError(
-            "Registry appears to be corrupted: could not find a 'load_name' entry for this dataset."
+            "Missing a 'load_name' entry for this dataset. This may be fixed by requesting the full path of the loadable file."
+        )
+
+    if not isinstance(specs["load_kwargs"], dict):
+        raise ValueError(
+            "The requested dataset seems to be improperly registered.\n"
+            "Tip: the entry in yt/sample_data_registry.json may be inconsistent with "
+            "https://github.com/yt-project/website/blob/master/data/datafiles.json\n"
+            "Please report this to https://github.com/yt-project/yt/issues/new"
         )
 
     kwargs = {**specs["load_kwargs"], **kwargs}
 
-    try:
-        data_dir = lookup_on_disk_data(fn)
-    except FileNotFoundError:
-        mylog.info("'%s' is not available locally. Looking up online.", fn)
-    else:
+    save_dir = _get_test_data_dir_path()
+
+    data_path = save_dir.joinpath(fn)
+    if data_path.exists():
         # if the data is already available locally, `load_sample`
         # only acts as a thin wrapper around `load`
-        loadable_path = data_dir.joinpath(specs["load_name"], specific_file)
-        mylog.info("Sample dataset found in '%s'", data_dir)
+        appendum = specific_file or specs["load_name"]
+        if appendum not in str(data_path):
+            data_path = data_path.joinpath(appendum)
+        mylog.info("Sample dataset found in '%s'", data_path)
         if timeout is not None:
             mylog.info("Ignoring the `timeout` keyword argument received.")
-        return load(loadable_path, **kwargs)
+        return load(data_path, **kwargs)
 
-    try:
-        save_dir = _get_test_data_dir_path()
-        assert save_dir.is_dir()
-    except (OSError, AssertionError):
-        mylog.warning(
-            "yt test data directory is not properly set up. "
-            "Data will be saved to the current work directory instead."
-        )
-        save_dir = Path.cwd()
+    mylog.info("'%s' is not available locally. Looking up online.", fn)
 
     # effectively silence the pooch's logger and create our own log instead
     pooch_logger.setLevel(100)
@@ -1369,9 +1440,11 @@ def load_sample(fn, progressbar: bool = True, timeout=None, **kwargs):
     else:
         os.replace(tmp_file, save_dir)
 
-    loadable_path = Path.joinpath(save_dir, fn, specs["load_name"], specific_file)
+    loadable_path = Path.joinpath(save_dir, fn)
+    if not specs["load_name"] in str(loadable_path):
+        loadable_path = loadable_path.joinpath(specs["load_name"], specific_file)
 
     if specific_file and not loadable_path.exists():
-        raise ValueError(f"Could not find file '{specific_file}'.")
+        raise ValueError(f"Could not find file '{loadable_path}'.")
 
     return load(loadable_path, **kwargs)

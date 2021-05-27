@@ -18,7 +18,7 @@ _frontends = [
     "chombo",
     "cholla",
     "eagle",
-    "enzo_p",
+    "enzo_e",
     "enzo",
     "exodus_ii",
     "fits",

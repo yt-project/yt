@@ -176,6 +176,7 @@ class Dataset(abc.ABC):
         file_style=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
         """
         Base class for generating new output types.  Principally consists of
@@ -194,6 +195,7 @@ class Dataset(abc.ABC):
         self.particle_unions = self.particle_unions or {}
         self.field_units = self.field_units or {}
         self.units_override = self.__class__._sanitize_units_override(units_override)
+        self.default_species_fields = default_species_fields
 
         # path stuff
         self.parameter_filename = str(filename)
@@ -1216,6 +1218,9 @@ class Dataset(abc.ABC):
             w_a=w_a,
         )
 
+        if not hasattr(self, "current_time"):
+            self.current_time = self.cosmology.t_from_z(self.current_redshift)
+
         if getattr(self, "current_redshift", None) is not None:
             self.critical_density = self.cosmology.critical_density(
                 self.current_redshift
@@ -1415,9 +1420,9 @@ class Dataset(abc.ABC):
 
         >>> import yt
         >>> import numpy as np
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>> a = ds.arr([1, 2, 3], 'cm')
-        >>> b = ds.arr([4, 5, 6], 'm')
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+        >>> a = ds.arr([1, 2, 3], "cm")
+        >>> b = ds.arr([4, 5, 6], "m")
         >>> a + b
         YTArray([ 401.,  502.,  603.]) cm
         >>> b + a
@@ -1425,8 +1430,8 @@ class Dataset(abc.ABC):
 
         Arrays returned by this function know about the dataset's unit system
 
-        >>> a = ds.arr(np.ones(5), 'code_length')
-        >>> a.in_units('Mpccm/h')
+        >>> a = ds.arr(np.ones(5), "code_length")
+        >>> a.in_units("Mpccm/h")
         YTArray([ 1.00010449,  1.00010449,  1.00010449,  1.00010449,
                  1.00010449]) Mpc
 
@@ -1462,10 +1467,10 @@ class Dataset(abc.ABC):
         --------
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
-        >>> a = ds.quan(1, 'cm')
-        >>> b = ds.quan(2, 'm')
+        >>> a = ds.quan(1, "cm")
+        >>> b = ds.quan(2, "m")
         >>> a + b
         201.0 cm
         >>> b + a
@@ -1474,7 +1479,7 @@ class Dataset(abc.ABC):
         Quantities created this way automatically know about the unit system
         of the dataset.
 
-        >>> a = ds.quan(5, 'code_length')
+        >>> a = ds.quan(5, "code_length")
         >>> a.in_cgs()
         1.543e+25 cm
 
@@ -1563,16 +1568,16 @@ class Dataset(abc.ABC):
 
         Examples
         --------
-        >>> ds = yt.load('output_00080/info_00080.txt')
-        ... ds.add_mesh_sampling_particle_field(('gas', 'density'), ptype='all')
+        >>> ds = yt.load("output_00080/info_00080.txt")
+        ... ds.add_mesh_sampling_particle_field(("gas", "density"), ptype="all")
 
-        >>> print('The density at the location of the particle is:')
-        ... print(ds.r['all', 'cell_gas_density'])
+        >>> print("The density at the location of the particle is:")
+        ... print(ds.r["all", "cell_gas_density"])
         The density at the location of the particle is:
         [9.33886124e-30 1.22174333e-28 1.20402333e-28 ... 2.77410331e-30
          8.79467609e-31 3.50665136e-30] g/cm**3
 
-        >>> len(ds.r['all', 'cell_gas_density']) == len(ds.r['all', 'particle_ones'])
+        >>> len(ds.r["all", "cell_gas_density"]) == len(ds.r["all", "particle_ones"])
         True
 
         """
@@ -1748,8 +1753,12 @@ class Dataset(abc.ABC):
 
         >>> grad_fields = ds.add_gradient_fields(("gas", "density"))
         >>> print(grad_fields)
-        ... [('gas', 'density_gradient_x'), ('gas', 'density_gradient_y'),
-        ...  ('gas', 'density_gradient_z'), ('gas', 'density_gradient_magnitude')]
+        ... [
+        ...     ("gas", "density_gradient_x"),
+        ...     ("gas", "density_gradient_y"),
+        ...     ("gas", "density_gradient_z"),
+        ...     ("gas", "density_gradient_magnitude"),
+        ... ]
 
         Note that the above example assumes ds.geometry == 'cartesian'. In general,
         the function will create gradient components along the axes of the dataset
@@ -1909,6 +1918,7 @@ class ParticleDataset(Dataset):
         unit_system="cgs",
         index_order=None,
         index_filename=None,
+        default_species_fields=None,
     ):
         self.index_order = validate_index_order(index_order)
         self.index_filename = index_filename
@@ -1918,6 +1928,7 @@ class ParticleDataset(Dataset):
             file_style=file_style,
             units_override=units_override,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
 
 
@@ -1933,5 +1944,5 @@ def validate_index_order(index_order):
                 "index_order\nmust be an integer or a two-element tuple of "
                 "integers.".format(index_order)
             )
-        index_order = tuple([int(o) for o in index_order])
+        index_order = tuple(int(o) for o in index_order)
     return index_order

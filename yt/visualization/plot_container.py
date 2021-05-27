@@ -479,9 +479,16 @@ class PlotContainer:
         This sets the font to be 24-pt, blue, sans-serif, italic, and
         bold-face.
 
-        >>> slc = SlicePlot(ds, 'x', 'Density')
-        >>> slc.set_font({'family':'sans-serif', 'style':'italic',
-        ...               'weight':'bold', 'size':24, 'color':'blue'})
+        >>> slc = SlicePlot(ds, "x", "Density")
+        >>> slc.set_font(
+        ...     {
+        ...         "family": "sans-serif",
+        ...         "style": "italic",
+        ...         "weight": "bold",
+        ...         "size": 24,
+        ...         "color": "blue",
+        ...     }
+        ... )
 
         """
         from matplotlib.font_manager import FontProperties
@@ -542,21 +549,30 @@ class PlotContainer:
         mpl_kwargs : dict
            A dict of keyword arguments to be passed to matplotlib.
 
-        >>> slc.save(mpl_kwargs={'bbox_inches':'tight'})
+        >>> slc.save(mpl_kwargs={"bbox_inches": "tight"})
 
         """
         names = []
         if mpl_kwargs is None:
             mpl_kwargs = {}
-        if isinstance(name, (tuple, list)):
-            name = os.path.join(*name)
+
         if name is None:
             name = str(self.ds)
+
+        # ///// Magic area. Muggles, keep out !
+        if isinstance(name, (tuple, list)):
+            name = os.path.join(*name)
+
         name = os.path.expanduser(name)
-        if name[-1] == os.sep and not os.path.isdir(name):
-            ensure_dir(name)
-        if os.path.isdir(name) and name != str(self.ds):
-            name = name + (os.sep if name[-1] != os.sep else "") + str(self.ds)
+
+        parent_dir, _, prefix1 = name.replace(os.sep, "/").rpartition("/")
+        parent_dir = parent_dir.replace("/", os.sep)
+
+        if parent_dir and not os.path.isdir(parent_dir):
+            ensure_dir(parent_dir)
+
+        if name.endswith(("/", os.path.sep)):
+            name = os.path.join(name, str(self.ds))
 
         new_name = validate_image_name(name, suffix)
         if new_name == name:
@@ -615,7 +631,9 @@ class PlotContainer:
         --------
 
         >>> from yt.mods import SlicePlot
-        >>> slc = SlicePlot(ds, "x", [("gas", "density"), ("gas", "velocity_magnitude")])
+        >>> slc = SlicePlot(
+        ...     ds, "x", [("gas", "density"), ("gas", "velocity_magnitude")]
+        ... )
         >>> slc.show()
 
         """
@@ -665,7 +683,7 @@ class PlotContainer:
         label : str
             The new string for the x-axis.
 
-        >>>  plot.set_xlabel("H2I Number Density (cm$^{-3}$)")
+        >>> plot.set_xlabel("H2I Number Density (cm$^{-3}$)")
 
         """
         self._xlabel = label
@@ -682,7 +700,7 @@ class PlotContainer:
         label : str
             The new string for the y-axis.
 
-        >>>  plot.set_ylabel("Temperature (K)")
+        >>> plot.set_ylabel("Temperature (K)")
 
         """
         self._ylabel = label
@@ -764,16 +782,16 @@ class PlotContainer:
         This will save an image with no colorbar.
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>> s = SlicePlot(ds, 2, 'density', 'c', (20, 'kpc'))
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+        >>> s = SlicePlot(ds, 2, "density", "c", (20, "kpc"))
         >>> s.hide_colorbar()
         >>> s.save()
 
         This will save an image with no axis or colorbar.
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>> s = SlicePlot(ds, 2, 'density', 'c', (20, 'kpc'))
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+        >>> s = SlicePlot(ds, 2, "density", "c", (20, "kpc"))
         >>> s.hide_axes()
         >>> s.hide_colorbar()
         >>> s.save()
@@ -824,16 +842,16 @@ class PlotContainer:
         This will save an image with no axes.
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>> s = SlicePlot(ds, 2, 'density', 'c', (20, 'kpc'))
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+        >>> s = SlicePlot(ds, 2, "density", "c", (20, "kpc"))
         >>> s.hide_axes()
         >>> s.save()
 
         This will save an image with no axis or colorbar.
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>> s = SlicePlot(ds, 2, 'density', 'c', (20, 'kpc'))
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+        >>> s = SlicePlot(ds, 2, "density", "c", (20, "kpc"))
         >>> s.hide_axes()
         >>> s.hide_colorbar()
         >>> s.save()
@@ -1049,7 +1067,9 @@ class ImagePlotContainer(PlotContainer):
         label : str
           The new label
 
-        >>>  plot.set_colorbar_label(("gas", "density"), "Dark Matter Density (g cm$^{-3}$)")
+        >>> plot.set_colorbar_label(
+        ...     ("gas", "density"), "Dark Matter Density (g cm$^{-3}$)"
+        ... )
 
         """
         self._colorbar_label[field] = label

@@ -51,8 +51,8 @@ for tab-completing as well as easier access to information.
 Additionally, if you have `ipywidgets
 <https://ipywidgets.readthedocs.io/en/stable/>`_ installed and are in a `Jupyter
 environment <https://jupyter.org/>`_, you can view the rich representation of
-the fields (including source code) by either typing `ds.fields` as the last
-item in a cell or by calling `display(ds.fields)`.  The resulting output will
+the fields (including source code) by either typing ``ds.fields`` as the last
+item in a cell or by calling ``display(ds.fields)``.  The resulting output will
 have tabs and source:
 
 .. image:: _images/fields_ipywidget.png
@@ -456,22 +456,52 @@ defined:
 To refer to the number density of the entirety of a single atom or molecule (regardless
 of its ionization state), please use the ``MM_nuclei_density`` fields.
 
-Finally, if the abundances of hydrogen and helium are not defined, it is assumed that
-assumed that these elements are fully ionized with primordial abundances In this case,
-the following fields are defined:
+Many datasets do not have species defined, but there may be an underlying assumption
+of primordial abundances of H and He which are either fully ionized or fully neutral.
+This will also determine the value of the mean molecular weight of the gas, which
+will determine the value of the temperature if derived from another quantity like the
+pressure or thermal energy. To allow for these possibilities, there is a keyword
+argument ``default_species_fields`` which can be passed to :func:`~yt.loaders.load`:
 
-* ``H_p1_number_density``
+.. code-block:: python
+
+    import yt
+
+    ds = yt.load(
+        "GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150", default_species_fields="ionized"
+    )
+
+By default, the value of this optional argument is ``None``, which will not initialize
+any default species fields. If the ``default_species_fields`` argument is not set to
+``None``, then the following fields are defined:
+
 * ``H_nuclei_density``
-* ``He_p2_number_density``
 * ``He_nuclei_density``
-* ``El_number_density``
+
+More specifically, if ``default_species_fields="ionized"``, then these
+additional fields are defined:
+
+* ``H_p1_number_density`` (Ionized hydrogen: equal to the value of ``H_nuclei_density``)
+* ``He_p2_number_density`` (Doubly ionized helium: equal to the value of ``He_nuclei_density``)
+* ``El_number_density`` (Free electrons: assuming full ionization)
+
+Whereas if ``default_species_fields="neutral"``, then these additional
+fields are defined:
+
+* ``H_p0_number_density`` (Neutral hydrogen: equal to the value of ``H_nuclei_density``)
+* ``He_p0_number_density`` (Neutral helium: equal to the value of ``He_nuclei_density``)
+
+In this latter case, because the gas is neutral, ``El_number_density`` is not defined.
 
 The ``mean_molecular_weight`` field will be constructed from the abundances of the elements
-in the dataset. If no element or molecule fields are defined, the above fields for the ionized
-primordial H/He plasma are defined, and the ``mean_molecular_weight`` field is correspondingly set
-to :math:`\mu \approx 0.6`. Some frontends do not directly store the gas temperature in their
-datasets, in which case it must be computed from the pressure and/or thermal energy as well
-as the mean molecular weight, so check this carefully!
+in the dataset. If no element or molecule fields are defined, the value of this field
+is determined by the value of ``default_species_fields``. If it is set to ``None`` or
+``"ionized"``, the ``mean_molecular_weight`` field is set to :math:`\mu \approx 0.6`,
+whereas if ``default_species_fields`` is set to ``"neutral"``, then the
+``mean_molecular_weight`` field is set to :math:`\mu \approx 1.14`. Some frontends do
+not directly store the gas temperature in their datasets, in which case it must be
+computed from the pressure and/or thermal energy as well as the mean molecular weight,
+so check this carefully!
 
 Particle Fields
 ---------------
@@ -609,7 +639,7 @@ this will be handled automatically:
     )
 
 Which, because the axis is ``"z"``, will give you the same result if you had
-projected the `"velocity_z"`` field. This also works for off-axis projections:
+projected the ``"velocity_z"`` field. This also works for off-axis projections:
 
 .. code-block:: python
 
@@ -727,6 +757,9 @@ Possible deposition methods are:
 In addition, the :meth:`~yt.data_objects.static_outputs.add_deposited_particle_field` function
 returns the name of the newly created field.
 
+Deposited particle fields can be useful for visualizing particle data, including
+particles without defined smoothing lengths. See :ref:`particle-plotting-workarounds`
+for more information.
 
 .. _mesh-sampling-particle-fields:
 
@@ -807,10 +840,6 @@ Note that ``fn`` here is the "field name" that yt adds.  It will be of the form
 default this is 64, but it can be supplied as the final argument to
 ``add_nearest_neighbor_field``.  For the example above, it would be
 ``nearest_neighbor_64``.
-
-This can then be used as input to the function
-``add_volume_weighted_smoothed_field``, which can enable smoothing particle
-types that would normally not be smoothed.
 
 Commonly, not just the identity of the nearest particle is interesting, but the
 value of a given field associated with that particle.  yt provides a function

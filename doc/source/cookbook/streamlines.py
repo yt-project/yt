@@ -23,9 +23,9 @@ pos = c + pos_dx
 streamlines = Streamlines(
     ds,
     pos,
-    "velocity_x",
-    "velocity_y",
-    "velocity_z",
+    ("gas", "velocity_x"),
+    ("gas", "velocity_y"),
+    ("gas", "velocity_z"),
     length=1.0 * Mpc,
     get_magnitude=True,
 )

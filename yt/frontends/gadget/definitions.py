@@ -65,6 +65,24 @@ gadget_field_specs = dict(
         ("NStarsSpawned", ("Gas", "Stars")),
         ("StellarAge", "Stars"),
     ),
+    magneticum_box2_hr=(
+        "Coordinates",
+        "Velocities",
+        "ParticleIDs",
+        "Mass",
+        ("InternalEnergy", "Gas"),
+        ("Density", "Gas"),
+        ("SmoothingLength", "Gas"),
+        ("ColdFraction", "Gas"),
+        ("Temperature", "Gas"),
+        ("StellarAge", ("Stars", "Bndry")),
+        "Potential",
+        ("InitialMass", "Stars"),
+        ("ElevenMetalMasses", ("Gas", "Stars")),
+        ("StarFormationRate", "Gas"),
+        ("TrueMass", "Bndry"),
+        ("AccretionRate", "Bndry"),
+    ),
 )
 
 gadget_hdf5_ptypes = (

@@ -101,8 +101,8 @@ def amrspace(extent, levels=7, cells=8):
 
     Examples
     --------
-    >>> l, r, lvl = amrspace([0.0, 2.0, 1.0, 2.0, 0.0, 3.14], levels=(3,3,0), cells=2)
-    >>> print l
+    >>> l, r, lvl = amrspace([0.0, 2.0, 1.0, 2.0, 0.0, 3.14], levels=(3, 3, 0), cells=2)
+    >>> print(l)
     [[ 0.     1.     0.   ]
      [ 0.25   1.     0.   ]
      [ 0.     1.125  0.   ]
@@ -144,20 +144,16 @@ def amrspace(extent, levels=7, cells=8):
     # fill non-zero dims
     dcell = 1.0 / cells
     left_slice = tuple(
-        [
-            slice(extent[2 * n], extent[2 * n + 1], extent[2 * n + 1])
-            if dims_zero[n]
-            else slice(0.0, 1.0, dcell)
-            for n in range(ndims)
-        ]
+        slice(extent[2 * n], extent[2 * n + 1], extent[2 * n + 1])
+        if dims_zero[n]
+        else slice(0.0, 1.0, dcell)
+        for n in range(ndims)
     )
     right_slice = tuple(
-        [
-            slice(extent[2 * n + 1], extent[2 * n], -extent[2 * n + 1])
-            if dims_zero[n]
-            else slice(dcell, 1.0 + dcell, dcell)
-            for n in range(ndims)
-        ]
+        slice(extent[2 * n + 1], extent[2 * n], -extent[2 * n + 1])
+        if dims_zero[n]
+        else slice(dcell, 1.0 + dcell, dcell)
+        for n in range(ndims)
     )
     left_norm_grid = np.reshape(np.mgrid[left_slice].T.flat[ndims:], (-1, ndims))
     lng_zero = left_norm_grid[:, dims_zero]
@@ -225,6 +221,7 @@ def fake_random_ds(
     length_unit=1.0,
     unit_system="cgs",
     bbox=None,
+    default_species_fields=None,
 ):
     from yt.loaders import load_uniform_grid
 
@@ -284,6 +281,7 @@ def fake_random_ds(
         nprocs=nprocs,
         unit_system=unit_system,
         bbox=bbox,
+        default_species_fields=default_species_fields,
     )
     return ug
 
@@ -788,8 +786,8 @@ def expand_keywords(keywords, full=False):
     --------
 
     >>> keywords = {}
-    >>> keywords['dpi'] = (50, 100, 200)
-    >>> keywords['cmap'] = ('arbre', 'kelp')
+    >>> keywords["dpi"] = (50, 100, 200)
+    >>> keywords["cmap"] = ("arbre", "kelp")
     >>> list_of_kwargs = expand_keywords(keywords)
     >>> print(list_of_kwargs)
 
@@ -1089,7 +1087,7 @@ def check_results(func):
     ... def field_checker(dd, field_name):
     ...     return dd[field_name]
 
-    >>> field_checker(ds.all_data(), 'density', result_basename='density')
+    >>> field_checker(ds.all_data(), "density", result_basename="density")
 
     """
 

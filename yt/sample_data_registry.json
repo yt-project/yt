@@ -110,7 +110,7 @@
   "Enzo_64.tar.gz": {
     "hash": "2b17fffb6a2e8e471ef85dbdbfa5568f09f7bdb77715c69b40dfe48be8f71bc9",
     "load_kwargs": {},
-    "load_name": "None",
+    "load_name": null,
     "url": "https://yt-project.org/data/Enzo_64.tar.gz"
   },
   "ExodusII_tests.tar.gz": {
@@ -229,6 +229,12 @@
     "load_name": "data.0000.3d.hdf5",
     "url": "https://yt-project.org/data/IsothermalSphere.tar.gz"
   },
+  "JetICMWall.tar.gz": {
+    "hash": "d0f75569c743836a2d9d140e4bc88f039d6788d3dc53284e8a081cf76b2edbd9",
+    "load_kwargs": {},
+    "load_name": "Data_000060",
+    "url": "https://yt-project.org/data/JetICMWall.tar.gz"
+  },
   "KelvinHelmholtz.tar.gz": {
     "hash": "a70ccdab287e6b24553881d24a08a4025079b0e40eea9097c7ef686166ce571d",
     "load_kwargs": {},
@@ -258,6 +264,15 @@
     "load_kwargs": {},
     "load_name": "plt00015",
     "url": "https://yt-project.org/data/Laser.tar.gz"
+  },
+  "MagneticumCluster.tar.gz": {
+    "hash": "403c2224c205a44ee92a5925053be8aef6e5d530d9297c18151cdb0f588c32a7",
+    "load_kwargs": {
+      "long_ids": true,
+      "field_spec": "magneticum_box2_hr"
+    },
+    "load_name": "snap_132",
+    "url": "https://yt-project.org/data/MagneticumCluster.tar.gz"
   },
   "MHDBlast.tar.gz": {
     "hash": "fee1139df19448bae966a5396775476935886e69e3898fd7cf71d54548c4e14b",

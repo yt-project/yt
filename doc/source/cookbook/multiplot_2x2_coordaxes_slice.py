@@ -27,7 +27,12 @@ grid = AxesGrid(
 )
 
 cuts = ["x", "y", "z", "z"]
-fields = ["density", "density", "density", "temperature"]
+fields = [
+    ("gas", "density"),
+    ("gas", "density"),
+    ("gas", "density"),
+    ("gas", "temperature"),
+]
 
 for i, (direction, field) in enumerate(zip(cuts, fields)):
     # Load the data and create a single plot
@@ -44,9 +49,9 @@ for i, (direction, field) in enumerate(zip(cuts, fields)):
     # to index cbar_axes, yielding a plot without a temperature colorbar.
     # This unnecessarily redraws the Density colorbar three times, but that has
     # no effect on the final plot.
-    if field == "density":
+    if field == ("gas", "density"):
         plot.cax = grid.cbar_axes[0]
-    elif field == "temperature":
+    elif field == ("gas", "temperature"):
         plot.cax = grid.cbar_axes[1]
 
     # Finally, redraw the plot.

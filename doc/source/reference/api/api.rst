@@ -531,7 +531,11 @@ Field Functions
 
    ~yt.fields.field_info_container.FieldInfoContainer.add_field
    ~yt.data_objects.static_output.Dataset.add_field
-
+   ~yt.data_objects.static_outputs.add_deposited_particle_field
+   ~yt.data_objects.static_outputs.add_mesh_sampling_particle_field
+   ~yt.data_objects.static_outputs.add_smoothed_particle_field
+   ~yt.data_objects.static_outputs.add_gradient_fields
+   ~yt.frontends.stream.data_structures.add_SPH_fields
 
 Particle Filters
 ----------------
@@ -727,6 +731,7 @@ Function List
 .. autosummary::
 
    ~yt.frontends.ytdata.utilities.save_as_dataset
+   ~yt.data_objects.data_containers.YTDataContainer.save_as_dataset
    ~yt.data_objects.static_output.Dataset.all_data
    ~yt.data_objects.static_output.Dataset.box
    ~yt.funcs.enable_plugins

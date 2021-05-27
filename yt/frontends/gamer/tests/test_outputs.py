@@ -79,3 +79,21 @@ def test_GAMERDataset():
 @requires_file(jet)
 def test_units_override():
     units_override_check(jet)
+
+
+jiw = "JetICMWall/Data_000060"
+_fields_jiw = (
+    ("gas", "four_velocity_magnitude"),
+    ("gas", "density"),
+    ("gas", "gamma"),
+    ("gas", "temperature"),
+)
+
+
+@requires_ds(jiw, big_data=True)
+def test_jiw():
+    ds = data_dir_load(jiw)
+    assert_equal(str(ds), "Data_000060")
+    for test in small_patch_amr(ds, _fields_jiw):
+        test_jiw.__name__ = test.description
+        yield test

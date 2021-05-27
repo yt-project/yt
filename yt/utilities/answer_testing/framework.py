@@ -1219,11 +1219,13 @@ def big_patch_amr(ds_fn, fields, input_center="max", input_weight=("gas", "densi
                     )
 
 
-def _particle_answers(ds, ds_str_repr, ds_nparticles, fields, proj_test_class):
+def _particle_answers(
+    ds, ds_str_repr, ds_nparticles, fields, proj_test_class, center="c"
+):
     if not can_run_ds(ds):
         return
     assert_equal(str(ds), ds_str_repr)
-    dso = [None, ("sphere", ("c", (0.1, "unitary")))]
+    dso = [None, ("sphere", (center, (0.1, "unitary")))]
     dd = ds.all_data()
     # this needs to explicitly be "all"
     assert_equal(dd["all", "particle_position"].shape, (ds_nparticles, 3))
@@ -1240,15 +1242,25 @@ def _particle_answers(ds, ds_str_repr, ds_nparticles, fields, proj_test_class):
             yield FieldValuesTest(ds, field, dobj_name, particle_type=particle_type)
 
 
-def nbody_answer(ds, ds_str_repr, ds_nparticles, fields):
+def nbody_answer(ds, ds_str_repr, ds_nparticles, fields, center="c"):
     return _particle_answers(
-        ds, ds_str_repr, ds_nparticles, fields, PixelizedParticleProjectionValuesTest
+        ds,
+        ds_str_repr,
+        ds_nparticles,
+        fields,
+        PixelizedParticleProjectionValuesTest,
+        center=center,
     )
 
 
-def sph_answer(ds, ds_str_repr, ds_nparticles, fields):
+def sph_answer(ds, ds_str_repr, ds_nparticles, fields, center="c"):
     return _particle_answers(
-        ds, ds_str_repr, ds_nparticles, fields, PixelizedProjectionValuesTest
+        ds,
+        ds_str_repr,
+        ds_nparticles,
+        fields,
+        PixelizedProjectionValuesTest,
+        center=center,
     )
 
 
