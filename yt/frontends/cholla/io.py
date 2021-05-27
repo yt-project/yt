@@ -42,7 +42,8 @@ class ChollaIOHandler(BaseIOHandler):
         data = {}
         h5f = h5py.File(self.ds.parameter_filename, "r")
         for field in fields:
-            data[field] = h5f[field[1]][:].flatten()
+            ftype, fname = field
+            data[field] = h5f[fname][:].flatten().astype("=f8")
         h5f.close()
         return data
 
