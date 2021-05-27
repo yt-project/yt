@@ -712,7 +712,7 @@ defined on each dataset to depose any particle field onto the mesh like so:
    In this example, we are using the returned field name as our input.  You
    *could* also access it directly, but it might take a slightly different form
    than you expect -- in this particular case, the field name will be
-   ``("deposit", ""all_nn_velocity_x")``, which has removed the prefix
+   ``("deposit", "all_nn_velocity_x")``, which has removed the prefix
    ``particle_`` from the deposited name!
 
 Possible deposition methods are:
