@@ -23,15 +23,29 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
+            si, ei = data_file.start, data_file.end
             with h5py.File(data_file.filename, mode="r") as f:
                 for ptype in sorted(ptf):
                     pcount = data_file.total_particles[ptype]
                     coords = f[ptype]["CenterOfMass"][()].astype("float64")
                     coords = np.resize(coords, (pcount, 3))
-                    x = coords[:, 0]
-                    y = coords[:, 1]
-                    z = coords[:, 2]
+                    x = coords[si:ei, 0]
+                    y = coords[si:ei, 1]
+                    z = coords[si:ei, 2]
                     yield ptype, (x, y, z)
+
+    def _yield_coordinates(self, data_file):
+        ptypes = self.ds.particle_types_raw
+        si, ei = data_file.start, data_file.end
+        with h5py.File(data_file.filename, mode="r") as f:
+            for ptype in sorted(ptypes):
+                pcount = data_file.total_particles[ptype]
+                coords = f[ptype]["CenterOfMass"][()].astype("float64")
+                coords = np.resize(coords, (pcount, 3))
+                x = coords[si:ei, 0]
+                y = coords[si:ei, 1]
+                z = coords[si:ei, 2]
+                yield ptype, (x, y, z)
 
     def _read_offset_particle_field(self, field, data_file, fh):
         field_data = np.empty(data_file.total_particles["FOF"], dtype="float64")
@@ -103,15 +117,21 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
 
     def _count_particles(self, data_file):
         with h5py.File(data_file.filename, mode="r") as f:
-            pcount = {"FOF": f["FOF"].attrs["Number_of_groups"]}
+            pcount = {"FOF": get_one_attr(f["FOF"], ["Number_of_groups", "Ngroups"])}
             if "SUBFIND" in f:
                 # We need this to figure out where the offset fields are stored.
-                data_file.total_offset = f["SUBFIND"].attrs["Number_of_groups"]
-                pcount["SUBFIND"] = f["FOF"].attrs["Number_of_subgroups"]
+                data_file.total_offset = get_one_attr(f["SUBFIND"], ["Number_of_groups", "Ngroups"])
+                pcount["SUBFIND"] = get_one_attr(f["FOF"], ["Number_of_subgroups", "Nsubgroups"])
             else:
                 data_file.total_offset = 0
                 pcount["SUBFIND"] = 0
-            return pcount
+
+        si, ei = data_file.start, data_file.end
+        if None not in (si, ei):
+            for ptype in pcount:
+                pcount[ptype] = np.clip(pcount[ptype] - si, 0, ei - si)
+
+        return pcount
 
     def _identify_fields(self, data_file):
         fields = []
@@ -130,6 +150,19 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
                 self.offset_fields = self.offset_fields.union(set(my_offset_fields))
         return fields, {}
 
+
+def get_one_attr(fh, attrs, default=None, error=True):
+    """
+    Try getting from a list of attrs. Return the first one that exists.
+    """
+    for attr in attrs:
+        if attr in fh.attrs:
+            return fh.attrs[attr]
+    if error:
+        raise RuntimeError(
+            f"Could not find any of these attributes: {attrs}. "
+            f"Available attributes: {fh.attrs.keys()}")
+    return default
 
 def subfind_field_list(fh, ptype, pcount):
     fields = []

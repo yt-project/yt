@@ -140,6 +140,7 @@ def check_for_openmp():
             "extensions will be compiled without parallel support"
         )
 
+    return [], []
     if using_openmp:
         return compile_flags, link_flags
     else:
