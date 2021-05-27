@@ -1,3 +1,5 @@
+import h5py
+
 from yt.utilities.io_handler import BaseIOHandler
 
 
@@ -37,20 +39,12 @@ class ChollaIOHandler(BaseIOHandler):
         # This method is not abstract, and has a default implementation
         # in the base class.However, the default implementation requires that the method
         # io_iter be defined
-        # data = {}
-        # offset = 0
-
-        # with open(self.dmpfile, mode="rb") as fh:
-        #    for field in fields:
-        #        ftype, fname = field
-        #        data[ftype, fname] = np.empty(size, dtype="float64")
-        #        for chunk in chunks:
-        #            for grid in chunk.objs:
-        #                foffset = grid._index._field_offsets[fname]
-        #                values = read_single_field(fh, foffset)
-        #                offset += grid.select(selector, values, data[field], offset)
-        # return data
-        pass
+        data = {}
+        h5f = h5py.File(self.ds.parameter_filename, "r")
+        for field in fields:
+            data[field] = h5f[field[1]][:]
+        h5f.close()
+        return data
 
     def _read_chunk_data(self, chunk, fields):
         # This reads the data from a single chunk without doing any selection,
