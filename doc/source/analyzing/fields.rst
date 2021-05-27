@@ -704,7 +704,7 @@ defined on each dataset to depose any particle field onto the mesh like so:
        ("all", "particle_velocity_x"), method="nearest"
    )
 
-   print("The velocity of the particles are (stored in %s)" % (fname,))
+   print(f"The velocity of the particles are (stored in {fname}")
    print(ds.r[fname])
 
 .. note::
