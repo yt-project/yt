@@ -1304,7 +1304,7 @@ def load_unstructured_mesh(
 
 # --- Loader for yt sample datasets ---
 def load_sample(
-    fn: Optional[str] = None, progressbar: bool = True, timeout=None, **kwargs
+    fn: Optional[str] = None, *, progressbar: bool = True, timeout=None, **kwargs
 ):
     """
     Load sample data with yt.
