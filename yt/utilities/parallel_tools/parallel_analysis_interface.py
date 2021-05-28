@@ -570,12 +570,6 @@ def parallel_ring(objects, generator_func, mutable=False):
     mutable : bool
         Should the arrays be considered mutable?  Currently, this will only
         work if the number of processors equals the number of objects.
-    dynamic : bool
-        This governs whether or not dynamic load balancing will be enabled.
-        This requires one dedicated processor; if this is enabled with a set of
-        128 processors available, only 127 will be available to iterate over
-        objects as one will be load balancing the rest.
-
 
     Examples
     --------

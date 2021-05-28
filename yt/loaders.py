@@ -909,8 +909,8 @@ def load_octree(
     data,
     bbox=None,
     sim_time=0.0,
-    length_unit=None,
     mass_unit=None,
+    length_unit=None,
     time_unit=None,
     velocity_unit=None,
     magnetic_unit=None,
@@ -1065,9 +1065,9 @@ def load_unstructured_mesh(
     coordinates,
     node_data=None,
     elem_data=None,
-    length_unit=None,
     bbox=None,
     sim_time=0.0,
+    length_unit=None,
     mass_unit=None,
     time_unit=None,
     velocity_unit=None,
@@ -1125,6 +1125,8 @@ def load_unstructured_mesh(
         Size of computational domain in units of the length unit.
     sim_time : float, optional
         The simulation time in seconds
+    length_unit : string
+        Unit to use for length.  Defaults to unitless.
     mass_unit : string
         Unit to use for masses.  Defaults to unitless.
     time_unit : string

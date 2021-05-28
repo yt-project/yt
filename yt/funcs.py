@@ -39,7 +39,10 @@ from yt.utilities.on_demand_imports import _requests as requests
 def is_sequence(obj):
     """
     Grabbed from Python Cookbook / matplotlib.cbook.  Returns true/false for
-    *obj* iterable.
+
+    Parameters
+    ----------
+    obj : iterable
     """
     try:
         len(obj)
@@ -56,7 +59,7 @@ def iter_fields(field_or_fields):
 
     Parameters
     ----------
-    obj: str, tuple(str, str), or any iterable of the previous types.
+    field_or_fields: str, tuple(str, str), or any iterable of the previous types.
 
     Examples
     --------
@@ -1277,7 +1280,8 @@ def levenshtein_distance(seq1, seq2, max_dist=None):
 
     Parameters
     ----------
-    seq1, seq2 : str
+    seq1 : str
+    seq2 : str
         The strings to compute the distance between
     max_dist : integer
         If not None, maximum distance returned (see notes).

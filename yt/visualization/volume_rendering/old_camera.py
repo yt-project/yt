@@ -1441,7 +1441,7 @@ class PerspectiveCamera(Camera):
         theta : float, in radians
              Angle (in radians) by which to yaw the view.
 
-        center : a tuple (x, y, z)
+        rot_center : a tuple (x, y, z)
              The point to rotate about
 
         Examples

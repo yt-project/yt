@@ -222,7 +222,7 @@ class LinePlot(PlotContainer):
         figure_size : int or two-element iterable of ints
             Size in inches of the image.
             Default: 5 (5x5)
-        fontsize : int
+        font_size : int
             Font size for all text in the plot.
             Default: 14
         field_labels : dictionary

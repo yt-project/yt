@@ -90,9 +90,6 @@ class TransferFunctionHelper:
         Builds the transfer function according to the current state of the
         TransferFunctionHelper.
 
-        Parameters
-        ----------
-        None
 
         Returns
         -------
