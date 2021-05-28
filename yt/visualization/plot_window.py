@@ -1,4 +1,3 @@
-import types
 from collections import defaultdict
 from distutils.version import LooseVersion
 from functools import wraps
@@ -1264,14 +1263,16 @@ class PWViewerMPL(PlotWindow):
                 continue
             cbname = callback_registry[key]._type_name
 
-            def closure(me):
+            # We need to wrap to create a closure so that
+            # CallbackMaker is bound to the wrapped method.
+            def closure():
                 CallbackMaker = callback_registry[key]
 
                 @wraps(CallbackMaker)
                 def method(*args, **kwargs):
-                    # We need to also do it here as invalidate_plot
-                    # and apply_callback use the functions'
-                    # __name__ to work properly
+                    # We need to also do it here as "invalidate_plot"
+                    # and "apply_callback" require the functions'
+                    # __name__ in order to work properly
                     @wraps(CallbackMaker)
                     def cb(self, *a, **kwa):
                         # We construct the callback method
@@ -1279,14 +1280,13 @@ class PWViewerMPL(PlotWindow):
                         return CallbackMaker(*a, **kwa)
 
                     # Create callback
-                    cb = types.MethodType(cb, me)
                     cb = invalidate_plot(apply_callback(cb))
 
-                    return cb(me, *args, **kwargs)
+                    return cb(self, *args, **kwargs)
 
                 return method
 
-            self.__dict__["annotate_" + cbname] = closure(self)
+            self.__dict__["annotate_" + cbname] = closure()
 
     def annotate_clear(self, index=None):
         """
