@@ -138,7 +138,13 @@ class EnzoEIOHandler(BaseIOHandler):
                     )
                     filename = obj.filename
                 for field in fields:
-                    data = None
+                    grid_dim = self.ds.grid_dimensions
+                    nodal_flag = self.ds.field_info[field].nodal_flag
+                    dims = (
+                        grid_dim[: self.ds.dimensionality][::-1]
+                        + nodal_flag[: self.ds.dimensionality][::-1]
+                    )
+                    data = np.empty(dims, dtype=self._field_dtype)
                     yield field, obj, self._read_obj_field(obj, field, (fid, data))
         if fid is not None:
             fid.close()
@@ -146,7 +152,7 @@ class EnzoEIOHandler(BaseIOHandler):
     def _read_obj_field(self, obj, field, fid_data):
         if fid_data is None:
             fid_data = (None, None)
-        fid, data = fid_data
+        fid, rdata = fid_data
         if fid is None:
             close = True
             fid = h5py.h5f.open(obj.filename.encode("latin-1"), h5py.h5f.ACC_RDONLY)
@@ -155,10 +161,11 @@ class EnzoEIOHandler(BaseIOHandler):
         ftype, fname = field
         node = f"/{obj.block_name}/field{self._sep}{fname}"
         dg = h5py.h5d.open(fid, node.encode("latin-1"))
-        rdata = np.empty(
-            self.ds.grid_dimensions[: self.ds.dimensionality][::-1],
-            dtype=self._field_dtype,
-        )
+        if rdata is None:
+            rdata = np.empty(
+                self.ds.grid_dimensions[: self.ds.dimensionality][::-1],
+                dtype=self._field_dtype,
+            )
         dg.read(h5py.h5s.ALL, h5py.h5s.ALL, rdata)
         if close:
             fid.close()

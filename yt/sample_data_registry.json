@@ -95,6 +95,12 @@
     "load_name": "eagle_0005.hdf5",
     "url": "https://yt-project.org/data/EAGLE_6.tar.gz"
   },
+  "ENZOE_orszag-tang_0.5.tar.gz": {
+    "hash": "dbd93068131d3d100c186adb801302a303ac2c5c54118ab5f9e19b409eee5efc",
+    "load_kwargs": {},
+    "load_name": "ENZOE_orszag-tang_0.5.block_list",
+    "url": "https://yt-project.org/data/ENZOE_orszag-tang_0.5.tar.gz"
+  },
   "ENZOP_DD0140.tar.gz": {
     "hash": "8df14326a82845479398447b8b55bd93d8eea1c5f31657536b390e6703458e0d",
     "load_kwargs": {},
