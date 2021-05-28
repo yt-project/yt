@@ -1,6 +1,7 @@
 import numpy as np
 
 from yt.fields.field_info_container import FieldInfoContainer
+from yt.fields.magnetic_field import setup_magnetic_field_aliases
 from yt.fields.particle_fields import add_union_field
 from yt.frontends.enzo_e.misc import nested_dict_get
 
@@ -56,16 +57,14 @@ class EnzoEFieldInfo(FieldInfoContainer):
         super().__init__(ds, field_list, slice_info=slice_info)
 
         # setup nodal flag information
-        for field in NODAL_FLAGS:
+        for field, arr in NODAL_FLAGS.items():
             if ("enzoe", field) in self:
                 finfo = self["enzoe", field]
-                finfo.nodal_flag = np.array(NODAL_FLAGS[field])
+                finfo.nodal_flag = np.array(arr)
 
     def setup_fluid_fields(self):
-        from yt.fields.magnetic_field import setup_magnetic_field_aliases
-
         self.setup_energy_field()
-        setup_magnetic_field_aliases(self, "enzoe", ["bfield_%s" % ax for ax in "xyz"])
+        setup_magnetic_field_aliases(self, "enzoe", [f"bfield_{ax}" for ax in "xyz"])
         self.alias(
             ("gas", "total_energy"),
             ("gas", "specific_total_energy"),
@@ -112,11 +111,11 @@ class EnzoEFieldInfo(FieldInfoContainer):
             else:
                 # thermal energy = total energy - kinetic energy - magnetic energy
                 def _sub_b(field, data):
-                    ret = _tot_minus_kin(field, data)
-                    ret -= (
-                        data["gas", "magnetic_energy_density"] / data["gas", "density"]
+                    return (
+                        _tot_minus_kin(field, data)
+                        - data["gas", "magnetic_energy_density"]
+                        / data["gas", "density"]
                     )
-                    return ret
 
                 self.add_field(
                     ("gas", "specific_thermal_energy"),

@@ -126,6 +126,12 @@ def test_face_centered_bfields():
             assert_equal(grid[field].shape, block_dims + (2 * sum(flag),))
 
     # Average of face-centered fields should be the same as cell-centered field
-    assert (ad["enzoe", "bfieldi_x"].sum(axis=-1) / 2 == ad["enzoe", "bfield_x"]).all()
-    assert (ad["enzoe", "bfieldi_y"].sum(axis=-1) / 2 == ad["enzoe", "bfield_y"]).all()
-    assert (ad["enzoe", "bfieldi_z"].sum(axis=-1) / 2 == ad["enzoe", "bfield_z"]).all()
+    assert_array_equal(
+        ad["enzoe", "bfieldi_x"].sum(axis=-1) / 2, ad["enzoe", "bfield_x"]
+    )
+    assert_array_equal(
+        ad["enzoe", "bfieldi_y"].sum(axis=-1) / 2, ad["enzoe", "bfield_y"]
+    )
+    assert_array_equal(
+        ad["enzoe", "bfieldi_z"].sum(axis=-1) / 2, ad["enzoe", "bfield_z"]
+    )
