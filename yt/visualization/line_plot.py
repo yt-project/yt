@@ -161,8 +161,8 @@ class LinePlot(PlotContainer):
         start_point,
         end_point,
         npoints,
-        figure_size=5.0,
-        fontsize=14.0,
+        figure_size=5,
+        fontsize=14,
         field_labels=None,
     ):
         """
@@ -175,7 +175,7 @@ class LinePlot(PlotContainer):
 
     @classmethod
     def _initialize_instance(
-        cls, obj, ds, fields, figure_size=5.0, fontsize=14.0, field_labels=None
+        cls, obj, ds, fields, figure_size=5, fontsize=14, field_labels=None
     ):
         obj._x_unit = None
         obj._y_units = {}
@@ -204,7 +204,7 @@ class LinePlot(PlotContainer):
 
     @classmethod
     def from_lines(
-        cls, ds, fields, lines, figure_size=5.0, font_size=14.0, field_labels=None
+        cls, ds, fields, lines, figure_size=5, font_size=14, field_labels=None
     ):
         """
         A class method for constructing a line plot from multiple sampling lines
