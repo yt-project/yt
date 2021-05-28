@@ -408,7 +408,7 @@ class Camera(Orientation):
         Parameters
         ----------
 
-        focus : number, YTQuantity, :obj:`!iterable`, or 3 element YTArray
+        new_focus : number, YTQuantity, :obj:`!iterable`, or 3 element YTArray
             If a scalar, assumes that the focus is the same is all three
             coordinates. If an iterable, must contain only scalars or
             (length, unit) tuples.
