@@ -1,5 +1,5 @@
-import types
 import weakref
+from functools import wraps
 
 import numpy as np
 
@@ -505,10 +505,31 @@ class FixedResolutionBuffer:
             if key in ignored:
                 continue
             filtername = filter_registry[key]._filter_name
-            FilterMaker = filter_registry[key]
-            filt = apply_filter(FilterMaker)
-            filt.__doc__ = FilterMaker.__doc__
-            self.__dict__["apply_" + filtername] = types.MethodType(filt, self)
+
+            # We need to wrap to create a closure so that
+            # FilterMaker is bound to the wrapped method.
+            def closure():
+                FilterMaker = filter_registry[key]
+
+                @wraps(FilterMaker)
+                def method(*args, **kwargs):
+                    # We need to also do it here as "invalidate_plot"
+                    # and "apply_callback" require the functions'
+                    # __name__ in order to work properly
+                    @wraps(FilterMaker)
+                    def cb(self, *a, **kwa):
+                        # We construct the callback method
+                        # skipping self
+                        return FilterMaker(*a, **kwa)
+
+                    # Create callback
+                    cb = apply_filter(cb)
+
+                    return cb(self, *args, **kwargs)
+
+                return method
+
+            self.__dict__["apply_" + filtername] = closure()
 
 
 class CylindricalFixedResolutionBuffer(FixedResolutionBuffer):

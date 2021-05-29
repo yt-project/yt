@@ -1,6 +1,6 @@
-import types
 from collections import defaultdict
 from distutils.version import LooseVersion
+from functools import wraps
 from numbers import Number
 
 import matplotlib
@@ -1262,10 +1262,31 @@ class PWViewerMPL(PlotWindow):
             if key in ignored:
                 continue
             cbname = callback_registry[key]._type_name
-            CallbackMaker = callback_registry[key]
-            callback = invalidate_plot(apply_callback(CallbackMaker))
-            callback.__doc__ = CallbackMaker.__doc__
-            self.__dict__["annotate_" + cbname] = types.MethodType(callback, self)
+
+            # We need to wrap to create a closure so that
+            # CallbackMaker is bound to the wrapped method.
+            def closure():
+                CallbackMaker = callback_registry[key]
+
+                @wraps(CallbackMaker)
+                def method(*args, **kwargs):
+                    # We need to also do it here as "invalidate_plot"
+                    # and "apply_callback" require the functions'
+                    # __name__ in order to work properly
+                    @wraps(CallbackMaker)
+                    def cb(self, *a, **kwa):
+                        # We construct the callback method
+                        # skipping self
+                        return CallbackMaker(*a, **kwa)
+
+                    # Create callback
+                    cb = invalidate_plot(apply_callback(cb))
+
+                    return cb(self, *args, **kwargs)
+
+                return method
+
+            self.__dict__["annotate_" + cbname] = closure()
 
     def annotate_clear(self, index=None):
         """

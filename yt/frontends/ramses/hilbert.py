@@ -6,9 +6,9 @@ def hilbert3d(X, bit_length):
 
     Arguments
     ---------
-    * X: (N, ndim) float array
+    X : (N, ndim) float array
       The positions
-    * bit_length: integer
+    bit_length : integer
       The bit_length for the indexing.
     """
     X = np.atleast_2d(X)
@@ -266,9 +266,9 @@ def get_cpu_list(ds, X):
 
     Parameters
     ----------
-    * ds: Dataset
+    ds : Dataset
       The dataset containing the information
-    * X: (N, ndim) float array
+    X : (N, ndim) float array
       An array containing positions. They should be between 0 and 1.
     """
     X = np.atleast_2d(X)

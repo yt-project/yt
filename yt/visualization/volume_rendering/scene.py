@@ -40,10 +40,6 @@ class Scene:
     This does very little setup, and requires additional input
     to do anything useful.
 
-    Parameters
-    ----------
-    None
-
     Examples
     --------
 

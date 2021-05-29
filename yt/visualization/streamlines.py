@@ -29,7 +29,7 @@ class Streamlines(ParallelAnalysisInterface):
     ----------
     ds : ~yt.data_objects.static_output.Dataset
         This is the dataset to streamline
-    pos : array_like
+    positions : array_like
         An array of initial starting positions of the streamlines.
     xfield : str or tuple of str, optional
         The x component of the vector field to be streamlined.

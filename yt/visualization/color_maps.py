@@ -312,7 +312,7 @@ def make_colormap(ctuple_list, name=None, interpolate=True):
         If you wish this colormap to be added as a valid colormap to the
         current session, specify a name here.  Default: None
 
-    interpolation: boolean, optional
+    interpolate: boolean
         Designates whether or not the colormap will interpolate between
         the colors provided or just give solid colors across the intervals.
         Default: True

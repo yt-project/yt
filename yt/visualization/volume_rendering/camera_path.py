@@ -218,11 +218,8 @@ class Keyframes:
             return np.exp(-abs(next - prev) / temperature)
 
     def get_shortest_path(self):
-        r"""Determine shortest path between all keyframes.
-
-        Parameters
-        ----------
-        None.
+        """
+        Determine shortest path between all keyframes.
         """
         # this obviously doesn't work. When someone fixes it, remove the NOQA
         self.setup_tsp(niter, init_temp, alpha, fixed_start)  # NOQA

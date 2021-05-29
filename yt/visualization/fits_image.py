@@ -616,7 +616,7 @@ class FITSImageData:
         fields : list of strings, optional
             The fields to write to the file. If not specified
             all of the fields in the buffer will be written.
-        clobber : overwrite, optional
+        overwrite : boolean
             Whether or not to overwrite a previously existing file.
             Default: False
         **kwargs

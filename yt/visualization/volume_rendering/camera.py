@@ -384,13 +384,13 @@ class Camera(Orientation):
         Parameters
         ----------
 
-        width : number, YTQuantity, :obj:`!iterable`, or 3 element YTArray
+        position : number, YTQuantity, :obj:`!iterable`, or 3 element YTArray
             If a scalar, assumes that the position is the same in all three
             coordinates. If an iterable, must contain only scalars or
             (length, unit) tuples.
 
         north_vector : array_like, optional
-            The 'up' direction for the plane of rays.  If not specific,
+            The 'up' direction for the plane of rays. If not specific,
             calculated automatically.
 
         """
@@ -408,7 +408,7 @@ class Camera(Orientation):
         Parameters
         ----------
 
-        focus : number, YTQuantity, :obj:`!iterable`, or 3 element YTArray
+        new_focus : number, YTQuantity, :obj:`!iterable`, or 3 element YTArray
             If a scalar, assumes that the focus is the same is all three
             coordinates. If an iterable, must contain only scalars or
             (length, unit) tuples.

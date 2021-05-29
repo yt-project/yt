@@ -1125,6 +1125,8 @@ def load_unstructured_mesh(
         Size of computational domain in units of the length unit.
     sim_time : float, optional
         The simulation time in seconds
+    length_unit : string
+        Unit to use for length.  Defaults to unitless.
     mass_unit : string
         Unit to use for masses.  Defaults to unitless.
     time_unit : string
