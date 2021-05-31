@@ -791,11 +791,29 @@ linear.
    slc.save()
 
 Specifically, a field containing both positive and negative values can be plotted
-with symlog scale, by setting the boolean to be ``True`` and providing an extra
-parameter ``linthresh``. In the region around zero (when the log scale approaches
-to infinity), the linear scale will be applied to the region ``(-linthresh, linthresh)``
-and stretched relative to the logarithmic range. You can also plot a positive field
-under symlog scale with the linear range of ``(0, linthresh)``.
+with symlog scale, by setting the boolean to be ``True`` and either providing an extra
+parameter ``linthresh`` or setting ``symlog_auto = True``. In the region around zero
+(when the log scale approaches to infinity), the linear scale will be applied to the
+region ``(-linthresh, linthresh)`` and stretched relative to the logarithmic range.
+In some cases, if yt detects zeros present in the dataset and the user has selected
+``log`` scaling, yt automatically switches to ``symlog`` scaling and automatically
+chooses a ``linthresh`` value to avoid errors.  This is the same behavior you can
+achieve by setting the keyword ``symlog_auto`` to ``True``. In these cases, yt will
+choose the smallest non-zero value in a dataset to be the ``linthresh`` value.
+As an example,
+
+.. python-script::
+
+   import yt
+
+   ds = yt.load_sample("FIRE_M12i_ref11")
+   p = yt.ProjectionPlot(ds, "x", ("gas", "density"))
+   p.set_log(("gas", "density"), True, symlog_auto=True)
+   p.save()
+
+Symlog is very versatile, and will work with positive or negative dataset ranges.
+Here is an example using symlog scaling to plot a postive field with a linear range of
+``(0, linthresh)``.
 
 .. python-script::
 
