@@ -10,14 +10,14 @@ from yt.utilities.answer_testing.framework import (
     small_patch_amr,
 )
 
-blastwave_spherical_2D = "amrvac/bw_2d0000.dat"
-khi_cartesian_2D = "amrvac/kh_2d0000.dat"
-khi_cartesian_3D = "amrvac/kh_3D0000.dat"
+blastwave_spherical_2D = "bw_spherical_2d/output0001.dat"
+khi_cartesian_2D = "kh2d/output0001.dat"
+khi_cartesian_3D = "kh3d/output0001.dat"
 jet_cylindrical_25D = "amrvac/Jet0003.dat"
-riemann_cartesian_175D = "amrvac/R_1d0005.dat"
-blastwave_cartesian_3D = "amrvac/bw_3d0000.dat"
-blastwave_polar_2D = "amrvac/bw_polar_2D0000.dat"
-blastwave_cylindrical_3D = "amrvac/bw_cylindrical_3D0000.dat"
+riemann_cartesian_175D = "riemann1d/output0001.dat"
+blastwave_cartesian_3D = "bw_cartesian_3d/output0001.dat"
+blastwave_polar_2D = "bw_polar_2d/output0001.dat"
+blastwave_cylindrical_3D = "bw_cylindrical_3d/output0001.dat"
 rmi_cartesian_dust_2D = "amrvac/Richtmyer_Meshkov_dust_2D/RM2D_dust_Kwok0000.dat"
 
 

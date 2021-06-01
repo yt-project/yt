@@ -2,7 +2,7 @@ from yt.testing import assert_allclose_units, assert_raises, requires_file
 from yt.units import YTQuantity
 from yt.utilities.answer_testing.framework import data_dir_load
 
-khi_cartesian_2D = "amrvac/kh_2d0000.dat"
+khi_cartesian_2D = "kh2d/output0001.dat"
 
 # Tests for units: check that overriding certain units yields the correct derived units.
 # The following are the correct normalisations

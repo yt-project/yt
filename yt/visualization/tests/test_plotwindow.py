@@ -664,7 +664,7 @@ def test_set_unit():
 
 
 WD = "WDMerger_hdf5_chk_1000/WDMerger_hdf5_chk_1000.hdf5"
-blast_wave = "amrvac/bw_2d0000.dat"
+blast_wave = "bw_spherical_2d/output0001.dat"
 
 
 @requires_file(WD)
