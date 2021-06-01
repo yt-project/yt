@@ -213,7 +213,7 @@ class Accumulators:
             # Figure out which cell in the node the point falls within
             # Origin of node can be offset from origin of origin of volume,
             # so we have to subtract it off to get the right cell indices
-            cell_ind = ((path[idx] - node_left_edge) / cell_size).astype(int)
+            cell_ind = ((path[idx] - node_left_edge) / cell_size).astype('i8')
             # Access the value of the field at that index. Accessing a single
             # element of a multi-dimensional array using another array is
             # problematic. Flatten and use a row-major index, indstead
@@ -226,7 +226,7 @@ class Accumulators:
             if idx != npts:
                 left_check = path[idx] < node_left_edge
                 right_check = path[idx] >= node_right_edge
-                if np.sum(np.logical_or(left_check, right_check)):
+                if np.any(left_check | right_check):
                     vals, idx = self._get_path_field_values(tree, path, idx, vals, npts)
         return vals, idx
 
