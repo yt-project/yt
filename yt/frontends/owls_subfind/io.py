@@ -4,9 +4,11 @@ from yt.funcs import mylog
 from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.on_demand_imports import _h5py as h5py
 
+_pos_names = ["CenterOfMass", "CentreOfMass"]
 
 class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
     _dataset_type = "subfind_hdf5"
+    _position_name = None
 
     def __init__(self, ds):
         super().__init__(ds)
@@ -27,7 +29,7 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
             with h5py.File(data_file.filename, mode="r") as f:
                 for ptype in sorted(ptf):
                     pcount = data_file.total_particles[ptype]
-                    coords = f[ptype]["CenterOfMass"][()].astype("float64")
+                    coords = f[ptype][self._position_name][()].astype("float64")
                     coords = np.resize(coords, (pcount, 3))
                     x = coords[si:ei, 0]
                     y = coords[si:ei, 1]
@@ -40,12 +42,9 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
         with h5py.File(data_file.filename, mode="r") as f:
             for ptype in sorted(ptypes):
                 pcount = data_file.total_particles[ptype]
-                coords = f[ptype]["CenterOfMass"][()].astype("float64")
+                coords = f[ptype][self._position_name][()].astype("float64")
                 coords = np.resize(coords, (pcount, 3))
-                x = coords[si:ei, 0]
-                y = coords[si:ei, 1]
-                z = coords[si:ei, 2]
-                yield ptype, (x, y, z)
+                yield ptype, coords
 
     def _read_offset_particle_field(self, field, data_file, fh):
         field_data = np.empty(data_file.total_particles["FOF"], dtype="float64")
@@ -80,7 +79,7 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
                     pcount = data_file.total_particles[ptype]
                     if pcount == 0:
                         continue
-                    coords = f[ptype]["CenterOfMass"][()].astype("float64")
+                    coords = f[ptype][self._position_name][()].astype("float64")
                     coords = np.resize(coords, (pcount, 3))
                     x = coords[:, 0]
                     y = coords[:, 1]
@@ -142,6 +141,7 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
             for ptype in self.ds.particle_types_raw:
                 if data_file.total_particles[ptype] == 0:
                     continue
+                self._identify_position_name(f[ptype])
                 fields.append((ptype, "particle_identifier"))
                 my_fields, my_offset_fields = subfind_field_list(
                     f[ptype], ptype, data_file.total_particles
@@ -150,6 +150,13 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
                 self.offset_fields = self.offset_fields.union(set(my_offset_fields))
         return fields, {}
 
+    def _identify_position_name(self, fh):
+        if self._position_name is not None:
+            return
+        for pname in _pos_names:
+            if pname in fh:
+                self._position_name = pname
+                return
 
 def get_one_attr(fh, attrs, default=None, error=True):
     """
