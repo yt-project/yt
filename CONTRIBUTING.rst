@@ -784,8 +784,6 @@ Source code style guide
    imports should happen at the top of the file.
  * If you are comparing with a numpy boolean array, just refer to the array.
    Ex: do ``np.all(array)`` instead of ``np.all(array == True)``.
- * Only declare local variables if they will be used later. If you do not use the
-   return value of a function, do not store it in a variable.
 
 API Style Guide
 ---------------
