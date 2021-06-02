@@ -128,11 +128,6 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
                 data_file.total_offset = 0
                 pcount["SUBFIND"] = 0
 
-        si, ei = data_file.start, data_file.end
-        if None not in (si, ei):
-            for ptype in pcount:
-                pcount[ptype] = np.clip(pcount[ptype] - si, 0, ei - si)
-
         return pcount
 
     def _identify_fields(self, data_file):
