@@ -16,6 +16,8 @@ from .fields import OWLSSubfindFieldInfo
 
 
 class OWLSSubfindParticleIndex(ParticleIndex):
+    chunksize = -1
+
     def __init__(self, ds, dataset_type):
         super().__init__(ds, dataset_type)
 
