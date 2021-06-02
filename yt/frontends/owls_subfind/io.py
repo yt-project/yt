@@ -6,6 +6,7 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 
 _pos_names = ["CenterOfMass", "CentreOfMass"]
 
+
 class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
     _dataset_type = "subfind_hdf5"
     _position_name = None
@@ -117,8 +118,12 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
             pcount = {"FOF": get_one_attr(f["FOF"], ["Number_of_groups", "Ngroups"])}
             if "SUBFIND" in f:
                 # We need this to figure out where the offset fields are stored.
-                data_file.total_offset = get_one_attr(f["SUBFIND"], ["Number_of_groups", "Ngroups"])
-                pcount["SUBFIND"] = get_one_attr(f["FOF"], ["Number_of_subgroups", "Nsubgroups"])
+                data_file.total_offset = get_one_attr(
+                    f["SUBFIND"], ["Number_of_groups", "Ngroups"]
+                )
+                pcount["SUBFIND"] = get_one_attr(
+                    f["FOF"], ["Number_of_subgroups", "Nsubgroups"]
+                )
             else:
                 data_file.total_offset = 0
                 pcount["SUBFIND"] = 0
@@ -156,6 +161,7 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
                 self._position_name = pname
                 return
 
+
 def get_one_attr(fh, attrs, default=None, error=True):
     """
     Try getting from a list of attrs. Return the first one that exists.
@@ -166,8 +172,10 @@ def get_one_attr(fh, attrs, default=None, error=True):
     if error:
         raise RuntimeError(
             f"Could not find any of these attributes: {attrs}. "
-            f"Available attributes: {fh.attrs.keys()}")
+            f"Available attributes: {fh.attrs.keys()}"
+        )
     return default
+
 
 def subfind_field_list(fh, ptype, pcount):
     fields = []
