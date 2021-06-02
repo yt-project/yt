@@ -133,8 +133,7 @@ def _param_list(request):
     # Convert python-specific data objects (such as tuples) to a more
     # io-friendly format (in order to not have python-specific anchors
     # in the answer yaml file)
-    test_params = _streamline_for_io(test_params)
-    return test_params
+    return _streamline_for_io(test_params)
 
 
 def _get_answer_files(request):

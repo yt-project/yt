@@ -106,8 +106,7 @@ def generate_failed_answers_html(failed_answers):
             )
             rows.append(formatted_row)
 
-    html = html_template.format(rows="\n".join(rows))
-    return html
+    return html_template.format(rows="\n".join(rows))
 
 
 def upload_to_curldrop(data, filename):
@@ -138,8 +137,7 @@ def upload_to_curldrop(data, filename):
 
     base_url = ytcfg.get("yt", "curldrop_upload_url")
     upload_url = base_url + "/" + os.path.basename(filename)
-    response = requests.put(upload_url, data=data)
-    return response
+    return requests.put(upload_url, data=data)
 
 
 def upload_failed_answers(failed_answers):
@@ -163,9 +161,7 @@ def upload_failed_answers(failed_answers):
     html = generate_failed_answers_html(failed_answers)
     # convert html str to bytes
     html = html.encode()
-    response = upload_to_curldrop(data=html, filename="failed_answers_{}.html")
-
-    return response
+    return upload_to_curldrop(data=html, filename="failed_answers_{}.html")
 
 
 def generate_answers(answer_dir, answers):
@@ -247,7 +243,7 @@ def upload_answers(answers):
         data = iter(FileStreamer(open(zip_file, "rb")))
         response = upload_to_curldrop(data=data, filename="new_answers_{}.zip")
         shutil.rmtree(tmpdir)
-        return response
+        return response  # noqa R504
     return None
 
 
