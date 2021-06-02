@@ -167,7 +167,7 @@ answer_tests:
   local_axialpix_007:
     - yt/geometry/coordinates/tests/test_axial_pixelization.py:test_axial_pixelization
 
-  local_cylindrical_background_006:  # PR 3153
+  local_cylindrical_background_007:  # PR 3295
     - yt/geometry/coordinates/tests/test_cylindrical_coordinates.py:test_noise_plots
 
   #local_particle_trajectory_001:
