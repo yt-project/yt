@@ -25,20 +25,18 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
-            si, ei = data_file.start, data_file.end
             with h5py.File(data_file.filename, mode="r") as f:
                 for ptype in sorted(ptf):
                     pcount = data_file.total_particles[ptype]
                     coords = f[ptype][self._position_name][()].astype("float64")
                     coords = np.resize(coords, (pcount, 3))
-                    x = coords[si:ei, 0]
-                    y = coords[si:ei, 1]
-                    z = coords[si:ei, 2]
+                    x = coords[:, 0]
+                    y = coords[:, 1]
+                    z = coords[:, 2]
                     yield ptype, (x, y, z)
 
     def _yield_coordinates(self, data_file):
         ptypes = self.ds.particle_types_raw
-        si, ei = data_file.start, data_file.end
         with h5py.File(data_file.filename, mode="r") as f:
             for ptype in sorted(ptypes):
                 pcount = data_file.total_particles[ptype]
