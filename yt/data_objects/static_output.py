@@ -43,6 +43,7 @@ from yt.utilities.exceptions import (
     YTIllDefinedParticleFilter,
     YTObjectNotImplemented,
 )
+from yt.utilities.lib.fnv_hash import fnv_hash
 from yt.utilities.minimal_representation import MinimalDataset
 from yt.utilities.object_registries import data_object_registry, output_type_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_root_only
@@ -245,6 +246,8 @@ class Dataset(abc.ABC):
     def unique_identifier(self):
         if self._unique_identifier is None:
             self._unique_identifier = int(os.stat(self.parameter_filename)[ST_CTIME])
+            name_as_bytes = bytearray(map(ord, self.parameter_filename))
+            self._unique_identifier += fnv_hash(name_as_bytes)
         return self._unique_identifier
 
     @unique_identifier.setter
