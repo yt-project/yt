@@ -1,8 +1,8 @@
 {
-  "A2052.tar.gz": {
-    "hash": "a6a427750945b36a7b7478e3e301e4aba75e95af11bdda2e9ef759c9bbcde5e5",
+  "xray_fits.tar.gz": {
+    "hash": "f6f18580de88b5a93c76707c4ac41233a313cae1d5b78b29690caf6fa3dd14d6",
     "load_kwargs": {},
-    "load_name": "xray_fits/A2052_merged_0.3-2_match-core_tmap_bgecorr.fits",
+    "load_name": "A2052_merged_0.3-2_match-core_tmap_bgecorr.fits",
     "url": "https://yt-project.org/data/A2052.tar.gz"
   },
   "AM06.tar.gz": {
@@ -120,9 +120,9 @@
     "url": "https://yt-project.org/data/Enzo_64.tar.gz"
   },
   "ExodusII_tests.tar.gz": {
-    "hash": "d21c5ef320f2b4705ec4cacf26488a3a59544fab8cc3a9726e8989ad1bd8d177",
+    "hash": "ac03b8591d8a9d278398d8978e0f6030d2757e0439f4388e91c821605c66fe91",
     "load_kwargs": {},
-    "load_name": "ExodusII/gold.e",
+    "load_name": "gold.e",
     "url": "https://yt-project.org/data/ExodusII_tests.tar.gz"
   },
   "FIRE_M12i_ref11.tar.gz": {
@@ -174,7 +174,7 @@
     "url": "https://yt-project.org/data/GaussianBeam.tar.gz"
   },
   "GaussianCloud.tar.gz": {
-    "hash": "edf869828cc14c2f47a389a62bf5a9bec22fba0de7e5c5380c6eb1acca9aa6a1",
+    "hash": "dc04b5d65e96749e2759dde099ea8088d01e387f74bcf5e0d13bbb0999c89f74",
     "load_kwargs": {},
     "load_name": "data.0077.3d.hdf5",
     "url": "https://yt-project.org/data/GaussianCloud.tar.gz"
@@ -418,9 +418,9 @@
     "url": "https://yt-project.org/data/SecondOrderTris.tar.gz"
   },
   "Sedov3D.tar.gz": {
-    "hash": "4e3220744024333293c707bafe64706d325e1f6ee0914bee4be78c3b48d3f97e",
+    "hash": "f5d5f8d2e15428224db2cd9543defbd08d6f8eae68c7f372f1f371040379ae43",
     "load_kwargs": {},
-    "load_name": "Sedov_3d/sedov_hdf5_chk_0000",
+    "load_name": "sedov_hdf5_chk_0000",
     "url": "https://yt-project.org/data/Sedov3D.tar.gz"
   },
   "ShockCloud.tar.gz": {
@@ -466,7 +466,7 @@
     "url": "https://yt-project.org/data/ToroShockTube.tar.gz"
   },
   "TurbBoxLowRes.tar.gz": {
-    "hash": "96b9e08dcf007bd4410ed98f9252aad33138515b8e83f4168f4f7bcda5e5bc27",
+    "hash": "aa43bad2c07fec3dc7ba04b68973609ac8a0fa433a6bf1ca669fe6034cad2b0c",
     "load_kwargs": {},
     "load_name": "data.0005.3d.hdf5",
     "url": "https://yt-project.org/data/TurbBoxLowRes.tar.gz"
@@ -838,9 +838,9 @@
     "url": "https://yt-project.org/data/sedov_1d_sph_plt00120.tar.gz"
   },
   "sedov_tst_0004.tar.gz": {
-    "hash": "f0c592efde0257efea77e743167439da6df44cde71a9917b305751a8818eabb5",
+    "hash": "2644b7a91ece862b79d8afb2e7fb4f22b6bef51d68b4190fbaf590cab9f38864",
     "load_kwargs": {},
-    "load_name": "sedov/sedov_tst_0004.h5",
+    "load_name": "sedov_tst_0004.h5",
     "url": "https://yt-project.org/data/sedov_tst_0004.tar.gz"
   },
   "sizmbhloz-clref04SNth-rs9_a0.9011.tar.gz": {
