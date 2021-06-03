@@ -2594,7 +2594,7 @@ Any field data or material data on the mesh can then be viewed just like any oth
 RAMSES Data
 -----------
 
-In yt-4, RAMSES data is fully supported.  If you are interested in taking a
+In yt-4.x, RAMSES data is fully supported.  If you are interested in taking a
 development or stewardship role, please contact the yt-dev mailing list.  To
 load a RAMSES dataset, you can use the ``yt.load`` command and provide it
 the ``info*.txt`` filename.  For instance, if you were in a
