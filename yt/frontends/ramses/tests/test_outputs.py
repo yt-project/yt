@@ -1,4 +1,5 @@
 import os
+from copy import deepcopy
 
 import numpy as np
 
@@ -668,3 +669,45 @@ def test_print_stats():
     ds.print_stats()
 
     # FIXME #3197: use `capsys` with pytest to make sure the print_stats function works as intended
+
+
+custom_hydro = [
+    "my-Density",
+    "my-x-velocity",
+    "my-y-velocity",
+    "my-z-velocity",
+    "my-Pressure",
+    "my-Metallicity",
+]
+custom_grav = [
+    "my-x-acceleration",
+    "my-y-acceleration",
+    "my-z-acceleration",
+]
+
+
+class TestFieldConfig:
+    def setUp(self):
+        self.old_config = deepcopy(ytcfg.config_root.as_dict())
+        ytcfg.add_section("ramses-hydro")
+        ytcfg.add_section("ramses-grav")
+        ytcfg.set("ramses-hydro", "fields", custom_hydro)
+        ytcfg.set("ramses-grav", "fields", custom_grav)
+
+    @staticmethod
+    def _check(path):
+        ds = yt.load(path)
+
+        for f in custom_hydro:
+            assert ("ramses", f) in ds.field_list
+        for f in custom_grav:
+            assert ("gravity", f) in ds.field_list
+
+    def test_load_from_sample(self):
+        for path in (output_00080, ramses_new_format):
+            yield requires_file(path)(self._check), path
+
+    def tearDown(self):
+        ytcfg.remove_section("ramses-hydro")
+        ytcfg.remove_section("ramses-grav")
+        ytcfg.update(self.old_config)

@@ -268,7 +268,7 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
     def load_fields_from_yt_config(cls) -> Tuple[List[str], bool]:
         if cls.config_field and ytcfg.has_section(cls.config_field):
             # Or this is given by the config
-            cfg = ytcfg.get(cls.config_field, "fields", [])
+            cfg = ytcfg.get(cls.config_field, "fields")
             fields = [_.strip() for _ in cfg if _.strip() != ""]
             return fields, len(fields) > 0
 
@@ -315,11 +315,15 @@ class HydroFieldFileHandler(FieldFileHandler):
 
         ok = False
 
-        # Either the fields are given by dataset
+        # Case 1: fields are provided by users on construction of dataset
         if ds._fields_in_file is not None:
             fields = list(ds._fields_in_file)
             ok = True
-        elif os.path.exists(fname_desc):
+        else:  # Case 2: fields are provided by users in the config
+            fields, ok = cls.load_fields_from_yt_config()
+
+        # Case 3: there is a file descriptor
+        if not ok and os.path.exists(fname_desc):
             # Or there is an hydro file descriptor
             mylog.debug("Reading hydro file descriptor.")
             # For now, we can only read double precision fields
@@ -328,10 +332,7 @@ class HydroFieldFileHandler(FieldFileHandler):
             # We get no fields for old-style hydro file descriptor
             ok = len(fields) > 0
 
-        else:
-            fields, ok = cls.load_fields_from_yt_config()
-
-        # Else, attempt autodetection
+        # Case 4: attempt autodetection with usual fields
         if not ok:
             foldername = os.path.abspath(os.path.dirname(ds.parameter_filename))
             rt_flag = any(glob.glob(os.sep.join([foldername, "info_rt_*.txt"])))
