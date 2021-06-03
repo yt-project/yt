@@ -74,7 +74,7 @@
   "DMonly.tar.gz": {
     "hash": "45ad285c0df4d7c9e08f497047ac04da373580cd70a8e6fefbe824726235c5c7",
     "load_kwargs": {},
-    "load_name": "DMonly/PMcrs0.0100.DAT",
+    "load_name": "PMcrs0.0100.DAT",
     "url": "https://yt-project.org/data/DMonly.tar.gz"
   },
   "DeeplyNestedZoom.tar.gz": {
