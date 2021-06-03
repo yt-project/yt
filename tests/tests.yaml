@@ -3,7 +3,7 @@ answer_tests:
   local_art_003: # PR 3081, 3101
     - yt/frontends/art/tests/test_outputs.py:test_d9p
 
-  local_amrvac_008: # PR 2945
+  local_amrvac_2_001: # PR 3317
     - yt/frontends/amrvac/tests/test_outputs.py:test_domain_size
     - yt/frontends/amrvac/tests/test_outputs.py:test_bw_polar_2d
     - yt/frontends/amrvac/tests/test_outputs.py:test_blastwave_cartesian_3D
