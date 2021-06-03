@@ -554,9 +554,9 @@ class RTFieldFileHandler(FieldFileHandler):
         with FortranFile(fname) as fd:
             cls.parameters = fd.read_attrs(cls.attrs)
 
-        fields, ok = cls.load_fields_from_yt_config()
+        fields = cls.load_fields_from_yt_config()
 
-        if not ok:
+        if not fields:
             fields = []
             for ng in range(ngroups):
                 tmp = [
