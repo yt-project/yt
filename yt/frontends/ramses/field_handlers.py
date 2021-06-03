@@ -1,7 +1,7 @@
 import abc
 import glob
 import os
-from typing import List, Tuple
+from typing import List
 
 from yt.config import ytcfg
 from yt.funcs import mylog
@@ -265,14 +265,13 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
         return self._offset
 
     @classmethod
-    def load_fields_from_yt_config(cls) -> Tuple[List[str], bool]:
+    def load_fields_from_yt_config(cls) -> List[str]:
         if cls.config_field and ytcfg.has_section(cls.config_field):
-            # Or this is given by the config
             cfg = ytcfg.get(cls.config_field, "fields")
             fields = [_.strip() for _ in cfg if _.strip() != ""]
-            return fields, len(fields) > 0
+            return fields
 
-        return [], False
+        return []
 
 
 class HydroFieldFileHandler(FieldFileHandler):
@@ -320,7 +319,8 @@ class HydroFieldFileHandler(FieldFileHandler):
             fields = list(ds._fields_in_file)
             ok = True
         else:  # Case 2: fields are provided by users in the config
-            fields, ok = cls.load_fields_from_yt_config()
+            fields = cls.load_fields_from_yt_config()
+            ok = len(fields) > 0
 
         # Case 3: there is a file descriptor
         if not ok and os.path.exists(fname_desc):
@@ -465,9 +465,9 @@ class GravFieldFileHandler(FieldFileHandler):
         nvar = cls.parameters["nvar"]
         ndim = ds.dimensionality
 
-        fields, ok = cls.load_fields_from_yt_config()
+        fields = cls.load_fields_from_yt_config()
 
-        if not ok:
+        if not fields:
             if nvar == ndim + 1:
                 fields = ["Potential"] + [f"{k}-acceleration" for k in "xyz"[:ndim]]
             else:
