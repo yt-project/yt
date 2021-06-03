@@ -1,6 +1,7 @@
 import abc
 import glob
 import os
+from typing import List, Tuple
 
 from yt.config import ytcfg
 from yt.funcs import mylog
@@ -263,6 +264,18 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
         self._level_count = level_count
         return self._offset
 
+    @classmethod
+    def load_fields_from_yt_config(cls) -> Tuple[List[str], bool]:
+        if cls.config_field and ytcfg.has_section(cls.config_field):
+            # Or this is given by the config
+            cfg = ytcfg.get(cls.config_field, "fields")
+            fields = []
+            for field in (_.strip() for _ in cfg.split("\n") if _.strip() != ""):
+                fields.append(field.strip())
+            return fields, True
+
+        return [], False
+
 
 class HydroFieldFileHandler(FieldFileHandler):
     ftype = "ramses"
@@ -317,15 +330,8 @@ class HydroFieldFileHandler(FieldFileHandler):
             # We get no fields for old-style hydro file descriptor
             ok = len(fields) > 0
 
-        elif cls.config_field and ytcfg.has_section(cls.config_field):
-            # Or this is given by the config
-            cfg = ytcfg.get(cls.config_field, "fields")
-            known_fields = []
-            for field in (_.strip() for _ in cfg.split("\n") if _.strip() != ""):
-                known_fields.append(field.strip())
-            fields = known_fields
-
-            ok = True
+        else:
+            fields, ok = cls.load_fields_from_yt_config()
 
         # Else, attempt autodetection
         if not ok:
@@ -460,18 +466,21 @@ class GravFieldFileHandler(FieldFileHandler):
         nvar = cls.parameters["nvar"]
         ndim = ds.dimensionality
 
-        if nvar == ndim + 1:
-            fields = ["Potential"] + [f"{k}-acceleration" for k in "xyz"[:ndim]]
-        else:
-            fields = [f"{k}-acceleration" for k in "xyz"[:ndim]]
-        ndetected = len(fields)
+        fields, ok = cls.load_fields_from_yt_config()
 
-        if ndetected != nvar and not ds._warned_extra_fields["gravity"]:
-            mylog.warning("Detected %s extra gravity fields.", nvar - ndetected)
-            ds._warned_extra_fields["gravity"] = True
+        if not ok:
+            if nvar == ndim + 1:
+                fields = ["Potential"] + [f"{k}-acceleration" for k in "xyz"[:ndim]]
+            else:
+                fields = [f"{k}-acceleration" for k in "xyz"[:ndim]]
+            ndetected = len(fields)
 
-            for i in range(nvar - ndetected):
-                fields.append(f"var{i}")
+            if ndetected != nvar and not ds._warned_extra_fields["gravity"]:
+                mylog.warning("Detected %s extra gravity fields.", nvar - ndetected)
+                ds._warned_extra_fields["gravity"] = True
+
+                for i in range(nvar - ndetected):
+                    fields.append(f"var{i}")
 
         cls.field_list = [(cls.ftype, e) for e in fields]
 
@@ -546,15 +555,18 @@ class RTFieldFileHandler(FieldFileHandler):
         with FortranFile(fname) as fd:
             cls.parameters = fd.read_attrs(cls.attrs)
 
-        fields = []
-        for ng in range(ngroups):
-            tmp = [
-                "Photon_density_%s",
-                "Photon_flux_x_%s",
-                "Photon_flux_y_%s",
-                "Photon_flux_z_%s",
-            ]
-            fields.extend([t % (ng + 1) for t in tmp])
+        fields, ok = cls.load_fields_from_yt_config()
+
+        if not ok:
+            fields = []
+            for ng in range(ngroups):
+                tmp = [
+                    "Photon_density_%s",
+                    "Photon_flux_x_%s",
+                    "Photon_flux_y_%s",
+                    "Photon_flux_z_%s",
+                ]
+                fields.extend([t % (ng + 1) for t in tmp])
 
         cls.field_list = [(cls.ftype, e) for e in fields]
 
