@@ -131,21 +131,63 @@ class Accumulators:
     """
 
     def __init__(self, paths, ds):
-        self.paths = []
+        self.paths = self._verify_paths(paths)
         self.ds = ds
-        self.ad = ds.all_data()
-        self.accum = []
+        self.ad = self.ds.all_data()
         self.left_edge = self.ds.domain_left_edge
         self.right_edge = self.ds.domain_right_edge
-        # Make sure that the path has proper units. If no units are
-        # specified, assume code units
-        for p in paths:
-            if not isinstance(p, YTArray) or p.units.is_dimensionless:
-                self.paths.append(self.ds.arr(p, "code_length"))
-            else:
-                self.paths.append(p.to(self.ds.length_unit))
+        self.accum = []
 
-    def _get_tree(self, field, is_vector):
+    def _verify_paths(self, paths):
+        """
+        The ``Accumulators`` object can accept either a list of paths or
+        a single path to integrate over. Here we make sure that
+        ``paths`` is one of those two options and that the given paths
+        are of the correct shape (either two or three dimensions,
+        depending on the dimensionality of the given dataset).
+        """
+        verified_paths = []
+        # Case 1: paths is a list
+        if isinstance(paths, list):
+            try:
+                assert len(paths) > 0
+            except AssertionError:
+                raise ValueError("List of paths is empty.")
+            for p in paths:
+                verified_paths.append(self._verify_path(p))
+        # Case 2: paths is an array
+        elif isinstance(paths, np.ndarray):
+            verified_paths.append(self._verify_path(paths))
+        else:
+            raise TypeError("Paths must be either an array or list of arrays.")
+        return verified_paths
+
+    def _verify_path(self, p):
+        if isinstance(p, np.ndarray):
+            # Make sure the shape is 2D
+            try:
+                assert len(p.shape) == 2
+            except AssertionError:
+                raise ValueError("Path shape should be (N, ds.dimensionality)")
+            # Make sure the dimensionality of path points matches ds
+            try:
+                assert p.shape[1] == self.ds.dimensionality
+            except AssertionError:
+                raise ValueError("Point and ds dimensions don't match.")
+            # Make sure there are at least two points on the path
+            try:
+                assert p.shape[0] > 1
+            except AssertionError:
+                raise ValueError("Need at least two points on path.")
+            # Check units
+            if hasattr(p, "units") and not p.units.is_dimensionless:
+                return p.to(self.ds.length_unit)
+            else:
+                return self.ds.arr(p, "code_length")
+        else:
+            raise TypeError("Path must be either a ndarray or YTArray")
+
+    def _get_tree(self, field):
         r"""
         Creates an AMRKDTree and then adds the field to it.
 
@@ -213,7 +255,7 @@ class Accumulators:
             # Figure out which cell in the node the point falls within
             # Origin of node can be offset from origin of origin of volume,
             # so we have to subtract it off to get the right cell indices
-            cell_ind = ((path[idx] - node_left_edge) / cell_size).astype('i8')
+            cell_ind = ((path[idx] - node_left_edge) / cell_size).astype("i8")
             # Access the value of the field at that index. Accessing a single
             # element of a multi-dimensional array using another array is
             # problematic. Flatten and use a row-major index, indstead
@@ -256,7 +298,7 @@ class Accumulators:
             too short (less than two points).
         """
         if is_vector is None:
-            raise ValueError("`is_vector` parameter not set.")
+            raise ValueError("is_vector parameter not set.")
         if not isinstance(field, list):
             field = [
                 field,
