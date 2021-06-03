@@ -882,7 +882,7 @@
   "ytdata_test.tar.gz": {
     "hash": "cafb2b06ab3190ba17909585b58a4724e25f27ac72f11d6dff1a482146eb8958",
     "load_kwargs": {},
-    "load_name": "ytdata_test/slice.h5",
+    "load_name": "slice.h5",
     "url": "https://yt-project.org/data/ytdata_test.tar.gz"
   }
 }
