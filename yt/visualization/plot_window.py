@@ -992,22 +992,18 @@ class PWViewerMPL(PlotWindow):
                 if zlim != (None, None):
                     pass
                 elif np.nanmax(image) == np.nanmin(image):
-                    msg = (
-                        "Plot image for field %s has zero dynamic "
-                        "range. Min = Max = %f." % (f, np.nanmax(image))
-                    )
+                    msg = f"Plotting {f}: All values = {np.nanmax(image)}"
                 elif np.nanmax(image) <= 0:
                     msg = (
-                        "Plot image for field %s has no positive "
-                        "values.  Max = %f." % (f, np.nanmax(image))
+                        f"Plotting {f}: All negative values. Max = {np.nanmax(image)}."
                     )
+                    use_symlog = True
                 elif not np.any(np.isfinite(image)):
-                    msg = f"Plot image for field {f} is filled with NaNs."
+                    msg = f"Plotting {f}: All values = NaN."
                 elif np.nanmax(image) > 0.0 and np.nanmin(image) < 0:
                     msg = (
-                        "Plot image for field %s has both positive "
-                        "and negative/zero values. Min = %f, Max = %f."
-                        % (f, np.nanmin(image), np.nanmax(image))
+                        f"Plotting {f}: Both positive and negative values. "
+                        f"Min = {np.nanmin(image)}, Max = {np.nanmax(image)}."
                     )
                     use_symlog = True
                 elif np.nanmax(image) > 0.0 and np.nanmin(image) == 0:
@@ -1024,19 +1020,12 @@ class PWViewerMPL(PlotWindow):
                         - np.log10(np.nanmin(image[image > 0]))
                         > cutoff_sigdigs
                     ):
-                        msg = (
-                            "Plot image for field %s has both positive "
-                            "and zero values with large dynamic range." % (f,)
-                        )
+                        msg = f"Plotting {f}: Wide range and zeros."
                         use_symlog = True
                 if msg is not None:
                     mylog.warning(msg)
                     if use_symlog:
-                        mylog.warning(
-                            "Log-scaling specified: switching to symlog "
-                            "colorbar scaling unless linear scaling is "
-                            "specified later"
-                        )
+                        mylog.warning("Switching to symlog colorbar scaling.")
                         self._field_transform[f] = symlog_transform
                         self._field_transform[f].func = None
                     else:

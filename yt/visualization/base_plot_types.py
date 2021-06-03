@@ -211,16 +211,13 @@ class ImagePlotMPL(PlotMPL):
         elif cbnorm == "linear":
             cbnorm_cls = matplotlib.colors.Normalize
         elif cbnorm == "symlog":
+            # if cblinthresh is not specified, try to come up with a reasonable default
+            vmin = float(np.nanmin(data))
+            vmax = float(np.nanmax(data))
             if cblinthresh is None:
-                cblinthresh = float((np.nanmax(data) - np.nanmin(data)) / 10.0)
+                cblinthresh = np.nanmin(np.absolute(data)[data != 0])
 
-            cbnorm_kwargs.update(
-                dict(
-                    linthresh=cblinthresh,
-                    vmin=float(np.nanmin(data)),
-                    vmax=float(np.nanmax(data)),
-                )
-            )
+            cbnorm_kwargs.update(dict(linthresh=cblinthresh, vmin=vmin, vmax=vmax))
             MPL_VERSION = LooseVersion(matplotlib.__version__)
             if MPL_VERSION >= "3.2.0":
                 # note that this creates an inconsistency between mpl versions
