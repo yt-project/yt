@@ -3,16 +3,34 @@ answer_tests:
   local_art_003: # PR 3081, 3101
     - yt/frontends/art/tests/test_outputs.py:test_d9p
 
-  local_amrvac_2_001: # PR 3317
+  local_amrvac_domain_size_001: # PR 3317
     - yt/frontends/amrvac/tests/test_outputs.py:test_domain_size
+
+  local_amrvac_bw_polar_2D_001: # PR 3317
     - yt/frontends/amrvac/tests/test_outputs.py:test_bw_polar_2d
+
+  local_amrvac_bw_cart_3D_001: # PR 3317
     - yt/frontends/amrvac/tests/test_outputs.py:test_blastwave_cartesian_3D
+
+  local_amrvac_bw_sph_2D_001: # PR 3317
     - yt/frontends/amrvac/tests/test_outputs.py:test_blastwave_spherical_2D
+
+  local_amrvac_bw_cyl_3D_001: # PR 3317
     - yt/frontends/amrvac/tests/test_outputs.py:test_blastwave_cylindrical_3D
+
+  local_amrvac_khi2D_001: # PR 3317
     - yt/frontends/amrvac/tests/test_outputs.py:test_khi_cartesian_2D
+
+  local_amrvac_khi3D_001: # PR 3317
     - yt/frontends/amrvac/tests/test_outputs.py:test_khi_cartesian_3D
+
+  local_amrvac_jet_001: # PR 3317
     - yt/frontends/amrvac/tests/test_outputs.py:test_jet_cylindrical_25D
+
+  local_amrvac_riemann_001: # PR 3317
     - yt/frontends/amrvac/tests/test_outputs.py:test_riemann_cartesian_175D
+
+  local_amrvac_rmi_001: # PR 3317
     - yt/frontends/amrvac/tests/test_outputs.py:test_rmi_cartesian_dust_2D
 
   local_arepo_008:  # PR 2909
