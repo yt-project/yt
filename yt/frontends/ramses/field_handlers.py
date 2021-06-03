@@ -268,11 +268,9 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
     def load_fields_from_yt_config(cls) -> Tuple[List[str], bool]:
         if cls.config_field and ytcfg.has_section(cls.config_field):
             # Or this is given by the config
-            cfg = ytcfg.get(cls.config_field, "fields")
-            fields = []
-            for field in (_.strip() for _ in cfg.split("\n") if _.strip() != ""):
-                fields.append(field.strip())
-            return fields, True
+            cfg = ytcfg.get(cls.config_field, "fields", [])
+            fields = [_.strip() for _ in cfg if _.strip() != ""]
+            return fields, len(fields) > 0
 
         return [], False
 
