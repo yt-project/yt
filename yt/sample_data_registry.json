@@ -158,7 +158,7 @@
   "GasSloshing.tar.gz": {
     "hash": "3e16c5975f310bafd1e859080310de7ca01d5aa055b3504c10138c93154202a4",
     "load_kwargs": {},
-    "load_name": "GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150",
+    "load_name": "sloshing_nomag2_hdf5_plt_cnt_0150",
     "url": "https://yt-project.org/data/GasSloshing.tar.gz"
   },
   "GasSloshingLowRes.tar.gz": {
@@ -326,13 +326,13 @@
   "MOOSE_Sample_data.tar.gz": {
     "hash": "0a43e40931e25c4a0e4f205b9902666c2d7a89cd5959e2d5eb7819059cabe01f",
     "load_kwargs": {},
-    "load_name": "MOOSE_sample_data/out.e",
+    "load_name": "out.e",
     "url": "https://yt-project.org/data/MOOSE_Sample_data.tar.gz"
   },
   "MoabTest.tar.gz": {
     "hash": "22609631c0e417964e0247b4ad62199a60c2d7979f38f8587960a9f8b2147fab",
     "load_kwargs": {},
-    "load_name": "MoabTest/fng_usrbin22.h5m",
+    "load_name": "fng_usrbin22.h5m",
     "url": "https://yt-project.org/data/MoabTest.tar.gz"
   },
   "MultiRegion.tar.gz": {
@@ -350,7 +350,7 @@
   "Orbit.tar.gz": {
     "hash": "3df7988b555c5ff17e73f4675167c78baa33993e0c321d56c8da542c5ae03a4b",
     "load_kwargs": {},
-    "load_name": "Orbit/orbit_hdf5_chk_0014",
+    "load_name": "orbit_hdf5_chk_0014",
     "url": "https://yt-project.org/data/Orbit.tar.gz"
   },
   "PlasmaAcceleration_v2.tar.gz": {
@@ -450,7 +450,7 @@
   "TipsyAuxiliary.tar.gz": {
     "hash": "c27205c3b5f673b9822c76212c59c9632027210a6ee5f3c2e9eac213b805a143",
     "load_kwargs": {},
-    "load_name": "TipsyAuxiliary/ascii/onestar.00001",
+    "load_name": "ascii/onestar.00001",
     "url": "https://yt-project.org/data/TipsyAuxiliary.tar.gz"
   },
   "TipsyGalaxy.tar.gz": {
@@ -516,7 +516,7 @@
   "ahf_halos.tar.gz": {
     "hash": "66d60ab80520cdeb1510a9c7e48a214d79f2559f7808bc346722028b5b48f8f7",
     "load_kwargs": {},
-    "load_name": "ahf_halos/snap_N64L16_068.parameter",
+    "load_name": "snap_N64L16_068.parameter",
     "url": "https://yt-project.org/data/ahf_halos.tar.gz"
   },
   "bw_cartesian_3d.tar.gz": {
@@ -744,7 +744,7 @@
   "nyx_small.tar.gz": {
     "hash": "1eefb443c2de6d9c6f4546bb87e1bde89ae98adb97c860a6065ac3177ecf1127",
     "load_kwargs": {},
-    "load_name": "nyx_small/nyx_small_00000",
+    "load_name": "nyx_small_00000",
     "url": "https://yt-project.org/data/nyx_small.tar.gz"
   },
   "output_00080.tar.gz": {
@@ -822,7 +822,7 @@
   "ramses_star_formation.tar.gz": {
     "hash": "7513bfe14e270de6f643623815d815cf9f4adf0bf7dfb33ff3bc20fcd3f965e6",
     "load_kwargs": {},
-    "load_name": "ramses_star_formation/output_00013/info_00013.txt",
+    "load_name": "output_00013/info_00013.txt",
     "url": "https://yt-project.org/data/ramses_star_formation.tar.gz"
   },
   "rockstar_halos.tar.gz": {
@@ -876,7 +876,7 @@
   "test_outputs.tar.gz": {
     "hash": "f7f59ee7e8b9e45d42e005b8116f896ce85ea1ea4a7a1c9b44c6de5b2f09a625",
     "load_kwargs": {},
-    "load_name": "test_outputs/RadTube/plt00500",
+    "load_name": "RadTube/plt00500",
     "url": "https://yt-project.org/data/test_outputs.tar.gz"
   },
   "ytdata_test.tar.gz": {
