@@ -600,13 +600,13 @@
   "castro_sedov_2d_cyl_in_cart_plt00150.tar.gz": {
     "hash": "8b73a37a0503dba593af65f8bf16dfcc11ac825d671f11e5a364a2dee63c9047",
     "load_kwargs": {},
-    "load_name": "castro_sedov_2d_cyl_in_cart_plt00150",
+    "load_name": null,
     "url": "https://yt-project.org/data/castro_sedov_2d_cyl_in_cart_plt00150.tar.gz"
   },
   "castro_sod_x_plt00036.tar.gz": {
     "hash": "3f0a586b41e7b54fa2b3cddd50f9384feb2efe1fe1a815e7348965ae7bf88f78",
     "load_kwargs": {},
-    "load_name": "castro_sod_x_plt00036",
+    "load_name": null,
     "url": "https://yt-project.org/data/castro_sod_x_plt00036.tar.gz"
   },
   "check_pooch.py": {
@@ -834,7 +834,7 @@
   "sedov_1d_sph_plt00120.tar.gz": {
     "hash": "25e8316a64a747043c2c95bfaaf6092a5aa2748a8e31295fa86a0bb793e7c1af",
     "load_kwargs": {},
-    "load_name": "sedov_1d_sph_plt00120",
+    "load_name": null,
     "url": "https://yt-project.org/data/sedov_1d_sph_plt00120.tar.gz"
   },
   "sedov_tst_0004.tar.gz": {
