@@ -577,7 +577,7 @@
     "hash": "a8ddb034c27badf8160af1c4622ec9e9835c4434a5556e55212df6803c5020dc",
     "load_kwargs": {"parfiles": ["solar_prom2d/amrvac.par"]},
     "load_name": "output0001.dat",
-    "url": "https://yt-project.org/data/solarprom2d.tar.gz"
+    "url": "https://yt-project.org/data/solar_prom2d.tar.gz"
   },
   "arbor.tar.gz": {
     "hash": "d6c89c6496acdd92ef086736b8644996de58b1f4292b67b01d5db94ce60210fb",
