@@ -1387,11 +1387,7 @@ def load_sample(
     except IndexError as err:
         raise KeyError(f"Could not find '{fn}' in the registry.") from err
 
-    load_name = specific_file or specs["load_name"]
-    if not load_name:
-        raise ValueError(
-            "Missing a 'load_name' entry for this dataset. This may be fixed by requesting the full path of the loadable file."
-        )
+    load_name = specific_file or specs["load_name"] or ""
 
     if not isinstance(specs["load_kwargs"], dict):
         raise ValueError(
@@ -1409,9 +1405,8 @@ def load_sample(
     if data_path.exists():
         # if the data is already available locally, `load_sample`
         # only acts as a thin wrapper around `load`
-        appendum = specific_file or specs["load_name"]
-        if appendum not in str(data_path):
-            data_path = data_path.joinpath(appendum)
+        if load_name not in str(data_path):
+            data_path = data_path.joinpath(load_name)
         mylog.info("Sample dataset found in '%s'", data_path)
         if timeout is not None:
             mylog.info("Ignoring the `timeout` keyword argument received.")
@@ -1443,8 +1438,8 @@ def load_sample(
         os.replace(tmp_file, save_dir)
 
     loadable_path = Path.joinpath(save_dir, fn)
-    if not specs["load_name"] in str(loadable_path):
-        loadable_path = loadable_path.joinpath(specs["load_name"], specific_file)
+    if load_name not in str(loadable_path):
+        loadable_path = loadable_path.joinpath(load_name, specific_file)
 
     if specific_file and not loadable_path.exists():
         raise ValueError(f"Could not find file '{loadable_path}'.")
