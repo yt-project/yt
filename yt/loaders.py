@@ -1405,7 +1405,7 @@ def load_sample(
     if save_dir.joinpath(topdir).exists():
         # if the data is already available locally, `load_sample`
         # only acts as a thin wrapper around `load`
-        if load_name not in str(data_path):
+        if load_name and os.sep not in fn:
             data_path = data_path.joinpath(load_name)
         mylog.info("Sample dataset found in '%s'", data_path)
         if timeout is not None:
