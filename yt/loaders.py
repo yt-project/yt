@@ -1441,7 +1441,4 @@ def load_sample(
     if load_name not in str(loadable_path):
         loadable_path = loadable_path.joinpath(load_name, specific_file)
 
-    if specific_file and not loadable_path.exists():
-        raise ValueError(f"Could not find file '{loadable_path}'.")
-
     return load(loadable_path, **kwargs)
