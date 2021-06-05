@@ -1402,7 +1402,7 @@ def load_sample(
     save_dir = _get_test_data_dir_path()
 
     data_path = save_dir.joinpath(fn)
-    if data_path.exists():
+    if save_dir.joinpath(topdir).exists():
         # if the data is already available locally, `load_sample`
         # only acts as a thin wrapper around `load`
         if load_name not in str(data_path):
