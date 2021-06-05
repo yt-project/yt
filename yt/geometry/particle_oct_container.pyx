@@ -501,12 +501,18 @@ cdef class ParticleBitmap:
     def _bitmask_intersects(self, ifile, bcoll):
         return self.bitmasks._intersects(ifile, bcoll)
 
-    def update_mi2(self, np.float64_t characteristic_size):
+    def update_mi2(self, np.float64_t characteristic_size,
+                   np.uint64_t max_index_order2 = 6):
         """
-        This takes a characteristic size and attempts to compute the mi2 such
-        that the cell is roughly equivalent to the characteristic size.  It
-        will return whether or not it was able to update; if the mi2 has
-        already been used, it does not update.
+        mi2 is the *refined* morton index order; mi2 is thus the definition of
+        the size of the refined index objects we stick inside any collisions at
+        the coarse level.  This takes a characteristic size and attempts to
+        compute the mi2 such that the cell is roughly equivalent to the
+        characteristic size.  It will return whether or not it was able to
+        update; if the mi2 has already been used, it does not update.
+        There are cases where the maximum index_order2 that it would compute
+        would be extremely fine, which can do really bad things to memory.  So
+        we allow the setting of a maximum value, which it won't exceed.
         """
         if self._used_mi2 > 0:
             return self.index_order2
@@ -515,6 +521,7 @@ cdef class ParticleBitmap:
             # Note we're casting to signed here, to avoid negative issues.
             if self.dds_mi1[i] < characteristic_size: continue
             index_order2 = max(index_order2, <np.uint64_t> ceil(log2(self.dds_mi1[i] / characteristic_size)))
+        index_order2 = i64min(max_index_order2, index_order2)
         self._update_mi2(index_order2)
         return self.index_order2
 

@@ -219,7 +219,15 @@ class ParticleIndex(Index):
         pb.finish()
         self.regions.find_collisions_coarse()
         if max_hsml > 0.0 and len(self.data_files) > 1:
-            new_order2 = self.regions.update_mi2(max_hsml)
+            # By passing this in, we only allow index_order2 to be increased by
+            # two at most, never increased.  One place this becomes particularly
+            # useful is in the case of an extremely small section of gas
+            # particles embedded in a much much larger domain.  The max
+            # smoothing length will be quite small, so based on the larger
+            # domain, it will correspond to a very very high index order, which
+            # is a large amount of memory!  Having multiple indexes, one for
+            # each particle type, would fix this.
+            new_order2 = self.regions.update_mi2(max_hsml, ds.index_order[1] + 2)
             mylog.info(
                 "Updating index_order2 from %s to %s", ds.index_order[1], new_order2
             )
