@@ -245,8 +245,8 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
         if getattr(self, "_offset", None) is not None:
             return self._offset
 
+        nvars = len(self.field_list)
         with FortranFile(self.fname) as fd:
-
             # Skip headers
             nskip = len(self.attrs)
             fd.skip(nskip)
@@ -258,6 +258,7 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
                 self.domain.domain_id,
                 self.parameters["nvar"],
                 self.domain.amr_header,
+                skip_len=nvars * 8,
             )
 
         self._offset = offset
