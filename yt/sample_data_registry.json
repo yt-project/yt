@@ -301,18 +301,11 @@
   "MHDSloshing.tar.gz": {
     "hash": "f0d0b4e26145a2f7445c3afed8ed0294026a2209496c477cc0d1a7a0f022bf38",
     "load_kwargs": {
-      "length_unit": [
-        1.0,
-        "Mpc"
-      ],
-      "mass_unit": [
-        100000000000000.0,
-        "Msun"
-      ],
-      "time_unit": [
-        1.0,
-        "Myr"
-      ]
+      "units_override": {
+        "length_unit": [1.0, "Mpc"],
+        "mass_unit": [100000000000000.0, "Msun"],
+        "time_unit": [1.0, "Myr"]
+      }
     },
     "load_name": "virgo_low_res.0054.vtk",
     "url": "https://yt-project.org/data/MHDSloshing.tar.gz"
@@ -392,9 +385,11 @@
   "RamPressureStripping.tar.gz": {
     "hash": "4ef4f9f9127668699111091d31ece0fff6e7ab2e9e6af7c547810df31db4a40b",
     "load_kwargs": {
-      "length_unit": 8.0236e+22,
-      "mass_unit": 5.1649293e+39,
-      "time_unit": 308600000000000.0
+      "units_override": {
+        "length_unit": 8.0236e+22,
+        "mass_unit": 5.1649293e+39,
+        "time_unit": 308600000000000.0
+      }
     },
     "load_name": "id0/rps.0062.vtk",
     "url": "https://yt-project.org/data/RamPressureStripping.tar.gz"
