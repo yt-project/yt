@@ -771,6 +771,12 @@
     "load_name": "groups_008/group_008.0.hdf5",
     "url": "https://yt-project.org/data/owls_fof_halos.tar.gz"
   },
+  "ParticleCavity.tar.gz": {
+    "hash": "37b4da16294cf139510dca2b930084a9e5111f8129c96338d03031804cd36803",
+    "load_kwargs": {"cparam_filename": "inputs"},
+    "load_name": null,
+    "url": "https://yt-project.org/data/ParticleCavity.tar.gz"
+  },
   "ramses_empty_record.tar.gz": {
     "hash": "1d119d8afa144abce5b980e5ba47c45bdfe5c851de8c7a43823b62524b0bd6e0",
     "load_kwargs": {},
