@@ -500,7 +500,7 @@
     "hash": "6fc406dd056b525592f704b202dadf52c41024660dbbd96cfbeb830d710a70d8",
     "load_kwargs": {},
     "load_name": null,
-    "url": "https://yt-project.org/data/acisf05356N003_evt2.fits.gz.tar.gz"
+    "url": "https://yt-project.org/data/acisf05356N003_evt2.fits.gz"
   },
   "agora_1e11.00400.tar.gz": {
     "hash": "3a8820735bcf5067dfbe0fcd90d79121a801ea1a34c7d6de7e09185d3c635e6a",
@@ -698,7 +698,7 @@
     "hash": "1aff152f616d2626c8515c1493e65f07843d9b5f2ba73b7e4271a2dc6a9e6da7",
     "load_kwargs": {},
     "load_name": null,
-    "url": "https://yt-project.org/data/grs-50-cube.fits.gz.tar.gz"
+    "url": "https://yt-project.org/data/grs-50-cube.fits.gz"
   },
   "halo1e11_run1.00400.tar.gz": {
     "hash": "414d05f9d5aa2dc2811e55fab59ad2c1426ec51675aaf41db773b24cd2f0aa5f",
@@ -716,7 +716,7 @@
     "hash": "6a44b6c352a5c98c58f0b2b7498fd87e2430c530971eaff68b843146d82d6609",
     "load_kwargs": {},
     "load_name": null,
-    "url": "https://yt-project.org/data/m33_hi.fits.gz.tar.gz"
+    "url": "https://yt-project.org/data/m33_hi.fits.gz"
   },
   "maestro_subCh_plt00248.tar.gz": {
     "hash": "6de1b63b63ce9738e4596ccf4cc75087d5029c892c07f40c2c69887e76b8ec1a",
