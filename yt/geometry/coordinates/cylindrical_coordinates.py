@@ -165,6 +165,9 @@ class CylindricalCoordinateHandler(CoordinateHandler):
             # Pixelizing along a cylindrical surface is a bit tricky
             raise NotImplementedError
 
+    def pixelize_line(self, field, start_point, end_point, npoints):
+        raise NotImplementedError
+
     def _ortho_pixelize(
         self, data_source, field, bounds, size, antialias, dim, periodic
     ):
