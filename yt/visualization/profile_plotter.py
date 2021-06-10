@@ -594,7 +594,7 @@ class ProfilePlot:
         field : string
            The name of the field that is to be changed.
 
-        new_unit : string or Unit object
+        unit : string or Unit object
            The name of the new unit.
         """
         fd = self.profiles[0].data_source._determine_fields(field)[0]
@@ -809,8 +809,8 @@ class ProfilePlot:
           The text to insert onto the plot.
         field : str or tuple
           The name of the field to add text to.
-        text_kwargs : dict
-          Dictionary of text keyword arguments to be passed to matplotlib
+        **text_kwargs : dict
+          Extra keyword arguments will be passed to matplotlib text instance
 
         >>> import yt
         >>> from yt.units import kpc
@@ -1250,16 +1250,14 @@ class PhasePlot(ImagePlotContainer):
 
         Parameters
         ----------
-        field : str or tuple
-          The name of the field to add text to.
         xpos : float
           Position on plot in x-coordinates.
         ypos : float
           Position on plot in y-coordinates.
         text : str
           The text to insert onto the plot.
-        text_kwargs : dict
-          Dictionary of text keyword arguments to be passed to matplotlib
+        **text_kwargs : dict
+          Extra keyword arguments will be passed to matplotlib text instance
 
         >>> plot.annotate_text(1e-15, 5e4, "Hello YT")
 
@@ -1495,7 +1493,7 @@ class PhasePlot(ImagePlotContainer):
         field : string
            The name of the field that is to be changed.
 
-        new_unit : string or Unit object
+        unit : string or Unit object
            The name of the new unit.
         """
         fd = self.data_source._determine_fields(field)[0]

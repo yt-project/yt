@@ -295,8 +295,15 @@ class PlotContainer:
 
     @accepts_all_fields
     @invalidate_plot
-    def set_log(self, field, log, linthresh=None):
-        """set a field to log or linear.
+    def set_log(self, field, log, linthresh=None, symlog_auto=False):
+        """set a field to log, linear, or symlog.
+
+        Symlog scaling is a combination of linear and log, where from 0 to a
+        threshold value, it operates as linear, and then beyond that it operates as
+        log.  Symlog can also work with negative values in log space as well as
+        negative and positive values simultaneously and symmetrically.  If symlog
+        scaling is desired, please set log=True and either set symlog_auto=True or
+        select a alue for linthresh.
 
         Parameters
         ----------
@@ -304,21 +311,29 @@ class PlotContainer:
             the field to set a transform
             if field == 'all', applies to all plots.
         log : boolean
-            Log on/off.
-        linthresh : float (must be positive)
-            linthresh will be enabled for symlog scale only when log is true
+            Log on/off: on means log scaling; off means linear scaling. Unless
+            a linthresh is set or symlog_auto is set in which case symlog is used.
+        linthresh : float, optional
+            when using symlog scaling, linthresh is the value at which scaling
+            transitions from linear to logarithmic.  linthresh must be positive.
+            Note: setting linthresh will automatically enable symlog scale
+        symlog_auto : boolean
+            if symlog_auto is True, then yt will use symlog scaling and attempt to
+            determine a linthresh automatically.  Setting a linthresh manually
+            overrides this value.
 
         """
+        if symlog_auto:
+            self._field_transform[field] = symlog_transform
         if log:
-            if linthresh is not None:
-                if not linthresh > 0.0:
-                    raise ValueError('"linthresh" must be positive')
-                self._field_transform[field] = symlog_transform
-                self._field_transform[field].func = linthresh
-            else:
-                self._field_transform[field] = log_transform
+            self._field_transform[field] = log_transform
         else:
             self._field_transform[field] = linear_transform
+        if linthresh is not None:
+            if not linthresh > 0.0:
+                raise ValueError('"linthresh" must be positive')
+            self._field_transform[field] = symlog_transform
+            self._field_transform[field].func = linthresh
         return self
 
     def get_log(self, field):
@@ -555,15 +570,24 @@ class PlotContainer:
         names = []
         if mpl_kwargs is None:
             mpl_kwargs = {}
-        if isinstance(name, (tuple, list)):
-            name = os.path.join(*name)
+
         if name is None:
             name = str(self.ds)
+
+        # ///// Magic area. Muggles, keep out !
+        if isinstance(name, (tuple, list)):
+            name = os.path.join(*name)
+
         name = os.path.expanduser(name)
-        if name[-1] == os.sep and not os.path.isdir(name):
-            ensure_dir(name)
-        if os.path.isdir(name) and name != str(self.ds):
-            name = name + (os.sep if name[-1] != os.sep else "") + str(self.ds)
+
+        parent_dir, _, prefix1 = name.replace(os.sep, "/").rpartition("/")
+        parent_dir = parent_dir.replace("/", os.sep)
+
+        if parent_dir and not os.path.isdir(parent_dir):
+            ensure_dir(parent_dir)
+
+        if name.endswith(("/", os.path.sep)):
+            name = os.path.join(name, str(self.ds))
 
         new_name = validate_image_name(name, suffix)
         if new_name == name:

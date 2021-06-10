@@ -26,7 +26,12 @@ grid = AxesGrid(
     cbar_pad="0%",
 )
 
-fields = ["density", "velocity_x", "velocity_y", "velocity_magnitude"]
+fields = [
+    ("gas", "density"),
+    ("gas", "velocity_x"),
+    ("gas", "velocity_y"),
+    ("gas", "velocity_magnitude"),
+]
 
 # Create the plot.  Since SlicePlot accepts a list of fields, we need only
 # do this once.

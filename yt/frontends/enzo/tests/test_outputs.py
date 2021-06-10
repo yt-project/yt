@@ -202,7 +202,7 @@ def test_active_particle_datasets():
     acc_part_fields = [("AccretingParticle", pf) for pf in ["AccretionRate"] + pfields]
 
     real_acc_part_fields = sorted(
-        [f for f in two_sph.field_list if f[0] == "AccretingParticle"]
+        f for f in two_sph.field_list if f[0] == "AccretingParticle"
     )
     assert_equal(acc_part_fields, real_acc_part_fields)
 
@@ -213,7 +213,7 @@ def test_active_particle_datasets():
 
     apcos_fields = [("CenOstriker", pf) for pf in pfields]
 
-    real_apcos_fields = sorted([f for f in apcos.field_list if f[0] == "CenOstriker"])
+    real_apcos_fields = sorted(f for f in apcos.field_list if f[0] == "CenOstriker")
 
     assert_equal(apcos_fields, real_apcos_fields)
 
@@ -261,7 +261,7 @@ def test_deeply_nested_zoom():
     c_actual = ds.arr(c_actual, "code_length")
     assert_allclose_units(c, c_actual)
 
-    assert_equal(max([g[("gas", "density")].max() for g in ds.index.grids]), v)
+    assert_equal(max(g[("gas", "density")].max() for g in ds.index.grids), v)
 
 
 @requires_file(kh2d)

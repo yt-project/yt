@@ -105,7 +105,7 @@ class HandlerMixin:
 
         Arguments
         ---------
-        * ds: a Ramses Dataset
+        ds : a Ramses Dataset
 
         Note
         ----

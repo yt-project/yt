@@ -1,6 +1,6 @@
 import numpy as np
 
-from yt.frontends.enzo_p.misc import (
+from yt.frontends.enzo_e.misc import (
     get_block_info,
     get_root_block_id,
     get_root_blocks,
@@ -117,8 +117,8 @@ def test_is_parent():
             block = "B" + "_".join(descriptors)
             # since b2 is computed with max_n=32 in the for-loop, block always
             # has a refined great-great-grandparent
-            parent = "B" + "_".join([elem[:-1] for elem in descriptors])
-            grandparent = "B" + "_".join([elem[:-2] for elem in descriptors])
+            parent = "B" + "_".join(elem[:-1] for elem in descriptors)
+            grandparent = "B" + "_".join(elem[:-2] for elem in descriptors)
 
             assert is_parent(parent, block)
             assert is_parent(grandparent, parent)

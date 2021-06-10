@@ -49,6 +49,13 @@ The list below is arranged in order of most to least important changes.
   The yt-4.0 release will be the final release of yt to support Python 3.6.
   Starting with yt-4.1, python 3.6 will no longer be supported, so please
   start using 3.7+ as soon as possible.
+* **Particle-based datasets no longer accept n_ref and over_refine_factor**
+  One of the major upgrades in yt-4 is native treatment of particle-based
+  datasets.  This is in contrast to previous yt behavior which loaded particle-based
+  datasets as octrees, which could then be treated like grid-based datasets.
+  In order to define the octrees, users were required to specify ``n_ref``
+  and ``over_refine_factor`` values at load time.  Please remove
+  any reference to ``n_ref`` and ``over_refine_factor`` in your scripts.
 * **Neutral ion fields changing format**
   In previous versions, neutral ion fields were specified as
   ``ELEMENT_number_density`` (e.g., ``H_number_density`` to represent H I
@@ -90,6 +97,11 @@ The list below is arranged in order of most to least important changes.
   ``cmo.`` (e.g., ``cmo.balance``).  Note that this solution works with any
   yt-supported version of Matplotlib, but is not backward compatible with
   earlier versions of yt.
+* Position and velocity fields now default to using linear scaling in profiles
+  and phase plots, whereas previously behavior was determined by whether the
+  dataset was particle- or grid-based.  Efforts have been made to standardize
+  the treatment of other fields in profile and phase plots for particle and
+  grid datasets.
 
 Important New Aliases
 ^^^^^^^^^^^^^^^^^^^^^

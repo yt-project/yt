@@ -167,6 +167,9 @@ dimensions:
 
    ds.r[0.4:0.6]
 
+
+.. _arbitrary-grid-selection:
+
 Selecting Fixed Resolution Regions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

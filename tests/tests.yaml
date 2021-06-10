@@ -47,9 +47,9 @@ answer_tests:
     - yt/frontends/enzo/tests/test_outputs.py:test_ecp
     - yt/frontends/enzo/tests/test_outputs.py:test_nuclei_density_fields
 
-  local_enzo_p_010: # PR 2945
-    - yt/frontends/enzo_p/tests/test_outputs.py:test_hello_world
-    - yt/frontends/enzo_p/tests/test_outputs.py:test_particle_fields
+  local_enzo_e_001: # PR 3273
+    - yt/frontends/enzo_e/tests/test_outputs.py:test_hello_world
+    - yt/frontends/enzo_e/tests/test_outputs.py:test_particle_fields
 
   local_fits_004:
     - yt/frontends/fits/tests/test_outputs.py:test_grs
@@ -62,16 +62,18 @@ answer_tests:
     - yt/frontends/flash/tests/test_outputs.py:test_wind_tunnel
     - yt/frontends/flash/tests/test_outputs.py:test_fid_1to3_b1
 
-  local_gadget_006:  # PR 2909
+  local_gadget_008:  # PR 3258
     - yt/frontends/gadget/tests/test_outputs.py:test_iso_collapse
     - yt/frontends/gadget/tests/test_outputs.py:test_pid_uniqueness
     - yt/frontends/gadget/tests/test_outputs.py:test_bigendian_field_access
+    - yt/frontends/gadget/tests/test_outputs.py:test_magneticum
 
-  local_gamer_008:
+  local_gamer_009:
     - yt/frontends/gamer/tests/test_outputs.py:test_jet
     - yt/frontends/gamer/tests/test_outputs.py:test_psiDM
     - yt/frontends/gamer/tests/test_outputs.py:test_plummer
     - yt/frontends/gamer/tests/test_outputs.py:test_mhdvortex
+    - yt/frontends/gamer/tests/test_outputs.py:test_jiw
 
   local_gdf_002:
     - yt/frontends/gdf/tests/test_outputs_nose.py:test_sedov_tunnel
@@ -89,7 +91,7 @@ answer_tests:
     - yt/frontends/owls/tests/test_outputs.py:test_snapshot_033
     - yt/frontends/owls/tests/test_outputs.py:test_OWLS_particlefilter
 
-  local_pw_035:  # PR 3242
+  local_pw_036:  # PR 3272
     - yt/visualization/tests/test_plotwindow.py:test_attributes
     - yt/visualization/tests/test_plotwindow.py:test_attributes_wt
     - yt/visualization/tests/test_particle_plot.py:test_particle_projection_answers
@@ -165,7 +167,7 @@ answer_tests:
   local_axialpix_007:
     - yt/geometry/coordinates/tests/test_axial_pixelization.py:test_axial_pixelization
 
-  local_cylindrical_background_006:  # PR 3153
+  local_cylindrical_background_007:  # PR 3295
     - yt/geometry/coordinates/tests/test_cylindrical_coordinates.py:test_noise_plots
 
   #local_particle_trajectory_001:
@@ -183,6 +185,7 @@ other_tests:
      - '--ignore-files=test_load_sample.py'
      - '--ignore-files=test_field_access_pytest.py'
      - '--ignore-files=test_ambiguous_fields.py'
+     - "--ignore-files=test_save.py"
      - '--exclude-test=yt.frontends.gdf.tests.test_outputs.TestGDF'
   cookbook:
      - 'doc/source/cookbook/tests/test_cookbook.py'

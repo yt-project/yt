@@ -126,7 +126,7 @@ class EnzoGridGZ(EnzoGrid):
             end_zone = None
         else:
             end_zone = -(NGZ - n_zones)
-        sl = tuple([slice(start_zone, end_zone) for i in range(3)])
+        sl = tuple(slice(start_zone, end_zone) for i in range(3))
         if fields is None:
             return cube
         for field in iter_fields(fields):
@@ -690,6 +690,7 @@ class EnzoDataset(Dataset):
         storage_filename=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
         """
         This class is a stripped down class that simply reads and parses
@@ -717,6 +718,7 @@ class EnzoDataset(Dataset):
             file_style=file_style,
             units_override=units_override,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
 
     def _setup_1d(self):

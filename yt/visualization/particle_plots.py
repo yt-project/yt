@@ -26,12 +26,16 @@ class ParticleAxisAlignedDummyDataSource:
         weight_field=None,
         field_parameters=None,
         data_source=None,
+        deposition="ngp",
+        density=False,
     ):
         self.center = center
         self.ds = ds
         self.axis = axis
         self.width = width
         self.weight_field = weight_field
+        self.deposition = deposition
+        self.density = density
 
         if field_parameters is None:
             self.field_parameters = {}
@@ -91,7 +95,7 @@ class ParticleProjectionPlot(PWViewerMPL):
          or the axis name itself
     fields : string, list or None
          If a string or list, the name of the particle field(s) to be used
-         one the colorbar. The color shown will correspond to the sum of the
+         on the colorbar. The color shown will correspond to the sum of the
          given field along the line of sight. If None, the particle positions
          will be indicated using a fixed color, instead. Default is None.
     color : 'b', 'g', 'r', 'c', 'm', 'y', 'k', or 'w'
@@ -182,6 +186,14 @@ class ParticleProjectionPlot(PWViewerMPL):
     data_source : YTSelectionContainer Object
          Object to be used for data selection.  Defaults to a region covering
          the entire simulation.
+    deposition : string
+        Controls the order of the interpolation of the particles onto the
+        mesh. "ngp" is 0th-order "nearest-grid-point" method (the default),
+        "cic" is 1st-order "cloud-in-cell".
+    density : boolean
+        If True, the quantity to be projected will be divided by the area of
+        the cells, to make a projected density of the quantity. The plot
+        name and units will also reflect this. Default: False
 
     Examples
     --------
@@ -215,6 +227,8 @@ class ParticleProjectionPlot(PWViewerMPL):
         window_size=8.0,
         aspect=None,
         data_source=None,
+        deposition="ngp",
+        density=False,
     ):
         # this will handle time series data and controllers
         ts = self._initialize_dataset(ds)
@@ -261,7 +275,11 @@ class ParticleProjectionPlot(PWViewerMPL):
             weight_field,
             field_parameters=field_parameters,
             data_source=data_source,
+            deposition=deposition,
+            density=density,
         )
+
+        self.projected = weight_field is None
 
         PWViewerMPL.__init__(
             self,
@@ -535,7 +553,6 @@ def ParticlePlot(ds, x_field, y_field, z_fields=None, color="b", *args, **kwargs
     deposition : str
         Either 'ngp' or 'cic'. Controls what type of interpolation will be
         used to deposit the particle z_fields onto the mesh. Defaults to 'ngp'.
-        This argument is only accepted by ``ParticlePhasePlot``.
     figure_size : int
         Size in inches of the image. Defaults to 8 (product an 8x8 inch figure).
         This argument is only accepted by ``ParticlePhasePlot``.

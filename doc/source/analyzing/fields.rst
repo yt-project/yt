@@ -456,22 +456,52 @@ defined:
 To refer to the number density of the entirety of a single atom or molecule (regardless
 of its ionization state), please use the ``MM_nuclei_density`` fields.
 
-Finally, if the abundances of hydrogen and helium are not defined, it is
-assumed that these elements are fully ionized with primordial abundances In this case,
-the following fields are defined:
+Many datasets do not have species defined, but there may be an underlying assumption
+of primordial abundances of H and He which are either fully ionized or fully neutral.
+This will also determine the value of the mean molecular weight of the gas, which
+will determine the value of the temperature if derived from another quantity like the
+pressure or thermal energy. To allow for these possibilities, there is a keyword
+argument ``default_species_fields`` which can be passed to :func:`~yt.loaders.load`:
 
-* ``H_p1_number_density``
+.. code-block:: python
+
+    import yt
+
+    ds = yt.load(
+        "GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150", default_species_fields="ionized"
+    )
+
+By default, the value of this optional argument is ``None``, which will not initialize
+any default species fields. If the ``default_species_fields`` argument is not set to
+``None``, then the following fields are defined:
+
 * ``H_nuclei_density``
-* ``He_p2_number_density``
 * ``He_nuclei_density``
-* ``El_number_density``
+
+More specifically, if ``default_species_fields="ionized"``, then these
+additional fields are defined:
+
+* ``H_p1_number_density`` (Ionized hydrogen: equal to the value of ``H_nuclei_density``)
+* ``He_p2_number_density`` (Doubly ionized helium: equal to the value of ``He_nuclei_density``)
+* ``El_number_density`` (Free electrons: assuming full ionization)
+
+Whereas if ``default_species_fields="neutral"``, then these additional
+fields are defined:
+
+* ``H_p0_number_density`` (Neutral hydrogen: equal to the value of ``H_nuclei_density``)
+* ``He_p0_number_density`` (Neutral helium: equal to the value of ``He_nuclei_density``)
+
+In this latter case, because the gas is neutral, ``El_number_density`` is not defined.
 
 The ``mean_molecular_weight`` field will be constructed from the abundances of the elements
-in the dataset. If no element or molecule fields are defined, the above fields for the ionized
-primordial H/He plasma are defined, and the ``mean_molecular_weight`` field is correspondingly set
-to :math:`\mu \approx 0.6`. Some frontends do not directly store the gas temperature in their
-datasets, in which case it must be computed from the pressure and/or thermal energy as well
-as the mean molecular weight, so check this carefully!
+in the dataset. If no element or molecule fields are defined, the value of this field
+is determined by the value of ``default_species_fields``. If it is set to ``None`` or
+``"ionized"``, the ``mean_molecular_weight`` field is set to :math:`\mu \approx 0.6`,
+whereas if ``default_species_fields`` is set to ``"neutral"``, then the
+``mean_molecular_weight`` field is set to :math:`\mu \approx 1.14`. Some frontends do
+not directly store the gas temperature in their datasets, in which case it must be
+computed from the pressure and/or thermal energy as well as the mean molecular weight,
+so check this carefully!
 
 Particle Fields
 ---------------
@@ -704,8 +734,16 @@ defined on each dataset to depose any particle field onto the mesh like so:
        ("all", "particle_velocity_x"), method="nearest"
    )
 
-   print("The velocity of the particles are (stored in %s)" % fname)
-   print(ds.r["deposit", "all_nn_particle_velocity_x"])
+   print(f"The velocity of the particles are (stored in {fname}")
+   print(ds.r[fname])
+
+.. note::
+
+   In this example, we are using the returned field name as our input.  You
+   *could* also access it directly, but it might take a slightly different form
+   than you expect -- in this particular case, the field name will be
+   ``("deposit", "all_nn_velocity_x")``, which has removed the prefix
+   ``particle_`` from the deposited name!
 
 Possible deposition methods are:
 
@@ -727,6 +765,9 @@ Possible deposition methods are:
 In addition, the :meth:`~yt.data_objects.static_outputs.add_deposited_particle_field` function
 returns the name of the newly created field.
 
+Deposited particle fields can be useful for visualizing particle data, including
+particles without defined smoothing lengths. See :ref:`particle-plotting-workarounds`
+for more information.
 
 .. _mesh-sampling-particle-fields:
 
@@ -781,48 +822,33 @@ SPH Fields
 
 See :ref:`yt4differences`.
 
-Computing the Nth Nearest Neighbor
-----------------------------------
+In previous versions of yt, there were ways of computing the distance to the
+N-th nearest neighbor of a particle, as well as computing the nearest particle
+value on a mesh.  Unfortunately, because of changes to the way that particles
+are regarded in yt, these are not currently available.  We hope that this will
+be rectified in future versions and are tracking this in `Issue 3301
+<https://github.com/yt-project/yt/issues/3301>`_.  You can read a bit more
+about the way yt now handles particles in the section :ref:`demeshening`.
 
-One particularly useful field that can be created is that of the distance to
-the Nth-nearest neighbor.  This field can then be used as input to smoothing
-operations, in the case when a particular particle type does not have an
-associated smoothing length or other length estimate.
-
-yt defines this field as a plugin, and it can be added like so:
-
-.. code-block:: python
-
-   import yt
-   from yt.fields.particle_fields import add_nearest_neighbor_field
-
-   ds = yt.load("snapshot_033/snap_033.0.hdf5")
-   (fn,) = add_nearest_neighbor_field("all", "particle_position", ds)
-
-   dd = ds.all_data()
-   print(dd[fn])
-
-Note that ``fn`` here is the "field name" that yt adds.  It will be of the form
-``(ptype, nearest_neighbor_distance_NN)`` where ``NN`` is the integer.  By
-default this is 64, but it can be supplied as the final argument to
-``add_nearest_neighbor_field``.  For the example above, it would be
-``nearest_neighbor_64``.
-
-Commonly, not just the identity of the nearest particle is interesting, but the
-value of a given field associated with that particle.  yt provides a function
-that can do this, as well.  This deposits into the indexing octree the value
-from the nearest particle.
+**But!**  It is possible to compute the smoothed values from SPH particles on
+grids.  For example, one can construct a covering grid that extends over the
+entire domain of a simulation, with resolution 256x256x256, and compute the gas
+density with this reasonable terse command:
 
 .. code-block:: python
 
    import yt
-   from yt.fields.particle_fields import add_nearest_neighbor_value_field
 
    ds = yt.load("snapshot_033/snap_033.0.hdf5")
-   ds.index
-   (fn,) = add_nearest_neighbor_value_field(
-       "all", "particle_position", "particle_velocity_magnitude", ds.field_info
-   )
+   cg = ds.r[::256j, ::256j, ::256j]
+   smoothed_values = cg["gas", "density"]
 
-   dd = ds.all_data()
-   print(dd[fn])
+This will work for any smoothed field; any field that is under the ``"gas"``
+field type will be a smoothed field in an SPH-based simulation.  Here we have
+used the ``ds.r[]`` notation, as described in :ref:`quickly-selecting-data` for
+creating what's called an "arbitrary grid"
+(:class:`~yt.data_objects.construction_data_containers.YTArbitraryGrid`).  You
+can, of course, also supply left and right edges to make the grid take up a
+much smaller portion of the domain, as well, by supplying the arguments as
+detailed in :ref:`arbitrary-grid-selection` and supplying the bounds as the
+first and second elements in each element of the slice.

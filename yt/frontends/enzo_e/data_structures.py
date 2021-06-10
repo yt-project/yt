@@ -1,5 +1,4 @@
 import os
-import warnings
 
 import numpy as np
 
@@ -7,8 +6,8 @@ from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.fields.field_info_container import NullFunc
 from yt.frontends.enzo.misc import cosmology_get_units
-from yt.frontends.enzo_p.fields import EnzoPFieldInfo
-from yt.frontends.enzo_p.misc import (
+from yt.frontends.enzo_e.fields import EnzoEFieldInfo
+from yt.frontends.enzo_e.misc import (
     get_block_info,
     get_child_index,
     get_root_block_id,
@@ -23,9 +22,9 @@ from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py, _libconf as libconf
 
 
-class EnzoPGrid(AMRGridPatch):
+class EnzoEGrid(AMRGridPatch):
     """
-    Class representing a single EnzoP Grid instance.
+    Class representing a single EnzoE Grid instance.
     """
 
     _id_offset = 0
@@ -33,7 +32,7 @@ class EnzoPGrid(AMRGridPatch):
 
     def __init__(self, id, index, block_name, filename=None):
         """
-        Returns an instance of EnzoPGrid with *id*, associated with
+        Returns an instance of EnzoEGrid with *id*, associated with
         *filename* and *index*.
         """
         # All of the field parameters will be passed to us as needed.
@@ -44,7 +43,7 @@ class EnzoPGrid(AMRGridPatch):
         self.Level = -1
 
     def __repr__(self):
-        return "EnzoPGrid_%04d" % self.id
+        return "EnzoEGrid_%04d" % self.id
 
     def _prepare_grid(self):
         """Copies all the appropriate attributes from the index."""
@@ -117,10 +116,10 @@ class EnzoPGrid(AMRGridPatch):
         return [self.index.grids[cid] for cid in self._children_ids]
 
 
-class EnzoPHierarchy(GridIndex):
+class EnzoEHierarchy(GridIndex):
 
     _strip_path = False
-    grid = EnzoPGrid
+    grid = EnzoEGrid
     _preload_implemented = True
 
     def __init__(self, ds, dataset_type):
@@ -150,7 +149,7 @@ class EnzoPHierarchy(GridIndex):
             offset += my_block
         f.close()
         self.num_grids = ngrids
-        self.dataset_type = "enzo_p"
+        self.dataset_type = "enzo_e"
 
     def _parse_index(self):
         self.grids = np.empty(self.num_grids, dtype="object")
@@ -265,7 +264,7 @@ class EnzoPHierarchy(GridIndex):
 
     def _get_particle_type_counts(self):
         return {
-            ptype: sum([g.particle_count[ptype] for g in self.grids])
+            ptype: sum(g.particle_count[ptype] for g in self.grids)
             for ptype in self.ds.particle_types_raw
         }
 
@@ -285,14 +284,14 @@ class EnzoPHierarchy(GridIndex):
         self.dataset.particle_types_raw = self.dataset.particle_types[:]
 
 
-class EnzoPDataset(Dataset):
+class EnzoEDataset(Dataset):
     """
-    Enzo-P-specific output, set at a fixed time.
+    Enzo-E-specific output, set at a fixed time.
     """
 
     refine_by = 2
-    _index_class = EnzoPHierarchy
-    _field_info_class = EnzoPFieldInfo
+    _index_class = EnzoEHierarchy
+    _field_info_class = EnzoEFieldInfo
     _suffix = ".block_list"
     particle_types = None
     particle_types_raw = None
@@ -307,6 +306,7 @@ class EnzoPDataset(Dataset):
         storage_filename=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
         """
         This class is a stripped down class that simply reads and parses
@@ -317,7 +317,7 @@ class EnzoPDataset(Dataset):
         parameter file and a *conversion_override* dictionary that consists
         of {fieldname : conversion_to_cgs} that will override the #DataCGS.
         """
-        self.fluid_types += ("enzop",)
+        self.fluid_types += ("enzoe",)
         if parameter_override is None:
             parameter_override = {}
         self._parameter_override = parameter_override
@@ -332,11 +332,7 @@ class EnzoPDataset(Dataset):
             file_style=file_style,
             units_override=units_override,
             unit_system=unit_system,
-        )
-        warnings.warn(
-            "The Enzo-P file format is still under development and may "
-            + "change. If loading fails, simulation data will need to be "
-            + "re-generated."
+            default_species_fields=default_species_fields,
         )
 
     def _parse_parameter_file(self):
@@ -418,7 +414,7 @@ class EnzoPDataset(Dataset):
         if self.cosmological_simulation:
             self.current_redshift = co.z_from_t(self.current_time * self.time_unit)
 
-        self.periodicity += (False,) * (3 - self.dimensionality)
+        self._periodicity += (False,) * (3 - self.dimensionality)
         self.gamma = nested_dict_get(self.parameters, ("Field", "gamma"))
 
     def _set_code_unit_attributes(self):

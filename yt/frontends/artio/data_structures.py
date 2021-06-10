@@ -347,6 +347,7 @@ class ARTIODataset(Dataset):
         max_range=1024,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
         from sys import version
 
@@ -368,6 +369,7 @@ class ARTIODataset(Dataset):
             dataset_type,
             units_override=units_override,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
         self.storage_filename = storage_filename
 

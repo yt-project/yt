@@ -21,9 +21,13 @@ class SPHFieldInfo(FieldInfoContainer):
         ("Metals", ("code_metallicity", ["metallicity"], None)),
         ("Metallicity", ("code_metallicity", ["metallicity"], None)),
         ("Phi", ("code_length", [], None)),
+        ("Potential", ("code_velocity**2", ["gravitational_potential"], None)),
         ("StarFormationRate", ("Msun / yr", [], None)),
         ("FormationTime", ("code_time", ["creation_time"], None)),
         ("Metallicity_00", ("", ["metallicity"], None)),
+        ("InitialMass", ("code_mass", [], None)),
+        ("TrueMass", ("code_mass", [], None)),
+        ("ElevenMetalMasses", ("code_mass", [], None)),
     )
 
     def setup_particle_fields(self, ptype, *args, **kwargs):

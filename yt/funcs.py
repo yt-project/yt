@@ -39,7 +39,10 @@ from yt.utilities.on_demand_imports import _requests as requests
 def is_sequence(obj):
     """
     Grabbed from Python Cookbook / matplotlib.cbook.  Returns true/false for
-    *obj* iterable.
+
+    Parameters
+    ----------
+    obj : iterable
     """
     try:
         len(obj)
@@ -56,7 +59,7 @@ def iter_fields(field_or_fields):
 
     Parameters
     ----------
-    obj: str, tuple(str, str), or any iterable of the previous types.
+    field_or_fields: str, tuple(str, str), or any iterable of the previous types.
 
     Examples
     --------
@@ -165,7 +168,7 @@ def get_memory_usage(subtract_share=False):
     if not os.path.isfile(status_file):
         return -1024
     line = open(status_file).read()
-    size, resident, share, text, library, data, dt = [int(i) for i in line.split()]
+    size, resident, share, text, library, data, dt = (int(i) for i in line.split())
     if subtract_share:
         resident -= share
     return resident * pagesize / (1024 * 1024)  # return in megs
@@ -450,7 +453,7 @@ _ss = "fURbBUUBE0cLXgETJnZgJRMXVhVGUQpQAUBuehQMUhJWRFFRAV1ERAtBXw1dAxMLXT4zXBFfA
 
 def _rdbeta(key):
     enc_s = base64.decodestring(_ss)
-    dec_s = "".join([chr(ord(a) ^ ord(b)) for a, b in zip(enc_s, itertools.cycle(key))])
+    dec_s = "".join(chr(ord(a) ^ ord(b)) for a, b in zip(enc_s, itertools.cycle(key)))
     print(dec_s)
 
 
@@ -1277,7 +1280,8 @@ def levenshtein_distance(seq1, seq2, max_dist=None):
 
     Parameters
     ----------
-    seq1, seq2 : str
+    seq1 : str
+    seq2 : str
         The strings to compute the distance between
     max_dist : integer
         If not None, maximum distance returned (see notes).

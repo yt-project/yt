@@ -523,6 +523,57 @@ simply pass ``all`` as the first argument of the field tuple:
    sl = yt.SlicePlot(ds, "z", ("all", "diffused"))
    sl.save()
 
+.. _particle-plotting-workarounds:
+
+Additional Notes for Plotting Particle Data
+-------------------------------------------
+
+Below are some important caveats to note when visualizing particle data.
+
+1. Off axis slice plotting is not available for any particle data.
+   However, axis-aligned slice plots (as described in :ref:`slice-plots`)
+   will work.
+
+2. Off axis projections (as in :ref:`off-axis-projection`) will only work
+   for SPH particles, i.e., particles that have a defined smoothing length.
+
+Two workaround methods are available for plotting non-SPH particles with off-axis
+projections.
+
+1. :ref:`smooth-non-sph` - this method involves extracting particle data to be
+   reloaded with :ref:`~yt.loaders.load_particles` and using the
+   :ref:`~yt.frontends.stream.data_structures.add_SPH_fields` function to
+   create smoothing lengths. This works well for relatively small datasets,
+   but is not parallelized and may take too long for larger data.
+
+2. Plot from a saved
+   :class:`~yt.data_objects.construction_data_containers.YTCoveringGrid`,
+   :class:`~yt.data_objects.construction_data_containers.YTSmoothedCoveringGrid`,
+   or :class:`~yt.data_objects.construction_data_containers.YTArbitraryGrid`
+   dataset.
+
+This second method is illustrated below. First, construct one of the grid data
+objects listed above. Then, use the
+:func:`~yt.data_objects.data_containers.YTDataContainer.save_as_dataset`
+function (see :ref:`saving_data`) to save a deposited particle field
+(see :ref:`deposited-particle-fields`) as a reloadable dataset. This dataset
+can then be loaded and visualized using both off-axis projections and slices.
+Note, the change in the field name from ``("deposit", "nbody_mass")`` to
+``("grid", "nbody_mass")`` after reloading.
+
+.. python-script::
+
+   import yt
+
+   ds = yt.load("gadget_cosmology_plus/snap_N128L16_132.hdf5")
+   # create a 128^3 covering grid over the entire domain
+   L = 7
+   cg = ds.covering_grid(level=L, left_edge=ds.domain_left_edge, dims=[2**L]*3)
+
+   fn = cg.save_as_dataset(fields=[("deposit", "nbody_mass")])
+   ds_grid = yt.load(fn)
+   p = yt.OffAxisProjectionPlot(ds_grid, [1, 1, 1], ("grid", "nbody_mass"))
+   p.save()
 
 Plot Customization: Recentering, Resizing, Colormaps, and More
 --------------------------------------------------------------
@@ -740,11 +791,29 @@ linear.
    slc.save()
 
 Specifically, a field containing both positive and negative values can be plotted
-with symlog scale, by setting the boolean to be ``True`` and providing an extra
-parameter ``linthresh``. In the region around zero (when the log scale approaches
-to infinity), the linear scale will be applied to the region ``(-linthresh, linthresh)``
-and stretched relative to the logarithmic range. You can also plot a positive field
-under symlog scale with the linear range of ``(0, linthresh)``.
+with symlog scale, by setting the boolean to be ``True`` and either providing an extra
+parameter ``linthresh`` or setting ``symlog_auto = True``. In the region around zero
+(when the log scale approaches to infinity), the linear scale will be applied to the
+region ``(-linthresh, linthresh)`` and stretched relative to the logarithmic range.
+In some cases, if yt detects zeros present in the dataset and the user has selected
+``log`` scaling, yt automatically switches to ``symlog`` scaling and automatically
+chooses a ``linthresh`` value to avoid errors.  This is the same behavior you can
+achieve by setting the keyword ``symlog_auto`` to ``True``. In these cases, yt will
+choose the smallest non-zero value in a dataset to be the ``linthresh`` value.
+As an example,
+
+.. python-script::
+
+   import yt
+
+   ds = yt.load_sample("FIRE_M12i_ref11")
+   p = yt.ProjectionPlot(ds, "x", ("gas", "density"))
+   p.set_log(("gas", "density"), True, symlog_auto=True)
+   p.save()
+
+Symlog is very versatile, and will work with positive or negative dataset ranges.
+Here is an example using symlog scaling to plot a postive field with a linear range of
+``(0, linthresh)``.
 
 .. python-script::
 
@@ -1489,7 +1558,7 @@ Particle Plots
 Slice and projection plots both provide a callback for over-plotting particle
 positions onto gas fields. However, sometimes you want to plot the particle
 quantities by themselves, perhaps because the gas fields are not relevant to
-the your point, or perhaps because your dataset doesn't contain any gas fields
+your use case, or perhaps because your dataset doesn't contain any gas fields
 in the first place. Additionally, you may want to plot your particles with a
 third field, such as particle mass or age,  mapped to a colorbar.
 :class:`~yt.visualization.particle_plots.ParticlePlot` provides a convenient
@@ -1590,6 +1659,17 @@ along the line of sight. The inner region is dominated by low mass
 star particles, whereas the outer region is comprised of higher mass
 dark matter particles.
 
+Both :class:`~yt.visualization.particle_plots.ParticleProjectionPlot` and
+:class:`~yt.visualization.particle_plots.ParticlePhasePlot` objects
+accept a ``deposition`` argument which controls the order of the "splatting"
+of the particles onto the pixels in the plot. The default option, ``"ngp"``,
+corresponds to the "Nearest-Grid-Point" (0th-order) method, which simply
+finds the pixel the particle is located in and deposits 100% of the particle
+or its plotted quantity into that pixel. The other option, ``"cic"``,
+corresponds to the "Cloud-In-Cell" (1st-order) method, which linearly
+interpolates the particle or its plotted quantity into the four nearest
+pixels in the plot.
+
 Here is a complete example that uses the ``particle_mass`` field
 to set the colorbar and shows off some of the modification functions for
 :class:`~yt.visualization.particle_plots.ParticleProjectionPlot`:
@@ -1687,6 +1767,23 @@ to only consider the particles that lie within a 50 kpc sphere around the domain
    p.set_ylim(-400, 400)
    p.set_xlim(-400, 400)
 
+   p.save()
+
+:class:`~yt.visualization.particle_plots.ParticleProjectionPlot` objects also admit a ``density``
+flag, which allows one to plot the surface density of a projected quantity. This simply divides
+the quantity in each pixel of the plot by the area of that pixel. It also changes the label on the
+colorbar to reflect the new units and the fact that it is a density. This may make most sense in
+the case of plotting the projected particle mass, in which case you can plot the projected particle
+mass density:
+
+.. python-script::
+
+   import yt
+
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
+   p = yt.ParticleProjectionPlot(ds, 2, ["particle_mass"], width=(0.5, 0.5), density=True)
+   p.set_unit("particle_mass", "Msun/kpc**2") # Note that the dimensions reflect the density flag
    p.save()
 
 Finally, with 1D and 2D Profiles, you can create a :class:`~yt.data_objects.profiles.ParticleProfile`

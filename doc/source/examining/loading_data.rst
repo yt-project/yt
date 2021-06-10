@@ -651,12 +651,12 @@ Currently, slices and data selection are implemented for nodal
 fields. Projections, volume rendering, and many of the analysis modules will not
 work.
 
-.. _loading-enzop-data:
+.. _loading-enzoe-data:
 
-Enzo-P Data
+Enzo-E Data
 -----------
 
-Enzo-P outputs have three types of files.
+Enzo-E outputs have three types of files.
 
 .. code-block:: none
 
@@ -665,7 +665,7 @@ Enzo-P outputs have three types of files.
    hello-0200/hello-0200.file_list
    hello-0200/hello-0200.hello-c0020-p0000.h5
 
-To load Enzo-P data into yt, provide the block list file:
+To load Enzo-E data into yt, provide the block list file:
 
 .. code-block:: python
 
@@ -673,7 +673,7 @@ To load Enzo-P data into yt, provide the block list file:
 
    ds = yt.load("hello-0200/hello-0200.block_list")
 
-Mesh and particle fields are fully supported for 1, 2, and 3D datasets.  Enzo-P
+Mesh and particle fields are fully supported for 1, 2, and 3D datasets.  Enzo-E
 supports arbitrary particle types defined by the user.  The available particle
 types will be known as soon as the dataset index is created.
 
@@ -684,13 +684,6 @@ types will be known as soon as the dataset index is created.
    print(ds.particle_types)
    print(ds.particle_type_counts)
    print(ds.r["dark", "particle_position"])
-
-.. rubric:: Caveats
-
-* The Enzo-P output format is still evolving somewhat as the code is being
-  actively developed. This frontend will be updated as development continues
-  and backward compatibility may occasionally be broken until the file format
-  has converged.
 
 .. _loading-exodusii-data:
 
@@ -1265,6 +1258,11 @@ where :math:`n_e` and :math:`n_i` are the electron and ion number densities,
 Gadget Data
 -----------
 
+.. note::
+
+   For more information about how yt indexes and reads particle data, set the
+   section :ref:`demeshening`.
+
 yt has support for reading Gadget data in both raw binary and HDF5 formats.  It
 is able to access the particles as it would any other particle dataset, and it
 can apply smoothing kernels to the data to produce both quantitative analysis
@@ -1346,24 +1344,6 @@ units as the example above:
 
   ds = yt.load("snap_004", unit_base=unit_base, bounding_box=bbox)
 
-.. _particle-indexing-criteria:
-
-Indexing Criteria
-^^^^^^^^^^^^^^^^^
-
-yt generates a global mesh index via octree that governs the resolution of
-volume elements.  This is governed by two parameters, ``n_ref`` and
-``over_refine_factor``.  They are weak proxies for each other.  The first,
-``n_ref``, governs how many particles in an oct results in that oct being
-refined into eight child octs.  Lower values mean higher resolution; the
-default is 64.  The second parameter, ``over_refine_factor``, governs how many
-cells are in a given oct; the default value of 1 corresponds to 8 cells.
-The number of cells in an oct is defined by the expression
-``2**(3*over_refine_factor)``.
-
-It's recommended that if you want higher-resolution, try reducing the value of
-``n_ref`` to 32 or 16.
-
 .. _gadget-field-spec:
 
 Field Specifications
@@ -1374,8 +1354,14 @@ non-standard from the default Gadget distribution format.  These can be
 specified in the call to ``GadgetDataset`` by either supplying one of the
 sets of field specifications as a string or by supplying a field specification
 itself.  As an example, yt has built-in definitions for ``default`` (the
-default) and ``agora_unlv``.  Field specifications must be tuples, and must be
-of this format:
+default), ``agora_unlv``, ``group0000``, and ``magneticum_box2_hr``. They can
+be used like this:
+
+.. code-block:: python
+
+   ds = yt.load("snap_100", field_spec="group0000")
+
+Field specifications must be tuples, and must be of this format:
 
 .. code-block:: python
 
@@ -1398,6 +1384,8 @@ this:
 
 .. code-block:: python
 
+   import yt
+
    my_field_def = (
        "Coordinates",
        "Velocities",
@@ -1409,18 +1397,96 @@ this:
        ("SmoothingLength", "Gas"),
    )
 
+   ds = yt.load("snap_100", field_spec=my_field_def)
+
 To save time, you can utilize the plugins file for yt and use it to add items
 to the dictionary where these definitions are stored.  You could do this like
 so:
 
 .. code-block:: python
 
+   import yt
    from yt.frontends.gadget.definitions import gadget_field_specs
 
    gadget_field_specs["my_field_def"] = my_field_def
 
+   ds = yt.load("snap_100", field_spec="my_field_def")
+
 Please also feel free to issue a pull request with any new field
 specifications, as we're happy to include them in the main distribution!
+
+Magneticum halos downloaded using the SIMCUT method from the
+`Cosmological Web Portal <https://c2papcosmosim.uc.lrz.de/>`_ can be loaded
+using the ``"magneticum_box2_hr"`` value for the ``field_spec`` argumemt.
+However, this is strictly only true for halos downloaded after May 14, 2021,
+since before then the halos had the following signature (with the ``"StellarAge"``
+field for the ``"Bndry"`` particles missing):
+
+.. code-block:: python
+
+    magneticum_box2_hr = (
+        "Coordinates",
+        "Velocities",
+        "ParticleIDs",
+        "Mass",
+        ("InternalEnergy", "Gas"),
+        ("Density", "Gas"),
+        ("SmoothingLength", "Gas"),
+        ("ColdFraction", "Gas"),
+        ("Temperature", "Gas"),
+        ("StellarAge", "Stars"),
+        "Potential",
+        ("InitialMass", "Stars"),
+        ("ElevenMetalMasses", ("Gas", "Stars")),
+        ("StarFormationRate", "Gas"),
+        ("TrueMass", "Bndry"),
+        ("AccretionRate", "Bndry"),
+    )
+
+and before November 20, 2020, the field specification had the ``"ParticleIDs"`` and ``"Mass"``
+fields swapped:
+
+.. code-block:: python
+
+    magneticum_box2_hr = (
+        "Coordinates",
+        "Velocities",
+        "Mass",
+        "ParticleIDs",
+        ("InternalEnergy", "Gas"),
+        ("Density", "Gas"),
+        ("SmoothingLength", "Gas"),
+        ("ColdFraction", "Gas"),
+        ("Temperature", "Gas"),
+        ("StellarAge", "Stars"),
+        "Potential",
+        ("InitialMass", "Stars"),
+        ("ElevenMetalMasses", ("Gas", "Stars")),
+        ("StarFormationRate", "Gas"),
+        ("TrueMass", "Bndry"),
+        ("AccretionRate", "Bndry"),
+    )
+
+In general, to determine what fields are in your Gadget binary file, it may
+be useful to inspect them with the `g3read <https://github.com/aragagnin/g3read>`_
+code first.
+
+.. _gadget-long-ids:
+
+Long Particle IDs
+^^^^^^^^^^^^^^^^^
+
+Some Gadget binary files use 64-bit integers for particle IDs. To use these,
+simply set ``long_ids=True`` when loading the dataset:
+
+.. code-block:: python
+
+    import yt
+
+    ds = yt.load("snap_100", long_ids=True)
+
+This is needed, for example, for Magneticum halos downloaded using the SIMCUT
+method from the `Cosmological Web Portal <https://c2papcosmosim.uc.lrz.de/>`_
 
 .. _gadget-ptype-spec:
 
@@ -1525,6 +1591,11 @@ yt will utilize length, mass and time to set up all other units.
 SWIFT Data
 ----------
 
+.. note::
+
+   For more information about how yt indexes and reads particle data, set the
+   section :ref:`demeshening`.
+
 yt has support for reading in SWIFT data from the HDF5 file format. It is able
 to access all particles and fields which are stored on-disk and it is also able
 to generate derived fields, i.e, linear momentum from on-disk fields.
@@ -1546,6 +1617,11 @@ SWIFT data in HDF5 format can be loaded with the ``load`` command:
 Arepo Data
 ----------
 
+.. note::
+
+   For more information about how yt indexes and reads discrete data, set the
+   section :ref:`demeshening`.
+
 Arepo data is currently treated as SPH data. The gas cells have smoothing lengths
 assigned using the following prescription for a given gas cell :math:`i`:
 
@@ -1565,18 +1641,39 @@ value can be changed when loading an Arepo dataset by setting the
 
    ds = yt.load("snapshot_100.hdf5", smoothing_factor=1.5)
 
-Currently, only Arepo HDF5 snapshots are supported. If the "GFM" metal fields are
-present in your dataset, they will be loaded in and aliased to the appropriate
-species fields in the ``"GFM_Metals"`` field on-disk. For more information, see
-the `Illustris TNG documentation <http://www.tng-project.org/data/docs/specifications/#sec1b>`_.
+Currently, only Arepo HDF5 snapshots are supported.
+
+If the "GFM" metal fields are present in your dataset, they will be loaded in
+and aliased to the appropriate species fields in the ``"GFM_Metals"`` field
+on-disk. For more information, see the
+`Illustris TNG documentation <http://www.tng-project.org/data/docs/specifications/#sec1b>`_.
+
+If passive scalar fields are present in your dataset, they will be loaded in
+and aliased to fields with the naming convention ``"PassiveScalars_XX"`` where
+``XX`` is the number of the passive scalar array, e.g. ``"00"``, ``"01"``, etc.
+
+HDF5 snapshots will be detected as Arepo data if they have the ``"GFM_Metals"``
+field present, or if they have a ``"Config"`` group in the header. If neither of
+these are the case, and your snapshot *is* Arepo data, you can fix this with the
+following:
+
+.. code-block:: python
+
+    import h5py
+
+    with h5py.File(saved_filename, "r+") as f:
+        f.create_group("Config")
+        f["/Config"].attrs["VORONOI"] = 1
 
 .. _loading-gamer-data:
 
 GAMER Data
 ----------
 
-GAMER HDF5 data is supported and cared for by Hsi-Yu Schive. You can load the
-data like this:
+GAMER HDF5 data is supported and cared for by Hsi-Yu Schive and John ZuHone.
+Datasets using hydrodynamics, particles, magnetohydrodynamics, wave dark matter,
+and special relativistic hydrodynamics are supported. You can load the data like
+this:
 
 .. code-block:: python
 
@@ -1599,11 +1696,23 @@ functionality:
    }
    ds = yt.load("InteractingJets/jet_000002", units_override=code_units)
 
-This means that the yt fields, e.g., ``("gas","density")``, will be in cgs units,
-but the GAMER fields, e.g., ``("gamer","Dens")``, will be in code units.
-
 Particle data are supported and are always stored in the same file as the grid
 data.
+
+For special relativistic simulations, both the gamma-law and Taub-Mathews EOSes
+are supported, and the following fields are defined:
+
+* ``("gas", "density")``: Comoving rest-mass density :math:`\rho`
+* ``("gas", "frame_density")``: Coordinate-frame density :math:`D = \gamma\rho`
+* ``("gas", "gamma")``: Ratio of specific heats :math:`\Gamma`
+* ``("gas", "four_velocity_[txyz]")``: Four-velocity fields :math:`U_t, U_x, U_y, U_z`
+* ``("gas", "lorentz_factor")``: Lorentz factor :math:`\gamma = \sqrt{1+U_iU^i/c^2}`
+  (where :math:`i` runs over the spatial indices)
+
+These, and other fields following them (3-velocity, energy densities, etc.) are
+computed in the same manner as in the
+`GAMER-SR paper <https://ui.adsabs.harvard.edu/abs/2021MNRAS.504.3298T/abstract>`_
+to avoid catastrophic cancellations.
 
 .. rubric:: Caveats
 
@@ -1905,6 +2014,11 @@ mesh will have the type ``connect1``, fields on the second will have ``connect2`
 Generic Particle Data
 ---------------------
 
+.. note::
+
+   For more information about how yt indexes and reads particle data, set the
+   section :ref:`demeshening`.
+
 See :ref:`generic-particle-data` and
 :func:`~yt.frontends.stream.data_structures.load_particles` for more detail.
 
@@ -1955,6 +2069,11 @@ The ``load_particles`` function also accepts the following keyword parameters:
 ``bbox``
        The bounding box for the particle positions.
 
+.. _smooth-non-sph:
+
+Adding Smoothing Lengths for Non-SPH Particles
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 A novel use of the ``load_particles`` function is to facilitate SPH
 visualization of non-SPH particles. See the example below:
 
@@ -1994,6 +2113,11 @@ SPH visualization to work.
 Gizmo Data
 ----------
 
+.. note::
+
+   For more information about how yt indexes and reads particle data, set the
+   section :ref:`demeshening`.
+
 Gizmo datasets, including FIRE outputs, can be loaded into yt in the usual
 manner.  Like other SPH data formats, yt loads Gizmo data as particle fields
 and then uses smoothing kernels to deposit those fields to an underlying
@@ -2031,6 +2155,11 @@ Gadget outputs.  See :ref:`loading-gadget-data` for more information.
 
 Halo Catalog Data
 -----------------
+
+.. note::
+
+   For more information about how yt indexes and reads particle data, set the
+   section :ref:`demeshening`.
 
 yt has support for reading halo catalogs produced by the AdaptaHOP, Amiga Halo
 Finder (AHF), Rockstar and the inline FOF/SUBFIND halo finders of Gadget and
@@ -2800,6 +2929,11 @@ dark matter particles.
 SPH Particle Data
 -----------------
 
+.. note::
+
+   For more information about how yt indexes and reads particle data, set the
+   section :ref:`demeshening`.
+
 For all of the SPH frontends, yt uses cython-based SPH smoothing onto an
 in-memory octree to create deposited mesh fields from individual SPH particle
 fields.
@@ -2821,6 +2955,11 @@ lower resolution.
 
 Tipsy Data
 ----------
+
+.. note::
+
+   For more information about how yt indexes and reads particle data, set the
+   section :ref:`demeshening`.
 
 See :ref:`tipsy-notebook` and :ref:`loading-sph-data` for more details.
 

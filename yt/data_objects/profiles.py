@@ -937,17 +937,20 @@ class ParticleProfile(Profile2D):
             else:
                 deposit_vals = wdata * fdata[:, fi]
 
+            field_mask = np.zeros(self.size, dtype="uint8")
+
             func(
                 bf_x,
                 bf_y,
                 deposit_vals,
                 fdata[:, fi].size,
                 storage.values[:, :, fi],
+                field_mask,
                 self.x_bins,
                 self.y_bins,
             )
 
-            locs = storage.values[:, :, fi] != 0.0
+            locs = field_mask > 0
             storage.used[locs] = True
 
             if self.weight_field is not None:
@@ -957,6 +960,7 @@ class ParticleProfile(Profile2D):
                     wdata,
                     fdata[:, fi].size,
                     storage.weight_values,
+                    field_mask,
                     self.x_bins,
                     self.y_bins,
                 )
@@ -1318,8 +1322,6 @@ def create_profile(
                     "The accumulation and fractional keyword arguments must be "
                     "False for CIC deposition"
                 )
-        elif logs is None:
-            logs = {bin_fields[0]: False, bin_fields[1]: False}
         cls = ParticleProfile
     elif len(bin_fields) == 2:
         cls = Profile2D

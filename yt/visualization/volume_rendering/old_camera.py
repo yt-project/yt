@@ -96,9 +96,6 @@ class Camera(ParallelAnalysisInterface):
     ds : ~yt.data_objects.static_output.Dataset
         For now, this is a require parameter!  But in the future it will become
         optional.  This is the dataset to volume render.
-    use_kd: bool, optional
-        Specifies whether or not to use a kd-Tree framework for
-        the Homogenized Volume and ray-casting.  Default to True.
     max_level: int, optional
         Specifies the maximum level to be rendered.  Also
         specifies the maximum level used in the kd-Tree
@@ -1441,7 +1438,7 @@ class PerspectiveCamera(Camera):
         theta : float, in radians
              Angle (in radians) by which to yaw the view.
 
-        center : a tuple (x, y, z)
+        rot_center : a tuple (x, y, z)
              The point to rotate about
 
         Examples

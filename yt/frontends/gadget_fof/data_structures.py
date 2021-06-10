@@ -25,7 +25,7 @@ class GadgetFOFParticleIndex(ParticleIndex):
         Calculate the total number of each type of particle.
         """
         self.particle_count = {
-            ptype: sum([d.total_particles[ptype] for d in self.data_files])
+            ptype: sum(d.total_particles[ptype] for d in self.data_files)
             for ptype in self.ds.particle_types_raw
         }
 

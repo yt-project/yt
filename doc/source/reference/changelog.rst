@@ -272,7 +272,7 @@ Minor Enhancements and Bugfixes
   loaded with ``unit_system="code"``  `PR 2354 <https://github.com/yt-project/yt/pull/2354>`__.
 - deprecate ``ImagePlotContainer.set_cbar_minorticks``. See
   `PR 2444 <https://github.com/yt-project/yt/pull/2444>`__.
-- enzo-p frontend bugfix for single block datasets. See
+- enzo-e frontend bugfix for single block datasets. See
   `PR 2424 <https://github.com/yt-project/yt/pull/2424>`__.
 - explicitly default to solid lines in contour callback. See
   `PR 2330 <https://github.com/yt-project/yt/pull/2330>`__.
@@ -456,7 +456,7 @@ We would particularly like to recognize Corentin Cadiou for his tireless work ov
 Additional Improvements
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-- Added support for particle data in the Enzo-P frontend. See `PR 1490
+- Added support for particle data in the Enzo-E frontend. See `PR 1490
   <https://github.com/yt-project/yt/pull/1490>`__.
 - Added an ``equivalence`` keyword argument to ``YTArray.in_units()`` and
   ``YTArray.to()``. This makes it possible to specify an equivalence when
@@ -880,7 +880,7 @@ pull requests from 44 contributors including 18 new contributors.
    ``sampling_type`` will always need to be specified.
 -  Added support for the ``Athena++`` code. See `Bitbucket PR
    2149 <https://bitbucket.org/yt_analysis/yt/pull-requests/2149>`__.
--  Added support for the ``Enzo-p`` code. See `Github PR
+-  Added support for the ``Enzo-E`` code. See `Github PR
    1447 <https://github.com/yt-project/yt/pull/1447>`__, `Github PR
    1443 <https://github.com/yt-project/yt/pull/1443>`__ and `Github PR
    1439 <https://github.com/yt-project/yt/pull/1439>`__.

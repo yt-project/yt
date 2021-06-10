@@ -24,7 +24,7 @@ def _make_counts(emin, emax):
         else:
             sigma = None
         if sigma is not None and sigma > 0.0:
-            kern = _astropy.conv.Gaussian2DKernel(stddev=sigma)
+            kern = _astropy.conv.Gaussian2DKernel(x_stddev=sigma)
             img[:, :, 0] = _astropy.conv.convolve(img[:, :, 0], kern)
         return data.ds.arr(img, "counts/pixel")
 

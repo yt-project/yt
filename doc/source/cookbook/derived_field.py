@@ -27,5 +27,9 @@ for i in sorted(ds.derived_field_list):
 # Let's use it to make a projection
 ad = ds.all_data()
 yt.ProjectionPlot(
-    ds, "x", "thermal_energy_density", weight_field="density", width=(200, "kpc")
+    ds,
+    "x",
+    ("gas", "thermal_energy_density"),
+    weight_field=("gas", "density"),
+    width=(200, "kpc"),
 ).save()

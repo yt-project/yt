@@ -915,14 +915,6 @@ class MeshSource(OpaqueSource):
 
         Applies a colormap to the current image without re-rendering.
 
-        Parameters
-        ----------
-        cmap_name : string, optional
-            An acceptable colormap.  See either yt.visualization.color_maps or
-            https://scipy-cookbook.readthedocs.io/items/Matplotlib_Show_colormaps.html .
-        color_bounds : tuple of floats, optional
-            The min and max to scale between.  Outlying values will be clipped.
-
         Returns
         -------
         current_image : A new image with the specified color scale applied to
