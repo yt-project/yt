@@ -103,7 +103,7 @@ def _print_failed_source_update(reinstall=False):
         print("If you manage your python dependencies with pip, you may")
         print("want to do:")
         print()
-        print("    $ pip install -U yt")
+        print("    $ python -m pip install -U yt")
         print()
         print("to update your yt installation.")
 

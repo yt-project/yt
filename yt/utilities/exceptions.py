@@ -896,7 +896,7 @@ class YTCommandRequiresModule(YTException):
         msg += "appropriate for your python environment, e.g.:\n"
         msg += f"  conda install {self.module}\n"
         msg += "or:\n"
-        msg += f"  pip install {self.module}\n"
+        msg += f" python -m pip install {self.module}\n"
         return msg
 
 

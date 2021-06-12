@@ -62,7 +62,7 @@ else
     # this is required for cartopy. It should normally be specified in our setup.cfg as
     # cartopy[plotting]
     # However it doesn't work on Ubuntu 18.04 (used in CI at the time of writing)
-    pip install shapely --no-binary=shapely
+    python -m pip install shapely --no-binary=shapely
     CFLAGS="$CFLAGS -DACCEPT_USE_OF_DEPRECATED_PROJ_API_H" python -m pip install -e .[test,full]
 fi
 

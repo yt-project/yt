@@ -1975,7 +1975,7 @@ datasets, then handed back to the plotting machinery discussed here.
 
 For slices and projections, the savable object is associated with the
 plot object as ``data_source``.  This can be saved with the
-:func:`~yt.data_objects.data_containers.save_as_dataset`` function.  For
+:func:`~yt.data_objects.data_containers.save_as_dataset` function.  For
 more information, see :ref:`saving_data`.
 
 .. code-block:: python
@@ -2063,10 +2063,7 @@ filesize.
 
 .. note::
    PyX must be installed, which can be accomplished either manually
-   with ``pip install pyx`` or with the install script by setting
-   ``INST_PYX=1``. If you are using python2, you must install pyx
-   version 0.12.1 with ``pip install pyx==0.12.1``, since that is
-   the last version with python2 support.
+   with ``python -m pip install pyx``.
 
 This module can take any of the plots mentioned above and create an
 EPS or PDF figure.  For example,

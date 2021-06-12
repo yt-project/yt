@@ -794,7 +794,7 @@ class YTDataContainer:
             raise ImportError(
                 "Can't find firefly_api, ensure it "
                 "is in your python path or install it with "
-                "'$ pip install firefly_api'. It is also available "
+                "`python -m pip install firefly_api`. It is also available "
                 "on github at github.com/agurvich/firefly_api"
             ) from e
 

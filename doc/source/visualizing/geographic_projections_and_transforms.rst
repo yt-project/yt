@@ -49,9 +49,9 @@ would execute the following commands:
 
 .. code-block:: bash
 
-    brew install proj geos
-    brew upgrade proj geos
-    pip install --no-binary :all: shapely cartopy
+    $ brew install proj geos
+    $ brew upgrade proj geos
+    $ python -m pip install --no-binary :all: shapely cartopy
 
 
 On ubuntu you'll need to install the following packages: ``libproj-dev``,

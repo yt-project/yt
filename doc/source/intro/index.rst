@@ -176,7 +176,7 @@ problems.
 Getting Started
 ^^^^^^^^^^^^^^^
 
-We have detailed :ref:`installation instructions <getting-and-installing-yt>`
+We have detailed :ref:`installation instructions <installing-yt>`
 and support for a number of platforms including Unix, Linux, MacOS, and
 Windows.  If you are new to yt, check out the :ref:`yt Quickstart
 <quickstart>` and the :ref:`cookbook <cookbook>` for a demonstration of yt's

@@ -59,24 +59,20 @@ in :ref:`transitioning-to-4.0` there are helpful tips on how to modify your scri
 Code Errors and Failures
 ------------------------
 
-yt fails saying that it cannot import yt modules
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Python fails saying that it cannot import yt modules
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This is commonly exhibited with an error about not being able to import code
 that is part of yt. This is likely because the code that is failing to import
-needs to be compiled or recompiled, You can do this automatically by running:
+needs to be compiled or recompiled.
 
-.. code-block:: bash
+This error tends to occur when there are changes in the underlying Cython files
+that need to be rebuilt, like after a major code update or when switching
+between distant branches.
 
-    cd $YT_GIT
-    pip install -e .
+This is solved by running the install command again. See
+:ref:`install-from-source`.
 
-where ``$YT_GIT`` is the path to the yt git repository.
-
-This error tends to occur when there are changes in the underlying cython
-files that need to be rebuilt, like after a major code update or in switching
-from 3.x to 4.x.  For more information on this, see
-:ref:`switching-between-yt-versions`.
 
 .. _faq-mpi4py:
 
@@ -99,9 +95,9 @@ the pip interface.  At the command line, type:
 
 .. code-block:: bash
 
-    pip install mpi4py
+    $ python -m pip install mpi4py
 
-What this does is it finds your default installation of python (presumably
+What this does is it finds your default installation of Python (presumably
 in the yt source directory), and it installs the mpi4py module.  If this
 action is successful, you should never have to worry about your aforementioned
 problems again.  If, on the other hand, this installation fails (as it does on
@@ -112,7 +108,7 @@ If this is the case, you can specify them explicitly as per:
 
 .. code-block:: bash
 
-    env MPICC=/path/to/MPICC pip install mpi4py
+    $ env MPICC=/path/to/MPICC pip install mpi4py
 
 So for example, on Kraken, I switch to the gnu C compilers (because yt
 doesn't work with the portland group C compilers), then I discover that
@@ -120,8 +116,8 @@ cc is the mpi-enabled C compiler (and it is in my path), so I run:
 
 .. code-block:: bash
 
-    module swap PrgEnv-pgi PrgEnv-gnu
-    env MPICC=cc pip install mpi4py
+    $ module swap PrgEnv-pgi PrgEnv-gnu
+    $ env MPICC=cc pip install mpi4py
 
 And voila!  It installs!  If this *still* fails for you, then you can
 build and install from source and specify the mpi-enabled c and c++
@@ -397,7 +393,7 @@ environment can use readline, run the following command:
 
 .. code-block:: bash
 
-   $ ~/yt/bin/pip install gnureadline
+   $ python -m pip install gnureadline
 
 .. _faq-old-data:
 
