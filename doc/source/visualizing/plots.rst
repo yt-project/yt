@@ -22,7 +22,7 @@ profiles (phase plots), all of which are described below.
 Viewing Plots
 -------------
 
-YT uses an environment neutral plotting mechanism that detects the appropriate
+yt uses an environment neutral plotting mechanism that detects the appropriate
 matplotlib configuration for a given environment, however it defaults to a basic
 renderer. To utilize interactive plots in matplotlib supported
 environments (Qt, GTK, WX, etc.) simply call the ``toggle_interactivity()`` function. Below is an
@@ -112,7 +112,8 @@ This will save a new plot to disk with a different filename - prepended with
 'zoom' instead of the name of the dataset. If you want to set the width
 manually, you can do that as well. For example, the following sequence of
 commands will create a slice, set the width of the plot to 10 kiloparsecs, and
-save it to disk.
+save it to disk, with the filename prefix being ``10kpc`` and the rest determined
+by the field, visualization method, etc.
 
 .. code-block:: python
 
@@ -295,7 +296,7 @@ example:
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    prj = yt.ProjectionPlot(
        ds,
-       2,
+       "z",
        "temperature",
        width=25 * kpc,
        weight_field="density",
@@ -496,7 +497,7 @@ a dataset that uses 6-node wedge elements:
    import yt
 
    ds = yt.load("MOOSE_sample_data/wedge_out.e")
-   sl = yt.SlicePlot(ds, 2, ("connect2", "diffused"))
+   sl = yt.SlicePlot(ds, "z", ("connect2", "diffused"))
    sl.save()
 
 Slices can also be used to examine 2D unstructured mesh datasets, but the
@@ -508,7 +509,7 @@ an example using another MOOSE dataset that uses triangular mesh elements:
    import yt
 
    ds = yt.load("MOOSE_sample_data/out.e")
-   sl = yt.SlicePlot(ds, 2, ("connect1", "nodal_aux"))
+   sl = yt.SlicePlot(ds, "z", ("connect1", "nodal_aux"))
    sl.save()
 
 You may run into situations where you have a variable you want to visualize that
