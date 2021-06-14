@@ -565,7 +565,7 @@ Note, the change in the field name from ``("deposit", "nbody_mass")`` to
 
    import yt
 
-   ds = yt.load("gadget_cosmology_plus/snap_N128L16_132.hdf5")
+   ds = yt.load("gizmo_cosmology_plus/snap_N128L16_132.hdf5")
    # create a 128^3 covering grid over the entire domain
    L = 7
    cg = ds.covering_grid(level=L, left_edge=ds.domain_left_edge, dims=[2**L]*3)
