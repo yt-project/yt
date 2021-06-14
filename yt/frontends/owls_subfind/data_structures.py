@@ -16,6 +16,8 @@ from .fields import OWLSSubfindFieldInfo
 
 
 class OWLSSubfindParticleIndex(ParticleIndex):
+    chunksize = -1
+
     def __init__(self, ds, dataset_type):
         super().__init__(ds, dataset_type)
 
@@ -57,7 +59,6 @@ class OWLSSubfindParticleIndex(ParticleIndex):
         for dom in self.data_files:
             fl, _units = self.io._identify_fields(dom)
             units.update(_units)
-            dom._calculate_offsets(fl)
             for f in fl:
                 if f not in dsl:
                     dsl.append(f)

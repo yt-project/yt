@@ -437,7 +437,7 @@ class GadgetFOFHaloDataset(ParticleDataset):
             "file_count",
             "particle_types_raw",
             "particle_types",
-            "periodicity",
+            "_periodicity",
         ]:
             setattr(self, attr, getattr(self.real_ds, attr))
 
