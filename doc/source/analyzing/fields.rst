@@ -7,12 +7,14 @@ Fields are spatially-dependent quantities associated with a parent dataset.
 Examples of fields are gas density, gas temperature, particle mass, etc.
 The fundamental way to query data in yt is to access a field, either in its raw
 form (by examining a data container) or a processed form (derived quantities,
-projections, and so on).  "Field" is something of a loaded word, as it can
-refer to quantities that are defined everywhere, which we refer to as "mesh" or
-"fluid" fields, or discrete points that populate the domain, traditionally
-thought of as "particle" fields.  The word "particle" here is gradually falling
-out of favor, as these discrete fields can be any type of sparsely populated
-data.
+projections, aggregations, and so on).  "Field" is something of a loaded word,
+as it can refer to quantities that are defined everywhere, which we refer to as
+"mesh" or "fluid" fields, or discrete points that populate the domain,
+traditionally thought of as "particle" fields.  The word "particle" here is
+gradually falling out of favor, as these discrete fields can be any type of
+sparsely populated data.
+
+.. _what-are-fields:
 
 What are fields?
 ----------------
@@ -117,6 +119,13 @@ field, like its default units or the source code for it.
 
 Using fields to access data
 ---------------------------
+
+.. warning::
+
+   These *specific* operations will load the entire field -- which can be
+   extremely memory intensive with large datasets!  If you are looking to
+   compute quantities, see :ref:`Data-objects` for methods for computing
+   aggregates, averages, subsets, regriddings, etc.
 
 The primary *use* of fields in yt is to access data from a dataset. For example,
 if I want to use a data object (see :ref:`Data-objects` for more detail about
@@ -682,8 +691,6 @@ General Particle Fields
 
 Every particle will contain both a ``particle_position`` and ``particle_velocity``
 that tracks the position and velocity (respectively) in code units.
-
-.. FIXME: Update the following sections to reflect differences in yt-4.0.
 
 .. _deposited-particle-fields:
 
