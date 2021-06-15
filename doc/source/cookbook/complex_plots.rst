@@ -421,26 +421,6 @@ sources.
 
 .. yt_cookbook:: vol-lines.py
 
-.. _cookbook-opengl_vr:
-
-Advanced Interactive Data Visualization
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-This recipe demonstrates how to manually create all components required to
-start the Interactive Data Visualization.  For more information see
-:ref:`interactive_data_visualization`.
-
-.. yt_cookbook:: opengl_vr.py
-
-Embedding Interactive Data Visualization
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-This recipe demonstrates how to embed the Interactive Data Visualization inside
-the Jupyter notebook.  For more information see
-:ref:`interactive_data_visualization`.
-
-.. yt_cookbook:: opengl_ipython.py
-
 Plotting Streamlines
 ~~~~~~~~~~~~~~~~~~~~
 
