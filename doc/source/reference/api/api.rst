@@ -531,11 +531,11 @@ Field Functions
 
    ~yt.fields.field_info_container.FieldInfoContainer.add_field
    ~yt.data_objects.static_output.Dataset.add_field
-   ~yt.data_objects.static_outputs.add_deposited_particle_field
-   ~yt.data_objects.static_outputs.add_mesh_sampling_particle_field
-   ~yt.data_objects.static_outputs.add_smoothed_particle_field
-   ~yt.data_objects.static_outputs.add_gradient_fields
-   ~yt.frontends.stream.data_structures.add_SPH_fields
+   ~yt.data_objects.static_output.Dataset.add_deposited_particle_field
+   ~yt.data_objects.static_output.Dataset.add_mesh_sampling_particle_field
+   ~yt.data_objects.static_output.Dataset.add_smoothed_particle_field
+   ~yt.data_objects.static_output.Dataset.add_gradient_fields
+   ~yt.frontends.stream.data_structures.StreamParticlesDataset.add_SPH_fields
 
 Particle Filters
 ----------------

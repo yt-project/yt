@@ -541,9 +541,9 @@ Two workaround methods are available for plotting non-SPH particles with off-axi
 projections.
 
 1. :ref:`smooth-non-sph` - this method involves extracting particle data to be
-   reloaded with :ref:`~yt.loaders.load_particles` and using the
-   :ref:`~yt.frontends.stream.data_structures.add_SPH_fields` function to
-   create smoothing lengths. This works well for relatively small datasets,
+   reloaded with :class:`~yt.loaders.load_particles` and using the
+   :class:`~yt.frontends.stream.data_structures.StreamParticlesDataset.add_SPH_fields`
+   function to create smoothing lengths. This works well for relatively small datasets,
    but is not parallelized and may take too long for larger data.
 
 2. Plot from a saved
@@ -554,7 +554,7 @@ projections.
 
 This second method is illustrated below. First, construct one of the grid data
 objects listed above. Then, use the
-:func:`~yt.data_objects.data_containers.YTDataContainer.save_as_dataset`
+:class:`~yt.data_objects.data_containers.YTDataContainer.save_as_dataset`
 function (see :ref:`saving_data`) to save a deposited particle field
 (see :ref:`deposited-particle-fields`) as a reloadable dataset. This dataset
 can then be loaded and visualized using both off-axis projections and slices.
