@@ -22,7 +22,7 @@ of available callbacks.  For example:
 
 .. code-block:: python
 
-   slc = SlicePlot(ds, 0, "density")
+   slc = SlicePlot(ds, "x", "density")
    slc.annotate_title("This is a Density plot")
 
 would add the :func:`~yt.visualization.plot_modifications.TitleCallback` to
