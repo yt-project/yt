@@ -1477,17 +1477,17 @@ class YTStatsCmd(YTCommand):
         ds = args.ds
         ds.print_stats()
         vals = {}
-        if args.field in ds.derived_field_list:
-            if args.max:
-                vals["min"] = ds.find_max(args.field)
-                print(
-                    f"Maximum {args.field}: {vals['min'][0]:0.5e} at {vals['min'][1]}"
-                )
-            if args.min:
-                vals["max"] = ds.find_min(args.field)
-                print(
-                    f"Minimum {args.field}: {vals['max'][0]:0.5e} at {vals['max'][1]}"
-                )
+        field = ds._get_field_info(args.field)
+        if args.max:
+            vals["min"] = ds.find_max(field)
+            print(
+                f"Maximum {field.name}: {vals['min'][0]:0.5e} at {vals['min'][1]}"
+            )
+        if args.min:
+            vals["max"] = ds.find_min(field)
+            print(
+                f"Minimum {field.name}: {vals['max'][0]:0.5e} at {vals['max'][1]}"
+            )
         if args.output is not None:
             t = ds.current_time * ds["years"]
             with open(args.output, "a") as f:
@@ -1495,12 +1495,12 @@ class YTStatsCmd(YTCommand):
                 if "min" in vals:
                     f.write(
                         "Minimum %s is %0.5e at %s\n"
-                        % (args.field, vals["min"][0], vals["min"][1])
+                        % (field.name, vals["min"][0], vals["min"][1])
                     )
                 if "max" in vals:
                     f.write(
                         "Maximum %s is %0.5e at %s\n"
-                        % (args.field, vals["max"][0], vals["max"][1])
+                        % (field.name, vals["max"][0], vals["max"][1])
                     )
 
 
