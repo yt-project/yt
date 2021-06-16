@@ -1681,7 +1681,7 @@ _global_local_args = [
         dict(
             short="--local",
             action="store_true",
-            help="Store the configuration in the global configuration file.",
+            help="Store the configuration in the local configuration file.",
         ),
         dict(
             short="--global",
