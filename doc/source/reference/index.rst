@@ -15,5 +15,6 @@ code.
    api/api
    configuration
    python_introduction
+   demeshening
    field_list
    changelog
