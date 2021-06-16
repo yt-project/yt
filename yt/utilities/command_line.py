@@ -27,10 +27,7 @@ from yt.funcs import (
     update_git,
 )
 from yt.loaders import load
-from yt.utilities.exceptions import (
-    YTFieldNotParseable,
-    YTUnidentifiedDataType,
-)
+from yt.utilities.exceptions import YTFieldNotParseable, YTUnidentifiedDataType
 from yt.utilities.metadata import get_metadata
 from yt.visualization.plot_window import ProjectionPlot, SlicePlot
 
