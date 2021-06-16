@@ -81,7 +81,7 @@ answer_tests:
   local_gizmo_007:  # PR 2909
     - yt/frontends/gizmo/tests/test_outputs.py:test_gizmo_64
 
-  local_halos_010:
+  local_halos_011:  # PR 3325
     - yt/frontends/ahf/tests/test_outputs.py:test_fields_ahf_halos
     - yt/frontends/owls_subfind/tests/test_outputs.py:test_fields_g1
     - yt/frontends/owls_subfind/tests/test_outputs.py:test_fields_g8
