@@ -1327,7 +1327,8 @@ In the following example we create a plot and add a simple annotation.
    plot.annotate_text(1e-30, 1e7, "Annotated Text")
    plot.save()
 
-To add annotations to a particular set of fields we need to pass in the list of fields as follows, where ``ftype1`` and ``ftype2`` are the field types (and may be the same):
+To add annotations to a particular set of fields we need to pass in the list of fields as follows,
+where ``"ftype1"`` and ``"ftype2"`` are the field types (and may be the same):
 
 .. code-block:: python
 
@@ -1732,7 +1733,7 @@ of ``particle_position_x`` versus ``particle_velocity_z``, with the ``particle_m
    import yt
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   p = yt.ParticlePlot(ds, ("all", "particle_position_x"), ("all", "particle_velocity_z"), [("all", "particle_mass")])
+   p = yt.ParticlePlot(ds, ("all", "particle_position_x"), ("all", "particle_velocity_z"), ("all", "particle_mass"))
    p.set_unit(("all", "particle_position_x"), "Mpc")
    p.set_unit(("all", "particle_velocity_z"), "km/s")
    p.set_unit(("all", "particle_mass"), "Msun")
