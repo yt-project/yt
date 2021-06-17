@@ -131,17 +131,6 @@ help
 
 Help lists all of the various command-line options in yt.
 
-
-bugreport
-+++++++++
-
-Encountering a bug in your own code can be a big hassle, but it can be
-exponentially worse to find it in someone else's.  That's why we tried to
-make it as easy as possible for users to report bugs they find in yt.
-After you go through the necessary channels to make sure you're not just
-making a mistake (see :ref:`asking-for-help`), you can submit bug
-reports using this nice utility.
-
 instinfo and version
 ++++++++++++++++++++
 
