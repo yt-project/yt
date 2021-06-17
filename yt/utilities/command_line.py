@@ -4,9 +4,7 @@ import getpass
 import json
 import os
 import pprint
-import subprocess
 import sys
-import tempfile
 import textwrap
 import urllib
 import urllib.request
@@ -23,7 +21,6 @@ from yt.funcs import (
     ensure_dir,
     ensure_dir_exists,
     get_git_version,
-    get_yt_version,
     mylog,
     update_git,
 )
@@ -673,125 +670,6 @@ def bb_apicall(endpoint, data, use_pass=True):
         upw = f"{username}:{password}"
         req.add_header("Authorization", f"Basic {base64.b64encode(upw).strip()}")
     return urllib.request.urlopen(req).read()
-
-
-class YTBugreportCmd(YTCommand):
-    name = "bugreport"
-    description = """
-        Report a bug in yt
-
-        """
-
-    def __call__(self, args):
-        print("===============================================================")
-        print()
-        print("Hi there!  Welcome to the yt bugreport taker.")
-        print()
-        print("===============================================================")
-        print("At any time in advance of the upload of the bug, you should feel free")
-        print("to ctrl-C out and submit the bug report manually by going here:")
-        print("   http://bitbucket.org/yt_analysis/yt/issues/new")
-        print()
-        print("Also, in order to submit a bug through this interface, you")
-        print("need a Bitbucket account. If you don't have one, exit this ")
-        print("bugreport now and run the 'yt bootstrap_dev' command to create one.")
-        print()
-        print("Have you checked the existing bug reports to make")
-        print("sure your bug has not already been recorded by someone else?")
-        print("   http://bitbucket.org/yt_analysis/yt/issues?status=new&status=open")
-        print()
-        print("Finally, are you sure that your bug is, in fact, a bug? It might")
-        print("simply be a misunderstanding that could be cleared up by")
-        print("visiting the yt irc channel or getting advice on the email list:")
-        print("   http://yt-project.org/irc.html")
-        print("   https://mail.python.org/archives/list/yt-users@python.org/")
-        print()
-        summary = input(
-            "Press <enter> if you remain firm in your conviction to continue."
-        )
-        print()
-        print()
-        print("Okay, sorry about that. How about a nice, pithy ( < 12 words )")
-        print("summary of the bug?  (e.g. 'Particle overlay problem with parallel ")
-        print("projections')")
-        print()
-        try:
-            current_version = get_yt_version()
-        except Exception:
-            current_version = "Unavailable"
-        summary = input("Summary? ")
-        bugtype = "bug"
-        data = dict(title=summary, type=bugtype)
-        print()
-        print("Okay, now let's get a bit more information.")
-        print()
-        print("Remember that if you want to submit a traceback, you can run")
-        print("any script with --paste or --detailed-paste to submit it to")
-        print("the pastebin and then include the link in this bugreport.")
-        if "EDITOR" in os.environ:
-            print()
-            print(f"Press enter to spawn your editor, {os.environ['EDITOR']}")
-            input()
-            tf = tempfile.NamedTemporaryFile(delete=False)
-            fn = tf.name
-            tf.close()
-            subprocess.call(f"$EDITOR {fn}", shell=True)
-            content = open(fn).read()
-            try:
-                os.unlink(fn)
-            except Exception:
-                pass
-        else:
-            print()
-            print("Couldn't find an $EDITOR variable.  So, let's just take")
-            print("take input here.  Type up your summary until you're ready")
-            print("to be done, and to signal you're done, type --- by itself")
-            print("on a line to signal your completion.")
-            print()
-            print("(okay, type now)")
-            print()
-            lines = []
-            while True:
-                line = input()
-                if line.strip() == "---":
-                    break
-                lines.append(line)
-            content = "\n".join(lines)
-        content = f"Reporting Version: {current_version}\n\n{content}"
-        endpoint = "repositories/yt_analysis/yt/issues"
-        data["content"] = content
-        print()
-        print("===============================================================")
-        print()
-        print("Okay, we're going to submit with this:")
-        print()
-        print(f"Summary: {data['title']}")
-        print()
-        print("---")
-        print(content)
-        print("---")
-        print()
-        print("===============================================================")
-        print()
-        print("Is that okay?  If not, hit ctrl-c.  Otherwise, enter means")
-        print("'submit'.  Next we'll ask for your Bitbucket Username.")
-        print("If you don't have one, run the 'yt bootstrap_dev' command.")
-        print()
-        input()
-        retval = bb_apicall(endpoint, data, use_pass=True)
-        import json
-
-        retval = json.loads(retval)
-        url = f"http://bitbucket.org/yt_analysis/yt/issue/{retval['local_id']}"
-        print()
-        print("===============================================================")
-        print()
-        print("Thanks for your bug report!  Together we'll make yt totally bug free!")
-        print("You can view bug report here:")
-        print(f"   {url}")
-        print()
-        print("Keep in touch!")
-        print()
 
 
 class YTHubRegisterCmd(YTCommand):
@@ -1480,14 +1358,10 @@ class YTStatsCmd(YTCommand):
         field = ds._get_field_info(args.field)
         if args.max:
             vals["min"] = ds.find_max(field)
-            print(
-                f"Maximum {field.name}: {vals['min'][0]:0.5e} at {vals['min'][1]}"
-            )
+            print(f"Maximum {field.name}: {vals['min'][0]:0.5e} at {vals['min'][1]}")
         if args.min:
             vals["max"] = ds.find_min(field)
-            print(
-                f"Minimum {field.name}: {vals['max'][0]:0.5e} at {vals['max'][1]}"
-            )
+            print(f"Minimum {field.name}: {vals['max'][0]:0.5e} at {vals['max'][1]}")
         if args.output is not None:
             t = ds.current_time * ds["years"]
             with open(args.output, "a") as f:
