@@ -143,7 +143,7 @@ class PannableMapServer:
                     continue
                 # Discard fields which need ghost zones for now
                 df = self.ds.field_info[f]
-                if any([isinstance(v, ValidateSpatial) for v in df.validators]):
+                if any(isinstance(v, ValidateSpatial) for v in df.validators):
                     continue
                 # Discard cutting plane fields
                 if "cutting" in f[1]:
