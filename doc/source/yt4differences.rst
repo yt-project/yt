@@ -363,6 +363,16 @@ You can also use alternate unit names in more complex algebraic unit expressions
 In this example the common british spelling ``"kilometre"`` is resolved to
 ``"km"`` and ``"hour"`` is resolved to ``"hr"``.
 
+Field-Specific Configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You can now set configuration values on a per-field basis.  For instance, this
+means that if you always want a particular colormap associated with a particular
+field, you can do so!
+
+This is documented under :ref:`per-field-config`, and was added in `PR
+1931<https://github.com/yt-project/yt/pull/1931>`_.
+
 New Method for Accessing Sample Datasets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
