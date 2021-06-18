@@ -116,7 +116,7 @@
   "Enzo_64.tar.gz": {
     "hash": "2b17fffb6a2e8e471ef85dbdbfa5568f09f7bdb77715c69b40dfe48be8f71bc9",
     "load_kwargs": {},
-    "load_name": null,
+    "load_name": "DD0043/data0043",
     "url": "https://yt-project.org/data/Enzo_64.tar.gz"
   },
   "ExodusII_tests.tar.gz": {
@@ -427,7 +427,7 @@
   "SimbaExample.tar.gz": {
     "hash": "6770e4d5ead92cfc966bca5b8735903389809885f0f1b50523448f68bc53a5ec",
     "load_kwargs": {},
-    "load_name": null,
+    "load_name": "simba_example.hdf5",
     "url": "https://yt-project.org/data/SimbaExample.tar.gz"
   },
   "StarParticles.tar.gz": {
@@ -595,13 +595,13 @@
   "castro_sedov_2d_cyl_in_cart_plt00150.tar.gz": {
     "hash": "8b73a37a0503dba593af65f8bf16dfcc11ac825d671f11e5a364a2dee63c9047",
     "load_kwargs": {},
-    "load_name": "castro_sedov_2d_cyl_in_cart_plt00150",
+    "load_name": null,
     "url": "https://yt-project.org/data/castro_sedov_2d_cyl_in_cart_plt00150.tar.gz"
   },
   "castro_sod_x_plt00036.tar.gz": {
     "hash": "3f0a586b41e7b54fa2b3cddd50f9384feb2efe1fe1a815e7348965ae7bf88f78",
     "load_kwargs": {},
-    "load_name": "castro_sod_x_plt00036",
+    "load_name": null,
     "url": "https://yt-project.org/data/castro_sod_x_plt00036.tar.gz"
   },
   "check_pooch.py": {
@@ -643,7 +643,7 @@
   "fiducial_1to1_b0.tar.gz": {
     "hash": "1af47a8230addb96055a5c73d1fab9b413f566df191d03c60f0f202df845e7ff",
     "load_kwargs": {},
-    "load_name": null,
+    "load_name": "fiducial_1to1_b0_hdf5_part_0004",
     "url": "https://yt-project.org/data/fiducial_1to1_b0.tar.gz"
   },
   "fiducial_1to3_b1.tar.gz": {
@@ -679,7 +679,7 @@
   "gizmo_cosmology_plus.tar.gz": {
     "hash": "73062872b13c6a8c86ac134b18e177c3526250000cef5559ceb0b2383cbaba6b",
     "load_kwargs": {},
-    "load_name": null,
+    "load_name": "snap_N128L16_131.hdf5",
     "url": "https://yt-project.org/data/gizmo_cosmology_plus.tar.gz"
   },
   "gizmo_mhd_mwdisk.tar.gz": {
@@ -721,7 +721,7 @@
   "maestro_xrb_lores_23437.tar.gz": {
     "hash": "a17b63609a2c50a829e26420f093ee898237b1ef8256ef38ee8be56a6f824460",
     "load_kwargs": {},
-    "load_name": "",
+    "load_name": null,
     "url": "https://yt-project.org/data/maestro_xrb_lores_23437.tar.gz"
   },
   "medium_tipsy.tar.gz": {
@@ -734,7 +734,7 @@
     "hash": "308f6b2a81363c5aada35941c199f149d8688f8ce65803f33d6dedce43a57a1c",
     "load_kwargs": {},
     "load_name": null,
-    "url": "https://yt-project.org/data/nyx_sedov_plt00086.tgz.tar.gz"
+    "url": "https://yt-project.org/data/nyx_sedov_plt00086.tgz"
   },
   "nyx_small.tar.gz": {
     "hash": "1eefb443c2de6d9c6f4546bb87e1bde89ae98adb97c860a6065ac3177ecf1127",
@@ -829,7 +829,7 @@
   "sedov_1d_sph_plt00120.tar.gz": {
     "hash": "25e8316a64a747043c2c95bfaaf6092a5aa2748a8e31295fa86a0bb793e7c1af",
     "load_kwargs": {},
-    "load_name": "sedov_1d_sph_plt00120",
+    "load_name": null,
     "url": "https://yt-project.org/data/sedov_1d_sph_plt00120.tar.gz"
   },
   "sedov_tst_0004.tar.gz": {
