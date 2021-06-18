@@ -401,7 +401,7 @@ information.
 New External Packages
 ^^^^^^^^^^^^^^^^^^^^^
 
-As noted above (:ref:`yt-units-is-now-unyt`), ``unyt`` has been extracted from
-yt, and we now use it as an external package.  In addition, other parts of yt
+As noted above (:ref:`yt-units-is-now-unyt`), unyt has been extracted from
+yt, and we now use it as an external library.  In addition, other parts of yt
 such as :ref:`interactive_data_visualization` have been extracted, and we are
-working toward a more modular approach for things such as Jupyter widgets and other "value-added" integrations.gq
+working toward a more modular approach for things such as Jupyter widgets and other "value-added" integrations.
