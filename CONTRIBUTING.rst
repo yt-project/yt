@@ -118,17 +118,11 @@ Feel free to `blog <https://blog.yt-project.org/>`_ about, `tweet
 Long-Term Projects
 ------------------
 
-There are some wild-eyed, out-there ideas that have been bandied about for the
-future directions of yt -- some of them even written into the mission
-statement.  The ultimate goal is to move past simple analysis and visualization
-of data and begin to approach it from the other side, of generating data,
-running solvers.  We also hope to increase its ability to act as an in situ
-analysis code, by presenting a unified protocol.  Other projects include
-interfacing with ParaView and VisIt, creating a web GUI for running
-simulations, creating a run-tracker that follows simulations in progress, a
-federated database for simulation outputs, and so on and so forth.
+There are some out-there ideas that have been bandied about for the
+future directions of yt -- stuff like fun new types of visualization, remapping
+of coordinates, new ways of accessing data, and even new APIs to make life easier.
 
-yt is an ambitious project.  Let's be ambitious together.
+yt is an ambitious project.  Let's be ambitious together!
 
 yt Community Code of Conduct
 ----------------------------
@@ -401,10 +395,9 @@ the following subdirectories:
    classes for data regions, covering grids, time series, and so on.  This
    also includes derived fields and derived quantities.
 
-``gui``
-   This is where all GUI components go.  Typically this will be some small
-   tool used for one or two things, which contains a launching mechanism on
-   the command line.
+``units``
+   This used to be where all the unit-handling code resided, but as of now it's
+   mostly just a thin wrapper around unyt.
 
 ``utilities``
    All broadly useful code that doesn't clearly fit in one of the other
