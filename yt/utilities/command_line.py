@@ -8,13 +8,12 @@ import sys
 import textwrap
 import urllib
 import urllib.request
-from urllib.parse import urlparse
 
 import numpy as np
 from more_itertools import always_iterable
 from tqdm import tqdm
 
-from yt.config import YTConfig, ytcfg
+from yt.config import ytcfg
 from yt.funcs import (
     download_file,
     enable_plugins,
@@ -25,12 +24,7 @@ from yt.funcs import (
     update_git,
 )
 from yt.loaders import load
-from yt.utilities.configure import set_config
-from yt.utilities.exceptions import (
-    YTCommandRequiresModule,
-    YTFieldNotParseable,
-    YTUnidentifiedDataType,
-)
+from yt.utilities.exceptions import YTFieldNotParseable, YTUnidentifiedDataType
 from yt.utilities.metadata import get_metadata
 from yt.visualization.plot_window import ProjectionPlot, SlicePlot
 
@@ -137,24 +131,6 @@ def _print_installation_information(path):
     return vstring
 
 
-def _get_girder_client():
-    try:
-        import girder_client
-    except ImportError as e:
-        raise YTCommandRequiresModule("girder_client") from e
-    if not ytcfg.get("yt", "hub_api_key"):
-        print("Before you can access the yt Hub you need an API key")
-        print("In order to obtain one, either register by typing:")
-        print("  yt hub register")
-        print("or follow the instruction on:")
-        print("  http://yt-project.org/docs/dev/sharing_data.html#obtaining-an-api-key")
-        sys.exit()
-    hub_url = urlparse(ytcfg.get("yt", "hub_url"))
-    gc = girder_client.GirderClient(apiUrl=hub_url.geturl())
-    gc.authenticate(apiKey=ytcfg.get("yt", "hub_api_key"))
-    return gc
-
-
 class FileStreamer:
     final_size = None
     next_sent = 0
@@ -179,7 +155,6 @@ class FileStreamer:
 _subparsers = {None: subparsers}
 _subparsers_description = {
     "config": "Get and set configuration values for yt",
-    "hub": "Interact with the yt Hub",
 }
 
 
@@ -672,105 +647,6 @@ def bb_apicall(endpoint, data, use_pass=True):
     return urllib.request.urlopen(req).read()
 
 
-class YTHubRegisterCmd(YTCommand):
-    subparser = "hub"
-    name = "register"
-    description = """
-        Register a user on the yt Hub: http://hub.yt/
-        """
-
-    def __call__(self, args):
-        from yt.utilities.on_demand_imports import _requests as requests
-
-        hub_api_key, config_file = ytcfg.get(
-            "yt",
-            "hub_api_key",
-            callback=lambda leaf: (leaf.value, leaf.extra_data.get("source", None)),
-        )
-        if hub_api_key:
-            print(
-                "You seem to already have an API key for the hub in "
-                f"{config_file} . Delete this if you want to force a "
-                "new user registration."
-            )
-            sys.exit()
-        print("Awesome!  Let's start by registering a new user for you.")
-        print("Here's the URL, for reference: http://hub.yt/ ")
-        print()
-        print("As always, bail out with Ctrl-C at any time.")
-        print()
-        print("What username would you like to go by?")
-        print()
-        username = input("Username? ")
-        if len(username) == 0:
-            sys.exit(1)
-        print()
-        print("To start out, what's your name?")
-        print()
-        first_name = input("First Name? ")
-        if len(first_name) == 0:
-            sys.exit(1)
-        print()
-        last_name = input("Last Name? ")
-        if len(last_name) == 0:
-            sys.exit(1)
-        print()
-        print("And your email address?")
-        print()
-        email = input("Email? ")
-        if len(email) == 0:
-            sys.exit(1)
-        print()
-        print("Please choose a password:")
-        print()
-        while True:
-            password1 = getpass.getpass("Password? ")
-            password2 = getpass.getpass("Confirm? ")
-            if len(password1) == 0:
-                continue
-            if password1 == password2:
-                break
-            print("Sorry, they didn't match!  Let's try again.")
-            print()
-        print()
-        print("Okay, press enter to register.  You should receive a welcome")
-        print(f"message at {email} when this is complete.")
-        print()
-        input()
-
-        data = dict(
-            firstName=first_name,
-            email=email,
-            login=username,
-            password=password1,
-            lastName=last_name,
-            admin=False,
-        )
-        hub_url = ytcfg.get("yt", "hub_url")
-        req = requests.post(hub_url + "/user", data=data)
-
-        if req.ok:
-            headers = {"Girder-Token": req.json()["authToken"]["token"]}
-        else:
-            if req.status_code == 400:
-                print("Registration failed with 'Bad request':")
-                print(req.json()["message"])
-            exit(1)
-        print("User registration successful")
-        print("Obtaining API key...")
-        req = requests.post(
-            hub_url + "/api_key",
-            headers=headers,
-            data={"name": "ytcmd", "active": True},
-        )
-        apiKey = req.json()["key"]
-
-        print("Storing API key in configuration file")
-        set_config("yt", "hub_api_key", apiKey, YTConfig.get_global_config_file())
-
-        print()
-        print("SUCCESS!")
-        print()
 
 
 class YTInstInfoCmd(YTCommand):
@@ -1038,69 +914,6 @@ class YTPastebinGrabCmd(YTCommand):
         from yt.utilities import lodgeit as lo
 
         lo.main(None, download=args.number)
-
-
-class YTHubStartNotebook(YTCommand):
-    args = (
-        dict(
-            dest="folderId",
-            default=ytcfg.get("yt", "hub_sandbox"),
-            nargs="?",
-            help="(Optional) Hub folder to mount inside the Notebook",
-        ),
-    )
-    description = """
-        Start the Jupyter Notebook on the yt Hub.
-        """
-    subparser = "hub"
-    name = "start"
-
-    def __call__(self, args):
-        gc = _get_girder_client()
-
-        # TODO: should happen server-side
-        _id = gc._checkResourcePath(args.folderId)
-
-        resp = gc.post(f"/notebook/{_id}")
-        try:
-            print("Launched! Please visit this URL:")
-            print("    https://tmpnb.hub.yt" + resp["url"])
-            print()
-        except (KeyError, TypeError):
-            print("Something went wrong. The yt Hub responded with : ")
-            print(resp)
-
-
-class YTNotebookUploadCmd(YTCommand):
-    args = (dict(short="file", type=str),)
-    description = """
-        Upload an IPython Notebook to the yt Hub.
-        """
-
-    name = "upload_notebook"
-
-    def __call__(self, args):
-        gc = _get_girder_client()
-        username = gc.get("/user/me")["login"]
-        gc.upload(args.file, f"/user/{username}/Public")
-
-        _id = gc.resourceLookup(f"/user/{username}/Public/{args.file}")["_id"]
-        _fid = next(gc.listFile(_id))["_id"]
-        hub_url = urlparse(ytcfg.get("yt", "hub_url"))
-        print("Upload successful!")
-        print()
-        print("To access your raw notebook go here:")
-        print()
-        print(f"  {hub_url.scheme}://{hub_url.netloc}/#item/{_id}")
-        print()
-        print("To view your notebook go here:")
-        print()
-        print(
-            "  http://nbviewer.jupyter.org/urls/{}/file/{}/download".format(
-                hub_url.netloc + hub_url.path, _fid
-            )
-        )
-        print()
 
 
 class YTPlotCmd(YTCommand):
