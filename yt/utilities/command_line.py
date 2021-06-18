@@ -647,8 +647,6 @@ def bb_apicall(endpoint, data, use_pass=True):
     return urllib.request.urlopen(req).read()
 
 
-
-
 class YTInstInfoCmd(YTCommand):
     name = ["instinfo", "version"]
     args = (
