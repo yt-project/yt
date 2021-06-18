@@ -92,7 +92,7 @@ def get_data_registry_table():
 
     # it would be nicer to have an actual api on the yt website server,
     # but this will do for now
-    api_url = "https://raw.githubusercontent.com/yt-project/website/master/data/datafiles.json"
+    api_url = "https://girder.hub.yt/api/v1/ythub/5e178e0868085e00016c2f73/examples"
 
     response = requests.get(api_url)
 

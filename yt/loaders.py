@@ -1376,7 +1376,7 @@ def load_sample(
         raise ValueError(
             "The requested dataset seems to be improperly registered.\n"
             "Tip: the entry in yt/sample_data_registry.json may be inconsistent with "
-            "https://github.com/yt-project/website/blob/master/data/datafiles.json\n"
+            "https://girder.hub.yt/api/v1/ythub/5e178e0868085e00016c2f73/examples\n"
             "Please report this to https://github.com/yt-project/yt/issues/new"
         )
 
