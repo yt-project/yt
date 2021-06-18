@@ -205,17 +205,6 @@ By specifying the axis, center, width, etc. (run ``yt help plot`` for
 details), you can create slices and projections easily at the
 command-line.
 
-upload_notebook
-+++++++++++++++
-
-This command will accept the filename of a ``.ipynb`` file (generated from an
-IPython notebook session) and upload it to the `yt hub
-<https://girder.hub.yt/>`__ where others will be able to view it, and
-download it.  This is an easy method for recording a sequence of commands,
-their output, narrative information, and then sharing that with others.  These
-notebooks will be viewable online, and the appropriate URLs will be returned on
-the command line.
-
 rpdb
 ++++
 
@@ -264,38 +253,6 @@ delete_image
 The image uploaded using ``upload_image`` is assigned with a unique hash that
 can be used to remove it. This subcommand provides an easy way to send a delete
 request directly to the `imgur.com <https://imgur.com/>`_.
-
-Hub helper
-~~~~~~~~~~
-
-The :code:`yt hub` command-line tool allows to interact with the `yt hub
-<https://girder.hub.yt>`__. The following subcommands are currently available:
-
-.. config_help:: yt hub
-
-register
-++++++++
-
-This subcommand starts an interactive process of creating an account on the `yt
-hub <https://girder.hub.yt/>`__. Please note that the yt Hub also supports multiple OAuth
-providers such as Google, Bitbucket and GitHub for authentication.
-See :ref:`hub-APIkey` for more information.
-
-start
-+++++
-
-This subcommand launches the Jupyter Notebook on the `yt Hub <https://girder.hub.yt>`__
-with a chosen Hub folder mounted to the ``/data`` directory inside the notebook.
-If no path is given all the `example yt datasets
-<https://yt-project.org/data>`_ are mounted by default. The appropriate URL
-allowing to access the Notebook will be returned on the commandline.
-
-Example:
-
-.. code-block:: bash
-
-   $ yt hub start
-   $ yt hub start /user/xarthisius/Public
 
 download
 ~~~~~~~~
