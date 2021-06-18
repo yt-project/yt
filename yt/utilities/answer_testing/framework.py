@@ -25,7 +25,7 @@ from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.data_objects.static_output import Dataset
 from yt.data_objects.time_series import SimulationTimeSeries
-from yt.funcs import get_pbar
+from yt.funcs import get_pbar, get_yt_version
 from yt.loaders import load, load_simulation
 from yt.testing import (
     assert_allclose_units,
@@ -33,7 +33,6 @@ from yt.testing import (
     assert_equal,
     assert_rel_equal,
 )
-from yt.utilities.command_line import get_yt_version
 from yt.utilities.exceptions import YTCloudError, YTNoAnswerNameSpecified, YTNoOldAnswer
 from yt.utilities.logger import disable_stream_logging
 from yt.visualization import (
