@@ -1357,11 +1357,11 @@ class YTStatsCmd(YTCommand):
         vals = {}
         field = ds._get_field_info(args.field)
         if args.max:
-            vals["min"] = ds.find_max(field)
-            print(f"Maximum {field.name}: {vals['min'][0]:0.5e} at {vals['min'][1]}")
+            vals["max"] = ds.find_max(field)
+            print(f"Maximum {field.name}: {vals['max'][0]:0.5e} at {vals['max'][1]}")
         if args.min:
-            vals["max"] = ds.find_min(field)
-            print(f"Minimum {field.name}: {vals['max'][0]:0.5e} at {vals['max'][1]}")
+            vals["min"] = ds.find_min(field)
+            print(f"Minimum {field.name}: {vals['min'][0]:0.5e} at {vals['min'][1]}")
         if args.output is not None:
             t = ds.current_time * ds["years"]
             with open(args.output, "a") as f:
