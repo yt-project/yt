@@ -90,22 +90,21 @@ def get_data_registry_table():
     The output of this function is cached so it will only generate one request per session.
     """
 
-    # it would be nicer to have an actual api on the yt website server,
-    # but this will do for now
-    api_url = "https://girder.hub.yt/api/v1/ythub/5e178e0868085e00016c2f73/examples"
-
-    response = requests.get(api_url)
-
-    if not response.ok:
-        raise RuntimeError(
-            "Could not retrieve registry data. Please check your network setup."
-        )
-
-    website_json = response.json()
-    # this dict follows this schema: {frontend_name: {flat dataframe-like}}
+    urls = (
+        "https://girder.hub.yt/api/v1/ythub/5e178e0868085e00016c2f73/examples",
+        "https://girder.hub.yt/api/v1/ythub/5e178e0868085e00016c2f73/registry",
+    )
+    raw_tables = []
+    for url in urls:
+        response = requests.get(url)
+        if not response.ok:
+            raise RuntimeError(
+                "Could not retrieve registry data. Please check your network setup."
+            )
+        raw_tables.append(response.json())
 
     columns = ["code", "filename", "size", "url", "description"]
-    website_table = pd.concat(pd.DataFrame(d) for d in website_json.values())[columns]
+    website_table = pd.concat(pd.DataFrame(d) for d in raw_tables[0].values())[columns]
 
     # add a int-type byte size column
     # note that we cast to pandas specific type "Int64" because we expect missing values
@@ -114,10 +113,7 @@ def get_data_registry_table():
         website_table["size"].apply(_parse_byte_size).astype("Int64")
     )
 
-    # load local data
-    with pkg_resources.resource_stream("yt", "sample_data_registry.json") as fh:
-        pooch_json = json.load(fh)
-    pooch_table = pd.DataFrame(pooch_json.values())
+    pooch_table = pd.DataFrame(raw_tables[1].values())
 
     # merge tables
     unified_table = website_table.merge(pooch_table, on="url", how="outer")
