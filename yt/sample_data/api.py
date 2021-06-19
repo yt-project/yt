@@ -9,8 +9,6 @@ from pathlib import Path
 from typing import Optional, Union
 from warnings import warn
 
-import pkg_resources
-
 from yt.funcs import mylog
 from yt.utilities.on_demand_imports import (
     _pandas as pd,
@@ -20,6 +18,10 @@ from yt.utilities.on_demand_imports import (
 
 num_exp = re.compile(r"\d*(\.\d*)?")
 byte_unit_exp = re.compile(r"[KMGT]?B")
+
+POOCH_REGISTRY_URL = (
+    "https://girder.hub.yt/api/v1/ythub/5e178e0868085e00016c2f73/registry"
+)
 
 
 def _parse_byte_size(s: str):
@@ -84,15 +86,17 @@ def get_data_registry_table():
     """
     Load the sample data registry as a pandas.Dataframe instance.
 
-    This function is considered experimental and is exposed for exploratory purposed.
-    The output format is subject to change.
+    This function is considered experimental and is exposed for exploratory
+    purposed. The output format is subject to change, and every aspect of
+    it should be considered an implementation detail.
 
-    The output of this function is cached so it will only generate one request per session.
+    The output of this function is cached so it will only generate requests once
+    per session.
     """
 
     urls = (
         "https://girder.hub.yt/api/v1/ythub/5e178e0868085e00016c2f73/examples",
-        "https://girder.hub.yt/api/v1/ythub/5e178e0868085e00016c2f73/registry",
+        POOCH_REGISTRY_URL,
     )
     raw_tables = []
     for url in urls:
@@ -178,8 +182,12 @@ def _get_pooch_instance():
     data_registry = get_data_registry_table()
     cache_storage = _get_test_data_dir_path() / "yt_download_cache"
 
-    with pkg_resources.resource_stream("yt", "sample_data_registry.json") as fh:
-        sample_data_registry = json.load(fh)
+    response = requests.get(POOCH_REGISTRY_URL)
+    if not response.ok:
+        raise RuntimeError(
+            "Could not retrieve registry data. Please check your network setup."
+        )
+    sample_data_registry = response.json()
     registry = {k: v["hash"] for k, v in sample_data_registry.items()}
     return pooch.create(
         path=cache_storage, base_url="https://yt-project.org/data/", registry=registry
