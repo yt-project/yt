@@ -114,11 +114,6 @@ def get_data_registry_table():
         website_table["size"].apply(_parse_byte_size).astype("Int64")
     )
 
-    # normalize urls to match the local json
-    website_table["url"] = website_table["url"].apply(
-        lambda u: u.replace("http:", "https:")
-    )
-
     # load local data
     with pkg_resources.resource_stream("yt", "sample_data_registry.json") as fh:
         pooch_json = json.load(fh)

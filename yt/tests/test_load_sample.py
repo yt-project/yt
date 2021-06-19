@@ -2,7 +2,6 @@ import logging
 import os
 import re
 import sys
-import textwrap
 
 import numpy as np
 import pytest
@@ -37,6 +36,11 @@ def capturable_logger(caplog):
         yield
 
     ytLogger.propagate = propagate
+
+
+DOWNLOAD_EXP = re.compile(
+    r"Downloading from https://girder\.hub\.yt/api/v\d+/file/\w{24}/download"
+)
 
 
 @requires_module_pytest("pandas", "pooch")
@@ -80,15 +84,14 @@ def test_load_sample_small_dataset(
     ds = load_sample(fn, progressbar=False, timeout=30)
     assert type(ds).__name__ == class_
 
-    text = textwrap.dedent(
-        f"""
-            '{fn.replace('/', os.path.sep)}' is not available locally. Looking up online.
-            Downloading from https://yt-project.org/data/{archive}
-            Untaring downloaded file to '{str(tmp_data_dir)}'
-        """
-    ).strip("\n")
-    expected = [("yt", 20, message) for message in text.split("\n")]
-    assert caplog.record_tuples[:3] == expected
+    text = [
+        f"'{fn.replace('/', os.path.sep)}' is not available locally. Looking up online.",
+        "Downloading from ...",  # not meant to be matched exactly
+        f"Untaring downloaded file to '{str(tmp_data_dir)}'",
+    ]
+    expected = [("yt", 20, message) for message in text]
+    assert caplog.record_tuples[:3:2] == expected[::2]
+    assert re.match(DOWNLOAD_EXP, caplog.record_tuples[1][-1])
 
     caplog.clear()
     # loading a second time should not result in a download request
