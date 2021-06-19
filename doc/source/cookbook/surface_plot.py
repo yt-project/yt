@@ -20,7 +20,7 @@ colors = yt.apply_colormap(np.log10(surface[("gas", "temperature")]), cmap_name=
 
 # Create a 3D matplotlib figure for visualizing the surface
 fig = plt.figure()
-ax = fig.gca(projection="3d")
+ax = fig.add_subplot(projection="3d")
 p3dc = Poly3DCollection(surface.triangles, linewidth=0.0)
 
 # Set the surface colors in the right scaling [0,1]
