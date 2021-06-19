@@ -268,7 +268,7 @@ class GadgetDataset(SPHDataset):
                 "Otherwise something is wrong, "
                 "and you might want to check how the dataset is loaded. "
                 "Futher information about header specification can be found in "
-                "https://yt-project.org/docs/dev/examining/loading_data.html#header-specification.",  # NOQA E501
+                "https://yt-project.org/docs/dev/examining/loading_data.html#header-specification.",
                 header_size,
             )
         self._field_spec = self._setup_binary_spec(field_spec, gadget_field_specs)

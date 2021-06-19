@@ -160,6 +160,9 @@ about the dataset's code unit system and can convert data into it. Unit objects
 from ``unyt`` or ``yt.units`` will not know about any particular dataset's unit
 system.
 
+
+.. _cosmological-units:
+
 Comoving units for Cosmological Simulations
 -------------------------------------------
 

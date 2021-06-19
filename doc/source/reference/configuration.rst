@@ -14,7 +14,9 @@ The Configuration
 
 The configuration is stored in simple text files (in the `toml <https://github.com/toml-lang/toml>`_ format).
 The files allow to set internal yt variables to custom default values to be used in future sessions.
-The configuration can either be stored :ref:`globally<Global Configuration>` or :ref:`locally<Local Configuration>`.
+The configuration can either be stored :ref:`globally <global-conf>` or :ref:`locally <local-conf>`.
+
+.. _global-conf:
 
 Global Configuration
 ^^^^^^^^^^^^^^^^^^^^
@@ -44,6 +46,8 @@ options from the configuration file, e.g.:
    $ yt config set yt log_level 1
    $ yt config rm yt maximum_stored_datasets
 
+
+.. _local-conf:
 
 Local Configuration
 ^^^^^^^^^^^^^^^^^^^
@@ -98,10 +102,10 @@ file. Note that a log level of 1 means that all log messages are printed to
 stdout.  To disable logging, set the log level to 50.
 
 
-.. _global-config:
+.. _config-options:
 
-Available Global Configuration Options
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Available Configuration Options
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The following external parameters are available.  A number of parameters are
 used internally.
@@ -152,7 +156,7 @@ It is possible to customize the default behaviour of plots using per-field confi
 The default options for plotting a given field can be specified in the configuration file
 in ``[plot.field_type.field_name]`` blocks. The available keys are
 
-* ``cmap`` (default: ``yt.default_colormap``, see :ref:`global-config`): the colormap to
+* ``cmap`` (default: ``yt.default_colormap``, see :ref:`config-options`): the colormap to
   use for the field.
 * ``log`` (default: ``True``): use a log scale (or symlog if ``linthresh`` is also set).
 * ``linthresh`` (default: ``None``): if set to a float different than ``None`` and ``log`` is

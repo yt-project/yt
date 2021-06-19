@@ -72,7 +72,7 @@ The list below is arranged in order of most to least important changes.
   field was actually a field for kinetic energy density, and so it has been
   renamed to ``"gas", "kinetic_energy_density"``. The old name still exists
   as an alias as of yt v4.0.0, but it will be removed in yt v4.1.0. See
-  :ref:`deprecated_field_names` below for more information.
+  next item below for more information.
   Other examples include ``"gas", "specific_thermal_energy"`` for thermal
   energy per unit mass, and ``("gas", "momentum_density_x")`` for the x-axis
   component of momentum density. See :ref:`efields` for more information.

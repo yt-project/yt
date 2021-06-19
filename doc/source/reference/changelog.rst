@@ -39,33 +39,35 @@ Major Changes and New Features
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
-- New frontend support for the code AMRVAC. Many thanks to Clement Robert
-  and Niels Claes who were major contributors to this initiative. Relevant PRs include:
-    - Initial PR to support AMRVAC native data files
-      `PR 2321 <https://github.com/yt-project/yt/pull/2321>`__.
-    - added support for dust fields and derived fields
-      `PR 2387 <https://github.com/yt-project/yt/pull/2387>`__.
-    - added support for derived fields for hydro runs
-      `PR 2381 <https://github.com/yt-project/yt/pull/2381>`__.
-    - API documentation and docstrings for AMRVAC frontend
-      `PR 2384 <https://github.com/yt-project/yt/pull/2384>`__,
-      `PR 2380 <https://github.com/yt-project/yt/pull/2380>`__,
-      `PR 2382 <https://github.com/yt-project/yt/pull/2382>`__.
-    - testing-related PRs for AMRVAC:
-      `PR 2379 <https://github.com/yt-project/yt/pull/2379>`__,
-      `PR 2360 <https://github.com/yt-project/yt/pull/2360>`__.
-    - add verbosity to logging of geometry or `geometry_override`
-      `PR 2421 <https://github.com/yt-project/yt/pull/2421>`__.
-    - add attribute to `_code_unit_attributes` specific to AMRVAC to ensure
-      consistent renormalisation of AMRVAC datasets. See
-      `PR 2357 <https://github.com/yt-project/yt/pull/2357>`__.
-    - parse AMRVAC's parfiles if user-provided
-      `PR 2369 <https://github.com/yt-project/yt/pull/2369>`__.
-    - ensure that min_level reflects dataset that has refinement
-      `PR 2475 <https://github.com/yt-project/yt/pull/2475>`__.
-    - fix derived unit parsing  `PR 2362 <https://github.com/yt-project/yt/pull/2362>`__.
-    - update energy field to be `energy_density` and have units of code
-      pressure  `PR 2376 <https://github.com/yt-project/yt/pull/2376>`__.
+- New frontend support for the code AMRVAC. Many thanks to Clément Robert
+  and Niels Claes who were major contributors to this initiative. Relevant PRs include
+
+  - Initial PR to support AMRVAC native data files
+    `PR 2321 <https://github.com/yt-project/yt/pull/2321>`__.
+  - added support for dust fields and derived fields
+    `PR 2387 <https://github.com/yt-project/yt/pull/2387>`__.
+  - added support for derived fields for hydro runs
+    `PR 2381 <https://github.com/yt-project/yt/pull/2381>`__.
+  - API documentation and docstrings for AMRVAC frontend
+    `PR 2384 <https://github.com/yt-project/yt/pull/2384>`__,
+    `PR 2380 <https://github.com/yt-project/yt/pull/2380>`__,
+    `PR 2382 <https://github.com/yt-project/yt/pull/2382>`__.
+  - testing-related PRs for AMRVAC:
+    `PR 2379 <https://github.com/yt-project/yt/pull/2379>`__,
+    `PR 2360 <https://github.com/yt-project/yt/pull/2360>`__.
+  - add verbosity to logging of geometry or ``geometry_override``
+    `PR 2421 <https://github.com/yt-project/yt/pull/2421>`__.
+  - add attribute to ``_code_unit_attributes`` specific to AMRVAC to ensure
+    consistent renormalisation of AMRVAC datasets. See
+    `PR 2357 <https://github.com/yt-project/yt/pull/2357>`__.
+  - parse AMRVAC's parfiles if user-provided
+    `PR 2369 <https://github.com/yt-project/yt/pull/2369>`__.
+  - ensure that min_level reflects dataset that has refinement
+    `PR 2475 <https://github.com/yt-project/yt/pull/2475>`__.
+  - fix derived unit parsing  `PR 2362 <https://github.com/yt-project/yt/pull/2362>`__.
+  - update energy field to be ``energy_density`` and have units of code
+    pressure  `PR 2376 <https://github.com/yt-project/yt/pull/2376>`__.
+
 - Support for the AdaptaHOP halo finder code
   `PR 2385 <https://github.com/yt-project/yt/pull/2385>`__.
 - yt now supports geographic transforms and projections of data with
@@ -1147,7 +1149,7 @@ Major enhancements
   :ref:`GAMER <loading-gamer-data>`, and :ref:`Gizmo <loading-gizmo-data>` data
   formats.
 * The unit system associated with a dataset is now customizable, defaulting to
-  CGS. See :ref:`unit_systems`.
+  CGS.
 * Enhancements and usability improvements for analysis modules, especially the
   ``absorption_spectrum``, ``photon_simulator``, and ``light_ray`` modules. See
   :ref:`synthetic-observations`.

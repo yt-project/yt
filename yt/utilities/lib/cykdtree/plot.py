@@ -125,16 +125,22 @@ def _plot2D_root(
 def plot2D_serial(tree, pts=None, label_boxes=False, **kwargs):
     r"""Plot a 2D kd-tree constructed in serial.
 
-    Args:
-        tree (:class:`cykdtree.kdtree.PyKDTree`): kd-tree class.
-        pts (np.ndarray, optional): Points contained by the kdtree. Defaults to
-            None if not provided and points are not plotted.
-        label_boxes (bool, optional): If True, leaves in the tree are labeled
-            with their index. Defaults to False.
-        Additional keywords are passed to :func:`cykdtree.plot._plot2D_root`.
+    Parameters
+    ----------
 
-    Returns:
-        :obj:`matplotlib.pyplot.Axes`: Axes containing the plot.
+    tree: :class:`cykdtree.kdtree.PyKDTree`
+        kd-tree class.
+    pts: np.ndarray, optional
+        Points contained by the kdtree.
+    label_boxes: bool
+        If True, leaves in the tree are labeled with their index. Defaults to False.
+
+    Additional keywords are passed to :func:`cykdtree.plot._plot2D_root`.
+
+    Returns
+    -------
+
+    :obj:`matplotlib.pyplot.Axes`: Axes containing the plot.
 
     """
     # Box edges

@@ -546,7 +546,7 @@ Below are some important caveats to note when visualizing particle data.
    However, axis-aligned slice plots (as described in :ref:`slice-plots`)
    will work.
 
-2. Off axis projections (as in :ref:`off-axis-projection`) will only work
+2. Off axis projections (as in :ref:`off-axis-projections`) will only work
    for SPH particles, i.e., particles that have a defined smoothing length.
 
 Two workaround methods are available for plotting non-SPH particles with off-axis
@@ -554,7 +554,7 @@ projections.
 
 1. :ref:`smooth-non-sph` - this method involves extracting particle data to be
    reloaded with :class:`~yt.loaders.load_particles` and using the
-   :class:`~yt.frontends.stream.data_structures.StreamParticlesDataset.add_SPH_fields`
+   :class:`~yt.frontends.stream.data_structures.StreamParticlesDataset.add_sph_fields`
    function to create smoothing lengths. This works well for relatively small datasets,
    but is not parallelized and may take too long for larger data.
 
@@ -1497,7 +1497,7 @@ something like:
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    my_sphere = ds.sphere("c", (50, "kpc"))
-   plot = yt.PhasePlot(my_sphere, ("gas", "density"), ("gas", "temperature"), [("gas", "H_fraction")])
+   plot = yt.PhasePlot(my_sphere, ("gas", "density"), ("gas", "temperature"), [("gas", "H_p0_fraction")])
    plot.save()
 
 Customizing Phase Plots
