@@ -267,4 +267,4 @@ if not on_rtd:
 
 # as of Sphinx 3.1.2 this is the supported way to link custom style sheets
 def setup(app):
-    app.add_stylesheet("custom.css")
+    app.add_css_file("custom.css")
