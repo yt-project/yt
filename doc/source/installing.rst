@@ -20,7 +20,7 @@ Python environments, including but not restricted to
 - `Anaconda/conda <https://docs.conda.io/en/latest/index.html>`_
 - `virtualenv <https://virtualenv.pypa.io/en/latest/>`_
 
-We strongly recommend you choose and learn one. However, it is way beyond the
+We strongly recommend you choose and learn one. However, it is beyond the
 scope of this page to cover every situation.
 
 We will show you how to install a stable release or from source, using conda
@@ -143,8 +143,6 @@ Otherwise, read the error message carefully and follow any instructions it gives
 you to resolve the issue. Do not hesitate to :ref:`contact us <asking-for-help>`
 so we can help you figure it out.
 
-If you like, this might be a good time to run the test suite, see :ref:`testing`
-for more details.
 
 
 .. _updating:
