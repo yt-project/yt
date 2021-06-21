@@ -50,8 +50,8 @@ signs.  Let's inaugurate the occasion appropriately -- type this::
 
 As you can see, this printed out the string "Hello, world." just as we
 expected.  Now let's try a more advanced string, one with a number in it.  For
-this we'll use an "f-string", which is the manner by which values are fed into
-a formatted string.  We'll print pi, but only with three digits of accuracy.::
+this we'll use an "f-string", which is the preferred way to format strings in modern Python.
+We'll print pi, but only with three digits of accuracy.::
 
    >>> print(f"Pi is precisely {3.1415926:0.2f}")
 
@@ -122,9 +122,6 @@ This works for floating points as well.  Now we can do math on these numbers::
    >>> print(a + 5.1)
    >>> print(a / 2.0)
 
-Because of a historical aversion to floating point division in Python (which has
-now changed) it's always safest to ensure that either the numerator or the
-denominator is a floating point number.
 
 Now that we have a couple primitive datatypes, we can move on to sequences --
 lists and tuples.  These two objects are very similar, in that they are

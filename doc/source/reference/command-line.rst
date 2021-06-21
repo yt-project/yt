@@ -197,7 +197,7 @@ command-line.
 rpdb
 ++++
 
-Connect to a currently running (on localhost) rpd session. See
+Connect to a currently running (on localhost) rpdb session. See
 :ref:`remote-debugging` for more info.
 
 notebook
@@ -213,8 +213,8 @@ stats
 
 This subcommand provides you with some basic statistics on a given dataset.
 It provides you with the number of grids and cells in each level, the time
-of the dataset, and the resolution. It is tantamount to performing the
-``print_stats()`` inside of yt.
+of the dataset, and the resolution. It is tantamount to calling the
+``Dataset.print_stats`` method.
 
 Additionally, there is the option to print the minimum, maximum, or both for
 a given field. The field is assumed to be density by default:

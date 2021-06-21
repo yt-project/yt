@@ -204,8 +204,7 @@ by defining ``plugin_filename`` in your ``yt.toml`` file, as mentioned above.
 
    You can tell that your system plugin file is being parsed by watching for a logging
    message when you import yt. Note that both the ``yt load`` and ``iyt``
-   command line entry points parse the plugin file, so the ``my_plugins.py``
-   file will be parsed if you enter yt that way.
+   command line entry points parse the plugin file.
 
 
 Local project plugin file

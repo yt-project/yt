@@ -81,7 +81,7 @@ each supported output format using yt.
 .. [#f2] These handle mesh fields using an in-memory octree that has not been parallelized.
          Datasets larger than approximately 1024^3 will not scale well.
 .. [#f3] Newer versions of Castro that use BoxLib's standard particle format are supported.
-	     The older ASCII format is not.
+          The older ASCII format is not.
 .. [#f4] The Voronoi cells are currently treated as SPH-like particles, with a smoothing
          length proportional to the cube root of the cell volume.
 
