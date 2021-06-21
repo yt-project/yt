@@ -58,6 +58,7 @@ Writing FITS images
    ~yt.visualization.fits_image.FITSProjection
    ~yt.visualization.fits_image.FITSOffAxisSlice
    ~yt.visualization.fits_image.FITSOffAxisProjection
+   ~yt.visualization.fits_image.FITSParticleProjection
 
 Data Sources
 ------------
