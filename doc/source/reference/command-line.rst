@@ -227,7 +227,7 @@ or a different field can be specified using the ``-f`` flag:
 
 .. code-block:: bash
 
-   yt stats GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150 --max --min -f temperature
+   yt stats GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150 --max --min -f gas,temperature
 
 The field-related stats output from this command can be directed to a file using
 the ``-o`` flag:
