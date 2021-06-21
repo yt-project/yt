@@ -253,7 +253,7 @@ man_pages = [("index", "yt", "yt Documentation", ["The yt Project"], 1)]
 intersphinx_mapping = {
     "https://docs.python.org/3/": None,
     "https://ipython.readthedocs.io/en/stable/": None,
-    "https://docs.scipy.org/doc/numpy/": None,
+    "https://numpy.org/doc/stable/": None,
     "https://matplotlib.org/stable/": None,
     "https://docs.astropy.org/en/stable": None,
     "https://pandas.pydata.org/pandas-docs/stable": None,
