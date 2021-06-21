@@ -41,7 +41,10 @@ repos:
     rev: '5.9.1'
     hooks:
     - id: isort
-      additional_dependencies: [toml]
+      name: isort (python)
+    - id: isort
+      name: isort (cython)
+      types: [cython]
 -   repo: https://github.com/PyCQA/flake8
     rev: '3.9.2'
     hooks:
