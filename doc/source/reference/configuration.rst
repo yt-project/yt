@@ -203,9 +203,8 @@ by defining ``plugin_filename`` in your ``yt.toml`` file, as mentioned above.
 .. note::
 
    You can tell that your system plugin file is being parsed by watching for a logging
-   message when you import yt.  Note that both the ``yt load`` and ``iyt``
-   command line entry points parse the plugin file, so the ``my_plugins.py``
-   file will be parsed if you enter yt that way.
+   message when you import yt. Note that both the ``yt load`` and ``iyt``
+   command line entry points parse the plugin file.
 
 
 Local project plugin file
@@ -221,7 +220,7 @@ Plugin File Format
 Plugin files should contain pure Python code. If accessing yt functions and classes
 they will not require the ``yt.`` prefix, because of how they are loaded.
 
-For example, if I created a plugin file containing:
+For example, if one created a plugin file containing:
 
 .. code-block:: python
 
@@ -285,8 +284,8 @@ Adding Custom Colormaps
 
 To add custom :ref:`colormaps` to your plugin file, you must use the
 :func:`~yt.visualization.color_maps.make_colormap` function to generate a
-colormap of your choice and then add it to the plugin file.  You can see
-an example of this in :ref:`custom-colormaps`.  Remember that you don't need
+colormap of your choice and then add it to the plugin file. You can see
+an example of this in :ref:`custom-colormaps`. Remember that you don't need
 to prefix commands in your plugin file with ``yt.``, but you'll only be
 able to access the colormaps when you load the ``yt.mods`` module, not simply
 ``yt``.

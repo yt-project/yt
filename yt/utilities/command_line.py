@@ -1174,9 +1174,9 @@ class YTStatsCmd(YTCommand):
             vals["min"] = ds.find_min(field)
             print(f"Minimum {field.name}: {vals['min'][0]:0.5e} at {vals['min'][1]}")
         if args.output is not None:
-            t = ds.current_time * ds["years"]
+            t = ds.current_time.to("yr")
             with open(args.output, "a") as f:
-                f.write(f"{ds} ({t:0.5e} years)\n")
+                f.write(f"{ds} ({t:0.5e})\n")
                 if "min" in vals:
                     f.write(
                         "Minimum %s is %0.5e at %s\n"

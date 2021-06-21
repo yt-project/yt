@@ -53,7 +53,7 @@ Use the Python Debugger
 yt is almost entirely composed of python code, so it makes sense to use
 the `python debugger`_ as your first stop in trying to debug it.
 
-.. _python debugger: https://docs.python.org/2/library/pdb.html
+.. _python debugger: https://docs.python.org/3/library/pdb.html
 
 Signaling yt to Do Something
 ----------------------------
