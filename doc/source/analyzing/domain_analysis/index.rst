@@ -63,7 +63,9 @@ not kept up to date as yt evolved. Tools in here are looking for
 a new owner and a new home. If you find something in here that
 you'd like to bring back to life, either by adding it to
 :ref:`yt-astro` or as part of your own package, you are welcome
-to it! If you'd like any help, let us know!
+to it! If you'd like any help, let us know! See
+:ref:`yt_attic:attic-modules` for a list of inventory of the
+attic.
 
 Extensions
 ----------
