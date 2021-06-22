@@ -27,7 +27,7 @@ Geometric Data Containers
 -------------------------
 
 Data from geometric data containers can be saved with the
-:func:`~yt.data_objects.data_containers.save_as_dataset` function.
+:func:`~yt.data_objects.data_containers.YTDataContainer.save_as_dataset` function.
 
 .. notebook-cell::
 
