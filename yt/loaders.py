@@ -1308,22 +1308,23 @@ def load_unstructured_mesh(
 def load_sample(
     fn: Optional[str] = None, *, progressbar: bool = True, timeout=None, **kwargs
 ):
-    """
+    r"""
     Load sample data with yt.
 
-    This is a simple wrapper around `yt.load` to include fetching
+    This is a simple wrapper around :func:`~yt.loaders.load` to include fetching
     data with pooch from remote source.
 
     The data registry table can be retrieved and visualized using
-    `yt.sample_data.api.get_data_registry_table()`.
+    :func:`~yt.sample_data.api.get_data_registry_table`.
     The `filename` column contains usable keys that can be passed
-    as the first positional argument to `load_sample`.
+    as the first positional argument to load_sample.
     Some data samples contain series of datasets. It may be required to
     supply the relative path to a specific dataset.
 
     Parameters
     ----------
-    fn : str
+
+    fn: str
         The `filename` of the dataset to load, as defined in the data registry
         table.
 
@@ -1337,16 +1338,18 @@ def load_sample(
 
     Notes
     -----
+
     - This function is experimental as of yt 4.0.0, do not rely on its exact behaviour.
-    - Any additional keyword argument is passed down to `yt.load`.
+    - Any additional keyword argument is passed down to :func:`~yt.loaders.load`.
     - In case of collision with predefined keyword arguments as set in
-    the data registry, the ones passed to this function take priority.
+      the data registry, the ones passed to this function take priority.
     - Datasets with slashes '/' in their names can safely be used even on Windows.
       On the contrary, paths using backslashes '\' won't work outside of Windows, so
       it is recommended to favour the UNIX convention ('/') in scripts that are meant
       to be cross-platform.
     - This function requires pandas and pooch.
     - Corresponding sample data live at https://yt-project.org/data
+
     """
 
     if fn is None:

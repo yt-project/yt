@@ -30,7 +30,7 @@ the plot object.  All of the callbacks listed below are available via
 similar ``annotate_`` functions.
 
 To clear one or more annotations from an existing plot, see the
-:ref:`clear_annotations() function <clear-annotations>`.
+:ref:`clear_annotations function <clear-annotations>`.
 
 For a brief demonstration of a few of these callbacks in action together,
 see the cookbook recipe: :ref:`annotations-recipe`.
@@ -158,7 +158,7 @@ List Currently Applied Callbacks
 
    This function will print a list of each of the currently applied
    callbacks together with their index.  The index can be used with
-   :ref:`clear_annotations() function <annotate-clear>` to remove a
+   :ref:`clear_annotations() function <clear-annotations>` to remove a
    specific callback.
 
 .. python-script::

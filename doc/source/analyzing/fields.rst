@@ -249,8 +249,7 @@ aliasing process allows universally-defined derived fields to take advantage of
 internal names, and it also provides an easy way to address what units something
 should be returned in.  If an aliased field is requested (and aliased fields
 will always be lowercase, with underscores separating words) it will be returned
-in the units specified by the unit system of the database (see :ref:`unit_systems`
-for a guide to using the different unit systems in yt), whereas if the
+in the units specified by the unit system of the database, whereas if the
 frontend-specific field is requested, it will not undergo any unit conversions
 from its natural units.  (This rule is occasionally violated for fields which
 are mesh-dependent, specifically particle masses in some cosmology codes.)
@@ -275,8 +274,7 @@ Recall that fields are formally accessed in two parts: ('*field type*',
 * ``gas`` -- This is the usual default for simulation frontends for fluid
   types.  These fields are typically aliased to the frontend-specific mesh
   fields for grid-based codes or to the deposit fields for particle-based
-  codes.  Default units are in the unit system of the dataset (see
-  :ref:`unit_systems` for more information).
+  codes.  Default units are in the unit system of the dataset.
 * particle type -- These are particle fields that exist on-disk as written
   by individual frontends.  If the frontend designates names for these particles
   (i.e. particle type) those names are the field types.
@@ -417,7 +415,7 @@ systems in terms of the definition of the magnetic pressure:
 
 where :math:`\mu_0 = 4\pi \times 10^{-7}~\rm{N/A^2}` is the vacuum permeability. yt automatically
 detects on a per-frontend basis what units the magnetic should be in, and allows conversion between
-different magnetic field units in the different :ref:`unit systems <unit_systems>` as well. To
+different magnetic field units in the different unit systems as well. To
 determine how to set up special magnetic field handling when designing a new frontend, check out
 :ref:`bfields-frontend`.
 

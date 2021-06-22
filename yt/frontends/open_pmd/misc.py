@@ -4,7 +4,7 @@ from yt.utilities.logger import ytLogger as mylog
 
 
 def parse_unit_dimension(unit_dimension):
-    """Transforms an openPMD unitDimension into a string.
+    r"""Transforms an openPMD unitDimension into a string.
 
     Parameters
     ----------
@@ -22,8 +22,8 @@ def parse_unit_dimension(unit_dimension):
 
     References
     ----------
-    ..
-    https://github.com/openPMD/openPMD-standard/blob/latest/STANDARD.md#unit-systems-and-dimensionality  # NOQA E501
+
+    https://github.com/openPMD/openPMD-standard/blob/latest/STANDARD.md#unit-systems-and-dimensionality
 
 
     Returns

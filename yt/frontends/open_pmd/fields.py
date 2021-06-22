@@ -134,7 +134,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
     References
     ----------
     * http://yt-project.org/docs/dev/analyzing/fields.html
-    * http://yt-project.org/docs/dev/developing/creating_frontend.html#data-meaning-structures  # NOQA E501
+    * http://yt-project.org/docs/dev/developing/creating_frontend.html#data-meaning-structures
     * https://github.com/openPMD/openPMD-standard/blob/latest/STANDARD.md
     * [1] http://yt-project.org/docs/dev/reference/field_list.html#universal-fields
     """

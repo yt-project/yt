@@ -56,8 +56,7 @@ processors simultaneously <parallel-computation>`.
 Datasets can be analyzed by simply :ref:`examining raw source data
 <low-level-data-inspection>`, or they can be processed in a number of ways
 to extract relevant information and to explore the data including
-:ref:`visualizing data <visualizing>` and employing :ref:`topic-specific
-analysis modules <analysis-modules>`.
+:ref:`visualizing data <visualizing>`.
 
 Visualization
 ^^^^^^^^^^^^^
@@ -95,30 +94,6 @@ creating photorealistic isocontour images of your data called :ref:`volume
 renderings <volume_rendering>`, and :ref:`visualizing isosurfaces in an external
 interactive tool <surfaces>`.  yt even has a special web-based tool for
 exploring your data with a :ref:`google-maps-like interface <mapserver>`.
-
-Topic-Specific Analysis Modules
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Beyond visualization and general analysis tools, yt contains a number
-of :ref:`topic-specific analysis modules <analysis-modules>` for processing
-datasets.  These analysis modules operate somewhat autonomous and oftentimes
-use external libraries or codes.  While they are installed with yt, they are
-not loaded by default in every session so you have to call them specifically.
-Examples include :ref:`halo analysis <halo-analysis>` (including
-:ref:`halo finding <halo-analysis>`, :ref:`merger trees <merger_tree>`,
-:ref:`halo mass functions <halo_mass_function>`), :ref:`synthetic observations
-<synthetic-observations>` (including :ref:`cosmological light cones
-<light-cone-generator>`, :ref:`cosmological light rays <light-ray-generator>`,
-:ref:`synthetic absorption spectra <absorption_spectrum>`, :ref:`spectral
-emission distributions (SEDS) <synthetic_spectrum>`, :ref:`star formation
-rates <star_analysis>`, :ref:`synthetic x-ray observations
-<xray_emission_fields>`, and :ref:`synthetic sunyaev-zeldovich effect
-observations <sunyaev-zeldovich>`), :ref:`two-point correlations functions
-<two_point_functions>`, :ref:`identification of overdensities in arbitrary
-fields (clump finding) <clump_finding>`, :ref:`tracking particle trajectories
-<particle-trajectories>`, and exporting data to external radiative transfer
-codes (e.g. :ref:`Sunrise <sunrise_export>` and :ref:`RadMC-3D
-<radmc3d_export>`).
 
 Executing and Scripting yt
 ^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -33,7 +33,9 @@ streamlines.integrate_through_volume()
 
 # Create a 3D plot, trace the streamlines through the 3D volume of the plot
 fig = plt.figure()
-ax = Axes3D(fig)
+ax = Axes3D(fig, auto_add_to_figure=False)
+fig.add_axes(ax)
+
 for stream in streamlines.streamlines:
     stream = stream[np.all(stream != 0.0, axis=1)]
     ax.plot3D(stream[:, 0], stream[:, 1], stream[:, 2], alpha=0.1)

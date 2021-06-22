@@ -1251,7 +1251,7 @@ where :math:`n_e` and :math:`n_i` are the electron and ion number densities,
 .. rubric:: Caveats
 
 * Please be careful that the units are correctly utilized; yt assumes cgs by default, but conversion to
-  other :ref:`unit systems <unit_systems>` is also possible.
+  other unit systems is also possible.
 
 .. _loading-gadget-data:
 
@@ -2171,7 +2171,7 @@ containers.  See :ref:`halo_containers` for more information.
 
 If you have access to both the halo catalog and the simulation snapshot from
 the same redshift, additional analysis can be performed for each halo using
-:ref:`halo_catalog`.  The resulting product can be reloaded in a similar manner
+:ref:`halo-analysis`.  The resulting product can be reloaded in a similar manner
 to the other halo catalogs shown here.
 
 .. _adaptahop:
@@ -2443,7 +2443,7 @@ information.  At this time, halo member particles cannot be loaded.
 YTHaloCatalog
 ^^^^^^^^^^^^^
 
-These are catalogs produced by the analysis discussed in :ref:`halo_catalog`.
+These are catalogs produced by the analysis discussed in :ref:`halo-analysis`.
 In the case where multiple files were produced, one need only provide the path
 to a single one of them.  The field type for all fields is "halos".  The fields
 available here are similar to other catalogs.  Any addition
@@ -2964,9 +2964,7 @@ Tipsy Data
 See :ref:`tipsy-notebook` and :ref:`loading-sph-data` for more details.
 
 yt also supports loading Tipsy data.  Many of its characteristics are similar
-to how Gadget data is loaded; specifically, it shares its definition of
-indexing and mesh-identification with that described in
-:ref:`particle-indexing-criteria`.
+to how Gadget data is loaded.
 
 .. code-block:: python
 
