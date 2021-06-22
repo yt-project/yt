@@ -2443,6 +2443,7 @@ information.  At this time, halo member particles cannot be loaded.
 YTHaloCatalog
 ^^^^^^^^^^^^^
 
+These are catalogs produced by the analysis discussed in :ref:`halo-analysis`.
 In the case where multiple files were produced, one need only provide the path
 to a single one of them.  The field type for all fields is "halos".  The fields
 available here are similar to other catalogs.  Any addition
