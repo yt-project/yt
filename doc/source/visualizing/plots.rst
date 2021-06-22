@@ -1975,7 +1975,7 @@ datasets, then handed back to the plotting machinery discussed here.
 
 For slices and projections, the savable object is associated with the
 plot object as ``data_source``.  This can be saved with the
-:func:`~yt.data_objects.data_containers.save_as_dataset` function.  For
+:func:`~yt.data_objects.data_containers.YTDataContainer.save_as_dataset` function.  For
 more information, see :ref:`saving_data`.
 
 .. code-block:: python
