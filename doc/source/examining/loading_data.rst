@@ -2171,7 +2171,7 @@ containers.  See :ref:`halo_containers` for more information.
 
 If you have access to both the halo catalog and the simulation snapshot from
 the same redshift, additional analysis can be performed for each halo using
-:ref:`halo-catalog`.  The resulting product can be reloaded in a similar manner
+:ref:`halo-analysis`.  The resulting product can be reloaded in a similar manner
 to the other halo catalogs shown here.
 
 .. _adaptahop:
@@ -2438,7 +2438,7 @@ information.  At this time, halo member particles cannot be loaded.
    # The halo mass
    print(ad["FOF", "particle_mass"])
 
-.. _halo-catalog:
+.. _halocatalog:
 
 YTHaloCatalog
 ^^^^^^^^^^^^^
