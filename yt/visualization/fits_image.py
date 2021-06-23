@@ -888,11 +888,12 @@ def construct_image(ds, axis, data_source, center, image_res, width, length_unit
         else:
             frb = data_source.to_frb(width[0], (nx, ny), center=center, height=width[1])
     elif isinstance(data_source, ParticleAxisAlignedDummyDataSource):
+        axes = axis_wcs[axis]
         bounds = (
-            center[0] - width[0] / 2,
-            center[0] + width[0] / 2,
-            center[1] - width[1] / 2,
-            center[1] + width[1] / 2,
+            center[axes[0]] - width[0] / 2,
+            center[axes[0]] + width[0] / 2,
+            center[axes[1]] - width[1] / 2,
+            center[axes[1]] + width[1] / 2,
         )
         frb = ParticleImageBuffer(
             data_source, bounds, (nx, ny), periodic=all(ds.periodicity)
