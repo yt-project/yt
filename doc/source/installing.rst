@@ -25,8 +25,6 @@ scope of this page to cover every situation.
 
 We will show you how to install a stable release or from source, using conda
 or pip, and we will *assume* that you do so in an isolated environment.
-If you are not confortable with environment management yet, consider using the
-install script (see :ref:`install-script`).
 
 Also note that each yt release supports a limited range of Python versions.
 Here's a summary for most recent releases
@@ -56,14 +54,6 @@ will work best for you depends on your precise situation:
 * If you need a stable build, see :ref:`install-stable`
 
 * If you want to build the development version of yt see :ref:`install-from-source`.
-
-* If you do not have root access on your computer, are not comfortable managing
-  Python packages, or are working on a machine where you are not allowed to, you
-  will probably want to use the bash all-in-one installation script.  This
-  creates a Python environment using the `miniconda python
-  distribution <https://docs.conda.io/en/latest/miniconda.html>`_ and the
-  `conda <https://conda.io/en/latest/>`_ package manager inside of a single
-  folder in your home directory. See :ref:`install-script` for more details.
 
 .. _install-stable:
 
