@@ -11,6 +11,7 @@
 
 <!--- Tests and style --->
 ![Build and Test](https://github.com/yt-project/yt/workflows/Build%20and%20Test/badge.svg?branch=main)
+[![CI (bleeding edge)](https://github.com/yt-project/yt/actions/workflows/bleeding-edge.yaml/badge.svg)](https://github.com/yt-project/yt/actions/workflows/bleeding-edge.yaml)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/yt-project/yt/main.svg)](https://results.pre-commit.ci/latest/github/yt-project/yt/main)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
