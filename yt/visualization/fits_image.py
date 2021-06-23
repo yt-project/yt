@@ -845,6 +845,9 @@ def sanitize_fits_unit(unit):
     return unit
 
 
+# This list allows one to determine which axes are the
+# correct axes of the image in a right-handed coordinate
+# system depending on which axis is sliced or projected
 axis_wcs = [[1, 2], [0, 2], [0, 1]]
 
 
