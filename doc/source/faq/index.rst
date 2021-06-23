@@ -108,7 +108,7 @@ If this is the case, you can specify them explicitly as per:
 
 .. code-block:: bash
 
-    $ env MPICC=/path/to/MPICC pip install mpi4py
+    $ env MPICC=/path/to/MPICC python -m pip install mpi4py
 
 So for example, on Kraken, I switch to the gnu C compilers (because yt
 doesn't work with the portland group C compilers), then I discover that
@@ -117,7 +117,7 @@ cc is the mpi-enabled C compiler (and it is in my path), so I run:
 .. code-block:: bash
 
     $ module swap PrgEnv-pgi PrgEnv-gnu
-    $ env MPICC=cc pip install mpi4py
+    $ env MPICC=cc python -m pip install mpi4py
 
 And voila!  It installs!  If this *still* fails for you, then you can
 build and install from source and specify the mpi-enabled c and c++
