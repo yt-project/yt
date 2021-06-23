@@ -476,7 +476,7 @@ def update_git(path):
     except ImportError:
         print("Updating and precise version information requires ")
         print("gitpython to be installed.")
-        print("Try: pip install gitpython")
+        print("Try: python -m pip install gitpython")
         return -1
     with open(os.path.join(path, "yt_updater.log"), "a") as f:
         repo = git.Repo(path)
@@ -547,7 +547,7 @@ def get_git_version(path):
     except ImportError:
         print("Updating and precise version information requires ")
         print("gitpython to be installed.")
-        print("Try: pip install gitpython")
+        print("Try: python -m pip install gitpython")
         return None
     try:
         repo = git.Repo(path)

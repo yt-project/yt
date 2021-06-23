@@ -356,7 +356,7 @@ How To Read The Source Code
 
 If you just want to *look* at the source code, you may already have it on your
 computer.  If you build yt using the install script, the source is available at
-``$YT_DEST/src/yt-git``.  See :ref:`source-installation` for more details about
+``$YT_DEST/src/yt-git``.  See :ref:`install-from-source` for more details about
 to obtain the yt source code if you did not build yt using the install
 script.
 
@@ -427,33 +427,7 @@ Building yt
 +++++++++++
 
 If you have made changes to any C or Cython (``.pyx``) modules, you have to
-rebuild yt.  If your changes have exclusively been to Python modules, you will
-not need to re-build, but (see below) you may need to re-install.
-
-Note that you will need a functioning compilation environment to build yt. On
-linux this typically means installing the package that sets up a basic build
-environment (e.g. ``build-essential`` on Debian and Ubuntu). On MacOS this means
-installing the XCode command line tools. On Windows this means installing the
-version of the Microsoft Visual C++ compiler that is appropriate for your
-version of Python. See `the Python wiki
-<https://wiki.python.org/moin/WindowsCompilers>`_ for more details.
-
-If you are running from a clone that is executable in-place (i.e., has been
-installed via the installation script or you have run ``setup.py develop``) you
-can rebuild these modules by executing:
-
-.. code-block:: bash
-
-  $ python setup.py develop
-
-If you have previously "installed" via ``setup.py install`` you have to
-re-install:
-
-.. code-block:: bash
-
-  $ python setup.py install
-
-Only one of these two options is needed.
+rebuild yt before your changes are usable. See :ref:`install-from-source`.
 
 .. _requirements-for-code-submission:
 
@@ -578,7 +552,7 @@ Here's a more detailed flowchart of how to submit changes.
    this at: https://github.com/yt-project/yt/fork.
 #. If you have used the installation script, the source code for yt can be
    found in ``$YT_DEST/src/yt-git``.  Alternatively see
-   :ref:`source-installation` for instructions on how to build yt from the
+   :ref:`install-from-source` for instructions on how to build yt from the
    git repository. (Below, in :ref:`reading-source`, we describe how to
    find items of interest.) If you have already forked the repository then
    you can clone your fork locally::

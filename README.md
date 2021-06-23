@@ -17,7 +17,7 @@
 
 <a href="http://yt-project.org"><img src="doc/source/_static/yt_logo.png" width="300"></a>
 
-yt is an open-source, permissively-licensed python package for analyzing and
+yt is an open-source, permissively-licensed Python library for analyzing and
 visualizing volumetric data.
 
 yt supports structured, variable-resolution meshes, unstructured meshes, and
@@ -50,54 +50,11 @@ conda install -c conda-forge yt
 or with pip:
 
 ```shell
-pip install yt
+python -m pip install yt
 ```
 
-To get set up with a development version, you want to clone this repository:
-
-```shell
-git clone https://github.com/yt-project/yt yt-git
-cd yt-git
-```
-
-and work within a conda environment:
-
-```shell
-# Create a conda environment named yt-git
-$ conda create -n yt-git python=3.6
-# Activate it
-$ source activate yt-git
-# Make sure you run the latest version of conda
-$ conda update conda
-# Install yt's runtime dependencies
-$ conda install -c conda-forge yt --only-deps
-# Install yt's build dependencies
-$ conda install -c conda-forge cython
-# Make sure you run the latest version of pip
-$ pip install --upgrade pip
-$ pip install -v -e .
-# Output installed packages
-$ conda env export
-```
-
-Alternatively, you can install yt in a
-[virtualenv](https://packaging.python.org/installing/#creating-virtual-environments):
-
-```shell
-# It is conventional to create virtualenvs at ~/.virtualenv/
-$ mkdir -p ~/.virtualenv
-# Assuming your version of Python 3 meets the minimal requirement
-# create a virtualenv named yt-git
-$ python3 -m venv ~/.virtualenv/yt-git
-# Activate it
-$ source ~/.virtualenv/yt-git/bin/activate
-# Make sure you run the latest version of pip
-$ pip install --upgrade pip
-# Assuming you have cd'd into yt-git
-$ pip install -e .
-# Output installed packages
-$ pip freeze
-```
+More information on the various ways to install yt, and in particular to install from source,
+can be found on [the project's website](https://yt-project.org/docs/dev/installing.html).
 
 ## Getting Started
 

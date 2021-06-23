@@ -41,7 +41,7 @@ mpi4py website, but you may have luck by just running:
 
 .. code-block:: bash
 
-    $ pip install mpi4py
+    $ python -m pip install mpi4py
 
 If you have an Anaconda installation of yt and there is no MPI library on the
 system you are using try:
