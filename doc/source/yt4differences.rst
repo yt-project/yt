@@ -266,6 +266,8 @@ search (DFS) means that tree starts refining at the root node (this is the
 largest node which contains every particles) and refines as far as possible
 along each branch before backtracking.
 
+.. _yt-units-is-now-unyt:
+
 ``yt.units`` Is Now a Wrapper for ``unyt``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -361,8 +363,18 @@ You can also use alternate unit names in more complex algebraic unit expressions
 In this example the common british spelling ``"kilometre"`` is resolved to
 ``"km"`` and ``"hour"`` is resolved to ``"hr"``.
 
+Field-Specific Configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You can now set configuration values on a per-field basis.  For instance, this
+means that if you always want a particular colormap associated with a particular
+field, you can do so!
+
+This is documented under :ref:`per-field-config`, and was added in `PR
+1931<https://github.com/yt-project/yt/pull/1931>`_.
+
 New Method for Accessing Sample Datasets
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 There is now a function entitled ``load_sample()`` that allows the user to
 automatically load sample data from the yt hub in a local yt session.
@@ -372,5 +384,24 @@ and load them into a yt session, but now this occurs from within a python
 session.  For more information see:
 :ref:`Loading Sample Data <loading-sample-data>`
 
-API Changes
------------
+Some Widgets
+^^^^^^^^^^^^
+
+In yt, we now have some simple display wrappers for objects if you are running
+in a Jupyter environment with the `ipywidgets
+<https://ipywidgets.readthedocs.io/>`_ package installed.  For instance, the
+``ds.fields`` object will now display field information in an interactive
+widget, and three-element unyt arrays (such as ``ds.domain_left_edge``) will be
+displayed interactively as well.
+
+The package `widgyts <https://widgyts.readthedocs.io>`_ provides interactive,
+yt-specific visualization of slices, projections, and additional dataset display
+information.
+
+New External Packages
+^^^^^^^^^^^^^^^^^^^^^
+
+As noted above (:ref:`yt-units-is-now-unyt`), unyt has been extracted from
+yt, and we now use it as an external library.  In addition, other parts of yt
+such as :ref:`interactive_data_visualization` have been extracted, and we are
+working toward a more modular approach for things such as Jupyter widgets and other "value-added" integrations.
