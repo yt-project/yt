@@ -6,13 +6,14 @@ import os
 import sys
 import tarfile
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional, Tuple
 from urllib.parse import urlsplit
 
 import numpy as np
 from more_itertools import always_iterable
 
 from yt._maintenance.deprecation import issue_deprecation_warning
+from yt.funcs import levenshtein_distance
 from yt.sample_data.api import lookup_on_disk_data
 from yt.utilities.decompose import decompose_array, get_psize
 from yt.utilities.exceptions import (
@@ -1376,6 +1377,21 @@ def load_sample(
     topdir, _, specific_file = fn.partition(os.path.sep)
 
     registry_table = get_data_registry_table()
+
+    known_names: List[str] = registry_table.dropna()["filename"].to_list()
+    if topdir not in known_names:
+        msg = f"'{topdir}' is not an available dataset."
+        lexical_distances: List[Tuple[str, int]] = [
+            (name, levenshtein_distance(name, topdir)) for name in known_names
+        ]
+        suggestions: List[str] = [name for name, dist in lexical_distances if dist < 4]
+        if len(suggestions) == 1:
+            msg += f" Did you mean '{suggestions[0]}' ?"
+        elif suggestions:
+            msg += " Did you mean to type any of the following ?\n\n    "
+            msg += "\n    ".join(f"'{_}'" for _ in suggestions)
+        raise ValueError(msg)
+
     # PR 3089
     # note: in the future the registry table should be reindexed
     # so that the following line can be replaced with
@@ -1384,11 +1400,7 @@ def load_sample(
     #
     # however we don't want to do it right now because the "filename" column is
     # currently incomplete
-
-    try:
-        specs = registry_table.query(f"`filename` == '{topdir}'").iloc[0]
-    except IndexError as err:
-        raise KeyError(f"Could not find '{fn}' in the registry.") from err
+    specs = registry_table.query(f"`filename` == '{topdir}'").iloc[0]
 
     load_name = specific_file or specs["load_name"] or ""
 

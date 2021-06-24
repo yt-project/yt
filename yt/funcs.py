@@ -1288,7 +1288,7 @@ def levenshtein_distance(seq1, seq2, max_dist=None):
 
     Returns
     -------
-    The Levensthein distance as an integer.
+    The Levenshtein distance as an integer.
 
     Notes
     -----

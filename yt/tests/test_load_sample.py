@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import sys
 import textwrap
 
@@ -133,9 +134,20 @@ def test_registry_byte_size_sign(sound_subreg):
 @requires_module_pytest("pandas", "requests")
 def test_unknown_filename():
     fake_name = "these_are_not_the_files_your_looking_for"
-    with pytest.raises(KeyError) as err:
+    with pytest.raises(ValueError, match=f"'{fake_name}' is not an available dataset."):
         load_sample(fake_name)
-        assert err.exc == f"Could not find '{fake_name}' in the registry."
+
+
+@requires_module_pytest("pandas", "requests")
+def test_typo_filename():
+    wrong_name = "Isolatedgalaxy"
+    with pytest.raises(
+        ValueError,
+        match=re.escape(
+            f"'{wrong_name}' is not an available dataset. Did you mean 'IsolatedGalaxy' ?"
+        ),
+    ):
+        load_sample(wrong_name, timeout=1)
 
 
 @pytest.fixture()
