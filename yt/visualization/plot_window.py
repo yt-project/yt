@@ -6,7 +6,7 @@ from numbers import Number
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-from more_itertools import always_iterable, zip_equal
+from more_itertools import always_iterable
 from mpl_toolkits.axes_grid1 import ImageGrid
 from unyt.exceptions import UnitConversionError
 
@@ -47,6 +47,21 @@ from .plot_container import (
     symlog_transform,
 )
 from .plot_modifications import callback_registry
+
+import sys  # isort: skip
+
+if sys.version_info < (3, 10):
+    # this function is deprecated in more_itertools
+    # because it is superseded by the standard library
+    from more_itertools import zip_equal
+else:
+
+    def zip_equal(*args):
+        # FUTURE: when only Python 3.10+ is supported,
+        # drop this conditional and call the builtin zip
+        # function directly where due
+        return zip(*args, strict=True)
+
 
 MPL_VERSION = LooseVersion(matplotlib.__version__)
 
