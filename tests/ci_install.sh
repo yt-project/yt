@@ -57,7 +57,7 @@ else
     # which means we have to install the build-time requirements first.
     # It is possible that these problems will be fixed in the future if upstream projects
     # include a pyproject.toml file or use any pip-comptatible solution to remedy this.
-    python -m pip install numpy>=1.19.4 cython>=0.29.21
+    python -m pip install numpy>=1.19.4 cython~=0.29.21
 
     # this is required for cartopy. It should normally be specified in our setup.cfg as
     # cartopy[plotting]
