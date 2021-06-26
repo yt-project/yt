@@ -261,7 +261,7 @@ class GadgetDataset(SPHDataset):
         header_size = self._header.size
         if header_size != [256]:
             only_on_root(
-                mylog.warn,
+                mylog.warning,
                 "Non-standard header size is detected! "
                 "Gadget-2 standard header is 256 bytes, but yours is %s. "
                 "Make sure a non-standard header is actually expected. "
