@@ -131,6 +131,14 @@ def test_get_vertex_centered_data():
         assert len(w) == 1
         assert issubclass(w[-1].category, DeprecationWarning)
         assert "requires list of fields" in str(w[-1].message)
-    vec_tuple = g.get_vertex_centered_data(("gas", "density"), no_ghost=True)
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        vec_tuple = g.get_vertex_centered_data(("gas", "density"), no_ghost=True)
+        assert len(w) == 1
+        assert issubclass(w[-1].category, DeprecationWarning)
+        assert (
+            "get_vertex_centered_data() requires list of fields, rather than "
+            "a single field as an argument."
+        ) in str(w[-1].message)
     assert_array_equal(vec_list[("gas", "density")], vec_str)
     assert_array_equal(vec_list[("gas", "density")], vec_tuple)
