@@ -1,7 +1,11 @@
 import numpy as np
-from matplotlib import cm as mcm, colors as cc
+from matplotlib import __version__ as mpl_ver, cm as mcm, colors as cc
+from packaging.version import parse as parse_version
 
 from . import _colormap_data as _cm
+
+MPL_VERSION = parse_version(mpl_ver)
+del mpl_ver
 
 
 def is_colormap(cmap):
@@ -256,6 +260,30 @@ def show_colormaps(subset="all", filename=None):
                 "to be 'all', 'yt_native', or a list of "
                 "valid colormap names."
             ) from e
+    if parse_version("2.0.0") <= MPL_VERSION < parse_version("2.2.0"):
+        # the reason we do this filtering is to avoid spurious warnings in CI when
+        # testing against old versions of matplotlib (currently not older than 2.0.x)
+        # and we can't easily filter warnings at the level of the relevant test itself
+        # because it's not yet run exclusively with pytest.
+        # FUTURE: remove this completely when only matplotlib 2.2+ is supported
+        deprecated_cmaps = {
+            "spectral",
+            "spectral_r",
+            "Vega10",
+            "Vega10_r",
+            "Vega20",
+            "Vega20_r",
+            "Vega20b",
+            "Vega20b_r",
+            "Vega20c",
+            "Vega20c_r",
+        }
+        for cmap in deprecated_cmaps:
+            try:
+                maps.remove(cmap)
+            except ValueError:
+                pass
+
     maps = sorted(set(maps))
     # scale the image size by the number of cmaps
     plt.figure(figsize=(2.0 * len(maps) / 10.0, 6))
