@@ -292,7 +292,7 @@ class ARTDataset(Dataset):
             # lextra needs to be loaded as a string, but it's actually
             # array values.  So pop it off here, and then re-insert.
             lextra = amr_header_vals.pop("lextra")
-            amr_header_vals["lextra"] = np.fromstring(lextra, ">f4")
+            amr_header_vals["lextra"] = np.frombuffer(lextra, ">f4")
             self.parameters.update(amr_header_vals)
             amr_header_vals = None
             # estimate the root level
@@ -315,7 +315,7 @@ class ARTDataset(Dataset):
                 # extras needs to be loaded as a string, but it's actually
                 # array values.  So pop it off here, and then re-insert.
                 extras = particle_header_vals.pop("extras")
-                particle_header_vals["extras"] = np.fromstring(extras, ">f4")
+                particle_header_vals["extras"] = np.frombuffer(extras, ">f4")
             self.parameters["wspecies"] = wspecies[:n]
             self.parameters["lspecies"] = lspecies[:n]
             for specie in range(n):
