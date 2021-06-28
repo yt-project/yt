@@ -570,43 +570,41 @@ class DarkMatterARTDataset(ARTDataset):
             boxsize = np.fromfile(fh, count=1, dtype=">f4")
         n = nspecs[0]
         particle_header_vals = {}
-        tmp = np.array(
-            [
-                headerstr,
-                aexpn,
-                aexp0,
-                amplt,
-                astep,
-                istep,
-                partw,
-                tintg,
-                ekin,
-                ekin1,
-                ekin2,
-                au0,
-                aeu0,
-                nrowc,
-                ngridc,
-                nspecs,
-                nseed,
-                Om0,
-                Oml0,
-                hubble,
-                Wp5,
-                Ocurv,
-                wspecies,
-                lspecies,
-                extras,
-                boxsize,
-            ]
-        )
-        for i in range(len(tmp)):
+        tmp = [
+            headerstr,
+            aexpn,
+            aexp0,
+            amplt,
+            astep,
+            istep,
+            partw,
+            tintg,
+            ekin,
+            ekin1,
+            ekin2,
+            au0,
+            aeu0,
+            nrowc,
+            ngridc,
+            nspecs,
+            nseed,
+            Om0,
+            Oml0,
+            hubble,
+            Wp5,
+            Ocurv,
+            wspecies,
+            lspecies,
+            extras,
+            boxsize,
+        ]
+        for i, arr in enumerate(tmp):
             a1 = dmparticle_header_struct[0][i]
             a2 = dmparticle_header_struct[1][i]
             if a2 == 1:
-                particle_header_vals[a1] = tmp[i][0]
+                particle_header_vals[a1] = arr[0]
             else:
-                particle_header_vals[a1] = tmp[i][:a2]
+                particle_header_vals[a1] = arr[:a2]
         for specie in range(n):
             self.particle_types.append("specie%i" % specie)
         self.particle_types_raw = tuple(self.particle_types)
