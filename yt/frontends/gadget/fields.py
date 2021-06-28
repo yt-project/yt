@@ -67,7 +67,7 @@ class GadgetFieldInfo(SPHFieldInfo):
                 units=self.ds.unit_system["density"],
             )
 
-            return metal_names
+        return metal_names
         
     def _setup_eleven_metal_masses(self, ptype):
         """
