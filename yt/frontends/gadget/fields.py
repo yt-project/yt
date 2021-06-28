@@ -68,7 +68,7 @@ class GadgetFieldInfo(SPHFieldInfo):
             )
 
         return metal_names
-        
+
     def _setup_eleven_metal_masses(self, ptype):
         """
         This function breaks the ElevenMetalMasses field (if present)
@@ -136,11 +136,10 @@ class GadgetFieldInfo(SPHFieldInfo):
             units=self.ds.unit_system["density"],
         )
 
-        return ["H"]+metal_names[:-1]
-    
+        return ["H"] + metal_names[:-1]
+
     def setup_gas_particle_fields(self, ptype):
         if (ptype, "Temperature") not in self.ds.field_list:
-
 
             if (ptype, "ElectronAbundance") in self.ds.field_list:
 
