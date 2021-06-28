@@ -12,7 +12,6 @@ from distutils import log
 from distutils.ccompiler import CCompiler, new_compiler
 from distutils.errors import CompileError, LinkError
 from distutils.sysconfig import customize_compiler
-from distutils.version import LooseVersion
 from subprocess import PIPE, Popen
 from sys import platform as _platform
 
@@ -372,31 +371,6 @@ def create_build_ext(lib_exts, cythonize_aliases):
         # subclass setuptools extension builder to avoid importing cython and numpy
         # at top level in setup.py. See http://stackoverflow.com/a/21621689/1382869
         def finalize_options(self):
-            try:
-                import cython
-                import numpy
-            except ImportError as e:
-                raise ImportError(
-                    """Could not import cython or numpy. Building yt from source requires
-    cython and numpy to be installed. Please install these packages using
-    the appropriate package manager for your python environment."""
-                ) from e
-            if LooseVersion(cython.__version__) < LooseVersion("0.26.1"):
-                # keep in sync with pyproject.toml [build-system]
-                raise RuntimeError(
-                    """Building yt from source requires Cython 0.26.1 or newer but
-    Cython %s is installed. Please update Cython using the appropriate
-    package manager for your python environment."""
-                    % cython.__version__
-                )
-            if LooseVersion(numpy.__version__) < LooseVersion("1.13.3"):
-                # keep in sync with pyproject.toml [build-system]
-                raise RuntimeError(
-                    """Building yt from source requires NumPy 1.13.3 or newer but
-    NumPy %s is installed. Please update NumPy using the appropriate
-    package manager for your python environment."""
-                    % numpy.__version__
-                )
             from Cython.Build import cythonize
 
             # Override the list of extension modules
