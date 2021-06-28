@@ -370,6 +370,9 @@ def create_build_ext(lib_exts, cythonize_aliases):
     class build_ext(_build_ext):
         # subclass setuptools extension builder to avoid importing cython and numpy
         # at top level in setup.py. See http://stackoverflow.com/a/21621689/1382869
+        # NOTE: this is likely not necessary anymore since
+        # pyproject.toml was introduced in the project
+
         def finalize_options(self):
             from Cython.Build import cythonize
 
