@@ -76,6 +76,7 @@ def pytest_configure(config):
         # treat most warnings as errors
         "error",
         # >>> internal deprecation warnings with no obvious solution
+        # see https://github.com/yt-project/yt/issues/3381
         (
             r"ignore:The requested field name 'pd?[xyz]' is ambiguous and corresponds "
             "to any one of the following field types.*:yt._maintenance.deprecation.VisibleDeprecationWarning"
