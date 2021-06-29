@@ -2043,7 +2043,7 @@ class ParticleDataset(Dataset):
             "A bounding box was explicitly specified, so we "
             "are disabling periodicity."
         )
-        self._periodicity += (False,) * 3
+        self._periodicity = (False,) * 3
 
 
 def validate_index_order(index_order):
