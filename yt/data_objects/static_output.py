@@ -2034,6 +2034,17 @@ class ParticleDataset(Dataset):
             default_species_fields=default_species_fields,
         )
 
+    def _disable_periodicity_for_bbox(self):
+        # This is called when a bounding box is explicitly set by the
+        # user--currently in these circumstances periodicity behaves
+        # very oddly (see https://github.com/yt-project/yt/issues/2639),
+        # so to prevent buggy behavior we simply disable it.
+        mylog.warning(
+            "A bounding box was explicitly specified, so we "
+            "are disabling periodicity."
+        )
+        self._periodicity += (False,) * 3
+
 
 def validate_index_order(index_order):
     if index_order is None:
