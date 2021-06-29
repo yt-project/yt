@@ -312,7 +312,7 @@ def make_colormap(ctuple_list, name=None, interpolate=True):
         If you wish this colormap to be added as a valid colormap to the
         current session, specify a name here.  Default: None
 
-    interpolation: boolean, optional
+    interpolate: boolean
         Designates whether or not the colormap will interpolate between
         the colors provided or just give solid colors across the intervals.
         Default: True
@@ -346,22 +346,26 @@ def make_colormap(ctuple_list, name=None, interpolate=True):
     green, then an interval of 10 to interpolate to blue, then an interval of
     10 to interpolate to red.)
 
-    >>> cm = make_colormap([('black', 10), ('green', 10), ('blue', 10),
-    ...                     ('red', 0)])
+    >>> cm = make_colormap([("black", 10), ("green", 10), ("blue", 10), ("red", 0)])
 
     To add a colormap that has five equal blocks of solid major colors to
     the current session as "steps":
 
-    >>> make_colormap([('red', 10), ('orange', 10), ('yellow', 10),
-    ...                ('green', 10), ('blue', 10)], name="steps",
-    ...               interpolate=False)
+    >>> make_colormap(
+    ...     [("red", 10), ("orange", 10), ("yellow", 10), ("green", 10), ("blue", 10)],
+    ...     name="steps",
+    ...     interpolate=False,
+    ... )
 
     To add a colormap that looks like the French flag (i.e. equal bands of
     blue, white, and red) using your own RGB keys, then to display it:
 
-    >>> make_colormap([([0,0,1], 10), ([1,1,1], 10), ([1,0,0], 10)],
-    ...               name='french_flag', interpolate=False)
-    >>> show_colormaps(['french_flag'])
+    >>> make_colormap(
+    ...     [([0, 0, 1], 10), ([1, 1, 1], 10), ([1, 0, 0], 10)],
+    ...     name="french_flag",
+    ...     interpolate=False,
+    ... )
+    >>> show_colormaps(["french_flag"])
 
     """
     # aliases for different colors

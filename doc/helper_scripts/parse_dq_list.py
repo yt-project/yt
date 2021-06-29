@@ -26,7 +26,7 @@ def write_docstring(f, name, func):
     sig = sig.replace("data, ", "")
     sig = sig.replace("(data)", "()")
     funcproxy = f"yt.data_objects.derived_quantities.{func.__name__}"
-    docstring = "\n".join(["   %s" % line for line in docstring.split("\n")])
+    docstring = "\n".join("   %s" % line for line in docstring.split("\n"))
     f.write(
         template
         % dict(funcname=funcname, sig=sig, funcproxy=funcproxy, docstring=docstring)

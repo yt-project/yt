@@ -244,6 +244,8 @@ class Index(ParallelAnalysisInterface, abc.ABC):
 
 
 def cached_property(func):
+    # TODO: remove this once minimal supported version of Python reaches 3.8
+    # and replace with functools.cached
     n = f"_{func.__name__}"
 
     def cached_func(self):

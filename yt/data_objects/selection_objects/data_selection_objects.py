@@ -577,8 +577,8 @@ class YTSelectionContainer2D(YTSelectionContainer):
         --------
 
         >>> proj = ds.proj(("gas", "density"), 0)
-        >>> frb = proj.to_frb( (100.0, 'kpc'), 1024)
-        >>> write_image(np.log10(frb[("gas", "density")]), 'density_100kpc.png')
+        >>> frb = proj.to_frb((100.0, "kpc"), 1024)
+        >>> write_image(np.log10(frb[("gas", "density")]), "density_100kpc.png")
         """
 
         if (self.ds.geometry == "cylindrical" and self.axis == 1) or (
@@ -683,7 +683,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         >>> ds = yt.load("RedshiftOutput0005")
         >>> ad = ds.all_data()
         >>> cr = ad.cut_region(["obj[('gas', 'temperature')] > 1e6"])
-        >>> print(cr.quantities.total_quantity(("gas", "cell_mass")).in_units('Msun'))
+        >>> print(cr.quantities.total_quantity(("gas", "cell_mass")).in_units("Msun"))
         """
         if locals is None:
             locals = {}
@@ -762,8 +762,8 @@ class YTSelectionContainer3D(YTSelectionContainer):
 
         >>> ds = yt.load("RedshiftOutput0005")
         >>> ad = ds.all_data()
-        >>> cr = ad.exclude_above(('gas', 'temperature'), 1e6)
-        >>> print cr.quantities.total_quantity(("gas", "cell_mass")).in_units('Msun')
+        >>> cr = ad.exclude_above(("gas", "temperature"), 1e6)
+        >>> print(cr.quantities.total_quantity(("gas", "cell_mass")).in_units("Msun"))
 
         """
         return self._build_operator_cut("<=", field, value, units)
@@ -796,8 +796,8 @@ class YTSelectionContainer3D(YTSelectionContainer):
 
         >>> ds = yt.load("RedshiftOutput0005")
         >>> ad = ds.all_data()
-        >>> cr = ad.include_above(('gas', 'temperature'), 1e6)
-        >>> print cr.quantities.total_quantity(("gas", "cell_mass")).in_units('Msun')
+        >>> cr = ad.include_above(("gas", "temperature"), 1e6)
+        >>> print(cr.quantities.total_quantity(("gas", "cell_mass")).in_units("Msun"))
         """
 
         return self._build_operator_cut(">", field, value, units)
@@ -827,8 +827,8 @@ class YTSelectionContainer3D(YTSelectionContainer):
         --------
         >>> ds = yt.load("RedshiftOutput0005")
         >>> ad = ds.all_data()
-        >>> cr = ad.exclude_equal(('gas', 'temperature'), 1e6)
-        >>> print cr.quantities.total_quantity(("gas", "cell_mass")).in_units('Msun')
+        >>> cr = ad.exclude_equal(("gas", "temperature"), 1e6)
+        >>> print(cr.quantities.total_quantity(("gas", "cell_mass")).in_units("Msun"))
         """
         return self._build_operator_cut("!=", field, value, units)
 
@@ -857,8 +857,8 @@ class YTSelectionContainer3D(YTSelectionContainer):
         --------
         >>> ds = yt.load("RedshiftOutput0005")
         >>> ad = ds.all_data()
-        >>> cr = ad.include_equal(('gas', 'temperature'), 1e6)
-        >>> print cr.quantities.total_quantity(("gas", "cell_mass")).in_units('Msun')
+        >>> cr = ad.include_equal(("gas", "temperature"), 1e6)
+        >>> print(cr.quantities.total_quantity(("gas", "cell_mass")).in_units("Msun"))
         """
         return self._build_operator_cut("==", field, value, units)
 
@@ -888,8 +888,8 @@ class YTSelectionContainer3D(YTSelectionContainer):
         --------
         >>> ds = yt.load("RedshiftOutput0005")
         >>> ad = ds.all_data()
-        >>> cr = ad.exclude_inside(('gas', 'temperature'), 1e5, 1e6)
-        >>> print cr.quantities.total_quantity(("gas", "cell_mass")).in_units('Msun')
+        >>> cr = ad.exclude_inside(("gas", "temperature"), 1e5, 1e6)
+        >>> print(cr.quantities.total_quantity(("gas", "cell_mass")).in_units("Msun"))
         """
         ftype, fname = self._determine_fields(field)[0]
         if units is None:
@@ -932,8 +932,8 @@ class YTSelectionContainer3D(YTSelectionContainer):
         --------
         >>> ds = yt.load("RedshiftOutput0005")
         >>> ad = ds.all_data()
-        >>> cr = ad.include_inside(('gas', 'temperature'), 1e5, 1e6)
-        >>> print cr.quantities.total_quantity(("gas", "cell_mass")).in_units('Msun')
+        >>> cr = ad.include_inside(("gas", "temperature"), 1e5, 1e6)
+        >>> print(cr.quantities.total_quantity(("gas", "cell_mass")).in_units("Msun"))
         """
         ftype, fname = self._determine_fields(field)[0]
         if units is None:
@@ -975,8 +975,8 @@ class YTSelectionContainer3D(YTSelectionContainer):
         --------
         >>> ds = yt.load("RedshiftOutput0005")
         >>> ad = ds.all_data()
-        >>> cr = ad.exclude_outside(('gas', 'temperature'), 1e5, 1e6)
-        >>> print cr.quantities.total_quantity(("gas", "cell_mass")).in_units('Msun')
+        >>> cr = ad.exclude_outside(("gas", "temperature"), 1e5, 1e6)
+        >>> print(cr.quantities.total_quantity(("gas", "cell_mass")).in_units("Msun"))
         """
         cr = self.exclude_below(field, min_value, units)
         cr = cr.exclude_above(field, max_value, units)
@@ -1009,8 +1009,8 @@ class YTSelectionContainer3D(YTSelectionContainer):
         --------
         >>> ds = yt.load("RedshiftOutput0005")
         >>> ad = ds.all_data()
-        >>> cr = ad.exclude_outside(('gas', 'temperature'), 1e5, 1e6)
-        >>> print cr.quantities.total_quantity(("gas", "cell_mass")).in_units('Msun')
+        >>> cr = ad.exclude_outside(("gas", "temperature"), 1e5, 1e6)
+        >>> print(cr.quantities.total_quantity(("gas", "cell_mass")).in_units("Msun"))
         """
         cr = self.exclude_inside(field, min_value, max_value, units)
         return cr
@@ -1040,8 +1040,8 @@ class YTSelectionContainer3D(YTSelectionContainer):
         --------
         >>> ds = yt.load("RedshiftOutput0005")
         >>> ad = ds.all_data()
-        >>> cr = ad.exclude_below(('gas', 'temperature'), 1e6)
-        >>> print cr.quantities.total_quantity(("gas", "cell_mass")).in_units('Msun')
+        >>> cr = ad.exclude_below(("gas", "temperature"), 1e6)
+        >>> print(cr.quantities.total_quantity(("gas", "cell_mass")).in_units("Msun"))
         """
         return self._build_operator_cut(">=", field, value, units)
 
@@ -1067,8 +1067,8 @@ class YTSelectionContainer3D(YTSelectionContainer):
         --------
         >>> ds = yt.load("RedshiftOutput0005")
         >>> ad = ds.all_data()
-        >>> cr = ad.exclude_nan(('gas', 'temperature'))
-        >>> print cr.quantities.total_quantity(("gas", "cell_mass")).in_units('Msun')
+        >>> cr = ad.exclude_nan(("gas", "temperature"))
+        >>> print(cr.quantities.total_quantity(("gas", "cell_mass")).in_units("Msun"))
         """
         return self._build_function_cut("~np.isnan", field, units, locals={"np": np})
 
@@ -1098,8 +1098,8 @@ class YTSelectionContainer3D(YTSelectionContainer):
         --------
         >>> ds = yt.load("RedshiftOutput0005")
         >>> ad = ds.all_data()
-        >>> cr = ad.include_below(('gas', 'temperature'), 1e5, 1e6)
-        >>> print cr.quantities.total_quantity(("gas", "cell_mass")).in_units('Msun')
+        >>> cr = ad.include_below(("gas", "temperature"), 1e5, 1e6)
+        >>> print(cr.quantities.total_quantity(("gas", "cell_mass")).in_units("Msun"))
         """
         return self._build_operator_cut("<", field, value, units)
 
@@ -1152,9 +1152,11 @@ class YTSelectionContainer3D(YTSelectionContainer):
 
         >>> dd = ds.all_data()
         >>> rho = dd.quantities["WeightedAverageQuantity"](
-        ...     ("gas", "density"), weight=("gas", "cell_mass"))
-        >>> verts = dd.extract_isocontours(("gas", "density"), rho,
-        ...             "triangles.obj", True)
+        ...     ("gas", "density"), weight=("gas", "cell_mass")
+        ... )
+        >>> verts = dd.extract_isocontours(
+        ...     ("gas", "density"), rho, "triangles.obj", True
+        ... )
         """
         from yt.data_objects.static_output import ParticleDataset
         from yt.frontends.stream.data_structures import StreamParticlesDataset
@@ -1271,9 +1273,16 @@ class YTSelectionContainer3D(YTSelectionContainer):
 
         >>> dd = ds.all_data()
         >>> rho = dd.quantities["WeightedAverageQuantity"](
-        ...     ("gas", "density"), weight=("gas", "cell_mass"))
-        >>> flux = dd.calculate_isocontour_flux(("gas", "density"), rho,
-        ...     ("gas", "velocity_x"), ("gas", "velocity_y"), ("gas", "velocity_z"), ("gas", "metallicity)")
+        ...     ("gas", "density"), weight=("gas", "cell_mass")
+        ... )
+        >>> flux = dd.calculate_isocontour_flux(
+        ...     ("gas", "density"),
+        ...     rho,
+        ...     ("gas", "velocity_x"),
+        ...     ("gas", "velocity_y"),
+        ...     ("gas", "velocity_z"),
+        ...     ("gas", "metallicity"),
+        ... )
         """
         flux = 0.0
         for block, mask in self.blocks:

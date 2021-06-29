@@ -45,7 +45,6 @@ def setup():
 
 TEST_FLNMS = ["test.png"]
 M7 = "DD0010/moving7_0010"
-WT = "WindTunnel/windtunnel_4lev_hdf5_plt_cnt_0030"
 
 FPROPS = {"family": "sans-serif", "style": "italic", "weight": "bold", "size": 24}
 
@@ -63,7 +62,7 @@ ATTR_ARGS = {
     "set_cmap": [(("density", "RdBu"), {}), (("density", "kamae"), {})],
     "set_font": [((OrderedDict(sorted(FPROPS.items(), key=lambda t: t[0])),), {})],
     "set_log": [(("density", False), {})],
-    "set_window_size": [((7.0,), {})],
+    "set_figure_size": [((7.0,), {})],
     "set_zlim": [
         (("density", 1e-25, 1e-23), {}),
         (("density", 1e-25, None), {"dynamic_range": 4}),
@@ -188,29 +187,6 @@ def test_attributes():
                         callback_id=n,
                         callback_runners=r,
                     )
-
-
-@requires_ds(WT)
-def test_attributes_wt():
-    plot_field = ("gas", "density")
-    decimals = 12
-
-    ds = data_dir_load(WT)
-    ax = "z"
-    for attr_name in ATTR_ARGS.keys():
-        for args in ATTR_ARGS[attr_name]:
-            yield PlotWindowAttributeTest(ds, plot_field, ax, attr_name, args, decimals)
-            for n, r in CALLBACK_TESTS:
-                yield PlotWindowAttributeTest(
-                    ds,
-                    plot_field,
-                    ax,
-                    attr_name,
-                    args,
-                    decimals,
-                    callback_id=n,
-                    callback_runners=r,
-                )
 
 
 class TestHideAxesColorbar(unittest.TestCase):

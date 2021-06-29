@@ -45,7 +45,7 @@ class NotCartopy(NotAModule):
                 "package to be installed. Try installing proj4 and "
                 "geos with your package manager and building shapely "
                 "and cartopy from source with: \n \n "
-                "pip install --no-binary :all: shapely cartopy \n \n"
+                "python -m pip install --no-binary :all: shapely cartopy \n \n"
                 "For further instruction please refer to the "
                 "yt documentation." % self.pkg_name
             )
@@ -363,7 +363,7 @@ class h5py_imports:
             if LooseVersion(h5py.__version__) < LooseVersion("2.4.0"):
                 self._err = RuntimeError(
                     "yt requires h5py version 2.4.0 or newer, "
-                    'please update h5py with e.g. "pip install -U h5py" '
+                    "please update h5py with e.g. `python -m pip install -U h5py` "
                     "and try again"
                 )
         except ImportError:
@@ -586,7 +586,7 @@ class NotMiniball(NotAModule):
             "This functionality requires the %s package to be installed. "
             "Installation instructions can be found at "
             "https://github.com/weddige/miniball or alternatively you can "
-            "install via `pip install MiniballCpp`."
+            "install via `python -m pip install MiniballCpp`."
         )
         self.error = ImportError(str % self.pkg_name)
 

@@ -59,7 +59,7 @@ for ax in range(3):
 # .  Note that it cuts off after the shortest iterator is exhausted,
 # in this case, titles.
 titles = [
-    r"$\mathrm{Density}\ (\mathrm{g\ cm^{-3}})$",
+    r"$\mathrm{density}\ (\mathrm{g\ cm^{-3}})$",
     r"$\mathrm{temperature}\ (\mathrm{K})$",
 ]
 for p, cax, t in zip(plots, colorbars, titles):

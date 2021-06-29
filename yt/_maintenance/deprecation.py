@@ -40,10 +40,8 @@ def issue_deprecation_warning(msg, *, removal, since=None, stacklevel=3):
     Examples
     --------
     >>> issue_deprecation_warning(
-            "This code is deprecated.",
-            since="4.0.0",
-            removal="4.2.0"
-        )
+    ...     "This code is deprecated.", since="4.0.0", removal="4.2.0"
+    ... )
     """
     msg += "\n"
     if since is not None:

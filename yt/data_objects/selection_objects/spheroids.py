@@ -39,8 +39,8 @@ class YTSphere(YTSelectionContainer3D):
 
     >>> import yt
     >>> ds = yt.load("RedshiftOutput0005")
-    >>> c = [0.5,0.5,0.5]
-    >>> sphere = ds.sphere(c, (1., "kpc"))
+    >>> c = [0.5, 0.5, 0.5]
+    >>> sphere = ds.sphere(c, (1.0, "kpc"))
     """
 
     _type_name = "sphere"
@@ -88,7 +88,7 @@ class YTMinimalSphere(YTSelectionContainer3D):
 
     >>> import yt
     >>> ds = yt.load("output_00080/info_00080.txt")
-    >>> points = ds.r['particle_position']
+    >>> points = ds.r["particle_position"]
     >>> sphere = ds.minimal_sphere(points)
     """
 
@@ -149,7 +149,7 @@ class YTEllipsoid(YTSelectionContainer3D):
 
     >>> import yt
     >>> ds = yt.load("RedshiftOutput0005")
-    >>> c = [0.5,0.5,0.5]
+    >>> c = [0.5, 0.5, 0.5]
     >>> ell = ds.ellipsoid(c, 0.1, 0.1, 0.1, np.array([0.1, 0.1, 0.1]), 0.2)
     """
 

@@ -55,7 +55,7 @@ Additionally, if you only want to run a specific test in a test file (rather tha
 
     $ pytest yt/visualization/tests/test_plotwindow.py::test_all_fields
 
-from the yt source code rood directory.
+from the yt source code rood directory
 
 See the pytest documentation for more on how to `invoke pytest <https://docs.pytest.org/en/stable/usage.html?highlight=invocation>`_ and `select tests <https://docs.pytest.org/en/stable/usage.html#specifying-tests-selecting-tests>`_.
 
@@ -362,6 +362,36 @@ the answers. This way, we can avoid accidentally covering up test breakages.
 
 Handling yt Dependencies
 ------------------------
+
+Our dependencies are specified in ``setup.cfg``. Hard dependencies are found in
+``options.install_requires``, while optional dependencies are specified in
+``options.extras_require``. The ``full`` target contains the specs to run our
+test suite, which are intended to be as modern as possible (we don't set upper
+limits to versions unless we need to). The ``minimal`` target is used to check
+that we don't break backward compatibility with old versions of upstream
+projects by accident. It is intended to pin stricly our minimal supported
+versions. The ``test`` target specifies the tools neeed to run the tests, but
+not needed by yt itself.
+
+**Python version support.**
+When a new Python version is released, it takes about
+a month or two for yt to support it, since we're dependent on bigger projects
+like numpy and matplotlib. We vow to follow numpy's deprecation plan regarding
+our supported versions for Python and numpy, defined formally in `NEP 29
+<https://numpy.org/neps/nep-0029-deprecation_policy.html>`_. However, we try to
+avoid bumping our minimal requirements shortly before a yt release.
+
+**Third party dependencies.**
+However, sometimes a specific version of a project that yt depends on
+causes some breakage and must be blacklisted in the tests or a more
+experimental project that yt depends on optionally might change sufficiently
+that the yt community decides not to support an old version of that project.
+
+**Note.**
+Some of our optional dependencies are not trivial to install and their support
+may vary across platforms. To manage such issue, we currently use requirement
+files in additions to ``setup.cfg``. They are found in
+``tests/*requirements.txt`` and used in ``tests/ci_install.sh``.
 
 We attempt to make yt compatible with a wide variety of upstream software
 versions. However, sometimes a specific version of a project that yt depends on

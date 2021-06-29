@@ -116,9 +116,11 @@ class WeightedAverageQuantity(DerivedQuantity):
 
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
-    >>> print(ad.quantities.weighted_average_quantity([("gas", "density"),
-    ...                                                ("gas", "temperature")],
-    ...                                                ("gas", "mass")))
+    >>> print(
+    ...     ad.quantities.weighted_average_quantity(
+    ...         [("gas", "density"), ("gas", "temperature")], ("gas", "mass")
+    ...     )
+    ... )
 
     """
 
@@ -398,9 +400,11 @@ class WeightedStandardDeviation(DerivedQuantity):
 
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
-    >>> print(ad.quantities.weighted_standard_deviation([("gas", "density"),
-    ...                                                  ("gas", "temperature")],
-    ...                                                  ("gas", "mass")))
+    >>> print(
+    ...     ad.quantities.weighted_standard_deviation(
+    ...         [("gas", "density"), ("gas", "temperature")], ("gas", "mass")
+    ...     )
+    ... )
 
     """
 
@@ -493,16 +497,16 @@ class AngularMomentumVector(DerivedQuantity):
     Examples
     --------
 
-    # Find angular momentum vector of galaxy in grid-based isolated galaxy dataset
+    Find angular momentum vector of galaxy in grid-based isolated galaxy dataset
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
     >>> print(ad.quantities.angular_momentum_vector())
 
-    # Find angular momentum vector of gas disk in particle-based dataset
+    Find angular momentum vector of gas disk in particle-based dataset
     >>> ds = load("FIRE_M12i_ref11/snapshot_600.hdf5")
-    >>> _, c = ds.find_max(('gas', 'density'))
-    >>> sp = ds.sphere(c, (10, 'kpc'))
-    >>> search_args = dict(use_gas=False, use_particles=True, particle_type='PartType0')
+    >>> _, c = ds.find_max(("gas", "density"))
+    >>> sp = ds.sphere(c, (10, "kpc"))
+    >>> search_args = dict(use_gas=False, use_particles=True, particle_type="PartType0")
     >>> print(sp.quantities.angular_momentum_vector(**search_args))
 
     """
@@ -592,8 +596,7 @@ class Extrema(DerivedQuantity):
 
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
-    >>> print(ad.quantities.extrema([("gas", "density"),
-    ...                              ("gas", "temperature")]))
+    >>> print(ad.quantities.extrema([("gas", "density"), ("gas", "temperature")]))
 
     """
 

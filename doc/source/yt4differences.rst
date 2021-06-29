@@ -37,17 +37,25 @@ The list below is arranged in order of most to least important changes.
   with the growth of yt and its many derived fields, there can be sometimes
   be overlapping field names (e.g., ``("gas", "density")`` and
   ``("PartType0", "density")``, where yt doesn't know which to use.  To remove
-  any ambiguity, it is now strongly recommended to explicitly specify the full tuple form
-  of all fields. Just search for all field accesses in your scripts, and
-  replace strings with tuples (e.g. replace ``"a"``  with ``("gas", "a" )``).
-  There is a compatibility rule in yt-4.0 to allow strings to continue to work
-  until yt-4.1, but you may get unexpected behavior.  Any field specifications that are ambiguous will throw an error in future versions of yt.  See our :ref:`fields`,
-  and :ref:`available field list <available-fields>` documentation for more
-  information.
+  any ambiguity, it is now strongly recommended to explicitly specify the full
+  tuple form of all fields. Just search for all field accesses in your scripts,
+  and replace strings with tuples (e.g. replace ``"a"``  with
+  ``("gas", "a" )``).  There is a compatibility rule in yt-4.0 to allow strings
+  to continue to work until yt-4.1, but you may get unexpected behavior.  Any
+  field specifications that are ambiguous will throw an error in future
+  versions of yt.  See our :ref:`fields`, and :ref:`available field list
+  <available-fields>` documentation for more information.
 * **Use Newer Versions of Python**
   The yt-4.0 release will be the final release of yt to support Python 3.6.
   Starting with yt-4.1, python 3.6 will no longer be supported, so please
   start using 3.7+ as soon as possible.
+* **Particle-based datasets no longer accept n_ref and over_refine_factor**
+  One of the major upgrades in yt-4 is native treatment of particle-based
+  datasets.  This is in contrast to previous yt behavior which loaded particle-based
+  datasets as octrees, which could then be treated like grid-based datasets.
+  In order to define the octrees, users were required to specify ``n_ref``
+  and ``over_refine_factor`` values at load time.  Please remove
+  any reference to ``n_ref`` and ``over_refine_factor`` in your scripts.
 * **Neutral ion fields changing format**
   In previous versions, neutral ion fields were specified as
   ``ELEMENT_number_density`` (e.g., ``H_number_density`` to represent H I
@@ -64,7 +72,7 @@ The list below is arranged in order of most to least important changes.
   field was actually a field for kinetic energy density, and so it has been
   renamed to ``"gas", "kinetic_energy_density"``. The old name still exists
   as an alias as of yt v4.0.0, but it will be removed in yt v4.1.0. See
-  :ref:`deprecated_field_names` below for more information.
+  next item below for more information.
   Other examples include ``"gas", "specific_thermal_energy"`` for thermal
   energy per unit mass, and ``("gas", "momentum_density_x")`` for the x-axis
   component of momentum density. See :ref:`efields` for more information.
@@ -89,6 +97,11 @@ The list below is arranged in order of most to least important changes.
   ``cmo.`` (e.g., ``cmo.balance``).  Note that this solution works with any
   yt-supported version of Matplotlib, but is not backward compatible with
   earlier versions of yt.
+* Position and velocity fields now default to using linear scaling in profiles
+  and phase plots, whereas previously behavior was determined by whether the
+  dataset was particle- or grid-based.  Efforts have been made to standardize
+  the treatment of other fields in profile and phase plots for particle and
+  grid datasets.
 
 Important New Aliases
 ^^^^^^^^^^^^^^^^^^^^^
@@ -253,6 +266,8 @@ search (DFS) means that tree starts refining at the root node (this is the
 largest node which contains every particles) and refines as far as possible
 along each branch before backtracking.
 
+.. _yt-units-is-now-unyt:
+
 ``yt.units`` Is Now a Wrapper for ``unyt``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -348,5 +363,45 @@ You can also use alternate unit names in more complex algebraic unit expressions
 In this example the common british spelling ``"kilometre"`` is resolved to
 ``"km"`` and ``"hour"`` is resolved to ``"hr"``.
 
-API Changes
------------
+Field-Specific Configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You can now set configuration values on a per-field basis.  For instance, this
+means that if you always want a particular colormap associated with a particular
+field, you can do so!
+
+This is documented under :ref:`per-field-config`, and was added in `PR
+1931<https://github.com/yt-project/yt/pull/1931>`_.
+
+New Method for Accessing Sample Datasets
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+There is now a function entitled ``load_sample()`` that allows the user to
+automatically load sample data from the yt hub in a local yt session.
+Previously, users would have to explicitly download these data directly from
+`https://yt-project.org/data <https://yt-project.org/data>`_, unpackage them,
+and load them into a yt session, but now this occurs from within a python
+session.  For more information see:
+:ref:`Loading Sample Data <loading-sample-data>`
+
+Some Widgets
+^^^^^^^^^^^^
+
+In yt, we now have some simple display wrappers for objects if you are running
+in a Jupyter environment with the `ipywidgets
+<https://ipywidgets.readthedocs.io/>`_ package installed.  For instance, the
+``ds.fields`` object will now display field information in an interactive
+widget, and three-element unyt arrays (such as ``ds.domain_left_edge``) will be
+displayed interactively as well.
+
+The package `widgyts <https://widgyts.readthedocs.io>`_ provides interactive,
+yt-specific visualization of slices, projections, and additional dataset display
+information.
+
+New External Packages
+^^^^^^^^^^^^^^^^^^^^^
+
+As noted above (:ref:`yt-units-is-now-unyt`), unyt has been extracted from
+yt, and we now use it as an external library.  In addition, other parts of yt
+such as :ref:`interactive_data_visualization` have been extracted, and we are
+working toward a more modular approach for things such as Jupyter widgets and other "value-added" integrations.

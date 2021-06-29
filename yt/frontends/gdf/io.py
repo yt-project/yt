@@ -21,7 +21,6 @@ class IOHandlerGDFHDF5(BaseIOHandler):
     _data_string = "data:datatype=0"
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
-        from sys import version
 
         rv = {}
         chunks = list(chunks)
@@ -64,12 +63,9 @@ class IOHandlerGDFHDF5(BaseIOHandler):
                 if grid.filename is None:
                     continue
                 if fid is None:
-                    if version < "3":
-                        fid = h5py.h5f.open(grid.filename, h5py.h5f.ACC_RDONLY)
-                    else:
-                        fid = h5py.h5f.open(
-                            bytes(grid.filename, "utf-8"), h5py.h5f.ACC_RDONLY
-                        )
+                    fid = h5py.h5f.open(
+                        bytes(grid.filename, "utf-8"), h5py.h5f.ACC_RDONLY
+                    )
                 if self.ds.field_ordering == 1:
                     # check the dtype instead
                     data = np.empty(grid.ActiveDimensions[::-1], dtype="float64")
@@ -79,12 +75,9 @@ class IOHandlerGDFHDF5(BaseIOHandler):
                     data_view = data = np.empty(grid.ActiveDimensions, dtype="float64")
                 for field in fields:
                     ftype, fname = field
-                    if version < "3":
-                        dg = h5py.h5d.open(fid, _field_dname(grid.id, fname))
-                    else:
-                        dg = h5py.h5d.open(
-                            fid, bytes(_field_dname(grid.id, fname), "utf-8")
-                        )
+                    dg = h5py.h5d.open(
+                        fid, bytes(_field_dname(grid.id, fname), "utf-8")
+                    )
                     dg.read(h5py.h5s.ALL, h5py.h5s.ALL, data)
                     # caches
                     nd = grid.select(selector, data_view, rv[field], ind)

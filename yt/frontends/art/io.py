@@ -70,7 +70,7 @@ class IOHandlerART(BaseIOHandler):
         if key in self.masks.keys() and self.caching:
             return self.masks[key]
         pstr = "particle_position_%s"
-        x, y, z = [self._get_field((ftype, pstr % ax)) for ax in "xyz"]
+        x, y, z = (self._get_field((ftype, pstr % ax)) for ax in "xyz")
         mask = selector.select_points(x, y, z, 0.0)
         if self.caching:
             self.masks[key] = mask

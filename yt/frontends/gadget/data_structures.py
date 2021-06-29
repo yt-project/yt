@@ -7,7 +7,7 @@ import numpy as np
 from yt.data_objects.static_output import ParticleFile
 from yt.frontends.sph.data_structures import SPHDataset, SPHParticleIndex
 from yt.funcs import only_on_root
-from yt.utilities.chemical_formulas import default_mu
+from yt.utilities.chemical_formulas import compute_mu
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.fortran_utils import read_record
 from yt.utilities.logger import ytLogger as mylog
@@ -239,6 +239,7 @@ class GadgetDataset(SPHDataset):
         use_dark_factor=False,
         w_0=-1.0,
         w_a=0.0,
+        default_species_fields=None,
     ):
         if self._instantiated:
             return
@@ -267,7 +268,7 @@ class GadgetDataset(SPHDataset):
                 "Otherwise something is wrong, "
                 "and you might want to check how the dataset is loaded. "
                 "Futher information about header specification can be found in "
-                "https://yt-project.org/docs/dev/examining/loading_data.html#header-specification.",  # NOQA E501
+                "https://yt-project.org/docs/dev/examining/loading_data.html#header-specification.",
                 header_size,
             )
         self._field_spec = self._setup_binary_spec(field_spec, gadget_field_specs)
@@ -313,6 +314,7 @@ class GadgetDataset(SPHDataset):
             index_filename=index_filename,
             kdtree_filename=kdtree_filename,
             kernel_name=kernel_name,
+            default_species_fields=default_species_fields,
         )
         if self.cosmological_simulation:
             self.time_unit.convert_to_units("s/h")
@@ -323,7 +325,7 @@ class GadgetDataset(SPHDataset):
             self.length_unit.convert_to_units("kpc")
             self.mass_unit.convert_to_units("Msun")
         if mean_molecular_weight is None:
-            self.mu = default_mu
+            self.mu = compute_mu(self.default_species_fields)
         else:
             self.mu = mean_molecular_weight
 
@@ -576,6 +578,7 @@ class GadgetHDF5Dataset(GadgetDataset):
         bounding_box=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
         self.storage_filename = None
         filename = os.path.abspath(filename)
@@ -593,6 +596,7 @@ class GadgetHDF5Dataset(GadgetDataset):
             kernel_name=kernel_name,
             bounding_box=bounding_box,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
 
     def _get_hvals(self):

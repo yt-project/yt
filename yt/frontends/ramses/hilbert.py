@@ -6,9 +6,9 @@ def hilbert3d(X, bit_length):
 
     Arguments
     ---------
-    * X: (N, ndim) float array
+    X : (N, ndim) float array
       The positions
-    * bit_length: integer
+    bit_length : integer
       The bit_length for the indexing.
     """
     X = np.atleast_2d(X)
@@ -213,9 +213,9 @@ def hilbert3d(X, bit_length):
         .T
     )
 
-    x_bit_mask, y_bit_mask, z_bit_mask = [
+    x_bit_mask, y_bit_mask, z_bit_mask = (
         np.zeros(bit_length, dtype=bool) for _ in range(3)
-    ]
+    )
     i_bit_mask = np.zeros(3 * bit_length, dtype=bool)
 
     npoint = X.shape[0]
@@ -266,9 +266,9 @@ def get_cpu_list(ds, X):
 
     Parameters
     ----------
-    * ds: Dataset
+    ds : Dataset
       The dataset containing the information
-    * X: (N, ndim) float array
+    X : (N, ndim) float array
       An array containing positions. They should be between 0 and 1.
     """
     X = np.atleast_2d(X)
@@ -308,7 +308,7 @@ def get_cpu_list(ds, X):
     if bit_length > 0:
         ndom = 8
 
-    idom, jdom, kdom = [np.zeros(8, dtype="int64") for _ in range(3)]
+    idom, jdom, kdom = (np.zeros(8, dtype="int64") for _ in range(3))
 
     idom[0], idom[1] = imin, imax
     idom[2], idom[3] = imin, imax
@@ -338,7 +338,7 @@ def get_cpu_list(ds, X):
     for icpu in range(1, ncpu + 1):
         bound_key[icpu - 1], bound_key[icpu] = ds.hilbert_indices[icpu]
 
-    cpu_min, cpu_max = [np.zeros(ncpu + 1, dtype="int64") for _ in range(2)]
+    cpu_min, cpu_max = (np.zeros(ncpu + 1, dtype="int64") for _ in range(2))
     for icpu in range(1, ncpu + 1):
         for i in range(ndom):
             if (

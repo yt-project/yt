@@ -39,7 +39,10 @@ from yt.utilities.on_demand_imports import _requests as requests
 def is_sequence(obj):
     """
     Grabbed from Python Cookbook / matplotlib.cbook.  Returns true/false for
-    *obj* iterable.
+
+    Parameters
+    ----------
+    obj : iterable
     """
     try:
         len(obj)
@@ -56,7 +59,7 @@ def iter_fields(field_or_fields):
 
     Parameters
     ----------
-    obj: str, tuple(str, str), or any iterable of the previous types.
+    field_or_fields: str, tuple(str, str), or any iterable of the previous types.
 
     Examples
     --------
@@ -165,7 +168,7 @@ def get_memory_usage(subtract_share=False):
     if not os.path.isfile(status_file):
         return -1024
     line = open(status_file).read()
-    size, resident, share, text, library, data, dt = [int(i) for i in line.split()]
+    size, resident, share, text, library, data, dt = (int(i) for i in line.split())
     if subtract_share:
         resident -= share
     return resident * pagesize / (1024 * 1024)  # return in megs
@@ -200,11 +203,9 @@ def print_tb(func):
 
     This can be used like so:
 
-    .. code-block:: python
-
-       @print_tb
-       def some_deeply_nested_function(*args, **kwargs):
-           ...
+    >>> @print_tb
+    ... def some_deeply_nested_function(*args, **kwargs):
+    ...     ...
 
     """
 
@@ -248,11 +249,9 @@ def pdb_run(func):
 
     This can be used like so:
 
-    .. code-block:: python
-
-       @pdb_run
-       def some_function_to_debug(*args, **kwargs):
-           ...
+    >>> @pdb_run
+    ... def some_function_to_debug(*args, **kwargs):
+    ...     ...
 
     """
 
@@ -449,12 +448,12 @@ def paste_traceback_detailed(exc_type, exc, tb):
     print()
 
 
-_ss = "fURbBUUBE0cLXgETJnZgJRMXVhVGUQpQAUBuehQMUhJWRFFRAV1ERAtBXw1dAxMLXT4zXBFfABNN\nC0ZEXw1YUURHCxMXVlFERwxWCQw=\n"  # NOQA 501
+_ss = "fURbBUUBE0cLXgETJnZgJRMXVhVGUQpQAUBuehQMUhJWRFFRAV1ERAtBXw1dAxMLXT4zXBFfABNN\nC0ZEXw1YUURHCxMXVlFERwxWCQw=\n"
 
 
 def _rdbeta(key):
     enc_s = base64.decodestring(_ss)
-    dec_s = "".join([chr(ord(a) ^ ord(b)) for a, b in zip(enc_s, itertools.cycle(key))])
+    dec_s = "".join(chr(ord(a) ^ ord(b)) for a, b in zip(enc_s, itertools.cycle(key)))
     print(dec_s)
 
 
@@ -477,7 +476,7 @@ def update_git(path):
     except ImportError:
         print("Updating and precise version information requires ")
         print("gitpython to be installed.")
-        print("Try: pip install gitpython")
+        print("Try: python -m pip install gitpython")
         return -1
     with open(os.path.join(path, "yt_updater.log"), "a") as f:
         repo = git.Repo(path)
@@ -548,7 +547,7 @@ def get_git_version(path):
     except ImportError:
         print("Updating and precise version information requires ")
         print("gitpython to be installed.")
-        print("Try: pip install gitpython")
+        print("Try: python -m pip install gitpython")
         return None
     try:
         repo = git.Repo(path)
@@ -691,11 +690,10 @@ def parallel_profile(prefix):
 
     >>> from yt import PhasePlot
     >>> from yt.testing import fake_random_ds
-    ...
-    >>> fields = ('density', 'temperature', 'cell_mass')
-    >>> units = ('g/cm**3', 'K', 'g')
+    >>> fields = ("density", "temperature", "cell_mass")
+    >>> units = ("g/cm**3", "K", "g")
     >>> ds = fake_random_ds(16, fields=fields, units=units)
-    >>> with parallel_profile('my_profile'):
+    >>> with parallel_profile("my_profile"):
     ...     plot = PhasePlot(ds.all_data(), *fields)
     """
     import cProfile
@@ -843,7 +841,7 @@ def memory_checker(interval=15, dest=None):
     --------
 
     >>> with memory_checker(10):
-    ...     arr = np.zeros(1024*1024*1024, dtype="float64")
+    ...     arr = np.zeros(1024 * 1024 * 1024, dtype="float64")
     ...     time.sleep(15)
     ...     del arr
     MEMORY: -1.000e+00 gb
@@ -968,7 +966,7 @@ def get_hash(infile, algorithm="md5", BLOCKSIZE=65536):
     --------
     >>> from tempfile import NamedTemporaryFile
     >>> with NamedTemporaryFile() as file:
-    ...    get_hash(file.name)
+    ...     get_hash(file.name)
     'd41d8cd98f00b204e9800998ecf8427e'
     """
     import hashlib
@@ -1157,14 +1155,14 @@ def validate_float(obj):
     --------
     >>> validate_float(1)
     >>> validate_float(1.50)
-    >>> validate_float(YTQuantity(1,"cm"))
-    >>> validate_float((1,"cm"))
+    >>> validate_float(YTQuantity(1, "cm"))
+    >>> validate_float((1, "cm"))
     >>> validate_float([1, 1, 1])
     Traceback (most recent call last):
     ...
     TypeError: Expected a numeric value (or size-1 array), received 'list' of length 3
 
-    >>> validate_float([YTQuantity(1, "cm"), YTQuantity(2,"cm")])
+    >>> validate_float([YTQuantity(1, "cm"), YTQuantity(2, "cm")])
     Traceback (most recent call last):
     ...
     TypeError: Expected a numeric value (or size-1 array), received 'list' of length 2
@@ -1273,3 +1271,58 @@ def dictWithFactory(factory: Callable[[Any], Any]) -> Type:
             return val
 
     return DictWithFactory
+
+
+def levenshtein_distance(seq1, seq2, max_dist=None):
+    """
+    Compute the levenshtein distance between seq1 and seq2.
+    From https://stackabuse.com/levenshtein-distance-and-text-similarity-in-python/
+
+    Parameters
+    ----------
+    seq1 : str
+    seq2 : str
+        The strings to compute the distance between
+    max_dist : integer
+        If not None, maximum distance returned (see notes).
+
+    Returns
+    -------
+    The Levensthein distance as an integer.
+
+    Notes
+    -----
+    This computes the Levenshtein distance, i.e. the number of edits to change
+    seq1 into seq2. If a maximum distance is passed, the algorithm will stop as soon
+    as the number of edits goes above the value. This allows for an earlier break
+    and speeds calculations up.
+    """
+    size_x = len(seq1) + 1
+    size_y = len(seq2) + 1
+    if max_dist is None:
+        max_dist = max(size_x, size_y)
+
+    if abs(size_x - size_y) > max_dist:
+        return max_dist + 1
+    matrix = np.zeros((size_x, size_y), dtype=int)
+    for x in range(size_x):
+        matrix[x, 0] = x
+    for y in range(size_y):
+        matrix[0, y] = y
+
+    for x in range(1, size_x):
+        for y in range(1, size_y):
+            if seq1[x - 1] == seq2[y - 1]:
+                matrix[x, y] = min(
+                    matrix[x - 1, y] + 1, matrix[x - 1, y - 1], matrix[x, y - 1] + 1
+                )
+            else:
+                matrix[x, y] = min(
+                    matrix[x - 1, y] + 1, matrix[x - 1, y - 1] + 1, matrix[x, y - 1] + 1
+                )
+
+        # Early break: the minimum distance is already larger than
+        # maximum allow value, can return safely.
+        if matrix[x].min() > max_dist:
+            return max_dist + 1
+    return matrix[size_x - 1, size_y - 1]

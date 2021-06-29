@@ -1,7 +1,7 @@
 import yt
 
 ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
-p = yt.ProjectionPlot(ds, "z", "density")
+p = yt.ProjectionPlot(ds, "z", ("gas", "density"))
 p.annotate_sphere([0.54, 0.72], radius=(1, "Mpc"), coord_system="axis", text="Halo #7")
 p.annotate_sphere(
     [0.65, 0.38, 0.3],

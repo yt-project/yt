@@ -25,7 +25,7 @@ from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.data_objects.static_output import Dataset
 from yt.data_objects.time_series import SimulationTimeSeries
-from yt.funcs import get_pbar
+from yt.funcs import get_pbar, get_yt_version
 from yt.loaders import load, load_simulation
 from yt.testing import (
     assert_allclose_units,
@@ -33,7 +33,6 @@ from yt.testing import (
     assert_equal,
     assert_rel_equal,
 )
-from yt.utilities.command_line import get_yt_version
 from yt.utilities.exceptions import YTCloudError, YTNoAnswerNameSpecified, YTNoOldAnswer
 from yt.utilities.logger import disable_stream_logging
 from yt.visualization import (
@@ -1219,11 +1218,13 @@ def big_patch_amr(ds_fn, fields, input_center="max", input_weight=("gas", "densi
                     )
 
 
-def _particle_answers(ds, ds_str_repr, ds_nparticles, fields, proj_test_class):
+def _particle_answers(
+    ds, ds_str_repr, ds_nparticles, fields, proj_test_class, center="c"
+):
     if not can_run_ds(ds):
         return
     assert_equal(str(ds), ds_str_repr)
-    dso = [None, ("sphere", ("c", (0.1, "unitary")))]
+    dso = [None, ("sphere", (center, (0.1, "unitary")))]
     dd = ds.all_data()
     # this needs to explicitly be "all"
     assert_equal(dd["all", "particle_position"].shape, (ds_nparticles, 3))
@@ -1240,15 +1241,25 @@ def _particle_answers(ds, ds_str_repr, ds_nparticles, fields, proj_test_class):
             yield FieldValuesTest(ds, field, dobj_name, particle_type=particle_type)
 
 
-def nbody_answer(ds, ds_str_repr, ds_nparticles, fields):
+def nbody_answer(ds, ds_str_repr, ds_nparticles, fields, center="c"):
     return _particle_answers(
-        ds, ds_str_repr, ds_nparticles, fields, PixelizedParticleProjectionValuesTest
+        ds,
+        ds_str_repr,
+        ds_nparticles,
+        fields,
+        PixelizedParticleProjectionValuesTest,
+        center=center,
     )
 
 
-def sph_answer(ds, ds_str_repr, ds_nparticles, fields):
+def sph_answer(ds, ds_str_repr, ds_nparticles, fields, center="c"):
     return _particle_answers(
-        ds, ds_str_repr, ds_nparticles, fields, PixelizedProjectionValuesTest
+        ds,
+        ds_str_repr,
+        ds_nparticles,
+        fields,
+        PixelizedProjectionValuesTest,
+        center=center,
     )
 
 

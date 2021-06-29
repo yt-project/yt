@@ -167,6 +167,9 @@ dimensions:
 
    ds.r[0.4:0.6]
 
+
+.. _arbitrary-grid-selection:
+
 Selecting Fixed Resolution Regions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -232,7 +235,7 @@ domain but centered at 0.5 in code units, you can do:
 
    frb = ds.r[0.5, ::1024j, ::1024j]
 
-This `frb` object then can be queried like a normal fixed resolution buffer,
+This ``frb`` object then can be queried like a normal fixed resolution buffer,
 and it will return arrays of shape (1024, 1024).
 
 Making Rays

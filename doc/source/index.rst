@@ -188,6 +188,7 @@ Table of Contents
    intro/index
    installing
    yt Quickstart <quickstart/index>
+   yt4differences
    yt3differences
    cookbook/index
    visualizing/index
@@ -195,7 +196,6 @@ Table of Contents
    analyzing/domain_analysis/index
    examining/index
    developing/index
-   sharing_data
    reference/index
    faq/index
    Getting Help <help/index>

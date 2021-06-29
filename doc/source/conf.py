@@ -251,12 +251,12 @@ man_pages = [("index", "yt", "yt Documentation", ["The yt Project"], 1)]
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
-    "python": ("https://docs.python.org/3/", None),
-    "ipython": ("https://ipython.readthedocs.io/en/stable/", None),
-    "numpy": ("https://numpy.org/doc/stable", None),
-    "matplotlib": ("https://matplotlib.org/stable/", None),
-    "astropy": ("https://docs.astropy.org/en/stable", None),
-    "pandas": ("https://pandas.pydata.org/pandas-docs/stable", None),
+    "https://docs.python.org/3/": None,
+    "https://ipython.readthedocs.io/en/stable/": None,
+    "https://numpy.org/doc/stable/": None,
+    "https://matplotlib.org/stable/": None,
+    "https://docs.astropy.org/en/stable": None,
+    "https://pandas.pydata.org/pandas-docs/stable": None,
     "trident": ("https://trident.readthedocs.io/en/latest/", None),
     "yt_astro_analysis": ("https://yt-astro-analysis.readthedocs.io/en/latest/", None),
     "yt_attic": ("https://yt-attic.readthedocs.io/en/latest/", None),
@@ -266,7 +266,6 @@ intersphinx_mapping = {
 if not on_rtd:
     autosummary_generate = glob.glob("reference/api/api.rst")
 
-# as of Sphinx/1.6.1 this is the supported way to link custom style sheets
-#   see: https://github.com/ryan-roemer/sphinx-bootstrap-theme#adding-custom-css
+# as of Sphinx 3.1.2 this is the supported way to link custom style sheets
 def setup(app):
-    app.add_stylesheet("custom.css")
+    app.add_css_file("custom.css")

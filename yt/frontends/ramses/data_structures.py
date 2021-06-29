@@ -565,7 +565,7 @@ class RAMSESIndex(OctreeIndex):
             yield YTDataChunk(dobj, "io", [subset], None, cache=cache)
 
     def _initialize_level_stats(self):
-        levels = sum([dom.level_count for dom in self.domains])
+        levels = sum(dom.level_count for dom in self.domains)
         desc = {"names": ["numcells", "level"], "formats": ["int64"] * 2}
         max_level = self.dataset.min_level + self.dataset.max_level + 2
         self.level_stats = blankRecordArray(desc, max_level)
@@ -655,6 +655,7 @@ class RAMSESDataset(Dataset):
         bbox=None,
         max_level=None,
         max_level_convention=None,
+        default_species_fields=None,
     ):
         # Here we want to initiate a traceback, if the reader is not built.
         if isinstance(fields, str):
@@ -710,6 +711,7 @@ class RAMSESDataset(Dataset):
             dataset_type,
             units_override=units_override,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
 
         # Add the particle types
