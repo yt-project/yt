@@ -116,10 +116,10 @@ class SDFDataset(ParticleDataset):
         self.domain_dimensions = np.ones(3, "int32")
         if "do_periodic" in self.parameters and self.parameters["do_periodic"]:
             self._periodicity = (True, True, True)
+            if getattr(self, "_domain_override", False):
+                self._disable_periodicity_for_bbox()
         else:
             self._periodicity = (False, False, False)
-        if self._domain_override:
-            self._disable_periodicity_for_bbox()
 
         self.cosmological_simulation = 1
 
