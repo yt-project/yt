@@ -2,9 +2,8 @@
 # See https://github.com/scipy/scipy/pull/10431 for the AIX issue.
 requires = [
   "setuptools>=19.6",
-  "wheel",
-
-  # keep in sync with travis.yml "minimal" specs (Cython and numpy for py36)
+  # see https://github.com/numpy/numpy/pull/18389
+  "wheel>=0.36.2",
 
   # cython version is imposed by that of numpy, see release notes
   # https://github.com/numpy/numpy/releases/tag/v1.19.2
