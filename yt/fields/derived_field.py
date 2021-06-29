@@ -218,6 +218,10 @@ class DerivedField:
         return is_sph_field
 
     @property
+    def particle_type(self):
+        return self.sampling_type == "particle"
+
+    @property
     def local_sampling(self):
         return self.sampling_type in ("discrete", "particle", "local")
 
