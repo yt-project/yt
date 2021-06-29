@@ -15,7 +15,7 @@
 [![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
 <!--- [![codecov](https://codecov.io/gh/yt-project/yt/branch/main/graph/badge.svg)](https://codecov.io/gh/yt-project/yt) --->
 
-<a href="http://yt-project.org"><img src="doc/source/_static/yt_logo.png" width="300"></a>
+<a href="http://yt-project.org"><img src="https://raw.githubusercontent.com/yt-project/yt/main/doc/source/_static/yt_logo.png" width="300"></a>
 
 yt is an open-source, permissively-licensed python package for analyzing and
 visualizing volumetric data.
