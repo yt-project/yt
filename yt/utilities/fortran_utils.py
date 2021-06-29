@@ -189,12 +189,10 @@ def read_vector(f, d, endian="="):
             vec_size,
         )
     vec_num = int(vec_len / vec_size)
-    if isinstance(f, io.TextIOBase):
-        tr = np.fromfile(f, vec_fmt, count=vec_num)
-    elif isinstance(f, io.BufferedIOBase):
+    if isinstance(f, io.IOBase):
         tr = np.frombuffer(f.read(vec_len), vec_fmt, count=vec_num)
     else:
-        raise TypeError(f"Expected a file object, got '{f}' with type '{type(f)}'.")
+        tr = np.frombuffer(f, vec_fmt, count=vec_num)
     vec_len2 = struct.unpack(pad_fmt, f.read(pad_size))[0]
     if vec_len != vec_len2:
         raise OSError(
