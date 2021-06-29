@@ -11,7 +11,7 @@ Oct container tuned for Particles
 """
 
 
-from libc.math cimport ceil, floor, fmod
+from libc.math cimport ceil, floor, fmod, log2
 from libc.stdlib cimport free, malloc, qsort
 from libc.string cimport memset
 from libcpp.map cimport map as cmap
@@ -460,6 +460,7 @@ cdef class ParticleBitmap:
     cdef np.uint64_t file_marker_i
     cdef public FileBitmasks bitmasks
     cdef public BoolArrayCollection collisions
+    cdef public int _used_mi2
 
     def __init__(self, left_edge, right_edge, periodicity, file_hash, nfiles,
                  index_order1, index_order2):
@@ -482,14 +483,10 @@ cdef class ParticleBitmap:
             self.dds[i] = (right_edge[i] - left_edge[i])/self.dims[i]
             self.idds[i] = 1.0/self.dds[i]
             self.dds_mi1[i] = (right_edge[i] - left_edge[i]) / (1<<index_order1)
-            self.dds_mi2[i] = self.dds_mi1[i] / (1<<index_order2)
         # We use 64-bit masks
+        self._used_mi2 = 0
         self.index_order1 = index_order1
-        self.index_order2 = index_order2
-        mi2_max = (1 << self.index_order2) - 1
-        self.directional_max2[0] = encode_morton_64bit(mi2_max, 0, 0)
-        self.directional_max2[1] = encode_morton_64bit(0, mi2_max, 0)
-        self.directional_max2[2] = encode_morton_64bit(0, 0, mi2_max)
+        self._update_mi2(index_order2)
         # This will be an on/off flag for which morton index values are touched
         # by particles.
         # This is the simple way, for now.
@@ -503,6 +500,39 @@ cdef class ParticleBitmap:
 
     def _bitmask_intersects(self, ifile, bcoll):
         return self.bitmasks._intersects(ifile, bcoll)
+
+    def update_mi2(self, np.float64_t characteristic_size,
+                   np.uint64_t max_index_order2 = 6):
+        """
+        mi2 is the *refined* morton index order; mi2 is thus the definition of
+        the size of the refined index objects we stick inside any collisions at
+        the coarse level.  This takes a characteristic size and attempts to
+        compute the mi2 such that the cell is roughly equivalent to the
+        characteristic size.  It will return whether or not it was able to
+        update; if the mi2 has already been used, it does not update.
+        There are cases where the maximum index_order2 that it would compute
+        would be extremely fine, which can do really bad things to memory.  So
+        we allow the setting of a maximum value, which it won't exceed.
+        """
+        if self._used_mi2 > 0:
+            return self.index_order2
+        cdef np.uint64_t index_order2 = 2
+        for i in range(3):
+            # Note we're casting to signed here, to avoid negative issues.
+            if self.dds_mi1[i] < characteristic_size: continue
+            index_order2 = max(index_order2, <np.uint64_t> ceil(log2(self.dds_mi1[i] / characteristic_size)))
+        index_order2 = i64min(max_index_order2, index_order2)
+        self._update_mi2(index_order2)
+        return self.index_order2
+
+    cdef void _update_mi2(self, np.uint64_t index_order2):
+        self.index_order2 = index_order2
+        mi2_max = (1 << self.index_order2) - 1
+        self.directional_max2[0] = encode_morton_64bit(mi2_max, 0, 0)
+        self.directional_max2[1] = encode_morton_64bit(0, mi2_max, 0)
+        self.directional_max2[2] = encode_morton_64bit(0, 0, mi2_max)
+        for i in range(3):
+            self.dds_mi2[i] = self.dds_mi1[i] / (1<<index_order2)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -646,6 +676,7 @@ cdef class ParticleBitmap:
                                  np.uint64_t file_id, np.int64_t nsub_mi,
                                  np.uint64_t count_threshold = 128,
                                  np.uint8_t mask_threshold = 2):
+        self._used_mi2 = 1
         if in_collection is None:
             in_collection = BoolArrayCollection()
         cdef BoolArrayCollection _in_coll = in_collection
