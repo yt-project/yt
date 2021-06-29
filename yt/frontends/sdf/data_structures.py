@@ -57,7 +57,6 @@ class SDFDataset(ParticleDataset):
                 bbox = bbox.transpose()
             self.domain_left_edge = bbox[:, 0]
             self.domain_right_edge = bbox[:, 1]
-            self._disable_periodicity_for_bbox()
         else:
             self.domain_left_edge = self.domain_right_edge = None
         self.sdf_header = sdf_header
@@ -119,6 +118,8 @@ class SDFDataset(ParticleDataset):
             self._periodicity = (True, True, True)
         else:
             self._periodicity = (False, False, False)
+        if self._domain_override:
+            self._disable_periodicity_for_bbox()
 
         self.cosmological_simulation = 1
 
