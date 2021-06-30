@@ -270,7 +270,10 @@ class AMRGridPatch(YTSelectionContainer):
         return cube
 
     def get_vertex_centered_data(
-        self, fields: List[Tuple[str, str]], smoothed: bool=True, no_ghost: bool=False
+        self,
+        fields: List[Tuple[str, str]],
+        smoothed: bool = True,
+        no_ghost: bool = False,
     ):
         _old_api = isinstance(fields, (str, tuple))
         if _old_api:
