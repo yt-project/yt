@@ -29,7 +29,7 @@ Geometric Data Containers
 Data from geometric data containers can be saved with the
 :func:`~yt.data_objects.data_containers.YTDataContainer.save_as_dataset` function.
 
-.. code-block:: python
+.. notebook-cell::
 
    import yt
 
