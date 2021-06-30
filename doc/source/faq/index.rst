@@ -328,7 +328,7 @@ end. That way the data will always be ordered correctly. As an example you can:
 
     my_ray = ds.ray(...)
     ray_sort = np.argsort(my_ray["t"])
-    density = my_ray[("gas", "density")][ray_sort]
+    density = my_ray["gas", "density"][ray_sort]
 
 There is also a full example in the :ref:`manual-line-plots` section of the
 docs.

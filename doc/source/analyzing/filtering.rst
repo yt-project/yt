@@ -56,15 +56,15 @@ set a simple mask based on the contents of one of our fields.
 
     ds = yt.load("Enzo_64/DD0042/data0042")
     ad = ds.all_data()
-    hot = ad[("gas", "temperature")].in_units("K") > 1e6
+    hot = ad["gas", "temperature"].in_units("K") > 1e6
     print(
-        'Temperature of all data: ad[("gas", "temperature")] = \n%s'
-        % ad[("gas", "temperature")]
+        'Temperature of all data: ad["gas", "temperature"] = \n%s'
+        % ad["gas", "temperature"]
     )
     print("Boolean Mask: hot = \n%s" % hot)
     print(
-        'Temperature of "hot" data: ad[("gas", "temperature")][hot] = \n%s'
-        % ad[("gas", "temperature")][hot]
+        'Temperature of "hot" data: ad["gas", "temperature"][hot] = \n%s'
+        % ad["gas", "temperature"][hot]
     )
 
 This was a simple example, but one can make the conditionals that define
@@ -79,13 +79,13 @@ used if you simply need to access the NumPy arrays:
     ds = yt.load("Enzo_64/DD0042/data0042")
     ad = ds.all_data()
     overpressure_and_fast = (
-        (ad["pressure"] > 1e-14) &
-        (ad["velocity_magnitude"].in_units("km/s") > 1e2)
+        (ad["gas", "pressure"] > 1e-14) &
+        (ad["gas", "velocity_magnitude"].in_units("km/s") > 1e2)
     )
-    density = ad[("gas", "density")]
-    print('Density of all data: ad[("gas", "density")] = \n%s' % density)
+    density = ad["gas", "density"]
+    print('Density of all data: ad["gas", "density"] = \n%s' % density)
     print(
-        'Density of "overpressure and fast" data: overpressure_and_fast[("gas", "density")] = \n%s'
+        'Density of "overpressure and fast" data: overpressure_and_fast["gas", "density"] = \n%s'
         % density[overpressure_and_fast]
     )
 
@@ -117,10 +117,10 @@ filtering out unwanted regions. Such wrapper functions are methods of
        ("gas", "velocity_magnitude"), 1e2, "km/s"
    )
 
-   print('Density of all data: ad[("gas", "density")] = \n%s' % ad[("gas", "density")])
+   print('Density of all data: ad["gas", "density"] = \n%s' % ad["gas", "density"])
    print(
-       'Density of "overpressure and fast" data: overpressure_and_fast[("gas", "density")] = \n%s'
-       % overpressure_and_fast[("gas", "density")]
+       'Density of "overpressure and fast" data: overpressure_and_fast["gas", "density"] = \n%s'
+       % overpressure_and_fast["gas", "density"]
    )
 
 The following exclude and include functions are supported:

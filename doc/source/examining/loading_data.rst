@@ -533,7 +533,7 @@ to the z direction.
     print(ad["raw", "Ex"].shape)
     print(ds.field_info[("raw", "Bx")].nodal_flag)
     print(ad["raw", "Bx"].shape)
-    print(ds.field_info[("raw", "Bx")].nodal_flag)
+    print(ds.field_info["raw", "Bx"].nodal_flag)
     print(ad["raw", "Bx"].shape)
 
 Here, the field ``('raw', 'Ex')`` is nodal in two directions, so four values per cell
@@ -2716,10 +2716,10 @@ It is possible to provide extra arguments to the load function when loading RAMS
           ds.right_edge == [1, 1, 1]  # is True
 
           ad = ds.all_data()
-          ad[("all", "particle_position_x")].max() > 0.1  # _may_ be True
+          ad["all", "particle_position_x"].max() > 0.1  # _may_ be True
 
           bb = ds.box(left_edge=bbox[0], right_edge=bbox[1])
-          bb[("all", "particle_position_x")].max() < 0.1  # is True
+          bb["all", "particle_position_x"].max() < 0.1  # is True
 
       .. note::
          When using the bbox argument, yt will read all the CPUs
