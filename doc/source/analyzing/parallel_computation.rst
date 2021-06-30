@@ -19,8 +19,7 @@ Currently, yt is able to perform the following actions in parallel:
 * Slices (:ref:`slice-plots`)
 * Cutting planes (oblique slices) (:ref:`off-axis-slices`)
 * Covering grids (:ref:`examining-grid-data-in-a-fixed-resolution-array`)
-* Derived Quantities (total mass, angular momentum, etc) (:ref:`creating_derived_quantities`,
-  :ref:`derived-quantities`)
+* Derived Quantities (total mass, angular momentum, etc)
 * 1-, 2-, and 3-D profiles (:ref:`generating-profiles-and-histograms`)
 * Halo analysis (:ref:`halo-analysis`)
 * Volume rendering (:ref:`volume_rendering`)
