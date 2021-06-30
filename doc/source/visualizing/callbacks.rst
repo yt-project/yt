@@ -871,7 +871,7 @@ Overplot the Path of a Ray
     Adds a line representing the projected path of a ray across the plot.  The
     ray can be either a
     :class:`~yt.data_objects.selection_objects.ray.YTOrthoRay`,
-    :class:`~yt.data_objects.selection__objects.ray.YTRay`, or a
+    :class:`~yt.data_objects.selection_objects.ray.YTRay`, or a
     Trident :class:`~trident.light_ray.LightRay`
     object.  annotate_ray() will properly account for periodic rays across the
     volume.
