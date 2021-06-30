@@ -533,8 +533,8 @@ to the z direction.
     print(ad["raw", "Ex"].shape)
     print(ds.field_info[("raw", "Bx")].nodal_flag)
     print(ad["raw", "Bx"].shape)
-    print(ds.field_info[("boxlib", "Bx")].nodal_flag)
-    print(ad["boxlib", "Bx"].shape)
+    print(ds.field_info[("raw", "Bx")].nodal_flag)
+    print(ad["raw", "Bx"].shape)
 
 Here, the field ``('raw', 'Ex')`` is nodal in two directions, so four values per cell
 are returned, corresponding to the four edges in each cell on which the variable
@@ -635,11 +635,11 @@ direction.
     ds.index
     ad = ds.all_data()
     print(ds.field_info[("enzo", "Ex")].nodal_flag)
-    print(ad["raw", "Ex"].shape)
+    print(ad["enzo", "Ex"].shape)
     print(ds.field_info[("enzo", "BxF")].nodal_flag)
-    print(ad["raw", "Bx"].shape)
+    print(ad["enzo", "Bx"].shape)
     print(ds.field_info[("enzo", "Bx")].nodal_flag)
-    print(ad["boxlib", "Bx"].shape)
+    print(ad["enzo", "Bx"].shape)
 
 Here, the field ``('enzo', 'Ex')`` is nodal in two directions, so four values
 per cell are returned, corresponding to the four edges in each cell on which the
@@ -2097,7 +2097,7 @@ visualization of non-SPH particles. See the example below:
 
     # Make the SPH projection plot
     p = yt.ProjectionPlot(ds_dm, "z", ("io", "density"), center=center, width=(1, "Mpc"))
-    p.set_unit("density", "Msun/kpc**2")
+    p.set_unit(("io", "density"), "Msun/kpc**2")
     p.show()
 
 Here we see two new things. First, ``load_particles`` accepts a ``data_source``
@@ -2521,7 +2521,7 @@ for each particle attribute/mesh (in Byte).
   import yt
 
   ds = yt.load("example-3d/hdf5/data00000100.h5", open_pmd_virtual_gridsize=10e4)
-  sp = yt.SlicePlot(ds, "x", "rho")
+  sp = yt.SlicePlot(ds, "x", ("openPMD", "rho"))
   sp.show()
 
 Particle data is fully supported:
@@ -2533,7 +2533,10 @@ Particle data is fully supported:
   ds = yt.load("example-3d/hdf5/data00000100.h5")
   ad = f.all_data()
   ppp = yt.ParticlePhasePlot(
-      ad, "particle_position_y", "particle_momentum_y", "particle_weighting"
+      ad,
+      ("all", "particle_position_y"),
+      ("all", "particle_momentum_y"),
+      ("all", "particle_weighting"),
   )
   ppp.show()
 
@@ -2715,10 +2718,10 @@ It is possible to provide extra arguments to the load function when loading RAMS
           ds.right_edge == [1, 1, 1]  # is True
 
           ad = ds.all_data()
-          ad["particle_position_x"].max() > 0.1  # _may_ be True
+          ad[("all", "particle_position_x")].max() > 0.1  # _may_ be True
 
           bb = ds.box(left_edge=bbox[0], right_edge=bbox[1])
-          bb["particle_position_x"].max() < 0.1  # is True
+          bb[("all", "particle_position_x")].max() < 0.1  # is True
 
       .. note::
          When using the bbox argument, yt will read all the CPUs
