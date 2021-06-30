@@ -99,9 +99,9 @@ in the simulation and then makes a plot of the projected density:
    yt.enable_parallelism()
 
    ds = yt.load("RD0035/RedshiftOutput0035")
-   v, c = ds.find_max("density")
+   v, c = ds.find_max(("gas", "density"))
    print(v, c)
-   p = yt.ProjectionPlot(ds, "x", "density")
+   p = yt.ProjectionPlot(ds, "x", ("gas", "density"))
    p.save()
 
 If this script is run in parallel, two of the most expensive operations -
@@ -151,8 +151,8 @@ so:
    yt.enable_parallelism()
 
    ds = yt.load("RD0035/RedshiftOutput0035")
-   v, c = ds.find_max("density")
-   p = yt.ProjectionPlot(ds, "x", "density")
+   v, c = ds.find_max(("gas", "density"))
+   p = yt.ProjectionPlot(ds, "x", ("gas", "density"))
    if yt.is_root():
        print(v, c)
        p.save()
@@ -179,8 +179,8 @@ how to use it:
 
 
    ds = yt.load("RD0035/RedshiftOutput0035")
-   v, c = ds.find_max("density")
-   p = yt.ProjectionPlot(ds, "x", "density")
+   v, c = ds.find_max(("gas", "density"))
+   p = yt.ProjectionPlot(ds, "x", ("gas", "density"))
    yt.only_on_root(print_and_save_plot, v, c, plot, verbose=True)
 
 Types of Parallelism
@@ -339,10 +339,10 @@ processors (or cores).  Please see this heavily-commented example:
        # This copies fn and the min/max of density to the local copy of
        # my_storage
        sto.result_id = fn
-       sto.result = dd.quantities.extrema("density")
+       sto.result = dd.quantities.extrema(("gas", "density"))
 
        # Makes and saves a plot of the gas density.
-       p = yt.ProjectionPlot(ds, "x", "density")
+       p = yt.ProjectionPlot(ds, "x", ("gas", "density"))
        p.save()
 
    # At this point, as the loop exits, the local copies of my_storage are
@@ -472,8 +472,8 @@ separate processor.
    for ax in yt.parallel_objects("xyz", njobs=3):
 
        # project each field with one of the two cores in the workgroup
-       for field in yt.parallel_objects(["density", "temperature"]):
-           p = yt.ProjectionPlot(ds, ax, field, weight_field="density")
+       for field in yt.parallel_objects([("gas", "density"), ("gas", "temperature")]):
+           p = yt.ProjectionPlot(ds, ax, field, weight_field=("gas", "density"))
            p.save("figures/")
 
 Note, in the above example, if the inner
