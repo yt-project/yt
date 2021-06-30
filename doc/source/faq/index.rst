@@ -43,7 +43,7 @@ The result will look something like this:
     This installation CAN be automatically updated.
 
 
-For more information on this topic, see :ref:`updating-yt`.
+For more information on this topic, see :ref:`updating`.
 
 .. _yt-3.0-problems:
 

@@ -76,7 +76,7 @@ The units parameter is a "raw" string, in the format that yt
 uses in its :ref:`symbolic units implementation <units>` (e.g., employing only
 unit names, numbers, and mathematical operators in the string, and using
 ``"**"`` for exponentiation). For cosmological datasets and fields, see
-:ref:`cosmological-units <cosmological units>`.  We suggest that you name the function that creates
+:ref:`cosmological-units <cosmological-units>`.  We suggest that you name the function that creates
 a derived field with the intended field name prefixed by a single underscore,
 as in the ``_pressure`` example above.
 

@@ -365,8 +365,8 @@ Other Infrastructure
 - Added a welcomebot to our github page for new contributors, see
   `PR 2181 <https://github.com/yt-project/yt/pull/2181>`__.
 - Added a pep8 bot to pre-run before tests, see
-  `PR 2179 <https://github.com/yt-project/yt/pull/2179>`__
-  `PR 2184 <https://github.com/yt-project/yt/pull/2184)`__ and
+  `PR 2179 <https://github.com/yt-project/yt/pull/2179>`__,
+  `PR 2184 <https://github.com/yt-project/yt/pull/2184>`__ and
   `PR 2185 <https://github.com/yt-project/yt/pull/2185>`__.
 
 Version 3.5.0
