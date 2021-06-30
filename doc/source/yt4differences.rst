@@ -36,7 +36,7 @@ The list below is arranged in order of most to least important changes.
   In the past, you could specify fields as strings like ``"density"``, but
   with the growth of yt and its many derived fields, there can be sometimes
   be overlapping field names (e.g., ``("gas", "density")`` and
-  ``("PartType0", "density")``, where yt doesn't know which to use.  To remove
+  ``("PartType0", "density")``), where yt doesn't know which to use.  To remove
   any ambiguity, it is now strongly recommended to explicitly specify the full
   tuple form of all fields. Just search for all field accesses in your scripts,
   and replace strings with tuples (e.g. replace ``"a"``  with
@@ -70,7 +70,7 @@ The list below is arranged in order of most to least important changes.
   Fields representing energy and momentum quantities are now given names which
   reflect their dimensionality. For example, the ``("gas", "kinetic_energy")``
   field was actually a field for kinetic energy density, and so it has been
-  renamed to ``"gas", "kinetic_energy_density"``. The old name still exists
+  renamed to ``("gas", "kinetic_energy_density")``. The old name still exists
   as an alias as of yt v4.0.0, but it will be removed in yt v4.1.0. See
   next item below for more information.
   Other examples include ``"gas", "specific_thermal_energy"`` for thermal
@@ -371,7 +371,7 @@ means that if you always want a particular colormap associated with a particular
 field, you can do so!
 
 This is documented under :ref:`per-field-config`, and was added in `PR
-1931<https://github.com/yt-project/yt/pull/1931>`_.
+1931 <https://github.com/yt-project/yt/pull/1931>`_.
 
 New Method for Accessing Sample Datasets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -117,7 +117,7 @@ After this, time series analysis can be done normally.
 
   for ds in my_sim.piter():
       all_data = ds.all_data()
-      print(all_data.quantities.extrema("density"))
+      print(all_data.quantities.extrema(("gas", "density")))
 
 Additional keywords can be given to
 :meth:`frontends.enzo.simulation_handling.EnzoSimulation.get_time_series`

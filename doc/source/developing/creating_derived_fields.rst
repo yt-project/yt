@@ -22,7 +22,11 @@ this approach.
 
 
    def _pressure(field, data):
-       return (data.ds.gamma - 1.0) * data["density"] * data["specific_thermal_energy"]
+       return (
+           (data.ds.gamma - 1.0)
+           * data["gas", "density"]
+           * data["gas", "specific_thermal_energy"]
+       )
 
 Note that we do a couple different things here.  We access the ``gamma``
 parameter from the dataset, we access the ``density`` field and we access
@@ -72,7 +76,7 @@ The units parameter is a "raw" string, in the format that yt
 uses in its :ref:`symbolic units implementation <units>` (e.g., employing only
 unit names, numbers, and mathematical operators in the string, and using
 ``"**"`` for exponentiation). For cosmological datasets and fields, see
-:ref:`cosmological-units <cosmological units>`.  We suggest that you name the function that creates
+:ref:`cosmological-units <cosmological-units>`.  We suggest that you name the function that creates
 a derived field with the intended field name prefixed by a single underscore,
 as in the ``_pressure`` example above.
 
@@ -115,7 +119,11 @@ the dimensionality of the returned array and the field are the same:
 
 
     def _pressure(field, data):
-        return (data.ds.gamma - 1.0) * data["density"] * data["specific_thermal_energy"]
+        return (
+            (data.ds.gamma - 1.0)
+            * data["gas", "density"]
+            * data["gas", "specific_thermal_energy"]
+        )
 
 
     yt.add_field(
@@ -141,7 +149,11 @@ the previous example:
 
    @derived_field(name="pressure", sampling_type="cell", units="dyne/cm**2")
    def _pressure(field, data):
-       return (data.ds.gamma - 1.0) * data["density"] * data["specific_thermal_energy"]
+       return (
+           (data.ds.gamma - 1.0)
+           * data["gas", "density"]
+           * data["gas", "specific_thermal_energy"]
+       )
 
 The :func:`derived_field` decorator takes the same arguments as
 :func:`add_field`, and is often a more convenient shorthand in cases where
@@ -219,9 +231,9 @@ transparent and simple example).
        yv = data["gas", "velocity_y"] - bv[1]
        zv = data["gas", "velocity_z"] - bv[2]
        center = data.get_field_parameter("center")
-       x_hat = data["x"] - center[0]
-       y_hat = data["y"] - center[1]
-       z_hat = data["z"] - center[2]
+       x_hat = data["gas", "x"] - center[0]
+       y_hat = data["gas", "y"] - center[1]
+       z_hat = data["gas", "z"] - center[2]
        r = np.sqrt(x_hat * x_hat + y_hat * y_hat + z_hat * z_hat)
        x_hat /= r
        y_hat /= r
@@ -279,11 +291,11 @@ For example, let's write a field that depends on a field parameter named ``'axis
    def my_axis_field(field, data):
        axis = data.get_field_parameter("axis")
        if axis == 0:
-           return data["x-velocity"]
+           return data["gas", "velocity_x"]
        elif axis == 1:
-           return data["y-velocity"]
+           return data["gas", "velocity_y"]
        elif axis == 2:
-           return data["z-velocity"]
+           return data["gas", "velocity_z"]
        else:
            raise ValueError
 
