@@ -37,7 +37,7 @@ jobs:
     - uses: s-weigand/setup-conda@v1
       if: matrix.os == 'windows-latest'
       with:
-        update-conda: false # TEMP
+        update-conda: true
         conda-channels: conda-forge
         activate-conda: true
         python-version: ${{matrix.python-version}}
