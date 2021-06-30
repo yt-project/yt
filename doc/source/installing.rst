@@ -195,7 +195,7 @@ Additional Resources
 .. _distro-packages:
 
 yt Distribution Packages
-^^^^^^^^^^^^^^^^^^^^^^^^
+++++++++++++++++++++++++
 
 Some operating systems have yt pre-built packages that can be installed with the
 system package manager. Note that the packages in some of these distributions
@@ -216,7 +216,7 @@ third-party packages exist for the distributions listed below.
 
 
 Intel distribution for Python
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++++++++++++++++++++++++++++++
 
 A viable alternative to the installation based on Anaconda is the use of the
 `Intel Distribution for Python
