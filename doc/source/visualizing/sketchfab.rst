@@ -277,7 +277,7 @@ scripts in Blender.  For example, on a Mac, you would modify the file
 "/Applications/Blender/blender.app/Contents/MacOS/2.65/scripts/addons/io_scene_obj/import_obj.py",
 in the function "create_materials" with:
 
-.. code-block:: python
+.. code-block:: diff
 
    # ...
 
