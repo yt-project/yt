@@ -249,10 +249,7 @@ to output one more type of variable on your surfaces.  For example:
 
 
     def emissivity(field, data):
-        return (
-            data["gas", "density"] ** 2
-            * np.sqrt(data["gas", "temperature"])
-        )
+        return data["gas", "density"] ** 2 * np.sqrt(data["gas", "temperature"])
 
 
     add_field("emissivity", function=_Emissivity, sampling_type="cell", units=r"g*K/cm**6")
