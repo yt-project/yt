@@ -280,7 +280,7 @@ plane, and the name of the fields to plot.  Just like an
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    L = [1, 1, 0]  # vector normal to cutting plane
    north_vector = [-1, 1, 0]
-   cut = yt.SlicePlot(ds, L, "density", width=(25, "kpc"), north_vector=north_vector)
+   cut = yt.SlicePlot(ds, L, ("gas", "density"), width=(25, "kpc"), north_vector=north_vector)
    cut.save()
 
 In this case, a normal vector for the cutting plane is supplied in the second
@@ -310,7 +310,7 @@ example:
        "z",
        ("gas", "temperature"),
        width=25 * kpc,
-       weight_field="density",
+       weight_field=("gas", "density"),
        buff_size=(1000, 1000),
    )
    prj.save()
@@ -673,7 +673,7 @@ the customization of the units used for the image and colorbar.
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    slc = yt.SlicePlot(ds, "z", ("gas", "density"), width=(10, "kpc"))
-   slc.set_unit("density", "Msun/pc**3")
+   slc.set_unit(("gas", "density"), "Msun/pc**3")
    slc.save()
 
 If the unit you would like to convert to needs an equivalency, this can be

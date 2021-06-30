@@ -44,14 +44,14 @@ of any data two-dimensional data object:
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
-   c = ds.find_max("density")[1]
-   proj = ds.proj("density", 0)
+   _, c = ds.find_max(("gas", "density"))
+   proj = ds.proj(("gas", "density"), 0)
 
    width = (10, "kpc")  # we want a 1.5 mpc view
    res = [1000, 1000]  # create an image with 1000x1000 pixels
    frb = proj.to_frb(width, res, center=c)
 
-   plt.imshow(np.array(frb["density"]))
+   plt.imshow(np.array(frb["gas", "density"]))
    plt.savefig("my_perfect_figure.png")
 
 Note that in the above example the axes tick marks indicate pixel indices.  If you
@@ -93,7 +93,7 @@ using them matters.
    frb = slc.to_frb((20, "kpc"), 512)
    frb.apply_gauss_beam(nbeam=30, sigma=2.0)
    frb.apply_white_noise(5e-23)
-   plt.imshow(frb["density"].d)
+   plt.imshow(frb["gas", "density"].d)
    plt.savefig("frb_filters.png")
 
 Currently available filters:
@@ -130,7 +130,7 @@ This is perhaps the simplest thing to do. yt provides a number of one
 dimensional objects, and these return a 1-D numpy array of their contents with
 direct dictionary access. As a simple example, take a
 :class:`~yt.data_objects.selection_data_containers.YTOrthoRay` object, which can be
-created from a index by calling ``pf.ortho_ray(axis, center)``.
+created from a index by calling ``ds.ortho_ray(axis, center)``.
 
 .. python-script::
 
@@ -143,7 +143,7 @@ created from a index by calling ``pf.ortho_ray(axis, center)``.
    import yt
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   c = ds.find_max("density")[1]
+   _, c = ds.find_max(("gas", "density"))
    ax = 0  # take a line cut along the x axis
 
    # cutting through the y0,z0 such that we hit the max density
@@ -151,13 +151,13 @@ created from a index by calling ``pf.ortho_ray(axis, center)``.
 
    # Sort the ray values by 'x' so there are no discontinuities
    # in the line plot
-   srt = np.argsort(ray["x"])
+   srt = np.argsort(ray["index", "x"])
 
    plt.subplot(211)
-   plt.semilogy(np.array(ray["x"][srt]), np.array(ray["density"][srt]))
+   plt.semilogy(np.array(ray["index", "x"][srt]), np.array(ray["gas", "density"][srt]))
    plt.ylabel("density")
    plt.subplot(212)
-   plt.semilogy(np.array(ray["x"][srt]), np.array(ray["temperature"][srt]))
+   plt.semilogy(np.array(ray["index", "x"][srt]), np.array(ray["gas", "temperature"][srt]))
    plt.xlabel("x")
    plt.ylabel("temperature")
 

@@ -115,7 +115,7 @@ available in a local window:
 
     yt.show_colormaps()
 
-or to output just a few colormaps to an image file, try:
+or to output the original yt colormaps to an image file, try:
 
 .. code-block:: python
 
@@ -144,12 +144,12 @@ callback:
 .. code-block:: python
 
     ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    p = yt.ProjectionPlot(ds, "z", "density")
+    p = yt.ProjectionPlot(ds, "z", ("gas", "density"))
 
-    p.set_cmap(field="density", cmap="jet")
+    p.set_cmap(field=("gas", "density"), cmap="turbo")
     p.save("proj_with_jet_cmap.png")
 
-    p.set_cmap(field="density", cmap="hot")
+    p.set_cmap(field=("gas", "density"), cmap="hot")
     p.save("proj_with_hot_cmap.png")
 
 For more information about the callbacks available to Plot Window objects,

@@ -136,6 +136,9 @@ Clear Callbacks (Some or All)
     to the plot.  Note that the index goes from 0..N, and you can
     specify the index of the last added annotation as -1.
 
+    (This is a proxy for
+    :func:`~yt.visualization.plot_window.clear_annotations`.)
+
 .. python-script::
 
     import yt
@@ -160,6 +163,9 @@ List Currently Applied Callbacks
    callbacks together with their index.  The index can be used with
    :ref:`clear_annotations() function <clear-annotations>` to remove a
    specific callback.
+
+   (This is a proxy for
+   :func:`~yt.visualization.plot_window.list_annotations`.)
 
 .. python-script::
 
@@ -218,10 +224,10 @@ Clump Finder Callback
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    data_source = ds.disk([0.5, 0.5, 0.5], [0.0, 0.0, 1.0], (8.0, "kpc"), (1.0, "kpc"))
 
-   c_min = 10 ** np.floor(np.log10(data_source["density"]).min())
-   c_max = 10 ** np.floor(np.log10(data_source["density"]).max() + 1)
+   c_min = 10 ** np.floor(np.log10(data_source[("gas", "density")]).min())
+   c_max = 10 ** np.floor(np.log10(data_source[("gas", "density")]).max() + 1)
 
-   master_clump = Clump(data_source, "density")
+   master_clump = Clump(data_source, ("gas", "density"))
    master_clump.add_validator("min_cells", 20)
 
    find_clumps(master_clump, c_min, c_max, 2.0)
@@ -753,7 +759,7 @@ Add a Physical Scale Bar
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. function:: annotate_scale(corner='lower_right', coeff=None, \
-                             unit=None, pos=None,
+                             unit=None, pos=None, \
                              scale_text_format="{scale} {units}", \
                              max_frac=0.16, min_frac=0.015, \
                              coord_system='axis', text_args=None, \
@@ -864,9 +870,9 @@ Overplot the Path of a Ray
 
     Adds a line representing the projected path of a ray across the plot.  The
     ray can be either a
-    :class:`~yt.data_objects.selection_data_containers.YTOrthoRay`,
-    :class:`~yt.data_objects.selection_data_containers.YTRay`, or a
-    :class:`~trident.light_ray.LightRay`
+    :class:`~yt.data_objects.selection_objects.ray.YTOrthoRay`,
+    :class:`~yt.data_objects.selection_objects.ray.YTRay`, or a
+    Trident :class:`~trident.light_ray.LightRay`
     object.  annotate_ray() will properly account for periodic rays across the
     volume.
 

@@ -78,9 +78,9 @@ Example Script
     streamlines = Streamlines(
         ds,
         pos,
-        "velocity_x",
-        "velocity_y",
-        "velocity_z",
+        ("gas", "velocity_x"),
+        ("gas", "velocity_y"),
+        ("gas", "velocity_z"),
         length=1.0 * Mpc,
         get_magnitude=True,
     )
@@ -129,7 +129,7 @@ Example Script
     streamlines = Streamlines(ds, ds.domain_center)
     streamlines.integrate_through_volume()
     stream = streamlines.path(0)
-    matplotlib.pylab.semilogy(stream["t"], stream["density"], "-x")
+    matplotlib.pylab.semilogy(stream["t"], stream["gas", "density"], "-x")
 
 
 Running in Parallel
