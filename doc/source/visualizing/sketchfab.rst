@@ -64,7 +64,7 @@ instance:
 
 .. code-block:: python
 
-   print(surface[("gas", "temperature")].min(), surface[("gas", "temperature")].max())
+   print(surface["gas", "temperature"].min(), surface["gas", "temperature"].max())
 
 will return the values 11850.7476943 and 13641.0663899.  These values are
 interpolated to the face centers of every triangle that constitutes a portion
@@ -250,9 +250,8 @@ to output one more type of variable on your surfaces.  For example:
 
     def emissivity(field, data):
         return (
-            data[("gas", "density")]
-            * data[("gas", "density")]
-            * np.sqrt(data[("gas", "temperature")])
+            data["gas", "density"] ** 2
+            * np.sqrt(data["gas", "temperature"])
         )
 
 

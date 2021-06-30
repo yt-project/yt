@@ -33,7 +33,7 @@ to select, given the field type. Possible field names include ``density``,
 ``velocity_x`` or ``pressure`` --- these three fields are examples of field names
 that might be used for a fluid defined on a mesh. Examples of particle fields
 include ``particle_mass`` ``particle_position`` or ``particle_velocity_x`` In
-general, particle field names are prefixed by ``particle\_``, which makes it easy
+general, particle field names are prefixed by ``particle_``, which makes it easy
 to distinguish between a particle field or a mesh field when no field type is
 provided.
 

@@ -146,7 +146,7 @@ callback:
     ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
     p = yt.ProjectionPlot(ds, "z", ("gas", "density"))
 
-    p.set_cmap(field=("gas", "density"), cmap="jet")
+    p.set_cmap(field=("gas", "density"), cmap="turbo")
     p.save("proj_with_jet_cmap.png")
 
     p.set_cmap(field=("gas", "density"), cmap="hot")

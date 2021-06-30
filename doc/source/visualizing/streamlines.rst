@@ -129,7 +129,7 @@ Example Script
     streamlines = Streamlines(ds, ds.domain_center)
     streamlines.integrate_through_volume()
     stream = streamlines.path(0)
-    matplotlib.pylab.semilogy(stream["t"], stream[("gas", "density")], "-x")
+    matplotlib.pylab.semilogy(stream["t"], stream["gas", "density"], "-x")
 
 
 Running in Parallel

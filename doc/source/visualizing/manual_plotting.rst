@@ -51,7 +51,7 @@ of any data two-dimensional data object:
    res = [1000, 1000]  # create an image with 1000x1000 pixels
    frb = proj.to_frb(width, res, center=c)
 
-   plt.imshow(np.array(frb[("gas", "density")]))
+   plt.imshow(np.array(frb["gas", "density"]))
    plt.savefig("my_perfect_figure.png")
 
 Note that in the above example the axes tick marks indicate pixel indices.  If you
@@ -93,7 +93,7 @@ using them matters.
    frb = slc.to_frb((20, "kpc"), 512)
    frb.apply_gauss_beam(nbeam=30, sigma=2.0)
    frb.apply_white_noise(5e-23)
-   plt.imshow(frb[("gas", "density")].d)
+   plt.imshow(frb["gas", "density"].d)
    plt.savefig("frb_filters.png")
 
 Currently available filters:
@@ -151,13 +151,13 @@ created from a index by calling ``ds.ortho_ray(axis, center)``.
 
    # Sort the ray values by 'x' so there are no discontinuities
    # in the line plot
-   srt = np.argsort(ray[("index", "x")])
+   srt = np.argsort(ray["index", "x"])
 
    plt.subplot(211)
-   plt.semilogy(np.array(ray[("index", "x")][srt]), np.array(ray[("gas", "density")][srt]))
+   plt.semilogy(np.array(ray["index", "x"][srt]), np.array(ray["gas", "density"][srt]))
    plt.ylabel("density")
    plt.subplot(212)
-   plt.semilogy(np.array(ray[("index", "x")][srt]), np.array(ray[("gas", "temperature")][srt]))
+   plt.semilogy(np.array(ray["index", "x"][srt]), np.array(ray["gas", "temperature"][srt]))
    plt.xlabel("x")
    plt.ylabel("temperature")
 
