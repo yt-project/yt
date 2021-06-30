@@ -21,19 +21,19 @@ What are fields?
 
 Fields in yt are denoted by a two-element tuple, of the form ``(field_type,
 field_name)``. The first element, the "field type" is a category for a
-field. Possible field types used in yt include *gas* (for fluid mesh fields
-defined on a mesh) or *io* (for fields defined at particle locations). Field
+field. Possible field types used in yt include ``gas`` (for fluid mesh fields
+defined on a mesh) or ``io`` (for fields defined at particle locations). Field
 types can also correspond to distinct particle of fluid types in a single
 simulation. For example, a plasma physics simulation using the Particle in Cell
-method might have particle types corresponding to *electrons* and *ions*. See
+method might have particle types corresponding to ``electrons`` and ``ions``. See
 :ref:`known-field-types` below for more info about field types in yt.
 
-The second element of field tuples, the "field name", denotes the specific field
-to select, given the field type. Possible field names include *density*,
-*velocity_x* or *pressure* --- these three fields are examples of field names
+The second element of field tuples, the ``field_name``, denotes the specific field
+to select, given the field type. Possible field names include ``density``,
+``velocity_x`` or ``pressure`` --- these three fields are examples of field names
 that might be used for a fluid defined on a mesh. Examples of particle fields
-include *particle_mass*, *particle_position*, or *particle_velocity_x*. In
-general, particle field names are prefixed by "particle\_", which makes it easy
+include ``particle_mass`` ``particle_position`` or ``particle_velocity_x`` In
+general, particle field names are prefixed by ``particle\_``, which makes it easy
 to distinguish between a particle field or a mesh field when no field type is
 provided.
 
@@ -149,10 +149,11 @@ following:
     density = ad[ds.fields.gas.density]
 
 The first data access example is the simplest. In that example, the field type
-is inferred from the name of the field. The next two examples use the field type
-explicitly, this might be necessary if there is more than one field type with a
-"density" field defined in the same dataset. The third example is slightly more
-verbose but is syntactically identical to the second example due to the way
+is inferred from the name of the field. However, yt will complain if there are multiple
+field names that could be meant by this simple string access.  The next two examples
+use the field type explicitly, this might be necessary if there is more than one field
+type with a "density" field defined in the same dataset. The third example is slightly
+more verbose but is syntactically identical to the second example due to the way
 indexing works in the Python language.
 
 The final example uses the ``ds.fields`` object described above. This way of
