@@ -1541,7 +1541,7 @@ limits.  The following example illustrates this workflow:
    center = ds.arr([64.0, 64.0, 64.0], "code_length")
    rvir = ds.quan(1e-1, "Mpccm/h")
    sph = ds.sphere(center, rvir)
-   units = {("gas", "density": "Msun/pc**3", ("gas", "mass"): "Msun"}
+   units = {("gas", "density"): "Msun/pc**3", ("gas", "mass"): "Msun"}
    extrema = {("gas", "density"): (1e-5, 1e1), ("gas", "temperature"): (1, 1e7)}
 
    profile = yt.create_profile(
@@ -1830,7 +1830,7 @@ pixel, instead of the total:
    profile = yt.create_profile(
        ad,
        [("all", "particle_velocity_x"), ("all", "particle_velocity_y")],
-       [("all", "particle_mass"]),
+       [("all", "particle_mass")],
        n_bins=800,
        weight_field=("all", "particle_ones"),
    )
