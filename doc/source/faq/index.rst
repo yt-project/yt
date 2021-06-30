@@ -19,7 +19,7 @@ How can I tell what version of yt I'm using?
 
 If you run into problems with yt and you're writing to the mailing list
 or contacting developers on Slack, they will likely want to know what version of
-yt you're using.  Oftentimes, you'll want to know both the yt version,
+yt you're using.  Often times, you'll want to know both the yt version,
 as well as the last changeset that was committed to the branch you're using.
 To reveal this, go to a command line and type:
 
@@ -328,7 +328,7 @@ end. That way the data will always be ordered correctly. As an example you can:
 
     my_ray = ds.ray(...)
     ray_sort = np.argsort(my_ray["t"])
-    density = my_ray["density"][ray_sort]
+    density = my_ray[("gas", "density")][ray_sort]
 
 There is also a full example in the :ref:`manual-line-plots` section of the
 docs.
