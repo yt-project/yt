@@ -2174,7 +2174,6 @@ the same redshift, additional analysis can be performed for each halo using
 :ref:`halo-analysis`.  The resulting product can be reloaded in a similar manner
 to the other halo catalogs shown here.
 
-
 AdataHOP
 ^^^^^^^^
 
