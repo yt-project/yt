@@ -180,8 +180,8 @@ class PerspectiveLens(Lens):
         north_vec = camera.unit_vectors[1]
         normal_vec = camera.unit_vectors[2]
 
-        px = np.linspace(-0.5, 0.5, camera.resolution[0])
-        py = np.linspace(-0.5, 0.5, camera.resolution[1])
+        px = np.linspace(-0.5, 0.5, camera.resolution[0])[np.newaxis, :]
+        py = np.linspace(-0.5, 0.5, camera.resolution[1])[np.newaxis, :]
 
         sample_x = camera.width[0] * np.array(east_vec.reshape(3, 1) * px)
         sample_x = sample_x.transpose()
