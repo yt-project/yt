@@ -62,6 +62,7 @@ else:
         # function directly where due
         return zip(*args, strict=True)
 
+
 MPL_VERSION = parse_version(matplotlib.__version__)
 
 # Some magic for dealing with pyparsing being included or not
