@@ -14,8 +14,6 @@ cimport numpy as np
 import numpy as np
 
 cimport cython
-from cpython cimport PyObject
-from cpython.array cimport array, clone
 from cython.view cimport memoryview as cymemview
 from libc.math cimport sqrt
 from libc.stdlib cimport free, malloc
