@@ -18,7 +18,7 @@ yt 4.0
 Welcome to yt 4.0! This release is the result of several years worth of
 developer effort and has been in progress since the mid 3.x series. Please keep
 in mind that this release **will** have breaking changes. Please see the yt 4.0
-differences page for how you can expect behavior to differ from the 3x series. 
+differences page for how you can expect behavior to differ from the 3.x series. 
 
 This is a manually curated list of pull requests that went in to yt 4.0,
 representing a subset of `the full
@@ -47,8 +47,8 @@ New Functions
 API improvements
 ^^^^^^^^^^^^^^^^
 
--  ``yt.load`` with support for ``os.Path``-like objects, improved UX
-   and refactored into its own module (PR
+-  ``yt.load`` with support for ``os.PathLike`` objects, improved UX
+   and moved a new ``yt.loaders`` module, along with sibling functions (PR
    #\ `2405 <https://github.com/yt-project/yt/pull/2405>`__, PR
    #\ `2722 <https://github.com/yt-project/yt/pull/2722>`__, PR
    #\ `2695 <https://github.com/yt-project/yt/pull/2695>`__, PR
