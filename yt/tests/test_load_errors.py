@@ -10,12 +10,26 @@ from yt.utilities.exceptions import (
 from yt.utilities.object_registries import output_type_registry
 
 
+@pytest.fixture
+def tmp_data_dir(tmp_path):
+    from yt.config import ytcfg
+
+    pre_test_data_dir = ytcfg["yt", "test_data_dir"]
+    ytcfg.set("yt", "test_data_dir", str(tmp_path))
+
+    yield tmp_path
+
+    ytcfg.set("yt", "test_data_dir", pre_test_data_dir)
+
+
+@pytest.mark.usefixtures("tmp_data_dir")
 def test_load_not_a_file(tmp_path):
     with pytest.raises(FileNotFoundError):
         load(tmp_path / "not_a_file")
 
 
 @pytest.mark.parametrize("simtype", ["Enzo", "unregistered_simulation_type"])
+@pytest.mark.usefixtures("tmp_data_dir")
 def test_load_simulation_not_a_file(simtype, tmp_path):
     # it is preferable to report the most important problem in an error message
     # (missing data is worse than a typo insimulation_type)

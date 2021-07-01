@@ -8,6 +8,7 @@ from re import finditer
 from tempfile import NamedTemporaryFile, TemporaryFile
 
 import numpy as np
+from more_itertools import always_iterable
 from tqdm import tqdm
 
 from yt.config import ytcfg
@@ -638,7 +639,10 @@ class YTCoveringGrid(YTSelectionContainer3D):
         self.ActiveDimensions = self._sanitize_dims(dims)
 
         rdx = self.ds.domain_dimensions * self.ds.relative_refinement(0, level)
-        rdx[np.where(np.array(dims) - 2 * num_ghost_zones <= 1)] = 1  # issue 602
+
+        # normalize dims as a non-zero dim array
+        dims = np.array(list(always_iterable(dims)))
+        rdx[np.where(dims - 2 * num_ghost_zones <= 1)] = 1  # issue 602
         self.base_dds = self.ds.domain_width / self.ds.domain_dimensions
         self.dds = self.ds.domain_width / rdx.astype("float64")
         self.right_edge = self.left_edge + self.ActiveDimensions * self.dds

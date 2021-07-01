@@ -1,18 +1,8 @@
+import io
 import os
 import struct
 
 import numpy as np
-
-# This may not be the correct way to do this.  We should investigate what NumPy
-# does.
-try:
-    file
-except NameError:
-    # What we're doing here is making it always fail, so we read things in and
-    # THEN call numpy's fromstring.  I can't figure out an easy way of telling if
-    # an object is an actual file, reliably.
-    class file:
-        pass
 
 
 def read_attrs(f, attrs, endian="="):
@@ -199,10 +189,10 @@ def read_vector(f, d, endian="="):
             vec_size,
         )
     vec_num = int(vec_len / vec_size)
-    if isinstance(f, file):  # Needs to be explicitly a file
-        tr = np.fromfile(f, vec_fmt, count=vec_num)
+    if isinstance(f, io.IOBase):
+        tr = np.frombuffer(f.read(vec_len), vec_fmt, count=vec_num)
     else:
-        tr = np.fromstring(f.read(vec_len), vec_fmt, count=vec_num)
+        tr = np.frombuffer(f, vec_fmt, count=vec_num)
     vec_len2 = struct.unpack(pad_fmt, f.read(pad_size))[0]
     if vec_len != vec_len2:
         raise OSError(

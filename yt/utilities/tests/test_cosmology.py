@@ -216,7 +216,8 @@ def test_cosmology_calculator_answers():
     """
 
     fn = os.path.join(local_dir, "cosmology_answers.yml")
-    data = yaml.load(open(fn), Loader=yaml.FullLoader)
+    with open(fn) as fh:
+        data = yaml.load(fh, Loader=yaml.FullLoader)
 
     cosmologies = data["cosmologies"]
     functions = data["functions"]
