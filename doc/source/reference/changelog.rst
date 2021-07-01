@@ -12,6 +12,250 @@ The `CREDITS file <https://github.com/yt-project/yt/blob/main/CREDITS>`_
 contains the most up-to-date list of everyone who has contributed to the yt
 source code.
 
+yt 4.0
+------
+
+Welcome to yt 4.0! This release is the result of several years worth of
+developer effort and has been in progress since the mid 3.x series. Please keep
+in mind that this release **will** have breaking changes. Please see the yt 4.0
+differences page for how you can expect behavior to differ from the 3.x series.
+
+This is a manually curated list of pull requests that went in to yt 4.0,
+representing a subset of `the full
+list <https://gist.github.com/matthewturk/7a1f21d98aa5188de7645eda082ce4e6>`__.
+
+New Functions
+^^^^^^^^^^^^^
+
+-  ``yt.load_sample`` (PR
+   #\ `2417 <https://github.com/yt-project/yt/pull/2417>`__, PR
+   #\ `2496 <https://github.com/yt-project/yt/pull/2496>`__, PR
+   #\ `2875 <https://github.com/yt-project/yt/pull/2875>`__, PR
+   #\ `2877 <https://github.com/yt-project/yt/pull/2877>`__, PR
+   #\ `2894 <https://github.com/yt-project/yt/pull/2894>`__, PR
+   #\ `3262 <https://github.com/yt-project/yt/pull/3262>`__, PR
+   #\ `3263 <https://github.com/yt-project/yt/pull/3263>`__, PR
+   #\ `3277 <https://github.com/yt-project/yt/pull/3277>`__, PR
+   #\ `3309 <https://github.com/yt-project/yt/pull/3309>`__, and PR
+   #\ `3336 <https://github.com/yt-project/yt/pull/3336>`__)
+-  ``yt.set_log_level`` (PR
+   #\ `2869 <https://github.com/yt-project/yt/pull/2869>`__ and PR
+   #\ `3094 <https://github.com/yt-project/yt/pull/3094>`__)
+-  ``list_annotations`` method for plots (PR
+   #\ `2562 <https://github.com/yt-project/yt/pull/2562>`__)
+
+API improvements
+^^^^^^^^^^^^^^^^
+
+-  ``yt.load`` with support for ``os.PathLike`` objects, improved UX
+   and moved a new ``yt.loaders`` module, along with sibling functions (PR
+   #\ `2405 <https://github.com/yt-project/yt/pull/2405>`__, PR
+   #\ `2722 <https://github.com/yt-project/yt/pull/2722>`__, PR
+   #\ `2695 <https://github.com/yt-project/yt/pull/2695>`__, PR
+   #\ `2818 <https://github.com/yt-project/yt/pull/2818>`__, and PR
+   #\ `2831 <https://github.com/yt-project/yt/pull/2831>`__, PR
+   #\ `2832 <https://github.com/yt-project/yt/pull/2832>`__)
+-  ``Dataset`` now has a more useful repr (PR
+   #\ `3217 <https://github.com/yt-project/yt/pull/3217>`__)
+-  Explicit JPEG export support (PR
+   #\ `2549 <https://github.com/yt-project/yt/pull/2549>`__)
+-  ``annotate_clear`` is now ``clear_annotations`` (PR
+   #\ `2569 <https://github.com/yt-project/yt/pull/2569>`__)
+-  Throw an error if field access is ambiguous (PR
+   #\ `2967 <https://github.com/yt-project/yt/pull/2967>`__)
+
+Newly supported data formats
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Arepo
+~~~~~
+
+-  PR #\ `1807 <https://github.com/yt-project/yt/pull/1807>`__
+-  PR #\ `2236 <https://github.com/yt-project/yt/pull/2236>`__
+-  PR #\ `2244 <https://github.com/yt-project/yt/pull/2244>`__
+-  PR #\ `2344 <https://github.com/yt-project/yt/pull/2344>`__
+-  PR #\ `2434 <https://github.com/yt-project/yt/pull/2434>`__
+-  PR #\ `3258 <https://github.com/yt-project/yt/pull/3258>`__
+-  PR #\ `3265 <https://github.com/yt-project/yt/pull/3265>`__
+-  PR #\ `3291 <https://github.com/yt-project/yt/pull/3291>`__
+
+Swift
+~~~~~
+
+-  PR #\ `1962 <https://github.com/yt-project/yt/pull/1962>`__
+
+Improved support and frontend specific bugfixes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+adaptahop
+~~~~~~~~~
+
+-  PR #\ `2678 <https://github.com/yt-project/yt/pull/2678>`__
+
+AMRVAC
+~~~~~~
+
+-  PR #\ `2541 <https://github.com/yt-project/yt/pull/2541>`__
+-  PR #\ `2745 <https://github.com/yt-project/yt/pull/2745>`__
+-  PR #\ `2746 <https://github.com/yt-project/yt/pull/2746>`__
+-  PR #\ `3215 <https://github.com/yt-project/yt/pull/3215>`__
+
+ART
+~~~
+
+-  PR #\ `2688 <https://github.com/yt-project/yt/pull/2688>`__
+
+ARTIO
+~~~~~
+
+-  PR #\ `2613 <https://github.com/yt-project/yt/pull/2613>`__
+
+Athena++
+~~~~~~~~
+
+-  PR #\ `2985 <https://github.com/yt-project/yt/pull/2985>`__
+
+Boxlib
+~~~~~~
+
+-  PR #\ `2807 <https://github.com/yt-project/yt/pull/2807>`__
+-  PR #\ `2814 <https://github.com/yt-project/yt/pull/2814>`__
+-  PR #\ `2938 <https://github.com/yt-project/yt/pull/2938>`__ (AMReX)
+
+Enzo-E (formerly Enzo-P)
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+-  PR #\ `3273 <https://github.com/yt-project/yt/pull/3273>`__
+-  PR #\ `3274 <https://github.com/yt-project/yt/pull/3274>`__
+-  PR #\ `3290 <https://github.com/yt-project/yt/pull/3290>`__
+-  PR #\ `3372 <https://github.com/yt-project/yt/pull/3372>`__
+
+fits
+~~~~
+
+-  PR #\ `2246 <https://github.com/yt-project/yt/pull/2246>`__
+-  PR #\ `2345 <https://github.com/yt-project/yt/pull/2345>`__
+
+Gadget
+~~~~~~
+
+-  PR #\ `2145 <https://github.com/yt-project/yt/pull/2145>`__
+-  PR #\ `3233 <https://github.com/yt-project/yt/pull/3233>`__
+-  PR #\ `3258 <https://github.com/yt-project/yt/pull/3258>`__
+
+Gadget FOF Halo
+~~~~~~~~~~~~~~~
+
+-  PR #\ `2296 <https://github.com/yt-project/yt/pull/2296>`__
+
+GAMER
+~~~~~
+
+-  PR #\ `3033 <https://github.com/yt-project/yt/pull/3033>`__
+
+Gizmo
+~~~~~
+
+-  PR #\ `3234 <https://github.com/yt-project/yt/pull/3234>`__
+
+MOAB
+~~~~
+
+-  PR #\ `2856 <https://github.com/yt-project/yt/pull/2856>`__
+
+Owls
+~~~~
+
+-  PR #\ `3325 <https://github.com/yt-project/yt/pull/3325>`__
+
+Ramses
+~~~~~~
+
+-  PR #\ `2679 <https://github.com/yt-project/yt/pull/2679>`__
+-  PR #\ `2714 <https://github.com/yt-project/yt/pull/2714>`__
+-  PR #\ `2960 <https://github.com/yt-project/yt/pull/2960>`__
+-  PR #\ `3017 <https://github.com/yt-project/yt/pull/3017>`__
+-  PR #\ `3018 <https://github.com/yt-project/yt/pull/3018>`__
+
+Tipsy
+~~~~~
+
+-  PR #\ `2193 <https://github.com/yt-project/yt/pull/2193>`__
+
+Octree Frontends
+~~~~~~~~~~~~~~~~
+
+-  Ghost zone access (PR
+   #\ `2425 <https://github.com/yt-project/yt/pull/2425>`__ and PR
+   #\ `2958 <https://github.com/yt-project/yt/pull/2958>`__)
+-  Volume Rendering (PR
+   #\ `2610 <https://github.com/yt-project/yt/pull/2610>`__)
+
+Configuration file
+^^^^^^^^^^^^^^^^^^
+
+-  Config files are now in `TOML <https://toml.io/en/>`__ (PR
+   #\ `2981 <https://github.com/yt-project/yt/pull/2981>`__)
+-  Allow a local plugin file (PR
+   #\ `2534 <https://github.com/yt-project/yt/pull/2534>`__)
+-  Allow per-field local config (PR
+   #\ `1931 <https://github.com/yt-project/yt/pull/1931>`__)
+
+yt CLI
+^^^^^^
+
+-  Fix broken command-line options (PR
+   #\ `3361 <https://github.com/yt-project/yt/pull/3361>`__)
+-  Drop yt hub command (PR
+   #\ `3363 <https://github.com/yt-project/yt/pull/3363>`__)
+
+Deprecations
+^^^^^^^^^^^^
+
+-  Smoothed fields are no longer necessary (PR
+   #\ `2194 <https://github.com/yt-project/yt/pull/2194>`__)
+-  Energy and momentum field names are more accurate (PR
+   #\ `3059 <https://github.com/yt-project/yt/pull/3059>`__)
+-  Incorrectly-named ``WeightedVariance`` is now
+   ``WeightedStandardDeviation`` and the old name has been deprecated
+   (PR #\ `3132 <https://github.com/yt-project/yt/pull/3132>`__)
+-  Colormap auto-registration has been changed and yt 4.1 will not
+   register ``cmocean`` (PR
+   #\ `3175 <https://github.com/yt-project/yt/pull/3175>`__ and PR
+   #\ `3214 <https://github.com/yt-project/yt/pull/3214>`__)
+
+Removals
+~~~~~~~~
+
+-  ``analysis_modules`` has been
+   `extracted <https://github.com/yt-project/yt_astro_analysis/>`__ (PR
+   #\ `2081 <https://github.com/yt-project/yt/pull/2081>`__)
+-  Interactive volume rendering has been
+   `extracted <https://github.com/yt-project/yt_idv/>`__ (PR
+   #\ `2896 <https://github.com/yt-project/yt/pull/2896>`__)
+-  The bundled version of ``poster`` has been removed (PR
+   #\ `2783 <https://github.com/yt-project/yt/pull/2783>`__)
+-  The deprecated ``particle_position_relative`` field has been removed
+   (PR #\ `2901 <https://github.com/yt-project/yt/pull/2901>`__)
+-  Deprecated functions have been removed (PR
+   #\ `3007 <https://github.com/yt-project/yt/pull/3007>`__)
+-  Vendored packages have been removed (PR
+   #\ `3008 <https://github.com/yt-project/yt/pull/3008>`__)
+-  ``yt.pmods`` has been removed (PR
+   #\ `3061 <https://github.com/yt-project/yt/pull/3061>`__)
+-  yt now utilizes unyt as an external package (PR
+   #\ `2219 <https://github.com/yt-project/yt/pull/2219>`__, PR
+   #\ `2300 <https://github.com/yt-project/yt/pull/2300>`__, and PR
+   #\ `2303 <https://github.com/yt-project/yt/pull/2303>`__)
+
+Version 3.6.1
+-------------
+
+Version 3.6.1 is a bugfix release. It includes the following backport:
+
+- hotfix: support matplotlib 3.3.0.
+  See `PR 2754 <https://github.com/yt-project/yt/pull/2754>`__.
+
 Version 3.6.0
 -------------
 
