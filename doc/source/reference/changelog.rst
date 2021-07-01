@@ -12,13 +12,13 @@ The `CREDITS file <https://github.com/yt-project/yt/blob/main/CREDITS>`_
 contains the most up-to-date list of everyone who has contributed to the yt
 source code.
 
-yt 4.0 
+yt 4.0
 ------
 
 Welcome to yt 4.0! This release is the result of several years worth of
 developer effort and has been in progress since the mid 3.x series. Please keep
 in mind that this release **will** have breaking changes. Please see the yt 4.0
-differences page for how you can expect behavior to differ from the 3.x series. 
+differences page for how you can expect behavior to differ from the 3.x series.
 
 This is a manually curated list of pull requests that went in to yt 4.0,
 representing a subset of `the full
@@ -247,7 +247,7 @@ Removals
    #\ `2219 <https://github.com/yt-project/yt/pull/2219>`__, PR
    #\ `2300 <https://github.com/yt-project/yt/pull/2300>`__, and PR
    #\ `2303 <https://github.com/yt-project/yt/pull/2303>`__)
- 
+
 Version 3.6.1
 -------------
 
