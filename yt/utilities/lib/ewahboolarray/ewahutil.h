@@ -10,40 +10,25 @@
 #ifndef EWAHUTIL_H
 #define EWAHUTIL_H
 
-#include <string.h>
-#include <stdlib.h>
 #include <iso646.h> // mostly for Microsoft compilers
 #include <limits.h>
 #include <stdint.h> // part of Visual Studio 2010 and better
+#include <stdlib.h>
+#include <string.h>
 
-#include <cassert>
-#include <iostream>
-#include <vector>
-#include <string>
-#include <stdexcept>
-#include <cstddef>
 #include <algorithm>
+#include <cassert>
+#include <cstddef>
+#include <iostream>
 #include <sstream>
-
-// taken from stackoverflow
-#ifndef NDEBUG
-#define ASSERT(condition, message)                                             \
-  do {                                                                         \
-    if (!(condition)) {                                                        \
-      std::cerr << "Assertion `" #condition "` failed in " << __FILE__         \
-                << " line " << __LINE__ << ": " << message << std::endl;       \
-      std::exit(EXIT_FAILURE);                                                 \
-    }                                                                          \
-  } while (false)
-#else
-#define ASSERT(condition, message)                                             \
-  do {                                                                         \
-  } while (false)
-#endif
+#include <stdexcept>
+#include <string>
+#include <vector>
 
 #ifdef _MSC_VER
 #include <intrin.h>
 #endif
+namespace ewah {
 
 static inline uint32_t ctz64(uint64_t n) {
 #if defined(__GNUC__) && UINT_MAX >= UINT32_MAX && ULLONG_MAX >= UINT64_MAX
@@ -170,7 +155,7 @@ static inline uint32_t ctz16(uint16_t n) {
 inline uint32_t countOnes(uint32_t x) {
   return static_cast<uint32_t>(__builtin_popcount(x));
 }
-#elif defined(_MSC_VER) && _MSC_VER >= 1400
+#elif defined(_MSC_VER) && _MSC_VER >= 1400 && !defined(_M_ARM)&& !defined(_M_ARM64)
 inline uint32_t countOnes(uint32_t x) { return __popcnt(x); }
 #else
 inline uint32_t countOnes(uint32_t v) {
@@ -188,7 +173,7 @@ inline uint32_t countOnes(uint32_t v) {
 inline uint32_t countOnes(uint64_t x) {
   return static_cast<uint32_t>(__builtin_popcountll(x));
 }
-#elif defined(_WIN64) && defined(_MSC_VER) && _MSC_VER >= 1400
+#elif defined(_WIN64) && defined(_MSC_VER) && _MSC_VER >= 1400 && !defined(_M_ARM64)
 inline uint32_t countOnes(uint64_t x) {
   return static_cast<uint32_t>(__popcnt64(static_cast<__int64>(x)));
 }
@@ -236,5 +221,5 @@ template <class uword> std::string toBinaryString(const uword w) {
   }
   return convert.str();
 }
-
+} // namespace ewah
 #endif

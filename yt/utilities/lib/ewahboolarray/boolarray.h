@@ -7,17 +7,17 @@
 
 #ifndef BOOLARRAY_H
 #define BOOLARRAY_H
-#include <iso646.h> // mostly for Microsoft compilers
-#include <stdarg.h>
 #include <cassert>
 #include <iostream>
-#include <vector>
-#include <stdexcept>
+#include <iso646.h> // mostly for Microsoft compilers
 #include <sstream>
+#include <stdarg.h>
+#include <stdexcept>
+#include <vector>
 
-// uncomment this for debugging
-//#define EWAHASSERT
+#include "ewahutil.h"
 
+namespace ewah {
 /**
  * A dynamic bitset implementation. (without compression).
  */
@@ -139,7 +139,7 @@ public:
   void set(const size_t pos) {
     if (pos >= sizeinbits)
       padWithZeroes(pos + 1);
-    buffer[pos / wordinbits] |= (static_cast<uword>(1) << (pos % wordinbits));
+    buffer[pos / wordinbits] |= static_cast<uword>((static_cast<uword>(1) << (pos % wordinbits)));
   }
 
   /**
@@ -190,9 +190,9 @@ public:
   }
 
   /**
-  * Computes the logical and and return the result.
-  * The current bitmaps is unchanged.
-  */
+   * Computes the logical and and return the result.
+   * The current bitmaps is unchanged.
+   */
   BoolArray logicaland(const BoolArray &a) const {
     BoolArray answer;
     logicaland(a, answer);
@@ -215,16 +215,16 @@ public:
     size_t upto = out.buffer.size() < ba.buffer.size() ? out.buffer.size()
                                                        : ba.buffer.size();
     for (size_t i = 0; i < upto; ++i)
-      out.buffer[i] = buffer[i] & (~ba.buffer[i]);
+      out.buffer[i] = static_cast<uword>(buffer[i] & (~ba.buffer[i]));
     for (size_t i = upto; i < out.buffer.size(); ++i)
       out.buffer[i] = buffer[i];
     out.clearBogusBits();
   }
 
   /**
-  * Computes the logical andnot and return the result.
-  * The current bitmaps is unchanged.
-  */
+   * Computes the logical andnot and return the result.
+   * The current bitmaps is unchanged.
+   */
   BoolArray logicalandnot(const BoolArray &a) const {
     BoolArray answer;
     logicalandnot(a, answer);
@@ -262,9 +262,9 @@ public:
   }
 
   /**
-  * Computes the logical or and return the result.
-  * The current bitmaps is unchanged.
-  */
+   * Computes the logical or and return the result.
+   * The current bitmaps is unchanged.
+   */
   BoolArray logicalor(const BoolArray &a) const {
     BoolArray answer;
     logicalor(a, answer);
@@ -296,9 +296,9 @@ public:
   }
 
   /**
-  * Computes the logical xor and return the result.
-  * The current bitmaps is unchanged.
-  */
+   * Computes the logical xor and return the result.
+   * The current bitmaps is unchanged.
+   */
   BoolArray logicalxor(const BoolArray &a) const {
     BoolArray answer;
     logicalxor(a, answer);
@@ -319,9 +319,9 @@ public:
   }
 
   /**
-  * Computes the logical not and return the result.
-  * The current bitmaps is unchanged.
-  */
+   * Computes the logical not and return the result.
+   * The current bitmaps is unchanged.
+   */
   BoolArray logicalandnot() const {
     BoolArray answer;
     logicalnot(answer);
@@ -366,8 +366,8 @@ public:
       padWithZeroes(a.sizeinbits);
   }
   /**
-  * Make sure the current bitmap has the size of the provided bitmap.
-  */
+   * Make sure the current bitmap has the size of the provided bitmap.
+   */
   void setToSize(const BoolArray &a) {
     sizeinbits = a.sizeinbits;
     buffer.resize(a.buffer.size());
@@ -434,7 +434,7 @@ private:
   void clearBogusBits() {
     if ((sizeinbits % wordinbits) != 0) {
       const uword maskbogus =
-          (static_cast<uword>(1) << (sizeinbits % wordinbits)) - 1;
+          static_cast<uword>((static_cast<uword>(1) << (sizeinbits % wordinbits)) - 1);
       buffer[buffer.size() - 1] &= maskbogus;
     }
   }
@@ -484,5 +484,5 @@ template <class uword> void BoolArray<uword>::append(const BoolArray &a) {
   }
   sizeinbits += a.sizeinbits;
 }
-
+} // namespace ewah
 #endif
