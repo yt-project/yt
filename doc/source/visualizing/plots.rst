@@ -2133,7 +2133,7 @@ an example that includes slices and phase plots:
     p1 = SlicePlot(ds, "x", ("gas", "density"))
     p1.set_width(10, "kpc")
 
-    p2 = SlicePlot(ds, "x", ("gas", "tempature"))
+    p2 = SlicePlot(ds, "x", ("gas", "temperature"))
     p2.set_width(10, "kpc")
     p2.set_cmap(("gas", "temperature"), "hot")
 
