@@ -122,6 +122,7 @@ Example Script
 
 .. code-block:: python
 
+    import matplotlib.pyplot as plt
     import yt
     from yt.visualization.api import Streamlines
 
@@ -129,7 +130,7 @@ Example Script
     streamlines = Streamlines(ds, ds.domain_center)
     streamlines.integrate_through_volume()
     stream = streamlines.path(0)
-    matplotlib.pylab.semilogy(stream["t"], stream["gas", "density"], "-x")
+    plt.semilogy(stream["t"], stream["gas", "density"], "-x")
 
 
 Running in Parallel

@@ -32,7 +32,7 @@ except ImportError:
 ip_shell = TerminalInteractiveShell(user_ns=namespace, banner1 = doc,
                                     display_banner = True)
 if "DISPLAY" in os.environ:
-    ip_shell.enable_pylab(import_all=False)
+    ip_shell.enable_matplotlib(import_all=False)
 
 
 # The rest is a modified version of the IPython default profile code

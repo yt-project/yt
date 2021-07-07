@@ -35,8 +35,8 @@ or
    yt load DD0030/DD0030
 
 This will spawn ``iyt``, but the dataset given on the command line will
-already be in the namespace as ``ds``.  With interactive mode, you can use the
-``pylab`` module to interactively plot.
+already be in the namespace as ``ds``.  With interactive mode, you can use
+``matplotlib.pyplot`` to build plots interactively.
 
 Command-line Functions
 ~~~~~~~~~~~~~~~~~~~~~~
