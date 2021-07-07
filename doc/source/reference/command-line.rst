@@ -8,6 +8,10 @@ Command-Line Usage
 Interactive Prompt
 ~~~~~~~~~~~~~~~~~~
 
+.. warning::
+
+   This section describes a script targeted for removal in yt 4.2.0
+
 The interactive prompt offers a number of excellent opportunities for
 exploration of data.  While there are challenges for repeatability, and some
 operations will be more challenging to operate in parallel, interactive prompts
@@ -137,11 +141,6 @@ instinfo and version
 This gives information about where your yt installation is, what version
 and changeset you're using and more.
 
-load
-++++
-
-This will start the iyt interactive environment with your specified
-dataset already loaded. See :ref:`interactive-prompt` for more details.
 
 mapserver
 +++++++++
