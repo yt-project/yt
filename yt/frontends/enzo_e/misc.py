@@ -7,7 +7,7 @@ def bdecode(block):
     Decode a block descriptor to get its left and right sides and level.
 
     A block string consisting of (0, 1), with optionally one colon. The
-    number of digits after the colon is the refinemenet level. The combined
+    number of digits after the colon is the refinement level. The combined
     digits denote the binary representation of the left edge.
     """
 

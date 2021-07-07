@@ -150,7 +150,7 @@ As mentioned, previously operations such as slice, projection and arbitrary
 grids would smooth the particle data onto the global octree. As this is no
 longer used, a different approach was required to visualize the SPH data. Using
 SPLASH as inspiration, SPH smoothing pixelization operations were created using
-smooting operations via "scatter" and "gather" approaches. We estimate the
+smoothing operations via "scatter" and "gather" approaches. We estimate the
 contributions of a particle to a single pixel by considering the point at the
 centre of the pixel and using the standard SPH smoothing formula. The heavy
 lifting in these functions is undertaken by cython functions.
@@ -180,7 +180,7 @@ method:
 
 In the above example the ``covering_grid`` and the ``arbitrary_grid`` will return
 the same data. In fact, these containers are very similar but provide a
-slighlty different API.
+slightly different API.
 
 The above code can be modified to use the gather approach by changing a global
 setting for the dataset. This can be achieved with
@@ -194,7 +194,7 @@ disable the normalization for all future interpolations.
 
 The gather approach requires finding nearest neighbors using the KDTree. The
 first call will generate a KDTree for the entire dataset which will be stored in
-a sidecar file. This will be loaded whenever neccesary.
+a sidecar file. This will be loaded whenever necessary.
 
 Off-Axis Projection for SPH Data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -225,7 +225,7 @@ Smoothing Data onto an Octree
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Whilst the move away from the global octree is a promising one in terms of
-perfomance and dealing with SPH data in a more intuitive manner, it does remove
+performance and dealing with SPH data in a more intuitive manner, it does remove
 a useful feature. We are aware that many users will have older scripts which take
 advantage of the global octree.
 

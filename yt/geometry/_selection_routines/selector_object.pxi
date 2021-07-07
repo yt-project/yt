@@ -594,7 +594,7 @@ cdef class SelectorObject:
         return state_tuple
 
     def __getnewargs__(self):
-        # __setstate__ will always call __cinit__, this pickle hoook returns arguments
+        # __setstate__ will always call __cinit__, this pickle hook returns arguments
         # to __cinit__. We will give it None so we dont error then set attributes in
         # __setstate__ Note that we could avoid this by making dobj an optional argument
         # to __cinit__

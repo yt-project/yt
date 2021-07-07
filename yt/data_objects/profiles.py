@@ -858,7 +858,7 @@ class ParticleProfile(Profile2D):
     weight_field : string field name
         The field to use for weighting. Default is None.
     deposition : string, optional
-        The interpolation kernal to be used for
+        The interpolation kernel to be used for
         deposition. Valid choices:
         "ngp" : nearest grid point interpolation
         "cic" : cloud-in-cell interpolation

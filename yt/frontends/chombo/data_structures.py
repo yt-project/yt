@@ -149,7 +149,7 @@ class ChomboHierarchy(GridIndex):
             elif "boxes" in d:
                 self.num_grids += d["boxes"].len()
             else:
-                raise RuntimeError("Uknown file specification")
+                raise RuntimeError("Unknown file specification")
 
     def _parse_index(self):
         f = self._handle  # shortcut

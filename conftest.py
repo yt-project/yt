@@ -129,7 +129,7 @@ def pytest_configure(config):
 
     if find_spec("cartopy") is not None:
         # cartopy still triggers this numpy warning
-        # last checked wtih cartopy 0.19.0
+        # last checked with cartopy 0.19.0
         config.addinivalue_line(
             "filterwarnings",
             (

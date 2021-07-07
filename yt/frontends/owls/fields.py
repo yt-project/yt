@@ -328,7 +328,7 @@ class OWLSFieldInfo(SPHFieldInfo):
         # ----------------------------------------------
         tdir = ytcfg.get("yt", "test_data_dir")
 
-        # set download destination to tdir or ./ if tdir isnt defined
+        # set download destination to tdir or ./ if tdir isn't defined
         # ----------------------------------------------
         if tdir == "/does/not/exist":
             data_dir = "./"

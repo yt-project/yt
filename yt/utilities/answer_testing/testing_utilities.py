@@ -154,7 +154,7 @@ def _hash_dict(data):
             hashed_data = _hash_dict(value)
         else:
             hashed_data = bytearray(key.encode("utf8")) + bytearray(value)
-        # If we're returning from a recusive call (and therefore hashed_data
+        # If we're returning from a recursive call (and therefore hashed_data
         # is a hex digest), we need to encode the string before it can be
         # hashed
         if isinstance(hashed_data, str):

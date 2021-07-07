@@ -28,7 +28,7 @@ def issue_deprecation_warning(msg, *, removal, since=None, stacklevel=3):
     beware that `removal` is required (it doesn't have a default value). This is
     vital since deprecated code is typically untested and not specifying a required
     keyword argument will turn the warning into a TypeError.
-    What it gets us however is that the release manager will know for a fact wether it
+    What it gets us however is that the release manager will know for a fact whether it
     is safe to remove a feature at any given point, and users have a better idea when
     their code will become incompatible.
 

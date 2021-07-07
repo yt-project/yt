@@ -238,7 +238,7 @@ class ImagePlotMPL(PlotMPL):
 
         if self._transform is None:
             # sets the transform to be an ax.TransData object, where the
-            # coordiante system of the data is controlled by the xlim and ylim
+            # coordinate system of the data is controlled by the xlim and ylim
             # of the data.
             transform = self.axes.transData
         else:

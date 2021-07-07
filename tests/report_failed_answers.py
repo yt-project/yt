@@ -63,7 +63,7 @@ def generate_failed_answers_html(failed_answers):
       the answer tests.
     </p>
     <p>
-      <strong>Acutal Image:</strong> plot generated while running the test<br/>
+      <strong>Actual Image:</strong> plot generated while running the test<br/>
       <strong>Expected Image:</strong> golden answer image<br/>
       <strong>Difference Image:</strong> difference in the "actual"
       and "expected" image

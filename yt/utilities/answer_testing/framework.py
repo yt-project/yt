@@ -218,7 +218,7 @@ class AnswerTestCloudStorage(AnswerTestStorage):
                 except Exception:
                     time.sleep(0.01)
                 else:
-                    # We were succesful
+                    # We were successful
                     break
             else:
                 # Raise error if all tries were unsuccessful

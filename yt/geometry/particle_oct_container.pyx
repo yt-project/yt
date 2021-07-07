@@ -70,7 +70,7 @@ from ..utilities.lib.ewah_bool_wrap cimport BoolArrayCollection
 import os
 import struct
 
-# If set to 1, ghost cells are added at the refined level reguardless of if the
+# If set to 1, ghost cells are added at the refined level regardless of if the
 # coarse cell containing it is refined in the selector.
 # If set to 0, ghost cells are only added at the refined level of the coarse
 # index for the ghost cell is refined in the selector.
@@ -92,7 +92,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
     #The starting oct index of each domain
     cdef np.int64_t *dom_offsets
     cdef public int max_level
-    #How many particles do we keep befor refining
+    #How many particles do we keep before refining
     cdef public int n_ref
 
     def allocate_root(self):
@@ -2171,7 +2171,7 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
         cdef np.int64_t index_root = 0
         cdef int root_count
         beg = end = 0
-        self._octs_per_root[:] = 1 # Roots count reguardless
+        self._octs_per_root[:] = 1 # Roots count regardless
         while end < no:
             # Determine number of octs with this prefix
             beg = end

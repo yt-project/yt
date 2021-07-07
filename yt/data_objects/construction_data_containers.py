@@ -1797,7 +1797,7 @@ class YTSurface(YTSelectionContainer3D):
 
         filename : string
             The file this will be exported to.  This cannot be a file-like
-            object. If there are no file extentions included - both obj & mtl
+            object. If there are no file extensions included - both obj & mtl
             files are created.
         transparency : float
             This gives the transparency of the output surface plot.  Values
@@ -1946,7 +1946,7 @@ class YTSurface(YTSelectionContainer3D):
             cs = (cs - mi) / (ma - mi)
         else:
             cs[:] = 1.0
-        # to get color indicies for OBJ formatting
+        # to get color indices for OBJ formatting
         from yt.visualization._colormap_data import color_map_luts
 
         lut = color_map_luts[color_map]
@@ -2602,7 +2602,7 @@ class YTSurface(YTSelectionContainer3D):
         try:
             r = requests.post(SKETCHFAB_API_URL, data=data, files=files, verify=False)
         except requests.exceptions.RequestException:
-            mylog.exception("An error has occured")
+            mylog.exception("An error has occurred")
             return
 
         result = r.json()

@@ -883,7 +883,7 @@ def get_perspective_matrix(fovy, aspect, z_near, z_far):
     """
     Given a field of view in radians, an aspect ratio, and a near
     and far plane distance, this routine computes the transformation matrix
-    corresponding to perspective projection using homogenous coordinates.
+    corresponding to perspective projection using homogeneous coordinates.
 
     Parameters
     ----------
@@ -955,7 +955,7 @@ def get_orthographic_matrix(maxr, aspect, z_near, z_far):
     """
     Given a field of view in radians, an aspect ratio, and a near
     and far plane distance, this routine computes the transformation matrix
-    corresponding to perspective projection using homogenous coordinates.
+    corresponding to perspective projection using homogeneous coordinates.
 
     Parameters
     ----------

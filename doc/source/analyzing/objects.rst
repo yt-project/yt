@@ -597,7 +597,7 @@ This is equivalent to:
 The ``min`` operator does not do this, however, as a minimum intensity
 projection is not currently implemented.
 
-You can also compute the ``mean`` value, which accepts a field, axis and wight
+You can also compute the ``mean`` value, which accepts a field, axis and weight
 function.  If the axis is not specified, it will return the average value of
 the specified field, weighted by the weight argument.  The weight argument
 defaults to ``ones``, which performs an arithmetic average.  For instance:

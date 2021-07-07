@@ -936,7 +936,7 @@ def load_octree(
         of size n_octs * 8 (but see note about the root oct below), where
         each item is 1 for an oct-cell being refined and 0 for it not being
         refined.  For over_refine_factors != 1, the children count will
-        still be 8, so there will stil be n_octs * 8 entries. Note that if
+        still be 8, so there will still be n_octs * 8 entries. Note that if
         the root oct is not refined, there will be only one entry
         for the root, so the size of the mask will be (n_octs - 1)*8 + 1.
     data : dict
@@ -1442,7 +1442,7 @@ def load_sample(
 
     # pooch has functionalities to unpack downloaded archive files,
     # but it needs to be told in advance that we are downloading a tarball.
-    # Since that information is not necessarily trival to guess from the filename,
+    # Since that information is not necessarily trivial to guess from the filename,
     # we rely on the standard library to perform a conditional unpacking instead.
     if tarfile.is_tarfile(tmp_file):
         mylog.info("Untaring downloaded file to '%s'", save_dir)
