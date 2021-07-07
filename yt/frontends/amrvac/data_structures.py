@@ -146,7 +146,7 @@ class AMRVACDataset(Dataset):
         parfiles=None,
         default_species_fields=None,
     ):
-        """Instanciate AMRVACDataset.
+        """Instantiate AMRVACDataset.
 
         Parameters
         ----------
@@ -157,7 +157,7 @@ class AMRVACDataset(Dataset):
             This should always be 'amrvac'.
 
         units_override : dict, optional
-            A dictionnary of physical normalisation factors to interpret on disk data.
+            A dictionary of physical normalisation factors to interpret on disk data.
 
         unit_system : str, optional
             Either "cgs" (default), "mks" or "code"

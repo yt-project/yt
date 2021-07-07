@@ -139,7 +139,7 @@ class YTEllipsoid(YTSelectionContainer3D):
     e0 : array_like (automatically normalized)
         the direction of the largest semi-major axis of the ellipsoid
     tilt : float
-        After the rotation about the z-axis to allign e0 to x in the x-y
+        After the rotation about the z-axis to align e0 to x in the x-y
         plane, and then rotating about the y-axis to align e0 completely
         to the x-axis, tilt is the angle in radians remaining to
         rotate about the x-axis to align both e1 to the y-axis and e2 to

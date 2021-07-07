@@ -17,7 +17,7 @@ if __name__ == "__main__":
     pytest_args = [
         "-s",
         "-v",
-        "-rsfE",  # it means -r "sfE" (show skiped, failed, errors), no -r -s -f -E
+        "-rsfE",  # it means -r "sfE" (show skipped, failed, errors), no -r -s -f -E
         "--with-answer-testing",
         "-m answer_test",
         f"-n {int(os.environ.get('NUM_WORKERS', 1))}",

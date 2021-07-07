@@ -218,7 +218,7 @@ whether to use a log or linear scale, and whether or not to do accumulation to
 create a cumulative distribution function.  For more information, see the API
 documentation on the :func:`~yt.data_objects.profiles.create_profile` function.
 
-For custom bins the other keyword arguments can be overriden using the
+For custom bins the other keyword arguments can be overridden using the
 ``override_bins`` keyword argument. This accepts a dictionary with an array
 for each bin field or ``None`` to use the default settings.
 

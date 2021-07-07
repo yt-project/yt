@@ -269,7 +269,7 @@ def py_partition_given_pivot(np.ndarray[np.float64_t, ndim=2] pos,
 
 def py_select(np.ndarray[np.float64_t, ndim=2] pos, np.uint32_t d,
               np.int64_t t):
-    r"""Get the indices required to partition coordiantes such that the first
+    r"""Get the indices required to partition coordinates such that the first
     t elements in pos[:,d] are the smallest t elements in pos[:,d].
 
     Args:

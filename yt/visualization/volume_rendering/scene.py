@@ -284,7 +284,7 @@ class Scene:
             If specified, save the rendering as to the file "fname".
             If unspecified, it creates a default based on the dataset filename.
             The file format is inferred from the filename's suffix. Supported
-            fomats are png, pdf, eps, and ps.
+            formats are png, pdf, eps, and ps.
             Default: None
         sigma_clip: float, optional
             Image values greater than this number times the standard deviation

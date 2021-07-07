@@ -824,7 +824,7 @@ As an example,
    p.save()
 
 Symlog is very versatile, and will work with positive or negative dataset ranges.
-Here is an example using symlog scaling to plot a postive field with a linear range of
+Here is an example using symlog scaling to plot a positive field with a linear range of
 ``(0, linthresh)``.
 
 .. python-script::
@@ -1310,7 +1310,7 @@ field. Thus, allowing us the option to have different plot titles for different 
 Annotating plot with text
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Plots can be annotated at a desired (x,y) co-ordinate using :meth:`~yt.visualization.profile_plotter.ProfilePlot.annotate_text` function.
+Plots can be annotated at a desired (x,y) coordinate using :meth:`~yt.visualization.profile_plotter.ProfilePlot.annotate_text` function.
 This function accepts the x-position, y-position, a text string to
 be annotated in the plot area, and an optional list of fields for annotating plots with the specified field.
 Furthermore, any keyword argument accepted by the matplotlib ``axes.text`` function could also be passed which will can be useful to change fontsize, text-alignment, text-color or other such properties of annotated text.
@@ -1973,7 +1973,7 @@ be separated from the easy part (generating images).  The intermediate
 slice, projection, and profile objects can be saved as reloadable
 datasets, then handed back to the plotting machinery discussed here.
 
-For slices and projections, the savable object is associated with the
+For slices and projections, the saveable object is associated with the
 plot object as ``data_source``.  This can be saved with the
 :func:`~yt.data_objects.data_containers.YTDataContainer.save_as_dataset` function.  For
 more information, see :ref:`saving_data`.

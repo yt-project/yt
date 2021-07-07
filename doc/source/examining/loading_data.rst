@@ -143,7 +143,7 @@ Appropriate errors are thrown for other combinations.
 * particle data: currently not supported (but might come later)
 * staggered grids (AMRVAC 2.2 and later): yt logs a warning if you load
   staggered datasets, but the flag is currently ignored.
-* "stretched grids" as defined in AMRVAC have no correspondance in yt,
+* "stretched grids" as defined in AMRVAC have no correspondence in yt,
   hence will never be supported.
 
 .. note::

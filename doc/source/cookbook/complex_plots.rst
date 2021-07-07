@@ -65,7 +65,7 @@ matter.  On the other hand, increasing these without increasing
 ``buff_size`` accordingly will simply blow up your resolution
 elements to fill several real pixels.
 
-4. (only for meshed particle data) ``n_ref``, the maximum nubmer of
+4. (only for meshed particle data) ``n_ref``, the maximum number of
 particles in a cell in the oct-tree allowed before it is refined
 (removed in yt-4.0 as particle data is no longer deposited onto
 an oct-tree).  For particle data, ``n_ref`` effectively sets the

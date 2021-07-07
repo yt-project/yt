@@ -739,8 +739,8 @@ Additional Improvements
   will be registered for a dataset if the dependent particle filter is
   registered with a dataset. See `PR 1624
   <https://github.com/yt-project/yt/pull/1624>`__.
-- The ``save()`` method of the various yt plot objets now optionally can accept
-  a tuple of strings instead of a string. If a tuple is supplied, the elments
+- The ``save()`` method of the various yt plot objects now optionally can accept
+  a tuple of strings instead of a string. If a tuple is supplied, the elements
   are joined with ``os.sep`` to form a path. See `PR 1630
   <https://github.com/yt-project/yt/pull/1630>`__.
 - The quiver callback now accepts a ``plot_args`` keyword argument that allows
@@ -790,7 +790,7 @@ Additional Improvements
   1914 <https://github.com/yt-project/yt/pull/1914>`__.
 - ``ParticleProjectionPlot`` now supports the ``annotate_particles`` plot
   callback. See `PR 1765 <https://github.com/yt-project/yt/pull/1765>`__.
-- Optmized the performance of off-axis projections for octree AMR data. See `PR
+- Optimized the performance of off-axis projections for octree AMR data. See `PR
   1766 <https://github.com/yt-project/yt/pull/1766>`__.
 - Added support for several radiative transfer fields in the ARTIO frontend. See
   `PR 1804 <https://github.com/yt-project/yt/pull/1804>`__.

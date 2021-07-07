@@ -174,7 +174,7 @@ def fill_hydro(FortranFile f,
                 continue
             f.seek(offset)
             tmp = {}
-            # Initalize temporary data container for io
+            # Initialize temporary data container for io
             # note: we use Fortran ordering to reflect the in-file ordering
             for field in all_fields:
                 tmp[field] = np.empty((nc, twotondim), dtype="float64", order='F')

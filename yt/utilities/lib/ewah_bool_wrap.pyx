@@ -548,7 +548,7 @@ cdef class FileBitmasks:
         cdef ewahmap_it it_map
         cdef np.uint64_t nrefn, mi1
         cdef ewah_bool_array mi1_ewah
-        # Write mi1 ewah & refinment ewah
+        # Write mi1 ewah & refinement ewah
         ewah_keys[0].write(ss,1)
         ewah_refn[0].write(ss,1)
         # Number of refined bool arrays
@@ -575,7 +575,7 @@ cdef class FileBitmasks:
         nrefn = mi1 = 0
         # Write string to string stream
         ss.write(s, len(s))
-        # Read keys and refinment arrays
+        # Read keys and refinement arrays
         ewah_keys[0].read(ss,1)
         ewah_refn[0].read(ss,1)
         # Read and check number of refined cells
@@ -1197,7 +1197,7 @@ cdef class BoolArrayCollection:
         cdef ewahmap_it it_map
         cdef np.uint64_t nrefn, mi1
         cdef ewah_bool_array mi1_ewah
-        # Write mi1 ewah & refinment ewah
+        # Write mi1 ewah & refinement ewah
         ewah_keys[0].write(ss,1)
         ewah_refn[0].write(ss,1)
         # Number of refined bool arrays
@@ -1227,7 +1227,7 @@ cdef class BoolArrayCollection:
         nrefn = mi1 = 0
         # Write string to string stream
         ss.write(s, len(s))
-        # Read keys and refinment arrays
+        # Read keys and refinement arrays
         ewah_keys[0].read(ss,1)
         ewah_refn[0].read(ss,1)
         # Read and check number of refined cells

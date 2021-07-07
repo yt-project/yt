@@ -52,7 +52,7 @@ def test_dims_and_meta():
     dims = ds.parameters["dimensions"]
 
     ## check the file for 2 grids and a time dimension -
-    ## (time, xf, xh, yf, yh, zf, zh). The dimesions ending in
+    ## (time, xf, xh, yf, yh, zf, zh). The dimensions ending in
     ## f are the staggered velocity grid components and the
     ## dimensions ending in h are the scalar grid components
     assert_equal(len(dims), len(known_dims))
