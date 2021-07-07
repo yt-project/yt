@@ -36,7 +36,7 @@ or
 
 This will spawn ``iyt``, but the dataset given on the command line will
 already be in the namespace as ``ds``.  With interactive mode, you can use
-``matplotlib.pyplot`` to built plots interactively.
+``matplotlib.pyplot`` to build plots interactively.
 
 Command-line Functions
 ~~~~~~~~~~~~~~~~~~~~~~
