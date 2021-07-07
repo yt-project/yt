@@ -72,7 +72,7 @@ class DuplicateFilter(logging.Filter):
     """A filter that removes duplicated successive log entries."""
 
     # source
-    # https://stackoverflow.com/questions/44691558/suppress-multiple-messages-with-same-content-in-python-logging-module-aka-log-co  # noqa
+    # https://stackoverflow.com/questions/44691558/suppress-multiple-messages-with-same-content-in-python-logging-module-aka-log-co
     def filter(self, record):
         current_log = (record.module, record.levelno, record.msg, record.args)
         if current_log != getattr(self, "last_log", None):

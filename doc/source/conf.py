@@ -47,8 +47,8 @@ if not on_rtd:
     extensions.append("pythonscript_sphinxext")
 
 try:
-    import nbconvert  # NOQA: F401
-    import RunNotebook  # NOQA: F401
+    import nbconvert  # noqa: F401
+    import RunNotebook  # noqa: F401
 
     if not on_rtd:
         extensions.append("RunNotebook.notebook_sphinxext")
