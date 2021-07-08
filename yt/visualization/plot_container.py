@@ -22,7 +22,7 @@ from yt.utilities.exceptions import YTNotInsideNotebook
 from ._commons import validate_image_name
 
 try:
-    import cmocean  # noqa
+    import cmocean
 except ImportError:
     cmocean = None
 

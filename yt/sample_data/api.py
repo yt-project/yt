@@ -85,7 +85,7 @@ def get_data_registry_table():
 
     # it would be nicer to have an actual api on the yt website server,
     # but this will do for now
-    api_url = "https://raw.githubusercontent.com/yt-project/website/master/data/datafiles.json"  # noqa
+    api_url = "https://raw.githubusercontent.com/yt-project/website/master/data/datafiles.json"
 
     response = requests.get(api_url)
 
