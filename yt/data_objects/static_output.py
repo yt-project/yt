@@ -523,8 +523,6 @@ class Dataset(abc.ABC):
     @property
     def index(self):
         if self._instantiated_index is None:
-            if self._index_class is None:
-                raise RuntimeError("You should not instantiate Dataset.")
             self._instantiated_index = self._index_class(
                 self, dataset_type=self.dataset_type
             )
