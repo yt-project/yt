@@ -130,7 +130,7 @@ html_theme_options = dict(
     bootstrap_version="3",
     bootswatch_theme="readable",
     navbar_links=[
-        ("", ""),
+        ("", ""),  # see https://github.com/yt-project/yt/pull/3423
         ("How to get help", "help/index"),
         ("Quickstart notebooks", "quickstart/index"),
         ("Cookbook", "cookbook/index"),
