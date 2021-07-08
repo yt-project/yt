@@ -207,8 +207,8 @@ by defining ``plugin_filename`` in your ``yt.toml`` file, as mentioned above.
 .. note::
 
    You can tell that your system plugin file is being parsed by watching for a logging
-   message when you import yt. Note that both the ``yt load`` and ``iyt``
-   command line entry points parse the plugin file.
+   message when you import yt. Note that the ``yt load`` command line entry point parses
+   the plugin file.
 
 
 Local project plugin file
