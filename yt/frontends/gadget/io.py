@@ -119,7 +119,9 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
             offset += count
         kdtree = index.kdtree
         positions = uconcatenate(positions)[kdtree.idx]
-        hsml = generate_smoothing_length(positions, kdtree, self.ds._num_neighbors)
+        hsml = generate_smoothing_length(
+            positions.astype("float64"), kdtree, self.ds._num_neighbors
+        )
         dtype = positions.dtype
         hsml = hsml[np.argsort(kdtree.idx)].astype(dtype)
         mylog.warning("Writing smoothing lengths to hsml files.")

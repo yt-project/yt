@@ -48,7 +48,7 @@ class SwiftDataset(SPHDataset):
 
         Currently sets length, mass, time, and temperature.
 
-        SWIFT uses comoving co-ordinates without the usual h-factors.
+        SWIFT uses comoving coordinates without the usual h-factors.
         """
         units = self._get_info_attributes("Units")
 

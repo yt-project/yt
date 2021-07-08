@@ -37,12 +37,11 @@ Boostraping a new frontend
 
 To get started
 
-* make a new directory in ``yt/frontends`` with the name of your code and add the name
-into ``yt/frontends/api.py:_frontends`` (in alphabetical order).
-
-* copy the contents of the ``yt/frontends/_skeleton`` directory, and replace every
-occurence of ``Skeleton`` with your frontend's name (preserving case). This adds a lot of
-boilerplate for the required classes and methods that are needed.
+ * make a new directory in ``yt/frontends`` with the name of your code and add the name
+   into ``yt/frontends/api.py:_frontends`` (in alphabetical order).
+ * copy the contents of the ``yt/frontends/_skeleton`` directory, and replace every
+   occurrence of ``Skeleton`` with your frontend's name (preserving case). This
+   adds a lot of boilerplate for the required classes and methods that are needed.
 
 
 Data Meaning Structures
@@ -158,7 +157,7 @@ example of how this is implemented in the FLASH frontend:
 This function should always be imported and called from within the
 ``setup_fluid_fields`` method of the ``FieldInfoContainer``. If this
 function is used, converting between magnetic fields in different
-:ref:`unit systems <unit_systems>` will be handled automatically.
+unit systems will be handled automatically.
 
 Data Localization Structures
 ----------------------------

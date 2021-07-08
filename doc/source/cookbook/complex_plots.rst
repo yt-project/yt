@@ -65,7 +65,7 @@ matter.  On the other hand, increasing these without increasing
 ``buff_size`` accordingly will simply blow up your resolution
 elements to fill several real pixels.
 
-4. (only for meshed particle data) ``n_ref``, the maximum nubmer of
+4. (only for meshed particle data) ``n_ref``, the maximum number of
 particles in a cell in the oct-tree allowed before it is refined
 (removed in yt-4.0 as particle data is no longer deposited onto
 an oct-tree).  For particle data, ``n_ref`` effectively sets the
@@ -420,26 +420,6 @@ This recipe demonstrates how to make a volume rendering composited with line
 sources.
 
 .. yt_cookbook:: vol-lines.py
-
-.. _cookbook-opengl_vr:
-
-Advanced Interactive Data Visualization
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-This recipe demonstrates how to manually create all components required to
-start the Interactive Data Visualization.  For more information see
-:ref:`interactive_data_visualization`.
-
-.. yt_cookbook:: opengl_vr.py
-
-Embedding Interactive Data Visualization
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-This recipe demonstrates how to embed the Interactive Data Visualization inside
-the Jupyter notebook.  For more information see
-:ref:`interactive_data_visualization`.
-
-.. yt_cookbook:: opengl_ipython.py
 
 Plotting Streamlines
 ~~~~~~~~~~~~~~~~~~~~

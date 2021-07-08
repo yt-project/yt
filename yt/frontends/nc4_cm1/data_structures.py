@@ -126,9 +126,9 @@ class CM1Dataset(Dataset):
             # _handle here is a netcdf Dataset object, we need to parse some metadata
             # for constructing our yt ds.
 
-            # TO DO: generalize this to be coordiante variable name agnostic in order to
+            # TO DO: generalize this to be coordinate variable name agnostic in order to
             # make useful for WRF or climate data. For now, we're hard coding for CM1
-            # specifically and have named the classes appropriately. Additionaly, we
+            # specifically and have named the classes appropriately. Additionally, we
             # are only handling the cell-centered grid ("xh","yh","zh") at present.
             # The cell-centered grid contains scalar fields and interpolated velocities.
             dims = [_handle.dimensions[i].size for i in ["xh", "yh", "zh"]]

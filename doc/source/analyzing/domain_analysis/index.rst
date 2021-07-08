@@ -25,6 +25,7 @@ These modules exist within yt itself.
    cosmology_calculator
    clump_finding
    xray_emission_fields
+   xray_data_README
 
 External Analysis Modules
 -------------------------
@@ -63,7 +64,7 @@ a new owner and a new home. If you find something in here that
 you'd like to bring back to life, either by adding it to
 :ref:`yt-astro` or as part of your own package, you are welcome
 to it! If you'd like any help, let us know! See
-:ref:`yt_attic:attic_modules` for a list of inventory of the
+:ref:`yt_attic:attic-modules` for a list of inventory of the
 attic.
 
 Extensions

@@ -25,7 +25,7 @@ from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.data_objects.static_output import Dataset
 from yt.data_objects.time_series import SimulationTimeSeries
-from yt.funcs import get_pbar
+from yt.funcs import get_pbar, get_yt_version
 from yt.loaders import load, load_simulation
 from yt.testing import (
     assert_allclose_units,
@@ -33,7 +33,6 @@ from yt.testing import (
     assert_equal,
     assert_rel_equal,
 )
-from yt.utilities.command_line import get_yt_version
 from yt.utilities.exceptions import YTCloudError, YTNoAnswerNameSpecified, YTNoOldAnswer
 from yt.utilities.logger import disable_stream_logging
 from yt.visualization import (
@@ -219,7 +218,7 @@ class AnswerTestCloudStorage(AnswerTestStorage):
                 except Exception:
                     time.sleep(0.01)
                 else:
-                    # We were succesful
+                    # We were successful
                     break
             else:
                 # Raise error if all tries were unsuccessful
@@ -1194,13 +1193,13 @@ def small_patch_amr(ds_fn, fields, input_center="max", input_weight=("gas", "den
     yield ParentageRelationshipsTest(ds_fn)
     for field in fields:
         yield GridValuesTest(ds_fn, field)
-        for axis in [0, 1, 2]:
-            for dobj_name in dso:
+        for dobj_name in dso:
+            for axis in [0, 1, 2]:
                 for weight_field in [None, input_weight]:
                     yield ProjectionValuesTest(
                         ds_fn, axis, field, weight_field, dobj_name
                     )
-                yield FieldValuesTest(ds_fn, field, dobj_name)
+            yield FieldValuesTest(ds_fn, field, dobj_name)
 
 
 def big_patch_amr(ds_fn, fields, input_center="max", input_weight=("gas", "density")):

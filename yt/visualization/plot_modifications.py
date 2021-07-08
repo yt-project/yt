@@ -2325,7 +2325,7 @@ class TriangleFacetsCallback(PlotCallback):
 
 
 class TimestampCallback(PlotCallback):
-    """
+    r"""
     Annotates the timestamp and/or redshift of the data output at a specified
     location in the image (either in a present corner, or by specifying (x,y)
     image coordinates with the x_pos, y_pos arguments.  If no time_units are
@@ -2401,7 +2401,7 @@ class TimestampCallback(PlotCallback):
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
         FancyBboxPatch object as the inset box around the text.
         Defaults: ``{'boxstyle':'square', 'pad':0.3, 'facecolor':'black',
-                     'linewidth':3, 'edgecolor':'white', 'alpha':0.5}``
+        'linewidth':3, 'edgecolor':'white', 'alpha':0.5}``
 
     Example
     -------
@@ -2563,7 +2563,7 @@ class TimestampCallback(PlotCallback):
 
 
 class ScaleCallback(PlotCallback):
-    """
+    r"""
     Annotates the scale of the plot at a specified location in the image
     (either in a preset corner, or by specifying (x,y) image coordinates with
     the pos argument.  Coeff and units (e.g. 1 Mpc or 100 kpc) refer to the
@@ -2620,7 +2620,7 @@ class ScaleCallback(PlotCallback):
     text_args : dictionary, optional
         A dictionary of parameters to used to update the font_properties
         for the text in this callback.  For any property not set, it will
-        use the defaults of the plot.  Thus one can modify the text size with:
+        use the defaults of the plot.  Thus one can modify the text size with
         ``text_args={'size':24}``
 
     size_bar_args : dictionary, optional
@@ -2635,7 +2635,7 @@ class ScaleCallback(PlotCallback):
         A dictionary of keyword arguments to be passed to the matplotlib Patch
         object that represents the inset box.
         Defaults: ``{'facecolor': 'black', 'linewidth': 3,
-                     'edgecolor': 'white', 'alpha': 0.5, 'boxstyle': 'square'}``
+        'edgecolor': 'white', 'alpha': 0.5, 'boxstyle': 'square'}``
 
     scale_text_format : string, optional
         This specifies the format of the scalebar value assuming "scale" is the

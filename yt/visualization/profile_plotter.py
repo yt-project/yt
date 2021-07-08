@@ -2,12 +2,12 @@ import base64
 import builtins
 import os
 from collections import OrderedDict
-from distutils.version import LooseVersion
 from functools import wraps
 
 import matplotlib
 import numpy as np
 from more_itertools.more import always_iterable, unzip
+from packaging.version import parse as parse_version
 
 from yt.data_objects.profiles import create_profile, sanitize_field_tuple_keys
 from yt.data_objects.static_output import Dataset
@@ -28,7 +28,7 @@ from .plot_container import (
     validate_plot,
 )
 
-MPL_VERSION = LooseVersion(matplotlib.__version__)
+MPL_VERSION = parse_version(matplotlib.__version__)
 
 
 def invalidate_profile(f):
@@ -594,7 +594,7 @@ class ProfilePlot:
         field : string
            The name of the field that is to be changed.
 
-        new_unit : string or Unit object
+        unit : string or Unit object
            The name of the new unit.
         """
         fd = self.profiles[0].data_source._determine_fields(field)[0]
@@ -809,8 +809,8 @@ class ProfilePlot:
           The text to insert onto the plot.
         field : str or tuple
           The name of the field to add text to.
-        text_kwargs : dict
-          Dictionary of text keyword arguments to be passed to matplotlib
+        **text_kwargs : dict
+          Extra keyword arguments will be passed to matplotlib text instance
 
         >>> import yt
         >>> from yt.units import kpc
@@ -1174,7 +1174,7 @@ class PhasePlot(ImagePlotContainer):
             if self._cbar_minorticks[f]:
                 if self._field_transform[f] == linear_transform:
                     self.plots[f].cax.minorticks_on()
-                elif MPL_VERSION < LooseVersion("3.0.0"):
+                elif MPL_VERSION < parse_version("3.0.0"):
                     # before matplotlib 3 log-scaled colorbars internally used
                     # a linear scale going from zero to one and did not draw
                     # minor ticks. Since we want minor ticks, calculate
@@ -1250,16 +1250,14 @@ class PhasePlot(ImagePlotContainer):
 
         Parameters
         ----------
-        field : str or tuple
-          The name of the field to add text to.
         xpos : float
           Position on plot in x-coordinates.
         ypos : float
           Position on plot in y-coordinates.
         text : str
           The text to insert onto the plot.
-        text_kwargs : dict
-          Dictionary of text keyword arguments to be passed to matplotlib
+        **text_kwargs : dict
+          Extra keyword arguments will be passed to matplotlib text instance
 
         >>> plot.annotate_text(1e-15, 5e4, "Hello YT")
 
@@ -1495,7 +1493,7 @@ class PhasePlot(ImagePlotContainer):
         field : string
            The name of the field that is to be changed.
 
-        new_unit : string or Unit object
+        unit : string or Unit object
            The name of the new unit.
         """
         fd = self.data_source._determine_fields(field)[0]

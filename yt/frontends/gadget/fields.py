@@ -15,9 +15,9 @@ class GadgetFieldInfo(SPHFieldInfo):
         # setup some special fields that only make sense for SPH particles
 
         if (ptype, "FourMetalFractions") in self.ds.field_list:
-            self._setup_four_metal_fractions(ptype)
+            self.species_names = self._setup_four_metal_fractions(ptype)
         elif (ptype, "ElevenMetalMasses") in self.ds.field_list:
-            self._setup_eleven_metal_masses(ptype)
+            self.species_names = self._setup_eleven_metal_masses(ptype)
 
         super().setup_particle_fields(ptype, *args, **kwargs)
 
@@ -66,6 +66,8 @@ class GadgetFieldInfo(SPHFieldInfo):
                 function=_Density_wrap(i),
                 units=self.ds.unit_system["density"],
             )
+
+        return metal_names
 
     def _setup_eleven_metal_masses(self, ptype):
         """
@@ -133,6 +135,8 @@ class GadgetFieldInfo(SPHFieldInfo):
             function=_h_density,
             units=self.ds.unit_system["density"],
         )
+
+        return ["H"] + metal_names[:-1]
 
     def setup_gas_particle_fields(self, ptype):
         if (ptype, "Temperature") not in self.ds.field_list:

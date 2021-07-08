@@ -14,7 +14,9 @@ The Configuration
 
 The configuration is stored in simple text files (in the `toml <https://github.com/toml-lang/toml>`_ format).
 The files allow to set internal yt variables to custom default values to be used in future sessions.
-The configuration can either be stored :ref:`globally<Global Configuration>` or :ref:`locally<Local Configuration>`.
+The configuration can either be stored :ref:`globally <global-conf>` or :ref:`locally <local-conf>`.
+
+.. _global-conf:
 
 Global Configuration
 ^^^^^^^^^^^^^^^^^^^^
@@ -44,6 +46,8 @@ options from the configuration file, e.g.:
    $ yt config set yt log_level 1
    $ yt config rm yt maximum_stored_datasets
 
+
+.. _local-conf:
 
 Local Configuration
 ^^^^^^^^^^^^^^^^^^^
@@ -98,10 +102,10 @@ file. Note that a log level of 1 means that all log messages are printed to
 stdout.  To disable logging, set the log level to 50.
 
 
-.. _global-config:
+.. _config-options:
 
-Available Global Configuration Options
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Available Configuration Options
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The following external parameters are available.  A number of parameters are
 used internally.
@@ -152,7 +156,7 @@ It is possible to customize the default behaviour of plots using per-field confi
 The default options for plotting a given field can be specified in the configuration file
 in ``[plot.field_type.field_name]`` blocks. The available keys are
 
-* ``cmap`` (default: ``yt.default_colormap``, see :ref:`global-config`): the colormap to
+* ``cmap`` (default: ``yt.default_colormap``, see :ref:`config-options`): the colormap to
   use for the field.
 * ``log`` (default: ``True``): use a log scale (or symlog if ``linthresh`` is also set).
 * ``linthresh`` (default: ``None``): if set to a float different than ``None`` and ``log`` is
@@ -203,9 +207,8 @@ by defining ``plugin_filename`` in your ``yt.toml`` file, as mentioned above.
 .. note::
 
    You can tell that your system plugin file is being parsed by watching for a logging
-   message when you import yt.  Note that both the ``yt load`` and ``iyt``
-   command line entry points parse the plugin file, so the ``my_plugins.py``
-   file will be parsed if you enter yt that way.
+   message when you import yt. Note that the ``yt load`` command line entry point parses
+   the plugin file.
 
 
 Local project plugin file
@@ -221,7 +224,7 @@ Plugin File Format
 Plugin files should contain pure Python code. If accessing yt functions and classes
 they will not require the ``yt.`` prefix, because of how they are loaded.
 
-For example, if I created a plugin file containing:
+For example, if one created a plugin file containing:
 
 .. code-block:: python
 
@@ -285,8 +288,8 @@ Adding Custom Colormaps
 
 To add custom :ref:`colormaps` to your plugin file, you must use the
 :func:`~yt.visualization.color_maps.make_colormap` function to generate a
-colormap of your choice and then add it to the plugin file.  You can see
-an example of this in :ref:`custom-colormaps`.  Remember that you don't need
+colormap of your choice and then add it to the plugin file. You can see
+an example of this in :ref:`custom-colormaps`. Remember that you don't need
 to prefix commands in your plugin file with ``yt.``, but you'll only be
 able to access the colormaps when you load the ``yt.mods`` module, not simply
 ``yt``.

@@ -74,28 +74,35 @@ run:
 Handling yt dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-We attempt to make yt compatible with a wide variety of upstream software
-versions. However, sometimes a specific version of a project that yt depends on
+Our dependencies are specified in ``setup.cfg``. Hard dependencies are found in
+``options.install_requires``, while optional dependencies are specified in
+``options.extras_require``. The ``full`` target contains the specs to run our
+test suite, which are intended to be as modern as possible (we don't set upper
+limits to versions unless we need to). The ``minimal`` target is used to check
+that we don't break backward compatibility with old versions of upstream
+projects by accident. It is intended to pin strictly our minimal supported
+versions. The ``test`` target specifies the tools need to run the tests, but
+not needed by yt itself.
+
+**Python version support.**
+When a new Python version is released, it takes about
+a month or two for yt to support it, since we're dependent on bigger projects
+like numpy and matplotlib. We vow to follow numpy's deprecation plan regarding
+our supported versions for Python and numpy, defined formally in `NEP 29
+<https://numpy.org/neps/nep-0029-deprecation_policy.html>`_. However, we try to
+avoid bumping our minimal requirements shortly before a yt release.
+
+**Third party dependencies.**
+However, sometimes a specific version of a project that yt depends on
 causes some breakage and must be blacklisted in the tests or a more
 experimental project that yt depends on optionally might change sufficiently
 that the yt community decides not to support an old version of that project.
 
-To handle cases like this, the versions of upstream software projects installed
-on the machines running the yt test suite are pinned to specific version
-numbers that must be updated manually. This prevents breaking the yt tests when
-a new version of an upstream dependency is released and allows us to manage
-updates in upstream projects at our pace.
-
-If you would like to add a new dependency for yt (even an optional dependency)
-or would like to update a version of a yt dependency, you must edit the
-``tests/test_requirements.txt`` file, this path is relative to the root of the
-repository. This file contains an enumerated list of direct dependencies and
-pinned version numbers. For new dependencies, simply append the name of the new
-dependency to the end of the file, along with a pin to the latest version
-number of the package. To update a package's version, simply update the version
-number in the entry for that package.
-
-Finally, we also run a set of tests with "minimal" dependencies installed. Please make sure any new tests you add that depend on an optional dependency are properly set up so that the test is not run if the dependency is not installed. If for some reason you need to update the listing of packages that are installed for the "minimal" dependency tests, you will need to edit ``tests/test_minimal_requirements.txt``.
+**Note.**
+Some of our optional dependencies are not trivial to install and their support
+may vary across platforms. To manage such issue, we currently use requirement
+files in additions to ``setup.cfg``. They are found in
+``tests/*requirements.txt`` and used in ``tests/ci_install.sh``.
 
 How to Write Unit Tests
 ^^^^^^^^^^^^^^^^^^^^^^^

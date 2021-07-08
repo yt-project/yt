@@ -777,7 +777,7 @@ class SDFIndex:
 
     def get_ibbox_slow(self, ileft, iright):
         """
-        Given left and right indicies, return a mask and
+        Given left and right indices, return a mask and
         set of offsets+lengths into the sdf data.
         """
         mask = np.zeros(self.indexdata["index"].shape, dtype="bool")
@@ -796,7 +796,7 @@ class SDFIndex:
 
     def get_ibbox(self, ileft, iright):
         """
-        Given left and right indicies, return a mask and
+        Given left and right indices, return a mask and
         set of offsets+lengths into the sdf data.
         """
         # print('Getting data from ileft to iright:',  ileft, iright)
@@ -863,7 +863,7 @@ class SDFIndex:
 
     def get_bbox(self, left, right):
         """
-        Given left and right indicies, return a mask and
+        Given left and right indices, return a mask and
         set of offsets+lengths into the sdf data.
         """
         ileft = np.floor((left - self.rmin) / self.domain_width * self.domain_dims)

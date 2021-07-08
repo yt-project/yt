@@ -50,22 +50,16 @@ signs.  Let's inaugurate the occasion appropriately -- type this::
 
 As you can see, this printed out the string "Hello, world." just as we
 expected.  Now let's try a more advanced string, one with a number in it.  For
-this we'll use the percent (``%``) operator, which is the manner by which
-values are fed into a formatted string.  We'll print pi, but only with three
-digits of accuracy.::
+this we'll use an "f-string", which is the preferred way to format strings in modern Python.
+We'll print pi, but only with three digits of accuracy.::
 
-   >>> print("Pi is precisely %0.2f" % (3.1415926))
+   >>> print(f"Pi is precisely {3.1415926:0.2f}")
 
 This took the number we fed it (3.1415926) and printed it out as a floating
-point number with two decimal places.  Now let's try something a bit different
+point number with two decimal places. Now let's try something a bit different
 -- let's print out both the name of the number and its value.::
 
-   >>> print("%s is precisely %0.2f" % ("pi", 3.1415926))
-
-As you can see, we used ``%s`` to say that the string should print a value as a
-string (the supplied value does not have to be a string -- ``"pi"`` could be
-replaced with, for instance, another number!) and then supplied the string to
-print, as well.
+   >>> print(f"{'pi'} is precisely {3.1415926:0.2f}")
 
 And there you have it -- the very basics of starting up Python, and some very
 simple mechanisms for printing values out.  Now let's explore a few types of
@@ -128,9 +122,6 @@ This works for floating points as well.  Now we can do math on these numbers::
    >>> print(a + 5.1)
    >>> print(a / 2.0)
 
-Because of a historical aversion to floating point division in Python (which is
-now changing) it's always safest to ensure that either the numerator or the
-denominator is a floating point number.
 
 Now that we have a couple primitive datatypes, we can move on to sequences --
 lists and tuples.  These two objects are very similar, in that they are
@@ -643,7 +634,7 @@ covers mechanisms for combining arrays of different shapes and sizes, which can
 be tricky but also extremely powerful.  We won't discuss the idea of
 broadcasting here, simply because I don't know that I could do it justice!  The
 NumPy Docs have a great `section on broadcasting
-<https://docs.scipy.org/doc/numpy/user/basics.broadcasting.html>`_.
+<https://numpy.org/doc/stable/user/basics.broadcasting.html>`_.
 
 Scripted Usage
 ++++++++++++++
@@ -736,8 +727,8 @@ perspective and interactively.
 Python and Related References
 +++++++++++++++++++++++++++++
     * `Python quickstart <https://docs.python.org/3/tutorial/>`_
-    * `Learn Python the Hard Way <https://learnpythonthehardway.org/book/>`_
+    * `Learn Python the Hard Way <https://learnpythonthehardway.org/python3/>`_
     * `Byte of Python <https://python.swaroopch.com/>`_
-    * `Dive Into Python <http://diveintopython.org>`_
-    * `Numpy docs <https://docs.scipy.org/doc/numpy/>`_
+    * `Dive Into Python <https://diveintopython3.problemsolving.io/>`_
+    * `Numpy docs <https://numpy.org/doc/stable/>`_
     * `Matplotlib docs <https://matplotlib.org>`_

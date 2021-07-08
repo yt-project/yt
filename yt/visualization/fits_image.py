@@ -577,7 +577,7 @@ class FITSImageData:
         if output is None:
             output = sys.stdout
         if num_cols == 8:
-            header = "No.    Name      Ver    Type      Cards   Dimensions   Format     Units"  # NOQA E501
+            header = "No.    Name      Ver    Type      Cards   Dimensions   Format     Units"
             format = "{:3d}  {:10}  {:3} {:11}  {:5d}   {}   {}   {}"
         else:
             header = (
@@ -616,7 +616,7 @@ class FITSImageData:
         fields : list of strings, optional
             The fields to write to the file. If not specified
             all of the fields in the buffer will be written.
-        clobber : overwrite, optional
+        overwrite : boolean
             Whether or not to overwrite a previously existing file.
             Default: False
         **kwargs
@@ -845,6 +845,9 @@ def sanitize_fits_unit(unit):
     return unit
 
 
+# This list allows one to determine which axes are the
+# correct axes of the image in a right-handed coordinate
+# system depending on which axis is sliced or projected
 axis_wcs = [[1, 2], [0, 2], [0, 1]]
 
 
@@ -888,11 +891,12 @@ def construct_image(ds, axis, data_source, center, image_res, width, length_unit
         else:
             frb = data_source.to_frb(width[0], (nx, ny), center=center, height=width[1])
     elif isinstance(data_source, ParticleAxisAlignedDummyDataSource):
+        axes = axis_wcs[axis]
         bounds = (
-            center[0] - width[0] / 2,
-            center[0] + width[0] / 2,
-            center[1] - width[1] / 2,
-            center[1] + width[1] / 2,
+            center[axes[0]] - width[0] / 2,
+            center[axes[0]] + width[0] / 2,
+            center[axes[1]] - width[1] / 2,
+            center[axes[1]] + width[1] / 2,
         )
         frb = ParticleImageBuffer(
             data_source, bounds, (nx, ny), periodic=all(ds.periodicity)

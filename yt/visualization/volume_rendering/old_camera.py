@@ -96,9 +96,6 @@ class Camera(ParallelAnalysisInterface):
     ds : ~yt.data_objects.static_output.Dataset
         For now, this is a require parameter!  But in the future it will become
         optional.  This is the dataset to volume render.
-    use_kd: bool, optional
-        Specifies whether or not to use a kd-Tree framework for
-        the Homogenized Volume and ray-casting.  Default to True.
     max_level: int, optional
         Specifies the maximum level to be rendered.  Also
         specifies the maximum level used in the kd-Tree
@@ -1312,8 +1309,8 @@ class PerspectiveCamera(Camera):
         east_vec = self.orienter.unit_vectors[0].reshape(3, 1)
         north_vec = self.orienter.unit_vectors[1].reshape(3, 1)
 
-        px = np.mat(np.linspace(-0.5, 0.5, self.resolution[0]))
-        py = np.mat(np.linspace(-0.5, 0.5, self.resolution[1]))
+        px = np.linspace(-0.5, 0.5, self.resolution[0])[np.newaxis, :]
+        py = np.linspace(-0.5, 0.5, self.resolution[1])[np.newaxis, :]
 
         sample_x = self.width[0] * np.array(east_vec * px).transpose()
         sample_y = self.width[1] * np.array(north_vec * py).transpose()
@@ -1441,7 +1438,7 @@ class PerspectiveCamera(Camera):
         theta : float, in radians
              Angle (in radians) by which to yaw the view.
 
-        center : a tuple (x, y, z)
+        rot_center : a tuple (x, y, z)
              The point to rotate about
 
         Examples

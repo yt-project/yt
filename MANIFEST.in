@@ -1,10 +1,16 @@
 include README* CREDITS COPYING.txt CITATION  setupext.py CONTRIBUTING.rst
 include yt/visualization/mapserver/html/map.js
 include yt/visualization/mapserver/html/map_index.html
+include yt/visualization/mapserver/html/Leaflet.Coordinates-0.1.5.css
+include yt/visualization/mapserver/html/Leaflet.Coordinates-0.1.5.src.js
 include yt/utilities/tests/cosmology_answers.yml
 include yt/utilities/mesh_types.yaml
 exclude scripts/pr_backport.py
-recursive-include yt *.py *.pyx *.pxd *.h *.hpp README* *.txt LICENSE* *.cu
+exclude yt/utilities/lib/cykdtree/c_kdtree.cpp
+prune tests
+prune docker
+prune answer-store
+recursive-include yt *.py *.pyx *.pxi *.pxd *.h *.hpp README* *.txt LICENSE* *.cu
 recursive-include doc *.rst *.txt *.py *.ipynb *.png *.jpg *.css *.html
 recursive-include doc *.h *.c *.sh *.svgz *.pdf *.svg *.pyx
 include doc/README doc/activate doc/activate.csh doc/cheatsheet.tex
@@ -13,5 +19,8 @@ prune doc/source/reference/api/generated
 prune doc/build
 recursive-include yt/visualization/volume_rendering/shaders *.fragmentshader *.vertexshader
 include yt/sample_data_registry.json
+include conftest.py
 prune yt/frontends/_skeleton
 recursive-include yt/frontends/amrvac *.par
+exclude .codecov.yml .coveragerc .git-blame-ignore-revs .gitmodules .hgchurn .mailmap
+exclude .pre-commit-config.yaml clean.sh nose_answer.cfg nose_unit.cfg

@@ -22,7 +22,7 @@ of available callbacks.  For example:
 
 .. code-block:: python
 
-   slc = SlicePlot(ds, 0, "density")
+   slc = SlicePlot(ds, "x", ("gas", "density"))
    slc.annotate_title("This is a Density plot")
 
 would add the :func:`~yt.visualization.plot_modifications.TitleCallback` to
@@ -30,7 +30,7 @@ the plot object.  All of the callbacks listed below are available via
 similar ``annotate_`` functions.
 
 To clear one or more annotations from an existing plot, see the
-:ref:`clear_annotations() function <clear-annotations>`.
+:ref:`clear_annotations function <clear-annotations>`.
 
 For a brief demonstration of a few of these callbacks in action together,
 see the cookbook recipe: :ref:`annotations-recipe`.
@@ -62,7 +62,7 @@ of the x-plane (i.e. with axes in the y and z directions):
     import yt
 
     ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    s = yt.SlicePlot(ds, "x", "density")
+    s = yt.SlicePlot(ds, "x", ("gas", "density"))
     s.set_axes_unit("kpc")
 
     # Plot marker and text in data coords
@@ -97,7 +97,7 @@ dataset from AMRVAC :
     import yt
 
     ds = yt.load("amrvac/bw_polar_2D0000.dat")
-    s = yt.plot_2d(ds, "density")
+    s = yt.plot_2d(ds, ("gas", "density"))
     s.set_background_color("density", "black")
 
     # Plot marker and text in data coords
@@ -136,12 +136,15 @@ Clear Callbacks (Some or All)
     to the plot.  Note that the index goes from 0..N, and you can
     specify the index of the last added annotation as -1.
 
+    (This is a proxy for
+    :func:`~yt.visualization.plot_window.clear_annotations`.)
+
 .. python-script::
 
     import yt
 
     ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    p = yt.SlicePlot(ds, "z", "density", center="c", width=(20, "kpc"))
+    p = yt.SlicePlot(ds, "z", ("gas", "density"), center="c", width=(20, "kpc"))
     p.annotate_scale()
     p.annotate_timestamp()
 
@@ -158,15 +161,18 @@ List Currently Applied Callbacks
 
    This function will print a list of each of the currently applied
    callbacks together with their index.  The index can be used with
-   :ref:`clear_annotations() function <annotate-clear>` to remove a
+   :ref:`clear_annotations() function <clear-annotations>` to remove a
    specific callback.
+
+   (This is a proxy for
+   :func:`~yt.visualization.plot_window.list_annotations`.)
 
 .. python-script::
 
     import yt
 
     ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    p = yt.SlicePlot(ds, "z", "density", center="c", width=(20, "kpc"))
+    p = yt.SlicePlot(ds, "z", ("gas", "density"), center="c", width=(20, "kpc"))
     p.annotate_scale()
     p.annotate_timestamp()
     p.list_annotations()
@@ -191,7 +197,7 @@ Overplot Arrow
    import yt
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   slc = yt.SlicePlot(ds, "z", "density", width=(10, "kpc"), center="c")
+   slc = yt.SlicePlot(ds, "z", ("gas", "density"), width=(10, "kpc"), center="c")
    slc.annotate_arrow((0.5, 0.5, 0.5), length=0.06, plot_args={"color": "blue"})
    slc.save()
 
@@ -218,16 +224,16 @@ Clump Finder Callback
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    data_source = ds.disk([0.5, 0.5, 0.5], [0.0, 0.0, 1.0], (8.0, "kpc"), (1.0, "kpc"))
 
-   c_min = 10 ** np.floor(np.log10(data_source["density"]).min())
-   c_max = 10 ** np.floor(np.log10(data_source["density"]).max() + 1)
+   c_min = 10 ** np.floor(np.log10(data_source[("gas", "density")]).min())
+   c_max = 10 ** np.floor(np.log10(data_source[("gas", "density")]).max() + 1)
 
-   master_clump = Clump(data_source, "density")
+   master_clump = Clump(data_source, ("gas", "density"))
    master_clump.add_validator("min_cells", 20)
 
    find_clumps(master_clump, c_min, c_max, 2.0)
    leaf_clumps = master_clump.leaves
 
-   prj = yt.ProjectionPlot(ds, 2, "density", center="c", width=(20, "kpc"))
+   prj = yt.ProjectionPlot(ds, "z", ("gas", "density"), center="c", width=(20, "kpc"))
    prj.annotate_clumps(leaf_clumps)
    prj.save("clumps")
 
@@ -253,8 +259,8 @@ Overplot Contours
    import yt
 
    ds = yt.load("Enzo_64/DD0043/data0043")
-   s = yt.SlicePlot(ds, "x", "density", center="max")
-   s.annotate_contour("temperature")
+   s = yt.SlicePlot(ds, "x", ("gas", "density"), center="max")
+   s.annotate_contour(("gas", "temperature"))
    s.save()
 
 .. _annotate-quivers:
@@ -288,12 +294,13 @@ Axis-Aligned Data Sources
    p = yt.ProjectionPlot(
        ds,
        "z",
-       "density",
+       ("gas", "density"),
        center=[0.5, 0.5, 0.5],
        weight_field="density",
        width=(20, "kpc"),
    )
-   p.annotate_quiver("velocity_x", "velocity_y", factor=16, plot_args={"color": "purple"})
+   p.annotate_quiver(("gas", "velocity_x"), ("gas", "velocity_y"), factor=16,
+                     plot_args={"color": "purple"})
    p.save()
 
 Off-Axis Data Sources
@@ -319,10 +326,10 @@ Off-Axis Data Sources
    import yt
 
    ds = yt.load("Enzo_64/DD0043/data0043")
-   s = yt.OffAxisSlicePlot(ds, [1, 1, 0], ["density"], center="c")
+   s = yt.OffAxisSlicePlot(ds, [1, 1, 0], [("gas", "density")], center="c")
    s.annotate_cquiver(
-       "cutting_plane_velocity_x",
-       "cutting_plane_velocity_y",
+       ("gas", "cutting_plane_velocity_x"),
+       ("gas", "cutting_plane_velocity_y"),
        factor=10,
        plot_args={"color": "orange"},
    )
@@ -353,7 +360,7 @@ Overplot Grids
    import yt
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   slc = yt.SlicePlot(ds, "z", "density", width=(10, "kpc"), center="max")
+   slc = yt.SlicePlot(ds, "z", ("gas", "density"), width=(10, "kpc"), center="max")
    slc.annotate_grids()
    slc.save()
 
@@ -379,7 +386,7 @@ Overplot Cell Edges
    import yt
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   slc = yt.SlicePlot(ds, "z", "density", width=(10, "kpc"), center="max")
+   slc = yt.SlicePlot(ds, "z", ("gas", "density"), width=(10, "kpc"), center="max")
    slc.annotate_cell_edges()
    slc.save()
 
@@ -434,7 +441,7 @@ Overplot Halo Annotations
    data_ds = yt.load("Enzo_64/RD0006/RedshiftOutput0006")
    halos_ds = yt.load("rockstar_halos/halos_0.0.bin")
 
-   prj = yt.ProjectionPlot(data_ds, "z", "density")
+   prj = yt.ProjectionPlot(data_ds, "z", ("gas", "density"))
    prj.annotate_halos(halos_ds, annotate_field="particle_identifier")
    prj.save()
 
@@ -457,7 +464,7 @@ Overplot a Straight Line
    import yt
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   p = yt.ProjectionPlot(ds, "z", "density", center="m", width=(10, "kpc"))
+   p = yt.ProjectionPlot(ds, "z", ("gas", "density"), center="m", width=(10, "kpc"))
    p.annotate_line((0.3, 0.4), (0.8, 0.9), coord_system="axis")
    p.save()
 
@@ -493,7 +500,7 @@ Overplot Magnetic Field Quivers
            "mass_unit": (1e17, "Msun"),
        },
    )
-   p = yt.ProjectionPlot(ds, "z", "density", center="c", width=(300, "kpc"))
+   p = yt.ProjectionPlot(ds, "z", ("gas", "density"), center="c", width=(300, "kpc"))
    p.annotate_magnetic_field(plot_args={"headlength": 3})
    p.save()
 
@@ -515,7 +522,7 @@ Annotate a Point With a Marker
    import yt
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   s = yt.SlicePlot(ds, "z", "density", center="c", width=(10, "kpc"))
+   s = yt.SlicePlot(ds, "z", ("gas", "density"), center="c", width=(10, "kpc"))
    s.annotate_marker((-2, -2), coord_system="plot", plot_args={"color": "blue", "s": 500})
    s.save()
 
@@ -544,7 +551,7 @@ Overplotting Particle Positions
    import yt
 
    ds = yt.load("Enzo_64/DD0043/data0043")
-   p = yt.ProjectionPlot(ds, "x", "density", center="m", width=(10, "Mpc"))
+   p = yt.ProjectionPlot(ds, "x", ("gas", "density"), center="m", width=(10, "Mpc"))
    p.annotate_particles((10, "Mpc"))
    p.save()
 
@@ -555,7 +562,7 @@ To plot only the central particles
    import yt
 
    ds = yt.load("Enzo_64/DD0043/data0043")
-   p = yt.ProjectionPlot(ds, "x", "density", center="m", width=(10, "Mpc"))
+   p = yt.ProjectionPlot(ds, "x", ("gas", "density"), center="m", width=(10, "Mpc"))
    sp = ds.sphere([0.5, 0.5, 0.5], ds.quan(1, "Mpc"))
    p.annotate_particles((10, "Mpc"), data_source=sp)
    p.save()
@@ -578,7 +585,7 @@ Overplot a Circle on a Plot
    import yt
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   p = yt.ProjectionPlot(ds, "z", "density", center="c", width=(20, "kpc"))
+   p = yt.ProjectionPlot(ds, "z", ("gas", "density"), center="c", width=(20, "kpc"))
    p.annotate_sphere([0.5, 0.5, 0.5], radius=(2, "kpc"), circle_args={"color": "black"})
    p.save()
 
@@ -606,8 +613,8 @@ Overplot Streamlines
    import yt
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   s = yt.SlicePlot(ds, "z", "density", center="c", width=(20, "kpc"))
-   s.annotate_streamlines("velocity_x", "velocity_y")
+   s = yt.SlicePlot(ds, "z", ("gas", "density"), center="c", width=(20, "kpc"))
+   s.annotate_streamlines(("gas", "velocity_x"), ("gas", "velocity_y"))
    s.save()
 
 .. _annotate-line-integral-convolution:
@@ -636,8 +643,8 @@ Overplot Line Integral Convolution
    import yt
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   s = yt.SlicePlot(ds, "z", "density", center="c", width=(20, "kpc"))
-   s.annotate_line_integral_convolution("velocity_x", "velocity_y", lim=(0.5, 0.65))
+   s = yt.SlicePlot(ds, "z", ("gas", "density"), center="c", width=(20, "kpc"))
+   s.annotate_line_integral_convolution(("gas", "velocity_x"), ("gas", "velocity_y"), lim=(0.5, 0.65))
    s.save()
 
 .. _annotate-text:
@@ -660,7 +667,7 @@ Overplot Text
    import yt
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   s = yt.SlicePlot(ds, "z", "density", center="max", width=(10, "kpc"))
+   s = yt.SlicePlot(ds, "z", ("gas", "density"), center="max", width=(10, "kpc"))
    s.annotate_text((2, 2), "Galaxy!", coord_system="plot")
    s.save()
 
@@ -681,7 +688,7 @@ Add a Title
    import yt
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   p = yt.ProjectionPlot(ds, "z", "density", center="c", width=(20, "kpc"))
+   p = yt.ProjectionPlot(ds, "z", ("gas", "density"), center="c", width=(20, "kpc"))
    p.annotate_title("Density Plot")
    p.save()
 
@@ -709,7 +716,7 @@ Overplot Quivers for the Velocity Field
    import yt
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   p = yt.SlicePlot(ds, "z", "density", center="m", width=(10, "kpc"))
+   p = yt.SlicePlot(ds, "z", ("gas", "density"), center="m", width=(10, "kpc"))
    p.annotate_velocity(plot_args={"headwidth": 4})
    p.save()
 
@@ -742,7 +749,7 @@ Add the Current Time and/or Redshift
    import yt
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   p = yt.SlicePlot(ds, "z", "density", center="c", width=(20, "kpc"))
+   p = yt.SlicePlot(ds, "z", ("gas", "density"), center="c", width=(20, "kpc"))
    p.annotate_timestamp()
    p.save()
 
@@ -752,7 +759,7 @@ Add a Physical Scale Bar
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. function:: annotate_scale(corner='lower_right', coeff=None, \
-                             unit=None, pos=None,
+                             unit=None, pos=None, \
                              scale_text_format="{scale} {units}", \
                              max_frac=0.16, min_frac=0.015, \
                              coord_system='axis', text_args=None, \
@@ -781,7 +788,7 @@ Add a Physical Scale Bar
    import yt
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   p = yt.SlicePlot(ds, "z", "density", center="c", width=(20, "kpc"))
+   p = yt.SlicePlot(ds, "z", ("gas", "density"), center="c", width=(20, "kpc"))
    p.annotate_scale()
    p.save()
 
@@ -808,10 +815,10 @@ Annotate Triangle Facets Callback
    import yt
 
    # Load data file
-   pf = yt.load("MoabTest/fng_usrbin22.h5m")
+   ds = yt.load("MoabTest/fng_usrbin22.h5m")
 
    # Create the desired slice plot
-   s = yt.SlicePlot(pf, "z", ("moab", "TALLY_TAG"))
+   s = yt.SlicePlot(ds, "z", ("moab", "TALLY_TAG"))
 
    # get triangle vertices from file (in this case hdf5)
 
@@ -847,7 +854,7 @@ Annotate Mesh Lines Callback
    import yt
 
    ds = yt.load("MOOSE_sample_data/out.e")
-   sl = yt.SlicePlot(ds, 2, ("connect1", "nodal_aux"))
+   sl = yt.SlicePlot(ds, "z", ("connect1", "nodal_aux"))
    sl.annotate_mesh_lines(plot_args={"color": "black"})
    sl.save()
 
@@ -863,9 +870,9 @@ Overplot the Path of a Ray
 
     Adds a line representing the projected path of a ray across the plot.  The
     ray can be either a
-    :class:`~yt.data_objects.selection_data_containers.YTOrthoRay`,
-    :class:`~yt.data_objects.selection_data_containers.YTRay`, or a
-    :class:`~trident.light_ray.LightRay`
+    :class:`~yt.data_objects.selection_objects.ray.YTOrthoRay`,
+    :class:`~yt.data_objects.selection_objects.ray.YTRay`, or a
+    Trident :class:`~trident.light_ray.LightRay`
     object.  annotate_ray() will properly account for periodic rays across the
     volume.
 
@@ -876,7 +883,7 @@ Overplot the Path of a Ray
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    oray = ds.ortho_ray(0, (0.3, 0.4))
    ray = ds.ray((0.1, 0.2, 0.3), (0.6, 0.7, 0.8))
-   p = yt.ProjectionPlot(ds, "z", "density")
+   p = yt.ProjectionPlot(ds, "z", ("gas", "density"))
    p.annotate_ray(oray)
    p.annotate_ray(ray)
    p.save()

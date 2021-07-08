@@ -1,0 +1,5 @@
+# cartopy and its dependencies are non trivial to install
+# so we can't easily put these specs into setup.cfg
+shapely
+--no-binary=shapely
+cartopy~=0.18.0

@@ -209,7 +209,7 @@ simulation:
 
    # Plot the transfer function, along with the CDF of the density field to
    # see how the transfer function corresponds to structure in the CDF
-   source.tfh.plot("transfer_function.png", profile_field="density")
+   source.tfh.plot("transfer_function.png", profile_field=("gas", "density"))
 
    # save the image, flooring especially bright pixels for better contrast
    sc.save("rendering.png", sigma_clip=6.0)
@@ -232,7 +232,7 @@ For fun, let's make the same volume_rendering, but this time setting
    source.tfh.set_log(True)
    source.tfh.grey_opacity = False
 
-   source.tfh.plot("transfer_function.png", profile_field="density")
+   source.tfh.plot("transfer_function.png", profile_field=("gas", "density"))
 
    sc.save("rendering.png", sigma_clip=4.0)
 
@@ -278,7 +278,7 @@ colormap to determine the colors of the layers.
 
    source = sc[0]
 
-   source.set_field("density")
+   source.set_field(("gas", "density"))
    source.set_log(True)
 
    bounds = (3e-31, 5e-27)
@@ -292,7 +292,7 @@ colormap to determine the colors of the layers.
    source.tfh.tf = tf
    source.tfh.bounds = bounds
 
-   source.tfh.plot("transfer_function.png", profile_field="density")
+   source.tfh.plot("transfer_function.png", profile_field=("gas", "density"))
 
    sc.save("rendering.png", sigma_clip=6)
 
@@ -314,7 +314,7 @@ To add a single gaussian layer with a color determined by a colormap value, use
 
    source = sc[0]
 
-   source.set_field("density")
+   source.set_field(("gas", "density"))
    source.set_log(True)
 
    bounds = (3e-31, 5e-27)
@@ -328,7 +328,7 @@ To add a single gaussian layer with a color determined by a colormap value, use
    source.tfh.tf = tf
    source.tfh.bounds = bounds
 
-   source.tfh.plot("transfer_function.png", profile_field="density")
+   source.tfh.plot("transfer_function.png", profile_field=("gas", "density"))
 
    sc.save("rendering.png", sigma_clip=6)
 
@@ -351,7 +351,7 @@ If you would like to add a gaussian with a customized color or no color, use
 
    source = sc[0]
 
-   source.set_field("density")
+   source.set_field(("gas", "density"))
    source.set_log(True)
 
    bounds = (3e-31, 5e-27)
@@ -365,7 +365,7 @@ If you would like to add a gaussian with a customized color or no color, use
    source.tfh.tf = tf
    source.tfh.bounds = bounds
 
-   source.tfh.plot("transfer_function.png", profile_field="density")
+   source.tfh.plot("transfer_function.png", profile_field=("gas", "density"))
 
    sc.save("rendering.png", sigma_clip=6)
 
@@ -392,7 +392,7 @@ the volume rendering.
 
    source = sc[0]
 
-   source.set_field("density")
+   source.set_field(("gas", "density"))
    source.set_log(True)
 
    bounds = (3e-31, 5e-27)
@@ -413,7 +413,7 @@ the volume rendering.
    source.tfh.tf = tf
    source.tfh.bounds = bounds
 
-   source.tfh.plot("transfer_function.png", profile_field="density")
+   source.tfh.plot("transfer_function.png", profile_field=("gas", "density"))
 
    sc.save("rendering.png", sigma_clip=6)
 
@@ -635,8 +635,8 @@ function to quickly set up defaults is:
   # load the data
   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
-  # volume render the 'density' field, and save the resulting image
-  im, sc = yt.volume_render(ds, "density", fname="rendering.png")
+  # volume render the ("gas", "density") field, and save the resulting image
+  im, sc = yt.volume_render(ds, ("gas", "density"), fname="rendering.png")
 
   # im is the image array generated. it is also saved to 'rendering.png'.
   # sc is an instance of a Scene object, which allows you to further refine
@@ -664,7 +664,7 @@ function. Example:
     import yt
 
     ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    sc = yt.create_scene(ds, "density")
+    sc = yt.create_scene(ds, ("gas", "density"))
 
     source = sc[0]
 

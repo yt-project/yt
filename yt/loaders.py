@@ -6,13 +6,14 @@ import os
 import sys
 import tarfile
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional, Tuple
 from urllib.parse import urlsplit
 
 import numpy as np
 from more_itertools import always_iterable
 
 from yt._maintenance.deprecation import issue_deprecation_warning
+from yt.funcs import levenshtein_distance
 from yt.sample_data.api import lookup_on_disk_data
 from yt.utilities.decompose import decompose_array, get_psize
 from yt.utilities.exceptions import (
@@ -935,7 +936,7 @@ def load_octree(
         of size n_octs * 8 (but see note about the root oct below), where
         each item is 1 for an oct-cell being refined and 0 for it not being
         refined.  For over_refine_factors != 1, the children count will
-        still be 8, so there will stil be n_octs * 8 entries. Note that if
+        still be 8, so there will still be n_octs * 8 entries. Note that if
         the root oct is not refined, there will be only one entry
         for the root, so the size of the mask will be (n_octs - 1)*8 + 1.
     data : dict
@@ -1125,6 +1126,8 @@ def load_unstructured_mesh(
         Size of computational domain in units of the length unit.
     sim_time : float, optional
         The simulation time in seconds
+    length_unit : string
+        Unit to use for length.  Defaults to unitless.
     mass_unit : string
         Unit to use for masses.  Defaults to unitless.
     time_unit : string
@@ -1304,24 +1307,25 @@ def load_unstructured_mesh(
 
 # --- Loader for yt sample datasets ---
 def load_sample(
-    fn: Optional[str] = None, progressbar: bool = True, timeout=None, **kwargs
+    fn: Optional[str] = None, *, progressbar: bool = True, timeout=None, **kwargs
 ):
-    """
+    r"""
     Load sample data with yt.
 
-    This is a simple wrapper around `yt.load` to include fetching
+    This is a simple wrapper around :func:`~yt.loaders.load` to include fetching
     data with pooch from remote source.
 
     The data registry table can be retrieved and visualized using
-    `yt.sample_data.api.get_data_registry_table()`.
+    :func:`~yt.sample_data.api.get_data_registry_table`.
     The `filename` column contains usable keys that can be passed
-    as the first positional argument to `load_sample`.
+    as the first positional argument to load_sample.
     Some data samples contain series of datasets. It may be required to
     supply the relative path to a specific dataset.
 
     Parameters
     ----------
-    fn : str
+
+    fn: str
         The `filename` of the dataset to load, as defined in the data registry
         table.
 
@@ -1335,16 +1339,18 @@ def load_sample(
 
     Notes
     -----
+
     - This function is experimental as of yt 4.0.0, do not rely on its exact behaviour.
-    - Any additional keyword argument is passed down to `yt.load`.
+    - Any additional keyword argument is passed down to :func:`~yt.loaders.load`.
     - In case of collision with predefined keyword arguments as set in
-    the data registry, the ones passed to this function take priority.
+      the data registry, the ones passed to this function take priority.
     - Datasets with slashes '/' in their names can safely be used even on Windows.
       On the contrary, paths using backslashes '\' won't work outside of Windows, so
       it is recommended to favour the UNIX convention ('/') in scripts that are meant
       to be cross-platform.
     - This function requires pandas and pooch.
     - Corresponding sample data live at https://yt-project.org/data
+
     """
 
     if fn is None:
@@ -1371,6 +1377,21 @@ def load_sample(
     topdir, _, specific_file = fn.partition(os.path.sep)
 
     registry_table = get_data_registry_table()
+
+    known_names: List[str] = registry_table.dropna()["filename"].to_list()
+    if topdir not in known_names:
+        msg = f"'{topdir}' is not an available dataset."
+        lexical_distances: List[Tuple[str, int]] = [
+            (name, levenshtein_distance(name, topdir)) for name in known_names
+        ]
+        suggestions: List[str] = [name for name, dist in lexical_distances if dist < 4]
+        if len(suggestions) == 1:
+            msg += f" Did you mean '{suggestions[0]}' ?"
+        elif suggestions:
+            msg += " Did you mean to type any of the following ?\n\n    "
+            msg += "\n    ".join(f"'{_}'" for _ in suggestions)
+        raise ValueError(msg)
+
     # PR 3089
     # note: in the future the registry table should be reindexed
     # so that the following line can be replaced with
@@ -1379,17 +1400,9 @@ def load_sample(
     #
     # however we don't want to do it right now because the "filename" column is
     # currently incomplete
+    specs = registry_table.query(f"`filename` == '{topdir}'").iloc[0]
 
-    try:
-        specs = registry_table.query(f"`filename` == '{topdir}'").iloc[0]
-    except IndexError as err:
-        raise KeyError(f"Could not find '{fn}' in the registry.") from err
-
-    load_name = specific_file or specs["load_name"]
-    if not load_name:
-        raise ValueError(
-            "Missing a 'load_name' entry for this dataset. This may be fixed by requesting the full path of the loadable file."
-        )
+    load_name = specific_file or specs["load_name"] or ""
 
     if not isinstance(specs["load_kwargs"], dict):
         raise ValueError(
@@ -1404,12 +1417,11 @@ def load_sample(
     save_dir = _get_test_data_dir_path()
 
     data_path = save_dir.joinpath(fn)
-    if data_path.exists():
+    if save_dir.joinpath(topdir).exists():
         # if the data is already available locally, `load_sample`
         # only acts as a thin wrapper around `load`
-        appendum = specific_file or specs["load_name"]
-        if appendum not in str(data_path):
-            data_path = data_path.joinpath(appendum)
+        if load_name and os.sep not in fn:
+            data_path = data_path.joinpath(load_name)
         mylog.info("Sample dataset found in '%s'", data_path)
         if timeout is not None:
             mylog.info("Ignoring the `timeout` keyword argument received.")
@@ -1430,7 +1442,7 @@ def load_sample(
 
     # pooch has functionalities to unpack downloaded archive files,
     # but it needs to be told in advance that we are downloading a tarball.
-    # Since that information is not necessarily trival to guess from the filename,
+    # Since that information is not necessarily trivial to guess from the filename,
     # we rely on the standard library to perform a conditional unpacking instead.
     if tarfile.is_tarfile(tmp_file):
         mylog.info("Untaring downloaded file to '%s'", save_dir)
@@ -1441,10 +1453,7 @@ def load_sample(
         os.replace(tmp_file, save_dir)
 
     loadable_path = Path.joinpath(save_dir, fn)
-    if not specs["load_name"] in str(loadable_path):
-        loadable_path = loadable_path.joinpath(specs["load_name"], specific_file)
-
-    if specific_file and not loadable_path.exists():
-        raise ValueError(f"Could not find file '{loadable_path}'.")
+    if load_name not in str(loadable_path):
+        loadable_path = loadable_path.joinpath(load_name, specific_file)
 
     return load(loadable_path, **kwargs)

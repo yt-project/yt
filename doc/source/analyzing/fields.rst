@@ -7,31 +7,33 @@ Fields are spatially-dependent quantities associated with a parent dataset.
 Examples of fields are gas density, gas temperature, particle mass, etc.
 The fundamental way to query data in yt is to access a field, either in its raw
 form (by examining a data container) or a processed form (derived quantities,
-projections, and so on).  "Field" is something of a loaded word, as it can
-refer to quantities that are defined everywhere, which we refer to as "mesh" or
-"fluid" fields, or discrete points that populate the domain, traditionally
-thought of as "particle" fields.  The word "particle" here is gradually falling
-out of favor, as these discrete fields can be any type of sparsely populated
-data.
+projections, aggregations, and so on).  "Field" is something of a loaded word,
+as it can refer to quantities that are defined everywhere, which we refer to as
+"mesh" or "fluid" fields, or discrete points that populate the domain,
+traditionally thought of as "particle" fields.  The word "particle" here is
+gradually falling out of favor, as these discrete fields can be any type of
+sparsely populated data.
+
+.. _what-are-fields:
 
 What are fields?
 ----------------
 
 Fields in yt are denoted by a two-element tuple, of the form ``(field_type,
 field_name)``. The first element, the "field type" is a category for a
-field. Possible field types used in yt include *gas* (for fluid mesh fields
-defined on a mesh) or *io* (for fields defined at particle locations). Field
+field. Possible field types used in yt include ``gas`` (for fluid mesh fields
+defined on a mesh) or ``io`` (for fields defined at particle locations). Field
 types can also correspond to distinct particle of fluid types in a single
 simulation. For example, a plasma physics simulation using the Particle in Cell
-method might have particle types corresponding to *electrons* and *ions*. See
+method might have particle types corresponding to ``electrons`` and ``ions``. See
 :ref:`known-field-types` below for more info about field types in yt.
 
-The second element of field tuples, the "field name", denotes the specific field
-to select, given the field type. Possible field names include *density*,
-*velocity_x* or *pressure* --- these three fields are examples of field names
+The second element of field tuples, the ``field_name``, denotes the specific field
+to select, given the field type. Possible field names include ``density``,
+``velocity_x`` or ``pressure`` --- these three fields are examples of field names
 that might be used for a fluid defined on a mesh. Examples of particle fields
-include *particle_mass*, *particle_position*, or *particle_velocity_x*. In
-general, particle field names are prefixed by "particle\_", which makes it easy
+include ``particle_mass`` ``particle_position`` or ``particle_velocity_x`` In
+general, particle field names are prefixed by ``particle_``, which makes it easy
 to distinguish between a particle field or a mesh field when no field type is
 provided.
 
@@ -118,6 +120,13 @@ field, like its default units or the source code for it.
 Using fields to access data
 ---------------------------
 
+.. warning::
+
+   These *specific* operations will load the entire field -- which can be
+   extremely memory intensive with large datasets!  If you are looking to
+   compute quantities, see :ref:`Data-objects` for methods for computing
+   aggregates, averages, subsets, regriddings, etc.
+
 The primary *use* of fields in yt is to access data from a dataset. For example,
 if I want to use a data object (see :ref:`Data-objects` for more detail about
 data objects) to access the ``('gas', 'density')`` field, one can do any of the
@@ -140,10 +149,11 @@ following:
     density = ad[ds.fields.gas.density]
 
 The first data access example is the simplest. In that example, the field type
-is inferred from the name of the field. The next two examples use the field type
-explicitly, this might be necessary if there is more than one field type with a
-"density" field defined in the same dataset. The third example is slightly more
-verbose but is syntactically identical to the second example due to the way
+is inferred from the name of the field. However, yt will complain if there are multiple
+field names that could be meant by this simple string access.  The next two examples
+use the field type explicitly, this might be necessary if there is more than one field
+type with a "density" field defined in the same dataset. The third example is slightly
+more verbose but is syntactically identical to the second example due to the way
 indexing works in the Python language.
 
 The final example uses the ``ds.fields`` object described above. This way of
@@ -240,8 +250,7 @@ aliasing process allows universally-defined derived fields to take advantage of
 internal names, and it also provides an easy way to address what units something
 should be returned in.  If an aliased field is requested (and aliased fields
 will always be lowercase, with underscores separating words) it will be returned
-in the units specified by the unit system of the database (see :ref:`unit_systems`
-for a guide to using the different unit systems in yt), whereas if the
+in the units specified by the unit system of the database, whereas if the
 frontend-specific field is requested, it will not undergo any unit conversions
 from its natural units.  (This rule is occasionally violated for fields which
 are mesh-dependent, specifically particle masses in some cosmology codes.)
@@ -266,8 +275,7 @@ Recall that fields are formally accessed in two parts: ('*field type*',
 * ``gas`` -- This is the usual default for simulation frontends for fluid
   types.  These fields are typically aliased to the frontend-specific mesh
   fields for grid-based codes or to the deposit fields for particle-based
-  codes.  Default units are in the unit system of the dataset (see
-  :ref:`unit_systems` for more information).
+  codes.  Default units are in the unit system of the dataset.
 * particle type -- These are particle fields that exist on-disk as written
   by individual frontends.  If the frontend designates names for these particles
   (i.e. particle type) those names are the field types.
@@ -408,7 +416,7 @@ systems in terms of the definition of the magnetic pressure:
 
 where :math:`\mu_0 = 4\pi \times 10^{-7}~\rm{N/A^2}` is the vacuum permeability. yt automatically
 detects on a per-frontend basis what units the magnetic should be in, and allows conversion between
-different magnetic field units in the different :ref:`unit systems <unit_systems>` as well. To
+different magnetic field units in the different unit systems as well. To
 determine how to set up special magnetic field handling when designing a new frontend, check out
 :ref:`bfields-frontend`.
 
@@ -683,8 +691,6 @@ General Particle Fields
 Every particle will contain both a ``particle_position`` and ``particle_velocity``
 that tracks the position and velocity (respectively) in code units.
 
-.. FIXME: Update the following sections to reflect differences in yt-4.0.
-
 .. _deposited-particle-fields:
 
 Deposited Particle Fields
@@ -734,8 +740,16 @@ defined on each dataset to depose any particle field onto the mesh like so:
        ("all", "particle_velocity_x"), method="nearest"
    )
 
-   print("The velocity of the particles are (stored in %s)" % fname)
-   print(ds.r["deposit", "all_nn_particle_velocity_x"])
+   print(f"The velocity of the particles are (stored in {fname}")
+   print(ds.r[fname])
+
+.. note::
+
+   In this example, we are using the returned field name as our input.  You
+   *could* also access it directly, but it might take a slightly different form
+   than you expect -- in this particular case, the field name will be
+   ``("deposit", "all_nn_velocity_x")``, which has removed the prefix
+   ``particle_`` from the deposited name!
 
 Possible deposition methods are:
 
@@ -814,48 +828,33 @@ SPH Fields
 
 See :ref:`yt4differences`.
 
-Computing the Nth Nearest Neighbor
-----------------------------------
+In previous versions of yt, there were ways of computing the distance to the
+N-th nearest neighbor of a particle, as well as computing the nearest particle
+value on a mesh.  Unfortunately, because of changes to the way that particles
+are regarded in yt, these are not currently available.  We hope that this will
+be rectified in future versions and are tracking this in `Issue 3301
+<https://github.com/yt-project/yt/issues/3301>`_.  You can read a bit more
+about the way yt now handles particles in the section :ref:`demeshening`.
 
-One particularly useful field that can be created is that of the distance to
-the Nth-nearest neighbor.  This field can then be used as input to smoothing
-operations, in the case when a particular particle type does not have an
-associated smoothing length or other length estimate.
-
-yt defines this field as a plugin, and it can be added like so:
-
-.. code-block:: python
-
-   import yt
-   from yt.fields.particle_fields import add_nearest_neighbor_field
-
-   ds = yt.load("snapshot_033/snap_033.0.hdf5")
-   (fn,) = add_nearest_neighbor_field("all", "particle_position", ds)
-
-   dd = ds.all_data()
-   print(dd[fn])
-
-Note that ``fn`` here is the "field name" that yt adds.  It will be of the form
-``(ptype, nearest_neighbor_distance_NN)`` where ``NN`` is the integer.  By
-default this is 64, but it can be supplied as the final argument to
-``add_nearest_neighbor_field``.  For the example above, it would be
-``nearest_neighbor_64``.
-
-Commonly, not just the identity of the nearest particle is interesting, but the
-value of a given field associated with that particle.  yt provides a function
-that can do this, as well.  This deposits into the indexing octree the value
-from the nearest particle.
+**But!**  It is possible to compute the smoothed values from SPH particles on
+grids.  For example, one can construct a covering grid that extends over the
+entire domain of a simulation, with resolution 256x256x256, and compute the gas
+density with this reasonable terse command:
 
 .. code-block:: python
 
    import yt
-   from yt.fields.particle_fields import add_nearest_neighbor_value_field
 
    ds = yt.load("snapshot_033/snap_033.0.hdf5")
-   ds.index
-   (fn,) = add_nearest_neighbor_value_field(
-       "all", "particle_position", "particle_velocity_magnitude", ds.field_info
-   )
+   cg = ds.r[::256j, ::256j, ::256j]
+   smoothed_values = cg["gas", "density"]
 
-   dd = ds.all_data()
-   print(dd[fn])
+This will work for any smoothed field; any field that is under the ``"gas"``
+field type will be a smoothed field in an SPH-based simulation.  Here we have
+used the ``ds.r[]`` notation, as described in :ref:`quickly-selecting-data` for
+creating what's called an "arbitrary grid"
+(:class:`~yt.data_objects.construction_data_containers.YTArbitraryGrid`).  You
+can, of course, also supply left and right edges to make the grid take up a
+much smaller portion of the domain, as well, by supplying the arguments as
+detailed in :ref:`arbitrary-grid-selection` and supplying the bounds as the
+first and second elements in each element of the slice.

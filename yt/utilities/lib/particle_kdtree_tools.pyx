@@ -62,7 +62,7 @@ def generate_smoothing_length(np.float64_t[:, ::1] tree_positions,
 
     tree_positions: arrays of floats with shape (n_particles, 3)
         The positions of particles in kdtree sorted order. Currently assumed
-        to be 3D postions.
+        to be 3D positions.
     kdtree: A PyKDTree instance
         A kdtree to do nearest neighbors searches with
     n_neighbors: The neighbor number to calculate the distance to
@@ -120,7 +120,7 @@ def estimate_density(np.float64_t[:, ::1] tree_positions, np.float64_t[:] mass,
 
     tree_positions: array of floats with shape (n_particles, 3)
         The positions of particles in kdtree sorted order. Currently assumed
-        to be 3D postions.
+        to be 3D positions.
     mass: array of floats with shape (n_particles)
         The masses of particles in kdtree sorted order.
     smoothing_length: array of floats with shape (n_particles)

@@ -36,43 +36,34 @@ cp tests/matplotlibrc .
 
 # Step 1: pre-install required packages
 if [[ "${RUNNER_OS}" == "Windows" ]] && [[ ${dependencies} != "minimal" ]]; then
-    # Install some dependencies using conda (if not doing a minimal run)
-    CYTHON=$(grep cython tests/test_prerequirements.txt)
-    NUMPY=$(grep numpy tests/test_prerequirements.txt)
-
-    CARTOPY=$(grep cartopy tests/test_requirements.txt)
-    H5PY=$(grep h5py tests/test_requirements.txt)
-    MATPLOTLIB=$(grep matplotlib tests/test_requirements.txt)
-    SCIPY=$(grep scipy tests/test_requirements.txt)
-    conda config --set always_yes yes
-    conda info -a
-    conda install --quiet --yes -c conda-forge \
-      $CYTHON $NUMPY $CARTOPY $H5PY $MATPLOTLIB $SCIPY
+    # windows_conda_requirements.txt is a survivance of test_requirements.txt
+    # keep in sync: setup.cfg
+    while read requirement; do conda install --yes $requirement; done < tests/windows_conda_requirements.txt
 else
     python -m pip install --upgrade pip
     python -m pip install --upgrade wheel
     python -m pip install --upgrade setuptools
 fi
 
-# Step 2: install required packages (depending on whether the build is minimal)
+# Step 2: install deps and yt
 if [[ ${dependencies} == "minimal" ]]; then
-    # Ensure numpy and cython are installed so dependencies that need to be built
-    # don't error out
-    # The first numpy to support py3.6 is 1.12, but numpy 1.13 matches
-    # unyt so we'll match it here.
-    python -m pip install numpy==1.13.3 cython==0.26.1
-    python -m pip install -r tests/test_minimal_requirements.txt
+    python -m pip install -e .[test,minimal]
 else
-    # Getting cartopy installed requires getting cython and numpy installed
-    # first; this is potentially going to be fixed with the inclusion of
-    # pyproject.toml in cartopy.
-    # These versions are pinned, so we will need to update/remove them when
-    # the hack is no longer necessary.
-    python -m pip install -r tests/test_prerequirements.txt
-    CFLAGS="$CFLAGS -DACCEPT_USE_OF_DEPRECATED_PROJ_API_H" python -m pip install -r tests/test_requirements.txt
-fi
+    # Cython and numpy are build-time requirements to the following optional deps in yt
+    # - cartopy
+    # - netcdf4
+    # - pyqt5
+    # The build system is however not specified properly in these projects at the moment
+    # which means we have to install the build-time requirements first.
+    # It is possible that these problems will be fixed in the future if upstream projects
+    # include a pyproject.toml file or use any pip-comptatible solution to remedy this.
+    python -m pip install numpy>=1.19.4 cython~=0.29.21
 
-# Step 3: install yt
-python -m pip install -e .
+    # this is required for cartopy. It should normally be specified in our setup.cfg as
+    # cartopy[plotting]
+    # However it doesn't work on Ubuntu 18.04 (used in CI at the time of writing)
+    python -m pip install shapely --no-binary=shapely
+    CFLAGS="$CFLAGS -DACCEPT_USE_OF_DEPRECATED_PROJ_API_H" python -m pip install -e .[test,full]
+fi
 
 set +x

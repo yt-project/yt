@@ -60,7 +60,7 @@ sc.save("v2.png", sigma_clip=6.0)
 tf.grey_opacity = True
 sc.save("v3.png", sigma_clip=6.0)
 #
-## That seemed to pick out som interesting structures.  Now let's bump up the
+## That seemed to pick out some interesting structures.  Now let's bump up the
 ## opacity.
 #
 tf.clear()

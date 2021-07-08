@@ -444,7 +444,7 @@ public:
 
   /**
    * Save this bitmap to a stream. The file format is
-   * | sizeinbits | buffer lenth | buffer content|
+   * | sizeinbits | buffer length | buffer content|
    * the sizeinbits part can be omitted if "savesizeinbits=false".
    * Both sizeinbits and buffer length are saved using the size_t data
    * type which is typically a 32-bit unsigned integer for 32-bit CPUs
@@ -480,7 +480,7 @@ public:
   /**
    * this is the counterpart to the write method.
    * if you set savesizeinbits=false, then you are responsible
-   * for setting the value fo the attribute sizeinbits (see method
+   * for setting the value of the attribute sizeinbits (see method
    * setSizeInBits).
    *
    * Returns how many bytes were queried from the stream.
@@ -694,7 +694,7 @@ public:
    */
   inline void fastaddStreamOfEmptyWords(const bool v, size_t number);
   /**
-   * LikeaddStreamOfDirtyWords but does not return the cost increse,
+   * LikeaddStreamOfDirtyWords but does not return the cost increase,
    * does not update sizeinbits.
    */
   inline void fastaddStreamOfDirtyWords(const uword *v, const size_t number);

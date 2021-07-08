@@ -18,7 +18,6 @@ import traceback
 import urllib.parse
 import urllib.request
 import warnings
-from distutils.version import LooseVersion
 from functools import lru_cache, wraps
 from numbers import Number as numeric_type
 from typing import Any, Callable, Type
@@ -26,6 +25,7 @@ from typing import Any, Callable, Type
 import matplotlib
 import numpy as np
 from more_itertools import always_iterable, collapse, first
+from packaging.version import parse as parse_version
 from tqdm import tqdm
 
 from yt.units import YTArray, YTQuantity
@@ -39,7 +39,10 @@ from yt.utilities.on_demand_imports import _requests as requests
 def is_sequence(obj):
     """
     Grabbed from Python Cookbook / matplotlib.cbook.  Returns true/false for
-    *obj* iterable.
+
+    Parameters
+    ----------
+    obj : iterable
     """
     try:
         len(obj)
@@ -56,7 +59,7 @@ def iter_fields(field_or_fields):
 
     Parameters
     ----------
-    obj: str, tuple(str, str), or any iterable of the previous types.
+    field_or_fields: str, tuple(str, str), or any iterable of the previous types.
 
     Examples
     --------
@@ -445,7 +448,7 @@ def paste_traceback_detailed(exc_type, exc, tb):
     print()
 
 
-_ss = "fURbBUUBE0cLXgETJnZgJRMXVhVGUQpQAUBuehQMUhJWRFFRAV1ERAtBXw1dAxMLXT4zXBFfABNN\nC0ZEXw1YUURHCxMXVlFERwxWCQw=\n"  # NOQA 501
+_ss = "fURbBUUBE0cLXgETJnZgJRMXVhVGUQpQAUBuehQMUhJWRFFRAV1ERAtBXw1dAxMLXT4zXBFfABNN\nC0ZEXw1YUURHCxMXVlFERwxWCQw=\n"
 
 
 def _rdbeta(key):
@@ -473,7 +476,7 @@ def update_git(path):
     except ImportError:
         print("Updating and precise version information requires ")
         print("gitpython to be installed.")
-        print("Try: pip install gitpython")
+        print("Try: python -m pip install gitpython")
         return -1
     with open(os.path.join(path, "yt_updater.log"), "a") as f:
         repo = git.Repo(path)
@@ -544,7 +547,7 @@ def get_git_version(path):
     except ImportError:
         print("Updating and precise version information requires ")
         print("gitpython to be installed.")
-        print("Try: pip install gitpython")
+        print("Try: python -m pip install gitpython")
         return None
     try:
         repo = git.Repo(path)
@@ -875,7 +878,7 @@ def enable_plugins(plugin_filename=None):
     in yt scripts without modifying the yt source directly.
 
     If ``plugin_filename`` is omitted, this function will look for a plugin file at
-    ``$HOME/.config/yt/my_plugins.py``, which is the prefered behaviour for a
+    ``$HOME/.config/yt/my_plugins.py``, which is the preferred behaviour for a
     system-level configuration.
 
     Warning: a script using this function will only be reproducible if your plugin
@@ -1036,7 +1039,7 @@ def matplotlib_style_context(style_name=None, after_reset=False):
         import matplotlib
 
         style_name = {"mathtext.fontset": "cm"}
-        if LooseVersion(matplotlib.__version__) >= LooseVersion("3.3.0"):
+        if parse_version(matplotlib.__version__) >= parse_version("3.3.0"):
             style_name["mathtext.fallback"] = "cm"
         else:
             style_name["mathtext.fallback_to_cm"] = True
@@ -1277,14 +1280,15 @@ def levenshtein_distance(seq1, seq2, max_dist=None):
 
     Parameters
     ----------
-    seq1, seq2 : str
+    seq1 : str
+    seq2 : str
         The strings to compute the distance between
     max_dist : integer
         If not None, maximum distance returned (see notes).
 
     Returns
     -------
-    The Levensthein distance as an integer.
+    The Levenshtein distance as an integer.
 
     Notes
     -----

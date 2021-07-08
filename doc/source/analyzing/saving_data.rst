@@ -27,16 +27,17 @@ Geometric Data Containers
 -------------------------
 
 Data from geometric data containers can be saved with the
-:func:`~yt.data_objects.data_containers.save_as_dataset`` function.
+:func:`~yt.data_objects.data_containers.YTDataContainer.save_as_dataset` function.
 
 .. notebook-cell::
 
    import yt
+
    ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
 
-   sphere = ds.sphere([0.5]*3, (10, "Mpc"))
-   fn = sphere.save_as_dataset(fields=["density", "particle_mass"])
-   print (fn)
+   sphere = ds.sphere([0.5] * 3, (10, "Mpc"))
+   fn = sphere.save_as_dataset(fields=[("gas", "density"), ("all", "particle_mass")])
+   print(fn)
 
 This function will return the name of the file to which the dataset
 was saved.  The filename will be a combination of the name of the
@@ -97,7 +98,7 @@ containers.
 .. code-block:: python
 
    cg = ds.covering_grid(level=0, left_edge=[0.25] * 3, dims=[16] * 3)
-   fn = cg.save_as_dataset(fields=["density", "particle_mass"])
+   fn = cg.save_as_dataset(fields=[("gas", "density"), ("all", "particle_mass")])
 
    cg_ds = yt.load(fn)
    ad = cg_ds.all_data()
@@ -114,11 +115,11 @@ Fixed resolution buffers work just the same.
 
 .. code-block:: python
 
-   my_proj = ds.proj("density", "x", weight_field="density")
+   my_proj = ds.proj(("gas", "density"), "x", weight_field=("gas", "density"))
    frb = my_proj.to_frb(1.0, (800, 800))
-   fn = frb.save_as_dataset(fields=["density"])
+   fn = frb.save_as_dataset(fields=[("gas", "density")])
    frb_ds = yt.load(fn)
-   print(frb_ds.data["density"])
+   print(frb_ds.data["gas", "density"])
 
 .. _saving-spatial-plots:
 
@@ -130,7 +131,7 @@ Spatial plots, such as projections, slices, and off-axis slices
 
 .. code-block:: python
 
-   proj = ds.proj("density", "x", weight_field="density")
+   proj = ds.proj(("gas", "density"), "x", weight_field=("gas", "density"))
    proj.save_as_dataset()
 
 Once reloaded, they can be handed to their associated plotting
@@ -139,7 +140,7 @@ functions to make images.
 .. code-block:: python
 
    proj_ds = yt.load("DD0046_proj.h5")
-   p = yt.ProjectionPlot(proj_ds, "x", "density", weight_field="density")
+   p = yt.ProjectionPlot(proj_ds, "x", ("gas", "density"), weight_field=("gas", "density"))
    p.save()
 
 .. _saving-profile-data:
@@ -161,20 +162,20 @@ accessed through the ``.data`` attribute.
    ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
    ad = ds.all_data()
 
-   profile_2d = yt.create_profile(ad, ["density", "temperature"],
-                                  "mass", weight_field=None,
+   profile_2d = yt.create_profile(ad, [("gas", "density"), ("gas", "temperature")],
+                                  ("gas", "mass"), weight_field=None,
                                   n_bins=(128, 128))
    profile_2d.save_as_dataset()
 
    prof_2d_ds = yt.load("DD0046_Profile2D.h5")
-   print (prof_2d_ds.data["mass"])
+   print (prof_2d_ds.data["gas", "mass"])
 
 The x, y (if at least 2D), and z (if 3D) bin fields can be accessed as 1D
 arrays with "x", "y", and "z".
 
 .. code-block:: python
 
-   print(prof_2d_ds.data["x"])
+   print(prof_2d_ds.data["gas", "x"])
 
 The bin fields can also be returned with the same shape as the profile
 data by accessing them with their original names.  This allows for
@@ -183,7 +184,7 @@ boolean masking of profile data using the bin fields.
 .. code-block:: python
 
    # density is the x bin field
-   print(prof_2d_ds.data["density"])
+   print(prof_2d_ds.data["gas", "density"])
 
 For 1, 2, and 3D profile datasets, a fake profile object will be
 constructed by accessing the ".profile" attribute.  This is used
@@ -193,7 +194,13 @@ primarily in the case of 1 and 2D profiles to create figures using
 
 .. code-block:: python
 
-   p = yt.PhasePlot(prof_2d_ds.data, "density", "temperature", "mass", weight_field=None)
+   p = yt.PhasePlot(
+       prof_2d_ds.data,
+       ("gas", "density"),
+       ("gas", "temperature"),
+       ("gas", "mass"),
+       weight_field=None,
+   )
    p.save()
 
 .. _saving-array-data:
@@ -215,8 +222,8 @@ selection is not possible, but the data can be accessed through the
    region = ds.box([0.25]*3, [0.75]*3)
    sphere = ds.sphere(ds.domain_center, (10, "Mpc"))
    my_data = {}
-   my_data["region_density"] = region["density"]
-   my_data["sphere_density"] = sphere["density"]
+   my_data["region_density"] = region["gas", "density"]
+   my_data["sphere_density"] = sphere["gas", "density"]
    yt.save_as_dataset(ds, "test_data.h5", my_data)
 
    array_ds = yt.load("test_data.h5")
@@ -238,4 +245,4 @@ dictionary.
    yt.save_as_dataset(fake_ds, "random_data.h5", my_data)
 
    new_ds = yt.load("random_data.h5")
-   print (new_ds.data["density"])
+   print (new_ds.data["gas", "density"])

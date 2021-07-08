@@ -77,6 +77,6 @@ def test_index_override():
 
 @requires_file(tng59_h5)
 def test_arepo_tng59_selection():
-    ds = data_dir_load(tng59_h5)
+    ds = data_dir_load(tng59_h5, kwargs={"bounding_box": _tng59_bbox})
     psc = ParticleSelectionComparison(ds)
     psc.run_defaults()

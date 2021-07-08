@@ -296,7 +296,7 @@ class YTFieldUnitError(YTException):
 
 class YTFieldUnitParseError(YTException):
     def __init__(self, field_info):
-        self.msg = "The field '%s' has unparseable units '%s'."
+        self.msg = "The field '%s' has unparsable units '%s'."
         self.msg = self.msg % (field_info.name, field_info.units)
 
     def __str__(self):
@@ -896,7 +896,7 @@ class YTCommandRequiresModule(YTException):
         msg += "appropriate for your python environment, e.g.:\n"
         msg += f"  conda install {self.module}\n"
         msg += "or:\n"
-        msg += f"  pip install {self.module}\n"
+        msg += f" python -m pip install {self.module}\n"
         return msg
 
 

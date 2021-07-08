@@ -437,7 +437,7 @@ class GadgetFOFHaloDataset(ParticleDataset):
             "file_count",
             "particle_types_raw",
             "particle_types",
-            "periodicity",
+            "_periodicity",
         ]:
             setattr(self, attr, getattr(self.real_ds, attr))
 
@@ -484,7 +484,7 @@ class GadgetFOFHaloDataset(ParticleDataset):
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
-        # This class is not meant to be instanciated by yt.load()
+        # This class is not meant to be instantiated by yt.load()
         return False
 
 

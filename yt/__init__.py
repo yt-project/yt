@@ -7,14 +7,7 @@ yt is a toolkit for analyzing and visualizing volumetric data.
 * Contribute: https://github.com/yt-project/yt
 
 """
-import sys
-
-if sys.version_info[0] < 3:
-    raise Exception(
-        "Python 2 is no longer supported.  Please install Python 3 for use with yt."
-    )
-
-__version__ = "4.0.dev0"
+__version__ = "4.1.dev0"
 
 import yt.units as units
 import yt.utilities.physical_constants as physical_constants

@@ -8,6 +8,7 @@ from re import finditer
 from tempfile import NamedTemporaryFile, TemporaryFile
 
 import numpy as np
+from more_itertools import always_iterable
 from tqdm import tqdm
 
 from yt.config import ytcfg
@@ -638,7 +639,10 @@ class YTCoveringGrid(YTSelectionContainer3D):
         self.ActiveDimensions = self._sanitize_dims(dims)
 
         rdx = self.ds.domain_dimensions * self.ds.relative_refinement(0, level)
-        rdx[np.where(np.array(dims) - 2 * num_ghost_zones <= 1)] = 1  # issue 602
+
+        # normalize dims as a non-zero dim array
+        dims = np.array(list(always_iterable(dims)))
+        rdx[np.where(dims - 2 * num_ghost_zones <= 1)] = 1  # issue 602
         self.base_dds = self.ds.domain_width / self.ds.domain_dimensions
         self.dds = self.ds.domain_width / rdx.astype("float64")
         self.right_edge = self.left_edge + self.ActiveDimensions * self.dds
@@ -1793,7 +1797,7 @@ class YTSurface(YTSelectionContainer3D):
 
         filename : string
             The file this will be exported to.  This cannot be a file-like
-            object. If there are no file extentions included - both obj & mtl
+            object. If there are no file extensions included - both obj & mtl
             files are created.
         transparency : float
             This gives the transparency of the output surface plot.  Values
@@ -1942,7 +1946,7 @@ class YTSurface(YTSelectionContainer3D):
             cs = (cs - mi) / (ma - mi)
         else:
             cs[:] = 1.0
-        # to get color indicies for OBJ formatting
+        # to get color indices for OBJ formatting
         from yt.visualization._colormap_data import color_map_luts
 
         lut = color_map_luts[color_map]
@@ -2598,7 +2602,7 @@ class YTSurface(YTSelectionContainer3D):
         try:
             r = requests.post(SKETCHFAB_API_URL, data=data, files=files, verify=False)
         except requests.exceptions.RequestException:
-            mylog.exception("An error has occured")
+            mylog.exception("An error has occurred")
             return
 
         result = r.json()

@@ -497,17 +497,18 @@ class AngularMomentumVector(DerivedQuantity):
     Examples
     --------
 
-    # Find angular momentum vector of galaxy in grid-based isolated galaxy dataset
-    >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    >>> ad = ds.all_data()
-    >>> print(ad.quantities.angular_momentum_vector())
-
-    # Find angular momentum vector of gas disk in particle-based dataset
-    >>> ds = load("FIRE_M12i_ref11/snapshot_600.hdf5")
-    >>> _, c = ds.find_max(("gas", "density"))
-    >>> sp = ds.sphere(c, (10, "kpc"))
-    >>> search_args = dict(use_gas=False, use_particles=True, particle_type="PartType0")
-    >>> print(sp.quantities.angular_momentum_vector(**search_args))
+    Find angular momentum vector of galaxy in grid-based isolated galaxy dataset
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    ... ad = ds.all_data()
+    ... print(ad.quantities.angular_momentum_vector())
+    [-7.50868209e+26  1.06032596e+27  2.19274002e+29] cm**2/s
+    >>> # Find angular momentum vector of gas disk in particle-based dataset
+    >>> ds = yt.load("FIRE_M12i_ref11/snapshot_600.hdf5")
+    ... _, c = ds.find_max(("gas", "density"))
+    ... sp = ds.sphere(c, (10, "kpc"))
+    ... search_args = dict(use_gas=False, use_particles=True, particle_type="PartType0")
+    ... print(sp.quantities.angular_momentum_vector(**search_args))
+    [4.88104442e+28 7.38463362e+28 6.20030135e+28] cm**2/s
 
     """
 

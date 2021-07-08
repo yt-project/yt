@@ -294,7 +294,6 @@ cdef class artio_fileset :
         if self.handle : artio_fileset_close(self.handle)
 
     def read_parameters(self) :
-        from sys import version
         cdef char key[64]
         cdef int type
         cdef int length
@@ -317,9 +316,8 @@ cdef class artio_fileset :
                 for i in range(length) :
                     free(char_values[i])
                 free(char_values)
-                if version[0] == '3':
-                    for i in range(0,len(parameter)):
-                        parameter[i] = parameter[i].decode('utf-8')
+                for i in range(len(parameter)):
+                    parameter[i] = parameter[i].decode('utf-8')
             elif type == ARTIO_TYPE_INT :
                 int_values = <int32_t *>malloc(length*sizeof(int32_t))
                 artio_parameter_get_int_array( self.handle, key, length, int_values )
@@ -343,10 +341,7 @@ cdef class artio_fileset :
             else :
                 raise RuntimeError("ARTIO file corruption detected: invalid type!")
 
-            if version[0] == '3':
-                self.parameters[key.decode('utf-8')] = parameter
-            else:
-                self.parameters[key] = parameter
+            self.parameters[key.decode('utf-8')] = parameter
 
     def abox_from_auni(self, np.float64_t a):
         if self.cosmology:

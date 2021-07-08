@@ -1,23 +1,26 @@
 [build-system]
-# See https://github.com/scipy/scipy/pull/10431 for the AIX issue.
 requires = [
   "setuptools>=19.6",
-  "wheel",
-
-  # keep in sync with travis.yml "minimal" specs (Cython and numpy for py36)
+  # see https://github.com/numpy/numpy/pull/18389
+  "wheel>=0.36.2",
 
   # cython version is imposed by that of numpy, see release notes
   # https://github.com/numpy/numpy/releases/tag/v1.19.2
-  "Cython>=0.26.1; python_version=='3.6'",
-  "Cython>=0.29.21; python_version>='3.7'",
-  "numpy==1.13.3; python_version=='3.6' and platform_system!='AIX'",
-  "numpy>=1.19.2; python_version>='3.7' and platform_system!='AIX'",
+  # Cython 3.0 is the next version after 0.29, and a major change,
+  # we forbid it until we can properly test against it
+  "Cython>=0.26.1,<3.0; python_version=='3.6'",
+  "Cython>=0.29.21,<3.0; python_version>='3.7'",
+  "oldest-supported-numpy",
 ]
 
 [tool.black]
 line-length = 88
-# note : 'py39' is not an available option as of black 19.10b0
-target-version = ['py36', 'py37', 'py38']
+target-version = [
+  'py36',
+  'py37',
+  'py38',
+  'py39',
+]
 include = '\.pyi?$'
 exclude = '''
 /(

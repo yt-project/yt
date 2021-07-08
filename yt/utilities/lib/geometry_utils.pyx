@@ -820,7 +820,7 @@ def morton_qsort_iterative(np.ndarray[floating, ndim=2] pos,
                            np.ndarray[np.uint64_t, ndim=1] ind,
                            use_loop = False):
     # http://www.geeksforgeeks.org/iterative-quick-sort/
-    # Auxillary stack
+    # Auxiliary stack
     cdef np.ndarray[np.int64_t, ndim=1] stack = np.zeros(h-l+1, dtype=np.int64)
     cdef np.int64_t top = -1
     cdef np.int64_t p
@@ -1019,7 +1019,7 @@ def knn_direct(np.ndarray[np.float64_t, ndim=2] P, np.uint64_t k, np.uint64_t i,
         P (np.ndarray): (N,d) array of points to search sorted by Morton order.
         k (int): number of nearest neighbors to find.
         i (int): index of point that nearest neighbors should be found for.
-        idx (np.ndarray): indicies of points from P to be considered.
+        idx (np.ndarray): indices of points from P to be considered.
         return_dist (Optional[bool]): If True, distances to the k nearest
             neighbors are also returned (in order of proximity).
             (default = False)
@@ -1028,7 +1028,7 @@ def knn_direct(np.ndarray[np.float64_t, ndim=2] P, np.uint64_t k, np.uint64_t i,
             True. (default = False)
 
     Returns:
-        np.ndarray: Indicies of k nearest neighbors to point i.
+        np.ndarray: Indices of k nearest neighbors to point i.
 
     """
     cdef int j,m
@@ -1139,7 +1139,7 @@ def csearch_morton(np.ndarray[np.float64_t, ndim=2] P, int k, np.uint64_t i,
     if dist_to_box(cbox_sol,cbox_hl,rbox_hl) >= 1.5*rbox_sol:
         print('{} outside: rad = {}, rbox = {}, dist = {}'.format(m,rad_Ai,rbox_sol,dist_to_box(P[i,:],cbox_hl,rbox_hl)))
         return Ai
-    # Expand search to lower/higher indicies as needed
+    # Expand search to lower/higher indices as needed
     if i < m: # They are already sorted...
         Ai = csearch_morton(P,k,i,Ai,l,m-1,order,DLE,DRE,nu=nu)
         if compare_morton(P[m,:],P[i,:]+dist(P[i,:],P[Ai[k-1],:])):
@@ -1158,13 +1158,13 @@ def knn_morton(np.ndarray[np.float64_t, ndim=2] P0, int k, np.uint64_t i0,
                float c = 1.0, int nu = 4, issorted = False, int order = ORDER_MAX,
                np.ndarray[np.float64_t, ndim=1] DLE = np.zeros(3,dtype=np.float64),
                np.ndarray[np.float64_t, ndim=1] DRE = np.zeros(3,dtype=np.float64)):
-    """Get the indicies of the k nearest neighbors to point i.
+    """Get the indices of the k nearest neighbors to point i.
 
     Args:
         P (np.ndarray): (N,d) array of points to search.
         k (int): number of nearest neighbors to find for each point in P.
         i (np.uint64): index of point to find neighbors for.
-        c (float): factor determining how many indicies before/after i are used
+        c (float): factor determining how many indices before/after i are used
             in the initial search (i-c*k to i+c*k, default = 1.0)
         nu (int): minimum number of points before a direct knn search is
             performed. (default = 4)
@@ -1178,7 +1178,7 @@ def knn_morton(np.ndarray[np.float64_t, ndim=2] P0, int k, np.uint64_t i0,
             If not provided, this is determined from the points.
 
     Returns:
-        np.ndarray: (N,k) indicies of k nearest neighbors for each point in P.
+        np.ndarray: (N,k) indices of k nearest neighbors for each point in P.
 """
     cdef int j
     cdef np.uint64_t i

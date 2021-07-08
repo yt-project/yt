@@ -87,7 +87,7 @@ class GadgetBinaryHeader:
         # Read the first 4 bytes assuming little endian int32
         with self.open() as f:
             (rhead,) = struct.unpack("<I", f.read(4))
-        # Foramt 1?
+        # Format 1?
         if rhead == first_header_size:
             return 1, "<"
         elif rhead == _byte_swap_32(first_header_size):
@@ -261,14 +261,14 @@ class GadgetDataset(SPHDataset):
         header_size = self._header.size
         if header_size != [256]:
             only_on_root(
-                mylog.warn,
+                mylog.warning,
                 "Non-standard header size is detected! "
                 "Gadget-2 standard header is 256 bytes, but yours is %s. "
                 "Make sure a non-standard header is actually expected. "
                 "Otherwise something is wrong, "
                 "and you might want to check how the dataset is loaded. "
-                "Futher information about header specification can be found in "
-                "https://yt-project.org/docs/dev/examining/loading_data.html#header-specification.",  # NOQA E501
+                "Further information about header specification can be found in "
+                "https://yt-project.org/docs/dev/examining/loading_data.html#header-specification.",
                 header_size,
             )
         self._field_spec = self._setup_binary_spec(field_spec, gadget_field_specs)

@@ -4,36 +4,27 @@ import getpass
 import json
 import os
 import pprint
-import subprocess
 import sys
-import tempfile
 import textwrap
 import urllib
 import urllib.request
-from urllib.parse import urlparse
 
 import numpy as np
 from more_itertools import always_iterable
 from tqdm import tqdm
 
-from yt.config import YTConfig, ytcfg
+from yt.config import ytcfg
 from yt.funcs import (
     download_file,
     enable_plugins,
     ensure_dir,
     ensure_dir_exists,
     get_git_version,
-    get_yt_version,
     mylog,
     update_git,
 )
 from yt.loaders import load
-from yt.utilities.configure import set_config
-from yt.utilities.exceptions import (
-    YTCommandRequiresModule,
-    YTFieldNotParseable,
-    YTUnidentifiedDataType,
-)
+from yt.utilities.exceptions import YTFieldNotParseable, YTUnidentifiedDataType
 from yt.utilities.metadata import get_metadata
 from yt.visualization.plot_window import ProjectionPlot, SlicePlot
 
@@ -112,7 +103,7 @@ def _print_failed_source_update(reinstall=False):
         print("If you manage your python dependencies with pip, you may")
         print("want to do:")
         print()
-        print("    $ pip install -U yt")
+        print("    $ python -m pip install -U yt")
         print()
         print("to update your yt installation.")
 
@@ -140,24 +131,6 @@ def _print_installation_information(path):
     return vstring
 
 
-def _get_girder_client():
-    try:
-        import girder_client
-    except ImportError as e:
-        raise YTCommandRequiresModule("girder_client") from e
-    if not ytcfg.get("yt", "hub_api_key"):
-        print("Before you can access the yt Hub you need an API key")
-        print("In order to obtain one, either register by typing:")
-        print("  yt hub register")
-        print("or follow the instruction on:")
-        print("  http://yt-project.org/docs/dev/sharing_data.html#obtaining-an-api-key")
-        sys.exit()
-    hub_url = urlparse(ytcfg.get("yt", "hub_url"))
-    gc = girder_client.GirderClient(apiUrl=hub_url.geturl())
-    gc.authenticate(apiKey=ytcfg.get("yt", "hub_api_key"))
-    return gc
-
-
 class FileStreamer:
     final_size = None
     next_sent = 0
@@ -182,7 +155,6 @@ class FileStreamer:
 _subparsers = {None: subparsers}
 _subparsers_description = {
     "config": "Get and set configuration values for yt",
-    "hub": "Interact with the yt Hub",
 }
 
 
@@ -675,226 +647,6 @@ def bb_apicall(endpoint, data, use_pass=True):
     return urllib.request.urlopen(req).read()
 
 
-class YTBugreportCmd(YTCommand):
-    name = "bugreport"
-    description = """
-        Report a bug in yt
-
-        """
-
-    def __call__(self, args):
-        print("===============================================================")
-        print()
-        print("Hi there!  Welcome to the yt bugreport taker.")
-        print()
-        print("===============================================================")
-        print("At any time in advance of the upload of the bug, you should feel free")
-        print("to ctrl-C out and submit the bug report manually by going here:")
-        print("   http://bitbucket.org/yt_analysis/yt/issues/new")
-        print()
-        print("Also, in order to submit a bug through this interface, you")
-        print("need a Bitbucket account. If you don't have one, exit this ")
-        print("bugreport now and run the 'yt bootstrap_dev' command to create one.")
-        print()
-        print("Have you checked the existing bug reports to make")
-        print("sure your bug has not already been recorded by someone else?")
-        print("   http://bitbucket.org/yt_analysis/yt/issues?status=new&status=open")
-        print()
-        print("Finally, are you sure that your bug is, in fact, a bug? It might")
-        print("simply be a misunderstanding that could be cleared up by")
-        print("visiting the yt irc channel or getting advice on the email list:")
-        print("   http://yt-project.org/irc.html")
-        print("   https://mail.python.org/archives/list/yt-users@python.org/")
-        print()
-        summary = input(
-            "Press <enter> if you remain firm in your conviction to continue."
-        )
-        print()
-        print()
-        print("Okay, sorry about that. How about a nice, pithy ( < 12 words )")
-        print("summary of the bug?  (e.g. 'Particle overlay problem with parallel ")
-        print("projections')")
-        print()
-        try:
-            current_version = get_yt_version()
-        except Exception:
-            current_version = "Unavailable"
-        summary = input("Summary? ")
-        bugtype = "bug"
-        data = dict(title=summary, type=bugtype)
-        print()
-        print("Okay, now let's get a bit more information.")
-        print()
-        print("Remember that if you want to submit a traceback, you can run")
-        print("any script with --paste or --detailed-paste to submit it to")
-        print("the pastebin and then include the link in this bugreport.")
-        if "EDITOR" in os.environ:
-            print()
-            print(f"Press enter to spawn your editor, {os.environ['EDITOR']}")
-            input()
-            tf = tempfile.NamedTemporaryFile(delete=False)
-            fn = tf.name
-            tf.close()
-            subprocess.call(f"$EDITOR {fn}", shell=True)
-            content = open(fn).read()
-            try:
-                os.unlink(fn)
-            except Exception:
-                pass
-        else:
-            print()
-            print("Couldn't find an $EDITOR variable.  So, let's just take")
-            print("take input here.  Type up your summary until you're ready")
-            print("to be done, and to signal you're done, type --- by itself")
-            print("on a line to signal your completion.")
-            print()
-            print("(okay, type now)")
-            print()
-            lines = []
-            while True:
-                line = input()
-                if line.strip() == "---":
-                    break
-                lines.append(line)
-            content = "\n".join(lines)
-        content = f"Reporting Version: {current_version}\n\n{content}"
-        endpoint = "repositories/yt_analysis/yt/issues"
-        data["content"] = content
-        print()
-        print("===============================================================")
-        print()
-        print("Okay, we're going to submit with this:")
-        print()
-        print(f"Summary: {data['title']}")
-        print()
-        print("---")
-        print(content)
-        print("---")
-        print()
-        print("===============================================================")
-        print()
-        print("Is that okay?  If not, hit ctrl-c.  Otherwise, enter means")
-        print("'submit'.  Next we'll ask for your Bitbucket Username.")
-        print("If you don't have one, run the 'yt bootstrap_dev' command.")
-        print()
-        input()
-        retval = bb_apicall(endpoint, data, use_pass=True)
-        import json
-
-        retval = json.loads(retval)
-        url = f"http://bitbucket.org/yt_analysis/yt/issue/{retval['local_id']}"
-        print()
-        print("===============================================================")
-        print()
-        print("Thanks for your bug report!  Together we'll make yt totally bug free!")
-        print("You can view bug report here:")
-        print(f"   {url}")
-        print()
-        print("Keep in touch!")
-        print()
-
-
-class YTHubRegisterCmd(YTCommand):
-    subparser = "hub"
-    name = "register"
-    description = """
-        Register a user on the yt Hub: http://hub.yt/
-        """
-
-    def __call__(self, args):
-        from yt.utilities.on_demand_imports import _requests as requests
-
-        hub_api_key, config_file = ytcfg.get(
-            "yt",
-            "hub_api_key",
-            callback=lambda leaf: (leaf.value, leaf.extra_data.get("source", None)),
-        )
-        if hub_api_key:
-            print(
-                "You seem to already have an API key for the hub in "
-                f"{config_file} . Delete this if you want to force a "
-                "new user registration."
-            )
-            sys.exit()
-        print("Awesome!  Let's start by registering a new user for you.")
-        print("Here's the URL, for reference: http://hub.yt/ ")
-        print()
-        print("As always, bail out with Ctrl-C at any time.")
-        print()
-        print("What username would you like to go by?")
-        print()
-        username = input("Username? ")
-        if len(username) == 0:
-            sys.exit(1)
-        print()
-        print("To start out, what's your name?")
-        print()
-        first_name = input("First Name? ")
-        if len(first_name) == 0:
-            sys.exit(1)
-        print()
-        last_name = input("Last Name? ")
-        if len(last_name) == 0:
-            sys.exit(1)
-        print()
-        print("And your email address?")
-        print()
-        email = input("Email? ")
-        if len(email) == 0:
-            sys.exit(1)
-        print()
-        print("Please choose a password:")
-        print()
-        while True:
-            password1 = getpass.getpass("Password? ")
-            password2 = getpass.getpass("Confirm? ")
-            if len(password1) == 0:
-                continue
-            if password1 == password2:
-                break
-            print("Sorry, they didn't match!  Let's try again.")
-            print()
-        print()
-        print("Okay, press enter to register.  You should receive a welcome")
-        print(f"message at {email} when this is complete.")
-        print()
-        input()
-
-        data = dict(
-            firstName=first_name,
-            email=email,
-            login=username,
-            password=password1,
-            lastName=last_name,
-            admin=False,
-        )
-        hub_url = ytcfg.get("yt", "hub_url")
-        req = requests.post(hub_url + "/user", data=data)
-
-        if req.ok:
-            headers = {"Girder-Token": req.json()["authToken"]["token"]}
-        else:
-            if req.status_code == 400:
-                print("Registration failed with 'Bad request':")
-                print(req.json()["message"])
-            exit(1)
-        print("User registration successful")
-        print("Obtaining API key...")
-        req = requests.post(
-            hub_url + "/api_key",
-            headers=headers,
-            data={"name": "ytcmd", "active": True},
-        )
-        apiKey = req.json()["key"]
-
-        print("Storing API key in configuration file")
-        set_config("yt", "hub_api_key", apiKey, YTConfig.get_global_config_file())
-
-        print()
-        print("SUCCESS!")
-        print()
-
-
 class YTInstInfoCmd(YTCommand):
     name = ["instinfo", "version"]
     args = (
@@ -1162,69 +914,6 @@ class YTPastebinGrabCmd(YTCommand):
         lo.main(None, download=args.number)
 
 
-class YTHubStartNotebook(YTCommand):
-    args = (
-        dict(
-            dest="folderId",
-            default=ytcfg.get("yt", "hub_sandbox"),
-            nargs="?",
-            help="(Optional) Hub folder to mount inside the Notebook",
-        ),
-    )
-    description = """
-        Start the Jupyter Notebook on the yt Hub.
-        """
-    subparser = "hub"
-    name = "start"
-
-    def __call__(self, args):
-        gc = _get_girder_client()
-
-        # TODO: should happen server-side
-        _id = gc._checkResourcePath(args.folderId)
-
-        resp = gc.post(f"/notebook/{_id}")
-        try:
-            print("Launched! Please visit this URL:")
-            print("    https://tmpnb.hub.yt" + resp["url"])
-            print()
-        except (KeyError, TypeError):
-            print("Something went wrong. The yt Hub responded with : ")
-            print(resp)
-
-
-class YTNotebookUploadCmd(YTCommand):
-    args = (dict(short="file", type=str),)
-    description = """
-        Upload an IPython Notebook to the yt Hub.
-        """
-
-    name = "upload_notebook"
-
-    def __call__(self, args):
-        gc = _get_girder_client()
-        username = gc.get("/user/me")["login"]
-        gc.upload(args.file, f"/user/{username}/Public")
-
-        _id = gc.resourceLookup(f"/user/{username}/Public/{args.file}")["_id"]
-        _fid = next(gc.listFile(_id))["_id"]
-        hub_url = urlparse(ytcfg.get("yt", "hub_url"))
-        print("Upload successful!")
-        print()
-        print("To access your raw notebook go here:")
-        print()
-        print(f"  {hub_url.scheme}://{hub_url.netloc}/#item/{_id}")
-        print()
-        print("To view your notebook go here:")
-        print()
-        print(
-            "  http://nbviewer.jupyter.org/urls/{}/file/{}/download".format(
-                hub_url.netloc + hub_url.path, _fid
-            )
-        )
-        print()
-
-
 class YTPlotCmd(YTCommand):
     args = (
         "width",
@@ -1377,7 +1066,7 @@ class YTNotebookCmd(YTCommand):
             action="store",
             default=None,
             dest="profile",
-            help="The IPython profile to use when lauching the kernel.",
+            help="The IPython profile to use when launching the kernel.",
         ),
         dict(
             short="-n",
@@ -1477,30 +1166,26 @@ class YTStatsCmd(YTCommand):
         ds = args.ds
         ds.print_stats()
         vals = {}
-        if args.field in ds.derived_field_list:
-            if args.max:
-                vals["min"] = ds.find_max(args.field)
-                print(
-                    f"Maximum {args.field}: {vals['min'][0]:0.5e} at {vals['min'][1]}"
-                )
-            if args.min:
-                vals["max"] = ds.find_min(args.field)
-                print(
-                    f"Minimum {args.field}: {vals['max'][0]:0.5e} at {vals['max'][1]}"
-                )
+        field = ds._get_field_info(args.field)
+        if args.max:
+            vals["max"] = ds.find_max(field)
+            print(f"Maximum {field.name}: {vals['max'][0]:0.5e} at {vals['max'][1]}")
+        if args.min:
+            vals["min"] = ds.find_min(field)
+            print(f"Minimum {field.name}: {vals['min'][0]:0.5e} at {vals['min'][1]}")
         if args.output is not None:
-            t = ds.current_time * ds["years"]
+            t = ds.current_time.to("yr")
             with open(args.output, "a") as f:
-                f.write(f"{ds} ({t:0.5e} years)\n")
+                f.write(f"{ds} ({t:0.5e})\n")
                 if "min" in vals:
                     f.write(
                         "Minimum %s is %0.5e at %s\n"
-                        % (args.field, vals["min"][0], vals["min"][1])
+                        % (field.name, vals["min"][0], vals["min"][1])
                     )
                 if "max" in vals:
                     f.write(
                         "Maximum %s is %0.5e at %s\n"
-                        % (args.field, vals["max"][0], vals["max"][1])
+                        % (field.name, vals["max"][0], vals["max"][1])
                     )
 
 
@@ -1681,7 +1366,7 @@ _global_local_args = [
         dict(
             short="--local",
             action="store_true",
-            help="Store the configuration in the global configuration file.",
+            help="Store the configuration in the local configuration file.",
         ),
         dict(
             short="--global",

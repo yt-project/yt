@@ -143,7 +143,7 @@ Appropriate errors are thrown for other combinations.
 * particle data: currently not supported (but might come later)
 * staggered grids (AMRVAC 2.2 and later): yt logs a warning if you load
   staggered datasets, but the flag is currently ignored.
-* "stretched grids" as defined in AMRVAC have no correspondance in yt,
+* "stretched grids" as defined in AMRVAC have no correspondence in yt,
   hence will never be supported.
 
 .. note::
@@ -533,8 +533,8 @@ to the z direction.
     print(ad["raw", "Ex"].shape)
     print(ds.field_info[("raw", "Bx")].nodal_flag)
     print(ad["raw", "Bx"].shape)
-    print(ds.field_info[("boxlib", "Bx")].nodal_flag)
-    print(ad["boxlib", "Bx"].shape)
+    print(ds.field_info["raw", "Bx"].nodal_flag)
+    print(ad["raw", "Bx"].shape)
 
 Here, the field ``('raw', 'Ex')`` is nodal in two directions, so four values per cell
 are returned, corresponding to the four edges in each cell on which the variable
@@ -635,11 +635,11 @@ direction.
     ds.index
     ad = ds.all_data()
     print(ds.field_info[("enzo", "Ex")].nodal_flag)
-    print(ad["raw", "Ex"].shape)
+    print(ad["enzo", "Ex"].shape)
     print(ds.field_info[("enzo", "BxF")].nodal_flag)
-    print(ad["raw", "Bx"].shape)
+    print(ad["enzo", "Bx"].shape)
     print(ds.field_info[("enzo", "Bx")].nodal_flag)
-    print(ad["boxlib", "Bx"].shape)
+    print(ad["enzo", "Bx"].shape)
 
 Here, the field ``('enzo', 'Ex')`` is nodal in two directions, so four values
 per cell are returned, corresponding to the four edges in each cell on which the
@@ -1251,7 +1251,7 @@ where :math:`n_e` and :math:`n_i` are the electron and ion number densities,
 .. rubric:: Caveats
 
 * Please be careful that the units are correctly utilized; yt assumes cgs by default, but conversion to
-  other :ref:`unit systems <unit_systems>` is also possible.
+  other unit systems is also possible.
 
 .. _loading-gadget-data:
 
@@ -2097,7 +2097,7 @@ visualization of non-SPH particles. See the example below:
 
     # Make the SPH projection plot
     p = yt.ProjectionPlot(ds_dm, "z", ("io", "density"), center=center, width=(1, "Mpc"))
-    p.set_unit("density", "Msun/kpc**2")
+    p.set_unit(("io", "density"), "Msun/kpc**2")
     p.show()
 
 Here we see two new things. First, ``load_particles`` accepts a ``data_source``
@@ -2171,10 +2171,8 @@ containers.  See :ref:`halo_containers` for more information.
 
 If you have access to both the halo catalog and the simulation snapshot from
 the same redshift, additional analysis can be performed for each halo using
-:ref:`halo_catalog`.  The resulting product can be reloaded in a similar manner
+:ref:`halo-analysis`.  The resulting product can be reloaded in a similar manner
 to the other halo catalogs shown here.
-
-.. _adaptahop:
 
 AdataHOP
 ^^^^^^^^
@@ -2443,7 +2441,7 @@ information.  At this time, halo member particles cannot be loaded.
 YTHaloCatalog
 ^^^^^^^^^^^^^
 
-These are catalogs produced by the analysis discussed in :ref:`halo_catalog`.
+These are catalogs produced by the analysis discussed in :ref:`halo-analysis`.
 In the case where multiple files were produced, one need only provide the path
 to a single one of them.  The field type for all fields is "halos".  The fields
 available here are similar to other catalogs.  Any addition
@@ -2521,7 +2519,7 @@ for each particle attribute/mesh (in Byte).
   import yt
 
   ds = yt.load("example-3d/hdf5/data00000100.h5", open_pmd_virtual_gridsize=10e4)
-  sp = yt.SlicePlot(ds, "x", "rho")
+  sp = yt.SlicePlot(ds, "x", ("openPMD", "rho"))
   sp.show()
 
 Particle data is fully supported:
@@ -2533,7 +2531,10 @@ Particle data is fully supported:
   ds = yt.load("example-3d/hdf5/data00000100.h5")
   ad = f.all_data()
   ppp = yt.ParticlePhasePlot(
-      ad, "particle_position_y", "particle_momentum_y", "particle_weighting"
+      ad,
+      ("all", "particle_position_y"),
+      ("all", "particle_momentum_y"),
+      ("all", "particle_weighting"),
   )
   ppp.show()
 
@@ -2715,10 +2716,10 @@ It is possible to provide extra arguments to the load function when loading RAMS
           ds.right_edge == [1, 1, 1]  # is True
 
           ad = ds.all_data()
-          ad["particle_position_x"].max() > 0.1  # _may_ be True
+          ad["all", "particle_position_x"].max() > 0.1  # _may_ be True
 
           bb = ds.box(left_edge=bbox[0], right_edge=bbox[1])
-          bb["particle_position_x"].max() < 0.1  # is True
+          bb["all", "particle_position_x"].max() < 0.1  # is True
 
       .. note::
          When using the bbox argument, yt will read all the CPUs
@@ -2964,9 +2965,7 @@ Tipsy Data
 See :ref:`tipsy-notebook` and :ref:`loading-sph-data` for more details.
 
 yt also supports loading Tipsy data.  Many of its characteristics are similar
-to how Gadget data is loaded; specifically, it shares its definition of
-indexing and mesh-identification with that described in
-:ref:`particle-indexing-criteria`.
+to how Gadget data is loaded.
 
 .. code-block:: python
 
