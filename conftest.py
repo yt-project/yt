@@ -158,6 +158,12 @@ def pytest_configure(config):
             ),
         )
 
+    if find_spec("firefly_api"):
+        # see https://github.com/yt-project/yt/pull/3419
+        config.addinivalue_line(
+            "filterwarnings", r"ignore::firefly_api.errors.FireflyWarning"
+        )
+
 
 def pytest_collection_modifyitems(config, items):
     r"""
