@@ -1,6 +1,13 @@
 name: Build and Test
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    paths-ignore:
+      - "doc/**"
+      - README.md
 
 defaults:
   run:
