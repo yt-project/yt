@@ -725,7 +725,7 @@ class ProfilePlot:
 
     def _get_field_label(self, field, field_info, field_unit, fractional=False):
         field_unit = field_unit.latex_representation()
-        field_name = field_info.get_latex_display_name()
+        field_name = field_info.display_name
         if isinstance(field, tuple):
             field = field[1]
         if field_name is None:
@@ -1013,7 +1013,7 @@ class PhasePlot(ImagePlotContainer):
 
     def _get_field_label(self, field, field_info, field_unit, fractional=False):
         field_unit = field_unit.latex_representation()
-        field_name = field_info.get_latex_display_name()
+        field_name = field_info.display_name
         if isinstance(field, tuple):
             field = field[1]
         if field_name is None:
