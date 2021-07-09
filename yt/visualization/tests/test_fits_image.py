@@ -101,6 +101,9 @@ def test_fits_image():
     assert_equal(combined_fid.velocity_unit, dens_img.velocity_unit)
     assert_equal(combined_fid.magnetic_unit, dens_img.magnetic_unit)
     assert_equal(combined_fid.current_time, dens_img.current_time)
+    # Writing the FITS file ensures that we have assembled the images
+    # together correctly
+    combined_fid.writeto("combined.fits", overwrite=True)
 
     cut = ds.cutting([0.1, 0.2, -0.9], [0.5, 0.42, 0.6])
     cut_frb = cut.to_frb((0.5, "unitary"), 128)
