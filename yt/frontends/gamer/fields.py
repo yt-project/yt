@@ -4,18 +4,7 @@ from yt._typing import KnownFieldsT
 from yt.fields.field_info_container import FieldInfoContainer
 from yt.fields.vector_operations import create_magnitude_field
 
-from .cfields import (
-    density_eos4,
-    four_velocity_xyz_eos4,
-    gamma_eos4,
-    kinetic_energy_density_eos4,
-    lorentz_factor_eos4,
-    mach_number_eos4,
-    pressure_eos4,
-    sound_speed_eos4,
-    specific_thermal_energy_eos4,
-    velocity_xyz_eos4,
-)
+from .cfields import SRHDFields
 
 b_units = "code_magnetic"
 pre_units = "code_mass / (code_length*code_time**2)"
@@ -74,6 +63,11 @@ class GAMERFieldInfo(FieldInfoContainer):
         if self.ds.srhd:
 
             c2 = pc.clight * pc.clight
+            c = pc.clight.in_units("code_length / code_time")
+            if self.ds.eos == 4:
+                fgen = SRHDFields(self.ds.eos, 0.0, c.d)
+            else:
+                fgen = SRHDFields(self.ds.eos, self.ds.gamma, c.d)
 
             if self.ds.eos == 4:
 
@@ -84,10 +78,6 @@ class GAMERFieldInfo(FieldInfoContainer):
                     c_p = 2.5 + x
                     c_v = 1.5 + x
                     return c_p / c_v
-
-                def _gamma_new(field, data):
-                    out = gamma_eos4(data["gamer", "Temp"].d)
-                    return data.ds.arr(out, "dimensionless")
 
                 def htilde(data):
                     kT = data["gamer", "Temp"]
@@ -101,11 +91,6 @@ class GAMERFieldInfo(FieldInfoContainer):
                     cs2 = kT / (3.0 * h)
                     cs2 *= (5.0 * h - 8.0 * kT) / (h - kT)
                     return pc.clight * np.sqrt(cs2)
-
-                def _sound_speed_new(field, data):
-                    c = pc.clight.in_units("code_length / code_time")
-                    out = sound_speed_eos4(data["gamer", "Temp"].d, c)
-                    return data.ds.arr(out, "code_velocity").to(unit_system["velocity"])
 
             else:
 
@@ -123,6 +108,14 @@ class GAMERFieldInfo(FieldInfoContainer):
                     h = htilde(data) / c2 + 1.0
                     cs2 = data["gas", "gamma"] / h * data["gamer", "Temp"]
                     return pc.clight * np.sqrt(cs2)
+
+            def _sound_speed_new(field, data):
+                out = fgen.sound_speed(data["gamer", "Temp"].d)
+                return data.ds.arr(out, "code_velocity").to(unit_system["velocity"])
+
+            def _gamma_new(field, data):
+                out = fgen.gamma_field(data["gamer", "Temp"].d)
+                return data.ds.arr(out, "dimensionless")
 
             # coordinate frame density
             self.alias(
@@ -150,12 +143,10 @@ class GAMERFieldInfo(FieldInfoContainer):
 
             def four_velocity_xyz_new(u):
                 def _four_velocity(field, data):
-                    c = pc.clight.in_units("code_length / code_time")
-                    out = four_velocity_xyz_eos4(
+                    out = fgen.four_velocity_xyz(
                         data["gamer", f"Mom{u.upper()}"].d,
                         data["gamer", "Dens"].d,
                         data["gamer", "Temp"].d,
-                        c.d,
                     )
                     return data.ds.arr(out, "code_velocity").to(unit_system["velocity"])
 
@@ -193,14 +184,12 @@ class GAMERFieldInfo(FieldInfoContainer):
             )
 
             def _lorentz_factor_new(field, data):
-                c = pc.clight.in_units("code_length / code_time")
-                out = lorentz_factor_eos4(
+                out = fgen.lorentz_factor(
                     data["gamer", "Dens"].d,
                     data["gamer", "MomX"].d,
                     data["gamer", "MomY"].d,
                     data["gamer", "MomZ"].d,
                     data["gamer", "Temp"].d,
-                    c.d,
                 )
                 return data.ds.arr(out, "dimensionless")
 
@@ -223,15 +212,13 @@ class GAMERFieldInfo(FieldInfoContainer):
 
             def velocity_xyz_new(v):
                 def _velocity(field, data):
-                    c = pc.clight.in_units("code_length / code_time")
-                    out = velocity_xyz_eos4(
+                    out = fgen.velocity_xyz(
                         data["gamer", "Dens"].d,
                         data["gamer", "MomX"].d,
                         data["gamer", "MomY"].d,
                         data["gamer", "MomZ"].d,
                         data["gamer", "Temp"].d,
                         data["gamer", f"Mom{v.upper()}"].d,
-                        c.d,
                     )
                     return data.ds.arr(out, "code_velocity").to(unit_system["velocity"])
 
@@ -268,14 +255,12 @@ class GAMERFieldInfo(FieldInfoContainer):
             )
 
             def _density_new(field, data):
-                c = pc.clight.in_units(vel_units)
-                dens = density_eos4(
+                dens = fgen.density(
                     data["gamer", "Dens"].d,
                     data["gamer", "MomX"].d,
                     data["gamer", "MomY"].d,
                     data["gamer", "MomZ"].d,
                     data["gamer", "Temp"].d,
-                    c.d,
                 )
                 return data.ds.arr(dens, rho_units).to(unit_system["density"])
 
@@ -291,14 +276,12 @@ class GAMERFieldInfo(FieldInfoContainer):
                 return data["gas", "density"] * c2 * data["gamer", "Temp"]
 
             def _pressure_new(field, data):
-                c = pc.clight.in_units(vel_units)
-                out = pressure_eos4(
+                out = fgen.pressure(
                     data["gamer", "Dens"].d,
                     data["gamer", "MomX"].d,
                     data["gamer", "MomY"].d,
                     data["gamer", "MomZ"].d,
                     data["gamer", "Temp"].d,
-                    c.d,
                 )
                 return data.ds.arr(out, pre_units).to(unit_system["pressure"])
 
@@ -308,14 +291,12 @@ class GAMERFieldInfo(FieldInfoContainer):
                 return eps / data["gas", "density"]
 
             def _specific_thermal_energy_new(field, data):
-                c = pc.clight.in_units(vel_units)
-                out = specific_thermal_energy_eos4(
+                out = fgen.specific_thermal_energy(
                     data["gamer", "Dens"].d,
                     data["gamer", "MomX"].d,
                     data["gamer", "MomY"].d,
                     data["gamer", "MomZ"].d,
                     data["gamer", "Temp"].d,
-                    c.d,
                 )
                 return data.ds.arr(out, "code_length**2 / code_time**2").to(
                     unit_system["specific_energy"]
@@ -333,14 +314,12 @@ class GAMERFieldInfo(FieldInfoContainer):
                 return gm1 * (data["gamer", "Dens"] * h + data["gas", "pressure"])
 
             def _kinetic_energy_density_new(field, data):
-                c = pc.clight.in_units(vel_units)
-                out = kinetic_energy_density_eos4(
+                out = fgen.kinetic_energy_density(
                     data["gamer", "Dens"].d,
                     data["gamer", "MomX"].d,
                     data["gamer", "MomY"].d,
                     data["gamer", "MomZ"].d,
                     data["gamer", "Temp"].d,
-                    c.d,
                 )
                 return data.ds.arr(out, erg_units).to(unit_system["pressure"])
 
@@ -378,14 +357,12 @@ class GAMERFieldInfo(FieldInfoContainer):
                 return data["gas", "oldfour_velocity_magnitude"] / u_s
 
             def _mach_number_new(field, data):
-                c = pc.clight.in_units("code_length / code_time")
-                out = mach_number_eos4(
+                out = fgen.mach_number(
                     data["gamer", "Dens"].d,
                     data["gamer", "MomX"].d,
                     data["gamer", "MomY"].d,
                     data["gamer", "MomZ"].d,
                     data["gamer", "Temp"].d,
-                    c.d,
                 )
                 return data.ds.arr(out, "dimensionless")
 
