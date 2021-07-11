@@ -3,9 +3,9 @@
 cimport cython
 cimport libc.math as math
 cimport numpy as np
+
 import numpy as np
 
-np.import_array()
 
 cdef np.float64_t h_eos4(np.float64_t kT, np.float64_t g):
     cdef np.float64_t x
@@ -51,6 +51,7 @@ cdef class SRHDFields:
         self._gamma = gamma
         self._c = clight
         self._c2 = clight * clight
+        # Select aux functions based on eos no.
         if (eos == 4):
             self.h = h_eos4
             self.gamma = gamma_eos4
@@ -59,7 +60,7 @@ cdef class SRHDFields:
             self.h = h_eos
             self.gamma = gamma_eos
             self.cs = cs_eos
-    
+
     cdef np.float64_t _lorentz_factor(
             self,
             np.float64_t rho,
@@ -83,6 +84,9 @@ cdef class SRHDFields:
     ):
         return mi / (rho * (self.h(kT, self._gamma) + 1.0))
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def lorentz_factor(self, dens, momx, momy, momz, temp):
         cdef np.float64_t[:] rho = dens.ravel()
 
@@ -100,6 +104,9 @@ cdef class SRHDFields:
             outp[i] = self._lorentz_factor(rho[i], mx[i], my[i], mz[i], kT[i])
         return out
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def gamma_field(self, temp):
         cdef np.float64_t[:] kT = temp.ravel()
 
@@ -111,6 +118,9 @@ cdef class SRHDFields:
             outp[i] = self.gamma(kT[i], self._gamma)
         return out
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def sound_speed(self, temp):
         cdef np.float64_t[:] kT = temp.ravel()
         out = np.empty_like(kT)
@@ -122,11 +132,14 @@ cdef class SRHDFields:
             outp[i] = self.cs(kT[i], self._c, self._gamma)
         return out
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def four_velocity_xyz(self, mom, dens, temp):
         cdef np.float64_t[:] rho = dens.ravel()
         cdef np.float64_t[:] mi = mom.ravel()
         cdef np.float64_t[:] kT = temp.ravel()
-        
+
         out = np.empty_like(dens)
         cdef np.float64_t[:] outp = out.ravel()
         cdef np.float64_t[:] ui
@@ -136,6 +149,9 @@ cdef class SRHDFields:
             outp[i] = self._four_vel(rho[i], kT[i], mi[i])
         return out
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def velocity_xyz(self, dens, momx, momy, momz, temp, momi):
         cdef np.float64_t[:] rho = dens.ravel()
         cdef np.float64_t[:] mx = momx.ravel()
@@ -154,6 +170,9 @@ cdef class SRHDFields:
             outp[i] = self._four_vel(rho[i], kT[i], mi[i]) / lf
         return out
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def density(self, dens, momx, momy, momz, temp):
         cdef np.float64_t[:] rho = dens.ravel()
 
@@ -172,6 +191,9 @@ cdef class SRHDFields:
             outp[i] = rho[i] / lf
         return out
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def pressure(self, dens, momx, momy, momz, temp):
         cdef np.float64_t[:] rho = dens.ravel()
         cdef np.float64_t[:] mx = momx.ravel()
@@ -189,6 +211,9 @@ cdef class SRHDFields:
             outp[i] = rho[i] / lf * self._c2 * kT[i]
         return out
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def specific_thermal_energy(self, dens, momx, momy, momz, temp):
         cdef np.float64_t[:] rho = dens.ravel()
         cdef np.float64_t[:] mx = momx.ravel()
@@ -205,6 +230,9 @@ cdef class SRHDFields:
             outp[i] = self._c2 * (self.h(kT[i], self._gamma)- kT[i])
         return out
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def kinetic_energy_density(self, dens, momx, momy, momz, temp):
         cdef np.float64_t[:] rho = dens.ravel()
         cdef np.float64_t[:] mx = momx.ravel()
@@ -229,6 +257,9 @@ cdef class SRHDFields:
             outp[i] = gm1 * (rho[i] * hp * self._c2 + p)
         return out
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def mach_number(self, dens, momx, momy, momz, temp):
         cdef np.float64_t[:] rho = dens.ravel()
         cdef np.float64_t[:] mx = momx.ravel()
