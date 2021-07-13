@@ -642,6 +642,21 @@ class TestBadProfiles(unittest.TestCase):
                 ("gas", "mass"),
             )
 
+    def test_set_linear_scaling_for_none_extrema(self):
+        # See Issue #3431
+        # Ensures that extrema are calculated in the same way on subsequent passes
+        # through the PhasePlot machinery.
+        ds = fake_sph_orientation_ds()
+        p = yt.PhasePlot(
+            ds,
+            ("all", "particle_position_spherical_theta"),
+            ("all", "particle_position_spherical_radius"),
+            ("all", "particle_mass"),
+            weight_field=None,
+        )
+        p.set_log(("all", "particle_position_spherical_theta"), False)
+        p.save()
+
 
 def test_index_field_units():
     # see #1849
