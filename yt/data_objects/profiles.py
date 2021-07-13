@@ -1349,12 +1349,7 @@ def create_profile(
     logs = logs_list
 
     # Are the extrema all Nones? Then treat them as though extrema was set as None
-    if extrema is not None:
-        extrema_vals = list(extrema.values())
-        flat_list = [item for sublist in extrema_vals for item in sublist]
-        extrema_all_nones = not any(flat_list)
-
-    if extrema is None or extrema_all_nones:
+    if extrema is None or not any(collapse(extrema.values())):
         ex = [
             data_source.quantities["Extrema"](f, non_zero=l)
             for f, l in zip(bin_fields, logs)
