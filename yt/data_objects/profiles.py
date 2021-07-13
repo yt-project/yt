@@ -1,4 +1,5 @@
 import numpy as np
+from more_itertools import collapse
 
 from yt.data_objects.field_data import YTFieldData
 from yt.fields.derived_field import DerivedField
