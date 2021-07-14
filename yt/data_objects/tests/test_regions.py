@@ -49,3 +49,23 @@ def test_ellipsis_selection():
     assert_array_equal(reg.fwidth, ereg.fwidth)
 
     assert_raises(IndexError, ds.r.__getitem__, (..., (0.5, "cm"), ...))
+
+
+# this test will fail until "arbitrary_grid" selector is implemented for 2D datasets
+# see issue https://github.com/yt-project/yt/issues/3437
+"""
+from yt.utilities.answer_testing.framework import data_dir_load, requires_ds
+
+@requires_ds("castro_sedov_2d_cyl_in_cart_plt00150")
+def test_complex_slicing_2D_consistency():
+
+    # see https://github.com/yt-project/yt/issues/3429
+    ds = data_dir_load("castro_sedov_2d_cyl_in_cart_plt00150")
+
+    reg = ds.r[0.1:0.2:8j, :]
+    reg["gas", "density"]
+    reg = ds.r[:, 1:2:8j]
+    reg["gas", "density"]
+    reg = ds.r[0.1:0.2:8j, 1:2:8j]
+    reg["gas", "density"]
+"""
