@@ -5,7 +5,7 @@ Visualizing Particle Datasets with Firefly
 `Firefly <https://github.com/ageller/Firefly>`_
 is an interactive, browser-based,
 particle visualization platform that allows you to filter, colormap, and fly
-through their data. The python frontend allows users to both load in their
+through their data. The Python frontend allows users to both load in their
 own datasets and customize every aspect of the user interface.
 yt offers to ability
 to export your data to Firefly's JSON format through the
