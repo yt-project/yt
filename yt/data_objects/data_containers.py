@@ -712,7 +712,7 @@ class YTDataContainer:
         velocity_units="km/s",
         coordinate_units="kpc",
         show_unused_fields=0,
-        **kwargs
+        **kwargs,
     ):
         r"""This function links a region of data stored in a yt dataset
         to the Python frontend API for [Firefly](http://github.com/ageller/Firefly),
@@ -784,7 +784,7 @@ class YTDataContainer:
 
         ## attempt to import Firefly
         try:
-            from Firefly.data_reader import ParticleGroup,Reader
+            from Firefly.data_reader import ParticleGroup, Reader
         except ImportError as e:
             raise ImportError(
                 "Can't find Firefly, ensure it "
@@ -794,8 +794,10 @@ class YTDataContainer:
             ) from e
 
         ## handle default arguments
-        if fields_to_include is None: fields_to_include = []
-        if fields_units is None: fields_units = [] 
+        if fields_to_include is None:
+            fields_to_include = []
+        if fields_units is None:
+            fields_units = []
 
         ## handle input validation, if any
         if len(fields_units) != len(fields_to_include):
@@ -805,10 +807,7 @@ class YTDataContainer:
         default_decimation_factor = int(default_decimation_factor)
 
         ## initialize a firefly reader instance
-        reader = Reader(
-            JSONdir=JSONdir, 
-            clean_JSONdir=True,
-            **kwargs)
+        reader = Reader(JSONdir=JSONdir, clean_JSONdir=True, **kwargs)
 
         ## create a ParticleGroup object that contains *every* field
         for ptype in sorted(self.ds.particle_types_raw):

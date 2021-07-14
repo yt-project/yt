@@ -2,6 +2,7 @@ import tempfile
 
 from yt.testing import fake_particle_ds, requires_module
 
+
 @requires_module("Firefly")
 def test_firefly_JSON_string():
 
@@ -16,10 +17,12 @@ def test_firefly_JSON_string():
     reader.dumpToJSON(write_jsons_to_disk=False)
 
     if len(reader.JSON) == 0:
-        raise ValueError("reader.JSON was not output to string correctly."+
-            " either Firefly is damaged or needs a hotfix-- try reinstalling." +
-            " if that doesn't work contact the developers"+
-            " at github.com/ageller/Firefly/issues.")
+        raise ValueError(
+            "reader.JSON was not output to string correctly."
+            + " either Firefly is damaged or needs a hotfix-- try reinstalling."
+            + " if that doesn't work contact the developers"
+            + " at github.com/ageller/Firefly/issues."
+        )
 
 
 @requires_module("Firefly")
