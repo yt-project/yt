@@ -1244,8 +1244,8 @@ def multiplot(
     --------
     >>> images = ["density.jpg", "hi_density.jpg", "entropy.jpg", "special.jpg"]
     >>> cbs = []
-    >>> cbs.append(return_colormap("arbre", "Density [cm$^{-3}$]", (0, 10), False))
-    >>> cbs.append(return_colormap("kelp", "HI Density", (0, 5), False))
+    >>> cbs.append(return_colormap("cmyt.arbre", "Density [cm$^{-3}$]", (0, 10), False))
+    >>> cbs.append(return_colormap("cmyt.kelp", "HI Density", (0, 5), False))
     >>> cbs.append(return_colormap("hot", r"Entropy [K cm$^2$]", (1e-2, 1e6), True))
     >>> cbs.append(return_colormap("Spectral", "Stuff$_x$!", (1, 300), True))
     >>> mp = multiplot(
@@ -1630,7 +1630,7 @@ def return_colormap(cmap=None, label="", range=(0, 1), log=False):
 
     Examples
     --------
-    >>> cb = return_colormap("arbre", "Density [cm$^{-3}$]", (0, 10), False)
+    >>> cb = return_colormap("cmyt.arbre", "Density [cm$^{-3}$]", (0, 10), False)
     """
     if cmap is None:
         cmap = ytcfg.get("yt", "default_colormap")

@@ -273,15 +273,15 @@ def strip_colormap_data(
     fn="color_map_data.py",
     cmaps=(
         "jet",
-        "algae",
+        "cmyt.algae",
         "hot",
         "gist_stern",
         "RdBu",
-        "kamae",
-        "kelp",
-        "arbre",
-        "octarine",
-        "dusk",
+        "cmyt.pastel",
+        "cmyt.kelp",
+        "cmyt.arbre",
+        "cmyt.octarine",
+        "cmyt.dusk",
     ),
 ):
     import pprint
