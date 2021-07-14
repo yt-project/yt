@@ -21,7 +21,8 @@ def test_firefly_JSON_string():
     ##  if that doesn't work contact the developers
     ##  at github.com/ageller/Firefly/issues.
     assert len(reader.JSON) > 0
-            
+
+
 @requires_module("Firefly")
 def test_firefly_write_to_disk():
     tmpdir = tempfile.mkdtemp()
