@@ -1,4 +1,3 @@
-import os
 import weakref
 from collections import defaultdict
 from contextlib import contextmanager
