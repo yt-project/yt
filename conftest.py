@@ -158,6 +158,7 @@ def pytest_configure(config):
             ),
         )
 
+
 def pytest_collection_modifyitems(config, items):
     r"""
     Decide which tests to skip based on command-line options.
