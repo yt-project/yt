@@ -1,6 +1,10 @@
+import re
+
 import numpy as np
+import pytest
 
 from yt import load
+from yt.config import ytcfg
 from yt.frontends.stream.fields import StreamFieldInfo
 from yt.testing import (
     assert_allclose_units,
@@ -377,6 +381,39 @@ def test_add_field_unit_semantics():
     assert_equal(str(ad[("gas", "dimensionless_auto")].units), "dimensionless")
     assert_equal(str(ad[("gas", "dimensionless_explicit")].units), "dimensionless")
     assert_raises(YTFieldUnitError, get_data, ds, ("gas", "dimensionful"))
+
+
+def test_add_field_from_lambda():
+    if not ytcfg["yt", "internals", "within_pytest"]:
+        from nose import SkipTest
+
+        raise SkipTest
+
+    ds = fake_amr_ds(fields=["density"], units=["g/cm**3"])
+
+    def _function_density(field, data):
+        return data["gas", "density"]
+
+    ds.add_field(
+        ("gas", "function_density"),
+        function=_function_density,
+        sampling_type="cell",
+        units="g/cm**3",
+    )
+    with pytest.raises(
+        ValueError,
+        match=re.escape(
+            "Cannot initialized a DerivedField instance "
+            "from an anonymous (lambda) function. "
+            "Use an actual function instead."
+        ),
+    ):
+        ds.add_field(
+            ("gas", "lambda_density"),
+            function=lambda field, data: data["gas", "density"],
+            sampling_type="cell",
+            units="g/cm**3",
+        )
 
 
 def test_array_like_field():

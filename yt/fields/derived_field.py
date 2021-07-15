@@ -156,6 +156,15 @@ class DerivedField:
         else:
             self.nodal_flag = nodal_flag
 
+        # There is no idiomatic way to distinguish a function from a lambda
+        # since they technically share the same type. However, passing a lambda
+        # here, while sensible, doesn't work, because no handle is retained.
+        # See https://github.com/yt-project/yt/issues/3434
+        if function.__name__ == "<lambda>":
+            raise ValueError(
+                "Cannot initialized a DerivedField instance from an anonymous (lambda) function. "
+                "Use an actual function instead."
+            )
         self._function = function
 
         self.validators = list(always_iterable(validators))
