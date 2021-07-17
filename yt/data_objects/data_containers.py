@@ -1441,6 +1441,8 @@ class YTDataContainer:
         raise YTFieldNotParseable(field)
 
     def _determine_fields(self, fields):
+        if str(fields) in self.ds._determined_fields:
+            return self.ds._determined_fields[str(fields)]
         explicit_fields = []
         for field in iter_fields(fields):
             if field in self._container_fields:
@@ -1474,6 +1476,8 @@ class YTDataContainer:
             elif not particle_field and ftype not in self.ds.fluid_types:
                 raise YTFieldTypeNotFound(ftype, ds=self.ds)
             explicit_fields.append((ftype, fname))
+
+        self.ds._determined_fields[str(fields)] = explicit_fields
         return explicit_fields
 
     _tree = None
