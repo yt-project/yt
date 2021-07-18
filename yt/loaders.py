@@ -7,7 +7,6 @@ import sys
 import tarfile
 from pathlib import Path
 from typing import List, Optional, Tuple
-from urllib.parse import urlsplit
 
 import numpy as np
 from more_itertools import always_iterable
