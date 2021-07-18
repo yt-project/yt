@@ -1,5 +1,10 @@
+from typing import Tuple, Union
+
 import numpy as np
 from matplotlib import cm as mcm, colors as cc
+from matplotlib.pyplot import get_cmap
+
+from yt.funcs import get_brewer_cmap
 
 from . import _colormap_data as _cm
 
@@ -182,8 +187,24 @@ for k, v in list(_cm.color_map_luts.items()):
         add_colormap(k, cdict)
 
 
-def _extract_lookup_table(cmap_name):
-    cmap = mcm.get_cmap(cmap_name)
+def get_colormap_lut(cmap_id: Union[Tuple[str, str], str]):
+    # "lut" stands for "lookup table". This function provides a consistent and
+    # reusable accessor to a hidden (and by defaut, uninitialized) attribute
+    # (`_lut`) in registered colormaps, from matplotlib or palettable.
+    # colormap "lookup tables" are RGBA arrays in matplotlib,
+    # and contain sufficient data to reconstruct the colormaps entierly.
+    # This exists mostly for historical reasons, hence the custom output format.
+    # It isn't meant as part of yt's public api.
+
+    if isinstance(cmap_id, tuple) and len(cmap_id) == 2:
+        cmap = get_brewer_cmap(cmap_id)
+    elif isinstance(cmap_id, str):
+        cmap = get_cmap(cmap_id)
+    else:
+        raise TypeError(
+            "Expected a string or a 2-tuple of strings as a colormap id. "
+            f"Received: {cmap_id}"
+        )
     if not cmap._isinit:
         cmap._init()
     r = cmap._lut[:-3, 0]
