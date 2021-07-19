@@ -7,10 +7,11 @@ import os
 import platform
 import sys
 import tarfile
+import time
 from multiprocessing import Process
 from pathlib import Path
 from subprocess import call
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 from urllib.parse import urlsplit
 
 import numpy as np
@@ -1466,12 +1467,19 @@ def load_sample(
 
 # --- Loader for tar-based datasets ---
 def load_archive(
-    fn: str, path: str, ratarmount_kwa: Optional[Dict] = None, *args, **kwargs
+    fn: Union[str, Path],
+    path: str,
+    ratarmount_kwa: Optional[Dict] = None,
+    *args,
+    **kwargs,
 ) -> Dataset:
     if platform.system() not in ("Linux", "Darwin"):
         raise RuntimeError(
             "Reading from an archive is not supported on your operating system (%s)."
         )
+
+    if isinstance(fn, Path):
+        fn = str(fn.resolve().absolute())
 
     if ratarmount_kwa is None:
         ratarmount_kwa = {}
@@ -1480,7 +1488,7 @@ def load_archive(
         compression = ratarmount.SQLiteIndexedTar._detectCompression(fd)
 
     if compression is None:
-        YTUnidentifiedDataType(fn, *args, **kwargs)
+        raise YTUnidentifiedDataType(fn, *args, **kwargs)
 
     # Note: the temporary directory will be created
     # by ratarmount
@@ -1493,9 +1501,11 @@ def load_archive(
 
     def mount(filename, mnt_dir, kwa):
         mylog.info("Mounting archive into %s", mnt_dir)
-        args = [filename, mnt_dir]
+        args = []
         for key, val in kwa.items():
             args.extend([f"--{key}", val])
+        args.extend(["--foreground"])
+        args.extend([filename, mnt_dir])
         ratarmount.cli(args)
 
     def umount(mnt_dir):
@@ -1508,7 +1518,15 @@ def load_archive(
     # Mount the archive
     proc = Process(target=mount, args=(fn, tempdir, ratarmount_kwa))
     proc.start()
-    proc.join()
+
+    retry = 0
+    while retry < 100:
+        if os.path.ismount(tempdir):
+            break
+        time.sleep(0.1)
+        retry += 1
+    else:
+        raise Exception("Could not mount")
 
     # At exit of the interpreter, unmount
     atexit.register(umount, mnt_dir=tempdir)
