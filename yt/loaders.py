@@ -4,6 +4,7 @@ This module gathers all user-facing functions with a `load_` prefix.
 """
 import atexit
 import os
+import platform
 import sys
 import tarfile
 from multiprocessing import Process
@@ -1467,6 +1468,11 @@ def load_sample(
 def load_archive(
     fn: str, path: str, ratarmount_kwa: Optional[Dict] = None, *args, **kwargs
 ) -> Dataset:
+    if platform.system() not in ("Linux", "Darwin"):
+        raise RuntimeError(
+            "Reading from an archive is not supported on your operating system (%s)."
+        )
+
     if ratarmount_kwa is None:
         ratarmount_kwa = {}
 
@@ -1494,10 +1500,13 @@ def load_archive(
 
     def umount(mnt_dir):
         mylog.info("Unmounting archive %s", mnt_dir)
-        call(["umount", mnt_dir])
+        if platform.system() == "Linux":
+            call(["fusermount", "-u", mnt_dir])
+        else:
+            call(["umount", mnt_dir])
 
     # Mount the archive
-    proc = Process(target=mount, args=(fn, tempdir))
+    proc = Process(target=mount, args=(fn, tempdir, ratarmount_kwa))
     proc.start()
     proc.join()
 
