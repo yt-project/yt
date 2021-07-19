@@ -1515,10 +1515,14 @@ def load_archive(
         else:
             call(["umount", mnt_dir])
 
-    # Mount the archive
+    # Mount the archive in another process
     proc = Process(target=mount, args=(fn, tempdir, ratarmount_kwa))
     proc.start()
 
+    # Note: the mounting happens in another process which
+    # needs be run in the foreground (otherwise it may
+    # unmount). To prevent a race-condition here, we wait
+    # for the folder to be mounted within a reasonable time.
     retry = 0
     while retry < 100:
         if os.path.ismount(tempdir):
