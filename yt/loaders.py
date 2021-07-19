@@ -1485,9 +1485,12 @@ def load_archive(
         i += 1
         tempdir = f"{tempdir_base}.{i}"
 
-    def mount(filename, mnt_dir):
+    def mount(filename, mnt_dir, kwa):
         mylog.info("Mounting archive into %s", mnt_dir)
-        ratarmount.cli([filename, mnt_dir])
+        args = [filename, mnt_dir]
+        for key, val in kwa.items():
+            args.extend([f"--{key}", val])
+        ratarmount.cli(args)
 
     def umount(mnt_dir):
         mylog.info("Unmounting archive %s", mnt_dir)
