@@ -81,6 +81,7 @@ from yt.loaders import simulation  # deprecated alias for load_simulation
 from yt.loaders import (
     load,
     load_amr_grids,
+    load_archive,
     load_hexahedral_mesh,
     load_octree,
     load_particles,

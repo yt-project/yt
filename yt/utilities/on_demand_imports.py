@@ -694,3 +694,22 @@ class firefly_imports:
 
 
 _firefly = firefly_imports()
+class ratarmount_imports:
+    _name = "ratarmount"
+    _module = None
+
+    def __init__(self):
+        try:
+            import ratarmount as myself
+
+            self._module = myself
+            self._imported = True
+        except ImportError:
+            self._module = NotAModule(self._name)
+            self._imported = False
+
+    def __getattr__(self, attr):
+        return getattr(self._module, attr)
+
+
+_ratarmount = ratarmount_imports()

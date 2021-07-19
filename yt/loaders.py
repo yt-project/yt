@@ -2,10 +2,13 @@
 This module gathers all user-facing functions with a `load_` prefix.
 
 """
+import atexit
 import os
 import sys
 import tarfile
+from multiprocessing import Process
 from pathlib import Path
+from subprocess import call
 from typing import List, Optional, Tuple
 from urllib.parse import urlsplit
 
@@ -13,6 +16,7 @@ import numpy as np
 from more_itertools import always_iterable
 
 from yt._maintenance.deprecation import issue_deprecation_warning
+from yt.data_objects.static_output import Dataset
 from yt.funcs import levenshtein_distance
 from yt.sample_data.api import lookup_on_disk_data
 from yt.utilities.decompose import decompose_array, get_psize
@@ -1457,3 +1461,46 @@ def load_sample(
         loadable_path = loadable_path.joinpath(load_name, specific_file)
 
     return load(loadable_path, **kwargs)
+
+
+# --- Loader for tar-based datasets ---
+def load_archive(
+    fn: str, path: str, ratarmount_kwa: dict = None, *args, **kwargs
+) -> Dataset:
+    if ratarmount_kwa is None:
+        ratarmount_kwa = {}
+
+    from yt.utilities.on_demand_imports import _ratarmount
+
+    with open(fn, mode="br") as fd:
+        compression = _ratarmount.SQLiteIndexedTar._detectCompression(fd)
+
+    if compression is None:
+        YTUnidentifiedDataType(fn, *args, **kwargs)
+
+    # Note: the temporary directory will be created
+    # by ratarmount
+    tempdir = fn + ".mount"
+    tempdir_base = tempdir
+    i = 0
+    while os.path.exists(tempdir):
+        i += 1
+        tempdir = f"{tempdir_base}.{i}"
+
+    def mount(filename, mnt_dir):
+        mylog.info("Mounting archive into %s", mnt_dir)
+        _ratarmount.cli([filename, mnt_dir])
+
+    def umount(mnt_dir):
+        mylog.info("Unmounting archive %s", mnt_dir)
+        call(["umount", mnt_dir])
+
+    # Mount the archive
+    proc = Process(target=mount, args=(fn, tempdir))
+    proc.start()
+    proc.join()
+
+    # At exit of the interpreter, unmount
+    atexit.register(umount, mnt_dir=tempdir)
+
+    return load(os.path.join(tempdir, path), *args, **kwargs)
