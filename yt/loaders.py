@@ -9,7 +9,7 @@ import tarfile
 from multiprocessing import Process
 from pathlib import Path
 from subprocess import call
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 from urllib.parse import urlsplit
 
 import numpy as np
@@ -33,7 +33,7 @@ from yt.utilities.object_registries import (
     output_type_registry,
     simulation_time_series_registry,
 )
-from yt.utilities.on_demand_imports import _pooch as pooch
+from yt.utilities.on_demand_imports import _pooch as pooch, ratarmount as ratarmount
 
 # --- Loaders for known data formats ---
 
@@ -1465,15 +1465,13 @@ def load_sample(
 
 # --- Loader for tar-based datasets ---
 def load_archive(
-    fn: str, path: str, ratarmount_kwa: dict = None, *args, **kwargs
+    fn: str, path: str, ratarmount_kwa: Optional[Dict] = None, *args, **kwargs
 ) -> Dataset:
     if ratarmount_kwa is None:
         ratarmount_kwa = {}
 
-    from yt.utilities.on_demand_imports import _ratarmount
-
     with open(fn, mode="br") as fd:
-        compression = _ratarmount.SQLiteIndexedTar._detectCompression(fd)
+        compression = ratarmount.SQLiteIndexedTar._detectCompression(fd)
 
     if compression is None:
         YTUnidentifiedDataType(fn, *args, **kwargs)
@@ -1489,7 +1487,7 @@ def load_archive(
 
     def mount(filename, mnt_dir):
         mylog.info("Mounting archive into %s", mnt_dir)
-        _ratarmount.cli([filename, mnt_dir])
+        ratarmount.cli([filename, mnt_dir])
 
     def umount(mnt_dir):
         mylog.info("Unmounting archive %s", mnt_dir)
