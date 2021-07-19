@@ -33,7 +33,7 @@ from yt.utilities.object_registries import (
     output_type_registry,
     simulation_time_series_registry,
 )
-from yt.utilities.on_demand_imports import _pooch as pooch, ratarmount as ratarmount
+from yt.utilities.on_demand_imports import _pooch as pooch, _ratarmount as ratarmount
 
 # --- Loaders for known data formats ---
 
