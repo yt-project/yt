@@ -703,10 +703,8 @@ class ratarmount_imports:
             import ratarmount as myself
 
             self._module = myself
-            self._imported = True
         except ImportError:
             self._module = NotAModule(self._name)
-            self._imported = False
 
     def __getattr__(self, attr):
         return getattr(self._module, attr)
