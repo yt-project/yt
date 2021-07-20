@@ -1,15 +1,23 @@
+from collections import defaultdict
 from numbers import Number as numeric_type
+from typing import Optional, Tuple
 
 import numpy as np
+from unyt.exceptions import UnitConversionError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
+from yt.fields.field_exceptions import NeedsConfiguration
 from yt.funcs import mylog, only_on_root
 from yt.geometry.geometry_handler import is_curvilinear
 from yt.units.dimensions import dimensionless
 from yt.units.unit_object import Unit
-from yt.utilities.exceptions import YTFieldNotFound
+from yt.utilities.exceptions import (
+    YTCoordinateNotImplemented,
+    YTDomainOverflow,
+    YTFieldNotFound,
+)
 
-from .derived_field import DerivedField, NullFunc, TranslationFunc
+from .derived_field import DeprecatedFieldFunc, DerivedField, NullFunc, TranslationFunc
 from .field_plugin_registry import field_plugins
 from .particle_fields import (
     add_union_field,
@@ -54,6 +62,7 @@ class FieldInfoContainer(dict):
         self.slice_info = slice_info
         self.field_aliases = {}
         self.species_names = []
+        self._ambiguous_field_names = defaultdict(set)
         if ds is not None and is_curvilinear(ds.geometry):
             self.curvilinear = True
         else:
@@ -266,9 +275,9 @@ class FieldInfoContainer(dict):
 
         Parameters
         ----------
-        sampling_type: str
+        sampling_type : str
             One of "cell", "particle" or "local" (case insensitive)
-        particle_type: str
+        particle_type : str
             This is a deprecated argument of the add_field method,
             which was replaced by sampling_type.
 
@@ -415,7 +424,39 @@ class FieldInfoContainer(dict):
         kwargs.setdefault("ds", self.ds)
         self[name] = DerivedField(name, sampling_type, NullFunc, **kwargs)
 
-    def alias(self, alias_name, original_name, units=None):
+    def __setitem__(self, key, value):
+        ftype, fname = key
+        # Mark fields with same `fname`s (but difference `ftype`s) as ambiguous
+        if any((fname == _fname) and (ftype != _ftype) for _ftype, _fname in self):
+            self._ambiguous_field_names[fname].add(ftype)
+        super().__setitem__(key, value)
+
+    def alias(
+        self,
+        alias_name,
+        original_name,
+        units=None,
+        deprecate: Optional[Tuple[str]] = None,
+    ):
+        """
+        Alias one field to another field.
+
+        Parameters
+        ----------
+        alias_name : Tuple[str]
+            The new field name.
+        original_name : Tuple[str]
+            The field to be aliased.
+        units : str
+           A plain text string encoding the unit.  Powers must be in
+           python syntax (** instead of ^). If set to "auto" the units
+           will be inferred from the return value of the field function.
+        deprecate : Tuple[str], optional
+            If this is set, then the tuple contains two string version
+            numbers: the first marking the version when the field was
+            deprecated, and the second marking when the field will be
+            removed.
+        """
         if original_name not in self:
             return
         if units is None:
@@ -427,12 +468,72 @@ class FieldInfoContainer(dict):
             else:
                 units = self[original_name].units
         self.field_aliases[alias_name] = original_name
+        function = TranslationFunc(original_name)
+        if deprecate is not None:
+            self.add_deprecated_field(
+                alias_name,
+                function=function,
+                sampling_type=self[original_name].sampling_type,
+                display_name=self[original_name].display_name,
+                units=units,
+                since=deprecate[0],
+                removal=deprecate[1],
+                ret_name=original_name,
+            )
+        else:
+            self.add_field(
+                alias_name,
+                function=function,
+                sampling_type=self[original_name].sampling_type,
+                display_name=self[original_name].display_name,
+                units=units,
+            )
+
+    def add_deprecated_field(
+        self, name, function, sampling_type, since, removal, ret_name=None, **kwargs
+    ):
+        """
+        Add a new field which is deprecated, along with supplemental metadata,
+        to the list of available fields.  This respects a number of arguments,
+        all of which are passed on to the constructor for
+        :class:`~yt.data_objects.api.DerivedField`.
+
+        Parameters
+        ----------
+        name : str
+           is the name of the field.
+        function : callable
+           A function handle that defines the field.  Should accept
+           arguments (field, data)
+        sampling_type : str
+           "cell" or "particle" or "local"
+        since : str
+            The version string marking when this field was deprecated.
+        removal : str
+            The version string marking when this field will be removed.
+        ret_name : str
+            The name of the field which will actually be returned, used
+            only by :meth:`~yt.fields.field_info_container.FieldInfoContainer.alias`.
+        units : str
+           A plain text string encoding the unit.  Powers must be in
+           python syntax (** instead of ^). If set to "auto" the units
+           will be inferred from the return value of the field function.
+        take_log : bool
+           Describes whether the field should be logged
+        validators : list
+           A list of :class:`FieldValidator` objects
+        vector_field : bool
+           Describes the dimensionality of the field.  Currently unused.
+        display_name : str
+           A name used in the plots
+        """
+        if ret_name is None:
+            ret_name = name
         self.add_field(
-            alias_name,
-            function=TranslationFunc(original_name),
-            sampling_type=self[original_name].sampling_type,
-            display_name=self[original_name].display_name,
-            units=units,
+            name,
+            function=DeprecatedFieldFunc(ret_name, function, since, removal),
+            sampling_type=sampling_type,
+            **kwargs,
         )
 
     def has_key(self, key):
@@ -474,6 +575,34 @@ class FieldInfoContainer(dict):
         return keys
 
     def check_derived_fields(self, fields_to_check=None):
+
+        # The following exceptions lists were obtained by expanding an
+        # all-catching `except Exception`.
+        # We define
+        # - a blacklist (exceptions that we know should be caught)
+        # - a whitelist (exceptions that should be handled)
+        # - a greylist (exceptions that may be covering bugs but should be checked)
+        # See https://github.com/yt-project/yt/issues/2853
+        # in the long run, the greylist should be removed
+        blacklist = ()
+        whitelist = (NotImplementedError,)
+        greylist = (
+            YTFieldNotFound,
+            YTDomainOverflow,
+            YTCoordinateNotImplemented,
+            NeedsConfiguration,
+            TypeError,
+            ValueError,
+            IndexError,
+            AttributeError,
+            KeyError,
+            # code smells -> those are very likely bugs
+            UnitConversionError,  # solved in GH PR 2897 ?
+            # RecursionError is clearly a bug, and was already solved once
+            # in GH PR 2851
+            RecursionError,
+        )
+
         deps = {}
         unavailable = []
         fields_to_check = fields_to_check or list(self.keys())
@@ -482,7 +611,10 @@ class FieldInfoContainer(dict):
             try:
                 # fd: field detector
                 fd = fi.get_dependencies(ds=self.ds)
-            except (NotImplementedError, Exception) as e:  # noqa: B014
+            except blacklist as err:
+                print(f"{err.__class__} raised for field {field}")
+                raise SystemExit(1) from err
+            except (*whitelist, *greylist) as e:
                 if field in self._show_field_errors:
                     raise
                 if not isinstance(e, YTFieldNotFound):
@@ -535,4 +667,21 @@ class FieldInfoContainer(dict):
             dfl = filtered_dfl
 
         self.ds.derived_field_list = dfl
+        self._set_linear_fields()
         return deps, unavailable
+
+    def _set_linear_fields(self):
+        """
+        Sets which fields use linear as their default scaling in Profiles and
+        PhasePlots. Default for all fields is set to log, so this sets which
+        are linear.  For now, set linear to geometric fields: position and
+        velocity coordinates.
+        """
+        non_log_prefixes = ("", "velocity_", "particle_position_", "particle_velocity_")
+        coords = ("x", "y", "z")
+        non_log_fields = [
+            prefix + coord for prefix in non_log_prefixes for coord in coords
+        ]
+        for field in self.ds.derived_field_list:
+            if field[1] in non_log_fields:
+                self[field].take_log = False

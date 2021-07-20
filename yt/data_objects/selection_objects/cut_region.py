@@ -1,3 +1,5 @@
+import re
+
 import numpy as np
 from more_itertools import always_iterable
 
@@ -25,15 +27,15 @@ class YTCutRegion(YTSelectionContainer3D):
         A list of conditionals that will be evaluated.  In the namespace
         available, these conditionals will have access to 'obj' which is a data
         object of unknown shape, and they must generate a boolean array.  For
-        instance, conditionals = ["obj['temperature'] < 1e3"]
+        instance, conditionals = ["obj[('gas', 'temperature')] < 1e3"]
 
     Examples
     --------
 
     >>> import yt
     >>> ds = yt.load("RedshiftOutput0005")
-    >>> sp = ds.sphere("max", (1.0, 'Mpc'))
-    >>> cr = ds.cut_region(sp, ["obj['temperature'] < 1e3"])
+    >>> sp = ds.sphere("max", (1.0, "Mpc"))
+    >>> cr = ds.cut_region(sp, ["obj[('gas', 'temperature')] < 1e3"])
     """
 
     _type_name = "cut_region"
@@ -70,11 +72,29 @@ class YTCutRegion(YTSelectionContainer3D):
         super().__init__(
             data_source.center, ds, field_parameters, data_source=data_source
         )
+        self.filter_fields = self._check_filter_fields()
         self.base_object = data_source
         self.locals = locals
         self._selector = None
         # Need to interpose for __getitem__, fwidth, fcoords, icoords, iwidth,
         # ires and get_data
+
+    def _check_filter_fields(self):
+        fields = []
+        for cond in self.conditionals:
+            for field in re.findall(r"\[([A-Za-z0-9_,.'\"\(\)]+)\]", cond):
+                fd = field.replace('"', "").replace("'", "")
+                if "," in fd:
+                    fd = tuple(fd.strip("()").split(","))
+                fd = self.ds._get_field_info(fd)
+                if fd.sampling_type == "particle" or fd.is_sph_field:
+                    raise RuntimeError(
+                        f"cut_region requires a mesh-based field, "
+                        f"but {fd.name} is a particle field! Use "
+                        f"a particle filter instead. "
+                    )
+                fields.append(fd.name)
+        return fields
 
     def chunks(self, fields, chunking_style, **kwargs):
         # We actually want to chunk the sub-chunk, not ourselves.  We have no

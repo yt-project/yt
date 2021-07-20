@@ -36,13 +36,13 @@ def setup():
 #  override some of the plotwindow ATTR_ARGS
 PROJ_ATTR_ARGS = ATTR_ARGS.copy()
 PROJ_ATTR_ARGS["set_cmap"] = [
-    (("particle_mass", "RdBu"), {}),
-    (("particle_mass", "kamae"), {}),
+    ((("all", "particle_mass"), "RdBu"), {}),
+    ((("all", "particle_mass"), "kamae"), {}),
 ]
-PROJ_ATTR_ARGS["set_log"] = [(("particle_mass", False), {})]
+PROJ_ATTR_ARGS["set_log"] = [((("all", "particle_mass"), False), {})]
 PROJ_ATTR_ARGS["set_zlim"] = [
-    (("particle_mass", 1e39, 1e42), {}),
-    (("particle_mass", 1e39, None), {"dynamic_range": 4}),
+    ((("all", "particle_mass"), 1e39, 1e42), {}),
+    ((("all", "particle_mass"), 1e39, None), {"dynamic_range": 4}),
 ]
 
 PHASE_ATTR_ARGS = {
@@ -50,9 +50,9 @@ PHASE_ATTR_ARGS = {
         (((5e-29, 5e7), "Hello YT"), {}),
         (((5e-29, 5e7), "Hello YT"), {"color": "b"}),
     ],
-    "set_title": [(("particle_mass", "A phase plot."), {})],
-    "set_log": [(("particle_mass", False), {})],
-    "set_unit": [(("particle_mass", "Msun"), {})],
+    "set_title": [((("all", "particle_mass"), "A phase plot."), {})],
+    "set_log": [((("all", "particle_mass"), False), {})],
+    "set_unit": [((("all", "particle_mass"), "Msun"), {})],
     "set_xlim": [((-4e7, 4e7), {})],
     "set_ylim": [((-4e7, 4e7), {})],
 }
@@ -69,12 +69,24 @@ CENTER_SPECS = (
     YTArray([0.3, 0.4, 0.7], "cm"),
 )
 
-WEIGHT_FIELDS = (None, "particle_ones", ("all", "particle_mass"))
+WEIGHT_FIELDS = (None, ("all", "particle_ones"), ("all", "particle_mass"))
 
 PHASE_FIELDS = [
-    ("particle_velocity_x", "particle_position_z", "particle_mass"),
-    ("particle_position_x", "particle_position_y", "particle_ones"),
-    ("particle_velocity_x", "particle_velocity_y", ["particle_mass", "particle_ones"]),
+    (
+        ("all", "particle_velocity_x"),
+        ("all", "particle_position_z"),
+        ("all", "particle_mass"),
+    ),
+    (
+        ("all", "particle_position_x"),
+        ("all", "particle_position_y"),
+        ("all", "particle_ones"),
+    ),
+    (
+        ("all", "particle_velocity_x"),
+        ("all", "particle_velocity_y"),
+        [("all", "particle_mass"), ("all", "particle_ones")],
+    ),
 ]
 
 
@@ -92,7 +104,7 @@ def test_particle_projection_answers():
 
     """
 
-    plot_field = "particle_mass"
+    plot_field = ("all", "particle_mass")
     decimals = 12
     ds = data_dir_load(g30)
     for ax in "xyz":
@@ -159,9 +171,9 @@ def test_particle_phase_answers():
     decimals = 12
     ds = data_dir_load(g30)
 
-    x_field = "particle_velocity_x"
-    y_field = "particle_velocity_y"
-    z_field = "particle_mass"
+    x_field = ("all", "particle_velocity_x")
+    y_field = ("all", "particle_velocity_y")
+    z_field = ("all", "particle_mass")
     for attr_name in PHASE_ATTR_ARGS.keys():
         for args in PHASE_ATTR_ARGS[attr_name]:
             test = PhasePlotAttributeTest(
@@ -201,7 +213,12 @@ class TestParticlePhasePlotSave(unittest.TestCase):
             for x_field, y_field, z_fields in PHASE_FIELDS:
                 particle_phases.append(
                     ParticlePhasePlot(
-                        source, x_field, y_field, z_fields, x_bins=16, y_bins=16
+                        source,
+                        x_field,
+                        y_field,
+                        z_fields,
+                        x_bins=16,
+                        y_bins=16,
                     )
                 )
 
@@ -221,7 +238,7 @@ class TestParticlePhasePlotSave(unittest.TestCase):
                     source,
                     [x_field, y_field],
                     z_fields,
-                    weight_field="particle_ones",
+                    weight_field=("all", "particle_ones"),
                     n_bins=[16, 16],
                 )
 
@@ -333,24 +350,35 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
 
     def test_particle_plot(self):
         test_ds = fake_particle_ds()
+        particle_projs = []
         for dim in range(3):
-            pplot = ParticleProjectionPlot(test_ds, dim, "particle_mass")
-            with mock.patch(
-                "yt.visualization._mpl_imports.FigureCanvasAgg.print_figure"
-            ), mock.patch(
-                "yt.visualization._mpl_imports.FigureCanvasPdf.print_figure"
-            ), mock.patch(
-                "yt.visualization._mpl_imports.FigureCanvasPS.print_figure"
-            ):
+            particle_projs += [
+                ParticleProjectionPlot(test_ds, dim, ("all", "particle_mass")),
+                ParticleProjectionPlot(
+                    test_ds, dim, ("all", "particle_mass"), deposition="cic"
+                ),
+                ParticleProjectionPlot(
+                    test_ds, dim, ("all", "particle_mass"), density=True
+                ),
+            ]
+        particle_projs[0]._repr_html_()
+        with mock.patch(
+            "yt.visualization._mpl_imports.FigureCanvasAgg.print_figure"
+        ), mock.patch(
+            "yt.visualization._mpl_imports.FigureCanvasPdf.print_figure"
+        ), mock.patch(
+            "yt.visualization._mpl_imports.FigureCanvasPS.print_figure"
+        ):
+            for p in particle_projs:
                 for fname in TEST_FLNMS:
-                    pplot.save(fname)[0]
+                    p.save(fname)[0]
 
     def test_particle_plot_ds(self):
         test_ds = fake_particle_ds()
         ds_region = test_ds.region([0.5] * 3, [0.4] * 3, [0.6] * 3)
         for dim in range(3):
             pplot_ds = ParticleProjectionPlot(
-                test_ds, dim, "particle_mass", data_source=ds_region
+                test_ds, dim, ("all", "particle_mass"), data_source=ds_region
             )
             with mock.patch(
                 "yt.visualization._mpl_imports.FigureCanvasAgg.print_figure"
@@ -362,7 +390,7 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
         for center in CENTER_SPECS:
             for dim in range(3):
                 pplot_c = ParticleProjectionPlot(
-                    test_ds, dim, "particle_mass", center=center
+                    test_ds, dim, ("all", "particle_mass"), center=center
                 )
                 with mock.patch(
                     "yt.visualization._mpl_imports.FigureCanvasAgg.print_figure"
@@ -374,7 +402,7 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
         for dim in range(3):
             for weight_field in WEIGHT_FIELDS:
                 pplot_wf = ParticleProjectionPlot(
-                    test_ds, dim, "particle_mass", weight_field=weight_field
+                    test_ds, dim, ("all", "particle_mass"), weight_field=weight_field
                 )
                 with mock.patch(
                     "yt.visualization._mpl_imports.FigureCanvasAgg.print_figure"
@@ -384,7 +412,9 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
     def test_creation_with_width(self):
         test_ds = fake_particle_ds()
         for width, (xlim, ylim, pwidth, _aun) in WIDTH_SPECS.items():
-            plot = ParticleProjectionPlot(test_ds, 0, "particle_mass", width=width)
+            plot = ParticleProjectionPlot(
+                test_ds, 0, ("all", "particle_mass"), width=width
+            )
 
             xlim = [plot.ds.quan(el[0], el[1]) for el in xlim]
             ylim = [plot.ds.quan(el[0], el[1]) for el in ylim]

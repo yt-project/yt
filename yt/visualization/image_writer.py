@@ -4,13 +4,14 @@ import numpy as np
 
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
-from yt.funcs import get_brewer_cmap, get_image_suffix, mylog
+from yt.funcs import get_brewer_cmap, mylog
 from yt.units.yt_array import YTQuantity
 from yt.utilities import png_writer as pw
 from yt.utilities.exceptions import YTNotInsideNotebook
 from yt.utilities.lib import image_utilities as au
 
 from . import _colormap_data as cmd
+from ._commons import get_canvas, validate_image_name
 from .color_maps import mcm
 
 
@@ -84,8 +85,8 @@ def multi_image_composite(
     Examples
     --------
 
-        >>> red_channel = np.log10(frb["Temperature"])
-        >>> blue_channel = np.log10(frb["Density"])
+        >>> red_channel = np.log10(frb[("gas", "temperature")])
+        >>> blue_channel = np.log10(frb[("gas", "density")])
         >>> multi_image_composite("multi_channel1.png", red_channel, blue_channel)
 
     """
@@ -195,9 +196,8 @@ def write_image(image, filename, color_bounds=None, cmap_name=None, func=lambda 
     --------
 
     >>> sl = ds.slice(0, 0.5, "Density")
-    >>> frb1 = FixedResolutionBuffer(sl, (0.2, 0.3, 0.4, 0.5),
-                    (1024, 1024))
-    >>> write_image(frb1["Density"], "saved.png")
+    >>> frb1 = FixedResolutionBuffer(sl, (0.2, 0.3, 0.4, 0.5), (1024, 1024))
+    >>> write_image(frb1[("gas", "density")], "saved.png")
     """
     if cmap_name is None:
         cmap_name = ytcfg.get("yt", "default_colormap")
@@ -392,17 +392,20 @@ def write_projection(
     --------
 
     >>> image = off_axis_projection(ds, c, L, W, N, "Density", no_ghost=False)
-    >>> write_projection(image, 'test.png',
-                         colorbar_label="Column Density (cm$^{-2}$)",
-                         title="Offaxis Projection", vmin=1e-5, vmax=1e-3,
-                         take_log=True)
+    >>> write_projection(
+    ...     image,
+    ...     "test.png",
+    ...     colorbar_label="Column Density (cm$^{-2}$)",
+    ...     title="Offaxis Projection",
+    ...     vmin=1e-5,
+    ...     vmax=1e-3,
+    ...     take_log=True,
+    ... )
     """
     if cmap_name is None:
         cmap_name = ytcfg.get("yt", "default_colormap")
     import matplotlib.colors
     import matplotlib.figure
-
-    from ._mpl_imports import FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
 
     if limits is not None:
         if vmin is not None or vmax is not None:
@@ -455,19 +458,10 @@ def write_projection(
         if colorbar_label:
             cbar.ax.set_ylabel(colorbar_label)
 
-    suffix = get_image_suffix(filename)
+    filename = validate_image_name(filename)
+    canvas = get_canvas(fig, filename)
 
-    if suffix == "":
-        suffix = ".png"
-        filename = f"{filename}{suffix}"
     mylog.info("Saving plot %s", filename)
-    if suffix == ".pdf":
-        canvas = FigureCanvasPdf(fig)
-    elif suffix in (".eps", ".ps"):
-        canvas = FigureCanvasPS(fig)
-    else:
-        canvas = FigureCanvasAgg(fig)
-
     fig.tight_layout()
 
     canvas.print_figure(filename, dpi=dpi)

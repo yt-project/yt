@@ -2,7 +2,7 @@ import configparser
 import os
 import sys
 
-from yt.config import OLD_CONFIG_FILE, YTConfig, ytcfg_defaults
+from yt.config import YTConfig, old_config_file, ytcfg_defaults
 
 CONFIG = YTConfig()
 
@@ -48,7 +48,7 @@ def write_config(config_file):
 
 
 def migrate_config():
-    if not os.path.exists(OLD_CONFIG_FILE):
+    if not os.path.exists(old_config_file()):
         print("Old config not found.")
         sys.exit(1)
 
@@ -56,7 +56,7 @@ def migrate_config():
     # Preserve case:
     # See https://stackoverflow.com/questions/1611799/preserve-case-in-configparser
     old_config.optionxform = str
-    old_config.read(OLD_CONFIG_FILE)
+    old_config.read(old_config_file())
 
     # In order to migrate, we'll convert everything to lowercase, and map that
     # to the new snake_case convention
@@ -93,8 +93,8 @@ def migrate_config():
     global_config_file = YTConfig.get_global_config_file()
     print(f"Writing a new config file to: {global_config_file}")
     write_config(global_config_file)
-    print(f"Backing up the old config file: {OLD_CONFIG_FILE}.bak")
-    os.rename(OLD_CONFIG_FILE, OLD_CONFIG_FILE + ".bak")
+    print(f"Backing up the old config file: {old_config_file()}.bak")
+    os.rename(old_config_file(), old_config_file() + ".bak")
 
 
 def rm_config(section, option, config_file):

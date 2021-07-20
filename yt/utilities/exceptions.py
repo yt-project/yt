@@ -90,9 +90,67 @@ class YTFieldNotFound(YTException):
     def __init__(self, field, ds):
         self.field = field
         self.ds = ds
+        self.suggestions = []
+        try:
+            self._find_suggestions()
+        except AttributeError:
+            # This may happen if passing a field that is e.g. an Ellipsis
+            # e.g. when using ds.r[...]
+            pass
+
+    def _find_suggestions(self):
+        from yt.funcs import levenshtein_distance
+
+        field = self.field
+        ds = self.ds
+
+        suggestions = {}
+        if not isinstance(field, tuple):
+            ftype, fname = None, field
+        elif field[1] is None:
+            ftype, fname = None, field[0]
+        else:
+            ftype, fname = field
+
+        # Limit the suggestions to a distance of 3 (at most 3 edits)
+        # This is very arbitrary, but is picked so that...
+        # - small typos lead to meaningful suggestions (e.g. `densty` -> `density`)
+        # - we don't suggest unrelated things (e.g. `pressure` -> `density` has a distance
+        #   of 6, we definitely do not want it)
+        # A threshold of 3 seems like a good middle point.
+        max_distance = 3
+
+        # Suggest (ftype, fname), with alternative ftype
+        for ft, fn in ds.derived_field_list:
+            if fn.lower() == fname.lower() and (
+                ftype is None or ft.lower() != ftype.lower()
+            ):
+                suggestions[ft, fn] = 0
+
+        if ftype is not None:
+            # Suggest close matches using levenshtein distance
+            fields_str = {_: str(_).lower() for _ in ds.derived_field_list}
+            field_str = str(field).lower()
+
+            for (ft, fn), fs in fields_str.items():
+                distance = levenshtein_distance(field_str, fs, max_dist=max_distance)
+                if distance < max_distance:
+                    if (ft, fn) in suggestions:
+                        continue
+                    suggestions[ft, fn] = distance
+
+        # Return suggestions sorted by increasing distance (first are most likely)
+        self.suggestions = [
+            (ft, fn)
+            for (ft, fn), distance in sorted(suggestions.items(), key=lambda v: v[1])
+        ]
 
     def __str__(self):
-        return f"Could not find field {self.field} in {self.ds}."
+        msg = f"Could not find field {self.field} in {self.ds}."
+        if self.suggestions:
+            msg += "\nDid you mean:\n\t"
+            msg += "\n\t".join(str(_) for _ in self.suggestions)
+        return msg
 
 
 class YTParticleTypeNotFound(YTException):
@@ -238,7 +296,7 @@ class YTFieldUnitError(YTException):
 
 class YTFieldUnitParseError(YTException):
     def __init__(self, field_info):
-        self.msg = "The field '%s' has unparseable units '%s'."
+        self.msg = "The field '%s' has unparsable units '%s'."
         self.msg = self.msg % (field_info.name, field_info.units)
 
     def __str__(self):
@@ -271,7 +329,7 @@ class YTNoFilenamesMatchPattern(YTException):
         self.pattern = pattern
 
     def __str__(self):
-        return "No filenames were found to match the pattern: " + f"'{self.pattern}'"
+        return f"No filenames were found to match the pattern: '{self.pattern}'"
 
 
 class YTNoOldAnswer(YTException):
@@ -279,7 +337,7 @@ class YTNoOldAnswer(YTException):
         self.path = path
 
     def __str__(self):
-        return "There is no old answer available.\n" + str(self.path)
+        return f"There is no old answer available.\n{self.path}"
 
 
 class YTNoAnswerNameSpecified(YTException):
@@ -436,7 +494,7 @@ class YTIllDefinedParticleFilter(YTException):
             "are not defined for this dataset."
         )
         f = self.filter
-        return msg.format("\n".join([str(m) for m in self.missing]), f.name)
+        return msg.format("\n".join(str(m) for m in self.missing), f.name)
 
 
 class YTIllDefinedBounds(YTException):
@@ -539,7 +597,7 @@ class YTIllDefinedCutRegion(Exception):
         r = """Can't mix particle/discrete and fluid/mesh conditions or
                quantities.  Conditions specified:
             """
-        r += "\n".join([c for c in self.conditions])
+        r += "\n".join(c for c in self.conditions)
         return r
 
 
@@ -552,7 +610,7 @@ class YTMixedCutRegion(Exception):
         r = f"""Can't mix particle/discrete and fluid/mesh conditions or
                quantities.  Field: {self.field} and Conditions specified:
             """
-        r += "\n".join([c for c in self.conditions])
+        r += "\n".join(c for c in self.conditions)
         return r
 
 
@@ -838,7 +896,7 @@ class YTCommandRequiresModule(YTException):
         msg += "appropriate for your python environment, e.g.:\n"
         msg += f"  conda install {self.module}\n"
         msg += "or:\n"
-        msg += f"  pip install {self.module}\n"
+        msg += f" python -m pip install {self.module}\n"
         return msg
 
 

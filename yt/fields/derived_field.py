@@ -9,6 +9,7 @@ import yt.units.dimensions as ytdims
 from yt.funcs import iter_fields
 from yt.units.unit_object import Unit
 from yt.utilities.exceptions import YTFieldNotFound
+from yt.utilities.logger import ytLogger as mylog
 
 from .field_detector import FieldDetector
 from .field_exceptions import (
@@ -32,6 +33,25 @@ def TranslationFunc(field_name):
 
 def NullFunc(field, data):
     raise YTFieldNotFound(field.name)
+
+
+def DeprecatedFieldFunc(ret_field, func, since, removal):
+    def _DeprecatedFieldFunc(field, data):
+        # Only log a warning if we've already done
+        # field detection
+        if data.ds.fields_detected:
+            args = [field.name, since, removal]
+            msg = (
+                "The Derived Field %s is deprecated as of yt v%s "
+                "and will be removed in yt v%s. "
+            )
+            if ret_field != field.name:
+                msg += "Use %s instead."
+                args.append(ret_field)
+            mylog.warning(msg, *args)
+        return func(field, data)
+
+    return _DeprecatedFieldFunc
 
 
 class DerivedField:
@@ -159,7 +179,7 @@ class DerivedField:
             self.units = units.decode("utf-8")
         else:
             raise FieldUnitsError(
-                "Cannot handle units '%s' (type %s)."
+                "Cannot handle units '%s' (type %s). "
                 "Please provide a string or Unit "
                 "object." % (units, type(units))
             )
@@ -230,10 +250,7 @@ class DerivedField:
         This returns a list of names of fields that this field depends on.
         """
         e = FieldDetector(*args, **kwargs)
-        if self._function.__name__ == "<lambda>":
-            e.requested.append(self.name)
-        else:
-            e[self.name]
+        e[self.name]
         return e
 
     def _get_needed_parameters(self, fd):
@@ -265,7 +282,7 @@ class DerivedField:
         self._unit_registry = old_registry
 
     def __call__(self, data):
-        """ Return the value of the field in a given *data* object. """
+        """Return the value of the field in a given *data* object."""
         self.check_available(data)
         original_fields = data.keys()  # Copy
         if self._function is NullFunc:

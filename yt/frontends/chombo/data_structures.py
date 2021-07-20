@@ -149,7 +149,7 @@ class ChomboHierarchy(GridIndex):
             elif "boxes" in d:
                 self.num_grids += d["boxes"].len()
             else:
-                raise RuntimeError("Uknown file specification")
+                raise RuntimeError("Unknown file specification")
 
     def _parse_index(self):
         f = self._handle  # shortcut
@@ -246,6 +246,7 @@ class ChomboDataset(Dataset):
         ini_filename=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
         self.fluid_types += ("chombo",)
         self._handle = HDF5FileHandler(filename)
@@ -260,6 +261,7 @@ class ChomboDataset(Dataset):
             self.dataset_type,
             units_override=units_override,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
         self.storage_filename = storage_filename
         self.cosmological_simulation = False
@@ -474,6 +476,7 @@ class PlutoDataset(ChomboDataset):
         ini_filename=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
 
         ChomboDataset.__init__(
@@ -484,6 +487,7 @@ class PlutoDataset(ChomboDataset):
             ini_filename,
             units_override=units_override,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
 
     def _parse_parameter_file(self):
@@ -646,6 +650,7 @@ class Orion2Dataset(ChomboDataset):
         storage_filename=None,
         ini_filename=None,
         units_override=None,
+        default_species_fields=None,
     ):
 
         ChomboDataset.__init__(
@@ -655,6 +660,7 @@ class Orion2Dataset(ChomboDataset):
             storage_filename,
             ini_filename,
             units_override=units_override,
+            default_species_fields=default_species_fields,
         )
 
     def _parse_parameter_file(self):

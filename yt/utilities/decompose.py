@@ -6,7 +6,7 @@ def SIEVE_PRIMES(x):
 
 
 def decompose_to_primes(max_prime):
-    """ Decompose number into the primes """
+    """Decompose number into the primes"""
     for prime in SIEVE_PRIMES(list(range(2, max_prime))):
         if prime * prime > max_prime:
             break
@@ -103,7 +103,7 @@ def get_psize(n_d, pieces):
 
 
 def split_array(gle, gre, shape, psize):
-    """ Split array into px*py*pz subarrays. """
+    """Split array into px*py*pz subarrays."""
     n_d = np.array(shape, dtype=np.int64)
     dds = (gre - gle) / shape
     left_edges = []

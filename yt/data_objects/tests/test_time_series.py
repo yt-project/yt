@@ -1,9 +1,11 @@
 import tempfile
 from pathlib import Path
 
+from yt.data_objects.static_output import Dataset
 from yt.data_objects.time_series import DatasetSeries
 from yt.testing import assert_raises
 from yt.utilities.exceptions import YTUnidentifiedDataType
+from yt.utilities.object_registries import output_type_registry
 
 
 def test_pattern_expansion():
@@ -63,3 +65,40 @@ def test_init_fake_dataseries():
 
         # finally, check that ts[0] fails to actually load
         assert_raises(YTUnidentifiedDataType, ts.__getitem__, 0)
+
+        class FakeDataset(Dataset):
+            """A minimal loadable fake dataset subclass"""
+
+            @classmethod
+            def _is_valid(cls, *args, **kwargs):
+                return True
+
+            def _parse_parameter_file(self):
+                return
+
+            def _set_code_unit_attributes(self):
+                return
+
+            def set_code_units(self):
+                self.current_time = 0
+                return
+
+            def _hash(self):
+                return
+
+            def _setup_classes(self):
+                return
+
+        try:
+            ds = DatasetSeries(pattern)[0]
+            assert isinstance(ds, FakeDataset)
+
+            ts = DatasetSeries(pattern, my_unsupported_kwarg=None)
+
+            assert_raises(TypeError, ts.__getitem__, 0)
+            # the exact error message is supposed to be this
+            # """__init__() got an unexpected keyword argument 'my_unsupported_kwarg'"""
+            # but it's hard to check for within the framework
+        finally:
+            # tear down to avoid possible breakage in following tests
+            output_type_registry.pop("FakeDataset")

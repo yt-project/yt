@@ -50,24 +50,6 @@ not be interpolated, and can be useful for creating
 colorblind/printer/grayscale-friendly plots. For more information, visit
 `http://colorbrewer2.org <http://colorbrewer2.org>`_.
 
-.. _cmocean-cmaps:
-
-Colormaps from cmocean
-~~~~~~~~~~~~~~~~~~~~~~
-
-In addition to ``palettable``, yt will also import colormaps defined in the
-`cmocean <https://matplotlib.org/cmocean>`_ package. These colormaps are
-`perceptually uniform <http://bids.github.io/colormap/>`_ and were originally
-designed for oceanography applications, but can be used for any kind of plots.
-
-Since ``cmocean`` is not installed as a dependency of yt by default, it must be
-installed separately to access the ``cmocean`` colormaps with yt. The easiest
-way to install ``cmocean`` is via ``pip``: ``pip install cmocean``.  To access
-the colormaps in yt, simply specify the name of the ``cmocean`` colormap in any
-context where you would specify a colormap. One caveat is the ``cmocean``
-colormap ``algae``. Since yt already defines a colormap named ``algae``, the
-``cmocean`` version of ``algae`` must be specified with the name
-``algae_cmocean``.
 
 .. _custom-colormaps:
 
@@ -90,7 +72,9 @@ to blue.  These will be accessible for the rest of the yt session as
 .. code-block:: python
 
     yt.make_colormap(
-        [("blue", 20), ("white", 20), ("red", 20)], name="french_flag", interpolate=False
+        [("blue", 20), ("white", 20), ("red", 20)],
+        name="french_flag",
+        interpolate=False,
     )
     yt.make_colormap(
         [("black", 5), ("red", 10), ("green", 20), ("blue", 0)],
@@ -131,7 +115,7 @@ available in a local window:
 
     yt.show_colormaps()
 
-or to output just a few colormaps to an image file, try:
+or to output the original yt colormaps to an image file, try:
 
 .. code-block:: python
 
@@ -160,12 +144,12 @@ callback:
 .. code-block:: python
 
     ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    p = yt.ProjectionPlot(ds, "z", "density")
+    p = yt.ProjectionPlot(ds, "z", ("gas", "density"))
 
-    p.set_cmap(field="density", cmap="jet")
+    p.set_cmap(field=("gas", "density"), cmap="turbo")
     p.save("proj_with_jet_cmap.png")
 
-    p.set_cmap(field="density", cmap="hot")
+    p.set_cmap(field=("gas", "density"), cmap="hot")
     p.save("proj_with_hot_cmap.png")
 
 For more information about the callbacks available to Plot Window objects,

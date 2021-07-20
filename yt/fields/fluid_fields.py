@@ -1,9 +1,7 @@
 import numpy as np
 
-from yt.funcs import mylog
-from yt.geometry.geometry_handler import is_curvilinear
 from yt.units.unit_object import Unit
-from yt.utilities.chemical_formulas import default_mu
+from yt.utilities.chemical_formulas import compute_mu
 from yt.utilities.lib.misc_utilities import obtain_relative_velocity_vector
 
 from .derived_field import ValidateParameter, ValidateSpatial
@@ -41,6 +39,7 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
     create_vector_fields(
         registry, "velocity", unit_system["velocity"], ftype, slice_info
     )
+
     create_vector_fields(
         registry, "magnetic_field", unit_system[mag_units], ftype, slice_info
     )
@@ -56,6 +55,31 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
     )
     registry.alias((ftype, "mass"), (ftype, "cell_mass"))
 
+    # momentum
+    def momentum_xyz(v):
+        def _momm(field, data):
+            return data["gas", "mass"] * data["gas", f"velocity_{v}"]
+
+        def _momd(field, data):
+            return data["gas", "density"] * data["gas", f"velocity_{v}"]
+
+        return _momm, _momd
+
+    for v in registry.ds.coordinates.axis_order:
+        _momm, _momd = momentum_xyz(v)
+        registry.add_field(
+            ("gas", f"momentum_{v}"),
+            sampling_type="local",
+            function=_momm,
+            units=unit_system["momentum"],
+        )
+        registry.add_field(
+            ("gas", f"momentum_density_{v}"),
+            sampling_type="local",
+            function=_momd,
+            units=unit_system["density"] * unit_system["velocity"],
+        )
+
     def _sound_speed(field, data):
         tr = data.ds.gamma * data[ftype, "pressure"] / data[ftype, "density"]
         return np.sqrt(tr)
@@ -68,7 +92,7 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
     )
 
     def _radial_mach_number(field, data):
-        """ Radial component of M{|v|/c_sound} """
+        """Radial component of M{|v|/c_sound}"""
         tr = data[ftype, "radial_velocity"] / data[ftype, "sound_speed"]
         return np.abs(tr)
 
@@ -79,20 +103,32 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
         units="",
     )
 
-    def _kin_energy(field, data):
+    def _kinetic_energy_density(field, data):
         v = obtain_relative_velocity_vector(data)
         return 0.5 * data[ftype, "density"] * (v ** 2).sum(axis=0)
 
     registry.add_field(
-        (ftype, "kinetic_energy"),
+        (ftype, "kinetic_energy_density"),
         sampling_type="local",
-        function=_kin_energy,
+        function=_kinetic_energy_density,
         units=unit_system["pressure"],
         validators=[ValidateParameter("bulk_velocity")],
     )
 
+    registry.alias(
+        (ftype, "kinetic_energy"),
+        (ftype, "kinetic_energy_density"),
+        deprecate=("4.0.0", "4.1.0"),
+    )
+
+    registry.alias(
+        (ftype, "thermal_energy"),
+        (ftype, "specific_thermal_energy"),
+        deprecate=("4.0.0", "4.1.0"),
+    )
+
     def _mach_number(field, data):
-        """ M{|v|/c_sound} """
+        """M{|v|/c_sound}"""
         return data[ftype, "velocity_magnitude"] / data[ftype, "sound_speed"]
 
     registry.add_field(
@@ -120,9 +156,9 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
     )
 
     def _pressure(field, data):
-        """ M{(Gamma-1.0)*rho*E} """
+        """M{(Gamma-1.0)*rho*E}"""
         tr = (data.ds.gamma - 1.0) * (
-            data[ftype, "density"] * data[ftype, "thermal_energy"]
+            data[ftype, "density"] * data[ftype, "specific_thermal_energy"]
         )
         return tr
 
@@ -178,7 +214,7 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
     else:
 
         def _number_density(field, data):
-            mu = getattr(data.ds, "mu", default_mu)
+            mu = getattr(data.ds, "mu", compute_mu(data.ds.default_species_fields))
             return data[ftype, "density"] / (pc.mh * mu)
 
     registry.add_field(
@@ -217,14 +253,6 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
 
 
 def setup_gradient_fields(registry, grad_field, field_units, slice_info=None):
-
-    geom = registry.ds.geometry
-    if is_curvilinear(geom):
-        mylog.warning(
-            "In %s geometry, gradient fields may contain "
-            "artifacts near cartesian axes.",
-            geom,
-        )
 
     assert isinstance(grad_field, tuple)
     ftype, fname = grad_field

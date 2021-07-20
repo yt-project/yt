@@ -1,5 +1,6 @@
 import warnings
 import weakref
+from typing import List, Tuple
 
 import numpy as np
 
@@ -158,7 +159,7 @@ class AMRGridPatch(YTSelectionContainer):
         self._setup_dx()
 
     def _prepare_grid(self):
-        """ Copies all the appropriate attributes from the index. """
+        """Copies all the appropriate attributes from the index."""
         # This is definitely the slowest part of generating the index
         # Now we give it pointers to all of its attributes
         # Note that to keep in line with Enzo, we have broken PEP-8
@@ -185,7 +186,7 @@ class AMRGridPatch(YTSelectionContainer):
         self.NumberOfParticles = h.grid_particle_count[my_ind, 0]
 
     def get_position(self, index):
-        """ Returns center position of an *index*. """
+        """Returns center position of an *index*."""
         pos = (index + 0.5) * self.dds + self.LeftEdge
         return pos
 
@@ -268,7 +269,12 @@ class AMRGridPatch(YTSelectionContainer):
         cube._base_grid = self
         return cube
 
-    def get_vertex_centered_data(self, fields, smoothed=True, no_ghost=False):
+    def get_vertex_centered_data(
+        self,
+        fields: List[Tuple[str, str]],
+        smoothed: bool = True,
+        no_ghost: bool = False,
+    ):
         _old_api = isinstance(fields, (str, tuple))
         if _old_api:
             message = (

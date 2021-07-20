@@ -1,10 +1,7 @@
-import os
-import tempfile
-from pathlib import Path
+import pytest
 
 from yt.data_objects.static_output import Dataset
 from yt.loaders import load, load_simulation
-from yt.testing import assert_raises
 from yt.utilities.exceptions import (
     YTAmbiguousDataType,
     YTSimulationNotIdentified,
@@ -13,49 +10,70 @@ from yt.utilities.exceptions import (
 from yt.utilities.object_registries import output_type_registry
 
 
-def test_load_nonexistent_data():
-    with tempfile.TemporaryDirectory() as tmpdir:
-        assert_raises(FileNotFoundError, load, os.path.join(tmpdir, "not_a_file"))
-        assert_raises(
-            FileNotFoundError,
-            load_simulation,
-            os.path.join(tmpdir, "not_a_file"),
-            "Enzo",
-        )
+@pytest.fixture
+def tmp_data_dir(tmp_path):
+    from yt.config import ytcfg
 
-        # this one is a design choice:
-        # it is preferable to report the most important problem in an error message
-        # (missing data is worse than a typo insimulation_type)
-        # so we make sure the error raised is not YTSimulationNotIdentified
-        assert_raises(
-            FileNotFoundError,
-            load_simulation,
-            os.path.join(tmpdir, "not_a_file"),
-            "unregistered_simulation_type",
-        )
+    pre_test_data_dir = ytcfg["yt", "test_data_dir"]
+    ytcfg.set("yt", "test_data_dir", str(tmp_path))
+
+    yield tmp_path
+
+    ytcfg.set("yt", "test_data_dir", pre_test_data_dir)
 
 
-def test_load_unidentified_data():
-    with tempfile.TemporaryDirectory() as tmpdir:
-        empty_file_path = Path(tmpdir) / "empty_file"
-        empty_file_path.touch()
-        assert_raises(YTUnidentifiedDataType, load, tmpdir)
-        assert_raises(YTUnidentifiedDataType, load, empty_file_path)
-        assert_raises(
-            YTSimulationNotIdentified,
-            load_simulation,
-            tmpdir,
-            "unregistered_simulation_type",
-        )
-        assert_raises(
-            YTSimulationNotIdentified,
-            load_simulation,
+@pytest.mark.usefixtures("tmp_data_dir")
+def test_load_not_a_file(tmp_path):
+    with pytest.raises(FileNotFoundError):
+        load(tmp_path / "not_a_file")
+
+
+@pytest.mark.parametrize("simtype", ["Enzo", "unregistered_simulation_type"])
+@pytest.mark.usefixtures("tmp_data_dir")
+def test_load_simulation_not_a_file(simtype, tmp_path):
+    # it is preferable to report the most important problem in an error message
+    # (missing data is worse than a typo insimulation_type)
+    # so we make sure the error raised is not YTSimulationNotIdentified,
+    # even with an absurd simulation type
+    with pytest.raises(FileNotFoundError):
+        load_simulation(tmp_path / "not_a_file", simtype)
+
+
+@pytest.fixture()
+def tmp_path_with_empty_file(tmp_path):
+    empty_file_path = tmp_path / "empty_file"
+    empty_file_path.touch()
+    return tmp_path, empty_file_path
+
+
+def test_load_unidentified_data_dir(tmp_path_with_empty_file):
+    tmp_path, empty_file_path = tmp_path_with_empty_file
+    with pytest.raises(YTUnidentifiedDataType):
+        load(tmp_path)
+
+
+def test_load_unidentified_data_file(tmp_path_with_empty_file):
+    tmp_path, empty_file_path = tmp_path_with_empty_file
+    with pytest.raises(YTUnidentifiedDataType):
+        load(empty_file_path)
+
+
+def test_load_simulation_unidentified_data_dir(tmp_path_with_empty_file):
+    tmp_path, empty_file_path = tmp_path_with_empty_file
+    with pytest.raises(YTSimulationNotIdentified):
+        load_simulation(tmp_path, "unregistered_simulation_type")
+
+
+def test_load_simulation_unidentified_data_file(tmp_path_with_empty_file):
+    tmp_path, empty_file_path = tmp_path_with_empty_file
+    with pytest.raises(YTSimulationNotIdentified):
+        load_simulation(
             empty_file_path,
             "unregistered_simulation_type",
         )
 
 
-def test_load_ambiguous_data():
+def test_load_ambiguous_data(tmp_path):
     # we deliberately setup a situation where two Dataset subclasses
     # that aren't parents are consisdered valid
     class FakeDataset(Dataset):
@@ -69,10 +87,8 @@ def test_load_ambiguous_data():
             return True
 
     try:
-        with tempfile.TemporaryDirectory() as tmpdir:
-            assert_raises(YTAmbiguousDataType, load, tmpdir)
-    except Exception:
-        raise
+        with pytest.raises(YTAmbiguousDataType):
+            load(tmp_path)
     finally:
         # tear down to avoid possible breakage in following tests
         output_type_registry.pop("FakeDataset")

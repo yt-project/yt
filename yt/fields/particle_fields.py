@@ -33,14 +33,23 @@ sph_whitelist_fields = (
     "H_fraction",
     "He_fraction",
     "C_fraction",
+    "Ca_fraction",
     "N_fraction",
     "O_fraction",
+    "S_fraction",
     "Ne_fraction",
     "Mg_fraction",
     "Si_fraction",
     "Fe_fraction",
+    "H_density",
+    "He_density",
     "C_density",
+    "Ca_density",
+    "N_density",
     "O_density",
+    "S_density",
+    "Ne_density",
+    "Mg_density",
     "Si_density",
     "Fe_density",
 )
@@ -153,7 +162,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
             pos = data[ptype, "particle_position"]
             # Get back into density
             pden = data[ptype, "particle_mass"]
-            top = data.deposit(pos, [data[(ptype, fname)] * pden], method=method)
+            top = data.deposit(pos, [pden * data[(ptype, fname)]], method=method)
             bottom = data.deposit(pos, [pden], method=method)
             top[bottom == 0] = 0.0
             bnz = bottom.nonzero()
@@ -301,7 +310,7 @@ def standard_particle_fields(
     unit_system = registry.ds.unit_system
 
     def _particle_velocity_magnitude(field, data):
-        """ M{|v|} """
+        """M{|v|}"""
         return np.sqrt(
             data[ptype, f"relative_{svel % 'x'}"] ** 2
             + data[ptype, f"relative_{svel % 'y'}"] ** 2
@@ -491,16 +500,10 @@ def standard_particle_fields(
         validators=[ValidateParameter("normal"), ValidateParameter("center")],
     )
 
-    def _particle_spherical_position_radius(field, data):
-        """This field is deprecated and will be removed in a future release"""
-        return data[ptype, "particle_position_spherical_radius"]
-
-    registry.add_field(
+    registry.alias(
         (ptype, "particle_spherical_position_radius"),
-        sampling_type="particle",
-        function=_particle_spherical_position_radius,
-        units=unit_system["length"],
-        validators=[ValidateParameter("normal"), ValidateParameter("center")],
+        (ptype, "particle_position_spherical_radius"),
+        deprecate=("4.0.0", "4.1.0"),
     )
 
     def _particle_position_spherical_theta(field, data):
@@ -510,7 +513,7 @@ def standard_particle_fields(
         and *center* field parameters.
         """
         normal = data.get_field_parameter("normal")
-        pos = data["relative_particle_position"].T
+        pos = data[(ptype, "relative_particle_position")].T
         return data.ds.arr(get_sph_theta(pos, normal), "")
 
     registry.add_field(
@@ -521,16 +524,10 @@ def standard_particle_fields(
         validators=[ValidateParameter("center"), ValidateParameter("normal")],
     )
 
-    def _particle_spherical_position_theta(field, data):
-        """This field is deprecated and will be removed in a future release"""
-        return data[ptype, "particle_position_spherical_theta"]
-
-    registry.add_field(
+    registry.alias(
         (ptype, "particle_spherical_position_theta"),
-        sampling_type="particle",
-        function=_particle_spherical_position_theta,
-        units="",
-        validators=[ValidateParameter("normal"), ValidateParameter("center")],
+        (ptype, "particle_position_spherical_theta"),
+        deprecate=("4.0.0", "4.1.0"),
     )
 
     def _particle_position_spherical_phi(field, data):
@@ -540,7 +537,7 @@ def standard_particle_fields(
         and *center* field parameters.
         """
         normal = data.get_field_parameter("normal")
-        pos = data["relative_particle_position"].T
+        pos = data[(ptype, "relative_particle_position")].T
         return data.ds.arr(get_sph_phi(pos, normal), "")
 
     registry.add_field(
@@ -551,16 +548,10 @@ def standard_particle_fields(
         validators=[ValidateParameter("normal"), ValidateParameter("center")],
     )
 
-    def _particle_spherical_position_phi(field, data):
-        """This field is deprecated and will be removed in a future release"""
-        return data[ptype, "particle_position_spherical_phi"]
-
-    registry.add_field(
+    registry.alias(
         (ptype, "particle_spherical_position_phi"),
-        sampling_type="particle",
-        function=_particle_spherical_position_phi,
-        units="",
-        validators=[ValidateParameter("center"), ValidateParameter("normal")],
+        (ptype, "particle_position_spherical_phi"),
+        deprecate=("4.0.0", "4.1.0"),
     )
 
     def _particle_velocity_spherical_radius(field, data):
@@ -571,8 +562,8 @@ def standard_particle_fields(
         *bulk_velocity* vector and *center* field parameters.
         """
         normal = data.get_field_parameter("normal")
-        pos = data["relative_particle_position"].T
-        vel = data["relative_particle_velocity"].T
+        pos = data[(ptype, "relative_particle_position")].T
+        vel = data[(ptype, "relative_particle_velocity")].T
         theta = get_sph_theta(pos, normal)
         phi = get_sph_phi(pos, normal)
         sphr = get_sph_r_component(vel, theta, phi, normal)
@@ -586,26 +577,15 @@ def standard_particle_fields(
         validators=[ValidateParameter("normal"), ValidateParameter("center")],
     )
 
-    def _particle_spherical_velocity_radius(field, data):
-        """This field is deprecated and will be removed in a future release"""
-        return data[ptype, "particle_velocity_spherical_radius"]
-
-    registry.add_field(
+    registry.alias(
         (ptype, "particle_spherical_velocity_radius"),
-        sampling_type="particle",
-        function=_particle_spherical_velocity_radius,
-        units=unit_system["velocity"],
-        validators=[ValidateParameter("normal"), ValidateParameter("center")],
+        (ptype, "particle_velocity_spherical_radius"),
+        deprecate=("4.0.0", "4.1.0"),
     )
 
-    # particel_velocity_spherical_radius is simply aliased to
-    # "particle_radial_velocity" for convenience
-    registry.add_field(
+    registry.alias(
         (ptype, "particle_radial_velocity"),
-        sampling_type="particle",
-        function=_particle_spherical_velocity_radius,
-        units=unit_system["velocity"],
-        validators=[ValidateParameter("normal"), ValidateParameter("center")],
+        (ptype, "particle_velocity_spherical_radius"),
     )
 
     def _particle_velocity_spherical_theta(field, data):
@@ -616,8 +596,8 @@ def standard_particle_fields(
         *bulk_velocity* vector and *center* field parameters.
         """
         normal = data.get_field_parameter("normal")
-        pos = data["relative_particle_position"].T
-        vel = data["relative_particle_velocity"].T
+        pos = data[(ptype, "relative_particle_position")].T
+        vel = data[(ptype, "relative_particle_velocity")].T
         theta = get_sph_theta(pos, normal)
         phi = get_sph_phi(pos, normal)
         spht = get_sph_theta_component(vel, theta, phi, normal)
@@ -631,16 +611,10 @@ def standard_particle_fields(
         validators=[ValidateParameter("normal"), ValidateParameter("center")],
     )
 
-    def _particle_spherical_velocity_theta(field, data):
-        """This field is deprecated and will be removed in a future release"""
-        return data[ptype, "particle_velocity_spherical_theta"]
-
-    registry.add_field(
+    registry.alias(
         (ptype, "particle_spherical_velocity_theta"),
-        sampling_type="particle",
-        function=_particle_spherical_velocity_theta,
-        units=unit_system["velocity"],
-        validators=[ValidateParameter("normal"), ValidateParameter("center")],
+        (ptype, "particle_velocity_spherical_theta"),
+        deprecate=("4.0.0", "4.1.0"),
     )
 
     def _particle_velocity_spherical_phi(field, data):
@@ -650,8 +624,8 @@ def standard_particle_fields(
         *bulk_velocity* vector and *center* field parameters.
         """
         normal = data.get_field_parameter("normal")
-        pos = data["relative_particle_position"].T
-        vel = data["relative_particle_velocity"].T
+        pos = data[(ptype, "relative_particle_position")].T
+        vel = data[(ptype, "relative_particle_velocity")].T
         phi = get_sph_phi(pos, normal)
         sphp = get_sph_phi_component(vel, phi, normal)
         return sphp
@@ -664,16 +638,10 @@ def standard_particle_fields(
         validators=[ValidateParameter("normal"), ValidateParameter("center")],
     )
 
-    def _particle_spherical_velocity_phi(field, data):
-        """This field is deprecated and will be removed in a future release"""
-        return data[ptype, "particle_spherical_velocity_theta"]
-
-    registry.add_field(
+    registry.alias(
         (ptype, "particle_spherical_velocity_phi"),
-        sampling_type="particle",
-        function=_particle_spherical_velocity_phi,
-        units=unit_system["velocity"],
-        validators=[ValidateParameter("normal"), ValidateParameter("center")],
+        (ptype, "particle_velocity_spherical_phi"),
+        deprecate=("4.0.0", "4.1.0"),
     )
 
     def _particle_position_cylindrical_radius(field, data):
@@ -683,7 +651,7 @@ def standard_particle_fields(
         and *center* field parameters.
         """
         normal = data.get_field_parameter("normal")
-        pos = data["relative_particle_position"].T
+        pos = data[(ptype, "relative_particle_position")].T
         pos.convert_to_units("code_length")
         return data.ds.arr(get_cyl_r(pos, normal), "code_length")
 
@@ -702,7 +670,7 @@ def standard_particle_fields(
         and *center* field parameters.
         """
         normal = data.get_field_parameter("normal")
-        pos = data["relative_particle_position"].T
+        pos = data[(ptype, "relative_particle_position")].T
         return data.ds.arr(get_cyl_theta(pos, normal), "")
 
     registry.add_field(
@@ -720,7 +688,7 @@ def standard_particle_fields(
         and *center* field parameters.
         """
         normal = data.get_field_parameter("normal")
-        pos = data["relative_particle_position"].T
+        pos = data[(ptype, "relative_particle_position")].T
         pos.convert_to_units("code_length")
         return data.ds.arr(get_cyl_z(pos, normal), "code_length")
 
@@ -739,8 +707,8 @@ def standard_particle_fields(
         *bulk_velocity* vector and *center* field parameters.
         """
         normal = data.get_field_parameter("normal")
-        pos = data["relative_particle_position"].T
-        vel = data["relative_particle_velocity"].T
+        pos = data[(ptype, "relative_particle_position")].T
+        vel = data[(ptype, "relative_particle_velocity")].T
         theta = get_cyl_theta(pos, normal)
         cylr = get_cyl_r_component(vel, theta, normal)
         return cylr
@@ -760,8 +728,8 @@ def standard_particle_fields(
         *bulk_velocity* vector and *center* field parameters.
         """
         normal = data.get_field_parameter("normal")
-        pos = data["relative_particle_position"].T
-        vel = data["relative_particle_velocity"].T
+        pos = data[(ptype, "relative_particle_position")].T
+        vel = data[(ptype, "relative_particle_velocity")].T
         theta = get_cyl_theta(pos, normal)
         cylt = get_cyl_theta_component(vel, theta, normal)
         return cylt
@@ -774,16 +742,10 @@ def standard_particle_fields(
         validators=[ValidateParameter("normal"), ValidateParameter("center")],
     )
 
-    def _particle_cylindrical_velocity_theta(field, data):
-        """This field is deprecated and will be removed in a future release"""
-        return data[ptype, "particle_velocity_cylindrical_theta"]
-
-    registry.add_field(
+    registry.alias(
         (ptype, "particle_cylindrical_velocity_theta"),
-        sampling_type="particle",
-        function=_particle_cylindrical_velocity_theta,
-        units="cm/s",
-        validators=[ValidateParameter("normal"), ValidateParameter("center")],
+        (ptype, "particle_velocity_cylindrical_theta"),
+        deprecate=("4.0.0", "4.1.0"),
     )
 
     def _particle_velocity_cylindrical_z(field, data):
@@ -793,7 +755,7 @@ def standard_particle_fields(
         *bulk_velocity* vector and *center* field parameters.
         """
         normal = data.get_field_parameter("normal")
-        vel = data["relative_particle_velocity"].T
+        vel = data[(ptype, "relative_particle_velocity")].T
         cylz = get_cyl_z_component(vel, normal)
         return cylz
 
@@ -805,22 +767,16 @@ def standard_particle_fields(
         validators=[ValidateParameter("normal"), ValidateParameter("center")],
     )
 
-    def _particle_cylindrical_velocity_z(field, data):
-        """This field is deprecated and will be removed in a future release"""
-        return data[ptype, "particle_velocity_cylindrical_z"]
-
-    registry.add_field(
+    registry.alias(
         (ptype, "particle_cylindrical_velocity_z"),
-        sampling_type="particle",
-        function=_particle_cylindrical_velocity_z,
-        units=unit_system["velocity"],
-        validators=[ValidateParameter("normal"), ValidateParameter("center")],
+        (ptype, "particle_velocity_cylindrical_z"),
+        deprecate=("4.0.0", "4.1.0"),
     )
 
 
-def add_particle_average(
-    registry, ptype, field_name, weight="particle_mass", density=True
-):
+def add_particle_average(registry, ptype, field_name, weight=None, density=True):
+    if weight is None:
+        weight = (ptype, "particle_mass")
     field_units = registry[ptype, field_name].units
 
     def _pfunc_avg(field, data):

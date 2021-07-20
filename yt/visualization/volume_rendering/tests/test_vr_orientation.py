@@ -34,15 +34,13 @@ def test_orientation():
     orientations = [[-0.3, -0.1, 0.8]]
 
     theta = np.pi / n_frames
-    decimals = 12
     test_name = "vr_orientation"
 
-    for lens_type in [
-        "perspective",
-        # final name VRImageComparison_UniformGridData_vr_pitch_plane-parallel_0002
-        # deactivated because of a random failure since numpy 0.20.0 and 0.20.1
-        # "plane-parallel"
-    ]:
+    for lens_type, decimals in [("perspective", 12), ("plane-parallel", 2)]:
+        # set a much lower precision for plane-parallel tests, see
+        # https://github.com/yt-project/yt/issue/3069
+        # https://github.com/yt-project/yt/pull/3068
+        # https://github.com/yt-project/yt/pull/3294
         frame = 0
 
         cam = sc.add_camera(ds, lens_type=lens_type)
@@ -91,7 +89,7 @@ def test_orientation():
 
     for i, orientation in enumerate(orientations):
         image = off_axis_projection(
-            ds, center, orientation, width, 512, "density", no_ghost=False
+            ds, center, orientation, width, 512, ("gas", "density"), no_ghost=False
         )
 
         def offaxis_image_func(filename_prefix):

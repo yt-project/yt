@@ -22,20 +22,24 @@ this approach.
 
 
    def _pressure(field, data):
-       return (data.ds.gamma - 1.0) * data["density"] * data["thermal_energy"]
+       return (
+           (data.ds.gamma - 1.0)
+           * data["gas", "density"]
+           * data["gas", "specific_thermal_energy"]
+       )
 
 Note that we do a couple different things here.  We access the ``gamma``
 parameter from the dataset, we access the ``density`` field and we access
-the ``thermal_energy`` field.  ``thermal_energy`` is, in fact, another derived
-field!  We don't do any loops, we don't do any type-checking, we can simply
-multiply the three items together.
+the ``specific_thermal_energy`` field.  ``specific_thermal_energy`` is, in
+fact, another derived field!  We don't do any loops, we don't do any
+type-checking, we can simply multiply the three items together.
 
 In this example, the ``density`` field will return data with units of
-``g/cm**3`` and the ``thermal_energy`` field will return data units of
+``g/cm**3`` and the ``specific_thermal_energy`` field will return data units of
 ``erg/g``, so the result will automatically have units of pressure,
 ``erg/cm**3``. This assumes the unit system is set to the default, which is
 CGS: if a different unit system is selected, the result will be in the same
-dimensions of pressure but different units. See :ref:`unit_systems` for more
+dimensions of pressure but different units. See :ref:`units` for more
 information.
 
 Once we've defined our function, we need to notify yt that the field is
@@ -50,14 +54,29 @@ look at the most basic ones needed for a simple scalar baryon field.
 
 .. code-block:: python
 
-   yt.add_field(("gas", "pressure"), function=_pressure, units="dyne/cm**2")
+    yt.add_field(
+        name=("gas", "pressure"),
+        function=_pressure,
+        sampling_type="local",
+        units="dyne/cm**2",
+    )
 
-We feed it the name of the field, the name of the function, and the
-units.  Note that the units parameter is a "raw" string, in the format that yt
+We feed it the name of the field, the name of the function, the sampling type,
+and the units. The ``sampling_type`` keyword determines which elements are
+used to make the field (i.e., grid cell or particles) and controls how volume
+is calculated. It can be set to "cell" for grid/mesh fields, "particle" for
+particle and SPH fields, or "local" to use the primary format of the loaded
+dataset. In most cases, "local" is sufficient, but "cell" and "particle"
+can be used to specify the source for datasets that have both grids and
+particles. In a dataset with both grids and particles, using "cell" will
+ensure a field is created with a value for every grid cell, while using
+"particle" will result in a field with a value for every particle.
+
+The units parameter is a "raw" string, in the format that yt
 uses in its :ref:`symbolic units implementation <units>` (e.g., employing only
 unit names, numbers, and mathematical operators in the string, and using
 ``"**"`` for exponentiation). For cosmological datasets and fields, see
-:ref:`cosmological-units`.  We suggest that you name the function that creates
+:ref:`cosmological-units <cosmological-units>`.  We suggest that you name the function that creates
 a derived field with the intended field name prefixed by a single underscore,
 as in the ``_pressure`` example above.
 
@@ -85,9 +104,9 @@ instances by making use of the
 Lastly, if you do not know the units of your field ahead of time, you can
 specify ``units='auto'`` in the call to ``add_field`` for your field.  This will
 automatically determine the appropriate units based on the units of the data
-returned by the field function. This is also a good way to let your derived fields
-be automatically converted to the units of the :ref:`unit system <unit_systems>` in
-your dataset.
+returned by the field function. This is also a good way to let your derived
+fields be automatically converted to the units of the unit system in your
+dataset.
 
 If ``units='auto'`` is set, it is also required to set the ``dimensions`` keyword
 argument so that error-checking can be done on the derived field to make sure that
@@ -100,12 +119,17 @@ the dimensionality of the returned array and the field are the same:
 
 
     def _pressure(field, data):
-        return (data.ds.gamma - 1.0) * data["density"] * data["thermal_energy"]
+        return (
+            (data.ds.gamma - 1.0)
+            * data["gas", "density"]
+            * data["gas", "specific_thermal_energy"]
+        )
 
 
     yt.add_field(
         ("gas", "pressure"),
         function=_pressure,
+        sampling_type="local",
         units="auto",
         dimensions=dimensions.pressure,
     )
@@ -123,9 +147,13 @@ the previous example:
    from yt import derived_field
 
 
-   @derived_field(name="pressure", units="dyne/cm**2")
+   @derived_field(name="pressure", sampling_type="cell", units="dyne/cm**2")
    def _pressure(field, data):
-       return (data.ds.gamma - 1.0) * data["density"] * data["thermal_energy"]
+       return (
+           (data.ds.gamma - 1.0)
+           * data["gas", "density"]
+           * data["gas", "specific_thermal_energy"]
+       )
 
 The :func:`derived_field` decorator takes the same arguments as
 :func:`add_field`, and is often a more convenient shorthand in cases where
@@ -141,15 +169,25 @@ dataset objects. The calling syntax is the same:
 .. code-block:: python
 
    ds = yt.load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0100")
-   ds.add_field(("gas", "pressure"), function=_pressure, units="dyne/cm**2")
+   ds.add_field(
+       ("gas", "pressure"),
+       function=_pressure,
+       sampling_type="cell",
+       units="dyne/cm**2",
+   )
 
-If you specify fields in this way, you can take advantage of the dataset's
-:ref:`unit system <unit_systems>` to define the units for you, so that
-the units will be returned in the units of that system:
+If you specify fields in this way, you can take advantage of the dataset's unit
+system to define the units for you, so that the units will be returned in the
+units of that system:
 
 .. code-block:: python
 
-    ds.add_field(("gas", "pressure"), function=_pressure, units=ds.unit_system["pressure"])
+    ds.add_field(
+        ("gas", "pressure"),
+        function=_pressure,
+        sampling_type="cell",
+        units=ds.unit_system["pressure"],
+    )
 
 Since the :class:`yt.units.unit_systems.UnitSystem` object returns a :class:`yt.units.unit_object.Unit` object when
 queried, you're not limited to specifying units in terms of those already available. You can specify units for fields
@@ -160,6 +198,7 @@ using basic arithmetic if necessary:
     ds.add_field(
         ("gas", "my_acceleration"),
         function=_my_acceleration,
+        sampling_type="cell",
         units=ds.unit_system["length"] / ds.unit_system["time"] ** 2,
     )
 
@@ -178,8 +217,9 @@ transparent and simple example).
 
 .. code-block:: python
 
-   from yt.fields.api import ValidateParameter
    import numpy as np
+
+   from yt.fields.api import ValidateParameter
 
 
    def _my_radial_velocity(field, data):
@@ -191,9 +231,9 @@ transparent and simple example).
        yv = data["gas", "velocity_y"] - bv[1]
        zv = data["gas", "velocity_z"] - bv[2]
        center = data.get_field_parameter("center")
-       x_hat = data["x"] - center[0]
-       y_hat = data["y"] - center[1]
-       z_hat = data["z"] - center[2]
+       x_hat = data["gas", "x"] - center[0]
+       y_hat = data["gas", "y"] - center[1]
+       z_hat = data["gas", "z"] - center[2]
        r = np.sqrt(x_hat * x_hat + y_hat * y_hat + z_hat * z_hat)
        x_hat /= r
        y_hat /= r
@@ -204,6 +244,7 @@ transparent and simple example).
    yt.add_field(
        ("gas", "my_radial_velocity"),
        function=_my_radial_velocity,
+       sampling_type="cell",
        units="cm/s",
        take_log=False,
        validators=[ValidateParameter(["center", "bulk_velocity"])],
@@ -250,11 +291,11 @@ For example, let's write a field that depends on a field parameter named ``'axis
    def my_axis_field(field, data):
        axis = data.get_field_parameter("axis")
        if axis == 0:
-           return data["x-velocity"]
+           return data["gas", "velocity_x"]
        elif axis == 1:
-           return data["y-velocity"]
+           return data["gas", "velocity_y"]
        elif axis == 2:
-           return data["z-velocity"]
+           return data["gas", "velocity_z"]
        else:
            raise ValueError
 
@@ -292,7 +333,7 @@ There are a number of options available, but the only mandatory ones are ``name`
 ``function``
      This is a function handle that defines the field
 ``units``
-     This is a string that describes the units, or a query to a :ref:`UnitSystem <unit_systems>`
+     This is a string that describes the units, or a query to a UnitSystem
      object, e.g. ``ds.unit_system["energy"]``. Powers must be in Python syntax (``**``
      instead of ``^``). Alternatively, it may be set to ``"auto"`` to have the units
      determined automatically. In this case, the ``dimensions`` keyword must be set to the

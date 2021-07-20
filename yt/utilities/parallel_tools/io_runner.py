@@ -173,7 +173,7 @@ if __name__ == "__main__":
 
     def gq(ds):
         dd = ds.all_data()
-        return dd.quantities["TotalQuantity"]("CellMassMsun")
+        return dd.quantities["TotalQuantity"](("gas", "cell_mass"))
 
     q = io_nodes("DD0087/DD0087", 8, 24, gq)
     mylog.info(q)

@@ -6,7 +6,7 @@ from yt.testing import assert_almost_equal, fake_amr_ds
 
 
 def test_amr_kdtree_set_fields():
-    ds = fake_amr_ds(fields=["density", "pressure"])
+    ds = fake_amr_ds(fields=["density", "pressure"], units=["g/cm**3", "dyn/cm**2"])
     dd = ds.all_data()
 
     fields = ds.field_list

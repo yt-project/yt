@@ -25,7 +25,7 @@ from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.data_objects.static_output import Dataset
 from yt.data_objects.time_series import SimulationTimeSeries
-from yt.funcs import get_pbar
+from yt.funcs import get_pbar, get_yt_version
 from yt.loaders import load, load_simulation
 from yt.testing import (
     assert_allclose_units,
@@ -33,7 +33,6 @@ from yt.testing import (
     assert_equal,
     assert_rel_equal,
 )
-from yt.utilities.command_line import get_yt_version
 from yt.utilities.exceptions import YTCloudError, YTNoAnswerNameSpecified, YTNoOldAnswer
 from yt.utilities.logger import disable_stream_logging
 from yt.visualization import (
@@ -219,7 +218,7 @@ class AnswerTestCloudStorage(AnswerTestStorage):
                 except Exception:
                     time.sleep(0.01)
                 else:
-                    # We were succesful
+                    # We were successful
                     break
             else:
                 # Raise error if all tries were unsuccessful
@@ -245,7 +244,7 @@ class AnswerTestCloudStorage(AnswerTestStorage):
         c = cf.get_container("yt-answer-tests")
         pb = get_pbar("Storing results ", len(result_storage))
         for i, ds_name in enumerate(result_storage):
-            pb.update(i)
+            pb.update(i + 1)
             rs = pickle.dumps(result_storage[ds_name])
             object_name = f"{self.answer_name}_{ds_name}"
             if object_name in c.get_object_names():
@@ -463,7 +462,7 @@ class AnswerTestingTest:
         This is a helper function to return the location of the most dense
         point.
         """
-        return self.ds.find_max("density")[1]
+        return self.ds.find_max(("gas", "density"))[1]
 
     @property
     def entire_simulation(self):
@@ -699,7 +698,7 @@ class GridValuesTest(AnswerTestingTest):
     def run(self):
         hashes = {}
         for g in self.ds.index.grids:
-            hashes[g.id] = hashlib.md5(g[self.field].tostring()).hexdigest()
+            hashes[g.id] = hashlib.md5(g[self.field].tobytes()).hexdigest()
             g.clear_data()
         return hashes
 
@@ -1082,8 +1081,8 @@ class AxialPixelizationTest(AnswerTestingTest):
             slc = ds.slice(axis, center[i])
             xax = ds.coordinates.axis_name[ds.coordinates.x_axis[axis]]
             yax = ds.coordinates.axis_name[ds.coordinates.y_axis[axis]]
-            pix_x = ds.coordinates.pixelize(axis, slc, xax, bounds, (512, 512))
-            pix_y = ds.coordinates.pixelize(axis, slc, yax, bounds, (512, 512))
+            pix_x = ds.coordinates.pixelize(axis, slc, ("gas", xax), bounds, (512, 512))
+            pix_y = ds.coordinates.pixelize(axis, slc, ("gas", yax), bounds, (512, 512))
             # Wipe out invalid values (fillers)
             pix_x[~np.isfinite(pix_x)] = 0.0
             pix_y[~np.isfinite(pix_y)] = 0.0
@@ -1186,7 +1185,7 @@ def requires_ds(ds_fn, big_data=False, file_check=False):
         return ftrue
 
 
-def small_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
+def small_patch_amr(ds_fn, fields, input_center="max", input_weight=("gas", "density")):
     if not can_run_ds(ds_fn):
         return
     dso = [None, ("sphere", (input_center, (0.1, "unitary")))]
@@ -1194,16 +1193,16 @@ def small_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
     yield ParentageRelationshipsTest(ds_fn)
     for field in fields:
         yield GridValuesTest(ds_fn, field)
-        for axis in [0, 1, 2]:
-            for dobj_name in dso:
+        for dobj_name in dso:
+            for axis in [0, 1, 2]:
                 for weight_field in [None, input_weight]:
                     yield ProjectionValuesTest(
                         ds_fn, axis, field, weight_field, dobj_name
                     )
-                yield FieldValuesTest(ds_fn, field, dobj_name)
+            yield FieldValuesTest(ds_fn, field, dobj_name)
 
 
-def big_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
+def big_patch_amr(ds_fn, fields, input_center="max", input_weight=("gas", "density")):
     if not can_run_ds(ds_fn):
         return
     dso = [None, ("sphere", (input_center, (0.1, "unitary")))]
@@ -1219,11 +1218,13 @@ def big_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
                     )
 
 
-def _particle_answers(ds, ds_str_repr, ds_nparticles, fields, proj_test_class):
+def _particle_answers(
+    ds, ds_str_repr, ds_nparticles, fields, proj_test_class, center="c"
+):
     if not can_run_ds(ds):
         return
     assert_equal(str(ds), ds_str_repr)
-    dso = [None, ("sphere", ("c", (0.1, "unitary")))]
+    dso = [None, ("sphere", (center, (0.1, "unitary")))]
     dd = ds.all_data()
     # this needs to explicitly be "all"
     assert_equal(dd["all", "particle_position"].shape, (ds_nparticles, 3))
@@ -1240,15 +1241,25 @@ def _particle_answers(ds, ds_str_repr, ds_nparticles, fields, proj_test_class):
             yield FieldValuesTest(ds, field, dobj_name, particle_type=particle_type)
 
 
-def nbody_answer(ds, ds_str_repr, ds_nparticles, fields):
+def nbody_answer(ds, ds_str_repr, ds_nparticles, fields, center="c"):
     return _particle_answers(
-        ds, ds_str_repr, ds_nparticles, fields, PixelizedParticleProjectionValuesTest
+        ds,
+        ds_str_repr,
+        ds_nparticles,
+        fields,
+        PixelizedParticleProjectionValuesTest,
+        center=center,
     )
 
 
-def sph_answer(ds, ds_str_repr, ds_nparticles, fields):
+def sph_answer(ds, ds_str_repr, ds_nparticles, fields, center="c"):
     return _particle_answers(
-        ds, ds_str_repr, ds_nparticles, fields, PixelizedProjectionValuesTest
+        ds,
+        ds_str_repr,
+        ds_nparticles,
+        fields,
+        PixelizedProjectionValuesTest,
+        center=center,
     )
 
 

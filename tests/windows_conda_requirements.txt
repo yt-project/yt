@@ -1,0 +1,6 @@
+numpy>=1.19.4
+cython>=0.29.21,<3.0
+cartopy~=0.18.0
+h5py~=3.1.0
+matplotlib>=2.0.2,<3.6
+scipy~=1.5.0

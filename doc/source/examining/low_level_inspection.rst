@@ -85,15 +85,15 @@ normal, you can access the grid as you would a normal object:
 .. code-block:: python
 
    g = ds.index.grids[1043]
-   print(g["density"])
-   print(g["density"].min())
+   print(g["gas", "density"])
+   print(g["gas", "density"].min())
 
 To access the raw data (as found in the file), use
 
 .. code-block:: python
 
    g = ds.index.grids[1043]
-   rho = g["density"].in_base("code")
+   rho = g["gas", "density"].in_base("code")
 
 .. _finding-data-at-fixed-points:
 
@@ -123,9 +123,11 @@ to find the value of a mesh field at the location of the particles in a
 simulation, one could do::
 
   ad = ds.all_data()
-  ppos = ad['all', 'particle_position']
+  ppos = ad["all", "particle_position"]
   ppos_den_vel = ds.find_field_values_at_points(
-      ['density', 'velocity_x'], ppos)
+    [("gas", "density"), ("gas", "velocity_x")],
+    ppos
+  )
 
 In this example, ``ppos_den_vel`` will be a list of arrays. The first array will
 contain the density values at the particle positions, the second will contain
@@ -168,13 +170,13 @@ We can now access our underlying data at the lowest level by specifying what
 
 .. code-block:: python
 
-  print(all_data_level_0["density"].shape)
+  print(all_data_level_0["gas", "density"].shape)
   # (64, 64, 64)
 
-  print(all_data_level_0["density"])
+  print(all_data_level_0["gas", "density"])
   # array([[[  1.92588925e-31,   1.74647692e-31,   2.54787518e-31, ...,
 
-  print(all_data_level_0["temperature"].shape)
+  print(all_data_level_0["gas", "temperature"].shape)
   # (64, 64, 64)
 
 If you create a covering grid that spans two child grids of a single parent
@@ -199,10 +201,10 @@ And let's see what's the density in the central location:
 
 .. code-block:: python
 
-   print(all_data_level_2["density"].shape)
+   print(all_data_level_2["gas", "density"].shape)
    (256, 256, 256)
 
-   print(all_data_level_2["density"][128, 128, 128])
+   print(all_data_level_2["gas", "density"][128, 128, 128])
    1.7747457571203124e-31
 
 There are two different types of covering grids: unsmoothed and smoothed.
@@ -221,10 +223,10 @@ to reduce edge effects, it is a nearly identical process:
        2, [0.0, 0.0, 0.0], ds.domain_dimensions * 2 ** 2
    )
 
-   print(all_data_level_2_s["density"].shape)
+   print(all_data_level_2_s["gas", "density"].shape)
    (256, 256, 256)
 
-   print(all_data_level_2_s["density"][128, 128, 128])
+   print(all_data_level_2_s["gas", "density"][128, 128, 128])
    1.763744852165591e-31
 
 .. _examining-image-data-in-a-fixed-resolution-array:

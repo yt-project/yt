@@ -39,9 +39,9 @@ def call_subprocess(np, func, args, kwargs):
     # Create string with arguments & kwargs
     args_str = ""
     for a in args:
-        args_str += str(a) + ","
+        args_str += f"{a},"
     for k, v in kwargs.items():
-        args_str += k + "=" + str(v) + ","
+        args_str += f"{k}={v},"
     if args_str.endswith(","):
         args_str = args_str[:-1]
     cmd = [
@@ -198,7 +198,7 @@ def run_test(
     suppress_final_output=False,
     **kwargs,
 ):
-    r"""Run a rountine with a designated number of points & dimensions on a
+    r"""Run a routine with a designated number of points & dimensions on a
     selected number of processors.
 
     Args:

@@ -35,8 +35,8 @@ def test_stream_hexahedral():
     ds = load_hexahedral_mesh(data, conn, coords, bbox=bbox)
     dd = ds.all_data()
     # raise RuntimeError
-    assert_almost_equal(float(dd["cell_volume"].sum(dtype="float64")), 1.0)
-    assert_equal(dd["ones"].size, Nx * Ny * Nz)
+    assert_almost_equal(float(dd[("gas", "cell_volume")].sum(dtype="float64")), 1.0)
+    assert_equal(dd[("index", "ones")].size, Nx * Ny * Nz)
     # Now we try it with a standard mesh
     cell_x = np.linspace(0.0, 1.0, Nx + 1)
     cell_y = np.linspace(0.0, 1.0, Ny + 1)
@@ -46,12 +46,12 @@ def test_stream_hexahedral():
     bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]])
     ds = load_hexahedral_mesh(data, conn, coords, bbox=bbox)
     dd = ds.all_data()
-    assert_almost_equal(float(dd["cell_volume"].sum(dtype="float64")), 1.0)
-    assert_equal(dd["ones"].size, Nx * Ny * Nz)
-    assert_almost_equal(dd["dx"].to_ndarray(), 1.0 / Nx)
-    assert_almost_equal(dd["dy"].to_ndarray(), 1.0 / Ny)
-    assert_almost_equal(dd["dz"].to_ndarray(), 1.0 / Nz)
+    assert_almost_equal(float(dd[("gas", "cell_volume")].sum(dtype="float64")), 1.0)
+    assert_equal(dd[("index", "ones")].size, Nx * Ny * Nz)
+    assert_almost_equal(dd[("index", "dx")].to_ndarray(), 1.0 / Nx)
+    assert_almost_equal(dd[("index", "dy")].to_ndarray(), 1.0 / Ny)
+    assert_almost_equal(dd[("index", "dz")].to_ndarray(), 1.0 / Nz)
 
     s = SlicePlot(ds, "x", "random_field")
     s._setup_plots()
-    s.frb["random_field"]
+    s.frb[("stream", "random_field")]

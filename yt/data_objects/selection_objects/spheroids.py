@@ -39,8 +39,8 @@ class YTSphere(YTSelectionContainer3D):
 
     >>> import yt
     >>> ds = yt.load("RedshiftOutput0005")
-    >>> c = [0.5,0.5,0.5]
-    >>> sphere = ds.sphere(c, (1., "kpc"))
+    >>> c = [0.5, 0.5, 0.5]
+    >>> sphere = ds.sphere(c, (1.0, "kpc"))
     """
 
     _type_name = "sphere"
@@ -88,7 +88,7 @@ class YTMinimalSphere(YTSelectionContainer3D):
 
     >>> import yt
     >>> ds = yt.load("output_00080/info_00080.txt")
-    >>> points = ds.r['particle_position']
+    >>> points = ds.r["particle_position"]
     >>> sphere = ds.minimal_sphere(points)
     """
 
@@ -139,7 +139,7 @@ class YTEllipsoid(YTSelectionContainer3D):
     e0 : array_like (automatically normalized)
         the direction of the largest semi-major axis of the ellipsoid
     tilt : float
-        After the rotation about the z-axis to allign e0 to x in the x-y
+        After the rotation about the z-axis to align e0 to x in the x-y
         plane, and then rotating about the y-axis to align e0 completely
         to the x-axis, tilt is the angle in radians remaining to
         rotate about the x-axis to align both e1 to the y-axis and e2 to
@@ -149,7 +149,7 @@ class YTEllipsoid(YTSelectionContainer3D):
 
     >>> import yt
     >>> ds = yt.load("RedshiftOutput0005")
-    >>> c = [0.5,0.5,0.5]
+    >>> c = [0.5, 0.5, 0.5]
     >>> ell = ds.ellipsoid(c, 0.1, 0.1, 0.1, np.array([0.1, 0.1, 0.1]), 0.2)
     """
 

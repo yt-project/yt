@@ -29,7 +29,7 @@ cdef extern from "<sstream>" namespace "std":
         istream read(char *, size_t)
         bint eof()
 
-cdef extern from "ewah.h":
+cdef extern from "ewah.h" namespace "ewah":
     cppclass EWAHBoolArraySetBitForwardIterator[uword]:
         # EWAHBoolArraySetBitForwardIterator()
         EWAHBoolArraySetBitForwardIterator(const EWAHBoolArraySetBitForwardIterator &o)
@@ -72,7 +72,7 @@ cdef extern from "ewah.h":
         EWAHBoolArraySetBitForwardIterator begin()
         EWAHBoolArraySetBitForwardIterator end()
 
-cdef extern from "boolarray.h":
+cdef extern from "boolarray.h" namespace "ewah":
     cppclass BoolArray[uword]:
         void setSizeInBits(size_t sizeib)
         void set(size_t pos)

@@ -123,7 +123,7 @@ class CameraTest(TestCase):
             log_fields=[False],
         )
         del cam
-        # Can't take a snapshot here since IC uses pylab.'
+        # Can't take a snapshot here since IC uses matplotlib.'
 
     def test_projection_camera(self):
         ds = self.ds

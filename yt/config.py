@@ -5,7 +5,7 @@ import toml
 from more_itertools import always_iterable
 
 from yt._maintenance.deprecation import issue_deprecation_warning
-from yt.utilities.configuration_tree import ConfigNode
+from yt.utilities.configuration_tree import ConfigLeaf, ConfigNode
 
 ytcfg_defaults = {}
 
@@ -13,7 +13,6 @@ ytcfg_defaults["yt"] = dict(
     serialize=False,
     only_deserialize=False,
     time_functions=False,
-    log_file=False,
     colored_logs=False,
     suppress_stream_logging=False,
     stdout_stream_logging=False,
@@ -32,9 +31,6 @@ ytcfg_defaults["yt"] = dict(
     test_storage_dir="/does/not/exist",
     test_data_dir="/does/not/exist",
     enzo_db="",
-    hub_url="https://girder.hub.yt/api/v1",
-    hub_api_key="",
-    hub_sandbox="/collection/yt_sandbox/data",
     notebook_password="",
     answer_testing_tolerance=3,
     answer_testing_bitwise=False,
@@ -43,7 +39,7 @@ ytcfg_defaults["yt"] = dict(
     answer_tests_url="http://answers.yt-project.org/{1}_{2}",
     sketchfab_api_key="None",
     imagebin_api_key="e1977d9195fe39e",
-    imagebin_upload_url="https://api.imgur.com/3/upload",
+    imagebin_upload_url="https://api.imgur.com/3/image",
     imagebin_delete_url="https://api.imgur.com/3/image/{delete_hash}",
     curldrop_upload_url="http://use.yt/upload",
     thread_field_detection=False,
@@ -67,14 +63,31 @@ ytcfg_defaults["yt"] = dict(
 )
 
 
-CONFIG_DIR = os.environ.get(
-    "XDG_CONFIG_HOME", os.path.join(os.path.expanduser("~"), ".config", "yt")
-)
-if not os.path.exists(CONFIG_DIR):
-    try:
-        os.makedirs(CONFIG_DIR)
-    except OSError:
-        warnings.warn("unable to create yt config directory")
+def config_dir():
+    config_root = os.environ.get(
+        "XDG_CONFIG_HOME", os.path.join(os.path.expanduser("~"), ".config")
+    )
+    conf_dir = os.path.join(config_root, "yt")
+
+    if not os.path.exists(conf_dir):
+        try:
+            os.makedirs(conf_dir)
+        except OSError:
+            warnings.warn("unable to create yt config directory")
+    return conf_dir
+
+
+def old_config_file():
+    return os.path.join(config_dir(), "ytrc")
+
+
+def old_config_dir():
+    return os.path.join(os.path.expanduser("~"), ".yt")
+
+
+# For backward compatibility, do not use these vars internally in yt
+CONFIG_DIR = config_dir()
+_OLD_CONFIG_FILE = old_config_file()
 
 
 class YTConfig:
@@ -83,13 +96,13 @@ class YTConfig:
             defaults = {}
         self.config_root = ConfigNode(None)
 
-    def get(self, section, *keys, callback=None, **kwargs):
-        if callback is None:
-
-            def callback(leaf):
-                return leaf.value
-
-        return self.config_root.get_leaf(section, *keys, callback=callback)
+    def get(self, section, *keys, callback=None):
+        node_or_leaf = self.config_root.get(section, *keys)
+        if isinstance(node_or_leaf, ConfigLeaf):
+            if callback is not None:
+                return callback(node_or_leaf)
+            return node_or_leaf.value
+        return node_or_leaf
 
     def get_most_specific(self, section, *keys, **kwargs):
         use_fallback = "fallback" in kwargs
@@ -132,14 +145,6 @@ class YTConfig:
             [section] + list(keys), value, extra_data=metadata
         )
 
-    def __setitem__(self, args, value):
-        section, *keys = args
-        self.set(section, *keys, value, metadata=None)
-
-    def __getitem__(self, key):
-        section, *keys = key
-        return self.get(section, *keys)
-
     def remove(self, *args):
         self.config_root.pop_leaf(args)
 
@@ -168,21 +173,36 @@ class YTConfig:
 
     @staticmethod
     def get_global_config_file():
-        return os.path.join(CONFIG_DIR, "yt.toml")
+        return os.path.join(config_dir(), "yt.toml")
 
     @staticmethod
     def get_local_config_file():
         return os.path.join(os.path.abspath(os.curdir), "yt.toml")
 
+    def __setitem__(self, args, value):
+        section, *keys = always_iterable(args)
+        self.set(section, *keys, value, metadata=None)
 
-OLD_CONFIG_FILE = os.path.join(CONFIG_DIR, "ytrc")
+    def __getitem__(self, key):
+        section, *keys = always_iterable(key)
+        return self.get(section, *keys)
+
+    def __contains__(self, item):
+        return item in self.config_root
+
+    # Add support for IPython rich display
+    # see https://ipython.readthedocs.io/en/stable/config/integrating.html
+    def _repr_json_(self):
+        return self.config_root._repr_json_()
+
+
 _global_config_file = YTConfig.get_global_config_file()
 _local_config_file = YTConfig.get_local_config_file()
 
-if os.path.exists(OLD_CONFIG_FILE):
+if os.path.exists(old_config_file()):
     if os.path.exists(_global_config_file):
         issue_deprecation_warning(
-            f"The configuration file {OLD_CONFIG_FILE} is deprecated in "
+            f"The configuration file {old_config_file()} is deprecated in "
             f"favor of {_global_config_file}. Currently, both are present. "
             "Please manually remove the deprecated one to silence "
             "this warning.",
@@ -190,26 +210,13 @@ if os.path.exists(OLD_CONFIG_FILE):
             removal="4.1.0",
         )
     else:
-        # We have an issue here: when calling from the command line,
-        # we do not want this to exit, as it would prevent `yt config migrate`
-        # from running. The issue is that yt.config (this file) is imported
-        # from yt.__init__, which is imported *before* yt.utilities.configure
-        # is executed, so the latter cannot set some internal variable before
-        # we arrive here.
-        # The workaround here relies on inspecting the call stack and hopefully
-        # detect we were called from the CLI.
-        import inspect
-
-        stack = inspect.stack()
-        if len(stack) < 2 or stack[-2].function != "importlib_load_entry_point":
-            issue_deprecation_warning(
-                f"The configuration file {OLD_CONFIG_FILE} is deprecated. "
-                f"Please migrate your config to {_global_config_file} by running: "
-                "'yt config migrate'",
-                since="4.0.0",
-                removal="4.1.0",
-            )
-            raise SystemExit
+        issue_deprecation_warning(
+            f"The configuration file {_OLD_CONFIG_FILE} is deprecated. "
+            f"Please migrate your config to {_global_config_file} by running: "
+            "'yt config migrate'",
+            since="4.0.0",
+            removal="4.1.0",
+        )
 
 
 if not os.path.exists(_global_config_file):

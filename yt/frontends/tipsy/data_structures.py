@@ -58,6 +58,7 @@ class TipsyDataset(SPHDataset):
         bounding_box=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
         # Because Tipsy outputs don't have a fixed domain boundary, one can
         # specify a bounding box which effectively gives a domain_left_edge
@@ -107,9 +108,10 @@ class TipsyDataset(SPHDataset):
             index_filename=index_filename,
             kdtree_filename=kdtree_filename,
             kernel_name=kernel_name,
+            default_species_fields=default_species_fields,
         )
 
-    def __repr__(self):
+    def __str__(self):
         return os.path.basename(self.parameter_filename)
 
     def _parse_parameter_file(self):
@@ -118,7 +120,7 @@ class TipsyDataset(SPHDataset):
         # the snapshot time and particle counts.
 
         f = open(self.parameter_filename, "rb")
-        hh = self.endian + "".join(["%s" % (b) for a, b in self._header_spec])
+        hh = self.endian + "".join("%s" % (b) for a, b in self._header_spec)
         hvals = {
             a: c
             for (a, b), c in zip(

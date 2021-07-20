@@ -17,12 +17,12 @@ p_units = "code_mass / (code_length * code_time**2)"
 class ARTIOFieldInfo(FieldInfoContainer):
     known_other_fields = (
         ("HVAR_GAS_DENSITY", (rho_units, ["density"], None)),
-        ("HVAR_GAS_ENERGY", (en_units, ["total_energy"], None)),
-        ("HVAR_INTERNAL_ENERGY", (en_units, ["thermal_energy"], None)),
+        ("HVAR_GAS_ENERGY", (en_units, ["total_energy_density"], None)),
+        ("HVAR_INTERNAL_ENERGY", (en_units, ["thermal_energy_density"], None)),
         ("HVAR_PRESSURE", (p_units, ["pressure"], None)),
-        ("HVAR_MOMENTUM_X", (mom_units, ["momentum_x"], None)),
-        ("HVAR_MOMENTUM_Y", (mom_units, ["momentum_y"], None)),
-        ("HVAR_MOMENTUM_Z", (mom_units, ["momentum_z"], None)),
+        ("HVAR_MOMENTUM_X", (mom_units, ["momentum_density_x"], None)),
+        ("HVAR_MOMENTUM_Y", (mom_units, ["momentum_density_y"], None)),
+        ("HVAR_MOMENTUM_Z", (mom_units, ["momentum_density_z"], None)),
         ("HVAR_GAMMA", ("", ["gamma"], None)),
         ("HVAR_METAL_DENSITY_Ia", (rho_units, ["metal_ia_density"], None)),
         ("HVAR_METAL_DENSITY_II", (rho_units, ["metal_ii_density"], None)),
@@ -58,7 +58,9 @@ class ARTIOFieldInfo(FieldInfoContainer):
 
         def _get_vel(axis):
             def velocity(field, data):
-                return data[f"momentum_{axis}"] / data["density"]
+                return (
+                    data[("gas", f"momentum_density_{axis}")] / data[("gas", "density")]
+                )
 
             return velocity
 
@@ -71,7 +73,7 @@ class ARTIOFieldInfo(FieldInfoContainer):
             )
 
         def _temperature(field, data):
-            tr = data["thermal_energy"] / data["density"]
+            tr = data[("gas", "thermal_energy_density")] / data[("gas", "density")]
             # We want this to match *exactly* what ARTIO would compute
             # internally.  We therefore use the exact values that are internal
             # to ARTIO, rather than yt's own internal constants.
@@ -83,7 +85,7 @@ class ARTIOFieldInfo(FieldInfoContainer):
             mb = XH * mH + XHe * mHe
             wmu = 4.0 / (8.0 - 5.0 * Yp)
             # Note that we have gamma = 5.0/3.0 here
-            tr *= data["gamma"] - 1.0
+            tr *= data[("gas", "gamma")] - 1.0
             tr *= wmu
             tr *= mb / boltzmann_constant_cgs
             return tr
@@ -105,8 +107,8 @@ class ARTIOFieldInfo(FieldInfoContainer):
             if flag1 and flag2:
 
                 def _metal_density(field, data):
-                    tr = data["metal_ia_density"].copy()
-                    np.add(tr, data["metal_ii_density"], out=tr)
+                    tr = data[("gas", "metal_ia_density")].copy()
+                    np.add(tr, data[("gas", "metal_ii_density")], out=tr)
                     return tr
 
             elif flag1 and not flag2:

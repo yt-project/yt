@@ -294,7 +294,7 @@ class SDFRead(dict):
 
         >>> sdf = SDFRead("data.sdf", header="data.hdr")
         >>> print(sdf.parameters)
-        >>> print(sdf['x'])
+        >>> print(sdf["x"])
 
         """
         self.filename = filename
@@ -470,7 +470,7 @@ class HTTPSDFRead(SDFRead):
 
     >>> sdf = SDFRead("data.sdf", header="data.hdr")
     >>> print(sdf.parameters)
-    >>> print(sdf['x'])
+    >>> print(sdf["x"])
 
     """
 
@@ -533,7 +533,7 @@ def load_sdf(filename, header=None):
 
     >>> sdf = SDFRead("data.sdf", header="data.hdr")
     >>> print(sdf.parameters)
-    >>> print(sdf['x'])
+    >>> print(sdf["x"])
 
     """
     if "http" in filename:
@@ -750,7 +750,7 @@ class SDFIndex:
         inter[self.dim_slices[0]] = rep1
         inter[self.dim_slices[1]] = rep2
         inter[self.dim_slices[2]] = rep3
-        return int(inter.tostring(), 2)
+        return int(inter.tobytes(), 2)
 
     def get_key_ijk(self, i1, i2, i3, level=None):
         return self.get_key(np.array([i1, i2, i3]), level=level)
@@ -759,7 +759,7 @@ class SDFIndex:
         slb = np.binary_repr(ind, width=self.level)
         expanded = np.array([0] * self.level * 3, dtype="c")
         expanded[self.dim_slices[dim]] = slb
-        return int(expanded.tostring(), 2)
+        return int(expanded.tobytes(), 2)
 
     def get_ind_from_key(self, key, dim="r"):
         ind = [0, 0, 0]
@@ -777,7 +777,7 @@ class SDFIndex:
 
     def get_ibbox_slow(self, ileft, iright):
         """
-        Given left and right indicies, return a mask and
+        Given left and right indices, return a mask and
         set of offsets+lengths into the sdf data.
         """
         mask = np.zeros(self.indexdata["index"].shape, dtype="bool")
@@ -796,7 +796,7 @@ class SDFIndex:
 
     def get_ibbox(self, ileft, iright):
         """
-        Given left and right indicies, return a mask and
+        Given left and right indices, return a mask and
         set of offsets+lengths into the sdf data.
         """
         # print('Getting data from ileft to iright:',  ileft, iright)
@@ -863,7 +863,7 @@ class SDFIndex:
 
     def get_bbox(self, left, right):
         """
-        Given left and right indicies, return a mask and
+        Given left and right indices, return a mask and
         set of offsets+lengths into the sdf data.
         """
         ileft = np.floor((left - self.rmin) / self.domain_width * self.domain_dims)
@@ -1380,8 +1380,9 @@ class SDFIndex:
 
         Examples
         --------
-        >>> chunks = midx.get_padded_bbox_data(6, np.array([128]*3),
-        ...                                    8.0, ['x','y','z','ident'])
+        >>> chunks = midx.get_padded_bbox_data(
+        ...     6, np.array([128] * 3), 8.0, ["x", "y", "z", "ident"]
+        ... )
 
         """
         _ensure_xyz_fields(fields)

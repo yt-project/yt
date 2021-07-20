@@ -43,7 +43,7 @@ file_names = dict(
 to_include = collections.defaultdict(list)
 
 for line in open("auto_generated.txt"):
-    ftype, name, file_name = [s.strip() for s in line.split("::")]
+    ftype, name, file_name = (s.strip() for s in line.split("::"))
     cn = name.split(".")[-1]
     if cn[0] == "_":
         cn = cn[1:]  # For leading _

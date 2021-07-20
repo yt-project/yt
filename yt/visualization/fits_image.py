@@ -14,7 +14,8 @@ from yt.units.unit_object import Unit
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.on_demand_imports import _astropy
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_root_only
-from yt.visualization.fixed_resolution import FixedResolutionBuffer
+from yt.visualization.fixed_resolution import FixedResolutionBuffer, ParticleImageBuffer
+from yt.visualization.particle_plots import ParticleAxisAlignedDummyDataSource
 from yt.visualization.volume_rendering.off_axis_projection import off_axis_projection
 
 
@@ -31,7 +32,7 @@ class UnitfulHDU:
         return YTArray(self.hdu.data, self.units)
 
     def __repr__(self):
-        im_shape = " x ".join([str(s) for s in self.shape])
+        im_shape = " x ".join(str(s) for s in self.shape)
         return f"FITSImage: {self.name} ({im_shape}, {self.units})"
 
 
@@ -108,20 +109,21 @@ class FITSImageData:
 
         >>> # This example uses a FRB.
         >>> ds = load("sloshing_nomag2_hdf5_plt_cnt_0150")
-        >>> prj = ds.proj(2, "kT", weight_field="density")
+        >>> prj = ds.proj(2, "kT", weight_field=("gas", "density"))
         >>> frb = prj.to_frb((0.5, "Mpc"), 800)
         >>> # This example just uses the FRB and puts the coords in kpc.
-        >>> f_kpc = FITSImageData(frb, fields="kT", length_unit="kpc",
-        ...                       time_unit=(1.0, "Gyr"))
+        >>> f_kpc = FITSImageData(
+        ...     frb, fields="kT", length_unit="kpc", time_unit=(1.0, "Gyr")
+        ... )
         >>> # This example specifies a specific WCS.
         >>> from astropy.wcs import WCS
         >>> w = WCS(naxis=self.dimensionality)
-        >>> w.wcs.crval = [30., 45.] # RA, Dec in degrees
-        >>> w.wcs.cunit = ["deg"]*2
+        >>> w.wcs.crval = [30.0, 45.0]  # RA, Dec in degrees
+        >>> w.wcs.cunit = ["deg"] * 2
         >>> nx, ny = 800, 800
-        >>> w.wcs.crpix = [0.5*(nx+1), 0.5*(ny+1)]
-        >>> w.wcs.ctype = ["RA---TAN","DEC--TAN"]
-        >>> scale = 1./3600. # One arcsec per pixel
+        >>> w.wcs.crpix = [0.5 * (nx + 1), 0.5 * (ny + 1)]
+        >>> w.wcs.ctype = ["RA---TAN", "DEC--TAN"]
+        >>> scale = 1.0 / 3600.0  # One arcsec per pixel
         >>> w.wcs.cdelt = [-scale, scale]
         >>> f_deg = FITSImageData(frb, fields="kT", wcs=w)
         >>> f_deg.writeto("temp.fits")
@@ -203,7 +205,7 @@ class FITSImageData:
         elif isinstance(data, np.ndarray):
             if fields is None:
                 mylog.warning(
-                    "No field name given for this array. " "Calling it 'image_data'."
+                    "No field name given for this array. Calling it 'image_data'."
                 )
                 fn = "image_data"
                 fields = [fn]
@@ -241,12 +243,17 @@ class FITSImageData:
             if name not in exclude_fields:
                 this_img = img_data[field]
                 if hasattr(img_data[field], "units"):
-                    if this_img.units.is_code_unit:
+                    has_code_unit = False
+                    for atom in this_img.units.expr.atoms():
+                        if str(atom).startswith("code"):
+                            has_code_unit = True
+                    if has_code_unit:
                         mylog.warning(
                             "Cannot generate an image with code "
                             "units. Converting to units in CGS."
                         )
                         funits = this_img.units.get_base_equivalent("cgs")
+                        this_img.convert_to_units(funits)
                     else:
                         funits = this_img.units
                     self.field_units[name] = str(funits)
@@ -279,6 +286,9 @@ class FITSImageData:
                         hdu.header[key] = float(value.value)
                         hdu.header.comments[key] = f"[{value.units}]"
                 hdu.header["time"] = float(self.current_time.value)
+                if hasattr(self, "current_redshift"):
+                    hdu.header["HUBBLE"] = self.hubble_constant
+                    hdu.header["REDSHIFT"] = self.current_redshift
                 self.hdulist.append(hdu)
 
         self.dimensionality = len(self.shape)
@@ -348,6 +358,10 @@ class FITSImageData:
         self.current_time = current_time.to(tunit)
 
     def _set_units(self, ds, base_units):
+        if ds is not None:
+            if getattr(ds, "cosmological_simulation", False):
+                self.hubble_constant = ds.hubble_constant
+                self.current_redshift = ds.current_redshift
         attrs = (
             "length_unit",
             "mass_unit",
@@ -385,6 +399,12 @@ class FITSImageData:
             else:
                 uq = None
 
+            if uq is not None and hasattr(self, "hubble_constant"):
+                # Don't store cosmology units
+                atoms = {str(a) for a in uq.units.expr.atoms()}
+                if str(uq.units).startswith("cm") or "h" in atoms or "a" in atoms:
+                    uq.convert_to_cgs()
+
             if uq is not None and uq.units.is_code_unit:
                 mylog.warning(
                     "Cannot use code units of '%s' "
@@ -395,12 +415,15 @@ class FITSImageData:
                 uq.convert_to_cgs()
 
             if attr == "length_unit" and uq.value != 1.0:
-                mylog.warning("Converting length units " "from %s to %s.", uq, uq.units)
+                mylog.warning("Converting length units from %s to %s.", uq, uq.units)
                 uq = YTQuantity(1.0, uq.units)
 
             setattr(self, attr, uq)
 
     def _set_units_from_header(self, header):
+        if "hubble" in header:
+            self.hubble_constant = header["HUBBLE"]
+            self.current_redshift = header["REDSHIFT"]
         for unit in ["length", "time", "mass", "velocity", "magnetic"]:
             if unit == "magnetic":
                 key = "BFUNIT"
@@ -408,8 +431,9 @@ class FITSImageData:
                 key = unit[0].upper() + "UNIT"
             if key not in header:
                 continue
-            u = YTQuantity(header[key], header.comments[key].strip("[]"))
-            setattr(self, unit + "_unit", u)
+            u = header.comments[key].strip("[]")
+            uq = YTQuantity(header[key], u)
+            setattr(self, unit + "_unit", uq)
 
     def set_wcs(self, wcs, wcsname=None, suffix=None):
         """
@@ -472,7 +496,7 @@ class FITSImageData:
 
         Examples
         --------
-        >>> fid = FITSSlice(ds, "z", "density")
+        >>> fid = FITSSlice(ds, "z", ("gas", "density"))
         >>> fid.convolve("density", (3.0, "kpc"))
         """
         if self.dimensionality == 3:
@@ -553,7 +577,7 @@ class FITSImageData:
         if output is None:
             output = sys.stdout
         if num_cols == 8:
-            header = "No.    Name      Ver    Type      Cards   Dimensions   Format     Units"  # NOQA E501
+            header = "No.    Name      Ver    Type      Cards   Dimensions   Format     Units"
             format = "{:3d}  {:10}  {:3} {:11}  {:5d}   {}   {}   {}"
         else:
             header = (
@@ -592,7 +616,7 @@ class FITSImageData:
         fields : list of strings, optional
             The fields to write to the file. If not specified
             all of the fields in the buffer will be written.
-        clobber : overwrite, optional
+        overwrite : boolean
             Whether or not to overwrite a previously existing file.
             Default: False
         **kwargs
@@ -674,7 +698,8 @@ class FITSImageData:
         im = self.hdulist.pop(idx)
         self.field_units.pop(key)
         self.fields.remove(key)
-        return FITSImageData(_astropy.pyfits.PrimaryHDU(im.data, header=im.header))
+        f = _astropy.pyfits.PrimaryHDU(im.data, header=im.header)
+        return FITSImageData(f, current_time=f.header["TIME"], unit_header=f.header)
 
     def close(self):
         self.hdulist.close()
@@ -720,7 +745,11 @@ class FITSImageData:
                 else:
                     data.append(_astropy.pyfits.ImageHDU(hdu.data, header=hdu.header))
         data = _astropy.pyfits.HDUList(data)
-        return cls(data, current_time=first_image.current_time)
+        return cls(
+            data,
+            current_time=first_image.current_time,
+            unit_header=first_image[0].header,
+        )
 
     def create_sky_wcs(
         self,
@@ -772,7 +801,7 @@ class FITSImageData:
             scaleq = YTQuantity(sky_scale[0], sky_scale[1])
         if scaleq.units.dimensions != dimensions.angle / dimensions.length:
             raise RuntimeError(
-                f"sky_scale {sky_scale} not in correct " + "dimensions of angle/length!"
+                f"sky_scale {sky_scale} not in correct dimensions of angle/length!"
             )
         deltas = old_wcs.wcs.cdelt
         units = [str(unit) for unit in old_wcs.wcs.cunit]
@@ -816,6 +845,9 @@ def sanitize_fits_unit(unit):
     return unit
 
 
+# This list allows one to determine which axes are the
+# correct axes of the image in a right-handed coordinate
+# system depending on which axis is sliced or projected
 axis_wcs = [[1, 2], [0, 2], [0, 1]]
 
 
@@ -858,6 +890,17 @@ def construct_image(ds, axis, data_source, center, image_res, width, length_unit
             frb = data_source.to_frb(width[0], (nx, ny), height=width[1])
         else:
             frb = data_source.to_frb(width[0], (nx, ny), center=center, height=width[1])
+    elif isinstance(data_source, ParticleAxisAlignedDummyDataSource):
+        axes = axis_wcs[axis]
+        bounds = (
+            center[axes[0]] - width[0] / 2,
+            center[axes[0]] + width[0] / 2,
+            center[axes[1]] - width[1] / 2,
+            center[axes[1]] + width[1] / 2,
+        )
+        frb = ParticleImageBuffer(
+            data_source, bounds, (nx, ny), periodic=all(ds.periodicity)
+        )
     else:
         frb = None
     w = _astropy.pywcs.WCS(naxis=2)
@@ -1040,6 +1083,119 @@ class FITSProjection(FITSImageData):
         prj = ds.proj(fields[0], axis, weight_field=weight_field, **kwargs)
         w, frb, lunit = construct_image(
             ds, axis, prj, dcenter, image_res, width, length_unit
+        )
+        super().__init__(frb, fields=fields, length_unit=lunit, wcs=w)
+
+
+class FITSParticleProjection(FITSImageData):
+    r"""
+    Generate a FITSImageData of an on-axis projection of a
+    particle field.
+
+    Parameters
+    ----------
+    ds : :class:`~yt.data_objects.static_output.Dataset`
+        The dataset object.
+    axis : character or integer
+        The axis along which to project. One of "x","y","z", or 0,1,2.
+    fields : string or list of strings
+        The fields to project
+    image_res : an int or 2-tuple of ints
+        Specify the resolution of the resulting image. A single value will be
+        used for both axes, whereas a tuple of values will be used for the
+        individual axes. Default: 512
+    center : A sequence of floats, a string, or a tuple.
+        The coordinate of the center of the image. If set to 'c', 'center' or
+        left blank, the plot is centered on the middle of the domain. If set
+        to 'max' or 'm', the center will be located at the maximum of the
+        ('gas', 'density') field. Centering on the max or min of a specific
+        field is supported by providing a tuple such as ("min","temperature")
+        or ("max","dark_matter_density"). Units can be specified by passing in
+        *center* as a tuple containing a coordinate and string unit name or by
+        passing in a YTArray. If a list or unitless array is supplied, code
+        units are assumed.
+    width : tuple or a float.
+        Width can have four different formats to support variable
+        x and y widths.  They are:
+
+        ==================================     =======================
+        format                                 example
+        ==================================     =======================
+        (float, string)                        (10,'kpc')
+        ((float, string), (float, string))     ((10,'kpc'),(15,'kpc'))
+        float                                  0.2
+        (float, float)                         (0.2, 0.3)
+        ==================================     =======================
+
+        For example, (10, 'kpc') specifies a width that is 10 kiloparsecs
+        wide in the x and y directions, ((10,'kpc'),(15,'kpc')) specifies a
+        width that is 10 kiloparsecs wide along the x axis and 15
+        kiloparsecs wide along the y axis.  In the other two examples, code
+        units are assumed, for example (0.2, 0.3) specifies a width that has an
+        x width of 0.2 and a y width of 0.3 in code units.
+    depth : A tuple or a float
+         A tuple containing the depth to project through and the string
+         key of the unit: (width, 'unit').  If set to a float, code units
+         are assumed. Defaults to the entire domain.
+    weight_field : string
+        The field used to weight the projection.
+    length_unit : string, optional
+        the length units that the coordinates are written in. The default
+        is to use the default length unit of the dataset.
+    deposition : string, optional
+        Controls the order of the interpolation of the particles onto the
+        mesh. "ngp" is 0th-order "nearest-grid-point" method (the default),
+        "cic" is 1st-order "cloud-in-cell".
+    density : boolean, optional
+        If True, the quantity to be projected will be divided by the area of
+        the cells, to make a projected density of the quantity. Default: False
+    field_parameters : dictionary
+         A dictionary of field parameters than can be accessed by derived
+         fields.
+    data_source : yt.data_objects.data_containers.YTSelectionContainer, optional
+        If specified, this will be the data source used for selecting regions
+        to project.
+    """
+
+    def __init__(
+        self,
+        ds,
+        axis,
+        fields,
+        image_res=512,
+        center="c",
+        width=None,
+        depth=(1, "1"),
+        weight_field=None,
+        length_unit=None,
+        deposition="ngp",
+        density=False,
+        field_parameters=None,
+        data_source=None,
+    ):
+        fields = list(iter_fields(fields))
+        axis = fix_axis(axis, ds)
+        center, dcenter = ds.coordinates.sanitize_center(center, axis)
+        width = ds.coordinates.sanitize_width(axis, width, depth)
+        width[-1].convert_to_units(width[0].units)
+
+        if field_parameters is None:
+            field_parameters = {}
+
+        ps = ParticleAxisAlignedDummyDataSource(
+            center,
+            ds,
+            axis,
+            width,
+            fields,
+            weight_field,
+            field_parameters=field_parameters,
+            data_source=data_source,
+            deposition=deposition,
+            density=density,
+        )
+        w, frb, lunit = construct_image(
+            ds, axis, ps, dcenter, image_res, width, length_unit
         )
         super().__init__(frb, fields=fields, length_unit=lunit, wcs=w)
 

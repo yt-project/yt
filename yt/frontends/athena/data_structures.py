@@ -8,7 +8,7 @@ from yt.data_objects.static_output import Dataset
 from yt.funcs import mylog, sglob
 from yt.geometry.geometry_handler import YTDataChunk
 from yt.geometry.grid_geometry_handler import GridIndex
-from yt.utilities.chemical_formulas import default_mu
+from yt.utilities.chemical_formulas import compute_mu
 from yt.utilities.decompose import decompose_array, get_psize
 from yt.utilities.lib.misc_utilities import get_box_grids_level
 
@@ -476,6 +476,7 @@ class AthenaDataset(Dataset):
         units_override=None,
         nprocs=1,
         unit_system="cgs",
+        default_species_fields=None,
     ):
         self.fluid_types += ("athena",)
         self.nprocs = nprocs
@@ -490,6 +491,7 @@ class AthenaDataset(Dataset):
             dataset_type,
             units_override=units_override,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
         self.filename = filename
         if storage_filename is None:
@@ -609,11 +611,11 @@ class AthenaDataset(Dataset):
         ]
         self.nvtk = len(gridlistread) + 1
 
-        self.current_redshift = (
-            self.omega_lambda
-        ) = (
-            self.omega_matter
-        ) = self.hubble_constant = self.cosmological_simulation = 0.0
+        self.current_redshift = 0.0
+        self.omega_lambda = 0.0
+        self.omega_matter = 0.0
+        self.hubble_constant = 0.0
+        self.cosmological_simulation = 0
         self.parameters["Time"] = self.current_time  # Hardcode time conversion for now.
         self.parameters[
             "HydroMethod"
@@ -624,7 +626,9 @@ class AthenaDataset(Dataset):
             self.parameters["Gamma"] = 5.0 / 3.0
         self.geometry = self.specified_parameters.get("geometry", "cartesian")
         self._handle.close()
-        self.mu = self.specified_parameters.get("mu", default_mu)
+        self.mu = self.specified_parameters.get(
+            "mu", compute_mu(self.default_species_fields)
+        )
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
@@ -639,5 +643,5 @@ class AthenaDataset(Dataset):
     def _skip_cache(self):
         return True
 
-    def __repr__(self):
+    def __str__(self):
         return self.basename.rsplit(".", 1)[0]

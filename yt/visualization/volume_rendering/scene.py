@@ -5,11 +5,12 @@ from collections import OrderedDict
 import numpy as np
 
 from yt.config import ytcfg
-from yt.funcs import get_image_suffix, mylog
+from yt.funcs import mylog
 from yt.units.dimensions import length
 from yt.units.unit_registry import UnitRegistry
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTNotInsideNotebook
+from yt.visualization._commons import get_canvas, validate_image_name
 
 from .camera import Camera
 from .render_source import (
@@ -39,10 +40,6 @@ class Scene:
     This does very little setup, and requires additional input
     to do anything useful.
 
-    Parameters
-    ----------
-    None
-
     Examples
     --------
 
@@ -50,11 +47,11 @@ class Scene:
     and a Camera.
 
     >>> import yt
-    >>> from yt.visualization.volume_rendering.api import\
-    ...     Scene, create_volume_source, Camera
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> from yt.visualization.volume_rendering.api import (
+    ...     Camera, Scene, create_volume_source)
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> sc = Scene()
-    >>> source = create_volume_source(ds.all_data(), 'density')
+    >>> source = create_volume_source(ds.all_data(), "density")
     >>> sc.add_source(source)
     >>> cam = sc.add_camera()
     >>> im = sc.render()
@@ -63,8 +60,8 @@ class Scene:
     and then modify the Scene later:
 
     >>> import yt
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    >>>
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
     >>> sc = yt.create_scene(ds)
     >>> # Modify camera, sources, etc...
     >>> im = sc.render()
@@ -201,19 +198,19 @@ class Scene:
         --------
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>>
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
         >>> sc = yt.create_scene(ds)
         >>> # Modify camera, sources, etc...
         >>> im = sc.render()
-        >>> sc.save(sigma_clip=4.0,render=False)
+        >>> sc.save(sigma_clip=4.0, render=False)
 
         Altneratively, if you do not need the image array, you can just call
         ``save`` as follows.
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>>
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
         >>> sc = yt.create_scene(ds)
         >>> # Modify camera, sources, etc...
         >>> sc.save(sigma_clip=4.0)
@@ -228,23 +225,50 @@ class Scene:
         self._last_render = bmp
         return bmp
 
-    def _sanitize_render(self, render):
-        # checks for existing render before saving, in most cases we want to
+    def _render_on_demand(self, render):
+        # checks for existing render before rendering, in most cases we want to
         # render every time, but in some cases pulling the previous render is
         # desirable (e.g., if only changing sigma_clip or
         # saving after a call to sc.show()).
+
+        if self._last_render is not None and not render:
+            mylog.info("Found previously rendered image to save.")
+            return
+
         if self._last_render is None:
             mylog.warning("No previously rendered image found, rendering now.")
-            render = True
         elif render:
             mylog.warning(
                 "Previously rendered image exists, but rendering anyway. "
                 "Supply 'render=False' to save previously rendered image directly."
             )
-        else:
-            mylog.info("Found previously rendered image to save.")
+        self.render()
 
-        return render
+    def _get_render_sources(self):
+        return [s for s in self.sources.values() if isinstance(s, RenderSource)]
+
+    def _setup_save(self, fname, render):
+
+        self._render_on_demand(render)
+
+        rensources = self._get_render_sources()
+        if fname is None:
+            # if a volume source present, use its affiliated ds for fname
+            if len(rensources) > 0:
+                rs = rensources[0]
+                basename = rs.data_source.ds.basename
+                if isinstance(rs.field, str):
+                    field = rs.field
+                else:
+                    field = rs.field[-1]
+                fname = f"{basename}_Render_{field}"
+            # if no volume source present, use a default filename
+            else:
+                fname = "Render_opaque"
+
+        fname = validate_image_name(fname)
+        mylog.info("Saving rendered image to %s", fname)
+        return fname
 
     def save(self, fname=None, sigma_clip=None, render=True):
         r"""Saves a rendered image of the Scene to disk.
@@ -260,7 +284,7 @@ class Scene:
             If specified, save the rendering as to the file "fname".
             If unspecified, it creates a default based on the dataset filename.
             The file format is inferred from the filename's suffix. Supported
-            fomats are png, pdf, eps, and ps.
+            formats are png, pdf, eps, and ps.
             Default: None
         sigma_clip: float, optional
             Image values greater than this number times the standard deviation
@@ -282,68 +306,39 @@ class Scene:
         --------
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>>
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
         >>> sc = yt.create_scene(ds)
         >>> # Modify camera, sources, etc...
-        >>> sc.save('test.png', sigma_clip=4)
+        >>> sc.save("test.png", sigma_clip=4)
 
         When saving multiple images without modifying the scene (camera,
         sources,etc.), render=False can be used to avoid re-rendering.
         This is useful for generating images at a range of sigma_clip values:
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>>
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
         >>> sc = yt.create_scene(ds)
         >>> # save with different sigma clipping values
-        >>> sc.save('raw.png')  # The initial render call happens here
-        >>> sc.save('clipped_2.png', sigma_clip=2, render=False)
-        >>> sc.save('clipped_4.png', sigma_clip=4, render=False)
+        >>> sc.save("raw.png")  # The initial render call happens here
+        >>> sc.save("clipped_2.png", sigma_clip=2, render=False)
+        >>> sc.save("clipped_4.png", sigma_clip=4, render=False)
 
         """
-        if fname is None:
-            sources = list(self.sources.values())
-            rensources = [s for s in sources if isinstance(s, RenderSource)]
-            # if a volume source present, use its affiliated ds for fname
-            if len(rensources) > 0:
-                rs = rensources[0]
-                basename = rs.data_source.ds.basename
-                if isinstance(rs.field, str):
-                    field = rs.field
-                else:
-                    field = rs.field[-1]
-                fname = f"{basename}_Render_{field}.png"
-            # if no volume source present, use a default filename
-            else:
-                fname = "Render_opaque.png"
-        suffix = get_image_suffix(fname)
-        if suffix == "":
-            suffix = ".png"
-            fname = f"{fname}{suffix}"
-
-        render = self._sanitize_render(render)
-        if render:
-            self.render()
-        mylog.info("Saving rendered image to %s", fname)
+        fname = self._setup_save(fname, render)
 
         # We can render pngs natively but for other formats we defer to
         # matplotlib.
-        if suffix == ".png":
+        if fname.endswith(".png"):
             self._last_render.write_png(fname, sigma_clip=sigma_clip)
         else:
-            from matplotlib.backends.backend_pdf import FigureCanvasPdf
-            from matplotlib.backends.backend_ps import FigureCanvasPS
             from matplotlib.figure import Figure
 
             shape = self._last_render.shape
             fig = Figure((shape[0] / 100.0, shape[1] / 100.0))
-            if suffix == ".pdf":
-                canvas = FigureCanvasPdf(fig)
-            elif suffix in (".eps", ".ps"):
-                canvas = FigureCanvasPS(fig)
-            else:
-                raise NotImplementedError(f"Unknown file suffix '{suffix}'")
+            canvas = get_canvas(fig, fname)
+
             ax = fig.add_axes([0, 0, 1, 1])
             ax.set_axis_off()
             out = self._last_render
@@ -416,50 +411,27 @@ class Scene:
         Examples
         --------
 
-        >>> sc.save_annotated("fig.png",
-        ...                   text_annotate=[[(0.05, 0.05),
-        ...                                   "t = {}".format(ds.current_time.d),
-        ...                                   dict(horizontalalignment="left")],
-        ...                                  [(0.5,0.95),
-        ...                                   "simulation title",
-        ...                                   dict(color="y", fontsize="24",
-        ...                                        horizontalalignment="center")]])
+        >>> sc.save_annotated(
+        ...     "fig.png",
+        ...     text_annotate=[
+        ...         [
+        ...             (0.05, 0.05),
+        ...             f"t = {ds.current_time.d}",
+        ...             dict(horizontalalignment="left"),
+        ...         ],
+        ...         [
+        ...             (0.5, 0.95),
+        ...             "simulation title",
+        ...             dict(color="y", fontsize="24", horizontalalignment="center"),
+        ...         ],
+        ...     ],
+        ... )
 
         """
-        from yt.visualization._mpl_imports import (
-            FigureCanvasAgg,
-            FigureCanvasPdf,
-            FigureCanvasPS,
-        )
-
-        sources = list(self.sources.values())
-        rensources = [s for s in sources if isinstance(s, RenderSource)]
-
-        if fname is None:
-            # if a volume source present, use its affiliated ds for fname
-            if len(rensources) > 0:
-                rs = rensources[0]
-                basename = rs.data_source.ds.basename
-                if isinstance(rs.field, str):
-                    field = rs.field
-                else:
-                    field = rs.field[-1]
-                fname = f"{basename}_Render_{field}.png"
-            # if no volume source present, use a default filename
-            else:
-                fname = "Render_opaque.png"
-        suffix = get_image_suffix(fname)
-        if suffix == "":
-            suffix = ".png"
-            fname = f"{fname}{suffix}"
-
-        render = self._sanitize_render(render)
-        if render:
-            self.render()
-        mylog.info("Saving rendered image to %s", fname)
+        fname = self._setup_save(fname, render)
 
         # which transfer function?
-        rs = rensources[0]
+        rs = self._get_render_sources()[0]
         tf = rs.transfer_function
         label = rs.data_source.ds._get_field_info(rs.field).get_label()
 
@@ -485,19 +457,7 @@ class Scene:
 
                 ax.axes.text(xy[0], xy[1], string, transform=f.transFigure, **opt)
 
-        suffix = get_image_suffix(fname)
-
-        if suffix == ".png":
-            canvas = FigureCanvasAgg(self._render_figure)
-        elif suffix == ".pdf":
-            canvas = FigureCanvasPdf(self._render_figure)
-        elif suffix in (".eps", ".ps"):
-            canvas = FigureCanvasPS(self._render_figure)
-        else:
-            mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
-            canvas = self.canvas
-
-        self._render_figure.canvas = canvas
+        self._render_figure.canvas = get_canvas(self._render_figure, fname)
         self._render_figure.tight_layout()
         self._render_figure.savefig(fname, facecolor="black", pad_inches=0)
 
@@ -567,8 +527,8 @@ class Scene:
         --------
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>>
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
         >>> sc = yt.create_scene(ds)
         >>> # Modify camera, sources, etc...
         >>> im = sc.composite()
@@ -626,15 +586,15 @@ class Scene:
         to be reasonable for the argument Dataset.
 
         >>> import yt
-        >>> from yt.visualization.volume_rendering.api import Scene, Camera
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> from yt.visualization.volume_rendering.api import Camera, Scene
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
         >>> sc = Scene()
         >>> sc.add_camera()
 
         Here, we set the camera properties manually:
 
         >>> import yt
-        >>> from yt.visualization.volume_rendering.api import Scene, Camera
+        >>> from yt.visualization.volume_rendering.api import Camera, Scene
         >>> sc = Scene()
         >>> cam = sc.add_camera()
         >>> cam.position = np.array([0.5, 0.5, -1.0])
@@ -645,9 +605,9 @@ class Scene:
 
         >>> import yt
         >>> from yt.visualization.volume_rendering.api import Camera
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
         >>> sc = Scene()
-        >>> sc.add_camera(ds, lens_type='perspective')
+        >>> sc.add_camera(ds, lens_type="perspective")
 
         """
         self._camera = Camera(self, data_source, lens_type, auto)
@@ -745,8 +705,8 @@ class Scene:
         --------
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>>
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
         >>> sc = yt.create_scene(ds)
         >>> sc.annotate_domain(ds)
         >>> im = sc.render()
@@ -784,8 +744,8 @@ class Scene:
         --------
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>>
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
         >>> sc = yt.create_scene(ds)
         >>> sc.annotate_grids(ds.all_data())
         >>> im = sc.render()
@@ -844,8 +804,8 @@ class Scene:
         --------
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>>
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
         >>> sc = yt.create_scene(ds)
         >>> sc.annotate_axes(alpha=0.5)
         >>> im = sc.render()
@@ -872,8 +832,8 @@ class Scene:
         --------
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>>
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
         >>> sc = yt.create_scene(ds)
         >>> sc.show()
 
@@ -911,8 +871,8 @@ class Scene:
         Examples
         --------
 
-        >>> a = sc.arr([1, 2, 3], 'cm')
-        >>> b = sc.arr([4, 5, 6], 'm')
+        >>> a = sc.arr([1, 2, 3], "cm")
+        >>> b = sc.arr([4, 5, 6], "m")
         >>> a + b
         YTArray([ 401.,  502.,  603.]) cm
         >>> b + a
@@ -920,8 +880,8 @@ class Scene:
 
         Arrays returned by this function know about the scene's unit system
 
-        >>> a = sc.arr(np.ones(5), 'unitary')
-        >>> a.in_units('Mpc')
+        >>> a = sc.arr(np.ones(5), "unitary")
+        >>> a.in_units("Mpc")
         YTArray([ 1.00010449,  1.00010449,  1.00010449,  1.00010449,
                  1.00010449]) Mpc
 
@@ -956,8 +916,8 @@ class Scene:
         Examples
         --------
 
-        >>> a = sc.quan(1, 'cm')
-        >>> b = sc.quan(2, 'm')
+        >>> a = sc.quan(1, "cm")
+        >>> b = sc.quan(2, "m")
         >>> a + b
         201.0 cm
         >>> b + a
@@ -966,7 +926,7 @@ class Scene:
         Quantities created this way automatically know about the unit system
         of the scene
 
-        >>> a = ds.quan(5, 'unitary')
+        >>> a = ds.quan(5, "unitary")
         >>> a.in_cgs()
         1.543e+25 cm
 

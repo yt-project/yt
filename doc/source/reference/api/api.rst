@@ -58,6 +58,7 @@ Writing FITS images
    ~yt.visualization.fits_image.FITSProjection
    ~yt.visualization.fits_image.FITSOffAxisSlice
    ~yt.visualization.fits_image.FITSOffAxisProjection
+   ~yt.visualization.fits_image.FITSParticleProjection
 
 Data Sources
 ------------
@@ -79,11 +80,11 @@ These will almost never need to be instantiated on their own.
 .. autosummary::
 
    ~yt.data_objects.data_containers.YTDataContainer
-   ~yt.data_objects.data_containers.YTSelectionContainer
-   ~yt.data_objects.data_containers.YTSelectionContainer0D
-   ~yt.data_objects.data_containers.YTSelectionContainer1D
-   ~yt.data_objects.data_containers.YTSelectionContainer2D
-   ~yt.data_objects.data_containers.YTSelectionContainer3D
+   ~yt.data_objects.selection_objects.data_selection_objects.YTSelectionContainer
+   ~yt.data_objects.selection_objects.data_selection_objects.YTSelectionContainer0D
+   ~yt.data_objects.selection_objects.data_selection_objects.YTSelectionContainer1D
+   ~yt.data_objects.selection_objects.data_selection_objects.YTSelectionContainer2D
+   ~yt.data_objects.selection_objects.data_selection_objects.YTSelectionContainer3D
 
 Selection Objects
 +++++++++++++++++
@@ -93,18 +94,22 @@ geometric.
 
 .. autosummary::
 
-   ~yt.data_objects.selection_data_containers.YTPoint
-   ~yt.data_objects.selection_data_containers.YTOrthoRay
-   ~yt.data_objects.selection_data_containers.YTRay
-   ~yt.data_objects.selection_data_containers.YTSlice
-   ~yt.data_objects.selection_data_containers.YTCuttingPlane
-   ~yt.data_objects.selection_data_containers.YTDisk
-   ~yt.data_objects.selection_data_containers.YTRegion
-   ~yt.data_objects.selection_data_containers.YTDataCollection
-   ~yt.data_objects.selection_data_containers.YTSphere
-   ~yt.data_objects.selection_data_containers.YTEllipsoid
-   ~yt.data_objects.selection_data_containers.YTCutRegion
-   ~yt.data_objects.grid_patch.AMRGridPatch
+   ~yt.data_objects.selection_objects.point.YTPoint
+   ~yt.data_objects.selection_objects.ray.YTOrthoRay
+   ~yt.data_objects.selection_objects.ray.YTRay
+   ~yt.data_objects.selection_objects.slices.YTSlice
+   ~yt.data_objects.selection_objects.slices.YTCuttingPlane
+   ~yt.data_objects.selection_objects.disk.YTDisk
+   ~yt.data_objects.selection_objects.region.YTRegion
+   ~yt.data_objects.selection_objects.object_collection.YTDataCollection
+   ~yt.data_objects.selection_objects.spheroids.YTSphere
+   ~yt.data_objects.selection_objects.spheroids.YTEllipsoid
+   ~yt.data_objects.selection_objects.cut_region.YTCutRegion
+   ~yt.data_objects.index_subobjects.grid_patch.AMRGridPatch
+   ~yt.data_objects.index_subobjects.octree_subset.OctreeSubset
+   ~yt.data_objects.index_subobjects.particle_container.ParticleContainer
+   ~yt.data_objects.index_subobjects.unstructured_mesh.UnstructuredMesh
+   ~yt.data_objects.index_subobjects.unstructured_mesh.SemiStructuredMesh
 
 Construction Objects
 ++++++++++++++++++++
@@ -132,6 +137,7 @@ datasets.
 
    ~yt.data_objects.time_series.DatasetSeries
    ~yt.data_objects.time_series.DatasetSeriesObject
+   ~yt.data_objects.time_series.SimulationTimeSeries
    ~yt.data_objects.time_series.TimeSeriesQuantitiesContainer
    ~yt.data_objects.time_series.AnalysisTaskProxy
    ~yt.data_objects.particle_trajectories.ParticleTrajectories
@@ -152,27 +158,16 @@ These objects generate an "index" into multiresolution data.
 Units
 -----
 
-These classes and functions enable yt's symbolic unit handling system.
+yt's symbolic unit handling system is now based on the external library unyt. In
+complement, Dataset objects support the following methods to build arrays and
+scalars with physical dimensions.
 
 .. autosummary::
 
    yt.data_objects.static_output.Dataset.arr
    yt.data_objects.static_output.Dataset.quan
-   ~yt.units.unit_object.define_unit
-   ~yt.units.unit_object.Unit
-   ~yt.units.unit_registry.UnitRegistry
-   ~yt.units.unit_systems.UnitSystem
-   ~yt.units.yt_array.YTArray
-   ~yt.units.yt_array.YTQuantity
-   ~yt.units.yt_array.uconcatenate
-   ~yt.units.yt_array.uintersect1d
-   ~yt.units.yt_array.uunion1d
-   ~yt.units.yt_array.unorm
-   ~yt.units.yt_array.udot
-   ~yt.units.yt_array.uvstack
-   ~yt.units.yt_array.uhstack
-   ~yt.units.yt_array.ustack
-   ~yt.units.yt_array.display_ytarray
+
+
 
 Frontends
 ---------
@@ -526,7 +521,11 @@ Field Functions
 
    ~yt.fields.field_info_container.FieldInfoContainer.add_field
    ~yt.data_objects.static_output.Dataset.add_field
-
+   ~yt.data_objects.static_output.Dataset.add_deposited_particle_field
+   ~yt.data_objects.static_output.Dataset.add_mesh_sampling_particle_field
+   ~yt.data_objects.static_output.Dataset.add_smoothed_particle_field
+   ~yt.data_objects.static_output.Dataset.add_gradient_fields
+   ~yt.frontends.stream.data_structures.StreamParticlesDataset.add_sph_fields
 
 Particle Filters
 ----------------
@@ -722,6 +721,7 @@ Function List
 .. autosummary::
 
    ~yt.frontends.ytdata.utilities.save_as_dataset
+   ~yt.data_objects.data_containers.YTDataContainer.save_as_dataset
    ~yt.data_objects.static_output.Dataset.all_data
    ~yt.data_objects.static_output.Dataset.box
    ~yt.funcs.enable_plugins
@@ -787,7 +787,7 @@ Miscellaneous Types
 
 .. autosummary::
 
-   ~yt.config.YTConfigParser
+   ~yt.config.YTConfig
    ~yt.utilities.parameter_file_storage.ParameterFileStore
    ~yt.utilities.parallel_tools.parallel_analysis_interface.ObjectIterator
    ~yt.utilities.parallel_tools.parallel_analysis_interface.ParallelAnalysisInterface
@@ -809,7 +809,6 @@ Cosmology Calculator
    ~yt.utilities.cosmology.Cosmology.angular_scale
    ~yt.utilities.cosmology.Cosmology.luminosity_distance
    ~yt.utilities.cosmology.Cosmology.lookback_time
-   ~yt.utilities.cosmology.Cosmology.hubble_time
    ~yt.utilities.cosmology.Cosmology.critical_density
    ~yt.utilities.cosmology.Cosmology.hubble_parameter
    ~yt.utilities.cosmology.Cosmology.expansion_factor
@@ -848,8 +847,6 @@ These are for the pytest infrastructure:
 
 .. autosummary::
 
-    ~conftest.tempdir
-    ~conftest.answer_file
     ~conftest.hashing
     ~yt.utilities.answer_testing.answer_tests.grid_hierarchy
     ~yt.utilities.answer_testing.answer_tests.parentage_relationships
@@ -857,8 +854,6 @@ These are for the pytest infrastructure:
     ~yt.utilities.answer_testing.answer_tests.projection_values
     ~yt.utilities.answer_testing.answer_tests.field_values
     ~yt.utilities.answer_testing.answer_tests.pixelized_projection_values
-    ~yt.utilities.answer_testing.answer_tests.simulated_halo_mass_function
-    ~yt.utilities.answer_testing.answer_tests.analytic_halo_mass_function
     ~yt.utilities.answer_testing.answer_tests.small_patch_amr
     ~yt.utilities.answer_testing.answer_tests.big_patch_amr
     ~yt.utilities.answer_testing.answer_tests.generic_array
@@ -868,6 +863,5 @@ These are for the pytest infrastructure:
     ~yt.utilities.answer_testing.answer_tests.phase_plot_attribute
     ~yt.utilities.answer_testing.answer_tests.generic_image
     ~yt.utilities.answer_testing.answer_tests.axial_pixelization
-    ~yt.utilities.answer_testing.answer_tests.light_cone_projection
     ~yt.utilities.answer_testing.answer_tests.extract_connected_sets
     ~yt.utilities.answer_testing.answer_tests.VR_image_comparison

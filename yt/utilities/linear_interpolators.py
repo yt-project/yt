@@ -255,6 +255,6 @@ def get_centers(ds, filename, center_cols, radius_col, unit="1"):
         if line.startswith("#"):
             continue
         vals = line.split()
-        x, y, z = [float(vals[i]) for i in center_cols]
+        x, y, z = (float(vals[i]) for i in center_cols)
         r = float(vals[radius_col])
         yield ds.sphere([x, y, z], r / ds[unit])

@@ -8,7 +8,7 @@ fn = "Enzo_64/RD0006/RedshiftOutput0006"  # dataset to load
 
 # load data and get center value and center location as maximum density location
 ds = yt.load(fn)
-v, c = ds.find_max("density")
+v, c = ds.find_max(("gas", "density"))
 
 # set up our Fixed Resolution Buffer parameters: a width, resolution, and center
 width = (1.0, "unitary")
@@ -43,8 +43,8 @@ for ax in range(3):
 
     # converting our fixed resolution buffers to NDarray so matplotlib can
     # render them
-    dens = np.array(frb["density"])
-    temp = np.array(frb["temperature"])
+    dens = np.array(frb[("gas", "density")])
+    temp = np.array(frb[("gas", "temperature")])
 
     plots.append(den_axis.imshow(dens, norm=LogNorm()))
     plots[-1].set_clim((5e-32, 1e-29))
@@ -59,7 +59,7 @@ for ax in range(3):
 # .  Note that it cuts off after the shortest iterator is exhausted,
 # in this case, titles.
 titles = [
-    r"$\mathrm{Density}\ (\mathrm{g\ cm^{-3}})$",
+    r"$\mathrm{density}\ (\mathrm{g\ cm^{-3}})$",
     r"$\mathrm{temperature}\ (\mathrm{K})$",
 ]
 for p, cax, t in zip(plots, colorbars, titles):

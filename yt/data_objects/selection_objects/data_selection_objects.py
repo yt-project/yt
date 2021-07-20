@@ -576,9 +576,9 @@ class YTSelectionContainer2D(YTSelectionContainer):
         Examples
         --------
 
-        >>> proj = ds.proj("Density", 0)
-        >>> frb = proj.to_frb( (100.0, 'kpc'), 1024)
-        >>> write_image(np.log10(frb["Density"]), 'density_100kpc.png')
+        >>> proj = ds.proj(("gas", "density"), 0)
+        >>> frb = proj.to_frb((100.0, "kpc"), 1024)
+        >>> write_image(np.log10(frb[("gas", "density")]), "density_100kpc.png")
         """
 
         if (self.ds.geometry == "cylindrical" and self.axis == 1) or (
@@ -668,7 +668,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
            A list of conditionals that will be evaluated. In the namespace
            available, these conditionals will have access to 'obj' which is a
            data object of unknown shape, and they must generate a boolean array.
-           For instance, conditionals = ["obj['temperature'] < 1e3"]
+           For instance, conditionals = ["obj[('gas', 'temperature')] < 1e3"]
         field_parameters : dictionary
            A dictionary of field parameters to be used when applying the field
            cuts.
@@ -682,8 +682,8 @@ class YTSelectionContainer3D(YTSelectionContainer):
 
         >>> ds = yt.load("RedshiftOutput0005")
         >>> ad = ds.all_data()
-        >>> cr = ad.cut_region(["obj['temperature'] > 1e6"])
-        >>> print(cr.quantities.total_quantity("cell_mass").in_units('Msun'))
+        >>> cr = ad.cut_region(["obj[('gas', 'temperature')] > 1e6"])
+        >>> print(cr.quantities.total_quantity(("gas", "cell_mass")).in_units("Msun"))
         """
         if locals is None:
             locals = {}
@@ -691,6 +691,48 @@ class YTSelectionContainer3D(YTSelectionContainer):
             self, field_cuts, field_parameters=field_parameters, locals=locals
         )
         return cr
+
+    def _build_operator_cut(self, operation, field, value, units=None):
+        """
+        Given an operation (>, >=, etc.), a field and a value,
+        return the cut_region implementing it.
+
+        This is only meant to be used internally.
+
+        Examples
+        --------
+        >>> ds._build_operator_cut(">", ("gas", "density"), 1e-24)
+        ... # is equivalent to
+        ... ds.cut_region(['obj[("gas", "density")] > 1e-24'])
+        """
+        ftype, fname = self._determine_fields(field)[0]
+        if units is None:
+            field_cuts = f'obj["{ftype}", "{fname}"] {operation} {value}'
+        else:
+            field_cuts = (
+                f'obj["{ftype}", "{fname}"].in_units("{units}") {operation} {value}'
+            )
+        return self.cut_region(field_cuts)
+
+    def _build_function_cut(self, function, field, units=None, **kwargs):
+        """
+        Given a function (np.abs, np.all) and a field,
+        return the cut_region implementing it.
+
+        This is only meant to be used internally.
+
+        Examples
+        --------
+        >>> ds._build_function_cut("np.isnan", ("gas", "density"), locals={"np": np})
+        ... # is equivalent to
+        ... ds.cut_region(['np.isnan(obj[("gas", "density")])'], locals={"np": np})
+        """
+        ftype, fname = self._determine_fields(field)[0]
+        if units is None:
+            field_cuts = f'{function}(obj["{ftype}", "{fname}"])'
+        else:
+            field_cuts = f'{function}(obj["{ftype}", "{fname}"].in_units("{units}"))'
+        return self.cut_region(field_cuts, **kwargs)
 
     def exclude_above(self, field, value, units=None):
         """
@@ -713,26 +755,18 @@ class YTSelectionContainer3D(YTSelectionContainer):
         cut_region : YTCutRegion
             The YTCutRegion with the field above the given value masked.
 
-        Example
-        -------
-
+        Examples
+        --------
         To find the total mass of hot gas with temperature colder than 10^6 K
         in your volume:
 
         >>> ds = yt.load("RedshiftOutput0005")
         >>> ad = ds.all_data()
-        >>> cr = ad.exclude_above('temperature', 1e6)
-        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
+        >>> cr = ad.exclude_above(("gas", "temperature"), 1e6)
+        >>> print(cr.quantities.total_quantity(("gas", "cell_mass")).in_units("Msun"))
 
         """
-        if units is None:
-            field_cuts = 'obj["' + field + '"] <= ' + str(value)
-        else:
-            field_cuts = (
-                'obj["' + field + '"].in_units("' + units + '") <= ' + str(value)
-            )
-        cr = self.cut_region(field_cuts)
-        return cr
+        return self._build_operator_cut("<=", field, value, units)
 
     def include_above(self, field, value, units=None):
         """
@@ -755,28 +789,18 @@ class YTSelectionContainer3D(YTSelectionContainer):
         cut_region : YTCutRegion
             The YTCutRegion with the field above the given value masked.
 
-        Example
-        -------
-
+        Examples
+        --------
         To find the total mass of hot gas with temperature warmer than 10^6 K
         in your volume:
 
-        Example
-        -------
         >>> ds = yt.load("RedshiftOutput0005")
         >>> ad = ds.all_data()
-        >>> cr = ad.include_above('temperature', 1e6)
-        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
+        >>> cr = ad.include_above(("gas", "temperature"), 1e6)
+        >>> print(cr.quantities.total_quantity(("gas", "cell_mass")).in_units("Msun"))
         """
 
-        if units is None:
-            field_cuts = 'obj["' + field + '"] > ' + str(value)
-        else:
-            field_cuts = (
-                'obj["' + field + '"].in_units("' + units + '") > ' + str(value)
-            )
-        cr = self.cut_region(field_cuts)
-        return cr
+        return self._build_operator_cut(">", field, value, units)
 
     def exclude_equal(self, field, value, units=None):
         """
@@ -799,22 +823,14 @@ class YTSelectionContainer3D(YTSelectionContainer):
         cut_region : YTCutRegion
             The YTCutRegion with the field equal to the given value masked.
 
-        Example
-        -------
-
+        Examples
+        --------
         >>> ds = yt.load("RedshiftOutput0005")
         >>> ad = ds.all_data()
-        >>> cr = ad.exclude_equal('temperature', 1e6)
-        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
+        >>> cr = ad.exclude_equal(("gas", "temperature"), 1e6)
+        >>> print(cr.quantities.total_quantity(("gas", "cell_mass")).in_units("Msun"))
         """
-        if units is None:
-            field_cuts = 'obj["' + field + '"] != ' + str(value)
-        else:
-            field_cuts = (
-                'obj["' + field + '"].in_units("' + units + '") != ' + str(value)
-            )
-        cr = self.cut_region(field_cuts)
-        return cr
+        return self._build_operator_cut("!=", field, value, units)
 
     def include_equal(self, field, value, units=None):
         """
@@ -837,21 +853,14 @@ class YTSelectionContainer3D(YTSelectionContainer):
         cut_region : YTCutRegion
             The YTCutRegion with the field equal to the given value included.
 
-        Example
-        -------
+        Examples
+        --------
         >>> ds = yt.load("RedshiftOutput0005")
         >>> ad = ds.all_data()
-        >>> cr = ad.include_equal('temperature', 1e6)
-        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
+        >>> cr = ad.include_equal(("gas", "temperature"), 1e6)
+        >>> print(cr.quantities.total_quantity(("gas", "cell_mass")).in_units("Msun"))
         """
-        if units is None:
-            field_cuts = 'obj["' + field + '"] == ' + str(value)
-        else:
-            field_cuts = (
-                'obj["' + field + '"].in_units("' + units + '") == ' + str(value)
-            )
-        cr = self.cut_region(field_cuts)
-        return cr
+        return self._build_operator_cut("==", field, value, units)
 
     def exclude_inside(self, field, min_value, max_value, units=None):
         """
@@ -875,40 +884,23 @@ class YTSelectionContainer3D(YTSelectionContainer):
         cut_region : YTCutRegion
             The YTCutRegion with the field inside the given interval excluded.
 
-        Example
-        -------
+        Examples
+        --------
         >>> ds = yt.load("RedshiftOutput0005")
         >>> ad = ds.all_data()
-        >>> cr = ad.exclude_inside('temperature', 1e5, 1e6)
-        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
+        >>> cr = ad.exclude_inside(("gas", "temperature"), 1e5, 1e6)
+        >>> print(cr.quantities.total_quantity(("gas", "cell_mass")).in_units("Msun"))
         """
+        ftype, fname = self._determine_fields(field)[0]
         if units is None:
             field_cuts = (
-                '(obj["'
-                + field
-                + '"] <= '
-                + str(min_value)
-                + ') | (obj["'
-                + field
-                + '"] >= '
-                + str(max_value)
-                + ")"
+                f'(obj["{ftype}", "{fname}"] <= {min_value}) | '
+                f'(obj["{ftype}", "{fname}"] >= {max_value})'
             )
         else:
             field_cuts = (
-                '(obj["'
-                + field
-                + '"].in_units("'
-                + units
-                + '") <= '
-                + str(min_value)
-                + ') | (obj["'
-                + field
-                + '"].in_units("'
-                + units
-                + '") >= '
-                + str(max_value)
-                + ")"
+                f'(obj["{ftype}", "{fname}"].in_units("{units}") <= {min_value}) | '
+                f'(obj["{ftype}", "{fname}"].in_units("{units}") >= {max_value})'
             )
         cr = self.cut_region(field_cuts)
         return cr
@@ -936,40 +928,23 @@ class YTSelectionContainer3D(YTSelectionContainer):
         cut_region : YTCutRegion
             The YTCutRegion with the field inside the given interval excluded.
 
-        Example
-        -------
+        Examples
+        --------
         >>> ds = yt.load("RedshiftOutput0005")
         >>> ad = ds.all_data()
-        >>> cr = ad.include_inside('temperature', 1e5, 1e6)
-        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
+        >>> cr = ad.include_inside(("gas", "temperature"), 1e5, 1e6)
+        >>> print(cr.quantities.total_quantity(("gas", "cell_mass")).in_units("Msun"))
         """
+        ftype, fname = self._determine_fields(field)[0]
         if units is None:
             field_cuts = (
-                '(obj["'
-                + field
-                + '"] > '
-                + str(min_value)
-                + ') & (obj["'
-                + field
-                + '"] < '
-                + str(max_value)
-                + ")"
+                f'(obj["{ftype}", "{fname}"] > {min_value}) & '
+                f'(obj["{ftype}", "{fname}"] < {max_value})'
             )
         else:
             field_cuts = (
-                '(obj["'
-                + field
-                + '"].in_units("'
-                + units
-                + '") > '
-                + str(min_value)
-                + ') & (obj["'
-                + field
-                + '"].in_units("'
-                + units
-                + '") < '
-                + str(max_value)
-                + ")"
+                f'(obj["{ftype}", "{fname}"].in_units("{units}") > {min_value}) & '
+                f'(obj["{ftype}", "{fname}"].in_units("{units}") < {max_value})'
             )
         cr = self.cut_region(field_cuts)
         return cr
@@ -996,12 +971,12 @@ class YTSelectionContainer3D(YTSelectionContainer):
         cut_region : YTCutRegion
             The YTCutRegion with the field outside the given interval excluded.
 
-        Example
-        -------
+        Examples
+        --------
         >>> ds = yt.load("RedshiftOutput0005")
         >>> ad = ds.all_data()
-        >>> cr = ad.exclude_outside('temperature', 1e5, 1e6)
-        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
+        >>> cr = ad.exclude_outside(("gas", "temperature"), 1e5, 1e6)
+        >>> print(cr.quantities.total_quantity(("gas", "cell_mass")).in_units("Msun"))
         """
         cr = self.exclude_below(field, min_value, units)
         cr = cr.exclude_above(field, max_value, units)
@@ -1030,12 +1005,12 @@ class YTSelectionContainer3D(YTSelectionContainer):
         cut_region : YTCutRegion
             The YTCutRegion with the field outside the given interval excluded.
 
-        Example
-        -------
+        Examples
+        --------
         >>> ds = yt.load("RedshiftOutput0005")
         >>> ad = ds.all_data()
-        >>> cr = ad.exclude_outside('temperature', 1e5, 1e6)
-        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
+        >>> cr = ad.exclude_outside(("gas", "temperature"), 1e5, 1e6)
+        >>> print(cr.quantities.total_quantity(("gas", "cell_mass")).in_units("Msun"))
         """
         cr = self.exclude_inside(field, min_value, max_value, units)
         return cr
@@ -1061,21 +1036,14 @@ class YTSelectionContainer3D(YTSelectionContainer):
         cut_region : YTCutRegion
             The YTCutRegion with the field below the given value masked.
 
-        Example
-        -------
+        Examples
+        --------
         >>> ds = yt.load("RedshiftOutput0005")
         >>> ad = ds.all_data()
-        >>> cr = ad.exclude_below('temperature', 1e6)
-        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
+        >>> cr = ad.exclude_below(("gas", "temperature"), 1e6)
+        >>> print(cr.quantities.total_quantity(("gas", "cell_mass")).in_units("Msun"))
         """
-        if units is None:
-            field_cuts = 'obj["' + field + '"] >= ' + str(value)
-        else:
-            field_cuts = (
-                'obj["' + field + '"].in_units("' + units + '") >= ' + str(value)
-            )
-        cr = self.cut_region(field_cuts)
-        return cr
+        return self._build_operator_cut(">=", field, value, units)
 
     def exclude_nan(self, field, units=None):
         """
@@ -1086,9 +1054,6 @@ class YTSelectionContainer3D(YTSelectionContainer):
         ----------
         field : string
             The field in which the conditional will be applied.
-        value : float
-            The minimum value that will not be masked in the output
-            YTCutRegion.
         units : string or None
             The units of the value threshold. None will use the default units
             given in the field.
@@ -1098,19 +1063,14 @@ class YTSelectionContainer3D(YTSelectionContainer):
         cut_region : YTCutRegion
             The YTCutRegion with the NaN entries of the field masked.
 
-        Example
-        -------
+        Examples
+        --------
         >>> ds = yt.load("RedshiftOutput0005")
         >>> ad = ds.all_data()
-        >>> cr = ad.exclude_nan('temperature')
-        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
+        >>> cr = ad.exclude_nan(("gas", "temperature"))
+        >>> print(cr.quantities.total_quantity(("gas", "cell_mass")).in_units("Msun"))
         """
-        if units is None:
-            field_cuts = '~np.isnan(obj["' + field + '"])'
-        else:
-            field_cuts = '~np.isnan(obj["' + field + '"].in_units("' + units + '"))'
-        cr = self.cut_region(field_cuts, locals={"np": np})
-        return cr
+        return self._build_function_cut("~np.isnan", field, units, locals={"np": np})
 
     def include_below(self, field, value, units=None):
         """
@@ -1134,21 +1094,14 @@ class YTSelectionContainer3D(YTSelectionContainer):
             The YTCutRegion with only regions with the field below the given
             value included.
 
-        Example
-        -------
+        Examples
+        --------
         >>> ds = yt.load("RedshiftOutput0005")
         >>> ad = ds.all_data()
-        >>> cr = ad.include_below('temperature', 1e5, 1e6)
-        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
+        >>> cr = ad.include_below(("gas", "temperature"), 1e5, 1e6)
+        >>> print(cr.quantities.total_quantity(("gas", "cell_mass")).in_units("Msun"))
         """
-        if units is None:
-            field_cuts = 'obj["' + field + '"] < ' + str(value)
-        else:
-            field_cuts = (
-                'obj["' + field + '"].in_units("' + units + '") < ' + str(value)
-            )
-        cr = self.cut_region(field_cuts)
-        return cr
+        return self._build_operator_cut("<", field, value, units)
 
     def extract_isocontours(
         self, field, value, filename=None, rescale=False, sample_values=None
@@ -1199,9 +1152,11 @@ class YTSelectionContainer3D(YTSelectionContainer):
 
         >>> dd = ds.all_data()
         >>> rho = dd.quantities["WeightedAverageQuantity"](
-        ...     "Density", weight="CellMassMsun")
-        >>> verts = dd.extract_isocontours("Density", rho,
-        ...             "triangles.obj", True)
+        ...     ("gas", "density"), weight=("gas", "cell_mass")
+        ... )
+        >>> verts = dd.extract_isocontours(
+        ...     ("gas", "density"), rho, "triangles.obj", True
+        ... )
         """
         from yt.data_objects.static_output import ParticleDataset
         from yt.frontends.stream.data_structures import StreamParticlesDataset
@@ -1318,9 +1273,16 @@ class YTSelectionContainer3D(YTSelectionContainer):
 
         >>> dd = ds.all_data()
         >>> rho = dd.quantities["WeightedAverageQuantity"](
-        ...     "Density", weight="CellMassMsun")
-        >>> flux = dd.calculate_isocontour_flux("Density", rho,
-        ...     "velocity_x", "velocity_y", "velocity_z", "Metal_Density")
+        ...     ("gas", "density"), weight=("gas", "cell_mass")
+        ... )
+        >>> flux = dd.calculate_isocontour_flux(
+        ...     ("gas", "density"),
+        ...     rho,
+        ...     ("gas", "velocity_x"),
+        ...     ("gas", "velocity_y"),
+        ...     ("gas", "velocity_z"),
+        ...     ("gas", "metallicity"),
+        ... )
         """
         flux = 0.0
         for block, mask in self.blocks:
@@ -1414,7 +1376,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         """
         if self.ds.geometry != "cartesian":
             raise NotImplementedError(
-                "get_bbox is currently only implemented " "for cartesian geometries!"
+                "get_bbox is currently only implemented for cartesian geometries!"
             )
         le, re = self._get_bbox()
         le.convert_to_units("code_length")

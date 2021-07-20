@@ -97,21 +97,21 @@ def add_particle_filter(name, function, requires=None, filtered_type="all"):
     filtered_type : string
         The name of the particle type to be filtered.
 
-    Example
-    -------
-
+    Examples
+    --------
     >>> import yt
 
     >>> def _stars(pfilter, data):
-    ...     return data[(pfilter.filtered_type, 'particle_type')] == 2
+    ...     return data[(pfilter.filtered_type, "particle_type")] == 2
 
-    >>> yt.add_particle_filter("stars", function=_stars, filtered_type='all',
-    ...                        requires=["particle_type"])
+    >>> yt.add_particle_filter(
+    ...     "stars", function=_stars, filtered_type="all", requires=["particle_type"]
+    ... )
 
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    >>> ds.add_particle_filter('stars')
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> ds.add_particle_filter("stars")
     >>> ad = ds.all_data()
-    >>> print (ad['stars', 'particle_mass'])
+    >>> print(ad["stars", "particle_mass"])
     [  1.68243760e+38   1.65690882e+38   1.65813321e+38 ...,   2.04238266e+38
        2.04523901e+38   2.04770938e+38] g
 
@@ -144,29 +144,24 @@ def particle_filter(name=None, requires=None, filtered_type="all"):
         set by this name will be added to any dataset that enables this particle
         filter.  If not set, the name will be inferred from the name of the
         filter function.
-    function : reference to a function
-        The function that defines the particle filter.  The function should
-        accept two arguments: a reference to a particle filter object and a
-        reference to an abstract yt data object.  See the example below.
     requires : a list of field names
         A list of field names required by the particle filter definition.
     filtered_type : string
         The name of the particle type to be filtered.
 
-    Example
-    -------
-
+    Examples
+    --------
     >>> import yt
 
     >>> # define a filter named "stars"
-    >>> @yt.particle_filter(requires=["particle_type"], filtered_type='all')
-    >>> def stars(pfilter, data):
-    ...     return data[(pfilter.filtered_type, 'particle_type')] == 2
+    >>> @yt.particle_filter(requires=["particle_type"], filtered_type="all")
+    ... def stars(pfilter, data):
+    ...     return data[(pfilter.filtered_type, "particle_type")] == 2
 
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    >>> ds.add_particle_filter('stars')
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> ds.add_particle_filter("stars")
     >>> ad = ds.all_data()
-    >>> print (ad['stars', 'particle_mass'])
+    >>> print(ad["stars", "particle_mass"])
     [  1.68243760e+38   1.65690882e+38   1.65813321e+38 ...,   2.04238266e+38
        2.04523901e+38   2.04770938e+38] g
 

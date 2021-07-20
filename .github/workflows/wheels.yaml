@@ -1,0 +1,60 @@
+name: Build CI Wheels
+
+on:
+  push:
+    branches:
+      - main
+      - stable
+    tags:
+      - 'yt-*'
+
+jobs:
+  build_wheels:
+    name: Wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-18.04, windows-latest, macos-latest]
+      fail-fast: false
+
+    steps:
+      - uses: actions/setup-python@v2
+        name: Install Python
+        with:
+          python-version: 3.9
+
+      - uses: s-weigand/setup-conda@v1
+        if: matrix.os == 'windows-latest'
+        with:
+          update-conda: true
+          conda-channels: conda-forge
+          activate-conda: true
+          python-version: 3.9
+
+      - uses: actions/checkout@v2
+      - name: Install cibuildwheel
+        run: python -m pip install cibuildwheel==1.9.0
+
+      - name: Install dependencies and yt
+        shell: bash
+        env:
+          dependencies: "full"
+          LDFLAGS: "-static-libstdc++"
+        run: source ./tests/ci_install.sh
+
+      - name: Build wheels for CPython
+        run: |
+          python -m cibuildwheel --output-dir dist
+        env:
+          CIBW_BUILD: "cp36-* cp37-* cp38-* cp39-*"
+          CIBW_ARCHS_LINUX: "x86_64"
+          CIBW_ARCHS_MACOS: "x86_64"
+          CIBW_ARCHS_WINDOWS: "auto"
+          CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
+          CIBW_MANYLINUX_I686_IMAGE: manylinux2014
+          CIBW_ENVIRONMENT: "LDFLAGS='-static-libstdc++'"
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: wheels
+          path: ./dist/*.whl

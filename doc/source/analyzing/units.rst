@@ -160,6 +160,9 @@ about the dataset's code unit system and can convert data into it. Unit objects
 from ``unyt`` or ``yt.units`` will not know about any particular dataset's unit
 system.
 
+
+.. _cosmological-units:
+
 Comoving units for Cosmological Simulations
 -------------------------------------------
 
@@ -210,8 +213,8 @@ Using parsec as an example,
   * ``pc/h``
     Proper parsecs, normalized by the scaled hubble constant, :math:`\rm{pc}/h`.
 
-Overriding Code Unit Defintions
--------------------------------
+Overriding Code Unit Definitions
+--------------------------------
 
 On occasion, you might have a dataset for a supported frontend that does not
 have the conversions to code units accessible or you may want to change them
@@ -240,7 +243,7 @@ information about the unit system used in the simulation or the output data, so
 yt cannot infer that information and must make an educated guess. In this case
 it incorrectly assumes the data are in CGS units.
 
-However, we know `a priori` what the unit system *should* be, and we can supply
+However, we know *a priori* what the unit system *should* be, and we can supply
 a ``units_override`` dictionary to ``yt.load`` to override the incorrect
 assumptions yt is making about this dataset. Let's define:
 

@@ -85,13 +85,12 @@ cross-referencing with API documentation that is automatically generated at
 build time by Sphinx.  We also use Sphinx to run code snippets (e.g. the
 cookbook and the notebooks) and embed resulting images and example data.
 
-You will want to make sure you have both Sphinx and the Sphinx Bootstrap Theme
-installed.  This installation is easily performed by running this at the
-command line:
+Essential tools for building the docs can be installed alongside yt itself. From
+the top level of a local copy, run
 
 .. code-block:: bash
 
-   pip install sphinx sphinx_bootstrap_theme
+   $ python -m pip install -e .[doc]
 
 Quick versus Full Documentation Builds
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -113,21 +112,13 @@ dynamically execute and render the cookbook recipes, the notebooks, etc.
 Building the Docs (Quick)
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-You will need to have the yt repository available on your computer, which
-is done by default if you have yt installed.  In addition, you need a
-current version of Sphinx_ (1.1.3) documentation software installed, as
-well as the Sphinx
-`Bootstrap theme <https://pypi.org/project/sphinx-bootstrap-theme/>`_,
-which can be installed via ``pip install sphinx_bootstrap_theme``.
-
 In order to tell Sphinx not to do all of the dynamic building, you must set the
-``$READTHEDOCS`` environment variable to be True by typing this at the command
-line:
+``$READTHEDOCS`` environment variable to be ``True`` by run from the command
+line (using bash syntax for example), as
 
 .. code-block:: bash
 
-   export READTHEDOCS=True  # for bash
-   setenv READTHEDOCS True  # for csh
+   export READTHEDOCS=True
 
 This variable is set for automated builds on the free ReadTheDocs service but
 can be used by anyone to force a quick, minimal build.

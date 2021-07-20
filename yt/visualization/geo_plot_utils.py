@@ -54,11 +54,12 @@ def get_mpl_transform(mpl_proj):
 
     >>> get_mpl_transform("PlateCarree")
 
-    >>> get_mpl_transform(('RotatedPole', (), {'pole_latitude':37.5,
-    ...                    'pole_longitude':177.5}))
+    >>> get_mpl_transform(
+    ...     ("RotatedPole", (), {"pole_latitude": 37.5, "pole_longitude": 177.5})
+    ... )
 
     """
-    # first check to see if the tranform dict is empty, if it is fill it with
+    # first check to see if the transform dict is empty, if it is fill it with
     # the cartopy functions
     if not valid_transforms:
         for mpl_transform in transform_list:

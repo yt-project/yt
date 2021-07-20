@@ -1,7 +1,5 @@
-from distutils.version import LooseVersion
 from io import BytesIO
 
-import matplotlib
 import numpy as np
 
 from yt.data_objects.profiles import create_profile
@@ -92,9 +90,6 @@ class TransferFunctionHelper:
         Builds the transfer function according to the current state of the
         TransferFunctionHelper.
 
-        Parameters
-        ----------
-        None
 
         Returns
         -------
@@ -127,11 +122,7 @@ class TransferFunctionHelper:
         transfer function to produce a natural contrast ratio.
 
         """
-        if LooseVersion(matplotlib.__version__) < LooseVersion("2.0.0"):
-            colormap_name = "spectral"
-        else:
-            colormap_name = "nipy_spectral"
-        self.tf.add_layers(10, colormap=colormap_name)
+        self.tf.add_layers(10, colormap="nipy_spectral")
         factor = self.tf.funcs[-1].y.size / self.tf.funcs[-1].y.sum()
         self.tf.funcs[-1].y *= 2 * factor
 
@@ -167,7 +158,7 @@ class TransferFunctionHelper:
             xfunc = np.linspace
             # Need to strip units off of the bounds to avoid a recursion error
             # in matplotlib 1.3.1
-            xmi, xma = [np.float64(b) for b in self.bounds]
+            xmi, xma = (np.float64(b) for b in self.bounds)
 
         x = xfunc(xmi, xma, tf.nbins)
         y = tf.funcs[3].y

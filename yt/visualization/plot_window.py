@@ -1,16 +1,17 @@
-import types
 from collections import defaultdict
-from distutils.version import LooseVersion
+from functools import wraps
 from numbers import Number
 
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-from more_itertools import always_iterable, zip_equal
+from more_itertools import always_iterable
 from mpl_toolkits.axes_grid1 import ImageGrid
+from packaging.version import parse as parse_version
 from unyt.exceptions import UnitConversionError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
+from yt.config import ytcfg
 from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
 from yt.funcs import fix_axis, fix_unitary, is_sequence, iter_fields, mylog, obj_length
@@ -47,7 +48,22 @@ from .plot_container import (
 )
 from .plot_modifications import callback_registry
 
-MPL_VERSION = LooseVersion(matplotlib.__version__)
+import sys  # isort: skip
+
+if sys.version_info < (3, 10):
+    # this function is deprecated in more_itertools
+    # because it is superseded by the standard library
+    from more_itertools import zip_equal
+else:
+
+    def zip_equal(*args):
+        # FUTURE: when only Python 3.10+ is supported,
+        # drop this conditional and call the builtin zip
+        # function directly where due
+        return zip(*args, strict=True)
+
+
+MPL_VERSION = parse_version(matplotlib.__version__)
 
 # Some magic for dealing with pyparsing being included or not
 # included in matplotlib (not in gentoo, yes in everything else)
@@ -228,6 +244,14 @@ class PlotWindow(ImagePlotContainer):
                 self._field_transform[field] = log_transform
             else:
                 self._field_transform[field] = linear_transform
+
+            log, linthresh = self._log_config[field]
+            if log is not None:
+                self.set_log(field, log, linthresh=linthresh)
+
+            # Access the dictionary to force the key to be created
+            self._units_config[field]
+
         self.setup_callbacks()
         self._setup_plots()
 
@@ -290,15 +314,56 @@ class PlotWindow(ImagePlotContainer):
         # At this point the frb has the valid bounds, size, aliasing, etc.
         if old_fields is None:
             self._frb._get_data_source_fields()
+
+            # New frb, apply default units (if any)
+            for field, field_unit in self._units_config.items():
+                if field_unit is None:
+                    continue
+
+                field_unit = Unit(field_unit, registry=self.ds.unit_registry)
+                is_projected = getattr(self, "projected", False)
+                if is_projected:
+                    # Obtain config
+                    path_length_units = Unit(
+                        ytcfg.get_most_specific(
+                            "plot", *field, "path_length_units", fallback="cm"
+                        ),
+                        registry=self.ds.unit_registry,
+                    )
+                    units = field_unit * path_length_units
+                else:
+                    units = field_unit
+                try:
+                    self.frb[field].convert_to_units(units)
+                except UnitConversionError:
+                    msg = (
+                        "Could not apply default units from configuration.\n"
+                        "Tried converting projected field %s from %s to %s, retaining units %s:\n"
+                        "\tgot units for field: %s"
+                    )
+                    args = [
+                        field,
+                        self.frb[field].units,
+                        units,
+                        field_unit,
+                        units,
+                    ]
+                    if is_projected:
+                        msg += "\n\tgot units for integration length: %s"
+                        args += [path_length_units]
+
+                    msg += "\nCheck your configuration file."
+
+                    mylog.error(msg, *args)
         else:
             # Restore the old fields
-            for key, unit in zip(old_fields, old_units):
+            for key, units in zip(old_fields, old_units):
                 self._frb[key]
                 equiv = self._equivalencies[key]
                 if equiv[0] is None:
-                    self._frb[key].convert_to_units(unit)
+                    self._frb[key].convert_to_units(units)
                 else:
-                    self.frb.set_unit(key, unit, equiv[0], equiv[1])
+                    self.frb.set_unit(key, units, equiv[0], equiv[1])
 
         # Restore the override fields
         for key in self.override_fields:
@@ -502,9 +567,9 @@ class PlotWindow(ImagePlotContainer):
         >>> import yt
         >>> ds = yt.load("")
         >>> p = yt.SlicePlot(ds, "altitude", "AIRDENS")
-        >>> p.set_mpl_projection('AIRDENS', 'Mollweide')
+        >>> p.set_mpl_projection("AIRDENS", "Mollweide")
         >>> p._setup_plots()
-        >>> p.plots['AIRDENS'].axes.coastlines()
+        >>> p.plots["AIRDENS"].axes.coastlines()
         >>> p.show()
 
         This will move the PlateCarree central longitude to 90 degrees and
@@ -513,11 +578,12 @@ class PlotWindow(ImagePlotContainer):
         >>> import yt
         >>> ds = yt.load("")
         >>> p = yt.SlicePlot(ds, "altitude", "AIRDENS")
-        >>> p.set_mpl_projection('AIRDENS', ('PlateCarree', () ,
-        ...                      {central_longitude=90, globe=None} ))
+        >>> p.set_mpl_projection(
+        ...     "AIRDENS", ("PlateCarree", (), {"central_longitude": 90, "globe": None})
+        ... )
         >>> p._setup_plots()
-        >>> p.plots['AIRDENS'].axes.set_global()
-        >>> p.plots['AIRDENS'].axes.coastlines()
+        >>> p.plots["AIRDENS"].axes.set_global()
+        >>> p.plots["AIRDENS"].axes.coastlines()
         >>> p.show()
 
 
@@ -529,10 +595,10 @@ class PlotWindow(ImagePlotContainer):
         >>> import yt
         >>> ds = yt.load("")
         >>> p = yt.SlicePlot(ds, "altitude", "AIRDENS")
-        >>> p.set_mpl_projection(('RotatedPole', (177.5, 37.5))
+        >>> p.set_mpl_projection("RotatedPole", (177.5, 37.5))
         >>> p._setup_plots()
-        >>> p.plots['AIRDENS'].axes.set_global()
-        >>> p.plots['AIRDENS'].axes.coastlines()
+        >>> p.plots["AIRDENS"].axes.set_global()
+        >>> p.plots["AIRDENS"].axes.coastlines()
         >>> p.show()
 
         This will create a RoatatedPole projection with the unrotated pole
@@ -542,11 +608,12 @@ class PlotWindow(ImagePlotContainer):
         >>> import yt
         >>> ds = yt.load("")
         >>> p = yt.SlicePlot(ds, "altitude", "AIRDENS")
-        >>> p.set_mpl_projection(('RotatedPole', (), {'pole_latitude':37.5,
-        ...                       'pole_longitude':177.5}))
+        >>> p.set_mpl_projection(
+        ...     ("RotatedPole", (), {"pole_latitude": 37.5, "pole_longitude": 177.5})
+        ... )
         >>> p._setup_plots()
-        >>> p.plots['AIRDENS'].axes.set_global()
-        >>> p.plots['AIRDENS'].axes.coastlines()
+        >>> p.plots["AIRDENS"].axes.set_global()
+        >>> p.plots["AIRDENS"].axes.coastlines()
         >>> p.show()
 
         """
@@ -882,9 +949,7 @@ class PWViewerMPL(PlotWindow):
         y_in_bounds = yc >= yllim and yc <= yrlim
 
         if not x_in_bounds and not y_in_bounds:
-            msg = (
-                "origin inputs not in bounds of specified coordinate sytem" + "domain."
-            )
+            msg = "origin inputs not in bounds of specified coordinate system domain."
             msg = msg.format(self.origin)
             raise RuntimeError(msg)
 
@@ -903,7 +968,7 @@ class PWViewerMPL(PlotWindow):
             axis_index = self.data_source.axis
 
             xc, yc = self._setup_origin()
-            if self.ds.unit_system.name.startswith("us") or self.ds.no_cgs_equiv_length:
+            if self.ds.unit_system._code_flag or self.ds.no_cgs_equiv_length:
                 # this should happen only if the dataset was initialized with
                 # argument unit_system="code" or if it's set to have no CGS
                 # equivalent.  This only needs to happen here in the specific
@@ -942,31 +1007,40 @@ class PWViewerMPL(PlotWindow):
                 if zlim != (None, None):
                     pass
                 elif np.nanmax(image) == np.nanmin(image):
-                    msg = (
-                        "Plot image for field %s has zero dynamic "
-                        "range. Min = Max = %f." % (f, np.nanmax(image))
-                    )
+                    msg = f"Plotting {f}: All values = {np.nanmax(image)}"
                 elif np.nanmax(image) <= 0:
                     msg = (
-                        "Plot image for field %s has no positive "
-                        "values.  Max = %f." % (f, np.nanmax(image))
-                    )
-                elif not np.any(np.isfinite(image)):
-                    msg = f"Plot image for field {f} is filled with NaNs."
-                elif np.nanmax(image) > 0.0 and np.nanmin(image) < 0:
-                    msg = (
-                        "Plot image for field %s has both positive "
-                        "and negative values. Min = %f, Max = %f."
-                        % (f, np.nanmin(image), np.nanmax(image))
+                        f"Plotting {f}: All negative values. Max = {np.nanmax(image)}."
                     )
                     use_symlog = True
+                elif not np.any(np.isfinite(image)):
+                    msg = f"Plotting {f}: All values = NaN."
+                elif np.nanmax(image) > 0.0 and np.nanmin(image) < 0:
+                    msg = (
+                        f"Plotting {f}: Both positive and negative values. "
+                        f"Min = {np.nanmin(image)}, Max = {np.nanmax(image)}."
+                    )
+                    use_symlog = True
+                elif np.nanmax(image) > 0.0 and np.nanmin(image) == 0:
+                    # normally, a LogNorm scaling would still be OK here because
+                    # LogNorm will mask 0 values when calculating vmin. But
+                    # due to a bug in matplotlib's imshow, if the data range
+                    # spans many orders of magnitude while containing zero points
+                    # vmin can get rescaled to 0, resulting in an error when the image
+                    # gets drawn. So here we switch to symlog to avoid that until
+                    # a fix is in -- see PR #3161 and linked issue.
+                    cutoff_sigdigs = 15
+                    if (
+                        np.log10(np.nanmax(image[np.isfinite(image)]))
+                        - np.log10(np.nanmin(image[image > 0]))
+                        > cutoff_sigdigs
+                    ):
+                        msg = f"Plotting {f}: Wide range and zeros."
+                        use_symlog = True
                 if msg is not None:
                     mylog.warning(msg)
                     if use_symlog:
-                        mylog.warning(
-                            "Switching to symlog colorbar scaling "
-                            "unless linear scaling is specified later"
-                        )
+                        mylog.warning("Switching to symlog colorbar scaling.")
                         self._field_transform[f] = symlog_transform
                         self._field_transform[f].func = None
                     else:
@@ -1008,7 +1082,7 @@ class PWViewerMPL(PlotWindow):
                 ia,
                 self._field_transform[f].name,
                 self._field_transform[f].func,
-                self._colormaps[f],
+                self._colormap_config[f],
                 extent,
                 zlim,
                 self.figure_size,
@@ -1054,13 +1128,13 @@ class PWViewerMPL(PlotWindow):
                             0, self.xlim, self.ylim
                         )
                     else:
-                        xmin, xmax = [float(x) for x in extentx]
+                        xmin, xmax = (float(x) for x in extentx)
                     if yax in coordinates.axis_field:
                         ymin, ymax = coordinates.axis_field[yax](
                             1, self.xlim, self.ylim
                         )
                     else:
-                        ymin, ymax = [float(y) for y in extenty]
+                        ymin, ymax = (float(y) for y in extenty)
                     self.plots[f].image.set_extent((xmin, xmax, ymin, ymax))
                     self.plots[f].axes.set_aspect("auto")
 
@@ -1076,10 +1150,7 @@ class PWViewerMPL(PlotWindow):
 
             color = self._background_color[f]
 
-            if LooseVersion(matplotlib.__version__) < LooseVersion("2.0.0"):
-                self.plots[f].axes.set_axis_bgcolor(color)
-            else:
-                self.plots[f].axes.set_facecolor(color)
+            self.plots[f].axes.set_facecolor(color)
 
             # Determine the units of the data
             units = Unit(self.frb[f].units, registry=self.ds.unit_registry)
@@ -1131,7 +1202,7 @@ class PWViewerMPL(PlotWindow):
                     self.plots[f].cax.yaxis.set_ticks(mticks, minor=True)
 
                 elif self._field_transform[f] == log_transform:
-                    if MPL_VERSION >= LooseVersion("3.0.0"):
+                    if MPL_VERSION >= parse_version("3.0.0"):
                         self.plots[f].cax.minorticks_on()
                         self.plots[f].cax.xaxis.set_visible(False)
                     else:
@@ -1195,10 +1266,31 @@ class PWViewerMPL(PlotWindow):
             if key in ignored:
                 continue
             cbname = callback_registry[key]._type_name
-            CallbackMaker = callback_registry[key]
-            callback = invalidate_plot(apply_callback(CallbackMaker))
-            callback.__doc__ = CallbackMaker.__doc__
-            self.__dict__["annotate_" + cbname] = types.MethodType(callback, self)
+
+            # We need to wrap to create a closure so that
+            # CallbackMaker is bound to the wrapped method.
+            def closure():
+                CallbackMaker = callback_registry[key]
+
+                @wraps(CallbackMaker)
+                def method(*args, **kwargs):
+                    # We need to also do it here as "invalidate_plot"
+                    # and "apply_callback" require the functions'
+                    # __name__ in order to work properly
+                    @wraps(CallbackMaker)
+                    def cb(self, *a, **kwa):
+                        # We construct the callback method
+                        # skipping self
+                        return CallbackMaker(*a, **kwa)
+
+                    # Create callback
+                    cb = invalidate_plot(apply_callback(cb))
+
+                    return cb(self, *args, **kwargs)
+
+                return method
+
+            self.__dict__["annotate_" + cbname] = closure()
 
     def annotate_clear(self, index=None):
         """
@@ -1239,7 +1331,7 @@ class PWViewerMPL(PlotWindow):
     def list_annotations(self):
         """
         List the current callbacks for the plot, along with their index.  This
-        index can be used with annotate_clear to remove a callback from the
+        index can be used with `clear_annotations` to remove a callback from the
         current plot.
         """
         for i, cb in enumerate(self._callbacks):
@@ -1313,11 +1405,11 @@ class PWViewerMPL(PlotWindow):
 
         >>> import yt
         >>> ds = yt.load_sample("IsolatedGalaxy")
-        >>> fields = ['density', 'velocity_x', 'velocity_y', 'velocity_magnitude']
-        >>> p = yt.SlicePlot(ds, 'z', fields)
-        >>> p.set_log('velocity_x', False)
-        >>> p.set_log('velocity_y', False)
-        >>> fig = p.export_to_mpl_figure((2,2))
+        >>> fields = ["density", "velocity_x", "velocity_y", "velocity_magnitude"]
+        >>> p = yt.SlicePlot(ds, "z", fields)
+        >>> p.set_log("velocity_x", False)
+        >>> p.set_log("velocity_y", False)
+        >>> fig = p.export_to_mpl_figure((2, 2))
         >>> fig.tight_layout()
         >>> fig.savefig("test.png")
 
@@ -1462,9 +1554,9 @@ class AxisAlignedSlicePlot(PWViewerMPL):
     This will save an image in the file 'sliceplot_Density.png'
 
     >>> from yt import load
-    >>> ds = load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    >>> p = SlicePlot(ds, 2, 'density', 'c', (20, 'kpc'))
-    >>> p.save('sliceplot')
+    >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> p = SlicePlot(ds, 2, "density", "c", (20, "kpc"))
+    >>> p.save("sliceplot")
 
     """
     _plot_type = "Slice"
@@ -1679,8 +1771,8 @@ class ProjectionPlot(PWViewerMPL):
     center of the simulation box:
 
     >>> from yt import load
-    >>> ds = load('IsolateGalaxygalaxy0030/galaxy0030')
-    >>> p = ProjectionPlot(ds, "z", "density", width=(20, "kpc"))
+    >>> ds = load("IsolateGalaxygalaxy0030/galaxy0030")
+    >>> p = ProjectionPlot(ds, "z", ("gas", "density"), width=(20, "kpc"))
 
     """
     _plot_type = "Projection"
@@ -2333,10 +2425,11 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
 
     >>> from yt import load
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    >>> slc = SlicePlot(ds, "x", "density", center=[0.2,0.3,0.4])
-    >>>
-    >>> slc = SlicePlot(ds, [0.4, 0.2, -0.1], "pressure",
-    ...                 north_vector=[0.2,-0.3,0.1])
+    >>> slc = SlicePlot(ds, "x", ("gas", "density"), center=[0.2, 0.3, 0.4])
+
+    >>> slc = SlicePlot(
+    ...     ds, [0.4, 0.2, -0.1], ("gas", "pressure"), north_vector=[0.2, -0.3, 0.1]
+    ... )
 
     """
     if axis is not None:

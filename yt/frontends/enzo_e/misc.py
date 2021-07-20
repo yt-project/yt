@@ -7,7 +7,7 @@ def bdecode(block):
     Decode a block descriptor to get its left and right sides and level.
 
     A block string consisting of (0, 1), with optionally one colon. The
-    number of digits after the colon is the refinemenet level. The combined
+    number of digits after the colon is the refinement level. The combined
     digits denote the binary representation of the left edge.
     """
 
@@ -46,7 +46,7 @@ def get_block_info(block, min_dim=3):
     axis) and level.
 
     Unrefined blocks in the root array (which can each hold an of octree) have
-    a refinement level of 0 while their ancestors (used internally by Enzo-p's
+    a refinement level of 0 while their ancestors (used internally by Enzo-E's
     solvers - they don't actually hold meaningful data) have negative levels.
     Because identification of negative refinement levels requires knowledge of
     the root array shape (the 'root_blocks' value specified in the parameter

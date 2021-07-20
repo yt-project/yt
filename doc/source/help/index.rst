@@ -34,51 +34,11 @@ Update to the latest version
 ----------------------------
 
 Sometimes the pace of development is pretty fast on yt, particularly in the
-development branch, so a fix to your problem may have already been developed
-by the time you encounter it.  Many users' problems can simply be corrected
-by updating to the latest version of the code and/or its dependencies. If you
-have installed the latest stable release of yt then you should update yt using
-the package manager appropriate for your python installation. For example, with
-``pip``::
-
-  $ pip install -U yt
-
-Or with conda::
-
-  $ conda update yt
-
-If you installed yt from a checkout of the git repository, you can update to
-the latest development version by issuing the following command:
-
-.. code-block:: bash
-
-  $ yt update
-
-.. _update-errors:
-
-Update errors
-^^^^^^^^^^^^^
-
-If for some reason the ``update`` command fails with errors, or any attempt at
-loading yt either from the command line or from within python also fails, it
-may simply mean you need to rebuild the yt source (some of the c-code in yt
-needs to be rebuilt after major changes).  You can do this by navigating to
-the root of the yt git repository.  If you installed with the all-in-one
-installer script, this is the ``yt-<machine>/src/yt-git`` directory.  Then
-execute these commands:
-
-.. code-block:: bash
-
-  $ pip install -e .
-
-Now try running yt again with:
-
-.. code-block:: bash
-
-  $ yt --help
-
-If you continue to see errors, you should try contacting us via Slack, IRC or
-email but you may have to reinstall yt (see :ref:`getting-and-installing-yt`).
+development branch, so a fix to your problem may have already been developed by
+the time you encounter it.  Many users' problems can simply be corrected by
+updating to the latest version of the code and/or its dependencies. If you have
+installed the latest stable release of yt then you should update yt using the
+package manager appropriate for your python installation. See :ref:updating.
 
 .. _search-the-documentation:
 
@@ -117,26 +77,15 @@ Look at the source code
 We've done our best to make the source clean, and it is easily searchable from
 your computer.
 
-If you have not done so already (see :ref:`source-installation`), clone a copy
+If you have not done so already (see :ref:`install-from-source`), clone a copy
 of the yt git repository and make it the 'active' installation by doing
 
-.. code-block:: bash
-
-   $ pip install -e .
-
-in the root directory of the yt git repository.
-
-.. note::
-
-  This has already been done for you if you installed using the bash install
-  script.  Building yt from source will not work if you do not have a C compiler
-  installed.
 
 Once inside the yt git repository, you can then search for the class,
 function, or keyword which is giving you problems with ``grep -r *``, which will
 recursively search throughout the code base.  (For a much faster and cleaner
 experience, we recommend ``grin`` instead of ``grep -r *``.  To install ``grin``
-with python, just type ``pip install grin``.)
+with python, just type ``python -m pip install grin``.)
 
 So let's say that ``SlicePlot`` is giving you problems still, and you want to
 look at the source to figure out what is going on.
@@ -177,24 +126,16 @@ the problem!
 
 .. _irc:
 
-Go on Slack or IRC to ask a question
-------------------------------------
+Go on Slack to ask a question
+-----------------------------
 
 If you want a fast, interactive experience, you could try jumping into our Slack
-or IRC channels to get your questions answered in a chatroom style environment.
+to get your questions answered in a chatroom style environment.
 
 To join our slack channel you will need to request an invite by going to
 https://yt-project.org/development.html, click the "Join as @ Slack!" button, and
 fill out the form. You will get an invite as soon as an administrator approves
 your request.
-
-Alternatively you can go to our IRC channel, which does not require an
-invite. You don't even need to have any special IRC client in order to join the
-IRC channel.  We are the #yt channel on irc.freenode.net, but you can also
-connect using your web browser by going to https://yt-project.org/irc.html .
-There are usually 2-8 members of the user base and development team online, so
-you'll probably get your answers quickly.  Remember to bring the information
-from the :ref:`last step <isolate_and_document>`.
 
 .. _mailing-list:
 
@@ -237,7 +178,7 @@ Installation Issues
 ^^^^^^^^^^^^^^^^^^^
 
 If you are having installation issues and nothing from the
-:ref:`installation instructions <getting-and-installing-yt>` seems to work, you should
+:ref:`installation instructions <installing-yt>` seems to work, you should
 *definitely* email the ``yt-users`` email list.  You should provide information
 about the host, the version of the code you are using, and the output of
 ``yt_install.log`` from your installation.  We are very interested in making

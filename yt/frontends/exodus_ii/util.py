@@ -8,12 +8,12 @@ import numpy as np
 
 def get_num_pseudo_dims(coords):
     D = coords.shape[1]
-    return sum([np.all(coords[:, dim] == 0.0) for dim in range(D)])
+    return sum(np.all(coords[:, dim] == 0.0) for dim in range(D))
 
 
 def sanitize_string(s):
     _printable = {ord(_) for _ in string.printable}
-    return "".join([chr(_) for _ in takewhile(lambda a: a in _printable, s)])
+    return "".join(chr(_) for _ in takewhile(lambda a: a in _printable, s))
 
 
 def load_info_records(info_records):

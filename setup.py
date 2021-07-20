@@ -1,12 +1,9 @@
 import glob
 import os
-import sys
 from collections import defaultdict
 from distutils.ccompiler import get_default_compiler
-from distutils.version import LooseVersion
 
-import pkg_resources
-from setuptools import Distribution, find_packages, setup
+from setuptools import Distribution, setup
 
 from setupext import (
     check_CPP14_flags,
@@ -18,19 +15,7 @@ from setupext import (
 
 install_ccompiler()
 
-try:
-    distribute_ver = LooseVersion(pkg_resources.get_distribution("distribute").version)
-    if distribute_ver < LooseVersion("0.7.3"):
-        print("Distribute is a legacy package obsoleted by setuptools.")
-        print("We strongly recommend that you just uninstall it.")
-        print("If for some reason you cannot do it, you'll need to upgrade it")
-        print("to latest version before proceeding:")
-        print("    pip install -U distribute")
-        sys.exit(1)
-except pkg_resources.DistributionNotFound:
-    pass  # yay!
-
-VERSION = "4.0.dev0"
+VERSION = "4.1.dev0"
 
 if os.path.exists("MANIFEST"):
     os.remove("MANIFEST")
@@ -102,68 +87,7 @@ class BinaryDistribution(Distribution):
 
 if __name__ == "__main__":
     setup(
-        name="yt",
-        version=VERSION,
-        description="An analysis and visualization toolkit for volumetric data",
-        long_description=long_description,
-        long_description_content_type="text/markdown",
-        classifiers=[
-            "Development Status :: 5 - Production/Stable",
-            "Environment :: Console",
-            "Intended Audience :: Science/Research",
-            "License :: OSI Approved :: BSD License",
-            "Operating System :: MacOS :: MacOS X",
-            "Operating System :: POSIX :: AIX",
-            "Operating System :: POSIX :: Linux",
-            "Programming Language :: C",
-            "Programming Language :: Python :: 3",
-            "Programming Language :: Python :: 3.5",
-            "Programming Language :: Python :: 3.6",
-            "Programming Language :: Python :: 3.7",
-            "Programming Language :: Python :: 3.8",
-            "Programming Language :: Python :: 3.9",
-            "Topic :: Scientific/Engineering :: Astronomy",
-            "Topic :: Scientific/Engineering :: Physics",
-            "Topic :: Scientific/Engineering :: Visualization",
-            "Framework :: Matplotlib",
-        ],
-        keywords="astronomy astrophysics visualization " + "amr adaptivemeshrefinement",
-        entry_points={
-            "console_scripts": [
-                "yt = yt.utilities.command_line:run_main",
-            ],
-            "nose.plugins.0.10": [
-                "answer-testing = yt.utilities.answer_testing.framework:AnswerTesting"
-            ],
-        },
-        packages=find_packages(),
-        include_package_data=True,
-        install_requires=[
-            "matplotlib>=1.5.3",
-            "setuptools>=19.6",
-            "sympy>=1.2",
-            "numpy>=1.10.4",
-            "IPython>=1.0",
-            "unyt>=2.7.2",
-            "more_itertools>=8.4",
-            "tqdm>=3.4.0",
-            "toml>=0.10.2",
-        ],
-        extras_require={"hub": ["girder_client"], "mapserver": ["bottle"]},
         cmdclass={"sdist": sdist, "build_ext": build_ext},
-        author="The yt project",
-        author_email="yt-dev@python.org",
-        url="https://github.com/yt-project/yt",
-        project_urls={
-            "Homepage": "https://yt-project.org/",
-            "Documentation": "https://yt-project.org/doc/",
-            "Source": "https://github.com/yt-project/yt/",
-            "Tracker": "https://github.com/yt-project/yt/issues",
-        },
-        license="BSD 3-Clause",
-        zip_safe=False,
-        scripts=["scripts/iyt"],
         distclass=BinaryDistribution,
         ext_modules=[],  # !!! We override this inside build_ext above
-        python_requires=">=3.6",
     )
