@@ -210,6 +210,7 @@ class ParticleIndex(Index):
                 self.regions._coarse_index_data_file(pos, hsml, data_file.file_id)
         pb.finish()
         self.regions.masks = self.comm.mpi_allreduce(self.regions.masks, op="sum")
+        self.regions.particle_counts = self.comm.mpi_allreduce(self.regions.particle_counts, op="sum")
         for data_file in self.data_files:
             self.regions._set_coarse_index_data_file(data_file.file_id)
         self.regions.find_collisions_coarse()
