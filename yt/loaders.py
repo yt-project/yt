@@ -4,12 +4,11 @@ This module gathers all user-facing functions with a `load_` prefix.
 """
 import atexit
 import os
-import platform
 import sys
 import tarfile
 import time
 import types
-from multiprocessing import Process
+from multiprocessing import Pipe, Process
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 from urllib.parse import urlsplit
@@ -1498,11 +1497,6 @@ def load_archive(
     - This function requires ratarmount.
     - This function does not work on Windows system.
     """
-    if platform.system() not in ("Linux", "Darwin"):
-        raise RuntimeError(
-            "Reading from an archive is not supported on your operating system"
-            f" ({platform.system()})."
-        )
 
     fn = os.path.realpath(fn)
 
@@ -1523,13 +1517,19 @@ def load_archive(
         i += 1
         tempdir = f"{tempdir_base}.{i}"
 
-    def mount(archive: str, mountPoint: str, ratarmount_kwa: Dict):
-        fuseOperationsObject = ratarmount.TarMount(
-            pathToMount=archive,
-            mountPoint=mountPoint,
-            lazyMounting=True,
-            **ratarmount_kwa,
-        )
+    def mount(archive: str, mountPoint: str, ratarmount_kwa: Dict, conn: Pipe):
+        try:
+            fuseOperationsObject = ratarmount.TarMount(
+                pathToMount=archive,
+                mountPoint=mountPoint,
+                lazyMounting=True,
+                **ratarmount_kwa,
+            )
+            conn.send(True)
+        except Exception:
+            conn.send(False)
+            raise
+
         ratarmount.fuse.FUSE(
             operations=fuseOperationsObject,
             mountpoint=mountPoint,
@@ -1537,14 +1537,18 @@ def load_archive(
             nothreads=True,
         )
 
-    proc = Process(target=mount, args=(fn, tempdir, ratarmount_kwa))
+    parent_conn, child_conn = Pipe()
+    proc = Process(target=mount, args=(fn, tempdir, ratarmount_kwa, child_conn))
     proc.start()
+    if not parent_conn.recv():
+        raise Exception("Could not mount")
+
     # Note: the mounting needs to happen in another process which
     # needs be run in the foreground (otherwise it may
     # unmount). To prevent a race-condition here, we wait
     # for the folder to be mounted within a reasonable time.
     retry = 0
-    while retry < 100:
+    while retry < 10:
         if os.path.ismount(tempdir):
             break
         time.sleep(0.1)
