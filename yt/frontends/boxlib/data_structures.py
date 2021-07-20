@@ -751,9 +751,9 @@ class BoxlibDataset(Dataset):
                 # domain_dimensions to have three elements, with 1 in the additional
                 # slots if we're not in 3D, so append them as necessary.
 
-                if len(vals) == 1:
+                if self.dimensionality == 1:
                     vals = self.domain_dimensions = np.array([vals[0], 1, 1])
-                elif len(vals) == 2:
+                elif self.dimensionality == 2:
                     vals = self.domain_dimensions = np.array([vals[0], vals[1], 1])
             elif param == "amr.ref_ratio":
                 vals = self.refine_by = int(vals[0])
