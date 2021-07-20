@@ -1475,7 +1475,8 @@ def load_archive(
 ) -> Dataset:
     if platform.system() not in ("Linux", "Darwin"):
         raise RuntimeError(
-            "Reading from an archive is not supported on your operating system (%s)."
+            "Reading from an archive is not supported on your operating system"
+            f" ({platform.system()})."
         )
 
     if isinstance(fn, Path):
