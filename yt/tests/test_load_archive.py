@@ -74,4 +74,4 @@ def test_load_archive(fn, exact_loc, class_: str, tmp_data_dir, data_registry):
 )
 def test_load_archive_fail_windows():
     with pytest.raises(RuntimeError):
-        load_archive("whatever")
+        load_archive("foo", "bar")
