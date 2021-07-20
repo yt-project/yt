@@ -8,9 +8,9 @@ import platform
 import sys
 import tarfile
 import time
+import types
 from multiprocessing import Process
 from pathlib import Path
-from subprocess import call
 from typing import Dict, List, Optional, Tuple, Union
 from urllib.parse import urlsplit
 
@@ -1490,8 +1490,7 @@ def load_archive(
     if compression is None:
         raise YTUnidentifiedDataType(fn, *args, **kwargs)
 
-    # Note: the temporary directory will be created
-    # by ratarmount
+    # Note: the temporary directory will be created by ratarmount
     tempdir = fn + ".mount"
     tempdir_base = tempdir
     i = 0
@@ -1499,27 +1498,23 @@ def load_archive(
         i += 1
         tempdir = f"{tempdir_base}.{i}"
 
-    def mount(filename, mnt_dir, kwa):
-        mylog.info("Mounting archive into %s", mnt_dir)
-        args = []
-        for key, val in kwa.items():
-            args.extend([f"--{key}", val])
-        args.extend(["--foreground"])
-        args.extend([filename, mnt_dir])
-        ratarmount.cli(args)
+    def mount(archive: str, mountPoint: str, ratarmount_kwa: Dict):
+        fuseOperationsObject = ratarmount.TarMount(
+            pathToMount=archive,
+            mountPoint=mountPoint,
+            lazyMounting=True,
+            **ratarmount_kwa,
+        )
+        ratarmount.fuse.FUSE(
+            operations=fuseOperationsObject,
+            mountpoint=mountPoint,
+            foreground=True,
+            nothreads=True,
+        )
 
-    def umount(mnt_dir):
-        mylog.info("Unmounting archive %s", mnt_dir)
-        if platform.system() == "Linux":
-            call(["fusermount", "-u", mnt_dir])
-        else:
-            call(["umount", mnt_dir])
-
-    # Mount the archive in another process
     proc = Process(target=mount, args=(fn, tempdir, ratarmount_kwa))
     proc.start()
-
-    # Note: the mounting happens in another process which
+    # Note: the mounting needs to happen in another process which
     # needs be run in the foreground (otherwise it may
     # unmount). To prevent a race-condition here, we wait
     # for the folder to be mounted within a reasonable time.
@@ -1532,7 +1527,18 @@ def load_archive(
     else:
         raise Exception("Could not mount")
 
-    # At exit of the interpreter, unmount
-    atexit.register(umount, mnt_dir=tempdir)
+    # We need to kill the process at exit (to force unmounting)
+    def umount_callback():
+        proc.terminate()
 
-    return load(os.path.join(tempdir, path), *args, **kwargs)
+    atexit.register(umount_callback)
+
+    # Alternatively, can dismount manually
+    def del_callback(self):
+        proc.terminate()
+        atexit.unregister(umount_callback)
+
+    ds = load(os.path.join(tempdir, path), *args, **kwargs)
+    ds.dismount = types.MethodType(del_callback, ds)
+
+    return ds

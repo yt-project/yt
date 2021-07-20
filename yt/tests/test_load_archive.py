@@ -1,4 +1,5 @@
 import sys
+import time
 
 import pytest
 
@@ -45,11 +46,26 @@ def tmp_data_dir(tmp_path):
     ],
 )
 def test_load_archive(fn, exact_loc, class_: str, tmp_data_dir, data_registry):
-    # First load the sample file (.tar.gz'd file)
+    # Download the sample .tar.gz'd file
     archive_path = _download_sample_data_file(filename=fn)
-    # Now try opening the tar directly
+
+    # Open the tar directly
     ds = load_archive(archive_path, exact_loc)
     assert type(ds).__name__ == class_
+
+    # Check cleanup
+    mount_path = archive_path.with_name(archive_path.name + ".mount")
+    assert mount_path.is_mount()
+
+    ## Manually dismount
+    ds.dismount()
+
+    ## The dismounting happens concurrently, wait a few sec.
+    time.sleep(2)
+
+    ## Mount path should not exist anymore *and* have been deleted
+    assert not mount_path.is_mount()
+    assert not mount_path.exists()
 
 
 @pytest.mark.skipif(
