@@ -36,6 +36,30 @@ any arguments, and it will return a list of the names that can be supplied:
 
 This will return a list of possible filenames; more information can be accessed on the data catalog.
 
+
+.. _loading-archived-data:
+
+Archived Data
+-------------
+
+If your data is stored is archived in a (compressed) tar file, you can access the contained
+dataset directly without extracting the tar file.
+This can be achieved using the ``load_archive`` function:
+
+.. code-block:: python
+
+   import yt
+
+   ds = yt.load_archive("IsolatedGalaxy.tar.gz", "IsolatedGalaxy/galaxy0030/galaxy0030")
+
+The first argument is the path to the archive file, the second one is the path to the file to load
+in the archive. Subsequent arguments are passed to ``yt.load``.
+
+The functionality requires the package `ratarmount <https://github.com/mxmlnkn/ratarmount/>`_ to be installed.
+Under the hood, yt will mount the archive as a (read-only) filesystem. Note that this requires the
+entire archive to be read once to compute the location of each file in the archive; subsequent accesses
+will be much faster.
+
 .. _loading-amrvac-data:
 
 AMRVAC Data

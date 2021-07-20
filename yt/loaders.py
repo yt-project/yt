@@ -1473,6 +1473,31 @@ def load_archive(
     *args,
     **kwargs,
 ) -> Dataset:
+    r"""
+    Load archived data with yt.
+
+    This is a wrapper around :func:`~yt.loaders.load` to include mounting
+    and unmounting the archive as a read-only filesystem and load it.
+
+    Parameters
+    ----------
+
+    fn: str
+        The `filename` of the archive containing the dataset.
+
+    path: str
+        The path to the dataset in the archive.
+
+    ratarmount_kwa: dict, optional
+        Optional parameters to pass to ratarmount to mount the archive.
+
+    Notes
+    -----
+
+    - Any additional keyword argument is passed down to :func:`~yt.loaders.load`.
+    - This function requires ratarmount.
+    - This function does not work on Windows system.
+    """
     if platform.system() not in ("Linux", "Darwin"):
         raise RuntimeError(
             "Reading from an archive is not supported on your operating system"
