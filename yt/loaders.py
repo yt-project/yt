@@ -1504,8 +1504,7 @@ def load_archive(
             f" ({platform.system()})."
         )
 
-    if isinstance(fn, Path):
-        fn = str(fn.resolve().absolute())
+    fn = os.path.realpath(fn)
 
     if ratarmount_kwa is None:
         ratarmount_kwa = {}

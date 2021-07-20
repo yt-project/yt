@@ -42,7 +42,7 @@ This will return a list of possible filenames; more information can be accessed 
 Archived Data
 -------------
 
-If your data is stored is archived in a (compressed) tar file, you can access the contained
+If your data is stored as a (compressed) tar file, you can access the contained
 dataset directly without extracting the tar file.
 This can be achieved using the ``load_archive`` function:
 
