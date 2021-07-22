@@ -1,9 +1,7 @@
 import numpy as np
 
-from yt.funcs import mylog
-from yt.geometry.geometry_handler import is_curvilinear
 from yt.units.unit_object import Unit
-from yt.utilities.chemical_formulas import default_mu
+from yt.utilities.chemical_formulas import compute_mu
 from yt.utilities.lib.misc_utilities import obtain_relative_velocity_vector
 
 from .derived_field import ValidateParameter, ValidateSpatial
@@ -94,7 +92,7 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
     )
 
     def _radial_mach_number(field, data):
-        """ Radial component of M{|v|/c_sound} """
+        """Radial component of M{|v|/c_sound}"""
         tr = data[ftype, "radial_velocity"] / data[ftype, "sound_speed"]
         return np.abs(tr)
 
@@ -130,7 +128,7 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
     )
 
     def _mach_number(field, data):
-        """ M{|v|/c_sound} """
+        """M{|v|/c_sound}"""
         return data[ftype, "velocity_magnitude"] / data[ftype, "sound_speed"]
 
     registry.add_field(
@@ -158,7 +156,7 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
     )
 
     def _pressure(field, data):
-        """ M{(Gamma-1.0)*rho*E} """
+        """M{(Gamma-1.0)*rho*E}"""
         tr = (data.ds.gamma - 1.0) * (
             data[ftype, "density"] * data[ftype, "specific_thermal_energy"]
         )
@@ -216,7 +214,7 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
     else:
 
         def _number_density(field, data):
-            mu = getattr(data.ds, "mu", default_mu)
+            mu = getattr(data.ds, "mu", compute_mu(data.ds.default_species_fields))
             return data[ftype, "density"] / (pc.mh * mu)
 
     registry.add_field(
@@ -255,14 +253,6 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
 
 
 def setup_gradient_fields(registry, grad_field, field_units, slice_info=None):
-
-    geom = registry.ds.geometry
-    if is_curvilinear(geom):
-        mylog.warning(
-            "In %s geometry, gradient fields may contain "
-            "artifacts near cartesian axes.",
-            geom,
-        )
 
     assert isinstance(grad_field, tuple)
     ftype, fname = grad_field

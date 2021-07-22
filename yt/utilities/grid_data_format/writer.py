@@ -61,11 +61,15 @@ def write_to_gdf(
 
     Examples
     --------
-    >>> dataset_units = {"length_unit":(1.0,"Mpc"),
-    ...                  "time_unit":(1.0,"Myr")}
-    >>> write_to_gdf(ds, "clumps.h5", data_author="John ZuHone",
-    ...              dataset_units=dataset_units,
-    ...              data_comment="My Really Cool Dataset", overwrite=True)
+    >>> dataset_units = {"length_unit": (1.0, "Mpc"), "time_unit": (1.0, "Myr")}
+    >>> write_to_gdf(
+    ...     ds,
+    ...     "clumps.h5",
+    ...     data_author="John ZuHone",
+    ...     dataset_units=dataset_units,
+    ...     data_comment="My Really Cool Dataset",
+    ...     overwrite=True,
+    ... )
     """
     if fields is None:
         fields = ds.field_list
@@ -125,17 +129,16 @@ def _write_fields_to_gdf(
     ds, fhandle, fields, particle_type_name, field_parameters=None
 ):
 
-    for field_name in fields:
+    for field in fields:
         # add field info to field_types group
         g = fhandle["field_types"]
         # create the subgroup with the field's name
-        if isinstance(field_name, tuple):
-            field_name = field_name[1]
-        fi = ds._get_field_info(field_name)
+        fi = ds._get_field_info(field)
+        ftype, fname = fi.name
         try:
-            sg = g.create_group(field_name)
+            sg = g.create_group(fname)
         except ValueError:
-            print("Error - File already contains field called " + field_name)
+            print("Error - File already contains field called " + field)
             sys.exit(1)
 
         # grab the display name and units from the field info container.
@@ -146,7 +149,7 @@ def _write_fields_to_gdf(
         if display_name:
             sg.attrs["field_name"] = np.string_(display_name)
         else:
-            sg.attrs["field_name"] = np.string_(field_name)
+            sg.attrs["field_name"] = np.string_(str(field))
         if units:
             sg.attrs["field_units"] = np.string_(units)
         else:
@@ -157,25 +160,20 @@ def _write_fields_to_gdf(
     # first we must create the datasets on all processes.
     g = fhandle["data"]
     for grid in ds.index.grids:
-        for field_name in fields:
+        for field in fields:
 
             # sanitize get the field info object
-            if isinstance(field_name, tuple):
-                field_name = field_name[1]
-            fi = ds._get_field_info(field_name)
+            fi = ds._get_field_info(field)
+            ftype, fname = fi.name
 
             grid_group = g["grid_%010i" % (grid.id - grid._id_offset)]
             particles_group = grid_group["particles"]
             pt_group = particles_group[particle_type_name]
 
             if fi.sampling_type == "particle":  # particle data
-                pt_group.create_dataset(
-                    field_name, grid.ActiveDimensions, dtype="float64"
-                )
+                pt_group.create_dataset(fname, grid.ActiveDimensions, dtype="float64")
             else:  # a field
-                grid_group.create_dataset(
-                    field_name, grid.ActiveDimensions, dtype="float64"
-                )
+                grid_group.create_dataset(fname, grid.ActiveDimensions, dtype="float64")
 
     # now add the actual data, grid by grid
     g = fhandle["data"]
@@ -185,12 +183,11 @@ def _write_fields_to_gdf(
         # is there a better way to the get the grids on each chunk?
         for chunk in ds.index._chunk_io(region):
             for grid in chunk.objs:
-                for field_name in fields:
+                for field in fields:
 
                     # sanitize and get the field info object
-                    if isinstance(field_name, tuple):
-                        field_name = field_name[1]
-                    fi = ds._get_field_info(field_name)
+                    fi = ds._get_field_info(field)
+                    ftype, fname = fi.name
 
                     # set field parameters, if specified
                     if field_parameters is not None:
@@ -202,14 +199,14 @@ def _write_fields_to_gdf(
                     pt_group = particles_group[particle_type_name]
                     # add the field data to the grid group
                     # Check if this is a real field or particle data.
-                    grid.get_data(field_name)
-                    units = fhandle["field_types"][field_name].attrs["field_units"]
+                    grid.get_data(field)
+                    units = fhandle["field_types"][fname].attrs["field_units"]
                     if fi.sampling_type == "particle":  # particle data
-                        dset = pt_group[field_name]
-                        dset[:] = grid[field_name].in_units(units)
+                        dset = pt_group[fname]
+                        dset[:] = grid[field].in_units(units)
                     else:  # a field
-                        dset = grid_group[field_name]
-                        dset[:] = grid[field_name].in_units(units)
+                        dset = grid_group[fname]
+                        dset[:] = grid[field].in_units(units)
 
 
 @contextmanager

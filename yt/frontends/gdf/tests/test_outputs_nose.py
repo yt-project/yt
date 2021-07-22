@@ -6,7 +6,7 @@ from yt.utilities.answer_testing.framework import (
     small_patch_amr,
 )
 
-_fields = ("density", "velocity_x")
+_fields = [("gas", "density"), ("gas", "velocity_x")]
 
 sedov = "sedov/sedov_tst_0004.h5"
 

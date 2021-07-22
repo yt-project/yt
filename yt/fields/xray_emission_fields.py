@@ -209,8 +209,9 @@ def add_xray_emissivity_field(
     >>> import yt
     >>> ds = yt.load("sloshing_nomag2_hdf5_plt_cnt_0100")
     >>> yt.add_xray_emissivity_field(ds, 0.5, 2)
-    >>> p = yt.ProjectionPlot(ds, 'x', ("gas","xray_emissivity_0.5_2_keV"),
-    ...                       table_type='apec')
+    >>> p = yt.ProjectionPlot(
+    ...     ds, "x", ("gas", "xray_emissivity_0.5_2_keV"), table_type="apec"
+    ... )
     >>> p.save()
     """
     if not isinstance(metallicity, float) and metallicity is not None:
@@ -335,7 +336,7 @@ def add_xray_emissivity_field(
                     dist = ds.quan(*dist)
                 except (RuntimeError, TypeError):
                     raise TypeError(
-                        "dist should be a YTQuantity " "or a (value, unit) tuple!"
+                        "dist should be a YTQuantity or a (value, unit) tuple!"
                     ) from e
 
             angular_scale = dist / ds.quan(1.0, "radian")

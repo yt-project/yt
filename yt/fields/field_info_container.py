@@ -1,3 +1,4 @@
+from collections import defaultdict
 from numbers import Number as numeric_type
 from typing import Optional, Tuple
 
@@ -61,6 +62,7 @@ class FieldInfoContainer(dict):
         self.slice_info = slice_info
         self.field_aliases = {}
         self.species_names = []
+        self._ambiguous_field_names = defaultdict(set)
         if ds is not None and is_curvilinear(ds.geometry):
             self.curvilinear = True
         else:
@@ -273,9 +275,9 @@ class FieldInfoContainer(dict):
 
         Parameters
         ----------
-        sampling_type: str
+        sampling_type : str
             One of "cell", "particle" or "local" (case insensitive)
-        particle_type: str
+        particle_type : str
             This is a deprecated argument of the add_field method,
             which was replaced by sampling_type.
 
@@ -421,6 +423,13 @@ class FieldInfoContainer(dict):
     def add_output_field(self, name, sampling_type, **kwargs):
         kwargs.setdefault("ds", self.ds)
         self[name] = DerivedField(name, sampling_type, NullFunc, **kwargs)
+
+    def __setitem__(self, key, value):
+        ftype, fname = key
+        # Mark fields with same `fname`s (but difference `ftype`s) as ambiguous
+        if any((fname == _fname) and (ftype != _ftype) for _ftype, _fname in self):
+            self._ambiguous_field_names[fname].add(ftype)
+        super().__setitem__(key, value)
 
     def alias(
         self,
@@ -658,4 +667,21 @@ class FieldInfoContainer(dict):
             dfl = filtered_dfl
 
         self.ds.derived_field_list = dfl
+        self._set_linear_fields()
         return deps, unavailable
+
+    def _set_linear_fields(self):
+        """
+        Sets which fields use linear as their default scaling in Profiles and
+        PhasePlots. Default for all fields is set to log, so this sets which
+        are linear.  For now, set linear to geometric fields: position and
+        velocity coordinates.
+        """
+        non_log_prefixes = ("", "velocity_", "particle_position_", "particle_velocity_")
+        coords = ("x", "y", "z")
+        non_log_fields = [
+            prefix + coord for prefix in non_log_prefixes for coord in coords
+        ]
+        for field in self.ds.derived_field_list:
+            if field[1] in non_log_fields:
+                self[field].take_log = False

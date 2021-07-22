@@ -200,9 +200,9 @@ def test_add_deposited_particle_field():
         assert_equal(fn, ("deposit", expected_fn % method))
         ret = ad[fn]
         if method == "count":
-            assert_equal(ret.sum(), ad["particle_ones"].sum())
+            assert_equal(ret.sum(), ad[("io", "particle_ones")].sum())
         else:
-            assert_almost_equal(ret.sum(), ad["particle_mass"].sum())
+            assert_almost_equal(ret.sum(), ad[("io", "particle_mass")].sum())
 
     # Test "weighted_mean" method
     fn = base_ds.add_deposited_particle_field(
@@ -240,7 +240,7 @@ def test_add_gradient_fields():
 
 def test_add_gradient_fields_by_fname():
     ds = fake_amr_ds(fields=("density", "temperature"), units=("g/cm**3", "K"))
-    actual = ds.add_gradient_fields("density")
+    actual = ds.add_gradient_fields(("gas", "density"))
     expected = [
         ("gas", "density_gradient_x"),
         ("gas", "density_gradient_y"),
@@ -266,7 +266,7 @@ def test_add_gradient_multiple_fields():
     assert_equal(actual, expected)
 
     ds = fake_amr_ds(fields=("density", "temperature"), units=("g/cm**3", "K"))
-    actual = ds.add_gradient_fields(["density", "temperature"])
+    actual = ds.add_gradient_fields([("gas", "density"), ("gas", "temperature")])
     assert_equal(actual, expected)
 
 
@@ -306,10 +306,10 @@ def test_add_field_unit_semantics():
     ad = ds.all_data()
 
     def density_alias(field, data):
-        return data["density"].in_cgs()
+        return data[("gas", "density")].in_cgs()
 
     def unitless_data(field, data):
-        return np.ones(data["density"].shape)
+        return np.ones(data[("gas", "density")].shape)
 
     ds.add_field(
         ("gas", "density_alias_no_units"), sampling_type="cell", function=density_alias
@@ -340,14 +340,16 @@ def test_add_field_unit_semantics():
         units="auto",
         dimensions="temperature",
     )
-    assert_raises(YTFieldUnitError, get_data, ds, "density_alias_no_units")
-    assert_raises(YTFieldUnitError, get_data, ds, "density_alias_wrong_units")
+    assert_raises(YTFieldUnitError, get_data, ds, ("gas", "density_alias_no_units"))
+    assert_raises(YTFieldUnitError, get_data, ds, ("gas", "density_alias_wrong_units"))
     assert_raises(
-        YTFieldUnitParseError, get_data, ds, "density_alias_unparseable_units"
+        YTFieldUnitParseError, get_data, ds, ("gas", "density_alias_unparseable_units")
     )
-    assert_raises(YTDimensionalityError, get_data, ds, "density_alias_auto_wrong_dims")
+    assert_raises(
+        YTDimensionalityError, get_data, ds, ("gas", "density_alias_auto_wrong_dims")
+    )
 
-    dens = ad["density_alias_auto"]
+    dens = ad[("gas", "density_alias_auto")]
     assert_equal(str(dens.units), "g/cm**3")
 
     ds.add_field(("gas", "dimensionless"), sampling_type="cell", function=unitless_data)
@@ -371,16 +373,42 @@ def test_add_field_unit_semantics():
         units="g/cm**3",
     )
 
-    assert_equal(str(ad["dimensionless"].units), "dimensionless")
-    assert_equal(str(ad["dimensionless_auto"].units), "dimensionless")
-    assert_equal(str(ad["dimensionless_explicit"].units), "dimensionless")
-    assert_raises(YTFieldUnitError, get_data, ds, "dimensionful")
+    assert_equal(str(ad[("gas", "dimensionless")].units), "dimensionless")
+    assert_equal(str(ad[("gas", "dimensionless_auto")].units), "dimensionless")
+    assert_equal(str(ad[("gas", "dimensionless_explicit")].units), "dimensionless")
+    assert_raises(YTFieldUnitError, get_data, ds, ("gas", "dimensionful"))
+
+
+def test_add_field_from_lambda():
+    ds = fake_amr_ds(fields=["density"], units=["g/cm**3"])
+
+    def _function_density(field, data):
+        return data["gas", "density"]
+
+    ds.add_field(
+        ("gas", "function_density"),
+        function=_function_density,
+        sampling_type="cell",
+        units="g/cm**3",
+    )
+
+    ds.add_field(
+        ("gas", "lambda_density"),
+        function=lambda field, data: data["gas", "density"],
+        sampling_type="cell",
+        units="g/cm**3",
+    )
+
+    ad = ds.all_data()
+    # check that the fields are accessible
+    ad["gas", "function_density"]
+    ad["gas", "lambda_density"]
 
 
 def test_array_like_field():
     ds = fake_random_ds(4, particles=64)
     ad = ds.all_data()
-    u1 = ad["particle_mass"].units
+    u1 = ad[("all", "particle_mass")].units
     u2 = array_like_field(ad, 1.0, ("all", "particle_mass")).units
     assert u1 == u2
 
@@ -392,11 +420,11 @@ ISOGAL = "IsolatedGalaxy/galaxy0030/galaxy0030"
 def test_array_like_field_output_units():
     ds = load(ISOGAL)
     ad = ds.all_data()
-    u1 = ad["particle_mass"].units
+    u1 = ad[("all", "particle_mass")].units
     u2 = array_like_field(ad, 1.0, ("all", "particle_mass")).units
     assert u1 == u2
     assert str(u1) == ds.fields.all.particle_mass.output_units
-    u1 = ad["gas", "x"].units
+    u1 = ad[("gas", "x")].units
     u2 = array_like_field(ad, 1.0, ("gas", "x")).units
     assert u1 == u2
     assert str(u1) == ds.fields.gas.x.units
@@ -407,39 +435,49 @@ def test_add_field_string():
     ad = ds.all_data()
 
     def density_alias(field, data):
-        return data["density"]
+        return data[("gas", "density")]
 
     ds.add_field(
-        "density_alias", sampling_type="cell", function=density_alias, units="g/cm**3"
+        ("gas", "density_alias"),
+        sampling_type="cell",
+        function=density_alias,
+        units="g/cm**3",
     )
 
-    ad["density_alias"]
-    assert ds.derived_field_list[0] == "density_alias"
+    ad[("gas", "density_alias")]
+
+    assert ("gas", "density_alias") in ds.derived_field_list
 
 
 def test_add_field_string_aliasing():
     ds = fake_random_ds(16)
 
     def density_alias(field, data):
-        return data["density"]
+        return data["gas", "density"]
 
     ds.add_field(
-        "density_alias", sampling_type="cell", function=density_alias, units="g/cm**3"
+        ("gas", "density_alias"),
+        sampling_type="cell",
+        function=density_alias,
+        units="g/cm**3",
     )
 
-    ds.field_info["density_alias"]
+    ds.field_info["gas", "density_alias"]
     ds.field_info["gas", "density_alias"]
 
     ds = fake_particle_ds()
 
     def pmass_alias(field, data):
-        return data["particle_mass"]
+        return data["all", "particle_mass"]
 
     ds.add_field(
-        "particle_mass_alias", function=pmass_alias, units="g", sampling_type="particle"
+        ("all", "particle_mass_alias"),
+        function=pmass_alias,
+        units="g",
+        sampling_type="particle",
     )
 
-    ds.field_info["particle_mass_alias"]
+    ds.field_info["all", "particle_mass_alias"]
     ds.field_info["all", "particle_mass_alias"]
 
 
@@ -465,7 +503,7 @@ def test_field_inference():
 def test_deposit_amr():
     ds = load(ISOGAL)
     for g in ds.index.grids:
-        gpm = g["particle_mass"].sum()
+        gpm = g["all", "particle_mass"].sum()
         dpm = g["deposit", "all_mass"].sum()
         assert_allclose_units(gpm, dpm)
 

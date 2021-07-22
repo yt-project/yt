@@ -13,14 +13,14 @@ ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 sphere = ds.sphere("max", (1.0, "Mpc"))
 
 # Identify the isodensity surface in this sphere with density = 1e-24 g/cm^3
-surface = ds.surface(sphere, "density", 1e-24)
+surface = ds.surface(sphere, ("gas", "density"), 1e-24)
 
 # Color this isodensity surface according to the log of the temperature field
-colors = yt.apply_colormap(np.log10(surface["temperature"]), cmap_name="hot")
+colors = yt.apply_colormap(np.log10(surface[("gas", "temperature")]), cmap_name="hot")
 
 # Create a 3D matplotlib figure for visualizing the surface
 fig = plt.figure()
-ax = fig.gca(projection="3d")
+ax = fig.add_subplot(projection="3d")
 p3dc = Poly3DCollection(surface.triangles, linewidth=0.0)
 
 # Set the surface colors in the right scaling [0,1]

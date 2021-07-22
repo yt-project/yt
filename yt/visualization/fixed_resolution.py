@@ -1,5 +1,5 @@
-import types
 import weakref
+from functools import wraps
 
 import numpy as np
 
@@ -7,7 +7,7 @@ from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.utilities import save_as_dataset
 from yt.funcs import get_output_filename, iter_fields, mylog
 from yt.loaders import load_uniform_grid
-from yt.utilities.lib.api import add_points_to_greyscale_image
+from yt.utilities.lib.api import CICDeposit_2, add_points_to_greyscale_image
 from yt.utilities.lib.pixelization_routines import pixelize_cylinder
 from yt.utilities.on_demand_imports import _h5py as h5py
 
@@ -55,12 +55,11 @@ class FixedResolutionBuffer:
     To make a projection and then several images, you can generate a
     single FRB and then access multiple fields:
 
-    >>> proj = ds.proj(0, "density")
-    >>> frb1 = FixedResolutionBuffer(proj, (0.2, 0.3, 0.4, 0.5),
-    ...                              (1024, 1024))
-    >>> print(frb1["density"].max())
+    >>> proj = ds.proj(0, ("gas", "density"))
+    >>> frb1 = FixedResolutionBuffer(proj, (0.2, 0.3, 0.4, 0.5), (1024, 1024))
+    >>> print(frb1[("gas", "density")].max())
     1.0914e-9 g/cm**3
-    >>> print(frb1["temperature"].max())
+    >>> print(frb1[("gas", "temperature")].max())
     104923.1 K
     """
     _exclude_fields = (
@@ -380,8 +379,10 @@ class FixedResolutionBuffer:
         >>> import yt
         >>> ds = yt.load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150")
         >>> slc = ds.slice(2, 0.0)
-        >>> frb = slc.to_frb((500.,"kpc"), 500)
-        >>> ds2 = frb.export_dataset(fields=["density","temperature"], nprocs=32)
+        >>> frb = slc.to_frb((500.0, "kpc"), 500)
+        >>> ds2 = frb.export_dataset(
+        ...     fields=[("gas", "density"), ("gas", "temperature")], nprocs=32
+        ... )
         """
         nx, ny = self.buff_size
         data = {}
@@ -436,11 +437,11 @@ class FixedResolutionBuffer:
 
         >>> import yt
         >>> ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
-        >>> proj = ds.proj("density", "x", weight_field="density")
+        >>> proj = ds.proj(("gas", "density"), "x", weight_field=("gas", "density"))
         >>> frb = proj.to_frb(1.0, (800, 800))
-        >>> fn = frb.save_as_dataset(fields=["density"])
+        >>> fn = frb.save_as_dataset(fields=[("gas", "density")])
         >>> ds2 = yt.load(fn)
-        >>> print (ds2.data["density"])
+        >>> print(ds2.data[("gas", "density")])
         [[  1.25025353e-30   1.25025353e-30   1.25025353e-30 ...,   7.90820691e-31
             7.90820691e-31   7.90820691e-31]
          [  1.25025353e-30   1.25025353e-30   1.25025353e-30 ...,   7.90820691e-31
@@ -504,10 +505,31 @@ class FixedResolutionBuffer:
             if key in ignored:
                 continue
             filtername = filter_registry[key]._filter_name
-            FilterMaker = filter_registry[key]
-            filt = apply_filter(FilterMaker)
-            filt.__doc__ = FilterMaker.__doc__
-            self.__dict__["apply_" + filtername] = types.MethodType(filt, self)
+
+            # We need to wrap to create a closure so that
+            # FilterMaker is bound to the wrapped method.
+            def closure():
+                FilterMaker = filter_registry[key]
+
+                @wraps(FilterMaker)
+                def method(*args, **kwargs):
+                    # We need to also do it here as "invalidate_plot"
+                    # and "apply_callback" require the functions'
+                    # __name__ in order to work properly
+                    @wraps(FilterMaker)
+                    def cb(self, *a, **kwa):
+                        # We construct the callback method
+                        # skipping self
+                        return FilterMaker(*a, **kwa)
+
+                    # Create callback
+                    cb = apply_filter(cb)
+
+                    return cb(self, *args, **kwargs)
+
+                return method
+
+            self.__dict__["apply_" + filtername] = closure()
 
 
 class CylindricalFixedResolutionBuffer(FixedResolutionBuffer):
@@ -614,21 +636,25 @@ class ParticleImageBuffer(FixedResolutionBuffer):
 
         # set up the axis field names
         axis = self.axis
-        xax = self.ds.coordinates.x_axis[axis]
-        yax = self.ds.coordinates.y_axis[axis]
+        self.xax = self.ds.coordinates.x_axis[axis]
+        self.yax = self.ds.coordinates.y_axis[axis]
         ax_field_template = "particle_position_%s"
-        self.x_field = ax_field_template % self.ds.coordinates.axis_name[xax]
-        self.y_field = ax_field_template % self.ds.coordinates.axis_name[yax]
+        self.x_field = ax_field_template % self.ds.coordinates.axis_name[self.xax]
+        self.y_field = ax_field_template % self.ds.coordinates.axis_name[self.yax]
 
     def __getitem__(self, item):
         if item in self.data:
             return self.data[item]
 
+        deposition = self.data_source.deposition
+        density = self.data_source.density
+
         mylog.info(
-            "Splatting (%s) onto a %d by %d mesh",
+            "Splatting (%s) onto a %d by %d mesh using method '%s'",
             item,
             self.buff_size[0],
             self.buff_size[1],
+            deposition,
         )
 
         bounds = []
@@ -665,21 +691,67 @@ class ParticleImageBuffer(FixedResolutionBuffer):
             weight_data = self.data_source.dd[weight_field]
         splat_vals = weight_data[mask] * data[mask]
 
+        x_bin_edges = np.linspace(0.0, 1.0, self.buff_size[0] + 1)
+        y_bin_edges = np.linspace(0.0, 1.0, self.buff_size[1] + 1)
+
         # splat particles
         buff = np.zeros(self.buff_size)
-        buff_mask = np.zeros(self.buff_size).astype("int")
-        add_points_to_greyscale_image(buff, buff_mask, px[mask], py[mask], splat_vals)
+        buff_mask = np.zeros_like(buff, dtype="uint8")
+        if deposition == "ngp":
+            add_points_to_greyscale_image(
+                buff, buff_mask, px[mask], py[mask], splat_vals
+            )
+        elif deposition == "cic":
+            CICDeposit_2(
+                py[mask],
+                px[mask],
+                splat_vals,
+                mask.sum(),
+                buff,
+                buff_mask,
+                x_bin_edges,
+                y_bin_edges,
+            )
+        else:
+            raise ValueError(f"Received unknown deposition method '{deposition}'")
+
         # remove values in no-particle region
         buff[buff_mask == 0] = np.nan
-        ia = ImageArray(buff, units=data.units, info=self._get_info(item))
+
+        # Normalize by the surface area of the pixel or volume of pencil if
+        # requested
+        info = self._get_info(item)
+        if density:
+            width = self.data_source.width
+            norm = width[self.xax] * width[self.yax] / np.prod(self.buff_size)
+            norm = norm.in_base()
+            buff /= norm.v
+            units = data.units / norm.units
+            info["label"] = "%s $\\rm{Density}$" % info["label"]
+        else:
+            units = data.units
+
+        ia = ImageArray(buff, units=units, info=info)
 
         # divide by the weight_field, if needed
         if weight_field is not None:
             weight_buff = np.zeros(self.buff_size)
-            weight_buff_mask = np.zeros(self.buff_size).astype("int")
-            add_points_to_greyscale_image(
-                weight_buff, weight_buff_mask, px[mask], py[mask], weight_data[mask]
-            )
+            weight_buff_mask = np.zeros(self.buff_size, dtype="uint8")
+            if deposition == "ngp":
+                add_points_to_greyscale_image(
+                    weight_buff, weight_buff_mask, px[mask], py[mask], weight_data[mask]
+                )
+            elif deposition == "cic":
+                CICDeposit_2(
+                    py[mask],
+                    px[mask],
+                    weight_data[mask],
+                    mask.sum(),
+                    weight_buff,
+                    weight_buff_mask,
+                    y_bin_edges,
+                    x_bin_edges,
+                )
             weight_array = ImageArray(
                 weight_buff, units=weight_data.units, info=self._get_info(item)
             )

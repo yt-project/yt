@@ -9,7 +9,13 @@ yt.enable_parallelism()
 
 # By using wildcards such as ? and * with the load command, we can load up a
 # Time Series containing all of these datasets simultaneously.
-ts = yt.load("GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0*")
+# The "entropy" field that we will use below depends on the electron number
+# density, which is not in these datasets by default, so we assume full
+# ionization using the "default_species_fields" kwarg.
+ts = yt.load(
+    "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0*",
+    default_species_fields="ionized",
+)
 
 storage = {}
 
@@ -25,7 +31,7 @@ for store, ds in ts.piter(storage=storage):
     # Create a sphere of radius 100 kpc at the center of the dataset volume
     sphere = ds.sphere("c", (100.0, "kpc"))
     # Calculate the entropy within that sphere
-    entr = sphere["entropy"].sum()
+    entr = sphere[("gas", "entropy")].sum()
     # Store the current time and sphere entropy for this dataset in our
     # storage dictionary as a tuple
     store.result = (ds.current_time.in_units("Gyr"), entr)

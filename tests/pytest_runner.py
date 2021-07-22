@@ -17,7 +17,7 @@ if __name__ == "__main__":
     pytest_args = [
         "-s",
         "-v",
-        "-rsfE",  # it means -r "sfE" (show skiped, failed, errors), no -r -s -f -E
+        "-rsfE",  # it means -r "sfE" (show skipped, failed, errors), no -r -s -f -E
         "--with-answer-testing",
         "-m answer_test",
         f"-n {int(os.environ.get('NUM_WORKERS', 1))}",
@@ -25,7 +25,7 @@ if __name__ == "__main__":
     ]
     pytest.main(pytest_args + ["--local-dir=answer-store", "--junitxml=answers.xml"])
 
-    if (files := glob.glob("generate_test*.txt")) :
+    if files := glob.glob("generate_test*.txt"):
         tests = set()
         for fname in files:
             with open(fname) as fp:

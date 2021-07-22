@@ -343,7 +343,9 @@ class AMRKDTree(ParallelAnalysisInterface):
             )
             for i, field in enumerate(self.fields):
                 if self.log_fields[i]:
-                    dds.append(np.log10(vcd[field].astype("float64")))
+                    v = vcd[field].astype("float64")
+                    v[v < 0] = np.nan
+                    dds.append(np.log10(v))
                 else:
                     dds.append(vcd[field].astype("float64"))
                 self.current_saved_grids.append(grid)
@@ -428,7 +430,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         if (in_grid).sum() > 0:
             grids[np.logical_not(in_grid)] = [
                 self.ds.index.grids[
-                    self.locate_brick(new_positions[i]).grid - self._id_offset
+                    self.locate_node(new_positions[i]).grid - self._id_offset
                 ]
                 for i in get_them
             ]
@@ -467,7 +469,7 @@ class AMRKDTree(ParallelAnalysisInterface):
 
         """
         position = np.array(position)
-        grid = self.ds.index.grids[self.locate_brick(position).grid - self._id_offset]
+        grid = self.ds.index.grids[self.locate_node(position).grid - self._id_offset]
         ci = ((position - grid.LeftEdge) / grid.dds).astype("int64")
         return self.locate_neighbors(grid, ci)
 

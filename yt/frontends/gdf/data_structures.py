@@ -163,6 +163,7 @@ class GDFDataset(Dataset):
         geometry=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
         self.geometry = geometry
         self.fluid_types += ("gdf",)
@@ -172,6 +173,7 @@ class GDFDataset(Dataset):
             dataset_type,
             units_override=units_override,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
         self.storage_filename = storage_filename
         self.filename = filename
@@ -294,5 +296,5 @@ class GDFDataset(Dataset):
             pass
         return False
 
-    def __repr__(self):
+    def __str__(self):
         return self.basename.rsplit(".", 1)[0]

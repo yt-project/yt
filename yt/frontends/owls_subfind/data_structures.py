@@ -16,6 +16,8 @@ from .fields import OWLSSubfindFieldInfo
 
 
 class OWLSSubfindParticleIndex(ParticleIndex):
+    chunksize = -1
+
     def __init__(self, ds, dataset_type):
         super().__init__(ds, dataset_type)
 
@@ -57,7 +59,6 @@ class OWLSSubfindParticleIndex(ParticleIndex):
         for dom in self.data_files:
             fl, _units = self.io._identify_fields(dom)
             units.update(_units)
-            dom._calculate_offsets(fl)
             for f in fl:
                 if f not in dsl:
                     dsl.append(f)
@@ -112,7 +113,8 @@ class OWLSSubfindDataset(ParticleDataset):
         self.refine_by = 2
 
         # Set standard values
-        self.current_time = self.quan(hvals["Time_GYR"], "Gyr")
+        if "Time_GYR" in hvals:
+            self.current_time = self.quan(hvals["Time_GYR"], "Gyr")
         self.domain_left_edge = np.zeros(3, "float64")
         self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
         self.domain_dimensions = np.ones(3, "int32")

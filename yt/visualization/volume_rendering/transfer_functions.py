@@ -65,7 +65,7 @@ class TransferFunction:
         Examples
         --------
 
-        >>> tf = TransferFunction( (-10.0, -5.0) )
+        >>> tf = TransferFunction((-10.0, -5.0))
         >>> tf.add_gaussian(-9.0, 0.01, 1.0)
         """
         vals = height * np.exp(-((self.x - location) ** 2.0) / width)
@@ -100,8 +100,8 @@ class TransferFunction:
         This will set the transfer function to be linear from 0.0 to 1.0,
         across the bounds of the function.
 
-        >>> tf = TransferFunction( (-10.0, -5.0) )
-        >>> tf.add_line( (-10.0, 0.0), (-5.0, 1.0) )
+        >>> tf = TransferFunction((-10.0, -5.0))
+        >>> tf.add_line((-10.0, 0.0), (-5.0, 1.0))
         """
         x0, y0 = start
         x1, y1 = stop
@@ -145,7 +145,7 @@ class TransferFunction:
         Note that in this example, we have added a step function, but the
         Gaussian that already exists will "win" where it exceeds 0.5.
 
-        >>> tf = TransferFunction( (-10.0, -5.0) )
+        >>> tf = TransferFunction((-10.0, -5.0))
         >>> tf.add_gaussian(-7.0, 0.01, 1.0)
         >>> tf.add_step(-8.0, -6.0, 0.5)
         """
@@ -194,20 +194,20 @@ class TransferFunction:
         Examples
         --------
 
-        >>> tf = TransferFunction( (-10.0, -5.0) )
+        >>> tf = TransferFunction((-10.0, -5.0))
         >>> tf.add_gaussian(-9.0, 0.01, 1.0)
         >>> tf.plot("sample.png")
         """
         import matplotlib
+        import matplotlib.pyplot as plt
 
         matplotlib.use("Agg")
-        import pylab
 
-        pylab.clf()
-        pylab.plot(self.x, self.y, "xk-")
-        pylab.xlim(*self.x_bounds)
-        pylab.ylim(0.0, 1.0)
-        pylab.savefig(filename)
+        plt.clf()
+        plt.plot(self.x, self.y, "xk-")
+        plt.xlim(*self.x_bounds)
+        plt.ylim(0.0, 1.0)
+        plt.savefig(filename)
 
     def show(self):
         r"""Display an image of the transfer function
@@ -220,17 +220,17 @@ class TransferFunction:
         Examples
         --------
 
-        >>> tf = TransferFunction( (-10.0, -5.0) )
+        >>> tf = TransferFunction((-10.0, -5.0))
         >>> tf.add_gaussian(-9.0, 0.01, 1.0)
         >>> tf.show()
         """
-        import pylab
+        import matplotlib.pyplot as plt
 
-        pylab.clf()
-        pylab.plot(self.x, self.y, "xk-")
-        pylab.xlim(*self.x_bounds)
-        pylab.ylim(0.0, 1.0)
-        pylab.draw()
+        plt.clf()
+        plt.plot(self.x, self.y, "xk-")
+        plt.xlim(*self.x_bounds)
+        plt.ylim(0.0, 1.0)
+        plt.draw()
 
     def clear(self):
         self.y[:] = 0.0
@@ -316,8 +316,8 @@ class MultiVariateTransferFunction:
         value which may be used by other field tables.
 
         >>> mv = MultiVariateTransferFunction()
-        >>> tf = TransferFunction( (-10.0, -5.0) )
-        >>> tf.add_gaussian( -7.0, 0.01, 1.0)
+        >>> tf = TransferFunction((-10.0, -5.0))
+        >>> tf.add_gaussian(-7.0, 0.01, 1.0)
         >>> mv.add_field_table(tf, 0)
         """
         self.tables.append(table)
@@ -350,10 +350,10 @@ class MultiVariateTransferFunction:
         absorption (or 'alpha') channel is also linked.
 
         >>> mv = MultiVariateTransferFunction()
-        >>> tf = TransferFunction( (-10.0, -5.0) )
-        >>> tf.add_gaussian( -7.0, 0.01, 1.0)
+        >>> tf = TransferFunction((-10.0, -5.0))
+        >>> tf.add_gaussian(-7.0, 0.01, 1.0)
         >>> mv.add_field_table(tf, 0)
-        >>> mv.link_channels(0, [0,1,2])
+        >>> mv.link_channels(0, [0, 1, 2])
         """
         for c in always_iterable(channels):
             self.field_table_ids[c] = table_id
@@ -409,7 +409,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
     def add_gaussian(self, location, width, height):
         r"""Add a Gaussian distribution to the transfer function.
 
-        Typically, when rendering isocontours, a Guassian distribution is the
+        Typically, when rendering isocontours, a Gaussian distribution is the
         easiest way to draw out features.  The spread provides a softness.
         The values are calculated as :math:`f(x) = h \exp{-(x-x_0)^2 / w}`.
 
@@ -429,7 +429,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         --------
         This adds a red spike.
 
-        >>> tf = ColorTransferFunction( (-10.0, -5.0) )
+        >>> tf = ColorTransferFunction((-10.0, -5.0))
         >>> tf.add_gaussian(-9.0, 0.01, [1.0, 0.0, 0.0, 1.0])
         """
         for tf, v in zip(self.funcs, height):
@@ -471,7 +471,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         --------
         This adds a step function that will produce a white value at > -6.0.
 
-        >>> tf = ColorTransferFunction( (-10.0, -5.0) )
+        >>> tf = ColorTransferFunction((-10.0, -5.0))
         >>> tf.add_step(-6.0, -5.0, [1.0, 1.0, 1.0, 1.0])
         """
         for tf, v in zip(self.funcs, value):
@@ -500,7 +500,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         Examples
         --------
 
-        >>> tf = ColorTransferFunction( (-10.0, -5.0) )
+        >>> tf = ColorTransferFunction((-10.0, -5.0))
         >>> tf.add_layers(8)
         >>> tf.plot("sample.png")
         """
@@ -557,7 +557,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         Examples
         --------
 
-        >>> tf = TransferFunction( (-10.0, -5.0) )
+        >>> tf = TransferFunction((-10.0, -5.0))
         >>> tf.add_gaussian(-9.0, 0.01, 1.0)
         >>> tf.show()
         """
@@ -616,7 +616,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         Examples
         --------
 
-        >>> tf = TransferFunction( (-10.0, -5.0) )
+        >>> tf = TransferFunction((-10.0, -5.0))
         >>> tf.add_gaussian(-9.0, 0.01, 1.0)
         >>> tf.show()
         """
@@ -723,8 +723,8 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         Examples
         --------
 
-        >>> tf = ColorTransferFunction( (-10.0, -5.0) )
-        >>> tf.sample_colormap(-7.0, 0.01, colormap='arbre')
+        >>> tf = ColorTransferFunction((-10.0, -5.0))
+        >>> tf.sample_colormap(-7.0, 0.01, colormap="arbre")
         """
         v = np.float64(v)
         if col_bounds is None:
@@ -771,11 +771,12 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         --------
 
         >>> def linramp(vals, minval, maxval):
-        ...     return (vals - vals.min())/(vals.max() - vals.min())
-        >>> tf = ColorTransferFunction( (-10.0, -5.0) )
-        >>> tf.map_to_colormap(-8.0, -6.0, scale=10.0, colormap='arbre')
-        >>> tf.map_to_colormap(-6.0, -5.0, scale=10.0, colormap='arbre',
-        ...                    scale_func = linramp)
+        ...     return (vals - vals.min()) / (vals.max() - vals.min())
+        >>> tf = ColorTransferFunction((-10.0, -5.0))
+        >>> tf.map_to_colormap(-8.0, -6.0, scale=10.0, colormap="arbre")
+        >>> tf.map_to_colormap(
+        ...     -6.0, -5.0, scale=10.0, colormap="arbre", scale_func=linramp
+        ... )
         """
         mi = np.float64(mi)
         ma = np.float64(ma)
@@ -856,7 +857,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         Examples
         --------
 
-        >>> tf = ColorTransferFunction( (-10.0, -5.0) )
+        >>> tf = ColorTransferFunction((-10.0, -5.0))
         >>> tf.add_layers(8)
         """
         if col_bounds is None:

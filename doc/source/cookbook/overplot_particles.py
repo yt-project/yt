@@ -5,7 +5,7 @@ ds = yt.load("Enzo_64/DD0043/data0043")
 
 # Make a density projection centered on the 'm'aximum density location
 # with a width of 10 Mpc..
-p = yt.ProjectionPlot(ds, "y", "density", center="m", width=(10, "Mpc"))
+p = yt.ProjectionPlot(ds, "y", ("gas", "density"), center="m", width=(10, "Mpc"))
 
 # Modify the projection
 # The argument specifies the region along the line of sight

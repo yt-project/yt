@@ -25,7 +25,7 @@ class GadgetFOFParticleIndex(ParticleIndex):
         Calculate the total number of each type of particle.
         """
         self.particle_count = {
-            ptype: sum([d.total_particles[ptype] for d in self.data_files])
+            ptype: sum(d.total_particles[ptype] for d in self.data_files)
             for ptype in self.ds.particle_types_raw
         }
 
@@ -291,7 +291,7 @@ class GadgetFOFDataset(ParticleDataset):
             time_unit = (tu.d, tu.units)
         setdefaultattr(self, "time_unit", self.quan(time_unit[0], time_unit[1]))
 
-    def __repr__(self):
+    def __str__(self):
         return self.basename.split(".", 1)[0]
 
     @classmethod
@@ -437,7 +437,7 @@ class GadgetFOFHaloDataset(ParticleDataset):
             "file_count",
             "particle_types_raw",
             "particle_types",
-            "periodicity",
+            "_periodicity",
         ]:
             setattr(self, attr, getattr(self.real_ds, attr))
 
@@ -476,7 +476,7 @@ class GadgetFOFHaloDataset(ParticleDataset):
             my_unit = f"{unit}_unit"
             setattr(self, my_unit, getattr(self.real_ds, my_unit, None))
 
-    def __repr__(self):
+    def __str__(self):
         return f"{self.real_ds}"
 
     def _setup_classes(self):
@@ -484,7 +484,7 @@ class GadgetFOFHaloDataset(ParticleDataset):
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
-        # This class is not meant to be instanciated by yt.load()
+        # This class is not meant to be instantiated by yt.load()
         return False
 
 
@@ -538,7 +538,7 @@ class GadgetFOFHaloContainer(YTSelectionContainer):
 
     >>> import yt
     >>> ds = yt.load("gadget_halos/data/groups_298/fof_subhalo_tab_298.0.hdf5")
-    >>>
+
     >>> halo = ds.halo("Group", 0)
     >>> print(halo.mass)
     13256.5517578 code_mass
@@ -548,11 +548,11 @@ class GadgetFOFHaloContainer(YTSelectionContainer):
     [ 6943694.22793569  -762788.90647454  -794749.63819757] cm/s
     >>> print(halo["Group_R_Crit200"])
     [ 0.79668683] code_length
-    >>>
+
     >>> # particle ids for this halo
     >>> print(halo["member_ids"])
     [  723631.   690744.   854212. ...,   608589.   905551.  1147449.] dimensionless
-    >>>
+
     >>> # get the first subhalo of this halo
     >>> subhalo = ds.halo("Subhalo", (0, 0))
     >>> print(subhalo["member_ids"])

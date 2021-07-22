@@ -94,7 +94,8 @@ class OctreeRayTracing:
 
         Parameters
         ----------
-        vp_pos, vp_dir : float arrays (Nrays, Ndim)
+        vp_pos : float arrays (Nrays, Ndim)
+        vp_dir : float arrays (Nrays, Ndim)
             The position (unitary) and direction of each ray
 
         Returns

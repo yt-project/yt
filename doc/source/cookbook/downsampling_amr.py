@@ -20,7 +20,7 @@ print(ad["gas", "density"].shape)
 # normally be masked out. There aren't any "holes" in
 # the downsampled AMR mesh, the volume still sums to
 # the volume of the domain:
-print(ad["index", "cell_volume"].sum())
+print(ad["gas", "volume"].sum())
 print(ds.domain_width.prod())
 
 # Now let's make a downsampled plot

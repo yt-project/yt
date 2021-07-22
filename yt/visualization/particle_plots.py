@@ -26,12 +26,16 @@ class ParticleAxisAlignedDummyDataSource:
         weight_field=None,
         field_parameters=None,
         data_source=None,
+        deposition="ngp",
+        density=False,
     ):
         self.center = center
         self.ds = ds
         self.axis = axis
         self.width = width
         self.weight_field = weight_field
+        self.deposition = deposition
+        self.density = density
 
         if field_parameters is None:
             self.field_parameters = {}
@@ -91,7 +95,7 @@ class ParticleProjectionPlot(PWViewerMPL):
          or the axis name itself
     fields : string, list or None
          If a string or list, the name of the particle field(s) to be used
-         one the colorbar. The color shown will correspond to the sum of the
+         on the colorbar. The color shown will correspond to the sum of the
          given field along the line of sight. If None, the particle positions
          will be indicated using a fixed color, instead. Default is None.
     color : 'b', 'g', 'r', 'c', 'm', 'y', 'k', or 'w'
@@ -182,6 +186,14 @@ class ParticleProjectionPlot(PWViewerMPL):
     data_source : YTSelectionContainer Object
          Object to be used for data selection.  Defaults to a region covering
          the entire simulation.
+    deposition : string
+        Controls the order of the interpolation of the particles onto the
+        mesh. "ngp" is 0th-order "nearest-grid-point" method (the default),
+        "cic" is 1st-order "cloud-in-cell".
+    density : boolean
+        If True, the quantity to be projected will be divided by the area of
+        the cells, to make a projected density of the quantity. The plot
+        name and units will also reflect this. Default: False
 
     Examples
     --------
@@ -190,8 +202,8 @@ class ParticleProjectionPlot(PWViewerMPL):
     'galaxy0030_Particle_z_particle_mass.png'
 
     >>> from yt import load
-    >>> ds = load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    >>> p = yt.ParticleProjectionPlot(ds, 2, 'particle_mass')
+    >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> p = yt.ParticleProjectionPlot(ds, 2, "particle_mass")
     >>> p.save()
 
     """
@@ -215,6 +227,8 @@ class ParticleProjectionPlot(PWViewerMPL):
         window_size=8.0,
         aspect=None,
         data_source=None,
+        deposition="ngp",
+        density=False,
     ):
         # this will handle time series data and controllers
         ts = self._initialize_dataset(ds)
@@ -237,8 +251,8 @@ class ParticleProjectionPlot(PWViewerMPL):
         self._use_cbar = True
         splat_color = None
         if fields is None:
-            fields = ["particle_ones"]
-            weight_field = "particle_ones"
+            fields = [("all", "particle_ones")]
+            weight_field = ("all", "particle_ones")
             self._use_cbar = False
             splat_color = color
 
@@ -261,7 +275,11 @@ class ParticleProjectionPlot(PWViewerMPL):
             weight_field,
             field_parameters=field_parameters,
             data_source=data_source,
+            deposition=deposition,
+            density=density,
         )
+
+        self.projected = weight_field is None
 
         PWViewerMPL.__init__(
             self,
@@ -347,16 +365,21 @@ class ParticlePhasePlot(PhasePlot):
     >>> import yt
     >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
-    >>> plot = ParticlePhasePlot(ad, "particle_position_x,
-                                 "particle_position_y", ["particle_mass"],
-    ...                          x_bins=800, y_bins=800)
+    >>> plot = ParticlePhasePlot(
+    ...     ad,
+    ...     "particle_position_x",
+    ...     "particle_position_y",
+    ...     ["particle_mass"],
+    ...     x_bins=800,
+    ...     y_bins=800,
+    ... )
     >>> plot.save()
 
     >>> # Change plot properties.
-    >>> plot.set_log('particle_mass', True)
-    >>> plot.set_unit('particle_position_x', 'Mpc')
-    >>> plot.set_unit('particle_velocity_z', 'km/s')
-    >>> plot.set_unit('particle_mass', 'Msun')
+    >>> plot.set_log("particle_mass", True)
+    >>> plot.set_unit("particle_position_x", "Mpc")
+    >>> plot.set_unit("particle_velocity_z", "km/s")
+    >>> plot.set_unit("particle_mass", "Msun")
 
     """
     _plot_type = "ParticlePhase"
@@ -381,7 +404,7 @@ class ParticlePhasePlot(PhasePlot):
         if z_fields is None:
             self.use_cbar = False
             self.splat_color = color
-            z_fields = ["particle_ones"]
+            z_fields = [("all", "particle_ones")]
 
         profile = create_profile(
             data_source,
@@ -530,7 +553,6 @@ def ParticlePlot(ds, x_field, y_field, z_fields=None, color="b", *args, **kwargs
     deposition : str
         Either 'ngp' or 'cic'. Controls what type of interpolation will be
         used to deposit the particle z_fields onto the mesh. Defaults to 'ngp'.
-        This argument is only accepted by ``ParticlePhasePlot``.
     figure_size : int
         Size in inches of the image. Defaults to 8 (product an 8x8 inch figure).
         This argument is only accepted by ``ParticlePhasePlot``.
@@ -540,11 +562,15 @@ def ParticlePlot(ds, x_field, y_field, z_fields=None, color="b", *args, **kwargs
 
     >>> from yt import load
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    >>> p = yt.ParticlePlot(ds, 'particle_position_x', 'particle_position_y',
-    ...                     'particle_mass', width=(0.5, 0.5))
-    >>> p.set_unit('particle_mass', 'Msun')
-    >>> p = yt.ParticlePlot(ds, 'particle_position_x', 'particle_velocity_z',
-    ...                     color='g')
+    >>> p = yt.ParticlePlot(
+    ...     ds,
+    ...     "particle_position_x",
+    ...     "particle_position_y",
+    ...     "particle_mass",
+    ...     width=(0.5, 0.5),
+    ... )
+    >>> p.set_unit("particle_mass", "Msun")
+    >>> p = yt.ParticlePlot(ds, "particle_position_x", "particle_velocity_z", color="g")
 
     """
     dd = kwargs.get("data_source", None)

@@ -118,17 +118,11 @@ Feel free to `blog <https://blog.yt-project.org/>`_ about, `tweet
 Long-Term Projects
 ------------------
 
-There are some wild-eyed, out-there ideas that have been bandied about for the
-future directions of yt -- some of them even written into the mission
-statement.  The ultimate goal is to move past simple analysis and visualization
-of data and begin to approach it from the other side, of generating data,
-running solvers.  We also hope to increase its ability to act as an in situ
-analysis code, by presenting a unified protocol.  Other projects include
-interfacing with ParaView and VisIt, creating a web GUI for running
-simulations, creating a run-tracker that follows simulations in progress, a
-federated database for simulation outputs, and so on and so forth.
+There are some out-there ideas that have been bandied about for the
+future directions of yt -- stuff like fun new types of visualization, remapping
+of coordinates, new ways of accessing data, and even new APIs to make life easier.
 
-yt is an ambitious project.  Let's be ambitious together.
+yt is an ambitious project.  Let's be ambitious together!
 
 yt Community Code of Conduct
 ----------------------------
@@ -244,9 +238,9 @@ If you're interested in participating in yt development, take a look at the
 <https://github.com/yt-project/yt/issues>`_.
 You can search by labels, indicating estimated level of difficulty or category,
 to find issues that you would like to contribute to.  Good first issues are
-marked with a label of `new contributor friendly`.  While we try to triage the
+marked with a label of *new contributor friendly*.  While we try to triage the
 issue tracker regularly to assign appropriate labels to every issue, it may be
-the case that issues not marked as `new contributor friendly` are actually
+the case that issues not marked as *new contributor friendly* are actually
 suitable for new contributors.
 
 Here are some predefined issue searches that might be useful:
@@ -362,7 +356,7 @@ How To Read The Source Code
 
 If you just want to *look* at the source code, you may already have it on your
 computer.  If you build yt using the install script, the source is available at
-``$YT_DEST/src/yt-git``.  See :ref:`source-installation` for more details about
+``$YT_DEST/src/yt-git``.  See :ref:`install-from-source` for more details about
 to obtain the yt source code if you did not build yt using the install
 script.
 
@@ -401,10 +395,9 @@ the following subdirectories:
    classes for data regions, covering grids, time series, and so on.  This
    also includes derived fields and derived quantities.
 
-``gui``
-   This is where all GUI components go.  Typically this will be some small
-   tool used for one or two things, which contains a launching mechanism on
-   the command line.
+``units``
+   This used to be where all the unit-handling code resided, but as of now it's
+   mostly just a thin wrapper around unyt.
 
 ``utilities``
    All broadly useful code that doesn't clearly fit in one of the other
@@ -434,33 +427,7 @@ Building yt
 +++++++++++
 
 If you have made changes to any C or Cython (``.pyx``) modules, you have to
-rebuild yt.  If your changes have exclusively been to Python modules, you will
-not need to re-build, but (see below) you may need to re-install.
-
-Note that you will need a functioning compilation environment to build yt. On
-linux this typically means installing the package that sets up a basic build
-environment (e.g. ``build-essential`` on Debian and Ubuntu). On MacOS this means
-installing the XCode command line tools. On Windows this means installing the
-version of the Microsoft Visual C++ compiler that is appropriate for your
-version of Python. See `the Python wiki
-<https://wiki.python.org/moin/WindowsCompilers>`_ for more details.
-
-If you are running from a clone that is executable in-place (i.e., has been
-installed via the installation script or you have run ``setup.py develop``) you
-can rebuild these modules by executing:
-
-.. code-block:: bash
-
-  $ python setup.py develop
-
-If you have previously "installed" via ``setup.py install`` you have to
-re-install:
-
-.. code-block:: bash
-
-  $ python setup.py install
-
-Only one of these two options is needed.
+rebuild yt before your changes are usable. See :ref:`install-from-source`.
 
 .. _requirements-for-code-submission:
 
@@ -585,7 +552,7 @@ Here's a more detailed flowchart of how to submit changes.
    this at: https://github.com/yt-project/yt/fork.
 #. If you have used the installation script, the source code for yt can be
    found in ``$YT_DEST/src/yt-git``.  Alternatively see
-   :ref:`source-installation` for instructions on how to build yt from the
+   :ref:`install-from-source` for instructions on how to build yt from the
    git repository. (Below, in :ref:`reading-source`, we describe how to
    find items of interest.) If you have already forked the repository then
    you can clone your fork locally::
@@ -726,8 +693,9 @@ It is recommended (though not required) that you install ``pre-commit`` on your 
 
 So that our hooks will run and update your changes on every commit.
 If you do not want to/are unable to configure ``pre-commit`` on your machine, note that
-after opening a pull request, a bot will run the hooks and validate your contribution by
-appending commits to your branch.
+after opening a pull request, it will still be run as a static checker as part of our CI.
+Some hooks also come with auto-fixing capabilities, which you can trigger manually in a
+PR by commenting ``pre-commit.ci run`` (see ` <https://pre-commit.ci/#features>`_).
 
 Here's a list of the main automated formatters we use along with a short description
 
@@ -738,9 +706,21 @@ Here's a list of the main automated formatters we use along with a short descrip
 
 The complete configuration is located in ``.pre-commit-config.yaml``.
 
-.. note:: It is not recommended to run formatters directly on the command line because
-    versions available in your system may conflict with the ones we run through
-    ``pre-commit`` hooks (which are updated periodically).
+Note that formatters should not be run directly on the command line as, for instance
+
+.. code-block:: bash
+
+    $ black yt
+
+But it can still be done as
+
+.. code-block:: bash
+
+    $ pre-commit run black --all-files
+
+The reason is that you may have a specific version of ``black`` installed which can
+produce different results, while the one that's installed with pre-commit is guaranteed
+to be in sync with the rest of contributors.
 
 Below are a list of additional guidelines for coding in yt, that are not automatically
 enforced.

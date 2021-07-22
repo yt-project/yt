@@ -81,7 +81,7 @@ class AthenaDistributedConverter(Converter):
             g.create_dataset(name, data=data)
 
     def read_and_write_index(self, basename, ddn, gdf_name):
-        """ Read Athena legacy vtk file from multiple cpus """
+        """Read Athena legacy vtk file from multiple cpus"""
         proc_names = glob(self.source_dir + "id*")
         # print('Reading a dataset from %i Processor Files' % len(proc_names))
         N = len(proc_names)
@@ -284,7 +284,7 @@ class AthenaDistributedConverter(Converter):
                     self.write_gdf_field(gdf_name, i, field + "_z", data_z)
                     del data, data_x, data_y, data_z
                 del line
-                line = f.readline()  # NOQA
+                line = f.readline()
             f.close()
             del f
 
@@ -352,7 +352,7 @@ class AthenaConverter(Converter):
             grid["read_type"] = "vector"
 
     def read_grid(self, filename):
-        """ Read Athena legacy vtk file from single cpu """
+        """Read Athena legacy vtk file from single cpu"""
         f = open(filename, "rb")
         # print('Reading from %s'%filename)
         grid = {}

@@ -1,13 +1,13 @@
 import logging
 import os
+import re
+import sys
 import textwrap
-from time import time
 
 import numpy as np
 import pytest
 
 from yt.config import ytcfg
-from yt.frontends.enzo.api import EnzoDataset
 from yt.loaders import load_sample
 from yt.sample_data.api import get_data_registry_table
 from yt.testing import requires_module_pytest
@@ -41,49 +41,56 @@ def capturable_logger(caplog):
 
 @requires_module_pytest("pandas", "pooch")
 @pytest.mark.usefixtures("capturable_logger")
-def test_load_sample_small_dataset(tmp_data_dir, caplog):
-    start = time()
-    ds = load_sample("ToroShockTube", progressbar=False, timeout=30)
-    elapsed1 = time() - start
-    assert isinstance(ds, EnzoDataset)
+@pytest.mark.parametrize(
+    "fn, archive, exact_loc, class_",
+    [
+        (
+            "ToroShockTube",
+            "ToroShockTube.tar.gz",
+            "ToroShockTube/DD0001/data0001",
+            "EnzoDataset",
+        ),
+        (
+            "KeplerianDisk",
+            "KeplerianDisk.tar.gz",
+            "KeplerianDisk/disk.out1.00000.athdf",
+            "AthenaPPDataset",
+        ),
+        # trying with an exact name as well
+        (
+            "KeplerianDisk/disk.out1.00000.athdf",
+            "KeplerianDisk.tar.gz",
+            "KeplerianDisk/disk.out1.00000.athdf",
+            "AthenaPPDataset",
+        ),
+    ],
+)
+def test_load_sample_small_dataset(
+    fn, archive, exact_loc, class_: str, tmp_data_dir, caplog
+):
+    ds = load_sample(fn, progressbar=False, timeout=30)
+    assert type(ds).__name__ == class_
 
     text = textwrap.dedent(
         f"""
-            'ToroShockTube' is not available locally. Looking up online.
-            Downloading from https://yt-project.org/data/ToroShockTube.tar.gz
+            '{fn.replace('/', os.path.sep)}' is not available locally. Looking up online.
+            Downloading from https://yt-project.org/data/{archive}
             Untaring downloaded file to '{str(tmp_data_dir)}'
-            Parameters: current_time              = 0.2
-            Parameters: domain_dimensions         = [100   1   1]
-            Parameters: domain_left_edge          = [0. 0. 0.]
-            Parameters: domain_right_edge         = [1. 1. 1.]
-            Parameters: cosmological_simulation   = 0
         """
     ).strip("\n")
     expected = [("yt", 20, message) for message in text.split("\n")]
-    assert caplog.record_tuples == expected
+    assert caplog.record_tuples[:3] == expected
 
     caplog.clear()
     # loading a second time should not result in a download request
-    start = time()
-    ds2 = load_sample("ToroShockTube")
-    elapsed2 = time() - start
-    assert isinstance(ds2, EnzoDataset)
+    ds2 = load_sample(fn)
+    assert type(ds2).__name__ == class_
 
-    # caching should make a significant runtime difference even in fast networks
-    assert elapsed2 < elapsed1
-
-    text = textwrap.dedent(
-        f"""
-            Sample dataset found in '{os.path.join(str(tmp_data_dir), 'ToroShockTube')}'
-            Parameters: current_time              = 0.2
-            Parameters: domain_dimensions         = [100   1   1]
-            Parameters: domain_left_edge          = [0. 0. 0.]
-            Parameters: domain_right_edge         = [1. 1. 1.]
-            Parameters: cosmological_simulation   = 0
-        """
-    ).strip("\n")
-    expected = [("yt", 20, message) for message in text.split("\n")]
-    assert caplog.record_tuples == expected
+    assert caplog.record_tuples[0] == (
+        "yt",
+        20,
+        f"Sample dataset found in '{os.path.join(str(tmp_data_dir), *exact_loc.split('/'))}'",
+    )
 
 
 @requires_module_pytest("pandas", "pooch")
@@ -127,6 +134,49 @@ def test_registry_byte_size_sign(sound_subreg):
 @requires_module_pytest("pandas", "requests")
 def test_unknown_filename():
     fake_name = "these_are_not_the_files_your_looking_for"
-    with pytest.raises(KeyError) as err:
+    with pytest.raises(ValueError, match=f"'{fake_name}' is not an available dataset."):
         load_sample(fake_name)
-        assert err.exc == f"Could not find '{fake_name}' in the registry."
+
+
+@requires_module_pytest("pandas", "requests")
+def test_typo_filename():
+    wrong_name = "Isolatedgalaxy"
+    with pytest.raises(
+        ValueError,
+        match=re.escape(
+            f"'{wrong_name}' is not an available dataset. Did you mean 'IsolatedGalaxy' ?"
+        ),
+    ):
+        load_sample(wrong_name, timeout=1)
+
+
+@pytest.fixture()
+def fake_data_dir_in_a_vaccum(tmp_path):
+    pre_test_data_dir = ytcfg["yt", "test_data_dir"]
+    ytcfg.set("yt", "test_data_dir", "/does/not/exist")
+    origin = os.getcwd()
+    os.chdir(tmp_path)
+
+    yield
+
+    ytcfg.set("yt", "test_data_dir", pre_test_data_dir)
+    os.chdir(origin)
+
+
+@pytest.mark.skipif(
+    sys.platform.startswith("win"),
+    reason="can't figure out how to match the warning message in a cross-platform way",
+)
+@requires_module_pytest("pandas", "pooch")
+@pytest.mark.usefixtures("fake_data_dir_in_a_vaccum")
+def test_data_dir_broken():
+    # check that load_sample still works if the test_data_dir
+    # isn't properly set, in which case we should dl to the
+    # cwd and issue a warning.
+    msg = (
+        r"Storage directory from yt config doesn't exist "
+        r"\(currently set to '/does/not/exist'\)\. "
+        r"Current working directory will be used instead\."
+    )
+    with pytest.warns(UserWarning, match=msg):
+        load_sample("ToroShockTube")

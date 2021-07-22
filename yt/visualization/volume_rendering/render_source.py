@@ -160,7 +160,7 @@ class VolumeSource(RenderSource, abc.ABC):
     example shows how to do this and then access the resulting source:
 
     >>> import yt
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> im, sc = yt.volume_render(ds)
     >>> volume_source = sc.get_source(0)
 
@@ -169,11 +169,11 @@ class VolumeSource(RenderSource, abc.ABC):
     camera, and renders an image.
 
     >>> import yt
-    >>> from yt.visualization.volume_rendering.api import\
-    ...     Scene, create_volume_source, Camera
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> from yt.visualization.volume_rendering.api import (
+    ...     Camera, Scene, create_volume_source)
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> sc = Scene()
-    >>> source = create_volume_source(ds.all_data(), 'density')
+    >>> source = create_volume_source(ds.all_data(), "density")
     >>> sc.add_source(source)
     >>> sc.add_camera()
     >>> im = sc.render()
@@ -658,7 +658,7 @@ class MeshSource(OpaqueSource):
 
     Examples
     --------
-    >>> source = MeshSource(ds, ('connect1', 'convected'))
+    >>> source = MeshSource(ds, ("connect1", "convected"))
     """
 
     _image = None
@@ -688,7 +688,7 @@ class MeshSource(OpaqueSource):
         assert self.data_source is not None
         if self.field[0] == "all":
             raise NotImplementedError(
-                "Mesh unions are not implemented " "for 3D rendering"
+                "Mesh unions are not implemented for 3D rendering"
             )
 
         if self.engine == "embree":
@@ -698,7 +698,7 @@ class MeshSource(OpaqueSource):
             self.build_volume_bvh()
         else:
             raise NotImplementedError(
-                "Invalid ray-tracing engine selected. " "Choices are 'embree' and 'yt'."
+                "Invalid ray-tracing engine selected. Choices are 'embree' and 'yt'."
             )
 
     def cmap():
@@ -915,14 +915,6 @@ class MeshSource(OpaqueSource):
 
         Applies a colormap to the current image without re-rendering.
 
-        Parameters
-        ----------
-        cmap_name : string, optional
-            An acceptable colormap.  See either yt.visualization.color_maps or
-            https://scipy-cookbook.readthedocs.io/items/Matplotlib_Show_colormaps.html .
-        color_bounds : tuple of floats, optional
-            The min and max to scale between.  Outlying values will be clipped.
-
         Returns
         -------
         current_image : A new image with the specified color scale applied to
@@ -977,14 +969,14 @@ class PointSource(OpaqueSource):
     >>> import numpy as np
     >>> from yt.visualization.volume_rendering.api import PointSource
     >>> from yt.units import kpc
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
     >>> im, sc = yt.volume_render(ds)
 
     >>> npoints = 1000
     >>> vertices = np.random.random([npoints, 3]) * 1000 * kpc
     >>> colors = np.random.random([npoints, 4])
-    >>> colors[:,3] = 1.0
+    >>> colors[:, 3] = 1.0
 
     >>> points = PointSource(vertices, colors=colors)
     >>> sc.add_source(points)
@@ -1100,14 +1092,14 @@ class LineSource(OpaqueSource):
     >>> import numpy as np
     >>> from yt.visualization.volume_rendering.api import LineSource
     >>> from yt.units import kpc
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
     >>> im, sc = yt.volume_render(ds)
 
     >>> nlines = 4
     >>> vertices = np.random.random([nlines, 2, 3]) * 600 * kpc
     >>> colors = np.random.random([nlines, 4])
-    >>> colors[:,3] = 1.0
+    >>> colors[:, 3] = 1.0
 
     >>> lines = LineSource(vertices, colors)
     >>> sc.add_source(lines)
@@ -1232,15 +1224,15 @@ class BoxSource(LineSource):
 
     >>> import yt
     >>> from yt.visualization.volume_rendering.api import BoxSource
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    >>>
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
     >>> im, sc = yt.volume_render(ds)
-    >>>
-    >>> box_source = BoxSource(ds.domain_left_edge,
-    ...                       ds.domain_right_edge,
-    ...                       [1.0, 1.0, 1.0, 1.0])
+
+    >>> box_source = BoxSource(
+    ...     ds.domain_left_edge, ds.domain_right_edge, [1.0, 1.0, 1.0, 1.0]
+    ... )
     >>> sc.add_source(box_source)
-    >>>
+
     >>> im = sc.render()
 
     """
@@ -1294,14 +1286,14 @@ class GridSource(LineSource):
 
     >>> import yt
     >>> from yt.visualization.volume_rendering.api import GridSource
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    >>>
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
     >>> im, sc = yt.volume_render(ds)
-    >>>
+
     >>> grid_source = GridSource(ds.all_data(), alpha=1.0)
-    >>>
+
     >>> sc.add_source(grid_source)
-    >>>
+
     >>> im = sc.render()
 
     This example does the same thing, except it only draws the grids
@@ -1310,15 +1302,15 @@ class GridSource(LineSource):
 
     >>> import yt
     >>> from yt.visualization.volume_rendering.api import GridSource
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    >>>
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
     >>> im, sc = yt.volume_render(ds)
-    >>>
+
     >>> dd = ds.sphere("c", (0.1, "unitary"))
     >>> grid_source = GridSource(dd, alpha=1.0)
-    >>>
+
     >>> sc.add_source(grid_source)
-    >>>
+
     >>> im = sc.render()
 
     """
@@ -1401,15 +1393,16 @@ class CoordinateVectorSource(OpaqueSource):
     --------
 
     >>> import yt
-    >>> from yt.visualization.volume_rendering.api import CoordinateVectorSource
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    >>>
+    >>> from yt.visualization.volume_rendering.api import \
+    ...     CoordinateVectorSource
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
     >>> im, sc = yt.volume_render(ds)
-    >>>
+
     >>> coord_source = CoordinateVectorSource()
-    >>>
+
     >>> sc.add_source(coord_source)
-    >>>
+
     >>> im = sc.render()
 
     """

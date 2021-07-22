@@ -271,7 +271,7 @@ yt will also provide a writer for this data, which will operate on any existing
 data format.  Provided that a simulation code can read this data, this will
 enable cross-platform comparison.  Furthermore, any external piece of software
 (i.e., Stranger) that implements reading this format will be able to read any
-format of data tha yt understands.
+format of data that yt understands.
 
 Example File
 ------------

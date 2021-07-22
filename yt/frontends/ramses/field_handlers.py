@@ -31,9 +31,9 @@ class HandlerMixin:
 
     def setup_handler(self, domain):
         """
-        Initalize an instance of the class. This automatically sets
+        Initialize an instance of the class. This automatically sets
         the full path to the file. This is not intended to be
-        overriden in most cases.
+        overridden in most cases.
 
         If you need more flexibility, rewrite this function to your
         need in the inherited class.
@@ -105,7 +105,7 @@ class HandlerMixin:
 
         Arguments
         ---------
-        * ds: a Ramses Dataset
+        ds : a Ramses Dataset
 
         Note
         ----
@@ -425,7 +425,7 @@ class HydroFieldFileHandler(FieldFileHandler):
         # Allow some wiggle room for users to add too many variables
         count_extra = 0
         while len(fields) < nvar:
-            fields.append("var" + str(len(fields)))
+            fields.append(f"var_{len(fields)}")
             count_extra += 1
         if count_extra > 0:
             mylog.debug("Detected %s extra fluid fields.", count_extra)

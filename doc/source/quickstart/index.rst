@@ -16,7 +16,7 @@ To execute the quickstart interactively, you have a couple of options: 1) run
 the notebook from your own system or 2) run it from the url
 https://girder.hub.yt/#raft/5b5b4686323d12000122aa8a.
 Option 1 requires an existing installation of yt (see
-:ref:`getting-and-installing-yt`), a copy of the yt source (which you may
+:ref:`installing-yt`), a copy of the yt source (which you may
 already have depending on your installation choice), and a download of the
 tutorial data-sets (total about 3 GB). If you know you are going to be a yt user
 and have the time to download the data-sets, option 1 is a good choice. However,

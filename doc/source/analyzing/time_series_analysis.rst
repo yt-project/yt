@@ -95,7 +95,7 @@ To instantiate, give the parameter file and the simulation type.
 
   import yt
 
-  my_sim = yt.simulation("enzo_tiny_cosmology/32Mpc_32.enzo", "Enzo")
+  my_sim = yt.load_simulation("enzo_tiny_cosmology/32Mpc_32.enzo", "Enzo")
 
 Then, create a ``DatasetSeries`` object with the
 :meth:`frontends.enzo.simulation_handling.EnzoSimulation.get_time_series`
@@ -117,7 +117,7 @@ After this, time series analysis can be done normally.
 
   for ds in my_sim.piter():
       all_data = ds.all_data()
-      print(all_data.quantities.extrema("density"))
+      print(all_data.quantities.extrema(("gas", "density")))
 
 Additional keywords can be given to
 :meth:`frontends.enzo.simulation_handling.EnzoSimulation.get_time_series`

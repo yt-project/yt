@@ -4,11 +4,11 @@ import yt
 ds = yt.load("Sedov_3d/sedov_hdf5_chk_0002")
 
 # Make a traditional slice plot.
-sp = yt.SlicePlot(ds, "x", "density")
+sp = yt.SlicePlot(ds, "x", ("gas", "density"))
 
 # Overlay the slice plot with thick red contours of density.
 sp.annotate_contour(
-    "density",
+    ("gas", "density"),
     ncont=3,
     clim=(1e-2, 1e-1),
     label=True,
@@ -17,7 +17,7 @@ sp.annotate_contour(
 
 # What about some nice temperature contours in blue?
 sp.annotate_contour(
-    "temperature",
+    ("gas", "temperature"),
     ncont=3,
     clim=(1e-8, 1e-6),
     label=True,
@@ -25,7 +25,7 @@ sp.annotate_contour(
 )
 
 # This is the plot object.
-po = sp.plots["density"]
+po = sp.plots[("gas", "density")]
 
 # Turn off the colormap image, leaving just the contours.
 po.axes.images[0].set_visible(False)

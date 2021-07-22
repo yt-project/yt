@@ -33,7 +33,7 @@ master_clump.add_info_item("center_of_mass")
 find_clumps(master_clump, c_min, c_max, step)
 
 # Save the clump tree as a reloadable dataset
-fn = master_clump.save_as_dataset(fields=["density", "particle_mass"])
+fn = master_clump.save_as_dataset(fields=[("gas", "density"), ("all", "particle_mass")])
 
 # We can traverse the clump hierarchy to get a list of all of the 'leaf' clumps
 leaf_clumps = master_clump.leaves

@@ -151,6 +151,7 @@ class ARTDataset(Dataset):
         file_particle_stars=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
         self.fluid_types += ("art",)
         if fields is None:
@@ -175,6 +176,7 @@ class ARTDataset(Dataset):
             dataset_type,
             units_override=units_override,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
         self.storage_filename = storage_filename
 
@@ -201,7 +203,7 @@ class ARTDataset(Dataset):
             else:
                 setattr(self, "_file_" + filetype, None)
 
-    def __repr__(self):
+    def __str__(self):
         return self._file_amr.split("/")[-1]
 
     def _set_code_unit_attributes(self):
@@ -290,7 +292,7 @@ class ARTDataset(Dataset):
             # lextra needs to be loaded as a string, but it's actually
             # array values.  So pop it off here, and then re-insert.
             lextra = amr_header_vals.pop("lextra")
-            amr_header_vals["lextra"] = np.fromstring(lextra, ">f4")
+            amr_header_vals["lextra"] = np.frombuffer(lextra, ">f4")
             self.parameters.update(amr_header_vals)
             amr_header_vals = None
             # estimate the root level
@@ -313,7 +315,7 @@ class ARTDataset(Dataset):
                 # extras needs to be loaded as a string, but it's actually
                 # array values.  So pop it off here, and then re-insert.
                 extras = particle_header_vals.pop("extras")
-                particle_header_vals["extras"] = np.fromstring(extras, ">f4")
+                particle_header_vals["extras"] = np.frombuffer(extras, ">f4")
             self.parameters["wspecies"] = wspecies[:n]
             self.parameters["lspecies"] = lspecies[:n]
             for specie in range(n):
@@ -482,7 +484,7 @@ class DarkMatterARTDataset(ARTDataset):
             else:
                 setattr(self, "_file_" + filetype, None)
 
-    def __repr__(self):
+    def __str__(self):
         return self._file_particle.split("/")[-1]
 
     def _set_code_unit_attributes(self):
@@ -568,43 +570,41 @@ class DarkMatterARTDataset(ARTDataset):
             boxsize = np.fromfile(fh, count=1, dtype=">f4")
         n = nspecs[0]
         particle_header_vals = {}
-        tmp = np.array(
-            [
-                headerstr,
-                aexpn,
-                aexp0,
-                amplt,
-                astep,
-                istep,
-                partw,
-                tintg,
-                ekin,
-                ekin1,
-                ekin2,
-                au0,
-                aeu0,
-                nrowc,
-                ngridc,
-                nspecs,
-                nseed,
-                Om0,
-                Oml0,
-                hubble,
-                Wp5,
-                Ocurv,
-                wspecies,
-                lspecies,
-                extras,
-                boxsize,
-            ]
-        )
-        for i in range(len(tmp)):
+        tmp = [
+            headerstr,
+            aexpn,
+            aexp0,
+            amplt,
+            astep,
+            istep,
+            partw,
+            tintg,
+            ekin,
+            ekin1,
+            ekin2,
+            au0,
+            aeu0,
+            nrowc,
+            ngridc,
+            nspecs,
+            nseed,
+            Om0,
+            Oml0,
+            hubble,
+            Wp5,
+            Ocurv,
+            wspecies,
+            lspecies,
+            extras,
+            boxsize,
+        ]
+        for i, arr in enumerate(tmp):
             a1 = dmparticle_header_struct[0][i]
             a2 = dmparticle_header_struct[1][i]
             if a2 == 1:
-                particle_header_vals[a1] = tmp[i][0]
+                particle_header_vals[a1] = arr[0]
             else:
-                particle_header_vals[a1] = tmp[i][:a2]
+                particle_header_vals[a1] = arr[:a2]
         for specie in range(n):
             self.particle_types.append("specie%i" % specie)
         self.particle_types_raw = tuple(self.particle_types)

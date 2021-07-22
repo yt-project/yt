@@ -45,7 +45,7 @@ def read_amrvac_namelist(parfiles):
 
     # accumulate `&filelist:base_filename`
     base_filename = "".join(
-        [nml.get("filelist", {}).get("base_filename", "") for nml in namelists]
+        nml.get("filelist", {}).get("base_filename", "") for nml in namelists
     )
     unified_namelist["filelist"]["base_filename"] = base_filename
 

@@ -26,7 +26,7 @@ class ZBuffer:
     >>> c = b1 + b2
     >>> np.all(c.rgba == b2.rgba)
     True
-    >>> np.all(c.z == b2.z))
+    >>> np.all(c.z == b2.z)
     True
     >>> np.all(c == b2)
     True

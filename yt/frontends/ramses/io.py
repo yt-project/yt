@@ -176,7 +176,7 @@ class IOHandlerRAMSES(BaseIOHandler):
         # Sequential read depending on particle type
         for ptype in {f[0] for f in fields}:
 
-            # Select relevant fiels
+            # Select relevant files
             subs_fields = filter(lambda f: f[0] == ptype, fields)
 
             ok = False

@@ -74,7 +74,7 @@ L.Control.Coordinates = L.Control.extend({
 		map.whenReady(this._update, this);
 
 		this._showsCoordinates = true;
-		//wether or not to show inputs on click
+		//whether or not to show inputs on click
 		if (options.enableUserInput) {
 			L.DomEvent.addListener(this._container, "click", this._switchUI, this);
 		}

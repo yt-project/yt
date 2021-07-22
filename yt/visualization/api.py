@@ -4,6 +4,7 @@ from .fits_image import (
     FITSImageData,
     FITSOffAxisProjection,
     FITSOffAxisSlice,
+    FITSParticleProjection,
     FITSProjection,
     FITSSlice,
 )

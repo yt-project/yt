@@ -1,3 +1,6 @@
+# FUTURE: this file can be deleted at condition that warnings are treated
+# as errors in all CI jobs covering h5py.
+# In practice, this will only be possible when we're done transitioning to pytest.
 name: Auto review bad practice
 on: [pull_request]
 

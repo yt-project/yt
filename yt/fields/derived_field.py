@@ -179,7 +179,7 @@ class DerivedField:
             self.units = units.decode("utf-8")
         else:
             raise FieldUnitsError(
-                "Cannot handle units '%s' (type %s)."
+                "Cannot handle units '%s' (type %s). "
                 "Please provide a string or Unit "
                 "object." % (units, type(units))
             )
@@ -250,10 +250,7 @@ class DerivedField:
         This returns a list of names of fields that this field depends on.
         """
         e = FieldDetector(*args, **kwargs)
-        if self._function.__name__ == "<lambda>":
-            e.requested.append(self.name)
-        else:
-            e[self.name]
+        e[self.name]
         return e
 
     def _get_needed_parameters(self, fd):
@@ -285,7 +282,7 @@ class DerivedField:
         self._unit_registry = old_registry
 
     def __call__(self, data):
-        """ Return the value of the field in a given *data* object. """
+        """Return the value of the field in a given *data* object."""
         self.check_available(data)
         original_fields = data.keys()  # Copy
         if self._function is NullFunc:

@@ -35,7 +35,7 @@ def test_d9p():
     for field in _fields:
         for axis in [0, 1]:
             for dobj_name in dso:
-                for weight_field in [None, "density"]:
+                for weight_field in [None, ("gas", "density")]:
                     if field[0] not in ds.particle_types:
                         yield PixelizedProjectionValuesTest(
                             d9p, axis, field, weight_field, dobj_name
@@ -57,7 +57,7 @@ def test_d9p_global_values():
     assert_equal(ad[("stars", "particle_type")].size, AnaNStars)
     assert_equal(ad[("specie4", "particle_type")].size, AnaNStars)
 
-    # The *real* asnwer is 2833405, but yt misses one particle since it lives
+    # The *real* answer is 2833405, but yt misses one particle since it lives
     # on a domain boundary. See issue 814. When that is fixed, this test
     # will need to be updated
     AnaNDM = 2833404

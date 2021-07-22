@@ -23,8 +23,8 @@ def save_as_dataset(ds, filename, data, field_types=None, extra_attrs=None):
         A dictionary of field arrays to be saved.
     field_types: dict, optional
         A dictionary denoting the group name to which each field is to
-        be saved.  When the resulting dataset is reloaded, this will be
-        the field type for this field.  If not given, "data" will be
+        be saved. When the resulting dataset is reloaded, this will be
+        the field type for this field. If not given, "data" will be
         used.
     extra_attrs: dict, optional
         A dictionary of additional attributes to be saved.
@@ -40,27 +40,29 @@ def save_as_dataset(ds, filename, data, field_types=None, extra_attrs=None):
     >>> import numpy as np
     >>> import yt
     >>> ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
-    >>> sphere = ds.sphere([0.5]*3, (10, "Mpc"))
-    >>> sphere_density = sphere["density"]
-    >>> region = ds.box([0.]*3, [0.25]*3)
-    >>> region_density = region["density"]
+    >>> sphere = ds.sphere([0.5] * 3, (10, "Mpc"))
+    >>> sphere_density = sphere[("gas", "density")]
+    >>> region = ds.box([0.0] * 3, [0.25] * 3)
+    >>> region_density = region[("gas", "density")]
     >>> data = {}
     >>> data["sphere_density"] = sphere_density
     >>> data["region_density"] = region_density
     >>> yt.save_as_dataset(ds, "density_data.h5", data)
     >>> new_ds = yt.load("density_data.h5")
-    >>> print (new_ds.data["region_density"])
+    >>> print(new_ds.data["region_density"])
     [  7.47650434e-32   7.70370740e-32   9.74692941e-32 ...,   1.22384547e-27
        5.13889063e-28   2.91811974e-28] g/cm**3
-    >>> print (new_ds.data["sphere_density"])
+    >>> print(new_ds.data["sphere_density"])
     [  4.46237613e-32   4.86830178e-32   4.46335118e-32 ...,   6.43956165e-30
        3.57339907e-30   2.83150720e-30] g/cm**3
-    >>> data = {"density": yt.YTArray(1e-24 * np.ones(10), "g/cm**3"),
-    ...         "temperature": yt.YTArray(1000. * np.ones(10), "K")}
+    >>> data = {
+    ...     "density": yt.YTArray(1e-24 * np.ones(10), "g/cm**3"),
+    ...     "temperature": yt.YTArray(1000.0 * np.ones(10), "K"),
+    ... }
     >>> ds_data = {"current_time": yt.YTQuantity(10, "Myr")}
     >>> yt.save_as_dataset(ds_data, "random_data.h5", data)
     >>> new_ds = yt.load("random_data.h5")
-    >>> print (new_ds.data["temperature"])
+    >>> print(new_ds.data[("gas", "temperature")])
     [ 1000.  1000.  1000.  1000.  1000.  1000.  1000.  1000.  1000.  1000.] K
 
     """

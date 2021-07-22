@@ -27,32 +27,44 @@ def test_profiles():
     ds = fake_random_ds(64, nprocs=8, fields=_fields, units=_units)
     nv = ds.domain_dimensions.prod()
     dd = ds.all_data()
-    rt, tt, dt = dd.quantities["TotalQuantity"](["density", "temperature", "dinosaurs"])
+    rt, tt, dt = dd.quantities["TotalQuantity"](
+        [("gas", "density"), ("gas", "temperature"), ("stream", "dinosaurs")]
+    )
 
     e1, e2 = 0.9, 1.1
     for nb in [8, 16, 32, 64]:
         for input_units in ["mks", "cgs"]:
-            (rmi, rma), (tmi, tma), (dmi, dma) = [
+            (rmi, rma), (tmi, tma), (dmi, dma) = (
                 getattr(ex, f"in_{input_units}")()
                 for ex in dd.quantities["Extrema"](
-                    ["density", "temperature", "dinosaurs"]
+                    [
+                        ("gas", "density"),
+                        ("gas", "temperature"),
+                        ("stream", "dinosaurs"),
+                    ]
                 )
-            ]
+            )
             # We log all the fields or don't log 'em all.  No need to do them
             # individually.
             for lf in [True, False]:
                 direct_profile = Profile1D(
-                    dd, "density", nb, rmi * e1, rma * e2, lf, weight_field=None
+                    dd,
+                    ("gas", "density"),
+                    nb,
+                    rmi * e1,
+                    rma * e2,
+                    lf,
+                    weight_field=None,
                 )
-                direct_profile.add_fields(["ones", "temperature"])
+                direct_profile.add_fields([("index", "ones"), ("gas", "temperature")])
 
                 indirect_profile_s = create_profile(
                     dd,
-                    "density",
-                    ["ones", "temperature"],
+                    ("gas", "density"),
+                    [("index", "ones"), ("gas", "temperature")],
                     n_bins=nb,
-                    extrema={"density": (rmi * e1, rma * e2)},
-                    logs={"density": lf},
+                    extrema={("gas", "density"): (rmi * e1, rma * e2)},
+                    logs={("gas", "density"): lf},
                     weight_field=None,
                 )
 
@@ -61,8 +73,8 @@ def test_profiles():
                     ("gas", "density"),
                     [("index", "ones"), ("gas", "temperature")],
                     n_bins=nb,
-                    extrema={"density": (rmi * e1, rma * e2)},
-                    logs={"density": lf},
+                    extrema={("gas", "density"): (rmi * e1, rma * e2)},
+                    logs={("gas", "density"): lf},
                     weight_field=None,
                 )
 
@@ -72,137 +84,150 @@ def test_profiles():
 
                 p2d = Profile2D(
                     dd,
-                    "density",
+                    ("gas", "density"),
                     nb,
                     rmi * e1,
                     rma * e2,
                     lf,
-                    "temperature",
+                    ("gas", "temperature"),
                     nb,
                     tmi * e1,
                     tma * e2,
                     lf,
                     weight_field=None,
                 )
-                p2d.add_fields(["ones", "temperature"])
-                assert_equal(p2d["ones"].sum(), nv)
-                assert_rel_equal(tt, p2d["temperature"].sum(), 7)
+                p2d.add_fields([("index", "ones"), ("gas", "temperature")])
+                assert_equal(p2d["index", "ones"].sum(), nv)
+                assert_rel_equal(tt, p2d["gas", "temperature"].sum(), 7)
 
                 p3d = Profile3D(
                     dd,
-                    "density",
+                    ("gas", "density"),
                     nb,
                     rmi * e1,
                     rma * e2,
                     lf,
-                    "temperature",
+                    ("gas", "temperature"),
                     nb,
                     tmi * e1,
                     tma * e2,
                     lf,
-                    "dinosaurs",
+                    ("stream", "dinosaurs"),
                     nb,
                     dmi * e1,
                     dma * e2,
                     lf,
                     weight_field=None,
                 )
-                p3d.add_fields(["ones", "temperature"])
-                assert_equal(p3d["ones"].sum(), nv)
-                assert_rel_equal(tt, p3d["temperature"].sum(), 7)
+                p3d.add_fields([("index", "ones"), ("gas", "temperature")])
+                assert_equal(p3d["index", "ones"].sum(), nv)
+                assert_rel_equal(tt, p3d["gas", "temperature"].sum(), 7)
 
-        p1d = Profile1D(dd, "x", nb, 0.0, 1.0, False, weight_field=None)
-        p1d.add_fields("ones")
+        p1d = Profile1D(dd, ("index", "x"), nb, 0.0, 1.0, False, weight_field=None)
+        p1d.add_fields(("index", "ones"))
         av = nv / nb
-        assert_equal(p1d["ones"], np.ones(nb) * av)
+        assert_equal(p1d["index", "ones"], np.ones(nb) * av)
 
         # We re-bin ones with a weight now
-        p1d = Profile1D(dd, "x", nb, 0.0, 1.0, False, weight_field="temperature")
-        p1d.add_fields(["ones"])
-        assert_equal(p1d["ones"], np.ones(nb))
+        p1d = Profile1D(
+            dd, ("index", "x"), nb, 0.0, 1.0, False, weight_field=("gas", "temperature")
+        )
+        p1d.add_fields([("index", "ones")])
+        assert_equal(p1d["index", "ones"], np.ones(nb))
 
         # Verify we can access "ones" after adding a new field
         # See issue 988
-        p1d.add_fields(["density"])
-        assert_equal(p1d["ones"], np.ones(nb))
+        p1d.add_fields([("gas", "density")])
+        assert_equal(p1d["index", "ones"], np.ones(nb))
 
         p2d = Profile2D(
-            dd, "x", nb, 0.0, 1.0, False, "y", nb, 0.0, 1.0, False, weight_field=None
-        )
-        p2d.add_fields("ones")
-        av = nv / nb ** 2
-        assert_equal(p2d["ones"], np.ones((nb, nb)) * av)
-
-        # We re-bin ones with a weight now
-        p2d = Profile2D(
             dd,
-            "x",
+            ("index", "x"),
             nb,
             0.0,
             1.0,
             False,
-            "y",
-            nb,
-            0.0,
-            1.0,
-            False,
-            weight_field="temperature",
-        )
-        p2d.add_fields(["ones"])
-        assert_equal(p2d["ones"], np.ones((nb, nb)))
-
-        p3d = Profile3D(
-            dd,
-            "x",
-            nb,
-            0.0,
-            1.0,
-            False,
-            "y",
-            nb,
-            0.0,
-            1.0,
-            False,
-            "z",
+            ("index", "y"),
             nb,
             0.0,
             1.0,
             False,
             weight_field=None,
         )
-        p3d.add_fields("ones")
+        p2d.add_fields(("index", "ones"))
+        av = nv / nb ** 2
+        assert_equal(p2d["index", "ones"], np.ones((nb, nb)) * av)
+
+        # We re-bin ones with a weight now
+        p2d = Profile2D(
+            dd,
+            ("index", "x"),
+            nb,
+            0.0,
+            1.0,
+            False,
+            ("index", "y"),
+            nb,
+            0.0,
+            1.0,
+            False,
+            weight_field=("gas", "temperature"),
+        )
+        p2d.add_fields([("index", "ones")])
+        assert_equal(p2d["index", "ones"], np.ones((nb, nb)))
+
+        p3d = Profile3D(
+            dd,
+            ("index", "x"),
+            nb,
+            0.0,
+            1.0,
+            False,
+            ("index", "y"),
+            nb,
+            0.0,
+            1.0,
+            False,
+            ("index", "z"),
+            nb,
+            0.0,
+            1.0,
+            False,
+            weight_field=None,
+        )
+        p3d.add_fields(("index", "ones"))
         av = nv / nb ** 3
-        assert_equal(p3d["ones"], np.ones((nb, nb, nb)) * av)
+        assert_equal(p3d["index", "ones"], np.ones((nb, nb, nb)) * av)
 
         # We re-bin ones with a weight now
         p3d = Profile3D(
             dd,
-            "x",
+            ("index", "x"),
             nb,
             0.0,
             1.0,
             False,
-            "y",
+            ("index", "y"),
             nb,
             0.0,
             1.0,
             False,
-            "z",
+            ("index", "z"),
             nb,
             0.0,
             1.0,
             False,
-            weight_field="temperature",
+            weight_field=("gas", "temperature"),
         )
-        p3d.add_fields(["ones"])
-        assert_equal(p3d["ones"], np.ones((nb, nb, nb)))
+        p3d.add_fields([("index", "ones")])
+        assert_equal(p3d["index", "ones"], np.ones((nb, nb, nb)))
 
         p2d = create_profile(
             dd,
             ("gas", "density"),
             ("gas", "temperature"),
             weight_field=("gas", "cell_mass"),
-            extrema={"density": (None, rma * e2)},
+            extrema={("gas", "density"): (None, rma * e2)},
         )
         assert_equal(p2d.x_bins[0], rmi - np.spacing(rmi))
         assert_equal(p2d.x_bins[-1], rma * e2)
@@ -213,14 +238,14 @@ def test_profiles():
             ("gas", "density"),
             ("gas", "temperature"),
             weight_field=("gas", "cell_mass"),
-            extrema={"density": (rmi * e2, None)},
+            extrema={("gas", "density"): (rmi * e2, None)},
         )
         assert_equal(p2d.x_bins[0], rmi * e2)
         assert_equal(p2d.x_bins[-1], rma + np.spacing(rma))
 
 
-extrema_s = {"particle_position_x": (0, 1)}
-logs_s = {"particle_position_x": False}
+extrema_s = {("all", "particle_position_x"): (0, 1)}
+logs_s = {("all", "particle_position_x"): False}
 
 extrema_t = {("all", "particle_position_x"): (0, 1)}
 logs_t = {("all", "particle_position_x"): False}
@@ -232,21 +257,21 @@ def test_particle_profiles():
         dd = ds.all_data()
 
         p1d = Profile1D(
-            dd, "particle_position_x", 128, 0.0, 1.0, False, weight_field=None
+            dd, ("all", "particle_position_x"), 128, 0.0, 1.0, False, weight_field=None
         )
-        p1d.add_fields(["particle_ones"])
-        assert_equal(p1d["particle_ones"].sum(), 32 ** 3)
+        p1d.add_fields([("all", "particle_ones")])
+        assert_equal(p1d[("all", "particle_ones")].sum(), 32 ** 3)
 
         p1d = create_profile(
             dd,
-            ["particle_position_x"],
-            ["particle_ones"],
+            [("all", "particle_position_x")],
+            [("all", "particle_ones")],
             weight_field=None,
             n_bins=128,
             extrema=extrema_s,
             logs=logs_s,
         )
-        assert_equal(p1d["particle_ones"].sum(), 32 ** 3)
+        assert_equal(p1d[("all", "particle_ones")].sum(), 32 ** 3)
 
         p1d = create_profile(
             dd,
@@ -257,95 +282,120 @@ def test_particle_profiles():
             extrema=extrema_t,
             logs=logs_t,
         )
-        assert_equal(p1d["particle_ones"].sum(), 32 ** 3)
+        assert_equal(p1d[("all", "particle_ones")].sum(), 32 ** 3)
 
         p2d = Profile2D(
             dd,
-            "particle_position_x",
+            ("all", "particle_position_x"),
             128,
             0.0,
             1.0,
             False,
-            "particle_position_y",
+            ("all", "particle_position_y"),
             128,
             0.0,
             1.0,
             False,
             weight_field=None,
         )
-        p2d.add_fields(["particle_ones"])
-        assert_equal(p2d["particle_ones"].sum(), 32 ** 3)
+        p2d.add_fields([("all", "particle_ones")])
+        assert_equal(p2d[("all", "particle_ones")].sum(), 32 ** 3)
 
         p3d = Profile3D(
             dd,
-            "particle_position_x",
+            ("all", "particle_position_x"),
             128,
             0.0,
             1.0,
             False,
-            "particle_position_y",
+            ("all", "particle_position_y"),
             128,
             0.0,
             1.0,
             False,
-            "particle_position_z",
+            ("all", "particle_position_z"),
             128,
             0.0,
             1.0,
             False,
             weight_field=None,
         )
-        p3d.add_fields(["particle_ones"])
-        assert_equal(p3d["particle_ones"].sum(), 32 ** 3)
+        p3d.add_fields([("all", "particle_ones")])
+        assert_equal(p3d[("all", "particle_ones")].sum(), 32 ** 3)
 
 
 def test_mixed_particle_mesh_profiles():
     ds = fake_random_ds(32, particles=10)
     ad = ds.all_data()
-    assert_raises(YTIllDefinedProfile, ProfilePlot, ad, "radius", "particle_mass")
+    assert_raises(
+        YTIllDefinedProfile,
+        ProfilePlot,
+        ad,
+        ("index", "radius"),
+        ("all", "particle_mass"),
+    )
     assert_raises(
         YTIllDefinedProfile,
         ProfilePlot,
         ad,
         "radius",
-        ["particle_mass", "particle_ones"],
-    )
-    assert_raises(
-        YTIllDefinedProfile, ProfilePlot, ad, "radius", ["particle_mass", "ones"]
+        [("all", "particle_mass"), ("all", "particle_ones")],
     )
     assert_raises(
         YTIllDefinedProfile,
         ProfilePlot,
         ad,
-        "particle_radius",
-        "particle_mass",
-        "cell_mass",
+        ("index", "radius"),
+        [("all", "particle_mass"), ("index", "ones")],
     )
     assert_raises(
-        YTIllDefinedProfile, ProfilePlot, ad, "radius", "cell_mass", "particle_ones"
+        YTIllDefinedProfile,
+        ProfilePlot,
+        ad,
+        ("all", "particle_radius"),
+        ("all", "particle_mass"),
+        ("gas", "cell_mass"),
+    )
+    assert_raises(
+        YTIllDefinedProfile,
+        ProfilePlot,
+        ad,
+        ("index", "radius"),
+        ("gas", "cell_mass"),
+        ("all", "particle_ones"),
     )
 
     assert_raises(
-        YTIllDefinedProfile, PhasePlot, ad, "radius", "particle_mass", "velocity_x"
+        YTIllDefinedProfile,
+        PhasePlot,
+        ad,
+        ("index", "radius"),
+        ("all", "particle_mass"),
+        ("gas", "velocity_x"),
     )
     assert_raises(
         YTIllDefinedProfile,
         PhasePlot,
         ad,
-        "particle_radius",
-        "particle_mass",
-        "cell_mass",
-    )
-    assert_raises(
-        YTIllDefinedProfile, PhasePlot, ad, "radius", "cell_mass", "particle_ones"
+        ("all", "particle_radius"),
+        ("all", "particle_mass"),
+        ("gas", "cell_mass"),
     )
     assert_raises(
         YTIllDefinedProfile,
         PhasePlot,
         ad,
-        "particle_radius",
-        "particle_mass",
-        "particle_ones",
+        ("index", "radius"),
+        ("gas", "cell_mass"),
+        ("all", "particle_ones"),
+    )
+    assert_raises(
+        YTIllDefinedProfile,
+        PhasePlot,
+        ad,
+        ("all", "particle_radius"),
+        ("all", "particle_mass"),
+        ("all", "particle_ones"),
     )
 
 
@@ -373,26 +423,26 @@ def test_particle_profile_negative_field():
 
     profile = yt.create_profile(
         ad,
-        ["particle_position_x", "particle_position_y"],
-        "particle_velocity_x",
+        [("all", "particle_position_x"), ("all", "particle_position_y")],
+        ("all", "particle_velocity_x"),
         logs={
-            "particle_position_x": True,
-            "particle_position_y": True,
-            "particle_position_z": True,
+            ("all", "particle_position_x"): True,
+            ("all", "particle_position_y"): True,
+            ("all", "particle_position_z"): True,
         },
         weight_field=None,
     )
-    assert profile["particle_velocity_x"].min() < 0
+    assert profile[("all", "particle_velocity_x")].min() < 0
     assert profile.x_bins.min() > 0
     assert profile.y_bins.min() > 0
 
     profile = yt.create_profile(
         ad,
-        ["particle_position_x", "particle_position_y"],
-        "particle_velocity_x",
+        [("all", "particle_position_x"), ("all", "particle_position_y")],
+        ("all", "particle_velocity_x"),
         weight_field=None,
     )
-    assert profile["particle_velocity_x"].min() < 0
+    assert profile[("all", "particle_velocity_x")].min() < 0
     assert profile.x_bins.min() < 0
     assert profile.y_bins.min() < 0
 
@@ -400,12 +450,12 @@ def test_particle_profile_negative_field():
     with assert_raises(RuntimeError):
         yt.create_profile(
             ad,
-            ["particle_position_x", "particle_position_y"],
-            "particle_velocity_x",
+            [("all", "particle_position_x"), ("all", "particle_position_y")],
+            ("all", "particle_velocity_x"),
             logs={
-                "particle_position_x": True,
-                "particle_position_y": False,
-                "particle_position_z": False,
+                ("all", "particle_position_x"): True,
+                ("all", "particle_position_y"): False,
+                ("all", "particle_position_z"): False,
             },
             weight_field=None,
             deposition="cic",
@@ -415,12 +465,12 @@ def test_particle_profile_negative_field():
     with assert_raises(RuntimeError):
         yt.create_profile(
             ad,
-            ["particle_position_x", "particle_position_y"],
-            "particle_velocity_x",
+            [("all", "particle_position_x"), ("all", "particle_position_y")],
+            ("all", "particle_velocity_x"),
             logs={
-                "particle_position_x": False,
-                "particle_position_y": False,
-                "particle_position_z": False,
+                ("all", "particle_position_x"): False,
+                ("all", "particle_position_y"): False,
+                ("all", "particle_position_z"): False,
             },
             weight_field=None,
             deposition="cic",
@@ -493,27 +543,33 @@ def test_profile_override_limits():
     sp = ds.sphere(ds.domain_center, (10, "kpc"))
     obins = np.linspace(-5, 5, 10)
     profile = yt.create_profile(
-        sp, ["density"], ["temperature"], override_bins={"density": (obins, "g/cm**3")}
+        sp,
+        [("gas", "density")],
+        [("gas", "temperature")],
+        override_bins={("gas", "density"): (obins, "g/cm**3")},
     )
     assert_equal(ds.arr(obins, "g/cm**3"), profile.x_bins)
 
     profile = yt.create_profile(
         sp,
-        ["density", "dinosaurs"],
-        ["temperature"],
-        override_bins={"density": (obins, "g/cm**3"), "dinosaurs": obins},
+        [("gas", "density"), ("stream", "dinosaurs")],
+        [("gas", "temperature")],
+        override_bins={
+            ("gas", "density"): (obins, "g/cm**3"),
+            ("stream", "dinosaurs"): obins,
+        },
     )
     assert_equal(ds.arr(obins, "g/cm**3"), profile.x_bins)
     assert_equal(ds.arr(obins, "dyne"), profile.y_bins)
 
     profile = yt.create_profile(
         sp,
-        ["density", "dinosaurs", "tribbles"],
-        ["temperature"],
+        [("gas", "density"), (("stream", "dinosaurs")), ("stream", "tribbles")],
+        [("gas", "temperature")],
         override_bins={
-            "density": (obins, "g/cm**3"),
-            "dinosaurs": obins,
-            "tribbles": (obins, "erg"),
+            ("gas", "density"): (obins, "g/cm**3"),
+            (("stream", "dinosaurs")): obins,
+            ("stream", "tribbles"): (obins, "erg"),
         },
     )
     assert_equal(ds.arr(obins, "g/cm**3"), profile.x_bins)
@@ -540,51 +596,66 @@ class TestBadProfiles(unittest.TestCase):
     def test_unequal_data_shape_profile(self):
         density = np.random.random(128)
         temperature = np.random.random(128)
-        cell_mass = np.random.random((128, 128))
+        mass = np.random.random((128, 128))
 
         my_data = {
-            "density": density,
-            "temperature": temperature,
-            "cell_mass": cell_mass,
+            ("gas", "density"): density,
+            ("gas", "temperature"): temperature,
+            ("gas", "mass"): mass,
         }
         fake_ds_med = {"current_time": yt.YTQuantity(10, "Myr")}
-        yt.save_as_dataset(fake_ds_med, "mydata.h5", my_data)
+        field_types = {field: "gas" for field in my_data.keys()}
+        yt.save_as_dataset(fake_ds_med, "mydata.h5", my_data, field_types=field_types)
 
         ds = yt.load("mydata.h5")
 
-        assert_raises(
-            YTProfileDataShape,
-            yt.PhasePlot,
-            ds.data,
-            "temperature",
-            "density",
-            "cell_mass",
-        )
+        with assert_raises(YTProfileDataShape):
+            yt.PhasePlot(
+                ds.data,
+                ("gas", "temperature"),
+                ("gas", "density"),
+                ("gas", "mass"),
+            )
 
     @requires_module("h5py")
     def test_unequal_bin_field_profile(self):
         density = np.random.random(128)
         temperature = np.random.random(127)
-        cell_mass = np.random.random((128, 128))
+        mass = np.random.random((128, 128))
 
         my_data = {
-            "density": density,
-            "temperature": temperature,
-            "cell_mass": cell_mass,
+            ("gas", "density"): density,
+            ("gas", "temperature"): temperature,
+            ("gas", "mass"): mass,
         }
         fake_ds_med = {"current_time": yt.YTQuantity(10, "Myr")}
-        yt.save_as_dataset(fake_ds_med, "mydata.h5", my_data)
+        field_types = {field: "gas" for field in my_data.keys()}
+        yt.save_as_dataset(fake_ds_med, "mydata.h5", my_data, field_types=field_types)
 
         ds = yt.load("mydata.h5")
 
-        assert_raises(
-            YTProfileDataShape,
-            yt.PhasePlot,
-            ds.data,
-            "temperature",
-            "density",
-            "cell_mass",
+        with assert_raises(YTProfileDataShape):
+            yt.PhasePlot(
+                ds.data,
+                ("gas", "temperature"),
+                ("gas", "density"),
+                ("gas", "mass"),
+            )
+
+    def test_set_linear_scaling_for_none_extrema(self):
+        # See Issue #3431
+        # Ensures that extrema are calculated in the same way on subsequent passes
+        # through the PhasePlot machinery.
+        ds = fake_sph_orientation_ds()
+        p = yt.PhasePlot(
+            ds,
+            ("all", "particle_position_spherical_theta"),
+            ("all", "particle_position_spherical_radius"),
+            ("all", "particle_mass"),
+            weight_field=None,
         )
+        p.set_log(("all", "particle_position_spherical_theta"), False)
+        p.save()
 
 
 def test_index_field_units():
@@ -596,7 +667,7 @@ def test_index_field_units():
     gcv_units = ad["gas", "cell_volume"].units
     assert str(gcv_units) == "cm**3"
     prof = ad.profile(
-        ["density", "velocity_x"],
+        [("gas", "density"), ("gas", "velocity_x")],
         [("gas", "cell_volume"), ("index", "cell_volume")],
         weight_field=None,
     )
@@ -611,7 +682,7 @@ def test_export_astropy():
     ds = fake_random_ds(64)
     ad = ds.all_data()
     prof = ad.profile(
-        "radius",
+        ("index", "radius"),
         [("gas", "density"), ("gas", "velocity_x")],
         weight_field=("index", "ones"),
         n_bins=32,
@@ -622,17 +693,20 @@ def test_export_astropy():
     assert "density" in at1.colnames
     assert "velocity_x" in at1.colnames
     assert_equal(prof.x.d, at1["radius"].value)
-    assert_equal(prof["density"].d, at1["density"].value)
-    assert_equal(prof["velocity_x"].d, at1["velocity_x"].value)
+    assert_equal(prof[("gas", "density")].d, at1["density"].value)
+    assert_equal(prof[("gas", "velocity_x")].d, at1["velocity_x"].value)
     assert prof.x.units == YTArray.from_astropy(at1["radius"]).units
-    assert prof["density"].units == YTArray.from_astropy(at1["density"]).units
-    assert prof["velocity_x"].units == YTArray.from_astropy(at1["velocity_x"]).units
+    assert prof[("gas", "density")].units == YTArray.from_astropy(at1["density"]).units
+    assert (
+        prof[("gas", "velocity_x")].units
+        == YTArray.from_astropy(at1["velocity_x"]).units
+    )
     assert np.all(at1.mask["density"] == prof.used)
-    at2 = prof.to_astropy_table(fields="density", only_used=True)
+    at2 = prof.to_astropy_table(fields=("gas", "density"), only_used=True)
     assert "radius" in at2.colnames
     assert "velocity_x" not in at2.colnames
     assert_equal(prof.x.d[prof.used], at2["radius"].value)
-    assert_equal(prof["density"].d[prof.used], at2["density"].value)
+    assert_equal(prof[("gas", "density")].d[prof.used], at2["density"].value)
 
 
 @requires_module("pandas")
@@ -651,10 +725,10 @@ def test_export_pandas():
     assert "density" in df1.columns
     assert "velocity_x" in df1.columns
     assert_equal(prof.x.d, df1["radius"])
-    assert_equal(prof["density"].d, np.nan_to_num(df1["density"]))
+    assert_equal(prof[("gas", "density")].d, np.nan_to_num(df1["density"]))
     assert_equal(prof["velocity_x"].d, np.nan_to_num(df1["velocity_x"]))
-    df2 = prof.to_dataframe(fields="density", only_used=True)
+    df2 = prof.to_dataframe(fields=("gas", "density"), only_used=True)
     assert "radius" in df2.columns
     assert "velocity_x" not in df2.columns
     assert_equal(prof.x.d[prof.used], df2["radius"])
-    assert_equal(prof["density"].d[prof.used], df2["density"])
+    assert_equal(prof[("gas", "density")].d[prof.used], df2["density"])

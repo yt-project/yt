@@ -247,7 +247,7 @@ def setup_magnetic_field_aliases(registry, ds_ftype, ds_fields, ftype="gas"):
     >>> class PlutoFieldInfo(ChomboFieldInfo):
     ...     def setup_fluid_fields(self):
     ...         setup_magnetic_field_aliases(
-    ...             self, "chombo", ["bx%s" % ax for ax in [1,2,3]]
+    ...             self, "chombo", ["bx%s" % ax for ax in [1, 2, 3]]
     ...         )
     >>> class GizmoFieldInfo(GadgetFieldInfo):
     ...     def setup_gas_particle_fields(self):

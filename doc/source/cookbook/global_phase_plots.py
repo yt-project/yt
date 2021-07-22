@@ -8,7 +8,9 @@ ad = ds.all_data()
 
 # We plot the average velocity magnitude (mass-weighted) in our object
 # as a function of density and temperature
-plot = yt.PhasePlot(ad, "density", "temperature", "velocity_magnitude")
+plot = yt.PhasePlot(
+    ad, ("gas", "density"), ("gas", "temperature"), ("gas", "velocity_magnitude")
+)
 
 # save the plot
 plot.save()

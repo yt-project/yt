@@ -167,7 +167,7 @@ class Clump(TreeContainer):
                 [f"obj['contours_{contour_key}'] == {cid}"],
                 {(f"contour_slices_{contour_key}"): cids},
             )
-            if new_clump["ones"].size == 0:
+            if new_clump[("index", "ones")].size == 0:
                 # This is to skip possibly duplicate clumps.
                 # Using "ones" here will speed things up.
                 continue
@@ -214,22 +214,24 @@ class Clump(TreeContainer):
         --------
 
         >>> import yt
-        >>> from yt.data_objects.level_sets.api import \
-        ...         Clump, find_clumps
+        >>> from yt.data_objects.level_sets.api import Clump, find_clumps
         >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-        >>> data_source = ds.disk([0.5, 0.5, 0.5], [0., 0., 1.],
-        ...                       (8, 'kpc'), (1, 'kpc'))
+        >>> data_source = ds.disk(
+        ...     [0.5, 0.5, 0.5], [0.0, 0.0, 1.0], (8, "kpc"), (1, "kpc")
+        ... )
         >>> field = ("gas", "density")
         >>> step = 2.0
-        >>> c_min = 10**np.floor(np.log10(data_source[field]).min()  )
-        >>> c_max = 10**np.floor(np.log10(data_source[field]).max()+1)
+        >>> c_min = 10 ** np.floor(np.log10(data_source[field]).min())
+        >>> c_max = 10 ** np.floor(np.log10(data_source[field]).max() + 1)
         >>> master_clump = Clump(data_source, field)
         >>> master_clump.add_info_item("center_of_mass")
         >>> master_clump.add_validator("min_cells", 20)
         >>> find_clumps(master_clump, c_min, c_max, step)
-        >>> fn = master_clump.save_as_dataset(fields=["density", "particle_mass"])
+        >>> fn = master_clump.save_as_dataset(
+        ...     fields=[("gas", "density"), ("all", "particle_mass")]
+        ... )
         >>> new_ds = yt.load(fn)
-        >>> print (ds.tree["clump", "cell_mass"])
+        >>> print(ds.tree["clump", "cell_mass"])
         1296926163.91 Msun
         >>> print(ds.tree["grid", "density"])
         [  2.54398434e-26   2.46620353e-26   2.25120154e-26 ...,   1.12879234e-25
@@ -428,7 +430,7 @@ def find_clumps(clump, min_val, max_val, d_clump):
             else:
                 mylog.info(
                     "Eliminating invalid, childless clump with %d cells.",
-                    len(child.data["ones"]),
+                    len(child.data[("index", "ones")]),
                 )
         if len(these_children) > 1:
             mylog.info(

@@ -175,7 +175,7 @@ class OWLSFieldInfo(SPHFieldInfo):
                 if (ptype, symbol + "_fraction") not in self.field_aliases:
                     continue
 
-                pstr = "_p" + str(roman - 1)
+                pstr = f"_p{roman - 1}"
                 yt_ion = symbol + pstr
 
                 # add particle field
@@ -226,7 +226,7 @@ class OWLSFieldInfo(SPHFieldInfo):
                 if (ptype, symbol + "_fraction") not in self.field_aliases:
                     continue
 
-                pstr = "_p" + str(roman - 1)
+                pstr = f"_p{roman - 1}"
                 yt_ion = symbol + pstr
 
                 for sfx in smoothed_suffixes:
@@ -234,7 +234,7 @@ class OWLSFieldInfo(SPHFieldInfo):
                     self.alias(("gas", fname), (ptype, fname))
 
     def setup_gas_ion_particle_fields(self, ptype):
-        """ Sets up particle fields for gas ion densities. """
+        """Sets up particle fields for gas ion densities."""
 
         # loop over all ions and make fields
         # ----------------------------------------------
@@ -252,7 +252,7 @@ class OWLSFieldInfo(SPHFieldInfo):
             if (ptype, symbol + "_fraction") not in self.field_aliases:
                 continue
 
-            pstr = "_p" + str(roman - 1)
+            pstr = f"_p{roman - 1}"
             yt_ion = symbol + pstr
             ftype = ptype
 
@@ -328,7 +328,7 @@ class OWLSFieldInfo(SPHFieldInfo):
         # ----------------------------------------------
         tdir = ytcfg.get("yt", "test_data_dir")
 
-        # set download destination to tdir or ./ if tdir isnt defined
+        # set download destination to tdir or ./ if tdir isn't defined
         # ----------------------------------------------
         if tdir == "/does/not/exist":
             data_dir = "./"
@@ -345,7 +345,7 @@ class OWLSFieldInfo(SPHFieldInfo):
             fname = data_dir + "/" + data_file
             download_file(os.path.join(data_url, data_file), fname)
 
-            cmnd = "cd " + data_dir + "; " + "tar xf " + data_file
+            cmnd = f"cd {data_dir}; tar xf {data_file}"
             os.system(cmnd)
 
         if not os.path.exists(owls_ion_path):

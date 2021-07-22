@@ -12,10 +12,10 @@ from yt.utilities.on_demand_imports import _astropy
 
 def _make_counts(emin, emax):
     def _counts(field, data):
-        e = data["event_energy"].in_units("keV")
+        e = data[("all", "event_energy")].in_units("keV")
         mask = np.logical_and(e >= emin, e < emax)
-        x = data["event_x"][mask]
-        y = data["event_y"][mask]
+        x = data[("all", "event_x")][mask]
+        y = data[("all", "event_y")][mask]
         z = np.ones(x.shape)
         pos = np.array([x, y, z]).transpose()
         img = data.deposit(pos, method="count")
@@ -24,7 +24,7 @@ def _make_counts(emin, emax):
         else:
             sigma = None
         if sigma is not None and sigma > 0.0:
-            kern = _astropy.conv.Gaussian2DKernel(stddev=sigma)
+            kern = _astropy.conv.Gaussian2DKernel(x_stddev=sigma)
             img[:, :, 0] = _astropy.conv.convolve(img[:, :, 0], kern)
         return data.ds.arr(img, "counts/pixel")
 
@@ -48,7 +48,7 @@ def setup_counts_fields(ds, ebounds, ftype="gas"):
     Examples
     --------
     >>> ds = yt.load("evt.fits")
-    >>> ebounds = [(0.1,2.0),(2.0,3.0)]
+    >>> ebounds = [(0.1, 2.0), (2.0, 3.0)]
     >>> setup_counts_fields(ds, ebounds)
     """
     for (emin, emax) in ebounds:
@@ -91,13 +91,15 @@ def create_spectral_slabs(filename, slab_centers, slab_width, **kwargs):
 
     Examples
     --------
-    >>> slab_centers = {'13CN': (218.03117, 'GHz'),
-    ...                 'CH3CH2CHO': (218.284256, 'GHz'),
-    ...                 'CH3NH2': (218.40956, 'GHz')}
+    >>> slab_centers = {
+    ...     "13CN": (218.03117, "GHz"),
+    ...     "CH3CH2CHO": (218.284256, "GHz"),
+    ...     "CH3NH2": (218.40956, "GHz"),
+    ... }
     >>> slab_width = (0.05, "GHz")
-    >>> ds = create_spectral_slabs("intensity_cube.fits",
-    ...                            slab_centers, slab_width,
-    ...                            nan_mask=0.0)
+    >>> ds = create_spectral_slabs(
+    ...     "intensity_cube.fits", slab_centers, slab_width, nan_mask=0.0
+    ... )
     """
     from spectral_cube import SpectralCube
 

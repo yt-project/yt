@@ -70,7 +70,7 @@ class IOHandlerART(BaseIOHandler):
         if key in self.masks.keys() and self.caching:
             return self.masks[key]
         pstr = "particle_position_%s"
-        x, y, z = [self._get_field((ftype, pstr % ax)) for ax in "xyz"]
+        x, y, z = (self._get_field((ftype, pstr % ax)) for ax in "xyz")
         mask = selector.select_points(x, y, z, 0.0)
         if self.caching:
             self.masks[key] = mask
@@ -499,7 +499,7 @@ def _read_child_mask_level(f, level_child_offsets, level, nLevel, nhydro_vars):
 
 
 nchem = 8 + 2
-dtyp = np.dtype(">i4,>i8,>i8" + f",>{nchem}f4" + ",>%sf4" % (2) + ",>i4")
+dtyp = np.dtype(f">i4,>i8,>i8,>{nchem}f4,>2f4,>i4")
 
 
 def _read_child_level(
@@ -533,7 +533,7 @@ def _read_child_level(
         # idc = np.argsort(arr['idc']) #correct fortran indices
         # translate idc into icell, and then to iOct
         icell = (arr["idc"] >> 3) << 3
-        iocts = (icell - ncell0) / nchild  # without a F correction, theres a +1
+        iocts = (icell - ncell0) / nchild  # without a F correction, there's a +1
         # assert that the children are read in the same order as the octs
         assert np.all(octs == iocts[::nchild])
     else:

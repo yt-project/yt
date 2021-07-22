@@ -1,6 +1,7 @@
 # The yt Project
 
-![Supported Python Version](https://img.shields.io/badge/python%20version-≥%203.6-important)
+[![PyPI](https://img.shields.io/pypi/v/yt)](https://pypi.org/project/yt)
+[![Supported Python Versions](https://img.shields.io/pypi/pyversions/yt)](https://pypi.org/project/yt/)
 [![Latest Documentation](https://img.shields.io/badge/docs-latest-brightgreen.svg)](http://yt-project.org/docs/dev/)
 [![Users' Mailing List](https://img.shields.io/badge/Users-List-lightgrey.svg)](https://mail.python.org/archives/list/yt-users@python.org//)
 [![Devel Mailing List](https://img.shields.io/badge/Devel-List-lightgrey.svg)](https://mail.python.org/archives/list/yt-dev@python.org//)
@@ -10,14 +11,15 @@
 
 <!--- Tests and style --->
 ![Build and Test](https://github.com/yt-project/yt/workflows/Build%20and%20Test/badge.svg?branch=main)
+[![CI (bleeding edge)](https://github.com/yt-project/yt/actions/workflows/bleeding-edge.yaml/badge.svg)](https://github.com/yt-project/yt/actions/workflows/bleeding-edge.yaml)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/yt-project/yt/main.svg)](https://results.pre-commit.ci/latest/github/yt-project/yt/main)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
 <!--- [![codecov](https://codecov.io/gh/yt-project/yt/branch/main/graph/badge.svg)](https://codecov.io/gh/yt-project/yt) --->
 
-<a href="http://yt-project.org"><img src="doc/source/_static/yt_logo.png" width="300"></a>
+<a href="http://yt-project.org"><img src="https://raw.githubusercontent.com/yt-project/yt/main/doc/source/_static/yt_logo.png" width="300"></a>
 
-yt is an open-source, permissively-licensed python package for analyzing and
+yt is an open-source, permissively-licensed Python library for analyzing and
 visualizing volumetric data.
 
 yt supports structured, variable-resolution meshes, unstructured meshes, and
@@ -50,54 +52,11 @@ conda install -c conda-forge yt
 or with pip:
 
 ```shell
-pip install yt
+python -m pip install yt
 ```
 
-To get set up with a development version, you want to clone this repository:
-
-```shell
-git clone https://github.com/yt-project/yt yt-git
-cd yt-git
-```
-
-and work within a conda environment:
-
-```shell
-# Create a conda environment named yt-git
-$ conda create -n yt-git python=3.6
-# Activate it
-$ source activate yt-git
-# Make sure you run the latest version of conda
-$ conda update conda
-# Install yt's runtime dependencies
-$ conda install -c conda-forge yt --only-deps
-# Install yt's build dependencies
-$ conda install -c conda-forge cython
-# Make sure you run the latest version of pip
-$ pip install --upgrade pip
-$ pip install -v -e .
-# Output installed packages
-$ conda env export
-```
-
-Alternatively, you can install yt in a
-[virtualenv](https://packaging.python.org/installing/#creating-virtual-environments):
-
-```shell
-# It is conventional to create virtualenvs at ~/.virtualenv/
-$ mkdir -p ~/.virtualenv
-# Assuming your version of Python 3 meets the minimal requirement
-# create a virtualenv named yt-git
-$ python3 -m venv ~/.virtualenv/yt-git
-# Activate it
-$ source ~/.virtualenv/yt-git/bin/activate
-# Make sure you run the latest version of pip
-$ pip install --upgrade pip
-# Assuming you have cd'd into yt-git
-$ pip install -e .
-# Output installed packages
-$ pip freeze
-```
+More information on the various ways to install yt, and in particular to install from source,
+can be found on [the project's website](https://yt-project.org/docs/dev/installing.html).
 
 ## Getting Started
 

@@ -48,17 +48,23 @@ class ImageArray(YTArray):
     use the function.  Use the variables 'ds' for the dataset, 'pc' for
     a plot collection, 'c' for a center, and 'L' for a vector.
 
-    >>> im = np.zeros([64,128,3])
+    >>> im = np.zeros([64, 128, 3])
     >>> for i in range(im.shape[0]):
     ...     for k in range(im.shape[2]):
-    ...         im[i,:,k] = np.linspace(0.,0.3*k, im.shape[1])
+    ...         im[i, :, k] = np.linspace(0.0, 0.3 * k, im.shape[1])
 
-    >>> myinfo = {'field':'dinosaurs', 'east_vector':np.array([1.,0.,0.]),
-    ...     'north_vector':np.array([0.,0.,1.]), 'normal_vector':np.array([0.,1.,0.]),
-    ...     'width':0.245, 'units':'cm', 'type':'rendering'}
+    >>> myinfo = {
+    ...     "field": "dinosaurs",
+    ...     "east_vector": np.array([1.0, 0.0, 0.0]),
+    ...     "north_vector": np.array([0.0, 0.0, 1.0]),
+    ...     "normal_vector": np.array([0.0, 1.0, 0.0]),
+    ...     "width": 0.245,
+    ...     "units": "cm",
+    ...     "type": "rendering",
+    ... }
 
     >>> im_arr = ImageArray(im, info=myinfo)
-    >>> im_arr.save('test_ImageArray')
+    >>> im_arr.save("test_ImageArray")
 
     Numpy ndarray documentation appended:
 
@@ -94,31 +100,30 @@ class ImageArray(YTArray):
 
         Parameters
         ----------
-        filename: string
-        The filename to create and write a dataset to
-
-        dataset_name: string
+        filename : string
+            The filename to create and write a dataset to
+        dataset_name : string
             The name of the dataset to create in the file.
 
         Examples
         --------
-        >>> im = np.zeros([64,128,3])
+        >>> im = np.zeros([64, 128, 3])
         >>> for i in range(im.shape[0]):
         ...     for k in range(im.shape[2]):
-        ...         im[i,:,k] = np.linspace(0.,0.3*k, im.shape[1])
+        ...         im[i, :, k] = np.linspace(0.0, 0.3 * k, im.shape[1])
 
         >>> myinfo = {
-        ...    'field':'dinosaurs',
-        ...    'east_vector':np.array([1.,0.,0.]),
-        ...    'north_vector':np.array([0.,0.,1.]),
-        ...    'normal_vector':np.array([0.,1.,0.]),
-        ...    'width':0.245,
-        ...    'units':'cm',
-        ...    'type':'rendering'
+        ...     "field": "dinosaurs",
+        ...     "east_vector": np.array([1.0, 0.0, 0.0]),
+        ...     "north_vector": np.array([0.0, 0.0, 1.0]),
+        ...     "normal_vector": np.array([0.0, 1.0, 0.0]),
+        ...     "width": 0.245,
+        ...     "units": "cm",
+        ...     "type": "rendering",
         ... }
 
         >>> im_arr = ImageArray(im, info=myinfo)
-        >>> im_arr.write_hdf5('test_ImageArray.h5')
+        >>> im_arr.write_hdf5("test_ImageArray.h5")
 
         """
         if dataset_name is None:
@@ -144,7 +149,8 @@ class ImageArray(YTArray):
                * 4-element array [r,g,b,a]: arbitrary rgba setting.
 
             Default: 'black'
-        inline: boolean, optional
+
+        inline : boolean, optional
             If True, original ImageArray is modified. If False, a copy is first
             created, then modified. Default: True
 
@@ -155,17 +161,17 @@ class ImageArray(YTArray):
 
         Examples
         --------
-        >>> im = np.zeros([64,128,4])
+        >>> im = np.zeros([64, 128, 4])
         >>> for i in range(im.shape[0]):
         ...     for k in range(im.shape[2]):
-        ...         im[i,:,k] = np.linspace(0.,10.*k, im.shape[1])
+        ...         im[i, :, k] = np.linspace(0.0, 10.0 * k, im.shape[1])
 
         >>> im_arr = ImageArray(im)
         >>> im_arr.rescale()
-        >>> new_im = im_arr.add_background_color([1.,0.,0.,1.], inline=False)
-        >>> new_im.write_png('red_bg.png')
-        >>> im_arr.add_background_color('black')
-        >>> im_arr.write_png('black_bg.png')
+        >>> new_im = im_arr.add_background_color([1.0, 0.0, 0.0, 1.0], inline=False)
+        >>> new_im.write_png("red_bg.png")
+        >>> im_arr.add_background_color("black")
+        >>> im_arr.write_png("black_bg.png")
         """
         assert self.shape[-1] == 4
 
@@ -193,13 +199,13 @@ class ImageArray(YTArray):
 
         Parameters
         ----------
-        cmax: float, optional
+        cmax : float, optional
             Normalization value to use for rgb channels. Defaults to None,
             corresponding to using the maximum value in the rgb channels.
-        amax: float, optional
+        amax : float, optional
             Normalization value to use for alpha channel. Defaults to None,
             corresponding to using the maximum value in the alpha channel.
-        inline: boolean, optional
+        inline : boolean, optional
             Specifies whether or not the rescaling is done inline. If false,
             a new copy of the ImageArray will be created, returned.
             Default:True.
@@ -217,15 +223,15 @@ class ImageArray(YTArray):
 
         Examples
         --------
-        >>> im = np.zeros([64,128,4])
+        >>> im = np.zeros([64, 128, 4])
         >>> for i in range(im.shape[0]):
         ...     for k in range(im.shape[2]):
-        ...         im[i,:,k] = np.linspace(0.,0.3*k, im.shape[1])
+        ...         im[i, :, k] = np.linspace(0.0, 0.3 * k, im.shape[1])
 
         >>> im = ImageArray(im)
-        >>> im.write_png('original.png')
+        >>> im.write_png("original.png")
         >>> im.rescale()
-        >>> im.write_png('normalized.png')
+        >>> im.write_png("normalized.png")
 
         """
         assert len(self.shape) == 3
@@ -261,10 +267,11 @@ class ImageArray(YTArray):
 
         Parameters
         ----------
-        filename: string
+        filename : string
             Filename to save to.  If None, PNG contents will be returned as a
             string.
-        sigma_clip: float, optional
+
+        sigma_clip : float, optional
             Image will be clipped before saving to the standard deviation
             of the image multiplied by this value.  Useful for enhancing
             images. Default: None
@@ -278,24 +285,25 @@ class ImageArray(YTArray):
                * 4-element array [r,g,b,a]: arbitrary rgba setting.
 
             Default: 'black'
-        rescale: boolean, optional
+
+        rescale : boolean, optional
             If True, will write out a rescaled image (without modifying the
             original image). Default: True
 
         Examples
         --------
-        >>> im = np.zeros([64,128,4])
+        >>> im = np.zeros([64, 128, 4])
         >>> for i in range(im.shape[0]):
         ...     for k in range(im.shape[2]):
-        ...         im[i,:,k] = np.linspace(0.,10.*k, im.shape[1])
+        ...         im[i, :, k] = np.linspace(0.0, 10.0 * k, im.shape[1])
 
         >>> im_arr = ImageArray(im)
-        >>> im_arr.write_png('standard.png')
-        >>> im_arr.write_png('non-scaled.png', rescale=False)
-        >>> im_arr.write_png('black_bg.png', background='black')
-        >>> im_arr.write_png('white_bg.png', background='white')
-        >>> im_arr.write_png('green_bg.png', background=[0,1,0,1])
-        >>> im_arr.write_png('transparent_bg.png', background=None)
+        >>> im_arr.write_png("standard.png")
+        >>> im_arr.write_png("non-scaled.png", rescale=False)
+        >>> im_arr.write_png("black_bg.png", background="black")
+        >>> im_arr.write_png("white_bg.png", background="white")
+        >>> im_arr.write_png("green_bg.png", background=[0, 1, 0, 1])
+        >>> im_arr.write_png("transparent_bg.png", background=None)
 
         """
         if rescale:
@@ -337,7 +345,7 @@ class ImageArray(YTArray):
 
         Parameters
         ----------
-        filename: string
+        filename : string
             Note filename not be modified.
 
         Other Parameters
@@ -361,22 +369,22 @@ class ImageArray(YTArray):
         Examples
         --------
 
-        >>> im = np.zeros([64,128])
+        >>> im = np.zeros([64, 128])
         >>> for i in range(im.shape[0]):
-        ...     im[i,:] = np.linspace(0.,0.3*i, im.shape[1])
+        ...     im[i, :] = np.linspace(0.0, 0.3 * i, im.shape[1])
 
         >>> myinfo = {
-        ...    'field':'dinosaurs',
-        ...    'east_vector':np.array([1.,0.,0.]),
-        ...    'north_vector':np.array([0.,0.,1.]),
-        ...    'normal_vector':np.array([0.,1.,0.]),
-        ...    'width':0.245,
-        ...    'units':'cm',
-        ...    'type':'rendering'
+        ...     "field": "dinosaurs",
+        ...     "east_vector": np.array([1.0, 0.0, 0.0]),
+        ...     "north_vector": np.array([0.0, 0.0, 1.0]),
+        ...     "normal_vector": np.array([0.0, 1.0, 0.0]),
+        ...     "width": 0.245,
+        ...     "units": "cm",
+        ...     "type": "rendering",
         ... }
 
         >>> im_arr = ImageArray(im, info=myinfo)
-        >>> im_arr.write_image('test_ImageArray.png')
+        >>> im_arr.write_image("test_ImageArray.png")
 
         """
         if cmap_name is None:

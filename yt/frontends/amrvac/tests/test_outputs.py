@@ -1,4 +1,4 @@
-import numpy as np  # NOQA
+import numpy as np
 
 import yt  # NOQA
 from yt.frontends.amrvac.api import AMRVACDataset, AMRVACGrid

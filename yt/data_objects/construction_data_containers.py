@@ -8,6 +8,7 @@ from re import finditer
 from tempfile import NamedTemporaryFile, TemporaryFile
 
 import numpy as np
+from more_itertools import always_iterable
 from tqdm import tqdm
 
 from yt.config import ytcfg
@@ -83,11 +84,12 @@ class YTStreamline(YTSelectionContainer1D):
     --------
 
     >>> from yt.visualization.api import Streamlines
-    >>> streamlines = Streamlines(ds, [0.5]*3)
+    >>> streamlines = Streamlines(ds, [0.5] * 3)
     >>> streamlines.integrate_through_volume()
     >>> stream = streamlines.path(0)
-    >>> matplotlib.pylab.semilogy(stream['t'], stream['density'], '-x')
-
+    >>> fig, ax = plt.subplots()
+    >>> ax.set_yscale("log")
+    >>> ax.plot(stream["t"], stream[("gas", "density")], "-x")
     """
 
     _type_name = "streamline"
@@ -395,9 +397,7 @@ class YTParticleProj(YTProj):
         )
 
     def _handle_chunk(self, chunk, fields, tree):
-        raise NotImplementedError(
-            "Particle projections have not yet been " "implemented"
-        )
+        raise NotImplementedError("Particle projections have not yet been implemented")
 
 
 class YTQuadTreeProj(YTProj):
@@ -455,8 +455,8 @@ class YTQuadTreeProj(YTProj):
     --------
 
     >>> ds = load("RedshiftOutput0005")
-    >>> prj = ds.proj("density", 0)
-    >>> print(proj["density"])
+    >>> prj = ds.proj(("gas", "density"), 0)
+    >>> print(proj[("gas", "density")])
     """
 
     _type_name = "quad_proj"
@@ -601,8 +601,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
 
     Examples
     --------
-    >>> cube = ds.covering_grid(2, left_edge=[0.0, 0.0, 0.0], \
-    ...                          dims=[128, 128, 128])
+    >>> cube = ds.covering_grid(2, left_edge=[0.0, 0.0, 0.0], dims=[128, 128, 128])
     """
 
     _spatial = True
@@ -640,7 +639,10 @@ class YTCoveringGrid(YTSelectionContainer3D):
         self.ActiveDimensions = self._sanitize_dims(dims)
 
         rdx = self.ds.domain_dimensions * self.ds.relative_refinement(0, level)
-        rdx[np.where(np.array(dims) - 2 * num_ghost_zones <= 1)] = 1  # issue 602
+
+        # normalize dims as a non-zero dim array
+        dims = np.array(list(always_iterable(dims)))
+        rdx[np.where(dims - 2 * num_ghost_zones <= 1)] = 1  # issue 602
         self.base_dds = self.ds.domain_width / self.ds.domain_dimensions
         self.dds = self.ds.domain_width / rdx.astype("float64")
         self.right_edge = self.left_edge + self.ActiveDimensions * self.dds
@@ -675,8 +677,8 @@ class YTCoveringGrid(YTSelectionContainer3D):
         --------
 
         >>> dd = ds.r[::256j, ::256j, ::256j]
-        >>> xf1 = dd.to_xarray(["density", "temperature"])
-        >>> dd["velocity_magnitude"]
+        >>> xf1 = dd.to_xarray([("gas", "density"), ("gas", "temperature")])
+        >>> dd[("gas", "velocity_magnitude")]
         >>> xf2 = dd.to_xarray()
         """
         import xarray as xr
@@ -756,9 +758,11 @@ class YTCoveringGrid(YTSelectionContainer3D):
             edge = [edge] * len(self.ds.domain_left_edge)
         if len(edge) != len(self.ds.domain_left_edge):
             raise RuntimeError(
-                "Length of edges must match the dimensionality of the " "dataset"
+                "Length of edges must match the dimensionality of the dataset"
             )
         if hasattr(edge, "units"):
+            if edge.units.registry is self.ds.unit_registry:
+                return edge
             edge_units = edge.units.copy()
             edge_units.registry = self.ds.unit_registry
         else:
@@ -1085,8 +1089,12 @@ class YTCoveringGrid(YTSelectionContainer3D):
 
         Examples
         --------
-        >>> cube.write_to_gdf("clumps.h5", ["density","temperature"], nprocs=16,
-        ...                   overwrite=True)
+        >>> cube.write_to_gdf(
+        ...     "clumps.h5",
+        ...     [("gas", "density"), ("gas", "temperature")],
+        ...     nprocs=16,
+        ...     overwrite=True,
+        ... )
         """
         data = {}
         for field in fields:
@@ -1169,8 +1177,9 @@ class YTArbitraryGrid(YTCoveringGrid):
 
     Examples
     --------
-    >>> obj = ds.arbitrary_grid([0.0, 0.0, 0.0], [0.99, 0.99, 0.99],
-    ...                          dims=[128, 128, 128])
+    >>> obj = ds.arbitrary_grid(
+    ...     [0.0, 0.0, 0.0], [0.99, 0.99, 0.99], dims=[128, 128, 128]
+    ... )
     """
 
     _spatial = True
@@ -1517,13 +1526,14 @@ class YTSurface(YTSelectionContainer3D):
     output the vertices to "triangles.obj" after rescaling them.
 
     >>> from yt.units import kpc
-    >>> sp = ds.sphere("max", (10, "kpc")
-    >>> surf = ds.surface(sp, "density", 5e-27)
-    >>> print(surf["temperature"])
+    >>> sp = ds.sphere("max", (10, "kpc"))
+    >>> surf = ds.surface(sp, ("gas", "density"), 5e-27)
+    >>> print(surf[("gas", "temperature")])
     >>> print(surf.vertices)
-    >>> bounds = [(sp.center[i] - 5.0*kpc,
-    ...            sp.center[i] + 5.0*kpc) for i in range(3)]
-    >>> surf.export_ply("my_galaxy.ply", bounds = bounds)
+    >>> bounds = [
+    ...     (sp.center[i] - 5.0 * kpc, sp.center[i] + 5.0 * kpc) for i in range(3)
+    ... ]
+    >>> surf.export_ply("my_galaxy.ply", bounds=bounds)
     """
     _type_name = "surface"
     _con_args = ("data_source", "surface_field", "field_value")
@@ -1671,10 +1681,14 @@ class YTSurface(YTSelectionContainer3D):
         This will create a data object, find a nice value in the center, and
         calculate the metal flux over it.
 
-        >>> sp = ds.sphere("max", (10, "kpc")
-        >>> surf = ds.surface(sp, "density", 5e-27)
+        >>> sp = ds.sphere("max", (10, "kpc"))
+        >>> surf = ds.surface(sp, ("gas", "density"), 5e-27)
         >>> flux = surf.calculate_flux(
-        ...     "velocity_x", "velocity_y", "velocity_z", "metal_density")
+        ...     ("gas", "velocity_x"),
+        ...     ("gas", "velocity_y"),
+        ...     ("gas", "velocity_z"),
+        ...     ("gas", "metal_density"),
+        ... )
         """
         flux = 0.0
         mylog.info("Fluxing %s", fluxing_field)
@@ -1783,7 +1797,7 @@ class YTSurface(YTSelectionContainer3D):
 
         filename : string
             The file this will be exported to.  This cannot be a file-like
-            object. If there are no file extentions included - both obj & mtl
+            object. If there are no file extensions included - both obj & mtl
             files are created.
         transparency : float
             This gives the transparency of the output surface plot.  Values
@@ -1817,34 +1831,48 @@ class YTSurface(YTSelectionContainer3D):
 
         >>> sp = ds.sphere("max", (10, "kpc"))
         >>> trans = 1.0
-        >>> surf = ds.surface(sp, "density", 5e-27)
+        >>> surf = ds.surface(sp, ("gas", "density"), 5e-27)
         >>> surf.export_obj("my_galaxy", transparency=trans)
 
         >>> sp = ds.sphere("max", (10, "kpc"))
-        >>> mi, ma = sp.quantities.extrema('temperature')
+        >>> mi, ma = sp.quantities.extrema("temperature")
         >>> rhos = [1e-24, 1e-25]
         >>> trans = [0.5, 1.0]
         >>> for i, r in enumerate(rhos):
-        ...     surf = ds.surface(sp,'density',r)
-        ...     surf.export_obj("my_galaxy", transparency=trans[i],
-        ...                      color_field='temperature'
-        ...                      plot_index = i, color_field_max = ma,
-        ...                      color_field_min = mi)
+        ...     surf = ds.surface(sp, "density", r)
+        ...     surf.export_obj(
+        ...         "my_galaxy",
+        ...         transparency=trans[i],
+        ...         color_field="temperature",
+        ...         plot_index=i,
+        ...         color_field_max=ma,
+        ...         color_field_min=mi,
+        ...     )
 
         >>> sp = ds.sphere("max", (10, "kpc"))
         >>> rhos = [1e-24, 1e-25]
         >>> trans = [0.5, 1.0]
         >>> def _Emissivity(field, data):
-        ...     return (data['density']*data['density'] *
-        ...             np.sqrt(data['temperature']))
-        >>> ds.add_field("emissivity", function=_Emissivity,
-        ...              sampling_type='cell', units=r"g**2*sqrt(K)/cm**6")
+        ...     return (
+        ...         data[("gas", "density")]
+        ...         * data[("gas", "density")]
+        ...         * np.sqrt(data[("gas", "temperature")])
+        ...     )
+        >>> ds.add_field(
+        ...     "emissivity",
+        ...     function=_Emissivity,
+        ...     sampling_type="cell",
+        ...     units=r"g**2*sqrt(K)/cm**6",
+        ... )
         >>> for i, r in enumerate(rhos):
-        ...     surf = ds.surface(sp,'density',r)
-        ...     surf.export_obj("my_galaxy", transparency=trans[i],
-        ...                      color_field='temperature',
-        ...                      emit_field='emissivity',
-        ...                      plot_index = i)
+        ...     surf = ds.surface(sp, "density", r)
+        ...     surf.export_obj(
+        ...         "my_galaxy",
+        ...         transparency=trans[i],
+        ...         color_field="temperature",
+        ...         emit_field="emissivity",
+        ...         plot_index=i,
+        ...     )
 
         """
         if color_map is None:
@@ -1918,7 +1946,7 @@ class YTSurface(YTSelectionContainer3D):
             cs = (cs - mi) / (ma - mi)
         else:
             cs[:] = 1.0
-        # to get color indicies for OBJ formatting
+        # to get color indices for OBJ formatting
         from yt.visualization._colormap_data import color_map_luts
 
         lut = color_map_luts[color_map]
@@ -1995,7 +2023,7 @@ class YTSurface(YTSelectionContainer3D):
             fobj.write("# yt OBJ file\n")
             fobj.write("# www.yt-project.org\n")
             fobj.write(
-                "mtllib " + filename + ".mtl\n\n"
+                f"mtllib {filename}.mtl\n\n"
             )  # use this material file for the faces
             fmtl.write("# yt MLT file\n")
             fmtl.write("# www.yt-project.org\n\n")
@@ -2055,11 +2083,9 @@ class YTSurface(YTSelectionContainer3D):
                 v[ax][:] = tmp
         # (1) write all colors per surface to mtl file
         for i in range(0, lut[0].shape[0]):
-            omname = (
-                "material_" + str(i) + "_" + str(plot_index)
-            )  # name of the material
+            omname = f"material_{i}_{plot_index}"  # name of the material
             fmtl.write(
-                "newmtl " + omname + "\n"
+                f"newmtl {omname}\n"
             )  # the specific material (color) for this face
             fmtl.write(f"Ka {0.0:.6f} {0.0:.6f} {0.0:.6f}\n")  # ambient color, keep off
             fmtl.write(
@@ -2071,22 +2097,18 @@ class YTSurface(YTSelectionContainer3D):
             fmtl.write(f"d {transparency:.6f}\n")  # transparency
             fmtl.write(f"em {emiss[i]:.6f}\n")  # emissivity per color
             fmtl.write("illum 2\n")  # not relevant, 2 means highlights on?
-            fmtl.write("Ns %.6f\n\n" % (0.0))  # keep off, some other specular thing
+            fmtl.write(f"Ns {0:.6f}\n\n")  # keep off, some other specular thing
         # (2) write vertices
         for i in range(0, self.vertices.shape[1]):
             fobj.write(f"v {v['x'][i]:.6f} {v['y'][i]:.6f} {v['z'][i]:.6f}\n")
         fobj.write("#done defining vertices\n\n")
         # (3) define faces and materials for each face
         for i in range(0, self.triangles.shape[0]):
-            omname = (
-                "material_" + str(f["cind"][i]) + "_" + str(plot_index)
-            )  # which color to use
+            omname = f"material_{f['cind'][i]}_{plot_index}"  # which color to use
             fobj.write(
-                "usemtl " + omname + "\n"
+                f"usemtl {omname}\n"
             )  # which material to use for this face (color)
-            fobj.write(
-                "f " + str(cc) + " " + str(cc + 1) + " " + str(cc + 2) + "\n\n"
-            )  # vertices to color
+            fobj.write(f"f {cc} {cc+1} {cc+2}\n\n")  # vertices to color
             cc = cc + 3
         fmtl.close()
         fobj.close()
@@ -2116,10 +2138,6 @@ class YTSurface(YTSelectionContainer3D):
 
         Parameters
         ----------
-        filename : string
-            The file this will be exported to.  This cannot be a file-like object.
-            Note - there are no file extentions included - both obj & mtl files
-            are created.
         transparency : float
             This gives the transparency of the output surface plot.  Values
             from 0.0 (invisible) to 1.0 (opaque).
@@ -2152,31 +2170,43 @@ class YTSurface(YTSelectionContainer3D):
 
         >>> sp = ds.sphere("max", (10, "kpc"))
         >>> trans = 1.0
-        >>> surf = ds.surface(sp, "density", 5e-27)
+        >>> surf = ds.surface(sp, ("gas", "density"), 5e-27)
         >>> surf.export_obj("my_galaxy", transparency=trans)
 
         >>> sp = ds.sphere("max", (10, "kpc"))
-        >>> mi, ma = sp.quantities.extrema('temperature')[0]
+        >>> mi, ma = sp.quantities.extrema("temperature")[0]
         >>> rhos = [1e-24, 1e-25]
         >>> trans = [0.5, 1.0]
         >>> for i, r in enumerate(rhos):
-        ...     surf = ds.surface(sp,'density',r)
-        ...     surf.export_obj("my_galaxy", transparency=trans[i],
-        ...                      color_field='temperature',
-        ...                      plot_index = i, color_field_max = ma,
-        ...                      color_field_min = mi)
+        ...     surf = ds.surface(sp, "density", r)
+        ...     surf.export_obj(
+        ...         "my_galaxy",
+        ...         transparency=trans[i],
+        ...         color_field="temperature",
+        ...         plot_index=i,
+        ...         color_field_max=ma,
+        ...         color_field_min=mi,
+        ...     )
 
         >>> sp = ds.sphere("max", (10, "kpc"))
         >>> rhos = [1e-24, 1e-25]
         >>> trans = [0.5, 1.0]
         >>> def _Emissivity(field, data):
-        ...     return (data['density']*data['density']*np.sqrt(data['temperature']))
+        ...     return (
+        ...         data[("gas", "density")]
+        ...         * data[("gas", "density")]
+        ...         * np.sqrt(data[("gas", "temperature")])
+        ...     )
         >>> ds.add_field("emissivity", function=_Emissivity, units="g / cm**6")
         >>> for i, r in enumerate(rhos):
-        ...     surf = ds.surface(sp,'density',r)
-        ...     surf.export_obj("my_galaxy", transparency=trans[i],
-        ...                      color_field='temperature', emit_field = 'emissivity',
-        ...                      plot_index = i)
+        ...     surf = ds.surface(sp, "density", r)
+        ...     surf.export_obj(
+        ...         "my_galaxy",
+        ...         transparency=trans[i],
+        ...         color_field="temperature",
+        ...         emit_field="emissivity",
+        ...         plot_index=i,
+        ...     )
 
         """
         if color_map is None:
@@ -2318,13 +2348,14 @@ class YTSurface(YTSelectionContainer3D):
         --------
 
         >>> from yt.units import kpc
-        >>> sp = ds.sphere("max", (10, "kpc")
-        >>> surf = ds.surface(sp, "density", 5e-27)
-        >>> print(surf["temperature"])
+        >>> sp = ds.sphere("max", (10, "kpc"))
+        >>> surf = ds.surface(sp, ("gas", "density"), 5e-27)
+        >>> print(surf[("gas", "temperature")])
         >>> print(surf.vertices)
-        >>> bounds = [(sp.center[i] - 5.0*kpc,
-        ...            sp.center[i] + 5.0*kpc) for i in range(3)]
-        >>> surf.export_ply("my_galaxy.ply", bounds = bounds)
+        >>> bounds = [
+        ...     (sp.center[i] - 5.0 * kpc, sp.center[i] + 5.0 * kpc) for i in range(3)
+        ... ]
+        >>> surf.export_ply("my_galaxy.ply", bounds=bounds)
         """
         if color_map is None:
             color_map = ytcfg.get("yt", "default_colormap")
@@ -2499,17 +2530,20 @@ class YTSurface(YTSelectionContainer3D):
         >>> from yt.units import kpc
         >>> dd = ds.sphere("max", (200, "kpc"))
         >>> rho = 5e-27
-        >>> bounds = [(dd.center[i] - 100.0*kpc,
-        ...            dd.center[i] + 100.0*kpc) for i in range(3)]
+        >>> bounds = [
+        ...     (dd.center[i] - 100.0 * kpc, dd.center[i] + 100.0 * kpc)
+        ...     for i in range(3)
+        ... ]
         ...
-        >>> surf = ds.surface(dd, "density", rho)
+        >>> surf = ds.surface(dd, ("gas", "density"), rho)
         >>> rv = surf.export_sketchfab(
-        ...     title = "Testing Upload",
-        ...     description = "A simple test of the uploader",
-        ...     color_field = "temperature",
-        ...     color_map = "hot",
-        ...     color_log = True,
-        ...     bounds = bounds)
+        ...     title="Testing Upload",
+        ...     description="A simple test of the uploader",
+        ...     color_field="temperature",
+        ...     color_map="hot",
+        ...     color_log=True,
+        ...     bounds=bounds,
+        ... )
         ...
         """
         if color_map is None:
@@ -2568,7 +2602,7 @@ class YTSurface(YTSelectionContainer3D):
         try:
             r = requests.post(SKETCHFAB_API_URL, data=data, files=files, verify=False)
         except requests.exceptions.RequestException:
-            mylog.exception("An error has occured")
+            mylog.exception("An error has occurred")
             return
 
         result = r.json()
@@ -2589,8 +2623,11 @@ class YTSurface(YTSelectionContainer3D):
 
 class YTOctree(YTSelectionContainer3D):
     """A 3D region with all the data filled into an octree. This container
-    will mean deposit particle fields onto octs using a kernel and SPH
-    smoothing.
+    will deposit particle fields onto octs using a kernel and SPH smoothing.
+    The octree is built in a depth-first fashion. Depth-first search (DFS)
+    means that tree starts refining at the root node (this is the largest node
+    which contains every particles) and refines as far as possible along each
+    branch before backtracking.
 
     Parameters
     ----------
@@ -2603,29 +2640,23 @@ class YTOctree(YTSelectionContainer3D):
     n_ref: int
         This is the maximum number of particles per leaf in the resulting
         octree.
-    over_refine_factor: int
-        Each leaf has a number of cells, the number of cells is equal to
-        2**(3*over_refine_factor)
-    density_factor: int
-        This tells the tree that each node must divide into
-        2**(3*density_factor) children if it contains more particles than n_ref
     ptypes: list
         This is the type of particles to include when building the tree. This
-        will default to all particles
+        will default to all particles.
 
     Examples
     --------
 
-    octree = ds.octree(n_ref=64, over_refine_factor=2)
+    octree = ds.octree(n_ref=64)
     x_positions_of_cells = octree[('index', 'x')]
     y_positions_of_cells = octree[('index', 'y')]
     z_positions_of_cells = octree[('index', 'z')]
     density_of_gas_in_cells = octree[('gas', 'density')]
-
     """
 
     _spatial = True
     _type_name = "octree"
+
     _con_args = ("left_edge", "right_edge", "n_ref")
     _container_fields = (
         ("index", "dx"),
@@ -2634,6 +2665,10 @@ class YTOctree(YTSelectionContainer3D):
         ("index", "x"),
         ("index", "y"),
         ("index", "z"),
+        ("index", "depth"),
+        ("index", "refined"),
+        ("index", "sizes"),
+        ("index", "positions"),
     )
 
     def __init__(
@@ -2641,10 +2676,7 @@ class YTOctree(YTSelectionContainer3D):
         left_edge=None,
         right_edge=None,
         n_ref=32,
-        over_refine_factor=1,
-        density_factor=1,
         ptypes=None,
-        force_build=False,
         ds=None,
         field_parameters=None,
     ):
@@ -2657,17 +2689,12 @@ class YTOctree(YTSelectionContainer3D):
         self.left_edge = self._sanitize_edge(left_edge, ds.domain_left_edge)
         self.right_edge = self._sanitize_edge(right_edge, ds.domain_right_edge)
         self.n_ref = n_ref
-        self.density_factor = density_factor
-        self.over_refine_factor = over_refine_factor
         self.ptypes = self._sanitize_ptypes(ptypes)
 
         self._setup_data_source()
         self.tree
 
-    def __eq__(self, other):
-        return self.tree == other.tree
-
-    def _generate_tree(self, fname=None):
+    def _generate_tree(self):
         positions = []
         for ptype in self.ptypes:
             positions.append(
@@ -2675,66 +2702,66 @@ class YTOctree(YTSelectionContainer3D):
                 .in_units("code_length")
                 .d
             )
-        positions = np.concatenate(positions)
 
-        if positions == []:
+        positions = (
+            np.concatenate(positions) if len(positions) > 0 else np.array(positions)
+        )
+        if not positions.size:
+            mylog.info("No particles found!")
             self._octree = None
             return
 
         mylog.info("Allocating Octree for %s particles", positions.shape[0])
-        self.loaded = False
         self._octree = CyOctree(
-            positions.astype("float64", copy=False),
-            left_edge=self.ds.domain_left_edge.in_units("code_length"),
-            right_edge=self.ds.domain_right_edge.in_units("code_length"),
+            positions,
+            left_edge=self.left_edge.to("code_length").d,
+            right_edge=self.right_edge.to("code_length").d,
             n_ref=self.n_ref,
-            over_refine_factor=self.over_refine_factor,
-            density_factor=self.density_factor,
-            data_version=self.ds._file_hash,
         )
+        mylog.info("Allocated %s nodes in octree", self._octree.num_nodes)
+        mylog.info("Octree bound %s particles", self._octree.bound_particles)
 
-        if fname is not None:
-            mylog.info("Saving octree to file %s", os.path.basename(fname))
-            self._octree.save(fname)
-
-    @property
-    def tree(self):
-        self.ds.index
-
-        # Chose _octree as _tree seems to be used
-        if hasattr(self, "_octree"):
-            return self._octree
-
+        # Now we store the index data about the octree in the python container
         ds = self.ds
-        if getattr(ds, "tree_filename", None) is None:
-            if os.path.exists(ds.parameter_filename):
-                fname = ds.parameter_filename + ".octree"
-            else:
-                # we don't want to write to disk for in-memory data
-                fname = None
-        else:
-            fname = ds.tree_filename
-
-        if fname is None:
-            self._generate_tree(fname)
-        elif not os.path.exists(fname):
-            self._generate_tree(fname)
-        else:
-            self.loaded = True
-            mylog.info("Loading octree from %s", os.path.basename(fname))
-            self._octree = CyOctree()
-            self._octree.load(fname)
-            if self._octree.data_version != self.ds._file_hash:
-                mylog.info("Detected hash mismatch, regenerating Octree")
-                self._generate_tree(fname)
-
-        pos = ds.arr(self._octree.cell_positions, "code_length")
-        self[("index", "coordinates")] = pos
+        pos = ds.arr(self._octree.node_positions, "code_length")
+        self[("index", "positions")] = pos
         self[("index", "x")] = pos[:, 0]
         self[("index", "y")] = pos[:, 1]
         self[("index", "z")] = pos[:, 2]
+        self[("index", "refined")] = self._octree.node_refined
 
+        sizes = ds.arr(self._octree.node_sizes, "code_length")
+        self[("index", "sizes")] = sizes
+        self[("index", "dx")] = sizes[:, 0]
+        self[("index", "dy")] = sizes[:, 1]
+        self[("index", "dz")] = sizes[:, 2]
+        self[("index", "depth")] = self._octree.node_depth
+
+    @property
+    def tree(self):
+        """
+        The Cython+Python octree instance
+        """
+        if hasattr(self, "_octree"):
+            return self._octree
+
+        self._generate_tree()
         return self._octree
+
+    @property
+    def sph_smoothing_style(self):
+        smoothing_style = getattr(self.ds, "sph_smoothing_style", "scatter")
+        return smoothing_style
+
+    @property
+    def sph_normalize(self):
+        normalize = getattr(self.ds, "use_sph_normalization", "normalize")
+        return normalize
+
+    @property
+    def sph_num_neighbors(self):
+        num_neighbors = getattr(self.ds, "num_neighbors", 32)
+        return num_neighbors
 
     def _sanitize_ptypes(self, ptypes):
         if ptypes is None:
@@ -2743,7 +2770,6 @@ class YTOctree(YTSelectionContainer3D):
         if not isinstance(ptypes, list):
             ptypes = [ptypes]
 
-        self.ds.index
         for ptype in ptypes:
             if ptype not in self.ds.particle_types:
                 mess = f"{ptype} not found. Particle type must "
@@ -2753,6 +2779,15 @@ class YTOctree(YTSelectionContainer3D):
         return ptypes
 
     def _setup_data_source(self):
+        mylog.info(
+            (
+                "Allocating octree with spatial range "
+                "[%.4e, %.4e, %.4e] code_length to "
+                "[%.4e, %.4e, %.4e] code_length"
+            ),
+            *self.left_edge.to("code_length").d,
+            *self.right_edge.to("code_length").d,
+        )
         self._data_source = self.ds.region(self.center, self.left_edge, self.right_edge)
 
     def _sanitize_edge(self, edge, default):
@@ -2762,9 +2797,11 @@ class YTOctree(YTSelectionContainer3D):
             edge = [edge] * len(self.ds.domain_left_edge)
         if len(edge) != len(self.ds.domain_left_edge):
             raise RuntimeError(
-                "Length of edges must match the dimensionality of the " "dataset"
+                "Length of edges must match the dimensionality of the dataset"
             )
         if hasattr(edge, "units"):
+            if edge.units.registry is self.ds.unit_registry:
+                return edge
             edge_units = edge.units
         else:
             edge_units = "code_length"
@@ -2774,36 +2811,39 @@ class YTOctree(YTSelectionContainer3D):
         if fields is None:
             return
 
-        # not sure on the best way to do this
-        if isinstance(fields, list) and len(fields) > 1:
-            for field in fields:
-                self.get_data(field)
-            return
-        elif isinstance(fields, list):
-            fields = fields[0]
+        if hasattr(self.ds, "_sph_ptypes"):
+            sph_ptypes = self.ds._sph_ptypes
+        else:
+            sph_ptypes = tuple(
+                value
+                for value in self.ds.particle_types_raw
+                if value in ["PartType0", "Gas", "gas", "io"]
+            )
 
-        sph_ptypes = getattr(self.ds, "_sph_ptypes", "None")
+        if len(sph_ptypes) == 0:
+            raise RuntimeError
+        smoothing_style = self.sph_smoothing_style
+        normalize = self.sph_normalize
+
         if fields[0] in sph_ptypes:
-            smoothing_style = getattr(self.ds, "sph_smoothing_style", "scatter")
-            normalize = getattr(self.ds, "use_sph_normalization", True)
-
             units = self.ds._get_field_info(fields).units
             if smoothing_style == "scatter":
-                self.scatter_smooth(fields, units, normalize)
+                self._scatter_smooth(fields, units, normalize)
             else:
-                self.gather_smooth(fields, units, normalize)
+                self._gather_smooth(fields, units, normalize)
         elif fields[0] == "index":
             return self[fields]
         else:
             raise NotImplementedError
 
-    def gather_smooth(self, fields, units, normalize):
-        buff = np.zeros(self[("index", "x")].shape[0], dtype="float64")
+    def _gather_smooth(self, fields, units, normalize):
+        buff = np.zeros(self.tree.num_nodes, dtype="float64")
 
-        num_neighbors = getattr(self.ds, "num_neighbors", 32)
+        # Again, attempt to load num_neighbors from the octree
+        num_neighbors = self.sph_num_neighbors
 
-        # for the gather approach we load up all of the data, this like other
-        # gather approaches is not memory conservative and with spatial chunking
+        # For the gather approach we load up all of the data, this like other
+        # gather approaches is not memory conservative but with spatial chunking
         # this can be fixed
         fields_to_get = [
             "particle_position",
@@ -2817,7 +2857,7 @@ class YTOctree(YTSelectionContainer3D):
         interpolate_sph_positions_gather(
             buff,
             all_fields["particle_position"],
-            self._octree.cell_positions,
+            self[("index", "positions")],
             all_fields["smoothing_length"],
             all_fields["particle_mass"],
             all_fields["density"],
@@ -2827,10 +2867,10 @@ class YTOctree(YTSelectionContainer3D):
             num_neigh=num_neighbors,
         )
 
-        self[fields] = self.ds.arr(buff, units)
+        self[fields] = self.ds.arr(buff[~self[("index", "refined")]], units)
 
-    def scatter_smooth(self, fields, units, normalize):
-        buff = np.zeros(self[("index", "x")].shape[0], dtype="float64")
+    def _scatter_smooth(self, fields, units, normalize):
+        buff = np.zeros(self.tree.num_nodes, dtype="float64")
 
         if normalize:
             buff_den = np.zeros(buff.shape[0], dtype="float64")
@@ -2840,30 +2880,32 @@ class YTOctree(YTSelectionContainer3D):
         ptype = fields[0]
         pbar = tqdm(desc=f"Interpolating (scatter) SPH field {fields[0]}")
         for chunk in self._data_source.chunks([fields], "io"):
-            px = chunk[(ptype, "particle_position_x")].in_base("code").d
-            py = chunk[(ptype, "particle_position_y")].in_base("code").d
-            pz = chunk[(ptype, "particle_position_z")].in_base("code").d
-            hsml = chunk[(ptype, "smoothing_length")].in_base("code").d
-            pmass = chunk[(ptype, "particle_mass")].in_base("code").d
-            pdens = chunk[(ptype, "density")].in_base("code").d
-            field_quantity = chunk[fields].in_base("code").d
+            px = chunk[(ptype, "particle_position_x")].to("code_length").d
+            py = chunk[(ptype, "particle_position_y")].to("code_length").d
+            pz = chunk[(ptype, "particle_position_z")].to("code_length").d
+            hsml = chunk[(ptype, "smoothing_length")].to("code_length").d
+            pmass = chunk[(ptype, "particle_mass")].to("code_mass").d
+            pdens = chunk[(ptype, "density")].to("code_mass/code_length**3").d
+            field_quantity = chunk[fields].to(units).d
 
-            self.tree.interpolate_sph_cells(
-                buff,
-                buff_den,
-                px,
-                py,
-                pz,
-                pmass,
-                pdens,
-                hsml,
-                field_quantity,
-                use_normalization=normalize,
-            )
+            if px.shape[0] > 0:
+                self.tree.interpolate_sph_cells(
+                    buff,
+                    buff_den,
+                    px,
+                    py,
+                    pz,
+                    pmass,
+                    pdens,
+                    hsml,
+                    field_quantity,
+                    use_normalization=normalize,
+                )
+
             pbar.update(1)
         pbar.close()
 
         if normalize:
             normalization_1d_utility(buff, buff_den)
 
-        self[fields] = self.ds.arr(buff, units)
+        self[fields] = self.ds.arr(buff[~self[("index", "refined")]], units)

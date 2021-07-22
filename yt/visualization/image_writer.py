@@ -85,8 +85,8 @@ def multi_image_composite(
     Examples
     --------
 
-        >>> red_channel = np.log10(frb["Temperature"])
-        >>> blue_channel = np.log10(frb["Density"])
+        >>> red_channel = np.log10(frb[("gas", "temperature")])
+        >>> blue_channel = np.log10(frb[("gas", "density")])
         >>> multi_image_composite("multi_channel1.png", red_channel, blue_channel)
 
     """
@@ -196,9 +196,8 @@ def write_image(image, filename, color_bounds=None, cmap_name=None, func=lambda 
     --------
 
     >>> sl = ds.slice(0, 0.5, "Density")
-    >>> frb1 = FixedResolutionBuffer(sl, (0.2, 0.3, 0.4, 0.5),
-                    (1024, 1024))
-    >>> write_image(frb1["Density"], "saved.png")
+    >>> frb1 = FixedResolutionBuffer(sl, (0.2, 0.3, 0.4, 0.5), (1024, 1024))
+    >>> write_image(frb1[("gas", "density")], "saved.png")
     """
     if cmap_name is None:
         cmap_name = ytcfg.get("yt", "default_colormap")
@@ -393,10 +392,15 @@ def write_projection(
     --------
 
     >>> image = off_axis_projection(ds, c, L, W, N, "Density", no_ghost=False)
-    >>> write_projection(image, 'test.png',
-                         colorbar_label="Column Density (cm$^{-2}$)",
-                         title="Offaxis Projection", vmin=1e-5, vmax=1e-3,
-                         take_log=True)
+    >>> write_projection(
+    ...     image,
+    ...     "test.png",
+    ...     colorbar_label="Column Density (cm$^{-2}$)",
+    ...     title="Offaxis Projection",
+    ...     vmin=1e-5,
+    ...     vmax=1e-3,
+    ...     take_log=True,
+    ... )
     """
     if cmap_name is None:
         cmap_name = ytcfg.get("yt", "default_colormap")
