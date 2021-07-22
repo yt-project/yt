@@ -13,7 +13,7 @@ lines, text, markers, streamlines, velocity vectors, contours, and more.
 
 Callbacks can be applied to plots created with
 :class:`~yt.visualization.plot_window.SlicePlot`,
-:class:`~yt.visualization.plot_window.ProjectionPlot`,
+:func:`~yt.visualization.plot_window.ProjectionPlot`,
 :class:`~yt.visualization.plot_window.OffAxisSlicePlot`, or
 :class:`~yt.visualization.plot_window.OffAxisProjectionPlot` by calling
 one of the ``annotate_`` methods that hang off of the plot object.

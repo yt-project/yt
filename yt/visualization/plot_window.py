@@ -1,6 +1,7 @@
 from collections import defaultdict
 from functools import wraps
 from numbers import Number
+from typing import Union
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -1628,7 +1629,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
         self.set_axes_unit(axes_unit)
 
 
-class ProjectionPlot(PWViewerMPL):
+class AxisAlignedProjectionPlot(PWViewerMPL):
     r"""Creates a projection plot from a dataset
 
     Given a ds object, an axis to project along, and a field name
@@ -1772,7 +1773,7 @@ class ProjectionPlot(PWViewerMPL):
 
     >>> from yt import load
     >>> ds = load("IsolateGalaxygalaxy0030/galaxy0030")
-    >>> p = ProjectionPlot(ds, "z", ("gas", "density"), width=(20, "kpc"))
+    >>> p = AxisAlignedProjectionPlot(ds, "z", ("gas", "density"), width=(20, "kpc"))
 
     """
     _plot_type = "Projection"
@@ -2293,14 +2294,64 @@ class WindowPlotMPL(ImagePlotMPL):
         self.axes = self.figure.add_axes(axrect, projection=self._projection)
 
 
-def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
+def _sanitize_normal_vector(ds, normal) -> Union[str, np.ndarray]:
+    """Return the name of a cartesian axis whener possible,
+    or a 3-element 1D ndarray of float64 in any other valid case.
+    Fail with a descriptive error message otherwise.
+    """
+    axis_names = ds.coordinates.axis_order
+
+    if isinstance(normal, str):
+        if normal not in axis_names:
+            names_str = ", ".join(f"'{name}'" for name in axis_names)
+            raise ValueError(
+                f"'{normal}' is not a valid axis name. Expected one of {names_str}."
+            )
+        return normal
+
+    if isinstance(normal, (int, np.integer)):
+        if normal not in (0, 1, 2):
+            raise ValueError(
+                f"{normal} is not a valid axis identifier. Expected either 0, 1, or 2."
+            )
+        return axis_names[normal]
+
+    if not is_sequence(normal):
+        raise TypeError(
+            f"{normal} is not a valid normal vector identifier. "
+            "Expected a string, integer or sequence of 3 floats."
+        )
+
+    if len(normal) != 3:
+        raise ValueError(
+            f"{normal} with length {len(normal)} is not a valid normal vector. "
+            "Expected a 3-element sequence."
+        )
+
+    try:
+        retv = np.array(normal, dtype="float64")
+        if retv.shape != (3,):
+            raise ValueError(f"{normal} is incorrectly shaped.")
+    except ValueError as exc:
+        raise TypeError(f"{normal} is not a valid normal vector.") from exc
+
+    nonzero_idx = np.nonzero(retv)[0]
+    if len(nonzero_idx) == 0:
+        raise ValueError(f"A null vector {normal} isn't a valid normal vector.")
+    if len(nonzero_idx) == 1:
+        return axis_names[nonzero_idx[0]]
+
+    return retv
+
+
+def SlicePlot(ds, normal, fields, *args, **kwargs):
     r"""
     A factory function for
     :class:`yt.visualization.plot_window.AxisAlignedSlicePlot`
     and :class:`yt.visualization.plot_window.OffAxisSlicePlot` objects.  This
     essentially allows for a single entry point to both types of slice plots,
     the distinction being determined by the specified normal vector to the
-    slice.
+    projection.
 
     The returned plot object can be updated using one of the many helper
     functions defined in PlotWindow.
@@ -2311,18 +2362,19 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
     ds : :class:`yt.data_objects.static_output.Dataset`
         This is the dataset object corresponding to the
         simulation output to be plotted.
-    normal : int or one of 'x', 'y', 'z', or sequence of floats
-        This specifies the normal vector to the slice.  If given as an integer
-        or a coordinate string (0=x, 1=y, 2=z), this function will return an
-        :class:`AxisAlignedSlicePlot` object.  If given as a sequence of floats,
-        this is interpreted as an off-axis vector and an
-        :class:`OffAxisSlicePlot` object is returned.
-    fields : string
-         The name of the field(s) to be plotted.
-    axis : int or one of 'x', 'y', 'z'
-         An int corresponding to the axis to slice along (0=x, 1=y, 2=z)
-         or the axis name itself.  If specified, this will replace normal.
+    normal : int, str, or 3-element sequence of floats
+        This specifies the normal vector to the slice.
+        Valid int values are 0, 1 and 2. Coresponding str values depend on the
+        geometry of the dataset and are generally given by `ds.coordinates.axis_order`.
+        E.g. in cartesian they are 'x', 'y' and 'z'.
+        An arbitrary normal vector may be specified as a 3-element sequence of floats.
 
+        This function will return a :class:`OffAxisSlicePlot` object or a
+        :class:`AxisAlignedSlicePlot` object, depending on wether the requested
+        normal directions corresponds to a natural axis of the dataset's geometry.
+
+    fields : a (or a list of) 2-tuple of strings (ftype, fname)
+         The name of the field(s) to be plotted.
 
     The following are nominally keyword arguments passed onto the respective
     slice plot objects generated by this function.
@@ -2416,9 +2468,8 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
     Raises
     ------
 
-    AssertionError
-        If a proper normal axis is not specified via the normal or axis
-        keywords, and/or if a field to plot is not specified.
+    ValueError or TypeError
+        If `normal` cannot be interpreted as a valid normal direction.
 
     Examples
     --------
@@ -2432,47 +2483,9 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
     ... )
 
     """
-    if axis is not None:
-        issue_deprecation_warning(
-            "SlicePlot's argument 'axis' is a deprecated alias for 'normal', it "
-            "will be removed in a future version of yt.",
-            since="4.0.0",
-            removal="4.1.0",
-        )
-        if normal is not None:
-            raise TypeError(
-                "SlicePlot() received incompatible arguments 'axis' and 'normal'"
-            )
-        normal = axis
+    normal = _sanitize_normal_vector(ds, normal)
 
-    # to keep positional ordering we had to make 'normal' and 'fields' keywords
-    if normal is None:
-        raise TypeError("Missing argument in SlicePlot(): 'normal'")
-
-    if fields is None:
-        raise TypeError("Missing argument in SlicePlot(): 'fields'")
-
-    # use an AxisAlignedSlicePlot where possible, e.g.:
-    # maybe someone passed normal=[0,0,0.2] when they should have just used "z"
-    if is_sequence(normal) and not isinstance(normal, str):
-        if np.count_nonzero(normal) == 1:
-            normal = ("x", "y", "z")[np.nonzero(normal)[0][0]]
-        else:
-            normal = np.array(normal, dtype="float64")
-            np.divide(normal, np.dot(normal, normal), normal)
-
-    # by now the normal should be properly set to get either a On/Off Axis plot
-    if is_sequence(normal) and not isinstance(normal, str):
-        # OffAxisSlicePlot has hardcoded origin; remove it if in kwargs
-        if "origin" in kwargs:
-            mylog.warning(
-                "Ignoring 'origin' keyword as it is ill-defined for "
-                "an OffAxisSlicePlot object."
-            )
-            del kwargs["origin"]
-
-        return OffAxisSlicePlot(ds, normal, fields, *args, **kwargs)
-    else:
+    if isinstance(normal, str):
         # north_vector not used in AxisAlignedSlicePlots; remove it if in kwargs
         if "north_vector" in kwargs:
             mylog.warning(
@@ -2482,6 +2495,67 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
             del kwargs["north_vector"]
 
         return AxisAlignedSlicePlot(ds, normal, fields, *args, **kwargs)
+    else:
+        # OffAxisSlicePlot has hardcoded origin; remove it if in kwargs
+        if "origin" in kwargs:
+            mylog.warning(
+                "Ignoring 'origin' keyword as it is ill-defined for "
+                "an OffAxisSlicePlot object."
+            )
+            del kwargs["origin"]
+
+        return OffAxisSlicePlot(ds, normal, fields, *args, **kwargs)
+
+
+def ProjectionPlot(ds, normal, fields, *args, **kwargs):
+    r"""
+    A factory function for
+    :class:`yt.visualization.plot_window.AxisAlignedProjectionPlot`
+    and :class:`yt.visualization.plot_window.OffAxisProjectionPlot` objects.  This
+    essentially allows for a single entry point to both types of projection plots,
+    the distinction being determined by the specified normal vector to the
+    slice.
+
+    The returned plot object can be updated using one of the many helper
+    functions defined in PlotWindow.
+
+    Parameters
+    ----------
+
+    ds : :class:`yt.data_objects.static_output.Dataset`
+        This is the dataset object corresponding to the
+        simulation output to be plotted.
+    normal : int, str, or 3-element sequence of floats
+        This specifies the normal vector to the slice.
+        Valid int values are 0, 1 and 2. Coresponding str values depend on the
+        geometry of the dataset and are generally given by `ds.coordinates.axis_order`.
+        E.g. in cartesian they are 'x', 'y' and 'z'.
+        An arbitrary normal vector may be specified as a 3-element sequence of floats.
+
+        This function will return a :class:`OffAxisSlicePlot` object or a
+        :class:`AxisAlignedSlicePlot` object, depending on wether the requested
+        normal directions corresponds to a natural axis of the dataset's geometry.
+
+    fields : a (or a list of) 2-tuple of strings (ftype, fname)
+         The name of the field(s) to be plotted.
+
+
+    Any additional positional and keyword arguments are passed down to the appropriate
+    return class. See :class:`yt.visualization.plot_window.AxisAlignedProjectionPlot`
+    and :class:`yt.visualization.plot_window.OffAxisProjectionPlot`.
+
+    Raises
+    ------
+
+    ValueError or TypeError
+        If `normal` cannot be interpreted as a valid normal direction.
+
+    """
+    normal = _sanitize_normal_vector(ds, normal)
+    if isinstance(normal, str):
+        return AxisAlignedProjectionPlot(ds, normal, fields, *args, **kwargs)
+    else:
+        return OffAxisProjectionPlot(ds, normal, fields, *args, **kwargs)
 
 
 def plot_2d(
@@ -2627,3 +2701,18 @@ def plot_2d(
         aspect=aspect,
         data_source=data_source,
     )
+
+
+# Historically, both names (SlicePlot and ProjectionPlot) were introduced
+# as classes (now AxisAlignedSlicePlot and AxisAlignedProjectionPlot), and
+# repurposed as factory functions to extend the existing API to utilize more
+# general sibling classes (OffAxisSlicePlot and OffAxisProjectionPlot) in a
+# user-friendly way.
+# For ProjectionPlot, see https://github.com/yt-project/yt/pull/3450
+#
+# Here we define the snake case aliases for these factory functions as a way
+# to improve their discoverability. We may want to make these the prefered
+# API in the future, and, less probably, the *only* API, but there is no plan
+# for deprecating the historical names as of PR #3450 (yt 4.1dev)
+projection_plot = ProjectionPlot
+slice_plot = SlicePlot

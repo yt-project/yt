@@ -2219,7 +2219,7 @@ Most Visible Improvements
 Other Changes
 ^^^^^^^^^^^^^
 
- * :class:`~yt.visualization.plot_window.ProjectionPlot` and
+ * :func:`~yt.visualization.plot_window.ProjectionPlot` and
    :class:`~yt.visualization.plot_window.SlicePlot` supplant the functionality
    of PlotCollection.
  * Camera path creation from keyframes and splines

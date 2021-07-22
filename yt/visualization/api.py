@@ -29,6 +29,8 @@ from .plot_window import (
     ProjectionPlot,
     SlicePlot,
     plot_2d,
+    projection_plot,
+    slice_plot,
 )
 from .profile_plotter import PhasePlot, ProfilePlot
 from .streamlines import Streamlines

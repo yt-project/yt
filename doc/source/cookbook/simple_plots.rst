@@ -105,7 +105,7 @@ Making Plots of Multiple Fields Simultaneously
 
 By adding multiple fields to a single
 :class:`~yt.visualization.plot_window.SlicePlot` or
-:class:`~yt.visualization.plot_window.ProjectionPlot` some of the overhead of
+:func:`~yt.visualization.plot_window.ProjectionPlot` some of the overhead of
 creating the data object can be reduced, and better performance squeezed out.
 This recipe shows how to add multiple fields to a single plot.
 See :ref:`slice-plots` and :ref:`projection-plots` for more information.

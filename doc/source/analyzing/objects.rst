@@ -44,7 +44,7 @@ Alternatively, we could create a sphere object of radius 1 kpc on location
 
 After an object has been created, it can be used as a data_source to certain
 tasks like ``ProjectionPlot`` (see
-:class:`~yt.visualization.plot_window.ProjectionPlot`), one can compute the
+:func:`~yt.visualization.plot_window.ProjectionPlot`), one can compute the
 bulk quantities associated with that object (see :ref:`derived-quantities`),
 or the data can be examined directly. For example, if you want to figure out
 the temperature at all indexed locations in the central sphere of your

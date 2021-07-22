@@ -56,7 +56,7 @@ generating annotated 2D visualizations of simulation data.  You can create a
 supplying a dataset, a list of fields to plot, and a plot center to
 create a :class:`~yt.visualization.plot_window.AxisAlignedSlicePlot`,
 :class:`~yt.visualization.plot_window.OffAxisSlicePlot`,
-:class:`~yt.visualization.plot_window.ProjectionPlot`, or
+:func:`~yt.visualization.plot_window.ProjectionPlot`, or
 :class:`~yt.visualization.plot_window.OffAxisProjectionPlot`.
 
 Plot objects use yt data objects to extract the maximum resolution
@@ -296,7 +296,7 @@ Using a fast adaptive projection, yt is able to quickly project
 simulation data along the coordinate axes.
 
 Projection plots are created by instantiating a
-:class:`~yt.visualization.plot_window.ProjectionPlot` object.  For
+:func:`~yt.visualization.plot_window.ProjectionPlot` object.  For
 example:
 
 .. python-script::
@@ -322,7 +322,7 @@ the plot to a png image file.
 Like :ref:`slice-plots`, annotations and modifications can be applied
 after creating the ``ProjectionPlot`` object.  Annotations are
 described in :ref:`callbacks`.  See
-:class:`~yt.visualization.plot_window.ProjectionPlot` for the full
+:func:`~yt.visualization.plot_window.ProjectionPlot` for the full
 class description.
 
 If you want to project through a subset of the full dataset volume,
