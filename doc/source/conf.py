@@ -70,7 +70,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "The yt Project"
-copyright = "2013-2020, the yt Project"
+copyright = "2013-2021, the yt Project"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -130,6 +130,7 @@ html_theme_options = dict(
     bootstrap_version="3",
     bootswatch_theme="readable",
     navbar_links=[
+        ("", ""),  # see https://github.com/yt-project/yt/pull/3423
         ("How to get help", "help/index"),
         ("Quickstart notebooks", "quickstart/index"),
         ("Cookbook", "cookbook/index"),
