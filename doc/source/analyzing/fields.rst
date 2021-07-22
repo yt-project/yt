@@ -643,16 +643,23 @@ this will be handled automatically:
 .. code-block:: python
 
     prj = yt.ProjectionPlot(
-        ds, "z", ("gas", "velocity_los"), weight_field=("gas", "density")
+        ds,
+        "z",
+        fields=("gas", "velocity_los"),
+        weight_field=("gas", "density"),
     )
 
 Which, because the axis is ``"z"``, will give you the same result if you had
-projected the ``"velocity_z"`` field. This also works for off-axis projections:
+projected the ``"velocity_z"`` field. This also works for off-axis projections,
+using an arbitrary normal vector
 
 .. code-block:: python
 
-    prj = yt.OffAxisProjectionPlot(
-        ds, [0.1, -0.2, 0.3], ("gas", "velocity_los"), weight_field=("gas", "density")
+    prj = yt.ProjectionPlot(
+        ds,
+        [0.1, -0.2, 0.3],
+        fields=("gas", "velocity_los"),
+        weight_field=("gas", "density"),
     )
 
 

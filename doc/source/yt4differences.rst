@@ -156,7 +156,7 @@ centre of the pixel and using the standard SPH smoothing formula. The heavy
 lifting in these functions is undertaken by cython functions.
 
 It is now possible to generate slice plots, projection plots, covering grids and
-arbitrary grids of smoothed quanitities using these operations. The following
+arbitrary grids of smoothed quantities using these operations. The following
 code demonstrates how this could be achieved. The following would use the scatter
 method:
 
