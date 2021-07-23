@@ -24,6 +24,8 @@ osx|macOS)
     export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:/usr/local/opt/proj@7/lib/pkgconfig"
     HOMEBREW_NO_AUTO_UPDATE=1 brew install hdf5 proj@7 geos open-mpi netcdf ccache osxfuse
     ;;
+Windows)
+    choco install winfsp --pre
 esac
 
 # Disable excessive output
