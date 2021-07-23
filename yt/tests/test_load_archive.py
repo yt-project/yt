@@ -70,8 +70,11 @@ def test_load_archive(fn, exact_loc, class_: str, tmp_data_dir, data_registry):
 
 @pytest.mark.skipif(
     not sys.platform.startswith("win"),
-    reason="Should not work on Windows",
+    reason="Should not work on Windows as of ratarmount 0.8.1",
 )
 def test_load_archive_fail_windows():
-    with pytest.raises(RuntimeError):
-        load_archive("foo", "bar")
+    # Download the sample .tar.gz'd file
+    archive_path = _download_sample_data_file(filename="ToroShockTube.tar.gz")
+
+    with pytest.raises(Exception):
+        load_archive(archive_path, "foo")
