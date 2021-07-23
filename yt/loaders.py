@@ -1469,6 +1469,28 @@ class MountError(Exception):
         self.message = message
 
 
+def _mount_helper(archive: str, mountPoint: str, ratarmount_kwa: Dict, conn: Pipe):
+    try:
+        fuseOperationsObject = ratarmount.TarMount(
+            pathToMount=archive,
+            mountPoint=mountPoint,
+            lazyMounting=True,
+            **ratarmount_kwa,
+        )
+        fuseOperationsObject.use_ns = True
+        conn.send(True)
+    except Exception:
+        conn.send(False)
+        raise
+
+    ratarmount.fuse.FUSE(
+        operations=fuseOperationsObject,
+        mountpoint=mountPoint,
+        foreground=True,
+        nothreads=True,
+    )
+
+
 # --- Loader for tar-based datasets ---
 def load_archive(
     fn: Union[str, Path],
@@ -1526,29 +1548,8 @@ def load_archive(
         i += 1
         tempdir = f"{tempdir_base}.{i}"
 
-    def mount(archive: str, mountPoint: str, ratarmount_kwa: Dict, conn: Pipe):
-        try:
-            fuseOperationsObject = ratarmount.TarMount(
-                pathToMount=archive,
-                mountPoint=mountPoint,
-                lazyMounting=True,
-                **ratarmount_kwa,
-            )
-            fuseOperationsObject.use_ns = True
-            conn.send(True)
-        except Exception:
-            conn.send(False)
-            raise
-
-        ratarmount.fuse.FUSE(
-            operations=fuseOperationsObject,
-            mountpoint=mountPoint,
-            foreground=True,
-            nothreads=True,
-        )
-
     parent_conn, child_conn = Pipe()
-    proc = Process(target=mount, args=(fn, tempdir, ratarmount_kwa, child_conn))
+    proc = Process(target=_mount_helper, args=(fn, tempdir, ratarmount_kwa, child_conn))
     proc.start()
     if not parent_conn.recv():
         raise MountError(f"An error occured while mounting {fn} in {tempdir}")
