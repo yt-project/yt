@@ -703,7 +703,8 @@ class ratarmount_imports:
             import ratarmount as myself
 
             self._module = myself
-        except ImportError:
+        except (ImportError, OSError):
+            # Note: fails with OSError if the fuse library hasn't been installed
             self._module = NotAModule(self._name)
 
     def __getattr__(self, attr):
