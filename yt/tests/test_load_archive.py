@@ -1,10 +1,9 @@
-import sys
 import time
 
 import pytest
 
 from yt.config import ytcfg
-from yt.loaders import MountError, load_archive
+from yt.loaders import load_archive
 from yt.sample_data.api import _download_sample_data_file, get_data_registry_table
 from yt.testing import requires_module_pytest
 
@@ -24,11 +23,9 @@ def tmp_data_dir(tmp_path):
     ytcfg.set("yt", "test_data_dir", pre_test_data_dir)
 
 
+# Note: ratarmount cannot currently be installed on Windows as of v0.8.1
 @requires_module_pytest("pooch")
-@pytest.mark.skipif(
-    sys.platform.startswith("win"),
-    reason="Should not work on Windows",
-)
+@requires_module_pytest("ratarmount")
 @pytest.mark.parametrize(
     "fn ,exact_loc, class_",
     [
@@ -68,15 +65,3 @@ def test_load_archive(fn, exact_loc, class_: str, tmp_data_dir, data_registry):
     ## Mount path should not exist anymore *and* have been deleted
     assert not mount_path.is_mount()
     assert not mount_path.exists()
-
-
-@pytest.mark.skipif(
-    not sys.platform.startswith("win"),
-    reason="Should not work on Windows as of ratarmount 0.8.1",
-)
-def test_load_archive_fail_windows(tmp_data_dir):
-    # Download the sample .tar.gz'd file
-    archive_path = _download_sample_data_file(filename="ToroShockTube.tar.gz")
-
-    with pytest.raises(MountError):
-        load_archive(archive_path, "foo")

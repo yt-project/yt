@@ -22,6 +22,7 @@ from yt.funcs import levenshtein_distance
 from yt.sample_data.api import lookup_on_disk_data
 from yt.utilities.decompose import decompose_array, get_psize
 from yt.utilities.exceptions import (
+    MountError,
     YTAmbiguousDataType,
     YTIllDefinedAMR,
     YTSimulationNotIdentified,
@@ -1462,11 +1463,6 @@ def load_sample(
         loadable_path = loadable_path.joinpath(load_name, specific_file)
 
     return load(loadable_path, **kwargs)
-
-
-class MountError(Exception):
-    def __init__(self, message):
-        self.message = message
 
 
 def _mount_helper(archive: str, mountPoint: str, ratarmount_kwa: Dict, conn: Pipe):
