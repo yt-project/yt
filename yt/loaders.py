@@ -1534,6 +1534,7 @@ def load_archive(
                 lazyMounting=True,
                 **ratarmount_kwa,
             )
+            fuseOperationsObject.use_ns = True
             conn.send(True)
         except Exception:
             conn.send(False)
