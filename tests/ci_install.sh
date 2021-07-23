@@ -10,7 +10,8 @@ linux|Linux)
       proj-data \
       proj-bin \
       libgeos-dev \
-      libopenmpi-dev
+      libopenmpi-dev \
+      libfuse2
     ;;
 osx|macOS)
     sudo mkdir -p /usr/local/man
