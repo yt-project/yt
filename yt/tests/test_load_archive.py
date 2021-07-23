@@ -4,7 +4,7 @@ import time
 import pytest
 
 from yt.config import ytcfg
-from yt.loaders import load_archive
+from yt.loaders import MountError, load_archive
 from yt.sample_data.api import _download_sample_data_file, get_data_registry_table
 from yt.testing import requires_module_pytest
 
@@ -76,5 +76,5 @@ def test_load_archive_fail_windows():
     # Download the sample .tar.gz'd file
     archive_path = _download_sample_data_file(filename="ToroShockTube.tar.gz")
 
-    with pytest.raises(Exception):
+    with pytest.raises(MountError):
         load_archive(archive_path, "foo")

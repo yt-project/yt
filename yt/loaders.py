@@ -1464,6 +1464,11 @@ def load_sample(
     return load(loadable_path, **kwargs)
 
 
+class MountError(Exception):
+    def __init__(self, message):
+        self.message = message
+
+
 # --- Loader for tar-based datasets ---
 def load_archive(
     fn: Union[str, Path],
@@ -1541,7 +1546,7 @@ def load_archive(
     proc = Process(target=mount, args=(fn, tempdir, ratarmount_kwa, child_conn))
     proc.start()
     if not parent_conn.recv():
-        raise Exception("Could not mount")
+        raise MountError(f"An error occured while mounting {fn} in {tempdir}")
 
     # Note: the mounting needs to happen in another process which
     # needs be run in the foreground (otherwise it may
@@ -1554,7 +1559,7 @@ def load_archive(
         time.sleep(0.1)
         retry += 1
     else:
-        raise Exception("Could not mount")
+        raise MountError(f"Folder {tempdir} does not appear to be mounted")
 
     # We need to kill the process at exit (to force unmounting)
     def umount_callback():
