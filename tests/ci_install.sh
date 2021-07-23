@@ -22,7 +22,7 @@ osx|macOS)
     export CPPFLAGS="$CPPFLAGS -I/usr/local/opt/proj@7/include"
     export CFLAGS="$CFLAGS -I/usr/local/opt/proj@7/include"
     export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:/usr/local/opt/proj@7/lib/pkgconfig"
-    HOMEBREW_NO_AUTO_UPDATE=1 brew install hdf5 proj@7 geos open-mpi netcdf ccache
+    HOMEBREW_NO_AUTO_UPDATE=1 brew install hdf5 proj@7 geos open-mpi netcdf ccache osxfuse
     ;;
 esac
 
