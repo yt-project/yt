@@ -1,3 +1,4 @@
+import tarfile
 import time
 
 import pytest
@@ -43,25 +44,36 @@ def tmp_data_dir(tmp_path):
 )
 def test_load_archive(fn, exact_loc, class_: str, tmp_data_dir, data_registry):
     # Download the sample .tar.gz'd file
-    archive_path = _download_sample_data_file(filename=fn)
+    targz_path = _download_sample_data_file(filename=fn)
+    tar_paths = [targz_path.with_suffix(suffix) for suffix in ("", ".xz", ".bz2")]
 
-    # Open the tar directly
-    ds = load_archive(archive_path, exact_loc, mount_timeout=10)
-    assert type(ds).__name__ == class_
+    # Open the tarfile and uncompress it to .tar, .tar.gz, and .tar.bz2 files
+    with tarfile.open(targz_path, mode="r:*") as targz:
+        for tar_path in tar_paths:
+            mode = "w" + tar_path.suffix.replace(".", ":")
+            with tarfile.open(tar_path, mode=mode) as tar:
+                for member in targz.getmembers():
+                    content = targz.extractfile(member)
+                    tar.addfile(member, fileobj=content)
 
-    # Make sure the index is readable
-    ds.index
+    # Now try to open the .tar.* files
+    for path in [targz_path] + tar_paths:
+        ds = load_archive(path, exact_loc, mount_timeout=10)
+        assert type(ds).__name__ == class_
 
-    # Check cleanup
-    mount_path = archive_path.with_name(archive_path.name + ".mount")
-    assert mount_path.is_mount()
+        # Make sure the index is readable
+        ds.index
 
-    ## Manually dismount
-    ds.dismount()
+        # Check cleanup
+        mount_path = path.with_name(path.name + ".mount")
+        assert mount_path.is_mount()
 
-    ## The dismounting happens concurrently, wait a few sec.
-    time.sleep(2)
+        ## Manually dismount
+        ds.dismount()
 
-    ## Mount path should not exist anymore *and* have been deleted
-    assert not mount_path.is_mount()
-    assert not mount_path.exists()
+        ## The dismounting happens concurrently, wait a few sec.
+        time.sleep(2)
+
+        ## Mount path should not exist anymore *and* have been deleted
+        assert not mount_path.is_mount()
+        assert not mount_path.exists()
