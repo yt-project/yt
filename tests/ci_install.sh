@@ -27,6 +27,7 @@ osx|macOS)
     ;;
 Windows)
     choco install winfsp --pre
+    choco install zstandard
 esac
 
 # Disable excessive output
