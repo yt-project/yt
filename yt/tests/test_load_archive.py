@@ -16,7 +16,6 @@ def data_registry():
 
 @pytest.fixture()
 def tmp_data_dir(tmp_path):
-    print(tmp_path)
     pre_test_data_dir = ytcfg["yt", "test_data_dir"]
     ytcfg.set("yt", "test_data_dir", str(tmp_path))
 
@@ -75,7 +74,7 @@ def test_load_archive(fn, exact_loc, class_: str, tmp_data_dir, data_registry):
     not sys.platform.startswith("win"),
     reason="Should not work on Windows as of ratarmount 0.8.1",
 )
-def test_load_archive_fail_windows():
+def test_load_archive_fail_windows(tmp_data_dir):
     # Download the sample .tar.gz'd file
     archive_path = _download_sample_data_file(filename="ToroShockTube.tar.gz")
 
