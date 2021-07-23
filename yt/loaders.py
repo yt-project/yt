@@ -1474,6 +1474,7 @@ def load_archive(
     fn: Union[str, Path],
     path: str,
     ratarmount_kwa: Optional[Dict] = None,
+    mount_timeout: float = 1.0,
     *args,
     **kwargs,
 ) -> Dataset:
@@ -1494,6 +1495,9 @@ def load_archive(
 
     ratarmount_kwa: dict, optional
         Optional parameters to pass to ratarmount to mount the archive.
+
+    mount_timeout: float, optional
+        The timeout to wait for ratarmount to mount the archive. Default is 1s.
 
     Notes
     -----
@@ -1553,7 +1557,8 @@ def load_archive(
     # unmount). To prevent a race-condition here, we wait
     # for the folder to be mounted within a reasonable time.
     retry = 0
-    while retry < 10:
+    retry_max = np.ceil(mount_timeout / 10)
+    while retry < retry_max:
         if os.path.ismount(tempdir):
             break
         time.sleep(0.1)

@@ -50,7 +50,7 @@ def test_load_archive(fn, exact_loc, class_: str, tmp_data_dir, data_registry):
     archive_path = _download_sample_data_file(filename=fn)
 
     # Open the tar directly
-    ds = load_archive(archive_path, exact_loc)
+    ds = load_archive(archive_path, exact_loc, mount_timeout=10)
     assert type(ds).__name__ == class_
 
     # Check cleanup
