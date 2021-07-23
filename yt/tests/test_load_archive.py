@@ -53,6 +53,9 @@ def test_load_archive(fn, exact_loc, class_: str, tmp_data_dir, data_registry):
     ds = load_archive(archive_path, exact_loc, mount_timeout=10)
     assert type(ds).__name__ == class_
 
+    # Make sure the index is readable
+    ds.index
+
     # Check cleanup
     mount_path = archive_path.with_name(archive_path.name + ".mount")
     assert mount_path.is_mount()
