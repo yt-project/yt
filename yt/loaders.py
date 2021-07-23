@@ -1525,7 +1525,12 @@ def load_archive(
     - This function does not work on Windows system.
     """
 
-    fn = os.path.realpath(fn)
+    fn = os.path.expanduser(fn)
+
+    # This will raise FileNotFoundError if the path isn't matched
+    # either in the current dir or yt.config.ytcfg['data_dir_directory']
+    if not fn.startswith("http"):
+        fn = str(lookup_on_disk_data(fn))
 
     if ratarmount_kwa is None:
         ratarmount_kwa = {}
