@@ -1557,13 +1557,12 @@ def load_archive(
     # needs be run in the foreground (otherwise it may
     # unmount). To prevent a race-condition here, we wait
     # for the folder to be mounted within a reasonable time.
-    retry = 0
-    retry_max = np.ceil(mount_timeout / 10)
-    while retry < retry_max:
+    t = 0
+    while t < mount_timeout:
         if os.path.ismount(tempdir):
             break
         time.sleep(0.1)
-        retry += 1
+        t += 0.1
     else:
         raise MountError(f"Folder {tempdir} does not appear to be mounted")
 
