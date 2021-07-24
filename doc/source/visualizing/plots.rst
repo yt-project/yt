@@ -417,7 +417,7 @@ Here, ``W`` is the width of the projection in the x, y, *and* z
 directions.
 
 One can also generate annotated off axis projections using
-:class:`~yt.visualization.plot_window.OffAxisProjectionPlot`. These
+:func:`~yt.visualization.plot_window.ProjectionPlot`. These
 plots can be created in much the same way as an
 ``OffAxisSlicePlot``, requiring only an open dataset, a direction
 to project along, and a field to project.  For example:
@@ -429,12 +429,12 @@ to project along, and a field to project.  For example:
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    L = [1, 1, 0]  # vector normal to cutting plane
    north_vector = [-1, 1, 0]
-   prj = yt.OffAxisProjectionPlot(
+   prj = yt.ProjectionPlot(
        ds, L, ("gas", "density"), width=(25, "kpc"), north_vector=north_vector
    )
    prj.save()
 
-OffAxisProjectionPlots can also be created with a number of
+``OffAxisProjectionPlot`` objects can also be created with a number of
 keyword arguments, as described in
 :class:`~yt.visualization.plot_window.OffAxisProjectionPlot`
 
@@ -584,7 +584,7 @@ Note, the change in the field name from ``("deposit", "nbody_mass")`` to
 
    fn = cg.save_as_dataset(fields=[("deposit", "nbody_mass")])
    ds_grid = yt.load(fn)
-   p = yt.OffAxisProjectionPlot(ds_grid, [1, 1, 1], ("grid", "nbody_mass"))
+   p = yt.ProjectionPlot(ds_grid, [1, 1, 1], ("grid", "nbody_mass"))
    p.save()
 
 Plot Customization: Recentering, Resizing, Colormaps, and More
