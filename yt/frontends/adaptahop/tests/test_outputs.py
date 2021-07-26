@@ -18,6 +18,8 @@ brick_new = "output_00080_new_halos/tree_bricks080"
 
 
 @requires_file(r0)
+@requires_file(brick_old)
+@requires_file(brick_new)
 @pytest.mark.parametrize("brick", [brick_old, brick_new])
 def test_opening(brick):
     ds_parent = data_dir_load(r0)
@@ -29,6 +31,8 @@ def test_opening(brick):
 
 
 @requires_file(r0)
+@requires_file(brick_old)
+@requires_file(brick_new)
 @pytest.mark.parametrize("brick", [brick_old, brick_new])
 def test_field_access(brick):
     ds_parent = data_dir_load(r0)
@@ -48,6 +52,8 @@ def test_field_access(brick):
 
 
 @requires_file(r0)
+@requires_file(brick_old)
+@requires_file(brick_new)
 @pytest.mark.parametrize("brick", [brick_old, brick_new])
 def test_get_halo(brick):
     ds_parent = data_dir_load(r0)
