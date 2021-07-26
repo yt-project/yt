@@ -667,6 +667,15 @@ class YTPlotCallbackError(Exception):
         return f"{self.callback} callback failed"
 
 
+class YTUnsupportedPlotCallback(YTPlotCallbackError):
+    def __init__(self, callback: str, plot_type: str) -> None:
+        super().__init__(callback)
+        self.plot_type = plot_type
+
+    def __str__(self):
+        return f"The `{self.plot_type}` class currently doesn't support the `{self.callback}` method."
+
+
 class YTPixelizeError(YTException):
     def __init__(self, message):
         self.message = message
