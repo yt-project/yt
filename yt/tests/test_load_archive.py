@@ -45,7 +45,7 @@ def tmp_data_dir(tmp_path):
 def test_load_archive(fn, exact_loc, class_: str, tmp_data_dir, data_registry):
     # Download the sample .tar.gz'd file
     targz_path = _download_sample_data_file(filename=fn)
-    tar_paths = [targz_path.with_suffix(suffix) for suffix in ("", ".xz", ".bz2")]
+    tar_paths = [targz_path.with_suffix(suffix) for suffix in ("", ".bz2")]
 
     # Open the tarfile and uncompress it to .tar, .tar.gz, and .tar.bz2 files
     with tarfile.open(targz_path, mode="r:*") as targz:
