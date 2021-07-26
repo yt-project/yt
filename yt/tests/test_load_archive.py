@@ -42,38 +42,40 @@ def tmp_data_dir(tmp_path):
         ),
     ],
 )
-def test_load_archive(fn, exact_loc, class_: str, tmp_data_dir, data_registry):
+@pytest.mark.parametrize("archive_suffix", ["", ".gz"])
+def test_load_archive(
+    fn, exact_loc, class_: str, archive_suffix, tmp_data_dir, data_registry
+):
     # Download the sample .tar.gz'd file
     targz_path = _download_sample_data_file(filename=fn)
-    tar_paths = [targz_path.with_suffix(suffix) for suffix in ("", ".bz2")]
+    tar_path = targz_path.with_suffix(archive_suffix)
 
-    # Open the tarfile and uncompress it to .tar, .tar.gz, and .tar.bz2 files
-    with tarfile.open(targz_path, mode="r:*") as targz:
-        for tar_path in tar_paths:
-            mode = "w" + tar_path.suffix.replace(".", ":")
+    if tar_path != targz_path:
+        # Open the tarfile and uncompress it to .tar, .tar.gz, and .tar.bz2 files
+        with tarfile.open(targz_path, mode="r:*") as targz:
+            mode = "w" + archive_suffix.replace(".", ":")
             with tarfile.open(tar_path, mode=mode) as tar:
                 for member in targz.getmembers():
                     content = targz.extractfile(member)
                     tar.addfile(member, fileobj=content)
 
     # Now try to open the .tar.* files
-    for path in [targz_path] + tar_paths:
-        ds = load_archive(path, exact_loc, mount_timeout=10)
-        assert type(ds).__name__ == class_
+    ds = load_archive(tar_path, exact_loc, mount_timeout=10)
+    assert type(ds).__name__ == class_
 
-        # Make sure the index is readable
-        ds.index
+    # Make sure the index is readable
+    ds.index
 
-        # Check cleanup
-        mount_path = path.with_name(path.name + ".mount")
-        assert mount_path.is_mount()
+    # Check cleanup
+    mount_path = tar_path.with_name(tar_path.name + ".mount")
+    assert mount_path.is_mount()
 
-        ## Manually dismount
-        ds.dismount()
+    ## Manually dismount
+    ds.dismount()
 
-        ## The dismounting happens concurrently, wait a few sec.
-        time.sleep(2)
+    ## The dismounting happens concurrently, wait a few sec.
+    time.sleep(2)
 
-        ## Mount path should not exist anymore *and* have been deleted
-        assert not mount_path.is_mount()
-        assert not mount_path.exists()
+    ## Mount path should not exist anymore *and* have been deleted
+    assert not mount_path.is_mount()
+    assert not mount_path.exists()
