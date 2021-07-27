@@ -1,4 +1,5 @@
 import sys
+from functools import cached_property
 
 from packaging.version import Version
 
@@ -694,18 +695,22 @@ class firefly_imports:
 
 
 _firefly = firefly_imports()
+
+
+# Note: ratarmount fails with an OSError on import if libfuse is missing.
+# We lazy-import the module so that the exception is properly raised.
 class ratarmount_imports:
     _name = "ratarmount"
     _module = None
 
-    def __init__(self):
+    @cached_property
+    def _module(self):
         try:
             import ratarmount as myself
 
-            self._module = myself
-        except (ImportError, OSError):
-            # Note: fails with OSError if the fuse library hasn't been installed
-            self._module = NotAModule(self._name)
+            return myself
+        except ImportError:
+            return NotAModule(self._name)
 
     def __getattr__(self, attr):
         return getattr(self._module, attr)
