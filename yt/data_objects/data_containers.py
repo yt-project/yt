@@ -798,7 +798,9 @@ class YTDataContainer:
         default_decimation_factor = int(default_decimation_factor)
 
         ## initialize a firefly reader instance
-        reader = firefly.data_reader.Reader(JSONdir=JSONdir, clean_JSONdir=True, **kwargs)
+        reader = firefly.data_reader.Reader(
+            JSONdir=JSONdir, clean_JSONdir=True, **kwargs
+        )
 
         ## create a ParticleGroup object that contains *every* field
         for ptype in sorted(self.ds.particle_types_raw):
