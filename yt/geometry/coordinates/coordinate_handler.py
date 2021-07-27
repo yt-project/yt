@@ -69,6 +69,7 @@ class CoordinateHandler(abc.ABC):
         self.ds = weakref.proxy(ds)
         self.axis_order = ordering
 
+    @abc.abstractmethod
     def setup_fields(self):
         # This should return field definitions for x, y, z, r, theta, phi
         pass
