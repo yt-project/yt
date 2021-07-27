@@ -782,16 +782,7 @@ class YTDataContainer:
             >>> reader.dumpToJSON()
         """
 
-        ## attempt to import Firefly
-        try:
-            from Firefly.data_reader import ParticleGroup, Reader
-        except ImportError as e:
-            raise ImportError(
-                "Can't find Firefly, ensure it "
-                "is in your python path or install it with "
-                "`python -m pip install Firefly-vis`. It is also available "
-                "on github at github.com/ageller/Firefly"
-            ) from e
+        from yt.utilities.on_demand_imports import _firefly as firefly
 
         ## handle default arguments
         if fields_to_include is None:
@@ -807,7 +798,7 @@ class YTDataContainer:
         default_decimation_factor = int(default_decimation_factor)
 
         ## initialize a firefly reader instance
-        reader = Reader(JSONdir=JSONdir, clean_JSONdir=True, **kwargs)
+        reader = firefly.data_reader.Reader(JSONdir=JSONdir, clean_JSONdir=True, **kwargs)
 
         ## create a ParticleGroup object that contains *every* field
         for ptype in sorted(self.ds.particle_types_raw):
@@ -864,7 +855,7 @@ class YTDataContainer:
             tracked_colormap_flags = np.ones(len(tracked_names))
 
             ## create a firefly ParticleGroup for this particle type
-            pg = ParticleGroup(
+            pg = firefly.data_reader.ParticleGroup(
                 UIname=ptype,
                 coordinates=self[ptype, "relative_particle_position"].in_units(
                     coordinate_units
