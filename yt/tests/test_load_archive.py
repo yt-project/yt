@@ -7,6 +7,7 @@ from yt.config import ytcfg
 from yt.loaders import load_archive
 from yt.sample_data.api import _download_sample_data_file, get_data_registry_table
 from yt.testing import requires_module_pytest
+from yt.utilities.exceptions import YTUnidentifiedDataType
 
 
 @pytest.fixture()
@@ -28,7 +29,7 @@ def tmp_data_dir(tmp_path):
 @requires_module_pytest("pooch")
 @requires_module_pytest("ratarmount")
 @pytest.mark.parametrize(
-    "fn ,exact_loc, class_",
+    "fn, exact_loc, class_",
     [
         (
             "ToroShockTube.tar.gz",
@@ -79,3 +80,20 @@ def test_load_archive(
     ## Mount path should not exist anymore *and* have been deleted
     assert not mount_path.is_mount()
     assert not mount_path.exists()
+
+
+@requires_module_pytest("pooch")
+@requires_module_pytest("ratarmount")
+def test_load_invalid_archive(tmp_data_dir, data_registry):
+    # Archive does not exist
+    with pytest.raises(FileNotFoundError):
+        load_archive("this_file_does_not_exist.tar.gz", "invalid_location")
+
+    targz_path = _download_sample_data_file(filename="ToroShockTube.tar.gz")
+    # File does not exist
+    with pytest.raises(FileNotFoundError):
+        load_archive(targz_path, "invalid_location")
+
+    # File exists but is not recognized
+    with pytest.raises(YTUnidentifiedDataType):
+        load_archive(targz_path, "ToroShockTube/DD0001/data0001.memorymap")
