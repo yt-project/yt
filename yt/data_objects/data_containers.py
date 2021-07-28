@@ -21,6 +21,7 @@ from yt.utilities.exceptions import (
     YTSpatialFieldUnitError,
 )
 from yt.utilities.object_registries import data_object_registry
+from yt.utilities.on_demand_imports import _firefly as firefly
 from yt.utilities.parameter_file_storage import ParameterFileStore
 
 
@@ -781,8 +782,6 @@ class YTDataContainer:
             >>> reader.particleGroups[0].decimation_factor = 100
             >>> reader.dumpToJSON()
         """
-
-        from yt.utilities.on_demand_imports import _firefly as firefly
 
         ## handle default arguments
         if fields_to_include is None:
