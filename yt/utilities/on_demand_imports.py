@@ -1,5 +1,4 @@
 import sys
-from functools import cached_property
 
 from packaging.version import Version
 
@@ -703,14 +702,18 @@ class ratarmount_imports:
     _name = "ratarmount"
     _module = None
 
-    @cached_property
-    def _module(self):
+    def module(self):
+        if hasattr(self, "_module"):
+            return self._module
+
         try:
             import ratarmount as myself
 
-            return myself
+            self._module = myself
         except ImportError:
-            return NotAModule(self._name)
+            self._module = NotAModule(self._name)
+
+        return self._module
 
     def __getattr__(self, attr):
         return getattr(self._module, attr)
