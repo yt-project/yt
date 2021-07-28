@@ -702,6 +702,7 @@ class ratarmount_imports:
     _name = "ratarmount"
     _module = None
 
+    @property
     def module(self):
         if hasattr(self, "_module"):
             return self._module
@@ -716,7 +717,7 @@ class ratarmount_imports:
         return self._module
 
     def __getattr__(self, attr):
-        return getattr(self._module, attr)
+        return getattr(self.module, attr)
 
 
 _ratarmount = ratarmount_imports()
