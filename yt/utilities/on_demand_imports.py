@@ -704,7 +704,7 @@ class ratarmount_imports:
 
     @property
     def module(self):
-        if hasattr(self, "_module"):
+        if self._module is not None:
             return self._module
 
         try:
