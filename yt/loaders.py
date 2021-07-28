@@ -1535,11 +1535,9 @@ def load_archive(
     if ratarmount_kwa is None:
         ratarmount_kwa = {}
 
-    with open(fn, mode="br") as fd:
-        is_tar = tarfile.is_tarfile(fd)
-        compression = ratarmount.SQLiteIndexedTar._detectCompression(fd)
-
-    if compression is None and not is_tar:
+    try:
+        tarfile.open(fn)
+    except tarfile.ReadError:
         raise YTUnidentifiedDataType(fn, *args, **kwargs)
 
     # Note: the temporary directory will be created by ratarmount
