@@ -1,3 +1,4 @@
+import abc
 import weakref
 from numbers import Number
 
@@ -61,47 +62,56 @@ def validate_sequence_width(width, ds, unit=None):
             )
 
 
-class CoordinateHandler:
+class CoordinateHandler(abc.ABC):
     name = None
 
     def __init__(self, ds, ordering):
         self.ds = weakref.proxy(ds)
         self.axis_order = ordering
 
+    @abc.abstractmethod
     def setup_fields(self):
         # This should return field definitions for x, y, z, r, theta, phi
-        raise NotImplementedError
+        pass
 
+    @abc.abstractmethod
     def pixelize(self, dimension, data_source, field, bounds, size, antialias=True):
         # This should *actually* be a pixelize call, not just returning the
         # pixelizer
-        raise NotImplementedError
+        pass
 
+    @abc.abstractmethod
     def pixelize_line(self, field, start_point, end_point, npoints):
-        raise NotImplementedError
+        pass
 
     def distance(self, start, end):
         p1 = self.convert_to_cartesian(start)
         p2 = self.convert_to_cartesian(end)
         return np.sqrt(((p1 - p2) ** 2.0).sum())
 
+    @abc.abstractmethod
     def convert_from_cartesian(self, coord):
-        raise NotImplementedError
+        pass
 
+    @abc.abstractmethod
     def convert_to_cartesian(self, coord):
-        raise NotImplementedError
+        pass
 
+    @abc.abstractmethod
     def convert_to_cylindrical(self, coord):
-        raise NotImplementedError
+        pass
 
+    @abc.abstractmethod
     def convert_from_cylindrical(self, coord):
-        raise NotImplementedError
+        pass
 
+    @abc.abstractmethod
     def convert_to_spherical(self, coord):
-        raise NotImplementedError
+        pass
 
+    @abc.abstractmethod
     def convert_from_spherical(self, coord):
-        raise NotImplementedError
+        pass
 
     _data_projection = None
 
@@ -194,8 +204,9 @@ class CoordinateHandler:
         return ya
 
     @property
+    @abc.abstractproperty
     def period(self):
-        raise NotImplementedError
+        pass
 
     def sanitize_depth(self, depth):
         if is_sequence(depth):
