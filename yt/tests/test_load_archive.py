@@ -1,3 +1,4 @@
+import sys
 import tarfile
 import time
 
@@ -26,8 +27,11 @@ def tmp_data_dir(tmp_path):
 
 
 # Note: ratarmount cannot currently be installed on Windows as of v0.8.1
-@requires_module_pytest("pooch")
-@requires_module_pytest("ratarmount")
+@pytest.mark.skipif(
+    sys.platform.startswith("win"),
+    reason="ratarmount cannot currently be installed on Windows as of v0.8.1",
+)
+@requires_module_pytest("pooch", "ratarmount")
 @pytest.mark.parametrize(
     "fn, exact_loc, class_",
     [
@@ -82,8 +86,11 @@ def test_load_archive(
     assert not mount_path.exists()
 
 
-@requires_module_pytest("pooch")
-@requires_module_pytest("ratarmount")
+@pytest.mark.skipif(
+    sys.platform.startswith("win"),
+    reason="ratarmount cannot currently be installed on Windows as of v0.8.1",
+)
+@requires_module_pytest("pooch", "ratarmount")
 def test_load_invalid_archive(tmp_data_dir, data_registry):
     # Archive does not exist
     with pytest.raises(FileNotFoundError):
