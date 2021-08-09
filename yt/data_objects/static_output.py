@@ -136,6 +136,7 @@ class Dataset(abc.ABC):
     domain_left_edge = MutableAttribute(True)
     domain_right_edge = MutableAttribute(True)
     domain_dimensions = MutableAttribute(True)
+    domain_offset = np.array([0, 0, 0])
     _periodicity = MutableAttribute()
     _force_periodicity = False
 
