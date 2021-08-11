@@ -18,10 +18,9 @@ def test_ds_arr_invariance_under_projection_plot():
 
     p = yt.ProjectionPlot(ds, 0, "number_density")
     p.annotate_line(start, end)
-    p.show()
 
     # for lack of a unyt.testing.assert_unit_array_equal function
     np.testing.assert_array_equal(start_i, start)
-    assert start_i.units == start
+    assert start_i.units == start.units
     np.testing.assert_array_equal(end_i, end)
-    assert end_i.units == end
+    assert end_i.units == end.units
