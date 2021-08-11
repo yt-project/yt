@@ -1,0 +1,27 @@
+import yt
+import numpy as np
+
+
+def test_ds_arr_invariance_under_projection_plot():
+    data_array = np.random.random((10, 10, 10))
+    bbox = np.array([[-100, 100], [-100, 100], [-100, 100]])
+    data = {("gas", "density"): (data_array, "g*cm**(-3)")}
+    ds = yt.load_uniform_grid(data, data_array.shape, length_unit="kpc", bbox=bbox)
+
+    start_source = np.array((0, 0, -0.5))
+    end_source = np.array((0, 0, 0.5))
+    start = ds.arr(start_source, "unitary")
+    end = ds.arr(end_source, "unitary")
+
+    start_i = start.copy()
+    end_i = end.copy()
+
+    p = yt.ProjectionPlot(ds, 0, "number_density")
+    p.annotate_line(start, end)
+    p.show()
+
+    # for lack of a unyt.testing.assert_unit_array_equal function
+    np.testing.assert_array_equal(start_i, start)
+    assert start_i.units == start
+    np.testing.assert_array_equal(end_i, end)
+    assert end_i.units == end
