@@ -1165,25 +1165,43 @@ class Dataset(abc.ABC):
         # yt assumes a CGS unit system by default (for back compat reasons).
         # Since unyt is MKS by default we specify the MKS values of the base
         # units in the CGS system. So, for length, 1 cm = .01 m. And so on.
+        # Note that the values associated with the code units here will be
+        # modified once we actually determine what the code units are from
+        # the dataset
         self.unit_registry = UnitRegistry(unit_system=unit_system)
+        # 1 cm = 0.01 m
         self.unit_registry.add("code_length", 0.01, dimensions.length)
+        # 1 g = 0.001 kg
         self.unit_registry.add("code_mass", 0.001, dimensions.mass)
+        # 1 g/cm**3 = 1000 kg/m**3
         self.unit_registry.add("code_density", 1000.0, dimensions.density)
+        # 1 erg/g = 1.0e-4 J/kg
         self.unit_registry.add(
             "code_specific_energy", 1.0e-4, dimensions.energy / dimensions.mass
         )
+        # 1 s = 1 s
         self.unit_registry.add("code_time", 1.0, dimensions.time)
+        # Defining code units for magnetic fields are tricky because
+        # they have different dimensions in different unit systems
         if unit_system == "mks":
+            # 1 T = 1 kg/(A*s**2)
             self.unit_registry.add("code_magnetic", 1.0, dimensions.magnetic_field)
         else:
+            # 1 gauss = 1 sqrt(g)/(sqrt(cm)*s) = 0.1**0.5 sqrt(kg)/(sqrt(m)*s)
             self.unit_registry.add(
                 "code_magnetic", 0.1**0.5, dimensions.magnetic_field_cgs
             )
+        # 1 K = 1 K
         self.unit_registry.add("code_temperature", 1.0, dimensions.temperature)
+        # 1 dyn/cm**2 = 0.1 N/m**2
         self.unit_registry.add("code_pressure", 0.1, dimensions.pressure)
+        # 1 cm/s = 0.01 m/s
         self.unit_registry.add("code_velocity", 0.01, dimensions.velocity)
+        # metallicity
         self.unit_registry.add("code_metallicity", 1.0, dimensions.dimensionless)
+        # dimensionless hubble parameter
         self.unit_registry.add("h", 1.0, dimensions.dimensionless, r"h")
+        # cosmological scale factor
         self.unit_registry.add("a", 1.0, dimensions.dimensionless)
 
     def set_units(self):
