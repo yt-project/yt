@@ -1170,7 +1170,7 @@ class Dataset(abc.ABC):
         self.unit_registry.add("code_mass", 0.001, dimensions.mass)
         self.unit_registry.add("code_density", 1000.0, dimensions.density)
         self.unit_registry.add(
-            "code_specific_energy", 1.0, dimensions.energy / dimensions.mass
+            "code_specific_energy", 1.0e-4, dimensions.energy / dimensions.mass
         )
         self.unit_registry.add("code_time", 1.0, dimensions.time)
         if unit_system == "mks":
