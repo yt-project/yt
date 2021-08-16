@@ -144,6 +144,7 @@ class Dataset(abc.ABC):
     _proj_type = "quad_proj"
     _ionization_label_format = "roman_numeral"
     _determined_fields = None
+    _use_mks_em_units = False
     fields_detected = False
 
     # these are set in self._parse_parameter_file()
@@ -242,10 +243,10 @@ class Dataset(abc.ABC):
         self.no_cgs_equiv_length = False
 
         if unit_system == "code":
-            # create a fake MKS unit system which we will override later to
+            # create a fake unit system which we will override later to
             # avoid chicken/egg issue of the unit registry needing a unit system
             # but code units need a unit registry to define the code units on
-            used_unit_system = "mks"
+            used_unit_system = "mks" if self._use_mks_em_units else "cgs"
         else:
             used_unit_system = unit_system
 
@@ -1134,11 +1135,11 @@ class Dataset(abc.ABC):
                 # system as an MKS-like system
                 if current_mks in self.magnetic_unit.units.dimensions.free_symbols:
                     self.magnetic_unit = self.magnetic_unit.to("T").to("gauss")
-                # The following modification ensures that we get the conversion to
-                # cgs correct
-                self.unit_registry.modify(
-                    "code_magnetic", self.magnetic_unit.value * 0.1**0.5
-                )
+                    # The following modification ensures that we get the conversion to
+                    # cgs correct
+                    self.unit_registry.modify(
+                        "code_magnetic", self.magnetic_unit.value * 0.1 ** 0.5
+                    )
 
         us = create_code_unit_system(
             self.unit_registry, current_mks_unit=current_mks_unit

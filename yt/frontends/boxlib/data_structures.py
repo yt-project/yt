@@ -1481,6 +1481,7 @@ class WarpXDataset(BoxlibDataset):
     _field_info_class = WarpXFieldInfo
     _subtype_keyword = "warpx"
     _default_cparam_filename = "warpx_job_info"
+    _use_mks_em_units = True
 
     def __init__(
         self,

@@ -433,6 +433,7 @@ class OpenPMDDataset(Dataset):
 
     _index_class = OpenPMDHierarchy
     _field_info_class = OpenPMDFieldInfo
+    _use_mks_em_units = True
 
     def __init__(
         self,
