@@ -881,6 +881,7 @@ class BoxlibDataset(Dataset):
         stop = np.array(root_space[1].split(","), dtype="int64")
         dd = np.ones(3, dtype="int64")
         dd[: self.dimensionality] = stop - start + 1
+        self.domain_offset[: self.dimensionality] = start
         self.domain_dimensions = dd
 
         # Skip timesteps per level
