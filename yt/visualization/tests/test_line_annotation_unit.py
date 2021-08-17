@@ -1,13 +1,12 @@
+from yt.loaders import load_uniform_grid
+from yt.visualization.plot_window import ProjectionPlot
 import numpy as np
-
-import yt
-
 
 def test_ds_arr_invariance_under_projection_plot(tmp_path):
     data_array = np.random.random((10, 10, 10))
     bbox = np.array([[-100, 100], [-100, 100], [-100, 100]])
     data = {("gas", "density"): (data_array, "g*cm**(-3)")}
-    ds = yt.load_uniform_grid(data, data_array.shape, length_unit="kpc", bbox=bbox)
+    ds = load_uniform_grid(data, data_array.shape, length_unit="kpc", bbox=bbox)
 
     start_source = np.array((0, 0, -0.5))
     end_source = np.array((0, 0, 0.5))
@@ -17,7 +16,7 @@ def test_ds_arr_invariance_under_projection_plot(tmp_path):
     start_i = start.copy()
     end_i = end.copy()
 
-    p = yt.ProjectionPlot(ds, 0, "number_density")
+    p = ProjectionPlot(ds, 0, "number_density")
     p.annotate_line(start, end)
     p.save(tmp_path)
 
