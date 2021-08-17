@@ -2,7 +2,7 @@ import yt
 import numpy as np
 
 
-def test_ds_arr_invariance_under_projection_plot():
+def test_ds_arr_invariance_under_projection_plot(tmp_path):
     data_array = np.random.random((10, 10, 10))
     bbox = np.array([[-100, 100], [-100, 100], [-100, 100]])
     data = {("gas", "density"): (data_array, "g*cm**(-3)")}
@@ -18,7 +18,7 @@ def test_ds_arr_invariance_under_projection_plot():
 
     p = yt.ProjectionPlot(ds, 0, "number_density")
     p.annotate_line(start, end)
-    p.show()
+    p.save(tmp_path)
     
     # for lack of a unyt.testing.assert_unit_array_equal function
     np.testing.assert_array_equal(start_i, start)
