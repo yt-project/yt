@@ -78,9 +78,9 @@ class PlotCallback:
         if len(coord) == 3:
             if not isinstance(coord, YTArray):
                 coord_copy = plot.data.ds.arr(coord, "code_length")
-            # coord is being copied so that if the user has a unyt_array already
-            # we don't change the user's version
             else:
+                # coord is being copied so that if the user has a unyt_array already
+                # we don't change the user's version
                 coord_copy = coord.to("code_length")
             ax = plot.data.axis
             # if this is an on-axis projection or slice, then
