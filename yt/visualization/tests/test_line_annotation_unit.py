@@ -1,5 +1,6 @@
-import yt
 import numpy as np
+
+import yt
 
 
 def test_ds_arr_invariance_under_projection_plot(tmp_path):
@@ -19,7 +20,7 @@ def test_ds_arr_invariance_under_projection_plot(tmp_path):
     p = yt.ProjectionPlot(ds, 0, "number_density")
     p.annotate_line(start, end)
     p.save(tmp_path)
-    
+
     # for lack of a unyt.testing.assert_unit_array_equal function
     np.testing.assert_array_equal(start_i, start)
     assert start_i.units == start.units
