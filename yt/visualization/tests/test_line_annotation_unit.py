@@ -1,6 +1,8 @@
+import numpy as np
+
 from yt.loaders import load_uniform_grid
 from yt.visualization.plot_window import ProjectionPlot
-import numpy as np
+
 
 def test_ds_arr_invariance_under_projection_plot(tmp_path):
     data_array = np.random.random((10, 10, 10))
