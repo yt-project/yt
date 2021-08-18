@@ -13,6 +13,7 @@ from yt.config import ytcfg
 from yt.data_objects.analyzer_objects import AnalysisTask, create_quantity_proxy
 from yt.data_objects.particle_trajectories import ParticleTrajectories
 from yt.funcs import is_sequence, mylog
+from yt.loaders import load
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTException
 from yt.utilities.object_registries import (
@@ -482,6 +483,48 @@ class DatasetSeries:
         return ParticleTrajectories(
             self, indices, fields=fields, suppress_logging=suppress_logging, ptype=ptype
         )
+
+
+class SnapshotSeries:
+    """
+    Analog to DatasetSeries but for the case where a single file
+    contains data at multiple time steps (snapshots).
+    """
+
+    def __init__(self, fn, *args, **kwargs):
+        self.fn = fn
+        self.args = args
+        self.kwargs = kwargs
+        self.snap_slice = self._parse_snap_slice()
+        self.datasets = self._load()
+
+    def _parse_snap_slice(self):
+        sl = self.kwargs["snapshot"].split(":")
+        m = [int(x.strip()) if x.strip() else None for x in sl]
+        return slice(*m)
+
+    def _load(self):
+        """
+        The idea here is to load all of the snapshots and then
+        select the desired slice.
+        """
+        datasets = []
+        i = 0
+        while True:
+            self.kwargs["snapshot"] = i
+            try:
+                ds = load(self.fn, *self.args, **self.kwargs)
+            except StopIteration:
+                break
+            datasets.append(ds)
+            i += 1
+        return datasets[self.snap_slice]
+
+    def __getitem__(self, key):
+        return self.datasets[key]
+
+    def __len__(self):
+        return len(self.datasets)
 
 
 class TimeSeriesQuantitiesContainer:

@@ -76,6 +76,16 @@ def load(fn, *args, **kwargs):
 
         return DatasetSeries(fn, *args, **kwargs)
 
+    # QMC data files have multiple snapshots per file, so we check for
+    # a slice here to see if we need to return a DatasetSeries. This
+    # differs from the above wildcard check because it's only looking
+    # at one file
+    if "snapshot" in kwargs:
+        if isinstance(kwargs["snapshot"], str) and ":" in kwargs["snapshot"]:
+            from yt.data_objects.time_series import SnapshotSeries
+
+            return SnapshotSeries(fn, *args, **kwargs)
+
     # This will raise FileNotFoundError if the path isn't matched
     # either in the current dir or yt.config.ytcfg['data_dir_directory']
     if not fn.startswith("http"):
