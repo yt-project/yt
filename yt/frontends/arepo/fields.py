@@ -148,3 +148,13 @@ class ArepoFieldInfo(GadgetFieldInfo):
                 sampling_type="local",
                 units=self.ds.unit_system["pressure"],
             )
+
+            def _cr_pressure(field, data):
+                return data["gas", "cr_energy_density"] / 3.0
+
+            self.add_field(
+                ("gas", "cr_pressure"),
+                _cr_pressure,
+                sampling_type="local",
+                units=self.ds.unit_system["pressure"],
+            )
