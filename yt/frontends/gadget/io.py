@@ -235,21 +235,6 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                     out_dict[(ptype, field)] = newdata
         return out_dict
 
-    def _get_read_params(self):
-
-        sph_types = getattr(self.ds, "_sph_ptypes", None)
-        if sph_types:
-            sph_types = sph_types[0]
-
-        return {
-            "_element_names": self._element_names,
-            "var_mass": self.var_mass,
-            "_known_ptypes": self._known_ptypes,
-            "sph_ptypes": sph_types,
-            "gen_hsmls": self.ds.gen_hsmls,
-            "Massarr": self.ds["Massarr"],
-        }
-
     def _count_particles(self, data_file):
         si, ei = data_file.start, data_file.end
         f = h5py.File(data_file.filename, mode="r")

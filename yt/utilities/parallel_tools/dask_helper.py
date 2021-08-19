@@ -1,4 +1,4 @@
-from dask import compute as dask_compute
+from dask import array as dask_array, compute as dask_compute
 from dask.distributed import Client
 
 from yt.utilities.logger import ytLogger as mylog
@@ -138,3 +138,8 @@ def compute(*args, allow_threads=False, **kwargs):
     else:
         # sanitization already taken care of by dask_client.
         return dask_compute(*args, **kwargs)
+
+
+def is_delayed(obj):
+    """checks if obj is a dask array (or a unyt-dask array)"""
+    return isinstance(obj, dask_array.Array)
