@@ -196,6 +196,8 @@ class Index(ParallelAnalysisInterface, abc.ABC):
         return fields_to_read, fields_to_generate
 
     def _read_particle_fields(self, fields, dobj, chunk=None):
+
+        # now over-ridden in particle_geometry_handler ParticleIndex. Might be able to delete this.
         if len(fields) == 0:
             return {}, []
         fields_to_read, fields_to_generate = self._split_fields(fields)

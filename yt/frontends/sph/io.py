@@ -31,3 +31,11 @@ class IOHandlerSPH(BaseIOHandler):
             for ptype, (x, y, z), hsml in self._read_particle_coords(chunks, ptf):
                 psize[ptype] += selector.count_points(x, y, z, hsml)
         return dict(psize)
+
+    def _count_chunk_points(self, chunk, ptf, selector):
+        # returns particle size dict for a single chunk
+        chunk_psize = {}
+        for ptype, (x, y, z), hsml in self._read_particle_coords([chunk], ptf):
+            chunk_psize[ptype] = selector.count_points(x, y, z, hsml)
+
+        return chunk_psize
