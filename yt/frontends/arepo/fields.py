@@ -45,6 +45,18 @@ class ArepoFieldInfo(GadgetFieldInfo):
     def setup_gas_particle_fields(self, ptype):
         super().setup_gas_particle_fields(ptype)
 
+        # Since the AREPO gas "particles" are Voronoi cells, we can
+        # define a volume here
+        def _volume(field, data):
+            return data[ptype, "mass"] / data[ptype, "density"]
+
+        self.add_field(
+            (ptype, "cell_volume"),
+            function=_volume,
+            sampling_type="particle",
+            units=self.ds.unit_system["volume"],
+        )
+
         if (ptype, "InternalEnergy") in self.field_list:
 
             def _pressure(field, data):
@@ -60,6 +72,8 @@ class ArepoFieldInfo(GadgetFieldInfo):
                 sampling_type="particle",
                 units=self.ds.unit_system["pressure"],
             )
+
+            self.alias((ptype, "pressure"), ("gas", "pressure"))
 
         if (ptype, "GFM_Metals_00") in self.field_list:
             self.nuclei_names = metal_elements
