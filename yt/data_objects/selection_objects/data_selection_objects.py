@@ -204,16 +204,10 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         )
 
         for f, v in read_particles.items():
-            from unyt import dask_array  # where to put this import?
-
-            # do we need an equivalent to ds.arr like ds.delayed_arr?
-
             if f not in finfos:
                 # coordinates and smoothing length are added when doing selections that are not all_data
                 finfos[f] = self.ds._get_field_info(f[0], f[1])
-            da_f = dask_array.unyt_from_dask(
-                v, units=finfos[f].units, registry=self.ds.unit_registry
-            )
+            da_f = self.ds.delayed_arr(v, units=finfos[f].units)
             self.field_data[f] = da_f.to(finfos[f].output_units)
 
         fields_to_generate += gen_fluids + gen_particles
