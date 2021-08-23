@@ -8,6 +8,7 @@ from re import finditer
 from tempfile import NamedTemporaryFile, TemporaryFile
 
 import numpy as np
+from more_itertools import always_iterable
 
 from yt.config import ytcfg
 from yt.data_objects.field_data import YTFieldData
