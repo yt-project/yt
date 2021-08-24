@@ -131,8 +131,8 @@ class Accumulators:
     """
 
     def __init__(self, paths, ds):
-        self.paths = self._verify_paths(paths)
         self.ds = ds
+        self.paths = self._verify_paths(paths)
         self.ad = self.ds.all_data()
         self.left_edge = self.ds.domain_left_edge
         self.right_edge = self.ds.domain_right_edge
@@ -305,14 +305,17 @@ class Accumulators:
             ]
         self.accum = []
         # Build tree and add field to it
-        tree = self._get_tree(field, is_vector)
+        tree = self._get_tree(field)
         # Loop over each path the field is to be accumulated along
         for p in self.paths:
             # Get the value of the field at each point on the path
             npts = len(p)
             if npts < 2:
                 raise ValueError("Invalid path. Must have at least 2 points.")
-            values = YTArray(np.zeros(p.shape), self.ad[field[0]].units)
+            if is_vector:
+                values = YTArray(np.zeros(p.shape), self.ad[field[0]].units)
+            else:
+                values = YTArray(np.zeros((npts, 1)), self.ad[field[0]].units)
             values, _ = self._get_path_field_values(tree, p, 0, values, npts)
             if is_vector:
                 self.accum.append(_accumulate_vector_field(p, values))

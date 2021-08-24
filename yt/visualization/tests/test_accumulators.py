@@ -36,7 +36,7 @@ class TestAccumulators:
         accumulator = Accumulators([path], ds)
         field = [("enzo", "Density")]
         accumulator.accumulate(field, is_vector=False)
-        answer = np.array([0.00270012])
+        answer = np.array([[0.00270012]])
         np.testing.assert_array_almost_equal(accumulator.accum, answer)
 
     def test_two_pts_diff_cell_same_node_scalar(self, ds):
@@ -48,7 +48,7 @@ class TestAccumulators:
         accumulator = Accumulators([path], ds)
         field = [("enzo", "Density")]
         accumulator.accumulate(field, is_vector=False)
-        answer = np.array([0.06582006])
+        answer = np.array([[0.080629]])
         np.testing.assert_array_almost_equal(accumulator.accum, answer)
 
     def test_two_pts_diff_nodes_scalar(self, ds):
@@ -60,7 +60,7 @@ class TestAccumulators:
         accumulator = Accumulators([path], ds)
         field = [("enzo", "Density")]
         accumulator.accumulate(field, is_vector=False)
-        answer = np.array([0.09374269])
+        answer = np.array([[0.09374269]])
         np.testing.assert_array_almost_equal(accumulator.accum, answer)
 
     def test_npts_scalar(self, ds, fake_path):
@@ -79,15 +79,15 @@ class TestAccumulators:
         accumulator.accumulate(field, is_vector=False)
         answer = np.array(
             [
-                0.02904837,
-                0.05809688,
-                0.08693819,
-                0.11599762,
-                10.42846079,
-                11.73346686,
-                11.76252416,
-                11.79157306,
-                11.82062148,
+                [0.02904837],
+                [0.05809688],
+                [0.08693819],
+                [0.11599762],
+                [10.42846079],
+                [11.73346686],
+                [11.76252416],
+                [11.79157306],
+                [11.82062148],
             ]
         )
         np.testing.assert_array_almost_equal(accumulator.accum, answer)
