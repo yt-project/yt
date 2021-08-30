@@ -112,7 +112,24 @@ def _accumulate_scalar_field(p, field_vals):
     # is a YTArray, this leads to incorrect units. There does not appear to be
     # a unyt implementation of norm, as far as I'm aware, so units will be
     # handled manually for the time being
-    accum = np.cumsum(field_vals[:-1].d * np.linalg.norm(p[1:].d - p[:-1].d, axis=1))
+    # accum = np.cumsum(field_vals[:-1].d * np.linalg.norm(p[1:].d - p[:-1].d, axis=1))
+
+    # The above is wrong. Using a norm doesn't make sense, since the result
+    # needs to be a vector.
+    # The result should be a vector, since you have to integrate along a vector
+    # connecting the two points (scalar phi times a vector dr). So, the result
+    # should be a matrix that has N-1 rows (one for each line segment on the
+    # path) and 3 columns (or however many dimensions there are). See
+    # Essential Mathematical Methods for the Physical Sciences by Riley and
+    # Hobson
+    # field_vals should be a (N,1) vector (one value per point, N points along
+    # the path). The actual path p is (N,d), N points on path and d coordinates
+    # per point, where d is the dimensionality of the space
+    accum_x = field_vals.d * (p[1:, 0].d - p[:-1, 0].d)
+    accum_y = field_vals.d * (p[1:, 1].d - p[:-1, 1].d)
+    accum_z = field_vals.d * (p[1:, 2].d - p[:-1, 2].d)
+    accum = np.stack([accum_x, accum_y, accum_z], axis=1)
+    accum = np.cumsum(accum, axis=0)
     accum = YTArray(accum, field_vals.units * p.units)
     return accum
 
