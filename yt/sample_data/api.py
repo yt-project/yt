@@ -85,7 +85,7 @@ def get_data_registry_table():
 
     # it would be nicer to have an actual api on the yt website server,
     # but this will do for now
-    api_url = "https://raw.githubusercontent.com/yt-project/website/master/data/datafiles.json"  # noqa
+    api_url = "https://raw.githubusercontent.com/yt-project/website/master/data/datafiles.json"
 
     response = requests.get(api_url)
 
@@ -143,7 +143,7 @@ def _get_test_data_dir_path():
     return Path.cwd()
 
 
-def lookup_on_disk_data(fn):
+def lookup_on_disk_data(fn) -> Path:
     """
     Look for data file/dir on disk.
 
@@ -163,15 +163,14 @@ def lookup_on_disk_data(fn):
         return path
 
     alt_path = _get_test_data_dir_path() / fn
+    if alt_path.exists():
+        return alt_path
+
     err_msg = f"No such file or directory: '{fn}'."
-    if not alt_path.parent.is_dir():
-        raise FileNotFoundError(err_msg)
-
-    if not alt_path.exists():
+    if alt_path.parent.is_dir() and alt_path != path:
         err_msg += f"\n(Also tried '{alt_path}')."
-        raise FileNotFoundError(err_msg)
 
-    return alt_path
+    raise FileNotFoundError(err_msg)
 
 
 @lru_cache(maxsize=128)

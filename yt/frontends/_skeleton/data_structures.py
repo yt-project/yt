@@ -145,7 +145,7 @@ class SkeletonDataset(Dataset):
         #   self.omega_matter               <= float
         #   self.hubble_constant            <= float
 
-        # optional (the followin have default implementations)
+        # optional (the following have default implementations)
         #   self.unique_identifier      <= unique identifier for the dataset
         #                                  being read (e.g., UUID or ST_CTIME) (int)
         #

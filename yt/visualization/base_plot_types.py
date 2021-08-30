@@ -1,8 +1,8 @@
-from distutils.version import LooseVersion
 from io import BytesIO
 
 import matplotlib
 import numpy as np
+from packaging.version import parse as parse_version
 
 from yt.funcs import (
     get_brewer_cmap,
@@ -132,9 +132,9 @@ class PlotMPL:
 
         if mpl_kwargs is None:
             mpl_kwargs = {}
-        if "papertype" not in mpl_kwargs and LooseVersion(
+        if "papertype" not in mpl_kwargs and parse_version(
             matplotlib.__version__
-        ) < LooseVersion("3.3.0"):
+        ) < parse_version("3.3.0"):
             mpl_kwargs["papertype"] = "auto"
 
         name = validate_image_name(name)
@@ -218,8 +218,8 @@ class ImagePlotMPL(PlotMPL):
                 cblinthresh = np.nanmin(np.absolute(data)[data != 0])
 
             cbnorm_kwargs.update(dict(linthresh=cblinthresh, vmin=vmin, vmax=vmax))
-            MPL_VERSION = LooseVersion(matplotlib.__version__)
-            if MPL_VERSION >= "3.2.0":
+            MPL_VERSION = parse_version(matplotlib.__version__)
+            if MPL_VERSION >= parse_version("3.2.0"):
                 # note that this creates an inconsistency between mpl versions
                 # since the default value previous to mpl 3.4.0 is np.e
                 # but it is only exposed since 3.2.0
@@ -238,7 +238,7 @@ class ImagePlotMPL(PlotMPL):
 
         if self._transform is None:
             # sets the transform to be an ax.TransData object, where the
-            # coordiante system of the data is controlled by the xlim and ylim
+            # coordinate system of the data is controlled by the xlim and ylim
             # of the data.
             transform = self.axes.transData
         else:

@@ -144,7 +144,7 @@ be read from disk before expensive selection operations are conducted.
 
 For those situations that involve particles with regions of influence -- such
 as smoothed particle hydrodynamics, where particles have associated smoothing
-lenghts -- these are taken into account when conducting the indexing system.
+lengths -- these are taken into account when conducting the indexing system.
 
 Efficiency of Index Orders
 --------------------------

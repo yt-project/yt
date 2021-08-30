@@ -1066,7 +1066,7 @@ class YTNotebookCmd(YTCommand):
             action="store",
             default=None,
             dest="profile",
-            help="The IPython profile to use when lauching the kernel.",
+            help="The IPython profile to use when launching the kernel.",
         ),
         dict(
             short="-n",

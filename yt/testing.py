@@ -25,7 +25,7 @@ from yt.units.yt_array import YTArray, YTQuantity
 from numpy.testing import assert_array_equal, assert_almost_equal  # NOQA isort:skip
 from numpy.testing import assert_equal, assert_array_less  # NOQA isort:skip
 from numpy.testing import assert_string_equal  # NOQA isort:skip
-from numpy.testing import assert_array_almost_equal_nulp  # NOQA isort:skip
+from numpy.testing import assert_array_almost_equal_nulp  # isort:skip
 from numpy.testing import assert_allclose, assert_raises  # NOQA isort:skip
 from numpy.testing import assert_approx_equal  # NOQA isort:skip
 from numpy.testing import assert_array_almost_equal  # NOQA isort:skip

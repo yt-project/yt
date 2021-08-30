@@ -51,6 +51,7 @@ from the yt source code root directory.
 
 Additionally, if you only want to run a specific test in a test file (rather than all of the tests contained in the file), such as, ``test_all_fields`` in ``plot_window.py``, you can do so by running:
 
+
 .. code-block:: bash
 
     $ pytest yt/visualization/tests/test_plotwindow.py::test_all_fields

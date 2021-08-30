@@ -1224,7 +1224,7 @@ def interpolate_sph_grid_gather(np.float64_t[:, :, :] buff,
         int num_neigh=32):
     """
     This function takes in the bounds and number of cells in a grid (well,
-    actually we implicity calculate this from the size of buff). Then we can
+    actually we implicitly calculate this from the size of buff). Then we can
     perform nearest neighbor search and SPH interpolation at the centre of each
     cell in the grid.
     """

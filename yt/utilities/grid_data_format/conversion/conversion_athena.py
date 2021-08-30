@@ -284,7 +284,7 @@ class AthenaDistributedConverter(Converter):
                     self.write_gdf_field(gdf_name, i, field + "_z", data_z)
                     del data, data_x, data_y, data_z
                 del line
-                line = f.readline()  # NOQA
+                line = f.readline()
             f.close()
             del f
 

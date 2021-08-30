@@ -263,7 +263,7 @@ def _default_nuclei_density(field, data):
     element = field.name[1][: field.name[1].find("_")]
     amu_cgs = data.ds.units.physical_constants.amu_cgs
     if element == "El":
-        # This is for determing the electron number density.
+        # This is for determining the electron number density.
         # If we got here, this assumes full ionization!
         muinv = 1.0 * _primordial_mass_fraction["H"] / ChemicalFormula("H").weight
         muinv += 2.0 * _primordial_mass_fraction["He"] / ChemicalFormula("He").weight

@@ -31,9 +31,9 @@ class HandlerMixin:
 
     def setup_handler(self, domain):
         """
-        Initalize an instance of the class. This automatically sets
+        Initialize an instance of the class. This automatically sets
         the full path to the file. This is not intended to be
-        overriden in most cases.
+        overridden in most cases.
 
         If you need more flexibility, rewrite this function to your
         need in the inherited class.

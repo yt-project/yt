@@ -1,5 +1,6 @@
 import warnings
 import weakref
+from typing import List, Tuple
 
 import numpy as np
 
@@ -268,7 +269,12 @@ class AMRGridPatch(YTSelectionContainer):
         cube._base_grid = self
         return cube
 
-    def get_vertex_centered_data(self, fields, smoothed=True, no_ghost=False):
+    def get_vertex_centered_data(
+        self,
+        fields: List[Tuple[str, str]],
+        smoothed: bool = True,
+        no_ghost: bool = False,
+    ):
         _old_api = isinstance(fields, (str, tuple))
         if _old_api:
             message = (

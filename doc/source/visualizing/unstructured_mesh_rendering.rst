@@ -450,7 +450,7 @@ file with a fixed camera position:
 
 .. code-block:: python
 
-    import pylab as plt
+    import matplotlib.pyplot as plt
 
     import yt
     from yt.visualization.volume_rendering.api import MeshSource

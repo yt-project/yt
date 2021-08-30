@@ -35,8 +35,6 @@ that yt is correctly installed, try:
 
     $ python -c "import yt"
 
-If you want to switch back to an old version of yt (2.x), see
-:ref:`switching-between-yt-versions`.
 
 .. _transitioning-to-3.0:
 

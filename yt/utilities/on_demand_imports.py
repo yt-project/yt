@@ -1,5 +1,6 @@
 import sys
-from distutils.version import LooseVersion
+
+from packaging.version import parse as parse_version
 
 
 class NotAModule:
@@ -360,7 +361,7 @@ class h5py_imports:
         try:
             import h5py
 
-            if LooseVersion(h5py.__version__) < LooseVersion("2.4.0"):
+            if parse_version(h5py.__version__) < parse_version("2.4.0"):
                 self._err = RuntimeError(
                     "yt requires h5py version 2.4.0 or newer, "
                     "please update h5py with e.g. `python -m pip install -U h5py` "
@@ -664,3 +665,32 @@ class pandas_imports:
 
 
 _pandas = pandas_imports()
+
+
+class firefly_imports:
+    _name = "firefly"
+    _data_reader = None
+    _server = None
+
+    @property
+    def data_reader(self):
+        if self._data_reader is None:
+            try:
+                import Firefly.data_reader as data_reader
+            except ImportError:
+                data_reader = NotAModule(self._name)
+            self._data_reader = data_reader
+        return self._data_reader
+
+    @property
+    def server(self):
+        if self._server is None:
+            try:
+                import Firefly.server as server
+            except ImportError:
+                server = NotAModule(self._name)
+            self._server = server
+        return self._server
+
+
+_firefly = firefly_imports()

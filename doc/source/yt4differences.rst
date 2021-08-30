@@ -36,7 +36,7 @@ The list below is arranged in order of most to least important changes.
   In the past, you could specify fields as strings like ``"density"``, but
   with the growth of yt and its many derived fields, there can be sometimes
   be overlapping field names (e.g., ``("gas", "density")`` and
-  ``("PartType0", "density")``, where yt doesn't know which to use.  To remove
+  ``("PartType0", "density")``), where yt doesn't know which to use.  To remove
   any ambiguity, it is now strongly recommended to explicitly specify the full
   tuple form of all fields. Just search for all field accesses in your scripts,
   and replace strings with tuples (e.g. replace ``"a"``  with
@@ -70,7 +70,7 @@ The list below is arranged in order of most to least important changes.
   Fields representing energy and momentum quantities are now given names which
   reflect their dimensionality. For example, the ``("gas", "kinetic_energy")``
   field was actually a field for kinetic energy density, and so it has been
-  renamed to ``"gas", "kinetic_energy_density"``. The old name still exists
+  renamed to ``("gas", "kinetic_energy_density")``. The old name still exists
   as an alias as of yt v4.0.0, but it will be removed in yt v4.1.0. See
   next item below for more information.
   Other examples include ``"gas", "specific_thermal_energy"`` for thermal
@@ -150,7 +150,7 @@ As mentioned, previously operations such as slice, projection and arbitrary
 grids would smooth the particle data onto the global octree. As this is no
 longer used, a different approach was required to visualize the SPH data. Using
 SPLASH as inspiration, SPH smoothing pixelization operations were created using
-smooting operations via "scatter" and "gather" approaches. We estimate the
+smoothing operations via "scatter" and "gather" approaches. We estimate the
 contributions of a particle to a single pixel by considering the point at the
 centre of the pixel and using the standard SPH smoothing formula. The heavy
 lifting in these functions is undertaken by cython functions.
@@ -180,7 +180,7 @@ method:
 
 In the above example the ``covering_grid`` and the ``arbitrary_grid`` will return
 the same data. In fact, these containers are very similar but provide a
-slighlty different API.
+slightly different API.
 
 The above code can be modified to use the gather approach by changing a global
 setting for the dataset. This can be achieved with
@@ -194,7 +194,7 @@ disable the normalization for all future interpolations.
 
 The gather approach requires finding nearest neighbors using the KDTree. The
 first call will generate a KDTree for the entire dataset which will be stored in
-a sidecar file. This will be loaded whenever neccesary.
+a sidecar file. This will be loaded whenever necessary.
 
 Off-Axis Projection for SPH Data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -225,7 +225,7 @@ Smoothing Data onto an Octree
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Whilst the move away from the global octree is a promising one in terms of
-perfomance and dealing with SPH data in a more intuitive manner, it does remove
+performance and dealing with SPH data in a more intuitive manner, it does remove
 a useful feature. We are aware that many users will have older scripts which take
 advantage of the global octree.
 
@@ -371,7 +371,7 @@ means that if you always want a particular colormap associated with a particular
 field, you can do so!
 
 This is documented under :ref:`per-field-config`, and was added in `PR
-1931<https://github.com/yt-project/yt/pull/1931>`_.
+1931 <https://github.com/yt-project/yt/pull/1931>`_.
 
 New Method for Accessing Sample Datasets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

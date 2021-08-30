@@ -140,7 +140,7 @@ Access to yt-project.org mediated via SSH login. Please contact one of the
 current yt developers for access to the webserver running yt-project.org if you
 do not already have it. You will need a copy of your SSH public key so that your
 key can be added to the list of authorized keys. Once you login, use
-e.g. ``scp`` to upload a copy of the souce distribution tarball to
+e.g. ``scp`` to upload a copy of the source distribution tarball to
 https://yt-project.org/sdist, like so::
 
   $ scp dist/yt-3.5.1.tar.gz yt_analysis@dickenson.dreamhost.com:yt-project.org/sdist

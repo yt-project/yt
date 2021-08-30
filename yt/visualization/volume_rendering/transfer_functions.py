@@ -409,7 +409,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
     def add_gaussian(self, location, width, height):
         r"""Add a Gaussian distribution to the transfer function.
 
-        Typically, when rendering isocontours, a Guassian distribution is the
+        Typically, when rendering isocontours, a Gaussian distribution is the
         easiest way to draw out features.  The spread provides a softness.
         The values are calculated as :math:`f(x) = h \exp{-(x-x_0)^2 / w}`.
 

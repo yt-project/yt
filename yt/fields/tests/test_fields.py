@@ -379,6 +379,32 @@ def test_add_field_unit_semantics():
     assert_raises(YTFieldUnitError, get_data, ds, ("gas", "dimensionful"))
 
 
+def test_add_field_from_lambda():
+    ds = fake_amr_ds(fields=["density"], units=["g/cm**3"])
+
+    def _function_density(field, data):
+        return data["gas", "density"]
+
+    ds.add_field(
+        ("gas", "function_density"),
+        function=_function_density,
+        sampling_type="cell",
+        units="g/cm**3",
+    )
+
+    ds.add_field(
+        ("gas", "lambda_density"),
+        function=lambda field, data: data["gas", "density"],
+        sampling_type="cell",
+        units="g/cm**3",
+    )
+
+    ad = ds.all_data()
+    # check that the fields are accessible
+    ad["gas", "function_density"]
+    ad["gas", "lambda_density"]
+
+
 def test_array_like_field():
     ds = fake_random_ds(4, particles=64)
     ad = ds.all_data()

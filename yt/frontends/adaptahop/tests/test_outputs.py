@@ -56,7 +56,7 @@ def test_get_halo():
 
     halo = ds.halo(1, ptype="io")
 
-    # Check halo objet has position, velocity, mass and members attributes
+    # Check halo object has position, velocity, mass and members attributes
     for attr_name in ("mass", "position", "velocity", "member_ids"):
         getattr(halo, attr_name)
 

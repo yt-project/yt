@@ -129,12 +129,16 @@ class Dataset(abc.ABC):
     _particle_type_counts = None
     _proj_type = "quad_proj"
     _ionization_label_format = "roman_numeral"
+    _determined_fields = None
     fields_detected = False
 
     # these are set in self._parse_parameter_file()
     domain_left_edge = MutableAttribute(True)
     domain_right_edge = MutableAttribute(True)
     domain_dimensions = MutableAttribute(True)
+    # the point in index space "domain_left_edge" doesn't necessarily
+    # map to (0, 0, 0)
+    domain_offset = np.zeros(3, dtype="int64")
     _periodicity = MutableAttribute()
     _force_periodicity = False
 
@@ -195,6 +199,7 @@ class Dataset(abc.ABC):
         self.known_filters = self.known_filters or {}
         self.particle_unions = self.particle_unions or {}
         self.field_units = self.field_units or {}
+        self._determined_fields = {}
         self.units_override = self.__class__._sanitize_units_override(units_override)
         self.default_species_fields = default_species_fields
 
@@ -264,7 +269,7 @@ class Dataset(abc.ABC):
     def periodicity(self, val):
         # remove this setter to break backward compatibility
         issue_deprecation_warning(
-            "Dataset.periodicity should not be overriden manually. "
+            "Dataset.periodicity should not be overridden manually. "
             "In the future, this will become an error. "
             "Use `Dataset.force_periodicity` instead.",
             since="4.0.0",
@@ -523,8 +528,6 @@ class Dataset(abc.ABC):
     @property
     def index(self):
         if self._instantiated_index is None:
-            if self._index_class is None:
-                raise RuntimeError("You should not instantiate Dataset.")
             self._instantiated_index = self._index_class(
                 self, dataset_type=self.dataset_type
             )
@@ -731,7 +734,7 @@ class Dataset(abc.ABC):
     def add_particle_filter(self, filter):
         """Add particle filter to the dataset.
 
-        Add ``filter`` to the dataset and set up relavent derived_field.
+        Add ``filter`` to the dataset and set up relevant derived_field.
         It will also add any ``filtered_type`` that the ``filter`` depends on.
 
         """
@@ -1338,7 +1341,7 @@ class Dataset(abc.ABC):
             except KeyError:
                 continue
 
-            # Now attempt to instanciate a unyt.unyt_quantity from val ...
+            # Now attempt to instantiate a unyt.unyt_quantity from val ...
             try:
                 # ... directly (valid if val is a number, or a unyt_quantity)
                 uo[key] = YTQuantity(val)

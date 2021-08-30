@@ -64,7 +64,7 @@ def default_mpi_excepthook(exception_type, exception_value, tb):
     mylog.error("%s: %s", exception_type.__name__, exception_value)
     comm = yt.communication_system.communicators[-1]
     if comm.size > 1:
-        mylog.error("Error occured on rank %d.", comm.rank)
+        mylog.error("Error occurred on rank %d.", comm.rank)
     MPI.COMM_WORLD.Abort(1)
 
 
@@ -747,7 +747,14 @@ class Communicator:
                     data.update(self.comm.recv(source=i, tag=0))
             else:
                 self.comm.send(data, dest=0, tag=0)
-            data = self.comm.bcast(data, root=0)
+
+            # Send the keys first, then each item one by one
+            # This is to prevent MPI from crashing when sending more
+            # than 2GiB of data over the network.
+            keys = self.comm.bcast(list(data.keys()), root=0)
+            for key in keys:
+                tmp = data.get(key, None)
+                data[key] = self.comm.bcast(tmp, root=0)
             return data
         elif datatype == "dict" and op == "cat":
             field_keys = sorted(data.keys())

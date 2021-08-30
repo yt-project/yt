@@ -70,7 +70,7 @@ from ..utilities.lib.ewah_bool_wrap cimport BoolArrayCollection
 import os
 import struct
 
-# If set to 1, ghost cells are added at the refined level reguardless of if the
+# If set to 1, ghost cells are added at the refined level regardless of if the
 # coarse cell containing it is refined in the selector.
 # If set to 0, ghost cells are only added at the refined level of the coarse
 # index for the ghost cell is refined in the selector.
@@ -92,7 +92,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
     #The starting oct index of each domain
     cdef np.int64_t *dom_offsets
     cdef public int max_level
-    #How many particles do we keep befor refining
+    #How many particles do we keep before refining
     cdef public int n_ref
 
     def allocate_root(self):
@@ -723,14 +723,12 @@ cdef class ParticleBitmap:
         cdef int axiter[3][2]
         cdef np.float64_t axiterv[3][2]
         cdef CoarseRefinedSets coarse_refined_map
-        cdef cmap[np.uint64_t, np.uint64_t] refined_count
         cdef np.uint64_t nfully_enclosed = 0, n_calls = 0
         mi1_max = (1 << self.index_order1) - 1
         mi2_max = (1 << self.index_order2) - 1
         cdef np.uint64_t max_mi1_elements = 1 << (3*self.index_order1)
         cdef np.uint64_t max_mi2_elements = 1 << (3*self.index_order2)
-        for i in range(max_mi1_elements):
-            refined_count[i] = 0
+        cdef np.ndarray[np.uint64_t, ndim=1] refined_count = np.zeros(max_mi1_elements, dtype="uint64")
         # Copy things from structure (type cast)
         for i in range(3):
             LE[i] = self.left_edge[i]
@@ -2171,7 +2169,7 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
         cdef np.int64_t index_root = 0
         cdef int root_count
         beg = end = 0
-        self._octs_per_root[:] = 1 # Roots count reguardless
+        self._octs_per_root[:] = 1 # Roots count regardless
         while end < no:
             # Determine number of octs with this prefix
             beg = end

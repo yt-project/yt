@@ -533,7 +533,7 @@ def _read_child_level(
         # idc = np.argsort(arr['idc']) #correct fortran indices
         # translate idc into icell, and then to iOct
         icell = (arr["idc"] >> 3) << 3
-        iocts = (icell - ncell0) / nchild  # without a F correction, theres a +1
+        iocts = (icell - ncell0) / nchild  # without a F correction, there's a +1
         # assert that the children are read in the same order as the octs
         assert np.all(octs == iocts[::nchild])
     else:
@@ -628,7 +628,7 @@ def a2t(at, Om0=0.27, Oml0=0.73, h=0.700):
 
 def b2t(tb, n=1e2, logger=None, **kwargs):
     tb = np.array(tb)
-    if isinstance(tb, type(1.1)):
+    if isinstance(tb, float):
         return a2t(b2a(tb))
     if tb.shape == ():
         return a2t(b2a(tb))

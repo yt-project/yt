@@ -280,7 +280,7 @@ plane, and the name of the fields to plot.  Just like an
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    L = [1, 1, 0]  # vector normal to cutting plane
    north_vector = [-1, 1, 0]
-   cut = yt.SlicePlot(ds, L, "density", width=(25, "kpc"), north_vector=north_vector)
+   cut = yt.SlicePlot(ds, L, ("gas", "density"), width=(25, "kpc"), north_vector=north_vector)
    cut.save()
 
 In this case, a normal vector for the cutting plane is supplied in the second
@@ -310,7 +310,7 @@ example:
        "z",
        ("gas", "temperature"),
        width=25 * kpc,
-       weight_field="density",
+       weight_field=("gas", "density"),
        buff_size=(1000, 1000),
    )
    prj.save()
@@ -673,7 +673,7 @@ the customization of the units used for the image and colorbar.
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    slc = yt.SlicePlot(ds, "z", ("gas", "density"), width=(10, "kpc"))
-   slc.set_unit("density", "Msun/pc**3")
+   slc.set_unit(("gas", "density"), "Msun/pc**3")
    slc.save()
 
 If the unit you would like to convert to needs an equivalency, this can be
@@ -824,7 +824,7 @@ As an example,
    p.save()
 
 Symlog is very versatile, and will work with positive or negative dataset ranges.
-Here is an example using symlog scaling to plot a postive field with a linear range of
+Here is an example using symlog scaling to plot a positive field with a linear range of
 ``(0, linthresh)``.
 
 .. python-script::
@@ -1310,7 +1310,7 @@ field. Thus, allowing us the option to have different plot titles for different 
 Annotating plot with text
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Plots can be annotated at a desired (x,y) co-ordinate using :meth:`~yt.visualization.profile_plotter.ProfilePlot.annotate_text` function.
+Plots can be annotated at a desired (x,y) coordinate using :meth:`~yt.visualization.profile_plotter.ProfilePlot.annotate_text` function.
 This function accepts the x-position, y-position, a text string to
 be annotated in the plot area, and an optional list of fields for annotating plots with the specified field.
 Furthermore, any keyword argument accepted by the matplotlib ``axes.text`` function could also be passed which will can be useful to change fontsize, text-alignment, text-color or other such properties of annotated text.
@@ -1541,7 +1541,7 @@ limits.  The following example illustrates this workflow:
    center = ds.arr([64.0, 64.0, 64.0], "code_length")
    rvir = ds.quan(1e-1, "Mpccm/h")
    sph = ds.sphere(center, rvir)
-   units = {("gas", "density": "Msun/pc**3", ("gas", "mass"): "Msun"}
+   units = {("gas", "density"): "Msun/pc**3", ("gas", "mass"): "Msun"}
    extrema = {("gas", "density"): (1e-5, 1e1), ("gas", "temperature"): (1, 1e7)}
 
    profile = yt.create_profile(
@@ -1830,7 +1830,7 @@ pixel, instead of the total:
    profile = yt.create_profile(
        ad,
        [("all", "particle_velocity_x"), ("all", "particle_velocity_y")],
-       [("all", "particle_mass"]),
+       [("all", "particle_mass")],
        n_bins=800,
        weight_field=("all", "particle_ones"),
    )
@@ -1973,7 +1973,7 @@ be separated from the easy part (generating images).  The intermediate
 slice, projection, and profile objects can be saved as reloadable
 datasets, then handed back to the plotting machinery discussed here.
 
-For slices and projections, the savable object is associated with the
+For slices and projections, the saveable object is associated with the
 plot object as ``data_source``.  This can be saved with the
 :func:`~yt.data_objects.data_containers.YTDataContainer.save_as_dataset` function.  For
 more information, see :ref:`saving_data`.
@@ -2133,7 +2133,7 @@ an example that includes slices and phase plots:
     p1 = SlicePlot(ds, "x", ("gas", "density"))
     p1.set_width(10, "kpc")
 
-    p2 = SlicePlot(ds, "x", ("gas", "tempature"))
+    p2 = SlicePlot(ds, "x", ("gas", "temperature"))
     p2.set_width(10, "kpc")
     p2.set_cmap(("gas", "temperature"), "hot")
 

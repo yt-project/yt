@@ -59,7 +59,7 @@ def get_mpl_transform(mpl_proj):
     ... )
 
     """
-    # first check to see if the tranform dict is empty, if it is fill it with
+    # first check to see if the transform dict is empty, if it is fill it with
     # the cartopy functions
     if not valid_transforms:
         for mpl_transform in transform_list:

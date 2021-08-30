@@ -57,14 +57,14 @@ value.  For example:
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    sphere = ds.sphere("max", (1.0, "Mpc"))
-   surface = ds.surface(sphere, "density", 1e-27)
+   surface = ds.surface(sphere, ("gas", "density"), 1e-27)
 
 This object, ``surface``, can be queried for values on the surface.  For
 instance:
 
 .. code-block:: python
 
-   print(surface["temperature"].min(), surface["temperature"].max())
+   print(surface["gas", "temperature"].min(), surface["gas", "temperature"].max())
 
 will return the values 11850.7476943 and 13641.0663899.  These values are
 interpolated to the face centers of every triangle that constitutes a portion
@@ -122,12 +122,12 @@ Now you can run a script like this:
 
     bounds = [[dd.center[i] - 250 * kpc, dd.center[i] + 250 * kpc] for i in range(3)]
 
-    surf = ds.surface(dd, "density", rho)
+    surf = ds.surface(dd, ("gas", "density"), rho)
 
     upload_id = surf.export_sketchfab(
         title="galaxy0030 - 1e-28",
         description="Extraction of Density (colored by temperature) at 1e-28 g/cc",
-        color_field="temperature",
+        color_field=("gas", "temperature"),
         color_map="hot",
         color_log=True,
         bounds=bounds,
@@ -172,9 +172,12 @@ galaxy simulation:
 
    sphere = ds.sphere("max", (1.0, "Mpc"))
    for i, r in enumerate(rho):
-       surf = ds.surface(sphere, "density", r)
+       surf = ds.surface(sphere, ("gas", "density"), r)
        surf.export_obj(
-           filename, transparency=trans[i], color_field="temperature", plot_index=i
+           filename,
+           transparency=trans[i],
+           color_field=("gas", "temperature"),
+           plot_index=i,
        )
 
 The calling sequence is fairly similar to the ``export_ply`` function
@@ -246,18 +249,18 @@ to output one more type of variable on your surfaces.  For example:
 
 
     def emissivity(field, data):
-        return data["density"] * data["density"] * np.sqrt(data["temperature"])
+        return data["gas", "density"] ** 2 * np.sqrt(data["gas", "temperature"])
 
 
     add_field("emissivity", function=_Emissivity, sampling_type="cell", units=r"g*K/cm**6")
 
     sphere = ds.sphere("max", (1.0, "Mpc"))
     for i, r in enumerate(rho):
-        surf = ds.surface(sphere, "density", r)
+        surf = ds.surface(sphere, ("gas", "density"), r)
         surf.export_obj(
             filename,
             transparency=trans[i],
-            color_field="temperature",
+            color_field=("gas", "temperature"),
             emit_field="emissivity",
             plot_index=i,
         )
@@ -274,7 +277,7 @@ scripts in Blender.  For example, on a Mac, you would modify the file
 "/Applications/Blender/blender.app/Contents/MacOS/2.65/scripts/addons/io_scene_obj/import_obj.py",
 in the function "create_materials" with:
 
-.. code-block:: patch
+.. code-block:: diff
 
    # ...
 

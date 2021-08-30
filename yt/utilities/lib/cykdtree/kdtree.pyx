@@ -60,7 +60,7 @@ cdef class PyNode:
                                        range(node.right_neighbors[i].size())]
 
     def __cinit__(self):
-        # Initialize everthing to NULL/0/None to prevent seg fault
+        # Initialize everything to NULL/0/None to prevent seg fault
         self._node = NULL
         self.id = 0
         self.npts = 0
@@ -169,7 +169,7 @@ cdef class PyKDTree:
             Defaults to False.
 
     Raises:
-        ValueError: If `leafsize < 2`. This currectly segfaults.
+        ValueError: If `leafsize < 2`. This currently segfaults.
 
     Attributes:
         npts (uint64): Number of points in the tree.
@@ -201,7 +201,7 @@ cdef class PyKDTree:
             self._idx[i] = tree.all_idx[i]
 
     def __cinit__(self):
-        # Initialize everthing to NULL/0/None to prevent seg fault
+        # Initialize everything to NULL/0/None to prevent seg fault
         self._tree = NULL
         self.npts = 0
         self.ndim = 0
@@ -286,7 +286,7 @@ cdef class PyKDTree:
                 can be in any order. Defaults to True.
 
         Raises:
-            AssertionError: If there are missmatches between any of the two
+            AssertionError: If there are mismatches between any of the two
                 trees' parameters.
 
         """
@@ -388,7 +388,7 @@ cdef class PyKDTree:
             np.ndarray of uint32: Leaves containing/neighboring `pos`.
 
         Raises:
-            ValueError: If pos is not contained withing the KDTree.
+            ValueError: If pos is not contained within the KDTree.
 
         """
         return self._get_neighbor_ids(pos)
@@ -419,7 +419,7 @@ cdef class PyKDTree:
             :class:`cykdtree.PyNode`: Leaf containing `pos`.
 
         Raises:
-            ValueError: If pos is not contained withing the KDTree.
+            ValueError: If pos is not contained within the KDTree.
 
         """
         return self._get(pos)

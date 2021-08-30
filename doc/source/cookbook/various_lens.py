@@ -5,7 +5,7 @@ from yt.visualization.volume_rendering.api import Scene, create_volume_source
 
 field = ("gas", "density")
 
-# normal_vector points from camera to the center of tbe final projection.
+# normal_vector points from camera to the center of the final projection.
 # Now we look at the positive x direction.
 normal_vector = [1.0, 0.0, 0.0]
 # north_vector defines the "top" direction of the projection, which is
@@ -21,7 +21,7 @@ tf.grey_opacity = True
 
 # Plane-parallel lens
 cam = sc.add_camera(ds, lens_type="plane-parallel")
-# Set the resolution of tbe final projection.
+# Set the resolution of the final projection.
 cam.resolution = [250, 250]
 # Set the location of the camera to be (x=0.2, y=0.5, z=0.5)
 # For plane-parallel lens, the location info along the normal_vector (here

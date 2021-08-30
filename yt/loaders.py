@@ -6,13 +6,14 @@ import os
 import sys
 import tarfile
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional, Tuple
 from urllib.parse import urlsplit
 
 import numpy as np
 from more_itertools import always_iterable
 
 from yt._maintenance.deprecation import issue_deprecation_warning
+from yt.funcs import levenshtein_distance
 from yt.sample_data.api import lookup_on_disk_data
 from yt.utilities.decompose import decompose_array, get_psize
 from yt.utilities.exceptions import (
@@ -935,7 +936,7 @@ def load_octree(
         of size n_octs * 8 (but see note about the root oct below), where
         each item is 1 for an oct-cell being refined and 0 for it not being
         refined.  For over_refine_factors != 1, the children count will
-        still be 8, so there will stil be n_octs * 8 entries. Note that if
+        still be 8, so there will still be n_octs * 8 entries. Note that if
         the root oct is not refined, there will be only one entry
         for the root, so the size of the mask will be (n_octs - 1)*8 + 1.
     data : dict
@@ -1376,6 +1377,21 @@ def load_sample(
     topdir, _, specific_file = fn.partition(os.path.sep)
 
     registry_table = get_data_registry_table()
+
+    known_names: List[str] = registry_table.dropna()["filename"].to_list()
+    if topdir not in known_names:
+        msg = f"'{topdir}' is not an available dataset."
+        lexical_distances: List[Tuple[str, int]] = [
+            (name, levenshtein_distance(name, topdir)) for name in known_names
+        ]
+        suggestions: List[str] = [name for name, dist in lexical_distances if dist < 4]
+        if len(suggestions) == 1:
+            msg += f" Did you mean '{suggestions[0]}' ?"
+        elif suggestions:
+            msg += " Did you mean to type any of the following ?\n\n    "
+            msg += "\n    ".join(f"'{_}'" for _ in suggestions)
+        raise ValueError(msg)
+
     # PR 3089
     # note: in the future the registry table should be reindexed
     # so that the following line can be replaced with
@@ -1384,11 +1400,7 @@ def load_sample(
     #
     # however we don't want to do it right now because the "filename" column is
     # currently incomplete
-
-    try:
-        specs = registry_table.query(f"`filename` == '{topdir}'").iloc[0]
-    except IndexError as err:
-        raise KeyError(f"Could not find '{fn}' in the registry.") from err
+    specs = registry_table.query(f"`filename` == '{topdir}'").iloc[0]
 
     load_name = specific_file or specs["load_name"] or ""
 
@@ -1430,7 +1442,7 @@ def load_sample(
 
     # pooch has functionalities to unpack downloaded archive files,
     # but it needs to be told in advance that we are downloading a tarball.
-    # Since that information is not necessarily trival to guess from the filename,
+    # Since that information is not necessarily trivial to guess from the filename,
     # we rely on the standard library to perform a conditional unpacking instead.
     if tarfile.is_tarfile(tmp_file):
         mylog.info("Untaring downloaded file to '%s'", save_dir)

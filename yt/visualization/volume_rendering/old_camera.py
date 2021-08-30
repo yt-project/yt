@@ -1309,8 +1309,8 @@ class PerspectiveCamera(Camera):
         east_vec = self.orienter.unit_vectors[0].reshape(3, 1)
         north_vec = self.orienter.unit_vectors[1].reshape(3, 1)
 
-        px = np.mat(np.linspace(-0.5, 0.5, self.resolution[0]))
-        py = np.mat(np.linspace(-0.5, 0.5, self.resolution[1]))
+        px = np.linspace(-0.5, 0.5, self.resolution[0])[np.newaxis, :]
+        py = np.linspace(-0.5, 0.5, self.resolution[1])[np.newaxis, :]
 
         sample_x = self.width[0] * np.array(east_vec * px).transpose()
         sample_y = self.width[1] * np.array(north_vec * py).transpose()

@@ -343,7 +343,9 @@ class AMRKDTree(ParallelAnalysisInterface):
             )
             for i, field in enumerate(self.fields):
                 if self.log_fields[i]:
-                    dds.append(np.log10(vcd[field].astype("float64")))
+                    v = vcd[field].astype("float64")
+                    v[v < 0] = np.nan
+                    dds.append(np.log10(v))
                 else:
                     dds.append(vcd[field].astype("float64"))
                 self.current_saved_grids.append(grid)

@@ -22,7 +22,7 @@ from yt.utilities.exceptions import YTNotInsideNotebook
 from ._commons import validate_image_name
 
 try:
-    import cmocean  # noqa
+    import cmocean
 except ImportError:
     cmocean = None
 
@@ -303,7 +303,7 @@ class PlotContainer:
         log.  Symlog can also work with negative values in log space as well as
         negative and positive values simultaneously and symmetrically.  If symlog
         scaling is desired, please set log=True and either set symlog_auto=True or
-        select a alue for linthresh.
+        select a value for linthresh.
 
         Parameters
         ----------

@@ -29,9 +29,9 @@ or pip, and we will *assume* that you do so in an isolated environment.
 Also note that each yt release supports a limited range of Python versions.
 Here's a summary for most recent releases
 
-+------------+------------+----------------------------------+
++------------+------------+----------------+-----------------+
 | yt release | Python 2.7 | Python3 min    | Python3 max     |
-+============+============+================+=================|
++============+============+================+=================+
 | 4.1.x      | no         | 3.7 (expected) | 3.10 (expected) |
 +------------+------------+----------------+-----------------+
 | 4.0.x      | no         | 3.6            | 3.9             |
@@ -120,12 +120,12 @@ yt as by appending ``[full]`` to the target name when calling pip, i.e.,
 Testing Your Installation
 +++++++++++++++++++++++++
 
-To test to make sure everything is installed properly, try running yt at
+To make sure everything is installed properly, try running yt at
 the command line:
 
-  .. code-block:: bash
+.. code-block:: bash
 
-    $ python -c "import yt"
+  $ python -c "import yt"
 
 If this runs without raising errors, you have successfully installed yt. Congratulations!
 
@@ -195,7 +195,7 @@ Additional Resources
 .. _distro-packages:
 
 yt Distribution Packages
-^^^^^^^^^^^^^^^^^^^^^^^^
+++++++++++++++++++++++++
 
 Some operating systems have yt pre-built packages that can be installed with the
 system package manager. Note that the packages in some of these distributions
@@ -216,7 +216,7 @@ third-party packages exist for the distributions listed below.
 
 
 Intel distribution for Python
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++++++++++++++++++++++++++++++
 
 A viable alternative to the installation based on Anaconda is the use of the
 `Intel Distribution for Python
