@@ -7,7 +7,7 @@ from functools import wraps
 import matplotlib
 import numpy as np
 from more_itertools.more import always_iterable, unzip
-from packaging.version import parse as parse_version
+from packaging.version import Version
 
 from yt.data_objects.profiles import create_profile, sanitize_field_tuple_keys
 from yt.data_objects.static_output import Dataset
@@ -28,7 +28,7 @@ from .plot_container import (
     validate_plot,
 )
 
-MPL_VERSION = parse_version(matplotlib.__version__)
+MPL_VERSION = Version(matplotlib.__version__)
 
 
 def invalidate_profile(f):
@@ -1174,7 +1174,7 @@ class PhasePlot(ImagePlotContainer):
             if self._cbar_minorticks[f]:
                 if self._field_transform[f] == linear_transform:
                     self.plots[f].cax.minorticks_on()
-                elif MPL_VERSION < parse_version("3.0.0"):
+                elif MPL_VERSION < Version("3.0.0"):
                     # before matplotlib 3 log-scaled colorbars internally used
                     # a linear scale going from zero to one and did not draw
                     # minor ticks. Since we want minor ticks, calculate
