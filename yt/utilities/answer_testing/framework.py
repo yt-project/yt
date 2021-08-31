@@ -815,8 +815,8 @@ def compare_image_lists(new_result, old_result, decimals):
     num_images = len(old_result)
     assert num_images > 0
     for i in range(num_images):
-        mpimg.imsave(fns[0], np.loads(zlib.decompress(old_result[i])))
-        mpimg.imsave(fns[1], np.loads(zlib.decompress(new_result[i])))
+        mpimg.imsave(fns[0], pickle.loads(zlib.decompress(old_result[i])))
+        mpimg.imsave(fns[1], pickle.loads(zlib.decompress(new_result[i])))
         results = compare_images(fns[0], fns[1], 10 ** (-decimals))
         if results is not None:
             if os.environ.get("JENKINS_HOME") is not None:
