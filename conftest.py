@@ -315,24 +315,19 @@ def hashing(request):
 
     # Compare hashes
     if not no_hash and not store_hash:
-        try:
-            for class_name, answers in hashes.items():
-                assert class_name in request.cls.saved_hashes
-                old_images, new_images = [], []
-                for answer in list(answers.keys()):
-                    if not answer.startswith("image_"):
-                        continue
-                    new_images.append(answers.pop(answer))
-                    old_images.append(request.cls.saved_hashes[class_name].pop(answer))
-                assert answers == request.cls.saved_hashes[class_name]
-                if len(old_images) != len(new_images):
-                    pytest.fail(
-                        f"Missing image answer: {request.node.name}", pytrace=False
-                    )
-                if old_images:
-                    compare_image_lists(new_images, old_images, 10)
-        except AssertionError:
-            pytest.fail(f"Comparison failure: {request.node.name}", pytrace=False)
+        for class_name, answers in hashes.items():
+            assert class_name in request.cls.saved_hashes
+            old_images, new_images = [], []
+            for answer in list(answers.keys()):
+                if not answer.startswith("image_"):
+                    continue
+                new_images.append(answers.pop(answer))
+                old_images.append(request.cls.saved_hashes[class_name].pop(answer))
+            assert answers == request.cls.saved_hashes[class_name]
+            if len(old_images) != len(new_images):
+                pytest.fail(f"Missing image answer: {request.node.name}", pytrace=False)
+            if old_images:
+                compare_image_lists(new_images, old_images, 10)
 
     # Compare raw data. This is done one test at a time because the
     # arrays can get quite large and storing everything in memory would
