@@ -826,8 +826,8 @@ def compare_image_lists(new_result, old_result, decimals):
                     if line.endswith(".png")
                 ]
                 for fn in tempfiles:
-                    sys.stderr.write(f"\n[[ATTACHMENT|{fn}]]")
-                sys.stderr.write("\n")
+                    results += f"\n[[ATTACHMENT|{fn}]]"
+                results += "\n"
         assert_equal(results, None, results)
         for fn in fns:
             os.remove(fn)
