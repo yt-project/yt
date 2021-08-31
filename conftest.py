@@ -327,8 +327,13 @@ def hashing(request):
             if len(old_images) != len(new_images):
                 pytest.fail(f"Missing image answer: {request.node.name}", pytrace=False)
             if old_images:
-                compare_image_lists(new_images, old_images, 10)
-
+                try:
+                    compare_image_lists(new_images, old_images, 10)
+                except AssertionError as exc:
+                    pytest.fail(
+                        f"Comparison failed: {request.node.name} {exc}",
+                        pytrace=False,
+                    )
     # Compare raw data. This is done one test at a time because the
     # arrays can get quite large and storing everything in memory would
     # be bad

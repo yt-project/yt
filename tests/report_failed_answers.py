@@ -16,12 +16,10 @@ import shutil
 import tempfile
 import xml.etree.ElementTree as ET
 
-import nose
 import numpy
 import requests
 
 from yt.config import ytcfg
-from yt.utilities.answer_testing.framework import AnswerTesting
 from yt.utilities.command_line import FileStreamer
 
 logging.basicConfig(level=logging.INFO)
@@ -204,10 +202,8 @@ def generate_answers(answer_dir, answers):
     ]
 
     for job in answers:
-        log.info("\n Generating answers for %s", job)
-        status &= nose.run(
-            argv=test_argv + [job], addplugins=[AnswerTesting()], exit=False
-        )
+        log.error("\n [TODO] Generating answers for %s", job)
+        log.debug(test_argv)
     return status
 
 
