@@ -5,6 +5,7 @@ import itertools as it
 import os
 import pickle
 import shutil
+import sys
 import tempfile
 import unittest
 
@@ -1347,8 +1348,8 @@ def requires_backend(backend):
         # needed since None is no longer returned, so we check for the skip
         # exception in the xfail case for that test
         def skip(*args, **kwargs):
-            msg = f"`{backend}` backend not found, skipping: `{func.__name__}`"
-            print(msg)
+            msg = f"`{backend}` backend not in use, skipping: `{func.__name__}`"
+            print(msg, file=sys.stderr)
             pytest.skip(msg)
 
         if ytcfg.get("yt", "internals", "within_pytest"):
