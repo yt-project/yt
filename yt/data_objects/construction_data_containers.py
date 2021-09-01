@@ -1405,8 +1405,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
             warnings.warn(
                 "Something went wrong during field computation. "
                 "This is likely due to missing ghost-zones support "
-                "in class %s",
-                self.ds.__class__,
+                f"in class {type(self.ds)}",
                 category=RuntimeWarning,
             )
             mylog.debug("Caught %d runtime errors.", runtime_errors_count)
