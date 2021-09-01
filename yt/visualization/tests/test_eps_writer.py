@@ -1,7 +1,8 @@
 import yt
-from yt.testing import fake_amr_ds, requires_module
+from yt.testing import fake_amr_ds, requires_external_executable, requires_module
 
 
+@requires_external_executable("tex")
 @requires_module("pyx")
 def test_eps_writer(tmp_path):
     import yt.visualization.eps_writer as eps
