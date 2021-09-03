@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import pyx
 from matplotlib import cm, pyplot as plt
@@ -743,7 +745,7 @@ class DualEPS:
 
         # Convert the colormap into a string
         x = np.linspace(1, 0, 256)
-        cm_string = cm.get_cmap[name](x, bytes=True)[:, 0:3].tobytes()
+        cm_string = cm.get_cmap(name)(x, bytes=True)[:, 0:3].tobytes()
 
         cmap_im = pyx.bitmap.image(imsize[0], imsize[1], "RGB", cm_string)
         if orientation == "top" or orientation == "bottom":
@@ -1143,6 +1145,7 @@ class DualEPS:
         >>> d = DualEPS()
         >>> d.axis_box(xrange=(0, 100), yrange=(1e-3, 1), ylog=True)
         """
+        filename = os.path.expanduser(filename)
         if format == "eps":
             self.canvas.writeEPSfile(filename)
         elif format == "pdf":
