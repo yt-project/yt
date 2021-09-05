@@ -18,6 +18,7 @@ import traceback
 import urllib.parse
 import urllib.request
 import warnings
+from collections.abc import Sized
 from functools import lru_cache, wraps
 from numbers import Number as numeric_type
 from typing import Any, Callable, Type
@@ -36,19 +37,15 @@ from yt.utilities.on_demand_imports import _requests as requests
 # Some functions for handling sequences and other types
 
 
-def is_sequence(obj):
+def is_sequence(obj) -> bool:
     """
-    Grabbed from Python Cookbook / matplotlib.cbook.  Returns true/false for
-
-    Parameters
-    ----------
-    obj : iterable
+    Check wether `obj` implements the __len__ protocol
+    Implementation used to be more complex. This function is kept for backwards compatiblity,
+    but it shouldn't be used in new code because the name conflicts with the standard library's
+    definition of a "Sequence".
+    See https://docs.python.org/3/library/collections.abc.html
     """
-    try:
-        len(obj)
-        return True
-    except TypeError:
-        return False
+    return isinstance(obj, Sized)
 
 
 def iter_fields(field_or_fields):
