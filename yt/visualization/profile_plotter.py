@@ -2,6 +2,7 @@ import base64
 import builtins
 import os
 from collections import OrderedDict
+from collections.abc import Sized
 from functools import wraps
 
 import matplotlib
@@ -12,7 +13,7 @@ from packaging.version import parse as parse_version
 from yt.data_objects.profiles import create_profile, sanitize_field_tuple_keys
 from yt.data_objects.static_output import Dataset
 from yt.frontends.ytdata.data_structures import YTProfileDataset
-from yt.funcs import is_sequence, iter_fields, matplotlib_style_context
+from yt.funcs import iter_fields, matplotlib_style_context
 from yt.utilities.exceptions import YTNotInsideNotebook
 from yt.utilities.logger import ytLogger as mylog
 
@@ -1654,7 +1655,7 @@ class PhasePlotMPL(ImagePlotMPL):
         if fontscale < 1.0:
             fontscale = np.sqrt(fontscale)
 
-        if is_sequence(figure_size):
+        if isinstance(figure_size, Sized):
             self._cb_size = 0.0375 * figure_size[0]
         else:
             self._cb_size = 0.0375 * figure_size

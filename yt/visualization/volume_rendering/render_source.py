@@ -1,11 +1,12 @@
 import abc
+from collections.abc import Sized
 from functools import wraps
 
 import numpy as np
 
 from yt.config import ytcfg
 from yt.data_objects.image_array import ImageArray
-from yt.funcs import ensure_numpy_array, is_sequence, mylog
+from yt.funcs import ensure_numpy_array, mylog
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.geometry.oct_geometry_handler import OctreeIndex
 from yt.utilities.amr_kdtree.api import AMRKDTree
@@ -993,7 +994,7 @@ class PointSource(OpaqueSource):
         if colors is not None:
             assert colors.ndim == 2 and colors.shape[1] == 4
             assert colors.shape[0] == positions.shape[0]
-        if not is_sequence(radii):
+        if not isinstance(radii, Sized):
             if radii is not None:  # broadcast the value
                 radii = radii * np.ones(positions.shape[0], dtype="int64")
             else:  # default radii to 0 pixels (i.e. point is 1 pixel wide)

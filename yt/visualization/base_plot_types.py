@@ -1,16 +1,11 @@
+from collections.abc import Sized
 from io import BytesIO
 
 import matplotlib
 import numpy as np
 from packaging.version import parse as parse_version
 
-from yt.funcs import (
-    get_brewer_cmap,
-    get_interactivity,
-    is_sequence,
-    matplotlib_style_context,
-    mylog,
-)
+from yt.funcs import get_brewer_cmap, get_interactivity, matplotlib_style_context, mylog
 
 from ._commons import get_canvas, validate_image_name
 
@@ -72,7 +67,7 @@ class PlotMPL:
 
         self._plot_valid = True
         if figure is None:
-            if not is_sequence(fsize):
+            if not isinstance(fsize, Sized):
                 fsize = (fsize, fsize)
             self.figure = matplotlib.figure.Figure(figsize=fsize, frameon=True)
         else:
@@ -327,7 +322,7 @@ class ImagePlotMPL(PlotMPL):
     def _get_best_layout(self):
 
         # Ensure the figure size along the long axis is always equal to _figure_size
-        if is_sequence(self._figure_size):
+        if isinstance(self._figure_size, Sized):
             x_fig_size = self._figure_size[0]
             y_fig_size = self._figure_size[1]
         else:

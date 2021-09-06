@@ -1,7 +1,9 @@
+from collections.abc import Sized
+
 import numpy as np
 
 from yt.data_objects.api import ImageArray
-from yt.funcs import is_sequence, mylog
+from yt.funcs import mylog
 from yt.units.unit_object import Unit
 from yt.utilities.lib.partitioned_grid import PartitionedGrid
 from yt.utilities.lib.pixelization_routines import (
@@ -339,10 +341,10 @@ def off_axis_projection(
     vol.set_transfer_function(ptf)
     camera = sc.add_camera(data_source)
     camera.set_width(width)
-    if not is_sequence(resolution):
+    if not isinstance(resolution, Sized):
         resolution = [resolution] * 2
     camera.resolution = resolution
-    if not is_sequence(width):
+    if not isinstance(width, Sized):
         width = data_source.ds.arr([width] * 3)
     normal = np.array(normal_vector)
     normal = normal / np.linalg.norm(normal)

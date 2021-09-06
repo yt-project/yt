@@ -3,6 +3,7 @@ import builtins
 import os
 import textwrap
 from collections import defaultdict
+from collections.abc import Sized
 from functools import wraps
 
 import matplotlib
@@ -13,7 +14,7 @@ from more_itertools.more import always_iterable
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.data_objects.time_series import DatasetSeries
-from yt.funcs import dictWithFactory, ensure_dir, is_sequence, iter_fields, mylog
+from yt.funcs import dictWithFactory, ensure_dir, iter_fields, mylog
 from yt.units import YTQuantity
 from yt.units.unit_object import Unit
 from yt.utilities.definitions import formatted_length_unit_names
@@ -253,7 +254,11 @@ class PlotContainer:
         self.data_source = data_source
         self.ds = data_source.ds
         self.ts = self._initialize_dataset(self.ds)
-        if is_sequence(figure_size):
+        if isinstance(figure_size, Sized):
+            if len(figure_size) != 2:
+                raise TypeError(
+                    f"Expected a float or a lenght 2 value for figure_size, got {figure_size}"
+                )
             self.figure_size = float(figure_size[0]), float(figure_size[1])
         else:
             self.figure_size = float(figure_size)
@@ -399,7 +404,7 @@ class PlotContainer:
 
     def _initialize_dataset(self, ts):
         if not isinstance(ts, DatasetSeries):
-            if not is_sequence(ts):
+            if not isinstance(ts, Sized):
                 ts = [ts]
             ts = DatasetSeries(ts)
         return ts
