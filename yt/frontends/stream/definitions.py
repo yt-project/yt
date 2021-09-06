@@ -1,8 +1,8 @@
 from collections import defaultdict
+from collections.abc import Sized
 
 import numpy as np
 
-from yt.funcs import is_sequence
 from yt.geometry.grid_container import GridTree, MatchPointsToGrids
 from yt.utilities.exceptions import (
     YTInconsistentGridFieldShape,
@@ -161,7 +161,7 @@ def process_data(data, grid_dims=None):
                 raise RuntimeError("The data dict appears to be invalid.\n" + str(e))
 
         # val is a list of data to be turned into an array
-        elif is_sequence(val):
+        elif isinstance(val, Sized):
             field_units[field] = ""
             new_data[field] = np.asarray(val)
 

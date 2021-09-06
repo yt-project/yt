@@ -1,10 +1,11 @@
 import abc
 import weakref
+from collections.abc import Sized
 from numbers import Number
 
 import numpy as np
 
-from yt.funcs import fix_unitary, is_sequence, validate_width_tuple
+from yt.funcs import fix_unitary, validate_width_tuple
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTCoordinateNotImplemented, YTInvalidWidthError
 
@@ -209,7 +210,7 @@ class CoordinateHandler(abc.ABC):
         pass
 
     def sanitize_depth(self, depth):
-        if is_sequence(depth):
+        if isinstance(depth, Sized):
             validate_width_tuple(depth)
             depth = (self.ds.quan(depth[0], fix_unitary(depth[1])),)
         elif isinstance(depth, Number):
@@ -227,7 +228,7 @@ class CoordinateHandler(abc.ABC):
             # initialize the index if it is not already initialized
             self.ds.index
             # Default to code units
-            if not is_sequence(axis):
+            if not isinstance(axis, Sized):
                 xax = self.x_axis[axis]
                 yax = self.y_axis[axis]
                 w = self.ds.domain_width[np.array([xax, yax])]
@@ -237,7 +238,7 @@ class CoordinateHandler(abc.ABC):
                 mi = np.argmin(self.ds.domain_width)
                 w = self.ds.domain_width[np.array((mi, mi))]
             width = (w[0], w[1])
-        elif is_sequence(width):
+        elif isinstance(width, Sized):
             width = validate_sequence_width(width, self.ds)
         elif isinstance(width, YTQuantity):
             width = (width, width)
@@ -267,7 +268,7 @@ class CoordinateHandler(abc.ABC):
                 raise RuntimeError(f'center keyword "{center}" not recognized')
         elif isinstance(center, YTArray):
             return self.ds.arr(center), self.convert_to_cartesian(center)
-        elif is_sequence(center):
+        elif isinstance(center, Sized):
             if isinstance(center[0], str) and isinstance(center[1], str):
                 if center[0].lower() == "min":
                     v, center = self.ds.find_min(center[1])
@@ -276,7 +277,7 @@ class CoordinateHandler(abc.ABC):
                 else:
                     raise RuntimeError(f'center keyword "{center}" not recognized')
                 center = self.ds.arr(center, "code_length")
-            elif is_sequence(center[0]) and isinstance(center[1], str):
+            elif isinstance(center[0], Sized) and isinstance(center[1], str):
                 center = self.ds.arr(center[0], center[1])
             else:
                 center = self.ds.arr(center, "code_length")

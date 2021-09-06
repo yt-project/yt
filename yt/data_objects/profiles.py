@@ -1,10 +1,12 @@
+from collections.abc import Sized
+
 import numpy as np
 from more_itertools import collapse
 
 from yt.data_objects.field_data import YTFieldData
 from yt.fields.derived_field import DerivedField
 from yt.frontends.ytdata.utilities import save_as_dataset
-from yt.funcs import get_output_filename, is_sequence, iter_fields, mylog
+from yt.funcs import get_output_filename, iter_fields, mylog
 from yt.units.unit_object import Unit
 from yt.units.yt_array import YTQuantity, array_like_field
 from yt.utilities.exceptions import (
@@ -1335,9 +1337,9 @@ def create_profile(
         wf = data_source.ds._get_field_info(weight_field)
         if not wf.sampling_type == "particle":
             weight_field = None
-    if not is_sequence(n_bins):
+    if not isinstance(n_bins, Sized):
         n_bins = [n_bins] * len(bin_fields)
-    if not is_sequence(accumulation):
+    if not isinstance(accumulation, Sized):
         accumulation = [accumulation] * len(bin_fields)
     if logs is None:
         logs = {}
@@ -1405,10 +1407,10 @@ def create_profile(
                     fe = data_source.ds.arr(field_ex, bf_units)
             fe.convert_to_units(bf_units)
             field_ex = [fe[0].v, fe[1].v]
-            if is_sequence(field_ex[0]):
+            if isinstance(field_ex[0], Sized):
                 field_ex[0] = data_source.ds.quan(field_ex[0][0], field_ex[0][1])
                 field_ex[0] = field_ex[0].in_units(bf_units)
-            if is_sequence(field_ex[1]):
+            if isinstance(field_ex[1], Sized):
                 field_ex[1] = data_source.ds.quan(field_ex[1][0], field_ex[1][1])
                 field_ex[1] = field_ex[1].in_units(bf_units)
             ex.append(field_ex)

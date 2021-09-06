@@ -1,4 +1,5 @@
-from yt.funcs import is_sequence
+from collections.abc import Sized
+
 from yt.utilities.logger import ytLogger as mylog
 
 from .field_info_container import FieldInfoContainer
@@ -12,7 +13,7 @@ class LocalFieldInfoContainer(FieldInfoContainer):
             sampling_type, kwargs.get("particle_type")
         )
 
-        if isinstance(name, str) or not is_sequence(name):
+        if isinstance(name, str) or not isinstance(name, Sized):
             if sampling_type == "particle":
                 ftype = "all"
             else:

@@ -7,6 +7,7 @@ import pickle
 import shutil
 import tempfile
 import unittest
+from collections.abc import Sized
 from shutil import which
 
 import matplotlib
@@ -16,7 +17,6 @@ from numpy.random import RandomState
 from unyt.exceptions import UnitOperationError
 
 from yt.config import ytcfg
-from yt.funcs import is_sequence
 from yt.loaders import load
 from yt.units.yt_array import YTArray, YTQuantity
 
@@ -227,11 +227,11 @@ def fake_random_ds(
     from yt.loaders import load_uniform_grid
 
     prng = RandomState(0x4D3D3D3)
-    if not is_sequence(ndims):
+    if not isinstance(ndims, Sized):
         ndims = [ndims, ndims, ndims]
     else:
         assert len(ndims) == 3
-    if not is_sequence(negative):
+    if not isinstance(negative, Sized):
         if fields:
             negative = [negative for f in fields]
         else:
@@ -372,7 +372,7 @@ def fake_particle_ds(
     from yt.loaders import load_particles
 
     prng = RandomState(0x4D3D3D3)
-    if negative is not None and not is_sequence(negative):
+    if negative is not None and not isinstance(negative, Sized):
         negative = [negative for f in fields]
 
     fields, units, negative = _check_field_unit_args_helper(

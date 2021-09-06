@@ -6,6 +6,7 @@ import pickle
 import time
 import weakref
 from collections import defaultdict
+from collections.abc import Sized
 from stat import ST_CTIME
 
 import numpy as np
@@ -19,7 +20,7 @@ from yt.data_objects.region_expression import RegionExpression
 from yt.fields.derived_field import ValidateSpatial
 from yt.fields.field_type_container import FieldTypeContainer
 from yt.fields.fluid_fields import setup_gradient_fields
-from yt.funcs import is_sequence, iter_fields, mylog, set_intersection, setdefaultattr
+from yt.funcs import iter_fields, mylog, set_intersection, setdefaultattr
 from yt.geometry.coordinates.api import (
     CartesianCoordinateHandler,
     CoordinateHandler,
@@ -276,7 +277,7 @@ class Dataset(abc.ABC):
             removal="4.1.0",
         )
         err_msg = f"Expected a 3-element boolean tuple, received `{val}`."
-        if not is_sequence(val):
+        if not isinstance(val, Sized):
             raise TypeError(err_msg)
         if len(val) != 3:
             raise ValueError(err_msg)
@@ -1941,7 +1942,7 @@ class ParticleDataset(Dataset):
 def validate_index_order(index_order):
     if index_order is None:
         index_order = (6, 2)
-    elif not is_sequence(index_order):
+    elif not isinstance(index_order, Sized):
         index_order = (int(index_order), 1)
     else:
         if len(index_order) != 2:

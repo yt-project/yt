@@ -1,3 +1,5 @@
+from collections.abc import Sized
+
 import numpy as np
 
 from yt.data_objects.selection_objects.data_selection_objects import (
@@ -6,7 +8,6 @@ from yt.data_objects.selection_objects.data_selection_objects import (
 )
 from yt.data_objects.static_output import Dataset
 from yt.funcs import (
-    is_sequence,
     iter_fields,
     validate_3d_array,
     validate_axis,
@@ -353,15 +354,15 @@ class YTCuttingPlane(YTSelectionContainer2D):
         >>> frb = cutting.to_frb((1.0, "pc"), 1024)
         >>> write_image(np.log10(frb[("gas", "density")]), "density_1pc.png")
         """
-        if is_sequence(width):
+        if isinstance(width, Sized):
             validate_width_tuple(width)
             width = self.ds.quan(width[0], width[1])
         if height is None:
             height = width
-        elif is_sequence(height):
+        elif isinstance(height, Sized):
             validate_width_tuple(height)
             height = self.ds.quan(height[0], height[1])
-        if not is_sequence(resolution):
+        if not isinstance(resolution, Sized):
             resolution = (resolution, resolution)
         from yt.visualization.fixed_resolution import FixedResolutionBuffer
 

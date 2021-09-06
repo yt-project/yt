@@ -3,6 +3,7 @@ import glob
 import inspect
 import os
 import weakref
+from collections.abc import Sized
 from functools import wraps
 
 import numpy as np
@@ -12,7 +13,7 @@ from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.data_objects.analyzer_objects import AnalysisTask, create_quantity_proxy
 from yt.data_objects.particle_trajectories import ParticleTrajectories
-from yt.funcs import is_sequence, mylog
+from yt.funcs import mylog
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTException
 from yt.utilities.object_registries import (
@@ -169,7 +170,7 @@ class DatasetSeries:
     ):
         # This is needed to properly set _pre_outputs for Simulation subclasses.
         self._mixed_dataset_types = mixed_dataset_types
-        if is_sequence(outputs) and not isinstance(outputs, str):
+        if isinstance(outputs, Sized) and not isinstance(outputs, str):
             self._pre_outputs = outputs[:]
         self.tasks = AnalysisTaskProxy(self)
         self.params = TimeSeriesParametersContainer(self)

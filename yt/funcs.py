@@ -793,7 +793,7 @@ def ensure_dir(path):
 
 
 def validate_width_tuple(width):
-    if not is_sequence(width) or len(width) != 2:
+    if not isinstance(width, Sized) or len(width) != 2:
         raise YTInvalidWidthError(f"width ({width}) is not a two element tuple")
     is_numeric = isinstance(width[0], numeric_type)
     length_has_units = isinstance(width[0], YTArray)
@@ -1096,7 +1096,7 @@ def parse_h5_attr(f, attr):
 
 
 def obj_length(v):
-    if is_sequence(v):
+    if isinstance(v, Sized):
         return len(v)
     else:
         # If something isn't iterable, we return 0
@@ -1125,7 +1125,7 @@ def array_like_field(data, x, field):
 
 
 def validate_3d_array(obj):
-    if not is_sequence(obj) or len(obj) != 3:
+    if not isinstance(obj, Sized) or len(obj) != 3:
         raise TypeError(
             "Expected an array of size (3,), received '%s' of "
             "length %s" % (str(type(obj)).split("'")[1], len(obj))
@@ -1177,7 +1177,9 @@ def validate_float(obj):
             )
         else:
             return
-    if is_sequence(obj) and (len(obj) != 1 or not isinstance(obj[0], numeric_type)):
+    if isinstance(obj, Sized) and (
+        len(obj) != 1 or not isinstance(obj[0], numeric_type)
+    ):
         raise TypeError(
             "Expected a numeric value (or size-1 array), "
             "received '%s' of length %s" % (str(type(obj)).split("'")[1], len(obj))
@@ -1185,7 +1187,11 @@ def validate_float(obj):
 
 
 def validate_sequence(obj):
-    if obj is not None and not is_sequence(obj):
+    # NOTE: there is a lot of confusion between the name of the function,
+    # the actual check perfomed, and the error message. Sized object are a subset of sequences,
+    # and sequences are a subset of iterables. I'll leave the implementation alone but it should probably
+    # be discouraged and avoided internally
+    if obj is not None and not isinstance(obj, Sized):
         raise TypeError(
             "Expected an iterable object,"
             " received '%s'" % str(type(obj)).split("'")[1]
@@ -1225,7 +1231,9 @@ def validate_center(center):
                 "'m', 'max', 'min'] or the prefix to be "
                 "'max_'/'min_', received '%s'." % center
             )
-    elif not isinstance(center, (numeric_type, YTQuantity)) and not is_sequence(center):
+    elif not isinstance(center, (numeric_type, YTQuantity)) and not isinstance(
+        center, Sized
+    ):
         raise TypeError(
             "Expected 'center' to be a numeric object of type "
             "list/tuple/np.ndarray/YTArray/YTQuantity, "
