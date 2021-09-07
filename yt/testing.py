@@ -7,6 +7,7 @@ import pickle
 import shutil
 import tempfile
 import unittest
+from shutil import which
 
 import matplotlib
 import numpy as np
@@ -1362,6 +1363,29 @@ def requires_backend(backend):
     if backend.lower() == matplotlib.get_backend().lower():
         return ftrue
     return ffalse
+
+
+def requires_external_executable(*names):
+    import pytest
+
+    def deco(func):
+        missing = []
+        for name in names:
+            if which(name) is None:
+                missing.append(name)
+
+        # note that order between these two decorators matters
+        @pytest.mark.skipif(
+            missing,
+            reason=f"missing external executable(s): {', '.join(missing)}",
+        )
+        @functools.wraps(func)
+        def inner_func(*args, **kwargs):
+            return func(*args, **kwargs)
+
+        return inner_func
+
+    return deco
 
 
 class TempDirTest(unittest.TestCase):

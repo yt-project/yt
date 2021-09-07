@@ -257,7 +257,9 @@ class PlotContainer:
             self.figure_size = float(figure_size[0]), float(figure_size[1])
         else:
             self.figure_size = float(figure_size)
-        font_path = matplotlib.get_data_path() + "/fonts/ttf/STIXGeneral.ttf"
+        font_path = os.path.join(
+            matplotlib.get_data_path(), "fonts", "ttf", "STIXGeneral.ttf"
+        )
         self._font_properties = FontProperties(size=fontsize, fname=font_path)
         self._font_color = None
         self._xlabel = None

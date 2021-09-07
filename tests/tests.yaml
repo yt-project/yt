@@ -182,9 +182,11 @@ other_tests:
      - '--ignore=test_outputs_pytest'
      - '--ignore-files=test_load_errors.py'
      - '--ignore-files=test_commons.py'
+     - '--ignore-files=test_line_annotation_unit.py'
      - '--ignore-files=test_load_sample.py'
      - '--ignore-files=test_field_access_pytest.py'
      - '--ignore-files=test_ambiguous_fields.py'
+     - '--ignore-files=test_eps_writer.py'
      - "--ignore-files=test_save.py"
      - '--exclude-test=yt.frontends.gdf.tests.test_outputs.TestGDF'
   cookbook:

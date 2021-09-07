@@ -1,4 +1,3 @@
-import os
 import weakref
 from collections import defaultdict
 from contextlib import contextmanager
@@ -22,6 +21,7 @@ from yt.utilities.exceptions import (
     YTSpatialFieldUnitError,
 )
 from yt.utilities.object_registries import data_object_registry
+from yt.utilities.on_demand_imports import _firefly as firefly
 from yt.utilities.parameter_file_storage import ParameterFileStore
 
 
@@ -706,24 +706,25 @@ class YTDataContainer:
 
     def create_firefly_object(
         self,
-        path_to_firefly,
+        JSONdir,
         fields_to_include=None,
         fields_units=None,
         default_decimation_factor=100,
         velocity_units="km/s",
         coordinate_units="kpc",
         show_unused_fields=0,
-        dataset_name="yt",
+        **kwargs,
     ):
         r"""This function links a region of data stored in a yt dataset
-        to the Python frontend API for [Firefly](github.com/ageller/Firefly),
-        a browser-based particle visualization platform.
+        to the Python frontend API for [Firefly](http://github.com/ageller/Firefly),
+        a browser-based particle visualization tool.
 
         Parameters
         ----------
-        path_to_firefly : string
-            The (ideally) absolute path to the direction containing the index.html
-            file of Firefly.
+
+        JSONdir : string
+            Path to where any `.json` files should be saved. If a relative
+            path will assume relative to `${HOME}`
 
         fields_to_include : array_like of strings
             A list of fields that you want to include in your
@@ -743,23 +744,20 @@ class YTDataContainer:
         velocity_units : string
             The units that the velocity should be converted to in order to
             show streamlines in Firefly. Defaults to km/s.
+
         coordinate_units : string
             The units that the coordinates should be converted to. Defaults to
             kpc.
+
         show_unused_fields : boolean
             A flag to optionally print the fields that are available, in the
             dataset but were not explicitly requested to be tracked.
-        dataset_name : string
-            The name of the subdirectory the JSON files will be stored in
-            (and the name that will appear in startup.json and in the dropdown
-            menu at startup). e.g. `yt` -> json files will appear in
-            `Firefly/data/yt`.
 
         Returns
         -------
-        reader : firefly_api.reader.Reader object
-            A reader object from the firefly_api, configured
-            to output
+        reader : Firefly.data_reader.Reader object
+            A reader object from the Firefly, configured
+            to output the current region selected
 
         Examples
         --------
@@ -772,13 +770,12 @@ class YTDataContainer:
             >>> region = ramses_ds.sphere(ramses_ds.domain_center, (1000, "kpc"))
 
             >>> reader = region.create_firefly_object(
-            ...     path_to_firefly="/Users/agurvich/research/repos/Firefly",
+            ...     "IsoGalaxyRamses",
             ...     fields_to_include=[
             ...         "particle_extra_field_1",
             ...         "particle_extra_field_2",
             ...     ],
             ...     fields_units=["dimensionless", "dimensionless"],
-            ...     dataset_name="IsoGalaxyRamses",
             ... )
 
             >>> reader.options["color"]["io"] = [1, 1, 0, 1]
@@ -786,21 +783,11 @@ class YTDataContainer:
             >>> reader.dumpToJSON()
         """
 
-        ## attempt to import firefly_api
-        try:
-            from firefly_api.particlegroup import ParticleGroup
-            from firefly_api.reader import Reader
-        except ImportError as e:
-            raise ImportError(
-                "Can't find firefly_api, ensure it "
-                "is in your python path or install it with "
-                "`python -m pip install firefly_api`. It is also available "
-                "on github at github.com/agurvich/firefly_api"
-            ) from e
-
         ## handle default arguments
-        fields_to_include = [] if fields_to_include is None else fields_to_include
-        fields_units = [] if fields_units is None else fields_units
+        if fields_to_include is None:
+            fields_to_include = []
+        if fields_units is None:
+            fields_units = []
 
         ## handle input validation, if any
         if len(fields_units) != len(fields_to_include):
@@ -810,10 +797,8 @@ class YTDataContainer:
         default_decimation_factor = int(default_decimation_factor)
 
         ## initialize a firefly reader instance
-        reader = Reader(
-            JSONdir=os.path.join(path_to_firefly, "data", dataset_name),
-            prefix="ytData",
-            clean_JSONdir=True,
+        reader = firefly.data_reader.Reader(
+            JSONdir=JSONdir, clean_JSONdir=True, **kwargs
         )
 
         ## create a ParticleGroup object that contains *every* field
@@ -871,7 +856,7 @@ class YTDataContainer:
             tracked_colormap_flags = np.ones(len(tracked_names))
 
             ## create a firefly ParticleGroup for this particle type
-            pg = ParticleGroup(
+            pg = firefly.data_reader.ParticleGroup(
                 UIname=ptype,
                 coordinates=self[ptype, "relative_particle_position"].in_units(
                     coordinate_units

@@ -648,11 +648,18 @@ class YTCoveringGrid(YTSelectionContainer3D):
         self.right_edge = self.left_edge + self.ActiveDimensions * self.dds
         self._num_ghost_zones = num_ghost_zones
         self._use_pbar = use_pbar
-        self.global_startindex = np.rint(
-            (self.left_edge - self.ds.domain_left_edge) / self.dds
-        ).astype("int64")
+        self.global_startindex = (
+            np.rint((self.left_edge - self.ds.domain_left_edge) / self.dds).astype(
+                "int64"
+            )
+            + self.ds.domain_offset
+        )
         self._setup_data_source()
         self.get_data(fields)
+
+    def get_global_startindex(self):
+        r"""Get the global start index of the covering grid."""
+        return self.global_startindex
 
     def to_xarray(self, fields=None):
         r"""Export this fixed-resolution object to an xarray Dataset
@@ -1405,8 +1412,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
             warnings.warn(
                 "Something went wrong during field computation. "
                 "This is likely due to missing ghost-zones support "
-                "in class %s",
-                self.ds.__class__,
+                f"in class {type(self.ds)}",
                 category=RuntimeWarning,
             )
             mylog.debug("Caught %d runtime errors.", runtime_errors_count)
