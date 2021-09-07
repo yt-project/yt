@@ -37,6 +37,9 @@ repos:
     hooks:
     - id: black
       language_version: python3
+    - id: black-jupyter
+      language_version: python3
+
 -   repo: https://github.com/PyCQA/isort
     rev: '5.9.3'
     hooks:
@@ -68,9 +71,6 @@ repos:
   hooks:
     - id: nbqa-pyupgrade
       args: [--nbqa-mutate, --py36-plus]
-    - id: nbqa-black
-      args: [--nbqa-mutate]
-      language_version: python3
     - id: nbqa-isort
       args: [--nbqa-mutate]
     - id: nbqa-flake8
