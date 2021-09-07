@@ -21,7 +21,11 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-18.04]
+        os: [
+          # macos-latest, # TEMP see https://github.com/yt-project/yt/pull/3504#issuecomment-914365378
+          windows-latest,
+          ubuntu-18.04,
+        ]
         python-version: [3.9]
         dependencies: [full]
         tests-type: [unit]
