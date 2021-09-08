@@ -83,13 +83,30 @@ def _accumulate_vector_field(path, field_vals):
 
 def _accumulate_scalar_field(p, field_vals):
     r"""
-    This function integrates a scalar field along a path. It uses a
-    similar method to that in _accumulate_vector_field, but the integral
-    is now:
+    This function integrates a scalar field along a path:
 
     ..math::
 
         I = \int_C \phi(x1,x2,...,xn)d\vec{r}
+
+    With this, the result will be a vector. As such, we can take advantage
+    of numpy broadcasting to vectorize this calculation. If `p` is (N,d),
+    where N is the number of points parameterizing the path and d is the
+    number of spatial dimensions and phi is (N, 1) then the result will
+    be (N,d) and have the form
+
+    ..math::
+
+        \begin{pmatrix}
+        \phi_1 r_{1,x} & \phi_1 r_{1,y} & \phi_1 r_{1,z} \\
+        \phi_2 r_{2,x} & \phi_2 r_{2,y} & \phi_2 r_{2,z} \\
+        \phi_3 r_{3,x} & \phi_3 r_{3,y} & \phi_3 r_{3,z} \\
+        \vdots & \ddots & \vdots
+        \end{pmatrix}
+
+    Where each column corresponds to the components of the resulting vector.
+    We then do the cumulative sum along these columns to get the accumulation
+    of the integral.
 
     Parameters
     ----------
@@ -107,31 +124,8 @@ def _accumulate_scalar_field(p, field_vals):
         The cumulative value of the field integral at each path
         segment
     """
-    # https://en.wikipedia.org/wiki/Line_integral
-    # np.linalg.norm returns a ndarray, so when multiplied by field_vals, which
-    # is a YTArray, this leads to incorrect units. There does not appear to be
-    # a unyt implementation of norm, as far as I'm aware, so units will be
-    # handled manually for the time being
-    # accum = np.cumsum(field_vals[:-1].d * np.linalg.norm(p[1:].d - p[:-1].d, axis=1))
-
-    # The above is wrong. Using a norm doesn't make sense, since the result
-    # needs to be a vector.
-    # The result should be a vector, since you have to integrate along a vector
-    # connecting the two points (scalar phi times a vector dr). So, the result
-    # should be a matrix that has N-1 rows (one for each line segment on the
-    # path) and 3 columns (or however many dimensions there are). See
-    # Essential Mathematical Methods for the Physical Sciences by Riley and
-    # Hobson
-    # field_vals should be a (N,1) vector (one value per point, N points along
-    # the path). The actual path p is (N,d), N points on path and d coordinates
-    # per point, where d is the dimensionality of the space
-    accum_x = field_vals.d * (p[1:, 0].d - p[:-1, 0].d)
-    accum_y = field_vals.d * (p[1:, 1].d - p[:-1, 1].d)
-    accum_z = field_vals.d * (p[1:, 2].d - p[:-1, 2].d)
-    accum = np.stack([accum_x, accum_y, accum_z], axis=1)
-    accum = np.cumsum(accum, axis=0)
-    accum = YTArray(accum, field_vals.units * p.units)
-    return accum
+    accum = np.cumsum(field_vals[:-1].d * (p[1:].d - p[:-1].d), axis=0)
+    return YTArray(accum, field_vals.units * p.units)
 
 
 class Accumulators:
