@@ -22,7 +22,7 @@ jobs:
     strategy:
       matrix:
         os: [
-          # macos-latest, # TEMP see https://github.com/yt-project/yt/pull/3504#issuecomment-914365378
+          macos-latest,
           windows-latest,
           ubuntu-18.04,
         ]
