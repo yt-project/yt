@@ -42,7 +42,7 @@ if [[ "${RUNNER_OS}" == "Windows" ]] && [[ ${dependencies} != "minimal" ]]; then
 else
     python -m pip install --upgrade pip
     python -m pip install --upgrade wheel
-    python -m pip install --upgrade setuptools\<58.0 # see https://github.com/pypa/setuptools/issues/2775
+    python -m pip install --upgrade setuptools
 fi
 
 # Step 2: install deps and yt
