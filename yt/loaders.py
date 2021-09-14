@@ -34,7 +34,7 @@ from yt.utilities.on_demand_imports import _pooch as pooch
 # --- Loaders for known data formats ---
 
 
-def load(fn, *args, **kwargs):
+def load(fn, *args, dataset=None, **kwargs):
     """
     Load a Dataset or DatasetSeries object.
     The data format is automatically discovered, and the exact return type is the
@@ -84,7 +84,8 @@ def load(fn, *args, **kwargs):
     candidates = []
     for cls in output_type_registry.values():
         if cls._is_valid(fn, *args, **kwargs):
-            candidates.append(cls)
+            if dataset is None or dataset in cls.__name__:
+                candidates.append(cls)
 
     # Find only the lowest subclasses, i.e. most specialised front ends
     candidates = find_lowest_subclasses(candidates)

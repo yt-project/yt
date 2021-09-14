@@ -418,14 +418,14 @@ class DatasetSeries:
 
     _dataset_cls = None
 
-    def _load(self, output_fn, **kwargs):
+    def _load(self, output_fn, dataset=None, **kwargs):
         from yt.loaders import load
 
         if self._dataset_cls is not None:
             return self._dataset_cls(output_fn, **kwargs)
         elif self._mixed_dataset_types:
             return load(output_fn, **kwargs)
-        ds = load(output_fn, **kwargs)
+        ds = load(output_fn, dataset=dataset, **kwargs)
         self._dataset_cls = ds.__class__
         return ds
 
