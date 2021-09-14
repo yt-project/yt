@@ -13,8 +13,6 @@ from yt.geometry.selection_routines import GridSelector
 from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.on_demand_imports import _f90nml as f90nml
 
-from .datfile_utils import get_single_block_field_data
-
 
 def read_amrvac_namelist(parfiles):
     """Read one or more parfiles, and return a unified f90nml.Namelist object.
@@ -100,10 +98,15 @@ class AMRVACIOHandler(BaseIOHandler):
         ileaf = grid.id
         offset = grid._index.block_offsets[ileaf]
         field_idx = self.ds.parameters["w_names"].index(field)
-        data = get_single_block_field_data(
-            fid, offset, self.block_shape, field_idx
-        )
 
+        field_shape = self.block_shape[:-1]
+        count = np.prod(field_shape)
+        byte_size_field = count * 8  # size of a double
+
+        fid.seek(offset + byte_size_field * field_idx)
+        data = np.fromfile(fid, "=f8", count=count)
+        data.shape = field_shape[::-1]
+        data = data.T
         # Always convert data to 3D, as grid.ActiveDimensions is always 3D
         while len(data.shape) < 3:
             data = data[..., np.newaxis]
