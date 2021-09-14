@@ -22,6 +22,7 @@ from yt.utilities.exceptions import (
 )
 from yt.utilities.object_registries import data_object_registry
 from yt.utilities.on_demand_imports import _firefly as firefly
+from yt.utilities.parallel_tools.dask_helper import compute as dask_compute, is_delayed
 from yt.utilities.parameter_file_storage import ParameterFileStore
 
 
@@ -247,7 +248,18 @@ class YTDataContainer:
 
     def __getitem__(self, key):
         """
-        Returns a single field.  Will add if necessary.
+        Returns a single field in memory.  Will add if necessary.
+        """
+        rv = self.get_delayed_data(key)
+
+        if is_delayed(rv):
+            rv = dask_compute(rv)[0]
+
+        return rv
+
+    def get_delayed_data(self, key):
+        """
+        Returns a single field, allows return of delayed arrays.
         """
         f = self._determine_fields([key])[0]
         if f not in self.field_data and key not in self.field_data:

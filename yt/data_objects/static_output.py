@@ -35,7 +35,7 @@ from yt.units.dimensions import current_mks
 from yt.units.unit_object import Unit, define_unit
 from yt.units.unit_registry import UnitRegistry
 from yt.units.unit_systems import create_code_unit_system, unit_system_registry
-from yt.units.yt_array import YTArray, YTQuantity
+from yt.units.yt_array import YTArray, YTDelayedArray, YTQuantity
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.exceptions import (
     YTFieldNotFound,
@@ -1447,6 +1447,58 @@ class Dataset(abc.ABC):
             return self._arr
         self._arr = functools.partial(YTArray, registry=self.unit_registry)
         return self._arr
+
+    _delayed_arr = None
+
+    @property
+    def delayed_arr(self):
+        """Converts a dask array into a :class:`yt.units.yt_array.YTDelayedArray`
+
+        The returned YTDelayedArray will be dimensionless by default, but can be
+        cast to arbitrary units using the ``units`` keyword argument.
+
+        Parameters
+        ----------
+
+        input_array : dask.array.Array
+            A plain dask Array
+        units: String unit specification, unit symbol or astropy object
+            The units of the array. Powers must be specified using python syntax
+            (cm**3, not cm^3).
+        dtype : string or NumPy dtype object
+            The dtype of the returned array data
+
+        Examples
+        --------
+
+        >>> import yt
+        >>> import dask
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+        >>> a = ds.delayed_arr(dask.array.ones((100,), chunks=(10,)), "km")
+        >>> b = ds.delayed_arr(dask.array.ones((100,), chunks=(10,)), "Mpc")
+        >>> a + b
+        unyt_dask_array<add, shape=(100,), dtype=float64, chunksize=(10,), chunktype=numpy.ndarray, units=Mpc>
+
+        Arrays returned by this function know about the dataset's unit system
+
+        >>> a = ds.delayed_arr(dask.array.ones((100,), chunks=(10,)), "code_length")
+        >>> a.in_units("Mpc")
+        unyt_dask_array<mul, shape=(100,), dtype=float64, chunksize=(10,), chunktype=numpy.ndarray, units=Mpc>
+
+        The returned array is a delayed array. To return an in-memory array, use
+        yt's wrapper of dask.compute:
+
+        >>> from yt.utilities.parallel_tools.dask_helper import compute
+        >>> a_in_mem = compute(a.in_units("Mpc"))[0]
+
+        """
+
+        if self._delayed_arr is not None:
+            return self._delayed_arr
+        self._delayed_arr = functools.partial(
+            YTDelayedArray, registry=self.unit_registry
+        )
+        return self._delayed_arr
 
     _quan = None
 

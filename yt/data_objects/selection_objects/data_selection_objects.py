@@ -204,8 +204,11 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         )
 
         for f, v in read_particles.items():
-            self.field_data[f] = self.ds.arr(v, units=finfos[f].units)
-            self.field_data[f].convert_to_units(finfos[f].output_units)
+            if f not in finfos:
+                # coordinates and smoothing length are added when doing selections that are not all_data
+                finfos[f] = self.ds._get_field_info(f[0], f[1])
+            da_f = self.ds.delayed_arr(v, units=finfos[f].units)
+            self.field_data[f] = da_f.to(finfos[f].output_units)
 
         fields_to_generate += gen_fluids + gen_particles
         self._generate_fields(fields_to_generate)
@@ -258,7 +261,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                             units,
                         )
                     try:
-                        fd.convert_to_units(fi.units)
+                        fd = fd.to(fi.units)
                     except AttributeError:
                         # If the field returns an ndarray, coerce to a
                         # dimensionless YTArray and verify that field is

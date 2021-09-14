@@ -330,21 +330,23 @@ class ParticleIndex(Index):
         ds.field_units.update(units)
         ds.particle_types_raw = ds.particle_types
 
+    def _identify_file_masks(self, dobj):
+        # returns a list of files that map to regions intersected by a selector object
+        if getattr(dobj.selector, "is_all_data", False):
+            nfiles = self.regions.nfiles
+            dfi = np.arange(nfiles)
+        else:
+            dfi, file_masks, addfi = self.regions.identify_file_masks(dobj.selector)
+            nfiles = len(file_masks)
+        return dfi, nfiles
+
     def _identify_base_chunk(self, dobj):
         # Must check that chunk_info contains the right number of ghost zones
         if getattr(dobj, "_chunk_info", None) is None:
             if isinstance(dobj, ParticleContainer):
                 dobj._chunk_info = [dobj]
             else:
-                # TODO: only return files
-                if getattr(dobj.selector, "is_all_data", False):
-                    nfiles = self.regions.nfiles
-                    dfi = np.arange(nfiles)
-                else:
-                    dfi, file_masks, addfi = self.regions.identify_file_masks(
-                        dobj.selector
-                    )
-                    nfiles = len(file_masks)
+                dfi, nfiles = self._identify_file_masks(dobj)
                 dobj._chunk_info = [None for _ in range(nfiles)]
 
                 # The following was moved here from ParticleContainer in order
@@ -434,3 +436,70 @@ class ParticleIndex(Index):
         in cases where we are reloading the index from a sidecar file.
         """
         pass
+
+    def _read_particle_fields(self, fields, dobj, chunk=None):
+
+        if len(fields) == 0:
+            return {}, []
+        fields_to_read, fields_to_generate = self._split_fields(fields)
+        if len(fields_to_read) == 0:
+            return {}, fields_to_generate
+
+        # assemble the self.data_files that intersect the selector
+        dfi, nfiles = self._identify_file_masks(dobj)
+        if nfiles == 0:
+            return {}, fields_to_generate
+        data_file_subset = [self.data_files[df_i] for df_i in dfi]
+
+        # add on coordinates and smoothing_length to fields for every particle type if they're not there
+        # so they will be available for our selector
+        is_all_data = getattr(dobj.selector, "is_all_data", False)
+        if is_all_data is False:
+            for field in fields_to_read:
+                # note: need to change Coordinates to particle_position....
+                if (field[0], "Coordinates") not in fields_to_read:
+                    fields_to_read.append((field[0], "Coordinates"))
+                if (field[0], "smoothing_length") not in fields_to_read:
+                    fields_to_read.append((field[0], "smoothing_length"))
+
+        # read all the data from the intersecting data_files into delayed dask arrays
+        fields_to_return = self.io._read_from_datafiles(
+            data_file_subset, fields_to_read
+        )
+
+        # find the particles within the selector
+        if is_all_data is False:
+            fields_to_return = self.apply_selector_mask(fields_to_return, dobj.selector)
+
+        return fields_to_return, fields_to_generate
+
+    def apply_selector_mask(self, fields_to_return, selector):
+        # applies a selector mask to each dask-chunk
+
+        def select_points(pos0, pos1, pos2, smo, selector_obj):
+            # the function we will give to map_blocks. this function wraps the call to select_points because we
+            # need to pass the whole selector object for pickle compatibility when executing in parallel.
+            the_mask = selector_obj.select_points(pos0, pos1, pos2, smo)
+            if the_mask is None:
+                the_mask = np.full(pos0.shape, False, dtype=bool)
+            return the_mask
+
+        ptype_masks = {}
+        for field, vals in fields_to_return.items():
+            if field[0] not in ptype_masks:
+                pos = fields_to_return[(field[0], "Coordinates")]
+                smo = fields_to_return[(field[0], "smoothing_length")]
+                ptype_masks[field[0]] = pos[:, 0].map_blocks(
+                    select_points,
+                    pos[:, 1],
+                    pos[:, 2],
+                    smo,
+                    selector,
+                    meta=np.array((), dtype=bool),
+                )
+
+            fields_to_return[field] = vals[
+                ptype_masks[field[0]],
+            ]
+
+        return fields_to_return
