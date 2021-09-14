@@ -34,7 +34,7 @@ from yt.utilities.on_demand_imports import _pooch as pooch
 # --- Loaders for known data formats ---
 
 
-def load(fn, *args, **kwargs):
+def load(fn, *args, hint: Optional[str] = None, **kwargs):
     """
     Load a Dataset or DatasetSeries object.
     The data format is automatically discovered, and the exact return type is the
@@ -47,6 +47,11 @@ def load(fn, *args, **kwargs):
     fn : str, os.Pathlike, or byte (types supported by os.path.expandusers)
         A path to the data location. This can be a file name, directory name, a glob
         pattern, or a url (for data types that support it).
+
+    hint : str, optional
+        Only classes whose name include a hint are considered. If loading fails with
+        a YTAmbiguousDataType exception, this argument can be used to lift ambiguity.
+        Hints are case insensitive.
 
     Additional arguments, if any, are passed down to the return class.
 
@@ -74,7 +79,7 @@ def load(fn, *args, **kwargs):
     if any(wildcard in fn for wildcard in "[]?!*"):
         from yt.data_objects.time_series import DatasetSeries
 
-        return DatasetSeries(fn, *args, **kwargs)
+        return DatasetSeries(fn, *args, hint=hint, **kwargs)
 
     # This will raise FileNotFoundError if the path isn't matched
     # either in the current dir or yt.config.ytcfg['data_dir_directory']
@@ -87,7 +92,7 @@ def load(fn, *args, **kwargs):
             candidates.append(cls)
 
     # Find only the lowest subclasses, i.e. most specialised front ends
-    candidates = find_lowest_subclasses(candidates)
+    candidates = find_lowest_subclasses(candidates, hint=hint)
 
     if len(candidates) == 1:
         return candidates[0](fn, *args, **kwargs)
