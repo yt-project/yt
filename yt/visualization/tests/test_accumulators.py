@@ -1,3 +1,17 @@
+"""
+Using ds.find_field_values_at_point gives the value of the field at the
+cell center. This was confirmed by:
+
+    grid = ds.index.grids[0]
+    cellWidth = grid.dds # (0.03125, 0.03125, 0.03125) "code_length"
+    leftEdge = grid.LeftEdge # (0,0,0) "code_length"
+    rightEdge = grid.RightEdge # (1,1,1) "code_length"
+    cellCenter = cellWidth / 2.
+    x = ds.find_field_values_at_point([("gas", "x")], cellCenter) # Gives cellCenter[0], as it should
+    ds.find_field_values_at_point([("gas", "x")], cellCenter + ds.arr(0.01, "code_length")) # Gives cellCenter[0]
+        # find_field_values_at_point is giving the value of the field at the center of the cell even when
+        # given a point other than the center of the cell
+"""
 import numpy as np
 import pytest
 from unyt.array import unyt_array
