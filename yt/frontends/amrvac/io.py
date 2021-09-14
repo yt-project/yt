@@ -147,7 +147,6 @@ class AMRVACIOHandler(BaseIOHandler):
         chunks = list(chunks)
         data_dict = {}  # <- return variable
 
-        fields = sorted(fields, key=lambda f: self.ds.parameters["w_names"].index(f[1]))
         if isinstance(selector, GridSelector):
             if not len(chunks) == len(chunks[0].objs) == 1:
                 raise RuntimeError
