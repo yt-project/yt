@@ -151,17 +151,12 @@ def get_single_block_data(istream, byte_offset, block_shape):
 
 def get_single_block_field_data(istream, byte_offset, block_shape, field_idx):
     """retrieve a specific block (ONE field) from a datfile"""
-    istream.seek(byte_offset)
-
     # compute byte size of a single field
     field_shape = block_shape[:-1]
     fmt = ALIGN + np.prod(field_shape) * "d"
     byte_size_field = struct.calcsize(fmt)
 
-    # Read actual data
-    istream.seek(byte_size_field * field_idx, 1)  # seek forward
-    d = struct.unpack(fmt, istream.read(struct.calcsize(fmt)))
-
-    # Fortran ordering
-    block_field_data = np.reshape(d, field_shape, order="F")
-    return block_field_data
+    istream.seek(byte_offset + byte_size_field * field_idx)
+    data = np.fromfile(istream, "=f8", count=np.prod(field_shape))
+    data.shape = field_shape[::-1]
+    return data.T
