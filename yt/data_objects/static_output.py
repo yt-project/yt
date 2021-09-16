@@ -6,6 +6,7 @@ import pickle
 import time
 import weakref
 from collections import defaultdict
+from importlib.util import find_spec
 from stat import ST_CTIME
 
 import numpy as np
@@ -80,7 +81,7 @@ class MutableAttribute:
             ret = ret.copy()
         except AttributeError:
             pass
-        if self.display_array:
+        if self.display_array and find_spec("ipywidgets") is not None:
             try:
                 ret._ipython_display_ = functools.partial(_wrap_display_ytarray, ret)
             # This will error out if the items have yet to be turned into
