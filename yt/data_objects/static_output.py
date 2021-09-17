@@ -4,6 +4,7 @@ import itertools
 import os
 import pickle
 import time
+import warnings
 import weakref
 from collections import defaultdict
 from importlib.util import find_spec
@@ -172,6 +173,12 @@ class Dataset(abc.ABC):
 
     def __init_subclass__(cls, *args, **kwargs):
         super().__init_subclass__(*args, **kwargs)
+        if cls.__name__ in output_type_registry:
+            warnings.warn(
+                f"Overwritting {cls.__name__}, which was previously registered. "
+                "This is expected if you're importing a yt extension with a "
+                "frontend that was already migrated to the main code base."
+            )
         output_type_registry[cls.__name__] = cls
         mylog.debug("Registering: %s as %s", cls.__name__, cls)
 
