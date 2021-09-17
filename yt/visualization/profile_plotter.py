@@ -6,6 +6,7 @@ from functools import wraps
 
 import matplotlib
 import numpy as np
+from matplotlib.font_manager import FontProperties
 from more_itertools.more import always_iterable, unzip
 from packaging.version import parse as parse_version
 
@@ -17,10 +18,11 @@ from yt.utilities.exceptions import YTNotInsideNotebook
 from yt.utilities.logger import ytLogger as mylog
 
 from ..data_objects.selection_objects.data_selection_objects import YTSelectionContainer
-from ._commons import validate_image_name
+from ._commons import DEFAULT_FONT_PROPERTIES, validate_image_name
 from .base_plot_types import ImagePlotMPL, PlotMPL
 from .plot_container import (
     ImagePlotContainer,
+    PlotContainer,
     get_log_minorticks,
     invalidate_plot,
     linear_transform,
@@ -113,7 +115,7 @@ def data_object_or_all_data(data_source):
     return data_source
 
 
-class ProfilePlot:
+class ProfilePlot(PlotContainer):
     r"""
     Create a 1d profile plot from a data source or from a list
     of profile objects.
@@ -374,6 +376,7 @@ class ProfilePlot:
                     fontproperties=self._font_properties,
                     **self._text_kwargs[f],
                 )
+        self._set_font_properties()
 
         for i, profile in enumerate(self.profiles):
             for field, field_data in profile.items():
@@ -415,9 +418,7 @@ class ProfilePlot:
         obj._text_ypos = {}
         obj._text_kwargs = {}
 
-        from matplotlib.font_manager import FontProperties
-
-        obj._font_properties = FontProperties(family="stixgeneral", size=18)
+        obj._font_properties = FontProperties(**DEFAULT_FONT_PROPERTIES)
         obj._font_color = None
         obj.profiles = list(always_iterable(profiles))
         obj.x_log = None
@@ -1335,77 +1336,6 @@ class PhasePlot(ImagePlotContainer):
             names.append(name)
             self.plots[f].save(name, mpl_kwargs)
         return names
-
-    @invalidate_plot
-    def set_font(self, font_dict=None):
-        """
-
-        Set the font and font properties.
-
-        Parameters
-        ----------
-
-        font_dict : dict
-            A dict of keyword parameters to be passed to
-            :class:`matplotlib.font_manager.FontProperties`.
-
-            Possible keys include:
-
-            * family - The font family. Can be serif, sans-serif, cursive,
-              'fantasy', or 'monospace'.
-            * style - The font style. Either normal, italic or oblique.
-            * color - A valid color string like 'r', 'g', 'red', 'cobalt',
-              and 'orange'.
-            * variant - Either normal or small-caps.
-            * size - Either a relative value of xx-small, x-small, small,
-              medium, large, x-large, xx-large or an absolute font size, e.g. 12
-            * stretch - A numeric value in the range 0-1000 or one of
-              ultra-condensed, extra-condensed, condensed, semi-condensed,
-              normal, semi-expanded, expanded, extra-expanded or ultra-expanded
-            * weight - A numeric value in the range 0-1000 or one of ultralight,
-              light, normal, regular, book, medium, roman, semibold, demibold,
-              demi, bold, heavy, extra bold, or black
-
-            See the matplotlib font manager API documentation for more details.
-            https://matplotlib.org/stable/api/font_manager_api.html
-
-        Notes
-        -----
-
-        Mathtext axis labels will only obey the `size` and `color` keyword.
-
-        Examples
-        --------
-
-        This sets the font to be 24-pt, blue, sans-serif, italic, and
-        bold-face.
-
-        >>> prof = ProfilePlot(
-        ...     ds.all_data(), ("gas", "density"), ("gas", "temperature")
-        ... )
-        >>> slc.set_font(
-        ...     {
-        ...         "family": "sans-serif",
-        ...         "style": "italic",
-        ...         "weight": "bold",
-        ...         "size": 24,
-        ...         "color": "blue",
-        ...     }
-        ... )
-
-        """
-        from matplotlib.font_manager import FontProperties
-
-        if font_dict is None:
-            font_dict = {}
-        if "color" in font_dict:
-            self._font_color = font_dict.pop("color")
-        # Set default values if the user does not explicitly set them.
-        # this prevents reverting to the matplotlib defaults.
-        font_dict.setdefault("family", "stixgeneral")
-        font_dict.setdefault("size", 18)
-        self._font_properties = FontProperties(**font_dict)
-        return self
 
     @invalidate_plot
     def set_title(self, field, title):
