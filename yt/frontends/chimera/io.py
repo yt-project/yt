@@ -1,4 +1,4 @@
-r"""
+"""
     Chimera-specific IO functions
     
     
@@ -71,16 +71,15 @@ class ChimeraIOHandler(BaseIOHandler):
     def io_iter(self, chunks, fields):
         for n, chunk in enumerate(chunks):
             file = _find_files(self.filename)
-            if any('grid_2' in f for f in file):
+            if any('grid_2' in f for f in file): #Checks for Yin-Yang
                 yy = True
             else:
-                yy = False
+                yy = False #Numpy Bless
             with h5py.File(file[n],"r") as f:
                 #Generates mask according to the "ongrid_mask" variable
                 m = int(file[n][-5:-3])-1
                 k = f["fluid"]["entropy"].shape[0]
                 mask_0 = f["mesh"]["ongrid_mask"][k*m:k*(m+1),:]
-                #mask_0 = np.random.randint(0,2, size = (15,90)).astype('float')
                 
                 if (f["mesh"]["array_dimensions"][2] > 1):
                     nrd = f["mesh"]["array_dimensions"][0]-2
@@ -92,7 +91,7 @@ class ChimeraIOHandler(BaseIOHandler):
                     ftype, fname = field
                     specials = ('abar', 'e_rms_1','e_rms_2','e_rms_3','e_rms_4',
                                 'lumin_1','lumin_2','lumin_3','lumin_4',
-                                'num_lumin_1','num_lumin_2','num_lumin_3','num_lumin_4','shock')
+                                'num_lumin_1','num_lumin_2','num_lumin_3','num_lumin_4','shock','nse_c')
                     a_name_2 = [i.decode("utf-8") for i in f["abundance"]["a_name"]]
                     if fname not in specials:
                         if fname in f["fluid"]:
@@ -105,7 +104,13 @@ class ChimeraIOHandler(BaseIOHandler):
                         else:
                             sys.exit('Error: Invalid field name')
                         dat_1 = ds[:,:,:].transpose()
-                                
+                        
+                    elif fname == 'nse_c':
+                        if np.shape(f["abundance"]["nse_c"]) != np.shape(f["fluid"]["rho_c"]):
+                            ds = f["abundance"]["nse_c"][:,:,1:]
+                        else:
+                            ds = f["abundance"]["nse_c"]
+                        dat_1 = ds[:,:,:].transpose()
                     elif fname == 'abar':
                         xn_c = np.array(f["abundance"]["xn_c"])
                         a_nuc_rep_c = np.array(f["abundance"]["a_nuc_rep_c"])

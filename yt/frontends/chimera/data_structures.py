@@ -1,5 +1,5 @@
 """
-Chimera data structures
+    Chimera data structures
     
     
     
@@ -31,10 +31,12 @@ from yt.geometry.geometry_handler import \
     YTDataChunk
 from yt.geometry.unstructured_mesh_handler import \
     UnstructuredIndex
-from yt.data_objects.unstructured_mesh import \
-    UnstructuredMesh, SemiStructuredMesh
-from yt.data_objects.grid_patch import \
-    AMRGridPatch
+try:
+    from yt.data_objects.unstructured_mesh import \
+        SemiStructuredMesh
+except:
+    from yt.data_objects.index_subobjects.unstructured_mesh import \
+        SemiStructuredMesh
 from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.data_objects.static_output import \
@@ -132,7 +134,7 @@ class ChimeraUNSIndex(UnstructuredIndex):
                     
                     
                     '''
-                    Spherical transform
+                    Spherical transform -- Currently Unused
                     old_theta = coords[:,1].copy()
                     old_phi = coords[:,2].copy()
                     coords[:,1] = np.arccos(np.sin(old_theta)*np.sin(old_phi))
@@ -172,13 +174,15 @@ class ChimeraUNSIndex(UnstructuredIndex):
 
     def _detect_output_fields(self): #Reads in the available data fields
         with h5py.File(self.index_filename,"r") as f:
-            fluids = [("chimera",i) for i in f["fluid"]]
-            abundance = [("chimera",i) for i in f["abundance"]]
+            fluids = [("chimera",i) for i in f["fluid"] if np.shape(f["fluid"][i]) == np.shape(f["fluid"]["rho_c"])]
+            abundance = [("chimera",i) for i in f["abundance"] if np.shape(f["abundance"][i]) == np.shape(f["fluid"]["rho_c"])]
             e_rms = [("chimera", f"e_rms_{i+1}") for i in range(4)]
             lumin = [("chimera", f"lumin_{i+1}") for i in range(4)]
             num_lumin = [("chimera", f"num_lumin_{i+1}") for i in range(4)]
             a_name = [("chimera",i.decode("utf-8")) for i in f["abundance"]["a_name"]]
             self.field_list = fluids+abundance+e_rms+lumin+num_lumin+[("chimera","abar"),("chimera","shock")]+a_name
+            if np.shape(f["abundance"]["nse_c"]) != np.shape(f["fluid"]["rho_c"]):
+                self.field_list += [("chimera","nse_c")]
 
 
 
