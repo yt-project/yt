@@ -1,4 +1,5 @@
 import builtins
+import sys
 from copy import deepcopy
 
 import numpy as np
@@ -6,7 +7,6 @@ import numpy as np
 from yt.config import ytcfg
 from yt.data_objects.api import ImageArray
 from yt.funcs import ensure_numpy_array, get_num_threads, get_pbar, is_sequence, mylog
-from yt.geometry.geometry_handler import cached_property
 from yt.units.yt_array import YTArray
 from yt.utilities.amr_kdtree.api import AMRKDTree
 from yt.utilities.exceptions import YTNotInsideNotebook
@@ -34,6 +34,27 @@ from yt.visualization.image_writer import apply_colormap, write_bitmap, write_im
 from yt.visualization.volume_rendering.blenders import enhance_rgba
 
 from .transfer_functions import ProjectionTransferFunction
+
+if sys.version_info >= (3, 8):
+    from functools import cached_property
+else:
+
+    def cached_property(func):
+        n = f"_{func.__name__}"
+
+        def cached_func(self):
+            if self._cache and getattr(self, n, None) is not None:
+                return getattr(self, n)
+            if self.data_size is None:
+                tr = self._accumulate_values(n[1:])
+            else:
+                tr = func(self)
+            if self._cache:
+
+                setattr(self, n, tr)
+            return tr
+
+        return property(cached_func)
 
 
 def get_corners(le, re):

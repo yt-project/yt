@@ -1,3 +1,4 @@
+import sys
 from collections import defaultdict
 from functools import wraps
 from numbers import Number
@@ -48,18 +49,11 @@ from .plot_container import (
 )
 from .plot_modifications import callback_registry
 
-import sys  # isort: skip
-
 if sys.version_info < (3, 10):
-    # this function is deprecated in more_itertools
-    # because it is superseded by the standard library
     from more_itertools import zip_equal
 else:
 
     def zip_equal(*args):
-        # FUTURE: when only Python 3.10+ is supported,
-        # drop this conditional and call the builtin zip
-        # function directly where due
         return zip(*args, strict=True)
 
 
