@@ -80,7 +80,7 @@ cdef int octree_build_node(Octree * tree, long int node_idx):
     cdef np.int64_t splits[9]
     cdef np.int64_t i, j, k, n, start, end
     cdef np.float64_t lx, ly, lz, sz, inv_size
-        
+
     # If we are running out of space in our tree, then we *try* to
     # relloacate a tree of double the size
     if (tree.num_nodes + 8) >= tree.max_num_nodes:
