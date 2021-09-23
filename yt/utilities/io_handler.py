@@ -66,7 +66,7 @@ class BaseIOHandler:
     # We need a function for reading a list of sets
     # and a function for *popping* from a queue all the appropriate sets
     @contextmanager
-    def preload(self, chunk, fields: list[FieldTuple], max_size):
+    def preload(self, chunk, fields: typing.List[FieldTuple], max_size):
         yield self
 
     def peek(self, grid, field):
@@ -112,7 +112,7 @@ class BaseIOHandler:
         pass
 
     def _read_fluid_selection(
-        self, chunks, selector, fields: list[FluidFieldTuple], size
+        self, chunks, selector, fields: typing.List[FluidFieldTuple], size
     ) -> FieldReturnValues:
         # This function has an interesting history.  It previously was mandate
         # to be defined by all of the subclasses.  But, to avoid having to
@@ -141,7 +141,7 @@ class BaseIOHandler:
                 ind[field] += obj.select(selector, data, rv[field], ind[field])
         return rv
 
-    def io_iter(self, chunks, fields: list[FieldTuple]):
+    def io_iter(self, chunks, fields: typing.List[FieldTuple]):
         raise NotImplementedError(
             "subclassing Dataset.io_iter this is required in order to use the default "
             "implementation of Dataset._read_fluid_selection. "
@@ -176,7 +176,7 @@ class BaseIOHandler:
         return psize
 
     def _read_particle_selection(
-        self, chunks, selector, fields: list[ParticleFieldTuple]
+        self, chunks, selector, fields: typing.List[ParticleFieldTuple]
     ) -> FieldReturnValues:
         rv = {}
         ind = {}
