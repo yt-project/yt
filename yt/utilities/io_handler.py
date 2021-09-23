@@ -15,17 +15,17 @@ use_caching = 0
 
 FluidFieldType = str
 FluidFieldName = str
-FluidFieldTuple = tuple[FluidFieldType, FluidFieldName]
+FluidFieldTuple = typing.Tuple[FluidFieldType, FluidFieldName]
 
 ParticleFieldType = str
 ParticleFieldName = str
-ParticleTypeFields = dict[ParticleFieldType, list[ParticleFieldName]]
-ParticleTypeSizes = dict[ParticleFieldType, int]
-ParticleFieldTuple = tuple[ParticleFieldType, ParticleFieldName]
-ParticleFieldSize = dict[ParticleFieldTuple, int]
+ParticleTypeFields = typing.Dict[ParticleFieldType, typing.List[ParticleFieldName]]
+ParticleTypeSizes = typing.Dict[ParticleFieldType, int]
+ParticleFieldTuple = typing.Tuple[ParticleFieldType, ParticleFieldName]
+ParticleFieldSize = typing.Dict[ParticleFieldTuple, int]
 
 FieldTuple = typing.Union[FluidFieldTuple, ParticleFieldTuple]
-FieldReturnValues = dict[FieldTuple, np.ndarray]
+FieldReturnValues = typing.Dict[FieldTuple, np.ndarray]
 
 
 def _make_io_key(args, *_args, **kwargs):
