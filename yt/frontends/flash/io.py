@@ -192,7 +192,7 @@ class IOHandlerFLASHParticle(BaseIOHandler):
         )
         yield ("io", pxyz)
 
-    def _read_data_file(self, data_file, ptf, selector=None):
+    def _read_particle_data_file(self, data_file, ptf, selector=None):
         px, py, pz = self._position_fields
         p_fields = self._handle["/tracer particles"]
         si, ei = data_file.start, data_file.end

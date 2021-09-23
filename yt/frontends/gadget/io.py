@@ -160,7 +160,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
             hsml[:] = ds
             return hsml
 
-    def _read_data_file(self, data_file, ptf, selector=None):
+    def _read_particle_data_file(self, data_file, ptf, selector=None):
         si, ei = data_file.start, data_file.end
 
         data_return = {}
@@ -382,7 +382,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                 yield ptype, (pos[:, 0], pos[:, 1], pos[:, 2]), hsml
             f.close()
 
-    def _read_data_file(self, data_file, ptf, selector=None):
+    def _read_particle_data_file(self, data_file, ptf, selector=None):
         return_data = {}
         poff = data_file.field_offsets
         tp = data_file.total_particles
