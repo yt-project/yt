@@ -175,6 +175,11 @@ class BaseIOHandler:
             psize[ptype] += selector.count_points(x, y, z, 0.0)
         return psize
 
+    def _read_datafile(self, data_file, ptf, selector):
+        # each frontend needs to implement this: read from a data_file object
+        # and return a dict of fields for that data_file
+        raise NotImplementedError
+
     def _read_particle_selection(
         self, chunks, selector, fields: typing.List[ParticleFieldTuple]
     ) -> FieldReturnValues:

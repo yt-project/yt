@@ -192,6 +192,32 @@ class IOHandlerFLASHParticle(BaseIOHandler):
         )
         yield ("io", pxyz)
 
+    def _read_datafile(self, data_file, ptf, selector):
+        px, py, pz = self._position_fields
+        p_fields = self._handle["/tracer particles"]
+        si, ei = data_file.start, data_file.end
+
+        data_return = {}
+        # This should just be a single item
+        for ptype, field_list in sorted(ptf.items()):
+            x = np.asarray(p_fields[si:ei, px], dtype="=f8")
+            y = np.asarray(p_fields[si:ei, py], dtype="=f8")
+            z = np.asarray(p_fields[si:ei, pz], dtype="=f8")
+            if selector:
+                mask = selector.select_points(x, y, z, 0.0)
+            del x, y, z
+            if mask is None:
+                continue
+
+            for field in field_list:
+                fi = self._particle_fields[field]
+                data = p_fields[si:ei, fi]
+                if selector:
+                    data = data[mask]
+                data_return[(ptype, field)] = data
+
+        return data_return
+
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
         data_files = set()
@@ -199,23 +225,11 @@ class IOHandlerFLASHParticle(BaseIOHandler):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        px, py, pz = self._position_fields
-        p_fields = self._handle["/tracer particles"]
+
         for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
-            si, ei = data_file.start, data_file.end
-            # This should just be a single item
-            for ptype, field_list in sorted(ptf.items()):
-                x = np.asarray(p_fields[si:ei, px], dtype="=f8")
-                y = np.asarray(p_fields[si:ei, py], dtype="=f8")
-                z = np.asarray(p_fields[si:ei, pz], dtype="=f8")
-                mask = selector.select_points(x, y, z, 0.0)
-                del x, y, z
-                if mask is None:
-                    continue
-                for field in field_list:
-                    fi = self._particle_fields[field]
-                    data = p_fields[si:ei, fi]
-                    yield (ptype, field), data[mask]
+
+            data_file_data = self._read_datafile(data_file, ptf, selector)
+            yield from data_file_data.items()
 
     _pcount = None
 
