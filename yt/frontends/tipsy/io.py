@@ -151,78 +151,75 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
     def _get_smoothing_length(self, data_file, dtype, shape):
         return self._read_smoothing_length(data_file, shape[0])
 
-    def _read_particle_fields(self, chunks, ptf, selector):
-        chunks = list(chunks)
-        data_files = set()
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
-        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
-            poff = data_file.field_offsets
-            aux_fields_offsets = self._calculate_particle_offsets_aux(data_file)
-            tp = data_file.total_particles
-            f = open(data_file.filename, "rb")
+    def _read_datafile(self, data_file, ptf, selector):
 
-            # we need to open all aux files for chunking to work
-            aux_fh = {}
-            for afield in self._aux_fields:
-                aux_fh[afield] = open(data_file.filename + "." + afield, "rb")
+        return_data = {}
 
-            for ptype, field_list in sorted(
-                ptf.items(), key=lambda a: poff.get(a[0], -1)
-            ):
-                if data_file.total_particles[ptype] == 0:
-                    continue
-                f.seek(poff[ptype])
-                afields = list(set(field_list).intersection(self._aux_fields))
-                count = min(self.ds.index.chunksize, tp[ptype])
-                p = np.fromfile(f, self._pdtypes[ptype], count=count)
-                auxdata = []
-                for afield in afields:
-                    aux_fh[afield].seek(aux_fields_offsets[afield][ptype])
-                    if isinstance(self._aux_pdtypes[afield], np.dtype):
-                        auxdata.append(
-                            np.fromfile(
-                                aux_fh[afield], self._aux_pdtypes[afield], count=count
-                            )
+        poff = data_file.field_offsets
+        aux_fields_offsets = self._calculate_particle_offsets_aux(data_file)
+        tp = data_file.total_particles
+        f = open(data_file.filename, "rb")
+
+        # we need to open all aux files for chunking to work
+        aux_fh = {}
+        for afield in self._aux_fields:
+            aux_fh[afield] = open(data_file.filename + "." + afield, "rb")
+
+        for ptype, field_list in sorted(ptf.items(), key=lambda a: poff.get(a[0], -1)):
+            if data_file.total_particles[ptype] == 0:
+                continue
+            f.seek(poff[ptype])
+            afields = list(set(field_list).intersection(self._aux_fields))
+            count = min(self.ds.index.chunksize, tp[ptype])
+            p = np.fromfile(f, self._pdtypes[ptype], count=count)
+            auxdata = []
+            for afield in afields:
+                aux_fh[afield].seek(aux_fields_offsets[afield][ptype])
+                if isinstance(self._aux_pdtypes[afield], np.dtype):
+                    auxdata.append(
+                        np.fromfile(
+                            aux_fh[afield], self._aux_pdtypes[afield], count=count
                         )
-                    else:
-                        par = self.ds.parameters
-                        nlines = 1 + par["nsph"] + par["ndark"] + par["nstar"]
-                        aux_fh[afield].seek(0)
-                        sh = aux_fields_offsets[afield][ptype]
-                        sf = nlines - count - sh
-                        if tp[ptype] > 0:
-                            aux = np.genfromtxt(
-                                aux_fh[afield], skip_header=sh, skip_footer=sf
-                            )
-                            if aux.ndim < 1:
-                                aux = np.array([aux])
-                            auxdata.append(aux)
-                if afields:
-                    p = append_fields(p, afields, auxdata)
-                if ptype == "Gas":
-                    hsml = self._read_smoothing_length(data_file, count)
+                    )
                 else:
-                    hsml = 0.0
-                if getattr(selector, "is_all_data", False):
-                    mask = slice(None, None, None)
-                else:
-                    x = p["Coordinates"]["x"].astype("float64")
-                    y = p["Coordinates"]["y"].astype("float64")
-                    z = p["Coordinates"]["z"].astype("float64")
-                    mask = selector.select_points(x, y, z, hsml)
-                    del x, y, z
-                if mask is None:
-                    continue
-                tf = self._fill_fields(field_list, p, hsml, mask, data_file)
-                for field in field_list:
-                    yield (ptype, field), tf.pop(field)
+                    par = self.ds.parameters
+                    nlines = 1 + par["nsph"] + par["ndark"] + par["nstar"]
+                    aux_fh[afield].seek(0)
+                    sh = aux_fields_offsets[afield][ptype]
+                    sf = nlines - count - sh
+                    if tp[ptype] > 0:
+                        aux = np.genfromtxt(
+                            aux_fh[afield], skip_header=sh, skip_footer=sf
+                        )
+                        if aux.ndim < 1:
+                            aux = np.array([aux])
+                        auxdata.append(aux)
+            if afields:
+                p = append_fields(p, afields, auxdata)
+            if ptype == "Gas":
+                hsml = self._read_smoothing_length(data_file, count)
+            else:
+                hsml = 0.0
+            if selector is None or getattr(selector, "is_all_data", False):
+                mask = slice(None, None, None)
+            else:
+                x = p["Coordinates"]["x"].astype("float64")
+                y = p["Coordinates"]["y"].astype("float64")
+                z = p["Coordinates"]["z"].astype("float64")
+                mask = selector.select_points(x, y, z, hsml)
+                del x, y, z
+            if mask is None:
+                continue
+            tf = self._fill_fields(field_list, p, hsml, mask, data_file)
+            for field in field_list:
+                return_data[(ptype, field)] = tf.pop(field)
 
-            # close all file handles
-            f.close()
-            for fh in list(aux_fh.values()):
-                fh.close()
+        # close all file handles
+        f.close()
+        for fh in list(aux_fh.values()):
+            fh.close()
+
+        return return_data
 
     def _update_domain(self, data_file):
         """

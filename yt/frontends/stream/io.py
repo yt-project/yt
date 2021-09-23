@@ -132,29 +132,35 @@ class StreamParticleIOHandler(BaseParticleIOHandler):
             psize[ptype] += selector.count_points(x, y, z, hsml)
         return psize
 
-    def _read_particle_fields(self, chunks, ptf, selector):
-        for data_file in sorted(
-            self._get_data_files(chunks), key=lambda x: (x.filename, x.start)
-        ):
-            f = self.fields[data_file.filename]
-            for ptype, field_list in sorted(ptf.items()):
-                if (ptype, "particle_position") in f:
-                    ppos = f[ptype, "particle_position"]
-                    x = ppos[:, 0]
-                    y = ppos[:, 1]
-                    z = ppos[:, 2]
-                else:
-                    x, y, z = (f[ptype, f"particle_position_{ax}"] for ax in "xyz")
-                if (ptype, "smoothing_length") in self.ds.field_list:
-                    hsml = f[ptype, "smoothing_length"]
-                else:
-                    hsml = 0.0
+    def _read_datafile(self, data_file, ptf, selector):
+
+        return_data = {}
+        f = self.fields[data_file.filename]
+        for ptype, field_list in sorted(ptf.items()):
+            if (ptype, "particle_position") in f:
+                ppos = f[ptype, "particle_position"]
+                x = ppos[:, 0]
+                y = ppos[:, 1]
+                z = ppos[:, 2]
+            else:
+                x, y, z = (f[ptype, f"particle_position_{ax}"] for ax in "xyz")
+            if (ptype, "smoothing_length") in self.ds.field_list:
+                hsml = f[ptype, "smoothing_length"]
+            else:
+                hsml = 0.0
+
+            if selector:
                 mask = selector.select_points(x, y, z, hsml)
-                if mask is None:
-                    continue
-                for field in field_list:
-                    data = f[ptype, field][mask]
-                    yield (ptype, field), data
+            if mask is None:
+                continue
+            for field in field_list:
+                data = f[ptype, field]
+                if selector:
+                    data = data[mask]
+
+                return_data[(ptype, field)] = data
+
+        return return_data
 
     def _yield_coordinates(self, data_file, needed_ptype=None):
         # self.fields[g.id][fname] is the pattern here

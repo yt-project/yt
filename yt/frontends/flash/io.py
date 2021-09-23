@@ -219,17 +219,8 @@ class IOHandlerFLASHParticle(BaseIOHandler):
         return data_return
 
     def _read_particle_fields(self, chunks, ptf, selector):
-        chunks = list(chunks)
-        data_files = set()
         assert len(ptf) == 1
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
-
-        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
-
-            data_file_data = self._read_datafile(data_file, ptf, selector)
-            yield from data_file_data.items()
+        yield from super()._read_particle_fields(chunks, ptf, selector)
 
     _pcount = None
 

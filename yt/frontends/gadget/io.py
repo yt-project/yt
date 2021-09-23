@@ -231,19 +231,6 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
         f.close()
         return data_return
 
-    def _read_particle_fields(self, chunks, ptf, selector):
-        # Now we have all the sizes, and we can allocate
-        data_files = set()
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
-        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
-            data_file_data = self._read_datafile(data_file, ptf, selector)
-            # temporary trickery so it's still an iterator, need to adjust
-            # the io_handler.BaseIOHandler.read_particle_selection() method
-            # to not use an iterator.
-            yield from data_file_data.items()
-
     def _count_particles(self, data_file):
         si, ei = data_file.start, data_file.end
         f = h5py.File(data_file.filename, mode="r")
@@ -395,51 +382,46 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                 yield ptype, (pos[:, 0], pos[:, 1], pos[:, 2]), hsml
             f.close()
 
-    def _read_particle_fields(self, chunks, ptf, selector):
-        data_files = set()
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
-        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
-            poff = data_file.field_offsets
-            tp = data_file.total_particles
-            f = open(data_file.filename, "rb")
-            for ptype, field_list in sorted(ptf.items()):
-                if tp[ptype] == 0:
-                    continue
-                if getattr(selector, "is_all_data", False):
-                    mask = slice(None, None, None)
+    def _read_datafile(self, data_file, ptf, selector):
+        return_data = {}
+        poff = data_file.field_offsets
+        tp = data_file.total_particles
+        f = open(data_file.filename, "rb")
+        for ptype, field_list in sorted(ptf.items()):
+            if tp[ptype] == 0:
+                continue
+            if selector is None or getattr(selector, "is_all_data", False):
+                mask = slice(None, None, None)
+            else:
+                f.seek(poff[ptype, "Coordinates"], os.SEEK_SET)
+                pos = self._read_field_from_file(f, tp[ptype], "Coordinates")
+                if ptype == self.ds._sph_ptypes[0]:
+                    f.seek(poff[ptype, "SmoothingLength"], os.SEEK_SET)
+                    hsml = self._read_field_from_file(f, tp[ptype], "SmoothingLength")
                 else:
-                    f.seek(poff[ptype, "Coordinates"], os.SEEK_SET)
-                    pos = self._read_field_from_file(f, tp[ptype], "Coordinates")
-                    if ptype == self.ds._sph_ptypes[0]:
-                        f.seek(poff[ptype, "SmoothingLength"], os.SEEK_SET)
-                        hsml = self._read_field_from_file(
-                            f, tp[ptype], "SmoothingLength"
-                        )
+                    hsml = 0.0
+                mask = selector.select_points(pos[:, 0], pos[:, 1], pos[:, 2], hsml)
+                del pos
+                del hsml
+            if mask is None:
+                continue
+            for field in field_list:
+                if field == "Mass" and ptype not in self.var_mass:
+                    if getattr(selector, "is_all_data", False):
+                        size = data_file.total_particles[ptype]
                     else:
-                        hsml = 0.0
-                    mask = selector.select_points(pos[:, 0], pos[:, 1], pos[:, 2], hsml)
-                    del pos
-                    del hsml
-                if mask is None:
-                    continue
-                for field in field_list:
-                    if field == "Mass" and ptype not in self.var_mass:
-                        if getattr(selector, "is_all_data", False):
-                            size = data_file.total_particles[ptype]
-                        else:
-                            size = mask.sum()
-                        data = np.empty(size, dtype="float64")
-                        m = self.ds.parameters["Massarr"][self._ptypes.index(ptype)]
-                        data[:] = m
-                        yield (ptype, field), data
-                        continue
-                    f.seek(poff[ptype, field], os.SEEK_SET)
-                    data = self._read_field_from_file(f, tp[ptype], field)
-                    data = data[mask, ...]
+                        size = mask.sum()
+                    data = np.empty(size, dtype="float64")
+                    m = self.ds.parameters["Massarr"][self._ptypes.index(ptype)]
+                    data[:] = m
                     yield (ptype, field), data
-            f.close()
+                    continue
+                f.seek(poff[ptype, field], os.SEEK_SET)
+                data = self._read_field_from_file(f, tp[ptype], field)
+                data = data[mask, ...]
+                return_data[(ptype, field)] = data
+        f.close()
+        return return_data
 
     def _read_field_from_file(self, f, count, name):
         if count == 0:

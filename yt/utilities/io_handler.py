@@ -241,6 +241,19 @@ class BaseIOHandler:
             rv[field_f] = rv[field_f][: ind[field_f]]
         return rv
 
+    def _read_particle_fields(self, chunks, ptf, selector):
+        # Now we have all the sizes, and we can allocate
+        data_files = set()
+        for chunk in chunks:
+            for obj in chunk.objs:
+                data_files.update(obj.data_files)
+        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
+            data_file_data = self._read_datafile(data_file, ptf, selector)
+            # temporary trickery so it's still an iterator, need to adjust
+            # the io_handler.BaseIOHandler.read_particle_selection() method
+            # to not use an iterator.
+            yield from data_file_data.items()
+
 
 # As a note: we don't *actually* want this to be how it is forever.  There's no
 # reason we need to have the fluid and particle IO handlers separated.  But,
