@@ -132,7 +132,7 @@ class StreamParticleIOHandler(BaseParticleIOHandler):
             psize[ptype] += selector.count_points(x, y, z, hsml)
         return psize
 
-    def _read_datafile(self, data_file, ptf, selector=None):
+    def _read_data_file(self, data_file, ptf, selector=None):
 
         return_data = {}
         f = self.fields[data_file.filename]
