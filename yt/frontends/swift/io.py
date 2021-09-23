@@ -75,7 +75,7 @@ class IOHandlerSwift(IOHandlerSPH):
             hsml = hsml.astype("float64", copy=False)
             return hsml
 
-    def _read_datafile(self, sub_file, ptf, selector):
+    def _read_datafile(self, sub_file, ptf, selector=None):
         # note: this frontend uses the variable name and terminology sub_file.
         # other frontends use data_file with the understanding that it may
         # actually be a sub_file, hence the super()._read_datafile is called

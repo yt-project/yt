@@ -151,7 +151,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
     def _get_smoothing_length(self, data_file, dtype, shape):
         return self._read_smoothing_length(data_file, shape[0])
 
-    def _read_datafile(self, data_file, ptf, selector):
+    def _read_datafile(self, data_file, ptf, selector=None):
 
         return_data = {}
 

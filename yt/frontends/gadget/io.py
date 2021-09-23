@@ -382,7 +382,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                 yield ptype, (pos[:, 0], pos[:, 1], pos[:, 2]), hsml
             f.close()
 
-    def _read_datafile(self, data_file, ptf, selector):
+    def _read_datafile(self, data_file, ptf, selector=None):
         return_data = {}
         poff = data_file.field_offsets
         tp = data_file.total_particles
