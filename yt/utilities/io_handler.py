@@ -1,4 +1,5 @@
 import os
+import typing
 from collections import defaultdict
 from contextlib import contextmanager
 from functools import _make_key, lru_cache
@@ -12,12 +13,19 @@ io_registry = {}
 
 use_caching = 0
 
-ParticleType = str
-ParticleField = str
-ParticleTuple = tuple[str, str]
-ParticleTypeFields = dict[ParticleType, list[ParticleField]]
-ParticleTypeSizes = dict[ParticleType, int]
-ParticleFieldSize = dict[ParticleTuple, int]
+FluidFieldType = str
+FluidFieldName = str
+FluidFieldTuple = tuple[FluidFieldType, FluidFieldName]
+
+ParticleFieldType = str
+ParticleFieldName = str
+ParticleTypeFields = dict[ParticleFieldType, list[ParticleFieldName]]
+ParticleTypeSizes = dict[ParticleFieldType, int]
+ParticleFieldTuple = tuple[ParticleFieldType, ParticleFieldName]
+ParticleFieldSize = dict[ParticleFieldTuple, int]
+
+FieldTuple = typing.Union[FluidFieldTuple, ParticleFieldTuple]
+FieldReturnValues = dict[FieldTuple, np.ndarray]
 
 
 def _make_io_key(args, *_args, **kwargs):
@@ -58,7 +66,7 @@ class BaseIOHandler:
     # We need a function for reading a list of sets
     # and a function for *popping* from a queue all the appropriate sets
     @contextmanager
-    def preload(self, chunk, fields, max_size):
+    def preload(self, chunk, fields: list[FieldTuple], max_size):
         yield self
 
     def peek(self, grid, field):
@@ -103,7 +111,9 @@ class BaseIOHandler:
     def _read_data(self, grid, field):
         pass
 
-    def _read_fluid_selection(self, chunks, selector, fields, size):
+    def _read_fluid_selection(
+        self, chunks, selector, fields: list[FluidFieldTuple], size
+    ) -> FieldReturnValues:
         # This function has an interesting history.  It previously was mandate
         # to be defined by all of the subclasses.  But, to avoid having to
         # rewrite a whole bunch of IO handlers all at once, and to allow a
@@ -131,7 +141,7 @@ class BaseIOHandler:
                 ind[field] += obj.select(selector, data, rv[field], ind[field])
         return rv
 
-    def io_iter(self, chunks, fields):
+    def io_iter(self, chunks, fields: list[FieldTuple]):
         raise NotImplementedError(
             "subclassing Dataset.io_iter this is required in order to use the default "
             "implementation of Dataset._read_fluid_selection. "
@@ -156,14 +166,18 @@ class BaseIOHandler:
     def _read_chunk_data(self, chunk, fields):
         return {}
 
-    def _count_particles_chunks(self, psize, chunks, ptf: ParticleTypeFields, selector):
+    def _count_particles_chunks(
+        self, psize: ParticleTypeSizes, chunks, ptf: ParticleTypeFields, selector
+    ) -> ParticleTypeSizes:
         for ptype, (x, y, z) in self._read_particle_coords(chunks, ptf):
             # assume particles have zero radius, we break this assumption
             # in the SPH frontend and override this function there
             psize[ptype] += selector.count_points(x, y, z, 0.0)
         return psize
 
-    def _read_particle_selection(self, chunks, selector, fields):
+    def _read_particle_selection(
+        self, chunks, selector, fields: list[ParticleFieldTuple]
+    ) -> FieldReturnValues:
         rv = {}
         ind = {}
         # We first need a set of masks for each particle type
