@@ -12,6 +12,13 @@ io_registry = {}
 
 use_caching = 0
 
+ParticleType = str
+ParticleField = str
+ParticleTuple = tuple[str, str]
+ParticleTypeFields = dict[ParticleType, list[ParticleField]]
+ParticleTypeSizes = dict[ParticleType, int]
+ParticleFieldSize = dict[ParticleTuple, int]
+
 
 def _make_io_key(args, *_args, **kwargs):
     self, obj, field, ctx = args
@@ -149,7 +156,7 @@ class BaseIOHandler:
     def _read_chunk_data(self, chunk, fields):
         return {}
 
-    def _count_particles_chunks(self, psize, chunks, ptf, selector):
+    def _count_particles_chunks(self, psize, chunks, ptf: ParticleTypeFields, selector):
         for ptype, (x, y, z) in self._read_particle_coords(chunks, ptf):
             # assume particles have zero radius, we break this assumption
             # in the SPH frontend and override this function there
