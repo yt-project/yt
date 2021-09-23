@@ -1,23 +1,10 @@
-"""
-Using ds.find_field_values_at_point gives the value of the field at the
-cell center. This was confirmed by:
-
-    grid = ds.index.grids[0]
-    cellWidth = grid.dds # (0.03125, 0.03125, 0.03125) "code_length"
-    leftEdge = grid.LeftEdge # (0,0,0) "code_length"
-    rightEdge = grid.RightEdge # (1,1,1) "code_length"
-    cellCenter = cellWidth / 2.
-    x = ds.find_field_values_at_point([("gas", "x")], cellCenter) # Gives cellCenter[0], as it should
-    ds.find_field_values_at_point([("gas", "x")], cellCenter + ds.arr(0.01, "code_length")) # Gives cellCenter[0]
-        # find_field_values_at_point is giving the value of the field at the center of the cell even when
-        # given a point other than the center of the cell
-"""
 import numpy as np
 import pytest
-from unyt.array import unyt_array
+from unyt.array import unyt_array, ustack
 from unyt.testing import assert_allclose_units
 
-from yt.visualization.accumulators import (  # Accumulators,
+from yt.visualization.accumulators import (
+    Accumulators,
     _accumulate_scalar_field,
     _accumulate_vector_field,
 )
@@ -26,11 +13,11 @@ g30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
 
 
 @pytest.fixture(scope="class")
-def curve(request):
-    x = np.linspace(0.0, 1.0, 10000)
-    y = np.sqrt(x)
-    z = np.array([0.5] * len(x))
-    return unyt_array(np.stack([x, y, z], axis=1), "m")
+def curve(ds):
+    x = ds.arr(np.linspace(0.0, 1.0, 10000), "code_length")
+    y = ds.arr(np.sqrt(x.d), "code_length")
+    z = ds.arr(np.power(x.d, 1.0 / 3.0), "code_length")
+    return ustack([x, y, z], axis=1)
 
 
 @pytest.fixture(scope="class")
@@ -41,7 +28,7 @@ def scalar_field(curve):
 
 @pytest.fixture(scope="class")
 def vector_field(curve):
-    return unyt_array(curve.d, "m/s")
+    return curve
 
 
 @pytest.mark.answer_test
@@ -50,13 +37,14 @@ class TestAccumulators:
     saved_hashes = None
     answer_version = "000"
 
-    def test_scalar(self, curve, scalar_field):
+    @pytest.mark.parametrize("ds", [g30], indirect=True)
+    def test_scalar_integration(self, curve, scalar_field, ds):
         r"""
         Checks _accumulate_scalar_field. The curve is:
 
         x = np.linspace(0., 1., 10000)
         y = np.sqrt(x)
-        z = 0.5
+        z = np.power(x, 1/3)
 
         Scalar field:
         phi = x + y
@@ -64,16 +52,17 @@ class TestAccumulators:
         Limits: x \in [0,1]
         """
         a = _accumulate_scalar_field(curve, scalar_field)
-        solution = unyt_array([7.0 / 6.0, 5.0 / 6.0, 0.0], "kelvin*m")
+        solution = ds.arr([7.0 / 6.0, 5.0 / 6.0, 13.0 / 20.0], "kelvin * code_length")
         assert_allclose_units(a[-1], solution, 1e-3)
 
-    def test_vector(self, curve, vector_field):
+    @pytest.mark.parametrize("ds", [g30], indirect=True)
+    def test_vector_integration(self, curve, vector_field, ds):
         r"""
         Checks _accumulate_vector_field.
 
         x = np.linspace(0., 1., 10000)
         y = np.sqrt(x)
-        z = 0.5
+        z = np.power(x, 1/3)
 
         Scalar field:
         \vec{a} = x\hat{i} + y\hat{j} + z\hat{k}
@@ -81,69 +70,20 @@ class TestAccumulators:
         Limits: x \in [0,1]
         """
         a = _accumulate_vector_field(curve, vector_field)
-        solution = unyt_array([1.0], "m**2 / s")
+        solution = ds.quan(3.0 / 2.0, "code_length**2")
         assert_allclose_units(a[-1], solution, 1e-3)
 
     @pytest.mark.parametrize("ds", [g30], indirect=True)
-    def test_two_pts_same_cell_scalar(self, ds):
-        r"""
-        Integrates the density field between two points that are in the
-        same cell.
-        """
-        raise NotImplementedError
+    def test_scalar_tree_access(self, curve, ds):
+        accumulator = Accumulators(curve, ds)
+        accumulator.accumulate(("gas", "x"), is_vector=False)
+        solution = ds.arr([7.0 / 6.0, 5.0 / 6.0, 13.0 / 20.0], "code_length * kelvin")
+        assert_allclose_units(accumulator.accum[-1], solution, 1e-3)
 
     @pytest.mark.parametrize("ds", [g30], indirect=True)
-    def test_two_pts_diff_cell_same_node_scalar(self, ds):
-        r"""
-        Integrates the density field between two points that are in the
-        same node but different cells.
-        """
-        raise NotImplementedError
-
-    @pytest.mark.parametrize("ds", [g30], indirect=True)
-    def test_two_pts_diff_nodes_scalar(self, ds):
-        r"""
-        Integrates the density field between two points that are in
-        different nodes.
-        """
-        raise NotImplementedError
-
-    @pytest.mark.parametrize("ds", [g30], indirect=True)
-    def test_npts_scalar(self, ds):
-        r"""
-        Calculates the accumulation of the density field along a path with
-        more than two points.
-        """
-        raise NotImplementedError
-
-    @pytest.mark.parametrize("ds", [g30], indirect=True)
-    def test_two_pts_same_cell_vector(self, ds):
-        r"""
-        Integrates the velocity field between two points that are in the same
-        cell in the same node.
-        """
-        raise NotImplementedError
-
-    @pytest.mark.parametrize("ds", [g30], indirect=True)
-    def test_two_pts_diff_cell_same_node_vector(self, ds):
-        r"""
-        Integrates the velocity field between two points that are in the same
-        node but in different cells.
-        """
-        raise NotImplementedError
-
-    @pytest.mark.parametrize("ds", [g30], indirect=True)
-    def test_two_pts_diff_nodes_vector(self, ds):
-        r"""
-        Integrates the velocity field between two points that are in different
-        nodes.
-        """
-        raise NotImplementedError
-
-    @pytest.mark.parametrize("ds", [g30], indirect=True)
-    def test_npts_vector(self, ds):
-        r"""
-        Calculates the accumulation of a vector field alog a path with
-        more than two points.
-        """
-        raise NotImplementedError
+    def test_vector_tree_access(self, curve, ds):
+        accumulator = Accumulators(curve, ds)
+        field = [("gas", "x"), ("gas", "y"), ("gas", "z")]
+        accumulator.accumulate(field, is_vector=True)
+        solution = ds.quan(3.0 / 2.0, "code_length**2")
+        assert_allclose_units(accumulator.accum[-1], solution, 1e-3)
