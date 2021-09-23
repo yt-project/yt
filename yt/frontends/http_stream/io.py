@@ -1,11 +1,11 @@
 import numpy as np
 
 from yt.funcs import mylog
-from yt.utilities.io_handler import BaseIOHandler
+from yt.utilities.io_handler import BaseParticleIOHandler
 from yt.utilities.on_demand_imports import _requests as requests
 
 
-class IOHandlerHTTPStream(BaseIOHandler):
+class IOHandlerHTTPStream(BaseParticleIOHandler):
     _dataset_type = "http_particle_stream"
     _vector_fields = ("Coordinates", "Velocity", "Velocities")
 

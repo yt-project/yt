@@ -2,10 +2,10 @@ from operator import attrgetter
 
 import numpy as np
 
-from yt.utilities.io_handler import BaseIOHandler
+from yt.utilities.io_handler import BaseParticleIOHandler
 
 
-class IOHandlerAHFHalos(BaseIOHandler):
+class IOHandlerAHFHalos(BaseParticleIOHandler):
     _particle_reader = False
     _dataset_type = "ahf"
 

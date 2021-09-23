@@ -2,12 +2,12 @@ import os
 
 import numpy as np
 
-from yt.utilities.io_handler import BaseIOHandler
+from yt.utilities.io_handler import BaseParticleIOHandler
 
 from .definitions import halo_dts
 
 
-class IOHandlerRockstarBinary(BaseIOHandler):
+class IOHandlerRockstarBinary(BaseParticleIOHandler):
     _dataset_type = "rockstar_binary"
 
     def __init__(self, *args, **kwargs):

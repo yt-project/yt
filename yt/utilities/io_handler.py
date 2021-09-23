@@ -237,6 +237,13 @@ class BaseIOHandler:
         return rv
 
 
+# As a note: we don't *actually* want this to be how it is forever.  There's no
+# reason we need to have the fluid and particle IO handlers separated.  But,
+# for keeping track of which frontend is which, this is a useful abstraction.
+class BaseParticleIOHandler(BaseIOHandler):
+    pass
+
+
 class IOHandlerExtracted(BaseIOHandler):
 
     _dataset_type = "extracted"

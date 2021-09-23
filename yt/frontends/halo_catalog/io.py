@@ -5,11 +5,11 @@ import numpy as np
 from yt.frontends.gadget_fof.io import IOHandlerGadgetFOFHaloHDF5
 from yt.funcs import parse_h5_attr
 from yt.units.yt_array import uvstack
-from yt.utilities.io_handler import BaseIOHandler
+from yt.utilities.io_handler import BaseParticleIOHandler
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 
-class IOHandlerYTHaloCatalog(BaseIOHandler):
+class IOHandlerYTHaloCatalog(BaseParticleIOHandler):
     _dataset_type = "ythalocatalog"
 
     def _read_fluid_selection(self, chunks, selector, fields, size):

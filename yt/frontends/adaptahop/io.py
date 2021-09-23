@@ -12,12 +12,12 @@ from operator import attrgetter
 import numpy as np
 
 from yt.utilities.cython_fortran_utils import FortranFile
-from yt.utilities.io_handler import BaseIOHandler
+from yt.utilities.io_handler import BaseParticleIOHandler
 
 from .definitions import HALO_ATTRIBUTES, HEADER_ATTRIBUTES
 
 
-class IOHandlerAdaptaHOPBinary(BaseIOHandler):
+class IOHandlerAdaptaHOPBinary(BaseParticleIOHandler):
     _dataset_type = "adaptahop_binary"
 
     _offsets = None  # Location of halos in the file

@@ -1,10 +1,10 @@
 import numpy as np
 
 from yt.funcs import mylog
-from yt.utilities.io_handler import BaseIOHandler
+from yt.utilities.io_handler import BaseParticleIOHandler
 
 
-class IOHandlerSDF(BaseIOHandler):
+class IOHandlerSDF(BaseParticleIOHandler):
     _dataset_type = "sdf_particles"
 
     @property

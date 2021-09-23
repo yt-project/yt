@@ -3,11 +3,11 @@ from collections import defaultdict
 import numpy as np
 
 from yt.funcs import mylog
-from yt.utilities.io_handler import BaseIOHandler
+from yt.utilities.io_handler import BaseParticleIOHandler
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 
-class IOHandlerGadgetFOFHDF5(BaseIOHandler):
+class IOHandlerGadgetFOFHDF5(BaseParticleIOHandler):
     _dataset_type = "gadget_fof_hdf5"
 
     def __init__(self, ds):

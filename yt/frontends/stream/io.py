@@ -1,7 +1,7 @@
 import numpy as np
 
 from yt.utilities.exceptions import YTDomainOverflow
-from yt.utilities.io_handler import BaseIOHandler
+from yt.utilities.io_handler import BaseIOHandler, BaseParticleIOHandler
 from yt.utilities.logger import ytLogger as mylog
 
 
@@ -86,7 +86,7 @@ class IOHandlerStream(BaseIOHandler):
         return KeyError
 
 
-class StreamParticleIOHandler(BaseIOHandler):
+class StreamParticleIOHandler(BaseParticleIOHandler):
 
     _vector_fields = ("particle_position", "particle_velocity")
     _dataset_type = "stream_particles"

@@ -2,7 +2,7 @@ import numpy as np
 
 from yt.funcs import mylog
 from yt.geometry.selection_routines import GridSelector
-from yt.utilities.io_handler import BaseIOHandler
+from yt.utilities.io_handler import BaseParticleIOHandler
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 
@@ -15,7 +15,7 @@ def _field_dname(grid_id, field_name):
 
 
 # TODO all particle bits were removed
-class IOHandlerGDFHDF5(BaseIOHandler):
+class IOHandlerGDFHDF5(BaseParticleIOHandler):
     _dataset_type = "grid_data_format"
     _offset_string = "data:offsets=0"
     _data_string = "data:datatype=0"
