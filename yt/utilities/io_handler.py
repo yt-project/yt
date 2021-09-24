@@ -24,6 +24,11 @@ ParticleFieldTuple = typing.Tuple[ParticleFieldType, ParticleFieldName]
 ParticleTypeFields = typing.Dict[ParticleFieldType, typing.List[ParticleFieldName]]
 ParticleTypeSizes = typing.Dict[ParticleFieldType, int]
 ParticleFieldSize = typing.Dict[ParticleFieldTuple, int]
+ParticleCoordinateSet = typing.Tuple[
+    str,
+    typing.Tuple[np.ndarray, np.ndarray, np.ndarray],
+    typing.Union[float, np.ndarray],
+]
 
 FieldTuple = typing.Union[FluidFieldTuple, ParticleFieldTuple]
 FieldReturnValues = typing.Dict[FieldTuple, np.ndarray]
@@ -172,11 +177,16 @@ class BaseIOHandler:
     ) -> ParticleTypeSizes:
         # This does get overridden in the subclass for Particle, since in that
         # case we know that the chunks are composed to DataFiles
-        for ptype, (x, y, z) in self._read_particle_coords(chunks, ptf):
+        for ptype, (x, y, z), hsml in self._read_particle_coords(chunks, ptf):
             # assume particles have zero radius, we break this assumption
             # in the SPH frontend and override this function there
-            psize[ptype] += selector.count_points(x, y, z, 0.0)
+            psize[ptype] += selector.count_points(x, y, z, hsml)
         return psize
+
+    def _read_particle_coords(
+        self, chunks, ptf: ParticleTypeFields
+    ) -> ParticleCoordinateSet:
+        raise NotImplementedError
 
     def _read_particle_data_file(self, data_file, ptf, selector=None):
         # each frontend needs to implement this: read from a data_file object
