@@ -1880,7 +1880,7 @@ def _reconstruct_ds(*args, **kwargs):
 
 
 @functools.total_ordering
-class ParticleFile:
+class ParticleFile(abc.ABC):
     filename: str
     file_id: int
     start: int = None
