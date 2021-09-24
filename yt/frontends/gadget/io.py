@@ -410,11 +410,10 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                     data = np.empty(size, dtype="float64")
                     m = self.ds.parameters["Massarr"][self._ptypes.index(ptype)]
                     data[:] = m
-                    yield (ptype, field), data
-                    continue
-                f.seek(poff[ptype, field], os.SEEK_SET)
-                data = self._read_field_from_file(f, tp[ptype], field)
-                data = data[mask, ...]
+                else:
+                    f.seek(poff[ptype, field], os.SEEK_SET)
+                    data = self._read_field_from_file(f, tp[ptype], field)
+                    data = data[mask, ...]
                 return_data[(ptype, field)] = data
         f.close()
         return return_data
