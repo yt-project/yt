@@ -272,17 +272,19 @@ class BaseIOHandler:
 # reason we need to have the fluid and particle IO handlers separated.  But,
 # for keeping track of which frontend is which, this is a useful abstraction.
 class BaseParticleIOHandler(BaseIOHandler):
+    def _sorted_chunk_iterator(self, chunks):
+        chunks = list(chunks)
+        data_files = set()
+        for chunk in chunks:
+            for obj in chunk.objs:
+                data_files.update(obj.data_files)
+        yield from sorted(data_files, key=lambda x: (x.filename, x.start))
+
     def _count_particles_chunks(
         self, psize: ParticleTypeSizes, chunks, ptf: ParticleTypeFields, selector
     ) -> ParticleTypeSizes:
         if getattr(selector, "is_all_data", False):
-            chunks = list(chunks)
-            data_files = set()
-            for chunk in chunks:
-                for obj in chunk.objs:
-                    data_files.update(obj.data_files)
-            data_files = sorted(data_files, key=lambda x: (x.filename, x.start))
-            for data_file in data_files:
+            for data_file in self._sorted_chunk_iterator(chunks):
                 for ptype in ptf.keys():
                     psize[ptype] += data_file.total_particles[ptype]
         else:

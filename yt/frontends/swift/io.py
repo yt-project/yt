@@ -21,12 +21,7 @@ class IOHandlerSwift(IOHandlerSPH):
         # This will read chunks and yield the results.
         # yt has the concept of sub_files, i.e, we break up big files into
         # virtual sub_files to deal with the chunking system
-        chunks = list(chunks)
-        sub_files = set()
-        for chunk in chunks:
-            for obj in chunk.objs:
-                sub_files.update(obj.data_files)
-        for sub_file in sorted(sub_files, key=lambda x: x.filename):
+        for sub_file in self._sorted_chunk_iterator(chunks):
             si, ei = sub_file.start, sub_file.end
             f = h5py.File(sub_file.filename, mode="r")
             # This double-reads

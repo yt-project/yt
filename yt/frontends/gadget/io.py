@@ -29,6 +29,8 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
         "Iron",
     )
 
+    _coord_name = "Coordinates"
+
     @property
     def var_mass(self):
         if self._var_mass is None:
@@ -43,20 +45,14 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
         raise NotImplementedError
 
     def _read_particle_coords(self, chunks, ptf):
-        # This will read chunks and yield the results.
-        chunks = list(chunks)
-        data_files = set()
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
-        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
+        for data_file in self._sorted_chunk_iterator(chunks):
             si, ei = data_file.start, data_file.end
             f = h5py.File(data_file.filename, mode="r")
             # This double-reads
             for ptype in sorted(ptf):
                 if data_file.total_particles[ptype] == 0:
                     continue
-                c = f[f"/{ptype}/Coordinates"][si:ei, :].astype("float64")
+                c = f[f"/{ptype}/{self._coord_name}"][si:ei, :].astype("float64")
                 x, y, z = (np.squeeze(_) for _ in np.split(c, 3, axis=1))
                 if ptype == self.ds._sph_ptypes[0]:
                     pdtype = c.dtype

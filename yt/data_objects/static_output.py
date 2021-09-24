@@ -45,6 +45,7 @@ from yt.utilities.exceptions import (
     YTIllDefinedParticleFilter,
     YTObjectNotImplemented,
 )
+from yt.utilities.io_handler import ParticleTypeSizes
 from yt.utilities.lib.fnv_hash import fnv_hash
 from yt.utilities.minimal_representation import MinimalDataset
 from yt.utilities.object_registries import data_object_registry, output_type_registry
@@ -1880,6 +1881,12 @@ def _reconstruct_ds(*args, **kwargs):
 
 @functools.total_ordering
 class ParticleFile:
+    filename: str
+    file_id: int
+    start: int = None
+    end: int = None
+    total_particles: ParticleTypeSizes = None
+
     def __init__(self, ds, io, filename, file_id, range=None):
         self.ds = ds
         self.io = weakref.proxy(io)
