@@ -19,9 +19,10 @@ FluidFieldTuple = typing.Tuple[FluidFieldType, FluidFieldName]
 
 ParticleFieldType = str
 ParticleFieldName = str
+ParticleFieldTuple = typing.Tuple[ParticleFieldType, ParticleFieldName]
+
 ParticleTypeFields = typing.Dict[ParticleFieldType, typing.List[ParticleFieldName]]
 ParticleTypeSizes = typing.Dict[ParticleFieldType, int]
-ParticleFieldTuple = typing.Tuple[ParticleFieldType, ParticleFieldName]
 ParticleFieldSize = typing.Dict[ParticleFieldTuple, int]
 
 FieldTuple = typing.Union[FluidFieldTuple, ParticleFieldTuple]
