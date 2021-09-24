@@ -175,6 +175,11 @@ class BaseIOHandler:
             psize[ptype] += selector.count_points(x, y, z, 0.0)
         return psize
 
+    def _read_particle_data_file(self, data_file, ptf, selector=None):
+        # each frontend needs to implement this: read from a data_file object
+        # and return a dict of fields for that data_file
+        raise NotImplementedError
+
     def _read_particle_selection(
         self, chunks, selector, fields: typing.List[ParticleFieldTuple]
     ) -> FieldReturnValues:
@@ -235,6 +240,19 @@ class BaseIOHandler:
         for field_f in ind:
             rv[field_f] = rv[field_f][: ind[field_f]]
         return rv
+
+    def _read_particle_fields(self, chunks, ptf, selector):
+        # Now we have all the sizes, and we can allocate
+        data_files = set()
+        for chunk in chunks:
+            for obj in chunk.objs:
+                data_files.update(obj.data_files)
+        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
+            data_file_data = self._read_particle_data_file(data_file, ptf, selector)
+            # temporary trickery so it's still an iterator, need to adjust
+            # the io_handler.BaseIOHandler.read_particle_selection() method
+            # to not use an iterator.
+            yield from data_file_data.items()
 
 
 # As a note: we don't *actually* want this to be how it is forever.  There's no
