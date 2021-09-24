@@ -170,6 +170,8 @@ class BaseIOHandler:
     def _count_particles_chunks(
         self, psize: ParticleTypeSizes, chunks, ptf: ParticleTypeFields, selector
     ) -> ParticleTypeSizes:
+        # This does get overridden in the subclass for Particle, since in that
+        # case we know that the chunks are composed to DataFiles
         for ptype, (x, y, z) in self._read_particle_coords(chunks, ptf):
             # assume particles have zero radius, we break this assumption
             # in the SPH frontend and override this function there
@@ -260,7 +262,23 @@ class BaseIOHandler:
 # reason we need to have the fluid and particle IO handlers separated.  But,
 # for keeping track of which frontend is which, this is a useful abstraction.
 class BaseParticleIOHandler(BaseIOHandler):
-    pass
+    def _count_particles_chunks(
+        self, psize: ParticleTypeSizes, chunks, ptf: ParticleTypeFields, selector
+    ) -> ParticleTypeSizes:
+        if getattr(selector, "is_all_data", False):
+            chunks = list(chunks)
+            data_files = set()
+            for chunk in chunks:
+                for obj in chunk.objs:
+                    data_files.update(obj.data_files)
+            data_files = sorted(data_files, key=lambda x: (x.filename, x.start))
+            for data_file in data_files:
+                for ptype in ptf.keys():
+                    psize[ptype] += data_file.total_particles[ptype]
+        else:
+            for ptype, (x, y, z), hsml in self._read_particle_coords(chunks, ptf):
+                psize[ptype] += selector.count_points(x, y, z, hsml)
+        return dict(psize)
 
 
 class IOHandlerExtracted(BaseIOHandler):
