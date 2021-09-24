@@ -122,7 +122,7 @@ class IOHandlerBoxlib(BaseIOHandler):
         return data
 
     def _read_particle_coords(self, chunks, ptf):
-        yield (
+        yield from (
             (ptype, (x, y, z), 0.0)
             for (
                 ptype,
