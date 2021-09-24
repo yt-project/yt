@@ -159,7 +159,7 @@ class Dataset(abc.ABC):
             if not is_stream:
                 obj.__init__(filename, *args, **kwargs)
             return obj
-        apath = os.path.abspath(filename)
+        apath = os.path.abspath(os.path.expanduser(filename))
         cache_key = (apath, pickle.dumps(args), pickle.dumps(kwargs))
         if ytcfg.get("yt", "skip_dataset_cache"):
             obj = object.__new__(cls)
@@ -212,9 +212,10 @@ class Dataset(abc.ABC):
         self.default_species_fields = default_species_fields
 
         # path stuff
-        self.parameter_filename = str(filename)
+        filename = os.path.expanduser(filename)
+        self.parameter_filename = filename
         self.basename = os.path.basename(filename)
-        self.directory = os.path.expanduser(os.path.dirname(filename))
+        self.directory = os.path.dirname(filename)
         self.fullpath = os.path.abspath(self.directory)
         self.backup_filename = self.parameter_filename + "_backup.gdf"
         self.read_from_backup = False
