@@ -46,22 +46,22 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
 
     def _read_particle_coords(self, chunks, ptf):
         for data_file in self._sorted_chunk_iterator(chunks):
-            si, ei = data_file.start, data_file.end
-            f = h5py.File(data_file.filename, mode="r")
-            # This double-reads
-            for ptype in sorted(ptf):
-                if data_file.total_particles[ptype] == 0:
-                    continue
-                c = f[f"/{ptype}/{self._coord_name}"][si:ei, :].astype("float64")
-                x, y, z = (np.squeeze(_) for _ in np.split(c, 3, axis=1))
-                if ptype == self.ds._sph_ptypes[0]:
-                    pdtype = c.dtype
-                    pshape = c.shape
-                    hsml = self._get_smoothing_length(data_file, pdtype, pshape)
-                else:
-                    hsml = 0.0
-                yield ptype, (x, y, z), hsml
-            f.close()
+            with data_file.transaction as handle:
+                # This double-reads
+                for ptype in sorted(ptf):
+                    if data_file.total_particles[ptype] == 0:
+                        continue
+                    c = data_file._read_field(ptype, self._coord_name, handle).astype(
+                        "f8"
+                    )
+                    x, y, z = (np.squeeze(_) for _ in np.split(c, 3, axis=1))
+                    if ptype == self.ds._sph_ptypes[0]:
+                        pdtype = c.dtype
+                        pshape = c.shape
+                        hsml = self._get_smoothing_length(data_file, pdtype, pshape)
+                    else:
+                        hsml = 0.0
+                    yield ptype, (x, y, z), hsml
 
     def _yield_coordinates(self, data_file, needed_ptype=None):
         si, ei = data_file.start, data_file.end

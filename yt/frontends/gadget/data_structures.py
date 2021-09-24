@@ -1,3 +1,4 @@
+import contextlib
 import os
 import stat
 import struct
@@ -563,7 +564,22 @@ class GadgetDataset(SPHDataset):
 
 
 class GadgetHDF5File(ParticleFile):
-    pass
+    def _read_field(self, ptype, field_name, handle=None):
+        if self.total_particles[ptype] == 0:
+            return
+        if not handle:
+            with self.transaction as handle:
+                v = handle[f"/{ptype}/{field_name}"][self.start : self.end, ...]
+        else:
+            v = handle[f"/{ptype}/{field_name}"][self.start : self.end, ...]
+        return v
+
+    @property
+    @contextlib.contextmanager
+    def transaction(self):
+        handle = h5py.File(self.filename, mode="r")
+        yield handle
+        handle.close()
 
 
 class GadgetHDF5Dataset(GadgetDataset):
