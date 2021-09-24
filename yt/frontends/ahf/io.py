@@ -19,7 +19,7 @@ class IOHandlerAHFHalos(BaseParticleIOHandler):
         for data_file in self._get_data_files(chunks, ptf):
             pos = data_file._get_particle_positions("halos")
             x, y, z = (pos[:, i] for i in range(3))
-            yield "halos", (x, y, z)
+            yield "halos", (x, y, z), 0.0
 
     def _yield_coordinates(self, data_file):
         halos = data_file.read_data(usecols=["Xc", "Yc", "Zc"])

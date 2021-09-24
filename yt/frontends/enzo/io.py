@@ -61,7 +61,17 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         return (KeyError,)
 
     def _read_particle_coords(self, chunks, ptf):
-        yield from self._read_particle_fields(chunks, ptf, None)
+        yield (
+            (ptype, (x, y, z), 0.0)
+            for (
+                ptype,
+                (
+                    x,
+                    y,
+                    z,
+                ),
+            ) in self._read_particle_fields(chunks, ptf, None)
+        )
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
@@ -274,7 +284,7 @@ class IOHandlerInMemory(BaseIOHandler):
                         self.grids_in_memory[g.id]["particle_position_y"],
                         self.grids_in_memory[g.id]["particle_position_z"],
                     )
-                    yield ptype, (x, y, z)
+                    yield ptype, (x, y, z), 0.0
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)

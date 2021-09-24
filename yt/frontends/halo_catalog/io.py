@@ -32,7 +32,7 @@ class IOHandlerYTHaloCatalog(BaseParticleIOHandler):
                 units = parse_h5_attr(f[pn % "x"], "units")
                 pos = data_file._get_particle_positions(ptype, f=f)
                 x, y, z = (self.ds.arr(pos[:, i], units) for i in range(3))
-                yield "halos", (x, y, z)
+                yield "halos", (x, y, z), 0.0
 
     def _yield_coordinates(self, data_file):
         pn = "particle_position_%s"
