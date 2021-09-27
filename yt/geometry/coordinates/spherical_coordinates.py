@@ -260,7 +260,7 @@ class SphericalCoordinateHandler(CoordinateHandler):
         # non-Cartesian coordinates, we usually want to override these for
         # Cartesian coordinates, since we transform them.
         rv = {
-            self.axis_id["r"]: ("theta", "phi"),
+            self.axis_id["r"]: ("\\theta", "\\phi"),
             self.axis_id["theta"]: ("x / \\sin(\\theta)", "y / \\sin(\\theta)"),
             self.axis_id["phi"]: ("R", "z"),
         }
