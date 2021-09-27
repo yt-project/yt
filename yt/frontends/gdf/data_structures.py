@@ -29,7 +29,7 @@ class GDFGrid(AMRGridPatch):
     _id_offset = 0
 
     def __init__(self, id, index, level, start, dimensions):
-        AMRGridPatch.__init__(self, id, filename=index.index_filename, index=index)
+        super().__init__(id, filename=index.index_filename, index=index)
         self.Parent = []
         self.Children = []
         self.Level = level
@@ -64,7 +64,7 @@ class GDFHierarchy(GridIndex):
         self.index_filename = self.dataset.parameter_filename
         h5f = h5py.File(self.index_filename, mode="r")
         self.dataset_type = dataset_type
-        GridIndex.__init__(self, ds, dataset_type)
+        super().__init__(ds, dataset_type)
         self.directory = os.path.dirname(self.index_filename)
         h5f.close()
 
@@ -167,8 +167,7 @@ class GDFDataset(Dataset):
     ):
         self.geometry = geometry
         self.fluid_types += ("gdf",)
-        Dataset.__init__(
-            self,
+        super().__init__(
             filename,
             dataset_type,
             units_override=units_override,

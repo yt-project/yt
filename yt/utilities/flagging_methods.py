@@ -7,7 +7,7 @@ flagging_method_registry = {}
 
 class RegisteredFlaggingMethod(type):
     def __init__(cls, name, b, d):
-        type.__init__(cls, name, b, d)
+        super().__init__(name, b, d)
 
 
 class FlaggingMethod:

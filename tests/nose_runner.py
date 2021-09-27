@@ -14,7 +14,7 @@ numpy.set_printoptions(threshold=5, edgeitems=1, precision=4)
 
 class NoseWorker(multiprocessing.Process):
     def __init__(self, task_queue, result_queue):
-        multiprocessing.Process.__init__(self)
+        super().__init__()
         self.task_queue = task_queue
         self.result_queue = result_queue
 

@@ -47,7 +47,7 @@ class YTBooleanContainer(YTSelectionContainer3D):
     def __init__(
         self, op, dobj1, dobj2, ds=None, field_parameters=None, data_source=None
     ):
-        YTSelectionContainer3D.__init__(self, None, ds, field_parameters, data_source)
+        super().__init__(None, ds, field_parameters, data_source)
         self.op = op.upper()
         self.dobj1 = dobj1
         self.dobj2 = dobj2
@@ -100,7 +100,7 @@ class YTIntersectionContainer3D(YTSelectionContainer3D):
         validate_object(ds, Dataset)
         validate_object(field_parameters, dict)
         validate_object(data_source, YTSelectionContainer)
-        YTSelectionContainer3D.__init__(self, None, ds, field_parameters, data_source)
+        super().__init__(None, ds, field_parameters, data_source)
         self.data_objects = list(always_iterable(data_objects))
 
 
@@ -140,5 +140,5 @@ class YTDataObjectUnion(YTSelectionContainer3D):
         validate_object(ds, Dataset)
         validate_object(field_parameters, dict)
         validate_object(data_source, YTSelectionContainer)
-        YTSelectionContainer3D.__init__(self, None, ds, field_parameters, data_source)
+        super().__init__(None, ds, field_parameters, data_source)
         self.data_objects = list(always_iterable(data_objects))

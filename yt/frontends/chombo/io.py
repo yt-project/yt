@@ -14,7 +14,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
     _offsets = None
 
     def __init__(self, ds, *args, **kwargs):
-        BaseIOHandler.__init__(self, ds, *args, **kwargs)
+        super().__init__(ds, *args, **kwargs)
         self.ds = ds
         self._handle = ds._handle
         self.dim = self._handle["Chombo_global/"].attrs["SpaceDim"]

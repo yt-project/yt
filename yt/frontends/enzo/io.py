@@ -201,7 +201,7 @@ class IOHandlerInMemory(BaseIOHandler):
             slice(ghost_zones, -ghost_zones),
             slice(ghost_zones, -ghost_zones),
         )
-        BaseIOHandler.__init__(self, ds)
+        super().__init__(ds)
 
     def _read_field_names(self, grid):
         fields = []

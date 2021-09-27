@@ -166,7 +166,7 @@ class Camera(ParallelAnalysisInterface):
         data_source=None,
         use_light=False,
     ):
-        ParallelAnalysisInterface.__init__(self)
+        super().__init__()
         if ds is not None:
             self.ds = ds
         if not is_sequence(resolution):
@@ -1191,19 +1191,19 @@ class InteractiveCamera(Camera):
         self._pyplot.figure(2)
         self.transfer_function.show()
         self._pyplot.draw()
-        im = Camera.snapshot(self, fn, clip_ratio)
+        im = super().snapshot(fn, clip_ratio)
         self._pyplot.figure(1)
         self._pyplot.imshow(im / im.max())
         self._pyplot.draw()
         self.frames.append(im)
 
     def rotation(self, theta, n_steps, rot_vector=None):
-        for frame in Camera.rotation(self, theta, n_steps, rot_vector):
+        for frame in super().rotation(theta, n_steps, rot_vector):
             if frame is not None:
                 self.frames.append(frame)
 
     def zoomin(self, final, n_steps):
-        for frame in Camera.zoomin(self, final, n_steps):
+        for frame in super().zoomin(final, n_steps):
             if frame is not None:
                 self.frames.append(frame)
 
@@ -1303,7 +1303,7 @@ class PerspectiveCamera(Camera):
     """
 
     def __init__(self, *args, **kwargs):
-        Camera.__init__(self, *args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def get_sampler_args(self, image):
         east_vec = self.orienter.unit_vectors[0].reshape(3, 1)
@@ -2082,8 +2082,7 @@ class ProjectionCamera(Camera):
 
         self.fields = fields
         self.log_fields = [False] * len(self.fields)
-        Camera.__init__(
-            self,
+        super().__init__(
             center,
             normal_vector,
             width,
@@ -2107,7 +2106,7 @@ class ProjectionCamera(Camera):
             except KeyError:
                 pass
         try:
-            Camera.__del__(self)
+            super().__del__()
         except AttributeError:
             pass
 
@@ -2120,7 +2119,7 @@ class ProjectionCamera(Camera):
 
     def initialize_source(self):
         if self.interpolated:
-            Camera.initialize_source(self)
+            super().initialize_source()
         else:
             pass
 
@@ -2166,7 +2165,7 @@ class ProjectionCamera(Camera):
         # Calculate the eight corners of the box
         # Back corners ...
         if self.interpolated:
-            return Camera._render(self, double_check, num_threads, image, sampler)
+            return super()._render(double_check, num_threads, image, sampler)
         ds = self.ds
         width = self.width[2]
         north_vector = self.orienter.unit_vectors[0]
@@ -2250,7 +2249,7 @@ data_object_registry["projection_camera"] = ProjectionCamera
 
 class SphericalCamera(Camera):
     def __init__(self, *args, **kwargs):
-        Camera.__init__(self, *args, **kwargs)
+        super().__init__(*args, **kwargs)
         if self.resolution[0] / self.resolution[1] != 2:
             mylog.info("Warning: It's recommended to set the aspect ratio to 2:1")
         self.resolution = np.asarray(self.resolution) + 2
@@ -2331,7 +2330,7 @@ data_object_registry["spherical_camera"] = SphericalCamera
 class StereoSphericalCamera(Camera):
     def __init__(self, *args, **kwargs):
         self.disparity = kwargs.pop("disparity", 0.0)
-        Camera.__init__(self, *args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.disparity = self.ds.arr(self.disparity, units="code_length")
         self.disparity_s = self.ds.arr(0.0, units="code_length")
         if self.resolution[0] / self.resolution[1] != 2:

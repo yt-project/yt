@@ -81,14 +81,12 @@ class FieldDetector(defaultdict):
         self.requested = []
         self.requested_parameters = []
         if not self.flat:
-            defaultdict.__init__(
-                self,
+            super().__init__(
                 lambda: np.ones((nd, nd, nd), dtype="float64")
                 + 1e-4 * np.random.random((nd, nd, nd)),
             )
         else:
-            defaultdict.__init__(
-                self,
+            super().__init__(
                 lambda: np.ones((nd * nd * nd), dtype="float64")
                 + 1e-4 * np.random.random(nd * nd * nd),
             )

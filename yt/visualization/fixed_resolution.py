@@ -578,9 +578,7 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
 
     def __init__(self, data_source, bounds, buff_size, antialias=True, periodic=False):
         self.data = {}
-        FixedResolutionBuffer.__init__(
-            self, data_source, bounds, buff_size, antialias, periodic
-        )
+        super().__init__(data_source, bounds, buff_size, antialias, periodic)
 
     def __getitem__(self, item):
         if item in self.data:
@@ -630,9 +628,7 @@ class ParticleImageBuffer(FixedResolutionBuffer):
 
     def __init__(self, data_source, bounds, buff_size, antialias=True, periodic=False):
         self.data = {}
-        FixedResolutionBuffer.__init__(
-            self, data_source, bounds, buff_size, antialias, periodic
-        )
+        super().__init__(data_source, bounds, buff_size, antialias, periodic)
 
         # set up the axis field names
         axis = self.axis

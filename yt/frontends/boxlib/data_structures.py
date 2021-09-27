@@ -347,7 +347,7 @@ class BoxlibHierarchy(GridIndex):
         self.directory = ds.output_dir
         self.particle_headers = {}
 
-        GridIndex.__init__(self, ds, dataset_type)
+        super().__init__(ds, dataset_type)
         self._cache_endianness(self.grids[-1])
 
     def _parse_index(self):
@@ -660,8 +660,7 @@ class BoxlibDataset(Dataset):
         self.fparam_filename = self._localize_check(fparam_filename)
         self.storage_filename = storage_filename
 
-        Dataset.__init__(
-            self,
+        super().__init__(
             output_dir,
             dataset_type,
             units_override=units_override,
@@ -923,7 +922,7 @@ class BoxlibDataset(Dataset):
 
 class OrionHierarchy(BoxlibHierarchy):
     def __init__(self, ds, dataset_type="orion_native"):
-        BoxlibHierarchy.__init__(self, ds, dataset_type)
+        super().__init__(ds, dataset_type)
         self._read_particles()
         # self.io = IOHandlerOrion
 
@@ -1025,8 +1024,7 @@ class OrionDataset(BoxlibDataset):
         default_species_fields=None,
     ):
 
-        BoxlibDataset.__init__(
-            self,
+        super().__init__(
             output_dir,
             cparam_filename,
             fparam_filename,

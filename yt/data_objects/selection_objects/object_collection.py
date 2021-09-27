@@ -26,6 +26,6 @@ class YTDataCollection(YTSelectionContainer3D):
         validate_object(data_source, YTSelectionContainer)
         if center is not None:
             validate_center(center)
-        YTSelectionContainer3D.__init__(self, center, ds, field_parameters, data_source)
+        super().__init__(center, ds, field_parameters, data_source)
         self._obj_ids = np.array([o.id - o._id_offset for o in obj_list], dtype="int64")
         self._obj_list = obj_list

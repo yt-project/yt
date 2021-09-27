@@ -53,7 +53,7 @@ class SlicePlotDataset(AnalysisTask):
         from yt.visualization.api import SlicePlot
 
         self.SlicePlot = SlicePlot
-        AnalysisTask.__init__(self, *args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def eval(self, ds):
         slc = self.SlicePlot(ds, self.axis, self.field, center=self.center)

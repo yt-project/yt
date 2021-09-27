@@ -52,7 +52,7 @@ class StreamGrid(AMRGridPatch):
         and *index*.
         """
         # All of the field parameters will be passed to us as needed.
-        AMRGridPatch.__init__(self, id, filename=None, index=index)
+        super().__init__(id, filename=None, index=index)
         self._children_ids = []
         self._parent_id = -1
         self.Level = -1
@@ -130,7 +130,7 @@ class StreamHierarchy(GridIndex):
         self.stream_handler = ds.stream_handler
         self.float_type = "float64"
         self.directory = os.getcwd()
-        GridIndex.__init__(self, ds, dataset_type)
+        super().__init__(ds, dataset_type)
 
     def _count_grids(self):
         self.num_grids = self.stream_handler.num_grids
@@ -200,7 +200,7 @@ class StreamHierarchy(GridIndex):
                 self.stream_handler.parent_ids[child.id] = i
 
     def _initialize_grid_arrays(self):
-        GridIndex._initialize_grid_arrays(self)
+        super()._initialize_grid_arrays()
         self.grid_procs = np.zeros((self.num_grids, 1), "int32")
 
     def _detect_output_fields(self):
@@ -282,8 +282,7 @@ class StreamDataset(Dataset):
         from yt.data_objects.static_output import _cached_datasets
 
         _cached_datasets[name] = self
-        Dataset.__init__(
-            self,
+        super().__init__(
             name,
             self._dataset_type,
             unit_system=unit_system,

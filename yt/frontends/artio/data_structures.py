@@ -359,8 +359,7 @@ class ARTIODataset(Dataset):
         self._handle = artio_fileset(bytes(self._fileset_prefix, "utf-8"))
         self.artio_parameters = self._handle.parameters
         # Here we want to initiate a traceback, if the reader is not built.
-        Dataset.__init__(
-            self,
+        super().__init__(
             filename,
             dataset_type,
             units_override=units_override,

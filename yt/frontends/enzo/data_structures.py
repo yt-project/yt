@@ -32,7 +32,7 @@ class EnzoGrid(AMRGridPatch):
         *filename* and *index*.
         """
         # All of the field parameters will be passed to us as needed.
-        AMRGridPatch.__init__(self, id, filename=None, index=index)
+        super().__init__(id, filename=None, index=index)
         self._children_ids = []
         self._parent_id = -1
         self.Level = -1
@@ -93,9 +93,7 @@ class EnzoGridGZ(EnzoGrid):
     def retrieve_ghost_zones(self, n_zones, fields, all_levels=False, smoothed=False):
         NGZ = self.ds.parameters.get("NumberOfGhostZones", 3)
         if n_zones > NGZ:
-            return EnzoGrid.retrieve_ghost_zones(
-                self, n_zones, fields, all_levels, smoothed
-            )
+            return super().retrieve_ghost_zones(n_zones, fields, all_levels, smoothed)
 
         # ----- Below is mostly the original code, except we remove the field
         # ----- access section
@@ -166,7 +164,7 @@ class EnzoHierarchy(GridIndex):
         else:
             self.float_type = "float64"
 
-        GridIndex.__init__(self, ds, dataset_type)
+        super().__init__(ds, dataset_type)
         # sync it back
         self.dataset.dataset_type = self.dataset_type
 
@@ -595,7 +593,7 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         mylog.debug("Prepared")
 
     def _initialize_grid_arrays(self):
-        EnzoHierarchy._initialize_grid_arrays(self)
+        super()._initialize_grid_arrays()
         self.grid_procs = np.zeros((self.num_grids, 1), "int32")
 
     def _copy_index_structure(self):
@@ -711,8 +709,7 @@ class EnzoDataset(Dataset):
             conversion_override = {}
         self._conversion_override = conversion_override
         self.storage_filename = storage_filename
-        Dataset.__init__(
-            self,
+        super().__init__(
             filename,
             dataset_type,
             file_style=file_style,

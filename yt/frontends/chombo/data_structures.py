@@ -37,7 +37,7 @@ class ChomboGrid(AMRGridPatch):
     __slots__ = ["_level_id", "stop_index"]
 
     def __init__(self, id, index, level, start, stop):
-        AMRGridPatch.__init__(self, id, filename=index.index_filename, index=index)
+        super().__init__(id, filename=index.index_filename, index=index)
         self._parent_id = []
         self._children_ids = []
         self.Level = level
@@ -95,7 +95,7 @@ class ChomboHierarchy(GridIndex):
 
         self._levels = [key for key in self._handle.keys() if key.startswith("level")]
 
-        GridIndex.__init__(self, ds, dataset_type)
+        super().__init__(ds, dataset_type)
 
         self._read_particles()
 
@@ -255,8 +255,7 @@ class ChomboDataset(Dataset):
         self.geometry = "cartesian"
         self.ini_filename = ini_filename
         self.fullplotdir = os.path.abspath(filename)
-        Dataset.__init__(
-            self,
+        super().__init__(
             filename,
             self.dataset_type,
             units_override=units_override,
@@ -405,7 +404,7 @@ class ChomboDataset(Dataset):
 
 class PlutoHierarchy(ChomboHierarchy):
     def __init__(self, ds, dataset_type="chombo_hdf5"):
-        ChomboHierarchy.__init__(self, ds, dataset_type)
+        super().__init__(ds, dataset_type)
 
     def _parse_index(self):
         f = self._handle  # shortcut
@@ -479,8 +478,7 @@ class PlutoDataset(ChomboDataset):
         default_species_fields=None,
     ):
 
-        ChomboDataset.__init__(
-            self,
+        super().__init__(
             filename,
             dataset_type,
             storage_filename,
@@ -577,7 +575,7 @@ class PlutoDataset(ChomboDataset):
 
 class Orion2Hierarchy(ChomboHierarchy):
     def __init__(self, ds, dataset_type="orion_chombo_native"):
-        ChomboHierarchy.__init__(self, ds, dataset_type)
+        super().__init__(ds, dataset_type)
 
     def _detect_output_fields(self):
 
@@ -653,8 +651,7 @@ class Orion2Dataset(ChomboDataset):
         default_species_fields=None,
     ):
 
-        ChomboDataset.__init__(
-            self,
+        super().__init__(
             filename,
             dataset_type,
             storage_filename,
@@ -753,7 +750,7 @@ class Orion2Dataset(ChomboDataset):
 
 class ChomboPICHierarchy(ChomboHierarchy):
     def __init__(self, ds, dataset_type="chombo_hdf5"):
-        ChomboHierarchy.__init__(self, ds, dataset_type)
+        super().__init__(ds, dataset_type)
 
 
 class ChomboPICDataset(ChomboDataset):
@@ -770,8 +767,7 @@ class ChomboPICDataset(ChomboDataset):
         units_override=None,
     ):
 
-        ChomboDataset.__init__(
-            self,
+        super().__init__(
             filename,
             dataset_type,
             storage_filename,

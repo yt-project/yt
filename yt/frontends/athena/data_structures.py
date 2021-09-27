@@ -59,7 +59,7 @@ class AthenaGrid(AMRGridPatch):
 
     def __init__(self, id, index, level, start, dimensions, file_offset, read_dims):
         gname = index.grid_filenames[id]
-        AMRGridPatch.__init__(self, id, filename=gname, index=index)
+        super().__init__(id, filename=gname, index=index)
         self.filename = gname
         self.Parent = []
         self.Children = []
@@ -133,7 +133,7 @@ class AthenaHierarchy(GridIndex):
         # for now, the index file is the dataset!
         self.index_filename = os.path.join(os.getcwd(), self.dataset.filename)
         self._fhandle = open(self.index_filename, "rb")
-        GridIndex.__init__(self, ds, dataset_type)
+        super().__init__(ds, dataset_type)
 
         self._fhandle.close()
 
@@ -486,8 +486,7 @@ class AthenaDataset(Dataset):
         self.specified_parameters = parameters.copy()
         if units_override is None:
             units_override = {}
-        Dataset.__init__(
-            self,
+        super().__init__(
             filename,
             dataset_type,
             units_override=units_override,

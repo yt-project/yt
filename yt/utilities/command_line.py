@@ -160,7 +160,7 @@ _subparsers_description = {
 
 class YTCommandSubtype(type):
     def __init__(cls, name, b, d):
-        type.__init__(cls, name, b, d)
+        super().__init__(name, b, d)
         if cls.name is None:
             return
         if cls.subparser not in _subparsers:

@@ -36,7 +36,7 @@ class EnzoEGrid(AMRGridPatch):
         *filename* and *index*.
         """
         # All of the field parameters will be passed to us as needed.
-        AMRGridPatch.__init__(self, id, filename=filename, index=index)
+        super().__init__(id, filename=filename, index=index)
         self.block_name = block_name
         self._children_ids = None
         self._parent_id = -1
@@ -130,7 +130,7 @@ class EnzoEHierarchy(GridIndex):
         if os.path.getsize(self.index_filename) == 0:
             raise OSError(-1, "File empty", self.index_filename)
 
-        GridIndex.__init__(self, ds, dataset_type)
+        super().__init__(ds, dataset_type)
         self.dataset.dataset_type = self.dataset_type
 
     def _count_grids(self):
@@ -325,8 +325,7 @@ class EnzoEDataset(Dataset):
             conversion_override = {}
         self._conversion_override = conversion_override
         self.storage_filename = storage_filename
-        Dataset.__init__(
-            self,
+        super().__init__(
             filename,
             dataset_type,
             file_style=file_style,

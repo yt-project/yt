@@ -52,7 +52,7 @@ class YTRegion(YTSelectionContainer3D):
         validate_object(ds, Dataset)
         validate_object(field_parameters, dict)
         validate_object(data_source, YTSelectionContainer)
-        YTSelectionContainer3D.__init__(self, center, ds, field_parameters, data_source)
+        super().__init__(center, ds, field_parameters, data_source)
         if not isinstance(left_edge, YTArray):
             self.left_edge = self.ds.arr(left_edge, "code_length", dtype="float64")
         else:

@@ -170,8 +170,7 @@ class ARTDataset(Dataset):
         self.max_level = limit_level
         self.force_max_level = force_max_level
         self.spread_age = spread_age
-        Dataset.__init__(
-            self,
+        super().__init__(
             filename,
             dataset_type,
             units_override=units_override,

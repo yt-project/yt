@@ -217,23 +217,17 @@ symlog_transform = FieldTransform("symlog", None)
 
 class PlotDictionary(defaultdict):
     def __getitem__(self, item):
-        return defaultdict.__getitem__(
-            self, self.data_source._determine_fields(item)[0]
-        )
+        return super().__getitem__(self.data_source._determine_fields(item)[0])
 
     def __setitem__(self, item, value):
-        return defaultdict.__setitem__(
-            self, self.data_source._determine_fields(item)[0], value
-        )
+        return super().__setitem__(self.data_source._determine_fields(item)[0], value)
 
     def __contains__(self, item):
-        return defaultdict.__contains__(
-            self, self.data_source._determine_fields(item)[0]
-        )
+        return super().__contains__(self.data_source._determine_fields(item)[0])
 
     def __init__(self, data_source, default_factory=None):
         self.data_source = data_source
-        return defaultdict.__init__(self, default_factory)
+        return super().__init__(default_factory)
 
 
 class PlotContainer:

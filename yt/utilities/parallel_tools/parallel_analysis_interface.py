@@ -196,7 +196,7 @@ class ParallelObjectIterator(ObjectIterator):
     """
 
     def __init__(self, pobj, just_list=False, attr="_grids", round_robin=False):
-        ObjectIterator.__init__(self, pobj, just_list, attr=attr)
+        super().__init__(pobj, just_list, attr=attr)
         # pobj has to be a ParallelAnalysisInterface, so it must have a .comm
         # object.
         self._offset = pobj.comm.rank
@@ -1330,7 +1330,7 @@ class ParallelAnalysisInterface:
 
 class GroupOwnership(ParallelAnalysisInterface):
     def __init__(self, items):
-        ParallelAnalysisInterface.__init__(self)
+        super().__init__()
         self.num_items = len(items)
         self.items = items
         assert self.num_items >= self.comm.size

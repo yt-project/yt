@@ -55,7 +55,7 @@ class AMRVACIOHandler(BaseIOHandler):
     _dataset_type = "amrvac"
 
     def __init__(self, ds):
-        BaseIOHandler.__init__(self, ds)
+        super().__init__(ds)
         self.ds = ds
         self.datfile = ds.parameter_filename
         header = self.ds.parameters

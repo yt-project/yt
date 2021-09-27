@@ -179,7 +179,7 @@ class YTEllipsoid(YTSelectionContainer3D):
         validate_object(ds, Dataset)
         validate_object(field_parameters, dict)
         validate_object(data_source, YTSelectionContainer)
-        YTSelectionContainer3D.__init__(self, center, ds, field_parameters, data_source)
+        super().__init__(center, ds, field_parameters, data_source)
         # make sure the magnitudes of semi-major axes are in order
         if A < B or B < C:
             raise YTEllipsoidOrdering(ds, A, B, C)

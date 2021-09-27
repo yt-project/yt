@@ -177,7 +177,7 @@ class AMRKDTree(ParallelAnalysisInterface):
                 "AMRKDTree does not support particle or octree-based data."
             )
 
-        ParallelAnalysisInterface.__init__(self)
+        super().__init__()
 
         self.ds = ds
         self.current_vcds = []

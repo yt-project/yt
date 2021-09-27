@@ -42,7 +42,7 @@ class FITSGrid(AMRGridPatch):
     _id_offset = 0
 
     def __init__(self, id, index, level):
-        AMRGridPatch.__init__(self, id, filename=index.index_filename, index=index)
+        super().__init__(id, filename=index.index_filename, index=index)
         self.Parent = None
         self.Children = []
         self.Level = 0
@@ -64,7 +64,7 @@ class FITSHierarchy(GridIndex):
         self.directory = os.path.dirname(self.index_filename)
         self._handle = ds._handle
         self.float_type = np.float64
-        GridIndex.__init__(self, ds, dataset_type)
+        super().__init__(ds, dataset_type)
 
     def _initialize_data_storage(self):
         pass
@@ -374,8 +374,7 @@ class FITSDataset(Dataset):
 
         self.refine_by = 2
 
-        Dataset.__init__(
-            self,
+        super().__init__(
             fn,
             dataset_type,
             units_override=units_override,

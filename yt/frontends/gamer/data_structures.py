@@ -17,7 +17,7 @@ class GAMERGrid(AMRGridPatch):
     _id_offset = 0
 
     def __init__(self, id, index, level):
-        AMRGridPatch.__init__(self, id, filename=index.index_filename, index=index)
+        super().__init__(id, filename=index.index_filename, index=index)
         self.Parent = None  # do NOT initialize Parent as []
         self.Children = []
         self.Level = level
@@ -42,7 +42,7 @@ class GAMERHierarchy(GridIndex):
         self._particle_handle = ds._particle_handle
         self.refine_by = ds.refine_by
         self.pgroup = self.refine_by ** 3  # number of patches in a patch group
-        GridIndex.__init__(self, ds, dataset_type)
+        super().__init__(ds, dataset_type)
 
     def _detect_output_fields(self):
         # find all field names in the current dataset
@@ -245,8 +245,7 @@ class GAMERDataset(Dataset):
         # currently GAMER only supports refinement by a factor of 2
         self.refine_by = 2
 
-        Dataset.__init__(
-            self,
+        super().__init__(
             filename,
             dataset_type,
             units_override=units_override,

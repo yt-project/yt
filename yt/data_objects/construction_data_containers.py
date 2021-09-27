@@ -97,7 +97,7 @@ class YTStreamline(YTSelectionContainer1D):
     sort_by = "t"
 
     def __init__(self, positions, length=1.0, fields=None, ds=None, **kwargs):
-        YTSelectionContainer1D.__init__(self, ds, fields, **kwargs)
+        super().__init__(ds, fields, **kwargs)
         self.positions = positions
         self.dts = np.empty_like(positions[:, 0])
         self.dts[:-1] = np.sqrt(
@@ -632,7 +632,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
             center = None
         else:
             center = field_parameters.get("center", None)
-        YTSelectionContainer3D.__init__(self, center, ds, field_parameters)
+        super().__init__(center, ds, field_parameters)
 
         self.level = level
         self.left_edge = self._sanitize_edge(left_edge)
@@ -1310,7 +1310,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
             ds.domain_right_edge - ds.domain_left_edge
         ) / ds.domain_dimensions.astype("float64")
         self.global_endindex = None
-        YTCoveringGrid.__init__(self, *args, **kwargs)
+        super().__init__(*args, **kwargs)
         self._final_start_index = self.global_startindex
 
     def _setup_data_source(self, level_state=None):
@@ -2690,7 +2690,7 @@ class YTOctree(YTSelectionContainer3D):
             center = None
         else:
             center = field_parameters.get("center", None)
-        YTSelectionContainer3D.__init__(self, center, ds, field_parameters)
+        super().__init__(center, ds, field_parameters)
 
         self.left_edge = self._sanitize_edge(left_edge, ds.domain_left_edge)
         self.right_edge = self._sanitize_edge(right_edge, ds.domain_right_edge)

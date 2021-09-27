@@ -34,7 +34,7 @@ class OWLSSimulation(GadgetSimulation):
     """
 
     def __init__(self, parameter_filename, find_outputs=False):
-        GadgetSimulation.__init__(self, parameter_filename, find_outputs=find_outputs)
+        super().__init__(parameter_filename, find_outputs=find_outputs)
 
     def _snapshot_format(self, index=None):
         """

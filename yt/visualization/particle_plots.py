@@ -281,8 +281,7 @@ class ParticleProjectionPlot(PWViewerMPL):
 
         self.projected = weight_field is None
 
-        PWViewerMPL.__init__(
-            self,
+        super().__init__(
             ParticleSource,
             bounds,
             origin=origin,

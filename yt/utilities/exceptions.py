@@ -6,7 +6,7 @@ from unyt.exceptions import UnitOperationError
 
 class YTException(Exception):
     def __init__(self, message=None, ds=None):
-        Exception.__init__(self, message)
+        super().__init__(message)
         self.ds = ds
 
 
@@ -59,7 +59,7 @@ class YTAmbiguousDataType(YTUnidentifiedDataType):
 
 class YTSphereTooSmall(YTException):
     def __init__(self, ds, radius, smallest_cell):
-        YTException.__init__(self, ds=ds)
+        super().__init__(ds=ds)
         self.radius = radius
         self.smallest_cell = smallest_cell
 
@@ -189,7 +189,7 @@ class YTFieldTypeNotFound(YTException):
 
 class YTSimulationNotIdentified(YTException):
     def __init__(self, sim_type):
-        YTException.__init__(self)
+        super().__init__()
         self.sim_type = sim_type
 
     def __str__(self):
@@ -234,7 +234,7 @@ class InvalidSimulationTimeSeries(YTException):
 
 class MissingParameter(YTException):
     def __init__(self, ds, parameter):
-        YTException.__init__(self, ds=ds)
+        super().__init__(ds=ds)
         self.parameter = parameter
 
     def __str__(self):
@@ -243,7 +243,7 @@ class MissingParameter(YTException):
 
 class NoStoppingCondition(YTException):
     def __init__(self, ds):
-        YTException.__init__(self, ds=ds)
+        super().__init__(ds=ds)
 
     def __str__(self):
         return (
@@ -367,7 +367,7 @@ class YTCloudError(YTException):
 
 class YTEllipsoidOrdering(YTException):
     def __init__(self, ds, A, B, C):
-        YTException.__init__(self, ds=ds)
+        super().__init__(ds=ds)
         self._A = A
         self._B = B
         self._C = C
@@ -907,7 +907,7 @@ class YTModuleRemoved(Exception):
             message += f"\nIt has been moved to {new_home}."
         if info is not None:
             message += f"\nFor more information, see {info}."
-        Exception.__init__(self, message)
+        super().__init__(message)
 
 
 class YTArrayTooLargeToDisplay(YTException):

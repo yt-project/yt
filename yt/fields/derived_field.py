@@ -487,7 +487,7 @@ class ValidateParameter(FieldValidator):
         If *parameter_values* is supplied, this will also ensure that the field
         is available for all permutations of the field parameter.
         """
-        FieldValidator.__init__(self)
+        super().__init__()
         self.parameters = list(always_iterable(parameters))
         self.parameter_values = parameter_values
 
@@ -507,7 +507,7 @@ class ValidateDataField(FieldValidator):
         This validator ensures that the output file has a given data field stored
         in it.
         """
-        FieldValidator.__init__(self)
+        super().__init__()
         self.fields = list(iter_fields(field))
 
     def __call__(self, data):
@@ -527,7 +527,7 @@ class ValidateProperty(FieldValidator):
         """
         This validator ensures that the data object has a given python attribute.
         """
-        FieldValidator.__init__(self)
+        super().__init__()
         self.prop = list(always_iterable(prop))
 
     def __call__(self, data):
@@ -546,7 +546,7 @@ class ValidateSpatial(FieldValidator):
         This validator ensures that the data handed to the field is of spatial
         nature -- that is to say, 3-D.
         """
-        FieldValidator.__init__(self)
+        super().__init__()
         self.ghost_zones = ghost_zones
         self.fields = fields
 
@@ -567,7 +567,7 @@ class ValidateGridType(FieldValidator):
         This validator ensures that the data handed to the field is an actual
         grid patch, not a covering grid of any kind.
         """
-        FieldValidator.__init__(self)
+        super().__init__()
 
     def __call__(self, data):
         # We need to make sure that it's an actual AMR grid

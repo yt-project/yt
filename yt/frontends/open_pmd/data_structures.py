@@ -40,7 +40,7 @@ class OpenPMDGrid(AMRGridPatch):
     poffset = 0
 
     def __init__(self, gid, index, level=-1, fi=0, fo=0, pi=0, po=0, ft=None, pt=None):
-        AMRGridPatch.__init__(self, gid, filename=index.index_filename, index=index)
+        super().__init__(gid, filename=index.index_filename, index=index)
         if ft is None:
             ft = []
         if pt is None:
@@ -72,7 +72,7 @@ class OpenPMDHierarchy(GridIndex):
         self.dataset = ds
         self.index_filename = ds.parameter_filename
         self.directory = path.dirname(self.index_filename)
-        GridIndex.__init__(self, ds, dataset_type)
+        super().__init__(ds, dataset_type)
 
     def _get_particle_type_counts(self):
         """Reads the active number of particles for every species.
@@ -446,8 +446,7 @@ class OpenPMDDataset(Dataset):
         self.standard_version = Version(self._handle.attrs["openPMD"].decode())
         self.iteration = kwargs.pop("iteration", None)
         self._set_paths(self._handle, path.dirname(filename), self.iteration)
-        Dataset.__init__(
-            self,
+        super().__init__(
             filename,
             dataset_type,
             units_override=units_override,

@@ -869,7 +869,7 @@ class PWViewerMPL(PlotWindow):
         if self._plot_type is None:
             self._plot_type = kwargs.pop("plot_type")
         self._splat_color = kwargs.pop("splat_color", None)
-        PlotWindow.__init__(self, *args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def _setup_origin(self):
         origin = self.origin
@@ -1611,8 +1611,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
             )
             slc.get_data(fields)
         validate_mesh_fields(slc, fields)
-        PWViewerMPL.__init__(
-            self,
+        super().__init__(
             slc,
             bounds,
             origin=origin,
@@ -1851,8 +1850,7 @@ class ProjectionPlot(PWViewerMPL):
                 method=method,
                 max_level=max_level,
             )
-        PWViewerMPL.__init__(
-            self,
+        super().__init__(
             proj,
             bounds,
             fields=fields,
@@ -1982,8 +1980,7 @@ class OffAxisSlicePlot(PWViewerMPL):
         validate_mesh_fields(cutting, fields)
         # Hard-coding the origin keyword since the other two options
         # aren't well-defined for off-axis data objects
-        PWViewerMPL.__init__(
-            self,
+        super().__init__(
             cutting,
             bounds,
             fields=fields,
@@ -2203,8 +2200,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
 
         # Hard-coding the origin keyword since the other two options
         # aren't well-defined for off-axis data objects
-        PWViewerMPL.__init__(
-            self,
+        super().__init__(
             OffAxisProj,
             bounds,
             fields=fields,

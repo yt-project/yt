@@ -26,7 +26,7 @@ class MoabHex8Hierarchy(UnstructuredIndex):
         self.directory = os.path.dirname(self.index_filename)
         self._fhandle = h5py.File(self.index_filename, mode="r")
 
-        UnstructuredIndex.__init__(self, ds, dataset_type)
+        super().__init__(ds, dataset_type)
 
         self._fhandle.close()
 
@@ -60,8 +60,7 @@ class MoabHex8Dataset(Dataset):
         unit_system="cgs",
     ):
         self.fluid_types += ("moab",)
-        Dataset.__init__(
-            self,
+        super().__init__(
             filename,
             dataset_type,
             units_override=units_override,
@@ -161,8 +160,7 @@ class PyneMoabHex8Dataset(Dataset):
         self.fluid_types += ("pyne",)
         filename = f"pyne_mesh_{id(pyne_mesh)}"
         self.pyne_mesh = pyne_mesh
-        Dataset.__init__(
-            self,
+        super().__init__(
             str(filename),
             dataset_type,
             units_override=units_override,

@@ -557,19 +557,19 @@ class FieldInfoContainer(dict):
         return obj
 
     def __contains__(self, key):
-        if dict.__contains__(self, key):
+        if super().__contains__(key):
             return True
         if self.fallback is None:
             return False
         return key in self.fallback
 
     def __iter__(self):
-        yield from dict.__iter__(self)
+        yield from super().__iter__()
         if self.fallback is not None:
             yield from self.fallback
 
     def keys(self):
-        keys = dict.keys(self)
+        keys = super().keys()
         if self.fallback:
             keys += list(self.fallback.keys())
         return keys

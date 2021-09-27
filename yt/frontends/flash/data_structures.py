@@ -19,7 +19,7 @@ class FLASHGrid(AMRGridPatch):
     # __slots__ = ["_level_id", "stop_index"]
 
     def __init__(self, id, index, level):
-        AMRGridPatch.__init__(self, id, filename=index.index_filename, index=index)
+        super().__init__(id, filename=index.index_filename, index=index)
         self.Parent = None
         self.Children = []
         self.Level = level
@@ -43,7 +43,7 @@ class FLASHHierarchy(GridIndex):
         self._handle = ds._handle
         self._particle_handle = ds._particle_handle
         self.float_type = np.float64
-        GridIndex.__init__(self, ds, dataset_type)
+        super().__init__(ds, dataset_type)
 
     def _initialize_data_storage(self):
         pass
@@ -218,8 +218,7 @@ class FLASHDataset(Dataset):
         # generalization.
         self.refine_by = 2
 
-        Dataset.__init__(
-            self,
+        super().__init__(
             filename,
             dataset_type,
             units_override=units_override,

@@ -142,7 +142,7 @@ class AthenaPPGrid(AMRGridPatch):
     _id_offset = 0
 
     def __init__(self, id, index, level):
-        AMRGridPatch.__init__(self, id, filename=index.index_filename, index=index)
+        super().__init__(id, filename=index.index_filename, index=index)
         self.Parent = None
         self.Children = []
         self.Level = level
@@ -176,7 +176,7 @@ class AthenaPPHierarchy(GridIndex):
         # for now, the index file is the dataset!
         self.index_filename = self.dataset.filename
         self._handle = ds._handle
-        GridIndex.__init__(self, ds, dataset_type)
+        super().__init__(ds, dataset_type)
 
     def _detect_output_fields(self):
         self.field_list = [("athena_pp", k) for k in self.dataset._field_map]
@@ -258,8 +258,7 @@ class AthenaPPDataset(Dataset):
         else:
             self._index_class = AthenaPPHierarchy
             self.logarithmic = False
-        Dataset.__init__(
-            self,
+        super().__init__(
             filename,
             dataset_type,
             units_override=units_override,

@@ -76,7 +76,7 @@ class YTSlice(YTSelectionContainer2D):
         validate_object(ds, Dataset)
         validate_object(field_parameters, dict)
         validate_object(data_source, YTSelectionContainer)
-        YTSelectionContainer2D.__init__(self, axis, ds, field_parameters, data_source)
+        super().__init__(axis, ds, field_parameters, data_source)
         self._set_center(center)
         self.coord = coord
 
@@ -212,7 +212,7 @@ class YTCuttingPlane(YTSelectionContainer2D):
         validate_object(ds, Dataset)
         validate_object(field_parameters, dict)
         validate_object(data_source, YTSelectionContainer)
-        YTSelectionContainer2D.__init__(self, 4, ds, field_parameters, data_source)
+        super().__init__(4, ds, field_parameters, data_source)
         self._set_center(center)
         self.set_field_parameter("center", center)
         # Let's set up our plane equation

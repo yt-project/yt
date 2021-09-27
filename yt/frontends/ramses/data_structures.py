@@ -705,8 +705,7 @@ class RAMSESDataset(Dataset):
             self.num_groups = 0
         self.root_folder = file_handler.root_folder
 
-        Dataset.__init__(
-            self,
+        super().__init__(
             info_fname,
             dataset_type,
             units_override=units_override,

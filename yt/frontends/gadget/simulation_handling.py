@@ -52,9 +52,7 @@ class GadgetSimulation(SimulationTimeSeries):
     def __init__(self, parameter_filename, find_outputs=False):
         self.simulation_type = "particle"
         self.dimensionality = 3
-        SimulationTimeSeries.__init__(
-            self, parameter_filename, find_outputs=find_outputs
-        )
+        super().__init__(parameter_filename, find_outputs=find_outputs)
 
     def _set_units(self):
         self.unit_registry = UnitRegistry()

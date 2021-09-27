@@ -85,7 +85,7 @@ class ProfileND(ParallelAnalysisInterface):
             self.standard_deviation = None
         self.weight_field = weight_field
         self.field_units = {}
-        ParallelAnalysisInterface.__init__(self, comm=data_source.comm)
+        super().__init__(comm=data_source.comm)
 
     def add_fields(self, fields):
         """Add fields to profile
@@ -415,7 +415,7 @@ class ProfileNDFromDataset(ProfileND):
     """
 
     def __init__(self, ds):
-        ProfileND.__init__(self, ds.data, ds.parameters.get("weight_field", None))
+        super().__init__(ds.data, ds.parameters.get("weight_field", None))
         self.fractional = ds.parameters.get("fractional", False)
         self.accumulation = ds.parameters.get("accumulation", False)
         exclude_fields = ["used", "weight"]

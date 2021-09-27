@@ -855,7 +855,7 @@ def memory_checker(interval=15, dest=None):
         def __init__(self, event, interval):
             self.event = event
             self.interval = interval
-            threading.Thread.__init__(self)
+            super().__init__()
 
         def run(self):
             while not self.event.wait(self.interval):

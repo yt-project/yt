@@ -382,7 +382,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
     """
 
     def __init__(self, x_bounds, nbins=256, grey_opacity=False):
-        MultiVariateTransferFunction.__init__(self)
+        super().__init__()
         # Strip units off of x_bounds, if any
         x_bounds = [np.float64(xb) for xb in x_bounds]
         self.x_bounds = x_bounds
@@ -934,7 +934,7 @@ class ProjectionTransferFunction(MultiVariateTransferFunction):
     def __init__(self, x_bounds=(-1e60, 1e60), n_fields=1):
         if n_fields > 3:
             raise NotImplementedError
-        MultiVariateTransferFunction.__init__(self)
+        super().__init__()
         # Strip units off of x_bounds, if any
         x_bounds = [np.float64(xb) for xb in x_bounds]
         self.x_bounds = x_bounds
@@ -965,7 +965,7 @@ class PlanckTransferFunction(MultiVariateTransferFunction):
     def __init__(
         self, T_bounds, rho_bounds, nbins=256, red="R", green="V", blue="B", anorm=1e6
     ):
-        MultiVariateTransferFunction.__init__(self)
+        super().__init__()
         mscat = -1
         from .UBVRI import johnson_filters
 

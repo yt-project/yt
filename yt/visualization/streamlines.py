@@ -104,7 +104,7 @@ class Streamlines(ParallelAnalysisInterface):
         direction=1,
         get_magnitude=False,
     ):
-        ParallelAnalysisInterface.__init__(self)
+        super().__init__()
         self.ds = ds
         self.start_positions = sanitize_length(positions, ds)
         self.N = self.start_positions.shape[0]

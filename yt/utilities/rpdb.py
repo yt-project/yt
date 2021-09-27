@@ -78,7 +78,7 @@ class pdb_handler:
 class rpdb_cmd(cmd.Cmd):
     def __init__(self, proxy):
         self.proxy = proxy
-        cmd.Cmd.__init__(self)
+        super().__init__()
         print(self.proxy.execute("bt"))
 
     def default(self, line):

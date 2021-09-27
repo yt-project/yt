@@ -53,9 +53,7 @@ class EnzoSimulation(SimulationTimeSeries):
     def __init__(self, parameter_filename, find_outputs=False):
         self.simulation_type = "grid"
         self.key_parameters = ["stop_cycle"]
-        SimulationTimeSeries.__init__(
-            self, parameter_filename, find_outputs=find_outputs
-        )
+        super().__init__(parameter_filename, find_outputs=find_outputs)
 
     def _set_units(self):
         self.unit_registry = UnitRegistry()
@@ -702,8 +700,7 @@ class EnzoCosmology(Cosmology):
         initial_redshift,
         unit_registry=None,
     ):
-        Cosmology.__init__(
-            self,
+        super().__init__(
             hubble_constant=hubble_constant,
             omega_matter=omega_matter,
             omega_lambda=omega_lambda,

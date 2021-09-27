@@ -393,7 +393,7 @@ class YTGrid(AMRGridPatch):
     _id_offset = 0
 
     def __init__(self, gid, index, filename=None):
-        AMRGridPatch.__init__(self, gid, filename=filename, index=index)
+        super().__init__(gid, filename=filename, index=index)
         self._children_ids = []
         self._parent_id = -1
         self.Level = 0
@@ -901,7 +901,7 @@ class YTClumpContainer(TreeContainer):
         self.contour_id = contour_id
         self.parent = None
         self.ds = ds
-        TreeContainer.__init__(self)
+        super().__init__()
 
     def add_child(self, child):
         if self.children is None:
