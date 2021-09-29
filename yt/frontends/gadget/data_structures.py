@@ -564,15 +564,45 @@ class GadgetDataset(SPHDataset):
 
 
 class GadgetHDF5File(ParticleFile):
+
+    fields_with_cols = ["Metallicity_", "PassiveScalars_", "Chemistry_", "GFM_Metals_"]
+
     def _read_field(self, ptype, field_name, handle=None):
+
+        field_name, col = self._sanitize_field_col(field_name)
+
         if self.total_particles[ptype] == 0:
+            # consider returning an empty array here instead of None
             return
+
         if not handle:
             with self.transaction as handle:
                 v = handle[f"/{ptype}/{field_name}"][self.start : self.end, ...]
         else:
             v = handle[f"/{ptype}/{field_name}"][self.start : self.end, ...]
+
+        if col:
+            # extract the column if appropriate for this field
+            v = v[:, col]
+
         return v
+
+    def _sanitize_field_col(self, field_name: str):
+
+        if any(field_name.startswith(c) for c in self.fields_with_cols):
+            rc = field_name.split("_")
+            col = int(rc[-1])
+            rfield = rc[0]
+
+            if rfield == "Chemistry":
+                rfield = rfield + "Abundances"
+
+            return rfield, col
+
+        if field_name in self.io._element_names:
+            return "ElementAbundance/" + field_name, None
+
+        return field_name, None
 
     @property
     @contextlib.contextmanager

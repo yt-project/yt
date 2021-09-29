@@ -136,95 +136,95 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                 end = min(ei, d.size) + offsets[fn]
                 d[si:ei] = hsml[begin:end]
 
-    def _get_smoothing_length(self, data_file, position_dtype, position_shape):
+    def _get_smoothing_length(
+        self, data_file, position_dtype, position_shape, handle=None
+    ):
         ptype = self.ds._sph_ptypes[0]
-        si, ei = data_file.start, data_file.end
         if self.ds.gen_hsmls:
             fn = data_file.filename.replace(".hdf5", ".hsml.hdf5")
+            si, ei = data_file.start, data_file.end
+            with h5py.File(fn, mode="r") as f:
+                ds = f[ptype]["SmoothingLength"][si:ei, ...]
         else:
-            fn = data_file.filename
-        with h5py.File(fn, mode="r") as f:
-            ds = f[ptype]["SmoothingLength"][si:ei, ...]
-            dt = ds.dtype.newbyteorder("N")  # Native
-            if position_dtype is not None and dt < position_dtype:
-                # Sometimes positions are stored in double precision
-                # but smoothing lengths are stored in single precision.
-                # In these cases upcast smoothing length to double precision
-                # to avoid ValueErrors when we pass these arrays to Cython.
-                dt = position_dtype
-            hsml = np.empty(ds.shape, dtype=dt)
-            hsml[:] = ds
-            return hsml
+            # note: if handle is None, _read_file will open it.
+            ds = data_file._read_field(ptype, "SmoothingLength", handle)
+            # note, previously, this method always opened the hdf file and
+            # read f[ptype]["SmoothingLength"] without checking if there
+            # are any particles of ptype. _read_field does include that check
+            # and returns None if there are no particles, so we need to
+            # return an empty array here:
+            if ds is None:
+                return np.empty(0, dtype=position_dtype)
+
+        # ds may be None
+        dt = ds.dtype.newbyteorder("N")  # Native
+        if position_dtype is not None and dt < position_dtype:
+            # Sometimes positions are stored in double precision
+            # but smoothing lengths are stored in single precision.
+            # In these cases upcast smoothing length to double precision
+            # to avoid ValueErrors when we pass these arrays to Cython.
+            dt = position_dtype
+        hsml = np.empty(ds.shape, dtype=dt)
+        hsml[:] = ds
+        return hsml
 
     def _read_particle_data_file(self, data_file, ptf, selector=None):
-        si, ei = data_file.start, data_file.end
 
         data_return = {}
+        cname = self.ds._particle_coordinates_name
+        with data_file.transaction as handle:
 
-        f = h5py.File(data_file.filename, mode="r")
-        for ptype, field_list in sorted(ptf.items()):
-            if data_file.total_particles[ptype] == 0:
-                continue
-            g = f[f"/{ptype}"]
-            if selector is None or getattr(selector, "is_all_data", False):
-                mask = slice(None, None, None)
-                mask_sum = data_file.total_particles[ptype]
-                hsmls = None
-            else:
-                coords = g["Coordinates"][si:ei].astype("float64")
-                if ptype == "PartType0":
-                    hsmls = self._get_smoothing_length(
-                        data_file, g["Coordinates"].dtype, g["Coordinates"].shape
-                    ).astype("float64")
+            for ptype, field_list in sorted(ptf.items()):
+                if data_file.total_particles[ptype] == 0:
+                    continue
+
+                if selector is None or getattr(selector, "is_all_data", False):
+                    mask = slice(None, None, None)
+                    mask_sum = data_file.total_particles[ptype]
+                    hsmls = None
                 else:
-                    hsmls = 0.0
-                mask = selector.select_points(
-                    coords[:, 0], coords[:, 1], coords[:, 2], hsmls
-                )
-                if mask is not None:
-                    mask_sum = mask.sum()
-                del coords
-            if mask is None:
-                continue
-            for field in field_list:
-
-                if field in ("Mass", "Masses") and ptype not in self.var_mass:
-                    data = np.empty(mask_sum, dtype="float64")
-                    ind = self._known_ptypes.index(ptype)
-                    data[:] = self.ds["Massarr"][ind]
-                elif field in self._element_names:
-                    rfield = "ElementAbundance/" + field
-                    data = g[rfield][si:ei][mask, ...]
-                elif field.startswith("Metallicity_"):
-                    col = int(field.rsplit("_", 1)[-1])
-                    data = g["Metallicity"][si:ei, col][mask]
-                elif field.startswith("GFM_Metals_"):
-                    col = int(field.rsplit("_", 1)[-1])
-                    data = g["GFM_Metals"][si:ei, col][mask]
-                elif field.startswith("Chemistry_"):
-                    col = int(field.rsplit("_", 1)[-1])
-                    data = g["ChemistryAbundances"][si:ei, col][mask]
-                elif field.startswith("PassiveScalars_"):
-                    col = int(field.rsplit("_", 1)[-1])
-                    data = g["PassiveScalars"][si:ei, col][mask]
-                elif field == "smoothing_length":
-                    # This is for frontends which do not store
-                    # the smoothing length on-disk, so we do not
-                    # attempt to read them, but instead assume
-                    # that they are calculated in _get_smoothing_length.
-                    if hsmls is None:
+                    coords = data_file._read_field(ptype, cname, handle).astype(
+                        "float64"
+                    )
+                    if ptype == "PartType0":
                         hsmls = self._get_smoothing_length(
-                            data_file,
-                            g["Coordinates"].dtype,
-                            g["Coordinates"].shape,
+                            data_file, coords.dtype, coords.shape
                         ).astype("float64")
-                    data = hsmls[mask]
-                else:
-                    data = g[field][si:ei][mask, ...]
+                    else:
+                        hsmls = 0.0
+                    mask = selector.select_points(
+                        coords[:, 0], coords[:, 1], coords[:, 2], hsmls
+                    )
+                    if mask is not None:
+                        mask_sum = mask.sum()
+                    del coords
+                if mask is None:
+                    continue
 
-                data_return[(ptype, field)] = data
+                for field in field_list:
+                    if field in ("Mass", "Masses") and ptype not in self.var_mass:
+                        data = np.empty(mask_sum, dtype="float64")
+                        ind = self._known_ptypes.index(ptype)
+                        data[:] = self.ds["Massarr"][ind]
+                    elif field == "smoothing_length":
+                        # This is for frontends which do not store
+                        # the smoothing length on-disk, so we do not
+                        # attempt to read them, but instead assume
+                        # that they are calculated in _get_smoothing_length.
+                        if hsmls is None:
+                            coords = data_file._read_field(ptype, cname, handle).astype(
+                                "float64"
+                            )
+                            hsmls = self._get_smoothing_length(
+                                data_file,
+                                coords.dtype,
+                                coords.shape,
+                            ).astype("float64")
+                        data = hsmls[mask]
+                    else:
+                        data = data_file._read_field(ptype, field, handle)[mask]
 
-        f.close()
+                    data_return[(ptype, field)] = data
         return data_return
 
     def _count_particles(self, data_file):
