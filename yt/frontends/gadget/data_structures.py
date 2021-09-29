@@ -565,7 +565,7 @@ class GadgetDataset(SPHDataset):
 
 class GadgetHDF5File(ParticleFile):
 
-    fields_with_cols = ["Metallicity_", "PassiveScalars_", "Chemistry_", "GFM_Metals_"]
+    _fields_with_cols = ["Metallicity_", "PassiveScalars_", "Chemistry_", "GFM_Metals_"]
 
     def _read_field(self, ptype, field_name, handle=None):
 
@@ -589,12 +589,12 @@ class GadgetHDF5File(ParticleFile):
 
     def _sanitize_field_col(self, field_name: str):
 
-        if any(field_name.startswith(c) for c in self.fields_with_cols):
+        if any(field_name.startswith(c) for c in self._fields_with_cols):
             rc = field_name.rsplit("_", 1)
             col = int(rc[-1])
             rfield = rc[:-1]
 
-            if rfield == "Chemistry":
+            if rfield.startswith("Chemistry"):
                 rfield = rfield + "Abundances"
 
             return rfield, col
