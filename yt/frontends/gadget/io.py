@@ -156,7 +156,6 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
             if ds is None:
                 return np.empty(0, dtype=position_dtype)
 
-        # ds may be None
         dt = ds.dtype.newbyteorder("N")  # Native
         if position_dtype is not None and dt < position_dtype:
             # Sometimes positions are stored in double precision
@@ -188,7 +187,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                     )
                     if ptype == "PartType0":
                         hsmls = self._get_smoothing_length(
-                            data_file, coords.dtype, coords.shape
+                            data_file, coords.dtype, coords.shape, handle
                         ).astype("float64")
                     else:
                         hsmls = 0.0
@@ -219,6 +218,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                                 data_file,
                                 coords.dtype,
                                 coords.shape,
+                                handle,
                             ).astype("float64")
                         data = hsmls[mask]
                     else:
