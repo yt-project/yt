@@ -590,9 +590,9 @@ class GadgetHDF5File(ParticleFile):
     def _sanitize_field_col(self, field_name: str):
 
         if any(field_name.startswith(c) for c in self.fields_with_cols):
-            rc = field_name.split("_")
+            rc = field_name.rsplit("_", 1)
             col = int(rc[-1])
-            rfield = rc[0]
+            rfield = rc[:-1]
 
             if rfield == "Chemistry":
                 rfield = rfield + "Abundances"
