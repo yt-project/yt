@@ -159,7 +159,7 @@ class SphericalCoordinateHandler(CoordinateHandler):
             )
         elif name in ("theta", "phi"):
             if name == "theta":
-                # This is admittetly a very hacky way to resolve a bug
+                # This is admittedly a very hacky way to resolve a bug
                 # it's very likely that the *right* fix would have to
                 # be applied upstream of this function, *but* this case
                 # has never worked properly so maybe it's still preferable to
