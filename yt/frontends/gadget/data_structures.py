@@ -565,14 +565,14 @@ class GadgetDataset(SPHDataset):
 
 class GadgetHDF5File(ParticleFile):
 
-    _fields_with_cols = ["Metallicity_", "PassiveScalars_", "Chemistry_", "GFM_Metals_"]
+    _fields_with_cols = ("Metallicity_", "PassiveScalars_", "Chemistry_", "GFM_Metals_")
 
     def _read_field(self, ptype, field_name, handle=None):
 
         field_name, col = self._sanitize_field_col(field_name)
 
         if self.total_particles[ptype] == 0:
-            # consider returning an empty array here instead of None
+            # TODO: consider returning an empty array here instead of None
             return
 
         if not handle:
