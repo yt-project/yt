@@ -292,22 +292,13 @@ class BaseIOHandler:
 
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate
-        data_files = set()
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
-        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
+        for data_file in self._sorted_chunk_iterator(chunks):
             data_file_data = self._read_particle_data_file(data_file, ptf, selector)
             # temporary trickery so it's still an iterator, need to adjust
             # the io_handler.BaseIOHandler.read_particle_selection() method
             # to not use an iterator.
             yield from data_file_data.items()
 
-
-# As a note: we don't *actually* want this to be how it is forever.  There's no
-# reason we need to have the fluid and particle IO handlers separated.  But,
-# for keeping track of which frontend is which, this is a useful abstraction.
-class BaseParticleIOHandler(BaseIOHandler):
     def _sorted_chunk_iterator(self, chunks):
         chunks = list(chunks)
         data_files = set()
@@ -316,6 +307,11 @@ class BaseParticleIOHandler(BaseIOHandler):
                 data_files.update(obj.data_files)
         yield from sorted(data_files, key=lambda x: (x.filename, x.start))
 
+
+# As a note: we don't *actually* want this to be how it is forever.  There's no
+# reason we need to have the fluid and particle IO handlers separated.  But,
+# for keeping track of which frontend is which, this is a useful abstraction.
+class BaseParticleIOHandler(BaseIOHandler):
     def _count_particles_chunks(
         self,
         psize: DefaultDict[str, int],

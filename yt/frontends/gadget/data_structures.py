@@ -3,6 +3,7 @@ import os
 import stat
 import struct
 from typing import Type
+from collections import defaultdict
 
 import numpy as np
 
@@ -171,13 +172,39 @@ class GadgetBinaryHeader:
         return True
 
 
-class GadgetBinaryFile(ParticleFile):
+class GadgetParticleFile(ParticleFile):
+    # an intermediate abstract class for both gadget types.
+
+    _file_read_mode = None  # either "r" or "rb", set by child class
+    _opening_func = None  # a function handle for opening the file
+
+    @contextlib.contextmanager
+    def transaction(self, handle=None):
+        if handle is None:
+            handle = self._opening_func(self.filename, mode=self._file_read_mode)
+            yield handle
+            handle.close()
+        else:
+            # we have ended up here recursively, so simply yield. The outer
+            # instance will take care of closing the handle.
+            yield handle
+
+
+class GadgetBinaryFile(GadgetParticleFile):
+
+    _file_read_mode = "rb"
+    _opening_func = open
+
     def __init__(self, ds, io, filename, file_id, range=None):
         header = GadgetBinaryHeader(filename, ds._header.spec)
         self.header = header.value
         self._position_offset = header.position_offset
         with header.open() as f:
             self._file_size = f.seek(0, os.SEEK_END)
+
+        default_field_type = np.dtype(io._endian + ds._header.float_type)
+        self._field_dtype = defaultdict(lambda: default_field_type)
+        self._field_dtype["ParticleIDs"] = np.dtype(io._endian + ds._id_dtype)
 
         super().__init__(ds, io, filename, file_id, range)
 
@@ -191,6 +218,39 @@ class GadgetBinaryFile(ParticleFile):
             self.start,
             self._file_size,
         )
+
+    def _field_count(self, ptype, field):
+        # get the expected array size of the current particle type and field
+        count = self.total_particles[ptype]
+        if field in self.io._vector_fields:
+            count *= self.io._vector_fields[field]
+        return count
+
+    def _read_field(self, ptype, field, handle=None):
+
+        # get the length of the field and the data type
+        count = self._field_count(ptype, field)
+        if count == 0:
+            return
+        dt = self._field_dtype[field]
+
+        # read in the data from the right offset location
+        poffset = self.field_offsets[ptype, field]
+        with self.transaction(handle) as f:
+            f.seek(poffset, os.SEEK_SET)
+            arr = np.fromfile(f, dtype=dt, count=count)
+
+        # ensure data are in native endianness to avoid errors
+        # when field data are passed to cython
+        dt = dt.newbyteorder("N")
+        arr = arr.astype(dt)
+
+        # reshape if we have a vector
+        if field in self.io._vector_fields:
+            factor = self.io._vector_fields[field]
+            arr = arr.reshape((count // factor, factor), order="C")
+
+        return arr
 
 
 class GadgetBinaryIndex(SPHParticleIndex):
@@ -563,8 +623,9 @@ class GadgetDataset(SPHDataset):
         return header.validate()
 
 
-class GadgetHDF5File(ParticleFile):
-
+class GadgetHDF5File(GadgetParticleFile):
+    _file_read_mode = "r"
+    _opening_func = h5py.File
     _fields_with_cols = ("Metallicity_", "PassiveScalars_", "Chemistry_", "GFM_Metals_")
 
     def _read_field(self, ptype, field_name, handle=None):
@@ -575,11 +636,8 @@ class GadgetHDF5File(ParticleFile):
             # TODO: consider returning an empty array here instead of None
             return
 
-        if not handle:
-            with self.transaction as handle:
-                v = handle[f"/{ptype}/{field_name}"][self.start : self.end, ...]
-        else:
-            v = handle[f"/{ptype}/{field_name}"][self.start : self.end, ...]
+        with self.transaction(handle) as f:
+            v = f[f"/{ptype}/{field_name}"][self.start : self.end, ...]
 
         if col is not None:
             # extract the column if appropriate for this field
@@ -603,13 +661,6 @@ class GadgetHDF5File(ParticleFile):
             return "ElementAbundance/" + field_name, None
 
         return field_name, None
-
-    @property
-    @contextlib.contextmanager
-    def transaction(self):
-        handle = h5py.File(self.filename, mode="r")
-        yield handle
-        handle.close()
 
 
 class GadgetHDF5Dataset(GadgetDataset):

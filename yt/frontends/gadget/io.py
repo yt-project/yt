@@ -46,7 +46,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
 
     def _read_particle_coords(self, chunks, ptf):
         for data_file in self._sorted_chunk_iterator(chunks):
-            with data_file.transaction as handle:
+            with data_file.transaction() as handle:
                 # This double-reads
                 for ptype in sorted(ptf):
                     if data_file.total_particles[ptype] == 0:
@@ -58,7 +58,9 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                     if ptype == self.ds._sph_ptypes[0]:
                         pdtype = c.dtype
                         pshape = c.shape
-                        hsml = self._get_smoothing_length(data_file, pdtype, pshape)
+                        hsml = self._get_smoothing_length(
+                            data_file, pdtype, pshape, handle=handle
+                        )
                     else:
                         hsml = 0.0
                     yield ptype, (x, y, z), hsml
@@ -171,7 +173,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
 
         data_return = {}
         cname = self.ds._particle_coordinates_name
-        with data_file.transaction as handle:
+        with data_file.transaction() as handle:
 
             for ptype, field_list in sorted(ptf.items()):
                 if data_file.total_particles[ptype] == 0:
@@ -356,87 +358,57 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
         raise NotImplementedError
 
     def _read_particle_coords(self, chunks, ptf):
-        data_files = set()
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
-        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
-            poff = data_file.field_offsets
-            tp = data_file.total_particles
-            f = open(data_file.filename, "rb")
-            for ptype in ptf:
-                if tp[ptype] == 0:
-                    # skip if there are no particles
-                    continue
-                f.seek(poff[ptype, "Coordinates"], os.SEEK_SET)
-                pos = self._read_field_from_file(f, tp[ptype], "Coordinates")
-                if ptype == self.ds._sph_ptypes[0]:
-                    f.seek(poff[ptype, "SmoothingLength"], os.SEEK_SET)
-                    hsml = self._read_field_from_file(f, tp[ptype], "SmoothingLength")
-                else:
-                    hsml = 0.0
-                yield ptype, (pos[:, 0], pos[:, 1], pos[:, 2]), hsml
-            f.close()
+
+        for data_file in self._sorted_chunk_iterator(chunks):
+            with data_file.transaction() as handle:
+                for ptype in ptf:
+                    if data_file.total_particles[ptype] == 0:
+                        # skip if there are no particles
+                        continue
+                    pos = data_file._read_field(ptype, "Coordinates", handle=handle)
+                    if ptype == self.ds._sph_ptypes[0]:
+                        hsml = data_file._read_field(
+                            ptype, "SmoothingLength", handle=handle
+                        )
+                    else:
+                        hsml = 0.0
+                    yield ptype, (pos[:, 0], pos[:, 1], pos[:, 2]), hsml
 
     def _read_particle_data_file(self, data_file, ptf, selector=None):
         return_data = {}
-        poff = data_file.field_offsets
-        tp = data_file.total_particles
-        f = open(data_file.filename, "rb")
-        for ptype, field_list in sorted(ptf.items()):
-            if tp[ptype] == 0:
-                continue
-            if selector is None or getattr(selector, "is_all_data", False):
-                mask = slice(None, None, None)
-            else:
-                f.seek(poff[ptype, "Coordinates"], os.SEEK_SET)
-                pos = self._read_field_from_file(f, tp[ptype], "Coordinates")
-                if ptype == self.ds._sph_ptypes[0]:
-                    f.seek(poff[ptype, "SmoothingLength"], os.SEEK_SET)
-                    hsml = self._read_field_from_file(f, tp[ptype], "SmoothingLength")
-                else:
-                    hsml = 0.0
-                mask = selector.select_points(pos[:, 0], pos[:, 1], pos[:, 2], hsml)
-                del pos
-                del hsml
-            if mask is None:
-                continue
-            for field in field_list:
-                if field == "Mass" and ptype not in self.var_mass:
-                    if getattr(selector, "is_all_data", False):
-                        size = data_file.total_particles[ptype]
-                    else:
-                        size = mask.sum()
-                    data = np.empty(size, dtype="float64")
-                    m = self.ds.parameters["Massarr"][self._ptypes.index(ptype)]
-                    data[:] = m
-                else:
-                    f.seek(poff[ptype, field], os.SEEK_SET)
-                    data = self._read_field_from_file(f, tp[ptype], field)
-                    data = data[mask, ...]
-                return_data[(ptype, field)] = data
-        f.close()
-        return return_data
 
-    def _read_field_from_file(self, f, count, name):
-        if count == 0:
-            return
-        if name == "ParticleIDs":
-            dt = self._endian + self.ds._id_dtype
-        else:
-            dt = self._endian + self._float_type
-        dt = np.dtype(dt)
-        if name in self._vector_fields:
-            count *= self._vector_fields[name]
-        arr = np.fromfile(f, dtype=dt, count=count)
-        # ensure data are in native endianness to avoid errors
-        # when field data are passed to cython
-        dt = dt.newbyteorder("N")
-        arr = arr.astype(dt)
-        if name in self._vector_fields:
-            factor = self._vector_fields[name]
-            arr = arr.reshape((count // factor, factor), order="C")
-        return arr
+        with data_file.transaction() as f:
+            for ptype, field_list in sorted(ptf.items()):
+                if data_file.total_particles[ptype] == 0:
+                    continue
+                if selector is None or getattr(selector, "is_all_data", False):
+                    mask = slice(None, None, None)
+                else:
+                    pos = data_file._read_field(ptype, "Coordinates", handle=f)
+                    if ptype == self.ds._sph_ptypes[0]:
+                        hsml = data_file._read_field(ptype, "SmoothingLength", handle=f)
+                    else:
+                        hsml = 0.0
+                    mask = selector.select_points(pos[:, 0], pos[:, 1], pos[:, 2], hsml)
+                    del pos
+                    del hsml
+                if mask is None:
+                    continue
+                for field in field_list:
+                    if field == "Mass" and ptype not in self.var_mass:
+                        if getattr(selector, "is_all_data", False):
+                            size = data_file.total_particles[ptype]
+                        else:
+                            size = mask.sum()
+                        data = np.empty(size, dtype="float64")
+                        m = self.ds.parameters["Massarr"][self._ptypes.index(ptype)]
+                        data[:] = m
+                        return_data[(ptype, field)] = data
+                        continue
+                    data = data_file._read_field(ptype, field, handle=f)
+                    data = data[mask, ...]
+                    return_data[(ptype, field)] = data
+        return return_data
 
     def _yield_coordinates(self, data_file, needed_ptype=None):
         self._float_type = data_file.ds._header.float_type
@@ -469,12 +441,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
         return ret
 
     def _get_field(self, data_file, field, ptype):
-        poff = data_file.field_offsets
-        tp = data_file.total_particles
-        with open(data_file.filename, "rb") as f:
-            f.seek(poff[ptype, field], os.SEEK_SET)
-            pp = self._read_field_from_file(f, tp[ptype], field)
-        return pp
+        return data_file._read_field(ptype, field)
 
     def _count_particles(self, data_file):
         si, ei = data_file.start, data_file.end
