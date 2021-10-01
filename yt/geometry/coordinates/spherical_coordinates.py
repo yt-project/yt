@@ -1,8 +1,15 @@
+import sys
+
 import numpy as np
 
 from yt.utilities.lib.pixelization_routines import pixelize_aitoff, pixelize_cylinder
 
 from .coordinate_handler import CoordinateHandler, _get_coord_fields, _unknown_coord
+
+if sys.version_info >= (3, 8):
+    from functools import cached_property
+else:
+    from yt._maintenance.backports import cached_property
 
 
 class SphericalCoordinateHandler(CoordinateHandler):
@@ -285,7 +292,8 @@ class SphericalCoordinateHandler(CoordinateHandler):
     def period(self):
         return self.ds.domain_width
 
-    def _get_poloidal_bounds(self):
+    @cached_property
+    def _poloidal_bounds(self):
         ri = self.axis_id["r"]
         ti = self.axis_id["theta"]
         rmin = self.ds.domain_left_edge[ri]
@@ -323,7 +331,8 @@ class SphericalCoordinateHandler(CoordinateHandler):
 
         return Rmin, Rmax, zmin, zmax
 
-    def _get_conic_bounds(self):
+    @cached_property
+    def _conic_bounds(self):
         ri = self.axis_id["r"]
         pi = self.axis_id["phi"]
         rmin = self.ds.domain_left_edge[ri]
@@ -375,12 +384,12 @@ class SphericalCoordinateHandler(CoordinateHandler):
         if name == "r":
             display_center = center
         elif name == "theta":
-            xxmin, xxmax, yymin, yymax = self._get_conic_bounds()
+            xxmin, xxmax, yymin, yymax = self._conic_bounds
             xc = (xxmin + xxmax) / 2
             yc = (yymin + yymax) / 2
             display_center = (xc, 0 * xc, yc)
         elif name == "phi":
-            Rmin, Rmax, zmin, zmax = self._get_poloidal_bounds()
+            Rmin, Rmax, zmin, zmax = self._poloidal_bounds
             xc = (Rmin + Rmax) / 2
             yc = (zmin + zmax) / 2
             display_center = (xc, yc)
@@ -398,12 +407,12 @@ class SphericalCoordinateHandler(CoordinateHandler):
         elif name == "theta":
             # Remember, in spherical coordinates when we cut in theta,
             # we create a conic section
-            xxmin, xxmax, yymin, yymax = self._get_conic_bounds()
+            xxmin, xxmax, yymin, yymax = self._conic_bounds
             xw = xxmax - xxmin
             yw = yymax - yymin
             width = [xw, yw]
         elif name == "phi":
-            Rmin, Rmax, zmin, zmax = self._get_poloidal_bounds()
+            Rmin, Rmax, zmin, zmax = self._poloidal_bounds
             xw = Rmax - Rmin
             yw = zmax - zmin
             width = [xw, yw]
