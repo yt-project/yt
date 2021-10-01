@@ -49,11 +49,9 @@ def test_noise_plots():
     def create_image(filename_prefix):
         fields = ["noise%d" % i for i in range(4)]
 
-        p = SlicePlot(ds, "z", fields)
-        p.save(f"{filename_prefix}_log")
-
-        p.set_log("all", False)
-        p.save(f"{filename_prefix}_lin")
+        for normal in ("phi", "theta"):
+            p = SlicePlot(ds, normal, fields)
+            p.save(f"{filename_prefix}_{normal}")
 
     test = GenericImageTest(ds, create_image, 12)
     test.prefix = "test_noise_plot_lin"
