@@ -280,7 +280,7 @@ class ImagePlotMPL(PlotMPL):
                     10
                     ** np.arange(
                         np.rint(np.log10(cblinthresh)),
-                        np.ceil(np.log10(np.nanmax(data))) + 1,
+                        np.ceil(np.log10(np.nanmax(data))),
                     )
                 )
             elif np.nanmax(data) <= 0.0:
@@ -314,7 +314,7 @@ class ImagePlotMPL(PlotMPL):
                         10
                         ** np.arange(
                             np.rint(np.log10(cblinthresh)),
-                            np.ceil(np.log10(np.nanmax(data))) + 1,
+                            np.ceil(np.log10(np.nanmax(data))),
                         )
                     )
                 )
