@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from more_itertools import always_iterable
 from mpl_toolkits.axes_grid1 import ImageGrid
-from packaging.version import parse as parse_version
+from packaging.version import Version, parse as parse_version
 from unyt.exceptions import UnitConversionError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
@@ -1193,13 +1193,19 @@ class PWViewerMPL(PlotWindow):
                     self.plots[f].cax.minorticks_on()
 
                 elif self._field_transform[f] == symlog_transform:
-                    flinthresh = 10 ** np.floor(
-                        np.log10(self.plots[f].cb.norm.linthresh)
-                    )
-                    mticks = self.plots[f].image.norm(
-                        get_symlog_minorticks(flinthresh, vmin, vmax)
-                    )
-                    self.plots[f].cax.yaxis.set_ticks(mticks, minor=True)
+                    if Version("3.2.0") <= MPL_VERSION < Version("3.5.0"):
+                        # no known working method to draw symlog minor ticks
+                        # see https://github.com/yt-project/yt/issues/3535
+                        pass
+                    else:
+                        flinthresh = 10 ** np.floor(
+                            np.log10(self.plots[f].cb.norm.linthresh)
+                        )
+                        mticks = get_symlog_minorticks(flinthresh, vmin, vmax)
+                        if MPL_VERSION < Version("3.5.0"):
+                            # https://github.com/matplotlib/matplotlib/issues/21258
+                            mticks = self.plots[f].image.norm(mticks)
+                        self.plots[f].cax.yaxis.set_ticks(mticks, minor=True)
 
                 elif self._field_transform[f] == log_transform:
                     if MPL_VERSION >= parse_version("3.0.0"):
