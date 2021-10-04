@@ -175,13 +175,12 @@ class GadgetBinaryHeader:
 class GadgetParticleFile(ParticleFile):
     # an intermediate abstract class for both gadget types.
 
-    _file_read_mode = None  # either "r" or "rb", set by child class
     _opening_func = None  # a function handle for opening the file
 
     @contextlib.contextmanager
     def transaction(self, handle=None):
         if handle is None:
-            handle = self._opening_func(self.filename, mode=self._file_read_mode)
+            handle = self._opening_func(self.filename, mode="r")
             yield handle
             handle.close()
         else:
@@ -192,7 +191,6 @@ class GadgetParticleFile(ParticleFile):
 
 class GadgetBinaryFile(GadgetParticleFile):
 
-    _file_read_mode = "rb"
     _opening_func = open
 
     def __init__(self, ds, io, filename, file_id, range=None):
@@ -624,9 +622,13 @@ class GadgetDataset(SPHDataset):
 
 
 class GadgetHDF5File(GadgetParticleFile):
-    _file_read_mode = "r"
-    _opening_func = h5py.File
     _fields_with_cols = ("Metallicity_", "PassiveScalars_", "Chemistry_", "GFM_Metals_")
+
+    @property
+    def _opening_func(self):
+        # the opening function relies on an optional dependency, so isolate it
+        # here rather than as a class variable
+        return h5py.File
 
     def _read_field(self, ptype, field_name, handle=None):
 
