@@ -97,9 +97,7 @@ class StreamParticleIOHandler(BaseParticleIOHandler):
         super().__init__(ds)
 
     def _read_particle_coords(self, chunks, ptf):
-        for data_file in sorted(
-            self._get_data_files(chunks), key=lambda x: (x.filename, x.start)
-        ):
+        for data_file in self._sorted_chunk_iterator(chunks):
             f = self.fields[data_file.filename]
             # This double-reads
             for ptype in sorted(ptf):
@@ -110,18 +108,9 @@ class StreamParticleIOHandler(BaseParticleIOHandler):
                 ), 0.0
 
     def _read_smoothing_length(self, chunks, ptf, ptype):
-        for data_file in sorted(
-            self._get_data_files(chunks), key=lambda x: (x.filename, x.start)
-        ):
+        for data_file in self._sorted_chunk_iterator(chunks):
             f = self.fields[data_file.filename]
             return f[ptype, "smoothing_length"]
-
-    def _get_data_files(self, chunks):
-        data_files = set()
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
-        return data_files
 
     def _count_particles_chunks(self, psize, chunks, ptf, selector):
         for ptype, (x, y, z), _ in self._read_particle_coords(chunks, ptf):
