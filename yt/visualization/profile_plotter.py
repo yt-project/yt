@@ -1027,7 +1027,7 @@ class PhasePlot(ImagePlotContainer):
             label = field_name + r"$\rm{\ Probability\ Density}$"
         elif field_unit is None or field_unit == "":
             label = field_name
-        elif "frac" in field_unit:
+        elif r"\frac" in field_unit:
             label = field_name + r"$\ \ \left(" + field_unit + r"\right)$"
         else:
             label = field_name + r"$\ \ (" + field_unit + r")$"
