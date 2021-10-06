@@ -849,7 +849,7 @@ class RAMSESDataset(Dataset):
             else:
                 return None
 
-        def cast_a_or_b(cast_a, cast_b):
+        def cast_a_else_b(cast_a, cast_b):
             def caster(val):
                 try:
                     return cast_a(val)
@@ -869,7 +869,7 @@ class RAMSESDataset(Dataset):
 
             # Read extra until hitting the ordering type
             while key != "ordering type":
-                key = read_rhs(f, cast_a_or_b(float, str))
+                key = read_rhs(f, cast_a_else_b(float, str))
 
             # This next line deserves some comment.  We specify a min_level that
             # corresponds to the minimum level in the RAMSES simulation.  RAMSES is
