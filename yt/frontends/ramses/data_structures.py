@@ -861,13 +861,13 @@ class RAMSESDataset(Dataset):
         with open(self.parameter_filename) as f:
             # Standard: first six are ncpu, ndim, levelmin, levelmax, ngridmax, nstep_coarse
             for _ in range(6):
-                key = read_rhs(f, int)
+                read_rhs(f, int)
             f.readline()
             # Standard: next 11 are boxlen, time, aexp, h0, omega_m, omega_l, omega_k, omega_b, unit_l, unit_d, unit_t
             for _ in range(11):
                 key = read_rhs(f, float)
 
-            # Read extra until hitting the ordering type
+            # Read non standard extra fields until hitting the ordering type
             while key != "ordering type":
                 key = read_rhs(f, cast_a_else_b(float, str))
 
