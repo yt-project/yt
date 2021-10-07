@@ -129,7 +129,7 @@ def validate_sequence_width(width, ds, unit=None):
 
 
 class CoordinateHandler(abc.ABC):
-    name = None
+    name: str
 
     def __init__(self, ds, ordering):
         self.ds = weakref.proxy(ds)

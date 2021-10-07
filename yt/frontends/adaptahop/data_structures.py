@@ -21,7 +21,7 @@ from yt.data_objects.static_output import Dataset
 from yt.frontends.halo_catalog.data_structures import HaloCatalogFile
 from yt.funcs import mylog, setdefaultattr
 from yt.geometry.particle_geometry_handler import ParticleIndex
-from yt.units import Mpc
+from yt.units import Mpc  # type: ignore
 from yt.utilities.cython_fortran_utils import FortranFile
 
 from .definitions import ADAPTAHOP_TEMPLATES, ATTR_T, HEADER_ATTRIBUTES

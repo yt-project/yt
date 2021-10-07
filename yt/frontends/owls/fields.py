@@ -1,4 +1,5 @@
 import os
+from typing import Tuple
 
 import numpy as np
 
@@ -44,7 +45,7 @@ def _get_ion_mass_frac(ion, ftype, itab, data):
 
 class OWLSFieldInfo(SPHFieldInfo):
 
-    _ions = (
+    _ions: Tuple[str, ...] = (
         "c1",
         "c2",
         "c3",

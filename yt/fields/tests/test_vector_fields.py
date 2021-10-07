@@ -1,7 +1,7 @@
 import numpy as np
 
 from yt.testing import assert_allclose_units, fake_random_ds, requires_file
-from yt.units import cm, s
+from yt.units import cm, s  # type: ignore
 from yt.utilities.answer_testing.framework import data_dir_load
 from yt.visualization.volume_rendering.off_axis_projection import off_axis_projection
 

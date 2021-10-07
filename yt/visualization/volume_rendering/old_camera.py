@@ -1,5 +1,6 @@
 import builtins
 from copy import deepcopy
+from typing import List
 
 import numpy as np
 
@@ -1185,7 +1186,7 @@ data_object_registry["camera"] = Camera
 
 
 class InteractiveCamera(Camera):
-    frames = []
+    frames: List[ImageArray] = []
 
     def snapshot(self, fn=None, clip_ratio=None):
         self._pyplot.figure(2)

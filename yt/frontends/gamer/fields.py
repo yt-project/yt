@@ -1,5 +1,6 @@
 import numpy as np
 
+from yt._typing import KnownFieldsT
 from yt.fields.field_info_container import FieldInfoContainer
 
 b_units = "code_magnetic"
@@ -14,7 +15,7 @@ psi_units = "code_mass**(1/2) / code_length**(3/2)"
 
 
 class GAMERFieldInfo(FieldInfoContainer):
-    known_other_fields = (
+    known_other_fields: KnownFieldsT = (
         # hydro fields on disk (GAMER outputs conservative variables)
         ("Dens", (rho_units, [], None)),
         ("MomX", (mom_units, ["momentum_density_x"], None)),
@@ -34,7 +35,7 @@ class GAMERFieldInfo(FieldInfoContainer):
         ("TotalDens", (rho_units, ["total_density_on_grid"], None)),
     )
 
-    known_particle_fields = (
+    known_particle_fields: KnownFieldsT = (
         ("ParMass", ("code_mass", ["particle_mass"], None)),
         ("ParPosX", ("code_length", ["particle_position_x"], None)),
         ("ParPosY", ("code_length", ["particle_position_y"], None)),

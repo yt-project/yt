@@ -10,7 +10,7 @@ from yt.funcs import mylog
 
 
 class PerformanceCounters:
-    _shared_state = {}
+    _shared_state = {}  # type: ignore
 
     def __new__(cls, *args, **kwargs):
         self = object.__new__(cls, *args, **kwargs)

@@ -4,7 +4,7 @@ from collections import defaultdict
 import numpy as np
 
 from yt.frontends.sph.io import IOHandlerSPH
-from yt.units.yt_array import uconcatenate
+from yt.units.yt_array import uconcatenate  # type: ignore
 from yt.utilities.lib.particle_kdtree_tools import generate_smoothing_length
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py
@@ -308,7 +308,7 @@ ZeroMass = object()
 
 class IOHandlerGadgetBinary(IOHandlerSPH):
     _dataset_type = "gadget_binary"
-    _vector_fields = (
+    _vector_fields = (  # type: ignore
         ("Coordinates", 3),
         ("Velocity", 3),
         ("Velocities", 3),

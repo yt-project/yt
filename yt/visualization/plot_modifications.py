@@ -2,6 +2,7 @@ import re
 import warnings
 from functools import wraps
 from numbers import Number
+from typing import Tuple
 
 import matplotlib
 import numpy as np
@@ -15,7 +16,7 @@ from yt.funcs import is_sequence, mylog, validate_width_tuple
 from yt.geometry.geometry_handler import is_curvilinear
 from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
 from yt.units import dimensions
-from yt.units.yt_array import YTArray, YTQuantity, uhstack
+from yt.units.yt_array import YTArray, YTQuantity, uhstack  # type: ignore
 from yt.utilities.exceptions import YTDataTypeUnsupported
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
 from yt.utilities.lib.line_integral_convolution import line_integral_convolution_2d
@@ -54,7 +55,7 @@ class PlotCallback:
     # "figure" this is disregarded.  If "force" is included in the tuple, it
     # will *not* check whether or not the coord_system is in axis or figure,
     # and will only look at the geometries.
-    _supported_geometries = None
+    _supported_geometries: Tuple[str, ...]
 
     def __init_subclass__(cls, *args, **kwargs):
         super().__init_subclass__(*args, **kwargs)
@@ -1042,7 +1043,12 @@ class LinePlotCallback(PlotCallback):
     """
 
     _type_name = "line"
-    _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
+    _supported_geometries: Tuple[str, ...] = (
+        "cartesian",
+        "spectral_cube",
+        "polar",
+        "cylindrical",
+    )
 
     def __init__(self, p1, p2, data_coords=False, coord_system="data", plot_args=None):
         PlotCallback.__init__(self)
@@ -1707,7 +1713,12 @@ class TextLabelCallback(PlotCallback):
     """
 
     _type_name = "text"
-    _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
+    _supported_geometries: Tuple[str, ...] = (
+        "cartesian",
+        "spectral_cube",
+        "polar",
+        "cylindrical",
+    )
 
     def __init__(
         self,

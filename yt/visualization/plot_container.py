@@ -1,3 +1,4 @@
+import abc
 import base64
 import builtins
 import os
@@ -16,7 +17,7 @@ from yt.config import ytcfg
 from yt.data_objects.time_series import DatasetSeries
 from yt.funcs import dictWithFactory, ensure_dir, is_sequence, iter_fields, mylog
 from yt.units import YTQuantity
-from yt.units.unit_object import Unit
+from yt.units.unit_object import Unit  # type: ignore
 from yt.utilities.definitions import formatted_length_unit_names
 from yt.utilities.exceptions import YTNotInsideNotebook
 
@@ -209,10 +210,10 @@ class PlotDictionary(defaultdict):
         return defaultdict.__init__(self, default_factory)
 
 
-class PlotContainer:
+class PlotContainer(abc.ABC):
     """A container for generic plots"""
 
-    _plot_type = None
+    _plot_type: Optional[str] = None
     _plot_valid = False
 
     # Plot defaults
@@ -559,7 +560,7 @@ class PlotContainer:
             name = str(self.ds)
 
         # ///// Magic area. Muggles, keep out !
-        if isinstance(name, (tuple, list)):
+        if is_sequence(name) and all(isinstance(_, str) for _ in name):
             name = os.path.join(*name)
 
         name = os.path.expanduser(name)
@@ -575,7 +576,8 @@ class PlotContainer:
 
         new_name = validate_image_name(name, suffix)
         if new_name == name:
-            for v in self.plots.values():
+            # somehow mypy thinks we may not have a plots attr yet, hence we turn it off here
+            for v in self.plots.values():  # type: ignore
                 out_name = v.save(name, mpl_kwargs)
                 names.append(out_name)
             return names
@@ -595,7 +597,9 @@ class PlotContainer:
                 weight = weight[1].replace(" ", "_")
         if "Cutting" in self.data_source.__class__.__name__:
             plot_type = "OffAxisSlice"
-        for k, v in self.plots.items():
+
+        # somehow mypy thinks we may not have a plots attr yet, hence we turn it off here
+        for k, v in self.plots.items():  # type: ignore
             if isinstance(k, tuple):
                 k = k[1]
 

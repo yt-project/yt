@@ -2,7 +2,7 @@ import abc
 from collections import defaultdict
 from functools import wraps
 from numbers import Number
-from typing import Union
+from typing import List, Optional, Type, Union
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -16,8 +16,8 @@ from yt.config import ytcfg
 from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
 from yt.funcs import fix_axis, fix_unitary, is_sequence, iter_fields, mylog, obj_length
-from yt.units.unit_object import Unit
-from yt.units.unit_registry import UnitParseError
+from yt.units.unit_object import Unit  # type: ignore
+from yt.units.unit_registry import UnitParseError  # type: ignore
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import (
     YTCannotParseUnitDisplayName,
@@ -270,26 +270,22 @@ class PlotWindow(ImagePlotContainer):
 
     _frb = None
 
-    def frb():
-        doc = "The frb property."
+    @property
+    def frb(self):
+        if self._frb is None or not self._data_valid:
+            self._recreate_frb()
+        return self._frb
 
-        def fget(self):
-            if self._frb is None or not self._data_valid:
-                self._recreate_frb()
-            return self._frb
+    @frb.setter
+    def frb(self, value):
+        self._frb = value
+        self._data_valid = True
 
-        def fset(self, value):
-            self._frb = value
-            self._data_valid = True
-
-        def fdel(self):
-            del self._frb
-            self._frb = None
-            self._data_valid = False
-
-        return locals()
-
-    frb = property(**frb())
+    @frb.deleter
+    def frb(self):
+        del self._frb
+        self._frb = None
+        self._data_valid = False
 
     def _recreate_frb(self):
         old_fields = None
@@ -849,8 +845,8 @@ class PWViewerMPL(PlotWindow):
     """Viewer using matplotlib as a backend via the WindowPlotMPL."""
 
     _current_field = None
-    _frb_generator = None
-    _plot_type = None
+    _frb_generator: Optional[Type[FixedResolutionBuffer]] = None
+    _plot_type: Optional[str] = None
     _data_valid = False
 
     def __init__(self, *args, **kwargs):
@@ -1661,7 +1657,11 @@ class SlicePlot(NormalPlot):
 
     """
 
-    def __new__(
+    # ignoring type check here, because mypy doesn't allow __new__ methods to
+    # return instances of subclasses. The design we use here is however based
+    # on the pathlib.Path class from the standard library
+    # https://github.com/python/mypy/issues/1020
+    def __new__(  # type: ignore
         cls, ds, normal, fields, *args, **kwargs
     ) -> Union["AxisAlignedSlicePlot", "OffAxisSlicePlot"]:
         if cls is SlicePlot:
@@ -1718,7 +1718,11 @@ class ProjectionPlot(NormalPlot):
 
     """
 
-    def __new__(
+    # ignoring type check here, because mypy doesn't allow __new__ methods to
+    # return instances of subclasses. The design we use here is however based
+    # on the pathlib.Path class from the standard library
+    # https://github.com/python/mypy/issues/1020
+    def __new__(  # type: ignore
         cls, ds, normal, fields, *args, **kwargs
     ) -> Union["AxisAlignedProjectionPlot", "OffAxisProjectionPlot"]:
         if cls is ProjectionPlot:
@@ -2300,7 +2304,7 @@ class OffAxisSlicePlot(SlicePlot, PWViewerMPL):
 
 class OffAxisProjectionDummyDataSource:
     _type_name = "proj"
-    _key_fields = []
+    _key_fields: List[str] = []
 
     def __init__(
         self,

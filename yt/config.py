@@ -190,7 +190,7 @@ _global_config_file = YTConfig.get_global_config_file()
 _local_config_file = YTConfig.get_local_config_file()
 
 if not os.path.exists(_global_config_file):
-    cfg = {"yt": {}}
+    cfg = {"yt": {}}  # type: ignore
     try:
         with open(_global_config_file, mode="w") as fd:
             toml.dump(cfg, fd)

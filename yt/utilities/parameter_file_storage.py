@@ -37,7 +37,7 @@ class ParameterFileStore:
 
     """
 
-    _shared_state = {}
+    _shared_state = {}  # type: ignore
     _distributed = True
     _processing = False
     _owner = 0

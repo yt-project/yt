@@ -1,13 +1,13 @@
 import warnings
 
 import numpy as np
+from unyt import unyt_array
 
 from yt.config import ytcfg
-from yt.units.yt_array import YTArray
 from yt.visualization.image_writer import write_bitmap, write_image
 
 
-class ImageArray(YTArray):
+class ImageArray(unyt_array):
     r"""A custom Numpy ndarray used for images.
 
     This differs from ndarray in that you can optionally specify an
