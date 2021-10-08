@@ -1,6 +1,9 @@
 import os
 from typing import Optional
 
+import matplotlib
+from packaging.version import Version
+
 from yt.utilities.logger import ytLogger as mylog
 
 from ._mpl_imports import (
@@ -9,6 +12,17 @@ from ._mpl_imports import (
     FigureCanvasPS,
     FigureCanvasSVG,
 )
+
+MPL_VERSION = Version(matplotlib.__version__)
+
+DEFAULT_FONT_PROPERTIES = {
+    "family": "stixgeneral",
+    "size": 18,
+}
+
+if MPL_VERSION >= Version("3.4"):
+    DEFAULT_FONT_PROPERTIES["math_fontfamily"] = "cm"
+
 
 AGG_FORMATS = [".png", ".jpg", ".jpeg", ".raw", ".rgba", ".tif", ".tiff"]
 SUPPORTED_FORMATS = AGG_FORMATS + [".eps", ".ps", ".pdf", ".svg"]

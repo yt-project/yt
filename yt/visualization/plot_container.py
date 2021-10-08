@@ -1,13 +1,14 @@
 import base64
 import builtins
 import os
+import sys
 import textwrap
 from collections import defaultdict
 from functools import wraps
 
-import matplotlib
 import numpy as np
 from matplotlib.cm import get_cmap
+from matplotlib.font_manager import FontProperties
 from more_itertools.more import always_iterable
 
 from yt._maintenance.deprecation import issue_deprecation_warning
@@ -19,7 +20,7 @@ from yt.units.unit_object import Unit
 from yt.utilities.definitions import formatted_length_unit_names
 from yt.utilities.exceptions import YTNotInsideNotebook
 
-from ._commons import validate_image_name
+from ._commons import DEFAULT_FONT_PROPERTIES, validate_image_name
 
 try:
     import cmocean
@@ -248,8 +249,6 @@ class PlotContainer:
     _units_config: dict
 
     def __init__(self, data_source, figure_size, fontsize):
-        from matplotlib.font_manager import FontProperties
-
         self.data_source = data_source
         self.ds = data_source.ds
         self.ts = self._initialize_dataset(self.ds)
@@ -257,10 +256,13 @@ class PlotContainer:
             self.figure_size = float(figure_size[0]), float(figure_size[1])
         else:
             self.figure_size = float(figure_size)
-        font_path = os.path.join(
-            matplotlib.get_data_path(), "fonts", "ttf", "STIXGeneral.ttf"
-        )
-        self._font_properties = FontProperties(size=fontsize, fname=font_path)
+
+        if sys.version_info >= (3, 9):
+            font_dict = DEFAULT_FONT_PROPERTIES | {"size": fontsize}
+        else:
+            font_dict = {**DEFAULT_FONT_PROPERTIES, "size": fontsize}
+
+        self._font_properties = FontProperties(**font_dict)
         self._font_color = None
         self._xlabel = None
         self._ylabel = None
@@ -508,7 +510,6 @@ class PlotContainer:
         ... )
 
         """
-        from matplotlib.font_manager import FontProperties
 
         if font_dict is None:
             font_dict = {}
@@ -516,8 +517,10 @@ class PlotContainer:
             self._font_color = font_dict.pop("color")
         # Set default values if the user does not explicitly set them.
         # this prevents reverting to the matplotlib defaults.
-        font_dict.setdefault("family", "stixgeneral")
-        font_dict.setdefault("size", 18)
+        if sys.version_info >= (3, 9):
+            font_dict = DEFAULT_FONT_PROPERTIES | font_dict
+        else:
+            font_dict = {**DEFAULT_FONT_PROPERTIES, **font_dict}
         self._font_properties = FontProperties(**font_dict)
         return self
 
