@@ -92,7 +92,7 @@ answer_tests:
     - yt/frontends/owls/tests/test_outputs.py:test_snapshot_033
     - yt/frontends/owls/tests/test_outputs.py:test_OWLS_particlefilter
 
-  local_pw_037:  # PR 3373
+  local_pw_038:  # PR 3520
     - yt/visualization/tests/test_plotwindow.py:test_attributes
     - yt/visualization/tests/test_particle_plot.py:test_particle_projection_answers
     - yt/visualization/tests/test_particle_plot.py:test_particle_projection_filter
@@ -167,7 +167,7 @@ answer_tests:
   local_axialpix_007:
     - yt/geometry/coordinates/tests/test_axial_pixelization.py:test_axial_pixelization
 
-  local_cylindrical_background_008:  # PR 3536
+  local_cylindrical_background_010:  # PR 3520
     - yt/geometry/coordinates/tests/test_cylindrical_coordinates.py:test_noise_plots
 
   local_spherical_background_002:  # PR 3533 + 3520

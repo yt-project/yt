@@ -1,4 +1,3 @@
 #### MATPLOTLIBRC FORMAT
 
 backend : Agg
-mathtext.fontset : cm
