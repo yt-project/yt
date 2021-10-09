@@ -1195,6 +1195,20 @@ def validate_sequence(obj):
         )
 
 
+def validate_field_key(key):
+    if (
+        isinstance(key, tuple)
+        and len(key) == 2
+        and all(isinstance(_, str) for _ in key)
+    ):
+        return
+    raise TypeError(
+        "Expected a 2-tuple of strings formatted as\n"
+        "(field or particle type, field name)\n"
+        f"Received invalid field key: {key}, with type {type(key)}"
+    )
+
+
 def validate_object(obj, data_type):
     if obj is not None and not isinstance(obj, data_type):
         raise TypeError(
