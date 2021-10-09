@@ -24,6 +24,7 @@ from yt.utilities.exceptions import (
     YTInvalidFieldType,
     YTPlotCallbackError,
     YTUnitNotRecognized,
+    YTUnsupportedPlotCallback,
 )
 from yt.utilities.math_utils import ortho_find
 from yt.utilities.orientation import Orientation
@@ -1234,38 +1235,50 @@ class PWViewerMPL(PlotWindow):
         self._plot_valid = True
 
     def setup_callbacks(self):
+        ignored = ["PlotCallback"]
+        if self._plot_type.startswith("OffAxis"):
+            ignored += [
+                "ParticleCallback",
+                "ClumpContourCallback",
+                "GridBoundaryCallback",
+            ]
+        if self._plot_type == "OffAxisProjection":
+            ignored += [
+                "VelocityCallback",
+                "MagFieldCallback",
+                "QuiverCallback",
+                "CuttingQuiverCallback",
+                "StreamlineCallback",
+                "LineIntegralConvolutionCallback",
+            ]
+        elif self._plot_type == "Particle":
+            ignored += [
+                "HopCirclesCallback",
+                "HopParticleCallback",
+                "ClumpContourCallback",
+                "GridBoundaryCallback",
+                "VelocityCallback",
+                "MagFieldCallback",
+                "QuiverCallback",
+                "CuttingQuiverCallback",
+                "StreamlineCallback",
+                "ContourCallback",
+            ]
+
+        def missing_callback_closure(cbname):
+            def _(*args, **kwargs):
+                raise YTUnsupportedPlotCallback(
+                    callback=cbname, plot_type=self._plot_type
+                )
+
+            return _
+
         for key in callback_registry:
-            ignored = ["PlotCallback"]
-            if self._plot_type.startswith("OffAxis"):
-                ignored += [
-                    "ParticleCallback",
-                    "ClumpContourCallback",
-                    "GridBoundaryCallback",
-                ]
-            if self._plot_type == "OffAxisProjection":
-                ignored += [
-                    "VelocityCallback",
-                    "MagFieldCallback",
-                    "QuiverCallback",
-                    "CuttingQuiverCallback",
-                    "StreamlineCallback",
-                ]
-            if self._plot_type == "Particle":
-                ignored += [
-                    "HopCirclesCallback",
-                    "HopParticleCallback",
-                    "ClumpContourCallback",
-                    "GridBoundaryCallback",
-                    "VelocityCallback",
-                    "MagFieldCallback",
-                    "QuiverCallback",
-                    "CuttingQuiverCallback",
-                    "StreamlineCallback",
-                    "ContourCallback",
-                ]
-            if key in ignored:
-                continue
             cbname = callback_registry[key]._type_name
+
+            if key in ignored:
+                self.__dict__["annotate_" + cbname] = missing_callback_closure(cbname)
+                continue
 
             # We need to wrap to create a closure so that
             # CallbackMaker is bound to the wrapped method.
