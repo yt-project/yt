@@ -1,10 +1,10 @@
 import numpy as np
 from matplotlib import __version__ as mpl_ver, cm as mcm, colors as cc
-from packaging.version import parse as parse_version
+from packaging.version import Version
 
 from . import _colormap_data as _cm
 
-MPL_VERSION = parse_version(mpl_ver)
+MPL_VERSION = Version(mpl_ver)
 del mpl_ver
 
 
@@ -260,7 +260,7 @@ def show_colormaps(subset="all", filename=None):
                 "to be 'all', 'yt_native', or a list of "
                 "valid colormap names."
             ) from e
-    if parse_version("2.0.0") <= MPL_VERSION < parse_version("2.2.0"):
+    if Version("2.0.0") <= MPL_VERSION < Version("2.2.0"):
         # the reason we do this filtering is to avoid spurious warnings in CI when
         # testing against old versions of matplotlib (currently not older than 2.0.x)
         # and we can't easily filter warnings at the level of the relevant test itself

@@ -1,6 +1,6 @@
 import sys
 
-from packaging.version import parse as parse_version
+from packaging.version import Version
 
 
 class NotAModule:
@@ -361,7 +361,7 @@ class h5py_imports:
         try:
             import h5py
 
-            if parse_version(h5py.__version__) < parse_version("2.4.0"):
+            if Version(h5py.__version__) < Version("2.4.0"):
                 self._err = RuntimeError(
                     "yt requires h5py version 2.4.0 or newer, "
                     "please update h5py with e.g. `python -m pip install -U h5py` "
