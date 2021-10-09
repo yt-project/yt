@@ -11,6 +11,7 @@ include doc/README doc/activate doc/activate.csh doc/cheatsheet.tex
 include doc/extensions/README doc/Makefile
 prune doc/source/reference/api/generated
 prune doc/build
+prune .tours
 recursive-include yt/visualization/volume_rendering/shaders *.fragmentshader *.vertexshader
 include yt/sample_data_registry.json
 prune yt/frontends/_skeleton
