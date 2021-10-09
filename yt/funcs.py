@@ -25,7 +25,7 @@ from typing import Any, Callable, Type
 import matplotlib
 import numpy as np
 from more_itertools import always_iterable, collapse, first
-from packaging.version import parse as parse_version
+from packaging.version import Version
 from tqdm import tqdm
 
 from yt.units import YTArray, YTQuantity
@@ -1039,7 +1039,7 @@ def matplotlib_style_context(style_name=None, after_reset=False):
         import matplotlib
 
         style_name = {"mathtext.fontset": "cm"}
-        if parse_version(matplotlib.__version__) >= parse_version("3.3.0"):
+        if Version(matplotlib.__version__) >= Version("3.3.0"):
             style_name["mathtext.fallback"] = "cm"
         else:
             style_name["mathtext.fallback_to_cm"] = True
