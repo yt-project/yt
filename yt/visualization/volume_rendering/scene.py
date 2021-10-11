@@ -289,8 +289,9 @@ class Scene:
         fname: string, optional
             If specified, save the rendering as to the file "fname".
             If unspecified, it creates a default based on the dataset filename.
-            The file format is inferred from the filename's suffix. Supported
-            formats are png, pdf, eps, and ps.
+            The file format is inferred from the filename's suffix.
+            Supported formats depend on which version of matplotlib is installed.
+
             Default: None
         sigma_clip: float, optional
             Image values greater than this number times the standard deviation
