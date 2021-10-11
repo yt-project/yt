@@ -17,9 +17,10 @@ ci:
 
 repos:
 -   repo: https://github.com/asottile/setup-cfg-fmt
-    rev: v1.17.0
+    rev: v1.18.0
     hooks:
     -   id: setup-cfg-fmt
+        args: [--max-py-version, '3.9']
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.0.1
     hooks:
@@ -48,7 +49,7 @@ repos:
       name: isort (cython)
       types: [cython]
 -   repo: https://github.com/PyCQA/flake8
-    rev: '3.9.2'
+    rev: '4.0.1'
     hooks:
     - id: flake8
       additional_dependencies: [
