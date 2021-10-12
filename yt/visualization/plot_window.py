@@ -879,22 +879,69 @@ class PWViewerMPL(PlotWindow):
         yc = None
 
         if isinstance(origin, str):
-            origin = tuple(origin.split("-"))[:3]
-        if 1 == len(origin):
-            origin = ("lower", "left") + origin
-        elif 2 == len(origin) and origin[0] in {"left", "right", "center"}:
-            o0map = {"left": "lower", "right": "upper", "center": "center"}
-            origin = (o0map[origin[0]],) + origin
-        elif 2 == len(origin) and origin[0] in {"lower", "upper", "center"}:
-            origin = (origin[0], "center", origin[-1])
-        elif 3 == len(origin) and isinstance(origin[0], (int, float)):
-            xc = self.ds.quan(origin[0], "code_length")
-            yc = self.ds.quan(origin[1], "code_length")
-        elif 3 == len(origin) and isinstance(origin[0], tuple):
-            xc = self.ds.quan(origin[0][0], origin[0][1])
-            yc = self.ds.quan(origin[1][0], origin[0][1])
+            origin = tuple(origin.split("-"))
 
-        assert origin[-1] in ["window", "domain", "native"]
+        if len(origin) > 3:
+            raise ValueError(
+                "Invalid origin argument with too many elements; "
+                f"expected 1, 2 or 3 elements, got {self.origin!r}, counting {len(origin)} elements. "
+                "Use '-' as a separator for string arguments."
+            )
+
+        if len(origin) == 1:
+            coord_system = origin[0]
+            if coord_system not in ("window", "domain", "native"):
+                raise ValueError(
+                    "Invalid origin argument. "
+                    "Single element specification must be 'window', 'domain', or 'native'. "
+                    f"Got {self.origin!r}"
+                )
+            origin = ("lower", "left", coord_system)
+
+        elif len(origin) == 2:
+            err_msg = "Invalid origin argument. Using 2 elements:\n"
+
+            if origin[0] in ("left", "right", "center"):
+                o0map = {"left": "lower", "right": "upper", "center": "center"}
+                origin = (o0map[origin[0]],) + origin
+            elif origin[0] in ("lower", "upper"):
+                origin = (origin[0], "center", origin[-1])
+            else:
+                err_msg += " - the first one must be 'left', 'right', 'lower', 'upper' or 'center'\n"
+
+            if origin[-1] not in ("window", "domain", "native"):
+                err_msg += " - the second one must be 'window', 'domain', or 'native'\n"
+
+            if len(err_msg.split("\n")) > 2:
+                err_msg += f"Got {self.origin!r}"
+                raise ValueError(err_msg)
+
+        elif len(origin) == 3:
+            err_msg = "Invalid origin argument. Using 3 elements:\n"
+            if isinstance(origin[0], (int, float)):
+                xc = self.ds.quan(origin[0], "code_length")
+            elif isinstance(origin[0], tuple):
+                xc = self.ds.quan(*origin[0])
+            elif origin[0] not in ("lower", "upper", "center"):
+                err_msg += " - the first one must be 'lower', 'upper' or 'center' or a distance\n"
+
+            if isinstance(origin[1], (int, float)):
+                yc = self.ds.quan(origin[1], "code_length")
+            elif isinstance(origin[1], tuple):
+                yc = self.ds.quan(*origin[1])
+            elif origin[1] not in ("left", "right", "center"):
+                err_msg += " - the second one must be 'left', 'right', 'center' or a distance\n"
+
+            if origin[-1] not in ("window", "domain", "native"):
+                err_msg += " - the third one must be 'window', 'domain', or 'native'\n"
+
+            if len(err_msg.split("\n")) > 2:
+                err_msg += f"Got {self.origin!r}"
+                raise ValueError(err_msg)
+
+        assert not isinstance(origin, str)
+        assert len(origin) == 3
+        assert origin[2] in ("window", "domain", "native")
 
         if origin[2] == "window":
             xllim, xrlim = self.xlim
@@ -908,28 +955,17 @@ class PWViewerMPL(PlotWindow):
             yrlim = self.ds.domain_right_edge[yax]
         elif origin[2] == "native":
             return (self.ds.quan(0.0, "code_length"), self.ds.quan(0.0, "code_length"))
-        else:
-            mylog.warning("origin = %s", origin)
-            msg = (
-                'origin keyword "{}" not recognized, must declare "domain" '
-                'or "center" as the last term in origin.'
-            ).format(self.origin)
-            raise RuntimeError(msg)
+
         if xc is None and yc is None:
+            assert origin[0] in ("lower", "upper", "center")
+            assert origin[1] in ("left", "right", "center")
+
             if origin[0] == "lower":
                 yc = yllim
             elif origin[0] == "upper":
                 yc = yrlim
             elif origin[0] == "center":
                 yc = (yllim + yrlim) / 2.0
-            else:
-                mylog.warning("origin = %s", origin)
-                msg = (
-                    'origin keyword "{0}" not recognized, must declare "lower" '
-                    '"upper" or "center" as the first term in origin.'
-                )
-                msg = msg.format(self.origin)
-                raise RuntimeError(msg)
 
             if origin[1] == "left":
                 xc = xllim
@@ -937,22 +973,15 @@ class PWViewerMPL(PlotWindow):
                 xc = xrlim
             elif origin[1] == "center":
                 xc = (xllim + xrlim) / 2.0
-            else:
-                mylog.warning("origin = %s", origin)
-                msg = (
-                    'origin keyword "{0}" not recognized, must declare "left" '
-                    '"right" or "center" as the second term in origin.'
-                )
-                msg = msg.format(self.origin)
-                raise RuntimeError(msg)
 
         x_in_bounds = xc >= xllim and xc <= xrlim
         y_in_bounds = yc >= yllim and yc <= yrlim
 
         if not x_in_bounds and not y_in_bounds:
-            msg = "origin inputs not in bounds of specified coordinate system domain."
-            msg = msg.format(self.origin)
-            raise RuntimeError(msg)
+            raise ValueError(
+                "origin inputs not in bounds of specified coordinate system domain; "
+                f"got {self.origin!r} Bounds are {xllim, xrlim} and {yllim, yrlim} respectively"
+            )
 
         return xc, yc
 

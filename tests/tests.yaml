@@ -192,6 +192,7 @@ other_tests:
      - '--ignore-files=test_eps_writer.py'
      - "--ignore-files=test_save.py"
      - '--ignore-files=test_registration.py'
+     - "--ignore-files=test_invalid_origin.py"
      - '--exclude-test=yt.frontends.gdf.tests.test_outputs.TestGDF'
   cookbook:
      - 'doc/source/cookbook/tests/test_cookbook.py'
