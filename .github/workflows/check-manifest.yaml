@@ -1,5 +1,9 @@
 name: check MANIFEST.in
-on: [pull_request]
+on:
+  pull_request:
+    branches:
+      - stable
+      - 'yt-4.*'
 
 jobs:
   check-manifest:
