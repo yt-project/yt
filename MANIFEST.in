@@ -18,6 +18,7 @@ exclude doc/cheatsheet.pdf
 include doc/extensions/README doc/Makefile
 prune doc/source/reference/api/generated
 prune doc/build
+prune .tours
 recursive-include yt/visualization/volume_rendering/shaders *.fragmentshader *.vertexshader
 include yt/sample_data_registry.json
 include conftest.py
