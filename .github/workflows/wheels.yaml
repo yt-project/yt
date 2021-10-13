@@ -17,7 +17,7 @@ jobs:
         os: [
           macos-latest,
           windows-latest,
-          ubuntu-latest,
+          ubuntu-18.04,  # has to be the oldest possible for manylinux
         ]
       fail-fast: false
 
