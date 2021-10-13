@@ -13,8 +13,13 @@ import numpy as np
 # https://mail.python.org/archives/list/yt-dev@python.org/thread/L6AQPJ3OIMJC5SNKVM7CJG32YVQZRJWA/
 import yt.startup_tasks as __startup_tasks
 from yt import *
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg, ytcfg_defaults
 from yt.utilities.logger import _level
+
+issue_deprecation_warning(
+    "The yt.mods module is deprecated.", since="4.1.0", removal="4.2.0"
+)
 
 unparsed_args = __startup_tasks.unparsed_args
 
