@@ -3,7 +3,7 @@ on:
   pull_request:
     branches:
       - stable
-      - 'yt-4.*'
+      - 'yt-*'
 
 jobs:
   check-manifest:
