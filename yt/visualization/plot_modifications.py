@@ -7,6 +7,7 @@ from typing import Any, Dict, Optional, Tuple, Union
 import matplotlib
 import numpy as np
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.data_objects.data_containers import YTDataContainer
 from yt.data_objects.level_sets.clump_handling import Clump
 from yt.data_objects.selection_objects.cut_region import YTCutRegion
@@ -1940,6 +1941,14 @@ class HaloCatalogCallback(PlotCallback):
         font_kwargs=None,
         factor=1.0,
     ):
+        issue_deprecation_warning(
+            "The annotate_halos method has been fully migrated to the "
+            "yt_astro_analysis extension. "
+            "Please update the extension to version 1.1 or newer. "
+            "This duplicated functionality will be removed from the main yt package.",
+            since="4.1",
+            removal="4.2",
+        )
 
         try:
             from yt_astro_analysis.halo_analysis.api import HaloCatalog
