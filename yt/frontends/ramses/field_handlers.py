@@ -252,6 +252,18 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
             fd.skip(nskip)
             min_level = self.domain.ds.min_level
 
+            # The file is as follows:
+            # > headers
+            # loop over levels
+            #   loop over cpu domains
+            #     > <ilevel>: current level
+            #     > <nocts>: number of octs in level, domain
+            #     loop over <nvars> variables (positions, velocities, density, ...)
+            #       loop over <2*2*2> cells in each oct
+            #          > <data> with shape (nocts, )
+            #
+            # So there are 8 * nvars records each with length (nocts, )
+            # at each (level, cpus)
             offset, level_count = read_offset(
                 fd,
                 min_level,
