@@ -7,8 +7,9 @@ from yt.utilities.amr_kdtree.api import AMRKDTree
 
 def _accumulate_vector_field(path, field_vals):
     r"""
-    Integrates the given vector field along the given path p. The
-    integral is done in a piecewise manner (segment-by-segment) so as
+    Integrates the given vector field along the given path p.
+
+    The integral is done in a piecewise manner (segment-by-segment) so as
     to be able to store the accumulated values from each of the previous
     segments.
 
@@ -56,6 +57,9 @@ def _accumulate_vector_field(path, field_vals):
     multiplication :math:`AR`. The accumulation is then obtained by doing a
     cumsum of this diagonal.
 
+    Since the integral involves evaluating the intervals :math:`\Delta x, \Delta y, \Delta z`, we have to decide which endpoint of each segment contributes its field
+    value to the calculation. Here we use the average of the two values.
+
     Parameters
     ----------
     p : YTArray
@@ -76,7 +80,8 @@ def _accumulate_vector_field(path, field_vals):
     # np.dot doesn't combine units correctly and there does not appear to be a
     # unyt implementation of dot, so units will be handled manually
     # for the time being
-    accum = np.cumsum(np.diag(np.dot(field_vals[:-1].d, (path[1:].d - path[:-1].d).T)))
+    f = (field_vals[1:] + field_vals[:-1]) / 2.0
+    accum = np.cumsum(np.diag(np.dot(f.d, (path[1:].d - path[:-1].d).T)))
     accum = YTArray(accum, field_vals.units * path.units)
     return accum
 
@@ -108,6 +113,10 @@ def _accumulate_scalar_field(p, field_vals):
     We then do the cumulative sum along these columns to get the accumulation
     of the integral.
 
+    As with `_accumulate_vector_field`, since we are dealing with intervals,
+    we use the average value of the field determined from the values at the
+    endpoints of each segment.
+
     Parameters
     ----------
     p : YTArray
@@ -124,7 +133,8 @@ def _accumulate_scalar_field(p, field_vals):
         The cumulative value of the field integral at each path
         segment
     """
-    accum = np.cumsum(field_vals[:-1].d * (p[1:].d - p[:-1].d), axis=0)
+    f = (field_vals[1:] + field_vals[:-1]) / 2.0
+    accum = np.cumsum(f.d * (p[1:].d - p[:-1].d), axis=0)
     return YTArray(accum, field_vals.units * p.units)
 
 
