@@ -227,7 +227,10 @@ class YTConfig:
         if "colored_logs" in self["yt"]:
             self["logging", "use_color"] = self["yt", "colored_logs"]
 
-        if "stdout_stream_logging" in self["yt"] and self["yt", "std_stream_logging"]:
+        if (
+            "stdout_stream_logging" in self["yt"]
+            and self["yt", "stdout_stream_logging"]
+        ):
             self["logging", "stream"] = "stdout"
 
         if (
