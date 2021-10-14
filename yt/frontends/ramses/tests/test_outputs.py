@@ -2,6 +2,7 @@ import os
 from copy import deepcopy
 
 import numpy as np
+import pytest
 
 import yt
 from yt.config import ytcfg
@@ -658,28 +659,34 @@ custom_grav = [
 ]
 
 
-class TestFieldConfig:
-    def setUp(self):
-        self.old_config = deepcopy(ytcfg.config_root.as_dict())
-        ytcfg.add_section("ramses-hydro")
-        ytcfg.add_section("ramses-grav")
-        ytcfg.set("ramses-hydro", "fields", custom_hydro)
-        ytcfg.set("ramses-grav", "fields", custom_grav)
+@pytest.fixture()
+def custom_ramses_fields_conf():
+    old_config = deepcopy(ytcfg.config_root.as_dict())
+    ytcfg.add_section("ramses-hydro")
+    ytcfg.add_section("ramses-grav")
+    ytcfg.set("ramses-hydro", "fields", custom_hydro)
+    ytcfg.set("ramses-grav", "fields", custom_grav)
+    yield
+    ytcfg.remove_section("ramses-hydro")
+    ytcfg.remove_section("ramses-grav")
+    ytcfg.update(old_config)
 
-    @staticmethod
-    def _check(path):
-        ds = yt.load(path)
 
-        for f in custom_hydro:
-            assert ("ramses", f) in ds.field_list
-        for f in custom_grav:
-            assert ("gravity", f) in ds.field_list
+@requires_file(output_00080)
+def test_field_config_1(custom_ramses_fields_conf):
+    ds = yt.load(output_00080)
 
-    def test_load_from_sample(self):
-        for path in (output_00080, ramses_new_format):
-            yield requires_file(path)(self._check), path
+    for f in custom_hydro:
+        assert ("ramses", f) in ds.field_list
+    for f in custom_grav:
+        assert ("gravity", f) in ds.field_list
 
-    def tearDown(self):
-        ytcfg.remove_section("ramses-hydro")
-        ytcfg.remove_section("ramses-grav")
-        ytcfg.update(self.old_config)
+
+@requires_file(ramses_new_format)
+def test_field_config_2(custom_ramses_fields_conf):
+    ds = yt.load(ramses_new_format)
+
+    for f in custom_hydro:
+        assert ("ramses", f) in ds.field_list
+    for f in custom_grav:
+        assert ("gravity", f) in ds.field_list
