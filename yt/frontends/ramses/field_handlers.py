@@ -315,16 +315,17 @@ class HydroFieldFileHandler(FieldFileHandler):
 
         ok = False
 
-        # Case 1: fields are provided by users on construction of dataset
         if ds._fields_in_file is not None:
+            # Case 1: fields are provided by users on construction of dataset
             fields = list(ds._fields_in_file)
             ok = True
-        else:  # Case 2: fields are provided by users in the config
+        else:
+            # Case 2: fields are provided by users in the config
             fields = cls.load_fields_from_yt_config()
             ok = len(fields) > 0
 
-        # Case 3: there is a file descriptor
         if not ok and os.path.exists(fname_desc):
+            # Case 3: there is a file descriptor
             # Or there is an hydro file descriptor
             mylog.debug("Reading hydro file descriptor.")
             # For now, we can only read double precision fields
@@ -333,8 +334,8 @@ class HydroFieldFileHandler(FieldFileHandler):
             # We get no fields for old-style hydro file descriptor
             ok = len(fields) > 0
 
-        # Case 4: attempt autodetection with usual fields
         if not ok:
+            # Case 4: attempt autodetection with usual fields
             foldername = os.path.abspath(os.path.dirname(ds.parameter_filename))
             rt_flag = any(glob.glob(os.sep.join([foldername, "info_rt_*.txt"])))
             if rt_flag:  # rt run
@@ -476,7 +477,7 @@ class GravFieldFileHandler(FieldFileHandler):
             ndetected = len(fields)
 
             if ndetected != nvar and not ds._warned_extra_fields["gravity"]:
-                mylog.warning("Detected %s extra gravity fields.", nvar - ndetected)
+                mylog.info("Detected %s extra gravity fields.", nvar - ndetected)
                 ds._warned_extra_fields["gravity"] = True
 
                 for i in range(nvar - ndetected):
@@ -559,13 +560,13 @@ class RTFieldFileHandler(FieldFileHandler):
 
         if not fields:
             fields = []
+            tmp = [
+                "Photon_density_%s",
+                "Photon_flux_x_%s",
+                "Photon_flux_y_%s",
+                "Photon_flux_z_%s",
+            ]
             for ng in range(ngroups):
-                tmp = [
-                    "Photon_density_%s",
-                    "Photon_flux_x_%s",
-                    "Photon_flux_y_%s",
-                    "Photon_flux_z_%s",
-                ]
                 fields.extend([t % (ng + 1) for t in tmp])
 
         cls.field_list = [(cls.ftype, e) for e in fields]
