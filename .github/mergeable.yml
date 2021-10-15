@@ -11,3 +11,7 @@ mergeable:
         must_include:
           regex: 'bug|enhancement|new feature|docs|infrastructure|dead code|refactor'
           message: "Please label this pull request with one of: bug, enhancement, new feature, docs or infrastructure."
+      - do: label
+        must_include:
+          regex: 'no-backport|backport-.*'
+          message: "Please label this pull request with either no-backport or a backport label for the appropriate branch."
