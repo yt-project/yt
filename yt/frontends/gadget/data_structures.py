@@ -611,6 +611,10 @@ class GadgetHDF5Dataset(GadgetDataset):
             self.gen_hsmls = "SmoothingLength" not in handle[sph_ptypes[0]]
         else:
             self.gen_hsmls = False
+        # Later versions of Gadget and its derivatives have a "Parameters"
+        # group in the HDF5 file.
+        if "Parameters" in handle:
+            hvals.update((str(k), v) for k, v in handle["/Parameters"].attrs.items())
         handle.close()
         return hvals
 
