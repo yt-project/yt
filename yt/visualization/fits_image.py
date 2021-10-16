@@ -735,12 +735,12 @@ class FITSImageData:
         w = first_image.wcs
         img_shape = first_image.shape
         data = []
-        for is_first, _is_last, fid in mark_ends(image_list):
+        for fid in image_list:
             assert_same_wcs(w, fid.wcs)
             if img_shape != fid.shape:
                 raise RuntimeError("Images do not have the same shape!")
             for hdu in fid.hdulist:
-                if is_first:
+                if len(data) == 0:
                     data.append(_astropy.pyfits.PrimaryHDU(hdu.data, header=hdu.header))
                 else:
                     data.append(_astropy.pyfits.ImageHDU(hdu.data, header=hdu.header))
