@@ -170,6 +170,9 @@ answer_tests:
   local_cylindrical_background_008:  # PR 3536
     - yt/geometry/coordinates/tests/test_cylindrical_coordinates.py:test_noise_plots
 
+  local_spherical_background_001:  # PR 3533
+    - yt/geometry/coordinates/tests/test_spherical_coordinates.py:test_noise_plots
+
   #local_particle_trajectory_001:
   #  - yt/data_objects/tests/test_particle_trajectories.py
 
