@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from more_itertools import always_iterable
 from mpl_toolkits.axes_grid1 import ImageGrid
-from packaging.version import Version
 from unyt.exceptions import UnitConversionError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
@@ -18,6 +17,7 @@ from yt.funcs import fix_axis, fix_unitary, is_sequence, iter_fields, mylog, obj
 from yt.units.unit_object import Unit
 from yt.units.unit_registry import UnitParseError
 from yt.units.yt_array import YTArray, YTQuantity
+from yt.utilities._version import MPL_VERSION
 from yt.utilities.exceptions import (
     YTCannotParseUnitDisplayName,
     YTDataTypeUnsupported,
@@ -63,8 +63,6 @@ else:
         # function directly where due
         return zip(*args, strict=True)
 
-
-MPL_VERSION = Version(matplotlib.__version__)
 
 # Some magic for dealing with pyparsing being included or not
 # included in matplotlib (not in gentoo, yes in everything else)
@@ -1223,7 +1221,7 @@ class PWViewerMPL(PlotWindow):
                     self.plots[f].cax.minorticks_on()
 
                 elif self._field_transform[f] == symlog_transform:
-                    if Version("3.2.0") <= MPL_VERSION < Version("3.5.0"):
+                    if (3, 2, 0) <= MPL_VERSION < (3, 5, 0):
                         # no known working method to draw symlog minor ticks
                         # see https://github.com/yt-project/yt/issues/3535
                         pass
@@ -1232,13 +1230,13 @@ class PWViewerMPL(PlotWindow):
                             np.log10(self.plots[f].cb.norm.linthresh)
                         )
                         mticks = get_symlog_minorticks(flinthresh, vmin, vmax)
-                        if MPL_VERSION < Version("3.5.0"):
+                        if MPL_VERSION < (3, 5, 0):
                             # https://github.com/matplotlib/matplotlib/issues/21258
                             mticks = self.plots[f].image.norm(mticks)
                         self.plots[f].cax.yaxis.set_ticks(mticks, minor=True)
 
                 elif self._field_transform[f] == log_transform:
-                    if MPL_VERSION >= Version("3.0.0"):
+                    if MPL_VERSION >= (3, 0, 0):
                         self.plots[f].cax.minorticks_on()
                         self.plots[f].cax.xaxis.set_visible(False)
                     else:

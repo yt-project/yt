@@ -2,7 +2,6 @@ from io import BytesIO
 
 import matplotlib
 import numpy as np
-from packaging.version import Version
 
 from yt.funcs import (
     get_brewer_cmap,
@@ -11,6 +10,7 @@ from yt.funcs import (
     matplotlib_style_context,
     mylog,
 )
+from yt.utilities._version import MPL_VERSION
 
 from ._commons import get_canvas, validate_image_name
 
@@ -132,10 +132,8 @@ class PlotMPL:
 
         if mpl_kwargs is None:
             mpl_kwargs = {}
-        if "papertype" not in mpl_kwargs and Version(matplotlib.__version__) < Version(
-            "3.3.0"
-        ):
-            mpl_kwargs["papertype"] = "auto"
+        if MPL_VERSION < (3, 3, 0):
+            mpl_kwargs.setdefault("papertype", "auto")
 
         name = validate_image_name(name)
 
@@ -216,8 +214,7 @@ class ImagePlotMPL(PlotMPL):
                 cblinthresh = np.nanmin(np.absolute(data)[data != 0])
 
             cbnorm_kwargs.update(dict(linthresh=cblinthresh))
-            MPL_VERSION = Version(matplotlib.__version__)
-            if MPL_VERSION >= Version("3.2.0"):
+            if MPL_VERSION >= (3, 2, 0):
                 # note that this creates an inconsistency between mpl versions
                 # since the default value previous to mpl 3.4.0 is np.e
                 # but it is only exposed since 3.2.0

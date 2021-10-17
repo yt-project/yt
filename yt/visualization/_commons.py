@@ -2,9 +2,7 @@ import os
 import sys
 from typing import Optional, Type
 
-import matplotlib
-from packaging.version import Version
-
+from yt.utilities._version import MPL_VERSION
 from yt.utilities.logger import ytLogger as mylog
 
 from ._mpl_imports import (
@@ -15,14 +13,12 @@ from ._mpl_imports import (
     FigureCanvasSVG,
 )
 
-MPL_VERSION = Version(matplotlib.__version__)
-
 DEFAULT_FONT_PROPERTIES = {
     "family": "stixgeneral",
     "size": 18,
 }
 
-if MPL_VERSION >= Version("3.4"):
+if MPL_VERSION >= (3, 4, 0):
     DEFAULT_FONT_PROPERTIES["math_fontfamily"] = "cm"
 
 SUPPORTED_FORMATS = frozenset(FigureCanvasBase.get_supported_filetypes().keys())
