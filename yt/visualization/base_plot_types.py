@@ -137,6 +137,7 @@ class PlotMPL:
         ):
             mpl_kwargs["papertype"] = "auto"
 
+        mpl_kwargs.setdefault("bbox_inches", "tight")
         name = validate_image_name(name)
 
         try:
