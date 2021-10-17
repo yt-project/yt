@@ -1,11 +1,9 @@
 import numpy as np
-from matplotlib import __version__ as mpl_ver, cm as mcm, colors as cc
+from matplotlib import cm as mcm, colors as cc
 from packaging.version import Version
 
 from . import _colormap_data as _cm
-
-MPL_VERSION = Version(mpl_ver)
-del mpl_ver
+from ._commons import MPL_VERSION
 
 
 def is_colormap(cmap):

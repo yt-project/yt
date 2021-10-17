@@ -29,6 +29,7 @@ from yt.utilities.exceptions import (
 from yt.utilities.math_utils import ortho_find
 from yt.utilities.orientation import Orientation
 
+from ._commons import MPL_VERSION
 from .base_plot_types import CallbackWrapper, ImagePlotMPL
 from .fixed_resolution import (
     FixedResolutionBuffer,
@@ -63,8 +64,6 @@ else:
         # function directly where due
         return zip(*args, strict=True)
 
-
-MPL_VERSION = Version(matplotlib.__version__)
 
 # Some magic for dealing with pyparsing being included or not
 # included in matplotlib (not in gentoo, yes in everything else)

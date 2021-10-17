@@ -22,7 +22,6 @@ from functools import lru_cache, wraps
 from numbers import Number as numeric_type
 from typing import Any, Callable, Type
 
-import matplotlib
 import numpy as np
 from more_itertools import always_iterable, collapse, first
 from packaging.version import Version
@@ -32,6 +31,7 @@ from yt.units import YTArray, YTQuantity
 from yt.utilities.exceptions import YTInvalidWidthError
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _requests as requests
+from yt.visualization._commons import MPL_VERSION
 
 # Some functions for handling sequences and other types
 
@@ -576,7 +576,7 @@ def get_version_stack():
     version_info = {}
     version_info["yt"] = get_yt_version()
     version_info["numpy"] = np.version.version
-    version_info["matplotlib"] = matplotlib.__version__
+    version_info["matplotlib"] = str(MPL_VERSION)
     return version_info
 
 
@@ -1039,7 +1039,7 @@ def matplotlib_style_context(style_name=None, after_reset=False):
         import matplotlib
 
         style_name = {"mathtext.fontset": "cm"}
-        if Version(matplotlib.__version__) >= Version("3.3.0"):
+        if MPL_VERSION >= Version("3.3.0"):
             style_name["mathtext.fallback"] = "cm"
         else:
             style_name["mathtext.fallback_to_cm"] = True
