@@ -56,7 +56,7 @@ double erf(double x)
 
     return sign*y;
 }
-#elif __FreeBSD__
+#elif defined(__FreeBSD__)
 #include <stdint.h>
 #include <stdlib.h>
 #include <math.h>
