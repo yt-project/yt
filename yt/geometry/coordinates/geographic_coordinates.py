@@ -245,6 +245,9 @@ class GeographicCoordinateHandler(CoordinateHandler):
         else:
             raise NotImplementedError
 
+    def pixelize_line(self, field, start_point, end_point, npoints):
+        raise NotImplementedError
+
     def _ortho_pixelize(
         self, data_source, field, bounds, size, antialias, dimension, periodic
     ):

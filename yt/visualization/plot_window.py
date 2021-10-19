@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from more_itertools import always_iterable
 from mpl_toolkits.axes_grid1 import ImageGrid
-from packaging.version import parse as parse_version
+from packaging.version import Version
 from unyt.exceptions import UnitConversionError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
@@ -24,6 +24,7 @@ from yt.utilities.exceptions import (
     YTInvalidFieldType,
     YTPlotCallbackError,
     YTUnitNotRecognized,
+    YTUnsupportedPlotCallback,
 )
 from yt.utilities.math_utils import ortho_find
 from yt.utilities.orientation import Orientation
@@ -63,7 +64,7 @@ else:
         return zip(*args, strict=True)
 
 
-MPL_VERSION = parse_version(matplotlib.__version__)
+MPL_VERSION = Version(matplotlib.__version__)
 
 # Some magic for dealing with pyparsing being included or not
 # included in matplotlib (not in gentoo, yes in everything else)
@@ -878,22 +879,69 @@ class PWViewerMPL(PlotWindow):
         yc = None
 
         if isinstance(origin, str):
-            origin = tuple(origin.split("-"))[:3]
-        if 1 == len(origin):
-            origin = ("lower", "left") + origin
-        elif 2 == len(origin) and origin[0] in {"left", "right", "center"}:
-            o0map = {"left": "lower", "right": "upper", "center": "center"}
-            origin = (o0map[origin[0]],) + origin
-        elif 2 == len(origin) and origin[0] in {"lower", "upper", "center"}:
-            origin = (origin[0], "center", origin[-1])
-        elif 3 == len(origin) and isinstance(origin[0], (int, float)):
-            xc = self.ds.quan(origin[0], "code_length")
-            yc = self.ds.quan(origin[1], "code_length")
-        elif 3 == len(origin) and isinstance(origin[0], tuple):
-            xc = self.ds.quan(origin[0][0], origin[0][1])
-            yc = self.ds.quan(origin[1][0], origin[0][1])
+            origin = tuple(origin.split("-"))
 
-        assert origin[-1] in ["window", "domain", "native"]
+        if len(origin) > 3:
+            raise ValueError(
+                "Invalid origin argument with too many elements; "
+                f"expected 1, 2 or 3 elements, got {self.origin!r}, counting {len(origin)} elements. "
+                "Use '-' as a separator for string arguments."
+            )
+
+        if len(origin) == 1:
+            coord_system = origin[0]
+            if coord_system not in ("window", "domain", "native"):
+                raise ValueError(
+                    "Invalid origin argument. "
+                    "Single element specification must be 'window', 'domain', or 'native'. "
+                    f"Got {self.origin!r}"
+                )
+            origin = ("lower", "left", coord_system)
+
+        elif len(origin) == 2:
+            err_msg = "Invalid origin argument. Using 2 elements:\n"
+
+            if origin[0] in ("left", "right", "center"):
+                o0map = {"left": "lower", "right": "upper", "center": "center"}
+                origin = (o0map[origin[0]],) + origin
+            elif origin[0] in ("lower", "upper"):
+                origin = (origin[0], "center", origin[-1])
+            else:
+                err_msg += " - the first one must be 'left', 'right', 'lower', 'upper' or 'center'\n"
+
+            if origin[-1] not in ("window", "domain", "native"):
+                err_msg += " - the second one must be 'window', 'domain', or 'native'\n"
+
+            if len(err_msg.split("\n")) > 2:
+                err_msg += f"Got {self.origin!r}"
+                raise ValueError(err_msg)
+
+        elif len(origin) == 3:
+            err_msg = "Invalid origin argument. Using 3 elements:\n"
+            if isinstance(origin[0], (int, float)):
+                xc = self.ds.quan(origin[0], "code_length")
+            elif isinstance(origin[0], tuple):
+                xc = self.ds.quan(*origin[0])
+            elif origin[0] not in ("lower", "upper", "center"):
+                err_msg += " - the first one must be 'lower', 'upper' or 'center' or a distance\n"
+
+            if isinstance(origin[1], (int, float)):
+                yc = self.ds.quan(origin[1], "code_length")
+            elif isinstance(origin[1], tuple):
+                yc = self.ds.quan(*origin[1])
+            elif origin[1] not in ("left", "right", "center"):
+                err_msg += " - the second one must be 'left', 'right', 'center' or a distance\n"
+
+            if origin[-1] not in ("window", "domain", "native"):
+                err_msg += " - the third one must be 'window', 'domain', or 'native'\n"
+
+            if len(err_msg.split("\n")) > 2:
+                err_msg += f"Got {self.origin!r}"
+                raise ValueError(err_msg)
+
+        assert not isinstance(origin, str)
+        assert len(origin) == 3
+        assert origin[2] in ("window", "domain", "native")
 
         if origin[2] == "window":
             xllim, xrlim = self.xlim
@@ -907,28 +955,17 @@ class PWViewerMPL(PlotWindow):
             yrlim = self.ds.domain_right_edge[yax]
         elif origin[2] == "native":
             return (self.ds.quan(0.0, "code_length"), self.ds.quan(0.0, "code_length"))
-        else:
-            mylog.warning("origin = %s", origin)
-            msg = (
-                'origin keyword "{}" not recognized, must declare "domain" '
-                'or "center" as the last term in origin.'
-            ).format(self.origin)
-            raise RuntimeError(msg)
+
         if xc is None and yc is None:
+            assert origin[0] in ("lower", "upper", "center")
+            assert origin[1] in ("left", "right", "center")
+
             if origin[0] == "lower":
                 yc = yllim
             elif origin[0] == "upper":
                 yc = yrlim
             elif origin[0] == "center":
                 yc = (yllim + yrlim) / 2.0
-            else:
-                mylog.warning("origin = %s", origin)
-                msg = (
-                    'origin keyword "{0}" not recognized, must declare "lower" '
-                    '"upper" or "center" as the first term in origin.'
-                )
-                msg = msg.format(self.origin)
-                raise RuntimeError(msg)
 
             if origin[1] == "left":
                 xc = xllim
@@ -936,22 +973,15 @@ class PWViewerMPL(PlotWindow):
                 xc = xrlim
             elif origin[1] == "center":
                 xc = (xllim + xrlim) / 2.0
-            else:
-                mylog.warning("origin = %s", origin)
-                msg = (
-                    'origin keyword "{0}" not recognized, must declare "left" '
-                    '"right" or "center" as the second term in origin.'
-                )
-                msg = msg.format(self.origin)
-                raise RuntimeError(msg)
 
         x_in_bounds = xc >= xllim and xc <= xrlim
         y_in_bounds = yc >= yllim and yc <= yrlim
 
         if not x_in_bounds and not y_in_bounds:
-            msg = "origin inputs not in bounds of specified coordinate system domain."
-            msg = msg.format(self.origin)
-            raise RuntimeError(msg)
+            raise ValueError(
+                "origin inputs not in bounds of specified coordinate system domain; "
+                f"got {self.origin!r} Bounds are {xllim, xrlim} and {yllim, yrlim} respectively"
+            )
 
         return xc, yc
 
@@ -1193,16 +1223,22 @@ class PWViewerMPL(PlotWindow):
                     self.plots[f].cax.minorticks_on()
 
                 elif self._field_transform[f] == symlog_transform:
-                    flinthresh = 10 ** np.floor(
-                        np.log10(self.plots[f].cb.norm.linthresh)
-                    )
-                    mticks = self.plots[f].image.norm(
-                        get_symlog_minorticks(flinthresh, vmin, vmax)
-                    )
-                    self.plots[f].cax.yaxis.set_ticks(mticks, minor=True)
+                    if Version("3.2.0") <= MPL_VERSION < Version("3.5.0"):
+                        # no known working method to draw symlog minor ticks
+                        # see https://github.com/yt-project/yt/issues/3535
+                        pass
+                    else:
+                        flinthresh = 10 ** np.floor(
+                            np.log10(self.plots[f].cb.norm.linthresh)
+                        )
+                        mticks = get_symlog_minorticks(flinthresh, vmin, vmax)
+                        if MPL_VERSION < Version("3.5.0"):
+                            # https://github.com/matplotlib/matplotlib/issues/21258
+                            mticks = self.plots[f].image.norm(mticks)
+                        self.plots[f].cax.yaxis.set_ticks(mticks, minor=True)
 
                 elif self._field_transform[f] == log_transform:
-                    if MPL_VERSION >= parse_version("3.0.0"):
+                    if MPL_VERSION >= Version("3.0.0"):
                         self.plots[f].cax.minorticks_on()
                         self.plots[f].cax.xaxis.set_visible(False)
                     else:
@@ -1234,38 +1270,50 @@ class PWViewerMPL(PlotWindow):
         self._plot_valid = True
 
     def setup_callbacks(self):
+        ignored = ["PlotCallback"]
+        if self._plot_type.startswith("OffAxis"):
+            ignored += [
+                "ParticleCallback",
+                "ClumpContourCallback",
+                "GridBoundaryCallback",
+            ]
+        if self._plot_type == "OffAxisProjection":
+            ignored += [
+                "VelocityCallback",
+                "MagFieldCallback",
+                "QuiverCallback",
+                "CuttingQuiverCallback",
+                "StreamlineCallback",
+                "LineIntegralConvolutionCallback",
+            ]
+        elif self._plot_type == "Particle":
+            ignored += [
+                "HopCirclesCallback",
+                "HopParticleCallback",
+                "ClumpContourCallback",
+                "GridBoundaryCallback",
+                "VelocityCallback",
+                "MagFieldCallback",
+                "QuiverCallback",
+                "CuttingQuiverCallback",
+                "StreamlineCallback",
+                "ContourCallback",
+            ]
+
+        def missing_callback_closure(cbname):
+            def _(*args, **kwargs):
+                raise YTUnsupportedPlotCallback(
+                    callback=cbname, plot_type=self._plot_type
+                )
+
+            return _
+
         for key in callback_registry:
-            ignored = ["PlotCallback"]
-            if self._plot_type.startswith("OffAxis"):
-                ignored += [
-                    "ParticleCallback",
-                    "ClumpContourCallback",
-                    "GridBoundaryCallback",
-                ]
-            if self._plot_type == "OffAxisProjection":
-                ignored += [
-                    "VelocityCallback",
-                    "MagFieldCallback",
-                    "QuiverCallback",
-                    "CuttingQuiverCallback",
-                    "StreamlineCallback",
-                ]
-            if self._plot_type == "Particle":
-                ignored += [
-                    "HopCirclesCallback",
-                    "HopParticleCallback",
-                    "ClumpContourCallback",
-                    "GridBoundaryCallback",
-                    "VelocityCallback",
-                    "MagFieldCallback",
-                    "QuiverCallback",
-                    "CuttingQuiverCallback",
-                    "StreamlineCallback",
-                    "ContourCallback",
-                ]
-            if key in ignored:
-                continue
             cbname = callback_registry[key]._type_name
+
+            if key in ignored:
+                self.__dict__["annotate_" + cbname] = missing_callback_closure(cbname)
+                continue
 
             # We need to wrap to create a closure so that
             # CallbackMaker is bound to the wrapped method.

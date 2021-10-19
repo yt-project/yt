@@ -81,16 +81,16 @@ cdef int octree_build_node(Octree * tree, long int node_idx):
     cdef np.int64_t i, j, k, n, start, end
     cdef np.float64_t lx, ly, lz, sz, inv_size
 
+    # If we are running out of space in our tree, then we *try* to
+    # relloacate a tree of double the size
+    if (tree.num_nodes + 8) >= tree.max_num_nodes:
+        if octree_reallocate(tree, tree.max_num_nodes * 2):
+            return 1
+
     if (
         (tree.pend[node_idx] - tree.pstart[node_idx] > tree.n_ref) and
         (tree.depth[node_idx] < tree.max_depth)
     ):
-        # If we are running out of space in our tree, then we *try* to
-        # relloacate a tree of double the size
-        if tree.num_nodes > tree.max_num_nodes - 16:
-            if octree_reallocate(tree, tree.max_num_nodes * 2):
-                return 1
-
         tree.refined[node_idx] = 1
 
         # As we have decided to refine, we need to know which of the particles

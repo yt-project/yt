@@ -2,7 +2,7 @@ from io import BytesIO
 
 import matplotlib
 import numpy as np
-from packaging.version import parse as parse_version
+from packaging.version import Version
 
 from yt.funcs import (
     get_brewer_cmap,
@@ -132,9 +132,9 @@ class PlotMPL:
 
         if mpl_kwargs is None:
             mpl_kwargs = {}
-        if "papertype" not in mpl_kwargs and parse_version(
-            matplotlib.__version__
-        ) < parse_version("3.3.0"):
+        if "papertype" not in mpl_kwargs and Version(matplotlib.__version__) < Version(
+            "3.3.0"
+        ):
             mpl_kwargs["papertype"] = "auto"
 
         name = validate_image_name(name)
@@ -212,14 +212,12 @@ class ImagePlotMPL(PlotMPL):
             cbnorm_cls = matplotlib.colors.Normalize
         elif cbnorm == "symlog":
             # if cblinthresh is not specified, try to come up with a reasonable default
-            vmin = float(np.nanmin(data))
-            vmax = float(np.nanmax(data))
             if cblinthresh is None:
                 cblinthresh = np.nanmin(np.absolute(data)[data != 0])
 
-            cbnorm_kwargs.update(dict(linthresh=cblinthresh, vmin=vmin, vmax=vmax))
-            MPL_VERSION = parse_version(matplotlib.__version__)
-            if MPL_VERSION >= parse_version("3.2.0"):
+            cbnorm_kwargs.update(dict(linthresh=cblinthresh))
+            MPL_VERSION = Version(matplotlib.__version__)
+            if MPL_VERSION >= Version("3.2.0"):
                 # note that this creates an inconsistency between mpl versions
                 # since the default value previous to mpl 3.4.0 is np.e
                 # but it is only exposed since 3.2.0
@@ -275,27 +273,30 @@ class ImagePlotMPL(PlotMPL):
         if cbnorm == "symlog":
             formatter = matplotlib.ticker.LogFormatterMathtext(linthresh=cblinthresh)
             self.cb = self.figure.colorbar(self.image, self.cax, format=formatter)
-            if np.nanmin(data) >= 0.0:
-                yticks = [np.nanmin(data).v] + list(
+            zmin = float(self.zmin) if self.zmin is not None else np.nanmin(data)
+            zmax = float(self.zmax) if self.zmax is not None else np.nanmax(data)
+
+            if zmin >= 0.0:
+                yticks = [zmin] + list(
                     10
                     ** np.arange(
                         np.rint(np.log10(cblinthresh)),
-                        np.ceil(np.log10(np.nanmax(data))) + 1,
+                        np.ceil(np.log10(zmax)),
                     )
                 )
-            elif np.nanmax(data) <= 0.0:
+            elif zmax <= 0.0:
                 yticks = (
                     list(
                         -(
                             10
                             ** np.arange(
-                                np.floor(np.log10(-np.nanmin(data))),
+                                np.floor(np.log10(-zmin)),
                                 np.rint(np.log10(cblinthresh)) - 1,
                                 -1,
                             )
                         )
                     )
-                    + [np.nanmax(data).v]
+                    + [zmax]
                 )
             else:
                 yticks = (
@@ -303,7 +304,7 @@ class ImagePlotMPL(PlotMPL):
                         -(
                             10
                             ** np.arange(
-                                np.floor(np.log10(-np.nanmin(data))),
+                                np.floor(np.log10(-zmin)),
                                 np.rint(np.log10(cblinthresh)) - 1,
                                 -1,
                             )
@@ -314,7 +315,7 @@ class ImagePlotMPL(PlotMPL):
                         10
                         ** np.arange(
                             np.rint(np.log10(cblinthresh)),
-                            np.ceil(np.log10(np.nanmax(data))) + 1,
+                            np.ceil(np.log10(zmax)),
                         )
                     )
                 )

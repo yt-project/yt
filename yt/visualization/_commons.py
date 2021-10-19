@@ -1,21 +1,57 @@
 import os
-from typing import Optional
+import sys
+from typing import Optional, Type
+
+import matplotlib
+from packaging.version import Version
 
 from yt.utilities.logger import ytLogger as mylog
 
 from ._mpl_imports import (
     FigureCanvasAgg,
+    FigureCanvasBase,
     FigureCanvasPdf,
     FigureCanvasPS,
     FigureCanvasSVG,
 )
 
-AGG_FORMATS = [".png", ".jpg", ".jpeg", ".raw", ".rgba", ".tif", ".tiff"]
-SUPPORTED_FORMATS = AGG_FORMATS + [".eps", ".ps", ".pdf", ".svg"]
+MPL_VERSION = Version(matplotlib.__version__)
+
+DEFAULT_FONT_PROPERTIES = {
+    "family": "stixgeneral",
+    "size": 18,
+}
+
+if MPL_VERSION >= Version("3.4"):
+    DEFAULT_FONT_PROPERTIES["math_fontfamily"] = "cm"
+
+SUPPORTED_FORMATS = frozenset(FigureCanvasBase.get_supported_filetypes().keys())
+SUPPORTED_CANVAS_CLASSES = frozenset(
+    (FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS, FigureCanvasSVG)
+)
+
+
+def get_canvas_class(suffix: str) -> Type[FigureCanvasBase]:
+    s = normalize_extension_string(suffix)
+    if s not in SUPPORTED_FORMATS:
+        raise ValueError(f"Unsupported file format '{suffix}'.")
+    for cls in SUPPORTED_CANVAS_CLASSES:
+        if s in cls.get_supported_filetypes():
+            return cls
+    raise RuntimeError(
+        "Something went terribly wrong. "
+        f"File extension '{suffix}' is supposed to be supported "
+        "but no compatible backend was found."
+    )
 
 
 def normalize_extension_string(s: str) -> str:
-    return f".{s.lstrip('.')}"
+    if sys.version_info < (3, 9):
+        if s.startswith("."):
+            return s[1:]
+        return s
+    else:
+        return s.removeprefix(".")
 
 
 def validate_image_name(filename, suffix: Optional[str] = None) -> str:
@@ -25,7 +61,7 @@ def validate_image_name(filename, suffix: Optional[str] = None) -> str:
     Otherwise, suffix is appended to the filename, replacing any existing extension.
     """
     name, psuffix = os.path.splitext(filename)
-    if psuffix in SUPPORTED_FORMATS:
+    if normalize_extension_string(psuffix) in SUPPORTED_FORMATS:
         if suffix is not None:
             suffix = normalize_extension_string(suffix)
         if suffix in SUPPORTED_FORMATS and suffix != psuffix:
@@ -35,7 +71,7 @@ def validate_image_name(filename, suffix: Optional[str] = None) -> str:
                 psuffix,
                 suffix,
             )
-            return f"{name}{suffix}"
+            return f"{name}.{suffix}"
         return str(filename)
 
     if suffix is None:
@@ -44,9 +80,9 @@ def validate_image_name(filename, suffix: Optional[str] = None) -> str:
     suffix = normalize_extension_string(suffix)
 
     if suffix not in SUPPORTED_FORMATS:
-        raise ValueError("Unsupported file format '{suffix}'.")
+        raise ValueError(f"Unsupported file format '{suffix}'.")
 
-    return f"{filename}{suffix}"
+    return f"{filename}.{suffix}"
 
 
 def get_canvas(figure, filename):
@@ -58,19 +94,4 @@ def get_canvas(figure, filename):
             f"Can not determine canvas class from filename '{filename}' "
             f"without an extension."
         )
-
-    if suffix in AGG_FORMATS:
-        return FigureCanvasAgg(figure)
-
-    if suffix == ".pdf":
-        return FigureCanvasPdf(figure)
-
-    if suffix == ".svg":
-        return FigureCanvasSVG(figure)
-
-    if suffix in (".eps", ".ps"):
-        return FigureCanvasPS(figure)
-
-    raise ValueError(
-        f"No matching canvas for filename '{filename}' with extension '{suffix}'."
-    )
+    return get_canvas_class(suffix)(figure)

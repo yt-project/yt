@@ -2,11 +2,12 @@ import contextlib
 import inspect
 import re
 import warnings
+from typing import Tuple
 
 from more_itertools import always_iterable
 
 import yt.units.dimensions as ytdims
-from yt.funcs import iter_fields
+from yt.funcs import iter_fields, validate_field_key
 from yt.units.unit_object import Unit
 from yt.utilities.exceptions import YTFieldNotFound
 from yt.utilities.logger import ytLogger as mylog
@@ -114,7 +115,7 @@ class DerivedField:
 
     def __init__(
         self,
-        name,
+        name: Tuple[str, str],
         sampling_type,
         function,
         units=None,
@@ -130,6 +131,7 @@ class DerivedField:
         ds=None,
         nodal_flag=None,
     ):
+        validate_field_key(name)
         self.name = name
         self.take_log = take_log
         self.display_name = display_name

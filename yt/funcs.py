@@ -25,7 +25,7 @@ from typing import Any, Callable, Type
 import matplotlib
 import numpy as np
 from more_itertools import always_iterable, collapse, first
-from packaging.version import parse as parse_version
+from packaging.version import Version
 from tqdm import tqdm
 
 from yt.units import YTArray, YTQuantity
@@ -1039,7 +1039,7 @@ def matplotlib_style_context(style_name=None, after_reset=False):
         import matplotlib
 
         style_name = {"mathtext.fontset": "cm"}
-        if parse_version(matplotlib.__version__) >= parse_version("3.3.0"):
+        if Version(matplotlib.__version__) >= Version("3.3.0"):
             style_name["mathtext.fallback"] = "cm"
         else:
             style_name["mathtext.fallback_to_cm"] = True
@@ -1193,6 +1193,20 @@ def validate_sequence(obj):
             "Expected an iterable object,"
             " received '%s'" % str(type(obj)).split("'")[1]
         )
+
+
+def validate_field_key(key):
+    if (
+        isinstance(key, tuple)
+        and len(key) == 2
+        and all(isinstance(_, str) for _ in key)
+    ):
+        return
+    raise TypeError(
+        "Expected a 2-tuple of strings formatted as\n"
+        "(field or particle type, field name)\n"
+        f"Received invalid field key: {key}, with type {type(key)}"
+    )
 
 
 def validate_object(obj, data_type):

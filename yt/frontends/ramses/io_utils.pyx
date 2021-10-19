@@ -86,11 +86,11 @@ def read_amr(FortranFile f, dict headers,
 @cython.wraparound(False)
 @cython.cdivision(True)
 @cython.nonecheck(False)
-cpdef read_offset(FortranFile f, INT64_t min_level, INT64_t domain_id, INT64_t nvar, dict headers):
+cpdef read_offset(FortranFile f, INT64_t min_level, INT64_t domain_id, INT64_t nvar, dict headers, int skip_len):
 
     cdef np.ndarray[np.int64_t, ndim=2] offset, level_count
     cdef INT64_t ndim, twotondim, nlevelmax, n_levels, nboundary, ncpu, ncpu_and_bound
-    cdef INT64_t ilevel, icpu, skip_len
+    cdef INT64_t ilevel, icpu
     cdef INT32_t file_ilevel, file_ncache
 
     numbl = headers['numbl']
@@ -103,7 +103,8 @@ cpdef read_offset(FortranFile f, INT64_t min_level, INT64_t domain_id, INT64_t n
     ncpu_and_bound = nboundary + ncpu
     twotondim = 2**ndim
 
-    skip_len = twotondim * nvar
+    if skip_len == -1:
+        skip_len = twotondim * nvar
 
     # It goes: level, CPU, 8-variable (1 oct)
     offset = np.full((ncpu_and_bound, n_levels), -1, dtype=np.int64)

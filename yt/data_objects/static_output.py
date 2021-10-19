@@ -4,8 +4,10 @@ import itertools
 import os
 import pickle
 import time
+import warnings
 import weakref
 from collections import defaultdict
+from importlib.util import find_spec
 from stat import ST_CTIME
 
 import numpy as np
@@ -80,7 +82,7 @@ class MutableAttribute:
             ret = ret.copy()
         except AttributeError:
             pass
-        if self.display_array:
+        if self.display_array and find_spec("ipywidgets") is not None:
             try:
                 ret._ipython_display_ = functools.partial(_wrap_display_ytarray, ret)
             # This will error out if the items have yet to be turned into
@@ -136,6 +138,9 @@ class Dataset(abc.ABC):
     domain_left_edge = MutableAttribute(True)
     domain_right_edge = MutableAttribute(True)
     domain_dimensions = MutableAttribute(True)
+    # the point in index space "domain_left_edge" doesn't necessarily
+    # map to (0, 0, 0)
+    domain_offset = np.zeros(3, dtype="int64")
     _periodicity = MutableAttribute()
     _force_periodicity = False
 
@@ -154,7 +159,7 @@ class Dataset(abc.ABC):
             if not is_stream:
                 obj.__init__(filename, *args, **kwargs)
             return obj
-        apath = os.path.abspath(filename)
+        apath = os.path.abspath(os.path.expanduser(filename))
         cache_key = (apath, pickle.dumps(args), pickle.dumps(kwargs))
         if ytcfg.get("yt", "skip_dataset_cache"):
             obj = object.__new__(cls)
@@ -168,6 +173,12 @@ class Dataset(abc.ABC):
 
     def __init_subclass__(cls, *args, **kwargs):
         super().__init_subclass__(*args, **kwargs)
+        if cls.__name__ in output_type_registry:
+            warnings.warn(
+                f"Overwritting {cls.__name__}, which was previously registered. "
+                "This is expected if you're importing a yt extension with a "
+                "frontend that was already migrated to the main code base."
+            )
         output_type_registry[cls.__name__] = cls
         mylog.debug("Registering: %s as %s", cls.__name__, cls)
 
@@ -201,9 +212,10 @@ class Dataset(abc.ABC):
         self.default_species_fields = default_species_fields
 
         # path stuff
-        self.parameter_filename = str(filename)
+        filename = os.path.expanduser(filename)
+        self.parameter_filename = filename
         self.basename = os.path.basename(filename)
-        self.directory = os.path.expanduser(os.path.dirname(filename))
+        self.directory = os.path.dirname(filename)
         self.fullpath = os.path.abspath(self.directory)
         self.backup_filename = self.parameter_filename + "_backup.gdf"
         self.read_from_backup = False
