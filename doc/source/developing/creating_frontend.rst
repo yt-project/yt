@@ -53,7 +53,8 @@ units and the code units (typically in the ``_set_code_unit_attributes()``
 method), read in metadata describing the overall data on disk (via the
 ``_parse_parameter_file()`` method), and provide a ``classmethod``
 called ``_is_valid()`` that lets the ``yt.load`` method help identify an
-input file as belonging to *this* particular ``Dataset`` subclass.
+input file as belonging to *this* particular ``Dataset`` subclass
+(see :ref:`data-format-detection`).
 For the most part, the examples of
 ``yt.frontends.boxlib.data_structures.OrionDataset`` and
 ``yt.frontends.enzo.data_structures.EnzoDataset`` should be followed,
@@ -122,6 +123,33 @@ frontend's field names to the yt "universal" field names. Finally,
 want the field to be displayed on a plot; this can be LaTeX code, for example
 the density field could have a display name of ``r"\rho"``.  Omitting the
 ``"display_name"`` will result in using a capitalized version of the ``"name"``.
+
+
+.. _data-format-detection:
+
+How to make ``yt.load`` magically detect your data format ?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+``yt.load`` takes in a file or directory name, as well as any number of
+positional and keyword arguments. On call, ``yt.load`` attempts to determine
+what ``Dataset`` subclasses are compatible with the set of arguments it
+received. It does so by passing its arguments to *every* ``Dataset`` subclasses'
+``_is_valid`` method. These methods are intended to be heuristics that quickly
+determine wether the arguments (in particular the file/directory) can be loaded
+with their respective classes. In some cases, more than one class might be
+detected as valid. If all candidate classes are siblings, ``yt.load`` will
+select the most specialized one.
+
+When writing a new frontend, it is important to write ``_is_valid`` methods to be
+as specific as possible, otherwise one might constrain the design space for
+future frontends or in some cases deny their ability to leverage ``yt.load``'s
+magic.
+
+Performance is also critical since the new method is going to get called every
+single time along with ``yt.load``, even for unrelated data formats.
+
+Note that ``yt.load`` knows about every ``Dataset`` subclass because they are
+automatically registered on creation.
 
 .. _bfields-frontend:
 
