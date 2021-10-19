@@ -28,6 +28,14 @@
 #ifdef _MSC_VER
 #include <intrin.h>
 #endif
+
+
+#if ((ULONG_MAX) == (UINT_MAX))
+#define UWORD uint32_t
+#else
+#define UWORD uint64_t
+#endif
+
 namespace ewah {
 
 static inline uint32_t ctz64(uint64_t n) {
