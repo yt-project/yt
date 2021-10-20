@@ -23,7 +23,7 @@ from yt.utilities.nodal_data_utils import get_nodal_slices
 RECONSTRUCT_INDEX = bool(ytcfg.get("yt", "reconstruct_index"))
 
 
-class AMRGridPatch(YTSelectionContainer):
+class RectangularGridPatch(YTSelectionContainer):
     _spatial = True
     _num_ghost_zones = 0
     _grids = None
@@ -71,7 +71,7 @@ class AMRGridPatch(YTSelectionContainer):
         pdx = self.Parent.dds.d
         di = np.rint((self.LeftEdge.d - self.Parent.LeftEdge.d) / pdx)
         start_index = self.Parent.get_global_startindex() + di
-        self.start_index = (start_index * self.ds.refine_by).astype("int64").ravel()
+        self.start_index = (start_index * self.refine_by).astype("int64").ravel()
         return self.start_index
 
     def __getitem__(self, key):
@@ -132,7 +132,7 @@ class AMRGridPatch(YTSelectionContainer):
         if self.Parent is not None:
             if not hasattr(self.Parent, "dds"):
                 self.Parent._setup_dx()
-            self.dds = self.Parent.dds.d / self.ds.refine_by
+            self.dds = self.Parent.dds.d / self.refine_by
         else:
             LE, RE = (index.grid_left_edge[id, :].d, index.grid_right_edge[id, :].d)
             self.dds = (RE - LE) / self.ActiveDimensions
@@ -191,7 +191,7 @@ class AMRGridPatch(YTSelectionContainer):
         return pos
 
     def _fill_child_mask(self, child, mask, tofill, dlevel=1):
-        rf = self.ds.refine_by
+        rf = self.refine_by
         if dlevel != 1:
             rf = rf ** dlevel
         gi, cgi = self.get_global_startindex(), child.get_global_startindex()
@@ -439,3 +439,15 @@ class AMRGridPatch(YTSelectionContainer):
     def select_particles(self, selector, x, y, z):
         mask = selector.select_points(x, y, z, 0.0)
         return mask
+
+    @property
+    def refine_by(self) -> int:
+        # this attribute is a nod to AMRGridPatch which was implemented
+        # before this class (RectangularGridPatch) historically
+        return 1
+
+
+class AMRGridPatch(RectangularGridPatch):
+    @property
+    def refine_by(self) -> int:
+        return self.ds.refine_by
