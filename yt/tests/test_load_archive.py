@@ -1,3 +1,4 @@
+import os
 import sys
 import tarfile
 import time
@@ -30,6 +31,10 @@ def tmp_data_dir(tmp_path):
 @pytest.mark.skipif(
     sys.platform.startswith("win"),
     reason="ratarmount cannot currently be installed on Windows as of v0.8.1",
+)
+@pytest.mark.skipif(
+    os.environ.get("JENKINS_HOME") is not None,
+    reason="Archive mounting times out on Jenkins.",
 )
 @requires_module_pytest("pooch", "ratarmount")
 @pytest.mark.parametrize(
@@ -89,6 +94,10 @@ def test_load_archive(
 @pytest.mark.skipif(
     sys.platform.startswith("win"),
     reason="ratarmount cannot currently be installed on Windows as of v0.8.1",
+)
+@pytest.mark.skipif(
+    os.environ.get("JENKINS_HOME") is not None,
+    reason="Archive mounting times out on Jenkins.",
 )
 @requires_module_pytest("pooch", "ratarmount")
 def test_load_invalid_archive(tmp_data_dir, data_registry):
