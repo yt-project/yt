@@ -70,7 +70,9 @@ def test_load_archive(
                     tar.addfile(member, fileobj=content)
 
     # Now try to open the .tar.* files
-    ds = load_archive(tar_path, exact_loc, mount_timeout=10)
+    warn_msg = "The 'load_archive' function is still experimental and may be unstable."
+    with pytest.warns(UserWarning, match=warn_msg):
+        ds = load_archive(tar_path, exact_loc, mount_timeout=10)
     assert type(ds).__name__ == class_
 
     # Make sure the index is readable
@@ -98,6 +100,9 @@ def test_load_archive(
 @pytest.mark.skipif(
     os.environ.get("JENKINS_HOME") is not None,
     reason="Archive mounting times out on Jenkins.",
+)
+@pytest.mark.filterwarnings(
+    "ignore:The 'load_archive' function is still experimental and may be unstable."
 )
 @requires_module_pytest("pooch", "ratarmount")
 def test_load_invalid_archive(tmp_data_dir, data_registry):
