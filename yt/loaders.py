@@ -8,6 +8,7 @@ import sys
 import tarfile
 import time
 import types
+import warnings
 from multiprocessing import Pipe, Process
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
@@ -1520,10 +1521,15 @@ def load_archive(
     Notes
     -----
 
+    - The function is experimental and may work or not depending on your setup.
     - Any additional keyword argument is passed down to :func:`~yt.loaders.load`.
-    - This function requires ratarmount.
+    - This function requires ratarmount to be installed.
     - This function does not work on Windows system.
     """
+
+    warnings.warn(
+        "The 'load_archive' function is still experimental and may be unstable."
+    )
 
     fn = os.path.expanduser(fn)
 
