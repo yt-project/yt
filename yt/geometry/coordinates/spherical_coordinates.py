@@ -4,7 +4,12 @@ import numpy as np
 
 from yt.utilities.lib.pixelization_routines import pixelize_aitoff, pixelize_cylinder
 
-from .coordinate_handler import CoordinateHandler, _get_coord_fields, _unknown_coord
+from .coordinate_handler import (
+    CoordinateHandler,
+    _get_coord_fields,
+    _setup_dummy_cartesian_coordinates,
+    _setup_polar_coordinates,
+)
 
 if sys.version_info >= (3, 8):
     from functools import cached_property
@@ -24,64 +29,8 @@ class SphericalCoordinateHandler(CoordinateHandler):
         self.image_units[self.axis_id["phi"]] = (None, None)
 
     def setup_fields(self, registry):
-        # return the fields for r, z, theta
-        registry.add_field(
-            ("index", "dx"), sampling_type="cell", function=_unknown_coord
-        )
-
-        registry.add_field(
-            ("index", "dy"), sampling_type="cell", function=_unknown_coord
-        )
-
-        registry.add_field(
-            ("index", "dz"), sampling_type="cell", function=_unknown_coord
-        )
-
-        registry.add_field(
-            ("index", "x"), sampling_type="cell", function=_unknown_coord
-        )
-
-        registry.add_field(
-            ("index", "y"), sampling_type="cell", function=_unknown_coord
-        )
-
-        registry.add_field(
-            ("index", "z"), sampling_type="cell", function=_unknown_coord
-        )
-
-        f1, f2 = _get_coord_fields(self.axis_id["r"])
-        registry.add_field(
-            ("index", "dr"),
-            sampling_type="cell",
-            function=f1,
-            display_field=False,
-            units="code_length",
-        )
-
-        registry.add_field(
-            ("index", "r"),
-            sampling_type="cell",
-            function=f2,
-            display_field=False,
-            units="code_length",
-        )
-
-        f1, f2 = _get_coord_fields(self.axis_id["theta"], "")
-        registry.add_field(
-            ("index", "dtheta"),
-            sampling_type="cell",
-            function=f1,
-            display_field=False,
-            units="",
-        )
-
-        registry.add_field(
-            ("index", "theta"),
-            sampling_type="cell",
-            function=f2,
-            display_field=False,
-            units="",
-        )
+        _setup_dummy_cartesian_coordinates(registry)
+        _setup_polar_coordinates(registry, self.axis_id)
 
         f1, f2 = _get_coord_fields(self.axis_id["phi"], "")
         registry.add_field(
@@ -118,27 +67,6 @@ class SphericalCoordinateHandler(CoordinateHandler):
             units="code_length**3",
         )
         registry.alias(("index", "volume"), ("index", "cell_volume"))
-
-        def _path_r(field, data):
-            return data["index", "dr"]
-
-        registry.add_field(
-            ("index", "path_element_r"),
-            sampling_type="cell",
-            function=_path_r,
-            units="code_length",
-        )
-
-        def _path_theta(field, data):
-            # Note: this already assumes cell-centered
-            return data["index", "r"] * data["index", "dtheta"]
-
-        registry.add_field(
-            ("index", "path_element_theta"),
-            sampling_type="cell",
-            function=_path_theta,
-            units="code_length",
-        )
 
         def _path_phi(field, data):
             # Note: this already assumes cell-centered
