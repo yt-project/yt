@@ -551,7 +551,6 @@ class OpenPMDDataset(Dataset):
         self.unique_identifier = 0
         self.parameters = 0
         self._periodicity = np.zeros(3, dtype="bool")
-        self.refine_by = 1
         self.cosmological_simulation = 0
 
         try:
