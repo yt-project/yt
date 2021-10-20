@@ -2,12 +2,16 @@ import re
 
 import numpy as np
 
+from yt.frontends.boxlib.misc import (
+    BoxlibParticleSelectionMixin,
+    IOHandlerParticlesBoxlibMixin,
+)
 from yt.geometry.selection_routines import GridSelector
 from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
 
 
-class IOHandlerChomboHDF5(BaseIOHandler):
+class IOHandlerChomboHDF5(BaseIOHandler, BoxlibParticleSelectionMixin):
     _dataset_type = "chombo_hdf5"
     _offset_string = "data:offsets=0"
     _data_string = "data:datatype=0"
@@ -141,30 +145,6 @@ class IOHandlerChomboHDF5(BaseIOHandler):
                 ind += nd
         return rv
 
-    def _read_particle_selection(self, chunks, selector, fields):
-        rv = {}
-        chunks = list(chunks)
-
-        if isinstance(selector, GridSelector):
-
-            if not (len(chunks) == len(chunks[0].objs) == 1):
-                raise RuntimeError
-
-            grid = chunks[0].objs[0]
-
-            for ftype, fname in fields:
-                rv[ftype, fname] = self._read_particles(grid, fname)
-
-            return rv
-
-        rv = {f: np.array([]) for f in fields}
-        for chunk in chunks:
-            for grid in chunk.objs:
-                for ftype, fname in fields:
-                    data = self._read_particles(grid, fname)
-                    rv[ftype, fname] = np.concatenate((data, rv[ftype, fname]))
-        return rv
-
     def _read_particles(self, grid, name):
 
         field_index = self.particle_field_index[name]
@@ -259,48 +239,11 @@ def parse_orion_sinks(fn):
     return index
 
 
-class IOHandlerOrion2HDF5(IOHandlerChomboHDF5):
+class IOHandlerOrion2HDF5(IOHandlerChomboHDF5, IOHandlerParticlesBoxlibMixin):
     _dataset_type = "orion_chombo_native"
 
-    _particle_field_index = None
+    _particle_filename = None
 
     @property
-    def particle_field_index(self):
-
-        fn = self.ds.fullplotdir[:-4] + "sink"
-
-        index = parse_orion_sinks(fn)
-
-        self._particle_field_index = index
-        return self._particle_field_index
-
-    def _read_particles(self, grid, field):
-        """
-        parses the Orion Star Particle text files
-
-        """
-
-        particles = []
-
-        if grid.NumberOfParticles == 0:
-            return np.array(particles)
-
-        def read(line, field):
-            entry = line.strip().split(" ")[self.particle_field_index[field]]
-            return float(entry)
-
-        try:
-            lines = self._cached_lines
-            for num in grid._particle_line_numbers:
-                line = lines[num]
-                particles.append(read(line, field))
-            return np.array(particles)
-        except AttributeError:
-            fn = grid.ds.fullplotdir[:-4] + "sink"
-            with open(fn) as f:
-                lines = f.readlines()
-                self._cached_lines = lines
-                for num in grid._particle_line_numbers:
-                    line = lines[num]
-                    particles.append(read(line, field))
-            return np.array(particles)
+    def particle_filename(self):
+        return self.ds.fullplotdir[:-4] + "sink"
