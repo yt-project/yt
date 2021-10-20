@@ -151,7 +151,7 @@ class FilteredRepresentation(MinimalRepresentation):
 class MinimalDataset(MinimalRepresentation):
     _attr_list = (
         "dimensionality",
-        "refine_by",
+        "refine_by",  # TODO: drop this
         "domain_dimensions",
         "current_time",
         "domain_left_edge",

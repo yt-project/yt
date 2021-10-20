@@ -1115,12 +1115,24 @@ class Dataset(abc.ABC):
 
     @property
     def ires_factor(self):
+        if not hasattr(self, "refine_by"):
+            raise TypeError(
+                "This Dataset doesn't hold a 'refine_by' attribute, cannot compute ires factor."
+            )
         o2 = np.log2(self.refine_by)
         if o2 != int(o2):
-            raise RuntimeError
+            raise ValueError(
+                "Ires factor cannot be computed for Dataset object with"
+                f"a 'refine_by' attribute set to {self.refine_by} (not a power of 2)."
+            )
         return int(o2)
 
     def relative_refinement(self, l0, l1):
+        if not hasattr(self, "refine_by"):
+            raise TypeError(
+                "This Dataset doesn't hold a 'refine_by' attribute, "
+                "relative refinement cannot be computed."
+            )
         return self.refine_by ** (l1 - l0)
 
     def _assign_unit_system(self, unit_system):
