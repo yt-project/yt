@@ -25,7 +25,7 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 
 try:
     from yt.data_objects.unstructured_mesh import SemiStructuredMesh
-except FileNotFoundError:
+except ModuleNotFoundError:
     from yt.data_objects.index_subobjects.unstructured_mesh import SemiStructuredMesh
 
 
@@ -276,7 +276,7 @@ class ChimeraDataset(Dataset):
                 "grid_2" in file for file in index_filenames
             ):  # Checks for Yin-Yang and changes to cartesian
                 self.geometry = "cartesian"
-                self.periodicity = (False, False, False)
+                self._periodicity = (False, False, False)
                 dre = [
                     f["mesh"]["x_ef"][(-1)],
                     f["mesh"]["x_ef"][(-1)],
@@ -292,7 +292,7 @@ class ChimeraDataset(Dataset):
                 )
             else:
                 self.geometry = "spherical"  # Uses default spherical geometry
-                self.periodicity = (False, False, True)
+                self._periodicity = (False, False, True)
                 dle = [
                     f["mesh"]["x_ef"][(0)],
                     f["mesh"]["y_ef"][(0)],
