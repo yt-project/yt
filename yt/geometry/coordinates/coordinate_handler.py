@@ -59,13 +59,13 @@ def _setup_polar_coordinates(registry, axis_id):
         units="code_length",
     )
 
-    f1, f2 = _get_coord_fields(axis_id["theta"], "")
+    f1, f2 = _get_coord_fields(axis_id["theta"], "dimensionless")
     registry.add_field(
         ("index", "dtheta"),
         sampling_type="cell",
         function=f1,
         display_field=False,
-        units="",
+        units="dimensionless",
     )
 
     registry.add_field(
@@ -73,7 +73,7 @@ def _setup_polar_coordinates(registry, axis_id):
         sampling_type="cell",
         function=f2,
         display_field=False,
-        units="",
+        units="dimensionless",
     )
 
     def _path_r(field, data):

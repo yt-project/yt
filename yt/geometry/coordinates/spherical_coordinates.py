@@ -32,13 +32,13 @@ class SphericalCoordinateHandler(CoordinateHandler):
         _setup_dummy_cartesian_coordinates(registry)
         _setup_polar_coordinates(registry, self.axis_id)
 
-        f1, f2 = _get_coord_fields(self.axis_id["phi"], "")
+        f1, f2 = _get_coord_fields(self.axis_id["phi"], "dimensionless")
         registry.add_field(
             ("index", "dphi"),
             sampling_type="cell",
             function=f1,
             display_field=False,
-            units="",
+            units="dimensionless",
         )
 
         registry.add_field(
@@ -46,7 +46,7 @@ class SphericalCoordinateHandler(CoordinateHandler):
             sampling_type="cell",
             function=f2,
             display_field=False,
-            units="",
+            units="dimensionless",
         )
 
         def _SphericalVolume(field, data):
