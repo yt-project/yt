@@ -15,6 +15,12 @@ yt/extern\
 ci:
     autofix_prs: false
 
+default_language_version:
+  # setup default Python runtime version for Python hooks
+  # that don't specify their own (e.g. black)
+  # 3.9 is the most supported version as of 09/19/2021
+  python: python3.9
+
 repos:
 -   repo: https://github.com/asottile/setup-cfg-fmt
     rev: v1.18.0
@@ -34,7 +40,7 @@ repos:
     rev: v2.29.0
     hooks:
     - id: pyupgrade
-      args: [--py36-plus]
+      args: [--py37-plus]
 -   repo: https://github.com/psf/black
     rev: 21.9b0
     hooks:
