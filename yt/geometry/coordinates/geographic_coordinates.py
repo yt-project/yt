@@ -23,7 +23,8 @@ class GeographicCoordinateHandler(CoordinateHandler):
         self.image_units[self.axis_id[self.radial_axis]] = ("deg", "deg")
 
     def setup_fields(self, registry):
-        _setup_dummy_cartesian_coordinates(registry)
+        # Missing implementation for x, y and z coordinates.
+        _setup_dummy_cartesian_coordinates(registry, axes=("x", "y", "z"))
 
         f1, f2 = _get_coord_fields(self.axis_id["latitude"], "")
         registry.add_field(

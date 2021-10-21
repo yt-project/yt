@@ -29,7 +29,8 @@ class SphericalCoordinateHandler(CoordinateHandler):
         self.image_units[self.axis_id["phi"]] = (None, None)
 
     def setup_fields(self, registry):
-        _setup_dummy_cartesian_coordinates(registry)
+        # Missing implementation for x, y and z coordinates.
+        _setup_dummy_cartesian_coordinates(registry, axes=("x", "y", "z"))
         _setup_polar_coordinates(registry, self.axis_id)
 
         f1, f2 = _get_coord_fields(self.axis_id["phi"], "dimensionless")

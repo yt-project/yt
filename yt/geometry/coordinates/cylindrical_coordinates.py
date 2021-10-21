@@ -27,7 +27,8 @@ class CylindricalCoordinateHandler(CoordinateHandler):
         self.image_units[self.axis_id["z"]] = (None, None)
 
     def setup_fields(self, registry):
-        _setup_dummy_cartesian_coordinates(registry, axes=["x", "y"])
+        # Missing implementation for x and y coordinates.
+        _setup_dummy_cartesian_coordinates(registry, axes=("x", "y"))
         _setup_polar_coordinates(registry, self.axis_id)
 
         f1, f2 = _get_coord_fields(self.axis_id["z"])
