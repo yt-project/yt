@@ -30,7 +30,7 @@ answer_tests:
   local_amrvac_riemann_001: # PR 3317
     - yt/frontends/amrvac/tests/test_outputs.py:test_riemann_cartesian_175D
 
-  local_amrvac_rmi_001: # PR 3317
+  local_amrvac_rmi_002: # PR 3317
     - yt/frontends/amrvac/tests/test_outputs.py:test_rmi_cartesian_dust_2D
 
   local_arepo_008:  # PR 2909
