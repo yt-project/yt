@@ -18,7 +18,7 @@ riemann_cartesian_175D = "riemann1d/output0001.dat"
 blastwave_cartesian_3D = "bw_cartesian_3d/output0001.dat"
 blastwave_polar_2D = "bw_polar_2d/output0001.dat"
 blastwave_cylindrical_3D = "bw_cylindrical_3d/output0001.dat"
-rmi_cartesian_dust_2D = "rmi_dust_2d/RM2D_dust_Kwok0000.dat"
+rmi_cartesian_dust_2D = "rmi_dust_2d/output0001.dat"
 
 
 def _get_fields_to_check(ds):
