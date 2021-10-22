@@ -61,9 +61,12 @@ def validate_image_name(filename, suffix: Optional[str] = None) -> str:
     Otherwise, suffix is appended to the filename, replacing any existing extension.
     """
     name, psuffix = os.path.splitext(filename)
-    if normalize_extension_string(psuffix) in SUPPORTED_FORMATS:
-        if suffix is not None:
-            suffix = normalize_extension_string(suffix)
+    psuffix = normalize_extension_string(psuffix)
+
+    if suffix is not None:
+        suffix = normalize_extension_string(suffix)
+
+    if psuffix in SUPPORTED_FORMATS:
         if suffix in SUPPORTED_FORMATS and suffix != psuffix:
             mylog.warning(
                 "Received two valid image formats '%s' (from `filename`) "
@@ -75,9 +78,7 @@ def validate_image_name(filename, suffix: Optional[str] = None) -> str:
         return str(filename)
 
     if suffix is None:
-        suffix = ".png"
-
-    suffix = normalize_extension_string(suffix)
+        suffix = "png"
 
     if suffix not in SUPPORTED_FORMATS:
         raise ValueError(f"Unsupported file format '{suffix}'.")
