@@ -2505,7 +2505,7 @@ class TimestampCallback(PlotCallback):
         if self.time:
             # If no time_units are set, then identify a best fit time unit
             if self.time_unit is None:
-                if plot.ds.unit_system._code_flag:
+                if plot.ds._uses_code_time_unit:
                     # if the unit system is in code units
                     # we should not convert to seconds for the plot.
                     self.time_unit = plot.ds.unit_system.base_units[dimensions.time]
@@ -2530,7 +2530,7 @@ class TimestampCallback(PlotCallback):
                 un = self.time_unit.latex_representation()
                 time_unit = r"$\ \ (" + un + r")$"
             except AttributeError as err:
-                if plot.ds.unit_system._code_flag == "code":
+                if plot.ds._uses_code_time_unit:
                     raise RuntimeError(
                         "The time unit str repr didn't match expectations, something is wrong."
                     ) from err
