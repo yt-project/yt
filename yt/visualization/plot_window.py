@@ -969,7 +969,7 @@ class PWViewerMPL(PlotWindow):
             axis_index = self.data_source.axis
 
             xc, yc = self._setup_origin()
-            if self.ds.unit_system._code_flag or self.ds.no_cgs_equiv_length:
+            if self.ds._uses_code_length_unit:
                 # this should happen only if the dataset was initialized with
                 # argument unit_system="code" or if it's set to have no CGS
                 # equivalent.  This only needs to happen here in the specific
@@ -980,7 +980,15 @@ class PWViewerMPL(PlotWindow):
                 unit = self.ds.get_smallest_appropriate_unit(
                     self.xlim[1] - self.xlim[0]
                 )
-                (unit_x, unit_y) = (unit, unit)
+                unit_x = unit_y = unit
+                coords = self.ds.coordinates
+                if hasattr(coords, "image_units"):
+                    # this should detect angular coordinates
+                    image_units = coords.image_units[coords.axis_id[axis_index]]
+                    if image_units[0] in ("deg", "rad"):
+                        unit_x = "code_length"
+                    if image_units[1] in ("deg", "rad"):
+                        unit_y = "code_length"
             else:
                 (unit_x, unit_y) = self._axes_unit_names
 
