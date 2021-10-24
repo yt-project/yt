@@ -1120,27 +1120,40 @@ class Dataset(abc.ABC):
         return self.refine_by ** (l1 - l0)
 
     def _assign_unit_system(self, unit_system):
-        if unit_system == "cgs":
-            current_mks_unit = None
-        else:
-            current_mks_unit = "A"
-        magnetic_unit = getattr(self, "magnetic_unit", None)
-        if magnetic_unit is not None:
-            if unit_system == "mks":
-                if current_mks not in self.magnetic_unit.units.dimensions.free_symbols:
+        # we need to determine if the requested unit system
+        # is mks-like: i.e., it has a current with the same
+        # dimensions as amperes.
+        mks_system = False
+        if unit_system != "code":
+            # if the unit system is known, we can check if it
+            # has a "current_mks" unit
+            us = unit_system_registry[str(unit_system).lower()]
+            mks_system = us.base_units[current_mks] is not None
+        elif self._use_mks_em_units:
+            # we haven't specified the code unit system yet, but
+            # _use_mks_em_units tells us it's MKS
+            mks_system = True
+        # Now we get to the tricky part. If we have an MKS-like system but
+        # we asked for a conversion to something CGS-like, or vice-versa,
+        # we have to convert the magnetic field
+        if getattr(self, "magnetic_unit", None):
+            mag_dims = self.magnetic_unit.units.dimensions.free_symbols
+            if mks_system:
+                if current_mks not in mag_dims:
                     self.magnetic_unit = self.magnetic_unit.to("gauss").to("T")
-                self.unit_registry.modify("code_magnetic", self.magnetic_unit.value)
+                    # The following modification ensures that we get the conversion to
+                    # mks correct
+                    self.unit_registry.modify("code_magnetic", self.magnetic_unit.value)
             else:
-                # if the magnetic unit is in T, we need to create the code unit
-                # system as an MKS-like system
-                if current_mks in self.magnetic_unit.units.dimensions.free_symbols:
+                if current_mks in mag_dims:
                     self.magnetic_unit = self.magnetic_unit.to("T").to("gauss")
                     # The following modification ensures that we get the conversion to
                     # cgs correct
                     self.unit_registry.modify(
                         "code_magnetic", self.magnetic_unit.value * 0.1 ** 0.5
                     )
-
+        # _use_mks_em_units tells us if the code unit system needs an MKS current
+        current_mks_unit = "code_current" if self._use_mks_em_units else None
         us = create_code_unit_system(
             self.unit_registry, current_mks_unit=current_mks_unit
         )
