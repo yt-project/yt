@@ -1187,6 +1187,8 @@ class Dataset(abc.ABC):
         if unit_system == "mks":
             # 1 T = 1 kg/(A*s**2)
             self.unit_registry.add("code_magnetic", 1.0, dimensions.magnetic_field)
+            # 1 A
+            self.unit_registry.add("code_current", 1.0, dimensions.current_mks)
         else:
             # 1 gauss = 1 sqrt(g)/(sqrt(cm)*s) = 0.1**0.5 sqrt(kg)/(sqrt(m)*s)
             self.unit_registry.add(
