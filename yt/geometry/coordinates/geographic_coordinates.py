@@ -5,7 +5,7 @@ from yt.utilities.lib.pixelization_routines import pixelize_cartesian, pixelize_
 from .coordinate_handler import (
     CoordinateHandler,
     _get_coord_fields,
-    _setup_dummy_cartesian_coordinates,
+    _setup_dummy_cartesian_coords_and_widths,
 )
 
 
@@ -24,7 +24,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
 
     def setup_fields(self, registry):
         # Missing implementation for x, y and z coordinates.
-        _setup_dummy_cartesian_coordinates(registry, axes=("x", "y", "z"))
+        _setup_dummy_cartesian_coords_and_widths(registry, axes=("x", "y", "z"))
 
         f1, f2 = _get_coord_fields(self.axis_id["latitude"], "")
         registry.add_field(

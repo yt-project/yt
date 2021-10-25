@@ -5,7 +5,7 @@ from yt.utilities.lib.pixelization_routines import pixelize_cartesian, pixelize_
 from .coordinate_handler import (
     CoordinateHandler,
     _get_coord_fields,
-    _setup_dummy_cartesian_coordinates,
+    _setup_dummy_cartesian_coords_and_widths,
     _setup_polar_coordinates,
     cartesian_to_cylindrical,
     cylindrical_to_cartesian,
@@ -28,7 +28,7 @@ class CylindricalCoordinateHandler(CoordinateHandler):
 
     def setup_fields(self, registry):
         # Missing implementation for x and y coordinates.
-        _setup_dummy_cartesian_coordinates(registry, axes=("x", "y"))
+        _setup_dummy_cartesian_coords_and_widths(registry, axes=("x", "y"))
         _setup_polar_coordinates(registry, self.axis_id)
 
         f1, f2 = _get_coord_fields(self.axis_id["z"])

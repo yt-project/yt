@@ -34,7 +34,7 @@ def _get_vert_fields(axi, units="code_length"):
     return _vert
 
 
-def _setup_dummy_cartesian_coordinates(registry, axes: Tuple[str]):
+def _setup_dummy_cartesian_coords_and_widths(registry, axes: Tuple[str]):
     for ax in axes:
         registry.add_field(
             ("index", f"d{ax}"), sampling_type="cell", function=_unknown_coord
