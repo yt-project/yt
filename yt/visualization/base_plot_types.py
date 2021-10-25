@@ -285,13 +285,18 @@ class ImagePlotMPL(PlotMPL):
                     )
                 )
             elif zmax <= 0.0:
+                if MPL_VERSION >= Version("3.5.0b"):
+                    offset = 0
+                else:
+                    offset = 1
+
                 yticks = (
                     list(
                         -(
                             10
                             ** np.arange(
                                 np.floor(np.log10(-zmin)),
-                                np.rint(np.log10(cblinthresh)) - 1,
+                                np.rint(np.log10(cblinthresh)) - offset,
                                 -1,
                             )
                         )
