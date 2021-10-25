@@ -1,3 +1,4 @@
+import warnings
 from io import BytesIO
 
 import matplotlib
@@ -12,7 +13,7 @@ from yt.funcs import (
     mylog,
 )
 
-from ._commons import get_canvas, validate_image_name
+from ._commons import MPL_VERSION, get_canvas, validate_image_name
 
 BACKEND_SPECS = {
     "GTK": ["backend_gtk", "FigureCanvasGTK", "FigureManagerGTK"],
@@ -206,17 +207,28 @@ class ImagePlotMPL(PlotMPL):
             vmin=float(self.zmin) if self.zmin is not None else None,
             vmax=float(self.zmax) if self.zmax is not None else None,
         )
+        zmin = float(self.zmin) if self.zmin is not None else np.nanmin(data)
+        zmax = float(self.zmax) if self.zmax is not None else np.nanmax(data)
+
+        if cbnorm == "symlog":
+            # if cblinthresh is not specified, try to come up with a reasonable default
+            min_abs_val = np.min(np.abs((zmin, zmax)))
+            if cblinthresh is None:
+                cblinthresh = np.nanmin(np.absolute(data)[data != 0])
+            elif zmin * zmax > 0 and cblinthresh < min_abs_val:
+                warnings.warn(
+                    f"Cannot set a symlog norm with linear threshold {cblinthresh} "
+                    f"lower than the minimal absolute data value {min_abs_val} . "
+                    "Switching to log norm."
+                )
+                cbnorm = "log10"
+
         if cbnorm == "log10":
             cbnorm_cls = matplotlib.colors.LogNorm
         elif cbnorm == "linear":
             cbnorm_cls = matplotlib.colors.Normalize
         elif cbnorm == "symlog":
-            # if cblinthresh is not specified, try to come up with a reasonable default
-            if cblinthresh is None:
-                cblinthresh = np.nanmin(np.absolute(data)[data != 0])
-
             cbnorm_kwargs.update(dict(linthresh=cblinthresh))
-            MPL_VERSION = Version(matplotlib.__version__)
             if MPL_VERSION >= Version("3.2.0"):
                 # note that this creates an inconsistency between mpl versions
                 # since the default value previous to mpl 3.4.0 is np.e
@@ -273,8 +285,6 @@ class ImagePlotMPL(PlotMPL):
         if cbnorm == "symlog":
             formatter = matplotlib.ticker.LogFormatterMathtext(linthresh=cblinthresh)
             self.cb = self.figure.colorbar(self.image, self.cax, format=formatter)
-            zmin = float(self.zmin) if self.zmin is not None else np.nanmin(data)
-            zmax = float(self.zmax) if self.zmax is not None else np.nanmax(data)
 
             if zmin >= 0.0:
                 yticks = [zmin] + list(
