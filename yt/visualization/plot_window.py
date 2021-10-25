@@ -1231,7 +1231,7 @@ class PWViewerMPL(PlotWindow):
                     self.plots[f].cax.minorticks_on()
 
                 elif self._field_transform[f] == symlog_transform:
-                    if Version("3.2.0") <= MPL_VERSION < Version("3.5.0"):
+                    if Version("3.2.0") <= MPL_VERSION < Version("3.5.0b"):
                         # no known working method to draw symlog minor ticks
                         # see https://github.com/yt-project/yt/issues/3535
                         pass
@@ -1240,7 +1240,7 @@ class PWViewerMPL(PlotWindow):
                             np.log10(self.plots[f].cb.norm.linthresh)
                         )
                         mticks = get_symlog_minorticks(flinthresh, vmin, vmax)
-                        if MPL_VERSION < Version("3.5.0"):
+                        if MPL_VERSION < Version("3.5.0b"):
                             # https://github.com/matplotlib/matplotlib/issues/21258
                             mticks = self.plots[f].image.norm(mticks)
                         self.plots[f].cax.yaxis.set_ticks(mticks, minor=True)
