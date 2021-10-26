@@ -66,24 +66,17 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                     yield ptype, (x, y, z), hsml
 
     def _yield_coordinates(self, data_file, needed_ptype=None):
-        si, ei = data_file.start, data_file.end
-        f = h5py.File(data_file.filename, mode="r")
-        pcount = f["/Header"].attrs["NumPart_ThisFile"][:].astype("int")
-        np.clip(pcount - si, 0, ei - si, out=pcount)
-        pcount = pcount.sum()
-        for key in f.keys():
-            if not key.startswith("PartType"):
-                continue
-            if "Coordinates" not in f[key]:
-                continue
-            if needed_ptype and key != needed_ptype:
-                continue
-            ds = f[key]["Coordinates"][si:ei, ...]
-            dt = ds.dtype.newbyteorder("N")  # Native
-            pos = np.empty(ds.shape, dtype=dt)
-            pos[:] = ds
-            yield key, pos
-        f.close()
+        with data_file.transaction() as f:
+            for ptype, count in data_file.total_particles.items():
+                if needed_ptype and ptype != needed_ptype:
+                    continue
+                if count == 0:
+                    continue
+                ds = data_file._read_field(ptype, self._coord_name, handle=f)
+                dt = ds.dtype.newbyteorder("N")  # Native
+                pos = np.empty(ds.shape, dtype=dt)
+                pos[:] = ds
+                yield ptype, pos
 
     def _generate_smoothing_length(self, index):
         data_files = index.data_files
@@ -337,6 +330,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
         self._vector_fields = dict(self._vector_fields)
         self._fields = ds._field_spec
         self._ptypes = ds._ptype_spec
+        self._coord_name = ds._particle_coordinates_name
         self.data_files = set()
         gformat, endianswap = ds._header.gadget_format
         # gadget format 1 original, 2 with block name
@@ -365,7 +359,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                     if data_file.total_particles[ptype] == 0:
                         # skip if there are no particles
                         continue
-                    pos = data_file._read_field(ptype, "Coordinates", handle=handle)
+                    pos = data_file._read_field(ptype, self._coord_name, handle=handle)
                     if ptype == self.ds._sph_ptypes[0]:
                         hsml = data_file._read_field(
                             ptype, "SmoothingLength", handle=handle
@@ -384,7 +378,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                 if selector is None or getattr(selector, "is_all_data", False):
                     mask = slice(None, None, None)
                 else:
-                    pos = data_file._read_field(ptype, "Coordinates", handle=f)
+                    pos = data_file._read_field(ptype, self._coord_name, handle=f)
                     if ptype == self.ds._sph_ptypes[0]:
                         hsml = data_file._read_field(ptype, "SmoothingLength", handle=f)
                     else:
@@ -413,21 +407,13 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
     def _yield_coordinates(self, data_file, needed_ptype=None):
         self._float_type = data_file.ds._header.float_type
         self._field_size = np.dtype(self._float_type).itemsize
-        dt = np.dtype(self._endian + self._float_type)
-        dt_native = dt.newbyteorder("N")
-        with open(data_file.filename, "rb") as f:
-            # We add on an additionally 4 for the first record.
-            f.seek(data_file._position_offset + 4)
+        with data_file.transaction() as f:
             for ptype, count in data_file.total_particles.items():
                 if count == 0:
                     continue
                 if needed_ptype is not None and ptype != needed_ptype:
                     continue
-                # The first total_particles * 3 values are positions
-                pp = np.fromfile(f, dtype=dt, count=count * 3).astype(
-                    dt_native, copy=False
-                )
-                pp.shape = (count, 3)
+                pp = data_file._read_field(ptype, self._coord_name, handle=f)
                 yield ptype, pp
 
     def _get_smoothing_length(self, data_file, position_dtype, position_shape):
