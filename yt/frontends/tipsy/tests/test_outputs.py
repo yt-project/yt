@@ -69,11 +69,7 @@ tg_sph_fields = OrderedDict(
     ]
 )
 
-tg_nbody_fields = OrderedDict(
-    [
-        (("Stars", "Metals"), None),
-    ]
-)
+tg_nbody_fields = OrderedDict([(("Stars", "Metals"), None)])
 
 tipsy_gal = "TipsyGalaxy/galaxy.00300"
 
