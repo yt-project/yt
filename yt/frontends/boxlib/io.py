@@ -2,12 +2,11 @@ import os
 from collections import defaultdict
 
 import numpy as np
-from misc import BoxlibParticleSelectionMixin
 
 from yt.funcs import mylog
 from yt.utilities.io_handler import BaseIOHandler
 
-from .misc import IOHandlerParticlesBoxlibMixin
+from .misc import BoxlibParticleSelectionMixin, IOHandlerParticlesBoxlibMixin
 
 
 def _remove_raw(all_fields, raw_fields):
