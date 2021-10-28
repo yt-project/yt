@@ -20,12 +20,11 @@ class YTUnidentifiedDataType(YTException):
         self.kwargs = kwargs
 
     def __str__(self):
-        msg = [f"Could not determine input format from `'{self.filename}'"]
+        msg = f"Could not determine input format from {self.filename!r}"
         if self.args:
-            msg.append(", ".join(str(a) for a in self.args))
+            msg += ", " + (", ".join(f"{a!r}" for a in self.args))
         if self.kwargs:
-            msg.append(", ".join(f"{k}={v}" for k, v in self.kwargs.items()))
-        msg = ", ".join(msg) + "`."
+            msg += ", " + (", ".join(f"{k}={v!r}" for k, v in self.kwargs.items()))
         return msg
 
 
@@ -665,6 +664,15 @@ class YTPlotCallbackError(Exception):
 
     def __str__(self):
         return f"{self.callback} callback failed"
+
+
+class YTUnsupportedPlotCallback(YTPlotCallbackError):
+    def __init__(self, callback: str, plot_type: str) -> None:
+        super().__init__(callback)
+        self.plot_type = plot_type
+
+    def __str__(self):
+        return f"The `{self.plot_type}` class currently doesn't support the `{self.callback}` method."
 
 
 class YTPixelizeError(YTException):

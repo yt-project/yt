@@ -21,16 +21,20 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-18.04]
+        os: [
+          macos-latest,
+          windows-latest,
+          ubuntu-latest,
+        ]
         python-version: [3.9]
         dependencies: [full]
         tests-type: [unit]
         include:
-          - os: ubuntu-18.04
-            python-version: 3.6
+          - os: ubuntu-latest
+            python-version: 3.7
             dependencies: minimal
             tests-type: unit
-          - os: ubuntu-18.04
+          - os: ubuntu-latest
             python-version: 3.7
             dependencies: full
             tests-type: answer

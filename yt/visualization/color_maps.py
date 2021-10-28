@@ -1,11 +1,12 @@
+from typing import Tuple, Union
+
 import numpy as np
-from matplotlib import __version__ as mpl_ver, cm as mcm, colors as cc
-from packaging.version import parse as parse_version
+from matplotlib import cm as mcm, colors as cc
+from matplotlib.pyplot import get_cmap
+
+from yt.funcs import get_brewer_cmap
 
 from . import _colormap_data as _cm
-
-MPL_VERSION = parse_version(mpl_ver)
-del mpl_ver
 
 
 def is_colormap(cmap):
@@ -186,8 +187,24 @@ for k, v in list(_cm.color_map_luts.items()):
         add_colormap(k, cdict)
 
 
-def _extract_lookup_table(cmap_name):
-    cmap = mcm.get_cmap(cmap_name)
+def get_colormap_lut(cmap_id: Union[Tuple[str, str], str]):
+    # "lut" stands for "lookup table". This function provides a consistent and
+    # reusable accessor to a hidden (and by defaut, uninitialized) attribute
+    # (`_lut`) in registered colormaps, from matplotlib or palettable.
+    # colormap "lookup tables" are RGBA arrays in matplotlib,
+    # and contain sufficient data to reconstruct the colormaps entierly.
+    # This exists mostly for historical reasons, hence the custom output format.
+    # It isn't meant as part of yt's public api.
+
+    if isinstance(cmap_id, tuple) and len(cmap_id) == 2:
+        cmap = get_brewer_cmap(cmap_id)
+    elif isinstance(cmap_id, str):
+        cmap = get_cmap(cmap_id)
+    else:
+        raise TypeError(
+            "Expected a string or a 2-tuple of strings as a colormap id. "
+            f"Received: {cmap_id}"
+        )
     if not cmap._isinit:
         cmap._init()
     r = cmap._lut[:-3, 0]
@@ -260,29 +277,6 @@ def show_colormaps(subset="all", filename=None):
                 "to be 'all', 'yt_native', or a list of "
                 "valid colormap names."
             ) from e
-    if parse_version("2.0.0") <= MPL_VERSION < parse_version("2.2.0"):
-        # the reason we do this filtering is to avoid spurious warnings in CI when
-        # testing against old versions of matplotlib (currently not older than 2.0.x)
-        # and we can't easily filter warnings at the level of the relevant test itself
-        # because it's not yet run exclusively with pytest.
-        # FUTURE: remove this completely when only matplotlib 2.2+ is supported
-        deprecated_cmaps = {
-            "spectral",
-            "spectral_r",
-            "Vega10",
-            "Vega10_r",
-            "Vega20",
-            "Vega20_r",
-            "Vega20b",
-            "Vega20b_r",
-            "Vega20c",
-            "Vega20c_r",
-        }
-        for cmap in deprecated_cmaps:
-            try:
-                maps.remove(cmap)
-            except ValueError:
-                pass
 
     maps = sorted(set(maps))
     # scale the image size by the number of cmaps

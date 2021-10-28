@@ -56,7 +56,10 @@ double erf(double x)
 
     return sign*y;
 }
-
+#elif defined(__FreeBSD__)
+#include <stdint.h>
+#include <stdlib.h>
+#include <math.h>
 #else
 #include <stdint.h>
 #include "alloca.h"

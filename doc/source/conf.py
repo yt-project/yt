@@ -261,6 +261,7 @@ intersphinx_mapping = {
     "trident": ("https://trident.readthedocs.io/en/latest/", None),
     "yt_astro_analysis": ("https://yt-astro-analysis.readthedocs.io/en/latest/", None),
     "yt_attic": ("https://yt-attic.readthedocs.io/en/latest/", None),
+    "pytest": ("https://docs.pytest.org/en/stable", None),
 }
 
 if not on_rtd:
