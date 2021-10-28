@@ -1,3 +1,4 @@
+import contextlib
 from uuid import uuid4
 
 import numpy as np
@@ -11,7 +12,37 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 
 
 class SwiftParticleFile(ParticleFile):
-    pass
+    @contextlib.contextmanager
+    def transaction(self, handle=None):
+        if handle is None:
+            with h5py.File(self.filename, mode="r") as handle:
+                yield handle
+            handle.close()
+        else:
+            # we have ended up here recursively, so simply yield. The outer
+            # instance will take care of closing the handle.
+            yield handle
+
+    def _read_field(self, ptype, field_name, handle=None):
+
+        field_name, col = self._sanitize_field_col(field_name)
+
+        if self.total_particles[ptype] == 0:
+            return
+
+        with self.transaction(handle) as f:
+            v = f[f"/{ptype}/{field_name}"][self.start : self.end, ...]
+
+        if col is not None:
+            # extract the column if appropriate for this field
+            v = v[:, col]
+
+        return v
+
+    def _sanitize_field_col(self, fieldname):
+        if fieldname in ("Mass", "Masses"):
+            fieldname = self.ds._particle_mass_name
+        return fieldname, None
 
 
 class SwiftDataset(SPHDataset):

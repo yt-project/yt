@@ -411,7 +411,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
             for ptype, count in data_file.total_particles.items():
                 if count == 0:
                     continue
-                if needed_ptype is not None and ptype != needed_ptype:
+                if needed_ptype and ptype != needed_ptype:
                     continue
                 pp = data_file._read_field(ptype, self._coord_name, handle=f)
                 yield ptype, pp
