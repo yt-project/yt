@@ -105,21 +105,19 @@ class IOHandlerSwift(IOHandlerSPH):
         with data_file.transaction() as f:
 
             fields = []
-            cname = self.ds._particle_coordinates_name  # Coordinates
-            mname = self.ds._particle_mass_name  # Masses
 
             for key in f.keys():
                 if not key.startswith("PartType"):
                     continue
 
                 g = f[key]
-                if cname not in g:
+                if self.ds._particle_coordinates_name not in g:
                     continue
 
                 ptype = str(key)
                 for k in g.keys():
                     kk = k
-                    if str(kk) == mname:
+                    if str(kk) == self.ds._particle_mass_name:
                         fields.append((ptype, "Mass"))
                         continue
                     if not hasattr(g[kk], "shape"):

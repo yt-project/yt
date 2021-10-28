@@ -17,15 +17,12 @@ class SwiftParticleFile(ParticleFile):
         if handle is None:
             with h5py.File(self.filename, mode="r") as handle:
                 yield handle
-            handle.close()
         else:
-            # we have ended up here recursively, so simply yield. The outer
-            # instance will take care of closing the handle.
             yield handle
 
     def _read_field(self, ptype, field_name, handle=None):
 
-        field_name, col = self._sanitize_field_col(field_name)
+        field_name = self._sanitize_field(field_name)
 
         if self.total_particles[ptype] == 0:
             return
@@ -33,16 +30,12 @@ class SwiftParticleFile(ParticleFile):
         with self.transaction(handle) as f:
             v = f[f"/{ptype}/{field_name}"][self.start : self.end, ...]
 
-        if col is not None:
-            # extract the column if appropriate for this field
-            v = v[:, col]
-
         return v
 
-    def _sanitize_field_col(self, fieldname):
-        if fieldname in ("Mass", "Masses"):
-            fieldname = self.ds._particle_mass_name
-        return fieldname, None
+    def _sanitize_field(self, field_name):
+        if field_name in ("Mass", "Masses"):
+            field_name = self.ds._particle_mass_name
+        return field_name
 
 
 class SwiftDataset(SPHDataset):
