@@ -47,10 +47,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
     def _read_particle_coords(self, chunks, ptf):
         for data_file in self._sorted_chunk_iterator(chunks):
             with data_file.transaction() as handle:
-                # This double-reads
-                for ptype in sorted(ptf):
-                    if data_file.total_particles[ptype] == 0:
-                        continue
+                for ptype, _ in data_file._nonzero_ptypes(ptf):
                     c = data_file._read_field(ptype, self._coord_name, handle).astype(
                         "f8"
                     )
@@ -67,10 +64,8 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
 
     def _yield_coordinates(self, data_file, needed_ptype=None):
         with data_file.transaction() as f:
-            for ptype, count in data_file.total_particles.items():
+            for ptype, _ in data_file._nonzero_ptypes():
                 if needed_ptype and ptype != needed_ptype:
-                    continue
-                if count == 0:
                     continue
                 ds = data_file._read_field(ptype, self._coord_name, handle=f)
                 dt = ds.dtype.newbyteorder("N")  # Native
@@ -168,9 +163,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
         cname = self.ds._particle_coordinates_name
         with data_file.transaction() as handle:
 
-            for ptype, field_list in sorted(ptf.items()):
-                if data_file.total_particles[ptype] == 0:
-                    continue
+            for ptype, field_list, _ in data_file._nonzero_ptf(ptf):
 
                 if selector is None or getattr(selector, "is_all_data", False):
                     mask = slice(None, None, None)

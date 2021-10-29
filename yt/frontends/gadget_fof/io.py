@@ -33,10 +33,7 @@ class IOHandlerGadgetFOFHDF5(BaseParticleIOHandler):
     def _yield_coordinates(self, data_file):
         ptypes = self.ds.particle_types_raw
         with h5py.File(data_file.filename, mode="r") as f:
-            for ptype in sorted(ptypes):
-                pcount = data_file.total_particles[ptype]
-                if pcount == 0:
-                    continue
+            for ptype, pcount in data_file._nonzero_ptypes(ptypes):
                 coords = f[ptype][f"{ptype}Pos"][()].astype("float64")
                 coords = np.resize(coords, (pcount, 3))
                 yield ptype, coords
@@ -67,10 +64,7 @@ class IOHandlerGadgetFOFHDF5(BaseParticleIOHandler):
         for data_file in self._sorted_chunk_iterator(chunks):
             si, ei = data_file.start, data_file.end
             with h5py.File(data_file.filename, mode="r") as f:
-                for ptype, field_list in sorted(ptf.items()):
-                    pcount = data_file.total_particles[ptype]
-                    if pcount == 0:
-                        continue
+                for ptype, field_list, pcount in data_file._nonzero_ptf(ptf):
                     coords = data_file._get_particle_positions(ptype, f=f)
                     x = coords[:, 0]
                     y = coords[:, 1]
@@ -87,8 +81,7 @@ class IOHandlerGadgetFOFHDF5(BaseParticleIOHandler):
                         else:
                             if field == "particle_identifier":
                                 field_data = (
-                                    np.arange(data_file.total_particles[ptype])
-                                    + data_file.index_start[ptype]
+                                    np.arange(pcount) + data_file.index_start[ptype]
                                 )
                             elif field in f[ptype]:
                                 field_data = f[ptype][field][()].astype("float64")

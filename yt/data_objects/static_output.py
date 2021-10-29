@@ -1872,6 +1872,21 @@ class ParticleFile(abc.ABC):
     def __hash__(self):
         return hash((self.filename, self.file_id, self.start, self.end))
 
+    def _nonzero_ptf(self, ptf):
+        for ptype, field_list in sorted(ptf.items()):
+            if self.total_particles[ptype] == 0:
+                continue
+            yield ptype, field_list, self.total_particles[ptype]
+
+    def _nonzero_ptypes(self, ptypes=None):
+        if ptypes is None:
+            ptypes = self.total_particles.keys()
+
+        for ptype in sorted(ptypes):
+            if self.total_particles[ptype] == 0:
+                continue
+            yield ptype, self.total_particles[ptype]
+
 
 class ParticleDataset(Dataset):
     _unit_base = None

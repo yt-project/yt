@@ -72,10 +72,5 @@ class IOHandlerAHFHalos(BaseParticleIOHandler):
         assert len(ptf) == 1
         assert list(ptf.keys())[0] == "halos"
         # Get data_files
-        chunks = list(chunks)
-        data_files = set()
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
-        data_files = sorted(data_files, key=attrgetter("filename"))
-        yield from data_files
+        data_files = self._data_files_set(chunks)
+        yield from sorted(data_files, key=attrgetter("filename"))

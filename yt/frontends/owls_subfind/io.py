@@ -60,10 +60,7 @@ class IOHandlerOWLSSubfindHDF5(BaseParticleIOHandler):
         # Now we have all the sizes, and we can allocate
         for data_file in self._sorted_chunk_iterator(chunks):
             with data_file.transaction() as f:
-                for ptype, field_list in sorted(ptf.items()):
-                    pcount = data_file.total_particles[ptype]
-                    if pcount == 0:
-                        continue
+                for ptype, field_list, pcount in data_file._nonzero_ptf(ptf):
                     coords = data_file._read_field(ptype, self._position_name, handle=f)
                     coords = np.resize(coords, (pcount, 3))
                     x = coords[:, 0]
@@ -81,8 +78,7 @@ class IOHandlerOWLSSubfindHDF5(BaseParticleIOHandler):
                         else:
                             if field == "particle_identifier":
                                 field_data = (
-                                    np.arange(data_file.total_particles[ptype])
-                                    + data_file.index_start[ptype]
+                                    np.arange(pcount) + data_file.index_start[ptype]
                                 )
                             elif field in f[ptype]:
                                 field_data = data_file._read_field(ptype, field)

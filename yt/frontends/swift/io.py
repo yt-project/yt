@@ -38,9 +38,7 @@ class IOHandlerSwift(IOHandlerSPH):
     def _yield_coordinates(self, sub_file, needed_ptype=None):
         cname = self.ds._particle_coordinates_name
         with sub_file.transaction() as f:
-            for ptype, count in sub_file.total_particles.items():
-                if count == 0:
-                    continue
+            for ptype, _ in sub_file._nonzero_ptypes():
                 if needed_ptype and ptype != needed_ptype:
                     continue
                 pos = sub_file._read_field(ptype, cname, handle=f)
@@ -62,9 +60,7 @@ class IOHandlerSwift(IOHandlerSPH):
 
         cname = self.ds._particle_coordinates_name
         with sub_file.transaction() as f:
-            for ptype, field_list in sorted(ptf.items()):
-                if sub_file.total_particles[ptype] == 0:
-                    continue
+            for ptype, field_list, _ in sub_file._nonzero_ptf(ptf):
 
                 if selector:
                     coords = sub_file._read_field(ptype, cname, handle=f)

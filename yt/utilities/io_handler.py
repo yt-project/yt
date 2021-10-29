@@ -299,12 +299,16 @@ class BaseIOHandler:
             # to not use an iterator.
             yield from data_file_data.items()
 
-    def _sorted_chunk_iterator(self, chunks):
+    def _data_files_set(self, chunks):
         chunks = list(chunks)
         data_files = set()
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
+        return data_files
+
+    def _sorted_chunk_iterator(self, chunks):
+        data_files = self._data_files_set(chunks)
         yield from sorted(data_files, key=lambda x: (x.filename, x.start))
 
 
