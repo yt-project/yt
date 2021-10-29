@@ -1,3 +1,4 @@
+import contextlib
 import os
 import weakref
 from collections import defaultdict
@@ -117,23 +118,31 @@ class GadgetFOFHDF5File(HaloCatalogFile):
         self.total_offset = 0
         super().__init__(ds, io, filename, file_id, frange)
 
+    @contextlib.contextmanager
+    def transaction(self, handle=None):
+        if handle is None:
+            with h5py.File(self.filename, mode="r") as handle:
+                yield handle
+        else:
+            yield handle
+
     def _read_particle_positions(self, ptype, f=None):
         """
         Read all particle positions in this file.
         """
+        with self.transaction(f) as f:
+            pos = f[ptype][f"{ptype}Pos"][()]
+        return pos.astype("float64")
 
-        if f is None:
-            close = True
-            f = h5py.File(self.filename, mode="r")
-        else:
-            close = False
+    def _read_field(self, ptype, field_name, handle=None):
 
-        pos = f[ptype][f"{ptype}Pos"][()].astype("float64")
+        if self.total_particles[ptype] == 0:
+            return
 
-        if close:
-            f.close()
+        with self.transaction(handle) as f:
+            v = f[ptype][field_name][self.start : self.end, ...]
 
-        return pos
+        return v.astype("float64")
 
 
 class GadgetFOFDataset(ParticleDataset):

@@ -20,7 +20,7 @@ class IOHandlerGadgetFOFHDF5(BaseParticleIOHandler):
     def _read_particle_coords(self, chunks, ptf):
         # This will read chunks and yield the results.
         for data_file in self._sorted_chunk_iterator(chunks):
-            with h5py.File(data_file.filename, mode="r") as f:
+            with data_file.transaction() as f:
                 for ptype in sorted(ptf):
                     coords = data_file._get_particle_positions(ptype, f=f)
                     if coords is None:
@@ -32,9 +32,9 @@ class IOHandlerGadgetFOFHDF5(BaseParticleIOHandler):
 
     def _yield_coordinates(self, data_file):
         ptypes = self.ds.particle_types_raw
-        with h5py.File(data_file.filename, mode="r") as f:
+        with data_file.transaction() as f:
             for ptype, pcount in data_file._nonzero_ptypes(ptypes):
-                coords = f[ptype][f"{ptype}Pos"][()].astype("float64")
+                coords = data_file._read_particle_positions(ptype, f=f)
                 coords = np.resize(coords, (pcount, 3))
                 yield ptype, coords
 
@@ -46,54 +46,48 @@ class IOHandlerGadgetFOFHDF5(BaseParticleIOHandler):
         )
         for offset_file in data_file.offset_files:
             if fh.filename == offset_file.filename:
-                ofh = fh
+                data = data_file._read_field("Subhalo", field, handle=fh)
             else:
-                ofh = h5py.File(offset_file.filename, mode="r")
+                data = offset_file._read_field("Subhalo", field)
             subindex = np.arange(offset_file.total_offset) + offset_file.offset_start
             substart = max(fofindex[0] - subindex[0], 0)
             subend = min(fofindex[-1] - subindex[0], subindex.size - 1)
             fofstart = substart + subindex[0] - fofindex[0]
             fofend = subend + subindex[0] - fofindex[0]
-            field_data[fofstart : fofend + 1] = ofh["Subhalo"][field][
-                substart : subend + 1
-            ]
+            field_data[fofstart : fofend + 1] = data[substart : subend + 1]
         return field_data
 
-    def _read_particle_fields(self, chunks, ptf, selector):
-        # Now we have all the sizes, and we can allocate
-        for data_file in self._sorted_chunk_iterator(chunks):
-            si, ei = data_file.start, data_file.end
-            with h5py.File(data_file.filename, mode="r") as f:
-                for ptype, field_list, pcount in data_file._nonzero_ptf(ptf):
-                    coords = data_file._get_particle_positions(ptype, f=f)
-                    x = coords[:, 0]
-                    y = coords[:, 1]
-                    z = coords[:, 2]
-                    mask = selector.select_points(x, y, z, 0.0)
-                    del x, y, z
-                    if mask is None:
-                        continue
-                    for field in field_list:
-                        if field in self.offset_fields:
-                            field_data = self._read_offset_particle_field(
-                                field, data_file, f
-                            )
-                        else:
-                            if field == "particle_identifier":
-                                field_data = (
-                                    np.arange(pcount) + data_file.index_start[ptype]
-                                )
-                            elif field in f[ptype]:
-                                field_data = f[ptype][field][()].astype("float64")
-                            else:
-                                fname = field[: field.rfind("_")]
-                                field_data = f[ptype][fname][()].astype("float64")
-                                my_div = field_data.size / pcount
-                                if my_div > 1:
-                                    findex = int(field[field.rfind("_") + 1 :])
-                                    field_data = field_data[:, findex]
-                        data = field_data[si:ei][mask]
-                        yield (ptype, field), data
+    def _read_particle_data_file(self, data_file, ptf, selector):
+        data_return = {}
+        si, ei = data_file.start, data_file.end
+        with data_file.transaction() as f:
+            for ptype, field_list, pcount in data_file._nonzero_ptf(ptf):
+                coords = data_file._get_particle_positions(ptype, f=f)
+                x = coords[:, 0]
+                y = coords[:, 1]
+                z = coords[:, 2]
+                mask = selector.select_points(x, y, z, 0.0)
+                del x, y, z
+                if mask is None:
+                    continue
+                for field in field_list:
+                    if field in self.offset_fields:
+                        field_data = self._read_offset_particle_field(
+                            field, data_file, f
+                        )[si:ei]
+                    elif field == "particle_identifier":
+                        field_data = np.arange(pcount) + data_file.index_start[ptype]
+                    elif field in f[ptype]:
+                        field_data = data_file._read_field(ptype, field, handle=f)
+                    else:
+                        fname = field[: field.rfind("_")]
+                        field_data = data_file._read_field(ptype, fname, handle=f)
+                        my_div = field_data.size / pcount
+                        if my_div > 1:
+                            findex = int(field[field.rfind("_") + 1 :])
+                            field_data = field_data[:, findex]
+                    data_return[(ptype, field)] = field_data[mask]
+        return data_return
 
     def _count_particles(self, data_file):
         si, ei = data_file.start, data_file.end
@@ -111,7 +105,7 @@ class IOHandlerGadgetFOFHDF5(BaseParticleIOHandler):
         pcount = data_file.total_particles
         if sum(pcount.values()) == 0:
             return fields, {}
-        with h5py.File(data_file.filename, mode="r") as f:
+        with data_file.transaction() as f:
             for ptype in self.ds.particle_types_raw:
                 if data_file.total_particles[ptype] == 0:
                     continue
