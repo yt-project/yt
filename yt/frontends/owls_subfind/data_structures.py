@@ -1,3 +1,4 @@
+import contextlib
 import glob
 import os
 from collections import defaultdict
@@ -76,6 +77,21 @@ class OWLSSubfindHDF5File(ParticleFile):
         super().__init__(ds, io, filename, file_id, bounds)
         with h5py.File(filename, mode="r") as f:
             self.header = {field: f.attrs[field] for field in f.attrs.keys()}
+
+    @contextlib.contextmanager
+    def transaction(self, handle=None):
+        if handle is None:
+            with h5py.File(self.filename, mode="r") as handle:
+                yield handle
+        else:
+            # we have ended up here recursively, so simply yield. The outer
+            # instance will take care of closing the handle.
+            yield handle
+
+    def _read_field(self, ptype, field, handle=None):
+        with self.transaction(handle) as f:
+            data = f[ptype][field][()].astype("float64")
+        return data
 
 
 class OWLSSubfindDataset(ParticleDataset):
