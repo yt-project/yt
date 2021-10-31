@@ -46,11 +46,6 @@ class GDFGrid(AMRGridPatch):
         else:
             LE, RE = self.index.grid_left_edge[id, :], self.index.grid_right_edge[id, :]
             self.dds = np.array((RE - LE) / self.ActiveDimensions)
-        if self.ds.data_software != "piernik":
-            if self.ds.dimensionality < 2:
-                self.dds[1] = 1.0
-            if self.ds.dimensionality < 3:
-                self.dds[2] = 1.0
         self.field_data["dx"], self.field_data["dy"], self.field_data["dz"] = self.dds
         self.dds = self.ds.arr(self.dds, "code_length")
 
