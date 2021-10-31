@@ -13,6 +13,7 @@ import sys
 import tempfile
 import time
 import urllib
+import warnings
 import zlib
 from collections import defaultdict
 
@@ -777,6 +778,32 @@ def dump_images(new_result, old_result, decimals=10):
         sys.stderr.write("\n")
 
 
+def ensure_image_comparability(a, b):
+    # pad nans to the right and the bottom of two images to make them comparable
+    # via matplotlib if they do not have the same shape
+    if a.shape == b.shape:
+        return a, b
+
+    assert a.shape[2:] == b.shape[2:]
+
+    warnings.warn(
+        f"Images have different shapes {a.shape} and {b.shape}. "
+        "Padding nans to make them comparable."
+    )
+    smallest_containing_shape = (
+        max(a.shape[0], b.shape[0]),
+        max(a.shape[1], b.shape[1]),
+        *a.shape[2:],
+    )
+    pa = np.full(smallest_containing_shape, np.nan)
+    pa[: a.shape[0], : a.shape[1], ...] = a
+
+    pb = np.full(smallest_containing_shape, np.nan)
+    pb[: b.shape[0], : b.shape[1], ...] = b
+
+    return pa, pb
+
+
 def compare_image_lists(new_result, old_result, decimals):
     fns = []
     for _ in range(2):
@@ -786,16 +813,26 @@ def compare_image_lists(new_result, old_result, decimals):
     num_images = len(old_result)
     assert num_images > 0
     for i in range(num_images):
-        mpimg.imsave(fns[0], np.loads(zlib.decompress(old_result[i])))
-        mpimg.imsave(fns[1], np.loads(zlib.decompress(new_result[i])))
+        expected = np.loads(zlib.decompress(old_result[i]))
+        actual = np.loads(zlib.decompress(new_result[i]))
+        expected_p, actual_p = ensure_image_comparability(expected, actual)
+
+        mpimg.imsave(fns[0], expected_p)
+        mpimg.imsave(fns[1], actual_p)
         results = compare_images(fns[0], fns[1], 10 ** (-decimals))
         if results is not None:
+            tempfiles = [
+                line.strip() for line in results.split("\n") if line.endswith(".png")
+            ]
+            for fn, img, padded in zip(
+                tempfiles, (expected, actual), (expected_p, actual_p)
+            ):
+                # padded images are convenient for comparison
+                # but what we really want to store and upload
+                # are the actual results
+                if padded.shape != img.shape:
+                    mpimg.imsave(fn, img)
             if os.environ.get("JENKINS_HOME") is not None:
-                tempfiles = [
-                    line.strip()
-                    for line in results.split("\n")
-                    if line.endswith(".png")
-                ]
                 for fn in tempfiles:
                     sys.stderr.write(f"\n[[ATTACHMENT|{fn}]]")
                 sys.stderr.write("\n")
