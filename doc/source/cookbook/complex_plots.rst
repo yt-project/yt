@@ -34,7 +34,7 @@ with a fourth entering for particle data that is deposited onto a mesh
 is inherited by
 :class:`~yt.visualization.plot_window.AxisAlignedSlicePlot`,
 :class:`~yt.visualization.plot_window.OffAxisSlicePlot`,
-:class:`~yt.visualization.plot_window.ProjectionPlot`, and
+:class:`~yt.visualization.plot_window.AxisAlignedProjectionPlot`, and
 :class:`~yt.visualization.plot_window.OffAxisProjectionPlot`.  This
 controls the number of resolution elements in the
 :class:`~yt.visualization.fixed_resolution.FixedResolutionBuffer`,
