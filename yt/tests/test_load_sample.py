@@ -63,6 +63,15 @@ def capturable_logger(caplog):
             "KeplerianDisk/disk.out1.00000.athdf",
             "AthenaPPDataset",
         ),
+        # check this special case because it relies on implementations
+        # details in the AMRVAC frontend (using parfiles)
+        # and could easily fail to load. See GH PR #3343
+        (
+            "rmi_dust_2d",
+            "rmi_dust_2d.tar.gz",
+            "rmi_dust_2d/output0001.dat",
+            "AMRVACDataset",
+        ),
     ],
 )
 def test_load_sample_small_dataset(

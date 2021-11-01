@@ -1,4 +1,5 @@
 import os
+import re
 import weakref
 
 import numpy as np
@@ -632,12 +633,27 @@ class AthenaDataset(Dataset):
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
-        try:
-            if "vtk" in filename:
-                return True
-        except Exception:
-            pass
-        return False
+        if not filename.endswith(".vtk"):
+            return False
+
+        with open(filename, "rb") as fh:
+            if not re.match(b"# vtk DataFile Version \\d\\.\\d\n", fh.readline(256)):
+                return False
+            if (
+                re.search(
+                    b"at time= .*, level= \\d, domain= \\d\n",
+                    fh.readline(256),
+                )
+                is None
+            ):
+                # vtk Dumps headers start with either "CONSERVED vars" or "PRIMITIVE vars",
+                # while vtk output headers start with "Really cool Athena data", but
+                # we will consider this an implementation detail and not attempt to
+                # match it exactly here.
+                # See Athena's user guide for reference
+                # https://princetonuniversity.github.io/Athena-Cversion/AthenaDocsUGbtk
+                return False
+        return True
 
     @property
     def _skip_cache(self):

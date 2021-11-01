@@ -77,8 +77,11 @@ class PlotCallback:
         """
         if len(coord) == 3:
             if not isinstance(coord, YTArray):
-                coord = plot.data.ds.arr(coord, "code_length")
-            coord.convert_to_units("code_length")
+                coord_copy = plot.data.ds.arr(coord, "code_length")
+            else:
+                # coord is being copied so that if the user has a unyt_array already
+                # we don't change the user's version
+                coord_copy = coord.to("code_length")
             ax = plot.data.axis
             # if this is an on-axis projection or slice, then
             # just grab the appropriate 2 coords for the on-axis view
@@ -87,7 +90,7 @@ class PlotCallback:
                     plot.data.ds.coordinates.x_axis[ax],
                     plot.data.ds.coordinates.y_axis[ax],
                 )
-                coord = (coord[xi], coord[yi])
+                ret_coord = (coord_copy[xi], coord_copy[yi])
 
             # if this is an off-axis project or slice (ie cutting plane)
             # we have to calculate where the data coords fall in the projected
@@ -95,20 +98,20 @@ class PlotCallback:
             elif ax == 4:
                 # transpose is just to get [[x1,x2,...],[y1,y2,...],[z1,z2,...]]
                 # in the same order as plot.data.center for array arithmetic
-                coord_vectors = coord.transpose() - plot.data.center
+                coord_vectors = coord_copy.transpose() - plot.data.center
                 x = np.dot(coord_vectors, plot.data.orienter.unit_vectors[1])
                 y = np.dot(coord_vectors, plot.data.orienter.unit_vectors[0])
                 # Transpose into image coords. Due to VR being not a
                 # right-handed coord system
-                coord = (y, x)
+                ret_coord = (y, x)
             else:
-                raise ValueError("Object being plot must have a `data.axis` defined")
+                raise ValueError("Object being plotted must have a `data.axis` defined")
 
         # if the position is already two-coords, it is expected to be
         # in the proper projected orientation
         else:
             raise ValueError("'data' coordinates must be 3 dimensions")
-        return coord
+        return ret_coord
 
     def _convert_to_plot(self, plot, coord, offset=True):
         """
@@ -2502,7 +2505,7 @@ class TimestampCallback(PlotCallback):
         if self.time:
             # If no time_units are set, then identify a best fit time unit
             if self.time_unit is None:
-                if plot.ds.unit_system._code_flag:
+                if plot.ds._uses_code_time_unit:
                     # if the unit system is in code units
                     # we should not convert to seconds for the plot.
                     self.time_unit = plot.ds.unit_system.base_units[dimensions.time]
@@ -2527,7 +2530,7 @@ class TimestampCallback(PlotCallback):
                 un = self.time_unit.latex_representation()
                 time_unit = r"$\ \ (" + un + r")$"
             except AttributeError as err:
-                if plot.ds.unit_system._code_flag == "code":
+                if plot.ds._uses_code_time_unit:
                     raise RuntimeError(
                         "The time unit str repr didn't match expectations, something is wrong."
                     ) from err

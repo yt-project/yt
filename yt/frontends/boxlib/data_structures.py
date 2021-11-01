@@ -743,19 +743,7 @@ class BoxlibDataset(Dataset):
                 param, vals = (s.strip() for s in line.split("="))
             except ValueError:
                 continue
-            if param == "amr.n_cell":
-                vals = self.domain_dimensions = np.array(vals.split(), dtype="int32")
-
-                # For 1D and 2D simulations in BoxLib usually only the relevant
-                # dimensions have a specified number of zones, but yt requires
-                # domain_dimensions to have three elements, with 1 in the additional
-                # slots if we're not in 3D, so append them as necessary.
-
-                if self.dimensionality == 1:
-                    vals = self.domain_dimensions = np.array([vals[0], 1, 1])
-                elif self.dimensionality == 2:
-                    vals = self.domain_dimensions = np.array([vals[0], vals[1], 1])
-            elif param == "amr.ref_ratio":
+            if param == "amr.ref_ratio":
                 vals = self.refine_by = int(vals[0])
             elif param == "Prob.lo_bc":
                 vals = tuple(p == "1" for p in vals.split())
@@ -881,6 +869,7 @@ class BoxlibDataset(Dataset):
         stop = np.array(root_space[1].split(","), dtype="int64")
         dd = np.ones(3, dtype="int64")
         dd[: self.dimensionality] = stop - start + 1
+        self.domain_offset[: self.dimensionality] = start
         self.domain_dimensions = dd
 
         # Skip timesteps per level

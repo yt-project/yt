@@ -162,14 +162,16 @@ def lookup_on_disk_data(fn) -> Path:
     if path.exists():
         return path
 
-    alt_path = _get_test_data_dir_path() / fn
-    if alt_path.exists():
-        return alt_path
-
     err_msg = f"No such file or directory: '{fn}'."
-    if alt_path.parent.is_dir() and alt_path != path:
-        err_msg += f"\n(Also tried '{alt_path}')."
+    test_data_dir = _get_test_data_dir_path()
+    if not test_data_dir.is_dir():
+        raise FileNotFoundError(err_msg)
 
+    alt_path = _get_test_data_dir_path() / fn
+    if alt_path != path:
+        if alt_path.exists():
+            return alt_path
+        err_msg += f"\n(Also tried '{alt_path}')."
     raise FileNotFoundError(err_msg)
 
 

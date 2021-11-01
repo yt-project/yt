@@ -1,8 +1,20 @@
+import sys
+
 import numpy as np
 
 from yt.utilities.lib.pixelization_routines import pixelize_aitoff, pixelize_cylinder
 
-from .coordinate_handler import CoordinateHandler, _get_coord_fields, _unknown_coord
+from .coordinate_handler import (
+    CoordinateHandler,
+    _get_coord_fields,
+    _setup_dummy_cartesian_coords_and_widths,
+    _setup_polar_coordinates,
+)
+
+if sys.version_info >= (3, 8):
+    from functools import cached_property
+else:
+    from yt._maintenance.backports import cached_property
 
 
 class SphericalCoordinateHandler(CoordinateHandler):
@@ -17,72 +29,17 @@ class SphericalCoordinateHandler(CoordinateHandler):
         self.image_units[self.axis_id["phi"]] = (None, None)
 
     def setup_fields(self, registry):
-        # return the fields for r, z, theta
-        registry.add_field(
-            ("index", "dx"), sampling_type="cell", function=_unknown_coord
-        )
+        # Missing implementation for x, y and z coordinates.
+        _setup_dummy_cartesian_coords_and_widths(registry, axes=("x", "y", "z"))
+        _setup_polar_coordinates(registry, self.axis_id)
 
-        registry.add_field(
-            ("index", "dy"), sampling_type="cell", function=_unknown_coord
-        )
-
-        registry.add_field(
-            ("index", "dz"), sampling_type="cell", function=_unknown_coord
-        )
-
-        registry.add_field(
-            ("index", "x"), sampling_type="cell", function=_unknown_coord
-        )
-
-        registry.add_field(
-            ("index", "y"), sampling_type="cell", function=_unknown_coord
-        )
-
-        registry.add_field(
-            ("index", "z"), sampling_type="cell", function=_unknown_coord
-        )
-
-        f1, f2 = _get_coord_fields(self.axis_id["r"])
-        registry.add_field(
-            ("index", "dr"),
-            sampling_type="cell",
-            function=f1,
-            display_field=False,
-            units="code_length",
-        )
-
-        registry.add_field(
-            ("index", "r"),
-            sampling_type="cell",
-            function=f2,
-            display_field=False,
-            units="code_length",
-        )
-
-        f1, f2 = _get_coord_fields(self.axis_id["theta"], "")
-        registry.add_field(
-            ("index", "dtheta"),
-            sampling_type="cell",
-            function=f1,
-            display_field=False,
-            units="",
-        )
-
-        registry.add_field(
-            ("index", "theta"),
-            sampling_type="cell",
-            function=f2,
-            display_field=False,
-            units="",
-        )
-
-        f1, f2 = _get_coord_fields(self.axis_id["phi"], "")
+        f1, f2 = _get_coord_fields(self.axis_id["phi"], "dimensionless")
         registry.add_field(
             ("index", "dphi"),
             sampling_type="cell",
             function=f1,
             display_field=False,
-            units="",
+            units="dimensionless",
         )
 
         registry.add_field(
@@ -90,7 +47,7 @@ class SphericalCoordinateHandler(CoordinateHandler):
             sampling_type="cell",
             function=f2,
             display_field=False,
-            units="",
+            units="dimensionless",
         )
 
         def _SphericalVolume(field, data):
@@ -111,27 +68,6 @@ class SphericalCoordinateHandler(CoordinateHandler):
             units="code_length**3",
         )
         registry.alias(("index", "volume"), ("index", "cell_volume"))
-
-        def _path_r(field, data):
-            return data["index", "dr"]
-
-        registry.add_field(
-            ("index", "path_element_r"),
-            sampling_type="cell",
-            function=_path_r,
-            units="code_length",
-        )
-
-        def _path_theta(field, data):
-            # Note: this already assumes cell-centered
-            return data["index", "r"] * data["index", "dtheta"]
-
-        registry.add_field(
-            ("index", "path_element_theta"),
-            sampling_type="cell",
-            function=_path_theta,
-            units="code_length",
-        )
 
         def _path_phi(field, data):
             # Note: this already assumes cell-centered
@@ -158,6 +94,14 @@ class SphericalCoordinateHandler(CoordinateHandler):
                 data_source, field, bounds, size, antialias, dimension, periodic
             )
         elif name in ("theta", "phi"):
+            if name == "theta":
+                # This is admittedly a very hacky way to resolve a bug
+                # it's very likely that the *right* fix would have to
+                # be applied upstream of this function, *but* this case
+                # has never worked properly so maybe it's still preferable to
+                # not having a solution ?
+                # see https://github.com/yt-project/yt/pull/3533
+                bounds = (*bounds[2:4], *bounds[:2])
             return self._cyl_pixelize(
                 data_source, field, bounds, size, antialias, dimension
             )
@@ -260,7 +204,7 @@ class SphericalCoordinateHandler(CoordinateHandler):
         # non-Cartesian coordinates, we usually want to override these for
         # Cartesian coordinates, since we transform them.
         rv = {
-            self.axis_id["r"]: ("theta", "phi"),
+            self.axis_id["r"]: ("\\theta", "\\phi"),
             self.axis_id["theta"]: ("x / \\sin(\\theta)", "y / \\sin(\\theta)"),
             self.axis_id["phi"]: ("R", "z"),
         }
@@ -277,27 +221,107 @@ class SphericalCoordinateHandler(CoordinateHandler):
     def period(self):
         return self.ds.domain_width
 
+    @cached_property
+    def _poloidal_bounds(self):
+        ri = self.axis_id["r"]
+        ti = self.axis_id["theta"]
+        rmin = self.ds.domain_left_edge[ri]
+        rmax = self.ds.domain_right_edge[ri]
+        thetamin = self.ds.domain_left_edge[ti]
+        thetamax = self.ds.domain_right_edge[ti]
+        corners = [
+            (rmin, thetamin),
+            (rmin, thetamax),
+            (rmax, thetamin),
+            (rmax, thetamax),
+        ]
+
+        def to_poloidal_plane(r, theta):
+            # take a r, theta position and return
+            # cylindrical R, z coordinates
+            R = r * np.sin(theta)
+            z = r * np.cos(theta)
+            return R, z
+
+        cylindrical_corner_coords = [to_poloidal_plane(*corner) for corner in corners]
+
+        thetamin = thetamin.d
+        thetamax = thetamax.d
+
+        Rmin = min(R for R, z in cylindrical_corner_coords)
+
+        if thetamin <= np.pi / 2 <= thetamax:
+            Rmax = rmax
+        else:
+            Rmax = max(R for R, z in cylindrical_corner_coords)
+
+        zmin = min(z for R, z in cylindrical_corner_coords)
+        zmax = max(z for R, z in cylindrical_corner_coords)
+
+        return Rmin, Rmax, zmin, zmax
+
+    @cached_property
+    def _conic_bounds(self):
+        ri = self.axis_id["r"]
+        pi = self.axis_id["phi"]
+        rmin = self.ds.domain_left_edge[ri]
+        rmax = self.ds.domain_right_edge[ri]
+        phimin = self.ds.domain_left_edge[pi]
+        phimax = self.ds.domain_right_edge[pi]
+        corners = [
+            (rmin, phimin),
+            (rmin, phimax),
+            (rmax, phimin),
+            (rmax, phimax),
+        ]
+
+        def to_conic_plane(r, phi):
+            x = r * np.cos(phi)
+            y = r * np.sin(phi)
+            return x, y
+
+        conic_corner_coords = [to_conic_plane(*corner) for corner in corners]
+
+        phimin = phimin.d
+        phimax = phimax.d
+
+        if phimin <= np.pi <= phimax:
+            xxmin = -rmax
+        else:
+            xxmin = min(xx for xx, yy in conic_corner_coords)
+
+        if phimin <= 0 <= phimax:
+            xxmax = rmax
+        else:
+            xxmin = max(xx for xx, yy in conic_corner_coords)
+
+        if phimin <= 3 * np.pi / 2 <= phimax:
+            yymin = -rmax
+        else:
+            yymin = min(yy for xx, yy in conic_corner_coords)
+
+        if phimin <= np.pi / 2 <= phimax:
+            yymax = rmax
+        else:
+            yymax = max(yy for xx, yy in conic_corner_coords)
+
+        return xxmin, xxmax, yymin, yymax
+
     def sanitize_center(self, center, axis):
         center, display_center = super().sanitize_center(center, axis)
         name = self.axis_name[axis]
         if name == "r":
             display_center = center
         elif name == "theta":
-            display_center = (
-                0.0 * display_center[0],
-                0.0 * display_center[1],
-                0.0 * display_center[2],
-            )
+            xxmin, xxmax, yymin, yymax = self._conic_bounds
+            xc = (xxmin + xxmax) / 2
+            yc = (yymin + yymax) / 2
+            display_center = (xc, 0 * xc, yc)
         elif name == "phi":
-            display_center = [
-                self.ds.domain_width[0] / 2.0 + self.ds.domain_left_edge[0],
-                0.0 * display_center[1],
-                0.0 * display_center[2],
-            ]
-            ri = self.axis_id["r"]
-            c = self.ds.domain_width[ri] / 2.0 + self.ds.domain_left_edge[ri]
-            display_center[ri] = c
-            display_center = tuple(display_center)
+            Rmin, Rmax, zmin, zmax = self._poloidal_bounds
+            xc = (Rmin + Rmax) / 2
+            yc = (zmin + zmax) / 2
+            display_center = (xc, yc)
         return center, display_center
 
     def sanitize_width(self, axis, width, depth):
@@ -310,13 +334,17 @@ class SphericalCoordinateHandler(CoordinateHandler):
                 self.ds.domain_width[self.y_axis["r"]],
             ]
         elif name == "theta":
-            ri = self.axis_id["r"]
             # Remember, in spherical coordinates when we cut in theta,
             # we create a conic section
-            width = [2.0 * self.ds.domain_width[ri], 2.0 * self.ds.domain_width[ri]]
+            xxmin, xxmax, yymin, yymax = self._conic_bounds
+            xw = xxmax - xxmin
+            yw = yymax - yymin
+            width = [xw, yw]
         elif name == "phi":
-            ri = self.axis_id["r"]
-            width = [self.ds.domain_right_edge[ri], 2.0 * self.ds.domain_width[ri]]
+            Rmin, Rmax, zmin, zmax = self._poloidal_bounds
+            xw = Rmax - Rmin
+            yw = zmax - zmin
+            width = [xw, yw]
         return width
 
     def _sanity_check(self):

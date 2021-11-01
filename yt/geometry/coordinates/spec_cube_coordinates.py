@@ -79,32 +79,8 @@ class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
                 units="code_length",
             )
 
-        def _cell_volume(field, data):
-            rv = data["index", "dx"].copy(order="K")
-            rv *= data["index", "dy"]
-            rv *= data["index", "dz"]
-            return rv
-
-        registry.add_field(
-            ("index", "cell_volume"),
-            sampling_type="cell",
-            function=_cell_volume,
-            display_field=False,
-            units="code_length**3",
-        )
-        registry.alias(("index", "volume"), ("index", "cell_volume"))
-
-        registry.check_derived_fields(
-            [
-                ("index", "dx"),
-                ("index", "dy"),
-                ("index", "dz"),
-                ("index", "x"),
-                ("index", "y"),
-                ("index", "z"),
-                ("index", "cell_volume"),
-            ]
-        )
+        self._register_volume(registry)
+        self._check_fields(registry)
 
     _x_pairs = (("x", "y"), ("y", "x"), ("z", "x"))
     _y_pairs = (("x", "z"), ("y", "z"), ("z", "y"))

@@ -5,8 +5,10 @@ import itertools as it
 import os
 import pickle
 import shutil
+import sys
 import tempfile
 import unittest
+from shutil import which
 
 import matplotlib
 import numpy as np
@@ -1347,8 +1349,8 @@ def requires_backend(backend):
         # needed since None is no longer returned, so we check for the skip
         # exception in the xfail case for that test
         def skip(*args, **kwargs):
-            msg = f"`{backend}` backend not found, skipping: `{func.__name__}`"
-            print(msg)
+            msg = f"`{backend}` backend not in use, skipping: `{func.__name__}`"
+            print(msg, file=sys.stderr)
             pytest.skip(msg)
 
         if ytcfg.get("yt", "internals", "within_pytest"):
@@ -1362,6 +1364,29 @@ def requires_backend(backend):
     if backend.lower() == matplotlib.get_backend().lower():
         return ftrue
     return ffalse
+
+
+def requires_external_executable(*names):
+    import pytest
+
+    def deco(func):
+        missing = []
+        for name in names:
+            if which(name) is None:
+                missing.append(name)
+
+        # note that order between these two decorators matters
+        @pytest.mark.skipif(
+            missing,
+            reason=f"missing external executable(s): {', '.join(missing)}",
+        )
+        @functools.wraps(func)
+        def inner_func(*args, **kwargs):
+            return func(*args, **kwargs)
+
+        return inner_func
+
+    return deco
 
 
 class TempDirTest(unittest.TestCase):

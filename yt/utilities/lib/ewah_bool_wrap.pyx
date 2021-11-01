@@ -574,9 +574,11 @@ cdef class FileBitmasks:
         cdef np.uint64_t nrefn, mi1
         nrefn = mi1 = 0
         # Write string to string stream
+        if len(s) == 0: return 1
         ss.write(s, len(s))
         # Read keys and refinement arrays
         ewah_keys[0].read(ss,1)
+        if ss.eof(): return 1
         ewah_refn[0].read(ss,1)
         # Read and check number of refined cells
         ss.read(<char *> (&nrefn), sizeof(nrefn))
@@ -585,6 +587,7 @@ cdef class FileBitmasks:
         # Loop over refined cells
         for _ in range(nrefn):
             ss.read(<char *> (&mi1), sizeof(mi1))
+            if ss.eof(): return 1
             ewah_coll[0][mi1].read(ss,1)
             # or...
             #mi1_ewah.read(ss,1)
@@ -1226,11 +1229,15 @@ cdef class BoolArrayCollection:
         cdef np.uint64_t nrefn, mi1
         nrefn = mi1 = 0
         # Write string to string stream
+        if len(s) == 0: return 1
         ss.write(s, len(s))
         # Read keys and refinement arrays
+        if ss.eof(): return 1
         ewah_keys[0].read(ss,1)
+        if ss.eof(): return 1
         ewah_refn[0].read(ss,1)
         # Read and check number of refined cells
+        if ss.eof(): return 1
         ss.read(<char *> (&nrefn), sizeof(nrefn))
         if nrefn != ewah_refn[0].numberOfOnes():
             raise Exception("Error in read. File indicates {} refinements, but bool array has {}.".format(nrefn,ewah_refn[0].numberOfOnes()))

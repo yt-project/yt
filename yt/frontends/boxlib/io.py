@@ -118,6 +118,7 @@ class IOHandlerBoxlib(BaseIOHandler):
                         local_offset = 0
                     else:
                         local_offset += size
+            f.close()
         return data
 
     def _read_particle_coords(self, chunks, ptf):
