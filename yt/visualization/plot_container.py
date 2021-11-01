@@ -3,8 +3,10 @@ import builtins
 import os
 import sys
 import textwrap
+import warnings
 from collections import defaultdict
 from functools import wraps
+from typing import Any, Dict, Optional
 
 import numpy as np
 from matplotlib.cm import get_cmap
@@ -555,7 +557,12 @@ class PlotContainer:
         return self
 
     @validate_plot
-    def save(self, name=None, suffix=".png", mpl_kwargs=None):
+    def save(
+        self,
+        name: Optional[str] = None,
+        suffix: str = ".png",
+        mpl_kwargs: Optional[Dict[str, Any]] = None,
+    ):
         """saves the plot to disk.
 
         Parameters
@@ -577,6 +584,14 @@ class PlotContainer:
         names = []
         if mpl_kwargs is None:
             mpl_kwargs = {}
+        elif "format" in mpl_kwargs:
+            new_suffix = mpl_kwargs.pop("format")
+            if new_suffix != suffix:
+                warnings.warn(
+                    f"Overriding suffix {suffix!r} with mpl_kwargs['format'] = {new_suffix!r}. "
+                    "Use the `suffix` argument directly to suppress this warning."
+                )
+            suffix = new_suffix
 
         if name is None:
             name = str(self.ds)
