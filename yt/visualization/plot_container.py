@@ -781,7 +781,10 @@ class PlotContainer:
                         symbol_wo_prefix = un[1:]
                         if symbol_wo_prefix in self.ds.unit_registry.prefixable_units:
                             un = un.replace(pp, "{" + latex_prefixes[pp] + "}", 1)
-                axes_unit_labels[i] = r"\ \ (" + un + ")"
+                if r"\frac" in un:
+                    axes_unit_labels[i] = r"\ \ \left(" + un + r"\right)"
+                else:
+                    axes_unit_labels[i] = r"\ \ (" + un + r")"
         return axes_unit_labels
 
     def hide_colorbar(self, field=None):
