@@ -220,8 +220,7 @@ def print_tb(func):
 def rootonly(func):
     """
     This is a decorator that, when used, will only call the function on the
-    root processor and then broadcast the results of the function to all other
-    processors.
+    root processor.
 
     This can be used like so:
 
