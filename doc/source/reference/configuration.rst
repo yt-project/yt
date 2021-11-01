@@ -111,7 +111,7 @@ The following external parameters are available.  A number of parameters are
 used internally.
 
 * ``colored_logs`` (default: ``False``): Should logs be colored?
-* ``default_colormap`` (default: ``arbre``): What colormap should be used by
+* ``default_colormap`` (default: ``cmyt.arbre``): What colormap should be used by
   default for yt-produced images?
 * ``plugin_filename``  (default ``my_plugins.py``) The name of our plugin file.
 * ``log_level`` (default: ``20``): What is the threshold (0 to 50) for
