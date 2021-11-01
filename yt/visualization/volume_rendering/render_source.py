@@ -704,7 +704,7 @@ class MeshSource(OpaqueSource):
     def cmap():
         """
         This is the name of the colormap that will be used when rendering
-        this MeshSource object. Should be a string, like 'arbre', or 'dusk'.
+        this MeshSource object. Should be a string, like 'cmyt.arbre', or 'cmyt.dusk'.
 
         """
 
