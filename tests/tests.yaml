@@ -195,5 +195,6 @@ other_tests:
      - "--ignore-files=test_invalid_origin.py"
      - "--ignore-files=test_outputs_pytest\\.py"
      - "--exclude-test=yt.frontends.gdf.tests.test_outputs.TestGDF"
+     - "--exclude-test=yt.frontends.adaptahop.tests.test_outputs"
   cookbook:
      - 'doc/source/cookbook/tests/test_cookbook.py'
