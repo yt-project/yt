@@ -66,12 +66,8 @@ class ChimeraUNSIndex(UnstructuredIndex):
         index_filenames = _find_files(
             self.dataset.filename
         )  # Retrieves list of all datafiles with the same frame number
-        if any(
-            "grid_2" in file for file in index_filenames
-        ):  # Detects Yin-Yang data format
-            yy = True
-        else:
-            yy = False
+        # Detects Yin-Yang data format
+        yy = any("grid_2" in file for file in index_filenames)
         for n, file in enumerate(index_filenames):
             with h5py.File(file, "r") as f:
                 nmx, nmy, nmz = tuple(f["mesh"]["array_dimensions"][:])
@@ -126,21 +122,11 @@ class ChimeraUNSIndex(UnstructuredIndex):
                     coords[:, 1] = y_hold
                     coords[:, 2] = z_hold
 
-                    """
-                    Spherical transform -- Currently Unused
-                    old_theta = coords[:,1].copy()
-                    old_phi = coords[:,2].copy()
-                    coords[:,1] = np.arccos(np.sin(old_theta)*np.sin(old_phi))
-                    nu = np.cos(old_theta)
-                    de = (-1.0*np.sin(old_theta))*np.cos(old_phi)
-                    coords[:,2] = np.arctan2(nu,de)
-                    """
+                # Connectivity is an array of rows, each of which corresponds to a grid cell.
+                # The 8 elements of each row are integers representing the cell verticies.
+                # These integers refrence the numerical index of the element of the
+                # "coords" array which corresponds to the spatial coordinate.
 
-                """
-                Connectivity is an array of rows, each of which corresponds to a grid cell. The 8 elements of each row are
-                integers representing the cell verticies. These integers refrence the numerical index of the element of the
-                "coords" array whcih corresponds to the spatial coordinate.
-                """
                 connectivity = np.zeros(
                     ((nyd - 1) * (nxd - 1) * (nzd - 1), 8), dtype="int64", order="C"
                 )  # Creates scaffold array
@@ -236,7 +222,7 @@ class ChimeraDataset(Dataset):
         units_override=None,
     ):
         # refinement factor between a grid and its subgrid
-        self.refine_by = 2  # Somewhat superfluous for Chimera, but left to avoid errors
+        self.refine_by = 1  # Somewhat superfluous for Chimera, but left to avoid errors
 
         self.fluid_types += ("chimera",)
         super().__init__(filename, dataset_type, units_override=units_override)
@@ -256,7 +242,6 @@ class ChimeraDataset(Dataset):
         self.time_unit = self.quan(1.0, "s")
         self.velocity_unit = self.quan(1.0, "cm/s")
         self.magnetic_unit = self.quan(1.0, "gauss")
-        pass
 
     def _parse_parameter_file(self):
         with h5py.File(self.parameter_filename, "r") as f:
@@ -315,7 +300,6 @@ class ChimeraDataset(Dataset):
             self.domain_left_edge = np.array(dle)
 
         self.cosmological_simulation = 0.0  # Chimera is not a cosmological simulation
-        pass
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
@@ -325,8 +309,7 @@ class ChimeraDataset(Dataset):
             fileh = HDF5FileHandler(args[0])
             if "fluid" in fileh:
                 if "agr_c" in fileh["fluid"].keys():
-                    print("Chimera file identified")  # Numpy bless
-                    return True
+                    return True  # Numpy bless
             else:
                 return False
         except (OSError, ImportError):
