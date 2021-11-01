@@ -1,5 +1,5 @@
 """
-Skeleton-specific fields
+Chimera-specific fields
 
 
 
