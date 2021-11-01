@@ -49,7 +49,7 @@ def _find_files(
     dir_contents = os.listdir(dirname)
     frames = [f for f in dir_contents if file[:-7] in f]
     directory = os.path.dirname(filename_c)
-    index_filenames = [directory + "/" + f for f in frames]
+    index_filenames = [directory + os.path.sep + f for f in frames]
     index_filenames.sort()
     return index_filenames
 
