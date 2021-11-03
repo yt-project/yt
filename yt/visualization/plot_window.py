@@ -194,7 +194,7 @@ class PlotWindow(ImagePlotContainer):
         self,
         data_source,
         bounds,
-        buff_size=(800, 800),  # buff_size of the raw frb in data-axes
+        buff_size=(800, 800),
         antialias=True,
         periodic=True,
         origin="center-window",
@@ -205,7 +205,7 @@ class PlotWindow(ImagePlotContainer):
         fontsize=18,
         aspect=None,
         setup=False,
-        swap_axes=False,  # display axes != data-axes
+        swap_axes=False,
     ):
         self.center = None
         self._periodic = periodic
@@ -218,9 +218,6 @@ class PlotWindow(ImagePlotContainer):
         self._transform = None
         self._projection = None
         self._swap_axes_input = swap_axes
-
-        # self.swap_axes
-
         self.aspect = aspect
         skip = list(FixedResolutionBuffer._exclude_fields) + data_source._key_fields
 
@@ -714,9 +711,6 @@ class PlotWindow(ImagePlotContainer):
              the unit the width has been specified in. If width is a tuple, this
              argument is ignored. Defaults to code units.
         """
-
-        # if swap_axes is True and width has 2 elements, do we swap those
-        # because the user is expecting to set the visual x/y widths???
 
         if isinstance(width, Number):
             if unit is None:
