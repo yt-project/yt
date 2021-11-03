@@ -185,6 +185,8 @@ class PlotWindow(ImagePlotContainer):
         Whether the implicit east vector for the image generated is set to make a right
         handed coordinate system with a north vector and the normal vector, the
         direction of the 'window' into the data.
+    swap_axes: boolean
+        If True, will transpose the final image and swap axes labels. default False.
 
     """
 
@@ -192,7 +194,7 @@ class PlotWindow(ImagePlotContainer):
         self,
         data_source,
         bounds,
-        buff_size=(800, 800),
+        buff_size=(800, 800),  # buff_size of the raw frb in data-axes
         antialias=True,
         periodic=True,
         origin="center-window",
@@ -203,6 +205,7 @@ class PlotWindow(ImagePlotContainer):
         fontsize=18,
         aspect=None,
         setup=False,
+        swap_axes=False,  # display axes != data-axes
     ):
         self.center = None
         self._periodic = periodic
@@ -214,6 +217,9 @@ class PlotWindow(ImagePlotContainer):
         self._axes_unit_names = None
         self._transform = None
         self._projection = None
+        self._swap_axes_input = swap_axes
+
+        # self.swap_axes
 
         self.aspect = aspect
         skip = list(FixedResolutionBuffer._exclude_fields) + data_source._key_fields
@@ -371,6 +377,26 @@ class PlotWindow(ImagePlotContainer):
         # Restore the override fields
         for key in self.override_fields:
             self._frb[key]
+
+    @property
+    def _swap_axes(self):
+        if self._swap_axes_input and (self._transform or self._projection):
+            # running this validation every access in case _transform or _projection has changed
+            mylog.warning(
+                "swap_axes set to True, but ignoring it due to transform or projection"
+            )
+            return False
+        return self._swap_axes_input
+
+    @invalidate_data
+    def toggle_swap_axes(self):
+        # toggles the swap_axes behavior
+        new = not self._swap_axes_input
+        if new and (self._transform or self._projection):
+            mylog.warning("cannot set swap_axes to True due to transform or projection")
+            new = False
+
+        self._swap_axes_input = new
 
     @property
     def width(self):
@@ -688,6 +714,10 @@ class PlotWindow(ImagePlotContainer):
              the unit the width has been specified in. If width is a tuple, this
              argument is ignored. Defaults to code units.
         """
+
+        # if swap_axes is True and width has 2 elements, do we swap those
+        # because the user is expecting to set the visual x/y widths???
+
         if isinstance(width, Number):
             if unit is None:
                 width = (width, "code_length")
@@ -1118,6 +1148,14 @@ class PWViewerMPL(PlotWindow):
                 ia = ImageArray(ia)
             else:
                 ia = image
+
+            swap_axes = self._swap_axes
+            aspect = self.aspect
+            if swap_axes:
+                extent = [extent[i] for i in (2, 3, 0, 1)]
+                ia = ia.transpose()
+                aspect = 1.0 / aspect
+
             self.plots[f] = WindowPlotMPL(
                 ia,
                 self._field_transform[f].name,
@@ -1127,7 +1165,7 @@ class PWViewerMPL(PlotWindow):
                 zlim,
                 self.figure_size,
                 font_size,
-                self.aspect,
+                aspect,
                 fig,
                 axes,
                 cax,
@@ -1175,7 +1213,10 @@ class PWViewerMPL(PlotWindow):
                         )
                     else:
                         ymin, ymax = (float(y) for y in extenty)
-                    self.plots[f].image.set_extent((xmin, xmax, ymin, ymax))
+                    new_extent = [xmin, xmax, ymin, ymax]
+                    if swap_axes:
+                        new_extent = [ymin, ymax, xmin, xmax]
+                    self.plots[f].image.set_extent(new_extent)
                     self.plots[f].axes.set_aspect("auto")
 
             x_label, y_label, colorbar_label = self._get_axes_labels(f)
@@ -1184,6 +1225,9 @@ class PWViewerMPL(PlotWindow):
                 labels[0] = x_label
             if y_label is not None:
                 labels[1] = y_label
+
+            if swap_axes:
+                labels.reverse()
 
             self.plots[f].axes.set_xlabel(labels[0])
             self.plots[f].axes.set_ylabel(labels[1])
@@ -1399,6 +1443,7 @@ class PWViewerMPL(PlotWindow):
         for f in self.fields:
             keys = self.frb.keys()
             for name, (args, kwargs) in self._callbacks:
+                # need to pass _swap_axes and adjust all the callbacks?
                 cbw = CallbackWrapper(
                     self,
                     self.plots[f],
@@ -1676,6 +1721,8 @@ class SlicePlot(NormalPlot):
     data_source : YTSelectionContainer Object
          Object to be used for data selection.  Defaults to a region covering
          the entire simulation.
+    swap_axes : bool
+
 
     Raises
     ------
@@ -1870,7 +1917,8 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
          Size of the buffer to use for the image, i.e. the number of resolution elements
          used.  Effectively sets a resolution limit to the image if buff_size is
          smaller than the finest gridding.
-
+    swap_axes: boolean
+        If True, will transpose the final image and swap axes labels. default False.
     Examples
     --------
 
@@ -1903,6 +1951,7 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
         buff_size=(800, 800),
         *,
         north_vector=None,
+        swap_axes=False,
     ):
         if north_vector is not None:
             # this kwarg exists only for symmetry reasons with OffAxisSlicePlot
@@ -1955,6 +2004,7 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
             aspect=aspect,
             right_handed=right_handed,
             buff_size=buff_size,
+            swap_axes=swap_axes,
         )
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
@@ -2096,6 +2146,8 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
          Size of the buffer to use for the image, i.e. the number of resolution elements
          used.  Effectively sets a resolution limit to the image if buff_size is
          smaller than the finest gridding.
+    swap_axes: boolean
+        If True, will transpose the final image and swap axes labels. default False.
 
     Examples
     --------
@@ -2131,6 +2183,7 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
         window_size=8.0,
         buff_size=(800, 800),
         aspect=None,
+        swap_axes=False,
     ):
         axis = fix_axis(axis, ds)
         if ds.geometry in (
@@ -2195,6 +2248,7 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
             window_size=window_size,
             aspect=aspect,
             buff_size=buff_size,
+            swap_axes=swap_axes,
         )
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
@@ -2275,6 +2329,8 @@ class OffAxisSlicePlot(SlicePlot, PWViewerMPL):
          Size of the buffer to use for the image, i.e. the number of resolution elements
          used.  Effectively sets a resolution limit to the image if buff_size is
          smaller than the finest gridding.
+    swap_axes: boolean
+        If True, will transpose the final image and swap axes labels. default False.
     """
 
     _plot_type = "OffAxisSlice"
@@ -2296,6 +2352,7 @@ class OffAxisSlicePlot(SlicePlot, PWViewerMPL):
         buff_size=(800, 800),
         *,
         origin=None,
+        swap_axes=False,
     ):
         if origin is not None:
             # this kwarg exists only for symmetry reasons with AxisAlignedSlicePlot
@@ -2337,6 +2394,7 @@ class OffAxisSlicePlot(SlicePlot, PWViewerMPL):
             oblique=True,
             fontsize=fontsize,
             buff_size=buff_size,
+            swap_axes=swap_axes,
         )
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
@@ -2484,6 +2542,8 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
          Size of the buffer to use for the image, i.e. the number of resolution elements
          used.  Effectively sets a resolution limit to the image if buff_size is
          smaller than the finest gridding.
+    swap_axes: boolean
+        If True, will transpose the final image and swap axes labels. default False.
     """
     _plot_type = "OffAxisProjection"
     _frb_generator = OffAxisProjectionFixedResolutionBuffer
@@ -2510,6 +2570,7 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
         method="integrate",
         data_source=None,
         buff_size=(800, 800),
+        swap_axes=False,
     ):
         (bounds, center_rot) = get_oblique_window_parameters(
             normal, center, width, ds, depth=depth
@@ -2558,6 +2619,7 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
             right_handed=right_handed,
             fontsize=fontsize,
             buff_size=buff_size,
+            swap_axes=swap_axes,
         )
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
