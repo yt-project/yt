@@ -205,6 +205,7 @@ class PlotWindow(ImagePlotContainer):
         fontsize=18,
         aspect=None,
         setup=False,
+        *,
         swap_axes=False,
     ):
         self.center = None
@@ -390,7 +391,7 @@ class PlotWindow(ImagePlotContainer):
         # toggles the swap_axes behavior
         new = not self._swap_axes_input
         if new and (self._transform or self._projection):
-            mylog.warning("cannot set swap_axes to True due to transform or projection")
+            mylog.warning("Cannot swap axes due to transform or projection")
             new = False
 
         self._swap_axes_input = new
@@ -1207,9 +1208,9 @@ class PWViewerMPL(PlotWindow):
                         )
                     else:
                         ymin, ymax = (float(y) for y in extenty)
-                    new_extent = [xmin, xmax, ymin, ymax]
+                    new_extent = (xmin, xmax, ymin, ymax)
                     if swap_axes:
-                        new_extent = [ymin, ymax, xmin, xmax]
+                        new_extent = (ymin, ymax, xmin, xmax)
                     self.plots[f].image.set_extent(new_extent)
                     self.plots[f].axes.set_aspect("auto")
 
@@ -2177,6 +2178,7 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
         window_size=8.0,
         buff_size=(800, 800),
         aspect=None,
+        *,
         swap_axes=False,
     ):
         axis = fix_axis(axis, ds)
@@ -2564,6 +2566,7 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
         method="integrate",
         data_source=None,
         buff_size=(800, 800),
+        *,
         swap_axes=False,
     ):
         (bounds, center_rot) = get_oblique_window_parameters(
