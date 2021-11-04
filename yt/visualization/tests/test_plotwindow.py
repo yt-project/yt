@@ -18,6 +18,7 @@ from yt.testing import (
     fake_amr_ds,
     fake_random_ds,
     requires_file,
+    requires_module,
 )
 from yt.units import kboltz
 from yt.units.yt_array import YTArray, YTQuantity
@@ -35,6 +36,7 @@ from yt.visualization.plot_window import (
     OffAxisSlicePlot,
     ProjectionPlot,
     SlicePlot,
+    _swap_axes_extents,
     plot_2d,
 )
 
@@ -804,3 +806,73 @@ def test_dispatch_plot_classes():
     assert isinstance(p2, OffAxisProjectionPlot)
     assert isinstance(s1, AxisAlignedSlicePlot)
     assert isinstance(s2, OffAxisSlicePlot)
+
+
+def test_display_axis_mods():
+    ds = fake_random_ds(16)
+    field = ds.field_list[0]
+    wid = (0.4, 0.2)
+    normal = "x"
+
+    # get the reference plot and store some values
+    slc = SlicePlot(ds, normal, field, width=wid)
+    assert slc._has_swapped_axes is False
+
+    slc._setup_plots()
+    ref_x_label = slc[field].axes.get_xlabel()
+    ref_y_label = slc[field].axes.get_ylabel()
+    ref_aspect = slc[field]._aspect
+
+    # check that swap_axes swaps the axes
+    slc = SlicePlot(ds, normal, field, swap_axes=True, width=wid)
+    slc._setup_plots()
+    field_p = slc[field]
+    assert ref_x_label == field_p.axes.get_ylabel()
+    assert ref_y_label == field_p.axes.get_xlabel()
+    assert field_p._aspect == 1 / ref_aspect
+
+    # check that the toggle changes the value
+    assert slc._has_swapped_axes is True
+    slc.swap_axes()
+    assert slc._has_swapped_axes is False
+
+
+def test_flip_horizontal_vertical():
+    ds = fake_random_ds(16)
+    field = ds.field_list[0]
+    wid = (0.4, 0.2)
+    normal = "x"
+    slc = SlicePlot(ds, normal, field, width=wid)
+    slc._setup_plots()
+    ref_x_range = slc[field].axes.get_xlim()
+    ref_y_range = slc[field].axes.get_ylim()
+
+    slc.flip_horizontal()
+    slc.flip_vertical()
+    slc._setup_plots()
+    assert slc[field].axes.get_xlim() == (ref_x_range[1], ref_x_range[0])
+    assert slc[field].axes.get_ylim() == (ref_y_range[1], ref_y_range[0])
+
+
+@requires_module("cartopy")
+def test_invalid_swap_projection():
+    # projections and transforms will not work
+    ds = fake_amr_ds(geometry="geographic")
+    slc = SlicePlot(ds, "altitude", ds.field_list[0], origin="native")
+    slc.set_mpl_projection("Robinson")
+    slc.swap_axes()  # should raise mylog.warning and not toggle _swap_axes
+    assert slc._has_swapped_axes is False
+
+
+def test_invalid_swap_callback():
+    ds = fake_random_ds(16)
+    slc = SlicePlot(ds, "x", ds.field_list[0], swap_axes=True)
+    slc.annotate_cell_edges()
+    assert slc._has_swapped_axes is False
+
+
+def test_extent_swap():
+    input_extent = [1, 2, 3, 4]
+    expected = [3, 4, 1, 2]
+    assert _swap_axes_extents(input_extent) == expected
+    assert _swap_axes_extents(tuple(input_extent)) == tuple([3, 4, 1, 2])
