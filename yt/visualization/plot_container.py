@@ -720,6 +720,9 @@ class PlotContainer:
                         self.data_source.axis
                     ]
                     unn = self.ds.coordinates.default_unit_label.get(axax, None)
+            if unn in (1, "1", "dimensionless"):
+                axes_unit_labels[i] = ""
+                continue
             if unn is not None:
                 axes_unit_labels[i] = r"\ \ \left(" + unn + r"\right)"
                 continue

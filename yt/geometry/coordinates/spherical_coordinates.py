@@ -24,7 +24,7 @@ class SphericalCoordinateHandler(CoordinateHandler):
         super().__init__(ds, ordering)
         # Generate
         self.image_units = {}
-        self.image_units[self.axis_id["r"]] = ("rad", "rad")
+        self.image_units[self.axis_id["r"]] = (1, 1)
         self.image_units[self.axis_id["theta"]] = (None, None)
         self.image_units[self.axis_id["phi"]] = (None, None)
 
@@ -114,17 +114,20 @@ class SphericalCoordinateHandler(CoordinateHandler):
     def _ortho_pixelize(
         self, data_source, field, bounds, size, antialias, dim, periodic
     ):
+        # use Aitoff projection
+        # http://paulbourke.net/geometry/transformationprojection/
+        bounds = tuple(_.ndview for _ in self._aitoff_bounds)
         buff = pixelize_aitoff(
-            data_source["py"],
-            data_source["pdy"],
-            data_source["px"],
-            data_source["pdx"],
-            size,
-            data_source[field],
-            None,
-            None,
-            theta_offset=0,
-            phi_offset=0,
+            azimuth=data_source["py"],
+            dazimuth=data_source["pdy"],
+            colatitude=data_source["px"],
+            dcolatitude=data_source["pdx"],
+            buff_size=size,
+            field=data_source[field],
+            bounds=bounds,
+            input_img=None,
+            azimuth_offset=0,
+            colatitude_offset=0,
         ).transpose()
         return buff
 
@@ -204,7 +207,17 @@ class SphericalCoordinateHandler(CoordinateHandler):
         # non-Cartesian coordinates, we usually want to override these for
         # Cartesian coordinates, since we transform them.
         rv = {
-            self.axis_id["r"]: ("\\theta", "\\phi"),
+            self.axis_id["r"]: (
+                # these are the Hammer-Aitoff normalized coordinates
+                # conventions:
+                #   - theta is the colatitude, from 0 to PI
+                #   - bartheta is the latitude, from -PI/2 to +PI/2 (bartheta = PI/2 - theta)
+                #   - phi is the azimuth, from 0 to 2PI
+                #   - lambda is the longitude, from -PI to PI (lambda = phi - PI)
+                r"\frac{2\cos(\mathrm{\bar{\theta}})\sin(\lambda/2)}{\sqrt{1 + \cos(\bar{\theta}) \cos(\lambda/2)}}",
+                r"\frac{sin(\bar{\theta})}{\sqrt{1 + \cos(\bar{\theta}) \cos(\lambda/2)}}",
+                "\\theta",
+            ),
             self.axis_id["theta"]: ("x / \\sin(\\theta)", "y / \\sin(\\theta)"),
             self.axis_id["phi"]: ("R", "z"),
         }
@@ -307,11 +320,82 @@ class SphericalCoordinateHandler(CoordinateHandler):
 
         return xxmin, xxmax, yymin, yymax
 
+    @cached_property
+    def _aitoff_bounds(self):
+        # at the time of writing this function, yt's support for curvilinear
+        # coordinates is a bit hacky, as many components of the system still
+        # expect to receive coordinates with a length dimension. Ultimately
+        # this is not needed but calls for a large refactor.
+        ONE = self.ds.quan(1, "code_length")
+
+        # colatitude
+        ti = self.axis_id["theta"]
+        thetamin = self.ds.domain_left_edge[ti]
+        thetamax = self.ds.domain_right_edge[ti]
+        # latitude
+        latmin = ONE * np.pi / 2 - thetamax
+        latmax = ONE * np.pi / 2 - thetamin
+
+        # azimuth
+        pi = self.axis_id["phi"]
+        phimin = self.ds.domain_left_edge[pi]
+        phimax = self.ds.domain_right_edge[pi]
+        # longitude
+        lonmin = phimin - ONE * np.pi
+        lonmax = phimax - ONE * np.pi
+
+        corners = [
+            (latmin, lonmin),
+            (latmin, lonmax),
+            (latmax, lonmin),
+            (latmax, lonmax),
+        ]
+
+        def aitoff_z(latitude, longitude):
+            return np.sqrt(1 + np.cos(latitude) * np.cos(longitude / 2))
+
+        def aitoff_x(latitude, longitude):
+            return (
+                2
+                * np.cos(latitude)
+                * np.sin(longitude / 2)
+                / aitoff_z(latitude, longitude)
+            )
+
+        def aitoff_y(latitude, longitude):
+            return np.sin(latitude) / aitoff_z(latitude, longitude)
+
+        def to_aitoff_plane(latitude, longitude):
+            return aitoff_x(latitude, longitude), aitoff_y(latitude, longitude)
+
+        aitoff_corner_coords = [to_aitoff_plane(*corner) for corner in corners]
+
+        xmin = ONE * min(x for x, y in aitoff_corner_coords)
+        xmax = ONE * max(x for x, y in aitoff_corner_coords)
+
+        # theta is the colatitude
+        # What this branch is meant to do is check whether the equator (latitude = 0)
+        # is included in the domain.
+
+        if latmin < 0 < latmax:
+            xmin = min(xmin, ONE * aitoff_x(0, lonmin))
+            xmax = max(xmax, ONE * aitoff_x(0, lonmax))
+
+        # the y direction is more straighforward because aitoff-projected parallels (y)
+        # draw a convex shape, while aitoff-projected meridians (x) draw a concave shape
+        ymin = ONE * min(y for x, y in aitoff_corner_coords)
+        ymax = ONE * max(y for x, y in aitoff_corner_coords)
+
+        return xmin, xmax, ymin, ymax
+
     def sanitize_center(self, center, axis):
         center, display_center = super().sanitize_center(center, axis)
         name = self.axis_name[axis]
         if name == "r":
-            display_center = center
+            xxmin, xxmax, yymin, yymax = self._aitoff_bounds
+            xc = (xxmin + xxmax) / 2
+            yc = (yymin + yymax) / 2
+            display_center = (0 * xc, xc, yc)
         elif name == "theta":
             xxmin, xxmax, yymin, yymax = self._conic_bounds
             xc = (xxmin + xxmax) / 2
@@ -329,10 +413,10 @@ class SphericalCoordinateHandler(CoordinateHandler):
         if width is not None:
             width = super().sanitize_width(axis, width, depth)
         elif name == "r":
-            width = [
-                self.ds.domain_width[self.x_axis["r"]],
-                self.ds.domain_width[self.y_axis["r"]],
-            ]
+            xxmin, xxmax, yymin, yymax = self._aitoff_bounds
+            xw = xxmax - xxmin
+            yw = yymax - yymin
+            width = [xw, yw]
         elif name == "theta":
             # Remember, in spherical coordinates when we cut in theta,
             # we create a conic section
