@@ -7,6 +7,7 @@ on:
       - stable
     tags:
       - 'yt-*'
+  workflow_dispatch:
 
 jobs:
   build_wheels:
