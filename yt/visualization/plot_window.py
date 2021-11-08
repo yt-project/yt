@@ -221,7 +221,7 @@ class PlotWindow(ImagePlotContainer):
         self.center = None
         self._periodic = periodic
         self.oblique = oblique
-        self._right_handed = _check_right_handed(right_handed)
+        _check_right_handed(right_handed)
         self._equivalencies = defaultdict(lambda: (None, {}))
         self.buff_size = buff_size
         self.antialias = antialias
@@ -875,7 +875,11 @@ class PlotWindow(ImagePlotContainer):
 
     @invalidate_plot
     def toggle_right_handed(self):
-        # depreceation warning?
+        issue_deprecation_warning(
+            "toggle_right_handed has been deprecated, use '.flip_horizontal()' instead.",
+            since="4.1.0",
+            removal="4.2.0",
+        )
         self.flip_horizontal()
 
     @invalidate_plot
@@ -884,8 +888,6 @@ class PlotWindow(ImagePlotContainer):
         flips the horizontal axis (the image's abscissa)
         """
         self._flip_horizontal = not self._flip_horizontal
-        # keep _right_handed in sync until toggle_right_handed is removed:
-        self._right_handed = not self._right_handed
 
     @invalidate_plot
     def flip_vertical(self):
@@ -2951,5 +2953,9 @@ def _check_right_handed(right_handed: bool) -> bool:
     # temporary function to check if right_handed kwarg has been set. can
     # remove this after full depreciation.
     if right_handed is False:
-        mylog.warning("depreciation message?")
+        issue_deprecation_warning(
+            "'right_handed' has been deprecated, use 'flip_horizontal' instead.",
+            since="4.1.0",
+            removal="4.2.0",
+        )
     return right_handed

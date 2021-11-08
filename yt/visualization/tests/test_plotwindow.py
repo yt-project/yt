@@ -73,7 +73,8 @@ ATTR_ARGS = {
         (("density", 1e-25, None), {"dynamic_range": 4}),
     ],
     "zoom": [((10,), {})],
-    "toggle_right_handed": [((), {})],
+    "flip_horizontal": [((), {})],
+    "flip_vertical": [((), {})],
 }
 
 
@@ -808,7 +809,12 @@ def test_dispatch_plot_classes():
     assert isinstance(s2, OffAxisSlicePlot)
 
 
-def test_display_axis_mods():
+def test_swap_axes():
+
+    # note: this tests the swap_axes functionality separately from the
+    # ATTR_ARGS framework because swap_axes currently is not valid with
+    # callbacks.
+
     ds = fake_random_ds(16)
     field = ds.field_list[0]
     wid = (0.4, 0.2)
@@ -835,23 +841,6 @@ def test_display_axis_mods():
     assert slc._has_swapped_axes is True
     slc.swap_axes()
     assert slc._has_swapped_axes is False
-
-
-def test_flip_horizontal_vertical():
-    ds = fake_random_ds(16)
-    field = ds.field_list[0]
-    wid = (0.4, 0.2)
-    normal = "x"
-    slc = SlicePlot(ds, normal, field, width=wid)
-    slc._setup_plots()
-    ref_x_range = slc[field].axes.get_xlim()
-    ref_y_range = slc[field].axes.get_ylim()
-
-    slc.flip_horizontal()
-    slc.flip_vertical()
-    slc._setup_plots()
-    assert slc[field].axes.get_xlim() == (ref_x_range[1], ref_x_range[0])
-    assert slc[field].axes.get_ylim() == (ref_y_range[1], ref_y_range[0])
 
 
 @requires_module("cartopy")
