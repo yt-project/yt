@@ -274,8 +274,8 @@ class StreamDataset(Dataset):
         geometry="cartesian",
         unit_system="cgs",
         default_species_fields=None,
+        use_mks_em_units=False,
     ):
-        from yt.units.dimensions import current_mks
 
         self.fluid_types += ("stream",)
         self.geometry = geometry
@@ -284,13 +284,7 @@ class StreamDataset(Dataset):
         name = f"InMemoryParameterFile_{uuid.uuid4().hex}"
         from yt.data_objects.static_output import _cached_datasets
 
-        # Here we check to see if the code units use an MKS current
-        # If the magnetic units are simply set to "code_magnetic",
-        # then we assume that they are cgs
-        magnetic_unit = self.stream_handler.code_units[-1]
-        if magnetic_unit != "code_magnetic":
-            mu = YTQuantity(1.0, magnetic_unit)
-            self._use_mks_em_units = current_mks in mu.units.dimensions
+        self._use_mks_em_units = use_mks_em_units
 
         _cached_datasets[name] = self
         Dataset.__init__(
@@ -460,6 +454,7 @@ class StreamParticlesDataset(StreamDataset):
         geometry="cartesian",
         unit_system="cgs",
         default_species_fields=None,
+        use_mks_em_units=False,
     ):
         super().__init__(
             stream_handler,
@@ -467,6 +462,7 @@ class StreamParticlesDataset(StreamDataset):
             geometry=geometry,
             unit_system=unit_system,
             default_species_fields=default_species_fields,
+            use_mks_em_units=use_mks_em_units,
         )
         fields = list(stream_handler.fields["stream_file"].keys())
         # This is the current method of detecting SPH data.
