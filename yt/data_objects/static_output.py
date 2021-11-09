@@ -1153,7 +1153,7 @@ class Dataset(abc.ABC):
                         "code_magnetic", self.magnetic_unit.value * 0.1 ** 0.5
                     )
         # _use_mks_em_units tells us if the code unit system needs an MKS current
-        current_mks_unit = "code_current" if self._use_mks_em_units else None
+        current_mks_unit = "code_current" if mks_system else None
         us = create_code_unit_system(
             self.unit_registry, current_mks_unit=current_mks_unit
         )

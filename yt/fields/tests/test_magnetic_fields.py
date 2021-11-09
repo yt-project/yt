@@ -23,10 +23,10 @@ def test_magnetic_fields():
     for field in data1:
         data2[field] = (data1[field][0] * 1.0e4, "gauss")
 
-    ds1 = load_uniform_grid(data1, ddims, unit_system="cgs")
-    ds2 = load_uniform_grid(data2, ddims, unit_system="mks")
+    ds1 = load_uniform_grid(data1, ddims, unit_system="cgs", use_mks_em_units=True)
+    ds2 = load_uniform_grid(data2, ddims, unit_system="mks", use_mks_em_units=True)
     # For this test dataset, code units are cgs units
-    ds3 = load_uniform_grid(data2, ddims, unit_system="code")
+    ds3 = load_uniform_grid(data2, ddims, unit_system="code", use_mks_em_units=True)
 
     ds1.index
     ds2.index
