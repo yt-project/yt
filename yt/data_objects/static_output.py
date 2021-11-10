@@ -681,7 +681,10 @@ class Dataset(abc.ABC):
             cls = PolarCoordinateHandler
         elif self.geometry == "spherical":
             cls = SphericalCoordinateHandler
-            self.no_cgs_equiv_length = True
+            # It shouldn't be required to reset self.no_cgs_equiv_length
+            # to the default value (False) here, but it's still necessary
+            # see https://github.com/yt-project/yt/pull/3618
+            self.no_cgs_equiv_length = False
         elif self.geometry == "geographic":
             cls = GeographicCoordinateHandler
             self.no_cgs_equiv_length = True
@@ -1143,10 +1146,18 @@ class Dataset(abc.ABC):
         if unit_system != "code":
             us = unit_system_registry[str(unit_system).lower()]
 
-        us._code_flag = unit_system == "code"
+        self._unit_system_name: str = unit_system
 
         self.unit_system = us
         self.unit_registry.unit_system = self.unit_system
+
+    @property
+    def _uses_code_length_unit(self) -> bool:
+        return self._unit_system_name == "code" or self.no_cgs_equiv_length
+
+    @property
+    def _uses_code_time_unit(self) -> bool:
+        return self._unit_system_name == "code"
 
     def _create_unit_registry(self, unit_system):
         from yt.units import dimensions
