@@ -11,6 +11,7 @@ import os
 import re
 import stat
 from itertools import product
+from typing import Optional
 
 import numpy as np
 
@@ -57,8 +58,8 @@ class AdaptaHOPDataset(Dataset):
 
     # AdaptaHOP internally assumes 1Mpc == 3.0824cm
     _code_length_to_Mpc = (1.0 * Mpc).to("cm").value / 3.08e24
-    _header_attributes: ATTR_T = None
-    _halo_attributes: ATTR_T = None
+    _header_attributes: Optional[ATTR_T] = None
+    _halo_attributes: Optional[ATTR_T] = None
 
     def __init__(
         self,
