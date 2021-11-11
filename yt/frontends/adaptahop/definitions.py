@@ -9,7 +9,7 @@ from typing import Tuple, Union
 
 from yt.funcs import mylog
 
-ATTR_T = Tuple[Tuple[Union[Tuple[str, str], str], int, str], ...]
+ATTR_T = Tuple[Tuple[Union[Tuple[str, ...], str], int, str], ...]
 
 
 def HEADER_ATTRIBUTES(*, double: bool, longint: bool) -> ATTR_T:
