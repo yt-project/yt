@@ -201,7 +201,7 @@ def _todo_from_attributes(attributes: ATTR_T, halo_attributes: ATTR_T):
     iskip = 0
     todo = []
 
-    attributes = set(attributes)
+    attributes = tuple(set(attributes))
 
     for i, (attrs, l, k) in enumerate(halo_attributes):
         if not isinstance(attrs, tuple):
