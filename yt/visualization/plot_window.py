@@ -1483,7 +1483,7 @@ class NormalPlot(abc.ABC):
                 )
             return normal
 
-        if isinstance(normal, (int, np.integer)):
+        if isinstance(normal, int):
             if normal not in (0, 1, 2):
                 raise ValueError(
                     f"{normal} is not a valid axis identifier. Expected either 0, 1, or 2."
