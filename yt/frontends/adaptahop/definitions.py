@@ -29,8 +29,6 @@ ADAPTAHOP_TEMPLATES = {}
 
 
 class AdaptaHOPDefTemplate(abc.ABC):
-    templates = []
-
     def __init_subclass__(cls, *args, **kwargs):
         super().__init_subclass__(*args, **kwargs)
         mylog.debug("Registering AdaptaHOP template class %s", cls.__name__)
