@@ -603,6 +603,11 @@ class PlotContainer(abc.ABC):
             if isinstance(k, tuple):
                 k = k[1]
 
+            if plot_type is None:
+                # implemented this check to make mypy happy, because we can't use str.join
+                # with PlotContainer._plot_type = None
+                raise TypeError(f"{self.__class__} is missing a _plot_type value (str)")
+
             name_elements = [prefix, plot_type]
             if axis:
                 name_elements.append(axis)
