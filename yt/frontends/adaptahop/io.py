@@ -9,6 +9,7 @@ AdaptaHOP data-file handling function
 
 from functools import partial
 from operator import attrgetter
+from typing import Tuple
 
 import numpy as np
 
@@ -204,10 +205,13 @@ def _todo_from_attributes(attributes: ATTR_T, halo_attributes: ATTR_T):
     attributes = tuple(set(attributes))
 
     for i, (attrs, l, k) in enumerate(halo_attributes):
-        if not isinstance(attrs, tuple):
-            attrs_list = (attrs,)
-        else:
+        attrs_list: Tuple[str, ...]
+        if isinstance(attrs, tuple):
+            if not all(isinstance(a, str) for a in attrs):
+                raise TypeError(f"Expected a single str or a tuple of str, got {attrs}")
             attrs_list = attrs
+        else:
+            attrs_list = (attrs,)
         ok = False
         for attr in attrs_list:
             if attr in attributes:
