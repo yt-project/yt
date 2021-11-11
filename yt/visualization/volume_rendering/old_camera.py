@@ -133,7 +133,7 @@ class Camera(ParallelAnalysisInterface):
     # Construct transfer function
     >>> tf = vr.ColorTransferFunction((mi - 2, ma + 2))
     # Sample transfer function with 5 gaussians.  Use new col_bounds keyword.
-    >>> tf.add_layers(5, w=0.05, col_bounds=(mi + 1, ma), colormap="spectral")
+    >>> tf.add_layers(5, w=0.05, col_bounds=(mi + 1, ma), colormap="nipy_spectral")
 
     # Create the camera object
     >>> cam = vr.Camera(c, L, W, (N, N), transfer_function=tf, ds=ds)

@@ -102,6 +102,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import (
 
 # Now individual component imports from the visualization API
 from yt.visualization.api import (
+    AxisAlignedProjectionPlot,
     AxisAlignedSlicePlot,
     FITSImageData,
     FITSOffAxisProjection,

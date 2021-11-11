@@ -39,7 +39,7 @@ class AdaptaHOPFieldInfo(FieldInfoContainer):
         ("ek", (e_units, [], "Halo Kinetic Energy")),
         ("ep", (e_units, [], "Halo Gravitational Energy")),
         ("ek", (e_units, [], "Halo Total Energy")),
-        ("spin", ("", [], "Halo Spin")),
+        ("spin", ("", [], "Halo Spin Parameter")),
         # Virial parameters
         ("virial_radius", (r_units, [], "Halo Virial Radius")),
         ("virial_mass", (m_units, [], "Halo Virial Mass")),
@@ -47,7 +47,15 @@ class AdaptaHOPFieldInfo(FieldInfoContainer):
         ("virial_velocity", (v_units, [], "Halo Virial Velocity")),
         # NFW parameters
         ("rho0", (dens_units, [], "Halo NFW Density")),
-        ("R_c", (dens_units, [], "Halo NFW Scale Radius")),
+        ("R_c", (r_units, [], "Halo NFW Scale Radius")),
+        ("velocity_dispersion", ("km/s", [], "Velocity Dispersion")),
+        ("radius_200", (r_units, [], r"$R_\mathrm{200}$")),
+        ("radius_50", (r_units, [], r"$R_\mathrm{50}$")),
+        ("mass_200", (m_units, [], r"$M_\mathrm{200}$")),
+        ("mass_50", (m_units, [], r"$M_\mathrm{50}$")),
+        # Contamination
+        ("contaminated", ("", [], "Contaminated")),
+        ("m_contam", (m_units, [], "Contaminated Mass")),
     )
 
     def setup_particle_fields(self, ptype):

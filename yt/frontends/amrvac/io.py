@@ -13,8 +13,6 @@ from yt.geometry.selection_routines import GridSelector
 from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.on_demand_imports import _f90nml as f90nml
 
-from .datfile_utils import get_single_block_field_data
-
 
 def read_amrvac_namelist(parfiles):
     """Read one or more parfiles, and return a unified f90nml.Namelist object.
@@ -79,11 +77,13 @@ class AMRVACIOHandler(BaseIOHandler):
         # you need to do your masking here.
         raise NotImplementedError
 
-    def _read_data(self, grid, field):
+    def _read_data(self, fid, grid, field):
         """Retrieve field data from a grid.
 
         Parameters
         ----------
+        fid: file descriptor (open binary file with read access)
+
         grid : yt.frontends.amrvac.data_structures.AMRVACGrid
             The grid from which data is to be read.
         field : str
@@ -98,11 +98,15 @@ class AMRVACIOHandler(BaseIOHandler):
         ileaf = grid.id
         offset = grid._index.block_offsets[ileaf]
         field_idx = self.ds.parameters["w_names"].index(field)
-        with open(self.datfile, "rb") as istream:
-            data = get_single_block_field_data(
-                istream, offset, self.block_shape, field_idx
-            )
 
+        field_shape = self.block_shape[:-1]
+        count = np.prod(field_shape)
+        byte_size_field = count * 8  # size of a double
+
+        fid.seek(offset + byte_size_field * field_idx)
+        data = np.fromfile(fid, "=f8", count=count)
+        data.shape = field_shape[::-1]
+        data = data.T
         # Always convert data to 3D, as grid.ActiveDimensions is always 3D
         while len(data.shape) < 3:
             data = data[..., np.newaxis]
@@ -142,12 +146,15 @@ class AMRVACIOHandler(BaseIOHandler):
 
         chunks = list(chunks)
         data_dict = {}  # <- return variable
+
         if isinstance(selector, GridSelector):
             if not len(chunks) == len(chunks[0].objs) == 1:
                 raise RuntimeError
             grid = chunks[0].objs[0]
-            for ftype, fname in fields:
-                data_dict[ftype, fname] = self._read_data(grid, fname)
+
+            with open(self.datfile, "rb") as fh:
+                for ftype, fname in fields:
+                    data_dict[ftype, fname] = self._read_data(fh, grid, fname)
         else:
             if size is None:
                 size = sum(g.count(selector) for chunk in chunks for g in chunk.objs)
@@ -156,16 +163,16 @@ class AMRVACIOHandler(BaseIOHandler):
                 data_dict[field] = np.empty(size, dtype="float64")
 
             # nb_grids = sum(len(chunk.objs) for chunk in chunks)
-
-            ind = 0
-            for chunk in chunks:
-                for grid in chunk.objs:
-                    nd = 0
-                    for field in fields:
-                        ftype, fname = field
-                        data = self._read_data(grid, fname)
-                        nd = grid.select(selector, data, data_dict[field], ind)
-                    ind += nd
+            with open(self.datfile, "rb") as fh:
+                ind = 0
+                for chunk in chunks:
+                    for grid in chunk.objs:
+                        nd = 0
+                        for field in fields:
+                            ftype, fname = field
+                            data = self._read_data(fh, grid, fname)
+                            nd = grid.select(selector, data, data_dict[field], ind)
+                        ind += nd
 
         return data_dict
 

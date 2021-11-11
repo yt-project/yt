@@ -15,6 +15,7 @@ SlicePlot and ProjectionPlot
    ~yt.visualization.plot_window.AxisAlignedSlicePlot
    ~yt.visualization.plot_window.OffAxisSlicePlot
    ~yt.visualization.plot_window.ProjectionPlot
+   ~yt.visualization.plot_window.AxisAlignedProjectionPlot
    ~yt.visualization.plot_window.OffAxisProjectionPlot
    ~yt.visualization.plot_window.WindowPlotMPL
    ~yt.visualization.plot_window.PlotWindow

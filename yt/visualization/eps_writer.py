@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import pyx
 from matplotlib import cm, pyplot as plt
@@ -743,7 +745,7 @@ class DualEPS:
 
         # Convert the colormap into a string
         x = np.linspace(1, 0, 256)
-        cm_string = cm.get_cmap[name](x, bytes=True)[:, 0:3].tobytes()
+        cm_string = cm.get_cmap(name)(x, bytes=True)[:, 0:3].tobytes()
 
         cmap_im = pyx.bitmap.image(imsize[0], imsize[1], "RGB", cm_string)
         if orientation == "top" or orientation == "bottom":
@@ -1143,6 +1145,7 @@ class DualEPS:
         >>> d = DualEPS()
         >>> d.axis_box(xrange=(0, 100), yrange=(1e-3, 1), ylog=True)
         """
+        filename = os.path.expanduser(filename)
         if format == "eps":
             self.canvas.writeEPSfile(filename)
         elif format == "pdf":
@@ -1241,8 +1244,8 @@ def multiplot(
     --------
     >>> images = ["density.jpg", "hi_density.jpg", "entropy.jpg", "special.jpg"]
     >>> cbs = []
-    >>> cbs.append(return_colormap("arbre", "Density [cm$^{-3}$]", (0, 10), False))
-    >>> cbs.append(return_colormap("kelp", "HI Density", (0, 5), False))
+    >>> cbs.append(return_colormap("cmyt.arbre", "Density [cm$^{-3}$]", (0, 10), False))
+    >>> cbs.append(return_colormap("cmyt.kelp", "HI Density", (0, 5), False))
     >>> cbs.append(return_colormap("hot", r"Entropy [K cm$^2$]", (1e-2, 1e6), True))
     >>> cbs.append(return_colormap("Spectral", "Stuff$_x$!", (1, 300), True))
     >>> mp = multiplot(
@@ -1627,7 +1630,7 @@ def return_colormap(cmap=None, label="", range=(0, 1), log=False):
 
     Examples
     --------
-    >>> cb = return_colormap("arbre", "Density [cm$^{-3}$]", (0, 10), False)
+    >>> cb = return_colormap("cmyt.arbre", "Density [cm$^{-3}$]", (0, 10), False)
     """
     if cmap is None:
         cmap = ytcfg.get("yt", "default_colormap")

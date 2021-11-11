@@ -840,18 +840,37 @@ class RAMSESDataset(Dataset):
         rheader = {}
 
         def read_rhs(f, cast):
-            line = f.readline().replace("\n", "")
-            p, v = line.split("=")
-            rheader[p.strip()] = cast(v.strip())
+            line = f.readline().strip()
+
+            if line and "=" in line:
+                key, val = (_.strip() for _ in line.split("="))
+                rheader[key] = cast(val)
+                return key
+            else:
+                return None
+
+        def cast_a_else_b(cast_a, cast_b):
+            def caster(val):
+                try:
+                    return cast_a(val)
+                except ValueError:
+                    return cast_b(val)
+
+            return caster
 
         with open(self.parameter_filename) as f:
+            # Standard: first six are ncpu, ndim, levelmin, levelmax, ngridmax, nstep_coarse
             for _ in range(6):
                 read_rhs(f, int)
             f.readline()
+            # Standard: next 11 are boxlen, time, aexp, h0, omega_m, omega_l, omega_k, omega_b, unit_l, unit_d, unit_t
             for _ in range(11):
-                read_rhs(f, float)
-            f.readline()
-            read_rhs(f, str)
+                key = read_rhs(f, float)
+
+            # Read non standard extra fields until hitting the ordering type
+            while key != "ordering type":
+                key = read_rhs(f, cast_a_else_b(float, str))
+
             # This next line deserves some comment.  We specify a min_level that
             # corresponds to the minimum level in the RAMSES simulation.  RAMSES is
             # one-indexed, but it also does refer to the *oct* dimensions -- so

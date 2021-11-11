@@ -735,12 +735,12 @@ class FITSImageData:
         w = first_image.wcs
         img_shape = first_image.shape
         data = []
-        for is_first, _is_last, fid in mark_ends(image_list):
+        for fid in image_list:
             assert_same_wcs(w, fid.wcs)
             if img_shape != fid.shape:
                 raise RuntimeError("Images do not have the same shape!")
             for hdu in fid.hdulist:
-                if is_first:
+                if len(data) == 0:
                     data.append(_astropy.pyfits.PrimaryHDU(hdu.data, header=hdu.header))
                 else:
                     data.append(_astropy.pyfits.ImageHDU(hdu.data, header=hdu.header))
@@ -848,7 +848,7 @@ def sanitize_fits_unit(unit):
 # This list allows one to determine which axes are the
 # correct axes of the image in a right-handed coordinate
 # system depending on which axis is sliced or projected
-axis_wcs = [[1, 2], [0, 2], [0, 1]]
+axis_wcs = [[1, 2], [2, 0], [0, 1]]
 
 
 def construct_image(ds, axis, data_source, center, image_res, width, length_unit):

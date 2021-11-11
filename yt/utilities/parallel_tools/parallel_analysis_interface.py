@@ -5,6 +5,7 @@ import sys
 import traceback
 from functools import wraps
 from io import StringIO
+from typing import Optional
 
 import numpy as np
 from more_itertools import always_iterable
@@ -68,7 +69,9 @@ def default_mpi_excepthook(exception_type, exception_value, tb):
     MPI.COMM_WORLD.Abort(1)
 
 
-def enable_parallelism(suppress_logging=False, communicator=None):
+def enable_parallelism(
+    suppress_logging: bool = False, communicator: Optional["MPI.Comm"] = None
+) -> bool:
     """
     This method is used inside a script to turn on MPI parallelism, via
     mpi4py.  More information about running yt in parallel can be found
@@ -83,14 +86,18 @@ def enable_parallelism(suppress_logging=False, communicator=None):
     communicator : mpi4py.MPI.Comm
         The MPI communicator to use. This controls which processes yt can see.
         If not specified, will be set to COMM_WORLD.
+
+    Returns
+    -------
+    parallel_capable: bool
+        True if the call was successful. False otherwise.
     """
     global parallel_capable, MPI
     try:
         from mpi4py import MPI as _MPI
     except ImportError:
-        mylog.info("mpi4py was not found. Disabling parallel computation")
-        parallel_capable = False
-        return
+        mylog.error("Could not enable parallelism: mpi4py is not installed")
+        return False
     MPI = _MPI
     exe_name = os.path.basename(sys.executable)
 
@@ -100,7 +107,13 @@ def enable_parallelism(suppress_logging=False, communicator=None):
 
     parallel_capable = communicator.size > 1
     if not parallel_capable:
+        mylog.error(
+            "Could not enable parallelism: only one mpi process is running. "
+            "To remedy this, launch the Python interpreter as\n"
+            "  mpirun -n <X> python3 <yourscript>.py  # with X > 1 ",
+        )
         return False
+
     mylog.info(
         "Global parallel computation enabled: %s / %s",
         communicator.rank,

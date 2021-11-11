@@ -1,6 +1,7 @@
 import builtins
 import functools
 from collections import OrderedDict
+from typing import Optional
 
 import numpy as np
 
@@ -270,7 +271,12 @@ class Scene:
         mylog.info("Saving rendered image to %s", fname)
         return fname
 
-    def save(self, fname=None, sigma_clip=None, render=True):
+    def save(
+        self,
+        fname: Optional[str] = None,
+        sigma_clip: Optional[float] = None,
+        render: bool = True,
+    ):
         r"""Saves a rendered image of the Scene to disk.
 
         Once you have created a scene, this saves an image array to disk with
@@ -283,8 +289,9 @@ class Scene:
         fname: string, optional
             If specified, save the rendering as to the file "fname".
             If unspecified, it creates a default based on the dataset filename.
-            The file format is inferred from the filename's suffix. Supported
-            formats are png, pdf, eps, and ps.
+            The file format is inferred from the filename's suffix.
+            Supported formats depend on which version of matplotlib is installed.
+
             Default: None
         sigma_clip: float, optional
             Image values greater than this number times the standard deviation
@@ -354,12 +361,12 @@ class Scene:
 
     def save_annotated(
         self,
-        fname=None,
-        label_fmt=None,
-        text_annotate=None,
-        dpi=100,
-        sigma_clip=None,
-        render=True,
+        fname: Optional[str] = None,
+        label_fmt: Optional[str] = None,
+        text_annotate: Optional[str] = None,
+        dpi: int = 100,
+        sigma_clip: Optional[float] = None,
+        render: bool = True,
     ):
         r"""Saves the most recently rendered image of the Scene to disk,
         including an image of the transfer function and and user-defined

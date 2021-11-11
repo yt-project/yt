@@ -19,12 +19,6 @@ snap_33 = "snapshot_033/snap_033.0.hdf5"
 snap_33_dir = "snapshot_033/"
 magneticum = "MagneticumCluster/snap_132"
 
-# py2/py3 compat
-try:
-    FileNotFoundError
-except NameError:
-    FileNotFoundError = IOError
-
 # This maps from field names to weight field names to use for projections
 iso_fields = OrderedDict(
     [

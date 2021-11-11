@@ -723,14 +723,12 @@ cdef class ParticleBitmap:
         cdef int axiter[3][2]
         cdef np.float64_t axiterv[3][2]
         cdef CoarseRefinedSets coarse_refined_map
-        cdef cmap[np.uint64_t, np.uint64_t] refined_count
         cdef np.uint64_t nfully_enclosed = 0, n_calls = 0
         mi1_max = (1 << self.index_order1) - 1
         mi2_max = (1 << self.index_order2) - 1
         cdef np.uint64_t max_mi1_elements = 1 << (3*self.index_order1)
         cdef np.uint64_t max_mi2_elements = 1 << (3*self.index_order2)
-        for i in range(max_mi1_elements):
-            refined_count[i] = 0
+        cdef np.ndarray[np.uint64_t, ndim=1] refined_count = np.zeros(max_mi1_elements, dtype="uint64")
         # Copy things from structure (type cast)
         for i in range(3):
             LE[i] = self.left_edge[i]

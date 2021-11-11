@@ -5,8 +5,10 @@ import itertools as it
 import os
 import pickle
 import shutil
+import sys
 import tempfile
 import unittest
+from shutil import which
 
 import matplotlib
 import numpy as np
@@ -787,23 +789,23 @@ def expand_keywords(keywords, full=False):
 
     >>> keywords = {}
     >>> keywords["dpi"] = (50, 100, 200)
-    >>> keywords["cmap"] = ("arbre", "kelp")
+    >>> keywords["cmap"] = ("cmyt.arbre", "cmyt.kelp")
     >>> list_of_kwargs = expand_keywords(keywords)
     >>> print(list_of_kwargs)
 
-    array([{'cmap': 'arbre', 'dpi': 50},
-           {'cmap': 'kelp', 'dpi': 100},
-           {'cmap': 'arbre', 'dpi': 200}], dtype=object)
+    array([{'cmap': 'cmyt.arbre', 'dpi': 50},
+           {'cmap': 'cmyt.kelp', 'dpi': 100},
+           {'cmap': 'cmyt.arbre', 'dpi': 200}], dtype=object)
 
     >>> list_of_kwargs = expand_keywords(keywords, full=True)
     >>> print(list_of_kwargs)
 
-    array([{'cmap': 'arbre', 'dpi': 50},
-           {'cmap': 'arbre', 'dpi': 100},
-           {'cmap': 'arbre', 'dpi': 200},
-           {'cmap': 'kelp', 'dpi': 50},
-           {'cmap': 'kelp', 'dpi': 100},
-           {'cmap': 'kelp', 'dpi': 200}], dtype=object)
+    array([{'cmap': 'cmyt.arbre', 'dpi': 50},
+           {'cmap': 'cmyt.arbre', 'dpi': 100},
+           {'cmap': 'cmyt.arbre', 'dpi': 200},
+           {'cmap': 'cmyt.kelp', 'dpi': 50},
+           {'cmap': 'cmyt.kelp', 'dpi': 100},
+           {'cmap': 'cmyt.kelp', 'dpi': 200}], dtype=object)
 
     >>> for kwargs in list_of_kwargs:
     ...     write_projection(*args, **kwargs)
@@ -1347,8 +1349,8 @@ def requires_backend(backend):
         # needed since None is no longer returned, so we check for the skip
         # exception in the xfail case for that test
         def skip(*args, **kwargs):
-            msg = f"`{backend}` backend not found, skipping: `{func.__name__}`"
-            print(msg)
+            msg = f"`{backend}` backend not in use, skipping: `{func.__name__}`"
+            print(msg, file=sys.stderr)
             pytest.skip(msg)
 
         if ytcfg.get("yt", "internals", "within_pytest"):
@@ -1362,6 +1364,29 @@ def requires_backend(backend):
     if backend.lower() == matplotlib.get_backend().lower():
         return ftrue
     return ffalse
+
+
+def requires_external_executable(*names):
+    import pytest
+
+    def deco(func):
+        missing = []
+        for name in names:
+            if which(name) is None:
+                missing.append(name)
+
+        # note that order between these two decorators matters
+        @pytest.mark.skipif(
+            missing,
+            reason=f"missing external executable(s): {', '.join(missing)}",
+        )
+        @functools.wraps(func)
+        def inner_func(*args, **kwargs):
+            return func(*args, **kwargs)
+
+        return inner_func
+
+    return deco
 
 
 class TempDirTest(unittest.TestCase):
