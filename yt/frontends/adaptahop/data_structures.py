@@ -95,7 +95,7 @@ class AdaptaHOPDataset(Dataset):
         setdefaultattr(self, "velocity_unit", self.quan(1.0, "km / s"))
         setdefaultattr(self, "time_unit", self.length_unit / self.velocity_unit)
 
-    def _guess_headers_from_file(self, filename) -> ATTR_T:
+    def _guess_headers_from_file(self, filename) -> None:
         with FortranFile(filename) as fpu:
             ok = False
             for dp, longint in product((True, False), (True, False)):
