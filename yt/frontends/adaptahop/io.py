@@ -200,7 +200,7 @@ def _todo_from_attributes(attributes: ATTR_T, halo_attributes: ATTR_T):
     # attributes. This is used to skip fields most of the fields when reading
     # the tree_brick files.
     iskip = 0
-    todo: List[Union[int, List[Tuple[Union[Tuple[str, ...], str], int, int]]]] = []
+    todo: List[Union[int, List[Tuple[Union[Tuple[str, ...], str], int, str]]]] = []
 
     attributes = tuple(set(attributes))
 
@@ -232,6 +232,8 @@ def _todo_from_attributes(attributes: ATTR_T, halo_attributes: ATTR_T):
                 todo.append(iskip)
                 todo.append([])
                 iskip = 0
+            if not isinstance(todo[-1], list):
+                raise TypeError
             todo[-1].append((attrs, l, k))
             state = "read"
         else:
