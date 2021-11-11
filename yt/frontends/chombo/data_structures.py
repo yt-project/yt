@@ -7,8 +7,8 @@ import numpy as np
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
-from yt.frontends.boxlib.misc import BoxlibReadParticleFileMixin
 from yt.fields.field_info_container import FieldInfoContainer
+from yt.frontends.boxlib.misc import BoxlibReadParticleFileMixin
 from yt.funcs import mylog, setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.file_handler import HDF5FileHandler, warn_h5py
