@@ -9,7 +9,7 @@ AdaptaHOP data-file handling function
 
 from functools import partial
 from operator import attrgetter
-from typing import Tuple
+from typing import List, Tuple, Union
 
 import numpy as np
 
@@ -200,7 +200,7 @@ def _todo_from_attributes(attributes: ATTR_T, halo_attributes: ATTR_T):
     # attributes. This is used to skip fields most of the fields when reading
     # the tree_brick files.
     iskip = 0
-    todo = []
+    todo: List[Union[int, List[Tuple[Union[Tuple[str, ...], str], int, int]]]] = []
 
     attributes = tuple(set(attributes))
 
