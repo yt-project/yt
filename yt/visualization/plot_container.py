@@ -6,7 +6,7 @@ import sys
 import warnings
 from collections import defaultdict
 from functools import wraps
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from matplotlib.cm import get_cmap
@@ -522,7 +522,7 @@ class PlotContainer(abc.ABC):
     @validate_plot
     def save(
         self,
-        name: Optional[str] = None,
+        name: Optional[Union[str, List[str], Tuple[str, ...]]] = None,
         suffix: str = ".png",
         mpl_kwargs: Optional[Dict[str, Any]] = None,
     ):
@@ -558,9 +558,11 @@ class PlotContainer(abc.ABC):
 
         if name is None:
             name = str(self.ds)
-
-        # ///// Magic area. Muggles, keep out !
-        if is_sequence(name) and all(isinstance(_, str) for _ in name):
+        elif isinstance(name, (list, tuple)):
+            if not all(isinstance(_, str) for _ in name):
+                raise TypeError(
+                    f"Expected a single str or an iterable of str, got {name!r}"
+                )
             name = os.path.join(*name)
 
         name = os.path.expanduser(name)
