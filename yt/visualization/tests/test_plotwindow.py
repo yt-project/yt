@@ -73,6 +73,7 @@ ATTR_ARGS = {
         (("density", 1e-25, None), {"dynamic_range": 4}),
     ],
     "zoom": [((10,), {})],
+    "right_handed": [((), {})],
     "flip_horizontal": [((), {})],
     "flip_vertical": [((), {})],
 }
