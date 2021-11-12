@@ -114,6 +114,49 @@ places in yt, code that used ``("gas", "cell_mass")`` has been replaced by
 ``("gas", "mass")``. Since the latter is an alias for the former, old scripts which
 use ``("gas", "cell_mass")`` should not break.
 
+Deprecations
+^^^^^^^^^^^^
+
+The following methods and method arguments are deprecated as of yt 4.0 and will be
+removed in yt 4.1
+
+ * :meth:`~yt.visualization.plot_container.PlotWindow.set_window_size` is deprecated
+   in favour to :meth:`~yt.visualization.plot_container.PlotContainer.set_figure_size`
+ * :meth:`~yt.visualization.eps_writer.return_cmap` is deprecated in favour to
+   :meth:`~yt.visualization.eps_writer.return_colormap`
+ * :meth:`~yt.data_objects.derived_quantities.WeightedVariance` is deprecated in favour
+   to :meth:`~yt.data_objects.derived_quantities.WeightedStandardDeviation`
+ * :meth:`~yt.visualization.plot_window.PWViewerMPL.annotate_clear` is deprecated in
+   favour to :meth:`~yt.visualization.plot_window.PWViewerMPL.clear_annotaions`
+ * :meth:`~yt.visualization.color_maps.add_cmap` is deprecated in favour to
+   :meth:`~yt.visualization.color_maps.add_colormap`
+ * :meth:`~yt.loaders.simulation` is deprecated in favour to :meth:`~yt.loaders.load_simulation`
+ * :meth:`~yt.data_objects.index_subobjects.octree_subset.OctreeSubset.get_vertex_centered_data`
+   now takes a list of fields as input, passing a single field is deprecated
+ * manually updating the ``periodicity`` attributed of a ``Dataset`` object is deprecated. Use the
+   ``Dataset.force_periodicity()`` if you need to force periodicity to ``True`` or ``False`` along all axes.
+ * the ``Dataset.add_smoothed_particle_field`` method is deprecated and already has no effect in yt 4.0 .
+   See :ref:`sph-data`
+ * the ``Dataset.add_gradient_fields`` used to accept an ``input_field`` keyword argument, now deprecated
+   in favour to ``fields``
+ * ``DatasetSeries.from_filenames()`` is deprecated because its functionality is now
+   included in the basic ``__init__`` method. Use ``DatasetSeries()`` directly.
+ * the ``particle_type`` keyword argument from ``add_field`` methods is now a deprecated in favour to
+   the ``sampling_type`` keyword argument.
+ * the ``add_volume_weighted_smoothed_field`` is deprecated and already has no effect in yt 4.0 .
+   See :ref:`sph-data`
+ * the ``AMRKDTree.locate_brick`` method is deprecated in favour to, and is now an alias for ``AMRKDTree.locate_node``
+ * the ``YTOutputNotIdentified`` error is a deprecated alias for ``YTUnidentifiedDataType``
+ * the ``limits`` argument from :meth:`yt.visualization.image_writer.write_projection` is deprecated in
+   favour to ``vmin`` and ``vmax``
+ * :meth:`ImagePlotContainer.set_cbar_minorticks` is a deprecated alias for :meth:`ImagePlotContainer.set_colorbar_minorticks`
+ * the ``axis`` argument from :meth:`yt.visualization.plot_window.SlicePlot` is a depreacted alias for the ``normal`` argument
+ * the old configuration file ``ytrc`` is deprecated in favour of the new ``yt.toml`` format. In yt 4.0,
+   you'll get a warning every time you import yt if you're still using the old configuration file,
+   which will instruct you to invoke the yt command line interface to convert automatically to the new format.
+ * the ``load_field_plugins`` parameter is deprecated from the configuration file (note that it is already not used as of yt 4.0)
+
+
 Cool New Things
 ---------------
 
@@ -142,6 +185,8 @@ in yt.
 
 The new I/O method has opened up a new way of dealing with the particle data and
 in particular, SPH data.
+
+.. _sph-data:
 
 Scatter and Gather approach for SPH data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
