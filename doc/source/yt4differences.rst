@@ -120,36 +120,36 @@ Deprecations
 The following methods and method arguments are deprecated as of yt 4.0 and will be
 removed in yt 4.1
 
- * :meth:`~yt.visualization.plot_container.PlotWindow.set_window_size` is deprecated
+ * :meth:`~yt.visualization.plot_window.PlotWindow.set_window_size` is deprecated
    in favour to :meth:`~yt.visualization.plot_container.PlotContainer.set_figure_size`
  * :meth:`~yt.visualization.eps_writer.return_cmap` is deprecated in favour to
    :meth:`~yt.visualization.eps_writer.return_colormap`
  * :meth:`~yt.data_objects.derived_quantities.WeightedVariance` is deprecated in favour
    to :meth:`~yt.data_objects.derived_quantities.WeightedStandardDeviation`
  * :meth:`~yt.visualization.plot_window.PWViewerMPL.annotate_clear` is deprecated in
-   favour to :meth:`~yt.visualization.plot_window.PWViewerMPL.clear_annotaions`
+   favour to :meth:`~yt.visualization.plot_window.PWViewerMPL.clear_annotations`
  * :meth:`~yt.visualization.color_maps.add_cmap` is deprecated in favour to
    :meth:`~yt.visualization.color_maps.add_colormap`
  * :meth:`~yt.loaders.simulation` is deprecated in favour to :meth:`~yt.loaders.load_simulation`
  * :meth:`~yt.data_objects.index_subobjects.octree_subset.OctreeSubset.get_vertex_centered_data`
    now takes a list of fields as input, passing a single field is deprecated
- * manually updating the ``periodicity`` attributed of a ``Dataset`` object is deprecated. Use the
-   ``Dataset.force_periodicity()`` if you need to force periodicity to ``True`` or ``False`` along all axes.
- * the ``Dataset.add_smoothed_particle_field`` method is deprecated and already has no effect in yt 4.0 .
+ * manually updating the ``periodicity`` attributed of a :class:`~yt.data_objects.static_output.Dataset` object is deprecated. Use the
+   :meth:`~yt.data_objects.static_output.Dataset.force_periodicity` if you need to force periodicity to ``True`` or ``False`` along all axes.
+ * the :meth:`~yt.data_objects.static_output.Dataset.add_smoothed_particle_field` method is deprecated and already has no effect in yt 4.0 .
    See :ref:`sph-data`
- * the ``Dataset.add_gradient_fields`` used to accept an ``input_field`` keyword argument, now deprecated
+ * the :meth:`~yt.data_objects.static_output.Dataset.add_gradient_fields` used to accept an ``input_field`` keyword argument, now deprecated
    in favour to ``fields``
- * ``DatasetSeries.from_filenames()`` is deprecated because its functionality is now
-   included in the basic ``__init__`` method. Use ``DatasetSeries()`` directly.
- * the ``particle_type`` keyword argument from ``add_field`` methods is now a deprecated in favour to
+ * :meth:`~yt.data_objects.time_series.DatasetSeries.from_filenames` is deprecated because its functionality is now
+   included in the basic ``__init__`` method. Use :class:`~yt.data_objects.time_series.DatasetSeries` directly.
+ * the ``particle_type`` keyword argument from ``yt.add_field()`` (:meth:`~yt.fields.field_info_container.FieldInfoContainer.add_field`) and ``ds.add_field()`` (:meth:`~yt.data_objects.static_output.Dataset.add_field`) methods is now a deprecated in favor to
    the ``sampling_type`` keyword argument.
- * the ``add_volume_weighted_smoothed_field`` is deprecated and already has no effect in yt 4.0 .
+ * the :meth:`~yt.fields.particle_fields.add_volume_weighted_smoothed_field` is deprecated and already has no effect in yt 4.0 .
    See :ref:`sph-data`
- * the ``AMRKDTree.locate_brick`` method is deprecated in favour to, and is now an alias for ``AMRKDTree.locate_node``
- * the ``YTOutputNotIdentified`` error is a deprecated alias for ``YTUnidentifiedDataType``
- * the ``limits`` argument from :meth:`yt.visualization.image_writer.write_projection` is deprecated in
+ * the :meth:`~yt.utilities.amr_kdtree.amr_kdtree.AMRKDTree.locate_brick` method is deprecated in favor to, and is now an alias for :meth:`~yt.utilities.amr_kdtree.amr_kdtree.AMRKDTree.locate_node`
+ * the :class:`~yt.utilities.exceptions.YTOutputNotIdentified` error is a deprecated alias for :class:`~yt.utilities.exceptions.YTUnidentifiedDataType`
+ * the ``limits`` argument from :meth:`~yt.visualization.image_writer.write_projection` is deprecated in
    favour to ``vmin`` and ``vmax``
- * :meth:`ImagePlotContainer.set_cbar_minorticks` is a deprecated alias for :meth:`ImagePlotContainer.set_colorbar_minorticks`
+ * :meth:`~yt.visualization.plot_container.ImagePlotContainer.set_cbar_minorticks` is a deprecated alias for :meth:`~yt.visualization.plot_container.ImagePlotContainer.set_colorbar_minorticks`
  * the ``axis`` argument from :meth:`yt.visualization.plot_window.SlicePlot` is a depreacted alias for the ``normal`` argument
  * the old configuration file ``ytrc`` is deprecated in favour of the new ``yt.toml`` format. In yt 4.0,
    you'll get a warning every time you import yt if you're still using the old configuration file,
