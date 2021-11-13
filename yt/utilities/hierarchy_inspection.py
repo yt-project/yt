@@ -1,11 +1,11 @@
 import inspect
 from collections import Counter
 from functools import reduce
-from typing import Iterable, List, Optional, Type
+from typing import List, Optional, Type
 
 
 def find_lowest_subclasses(
-    candidates: Iterable[Type], *, hint: Optional[str] = None
+    candidates: List[Type], *, hint: Optional[str] = None
 ) -> List[Type]:
     """
     This function takes a list of classes, and returns only the ones that are
@@ -40,7 +40,7 @@ def find_lowest_subclasses(
     counters = [Counter(mro) for mro in mros]
 
     if len(counters) == 0:
-        return counters
+        return []
 
     count = reduce(lambda x, y: x + y, counters)
 
