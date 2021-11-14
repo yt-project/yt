@@ -117,7 +117,11 @@ class PlotMPL:
         return f.read()
 
     def __del__(self):
-        plt.close(self.figure)
+        if hasattr(self, "figure"):
+            # this condition should NOT be necessary by virtue of the substitution principle
+            # however I'm finding a couple tests failing here with AttributeError, so I'm making
+            # this instruction conditional for now, but this bandaid should absolutely not be merged !
+            plt.close(self.figure)
 
 
 class ImagePlotMPL(PlotMPL):
