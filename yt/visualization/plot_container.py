@@ -1,6 +1,5 @@
 import abc
 import base64
-import builtins
 import os
 import sys
 import warnings
@@ -8,6 +7,7 @@ from collections import defaultdict
 from functools import wraps
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.cm import get_cmap
 from matplotlib.font_manager import FontProperties
@@ -19,7 +19,6 @@ from yt.funcs import dictWithFactory, ensure_dir, is_sequence, iter_fields, mylo
 from yt.units import YTQuantity
 from yt.units.unit_object import Unit  # type: ignore
 from yt.utilities.definitions import formatted_length_unit_names
-from yt.utilities.exceptions import YTNotInsideNotebook
 
 from ._commons import DEFAULT_FONT_PROPERTIES, validate_image_name
 
@@ -627,15 +626,10 @@ class PlotContainer(abc.ABC):
         return self
 
     @validate_plot
-    def show(self):
-        r"""This will send any existing plots to the IPython notebook.
+    def show(self, *args, **kwargs):
+        r"""
 
-        If yt is being run from within an IPython session, and it is able to
-        determine this, this function will send any existing plots to the
-        notebook for display.
-
-        If yt can't determine if it's inside an IPython session, it will raise
-        YTNotInsideNotebook.
+        ... WRITEME ...
 
         Examples
         --------
@@ -647,31 +641,21 @@ class PlotContainer(abc.ABC):
         >>> slc.show()
 
         """
-        interactivity = self.plots[list(self.plots.keys())[0]].interactivity
-        if interactivity:
-            for v in sorted(self.plots.values()):
-                v.show()
-        else:
-            if "__IPYTHON__" in dir(builtins):
-                from IPython.display import display
-
-                display(self)
-            else:
-                raise YTNotInsideNotebook
+        plt.show(*args, **kwargs)
 
     @validate_plot
-    def display(self, name=None, mpl_kwargs=None):
+    def display(self, *args, **kwargs):
+        # TODO: UPDATE DOCSTRING
         """Will attempt to show the plot in in an IPython notebook.
         Failing that, the plot will be saved to disk."""
-        try:
-            return self.show()
-        except YTNotInsideNotebook:
-            return self.save(name=name, mpl_kwargs=mpl_kwargs)
+        return self.show(*args, **kwargs)
 
     @validate_plot
     def _repr_html_(self):
         """Return an html representation of the plot object. Will display as a
         png for each WindowPlotMPL instance in self.plots"""
+        import base64
+
         ret = ""
         for field in self.plots:
             img = base64.b64encode(self.plots[field]._repr_png_()).decode()

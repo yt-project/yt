@@ -1,11 +1,11 @@
 import base64
-import builtins
 import os
 from collections import OrderedDict
 from functools import wraps
 from typing import Any, Dict, Optional
 
 import matplotlib
+import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.font_manager import FontProperties
 from more_itertools.more import always_iterable, unzip
@@ -15,7 +15,6 @@ from yt.data_objects.profiles import create_profile, sanitize_field_tuple_keys
 from yt.data_objects.static_output import Dataset
 from yt.frontends.ytdata.data_structures import YTProfileDataset
 from yt.funcs import is_sequence, iter_fields, matplotlib_style_context
-from yt.utilities.exceptions import YTNotInsideNotebook
 from yt.utilities.logger import ytLogger as mylog
 
 from ..data_objects.selection_objects.data_selection_objects import YTSelectionContainer
@@ -345,12 +344,7 @@ class ProfilePlot(PlotContainer):
         >>> pp.show()
 
         """
-        if "__IPYTHON__" in dir(builtins):
-            from IPython.display import display
-
-            display(self)
-        else:
-            raise YTNotInsideNotebook
+        plt.show()
 
     @validate_plot
     def _repr_html_(self):

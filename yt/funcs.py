@@ -1,5 +1,4 @@
 import base64
-import builtins
 import contextlib
 import copy
 import errno
@@ -1043,28 +1042,28 @@ def matplotlib_style_context(style_name=None, after_reset=False):
     return dummy_context_manager()
 
 
-interactivity = False
-
-"""Sets the condition that interactive backends can be used."""
+_interactivity = False
 
 
 def toggle_interactivity():
-    global interactivity
-    interactivity = not interactivity
-    if interactivity:
-        if "__IPYTHON__" in dir(builtins):
-            import IPython
-
-            shell = IPython.get_ipython()
-            shell.magic("matplotlib")
-        else:
-            import matplotlib
-
-            matplotlib.interactive(True)
+    """
+    A wrapper around matplotlib.interactive, switch interactivity state (on/off)
+    on every call.
+    """
+    global _interactivity
+    _interactivity = not _interactivity
+    matplotlib.interactive(_interactivity)
 
 
-def get_interactivity():
-    return interactivity
+def get_interactivity() -> bool:
+    """
+    A wrapper around matplotlib.is_interactive, emit a warning in case yt's
+    interactivity state has gone out of sync with matplotlib.
+    """
+    mpl_interactivity = matplotlib.is_interactive()
+    if _interactivity != mpl_interactivity:
+        warnings.warn("yt's interactivity flag seems to be out of sync with matplotlib")
+    return matplotlib.is_interactive()
 
 
 def setdefaultattr(obj, name, value):

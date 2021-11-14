@@ -2,39 +2,13 @@ import warnings
 from io import BytesIO
 
 import matplotlib
+import matplotlib.pyplot as plt
 import numpy as np
 from packaging.version import Version
 
-from yt.funcs import (
-    get_brewer_cmap,
-    get_interactivity,
-    is_sequence,
-    matplotlib_style_context,
-    mylog,
-)
+from yt.funcs import get_brewer_cmap, is_sequence, matplotlib_style_context, mylog
 
-from ._commons import MPL_VERSION, get_canvas, validate_image_name
-
-BACKEND_SPECS = {
-    "GTK": ["backend_gtk", "FigureCanvasGTK", "FigureManagerGTK"],
-    "GTKAgg": ["backend_gtkagg", "FigureCanvasGTKAgg", None],
-    "GTKCairo": ["backend_gtkcairo", "FigureCanvasGTKCairo", None],
-    "MacOSX": ["backend_macosx", "FigureCanvasMac", "FigureManagerMac"],
-    "Qt4Agg": ["backend_qt4agg", "FigureCanvasQTAgg", None],
-    "Qt5Agg": ["backend_qt5agg", "FigureCanvasQTAgg", None],
-    "TkAgg": ["backend_tkagg", "FigureCanvasTkAgg", None],
-    "WX": ["backend_wx", "FigureCanvasWx", None],
-    "WXAgg": ["backend_wxagg", "FigureCanvasWxAgg", None],
-    "GTK3Cairo": [
-        "backend_gtk3cairo",
-        "FigureCanvasGTK3Cairo",
-        "FigureManagerGTK3Cairo",
-    ],
-    "GTK3Agg": ["backend_gtk3agg", "FigureCanvasGTK3Agg", "FigureManagerGTK3Agg"],
-    "WebAgg": ["backend_webagg", "FigureCanvasWebAgg", None],
-    "nbAgg": ["backend_nbagg", "FigureCanvasNbAgg", "FigureManagerNbAgg"],
-    "agg": ["backend_agg", "FigureCanvasAgg", None],
-}
+from ._commons import MPL_VERSION, validate_image_name
 
 
 class CallbackWrapper:
@@ -69,13 +43,12 @@ class PlotMPL:
 
     def __init__(self, fsize, axrect, figure, axes):
         """Initialize PlotMPL class"""
-        import matplotlib.figure
 
         self._plot_valid = True
         if figure is None:
             if not is_sequence(fsize):
                 fsize = (fsize, fsize)
-            self.figure = matplotlib.figure.Figure(figsize=fsize, frameon=True)
+            self.figure = matplotlib.figure.Figure(figsize=fsize)
         else:
             figure.set_size_inches(fsize)
             self.figure = figure
@@ -85,12 +58,6 @@ class PlotMPL:
             axes.cla()
             axes.set_position(axrect)
             self.axes = axes
-        self.interactivity = get_interactivity()
-
-        figure_canvas, figure_manager = self._get_canvas_classes()
-        self.canvas = figure_canvas(self.figure)
-        if figure_manager is not None:
-            self.manager = figure_manager(self.canvas, 1)
 
         self.axes.tick_params(
             which="both", axis="both", direction="in", top=True, right=True
@@ -98,33 +65,6 @@ class PlotMPL:
 
     def _create_axes(self, axrect):
         self.axes = self.figure.add_axes(axrect)
-
-    def _get_canvas_classes(self):
-
-        if self.interactivity:
-            key = str(matplotlib.get_backend())
-        else:
-            key = "agg"
-
-        try:
-            module, fig_canvas, fig_manager = BACKEND_SPECS[key]
-        except KeyError:
-            return
-
-        mod = __import__(
-            "matplotlib.backends",
-            globals(),
-            locals(),
-            [module],
-            0,
-        )
-        submod = getattr(mod, module)
-        FigureCanvas = getattr(submod, fig_canvas)
-        if fig_manager is not None:
-            FigureManager = getattr(submod, fig_manager)
-            return FigureCanvas, FigureManager
-
-        return FigureCanvas, None
 
     def save(self, name, mpl_kwargs=None, canvas=None):
         """Choose backend and save image to disk"""
@@ -138,21 +78,13 @@ class PlotMPL:
 
         name = validate_image_name(name)
 
-        try:
-            canvas = get_canvas(self.figure, name)
-        except ValueError:
-            canvas = self.canvas
-
         mylog.info("Saving plot %s", name)
         with matplotlib_style_context():
-            canvas.print_figure(name, **mpl_kwargs)
+            self.figure.savefig(name, **mpl_kwargs)
         return name
 
     def show(self):
-        try:
-            self.manager.show()
-        except AttributeError:
-            self.canvas.show()
+        plt.show()
 
     def _get_labels(self):
         ax = self.axes
