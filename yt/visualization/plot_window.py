@@ -39,7 +39,6 @@ from .geo_plot_utils import get_mpl_transform
 from .plot_container import (
     ImagePlotContainer,
     apply_callback,
-    get_log_minorticks,
     get_symlog_minorticks,
     invalidate_data,
     invalidate_figure,
@@ -1248,14 +1247,8 @@ class PWViewerMPL(PlotWindow):
                         self.plots[f].cax.yaxis.set_ticks(mticks, minor=True)
 
                 elif self._field_transform[f] == log_transform:
-                    if MPL_VERSION >= Version("3.0.0"):
-                        self.plots[f].cax.minorticks_on()
-                        self.plots[f].cax.xaxis.set_visible(False)
-                    else:
-                        mticks = self.plots[f].image.norm(
-                            get_log_minorticks(vmin, vmax)
-                        )
-                        self.plots[f].cax.yaxis.set_ticks(mticks, minor=True)
+                    self.plots[f].cax.minorticks_on()
+                    self.plots[f].cax.xaxis.set_visible(False)
 
                 else:
                     mylog.error(

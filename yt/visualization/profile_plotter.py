@@ -23,7 +23,6 @@ from .base_plot_types import ImagePlotMPL, PlotMPL
 from .plot_container import (
     ImagePlotContainer,
     PlotContainer,
-    get_log_minorticks,
     invalidate_plot,
     linear_transform,
     log_transform,
@@ -1181,16 +1180,6 @@ class PhasePlot(ImagePlotContainer):
             if self._cbar_minorticks[f]:
                 if self._field_transform[f] == linear_transform:
                     self.plots[f].cax.minorticks_on()
-                elif MPL_VERSION < Version("3.0.0"):
-                    # before matplotlib 3 log-scaled colorbars internally used
-                    # a linear scale going from zero to one and did not draw
-                    # minor ticks. Since we want minor ticks, calculate
-                    # where the minor ticks should go in this linear scale
-                    # and add them manually.
-                    vmin = np.float64(self.plots[f].cb.norm.vmin)
-                    vmax = np.float64(self.plots[f].cb.norm.vmax)
-                    mticks = self.plots[f].image.norm(get_log_minorticks(vmin, vmax))
-                    self.plots[f].cax.yaxis.set_ticks(mticks, minor=True)
             else:
                 self.plots[f].cax.minorticks_off()
 
