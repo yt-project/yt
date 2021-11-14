@@ -113,12 +113,11 @@ def pytest_configure(config):
     ):
         config.addinivalue_line("filterwarnings", value)
 
-    if MPL_VERSION < Version("3.0.0"):
+    if MPL_VERSION < Version("3.1.0"):
         config.addinivalue_line(
             "filterwarnings",
             (
-                "ignore:Using or importing the ABCs from 'collections' instead of from 'collections.abc' "
-                "is deprecated since Python 3.3,and in 3.9 it will stop working:DeprecationWarning"
+                r"ignore:\nexamples.directory is deprecated; in the future, examples will be found relative to the 'datapath' directory.:matplotlib.cbook.deprecation.MatplotlibDeprecationWarning"
             ),
         )
     # at the time of writing, astropy's wheels are behind numpy's latest
