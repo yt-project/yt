@@ -22,7 +22,7 @@ def teardown_func(fns):
             pass
 
 
-@mock.patch("yt.visualization._mpl_imports.FigureCanvasAgg.print_figure")
+@mock.patch("matplotlib.pyplot.savefig")
 def test_slice(pf):
     fns = []
     grid_eps = np.finfo(np.float64).eps

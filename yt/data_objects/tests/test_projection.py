@@ -24,7 +24,7 @@ def teardown_func(fns):
             pass
 
 
-@mock.patch("yt.visualization._mpl_imports.FigureCanvasAgg.print_figure")
+@mock.patch("matplotlib.pyplot.savefig")
 def test_projection(pf):
     fns = []
     for nprocs in [8, 1]:
