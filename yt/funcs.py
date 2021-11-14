@@ -19,7 +19,7 @@ import urllib.request
 import warnings
 from functools import lru_cache, wraps
 from numbers import Number as numeric_type
-from typing import Any, Callable, Type
+from typing import Any, Callable, Optional, Type
 
 import matplotlib
 import numpy as np
@@ -1045,13 +1045,15 @@ def matplotlib_style_context(style_name=None, after_reset=False):
 _interactivity = False
 
 
-def toggle_interactivity():
+def toggle_interactivity(state: Optional[bool] = None):
     """
     A wrapper around matplotlib.interactive, switch interactivity state (on/off)
     on every call.
     """
     global _interactivity
-    _interactivity = not _interactivity
+    if state is None:
+        state = not _interactivity
+    _interactivity = state
     matplotlib.interactive(_interactivity)
 
 
