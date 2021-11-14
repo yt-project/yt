@@ -625,7 +625,6 @@ class PlotContainer(abc.ABC):
         # invalidate_data will take care of everything
         return self
 
-    @validate_plot
     def show(self, *args, **kwargs):
         r"""
 

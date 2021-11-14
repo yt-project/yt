@@ -48,7 +48,7 @@ class PlotMPL:
         if figure is None:
             if not is_sequence(fsize):
                 fsize = (fsize, fsize)
-            self.figure = matplotlib.figure.Figure(figsize=fsize)
+            self.figure = plt.figure(figsize=fsize)
         else:
             figure.set_size_inches(fsize)
             self.figure = figure
@@ -115,6 +115,9 @@ class PlotMPL:
             canvas.print_figure(f)
         f.seek(0)
         return f.read()
+
+    def __del__(self):
+        plt.close(self.figure)
 
 
 class ImagePlotMPL(PlotMPL):
