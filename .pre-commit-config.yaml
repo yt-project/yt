@@ -20,7 +20,6 @@ repos:
     rev: v1.19.0
     hooks:
     -   id: setup-cfg-fmt
-        args: [--max-py-version, '3.9']
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.0.1
     hooks:
