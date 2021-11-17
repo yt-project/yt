@@ -184,8 +184,10 @@ def get_symlog_minorticks(linthresh, vmin, vmax):
         the maximum value in the colorbar
 
     """
-    if vmin > 0 or vmax < 0:
+    if vmin > 0:
         return get_log_minorticks(vmin, vmax)
+    elif vmax < 0 and vmin < 0:
+        return -get_log_minorticks(-vmax, -vmin)
     elif vmin == 0:
         return np.hstack((0, get_log_minorticks(linthresh, vmax)))
     elif vmax == 0:
