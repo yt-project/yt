@@ -10,13 +10,13 @@ from textwrap import dedent
 from concurrent.futures import ThreadPoolExecutor
 from distutils import log
 from distutils.ccompiler import CCompiler, new_compiler
-from distutils.errors import CompileError, LinkError
 from distutils.sysconfig import customize_compiler
 from subprocess import PIPE, Popen
 from sys import platform as _platform
 
 from pkg_resources import resource_filename
 from setuptools.command.build_ext import build_ext as _build_ext
+from setuptools.errors import CompileError, LinkError
 from setuptools.command.sdist import sdist as _sdist
 
 

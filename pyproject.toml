@@ -1,6 +1,6 @@
 [build-system]
 requires = [
-  "setuptools>=19.6",
+  "setuptools>=59",
   # see https://github.com/numpy/numpy/pull/18389
   "wheel>=0.36.2",
 
