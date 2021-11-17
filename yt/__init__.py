@@ -77,7 +77,6 @@ frontends = _frontend_container()
 import yt.visualization.volume_rendering.api as volume_rendering
 from yt.frontends.stream.api import hexahedral_connectivity
 from yt.frontends.ytdata.api import save_as_dataset
-from yt.loaders import simulation  # deprecated alias for load_simulation
 from yt.loaders import (
     load,
     load_amr_grids,
@@ -143,17 +142,3 @@ from yt.visualization.volume_rendering.api import (
 
 #    TransferFunctionHelper, MultiVariateTransferFunction
 #    off_axis_projection
-
-
-def _check_deprecated_parameters():
-    from yt._maintenance.deprecation import issue_deprecation_warning
-    from yt.config import ytcfg
-
-    if ytcfg.get("yt", "load_field_plugins"):
-        issue_deprecation_warning(
-            "Found deprecated parameter 'load_field_plugins' in yt's configuration file.",
-            removal="4.1.0",
-        )
-
-
-_check_deprecated_parameters()

@@ -5,7 +5,6 @@ from typing import Optional, Tuple
 import numpy as np
 from unyt.exceptions import UnitConversionError
 
-from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.fields.field_exceptions import NeedsConfiguration
 from yt.funcs import mylog, only_on_root
 from yt.geometry.geometry_handler import is_curvilinear
@@ -267,7 +266,7 @@ class FieldInfoContainer(dict):
                 self.alias((ftype, alias), field)
 
     @staticmethod
-    def _sanitize_sampling_type(sampling_type, particle_type=None):
+    def _sanitize_sampling_type(sampling_type):
         """Detect conflicts between deprecated and new parameters to specify the
         sampling type in a new field.
 
@@ -277,9 +276,6 @@ class FieldInfoContainer(dict):
         ----------
         sampling_type : str
             One of "cell", "particle" or "local" (case insensitive)
-        particle_type : str
-            This is a deprecated argument of the add_field method,
-            which was replaced by sampling_type.
 
         Raises
         ------
@@ -300,20 +296,6 @@ class FieldInfoContainer(dict):
                 sampling_type,
                 ", ".join(acceptable_samplings),
             )
-
-        if particle_type:
-            issue_deprecation_warning(
-                "'particle_type' keyword argument is deprecated in favour "
-                "of the positional argument 'sampling_type'.",
-                since="4.0.0",
-                removal="4.1.0",
-            )
-            if sampling_type != "particle":
-                raise RuntimeError(
-                    "Conflicting values for parameters "
-                    "'sampling_type' and 'particle_type'."
-                )
-
         return sampling_type
 
     def add_field(self, name, function, sampling_type, **kwargs):

@@ -9,7 +9,6 @@ from typing import Optional
 import numpy as np
 from more_itertools import always_iterable
 
-from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.data_objects.analyzer_objects import AnalysisTask, create_quantity_proxy
 from yt.data_objects.particle_trajectories import ParticleTrajectories
@@ -353,58 +352,6 @@ class DatasetSeries:
                     pass
                 store.result.append(rv)
         return [v for k, v in sorted(return_values.items())]
-
-    @classmethod
-    def from_filenames(cls, filenames, parallel=True, setup_function=None, **kwargs):
-        r"""Create a time series from either a filename pattern or a list of
-        filenames.
-
-        This method provides an easy way to create a
-        :class:`~yt.data_objects.time_series.DatasetSeries`, given a set of
-        filenames or a pattern that matches them.  Additionally, it can set the
-        parallelism strategy.
-
-        Parameters
-        ----------
-        filenames : list or pattern
-            This can either be a list of filenames (such as ["DD0001/DD0001",
-            "DD0002/DD0002"]) or a pattern to match, such as
-            "DD*/DD*.index").  If it's the former, they will be loaded in
-            order.  The latter will be identified with the glob module and then
-            sorted.
-        parallel : True, False or int
-            This parameter governs the behavior when .piter() is called on the
-            resultant DatasetSeries object.  If this is set to False, the time
-            series will not iterate in parallel when .piter() is called.  If
-            this is set to either True or an integer, it will be iterated with
-            1 or that integer number of processors assigned to each parameter
-            file provided to the loop.
-        setup_function : callable, accepts a ds
-            This function will be called whenever a dataset is loaded.
-
-        Examples
-        --------
-
-        >>> def print_time(ds):
-        ...     print(ds.current_time)
-        ...
-        >>> ts = DatasetSeries.from_filenames(
-        ...     "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0[0-6][0-9]0",
-        ...     setup_function=print_time,
-        ... )
-        ...
-        >>> for ds in ts:
-        ...     SlicePlot(ds, "x", ("gas", "density")).save()
-
-        """
-        issue_deprecation_warning(
-            "DatasetSeries.from_filenames() is deprecated and will be removed "
-            "in a future version of yt. Use DatasetSeries() directly.",
-            since="4.0.0",
-            removal="4.1.0",
-        )
-        obj = cls(filenames, parallel=parallel, setup_function=setup_function, **kwargs)
-        return obj
 
     @classmethod
     def from_output_log(cls, output_log, line_prefix="DATASET WRITTEN", parallel=True):

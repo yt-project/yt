@@ -27,18 +27,6 @@ def check_color(name):
         return False
 
 
-def add_cmap(name, cdict):
-    """Deprecated alias, kept for backwards compatibility."""
-    from yt._maintenance.deprecation import issue_deprecation_warning
-
-    issue_deprecation_warning(
-        "`add_cmap` is a deprecated alias for `add_colormap`",
-        since="4.0.0",
-        removal="4.1.0",
-    )
-    add_colormap(name, cdict)
-
-
 def add_colormap(name, cdict):
     """
     Adds a colormap to the colormaps available in yt for this session

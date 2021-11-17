@@ -5,7 +5,6 @@ import numpy as np
 
 import yt.geometry.particle_deposit as particle_deposit
 import yt.geometry.particle_smooth as particle_smooth
-from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.data_objects.selection_objects.data_selection_objects import (
     YTSelectionContainer,
 )
@@ -526,15 +525,6 @@ class OctreeSubset(YTSelectionContainer):
         return mask
 
     def get_vertex_centered_data(self, fields):
-        _old_api = isinstance(fields, (str, tuple))
-        if _old_api:
-            message = (
-                "get_vertex_centered_data() requires list of fields, rather than "
-                "a single field as an argument."
-            )
-            issue_deprecation_warning(message, since="4.0.0", removal="4.1.0")
-            fields = [fields]
-
         # Make sure the field list has only unique entries
         fields = list(set(fields))
         new_fields = {}
@@ -550,8 +540,6 @@ class OctreeSubset(YTSelectionContainer):
             np.add(new_fields[field], cg[field][:-1, :-1, :-1], new_fields[field])
             np.multiply(new_fields[field], 0.125, new_fields[field])
 
-        if _old_api:
-            return new_fields[fields[0]]
         return new_fields
 
 

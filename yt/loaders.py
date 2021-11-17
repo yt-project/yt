@@ -12,7 +12,6 @@ from urllib.parse import urlsplit
 import numpy as np
 from more_itertools import always_iterable
 
-from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.funcs import levenshtein_distance
 from yt.sample_data.api import lookup_on_disk_data
 from yt.utilities.decompose import decompose_array, get_psize
@@ -137,18 +136,6 @@ def load_simulation(fn, simulation_type, find_outputs=False):
     return cls(fn, find_outputs=find_outputs)
 
 
-def simulation(fn, simulation_type, find_outputs=False):
-    issue_deprecation_warning(
-        "yt.simulation is a deprecated alias for yt.load_simulation"
-        "and will be removed in a future version of yt.",
-        since="4.0.0",
-        removal="4.1.0",
-    )
-    return load_simulation(
-        fn=fn, simulation_type=simulation_type, find_outputs=find_outputs
-    )
-
-
 # --- Loaders for generic ("stream") data ---
 
 
@@ -249,18 +236,6 @@ def load_uniform_grid(
     domain_left_edge = np.array(bbox[:, 0], "float64")
     domain_right_edge = np.array(bbox[:, 1], "float64")
     grid_levels = np.zeros(nprocs, dtype="int32").reshape((nprocs, 1))
-    # If someone included this throw it away--old API
-    if "number_of_particles" in data:
-        issue_deprecation_warning(
-            "It is no longer necessary to include "
-            "the number of particles in the data "
-            "dict. The number of particles is "
-            "determined from the sizes of the "
-            "particle fields.",
-            since="4.0.0",
-            removal="4.1.0",
-        )
-        data.pop("number_of_particles")
     # First we fix our field names, apply units to data
     # and check for consistency of field shapes
     field_units, data, number_of_particles = process_data(
@@ -493,18 +468,6 @@ def load_amr_grids(
         grid_right_edges[i, :] = g.pop("right_edge")
         grid_dimensions[i, :] = g.pop("dimensions")
         grid_levels[i, :] = g.pop("level")
-        # If someone included this throw it away--old API
-        if "number_of_particles" in g:
-            issue_deprecation_warning(
-                "It is no longer necessary to include "
-                "the number of particles in the data "
-                "dict. The number of particles is "
-                "determined from the sizes of the "
-                "particle fields.",
-                since="4.0.0",
-                removal="4.1.0",
-            )
-            g.pop("number_of_particles")
         field_units, data, n_particles = process_data(
             g, grid_dims=tuple(grid_dimensions[i, :])
         )
