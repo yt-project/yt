@@ -4,6 +4,7 @@ import inspect
 import os
 import weakref
 from functools import wraps
+from typing import Optional
 
 import numpy as np
 from more_itertools import always_iterable
@@ -419,14 +420,14 @@ class DatasetSeries:
 
     _dataset_cls = None
 
-    def _load(self, output_fn, **kwargs):
+    def _load(self, output_fn, *, hint: Optional[str] = None, **kwargs):
         from yt.loaders import load
 
         if self._dataset_cls is not None:
             return self._dataset_cls(output_fn, **kwargs)
         elif self._mixed_dataset_types:
-            return load(output_fn, **kwargs)
-        ds = load(output_fn, **kwargs)
+            return load(output_fn, hint=hint, **kwargs)
+        ds = load(output_fn, hint=hint, **kwargs)
         self._dataset_cls = ds.__class__
         return ds
 
