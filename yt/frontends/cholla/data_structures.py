@@ -15,11 +15,12 @@ from .fields import ChollaFieldInfo
 class ChollaGrid(AMRGridPatch):
     _id_offset = 0
 
-    def __init__(self, id, index, level):
+    def __init__(self, id, index, level, dims):
         super().__init__(id, filename=index.index_filename, index=index)
         self.Parent = None
         self.Children = []
         self.Level = level
+        self.ActiveDimensions = dims
 
     def __repr__(self):
         return "ChollaGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
