@@ -1,10 +1,12 @@
 from yt.fields.field_info_container import FieldInfoContainer
+from yt.utilities.physical_constants import kboltz, mh
 
 # Copied from Athena frontend
 pres_units = "code_pressure"
 erg_units = "code_mass * (code_length/code_time)**2"
 rho_units = "code_mass / code_length**3"
 mom_units = "code_mass / code_length**2 / code_time"
+
 
 def velocity_field(comp):
     def _velocity(field, data):
@@ -42,7 +44,6 @@ class ChollaFieldInfo(FieldInfoContainer):
     # By default, yt concerns itself with primitive variables. The following
     # field definitions allow for conversions to primitive variables.
 
-
     def setup_fluid_fields(self):
         # Here we do anything that might need info about the dataset.
         # You can use self.alias, self.add_output_field (for on-disk fields)
@@ -52,46 +53,44 @@ class ChollaFieldInfo(FieldInfoContainer):
 
         # Add velocity fields
         for comp in "xyz":
-              self.add_field(
-                  ("gas", f"velocity_{comp}"),
-                  sampling_type="cell",
-                  function=velocity_field(comp),
-                  units=unit_system["velocity"],
-              )
+            self.add_field(
+                ("gas", f"velocity_{comp}"),
+                sampling_type="cell",
+                function=velocity_field(comp),
+                units=unit_system["velocity"],
+            )
 
         def kinetic_energy_density(data):
             return (
-                     0.5*data["cholla", "density"]
-                     * (data["gas", "velocity_x"] * data["gas", "velocity_x"]
-                      + data["gas", "velocity_y"] * data["gas", "velocity_y"]
-                      + data["gas", "velocity_z"] * data["gas", "velocity_z"]
-                     )
+                0.5
+                * data["cholla", "density"]
+                * (
+                    data["gas", "velocity_x"] * data["gas", "velocity_x"]
+                    + data["gas", "velocity_y"] * data["gas", "velocity_y"]
+                    + data["gas", "velocity_z"] * data["gas", "velocity_z"]
+                )
             )
 
         # Add pressure field
         if ("cholla", "GasEnergy") in self.field_list:
-           self.add_output_field(
-               ("cholla", "GasEnergy"), sampling_type="cell", units=pres_units
-           )
-           self.alias(
-               ("gas", "thermal_energy"),
-               ("cholla", "GasEnergy"),
-               units=unit_system["pressure"],
-           )
+            self.add_output_field(
+                ("cholla", "GasEnergy"), sampling_type="cell", units=pres_units
+            )
+            self.alias(
+                ("gas", "thermal_energy"),
+                ("cholla", "GasEnergy"),
+                units=unit_system["pressure"],
+            )
 
-           def _pressure(field, data):
-               return (
-                  (data.ds.gamma - 1.0)
-                  * data["cholla", "GasEnergy"]
-               )
+            def _pressure(field, data):
+                return (data.ds.gamma - 1.0) * data["cholla", "GasEnergy"]
+
         else:
-          def _pressure(field, data):
-              return (
-                  (data.ds.gamma - 1.0)
-                  * (data["cholla", "Energy"] - 
-                     kinetic_energy_density(data)
-                    )
-                  )
+
+            def _pressure(field, data):
+                return (data.ds.gamma - 1.0) * (
+                    data["cholla", "Energy"] - kinetic_energy_density(data)
+                )
 
         self.add_field(
             ("gas", "pressure"),
@@ -99,7 +98,7 @@ class ChollaFieldInfo(FieldInfoContainer):
             function=_pressure,
             units=unit_system["pressure"],
         )
-        
+
         def _specific_total_energy(field, data):
             return data["cholla", "Energy"] / data["cholla", "density"]
 
@@ -109,7 +108,6 @@ class ChollaFieldInfo(FieldInfoContainer):
             function=_specific_total_energy,
             units=unit_system["specific_energy"],
         )
-
 
         # Add temperature field
         def _temperature(field, data):
@@ -127,7 +125,6 @@ class ChollaFieldInfo(FieldInfoContainer):
             function=_temperature,
             units=unit_system["temperature"],
         )
-        
 
     def setup_particle_fields(self, ptype):
         super().setup_particle_fields(ptype)
