@@ -4,7 +4,6 @@ import warnings
 import toml
 from more_itertools import always_iterable
 
-from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.utilities.configuration_tree import ConfigLeaf, ConfigNode
 
 ytcfg_defaults = {}
@@ -77,17 +76,8 @@ def config_dir():
     return conf_dir
 
 
-def old_config_file():
-    return os.path.join(config_dir(), "ytrc")
-
-
-def old_config_dir():
-    return os.path.join(os.path.expanduser("~"), ".yt")
-
-
 # For backward compatibility, do not use these vars internally in yt
 CONFIG_DIR = config_dir()
-_OLD_CONFIG_FILE = old_config_file()
 
 
 class YTConfig:
@@ -198,26 +188,6 @@ class YTConfig:
 
 _global_config_file = YTConfig.get_global_config_file()
 _local_config_file = YTConfig.get_local_config_file()
-
-if os.path.exists(old_config_file()):
-    if os.path.exists(_global_config_file):
-        issue_deprecation_warning(
-            f"The configuration file {old_config_file()} is deprecated in "
-            f"favor of {_global_config_file}. Currently, both are present. "
-            "Please manually remove the deprecated one to silence "
-            "this warning.",
-            since="4.0.0",
-            removal="4.1.0",
-        )
-    else:
-        issue_deprecation_warning(
-            f"The configuration file {_OLD_CONFIG_FILE} is deprecated. "
-            f"Please migrate your config to {_global_config_file} by running: "
-            "'yt config migrate'",
-            since="4.0.0",
-            removal="4.1.0",
-        )
-
 
 if not os.path.exists(_global_config_file):
     cfg = {"yt": {}}
