@@ -60,7 +60,7 @@ class ChollaHierarchy(GridIndex):
     def _populate_grid_objects(self):
         self.grids = np.empty(self.num_grids, dtype="object")
         for i in range(self.num_grids):
-            g = self.grid(i, self, self.grid_levels.flat[i])
+            g = self.grid(i, self, self.grid_levels.flat[i], self.grid_dimensions[i])
             g._prepare_grid()
             g._setup_dx()
             self.grids[i] = g
