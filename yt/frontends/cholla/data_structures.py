@@ -132,11 +132,14 @@ class ChollaDataset(Dataset):
         # looking at the file name or extension.
         try:
             fileh = h5py.File(filename, mode="r")
+        except OSError:
+            return False
+        
+        try:
             attrs = fileh.attrs
-            if "bounds" in attrs and "domain" in attrs:
-                fileh.close()
-                return True
+        except AttributeError:
+            return False
+        else:
+            return "bounds" in attrs and "domain" in attrs
+        finally:
             fileh.close()
-        except Exception:
-            pass
-        return False
