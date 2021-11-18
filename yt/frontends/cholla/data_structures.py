@@ -113,10 +113,10 @@ class ChollaDataset(Dataset):
 
         # CHOLLA cannot yet be run as a cosmological simulation
         self.cosmological_simulation = 0
-        self.current_redshift = 0
-        self.omega_lambda = 0
-        self.omega_matter = 0
-        self.hubble_constant = 0
+        self.current_redshift = 0.0
+        self.omega_lambda = 0.0
+        self.omega_matter = 0.0
+        self.hubble_constant = 0.0
 
         # CHOLLA datasets are always unigrid cartesian
         self.geometry = "cartesian"
