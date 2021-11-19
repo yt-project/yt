@@ -36,7 +36,6 @@ from yt.visualization.plot_window import (
     OffAxisSlicePlot,
     ProjectionPlot,
     SlicePlot,
-    _swap_axes_extents,
     plot_2d,
 )
 
@@ -76,6 +75,7 @@ ATTR_ARGS = {
     "right_handed": [((), {})],
     "flip_horizontal": [((), {})],
     "flip_vertical": [((), {})],
+    "swap_axes": [((), {})],
 }
 
 
@@ -810,40 +810,6 @@ def test_dispatch_plot_classes():
     assert isinstance(s2, OffAxisSlicePlot)
 
 
-def test_swap_axes():
-
-    # note: this tests the swap_axes functionality separately from the
-    # ATTR_ARGS framework because swap_axes currently is not valid with
-    # callbacks.
-
-    ds = fake_random_ds(16)
-    field = ds.field_list[0]
-    wid = (0.4, 0.2)
-    normal = "x"
-
-    # get the reference plot and store some values
-    slc = SlicePlot(ds, normal, field, width=wid)
-    assert slc._has_swapped_axes is False
-
-    slc._setup_plots()
-    ref_x_label = slc[field].axes.get_xlabel()
-    ref_y_label = slc[field].axes.get_ylabel()
-    ref_aspect = slc[field]._aspect
-
-    # check that swap_axes swaps the axes
-    slc = SlicePlot(ds, normal, field, swap_axes=True, width=wid)
-    slc._setup_plots()
-    field_p = slc[field]
-    assert ref_x_label == field_p.axes.get_ylabel()
-    assert ref_y_label == field_p.axes.get_xlabel()
-    assert field_p._aspect == 1 / ref_aspect
-
-    # check that the toggle changes the value
-    assert slc._has_swapped_axes is True
-    slc.swap_axes()
-    assert slc._has_swapped_axes is False
-
-
 @requires_module("cartopy")
 def test_invalid_swap_projection():
     # projections and transforms will not work
@@ -852,17 +818,3 @@ def test_invalid_swap_projection():
     slc.set_mpl_projection("Robinson")
     slc.swap_axes()  # should raise mylog.warning and not toggle _swap_axes
     assert slc._has_swapped_axes is False
-
-
-def test_invalid_swap_callback():
-    ds = fake_random_ds(16)
-    slc = SlicePlot(ds, "x", ds.field_list[0], swap_axes=True)
-    slc.annotate_cell_edges()
-    assert slc._has_swapped_axes is False
-
-
-def test_extent_swap():
-    input_extent = [1, 2, 3, 4]
-    expected = [3, 4, 1, 2]
-    assert _swap_axes_extents(input_extent) == expected
-    assert _swap_axes_extents(tuple(input_extent)) == tuple([3, 4, 1, 2])

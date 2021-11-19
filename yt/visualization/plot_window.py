@@ -31,6 +31,7 @@ from yt.utilities.exceptions import (
 from yt.utilities.math_utils import ortho_find
 from yt.utilities.orientation import Orientation
 
+from ._commons import _swap_axes_extents
 from .base_plot_types import CallbackWrapper, ImagePlotMPL
 from .fixed_resolution import (
     FixedResolutionBuffer,
@@ -408,9 +409,8 @@ class PlotWindow(ImagePlotContainer):
             return False
         if swap_value and self._callbacks:
             mylog.warning(
-                "Using swap_axes with callback annotations is not currently supported"
+                "Using swap_axes with callback annotations may result in odd behavior... (remove this message soon)"
             )
-            return False
         return swap_value
 
     @property
@@ -2912,29 +2912,6 @@ def plot_2d(
         aspect=aspect,
         data_source=data_source,
     )
-
-
-def _swap_axes_extents(extent):
-    """
-    swaps the x and y extent values, preservering type of extent
-
-    Parameters
-    ----------
-    extent : tuple or list
-        the current 4-element tuple or list of unyt quantities describing the
-        plot extent. extent = (xmin, xmax, ymin, ymax).
-
-    Returns
-    -------
-    tuple or list
-        the extent axes swapped, now with (ymin, ymax, xmin, xmax).
-
-    """
-    input_type = type(extent)
-    extent = [extent[2], extent[3], extent[0], extent[1]]
-    if input_type is tuple:
-        return tuple(extent)
-    return extent
 
 
 def _check_right_handed(right_handed: bool) -> bool:

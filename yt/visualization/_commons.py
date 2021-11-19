@@ -96,3 +96,55 @@ def get_canvas(figure, filename):
             f"without an extension."
         )
     return get_canvas_class(suffix)(figure)
+
+
+def _swap_axes_extents(extent):
+    """
+    swaps the x and y extent values, preserving type of extent
+
+    Parameters
+    ----------
+    extent : tuple or list
+        the current 4-element tuple or list of unyt quantities describing the
+        plot extent. extent = (xmin, xmax, ymin, ymax).
+
+    Returns
+    -------
+    tuple or list
+        the extent axes swapped, now with (ymin, ymax, xmin, xmax).
+
+    """
+    input_type = type(extent)
+    extent = [extent[2], extent[3], extent[0], extent[1]]
+    if input_type is tuple:
+        return tuple(extent)
+    return extent
+
+
+def _swap_arg_pair_order(*args):
+    """
+    flips adjacent argument pairs, useful for swapping x-y plot arguments
+
+    Parameters
+    ----------
+    *args
+        argument pairs, must have an even number of *args
+
+    Returns
+    -------
+    tuple
+        args  with order of pairs switched, i.e,:
+
+        _swap_arg_pair_order(x, y, px, py) returns:
+            y, x, py, px
+
+    """
+
+    assert len(args) % 2 == 0
+    n_pairs = int(len(args) / 2)
+    new_args = []
+    for i in range(n_pairs):
+        x_id = i * 2
+        new_args.append(args[x_id + 1])
+        new_args.append(args[x_id])
+    return tuple(new_args)

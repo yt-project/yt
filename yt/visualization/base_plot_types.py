@@ -44,7 +44,10 @@ class CallbackWrapper:
         self._axes = window_plot.axes
         self._figure = window_plot.figure
         if len(self._axes.images) > 0:
-            self.image = self._axes.images[0]
+            self.raw_image_shape = self._axes.images[0]._A.shape
+            if viewer._has_swapped_axes:
+                # store the original un-transposed shape
+                self.raw_image_shape = self.raw_image_shape[1], self.raw_image_shape[0]
         if frb.axis < 3:
             DD = frb.ds.domain_width
             xax = frb.ds.coordinates.x_axis[frb.axis]
@@ -53,6 +56,11 @@ class CallbackWrapper:
         self.ds = frb.ds
         self.xlim = viewer.xlim
         self.ylim = viewer.ylim
+        self._swap_axes = viewer._has_swapped_axes
+        # an important note on _swap_axes: _swap_axes will swap x,y arguments
+        # in callbacks (e.g., plt.plot(x,y) will be plt.plot(y, x). The xlim
+        # and ylim arguments above, and internal callback references to coordinates
+        # are the **unswapped** ranges.
         self._axes_unit_names = viewer._axes_unit_names
         if "OffAxisSlice" in viewer._plot_type:
             self._type_name = "CuttingPlane"

@@ -1,6 +1,11 @@
 import pytest
+from numpy.testing import assert_raises
 
-from yt.visualization._commons import validate_image_name
+from yt.visualization._commons import (
+    _swap_arg_pair_order,
+    _swap_axes_extents,
+    validate_image_name,
+)
 
 
 @pytest.mark.parametrize(
@@ -36,3 +41,17 @@ def test_custom_valid_ext(name, suffix, expected):
 
     assert result1 == expected
     assert result2 == expected
+
+
+def test_extent_swap():
+    input_extent = [1, 2, 3, 4]
+    expected = [3, 4, 1, 2]
+    assert _swap_axes_extents(input_extent) == expected
+    assert _swap_axes_extents(tuple(input_extent)) == tuple(expected)
+
+
+def test_swap_arg_pair_order():
+    assert _swap_arg_pair_order(1, 2) == (2, 1)
+    assert _swap_arg_pair_order(1, 2, 3, 4, 5, 6) == (2, 1, 4, 3, 6, 5)
+    assert_raises(AssertionError, _swap_arg_pair_order, 1)
+    assert_raises(AssertionError, _swap_arg_pair_order, 1, 2, 3)
