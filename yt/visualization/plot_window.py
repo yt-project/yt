@@ -417,7 +417,7 @@ class PlotWindow(ImagePlotContainer):
 
         """
         if len(deltas) != 2:
-            raise RuntimeError(
+            raise TypeError(
                 f"The pan function accepts a two-element sequence.\nReceived {deltas}."
             )
         if isinstance(deltas[0], Number) and isinstance(deltas[1], Number):
@@ -433,7 +433,7 @@ class PlotWindow(ImagePlotContainer):
         elif isinstance(deltas[0], YTQuantity) and isinstance(deltas[1], YTQuantity):
             pass
         else:
-            raise RuntimeError(
+            raise TypeError(
                 "The arguments of the pan function must be a sequence of floats,\n"
                 "quantities, or (float, unit) tuples. Received %s." % (deltas,)
             )

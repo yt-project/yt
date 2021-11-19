@@ -1630,3 +1630,5 @@ class PhasePlotMPL(ImagePlotMPL):
             self.cb.formatter.set_scientific(True)
             self.cb.formatter.set_powerlimits((-2, 3))
             self.cb.update_ticks()
+
+        self.cax.tick_params(which="both", axis="y", direction="in")
