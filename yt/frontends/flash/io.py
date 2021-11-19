@@ -69,18 +69,38 @@ class IOHandlerFLASH(BaseIOHandler):
         f_part = self._particle_handle
         p_ind = self.ds.index._particle_indices
         px, py, pz = (self._particle_fields[f"particle_pos{ax}"] for ax in "xyz")
+        pblk = self._particle_fields["particle_blk"]
+        blockless_buffer = self.ds.index._blockless_particle_count
         p_fields = f_part["/tracer particles"]
         assert len(ptf) == 1
         ptype = list(ptf.keys())[0]
+        bx, by, bz = [], [], []
+        # We need to track all the particles that don't have blocks and make
+        # sure they get yielded too.  But, we also want our particles to largely
+        # line up with the grids they are resident in.  So we keep a buffer of
+        # particles.  That buffer is checked for any "blockless" particles,
+        # which get yielded at the end.
         for chunk in chunks:
             start = end = None
             for g1, g2 in particle_sequences(chunk.objs):
                 start = p_ind[g1.id - g1._id_offset]
-                end = p_ind[g2.id - g2._id_offset + 1]
-                x = np.asarray(p_fields[start:end, px], dtype="=f8")
-                y = np.asarray(p_fields[start:end, py], dtype="=f8")
-                z = np.asarray(p_fields[start:end, pz], dtype="=f8")
+                end_nobuff = p_ind[g2.id - g2._id_offset + 1]
+                end = end_nobuff + blockless_buffer
+                blk = ~(np.asarray(p_fields[start:end, pblk], dtype="=i8") < 0)
+                # Can we use something like np.choose here?
+                _x = np.asarray(p_fields[start:end, px], dtype="=f8")
+                _y = np.asarray(p_fields[start:end, py], dtype="=f8")
+                _z = np.asarray(p_fields[start:end, pz], dtype="=f8")
+                x = _x[blk][: end_nobuff - start]
+                y = _y[blk][: end_nobuff - start]
+                z = _z[blk][: end_nobuff - start]
+                # Now we take all the particles that *are* blockless and dump
+                # them on our bx, by, bz fields, to be yielded at the end.
+                bx.append(_x[~blk])
+                by.append(_y[~blk])
+                bz.append(_z[~blk])
                 yield ptype, (x, y, z)
+        yield ptype, (np.concatenate(bx), np.concatenate(by), np.concatenate(bz))
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
