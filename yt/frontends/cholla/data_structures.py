@@ -132,7 +132,7 @@ class ChollaDataset(Dataset):
         # looking at the file name or extension.
         try:
             fileh = h5py.File(filename, mode="r")
-        except OSError:
+        except (ImportError, OSError):
             return False
         
         try:
