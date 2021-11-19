@@ -1024,6 +1024,12 @@ class StreamlineCallback(PlotCallback):
             np.linspace(yy0, yy1, ny, endpoint=True),
         )
         X, Y, pixX, pixY = self._sanitize_xy_order(plot, X, Y, pixX, pixY)
+        if plot._swap_axes:
+            # need an additional transpose here for streamline tracing
+            pixX = pixX.transpose()
+            pixY = pixY.transpose()
+            X = X.transpose()
+            Y = Y.transpose()
         streamplot_args = {
             "x": X,
             "y": Y,
@@ -2374,7 +2380,7 @@ class TriangleFacetsCallback(PlotCallback):
         if plot._swap_axes:
             # this one needs a little more thought
             raise NotImplementedError(
-                "Cannot swap_axes is not valid with TriangleFacetsCallback"
+                "swap_axes is not valid with TriangleFacetsCallback"
             )
         # create line collection and add it to the plot
         lc = matplotlib.collections.LineCollection(l_cy, **self.plot_args)
@@ -3237,7 +3243,7 @@ class CellEdgesCallback(PlotCallback):
 
         extent = self._plot_bounds(plot)
         if plot._swap_axes:
-            im_buffer = im_buffer.transpose()
+            im_buffer = im_buffer.transpose((1, 0, 2))
             extent = _swap_axes_extents(extent)
         plot._axes.imshow(
             im_buffer,

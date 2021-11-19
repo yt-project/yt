@@ -408,10 +408,6 @@ class PlotWindow(ImagePlotContainer):
         if swap_value and (self._transform or self._projection):
             mylog.warning("Cannot swap axes due to transform or projection")
             return False
-        if swap_value and self._callbacks:
-            mylog.warning(
-                "Using swap_axes with callback annotations may result in odd behavior... (remove this message soon)"
-            )
         return swap_value
 
     @property
