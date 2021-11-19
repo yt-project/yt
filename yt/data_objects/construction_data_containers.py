@@ -51,6 +51,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import (
     parallel_objects,
     parallel_root_only,
 )
+from yt.visualization.color_maps import get_colormap_lut
 
 
 class YTStreamline(YTSelectionContainer1D):
@@ -1952,10 +1953,9 @@ class YTSurface(YTSelectionContainer3D):
             cs = (cs - mi) / (ma - mi)
         else:
             cs[:] = 1.0
-        # to get color indicies for OBJ formatting
-        from yt.visualization._colormap_data import color_map_luts
+        # to get color indices for OBJ formatting
+        lut = get_colormap_lut(color_map)
 
-        lut = color_map_luts[color_map]
         x = np.mgrid[0.0 : 1.0 : lut[0].shape[0] * 1j]
         arr["cind"][:] = (np.interp(cs, x, x) * (lut[0].shape[0] - 1)).astype("uint8")
         # now, get emission
@@ -2061,11 +2061,9 @@ class YTSurface(YTSelectionContainer3D):
             emit_field_min,
             emit_field,
         )  # map color values to color scheme
-        from yt.visualization._colormap_data import (  # import colors for mtl file
-            color_map_luts,
-        )
 
-        lut = color_map_luts[color_map]  # enumerate colors
+        lut = get_colormap_lut(color_map)
+
         # interpolate emissivity to enumerated colors
         emiss = np.interp(
             np.mgrid[0 : lut[0].shape[0]], np.mgrid[0 : len(cs)], f["emit"][:]
@@ -2294,11 +2292,9 @@ class YTSurface(YTSelectionContainer3D):
             emit_field_min,
             emit_field,
         )  # map color values to color scheme
-        from yt.visualization._colormap_data import (  # import colors for mtl file
-            color_map_luts,
-        )
 
-        lut = color_map_luts[color_map]  # enumerate colors
+        lut = get_colormap_lut(color_map)
+
         # interpolate emissivity to enumerated colors
         emiss = np.interp(
             np.mgrid[0 : lut[0].shape[0]], np.mgrid[0 : len(cs)], f["emit"][:]
