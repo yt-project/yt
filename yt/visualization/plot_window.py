@@ -883,7 +883,7 @@ class PlotWindow(ImagePlotContainer):
     @invalidate_plot
     def flip_horizontal(self):
         """
-        flips the horizontal axis (the image's abscissa)
+        inverts the horizontal axis (the image's abscissa)
         """
         self._flip_horizontal = not self._flip_horizontal
         return self
@@ -891,7 +891,7 @@ class PlotWindow(ImagePlotContainer):
     @invalidate_plot
     def flip_vertical(self):
         """
-        flips the vertical axis (the image's ordinate)
+        inverts the vertical axis (the image's ordinate)
         """
         self._flip_vertical = not self._flip_vertical
         return self
