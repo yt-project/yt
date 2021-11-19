@@ -193,9 +193,9 @@ class PlotWindow(ImagePlotContainer):
         modifications (e.g., pan or set_origin) are unchanged and remain relative
         to the underlying coordinate system and not the image display axes.
     flip_horizontal: boolean
-        If True, will flip the horizontal axis. default False.
+        If True, will invert the horizontal axis. default False.
     flip_vertical: boolean
-        If True, will flip the vertical axis. default False.
+        If True, will invert the vertical axis. default False.
 
     """
 
@@ -391,7 +391,7 @@ class PlotWindow(ImagePlotContainer):
 
     @property
     def _has_swapped_axes(self):
-        # note: we always run the validations here always in case the states of
+        # note: we always run the validations here in case the states of
         # the conflicting attributes have changed.
         return self._validate_swap_axes(self._swap_axes_input)
 
@@ -402,6 +402,7 @@ class PlotWindow(ImagePlotContainer):
         # note: we also validate here to catch invalid states immediately, even
         # though we validate on accessing the attribute in `_has_swapped_axes`.
         self._swap_axes_input = self._validate_swap_axes(new_swap_value)
+        return self
 
     def _validate_swap_axes(self, swap_value: bool) -> bool:
         if swap_value and (self._transform or self._projection):
@@ -876,11 +877,12 @@ class PlotWindow(ImagePlotContainer):
     @invalidate_plot
     def toggle_right_handed(self):
         issue_deprecation_warning(
-            "toggle_right_handed has been deprecated, use '.flip_horizontal()' instead.",
+            "the toggle_right_handed method is deprecated, use `.flip_horizontal()` instead.",
             since="4.1.0",
             removal="4.2.0",
         )
         self.flip_horizontal()
+        return self
 
     @invalidate_plot
     def flip_horizontal(self):
@@ -888,6 +890,7 @@ class PlotWindow(ImagePlotContainer):
         flips the horizontal axis (the image's abscissa)
         """
         self._flip_horizontal = not self._flip_horizontal
+        return self
 
     @invalidate_plot
     def flip_vertical(self):
@@ -895,6 +898,7 @@ class PlotWindow(ImagePlotContainer):
         flips the vertical axis (the image's ordinate)
         """
         self._flip_vertical = not self._flip_vertical
+        return self
 
     def to_fits_data(self, fields=None, other_keys=None, length_unit=None, **kwargs):
         r"""Export the fields in this PlotWindow instance
@@ -1954,9 +1958,9 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
         modifications (e.g., pan or set_origin) are unchanged and remain relative
         to the underlying coordinate system and not the image display axes.
     flip_horizontal: boolean
-        If True, will flip the horizontal axis. default False.
+        If True, will invert the horizontal axis. default False.
     flip_vertical: boolean
-        If True, will flip the vertical axis. default False.
+        If True, will invert the vertical axis. default False.
 
     Examples
     --------
@@ -2191,9 +2195,9 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
         modifications (e.g., pan or set_origin) are unchanged and remain relative
         to the underlying coordinate system and not the image display axes.
     flip_horizontal: boolean
-        If True, will flip the horizontal axis. default False.
+        If True, will invert the horizontal axis. default False.
     flip_vertical: boolean
-        If True, will flip the vertical axis. default False.
+        If True, will invert the vertical axis. default False.
 
     Examples
     --------
@@ -2382,9 +2386,9 @@ class OffAxisSlicePlot(SlicePlot, PWViewerMPL):
         modifications (e.g., pan or set_origin) are unchanged and remain relative
         to the underlying coordinate system and not the image display axes.
     flip_horizontal: boolean
-        If True, will flip the final image horizontal axis. default False.
+        If True, will invert the horizontal axis. default False.
     flip_vertical: boolean
-        If True, will flip the final image axis. default False.
+        If True, will invert the vertical axis. default False.
     """
 
     _plot_type = "OffAxisSlice"
@@ -2606,9 +2610,9 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
         modifications (e.g., pan or set_origin) are unchanged and remain relative
         to the underlying coordinate system and not the image display axes.
     flip_horizontal: boolean
-        If True, will flip the final image horizontal axis. default False.
+        If True, will invert the horizontal axis. default False.
     flip_vertical: boolean
-        If True, will flip the final image axis. default False.
+        If True, will invert the vertical axis. default False.
     """
     _plot_type = "OffAxisProjection"
     _frb_generator = OffAxisProjectionFixedResolutionBuffer
@@ -2917,7 +2921,7 @@ def plot_2d(
 def _check_right_handed(right_handed: bool) -> bool:
     # temporary function to check if right_handed kwarg has been set. can
     # remove this after full depreciation.
-    if right_handed is False:
+    if not right_handed:
         issue_deprecation_warning(
             "'right_handed' has been deprecated, use 'flip_horizontal' instead.",
             since="4.1.0",

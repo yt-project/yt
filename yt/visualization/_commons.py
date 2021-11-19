@@ -1,6 +1,6 @@
 import os
 import sys
-from typing import Optional, Type
+from typing import Optional, Type, TypeVar
 
 import matplotlib
 from packaging.version import Version
@@ -98,13 +98,16 @@ def get_canvas(figure, filename):
     return get_canvas_class(suffix)(figure)
 
 
-def _swap_axes_extents(extent):
+T = TypeVar("T", tuple, list)
+
+
+def _swap_axes_extents(extent: T) -> T:
     """
     swaps the x and y extent values, preserving type of extent
 
     Parameters
     ----------
-    extent : tuple or list
+    extent : sequence of four unyt quantities
         the current 4-element tuple or list of unyt quantities describing the
         plot extent. extent = (xmin, xmax, ymin, ymax).
 
@@ -114,11 +117,8 @@ def _swap_axes_extents(extent):
         the extent axes swapped, now with (ymin, ymax, xmin, xmax).
 
     """
-    input_type = type(extent)
-    extent = [extent[2], extent[3], extent[0], extent[1]]
-    if input_type is tuple:
-        return tuple(extent)
-    return extent
+    extent_swapped = [extent[2], extent[3], extent[0], extent[1]]
+    return type(extent)(extent_swapped)
 
 
 def _swap_arg_pair_order(*args):
