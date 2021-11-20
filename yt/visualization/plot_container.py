@@ -530,7 +530,7 @@ class PlotContainer(abc.ABC):
 
         Parameters
         ----------
-        name : string or tuple
+        name : string or tuple, optional
            The base of the filename. If name is a directory or if name is not
            set, the filename of the dataset is used. For a tuple, the
            resulting path will be given by joining the elements of the
@@ -538,7 +538,7 @@ class PlotContainer(abc.ABC):
         suffix : string, optional
            Specify the image type by its suffix. If not specified, the output
            type will be inferred from the filename. Defaults to '.png'.
-        mpl_kwargs : dict
+        mpl_kwargs : dict, optional
            A dict of keyword arguments to be passed to matplotlib.
 
         >>> slc.save(mpl_kwargs={"bbox_inches": "tight"})

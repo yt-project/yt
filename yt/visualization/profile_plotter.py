@@ -3,7 +3,7 @@ import builtins
 import os
 from collections import OrderedDict
 from functools import wraps
-from typing import Optional
+from typing import Any, Dict, Optional
 
 import matplotlib
 import numpy as np
@@ -271,18 +271,23 @@ class ProfilePlot(PlotContainer):
         ProfilePlot._initialize_instance(self, profiles, label, plot_spec, y_log)
 
     @validate_plot
-    def save(self, name=None, suffix: Optional[str] = None, mpl_kwargs=None):
+    def save(
+        self,
+        name: Optional[str] = None,
+        suffix: Optional[str] = None,
+        mpl_kwargs: Optional[Dict[str, Any]] = None,
+    ):
         r"""
         Saves a 1d profile plot.
 
         Parameters
         ----------
-        name : str
+        name : str, optional
             The output file keyword.
         suffix : string, optional
             Specify the image type by its suffix. If not specified, the output
             type will be inferred from the filename. Defaults to '.png'.
-        mpl_kwargs : dict
+        mpl_kwargs : dict, optional
             A dict of keyword arguments to be passed to matplotlib.
         """
         if not self._plot_valid:
@@ -1286,18 +1291,20 @@ class PhasePlot(ImagePlotContainer):
         return self
 
     @validate_plot
-    def save(self, name=None, suffix: Optional[str] = None, mpl_kwargs=None):
+    def save(
+        self, name: Optional[str] = None, suffix: Optional[str] = None, mpl_kwargs=None
+    ):
         r"""
         Saves a 2d profile plot.
 
         Parameters
         ----------
-        name : str
+        name : str, optional
             The output file keyword.
         suffix : string, optional
            Specify the image type by its suffix. If not specified, the output
            type will be inferred from the filename. Defaults to '.png'.
-        mpl_kwargs : dict
+        mpl_kwargs : dict, optional
            A dict of keyword arguments to be passed to matplotlib.
 
         >>> plot.save(mpl_kwargs={"bbox_inches": "tight"})
