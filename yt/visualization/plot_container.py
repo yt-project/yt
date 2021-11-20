@@ -523,7 +523,7 @@ class PlotContainer(abc.ABC):
     def save(
         self,
         name: Optional[Union[str, List[str], Tuple[str, ...]]] = None,
-        suffix: str = ".png",
+        suffix: Optional[str] = None,
         mpl_kwargs: Optional[Dict[str, Any]] = None,
     ):
         """saves the plot to disk.
@@ -535,9 +535,9 @@ class PlotContainer(abc.ABC):
            set, the filename of the dataset is used. For a tuple, the
            resulting path will be given by joining the elements of the
            tuple
-        suffix : string
+        suffix : string, optional
            Specify the image type by its suffix. If not specified, the output
-           type will be inferred from the filename. Defaults to PNG.
+           type will be inferred from the filename. Defaults to '.png'.
         mpl_kwargs : dict
            A dict of keyword arguments to be passed to matplotlib.
 
