@@ -748,9 +748,11 @@ cdef class ParticleBitmap:
         # Loop over positions skipping those outside the domain
         cdef np.ndarray[np.uint64_t, ndim=1, cast=True] sorted_order
         if hsml is None:
-            sorted_order = np.argsort(morton_indices)
+            # casting to uint64 for compatibility with 32 bits systems
+            # see https://github.com/yt-project/yt/issues/3656
+            sorted_order = np.argsort(morton_indices).astype(np.uint64, copy=False)
         else:
-            sorted_order = np.argsort(hsml)[::-1]
+            sorted_order = np.argsort(hsml)[::-1].astype(np.uint64, copy=False)
         for sorted_ind in range(sorted_order.shape[0]):
             p = sorted_order[sorted_ind]
             skip = 0
