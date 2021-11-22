@@ -1,3 +1,5 @@
+import numpy as np
+
 from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.on_demand_imports import _h5py as h5py
 
