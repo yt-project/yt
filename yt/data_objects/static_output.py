@@ -3,12 +3,14 @@ import functools
 import itertools
 import os
 import pickle
+import sys
 import time
 import warnings
 import weakref
 from collections import defaultdict
 from importlib.util import find_spec
 from stat import ST_CTIME
+from typing import Optional, Tuple, Type, Union
 
 import numpy as np
 from unyt.exceptions import UnitConversionError, UnitParseError
@@ -32,11 +34,15 @@ from yt.geometry.coordinates.api import (
     SpectralCubeCoordinateHandler,
     SphericalCoordinateHandler,
 )
+from yt.geometry.geometry_handler import Index
 from yt.units import UnitContainer, _wrap_display_ytarray, dimensions
-from yt.units.dimensions import current_mks
-from yt.units.unit_object import Unit, define_unit
-from yt.units.unit_registry import UnitRegistry
-from yt.units.unit_systems import create_code_unit_system, unit_system_registry
+from yt.units.dimensions import current_mks  # type: ignore
+from yt.units.unit_object import Unit, define_unit  # type: ignore
+from yt.units.unit_registry import UnitRegistry  # type: ignore
+from yt.units.unit_systems import (  # type: ignore
+    create_code_unit_system,
+    unit_system_registry,
+)
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.exceptions import (
@@ -51,12 +57,18 @@ from yt.utilities.object_registries import data_object_registry, output_type_reg
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_root_only
 from yt.utilities.parameter_file_storage import NoParameterShelf, ParameterFileStore
 
+if sys.version_info >= (3, 9):
+    from collections.abc import MutableMapping
+else:
+    from typing import MutableMapping
 # We want to support the movie format in the future.
 # When such a thing comes to pass, I'll move all the stuff that is constant up
 # to here, and then have it instantiate EnzoDatasets as appropriate.
 
 
-_cached_datasets = weakref.WeakValueDictionary()
+_cached_datasets: MutableMapping[
+    Union[int, str], "Dataset"
+] = weakref.WeakValueDictionary()
 _ds_store = ParameterFileStore()
 
 
@@ -114,20 +126,20 @@ class Dataset(abc.ABC):
 
     default_fluid_type = "gas"
     default_field = ("gas", "density")
-    fluid_types = ("gas", "deposit", "index")
-    particle_types = ("io",)  # By default we have an 'all'
-    particle_types_raw = ("io",)
+    fluid_types: Tuple[str, ...] = ("gas", "deposit", "index")
+    particle_types: Optional[Tuple[str, ...]] = ("io",)  # By default we have an 'all'
+    particle_types_raw: Optional[Tuple[str, ...]] = ("io",)
     geometry = "cartesian"
     coordinates = None
     storage_filename = None
     particle_unions = None
     known_filters = None
-    _index_class = None
+    _index_class: Type[Index]
     field_units = None
     derived_field_list = requires_index("derived_field_list")
     fields = requires_index("fields")
     _instantiated = False
-    _unique_identifier = None
+    _unique_identifier: Optional[Union[str, int]] = None
     _particle_type_counts = None
     _proj_type = "quad_proj"
     _ionization_label_format = "roman_numeral"

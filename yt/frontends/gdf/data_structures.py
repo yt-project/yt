@@ -7,9 +7,9 @@ from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.funcs import just_one, setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
-from yt.units.dimensions import dimensionless as sympy_one
-from yt.units.unit_object import Unit
-from yt.units.unit_systems import unit_system_registry
+from yt.units.dimensions import dimensionless as sympy_one  # type: ignore
+from yt.units.unit_object import Unit  # type: ignore
+from yt.units.unit_systems import unit_system_registry  # type: ignore
 from yt.utilities.exceptions import YTGDFUnknownGeometry
 from yt.utilities.lib.misc_utilities import get_box_grids_level
 from yt.utilities.logger import ytLogger as mylog

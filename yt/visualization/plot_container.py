@@ -1,3 +1,4 @@
+import abc
 import base64
 import builtins
 import os
@@ -5,7 +6,7 @@ import sys
 import warnings
 from collections import defaultdict
 from functools import wraps
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from matplotlib.cm import get_cmap
@@ -16,7 +17,7 @@ from yt.config import ytcfg
 from yt.data_objects.time_series import DatasetSeries
 from yt.funcs import dictWithFactory, ensure_dir, is_sequence, iter_fields, mylog
 from yt.units import YTQuantity
-from yt.units.unit_object import Unit
+from yt.units.unit_object import Unit  # type: ignore
 from yt.utilities.definitions import formatted_length_unit_names
 from yt.utilities.exceptions import YTNotInsideNotebook
 
@@ -209,10 +210,10 @@ class PlotDictionary(defaultdict):
         return defaultdict.__init__(self, default_factory)
 
 
-class PlotContainer:
+class PlotContainer(abc.ABC):
     """A container for generic plots"""
 
-    _plot_type = None
+    _plot_type: Optional[str] = None
     _plot_valid = False
 
     # Plot defaults
@@ -521,7 +522,7 @@ class PlotContainer:
     @validate_plot
     def save(
         self,
-        name: Optional[str] = None,
+        name: Optional[Union[str, List[str], Tuple[str, ...]]] = None,
         suffix: str = ".png",
         mpl_kwargs: Optional[Dict[str, Any]] = None,
     ):
@@ -557,9 +558,11 @@ class PlotContainer:
 
         if name is None:
             name = str(self.ds)
-
-        # ///// Magic area. Muggles, keep out !
-        if isinstance(name, (tuple, list)):
+        elif isinstance(name, (list, tuple)):
+            if not all(isinstance(_, str) for _ in name):
+                raise TypeError(
+                    f"Expected a single str or an iterable of str, got {name!r}"
+                )
             name = os.path.join(*name)
 
         name = os.path.expanduser(name)
@@ -575,7 +578,8 @@ class PlotContainer:
 
         new_name = validate_image_name(name, suffix)
         if new_name == name:
-            for v in self.plots.values():
+            # somehow mypy thinks we may not have a plots attr yet, hence we turn it off here
+            for v in self.plots.values():  # type: ignore
                 out_name = v.save(name, mpl_kwargs)
                 names.append(out_name)
             return names
@@ -595,9 +599,16 @@ class PlotContainer:
                 weight = weight[1].replace(" ", "_")
         if "Cutting" in self.data_source.__class__.__name__:
             plot_type = "OffAxisSlice"
-        for k, v in self.plots.items():
+
+        # somehow mypy thinks we may not have a plots attr yet, hence we turn it off here
+        for k, v in self.plots.items():  # type: ignore
             if isinstance(k, tuple):
                 k = k[1]
+
+            if plot_type is None:
+                # implemented this check to make mypy happy, because we can't use str.join
+                # with PlotContainer._plot_type = None
+                raise TypeError(f"{self.__class__} is missing a _plot_type value (str)")
 
             name_elements = [prefix, plot_type]
             if axis:

@@ -1,7 +1,7 @@
 import abc
 import glob
 import os
-from typing import List
+from typing import List, Optional, Set, Tuple, Type
 
 from yt.config import ytcfg
 from yt.funcs import mylog
@@ -10,7 +10,7 @@ from yt.utilities.cython_fortran_utils import FortranFile
 from .io import _read_fluid_file_descriptor
 from .io_utils import read_offset
 
-FIELD_HANDLERS = set()
+FIELD_HANDLERS: Set[Type["FieldFileHandler"]] = set()
 
 
 def get_field_handlers():
@@ -21,7 +21,7 @@ def register_field_handler(ph):
     FIELD_HANDLERS.add(ph)
 
 
-DETECTED_FIELDS = {}
+DETECTED_FIELDS = {}  # type: ignore
 
 
 class HandlerMixin:
@@ -141,13 +141,15 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
     _file_type = "field"
 
     # These properties are static properties
-    ftype = None  # The name to give to the field type
-    fname = None  # The name of the file(s)
-    attrs = None  # The attributes of the header
+    ftype: Optional[str] = None  # The name to give to the field type
+    fname: Optional[str] = None  # The name of the file(s)
+    attrs: Optional[
+        Tuple[Tuple[str, int, str], ...]
+    ] = None  # The attributes of the header
     known_fields = None  # A list of tuple containing the field name and its type
-    config_field = None  # Name of the config section (if any)
+    config_field: Optional[str] = None  # Name of the config section (if any)
 
-    file_descriptor = None  # The name of the file descriptor (if any)
+    file_descriptor: Optional[str] = None  # The name of the file descriptor (if any)
 
     # These properties are computed dynamically
     field_offsets = None  # Mapping from field to offset in file

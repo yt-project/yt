@@ -1,11 +1,13 @@
 import os
 import weakref
+from typing import Type
 
 import numpy as np
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset, ParticleFile, validate_index_order
 from yt.funcs import mylog, setdefaultattr
+from yt.geometry.geometry_handler import Index
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.geometry.particle_geometry_handler import ParticleIndex
 from yt.utilities.file_handler import HDF5FileHandler, warn_h5py
@@ -162,7 +164,7 @@ class FLASHHierarchy(GridIndex):
 
 
 class FLASHDataset(Dataset):
-    _index_class = FLASHHierarchy
+    _index_class: Type[Index] = FLASHHierarchy
     _field_info_class = FLASHFieldInfo
     _handle = None
 

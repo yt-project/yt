@@ -5,8 +5,7 @@ AdaptaHOP-specific fields
 
 
 """
-
-
+from yt._typing import KnownFieldsT
 from yt.fields.field_info_container import FieldInfoContainer
 
 m_units = "1e11 * Msun"
@@ -18,9 +17,7 @@ dens_units = "1e11 * Msun / Mpc**3"
 
 
 class AdaptaHOPFieldInfo(FieldInfoContainer):
-    known_other_fields = ()
-
-    known_particle_fields = (
+    known_particle_fields: KnownFieldsT = (
         ("particle_identifier", ("", [], "Halo Identity")),
         ("raw_position_x", (r_units, [], None)),
         ("raw_position_y", (r_units, [], None)),

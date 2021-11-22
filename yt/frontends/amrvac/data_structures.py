@@ -37,7 +37,10 @@ if sys.version_info < (3, 9):
         except ValueError:
             return False
 
-    Path.is_relative_to = _is_relative_to
+    Path.is_relative_to = _is_relative_to  # type: ignore
+else:
+    # an else block is mandated for pyupgrade to enable auto-cleanup
+    pass
 
 
 class AMRVACGrid(AMRGridPatch):

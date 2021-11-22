@@ -5,11 +5,12 @@ from typing import Optional, Tuple
 import numpy as np
 from unyt.exceptions import UnitConversionError
 
+from yt._typing import KnownFieldsT
 from yt.fields.field_exceptions import NeedsConfiguration
 from yt.funcs import mylog, only_on_root
 from yt.geometry.geometry_handler import is_curvilinear
-from yt.units.dimensions import dimensionless
-from yt.units.unit_object import Unit
+from yt.units.dimensions import dimensionless  # type: ignore
+from yt.units.unit_object import Unit  # type: ignore
 from yt.utilities.exceptions import (
     YTCoordinateNotImplemented,
     YTDomainOverflow,
@@ -49,9 +50,9 @@ class FieldInfoContainer(dict):
     """
 
     fallback = None
-    known_other_fields = ()
-    known_particle_fields = ()
-    extra_union_fields = ()
+    known_other_fields: KnownFieldsT = ()
+    known_particle_fields: KnownFieldsT = ()
+    extra_union_fields: Tuple[Tuple[str, str], ...] = ()
 
     def __init__(self, ds, field_list, slice_info=None):
         self._show_field_errors = []
@@ -418,7 +419,7 @@ class FieldInfoContainer(dict):
         alias_name,
         original_name,
         units=None,
-        deprecate: Optional[Tuple[str]] = None,
+        deprecate: Optional[Tuple[str, str]] = None,
     ):
         """
         Alias one field to another field.

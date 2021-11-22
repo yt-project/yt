@@ -2,6 +2,7 @@ from functools import reduce
 from operator import mul
 from os import listdir, path
 from re import match
+from typing import List, Optional
 
 import numpy as np
 from packaging.version import Version
@@ -32,8 +33,9 @@ class OpenPMDGrid(AMRGridPatch):
     _id_offset = 0
     __slots__ = ["_level_id"]
     # Every particle species and mesh might have different hdf5-indices and offsets
-    ftypes = []
-    ptypes = []
+
+    ftypes: Optional[List[str]] = []
+    ptypes: Optional[List[str]] = []
     findex = 0
     foffset = 0
     pindex = 0
