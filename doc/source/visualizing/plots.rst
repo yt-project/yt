@@ -444,7 +444,7 @@ keyword arguments, as described in
 Slice Plots and Projection Plots in Spherical Geometry
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-What to expect when plotting data in spherical geometry ? Here we explain
+What to expect when plotting data in spherical geometry? Here we explain
 the notations and projections system yt uses for to render 2D images of
 spherical data.
 
