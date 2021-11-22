@@ -2,7 +2,7 @@ import re
 import warnings
 from functools import wraps
 from numbers import Integral, Number
-from typing import Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union
 
 import matplotlib
 import numpy as np
@@ -47,9 +47,7 @@ def _verify_geometry(func):
     return _check_geometry
 
 
-def _validate_factor_tuple(
-    factor: Union[Tuple[Integral, Integral], Integral]
-) -> Tuple[int, int]:
+def _validate_factor_tuple(factor) -> Tuple[int, int]:
     if (
         is_sequence(factor)
         and len(factor) == 2
@@ -58,7 +56,7 @@ def _validate_factor_tuple(
         # - checking for "is_sequence" allows lists, numpy arrays and other containers
         # - checking for Integral type allows numpy integer types
         # in any case we return a with strict typing
-        return tuple(int(_) for _ in factor)
+        return (int(factor[0]), int(factor[1]))
     elif isinstance(factor, Integral):
         return (int(factor), int(factor))
     else:
@@ -945,7 +943,7 @@ class StreamlineCallback(PlotCallback):
         plot_args=None,
     ):
         PlotCallback.__init__(self)
-        def_plot_args = {}
+        def_plot_args: Optional[Dict[str, Any]] = {}
         self.field_x = field_x
         self.field_y = field_y
         self.field_color = field_color
