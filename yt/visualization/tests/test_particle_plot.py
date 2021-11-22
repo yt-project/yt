@@ -37,7 +37,7 @@ def setup():
 PROJ_ATTR_ARGS = ATTR_ARGS.copy()
 PROJ_ATTR_ARGS["set_cmap"] = [
     ((("all", "particle_mass"), "RdBu"), {}),
-    ((("all", "particle_mass"), "kamae"), {}),
+    ((("all", "particle_mass"), "cmyt.pastel"), {}),
 ]
 PROJ_ATTR_ARGS["set_log"] = [((("all", "particle_mass"), False), {})]
 PROJ_ATTR_ARGS["set_zlim"] = [

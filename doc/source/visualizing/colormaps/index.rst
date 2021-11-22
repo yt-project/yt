@@ -122,9 +122,29 @@ or to output the original yt colormaps to an image file, try:
     import yt
 
     yt.show_colormaps(
-        subset=["algae", "kamae", "spectral", "arbre", "dusk", "octarine", "kelp"],
+        subset=[
+            "cmyt.algae",
+            "cmyt.arbre",
+            "cmyt.dusk",
+            "cmyt.kelp",
+            "cmyt.octarine",
+            "cmyt.pastel",
+        ],
         filename="yt_native.png",
     )
+
+.. note ::
+
+    Since yt 4.1, yt native colormaps are shipped as a separate package
+    `cmyt <https://pypi.org/project/cmyt/>`_ that can be used
+    outside yt itself.
+    Within `yt` functions, these colormaps can still be referenced without
+    the ``"cmyt."`` prefix. However, there is no guarantee that this will
+    work in upcoming version of matplotlib, so our recommentation is to keep
+    the prefix at all times to retain forward compatibility.
+    yt also retains compatibility with names these colormaps were formerly
+    known as (for instance ``cmyt.pastel`` used to be named ``kamae``).
+
 
 Applying a Colormap to your Rendering
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
