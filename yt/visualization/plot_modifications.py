@@ -2,7 +2,7 @@ import re
 import warnings
 from functools import wraps
 from numbers import Number
-from typing import Tuple
+from typing import Optional, Tuple
 
 import matplotlib
 import numpy as np
@@ -55,7 +55,7 @@ class PlotCallback:
     # "figure" this is disregarded.  If "force" is included in the tuple, it
     # will *not* check whether or not the coord_system is in axis or figure,
     # and will only look at the geometries.
-    _supported_geometries: Tuple[str, ...]
+    _supported_geometries: Optional[Tuple[str, ...]] = None
 
     def __init_subclass__(cls, *args, **kwargs):
         super().__init_subclass__(*args, **kwargs)
