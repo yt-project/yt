@@ -438,6 +438,65 @@ to project along, and a field to project.  For example:
 keyword arguments, as described in
 :class:`~yt.visualization.plot_window.OffAxisProjectionPlot`
 
+
+.. _slices-and-projections-in-spherical-geometry:
+
+Slice Plots and Projection Plots in Spherical Geometry
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+What to expect when plotting data in spherical geometry? Here we explain
+the notations and projections system yt uses for to render 2D images of
+spherical data.
+
+The native spherical coordinates are
+- the spherical radius :math:`r`
+- the colatitude :math:`\theta`, defined between :math:`0` and :math:`\pi`
+- the azimuth :math:`\varphi`, defined between :math:`0` and :math:`2\pi`
+
+:math:`\varphi`-normal slices are represented in the poloidal plane, with axes :math:`R, z`, where
+- :math:`R = r \sin \theta` is the cylindrical radius
+- :math:`z = r \cos \theta` is the elevation
+
+.. python-script::
+
+   import yt
+
+   ds = yt.load_sample("KeplerianDisk", unit_system="cgs")
+   slc = yt.SlicePlot(ds, "phi", ("gas", "density"))
+   slc.save()
+
+:math:`\theta`-normal slices are represented in a
+:math:`x/\sin(\theta)` VS :math:` y/(\theta)` plane, where
+- :math:`x = R \cos \varphi`
+- :math:`y = R \sin \varphi`
+
+are the cartesian plane coordinates
+
+.. python-script::
+
+   import yt
+
+   ds = yt.load_sample("KeplerianDisk", unit_system="cgs")
+   slc = yt.SlicePlot(ds, "theta", ("gas", "density"))
+   slc.save()
+
+
+Finally, :math:`r`-normal slices are represented following a
+`Aitoff-Hammer projection <http://paulbourke.net/geometry/transformationprojection/>`_
+
+We denote
+- the latitude :math:`\bar\theta = \frac{\pi}{2} - \theta`
+- the longitude :math:`\lambda = \varphi - \pi`
+
+.. python-script::
+
+   import yt
+
+   ds = yt.load_sample("KeplerianDisk", unit_system="cgs")
+   slc = yt.SlicePlot(ds, "r", ("gas", "density"))
+   slc.save()
+
+
 .. _unstructured-mesh-slices:
 
 Unstructured Mesh Slices
