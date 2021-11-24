@@ -1,8 +1,8 @@
 import re
 import warnings
 from functools import wraps
-from numbers import Number
-from typing import Optional, Tuple
+from numbers import Integral, Number
+from typing import Any, Dict, Optional, Tuple, Union
 
 import matplotlib
 import numpy as np
@@ -45,6 +45,24 @@ def _verify_geometry(func):
         raise YTDataTypeUnsupported(geom, supp)
 
     return _check_geometry
+
+
+def _validate_factor_tuple(factor) -> Tuple[int, int]:
+    if (
+        is_sequence(factor)
+        and len(factor) == 2
+        and all(isinstance(_, Integral) for _ in factor)
+    ):
+        # - checking for "is_sequence" allows lists, numpy arrays and other containers
+        # - checking for Integral type allows numpy integer types
+        # in any case we return a with strict typing
+        return (int(factor[0]), int(factor[1]))
+    elif isinstance(factor, Integral):
+        return (int(factor), int(factor))
+    else:
+        raise TypeError(
+            f"Expected a single, or a pair of integers, received {factor!r}"
+        )
 
 
 class PlotCallback:
@@ -308,10 +326,15 @@ class VelocityCallback(PlotCallback):
     _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
 
     def __init__(
-        self, factor=16, scale=None, scale_units=None, normalize=False, plot_args=None
+        self,
+        factor: Union[Tuple[int, int], int] = 16,
+        scale=None,
+        scale_units=None,
+        normalize=False,
+        plot_args=None,
     ):
         PlotCallback.__init__(self)
-        self.factor = factor
+        self.factor = _validate_factor_tuple(factor)
         self.scale = scale
         self.scale_units = scale_units
         self.normalize = normalize
@@ -398,10 +421,15 @@ class MagFieldCallback(PlotCallback):
     _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
 
     def __init__(
-        self, factor=16, scale=None, scale_units=None, normalize=False, plot_args=None
+        self,
+        factor: Union[Tuple[int, int], int] = 16,
+        scale=None,
+        scale_units=None,
+        normalize=False,
+        plot_args=None,
     ):
         PlotCallback.__init__(self)
-        self.factor = factor
+        self.factor = _validate_factor_tuple(factor)
         self.scale = scale
         self.scale_units = scale_units
         self.normalize = normalize
@@ -478,7 +506,7 @@ class QuiverCallback(PlotCallback):
         self,
         field_x,
         field_y,
-        factor=16,
+        factor: Union[Tuple[int, int], int] = 16,
         scale=None,
         scale_units=None,
         normalize=False,
@@ -491,7 +519,7 @@ class QuiverCallback(PlotCallback):
         self.field_y = field_y
         self.bv_x = bv_x
         self.bv_y = bv_y
-        self.factor = factor
+        self.factor = _validate_factor_tuple(factor)
         self.scale = scale
         self.scale_units = scale_units
         self.normalize = normalize
@@ -530,8 +558,8 @@ class QuiverCallback(PlotCallback):
 
         # We are feeding this size into the pixelizer, where it will properly
         # set it in reverse order
-        nx = plot.image._A.shape[1] // self.factor
-        ny = plot.image._A.shape[0] // self.factor
+        nx = plot.image._A.shape[1] // self.factor[0]
+        ny = plot.image._A.shape[0] // self.factor[1]
         pixX = plot.data.ds.coordinates.pixelize(
             plot.data.axis,
             plot.data,
@@ -588,7 +616,7 @@ class ContourCallback(PlotCallback):
         self,
         field,
         ncont=5,
-        factor=4,
+        factor: Union[Tuple[int, int], int] = 4,
         clim=None,
         plot_args=None,
         label=False,
@@ -602,7 +630,7 @@ class ContourCallback(PlotCallback):
         def_text_args = {"colors": "w"}
         self.ncont = ncont
         self.field = field
-        self.factor = factor
+        self.factor = _validate_factor_tuple(factor)
         self.clim = clim
         self.take_log = take_log
         if plot_args is None:
@@ -640,8 +668,8 @@ class ContourCallback(PlotCallback):
 
         # We want xi, yi in plot coordinates
         xi, yi = np.mgrid[
-            xx0 : xx1 : numPoints_x / (self.factor * 1j),
-            yy0 : yy1 : numPoints_y / (self.factor * 1j),
+            xx0 : xx1 : numPoints_x / (self.factor[0] * 1j),
+            yy0 : yy1 : numPoints_y / (self.factor[1] * 1j),
         ]
         data = self.data_source or plot.data
 
@@ -685,7 +713,7 @@ class ContourCallback(PlotCallback):
             triangulation = Triangulation(x, y)
             zi = LinearTriInterpolator(triangulation, z)(xi, yi)
         elif plot._type_name == "OffAxisProjection":
-            zi = plot.frb[self.field][:: self.factor, :: self.factor].transpose()
+            zi = plot.frb[self.field][:: self.factor[0], :: self.factor[1]].transpose()
 
         if self.take_log is None:
             field = data._determine_fields([self.field])[0]
@@ -908,18 +936,18 @@ class StreamlineCallback(PlotCallback):
         self,
         field_x,
         field_y,
-        factor=16,
+        factor: Union[Tuple[int, int], int] = 16,
         density=1,
         field_color=None,
         display_threshold=None,
         plot_args=None,
     ):
         PlotCallback.__init__(self)
-        def_plot_args = {}
+        def_plot_args: Optional[Dict[str, Any]] = {}
         self.field_x = field_x
         self.field_y = field_y
         self.field_color = field_color
-        self.factor = factor
+        self.factor = _validate_factor_tuple(factor)
         self.dens = density
         self.display_threshold = display_threshold
         if plot_args is None:
@@ -932,8 +960,8 @@ class StreamlineCallback(PlotCallback):
 
         # We are feeding this size into the pixelizer, where it will properly
         # set it in reverse order
-        nx = plot.image._A.shape[1] // self.factor
-        ny = plot.image._A.shape[0] // self.factor
+        nx = plot.image._A.shape[1] // self.factor[0]
+        ny = plot.image._A.shape[0] // self.factor[1]
         pixX = plot.data.ds.coordinates.pixelize(
             plot.data.axis, plot.data, self.field_x, bounds, (nx, ny)
         )
@@ -1130,7 +1158,7 @@ class CuttingQuiverCallback(PlotCallback):
         PlotCallback.__init__(self)
         self.field_x = field_x
         self.field_y = field_y
-        self.factor = factor
+        self.factor = _validate_factor_tuple(factor)
         self.scale = scale
         self.scale_units = scale_units
         self.normalize = normalize
@@ -1141,8 +1169,8 @@ class CuttingQuiverCallback(PlotCallback):
     def __call__(self, plot):
         x0, x1, y0, y1 = self._physical_bounds(plot)
         xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
-        nx = plot.image._A.shape[1] // self.factor
-        ny = plot.image._A.shape[0] // self.factor
+        nx = plot.image._A.shape[1] // self.factor[0]
+        ny = plot.image._A.shape[0] // self.factor[1]
         indices = np.argsort(plot.data["index", "dx"])[::-1].astype(np.int_)
 
         pixX = np.zeros((ny, nx), dtype="f8")
