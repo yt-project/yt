@@ -983,12 +983,17 @@ class PWViewerMPL(PlotWindow):
                 unit_x = unit_y = unit
                 coords = self.ds.coordinates
                 if hasattr(coords, "image_units"):
-                    # this should detect angular coordinates
+                    # check for special cases defined in
+                    # non cartesian CoordinateHandler subclasses
                     image_units = coords.image_units[coords.axis_id[axis_index]]
                     if image_units[0] in ("deg", "rad"):
                         unit_x = "code_length"
+                    elif image_units[0] == 1:
+                        unit_x = "dimensionless"
                     if image_units[1] in ("deg", "rad"):
                         unit_y = "code_length"
+                    elif image_units[1] == 1:
+                        unit_y = "dimensionless"
             else:
                 (unit_x, unit_y) = self._axes_unit_names
 
@@ -999,10 +1004,22 @@ class PWViewerMPL(PlotWindow):
                 self.aspect = float(
                     (self.ds.quan(1.0, unit_y) / self.ds.quan(1.0, unit_x)).in_cgs()
                 )
-            extentx = [(self.xlim[i] - xc).in_units(unit_x) for i in (0, 1)]
-            extenty = [(self.ylim[i] - yc).in_units(unit_y) for i in (0, 1)]
+            extentx = (self.xlim - xc)[:2]
+            extenty = (self.ylim - yc)[:2]
 
-            extent = extentx + extenty
+            # extentx/y arrays inherit units from xlim and ylim attributes
+            # and these attributes are always length even for angular and
+            # dimensionless axes so we need to stip out units for consistency
+            if unit_x == "dimensionless":
+                extentx = extentx / extentx.units
+            else:
+                extentx.convert_to_units(unit_x)
+            if unit_y == "dimensionless":
+                extenty = extenty / extenty.units
+            else:
+                extenty.convert_to_units(unit_y)
+
+            extent = [*extentx, *extenty]
 
             if f in self.plots.keys():
                 zlim = (self.plots[f].zmin, self.plots[f].zmax)

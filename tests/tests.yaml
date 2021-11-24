@@ -164,7 +164,7 @@ answer_tests:
     - yt/frontends/ytdata/tests/test_old_outputs.py:test_old_profile_data
     - yt/frontends/ytdata/tests/test_old_outputs.py:test_old_nonspatial_data
 
-  local_axialpix_007:
+  local_axialpix_008: # PR 3628
     - yt/geometry/coordinates/tests/test_axial_pixelization.py:test_axial_pixelization
 
   local_cylindrical_background_011:  # PR 3670
