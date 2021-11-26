@@ -76,29 +76,28 @@ else:
         "For further instruction please refer to the yt documentation."
     )
 
-optional_dependencies = {
-    "astropy": None,
-    "bottle": None,
-    "cartopy": _cartopy_instructions,
-    "Firefly": None,
-    "f90nml": None,
-    # Breaking alphabetical ordering on purpose here.
-    # Importing h5py before netCDF4 can lead to file lock errors
-    # on some systems (including travis-ci)
-    # see https://github.com/pydata/xarray/issues/2560
-    "netCDF4": None,
-    "h5py": None,
-    "libconf": None,
-    "miniball": "This package can be installed from PyPI with\n`python3 -m pip install MiniballCpp`",
-    "mpi4py": None,
-    "nose": None,
-    "pandas": None,
-    "pooch": None,
-    "requests": None,
-    "scipy": None,
-    "yaml": None,
-}
+astropy = OnDemandImport("astropy", None)
+bottle = OnDemandImport("bottle", None)
+cartopy = OnDemandImport("cartopy", _cartopy_instructions)
+Firefly = OnDemandImport("Firefly", None)
+f90nml = OnDemandImport("f90nml", None)
 
-_module = sys.modules[__name__]
-for package_name, instructions in optional_dependencies.items():
-    setattr(_module, package_name, OnDemandImport(package_name, instructions))
+# Breaking alphabetical ordering on purpose here.
+# Importing h5py before netCDF4 can lead to file lock errors
+# on some systems (including travis-ci)
+# see https://github.com/pydata/xarray/issues/2560
+netCDF4 = OnDemandImport("netCDF4", None)
+h5py = OnDemandImport("h5py", None)
+libconf = OnDemandImport("libconf", None)
+miniball = OnDemandImport(
+    "miniball",
+    "This package can be installed from PyPI with"
+    "`python3 -m pip install MiniballCpp`",
+)
+mpi4py = OnDemandImport("mpi4py", None)
+nose = OnDemandImport("nose", None)
+pandas = OnDemandImport("pandas", None)
+pooch = OnDemandImport("pooch", None)
+requests = OnDemandImport("requests", None)
+scipy = OnDemandImport("scipy", None)
+yaml = OnDemandImport("yaml", None)
