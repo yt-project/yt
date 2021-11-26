@@ -1,6 +1,7 @@
 import sys
 from importlib import import_module
-from typing import Optional
+from types import ModuleType
+from typing import Dict, Optional, Union
 
 if sys.version_info >= (3, 8):
     from functools import cached_property
@@ -36,7 +37,7 @@ class OnDemandImport:
 
     def __init__(self, name: str, instructions: Optional[str] = None):
         self._name = name
-        self._submodules = {}
+        self._submodules: Dict[str, Union[ModuleType, "OnDemandImport"]] = {}
         msg = f"Failed to import an optional dependency from yt ({self._name})."
         if instructions:
             msg += f"\n{instructions}"
