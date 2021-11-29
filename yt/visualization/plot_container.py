@@ -6,7 +6,7 @@ import textwrap
 import warnings
 from collections import defaultdict
 from functools import wraps
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from matplotlib.cm import get_cmap
@@ -559,23 +559,23 @@ class PlotContainer:
     @validate_plot
     def save(
         self,
-        name: Optional[str] = None,
-        suffix: str = ".png",
+        name: Optional[Union[str, List[str], Tuple[str, ...]]] = None,
+        suffix: Optional[str] = None,
         mpl_kwargs: Optional[Dict[str, Any]] = None,
     ):
         """saves the plot to disk.
 
         Parameters
         ----------
-        name : string or tuple
+        name : string or tuple, optional
            The base of the filename. If name is a directory or if name is not
            set, the filename of the dataset is used. For a tuple, the
            resulting path will be given by joining the elements of the
            tuple
-        suffix : string
+        suffix : string, optional
            Specify the image type by its suffix. If not specified, the output
-           type will be inferred from the filename. Defaults to PNG.
-        mpl_kwargs : dict
+           type will be inferred from the filename. Defaults to '.png'.
+        mpl_kwargs : dict, optional
            A dict of keyword arguments to be passed to matplotlib.
 
         >>> slc.save(mpl_kwargs={"bbox_inches": "tight"})
