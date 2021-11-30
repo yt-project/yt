@@ -1,10 +1,8 @@
-import numpy as np
-
 from yt._typing import KnownFieldsT
 from yt.fields.field_info_container import FieldInfoContainer
-from yt.fields.vector_operations import create_magnitude_field
 
 from .cfields import SRHDFields
+
 
 b_units = "code_magnetic"
 pre_units = "code_mass / (code_length*code_time**2)"
@@ -69,51 +67,11 @@ class GAMERFieldInfo(FieldInfoContainer):
             else:
                 fgen = SRHDFields(self.ds.eos, self.ds.gamma, c.d)
 
-            if self.ds.eos == 4:
-
-                # adiabatic (effective) gamma
-                def _gamma(field, data):
-                    kT = data["gamer", "Temp"]
-                    x = 2.25 * kT / np.sqrt(2.25 * kT * kT + 1.0)
-                    c_p = 2.5 + x
-                    c_v = 1.5 + x
-                    return c_p / c_v
-
-                def htilde(data):
-                    kT = data["gamer", "Temp"]
-                    x = 2.25 * kT * kT
-                    ht = 2.5 * kT + x / (1.0 + np.sqrt(x + 1.0))
-                    return ht * c2
-
-                def _sound_speed(field, data):
-                    h = htilde(data) / c2 + 1.0
-                    kT = data["gamer", "Temp"]
-                    cs2 = kT / (3.0 * h)
-                    cs2 *= (5.0 * h - 8.0 * kT) / (h - kT)
-                    return pc.clight * np.sqrt(cs2)
-
-            else:
-
-                # adiabatic gamma
-                def _gamma(field, data):
-                    return self.ds.gamma * data["gas", "ones"]
-
-                def htilde(data):
-                    kT = data["gamer", "Temp"]
-                    g = data["gas", "gamma"]
-                    ht = g * kT / (g - 1.0)
-                    return ht * c2
-
-                def _sound_speed(field, data):
-                    h = htilde(data) / c2 + 1.0
-                    cs2 = data["gas", "gamma"] / h * data["gamer", "Temp"]
-                    return pc.clight * np.sqrt(cs2)
-
-            def _sound_speed_new(field, data):
+            def _sound_speed(field, data):
                 out = fgen.sound_speed(data["gamer", "Temp"].d)
                 return data.ds.arr(out, "code_velocity").to(unit_system["velocity"])
 
-            def _gamma_new(field, data):
+            def _gamma(field, data):
                 out = fgen.gamma_field(data["gamer", "Temp"].d)
                 return data.ds.arr(out, "dimensionless")
 
@@ -125,23 +83,11 @@ class GAMERFieldInfo(FieldInfoContainer):
             )
 
             self.add_field(
-                ("gas", "gamma_old"), sampling_type="cell", function=_gamma, units=""
-            )
-
-            self.add_field(
-                ("gas", "gamma"), sampling_type="cell", function=_gamma_new, units=""
+                ("gas", "gamma"), sampling_type="cell", function=_gamma, units=""
             )
 
             # 4-velocity spatial components
             def four_velocity_xyz(u):
-                def _four_velocity(field, data):
-                    ui = data["gas", f"momentum_density_{u}"] * c2
-                    ui /= data["gas", "frame_density"] * (htilde(data) + c2)
-                    return ui
-
-                return _four_velocity
-
-            def four_velocity_xyz_new(u):
                 def _four_velocity(field, data):
                     out = fgen.four_velocity_xyz(
                         data["gamer", f"Mom{u.upper()}"].d,
@@ -154,36 +100,14 @@ class GAMERFieldInfo(FieldInfoContainer):
 
             for u in "xyz":
                 self.add_field(
-                    ("gas", f"oldfour_velocity_{u}"),
+                    ("gas", f"four_velocity_{u}"),
                     sampling_type="cell",
                     function=four_velocity_xyz(u),
                     units=unit_system["velocity"],
                 )
 
-                self.add_field(
-                    ("gas", f"four_velocity_{u}"),
-                    sampling_type="cell",
-                    function=four_velocity_xyz_new(u),
-                    units=unit_system["velocity"],
-                )
-
-            create_magnitude_field(
-                self, "oldfour_velocity", unit_system["velocity"], ftype="gas"
-            )
-
             # lorentz factor
             def _lorentz_factor(field, data):
-                u2 = data["gas", "oldfour_velocity_magnitude"] ** 2
-                return np.sqrt(1.0 + u2 / c2)
-
-            self.add_field(
-                ("gas", "lorentz_factor_old"),
-                sampling_type="cell",
-                function=_lorentz_factor,
-                units="",
-            )
-
-            def _lorentz_factor_new(field, data):
                 out = fgen.lorentz_factor(
                     data["gamer", "Dens"].d,
                     data["gamer", "MomX"].d,
@@ -196,21 +120,12 @@ class GAMERFieldInfo(FieldInfoContainer):
             self.add_field(
                 ("gas", "lorentz_factor"),
                 sampling_type="cell",
-                function=_lorentz_factor_new,
+                function=_lorentz_factor,
                 units="",
             )
 
             # velocity
             def velocity_xyz(v):
-                def _velocity(field, data):
-                    return (
-                        data["gas", f"oldfour_velocity_{v}"]
-                        / data["gas", "lorentz_factor_old"]
-                    )
-
-                return _velocity
-
-            def velocity_xyz_new(v):
                 def _velocity(field, data):
                     out = fgen.velocity_xyz(
                         data["gamer", "Dens"].d,
@@ -226,35 +141,14 @@ class GAMERFieldInfo(FieldInfoContainer):
 
             for v in "xyz":
                 self.add_field(
-                    ("gas", f"oldvelocity_{v}"),
+                    ("gas", f"velocity_{v}"),
                     sampling_type="cell",
                     function=velocity_xyz(v),
                     units=unit_system["velocity"],
                 )
 
-                self.add_field(
-                    ("gas", f"velocity_{v}"),
-                    sampling_type="cell",
-                    function=velocity_xyz_new(v),
-                    units=unit_system["velocity"],
-                )
-
-            create_magnitude_field(
-                self, "oldvelocity", unit_system["velocity"], ftype="gas"
-            )
-
             # density
             def _density(field, data):
-                return data["gas", "frame_density"] / data["gas", "lorentz_factor"]
-
-            self.add_field(
-                ("gas", "density_old"),
-                sampling_type="cell",
-                function=_density,
-                units=unit_system["density"],
-            )
-
-            def _density_new(field, data):
                 dens = fgen.density(
                     data["gamer", "Dens"].d,
                     data["gamer", "MomX"].d,
@@ -267,15 +161,12 @@ class GAMERFieldInfo(FieldInfoContainer):
             self.add_field(
                 ("gas", "density"),
                 sampling_type="cell",
-                function=_density_new,
+                function=_density,
                 units=unit_system["density"],
             )
 
             # pressure
             def _pressure(field, data):
-                return data["gas", "density"] * c2 * data["gamer", "Temp"]
-
-            def _pressure_new(field, data):
                 out = fgen.pressure(
                     data["gamer", "Dens"].d,
                     data["gamer", "MomX"].d,
@@ -287,10 +178,6 @@ class GAMERFieldInfo(FieldInfoContainer):
 
             # thermal energy per mass (i.e., specific)
             def _specific_thermal_energy(field, data):
-                eps = data["gas", "density"] * htilde(data) - data["gas", "pressure"]
-                return eps / data["gas", "density"]
-
-            def _specific_thermal_energy_new(field, data):
                 out = fgen.specific_thermal_energy(
                     data["gamer", "Dens"].d,
                     data["gamer", "MomX"].d,
@@ -308,12 +195,6 @@ class GAMERFieldInfo(FieldInfoContainer):
                 return E / data["gamer", "Dens"]
 
             def _kinetic_energy_density(field, data):
-                u2 = data["gas", "oldfour_velocity_magnitude"] ** 2
-                gm1 = u2 / c2 / (data["gas", "lorentz_factor_old"] + 1.0)
-                h = htilde(data) + c2
-                return gm1 * (data["gamer", "Dens"] * h + data["gas", "pressure"])
-
-            def _kinetic_energy_density_new(field, data):
                 out = fgen.kinetic_energy_density(
                     data["gamer", "Dens"].d,
                     data["gamer", "MomX"].d,
@@ -324,7 +205,7 @@ class GAMERFieldInfo(FieldInfoContainer):
                 return data.ds.arr(out, erg_units).to(unit_system["pressure"])
 
             self.add_field(
-                ("gas", "kinetic_energy_density_old"),
+                ("gas", "kinetic_energy_density"),
                 sampling_type="cell",
                 function=_kinetic_energy_density,
                 units=unit_system["pressure"],
@@ -333,30 +214,18 @@ class GAMERFieldInfo(FieldInfoContainer):
             self.add_field(
                 ("gas", "kinetic_energy_density"),
                 sampling_type="cell",
-                function=_kinetic_energy_density_new,
+                function=_kinetic_energy_density,
                 units=unit_system["pressure"],
-            )
-
-            self.add_field(
-                ("gas", "sound_speed_old"),
-                sampling_type="cell",
-                function=_sound_speed,
-                units=unit_system["velocity"],
             )
 
             self.add_field(
                 ("gas", "sound_speed"),
                 sampling_type="cell",
-                function=_sound_speed_new,
+                function=_sound_speed,
                 units=unit_system["velocity"],
             )
 
             def _mach_number(field, data):
-                c_s = data["gas", "sound_speed_old"]
-                u_s = c_s / np.sqrt(1.0 - c_s * c_s / c2)
-                return data["gas", "oldfour_velocity_magnitude"] / u_s
-
-            def _mach_number_new(field, data):
                 out = fgen.mach_number(
                     data["gamer", "Dens"].d,
                     data["gamer", "MomX"].d,
@@ -367,19 +236,11 @@ class GAMERFieldInfo(FieldInfoContainer):
                 return data.ds.arr(out, "dimensionless")
 
             self.add_field(
-                ("gas", "mach_number_old"),
+                ("gas", "mach_number"),
                 sampling_type="cell",
                 function=_mach_number,
                 units="",
             )
-
-            self.add_field(
-                ("gas", "mach_number"),
-                sampling_type="cell",
-                function=_mach_number_new,
-                units="",
-            )
-
         else:
 
             # density
@@ -433,9 +294,6 @@ class GAMERFieldInfo(FieldInfoContainer):
             def _specific_thermal_energy(field, data):
                 return et(data) / data["gamer", "Dens"]
 
-            def _specific_thermal_energy_new(field, data):  # TODO
-                return _specific_thermal_energy(field, data)
-
             # total energy per mass
             def _specific_total_energy(field, data):
                 return data["gamer", "Engy"] / data["gamer", "Dens"]
@@ -444,20 +302,10 @@ class GAMERFieldInfo(FieldInfoContainer):
             def _pressure(field, data):
                 return et(data) * (data.ds.gamma - 1.0)
 
-            def _pressure_new(field, data):  # TODO
-                return _pressure(field, data)
-
-        self.add_field(
-            ("gas", "specific_thermal_energy_old"),
-            sampling_type="cell",
-            function=_specific_thermal_energy,
-            units=unit_system["specific_energy"],
-        )
-
         self.add_field(
             ("gas", "specific_thermal_energy"),
             sampling_type="cell",
-            function=_specific_thermal_energy_new,
+            function=_specific_thermal_energy,
             units=unit_system["specific_energy"],
         )
 
@@ -469,16 +317,9 @@ class GAMERFieldInfo(FieldInfoContainer):
         )
 
         self.add_field(
-            ("gas", "pressure_old"),
-            sampling_type="cell",
-            function=_pressure,
-            units=unit_system["pressure"],
-        )
-
-        self.add_field(
             ("gas", "pressure"),
             sampling_type="cell",
-            function=_pressure_new,
+            function=_pressure,
             units=unit_system["pressure"],
         )
 
