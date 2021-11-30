@@ -374,7 +374,7 @@ class SphericalCoordinateHandler(CoordinateHandler):
         if phimin <= 0 <= phimax:
             xxmax = rmax
         else:
-            xxmin = max(xx for xx, yy in conic_corner_coords)
+            xxmax = max(xx for xx, yy in conic_corner_coords)
 
         if phimin <= 3 * np.pi / 2 <= phimax:
             yymin = -rmax
