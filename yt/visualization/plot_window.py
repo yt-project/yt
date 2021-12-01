@@ -222,7 +222,7 @@ class PlotWindow(ImagePlotContainer):
         self.center = None
         self._periodic = periodic
         self.oblique = oblique
-        _check_right_handed(right_handed)
+        _check_right_handed(right_handed, swap_axes)
         self._equivalencies = defaultdict(lambda: (None, {}))
         self.buff_size = buff_size
         self.antialias = antialias
@@ -819,7 +819,6 @@ class PlotWindow(ImagePlotContainer):
 
     def set_window_size(self, size):
         """This calls set_figure_size to adjust the size of the plot window."""
-        from yt._maintenance.deprecation import issue_deprecation_warning
 
         issue_deprecation_warning(
             "`PlotWindow.set_window_size` is a deprecated alias "
@@ -911,7 +910,7 @@ class PlotWindow(ImagePlotContainer):
         has_q = any([f"{q}Callback" in callback_list for q in q_names])
         return has_q
 
-    def _check_flip_quiver_conflict(self, flip_axis:bool) -> bool:
+    def _check_flip_quiver_conflict(self, flip_axis: bool) -> bool:
         # the quiver callback needs to be modified in order to work with
         # inverted axes, https://github.com/matplotlib/matplotlib/issues/11857
         if flip_axis and self._has_quiver_callback:
@@ -1230,14 +1229,6 @@ class PWViewerMPL(PlotWindow):
                 self._projection,
                 self._transform,
             )
-
-            # if self._has_flipped_horizontal:
-            #     ax = self.plots[f].axes
-            #     ax.invert_xaxis()
-            #
-            # if self._has_flipped_vertical:
-            #     ax = self.plots[f].axes
-            #     ax.invert_yaxis()
 
             axes_unit_labels = self._get_axes_unit_labels(unit_x, unit_y)
 
@@ -2954,7 +2945,7 @@ def plot_2d(
     )
 
 
-def _check_right_handed(right_handed: bool) -> bool:
+def _check_right_handed(right_handed: bool, swap_axes: bool) -> bool:
     # temporary function to check if right_handed kwarg has been set. can
     # remove this after full depreciation.
     if not right_handed:
@@ -2963,4 +2954,6 @@ def _check_right_handed(right_handed: bool) -> bool:
             since="4.1.0",
             removal="4.2.0",
         )
+        if swap_axes:
+            raise ValueError("Cannot use both 'right_handed' and 'swap_axes' arguments")
     return right_handed

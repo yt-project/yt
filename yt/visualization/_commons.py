@@ -1,6 +1,6 @@
 import os
 import sys
-from typing import Optional, Tuple, Type, TypeVar
+from typing import Optional, Type, TypeVar
 
 import matplotlib
 from packaging.version import Version
@@ -140,7 +140,8 @@ def _swap_arg_pair_order(*args):
 
     """
 
-    assert len(args) % 2 == 0
+    if len(args) % 2 != 0:
+        raise TypeError("Number of arguments must be even.")
     n_pairs = len(args) // 2
     new_args = []
     for i in range(n_pairs):

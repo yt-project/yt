@@ -53,5 +53,5 @@ def test_extent_swap():
 def test_swap_arg_pair_order():
     assert _swap_arg_pair_order(1, 2) == (2, 1)
     assert _swap_arg_pair_order(1, 2, 3, 4, 5, 6) == (2, 1, 4, 3, 6, 5)
-    assert_raises(AssertionError, _swap_arg_pair_order, 1)
-    assert_raises(AssertionError, _swap_arg_pair_order, 1, 2, 3)
+    assert_raises(TypeError, _swap_arg_pair_order, 1)
+    assert_raises(TypeError, _swap_arg_pair_order, 1, 2, 3)
