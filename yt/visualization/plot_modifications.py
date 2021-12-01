@@ -609,8 +609,8 @@ class QuiverCallback(PlotCallback):
 
         # We are feeding this size into the pixelizer, where it will properly
         # set it in reverse order
-        nx = plot.image._A.shape[1] // self.factor[0]
-        ny = plot.image._A.shape[0] // self.factor[1]
+        nx = plot.raw_image_shape[1] // self.factor[0]
+        ny = plot.raw_image_shape[0] // self.factor[1]
         pixX = plot.data.ds.coordinates.pixelize(
             plot.data.axis,
             plot.data,
@@ -1011,8 +1011,8 @@ class StreamlineCallback(PlotCallback):
 
         # We are feeding this size into the pixelizer, where it will properly
         # set it in reverse order
-        nx = plot.image._A.shape[1] // self.factor[0]
-        ny = plot.image._A.shape[0] // self.factor[1]
+        nx = plot.raw_image_shape[1] // self.factor[0]
+        ny = plot.raw_image_shape[0] // self.factor[1]
         pixX = plot.data.ds.coordinates.pixelize(
             plot.data.axis, plot.data, self.field_x, bounds, (nx, ny)
         )
@@ -1225,8 +1225,8 @@ class CuttingQuiverCallback(PlotCallback):
     def __call__(self, plot):
         x0, x1, y0, y1 = self._physical_bounds(plot)
         xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
-        nx = plot.image._A.shape[1] // self.factor[0]
-        ny = plot.image._A.shape[0] // self.factor[1]
+        nx = plot.raw_image_shape[1] // self.factor[0]
+        ny = plot.raw_image_shape[0] // self.factor[1]
         indices = np.argsort(plot.data["index", "dx"])[::-1].astype(np.int_)
 
         pixX = np.zeros((ny, nx), dtype="f8")
@@ -2409,18 +2409,19 @@ class TriangleFacetsCallback(PlotCallback):
         ]
         # l_cy is shape (nlines, 2, 2)
         # reformat for conversion to plot coordinates
-        l_cy = np.rollaxis(l_cy, 0, 3)
+        l_cy = np.rollaxis(l_cy, 0, 3)  # shape is now (2, 2, nlines)
         # convert all line starting points
         l_cy[0] = self._convert_to_plot(plot, l_cy[0])
         # convert all line ending points
         l_cy[1] = self._convert_to_plot(plot, l_cy[1])
+        if plot._swap_axes:
+            # more convenient to swap the x, y values here before final roll
+            x0, y0 = l_cy[0]  # x, y values of start points
+            x1, y1 = l_cy[1]  # x, y values of end points
+            l_cy[0] = np.row_stack([y0, x0])  # swap x, y for start points
+            l_cy[1] = np.row_stack([y1, x1])  # swap x, y for end points
         # convert back to shape (nlines, 2, 2)
         l_cy = np.rollaxis(l_cy, 2, 0)
-        if plot._swap_axes:
-            # this one needs a little more thought
-            raise NotImplementedError(
-                "swap_axes is not valid with TriangleFacetsCallback"
-            )
         # create line collection and add it to the plot
         lc = matplotlib.collections.LineCollection(l_cy, **self.plot_args)
         plot._axes.add_collection(lc)
