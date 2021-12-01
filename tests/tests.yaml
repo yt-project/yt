@@ -68,7 +68,7 @@ answer_tests:
     - yt/frontends/gadget/tests/test_outputs.py:test_bigendian_field_access
     - yt/frontends/gadget/tests/test_outputs.py:test_magneticum
 
-  local_gamer_009:
+  local_gamer_010:  # PR 3401
     - yt/frontends/gamer/tests/test_outputs.py:test_jet
     - yt/frontends/gamer/tests/test_outputs.py:test_psiDM
     - yt/frontends/gamer/tests/test_outputs.py:test_plummer
@@ -92,7 +92,7 @@ answer_tests:
     - yt/frontends/owls/tests/test_outputs.py:test_snapshot_033
     - yt/frontends/owls/tests/test_outputs.py:test_OWLS_particlefilter
 
-  local_pw_040:  # PR 3441
+  local_pw_041:  # PR 3670
     - yt/visualization/tests/test_plotwindow.py:test_attributes
     - yt/visualization/tests/test_particle_plot.py:test_particle_projection_answers
     - yt/visualization/tests/test_particle_plot.py:test_particle_projection_filter
@@ -164,13 +164,13 @@ answer_tests:
     - yt/frontends/ytdata/tests/test_old_outputs.py:test_old_profile_data
     - yt/frontends/ytdata/tests/test_old_outputs.py:test_old_nonspatial_data
 
-  local_axialpix_007:
+  local_axialpix_008: # PR 3628
     - yt/geometry/coordinates/tests/test_axial_pixelization.py:test_axial_pixelization
 
-  local_cylindrical_background_010:  # PR 3520
+  local_cylindrical_background_011:  # PR 3670
     - yt/geometry/coordinates/tests/test_cylindrical_coordinates.py:test_noise_plots
 
-  local_spherical_background_003:  # PR 3618
+  local_spherical_background_004:  # PR 3670
     - yt/geometry/coordinates/tests/test_spherical_coordinates.py:test_noise_plots
 
   #local_particle_trajectory_001:

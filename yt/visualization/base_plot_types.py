@@ -100,11 +100,9 @@ class PlotMPL:
         if figure_manager is not None:
             self.manager = figure_manager(self.canvas, 1)
 
-        for which in ["major", "minor"]:
-            for axis in "xy":
-                self.axes.tick_params(
-                    which=which, axis=axis, direction="in", top=True, right=True
-                )
+        self.axes.tick_params(
+            which="both", axis="both", direction="in", top=True, right=True
+        )
 
     def _create_axes(self, axrect):
         self.axes = self.figure.add_axes(axrect)
@@ -345,8 +343,7 @@ class ImagePlotMPL(PlotMPL):
             self.cb.set_ticks(yticks)
         else:
             self.cb = self.figure.colorbar(self.image, self.cax)
-        for which in ["major", "minor"]:
-            self.cax.tick_params(which=which, axis="y", direction="in")
+        self.cax.tick_params(which="both", axis="y", direction="in")
 
     def _get_best_layout(self):
 

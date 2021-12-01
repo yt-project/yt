@@ -4,9 +4,8 @@ import numpy as np
 import pyx
 from matplotlib import cm, pyplot as plt
 
-from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
-from yt.units.unit_object import Unit
+from yt.units.unit_object import Unit  # type: ignore
 from yt.units.yt_array import YTQuantity
 from yt.utilities.logger import ytLogger as mylog
 
@@ -1606,11 +1605,6 @@ def single_plot(
 
 
 # =============================================================================
-def return_cmap(cmap=None, label="", range=(0, 1), log=False):
-    issue_deprecation_warning(
-        "Deprecated alias. Use return_colormap instead.", removal="4.1.0"
-    )
-    return return_colormap(cmap=cmap, label=label, crange=range, log=log)
 
 
 def return_colormap(cmap=None, label="", range=(0, 1), log=False):

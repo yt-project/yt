@@ -4,6 +4,7 @@ import uuid
 import warnings
 import weakref
 from collections import defaultdict
+from typing import Type
 
 import numpy as np
 import numpy.core.defchararray as np_char
@@ -12,12 +13,16 @@ from more_itertools import always_iterable
 from yt.config import ytcfg
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
+from yt.fields.field_info_container import FieldInfoContainer
 from yt.funcs import mylog, setdefaultattr
 from yt.geometry.geometry_handler import YTDataChunk
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.units import dimensions
-from yt.units.unit_lookup_table import default_unit_symbol_lut, unit_prefixes
-from yt.units.unit_object import UnitParseError
+from yt.units.unit_lookup_table import (  # type: ignore
+    default_unit_symbol_lut,
+    unit_prefixes,
+)
+from yt.units.unit_object import UnitParseError  # type: ignore
 from yt.units.yt_array import YTQuantity
 from yt.utilities.decompose import decompose_array, get_psize
 from yt.utilities.file_handler import FITSFileHandler
@@ -32,9 +37,9 @@ lat_prefixes = ["Y", "DEC", "GLAT", "LINEAR"]
 spec_names = {"V": "Velocity", "F": "Frequency", "E": "Energy", "W": "Wavelength"}
 
 space_prefixes = list(set(lon_prefixes + lat_prefixes))
-sky_prefixes = set(space_prefixes)
-sky_prefixes.difference_update({"X", "Y", "LINEAR"})
-sky_prefixes = list(sky_prefixes)
+unique_sky_prefixes = set(space_prefixes)
+unique_sky_prefixes.difference_update({"X", "Y", "LINEAR"})
+sky_prefixes = list(unique_sky_prefixes)
 spec_prefixes = list(spec_names.keys())
 
 
@@ -313,7 +318,7 @@ def check_sky_coords(filename, ndim):
 
 class FITSDataset(Dataset):
     _index_class = FITSHierarchy
-    _field_info_class = FITSFieldInfo
+    _field_info_class: Type[FieldInfoContainer] = FITSFieldInfo
     _dataset_type = "fits"
     _handle = None
 

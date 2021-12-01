@@ -1,3 +1,4 @@
+from yt._typing import KnownFieldsT
 from yt.fields.field_info_container import FieldInfoContainer
 
 b_units = "code_magnetic"
@@ -10,7 +11,7 @@ en_units = "code_mass*code_velocity**2/code_length**3"
 
 
 class ARTFieldInfo(FieldInfoContainer):
-    known_other_fields = (
+    known_other_fields: KnownFieldsT = (
         ("Density", (rho_units, ["density"], None)),
         ("TotalEnergy", (en_units, ["total_energy_density"], None)),
         ("XMomentumDensity", (mom_units, ["momentum_density_x"], None)),
@@ -25,7 +26,7 @@ class ARTFieldInfo(FieldInfoContainer):
         ("PotentialOld", ("", ["gas_potential"], None)),
     )
 
-    known_particle_fields = (
+    known_particle_fields: KnownFieldsT = (
         ("particle_position_x", ("code_length", [], None)),
         ("particle_position_y", ("code_length", [], None)),
         ("particle_position_z", ("code_length", [], None)),

@@ -496,7 +496,7 @@ Overplot Magnetic Field Quivers
 
    ds = yt.load(
        "MHDSloshing/virgo_low_res.0054.vtk",
-       parameters={
+       units_override={
            "time_unit": (1, "Myr"),
            "length_unit": (1, "Mpc"),
            "mass_unit": (1e17, "Msun"),

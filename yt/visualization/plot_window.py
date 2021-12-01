@@ -2,7 +2,7 @@ import abc
 from collections import defaultdict
 from functools import wraps
 from numbers import Number
-from typing import Union
+from typing import List, Optional, Type, Union
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -17,8 +17,8 @@ from yt.config import ytcfg
 from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
 from yt.funcs import fix_axis, fix_unitary, is_sequence, iter_fields, mylog, obj_length
-from yt.units.unit_object import Unit
-from yt.units.unit_registry import UnitParseError
+from yt.units.unit_object import Unit  # type: ignore
+from yt.units.unit_registry import UnitParseError  # type: ignore
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import (
     YTCannotParseUnitDisplayName,
@@ -288,26 +288,22 @@ class PlotWindow(ImagePlotContainer):
 
     _frb = None
 
-    def frb():
-        doc = "The frb property."
+    @property
+    def frb(self):
+        if self._frb is None or not self._data_valid:
+            self._recreate_frb()
+        return self._frb
 
-        def fget(self):
-            if self._frb is None or not self._data_valid:
-                self._recreate_frb()
-            return self._frb
+    @frb.setter
+    def frb(self, value):
+        self._frb = value
+        self._data_valid = True
 
-        def fset(self, value):
-            self._frb = value
-            self._data_valid = True
-
-        def fdel(self):
-            del self._frb
-            self._frb = None
-            self._data_valid = False
-
-        return locals()
-
-    frb = property(**frb())
+    @frb.deleter
+    def frb(self):
+        del self._frb
+        self._frb = None
+        self._data_valid = False
 
     def _recreate_frb(self):
         old_fields = None
@@ -456,7 +452,7 @@ class PlotWindow(ImagePlotContainer):
 
         """
         if len(deltas) != 2:
-            raise RuntimeError(
+            raise TypeError(
                 f"The pan function accepts a two-element sequence.\nReceived {deltas}."
             )
         if isinstance(deltas[0], Number) and isinstance(deltas[1], Number):
@@ -472,7 +468,7 @@ class PlotWindow(ImagePlotContainer):
         elif isinstance(deltas[0], YTQuantity) and isinstance(deltas[1], YTQuantity):
             pass
         else:
-            raise RuntimeError(
+            raise TypeError(
                 "The arguments of the pan function must be a sequence of floats,\n"
                 "quantities, or (float, unit) tuples. Received %s." % (deltas,)
             )
@@ -817,17 +813,6 @@ class PlotWindow(ImagePlotContainer):
             self.buff_size = (size, size)
         return self
 
-    def set_window_size(self, size):
-        """This calls set_figure_size to adjust the size of the plot window."""
-
-        issue_deprecation_warning(
-            "`PlotWindow.set_window_size` is a deprecated alias "
-            "for `PlotWindow.set_figure_size`.",
-            removal="4.1.0",
-        )
-        self.set_figure_size(size)
-        return self
-
     @invalidate_plot
     def set_axes_unit(self, unit_name):
         r"""Set the unit for display on the x and y axes of the image.
@@ -948,8 +933,8 @@ class PWViewerMPL(PlotWindow):
     """Viewer using matplotlib as a backend via the WindowPlotMPL."""
 
     _current_field = None
-    _frb_generator = None
-    _plot_type = None
+    _frb_generator: Optional[Type[FixedResolutionBuffer]] = None
+    _plot_type: Optional[str] = None
     _data_valid = False
 
     def __init__(self, *args, **kwargs):
@@ -1101,12 +1086,17 @@ class PWViewerMPL(PlotWindow):
                 unit_x = unit_y = unit
                 coords = self.ds.coordinates
                 if hasattr(coords, "image_units"):
-                    # this should detect angular coordinates
+                    # check for special cases defined in
+                    # non cartesian CoordinateHandler subclasses
                     image_units = coords.image_units[coords.axis_id[axis_index]]
                     if image_units[0] in ("deg", "rad"):
                         unit_x = "code_length"
+                    elif image_units[0] == 1:
+                        unit_x = "dimensionless"
                     if image_units[1] in ("deg", "rad"):
                         unit_y = "code_length"
+                    elif image_units[1] == 1:
+                        unit_y = "dimensionless"
             else:
                 (unit_x, unit_y) = self._axes_unit_names
 
@@ -1117,10 +1107,22 @@ class PWViewerMPL(PlotWindow):
                 self.aspect = float(
                     (self.ds.quan(1.0, unit_y) / self.ds.quan(1.0, unit_x)).in_cgs()
                 )
-            extentx = [(self.xlim[i] - xc).in_units(unit_x) for i in (0, 1)]
-            extenty = [(self.ylim[i] - yc).in_units(unit_y) for i in (0, 1)]
+            extentx = (self.xlim - xc)[:2]
+            extenty = (self.ylim - yc)[:2]
 
-            extent = extentx + extenty
+            # extentx/y arrays inherit units from xlim and ylim attributes
+            # and these attributes are always length even for angular and
+            # dimensionless axes so we need to stip out units for consistency
+            if unit_x == "dimensionless":
+                extentx = extentx / extentx.units
+            else:
+                extentx.convert_to_units(unit_x)
+            if unit_y == "dimensionless":
+                extenty = extenty / extenty.units
+            else:
+                extenty.convert_to_units(unit_y)
+
+            extent = [*extentx, *extenty]
 
             if f in self.plots.keys():
                 zlim = (self.plots[f].zmin, self.plots[f].zmax)
@@ -1460,28 +1462,6 @@ class PWViewerMPL(PlotWindow):
 
             self.__dict__["annotate_" + cbname] = closure()
 
-    def annotate_clear(self, index=None):
-        """
-        Clear callbacks from the plot.  If index is not set, clear all
-        callbacks.  If index is set, clear that index (ie 0 is the first one
-        created, 1 is the 2nd one created, -1 is the last one created, etc.)
-
-        .. note::
-
-            Deprecated in favor of `clear_annotations`.
-
-        See Also
-        --------
-        :py:meth:`yt.visualization.plot_window.PWViewerMPL.clear_annotations`
-        """
-        issue_deprecation_warning(
-            "`annotate_clear` has been deprecated "
-            "in favor of `clear_annotations`. Using `clear_annotations`.",
-            since="4.0.0",
-            removal="4.1.0",
-        )
-        self.clear_annotations(index=index)
-
     @invalidate_plot
     def clear_annotations(self, index=None):
         """
@@ -1633,7 +1613,7 @@ class NormalPlot(abc.ABC):
                 )
             return normal
 
-        if isinstance(normal, (int, np.integer)):
+        if isinstance(normal, int):
             if normal not in (0, 1, 2):
                 raise ValueError(
                     f"{normal} is not a valid axis identifier. Expected either 0, 1, or 2."
@@ -1809,7 +1789,11 @@ class SlicePlot(NormalPlot):
 
     """
 
-    def __new__(
+    # ignoring type check here, because mypy doesn't allow __new__ methods to
+    # return instances of subclasses. The design we use here is however based
+    # on the pathlib.Path class from the standard library
+    # https://github.com/python/mypy/issues/1020
+    def __new__(  # type: ignore
         cls, ds, normal, fields, *args, **kwargs
     ) -> Union["AxisAlignedSlicePlot", "OffAxisSlicePlot"]:
         if cls is SlicePlot:
@@ -1866,7 +1850,11 @@ class ProjectionPlot(NormalPlot):
 
     """
 
-    def __new__(
+    # ignoring type check here, because mypy doesn't allow __new__ methods to
+    # return instances of subclasses. The design we use here is however based
+    # on the pathlib.Path class from the standard library
+    # https://github.com/python/mypy/issues/1020
+    def __new__(  # type: ignore
         cls, ds, normal, fields, *args, **kwargs
     ) -> Union["AxisAlignedProjectionPlot", "OffAxisProjectionPlot"]:
         if cls is ProjectionPlot:
@@ -2199,9 +2187,6 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
          just a straight summation of the field along the given axis. WARNING:
          This should only be used for uniform resolution grid datasets, as other
          datasets may result in unphysical images.
-    proj_style : string
-         The method of projection--same as method keyword.  Deprecated as of
-         version 3.0.2.  Please use method instead.
     window_size : float
          The size of the window in inches. Set to 8 by default.
     aspect : float
@@ -2256,7 +2241,6 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
         field_parameters=None,
         data_source=None,
         method="integrate",
-        proj_style=None,
         window_size=8.0,
         buff_size=(800, 800),
         aspect=None,
@@ -2274,12 +2258,6 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
         ):
             mylog.info("Setting origin='native' for %s geometry.", ds.geometry)
             origin = "native"
-        if proj_style is not None:
-            issue_deprecation_warning(
-                "`proj_style` parameter is deprecated, use `method` instead.",
-                removal="4.1.0",
-            )
-            method = proj_style
         # If a non-weighted integral projection, assure field-label reflects that
         if weight_field is None and method == "integrate":
             self.projected = True
@@ -2492,7 +2470,7 @@ class OffAxisSlicePlot(SlicePlot, PWViewerMPL):
 
 class OffAxisProjectionDummyDataSource:
     _type_name = "proj"
-    _key_fields = []
+    _key_fields: List[str] = []
 
     def __init__(
         self,

@@ -1,3 +1,4 @@
+from yt._typing import KnownFieldsT
 from yt.fields.field_info_container import FieldInfoContainer
 from yt.fields.magnetic_field import setup_magnetic_field_aliases
 from yt.fields.species_fields import add_species_field_by_density, setup_species_fields
@@ -10,7 +11,7 @@ metal_elements = ["He", "C", "N", "O", "Ne", "Mg", "Si", "S", "Ca", "Fe"]
 class GizmoFieldInfo(GadgetFieldInfo):
     # The known fields list is according to the GIZMO User Guide. See
     # http://www.tapir.caltech.edu/~phopkins/Site/GIZMO_files/gizmo_documentation.html#snaps-reading
-    known_particle_fields = (
+    known_particle_fields: KnownFieldsT = (
         ("Coordinates", ("code_length", ["particle_position"], None)),
         ("Velocities", ("code_velocity", ["particle_velocity"], None)),
         ("ParticleIDs", ("", ["particle_index"], None)),

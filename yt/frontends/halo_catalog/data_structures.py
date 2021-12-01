@@ -355,10 +355,13 @@ class HaloDataset(ParticleDataset):
             setattr(self, attr, getattr(self.real_ds, attr))
 
     def set_code_units(self):
+        self._set_code_unit_attributes()
+        self.unit_registry = self.real_ds.unit_registry
+
+    def _set_code_unit_attributes(self):
         for unit in ["length", "time", "mass", "velocity", "magnetic", "temperature"]:
             my_unit = f"{unit}_unit"
             setattr(self, my_unit, getattr(self.real_ds, my_unit, None))
-        self.unit_registry = self.real_ds.unit_registry
 
     def __str__(self):
         return f"{self.real_ds}"

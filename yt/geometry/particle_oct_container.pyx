@@ -587,11 +587,11 @@ cdef class ParticleBitmap:
             for i in range(3):
                 axiter[i][1] = 999
                 # Skip particles outside the domain
-                if pos[p,i] >= RE[i] or pos[p,i] < LE[i]:
+                if not (LE[i] <= pos[p, i] < RE[i]):
                     skip = 1
                     break
                 ppos[i] = pos[p,i]
-            if skip==1: continue
+            if skip == 1: continue
             mi = bounded_morton_split_dds(ppos[0], ppos[1], ppos[2], LE,
                                           dds, mi_split)
             mask[mi] = 1
@@ -746,19 +746,21 @@ cdef class ParticleBitmap:
         # Loop over positions skipping those outside the domain
         cdef np.ndarray[np.uint64_t, ndim=1, cast=True] sorted_order
         if hsml is None:
-            sorted_order = np.argsort(morton_indices)
+            # casting to uint64 for compatibility with 32 bits systems
+            # see https://github.com/yt-project/yt/issues/3656
+            sorted_order = np.argsort(morton_indices).astype(np.uint64, copy=False)
         else:
-            sorted_order = np.argsort(hsml)[::-1]
+            sorted_order = np.argsort(hsml)[::-1].astype(np.uint64, copy=False)
         for sorted_ind in range(sorted_order.shape[0]):
             p = sorted_order[sorted_ind]
             skip = 0
             for i in range(3):
                 axiter[i][1] = 999
-                if pos[p,i] >= RE[i] or pos[p,i] < LE[i]:
+                if not (LE[i] <= pos[p, i] < RE[i]):
                     skip = 1
                     break
                 ppos[i] = pos[p,i]
-            if skip==1: continue
+            if skip == 1: continue
             # Only look if collision at coarse index
             mi1 = bounded_morton_split_dds(ppos[0], ppos[1], ppos[2], LE,
                                            dds1, mi_split1)

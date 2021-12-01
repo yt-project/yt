@@ -4,7 +4,7 @@ import numpy as np
 
 from yt.frontends.gadget_fof.io import IOHandlerGadgetFOFHaloHDF5
 from yt.funcs import parse_h5_attr
-from yt.units.yt_array import uvstack
+from yt.units.yt_array import uvstack  # type: ignore
 from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.on_demand_imports import _h5py as h5py
 
@@ -116,7 +116,12 @@ class HaloDatasetIOHandler:
     _read_particle_selection = IOHandlerGadgetFOFHaloHDF5._read_particle_selection
 
 
-class IOHandlerYTHalo(HaloDatasetIOHandler, IOHandlerYTHaloCatalog):
+# ignoring type in this mixing to circunvent this error from mypy
+# Definition of "_read_particle_fields" in base class "HaloDatasetIOHandler"
+# is incompatible with definition in base class "IOHandlerYTHaloCatalog"
+#
+# it may not be possible to refactor out of this situation without breaking downstream
+class IOHandlerYTHalo(HaloDatasetIOHandler, IOHandlerYTHaloCatalog):  # type: ignore
     _dataset_type = "ythalo"
 
     def _identify_fields(self, data_file):
