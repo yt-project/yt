@@ -27,6 +27,7 @@ from yt.utilities.lib.pixelization_routines import (
 from yt.utilities.math_utils import periodic_ray
 from yt.utilities.on_demand_imports import NotAModule
 from yt.visualization._commons import _swap_arg_pair_order, _swap_axes_extents
+from yt.visualization.base_plot_types import CallbackWrapper
 from yt.visualization.image_writer import apply_colormap
 
 callback_registry = {}
@@ -65,8 +66,7 @@ class PlotCallback:
     def __init__(self, *args, **kwargs):
         pass
 
-    def __call__(self, plot):
-        # plot is a CallbackWrapper instance
+    def __call__(self, plot: CallbackWrapper):
         raise NotImplementedError
 
     def _project_coords(self, plot, coord):
@@ -295,7 +295,7 @@ class PlotCallback:
                 label.set_color(plot.font_color)
             label.set_fontproperties(local_font_properties)
 
-    def _set_plot_limits(self, plot, extent=None):
+    def _set_plot_limits(self, plot, extent=None) -> None:
         """
         calls set_xlim, set_ylim for plot, accounting for swapped axes
 
@@ -330,7 +330,7 @@ class PlotCallback:
         Returns
         -------
         tuple
-            either the original args or new args  with x, y pairs switched. i.e.,
+            either the original args or new args, with (x, y) pairs switched. i.e.,
 
             _sanitize_xy_order(plot, x, y, px, py) returns:
                 x, y, px, py if plot._swap_axes is False

@@ -897,21 +897,21 @@ class PlotWindow(ImagePlotContainer):
         return self
 
     @property
-    def _has_flipped_vertical(self):
+    def _has_flipped_vertical(self) -> bool:
         return self._check_flip_quiver_conflict(self._flip_vertical)
 
     @property
-    def _has_flipped_horizontal(self):
+    def _has_flipped_horizontal(self) -> bool:
         return self._check_flip_quiver_conflict(self._flip_horizontal)
 
     @property
-    def _has_quiver_callback(self):
+    def _has_quiver_callback(self) -> bool:
         q_names = ["Quiver", "CuttingQuiver", "MagField", "Velocity"]
         callback_list = [c[0] for c in self._callbacks]
         has_q = any([f"{q}Callback" in callback_list for q in q_names])
         return has_q
 
-    def _check_flip_quiver_conflict(self, flip_axis):
+    def _check_flip_quiver_conflict(self, flip_axis:bool) -> bool:
         # the quiver callback needs to be modified in order to work with
         # inverted axes, https://github.com/matplotlib/matplotlib/issues/11857
         if flip_axis and self._has_quiver_callback:
@@ -2959,7 +2959,7 @@ def _check_right_handed(right_handed: bool) -> bool:
     # remove this after full depreciation.
     if not right_handed:
         issue_deprecation_warning(
-            "'right_handed' has been deprecated, use 'flip_horizontal' instead.",
+            "The 'right_handed' argument is deprecated. Use 'flip_horizontal' instead.",
             since="4.1.0",
             removal="4.2.0",
         )

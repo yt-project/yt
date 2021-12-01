@@ -1,6 +1,6 @@
 import os
 import sys
-from typing import Optional, Type, TypeVar
+from typing import Optional, Tuple, Type, TypeVar
 
 import matplotlib
 from packaging.version import Version
@@ -141,7 +141,7 @@ def _swap_arg_pair_order(*args):
     """
 
     assert len(args) % 2 == 0
-    n_pairs = int(len(args) / 2)
+    n_pairs = len(args) // 2
     new_args = []
     for i in range(n_pairs):
         x_id = i * 2

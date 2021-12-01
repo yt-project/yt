@@ -719,9 +719,8 @@ The first two axis orientation modifications,
 :meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.flip_horizontal`
 and :meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.flip_vertical`, are
 equivalent to the ``invert_xaxis`` and ``invert_yaxis`` of matplotlib ``Axes``
-objects. ``flip_horizontal`` will invert the plot's x-axis (effectively toggling
-the plot's right handedness) while the :meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.flip_vertical` method
-will invert the plot's y-axis:
+objects. ``flip_horizontal`` will invert the plot's x-axis while the :meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.flip_vertical` method
+will invert the plot's y-axis
 
 .. python-script::
 
@@ -743,6 +742,7 @@ will invert the plot's y-axis:
    slc.annotate_title("Flipped vertical")
    slc.save("FlippedVertical.png")
 
+Note that all three operations effectively toggle the plot's right-handedness.
 In addition to inverting the direction of each axis,
 :meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.swap_axes` will exchange
 the plot's vertical and horizontal axes:
