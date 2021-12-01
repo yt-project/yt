@@ -449,11 +449,13 @@ the notations and projections system yt uses for to render 2D images of
 spherical data.
 
 The native spherical coordinates are
+
 - the spherical radius :math:`r`
 - the colatitude :math:`\theta`, defined between :math:`0` and :math:`\pi`
 - the azimuth :math:`\varphi`, defined between :math:`0` and :math:`2\pi`
 
 :math:`\varphi`-normal slices are represented in the poloidal plane, with axes :math:`R, z`, where
+
 - :math:`R = r \sin \theta` is the cylindrical radius
 - :math:`z = r \cos \theta` is the elevation
 
@@ -466,7 +468,8 @@ The native spherical coordinates are
    slc.save()
 
 :math:`\theta`-normal slices are represented in a
-:math:`x/\sin(\theta)` VS :math:` y/(\theta)` plane, where
+:math:`x/\sin(\theta)` VS :math:`y/\sin(\theta)` plane, where
+
 - :math:`x = R \cos \varphi`
 - :math:`y = R \sin \varphi`
 
@@ -485,6 +488,7 @@ Finally, :math:`r`-normal slices are represented following a
 `Aitoff-Hammer projection <http://paulbourke.net/geometry/transformationprojection/>`_
 
 We denote
+
 - the latitude :math:`\bar\theta = \frac{\pi}{2} - \theta`
 - the longitude :math:`\lambda = \varphi - \pi`
 
