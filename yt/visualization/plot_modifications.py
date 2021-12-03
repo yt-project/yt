@@ -3284,7 +3284,6 @@ class CellEdgesCallback(PlotCallback):
         extent = self._plot_bounds(plot)
         if plot._swap_axes:
             im_buffer = im_buffer.transpose((1, 0, 2))
-            extent = _swap_axes_extents(extent)
         plot._axes.imshow(
             im_buffer,
             origin="lower",
