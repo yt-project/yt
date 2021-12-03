@@ -222,7 +222,7 @@ class PlotWindow(ImagePlotContainer):
         self.center = None
         self._periodic = periodic
         self.oblique = oblique
-        _check_right_handed(right_handed, swap_axes)
+        self._right_handed = _check_right_handed(right_handed, flip_horizontal)
         self._equivalencies = defaultdict(lambda: (None, {}))
         self.buff_size = buff_size
         self.antialias = antialias
@@ -870,6 +870,9 @@ class PlotWindow(ImagePlotContainer):
         inverts the horizontal axis (the image's abscissa)
         """
         self._flip_horizontal = not self._flip_horizontal
+        self._right_handed = (
+            not self._right_handed
+        )  # keep in sync until full depreciation
         return self
 
     @invalidate_plot
@@ -2923,7 +2926,7 @@ def plot_2d(
     )
 
 
-def _check_right_handed(right_handed: bool, swap_axes: bool) -> bool:
+def _check_right_handed(right_handed: bool, flip_horizontal: bool) -> bool:
     # temporary function to check if right_handed kwarg has been set. can
     # remove this after full depreciation.
     if not right_handed:
@@ -2932,6 +2935,8 @@ def _check_right_handed(right_handed: bool, swap_axes: bool) -> bool:
             since="4.1.0",
             removal="4.2.0",
         )
-        if swap_axes:
-            raise ValueError("Cannot use both 'right_handed' and 'swap_axes' arguments")
+        if flip_horizontal:
+            raise ValueError(
+                "Cannot use both 'right_handed' and 'flip_horizontal' arguments"
+            )
     return right_handed
