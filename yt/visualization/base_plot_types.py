@@ -269,7 +269,16 @@ class ImagePlotMPL(PlotMPL):
             # instances.  It is left as a historical note because we will
             # eventually need some form of it.
             # self.axes.set_extent(extent)
-            pass
+
+            # possibly related issue (operation order dependency)
+            # https://github.com/SciTools/cartopy/issues/1468
+
+            # in cartopy 0.19 (or 0.20), some intented behaviour changes produced an
+            # incompatibility here where default values for extent would lead to a crash.
+            # A solution is to let the transform object set the image extents internally
+            # see https://github.com/SciTools/cartopy/issues/1955
+            extent = None
+
         self.image = self.axes.imshow(
             data.to_ndarray(),
             origin="lower",

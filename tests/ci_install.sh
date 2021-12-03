@@ -16,13 +16,7 @@ osx|macOS)
     sudo mkdir -p /usr/local/man
     sudo chown -R "${USER}:admin" /usr/local/man
     brew update
-    # proj can be unpinned when upstream incompatibility issue is resolved. See
-    # https://github.com/SciTools/cartopy/issues/1140
-    export LDFLAGS="$LDFLAGS -L/usr/local/opt/proj@7/lib"
-    export CPPFLAGS="$CPPFLAGS -I/usr/local/opt/proj@7/include"
-    export CFLAGS="$CFLAGS -I/usr/local/opt/proj@7/include"
-    export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:/usr/local/opt/proj@7/lib/pkgconfig"
-    HOMEBREW_NO_AUTO_UPDATE=1 brew install hdf5 proj@7 geos open-mpi netcdf ccache
+    HOMEBREW_NO_AUTO_UPDATE=1 brew install hdf5 proj geos open-mpi netcdf ccache
     ;;
 esac
 
