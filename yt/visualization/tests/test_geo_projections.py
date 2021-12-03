@@ -1,6 +1,8 @@
 import unittest
 
+import pytest
 from nose.plugins.attrib import attr
+from packaging.version import Version
 
 import yt
 from yt.testing import ANSWER_TEST_TAG, fake_amr_ds, requires_module
@@ -131,6 +133,12 @@ class TestGeoProjections(unittest.TestCase):
     @requires_module("cartopy")
     def test_nondefault_transform(self):
         from yt.utilities.on_demand_imports import _cartopy as cartopy
+
+        if Version(cartopy.__version__) >= Version("0.19"):
+            # see https://github.com/yt-project/yt/issues/3705
+            pytest.skip(
+                "SlicePlot fails with 'ValueError: Invalid vmin or vmax' (frb is full of nans or infs)"
+            )
 
         axis = "altitude"
         self.ds.coordinates.data_transform[axis] = "Miller"
