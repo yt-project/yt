@@ -78,6 +78,5 @@ if sys.version_info < (3, 8):
 
         __class_getitem__ = classmethod(GenericAlias)
 
-
 else:
     pass
