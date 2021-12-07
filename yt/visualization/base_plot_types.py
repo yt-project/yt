@@ -340,15 +340,17 @@ class ImagePlotMPL(PlotMPL):
     def _get_best_layout(self):
 
         # Ensure the figure size along the long axis is always equal to _figure_size
+        unit_aspect = getattr(self, "_unit_aspect", 1)
         if is_sequence(self._figure_size):
-            x_fig_size = self._figure_size[0]
-            y_fig_size = self._figure_size[1]
+            x_fig_size, y_fig_size = self._figure_size
+            y_fig_size *= unit_aspect
         else:
-            x_fig_size = self._figure_size
-            y_fig_size = self._figure_size / self._aspect
-
-        if hasattr(self, "_unit_aspect"):
-            y_fig_size = y_fig_size * self._unit_aspect
+            x_fig_size = y_fig_size = self._figure_size
+            scaling = self._aspect / unit_aspect
+            if scaling < 1:
+                x_fig_size *= scaling
+            else:
+                y_fig_size /= scaling
 
         if self._draw_colorbar:
             cb_size = self._cb_size
