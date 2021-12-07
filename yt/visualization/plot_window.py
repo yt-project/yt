@@ -880,32 +880,6 @@ class PlotWindow(ImagePlotContainer):
         self._flip_vertical = not self._flip_vertical
         return self
 
-    @property
-    def _has_flipped_vertical(self) -> bool:
-        return self._check_flip_quiver_conflict(self._flip_vertical)
-
-    @property
-    def _has_flipped_horizontal(self) -> bool:
-        return self._check_flip_quiver_conflict(self._flip_horizontal)
-
-    @property
-    def _has_quiver_callback(self) -> bool:
-        q_names = ["Quiver", "CuttingQuiver", "MagField", "Velocity"]
-        callback_list = [c[0] for c in self._callbacks]
-        has_q = any([f"{q}Callback" in callback_list for q in q_names])
-        return has_q
-
-    def _check_flip_quiver_conflict(self, flip_axis: bool) -> bool:
-        # the quiver callback needs to be modified in order to work with
-        # inverted axes, https://github.com/matplotlib/matplotlib/issues/11857
-        if flip_axis and self._has_quiver_callback:
-            mylog.warning(
-                "Cannot flip axis with quiver-related annotations, ignoring "
-                "axis flipping."
-            )
-            return False
-        return flip_axis
-
     def to_fits_data(self, fields=None, other_keys=None, length_unit=None, **kwargs):
         r"""Export the fields in this PlotWindow instance
         to a FITSImageData instance.
@@ -1377,15 +1351,15 @@ class PWViewerMPL(PlotWindow):
         self._set_font_properties()
         self.run_callbacks()
 
-        if self._has_flipped_horizontal or self._has_flipped_vertical:
+        if self._flip_horizontal or self._flip_vertical:
             # some callbacks (e.g., streamlines) fail when applied to a
             # flipped axis, so flip only at the end.
             for f in field_list:
-                if self._has_flipped_horizontal:
+                if self._flip_horizontal:
                     ax = self.plots[f].axes
                     ax.invert_xaxis()
 
-                if self._has_flipped_vertical:
+                if self._flip_vertical:
                     ax = self.plots[f].axes
                     ax.invert_yaxis()
 

@@ -639,6 +639,14 @@ class QuiverCallback(PlotCallback):
             pixY /= nn
 
         X, Y, pixX, pixY = self._sanitize_xy_order(plot, X, Y, pixX, pixY)
+        # quiver plots ignore x, y axes inversions when using angles="uv" (the
+        # default), so flip the direction of the vectors when flipping the axis
+        angles = self.plot_args.get("angles", None)
+        if angles != "xy":
+            if plot._flip_vertical:
+                pixY = -1 * pixY
+            if plot._flip_horizontal:
+                pixX = -1 * pixX
         plot._axes.quiver(
             X,
             Y,
@@ -1274,6 +1282,14 @@ class CuttingQuiverCallback(PlotCallback):
             pixY /= nn
 
         X, Y, pixX, pixY = self._sanitize_xy_order(plot, X, Y, pixX, pixY)
+        # quiver plots ignore x, y axes inversions when using angles="uv" (the
+        # default), so flip the direction of the vectors when flipping the axis
+        angles = self.plot_args.get("angles", None)
+        if angles != "xy":
+            if plot._flip_vertical:
+                pixY = -1 * pixY
+            if plot._flip_horizontal:
+                pixX = -1 * pixX
         plot._axes.quiver(
             X,
             Y,

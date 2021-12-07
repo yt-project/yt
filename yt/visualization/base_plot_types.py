@@ -57,6 +57,8 @@ class CallbackWrapper:
         self.xlim = viewer.xlim
         self.ylim = viewer.ylim
         self._swap_axes = viewer._has_swapped_axes
+        self._flip_horizontal = viewer._flip_horizontal  # needed for quiver
+        self._flip_vertical = viewer._flip_vertical  # needed for quiver
         # an important note on _swap_axes: _swap_axes will swap x,y arguments
         # in callbacks (e.g., plt.plot(x,y) will be plt.plot(y, x). The xlim
         # and ylim arguments above, and internal callback references to coordinates
