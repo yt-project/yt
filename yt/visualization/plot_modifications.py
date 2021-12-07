@@ -578,11 +578,10 @@ class QuiverCallback(PlotCallback):
             plot_args = {}
         self.plot_args = plot_args
 
-    def __call__(self, plot):
-        x0, x1, y0, y1 = self._physical_bounds(plot)
-        extent = self._plot_bounds(plot)
-        bounds = [x0, x1, y0, y1]
-        periodic = int(any(plot.data.ds.periodicity))
+    def _get_quiver_data(
+        self, plot, bounds: tuple, nx: int, ny: int
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        # calls the pixelizer, returns pixX, pixY arrays
 
         def transform(field_name, vector_value):
             field_units = plot.data[field_name].units
@@ -607,10 +606,7 @@ class QuiverCallback(PlotCallback):
         else:
             field_x, field_y = self.field_x, self.field_y
 
-        # We are feeding this size into the pixelizer, where it will properly
-        # set it in reverse order
-        nx = plot.raw_image_shape[1] // self.factor[0]
-        ny = plot.raw_image_shape[0] // self.factor[1]
+        periodic = int(any(plot.data.ds.periodicity))
         pixX = plot.data.ds.coordinates.pixelize(
             plot.data.axis,
             plot.data,
@@ -629,10 +625,22 @@ class QuiverCallback(PlotCallback):
             False,  # antialias
             periodic,
         )
+        return pixX, pixY
+
+    def __call__(self, plot):
+
+        # construct mesh
+        bounds = self._physical_bounds(plot)
+        nx = plot.raw_image_shape[1] // self.factor[0]
+        ny = plot.raw_image_shape[0] // self.factor[1]
+        xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
         X, Y = np.meshgrid(
-            np.linspace(extent[0], extent[1], nx, endpoint=True),
-            np.linspace(extent[2], extent[3], ny, endpoint=True),
+            np.linspace(xx0, xx1, nx, endpoint=True),
+            np.linspace(yy0, yy1, ny, endpoint=True),
         )
+
+        pixX, pixY = self._get_quiver_data(plot, bounds, nx, ny)
+
         if self.normalize:
             nn = np.sqrt(pixX ** 2 + pixY ** 2)
             pixX /= nn
@@ -640,13 +648,13 @@ class QuiverCallback(PlotCallback):
 
         X, Y, pixX, pixY = self._sanitize_xy_order(plot, X, Y, pixX, pixY)
         # quiver plots ignore x, y axes inversions when using angles="uv" (the
-        # default), so flip the direction of the vectors when flipping the axis
-        angles = self.plot_args.get("angles", None)
-        if angles != "xy":
+        # default), so reverse the direction of the vectors when flipping the axis.
+        if self.plot_args.get("angles", None) != "xy":
             if plot._flip_vertical:
                 pixY = -1 * pixY
             if plot._flip_horizontal:
                 pixX = -1 * pixX
+
         plot._axes.quiver(
             X,
             Y,
@@ -656,7 +664,7 @@ class QuiverCallback(PlotCallback):
             scale_units=self.scale_units,
             **self.plot_args,
         )
-        self._set_plot_limits(plot, extent)
+        self._set_plot_limits(plot, (xx0, xx1, yy0, yy1))
 
 
 class ContourCallback(PlotCallback):
@@ -1194,7 +1202,7 @@ class ImageLineCallback(LinePlotCallback):
         super().__call__(plot)
 
 
-class CuttingQuiverCallback(PlotCallback):
+class CuttingQuiverCallback(QuiverCallback):
     """
     Get a quiver plot on top of a cutting plane, using *field_x* and
     *field_y*, skipping every *factor* datapoint in the discretization.
@@ -1213,28 +1221,30 @@ class CuttingQuiverCallback(PlotCallback):
         self,
         field_x,
         field_y,
-        factor=16,
+        factor: Union[Tuple[int, int], int] = 16,
         scale=None,
         scale_units=None,
         normalize=False,
         plot_args=None,
     ):
-        PlotCallback.__init__(self)
-        self.field_x = field_x
-        self.field_y = field_y
-        self.factor = _validate_factor_tuple(factor)
-        self.scale = scale
-        self.scale_units = scale_units
-        self.normalize = normalize
-        if plot_args is None:
-            plot_args = {}
-        self.plot_args = plot_args
+        super().__call__(
+            self,
+            field_x,
+            field_y,
+            factor=factor,
+            scale=scale,
+            scale_units=scale_units,
+            normalize=normalize,
+            bv_x=0,
+            bv_y=0,
+            plot_args=plot_args,
+        )
 
-    def __call__(self, plot):
-        x0, x1, y0, y1 = self._physical_bounds(plot)
-        xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
-        nx = plot.raw_image_shape[1] // self.factor[0]
-        ny = plot.raw_image_shape[0] // self.factor[1]
+    def _get_quiver_data(
+        self, plot, bounds: tuple, nx: int, ny: int
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        # calls the pixelizer, returns pixX, pixY arrays
+
         indices = np.argsort(plot.data["index", "dx"])[::-1].astype(np.int_)
 
         pixX = np.zeros((ny, nx), dtype="f8")
@@ -1253,7 +1263,7 @@ class CuttingQuiverCallback(PlotCallback):
             plot.data._inv_mat,
             indices,
             plot.data[self.field_x],
-            (x0, x1, y0, y1),
+            bounds,
         )
         pixelize_off_axis_cartesian(
             pixY,
@@ -1269,37 +1279,9 @@ class CuttingQuiverCallback(PlotCallback):
             plot.data._inv_mat,
             indices,
             plot.data[self.field_y],
-            (x0, x1, y0, y1),
+            bounds,
         )
-        X, Y = np.meshgrid(
-            np.linspace(xx0, xx1, nx, endpoint=True),
-            np.linspace(yy0, yy1, ny, endpoint=True),
-        )
-
-        if self.normalize:
-            nn = np.sqrt(pixX ** 2 + pixY ** 2)
-            pixX /= nn
-            pixY /= nn
-
-        X, Y, pixX, pixY = self._sanitize_xy_order(plot, X, Y, pixX, pixY)
-        # quiver plots ignore x, y axes inversions when using angles="uv" (the
-        # default), so flip the direction of the vectors when flipping the axis
-        angles = self.plot_args.get("angles", None)
-        if angles != "xy":
-            if plot._flip_vertical:
-                pixY = -1 * pixY
-            if plot._flip_horizontal:
-                pixX = -1 * pixX
-        plot._axes.quiver(
-            X,
-            Y,
-            pixX,
-            pixY,
-            scale=self.scale,
-            scale_units=self.scale_units,
-            **self.plot_args,
-        )
-        self._set_plot_limits(plot, (xx0, xx1, yy0, yy1))
+        return pixX, pixY
 
 
 class ClumpContourCallback(PlotCallback):
@@ -2066,8 +2048,6 @@ class HaloCatalogCallback(PlotCallback):
         from matplotlib.patches import Circle
 
         data = plot.data
-        x0, x1, y0, y1 = self._physical_bounds(plot)
-        xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
 
         halo_data = self.halo_data
         axis_names = plot.data.ds.coordinates.axis_name
@@ -3300,7 +3280,6 @@ class CellEdgesCallback(PlotCallback):
         extent = self._plot_bounds(plot)
         if plot._swap_axes:
             im_buffer = im_buffer.transpose((1, 0, 2))
-            extent = _swap_axes_extents(extent)
         plot._axes.imshow(
             im_buffer,
             origin="lower",
