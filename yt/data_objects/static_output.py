@@ -610,7 +610,6 @@ class Dataset(abc.ABC):
                 if nfields == 0:
                     mylog.debug("zero common fields, skipping particle union 'nbody'")
         self.field_info.setup_extra_union_fields()
-        mylog.debug("Loading field plugins.")
         self.field_info.load_all_plugins(self.default_fluid_type)
         deps, unloaded = self.field_info.check_derived_fields()
         self.field_dependencies.update(deps)
