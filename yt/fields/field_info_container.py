@@ -378,7 +378,7 @@ class FieldInfoContainer(dict):
         else:
             self[name] = DerivedField(name, sampling_type, function, **kwargs)
 
-    def load_all_plugins(self, ftype:Optional[str] = "gas"):
+    def load_all_plugins(self, ftype: Optional[str] = "gas"):
         if ftype is None:
             return
         mylog.debug("Loading field plugins for field type: %s.", ftype)

@@ -552,6 +552,7 @@ def test_ion_field_labels():
         label = getattr(fobj, f).get_latex_display_name()
         assert_equal(label, pm_labels[f])
 
+
 def test_default_fluid_type_None():
     """
     Check for bad behavior when default_fluid_type is None.
