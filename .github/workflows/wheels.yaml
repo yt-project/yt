@@ -23,44 +23,21 @@ jobs:
       fail-fast: false
 
     steps:
-      - uses: actions/setup-python@v2
-        name: Install Python
-        with:
-          python-version: 3.9
-
-      - uses: s-weigand/setup-conda@v1
-        if: matrix.os == 'windows-latest'
-        with:
-          update-conda: true
-          conda-channels: conda-forge
-          activate-conda: true
-          python-version: 3.9
-
       - uses: actions/checkout@v2
-      - name: Install cibuildwheel
-        run: python -m pip install cibuildwheel==2.2.2
-
-      - name: Install dependencies and yt
-        shell: bash
-        env:
-          dependencies: "full"
-          LDFLAGS: "-static-libstdc++"
-        run: source ./tests/ci_install.sh
 
       - name: Build wheels for CPython
-        run: |
-          python -m cibuildwheel --output-dir dist
+        uses: pypa/cibuildwheel@v2.3.0
         env:
           CIBW_BUILD: "cp37-* cp38-* cp39-* cp310-*"
-          CIBW_SKIP: "*-musllinux_*"  # these fail due to side effects from previous builds
+          CIBW_SKIP: "*-musllinux_*"  #  numpy doesn't have wheels for musllinux so we can't build some quickly and without bloating
           CIBW_ARCHS_LINUX: "x86_64"
           CIBW_ARCHS_MACOS: "x86_64"
           CIBW_ARCHS_WINDOWS: "auto"
-          CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
-          CIBW_MANYLINUX_I686_IMAGE: manylinux2014
           CIBW_ENVIRONMENT: "LDFLAGS='-static-libstdc++'"
+          CIBW_BUILD_VERBOSITY: 1
+          CIBW_BEFORE_BUILD: "rm -rf build/"  # working around .so files accumulation between builds leading up to bloated wheels
 
       - uses: actions/upload-artifact@v2
         with:
           name: wheels
-          path: ./dist/*.whl
+          path: ./wheelhouse/*.whl
