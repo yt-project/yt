@@ -109,6 +109,7 @@ class ChollaDataset(Dataset):
         self.domain_dimensions = attrs["dims"][:].astype("=f8")
         self.current_time = attrs["t"][:]
         self._periodicity = (False, False, False)
+        self.refine_by = 1
         h5f.close()
 
         # CHOLLA cannot yet be run as a cosmological simulation
@@ -134,7 +135,7 @@ class ChollaDataset(Dataset):
             fileh = h5py.File(filename, mode="r")
         except (ImportError, OSError):
             return False
-        
+
         try:
             attrs = fileh.attrs
         except AttributeError:
