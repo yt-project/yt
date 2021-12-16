@@ -12,6 +12,7 @@ from mpl_toolkits.axes_grid1 import ImageGrid
 from packaging.version import Version
 from unyt.exceptions import UnitConversionError
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
@@ -1534,6 +1535,33 @@ class NormalPlot(abc.ABC):
 
         return retv
 
+    @staticmethod
+    def _validate_init_args(*, normal, axis, fields) -> None:
+        # TODO: remove this method in yt 4.2
+
+        if axis is not None:
+            issue_deprecation_warning(
+                "Argument 'axis' is a deprecated alias for 'normal'.",
+                since="4.1.0",
+                removal="4.2.0",
+            )
+            if normal is not None:
+                raise TypeError("Received incompatible arguments 'axis' and 'normal'")
+            normal = axis
+
+        if (normal, fields) == (None, None):
+            raise TypeError(
+                "missing 2 required positional arguments: 'normal' and 'fields'"
+            )
+
+        if fields is None:
+            raise TypeError("missing required positional argument: 'fields'")
+
+        if normal is None:
+            raise TypeError("missing required positional argument: 'normal'")
+
+        return normal
+
 
 class SlicePlot(NormalPlot):
     r"""
@@ -1679,8 +1707,11 @@ class SlicePlot(NormalPlot):
     # on the pathlib.Path class from the standard library
     # https://github.com/python/mypy/issues/1020
     def __new__(  # type: ignore
-        cls, ds, normal, fields, *args, **kwargs
+        cls, ds, normal=None, fields=None, *args, axis=None, **kwargs
     ) -> Union["AxisAlignedSlicePlot", "OffAxisSlicePlot"]:
+        # TODO: in yt 4.2, remove default values for normal and fields, drop axis kwarg
+        normal = cls._validate_init_args(normal=normal, axis=axis, fields=fields)
+
         if cls is SlicePlot:
             normal = cls.sanitize_normal_vector(ds, normal)
             if isinstance(normal, str):
@@ -1740,8 +1771,11 @@ class ProjectionPlot(NormalPlot):
     # on the pathlib.Path class from the standard library
     # https://github.com/python/mypy/issues/1020
     def __new__(  # type: ignore
-        cls, ds, normal, fields, *args, **kwargs
+        cls, ds, normal=None, fields=None, *args, axis=None, **kwargs
     ) -> Union["AxisAlignedProjectionPlot", "OffAxisProjectionPlot"]:
+        # TODO: in yt 4.2, remove default values for normal and fields, drop axis kwarg
+        normal = cls._validate_init_args(normal=normal, axis=axis, fields=fields)
+
         if cls is ProjectionPlot:
             normal = cls.sanitize_normal_vector(ds, normal)
             if isinstance(normal, str):
@@ -1767,7 +1801,7 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
     ds : `Dataset`
          This is the dataset object corresponding to the
          simulation output to be plotted.
-    axis : int or one of 'x', 'y', 'z'
+    normal : int or one of 'x', 'y', 'z'
          An int corresponding to the axis to slice along (0=x, 1=y, 2=z)
          or the axis name itself
     fields : string
@@ -1874,8 +1908,8 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
     def __init__(
         self,
         ds,
-        axis,
-        fields,
+        normal=None,
+        fields=None,
         center="c",
         width=None,
         axes_unit=None,
@@ -1889,7 +1923,9 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
         buff_size=(800, 800),
         *,
         north_vector=None,
+        axis=None,
     ):
+        # TODO: in yt 4.2, remove default values for normal and fields, drop axis kwarg
         if north_vector is not None:
             # this kwarg exists only for symmetry reasons with OffAxisSlicePlot
             mylog.warning(
@@ -1898,8 +1934,14 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
             )
             del north_vector
 
+        normal = self._validate_init_args(
+            normal=normal,
+            axis=axis,
+            fields=fields,
+        )
+
         # this will handle time series data and controllers
-        axis = fix_axis(axis, ds)
+        axis = fix_axis(normal, ds)
         (bounds, center, display_center) = get_window_parameters(
             axis, center, width, ds
         )
@@ -1962,7 +2004,7 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
     ds : `Dataset`
         This is the dataset object corresponding to the
         simulation output to be plotted.
-    axis : int or one of 'x', 'y', 'z'
+    normal : int or one of 'x', 'y', 'z'
          An int corresponding to the axis to slice along (0=x, 1=y, 2=z)
          or the axis name itself
     fields : string
@@ -2097,8 +2139,8 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
     def __init__(
         self,
         ds,
-        axis,
-        fields,
+        normal=None,
+        fields=None,
         center="c",
         width=None,
         axes_unit=None,
@@ -2113,8 +2155,13 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
         window_size=8.0,
         buff_size=(800, 800),
         aspect=None,
+        *,
+        axis=None,
     ):
-        axis = fix_axis(axis, ds)
+        # TODO: in yt 4.2, remove default values for normal and fields, drop axis kwarg
+        normal = self._validate_init_args(normal=normal, fields=fields, axis=axis)
+
+        axis = fix_axis(normal, ds)
         if ds.geometry in (
             "spherical",
             "cylindrical",
