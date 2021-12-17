@@ -1,3 +1,4 @@
 #### MATPLOTLIBRC FORMAT
 
 backend : Agg
+figure.max_open_warning : 32
