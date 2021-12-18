@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from collections import OrderedDict
 
+import matplotlib as mpl
 import numpy as np
 from nose.tools import assert_true
 
@@ -568,14 +569,11 @@ def test_setup_origin():
         -5.0,
         5.0,
     ]
-    for o in origin_inputs:
-        slc = SlicePlot(ds, 2, ("gas", "density"), width=w, origin=o)
-        ax = slc.plots[("gas", "density")].axes
-        xlims = ax.get_xlim()
-        ylims = ax.get_ylim()
-        lims = [xlims[0], xlims[1], ylims[0], ylims[1]]
-        for l in lims:
-            generated_limits.append(l)
+    with mpl.rc_context({"figure.max_open_warning": 32}):
+        for o in origin_inputs:
+            slc = SlicePlot(ds, 2, ("gas", "density"), width=w, origin=o)
+            ax = slc.plots[("gas", "density")].axes
+            generated_limits.extend(ax.get_xlim() + ax.get_ylim())
     assert_array_almost_equal(correct_limits, generated_limits)
 
 

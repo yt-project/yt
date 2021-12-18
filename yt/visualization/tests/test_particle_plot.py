@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from unittest import mock
 
+import matplotlib as mpl
 import numpy as np
 
 from yt.data_objects.particle_filters import add_particle_filter
@@ -209,52 +210,53 @@ class TestParticlePhasePlotSave(unittest.TestCase):
         ]
         particle_phases = []
 
-        for source in data_sources:
-            for x_field, y_field, z_fields in PHASE_FIELDS:
-                particle_phases.append(
-                    ParticlePhasePlot(
-                        source,
-                        x_field,
-                        y_field,
-                        z_fields,
-                        x_bins=16,
-                        y_bins=16,
+        with mpl.rc_context({"figure.max_open_warning": 64}):
+            for source in data_sources:
+                for x_field, y_field, z_fields in PHASE_FIELDS:
+                    particle_phases.append(
+                        ParticlePhasePlot(
+                            source,
+                            x_field,
+                            y_field,
+                            z_fields,
+                            x_bins=16,
+                            y_bins=16,
+                        )
                     )
-                )
 
-                particle_phases.append(
-                    ParticlePhasePlot(
-                        source,
-                        x_field,
-                        y_field,
-                        z_fields,
-                        x_bins=16,
-                        y_bins=16,
-                        deposition="cic",
+                    particle_phases.append(
+                        ParticlePhasePlot(
+                            source,
+                            x_field,
+                            y_field,
+                            z_fields,
+                            x_bins=16,
+                            y_bins=16,
+                            deposition="cic",
+                        )
                     )
-                )
 
-                pp = create_profile(
-                    source,
-                    [x_field, y_field],
-                    z_fields,
-                    weight_field=("all", "particle_ones"),
-                    n_bins=[16, 16],
-                )
+                    pp = create_profile(
+                        source,
+                        [x_field, y_field],
+                        z_fields,
+                        weight_field=("all", "particle_ones"),
+                        n_bins=[16, 16],
+                    )
 
-                particle_phases.append(ParticlePhasePlot.from_profile(pp))
-        particle_phases[0]._repr_html_()
+                    particle_phases.append(ParticlePhasePlot.from_profile(pp))
+            particle_phases[0]._repr_html_()
 
-        with mock.patch(
-            "yt.visualization._mpl_imports.FigureCanvasAgg.print_figure"
-        ), mock.patch(
-            "yt.visualization._mpl_imports.FigureCanvasPdf.print_figure"
-        ), mock.patch(
-            "yt.visualization._mpl_imports.FigureCanvasPS.print_figure"
-        ):
-            for p in particle_phases:
-                for fname in TEST_FLNMS:
-                    p.save(fname)
+            with mock.patch(
+                "yt.visualization._mpl_imports.FigureCanvasAgg.print_figure"
+            ), mock.patch(
+                "yt.visualization._mpl_imports.FigureCanvasPdf.print_figure"
+            ), mock.patch(
+                "yt.visualization._mpl_imports.FigureCanvasPS.print_figure"
+            ):
+                for p in particle_phases:
+                    for fname in TEST_FLNMS:
+                        p.save(fname)
 
 
 tgal = "TipsyGalaxy/galaxy.00300"
@@ -349,29 +351,30 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
         shutil.rmtree(self.tmpdir)
 
     def test_particle_plot(self):
-        test_ds = fake_particle_ds()
-        particle_projs = []
-        for dim in range(3):
-            particle_projs += [
-                ParticleProjectionPlot(test_ds, dim, ("all", "particle_mass")),
-                ParticleProjectionPlot(
-                    test_ds, dim, ("all", "particle_mass"), deposition="cic"
-                ),
-                ParticleProjectionPlot(
-                    test_ds, dim, ("all", "particle_mass"), density=True
-                ),
-            ]
-        particle_projs[0]._repr_html_()
-        with mock.patch(
-            "yt.visualization._mpl_imports.FigureCanvasAgg.print_figure"
-        ), mock.patch(
-            "yt.visualization._mpl_imports.FigureCanvasPdf.print_figure"
-        ), mock.patch(
-            "yt.visualization._mpl_imports.FigureCanvasPS.print_figure"
-        ):
-            for p in particle_projs:
-                for fname in TEST_FLNMS:
-                    p.save(fname)[0]
+        with mpl.rc_context({"figure.max_open_warning": 64}):
+            test_ds = fake_particle_ds()
+            particle_projs = []
+            for dim in range(3):
+                particle_projs += [
+                    ParticleProjectionPlot(test_ds, dim, ("all", "particle_mass")),
+                    ParticleProjectionPlot(
+                        test_ds, dim, ("all", "particle_mass"), deposition="cic"
+                    ),
+                    ParticleProjectionPlot(
+                        test_ds, dim, ("all", "particle_mass"), density=True
+                    ),
+                ]
+            particle_projs[0]._repr_html_()
+            with mock.patch(
+                "yt.visualization._mpl_imports.FigureCanvasAgg.print_figure"
+            ), mock.patch(
+                "yt.visualization._mpl_imports.FigureCanvasPdf.print_figure"
+            ), mock.patch(
+                "yt.visualization._mpl_imports.FigureCanvasPS.print_figure"
+            ):
+                for p in particle_projs:
+                    for fname in TEST_FLNMS:
+                        p.save(fname)[0]
 
     def test_particle_plot_ds(self):
         test_ds = fake_particle_ds()
@@ -411,18 +414,21 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
 
     def test_creation_with_width(self):
         test_ds = fake_particle_ds()
-        for width, (xlim, ylim, pwidth, _aun) in WIDTH_SPECS.items():
-            plot = ParticleProjectionPlot(
-                test_ds, 0, ("all", "particle_mass"), width=width
-            )
+        with mpl.rc_context({"figure.max_open_warning": 64}):
+            for width, (xlim, ylim, pwidth, _aun) in WIDTH_SPECS.items():
+                plot = ParticleProjectionPlot(
+                    test_ds, 0, ("all", "particle_mass"), width=width
+                )
+                xlim = [plot.ds.quan(el[0], el[1]) for el in xlim]
+                ylim = [plot.ds.quan(el[0], el[1]) for el in ylim]
+                pwidth = [plot.ds.quan(el[0], el[1]) for el in pwidth]
 
-            xlim = [plot.ds.quan(el[0], el[1]) for el in xlim]
-            ylim = [plot.ds.quan(el[0], el[1]) for el in ylim]
-            pwidth = [plot.ds.quan(el[0], el[1]) for el in pwidth]
-
-            [assert_array_almost_equal(px, x, 14) for px, x in zip(plot.xlim, xlim)]
-            [assert_array_almost_equal(py, y, 14) for py, y in zip(plot.ylim, ylim)]
-            [assert_array_almost_equal(pw, w, 14) for pw, w in zip(plot.width, pwidth)]
+                [assert_array_almost_equal(px, x, 14) for px, x in zip(plot.xlim, xlim)]
+                [assert_array_almost_equal(py, y, 14) for py, y in zip(plot.ylim, ylim)]
+                [
+                    assert_array_almost_equal(pw, w, 14)
+                    for pw, w in zip(plot.width, pwidth)
+                ]
 
 
 def test_particle_plot_instance():
