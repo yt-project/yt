@@ -1170,7 +1170,7 @@ class CuttingQuiverCallback(QuiverCallback):
         normalize=False,
         plot_args=None,
     ):
-        super().__call__(
+        super().__init__(
             self,
             field_x,
             field_y,
