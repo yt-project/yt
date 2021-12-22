@@ -375,7 +375,7 @@ class VelocityCallback(PlotCallback):
 
     _type_name = "velocity"
     _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
-    _relative_field_name = "bulk_velocity"
+    _relative_field_name: Optional[str] = "bulk_velocity"
     _determine_full_fields = True
 
     def __init__(
@@ -494,7 +494,12 @@ class QuiverCallback(PlotCallback):
     """
 
     _type_name = "quiver"
-    _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
+    _supported_geometries: Tuple[str, ...] = (
+        "cartesian",
+        "spectral_cube",
+        "polar",
+        "cylindrical",
+    )
 
     def __init__(
         self,
@@ -1171,7 +1176,6 @@ class CuttingQuiverCallback(QuiverCallback):
         plot_args=None,
     ):
         super().__init__(
-            self,
             field_x,
             field_y,
             factor=factor,
