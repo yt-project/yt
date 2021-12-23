@@ -74,7 +74,8 @@ _particle_fields = (
 
 
 class GadgetFOFFieldInfo(FieldInfoContainer):
-    known_particle_fields = _particle_fields
+    # https://github.com/python/mypy/issues/11836
+    known_particle_fields = _particle_fields  # type: ignore
 
     # these are extra fields to be created for the "all" particle type
     extra_union_fields = (
@@ -91,4 +92,5 @@ class GadgetFOFFieldInfo(FieldInfoContainer):
 
 
 class GadgetFOFHaloFieldInfo(FieldInfoContainer):
-    known_particle_fields = _particle_fields + (("ID", ("", ["member_ids"], None)),)
+    # https://github.com/python/mypy/issues/11836
+    known_particle_fields = _particle_fields + (("ID", ("", ["member_ids"], None)),)  # type: ignore
