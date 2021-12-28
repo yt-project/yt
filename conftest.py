@@ -140,19 +140,8 @@ def pytest_configure(config):
         )
 
     if find_spec("cartopy") is not None:
-        # cartopy still triggers this numpy warning
-        # last checked with cartopy 0.19.0
-        config.addinivalue_line(
-            "filterwarnings",
-            (
-                "ignore:`np.float` is a deprecated alias for the builtin `float`. "
-                "To silence this warning, use `float` by itself. "
-                "Doing this will not modify any behavior and is safe. "
-                "If you specifically wanted the numpy scalar type, use `np.float64` here."
-                ":DeprecationWarning: "
-            ),
-        )
-        # this warning *still* shows up on cartopy 0.19 so we'll ignore it
+        # This can be removed when cartopy 0.21 is released
+        # see https://github.com/SciTools/cartopy/pull/1957
         config.addinivalue_line(
             "filterwarnings",
             (
