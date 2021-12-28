@@ -1549,7 +1549,7 @@ class NormalPlot(abc.ABC):
                 raise TypeError("Received incompatible arguments 'axis' and 'normal'")
             normal = axis
 
-        if (normal, fields) == (None, None):
+        if normal is fields is None:
             raise TypeError(
                 "missing 2 required positional arguments: 'normal' and 'fields'"
             )
@@ -1939,7 +1939,7 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
             axis=axis,
             fields=fields,
         )
-
+        normal = self.sanitize_normal_vector(ds, normal)
         # this will handle time series data and controllers
         axis = fix_axis(normal, ds)
         (bounds, center, display_center) = get_window_parameters(
@@ -2160,6 +2160,7 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
     ):
         # TODO: in yt 4.2, remove default values for normal and fields, drop axis kwarg
         normal = self._validate_init_args(normal=normal, fields=fields, axis=axis)
+        normal = self.sanitize_normal_vector(ds, normal)
 
         axis = fix_axis(normal, ds)
         if ds.geometry in (
