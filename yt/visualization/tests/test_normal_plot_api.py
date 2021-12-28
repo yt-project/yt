@@ -28,7 +28,8 @@ def test_normalplot_axis_kwarg(ds, plot_cls):
         VisibleDeprecationWarning,
         match=(
             "Argument 'axis' is a deprecated alias for 'normal'.\n"
-            "Deprecated since v4.1.0. This feature will be removed in v4.2.0"
+            "Deprecated since yt 4.1.0\n"
+            "This feature is planned for removal in yt 4.2.0"
         ),
     ):
         plot_cls(ds, axis="z", fields=("stream", "Density"))
@@ -51,7 +52,8 @@ def test_error_with_missing_fields_with_axis_kwarg(ds, plot_cls):
         VisibleDeprecationWarning,
         match=(
             "Argument 'axis' is a deprecated alias for 'normal'.\n"
-            "Deprecated since v4.1.0. This feature will be removed in v4.2.0"
+            "Deprecated since yt 4.1.0\n"
+            "This feature is planned for removal in yt 4.2.0"
         ),
     ):
         with pytest.raises(
