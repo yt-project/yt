@@ -3104,6 +3104,10 @@ class LineIntegralConvolutionCallback(PlotCallback):
         lic_data = lic_data / lic_data.max()
         lic_data_clip = np.clip(lic_data, self.lim[0], self.lim[1])
 
+        mask = ~(np.isfinite(pixX) & np.isfinite(pixY))
+        lic_data[mask] = np.nan
+        lic_data_clip[mask] = np.nan
+
         if self.const_alpha:
             plot._axes.imshow(
                 lic_data_clip,
