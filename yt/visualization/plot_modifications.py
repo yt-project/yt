@@ -3090,7 +3090,8 @@ class LineIntegralConvolutionCallback(PlotCallback):
         vectors = np.concatenate((pixX[..., np.newaxis], pixY[..., np.newaxis]), axis=2)
 
         if self.texture is None:
-            self.texture = np.random.rand(nx, ny).astype(np.double)
+            prng = np.random.RandomState(0x4D3D3D3)
+            self.texture = prng.random_sample((nx, ny))
         elif self.texture.shape != (nx, ny):
             raise ValueError(
                 "'texture' must have the same shape "
