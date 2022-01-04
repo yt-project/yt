@@ -60,14 +60,6 @@ class ChimeraIOHandler(BaseIOHandler):
     def io_iter(self, chunks, fields):
         for n, chunk in enumerate(chunks):
             file = _find_files(self.filename)
-            """
-            if any(
-                "grid_2" in f for f in file
-            ):  # Checks for Yin-Yang, not currently important
-                yy = True
-            else:
-                yy = False  # Numpy Bless
-            """
             with h5py.File(file[n], "r") as f:
                 # Generates mask according to the "ongrid_mask" variable
                 m = int(file[n][-5:-3]) - 1

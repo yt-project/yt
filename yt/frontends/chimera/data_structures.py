@@ -15,10 +15,7 @@ from yt.utilities.file_handler import HDF5FileHandler
 from yt.utilities.io_handler import io_registry
 from yt.utilities.on_demand_imports import _h5py as h5py
 
-try:
-    from yt.data_objects.unstructured_mesh import SemiStructuredMesh
-except ModuleNotFoundError:
-    from yt.data_objects.index_subobjects.unstructured_mesh import SemiStructuredMesh
+from yt.data_objects.index_subobjects.unstructured_mesh import SemiStructuredMesh
 
 
 from yt.data_objects.static_output import Dataset
@@ -299,11 +296,8 @@ class ChimeraDataset(Dataset):
         # False depending on if the file is of the type requested.
         try:
             fileh = HDF5FileHandler(args[0])
-            if "fluid" in fileh:
-                if "agr_c" in fileh["fluid"].keys():
-                    return True  # Numpy bless
-            else:
-                return False
+            if "fluid" in fileh and "agr_c" in fileh["fluid"].keys():
+                return True  # Numpy bless
         except (OSError, ImportError):
             pass
         return False
