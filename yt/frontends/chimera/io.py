@@ -60,14 +60,6 @@ class ChimeraIOHandler(BaseIOHandler):
     def io_iter(self, chunks, fields):
         for n, chunk in enumerate(chunks):
             file = _find_files(self.filename)
-            """
-            if any(
-                "grid_2" in f for f in file
-            ):  # Checks for Yin-Yang, not currently important
-                yy = True
-            else:
-                yy = False  # Numpy Bless
-            """
             with h5py.File(file[n], "r") as f:
                 # Generates mask according to the "ongrid_mask" variable
                 m = int(file[n][-5:-3]) - 1
@@ -216,67 +208,6 @@ class ChimeraIOHandler(BaseIOHandler):
                             )
                         dat_1 = lumin[:, :, :].transpose()
 
-                    elif fname == "shock":
-                        sys.exit(
-                            "Error: Currently disfuctional, please select another option"
-                        )  # This overlay does not currently work, calculation code is left here for future refinement and implementation.
-                        """
-                        p = np.array(f["fluid"]["press"][:])
-                        p = p.reshape(
-                            int(
-                                f["fluid"]["press"][:][0].size
-                                / f["fluid"]["press"][0][0].size
-                            ),
-                            f["fluid"]["press"][0][0].size,
-                        )
-                        u = np.array(f["fluid"]["u_c"][:])
-                        u = u.reshape(
-                            int(
-                                f["fluid"]["u_c"][:][0].size
-                                / f["fluid"]["u_c"][0][0].size
-                            ),
-                            f["fluid"]["u_c"][0][0].size,
-                        )
-                        dim1 = (
-                            f["fluid"]["u_c"][:][0].size / f["fluid"]["u_c"][0][0].size
-                        )
-                        dim2 = f["fluid"]["u_c"][0][0].size
-                        f_0 = np.zeros([dim1 + 1, dim2 + 1])
-                        small = 1.0e-54
-
-                        def shock(p, u, n):
-                            pf = np.zeros(dim2)
-                            final = np.zeros(dim2)
-                            delp1 = np.zeros(dim2)
-                            delp2 = np.zeros(dim2)
-                            for i in range(dim2 - 2):
-                                if i >= 2 and i < dim2 - 2:
-                                    delp1[i] = float(p[n, i + 1] - p[n, i - 1])
-                                    delp2[i] = float(p[n, i + 2] - p[n, i - 2])
-                                    shk = delp1[i] / (delp2[i] + small)
-                                    pf[i] = max(0.0, min(1.0, 10 * (shk - 0.75)))
-                                    exp1 = abs(delp1[i]) / (
-                                        min(p[n, i + 1], p[n, i - 1]) + small
-                                    )
-                                    if exp1 < (1 / 3):
-                                        pf[i] = 0.0
-                                    if u[n, i + 1] - u[n, i - 1] > 0:
-                                        pf[i] = 0.0
-                            for i in range(dim2 - 2):
-                                if i < dim2 - 2 and delp1[i] < 0:
-                                    final[i] = max(pf[i], pf[i - 1])
-                                elif i < dim2 - 2:
-                                    final[i] = max(pf[i], pf[i - 1])
-                                if i == dim2 - 3 or i == dim2 - 4:
-                                    if final[i - 1] == 0 and final[i]:
-                                        final[i] = 0
-                            f_0[n, :dim2] = final
-                            f_0 = f_0.reshape([dims[2], dims[1] + 1, dims[0] + 1])
-                            print(f_0)
-
-                        for n in range(dim1):
-                            shock(p, u, n)
-                    """
                     if f["mesh"]["array_dimensions"][2] > 1:
                         data = dat_1[:-2, :, :]  # Clips off ghost zones for 3D
                     else:

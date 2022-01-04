@@ -185,7 +185,7 @@ class ChimeraUNSIndex(UnstructuredIndex):
                 + e_rms
                 + lumin
                 + num_lumin
-                + [("chimera", "abar"), ("chimera", "shock")]
+                + [("chimera", "abar")]
                 + a_name
             )
             if np.shape(f["abundance"]["nse_c"]) != np.shape(f["fluid"]["rho_c"]):
@@ -237,12 +237,6 @@ class ChimeraDataset(Dataset):
 
     def _parse_parameter_file(self):
         with h5py.File(self.parameter_filename, "r") as f:
-            if "metadata" in f:
-                self.unique_identifier = f["metadata"]["date_string"][
-                    ()
-                ]  # Uses date as unique identifier if available, otherwise uses a default value
-            else:
-                self.unique_identifier = "Chimera"
             # Reads in simulation time, number of dimensions and shape
             self.current_time = f["mesh"]["time"][()]
             self.dimensionality = 3
