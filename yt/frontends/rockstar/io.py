@@ -34,7 +34,7 @@ class IOHandlerRockstarBinary(BaseParticleIOHandler):
                 continue
             with open(data_file.filename, "rb") as f:
                 pos = data_file._get_particle_positions(ptype, f=f)
-                yield "halos", (pos[:, i] for i in range(3)), 0.0
+                yield "halos", (pos[:, i] for i in range(3))
 
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate

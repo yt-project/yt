@@ -80,7 +80,7 @@ class IOHandlerFLASH(BaseIOHandler):
                 x = np.asarray(p_fields[start:end, px], dtype="=f8")
                 y = np.asarray(p_fields[start:end, py], dtype="=f8")
                 z = np.asarray(p_fields[start:end, pz], dtype="=f8")
-                yield ptype, (x, y, z), 0.0
+                yield ptype, (x, y, z)
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
@@ -182,7 +182,7 @@ class IOHandlerFLASHParticle(BaseIOHandler):
             pxyz = np.asarray(
                 p_fields[data_file.start : data_file.end, [px, py, pz]], dtype="=f8"
             )
-            yield "io", pxyz.T, 0.0
+            yield "io", pxyz.T
 
     def _yield_coordinates(self, data_file, needed_ptype=None):
         px, py, pz = self._position_fields

@@ -34,7 +34,7 @@ class IOHandlerOWLSSubfindHDF5(BaseParticleIOHandler):
                     x = coords[:, 0]
                     y = coords[:, 1]
                     z = coords[:, 2]
-                    yield ptype, (x, y, z), 0.0
+                    yield ptype, (x, y, z)
 
     def _yield_coordinates(self, data_file):
         ptypes = self.ds.particle_types_raw

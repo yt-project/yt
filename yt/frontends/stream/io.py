@@ -60,7 +60,7 @@ class IOHandlerStream(BaseIOHandler):
                         x, y, z = gf[ptype, "particle_position"].T
                     else:
                         x, y, z = (gf[ptype, f"particle_position_{ax}"] for ax in "xyz")
-                    yield ptype, (x, y, z), 0.0
+                    yield ptype, (x, y, z)
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
@@ -107,7 +107,7 @@ class StreamParticleIOHandler(BaseParticleIOHandler):
                     f[ptype, "particle_position_x"],
                     f[ptype, "particle_position_y"],
                     f[ptype, "particle_position_z"],
-                ), 0.0
+                )
 
     def _read_smoothing_length(self, chunks, ptf, ptype):
         for data_file in sorted(
@@ -124,7 +124,7 @@ class StreamParticleIOHandler(BaseParticleIOHandler):
         return data_files
 
     def _count_particles_chunks(self, psize, chunks, ptf, selector):
-        for ptype, (x, y, z), _ in self._read_particle_coords(chunks, ptf):
+        for ptype, (x, y, z) in self._read_particle_coords(chunks, ptf):
             if (ptype, "smoothing_length") in self.ds.field_list:
                 hsml = self._read_smoothing_length(chunks, ptf, ptype)
             else:

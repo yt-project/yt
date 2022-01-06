@@ -85,7 +85,7 @@ class IOHandlerART(BaseIOHandler):
                 x = self._get_field((ptype, "particle_position_x"))
                 y = self._get_field((ptype, "particle_position_y"))
                 z = self._get_field((ptype, "particle_position_z"))
-                yield ptype, (x, y, z), 0.0
+                yield ptype, (x, y, z)
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)

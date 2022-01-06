@@ -5,7 +5,11 @@ Generic file-handing functions for SPH data
 
 
 """
-from yt.utilities.io_handler import BaseParticleIOHandler
+from yt.utilities.io_handler import (
+    BaseParticleIOHandler,
+    ParticleTypeFields,
+    ParticleTypeSizes,
+)
 
 
 class IOHandlerSPH(BaseParticleIOHandler):
@@ -16,4 +20,9 @@ class IOHandlerSPH(BaseParticleIOHandler):
     determine particle extents.
     """
 
-    pass
+    def _full_particle_chunk_count(
+        self, psize: ParticleTypeSizes, chunks, ptf: ParticleTypeFields, selector
+    ) -> ParticleTypeSizes:
+        for ptype, (x, y, z), hsml in self._read_particle_coords(chunks, ptf):
+            psize[ptype] += selector.count_points(x, y, z, hsml)
+        return psize

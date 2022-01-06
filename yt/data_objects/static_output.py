@@ -9,6 +9,7 @@ import weakref
 from collections import defaultdict
 from importlib.util import find_spec
 from stat import ST_CTIME
+from typing import Optional
 
 import numpy as np
 from unyt.exceptions import UnitConversionError, UnitParseError
@@ -1883,9 +1884,9 @@ def _reconstruct_ds(*args, **kwargs):
 class ParticleFile(abc.ABC):
     filename: str
     file_id: int
-    start: int = None
-    end: int = None
-    total_particles: ParticleTypeSizes = None
+    start: Optional[int] = None
+    end: Optional[int] = None
+    total_particles: Optional[ParticleTypeSizes] = None
 
     def __init__(self, ds, io, filename, file_id, range=None):
         self.ds = ds
