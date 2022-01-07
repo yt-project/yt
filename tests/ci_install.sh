@@ -36,6 +36,18 @@ if [[ "${RUNNER_OS}" == "Windows" ]] && [[ ${dependencies} != "minimal" ]]; then
 else
     python -m pip install --upgrade pip
     python -m pip install --upgrade wheel
+
+    # // band aid
+    # TODO: revert https://github.com/yt-project/yt/pull/3733
+    # when the following upstream PR is released
+    # https://github.com/mpi4py/mpi4py/issues/160
+
+    # workaround taken from
+    # https://github.com/mpi4py/mpi4py/issues/157#issuecomment-1001022274
+    export SETUPTOOLS_USE_DISTUTILS=stdlib
+    python -m pip install mpi4py
+    # // end band aid
+
     python -m pip install --upgrade setuptools
 fi
 

@@ -159,6 +159,17 @@ def pytest_configure(config):
             ),
         )
 
+    if find_spec("xarray") is not None:
+        # this can be removed when upstream issue is closed and a fix published
+        # https://github.com/pydata/xarray/issues/6092
+        config.addinivalue_line(
+            "filterwarnings",
+            (
+                "ignore:distutils Version classes are deprecated. "
+                "Use packaging.version instead.:DeprecationWarning"
+            ),
+        )
+
 
 def pytest_collection_modifyitems(config, items):
     r"""
