@@ -175,8 +175,15 @@ class BaseIOHandler:
     def _count_particles_chunks(
         self, psize: ParticleTypeSizes, chunks, ptf: ParticleTypeFields, selector
     ) -> ParticleTypeSizes:
+        # in this base class, we always manually count particles in the selection.
         # This does get overridden in the subclass for Particle, since in that
-        # case we know that the chunks are composed to DataFiles
+        # case we know that the chunks are composed to DataFiles.
+        return self._count_selected_particles(psize, chunks, ptf, selector)
+
+    def _count_selected_particles(
+        self, psize: ParticleTypeSizes, chunks, ptf: ParticleTypeFields, selector
+    ) -> ParticleTypeSizes:
+        # counts the number of particles in a selection by chunk
         for ptype, (x, y, z) in self._read_particle_coords(chunks, ptf):
             # assume particles have zero radius, we break this assumption
             # in the SPH frontend and override this function there
@@ -280,14 +287,6 @@ class BaseParticleIOHandler(BaseIOHandler):
                 data_files.update(obj.data_files)
         yield from sorted(data_files, key=lambda x: (x.filename, x.start))
 
-    def _full_particle_chunk_count(
-        self, psize: ParticleTypeSizes, chunks, ptf: ParticleTypeFields, selector
-    ):
-        # a convenience function to easily override for frontends that have hsml
-        for ptype, (x, y, z) in self._read_particle_coords(chunks, ptf):
-            psize[ptype] += selector.count_points(x, y, z, 0)
-        return psize
-
     def _count_particles_chunks(
         self, psize: ParticleTypeSizes, chunks, ptf: ParticleTypeFields, selector
     ) -> ParticleTypeSizes:
@@ -296,7 +295,8 @@ class BaseParticleIOHandler(BaseIOHandler):
                 for ptype in ptf.keys():
                     psize[ptype] += data_file.total_particles[ptype]
         else:
-            psize = self._read_particle_coords_wrapper(psize, chunks, ptf, selector)
+            # we must apply the selector and count the result
+            psize = self._count_selected_particles(psize, chunks, ptf, selector)
         return dict(psize)
 
 

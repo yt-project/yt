@@ -20,9 +20,10 @@ class IOHandlerSPH(BaseParticleIOHandler):
     determine particle extents.
     """
 
-    def _full_particle_chunk_count(
+    def _count_selected_particles(
         self, psize: ParticleTypeSizes, chunks, ptf: ParticleTypeFields, selector
     ) -> ParticleTypeSizes:
+        # counts the number of particles in a selection by chunk, with smoothing length
         for ptype, (x, y, z), hsml in self._read_particle_coords(chunks, ptf):
             psize[ptype] += selector.count_points(x, y, z, hsml)
         return psize
