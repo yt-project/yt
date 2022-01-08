@@ -813,8 +813,8 @@ def compare_image_lists(new_result, old_result, decimals):
     num_images = len(old_result)
     assert num_images > 0
     for i in range(num_images):
-        expected = np.loads(zlib.decompress(old_result[i]))
-        actual = np.loads(zlib.decompress(new_result[i]))
+        expected = pickle.loads(zlib.decompress(old_result[i]))
+        actual = pickle.loads(zlib.decompress(new_result[i]))
         expected_p, actual_p = ensure_image_comparability(expected, actual)
 
         mpimg.imsave(fns[0], expected_p)
