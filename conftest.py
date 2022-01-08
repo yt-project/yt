@@ -121,22 +121,18 @@ def pytest_configure(config):
                 "is deprecated since Python 3.3,and in 3.9 it will stop working:DeprecationWarning"
             ),
         )
-    # at the time of writing, astropy's wheels are behind numpy's latest
-    # version but this doesn't cause actual problems in our test suite, so
-    # we allow this warning to pass.
-    # last checked with astropy 4.2.1
-    config.addinivalue_line(
-        "filterwarnings",
-        (
-            "ignore:numpy.ndarray size changed, may indicate binary incompatibility. "
-            "Expected 80 from C header, got 88 from PyObject:RuntimeWarning"
-        ),
-    )
+
     if find_spec("astropy") is not None:
-        # astropy triggers this warning from itself, there's not much we can do on our side
-        # last checked with astropy 4.2.1
+        # at the time of writing, astropy's wheels are behind numpy's latest
+        # version but this doesn't cause actual problems in our test suite
+        # last updated with astropy 5.0 + numpy 1.22 + pytest 6.2.5
         config.addinivalue_line(
-            "filterwarnings", "ignore::astropy.wcs.wcs.FITSFixedWarning"
+            "filterwarnings",
+            (
+                "ignore:numpy.ndarray size changed, may indicate binary incompatibility. Expected "
+                r"(80 from C header, got 88|88 from C header, got 96|80 from C header, got 96)"
+                " from PyObject:RuntimeWarning"
+            ),
         )
 
     if find_spec("cartopy") is not None:
