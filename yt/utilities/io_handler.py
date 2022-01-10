@@ -2,7 +2,7 @@ import os
 from collections import defaultdict
 from contextlib import contextmanager
 from functools import _make_key, lru_cache
-from typing import DefaultDict, Dict, Iterator, List, Tuple
+from typing import DefaultDict, Iterator, List, Mapping, Tuple
 
 import numpy as np
 
@@ -48,6 +48,7 @@ class BaseIOHandler:
         # Make sure _vector_fields is a dict of fields and their dimension
         # and assume all non-specified vector fields are 3D
         if not isinstance(self._vector_fields, dict):
+            # note, this type change can cause some mypy errors.
             self._vector_fields = {field: 3 for field in self._vector_fields}
 
     # We need a function for reading a list of sets
@@ -100,7 +101,7 @@ class BaseIOHandler:
 
     def _read_fluid_selection(
         self, chunks, selector, fields: List[Tuple[str, str]], size
-    ) -> Dict[Tuple[str, str], np.ndarray]:
+    ) -> Mapping[Tuple[str, str], np.ndarray]:
         # This function has an interesting history.  It previously was mandate
         # to be defined by all of the subclasses.  But, to avoid having to
         # rewrite a whole bunch of IO handlers all at once, and to allow a
@@ -193,12 +194,11 @@ class BaseIOHandler:
         selector,
     ) -> DefaultDict[str, int]:
         # counts the number of particles in a selection by chunk, same arguments
-        # as self._count_particles_chunks. This function simply provides
-        # a convenient method to override in child classes to reduce code duplication.
-        for ptype, (x, y, z) in self._read_particle_coords(chunks, ptf):
+        # as self._count_particles_chunks.
+        for ptype, (x, y, z), hsml in self._read_particle_coords(chunks, ptf):
             # assume particles have zero radius, we break this assumption
             # in the SPH frontend and override this function there
-            psize[ptype] += selector.count_points(x, y, z, 0.0)
+            psize[ptype] += selector.count_points(x, y, z, hsml)
         return psize
 
     def _read_particle_coords(
@@ -206,7 +206,8 @@ class BaseIOHandler:
     ) -> Iterator[ParticleCoordinateTuple]:
         # An iterator that yields particle coordinates for each chunk by particle
         # type. Must be implemented by each frontend. Must yield a tuple of
-        # (particle type, xyz) by chunk.
+        # (particle type, xyz, hsml) by chunk. If the frontend does not have
+        # a smoothing length, yield (particle type, xyz, 0.0)
         raise NotImplementedError
 
     def _read_particle_data_file(self, data_file, ptf, selector=None):
@@ -216,14 +217,22 @@ class BaseIOHandler:
 
     def _read_particle_selection(
         self, chunks, selector, fields: List[Tuple[str, str]]
-    ) -> Dict[Tuple[str, str], np.ndarray]:
+    ) -> Mapping[Tuple[str, str], np.ndarray]:
         rv = {}  # the return dictionary
         ind = {}  # holds the most recent max index of the return arrays by field
+
+        # Initialize containers for tracking particle, field information
+        # ptf (particle field types) maps particle type to list of on-disk fields to read
+        # psize maps particle type to on-disk size across chunks
+        # fsize maps particle type to size of return values
+        # field_maps stores fields, accounting for field unions
+        ptf: DefaultDict[str, List[str]] = defaultdict(list)
+        psize: DefaultDict[str, int] = defaultdict(lambda: 0)
+        fsize: DefaultDict[Tuple[str, str], int] = defaultdict(lambda: 0)
+        field_maps: DefaultDict[Tuple[str, str], List[Tuple[str, str]]] = defaultdict(
+            list
+        )
         # We first need a set of masks for each particle type
-        ptf = defaultdict(list)  # ptype -> on-disk fields to read
-        fsize = defaultdict(lambda: 0)  # ptype -> size of return value
-        psize = defaultdict(lambda: 0)  # ptype -> particle count on disk
-        field_maps = defaultdict(list)  # ptype -> fields (including unions)
         chunks = list(chunks)
         unions = self.ds.particle_unions
         # What we need is a mapping from particle types to return types
@@ -250,9 +259,15 @@ class BaseIOHandler:
                     fsize[field] += psize.get(pt, 0)
             else:
                 fsize[field] += psize.get(field[0], 0)
+        shape: Tuple[int, ...]
         for field in fields:
             if field[1] in self._vector_fields:
-                shape = (fsize[field], self._vector_fields[field[1]])
+                vsize = self._vector_fields[field[1]]  # type:ignore
+                # note: the above line causes a mypy failure due to how we
+                # convert _vector_fields from a tuple to dict in __init__. mypy
+                # is expecting a tuple here. And since _vector_fields is used in
+                # many places, just ignoring for now...
+                shape = (fsize[field], vsize)
             elif field[1] in self._array_fields:
                 shape = (fsize[field],) + self._array_fields[field[1]]
             else:
