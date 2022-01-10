@@ -1,3 +1,4 @@
+from yt._typing import KnownFieldsT
 from yt.fields.field_info_container import FieldInfoContainer
 
 m_units = "code_mass"
@@ -7,9 +8,7 @@ v_units = "1e5 * cmcm / s"
 
 
 class OWLSSubfindFieldInfo(FieldInfoContainer):
-    known_other_fields = ()
-
-    known_particle_fields = (
+    known_particle_fields: KnownFieldsT = (
         ("CenterOfMass_0", (p_units, ["particle_position_x"], None)),
         ("CenterOfMass_1", (p_units, ["particle_position_y"], None)),
         ("CenterOfMass_2", (p_units, ["particle_position_z"], None)),

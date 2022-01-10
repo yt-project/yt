@@ -7,11 +7,15 @@ AMRVAC data structures
 import os
 import stat
 import struct
+import sys
 import warnings
 import weakref
+from pathlib import Path
 
 import numpy as np
+from more_itertools import always_iterable
 
+from yt.config import ytcfg
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.funcs import mylog, setdefaultattr
@@ -21,6 +25,22 @@ from yt.utilities.physical_constants import boltzmann_constant_cgs as kb_cgs
 from .datfile_utils import get_header, get_tree_info
 from .fields import AMRVACFieldInfo
 from .io import read_amrvac_namelist
+
+if sys.version_info < (3, 9):
+    # This is directly taken from the standard library,
+    # but only available from Python 3.9
+    def _is_relative_to(self, *other):
+        """Return True if the path is relative to another path or False."""
+        try:
+            self.relative_to(*other)
+            return True
+        except ValueError:
+            return False
+
+    Path.is_relative_to = _is_relative_to  # type: ignore
+else:
+    # an else block is mandated for pyupgrade to enable auto-cleanup
+    pass
 
 
 class AMRVACGrid(AMRGridPatch):
@@ -191,6 +211,17 @@ class AMRVACDataset(Dataset):
         c_adiab = None
         e_is_internal = None
         if parfiles is not None:
+            parfiles = list(always_iterable(parfiles))
+            ppf = Path(parfiles[0])
+            if not ppf.is_absolute() and Path(filename).resolve().is_relative_to(
+                ytcfg["yt", "test_data_dir"]
+            ):
+                mylog.debug(
+                    "Looks like %s is relative to your test_data_dir. Assuming this is also true for parfiles.",
+                    filename,
+                )
+                parfiles = [Path(ytcfg["yt", "test_data_dir"]) / pf for pf in parfiles]
+
             namelist = read_amrvac_namelist(parfiles)
             if "hd_list" in namelist:
                 c_adiab = namelist["hd_list"].get("hd_adiab", 1.0)

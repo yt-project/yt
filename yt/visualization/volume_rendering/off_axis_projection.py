@@ -2,7 +2,7 @@ import numpy as np
 
 from yt.data_objects.api import ImageArray
 from yt.funcs import is_sequence, mylog
-from yt.units.unit_object import Unit
+from yt.units.unit_object import Unit  # type: ignore
 from yt.utilities.lib.partitioned_grid import PartitionedGrid
 from yt.utilities.lib.pixelization_routines import (
     normalization_2d_utility,

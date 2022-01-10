@@ -1,6 +1,7 @@
 import abc
 import weakref
 from numbers import Number
+from typing import Tuple
 
 import numpy as np
 
@@ -33,6 +34,71 @@ def _get_vert_fields(axi, units="code_length"):
     return _vert
 
 
+def _setup_dummy_cartesian_coords_and_widths(registry, axes: Tuple[str]):
+    for ax in axes:
+        registry.add_field(
+            ("index", f"d{ax}"), sampling_type="cell", function=_unknown_coord
+        )
+        registry.add_field(("index", ax), sampling_type="cell", function=_unknown_coord)
+
+
+def _setup_polar_coordinates(registry, axis_id):
+    f1, f2 = _get_coord_fields(axis_id["r"])
+    registry.add_field(
+        ("index", "dr"),
+        sampling_type="cell",
+        function=f1,
+        display_field=False,
+        units="code_length",
+    )
+
+    registry.add_field(
+        ("index", "r"),
+        sampling_type="cell",
+        function=f2,
+        display_field=False,
+        units="code_length",
+    )
+
+    f1, f2 = _get_coord_fields(axis_id["theta"], "dimensionless")
+    registry.add_field(
+        ("index", "dtheta"),
+        sampling_type="cell",
+        function=f1,
+        display_field=False,
+        units="dimensionless",
+    )
+
+    registry.add_field(
+        ("index", "theta"),
+        sampling_type="cell",
+        function=f2,
+        display_field=False,
+        units="dimensionless",
+    )
+
+    def _path_r(field, data):
+        return data["index", "dr"]
+
+    registry.add_field(
+        ("index", "path_element_r"),
+        sampling_type="cell",
+        function=_path_r,
+        units="code_length",
+    )
+
+    def _path_theta(field, data):
+        # Note: this already assumes cell-centered
+        return data["index", "r"] * data["index", "dtheta"]
+
+    registry.add_field(
+        ("index", "path_element_theta"),
+        sampling_type="cell",
+        function=_path_theta,
+        units="code_length",
+    )
+
+
 def validate_sequence_width(width, ds, unit=None):
     if isinstance(width[0], tuple) and isinstance(width[1], tuple):
         validate_width_tuple(width[0])
@@ -63,7 +129,7 @@ def validate_sequence_width(width, ds, unit=None):
 
 
 class CoordinateHandler(abc.ABC):
-    name = None
+    name: str
 
     def __init__(self, ds, ordering):
         self.ds = weakref.proxy(ds)

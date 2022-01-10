@@ -1,3 +1,5 @@
+from typing import List
+
 import numpy as np
 
 from yt.data_objects.profiles import create_profile
@@ -14,7 +16,7 @@ class ParticleAxisAlignedDummyDataSource:
     _dimensionality = 2
     _con_args = ("center", "axis", "width", "fields", "weight_field")
     _tds_attrs = ()
-    _key_fields = []
+    _key_fields: List[str] = []
 
     def __init__(
         self,

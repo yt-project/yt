@@ -60,7 +60,7 @@ class TestOffAxisProjection(unittest.TestCase):
         wp_kwargs["take_log"] = (True, False)
         wp_kwargs["figsize"] = ((8, 6), [1, 1])
         wp_kwargs["dpi"] = (100, 50)
-        wp_kwargs["cmap_name"] = ("arbre", "kelp")
+        wp_kwargs["cmap_name"] = ("cmyt.arbre", "cmyt.kelp")
         wp_kwargs_list = expand_keywords(wp_kwargs)
 
         # test all off_axis_projection kwargs and write_projection kwargs

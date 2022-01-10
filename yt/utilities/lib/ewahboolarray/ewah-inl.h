@@ -213,7 +213,7 @@ public:
         return;
     } else {
       uword t = static_cast<uword>(word & (~word + 1));
-      answer = literalPosition + countOnes((uword)(t - 1));
+      answer = literalPosition + countOnes((UWORD)(t - 1));
       word ^= t;
     }
     hasNext = moveToNext();
@@ -371,7 +371,7 @@ template <class uword> size_t EWAHBoolArray<uword>::numberOfOnes() const {
     }
     ++pointer;
     for (size_t k = 0; k < rlw.getNumberOfLiteralWords(); ++k) {
-      tot += countOnes((uword)buffer[pointer]);
+      tot += countOnes((UWORD)buffer[pointer]);
       ++pointer;
     }
   }

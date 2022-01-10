@@ -10,6 +10,7 @@ However with GCC-5, there is a clash between the definition of isnormal in <math
 inline bool __isnormal(double x) {
     return isnormal(x);
 }
+#elif defined(__FreeBSD__)
 #else
 #include <cmath>
 inline bool __isnormal(double x) {

@@ -65,8 +65,15 @@ def _parse_byte_size(s: str):
         # input is not a string (likely a np.nan)
         return pd.NA
 
-    val = float(re.search(num_exp, s).group())
-    unit = re.search(byte_unit_exp, s).group()
+    match = re.search(num_exp, s)
+    if match is None:
+        raise ValueError
+    val = float(match.group())
+
+    match = re.search(byte_unit_exp, s)
+    if match is None:
+        raise ValueError
+    unit = match.group()
     prefixes = ["B", "K", "M", "G", "T"]
     raw_res = val * 1024 ** prefixes.index(unit[0])
     return int(float(f"{raw_res:.3e}"))
@@ -162,14 +169,16 @@ def lookup_on_disk_data(fn) -> Path:
     if path.exists():
         return path
 
-    alt_path = _get_test_data_dir_path() / fn
-    if alt_path.exists():
-        return alt_path
-
     err_msg = f"No such file or directory: '{fn}'."
-    if alt_path.parent.is_dir() and alt_path != path:
-        err_msg += f"\n(Also tried '{alt_path}')."
+    test_data_dir = _get_test_data_dir_path()
+    if not test_data_dir.is_dir():
+        raise FileNotFoundError(err_msg)
 
+    alt_path = _get_test_data_dir_path() / fn
+    if alt_path != path:
+        if alt_path.exists():
+            return alt_path
+        err_msg += f"\n(Also tried '{alt_path}')."
     raise FileNotFoundError(err_msg)
 
 

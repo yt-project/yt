@@ -1,5 +1,6 @@
 import numpy as np
 
+from yt._typing import KnownFieldsT
 from yt.fields.field_info_container import FieldInfoContainer
 from yt.units.yt_array import YTArray
 from yt.utilities.physical_constants import amu_cgs, boltzmann_constant_cgs
@@ -15,7 +16,7 @@ p_units = "code_mass / (code_length * code_time**2)"
 
 
 class ARTIOFieldInfo(FieldInfoContainer):
-    known_other_fields = (
+    known_other_fields: KnownFieldsT = (
         ("HVAR_GAS_DENSITY", (rho_units, ["density"], None)),
         ("HVAR_GAS_ENERGY", (en_units, ["total_energy_density"], None)),
         ("HVAR_INTERNAL_ENERGY", (en_units, ["thermal_energy_density"], None)),
@@ -36,7 +37,7 @@ class ARTIOFieldInfo(FieldInfoContainer):
         ("RT_HVAR_HeIII", (rho_units, ["He_p2_density"], None)),
     )
 
-    known_particle_fields = (
+    known_particle_fields: KnownFieldsT = (
         ("POSITION_X", ("code_length", ["particle_position_x"], None)),
         ("POSITION_Y", ("code_length", ["particle_position_y"], None)),
         ("POSITION_Z", ("code_length", ["particle_position_z"], None)),

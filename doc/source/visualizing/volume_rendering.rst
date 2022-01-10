@@ -287,7 +287,7 @@ colormap to determine the colors of the layers.
    # to be specified in log space.
    tf = yt.ColorTransferFunction(np.log10(bounds))
 
-   tf.add_layers(5, colormap="arbre")
+   tf.add_layers(5, colormap="cmyt.arbre")
 
    source.tfh.tf = tf
    source.tfh.bounds = bounds
@@ -323,7 +323,7 @@ To add a single gaussian layer with a color determined by a colormap value, use
    # to be specified in log space.
    tf = yt.ColorTransferFunction(np.log10(bounds))
 
-   tf.sample_colormap(np.log10(1e-30), w=0.01, colormap="arbre")
+   tf.sample_colormap(np.log10(1e-30), w=0.01, colormap="cmyt.arbre")
 
    source.tfh.tf = tf
    source.tfh.bounds = bounds
@@ -407,7 +407,7 @@ the volume rendering.
 
 
    tf.map_to_colormap(
-       np.log10(3e-31), np.log10(5e-27), colormap="arbre", scale_func=linramp
+       np.log10(3e-31), np.log10(5e-27), colormap="cmyt.arbre", scale_func=linramp
    )
 
    source.tfh.tf = tf
@@ -678,7 +678,7 @@ function. Example:
 
 
     source.transfer_function.map_to_colormap(
-        np.log10(1e-25), np.log10(8e-24), colormap="arbre", scale_func=linramp
+        np.log10(1e-25), np.log10(8e-24), colormap="cmyt.arbre", scale_func=linramp
     )
 
     # For this low resolution dataset it's very important to use interpolated

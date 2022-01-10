@@ -11,7 +11,7 @@ from yt.data_objects.selection_objects.data_selection_objects import (
 from yt.data_objects.static_output import ParticleDataset
 from yt.frontends.gadget.data_structures import _fix_unit_ordering
 from yt.frontends.gadget_fof.fields import GadgetFOFFieldInfo, GadgetFOFHaloFieldInfo
-from yt.frontends.halo_catalog.data_structures import HaloCatalogFile
+from yt.frontends.halo_catalog.data_structures import HaloCatalogFile, HaloDataset
 from yt.funcs import only_on_root, setdefaultattr
 from yt.geometry.particle_geometry_handler import ParticleIndex
 from yt.utilities.cosmology import Cosmology
@@ -425,62 +425,13 @@ class GadgetFOFHaloParticleIndex(GadgetFOFParticleIndex):
         self._create_halo_id_table()
 
 
-class GadgetFOFHaloDataset(ParticleDataset):
+class GadgetFOFHaloDataset(HaloDataset):
     _index_class = GadgetFOFHaloParticleIndex
     _file_class = GadgetFOFHDF5File
     _field_info_class = GadgetFOFHaloFieldInfo
 
     def __init__(self, ds, dataset_type="gadget_fof_halo_hdf5"):
-        self.real_ds = ds
-        for attr in [
-            "filename_template",
-            "file_count",
-            "particle_types_raw",
-            "particle_types",
-            "_periodicity",
-        ]:
-            setattr(self, attr, getattr(self.real_ds, attr))
-
-        super().__init__(self.real_ds.parameter_filename, dataset_type)
-
-    def print_key_parameters(self):
-        pass
-
-    def _set_derived_attrs(self):
-        pass
-
-    def _parse_parameter_file(self):
-        for attr in [
-            "cosmological_simulation",
-            "cosmology",
-            "current_redshift",
-            "current_time",
-            "dimensionality",
-            "domain_dimensions",
-            "domain_left_edge",
-            "domain_right_edge",
-            "domain_width",
-            "hubble_constant",
-            "omega_lambda",
-            "omega_matter",
-            "unique_identifier",
-        ]:
-            setattr(self, attr, getattr(self.real_ds, attr))
-
-    def set_code_units(self):
-        self._set_code_unit_attributes()
-        self.unit_registry = self.real_ds.unit_registry
-
-    def _set_code_unit_attributes(self):
-        for unit in ["length", "time", "mass", "velocity", "magnetic", "temperature"]:
-            my_unit = f"{unit}_unit"
-            setattr(self, my_unit, getattr(self.real_ds, my_unit, None))
-
-    def __str__(self):
-        return f"{self.real_ds}"
-
-    def _setup_classes(self):
-        self.objects = []
+        super().__init__(ds, dataset_type)
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):

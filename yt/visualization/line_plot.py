@@ -3,7 +3,7 @@ from collections import defaultdict
 import numpy as np
 
 from yt.funcs import is_sequence, mylog
-from yt.units.unit_object import Unit
+from yt.units.unit_object import Unit  # type: ignore
 from yt.units.yt_array import YTArray
 from yt.visualization.base_plot_types import PlotMPL
 from yt.visualization.plot_container import (
