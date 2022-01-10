@@ -5,6 +5,7 @@ from contextlib import contextmanager
 from functools import _make_key, lru_cache
 
 import numpy as np
+from numpy.typing import ArrayLike
 
 from yt.geometry.selection_routines import GridSelector
 from yt.utilities.on_demand_imports import _h5py as h5py
@@ -13,25 +14,18 @@ io_registry = {}
 
 use_caching = 0
 
-FluidFieldType = str
-FluidFieldName = str
-FluidFieldTuple = typing.Tuple[FluidFieldType, FluidFieldName]
-
-ParticleFieldType = str
-ParticleFieldName = str
-ParticleFieldTuple = typing.Tuple[ParticleFieldType, ParticleFieldName]
-
-ParticleTypeFields = typing.Dict[ParticleFieldType, typing.List[ParticleFieldName]]
-ParticleTypeSizes = typing.Dict[ParticleFieldType, int]
-ParticleFieldSize = typing.Dict[ParticleFieldTuple, int]
-ParticleCoordinateSet = typing.Tuple[
-    str,
-    typing.Tuple[np.ndarray, np.ndarray, np.ndarray],
-    typing.Union[float, np.ndarray],
+ParticleCoordinateTuple = typing.Tuple[
+    str,  # particle type
+    typing.Tuple[np.ndarray, np.ndarray, np.ndarray],  # xyz
 ]
 
-FieldTuple = typing.Union[FluidFieldTuple, ParticleFieldTuple]
-FieldReturnValues = typing.Dict[FieldTuple, np.ndarray]
+SPHParticleCoordinateTuple = typing.Tuple[
+    str,  # particle type
+    typing.Tuple[np.ndarray, np.ndarray, np.ndarray],  # xyz
+    typing.Union[float, ArrayLike, np.ndarray],  # hsml
+]
+
+ParticleTypeSizes = typing.DefaultDict[str, int]
 
 
 def _make_io_key(args, *_args, **kwargs):
@@ -72,7 +66,7 @@ class BaseIOHandler:
     # We need a function for reading a list of sets
     # and a function for *popping* from a queue all the appropriate sets
     @contextmanager
-    def preload(self, chunk, fields: typing.List[FieldTuple], max_size):
+    def preload(self, chunk, fields: typing.List[typing.Tuple[str, str]], max_size):
         yield self
 
     def peek(self, grid, field):
@@ -118,8 +112,8 @@ class BaseIOHandler:
         pass
 
     def _read_fluid_selection(
-        self, chunks, selector, fields: typing.List[FluidFieldTuple], size
-    ) -> FieldReturnValues:
+        self, chunks, selector, fields: typing.List[typing.Tuple[str, str]], size
+    ) -> typing.Dict[typing.Tuple[str, str], np.ndarray]:
         # This function has an interesting history.  It previously was mandate
         # to be defined by all of the subclasses.  But, to avoid having to
         # rewrite a whole bunch of IO handlers all at once, and to allow a
@@ -147,7 +141,7 @@ class BaseIOHandler:
                 ind[field] += obj.select(selector, data, rv[field], ind[field])
         return rv
 
-    def io_iter(self, chunks, fields: typing.List[FieldTuple]):
+    def io_iter(self, chunks, fields: typing.List[typing.Tuple[str, str]]):
         raise NotImplementedError(
             "subclassing Dataset.io_iter this is required in order to use the default "
             "implementation of Dataset._read_fluid_selection. "
@@ -173,17 +167,47 @@ class BaseIOHandler:
         return {}
 
     def _count_particles_chunks(
-        self, psize: ParticleTypeSizes, chunks, ptf: ParticleTypeFields, selector
-    ) -> ParticleTypeSizes:
+        self,
+        psize: ParticleTypeSizes,
+        chunks,
+        ptf: typing.Dict[str, typing.List[str]],
+        selector,
+    ) -> typing.DefaultDict[str, int]:
+        """
+        Counts particles by particle type across chunks for a selector object
+
+        Parameters
+        ----------
+        psize : defaultdict
+            mapping of particle type to the number of particles
+        chunks
+            the chunks of a dataset Index
+        ptf : dict
+            particle type fields (ptf), the fields currently being read organized
+            by particle type. e.g., ptf['PartType0'] = ['density', 'mass', ...]
+        selector
+            the selector object of a YTSelectionContainer
+
+        Returns
+        -------
+        defaultdict
+            updated psize dictionary
+        """
         # in this base class, we always manually count particles in the selection.
         # This does get overridden in the subclass for Particle, since in that
         # case we know that the chunks are composed to DataFiles.
         return self._count_selected_particles(psize, chunks, ptf, selector)
 
     def _count_selected_particles(
-        self, psize: ParticleTypeSizes, chunks, ptf: ParticleTypeFields, selector
-    ) -> ParticleTypeSizes:
-        # counts the number of particles in a selection by chunk
+        self,
+        psize: ParticleTypeSizes,
+        chunks,
+        ptf: typing.Dict[str, typing.List[str]],
+        selector,
+    ) -> typing.DefaultDict[str, int]:
+        # counts the number of particles in a selection by chunk, same arguments
+        # as self._count_particles_chunks. This function simply provides
+        # a convenient method to override in child classes to reduce code duplication.
         for ptype, (x, y, z) in self._read_particle_coords(chunks, ptf):
             # assume particles have zero radius, we break this assumption
             # in the SPH frontend and override this function there
@@ -191,8 +215,11 @@ class BaseIOHandler:
         return psize
 
     def _read_particle_coords(
-        self, chunks, ptf: ParticleTypeFields
-    ) -> ParticleCoordinateSet:
+        self, chunks, ptf: typing.Dict[str, typing.List[str]]
+    ) -> typing.Iterator[ParticleCoordinateTuple]:
+        # An iterator that yields particle coordinates for each chunk by particle
+        # type. Must be implemented by each frontend. Must yield a tuple of
+        # (particle type, xyz) by chunk.
         raise NotImplementedError
 
     def _read_particle_data_file(self, data_file, ptf, selector=None):
@@ -201,8 +228,8 @@ class BaseIOHandler:
         raise NotImplementedError
 
     def _read_particle_selection(
-        self, chunks, selector, fields: typing.List[ParticleFieldTuple]
-    ) -> FieldReturnValues:
+        self, chunks, selector, fields: typing.List[typing.Tuple[str, str]]
+    ) -> typing.Dict[typing.Tuple[str, str], np.ndarray]:
         rv = {}
         ind = {}
         # We first need a set of masks for each particle type
@@ -288,8 +315,12 @@ class BaseParticleIOHandler(BaseIOHandler):
         yield from sorted(data_files, key=lambda x: (x.filename, x.start))
 
     def _count_particles_chunks(
-        self, psize: ParticleTypeSizes, chunks, ptf: ParticleTypeFields, selector
-    ) -> ParticleTypeSizes:
+        self,
+        psize: ParticleTypeSizes,
+        chunks,
+        ptf: typing.Dict[str, typing.List[str]],
+        selector,
+    ) -> typing.DefaultDict[str, int]:
         if getattr(selector, "is_all_data", False):
             for data_file in self._sorted_chunk_iterator(chunks):
                 for ptype in ptf.keys():
