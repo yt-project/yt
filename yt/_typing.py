@@ -1,4 +1,4 @@
-from typing import DefaultDict, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 from numpy import ndarray
 from numpy.typing import ArrayLike
@@ -17,5 +17,3 @@ SPHParticleCoordinateTuple = Tuple[
     Tuple[ndarray, ndarray, ndarray],  # xyz
     Union[float, ArrayLike, ndarray],  # hsml
 ]
-
-ParticleTypeSizes = DefaultDict[str, int]

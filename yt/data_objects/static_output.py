@@ -10,7 +10,7 @@ import weakref
 from collections import defaultdict
 from importlib.util import find_spec
 from stat import ST_CTIME
-from typing import Optional, Tuple, Type, Union
+from typing import DefaultDict, Optional, Tuple, Type, Union
 
 import numpy as np
 from unyt.exceptions import UnitConversionError, UnitParseError
@@ -51,7 +51,6 @@ from yt.utilities.exceptions import (
     YTIllDefinedParticleFilter,
     YTObjectNotImplemented,
 )
-from yt.utilities.io_handler import ParticleTypeSizes
 from yt.utilities.lib.fnv_hash import fnv_hash
 from yt.utilities.minimal_representation import MinimalDataset
 from yt.utilities.object_registries import data_object_registry, output_type_registry
@@ -1833,7 +1832,7 @@ class ParticleFile(abc.ABC):
     file_id: int
     start: Optional[int] = None
     end: Optional[int] = None
-    total_particles: Optional[ParticleTypeSizes] = None
+    total_particles: Optional[DefaultDict[str, int]] = None
 
     def __init__(self, ds, io, filename, file_id, range=None):
         self.ds = ds

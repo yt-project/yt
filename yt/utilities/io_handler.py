@@ -2,11 +2,11 @@ import os
 from collections import defaultdict
 from contextlib import contextmanager
 from functools import _make_key, lru_cache
-from typing import Dict, Iterator, List, Tuple
+from typing import DefaultDict, Dict, Iterator, List, Tuple
 
 import numpy as np
 
-from yt._typing import ParticleCoordinateTuple, ParticleTypeSizes
+from yt._typing import ParticleCoordinateTuple
 from yt.geometry.selection_routines import GridSelector
 from yt.utilities.on_demand_imports import _h5py as h5py
 
@@ -155,11 +155,11 @@ class BaseIOHandler:
 
     def _count_particles_chunks(
         self,
-        psize: ParticleTypeSizes,
+        psize: DefaultDict[str, int],
         chunks,
-        ptf: Dict[str, List[str]],
+        ptf: DefaultDict[str, List[str]],
         selector,
-    ) -> ParticleTypeSizes:
+    ) -> DefaultDict[str, int]:
         """
         Counts particles by particle type across chunks for a selector object
 
@@ -169,7 +169,7 @@ class BaseIOHandler:
             mapping of particle type to the number of particles
         chunks
             the chunks of a dataset Index
-        ptf : dict
+        ptf : defaultdict[list]
             particle type fields (ptf), the fields currently being read organized
             by particle type. e.g., ptf['PartType0'] = ['density', 'mass', ...]
         selector
@@ -187,11 +187,11 @@ class BaseIOHandler:
 
     def _count_selected_particles(
         self,
-        psize: ParticleTypeSizes,
+        psize: DefaultDict[str, int],
         chunks,
-        ptf: Dict[str, List[str]],
+        ptf: DefaultDict[str, List[str]],
         selector,
-    ) -> ParticleTypeSizes:
+    ) -> DefaultDict[str, int]:
         # counts the number of particles in a selection by chunk, same arguments
         # as self._count_particles_chunks. This function simply provides
         # a convenient method to override in child classes to reduce code duplication.
@@ -202,7 +202,7 @@ class BaseIOHandler:
         return psize
 
     def _read_particle_coords(
-        self, chunks, ptf: Dict[str, List[str]]
+        self, chunks, ptf: DefaultDict[str, List[str]]
     ) -> Iterator[ParticleCoordinateTuple]:
         # An iterator that yields particle coordinates for each chunk by particle
         # type. Must be implemented by each frontend. Must yield a tuple of
@@ -217,8 +217,8 @@ class BaseIOHandler:
     def _read_particle_selection(
         self, chunks, selector, fields: List[Tuple[str, str]]
     ) -> Dict[Tuple[str, str], np.ndarray]:
-        rv = {}
-        ind = {}
+        rv = {}  # the return dictionary
+        ind = {}  # holds the most recent max index of the return arrays by field
         # We first need a set of masks for each particle type
         ptf = defaultdict(list)  # ptype -> on-disk fields to read
         fsize = defaultdict(lambda: 0)  # ptype -> size of return value
@@ -240,8 +240,7 @@ class BaseIOHandler:
                 field_maps[field].append(field)
         # Now we have our full listing
 
-        # psize maps the names of particle types to the number of
-        # particles of each type
+        # Now we add particle counts across chunks to psize
         self._count_particles_chunks(psize, chunks, ptf, selector)
 
         # Now we allocate
@@ -303,11 +302,11 @@ class BaseParticleIOHandler(BaseIOHandler):
 
     def _count_particles_chunks(
         self,
-        psize: ParticleTypeSizes,
+        psize: DefaultDict[str, int],
         chunks,
-        ptf: Dict[str, List[str]],
+        ptf: DefaultDict[str, List[str]],
         selector,
-    ) -> ParticleTypeSizes:
+    ) -> Dict[str, int]:  # is this conversion to a plain dict required?
         if getattr(selector, "is_all_data", False):
             for data_file in self._sorted_chunk_iterator(chunks):
                 for ptype in ptf.keys():
