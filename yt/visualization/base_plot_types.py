@@ -1,8 +1,9 @@
+import warnings
 from io import BytesIO
 
 import matplotlib
 import numpy as np
-from packaging.version import parse as parse_version
+from packaging.version import Version
 
 from yt.funcs import (
     get_brewer_cmap,
@@ -12,7 +13,7 @@ from yt.funcs import (
     mylog,
 )
 
-from ._commons import get_canvas, validate_image_name
+from ._commons import MPL_VERSION, get_canvas, validate_image_name
 
 BACKEND_SPECS = {
     "GTK": ["backend_gtk", "FigureCanvasGTK", "FigureManagerGTK"],
@@ -91,11 +92,9 @@ class PlotMPL:
         if figure_manager is not None:
             self.manager = figure_manager(self.canvas, 1)
 
-        for which in ["major", "minor"]:
-            for axis in "xy":
-                self.axes.tick_params(
-                    which=which, axis=axis, direction="in", top=True, right=True
-                )
+        self.axes.tick_params(
+            which="both", axis="both", direction="in", top=True, right=True
+        )
 
     def _create_axes(self, axrect):
         self.axes = self.figure.add_axes(axrect)
@@ -132,9 +131,9 @@ class PlotMPL:
 
         if mpl_kwargs is None:
             mpl_kwargs = {}
-        if "papertype" not in mpl_kwargs and parse_version(
-            matplotlib.__version__
-        ) < parse_version("3.3.0"):
+        if "papertype" not in mpl_kwargs and Version(matplotlib.__version__) < Version(
+            "3.3.0"
+        ):
             mpl_kwargs["papertype"] = "auto"
 
         name = validate_image_name(name)
@@ -206,20 +205,29 @@ class ImagePlotMPL(PlotMPL):
             vmin=float(self.zmin) if self.zmin is not None else None,
             vmax=float(self.zmax) if self.zmax is not None else None,
         )
+        zmin = float(self.zmin) if self.zmin is not None else np.nanmin(data)
+        zmax = float(self.zmax) if self.zmax is not None else np.nanmax(data)
+
+        if cbnorm == "symlog":
+            # if cblinthresh is not specified, try to come up with a reasonable default
+            min_abs_val = np.min(np.abs((zmin, zmax)))
+            if cblinthresh is None:
+                cblinthresh = np.nanmin(np.absolute(data)[data != 0])
+            elif zmin * zmax > 0 and cblinthresh < min_abs_val:
+                warnings.warn(
+                    f"Cannot set a symlog norm with linear threshold {cblinthresh} "
+                    f"lower than the minimal absolute data value {min_abs_val} . "
+                    "Switching to log norm."
+                )
+                cbnorm = "log10"
+
         if cbnorm == "log10":
             cbnorm_cls = matplotlib.colors.LogNorm
         elif cbnorm == "linear":
             cbnorm_cls = matplotlib.colors.Normalize
         elif cbnorm == "symlog":
-            # if cblinthresh is not specified, try to come up with a reasonable default
-            vmin = float(np.nanmin(data))
-            vmax = float(np.nanmax(data))
-            if cblinthresh is None:
-                cblinthresh = np.nanmin(np.absolute(data)[data != 0])
-
-            cbnorm_kwargs.update(dict(linthresh=cblinthresh, vmin=vmin, vmax=vmax))
-            MPL_VERSION = parse_version(matplotlib.__version__)
-            if MPL_VERSION >= parse_version("3.2.0"):
+            cbnorm_kwargs.update(dict(linthresh=cblinthresh))
+            if MPL_VERSION >= Version("3.2.0"):
                 # note that this creates an inconsistency between mpl versions
                 # since the default value previous to mpl 3.4.0 is np.e
                 # but it is only exposed since 3.2.0
@@ -261,7 +269,16 @@ class ImagePlotMPL(PlotMPL):
             # instances.  It is left as a historical note because we will
             # eventually need some form of it.
             # self.axes.set_extent(extent)
-            pass
+
+            # possibly related issue (operation order dependency)
+            # https://github.com/SciTools/cartopy/issues/1468
+
+            # in cartopy 0.19 (or 0.20), some intented behaviour changes produced an
+            # incompatibility here where default values for extent would lead to a crash.
+            # A solution is to let the transform object set the image extents internally
+            # see https://github.com/SciTools/cartopy/issues/1955
+            extent = None
+
         self.image = self.axes.imshow(
             data.to_ndarray(),
             origin="lower",
@@ -275,27 +292,33 @@ class ImagePlotMPL(PlotMPL):
         if cbnorm == "symlog":
             formatter = matplotlib.ticker.LogFormatterMathtext(linthresh=cblinthresh)
             self.cb = self.figure.colorbar(self.image, self.cax, format=formatter)
-            if np.nanmin(data) >= 0.0:
-                yticks = [np.nanmin(data).v] + list(
+
+            if zmin >= 0.0:
+                yticks = [zmin] + list(
                     10
                     ** np.arange(
                         np.rint(np.log10(cblinthresh)),
-                        np.ceil(np.log10(np.nanmax(data))) + 1,
+                        np.ceil(np.log10(zmax)),
                     )
                 )
-            elif np.nanmax(data) <= 0.0:
+            elif zmax <= 0.0:
+                if MPL_VERSION >= Version("3.5.0b"):
+                    offset = 0
+                else:
+                    offset = 1
+
                 yticks = (
                     list(
                         -(
                             10
                             ** np.arange(
-                                np.floor(np.log10(-np.nanmin(data))),
-                                np.rint(np.log10(cblinthresh)) - 1,
+                                np.floor(np.log10(-zmin)),
+                                np.rint(np.log10(cblinthresh)) - offset,
                                 -1,
                             )
                         )
                     )
-                    + [np.nanmax(data).v]
+                    + [zmax]
                 )
             else:
                 yticks = (
@@ -303,7 +326,7 @@ class ImagePlotMPL(PlotMPL):
                         -(
                             10
                             ** np.arange(
-                                np.floor(np.log10(-np.nanmin(data))),
+                                np.floor(np.log10(-zmin)),
                                 np.rint(np.log10(cblinthresh)) - 1,
                                 -1,
                             )
@@ -314,28 +337,29 @@ class ImagePlotMPL(PlotMPL):
                         10
                         ** np.arange(
                             np.rint(np.log10(cblinthresh)),
-                            np.ceil(np.log10(np.nanmax(data))) + 1,
+                            np.ceil(np.log10(zmax)),
                         )
                     )
                 )
             self.cb.set_ticks(yticks)
         else:
             self.cb = self.figure.colorbar(self.image, self.cax)
-        for which in ["major", "minor"]:
-            self.cax.tick_params(which=which, axis="y", direction="in")
+        self.cax.tick_params(which="both", axis="y", direction="in")
 
     def _get_best_layout(self):
 
         # Ensure the figure size along the long axis is always equal to _figure_size
+        unit_aspect = getattr(self, "_unit_aspect", 1)
         if is_sequence(self._figure_size):
-            x_fig_size = self._figure_size[0]
-            y_fig_size = self._figure_size[1]
+            x_fig_size, y_fig_size = self._figure_size
+            y_fig_size *= unit_aspect
         else:
-            x_fig_size = self._figure_size
-            y_fig_size = self._figure_size / self._aspect
-
-        if hasattr(self, "_unit_aspect"):
-            y_fig_size = y_fig_size * self._unit_aspect
+            x_fig_size = y_fig_size = self._figure_size
+            scaling = self._aspect / unit_aspect
+            if scaling < 1:
+                x_fig_size *= scaling
+            else:
+                y_fig_size /= scaling
 
         if self._draw_colorbar:
             cb_size = self._cb_size

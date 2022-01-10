@@ -1,11 +1,18 @@
+from copy import deepcopy
+from typing import Tuple, Union
+
+import cmyt  # noqa: F401
 import numpy as np
-from matplotlib import __version__ as mpl_ver, cm as mcm, colors as cc
-from packaging.version import parse as parse_version
+from matplotlib import cm as mcm, colors as cc
+from matplotlib.pyplot import get_cmap
+from packaging.version import Version
+
+from yt.funcs import get_brewer_cmap
 
 from . import _colormap_data as _cm
+from ._commons import MPL_VERSION
 
-MPL_VERSION = parse_version(mpl_ver)
-del mpl_ver
+yt_colormaps = {}
 
 
 def is_colormap(cmap):
@@ -20,155 +27,62 @@ def check_color(name):
         return False
 
 
-yt_colormaps = {}
-
-
-def add_cmap(name, cdict):
-    """Deprecated alias, kept for backwards compatibility."""
-    from yt._maintenance.deprecation import issue_deprecation_warning
-
-    issue_deprecation_warning(
-        "`add_cmap` is a deprecated alias for `add_colormap`",
-        since="4.0.0",
-        removal="4.1.0",
-    )
-    add_colormap(name, cdict)
-
-
 def add_colormap(name, cdict):
     """
     Adds a colormap to the colormaps available in yt for this session
     """
+    # Note: this function modifies the global variable 'yt_colormaps'
     yt_colormaps[name] = cc.LinearSegmentedColormap(name, cdict, 256)
     mcm.datad[name] = cdict
     mcm.__dict__[name] = cdict
     mcm.register_cmap(name, yt_colormaps[name])
 
 
-# The format is as follows:
-#   First number is the number at which we are defining a color breakpoint
-#   Second number is the (0..1) number to interpolate to when coming *from below*
-#   Third number is the (0..1) number to interpolate to when coming *from above*
+# YTEP-0040 backward compatibility layer
+# yt colormaps used to be defined here, but were migrated to an external
+# package, cmyt. In the process, 5 of them were renamed. We register them again here
+# under their historical names to preserves backwards compatibility.
 
-# Next up is boilerplate -- the name, the colormap dict we just made, and the
-# number of segments we want.  This is probably fine as is.
-
-cdict = {
-    "red": (
-        (0.0, 80 / 256.0, 80 / 256.0),
-        (0.2, 0.0, 0.0),
-        (0.4, 0.0, 0.0),
-        (0.6, 256 / 256.0, 256 / 256.0),
-        (0.95, 256 / 256.0, 256 / 256.0),
-        (1.0, 150 / 256.0, 150 / 256.0),
-    ),
-    "green": (
-        (0.0, 0 / 256.0, 0 / 256.0),
-        (0.2, 0 / 256.0, 0 / 256.0),
-        (0.4, 130 / 256.0, 130 / 256.0),
-        (0.6, 256 / 256.0, 256 / 256.0),
-        (1.0, 0.0, 0.0),
-    ),
-    "blue": (
-        (0.0, 80 / 256.0, 80 / 256.0),
-        (0.2, 220 / 256.0, 220 / 256.0),
-        (0.4, 0.0, 0.0),
-        (0.6, 20 / 256.0, 20 / 256.0),
-        (1.0, 0.0, 0.0),
-    ),
+_HISTORICAL_ALIASES = {
+    "arbre": "cmyt.arbre",
+    "algae": "cmyt.algae",
+    "bds_highcontrast": "cmyt.algae",
+    "octarine": "cmyt.octarine",
+    "dusk": "cmyt.dusk",
+    "kamae": "cmyt.pastel",
+    "kelp": "cmyt.kelp",
+    "black_blueish": "cmyt.pixel_blue",
+    "black_green": "cmyt.pixel_green",
+    "purple_mm": "cmyt.xray",
 }
 
-add_colormap("bds_highcontrast", cdict)
-add_colormap("algae", cdict)
 
-# This next colormap was designed by Tune Kamae and converted here by Matt
-_vs = np.linspace(0, 1, 255)
-_kamae_red = (
-    np.minimum(
-        255,
-        113.9 * np.sin(7.64 * (_vs ** 1.705) + 0.701)
-        - 916.1 * (_vs + 1.755) ** 1.862
-        + 3587.9 * _vs
-        + 2563.4,
-    )
-    / 255.0
-)
-_kamae_grn = (
-    np.minimum(
-        255, 70.0 * np.sin(8.7 * (_vs ** 1.26) - 2.418) + 151.7 * _vs ** 0.5 + 70.0
-    )
-    / 255.0
-)
-_kamae_blu = (
-    np.minimum(
-        255,
-        194.5 * _vs ** 2.88
-        + 99.72 * np.exp(-77.24 * (_vs - 0.742) ** 2.0)
-        + 45.40 * _vs ** 0.089
-        + 10.0,
-    )
-    / 255.0
-)
+def register_yt_colormaps_from_cmyt():
+    """
+    For backwards compatibility, register yt colormaps without the "cmyt."
+    prefix, but do it in a collision-safe way.
+    """
+    from matplotlib.pyplot import get_cmap
 
-cdict = {
-    "red": np.transpose([_vs, _kamae_red, _kamae_red]),
-    "green": np.transpose([_vs, _kamae_grn, _kamae_grn]),
-    "blue": np.transpose([_vs, _kamae_blu, _kamae_blu]),
-}
-add_colormap("kamae", cdict)
+    from yt.utilities.logger import ytLogger as mylog
 
-# This one is a simple black & green map
+    for hist_name, alias in _HISTORICAL_ALIASES.items():
+        if MPL_VERSION >= Version("3.4.0"):
+            cmap = get_cmap(alias).copy()
+        else:
+            cmap = deepcopy(get_cmap(alias))
+        cmap.name = hist_name
+        try:
+            mcm.register_cmap(cmap=cmap)
+            mcm.register_cmap(cmap=get_cmap(hist_name).reversed())
+        except ValueError:
+            # Matplotlib 3.4.0 hard-forbids name collisions, but more recent versions
+            # will emit a warning instead, so we emulate this behaviour regardless.
+            mylog.warning("cannot register colormap '%s' (naming collision)", hist_name)
+            continue
 
-cdict = {
-    "red": ((0.0, 0.0, 0.0), (1.0, 0.0, 0.0)),
-    "green": ((0.0, 0.0, 0.0), (1.0, 1.0, 1.0)),
-    "blue": ((0.0, 0.0, 0.0), (1.0, 0.0, 0.0)),
-}
 
-add_colormap("black_green", cdict)
-
-cdict = {
-    "red": ((0.0, 0.0, 0.0), (1.0, 0.2, 0.2)),
-    "green": ((0.0, 0.0, 0.0), (1.0, 0.2, 0.2)),
-    "blue": ((0.0, 0.0, 0.0), (1.0, 1.0, 1.0)),
-}
-
-add_colormap("black_blueish", cdict)
-
-# This one is a variant of a colormap commonly
-# used for X-ray observations by Maxim Markevitch
-
-cdict = {
-    "red": (
-        (0.0, 0.0, 0.0),
-        (0.3, 0.0, 0.0),
-        (0.352, 0.245, 0.245),
-        (0.42, 0.5, 0.5),
-        (0.51, 0.706, 0.706),
-        (0.613, 0.882, 0.882),
-        (0.742, 1.0, 1.0),
-        (1.0, 1.0, 1.0),
-    ),
-    "green": (
-        (0.0, 0.0, 0.0),
-        (0.585, 0.0, 0.0),
-        (0.613, 0.196, 0.196),
-        (0.693, 0.48, 0.48),
-        (0.785, 0.696, 0.696),
-        (0.885, 0.882, 0.882),
-        (1.0, 1.0, 1.0),
-    ),
-    "blue": (
-        (0.0, 0.0, 0.0),
-        (0.136, 0.0, 0.0),
-        (0.136, 0.373, 0.373),
-        (0.391, 1.0, 1.0),
-        (1.0, 1.0, 1.0),
-    ),
-}
-
-add_colormap("purple_mm", cdict)
-
+register_yt_colormaps_from_cmyt()
 
 # Add colormaps in _colormap_data.py that weren't defined here
 _vs = np.linspace(0, 1, 256)
@@ -186,8 +100,24 @@ for k, v in list(_cm.color_map_luts.items()):
         add_colormap(k, cdict)
 
 
-def _extract_lookup_table(cmap_name):
-    cmap = mcm.get_cmap(cmap_name)
+def get_colormap_lut(cmap_id: Union[Tuple[str, str], str]):
+    # "lut" stands for "lookup table". This function provides a consistent and
+    # reusable accessor to a hidden (and by defaut, uninitialized) attribute
+    # (`_lut`) in registered colormaps, from matplotlib or palettable.
+    # colormap "lookup tables" are RGBA arrays in matplotlib,
+    # and contain sufficient data to reconstruct the colormaps entierly.
+    # This exists mostly for historical reasons, hence the custom output format.
+    # It isn't meant as part of yt's public api.
+
+    if isinstance(cmap_id, tuple) and len(cmap_id) == 2:
+        cmap = get_brewer_cmap(cmap_id)
+    elif isinstance(cmap_id, str):
+        cmap = get_cmap(cmap_id)
+    else:
+        raise TypeError(
+            "Expected a string or a 2-tuple of strings as a colormap id. "
+            f"Received: {cmap_id}"
+        )
     if not cmap._isinit:
         cmap._init()
     r = cmap._lut[:-3, 0]
@@ -225,7 +155,7 @@ def show_colormaps(subset="all", filename=None):
 
         If you wish to only see a few colormaps side by side, you can
         include them as a list of colormap names.
-        Example: ['algae', 'gist_stern', 'kamae', 'spectral']
+        Example: ['cmyt.algae', 'gist_stern', 'cmyt.kamae', 'nipy_spectral']
 
     filename : string, opt
 
@@ -260,29 +190,6 @@ def show_colormaps(subset="all", filename=None):
                 "to be 'all', 'yt_native', or a list of "
                 "valid colormap names."
             ) from e
-    if parse_version("2.0.0") <= MPL_VERSION < parse_version("2.2.0"):
-        # the reason we do this filtering is to avoid spurious warnings in CI when
-        # testing against old versions of matplotlib (currently not older than 2.0.x)
-        # and we can't easily filter warnings at the level of the relevant test itself
-        # because it's not yet run exclusively with pytest.
-        # FUTURE: remove this completely when only matplotlib 2.2+ is supported
-        deprecated_cmaps = {
-            "spectral",
-            "spectral_r",
-            "Vega10",
-            "Vega10_r",
-            "Vega20",
-            "Vega20_r",
-            "Vega20b",
-            "Vega20b_r",
-            "Vega20c",
-            "Vega20c_r",
-        }
-        for cmap in deprecated_cmaps:
-            try:
-                maps.remove(cmap)
-            except ValueError:
-                pass
 
     maps = sorted(set(maps))
     # scale the image size by the number of cmaps

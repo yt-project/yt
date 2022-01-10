@@ -2,7 +2,7 @@ import numpy as np
 
 from yt.data_objects.index_subobjects.unstructured_mesh import SemiStructuredMesh
 from yt.funcs import mylog
-from yt.units.yt_array import YTArray, uconcatenate, uvstack
+from yt.units.yt_array import YTArray, uconcatenate, uvstack  # type: ignore
 from yt.utilities.lib.pixelization_routines import (
     interpolate_sph_grid_gather,
     normalization_2d_utility,
@@ -128,6 +128,10 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 units="code_length",
             )
 
+        self._register_volume(registry)
+        self._check_fields(registry)
+
+    def _register_volume(self, registry):
         def _cell_volume(field, data):
             rv = data["index", "dx"].copy(order="K")
             rv *= data["index", "dy"]
@@ -143,6 +147,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
         )
         registry.alias(("index", "volume"), ("index", "cell_volume"))
 
+    def _check_fields(self, registry):
         registry.check_derived_fields(
             [
                 ("index", "dx"),

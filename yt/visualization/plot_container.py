@@ -1,55 +1,27 @@
+import abc
 import base64
 import builtins
 import os
-import textwrap
+import sys
+import warnings
 from collections import defaultdict
 from functools import wraps
+from typing import Any, Dict, List, Optional, Tuple, Union
 
-import matplotlib
 import numpy as np
 from matplotlib.cm import get_cmap
+from matplotlib.font_manager import FontProperties
 from more_itertools.more import always_iterable
 
-from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.data_objects.time_series import DatasetSeries
 from yt.funcs import dictWithFactory, ensure_dir, is_sequence, iter_fields, mylog
 from yt.units import YTQuantity
-from yt.units.unit_object import Unit
+from yt.units.unit_object import Unit  # type: ignore
 from yt.utilities.definitions import formatted_length_unit_names
 from yt.utilities.exceptions import YTNotInsideNotebook
 
-from ._commons import validate_image_name
-
-try:
-    import cmocean
-except ImportError:
-    cmocean = None
-
-CMOCEAN_DEPR_MSG = textwrap.dedent(
-    """\
-    It looks like you requested a colormap from the cmocean library. In the future, yt won't
-    recognize this bare (unprefixed) name. Please follow the recommended usage from cmocean's doc:
-    add an explicit `import cmocean` to your script, and prefix their colormap names with 'cmo.'
-    See our release notes for why this change was necessary."""
-)
-
-
-def _sanitize_cmap(cmap):
-    # this function should be removed entierly after yt 4.0.0 is released
-    if not isinstance(cmap, str):
-        return cmap
-    if cmocean is not None:
-        try:
-            cmo_cmap = f"cmo.{cmap}"
-            get_cmap(cmo_cmap)
-            issue_deprecation_warning(CMOCEAN_DEPR_MSG, since="4.0.0", removal="4.1.0")
-            return cmo_cmap
-        except ValueError:
-            pass
-    get_cmap(cmap)
-    return cmap
-
+from ._commons import DEFAULT_FONT_PROPERTIES, validate_image_name
 
 latex_prefixes = {
     "u": r"\mu",
@@ -181,8 +153,10 @@ def get_symlog_minorticks(linthresh, vmin, vmax):
         the maximum value in the colorbar
 
     """
-    if vmin > 0 or vmax < 0:
+    if vmin > 0:
         return get_log_minorticks(vmin, vmax)
+    elif vmax < 0 and vmin < 0:
+        return -get_log_minorticks(-vmax, -vmin)
     elif vmin == 0:
         return np.hstack((0, get_log_minorticks(linthresh, vmax)))
     elif vmax == 0:
@@ -236,10 +210,10 @@ class PlotDictionary(defaultdict):
         return defaultdict.__init__(self, default_factory)
 
 
-class PlotContainer:
+class PlotContainer(abc.ABC):
     """A container for generic plots"""
 
-    _plot_type = None
+    _plot_type: Optional[str] = None
     _plot_valid = False
 
     # Plot defaults
@@ -248,8 +222,6 @@ class PlotContainer:
     _units_config: dict
 
     def __init__(self, data_source, figure_size, fontsize):
-        from matplotlib.font_manager import FontProperties
-
         self.data_source = data_source
         self.ds = data_source.ds
         self.ts = self._initialize_dataset(self.ds)
@@ -257,10 +229,13 @@ class PlotContainer:
             self.figure_size = float(figure_size[0]), float(figure_size[1])
         else:
             self.figure_size = float(figure_size)
-        font_path = os.path.join(
-            matplotlib.get_data_path(), "fonts", "ttf", "STIXGeneral.ttf"
-        )
-        self._font_properties = FontProperties(size=fontsize, fname=font_path)
+
+        if sys.version_info >= (3, 9):
+            font_dict = DEFAULT_FONT_PROPERTIES | {"size": fontsize}
+        else:
+            font_dict = {**DEFAULT_FONT_PROPERTIES, "size": fontsize}
+
+        self._font_properties = FontProperties(**font_dict)
         self._font_color = None
         self._xlabel = None
         self._ylabel = None
@@ -384,12 +359,6 @@ class PlotContainer:
             the state indicating 'on' (True) or 'off' (False)
 
         """
-        if isinstance(state, str):
-            issue_deprecation_warning(
-                "Deprecated api, use bools for *state*.", removal="4.1.0"
-            )
-            state = {"on": True, "off": False}[state.lower()]
-
         self._minorticks[field] = state
         return self
 
@@ -508,7 +477,6 @@ class PlotContainer:
         ... )
 
         """
-        from matplotlib.font_manager import FontProperties
 
         if font_dict is None:
             font_dict = {}
@@ -516,8 +484,10 @@ class PlotContainer:
             self._font_color = font_dict.pop("color")
         # Set default values if the user does not explicitly set them.
         # this prevents reverting to the matplotlib defaults.
-        font_dict.setdefault("family", "stixgeneral")
-        font_dict.setdefault("size", 18)
+        if sys.version_info >= (3, 9):
+            font_dict = DEFAULT_FONT_PROPERTIES | font_dict
+        else:
+            font_dict = {**DEFAULT_FONT_PROPERTIES, **font_dict}
         self._font_properties = FontProperties(**font_dict)
         return self
 
@@ -550,20 +520,25 @@ class PlotContainer:
         return self
 
     @validate_plot
-    def save(self, name=None, suffix=".png", mpl_kwargs=None):
+    def save(
+        self,
+        name: Optional[Union[str, List[str], Tuple[str, ...]]] = None,
+        suffix: Optional[str] = None,
+        mpl_kwargs: Optional[Dict[str, Any]] = None,
+    ):
         """saves the plot to disk.
 
         Parameters
         ----------
-        name : string or tuple
+        name : string or tuple, optional
            The base of the filename. If name is a directory or if name is not
            set, the filename of the dataset is used. For a tuple, the
            resulting path will be given by joining the elements of the
            tuple
-        suffix : string
+        suffix : string, optional
            Specify the image type by its suffix. If not specified, the output
-           type will be inferred from the filename. Defaults to PNG.
-        mpl_kwargs : dict
+           type will be inferred from the filename. Defaults to '.png'.
+        mpl_kwargs : dict, optional
            A dict of keyword arguments to be passed to matplotlib.
 
         >>> slc.save(mpl_kwargs={"bbox_inches": "tight"})
@@ -572,12 +547,22 @@ class PlotContainer:
         names = []
         if mpl_kwargs is None:
             mpl_kwargs = {}
+        elif "format" in mpl_kwargs:
+            new_suffix = mpl_kwargs.pop("format")
+            if new_suffix != suffix:
+                warnings.warn(
+                    f"Overriding suffix {suffix!r} with mpl_kwargs['format'] = {new_suffix!r}. "
+                    "Use the `suffix` argument directly to suppress this warning."
+                )
+            suffix = new_suffix
 
         if name is None:
             name = str(self.ds)
-
-        # ///// Magic area. Muggles, keep out !
-        if isinstance(name, (tuple, list)):
+        elif isinstance(name, (list, tuple)):
+            if not all(isinstance(_, str) for _ in name):
+                raise TypeError(
+                    f"Expected a single str or an iterable of str, got {name!r}"
+                )
             name = os.path.join(*name)
 
         name = os.path.expanduser(name)
@@ -593,7 +578,8 @@ class PlotContainer:
 
         new_name = validate_image_name(name, suffix)
         if new_name == name:
-            for v in self.plots.values():
+            # somehow mypy thinks we may not have a plots attr yet, hence we turn it off here
+            for v in self.plots.values():  # type: ignore
                 out_name = v.save(name, mpl_kwargs)
                 names.append(out_name)
             return names
@@ -613,9 +599,16 @@ class PlotContainer:
                 weight = weight[1].replace(" ", "_")
         if "Cutting" in self.data_source.__class__.__name__:
             plot_type = "OffAxisSlice"
-        for k, v in self.plots.items():
+
+        # somehow mypy thinks we may not have a plots attr yet, hence we turn it off here
+        for k, v in self.plots.items():  # type: ignore
             if isinstance(k, tuple):
                 k = k[1]
+
+            if plot_type is None:
+                # implemented this check to make mypy happy, because we can't use str.join
+                # with PlotContainer._plot_type = None
+                raise TypeError(f"{self.__class__} is missing a _plot_type value (str)")
 
             name_elements = [prefix, plot_type]
             if axis:
@@ -738,6 +731,9 @@ class PlotContainer:
                         self.data_source.axis
                     ]
                     unn = self.ds.coordinates.default_unit_label.get(axax, None)
+            if unn in (1, "1", "dimensionless"):
+                axes_unit_labels[i] = ""
+                continue
             if unn is not None:
                 axes_unit_labels[i] = r"\ \ \left(" + unn + r"\right)"
                 continue
@@ -776,7 +772,10 @@ class PlotContainer:
                         symbol_wo_prefix = un[1:]
                         if symbol_wo_prefix in self.ds.unit_registry.prefixable_units:
                             un = un.replace(pp, "{" + latex_prefixes[pp] + "}", 1)
-                axes_unit_labels[i] = r"\ \ (" + un + ")"
+                if r"\frac" in un:
+                    axes_unit_labels[i] = r"\ \ \left(" + un + r"\right)"
+                else:
+                    axes_unit_labels[i] = r"\ \ (" + un + r")"
         return axes_unit_labels
 
     def hide_colorbar(self, field=None):
@@ -936,7 +935,7 @@ class ImagePlotContainer(PlotContainer):
 
         """
         self._colorbar_valid = False
-        self._colormap_config[field] = _sanitize_cmap(cmap)
+        self._colormap_config[field] = cmap
         return self
 
     @accepts_all_fields
@@ -1031,27 +1030,6 @@ class ImagePlotContainer(PlotContainer):
             self.plots[field].zmin = myzmin
             self.plots[field].zmax = myzmax
         return self
-
-    @invalidate_plot
-    def set_cbar_minorticks(self, field, state):
-        """
-        turn colorbar minor ticks "on" or "off" in the current plot, following *state*
-
-        Parameters
-        ----------
-        field : string
-            the field to remove colorbar minorticks
-        state : string
-            the state indicating 'on' or 'off'
-        """
-        issue_deprecation_warning(
-            "`ImagePlotContainer.set_cbar_minorticks` is a deprecated alias "
-            "for `ImagePlotContainer.set_colorbar_minorticks`.",
-            removal="4.1.0",
-        )
-
-        boolstate = {"on": True, "off": False}[state.lower()]
-        return self.set_colorbar_minorticks(field, boolstate)
 
     @accepts_all_fields
     @invalidate_plot

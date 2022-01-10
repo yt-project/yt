@@ -14,9 +14,11 @@ recursive-include yt *.py *.pyx *.pxi *.pxd *.h *.hpp README* *.txt LICENSE* *.c
 recursive-include doc *.rst *.txt *.py *.ipynb *.png *.jpg *.css *.html
 recursive-include doc *.h *.c *.sh *.svgz *.pdf *.svg *.pyx
 include doc/README doc/activate doc/activate.csh doc/cheatsheet.tex
+exclude doc/cheatsheet.pdf
 include doc/extensions/README doc/Makefile
 prune doc/source/reference/api/generated
 prune doc/build
+prune .tours
 recursive-include yt/visualization/volume_rendering/shaders *.fragmentshader *.vertexshader
 include yt/sample_data_registry.json
 include conftest.py

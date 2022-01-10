@@ -1,13 +1,14 @@
 import builtins
 import functools
 from collections import OrderedDict
+from typing import Optional
 
 import numpy as np
 
 from yt.config import ytcfg
 from yt.funcs import mylog
-from yt.units.dimensions import length
-from yt.units.unit_registry import UnitRegistry
+from yt.units.dimensions import length  # type: ignore
+from yt.units.unit_registry import UnitRegistry  # type: ignore
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTNotInsideNotebook
 from yt.visualization._commons import get_canvas, validate_image_name
@@ -247,7 +248,7 @@ class Scene:
     def _get_render_sources(self):
         return [s for s in self.sources.values() if isinstance(s, RenderSource)]
 
-    def _setup_save(self, fname, render):
+    def _setup_save(self, fname, render) -> str:
 
         self._render_on_demand(render)
 
@@ -270,7 +271,12 @@ class Scene:
         mylog.info("Saving rendered image to %s", fname)
         return fname
 
-    def save(self, fname=None, sigma_clip=None, render=True):
+    def save(
+        self,
+        fname: Optional[str] = None,
+        sigma_clip: Optional[float] = None,
+        render: bool = True,
+    ):
         r"""Saves a rendered image of the Scene to disk.
 
         Once you have created a scene, this saves an image array to disk with
@@ -283,8 +289,9 @@ class Scene:
         fname: string, optional
             If specified, save the rendering as to the file "fname".
             If unspecified, it creates a default based on the dataset filename.
-            The file format is inferred from the filename's suffix. Supported
-            formats are png, pdf, eps, and ps.
+            The file format is inferred from the filename's suffix.
+            Supported formats depend on which version of matplotlib is installed.
+
             Default: None
         sigma_clip: float, optional
             Image values greater than this number times the standard deviation
@@ -354,12 +361,12 @@ class Scene:
 
     def save_annotated(
         self,
-        fname=None,
-        label_fmt=None,
+        fname: Optional[str] = None,
+        label_fmt: Optional[str] = None,
         text_annotate=None,
-        dpi=100,
-        sigma_clip=None,
-        render=True,
+        dpi: int = 100,
+        sigma_clip: Optional[float] = None,
+        render: bool = True,
     ):
         r"""Saves the most recently rendered image of the Scene to disk,
         including an image of the transfer function and and user-defined
@@ -613,60 +620,55 @@ class Scene:
         self._camera = Camera(self, data_source, lens_type, auto)
         return self.camera
 
-    def camera():
-        doc = r"""The camera property.
+    @property
+    def camera(self):
+        r"""The camera property.
 
         This is the default camera that will be used when rendering. Can be set
         manually, but Camera type will be checked for validity.
         """
+        return self._camera
 
-        def fget(self):
-            return self._camera
+    @camera.setter
+    def camera(self, value):
+        value.width = self.arr(value.width)
+        value.focus = self.arr(value.focus)
+        value.position = self.arr(value.position)
+        self._camera = value
 
-        def fset(self, value):
-            value.width = self.arr(value.width)
-            value.focus = self.arr(value.focus)
-            value.position = self.arr(value.position)
-            self._camera = value
+    @camera.deleter
+    def camera(self):
+        del self._camera
+        self._camera = None
 
-        def fdel(self):
-            del self._camera
-            self._camera = None
+    @property
+    def unit_registry(self):
+        ur = self._unit_registry
+        if ur is None:
+            ur = UnitRegistry()
+            # This will be updated when we add a volume source
+            ur.add("unitary", 1.0, length)
+        self._unit_registry = ur
+        return self._unit_registry
 
-        return locals()
+    @unit_registry.setter
+    def unit_registry(self, value):
+        self._unit_registry = value
+        if self.camera is not None:
+            self.camera.width = YTArray(
+                self.camera.width.in_units("unitary"), registry=value
+            )
+            self.camera.focus = YTArray(
+                self.camera.focus.in_units("unitary"), registry=value
+            )
+            self.camera.position = YTArray(
+                self.camera.position.in_units("unitary"), registry=value
+            )
 
-    camera = property(**camera())
-
-    def unit_registry():
-        def fget(self):
-            ur = self._unit_registry
-            if ur is None:
-                ur = UnitRegistry()
-                # This will be updated when we add a volume source
-                ur.add("unitary", 1.0, length)
-            self._unit_registry = ur
-            return self._unit_registry
-
-        def fset(self, value):
-            self._unit_registry = value
-            if self.camera is not None:
-                self.camera.width = YTArray(
-                    self.camera.width.in_units("unitary"), registry=value
-                )
-                self.camera.focus = YTArray(
-                    self.camera.focus.in_units("unitary"), registry=value
-                )
-                self.camera.position = YTArray(
-                    self.camera.position.in_units("unitary"), registry=value
-                )
-
-        def fdel(self):
-            del self._unit_registry
-            self._unit_registry = None
-
-        return locals()
-
-    unit_registry = property(**unit_registry())
+    @unit_registry.deleter
+    def unit_registry(self):
+        del self._unit_registry
+        self._unit_registry = None
 
     def set_camera(self, camera):
         r"""

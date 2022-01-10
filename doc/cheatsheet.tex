@@ -244,14 +244,13 @@ Or added to an existing dataset using \texttt{ds.add\_field}:
 
 \subsection{Slices and Projections}
 \settowidth{\MyLen}{\texttt{multicol} }
-\texttt{slc = yt.SlicePlot(ds, \textit{axis or normal vector}, \textit{field}, \textit{center=}, \textit{width=}, \textit{weight\_field=}, \textit{additional parameters})} \textemdash\ Make a slice plot
-perpendicular to \textit{axis} (specified via 'x', 'y', or 'z') or a normal vector for an off-axis slice of \textit{field} weighted by \textit{weight\_field} at (code-units) \textit{center} with
+\texttt{slc = yt.SlicePlot(ds, \textit{axis or normal vector}, \textit{fields}, \textit{center=}, \textit{width=}, \textit{weight\_field=}, \textit{additional parameters})} \textemdash\ Make a slice plot
+perpendicular to \textit{axis} (specified via 'x', 'y', or 'z') or a normal vector for an off-axis slice of \textit{fields} weighted by \textit{weight\_field} at (code-units) \textit{center} with
 \textit{width} in code units or a (value, unit) tuple. Hint: try \textit{yt.SlicePlot?} in IPython to see additional parameters.\\
 \texttt{slc.save(\textit{file\_prefix})} \textemdash\ Save the slice to a png with name prefix \textit{file\_prefix}.
 \texttt{.save()} works similarly for the commands below.\\
 
-\texttt{prj = yt.ProjectionPlot(ds, \textit{axis}, \textit{field}, \textit{additional params})} \textemdash\ Make a projection. \\
-\texttt{prj = yt.OffAxisProjectionPlot(ds, \textit{normal}, \textit{fields}, \textit{center=}, \textit{width=}, \textit{depth=},\textit{north\_vector=},\textit{weight\_field=})} \textemdash Make an off axis projection. Note this takes an array of fields. \\
+\texttt{prj = yt.ProjectionPlot(ds, \textit{axis or normal vector}, \textit{fields}, \textit{additional params})} \textemdash\ Same as \texttt{yt.SlicePlot} but for projections.\\
 
 \subsection{Plot Annotations}
 \settowidth{\MyLen}{\texttt{multicol} }

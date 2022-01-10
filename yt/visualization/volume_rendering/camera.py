@@ -151,8 +151,9 @@ class Camera(Orientation):
 
         self.set_lens(lens_type)
 
-    def position():
-        doc = """
+    @property
+    def position(self):
+        r"""
         The location of the camera.
 
         Parameters
@@ -163,31 +164,28 @@ class Camera(Orientation):
             coordinates. If an iterable, must contain only scalars or
             (length, unit) tuples.
         """
+        return self._position
 
-        def fget(self):
-            return self._position
-
-        def fset(self, value):
-            position = _sanitize_camera_property_units(value, self.scene)
-            if np.array_equal(position, self.focus):
-                raise RuntimeError(
-                    "Cannot set the camera focus and position to the same value"
-                )
-            self._position = position
-            self.switch_orientation(
-                normal_vector=self.focus - self._position,
-                north_vector=self.north_vector,
+    @position.setter
+    def position(self, value):
+        position = _sanitize_camera_property_units(value, self.scene)
+        if np.array_equal(position, self.focus):
+            raise RuntimeError(
+                "Cannot set the camera focus and position to the same value"
             )
+        self._position = position
+        self.switch_orientation(
+            normal_vector=self.focus - self._position,
+            north_vector=self.north_vector,
+        )
 
-        def fdel(self):
-            del self._position
+    @position.deleter
+    def position(self):
+        del self._position
 
-        return locals()
-
-    position = property(**position())
-
-    def width():
-        doc = """The width of the region that will be seen in the image.
+    @property
+    def width(self):
+        r"""The width of the region that will be seen in the image.
 
         Parameters
         ----------
@@ -198,25 +196,22 @@ class Camera(Orientation):
             all three directions. If an iterable, must contain only scalars or
             (length, unit) tuples.
         """
+        return self._width
 
-        def fget(self):
-            return self._width
+    @width.setter
+    def width(self, value):
+        width = _sanitize_camera_property_units(value, self.scene)
+        self._width = width
+        self.switch_orientation()
 
-        def fset(self, value):
-            width = _sanitize_camera_property_units(value, self.scene)
-            self._width = width
-            self.switch_orientation()
+    @width.deleter
+    def width(self):
+        del self._width
+        self._width = None
 
-        def fdel(self):
-            del self._width
-            self._width = None
-
-        return locals()
-
-    width = property(**width())
-
-    def focus():
-        doc = """
+    @property
+    def focus(self):
+        r"""
         The focus defines the point the Camera is pointed at.
 
         Parameters
@@ -228,50 +223,43 @@ class Camera(Orientation):
             all three directions. If an iterable, must contain only scalars or
             (length, unit) tuples.
         """
+        return self._focus
 
-        def fget(self):
-            return self._focus
-
-        def fset(self, value):
-            focus = _sanitize_camera_property_units(value, self.scene)
-            if np.array_equal(focus, self.position):
-                raise RuntimeError(
-                    "Cannot set the camera focus and position to the same value"
-                )
-            self._focus = focus
-            self.switch_orientation(
-                normal_vector=self.focus - self._position, north_vector=None
+    @focus.setter
+    def focus(self, value):
+        focus = _sanitize_camera_property_units(value, self.scene)
+        if np.array_equal(focus, self.position):
+            raise RuntimeError(
+                "Cannot set the camera focus and position to the same value"
             )
+        self._focus = focus
+        self.switch_orientation(
+            normal_vector=self.focus - self._position, north_vector=None
+        )
 
-        def fdel(self):
-            del self._focus
+    @focus.deleter
+    def focus(self):
+        del self._focus
 
-        return locals()
+    @property
+    def resolution(self):
+        r"""The resolution is the number of pixels in the image that
+        will be produced. Must be a 2-tuple of integers or an integer."""
+        return self._resolution
 
-    focus = property(**focus())
+    @resolution.setter
+    def resolution(self, value):
+        if is_sequence(value):
+            if len(value) != 2:
+                raise RuntimeError
+        else:
+            value = (value, value)
+        self._resolution = value
 
-    def resolution():
-        doc = """The resolution is the number of pixels in the image that
-               will be produced. Must be a 2-tuple of integers or an integer."""
-
-        def fget(self):
-            return self._resolution
-
-        def fset(self, value):
-            if is_sequence(value):
-                if len(value) != 2:
-                    raise RuntimeError
-            else:
-                value = (value, value)
-            self._resolution = value
-
-        def fdel(self):
-            del self._resolution
-            self._resolution = None
-
-        return locals()
-
-    resolution = property(**resolution())
+    @resolution.deleter
+    def resolution(self):
+        del self._resolution
+        self._resolution = None
 
     def set_resolution(self, resolution):
         """

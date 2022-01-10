@@ -1,6 +1,5 @@
 import numpy as np
 
-from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.funcs import camelcase_to_underscore, iter_fields
 from yt.units.yt_array import array_like_field
 from yt.utilities.exceptions import YTParticleTypeNotFound
@@ -457,18 +456,6 @@ class WeightedStandardDeviation(DerivedQuantity):
             ]
             rvals.append(np.array(ret))
         return rvals
-
-
-class WeightedVariance(WeightedStandardDeviation):
-    def __call__(self, fields, weight):
-        issue_deprecation_warning(
-            "'weighted_variance' incorrectly returns the "
-            "standard deviation and has been deprecated. "
-            "Use 'weighted_standard_deviation' instead.",
-            since="4.0.0",
-            removal="4.1.0",
-        )
-        return super().__call__(fields, weight)
 
 
 class AngularMomentumVector(DerivedQuantity):

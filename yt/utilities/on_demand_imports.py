@@ -1,7 +1,5 @@
 import sys
 
-from packaging.version import parse as parse_version
-
 
 class NotAModule:
     """
@@ -356,21 +354,6 @@ _scipy = scipy_imports()
 class h5py_imports:
     _name = "h5py"
     _err = None
-
-    def __init__(self):
-        try:
-            import h5py
-
-            if parse_version(h5py.__version__) < parse_version("2.4.0"):
-                self._err = RuntimeError(
-                    "yt requires h5py version 2.4.0 or newer, "
-                    "please update h5py with e.g. `python -m pip install -U h5py` "
-                    "and try again"
-                )
-        except ImportError:
-            pass
-        super().__init__()
-
     _File = None
 
     @property

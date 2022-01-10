@@ -1,7 +1,7 @@
 # The yt Project
 
 [![PyPI](https://img.shields.io/pypi/v/yt)](https://pypi.org/project/yt)
-[![Supported Python Versions](https://img.shields.io/pypi/pyversions/yt)](https://pypi.org/project/yt/)
+[![Supported Python Versions](https://img.shields.io/pypi/pyversions/yt/4.0.0)](https://pypi.org/project/yt/)
 [![Latest Documentation](https://img.shields.io/badge/docs-latest-brightgreen.svg)](http://yt-project.org/docs/dev/)
 [![Users' Mailing List](https://img.shields.io/badge/Users-List-lightgrey.svg)](https://mail.python.org/archives/list/yt-users@python.org//)
 [![Devel Mailing List](https://img.shields.io/badge/Devel-List-lightgrey.svg)](https://mail.python.org/archives/list/yt-dev@python.org//)

@@ -2,15 +2,10 @@ import functools
 import hashlib
 import inspect
 import os
-import sys
-import tempfile
-import zlib
 
-import matplotlib.image as mpimg
 import numpy as np
 import pytest
 import yaml
-from matplotlib.testing.compare import compare_images
 
 import yt.visualization.particle_plots as particle_plots
 import yt.visualization.plot_window as pw
@@ -18,10 +13,7 @@ import yt.visualization.profile_plotter as profile_plotter
 from yt.config import ytcfg
 from yt.data_objects.selection_objects.region import YTRegion
 from yt.data_objects.static_output import Dataset
-from yt.frontends.ytdata.api import save_as_dataset
 from yt.loaders import load, load_simulation
-from yt.testing import assert_equal
-from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.on_demand_imports import _h5py as h5py
 from yt.visualization.volume_rendering.scene import Scene
 
@@ -415,46 +407,6 @@ def requires_sim(sim_fn, sim_type, file_check=False):
         return ftrue
 
 
-def create_obj(ds, obj_type):
-    # obj_type should be tuple of
-    #  ( obj_name, ( args ) )
-    if obj_type is None:
-        return ds.all_data()
-    cls = getattr(ds, obj_type[0])
-    obj = cls(*obj_type[1])
-    return obj
-
-
-def compare_unit_attributes(ds1, ds2):
-    r"""
-    Checks to make sure that the length, mass, time, velocity, and
-    magnetic units are the same for two different dataset objects.
-    """
-    attrs = ("length_unit", "mass_unit", "time_unit", "velocity_unit", "magnetic_unit")
-    for attr in attrs:
-        u1 = getattr(ds1, attr, None)
-        u2 = getattr(ds2, attr, None)
-        assert u1 == u2
-
-
-def fake_halo_catalog(data):
-    filename = "catalog.0.h5"
-    ftypes = {field: "." for field in data}
-    extra_attrs = {"data_type": "halo_catalog", "num_halos": data["particle_mass"].size}
-    ds = {
-        "cosmological_simulation": 1,
-        "omega_lambda": 0.7,
-        "omega_matter": 0.3,
-        "hubble_constant": 0.7,
-        "current_redshift": 0,
-        "current_time": YTQuantity(1, "yr"),
-        "domain_left_edge": YTArray(np.zeros(3), "cm"),
-        "domain_right_edge": YTArray(np.ones(3), "cm"),
-    }
-    save_as_dataset(ds, filename, data, field_types=ftypes, extra_attrs=extra_attrs)
-    return filename
-
-
 def _create_plot_window_attribute_plot(ds, plot_type, field, axis, pkwargs=None):
     r"""
     Convenience function used in plot_window_attribute_test.
@@ -538,30 +490,3 @@ def get_parameterization(fname):
         return [
             None,
         ]
-
-
-def compare_image_lists(new_result, old_result, decimals):
-    fns = []
-    for _i in range(2):
-        tmpfd, tmpname = tempfile.mkstemp(suffix=".png")
-        os.close(tmpfd)
-        fns.append(tmpname)
-    num_images = len(old_result)
-    assert num_images > 0
-    for i in range(num_images):
-        mpimg.imsave(fns[0], np.loads(zlib.decompress(old_result[i])))
-        mpimg.imsave(fns[1], np.loads(zlib.decompress(new_result[i])))
-        results = compare_images(fns[0], fns[1], 10 ** (-decimals))
-        if results is not None:
-            if os.environ.get("JENKINS_HOME") is not None:
-                tempfiles = [
-                    line.strip()
-                    for line in results.split("\n")
-                    if line.endswith(".png")
-                ]
-                for fn in tempfiles:
-                    sys.stderr.write(f"\n[[ATTACHMENT|{fn}]]")
-                sys.stderr.write("\n")
-        assert_equal(results, None, results)
-        for fn in fns:
-            os.remove(fn)

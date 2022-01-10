@@ -724,7 +724,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         --------
 
         >>> tf = ColorTransferFunction((-10.0, -5.0))
-        >>> tf.sample_colormap(-7.0, 0.01, colormap="arbre")
+        >>> tf.sample_colormap(-7.0, 0.01, colormap="cmyt.arbre")
         """
         v = np.float64(v)
         if col_bounds is None:
@@ -773,9 +773,9 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         >>> def linramp(vals, minval, maxval):
         ...     return (vals - vals.min()) / (vals.max() - vals.min())
         >>> tf = ColorTransferFunction((-10.0, -5.0))
-        >>> tf.map_to_colormap(-8.0, -6.0, scale=10.0, colormap="arbre")
+        >>> tf.map_to_colormap(-8.0, -6.0, scale=10.0, colormap="cmyt.arbre")
         >>> tf.map_to_colormap(
-        ...     -6.0, -5.0, scale=10.0, colormap="arbre", scale_func=linramp
+        ...     -6.0, -5.0, scale=10.0, colormap="cmyt.arbre", scale_func=linramp
         ... )
         """
         mi = np.float64(mi)
@@ -787,7 +787,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             self.nbins * (ma - self.x_bounds[0]) / (self.x_bounds[1] - self.x_bounds[0])
         )
         rel0 = max(rel0, 0)
-        rel1 = min(rel1, self.nbins - 1)
+        rel1 = min(rel1, self.nbins - 1) + 1
         tomap = np.linspace(0.0, 1.0, num=rel1 - rel0)
         cmap = get_cmap(colormap)
         cc = cmap(tomap)

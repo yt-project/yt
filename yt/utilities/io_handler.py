@@ -3,6 +3,7 @@ import typing
 from collections import defaultdict
 from contextlib import contextmanager
 from functools import _make_key, lru_cache
+from typing import Tuple
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -35,8 +36,8 @@ def _make_io_key(args, *_args, **kwargs):
 
 
 class BaseIOHandler:
-    _vector_fields = ()
-    _dataset_type = None
+    _vector_fields: Tuple[str, ...] = ()
+    _dataset_type: str
     _particle_reader = False
     _cache_on = False
     _misses = 0
