@@ -51,6 +51,7 @@ from yt.utilities.exceptions import (
     YTIllDefinedParticleFilter,
     YTObjectNotImplemented,
 )
+from yt.utilities.io_handler import ParticleTypeSizes
 from yt.utilities.lib.fnv_hash import fnv_hash
 from yt.utilities.minimal_representation import MinimalDataset
 from yt.utilities.object_registries import data_object_registry, output_type_registry
@@ -1830,6 +1831,7 @@ def _reconstruct_ds(*args, **kwargs):
 class ParticleFile(abc.ABC):
     filename: str
     file_id: int
+
     start: Optional[int] = None
     end: Optional[int] = None
     total_particles: Optional[DefaultDict[str, int]] = None
