@@ -306,7 +306,7 @@ class BaseParticleIOHandler(BaseIOHandler):
         chunks,
         ptf: DefaultDict[str, List[str]],
         selector,
-    ) -> Dict[str, int]:  # is this conversion to a plain dict required?
+    ) -> DefaultDict[str, int]:
         if getattr(selector, "is_all_data", False):
             for data_file in self._sorted_chunk_iterator(chunks):
                 for ptype in ptf.keys():
@@ -314,7 +314,7 @@ class BaseParticleIOHandler(BaseIOHandler):
         else:
             # we must apply the selector and count the result
             psize = self._count_selected_particles(psize, chunks, ptf, selector)
-        return dict(psize)  # is this conversion to a plain dict required?
+        return psize
 
 
 class IOHandlerExtracted(BaseIOHandler):
