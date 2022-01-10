@@ -43,7 +43,7 @@ class IOHandlerHTTPStream(BaseParticleIOHandler):
                 s = self._open_stream(data_file, (ptype, "Coordinates"))
                 c = np.frombuffer(s, dtype="float64")
                 c.shape = (c.shape[0] / 3.0, 3)
-                yield ptype, (c[:, 0], c[:, 1], c[:, 2])
+                yield ptype, (c[:, 0], c[:, 1], c[:, 2]), 0.0
 
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate
