@@ -1,6 +1,7 @@
 import pytest
 
 from yt.data_objects.static_output import Dataset
+from yt.geometry.grid_geometry_handler import GridIndex
 from yt.loaders import load, load_simulation
 from yt.utilities.exceptions import (
     YTAmbiguousDataType,
@@ -73,23 +74,87 @@ def test_load_simulation_unidentified_data_file(tmp_path_with_empty_file):
         )
 
 
+@pytest.fixture()
+def ambiguous_dataset_classes():
+    # We deliberately setup a situation where two Dataset subclasses
+    # that aren't parents are consisdered valid.
+    # We implement the bare minimum for these classes to be actually
+    # loadable in order to test hints.
+    class MockHierarchy(GridIndex):
+        pass
+
+    class MockDataset(Dataset):
+        _index_class = MockHierarchy
+
+        def _parse_parameter_file(self, *args, **kwargs):
+            self.current_time = -1.0
+            self.cosmological_simulation = 0
+
+        def _set_code_unit_attributes(self, *args, **kwargs):
+            self.length_unit = self.quan(1, "m")
+            self.mass_unit = self.quan(1, "kg")
+            self.time_unit = self.quan(1, "s")
+
+    class AlphaDataset(MockDataset):
+        @classmethod
+        def _is_valid(cls, *args, **kwargs):
+            return True
+
+    class BetaDataset(MockDataset):
+        @classmethod
+        def _is_valid(cls, *args, **kwargs):
+            return True
+
+    yield
+
+    # teardown to avoid possible breakage in following tests
+    output_type_registry.pop("MockDataset")
+    output_type_registry.pop("AlphaDataset")
+    output_type_registry.pop("BetaDataset")
+
+
+@pytest.mark.usefixtures("ambiguous_dataset_classes")
 def test_load_ambiguous_data(tmp_path):
-    # we deliberately setup a situation where two Dataset subclasses
-    # that aren't parents are consisdered valid
-    class FakeDataset(Dataset):
-        @classmethod
-        def _is_valid(cls, *args, **kwargs):
-            return True
+    with pytest.raises(YTAmbiguousDataType):
+        load(tmp_path)
 
-    class FakeDataset2(Dataset):
-        @classmethod
-        def _is_valid(cls, *args, **kwargs):
-            return True
+    file = tmp_path / "fake_datafile0011.dump"
+    file.touch()
 
-    try:
-        with pytest.raises(YTAmbiguousDataType):
-            load(tmp_path)
-    finally:
-        # tear down to avoid possible breakage in following tests
-        output_type_registry.pop("FakeDataset")
-        output_type_registry.pop("FakeDataset2")
+    pattern = str(tmp_path / "fake_datafile00??.dump")
+
+    # loading a DatasetSeries should not crash until an item is retrieved
+    ts = load(pattern)
+    with pytest.raises(YTAmbiguousDataType):
+        ts[0]
+
+
+@pytest.mark.parametrize(
+    "hint, expected_type",
+    [
+        ("alpha", "AlphaDataset"),
+        ("al", "AlphaDataset"),
+        ("ph", "AlphaDataset"),
+        ("beta", "BetaDataset"),
+        ("BeTA", "BetaDataset"),
+        ("b", "BetaDataset"),
+    ],
+)
+@pytest.mark.usefixtures("ambiguous_dataset_classes")
+def test_load_ambiguous_data_with_hint(hint, expected_type, tmp_path):
+    ds = load(tmp_path, hint=hint)
+    assert type(ds).__name__ == expected_type
+
+    file1 = tmp_path / "fake_datafile0011.dump"
+    file2 = tmp_path / "fake_datafile0022.dump"
+    file1.touch()
+    file2.touch()
+
+    pattern = str(tmp_path / "fake_datafile00??.dump")
+
+    ts = load(pattern, hint=hint)
+    ds = ts[0]
+    assert type(ds).__name__ == expected_type
+
+    ds = ts[1]
+    assert type(ds).__name__ == expected_type

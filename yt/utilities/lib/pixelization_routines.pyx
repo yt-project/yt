@@ -589,36 +589,38 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
                 r_i += 0.5*dx
             theta_i += dthetamin
 
-cdef int aitoff_thetaphi_to_xy(np.float64_t theta, np.float64_t phi,
+cdef int aitoff_Lambda_btheta_to_xy(np.float64_t Lambda, np.float64_t btheta,
                                np.float64_t *x, np.float64_t *y) except -1:
-    cdef np.float64_t z = math.sqrt(1 + math.cos(phi) * math.cos(theta / 2.0))
-    x[0] = math.cos(phi) * math.sin(theta / 2.0) / z
-    y[0] = math.sin(phi) / z
+    cdef np.float64_t z = math.sqrt(1 + math.cos(btheta) * math.cos(Lambda / 2.0))
+    x[0] = 2.0 * math.cos(btheta) * math.sin(Lambda / 2.0) / z
+    y[0] = math.sin(btheta) / z
     return 0
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pixelize_aitoff(np.float64_t[:] theta,
-                    np.float64_t[:] dtheta,
-                    np.float64_t[:] phi,
-                    np.float64_t[:] dphi,
+def pixelize_aitoff(np.float64_t[:] azimuth,
+                    np.float64_t[:] dazimuth,
+                    np.float64_t[:] colatitude,
+                    np.float64_t[:] dcolatitude,
                     buff_size,
                     np.float64_t[:] field,
-                    extents, input_img = None,
-                    np.float64_t theta_offset = 0.0,
-                    np.float64_t phi_offset = 0.0):
+                    bounds, # this is a 4-tuple
+                    input_img = None,
+                    np.float64_t azimuth_offset = 0.0,
+                    np.float64_t colatitude_offset = 0.0):
     # http://paulbourke.net/geometry/transformationprojection/
-    # (theta) longitude is -pi to pi
-    # (phi) latitude is -pi/2 to pi/2
+    # (Lambda) longitude is -PI to PI (longitude = azimuth - PI)
+    # (btheta) latitude is -PI/2 to PI/2 (latitude = PI/2 - colatitude)
+    #
     # z^2 = 1 + cos(latitude) cos(longitude/2)
     # x = cos(latitude) sin(longitude/2) / z
     # y = sin(latitude) / z
     cdef np.ndarray[np.float64_t, ndim=2] img
     cdef int i, j, nf, fi
     cdef np.float64_t x, y, z, zb
-    cdef np.float64_t dx, dy
-    cdef np.float64_t theta0, phi0, theta_p, dtheta_p, phi_p, dphi_p
+    cdef np.float64_t dx, dy, xw, yw
+    cdef np.float64_t Lambda0, btheta0, Lambda_p, dLambda_p, btheta_p, dbtheta_p
     cdef np.float64_t PI = np.pi
     cdef np.float64_t s2 = math.sqrt(2.0)
     cdef np.float64_t xmax, ymax, xmin, ymin
@@ -631,65 +633,74 @@ def pixelize_aitoff(np.float64_t[:] theta,
         img = input_img
     # Okay, here's our strategy.  We compute the bounds in x and y, which will
     # be a rectangle, and then for each x, y position we check to see if it's
-    # within our theta.  This will cost *more* computations of the
-    # (x,y)->(theta,phi) calculation, but because we no longer have to search
-    # through the theta, phi arrays, it should be faster.
-    dx = 2.0 / (img.shape[0] - 1)
-    dy = 2.0 / (img.shape[1] - 1)
+    # within our Lambda.  This will cost *more* computations of the
+    # (x,y)->(Lambda,btheta) calculation, but because we no longer have to search
+    # through the Lambda, btheta arrays, it should be faster.
+    xw = bounds[1] - bounds[0]
+    yw = bounds[3] - bounds[2]
+    dx = xw / (img.shape[0] - 1)
+    dy = yw / (img.shape[1] - 1)
     x = y = 0
     for fi in range(nf):
-        theta_p = (theta[fi] + theta_offset) - PI
-        dtheta_p = dtheta[fi]
-        phi_p = (phi[fi] + phi_offset) - PI/2.0
-        dphi_p = dphi[fi]
+        Lambda_p = (azimuth[fi] + azimuth_offset) - PI
+        dLambda_p = dazimuth[fi]
+        btheta_p = PI/2.0 - (colatitude[fi] + colatitude_offset)
+        dbtheta_p = dcolatitude[fi]
         # Four transformations
-        aitoff_thetaphi_to_xy(theta_p - dtheta_p, phi_p - dphi_p, &x, &y)
+        aitoff_Lambda_btheta_to_xy(Lambda_p - dLambda_p, btheta_p - dbtheta_p, &x, &y)
         xmin = x
         xmax = x
         ymin = y
         ymax = y
-        aitoff_thetaphi_to_xy(theta_p - dtheta_p, phi_p + dphi_p, &x, &y)
+        aitoff_Lambda_btheta_to_xy(Lambda_p - dLambda_p, btheta_p + dbtheta_p, &x, &y)
         xmin = fmin(xmin, x)
         xmax = fmax(xmax, x)
         ymin = fmin(ymin, y)
         ymax = fmax(ymax, y)
-        aitoff_thetaphi_to_xy(theta_p + dtheta_p, phi_p - dphi_p, &x, &y)
+        aitoff_Lambda_btheta_to_xy(Lambda_p + dLambda_p, btheta_p - dbtheta_p, &x, &y)
         xmin = fmin(xmin, x)
         xmax = fmax(xmax, x)
         ymin = fmin(ymin, y)
         ymax = fmax(ymax, y)
-        aitoff_thetaphi_to_xy(theta_p + dtheta_p, phi_p + dphi_p, &x, &y)
+        aitoff_Lambda_btheta_to_xy(Lambda_p + dLambda_p, btheta_p + dbtheta_p, &x, &y)
         xmin = fmin(xmin, x)
         xmax = fmax(xmax, x)
         ymin = fmin(ymin, y)
         ymax = fmax(ymax, y)
         # Now we have the (projected rectangular) bounds.
-        xmin = (xmin + 1) # Get this into normalized image coords
-        xmax = (xmax + 1) # Get this into normalized image coords
-        ymin = (ymin + 1) # Get this into normalized image coords
-        ymax = (ymax + 1) # Get this into normalized image coords
+
+        # Shift into normalized image coords
+        xmin = (xmin - bounds[0])
+        xmax = (xmax - bounds[0])
+        ymin = (ymin - bounds[2])
+        ymax = (ymax - bounds[2])
+
+        # Finally, select a rectangular region in image space
+        # that fully contains the projected data point.
+        # We'll reject image pixels in that rectangle that are
+        # not actually intersecting the data point as we go.
         x0 = <int> (xmin / dx)
         x1 = <int> (xmax / dx) + 1
         y0 = <int> (ymin / dy)
         y1 = <int> (ymax / dy) + 1
         for i in range(x0, x1):
-            x = (-1.0 + i*dx)*s2*2.0
+            x = (bounds[0] + i * dx) / 2.0
             for j in range(y0, y1):
-                y = (-1.0 + j * dy)*s2
-                zb = (x*x/8.0 + y*y/2.0 - 1.0)
+                y = (bounds[2] + j * dy)
+                zb = (x*x + y*y - 1.0)
                 if zb > 0: continue
-                z = (1.0 - (x * 0.25) * (x * 0.25) - (y * 0.5) * (y * 0.5))
+                z = (1.0 - 0.5*x*x - 0.5*y*y)
                 z = math.sqrt(z)
                 # Longitude
-                theta0 = 2.0*math.atan(z*x/(2.0 * (2.0*z*z-1.0)))
+                Lambda0 = 2.0*math.atan(z*x*s2/(2.0*z*z-1.0))
                 # Latitude
                 # We shift it into co-latitude
-                phi0 = math.asin(z*y)
+                btheta0 = math.asin(z*y*s2)
                 # Now we just need to figure out which pixel contributes.
                 # We do not have a fast search.
-                if not (theta_p - dtheta_p <= theta0 <= theta_p + dtheta_p):
+                if not (Lambda_p - dLambda_p <= Lambda0 <= Lambda_p + dLambda_p):
                     continue
-                if not (phi_p - dphi_p <= phi0 <= phi_p + dphi_p):
+                if not (btheta_p - dbtheta_p <= btheta0 <= btheta_p + dbtheta_p):
                     continue
                 img[i, j] = field[fi]
     return img

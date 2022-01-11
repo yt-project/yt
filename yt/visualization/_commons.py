@@ -1,11 +1,10 @@
 import os
 import sys
+import warnings
 from typing import Optional, Type
 
 import matplotlib
 from packaging.version import Version
-
-from yt.utilities.logger import ytLogger as mylog
 
 from ._mpl_imports import (
     FigureCanvasAgg,
@@ -61,26 +60,25 @@ def validate_image_name(filename, suffix: Optional[str] = None) -> str:
     Otherwise, suffix is appended to the filename, replacing any existing extension.
     """
     name, psuffix = os.path.splitext(filename)
-    if normalize_extension_string(psuffix) in SUPPORTED_FORMATS:
-        if suffix is not None:
-            suffix = normalize_extension_string(suffix)
+    psuffix = normalize_extension_string(psuffix)
+
+    if suffix is not None:
+        suffix = normalize_extension_string(suffix)
+
+    if psuffix in SUPPORTED_FORMATS:
         if suffix in SUPPORTED_FORMATS and suffix != psuffix:
-            mylog.warning(
-                "Received two valid image formats '%s' (from `filename`) "
-                "and '%s' (from `suffix`). The former is ignored.",
-                psuffix,
-                suffix,
+            warnings.warn(
+                f"Received two valid image formats {psuffix!r} (from filename) "
+                f"and {suffix!r} (from suffix). The former is ignored."
             )
             return f"{name}.{suffix}"
         return str(filename)
 
     if suffix is None:
-        suffix = ".png"
-
-    suffix = normalize_extension_string(suffix)
+        suffix = "png"
 
     if suffix not in SUPPORTED_FORMATS:
-        raise ValueError(f"Unsupported file format '{suffix}'.")
+        raise ValueError(f"Unsupported file format {suffix!r}")
 
     return f"{filename}.{suffix}"
 

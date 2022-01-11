@@ -1,5 +1,6 @@
 import abc
 from functools import wraps
+from typing import Optional
 
 import numpy as np
 
@@ -36,13 +37,13 @@ from .utils import (
 from .zbuffer_array import ZBuffer
 
 try:
-    from yt.utilities.lib.embree_mesh import mesh_traversal
+    from yt.utilities.lib.embree_mesh import mesh_traversal  # type: ignore
 # Catch ValueError in case size of objects in Cython change
 except (ImportError, ValueError):
     mesh_traversal = NotAModule("pyembree")
     ytcfg["yt", "ray_tracing_engine"] = "yt"
 try:
-    from yt.utilities.lib.embree_mesh import mesh_construction
+    from yt.utilities.lib.embree_mesh import mesh_construction  # type: ignore
 # Catch ValueError in case size of objects in Cython change
 except (ImportError, ValueError):
     mesh_construction = NotAModule("pyembree")
@@ -84,15 +85,14 @@ def validate_volume(f):
     return wrapper
 
 
-class RenderSource(ParallelAnalysisInterface):
-
+class RenderSource(ParallelAnalysisInterface, abc.ABC):
     """Base Class for Render Sources.
 
     Will be inherited for volumes, streamlines, etc.
 
     """
 
-    volume_method = None
+    volume_method: Optional[str] = None
 
     def __init__(self):
         super().__init__()
@@ -182,7 +182,6 @@ class VolumeSource(RenderSource, abc.ABC):
 
     _image = None
     data_source = None
-    volume_method = None
 
     def __init__(self, data_source, field):
         r"""Initialize a new volumetric source for rendering."""
@@ -278,7 +277,7 @@ class VolumeSource(RenderSource, abc.ABC):
         """The field to be rendered"""
         return self._field
 
-    @field.setter
+    @field.setter  # type: ignore
     @invalidate_volume
     def field(self, value):
         field = self.data_source._determine_fields(value)
@@ -304,7 +303,7 @@ class VolumeSource(RenderSource, abc.ABC):
         """Whether or not the field rendering is computed in log space"""
         return self._log_field
 
-    @log_field.setter
+    @log_field.setter  # type: ignore
     @invalidate_volume
     def log_field(self, value):
         self.transfer_function = None
@@ -317,7 +316,7 @@ class VolumeSource(RenderSource, abc.ABC):
         values at grid boundaries"""
         return self._use_ghost_zones
 
-    @use_ghost_zones.setter
+    @use_ghost_zones.setter  # type: ignore
     @invalidate_volume
     def use_ghost_zones(self, value):
         self._use_ghost_zones = value
@@ -330,7 +329,7 @@ class VolumeSource(RenderSource, abc.ABC):
         """
         return self._weight_field
 
-    @weight_field.setter
+    @weight_field.setter  # type: ignore
     @invalidate_volume
     def weight_field(self, value):
         self._weight_field = value
@@ -701,26 +700,23 @@ class MeshSource(OpaqueSource):
                 "Invalid ray-tracing engine selected. Choices are 'embree' and 'yt'."
             )
 
-    def cmap():
+    @property
+    def cmap(self):
         """
         This is the name of the colormap that will be used when rendering
-        this MeshSource object. Should be a string, like 'arbre', or 'dusk'.
+        this MeshSource object. Should be a string, like 'cmyt.arbre', or 'cmyt.dusk'.
 
         """
+        return self._cmap
 
-        def fget(self):
-            return self._cmap
+    @cmap.setter
+    def cmap(self, cmap_name):
+        self._cmap = cmap_name
+        if hasattr(self, "data"):
+            self.current_image = self.apply_colormap()
 
-        def fset(self, cmap_name):
-            self._cmap = cmap_name
-            if hasattr(self, "data"):
-                self.current_image = self.apply_colormap()
-
-        return locals()
-
-    cmap = property(**cmap())
-
-    def color_bounds():
+    @property
+    def color_bounds(self):
         """
         These are the bounds that will be used with the colormap to the display
         the rendered image. Should be a (vmin, vmax) tuple, like (0.0, 2.0). If
@@ -728,18 +724,13 @@ class MeshSource(OpaqueSource):
         the rendered data.
 
         """
+        return self._color_bounds
 
-        def fget(self):
-            return self._color_bounds
-
-        def fset(self, bounds):
-            self._color_bounds = bounds
-            if hasattr(self, "data"):
-                self.current_image = self.apply_colormap()
-
-        return locals()
-
-    color_bounds = property(**color_bounds())
+    @color_bounds.setter
+    def color_bounds(self, bounds):
+        self._color_bounds = bounds
+        if hasattr(self, "data"):
+            self.current_image = self.apply_colormap()
 
     def _validate(self):
         """Make sure that all dependencies have been met"""
@@ -1009,6 +1000,9 @@ class PointSource(OpaqueSource):
         self.color_stride = color_stride
         self.radii = radii
 
+    def _validate(self):
+        pass
+
     def render(self, camera, zbuffer=None):
         """Renders an image using the provided camera
 
@@ -1130,6 +1124,9 @@ class LineSource(OpaqueSource):
             colors = np.ones((len(positions), 4))
         self.colors = colors
         self.color_stride = color_stride
+
+    def _validate(self):
+        pass
 
     def render(self, camera, zbuffer=None):
         """Renders an image using the provided camera
@@ -1257,6 +1254,9 @@ class BoxSource(LineSource):
         vertices = vertices.reshape((12, 2, 3))
 
         super().__init__(vertices, color, color_stride=24)
+
+    def _validate(self):
+        pass
 
 
 class GridSource(LineSource):
@@ -1417,6 +1417,9 @@ class CoordinateVectorSource(OpaqueSource):
             colors[2, 2] = 1.0  # z is blue
             colors[:, 3] = alpha
         self.colors = colors
+
+    def _validate(self):
+        pass
 
     def render(self, camera, zbuffer=None):
         """Renders an image using the provided camera

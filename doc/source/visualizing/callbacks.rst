@@ -14,8 +14,10 @@ lines, text, markers, streamlines, velocity vectors, contours, and more.
 Callbacks can be applied to plots created with
 :class:`~yt.visualization.plot_window.SlicePlot`,
 :class:`~yt.visualization.plot_window.ProjectionPlot`,
+:class:`~yt.visualization.plot_window.AxisAlignedSlicePlot`,
+:class:`~yt.visualization.plot_window.AxisAlignedProjectionPlot`,
 :class:`~yt.visualization.plot_window.OffAxisSlicePlot`, or
-:class:`~yt.visualization.plot_window.OffAxisProjectionPlot` by calling
+:class:`~yt.visualization.plot_window.OffAxisProjectionPlot`, by calling
 one of the ``annotate_`` methods that hang off of the plot object.
 The ``annotate_`` methods are dynamically generated based on the list
 of available callbacks.  For example:
@@ -494,7 +496,7 @@ Overplot Magnetic Field Quivers
 
    ds = yt.load(
        "MHDSloshing/virgo_low_res.0054.vtk",
-       parameters={
+       units_override={
            "time_unit": (1, "Myr"),
            "length_unit": (1, "Mpc"),
            "mass_unit": (1e17, "Msun"),

@@ -1,12 +1,13 @@
 import copy
 from contextlib import contextmanager
+from typing import Dict
 
 from yt.fields.field_info_container import NullFunc, TranslationFunc
 from yt.funcs import mylog
 from yt.utilities.exceptions import YTIllDefinedFilter
 
 # One to one mapping
-filter_registry = {}
+filter_registry: Dict[str, "ParticleFilter"] = {}
 
 
 class DummyFieldInfo:

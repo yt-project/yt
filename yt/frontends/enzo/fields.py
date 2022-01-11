@@ -1,5 +1,6 @@
 import numpy as np
 
+from yt._typing import KnownFieldsT
 from yt.fields.field_info_container import FieldInfoContainer
 from yt.utilities.physical_constants import me, mp
 
@@ -48,7 +49,7 @@ NODAL_FLAGS = {
 
 
 class EnzoFieldInfo(FieldInfoContainer):
-    known_other_fields = (
+    known_other_fields: KnownFieldsT = (
         ("Cooling_Time", ("s", ["cooling_time"], None)),
         ("Dengo_Cooling_Rate", ("erg/g/s", [], None)),
         ("Grackle_Cooling_Rate", ("erg/s/cm**3", [], None)),
@@ -89,7 +90,7 @@ class EnzoFieldInfo(FieldInfoContainer):
         ("Electron_Density", (rho_units, [], None)),
     )
 
-    known_particle_fields = (
+    known_particle_fields: KnownFieldsT = (
         ("particle_position_x", ("code_length", [], None)),
         ("particle_position_y", ("code_length", [], None)),
         ("particle_position_z", ("code_length", [], None)),

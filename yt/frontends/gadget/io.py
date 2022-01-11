@@ -4,7 +4,7 @@ from collections import defaultdict
 import numpy as np
 
 from yt.frontends.sph.io import IOHandlerSPH
-from yt.units.yt_array import uconcatenate
+from yt.units.yt_array import uconcatenate  # type: ignore
 from yt.utilities.lib.particle_kdtree_tools import generate_smoothing_length
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py
@@ -308,7 +308,7 @@ ZeroMass = object()
 
 class IOHandlerGadgetBinary(IOHandlerSPH):
     _dataset_type = "gadget_binary"
-    _vector_fields = (
+    _vector_fields = (  # type: ignore
         ("Coordinates", 3),
         ("Velocity", 3),
         ("Velocities", 3),
@@ -452,6 +452,8 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
     def _yield_coordinates(self, data_file, needed_ptype=None):
         self._float_type = data_file.ds._header.float_type
         self._field_size = np.dtype(self._float_type).itemsize
+        dt = np.dtype(self._endian + self._float_type)
+        dt_native = dt.newbyteorder("N")
         with open(data_file.filename, "rb") as f:
             # We add on an additionally 4 for the first record.
             f.seek(data_file._position_offset + 4)
@@ -461,7 +463,9 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                 if needed_ptype is not None and ptype != needed_ptype:
                     continue
                 # The first total_particles * 3 values are positions
-                pp = np.fromfile(f, dtype=self._float_type, count=count * 3)
+                pp = np.fromfile(f, dtype=dt, count=count * 3).astype(
+                    dt_native, copy=False
+                )
                 pp.shape = (count, 3)
                 yield ptype, pp
 

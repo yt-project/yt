@@ -282,7 +282,7 @@ class AMRGridPatch(YTSelectionContainer):
                 "a single field as an argument."
             )
             warnings.warn(message, DeprecationWarning, stacklevel=2)
-            fields = [fields]
+            fields = [fields]  # type: ignore
 
         # Make sure the field list has only unique entries
         fields = list(set(fields))

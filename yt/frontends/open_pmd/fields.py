@@ -1,3 +1,5 @@
+from typing import List
+
 import numpy as np
 
 from yt.fields.field_info_container import FieldInfoContainer
@@ -139,7 +141,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
     * [1] http://yt-project.org/docs/dev/reference/field_list.html#universal-fields
     """
 
-    _mag_fields = []
+    _mag_fields: List[str] = []
 
     def __init__(self, ds, field_list):
         f = ds._handle

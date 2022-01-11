@@ -67,11 +67,6 @@ the dependencies are installed; this includes ``tar``, ``tar.gz`` and tar.bz2`` 
 AMRVAC Data
 -----------
 
-.. note::
-
-   This frontend is brand new and may be subject to rapid change in the
-   near future.
-
 To load data to yt, simply use
 
 .. code-block::
@@ -86,15 +81,15 @@ Starting from AMRVAC 2.2, and datfile format 5, a geometry flag
 (e.g. "Cartesian_2.5D", "Polar_2D", "Cylindrical_1.5D"...) was added
 to the datfile header.  yt will fall back to a cartesian mesh if the
 geometry flag is not found.  For older datfiles however it is possible
-to provide it externally with the ``override_geometry`` parameter.
+to provide it externally with the ``geometry_override`` parameter.
 
 .. code-block:: python
 
   # examples
-  ds = yt.load("output0010.dat", override_geometry="polar")
-  ds = yt.load("output0010.dat", override_geometry="cartesian")
+  ds = yt.load("output0010.dat", geometry_override="polar")
+  ds = yt.load("output0010.dat", geometry_override="cartesian")
 
-Note that ``override_geometry`` has priority over any ``geometry`` flag
+Note that ``geometry_override`` has priority over any ``geometry`` flag
 present in recent datfiles, which means it can be used to force ``r``
 VS ``theta`` 2D plots in polar geometries (for example), but this may
 produce unpredictable behaviour and comes with no guarantee.

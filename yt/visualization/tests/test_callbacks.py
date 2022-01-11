@@ -641,7 +641,7 @@ def test_contour_callback():
         slc.annotate_contour(
             ("gas", "plasma_beta"),
             ncont=2,
-            factor=7.0,
+            factor=7,
             take_log=False,
             clim=(1.0e-1, 1.0e1),
             label=True,

@@ -1,7 +1,7 @@
 import numpy as np
 from nose.tools import assert_equal
 
-from yt.utilities.lib.cykdtree import utils
+from yt.utilities.lib.cykdtree import utils  # type: ignore
 from yt.utilities.lib.cykdtree.tests import assert_less_equal, parametrize
 
 

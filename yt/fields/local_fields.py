@@ -8,9 +8,7 @@ from .field_plugin_registry import register_field_plugin
 class LocalFieldInfoContainer(FieldInfoContainer):
     def add_field(self, name, function, sampling_type, **kwargs):
 
-        sampling_type = self._sanitize_sampling_type(
-            sampling_type, kwargs.get("particle_type")
-        )
+        sampling_type = self._sanitize_sampling_type(sampling_type)
 
         if isinstance(name, str) or not is_sequence(name):
             if sampling_type == "particle":
