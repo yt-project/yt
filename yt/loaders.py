@@ -17,7 +17,6 @@ from urllib.parse import urlsplit
 import numpy as np
 from more_itertools import always_iterable
 
-from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.data_objects.static_output import Dataset
 from yt.funcs import levenshtein_distance
 from yt.sample_data.api import lookup_on_disk_data
