@@ -677,38 +677,3 @@ class firefly_imports:
 
 
 _firefly = firefly_imports()
-
-
-# Note: ratarmount may fail with an OSError on import if libfuse is missing
-# In this case, we want the on-demand-import to fail _where_ ratarmount
-# is being used, rather than at startup.
-# We could catch the OSError and throw it again when we try to access
-# ratarmount. Instead here, we delay as much as possible the actual import of
-# the package which thus raises an exception where expected.
-#
-# Note 2: we need to store the imported module in __module, as _module plays
-# a special role in on-demand-imports (e.g. used for testing purposes to know
-# if the package has been installed).
-class ratarmount_imports:
-    _name = "ratarmount"
-    __module = None
-
-    @property
-    def _module(self):
-        if self.__module is not None:
-            return self.__module
-
-        try:
-            import ratarmount as myself
-
-            self.__module = myself
-        except ImportError:
-            self.__module = NotAModule(self._name)
-
-        return self.__module
-
-    def __getattr__(self, attr):
-        return getattr(self._module, attr)
-
-
-_ratarmount = ratarmount_imports()

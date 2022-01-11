@@ -193,7 +193,6 @@ other_tests:
      - "--ignore-files=test_save.py"
      - "--ignore-files=test_registration.py"
      - "--ignore-files=test_invalid_origin.py"
-     - "--ignore-files=test_load_archive\\.py"
      - "--ignore-files=test_outputs_pytest\\.py"
      - "--ignore-files=test_normal_plot_api\\.py"
      - "--exclude-test=yt.frontends.gdf.tests.test_outputs.TestGDF"

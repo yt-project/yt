@@ -10,14 +10,13 @@ linux|Linux)
       proj-data \
       proj-bin \
       libgeos-dev \
-      libopenmpi-dev \
-      libfuse2
+      libopenmpi-dev
     ;;
 osx|macOS)
     sudo mkdir -p /usr/local/man
     sudo chown -R "${USER}:admin" /usr/local/man
     brew update
-    HOMEBREW_NO_AUTO_UPDATE=1 brew install hdf5 proj geos open-mpi netcdf ccache osxfuse
+    HOMEBREW_NO_AUTO_UPDATE=1 brew install hdf5 proj geos open-mpi netcdf ccache
     ;;
 esac
 
