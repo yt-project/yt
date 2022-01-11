@@ -370,7 +370,7 @@ You can now set configuration values on a per-field basis.  For instance, this
 means that if you always want a particular colormap associated with a particular
 field, you can do so!
 
-This is documented under :ref:`per-field-config`, and was added in `PR
+This is documented under :ref:`per-field-plotconfig`, and was added in `PR
 1931 <https://github.com/yt-project/yt/pull/1931>`_.
 
 New Method for Accessing Sample Datasets

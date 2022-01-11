@@ -14,6 +14,11 @@ traditionally thought of as "particle" fields.  The word "particle" here is
 gradually falling out of favor, as these discrete fields can be any type of
 sparsely populated data.
 
+If you are developing a frontend or need to customize what yt thinks of as the
+fields for a given datast, see both :ref:`per-field-plotconfig` and
+:ref:`per-field-config` for information on how to change the display units,
+on-disk units, display name, etc.
+
 .. _what-are-fields:
 
 What are fields?
