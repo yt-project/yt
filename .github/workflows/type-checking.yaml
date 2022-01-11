@@ -1,0 +1,38 @@
+name: type checking
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    paths-ignore:
+      - "doc/**"
+      - README.md
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: mypy
+    timeout-minutes: 60
+
+    concurrency:
+      group: ${{ github.ref }}-dev
+      cancel-in-progress: true
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
+
+    - name: Build yt + type check deps
+      run: |
+        python3 -m pip install --upgrade pip
+        python3 -m pip install -e .[typecheck]
+
+    - name: Run mypy
+      run: mypy yt

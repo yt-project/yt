@@ -1,3 +1,4 @@
+from yt._typing import KnownFieldsT
 from yt.fields.field_info_container import FieldInfoContainer
 
 # Common fields in FLASH: (Thanks to John ZuHone for this list)
@@ -24,7 +25,7 @@ rho_units = "code_mass / code_length**3"
 
 
 class FLASHFieldInfo(FieldInfoContainer):
-    known_other_fields = (
+    known_other_fields: KnownFieldsT = (
         ("velx", ("code_length/code_time", ["velocity_x"], None)),
         ("vely", ("code_length/code_time", ["velocity_y"], None)),
         ("velz", ("code_length/code_time", ["velocity_z"], None)),

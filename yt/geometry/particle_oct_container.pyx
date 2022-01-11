@@ -587,11 +587,11 @@ cdef class ParticleBitmap:
             for i in range(3):
                 axiter[i][1] = 999
                 # Skip particles outside the domain
-                if pos[p,i] >= RE[i] or pos[p,i] < LE[i]:
+                if not (LE[i] <= pos[p, i] < RE[i]):
                     skip = 1
                     break
                 ppos[i] = pos[p,i]
-            if skip==1: continue
+            if skip == 1: continue
             mi = bounded_morton_split_dds(ppos[0], ppos[1], ppos[2], LE,
                                           dds, mi_split)
             mask[mi] = 1
@@ -723,14 +723,12 @@ cdef class ParticleBitmap:
         cdef int axiter[3][2]
         cdef np.float64_t axiterv[3][2]
         cdef CoarseRefinedSets coarse_refined_map
-        cdef cmap[np.uint64_t, np.uint64_t] refined_count
         cdef np.uint64_t nfully_enclosed = 0, n_calls = 0
         mi1_max = (1 << self.index_order1) - 1
         mi2_max = (1 << self.index_order2) - 1
         cdef np.uint64_t max_mi1_elements = 1 << (3*self.index_order1)
         cdef np.uint64_t max_mi2_elements = 1 << (3*self.index_order2)
-        for i in range(max_mi1_elements):
-            refined_count[i] = 0
+        cdef np.ndarray[np.uint64_t, ndim=1] refined_count = np.zeros(max_mi1_elements, dtype="uint64")
         # Copy things from structure (type cast)
         for i in range(3):
             LE[i] = self.left_edge[i]
@@ -748,19 +746,21 @@ cdef class ParticleBitmap:
         # Loop over positions skipping those outside the domain
         cdef np.ndarray[np.uint64_t, ndim=1, cast=True] sorted_order
         if hsml is None:
-            sorted_order = np.argsort(morton_indices)
+            # casting to uint64 for compatibility with 32 bits systems
+            # see https://github.com/yt-project/yt/issues/3656
+            sorted_order = np.argsort(morton_indices).astype(np.uint64, copy=False)
         else:
-            sorted_order = np.argsort(hsml)[::-1]
+            sorted_order = np.argsort(hsml)[::-1].astype(np.uint64, copy=False)
         for sorted_ind in range(sorted_order.shape[0]):
             p = sorted_order[sorted_ind]
             skip = 0
             for i in range(3):
                 axiter[i][1] = 999
-                if pos[p,i] >= RE[i] or pos[p,i] < LE[i]:
+                if not (LE[i] <= pos[p, i] < RE[i]):
                     skip = 1
                     break
                 ppos[i] = pos[p,i]
-            if skip==1: continue
+            if skip == 1: continue
             # Only look if collision at coarse index
             mi1 = bounded_morton_split_dds(ppos[0], ppos[1], ppos[2], LE,
                                            dds1, mi_split1)

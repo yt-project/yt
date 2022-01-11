@@ -114,6 +114,49 @@ places in yt, code that used ``("gas", "cell_mass")`` has been replaced by
 ``("gas", "mass")``. Since the latter is an alias for the former, old scripts which
 use ``("gas", "cell_mass")`` should not break.
 
+Deprecations
+^^^^^^^^^^^^
+
+The following methods and method arguments are deprecated as of yt 4.0 and will be
+removed in yt 4.1
+
+ * :meth:`~yt.visualization.plot_window.PlotWindow.set_window_size` is deprecated
+   in favor to :meth:`~yt.visualization.plot_container.PlotContainer.set_figure_size`
+ * :meth:`~yt.visualization.eps_writer.return_cmap` is deprecated in favor to
+   :meth:`~yt.visualization.eps_writer.return_colormap`
+ * :meth:`~yt.data_objects.derived_quantities.WeightedVariance` is deprecated in favor
+   to :meth:`~yt.data_objects.derived_quantities.WeightedStandardDeviation`
+ * :meth:`~yt.visualization.plot_window.PWViewerMPL.annotate_clear` is deprecated in
+   favor to :meth:`~yt.visualization.plot_window.PWViewerMPL.clear_annotations`
+ * :meth:`~yt.visualization.color_maps.add_cmap` is deprecated in favor to
+   :meth:`~yt.visualization.color_maps.add_colormap`
+ * :meth:`~yt.loaders.simulation` is deprecated in favor to :meth:`~yt.loaders.load_simulation`
+ * :meth:`~yt.data_objects.index_subobjects.octree_subset.OctreeSubset.get_vertex_centered_data`
+   now takes a list of fields as input, passing a single field is deprecated
+ * manually updating the ``periodicity`` attributed of a :class:`~yt.data_objects.static_output.Dataset` object is deprecated. Use the
+   :meth:`~yt.data_objects.static_output.Dataset.force_periodicity` if you need to force periodicity to ``True`` or ``False`` along all axes.
+ * the :meth:`~yt.data_objects.static_output.Dataset.add_smoothed_particle_field` method is deprecated and already has no effect in yt 4.0 .
+   See :ref:`sph-data`
+ * the :meth:`~yt.data_objects.static_output.Dataset.add_gradient_fields` used to accept an ``input_field`` keyword argument, now deprecated
+   in favor to ``fields``
+ * :meth:`~yt.data_objects.time_series.DatasetSeries.from_filenames` is deprecated because its functionality is now
+   included in the basic ``__init__`` method. Use :class:`~yt.data_objects.time_series.DatasetSeries` directly.
+ * the ``particle_type`` keyword argument from ``yt.add_field()`` (:meth:`~yt.fields.field_info_container.FieldInfoContainer.add_field`) and ``ds.add_field()`` (:meth:`~yt.data_objects.static_output.Dataset.add_field`) methods is now a deprecated in favor to
+   the ``sampling_type`` keyword argument.
+ * the :meth:`~yt.fields.particle_fields.add_volume_weighted_smoothed_field` is deprecated and already has no effect in yt 4.0 .
+   See :ref:`sph-data`
+ * the :meth:`~yt.utilities.amr_kdtree.amr_kdtree.AMRKDTree.locate_brick` method is deprecated in favor to, and is now an alias for :meth:`~yt.utilities.amr_kdtree.amr_kdtree.AMRKDTree.locate_node`
+ * the :class:`~yt.utilities.exceptions.YTOutputNotIdentified` error is a deprecated alias for :class:`~yt.utilities.exceptions.YTUnidentifiedDataType`
+ * the ``limits`` argument from :meth:`~yt.visualization.image_writer.write_projection` is deprecated in
+   favor to ``vmin`` and ``vmax``
+ * :meth:`~yt.visualization.plot_container.ImagePlotContainer.set_cbar_minorticks` is a deprecated alias for :meth:`~yt.visualization.plot_container.ImagePlotContainer.set_colorbar_minorticks`
+ * the ``axis`` argument from :meth:`yt.visualization.plot_window.SlicePlot` is a depreacted alias for the ``normal`` argument
+ * the old configuration file ``ytrc`` is deprecated in favor of the new ``yt.toml`` format. In yt 4.0,
+   you'll get a warning every time you import yt if you're still using the old configuration file,
+   which will instruct you to invoke the yt command line interface to convert automatically to the new format.
+ * the ``load_field_plugins`` parameter is deprecated from the configuration file (note that it is already not used as of yt 4.0)
+
+
 Cool New Things
 ---------------
 
@@ -143,6 +186,8 @@ in yt.
 The new I/O method has opened up a new way of dealing with the particle data and
 in particular, SPH data.
 
+.. _sph-data:
+
 Scatter and Gather approach for SPH data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -156,7 +201,7 @@ centre of the pixel and using the standard SPH smoothing formula. The heavy
 lifting in these functions is undertaken by cython functions.
 
 It is now possible to generate slice plots, projection plots, covering grids and
-arbitrary grids of smoothed quanitities using these operations. The following
+arbitrary grids of smoothed quantities using these operations. The following
 code demonstrates how this could be achieved. The following would use the scatter
 method:
 

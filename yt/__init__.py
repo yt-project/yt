@@ -69,7 +69,7 @@ from yt.units import (
     uunion1d,
     uvstack,
 )
-from yt.units.unit_object import define_unit
+from yt.units.unit_object import define_unit  # type: ignore
 from yt.utilities.logger import set_log_level, ytLogger as mylog
 
 frontends = _frontend_container()
@@ -77,7 +77,6 @@ frontends = _frontend_container()
 import yt.visualization.volume_rendering.api as volume_rendering
 from yt.frontends.stream.api import hexahedral_connectivity
 from yt.frontends.ytdata.api import save_as_dataset
-from yt.loaders import simulation  # deprecated alias for load_simulation
 from yt.loaders import (
     load,
     load_amr_grids,
@@ -90,7 +89,7 @@ from yt.loaders import (
     load_unstructured_mesh,
 )
 from yt.testing import run_nose
-from yt.units.unit_systems import UnitSystem, unit_system_registry
+from yt.units.unit_systems import UnitSystem, unit_system_registry  # type: ignore
 
 # Import some helpful math utilities
 from yt.utilities.math_utils import ortho_find, periodic_position, quartiles
@@ -102,6 +101,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import (
 
 # Now individual component imports from the visualization API
 from yt.visualization.api import (
+    AxisAlignedProjectionPlot,
     AxisAlignedSlicePlot,
     FITSImageData,
     FITSOffAxisProjection,
@@ -142,17 +142,3 @@ from yt.visualization.volume_rendering.api import (
 
 #    TransferFunctionHelper, MultiVariateTransferFunction
 #    off_axis_projection
-
-
-def _check_deprecated_parameters():
-    from yt._maintenance.deprecation import issue_deprecation_warning
-    from yt.config import ytcfg
-
-    if ytcfg.get("yt", "load_field_plugins"):
-        issue_deprecation_warning(
-            "Found deprecated parameter 'load_field_plugins' in yt's configuration file.",
-            removal="4.1.0",
-        )
-
-
-_check_deprecated_parameters()

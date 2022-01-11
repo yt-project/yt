@@ -21,15 +21,25 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-18.04]
-        python-version: [3.9]
+        os: [
+          macos-latest,
+          windows-latest,
+          ubuntu-latest,
+        ]
+        python-version: ['3.10']
         dependencies: [full]
         tests-type: [unit]
         include:
-          - os: ubuntu-18.04
-            python-version: 3.6
+          - os: ubuntu-latest
+            python-version: 3.7
             dependencies: minimal
             tests-type: unit
+          # temporary: Python 3.10 is not available on conda, so we pin this job to Python 3.9
+          - os: windows-latest
+            python-version: '3.9'
+        exclude:
+          - os: windows-latest
+            python-version: '3.10'
 
     runs-on: ${{ matrix.os }}
     steps:

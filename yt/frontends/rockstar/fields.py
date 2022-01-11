@@ -1,3 +1,4 @@
+from yt._typing import KnownFieldsT
 from yt.fields.field_info_container import FieldInfoContainer
 
 m_units = "Msun / h"  # Msun / h
@@ -7,9 +8,8 @@ r_units = "kpccm / h"  # kpc / h comoving
 
 
 class RockstarFieldInfo(FieldInfoContainer):
-    known_other_fields = ()
 
-    known_particle_fields = (
+    known_particle_fields: KnownFieldsT = (
         ("particle_identifier", ("", [], None)),
         ("particle_position_x", (p_units, [], None)),
         ("particle_position_y", (p_units, [], None)),

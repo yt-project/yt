@@ -24,8 +24,8 @@ from yt.funcs import get_memory_usage, is_sequence, iter_fields, mylog, only_on_
 from yt.geometry import particle_deposit as particle_deposit
 from yt.geometry.coordinates.cartesian_coordinates import all_data
 from yt.loaders import load_uniform_grid
-from yt.units.unit_object import Unit
-from yt.units.yt_array import YTArray, uconcatenate
+from yt.units.unit_object import Unit  # type: ignore
+from yt.units.yt_array import YTArray, uconcatenate  # type: ignore
 from yt.utilities.exceptions import (
     YTNoAPIKey,
     YTNotInsideNotebook,
@@ -51,6 +51,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import (
     parallel_objects,
     parallel_root_only,
 )
+from yt.visualization.color_maps import get_colormap_lut
 
 
 class YTStreamline(YTSelectionContainer1D):
@@ -648,11 +649,18 @@ class YTCoveringGrid(YTSelectionContainer3D):
         self.right_edge = self.left_edge + self.ActiveDimensions * self.dds
         self._num_ghost_zones = num_ghost_zones
         self._use_pbar = use_pbar
-        self.global_startindex = np.rint(
-            (self.left_edge - self.ds.domain_left_edge) / self.dds
-        ).astype("int64")
+        self.global_startindex = (
+            np.rint((self.left_edge - self.ds.domain_left_edge) / self.dds).astype(
+                "int64"
+            )
+            + self.ds.domain_offset
+        )
         self._setup_data_source()
         self.get_data(fields)
+
+    def get_global_startindex(self):
+        r"""Get the global start index of the covering grid."""
+        return self.global_startindex
 
     def to_xarray(self, fields=None):
         r"""Export this fixed-resolution object to an xarray Dataset
@@ -1405,8 +1413,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
             warnings.warn(
                 "Something went wrong during field computation. "
                 "This is likely due to missing ghost-zones support "
-                "in class %s",
-                self.ds.__class__,
+                f"in class {type(self.ds)}",
                 category=RuntimeWarning,
             )
             mylog.debug("Caught %d runtime errors.", runtime_errors_count)
@@ -1947,9 +1954,8 @@ class YTSurface(YTSelectionContainer3D):
         else:
             cs[:] = 1.0
         # to get color indices for OBJ formatting
-        from yt.visualization._colormap_data import color_map_luts
+        lut = get_colormap_lut(color_map)
 
-        lut = color_map_luts[color_map]
         x = np.mgrid[0.0 : 1.0 : lut[0].shape[0] * 1j]
         arr["cind"][:] = (np.interp(cs, x, x) * (lut[0].shape[0] - 1)).astype("uint8")
         # now, get emission
@@ -2055,11 +2061,9 @@ class YTSurface(YTSelectionContainer3D):
             emit_field_min,
             emit_field,
         )  # map color values to color scheme
-        from yt.visualization._colormap_data import (  # import colors for mtl file
-            color_map_luts,
-        )
 
-        lut = color_map_luts[color_map]  # enumerate colors
+        lut = get_colormap_lut(color_map)
+
         # interpolate emissivity to enumerated colors
         emiss = np.interp(
             np.mgrid[0 : lut[0].shape[0]], np.mgrid[0 : len(cs)], f["emit"][:]
@@ -2288,11 +2292,9 @@ class YTSurface(YTSelectionContainer3D):
             emit_field_min,
             emit_field,
         )  # map color values to color scheme
-        from yt.visualization._colormap_data import (  # import colors for mtl file
-            color_map_luts,
-        )
 
-        lut = color_map_luts[color_map]  # enumerate colors
+        lut = get_colormap_lut(color_map)
+
         # interpolate emissivity to enumerated colors
         emiss = np.interp(
             np.mgrid[0 : lut[0].shape[0]], np.mgrid[0 : len(cs)], f["emit"][:]

@@ -340,34 +340,6 @@ def test_custom_particle_def():
         ytcfg.remove_section("ramses-particles")
 
 
-@requires_file(ramsesCosmo)
-def test_custom_hydro_def():
-    ytcfg.add_section("ramses-hydro")
-    ytcfg[
-        "ramses-hydro", "fields"
-    ] = """
-    Density
-    x-velocity
-    y-velocity
-    z-velocity
-    Foo
-    Bar
-    """
-    ds = yt.load(ramsesCosmo)
-
-    def check_unit(array, unit):
-        assert str(array.in_cgs().units) == unit
-
-    try:
-        assert ("ramses", "Foo") in ds.derived_field_list
-        assert ("ramses", "Bar") in ds.derived_field_list
-
-        check_unit(ds.r["ramses", "Foo"], "dimensionless")
-        check_unit(ds.r["ramses", "Bar"], "dimensionless")
-    finally:
-        ytcfg.remove_section("ramses-hydro")
-
-
 @requires_file(output_00080)
 @requires_file(ramses_sink)
 def test_grav_detection():

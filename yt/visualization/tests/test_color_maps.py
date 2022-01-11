@@ -3,6 +3,7 @@ import shutil
 import tempfile
 import unittest
 
+import matplotlib.pyplot as plt
 import numpy as np
 from nose.tools import assert_raises
 
@@ -56,3 +57,16 @@ class TestColorMaps(unittest.TestCase):
         )
 
         assert_almost_equal(cmap["green"][3], np.array([0.01176471, 0.0, 0.0]))
+
+
+def test_cmyt_integration():
+    for name in ["algae", "bds_highcontrast", "kelp", "arbre", "octarine", "kamae"]:
+        cmap = plt.get_cmap(name)
+        assert cmap.name == name
+        name_r = name + "_r"
+        cmap_r = plt.get_cmap(name_r)
+        assert cmap_r.name == name_r
+
+    for name in ["algae", "kelp", "arbre", "octarine", "pastel"]:
+        cmap = plt.get_cmap("cmyt." + name)
+        assert cmap.name == "cmyt." + name

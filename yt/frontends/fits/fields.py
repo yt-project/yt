@@ -1,3 +1,4 @@
+from yt._typing import KnownFieldsT
 from yt.fields.field_info_container import FieldInfoContainer
 
 
@@ -12,7 +13,7 @@ class FITSFieldInfo(FieldInfoContainer):
 
 
 class YTFITSFieldInfo(FieldInfoContainer):
-    known_other_fields = (
+    known_other_fields: KnownFieldsT = (
         ("density", ("code_mass/code_length**3", ["density"], None)),
         (
             "dark_matter_density",

@@ -10,6 +10,8 @@ Data structures for AdaptaHOP frontend.
 import os
 import re
 import stat
+from itertools import product
+from typing import Optional
 
 import numpy as np
 
@@ -18,12 +20,12 @@ from yt.data_objects.selection_objects.data_selection_objects import (
 )
 from yt.data_objects.static_output import Dataset
 from yt.frontends.halo_catalog.data_structures import HaloCatalogFile
-from yt.funcs import setdefaultattr
+from yt.funcs import mylog, setdefaultattr
 from yt.geometry.particle_geometry_handler import ParticleIndex
-from yt.units import Mpc
+from yt.units import Mpc  # type: ignore
 from yt.utilities.cython_fortran_utils import FortranFile
 
-from .definitions import HEADER_ATTRIBUTES
+from .definitions import ADAPTAHOP_TEMPLATES, ATTR_T, HEADER_ATTRIBUTES
 from .fields import AdaptaHOPFieldInfo
 
 
@@ -56,6 +58,8 @@ class AdaptaHOPDataset(Dataset):
 
     # AdaptaHOP internally assumes 1Mpc == 3.0824cm
     _code_length_to_Mpc = (1.0 * Mpc).to("cm").value / 3.08e24
+    _header_attributes: Optional[ATTR_T] = None
+    _halo_attributes: Optional[ATTR_T] = None
 
     def __init__(
         self,
@@ -76,6 +80,8 @@ class AdaptaHOPDataset(Dataset):
             )
         self.parent_ds = parent_ds
 
+        self._guess_headers_from_file(filename)
+
         super().__init__(
             filename,
             dataset_type,
@@ -89,9 +95,51 @@ class AdaptaHOPDataset(Dataset):
         setdefaultattr(self, "velocity_unit", self.quan(1.0, "km / s"))
         setdefaultattr(self, "time_unit", self.length_unit / self.velocity_unit)
 
+    def _guess_headers_from_file(self, filename) -> None:
+        with FortranFile(filename) as fpu:
+            ok = False
+            for dp, longint in product((True, False), (True, False)):
+                fpu.seek(0)
+                try:
+                    header_attributes = HEADER_ATTRIBUTES(double=dp, longint=longint)
+                    fpu.read_attrs(header_attributes)
+                    ok = True
+                    break
+                except (ValueError, OSError):
+                    pass
+
+            if not ok:
+                raise OSError("Could not read headers from file %s" % filename)
+
+            istart = fpu.tell()
+            fpu.seek(0, 2)
+            iend = fpu.tell()
+
+            # Try different templates
+            ok = False
+            for name, cls in ADAPTAHOP_TEMPLATES.items():
+                fpu.seek(istart)
+                attributes = cls(longint, dp).HALO_ATTRIBUTES
+                mylog.debug("Trying %s(longint=%s, dp=%s)", name, longint, dp)
+                try:
+                    # Try to read two halos to be sure
+                    fpu.read_attrs(attributes)
+                    if fpu.tell() < iend:
+                        fpu.read_attrs(attributes)
+                    ok = True
+                    break
+                except (ValueError, OSError):
+                    continue
+
+        if not ok:
+            raise OSError("Could not guess fields from file %s" % filename)
+
+        self._header_attributes = header_attributes
+        self._halo_attributes = attributes
+
     def _parse_parameter_file(self):
         with FortranFile(self.parameter_filename) as fpu:
-            params = fpu.read_attrs(HEADER_ATTRIBUTES)
+            params = fpu.read_attrs(self._header_attributes)
         self.dimensionality = 3
         self.unique_identifier = int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         # Domain related things

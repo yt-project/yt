@@ -1,3 +1,5 @@
+from typing import Any, Dict, List, Tuple, Union
+
 import numpy as np
 
 BINARY_HEADER_SIZE = 256
@@ -23,9 +25,11 @@ header_dt = (
 # Note the final field here, which is a field for min/max format revision in
 # which the field appears.
 
-KNOWN_REVISIONS = [0, 1, 2]
+KNOWN_REVISIONS: List[int] = [0, 1, 2]
 
-halo_dt = [
+# using typing.Any here in lieu of numpy.typing.DTypeLike (should be backported for numpy < 1.20)
+HaloDataType = Union[Tuple[str, Any], Tuple[str, Any, Tuple[int, int]]]
+halo_dt: List[HaloDataType] = [
     ("particle_identifier", np.int64),
     ("particle_position_x", np.float32),
     ("particle_position_y", np.float32),
@@ -94,18 +98,21 @@ halo_dt = [
     ("av_density", np.float32, (2, 100)),
 ]
 
-halo_dts = {}
+# using typing.Any here in lieu of numpy.typing.DTypeLike (should be backported for numpy < 1.20)
+halo_dts_tmp: Dict[int, List[HaloDataType]] = {}
+halo_dts: Dict[int, np.dtype] = {}
 
 for rev in KNOWN_REVISIONS:
-    halo_dts[rev] = []
+    halo_dts_tmp[rev] = []
     for item in halo_dt:
         if len(item) == 2:
-            halo_dts[rev].append(item)
-        else:
-            mi, ma = item[2]
+            halo_dts_tmp[rev].append(item)
+        elif len(item) == 3:
+            mi, ma = item[2]  # type: ignore
             if (mi <= rev) and (rev <= ma):
-                halo_dts[rev].append(item[:2])
-    halo_dts[rev] = np.dtype(halo_dts[rev], align=True)
+                halo_dts_tmp[rev].append(item[:2])
+    halo_dts[rev] = np.dtype(halo_dts_tmp[rev], align=True)
+del halo_dts_tmp
 
 particle_dt = np.dtype(
     [

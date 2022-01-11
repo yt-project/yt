@@ -7,9 +7,9 @@ from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.funcs import just_one, setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
-from yt.units.dimensions import dimensionless as sympy_one
-from yt.units.unit_object import Unit
-from yt.units.unit_systems import unit_system_registry
+from yt.units.dimensions import dimensionless as sympy_one  # type: ignore
+from yt.units.unit_object import Unit  # type: ignore
+from yt.units.unit_systems import unit_system_registry  # type: ignore
 from yt.utilities.exceptions import YTGDFUnknownGeometry
 from yt.utilities.lib.misc_utilities import get_box_grids_level
 from yt.utilities.logger import ytLogger as mylog
@@ -46,11 +46,6 @@ class GDFGrid(AMRGridPatch):
         else:
             LE, RE = self.index.grid_left_edge[id, :], self.index.grid_right_edge[id, :]
             self.dds = np.array((RE - LE) / self.ActiveDimensions)
-        if self.ds.data_software != "piernik":
-            if self.ds.dimensionality < 2:
-                self.dds[1] = 1.0
-            if self.ds.dimensionality < 3:
-                self.dds[2] = 1.0
         self.field_data["dx"], self.field_data["dy"], self.field_data["dz"] = self.dds
         self.dds = self.ds.arr(self.dds, "code_length")
 

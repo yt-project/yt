@@ -2,6 +2,7 @@ import glob
 import os
 import struct
 import weakref
+from typing import Type
 
 import numpy as np
 
@@ -28,7 +29,7 @@ from yt.frontends.art.io import (
     b2t,
 )
 from yt.funcs import mylog, setdefaultattr
-from yt.geometry.geometry_handler import YTDataChunk
+from yt.geometry.geometry_handler import Index, YTDataChunk
 from yt.geometry.oct_container import ARTOctreeContainer
 from yt.geometry.oct_geometry_handler import OctreeIndex
 from yt.geometry.particle_geometry_handler import ParticleIndex
@@ -132,7 +133,7 @@ class ARTIndex(OctreeIndex):
 
 
 class ARTDataset(Dataset):
-    _index_class = ARTIndex
+    _index_class: Type[Index] = ARTIndex
     _field_info_class = ARTFieldInfo
 
     def __init__(
@@ -388,7 +389,6 @@ class ARTDataset(Dataset):
                 return True
             except Exception:
                 return False
-        return False
 
 
 class ARTParticleFile(ParticleFile):
@@ -721,7 +721,6 @@ class DarkMatterARTDataset(ARTDataset):
                 return True
             except Exception:
                 return False
-        return False
 
 
 class ARTDomainSubset(OctreeSubset):

@@ -1,12 +1,14 @@
 import numpy as np
 
+from yt._typing import KnownFieldsT
 from yt.fields.field_info_container import (
     FieldInfoContainer,
     particle_deposition_functions,
     particle_vector_functions,
     standard_particle_fields,
 )
-from yt.units.unit_object import Unit
+from yt.frontends.boxlib.misc import BoxlibSetupParticleFieldsMixin
+from yt.units.unit_object import Unit  # type: ignore
 from yt.utilities.exceptions import YTFieldNotFound
 
 rho_units = "code_mass / code_length**3"
@@ -16,17 +18,16 @@ vel_units = "code_length / code_time"
 b_units = "code_magnetic"
 
 
-# Chombo does not have any known fields by itself.
 class ChomboFieldInfo(FieldInfoContainer):
-    known_other_fields = ()
-    known_particle_fields = ()
+    # no custom behaviour is needed yet
+    pass
 
 
 # Orion 2 Fields
 # We duplicate everything here from Boxlib, because we want to be able to
 # subclass it and that can be somewhat tricky.
-class Orion2FieldInfo(ChomboFieldInfo):
-    known_other_fields = (
+class Orion2FieldInfo(ChomboFieldInfo, BoxlibSetupParticleFieldsMixin):
+    known_other_fields: KnownFieldsT = (
         ("density", (rho_units, ["density"], None)),
         ("energy-density", (eden_units, ["total_energy_density"], None)),
         ("radiation-energy-density", (eden_units, ["radiation_energy_density"], None)),
@@ -42,7 +43,7 @@ class Orion2FieldInfo(ChomboFieldInfo):
         ("directrad-dpydt-density", (mom_units, ["directrad-dpydt-density"], None)),
         ("directrad-dpzdt-density", (mom_units, ["directrad-dpzdt-density"], None)),
     )
-    known_particle_fields = (
+    known_particle_fields: KnownFieldsT = (
         ("particle_mass", ("code_mass", [], None)),
         ("particle_position_x", ("code_length", [], None)),
         ("particle_position_y", ("code_length", [], None)),
@@ -63,26 +64,6 @@ class Orion2FieldInfo(ChomboFieldInfo):
         ("particle_luminosity", ("", [], None)),
         ("particle_id", ("", ["particle_index"], None)),
     )
-
-    def setup_particle_fields(self, ptype):
-        def _get_vel(axis):
-            def velocity(field, data):
-                return (
-                    data[(ptype, f"particle_momentum_{axis}")]
-                    / data[(ptype, "particle_mass")]
-                )
-
-            return velocity
-
-        for ax in "xyz":
-            self.add_field(
-                (ptype, f"particle_velocity_{ax}"),
-                sampling_type="particle",
-                function=_get_vel(ax),
-                units="code_length/code_time",
-            )
-
-        super().setup_particle_fields(ptype)
 
     def setup_fluid_fields(self):
         from yt.fields.magnetic_field import setup_magnetic_field_aliases
@@ -195,7 +176,7 @@ class Orion2FieldInfo(ChomboFieldInfo):
 
 
 class ChomboPICFieldInfo3D(FieldInfoContainer):
-    known_other_fields = (
+    known_other_fields: KnownFieldsT = (
         ("density", (rho_units, ["density", "Density"], None)),
         (
             "potential",
@@ -205,7 +186,7 @@ class ChomboPICFieldInfo3D(FieldInfoContainer):
         ("gravitational_field_y", ("code_length / code_time**2", [], None)),
         ("gravitational_field_z", ("code_length / code_time**2", [], None)),
     )
-    known_particle_fields = (
+    known_particle_fields: KnownFieldsT = (
         ("particle_mass", ("code_mass", [], None)),
         ("particle_position_x", ("code_length", [], None)),
         ("particle_position_y", ("code_length", [], None)),
@@ -281,7 +262,7 @@ particle_field_types = ["io", "all"]
 
 
 class ChomboPICFieldInfo2D(ChomboPICFieldInfo3D):
-    known_other_fields = (
+    known_other_fields: KnownFieldsT = (
         ("density", (rho_units, ["density", "Density"], None)),
         (
             "potential",
@@ -290,7 +271,7 @@ class ChomboPICFieldInfo2D(ChomboPICFieldInfo3D):
         ("gravitational_field_x", ("code_length / code_time**2", [], None)),
         ("gravitational_field_y", ("code_length / code_time**2", [], None)),
     )
-    known_particle_fields = (
+    known_particle_fields: KnownFieldsT = (
         ("particle_mass", ("code_mass", [], None)),
         ("particle_position_x", ("code_length", [], None)),
         ("particle_position_y", ("code_length", [], None)),
@@ -326,7 +307,7 @@ class ChomboPICFieldInfo2D(ChomboPICFieldInfo3D):
 
 
 class ChomboPICFieldInfo1D(ChomboPICFieldInfo3D):
-    known_other_fields = (
+    known_other_fields: KnownFieldsT = (
         ("density", (rho_units, ["density", "Density"], None)),
         (
             "potential",
@@ -334,7 +315,7 @@ class ChomboPICFieldInfo1D(ChomboPICFieldInfo3D):
         ),
         ("gravitational_field_x", ("code_length / code_time**2", [], None)),
     )
-    known_particle_fields = (
+    known_particle_fields: KnownFieldsT = (
         ("particle_mass", ("code_mass", [], None)),
         ("particle_position_x", ("code_length", [], None)),
         ("particle_velocity_x", ("code_length / code_time", [], None)),
@@ -386,7 +367,7 @@ class ChomboPICFieldInfo1D(ChomboPICFieldInfo3D):
 
 
 class PlutoFieldInfo(ChomboFieldInfo):
-    known_other_fields = (
+    known_other_fields: KnownFieldsT = (
         ("rho", (rho_units, ["density"], None)),
         ("prs", ("code_mass / (code_length * code_time**2)", ["pressure"], None)),
         ("vx1", (vel_units, ["velocity_x"], None)),

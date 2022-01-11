@@ -1,3 +1,4 @@
+from yt._typing import KnownFieldsT
 from yt.fields.field_info_container import FieldInfoContainer
 
 m_units = "Msun/h"
@@ -7,11 +8,10 @@ v_units = "km/s"
 
 
 class AHFHalosFieldInfo(FieldInfoContainer):
-    known_other_fields = ()
 
     # See http://popia.ft.uam.es/AHF/files/AHF.pdf
     # and search for '*.AHF_halos'.
-    known_particle_fields = (
+    known_particle_fields: KnownFieldsT = (
         ("ID", ("", ["particle_identifier"], None)),
         ("hostHalo", ("", [], None)),
         ("numSubStruct", ("", [], None)),

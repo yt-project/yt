@@ -41,11 +41,6 @@ This will return a list of possible filenames; more information can be accessed 
 AMRVAC Data
 -----------
 
-.. note::
-
-   This frontend is brand new and may be subject to rapid change in the
-   near future.
-
 To load data to yt, simply use
 
 .. code-block::
@@ -60,15 +55,15 @@ Starting from AMRVAC 2.2, and datfile format 5, a geometry flag
 (e.g. "Cartesian_2.5D", "Polar_2D", "Cylindrical_1.5D"...) was added
 to the datfile header.  yt will fall back to a cartesian mesh if the
 geometry flag is not found.  For older datfiles however it is possible
-to provide it externally with the ``override_geometry`` parameter.
+to provide it externally with the ``geometry_override`` parameter.
 
 .. code-block:: python
 
   # examples
-  ds = yt.load("output0010.dat", override_geometry="polar")
-  ds = yt.load("output0010.dat", override_geometry="cartesian")
+  ds = yt.load("output0010.dat", geometry_override="polar")
+  ds = yt.load("output0010.dat", geometry_override="cartesian")
 
-Note that ``override_geometry`` has priority over any ``geometry`` flag
+Note that ``geometry_override`` has priority over any ``geometry`` flag
 present in recent datfiles, which means it can be used to force ``r``
 VS ``theta`` 2D plots in polar geometries (for example), but this may
 produce unpredictable behaviour and comes with no guarantee.
@@ -2594,7 +2589,7 @@ Any field data or material data on the mesh can then be viewed just like any oth
 RAMSES Data
 -----------
 
-In yt-3.0, RAMSES data is fully supported.  If you are interested in taking a
+In yt-4.x, RAMSES data is fully supported.  If you are interested in taking a
 development or stewardship role, please contact the yt-dev mailing list.  To
 load a RAMSES dataset, you can use the ``yt.load`` command and provide it
 the ``info*.txt`` filename.  For instance, if you were in a
@@ -2787,17 +2782,26 @@ There are three way to make yt detect all the particle fields. For example, if y
    .. code-block:: none
 
       [ramses-particles]
-      fields = particle_position_x, d
-               particle_position_y, d
-               particle_position_z, d
-               particle_velocity_x, d
-               particle_velocity_y, d
-               particle_velocity_z, d
-               particle_mass, d
-               particle_identifier, i
-               particle_refinement_level, I
-               particle_birth_time, d
-               particle_metallicity, d
+      fields = """
+         particle_position_x, d
+         particle_position_y, d
+         particle_position_z, d
+         particle_velocity_x, d
+         particle_velocity_y, d
+         particle_velocity_z, d
+         particle_mass, d
+         particle_identifier, i
+         particle_refinement_level, I
+         particle_birth_time, d
+         particle_metallicity, d
+      """
+
+   Each line should contain the name of the field and its data type (``d`` for double precision, ``f`` for single precision, ``i`` for integer and ``l`` for long integer). You can also configure the auto detected fields for fluid types by adding a section ``ramses-hydro``, ``ramses-grav`` or ``ramses-rt`` in the config file. For example, if you customized your gravity files so that they contain the potential, the potential in the previous timestep and the x, y and z accelerations, you can use :
+
+   .. code-block:: none
+
+      [ramses-grav]
+      fields = [ "Potential", "Potential-old", "x-acceleration", "y-acceleration", "z-acceleration" ]
 
 3. New RAMSES way. Recent versions of RAMSES automatically write in their output an ``hydro_file_descriptor.txt`` file that gives information about which field is where. If you wish, you can simply create such a file in the folder containing the ``info_xxxxx.txt`` file
 

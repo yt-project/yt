@@ -10,10 +10,10 @@ import matplotlib.image as mpimg
 import numpy as np
 
 import yt.visualization.plot_window as pw
+from yt.utilities.answer_testing.framework import create_obj
 from yt.utilities.answer_testing.testing_utilities import (
     _create_phase_plot_attribute_plot,
     _create_plot_window_attribute_plot,
-    create_obj,
 )
 
 

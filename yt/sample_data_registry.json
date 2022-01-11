@@ -772,12 +772,6 @@
     "load_name": "output_00003/info_00003.txt",
     "url": "https://yt-project.org/data/ramses_empty_record.tar.gz"
   },
-  "ramses_extra_fields.tar.gz": {
-    "hash": "f3cc7b95bd527c33c095e3fff04c083fcb9681629bdfba359deff2871e765e3f",
-    "load_kwargs": {},
-    "load_name": "info_00001.txt",
-    "url": "https://yt-project.org/data/ramses_extra_fields.tar.gz"
-  },
   "ramses_extra_fields_small.tar.gz": {
     "hash": "8d2dde6e6150f0767ebe3ace84e2e790503154c5d90474008afdfecbac68ffed",
     "load_kwargs": {},

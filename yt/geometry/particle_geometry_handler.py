@@ -10,8 +10,10 @@ from yt.data_objects.index_subobjects.particle_container import ParticleContaine
 from yt.funcs import get_pbar, only_on_root
 from yt.geometry.geometry_handler import Index, YTDataChunk
 from yt.geometry.particle_oct_container import ParticleBitmap
+from yt.utilities.lib.ewah_bool_wrap import BoolArrayCollection
 from yt.utilities.lib.fnv_hash import fnv_hash
 from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_objects
 
 
 class ParticleIndex(Index):
@@ -200,9 +202,9 @@ class ParticleIndex(Index):
             rflag = self.regions.check_bitmasks()
 
     def _initialize_coarse_index(self):
-        pb = get_pbar("Initializing coarse index ", len(self.data_files))
         max_hsml = 0.0
-        for i, data_file in enumerate(self.data_files):
+        pb = get_pbar("Initializing coarse index ", len(self.data_files))
+        for i, data_file in parallel_objects(enumerate(self.data_files)):
             pb.update(i + 1)
             for ptype, pos in self.io._yield_coordinates(data_file):
                 ds = self.ds
@@ -215,8 +217,13 @@ class ParticleIndex(Index):
                 else:
                     hsml = None
                 self.regions._coarse_index_data_file(pos, hsml, data_file.file_id)
-            self.regions._set_coarse_index_data_file(data_file.file_id)
         pb.finish()
+        self.regions.masks = self.comm.mpi_allreduce(self.regions.masks, op="sum")
+        self.regions.particle_counts = self.comm.mpi_allreduce(
+            self.regions.particle_counts, op="sum"
+        )
+        for data_file in self.data_files:
+            self.regions._set_coarse_index_data_file(data_file.file_id)
         self.regions.find_collisions_coarse()
         if max_hsml > 0.0 and len(self.data_files) > 1:
             # By passing this in, we only allow index_order2 to be increased by
@@ -255,7 +262,10 @@ class ParticleIndex(Index):
             total_coarse_refined,
             100 * total_coarse_refined / mask.size,
         )
-        for i, data_file in enumerate(self.data_files):
+        storage = {}
+        for sto, (i, data_file) in parallel_objects(
+            enumerate(self.data_files), storage=storage
+        ):
             coll = None
             pb.update(i + 1)
             nsub_mi = 0
@@ -281,8 +291,18 @@ class ParticleIndex(Index):
                     mask_threshold=mask_threshold,
                 )
                 total_refined += nsub_mi
-            self.regions.bitmasks.append(data_file.file_id, coll)
+            sto.result_id = i
+            if coll is None:
+                coll_str = b""
+            else:
+                coll_str = coll.dumps()
+            sto.result = (data_file.file_id, coll_str)
         pb.finish()
+        for i in sorted(storage):
+            file_id, coll_str = storage[i]
+            coll = BoolArrayCollection()
+            coll.loads(coll_str)
+            self.regions.bitmasks.append(file_id, coll)
         self.regions.find_collisions_refined()
 
     def _detect_output_fields(self):

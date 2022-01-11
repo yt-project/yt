@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import os
 import shutil
 import tempfile
@@ -16,6 +15,7 @@ from yt.testing import (
     assert_fname,
     assert_raises,
     assert_rel_equal,
+    fake_amr_ds,
     fake_random_ds,
     requires_file,
 )
@@ -27,7 +27,10 @@ from yt.utilities.answer_testing.framework import (
     requires_ds,
 )
 from yt.utilities.exceptions import YTInvalidFieldType
-from yt.visualization.api import (
+from yt.visualization.plot_window import (
+    AxisAlignedProjectionPlot,
+    AxisAlignedSlicePlot,
+    NormalPlot,
     OffAxisProjectionPlot,
     OffAxisSlicePlot,
     ProjectionPlot,
@@ -59,7 +62,7 @@ ATTR_ARGS = {
     ],
     "set_buff_size": [((1600,), {}), (((600, 800),), {})],
     "set_center": [(((0.4, 0.3),), {})],
-    "set_cmap": [(("density", "RdBu"), {}), (("density", "kamae"), {})],
+    "set_cmap": [(("density", "RdBu"), {}), (("density", "cmyt.pastel"), {})],
     "set_font": [((OrderedDict(sorted(FPROPS.items(), key=lambda t: t[0])),), {})],
     "set_log": [(("density", False), {})],
     "set_figure_size": [((7.0,), {})],
@@ -731,3 +734,73 @@ def test_nan_data():
 
     with tempfile.NamedTemporaryFile(suffix="png") as f:
         plot.save(f.name)
+
+
+def test_sanitize_valid_normal_vector():
+    # note: we don't test against non-cartesian geometries
+    # because the way normal "vectors" work isn't cleary
+    # specified and works more as an implementation detail
+    # at the moment
+    ds = fake_amr_ds(geometry="cartesian")
+
+    # We allow maximal polymorphism for axis-aligned directions:
+    # even if 3-component vector is received, we want to use the
+    # AxisAligned* plotting class (as opposed to OffAxis*) because
+    # it's much easier to optimize so it's expected to be more
+    # performant.
+    axis_label_from_inputs = {
+        "x": ["x", 0, [1, 0, 0], [0.1, 0.0, 0.0], [-10, 0, 0]],
+        "y": ["y", 1, [0, 1, 0], [0.0, 0.1, 0.0], [0, -10, 0]],
+        "z": ["z", 2, [0, 0, 1], [0.0, 0.0, 0.1], [0, 0, -10]],
+    }
+    for expected, user_inputs in axis_label_from_inputs.items():
+        for ui in user_inputs:
+            assert NormalPlot.sanitize_normal_vector(ds, ui) == expected
+
+    # arbitrary 3-floats sequences are also valid input.
+    # They should be returned as np.ndarrays, but the norm and orientation
+    # could be altered. What's important is that their direction is preserved.
+    for ui in [(1, 1, 1), [0.0, -3, 1e9], np.ones(3, dtype="int8")]:
+        res = NormalPlot.sanitize_normal_vector(ds, ui)
+        assert isinstance(res, np.ndarray)
+        assert res.dtype == np.float64
+        assert_array_equal(
+            np.cross(ui, res),
+            [0, 0, 0],
+        )
+
+
+def test_reject_invalid_normal_vector():
+    ds = fake_amr_ds(geometry="cartesian")
+    for ui in [0.0, 1.0, 2.0, 3.0]:
+        # acceptable scalar numeric values are restricted to integers.
+        # Floats might be a sign that something went wrong upstream
+        # e.g., rounding errors, parsing error...
+        assert_raises(TypeError, NormalPlot.sanitize_normal_vector, ds, ui)
+    for ui in [
+        "X",
+        "xy",
+        "not-an-axis",
+        (0, 0, 0),
+        [0, 0, 0],
+        np.zeros(3),
+        [1, 0, 0, 0],
+        [1, 0],
+        [1],
+        [0],
+        3,
+        10,
+    ]:
+        assert_raises(ValueError, NormalPlot.sanitize_normal_vector, ds, ui)
+
+
+def test_dispatch_plot_classes():
+    ds = fake_random_ds(16)
+    p1 = ProjectionPlot(ds, "z", ("gas", "density"))
+    p2 = ProjectionPlot(ds, (1, 2, 3), ("gas", "density"))
+    s1 = SlicePlot(ds, "z", ("gas", "density"))
+    s2 = SlicePlot(ds, (1, 2, 3), ("gas", "density"))
+    assert isinstance(p1, AxisAlignedProjectionPlot)
+    assert isinstance(p2, OffAxisProjectionPlot)
+    assert isinstance(s1, AxisAlignedSlicePlot)
+    assert isinstance(s2, OffAxisSlicePlot)

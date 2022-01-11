@@ -10,7 +10,7 @@ from yt.data_objects.image_array import ImageArray
 from yt.fields.derived_field import DerivedField
 from yt.funcs import fix_axis, is_sequence, iter_fields, mylog
 from yt.units import dimensions
-from yt.units.unit_object import Unit
+from yt.units.unit_object import Unit  # type: ignore
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.on_demand_imports import _astropy
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_root_only
@@ -735,12 +735,12 @@ class FITSImageData:
         w = first_image.wcs
         img_shape = first_image.shape
         data = []
-        for is_first, _is_last, fid in mark_ends(image_list):
+        for fid in image_list:
             assert_same_wcs(w, fid.wcs)
             if img_shape != fid.shape:
                 raise RuntimeError("Images do not have the same shape!")
             for hdu in fid.hdulist:
-                if is_first:
+                if len(data) == 0:
                     data.append(_astropy.pyfits.PrimaryHDU(hdu.data, header=hdu.header))
                 else:
                     data.append(_astropy.pyfits.ImageHDU(hdu.data, header=hdu.header))
@@ -848,7 +848,7 @@ def sanitize_fits_unit(unit):
 # This list allows one to determine which axes are the
 # correct axes of the image in a right-handed coordinate
 # system depending on which axis is sliced or projected
-axis_wcs = [[1, 2], [0, 2], [0, 1]]
+axis_wcs = [[1, 2], [2, 0], [0, 1]]
 
 
 def construct_image(ds, axis, data_source, center, image_res, width, length_unit):

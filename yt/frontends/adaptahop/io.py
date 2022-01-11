@@ -7,14 +7,16 @@ AdaptaHOP data-file handling function
 """
 
 
+from functools import partial
 from operator import attrgetter
+from typing import List, Tuple, Union
 
 import numpy as np
 
 from yt.utilities.cython_fortran_utils import FortranFile
 from yt.utilities.io_handler import BaseIOHandler
 
-from .definitions import HALO_ATTRIBUTES, HEADER_ATTRIBUTES
+from .definitions import ATTR_T
 
 
 class IOHandlerAdaptaHOPBinary(BaseIOHandler):
@@ -70,6 +72,10 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
                 else:
                     yield attr
 
+        halo_attributes = self.ds._halo_attributes
+
+        attr_pos = partial(_find_attr_position, halo_attributes=halo_attributes)
+
         for data_file in sorted(data_files, key=attrgetter("filename")):
             pcount = (
                 data_file.ds.parameters["nhalos"] + data_file.ds.parameters["nsubs"]
@@ -77,16 +83,14 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
             if pcount == 0:
                 continue
             ptype = "halos"
-            field_list0 = sorted(ptf[ptype], key=_find_attr_position)
+            field_list0 = sorted(ptf[ptype], key=attr_pos)
             field_list_pos = [f"raw_position_{k}" for k in "xyz"]
-            field_list = sorted(
-                set(field_list0 + field_list_pos), key=_find_attr_position
-            )
+            field_list = sorted(set(field_list0 + field_list_pos), key=attr_pos)
 
             with FortranFile(self.ds.parameter_filename) as fpu:
-                params = fpu.read_attrs(HEADER_ATTRIBUTES)
+                params = fpu.read_attrs(self.ds._header_attributes)
 
-                todo = _todo_from_attributes(field_list)
+                todo = _todo_from_attributes(field_list, self.ds._halo_attributes)
 
                 nhalos = params["nhalos"] + params["nsubs"]
                 data = np.zeros((nhalos, len(field_list)))
@@ -121,7 +125,8 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
 
     def _identify_fields(self, data_file):
         fields = []
-        for attr, _1, _2 in HALO_ATTRIBUTES:
+
+        for attr, _1, _2 in self.ds._halo_attributes:
             if isinstance(attr, str):
                 fields.append(("halos", attr))
             else:
@@ -138,7 +143,7 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
             return data
 
         with FortranFile(self.ds.parameter_filename) as fpu:
-            params = fpu.read_attrs(HEADER_ATTRIBUTES)
+            params = fpu.read_attrs(self.ds._header_attributes)
 
             todo = _todo_from_attributes(
                 (
@@ -146,7 +151,8 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
                     "raw_position_x",
                     "raw_position_y",
                     "raw_position_z",
-                )
+                ),
+                self.ds._halo_attributes,
             )
 
             nhalos = params["nhalos"] + params["nsubs"]
@@ -180,7 +186,7 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
 
     def members(self, ihalo):
         offset = self._offsets[ihalo, 1]
-        todo = _todo_from_attributes(("particle_identities",))
+        todo = _todo_from_attributes(("particle_identities",), self.ds._halo_attributes)
         with FortranFile(self.ds.parameter_filename) as fpu:
             fpu.seek(offset)
             if isinstance(todo[0], int):
@@ -189,20 +195,23 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
         return members
 
 
-def _todo_from_attributes(attributes):
+def _todo_from_attributes(attributes: ATTR_T, halo_attributes: ATTR_T):
     # Helper function to generate a list of read-skip instructions given a list of
     # attributes. This is used to skip fields most of the fields when reading
     # the tree_brick files.
     iskip = 0
-    todo = []
+    todo: List[Union[int, List[Tuple[Union[Tuple[str, ...], str], int, str]]]] = []
 
-    attributes = set(attributes)
+    attributes = tuple(set(attributes))
 
-    for i, (attrs, l, k) in enumerate(HALO_ATTRIBUTES):
-        if not isinstance(attrs, tuple):
-            attrs_list = (attrs,)
-        else:
+    for i, (attrs, l, k) in enumerate(halo_attributes):
+        attrs_list: Tuple[str, ...]
+        if isinstance(attrs, tuple):
+            if not all(isinstance(a, str) for a in attrs):
+                raise TypeError(f"Expected a single str or a tuple of str, got {attrs}")
             attrs_list = attrs
+        else:
+            attrs_list = (attrs,)
         ok = False
         for attr in attrs_list:
             if attr in attributes:
@@ -223,6 +232,8 @@ def _todo_from_attributes(attributes):
                 todo.append(iskip)
                 todo.append([])
                 iskip = 0
+            if not isinstance(todo[-1], list):
+                raise TypeError
             todo[-1].append((attrs, l, k))
             state = "read"
         else:
@@ -235,9 +246,9 @@ def _todo_from_attributes(attributes):
     return todo
 
 
-def _find_attr_position(key):
+def _find_attr_position(key, halo_attributes: ATTR_T) -> int:
     j = 0
-    for attrs, *_ in HALO_ATTRIBUTES:
+    for attrs, *_ in halo_attributes:
         if not isinstance(attrs, tuple):
             attrs = (attrs,)
         for a in attrs:

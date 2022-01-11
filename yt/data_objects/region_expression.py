@@ -152,14 +152,17 @@ class RegionExpression:
     def _create_region(self, bounds_tuple):
         left_edge = self.ds.domain_left_edge.copy()
         right_edge = self.ds.domain_right_edge.copy()
-        dims = []
+        dims = [1, 1, 1]
         for ax, b in enumerate(bounds_tuple):
             l, r = self._slice_to_edges(ax, b)
             left_edge[ax] = l
             right_edge[ax] = r
-            dims.append(getattr(b.step, "imag", None))
+            d = getattr(b.step, "imag", None)
+            if d is not None:
+                d = int(d)
+            dims[ax] = d
         center = [(cl + cr) / 2.0 for cl, cr in zip(left_edge, right_edge)]
-        if all(d is not None for d in dims):
+        if None not in dims:
             return self.ds.arbitrary_grid(left_edge, right_edge, dims)
         return self.ds.region(center, left_edge, right_edge)
 

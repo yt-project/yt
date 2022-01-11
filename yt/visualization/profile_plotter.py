@@ -3,11 +3,13 @@ import builtins
 import os
 from collections import OrderedDict
 from functools import wraps
+from typing import Any, Dict, Optional
 
 import matplotlib
 import numpy as np
+from matplotlib.font_manager import FontProperties
 from more_itertools.more import always_iterable, unzip
-from packaging.version import parse as parse_version
+from packaging.version import Version
 
 from yt.data_objects.profiles import create_profile, sanitize_field_tuple_keys
 from yt.data_objects.static_output import Dataset
@@ -17,10 +19,11 @@ from yt.utilities.exceptions import YTNotInsideNotebook
 from yt.utilities.logger import ytLogger as mylog
 
 from ..data_objects.selection_objects.data_selection_objects import YTSelectionContainer
-from ._commons import validate_image_name
+from ._commons import DEFAULT_FONT_PROPERTIES, validate_image_name
 from .base_plot_types import ImagePlotMPL, PlotMPL
 from .plot_container import (
     ImagePlotContainer,
+    PlotContainer,
     get_log_minorticks,
     invalidate_plot,
     linear_transform,
@@ -28,7 +31,7 @@ from .plot_container import (
     validate_plot,
 )
 
-MPL_VERSION = parse_version(matplotlib.__version__)
+MPL_VERSION = Version(matplotlib.__version__)
 
 
 def invalidate_profile(f):
@@ -113,7 +116,7 @@ def data_object_or_all_data(data_source):
     return data_source
 
 
-class ProfilePlot:
+class ProfilePlot(PlotContainer):
     r"""
     Create a 1d profile plot from a data source or from a list
     of profile objects.
@@ -268,45 +271,53 @@ class ProfilePlot:
         ProfilePlot._initialize_instance(self, profiles, label, plot_spec, y_log)
 
     @validate_plot
-    def save(self, name=None, suffix=".png", mpl_kwargs=None):
+    def save(
+        self,
+        name: Optional[str] = None,
+        suffix: Optional[str] = None,
+        mpl_kwargs: Optional[Dict[str, Any]] = None,
+    ):
         r"""
         Saves a 1d profile plot.
 
         Parameters
         ----------
-        name : str
+        name : str, optional
             The output file keyword.
-        suffix : string
+        suffix : string, optional
             Specify the image type by its suffix. If not specified, the output
-            type will be inferred from the filename. Defaults to PNG.
-        mpl_kwargs : dict
+            type will be inferred from the filename. Defaults to '.png'.
+        mpl_kwargs : dict, optional
             A dict of keyword arguments to be passed to matplotlib.
         """
         if not self._plot_valid:
             self._setup_plots()
-        unique = set(self.plots.values())
-        if len(unique) < len(self.plots):
+
+        # Mypy is hardly convinced that we have a `plots` and a `profile` attr
+        # at this stage, so we're lasily going to deactivate it locally
+        unique = set(self.plots.values())  # type: ignore
+        if len(unique) < len(self.plots):  # type: ignore
             iters = zip(range(len(unique)), sorted(unique))
         else:
-            iters = self.plots.items()
+            iters = self.plots.items()  # type: ignore
 
         if name is None:
-            if len(self.profiles) == 1:
-                name = str(self.profiles[0].ds)
+            if len(self.profiles) == 1:  # type: ignore
+                name = str(self.profiles[0].ds)  # type: ignore
             else:
                 name = "Multi-data"
 
         name = validate_image_name(name, suffix)
         prefix, suffix = os.path.splitext(name)
 
-        xfn = self.profiles[0].x_field
+        xfn = self.profiles[0].x_field  # type: ignore
         if isinstance(xfn, tuple):
             xfn = xfn[1]
 
         names = []
         for uid, plot in iters:
-            if isinstance(uid, tuple):
-                uid = uid[1]
+            if isinstance(uid, tuple):  # type: ignore
+                uid = uid[1]  # type: ignore
             uid_name = f"{prefix}_1d-Profile_{xfn}_{uid}{suffix}"
             names.append(uid_name)
             mylog.info("Saving %s", uid_name)
@@ -374,6 +385,7 @@ class ProfilePlot:
                     fontproperties=self._font_properties,
                     **self._text_kwargs[f],
                 )
+        self._set_font_properties()
 
         for i, profile in enumerate(self.profiles):
             for field, field_data in profile.items():
@@ -415,9 +427,7 @@ class ProfilePlot:
         obj._text_ypos = {}
         obj._text_kwargs = {}
 
-        from matplotlib.font_manager import FontProperties
-
-        obj._font_properties = FontProperties(family="stixgeneral", size=18)
+        obj._font_properties = FontProperties(**DEFAULT_FONT_PROPERTIES)
         obj._font_color = None
         obj.profiles = list(always_iterable(profiles))
         obj.x_log = None
@@ -729,8 +739,7 @@ class ProfilePlot:
         if isinstance(field, tuple):
             field = field[1]
         if field_name is None:
-            field_name = r"$\rm{" + field + r"}$"
-            field_name = r"$\rm{" + field.replace("_", r"\ ").title() + r"}$"
+            field_name = field_info.get_latex_display_name()
         elif field_name.find("$") == -1:
             field_name = field_name.replace(" ", r"\ ")
             field_name = r"$\rm{" + field_name + r"}$"
@@ -738,6 +747,8 @@ class ProfilePlot:
             label = field_name + r"$\rm{\ Probability\ Density}$"
         elif field_unit is None or field_unit == "":
             label = field_name
+        elif r"\frac" in field_unit:
+            label = field_name + r"$\ \ \left(" + field_unit + r"\right)$"
         else:
             label = field_name + r"$\ \ (" + field_unit + r")$"
         return label
@@ -1017,8 +1028,7 @@ class PhasePlot(ImagePlotContainer):
         if isinstance(field, tuple):
             field = field[1]
         if field_name is None:
-            field_name = r"$\rm{" + field + r"}$"
-            field_name = r"$\rm{" + field.replace("_", r"\ ").title() + r"}$"
+            field_name = field_info.get_latex_display_name()
         elif field_name.find("$") == -1:
             field_name = field_name.replace(" ", r"\ ")
             field_name = r"$\rm{" + field_name + r"}$"
@@ -1026,6 +1036,8 @@ class PhasePlot(ImagePlotContainer):
             label = field_name + r"$\rm{\ Probability\ Density}$"
         elif field_unit is None or field_unit == "":
             label = field_name
+        elif r"\frac" in field_unit:
+            label = field_name + r"$\ \ \left(" + field_unit + r"\right)$"
         else:
             label = field_name + r"$\ \ (" + field_unit + r")$"
         return label
@@ -1073,6 +1085,7 @@ class PhasePlot(ImagePlotContainer):
             zlim = (None, None)
             xlim = self._xlim
             ylim = self._ylim
+
             if f in self.plots:
                 draw_colorbar = self.plots[f]._draw_colorbar
                 draw_axes = self.plots[f]._draw_axes
@@ -1174,7 +1187,7 @@ class PhasePlot(ImagePlotContainer):
             if self._cbar_minorticks[f]:
                 if self._field_transform[f] == linear_transform:
                     self.plots[f].cax.minorticks_on()
-                elif MPL_VERSION < parse_version("3.0.0"):
+                elif MPL_VERSION < Version("3.0.0"):
                     # before matplotlib 3 log-scaled colorbars internally used
                     # a linear scale going from zero to one and did not draw
                     # minor ticks. Since we want minor ticks, calculate
@@ -1278,18 +1291,20 @@ class PhasePlot(ImagePlotContainer):
         return self
 
     @validate_plot
-    def save(self, name=None, suffix=".png", mpl_kwargs=None):
+    def save(
+        self, name: Optional[str] = None, suffix: Optional[str] = None, mpl_kwargs=None
+    ):
         r"""
         Saves a 2d profile plot.
 
         Parameters
         ----------
-        name : str
+        name : str, optional
             The output file keyword.
-        suffix : string
+        suffix : string, optional
            Specify the image type by its suffix. If not specified, the output
-           type will be inferred from the filename. Defaults to PNG.
-        mpl_kwargs : dict
+           type will be inferred from the filename. Defaults to '.png'.
+        mpl_kwargs : dict, optional
            A dict of keyword arguments to be passed to matplotlib.
 
         >>> plot.save(mpl_kwargs={"bbox_inches": "tight"})
@@ -1335,77 +1350,6 @@ class PhasePlot(ImagePlotContainer):
             names.append(name)
             self.plots[f].save(name, mpl_kwargs)
         return names
-
-    @invalidate_plot
-    def set_font(self, font_dict=None):
-        """
-
-        Set the font and font properties.
-
-        Parameters
-        ----------
-
-        font_dict : dict
-            A dict of keyword parameters to be passed to
-            :class:`matplotlib.font_manager.FontProperties`.
-
-            Possible keys include:
-
-            * family - The font family. Can be serif, sans-serif, cursive,
-              'fantasy', or 'monospace'.
-            * style - The font style. Either normal, italic or oblique.
-            * color - A valid color string like 'r', 'g', 'red', 'cobalt',
-              and 'orange'.
-            * variant - Either normal or small-caps.
-            * size - Either a relative value of xx-small, x-small, small,
-              medium, large, x-large, xx-large or an absolute font size, e.g. 12
-            * stretch - A numeric value in the range 0-1000 or one of
-              ultra-condensed, extra-condensed, condensed, semi-condensed,
-              normal, semi-expanded, expanded, extra-expanded or ultra-expanded
-            * weight - A numeric value in the range 0-1000 or one of ultralight,
-              light, normal, regular, book, medium, roman, semibold, demibold,
-              demi, bold, heavy, extra bold, or black
-
-            See the matplotlib font manager API documentation for more details.
-            https://matplotlib.org/stable/api/font_manager_api.html
-
-        Notes
-        -----
-
-        Mathtext axis labels will only obey the `size` and `color` keyword.
-
-        Examples
-        --------
-
-        This sets the font to be 24-pt, blue, sans-serif, italic, and
-        bold-face.
-
-        >>> prof = ProfilePlot(
-        ...     ds.all_data(), ("gas", "density"), ("gas", "temperature")
-        ... )
-        >>> slc.set_font(
-        ...     {
-        ...         "family": "sans-serif",
-        ...         "style": "italic",
-        ...         "weight": "bold",
-        ...         "size": 24,
-        ...         "color": "blue",
-        ...     }
-        ... )
-
-        """
-        from matplotlib.font_manager import FontProperties
-
-        if font_dict is None:
-            font_dict = {}
-        if "color" in font_dict:
-            self._font_color = font_dict.pop("color")
-        # Set default values if the user does not explicitly set them.
-        # this prevents reverting to the matplotlib defaults.
-        font_dict.setdefault("family", "stixgeneral")
-        font_dict.setdefault("size", 18)
-        self._font_properties = FontProperties(**font_dict)
-        return self
 
     @invalidate_plot
     def set_title(self, field, title):
@@ -1697,3 +1641,5 @@ class PhasePlotMPL(ImagePlotMPL):
             self.cb.formatter.set_scientific(True)
             self.cb.formatter.set_powerlimits((-2, 3))
             self.cb.update_ticks()
+
+        self.cax.tick_params(which="both", axis="y", direction="in")

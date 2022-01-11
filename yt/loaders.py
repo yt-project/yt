@@ -12,7 +12,6 @@ from urllib.parse import urlsplit
 import numpy as np
 from more_itertools import always_iterable
 
-from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.funcs import levenshtein_distance
 from yt.sample_data.api import lookup_on_disk_data
 from yt.utilities.decompose import decompose_array, get_psize
@@ -34,7 +33,7 @@ from yt.utilities.on_demand_imports import _pooch as pooch
 # --- Loaders for known data formats ---
 
 
-def load(fn, *args, **kwargs):
+def load(fn, *args, hint: Optional[str] = None, **kwargs):
     """
     Load a Dataset or DatasetSeries object.
     The data format is automatically discovered, and the exact return type is the
@@ -47,6 +46,11 @@ def load(fn, *args, **kwargs):
     fn : str, os.Pathlike, or byte (types supported by os.path.expandusers)
         A path to the data location. This can be a file name, directory name, a glob
         pattern, or a url (for data types that support it).
+
+    hint : str, optional
+        Only classes whose name include a hint are considered. If loading fails with
+        a YTAmbiguousDataType exception, this argument can be used to lift ambiguity.
+        Hints are case insensitive.
 
     Additional arguments, if any, are passed down to the return class.
 
@@ -69,12 +73,12 @@ def load(fn, *args, **kwargs):
     yt.utilities.exceptions.YTAmbiguousDataType
         If the data format matches more than one class of similar specilization levels.
     """
-    fn = os.path.expanduser(fn)
+    fn = os.fspath(fn)
 
     if any(wildcard in fn for wildcard in "[]?!*"):
         from yt.data_objects.time_series import DatasetSeries
 
-        return DatasetSeries(fn, *args, **kwargs)
+        return DatasetSeries(fn, *args, hint=hint, **kwargs)
 
     # This will raise FileNotFoundError if the path isn't matched
     # either in the current dir or yt.config.ytcfg['data_dir_directory']
@@ -87,7 +91,7 @@ def load(fn, *args, **kwargs):
             candidates.append(cls)
 
     # Find only the lowest subclasses, i.e. most specialised front ends
-    candidates = find_lowest_subclasses(candidates)
+    candidates = find_lowest_subclasses(candidates, hint=hint)
 
     if len(candidates) == 1:
         return candidates[0](fn, *args, **kwargs)
@@ -130,18 +134,6 @@ def load_simulation(fn, simulation_type, find_outputs=False):
         raise YTSimulationNotIdentified(simulation_type) from e
 
     return cls(fn, find_outputs=find_outputs)
-
-
-def simulation(fn, simulation_type, find_outputs=False):
-    issue_deprecation_warning(
-        "yt.simulation is a deprecated alias for yt.load_simulation"
-        "and will be removed in a future version of yt.",
-        since="4.0.0",
-        removal="4.1.0",
-    )
-    return load_simulation(
-        fn=fn, simulation_type=simulation_type, find_outputs=find_outputs
-    )
 
 
 # --- Loaders for generic ("stream") data ---
@@ -244,18 +236,6 @@ def load_uniform_grid(
     domain_left_edge = np.array(bbox[:, 0], "float64")
     domain_right_edge = np.array(bbox[:, 1], "float64")
     grid_levels = np.zeros(nprocs, dtype="int32").reshape((nprocs, 1))
-    # If someone included this throw it away--old API
-    if "number_of_particles" in data:
-        issue_deprecation_warning(
-            "It is no longer necessary to include "
-            "the number of particles in the data "
-            "dict. The number of particles is "
-            "determined from the sizes of the "
-            "particle fields.",
-            since="4.0.0",
-            removal="4.1.0",
-        )
-        data.pop("number_of_particles")
     # First we fix our field names, apply units to data
     # and check for consistency of field shapes
     field_units, data, number_of_particles = process_data(
@@ -488,18 +468,6 @@ def load_amr_grids(
         grid_right_edges[i, :] = g.pop("right_edge")
         grid_dimensions[i, :] = g.pop("dimensions")
         grid_levels[i, :] = g.pop("level")
-        # If someone included this throw it away--old API
-        if "number_of_particles" in g:
-            issue_deprecation_warning(
-                "It is no longer necessary to include "
-                "the number of particles in the data "
-                "dict. The number of particles is "
-                "determined from the sizes of the "
-                "particle fields.",
-                since="4.0.0",
-                removal="4.1.0",
-            )
-            g.pop("number_of_particles")
         field_units, data, n_particles = process_data(
             g, grid_dims=tuple(grid_dimensions[i, :])
         )
