@@ -10,6 +10,7 @@ import time
 import types
 import warnings
 from multiprocessing import Pipe, Process
+from multiprocessing.connection import Connection
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 from urllib.parse import urlsplit
@@ -1434,7 +1435,9 @@ def load_sample(
     return load(loadable_path, **kwargs)
 
 
-def _mount_helper(archive: str, mountPoint: str, ratarmount_kwa: Dict, conn: Pipe):
+def _mount_helper(
+    archive: str, mountPoint: str, ratarmount_kwa: Dict, conn: Connection
+):
     try:
         fuseOperationsObject = ratarmount.TarMount(
             pathToMount=archive,
@@ -1532,7 +1535,7 @@ def load_archive(
     # needs be run in the foreground (otherwise it may
     # unmount). To prevent a race-condition here, we wait
     # for the folder to be mounted within a reasonable time.
-    t = 0
+    t = 0.0
     while t < mount_timeout:
         if os.path.ismount(tempdir):
             break
