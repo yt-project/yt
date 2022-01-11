@@ -13,7 +13,7 @@ class IOHandlerAHFHalos(BaseParticleIOHandler):
         raise NotImplementedError
 
     def _read_particle_coords(self, chunks, ptf):
-        # This needs to *yield* a series of tuples of (ptype, (x, y, z)).
+        # This needs to *yield* a series of tuples of (ptype, (x, y, z), hsml).
         # chunks is a list of chunks, and ptf is a dict where the keys are
         # ptypes and the values are lists of fields.
         for data_file in self._get_data_files(chunks, ptf):
