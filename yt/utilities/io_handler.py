@@ -1,5 +1,4 @@
 import os
-import typing
 from collections import defaultdict
 from contextlib import contextmanager
 from functools import _make_key, lru_cache
@@ -14,26 +13,6 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 io_registry = {}
 
 use_caching = 0
-
-FluidFieldType = str
-FluidFieldName = str
-FluidFieldTuple = typing.Tuple[FluidFieldType, FluidFieldName]
-
-ParticleFieldType = str
-ParticleFieldName = str
-ParticleFieldTuple = typing.Tuple[ParticleFieldType, ParticleFieldName]
-
-ParticleTypeFields = typing.Dict[ParticleFieldType, typing.List[ParticleFieldName]]
-ParticleTypeSizes = typing.Dict[ParticleFieldType, int]
-ParticleFieldSize = typing.Dict[ParticleFieldTuple, int]
-ParticleCoordinateSet = typing.Tuple[
-    str,
-    typing.Tuple[np.ndarray, np.ndarray, np.ndarray],
-    typing.Union[float, np.ndarray],
-]
-
-FieldTuple = typing.Union[FluidFieldTuple, ParticleFieldTuple]
-FieldReturnValues = typing.Dict[FieldTuple, np.ndarray]
 
 
 def _make_io_key(args, *_args, **kwargs):

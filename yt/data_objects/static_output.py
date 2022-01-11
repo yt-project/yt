@@ -51,7 +51,6 @@ from yt.utilities.exceptions import (
     YTIllDefinedParticleFilter,
     YTObjectNotImplemented,
 )
-from yt.utilities.io_handler import ParticleTypeSizes
 from yt.utilities.lib.fnv_hash import fnv_hash
 from yt.utilities.minimal_representation import MinimalDataset
 from yt.utilities.object_registries import data_object_registry, output_type_registry
