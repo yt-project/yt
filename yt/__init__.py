@@ -80,6 +80,7 @@ from yt.frontends.ytdata.api import save_as_dataset
 from yt.loaders import (
     load,
     load_amr_grids,
+    load_archive,
     load_hexahedral_mesh,
     load_octree,
     load_particles,
