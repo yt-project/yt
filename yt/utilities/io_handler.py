@@ -1,8 +1,8 @@
 import os
+import sys
 from collections import defaultdict
 from contextlib import contextmanager
 from functools import _make_key, lru_cache
-import sys
 from typing import DefaultDict, List, Tuple
 
 if sys.version_info >= (3, 9):
