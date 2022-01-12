@@ -2,7 +2,13 @@ import os
 from collections import defaultdict
 from contextlib import contextmanager
 from functools import _make_key, lru_cache
-from typing import DefaultDict, Iterator, List, Mapping, Tuple
+import sys
+from typing import DefaultDict, List, Tuple
+
+if sys.version_info >= (3, 9):
+    from collections.abc import Iterator, Mapping
+else:
+    from typing import Iterator, Mapping
 
 import numpy as np
 
