@@ -9,16 +9,13 @@ import os
 
 import numpy as np
 
+from yt.data_objects.index_subobjects.unstructured_mesh import SemiStructuredMesh
+from yt.data_objects.static_output import Dataset
 from yt.geometry.geometry_handler import YTDataChunk
 from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
 from yt.utilities.file_handler import HDF5FileHandler
 from yt.utilities.io_handler import io_registry
 from yt.utilities.on_demand_imports import _h5py as h5py
-
-from yt.data_objects.index_subobjects.unstructured_mesh import SemiStructuredMesh
-
-
-from yt.data_objects.static_output import Dataset
 
 from .fields import ChimeraFieldInfo
 
