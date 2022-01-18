@@ -145,7 +145,7 @@ class IOHandlerRAMSES(BaseIOHandler):
                         rv[ptype, pn % "x"],
                         rv[ptype, pn % "y"],
                         rv[ptype, pn % "z"],
-                    )
+                    ), 0.0
 
     def _read_particle_fields(self, chunks, ptf, selector):
         pn = "particle_position_%s"

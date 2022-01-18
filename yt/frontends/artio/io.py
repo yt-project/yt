@@ -29,7 +29,7 @@ class IOHandlerARTIO(BaseIOHandler):
                     x, y, z = (
                         np.asarray(rv[ptype][pn % ax], dtype="=f8") for ax in "XYZ"
                     )
-                    yield ptype, (x, y, z)
+                    yield ptype, (x, y, z), 0.0
                     rv.pop(ptype)
 
     def _read_particle_fields(self, chunks, ptf, selector):

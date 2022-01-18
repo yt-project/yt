@@ -1,10 +1,10 @@
 import numpy as np
 
 from yt.funcs import mylog
-from yt.utilities.io_handler import BaseIOHandler
+from yt.utilities.io_handler import BaseParticleIOHandler
 
 
-class IOHandlerSDF(BaseIOHandler):
+class IOHandlerSDF(BaseParticleIOHandler):
     _dataset_type = "sdf_particles"
 
     @property
@@ -28,7 +28,7 @@ class IOHandlerSDF(BaseIOHandler):
                 self._handle["x"],
                 self._handle["y"],
                 self._handle["z"],
-            )
+            ), 0.0
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
@@ -90,7 +90,7 @@ class IOHandlerHTTPSDF(IOHandlerSDF):
                 self._handle["x"][:pcount],
                 self._handle["y"][:pcount],
                 self._handle["z"][:pcount],
-            )
+            ), 0.0
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
@@ -137,7 +137,7 @@ class IOHandlerSIndexSDF(IOHandlerSDF):
         dle = self.ds.domain_left_edge.in_units("code_length").d
         dre = self.ds.domain_right_edge.in_units("code_length").d
         for dd in self.ds.midx.iter_bbox_data(dle, dre, ["x", "y", "z"]):
-            yield "dark_matter", (dd["x"], dd["y"], dd["z"])
+            yield "dark_matter", (dd["x"], dd["y"], dd["z"]), 0.0
 
     def _read_particle_fields(self, chunks, ptf, selector):
         dle = self.ds.domain_left_edge.in_units("code_length").d

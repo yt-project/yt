@@ -2,12 +2,12 @@ import os
 
 import numpy as np
 
-from yt.utilities.io_handler import BaseIOHandler
+from yt.utilities.io_handler import BaseParticleIOHandler
 
 from .definitions import halo_dts
 
 
-class IOHandlerRockstarBinary(BaseIOHandler):
+class IOHandlerRockstarBinary(BaseParticleIOHandler):
     _dataset_type = "rockstar_binary"
 
     def __init__(self, *args, **kwargs):
@@ -34,7 +34,7 @@ class IOHandlerRockstarBinary(BaseIOHandler):
                 continue
             with open(data_file.filename, "rb") as f:
                 pos = data_file._get_particle_positions(ptype, f=f)
-                yield "halos", (pos[:, i] for i in range(3))
+                yield "halos", (pos[:, i] for i in range(3)), 0.0
 
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate
