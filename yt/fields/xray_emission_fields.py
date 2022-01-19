@@ -26,12 +26,12 @@ def _get_data_file(table_type, data_dir=None):
         data_dir = supp_data_dir if os.path.exists(supp_data_dir) else "."
     data_path = os.path.join(data_dir, data_file)
     if not os.path.exists(data_path):
-        msg = (
-            "Failed to find emissivity data file %s! " % data_file
-            + "Please download from %s!" % data_url
+        msg = "Failed to find emissivity data file {}! Please download from {}".format(
+            data_file,
+            data_url,
         )
         mylog.error(msg)
-        raise IOError(msg)
+        raise OSError(msg)
     return data_path
 
 
@@ -41,14 +41,14 @@ class EnergyBoundsException(YTException):
         self.upper = upper
 
     def __str__(self):
-        return "Energy bounds are %e to %e keV." % (self.lower, self.upper)
+        return f"Energy bounds are {self.lower:e} to {self.upper:e} keV."
 
 
 class ObsoleteDataException(YTException):
     def __init__(self, table_type):
         data_file = "%s_emissivity_v%d.h5" % (table_type, data_version[table_type])
         self.msg = "X-ray emissivity data is out of date.\n"
-        self.msg += "Download the latest data from %s/%s." % (data_url, data_file)
+        self.msg += f"Download the latest data from {data_url}/{data_file}."
 
     def __str__(self):
         return self.msg
@@ -83,7 +83,7 @@ class XrayEmissivityIntegrator:
     def __init__(self, table_type, redshift=0.0, data_dir=None, use_metals=True):
 
         filename = _get_data_file(table_type, data_dir=data_dir)
-        only_on_root(mylog.info, "Loading emissivity data from %s." % filename)
+        only_on_root(mylog.info, "Loading emissivity data from %s", filename)
         in_file = h5py.File(filename, mode="r")
         if "info" in in_file.attrs:
             only_on_root(mylog.info, parse_h5_attr(in_file, "info"))
@@ -109,7 +109,7 @@ class XrayEmissivityIntegrator:
         self.redshift = redshift
 
     def get_interpolator(self, data_type, e_min, e_max, energy=True):
-        data = getattr(self, "emissivity_%s" % data_type)
+        data = getattr(self, f"emissivity_{data_type}")
         if not energy:
             data = data[..., :] / self.emid.v
         e_min = YTQuantity(e_min, "keV") * (1.0 + self.redshift)
@@ -209,18 +209,19 @@ def add_xray_emissivity_field(
     >>> import yt
     >>> ds = yt.load("sloshing_nomag2_hdf5_plt_cnt_0100")
     >>> yt.add_xray_emissivity_field(ds, 0.5, 2)
-    >>> p = yt.ProjectionPlot(ds, 'x', ("gas","xray_emissivity_0.5_2_keV"),
-    ...                       table_type='apec')
+    >>> p = yt.ProjectionPlot(
+    ...     ds, "x", ("gas", "xray_emissivity_0.5_2_keV"), table_type="apec"
+    ... )
     >>> p.save()
     """
     if not isinstance(metallicity, float) and metallicity is not None:
         try:
             metallicity = ds._get_field_info(*metallicity)
-        except YTFieldNotFound:
+        except YTFieldNotFound as e:
             raise RuntimeError(
-                "Your dataset does not have a {} field! ".format(metallicity)
+                f"Your dataset does not have a {metallicity} field! "
                 + "Perhaps you should specify a constant metallicity instead?"
-            )
+            ) from e
 
     if table_type == "cloudy":
         # Cloudy wants to scale by nH**2
@@ -263,11 +264,11 @@ def add_xray_emissivity_field(
 
         return data[ftype, "norm_field"] * YTArray(my_emissivity, "erg*cm**3/s")
 
-    emiss_name = (ftype, "xray_emissivity_%s_%s_keV" % (e_min, e_max))
+    emiss_name = (ftype, f"xray_emissivity_{e_min}_{e_max}_keV")
     ds.add_field(
         emiss_name,
         function=_emissivity_field,
-        display_name=r"\epsilon_{X} (%s-%s keV)" % (e_min, e_max),
+        display_name=fr"\epsilon_{{X}} ({e_min}-{e_max} keV)",
         sampling_type="local",
         units="erg/cm**3/s",
     )
@@ -275,11 +276,11 @@ def add_xray_emissivity_field(
     def _luminosity_field(field, data):
         return data[emiss_name] * data[ftype, "mass"] / data[ftype, "density"]
 
-    lum_name = (ftype, "xray_luminosity_%s_%s_keV" % (e_min, e_max))
+    lum_name = (ftype, f"xray_luminosity_{e_min}_{e_max}_keV")
     ds.add_field(
         lum_name,
         function=_luminosity_field,
-        display_name=r"\rm{L}_{X} (%s-%s keV)" % (e_min, e_max),
+        display_name=fr"\rm{{L}}_{{X}} ({e_min}-{e_max} keV)",
         sampling_type="local",
         units="erg/s",
     )
@@ -300,11 +301,11 @@ def add_xray_emissivity_field(
 
         return data[ftype, "norm_field"] * YTArray(my_emissivity, "photons*cm**3/s")
 
-    phot_name = (ftype, "xray_photon_emissivity_%s_%s_keV" % (e_min, e_max))
+    phot_name = (ftype, f"xray_photon_emissivity_{e_min}_{e_max}_keV")
     ds.add_field(
         phot_name,
         function=_photon_emissivity_field,
-        display_name=r"\epsilon_{X} (%s-%s keV)" % (e_min, e_max),
+        display_name=fr"\epsilon_{{X}} ({e_min}-{e_max} keV)",
         sampling_type="local",
         units="photons/cm**3/s",
     )
@@ -327,23 +328,24 @@ def add_xray_emissivity_field(
             )
         else:
             redshift = 0.0  # Only for local sources!
-            if not isinstance(dist, YTQuantity):
-                try:
-                    dist = ds.quan(dist[0], dist[1])
-                except TypeError:
-                    raise RuntimeError(
-                        "Please specifiy 'dist' as a YTQuantity "
-                        "or a (value, unit) tuple!"
-                    )
-            else:
+            try:
+                # normal behaviour, if dist is a YTQuantity
                 dist = ds.quan(dist.value, dist.units)
+            except AttributeError as e:
+                try:
+                    dist = ds.quan(*dist)
+                except (RuntimeError, TypeError):
+                    raise TypeError(
+                        "dist should be a YTQuantity or a (value, unit) tuple!"
+                    ) from e
+
             angular_scale = dist / ds.quan(1.0, "radian")
             dist_fac = ds.quan(
                 1.0 / (4.0 * np.pi * dist * dist * angular_scale * angular_scale).v,
                 "rad**-2",
             )
 
-        ei_name = (ftype, "xray_intensity_%s_%s_keV" % (e_min, e_max))
+        ei_name = (ftype, f"xray_intensity_{e_min}_{e_max}_keV")
 
         def _intensity_field(field, data):
             I = dist_fac * data[emiss_name]
@@ -352,12 +354,12 @@ def add_xray_emissivity_field(
         ds.add_field(
             ei_name,
             function=_intensity_field,
-            display_name=r"I_{X} (%s-%s keV)" % (e_min, e_max),
+            display_name=fr"I_{{X}} ({e_min}-{e_max} keV)",
             sampling_type="local",
             units="erg/cm**3/s/arcsec**2",
         )
 
-        i_name = (ftype, "xray_photon_intensity_%s_%s_keV" % (e_min, e_max))
+        i_name = (ftype, f"xray_photon_intensity_{e_min}_{e_max}_keV")
 
         def _photon_intensity_field(field, data):
             I = (1.0 + redshift) * dist_fac * data[phot_name]
@@ -366,13 +368,14 @@ def add_xray_emissivity_field(
         ds.add_field(
             i_name,
             function=_photon_intensity_field,
-            display_name=r"I_{X} (%s-%s keV)" % (e_min, e_max),
+            display_name=fr"I_{{X}} ({e_min}-{e_max} keV)",
             sampling_type="local",
             units="photons/cm**3/s/arcsec**2",
         )
 
         fields += [ei_name, i_name]
 
-    [mylog.info("Adding ('%s','%s') field." % field) for field in fields]
+    for field in fields:
+        mylog.info("Adding ('%s','%s') field.", field[0], field[1])
 
     return fields

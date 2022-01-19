@@ -26,7 +26,7 @@ class OWLSSimulation(GadgetSimulation):
     Examples
     --------
     >>> import yt
-    >>> es = yt.simulation("my_simulation.par", "OWLS")
+    >>> es = yt.load_simulation("my_simulation.par", "OWLS")
     >>> es.get_time_series()
     >>> for ds in es:
     ...     print(ds.current_time)
@@ -56,6 +56,6 @@ class OWLSSimulation(GadgetSimulation):
             count = "*"
         else:
             count = "%03d" % index
-        keyword = "%s_%s" % (self.parameters["SnapshotFileBase"], count)
-        filename = os.path.join(keyword, "%s%s" % (keyword, suffix))
+        keyword = f"{self.parameters['SnapshotFileBase']}_{count}"
+        filename = os.path.join(keyword, f"{keyword}{suffix}")
         return os.path.join(data_dir, filename)

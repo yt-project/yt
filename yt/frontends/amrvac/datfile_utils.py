@@ -24,7 +24,7 @@ def get_header(istream):
     [h["datfile_version"]] = struct.unpack(fmt, istream.read(struct.calcsize(fmt)))
 
     if h["datfile_version"] < 3:
-        raise IOError("Unsupported AMRVAC .dat file version: %d", h["datfile_version"])
+        raise OSError("Unsupported AMRVAC .dat file version: %d", h["datfile_version"])
 
     # Read scalar data at beginning of file
     fmt = ALIGN + 9 * "i" + "d"
@@ -70,7 +70,7 @@ def get_header(istream):
 
     # Read w_names
     w_names = []
-    for i in range(h["nw"]):
+    for _ in range(h["nw"]):
         fmt = ALIGN + NAME_LEN * "c"
         hdr = struct.unpack(fmt, istream.read(struct.calcsize(fmt)))
         w_names.append(b"".join(hdr).strip().decode())
@@ -105,8 +105,8 @@ def get_header(istream):
 
 def get_tree_info(istream):
     """
-    Read levels, morton-curve indices, and byte offsets for each block as stored in the datfile
-    istream is an open datfile buffer with 'rb' mode
+    Read levels, morton-curve indices, and byte offsets for each block as stored in the
+    datfile istream is an open datfile buffer with 'rb' mode
     This can be used as the "first pass" data reading required by YT's interface.
     """
     istream.seek(0)
@@ -151,17 +151,12 @@ def get_single_block_data(istream, byte_offset, block_shape):
 
 def get_single_block_field_data(istream, byte_offset, block_shape, field_idx):
     """retrieve a specific block (ONE field) from a datfile"""
-    istream.seek(byte_offset)
-
     # compute byte size of a single field
     field_shape = block_shape[:-1]
     fmt = ALIGN + np.prod(field_shape) * "d"
     byte_size_field = struct.calcsize(fmt)
 
-    # Read actual data
-    istream.seek(byte_size_field * field_idx, 1)  # seek forward
-    d = struct.unpack(fmt, istream.read(struct.calcsize(fmt)))
-
-    # Fortran ordering
-    block_field_data = np.reshape(d, field_shape, order="F")
-    return block_field_data
+    istream.seek(byte_offset + byte_size_field * field_idx)
+    data = np.fromfile(istream, "=f8", count=np.prod(field_shape))
+    data.shape = field_shape[::-1]
+    return data.T

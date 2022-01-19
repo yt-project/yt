@@ -1,6 +1,7 @@
 # distutils: include_dirs = LIB_DIR
 # distutils: libraries = STD_LIBS
 # distutils: sources = FIXED_INTERP
+# distutils: language = c++
 """
 Marching cubes implementation
 
@@ -397,4 +398,3 @@ def march_cubes_grid_flux(
     # Hallo, we are all done.
     WipeTriangles(triangles.first)
     return flux
-

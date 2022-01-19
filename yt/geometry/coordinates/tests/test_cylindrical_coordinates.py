@@ -18,14 +18,14 @@ def test_cylindrical_coordinates():
     for i, axis in enumerate(axes):
         dd = ds.all_data()
         fi = ("index", axis)
-        fd = ("index", "d%s" % axis)
+        fd = ("index", f"d{axis}")
         ma = np.argmax(dd[fi])
         assert_equal(dd[fi][ma] + dd[fd][ma] / 2.0, ds.domain_right_edge[i].d)
         mi = np.argmin(dd[fi])
         assert_equal(dd[fi][mi] - dd[fd][mi] / 2.0, ds.domain_left_edge[i].d)
         assert_equal(dd[fd].max(), (ds.domain_width / ds.domain_dimensions)[i].d)
     assert_almost_equal(
-        dd["cell_volume"].sum(dtype="float64"),
+        dd[("index", "cell_volume")].sum(dtype="float64"),
         np.pi * ds.domain_width[0] ** 2 * ds.domain_width[1],
     )
     assert_equal(dd["index", "path_element_r"], dd["index", "dr"])
@@ -43,10 +43,10 @@ def test_noise_plots():
         fields = ["noise%d" % i for i in range(4)]
 
         p = SlicePlot(ds, "z", fields)
-        p.save("%s_log" % filename_prefix)
+        p.save(f"{filename_prefix}_log")
 
         p.set_log("all", False)
-        p.save("%s_lin" % filename_prefix)
+        p.save(f"{filename_prefix}_lin")
 
     test = GenericImageTest(ds, create_image, 12)
     test.prefix = "test_noise_plot_lin"

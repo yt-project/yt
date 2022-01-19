@@ -1,10 +1,11 @@
+import os
+
 import numpy as np
 import pyx
 from matplotlib import cm, pyplot as plt
 
 from yt.config import ytcfg
-from yt.funcs import issue_deprecation_warning
-from yt.units.unit_object import Unit
+from yt.units.unit_object import Unit  # type: ignore
 from yt.units.yt_array import YTQuantity
 from yt.utilities.logger import ytLogger as mylog
 
@@ -67,8 +68,7 @@ class DualEPS:
         self.axes_drawn = False
 
     def hello_world(self):
-        r"""A simple test.
-        """
+        r"""A simple test."""
         if self.canvas is None:
             self.canvas = pyx.canvas.canvas()
         p = pyx.path.line(0, 0, 1, 1)
@@ -137,7 +137,7 @@ class DualEPS:
         Examples
         --------
         >>> d = DualEPS()
-        >>> d.axis_box(xrange=(0,100), yrange=(1e-3,1), ylog=True)
+        >>> d.axis_box(xrange=(0, 100), yrange=(1e-3, 1), ylog=True)
         >>> d.save_fig()
         """
 
@@ -385,7 +385,7 @@ class DualEPS:
 
         Examples
         --------
-        >>> p = SlicePlot(ds, 0, 'density')
+        >>> p = SlicePlot(ds, 0, "density")
         >>> d = DualEPS()
         >>> d.axis_box_yt(p)
         >>> d.save_fig()
@@ -415,18 +415,18 @@ class DualEPS:
                     if data.axis != 4:
                         xi = plot.ds.coordinates.x_axis[data.axis]
                         x_name = plot.ds.coordinates.axis_name[xi]
-                        _xlabel = "%s (%s)" % (x_name, units)
+                        _xlabel = f"{x_name} ({units})"
                     else:
-                        _xlabel = "x (%s)" % (units)
+                        _xlabel = f"x ({units})"
                 if ylabel is not None:
                     _ylabel = ylabel
                 else:
                     if data.axis != 4:
                         yi = plot.ds.coordinates.y_axis[data.axis]
                         y_name = plot.ds.coordinates.axis_name[yi]
-                        _ylabel = "%s (%s)" % (y_name, units)
+                        _ylabel = f"{y_name} ({units})"
                     else:
-                        _ylabel = "y (%s)" % (units)
+                        _ylabel = f"y ({units})"
             if tickcolor is None:
                 _tickcolor = pyx.color.cmyk.white
         elif isinstance(plot, ProfilePlot):
@@ -437,10 +437,10 @@ class DualEPS:
                 YTQuantity(xlimits[0], "m"),
                 YTQuantity(xlimits[1], "m"),
             )  # unit hardcoded but afaik it is not used anywhere so it doesn't matter
-            if list(plot.axes.ylim.viewvalues())[0][0] is None:
+            if list(plot.axes.ylim.values())[0][0] is None:
                 ylimits = subplot.get_ylim()
             else:
-                ylimits = list(plot.axes.ylim.viewvalues())[0]
+                ylimits = list(plot.axes.ylim.values())[0]
             _yrange = (
                 YTQuantity(ylimits[0], "m"),
                 YTQuantity(ylimits[1], "m"),
@@ -552,7 +552,7 @@ class DualEPS:
         Examples
         --------
         >>> d = DualEPS()
-        >>> d.axis_box(xrange=(0,100), yrange=(1e-3,1), ylog=True)
+        >>> d.axis_box(xrange=(0, 100), yrange=(1e-3, 1), ylog=True)
         >>> d.insert_image("image.jpg")
         >>> d.save_fig()
         """
@@ -585,7 +585,7 @@ class DualEPS:
 
         Examples
         --------
-        >>> p = SlicePlot(ds, 0, 'density')
+        >>> p = SlicePlot(ds, 0, "density")
         >>> d = DualEPS()
         >>> d.axis_box_yt(p)
         >>> d.insert_image_yt(p)
@@ -607,12 +607,12 @@ class DualEPS:
             if field is None:
                 self.field = list(plot.plots.keys())[0]
                 mylog.warning(
-                    "No field specified.  Choosing first field (%s)" % str(self.field)
+                    "No field specified.  Choosing first field (%s)", self.field
                 )
             else:
                 self.field = plot.data_source._determine_fields(field)[0]
             if self.field not in plot.plots.keys():
-                raise RuntimeError("Field '%s' does not exist!" % str(self.field))
+                raise RuntimeError("Field '%s' does not exist!", self.field)
             if isinstance(plot, PlotWindow):
                 plot.hide_colorbar()
                 plot.hide_axes()
@@ -696,10 +696,11 @@ class DualEPS:
         Examples
         --------
         >>> d = DualEPS()
-        >>> d.axis_box(xrange=(0,100), yrange=(1e-3,1), ylog=True)
+        >>> d.axis_box(xrange=(0, 100), yrange=(1e-3, 1), ylog=True)
         >>> d.insert_image("image.jpg")
-        >>> d.colorbar("hot", xrange=(1e-2, 1e-4), log=True,
-                       label="Density [cm$^{-3}$]")
+        >>> d.colorbar(
+        ...     "hot", xrange=(1e-2, 1e-4), log=True, label="Density [cm$^{-3}$]"
+        ... )
         >>> d.save_fig()
         """
         if pos is None:
@@ -724,8 +725,7 @@ class DualEPS:
             size = (self.figsize[0], 0.1 * self.figsize[1])
             imsize = (256, 1)
         else:
-            raise RuntimeError("orientation %s unknown" % orientation)
-            return
+            raise RuntimeError(f"orientation {orientation} unknown")
 
         # If shrink is a scalar, then convert into tuple
         if not isinstance(shrink, (tuple, list)):
@@ -744,7 +744,7 @@ class DualEPS:
 
         # Convert the colormap into a string
         x = np.linspace(1, 0, 256)
-        cm_string = cm.cmap_d[name](x, bytes=True)[:, 0:3].tostring()
+        cm_string = cm.get_cmap(name)(x, bytes=True)[:, 0:3].tobytes()
 
         cmap_im = pyx.bitmap.image(imsize[0], imsize[1], "RGB", cm_string)
         if orientation == "top" or orientation == "bottom":
@@ -843,7 +843,7 @@ class DualEPS:
 
         Examples
         --------
-        >>> p = SlicePlot(ds, 0, 'density')
+        >>> p = SlicePlot(ds, 0, "density")
         >>> p.hide_colorbar()
         >>> d = DualEPS()
         >>> d.axis_box_yt(p)
@@ -861,7 +861,7 @@ class DualEPS:
         if field is not None:
             self.field = plot.data_source._determine_fields(field)[0]
         if isinstance(plot, (PlotWindow, PhasePlot)):
-            _cmap = plot._colormaps[self.field]
+            _cmap = plot._colormap_config[self.field]
         else:
             if plot.cmap is not None:
                 _cmap = plot.cmap.name
@@ -884,7 +884,7 @@ class DualEPS:
             else:
                 _, _, z_title = plot._get_field_title(self.field, plot.profile)
                 _zlabel = pyxize_label(z_title)
-            _zlabel = _zlabel.replace("_", "\;")
+            _zlabel = _zlabel.replace("_", r"\;")
             _zlog = plot.get_log(self.field)[self.field]
             if plot.plots[self.field].zmin is None:
                 zmin = plot.plots[self.field].image._A.min()
@@ -896,7 +896,7 @@ class DualEPS:
                 zmax = plot.plots[self.field].zmax
             _zrange = (zmin, zmax)
         else:
-            _zlabel = plot._z_label.replace("_", "\;")
+            _zlabel = plot._z_label.replace("_", r"\;")
             _zlog = plot._log_z
             _zrange = (plot.norm.vmin, plot.norm.vmax)
         if cb_labels is not None:  # Overrides deduced labels
@@ -929,7 +929,7 @@ class DualEPS:
         Examples
         --------
         >>> d = DualEPS()
-        >>> d.axis_box(xrange=(0,100), yrange=(1e-3,1), ylog=True)
+        >>> d.axis_box(xrange=(0, 100), yrange=(1e-3, 1), ylog=True)
         >>> d.insert_image("image.jpg")
         >>> d.circle(radius=0.1, color=pyx.color.cmyk.Red)
         >>> d.save_fig()
@@ -975,7 +975,7 @@ class DualEPS:
         Examples
         --------
         >>> d = DualEPS()
-        >>> d.axis_box(xrange=(0,100), yrange=(1e-3,1), ylog=True)
+        >>> d.axis_box(xrange=(0, 100), yrange=(1e-3, 1), ylog=True)
         >>> d.insert_image("arrow_image.jpg")
         >>> d.arrow(size=0.2, label="Black Hole!", loc=(0.05, 0.1))
         >>> d.save_fig()
@@ -1035,7 +1035,7 @@ class DualEPS:
         Examples
         --------
         >>> d = DualEPS()
-        >>> d.axis_box(xrange=(0,100), yrange=(1e-3,1), ylog=True)
+        >>> d.axis_box(xrange=(0, 100), yrange=(1e-3, 1), ylog=True)
         >>> d.insert_image("image.jpg")
         >>> d.scale_line(size=0.2, label="1 kpc", loc=(0.05, 0.1))
         >>> d.save_fig()
@@ -1109,9 +1109,9 @@ class DualEPS:
         Examples
         --------
         >>> d = DualEPS()
-        >>> d.axis_box(xrange=(0,100), yrange=(1e-3,1), ylog=True)
+        >>> d.axis_box(xrange=(0, 100), yrange=(1e-3, 1), ylog=True)
         >>> d.insert_image("image.jpg")
-        >>> d.title_box("Halo 1", loc=(0.05,0.95))
+        >>> d.title_box("Halo 1", loc=(0.05, 0.95))
         >>> d.save_fig()
         """
         if text_opts is None:
@@ -1142,8 +1142,9 @@ class DualEPS:
         Examples
         --------
         >>> d = DualEPS()
-        >>> d.axis_box(xrange=(0,100), yrange=(1e-3,1), ylog=True)
+        >>> d.axis_box(xrange=(0, 100), yrange=(1e-3, 1), ylog=True)
         """
+        filename = os.path.expanduser(filename)
         if format == "eps":
             self.canvas.writeEPSfile(filename)
         elif format == "pdf":
@@ -1153,7 +1154,7 @@ class DualEPS:
         elif format == "jpg":
             self.canvas.writeGSfile(filename + ".jpeg", "jpeg", resolution=resolution)
         else:
-            raise RuntimeError("format %s unknown." % (format))
+            raise RuntimeError(f"format {format} unknown.")
 
 
 # =============================================================================
@@ -1240,18 +1241,23 @@ def multiplot(
 
     Examples
     --------
-    >>> images = ["density.jpg", "hi_density.jpg", "entropy.jpg",
-    >>>           "special.jpg"]
-    >>> cbs=[]
-    >>> cbs.append(return_colormap("arbre", "Density [cm$^{-3}$]", (0,10), False))
-    >>> cbs.append(return_colormap("kelp", "HI Density", (0,5), False))
-    >>> cbs.append(return_colormap("hot", r"Entropy [K cm$^2$]", (1e-2,1e6), True))
-    >>> cbs.append(return_colormap("Spectral", "Stuff$_x$!", (1,300), True))
-    >>>
-    >>> mp = multiplot(2,2, images=images, margins=(0.1,0.1),
-    >>>                titles=["1","2","3","4"],
-    >>>                xlabels=["one","two"], ylabels=None, colorbars=cbs,
-    >>>                shrink_cb=0.95)
+    >>> images = ["density.jpg", "hi_density.jpg", "entropy.jpg", "special.jpg"]
+    >>> cbs = []
+    >>> cbs.append(return_colormap("cmyt.arbre", "Density [cm$^{-3}$]", (0, 10), False))
+    >>> cbs.append(return_colormap("cmyt.kelp", "HI Density", (0, 5), False))
+    >>> cbs.append(return_colormap("hot", r"Entropy [K cm$^2$]", (1e-2, 1e6), True))
+    >>> cbs.append(return_colormap("Spectral", "Stuff$_x$!", (1, 300), True))
+    >>> mp = multiplot(
+    ...     2,
+    ...     2,
+    ...     images=images,
+    ...     margins=(0.1, 0.1),
+    ...     titles=["1", "2", "3", "4"],
+    ...     xlabels=["one", "two"],
+    ...     ylabels=None,
+    ...     colorbars=cbs,
+    ...     shrink_cb=0.95,
+    ... )
     >>> mp.scale_line(label="$r_{vir}$", labelloc="top")
     >>> mp.save_fig("multiplot")
 
@@ -1271,10 +1277,8 @@ def multiplot(
                 "Number of images (%d) doesn't match nrow(%d)"
                 " x ncol(%d)." % (len(images), nrow, ncol)
             )
-            return
     if yt_plots is None and images is None:
         raise RuntimeError("Must supply either yt_plots or image filenames.")
-        return
     if yt_plots is not None and images is not None:
         mylog.warning("Given both images and yt plots.  Ignoring images.")
     if yt_plots is not None:
@@ -1288,19 +1292,19 @@ def multiplot(
     if not _yt:
         if xranges is None:
             xranges = []
-            for i in range(npanels):
+            for _ in range(npanels):
                 xranges.append((0, 1))
         if yranges is None:
             yranges = []
-            for i in range(npanels):
+            for _ in range(npanels):
                 yranges.append((0, 1))
         if xlabels is None:
             xlabels = []
-            for i in range(npanels):
+            for _ in range(npanels):
                 xlabels.append("")
         if ylabels is None:
             ylabels = []
-            for i in range(npanels):
+            for _ in range(npanels):
                 ylabels.append("")
 
     d = DualEPS(figsize=figsize)
@@ -1425,9 +1429,8 @@ def multiplot(
                     if isinstance(cb_location, dict):
                         if fields[index] not in cb_location.keys():
                             raise RuntimeError(
-                                "%s not found in cb_location dict" % fields[index]
+                                f"{fields[index]} not found in cb_location dict"
                             )
-                            return
                         orientation = cb_location[fields[index]]
                     elif isinstance(cb_location, list):
                         orientation = cb_location[index]
@@ -1447,8 +1450,8 @@ def multiplot(
                     xpos = xpos0
                 else:
                     mylog.warning(
-                        "Unknown colorbar location %s. "
-                        "No colorbar displayed." % orientation
+                        "Unknown colorbar location %s. No colorbar displayed.",
+                        orientation,
                     )
                     orientation = None  # Marker for interior plot
 
@@ -1502,21 +1505,30 @@ def multiplot_yt(ncol, nrow, plots, fields=None, **kwargs):
 
     Examples
     --------
-    >>> p1 = SlicePlot(ds, 0, 'density')
-    >>> p1.set_width(10, 'kpc')
-    >>>
-    >>> p2 = SlicePlot(ds, 0, 'temperature')
-    >>> p2.set_width(10, 'kpc')
-    >>> p2.set_colormap('temperature', 'hot')
-    >>>
-    >>> sph = ds.sphere(ds.domain_center, (10, 'kpc'))
-    >>> p3 = PhasePlot(sph, 'radius', 'density', 'temperature',
-    ...                weight_field='cell_mass')
-    >>>
-    >>> p4 = PhasePlot(sph, 'radius', 'density', 'pressure', 'cell_mass')
-    >>>
-    >>> mp = multiplot_yt(2, 2, [p1, p2, p3, p4], savefig="yt", shrink_cb=0.9,
-    ...                   bare_axes=True, yt_nocbar=False, margins=(0.5,0.5))
+    >>> p1 = SlicePlot(ds, 0, "density")
+    >>> p1.set_width(10, "kpc")
+
+    >>> p2 = SlicePlot(ds, 0, "temperature")
+    >>> p2.set_width(10, "kpc")
+    >>> p2.set_colormap("temperature", "hot")
+
+    >>> sph = ds.sphere(ds.domain_center, (10, "kpc"))
+    >>> p3 = PhasePlot(
+    ...     sph, "radius", "density", "temperature", weight_field="cell_mass"
+    ... )
+
+    >>> p4 = PhasePlot(sph, "radius", "density", "pressure", "cell_mass")
+
+    >>> mp = multiplot_yt(
+    ...     2,
+    ...     2,
+    ...     [p1, p2, p3, p4],
+    ...     savefig="yt",
+    ...     shrink_cb=0.9,
+    ...     bare_axes=True,
+    ...     yt_nocbar=False,
+    ...     margins=(0.5, 0.5),
+    ... )
     """
     # Determine whether the plots are organized in a PlotWindow, or list
     # of PlotWindows
@@ -1525,22 +1537,19 @@ def multiplot_yt(ncol, nrow, plots, fields=None, **kwargs):
             fields = plots.fields
         if len(fields) < nrow * ncol:
             raise RuntimeError(
-                "Number of plots ({0}) is less "
-                "than nrow({1}) x ncol({2}).".format(len(fields), nrow, ncol)
+                "Number of plots ({}) is less "
+                "than nrow({}) x ncol({}).".format(len(fields), nrow, ncol)
             )
-            return
         figure = multiplot(ncol, nrow, yt_plots=plots, fields=fields, **kwargs)
     elif isinstance(plots, list) and isinstance(plots[0], (PlotWindow, PhasePlot)):
         if len(plots) < nrow * ncol:
             raise RuntimeError(
-                "Number of plots ({0}) is less "
-                "than nrow({1}) x ncol({2}).".format(len(fields), nrow, ncol)
+                "Number of plots ({}) is less "
+                "than nrow({}) x ncol({}).".format(len(fields), nrow, ncol)
             )
-            return
         figure = multiplot(ncol, nrow, yt_plots=plots, fields=fields, **kwargs)
     else:
         raise RuntimeError("Unknown plot type in multiplot_yt")
-        return
     return figure
 
 
@@ -1581,8 +1590,8 @@ def single_plot(
 
     Examples
     --------
-    >>> p = SlicePlot(ds, 0, 'density')
-    >>> p.set_width(0.1,'kpc')
+    >>> p = SlicePlot(ds, 0, "density")
+    >>> p.set_width(0.1, "kpc")
     >>> single_plot(p, savefig="figure1")
     """
     d = DualEPS(figsize=figsize)
@@ -1596,9 +1605,6 @@ def single_plot(
 
 
 # =============================================================================
-def return_cmap(cmap=None, label="", range=(0, 1), log=False):
-    issue_deprecation_warning("Deprecated alias. Use return_colormap instead.")
-    return return_colormap(cmap=cmap, label=label, crange=range, log=log)
 
 
 def return_colormap(cmap=None, label="", range=(0, 1), log=False):
@@ -1618,7 +1624,7 @@ def return_colormap(cmap=None, label="", range=(0, 1), log=False):
 
     Examples
     --------
-    >>> cb = return_colormap("arbre", "Density [cm$^{-3}$]", (0,10), False)
+    >>> cb = return_colormap("cmyt.arbre", "Density [cm$^{-3}$]", (0, 10), False)
     """
     if cmap is None:
         cmap = ytcfg.get("yt", "default_colormap")

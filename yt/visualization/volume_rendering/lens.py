@@ -1,8 +1,7 @@
 import numpy as np
 
 from yt.data_objects.image_array import ImageArray
-from yt.funcs import mylog
-from yt.units.yt_array import uhstack, unorm, uvstack
+from yt.units.yt_array import uhstack, unorm, uvstack  # type: ignore
 from yt.utilities.lib.grid_traversal import arr_fisheye_vectors
 from yt.utilities.math_utils import get_rotation_matrix
 from yt.utilities.parallel_tools.parallel_analysis_interface import (
@@ -13,8 +12,8 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import (
 class Lens(ParallelAnalysisInterface):
     """A Lens is used to define the set of rays for rendering."""
 
-    def __init__(self,):
-        super(Lens, self).__init__()
+    def __init__(self):
+        super().__init__()
         self.viewpoint = None
         self.sub_samples = 5
         self.num_threads = 0
@@ -78,8 +77,8 @@ class PlaneParallelLens(Lens):
     The initializer takes no parameters.
     """
 
-    def __init__(self,):
-        super(PlaneParallelLens, self).__init__()
+    def __init__(self):
+        super().__init__()
 
     def _get_sampler_params(self, camera, render_source):
         if render_source.zbuffer is not None:
@@ -152,7 +151,7 @@ class PerspectiveLens(Lens):
     """
 
     def __init__(self):
-        super(PerspectiveLens, self).__init__()
+        super().__init__()
 
     def new_image(self, camera):
         self.current_image = ImageArray(
@@ -180,8 +179,8 @@ class PerspectiveLens(Lens):
         north_vec = camera.unit_vectors[1]
         normal_vec = camera.unit_vectors[2]
 
-        px = np.mat(np.linspace(-0.5, 0.5, camera.resolution[0]))
-        py = np.mat(np.linspace(-0.5, 0.5, camera.resolution[1]))
+        px = np.linspace(-0.5, 0.5, camera.resolution[0])[np.newaxis, :]
+        py = np.linspace(-0.5, 0.5, camera.resolution[1])[np.newaxis, :]
 
         sample_x = camera.width[0] * np.array(east_vec.reshape(3, 1) * px)
         sample_x = sample_x.transpose()
@@ -232,9 +231,6 @@ class PerspectiveLens(Lens):
             image=image,
             lens_type="perspective",
         )
-
-        mylog.debug(positions)
-        mylog.debug(vectors)
 
         return sampler_params
 
@@ -293,9 +289,7 @@ class PerspectiveLens(Lens):
         return px, py, dz
 
     def __repr__(self):
-        disp = "<Lens Object>:\n\tlens_type:perspective\n\tviewpoint:%s" % (
-            self.viewpoint
-        )
+        disp = f"<Lens Object>:\n\tlens_type:perspective\n\tviewpoint:{self.viewpoint}"
         return disp
 
 
@@ -308,7 +302,7 @@ class StereoPerspectiveLens(Lens):
     """
 
     def __init__(self):
-        super(StereoPerspectiveLens, self).__init__()
+        super().__init__()
         self.disparity = None
 
     def new_image(self, camera):
@@ -386,8 +380,8 @@ class StereoPerspectiveLens(Lens):
         east_vec_rot = np.dot(R, east_vec)
         normal_vec_rot = np.dot(R, normal_vec)
 
-        px = np.mat(np.linspace(-0.5, 0.5, single_resolution_x))
-        py = np.mat(np.linspace(-0.5, 0.5, camera.resolution[1]))
+        px = np.linspace(-0.5, 0.5, single_resolution_x)[np.newaxis, :]
+        py = np.linspace(-0.5, 0.5, camera.resolution[1])[np.newaxis, :]
 
         sample_x = camera.width[0] * np.array(east_vec_rot.reshape(3, 1) * px)
         sample_x = sample_x.transpose()
@@ -428,9 +422,6 @@ class StereoPerspectiveLens(Lens):
 
         # Here the east_vecs is non-rotated one
         positions = positions + east_vecs * disparity
-
-        mylog.debug(positions)
-        mylog.debug(vectors)
 
         return vectors, positions
 
@@ -520,9 +511,7 @@ class StereoPerspectiveLens(Lens):
         self.viewpoint = self.front_center
 
     def __repr__(self):
-        disp = "<Lens Object>:\n\tlens_type:perspective\n\tviewpoint:%s" % (
-            self.viewpoint
-        )
+        disp = f"<Lens Object>:\n\tlens_type:perspective\n\tviewpoint:{self.viewpoint}"
         return disp
 
 
@@ -538,7 +527,7 @@ class FisheyeLens(Lens):
     """
 
     def __init__(self):
-        super(FisheyeLens, self).__init__()
+        super().__init__()
         self.fov = 180.0
         self.radius = 1.0
         self.center = None
@@ -547,7 +536,7 @@ class FisheyeLens(Lens):
     def setup_box_properties(self, camera):
         """Set up the view and stage based on the properties of the camera."""
         self.radius = camera.width.max()
-        super(FisheyeLens, self).setup_box_properties(camera)
+        super().setup_box_properties(camera)
         self.set_viewpoint(camera)
 
     def new_image(self, camera):
@@ -649,7 +638,7 @@ class SphericalLens(Lens):
     """
 
     def __init__(self):
-        super(SphericalLens, self).__init__()
+        super().__init__()
         self.radius = 1.0
         self.center = None
         self.rotation_matrix = np.eye(3)
@@ -657,7 +646,7 @@ class SphericalLens(Lens):
     def setup_box_properties(self, camera):
         """Set up the view and stage based on the properties of the camera."""
         self.radius = camera.width.max()
-        super(SphericalLens, self).setup_box_properties(camera)
+        super().setup_box_properties(camera)
         self.set_viewpoint(camera)
 
     def _get_sampler_params(self, camera, render_source):
@@ -761,7 +750,7 @@ class StereoSphericalLens(Lens):
     """
 
     def __init__(self):
-        super(StereoSphericalLens, self).__init__()
+        super().__init__()
         self.radius = 1.0
         self.center = None
         self.disparity = None
@@ -769,7 +758,7 @@ class StereoSphericalLens(Lens):
 
     def setup_box_properties(self, camera):
         self.radius = camera.width.max()
-        super(StereoSphericalLens, self).setup_box_properties(camera)
+        super().setup_box_properties(camera)
         self.set_viewpoint(camera)
 
     def _get_sampler_params(self, camera, render_source):

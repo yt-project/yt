@@ -1,4 +1,7 @@
-valid_transforms = {}
+from types import FunctionType
+from typing import Any, Dict, Optional, Tuple
+
+valid_transforms: Dict[str, FunctionType] = {}
 
 transform_list = [
     "PlateCarree",
@@ -30,8 +33,7 @@ transform_list = [
 
 
 def cartopy_importer(transform_name):
-    r"""Convenience function to import cartopy projection types
-    """
+    r"""Convenience function to import cartopy projection types"""
 
     def _func(*args, **kwargs):
         from yt.utilities.on_demand_imports import _cartopy as cartopy
@@ -41,7 +43,7 @@ def cartopy_importer(transform_name):
     return _func
 
 
-def get_mpl_transform(mpl_proj):
+def get_mpl_transform(mpl_proj) -> Optional[FunctionType]:
     r"""This returns an instantiated transform function given a transform
     function name and arguments.
 
@@ -55,11 +57,12 @@ def get_mpl_transform(mpl_proj):
 
     >>> get_mpl_transform("PlateCarree")
 
-    >>> get_mpl_transform(('RotatedPole', (), {'pole_latitude':37.5,
-    ...                    'pole_longitude':177.5}))
+    >>> get_mpl_transform(
+    ...     ("RotatedPole", (), {"pole_latitude": 37.5, "pole_longitude": 177.5})
+    ... )
 
     """
-    # first check to see if the tranform dict is empty, if it is fill it with
+    # first check to see if the transform dict is empty, if it is fill it with
     # the cartopy functions
     if not valid_transforms:
         for mpl_transform in transform_list:
@@ -67,11 +70,11 @@ def get_mpl_transform(mpl_proj):
 
     # check to see if mpl_proj is a string or tuple, and construct args and
     # kwargs to pass to cartopy function based on that.
-    key = None
+    key: Optional[str] = None
+    args: Tuple = ()
+    kwargs: Dict[str, Any] = {}
     if isinstance(mpl_proj, str):
         key = mpl_proj
-        args = ()
-        kwargs = {}
         instantiated_func = valid_transforms[key](*args, **kwargs)
     elif isinstance(mpl_proj, tuple):
         if len(mpl_proj) == 2:
@@ -79,6 +82,12 @@ def get_mpl_transform(mpl_proj):
             kwargs = {}
         elif len(mpl_proj) == 3:
             key, args, kwargs = mpl_proj
+        else:
+            raise ValueError(f"Expected a tuple with len 2 or 3, received {mpl_proj}")
+        if not isinstance(key, str):
+            raise TypeError(
+                f"Expected a string a the first element in mpl_proj, got {key!r}"
+            )
         instantiated_func = valid_transforms[key](*args, **kwargs)
     elif hasattr(mpl_proj, "globe"):
         # cartopy transforms have a globe method associated with them

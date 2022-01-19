@@ -5,7 +5,7 @@ from yt.utilities.io_handler import BaseIOHandler
 
 
 def field_dname(field_name):
-    return "/tstt/elements/Hex8/tags/{0}".format(field_name)
+    return f"/tstt/elements/Hex8/tags/{field_name}"
 
 
 # TODO all particle bits were removed
@@ -13,7 +13,7 @@ class IOHandlerMoabH5MHex8(BaseIOHandler):
     _dataset_type = "moab_hex8"
 
     def __init__(self, ds):
-        super(IOHandlerMoabH5MHex8, self).__init__(ds)
+        super().__init__(ds)
         self._handle = ds._handle
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
@@ -61,8 +61,9 @@ class IOHandlerMoabPyneHex8(BaseIOHandler):
         for field in fields:
             ftype, fname = field
             if pyne_mesh.structured:
-                tag = pyne_mesh.mesh.getTagHandle("idx")
-                indices = [tag[ent] for ent in pyne_mesh.structured_iterate_hex()]
+                tag = pyne_mesh.mesh.tag_get_handle("idx")
+                hex_list = [ent for ent in pyne_mesh.structured_iterate_hex()]
+                indices = pyne_mesh.mesh.tag_get_data(tag, hex_list).flatten()
             else:
                 indices = slice(None)
             ds = np.asarray(getattr(pyne_mesh, fname)[indices], "float64")

@@ -1,3 +1,5 @@
+from typing import List, Tuple
+
 import numpy as np
 
 
@@ -26,7 +28,7 @@ class ZBuffer:
     >>> c = b1 + b2
     >>> np.all(c.rgba == b2.rgba)
     True
-    >>> np.all(c.z == b2.z))
+    >>> np.all(c.z == b2.z)
     True
     >>> np.all(c == b2)
     True
@@ -34,7 +36,7 @@ class ZBuffer:
     """
 
     def __init__(self, rgba, z):
-        super(ZBuffer, self).__init__()
+        super().__init__()
         assert rgba.shape[: len(z.shape)] == z.shape
         self.rgba = rgba
         self.z = z
@@ -74,8 +76,9 @@ class ZBuffer:
 
 
 if __name__ == "__main__":
-    shape = (64, 64)
-    for shape in [(64, 64), (16, 16, 4), (128), (16, 32)]:
+    shape: Tuple[int, ...] = (64, 64)
+    shapes: List[Tuple[int, ...]] = [(64, 64), (16, 16, 4), (128,), (16, 32)]
+    for shape in shapes:
         b1 = ZBuffer(np.random.random(shape), np.ones(shape))
         b2 = ZBuffer(np.random.random(shape), np.zeros(shape))
         c = b1 + b2

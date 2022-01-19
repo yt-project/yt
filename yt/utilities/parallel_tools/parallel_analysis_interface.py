@@ -5,14 +5,16 @@ import sys
 import traceback
 from functools import wraps
 from io import StringIO
+from typing import List
 
 import numpy as np
+from more_itertools import always_iterable
 
 import yt.utilities.logger
 from yt.config import ytcfg
 from yt.data_objects.image_array import ImageArray
-from yt.funcs import ensure_list, iterable
-from yt.units.unit_registry import UnitRegistry
+from yt.funcs import is_sequence
+from yt.units.unit_registry import UnitRegistry  # type: ignore
 from yt.units.yt_array import YTArray
 from yt.utilities.exceptions import YTNoDataInObjectError
 from yt.utilities.lib.quad_tree import QuadTree, merge_quadtrees
@@ -49,10 +51,10 @@ class FilterAllMessages(logging.Filter):
 def traceback_writer_hook(file_suffix=""):
     def write_to_file(exc_type, exc, tb):
         sys.__excepthook__(exc_type, exc, tb)
-        fn = "yt_traceback%s" % file_suffix
+        fn = f"yt_traceback{file_suffix}"
         with open(fn, "w") as fhandle:
             traceback.print_exception(exc_type, exc, tb, file=fhandle)
-            print("Wrote traceback to %s" % fn)
+            print(f"Wrote traceback to {fn}")
         MPI.COMM_WORLD.Abort(1)
 
     return write_to_file
@@ -60,14 +62,14 @@ def traceback_writer_hook(file_suffix=""):
 
 def default_mpi_excepthook(exception_type, exception_value, tb):
     traceback.print_tb(tb)
-    mylog.error("%s: %s" % (exception_type.__name__, exception_value))
+    mylog.error("%s: %s", exception_type.__name__, exception_value)
     comm = yt.communication_system.communicators[-1]
     if comm.size > 1:
-        mylog.error("Error occured on rank %d." % comm.rank)
+        mylog.error("Error occurred on rank %d.", comm.rank)
     MPI.COMM_WORLD.Abort(1)
 
 
-def enable_parallelism(suppress_logging=False, communicator=None):
+def enable_parallelism(suppress_logging: bool = False, communicator=None) -> bool:
     """
     This method is used inside a script to turn on MPI parallelism, via
     mpi4py.  More information about running yt in parallel can be found
@@ -82,14 +84,18 @@ def enable_parallelism(suppress_logging=False, communicator=None):
     communicator : mpi4py.MPI.Comm
         The MPI communicator to use. This controls which processes yt can see.
         If not specified, will be set to COMM_WORLD.
+
+    Returns
+    -------
+    parallel_capable: bool
+        True if the call was successful. False otherwise.
     """
     global parallel_capable, MPI
     try:
         from mpi4py import MPI as _MPI
     except ImportError:
-        mylog.info("mpi4py was not found. Disabling parallel computation")
-        parallel_capable = False
-        return
+        mylog.error("Could not enable parallelism: mpi4py is not installed")
+        return False
     MPI = _MPI
     exe_name = os.path.basename(sys.executable)
 
@@ -99,22 +105,24 @@ def enable_parallelism(suppress_logging=False, communicator=None):
 
     parallel_capable = communicator.size > 1
     if not parallel_capable:
+        mylog.error(
+            "Could not enable parallelism: only one mpi process is running. "
+            "To remedy this, launch the Python interpreter as\n"
+            "  mpirun -n <X> python3 <yourscript>.py  # with X > 1 ",
+        )
         return False
+
     mylog.info(
         "Global parallel computation enabled: %s / %s",
         communicator.rank,
         communicator.size,
     )
     communication_system.push(communicator)
-    ytcfg["yt", "__global_parallel_rank"] = str(communicator.rank)
-    ytcfg["yt", "__global_parallel_size"] = str(communicator.size)
-    ytcfg["yt", "__parallel"] = "True"
-    if exe_name == "embed_enzo" or ("_parallel" in dir(sys) and sys._parallel):
-        ytcfg["yt", "inline"] = "True"
-    if communicator.rank > 0:
-        if ytcfg.getboolean("yt", "LogFile"):
-            ytcfg["yt", "LogFile"] = "False"
-            yt.utilities.logger.disable_file_logging()
+    ytcfg["yt", "internals", "global_parallel_rank"] = communicator.rank
+    ytcfg["yt", "internals", "global_parallel_size"] = communicator.size
+    ytcfg["yt", "internals", "parallel"] = True
+    if exe_name == "embed_enzo" or ("_parallel" in dir(sys) and sys._parallel):  # type: ignore
+        ytcfg["yt", "inline"] = True
     yt.utilities.logger.uncolorize_logging()
     # Even though the uncolorize function already resets the format string,
     # we reset it again so that it includes the processor.
@@ -124,12 +132,12 @@ def enable_parallelism(suppress_logging=False, communicator=None):
     if len(yt.utilities.logger.ytLogger.handlers) > 0:
         yt.utilities.logger.ytLogger.handlers[0].setFormatter(f)
 
-    if ytcfg.getboolean("yt", "parallel_traceback"):
+    if ytcfg.get("yt", "parallel_traceback"):
         sys.excepthook = traceback_writer_hook("_%03i" % communicator.rank)
     else:
         sys.excepthook = default_mpi_excepthook
 
-    if ytcfg.getint("yt", "LogLevel") < 20:
+    if ytcfg.get("yt", "log_level") < 20:
         yt.utilities.logger.ytLogger.warning(
             "Log Level is set low -- this could affect parallel performance!"
         )
@@ -177,7 +185,7 @@ class ObjectIterator:
             self._objs = [
                 g
                 for g in gs
-                if g.proc_num == ytcfg.getint("yt", "__topcomm_parallel_rank")
+                if g.proc_num == ytcfg.get("yt", "internals", "topcomm_parallel_rank")
             ]
             self._use_all = True
         else:
@@ -189,8 +197,7 @@ class ObjectIterator:
         self.just_list = just_list
 
     def __iter__(self):
-        for obj in self._objs:
-            yield obj
+        yield from self._objs
 
 
 class ParallelObjectIterator(ObjectIterator):
@@ -264,7 +271,7 @@ class ParallelDummy(type):
     """
 
     def __init__(cls, name, bases, d):
-        super(ParallelDummy, cls).__init__(name, bases, d)
+        super().__init__(name, bases, d)
         skip = d.pop("dont_wrap", [])
         extra = d.pop("extra_wrap", [])
         for attrname in d:
@@ -404,16 +411,15 @@ class ProcessorPool:
     def free_all(self):
         for wg in self.workgroups:
             self.free_workgroup(wg)
-        for i in range(len(self.workgroups)):
+        while self.workgroups:
             self.workgroups.pop(0)
 
     @classmethod
     def from_sizes(cls, sizes):
-        sizes = ensure_list(sizes)
         pool = cls()
         rank = pool.comm.rank
-        for i, size in enumerate(sizes):
-            if iterable(size):
+        for i, size in enumerate(always_iterable(sizes)):
+            if is_sequence(size):
                 size, name = size
             else:
                 name = "workgroup_%02i" % i
@@ -481,7 +487,7 @@ def parallel_objects(objects, njobs=0, storage=None, barrier=True, dynamic=False
     slice plots centered at each.
 
     >>> for c in parallel_objects(centers):
-    ...     SlicePlot(ds, "x", "Density", center = c).save()
+    ...     SlicePlot(ds, "x", "Density", center=c).save()
     ...
 
     Here's an example of calculating the angular momentum vector of a set of
@@ -501,8 +507,7 @@ def parallel_objects(objects, njobs=0, storage=None, barrier=True, dynamic=False
     if dynamic:
         from .task_queue import dynamic_parallel_objects
 
-        for my_obj in dynamic_parallel_objects(objects, njobs=njobs, storage=storage):
-            yield my_obj
+        yield from dynamic_parallel_objects(objects, njobs=njobs, storage=storage)
         return
 
     if not parallel_capable:
@@ -576,30 +581,24 @@ def parallel_ring(objects, generator_func, mutable=False):
     mutable : bool
         Should the arrays be considered mutable?  Currently, this will only
         work if the number of processors equals the number of objects.
-    dynamic : bool
-        This governs whether or not dynamic load balancing will be enabled.
-        This requires one dedicated processor; if this is enabled with a set of
-        128 processors available, only 127 will be available to iterate over
-        objects as one will be load balancing the rest.
-
 
     Examples
     --------
     Here is a simple example of a ring loop around a set of integers, with a
     custom dtype.
 
-    >>> dt = np.dtype([('x', 'float64'), ('y', 'float64'), ('z', 'float64')])
+    >>> dt = np.dtype([("x", "float64"), ("y", "float64"), ("z", "float64")])
     >>> def gfunc(o):
     ...     np.random.seed(o)
     ...     rv = np.empty(1000, dtype=dt)
-    ...     rv['x'] = np.random.random(1000)
-    ...     rv['y'] = np.random.random(1000)
-    ...     rv['z'] = np.random.random(1000)
+    ...     rv["x"] = np.random.random(1000)
+    ...     rv["y"] = np.random.random(1000)
+    ...     rv["z"] = np.random.random(1000)
     ...     return rv
     ...
     >>> obj = range(8)
     >>> for obj, arr in parallel_ring(obj, gfunc):
-    ...     print(arr['x'].sum(), arr['y'].sum(), arr['z'].sum())
+    ...     print(arr["x"].sum(), arr["y"].sum(), arr["z"].sum())
     ...
 
     """
@@ -664,7 +663,7 @@ def parallel_ring(objects, generator_func, mutable=False):
 
 
 class CommunicationSystem:
-    communicators = []
+    communicators: List["Communicator"] = []
 
     def __init__(self):
         self.communicators.append(Communicator(None))
@@ -684,10 +683,10 @@ class CommunicationSystem:
     def _update_parallel_state(self, new_comm):
         from yt.config import ytcfg
 
-        ytcfg["yt", "__topcomm_parallel_size"] = str(new_comm.size)
-        ytcfg["yt", "__topcomm_parallel_rank"] = str(new_comm.rank)
-        if new_comm.rank > 0 and ytcfg.getboolean("yt", "serialize"):
-            ytcfg["yt", "onlydeserialize"] = "True"
+        ytcfg["yt", "internals", "topcomm_parallel_size"] = new_comm.size
+        ytcfg["yt", "internals", "topcomm_parallel_rank"] = new_comm.rank
+        if new_comm.rank > 0 and ytcfg.get("yt", "serialize"):
+            ytcfg["yt", "only_deserialize"] = True
 
     def pop(self):
         self.communicators.pop()
@@ -747,11 +746,11 @@ class Communicator:
         if datatype is not None:
             pass
         elif isinstance(data, dict):
-            datatype == "dict"
+            datatype = "dict"
         elif isinstance(data, np.ndarray):
-            datatype == "array"
+            datatype = "array"
         elif isinstance(data, list):
-            datatype == "list"
+            datatype = "list"
         # Now we have our datatype, and we conduct our operation
         if datatype == "dict" and op == "join":
             if self.comm.rank == 0:
@@ -759,7 +758,14 @@ class Communicator:
                     data.update(self.comm.recv(source=i, tag=0))
             else:
                 self.comm.send(data, dest=0, tag=0)
-            data = self.comm.bcast(data, root=0)
+
+            # Send the keys first, then each item one by one
+            # This is to prevent MPI from crashing when sending more
+            # than 2GiB of data over the network.
+            keys = self.comm.bcast(list(data.keys()), root=0)
+            for key in keys:
+                tmp = data.get(key, None)
+                data[key] = self.comm.bcast(tmp, root=0)
             return data
         elif datatype == "dict" and op == "cat":
             field_keys = sorted(data.keys())
@@ -874,7 +880,7 @@ class Communicator:
     @parallel_passthrough
     def mpi_allreduce(self, data, dtype=None, op="sum"):
         op = op_names[op]
-        if isinstance(data, np.ndarray) and data.dtype != np.bool:
+        if isinstance(data, np.ndarray) and data.dtype != bool:
             if dtype is None:
                 dtype = data.dtype
             if dtype != data.dtype:
@@ -915,7 +921,7 @@ class Communicator:
         MPI.Request.Waitall(hooks)
 
     def mpi_Request_Waititer(self, hooks):
-        for i in range(len(hooks)):
+        for _hook in hooks:
             req = MPI.Request.Waitany(hooks)
             yield req
 
@@ -1186,7 +1192,9 @@ class ParallelAnalysisInterface:
         for field in fields:
             if any(getattr(v, "ghost_zones", 0) > 0 for v in fi[field].validators):
                 continue
-            deps += ensure_list(fi[field].get_dependencies(ds=self.ds).requested)
+            deps += list(
+                always_iterable(fi[field].get_dependencies(ds=self.ds).requested)
+            )
         return list(set(deps))
 
     def _initialize_parallel(self):
@@ -1233,7 +1241,7 @@ class ParallelAnalysisInterface:
             return False, LE, RE, ds
         if not self._distributed and subvol:
             return True, LE, RE, self.ds.region(self.center, LE - padding, RE + padding)
-        elif ytcfg.getboolean("yt", "inline"):
+        elif ytcfg.get("yt", "inline"):
             # At this point, we want to identify the root grid tile to which
             # this processor is assigned.
             # The only way I really know how to do this is to get the level-0
@@ -1270,7 +1278,6 @@ class ParallelAnalysisInterface:
         LE, RE = left_edge[:], right_edge[:]
         if not self._distributed:
             raise NotImplementedError
-            return LE, RE  # , re
 
         cc = MPI.Compute_dims(self.comm.size / rank_ratio, 3)
         mi = self.comm.rank % (self.comm.size // rank_ratio)
@@ -1351,7 +1358,7 @@ class GroupOwnership(ParallelAnalysisInterface):
         old_item = self.item
         if n == -1:
             n = self.comm.size
-        for i in range(n):
+        for _ in range(n):
             if self.pointer >= self.num_items - self.comm.size:
                 break
             self.owned[self.pointer % self.comm.size] += self.comm.size
@@ -1363,7 +1370,7 @@ class GroupOwnership(ParallelAnalysisInterface):
         old_item = self.item
         if n == -1:
             n = self.comm.size
-        for i in range(n):
+        for _ in range(n):
             if self.pointer == 0:
                 break
             self.owned[(self.pointer - 1) % self.comm.size] -= self.comm.size

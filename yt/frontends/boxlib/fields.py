@@ -3,7 +3,9 @@ import string
 
 import numpy as np
 
+from yt._typing import KnownFieldsT
 from yt.fields.field_info_container import FieldInfoContainer
+from yt.frontends.boxlib.misc import BoxlibSetupParticleFieldsMixin
 from yt.units import YTQuantity
 from yt.utilities.physical_constants import amu_cgs, boltzmann_constant_cgs, c
 
@@ -21,21 +23,25 @@ def _thermal_energy_density(field, data):
     #   rho e = rho E - rho * u * u / 2
     ke = (
         0.5
-        * (data["momentum_x"] ** 2 + data["momentum_y"] ** 2 + data["momentum_z"] ** 2)
-        / data["density"]
+        * (
+            data[("gas", "momentum_density_x")] ** 2
+            + data[("gas", "momentum_density_y")] ** 2
+            + data[("gas", "momentum_density_z")] ** 2
+        )
+        / data[("gas", "density")]
     )
-    return data["eden"] - ke
+    return data[("boxlib", "eden")] - ke
 
 
-def _thermal_energy(field, data):
+def _specific_thermal_energy(field, data):
     # This is little e, so we take thermal_energy_density and divide by density
-    return data["thermal_energy_density"] / data["density"]
+    return data[("gas", "thermal_energy_density")] / data[("gas", "density")]
 
 
 def _temperature(field, data):
     mu = data.ds.parameters["mu"]
     gamma = data.ds.parameters["gamma"]
-    tr = data["thermal_energy_density"] / data["density"]
+    tr = data[("gas", "thermal_energy_density")] / data[("gas", "density")]
     tr *= mu * amu_cgs / boltzmann_constant_cgs
     tr *= gamma - 1.0
     return tr
@@ -43,7 +49,7 @@ def _temperature(field, data):
 
 class WarpXFieldInfo(FieldInfoContainer):
 
-    known_other_fields = (
+    known_other_fields: KnownFieldsT = (
         ("Bx", ("T", ["magnetic_field_x", "B_x"], None)),
         ("By", ("T", ["magnetic_field_y", "B_y"], None)),
         ("Bz", ("T", ["magnetic_field_z", "B_z"], None)),
@@ -55,7 +61,7 @@ class WarpXFieldInfo(FieldInfoContainer):
         ("jz", ("A", ["current_z", "Jz", "J_z"], None)),
     )
 
-    known_particle_fields = (
+    known_particle_fields: KnownFieldsT = (
         ("particle_weight", ("", ["particle_weighting"], None)),
         ("particle_position_x", ("m", [], None)),
         ("particle_position_y", ("m", [], None)),
@@ -75,7 +81,7 @@ class WarpXFieldInfo(FieldInfoContainer):
     )
 
     def __init__(self, ds, field_list):
-        super(WarpXFieldInfo, self).__init__(ds, field_list)
+        super().__init__(ds, field_list)
 
         # setup nodal flag information
         for field in ds.index.raw_fields:
@@ -88,12 +94,12 @@ class WarpXFieldInfo(FieldInfoContainer):
             self.alias(("mesh", fname), ("boxlib", fname))
 
     def setup_fluid_aliases(self):
-        super(WarpXFieldInfo, self).setup_fluid_aliases("mesh")
+        super().setup_fluid_aliases("mesh")
 
     def setup_particle_fields(self, ptype):
         def get_mass(field, data):
             species_mass = data.ds.index.parameters[ptype + "_mass"]
-            return data["particle_weight"] * YTQuantity(species_mass, "kg")
+            return data[(ptype, "particle_weight")] * YTQuantity(species_mass, "kg")
 
         self.add_field(
             (ptype, "particle_mass"),
@@ -104,7 +110,7 @@ class WarpXFieldInfo(FieldInfoContainer):
 
         def get_charge(field, data):
             species_charge = data.ds.index.parameters[ptype + "_charge"]
-            return data["particle_weight"] * YTQuantity(species_charge, "C")
+            return data[(ptype, "particle_weight")] * YTQuantity(species_charge, "C")
 
         self.add_field(
             (ptype, "particle_charge"),
@@ -170,25 +176,24 @@ class WarpXFieldInfo(FieldInfoContainer):
             units="m/s",
         )
 
-        super(WarpXFieldInfo, self).setup_particle_fields(ptype)
+        super().setup_particle_fields(ptype)
 
 
 class NyxFieldInfo(FieldInfoContainer):
-    known_other_fields = ()
-    known_particle_fields = (
+    known_particle_fields: KnownFieldsT = (
         ("particle_position_x", ("code_length", [], None)),
         ("particle_position_y", ("code_length", [], None)),
         ("particle_position_z", ("code_length", [], None)),
     )
 
 
-class BoxlibFieldInfo(FieldInfoContainer):
-    known_other_fields = (
+class BoxlibFieldInfo(FieldInfoContainer, BoxlibSetupParticleFieldsMixin):
+    known_other_fields: KnownFieldsT = (
         ("density", (rho_units, ["density"], None)),
-        ("eden", (eden_units, ["energy_density"], None)),
-        ("xmom", (mom_units, ["momentum_x"], None)),
-        ("ymom", (mom_units, ["momentum_y"], None)),
-        ("zmom", (mom_units, ["momentum_z"], None)),
+        ("eden", (eden_units, ["total_energy_density"], None)),
+        ("xmom", (mom_units, ["momentum_density_x"], None)),
+        ("ymom", (mom_units, ["momentum_density_y"], None)),
+        ("zmom", (mom_units, ["momentum_density_z"], None)),
         ("temperature", ("K", ["temperature"], None)),
         ("Temp", ("K", ["temperature"], None)),
         ("x_velocity", ("cm/s", ["velocity_x"], None)),
@@ -199,7 +204,7 @@ class BoxlibFieldInfo(FieldInfoContainer):
         ("zvel", ("cm/s", ["velocity_z"], None)),
     )
 
-    known_particle_fields = (
+    known_particle_fields: KnownFieldsT = (
         ("particle_mass", ("code_mass", [], None)),
         ("particle_position_x", ("code_length", [], None)),
         ("particle_position_y", ("code_length", [], None)),
@@ -221,23 +226,6 @@ class BoxlibFieldInfo(FieldInfoContainer):
         # "luminosity",
     )
 
-    def setup_particle_fields(self, ptype):
-        def _get_vel(axis):
-            def velocity(field, data):
-                return data["particle_momentum_%s" % axis] / data["particle_mass"]
-
-            return velocity
-
-        for ax in "xyz":
-            self.add_field(
-                (ptype, "particle_velocity_%s" % ax),
-                sampling_type="particle",
-                function=_get_vel(ax),
-                units="code_length/code_time",
-            )
-
-        super(BoxlibFieldInfo, self).setup_particle_fields(ptype)
-
     def setup_fluid_fields(self):
         unit_system = self.ds.unit_system
         # Now, let's figure out what fields are included.
@@ -246,9 +234,9 @@ class BoxlibFieldInfo(FieldInfoContainer):
         elif any(f[1] == "xvel" for f in self.field_list):
             self.setup_velocity_to_momentum()
         self.add_field(
-            ("gas", "thermal_energy"),
+            ("gas", "specific_thermal_energy"),
             sampling_type="cell",
-            function=_thermal_energy,
+            function=_specific_thermal_energy,
             units=unit_system["specific_energy"],
         )
         self.add_field(
@@ -268,13 +256,13 @@ class BoxlibFieldInfo(FieldInfoContainer):
     def setup_momentum_to_velocity(self):
         def _get_vel(axis):
             def velocity(field, data):
-                return data["%smom" % axis] / data["density"]
+                return data[("boxlib", f"{axis}mom")] / data[("boxlib", "density")]
 
             return velocity
 
         for ax in "xyz":
             self.add_field(
-                ("gas", "velocity_%s" % ax),
+                ("gas", f"velocity_{ax}"),
                 sampling_type="cell",
                 function=_get_vel(ax),
                 units=self.ds.unit_system["velocity"],
@@ -283,13 +271,13 @@ class BoxlibFieldInfo(FieldInfoContainer):
     def setup_velocity_to_momentum(self):
         def _get_mom(axis):
             def momentum(field, data):
-                return data["%svel" % axis] * data["density"]
+                return data[("boxlib", f"{axis}vel")] * data[("boxlib", "density")]
 
             return momentum
 
         for ax in "xyz":
             self.add_field(
-                ("gas", "momentum_%s" % ax),
+                ("gas", f"momentum_density_{ax}"),
                 sampling_type="cell",
                 function=_get_mom(ax),
                 units=mom_units,
@@ -298,16 +286,16 @@ class BoxlibFieldInfo(FieldInfoContainer):
 
 class CastroFieldInfo(FieldInfoContainer):
 
-    known_other_fields = (
+    known_other_fields: KnownFieldsT = (
         ("density", ("g/cm**3", ["density"], r"\rho")),
-        ("xmom", ("g/(cm**2 * s)", ["momentum_x"], r"\rho u")),
-        ("ymom", ("g/(cm**2 * s)", ["momentum_y"], r"\rho v")),
-        ("zmom", ("g/(cm**2 * s)", ["momentum_z"], r"\rho w")),
+        ("xmom", ("g/(cm**2 * s)", ["momentum_density_x"], r"\rho u")),
+        ("ymom", ("g/(cm**2 * s)", ["momentum_density_y"], r"\rho v")),
+        ("zmom", ("g/(cm**2 * s)", ["momentum_density_z"], r"\rho w")),
         # velocity components are not always present
         ("x_velocity", ("cm/s", ["velocity_x"], r"u")),
         ("y_velocity", ("cm/s", ["velocity_y"], r"v")),
         ("z_velocity", ("cm/s", ["velocity_z"], r"w")),
-        ("rho_E", ("erg/cm**3", ["energy_density"], r"\rho E")),
+        ("rho_E", ("erg/cm**3", ["total_energy_density"], r"\rho E")),
         # internal energy density (not just thermal)
         ("rho_e", ("erg/cm**3", [], r"\rho e")),
         ("Temp", ("K", ["temperature"], r"T")),
@@ -315,7 +303,10 @@ class CastroFieldInfo(FieldInfoContainer):
         ("grav_y", ("cm/s**2", [], r"\mathbf{g} \cdot \mathbf{e}_y")),
         ("grav_z", ("cm/s**2", [], r"\mathbf{g} \cdot \mathbf{e}_z")),
         ("pressure", ("dyne/cm**2", [], r"p")),
-        ("kineng", ("erg/cm**3", ["kinetic_energy"], r"\frac{1}{2}\rho|\mathbf{U}|^2")),
+        (
+            "kineng",
+            ("erg/cm**3", ["kinetic_energy_density"], r"\frac{1}{2}\rho|\mathbf{U}|^2"),
+        ),
         ("soundspeed", ("cm/s", ["sound_speed"], "Sound Speed")),
         ("Machnumber", ("", ["mach_number"], "Mach Number")),
         ("entropy", ("erg/(g*K)", ["entropy"], r"s")),
@@ -339,7 +330,7 @@ class CastroFieldInfo(FieldInfoContainer):
         ("rot_z", ("cm/s**2", [], r"\mathbf{f}_{\rm{rot}} \cdot \mathbf{e}_z")),
     )
 
-    known_particle_fields = (
+    known_particle_fields: KnownFieldsT = (
         ("particle_position_x", ("code_length", [], None)),
         ("particle_position_y", ("code_length", [], None)),
         ("particle_position_z", ("code_length", [], None)),
@@ -352,11 +343,11 @@ class CastroFieldInfo(FieldInfoContainer):
                 # We have a fraction
                 nice_name, tex_label = _nice_species_name(field)
                 self.alias(
-                    ("gas", "%s_fraction" % nice_name), ("boxlib", field), units=""
+                    ("gas", f"{nice_name}_fraction"), ("boxlib", field), units=""
                 )
-                func = _create_density_func(("gas", "%s_fraction" % nice_name))
+                func = _create_density_func(("gas", f"{nice_name}_fraction"))
                 self.add_field(
-                    name=("gas", "%s_density" % nice_name),
+                    name=("gas", f"{nice_name}_density"),
                     sampling_type="cell",
                     function=func,
                     units=self.ds.unit_system["density"],
@@ -373,7 +364,7 @@ class CastroFieldInfo(FieldInfoContainer):
 
 class MaestroFieldInfo(FieldInfoContainer):
 
-    known_other_fields = (
+    known_other_fields: KnownFieldsT = (
         ("density", ("g/cm**3", ["density"], None)),
         ("x_vel", ("cm/s", ["velocity_x"], r"\tilde{u}")),
         ("y_vel", ("cm/s", ["velocity_y"], r"\tilde{v}")),
@@ -397,13 +388,13 @@ class MaestroFieldInfo(FieldInfoContainer):
         ("S", ("1/s", [], None)),
         ("ad_excess", ("", [], r"\nabla - \nabla_\mathrm{ad}")),
         ("deltaT", ("", [], "[T(\\rho,h,X) - T(\\rho,p,X)]/T(\\rho,h,X)")),
-        ("deltagamma", ("", [], "\Gamma_1 - \overline{\Gamma_1}")),
+        ("deltagamma", ("", [], r"\Gamma_1 - \overline{\Gamma_1}")),
         ("deltap", ("", [], "[p(\\rho,h,X) - p_0] / p_0")),
         ("divw0", ("1/s", [], r"\nabla \cdot \mathbf{w}_0")),
         # Specific entropy
         ("entropy", ("erg/(g*K)", ["entropy"], "s")),
-        ("entropypert", ("", [], "[s - \overline{s}] / \overline{s}")),
-        ("enucdot", ("erg/(g*s)", [], "\dot{\epsilon}_{nuc}")),
+        ("entropypert", ("", [], r"[s - \overline{s}] / \overline{s}")),
+        ("enucdot", ("erg/(g*s)", [], r"\dot{\epsilon}_{nuc}")),
         ("Hext", ("erg/(g*s)", [], "H_{ext}")),
         # Perturbational pressure grad
         ("gpi_x", ("dyne/cm**3", [], r"\left(\nabla\pi\right)_x")),
@@ -415,19 +406,19 @@ class MaestroFieldInfo(FieldInfoContainer):
         # full state.
         ("momentum", ("g*cm/s", ["momentum_magnitude"], r"\rho |\mathbf{U}|")),
         ("p0", ("erg/cm**3", [], "p_0")),
-        ("p0pluspi", ("erg/cm**3", [], "p_0 + \pi")),
-        ("pi", ("erg/cm**3", [], "\pi")),
-        ("pioverp0", ("", [], "\pi/p_0")),
+        ("p0pluspi", ("erg/cm**3", [], r"p_0 + \pi")),
+        ("pi", ("erg/cm**3", [], r"\pi")),
+        ("pioverp0", ("", [], r"\pi/p_0")),
         # Base state density
         ("rho0", ("g/cm**3", [], "\\rho_0")),
         ("rhoh", ("erg/cm**3", ["enthalpy_density"], "(\\rho h)")),
         # Base state enthalpy density
         ("rhoh0", ("erg/cm**3", [], "(\\rho h)_0")),
-        ("rhohpert", ("erg/cm**3", [], "(\\rho h)^\prime")),
-        ("rhopert", ("g/cm**3", [], "\\rho^\prime")),
+        ("rhohpert", ("erg/cm**3", [], "(\\rho h)^\\prime")),
+        ("rhopert", ("g/cm**3", [], "\\rho^\\prime")),
         ("soundspeed", ("cm/s", ["sound_speed"], None)),
         ("sponge", ("", [], None)),
-        ("tpert", ("K", [], "T - \overline{T}")),
+        ("tpert", ("K", [], r"T - \overline{T}")),
         # Again, base state -- so we can't compute ourselves.
         ("vort", ("1/s", ["vorticity_magnitude"], r"|\nabla\times\tilde{U}|")),
         # Base state
@@ -465,11 +456,11 @@ class MaestroFieldInfo(FieldInfoContainer):
                     display_name=tex_label,
                 )
                 self.alias(
-                    ("gas", "%s_fraction" % nice_name), ("boxlib", field), units=""
+                    ("gas", f"{nice_name}_fraction"), ("boxlib", field), units=""
                 )
-                func = _create_density_func(("gas", "%s_fraction" % nice_name))
+                func = _create_density_func(("gas", f"{nice_name}_fraction"))
                 self.add_field(
-                    name=("gas", "%s_density" % nice_name),
+                    name=("gas", f"{nice_name}_density"),
                     sampling_type="cell",
                     function=func,
                     units=unit_system["density"],
@@ -501,7 +492,7 @@ class MaestroFieldInfo(FieldInfoContainer):
                     display_name=display_name,
                 )
                 self.alias(
-                    ("gas", "%s_creation_rate" % nice_name),
+                    ("gas", f"{nice_name}_creation_rate"),
                     ("boxlib", field),
                     units=unit_system["frequency"],
                 )

@@ -44,10 +44,10 @@ def get_nodal_slices(shape, nodal_flag, dim):
         else:
             dir_slices[i] = [slice(0, shape[i])]
 
-    for i, sl_i in enumerate(dir_slices[0]):
-        for j, sl_j in enumerate(dir_slices[1]):
+    for sl_i in dir_slices[0]:
+        for sl_j in dir_slices[1]:
             if dim > 2:
-                for k, sl_k in enumerate(dir_slices[2]):
+                for sl_k in dir_slices[2]:
                     slices.append([sl_i, sl_j, sl_k])
             else:
                 slices.append([sl_i, sl_j])

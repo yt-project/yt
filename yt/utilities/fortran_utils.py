@@ -1,18 +1,8 @@
+import io
 import os
 import struct
 
 import numpy as np
-
-# This may not be the correct way to do this.  We should investigate what NumPy
-# does.
-try:
-    file
-except NameError:
-    # What we're doing here is making it always fail, so we read things in and
-    # THEN call numpy's fromstring.  I can't figure out an easy way of telling if
-    # an object is an actual file, reliably.
-    class file:
-        pass
 
 
 def read_attrs(f, attrs, endian="="):
@@ -46,13 +36,13 @@ def read_attrs(f, attrs, endian="="):
     Examples
     --------
 
-    >>> header = [ ("ncpu", 1, "i"), ("nfiles", 2, "i") ]
+    >>> header = [("ncpu", 1, "i"), ("nfiles", 2, "i")]
     >>> f = open("fort.3", "rb")
     >>> rv = read_attrs(f, header)
     """
     vv = {}
     net_format = endian
-    for a, n, t in attrs:
+    for _a, n, t in attrs:
         for end in "@=<>":
             t = t.replace(end, "")
         net_format += "".join(["I"] + ([t] * n) + ["I"])
@@ -69,8 +59,8 @@ def read_attrs(f, attrs, endian="="):
         s2 = vals.pop(0)
         if s1 != s2:
             size = struct.calcsize(endian + "I" + "".join(n * [t]) + "I")
-            raise IOError(
-                "An error occured while reading a Fortran record. "
+            raise OSError(
+                "An error occurred while reading a Fortran record. "
                 "Got a different size at the beginning and at the "
                 "end of the record: %s %s",
                 s1,
@@ -80,8 +70,8 @@ def read_attrs(f, attrs, endian="="):
             v = v[0]
         if isinstance(a, tuple):
             if len(a) != len(v):
-                raise IOError(
-                    "An error occured while reading a Fortran "
+                raise OSError(
+                    "An error occurred while reading a Fortran "
                     "record. Record length is not equal to expected "
                     "length: %s %s",
                     len(a),
@@ -124,13 +114,13 @@ def read_cattrs(f, attrs, endian="="):
     Examples
     --------
 
-    >>> header = [ ("ncpu", 1, "i"), ("nfiles", 2, "i") ]
+    >>> header = [("ncpu", 1, "i"), ("nfiles", 2, "i")]
     >>> f = open("cdata.bin", "rb")
     >>> rv = read_cattrs(f, header)
     """
     vv = {}
     net_format = endian
-    for a, n, t in attrs:
+    for _a, n, t in attrs:
         for end in "@=<>":
             t = t.replace(end, "")
         net_format += "".join([t] * n)
@@ -147,8 +137,8 @@ def read_cattrs(f, attrs, endian="="):
             v = v[0]
         if isinstance(a, tuple):
             if len(a) != len(v):
-                raise IOError(
-                    "An error occured while reading a Fortran "
+                raise OSError(
+                    "An error occurred while reading a Fortran "
                     "record. Record length is not equal to expected "
                     "length: %s %s",
                     len(a),
@@ -184,29 +174,29 @@ def read_vector(f, d, endian="="):
     --------
 
     >>> f = open("fort.3", "rb")
-    >>> rv = read_vector(f, 'd')
+    >>> rv = read_vector(f, "d")
     """
-    pad_fmt = "%sI" % (endian)
+    pad_fmt = f"{endian}I"
     pad_size = struct.calcsize(pad_fmt)
     vec_len = struct.unpack(pad_fmt, f.read(pad_size))[0]  # bytes
-    vec_fmt = "%s%s" % (endian, d)
+    vec_fmt = f"{endian}{d}"
     vec_size = struct.calcsize(vec_fmt)
     if vec_len % vec_size != 0:
-        raise IOError(
-            "An error occured while reading a Fortran record. "
+        raise OSError(
+            "An error occurred while reading a Fortran record. "
             "Vector length is not compatible with data type: %s %s",
             vec_len,
             vec_size,
         )
     vec_num = int(vec_len / vec_size)
-    if isinstance(f, file):  # Needs to be explicitly a file
-        tr = np.fromfile(f, vec_fmt, count=vec_num)
+    if isinstance(f, io.IOBase):
+        tr = np.frombuffer(f.read(vec_len), vec_fmt, count=vec_num)
     else:
-        tr = np.fromstring(f.read(vec_len), vec_fmt, count=vec_num)
+        tr = np.frombuffer(f, vec_fmt, count=vec_num)
     vec_len2 = struct.unpack(pad_fmt, f.read(pad_size))[0]
     if vec_len != vec_len2:
-        raise IOError(
-            "An error occured while reading a Fortran record. "
+        raise OSError(
+            "An error occurred while reading a Fortran record. "
             "Got a different size at the beginning and at the "
             "end of the record: %s %s",
             vec_len,
@@ -248,8 +238,8 @@ def skip(f, n=1, endian="="):
         f.seek(s1 + fmt_size, os.SEEK_CUR)
         s2 = struct.unpack(fmt, size)[0]
         if s1 != s2:
-            raise IOError(
-                "An error occured while reading a Fortran record. "
+            raise OSError(
+                "An error occurred while reading a Fortran record. "
                 "Got a different size at the beginning and at the "
                 "end of the record: %s %s",
                 s1,
@@ -261,7 +251,7 @@ def skip(f, n=1, endian="="):
 
 
 def peek_record_size(f, endian="="):
-    r""" This function accept the file handle and returns
+    r"""This function accept the file handle and returns
     the size of the next record and then rewinds the file
     to the previous position.
 
@@ -309,29 +299,29 @@ def read_record(f, rspec, endian="="):
     Examples
     --------
 
-    >>> header = [ ("ncpu", 1, "i"), ("nfiles", 2, "i") ]
+    >>> header = [("ncpu", 1, "i"), ("nfiles", 2, "i")]
     >>> f = open("fort.3", "rb")
     >>> rv = read_record(f, header)
     """
     vv = {}
     net_format = endian + "I"
-    for a, n, t in rspec:
+    for _a, n, t in rspec:
         t = t if len(t) == 1 else t[-1]
-        net_format += "%s%s" % (n, t)
+        net_format += f"{n}{t}"
     net_format += "I"
     size = struct.calcsize(net_format)
     vals = list(struct.unpack(net_format, f.read(size)))
     s1, s2 = vals.pop(0), vals.pop(-1)
     if s1 != s2:
-        raise IOError(
-            "An error occured while reading a Fortran record. Got "
+        raise OSError(
+            "An error occurred while reading a Fortran record. Got "
             "a different size at the beginning and at the end of "
             "the record: %s %s",
             s1,
             s2,
         )
     pos = 0
-    for a, n, t in rspec:
+    for a, n, _t in rspec:
         vv[a] = vals[pos : pos + n]
         pos += n
     return vv

@@ -3,10 +3,10 @@ from collections import defaultdict
 
 import numpy as np
 
-from yt.frontends.chombo.io import parse_orion_sinks
 from yt.funcs import mylog
-from yt.geometry.selection_routines import GridSelector
 from yt.utilities.io_handler import BaseIOHandler
+
+from .misc import BoxlibParticleSelectionMixin, IOHandlerParticlesBoxlibMixin
 
 
 def _remove_raw(all_fields, raw_fields):
@@ -16,12 +16,12 @@ def _remove_raw(all_fields, raw_fields):
     return list(centered_fields)
 
 
-class IOHandlerBoxlib(BaseIOHandler):
+class IOHandlerBoxlib(BaseIOHandler, BoxlibParticleSelectionMixin):
 
     _dataset_type = "boxlib_native"
 
     def __init__(self, ds, *args, **kwargs):
-        super(IOHandlerBoxlib, self).__init__(ds)
+        super().__init__(ds)
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         chunks = list(chunks)
@@ -82,10 +82,10 @@ class IOHandlerBoxlib(BaseIOHandler):
             arr = np.fromfile(f, "float64", np.product(shape))
             arr = arr.reshape(shape, order="F")
         return arr[
-            [
+            tuple(
                 slice(None) if (nghost[dim] == 0) else slice(nghost[dim], -nghost[dim])
                 for dim in range(self.ds.dimensionality)
-            ]
+            )
         ]
 
     def _read_chunk_data(self, chunk, fields):
@@ -118,11 +118,14 @@ class IOHandlerBoxlib(BaseIOHandler):
                         local_offset = 0
                     else:
                         local_offset += size
+            f.close()
         return data
 
     def _read_particle_coords(self, chunks, ptf):
-        for rv in self._read_particle_fields(chunks, ptf, None):
-            yield rv
+        yield from (
+            (ptype, xyz, 0.0)
+            for ptype, xyz in self._read_particle_fields(chunks, ptf, None)
+        )
 
     def _read_particle_fields(self, chunks, ptf, selector):
         for chunk in chunks:  # These should be organized by grid filename
@@ -188,80 +191,12 @@ class IOHandlerBoxlib(BaseIOHandler):
                                 yield (ptype, field), data[mask].flatten()
 
 
-class IOHandlerOrion(IOHandlerBoxlib):
+class IOHandlerOrion(IOHandlerBoxlib, IOHandlerParticlesBoxlibMixin):
     _dataset_type = "orion_native"
-
-    _particle_filename = None
 
     @property
     def particle_filename(self):
         fn = self.ds.output_dir + "/StarParticles"
         if not os.path.exists(fn):
             fn = self.ds.output_dir + "/SinkParticles"
-        self._particle_filename = fn
-        return self._particle_filename
-
-    _particle_field_index = None
-
-    @property
-    def particle_field_index(self):
-
-        index = parse_orion_sinks(self.particle_filename)
-
-        self._particle_field_index = index
-        return self._particle_field_index
-
-    def _read_particle_selection(self, chunks, selector, fields):
-        rv = {}
-        chunks = list(chunks)
-
-        if isinstance(selector, GridSelector):
-
-            if not (len(chunks) == len(chunks[0].objs) == 1):
-                raise RuntimeError
-
-            grid = chunks[0].objs[0]
-
-            for ftype, fname in fields:
-                rv[ftype, fname] = self._read_particles(grid, fname)
-
-            return rv
-
-        rv = {f: np.array([]) for f in fields}
-        for chunk in chunks:
-            for grid in chunk.objs:
-                for ftype, fname in fields:
-                    data = self._read_particles(grid, fname)
-                    rv[ftype, fname] = np.concatenate((data, rv[ftype, fname]))
-        return rv
-
-    def _read_particles(self, grid, field):
-        """
-        parses the Orion Star Particle text files
-
-        """
-
-        particles = []
-
-        if grid.NumberOfParticles == 0:
-            return np.array(particles)
-
-        def read(line, field):
-            entry = line.strip().split(" ")[self.particle_field_index[field]]
-            return np.float(entry)
-
-        try:
-            lines = self._cached_lines
-            for num in grid._particle_line_numbers:
-                line = lines[num]
-                particles.append(read(line, field))
-            return np.array(particles)
-        except AttributeError:
-            fn = self.particle_filename
-            with open(fn, "r") as f:
-                lines = f.readlines()
-                self._cached_lines = lines
-                for num in grid._particle_line_numbers:
-                    line = lines[num]
-                    particles.append(read(line, field))
-            return np.array(particles)
+        return fn

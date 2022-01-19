@@ -8,12 +8,12 @@ import numpy as np
 
 def get_num_pseudo_dims(coords):
     D = coords.shape[1]
-    return sum([np.all(coords[:, dim] == 0.0) for dim in range(D)])
+    return sum(np.all(coords[:, dim] == 0.0) for dim in range(D))
 
 
 def sanitize_string(s):
-    _printable = set([ord(_) for _ in string.printable])
-    return "".join([chr(_) for _ in takewhile(lambda a: a in _printable, s)])
+    _printable = {ord(_) for _ in string.printable}
+    return "".join(chr(_) for _ in takewhile(lambda a: a in _printable, s))
 
 
 def load_info_records(info_records):
@@ -56,7 +56,7 @@ def group_by_sections(info_records):
 def get_top_levels(info_records):
     top_levels = []
     for idx, line in enumerate(info_records):
-        pattern = re.compile("###[a-zA-Z\s]+")
+        pattern = re.compile(r"###[a-zA-Z\s]+")
         if pattern.match(line):
             clean_line = re.sub(r"[^\w\s]", "", line).lstrip().rstrip()
             top_levels.append([idx, clean_line])

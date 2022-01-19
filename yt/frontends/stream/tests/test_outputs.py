@@ -5,14 +5,12 @@ import unittest
 
 import numpy as np
 
-from yt.convenience import load
-from yt.frontends.stream.data_structures import load_particles, load_uniform_grid
+from yt.loaders import load_particles, load_uniform_grid
 from yt.testing import assert_equal, assert_raises
 from yt.utilities.exceptions import (
     YTInconsistentGridFieldShape,
     YTInconsistentGridFieldShapeGridDims,
     YTInconsistentParticleFieldShape,
-    YTOutputNotIdentified,
 )
 
 
@@ -31,11 +29,6 @@ class TestEmptyLoad(unittest.TestCase):
     def tearDown(self):
         os.chdir(self.curdir)
         shutil.rmtree(self.tmpdir)
-
-    def test_load_empty_file(self):
-        assert_raises(YTOutputNotIdentified, load, "not_a_file")
-        assert_raises(YTOutputNotIdentified, load, "empty_file")
-        assert_raises(YTOutputNotIdentified, load, "empty_directory")
 
 
 def test_dimensionless_field_units():

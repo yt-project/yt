@@ -10,7 +10,7 @@
 # If you would like to customize the yt installation, then please edit
 # the following options.
 
-# If you do not have a working compiler environment, use the following 
+# If you do not have a working compiler environment, use the following
 # configuration:
 
 INST_YT_SOURCE=0   # Should yt itself be installed from source?
@@ -38,7 +38,7 @@ INST_NETCDF4=1  # Install netcdf4 and its python bindings?
 INST_POOCH=1    # Install pooch?
 
 # This is the branch we will install from for INST_YT_SOURCE=1
-BRANCH="master"
+BRANCH="main"
 
 # These variables control which miniconda version is used
 
@@ -129,7 +129,6 @@ function write_config
     echo INST_YT_SOURCE=${INST_YT_SOURCE} > ${CONFIG_FILE}
     echo INST_GIT=${INST_GIT} >> ${CONFIG_FILE}
     echo INST_PYX=${INST_PYX} >> ${CONFIG_FILE}
-    echo INST_PY3=${INST_PY3} >> ${CONFIG_FILE}
     echo INST_SCIPY=${INST_SCIPY} >> ${CONFIG_FILE}
     echo INST_EMBREE=${INST_EMBREE} >> ${CONFIG_FILE}
     echo INST_H5PY=${INST_H5PY} >> ${CONFIG_FILE}
@@ -298,10 +297,6 @@ echo
 printf "%-18s = %s so I " "INST_YT_SOURCE" "${INST_YT_SOURCE}"
 get_willwont ${INST_YT_SOURCE}
 echo "be compiling yt from source"
-
-printf "%-18s = %s so I " "INST_PY3" "${INST_PY3}"
-get_willwont ${INST_PY3}
-echo "be installing Python 3"
 
 printf "%-18s = %s so I " "INST_GIT" "${INST_GIT}"
 get_willwont ${INST_GIT}
@@ -538,7 +533,7 @@ if [ $INST_YT_SOURCE -eq 1 ]
 then
     log_cmd ${GIT_EXE} clone https://github.com/yt-project/yt_conda ${DEST_DIR}/src/yt_conda
 fi
-    
+
 if [ $INST_EMBREE -eq 1 ]
 then
     echo "Installing Embree"
@@ -558,7 +553,7 @@ then
     else
         ln -s ${DEST_DIR}/lib/libembree.so.2 ${DEST_DIR}/lib/libembree.so
     fi
-    
+
     echo "Installing pyembree from source"
     ( ${GETFILE} "$PYEMBREE_URL" 2>&1 ) 1>> ${LOG_FILE} || do_exit
     log_cmd unzip ${DEST_DIR}/src/master.zip
@@ -630,7 +625,7 @@ echo
 echo "    https://mail.python.org/archives/list/yt-users@python.org/"
 echo
 echo "You must now prepend the following folder to your PATH environment variable:"
-echo 
+echo
 echo "    $DEST_DIR/bin"
 echo
 echo "On Bash-style shells you can copy/paste the following command to "

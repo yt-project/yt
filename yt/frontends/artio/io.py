@@ -7,7 +7,7 @@ class IOHandlerARTIO(BaseIOHandler):
     _dataset_type = "artio"
 
     def _read_fluid_selection(self, chunks, selector, fields):
-        tr = dict((ftuple, np.empty(0, dtype="float64")) for ftuple in fields)
+        tr = {ftuple: np.empty(0, dtype="float64") for ftuple in fields}
         cp = 0
         for onechunk in chunks:
             for artchunk in onechunk.objs:
@@ -25,11 +25,11 @@ class IOHandlerARTIO(BaseIOHandler):
         for chunk in chunks:  # These should be organized by grid filename
             for subset in chunk.objs:
                 rv = dict(**subset.fill_particles(fields))
-                for ptype, field_list in sorted(ptf.items()):
+                for ptype in sorted(ptf):
                     x, y, z = (
                         np.asarray(rv[ptype][pn % ax], dtype="=f8") for ax in "XYZ"
                     )
-                    yield ptype, (x, y, z)
+                    yield ptype, (x, y, z), 0.0
                     rv.pop(ptype)
 
     def _read_particle_fields(self, chunks, ptf, selector):

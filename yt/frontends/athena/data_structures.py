@@ -1,14 +1,15 @@
 import os
+import re
 import weakref
 
 import numpy as np
 
-from yt.data_objects.grid_patch import AMRGridPatch
+from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
-from yt.funcs import ensure_tuple, mylog, sglob
+from yt.funcs import mylog, sglob
 from yt.geometry.geometry_handler import YTDataChunk
 from yt.geometry.grid_geometry_handler import GridIndex
-from yt.utilities.chemical_formulas import default_mu
+from yt.utilities.chemical_formulas import compute_mu
 from yt.utilities.decompose import decompose_array, get_psize
 from yt.utilities.lib.misc_utilities import get_box_grids_level
 
@@ -158,8 +159,9 @@ class AthenaHierarchy(GridIndex):
                     grid_dims[grid_dims == 0] = 1
                 if np.prod(grid_dims) != grid_ncells:
                     mylog.error(
-                        "product of dimensions %i not equal to number of cells %i"
-                        % (np.prod(grid_dims), grid_ncells)
+                        "product of dimensions %i not equal to number of cells %i",
+                        np.prod(grid_dims),
+                        grid_ncells,
                     )
                     raise TypeError
                 break
@@ -187,7 +189,7 @@ class AthenaHierarchy(GridIndex):
                 field = str23(splitup[1])
                 dtype = str23(splitup[-1]).lower()
                 for ax in "xyz":
-                    field_map[("athena", "%s_%s" % (field, ax))] = (
+                    field_map[("athena", f"{field}_{ax}")] = (
                         "vector",
                         f.tell() - read_table_offset,
                         dtype,
@@ -222,8 +224,9 @@ class AthenaHierarchy(GridIndex):
             grid["dimensions"][grid["dimensions"] == 0] = 1
         if np.prod(grid["dimensions"]) != grid["ncells"]:
             mylog.error(
-                "product of dimensions %i not equal to number of cells %i"
-                % (np.prod(grid["dimensions"]), grid["ncells"])
+                "product of dimensions %i not equal to number of cells %i",
+                np.prod(grid["dimensions"]),
+                grid["ncells"],
             )
             raise TypeError
 
@@ -235,18 +238,16 @@ class AthenaHierarchy(GridIndex):
             dataset_dir = dataset_dir[:-3]
 
         gridlistread = sglob(
-            os.path.join(dataset_dir, "id*/%s-id*%s" % (dname[4:-9], dname[-9:]))
+            os.path.join(dataset_dir, f"id*/{dname[4:-9]}-id*{dname[-9:]}")
         )
         gridlistread.insert(0, self.index_filename)
         if "id0" in dname:
             gridlistread += sglob(
-                os.path.join(
-                    dataset_dir, "id*/lev*/%s*-lev*%s" % (dname[4:-9], dname[-9:])
-                )
+                os.path.join(dataset_dir, f"id*/lev*/{dname[4:-9]}*-lev*{dname[-9:]}")
             )
         else:
             gridlistread += sglob(
-                os.path.join(dataset_dir, "lev*/%s*-lev*%s" % (dname[:-9], dname[-9:]))
+                os.path.join(dataset_dir, f"lev*/{dname[:-9]}*-lev*{dname[-9:]}")
             )
         ndots = dname.count(".")
         gridlistread = [
@@ -298,8 +299,9 @@ class AthenaHierarchy(GridIndex):
                 gridread["dimensions"][gridread["dimensions"] == 0] = 1
             if np.prod(gridread["dimensions"]) != gridread["ncells"]:
                 mylog.error(
-                    "product of dimensions %i not equal to number of cells %i"
-                    % (np.prod(gridread["dimensions"]), gridread["ncells"])
+                    "product of dimensions %i not equal to number of cells %i",
+                    np.prod(gridread["dimensions"]),
+                    gridread["ncells"],
                 )
                 raise TypeError
             gdims[j, 0] = gridread["dimensions"][0]
@@ -370,7 +372,7 @@ class AthenaHierarchy(GridIndex):
                     [slc[0].start, slc[1].start, slc[2].start] for slc in slices
                 ]
                 read_dims += [
-                    np.array([gdims[i][0], gdims[i][1], shape[2]], dtype="int")
+                    np.array([gdims[i][0], gdims[i][1], shape[2]], dtype="int64")
                     for shape in shapes
                 ]
             self.num_grids *= self.dataset.nprocs
@@ -443,7 +445,7 @@ class AthenaHierarchy(GridIndex):
                 g for g in self.grids[mask.astype("bool")] if g.Level == grid.Level + 1
             ]
         mylog.debug("Second pass; identifying parents")
-        for i, grid in enumerate(self.grids):  # Second pass
+        for grid in self.grids:  # Second pass
             for child in grid.Children:
                 child.Parent.append(grid)
 
@@ -475,6 +477,7 @@ class AthenaDataset(Dataset):
         units_override=None,
         nprocs=1,
         unit_system="cgs",
+        default_species_fields=None,
     ):
         self.fluid_types += ("athena",)
         self.nprocs = nprocs
@@ -483,27 +486,17 @@ class AthenaDataset(Dataset):
         self.specified_parameters = parameters.copy()
         if units_override is None:
             units_override = {}
-        # This is for backwards-compatibility
-        already_warned = False
-        for k, v in list(self.specified_parameters.items()):
-            if k.endswith("_unit") and k not in units_override:
-                if not already_warned:
-                    mylog.warning(
-                        "Supplying unit conversions from the parameters dict is deprecated, "
-                        + "and will be removed in a future release. Use units_override instead."
-                    )
-                    already_warned = True
-                units_override[k] = self.specified_parameters.pop(k)
         Dataset.__init__(
             self,
             filename,
             dataset_type,
             units_override=units_override,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
         self.filename = filename
         if storage_filename is None:
-            storage_filename = "%s.yt" % filename.split("/")[-1]
+            storage_filename = f"{filename.split('/')[-1]}.yt"
         self.storage_filename = storage_filename
         self.backup_filename = self.filename[:-4] + "_backup.gdf"
         # Unfortunately we now have to mandate that the index gets
@@ -523,7 +516,7 @@ class AthenaDataset(Dataset):
             if getattr(self, unit + "_unit", None) is not None:
                 continue
             mylog.warning("Assuming 1.0 = 1.0 %s", cgs)
-            setattr(self, "%s_unit" % unit, self.quan(1.0, cgs))
+            setattr(self, f"{unit}_unit", self.quan(1.0, cgs))
         self.magnetic_unit = np.sqrt(
             4 * np.pi * self.mass_unit / (self.time_unit ** 2 * self.length_unit)
         )
@@ -559,8 +552,8 @@ class AthenaDataset(Dataset):
 
         self.domain_left_edge = grid["left_edge"]
         mylog.info(
-            "Temporarily setting domain_right_edge = -domain_left_edge."
-            + " This will be corrected automatically if it is not the case."
+            "Temporarily setting domain_right_edge = -domain_left_edge. "
+            "This will be corrected automatically if it is not the case."
         )
         self.domain_right_edge = -self.domain_left_edge
         self.domain_width = self.domain_right_edge - self.domain_left_edge
@@ -589,14 +582,9 @@ class AthenaDataset(Dataset):
         self.num_ghost_zones = 0
         self.field_ordering = "fortran"
         self.boundary_conditions = [1] * 6
-        if "periodicity" in self.specified_parameters:
-            self.periodicity = ensure_tuple(self.specified_parameters["periodicity"])
-        else:
-            self.periodicity = (
-                True,
-                True,
-                True,
-            )
+        self._periodicity = tuple(
+            self.specified_parameters.get("periodicity", (True, True, True))
+        )
         if "gamma" in self.specified_parameters:
             self.gamma = float(self.specified_parameters["gamma"])
         else:
@@ -608,17 +596,15 @@ class AthenaDataset(Dataset):
             dataset_dir = dataset_dir[:-3]
 
         gridlistread = sglob(
-            os.path.join(dataset_dir, "id*/%s-id*%s" % (dname[4:-9], dname[-9:]))
+            os.path.join(dataset_dir, f"id*/{dname[4:-9]}-id*{dname[-9:]}")
         )
         if "id0" in dname:
             gridlistread += sglob(
-                os.path.join(
-                    dataset_dir, "id*/lev*/%s*-lev*%s" % (dname[4:-9], dname[-9:])
-                )
+                os.path.join(dataset_dir, f"id*/lev*/{dname[4:-9]}*-lev*{dname[-9:]}")
             )
         else:
             gridlistread += sglob(
-                os.path.join(dataset_dir, "lev*/%s*-lev*%s" % (dname[:-9], dname[-9:]))
+                os.path.join(dataset_dir, f"lev*/{dname[:-9]}*-lev*{dname[-9:]}")
             )
         ndots = dname.count(".")
         gridlistread = [
@@ -626,11 +612,11 @@ class AthenaDataset(Dataset):
         ]
         self.nvtk = len(gridlistread) + 1
 
-        self.current_redshift = (
-            self.omega_lambda
-        ) = (
-            self.omega_matter
-        ) = self.hubble_constant = self.cosmological_simulation = 0.0
+        self.current_redshift = 0.0
+        self.omega_lambda = 0.0
+        self.omega_matter = 0.0
+        self.hubble_constant = 0.0
+        self.cosmological_simulation = 0
         self.parameters["Time"] = self.current_time  # Hardcode time conversion for now.
         self.parameters[
             "HydroMethod"
@@ -641,20 +627,37 @@ class AthenaDataset(Dataset):
             self.parameters["Gamma"] = 5.0 / 3.0
         self.geometry = self.specified_parameters.get("geometry", "cartesian")
         self._handle.close()
-        self.mu = self.specified_parameters.get("mu", default_mu)
+        self.mu = self.specified_parameters.get(
+            "mu", compute_mu(self.default_species_fields)
+        )
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        try:
-            if "vtk" in args[0]:
-                return True
-        except Exception:
-            pass
-        return False
+    def _is_valid(cls, filename, *args, **kwargs):
+        if not filename.endswith(".vtk"):
+            return False
+
+        with open(filename, "rb") as fh:
+            if not re.match(b"# vtk DataFile Version \\d\\.\\d\n", fh.readline(256)):
+                return False
+            if (
+                re.search(
+                    b"at time= .*, level= \\d, domain= \\d\n",
+                    fh.readline(256),
+                )
+                is None
+            ):
+                # vtk Dumps headers start with either "CONSERVED vars" or "PRIMITIVE vars",
+                # while vtk output headers start with "Really cool Athena data", but
+                # we will consider this an implementation detail and not attempt to
+                # match it exactly here.
+                # See Athena's user guide for reference
+                # https://princetonuniversity.github.io/Athena-Cversion/AthenaDocsUGbtk
+                return False
+        return True
 
     @property
     def _skip_cache(self):
         return True
 
-    def __repr__(self):
+    def __str__(self):
         return self.basename.rsplit(".", 1)[0]

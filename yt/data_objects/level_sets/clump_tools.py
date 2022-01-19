@@ -40,8 +40,10 @@ def return_all_clumps(clump):
 
 
 def return_bottom_clumps(clump, dbg=0):
-    """Recursively return clumps at the bottom of the index.
-    This gives a list of clumps similar to what one would get from a CLUMPFIND routine"""
+    """
+    Recursively return clumps at the bottom of the index.
+    This gives a list of clumps similar to what one would get from a CLUMPFIND routine
+    """
     global counter
     counter = 0
     list = []
@@ -68,7 +70,7 @@ def clump_list_sort(clump_list):
     """Returns a copy of clump_list, sorted by ascending minimum density.  This
     eliminates overlap when passing to
     yt.visualization.plot_modification.ClumpContourCallback"""
-    minDensity = [c["Density"].min() for c in clump_list]
+    minDensity = [c[("gas", "density")].min() for c in clump_list]
 
     args = np.argsort(minDensity)
     list = nar(clump_list)[args]

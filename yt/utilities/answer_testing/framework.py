@@ -13,36 +13,33 @@ import sys
 import tempfile
 import time
 import urllib
+import warnings
 import zlib
 from collections import defaultdict
 
-import matplotlib.image as mpimg
 import numpy as np
+from matplotlib import image as mpimg
 from matplotlib.testing.compare import compare_images
 from nose.plugins import Plugin
 
-import yt.visualization.particle_plots as particle_plots
-import yt.visualization.plot_window as pw
-import yt.visualization.profile_plotter as profile_plotter
 from yt.config import ytcfg
-from yt.convenience import load, simulation
 from yt.data_objects.static_output import Dataset
-from yt.data_objects.time_series import SimulationTimeSeries
-from yt.funcs import get_pbar
+from yt.funcs import get_pbar, get_yt_version
+from yt.loaders import load, load_simulation
 from yt.testing import (
     assert_allclose_units,
     assert_almost_equal,
     assert_equal,
     assert_rel_equal,
 )
-from yt.utilities.command_line import get_yt_version
-from yt.utilities.exceptions import (
-    YTCloudError,
-    YTNoAnswerNameSpecified,
-    YTNoOldAnswer,
-    YTOutputNotIdentified,
-)
+from yt.utilities.exceptions import YTCloudError, YTNoAnswerNameSpecified, YTNoOldAnswer
 from yt.utilities.logger import disable_stream_logging
+from yt.visualization import (
+    image_writer as image_writer,
+    particle_plots as particle_plots,
+    plot_window as pw,
+    profile_plotter as profile_plotter,
+)
 
 mylog = logging.getLogger("nose.plugins.answer-testing")
 run_big_data = False
@@ -58,7 +55,7 @@ class AnswerTesting(Plugin):
     _my_version = None
 
     def options(self, parser, env=os.environ):
-        super(AnswerTesting, self).options(parser, env=env)
+        super().options(parser, env=env)
         parser.add_option(
             "--answer-name",
             dest="answer_name",
@@ -103,12 +100,12 @@ class AnswerTesting(Plugin):
             try:
                 version = get_yt_version()
             except Exception:
-                version = "UNKNOWN%s" % (time.time())
+                version = f"UNKNOWN{time.time()}"
         self._my_version = version
         return self._my_version
 
     def configure(self, options, conf):
-        super(AnswerTesting, self).configure(options, conf)
+        super().configure(options, conf)
         if not self.enabled:
             return
         disable_stream_logging()
@@ -138,7 +135,7 @@ class AnswerTesting(Plugin):
 
         self.store_results = options.store_results
 
-        ytcfg["yt", "__withintesting"] = "True"
+        ytcfg["yt", "internals", "within_testing"] = True
         AnswerTestingTest.result_storage = self.result_storage = defaultdict(dict)
         if self.compare_name == "SKIP":
             self.compare_name = None
@@ -214,13 +211,13 @@ class AnswerTestCloudStorage(AnswerTestStorage):
         except urllib.error.HTTPError:
             raise YTNoOldAnswer(url)
         else:
-            for this_try in range(3):
+            for _ in range(3):
                 try:
                     data = resp.read()
                 except Exception:
                     time.sleep(0.01)
                 else:
-                    # We were succesful
+                    # We were successful
                     break
             else:
                 # Raise error if all tries were unsuccessful
@@ -246,9 +243,9 @@ class AnswerTestCloudStorage(AnswerTestStorage):
         c = cf.get_container("yt-answer-tests")
         pb = get_pbar("Storing results ", len(result_storage))
         for i, ds_name in enumerate(result_storage):
-            pb.update(i)
+            pb.update(i + 1)
             rs = pickle.dumps(result_storage[ds_name])
-            object_name = "%s_%s" % (self.answer_name, ds_name)
+            object_name = f"{self.answer_name}_{ds_name}"
             if object_name in c.get_object_names():
                 obj = c.get_object(object_name)
                 c.delete_object(obj)
@@ -260,7 +257,7 @@ class AnswerTestLocalStorage(AnswerTestStorage):
     def dump(self, result_storage):
         # The 'tainted' attribute is automatically set to 'True'
         # if the dataset required for an answer test is missing
-        # (see can_run_ds() and can_run_sim()).
+        # (see can_run_ds().
         # This logic check prevents creating a shelve with empty answers.
         storage_is_tainted = result_storage.get("tainted", False)
         if self.answer_name is None or storage_is_tainted:
@@ -268,7 +265,7 @@ class AnswerTestLocalStorage(AnswerTestStorage):
         # Store data using shelve
         ds = shelve.open(self.answer_name, protocol=-1)
         for ds_name in result_storage:
-            answer_name = "%s" % ds_name
+            answer_name = f"{ds_name}"
             if answer_name in ds:
                 mylog.info("Overwriting %s", answer_name)
             ds[answer_name] = result_storage[ds_name]
@@ -278,7 +275,7 @@ class AnswerTestLocalStorage(AnswerTestStorage):
         if self.reference_name is None:
             return default
         # Read data using shelve
-        answer_name = "%s" % ds_name
+        answer_name = f"{ds_name}"
         ds = shelve.open(self.reference_name, protocol=-1)
         try:
             result = ds[answer_name]
@@ -307,28 +304,8 @@ def can_run_ds(ds_fn, file_check=False):
         return os.path.isfile(os.path.join(path, ds_fn)) and result_storage is not None
     try:
         load(ds_fn)
-    except YTOutputNotIdentified:
-        if ytcfg.getboolean("yt", "requires_ds_strict"):
-            if result_storage is not None:
-                result_storage["tainted"] = True
-            raise
-        return False
-    return result_storage is not None
-
-
-def can_run_sim(sim_fn, sim_type, file_check=False):
-    result_storage = AnswerTestingTest.result_storage
-    if isinstance(sim_fn, SimulationTimeSeries):
-        return result_storage is not None
-    path = ytcfg.get("yt", "test_data_dir")
-    if not os.path.isdir(path):
-        return False
-    if file_check:
-        return os.path.isfile(os.path.join(path, sim_fn)) and result_storage is not None
-    try:
-        simulation(sim_fn, sim_type)
-    except YTOutputNotIdentified:
-        if ytcfg.getboolean("yt", "requires_ds_strict"):
+    except FileNotFoundError:
+        if ytcfg.get("yt", "internals", "strict_requires"):
             if result_storage is not None:
                 result_storage["tainted"] = True
             raise
@@ -354,10 +331,12 @@ def data_dir_load(ds_fn, cls=None, args=None, kwargs=None):
 
 def sim_dir_load(sim_fn, path=None, sim_type="Enzo", find_outputs=False):
     if path is None and not os.path.exists(sim_fn):
-        raise IOError
+        raise OSError
     if os.path.exists(sim_fn) or not path:
         path = "."
-    return simulation(os.path.join(path, sim_fn), sim_type, find_outputs=find_outputs)
+    return load_simulation(
+        os.path.join(path, sim_fn), sim_type, find_outputs=find_outputs
+    )
 
 
 class AnswerTestingTest:
@@ -391,8 +370,8 @@ class AnswerTestingTest:
         # nosetests command line arguments. In this case, set the answer_name
         # from the `answer_name` keyword in the test case
         if self.options.answer_name is None:
-            pyver = "py{}{}".format(sys.version_info.major, sys.version_info.minor)
-            self.answer_name = "{}_{}".format(pyver, self.answer_name)
+            pyver = f"py{sys.version_info.major}{sys.version_info.minor}"
+            self.answer_name = f"{pyver}_{self.answer_name}"
 
             answer_store_dir = os.path.realpath(self.options.output_dir)
             ref_name = os.path.join(
@@ -414,7 +393,7 @@ class AnswerTestingTest:
             # Compare test generated values against the golden answer
             dd = self.reference_storage.get(self.storage_name)
             if dd is None or self.description not in dd:
-                raise YTNoOldAnswer("%s : %s" % (self.storage_name, self.description))
+                raise YTNoOldAnswer(f"{self.storage_name} : {self.description}")
             ov = dd[self.description]
             self.compare(nv, ov)
         else:
@@ -425,7 +404,7 @@ class AnswerTestingTest:
     @property
     def storage_name(self):
         if self.prefix != "":
-            return "%s_%s" % (self.prefix, self.ds)
+            return f"{self.prefix}_{self.ds}"
         return str(self.ds)
 
     def compare(self, new_result, old_result):
@@ -455,7 +434,7 @@ class AnswerTestingTest:
         This is a helper function to return the location of the most dense
         point.
         """
-        return self.ds.find_max("density")[1]
+        return self.ds.find_max(("gas", "density"))[1]
 
     @property
     def entire_simulation(self):
@@ -470,7 +449,7 @@ class AnswerTestingTest:
         if obj_type is None:
             oname = "all"
         else:
-            oname = "_".join((str(s) for s in obj_type))
+            oname = "_".join(str(s) for s in obj_type)
         args = [self._type_name, str(self.ds), oname]
         args += [str(getattr(self, an)) for an in self._attrs]
         suffix = getattr(self, "suffix", None)
@@ -484,7 +463,7 @@ class FieldValuesTest(AnswerTestingTest):
     _attrs = ("field",)
 
     def __init__(self, ds_fn, field, obj_type=None, particle_type=False, decimals=10):
-        super(FieldValuesTest, self).__init__(ds_fn)
+        super().__init__(ds_fn)
         self.obj_type = obj_type
         self.field = field
         self.particle_type = particle_type
@@ -505,7 +484,7 @@ class FieldValuesTest(AnswerTestingTest):
         return [avg, mi, ma]
 
     def compare(self, new_result, old_result):
-        err_msg = "Field values for %s not equal." % (self.field,)
+        err_msg = f"Field values for {self.field} not equal."
         if hasattr(new_result, "d"):
             new_result = new_result.d
         if hasattr(old_result, "d"):
@@ -534,7 +513,7 @@ class AllFieldValuesTest(AnswerTestingTest):
     _attrs = ("field",)
 
     def __init__(self, ds_fn, field, obj_type=None, decimals=None):
-        super(AllFieldValuesTest, self).__init__(ds_fn)
+        super().__init__(ds_fn)
         self.obj_type = obj_type
         self.field = field
         self.decimals = decimals
@@ -544,7 +523,7 @@ class AllFieldValuesTest(AnswerTestingTest):
         return obj[self.field]
 
     def compare(self, new_result, old_result):
-        err_msg = "All field values for %s not equal." % self.field
+        err_msg = f"All field values for {self.field} not equal."
         if hasattr(new_result, "d"):
             new_result = new_result.d
         if hasattr(old_result, "d"):
@@ -564,7 +543,7 @@ class ProjectionValuesTest(AnswerTestingTest):
     def __init__(
         self, ds_fn, axis, field, weight_field=None, obj_type=None, decimals=10
     ):
-        super(ProjectionValuesTest, self).__init__(ds_fn)
+        super().__init__(ds_fn)
         self.axis = axis
         self.field = field
         self.weight_field = weight_field
@@ -626,7 +605,7 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
     _attrs = ("field", "axis", "weight_field")
 
     def __init__(self, ds_fn, axis, field, weight_field=None, obj_type=None):
-        super(PixelizedProjectionValuesTest, self).__init__(ds_fn)
+        super().__init__(ds_fn)
         self.axis = axis
         self.field = field
         self.weight_field = weight_field
@@ -654,7 +633,7 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
         d = frb.data
         for f in proj.field_data:
             # Sometimes f will be a tuple.
-            d["%s_sum" % (f,)] = proj.field_data[f].sum(dtype="float64")
+            d[f"{f}_sum"] = proj.field_data[f].sum(dtype="float64")
         return d
 
     def compare(self, new_result, old_result):
@@ -665,7 +644,11 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
             # weight_field does not have units, so we do not directly compare them
             if k == "weight_field_sum":
                 continue
-            assert_allclose_units(new_result[k], old_result[k], 1e-10)
+            try:
+                assert_allclose_units(new_result[k], old_result[k], 1e-10)
+            except AssertionError:
+                dump_images(new_result[k], old_result[k])
+                raise
 
 
 class PixelizedParticleProjectionValuesTest(PixelizedProjectionValuesTest):
@@ -681,13 +664,13 @@ class GridValuesTest(AnswerTestingTest):
     _attrs = ("field",)
 
     def __init__(self, ds_fn, field):
-        super(GridValuesTest, self).__init__(ds_fn)
+        super().__init__(ds_fn)
         self.field = field
 
     def run(self):
         hashes = {}
         for g in self.ds.index.grids:
-            hashes[g.id] = hashlib.md5(g[self.field].tostring()).hexdigest()
+            hashes[g.id] = hashlib.md5(g[self.field].tobytes()).hexdigest()
             g.clear_data()
         return hashes
 
@@ -778,27 +761,80 @@ class ParentageRelationshipsTest(AnswerTestingTest):
             assert newc == oldc
 
 
+def dump_images(new_result, old_result, decimals=10):
+    tmpfd, old_image = tempfile.mkstemp(suffix=".png")
+    os.close(tmpfd)
+    tmpfd, new_image = tempfile.mkstemp(suffix=".png")
+    os.close(tmpfd)
+    image_writer.write_projection(new_result, new_image)
+    image_writer.write_projection(old_result, old_image)
+    results = compare_images(old_image, new_image, 10 ** (-decimals))
+    if results is not None:
+        tempfiles = [
+            line.strip() for line in results.split("\n") if line.endswith(".png")
+        ]
+        for fn in tempfiles:
+            sys.stderr.write(f"\n[[ATTACHMENT|{fn}]]")
+        sys.stderr.write("\n")
+
+
+def ensure_image_comparability(a, b):
+    # pad nans to the right and the bottom of two images to make them comparable
+    # via matplotlib if they do not have the same shape
+    if a.shape == b.shape:
+        return a, b
+
+    assert a.shape[2:] == b.shape[2:]
+
+    warnings.warn(
+        f"Images have different shapes {a.shape} and {b.shape}. "
+        "Padding nans to make them comparable."
+    )
+    smallest_containing_shape = (
+        max(a.shape[0], b.shape[0]),
+        max(a.shape[1], b.shape[1]),
+        *a.shape[2:],
+    )
+    pa = np.full(smallest_containing_shape, np.nan)
+    pa[: a.shape[0], : a.shape[1], ...] = a
+
+    pb = np.full(smallest_containing_shape, np.nan)
+    pb[: b.shape[0], : b.shape[1], ...] = b
+
+    return pa, pb
+
+
 def compare_image_lists(new_result, old_result, decimals):
     fns = []
-    for i in range(2):
+    for _ in range(2):
         tmpfd, tmpname = tempfile.mkstemp(suffix=".png")
         os.close(tmpfd)
         fns.append(tmpname)
     num_images = len(old_result)
     assert num_images > 0
     for i in range(num_images):
-        mpimg.imsave(fns[0], np.loads(zlib.decompress(old_result[i])))
-        mpimg.imsave(fns[1], np.loads(zlib.decompress(new_result[i])))
+        expected = pickle.loads(zlib.decompress(old_result[i]))
+        actual = pickle.loads(zlib.decompress(new_result[i]))
+        expected_p, actual_p = ensure_image_comparability(expected, actual)
+
+        mpimg.imsave(fns[0], expected_p)
+        mpimg.imsave(fns[1], actual_p)
         results = compare_images(fns[0], fns[1], 10 ** (-decimals))
         if results is not None:
+            tempfiles = [
+                line.strip() for line in results.split("\n") if line.endswith(".png")
+            ]
+            for fn, img, padded in zip(
+                tempfiles, (expected, actual), (expected_p, actual_p)
+            ):
+                # padded images are convenient for comparison
+                # but what we really want to store and upload
+                # are the actual results
+                if padded.shape != img.shape:
+                    mpimg.imsave(fn, img)
             if os.environ.get("JENKINS_HOME") is not None:
-                tempfiles = [
-                    line.strip()
-                    for line in results.split("\n")
-                    if line.endswith(".png")
-                ]
                 for fn in tempfiles:
-                    sys.stderr.write("\n[[ATTACHMENT|{}]]".format(fn))
+                    sys.stderr.write(f"\n[[ATTACHMENT|{fn}]]")
                 sys.stderr.write("\n")
         assert_equal(results, None, results)
         for fn in fns:
@@ -810,7 +846,7 @@ class VRImageComparisonTest(AnswerTestingTest):
     _attrs = ("desc",)
 
     def __init__(self, scene, ds, desc, decimals):
-        super(VRImageComparisonTest, self).__init__(None)
+        super().__init__(None)
         self.obj_type = ("vr",)
         self.ds = ds
         self.scene = scene
@@ -852,7 +888,7 @@ class PlotWindowAttributeTest(AnswerTestingTest):
         callback_id="",
         callback_runners=None,
     ):
-        super(PlotWindowAttributeTest, self).__init__(ds_fn)
+        super().__init__(ds_fn)
         self.plot_type = plot_type
         self.plot_field = plot_field
         self.plot_axis = plot_axis
@@ -901,7 +937,7 @@ class PhasePlotAttributeTest(AnswerTestingTest):
         decimals,
         plot_type="PhasePlot",
     ):
-        super(PhasePlotAttributeTest, self).__init__(ds_fn)
+        super().__init__(ds_fn)
         self.data_source = self.ds.all_data()
         self.plot_type = plot_type
         self.x_field = x_field
@@ -952,7 +988,7 @@ class GenericArrayTest(AnswerTestingTest):
     _attrs = ("array_func_name", "args", "kwargs")
 
     def __init__(self, ds_fn, array_func, args=None, kwargs=None, decimals=None):
-        super(GenericArrayTest, self).__init__(ds_fn)
+        super().__init__(ds_fn)
         self.array_func = array_func
         self.array_func_name = array_func.__name__
         self.args = args
@@ -999,7 +1035,7 @@ class GenericImageTest(AnswerTestingTest):
     _attrs = ("image_func_name", "args", "kwargs")
 
     def __init__(self, ds_fn, image_func, decimals, args=None, kwargs=None):
-        super(GenericImageTest, self).__init__(ds_fn)
+        super().__init__(ds_fn)
         self.image_func = image_func
         self.image_func_name = image_func.__name__
         self.args = args
@@ -1039,7 +1075,7 @@ class AxialPixelizationTest(AnswerTestingTest):
     _attrs = ("geometry",)
 
     def __init__(self, ds_fn, decimals=None):
-        super(AxialPixelizationTest, self).__init__(ds_fn)
+        super().__init__(ds_fn)
         self.decimals = decimals
         self.geometry = self.ds.coordinates.name
 
@@ -1053,13 +1089,13 @@ class AxialPixelizationTest(AnswerTestingTest):
             slc = ds.slice(axis, center[i])
             xax = ds.coordinates.axis_name[ds.coordinates.x_axis[axis]]
             yax = ds.coordinates.axis_name[ds.coordinates.y_axis[axis]]
-            pix_x = ds.coordinates.pixelize(axis, slc, xax, bounds, (512, 512))
-            pix_y = ds.coordinates.pixelize(axis, slc, yax, bounds, (512, 512))
+            pix_x = ds.coordinates.pixelize(axis, slc, ("gas", xax), bounds, (512, 512))
+            pix_y = ds.coordinates.pixelize(axis, slc, ("gas", yax), bounds, (512, 512))
             # Wipe out invalid values (fillers)
             pix_x[~np.isfinite(pix_x)] = 0.0
             pix_y[~np.isfinite(pix_y)] = 0.0
-            rv["%s_x" % axis] = pix_x
-            rv["%s_y" % axis] = pix_y
+            rv[f"{axis}_x"] = pix_x
+            rv[f"{axis}_y"] = pix_y
         return rv
 
     def compare(self, new_result, old_result):
@@ -1082,24 +1118,17 @@ class AxialPixelizationTest(AnswerTestingTest):
                 )
 
 
-def requires_sim(sim_fn, sim_type, big_data=False, file_check=False):
-    def ffalse(func):
-        return lambda: None
-
-    def ftrue(func):
-        return func
-
-    if not run_big_data and big_data:
-        return ffalse
-    elif not can_run_sim(sim_fn, sim_type, file_check):
-        return ffalse
-    else:
-        return ftrue
-
-
 def requires_answer_testing():
+    from functools import wraps
+
+    from nose import SkipTest
+
     def ffalse(func):
-        return lambda: None
+        @wraps(func)
+        def fskip(*args, **kwargs):
+            raise SkipTest
+
+        return fskip
 
     def ftrue(func):
         return func
@@ -1111,8 +1140,16 @@ def requires_answer_testing():
 
 
 def requires_ds(ds_fn, big_data=False, file_check=False):
+    from functools import wraps
+
+    from nose import SkipTest
+
     def ffalse(func):
-        return lambda: None
+        @wraps(func)
+        def fskip(*args, **kwargs):
+            raise SkipTest
+
+        return fskip
 
     def ftrue(func):
         return func
@@ -1125,7 +1162,7 @@ def requires_ds(ds_fn, big_data=False, file_check=False):
         return ftrue
 
 
-def small_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
+def small_patch_amr(ds_fn, fields, input_center="max", input_weight=("gas", "density")):
     if not can_run_ds(ds_fn):
         return
     dso = [None, ("sphere", (input_center, (0.1, "unitary")))]
@@ -1133,16 +1170,16 @@ def small_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
     yield ParentageRelationshipsTest(ds_fn)
     for field in fields:
         yield GridValuesTest(ds_fn, field)
-        for axis in [0, 1, 2]:
-            for dobj_name in dso:
+        for dobj_name in dso:
+            for axis in [0, 1, 2]:
                 for weight_field in [None, input_weight]:
                     yield ProjectionValuesTest(
                         ds_fn, axis, field, weight_field, dobj_name
                     )
-                yield FieldValuesTest(ds_fn, field, dobj_name)
+            yield FieldValuesTest(ds_fn, field, dobj_name)
 
 
-def big_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
+def big_patch_amr(ds_fn, fields, input_center="max", input_weight=("gas", "density")):
     if not can_run_ds(ds_fn):
         return
     dso = [None, ("sphere", (input_center, (0.1, "unitary")))]
@@ -1158,11 +1195,13 @@ def big_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
                     )
 
 
-def _particle_answers(ds, ds_str_repr, ds_nparticles, fields, proj_test_class):
+def _particle_answers(
+    ds, ds_str_repr, ds_nparticles, fields, proj_test_class, center="c"
+):
     if not can_run_ds(ds):
         return
     assert_equal(str(ds), ds_str_repr)
-    dso = [None, ("sphere", ("c", (0.1, "unitary")))]
+    dso = [None, ("sphere", (center, (0.1, "unitary")))]
     dd = ds.all_data()
     # this needs to explicitly be "all"
     assert_equal(dd["all", "particle_position"].shape, (ds_nparticles, 3))
@@ -1179,15 +1218,25 @@ def _particle_answers(ds, ds_str_repr, ds_nparticles, fields, proj_test_class):
             yield FieldValuesTest(ds, field, dobj_name, particle_type=particle_type)
 
 
-def nbody_answer(ds, ds_str_repr, ds_nparticles, fields):
+def nbody_answer(ds, ds_str_repr, ds_nparticles, fields, center="c"):
     return _particle_answers(
-        ds, ds_str_repr, ds_nparticles, fields, PixelizedParticleProjectionValuesTest
+        ds,
+        ds_str_repr,
+        ds_nparticles,
+        fields,
+        PixelizedParticleProjectionValuesTest,
+        center=center,
     )
 
 
-def sph_answer(ds, ds_str_repr, ds_nparticles, fields):
+def sph_answer(ds, ds_str_repr, ds_nparticles, fields, center="c"):
     return _particle_answers(
-        ds, ds_str_repr, ds_nparticles, fields, PixelizedProjectionValuesTest
+        ds,
+        ds_str_repr,
+        ds_nparticles,
+        fields,
+        PixelizedProjectionValuesTest,
+        center=center,
     )
 
 

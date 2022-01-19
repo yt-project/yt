@@ -7,7 +7,7 @@ from yt.utilities.math_utils import euclidean_dist, periodic_dist
 def setup():
     from yt.config import ytcfg
 
-    ytcfg["yt", "__withintesting"] = "True"
+    ytcfg["yt", "internals", "within_testing"] = True
 
 
 def test_periodicity():
@@ -38,9 +38,9 @@ def test_periodicity():
 
     # First we test flattened data
     data = ds.all_data()
-    positions = np.array([data[ax] for ax in "xyz"])
+    positions = np.array([data[("index", ax)] for ax in "xyz"])
     c = [0.1, 0.1, 0.1]
-    n_tup = tuple([1 for i in range(positions.ndim - 1)])
+    n_tup = tuple(1 for i in range(positions.ndim - 1))
     center = np.tile(
         np.reshape(np.array(c), (positions.shape[0],) + n_tup),
         (1,) + positions.shape[1:],
@@ -56,9 +56,9 @@ def test_periodicity():
 
     # Then grid-like data
     data = ds.index.grids[0]
-    positions = np.array([data[ax] for ax in "xyz"])
+    positions = np.array([data[("index", ax)] for ax in "xyz"])
     c = [0.1, 0.1, 0.1]
-    n_tup = tuple([1 for i in range(positions.ndim - 1)])
+    n_tup = tuple(1 for i in range(positions.ndim - 1))
     center = np.tile(
         np.reshape(np.array(c), (positions.shape[0],) + n_tup),
         (1,) + positions.shape[1:],

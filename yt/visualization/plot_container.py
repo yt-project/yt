@@ -1,27 +1,27 @@
+import abc
 import base64
 import builtins
 import os
+import sys
+import warnings
 from collections import defaultdict
 from functools import wraps
+from typing import Any, Dict, List, Optional, Tuple, Union
 
-import matplotlib
 import numpy as np
+from matplotlib.cm import get_cmap
+from matplotlib.font_manager import FontProperties
+from more_itertools.more import always_iterable
 
 from yt.config import ytcfg
 from yt.data_objects.time_series import DatasetSeries
-from yt.funcs import (
-    ensure_dir,
-    ensure_list,
-    get_image_suffix,
-    issue_deprecation_warning,
-    iterable,
-    mylog,
-)
+from yt.funcs import dictWithFactory, ensure_dir, is_sequence, iter_fields, mylog
 from yt.units import YTQuantity
-from yt.units.unit_object import Unit
+from yt.units.unit_object import Unit  # type: ignore
 from yt.utilities.definitions import formatted_length_unit_names
 from yt.utilities.exceptions import YTNotInsideNotebook
-from yt.visualization.color_maps import yt_colormaps
+
+from ._commons import DEFAULT_FONT_PROPERTIES, validate_image_name
 
 latex_prefixes = {
     "u": r"\mu",
@@ -91,22 +91,21 @@ def apply_callback(f):
     return newfunc
 
 
-def accepts_all_fields(f):
-    """Decorate a function whose second argument is <field> and deal with the special case
-    field == 'all', looping over all fields already present in the PlotContainer instance.
+def accepts_all_fields(func):
+    """
+    Decorate a function whose second argument is <field> and deal with the special case
+    field == 'all', looping over all fields already present in the PlotContainer object.
 
     """
     # This is to be applied to PlotContainer class methods with the following signature:
     #
     # f(self, field, *args, **kwargs) -> self
-    @wraps(f)
+    @wraps(func)
     def newfunc(self, field, *args, **kwargs):
         if field == "all":
-            fields = list(self.plots.keys())
-        else:
-            fields = ensure_list(field)
-        for field in self.data_source._determine_fields(fields):
-            f(self, field, *args, **kwargs)
+            field = self.plots.keys()
+        for f in self.data_source._determine_fields(field):
+            func(self, f, *args, **kwargs)
         return self
 
     return newfunc
@@ -154,8 +153,10 @@ def get_symlog_minorticks(linthresh, vmin, vmax):
         the maximum value in the colorbar
 
     """
-    if vmin > 0 or vmax < 0:
+    if vmin > 0:
         return get_log_minorticks(vmin, vmax)
+    elif vmax < 0 and vmin < 0:
+        return -get_log_minorticks(-vmax, -vmin)
     elif vmin == 0:
         return np.hstack((0, get_log_minorticks(linthresh, vmax)))
     elif vmax == 0:
@@ -209,34 +210,77 @@ class PlotDictionary(defaultdict):
         return defaultdict.__init__(self, default_factory)
 
 
-class PlotContainer:
+class PlotContainer(abc.ABC):
     """A container for generic plots"""
 
-    _plot_type = None
+    _plot_type: Optional[str] = None
     _plot_valid = False
 
-    def __init__(self, data_source, figure_size, fontsize):
-        from matplotlib.font_manager import FontProperties
+    # Plot defaults
+    _colormap_config: dict
+    _log_config: dict
+    _units_config: dict
 
+    def __init__(self, data_source, figure_size, fontsize):
         self.data_source = data_source
         self.ds = data_source.ds
         self.ts = self._initialize_dataset(self.ds)
-        if iterable(figure_size):
+        if is_sequence(figure_size):
             self.figure_size = float(figure_size[0]), float(figure_size[1])
         else:
             self.figure_size = float(figure_size)
-        font_path = matplotlib.get_data_path() + "/fonts/ttf/STIXGeneral.ttf"
-        self._font_properties = FontProperties(size=fontsize, fname=font_path)
+
+        if sys.version_info >= (3, 9):
+            font_dict = DEFAULT_FONT_PROPERTIES | {"size": fontsize}
+        else:
+            font_dict = {**DEFAULT_FONT_PROPERTIES, "size": fontsize}
+
+        self._font_properties = FontProperties(**font_dict)
         self._font_color = None
         self._xlabel = None
         self._ylabel = None
         self._minorticks = {}
         self._field_transform = {}
 
+        self.setup_defaults()
+
+    def setup_defaults(self):
+        def default_from_config(keys, defaults):
+            _keys = list(always_iterable(keys))
+            _defaults = list(always_iterable(defaults))
+
+            def getter(field):
+                ftype, fname = self.data_source._determine_fields(field)[0]
+                ret = [
+                    ytcfg.get_most_specific("plot", ftype, fname, key, fallback=default)
+                    for key, default in zip(_keys, _defaults)
+                ]
+                if len(ret) == 1:
+                    return ret[0]
+                return ret
+
+            return getter
+
+        default_cmap = ytcfg.get("yt", "default_colormap")
+        self._colormap_config = dictWithFactory(
+            default_from_config("cmap", default_cmap)
+        )()
+        self._log_config = dictWithFactory(
+            default_from_config(["log", "linthresh"], [None, None])
+        )()
+        self._units_config = dictWithFactory(default_from_config("units", [None]))()
+
     @accepts_all_fields
     @invalidate_plot
-    def set_log(self, field, log, linthresh=None):
-        """set a field to log or linear.
+    def set_log(self, field, log, linthresh=None, symlog_auto=False):
+        """set a field to log, linear, or symlog.
+
+        Symlog scaling is a combination of linear and log, where from 0 to a
+        threshold value, it operates as linear, and then beyond that it operates as
+        log.  Symlog can also work with negative values in log space as well as
+        negative and positive values simultaneously and symmetrically.  If symlog
+        scaling is desired, please set log=True and either set symlog_auto=True or
+        select a value for linthresh.
 
         Parameters
         ----------
@@ -244,21 +288,29 @@ class PlotContainer:
             the field to set a transform
             if field == 'all', applies to all plots.
         log : boolean
-            Log on/off.
-        linthresh : float (must be positive)
-            linthresh will be enabled for symlog scale only when log is true
+            Log on/off: on means log scaling; off means linear scaling. Unless
+            a linthresh is set or symlog_auto is set in which case symlog is used.
+        linthresh : float, optional
+            when using symlog scaling, linthresh is the value at which scaling
+            transitions from linear to logarithmic.  linthresh must be positive.
+            Note: setting linthresh will automatically enable symlog scale
+        symlog_auto : boolean
+            if symlog_auto is True, then yt will use symlog scaling and attempt to
+            determine a linthresh automatically.  Setting a linthresh manually
+            overrides this value.
 
         """
+        if symlog_auto:
+            self._field_transform[field] = symlog_transform
         if log:
-            if linthresh is not None:
-                if not linthresh > 0.0:
-                    raise ValueError('"linthresh" must be positive')
-                self._field_transform[field] = symlog_transform
-                self._field_transform[field].func = linthresh
-            else:
-                self._field_transform[field] = log_transform
+            self._field_transform[field] = log_transform
         else:
             self._field_transform[field] = linear_transform
+        if linthresh is not None:
+            if not linthresh > 0.0:
+                raise ValueError('"linthresh" must be positive')
+            self._field_transform[field] = symlog_transform
+            self._field_transform[field].func = linthresh
         return self
 
     def get_log(self, field):
@@ -271,12 +323,13 @@ class PlotContainer:
             if field == 'all', applies to all plots.
 
         """
-        # devnote : accepts_all_fields decorator is not applicable here because the return variable isn't self
+        # devnote : accepts_all_fields decorator is not applicable here because
+        # the return variable isn't self
         log = {}
         if field == "all":
             fields = list(self.plots.keys())
         else:
-            fields = ensure_list(field)
+            fields = field
         for field in self.data_source._determine_fields(fields):
             log[field] = self._field_transform[field] == log_transform
         return log
@@ -306,12 +359,6 @@ class PlotContainer:
             the state indicating 'on' (True) or 'off' (False)
 
         """
-        if isinstance(state, str):
-            from yt.funcs import issue_deprecation_warning
-
-            issue_deprecation_warning("Deprecated api, use bools for *state*.")
-            state = {"on": True, "off": False}[state.lower()]
-
         self._minorticks[field] = state
         return self
 
@@ -321,7 +368,7 @@ class PlotContainer:
 
     def _initialize_dataset(self, ts):
         if not isinstance(ts, DatasetSeries):
-            if not iterable(ts):
+            if not is_sequence(ts):
                 ts = [ts]
             ts = DatasetSeries(ts)
         return ts
@@ -329,7 +376,7 @@ class PlotContainer:
     def _switch_ds(self, new_ds, data_source=None):
         old_object = self.data_source
         name = old_object._type_name
-        kwargs = dict((n, getattr(old_object, n)) for n in old_object._con_args)
+        kwargs = {n: getattr(old_object, n) for n in old_object._con_args}
         kwargs["center"] = getattr(old_object, "center", None)
         if data_source is not None:
             if name != "proj":
@@ -405,7 +452,7 @@ class PlotContainer:
               demi, bold, heavy, extra bold, or black
 
             See the matplotlib font manager API documentation for more details.
-            https://matplotlib.org/api/font_manager_api.html
+            https://matplotlib.org/stable/api/font_manager_api.html
 
         Notes
         -----
@@ -418,12 +465,18 @@ class PlotContainer:
         This sets the font to be 24-pt, blue, sans-serif, italic, and
         bold-face.
 
-        >>> slc = SlicePlot(ds, 'x', 'Density')
-        >>> slc.set_font({'family':'sans-serif', 'style':'italic',
-        ...               'weight':'bold', 'size':24, 'color':'blue'})
+        >>> slc = SlicePlot(ds, "x", "Density")
+        >>> slc.set_font(
+        ...     {
+        ...         "family": "sans-serif",
+        ...         "style": "italic",
+        ...         "weight": "bold",
+        ...         "size": 24,
+        ...         "color": "blue",
+        ...     }
+        ... )
 
         """
-        from matplotlib.font_manager import FontProperties
 
         if font_dict is None:
             font_dict = {}
@@ -431,8 +484,10 @@ class PlotContainer:
             self._font_color = font_dict.pop("color")
         # Set default values if the user does not explicitly set them.
         # this prevents reverting to the matplotlib defaults.
-        font_dict.setdefault("family", "stixgeneral")
-        font_dict.setdefault("size", 18)
+        if sys.version_info >= (3, 9):
+            font_dict = DEFAULT_FONT_PROPERTIES | font_dict
+        else:
+            font_dict = {**DEFAULT_FONT_PROPERTIES, **font_dict}
         self._font_properties = FontProperties(**font_dict)
         return self
 
@@ -465,68 +520,105 @@ class PlotContainer:
         return self
 
     @validate_plot
-    def save(self, name=None, suffix=None, mpl_kwargs=None):
+    def save(
+        self,
+        name: Optional[Union[str, List[str], Tuple[str, ...]]] = None,
+        suffix: Optional[str] = None,
+        mpl_kwargs: Optional[Dict[str, Any]] = None,
+    ):
         """saves the plot to disk.
 
         Parameters
         ----------
-        name : string or tuple
+        name : string or tuple, optional
            The base of the filename. If name is a directory or if name is not
            set, the filename of the dataset is used. For a tuple, the
            resulting path will be given by joining the elements of the
            tuple
-        suffix : string
+        suffix : string, optional
            Specify the image type by its suffix. If not specified, the output
-           type will be inferred from the filename. Defaults to PNG.
-        mpl_kwargs : dict
+           type will be inferred from the filename. Defaults to '.png'.
+        mpl_kwargs : dict, optional
            A dict of keyword arguments to be passed to matplotlib.
 
-        >>> slc.save(mpl_kwargs={'bbox_inches':'tight'})
+        >>> slc.save(mpl_kwargs={"bbox_inches": "tight"})
 
         """
         names = []
         if mpl_kwargs is None:
             mpl_kwargs = {}
-        if isinstance(name, (tuple, list)):
-            name = os.path.join(*name)
+        elif "format" in mpl_kwargs:
+            new_suffix = mpl_kwargs.pop("format")
+            if new_suffix != suffix:
+                warnings.warn(
+                    f"Overriding suffix {suffix!r} with mpl_kwargs['format'] = {new_suffix!r}. "
+                    "Use the `suffix` argument directly to suppress this warning."
+                )
+            suffix = new_suffix
+
         if name is None:
             name = str(self.ds)
+        elif isinstance(name, (list, tuple)):
+            if not all(isinstance(_, str) for _ in name):
+                raise TypeError(
+                    f"Expected a single str or an iterable of str, got {name!r}"
+                )
+            name = os.path.join(*name)
+
         name = os.path.expanduser(name)
-        if name[-1] == os.sep and not os.path.isdir(name):
-            ensure_dir(name)
-        if os.path.isdir(name) and name != str(self.ds):
-            name = name + (os.sep if name[-1] != os.sep else "") + str(self.ds)
-        if suffix is None:
-            suffix = get_image_suffix(name)
-            if suffix != "":
-                for k, v in self.plots.items():
-                    names.append(v.save(name, mpl_kwargs))
-                return names
+
+        parent_dir, _, prefix1 = name.replace(os.sep, "/").rpartition("/")
+        parent_dir = parent_dir.replace("/", os.sep)
+
+        if parent_dir and not os.path.isdir(parent_dir):
+            ensure_dir(parent_dir)
+
+        if name.endswith(("/", os.path.sep)):
+            name = os.path.join(name, str(self.ds))
+
+        new_name = validate_image_name(name, suffix)
+        if new_name == name:
+            # somehow mypy thinks we may not have a plots attr yet, hence we turn it off here
+            for v in self.plots.values():  # type: ignore
+                out_name = v.save(name, mpl_kwargs)
+                names.append(out_name)
+            return names
+
+        name = new_name
+        prefix, suffix = os.path.splitext(name)
+
         if hasattr(self.data_source, "axis"):
             axis = self.ds.coordinates.axis_name.get(self.data_source.axis, "")
         else:
             axis = None
         weight = None
-        type = self._plot_type
-        if type in ["Projection", "OffAxisProjection"]:
+        plot_type = self._plot_type
+        if plot_type in ["Projection", "OffAxisProjection"]:
             weight = self.data_source.weight_field
             if weight is not None:
                 weight = weight[1].replace(" ", "_")
         if "Cutting" in self.data_source.__class__.__name__:
-            type = "OffAxisSlice"
-        for k, v in self.plots.items():
+            plot_type = "OffAxisSlice"
+
+        # somehow mypy thinks we may not have a plots attr yet, hence we turn it off here
+        for k, v in self.plots.items():  # type: ignore
             if isinstance(k, tuple):
                 k = k[1]
+
+            if plot_type is None:
+                # implemented this check to make mypy happy, because we can't use str.join
+                # with PlotContainer._plot_type = None
+                raise TypeError(f"{self.__class__} is missing a _plot_type value (str)")
+
+            name_elements = [prefix, plot_type]
             if axis:
-                n = "%s_%s_%s_%s" % (name, type, axis, k.replace(" ", "_"))
-            else:
-                # for cutting planes
-                n = "%s_%s_%s" % (name, type, k.replace(" ", "_"))
+                name_elements.append(axis)
+            name_elements.append(k.replace(" ", "_"))
             if weight:
-                n += "_%s" % (weight)
-            if suffix != "":
-                n = ".".join([n, suffix])
-            names.append(v.save(n, mpl_kwargs))
+                name_elements.append(weight)
+
+            name = "_".join(name_elements) + suffix
+            names.append(v.save(name, mpl_kwargs))
         return names
 
     @invalidate_data
@@ -549,13 +641,15 @@ class PlotContainer:
         --------
 
         >>> from yt.mods import SlicePlot
-        >>> slc = SlicePlot(ds, "x", ["Density", "VelocityMagnitude"])
+        >>> slc = SlicePlot(
+        ...     ds, "x", [("gas", "density"), ("gas", "velocity_magnitude")]
+        ... )
         >>> slc.show()
 
         """
         interactivity = self.plots[list(self.plots.keys())[0]].interactivity
         if interactivity:
-            for k, v in sorted(self.plots.items()):
+            for v in sorted(self.plots.values()):
                 v.show()
         else:
             if "__IPYTHON__" in dir(builtins):
@@ -582,8 +676,8 @@ class PlotContainer:
         for field in self.plots:
             img = base64.b64encode(self.plots[field]._repr_png_()).decode()
             ret += (
-                r'<img style="max-width:100%%;max-height:100%%;" '
-                r'src="data:image/png;base64,{0}"><br>'.format(img)
+                r'<img style="max-width:100%;max-height:100%;" '
+                r'src="data:image/png;base64,{}"><br>'.format(img)
             )
         return ret
 
@@ -599,7 +693,7 @@ class PlotContainer:
         label : str
             The new string for the x-axis.
 
-        >>>  plot.set_xlabel("H2I Number Density (cm$^{-3}$)")
+        >>> plot.set_xlabel("H2I Number Density (cm$^{-3}$)")
 
         """
         self._xlabel = label
@@ -616,7 +710,7 @@ class PlotContainer:
         label : str
             The new string for the y-axis.
 
-        >>>  plot.set_ylabel("Temperature (K)")
+        >>> plot.set_ylabel("Temperature (K)")
 
         """
         self._ylabel = label
@@ -633,10 +727,13 @@ class PlotContainer:
                     # This *forces* an override
                     unn = self.ds.coordinates.image_units[self.data_source.axis][i]
                 elif hasattr(self.ds.coordinates, "default_unit_label"):
-                    axax = getattr(self.ds.coordinates, "%s_axis" % ("xy"[i]))[
+                    axax = getattr(self.ds.coordinates, f"{'xy'[i]}_axis")[
                         self.data_source.axis
                     ]
                     unn = self.ds.coordinates.default_unit_label.get(axax, None)
+            if unn in (1, "1", "dimensionless"):
+                axes_unit_labels[i] = ""
+                continue
             if unn is not None:
                 axes_unit_labels[i] = r"\ \ \left(" + unn + r"\right)"
                 continue
@@ -675,7 +772,10 @@ class PlotContainer:
                         symbol_wo_prefix = un[1:]
                         if symbol_wo_prefix in self.ds.unit_registry.prefixable_units:
                             un = un.replace(pp, "{" + latex_prefixes[pp] + "}", 1)
-                axes_unit_labels[i] = r"\ \ (" + un + ")"
+                if r"\frac" in un:
+                    axes_unit_labels[i] = r"\ \ \left(" + un + r"\right)"
+                else:
+                    axes_unit_labels[i] = r"\ \ (" + un + r")"
         return axes_unit_labels
 
     def hide_colorbar(self, field=None):
@@ -698,24 +798,23 @@ class PlotContainer:
         This will save an image with no colorbar.
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>> s = SlicePlot(ds, 2, 'density', 'c', (20, 'kpc'))
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+        >>> s = SlicePlot(ds, 2, "density", "c", (20, "kpc"))
         >>> s.hide_colorbar()
         >>> s.save()
 
         This will save an image with no axis or colorbar.
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>> s = SlicePlot(ds, 2, 'density', 'c', (20, 'kpc'))
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+        >>> s = SlicePlot(ds, 2, "density", "c", (20, "kpc"))
         >>> s.hide_axes()
         >>> s.hide_colorbar()
         >>> s.save()
         """
         if field is None or field == "all":
-            field = self.fields
-        field = ensure_list(field)
-        for f in field:
+            field = self.plots.keys()
+        for f in self.data_source._determine_fields(field):
             self.plots[f].hide_colorbar()
         return self
 
@@ -733,8 +832,7 @@ class PlotContainer:
         """
         if field is None:
             field = self.fields
-        field = ensure_list(field)
-        for f in field:
+        for f in iter_fields(field):
             self.plots[f].show_colorbar()
         return self
 
@@ -760,16 +858,16 @@ class PlotContainer:
         This will save an image with no axes.
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>> s = SlicePlot(ds, 2, 'density', 'c', (20, 'kpc'))
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+        >>> s = SlicePlot(ds, 2, "density", "c", (20, "kpc"))
         >>> s.hide_axes()
         >>> s.save()
 
         This will save an image with no axis or colorbar.
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>> s = SlicePlot(ds, 2, 'density', 'c', (20, 'kpc'))
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+        >>> s = SlicePlot(ds, 2, "density", "c", (20, "kpc"))
         >>> s.hide_axes()
         >>> s.hide_colorbar()
         >>> s.save()
@@ -783,8 +881,7 @@ class PlotContainer:
         """
         if field is None:
             field = self.fields
-        field = ensure_list(field)
-        for f in field:
+        for f in iter_fields(field):
             self.plots[f].hide_axes(draw_frame)
         return self
 
@@ -802,24 +899,20 @@ class PlotContainer:
         """
         if field is None:
             field = self.fields
-        field = ensure_list(field)
-        for f in field:
+        for f in iter_fields(field):
             self.plots[f].show_axes()
         return self
 
 
 class ImagePlotContainer(PlotContainer):
-    """A container for plots with colorbars.
-
-    """
+    """A container for plots with colorbars."""
 
     _colorbar_valid = False
 
     def __init__(self, data_source, figure_size, fontsize):
-        super(ImagePlotContainer, self).__init__(data_source, figure_size, fontsize)
+        super().__init__(data_source, figure_size, fontsize)
         self.plots = PlotDictionary(data_source)
         self._callbacks = []
-        self._colormaps = defaultdict(lambda: ytcfg.get("yt", "default_colormap"))
         self._cbar_minorticks = {}
         self._background_color = PlotDictionary(self.data_source, lambda: "w")
         self._colorbar_label = PlotDictionary(self.data_source, lambda: None)
@@ -842,7 +935,7 @@ class ImagePlotContainer(PlotContainer):
 
         """
         self._colorbar_valid = False
-        self._colormaps[field] = cmap
+        self._colormap_config[field] = cmap
         return self
 
     @accepts_all_fields
@@ -862,12 +955,9 @@ class ImagePlotContainer(PlotContainer):
 
         """
         if color is None:
-            cmap = self._colormaps[field]
+            cmap = self._colormap_config[field]
             if isinstance(cmap, str):
-                try:
-                    cmap = yt_colormaps[cmap]
-                except KeyError:
-                    cmap = getattr(matplotlib.cm, cmap)
+                cmap = get_cmap(cmap)
             color = cmap(0)
         self._background_color[field] = color
         return self
@@ -909,10 +999,12 @@ class ImagePlotContainer(PlotContainer):
                     plot_units = self.frb[_field].units
                     z = z.to(plot_units).value
                 except AttributeError:
-                    # only certain subclasses have a frb attribute they can rely on for inspecting units
+                    # only certain subclasses have a frb attribute
+                    # they can rely on for inspecting units
                     mylog.warning(
-                        "%s class doesn't support zmin/zmax set as tuples or YTQuantity"
-                        % self.__class__.__name__
+                        "%s class doesn't support zmin/zmax"
+                        " as tuples or unyt_quantitiy",
+                        self.__class__.__name__,
                     )
                     z = z.value
             return z
@@ -920,7 +1012,7 @@ class ImagePlotContainer(PlotContainer):
         if field == "all":
             fields = list(self.plots.keys())
         else:
-            fields = ensure_list(field)
+            fields = field
         for field in self.data_source._determine_fields(fields):
             myzmin = _sanitize_units(zmin, field)
             myzmax = _sanitize_units(zmax, field)
@@ -938,26 +1030,6 @@ class ImagePlotContainer(PlotContainer):
             self.plots[field].zmin = myzmin
             self.plots[field].zmax = myzmax
         return self
-
-    @invalidate_plot
-    def set_cbar_minorticks(self, field, state):
-        """Deprecated alias, kept for backward compatibility.
-
-        turn colorbar minor ticks "on" or "off" in the current plot, according to *state*
-
-        Parameters
-        ----------
-        field : string
-            the field to remove colorbar minorticks
-        state : string
-            the state indicating 'on' or 'off'
-        """
-        issue_deprecation_warning(
-            "Deprecated alias, use set_colorbar_minorticks instead."
-        )
-
-        boolstate = {"on": True, "off": False}[state.lower()]
-        return self.set_colorbar_minorticks(field, boolstate)
 
     @accepts_all_fields
     @invalidate_plot
@@ -990,7 +1062,9 @@ class ImagePlotContainer(PlotContainer):
         label : str
           The new label
 
-        >>>  plot.set_colorbar_label("density", "Dark Matter Density (g cm$^{-3}$)")
+        >>> plot.set_colorbar_label(
+        ...     ("gas", "density"), "Dark Matter Density (g cm$^{-3}$)"
+        ... )
 
         """
         self._colorbar_label[field] = label

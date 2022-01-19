@@ -9,7 +9,7 @@ from yt.utilities.answer_testing.framework import (
 from yt.visualization.volume_rendering.api import (
     ColorTransferFunction,
     Scene,
-    VolumeSource,
+    create_volume_source,
     off_axis_projection,
 )
 
@@ -20,7 +20,7 @@ def test_orientation():
 
     sc = Scene()
 
-    vol = VolumeSource(ds, field=("gas", "density"))
+    vol = create_volume_source(ds, field=("gas", "density"))
     sc.add_source(vol)
 
     tf = vol.transfer_function
@@ -34,10 +34,13 @@ def test_orientation():
     orientations = [[-0.3, -0.1, 0.8]]
 
     theta = np.pi / n_frames
-    decimals = 12
     test_name = "vr_orientation"
 
-    for lens_type in ["plane-parallel", "perspective"]:
+    for lens_type, decimals in [("perspective", 12), ("plane-parallel", 2)]:
+        # set a much lower precision for plane-parallel tests, see
+        # https://github.com/yt-project/yt/issue/3069
+        # https://github.com/yt-project/yt/pull/3068
+        # https://github.com/yt-project/yt/pull/3294
         frame = 0
 
         cam = sc.add_camera(ds, lens_type=lens_type)
@@ -52,7 +55,7 @@ def test_orientation():
         test1.answer_name = test_name
         yield test1
 
-        for i in range(n_frames):
+        for _ in range(n_frames):
             frame += 1
             center = ds.arr([0, 0, 0], "code_length")
             cam.yaw(theta, rot_center=center)
@@ -61,7 +64,7 @@ def test_orientation():
             test2.answer_name = test_name
             yield test2
 
-        for i in range(n_frames):
+        for _ in range(n_frames):
             frame += 1
             theta = np.pi / n_frames
             center = ds.arr([0, 0, 0], "code_length")
@@ -71,7 +74,7 @@ def test_orientation():
             test3.answer_name = test_name
             yield test3
 
-        for i in range(n_frames):
+        for _ in range(n_frames):
             frame += 1
             theta = np.pi / n_frames
             center = ds.arr([0, 0, 0], "code_length")
@@ -86,13 +89,13 @@ def test_orientation():
 
     for i, orientation in enumerate(orientations):
         image = off_axis_projection(
-            ds, center, orientation, width, 512, "density", no_ghost=False
+            ds, center, orientation, width, 512, ("gas", "density"), no_ghost=False
         )
 
         def offaxis_image_func(filename_prefix):
             return image.write_image(filename_prefix)
 
         test5 = GenericImageTest(ds, offaxis_image_func, decimals)
-        test5.prefix = "oap_orientation_{}".format(i)
+        test5.prefix = f"oap_orientation_{i}"
         test5.answer_name = test_name
         yield test5

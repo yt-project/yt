@@ -29,8 +29,7 @@ acts as the base for clump finding.
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
-   data_source = ds.disk([0.5, 0.5, 0.5], [0., 0., 1.],
-                         (8, 'kpc'), (1, 'kpc'))
+   data_source = ds.disk([0.5, 0.5, 0.5], [0.0, 0.0, 1.0], (8, "kpc"), (1, "kpc"))
 
    master_clump = Clump(data_source, ("gas", "density"))
 
@@ -59,7 +58,9 @@ and either return True or False.
 .. code:: python
 
    def _minimum_gas_mass(clump, min_mass):
-       return (clump["gas", "cell_mass"].sum() >= min_mass)
+       return clump["gas", "mass"].sum() >= min_mass
+
+
    add_validator("minimum_gas_mass", _minimum_gas_mass)
 
 The :func:`~yt.data_objects.level_sets.clump_validators.add_validator`
@@ -93,7 +94,7 @@ Calculating Clump Quantities
 
 By default, a number of quantities will be calculated for each clump when the
 clump finding process has finished.  The default quantities are: ``total_cells``,
-``cell_mass``, ``mass_weighted_jeans_mass``, ``volume_weighted_jeans_mass``,
+``mass``, ``mass_weighted_jeans_mass``, ``volume_weighted_jeans_mass``,
 ``max_grid_level``, ``min_number_density``, and ``max_number_density``.
 Additional items can be added with the
 :func:`~yt.data_objects.level_sets.clump_handling.Clump.add_info_item`
@@ -114,8 +115,11 @@ of available info items by calling
 
    def _mass_weighted_jeans_mass(clump):
        jeans_mass = clump.data.quantities.weighted_average_quantity(
-           "jeans_mass", ("gas", "cell_mass")).in_units("Msun")
+           "jeans_mass", ("gas", "mass")
+       ).in_units("Msun")
        return "Jeans Mass (mass-weighted): %.6e Msolar." % jeans_mass
+
+
    add_clump_info("mass_weighted_jeans_mass", _mass_weighted_jeans_mass)
 
 Then, add it to the list:
@@ -130,8 +134,8 @@ the info item you have defined via the ``info`` attribute of a ``Clump`` object:
 .. code:: python
 
    clump = leaf_clumps[0]
-   print(clump.info['mass_weighted_jeans_mass'])
-   
+   print(clump.info["mass_weighted_jeans_mass"])
+
 Besides the quantities calculated by default, the following are available:
 ``center_of_mass`` and ``distance_to_main_clump``.
 
@@ -177,10 +181,9 @@ Clumps can be visualized using the ``annotate_clumps`` callback.
 
 .. code:: python
 
-   prj = yt.ProjectionPlot(ds, 2, ("gas", "density"),
-                           center='c', width=(20,'kpc'))
+   prj = yt.ProjectionPlot(ds, 2, ("gas", "density"), center="c", width=(20, "kpc"))
    prj.annotate_clumps(leaf_clumps)
-   prj.save('clumps')
+   prj.save("clumps")
 
 Saving and Reloading Clump Data
 -------------------------------
@@ -203,7 +206,7 @@ iterated over in the same fashion as the original tree.
 .. code:: python
 
    ds_clumps = yt.load(fn)
-   for clump ds_clumps.tree:
+   for clump in ds_clumps.tree:
        print(clump.clump_id)
 
 The ``leaves`` attribute returns a list of all leaf clumps.
@@ -212,13 +215,13 @@ The ``leaves`` attribute returns a list of all leaf clumps.
 
    print(ds_clumps.leaves)
 
-Info items for each clump can be accessed with the `clump` field type.  Gas
-or grid fields should be accessed using the `grid` field type and particle
+Info items for each clump can be accessed with the ``"clump"`` field type.  Gas
+or grid fields should be accessed using the ``"grid"`` field type and particle
 fields should be access using the specific particle type.
 
 .. code:: python
 
    my_clump = ds_clumps.leaves[0]
-   print(my_clumps["clump", "cell_mass"])
+   print(my_clumps["clump", "mass"])
    print(my_clumps["grid", "density"])
    print(my_clumps["all", "particle_mass"])

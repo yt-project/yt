@@ -1,6 +1,5 @@
-import yt.units as u
-from yt.convenience import load
 from yt.frontends.athena.api import AthenaDataset
+from yt.loaders import load
 from yt.testing import (
     assert_allclose_units,
     assert_equal,
@@ -13,7 +12,7 @@ from yt.utilities.answer_testing.framework import (
     small_patch_amr,
 )
 
-_fields_cloud = ("scalar[0]", "density", "total_energy")
+_fields_cloud = (("athena", "scalar[0]"), ("gas", "density"), ("gas", "total_energy"))
 
 cloud = "ShockCloud/id0/Cloud.0050.vtk"
 
@@ -27,7 +26,11 @@ def test_cloud():
         yield test
 
 
-_fields_blast = ("temperature", "density", "velocity_magnitude")
+_fields_blast = (
+    ("gas", "temperature"),
+    ("gas", "density"),
+    ("gas", "velocity_magnitude"),
+)
 
 blast = "MHDBlast/id0/Blast.0100.vtk"
 
@@ -62,7 +65,11 @@ uo_stripping = {
     "mass_unit": 9.999e-30 * 8.0236e22 ** 3,
 }
 
-_fields_stripping = ("temperature", "density", "specific_scalar[0]")
+_fields_stripping = (
+    ("gas", "temperature"),
+    ("gas", "density"),
+    ("athena", "specific_scalar[0]"),
+)
 
 stripping = "RamPressureStripping/id0/rps.0062.vtk"
 
@@ -90,30 +97,28 @@ uo_sloshing = {
 def test_nprocs():
     ds1 = load(sloshing, units_override=uo_sloshing)
     sp1 = ds1.sphere("c", (100.0, "kpc"))
-    prj1 = ds1.proj("density", 0)
+    prj1 = ds1.proj(("gas", "density"), 0)
     ds2 = load(sloshing, units_override=uo_sloshing, nprocs=8)
     sp2 = ds2.sphere("c", (100.0, "kpc"))
-    prj2 = ds1.proj("density", 0)
+    prj2 = ds1.proj(("gas", "density"), 0)
 
-    ds3 = load(sloshing, parameters=uo_sloshing)
-    assert_equal(ds3.length_unit, 1.0 * u.Mpc)
-    assert_equal(ds3.time_unit, 1.0 * u.Myr)
-    assert_equal(ds3.mass_unit, 1e14 * u.Msun)
-
-    assert_equal(sp1.quantities.extrema("pressure"), sp2.quantities.extrema("pressure"))
+    assert_equal(
+        sp1.quantities.extrema(("gas", "pressure")),
+        sp2.quantities.extrema(("gas", "pressure")),
+    )
     assert_allclose_units(
-        sp1.quantities.total_quantity("pressure"),
-        sp2.quantities.total_quantity("pressure"),
+        sp1.quantities.total_quantity(("gas", "pressure")),
+        sp2.quantities.total_quantity(("gas", "pressure")),
     )
     for ax in "xyz":
         assert_equal(
-            sp1.quantities.extrema("velocity_%s" % ax),
-            sp2.quantities.extrema("velocity_%s" % ax),
+            sp1.quantities.extrema(("gas", f"velocity_{ax}")),
+            sp2.quantities.extrema(("gas", f"velocity_{ax}")),
         )
     assert_allclose_units(
         sp1.quantities.bulk_velocity(), sp2.quantities.bulk_velocity()
     )
-    assert_equal(prj1["density"], prj2["density"])
+    assert_equal(prj1[("gas", "density")], prj2[("gas", "density")])
 
 
 @requires_file(cloud)

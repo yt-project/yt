@@ -1,14 +1,10 @@
 import numpy as np
 
 from yt.funcs import mylog
-from yt.utilities.exceptions import YTDomainOverflow
-from yt.utilities.io_handler import BaseIOHandler
-from yt.utilities.lib.geometry_utils import compute_morton
-
-CHUNKSIZE = 32 ** 3
+from yt.utilities.io_handler import BaseParticleIOHandler
 
 
-class IOHandlerSDF(BaseIOHandler):
+class IOHandlerSDF(BaseParticleIOHandler):
     _dataset_type = "sdf_particles"
 
     @property
@@ -20,30 +16,30 @@ class IOHandlerSDF(BaseIOHandler):
 
     def _read_particle_coords(self, chunks, ptf):
         chunks = list(chunks)
-        data_files = set([])
+        data_files = set()
         assert len(ptf) == 1
         assert ptf.keys()[0] == "dark_matter"
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         assert len(data_files) == 1
-        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
+        for _data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             yield "dark_matter", (
                 self._handle["x"],
                 self._handle["y"],
                 self._handle["z"],
-            )
+            ), 0.0
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
-        data_files = set([])
+        data_files = set()
         assert len(ptf) == 1
         assert ptf.keys()[0] == "dark_matter"
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         assert len(data_files) == 1
-        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
+        for _data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             for ptype, field_list in sorted(ptf.items()):
                 x = self._handle["x"]
                 y = self._handle["y"]
@@ -60,29 +56,6 @@ class IOHandlerSDF(BaseIOHandler):
                         data = self._handle[field][mask]
                     yield (ptype, field), data
 
-    def _initialize_index(self, data_file, regions):
-        x, y, z = (self._handle[ax] for ax in "xyz")
-        pcount = x.size
-
-        morton = np.empty(pcount, dtype="uint64")
-        ind = 0
-        while ind < pcount:
-            npart = min(CHUNKSIZE, pcount - ind)
-            pos = np.empty((npart, 3), dtype=x.dtype)
-            pos[:, 0] = x[ind : ind + npart]
-            pos[:, 1] = y[ind : ind + npart]
-            pos[:, 2] = z[ind : ind + npart]
-            regions.add_data_file(pos, data_file.file_id)
-            morton[ind : ind + npart] = compute_morton(
-                pos[:, 0],
-                pos[:, 1],
-                pos[:, 2],
-                data_file.ds.domain_left_edge,
-                data_file.ds.domain_right_edge,
-            )
-            ind += CHUNKSIZE
-        return morton
-
     def _identify_fields(self, data_file):
         fields = [("dark_matter", v) for v in self._handle.keys()]
         fields.append(("dark_matter", "mass"))
@@ -92,8 +65,9 @@ class IOHandlerSDF(BaseIOHandler):
         pcount = self._handle["x"].size
         if pcount > 1e9:
             mylog.warning(
-                "About to load %i particles into memory. " % (pcount)
-                + "You may want to consider a midx-enabled load"
+                "About to load %i particles into memory. "
+                "You may want to consider a midx-enabled load",
+                pcount,
             )
         return {"dark_matter": pcount}
 
@@ -103,31 +77,31 @@ class IOHandlerHTTPSDF(IOHandlerSDF):
 
     def _read_particle_coords(self, chunks, ptf):
         chunks = list(chunks)
-        data_files = set([])
+        data_files = set()
         assert len(ptf) == 1
         assert ptf.keys()[0] == "dark_matter"
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         assert len(data_files) == 1
-        for data_file in data_files:
+        for _data_file in data_files:
             pcount = self._handle["x"].size
             yield "dark_matter", (
                 self._handle["x"][:pcount],
                 self._handle["y"][:pcount],
                 self._handle["z"][:pcount],
-            )
+            ), 0.0
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
-        data_files = set([])
+        data_files = set()
         assert len(ptf) == 1
         assert ptf.keys()[0] == "dark_matter"
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         assert len(data_files) == 1
-        for data_file in data_files:
+        for _data_file in data_files:
             pcount = self._handle["x"].size
             for ptype, field_list in sorted(ptf.items()):
                 x = self._handle["x"][:pcount]
@@ -163,13 +137,13 @@ class IOHandlerSIndexSDF(IOHandlerSDF):
         dle = self.ds.domain_left_edge.in_units("code_length").d
         dre = self.ds.domain_right_edge.in_units("code_length").d
         for dd in self.ds.midx.iter_bbox_data(dle, dre, ["x", "y", "z"]):
-            yield "dark_matter", (dd["x"], dd["y"], dd["z"])
+            yield "dark_matter", (dd["x"], dd["y"], dd["z"]), 0.0
 
     def _read_particle_fields(self, chunks, ptf, selector):
         dle = self.ds.domain_left_edge.in_units("code_length").d
         dre = self.ds.domain_right_edge.in_units("code_length").d
         required_fields = []
-        for ptype, field_list in sorted(ptf.items()):
+        for field_list in sorted(ptf.values()):
             for field in field_list:
                 if field == "mass":
                     continue
@@ -193,51 +167,15 @@ class IOHandlerSIndexSDF(IOHandlerSDF):
                         data = dd[field][mask]
                     yield (ptype, field), data
 
-    def _initialize_index(self, data_file, regions):
-        dle = self.ds.domain_left_edge.in_units("code_length").d
-        dre = self.ds.domain_right_edge.in_units("code_length").d
-        pcount = 0
-        for dd in self.ds.midx.iter_bbox_data(dle, dre, ["x"]):
-            pcount += dd["x"].size
-
-        morton = np.empty(pcount, dtype="uint64")
-        ind = 0
-
-        chunk_id = 0
-        for dd in self.ds.midx.iter_bbox_data(dle, dre, ["x", "y", "z"]):
-            npart = dd["x"].size
-            pos = np.empty((npart, 3), dtype=dd["x"].dtype)
-            pos[:, 0] = dd["x"]
-            pos[:, 1] = dd["y"]
-            pos[:, 2] = dd["z"]
-            if np.any(pos.min(axis=0) < self.ds.domain_left_edge) or np.any(
-                pos.max(axis=0) > self.ds.domain_right_edge
-            ):
-                raise YTDomainOverflow(
-                    pos.min(axis=0),
-                    pos.max(axis=0),
-                    self.ds.domain_left_edge,
-                    self.ds.domain_right_edge,
-                )
-            regions.add_data_file(pos, chunk_id)
-            morton[ind : ind + npart] = compute_morton(
-                pos[:, 0],
-                pos[:, 1],
-                pos[:, 2],
-                data_file.ds.domain_left_edge,
-                data_file.ds.domain_right_edge,
-            )
-            ind += npart
-        return morton
-
     def _count_particles(self, data_file):
         dle = self.ds.domain_left_edge.in_units("code_length").d
         dre = self.ds.domain_right_edge.in_units("code_length").d
         pcount_estimate = self.ds.midx.get_nparticles_bbox(dle, dre)
         if pcount_estimate > 1e9:
             mylog.warning(
-                "Filtering %i particles to find total." % pcount_estimate
-                + " You may want to reconsider your bounding box."
+                "Filtering %i particles to find total. "
+                "You may want to reconsider your bounding box.",
+                pcount_estimate,
             )
         pcount = 0
         for dd in self.ds.midx.iter_bbox_data(dle, dre, ["x"]):

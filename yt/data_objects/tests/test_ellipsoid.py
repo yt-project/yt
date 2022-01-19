@@ -6,8 +6,8 @@ from yt.testing import assert_array_less, fake_random_ds
 def setup():
     from yt.config import ytcfg
 
-    ytcfg["yt", "loglevel"] = "50"
-    ytcfg["yt", "__withintesting"] = "True"
+    ytcfg["yt", "log_level"] = 50
+    ytcfg["yt", "internals", "within_testing"] = True
 
 
 def _difference(x1, x2, dw):
@@ -42,9 +42,9 @@ def test_ellipsoid():
                 e0 = e0s[:, i]
                 tilt = tilts[i]
                 ell = ds.ellipsoid(c, A, B, C, e0, tilt)
-                assert_array_less(ell["radius"], A)
-                p = np.array([ell[ax] for ax in "xyz"])
-                dot_evec = [np.zeros_like(ell["radius"]) for i in range(3)]
+                assert_array_less(ell[("index", "radius")], A)
+                p = np.array([ell["index", ax] for ax in "xyz"])
+                dot_evec = [np.zeros_like(ell[("index", "radius")]) for i in range(3)]
                 vecs = [ell._e0, ell._e1, ell._e2]
                 mags = [ell._A, ell._B, ell._C]
                 my_c = np.array([c] * p.shape[1]).transpose()

@@ -67,7 +67,7 @@ public:
     less = NULL;
     greater = NULL;
   }
-  // emtpy node with some info
+  // empty node with some info
   Node(uint32_t ndim0, double *le, double *re, bool *ple, bool *pre) {
     is_empty = true;
     is_leaf = false;
@@ -153,7 +153,7 @@ public:
     }
   }
   Node(std::istream &is) {
-    // Note that Node instances intialized via this method do not have
+    // Note that Node instances initialized via this method do not have
     // any neighbor information. We will build neighbor information later
     // by walking the tree
     bool check_bit = deserialize_scalar<bool>(is);
@@ -265,7 +265,7 @@ public:
 	left_nodes_copy.push_back(NULL);
       out = new Node(ndim, left_edge, right_edge,
 		     periodic_left, periodic_right,
-		     left_idx, children, leafid, 
+		     left_idx, children, leafid,
 		     left_nodes_copy);
     } else {
       Node *lnode = less->copy();

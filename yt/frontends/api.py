@@ -17,7 +17,7 @@ _frontends = [
     "boxlib",
     "chombo",
     "eagle",
-    "enzo_p",
+    "enzo_e",
     "enzo",
     "exodus_ii",
     "fits",
@@ -30,6 +30,7 @@ _frontends = [
     "halo_catalog",
     "http_stream",
     "moab",
+    "nc4_cm1",
     "open_pmd",
     "owls",
     "owls_subfind",
@@ -46,7 +47,7 @@ _frontends = [
 class _frontend_container:
     def __init__(self):
         for frontend in _frontends:
-            _mod = "yt.frontends.%s.api" % frontend
+            _mod = f"yt.frontends.{frontend}.api"
             setattr(self, frontend, importlib.import_module(_mod))
         setattr(self, "api", importlib.import_module("yt.frontends.api"))
         setattr(self, "__name__", "yt.frontends.api")

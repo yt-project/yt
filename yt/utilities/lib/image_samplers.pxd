@@ -8,10 +8,12 @@ Definitions for image samplers
 
 
 import numpy as np
-cimport numpy as np
+
 cimport cython
-from .volume_container cimport VolumeContainer
+cimport numpy as np
+
 from .partitioned_grid cimport PartitionedGrid
+from .volume_container cimport VolumeContainer
 
 DEF Nch = 4
 
@@ -53,6 +55,7 @@ cdef class ImageSampler:
     cdef void *supp_data
     cdef np.float64_t width[3]
     cdef public object lens_type
+    cdef public str volume_method
     cdef calculate_extent_function *extent_function
     cdef generate_vector_info_function *vector_function
     cdef void setup(self, PartitionedGrid pg)

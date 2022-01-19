@@ -4,7 +4,6 @@ import tempfile
 
 import numpy as np
 
-from yt.convenience import load
 from yt.data_objects.api import create_profile
 from yt.frontends.ytdata.api import (
     YTDataContainerDataset,
@@ -14,6 +13,7 @@ from yt.frontends.ytdata.api import (
     YTSpatialPlotDataset,
     save_as_dataset,
 )
+from yt.loaders import load
 from yt.testing import assert_allclose_units, assert_array_equal, assert_equal
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.answer_testing.framework import (
@@ -32,6 +32,10 @@ def make_tempdir():
 
 
 def compare_unit_attributes(ds1, ds2):
+    r"""
+    Checks to make sure that the length, mass, time, velocity, and
+    magnetic units are the same for two different dataset objects.
+    """
     attrs = ("length_unit", "mass_unit", "time_unit", "velocity_unit", "magnetic_unit")
     for attr in attrs:
         u1 = getattr(ds1, attr, None)
@@ -44,7 +48,7 @@ class YTDataFieldTest(AnswerTestingTest):
     _attrs = ("field_name",)
 
     def __init__(self, ds_fn, field, decimals=10, geometric=True):
-        super(YTDataFieldTest, self).__init__(ds_fn)
+        super().__init__(ds_fn)
         self.field = field
         if isinstance(field, tuple) and len(field) == 2:
             self.field_name = field[1]
@@ -63,7 +67,7 @@ class YTDataFieldTest(AnswerTestingTest):
         return np.array([num_e, avg])
 
     def compare(self, new_result, old_result):
-        err_msg = "YTData field values for %s not equal." % (self.field,)
+        err_msg = f"YTData field values for {self.field} not equal."
         if self.decimals is None:
             assert_equal(new_result, old_result, err_msg=err_msg, verbose=True)
         else:
@@ -86,19 +90,19 @@ def test_datacontainer_data():
     os.chdir(tmpdir)
     ds = data_dir_load(enzotiny)
     sphere = ds.sphere(ds.domain_center, (10, "Mpc"))
-    fn = sphere.save_as_dataset(fields=["density", "particle_mass"])
+    fn = sphere.save_as_dataset(fields=[("gas", "density"), ("all", "particle_mass")])
     full_fn = os.path.join(tmpdir, fn)
     sphere_ds = load(full_fn)
     compare_unit_attributes(ds, sphere_ds)
     assert isinstance(sphere_ds, YTDataContainerDataset)
     yield YTDataFieldTest(full_fn, ("grid", "density"))
     yield YTDataFieldTest(full_fn, ("all", "particle_mass"))
-    cr = ds.cut_region(sphere, ['obj["temperature"] > 1e4'])
-    fn = cr.save_as_dataset(fields=["temperature"])
+    cr = ds.cut_region(sphere, ['obj[("gas", "temperature")] > 1e4'])
+    fn = cr.save_as_dataset(fields=[("gas", "temperature")])
     full_fn = os.path.join(tmpdir, fn)
     cr_ds = load(full_fn)
     assert isinstance(cr_ds, YTDataContainerDataset)
-    assert (cr["temperature"] == cr_ds.data["temperature"]).all()
+    assert (cr[("gas", "temperature")] == cr_ds.data[("gas", "temperature")]).all()
     os.chdir(curdir)
     if tmpdir != ".":
         shutil.rmtree(tmpdir)
@@ -112,7 +116,13 @@ def test_grid_datacontainer_data():
     ds = data_dir_load(enzotiny)
 
     cg = ds.covering_grid(level=0, left_edge=[0.25] * 3, dims=[16] * 3)
-    fn = cg.save_as_dataset(fields=["density", "particle_mass", "particle_position"])
+    fn = cg.save_as_dataset(
+        fields=[
+            ("gas", "density"),
+            ("all", "particle_mass"),
+            ("all", "particle_position"),
+        ]
+    )
     full_fn = os.path.join(tmpdir, fn)
     cg_ds = load(full_fn)
     compare_unit_attributes(ds, cg_ds)
@@ -125,7 +135,7 @@ def test_grid_datacontainer_data():
     yield YTDataFieldTest(full_fn, ("all", "particle_mass"))
 
     ag = ds.arbitrary_grid(left_edge=[0.25] * 3, right_edge=[0.75] * 3, dims=[16] * 3)
-    fn = ag.save_as_dataset(fields=["density", "particle_mass"])
+    fn = ag.save_as_dataset(fields=[("gas", "density"), ("all", "particle_mass")])
     full_fn = os.path.join(tmpdir, fn)
     ag_ds = load(full_fn)
     compare_unit_attributes(ds, ag_ds)
@@ -133,14 +143,14 @@ def test_grid_datacontainer_data():
     yield YTDataFieldTest(full_fn, ("grid", "density"))
     yield YTDataFieldTest(full_fn, ("all", "particle_mass"))
 
-    my_proj = ds.proj("density", "x", weight_field="density")
+    my_proj = ds.proj(("gas", "density"), "x", weight_field=("gas", "density"))
     frb = my_proj.to_frb(1.0, (800, 800))
-    fn = frb.save_as_dataset(fields=["density"])
+    fn = frb.save_as_dataset(fields=[("gas", "density")])
     frb_ds = load(fn)
-    assert_array_equal(frb["density"], frb_ds.data["density"])
+    assert_array_equal(frb[("gas", "density")], frb_ds.data[("gas", "density")])
     compare_unit_attributes(ds, frb_ds)
     assert isinstance(frb_ds, YTGridDataset)
-    yield YTDataFieldTest(full_fn, "density", geometric=False)
+    yield YTDataFieldTest(full_fn, ("grid", "density"), geometric=False)
     os.chdir(curdir)
     if tmpdir != ".":
         shutil.rmtree(tmpdir)
@@ -152,7 +162,7 @@ def test_spatial_data():
     curdir = os.getcwd()
     os.chdir(tmpdir)
     ds = data_dir_load(enzotiny)
-    proj = ds.proj("density", "x", weight_field="density")
+    proj = ds.proj(("gas", "density"), "x", weight_field=("gas", "density"))
     fn = proj.save_as_dataset()
     full_fn = os.path.join(tmpdir, fn)
     proj_ds = load(full_fn)
@@ -171,7 +181,12 @@ def test_profile_data():
     os.chdir(tmpdir)
     ds = data_dir_load(enzotiny)
     ad = ds.all_data()
-    profile_1d = create_profile(ad, "density", "temperature", weight_field="cell_mass")
+    profile_1d = create_profile(
+        ad,
+        ("gas", "density"),
+        ("gas", "temperature"),
+        weight_field=("gas", "cell_mass"),
+    )
     fn = profile_1d.save_as_dataset()
     full_fn = os.path.join(tmpdir, fn)
     prof_1d_ds = load(full_fn)
@@ -185,17 +200,20 @@ def test_profile_data():
         )
 
     p1 = ProfilePlot(
-        prof_1d_ds.data, "density", "temperature", weight_field="cell_mass"
+        prof_1d_ds.data,
+        ("gas", "density"),
+        ("gas", "temperature"),
+        weight_field=("gas", "cell_mass"),
     )
     p1.save()
 
-    yield YTDataFieldTest(full_fn, "temperature", geometric=False)
-    yield YTDataFieldTest(full_fn, "x", geometric=False)
-    yield YTDataFieldTest(full_fn, "density", geometric=False)
+    yield YTDataFieldTest(full_fn, ("data", "temperature"), geometric=False)
+    yield YTDataFieldTest(full_fn, ("data", "x"), geometric=False)
+    yield YTDataFieldTest(full_fn, ("data", "density"), geometric=False)
     profile_2d = create_profile(
         ad,
-        ["density", "temperature"],
-        "cell_mass",
+        [("gas", "density"), ("gas", "temperature")],
+        ("gas", "cell_mass"),
         weight_field=None,
         n_bins=(128, 128),
     )
@@ -206,15 +224,19 @@ def test_profile_data():
     assert isinstance(prof_2d_ds, YTProfileDataset)
 
     p2 = PhasePlot(
-        prof_2d_ds.data, "density", "temperature", "cell_mass", weight_field=None
+        prof_2d_ds.data,
+        ("gas", "density"),
+        ("gas", "temperature"),
+        ("gas", "cell_mass"),
+        weight_field=None,
     )
     p2.save()
 
-    yield YTDataFieldTest(full_fn, "density", geometric=False)
-    yield YTDataFieldTest(full_fn, "x", geometric=False)
-    yield YTDataFieldTest(full_fn, "temperature", geometric=False)
-    yield YTDataFieldTest(full_fn, "y", geometric=False)
-    yield YTDataFieldTest(full_fn, "cell_mass", geometric=False)
+    yield YTDataFieldTest(full_fn, ("data", "density"), geometric=False)
+    yield YTDataFieldTest(full_fn, ("data", "x"), geometric=False)
+    yield YTDataFieldTest(full_fn, ("data", "temperature"), geometric=False)
+    yield YTDataFieldTest(full_fn, ("data", "y"), geometric=False)
+    yield YTDataFieldTest(full_fn, ("data", "cell_mass"), geometric=False)
     os.chdir(curdir)
     if tmpdir != ".":
         shutil.rmtree(tmpdir)
@@ -229,8 +251,8 @@ def test_nonspatial_data():
     region = ds.box([0.25] * 3, [0.75] * 3)
     sphere = ds.sphere(ds.domain_center, (10, "Mpc"))
     my_data = {}
-    my_data["region_density"] = region["density"]
-    my_data["sphere_density"] = sphere["density"]
+    my_data["region_density"] = region[("gas", "density")]
+    my_data["sphere_density"] = sphere[("gas", "density")]
     fn = "test_data.h5"
     save_as_dataset(ds, fn, my_data)
     full_fn = os.path.join(tmpdir, fn)
@@ -247,7 +269,7 @@ def test_nonspatial_data():
     full_fn = os.path.join(tmpdir, fn)
     new_ds = load(full_fn)
     assert isinstance(new_ds, YTNonspatialDataset)
-    yield YTDataFieldTest(full_fn, "density", geometric=False)
+    yield YTDataFieldTest(full_fn, ("data", "density"), geometric=False)
     os.chdir(curdir)
     if tmpdir != ".":
         shutil.rmtree(tmpdir)

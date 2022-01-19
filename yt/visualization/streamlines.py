@@ -29,7 +29,7 @@ class Streamlines(ParallelAnalysisInterface):
     ----------
     ds : ~yt.data_objects.static_output.Dataset
         This is the dataset to streamline
-    pos : array_like
+    positions : array_like
         An array of initial starting positions of the streamlines.
     xfield : str or tuple of str, optional
         The x component of the vector field to be streamlined.
@@ -62,33 +62,33 @@ class Streamlines(ParallelAnalysisInterface):
 
     Examples
     --------
-    >>> import yt
-    >>> import numpy as np
-    >>> import matplotlib.pylab as pl
-    >>>
-    >>> from yt.visualization.api import Streamlines
-    >>> from mpl_toolkits.mplot3d import Axes3D
-    >>>
+    >>> import matplotlib.pyplot as plt
+    ... import numpy as np
+    ... from mpl_toolkits.mplot3d import Axes3D
+    ... import yt
+    ... from yt.visualization.api import Streamlines
+
     >>> # Load the dataset and set some parameters
-    >>> ds = load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    >>> c = np.array([0.5]*3)
+    >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> c = np.array([0.5] * 3)
     >>> N = 100
     >>> scale = 1.0
-    >>> pos_dx = np.random.random((N,3))*scale-scale/2.
-    >>> pos = c+pos_dx
-    >>>
+    >>> pos_dx = np.random.random((N, 3)) * scale - scale / 2.0
+    >>> pos = c + pos_dx
+
     >>> # Define and construct streamlines
     >>> streamlines = Streamlines(
-            ds,pos, 'velocity_x', 'velocity_y', 'velocity_z', length=1.0)
+    ...     ds, pos, "velocity_x", "velocity_y", "velocity_z", length=1.0
+    ... )
     >>> streamlines.integrate_through_volume()
-    >>>
+
     >>> # Make a 3D plot of the streamlines and save it to disk
-    >>> fig=pl.figure()
+    >>> fig = plt.figure()
     >>> ax = Axes3D(fig)
     >>> for stream in streamlines.streamlines:
-    >>>     stream = stream[np.all(stream != 0.0, axis=1)]
-    >>>     ax.plot3D(stream[:,0], stream[:,1], stream[:,2], alpha=0.1)
-    >>> pl.savefig('streamlines.png')
+    ...     stream = stream[np.all(stream != 0.0, axis=1)]
+    ...     ax.plot3D(stream[:, 0], stream[:, 1], stream[:, 2], alpha=0.1)
+    >>> plt.savefig("streamlines.png")
     """
 
     def __init__(
@@ -153,7 +153,7 @@ class Streamlines(ParallelAnalysisInterface):
                 step = self._integrate_through_brick(
                     this_node, stream, step, mag=thismag
                 )
-            pbar.update(i)
+            pbar.update(i + 1)
         pbar.finish()
 
         self._finalize_parallel(None)
@@ -226,10 +226,12 @@ class Streamlines(ParallelAnalysisInterface):
         --------
 
         >>> from yt.visualization.api import Streamlines
-        >>> streamlines = Streamlines(ds, [0.5]*3)
+        >>> streamlines = Streamlines(ds, [0.5] * 3)
         >>> streamlines.integrate_through_volume()
         >>> stream = streamlines.path(0)
-        >>> matplotlib.pylab.semilogy(stream['t'], stream['Density'], '-x')
+        >>> fig, ax = plt.subplots()
+        >>> ax.set_yscale("log")
+        >>> ax.plot(stream["t"], stream[("gas", "density")], "-x")
 
         """
         return YTStreamline(

@@ -7,14 +7,14 @@ import numpy as np
 
 import yt
 from yt.testing import assert_equal
-from yt.utilities.lib.api import add_rgba_points_to_image
+from yt.utilities.lib.api import add_rgba_points_to_image  # type: ignore
 
 
 def setup():
     """Test specific setup."""
     from yt.config import ytcfg
 
-    ytcfg["yt", "__withintesting"] = "True"
+    ytcfg["yt", "internals", "within_testing"] = True
 
 
 def test_splat():

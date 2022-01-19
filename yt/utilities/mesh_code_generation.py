@@ -145,7 +145,7 @@ class MeshCodeGenerator:
 
 if __name__ == "__main__":
 
-    with open("mesh_types.yaml", "r") as f:
+    with open("mesh_types.yaml") as f:
         lines = f.read()
 
     mesh_types = yaml.load(lines, Loader=yaml.FullLoader)

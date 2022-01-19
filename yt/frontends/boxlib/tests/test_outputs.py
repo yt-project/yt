@@ -1,6 +1,7 @@
 import numpy as np
 
 from yt.frontends.boxlib.api import (
+    AMReXDataset,
     CastroDataset,
     MaestroDataset,
     NyxDataset,
@@ -17,10 +18,22 @@ from yt.utilities.answer_testing.framework import (
 
 # We don't do anything needing ghost zone generation right now, because these
 # are non-periodic datasets.
-_orion_fields = ("temperature", "density", "velocity_magnitude")
-_nyx_fields = ("Ne", "Temp", "particle_mass_density")
-_warpx_fields = ("Ex", "By", "jz")
-_castro_fields = ("Temp", "density", "particle_count")
+_orion_fields = (
+    ("gas", "temperature"),
+    ("gas", "density"),
+    ("gas", "velocity_magnitude"),
+)
+_nyx_fields = (
+    ("boxlib", "Ne"),
+    ("boxlib", "Temp"),
+    ("boxlib", "particle_mass_density"),
+)
+_warpx_fields = (("mesh", "Ex"), ("mesh", "By"), ("mesh", "jz"))
+_castro_fields = (
+    ("boxlib", "Temp"),
+    ("gas", "density"),
+    ("boxlib", "particle_count"),
+)
 
 radadvect = "RadAdvect/plt00000"
 
@@ -65,7 +78,9 @@ LyA = "Nyx_LyA/plt00000"
 def test_LyA():
     ds = data_dir_load(LyA)
     assert_equal(str(ds), "plt00000")
-    for test in small_patch_amr(ds, _nyx_fields, input_center="c", input_weight="Ne"):
+    for test in small_patch_amr(
+        ds, _nyx_fields, input_center="c", input_weight=("boxlib", "Ne")
+    ):
         test_LyA.__name__ = test.description
         yield test
 
@@ -76,17 +91,17 @@ def test_nyx_particle_io():
 
     grid = ds.index.grids[0]
     npart_grid_0 = 7908  # read directly from the header
-    assert_equal(grid["particle_position_x"].size, npart_grid_0)
+    assert_equal(grid[("all", "particle_position_x")].size, npart_grid_0)
     assert_equal(grid["DM", "particle_position_y"].size, npart_grid_0)
     assert_equal(grid["all", "particle_position_z"].size, npart_grid_0)
 
     ad = ds.all_data()
     npart = 32768  # read directly from the header
-    assert_equal(ad["particle_velocity_x"].size, npart)
+    assert_equal(ad[("all", "particle_velocity_x")].size, npart)
     assert_equal(ad["DM", "particle_velocity_y"].size, npart)
     assert_equal(ad["all", "particle_velocity_z"].size, npart)
 
-    assert np.all(ad["particle_mass"] == ad["particle_mass"][0])
+    assert np.all(ad[("all", "particle_mass")] == ad[("all", "particle_mass")][0])
 
     left_edge = ds.arr([0.0, 0.0, 0.0], "code_length")
     right_edge = ds.arr([4.0, 4.0, 4.0], "code_length")
@@ -96,22 +111,22 @@ def test_nyx_particle_io():
 
     assert np.all(
         np.logical_and(
-            reg["particle_position_x"] <= right_edge[0],
-            reg["particle_position_x"] >= left_edge[0],
+            reg[("all", "particle_position_x")] <= right_edge[0],
+            reg[("all", "particle_position_x")] >= left_edge[0],
         )
     )
 
     assert np.all(
         np.logical_and(
-            reg["particle_position_y"] <= right_edge[1],
-            reg["particle_position_y"] >= left_edge[1],
+            reg[("all", "particle_position_y")] <= right_edge[1],
+            reg[("all", "particle_position_y")] >= left_edge[1],
         )
     )
 
     assert np.all(
         np.logical_and(
-            reg["particle_position_z"] <= right_edge[2],
-            reg["particle_position_z"] >= left_edge[2],
+            reg[("all", "particle_position_z")] <= right_edge[2],
+            reg[("all", "particle_position_z")] >= left_edge[2],
         )
     )
 
@@ -134,13 +149,13 @@ def test_castro_particle_io():
 
     grid = ds.index.grids[2]
     npart_grid_2 = 49  # read directly from the header
-    assert_equal(grid["particle_position_x"].size, npart_grid_2)
+    assert_equal(grid[("all", "particle_position_x")].size, npart_grid_2)
     assert_equal(grid["Tracer", "particle_position_y"].size, npart_grid_2)
     assert_equal(grid["all", "particle_position_y"].size, npart_grid_2)
 
     ad = ds.all_data()
     npart = 49  # read directly from the header
-    assert_equal(ad["particle_velocity_x"].size, npart)
+    assert_equal(ad[("all", "particle_velocity_x")].size, npart)
     assert_equal(ad["Tracer", "particle_velocity_y"].size, npart)
     assert_equal(ad["all", "particle_velocity_y"].size, npart)
 
@@ -152,15 +167,15 @@ def test_castro_particle_io():
 
     assert np.all(
         np.logical_and(
-            reg["particle_position_x"] <= right_edge[0],
-            reg["particle_position_x"] >= left_edge[0],
+            reg[("all", "particle_position_x")] <= right_edge[0],
+            reg[("all", "particle_position_x")] >= left_edge[0],
         )
     )
 
     assert np.all(
         np.logical_and(
-            reg["particle_position_y"] <= right_edge[1],
-            reg["particle_position_y"] >= left_edge[1],
+            reg[("all", "particle_position_y")] <= right_edge[1],
+            reg[("all", "particle_position_y")] >= left_edge[1],
         )
     )
 
@@ -172,7 +187,9 @@ langmuir = "LangmuirWave/plt00020_v2"
 def test_langmuir():
     ds = data_dir_load(langmuir)
     assert_equal(str(ds), "plt00020_v2")
-    for test in small_patch_amr(ds, _warpx_fields, input_center="c", input_weight="Ex"):
+    for test in small_patch_amr(
+        ds, _warpx_fields, input_center="c", input_weight=("mesh", "Ex")
+    ):
         test_langmuir.__name__ = test.description
         yield test
 
@@ -184,7 +201,9 @@ plasma = "PlasmaAcceleration/plt00030_v2"
 def test_plasma():
     ds = data_dir_load(plasma)
     assert_equal(str(ds), "plt00030_v2")
-    for test in small_patch_amr(ds, _warpx_fields, input_center="c", input_weight="Ex"):
+    for test in small_patch_amr(
+        ds, _warpx_fields, input_center="c", input_weight=("mesh", "Ex")
+    ):
         test_plasma.__name__ = test.description
         yield test
 
@@ -196,7 +215,14 @@ beam = "GaussianBeam/plt03008"
 def test_beam():
     ds = data_dir_load(beam)
     assert_equal(str(ds), "plt03008")
-    for test in small_patch_amr(ds, _warpx_fields, input_center="c", input_weight="Ex"):
+    for param in ("number of boxes", "maximum zones"):
+        # PR 2807
+        # these parameters are only populated if the config file attached to this
+        # dataset is read correctly
+        assert param in ds.parameters
+    for test in small_patch_amr(
+        ds, _warpx_fields, input_center="c", input_weight=("mesh", "Ex")
+    ):
         test_beam.__name__ = test.description
         yield test
 
@@ -233,36 +259,35 @@ def test_warpx_particle_io():
 
     assert np.all(
         np.logical_and(
-            reg["particle_position_x"] <= right_edge[0],
-            reg["particle_position_x"] >= left_edge[0],
+            reg[("all", "particle_position_x")] <= right_edge[0],
+            reg[("all", "particle_position_x")] >= left_edge[0],
         )
     )
 
     assert np.all(
         np.logical_and(
-            reg["particle_position_y"] <= right_edge[1],
-            reg["particle_position_y"] >= left_edge[1],
+            reg[("all", "particle_position_y")] <= right_edge[1],
+            reg[("all", "particle_position_y")] >= left_edge[1],
         )
     )
 
     assert np.all(
         np.logical_and(
-            reg["particle_position_z"] <= right_edge[2],
-            reg["particle_position_z"] >= left_edge[2],
+            reg[("all", "particle_position_z")] <= right_edge[2],
+            reg[("all", "particle_position_z")] >= left_edge[2],
         )
     )
 
 
 _raw_fields = [("raw", "Bx"), ("raw", "Ey"), ("raw", "jz")]
 
-raw_fields = "Laser/plt00015"
+laser = "Laser/plt00015"
 
 
-@requires_ds(raw_fields)
+@requires_ds(laser)
 def test_raw_fields():
-    ds_fn = raw_fields
     for field in _raw_fields:
-        yield GridValuesTest(ds_fn, field)
+        yield GridValuesTest(laser, field)
 
 
 @requires_file(rt)
@@ -275,14 +300,35 @@ def test_NyxDataset():
     assert isinstance(data_dir_load(LyA), NyxDataset)
 
 
+@requires_file("nyx_small/nyx_small_00000")
+def test_NyxDataset_2():
+    assert isinstance(data_dir_load("nyx_small/nyx_small_00000"), NyxDataset)
+
+
 @requires_file(RT_particles)
 def test_CastroDataset():
     assert isinstance(data_dir_load(RT_particles), CastroDataset)
 
 
+@requires_file("castro_sod_x_plt00036")
+def test_CastroDataset_2():
+    assert isinstance(data_dir_load("castro_sod_x_plt00036"), CastroDataset)
+
+
 @requires_file(LyA)
 def test_WarpXDataset():
     assert isinstance(data_dir_load(plasma), WarpXDataset)
+
+
+@requires_ds(laser)
+def test_WarpXDataset_2():
+    assert isinstance(data_dir_load(laser), WarpXDataset)
+
+
+@requires_file("plt.Cavity00010")
+def test_AMReXDataset():
+    ds = data_dir_load("plt.Cavity00010", kwargs={"cparam_filename": "inputs"})
+    assert isinstance(ds, AMReXDataset)
 
 
 @requires_file(rt)

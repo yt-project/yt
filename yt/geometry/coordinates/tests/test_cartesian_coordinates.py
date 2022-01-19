@@ -16,8 +16,8 @@ def test_cartesian_coordinates():
     for i, axis in enumerate(axes):
         dd = ds.all_data()
         fi = ("index", axis)
-        fd = ("index", "d%s" % axis)
-        fp = ("index", "path_element_%s" % axis)
+        fd = ("index", f"d{axis}")
+        fp = ("index", f"path_element_{axis}")
         ma = np.argmax(dd[fi])
         assert_equal(dd[fi][ma] + dd[fd][ma] / 2.0, ds.domain_right_edge[i])
         mi = np.argmin(dd[fi])
@@ -25,4 +25,6 @@ def test_cartesian_coordinates():
         assert_equal(dd[fd].min(), ds.index.get_smallest_dx())
         assert_equal(dd[fd].max(), (ds.domain_width / ds.domain_dimensions)[i])
         assert_equal(dd[fd], dd[fp])
-    assert_equal(dd["cell_volume"].sum(dtype="float64"), ds.domain_width.prod())
+    assert_equal(
+        dd[("index", "cell_volume")].sum(dtype="float64"), ds.domain_width.prod()
+    )

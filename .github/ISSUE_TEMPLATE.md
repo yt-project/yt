@@ -49,9 +49,8 @@ using:-->
   * Operating System:
   * Python Version:
   * yt version:
-  * Other Libraries (if applicable): 
+  * Other Libraries (if applicable):
 
 <!--Please tell us how you installed yt and python e.g., from source,
 pip, conda. If you installed from conda, please specify which channel you used
 if not the default-->
-

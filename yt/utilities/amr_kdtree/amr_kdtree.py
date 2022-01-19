@@ -2,7 +2,7 @@ import operator
 
 import numpy as np
 
-from yt.funcs import iterable, mylog
+from yt.funcs import is_sequence, mylog
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.amr_kdtree.amr_kdtools import (
     receive_and_reduce,
@@ -137,7 +137,7 @@ class Tree:
 
         # Calculate the Volume
         vol = self.trunk.kd_sum_volume()
-        mylog.debug("AMRKDTree volume = %e" % vol)
+        mylog.debug("AMRKDTree volume = %e", vol)
         self.trunk.kd_node_check()
 
     def sum_cells(self, all_cells=False):
@@ -214,7 +214,7 @@ class AMRKDTree(ParallelAnalysisInterface):
             or self.fields != new_fields
             or force
         )
-        if not iterable(log_fields):
+        if not is_sequence(log_fields):
             log_fields = [log_fields]
         new_log_fields = list(log_fields)
         self.tree.trunk.set_dirty(regenerate_data)
@@ -343,7 +343,9 @@ class AMRKDTree(ParallelAnalysisInterface):
             )
             for i, field in enumerate(self.fields):
                 if self.log_fields[i]:
-                    dds.append(np.log10(vcd[field].astype("float64")))
+                    v = vcd[field].astype("float64")
+                    v[v < 0] = np.nan
+                    dds.append(np.log10(v))
                 else:
                     dds.append(vcd[field].astype("float64"))
                 self.current_saved_grids.append(grid)
@@ -369,13 +371,6 @@ class AMRKDTree(ParallelAnalysisInterface):
         if not self._initialized:
             self.brick_dimensions.append(dims)
         return brick
-
-    def locate_brick(self, position):
-        r"""Given a position, find the node that contains it.
-        Alias of AMRKDTree.locate_node, to preserve backwards
-        compatibility.
-        """
-        return self.locate_node(position)
 
     def locate_neighbors(self, grid, ci):
         r"""Given a grid and cell index, finds the 26 neighbor grids
@@ -424,7 +419,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         if (in_grid).sum() > 0:
             grids[np.logical_not(in_grid)] = [
                 self.ds.index.grids[
-                    self.locate_brick(new_positions[i]).grid - self._id_offset
+                    self.locate_node(new_positions[i]).grid - self._id_offset
                 ]
                 for i in get_them
             ]
@@ -463,7 +458,7 @@ class AMRKDTree(ParallelAnalysisInterface):
 
         """
         position = np.array(position)
-        grid = self.ds.index.grids[self.locate_brick(position).grid - self._id_offset]
+        grid = self.ds.index.grids[self.locate_node(position).grid - self._id_offset]
         ci = ((position - grid.LeftEdge) / grid.dds).astype("int64")
         return self.locate_neighbors(grid, ci)
 
@@ -471,7 +466,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         if not self._initialized:
             self.initialize_source()
         if fn is None:
-            fn = "%s_kd_bricks.h5" % self.ds
+            fn = f"{self.ds}_kd_bricks.h5"
         if self.comm.rank != 0:
             self.comm.recv_array(self.comm.rank - 1, tag=self.comm.rank - 1)
         f = h5py.File(fn, mode="w")
@@ -481,7 +476,7 @@ class AMRKDTree(ParallelAnalysisInterface):
                 for fi, field in enumerate(self.fields):
                     try:
                         f.create_dataset(
-                            "/brick_%s_%s" % (hex(i), field),
+                            f"/brick_{hex(i)}_{field}",
                             data=node.data.my_data[fi].astype("float64"),
                         )
                     except Exception:
@@ -493,7 +488,7 @@ class AMRKDTree(ParallelAnalysisInterface):
 
     def load_kd_bricks(self, fn=None):
         if fn is None:
-            fn = "%s_kd_bricks.h5" % self.ds
+            fn = f"{self.ds}_kd_bricks.h5"
         if self.comm.rank != 0:
             self.comm.recv_array(self.comm.rank - 1, tag=self.comm.rank - 1)
         try:
@@ -502,7 +497,7 @@ class AMRKDTree(ParallelAnalysisInterface):
                 i = node.node_id
                 if node.grid != -1:
                     data = [
-                        f["brick_%s_%s" % (hex(i), field)][:].astype("float64")
+                        f[f"brick_{hex(i)}_{field}"][:].astype("float64")
                         for field in self.fields
                     ]
                     node.data = PartitionedGrid(
@@ -629,7 +624,7 @@ class AMRKDTree(ParallelAnalysisInterface):
                 n.create_split(splitdims[i], splitposs[i])
 
         mylog.info(
-            "AMRKDTree rebuilt, Final Volume: %e" % self.tree.trunk.kd_sum_volume()
+            "AMRKDTree rebuilt, Final Volume: %e", self.tree.trunk.kd_sum_volume()
         )
         return self.tree.trunk
 
@@ -654,4 +649,4 @@ if __name__ == "__main__":
 
     print(hv.tree.trunk.kd_sum_volume())
     print(hv.tree.trunk.kd_node_check())
-    print("Time: %e seconds" % (t2 - t1))
+    print(f"Time: {t2 - t1:e} seconds")

@@ -5,17 +5,17 @@ from io import BytesIO
 import numpy as np
 
 from yt.fields.derived_field import ValidateSpatial
-from yt.funcs import issue_deprecation_warning, mylog
 from yt.units.yt_array import YTArray, YTQuantity
+from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _astropy
 
 
 def _make_counts(emin, emax):
     def _counts(field, data):
-        e = data["event_energy"].in_units("keV")
+        e = data[("all", "event_energy")].in_units("keV")
         mask = np.logical_and(e >= emin, e < emax)
-        x = data["event_x"][mask]
-        y = data["event_y"][mask]
+        x = data[("all", "event_x")][mask]
+        y = data[("all", "event_y")][mask]
         z = np.ones(x.shape)
         pos = np.array([x, y, z]).transpose()
         img = data.deposit(pos, method="count")
@@ -24,7 +24,7 @@ def _make_counts(emin, emax):
         else:
             sigma = None
         if sigma is not None and sigma > 0.0:
-            kern = _astropy.conv.Gaussian2DKernel(stddev=sigma)
+            kern = _astropy.conv.Gaussian2DKernel(x_stddev=sigma)
             img[:, :, 0] = _astropy.conv.convolve(img[:, :, 0], kern)
         return data.ds.arr(img, "counts/pixel")
 
@@ -48,20 +48,20 @@ def setup_counts_fields(ds, ebounds, ftype="gas"):
     Examples
     --------
     >>> ds = yt.load("evt.fits")
-    >>> ebounds = [(0.1,2.0),(2.0,3.0)]
+    >>> ebounds = [(0.1, 2.0), (2.0, 3.0)]
     >>> setup_counts_fields(ds, ebounds)
     """
     for (emin, emax) in ebounds:
         cfunc = _make_counts(emin, emax)
-        fname = "counts_%s-%s" % (emin, emax)
-        mylog.info("Creating counts field %s." % fname)
+        fname = f"counts_{emin}-{emax}"
+        mylog.info("Creating counts field %s.", fname)
         ds.add_field(
             (ftype, fname),
             sampling_type="cell",
             function=cfunc,
             units="counts/pixel",
             validators=[ValidateSpatial()],
-            display_name="Counts (%s-%s keV)" % (emin, emax),
+            display_name=f"Counts ({emin}-{emax} keV)",
         )
 
 
@@ -91,13 +91,15 @@ def create_spectral_slabs(filename, slab_centers, slab_width, **kwargs):
 
     Examples
     --------
-    >>> slab_centers = {'13CN': (218.03117, 'GHz'),
-    ...                 'CH3CH2CHO': (218.284256, 'GHz'),
-    ...                 'CH3NH2': (218.40956, 'GHz')}
+    >>> slab_centers = {
+    ...     "13CN": (218.03117, "GHz"),
+    ...     "CH3CH2CHO": (218.284256, "GHz"),
+    ...     "CH3NH2": (218.40956, "GHz"),
+    ... }
     >>> slab_width = (0.05, "GHz")
-    >>> ds = create_spectral_slabs("intensity_cube.fits",
-    ...                            slab_centers, slab_width,
-    ...                            nan_mask=0.0)
+    >>> ds = create_spectral_slabs(
+    ...     "intensity_cube.fits", slab_centers, slab_width, nan_mask=0.0
+    ... )
     """
     from spectral_cube import SpectralCube
 
@@ -114,9 +116,7 @@ def create_spectral_slabs(filename, slab_centers, slab_width, **kwargs):
             slab_center = YTQuantity(v[0], v[1])
         else:
             slab_center = v
-        mylog.info(
-            "Adding slab field %s at %g %s" % (k, slab_center.v, slab_center.units)
-        )
+        mylog.info("Adding slab field %s at %g %s", k, slab_center.v, slab_center.units)
         slab_lo = (slab_center - 0.5 * slab_width).to_astropy()
         slab_hi = (slab_center + 0.5 * slab_width).to_astropy()
         subcube = cube.spectral_slab(slab_lo, slab_hi)
@@ -191,7 +191,7 @@ def ds9_region(ds, reg, obj=None, field_parameters=None):
     if field_parameters is not None:
         for k, v in field_parameters.items():
             obj.set_field_parameter(k, v)
-    return obj.cut_region(["obj['%s'] > 0" % (reg_name)])
+    return obj.cut_region([f"obj['{reg_name}'] > 0"])
 
 
 class PlotWindowWCS:
@@ -209,22 +209,7 @@ class PlotWindowWCS:
     """
 
     def __init__(self, pw):
-        try:
-            # Attempt import from the old WCSAxes package first
-            from wcsaxes import WCSAxes
-
-            issue_deprecation_warning(
-                "Support for the standalone 'wcsaxes' "
-                "package is deprecated since its"
-                "functionality has been merged into"
-                "AstroPy, and will be removed in a "
-                "future release. It is recommended to "
-                "use the version bundled with AstroPy "
-                ">= 1.3."
-            )
-        except ImportError:
-            # Try to use the AstroPy version
-            WCSAxes = _astropy.wcsaxes.WCSAxes
+        WCSAxes = _astropy.wcsaxes.WCSAxes
 
         if pw.oblique:
             raise NotImplementedError("WCS axes are not implemented for oblique plots.")
@@ -243,8 +228,8 @@ class PlotWindowWCS:
             wcs = pw.ds.wcs_2d.wcs
             xax = pw.ds.coordinates.x_axis[pw.data_source.axis]
             yax = pw.ds.coordinates.y_axis[pw.data_source.axis]
-            xlabel = "%s (%s)" % (wcs.ctype[xax].split("-")[0], wcs.cunit[xax])
-            ylabel = "%s (%s)" % (wcs.ctype[yax].split("-")[0], wcs.cunit[yax])
+            xlabel = f"{wcs.ctype[xax].split('-')[0]} ({wcs.cunit[xax]})"
+            ylabel = f"{wcs.ctype[yax].split('-')[0]} ({wcs.cunit[yax]})"
             fp = pw._font_properties
             wcs_ax.coords[0].set_axislabel(xlabel, fontproperties=fp, minpad=0.5)
             wcs_ax.coords[1].set_axislabel(ylabel, fontproperties=fp, minpad=0.4)
@@ -286,7 +271,7 @@ class PlotWindowWCS:
         from yt.visualization._mpl_imports import FigureCanvasAgg
 
         ret = ""
-        for k, v in self.plots.items():
+        for v in self.plots.values():
             canvas = FigureCanvasAgg(v)
             f = BytesIO()
             canvas.print_figure(f)

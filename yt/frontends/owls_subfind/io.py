@@ -1,18 +1,19 @@
 import numpy as np
 
 from yt.funcs import mylog
-from yt.utilities.exceptions import YTDomainOverflow
-from yt.utilities.io_handler import BaseIOHandler
-from yt.utilities.lib.geometry_utils import compute_morton
+from yt.utilities.io_handler import BaseParticleIOHandler
 from yt.utilities.on_demand_imports import _h5py as h5py
 
+_pos_names = ["CenterOfMass", "CentreOfMass"]
 
-class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
+
+class IOHandlerOWLSSubfindHDF5(BaseParticleIOHandler):
     _dataset_type = "subfind_hdf5"
+    _position_name = None
 
     def __init__(self, ds):
-        super(IOHandlerOWLSSubfindHDF5, self).__init__(ds)
-        self.offset_fields = set([])
+        super().__init__(ds)
+        self.offset_fields = set()
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         raise NotImplementedError
@@ -20,20 +21,29 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
     def _read_particle_coords(self, chunks, ptf):
         # This will read chunks and yield the results.
         chunks = list(chunks)
-        data_files = set([])
+        data_files = set()
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             with h5py.File(data_file.filename, mode="r") as f:
-                for ptype, field_list in sorted(ptf.items()):
+                for ptype in sorted(ptf):
                     pcount = data_file.total_particles[ptype]
-                    coords = f[ptype]["CenterOfMass"][()].astype("float64")
+                    coords = f[ptype][self._position_name][()].astype("float64")
                     coords = np.resize(coords, (pcount, 3))
                     x = coords[:, 0]
                     y = coords[:, 1]
                     z = coords[:, 2]
-                    yield ptype, (x, y, z)
+                    yield ptype, (x, y, z), 0.0
+
+    def _yield_coordinates(self, data_file):
+        ptypes = self.ds.particle_types_raw
+        with h5py.File(data_file.filename, mode="r") as f:
+            for ptype in sorted(ptypes):
+                pcount = data_file.total_particles[ptype]
+                coords = f[ptype][self._position_name][()].astype("float64")
+                coords = np.resize(coords, (pcount, 3))
+                yield ptype, coords
 
     def _read_offset_particle_field(self, field, data_file, fh):
         field_data = np.empty(data_file.total_particles["FOF"], dtype="float64")
@@ -58,7 +68,7 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate
         chunks = list(chunks)
-        data_files = set([])
+        data_files = set()
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
@@ -68,7 +78,7 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
                     pcount = data_file.total_particles[ptype]
                     if pcount == 0:
                         continue
-                    coords = f[ptype]["CenterOfMass"][()].astype("float64")
+                    coords = f[ptype][self._position_name][()].astype("float64")
                     coords = np.resize(coords, (pcount, 3))
                     x = coords[:, 0]
                     y = coords[:, 1]
@@ -103,68 +113,22 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
                         data = field_data[mask]
                         yield (ptype, field), data
 
-    def _initialize_index(self, data_file, regions):
-        pcount = sum(data_file.total_particles.values())
-        morton = np.empty(pcount, dtype="uint64")
-        if pcount == 0:
-            return morton
-        mylog.debug(
-            "Initializing index % 5i (% 7i particles)", data_file.file_id, pcount
-        )
-        ind = 0
-        with h5py.File(data_file.filename, mode="r") as f:
-            if not f.keys():
-                return None
-            dx = np.finfo(f["FOF"]["CenterOfMass"].dtype).eps
-            dx = 2.0 * self.ds.quan(dx, "code_length")
-
-            for ptype in data_file.ds.particle_types_raw:
-                if data_file.total_particles[ptype] == 0:
-                    continue
-                pos = f[ptype]["CenterOfMass"][()].astype("float64")
-                pos = np.resize(pos, (data_file.total_particles[ptype], 3))
-                pos = data_file.ds.arr(pos, "code_length")
-
-                # These are 32 bit numbers, so we give a little lee-way.
-                # Otherwise, for big sets of particles, we often will bump into the
-                # domain edges.  This helps alleviate that.
-                np.clip(
-                    pos,
-                    self.ds.domain_left_edge + dx,
-                    self.ds.domain_right_edge - dx,
-                    pos,
-                )
-                if np.any(pos.min(axis=0) < self.ds.domain_left_edge) or np.any(
-                    pos.max(axis=0) > self.ds.domain_right_edge
-                ):
-                    raise YTDomainOverflow(
-                        pos.min(axis=0),
-                        pos.max(axis=0),
-                        self.ds.domain_left_edge,
-                        self.ds.domain_right_edge,
-                    )
-                regions.add_data_file(pos, data_file.file_id)
-                morton[ind : ind + pos.shape[0]] = compute_morton(
-                    pos[:, 0],
-                    pos[:, 1],
-                    pos[:, 2],
-                    data_file.ds.domain_left_edge,
-                    data_file.ds.domain_right_edge,
-                )
-                ind += pos.shape[0]
-        return morton
-
     def _count_particles(self, data_file):
         with h5py.File(data_file.filename, mode="r") as f:
-            pcount = {"FOF": f["FOF"].attrs["Number_of_groups"]}
+            pcount = {"FOF": get_one_attr(f["FOF"], ["Number_of_groups", "Ngroups"])}
             if "SUBFIND" in f:
                 # We need this to figure out where the offset fields are stored.
-                data_file.total_offset = f["SUBFIND"].attrs["Number_of_groups"]
-                pcount["SUBFIND"] = f["FOF"].attrs["Number_of_subgroups"]
+                data_file.total_offset = get_one_attr(
+                    f["SUBFIND"], ["Number_of_groups", "Ngroups"]
+                )
+                pcount["SUBFIND"] = get_one_attr(
+                    f["FOF"], ["Number_of_subgroups", "Nsubgroups"]
+                )
             else:
                 data_file.total_offset = 0
                 pcount["SUBFIND"] = 0
-            return pcount
+
+        return pcount
 
     def _identify_fields(self, data_file):
         fields = []
@@ -175,6 +139,7 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
             for ptype in self.ds.particle_types_raw:
                 if data_file.total_particles[ptype] == 0:
                     continue
+                self._identify_position_name(f[ptype])
                 fields.append((ptype, "particle_identifier"))
                 my_fields, my_offset_fields = subfind_field_list(
                     f[ptype], ptype, data_file.total_particles
@@ -182,6 +147,29 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
                 fields.extend(my_fields)
                 self.offset_fields = self.offset_fields.union(set(my_offset_fields))
         return fields, {}
+
+    def _identify_position_name(self, fh):
+        if self._position_name is not None:
+            return
+        for pname in _pos_names:
+            if pname in fh:
+                self._position_name = pname
+                return
+
+
+def get_one_attr(fh, attrs, default=None, error=True):
+    """
+    Try getting from a list of attrs. Return the first one that exists.
+    """
+    for attr in attrs:
+        if attr in fh.attrs:
+            return fh.attrs[attr]
+    if error:
+        raise RuntimeError(
+            f"Could not find any of these attributes: {attrs}. "
+            f"Available attributes: {fh.attrs.keys()}"
+        )
+    return default
 
 
 def subfind_field_list(fh, ptype, pcount):
@@ -221,8 +209,10 @@ def subfind_field_list(fh, ptype, pcount):
                 offset_fields.append(fname)
             else:
                 mylog.warning(
-                    "Cannot add field (%s, %s) with size %d."
-                    % (ptype, fh[field].name, fh[field].size)
+                    "Cannot add field (%s, %s) with size %d.",
+                    ptype,
+                    fh[field].name,
+                    fh[field].size,
                 )
                 continue
     return fields, offset_fields

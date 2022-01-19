@@ -1,3 +1,4 @@
+from yt._typing import KnownFieldsT
 from yt.fields.field_info_container import FieldInfoContainer
 
 b_units = "code_magnetic"
@@ -10,22 +11,22 @@ en_units = "code_mass*code_velocity**2/code_length**3"
 
 
 class ARTFieldInfo(FieldInfoContainer):
-    known_other_fields = (
+    known_other_fields: KnownFieldsT = (
         ("Density", (rho_units, ["density"], None)),
-        ("TotalEnergy", (en_units, ["total_energy"], None)),
-        ("XMomentumDensity", (mom_units, ["momentum_x"], None)),
-        ("YMomentumDensity", (mom_units, ["momentum_y"], None)),
-        ("ZMomentumDensity", (mom_units, ["momentum_z"], None)),
+        ("TotalEnergy", (en_units, ["total_energy_density"], None)),
+        ("XMomentumDensity", (mom_units, ["momentum_density_x"], None)),
+        ("YMomentumDensity", (mom_units, ["momentum_density_y"], None)),
+        ("ZMomentumDensity", (mom_units, ["momentum_density_z"], None)),
         ("Pressure", ("", ["pressure"], None)),  # Unused
         ("Gamma", ("", ["gamma"], None)),
-        ("GasEnergy", (en_units, ["thermal_energy"], None)),
+        ("GasEnergy", (en_units, ["thermal_energy_density"], None)),
         ("MetalDensitySNII", (rho_units, ["metal_ii_density"], None)),
         ("MetalDensitySNIa", (rho_units, ["metal_ia_density"], None)),
         ("PotentialNew", ("", ["potential"], None)),
         ("PotentialOld", ("", ["gas_potential"], None)),
     )
 
-    known_particle_fields = (
+    known_particle_fields: KnownFieldsT = (
         ("particle_position_x", ("code_length", [], None)),
         ("particle_position_y", ("code_length", [], None)),
         ("particle_position_z", ("code_length", [], None)),
@@ -61,13 +62,15 @@ class ARTFieldInfo(FieldInfoContainer):
 
         def _get_vel(axis):
             def velocity(field, data):
-                return data[("gas", "momentum_%s" % axis)] / data[("gas", "density")]
+                return (
+                    data[("gas", f"momentum_density_{axis}")] / data[("gas", "density")]
+                )
 
             return velocity
 
         for ax in "xyz":
             self.add_field(
-                ("gas", "velocity_%s" % ax),
+                ("gas", f"velocity_{ax}"),
                 sampling_type="cell",
                 function=_get_vel(ax),
                 units=unit_system["velocity"],
@@ -75,9 +78,9 @@ class ARTFieldInfo(FieldInfoContainer):
 
         def _momentum_magnitude(field, data):
             tr = (
-                data["gas", "momentum_x"] ** 2
-                + data["gas", "momentum_y"] ** 2
-                + data["gas", "momentum_z"] ** 2
+                data["gas", "momentum_density_x"] ** 2
+                + data["gas", "momentum_density_y"] ** 2
+                + data["gas", "momentum_density_z"] ** 2
             ) ** 0.5
             tr *= data["index", "cell_volume"].in_units("cm**3")
             return tr
@@ -190,7 +193,7 @@ class ARTFieldInfo(FieldInfoContainer):
 
         for atom in atoms:
             self.add_field(
-                ("gas", "%s_nuclei_mass_density" % atom),
+                ("gas", f"{atom}_nuclei_mass_density"),
                 sampling_type="cell",
                 function=_specific_metal_density_function(atom),
                 units=unit_system["density"],

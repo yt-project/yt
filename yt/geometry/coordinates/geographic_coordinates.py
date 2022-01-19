@@ -2,7 +2,11 @@ import numpy as np
 
 from yt.utilities.lib.pixelization_routines import pixelize_cartesian, pixelize_cylinder
 
-from .coordinate_handler import CoordinateHandler, _get_coord_fields, _unknown_coord
+from .coordinate_handler import (
+    CoordinateHandler,
+    _get_coord_fields,
+    _setup_dummy_cartesian_coords_and_widths,
+)
 
 
 class GeographicCoordinateHandler(CoordinateHandler):
@@ -12,37 +16,15 @@ class GeographicCoordinateHandler(CoordinateHandler):
     def __init__(self, ds, ordering=None):
         if not ordering:
             ordering = ("latitude", "longitude", self.radial_axis)
-        super(GeographicCoordinateHandler, self).__init__(ds, ordering)
+        super().__init__(ds, ordering)
         self.image_units = {}
         self.image_units[self.axis_id["latitude"]] = (None, None)
         self.image_units[self.axis_id["longitude"]] = (None, None)
         self.image_units[self.axis_id[self.radial_axis]] = ("deg", "deg")
 
     def setup_fields(self, registry):
-        # return the fields for r, z, theta
-        registry.add_field(
-            ("index", "dx"), sampling_type="cell", function=_unknown_coord
-        )
-
-        registry.add_field(
-            ("index", "dy"), sampling_type="cell", function=_unknown_coord
-        )
-
-        registry.add_field(
-            ("index", "dz"), sampling_type="cell", function=_unknown_coord
-        )
-
-        registry.add_field(
-            ("index", "x"), sampling_type="cell", function=_unknown_coord
-        )
-
-        registry.add_field(
-            ("index", "y"), sampling_type="cell", function=_unknown_coord
-        )
-
-        registry.add_field(
-            ("index", "z"), sampling_type="cell", function=_unknown_coord
-        )
+        # Missing implementation for x, y and z coordinates.
+        _setup_dummy_cartesian_coords_and_widths(registry, axes=("x", "y", "z"))
 
         f1, f2 = _get_coord_fields(self.axis_id["latitude"], "")
         registry.add_field(
@@ -80,7 +62,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
 
         f1, f2 = _get_coord_fields(self.axis_id[self.radial_axis])
         registry.add_field(
-            ("index", "d%s" % (self.radial_axis,)),
+            ("index", f"d{self.radial_axis}"),
             sampling_type="cell",
             function=f1,
             display_field=False,
@@ -116,10 +98,10 @@ class GeographicCoordinateHandler(CoordinateHandler):
         registry.alias(("index", "volume"), ("index", "cell_volume"))
 
         def _path_radial_axis(field, data):
-            return data["index", "d%s" % self.radial_axis]
+            return data["index", f"d{self.radial_axis}"]
 
         registry.add_field(
-            ("index", "path_element_%s" % self.radial_axis),
+            ("index", f"path_element_{self.radial_axis}"),
             sampling_type="cell",
             function=_path_radial_axis,
             units="code_length",
@@ -155,7 +137,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
 
         def _latitude_to_theta(field, data):
             # latitude runs from -90 to 90
-            return (data["latitude"] + 90) * np.pi / 180.0
+            return (data[("index", "latitude")] + 90) * np.pi / 180.0
 
         registry.add_field(
             ("index", "theta"),
@@ -165,7 +147,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
         )
 
         def _dlatitude_to_dtheta(field, data):
-            return data["dlatitude"] * np.pi / 180.0
+            return data[("index", "dlatitude")] * np.pi / 180.0
 
         registry.add_field(
             ("index", "dtheta"),
@@ -176,14 +158,14 @@ class GeographicCoordinateHandler(CoordinateHandler):
 
         def _longitude_to_phi(field, data):
             # longitude runs from -180 to 180
-            return (data["longitude"] + 180) * np.pi / 180.0
+            return (data[("index", "longitude")] + 180) * np.pi / 180.0
 
         registry.add_field(
             ("index", "phi"), sampling_type="cell", function=_longitude_to_phi, units=""
         )
 
         def _dlongitude_to_dphi(field, data):
-            return data["dlongitude"] * np.pi / 180.0
+            return data[("index", "dlongitude")] * np.pi / 180.0
 
         registry.add_field(
             ("index", "dphi"),
@@ -204,7 +186,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
                     surface_height = data.ds.surface_height
                 else:
                     surface_height = data.ds.quan(0.0, "code_length")
-            return data["altitude"] + surface_height
+            return data[("index", "altitude")] + surface_height
 
         registry.add_field(
             ("index", "r"),
@@ -244,6 +226,9 @@ class GeographicCoordinateHandler(CoordinateHandler):
             )
         else:
             raise NotImplementedError
+
+    def pixelize_line(self, field, start_point, end_point, npoints):
+        raise NotImplementedError
 
     def _ortho_pixelize(
         self, data_source, field, bounds, size, antialias, dimension, periodic
@@ -354,8 +339,8 @@ class GeographicCoordinateHandler(CoordinateHandler):
         # Cartesian coordinates, since we transform them.
         rv = {
             self.axis_id["latitude"]: (
-                "x / \\sin(\mathrm{latitude})",
-                "y / \\sin(\mathrm{latitude})",
+                "x / \\sin(\\mathrm{latitude})",
+                "y / \\sin(\\mathrm{latitude})",
             ),
             self.axis_id["longitude"]: ("R", "z"),
             self.axis_id[self.radial_axis]: ("longitude", "latitude"),
@@ -413,9 +398,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
         return self.ds.domain_width
 
     def sanitize_center(self, center, axis):
-        center, display_center = super(
-            GeographicCoordinateHandler, self
-        ).sanitize_center(center, axis)
+        center, display_center = super().sanitize_center(center, axis)
         name = self.axis_name[axis]
         if name == self.radial_axis:
             display_center = center
@@ -439,9 +422,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
     def sanitize_width(self, axis, width, depth):
         name = self.axis_name[axis]
         if width is not None:
-            width = super(GeographicCoordinateHandler, self).sanitize_width(
-                axis, width, depth
-            )
+            width = super().sanitize_width(axis, width, depth)
         elif name == self.radial_axis:
             rax = self.radial_axis
             width = [
@@ -476,7 +457,7 @@ class InternalGeographicCoordinateHandler(GeographicCoordinateHandler):
                     # so we can look at the domain right edge in depth.
                     rax = self.axis_id[self.radial_axis]
                     outer_radius = data.ds.domain_right_edge[rax]
-            return -1.0 * data["depth"] + outer_radius
+            return -1.0 * data[("index", "depth")] + outer_radius
 
         registry.add_field(
             ("index", "r"),

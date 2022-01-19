@@ -35,7 +35,7 @@ def convert_ramses_ages(ds, conformal_ages):
     # tables.
     t = tf[iage] * (conformal_ages - tauf[iage - 1]) / (tauf[iage] - tauf[iage - 1])
     t = t + (
-        (tf[iage - 1] * (conformal_ages - tauf[iage]) / (tauf[iage - 1] - tauf[iage]))
+        tf[iage - 1] * (conformal_ages - tauf[iage]) / (tauf[iage - 1] - tauf[iage])
     )
     return (tsim - t) * t_scale
 
@@ -89,7 +89,7 @@ class IOHandlerRAMSES(BaseIOHandler):
         tr = defaultdict(list)
 
         # Set of field types
-        ftypes = set(f[0] for f in fields)
+        ftypes = {f[0] for f in fields}
         for chunk in chunks:
             # Gather fields by type to minimize i/o operations
             for ft in ftypes:
@@ -133,7 +133,7 @@ class IOHandlerRAMSES(BaseIOHandler):
     def _read_particle_coords(self, chunks, ptf):
         pn = "particle_position_%s"
         fields = [
-            (ptype, "particle_position_%s" % ax)
+            (ptype, f"particle_position_{ax}")
             for ptype, field_list in ptf.items()
             for ax in "xyz"
         ]
@@ -145,7 +145,7 @@ class IOHandlerRAMSES(BaseIOHandler):
                         rv[ptype, pn % "x"],
                         rv[ptype, pn % "y"],
                         rv[ptype, pn % "z"],
-                    )
+                    ), 0.0
 
     def _read_particle_fields(self, chunks, ptf, selector):
         pn = "particle_position_%s"
@@ -174,9 +174,9 @@ class IOHandlerRAMSES(BaseIOHandler):
         tr = {}
 
         # Sequential read depending on particle type
-        for ptype in set(f[0] for f in fields):
+        for ptype in {f[0] for f in fields}:
 
-            # Select relevant fiels
+            # Select relevant files
             subs_fields = filter(lambda f: f[0] == ptype, fields)
 
             ok = False
@@ -231,10 +231,10 @@ def _read_part_file_descriptor(fname):
     # Convert to dictionary
     mapping = {k: v for k, v in mapping}
 
-    with open(fname, "r") as f:
+    with open(fname) as f:
         line = f.readline()
         tmp = VERSION_RE.match(line)
-        mylog.debug("Reading part file descriptor %s." % fname)
+        mylog.debug("Reading part file descriptor %s.", fname)
         if not tmp:
             raise YTParticleOutputFormatNotImplemented()
 
@@ -256,7 +256,7 @@ def _read_part_file_descriptor(fname):
                 if varname in mapping:
                     varname = mapping[varname]
                 else:
-                    varname = "particle_%s" % varname
+                    varname = f"particle_{varname}"
 
                 fields.append((varname, dtype))
         else:
@@ -284,19 +284,17 @@ def _read_fluid_file_descriptor(fname):
     mapping += [
         (key, key)
         for key in (
-            "B_{0}_{1}".format(dim, side)
-            for side in ["left", "right"]
-            for dim in ["x", "y", "z"]
+            f"B_{dim}_{side}" for side in ["left", "right"] for dim in ["x", "y", "z"]
         )
     ]
 
     # Convert to dictionary
     mapping = {k: v for k, v in mapping}
 
-    with open(fname, "r") as f:
+    with open(fname) as f:
         line = f.readline()
         tmp = VERSION_RE.match(line)
-        mylog.debug("Reading fluid file descriptor %s." % fname)
+        mylog.debug("Reading fluid file descriptor %s.", fname)
         if not tmp:
             return []
 
@@ -318,7 +316,7 @@ def _read_fluid_file_descriptor(fname):
                 if varname in mapping:
                     varname = mapping[varname]
                 else:
-                    varname = "hydro_%s" % varname
+                    varname = f"hydro_{varname}"
 
                 fields.append((varname, dtype))
         else:

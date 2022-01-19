@@ -1,5 +1,7 @@
 from . import tests
 from .data_structures import (
+    AMReXDataset,
+    AMReXHierarchy,
     BoxlibDataset,
     BoxlibGrid,
     BoxlibHierarchy,

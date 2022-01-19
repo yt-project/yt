@@ -24,7 +24,7 @@ def setup():
     """Test specific setup."""
     from yt.config import ytcfg
 
-    ytcfg["yt", "__withintesting"] = "True"
+    ytcfg["yt", "internals", "within_testing"] = True
 
 
 class CameraTest(TestCase):
@@ -123,7 +123,7 @@ class CameraTest(TestCase):
             log_fields=[False],
         )
         del cam
-        # Can't take a snapshot here since IC uses pylab.'
+        # Can't take a snapshot here since IC uses matplotlib.'
 
     def test_projection_camera(self):
         ds = self.ds

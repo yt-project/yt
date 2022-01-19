@@ -250,7 +250,7 @@ cdef class artio_fileset :
             status = artio_fileset_open_particles(self.handle)
             check_artio_status(status)
             self.has_particles = 1
-	    
+
             for v in ["num_particle_species","num_primary_variables","num_secondary_variables"]:
                 if v not in self.parameters:
                     raise RuntimeError("Unable to locate particle header information in artio header: key=", v)
@@ -294,7 +294,6 @@ cdef class artio_fileset :
         if self.handle : artio_fileset_close(self.handle)
 
     def read_parameters(self) :
-        from sys import version
         cdef char key[64]
         cdef int type
         cdef int length
@@ -307,7 +306,7 @@ cdef class artio_fileset :
         self.parameters = {}
 
         while artio_parameter_iterate( self.handle, key, &type, &length ) == ARTIO_SUCCESS :
-	    
+
             if type == ARTIO_TYPE_STRING :
                 char_values = <char **>malloc(length*sizeof(char *))
                 for i in range(length) :
@@ -317,9 +316,8 @@ cdef class artio_fileset :
                 for i in range(length) :
                     free(char_values[i])
                 free(char_values)
-                if version[0] == '3':
-                    for i in range(0,len(parameter)):
-                        parameter[i] = parameter[i].decode('utf-8')
+                for i in range(len(parameter)):
+                    parameter[i] = parameter[i].decode('utf-8')
             elif type == ARTIO_TYPE_INT :
                 int_values = <int32_t *>malloc(length*sizeof(int32_t))
                 artio_parameter_get_int_array( self.handle, key, length, int_values )
@@ -343,10 +341,7 @@ cdef class artio_fileset :
             else :
                 raise RuntimeError("ARTIO file corruption detected: invalid type!")
 
-            if version[0] == '3':
-                self.parameters[key.decode('utf-8')] = parameter
-            else:
-                self.parameters[key] = parameter
+            self.parameters[key.decode('utf-8')] = parameter
 
     def abox_from_auni(self, np.float64_t a):
         if self.cosmology:
@@ -459,7 +454,7 @@ cdef class artio_fileset :
         if not self.has_particles: return
 
         data = {}
-        accessed_species = np.zeros( self.num_species, dtype="int")
+        accessed_species = np.zeros( self.num_species, dtype="int64")
         selected_mass = [ None for i in range(self.num_species)]
         selected_pid = [ None for i in range(self.num_species)]
         selected_species = [ None for i in range(self.num_species)]
@@ -1594,7 +1589,7 @@ cdef class ARTIORootMeshContainer:
         if fields is None:
             fields = []
         nf = len(fields)
-        cdef np.float64_t[::cython.view.indirect, ::1] field_pointers 
+        cdef np.float64_t[::cython.view.indirect, ::1] field_pointers
         if nf > 0: field_pointers = OnceIndirect(fields)
         cdef np.float64_t[:] field_vals = np.empty(nf, dtype="float64")
         cdef np.ndarray[np.uint8_t, ndim=1, cast=True] mask
@@ -1705,4 +1700,3 @@ cdef class SFCRangeSelector(SelectorObject):
 
 sfc_subset_selector = AlwaysSelector
 #sfc_subset_selector = SFCRangeSelector
-

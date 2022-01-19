@@ -53,6 +53,9 @@ VERSION_RE = re.compile(r"# version: *(\d+)")
 # on the left hand side
 VAR_DESC_RE = re.compile(r"\s*([^\s]+),\s*([^\s]+),\s*([^\s]+)")
 
+OUTPUT_DIR_RE = re.compile(r"(output|group)_(\d{5})")
+STANDARD_FILE_RE = re.compile(r"((amr|hydro|part|grav)_\d{5}\.out\d{5}|info_\d{5}.txt)")
+
 
 ## Configure family mapping
 particle_families = {
@@ -68,9 +71,9 @@ particle_families = {
 
 if ytcfg.has_section("ramses-families"):
     for key in particle_families.keys():
-        val = ytcfg.getint("ramses-families", key, fallback=None)
+        val = ytcfg.get("ramses-families", key, callback=None)
         if val is not None:
             mylog.info(
-                "Changing family %s from %s to %s" % (key, particle_families[key], val)
+                "Changing family %s from %s to %s", key, particle_families[key], val
             )
             particle_families[key] = val

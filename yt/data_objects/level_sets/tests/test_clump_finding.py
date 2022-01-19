@@ -4,11 +4,10 @@ import tempfile
 
 import numpy as np
 
-from yt.convenience import load
 from yt.data_objects.level_sets.api import Clump, add_clump_info, find_clumps
 from yt.data_objects.level_sets.clump_info_items import clump_info_registry
 from yt.fields.derived_field import ValidateParameter
-from yt.frontends.stream.api import load_uniform_grid
+from yt.loaders import load, load_uniform_grid
 from yt.testing import assert_array_equal, assert_equal, requires_file
 from yt.utilities.answer_testing.framework import data_dir_load
 
@@ -43,9 +42,9 @@ def test_clump_finding():
     master_clump.add_validator("min_cells", 1)
 
     def _total_volume(clump):
-        total_vol = clump.data.quantities.total_quantity(["cell_volume"]).in_units(
-            "cm**3"
-        )
+        total_vol = clump.data.quantities.total_quantity(
+            [("index", "cell_volume")]
+        ).in_units("cm**3")
         return "Cell Volume: %6e cm**3.", total_vol
 
     add_clump_info("total_volume", _total_volume)
@@ -69,13 +68,19 @@ def test_clump_finding():
     assert_equal(len(leaf_clumps), 2)
 
     # check some clump fields
-    assert_equal(master_clump.children[0]["density"][0].size, 1)
-    assert_equal(master_clump.children[0]["density"][0], ad["density"].max())
-    assert_equal(master_clump.children[0]["particle_mass"].size, 1)
-    assert_array_equal(master_clump.children[0]["particle_mass"], ad["particle_mass"])
-    assert_equal(master_clump.children[1]["density"][0].size, 1)
-    assert_equal(master_clump.children[1]["density"][0], ad["density"].max())
-    assert_equal(master_clump.children[1]["particle_mass"].size, 0)
+    assert_equal(master_clump.children[0][("gas", "density")][0].size, 1)
+    assert_equal(
+        master_clump.children[0][("gas", "density")][0], ad[("gas", "density")].max()
+    )
+    assert_equal(master_clump.children[0][("all", "particle_mass")].size, 1)
+    assert_array_equal(
+        master_clump.children[0][("all", "particle_mass")], ad[("all", "particle_mass")]
+    )
+    assert_equal(master_clump.children[1][("gas", "density")][0].size, 1)
+    assert_equal(
+        master_clump.children[1][("gas", "density")][0], ad[("gas", "density")].max()
+    )
+    assert_equal(master_clump.children[1][("all", "particle_mass")].size, 0)
 
     # clean up global registry to avoid polluting other tests
     del clump_info_registry["total_volume"]
@@ -106,7 +111,13 @@ def test_clump_tree_save():
     leaf_clumps = master_clump.leaves
 
     fn = master_clump.save_as_dataset(
-        fields=["density", "x", "y", "z", "particle_mass"]
+        fields=[
+            ("gas", "density"),
+            ("index", "x"),
+            ("index", "y"),
+            ("index", "z"),
+            ("all", "particle_mass"),
+        ]
     )
     ds2 = load(fn)
 
@@ -149,11 +160,11 @@ def test_clump_field_parameters():
 
     def _also_density(field, data):
         factor = data.get_field_parameter("factor")
-        return factor * data["density"]
+        return factor * data[("gas", "density")]
 
     ds = data_dir_load(i30)
     ds.add_field(
-        "also_density",
+        ("gas", "also_density"),
         function=_also_density,
         units=ds.fields.gas.density.units,
         sampling_type="cell",

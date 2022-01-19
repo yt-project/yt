@@ -31,16 +31,14 @@ def test_linear_interpolator_1d():
 def test_linear_interpolator_2d():
     random_data = np.random.random((64, 64))
     # evenly spaced bins
-    fv = dict((ax, v) for ax, v in zip("xyz", np.mgrid[0.0:1.0:64j, 0.0:1.0:64j]))
+    fv = {ax: v for ax, v in zip("xyz", np.mgrid[0.0:1.0:64j, 0.0:1.0:64j])}
     bfi = lin.BilinearFieldInterpolator(random_data, (0.0, 1.0, 0.0, 1.0), "xy", True)
     assert_array_equal(bfi(fv), random_data)
 
     # randomly spaced bins
     size = 64
     bins = np.linspace(0.0, 1.0, size)
-    shifts = dict(
-        (ax, (1.0 / size) * np.random.random(size) - (0.5 / size)) for ax in "xy"
-    )
+    shifts = {ax: (1.0 / size) * np.random.random(size) - (0.5 / size) for ax in "xy"}
     fv["x"] += shifts["x"][:, np.newaxis]
     fv["y"] += shifts["y"]
     bfi = lin.BilinearFieldInterpolator(
@@ -52,9 +50,9 @@ def test_linear_interpolator_2d():
 def test_linear_interpolator_3d():
     random_data = np.random.random((64, 64, 64))
     # evenly spaced bins
-    fv = dict(
-        (ax, v) for ax, v in zip("xyz", np.mgrid[0.0:1.0:64j, 0.0:1.0:64j, 0.0:1.0:64j])
-    )
+    fv = {
+        ax: v for ax, v in zip("xyz", np.mgrid[0.0:1.0:64j, 0.0:1.0:64j, 0.0:1.0:64j])
+    }
     tfi = lin.TrilinearFieldInterpolator(
         random_data, (0.0, 1.0, 0.0, 1.0, 0.0, 1.0), "xyz", True
     )
@@ -63,9 +61,7 @@ def test_linear_interpolator_3d():
     # randomly spaced bins
     size = 64
     bins = np.linspace(0.0, 1.0, size)
-    shifts = dict(
-        (ax, (1.0 / size) * np.random.random(size) - (0.5 / size)) for ax in "xyz"
-    )
+    shifts = {ax: (1.0 / size) * np.random.random(size) - (0.5 / size) for ax in "xyz"}
     fv["x"] += shifts["x"][:, np.newaxis, np.newaxis]
     fv["y"] += shifts["y"][:, np.newaxis]
     fv["z"] += shifts["z"]
@@ -82,9 +78,11 @@ def test_ghost_zone_extrapolation():
     ds = fake_random_ds(16)
 
     g = ds.index.grids[0]
-    vec = g.get_vertex_centered_data(["x", "y", "z"], no_ghost=True)
+    vec = g.get_vertex_centered_data(
+        [("index", "x"), ("index", "y"), ("index", "z")], no_ghost=True
+    )
     for i, ax in enumerate("xyz"):
-        xc = g[ax]
+        xc = g[("index", ax)]
 
         tf = lin.TrilinearFieldInterpolator(
             xc,
@@ -117,7 +115,7 @@ def test_ghost_zone_extrapolation():
         )
 
         ii = (lx, ly, lz)[i]
-        assert_array_equal(ii, vec[ax])
+        assert_array_equal(ii, vec[("index", ax)])
         assert_array_equal(ii, xi)
         assert_array_equal(ii, xz)
 
@@ -129,10 +127,18 @@ def test_get_vertex_centered_data():
     vec_list = g.get_vertex_centered_data([("gas", "density")], no_ghost=True)
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
-        vec_str = g.get_vertex_centered_data("density", no_ghost=True)
+        vec_str = g.get_vertex_centered_data(("gas", "density"), no_ghost=True)
         assert len(w) == 1
         assert issubclass(w[-1].category, DeprecationWarning)
         assert "requires list of fields" in str(w[-1].message)
-    vec_tuple = g.get_vertex_centered_data(("gas", "density"), no_ghost=True)
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        vec_tuple = g.get_vertex_centered_data(("gas", "density"), no_ghost=True)
+        assert len(w) == 1
+        assert issubclass(w[-1].category, DeprecationWarning)
+        assert (
+            "get_vertex_centered_data() requires list of fields, rather than "
+            "a single field as an argument."
+        ) in str(w[-1].message)
     assert_array_equal(vec_list[("gas", "density")], vec_str)
     assert_array_equal(vec_list[("gas", "density")], vec_tuple)

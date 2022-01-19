@@ -1,4 +1,4 @@
-import os, collections
+import collections
 
 templates = dict(
     autoclass=r"""
@@ -43,7 +43,7 @@ file_names = dict(
 to_include = collections.defaultdict(list)
 
 for line in open("auto_generated.txt"):
-    ftype, name, file_name = [s.strip() for s in line.split("::")]
+    ftype, name, file_name = (s.strip() for s in line.split("::"))
     cn = name.split(".")[-1]
     if cn[0] == "_":
         cn = cn[1:]  # For leading _
@@ -64,4 +64,4 @@ for key, val in file_names.items():
     dd = dict(header="=" * len(title), title=title, dn=dn)
     f.write(templates["index_file"] % dd)
     for obj in sorted(to_include[key]):
-        f.write("   %s\n" % obj)
+        f.write(f"   {obj}\n")

@@ -1,4 +1,5 @@
 import numpy as np
+
 import yt
 
 # Open a dataset from when there's a lot of sloshing going on.
@@ -16,12 +17,12 @@ grad_fields = ds.add_gradient_fields(("gas", "gravitational_potential"))
 
 def _hse(field, data):
     # Remember that g is the negative of the potential gradient
-    gx = -data["density"] * data["gravitational_potential_gradient_x"]
-    gy = -data["density"] * data["gravitational_potential_gradient_y"]
-    gz = -data["density"] * data["gravitational_potential_gradient_z"]
-    hx = data["pressure_gradient_x"] - gx
-    hy = data["pressure_gradient_y"] - gy
-    hz = data["pressure_gradient_z"] - gz
+    gx = -data[("gas", "density")] * data[("gas", "gravitational_potential_gradient_x")]
+    gy = -data[("gas", "density")] * data[("gas", "gravitational_potential_gradient_y")]
+    gz = -data[("gas", "density")] * data[("gas", "gravitational_potential_gradient_z")]
+    hx = data[("gas", "pressure_gradient_x")] - gx
+    hy = data[("gas", "pressure_gradient_y")] - gy
+    hz = data[("gas", "pressure_gradient_z")] - gz
     h = np.sqrt((hx * hx + hy * hy + hz * hz) / (gx * gx + gy * gy + gz * gz))
     return h
 
@@ -36,11 +37,10 @@ ds.add_field(
 )
 
 # The gradient operator requires periodic boundaries.  This dataset has
-# open boundary conditions.  We need to hack it for now (this will be fixed
-# in future version of yt)
-ds.periodicity = (True, True, True)
+# open boundary conditions.
+ds.force_periodicity()
 
 # Take a slice through the center of the domain
-slc = yt.SlicePlot(ds, 2, ["density", "HSE"], width=(1, "Mpc"))
+slc = yt.SlicePlot(ds, 2, [("gas", "density"), ("gas", "HSE")], width=(1, "Mpc"))
 
 slc.save("hse")

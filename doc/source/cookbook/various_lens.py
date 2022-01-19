@@ -1,10 +1,11 @@
-import yt
-from yt.visualization.volume_rendering.api import Scene, VolumeSource
 import numpy as np
+
+import yt
+from yt.visualization.volume_rendering.api import Scene, create_volume_source
 
 field = ("gas", "density")
 
-# normal_vector points from camera to the center of tbe final projection.
+# normal_vector points from camera to the center of the final projection.
 # Now we look at the positive x direction.
 normal_vector = [1.0, 0.0, 0.0]
 # north_vector defines the "top" direction of the projection, which is
@@ -14,13 +15,13 @@ north_vector = [0.0, 0.0, 1.0]
 # Follow the simple_volume_rendering cookbook for the first part of this.
 ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 sc = Scene()
-vol = VolumeSource(ds, field=field)
+vol = create_volume_source(ds, field=field)
 tf = vol.transfer_function
 tf.grey_opacity = True
 
 # Plane-parallel lens
 cam = sc.add_camera(ds, lens_type="plane-parallel")
-# Set the resolution of tbe final projection.
+# Set the resolution of the final projection.
 cam.resolution = [250, 250]
 # Set the location of the camera to be (x=0.2, y=0.5, z=0.5)
 # For plane-parallel lens, the location info along the normal_vector (here

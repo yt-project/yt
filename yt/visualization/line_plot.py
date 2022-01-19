@@ -2,8 +2,8 @@ from collections import defaultdict
 
 import numpy as np
 
-from yt.funcs import iterable, mylog
-from yt.units.unit_object import Unit
+from yt.funcs import is_sequence, mylog
+from yt.units.unit_object import Unit  # type: ignore
 from yt.units.yt_array import YTArray
 from yt.visualization.base_plot_types import PlotMPL
 from yt.visualization.plot_container import (
@@ -40,8 +40,8 @@ class LineBuffer:
 
     Examples
     --------
-    >>> lb = yt.LineBuffer(ds, (.25, 0, 0), (.25, 1, 0), 100)
-    >>> lb[('all', 'u')].max()
+    >>> lb = yt.LineBuffer(ds, (0.25, 0, 0), (0.25, 1, 0), 100)
+    >>> lb[("all", "u")].max()
     0.11562424257143075 dimensionless
 
     """
@@ -63,7 +63,7 @@ class LineBuffer:
     def __getitem__(self, item):
         if item in self.data:
             return self.data[item]
-        mylog.info("Making a line buffer with %d points of %s" % (self.npoints, item))
+        mylog.info("Making a line buffer with %d points of %s", self.npoints, item)
         self.points, self.data[item] = self.ds.coordinates.pixelize_line(
             item, self.start_point, self.end_point, self.npoints
         )
@@ -76,7 +76,7 @@ class LineBuffer:
 
 class LinePlotDictionary(PlotDictionary):
     def __init__(self, data_source):
-        super(LinePlotDictionary, self).__init__(data_source)
+        super().__init__(data_source)
         self.known_dimensions = {}
 
     def _sanitize_dimensions(self, item):
@@ -94,15 +94,15 @@ class LinePlotDictionary(PlotDictionary):
 
     def __getitem__(self, item):
         ret_item = self._sanitize_dimensions(item)
-        return super(LinePlotDictionary, self).__getitem__(ret_item)
+        return super().__getitem__(ret_item)
 
     def __setitem__(self, item, value):
         ret_item = self._sanitize_dimensions(item)
-        super(LinePlotDictionary, self).__setitem__(ret_item, value)
+        super().__setitem__(ret_item, value)
 
     def __contains__(self, item):
         ret_item = self._sanitize_dimensions(item)
-        return super(LinePlotDictionary, self).__contains__(ret_item)
+        return super().__contains__(ret_item)
 
 
 class LinePlot(PlotContainer):
@@ -142,13 +142,13 @@ class LinePlot(PlotContainer):
     -------
 
     >>> import yt
-    >>>
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    >>>
-    >>> plot = yt.LinePlot(ds, 'density', [0, 0, 0], [1, 1, 1], 512)
-    >>> plot.add_legend('density')
-    >>> plot.set_x_unit('cm')
-    >>> plot.set_unit('density', 'kg/cm**3')
+
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
+    >>> plot = yt.LinePlot(ds, "density", [0, 0, 0], [1, 1, 1], 512)
+    >>> plot.add_legend("density")
+    >>> plot.set_x_unit("cm")
+    >>> plot.set_unit("density", "kg/cm**3")
     >>> plot.save()
 
     """
@@ -161,8 +161,8 @@ class LinePlot(PlotContainer):
         start_point,
         end_point,
         npoints,
-        figure_size=5.0,
-        fontsize=14.0,
+        figure_size=5,
+        fontsize=14,
         field_labels=None,
     ):
         """
@@ -175,7 +175,7 @@ class LinePlot(PlotContainer):
 
     @classmethod
     def _initialize_instance(
-        cls, obj, ds, fields, figure_size=5.0, fontsize=14.0, field_labels=None
+        cls, obj, ds, fields, figure_size=5, fontsize=14, field_labels=None
     ):
         obj._x_unit = None
         obj._y_units = {}
@@ -204,7 +204,7 @@ class LinePlot(PlotContainer):
 
     @classmethod
     def from_lines(
-        cls, ds, fields, lines, figure_size=5.0, font_size=14.0, field_labels=None
+        cls, ds, fields, lines, figure_size=5, font_size=14, field_labels=None
     ):
         """
         A class method for constructing a line plot from multiple sampling lines
@@ -222,7 +222,7 @@ class LinePlot(PlotContainer):
         figure_size : int or two-element iterable of ints
             Size in inches of the image.
             Default: 5 (5x5)
-        fontsize : int
+        font_size : int
             Font size for all text in the plot.
             Default: 14
         field_labels : dictionary
@@ -232,11 +232,16 @@ class LinePlot(PlotContainer):
 
         Example
         --------
-        >>> ds = yt.load('SecondOrderTris/RZ_p_no_parts_do_nothing_bcs_cone_out.e', step=-1)
-        >>> fields = [field for field in ds.field_list if field[0] == 'all']
-        >>> lines = []
-        >>> lines.append(yt.LineBuffer(ds, [0.25, 0, 0], [0.25, 1, 0], 100, label='x = 0.25'))
-        >>> lines.append(yt.LineBuffer(ds, [0.5, 0, 0], [0.5, 1, 0], 100, label='x = 0.5'))
+        >>> ds = yt.load(
+        ...     "SecondOrderTris/RZ_p_no_parts_do_nothing_bcs_cone_out.e", step=-1
+        ... )
+        >>> fields = [field for field in ds.field_list if field[0] == "all"]
+        >>> lines = [
+        ...     yt.LineBuffer(ds, [0.25, 0, 0], [0.25, 1, 0], 100, label="x = 0.25"),
+        ...     yt.LineBuffer(ds, [0.5, 0, 0], [0.5, 1, 0], 100, label="x = 0.5"),
+        ... ]
+        >>> lines.append()
+
         >>> plot = yt.LinePlot.from_lines(ds, fields, lines)
         >>> plot.save()
 
@@ -255,7 +260,7 @@ class LinePlot(PlotContainer):
         y_axis_size = 0.7 * fontscale
         right_buff_size = 0.2 * fontscale
 
-        if iterable(self.figure_size):
+        if is_sequence(self.figure_size):
             figure_size = self.figure_size
         else:
             figure_size = (self.figure_size, self.figure_size)
@@ -431,10 +436,10 @@ class LinePlot(PlotContainer):
 
 
 def _validate_point(point, ds, start=False):
-    if not iterable(point):
+    if not is_sequence(point):
         raise RuntimeError("Input point must be array-like")
     if not isinstance(point, YTArray):
-        point = ds.arr(point, "code_length")
+        point = ds.arr(point, "code_length", dtype=np.float64)
     if len(point.shape) != 1:
         raise RuntimeError("Input point must be a 1D array")
     if point.shape[0] < ds.dimensionality:

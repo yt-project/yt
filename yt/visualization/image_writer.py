@@ -3,14 +3,14 @@ import builtins
 import numpy as np
 
 from yt.config import ytcfg
-from yt.funcs import get_brewer_cmap, get_image_suffix, mylog
+from yt.funcs import mylog
 from yt.units.yt_array import YTQuantity
 from yt.utilities import png_writer as pw
 from yt.utilities.exceptions import YTNotInsideNotebook
 from yt.utilities.lib import image_utilities as au
+from yt.visualization.color_maps import get_colormap_lut
 
-from . import _colormap_data as cmd
-from .color_maps import mcm
+from ._commons import get_canvas, validate_image_name
 
 
 def scale_image(image, mi=None, ma=None):
@@ -83,8 +83,8 @@ def multi_image_composite(
     Examples
     --------
 
-        >>> red_channel = np.log10(frb["Temperature"])
-        >>> blue_channel = np.log10(frb["Density"])
+        >>> red_channel = np.log10(frb[("gas", "temperature")])
+        >>> blue_channel = np.log10(frb[("gas", "density")])
         >>> multi_image_composite("multi_channel1.png", red_channel, blue_channel)
 
     """
@@ -168,7 +168,8 @@ def write_image(image, filename, color_bounds=None, cmap_name=None, func=lambda 
 
     This function will scale an image and directly call libpng to write out a
     colormapped version of that image.  It is designed for rapid-fire saving of
-    image buffers generated using `yt.visualization.api.FixedResolutionBuffers` and the like.
+    image buffers generated using `yt.visualization.api.FixedResolutionBuffers`
+    and the likes.
 
     Parameters
     ----------
@@ -193,9 +194,8 @@ def write_image(image, filename, color_bounds=None, cmap_name=None, func=lambda 
     --------
 
     >>> sl = ds.slice(0, 0.5, "Density")
-    >>> frb1 = FixedResolutionBuffer(sl, (0.2, 0.3, 0.4, 0.5),
-                    (1024, 1024))
-    >>> write_image(frb1["Density"], "saved.png")
+    >>> frb1 = FixedResolutionBuffer(sl, (0.2, 0.3, 0.4, 0.5), (1024, 1024))
+    >>> write_image(frb1[("gas", "density")], "saved.png")
     """
     if cmap_name is None:
         cmap_name = ytcfg.get("yt", "default_colormap")
@@ -212,7 +212,8 @@ def apply_colormap(image, color_bounds=None, cmap_name=None, func=lambda x: x):
 
     This function will scale an image and directly call libpng to write out a
     colormapped version of that image.  It is designed for rapid-fire saving of
-    image buffers generated using `yt.visualization.api.FixedResolutionBuffers` and the like.
+    image buffers generated using `yt.visualization.api.FixedResolutionBuffers`
+    and the likes.
 
     Parameters
     ----------
@@ -250,22 +251,7 @@ def apply_colormap(image, color_bounds=None, cmap_name=None, func=lambda x: x):
 
 
 def map_to_colors(buff, cmap_name):
-    try:
-        lut = cmd.color_map_luts[cmap_name]
-    except KeyError:
-        try:
-            # if cmap is tuple, then we're using palettable or brewer2mpl cmaps
-            if isinstance(cmap_name, tuple):
-                cmap = get_brewer_cmap(cmap_name)
-            else:
-                cmap = mcm.get_cmap(cmap_name)
-            cmap(0.0)
-            lut = cmap._lut.T
-        except ValueError:
-            raise KeyError(
-                "Your color map (%s) was not found in either the extracted"
-                " colormap file or matplotlib colormaps" % cmap_name
-            )
+    lut = get_colormap_lut(cmap_name)
 
     if isinstance(cmap_name, tuple):
         # If we are using the colorbrewer maps, don't interpolate
@@ -286,21 +272,28 @@ def strip_colormap_data(
     fn="color_map_data.py",
     cmaps=(
         "jet",
-        "algae",
+        "cmyt.algae",
         "hot",
         "gist_stern",
         "RdBu",
-        "kamae",
-        "kelp",
-        "arbre",
-        "octarine",
-        "dusk",
+        "cmyt.pastel",
+        "cmyt.kelp",
+        "cmyt.arbre",
+        "cmyt.octarine",
+        "cmyt.dusk",
     ),
 ):
     import pprint
 
+    from yt._maintenance.deprecation import issue_deprecation_warning
+
     from . import color_maps as rcm
 
+    issue_deprecation_warning(
+        "yt.visualization.image_writer.strip_colormap_data is deprecated.",
+        since="4.1.0",
+        removal="4.2.0",
+    )
     f = open(fn, "w")
     f.write("### Auto-generated colormap tables, taken from Matplotlib ###\n\n")
     f.write("from numpy import array\n")
@@ -310,9 +303,9 @@ def strip_colormap_data(
     if isinstance(cmaps, str):
         cmaps = [cmaps]
     for cmap_name in sorted(cmaps):
-        vals = rcm._extract_lookup_table(cmap_name)
-        f.write("### %s ###\n\n" % (cmap_name))
-        f.write("color_map_luts['%s'] = \\\n" % (cmap_name))
+        vals = get_colormap_lut(cmap_name)
+        f.write(f"### {cmap_name} ###\n\n")
+        f.write(f"color_map_luts['{cmap_name}'] = \\\n")
         f.write("   (\n")
         for v in vals:
             f.write(pprint.pformat(v, indent=3))
@@ -339,7 +332,8 @@ def write_projection(
     colorbar=True,
     colorbar_label=None,
     title=None,
-    limits=None,
+    vmin=None,
+    vmax=None,
     take_log=True,
     figsize=(8, 6),
     dpi=100,
@@ -370,9 +364,10 @@ def write_projection(
         the label associated with your colorbar
     title : string
         the label at the top of the figure
-    limits : 2-element array_like
-        the lower limit and the upper limit to be plotted in the figure
-        of the data array
+    vmin : float or None
+        the lower limit of the zaxis (part of matplotlib api)
+    vmax : float or None
+        the lower limit of the zaxis (part of matplotlib api)
     take_log : boolean
         plot the log of the data array (and take the log of the limits if set)?
     figsize : array_like
@@ -386,26 +381,27 @@ def write_projection(
     --------
 
     >>> image = off_axis_projection(ds, c, L, W, N, "Density", no_ghost=False)
-    >>> write_projection(image, 'test.png',
-                         colorbar_label="Column Density (cm$^{-2}$)",
-                         title="Offaxis Projection", limits=(1e-5,1e-3),
-                         take_log=True)
+    >>> write_projection(
+    ...     image,
+    ...     "test.png",
+    ...     colorbar_label="Column Density (cm$^{-2}$)",
+    ...     title="Offaxis Projection",
+    ...     vmin=1e-5,
+    ...     vmax=1e-3,
+    ...     take_log=True,
+    ... )
     """
     if cmap_name is None:
         cmap_name = ytcfg.get("yt", "default_colormap")
     import matplotlib.colors
     import matplotlib.figure
 
-    from ._mpl_imports import FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
-
     # If this is rendered as log, then apply now.
     if take_log:
-        norm = matplotlib.colors.LogNorm()
+        norm_cls = matplotlib.colors.LogNorm
     else:
-        norm = matplotlib.colors.Normalize()
-
-    if limits is None:
-        limits = [None, None]
+        norm_cls = matplotlib.colors.Normalize
+    norm = norm_cls(vmin=vmin, vmax=vmax)
 
     # Create the figure and paint the data on
     fig = matplotlib.figure.Figure(figsize=figsize)
@@ -413,8 +409,6 @@ def write_projection(
 
     cax = ax.imshow(
         data.to_ndarray(),
-        vmin=limits[0],
-        vmax=limits[1],
         norm=norm,
         extent=extent,
         cmap=cmap_name,
@@ -439,19 +433,10 @@ def write_projection(
         if colorbar_label:
             cbar.ax.set_ylabel(colorbar_label)
 
-    suffix = get_image_suffix(filename)
+    filename = validate_image_name(filename)
+    canvas = get_canvas(fig, filename)
 
-    if suffix == "":
-        suffix = ".png"
-        filename = "%s%s" % (filename, suffix)
     mylog.info("Saving plot %s", filename)
-    if suffix == ".pdf":
-        canvas = FigureCanvasPdf(fig)
-    elif suffix in (".eps", ".ps"):
-        canvas = FigureCanvasPS(fig)
-    else:
-        canvas = FigureCanvasAgg(fig)
-
     fig.tight_layout()
 
     canvas.print_figure(filename, dpi=dpi)

@@ -2,9 +2,7 @@ import re
 
 import numpy as np
 
-from yt.fields.field_detector import FieldDetector
 from yt.frontends.sph.data_structures import ParticleDataset
-from yt.funcs import issue_deprecation_warning
 from yt.utilities.chemical_formulas import ChemicalFormula
 from yt.utilities.physical_ratios import _primordial_mass_fraction
 
@@ -22,21 +20,21 @@ from .field_plugin_registry import register_field_plugin
 
 def _create_fraction_func(ftype, species):
     def _frac(field, data):
-        return data[ftype, "%s_density" % species] / data[ftype, "density"]
+        return data[ftype, f"{species}_density"] / data[ftype, "density"]
 
     return _frac
 
 
 def _mass_from_cell_volume_and_density(ftype, species):
     def _mass(field, data):
-        return data[ftype, "%s_density" % species] * data["index", "cell_volume"]
+        return data[ftype, f"{species}_density"] * data["index", "cell_volume"]
 
     return _mass
 
 
 def _mass_from_particle_mass_and_fraction(ftype, species):
     def _mass(field, data):
-        return data[ftype, "%s_fraction" % species] * data[ftype, "particle_mass"]
+        return data[ftype, f"{species}_fraction"] * data[ftype, "particle_mass"]
 
     return _mass
 
@@ -47,14 +45,14 @@ def _create_number_density_func(ftype, species):
     def _number_density(field, data):
         weight = formula.weight  # This is in AMU
         weight *= data.ds.units.physical_constants.amu_cgs
-        return data[ftype, "%s_density" % species] / weight
+        return data[ftype, f"{species}_density"] / weight
 
     return _number_density
 
 
 def _create_density_func(ftype, species):
     def _density(field, data):
-        return data[ftype, "%s_fraction" % species] * data[ftype, "density"]
+        return data[ftype, f"{species}_fraction"] * data[ftype, "density"]
 
     return _density
 
@@ -68,7 +66,7 @@ def add_species_field_by_density(registry, ftype, species):
     unit_system = registry.ds.unit_system
 
     registry.add_field(
-        (ftype, "%s_fraction" % species),
+        (ftype, f"{species}_fraction"),
         sampling_type="local",
         function=_create_fraction_func(ftype, species),
         units="",
@@ -79,23 +77,23 @@ def add_species_field_by_density(registry, ftype, species):
     else:
         _create_mass_func = _mass_from_cell_volume_and_density
     registry.add_field(
-        (ftype, "%s_mass" % species),
+        (ftype, f"{species}_mass"),
         sampling_type="local",
         function=_create_mass_func(ftype, species),
         units=unit_system["mass"],
     )
 
     registry.add_field(
-        (ftype, "%s_number_density" % species),
+        (ftype, f"{species}_number_density"),
         sampling_type="local",
         function=_create_number_density_func(ftype, species),
         units=unit_system["number_density"],
     )
 
     return [
-        (ftype, "%s_number_density" % species),
-        (ftype, "%s_density" % species),
-        (ftype, "%s_mass" % species),
+        (ftype, f"{species}_number_density"),
+        (ftype, f"{species}_density"),
+        (ftype, f"{species}_mass"),
     ]
 
 
@@ -108,7 +106,7 @@ def add_species_field_by_fraction(registry, ftype, species):
     unit_system = registry.ds.unit_system
 
     registry.add_field(
-        (ftype, "%s_density" % species),
+        (ftype, f"{species}_density"),
         sampling_type="local",
         function=_create_density_func(ftype, species),
         units=unit_system["density"],
@@ -119,28 +117,28 @@ def add_species_field_by_fraction(registry, ftype, species):
     else:
         _create_mass_func = _mass_from_cell_volume_and_density
     registry.add_field(
-        (ftype, "%s_mass" % species),
+        (ftype, f"{species}_mass"),
         sampling_type="local",
         function=_create_mass_func(ftype, species),
         units=unit_system["mass"],
     )
 
     registry.add_field(
-        (ftype, "%s_number_density" % species),
+        (ftype, f"{species}_number_density"),
         sampling_type="local",
         function=_create_number_density_func(ftype, species),
         units=unit_system["number_density"],
     )
 
     return [
-        (ftype, "%s_number_density" % species),
-        (ftype, "%s_density" % species),
-        (ftype, "%s_mass" % species),
+        (ftype, f"{species}_number_density"),
+        (ftype, f"{species}_density"),
+        (ftype, f"{species}_mass"),
     ]
 
 
 def add_species_aliases(registry, ftype, alias_species, species):
-    """
+    r"""
     This takes a field registry, a fluid type, and two species names.
     The first species name is one you wish to alias to an existing species
     name.  For instance you might alias all "H_p0" fields to "H\_" fields
@@ -148,17 +146,13 @@ def add_species_aliases(registry, ftype, alias_species, species):
     This function registers field aliases for the density, number_density,
     mass, and fraction fields between the two species given in the arguments.
     """
+    registry.alias((ftype, f"{alias_species}_density"), (ftype, f"{species}_density"))
+    registry.alias((ftype, f"{alias_species}_fraction"), (ftype, f"{species}_fraction"))
     registry.alias(
-        (ftype, "%s_density" % alias_species), (ftype, "%s_density" % species)
+        (ftype, f"{alias_species}_number_density"),
+        (ftype, f"{species}_number_density"),
     )
-    registry.alias(
-        (ftype, "%s_fraction" % alias_species), (ftype, "%s_fraction" % species)
-    )
-    registry.alias(
-        (ftype, "%s_number_density" % alias_species),
-        (ftype, "%s_number_density" % species),
-    )
-    registry.alias((ftype, "%s_mass" % alias_species), (ftype, "%s_mass" % species))
+    registry.alias((ftype, f"{alias_species}_mass"), (ftype, f"{species}_mass"))
 
 
 def add_deprecated_species_aliases(registry, ftype, alias_species, species):
@@ -182,15 +176,10 @@ def add_deprecated_species_alias(registry, ftype, alias_species, species, suffix
         my_units = unit_system[suffix]
 
     def _dep_field(field, data):
-        if not isinstance(data, FieldDetector):
-            issue_deprecation_warning(
-                ('The "%s_%s" field is deprecated. ' + 'Please use "%s_%s" instead.')
-                % (alias_species, suffix, species, suffix)
-            )
-        return data[ftype, "%s_%s" % (species, suffix)]
+        return data[ftype, f"{species}_{suffix}"]
 
     registry.add_field(
-        (ftype, "%s_%s" % (alias_species, suffix)),
+        (ftype, f"{alias_species}_{suffix}"),
         sampling_type="local",
         function=_dep_field,
         units=my_units,
@@ -202,32 +191,56 @@ def add_nuclei_density_fields(registry, ftype):
     elements = _get_all_elements(registry.species_names)
     for element in elements:
         registry.add_field(
-            (ftype, "%s_nuclei_density" % element),
+            (ftype, f"{element}_nuclei_density"),
             sampling_type="local",
             function=_nuclei_density,
             units=unit_system["number_density"],
         )
 
     # Here, we add default nuclei and number density fields for H and
-    # He if they are not defined above. This assumes full ionization!
+    # He if they are not defined above, and if it was requested by
+    # setting "default_species_fields"
+    if registry.ds.default_species_fields is None:
+        return
+
+    dsf = registry.ds.default_species_fields
+    # Right now, this only handles default fields for H and He
     for element in ["H", "He"]:
+        # If these elements are already present in the dataset,
+        # DO NOT set them
         if element in elements:
             continue
+        # First add the default nuclei density fields
         registry.add_field(
-            (ftype, "%s_nuclei_density" % element),
+            (ftype, f"{element}_nuclei_density"),
             sampling_type="local",
             function=_default_nuclei_density,
             units=unit_system["number_density"],
         )
+        # Set up number density fields for hydrogen, either fully ionized or neutral.
         if element == "H":
-            registry.alias((ftype, "H_p1_number_density"), (ftype, "H_nuclei_density"))
-
-        if element == "He":
+            if dsf == "ionized":
+                state = "p1"
+            elif dsf == "neutral":
+                state = "p0"
+            else:
+                raise NotImplementedError(
+                    f"'default_species_fields' option '{dsf}' is not implemented!"
+                )
             registry.alias(
-                (ftype, "He_p2_number_density"), (ftype, "He_nuclei_density")
+                (ftype, f"H_{state}_number_density"), (ftype, "H_nuclei_density")
             )
-
-    if (ftype, "El_number_density") not in registry:
+        # Set up number density fields for helium, either fully ionized or neutral.
+        if element == "He":
+            if dsf == "ionized":
+                state = "p2"
+            elif dsf == "neutral":
+                state = "p0"
+            registry.alias(
+                (ftype, f"He_{state}_number_density"), (ftype, "He_nuclei_density")
+            )
+    # If we're fully ionized, we need to setup the electron number density field
+    if (ftype, "El_number_density") not in registry and dsf == "ionized":
         registry.add_field(
             (ftype, "El_number_density"),
             sampling_type="local",
@@ -241,10 +254,12 @@ def _default_nuclei_density(field, data):
     element = field.name[1][: field.name[1].find("_")]
     amu_cgs = data.ds.units.physical_constants.amu_cgs
     if element == "El":
-        # This assumes full ionization!
+        # This is for determining the electron number density.
+        # If we got here, this assumes full ionization!
         muinv = 1.0 * _primordial_mass_fraction["H"] / ChemicalFormula("H").weight
         muinv += 2.0 * _primordial_mass_fraction["He"] / ChemicalFormula("He").weight
     else:
+        # This is for anything else besides electrons
         muinv = _primordial_mass_fraction[element] / ChemicalFormula(element).weight
     return data[ftype, "density"] * muinv / amu_cgs
 
@@ -253,14 +268,14 @@ def _nuclei_density(field, data):
     ftype = field.name[0]
     element = field.name[1][: field.name[1].find("_")]
 
-    nuclei_mass_field = "%s_nuclei_mass_density" % element
+    nuclei_mass_field = f"{element}_nuclei_mass_density"
     if (ftype, nuclei_mass_field) in data.ds.field_info:
         return (
             data[(ftype, nuclei_mass_field)]
             / ChemicalFormula(element).weight
             / data.ds.units.physical_constants.amu_cgs
         )
-    metal_field = "%s_metallicity" % element
+    metal_field = f"{element}_metallicity"
     if (ftype, metal_field) in data.ds.field_info:
         return (
             data[ftype, "density"]
@@ -270,7 +285,7 @@ def _nuclei_density(field, data):
         )
 
     field_data = np.zeros_like(
-        data[ftype, "%s_number_density" % data.ds.field_info.species_names[0]]
+        data[ftype, f"{data.ds.field_info.species_names[0]}_number_density"]
     )
     for species in data.ds.field_info.species_names:
         nucleus = species
@@ -282,7 +297,7 @@ def _nuclei_density(field, data):
         # we will encounter species that contribute nothing, so we skip them.
         if num == 0:
             continue
-        field_data += num * data[ftype, "%s_number_density" % species]
+        field_data += num * data[ftype, f"{species}_number_density"]
     return field_data
 
 
@@ -310,9 +325,9 @@ def setup_species_fields(registry, ftype="gas", slice_info=None):
     for species in registry.species_names:
         # These are all the species we should be looking for fractions or
         # densities of.
-        if (ftype, "%s_density" % species) in registry:
+        if (ftype, f"{species}_density") in registry:
             func = add_species_field_by_density
-        elif (ftype, "%s_fraction" % species) in registry:
+        elif (ftype, f"{species}_fraction") in registry:
             func = add_species_field_by_fraction
         else:
             # Skip it
@@ -323,7 +338,7 @@ def setup_species_fields(registry, ftype="gas", slice_info=None):
         # These are deprecated and will be removed soon.
         if ChemicalFormula(species).charge == 0:
             alias_species = species.split("_")[0]
-            if (ftype, "{}_density".format(alias_species)) in registry:
+            if (ftype, f"{alias_species}_density") in registry:
                 continue
             add_deprecated_species_aliases(registry, "gas", alias_species, species)
 

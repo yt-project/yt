@@ -1,7 +1,7 @@
 import numpy as np
 
-from yt.funcs import get_pbar, issue_deprecation_warning
-from yt.units.yt_array import uconcatenate
+from yt.funcs import get_pbar
+from yt.units.yt_array import uconcatenate  # type: ignore
 from yt.utilities.lib.particle_mesh_operations import CICSample_3
 
 
@@ -21,9 +21,9 @@ class ParticleGenerator:
             (ptype, fd) if isinstance(fd, str) else fd for fd in field_list
         ]
         self.field_list.append((ptype, "particle_index"))
-        self.field_units = dict(
-            ((ptype, "particle_position_%s" % ax), "code_length") for ax in "xyz"
-        )
+        self.field_units = {
+            (ptype, f"particle_position_{ax}"): "code_length" for ax in "xyz"
+        }
         self.field_units[ptype, "particle_index"] = ""
         self.ptype = ptype
 
@@ -33,11 +33,11 @@ class ParticleGenerator:
             self.posx_index = self.field_list.index(self.default_fields[0])
             self.posy_index = self.field_list.index(self.default_fields[1])
             self.posz_index = self.field_list.index(self.default_fields[2])
-        except Exception:
+        except Exception as e:
             raise KeyError(
                 "You must specify position fields: "
-                + " ".join(["particle_position_%s" % ax for ax in "xyz"])
-            )
+                + " ".join("particle_position_%s" % ax for ax in "xyz")
+            ) from e
         self.index_index = self.field_list.index((ptype, "particle_index"))
 
         self.num_grids = self.ds.index.num_grids
@@ -149,13 +149,15 @@ class ParticleGenerator:
 
         Examples
         --------
-        >>> field_map = {'density':'particle_density',
-        >>>              'temperature':'particle_temperature'}
+        >>> field_map = {
+        ...     "density": "particle_density",
+        ...     "temperature": "particle_temperature",
+        ... }
         >>> particles.map_grid_fields_to_particles(field_map)
         """
         pbar = get_pbar("Mapping fields to particles", self.num_grids)
         for i, grid in enumerate(self.ds.index.grids):
-            pbar.update(i)
+            pbar.update(i + 1)
             if self.NumberOfParticles[i] > 0:
                 start = self.ParticleGridIndices[i]
                 end = self.ParticleGridIndices[i + 1]
@@ -185,14 +187,6 @@ class ParticleGenerator:
         already exist, and overwrite=False, do not overwrite them, but add
         the new ones to them.
         """
-        if "clobber" in kwargs:
-            issue_deprecation_warning(
-                'The "clobber" keyword argument '
-                'is deprecated. Use the "overwrite" '
-                "argument, which has the same effect, "
-                "instead."
-            )
-            overwrite = kwargs.pop("clobber")
         grid_data = []
         for i, g in enumerate(self.ds.index.grids):
             data = {}
@@ -240,12 +234,16 @@ class FromListParticleGenerator(ParticleGenerator):
         Examples
         --------
         >>> num_p = 100000
-        >>> posx = np.random.random((num_p))
-        >>> posy = np.random.random((num_p))
-        >>> posz = np.random.random((num_p))
-        >>> mass = np.ones((num_p))
-        >>> data = {'particle_position_x': posx, 'particle_position_y': posy,
-        >>>         'particle_position_z': posz, 'particle_mass': mass}
+        >>> posx = np.random.random(num_p)
+        >>> posy = np.random.random(num_p)
+        >>> posz = np.random.random(num_p)
+        >>> mass = np.ones(num_p)
+        >>> data = {
+        ...     "particle_position_x": posx,
+        ...     "particle_position_y": posy,
+        ...     "particle_position_z": posz,
+        ...     "particle_mass": mass,
+        ... }
         >>> particles = FromListParticleGenerator(ds, num_p, data)
         """
 
@@ -268,9 +266,7 @@ class FromListParticleGenerator(ParticleGenerator):
         if np.any(cond):
             raise ValueError("Some particles are outside of the domain!!!")
 
-        super(FromListParticleGenerator, self).__init__(
-            ds, num_particles, field_list, ptype=ptype
-        )
+        super().__init__(ds, num_particles, field_list, ptype=ptype)
         self._setup_particles(x, y, z, setup_fields=data)
 
 
@@ -304,12 +300,16 @@ class LatticeParticleGenerator(ParticleGenerator):
 
         Examples
         --------
-        >>> dims = (128,128,128)
-        >>> le = np.array([0.25,0.25,0.25])
-        >>> re = np.array([0.75,0.75,0.75])
-        >>> fields = ["particle_position_x","particle_position_y",
-        >>>           "particle_position_z",
-        >>>           "particle_density","particle_temperature"]
+        >>> dims = (128, 128, 128)
+        >>> le = np.array([0.25, 0.25, 0.25])
+        >>> re = np.array([0.75, 0.75, 0.75])
+        >>> fields = [
+        ...     ("all", "particle_position_x"),
+        ...     ("all", "particle_position_y"),
+        ...     ("all", "particle_position_z"),
+        ...     ("all", "particle_density"),
+        ...     ("all", "particle_temperature"),
+        ... ]
         >>> particles = LatticeParticleGenerator(ds, dims, le, re, fields)
         """
 
@@ -333,9 +333,7 @@ class LatticeParticleGenerator(ParticleGenerator):
         if cond:
             raise ValueError("Proposed bounds for particles are outside domain!!!")
 
-        super(LatticeParticleGenerator, self).__init__(
-            ds, num_x * num_y * num_z, field_list, ptype=ptype
-        )
+        super().__init__(ds, num_x * num_y * num_z, field_list, ptype=ptype)
 
         dx = (xmax - xmin) / (num_x - 1)
         dy = (ymax - ymin) / (num_y - 1)
@@ -355,7 +353,7 @@ class WithDensityParticleGenerator(ParticleGenerator):
         data_source,
         num_particles,
         field_list,
-        density_field="density",
+        density_field=("gas", "density"),
         ptype="io",
     ):
         r"""
@@ -365,13 +363,14 @@ class WithDensityParticleGenerator(ParticleGenerator):
         ----------
         ds : `Dataset`
             The dataset which will serve as the base for these particles.
-        data_source : `yt.data_objects.data_containers.YTSelectionContainer`
+        data_source :
+            `yt.data_objects.selection_objects.base_objects.YTSelectionContainer`
             The data source containing the density field.
         num_particles : int
             The number of particles to be generated
         field_list : list of strings
             A list of particle fields
-        density_field : string, optional
+        density_field : tuple, optional
             A density field which will serve as the distribution function for the
             particle positions. Theoretically, this could be any 'per-volume' field.
         ptype : string, optional
@@ -381,19 +380,24 @@ class WithDensityParticleGenerator(ParticleGenerator):
         --------
         >>> sphere = ds.sphere(ds.domain_center, 0.5)
         >>> num_p = 100000
-        >>> fields = ["particle_position_x","particle_position_y",
-        >>>           "particle_position_z",
-        >>>           "particle_density","particle_temperature"]
-        >>> particles = WithDensityParticleGenerator(ds, sphere, num_particles,
-        >>>                                          fields, density_field='Dark_Matter_Density')
+        >>> fields = [
+        ...     ("all", "particle_position_x"),
+        ...     ("all", "particle_position_y"),
+        ...     ("all", "particle_position_z"),
+        ...     ("all", "particle_density"),
+        ...     ("all", "particle_temperature"),
+        ... ]
+        >>> particles = WithDensityParticleGenerator(
+        ...     ds, sphere, num_particles, fields, density_field="Dark_Matter_Density"
+        ... )
         """
 
-        super(WithDensityParticleGenerator, self).__init__(
-            ds, num_particles, field_list, ptype=ptype
-        )
+        super().__init__(ds, num_particles, field_list, ptype=ptype)
 
-        num_cells = len(data_source["x"].flat)
-        max_mass = (data_source[density_field] * data_source["cell_volume"]).max()
+        num_cells = len(data_source[("index", "x")].flat)
+        max_mass = (
+            data_source[density_field] * data_source[("gas", "cell_volume")]
+        ).max()
         num_particles_left = num_particles
         all_x = []
         all_y = []
@@ -405,30 +409,28 @@ class WithDensityParticleGenerator(ParticleGenerator):
         while num_particles_left > 0:
 
             m = np.random.uniform(high=1.01 * max_mass, size=num_particles_left)
-            idxs = np.random.random_integers(
-                low=0, high=num_cells - 1, size=num_particles_left
-            )
-            m_true = (data_source[density_field] * data_source["cell_volume"]).flat[
-                idxs
-            ]
+            idxs = np.random.randint(low=0, high=num_cells, size=num_particles_left)
+            m_true = (
+                data_source[density_field] * data_source[("gas", "cell_volume")]
+            ).flat[idxs]
             accept = m <= m_true
             num_accepted = accept.sum()
             accepted_idxs = idxs[accept]
 
             xpos = (
-                data_source["x"].flat[accepted_idxs]
+                data_source[("index", "x")].flat[accepted_idxs]
                 + np.random.uniform(low=-0.5, high=0.5, size=num_accepted)
-                * data_source["dx"].flat[accepted_idxs]
+                * data_source[("index", "dx")].flat[accepted_idxs]
             )
             ypos = (
-                data_source["y"].flat[accepted_idxs]
+                data_source[("index", "y")].flat[accepted_idxs]
                 + np.random.uniform(low=-0.5, high=0.5, size=num_accepted)
-                * data_source["dy"].flat[accepted_idxs]
+                * data_source[("index", "dy")].flat[accepted_idxs]
             )
             zpos = (
-                data_source["z"].flat[accepted_idxs]
+                data_source[("index", "z")].flat[accepted_idxs]
                 + np.random.uniform(low=-0.5, high=0.5, size=num_accepted)
-                * data_source["dz"].flat[accepted_idxs]
+                * data_source[("index", "dz")].flat[accepted_idxs]
             )
 
             all_x.append(xpos)

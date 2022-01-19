@@ -6,11 +6,12 @@ Wrapper for EWAH Bool Array: https://github.com/lemire/EWAHBoolArray
 """
 
 
-from libcpp.vector cimport vector
+from libc.stdint cimport uint32_t, uint64_t
+from libcpp cimport bool
 from libcpp.map cimport map as cmap
 from libcpp.string cimport string
-from libcpp cimport bool
-from libc.stdint cimport uint64_t, uint32_t
+from libcpp.vector cimport vector
+
 
 # Streams req for c++ IO
 cdef extern from "<ostream>" namespace "std":
@@ -28,7 +29,7 @@ cdef extern from "<sstream>" namespace "std":
         istream read(char *, size_t)
         bint eof()
 
-cdef extern from "ewah.h":
+cdef extern from "ewah.h" namespace "ewah":
     cppclass EWAHBoolArraySetBitForwardIterator[uword]:
         # EWAHBoolArraySetBitForwardIterator()
         EWAHBoolArraySetBitForwardIterator(const EWAHBoolArraySetBitForwardIterator &o)
@@ -71,7 +72,7 @@ cdef extern from "ewah.h":
         EWAHBoolArraySetBitForwardIterator begin()
         EWAHBoolArraySetBitForwardIterator end()
 
-cdef extern from "boolarray.h":
+cdef extern from "boolarray.h" namespace "ewah":
     cppclass BoolArray[uword]:
         void setSizeInBits(size_t sizeib)
         void set(size_t pos)
@@ -87,8 +88,8 @@ cdef extern from "boolarray.h":
         uword getWord(size_t pos)
         size_t wordinbits
 
-cimport numpy as np
 cimport cython
+cimport numpy as np
 
 IF UNAME_SYSNAME == "Windows":
     ctypedef uint32_t ewah_word_type

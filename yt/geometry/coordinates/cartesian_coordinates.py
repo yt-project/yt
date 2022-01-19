@@ -1,8 +1,8 @@
 import numpy as np
 
-from yt.data_objects.unstructured_mesh import SemiStructuredMesh
+from yt.data_objects.index_subobjects.unstructured_mesh import SemiStructuredMesh
 from yt.funcs import mylog
-from yt.units.yt_array import YTArray, uconcatenate, uvstack
+from yt.units.yt_array import YTArray, uconcatenate, uvstack  # type: ignore
 from yt.utilities.lib.pixelization_routines import (
     interpolate_sph_grid_gather,
     normalization_2d_utility,
@@ -44,8 +44,8 @@ def _sample_ray(ray, npoints, field):
     sample_dr = (end_point - start_point) / (npoints - 1)
     sample_points = [np.arange(npoints) * sample_dr[i] for i in range(3)]
     sample_points = uvstack(sample_points).T + start_point
-    ray_coordinates = uvstack([ray[d] for d in "xyz"]).T
-    ray_dds = uvstack([ray["d" + d] for d in "xyz"]).T
+    ray_coordinates = uvstack([ray[("index", d)] for d in "xyz"]).T
+    ray_dds = uvstack([ray[("index", f"d{d}")] for d in "xyz"]).T
     ray_field = ray[field]
     field_values = ray.ds.arr(np.zeros(npoints), ray_field.units)
     for i, sample_point in enumerate(sample_points):
@@ -90,13 +90,13 @@ class CartesianCoordinateHandler(CoordinateHandler):
     name = "cartesian"
 
     def __init__(self, ds, ordering=("x", "y", "z")):
-        super(CartesianCoordinateHandler, self).__init__(ds, ordering)
+        super().__init__(ds, ordering)
 
     def setup_fields(self, registry):
         for axi, ax in enumerate(self.axis_order):
             f1, f2 = _get_coord_fields(axi)
             registry.add_field(
-                ("index", "d%s" % ax),
+                ("index", f"d{ax}"),
                 sampling_type="cell",
                 function=f1,
                 display_field=False,
@@ -104,7 +104,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
             )
 
             registry.add_field(
-                ("index", "path_element_%s" % ax),
+                ("index", f"path_element_{ax}"),
                 sampling_type="cell",
                 function=f1,
                 display_field=False,
@@ -112,7 +112,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
             )
 
             registry.add_field(
-                ("index", "%s" % ax),
+                ("index", f"{ax}"),
                 sampling_type="cell",
                 function=f2,
                 display_field=False,
@@ -121,13 +121,17 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
             f3 = _get_vert_fields(axi)
             registry.add_field(
-                ("index", "vertex_%s" % ax),
+                ("index", f"vertex_{ax}"),
                 sampling_type="cell",
                 function=f3,
                 display_field=False,
                 units="code_length",
             )
 
+        self._register_volume(registry)
+        self._check_fields(registry)
+
+    def _register_volume(self, registry):
         def _cell_volume(field, data):
             rv = data["index", "dx"].copy(order="K")
             rv *= data["index", "dy"]
@@ -143,6 +147,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
         )
         registry.alias(("index", "volume"), ("index", "cell_volume"))
 
+    def _check_fields(self, registry):
         registry.check_derived_fields(
             [
                 ("index", "dx"),
@@ -201,7 +206,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
             elif field_data.shape[1] == 27:
                 # hexahedral
                 mylog.warning(
-                    "High order elements not yet supported, " + "dropping to 1st order."
+                    "High order elements not yet supported, dropping to 1st order."
                 )
                 field_data = field_data[:, 0:8]
                 indices = indices[:, 0:8]
@@ -228,7 +233,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
         """
         if npoints < 2:
             raise ValueError(
-                "Must have at least two sample points in order " "to draw a line plot."
+                "Must have at least two sample points in order to draw a line plot."
             )
         index = self.ds.index
         if hasattr(index, "meshes") and not isinstance(
@@ -254,10 +259,16 @@ class CartesianCoordinateHandler(CoordinateHandler):
             offset = index.meshes[mesh_id]._index_offset
             ad = self.ds.all_data()
             field_data = ad[field]
-            if field_data.shape[1] == 27:
+
+            # if this is an element field, promote to 2D here
+            if len(field_data.shape) == 1:
+                field_data = np.expand_dims(field_data, 1)
+            # if this is a higher-order element, we demote to 1st order
+            # here, for now.
+            elif field_data.shape[1] == 27:
                 # hexahedral
                 mylog.warning(
-                    "High order elements not yet supported, " + "dropping to 1st order."
+                    "High order elements not yet supported, dropping to 1st order."
                 )
                 field_data = field_data[:, 0:8]
                 indices = indices[:, 0:8]
@@ -282,7 +293,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
         self, data_source, field, bounds, size, antialias, dim, periodic
     ):
         from yt.data_objects.construction_data_containers import YTParticleProj
-        from yt.data_objects.selection_data_containers import YTSlice
+        from yt.data_objects.selection_objects.slices import YTSlice
         from yt.frontends.sph.data_structures import ParticleDataset
         from yt.frontends.stream.data_structures import StreamParticlesDataset
 
@@ -366,6 +377,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             chunk[ptype, "density"].to("code_density"),
                             chunk[field].in_units(ounits),
                             bnds,
+                            check_period=int(periodic),
+                            period=period,
                         )
                     # We use code length here, but to get the path length right
                     # we need to multiply by the conversion factor between
@@ -393,11 +406,15 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             chunk[ptype, "density"].to("code_density"),
                             chunk[field].in_units(ounits),
                             bnds,
+                            check_period=int(periodic),
+                            period=period,
                             weight_field=chunk[weight].in_units(wounits),
                         )
                     mylog.info(
-                        "Making a fixed resolution buffer of (%s) %d by %d"
-                        % (weight, size[0], size[1])
+                        "Making a fixed resolution buffer of (%s) %d by %d",
+                        weight,
+                        size[0],
+                        size[1],
                     )
                     for chunk in proj_reg.chunks([], "io"):
                         data_source._initialize_projected_units([weight], chunk)
@@ -410,6 +427,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             chunk[ptype, "density"].to("code_density"),
                             chunk[weight].in_units(wounits),
                             bnds,
+                            check_period=int(periodic),
+                            period=period,
                         )
                     normalization_2d_utility(buff, weight_buff)
             elif isinstance(data_source, YTSlice):
@@ -431,6 +450,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             chunk[ptype, "density"].to("code_density"),
                             chunk[field].in_units(ounits),
                             bnds,
+                            check_period=int(periodic),
+                            period=period,
                         )
                         if normalize:
                             pixelize_sph_kernel_slice(
@@ -442,6 +463,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
                                 chunk[ptype, "density"].to("code_density"),
                                 np.ones(chunk[ptype, "density"].shape[0]),
                                 bnds,
+                                check_period=int(periodic),
+                                period=period,
                             )
 
                     if normalize:

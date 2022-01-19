@@ -2,7 +2,7 @@ import numpy as np
 
 from yt.funcs import mylog
 from yt.geometry.selection_routines import GridSelector
-from yt.utilities.io_handler import BaseIOHandler
+from yt.utilities.io_handler import BaseParticleIOHandler
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 
@@ -11,17 +11,16 @@ def _grid_dname(grid_id):
 
 
 def _field_dname(grid_id, field_name):
-    return "%s/%s" % (_grid_dname(grid_id), field_name)
+    return f"{_grid_dname(grid_id)}/{field_name}"
 
 
 # TODO all particle bits were removed
-class IOHandlerGDFHDF5(BaseIOHandler):
+class IOHandlerGDFHDF5(BaseParticleIOHandler):
     _dataset_type = "grid_data_format"
     _offset_string = "data:offsets=0"
     _data_string = "data:datatype=0"
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
-        from sys import version
 
         rv = {}
         chunks = list(chunks)
@@ -40,9 +39,7 @@ class IOHandlerGDFHDF5(BaseIOHandler):
             h5f.close()
             return rv
         if size is None:
-            size = sum(
-                (grid.count(selector) for chunk in chunks for grid in chunk.objs)
-            )
+            size = sum(grid.count(selector) for chunk in chunks for grid in chunk.objs)
 
         if any((ftype != "gdf" for ftype, fname in fields)):
             raise NotImplementedError
@@ -66,12 +63,9 @@ class IOHandlerGDFHDF5(BaseIOHandler):
                 if grid.filename is None:
                     continue
                 if fid is None:
-                    if version < "3":
-                        fid = h5py.h5f.open(grid.filename, h5py.h5f.ACC_RDONLY)
-                    else:
-                        fid = h5py.h5f.open(
-                            bytes(grid.filename, "utf-8"), h5py.h5f.ACC_RDONLY
-                        )
+                    fid = h5py.h5f.open(
+                        bytes(grid.filename, "utf-8"), h5py.h5f.ACC_RDONLY
+                    )
                 if self.ds.field_ordering == 1:
                     # check the dtype instead
                     data = np.empty(grid.ActiveDimensions[::-1], dtype="float64")
@@ -81,12 +75,9 @@ class IOHandlerGDFHDF5(BaseIOHandler):
                     data_view = data = np.empty(grid.ActiveDimensions, dtype="float64")
                 for field in fields:
                     ftype, fname = field
-                    if version < "3":
-                        dg = h5py.h5d.open(fid, _field_dname(grid.id, fname))
-                    else:
-                        dg = h5py.h5d.open(
-                            fid, bytes(_field_dname(grid.id, fname), "utf-8")
-                        )
+                    dg = h5py.h5d.open(
+                        fid, bytes(_field_dname(grid.id, fname), "utf-8")
+                    )
                     dg.read(h5py.h5s.ALL, h5py.h5s.ALL, data)
                     # caches
                     nd = grid.select(selector, data_view, rv[field], ind)

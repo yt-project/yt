@@ -1,5 +1,6 @@
-import yt
 import numpy as np
+
+import yt
 
 # Load the dataset.
 ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
@@ -26,10 +27,10 @@ Npixels = 512
 # Create the off axis projection.
 # Setting no_ghost to False speeds up the process, but makes a
 # slightly lower quality image.
-image = yt.off_axis_projection(ds, c, L, W, Npixels, "density", no_ghost=False)
+image = yt.off_axis_projection(ds, c, L, W, Npixels, ("gas", "density"), no_ghost=False)
 
 # Write out the final image and give it a name
 # relating to what our dataset is called.
 # We save the log of the values so that the colors do not span
 # many orders of magnitude.  Try it without and see what happens.
-yt.write_image(np.log10(image), "%s_offaxis_projection.png" % ds)
+yt.write_image(np.log10(image), f"{ds}_offaxis_projection.png")

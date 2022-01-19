@@ -1,11 +1,14 @@
 import os
 import re
 import weakref
+from typing import Type
 
 import numpy as np
 
-from yt.data_objects.grid_patch import AMRGridPatch
+from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
+from yt.fields.field_info_container import FieldInfoContainer
+from yt.frontends.boxlib.misc import BoxlibReadParticleFileMixin
 from yt.funcs import mylog, setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.file_handler import HDF5FileHandler, warn_h5py
@@ -27,7 +30,7 @@ def is_chombo_hdf5(fn):
     try:
         with h5py.File(fn, mode="r") as fileh:
             valid = "Chombo_global" in fileh["/"]
-    except (KeyError, IOError, ImportError):
+    except (KeyError, OSError, ImportError):
         return False
     return valid
 
@@ -115,7 +118,7 @@ class ChomboHierarchy(GridIndex):
                     (particles_per_grid, level_particles)
                 )
 
-        for i, grid in enumerate(self.grids):
+        for i, _grid in enumerate(self.grids):
             self.grids[i].NumberOfParticles = particles_per_grid[i]
             self.grid_particle_count[i] = particles_per_grid[i]
 
@@ -149,7 +152,7 @@ class ChomboHierarchy(GridIndex):
             elif "boxes" in d:
                 self.num_grids += d["boxes"].len()
             else:
-                raise RuntimeError("Uknown file specification")
+                raise RuntimeError("Unknown file specification")
 
     def _parse_index(self):
         f = self._handle  # shortcut
@@ -160,7 +163,7 @@ class ChomboHierarchy(GridIndex):
         i = 0
         D = self.dataset.dimensionality
         for lev_index, lev in enumerate(self._levels):
-            level_number = int(re.match("level_(\d+)", lev).groups()[0])
+            level_number = int(re.match(r"level_(\d+)", lev).groups()[0])
             try:
                 boxes = f[lev]["boxes"][()]
             except KeyError:
@@ -176,8 +179,8 @@ class ChomboHierarchy(GridIndex):
                 self.dds_list[lev_index][2] = 1.0
 
             for level_id, box in enumerate(boxes):
-                si = np.array([box["lo_%s" % ax] for ax in "ijk"[:D]])
-                ei = np.array([box["hi_%s" % ax] for ax in "ijk"[:D]])
+                si = np.array([box[f"lo_{ax}"] for ax in "ijk"[:D]])
+                ei = np.array([box[f"hi_{ax}"] for ax in "ijk"[:D]])
 
                 if D == 1:
                     si = np.concatenate((si, [0.0, 0.0]))
@@ -236,7 +239,7 @@ class ChomboHierarchy(GridIndex):
 
 class ChomboDataset(Dataset):
     _index_class = ChomboHierarchy
-    _field_info_class = ChomboFieldInfo
+    _field_info_class: Type[FieldInfoContainer] = ChomboFieldInfo
 
     def __init__(
         self,
@@ -246,6 +249,7 @@ class ChomboDataset(Dataset):
         ini_filename=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
         self.fluid_types += ("chombo",)
         self._handle = HDF5FileHandler(filename)
@@ -260,6 +264,7 @@ class ChomboDataset(Dataset):
             self.dataset_type,
             units_override=units_override,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
         self.storage_filename = storage_filename
         self.cosmological_simulation = False
@@ -334,7 +339,7 @@ class ChomboDataset(Dataset):
                 ]
             except KeyError:
                 is_periodic[dir] = True
-        self.periodicity = tuple(is_periodic)
+        self._periodicity = tuple(is_periodic)
 
     def _calc_left_edge(self):
         fileh = self._handle
@@ -358,16 +363,16 @@ class ChomboDataset(Dataset):
         return R_index - L_index
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
 
-        if not is_chombo_hdf5(args[0]):
+        if not is_chombo_hdf5(filename):
             return False
 
         pluto_ini_file_exists = False
         orion2_ini_file_exists = False
 
-        if isinstance(args[0], str):
-            dir_name = os.path.dirname(os.path.abspath(args[0]))
+        if isinstance(filename, str):
+            dir_name = os.path.dirname(os.path.abspath(filename))
             pluto_ini_filename = os.path.join(dir_name, "pluto.ini")
             orion2_ini_filename = os.path.join(dir_name, "orion2.ini")
             pluto_ini_file_exists = os.path.isfile(pluto_ini_filename)
@@ -375,7 +380,7 @@ class ChomboDataset(Dataset):
 
         if not (pluto_ini_file_exists or orion2_ini_file_exists):
             try:
-                fileh = h5py.File(args[0], mode="r")
+                fileh = h5py.File(filename, mode="r")
                 valid = "Chombo_global" in fileh["/"]
                 # ORION2 simulations should always have this:
                 valid = valid and not ("CeilVA_mass" in fileh.attrs.keys())
@@ -414,7 +419,7 @@ class PlutoHierarchy(ChomboHierarchy):
         i = 0
         D = self.dataset.dimensionality
         for lev_index, lev in enumerate(self._levels):
-            level_number = int(re.match("level_(\d+)", lev).groups()[0])
+            level_number = int(re.match(r"level_(\d+)", lev).groups()[0])
             try:
                 boxes = f[lev]["boxes"][()]
             except KeyError:
@@ -430,8 +435,8 @@ class PlutoHierarchy(ChomboHierarchy):
                 self.dds_list[lev_index][2] = 1.0
 
             for level_id, box in enumerate(boxes):
-                si = np.array([box["lo_%s" % ax] for ax in "ijk"[:D]])
-                ei = np.array([box["hi_%s" % ax] for ax in "ijk"[:D]])
+                si = np.array([box[f"lo_{ax}"] for ax in "ijk"[:D]])
+                ei = np.array([box[f"hi_{ax}"] for ax in "ijk"[:D]])
 
                 if D == 1:
                     si = np.concatenate((si, [0.0, 0.0]))
@@ -474,6 +479,7 @@ class PlutoDataset(ChomboDataset):
         ini_filename=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
 
         ChomboDataset.__init__(
@@ -484,6 +490,7 @@ class PlutoDataset(ChomboDataset):
             ini_filename,
             units_override=units_override,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
 
     def _parse_parameter_file(self):
@@ -516,7 +523,7 @@ class PlutoDataset(ChomboDataset):
             ):
                 domain_left_edge[il] = float(ll.split()[2])
                 domain_right_edge[il] = float(ll.split()[-1])
-            self.periodicity = [0] * 3
+            self._periodicity = [0] * 3
             for il, ll in enumerate(
                 lines[
                     lines.index("[Boundary]")
@@ -526,8 +533,8 @@ class PlutoDataset(ChomboDataset):
                 ]
             ):
                 self.periodicity[il] = ll.split()[1] == "periodic"
-            self.periodicity = tuple(self.periodicity)
-            for il, ll in enumerate(lines[lines.index("[Parameters]") + 2 :]):
+            self._periodicity = tuple(self.periodicity)
+            for ll in lines[lines.index("[Parameters]") + 2 :]:
                 if ll.split()[0] == "GAMMA":
                     self.gamma = float(ll.split()[1])
             self.domain_left_edge = domain_left_edge
@@ -535,7 +542,7 @@ class PlutoDataset(ChomboDataset):
         else:
             self.domain_left_edge = self._calc_left_edge()
             self.domain_right_edge = self._calc_right_edge()
-            self.periodicity = (True, True, True)
+            self._periodicity = (True, True, True)
 
         # if a lower-dimensional dataset, set up pseudo-3D stuff here.
         if self.dimensionality == 1:
@@ -553,15 +560,15 @@ class PlutoDataset(ChomboDataset):
         self._determine_current_time()
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
 
-        if not is_chombo_hdf5(args[0]):
+        if not is_chombo_hdf5(filename):
             return False
 
         pluto_ini_file_exists = False
 
-        if isinstance(args[0], str):
-            dir_name = os.path.dirname(os.path.abspath(args[0]))
+        if isinstance(filename, str):
+            dir_name = os.path.dirname(os.path.abspath(filename))
             pluto_ini_filename = os.path.join(dir_name, "pluto.ini")
             pluto_ini_file_exists = os.path.isfile(pluto_ini_filename)
 
@@ -571,7 +578,7 @@ class PlutoDataset(ChomboDataset):
         return False
 
 
-class Orion2Hierarchy(ChomboHierarchy):
+class Orion2Hierarchy(ChomboHierarchy, BoxlibReadParticleFileMixin):
     def __init__(self, ds, dataset_type="orion_chombo_native"):
         ChomboHierarchy.__init__(self, ds, dataset_type)
 
@@ -592,46 +599,7 @@ class Orion2Hierarchy(ChomboHierarchy):
         self.field_list.extend(pfield_list)
 
     def _read_particles(self):
-        if not os.path.exists(self.particle_filename):
-            return
-        with open(self.particle_filename, "r") as f:
-            lines = f.readlines()
-            self.num_stars = int(lines[0].strip().split(" ")[0])
-            for num, line in enumerate(lines[1:]):
-                particle_position_x = float(line.split(" ")[1])
-                particle_position_y = float(line.split(" ")[2])
-                particle_position_z = float(line.split(" ")[3])
-                coord = [particle_position_x, particle_position_y, particle_position_z]
-                # for each particle, determine which grids contain it
-                # copied from object_finding_mixin.py
-                mask = np.ones(self.num_grids)
-                for i in range(len(coord)):
-                    np.choose(
-                        np.greater(self.grid_left_edge.d[:, i], coord[i]),
-                        (mask, 0),
-                        mask,
-                    )
-                    np.choose(
-                        np.greater(self.grid_right_edge.d[:, i], coord[i]),
-                        (0, mask),
-                        mask,
-                    )
-                ind = np.where(mask == 1)
-                selected_grids = self.grids[ind]
-                # in orion, particles always live on the finest level.
-                # so, we want to assign the particle to the finest of
-                # the grids we just found
-                if len(selected_grids) != 0:
-                    grid = sorted(selected_grids, key=lambda grid: grid.Level)[-1]
-                    ind = np.where(self.grids == grid)[0][0]
-                    self.grid_particle_count[ind] += 1
-                    self.grids[ind].NumberOfParticles += 1
-
-                    # store the position in the *.sink file for fast access.
-                    try:
-                        self.grids[ind]._particle_line_numbers.append(num + 1)
-                    except AttributeError:
-                        self.grids[ind]._particle_line_numbers = [num + 1]
+        return self._read_particle_file(self.particle_filename)
 
 
 class Orion2Dataset(ChomboDataset):
@@ -646,6 +614,7 @@ class Orion2Dataset(ChomboDataset):
         storage_filename=None,
         ini_filename=None,
         units_override=None,
+        default_species_fields=None,
     ):
 
         ChomboDataset.__init__(
@@ -655,6 +624,7 @@ class Orion2Dataset(ChomboDataset):
             storage_filename,
             ini_filename,
             units_override=units_override,
+            default_species_fields=default_species_fields,
         )
 
     def _parse_parameter_file(self):
@@ -684,7 +654,7 @@ class Orion2Dataset(ChomboDataset):
         self.ini_filename = self._localize(self.ini_filename, ini_filename)
         lines = open(self.ini_filename).readlines()
         # read the file line by line, storing important parameters
-        for lineI, line in enumerate(lines):
+        for line in lines:
             try:
                 param, sep, vals = line.partition("=")
                 if not sep:
@@ -712,16 +682,16 @@ class Orion2Dataset(ChomboDataset):
                 self.gamma = np.float64(vals)
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
 
-        if not is_chombo_hdf5(args[0]):
+        if not is_chombo_hdf5(filename):
             return False
 
         pluto_ini_file_exists = False
         orion2_ini_file_exists = False
 
-        if isinstance(args[0], str):
-            dir_name = os.path.dirname(os.path.abspath(args[0]))
+        if isinstance(filename, str):
+            dir_name = os.path.dirname(os.path.abspath(filename))
             pluto_ini_filename = os.path.join(dir_name, "pluto.ini")
             orion2_ini_filename = os.path.join(dir_name, "orion2.ini")
             pluto_ini_file_exists = os.path.isfile(pluto_ini_filename)
@@ -732,7 +702,7 @@ class Orion2Dataset(ChomboDataset):
 
         if not pluto_ini_file_exists:
             try:
-                fileh = h5py.File(args[0], mode="r")
+                fileh = h5py.File(filename, mode="r")
                 valid = "CeilVA_mass" in fileh.attrs.keys()
                 valid = (
                     "Chombo_global" in fileh["/"] and "Charm_global" not in fileh["/"]
@@ -780,18 +750,18 @@ class ChomboPICDataset(ChomboDataset):
             self._field_info_class = ChomboPICFieldInfo2D
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
 
-        warn_h5py(args[0])
+        warn_h5py(filename)
 
-        if not is_chombo_hdf5(args[0]):
+        if not is_chombo_hdf5(filename):
             return False
 
         pluto_ini_file_exists = False
         orion2_ini_file_exists = False
 
-        if isinstance(args[0], str):
-            dir_name = os.path.dirname(os.path.abspath(args[0]))
+        if isinstance(filename, str):
+            dir_name = os.path.dirname(os.path.abspath(filename))
             pluto_ini_filename = os.path.join(dir_name, "pluto.ini")
             orion2_ini_filename = os.path.join(dir_name, "orion2.ini")
             pluto_ini_file_exists = os.path.isfile(pluto_ini_filename)
@@ -804,7 +774,7 @@ class ChomboPICDataset(ChomboDataset):
             return False
 
         try:
-            fileh = h5py.File(args[0], mode="r")
+            fileh = h5py.File(filename, mode="r")
             valid = "Charm_global" in fileh["/"]
             fileh.close()
             return valid

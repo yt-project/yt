@@ -16,8 +16,10 @@ from .fields import OWLSSubfindFieldInfo
 
 
 class OWLSSubfindParticleIndex(ParticleIndex):
+    chunksize = -1
+
     def __init__(self, ds, dataset_type):
-        super(OWLSSubfindParticleIndex, self).__init__(ds, dataset_type)
+        super().__init__(ds, dataset_type)
 
     def _calculate_particle_index_starts(self):
         # Halo indices are not saved in the file, so we must count by hand.
@@ -25,9 +27,9 @@ class OWLSSubfindParticleIndex(ParticleIndex):
         particle_count = defaultdict(int)
         offset_count = 0
         for data_file in self.data_files:
-            data_file.index_start = dict(
-                [(ptype, particle_count[ptype]) for ptype in data_file.total_particles]
-            )
+            data_file.index_start = {
+                ptype: particle_count[ptype] for ptype in data_file.total_particles
+            }
             data_file.offset_start = offset_count
             for ptype in data_file.total_particles:
                 particle_count[ptype] += data_file.total_particles[ptype]
@@ -50,7 +52,6 @@ class OWLSSubfindParticleIndex(ParticleIndex):
 
     def _detect_output_fields(self):
         # TODO: Add additional fields
-        self._setup_filenames()
         self._calculate_particle_index_starts()
         self._calculate_file_offset_map()
         dsl = []
@@ -58,13 +59,12 @@ class OWLSSubfindParticleIndex(ParticleIndex):
         for dom in self.data_files:
             fl, _units = self.io._identify_fields(dom)
             units.update(_units)
-            dom._calculate_offsets(fl)
             for f in fl:
                 if f not in dsl:
                     dsl.append(f)
         self.field_list = dsl
         ds = self.dataset
-        ds.particle_types = tuple(set(pt for pt, ds in dsl))
+        ds.particle_types = tuple({pt for pt, ds in dsl})
         # This is an attribute that means these particle types *actually*
         # exist.  As in, they are real, in the dataset.
         ds.field_units.update(units)
@@ -73,9 +73,9 @@ class OWLSSubfindParticleIndex(ParticleIndex):
 
 class OWLSSubfindHDF5File(ParticleFile):
     def __init__(self, ds, io, filename, file_id, bounds):
-        super(OWLSSubfindHDF5File, self).__init__(ds, io, filename, file_id, bounds)
+        super().__init__(ds, io, filename, file_id, bounds)
         with h5py.File(filename, mode="r") as f:
-            self.header = dict((field, f.attrs[field]) for field in f.attrs.keys())
+            self.header = {field: f.attrs[field] for field in f.attrs.keys()}
 
 
 class OWLSSubfindDataset(ParticleDataset):
@@ -93,7 +93,7 @@ class OWLSSubfindDataset(ParticleDataset):
         units_override=None,
         unit_system="cgs",
     ):
-        super(OWLSSubfindDataset, self).__init__(
+        super().__init__(
             filename,
             dataset_type,
             index_order=index_order,
@@ -113,12 +113,13 @@ class OWLSSubfindDataset(ParticleDataset):
         self.refine_by = 2
 
         # Set standard values
-        self.current_time = self.quan(hvals["Time_GYR"], "Gyr")
+        if "Time_GYR" in hvals:
+            self.current_time = self.quan(hvals["Time_GYR"], "Gyr")
         self.domain_left_edge = np.zeros(3, "float64")
         self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
         self.domain_dimensions = np.ones(3, "int32")
         self.cosmological_simulation = 1
-        self.periodicity = (True, True, True)
+        self._periodicity = (True, True, True)
         self.current_redshift = hvals["Redshift"]
         self.omega_lambda = hvals["OmegaLambda"]
         self.omega_matter = hvals["Omega0"]
@@ -132,7 +133,7 @@ class OWLSSubfindDataset(ParticleDataset):
         )
 
         suffix = self.parameter_filename.rsplit(".", 1)[-1]
-        self.filename_template = "%s.%%(num)i.%s" % (prefix, suffix)
+        self.filename_template = f"{prefix}.%(num)i.{suffix}"
         self.file_count = len(glob.glob(prefix + "*" + self._suffix))
         if self.file_count == 0:
             raise YTException(message="No data files found.", ds=self)
@@ -201,12 +202,12 @@ class OWLSSubfindDataset(ParticleDataset):
         setdefaultattr(self, "time_unit", self.quan(time_unit[0], time_unit[1]))
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         need_groups = ["Constants", "Header", "Parameters", "Units", "FOF"]
         veto_groups = []
         valid = True
         try:
-            fh = h5py.File(args[0], mode="r")
+            fh = h5py.File(filename, mode="r")
             valid = all(ng in fh["/"] for ng in need_groups) and not any(
                 vg in fh["/"] for vg in veto_groups
             )

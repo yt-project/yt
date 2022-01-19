@@ -1,8 +1,9 @@
+from yt._typing import KnownFieldsT
 from yt.fields.field_info_container import FieldInfoContainer
 
 
 class StreamFieldInfo(FieldInfoContainer):
-    known_other_fields = (
+    known_other_fields: KnownFieldsT = (
         ("density", ("code_mass/code_length**3", ["density"], None)),
         (
             "dark_matter_density",
@@ -10,7 +11,7 @@ class StreamFieldInfo(FieldInfoContainer):
         ),
         ("number_density", ("1/code_length**3", ["number_density"], None)),
         ("pressure", ("dyne/code_length**2", ["pressure"], None)),
-        ("thermal_energy", ("erg / g", ["thermal_energy"], None)),
+        ("specific_thermal_energy", ("erg / g", ["specific_thermal_energy"], None)),
         ("temperature", ("K", ["temperature"], None)),
         ("velocity_x", ("code_length/code_time", ["velocity_x"], None)),
         ("velocity_y", ("code_length/code_time", ["velocity_y"], None)),
@@ -46,7 +47,7 @@ class StreamFieldInfo(FieldInfoContainer):
         ("dii_density", ("code_mass/code_length**3", ["dii_density"], None)),
     )
 
-    known_particle_fields = (
+    known_particle_fields: KnownFieldsT = (
         ("particle_position", ("code_length", ["particle_position"], None)),
         ("particle_position_x", ("code_length", ["particle_position_x"], None)),
         ("particle_position_y", ("code_length", ["particle_position_y"], None)),
@@ -88,10 +89,10 @@ class StreamFieldInfo(FieldInfoContainer):
             if units != "":
                 self.add_output_field(field, sampling_type="cell", units=units)
         setup_magnetic_field_aliases(
-            self, "stream", ["magnetic_field_%s" % ax for ax in "xyz"]
+            self, "stream", [f"magnetic_field_{ax}" for ax in "xyz"]
         )
 
     def add_output_field(self, name, sampling_type, **kwargs):
         if name in self.ds.stream_handler.field_units:
             kwargs["units"] = self.ds.stream_handler.field_units[name]
-        super(StreamFieldInfo, self).add_output_field(name, sampling_type, **kwargs)
+        super().add_output_field(name, sampling_type, **kwargs)

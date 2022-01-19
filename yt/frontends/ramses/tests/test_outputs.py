@@ -4,10 +4,12 @@ import numpy as np
 
 import yt
 from yt.config import ytcfg
+from yt.fields.field_detector import FieldDetector
 from yt.frontends.ramses.api import RAMSESDataset
 from yt.frontends.ramses.field_handlers import DETECTED_FIELDS, HydroFieldFileHandler
 from yt.testing import (
     assert_equal,
+    assert_raises,
     requires_file,
     requires_module,
     units_override_check,
@@ -22,10 +24,10 @@ from yt.utilities.answer_testing.framework import (
 from yt.utilities.on_demand_imports import _f90nml as f90nml
 
 _fields = (
-    "temperature",
-    "density",
-    "velocity_magnitude",
-    "pressure_gradient_magnitude",
+    ("gas", "temperature"),
+    ("gas", "density"),
+    ("gas", "velocity_magnitude"),
+    ("gas", "pressure_gradient_magnitude"),
 )
 
 output_00080 = "output_00080/info_00080.txt"
@@ -40,13 +42,13 @@ def test_output_00080():
     for dobj_name in dso:
         for field in _fields:
             for axis in [0, 1, 2]:
-                for weight_field in [None, "density"]:
+                for weight_field in [None, ("gas", "density")]:
                     yield PixelizedProjectionValuesTest(
                         output_00080, axis, field, weight_field, dobj_name
                     )
             yield FieldValuesTest(output_00080, field, dobj_name)
         dobj = create_obj(ds, dobj_name)
-        s1 = dobj["ones"].sum()
+        s1 = dobj[("index", "ones")].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         assert_equal(s1, s2)
 
@@ -54,6 +56,15 @@ def test_output_00080():
 @requires_file(output_00080)
 def test_RAMSESDataset():
     assert isinstance(data_dir_load(output_00080), RAMSESDataset)
+
+
+@requires_file(output_00080)
+def test_RAMSES_alternative_load():
+    # Test that we can load a RAMSES dataset by giving it the folder name,
+    # the info file name or an amr file name
+    base_dir, info_file_fname = os.path.split(output_00080)
+    for fname in (base_dir, os.path.join(base_dir, "amr_00080.out00001")):
+        assert isinstance(data_dir_load(fname), RAMSESDataset)
 
 
 @requires_file(output_00080)
@@ -138,7 +149,7 @@ def test_extra_fields():
 
 @requires_file(ramsesExtraFieldsSmall)
 def test_extra_fields_2():
-    extra_fields = ["particle_extra_field_%s" % (i + 1) for i in range(2)]
+    extra_fields = [f"particle_extra_field_{i + 1}" for i in range(2)]
     ds = yt.load(os.path.join(ramsesExtraFieldsSmall, "info_00001.txt"))
 
     # the dataset should contain the fields
@@ -182,13 +193,21 @@ def test_ramses_rt():
     for specie in species:
         special_fields.extend(
             [
-                ("gas", specie + "_fraction"),
-                ("gas", specie + "_density"),
-                ("gas", specie + "_mass"),
+                ("gas", f"{specie}_fraction"),
+                ("gas", f"{specie}_density"),
+                ("gas", f"{specie}_mass"),
             ]
         )
 
     for field in special_fields:
+        assert field in ds.derived_field_list
+        ad[field]
+
+    # Test the creation of rt fields
+    rt_fields = [("rt", "photon_density_1")] + [
+        ("rt", f"photon_flux_{d}_1") for d in "xyz"
+    ]
+    for field in rt_fields:
         assert field in ds.derived_field_list
         ad[field]
 
@@ -221,9 +240,9 @@ def test_ramses_sink():
         "particle_prop_0_1",
         "particle_prop_0_2",
         "particle_prop_0_3",
-        "particle_prop_1_0",
-        "particle_prop_1_1",
-        "particle_prop_1_2",
+        "particle_prop_0_4",
+        "particle_prop_0_5",
+        "particle_prop_0_6",
         "particle_velocity_x",
         "particle_velocity_y",
         "particle_velocity_z",
@@ -244,7 +263,7 @@ def test_ramses_sink():
     ad = ds.all_data()
 
     for field in expected_fields:
-        assert ("sink", "field") not in ds.field_list
+        assert ("sink", field) not in ds.field_list
 
 
 ramses_new_format = "ramses_new_format/output_00002/info_00002.txt"
@@ -321,46 +340,29 @@ def test_custom_particle_def():
         ytcfg.remove_section("ramses-particles")
 
 
-@requires_file(ramsesCosmo)
-def test_custom_hydro_def():
-    ytcfg.add_section("ramses-hydro")
-    ytcfg[
-        "ramses-hydro", "fields"
-    ] = """
-    Density
-    x-velocity
-    y-velocity
-    z-velocity
-    Foo
-    Bar
-    """
-    ds = yt.load(ramsesCosmo)
-
-    def check_unit(array, unit):
-        assert str(array.in_cgs().units) == unit
-
-    try:
-        assert ("ramses", "Foo") in ds.derived_field_list
-        assert ("ramses", "Bar") in ds.derived_field_list
-
-        check_unit(ds.r["ramses", "Foo"], "dimensionless")
-        check_unit(ds.r["ramses", "Bar"], "dimensionless")
-    finally:
-        ytcfg.remove_section("ramses-hydro")
-
-
 @requires_file(output_00080)
+@requires_file(ramses_sink)
 def test_grav_detection():
-    ds = yt.load(output_00080)
+    for path, has_potential in ((output_00080, False), (ramses_sink, True)):
+        ds = yt.load(path)
 
-    # Test detection
-    for k in "xyz":
-        assert ("gravity", "%s-acceleration" % k) in ds.field_list
-        assert ("gas", "acceleration_%s" % k) in ds.derived_field_list
+        # Test detection
+        for k in "xyz":
+            assert ("gravity", f"{k}-acceleration") in ds.field_list
+            assert ("gas", f"acceleration_{k}") in ds.derived_field_list
 
-    # Test access
-    for k in "xyz":
-        ds.r["gas", "acceleration_%s" % k]
+        if has_potential:
+            assert ("gravity", "Potential") in ds.field_list
+            assert ("gas", "potential") in ds.derived_field_list
+            assert ("gas", "potential_energy") in ds.derived_field_list
+
+        # Test access
+        for k in "xyz":
+            ds.r["gas", f"acceleration_{k}"].to("m/s**2")
+
+        if has_potential:
+            ds.r["gas", "potential"].to("m**2/s**2")
+            ds.r["gas", "potential_energy"].to("kg*m**2/s**2")
 
 
 @requires_file(ramses_sink)
@@ -407,14 +409,14 @@ def test_formation_time():
     assert ("io", "particle_metallicity") in ds.field_list
 
     ad = ds.all_data()
-    whstars = ad["conformal_birth_time"] != 0
-    assert np.all(ad["star_age"][whstars] > 0)
+    whstars = ad[("io", "conformal_birth_time")] != 0
+    assert np.all(ad[("io", "star_age")][whstars] > 0)
 
     # test semantics for non-cosmological new-style output format
     ds = yt.load(ramses_new_format)
     ad = ds.all_data()
     assert ("io", "particle_birth_time") in ds.field_list
-    assert np.all(ad["particle_birth_time"] > 0)
+    assert np.all(ad[("io", "particle_birth_time")] > 0)
 
     # test semantics for non-cosmological old-style output format
     ds = yt.load(ramsesNonCosmo, extra_particle_fields=extra_particle_fields)
@@ -422,9 +424,9 @@ def test_formation_time():
     assert ("io", "particle_birth_time") in ds.field_list
     # the dataset only includes particles with arbitrarily old ages
     # and particles that formed in the very first timestep
-    assert np.all(ad["particle_birth_time"] <= 0)
-    whdynstars = ad["particle_birth_time"] == 0
-    assert np.all(ad["star_age"][whdynstars] == ds.current_time)
+    assert np.all(ad[("io", "particle_birth_time")] <= 0)
+    whdynstars = ad[("io", "particle_birth_time")] == 0
+    assert np.all(ad[("io", "star_age")][whdynstars] == ds.current_time)
 
 
 @requires_file(ramses_new_format)
@@ -505,7 +507,7 @@ def test_ramses_empty_record():
 def test_namelist_reading():
     ds = data_dir_load(ramses_new_format)
     namelist_fname = os.path.join(ds.directory, "namelist.txt")
-    with open(namelist_fname, "r") as f:
+    with open(namelist_fname) as f:
         ref = f90nml.read(f)
 
     nml = ds.parameters["namelist"]
@@ -561,3 +563,80 @@ def test_field_accession():
     ):
         for field in fields:
             reg[field]
+
+
+@requires_file(output_00080)
+def test_ghost_zones():
+    ds = yt.load(output_00080)
+
+    def gen_dummy(ngz):
+        def dummy(field, data):
+            if not isinstance(data, FieldDetector):
+                shape = data["gas", "mach_number"].shape[:3]
+                np.testing.assert_equal(shape, (2 + 2 * ngz, 2 + 2 * ngz, 2 + 2 * ngz))
+            return data["gas", "mach_number"]
+
+        return dummy
+
+    fields = []
+    for ngz in (1, 2, 3):
+        fname = ("gas", f"density_ghost_zone_{ngz}")
+        ds.add_field(
+            fname,
+            gen_dummy(ngz),
+            sampling_type="cell",
+            validators=[yt.ValidateSpatial(ghost_zones=ngz)],
+        )
+        fields.append(fname)
+
+    box = ds.box([0, 0, 0], [0.1, 0.1, 0.1])
+    for f in fields:
+        print("Getting ", f)
+        box[f]
+
+
+@requires_file(output_00080)
+def test_max_level():
+    ds = yt.load(output_00080)
+
+    assert any(ds.r["index", "grid_level"] > 2)
+
+    # Should work
+    for ds in (
+        yt.load(output_00080, max_level=2, max_level_convention="yt"),
+        yt.load(output_00080, max_level=8, max_level_convention="ramses"),
+    ):
+        assert all(ds.r["index", "grid_level"] <= 2)
+        assert any(ds.r["index", "grid_level"] == 2)
+
+
+@requires_file(output_00080)
+def test_invalid_max_level():
+    invalid_value_args = (
+        (1, None),
+        (1, "foo"),
+        (1, "bar"),
+        (-1, "yt"),
+    )
+    for lvl, convention in invalid_value_args:
+        with assert_raises(ValueError):
+            yt.load(output_00080, max_level=lvl, max_level_convention=convention)
+
+    invalid_type_args = (
+        (1.0, "yt"),  # not an int
+        ("invalid", "yt"),
+    )
+    # Should fail with value errors
+    for lvl, convention in invalid_type_args:
+        with assert_raises(TypeError):
+            yt.load(output_00080, max_level=lvl, max_level_convention=convention)
+
+
+@requires_file(ramses_new_format)
+def test_print_stats():
+    ds = yt.load(ramses_new_format)
+
+    # Should work
+    ds.print_stats()
+
+    # FIXME #3197: use `capsys` with pytest to make sure the print_stats function works as intended

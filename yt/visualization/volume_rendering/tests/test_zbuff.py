@@ -9,16 +9,25 @@ from yt.testing import assert_almost_equal, fake_random_ds
 from yt.visualization.volume_rendering.api import (
     OpaqueSource,
     Scene,
-    VolumeSource,
     ZBuffer,
+    create_volume_source,
 )
+
+
+class FakeOpaqueSource(OpaqueSource):
+    # A minimal (mock) concrete implementation of OpaqueSource
+    def render(self, camera, zbuffer=None):
+        pass
+
+    def _validate(self):
+        pass
 
 
 def setup():
     """Test specific setup."""
     from yt.config import ytcfg
 
-    ytcfg["yt", "__withintesting"] = "True"
+    ytcfg["yt", "internals", "within_testing"] = True
 
 
 class ZBufferTest(TestCase):
@@ -48,7 +57,7 @@ class ZBufferTest(TestCase):
         sc = Scene()
         cam = sc.add_camera(ds)
         cam.resolution = (512, 512)
-        vr = VolumeSource(dd, field=ds.field_list[0])
+        vr = create_volume_source(dd, field=ds.field_list[0])
         vr.transfer_function.clear()
         vr.transfer_function.grey_opacity = True
         vr.transfer_function.map_to_colormap(0.0, 1.0, scale=10.0, colormap="Reds")
@@ -65,7 +74,7 @@ class ZBufferTest(TestCase):
         empty[:, :, 2] = 1.0  # Set blue to 1's
         empty[:, :, 3] = 1.0  # Set alpha to 1's
         zbuffer = ZBuffer(empty, z)
-        zsource = OpaqueSource()
+        zsource = FakeOpaqueSource()
         zsource.set_zbuffer(zbuffer)
         sc.add_source(zsource)
 

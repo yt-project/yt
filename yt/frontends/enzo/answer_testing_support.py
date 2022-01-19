@@ -4,7 +4,7 @@ from functools import wraps
 import numpy as np
 
 from yt.config import ytcfg
-from yt.convenience import load
+from yt.loaders import load
 from yt.testing import assert_allclose
 from yt.utilities.answer_testing.framework import (
     AnswerTestingTest,
@@ -33,8 +33,14 @@ class AssertWrapper:
 
 
 def requires_outputlog(path=".", prefix=""):
+    from nose import SkipTest
+
     def ffalse(func):
-        return lambda: None
+        @wraps(func)
+        def fskip(*args, **kwargs):
+            raise SkipTest
+
+        return fskip
 
     def ftrue(func):
         @wraps(func)
@@ -59,8 +65,8 @@ def standard_small_simulation(ds_fn, fields):
     if not can_run_ds(ds_fn):
         return
     dso = [None]
-    tolerance = ytcfg.getint("yt", "answer_testing_tolerance")
-    bitwise = ytcfg.getboolean("yt", "answer_testing_bitwise")
+    tolerance = ytcfg.get("yt", "answer_testing_tolerance")
+    bitwise = ytcfg.get("yt", "answer_testing_bitwise")
     for field in fields:
         if bitwise:
             yield GridValuesTest(ds_fn, field)
@@ -68,7 +74,7 @@ def standard_small_simulation(ds_fn, fields):
             continue
         for dobj_name in dso:
             for axis in [0, 1, 2]:
-                for weight_field in [None, "Density"]:
+                for weight_field in [None, ("gas", "density")]:
                     yield ProjectionValuesTest(
                         ds_fn, axis, field, weight_field, dobj_name, decimals=tolerance
                     )
@@ -100,7 +106,7 @@ class ShockTubeTest:
             for xmin, xmax in zip(self.left_edges, self.right_edges):
                 mask = (position >= xmin) * (position <= xmax)
                 exact_field = np.interp(position[mask], exact["pos"], exact[k])
-                myname = "ShockTubeTest_%s" % k
+                myname = f"ShockTubeTest_{k}"
                 # yield test vs analytical solution
                 yield AssertWrapper(
                     myname,

@@ -5,18 +5,21 @@ import itertools as it
 import os
 import pickle
 import shutil
+import sys
 import tempfile
 import unittest
+from shutil import which
 
 import matplotlib
 import numpy as np
+import pytest
+from more_itertools import always_iterable
 from numpy.random import RandomState
 from unyt.exceptions import UnitOperationError
 
-import yt
 from yt.config import ytcfg
-from yt.convenience import load
-from yt.funcs import iterable
+from yt.funcs import is_sequence
+from yt.loaders import load
 from yt.units.yt_array import YTArray, YTQuantity
 
 # we import this in a weird way from numpy.testing to avoid triggering
@@ -25,7 +28,7 @@ from yt.units.yt_array import YTArray, YTQuantity
 from numpy.testing import assert_array_equal, assert_almost_equal  # NOQA isort:skip
 from numpy.testing import assert_equal, assert_array_less  # NOQA isort:skip
 from numpy.testing import assert_string_equal  # NOQA isort:skip
-from numpy.testing import assert_array_almost_equal_nulp  # NOQA isort:skip
+from numpy.testing import assert_array_almost_equal_nulp  # isort:skip
 from numpy.testing import assert_allclose, assert_raises  # NOQA isort:skip
 from numpy.testing import assert_approx_equal  # NOQA isort:skip
 from numpy.testing import assert_array_almost_equal  # NOQA isort:skip
@@ -101,8 +104,8 @@ def amrspace(extent, levels=7, cells=8):
 
     Examples
     --------
-    >>> l, r, lvl = amrspace([0.0, 2.0, 1.0, 2.0, 0.0, 3.14], levels=(3,3,0), cells=2)
-    >>> print l
+    >>> l, r, lvl = amrspace([0.0, 2.0, 1.0, 2.0, 0.0, 3.14], levels=(3, 3, 0), cells=2)
+    >>> print(l)
     [[ 0.     1.     0.   ]
      [ 0.25   1.     0.   ]
      [ 0.     1.125  0.   ]
@@ -126,7 +129,7 @@ def amrspace(extent, levels=7, cells=8):
         levels = np.asarray(levels, dtype="int32")
         minlvl = levels.min()
         maxlvl = levels.max()
-        if minlvl != maxlvl and (minlvl != 0 or set([minlvl, maxlvl]) != set(levels)):
+        if minlvl != maxlvl and (minlvl != 0 or {minlvl, maxlvl} != set(levels)):
             raise ValueError("all levels must have the same value or zero.")
     dims_zero = levels == 0
     dims_nonzero = ~dims_zero
@@ -144,20 +147,16 @@ def amrspace(extent, levels=7, cells=8):
     # fill non-zero dims
     dcell = 1.0 / cells
     left_slice = tuple(
-        [
-            slice(extent[2 * n], extent[2 * n + 1], extent[2 * n + 1])
-            if dims_zero[n]
-            else slice(0.0, 1.0, dcell)
-            for n in range(ndims)
-        ]
+        slice(extent[2 * n], extent[2 * n + 1], extent[2 * n + 1])
+        if dims_zero[n]
+        else slice(0.0, 1.0, dcell)
+        for n in range(ndims)
     )
     right_slice = tuple(
-        [
-            slice(extent[2 * n + 1], extent[2 * n], -extent[2 * n + 1])
-            if dims_zero[n]
-            else slice(dcell, 1.0 + dcell, dcell)
-            for n in range(ndims)
-        ]
+        slice(extent[2 * n + 1], extent[2 * n], -extent[2 * n + 1])
+        if dims_zero[n]
+        else slice(dcell, 1.0 + dcell, dcell)
+        for n in range(ndims)
     )
     left_norm_grid = np.reshape(np.mgrid[left_slice].T.flat[ndims:], (-1, ndims))
     lng_zero = left_norm_grid[:, dims_zero]
@@ -188,11 +187,35 @@ def amrspace(extent, levels=7, cells=8):
     return left, right, level
 
 
+def _check_field_unit_args_helper(args: dict, default_args: dict):
+    values = list(args.values())
+    keys = list(args.keys())
+    if all(v is None for v in values):
+        for key in keys:
+            args[key] = default_args[key]
+    elif None in values:
+        raise ValueError(
+            "Error in creating a fake dataset:"
+            f" either all or none of the following arguments need to specified: {keys}."
+        )
+    elif any(len(v) != len(values[0]) for v in values):
+        raise ValueError(
+            "Error in creating a fake dataset:"
+            f" all the following arguments must have the same length: {keys}."
+        )
+    return list(args.values())
+
+
+_fake_random_ds_default_fields = ("density", "velocity_x", "velocity_y", "velocity_z")
+_fake_random_ds_default_units = ("g/cm**3", "cm/s", "cm/s", "cm/s")
+_fake_random_ds_default_negative = (False, False, False, False)
+
+
 def fake_random_ds(
     ndims,
     peak_value=1.0,
-    fields=("density", "velocity_x", "velocity_y", "velocity_z"),
-    units=("g/cm**3", "cm/s", "cm/s", "cm/s"),
+    fields=None,
+    units=None,
     particle_fields=None,
     particle_field_units=None,
     negative=False,
@@ -201,17 +224,34 @@ def fake_random_ds(
     length_unit=1.0,
     unit_system="cgs",
     bbox=None,
+    default_species_fields=None,
 ):
-    from yt.frontends.stream.api import load_uniform_grid
+    from yt.loaders import load_uniform_grid
 
     prng = RandomState(0x4D3D3D3)
-    if not iterable(ndims):
+    if not is_sequence(ndims):
         ndims = [ndims, ndims, ndims]
     else:
         assert len(ndims) == 3
-    if not iterable(negative):
-        negative = [negative for f in fields]
-    assert len(fields) == len(negative)
+    if not is_sequence(negative):
+        if fields:
+            negative = [negative for f in fields]
+        else:
+            negative = None
+
+    fields, units, negative = _check_field_unit_args_helper(
+        {
+            "fields": fields,
+            "units": units,
+            "negative": negative,
+        },
+        {
+            "fields": _fake_random_ds_default_fields,
+            "units": _fake_random_ds_default_units,
+            "negative": _fake_random_ds_default_negative,
+        },
+    )
+
     offsets = []
     for n in negative:
         if n:
@@ -232,9 +272,9 @@ def fake_random_ds(
                 else:
                     data["io", field] = (prng.random_sample(size=int(particles)), unit)
         else:
-            for f in ("particle_position_%s" % ax for ax in "xyz"):
+            for f in (f"particle_position_{ax}" for ax in "xyz"):
                 data["io", f] = (prng.random_sample(size=particles), "code_length")
-            for f in ("particle_velocity_%s" % ax for ax in "xyz"):
+            for f in (f"particle_velocity_{ax}" for ax in "xyz"):
                 data["io", f] = (prng.random_sample(size=particles) - 0.5, "cm/s")
             data["io", "particle_mass"] = (prng.random_sample(particles), "g")
     ug = load_uniform_grid(
@@ -244,6 +284,7 @@ def fake_random_ds(
         nprocs=nprocs,
         unit_system=unit_system,
         bbox=bbox,
+        default_species_fields=default_species_fields,
     )
     return ug
 
@@ -259,10 +300,25 @@ _geom_transforms = {
 }
 
 
+_fake_amr_ds_default_fields = ("Density",)
+_fake_amr_ds_default_units = ("g/cm**3",)
+
+
 def fake_amr_ds(
-    fields=("Density",), geometry="cartesian", particles=0, length_unit=None
+    fields=None, units=None, geometry="cartesian", particles=0, length_unit=None
 ):
-    from yt.frontends.stream.api import load_amr_grids
+    from yt.loaders import load_amr_grids
+
+    fields, units = _check_field_unit_args_helper(
+        {
+            "fields": fields,
+            "units": units,
+        },
+        {
+            "fields": _fake_amr_ds_default_fields,
+            "units": _fake_amr_ds_default_units,
+        },
+    )
 
     prng = RandomState(0x4D3D3D3)
     LE, RE = _geom_transforms[geometry]
@@ -276,15 +332,15 @@ def fake_amr_ds(
         gdata = dict(
             level=level, left_edge=left_edge, right_edge=right_edge, dimensions=dims
         )
-        for f in fields:
-            gdata[f] = prng.random_sample(dims)
+        for f, u in zip(fields, units):
+            gdata[f] = (prng.random_sample(dims), u)
         if particles:
-            for i, f in enumerate("particle_position_%s" % ax for ax in "xyz"):
+            for i, f in enumerate(f"particle_position_{ax}" for ax in "xyz"):
                 pdata = prng.random_sample(particles)
                 pdata /= right_edge[i] - left_edge[i]
                 pdata += left_edge[i]
                 gdata["io", f] = (pdata, "code_length")
-            for f in ("particle_velocity_%s" % ax for ax in "xyz"):
+            for f in (f"particle_velocity_{ax}" for ax in "xyz"):
                 gdata["io", f] = (prng.random_sample(particles) - 0.5, "cm/s")
             gdata["io", "particle_mass"] = (prng.random_sample(particles), "g")
         data.append(gdata)
@@ -294,28 +350,46 @@ def fake_amr_ds(
     )
 
 
+_fake_particle_ds_default_fields = (
+    "particle_position_x",
+    "particle_position_y",
+    "particle_position_z",
+    "particle_mass",
+    "particle_velocity_x",
+    "particle_velocity_y",
+    "particle_velocity_z",
+)
+_fake_particle_ds_default_units = ("cm", "cm", "cm", "g", "cm/s", "cm/s", "cm/s")
+_fake_particle_ds_default_negative = (False, False, False, False, True, True, True)
+
+
 def fake_particle_ds(
-    fields=(
-        "particle_position_x",
-        "particle_position_y",
-        "particle_position_z",
-        "particle_mass",
-        "particle_velocity_x",
-        "particle_velocity_y",
-        "particle_velocity_z",
-    ),
-    units=("cm", "cm", "cm", "g", "cm/s", "cm/s", "cm/s"),
-    negative=(False, False, False, False, True, True, True),
+    fields=None,
+    units=None,
+    negative=None,
     npart=16 ** 3,
     length_unit=1.0,
     data=None,
 ):
-    from yt.frontends.stream.api import load_particles
+    from yt.loaders import load_particles
 
     prng = RandomState(0x4D3D3D3)
-    if not iterable(negative):
+    if negative is not None and not is_sequence(negative):
         negative = [negative for f in fields]
-    assert len(fields) == len(negative)
+
+    fields, units, negative = _check_field_unit_args_helper(
+        {
+            "fields": fields,
+            "units": units,
+            "negative": negative,
+        },
+        {
+            "fields": _fake_particle_ds_default_fields,
+            "units": _fake_particle_ds_default_units,
+            "negative": _fake_particle_ds_default_negative,
+        },
+    )
+
     offsets = []
     for n in negative:
         if n:
@@ -338,11 +412,11 @@ def fake_particle_ds(
 
 
 def fake_tetrahedral_ds():
-    from yt.frontends.stream.api import load_unstructured_mesh
     from yt.frontends.stream.sample_data.tetrahedral_mesh import (
         _connectivity,
         _coordinates,
     )
+    from yt.loaders import load_unstructured_mesh
 
     prng = RandomState(0x4D3D3D3)
 
@@ -361,18 +435,21 @@ def fake_tetrahedral_ds():
     return ds
 
 
-def fake_hexahedral_ds():
-    from yt.frontends.stream.api import load_unstructured_mesh
+def fake_hexahedral_ds(fields=None):
     from yt.frontends.stream.sample_data.hexahedral_mesh import (
         _connectivity,
         _coordinates,
     )
+    from yt.loaders import load_unstructured_mesh
 
     prng = RandomState(0x4D3D3D3)
     # the distance from the origin
     node_data = {}
     dist = np.sum(_coordinates ** 2, 1)
     node_data[("connect1", "test")] = dist[_connectivity - 1]
+
+    for field in always_iterable(fields):
+        node_data[("connect1", field)] = dist[_connectivity - 1]
 
     # each element gets a random number
     elem_data = {}
@@ -385,7 +462,7 @@ def fake_hexahedral_ds():
 
 
 def small_fake_hexahedral_ds():
-    from yt.frontends.stream.api import load_unstructured_mesh
+    from yt.loaders import load_unstructured_mesh
 
     _coordinates = np.array(
         [
@@ -432,7 +509,7 @@ def fake_vr_orientation_test_ds(N=96, scale=1):
        test datasets that have spatial different scales (e.g. data in CGS units)
 
     """
-    from yt.frontends.stream.api import load_uniform_grid
+    from yt.loaders import load_uniform_grid
 
     xmin = ymin = zmin = -1.0 * scale
     xmax = ymax = zmax = 1.0 * scale
@@ -585,7 +662,7 @@ def construct_octree_mask(prng=RandomState(0x1D3D3D3), refined=None):  # noqa B0
         return refined
 
     # Loop over subcells
-    for subcell in range(8):
+    for _ in range(8):
         # Insert criterion for whether cell should be sub-divided. Here we
         # just use a random number to demonstrate.
         divide = prng.random_sample() < 0.12
@@ -615,7 +692,7 @@ def fake_octree_ds(
     partial_coverage=1,
     unit_system="cgs",
 ):
-    from yt.frontends.stream.api import load_octree
+    from yt.loaders import load_octree
 
     octree_mask = np.asarray(
         construct_octree_mask(prng=prng, refined=refined), dtype=np.uint8
@@ -653,8 +730,7 @@ def add_noise_fields(ds):
 
     def _binary_noise(field, data):
         """random binary data"""
-        res = prng.random_integers(0, 1, data.size).astype("float64")
-        return res
+        return prng.randint(low=0, high=2, size=data.size).astype("float64")
 
     def _positive_noise(field, data):
         """random strictly positive data"""
@@ -668,10 +744,10 @@ def add_noise_fields(ds):
         """random data with mixed signs"""
         return 2 * prng.random_sample(data.size) - 1
 
-    ds.add_field("noise0", _binary_noise, sampling_type="cell")
-    ds.add_field("noise1", _positive_noise, sampling_type="cell")
-    ds.add_field("noise2", _negative_noise, sampling_type="cell")
-    ds.add_field("noise3", _even_noise, sampling_type="cell")
+    ds.add_field(("gas", "noise0"), _binary_noise, sampling_type="cell")
+    ds.add_field(("gas", "noise1"), _positive_noise, sampling_type="cell")
+    ds.add_field(("gas", "noise2"), _negative_noise, sampling_type="cell")
+    ds.add_field(("gas", "noise3"), _even_noise, sampling_type="cell")
 
 
 def expand_keywords(keywords, full=False):
@@ -713,24 +789,24 @@ def expand_keywords(keywords, full=False):
     --------
 
     >>> keywords = {}
-    >>> keywords['dpi'] = (50, 100, 200)
-    >>> keywords['cmap'] = ('arbre', 'kelp')
+    >>> keywords["dpi"] = (50, 100, 200)
+    >>> keywords["cmap"] = ("cmyt.arbre", "cmyt.kelp")
     >>> list_of_kwargs = expand_keywords(keywords)
     >>> print(list_of_kwargs)
 
-    array([{'cmap': 'arbre', 'dpi': 50},
-           {'cmap': 'kelp', 'dpi': 100},
-           {'cmap': 'arbre', 'dpi': 200}], dtype=object)
+    array([{'cmap': 'cmyt.arbre', 'dpi': 50},
+           {'cmap': 'cmyt.kelp', 'dpi': 100},
+           {'cmap': 'cmyt.arbre', 'dpi': 200}], dtype=object)
 
     >>> list_of_kwargs = expand_keywords(keywords, full=True)
     >>> print(list_of_kwargs)
 
-    array([{'cmap': 'arbre', 'dpi': 50},
-           {'cmap': 'arbre', 'dpi': 100},
-           {'cmap': 'arbre', 'dpi': 200},
-           {'cmap': 'kelp', 'dpi': 50},
-           {'cmap': 'kelp', 'dpi': 100},
-           {'cmap': 'kelp', 'dpi': 200}], dtype=object)
+    array([{'cmap': 'cmyt.arbre', 'dpi': 50},
+           {'cmap': 'cmyt.arbre', 'dpi': 100},
+           {'cmap': 'cmyt.arbre', 'dpi': 200},
+           {'cmap': 'cmyt.kelp', 'dpi': 50},
+           {'cmap': 'cmyt.kelp', 'dpi': 100},
+           {'cmap': 'cmyt.kelp', 'dpi': 200}], dtype=object)
 
     >>> for kwargs in list_of_kwargs:
     ...     write_projection(*args, **kwargs)
@@ -781,6 +857,21 @@ def expand_keywords(keywords, full=False):
     return list_of_kwarg_dicts
 
 
+def skip_case(*, reason: str):
+    """
+    An adapter test skipping function that should work with both test runners
+    (nosetest or pytest) and with any Python version.
+    """
+    if sys.version_info >= (3, 10):
+        # nose isn't compatible with Python 3.10 so we can't import it here
+        pytest.skip(reason)
+    else:
+        # pytest.skip() isn't recognized by nosetest (but nose.SkipTest works in pytest !)
+        from nose import SkipTest
+
+        raise SkipTest(reason)
+
+
 def requires_module(module):
     """
     Decorator that takes a module name as an argument and tries to import it.
@@ -793,7 +884,7 @@ def requires_module(module):
     def ffalse(func):
         @functools.wraps(func)
         def false_wrapper(*args, **kwargs):
-            return None
+            skip_case(reason=f"Missing required module {module}")
 
         return false_wrapper
 
@@ -812,13 +903,54 @@ def requires_module(module):
         return ftrue
 
 
+def requires_module_pytest(*module_names):
+    """
+    This is a replacement for yt.testing.requires_module that's
+    compatible with pytest, and accepts an arbitrary number of requirements to
+    avoid stacking decorators
+
+    Important: this is meant to decorate test functions only, it won't work as a
+    decorator to fixture functions.
+    It's meant to be imported as
+    >>> from yt.testing import requires_module_pytest as requires_module
+
+    So that it can be later renamed to `requires_module`.
+    """
+    from yt.utilities import on_demand_imports as odi
+
+    def deco(func):
+        required_modules = {
+            name: getattr(odi, f"_{name}")._module for name in module_names
+        }
+        missing = [
+            name
+            for name, mod in required_modules.items()
+            if isinstance(mod, odi.NotAModule)
+        ]
+
+        # note that order between these two decorators matters
+        @pytest.mark.skipif(
+            missing,
+            reason=f"missing requirement(s): {', '.join(missing)}",
+        )
+        @functools.wraps(func)
+        def inner_func(*args, **kwargs):
+            return func(*args, **kwargs)
+
+        return inner_func
+
+    return deco
+
+
 def requires_file(req_file):
     path = ytcfg.get("yt", "test_data_dir")
 
     def ffalse(func):
         @functools.wraps(func)
         def false_wrapper(*args, **kwargs):
-            return None
+            if ytcfg.get("yt", "internals", "strict_requires"):
+                raise FileNotFoundError(req_file)
+            skip_case(reason=f"Missing required file {req_file}")
 
         return false_wrapper
 
@@ -842,11 +974,11 @@ def disable_dataset_cache(func):
     @functools.wraps(func)
     def newfunc(*args, **kwargs):
         restore_cfg_state = False
-        if ytcfg.get("yt", "skip_dataset_cache") == "False":
-            ytcfg["yt", "skip_dataset_cache"] = "True"
+        if not ytcfg.get("yt", "skip_dataset_cache"):
+            ytcfg["yt", "skip_dataset_cache"] = True
         rv = func(*args, **kwargs)
         if restore_cfg_state:
-            ytcfg["yt", "skip_dataset_cache"] = "False"
+            ytcfg["yt", "skip_dataset_cache"] = False
         return rv
 
     return newfunc
@@ -860,15 +992,15 @@ def units_override_check(fn):
     attrs1 = []
     attrs2 = []
     for u in units_list:
-        unit_attr = getattr(ds1, "%s_unit" % u, None)
+        unit_attr = getattr(ds1, f"{u}_unit", None)
         if unit_attr is not None:
             attrs1.append(unit_attr)
-            units_override["%s_unit" % u] = (unit_attr.v, str(unit_attr.units))
+            units_override[f"{u}_unit"] = (unit_attr.v, unit_attr.units)
     del ds1
     ds2 = load(fn, units_override=units_override)
     assert len(ds2.units_override) > 0
     for u in units_list:
-        unit_attr = getattr(ds2, "%s_unit" % u, None)
+        unit_attr = getattr(ds2, f"{u}_unit", None)
         if unit_attr is not None:
             attrs2.append(unit_attr)
     assert_equal(attrs1, attrs2)
@@ -877,61 +1009,56 @@ def units_override_check(fn):
 # This is an export of the 40 grids in IsolatedGalaxy that are of level 4 or
 # lower.  It's just designed to give a sample AMR index to deal with.
 _amr_grid_index = [
-    [0, [0.0, 0.0, 0.0], [1.0, 1.0, 1.0], [32, 32, 32],],
-    [1, [0.25, 0.21875, 0.25], [0.5, 0.5, 0.5], [16, 18, 16],],
-    [1, [0.5, 0.21875, 0.25], [0.75, 0.5, 0.5], [16, 18, 16],],
-    [1, [0.21875, 0.5, 0.25], [0.5, 0.75, 0.5], [18, 16, 16],],
-    [1, [0.5, 0.5, 0.25], [0.75, 0.75, 0.5], [16, 16, 16],],
-    [1, [0.25, 0.25, 0.5], [0.5, 0.5, 0.75], [16, 16, 16],],
-    [1, [0.5, 0.25, 0.5], [0.75, 0.5, 0.75], [16, 16, 16],],
-    [1, [0.25, 0.5, 0.5], [0.5, 0.75, 0.75], [16, 16, 16],],
-    [1, [0.5, 0.5, 0.5], [0.75, 0.75, 0.75], [16, 16, 16],],
-    [2, [0.5, 0.5, 0.5], [0.71875, 0.71875, 0.71875], [28, 28, 28],],
-    [3, [0.5, 0.5, 0.5], [0.6640625, 0.65625, 0.6796875], [42, 40, 46],],
-    [4, [0.5, 0.5, 0.5], [0.59765625, 0.6015625, 0.6015625], [50, 52, 52],],
-    [2, [0.28125, 0.5, 0.5], [0.5, 0.734375, 0.71875], [28, 30, 28],],
-    [3, [0.3359375, 0.5, 0.5], [0.5, 0.671875, 0.6640625], [42, 44, 42],],
-    [4, [0.40625, 0.5, 0.5], [0.5, 0.59765625, 0.59765625], [48, 50, 50],],
-    [2, [0.5, 0.28125, 0.5], [0.71875, 0.5, 0.71875], [28, 28, 28],],
-    [3, [0.5, 0.3359375, 0.5], [0.671875, 0.5, 0.6640625], [44, 42, 42],],
-    [4, [0.5, 0.40625, 0.5], [0.6015625, 0.5, 0.59765625], [52, 48, 50],],
-    [2, [0.28125, 0.28125, 0.5], [0.5, 0.5, 0.71875], [28, 28, 28],],
-    [3, [0.3359375, 0.3359375, 0.5], [0.5, 0.5, 0.671875], [42, 42, 44],],
+    [0, [0.0, 0.0, 0.0], [1.0, 1.0, 1.0], [32, 32, 32]],
+    [1, [0.25, 0.21875, 0.25], [0.5, 0.5, 0.5], [16, 18, 16]],
+    [1, [0.5, 0.21875, 0.25], [0.75, 0.5, 0.5], [16, 18, 16]],
+    [1, [0.21875, 0.5, 0.25], [0.5, 0.75, 0.5], [18, 16, 16]],
+    [1, [0.5, 0.5, 0.25], [0.75, 0.75, 0.5], [16, 16, 16]],
+    [1, [0.25, 0.25, 0.5], [0.5, 0.5, 0.75], [16, 16, 16]],
+    [1, [0.5, 0.25, 0.5], [0.75, 0.5, 0.75], [16, 16, 16]],
+    [1, [0.25, 0.5, 0.5], [0.5, 0.75, 0.75], [16, 16, 16]],
+    [1, [0.5, 0.5, 0.5], [0.75, 0.75, 0.75], [16, 16, 16]],
+    [2, [0.5, 0.5, 0.5], [0.71875, 0.71875, 0.71875], [28, 28, 28]],
+    [3, [0.5, 0.5, 0.5], [0.6640625, 0.65625, 0.6796875], [42, 40, 46]],
+    [4, [0.5, 0.5, 0.5], [0.59765625, 0.6015625, 0.6015625], [50, 52, 52]],
+    [2, [0.28125, 0.5, 0.5], [0.5, 0.734375, 0.71875], [28, 30, 28]],
+    [3, [0.3359375, 0.5, 0.5], [0.5, 0.671875, 0.6640625], [42, 44, 42]],
+    [4, [0.40625, 0.5, 0.5], [0.5, 0.59765625, 0.59765625], [48, 50, 50]],
+    [2, [0.5, 0.28125, 0.5], [0.71875, 0.5, 0.71875], [28, 28, 28]],
+    [3, [0.5, 0.3359375, 0.5], [0.671875, 0.5, 0.6640625], [44, 42, 42]],
+    [4, [0.5, 0.40625, 0.5], [0.6015625, 0.5, 0.59765625], [52, 48, 50]],
+    [2, [0.28125, 0.28125, 0.5], [0.5, 0.5, 0.71875], [28, 28, 28]],
+    [3, [0.3359375, 0.3359375, 0.5], [0.5, 0.5, 0.671875], [42, 42, 44]],
     [
         4,
         [0.46484375, 0.37890625, 0.50390625],
         [0.4765625, 0.390625, 0.515625],
         [6, 6, 6],
     ],
-    [4, [0.40625, 0.40625, 0.5], [0.5, 0.5, 0.59765625], [48, 48, 50],],
-    [2, [0.5, 0.5, 0.28125], [0.71875, 0.71875, 0.5], [28, 28, 28],],
-    [3, [0.5, 0.5, 0.3359375], [0.6796875, 0.6953125, 0.5], [46, 50, 42],],
-    [4, [0.5, 0.5, 0.40234375], [0.59375, 0.6015625, 0.5], [48, 52, 50],],
-    [2, [0.265625, 0.5, 0.28125], [0.5, 0.71875, 0.5], [30, 28, 28],],
-    [3, [0.3359375, 0.5, 0.328125], [0.5, 0.65625, 0.5], [42, 40, 44],],
-    [4, [0.40234375, 0.5, 0.40625], [0.5, 0.60546875, 0.5], [50, 54, 48],],
-    [2, [0.5, 0.265625, 0.28125], [0.71875, 0.5, 0.5], [28, 30, 28],],
-    [3, [0.5, 0.3203125, 0.328125], [0.6640625, 0.5, 0.5], [42, 46, 44],],
-    [4, [0.5, 0.3984375, 0.40625], [0.546875, 0.5, 0.5], [24, 52, 48],],
-    [4, [0.546875, 0.41796875, 0.4453125], [0.5625, 0.4375, 0.5], [8, 10, 28],],
-    [
-        4,
-        [0.546875, 0.453125, 0.41796875],
-        [0.5546875, 0.48046875, 0.4375],
-        [4, 14, 10],
-    ],
-    [4, [0.546875, 0.4375, 0.4375], [0.609375, 0.5, 0.5], [32, 32, 32],],
-    [4, [0.546875, 0.4921875, 0.41796875], [0.56640625, 0.5, 0.4375], [10, 4, 10],],
+    [4, [0.40625, 0.40625, 0.5], [0.5, 0.5, 0.59765625], [48, 48, 50]],
+    [2, [0.5, 0.5, 0.28125], [0.71875, 0.71875, 0.5], [28, 28, 28]],
+    [3, [0.5, 0.5, 0.3359375], [0.6796875, 0.6953125, 0.5], [46, 50, 42]],
+    [4, [0.5, 0.5, 0.40234375], [0.59375, 0.6015625, 0.5], [48, 52, 50]],
+    [2, [0.265625, 0.5, 0.28125], [0.5, 0.71875, 0.5], [30, 28, 28]],
+    [3, [0.3359375, 0.5, 0.328125], [0.5, 0.65625, 0.5], [42, 40, 44]],
+    [4, [0.40234375, 0.5, 0.40625], [0.5, 0.60546875, 0.5], [50, 54, 48]],
+    [2, [0.5, 0.265625, 0.28125], [0.71875, 0.5, 0.5], [28, 30, 28]],
+    [3, [0.5, 0.3203125, 0.328125], [0.6640625, 0.5, 0.5], [42, 46, 44]],
+    [4, [0.5, 0.3984375, 0.40625], [0.546875, 0.5, 0.5], [24, 52, 48]],
+    [4, [0.546875, 0.41796875, 0.4453125], [0.5625, 0.4375, 0.5], [8, 10, 28]],
+    [4, [0.546875, 0.453125, 0.41796875], [0.5546875, 0.48046875, 0.4375], [4, 14, 10]],
+    [4, [0.546875, 0.4375, 0.4375], [0.609375, 0.5, 0.5], [32, 32, 32]],
+    [4, [0.546875, 0.4921875, 0.41796875], [0.56640625, 0.5, 0.4375], [10, 4, 10]],
     [
         4,
         [0.546875, 0.48046875, 0.41796875],
         [0.5703125, 0.4921875, 0.4375],
         [12, 6, 10],
     ],
-    [4, [0.55859375, 0.46875, 0.43359375], [0.5703125, 0.48046875, 0.4375], [6, 6, 2],],
-    [2, [0.265625, 0.28125, 0.28125], [0.5, 0.5, 0.5], [30, 28, 28],],
-    [3, [0.328125, 0.3359375, 0.328125], [0.5, 0.5, 0.5], [44, 42, 44],],
-    [4, [0.4140625, 0.40625, 0.40625], [0.5, 0.5, 0.5], [44, 48, 48],],
+    [4, [0.55859375, 0.46875, 0.43359375], [0.5703125, 0.48046875, 0.4375], [6, 6, 2]],
+    [2, [0.265625, 0.28125, 0.28125], [0.5, 0.5, 0.5], [30, 28, 28]],
+    [3, [0.328125, 0.3359375, 0.328125], [0.5, 0.5, 0.5], [44, 42, 44]],
+    [4, [0.4140625, 0.40625, 0.40625], [0.5, 0.5, 0.5], [44, 48, 48]],
 ]
 
 
@@ -973,7 +1100,7 @@ def check_results(func):
     ... def field_checker(dd, field_name):
     ...     return dd[field_name]
 
-    >>> field_checker(ds.all_data(), 'density', result_basename='density')
+    >>> field_checker(ds.all_data(), "density", result_basename="density")
 
     """
 
@@ -992,8 +1119,8 @@ def check_results(func):
             st = _rv.std(dtype="float64")
             su = _rv.sum(dtype="float64")
             si = _rv.size
-            ha = hashlib.md5(_rv.tostring()).hexdigest()
-            fn = "func_results_ref_%s.cpkl" % (name)
+            ha = hashlib.md5(_rv.tobytes()).hexdigest()
+            fn = f"func_results_ref_{name}.cpkl"
             with open(fn, "wb") as f:
                 pickle.dump((mi, ma, st, su, si, ha), f)
             return rv
@@ -1021,15 +1148,15 @@ def check_results(func):
                 _rv.std(dtype="float64"),
                 _rv.sum(dtype="float64"),
                 _rv.size,
-                hashlib.md5(_rv.tostring()).hexdigest(),
+                hashlib.md5(_rv.tobytes()).hexdigest(),
             )
-            fn = "func_results_ref_%s.cpkl" % (name)
+            fn = f"func_results_ref_{name}.cpkl"
             if not os.path.exists(fn):
                 print("Answers need to be created with --answer-reference .")
                 return False
             with open(fn, "rb") as f:
                 ref = pickle.load(f)
-            print("Sizes: %s (%s, %s)" % (vals[4] == ref[4], vals[4], ref[4]))
+            print(f"Sizes: {vals[4] == ref[4]} ({vals[4]}, {ref[4]})")
             assert_allclose(vals[0], ref[0], 1e-8, err_msg="min")
             assert_allclose(vals[1], ref[1], 1e-8, err_msg="max")
             assert_allclose(vals[2], ref[2], 1e-8, err_msg="std")
@@ -1139,26 +1266,26 @@ def assert_allclose_units(actual, desired, rtol=1e-7, atol=0, **kwargs):
 
     try:
         des = des.in_units(act.units)
-    except UnitOperationError:
+    except UnitOperationError as e:
         raise AssertionError(
             "Units of actual (%s) and desired (%s) do not have "
             "equivalent dimensions" % (act.units, des.units)
-        )
+        ) from e
 
     rt = YTArray(rtol)
     if not rt.units.is_dimensionless:
-        raise AssertionError("Units of rtol (%s) are not " "dimensionless" % rt.units)
+        raise AssertionError(f"Units of rtol ({rt.units}) are not dimensionless")
 
     if not isinstance(atol, YTArray):
         at = YTQuantity(atol, des.units)
 
     try:
         at = at.in_units(act.units)
-    except UnitOperationError:
+    except UnitOperationError as e:
         raise AssertionError(
             "Units of atol (%s) and actual (%s) do not have "
             "equivalent dimensions" % (at.units, act.units)
-        )
+        ) from e
 
     # units have been validated, so we strip units before calling numpy
     # to avoid spurious errors
@@ -1196,14 +1323,17 @@ def assert_fname(fname):
 
     extension = os.path.splitext(fname)[1]
 
-    assert image_type == extension, (
-        "Expected an image of type '%s' but '%s' is an image of type '%s'"
-        % (extension, fname, image_type)
+    assert (
+        image_type == extension
+    ), "Expected an image of type '{}' but '{}' is an image of type '{}'".format(
+        extension,
+        fname,
+        image_type,
     )
 
 
 def requires_backend(backend):
-    """ Decorator to check for a specified matplotlib backend.
+    """Decorator to check for a specified matplotlib backend.
 
     This decorator returns the decorated function if the specified `backend`
     is same as of `matplotlib.get_backend()`, otherwise returns null function.
@@ -1220,7 +1350,6 @@ def requires_backend(backend):
     Decorated function or null function
 
     """
-    import pytest
 
     def ffalse(func):
         # returning a lambda : None causes an error when using pytest. Having
@@ -1230,13 +1359,10 @@ def requires_backend(backend):
         # needed since None is no longer returned, so we check for the skip
         # exception in the xfail case for that test
         def skip(*args, **kwargs):
-            msg = "`{}` backend not found, skipping: `{}`".format(
-                backend, func.__name__
-            )
-            print(msg)
-            pytest.skip(msg)
+            msg = f"`{backend}` backend not in use, skipping: `{func.__name__}`"
+            skip_case(reason=msg)
 
-        if yt._called_from_pytest:
+        if ytcfg.get("yt", "internals", "within_pytest"):
             return skip
         else:
             return lambda: None
@@ -1247,6 +1373,27 @@ def requires_backend(backend):
     if backend.lower() == matplotlib.get_backend().lower():
         return ftrue
     return ffalse
+
+
+def requires_external_executable(*names):
+    def deco(func):
+        missing = []
+        for name in names:
+            if which(name) is None:
+                missing.append(name)
+
+        # note that order between these two decorators matters
+        @pytest.mark.skipif(
+            missing,
+            reason=f"missing external executable(s): {', '.join(missing)}",
+        )
+        @functools.wraps(func)
+        def inner_func(*args, **kwargs):
+            return func(*args, **kwargs)
+
+        return inner_func
+
+    return deco
 
 
 class TempDirTest(unittest.TestCase):

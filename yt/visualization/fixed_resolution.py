@@ -1,19 +1,16 @@
-import types
 import weakref
+from functools import wraps
 
 import numpy as np
 
 from yt.data_objects.image_array import ImageArray
-from yt.frontends.stream.api import load_uniform_grid
 from yt.frontends.ytdata.utilities import save_as_dataset
-from yt.funcs import (
-    deprecate,
-    ensure_list,
-    get_output_filename,
-    issue_deprecation_warning,
-    mylog,
+from yt.funcs import get_output_filename, iter_fields, mylog
+from yt.loaders import load_uniform_grid
+from yt.utilities.lib.api import (  # type: ignore
+    CICDeposit_2,
+    add_points_to_greyscale_image,
 )
-from yt.utilities.lib.api import add_points_to_greyscale_image
 from yt.utilities.lib.pixelization_routines import pixelize_cylinder
 from yt.utilities.on_demand_imports import _h5py as h5py
 
@@ -61,12 +58,11 @@ class FixedResolutionBuffer:
     To make a projection and then several images, you can generate a
     single FRB and then access multiple fields:
 
-    >>> proj = ds.proj(0, "density")
-    >>> frb1 = FixedResolutionBuffer(proj, (0.2, 0.3, 0.4, 0.5),
-    ...                              (1024, 1024))
-    >>> print(frb1["density"].max())
+    >>> proj = ds.proj(0, ("gas", "density"))
+    >>> frb1 = FixedResolutionBuffer(proj, (0.2, 0.3, 0.4, 0.5), (1024, 1024))
+    >>> print(frb1[("gas", "density")].max())
     1.0914e-9 g/cm**3
-    >>> print(frb1["temperature"].max())
+    >>> print(frb1[("gas", "temperature")].max())
     104923.1 K
     """
     _exclude_fields = (
@@ -132,8 +128,10 @@ class FixedResolutionBuffer:
         if item in self.data:
             return self.data[item]
         mylog.info(
-            "Making a fixed resolution buffer of (%s) %d by %d"
-            % (item, self.buff_size[0], self.buff_size[1])
+            "Making a fixed resolution buffer of (%s) %d by %d",
+            item,
+            self.buff_size[0],
+            self.buff_size[1],
         )
         bounds = []
         for b in self.bounds:
@@ -348,20 +346,10 @@ class FixedResolutionBuffer:
         if length_unit is None:
             length_unit = self.ds.length_unit
 
-        if "units" in kwargs:
-            issue_deprecation_warning(
-                "The 'units' keyword argument has been "
-                "replaced by the 'length_unit' keyword "
-                "argument and the former has been "
-                "deprecated. Setting 'length_unit' "
-                "to 'units'."
-            )
-            length_unit = kwargs.pop("units")
-
         if fields is None:
             fields = list(self.data.keys())
         else:
-            fields = ensure_list(fields)
+            fields = list(iter_fields(fields))
 
         if len(fields) == 0:
             raise RuntimeError(
@@ -375,47 +363,6 @@ class FixedResolutionBuffer:
             for k, v in other_keys.items():
                 fid.update_all_headers(k, v)
         return fid
-
-    def export_fits(
-        self,
-        filename,
-        fields=None,
-        overwrite=False,
-        other_keys=None,
-        length_unit=None,
-        **kwargs,
-    ):
-        r"""Export a set of pixelized fields to a FITS file.
-
-        This will export a set of FITS images of either the fields specified
-        or all the fields already in the object.
-
-        Parameters
-        ----------
-        filename : string
-            The name of the FITS file to be written.
-        fields : list of strings
-            These fields will be pixelized and output. If "None", the keys of the
-            FRB will be used.
-        overwrite : boolean
-            If the file exists, this governs whether we will overwrite.
-        other_keys : dictionary, optional
-            A set of header keys and values to write into the FITS header.
-        length_unit : string, optional
-            the length units that the coordinates are written in. The default
-            is to use the default length unit of the dataset.
-        """
-        issue_deprecation_warning(
-            "The 'export_fits' method of "
-            "FixedResolutionBuffer is deprecated. "
-            "Use the 'to_fits_data' method to create "
-            "a FITSImageData instance and then "
-            "use its `writeto` method."
-        )
-        fid = self.to_fits_data(
-            fields=fields, other_keys=other_keys, length_unit=length_unit, **kwargs
-        )
-        fid.writeto(filename, overwrite=overwrite, **kwargs)
 
     def export_dataset(self, fields=None, nprocs=1):
         r"""Export a set of pixelized fields to an in-memory dataset that can be
@@ -435,8 +382,10 @@ class FixedResolutionBuffer:
         >>> import yt
         >>> ds = yt.load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150")
         >>> slc = ds.slice(2, 0.0)
-        >>> frb = slc.to_frb((500.,"kpc"), 500)
-        >>> ds2 = frb.export_dataset(fields=["density","temperature"], nprocs=32)
+        >>> frb = slc.to_frb((500.0, "kpc"), 500)
+        >>> ds2 = frb.export_dataset(
+        ...     fields=[("gas", "density"), ("gas", "temperature")], nprocs=32
+        ... )
         """
         nx, ny = self.buff_size
         data = {}
@@ -491,11 +440,11 @@ class FixedResolutionBuffer:
 
         >>> import yt
         >>> ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
-        >>> proj = ds.proj("density", "x", weight_field="density")
+        >>> proj = ds.proj(("gas", "density"), "x", weight_field=("gas", "density"))
         >>> frb = proj.to_frb(1.0, (800, 800))
-        >>> fn = frb.save_as_dataset(fields=["density"])
+        >>> fn = frb.save_as_dataset(fields=[("gas", "density")])
         >>> ds2 = yt.load(fn)
-        >>> print (ds2.data["density"])
+        >>> print(ds2.data[("gas", "density")])
         [[  1.25025353e-30   1.25025353e-30   1.25025353e-30 ...,   7.90820691e-31
             7.90820691e-31   7.90820691e-31]
          [  1.25025353e-30   1.25025353e-30   1.25025353e-30 ...,   7.90820691e-31
@@ -512,7 +461,7 @@ class FixedResolutionBuffer:
 
         """
 
-        keyword = "%s_%s_frb" % (str(self.ds), self.data_source._type_name)
+        keyword = f"{str(self.ds)}_{self.data_source._type_name}_frb"
         filename = get_output_filename(filename, keyword, ".h5")
 
         data = {}
@@ -522,17 +471,16 @@ class FixedResolutionBuffer:
         else:
             data.update(self.data)
 
-        ftypes = dict([(field, "grid") for field in data])
-        extra_attrs = dict(
-            [
-                (arg, getattr(self.data_source, arg, None))
-                for arg in self.data_source._con_args + self.data_source._tds_attrs
-            ]
-        )
+        ftypes = {field: "grid" for field in data}
+        extra_attrs = {
+            arg: getattr(self.data_source, arg, None)
+            for arg in self.data_source._con_args + self.data_source._tds_attrs
+        }
         extra_attrs["con_args"] = self.data_source._con_args
         extra_attrs["left_edge"] = self.ds.arr([self.bounds[0], self.bounds[2]])
         extra_attrs["right_edge"] = self.ds.arr([self.bounds[1], self.bounds[3]])
-        extra_attrs["ActiveDimensions"] = self.buff_size
+        # The data dimensions are [NY, NX] but buff_size is [NX, NY].
+        extra_attrs["ActiveDimensions"] = self.buff_size[::-1]
         extra_attrs["level"] = 0
         extra_attrs["data_type"] = "yt_frb"
         extra_attrs["container_type"] = self.data_source._type_name
@@ -560,16 +508,31 @@ class FixedResolutionBuffer:
             if key in ignored:
                 continue
             filtername = filter_registry[key]._filter_name
-            FilterMaker = filter_registry[key]
-            filt = apply_filter(FilterMaker)
-            filt.__doc__ = FilterMaker.__doc__
-            self.__dict__["apply_" + filtername] = types.MethodType(filt, self)
 
+            # We need to wrap to create a closure so that
+            # FilterMaker is bound to the wrapped method.
+            def closure():
+                FilterMaker = filter_registry[key]
 
-class ObliqueFixedResolutionBuffer(FixedResolutionBuffer):
-    @deprecate("FixedResolutionBuffer")
-    def __init__(self, *args, **kwargs):
-        super(ObliqueFixedResolutionBuffer, self).__init__(*args, **kwargs)
+                @wraps(FilterMaker)
+                def method(*args, **kwargs):
+                    # We need to also do it here as "invalidate_plot"
+                    # and "apply_callback" require the functions'
+                    # __name__ in order to work properly
+                    @wraps(FilterMaker)
+                    def cb(self, *a, **kwa):
+                        # We construct the callback method
+                        # skipping self
+                        return FilterMaker(*a, **kwa)
+
+                    # Create callback
+                    cb = apply_filter(cb)
+
+                    return cb(self, *args, **kwargs)
+
+                return method
+
+            self.__dict__["apply_" + filtername] = closure()
 
 
 class CylindricalFixedResolutionBuffer(FixedResolutionBuffer):
@@ -626,8 +589,10 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
         if item in self.data:
             return self.data[item]
         mylog.info(
-            "Making a fixed resolution buffer of (%s) %d by %d"
-            % (item, self.buff_size[0], self.buff_size[1])
+            "Making a fixed resolution buffer of (%s) %d by %d",
+            item,
+            self.buff_size[0],
+            self.buff_size[1],
         )
         dd = self.data_source
         width = self.ds.arr(
@@ -674,19 +639,25 @@ class ParticleImageBuffer(FixedResolutionBuffer):
 
         # set up the axis field names
         axis = self.axis
-        xax = self.ds.coordinates.x_axis[axis]
-        yax = self.ds.coordinates.y_axis[axis]
+        self.xax = self.ds.coordinates.x_axis[axis]
+        self.yax = self.ds.coordinates.y_axis[axis]
         ax_field_template = "particle_position_%s"
-        self.x_field = ax_field_template % self.ds.coordinates.axis_name[xax]
-        self.y_field = ax_field_template % self.ds.coordinates.axis_name[yax]
+        self.x_field = ax_field_template % self.ds.coordinates.axis_name[self.xax]
+        self.y_field = ax_field_template % self.ds.coordinates.axis_name[self.yax]
 
     def __getitem__(self, item):
         if item in self.data:
             return self.data[item]
 
+        deposition = self.data_source.deposition
+        density = self.data_source.density
+
         mylog.info(
-            "Splatting (%s) onto a %d by %d mesh"
-            % (item, self.buff_size[0], self.buff_size[1])
+            "Splatting (%s) onto a %d by %d mesh using method '%s'",
+            item,
+            self.buff_size[0],
+            self.buff_size[1],
+            deposition,
         )
 
         bounds = []
@@ -723,21 +694,67 @@ class ParticleImageBuffer(FixedResolutionBuffer):
             weight_data = self.data_source.dd[weight_field]
         splat_vals = weight_data[mask] * data[mask]
 
+        x_bin_edges = np.linspace(0.0, 1.0, self.buff_size[0] + 1)
+        y_bin_edges = np.linspace(0.0, 1.0, self.buff_size[1] + 1)
+
         # splat particles
         buff = np.zeros(self.buff_size)
-        buff_mask = np.zeros(self.buff_size).astype("int")
-        add_points_to_greyscale_image(buff, buff_mask, px[mask], py[mask], splat_vals)
+        buff_mask = np.zeros_like(buff, dtype="uint8")
+        if deposition == "ngp":
+            add_points_to_greyscale_image(
+                buff, buff_mask, px[mask], py[mask], splat_vals
+            )
+        elif deposition == "cic":
+            CICDeposit_2(
+                py[mask],
+                px[mask],
+                splat_vals,
+                mask.sum(),
+                buff,
+                buff_mask,
+                x_bin_edges,
+                y_bin_edges,
+            )
+        else:
+            raise ValueError(f"Received unknown deposition method '{deposition}'")
+
         # remove values in no-particle region
         buff[buff_mask == 0] = np.nan
-        ia = ImageArray(buff, units=data.units, info=self._get_info(item))
+
+        # Normalize by the surface area of the pixel or volume of pencil if
+        # requested
+        info = self._get_info(item)
+        if density:
+            width = self.data_source.width
+            norm = width[self.xax] * width[self.yax] / np.prod(self.buff_size)
+            norm = norm.in_base()
+            buff /= norm.v
+            units = data.units / norm.units
+            info["label"] = "%s $\\rm{Density}$" % info["label"]
+        else:
+            units = data.units
+
+        ia = ImageArray(buff, units=units, info=info)
 
         # divide by the weight_field, if needed
         if weight_field is not None:
             weight_buff = np.zeros(self.buff_size)
-            weight_buff_mask = np.zeros(self.buff_size).astype("int")
-            add_points_to_greyscale_image(
-                weight_buff, weight_buff_mask, px[mask], py[mask], weight_data[mask]
-            )
+            weight_buff_mask = np.zeros(self.buff_size, dtype="uint8")
+            if deposition == "ngp":
+                add_points_to_greyscale_image(
+                    weight_buff, weight_buff_mask, px[mask], py[mask], weight_data[mask]
+                )
+            elif deposition == "cic":
+                CICDeposit_2(
+                    py[mask],
+                    px[mask],
+                    weight_data[mask],
+                    mask.sum(),
+                    weight_buff,
+                    weight_buff_mask,
+                    y_bin_edges,
+                    x_bin_edges,
+                )
             weight_array = ImageArray(
                 weight_buff, units=weight_data.units, info=self._get_info(item)
             )

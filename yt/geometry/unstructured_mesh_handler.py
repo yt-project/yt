@@ -9,7 +9,7 @@ from yt.utilities.logger import ytLogger as mylog
 
 
 class UnstructuredIndex(Index):
-    """The Index subclass for unstructured and hexahedral mesh datasets. """
+    """The Index subclass for unstructured and hexahedral mesh datasets."""
 
     _unsupported_objects = ("proj", "covering_grid", "smoothed_covering_grid")
 
@@ -19,7 +19,7 @@ class UnstructuredIndex(Index):
         self.index_filename = self.dataset.parameter_filename
         self.directory = os.path.dirname(self.index_filename)
         self.float_type = np.float64
-        super(UnstructuredIndex, self).__init__(ds, dataset_type)
+        super().__init__(ds, dataset_type)
 
     def _setup_geometry(self):
         mylog.debug("Initializing Unstructured Mesh Geometry Handler.")
@@ -53,7 +53,7 @@ class UnstructuredIndex(Index):
     def _count_selection(self, dobj, meshes=None):
         if meshes is None:
             meshes = dobj._chunk_info
-        count = sum((m.count(dobj.selector) for m in meshes))
+        count = sum(m.count(dobj.selector) for m in meshes)
         return count
 
     def _chunk_all(self, dobj, cache=True):
@@ -65,7 +65,7 @@ class UnstructuredIndex(Index):
         # This is where we will perform cutting of the Octree and
         # load-balancing.  That may require a specialized selector object to
         # cut based on some space-filling curve index.
-        for i, og in enumerate(sobjs):
+        for og in sobjs:
             if ngz > 0:
                 g = og.retrieve_ghost_zones(ngz, [], smoothed=True)
             else:

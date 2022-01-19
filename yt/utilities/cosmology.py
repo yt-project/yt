@@ -2,10 +2,9 @@ import functools
 
 import numpy as np
 
-from yt.funcs import issue_deprecation_warning
 from yt.units import dimensions
-from yt.units.unit_object import Unit
-from yt.units.unit_registry import UnitRegistry
+from yt.units.unit_object import Unit  # type: ignore
+from yt.units.unit_registry import UnitRegistry  # type: ignore
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.physical_constants import (
     gravitational_constant_cgs as G,
@@ -88,7 +87,7 @@ class Cosmology:
             unit_registry = UnitRegistry(unit_system=unit_system)
             unit_registry.add("h", hubble_constant, dimensions.dimensionless, r"h")
             for my_unit in ["m", "pc", "AU", "au"]:
-                new_unit = "%scm" % my_unit
+                new_unit = f"{my_unit}cm"
                 my_u = Unit(my_unit, registry=unit_registry)
                 # technically not true, but distances here are actually comoving
                 unit_registry.add(
@@ -134,7 +133,7 @@ class Cosmology:
 
         >>> from yt.utilities.cosmology import Cosmology
         >>> co = Cosmology()
-        >>> print(co.comoving_radial_distance(0., 1.).in_units("Mpccm"))
+        >>> print(co.comoving_radial_distance(0.0, 1.0).in_units("Mpccm"))
 
         """
         return (
@@ -159,7 +158,7 @@ class Cosmology:
 
         >>> from yt.utilities.cosmology import Cosmology
         >>> co = Cosmology()
-        >>> print(co.comoving_transverse_distance(0., 1.).in_units("Mpccm"))
+        >>> print(co.comoving_transverse_distance(0.0, 1.0).in_units("Mpccm"))
 
         """
         if self.omega_curvature > 0:
@@ -203,7 +202,7 @@ class Cosmology:
 
         >>> from yt.utilities.cosmology import Cosmology
         >>> co = Cosmology()
-        >>> print(co.comoving_volume(0., 1.).in_units("Gpccm**3"))
+        >>> print(co.comoving_volume(0.0, 1.0).in_units("Gpccm**3"))
 
         """
         if self.omega_curvature > 1e-10:
@@ -278,7 +277,7 @@ class Cosmology:
 
         >>> from yt.utilities.cosmology import Cosmology
         >>> co = Cosmology()
-        >>> print(co.angular_diameter_distance(0., 1.).in_units("Mpc"))
+        >>> print(co.angular_diameter_distance(0.0, 1.0).in_units("Mpc"))
 
         """
 
@@ -304,7 +303,7 @@ class Cosmology:
 
         >>> from yt.utilities.cosmology import Cosmology
         >>> co = Cosmology()
-        >>> print(co.angular_scale(0., 1.).in_units("kpc / arcsec"))
+        >>> print(co.angular_scale(0.0, 1.0).in_units("kpc / arcsec"))
 
         """
 
@@ -328,7 +327,7 @@ class Cosmology:
 
         >>> from yt.utilities.cosmology import Cosmology
         >>> co = Cosmology()
-        >>> print(co.luminosity_distance(0., 1.).in_units("Mpc"))
+        >>> print(co.luminosity_distance(0.0, 1.0).in_units("Mpc"))
 
         """
 
@@ -354,48 +353,10 @@ class Cosmology:
 
         >>> from yt.utilities.cosmology import Cosmology
         >>> co = Cosmology()
-        >>> print(co.lookback_time(0., 1.).in_units("Gyr"))
+        >>> print(co.lookback_time(0.0, 1.0).in_units("Gyr"))
 
         """
         return (trapzint(self.age_integrand, z_i, z_f) / self.hubble_constant).in_base(
-            self.unit_system
-        )
-
-    def hubble_time(self, z, z_inf=1e6):
-        r"""
-        The inverse of the Hubble parameter.
-
-        WARNING: this function is incorrect and has been deprecated!
-
-        This function currently returns the age of the Universe at a
-        given redshift instead of the inverse of the Hubble parameter.
-        To get the correct behavior, do the following:
-
-        >>> (1 / co.hubble_parameter(z)).in_units('Gyr')
-
-        Parameters
-        ----------
-        z : float
-            Redshift.
-        z_inf : float
-            The upper bound of the integral of the age integrand.
-            Default: 1e6.
-
-        Examples
-        --------
-
-        >>> from yt.utilities.cosmology import Cosmology
-        >>> co = Cosmology()
-        >>> print(co.hubble_time(0.).in_units("Gyr"))
-
-        """
-        issue_deprecation_warning(
-            "The hubble_time function is incorrect and has been deprecated! "
-            + "Instead, do the following:\n"
-            + ">>> print (1 / co.hubble_parameter(z)).to('Gyr')\n"
-            + "If you want the age of the Universe, use the t_from_z function."
-        )
-        return (trapzint(self.age_integrand, z, z_inf) / self.hubble_constant).in_base(
             self.unit_system
         )
 
@@ -414,7 +375,7 @@ class Cosmology:
 
         >>> from yt.utilities.cosmology import Cosmology
         >>> co = Cosmology()
-        >>> print(co.critical_density(0.).in_units("g/cm**3"))
+        >>> print(co.critical_density(0.0).in_units("g/cm**3"))
         >>> print(co.critical_density(0).in_units("Msun/Mpc**3"))
 
         """
@@ -493,7 +454,7 @@ class Cosmology:
 
         >>> from yt.utilities.cosmology import Cosmology
         >>> co = Cosmology()
-        >>> print(co.t_from_a(1.).in_units("Gyr"))
+        >>> print(co.t_from_a(1.0).in_units("Gyr"))
 
         """
 
@@ -529,7 +490,7 @@ class Cosmology:
 
         >>> from yt.utilities.cosmology import Cosmology
         >>> co = Cosmology()
-        >>> print(co.t_from_z(0.).in_units("Gyr"))
+        >>> print(co.t_from_z(0.0).in_units("Gyr"))
 
         """
 
@@ -550,7 +511,7 @@ class Cosmology:
 
         >>> from yt.utilities.cosmology import Cosmology
         >>> co = Cosmology()
-        >>> print(co.a_from_t(4.e17))
+        >>> print(co.a_from_t(4.0e17))
 
         """
 
@@ -611,7 +572,7 @@ class Cosmology:
 
         >>> from yt.utilities.cosmology import Cosmology
         >>> co = Cosmology()
-        >>> print(co.z_from_t(4.e17))
+        >>> print(co.z_from_t(4.0e17))
 
         """
 
@@ -625,8 +586,9 @@ class Cosmology:
         note that there's a typo in his eq. There should be no negative sign).
 
         At the moment, this only works using the parameterization given in Linder 2002
-        eq. 7: w(a) = w0 + wa(1 - a) = w0 + wa * z / (1+z). This gives rise to an analytic
-        expression. It is also only functional for Gadget simulations, at the moment.
+        eq. 7: w(a) = w0 + wa(1 - a) = w0 + wa * z / (1+z). This gives rise to an
+        analytic expression.
+        It is also only functional for Gadget simulations, at the moment.
 
         Parameters
         ----------

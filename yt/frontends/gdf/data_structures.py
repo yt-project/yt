@@ -3,13 +3,13 @@ import weakref
 
 import numpy as np
 
-from yt.data_objects.grid_patch import AMRGridPatch
+from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
-from yt.funcs import ensure_tuple, just_one, setdefaultattr
+from yt.funcs import just_one, setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
-from yt.units.dimensions import dimensionless as sympy_one
-from yt.units.unit_object import Unit
-from yt.units.unit_systems import unit_system_registry
+from yt.units.dimensions import dimensionless as sympy_one  # type: ignore
+from yt.units.unit_object import Unit  # type: ignore
+from yt.units.unit_systems import unit_system_registry  # type: ignore
 from yt.utilities.exceptions import YTGDFUnknownGeometry
 from yt.utilities.lib.misc_utilities import get_box_grids_level
 from yt.utilities.logger import ytLogger as mylog
@@ -46,11 +46,6 @@ class GDFGrid(AMRGridPatch):
         else:
             LE, RE = self.index.grid_left_edge[id, :], self.index.grid_right_edge[id, :]
             self.dds = np.array((RE - LE) / self.ActiveDimensions)
-        if self.ds.data_software != "piernik":
-            if self.ds.dimensionality < 2:
-                self.dds[1] = 1.0
-            if self.ds.dimensionality < 3:
-                self.dds[2] = 1.0
         self.field_data["dx"], self.field_data["dy"], self.field_data["dz"] = self.dds
         self.dds = self.ds.arr(self.dds, "code_length")
 
@@ -108,7 +103,7 @@ class GDFHierarchy(GridIndex):
 
     def _populate_grid_objects(self):
         mask = np.empty(self.grids.size, dtype="int32")
-        for gi, g in enumerate(self.grids):
+        for g in self.grids:
             g._prepare_grid()
             g._setup_dx()
 
@@ -163,6 +158,7 @@ class GDFDataset(Dataset):
         geometry=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
         self.geometry = geometry
         self.fluid_types += ("gdf",)
@@ -172,6 +168,7 @@ class GDFDataset(Dataset):
             dataset_type,
             units_override=units_override,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
         self.storage_filename = storage_filename
         self.filename = filename
@@ -185,7 +182,7 @@ class GDFDataset(Dataset):
         # This should be improved.
         h5f = h5py.File(self.parameter_filename, mode="r")
         for field_name in h5f["/field_types"]:
-            current_field = h5f["/field_types/%s" % field_name]
+            current_field = h5f[f"/field_types/{field_name}"]
             if "field_to_cgs" in current_field.attrs:
                 field_conv = current_field.attrs["field_to_cgs"]
                 self.field_units[field_name] = just_one(field_conv)
@@ -201,8 +198,8 @@ class GDFDataset(Dataset):
 
         if "dataset_units" in h5f:
             for unit_name in h5f["/dataset_units"]:
-                current_unit = h5f["/dataset_units/%s" % unit_name]
-                value = current_unit.value
+                current_unit = h5f[f"/dataset_units/{unit_name}"]
+                value = current_unit[()]
                 unit = current_unit.attrs["unit"]
                 # need to convert to a Unit object and check dimensions
                 # because unit can be things like
@@ -221,8 +218,8 @@ class GDFDataset(Dataset):
                 if unit_name in h5f["/field_types"]:
                     if unit_name in self.field_units:
                         mylog.warning(
-                            "'field_units' was overridden by 'dataset_units/%s'"
-                            % (unit_name)
+                            "'field_units' was overridden by 'dataset_units/%s'",
+                            unit_name,
                         )
                     self.field_units[unit_name] = str(unit)
         else:
@@ -245,8 +242,8 @@ class GDFDataset(Dataset):
             geometry = just_one(sp.get("geometry", 0))
             try:
                 self.geometry = GEOMETRY_TRANS[geometry]
-            except KeyError:
-                raise YTGDFUnknownGeometry(geometry)
+            except KeyError as e:
+                raise YTGDFUnknownGeometry(geometry) from e
         self.parameters.update(sp)
         self.domain_left_edge = sp["domain_left_edge"][:]
         self.domain_right_edge = sp["domain_right_edge"][:]
@@ -264,19 +261,18 @@ class GDFDataset(Dataset):
         self.num_ghost_zones = sp["num_ghost_zones"]
         self.field_ordering = sp["field_ordering"]
         self.boundary_conditions = sp["boundary_conditions"][:]
-        p = [bnd == 0 for bnd in self.boundary_conditions[::2]]
-        self.periodicity = ensure_tuple(p)
+        self._periodicity = tuple(bnd == 0 for bnd in self.boundary_conditions[::2])
         if self.cosmological_simulation:
             self.current_redshift = sp["current_redshift"]
             self.omega_lambda = sp["omega_lambda"]
             self.omega_matter = sp["omega_matter"]
             self.hubble_constant = sp["hubble_constant"]
         else:
-            self.current_redshift = (
-                self.omega_lambda
-            ) = (
-                self.omega_matter
-            ) = self.hubble_constant = self.cosmological_simulation = 0.0
+            self.current_redshift = 0.0
+            self.omega_lambda = 0.0
+            self.omega_matter = 0.0
+            self.hubble_constant = 0.0
+            self.cosmological_simulation = 0
         self.parameters["Time"] = 1.0  # Hardcode time conversion for now.
         # Hardcode for now until field staggering is supported.
         self.parameters["HydroMethod"] = 0
@@ -284,9 +280,9 @@ class GDFDataset(Dataset):
         del self._handle
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         try:
-            fileh = h5py.File(args[0], mode="r")
+            fileh = h5py.File(filename, mode="r")
             if "gridded_data_format" in fileh:
                 fileh.close()
                 return True
@@ -295,5 +291,5 @@ class GDFDataset(Dataset):
             pass
         return False
 
-    def __repr__(self):
+    def __str__(self):
         return self.basename.rsplit(".", 1)[0]

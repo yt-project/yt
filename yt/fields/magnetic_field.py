@@ -2,7 +2,7 @@ import numpy as np
 
 from yt.fields.derived_field import ValidateParameter
 from yt.units import dimensions
-from yt.units.yt_array import ustack
+from yt.units.yt_array import ustack  # type: ignore
 from yt.utilities.math_utils import get_sph_phi_component, get_sph_theta_component
 
 from .field_plugin_registry import register_field_plugin
@@ -17,10 +17,10 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
 
     axis_names = registry.ds.coordinates.axis_order
 
-    if (ftype, "magnetic_field_%s" % axis_names[0]) not in registry:
+    if (ftype, f"magnetic_field_{axis_names[0]}") not in registry:
         return
 
-    u = registry[ftype, "magnetic_field_%s" % axis_names[0]].units
+    u = registry[ftype, f"magnetic_field_{axis_names[0]}"].units
 
     def mag_factors(dims):
         if dims == dimensions.magnetic_field_cgs:
@@ -29,9 +29,9 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
             return ds.units.physical_constants.mu_0
 
     def _magnetic_field_strength(field, data):
-        xm = "relative_magnetic_field_%s" % axis_names[0]
-        ym = "relative_magnetic_field_%s" % axis_names[1]
-        zm = "relative_magnetic_field_%s" % axis_names[2]
+        xm = f"relative_magnetic_field_{axis_names[0]}"
+        ym = f"relative_magnetic_field_{axis_names[1]}"
+        zm = f"relative_magnetic_field_{axis_names[2]}"
 
         B2 = (data[ftype, xm]) ** 2 + (data[ftype, ym]) ** 2 + (data[ftype, zm]) ** 2
 
@@ -45,26 +45,32 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
         units=u,
     )
 
-    def _magnetic_energy(field, data):
+    def _magnetic_energy_density(field, data):
         B = data[ftype, "magnetic_field_strength"]
         return 0.5 * B * B / mag_factors(B.units.dimensions)
 
     registry.add_field(
-        (ftype, "magnetic_energy"),
+        (ftype, "magnetic_energy_density"),
         sampling_type="local",
-        function=_magnetic_energy,
+        function=_magnetic_energy_density,
         units=unit_system["pressure"],
     )
 
+    registry.alias(
+        (ftype, "magnetic_energy"),
+        (ftype, "magnetic_energy_density"),
+        deprecate=("4.0.0", "4.1.0"),
+    )
+
     def _plasma_beta(field, data):
-        return data[ftype, "pressure"] / data[ftype, "magnetic_energy"]
+        return data[ftype, "pressure"] / data[ftype, "magnetic_energy_density"]
 
     registry.add_field(
         (ftype, "plasma_beta"), sampling_type="local", function=_plasma_beta, units=""
     )
 
     def _magnetic_pressure(field, data):
-        return data[ftype, "magnetic_energy"]
+        return data[ftype, "magnetic_energy_density"]
 
     registry.add_field(
         (ftype, "magnetic_pressure"),
@@ -241,7 +247,7 @@ def setup_magnetic_field_aliases(registry, ds_ftype, ds_fields, ftype="gas"):
     >>> class PlutoFieldInfo(ChomboFieldInfo):
     ...     def setup_fluid_fields(self):
     ...         setup_magnetic_field_aliases(
-    ...             self, "chombo", ["bx%s" % ax for ax in [1,2,3]]
+    ...             self, "chombo", ["bx%s" % ax for ax in [1, 2, 3]]
     ...         )
     >>> class GizmoFieldInfo(GadgetFieldInfo):
     ...     def setup_gas_particle_fields(self):
@@ -272,7 +278,7 @@ def setup_magnetic_field_aliases(registry, ds_ftype, ds_fields, ftype="gas"):
     # Add fields
     if sampling_type in ["cell", "local"]:
         # Grid dataset case
-        def mag_field(fd):
+        def mag_field_from_field(fd):
             def _mag_field(field, data):
                 return data[fd].to(field.units)
 
@@ -280,27 +286,27 @@ def setup_magnetic_field_aliases(registry, ds_ftype, ds_fields, ftype="gas"):
 
         for ax, fd in zip(registry.ds.coordinates.axis_order, ds_fields):
             registry.add_field(
-                (ftype, "magnetic_field_%s" % ax),
+                (ftype, f"magnetic_field_{ax}"),
                 sampling_type=sampling_type,
-                function=mag_field(fd),
+                function=mag_field_from_field(fd),
                 units=units,
             )
     else:
         # Particle dataset case
-        def mag_field(ax):
+        def mag_field_from_ax(ax):
             def _mag_field(field, data):
                 return data[ds_field][:, "xyz".index(ax)]
 
             return _mag_field
 
         for ax in registry.ds.coordinates.axis_order:
-            fname = "particle_magnetic_field_%s" % ax
+            fname = f"particle_magnetic_field_{ax}"
             registry.add_field(
                 (ds_ftype, fname),
                 sampling_type=sampling_type,
-                function=mag_field(ax),
+                function=mag_field_from_ax(ax),
                 units=units,
             )
             sph_ptypes = getattr(registry.ds, "_sph_ptypes", tuple())
             if ds_ftype in sph_ptypes:
-                registry.alias((ftype, "magnetic_field_%s" % ax), (ds_ftype, fname))
+                registry.alias((ftype, f"magnetic_field_{ax}"), (ds_ftype, fname))

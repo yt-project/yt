@@ -3,8 +3,9 @@ import weakref
 
 import numpy as np
 
-from yt.data_objects.grid_patch import AMRGridPatch
+from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
+from yt.funcs import setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
 
 from .fields import SkeletonFieldInfo
@@ -14,9 +15,7 @@ class SkeletonGrid(AMRGridPatch):
     _id_offset = 0
 
     def __init__(self, id, index, level):
-        super(SkeletonGrid, self).__init__(
-            id, filename=index.index_filename, index=index
-        )
+        super().__init__(id, filename=index.index_filename, index=index)
         self.Parent = None
         self.Children = []
         self.Level = level
@@ -36,7 +35,7 @@ class SkeletonHierarchy(GridIndex):
         self.directory = os.path.dirname(self.index_filename)
         # float type for the simulation edges and must be float64 now
         self.float_type = np.float64
-        super(SkeletonHierarchy, self).__init__(ds, dataset_type)
+        super().__init__(ds, dataset_type)
 
     def _detect_output_fields(self):
         # This needs to set a self.field_list that contains all the available,
@@ -86,10 +85,16 @@ class SkeletonDataset(Dataset):
         dataset_type="skeleton",
         storage_filename=None,
         units_override=None,
+        unit_system="cgs",
+        default_species_fields=None,
     ):
         self.fluid_types += ("skeleton",)
-        super(SkeletonDataset, self).__init__(
-            filename, dataset_type, units_override=units_override
+        super().__init__(
+            filename,
+            dataset_type,
+            units_override=units_override,
+            unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
         self.storage_filename = storage_filename
         # refinement factor between a grid and its subgrid
@@ -109,7 +114,11 @@ class SkeletonDataset(Dataset):
         # These can also be set:
         # self.velocity_unit = self.quan(1.0, "cm/s")
         # self.magnetic_unit = self.quan(1.0, "gauss")
-        pass
+
+        # this minimalistic implementation fills the requirements for
+        # this frontend to run, change it to make it run _correctly_ !
+        for key, unit in self.__class__.default_units.items():
+            setdefaultattr(self, key, self.quan(1, unit))
 
     def _parse_parameter_file(self):
         # This needs to set up the following items.  Note that these are all
@@ -136,15 +145,24 @@ class SkeletonDataset(Dataset):
         #   self.omega_matter               <= float
         #   self.hubble_constant            <= float
 
-        # optional (the followin have default implementations)
+        # optional (the following have default implementations)
         #   self.unique_identifier      <= unique identifier for the dataset
         #                                  being read (e.g., UUID or ST_CTIME) (int)
         #
-        #   self.geometry (defaults to 'cartesian') <= a lower case string ("cartesian", "polar", "cylindrical"...)
-        pass
+        #   self.geometry  <= a lower case string
+        #                     ("cartesian", "polar", "cylindrical"...)
+        #                     (defaults to 'cartesian')
+
+        # this attribute is required.
+        # Change this value to a constant 0 if time is not relevant to your dataset.
+        # Otherwise, parse its value in any appropriate fashion.
+        self.current_time = -1
+
+        # required. Change this if need be.
+        self.cosmological_simulation = 0
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         # This accepts a filename or a set of arguments and returns True or
         # False depending on if the file is of the type requested.
         #

@@ -4,6 +4,7 @@ from functools import wraps
 import bottle
 import numpy as np
 
+from yt.fields.derived_field import ValidateSpatial
 from yt.utilities.lib.misc_utilities import get_color_bounds
 from yt.utilities.png_writer import write_png_to_string
 from yt.visualization.fixed_resolution import FixedResolutionBuffer
@@ -36,16 +37,16 @@ class PannableMapServer:
         self.field = field
         self.cmap = cmap
 
-        bottle.route("%s/map/:field/:L/:x/:y.png" % route_prefix)(self.map)
-        bottle.route("%s/map/:field/:L/:x/:y.png" % route_prefix)(self.map)
-        bottle.route("%s/" % route_prefix)(self.index)
-        bottle.route("%s/:field" % route_prefix)(self.index)
-        bottle.route("%s/index.html" % route_prefix)(self.index)
-        bottle.route("%s/list" % route_prefix, "GET")(self.list_fields)
+        bottle.route(f"{route_prefix}/map/:field/:L/:x/:y.png")(self.map)
+        bottle.route(f"{route_prefix}/map/:field/:L/:x/:y.png")(self.map)
+        bottle.route(f"{route_prefix}/")(self.index)
+        bottle.route(f"{route_prefix}/:field")(self.index)
+        bottle.route(f"{route_prefix}/index.html")(self.index)
+        bottle.route(f"{route_prefix}/list", "GET")(self.list_fields)
         # This is a double-check, since we do not always mandate this for
         # slices:
         self.data[self.field] = self.data[self.field].astype("float64")
-        bottle.route("%s/static/:path" % route_prefix, "GET")(self.static)
+        bottle.route(f"{route_prefix}/static/:path", "GET")(self.static)
 
         self.takelog = takelog
         self._lock = False
@@ -123,23 +124,16 @@ class PannableMapServer:
 
     def static(self, path):
         if path[-4:].lower() in (".png", ".gif", ".jpg"):
-            bottle.response.headers["Content-Type"] = "image/%s" % (path[-3:].lower())
+            bottle.response.headers["Content-Type"] = f"image/{path[-3:].lower()}"
         elif path[-4:].lower() == ".css":
             bottle.response.headers["Content-Type"] = "text/css"
         elif path[-3:].lower() == ".js":
             bottle.response.headers["Content-Type"] = "text/javascript"
         full_path = os.path.join(os.path.join(local_dir, "html"), path)
-        return open(full_path, "r").read()
+        return open(full_path).read()
 
     def list_fields(self):
         d = {}
-
-        # Add deposit fields (only cic + density for now)
-        for ptype in self.ds.particle_types:
-            d[ptype] = [
-                (("deposit", "%s_cic" % ptype), False),
-                (("deposit", "%s_density" % ptype), False),
-            ]
 
         # Add fluid fields (only gas for now)
         for ftype in self.ds.fluid_types:
@@ -147,7 +141,13 @@ class PannableMapServer:
             for f in self.ds.derived_field_list:
                 if f[0] != ftype:
                     continue
-
+                # Discard fields which need ghost zones for now
+                df = self.ds.field_info[f]
+                if any(isinstance(v, ValidateSpatial) for v in df.validators):
+                    continue
+                # Discard cutting plane fields
+                if "cutting" in f[1]:
+                    continue
                 active = f[1] == self.field
                 d[ftype].append((f, active))
 

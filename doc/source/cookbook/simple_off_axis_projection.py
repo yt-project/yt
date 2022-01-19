@@ -9,9 +9,11 @@ sp = ds.sphere("center", (15.0, "kpc"))
 # Get the angular momentum vector for the sphere.
 L = sp.quantities.angular_momentum_vector()
 
-print("Angular momentum vector: {0}".format(L))
+print(f"Angular momentum vector: {L}")
 
-# Create an OffAxisProjectionPlot of density centered on the object with the L
+# Create an off-axis ProjectionPlot of density centered on the object with the L
 # vector as its normal and a width of 25 kpc on a side
-p = yt.OffAxisProjectionPlot(ds, L, "density", sp.center, (25, "kpc"))
+p = yt.ProjectionPlot(
+    ds, L, fields=("gas", "density"), center=sp.center, width=(25, "kpc")
+)
 p.save()

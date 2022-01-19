@@ -7,8 +7,8 @@ import numpy as np
 
 from yt.testing import assert_fname, fake_random_ds, fake_vr_orientation_test_ds
 from yt.visualization.volume_rendering.api import (
-    VolumeSource,
     create_scene,
+    create_volume_source,
     volume_render,
 )
 
@@ -17,7 +17,7 @@ def setup():
     """Test specific setup."""
     from yt.config import ytcfg
 
-    ytcfg["yt", "__withintesting"] = "True"
+    ytcfg["yt", "internals", "within_testing"] = True
 
 
 class RotationTest(TestCase):
@@ -51,35 +51,33 @@ class RotationTest(TestCase):
         vol = sc.get_source(0)
         tf = vol.transfer_function
         tf.clear()
-        mi, ma = dd.quantities.extrema("density")
+        mi, ma = dd.quantities.extrema(("gas", "density"))
         mi = np.log10(mi)
         ma = np.log10(ma)
         mi_bound = ((ma - mi) * (0.10)) + mi
         ma_bound = ((ma - mi) * (0.90)) + mi
         tf.map_to_colormap(mi_bound, ma_bound, scale=0.01, colormap="Blues_r")
 
-        vol2 = VolumeSource(dd2, field=("gas", "density"))
+        vol2 = create_volume_source(dd2, field=("gas", "density"))
         sc.add_source(vol2)
 
         tf = vol2.transfer_function
         tf.clear()
-        mi, ma = dd2.quantities.extrema("density")
+        mi, ma = dd2.quantities.extrema(("gas", "density"))
         mi = np.log10(mi)
         ma = np.log10(ma)
         mi_bound = ((ma - mi) * (0.10)) + mi
         ma_bound = ((ma - mi) * (0.90)) + mi
         tf.map_to_colormap(mi_bound, ma_bound, scale=0.01, colormap="Reds_r")
-        sc.render()
-        for suffix in ["png", "eps", "ps", "pdf"]:
-            fname = "test_scene.{}".format(suffix)
-            sc.save(fname, sigma_clip=6.0)
-            assert_fname(fname)
+        fname = "test_scene.pdf"
+        sc.save(fname, sigma_clip=6.0)
+        assert_fname(fname)
 
-        nrot = 2
-        for i in range(nrot):
-            sc.camera.pitch(2 * np.pi / nrot)
-            sc.render()
-            sc.save("test_rot_%04i.png" % i, sigma_clip=6.0)
+        fname = "test_rot.png"
+        sc.camera.pitch(np.pi)
+        sc.render()
+        sc.save(fname, sigma_clip=6.0, render=False)
+        assert_fname(fname)
 
 
 def test_annotations():
@@ -100,7 +98,8 @@ def test_annotations():
         assert np.where((im == c).all(axis=-1))[0].shape[0] > 0
     sc[0].tfh.tf.add_layers(10, colormap="cubehelix")
     sc.save_annotated(
-        "test_scene_annotated.png", text_annotate=[[(0.1, 1.05), "test_string"]]
+        "test_scene_annotated.png",
+        text_annotate=[[(0.1, 1.05), "test_string"]],
     )
     image = imread("test_scene_annotated.png")
     assert image.shape == sc.camera.resolution + (4,)

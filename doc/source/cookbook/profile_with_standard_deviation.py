@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+
 import yt
 
 # Load the dataset.
@@ -19,7 +20,7 @@ prof = yt.create_profile(
     ("gas", "velocity_magnitude"),
     units={"radius": "kpc"},
     extrema={"radius": ((0.1, "kpc"), (1000.0, "kpc"))},
-    weight_field="cell_mass",
+    weight_field=("gas", "mass"),
 )
 
 # Create arrays to plot.
@@ -29,7 +30,7 @@ std = prof.standard_deviation["gas", "velocity_magnitude"]
 
 # Plot the average velocity magnitude.
 plt.loglog(radius, mean, label="Mean")
-# Plot the variance of the velocity magnitude.
+# Plot the standard deviation of the velocity magnitude.
 plt.loglog(radius, std, label="Standard Deviation")
 plt.xlabel("r [kpc]")
 plt.ylabel("v [cm/s]")

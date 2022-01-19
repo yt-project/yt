@@ -14,13 +14,13 @@ from yt.utilities.logger import ytLogger as mylog
 # group grids with consecutive indices together to improve the I/O performance
 # --> grids are assumed to be sorted into ascending numerical order already
 def grid_sequences(grids):
-    for k, g in groupby(enumerate(grids), lambda i_x: i_x[0] - i_x[1].id):
+    for _k, g in groupby(enumerate(grids), lambda i_x: i_x[0] - i_x[1].id):
         seq = list(v[1] for v in g)
         yield seq
 
 
 def particle_sequences(grids):
-    for k, g in groupby(enumerate(grids), lambda i_x: i_x[0] - i_x[1].id):
+    for _k, g in groupby(enumerate(grids), lambda i_x: i_x[0] - i_x[1].id):
         seq = list(v[1] for v in g)
         yield seq[0], seq[-1]
 
@@ -30,7 +30,7 @@ class IOHandlerGAMER(BaseIOHandler):
     _dataset_type = "gamer"
 
     def __init__(self, ds):
-        super(IOHandlerGAMER, self).__init__(ds)
+        super().__init__(ds)
         self._handle = ds._handle
         self._group_grid = ds._group_grid
         self._group_particle = ds._group_particle
@@ -59,7 +59,7 @@ class IOHandlerGAMER(BaseIOHandler):
                 x = np.asarray(par_posx[start:end], dtype=self._field_dtype)
                 y = np.asarray(par_posy[start:end], dtype=self._field_dtype)
                 z = np.asarray(par_posz[start:end], dtype=self._field_dtype)
-                yield ptype, (x, y, z)
+                yield ptype, (x, y, z), 0.0
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)  # generator --> list

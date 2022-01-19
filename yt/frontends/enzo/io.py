@@ -1,3 +1,5 @@
+from typing import Dict
+
 import numpy as np
 
 from yt.geometry.selection_routines import GridSelector
@@ -7,7 +9,7 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 
 _convert_mass = ("particle_mass", "mass")
 
-_particle_position_names = {}
+_particle_position_names: Dict[str, str] = {}
 
 
 class IOHandlerPackedHDF5(BaseIOHandler):
@@ -25,8 +27,9 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         except KeyError:
             group = f
         fields = []
-        dtypes = set([])
+        dtypes = set()
         add_io = "io" in grid.ds.particle_types
+        add_dm = "DarkMatter" in grid.ds.particle_types
         for name, v in group.items():
             # NOTE: This won't work with 1D datasets or references.
             # For all versions of Enzo I know about, we can assume all floats
@@ -38,6 +41,8 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                     fields.append(("enzo", str(name)))
                 elif add_io:
                     fields.append(("io", str(name)))
+                elif add_dm:
+                    fields.append(("DarkMatter", str(name)))
             else:
                 fields.append(("enzo", str(name)))
                 dtypes.add(v.dtype)
@@ -58,8 +63,10 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         return (KeyError,)
 
     def _read_particle_coords(self, chunks, ptf):
-        for rv in self._read_particle_fields(chunks, ptf, None):
-            yield rv
+        yield from (
+            (ptype, xyz, 0.0)
+            for ptype, xyz in self._read_particle_fields(chunks, ptf, None)
+        )
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
@@ -76,12 +83,25 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                     continue
                 ds = f.get("/Grid%08i" % g.id)
                 for ptype, field_list in sorted(ptf.items()):
-                    if ptype != "io":
+                    if ptype == "io":
+                        if g.NumberOfParticles == 0:
+                            continue
+                        pds = ds
+                    elif ptype == "DarkMatter":
                         if g.NumberOfActiveParticles[ptype] == 0:
                             continue
-                        pds = ds.get("Particles/%s" % ptype)
-                    else:
                         pds = ds
+                    elif not g.NumberOfActiveParticles[ptype]:
+                        continue
+                    else:
+                        for pname in ["Active Particles", "Particles"]:
+                            pds = ds.get(f"{pname}/{ptype}")
+                            if pds is not None:
+                                break
+                        else:
+                            raise RuntimeError(
+                                "Could not find active particle group in data."
+                            )
                     pn = _particle_position_names.get(ptype, r"particle_position_%s")
                     x, y, z = (
                         np.asarray(pds.get(pn % ax)[()], dtype="=f8") for ax in "xyz"
@@ -162,14 +182,12 @@ class IOHandlerPackedHDF5GhostZones(IOHandlerPackedHDF5):
     _dataset_type = "enzo_packed_3d_gz"
 
     def __init__(self, *args, **kwargs):
-        super(IOHandlerPackedHDF5GhostZones, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         NGZ = self.ds.parameters.get("NumberOfGhostZones", 3)
         self._base = (slice(NGZ, -NGZ), slice(NGZ, -NGZ), slice(NGZ, -NGZ))
 
     def _read_obj_field(self, *args, **kwargs):
-        return super(IOHandlerPackedHDF5GhostZones, self)._read_obj_field(
-            *args, **kwargs
-        )[self._base]
+        return super()._read_obj_field(*args, **kwargs)[self._base]
 
 
 class IOHandlerInMemory(BaseIOHandler):
@@ -218,7 +236,7 @@ class IOHandlerInMemory(BaseIOHandler):
                 rv[(ftype, fname)] = self.grids_in_memory[g.id][fname].swapaxes(0, 2)
             return rv
         if size is None:
-            size = sum((g.count(selector) for chunk in chunks for g in chunk.objs))
+            size = sum(g.count(selector) for chunk in chunks for g in chunk.objs)
         for field in fields:
             ftype, fname = field
             fsize = size
@@ -255,13 +273,13 @@ class IOHandlerInMemory(BaseIOHandler):
                 nap = sum(g.NumberOfActiveParticles.values())
                 if g.NumberOfParticles == 0 and nap == 0:
                     continue
-                for ptype, field_list in sorted(ptf.items()):
+                for ptype in sorted(ptf):
                     x, y, z = (
                         self.grids_in_memory[g.id]["particle_position_x"],
                         self.grids_in_memory[g.id]["particle_position_y"],
                         self.grids_in_memory[g.id]["particle_position_z"],
                     )
-                    yield ptype, (x, y, z)
+                    yield ptype, (x, y, z), 0.0
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
@@ -314,7 +332,7 @@ class IOHandlerPacked2D(IOHandlerPackedHDF5):
             f.close()
             return rv
         if size is None:
-            size = sum((g.count(selector) for chunk in chunks for g in chunk.objs))
+            size = sum(g.count(selector) for chunk in chunks for g in chunk.objs)
         for field in fields:
             ftype, fname = field
             fsize = size

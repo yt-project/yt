@@ -1,11 +1,13 @@
 import os
 import weakref
+from typing import Type
 
 import numpy as np
 
-from yt.data_objects.grid_patch import AMRGridPatch
+from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset, ParticleFile, validate_index_order
 from yt.funcs import mylog, setdefaultattr
+from yt.geometry.geometry_handler import Index
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.geometry.particle_geometry_handler import ParticleIndex
 from yt.utilities.file_handler import HDF5FileHandler, warn_h5py
@@ -93,9 +95,9 @@ class FLASHHierarchy(GridIndex):
             nyb = ds.parameters["nyb"]
             nzb = ds.parameters["nzb"]
         except KeyError:
-            nxb, nyb, nzb = [
-                int(f["/simulation parameters"]["n%sb" % ax]) for ax in "xyz"
-            ]
+            nxb, nyb, nzb = (
+                int(f["/simulation parameters"][f"n{ax}b"]) for ax in "xyz"
+            )
         self.grid_dimensions[:] *= (nxb, nyb, nzb)
         try:
             self.grid_particle_count[:] = f_part["/localnp"][:][:, None]
@@ -162,7 +164,7 @@ class FLASHHierarchy(GridIndex):
 
 
 class FLASHDataset(Dataset):
-    _index_class = FLASHHierarchy
+    _index_class: Type[Index] = FLASHHierarchy
     _field_info_class = FLASHFieldInfo
     _handle = None
 
@@ -174,6 +176,7 @@ class FLASHDataset(Dataset):
         particle_filename=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
 
         self.fluid_types += ("flash",)
@@ -191,16 +194,14 @@ class FLASHDataset(Dataset):
                 )
                 self.particle_filename = filename.replace("plt_cnt", "part")
                 mylog.info(
-                    "Particle file found: %s" % self.particle_filename.split("/")[-1]
+                    "Particle file found: %s", self.particle_filename.split("/")[-1]
                 )
-            except IOError:
+            except OSError:
                 self._particle_handle = self._handle
         else:
             # particle_filename is specified by user
-            try:
-                self._particle_handle = HDF5FileHandler(self.particle_filename)
-            except Exception:
-                raise IOError(self.particle_filename)
+            self._particle_handle = HDF5FileHandler(self.particle_filename)
+
         # Check if the particle file has the same time
         if self._particle_handle != self._handle:
             part_time = self._particle_handle.handle.get("real scalars")[0][1]
@@ -209,8 +210,9 @@ class FLASHDataset(Dataset):
                 self._particle_handle = self._handle
                 mylog.warning(
                     "%s and %s are not at the same time. "
-                    % (self.particle_filename, filename)
-                    + "This particle file will not be used."
+                    "This particle file will not be used.",
+                    self.particle_filename,
+                    filename,
                 )
 
         # These should be explicitly obtained from the file, but for now that
@@ -224,6 +226,7 @@ class FLASHDataset(Dataset):
             dataset_type,
             units_override=units_override,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
         self.storage_filename = storage_filename
 
@@ -264,10 +267,12 @@ class FLASHDataset(Dataset):
         setdefaultattr(self, "temperature_unit", self.quan(temperature_factor, "K"))
 
     def set_code_units(self):
-        super(FLASHDataset, self).set_code_units()
+        super().set_code_units()
 
     def _find_parameter(self, ptype, pname, scalar=False):
-        nn = "/%s %s" % (ptype, {False: "runtime parameters", True: "scalars"}[scalar])
+        nn = "/{} {}".format(
+            ptype, {False: "runtime parameters", True: "scalars"}[scalar]
+        )
         if nn not in self._handle:
             raise KeyError(nn)
         for tpname, pval in zip(
@@ -297,7 +302,7 @@ class FLASHDataset(Dataset):
         # overwrite scalars with the same name.
         for ptype in ["scalars", "runtime parameters"]:
             for vtype in ["integer", "real", "logical", "string"]:
-                hns.append("%s %s" % (vtype, ptype))
+                hns.append(f"{vtype} {ptype}")
         if self._flash_version > 7:
             for hn in hns:
                 if hn not in self._handle:
@@ -312,8 +317,9 @@ class FLASHDataset(Dataset):
                         pval = val
                     if vn in self.parameters and self.parameters[vn] != pval:
                         mylog.info(
-                            "{0} {1} overwrites a simulation "
-                            "scalar of the same name".format(hn[:-1], vn)
+                            "%s %s overwrites a simulation scalar of the same name",
+                            hn[:-1],
+                            vn,
                         )
                     if hasattr(pval, "decode"):
                         pval = pval.decode("ascii", "ignore")
@@ -341,8 +347,9 @@ class FLASHDataset(Dataset):
                         pval = val
                     if vn in self.parameters and self.parameters[vn] != pval:
                         mylog.info(
-                            "{0} {1} overwrites a simulation "
-                            "scalar of the same name".format(hn[:-1], vn)
+                            "%s %s overwrites a simulation scalar of the same name",
+                            hn[:-1],
+                            vn,
                         )
                     if hasattr(pval, "decode"):
                         pval = pval.decode("ascii", "ignore")
@@ -354,9 +361,9 @@ class FLASHDataset(Dataset):
             nyb = self.parameters["nyb"]
             nzb = self.parameters["nzb"]
         except KeyError:
-            nxb, nyb, nzb = [
-                int(self._handle["/simulation parameters"]["n%sb" % ax]) for ax in "xyz"
-            ]  # FLASH2 only!
+            nxb, nyb, nzb = (
+                int(self._handle["/simulation parameters"][f"n{ax}b"]) for ax in "xyz"
+            )  # FLASH2 only!
 
         # Determine dimensionality
         try:
@@ -390,18 +397,15 @@ class FLASHDataset(Dataset):
             nblocky = 1
 
         # Determine domain boundaries
-        dle = np.array([self.parameters["%smin" % ax] for ax in "xyz"]).astype(
-            "float64"
-        )
-        dre = np.array([self.parameters["%smax" % ax] for ax in "xyz"]).astype(
-            "float64"
-        )
+        dle = np.array([self.parameters[f"{ax}min"] for ax in "xyz"]).astype("float64")
+        dre = np.array([self.parameters[f"{ax}max"] for ax in "xyz"]).astype("float64")
         if self.dimensionality < 3:
             for d in [dimensionality] + list(range(3 - dimensionality)):
                 if dle[d] == dre[d]:
                     mylog.warning(
                         "Identical domain left edge and right edges "
-                        "along dummy dimension (%i), attempting to read anyway" % d
+                        "along dummy dimension (%i), attempting to read anyway",
+                        d,
                     )
                     dre[d] = dle[d] + 1.0
         if self.dimensionality < 3 and self.geometry == "cylindrical":
@@ -432,10 +436,10 @@ class FLASHDataset(Dataset):
 
         # Determine if this is a periodic box
         p = [
-            self.parameters.get("%sl_boundary_type" % ax, None) == "periodic"
+            self.parameters.get(f"{ax}l_boundary_type", None) == "periodic"
             for ax in "xyz"
         ]
-        self.periodicity = tuple(p)
+        self._periodicity = tuple(p)
 
         # Determine cosmological parameters.
         try:
@@ -447,16 +451,16 @@ class FLASHDataset(Dataset):
             self.hubble_constant = self.parameters["hubbleconstant"]
             self.hubble_constant *= cm_per_mpc * 1.0e-5 * 1.0e-2  # convert to 'h'
         except Exception:
-            self.current_redshift = (
-                self.omega_lambda
-            ) = (
-                self.omega_matter
-            ) = self.hubble_constant = self.cosmological_simulation = 0.0
+            self.current_redshift = 0.0
+            self.omega_lambda = 0.0
+            self.omega_matter = 0.0
+            self.hubble_constant = 0.0
+            self.cosmological_simulation = 0
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         try:
-            fileh = HDF5FileHandler(args[0])
+            fileh = HDF5FileHandler(filename)
             if "bounding box" in fileh["/"].keys():
                 return True
         except (OSError, ImportError):
@@ -513,7 +517,7 @@ class FLASHParticleDataset(FLASHDataset):
     def _parse_parameter_file(self):
         # Let the superclass do all the work but then
         # fix the domain dimensions
-        super(FLASHParticleDataset, self)._parse_parameter_file()
+        super()._parse_parameter_file()
         domain_dimensions = np.zeros(3, "int32")
         domain_dimensions[: self.dimensionality] = 1
         self.domain_dimensions = domain_dimensions
@@ -521,10 +525,10 @@ class FLASHParticleDataset(FLASHDataset):
         self.file_count = 1
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        warn_h5py(args[0])
+    def _is_valid(cls, filename, *args, **kwargs):
+        warn_h5py(filename)
         try:
-            fileh = HDF5FileHandler(args[0])
+            fileh = HDF5FileHandler(filename)
             if (
                 "bounding box" not in fileh["/"].keys()
                 and "localnp" in fileh["/"].keys()

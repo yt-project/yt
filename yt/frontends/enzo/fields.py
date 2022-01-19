@@ -1,5 +1,6 @@
 import numpy as np
 
+from yt._typing import KnownFieldsT
 from yt.fields.field_info_container import FieldInfoContainer
 from yt.utilities.physical_constants import me, mp
 
@@ -48,16 +49,16 @@ NODAL_FLAGS = {
 
 
 class EnzoFieldInfo(FieldInfoContainer):
-    known_other_fields = (
+    known_other_fields: KnownFieldsT = (
         ("Cooling_Time", ("s", ["cooling_time"], None)),
         ("Dengo_Cooling_Rate", ("erg/g/s", [], None)),
         ("Grackle_Cooling_Rate", ("erg/s/cm**3", [], None)),
-        ("HI_kph", ("1/code_time", [], None)),
-        ("HeI_kph", ("1/code_time", [], None)),
-        ("HeII_kph", ("1/code_time", [], None)),
-        ("H2I_kdiss", ("1/code_time", [], None)),
-        ("HM_kph", ("1/code_time", [], None)),
-        ("H2II_kdiss", ("1/code_time", [], None)),
+        ("HI_kph", ("1/code_time", ["H_p0_ionization_rate"], None)),
+        ("HeI_kph", ("1/code_time", ["He_p0_ionization_rate"], None)),
+        ("HeII_kph", ("1/code_time", ["He_p1_ionization_rate"], None)),
+        ("H2I_kdiss", ("1/code_time", ["H2_p0_dissociation_rate"], None)),
+        ("HM_kph", ("1/code_time", ["H_m1_ionization_rate"], None)),
+        ("H2II_kdiss", ("1/code_time", ["H2_p1_dissociation_rate"], None)),
         ("Bx", (b_units, [], None)),
         ("By", (b_units, [], None)),
         ("Bz", (b_units, [], None)),
@@ -89,7 +90,7 @@ class EnzoFieldInfo(FieldInfoContainer):
         ("Electron_Density", (rho_units, [], None)),
     )
 
-    known_particle_fields = (
+    known_particle_fields: KnownFieldsT = (
         ("particle_position_x", ("code_length", [], None)),
         ("particle_position_y", ("code_length", [], None)),
         ("particle_position_z", ("code_length", [], None)),
@@ -106,6 +107,10 @@ class EnzoFieldInfo(FieldInfoContainer):
         ("GridID", ("", [], None)),
         ("identifier", ("", ["particle_index"], None)),
         ("level", ("", [], None)),
+        ("AccretionRate", ("code_mass/code_time", [], None)),
+        ("AccretionRateTime", ("code_time", [], None)),
+        ("AccretionRadius", ("code_length", [], None)),
+        ("RadiationLifetime", ("code_time", [], None)),
     )
 
     def __init__(self, ds, field_list):
@@ -121,7 +126,7 @@ class EnzoFieldInfo(FieldInfoContainer):
             sl_right = slice(2, None, None)
             div_fac = 2.0
         slice_info = (sl_left, sl_right, div_fac)
-        super(EnzoFieldInfo, self).__init__(ds, field_list, slice_info)
+        super().__init__(ds, field_list, slice_info)
 
         # setup nodal flag information
         for field in NODAL_FLAGS:
@@ -139,7 +144,7 @@ class EnzoFieldInfo(FieldInfoContainer):
         # items...
         #
         self.add_output_field(
-            ("enzo", "%s_Density" % species),
+            ("enzo", f"{species}_Density"),
             sampling_type="cell",
             take_log=True,
             units="code_mass/code_length**3",
@@ -147,9 +152,7 @@ class EnzoFieldInfo(FieldInfoContainer):
         yt_name = known_species_names[species]
         # don't alias electron density since mass is wrong
         if species != "Electron":
-            self.alias(
-                ("gas", "%s_density" % yt_name), ("enzo", "%s_Density" % species)
-            )
+            self.alias(("gas", f"{yt_name}_density"), ("enzo", f"{species}_Density"))
 
     def setup_species_fields(self):
         species_names = [
@@ -160,7 +163,7 @@ class EnzoFieldInfo(FieldInfoContainer):
         species_names = [sp for sp in species_names if sp in known_species_names]
 
         def _electron_density(field, data):
-            return data["Electron_Density"] * (me / mp)
+            return data[("enzo", "Electron_Density")] * (me / mp)
 
         self.add_field(
             ("gas", "El_density"),
@@ -185,7 +188,7 @@ class EnzoFieldInfo(FieldInfoContainer):
         if multi_species > 0 or dengo == 1:
             self.setup_species_fields()
         self.setup_energy_field()
-        setup_magnetic_field_aliases(self, "enzo", ["B%s" % ax for ax in "xyz"])
+        setup_magnetic_field_aliases(self, "enzo", [f"B{ax}" for ax in "xyz"])
 
     def setup_energy_field(self):
         unit_system = self.ds.unit_system
@@ -215,18 +218,18 @@ class EnzoFieldInfo(FieldInfoContainer):
             self.add_output_field(
                 ("enzo", te_name), sampling_type="cell", units="code_velocity**2"
             )
-            self.alias(("gas", "thermal_energy"), ("enzo", te_name))
+            self.alias(("gas", "specific_thermal_energy"), ("enzo", te_name))
 
             def _ge_plus_kin(field, data):
-                ret = data[te_name] + 0.5 * data["velocity_x"] ** 2.0
+                ret = data[("enzo", te_name)] + 0.5 * data[("gas", "velocity_x")] ** 2.0
                 if data.ds.dimensionality > 1:
-                    ret += 0.5 * data["velocity_y"] ** 2.0
+                    ret += 0.5 * data[("gas", "velocity_y")] ** 2.0
                 if data.ds.dimensionality > 2:
-                    ret += 0.5 * data["velocity_z"] ** 2.0
+                    ret += 0.5 * data[("gas", "velocity_z")] ** 2.0
                 return ret
 
             self.add_field(
-                ("gas", "total_energy"),
+                ("gas", "specific_total_energy"),
                 sampling_type="cell",
                 function=_ge_plus_kin,
                 units=unit_system["specific_energy"],
@@ -236,7 +239,7 @@ class EnzoFieldInfo(FieldInfoContainer):
                 ("enzo", te_name), sampling_type="cell", units="code_velocity**2"
             )
             self.alias(
-                ("gas", "total_energy"),
+                ("gas", "specific_total_energy"),
                 ("enzo", te_name),
                 units=unit_system["specific_energy"],
             )
@@ -244,7 +247,7 @@ class EnzoFieldInfo(FieldInfoContainer):
                 ("enzo", ge_name), sampling_type="cell", units="code_velocity**2"
             )
             self.alias(
-                ("gas", "thermal_energy"),
+                ("gas", "specific_thermal_energy"),
                 ("enzo", ge_name),
                 units=unit_system["specific_energy"],
             )
@@ -252,18 +255,21 @@ class EnzoFieldInfo(FieldInfoContainer):
             self.add_output_field(
                 ("enzo", te_name), sampling_type="cell", units="code_velocity**2"
             )
+
             # Subtract off B-field energy
             def _sub_b(field, data):
-                ret = data[te_name] - 0.5 * data["velocity_x"] ** 2.0
+                ret = data[("enzo", te_name)] - 0.5 * data[("gas", "velocity_x")] ** 2.0
                 if data.ds.dimensionality > 1:
-                    ret -= 0.5 * data["velocity_y"] ** 2.0
+                    ret -= 0.5 * data[("gas", "velocity_y")] ** 2.0
                 if data.ds.dimensionality > 2:
-                    ret -= 0.5 * data["velocity_z"] ** 2.0
-                ret -= data["magnetic_energy"] / data["density"]
+                    ret -= 0.5 * data[("gas", "velocity_z")] ** 2.0
+                ret -= (
+                    data[("gas", "magnetic_energy_density")] / data[("gas", "density")]
+                )
                 return ret
 
             self.add_field(
-                ("gas", "thermal_energy"),
+                ("gas", "specific_thermal_energy"),
                 sampling_type="cell",
                 function=_sub_b,
                 units=unit_system["specific_energy"],
@@ -273,21 +279,21 @@ class EnzoFieldInfo(FieldInfoContainer):
                 ("enzo", te_name), sampling_type="cell", units="code_velocity**2"
             )
             self.alias(
-                ("gas", "total_energy"),
+                ("gas", "specific_total_energy"),
                 ("enzo", te_name),
                 units=unit_system["specific_energy"],
             )
 
             def _tot_minus_kin(field, data):
-                ret = data[te_name] - 0.5 * data["velocity_x"] ** 2.0
+                ret = data[("enzo", te_name)] - 0.5 * data[("gas", "velocity_x")] ** 2.0
                 if data.ds.dimensionality > 1:
-                    ret -= 0.5 * data["velocity_y"] ** 2.0
+                    ret -= 0.5 * data[("gas", "velocity_y")] ** 2.0
                 if data.ds.dimensionality > 2:
-                    ret -= 0.5 * data["velocity_z"] ** 2.0
+                    ret -= 0.5 * data[("gas", "velocity_z")] ** 2.0
                 return ret
 
             self.add_field(
-                ("gas", "thermal_energy"),
+                ("gas", "specific_thermal_energy"),
                 sampling_type="cell",
                 function=_tot_minus_kin,
                 units=unit_system["specific_energy"],
@@ -316,10 +322,10 @@ class EnzoFieldInfo(FieldInfoContainer):
 
     def setup_particle_fields(self, ptype):
         def _age(field, data):
-            return data.ds.current_time - data["creation_time"]
+            return data.ds.current_time - data[("all", "creation_time")]
 
         self.add_field(
             (ptype, "age"), sampling_type="particle", function=_age, units="yr"
         )
 
-        super(EnzoFieldInfo, self).setup_particle_fields(ptype)
+        super().setup_particle_fields(ptype)

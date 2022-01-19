@@ -18,7 +18,7 @@ cimport numpy as np
 
 cdef extern from "voro++.hh" namespace "voro":
     cdef cppclass c_loop_all
-    
+
     cdef cppclass voronoicell:
         double volume()
 
@@ -30,7 +30,7 @@ cdef extern from "voro++.hh" namespace "voro":
         void store_cell_volumes(double *vols)
         int compute_cell(voronoicell c, c_loop_all vl)
         double sum_cell_volumes()
-		
+
     cdef cppclass c_loop_all:
         c_loop_all(container &con)
         int inc()

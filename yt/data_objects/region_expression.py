@@ -42,6 +42,22 @@ class RegionExpression:
                 # ds.r[::256j, ::256j, ::256j].  Other cases would be if we do
                 # ds.r[0.1:0.9] where it will be expanded along all dimensions.
                 item = tuple(item for _ in range(self.ds.dimensionality))
+
+        if item is Ellipsis:
+            item = (Ellipsis,)
+
+        # from this point, item is implicitly assumed to be iterable
+        if Ellipsis in item:
+            # expand "..." into the appropriate number of ":"
+            item = list(item)
+            idx = item.index(Ellipsis)
+            item.pop(idx)
+            if Ellipsis in item:
+                # this error mimics numpy's
+                raise IndexError("an index can only have a single ellipsis ('...')")
+            while len(item) < self.ds.dimensionality:
+                item.insert(idx, slice(None))
+
         if len(item) != self.ds.dimensionality:
             # Not the right specification, and we don't want to do anything
             # implicitly.  Note that this happens *after* the implicit expansion
@@ -136,14 +152,17 @@ class RegionExpression:
     def _create_region(self, bounds_tuple):
         left_edge = self.ds.domain_left_edge.copy()
         right_edge = self.ds.domain_right_edge.copy()
-        dims = []
+        dims = [1, 1, 1]
         for ax, b in enumerate(bounds_tuple):
             l, r = self._slice_to_edges(ax, b)
             left_edge[ax] = l
             right_edge[ax] = r
-            dims.append(getattr(b.step, "imag", None))
+            d = getattr(b.step, "imag", None)
+            if d is not None:
+                d = int(d)
+            dims[ax] = d
         center = [(cl + cr) / 2.0 for cl, cr in zip(left_edge, right_edge)]
-        if all(d is not None for d in dims):
+        if None not in dims:
             return self.ds.arbitrary_grid(left_edge, right_edge, dims)
         return self.ds.region(center, left_edge, right_edge)
 

@@ -68,7 +68,7 @@ parameter_list *artio_parameter_list_init() {
 		parameters->tail = NULL;
 		parameters->cursor = NULL;
 		parameters->iterate_flag = 0;
-	} 
+	}
 	return parameters;
 }
 
@@ -115,7 +115,7 @@ int artio_parameter_read(artio_fh *handle, parameter_list *parameters) {
 		t_len = artio_type_size(item->type);
 		item->value = (char *)malloc(item->val_length * t_len);
 
-		re = artio_file_fread(handle, item->value, 
+		re = artio_file_fread(handle, item->value,
 				item->val_length, item->type);
 		if ( re != ARTIO_SUCCESS ) {
 			return ARTIO_ERR_PARAM_CORRUPTED;
@@ -147,22 +147,22 @@ int artio_parameter_write(artio_fh *handle, parameter_list *parameters) {
 		item = item->next;
 	}
 
-	artio_file_fwrite(handle, &endian_tag, 
+	artio_file_fwrite(handle, &endian_tag,
 			1, ARTIO_TYPE_INT);
 	artio_file_fwrite(handle, &length,
 			1, ARTIO_TYPE_INT);
 
 	item = parameters->head;
 	while (NULL != item) {
-		artio_file_fwrite(handle, &item->key_length, 
+		artio_file_fwrite(handle, &item->key_length,
 				1, ARTIO_TYPE_INT);
-		artio_file_fwrite(handle, item->key, 
+		artio_file_fwrite(handle, item->key,
 				item->key_length, ARTIO_TYPE_CHAR);
-		artio_file_fwrite(handle, &item->val_length, 
+		artio_file_fwrite(handle, &item->val_length,
 				1, ARTIO_TYPE_INT);
-		artio_file_fwrite(handle, &item->type, 
+		artio_file_fwrite(handle, &item->type,
 				1, ARTIO_TYPE_INT);
-		artio_file_fwrite(handle, item->value, 
+		artio_file_fwrite(handle, item->value,
 				item->val_length, item->type);
 		item = item->next;
 	}
@@ -170,13 +170,13 @@ int artio_parameter_write(artio_fh *handle, parameter_list *parameters) {
 	return ARTIO_SUCCESS;
 }
 
-int artio_parameter_iterate( artio_fileset *handle, 
+int artio_parameter_iterate( artio_fileset *handle,
 		char *key, int *type, int *length ) {
 	parameter *item;
 	parameter_list *parameters = handle->parameters;
 
 	if ( parameters->iterate_flag == 0 ) {
-		parameters->cursor = parameters->head;	
+		parameters->cursor = parameters->head;
 		parameters->iterate_flag = 1;
 	}
 
@@ -184,7 +184,7 @@ int artio_parameter_iterate( artio_fileset *handle,
 		parameters->iterate_flag = 0;
 		return ARTIO_PARAMETER_EXHAUSTED;
 	}
- 
+
 	item = parameters->cursor;
 	strncpy( key, item->key, 64 );
 	*type = item->type;
@@ -202,7 +202,7 @@ parameter *artio_parameter_list_search(parameter_list * parameters, const char *
 	return item;
 }
 
-int artio_parameter_list_insert(parameter_list * parameters, const char * key, 
+int artio_parameter_list_insert(parameter_list * parameters, const char * key,
 		int length, void *value, int type) {
 	int key_len;
 	size_t val_len = 0;
@@ -250,7 +250,7 @@ int artio_parameter_list_insert(parameter_list * parameters, const char * key,
 	return ARTIO_SUCCESS;
 }
 
-int artio_parameter_list_unpack(parameter_list *parameters, 
+int artio_parameter_list_unpack(parameter_list *parameters,
 		const char *key, int length,
 		void *value, int type) {
 	size_t t_len;
@@ -272,7 +272,7 @@ int artio_parameter_list_unpack(parameter_list *parameters,
 	return ARTIO_SUCCESS;
 }
 
-int artio_parameter_list_unpack_index(parameter_list *parameters, 
+int artio_parameter_list_unpack_index(parameter_list *parameters,
         const char *key, int index,
 		void *value, int type) {
 	size_t t_len;
@@ -343,7 +343,7 @@ int artio_parameter_list_free(parameter_list * parameters) {
 
 		parameters->head = NULL;
 		parameters->tail = NULL;
-	
+
 		free( parameters );
 	}
 
@@ -407,13 +407,13 @@ int artio_parameter_set_int_array(artio_fileset *handle, const char * key, int l
 
 int artio_parameter_get_int_array(artio_fileset *handle, const char * key, int length,
 		int32_t * value) {
-	return artio_parameter_list_unpack(handle->parameters, key, length, 
+	return artio_parameter_list_unpack(handle->parameters, key, length,
 			value, ARTIO_TYPE_INT);
 }
 
 int artio_parameter_get_int_array_index( artio_fileset *handle, const char *key, int index,
 		int32_t * value ) {
-	return artio_parameter_list_unpack_index(handle->parameters, key, 
+	return artio_parameter_list_unpack_index(handle->parameters, key,
 			index, value, ARTIO_TYPE_INT );
 }
 
@@ -434,13 +434,13 @@ int artio_parameter_set_float_array(artio_fileset *handle, const char * key,
 
 int artio_parameter_get_float_array(artio_fileset *handle, const char * key,
 		int length, float * value) {
-	return artio_parameter_list_unpack(handle->parameters, key, length, 
+	return artio_parameter_list_unpack(handle->parameters, key, length,
 			value, ARTIO_TYPE_FLOAT);
 }
 
 int artio_parameter_get_float_array_index(artio_fileset *handle, const char * key,
 		int index, float * value) {
-	return artio_parameter_list_unpack_index(handle->parameters, key, index, 
+	return artio_parameter_list_unpack_index(handle->parameters, key, index,
 			value, ARTIO_TYPE_FLOAT);
 }
 
@@ -461,13 +461,13 @@ int artio_parameter_set_double_array(artio_fileset *handle, const char * key,
 
 int artio_parameter_get_double_array(artio_fileset *handle, const char * key,
 		int length, double * value) {
-	return artio_parameter_list_unpack(handle->parameters, key, length, 
+	return artio_parameter_list_unpack(handle->parameters, key, length,
 			value, ARTIO_TYPE_DOUBLE);
 }
 
 int artio_parameter_get_double_array_index(artio_fileset *handle, const char * key,
 		int index, double * value) {
-	return artio_parameter_list_unpack_index(handle->parameters, key, index, 
+	return artio_parameter_list_unpack_index(handle->parameters, key, index,
 			value, ARTIO_TYPE_DOUBLE);
 }
 
@@ -488,13 +488,13 @@ int artio_parameter_set_long_array(artio_fileset *handle, const char * key,
 
 int artio_parameter_get_long_array(artio_fileset *handle, const char * key,
 		int length, int64_t * value) {
-	return artio_parameter_list_unpack(handle->parameters, key, length, 
+	return artio_parameter_list_unpack(handle->parameters, key, length,
 			value, ARTIO_TYPE_LONG);
 }
 
 int artio_parameter_get_long_array_index(artio_fileset *handle, const char * key,
         int index, int64_t * value) {
-    return artio_parameter_list_unpack_index(handle->parameters, key, index, 
+    return artio_parameter_list_unpack_index(handle->parameters, key, index,
             value, ARTIO_TYPE_LONG);
 }
 
@@ -514,7 +514,7 @@ int artio_parameter_set_string_array(artio_fileset *handle, const char *key,
 		len = strlen(value[i]) + 1;
 		if ( len > ARTIO_MAX_STRING_LENGTH ) {
 			return ARTIO_ERR_STRING_LENGTH;
-		} 
+		}
 		loc_length += len;
 	}
 
@@ -528,7 +528,7 @@ int artio_parameter_set_string_array(artio_fileset *handle, const char *key,
 		p += strlen(value[i]) + 1;
 	}
 
-	ret = artio_parameter_list_insert(handle->parameters, key, 
+	ret = artio_parameter_list_insert(handle->parameters, key,
 				loc_length, loc_value, ARTIO_TYPE_STRING);
 	free(loc_value);
 

@@ -1,13 +1,12 @@
 import abc
 import os
-import pickle
 import weakref
+from typing import Tuple
 
 import numpy as np
 
 from yt.config import ytcfg
-from yt.funcs import iterable
-from yt.units.yt_array import YTArray, uconcatenate
+from yt.units.yt_array import YTArray, uconcatenate  # type: ignore
 from yt.utilities.exceptions import YTFieldNotFound
 from yt.utilities.io_handler import io_registry
 from yt.utilities.logger import ytLogger as mylog
@@ -21,8 +20,8 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import (
 class Index(ParallelAnalysisInterface, abc.ABC):
     """The base index class"""
 
-    _unsupported_objects = ()
-    _index_properties = ()
+    _unsupported_objects: Tuple[str, ...] = ()
+    _index_properties: Tuple[str, ...] = ()
 
     def __init__(self, ds, dataset_type):
         ParallelAnalysisInterface.__init__(self)
@@ -56,16 +55,16 @@ class Index(ParallelAnalysisInterface, abc.ABC):
         self.num_grids = None
 
     def _initialize_data_storage(self):
-        if not ytcfg.getboolean("yt", "serialize"):
+        if not ytcfg.get("yt", "serialize"):
             return
         fn = self.ds.storage_filename
         if fn is None:
             if os.path.isfile(
-                os.path.join(self.directory, "%s.yt" % self.ds.unique_identifier)
+                os.path.join(self.directory, f"{self.ds.unique_identifier}.yt")
             ):
-                fn = os.path.join(self.directory, "%s.yt" % self.ds.unique_identifier)
+                fn = os.path.join(self.directory, f"{self.ds.unique_identifier}.yt")
             else:
-                fn = os.path.join(self.directory, "%s.yt" % self.dataset.basename)
+                fn = os.path.join(self.directory, f"{self.dataset.basename}.yt")
         dir_to_check = os.path.dirname(fn)
         if dir_to_check == "":
             dir_to_check = "."
@@ -79,7 +78,7 @@ class Index(ParallelAnalysisInterface, abc.ABC):
             writeable = os.access(dir_to_check, os.W_OK)
         else:
             writeable = os.access(fn, os.W_OK)
-        writeable = writeable and not ytcfg.getboolean("yt", "onlydeserialize")
+        writeable = writeable and not ytcfg.get("yt", "only_deserialize")
         # We now have our conditional stuff
         self.comm.barrier()
         if not writeable and not exists:
@@ -89,14 +88,14 @@ class Index(ParallelAnalysisInterface, abc.ABC):
                 if not exists:
                     self.__create_data_file(fn)
                 self._data_mode = "a"
-            except IOError:
+            except OSError:
                 self._data_mode = None
                 return
         else:
             self._data_mode = "r"
 
         self.__data_filename = fn
-        self._data_file = h5py.File(fn, self._data_mode)
+        self._data_file = h5py.File(fn, mode=self._data_mode)
 
     def __create_data_file(self, fn):
         # Note that this used to be parallel_root_only; it no longer is,
@@ -145,30 +144,7 @@ class Index(ParallelAnalysisInterface, abc.ABC):
             return
         self._data_file.close()
         del self._data_file
-        self._data_file = h5py.File(self.__data_filename, self._data_mode)
-
-    def save_object(self, obj, name):
-        """
-        Save an object (*obj*) to the data_file using the Pickle protocol,
-        under the name *name* on the node /Objects.
-        """
-        s = pickle.dumps(obj, protocol=-1)
-        self.save_data(np.array(s, dtype="c"), "/Objects", name, force=True)
-
-    def load_object(self, name):
-        """
-        Load and return and object from the data_file using the Pickle protocol,
-        under the name *name* on the node /Objects.
-        """
-        obj = self.get_data("/Objects", name)
-        if obj is None:
-            return
-        obj = pickle.loads(obj.value)
-        if iterable(obj) and len(obj) == 2:
-            obj = obj[1]  # Just the object, not the ds
-        if hasattr(obj, "_fix_pickle"):
-            obj._fix_pickle()
-        return obj
+        self._data_file = h5py.File(self.__data_filename, mode=self._data_mode)
 
     def get_data(self, node, name):
         """
@@ -178,7 +154,7 @@ class Index(ParallelAnalysisInterface, abc.ABC):
         if self._data_file is None:
             return None
         if node[0] != "/":
-            node = "/%s" % node
+            node = f"/{node}"
 
         myGroup = self._data_file["/"]
         for group in node.split("/"):
@@ -189,7 +165,7 @@ class Index(ParallelAnalysisInterface, abc.ABC):
         if name not in myGroup:
             return None
 
-        full_name = "%s/%s" % (node, name)
+        full_name = f"{node}/{name}"
         try:
             return self._data_file[full_name][:]
         except TypeError:
@@ -269,7 +245,9 @@ class Index(ParallelAnalysisInterface, abc.ABC):
 
 
 def cached_property(func):
-    n = "_%s" % func.__name__
+    # TODO: remove this once minimal supported version of Python reaches 3.8
+    # and replace with functools.cached
+    n = f"_{func.__name__}"
 
     def cached_func(self):
         if self._cache and getattr(self, n, None) is not None:
@@ -308,7 +286,7 @@ class YTDataChunk:
     def _accumulate_values(self, method):
         # We call this generically.  It's somewhat slower, since we're doing
         # costly getattr functions, but this allows us to generalize.
-        mname = "select_%s" % method
+        mname = f"select_{method}"
         arrs = []
         for obj in self._fast_index or self.objs:
             f = getattr(obj, mname)
@@ -451,7 +429,7 @@ class ChunkDataCache:
 
     def __next__(self):
         if len(self.queue) == 0:
-            for i in range(self.max_length):
+            for _ in range(self.max_length):
                 try:
                     self.queue.append(next(self.base_iter))
                 except StopIteration:

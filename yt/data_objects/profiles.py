@@ -1,16 +1,11 @@
 import numpy as np
+from more_itertools import collapse
 
 from yt.data_objects.field_data import YTFieldData
 from yt.fields.derived_field import DerivedField
 from yt.frontends.ytdata.utilities import save_as_dataset
-from yt.funcs import (
-    ensure_list,
-    get_output_filename,
-    issue_deprecation_warning,
-    iterable,
-    mylog,
-)
-from yt.units.unit_object import Unit
+from yt.funcs import get_output_filename, is_sequence, iter_fields, mylog
+from yt.units.unit_object import Unit  # type: ignore
 from yt.units.yt_array import YTQuantity, array_like_field
 from yt.utilities.exceptions import (
     YTIllDefinedBounds,
@@ -92,15 +87,6 @@ class ProfileND(ParallelAnalysisInterface):
         self.field_units = {}
         ParallelAnalysisInterface.__init__(self, comm=data_source.comm)
 
-    @property
-    def variance(self):
-        issue_deprecation_warning(
-            """
-profile.variance incorrectly returns the profile standard deviation and has
-been deprecated, use profile.standard_deviation instead."""
-        )
-        return self.standard_deviation
-
     def add_fields(self, fields):
         """Add fields to profile
 
@@ -137,13 +123,13 @@ been deprecated, use profile.standard_deviation instead."""
             if fd in self.field_units:
                 self.field_units[fd] = Unit(new_unit, registry=self.ds.unit_registry)
             else:
-                raise KeyError("%s not in profile!" % (field))
+                raise KeyError(f"{field} not in profile!")
 
     def _finalize_storage(self, fields, temp_storage):
         # We use our main comm here
         # This also will fill _field_data
 
-        for i, field in enumerate(fields):
+        for i, _field in enumerate(fields):
             # q values are returned as q * weight but we want just q
             temp_storage.qvalues[..., i][
                 temp_storage.used
@@ -173,7 +159,7 @@ been deprecated, use profile.standard_deviation instead."""
             all_weight[all_store[p].used] += all_store[p].weight_values[
                 all_store[p].used
             ]
-            for i, field in enumerate(fields):
+            for i, _field in enumerate(fields):
                 all_val[..., i][all_store[p].used] += all_store[p].values[..., i][
                     all_store[p].used
                 ]
@@ -346,24 +332,33 @@ been deprecated, use profile.standard_deviation instead."""
         >>> import yt
         >>> ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
         >>> ad = ds.all_data()
-        >>> profile = yt.create_profile(ad, ["density", "temperature"],
-        ...                            "cell_mass", weight_field=None,
-        ...                             n_bins=(128, 128))
+        >>> profile = yt.create_profile(
+        ...     ad,
+        ...     [("gas", "density"), ("gas", "temperature")],
+        ...     ("gas", "mass"),
+        ...     weight_field=None,
+        ...     n_bins=(128, 128),
+        ... )
         >>> fn = profile.save_as_dataset()
         >>> prof_ds = yt.load(fn)
-        >>> print (prof_ds.data["cell_mass"])
+        >>> print(prof_ds.data[("gas", "mass")])
         (128, 128)
-        >>> print (prof_ds.data["x"].shape) # x bins as 1D array
+        >>> print(prof_ds.data[("index", "x")].shape)  # x bins as 1D array
         (128,)
-        >>> print (prof_ds.data["density"]) # x bins as 2D array
+        >>> print(prof_ds.data[("gas", "density")])  # x bins as 2D array
         (128, 128)
-        >>> p = yt.PhasePlot(prof_ds.data, "density", "temperature",
-        ...                  "cell_mass", weight_field=None)
+        >>> p = yt.PhasePlot(
+        ...     prof_ds.data,
+        ...     ("gas", "density"),
+        ...     ("gas", "temperature"),
+        ...     ("gas", "mass"),
+        ...     weight_field=None,
+        ... )
         >>> p.save()
 
         """
 
-        keyword = "%s_%s" % (str(self.ds), self.__class__.__name__)
+        keyword = f"{str(self.ds)}_{self.__class__.__name__}"
         filename = get_output_filename(filename, keyword, ".h5")
 
         args = ("field", "log")
@@ -381,9 +376,7 @@ been deprecated, use profile.standard_deviation instead."""
         std = "standard_deviation"
         if self.weight_field is not None:
             std_data = getattr(self, std)
-            data.update(
-                dict(((std, field[1]), std_data[field]) for field in self.field_data)
-            )
+            data.update({(std, field[1]): std_data[field] for field in self.field_data})
 
         dimensionality = 0
         bin_data = []
@@ -392,23 +385,23 @@ been deprecated, use profile.standard_deviation instead."""
                 dimensionality += 1
                 data[ax] = getattr(self, ax)
                 bin_data.append(data[ax])
-                bin_field_name = "%s_bins" % ax
+                bin_field_name = f"{ax}_bins"
                 data[bin_field_name] = getattr(self, bin_field_name)
-                extra_attrs["%s_range" % ax] = self.ds.arr(
+                extra_attrs[f"{ax}_range"] = self.ds.arr(
                     [data[bin_field_name][0], data[bin_field_name][-1]]
                 )
                 for arg in args:
-                    key = "%s_%s" % (ax, arg)
+                    key = f"{ax}_{arg}"
                     extra_attrs[key] = getattr(self, key)
 
         bin_fields = np.meshgrid(*bin_data)
         for i, ax in enumerate("xyz"[:dimensionality]):
-            data[getattr(self, "%s_field" % ax)] = bin_fields[i]
+            data[getattr(self, f"{ax}_field")] = bin_fields[i]
 
         extra_attrs["dimensionality"] = dimensionality
-        ftypes = dict([(field, "data") for field in data if field[0] != std])
+        ftypes = {field: "data" for field in data if field[0] != std}
         if self.weight_field is not None:
-            ftypes.update(dict(((std, field[1]), std) for field in self.field_data))
+            ftypes.update({(std, field[1]): std for field in self.field_data})
         save_as_dataset(
             self.ds, filename, data, field_types=ftypes, extra_attrs=extra_attrs
         )
@@ -427,18 +420,18 @@ class ProfileNDFromDataset(ProfileND):
         self.accumulation = ds.parameters.get("accumulation", False)
         exclude_fields = ["used", "weight"]
         for ax in "xyz"[: ds.dimensionality]:
-            setattr(self, ax, ds.data[ax])
-            ax_bins = "%s_bins" % ax
-            ax_field = "%s_field" % ax
-            ax_log = "%s_log" % ax
-            setattr(self, ax_bins, ds.data[ax_bins])
+            setattr(self, ax, ds.data[("data", ax)])
+            ax_bins = f"{ax}_bins"
+            ax_field = f"{ax}_field"
+            ax_log = f"{ax}_log"
+            setattr(self, ax_bins, ds.data[("data", ax_bins)])
             field_name = tuple(ds.parameters.get(ax_field, (None, None)))
             setattr(self, ax_field, field_name)
             self.field_info[field_name] = ds.field_info[field_name]
             setattr(self, ax_log, ds.parameters.get(ax_log, False))
             exclude_fields.extend([ax, ax_bins, field_name[1]])
-        self.weight = ds.data["weight"]
-        self.used = ds.data["used"].d.astype(bool)
+        self.weight = ds.data[("data", "weight")]
+        self.used = ds.data[("data", "used")].d.astype(bool)
         profile_fields = [
             f
             for f in ds.field_list
@@ -492,7 +485,7 @@ class Profile1D(ProfileND):
         weight_field=None,
         override_bins_x=None,
     ):
-        super(Profile1D, self).__init__(data_source, weight_field)
+        super().__init__(data_source, weight_field)
         self.x_field = data_source._determine_fields(x_field)[0]
         self.field_info[self.x_field] = self.data_source.ds.field_info[self.x_field]
         self.x_log = x_log
@@ -533,10 +526,10 @@ class Profile1D(ProfileND):
     def set_x_unit(self, new_unit):
         """Sets a new unit for the x field
 
-        parameters
+        Parameters
         ----------
         new_unit : string or Unit object
-           The name of the new unit.
+            The name of the new unit.
         """
         self.x_bins.convert_to_units(new_unit)
         self.x = 0.5 * (self.x_bins[1:] + self.x_bins[:-1])
@@ -566,7 +559,6 @@ class Profile1D(ProfileND):
         if fields is None:
             fields = self.field_data.keys()
         else:
-            fields = ensure_list(fields)
             fields = self.data_source._determine_fields(fields)
         return idxs, masked, fields
 
@@ -596,16 +588,16 @@ class Profile1D(ProfileND):
         Examples
         --------
         >>> sp = ds.sphere("c", (0.1, "unitary"))
-        >>> p = sp.profile("radius", ["density", "temperature"])
+        >>> p = sp.profile(
+        ...     ("index", "radius"), [("gas", "density"), ("gas", "temperature")]
+        ... )
         >>> df1 = p.to_dataframe()
-        >>> df2 = p.to_dataframe(fields="density", only_used=True)
+        >>> df2 = p.to_dataframe(fields=("gas", "density"), only_used=True)
         """
-        from collections import OrderedDict
-
-        import pandas as pd
+        from yt.utilities.on_demand_imports import _pandas as pd
 
         idxs, masked, fields = self._export_prep(fields, only_used)
-        pdata = OrderedDict([(self.x_field[-1], self.x[idxs])])
+        pdata = {self.x_field[-1]: self.x[idxs]}
         for field in fields:
             pdata[field[-1]] = self[field][idxs]
         df = pd.DataFrame(pdata)
@@ -644,9 +636,11 @@ class Profile1D(ProfileND):
         Examples
         --------
         >>> sp = ds.sphere("c", (0.1, "unitary"))
-        >>> p = sp.profile("radius", ["density", "temperature"])
+        >>> p = sp.profile(
+        ...     ("index", "radius"), [("gas", "density"), ("gas", "temperature")]
+        ... )
         >>> qt1 = p.to_astropy_table()
-        >>> qt2 = p.to_astropy_table(fields="density", only_used=True)
+        >>> qt2 = p.to_astropy_table(fields=("gas", "density"), only_used=True)
         """
         from astropy.table import QTable
 
@@ -731,7 +725,7 @@ class Profile2D(ProfileND):
         override_bins_x=None,
         override_bins_y=None,
     ):
-        super(Profile2D, self).__init__(data_source, weight_field)
+        super().__init__(data_source, weight_field)
         # X
         self.x_field = data_source._determine_fields(x_field)[0]
         self.x_log = x_log
@@ -789,10 +783,10 @@ class Profile2D(ProfileND):
     def set_x_unit(self, new_unit):
         """Sets a new unit for the x field
 
-        parameters
+        Parameters
         ----------
         new_unit : string or Unit object
-           The name of the new unit.
+            The name of the new unit.
         """
         self.x_bins.convert_to_units(new_unit)
         self.x = 0.5 * (self.x_bins[1:] + self.x_bins[:-1])
@@ -800,10 +794,10 @@ class Profile2D(ProfileND):
     def set_y_unit(self, new_unit):
         """Sets a new unit for the y field
 
-        parameters
+        Parameters
         ----------
         new_unit : string or Unit object
-           The name of the new unit.
+            The name of the new unit.
         """
         self.y_bins.convert_to_units(new_unit)
         self.y = 0.5 * (self.y_bins[1:] + self.y_bins[:-1])
@@ -865,7 +859,7 @@ class ParticleProfile(Profile2D):
     weight_field : string field name
         The field to use for weighting. Default is None.
     deposition : string, optional
-        The interpolation kernal to be used for
+        The interpolation kernel to be used for
         deposition. Valid choices:
         "ngp" : nearest grid point interpolation
         "cic" : cloud-in-cell interpolation
@@ -908,7 +902,7 @@ class ParticleProfile(Profile2D):
 
         # set the log parameters to False (since that doesn't make much sense
         # for deposited data) and also turn off the weight field.
-        super(ParticleProfile, self).__init__(
+        super().__init__(
             data_source,
             x_field,
             x_n,
@@ -938,11 +932,13 @@ class ParticleProfile(Profile2D):
         elif self.deposition == "cic":
             func = CICDeposit_2
 
-        for fi, field in enumerate(fields):
+        for fi, _field in enumerate(fields):
             if self.weight_field is None:
                 deposit_vals = fdata[:, fi]
             else:
                 deposit_vals = wdata * fdata[:, fi]
+
+            field_mask = np.zeros(self.size, dtype="uint8")
 
             func(
                 bf_x,
@@ -950,11 +946,12 @@ class ParticleProfile(Profile2D):
                 deposit_vals,
                 fdata[:, fi].size,
                 storage.values[:, :, fi],
+                field_mask,
                 self.x_bins,
                 self.y_bins,
             )
 
-            locs = storage.values[:, :, fi] != 0.0
+            locs = field_mask > 0
             storage.used[locs] = True
 
             if self.weight_field is not None:
@@ -964,6 +961,7 @@ class ParticleProfile(Profile2D):
                     wdata,
                     fdata[:, fi].size,
                     storage.weight_values,
+                    field_mask,
                     self.x_bins,
                     self.y_bins,
                 )
@@ -1056,7 +1054,7 @@ class Profile3D(ProfileND):
         override_bins_y=None,
         override_bins_z=None,
     ):
-        super(Profile3D, self).__init__(data_source, weight_field)
+        super().__init__(data_source, weight_field)
         # X
         self.x_field = data_source._determine_fields(x_field)[0]
         self.x_log = x_log
@@ -1137,10 +1135,10 @@ class Profile3D(ProfileND):
     def set_x_unit(self, new_unit):
         """Sets a new unit for the x field
 
-        parameters
+        Parameters
         ----------
         new_unit : string or Unit object
-           The name of the new unit.
+            The name of the new unit.
         """
         self.x_bins.convert_to_units(new_unit)
         self.x = 0.5 * (self.x_bins[1:] + self.x_bins[:-1])
@@ -1148,10 +1146,10 @@ class Profile3D(ProfileND):
     def set_y_unit(self, new_unit):
         """Sets a new unit for the y field
 
-        parameters
+        Parameters
         ----------
         new_unit : string or Unit object
-           The name of the new unit.
+            The name of the new unit.
         """
         self.y_bins.convert_to_units(new_unit)
         self.y = 0.5 * (self.y_bins[1:] + self.y_bins[:-1])
@@ -1159,10 +1157,10 @@ class Profile3D(ProfileND):
     def set_z_unit(self, new_unit):
         """Sets a new unit for the z field
 
-        parameters
+        Parameters
         ----------
         new_unit : string or Unit object
-           The name of the new unit.
+            The name of the new unit.
         """
         self.z_bins.convert_to_units(new_unit)
         self.z = 0.5 * (self.z_bins[1:] + self.z_bins[:-1])
@@ -1195,7 +1193,7 @@ def create_profile(
     extrema=None,
     logs=None,
     units=None,
-    weight_field="cell_mass",
+    weight_field=("gas", "mass"),
     accumulation=False,
     fractional=False,
     deposition="ngp",
@@ -1233,7 +1231,7 @@ def create_profile(
     weight_field : str or tuple field identifier
         The weight field for computing weighted average for the profile
         values.  If None, the profile values are sums of the data in
-        each bin. Defaults to "cell_mass".
+        each bin. Defaults to ("gas", "mass").
     accumulation : bool or list of bools
         If True, the profile values for a bin n are the cumulative sum of
         all the values from bin 0 to n.  If -True, the sum is reversed so
@@ -1263,15 +1261,15 @@ def create_profile(
 
     >>> ds = load("DD0046/DD0046")
     >>> ad = ds.all_data()
-    >>> profile = create_profile(ad, [("gas", "density")],
-    ...                              [("gas", "temperature"),
-    ...                               ("gas", "velocity_x")])
-    >>> print (profile.x)
-    >>> print (profile["gas", "temperature"])
+    >>> profile = create_profile(
+    ...     ad, [("gas", "density")], [("gas", "temperature"), ("gas", "velocity_x")]
+    ... )
+    >>> print(profile.x)
+    >>> print(profile["gas", "temperature"])
 
     """
     bin_fields = data_source._determine_fields(bin_fields)
-    fields = ensure_list(fields)
+    fields = list(iter_fields(fields))
     is_pfield = [
         data_source.ds._get_field_info(f).sampling_type == "particle"
         for f in bin_fields + fields
@@ -1316,7 +1314,7 @@ def create_profile(
                     bin_fields[1] in logs and logs[bin_fields[1]]
                 ):
                     raise RuntimeError(
-                        "CIC deposition is only implemented for linear-scaled " "axes"
+                        "CIC deposition is only implemented for linear-scaled axes"
                     )
             else:
                 logs = {bin_fields[0]: False, bin_fields[1]: False}
@@ -1325,8 +1323,6 @@ def create_profile(
                     "The accumulation and fractional keyword arguments must be "
                     "False for CIC deposition"
                 )
-        elif logs is None:
-            logs = {bin_fields[0]: False, bin_fields[1]: False}
         cls = ParticleProfile
     elif len(bin_fields) == 2:
         cls = Profile2D
@@ -1339,9 +1335,9 @@ def create_profile(
         wf = data_source.ds._get_field_info(weight_field)
         if not wf.sampling_type == "particle":
             weight_field = None
-    if not iterable(n_bins):
+    if not is_sequence(n_bins):
         n_bins = [n_bins] * len(bin_fields)
-    if not iterable(accumulation):
+    if not is_sequence(accumulation):
         accumulation = [accumulation] * len(bin_fields)
     if logs is None:
         logs = {}
@@ -1352,7 +1348,9 @@ def create_profile(
         else:
             logs_list.append(data_source.ds.field_info[bin_field].take_log)
     logs = logs_list
-    if extrema is None:
+
+    # Are the extrema all Nones? Then treat them as though extrema was set as None
+    if extrema is None or not any(collapse(extrema.values())):
         ex = [
             data_source.quantities["Extrema"](f, non_zero=l)
             for f, l in zip(bin_fields, logs)
@@ -1368,15 +1366,15 @@ def create_profile(
             bf_units = data_source.ds.field_info[bin_field].output_units
             try:
                 field_ex = list(extrema[bin_field[-1]])
-            except KeyError:
+            except KeyError as e:
                 try:
                     field_ex = list(extrema[bin_field])
                 except KeyError:
                     raise RuntimeError(
-                        "Could not find field {0} or {1} in extrema".format(
+                        "Could not find field {} or {} in extrema".format(
                             bin_field[-1], bin_field
                         )
-                    )
+                    ) from e
 
             if isinstance(field_ex[0], tuple):
                 field_ex = [data_source.ds.quan(*f) for f in field_ex]
@@ -1407,10 +1405,10 @@ def create_profile(
                     fe = data_source.ds.arr(field_ex, bf_units)
             fe.convert_to_units(bf_units)
             field_ex = [fe[0].v, fe[1].v]
-            if iterable(field_ex[0]):
+            if is_sequence(field_ex[0]):
                 field_ex[0] = data_source.ds.quan(field_ex[0][0], field_ex[0][1])
                 field_ex[0] = field_ex[0].in_units(bf_units)
-            if iterable(field_ex[1]):
+            if is_sequence(field_ex[1]):
                 field_ex[1] = data_source.ds.quan(field_ex[1][0], field_ex[1][1])
                 field_ex[1] = field_ex[1].in_units(bf_units)
             ex.append(field_ex)
@@ -1452,7 +1450,7 @@ def create_profile(
         kwargs["deposition"] = deposition
     if override_bins is not None:
         for o_bin, ax in zip(o_bins, ["x", "y", "z"]):
-            kwargs["override_bins_{0}".format(ax)] = o_bin
+            kwargs[f"override_bins_{ax}"] = o_bin
     obj = cls(*args, **kwargs)
     obj.accumulation = accumulation
     obj.fractional = fractional

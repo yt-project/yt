@@ -1,6 +1,9 @@
+from typing import Type
+
 import numpy as np
 
 import yt.units
+from yt.fields.field_info_container import FieldInfoContainer
 from yt.frontends.gadget.data_structures import GadgetHDF5Dataset
 from yt.frontends.owls.fields import OWLSFieldInfo
 from yt.utilities.on_demand_imports import _h5py as h5py
@@ -10,7 +13,7 @@ from .fields import EagleNetworkFieldInfo
 
 class EagleDataset(GadgetHDF5Dataset):
     _particle_mass_name = "Mass"
-    _field_info_class = OWLSFieldInfo
+    _field_info_class: Type[FieldInfoContainer] = OWLSFieldInfo
     _time_readin_ = "Time"
 
     def _parse_parameter_file(self):
@@ -36,7 +39,7 @@ class EagleDataset(GadgetHDF5Dataset):
         self._set_owls_eagle_units()
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         need_groups = [
             "Config",
             "Constants",
@@ -53,7 +56,7 @@ class EagleDataset(GadgetHDF5Dataset):
         ]
         valid = True
         try:
-            fileh = h5py.File(args[0], mode="r")
+            fileh = h5py.File(filename, mode="r")
             for ng in need_groups:
                 if ng not in fileh["/"]:
                     valid = False
@@ -73,9 +76,9 @@ class EagleNetworkDataset(EagleDataset):
     _time_readin = "Time"
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         try:
-            fileh = h5py.File(args[0], mode="r")
+            fileh = h5py.File(filename, mode="r")
             if (
                 "Constants" in fileh["/"].keys()
                 and "Header" in fileh["/"].keys()

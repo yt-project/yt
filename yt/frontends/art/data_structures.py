@@ -2,11 +2,12 @@ import glob
 import os
 import struct
 import weakref
+from typing import Type
 
 import numpy as np
 
 import yt.utilities.fortran_utils as fpu
-from yt.data_objects.octree_subset import OctreeSubset
+from yt.data_objects.index_subobjects.octree_subset import OctreeSubset
 from yt.data_objects.particle_unions import ParticleUnion
 from yt.data_objects.static_output import Dataset, ParticleFile
 from yt.frontends.art.definitions import (
@@ -28,7 +29,7 @@ from yt.frontends.art.io import (
     b2t,
 )
 from yt.funcs import mylog, setdefaultattr
-from yt.geometry.geometry_handler import YTDataChunk
+from yt.geometry.geometry_handler import Index, YTDataChunk
 from yt.geometry.oct_container import ARTOctreeContainer
 from yt.geometry.oct_geometry_handler import OctreeIndex
 from yt.geometry.particle_geometry_handler import ParticleIndex
@@ -43,7 +44,7 @@ class ARTIndex(OctreeIndex):
         self.directory = os.path.dirname(self.index_filename)
         self.max_level = ds.max_level
         self.float_type = np.float64
-        super(ARTIndex, self).__init__(ds, dataset_type)
+        super().__init__(ds, dataset_type)
 
     def get_smallest_dx(self):
         """
@@ -112,7 +113,7 @@ class ARTIndex(OctreeIndex):
 
     def _chunk_spatial(self, dobj, ngz, sort=None, preload_fields=None):
         sobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
-        for i, og in enumerate(sobjs):
+        for og in sobjs:
             if ngz > 0:
                 g = og.retrieve_ghost_zones(ngz, [], smoothed=True)
             else:
@@ -132,7 +133,7 @@ class ARTIndex(OctreeIndex):
 
 
 class ARTDataset(Dataset):
-    _index_class = ARTIndex
+    _index_class: Type[Index] = ARTIndex
     _field_info_class = ARTFieldInfo
 
     def __init__(
@@ -151,6 +152,7 @@ class ARTDataset(Dataset):
         file_particle_stars=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
         self.fluid_types += ("art",)
         if fields is None:
@@ -175,6 +177,7 @@ class ARTDataset(Dataset):
             dataset_type,
             units_override=units_override,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
         self.storage_filename = storage_filename
 
@@ -201,7 +204,7 @@ class ARTDataset(Dataset):
             else:
                 setattr(self, "_file_" + filetype, None)
 
-    def __repr__(self):
+    def __str__(self):
         return self._file_amr.split("/")[-1]
 
     def _set_code_unit_attributes(self):
@@ -233,7 +236,7 @@ class ARTDataset(Dataset):
         mass = aM0 * 1.98892e33
 
         self.cosmological_simulation = True
-        setdefaultattr(self, "mass_unit", self.quan(mass, "g*%s" % ng ** 3))
+        setdefaultattr(self, "mass_unit", self.quan(mass, f"g*{ng ** 3}"))
         setdefaultattr(self, "length_unit", self.quan(box_proper, "Mpc"))
         setdefaultattr(self, "velocity_unit", self.quan(velocity, "cm/s"))
         setdefaultattr(self, "time_unit", self.length_unit / self.velocity_unit)
@@ -246,7 +249,7 @@ class ARTDataset(Dataset):
         self.domain_right_edge = np.zeros(3, dtype="float") + 1.0
         self.dimensionality = 3
         self.refine_by = 2
-        self.periodicity = (True, True, True)
+        self._periodicity = (True, True, True)
         self.cosmological_simulation = True
         self.parameters = {}
         self.parameters.update(constants)
@@ -254,8 +257,8 @@ class ARTDataset(Dataset):
         # read the amr header
         with open(self._file_amr, "rb") as f:
             amr_header_vals = fpu.read_attrs(f, amr_header_struct, ">")
-            for to_skip in ["tl", "dtl", "tlold", "dtlold", "iSO"]:
-                fpu.skip(f, endian=">")
+            n_to_skip = len(("tl", "dtl", "tlold", "dtlold", "iSO"))
+            fpu.skip(f, n_to_skip, endian=">")
             (self.ncell) = fpu.read_vector(f, "i", ">")[0]
             # Try to figure out the root grid dimensions
             est = int(np.rint(self.ncell ** (1.0 / 3.0)))
@@ -267,7 +270,7 @@ class ARTDataset(Dataset):
             self.root_nocts = self.domain_dimensions.prod() // 8
             self.root_ncells = self.root_nocts * 8
             mylog.debug(
-                "Estimating %i cells on a root grid side," + "%i root octs",
+                "Estimating %i cells on a root grid side, %i root octs",
                 est,
                 self.root_nocts,
             )
@@ -290,7 +293,7 @@ class ARTDataset(Dataset):
             # lextra needs to be loaded as a string, but it's actually
             # array values.  So pop it off here, and then re-insert.
             lextra = amr_header_vals.pop("lextra")
-            amr_header_vals["lextra"] = np.fromstring(lextra, ">f4")
+            amr_header_vals["lextra"] = np.frombuffer(lextra, ">f4")
             self.parameters.update(amr_header_vals)
             amr_header_vals = None
             # estimate the root level
@@ -313,7 +316,7 @@ class ARTDataset(Dataset):
                 # extras needs to be loaded as a string, but it's actually
                 # array values.  So pop it off here, and then re-insert.
                 extras = particle_header_vals.pop("extras")
-                particle_header_vals["extras"] = np.fromstring(extras, ">f4")
+                particle_header_vals["extras"] = np.frombuffer(extras, ">f4")
             self.parameters["wspecies"] = wspecies[:n]
             self.parameters["lspecies"] = lspecies[:n]
             for specie in range(n):
@@ -323,7 +326,8 @@ class ARTDataset(Dataset):
             ls_nonzero = np.append(lspecies[0], ls_nonzero)
             self.star_type = len(ls_nonzero)
             mylog.info("Discovered %i species of particles", len(ls_nonzero))
-            mylog.info("Particle populations: " + "%9i " * len(ls_nonzero), *ls_nonzero)
+            info_str = "Particle populations: " + "%9i " * len(ls_nonzero)
+            mylog.info(info_str, *ls_nonzero)
             self._particle_type_counts = dict(zip(self.particle_types_raw, ls_nonzero))
             for k, v in particle_header_vals.items():
                 if k in self.parameters.keys():
@@ -358,7 +362,7 @@ class ARTDataset(Dataset):
         mylog.info("Max level is %02i", self.max_level)
 
     def create_field_info(self):
-        super(ARTDataset, self).create_field_info()
+        super().create_field_info()
         if "wspecies" in self.parameters:
             # We create dark_matter and stars unions.
             ptr = self.particle_types_raw
@@ -368,12 +372,12 @@ class ARTDataset(Dataset):
             self.add_particle_union(pu)
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         """
         Defined for the NMSU file naming scheme.
         This could differ for other formats.
         """
-        f = "%s" % args[0]
+        f = str(filename)
         prefix, suffix = filename_pattern["amr"]
         if not os.path.isfile(f):
             return False
@@ -385,12 +389,11 @@ class ARTDataset(Dataset):
                 return True
             except Exception:
                 return False
-        return False
 
 
 class ARTParticleFile(ParticleFile):
     def __init__(self, ds, io, filename, file_id):
-        super(ARTParticleFile, self).__init__(ds, io, filename, file_id, range=None)
+        super().__init__(ds, io, filename, file_id, range=None)
         self.total_particles = {}
         for ptype, count in zip(
             ds.particle_types_raw, ds.parameters["total_particles"]
@@ -413,9 +416,6 @@ class ARTParticleIndex(ParticleIndex):
             df = cls(self.dataset, self.io, template % {"num": i}, fi)
             fi += 1
             self.data_files.append(df)
-        self.total_particles = sum(
-            sum(d.total_particles.values()) for d in self.data_files
-        )
 
 
 class DarkMatterARTDataset(ARTDataset):
@@ -484,7 +484,7 @@ class DarkMatterARTDataset(ARTDataset):
             else:
                 setattr(self, "_file_" + filetype, None)
 
-    def __repr__(self):
+    def __str__(self):
         return self._file_particle.split("/")[-1]
 
     def _set_code_unit_attributes(self):
@@ -514,7 +514,7 @@ class DarkMatterARTDataset(ARTDataset):
         mass = aM0 * 1.98892e33
 
         self.cosmological_simulation = True
-        self.mass_unit = self.quan(mass, "g*%s" % ng ** 3)
+        self.mass_unit = self.quan(mass, f"g*{ng ** 3}")
         self.length_unit = self.quan(box_proper, "Mpc")
         self.velocity_unit = self.quan(velocity, "cm/s")
         self.time_unit = self.length_unit / self.velocity_unit
@@ -527,7 +527,7 @@ class DarkMatterARTDataset(ARTDataset):
         self.domain_right_edge = np.zeros(3, dtype="float") + 1.0
         self.dimensionality = 3
         self.refine_by = 2
-        self.periodicity = (True, True, True)
+        self._periodicity = (True, True, True)
         self.cosmological_simulation = True
         self.parameters = {}
         self.parameters.update(constants)
@@ -570,43 +570,41 @@ class DarkMatterARTDataset(ARTDataset):
             boxsize = np.fromfile(fh, count=1, dtype=">f4")
         n = nspecs[0]
         particle_header_vals = {}
-        tmp = np.array(
-            [
-                headerstr,
-                aexpn,
-                aexp0,
-                amplt,
-                astep,
-                istep,
-                partw,
-                tintg,
-                ekin,
-                ekin1,
-                ekin2,
-                au0,
-                aeu0,
-                nrowc,
-                ngridc,
-                nspecs,
-                nseed,
-                Om0,
-                Oml0,
-                hubble,
-                Wp5,
-                Ocurv,
-                wspecies,
-                lspecies,
-                extras,
-                boxsize,
-            ]
-        )
-        for i in range(len(tmp)):
+        tmp = [
+            headerstr,
+            aexpn,
+            aexp0,
+            amplt,
+            astep,
+            istep,
+            partw,
+            tintg,
+            ekin,
+            ekin1,
+            ekin2,
+            au0,
+            aeu0,
+            nrowc,
+            ngridc,
+            nspecs,
+            nseed,
+            Om0,
+            Oml0,
+            hubble,
+            Wp5,
+            Ocurv,
+            wspecies,
+            lspecies,
+            extras,
+            boxsize,
+        ]
+        for i, arr in enumerate(tmp):
             a1 = dmparticle_header_struct[0][i]
             a2 = dmparticle_header_struct[1][i]
             if a2 == 1:
-                particle_header_vals[a1] = tmp[i][0]
+                particle_header_vals[a1] = arr[0]
             else:
-                particle_header_vals[a1] = tmp[i][:a2]
+                particle_header_vals[a1] = arr[:a2]
         for specie in range(n):
             self.particle_types.append("specie%i" % specie)
         self.particle_types_raw = tuple(self.particle_types)
@@ -614,7 +612,8 @@ class DarkMatterARTDataset(ARTDataset):
         ls_nonzero = np.append(lspecies[0], ls_nonzero)
         self.star_type = len(ls_nonzero)
         mylog.info("Discovered %i species of particles", len(ls_nonzero))
-        mylog.info("Particle populations: " + "%9i " * len(ls_nonzero), *ls_nonzero)
+        info_str = "Particle populations: " + "%9i " * len(ls_nonzero)
+        mylog.info(info_str, *ls_nonzero)
         for k, v in particle_header_vals.items():
             if k in self.parameters.keys():
                 if not self.parameters[k] == v:
@@ -665,12 +664,12 @@ class DarkMatterARTDataset(ARTDataset):
         pass
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         """
         Defined for the NMSU file naming scheme.
         This could differ for other formats.
         """
-        f = "%s" % args[0]
+        f = str(filename)
         prefix, suffix = filename_pattern["particle_data"]
         if not os.path.isfile(f):
             return False
@@ -722,7 +721,6 @@ class DarkMatterARTDataset(ARTDataset):
                 return True
             except Exception:
                 return False
-        return False
 
 
 class ARTDomainSubset(OctreeSubset):
@@ -883,10 +881,10 @@ class ARTDomainFile:
 
     def _read_amr_level(self, oct_handler):
         """Open the oct file, read in octs level-by-level.
-           For each oct, only the position, index, level and domain
-           are needed - its position in the octree is found automatically.
-           The most important is finding all the information to feed
-           oct_handler.add
+        For each oct, only the position, index, level and domain
+        are needed - its position in the octree is found automatically.
+        The most important is finding all the information to feed
+        oct_handler.add
         """
         self.level_offsets
         f = open(self.ds._file_amr, "rb")
@@ -935,7 +933,3 @@ class ARTDomainFile:
 
     def included(self, selector):
         return True
-        if getattr(selector, "domain_id", None) is not None:
-            return selector.domain_id == self.domain_id
-        domain_ids = self.ds.index.oct_handler.domain_identify(selector)
-        return self.domain_id in domain_ids

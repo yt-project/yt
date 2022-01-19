@@ -55,19 +55,19 @@ class Keyframes:
         Examples
         --------
 
-        >>> import numpy as np
         >>> import matplotlib.pyplot as plt
-        >>> from yt.visualization.volume_rendering.camera_path import *
+        ... import numpy as np
+        ... from yt.visualization.volume_rendering.camera_path import *
 
-        # Make a camera path from 10 random (x,y,z) keyframes
-        >>> data = np.random.random.((10,3))
-        >>> kf = Keyframes(data[:,0], data[:,1], data[:,2])
+        >>> # Make a camera path from 10 random (x, y, z) keyframes
+        >>> data = np.random.random(10, 3)
+        >>> kf = Keyframes(data[:, 0], data[:, 1], data[:, 2])
         >>> path = kf.create_path(250, shortest_path=False)
 
-        # Plot the keyframes in the x-y plane and camera path
-        plt.plot(kf.pos[:,0], kf.pos[:,1], 'ko')
-        plt.plot(path['position'][:,0], path['position'][:,1])
-        plt.savefig('path.png')
+        >>> # Plot the keyframes in the x-y plane and camera path
+        >>> plt.plot(kf.pos[:, 0], kf.pos[:, 1], "ko")
+        >>> plt.plot(path["position"][:, 0], path["position"][:, 1])
+        >>> plt.savefig("path.png")
         """
         Nx = len(x)
         Ny = len(y)
@@ -218,11 +218,8 @@ class Keyframes:
             return np.exp(-abs(next - prev) / temperature)
 
     def get_shortest_path(self):
-        r"""Determine shortest path between all keyframes.
-
-        Parameters
-        ----------
-        None.
+        """
+        Determine shortest path between all keyframes.
         """
         # this obviously doesn't work. When someone fixes it, remove the NOQA
         self.setup_tsp(niter, init_temp, alpha, fixed_start)  # NOQA

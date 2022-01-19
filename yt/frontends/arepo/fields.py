@@ -29,8 +29,12 @@ class ArepoFieldInfo(GadgetFieldInfo):
             ("GFM_Metals_06", ("", ["Mg_fraction"], None)),
             ("GFM_Metals_07", ("", ["Si_fraction"], None)),
             ("GFM_Metals_08", ("", ["Fe_fraction"], None)),
+            (
+                "CosmicRaySpecificEnergy",
+                ("code_specific_energy", ["specific_cr_energy"], None),
+            ),
         )
-        super(ArepoFieldInfo, self).__init__(ds, field_list, slice_info=slice_info)
+        super().__init__(ds, field_list, slice_info=slice_info)
 
     def setup_particle_fields(self, ptype, *args, **kwargs):
         FieldInfoContainer.setup_particle_fields(self, ptype)
@@ -39,7 +43,7 @@ class ArepoFieldInfo(GadgetFieldInfo):
             setup_species_fields(self, ptype)
 
     def setup_gas_particle_fields(self, ptype):
-        super(ArepoFieldInfo, self).setup_gas_particle_fields(ptype)
+        super().setup_gas_particle_fields(ptype)
 
         if (ptype, "InternalEnergy") in self.field_list:
 
@@ -99,7 +103,7 @@ class ArepoFieldInfo(GadgetFieldInfo):
 
             for species in ["H", "H_p0", "H_p1"]:
                 for suf in ["_density", "_number_density"]:
-                    field = "%s%s" % (species, suf)
+                    field = f"{species}{suf}"
                     self.alias(("gas", field), (ptype, field))
 
             self.alias(("gas", "H_nuclei_density"), ("gas", "H_number_density"))
@@ -118,3 +122,15 @@ class ArepoFieldInfo(GadgetFieldInfo):
                 units=self.ds.unit_system["number_density"],
             )
             self.alias(("gas", "El_number_density"), (ptype, "El_number_density"))
+
+        if (ptype, "CosmicRaySpecificEnergy") in self.field_list:
+
+            def _cr_energy_density(field, data):
+                return data["PartType0", "specific_cr_energy"] * data["gas", "density"]
+
+            self.add_field(
+                ("gas", "cr_energy_density"),
+                _cr_energy_density,
+                sampling_type="local",
+                units=self.ds.unit_system["pressure"],
+            )

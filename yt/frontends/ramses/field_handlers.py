@@ -1,5 +1,7 @@
+import abc
 import glob
 import os
+from typing import List, Optional, Set, Tuple, Type
 
 from yt.config import ytcfg
 from yt.funcs import mylog
@@ -8,7 +10,7 @@ from yt.utilities.cython_fortran_utils import FortranFile
 from .io import _read_fluid_file_descriptor
 from .io_utils import read_offset
 
-FIELD_HANDLERS = set()
+FIELD_HANDLERS: Set[Type["FieldFileHandler"]] = set()
 
 
 def get_field_handlers():
@@ -19,60 +21,27 @@ def register_field_handler(ph):
     FIELD_HANDLERS.add(ph)
 
 
-PRESENT_FIELD_FILES = {}
-DETECTED_FIELDS = {}
+DETECTED_FIELDS = {}  # type: ignore
 
 
-class RAMSESFieldFileHandlerRegistry(type):
+class HandlerMixin:
+    """This contains all the shared methods to handle RAMSES files.
+
+    This is not supposed to be user-facing.
     """
-    This is a base class that on instantiation registers the file
-    handler into the list. Used as a metaclass.
-    """
 
-    def __new__(meta, name, bases, class_dict):
-        cls = type.__new__(meta, name, bases, class_dict)
-        if cls.ftype is not None:
-            register_field_handler(cls)
-        return cls
-
-
-class FieldFileHandler(metaclass=RAMSESFieldFileHandlerRegistry):
-    """
-    Abstract class to handle particles in RAMSES. Each instance
-    represents a single file (one domain).
-
-    To add support to a new particle file, inherit from this class and
-    implement all functions containing a `NotImplementedError`.
-
-    See `SinkParticleFileHandler` for an example implementation."""
-
-    # These properties are static properties
-    ftype = None  # The name to give to the field type
-    fname = None  # The name of the file(s)
-    attrs = None  # The attributes of the header
-    known_fields = None  # A list of tuple containing the field name and its type
-    config_field = None  # Name of the config section (if any)
-
-    file_descriptor = None  # The name of the file descriptor (if any)
-
-    # These properties are computed dynamically
-    field_offsets = None  # Mapping from field to offset in file
-    field_types = (
-        None  # Mapping from field to the type of the data (float, integer, ...)
-    )
-
-    def __init__(self, domain):
+    def setup_handler(self, domain):
         """
-        Initalize an instance of the class. This automatically sets
+        Initialize an instance of the class. This automatically sets
         the full path to the file. This is not intended to be
-        overriden in most cases.
+        overridden in most cases.
 
         If you need more flexibility, rewrite this function to your
         need in the inherited class.
         """
+        self.ds = ds = domain.ds
         self.domain = domain
         self.domain_id = domain.domain_id
-        ds = domain.ds
         basename = os.path.abspath(ds.root_folder)
         iout = int(os.path.basename(ds.parameter_filename).split(".")[0].split("_")[1])
 
@@ -80,7 +49,7 @@ class FieldFileHandler(metaclass=RAMSESFieldFileHandlerRegistry):
             igroup = ((domain.domain_id - 1) // ds.group_size) + 1
             full_path = os.path.join(
                 basename,
-                "group_{:05d}".format(igroup),
+                f"group_{igroup:05d}",
                 self.fname.format(iout=iout, icpu=domain.domain_id),
             )
         else:
@@ -92,17 +61,23 @@ class FieldFileHandler(metaclass=RAMSESFieldFileHandlerRegistry):
             self.fname = full_path
         else:
             raise FileNotFoundError(
-                "Could not find fluid file (type: %s). Tried %s"
-                % (self.ftype, full_path)
+                f"Could not find {self._file_type} file (type: {self.ftype}). "
+                f"Tried {full_path}"
             )
 
         if self.file_descriptor is not None:
-            self.file_descriptor = os.path.join(basename, self.file_descriptor)
+            if ds.num_groups > 0:
+                # The particle file descriptor is *only* in the first group
+                self.file_descriptor = os.path.join(
+                    basename, "group_00001", self.file_descriptor
+                )
+            else:
+                self.file_descriptor = os.path.join(basename, self.file_descriptor)
 
     @property
     def exists(self):
         """
-        This function should return True if the *file* for the domain
+        This function should return True if the *file* the instance
         exists. It is called for each file of the type found on the
         disk.
 
@@ -112,7 +87,7 @@ class FieldFileHandler(metaclass=RAMSESFieldFileHandlerRegistry):
         return os.path.exists(self.fname)
 
     @property
-    def has_part_descriptor(self):
+    def has_descriptor(self):
         """
         This function should return True if a *file descriptor*
         exists.
@@ -125,13 +100,13 @@ class FieldFileHandler(metaclass=RAMSESFieldFileHandlerRegistry):
     @classmethod
     def any_exist(cls, ds):
         """
-        This function should return True if the kind of field
+        This function should return True if the kind of particle
         represented by the class exists in the dataset. It takes as
-        argument the class itself - not an instance - and a dataset.
+        argument the class itself -not an instance- and a dataset.
 
         Arguments
         ---------
-        * ds: a Ramses Dataset
+        ds : a Ramses Dataset
 
         Note
         ----
@@ -139,8 +114,8 @@ class FieldFileHandler(metaclass=RAMSESFieldFileHandlerRegistry):
         the RAMSES Dataset structure to determine if the particle type
         (e.g. regular particles) exists.
         """
-        if (ds.unique_identifier, cls.ftype) in PRESENT_FIELD_FILES:
-            return PRESENT_FIELD_FILES[(ds.unique_identifier, cls.ftype)]
+        if ds.unique_identifier in cls._unique_registry:
+            return cls._unique_registry[ds.unique_identifier]
 
         iout = int(os.path.basename(ds.parameter_filename).split(".")[0].split("_")[1])
 
@@ -148,11 +123,57 @@ class FieldFileHandler(metaclass=RAMSESFieldFileHandlerRegistry):
             os.path.split(ds.parameter_filename)[0], cls.fname.format(iout=iout, icpu=1)
         )
         exists = os.path.exists(fname)
-        PRESENT_FIELD_FILES[(ds.unique_identifier, cls.ftype)] = exists
+        cls._unique_registry[ds.unique_identifier] = exists
 
         return exists
 
+
+class FieldFileHandler(abc.ABC, HandlerMixin):
+    """
+    Abstract class to handle particles in RAMSES. Each instance
+    represents a single file (one domain).
+
+    To add support to a new particle file, inherit from this class and
+    implement all functions containing a `NotImplementedError`.
+
+    See `SinkParticleFileHandler` for an example implementation."""
+
+    _file_type = "field"
+
+    # These properties are static properties
+    ftype: Optional[str] = None  # The name to give to the field type
+    fname: Optional[str] = None  # The name of the file(s)
+    attrs: Optional[
+        Tuple[Tuple[str, int, str], ...]
+    ] = None  # The attributes of the header
+    known_fields = None  # A list of tuple containing the field name and its type
+    config_field: Optional[str] = None  # Name of the config section (if any)
+
+    file_descriptor: Optional[str] = None  # The name of the file descriptor (if any)
+
+    # These properties are computed dynamically
+    field_offsets = None  # Mapping from field to offset in file
+    field_types = (
+        None  # Mapping from field to the type of the data (float, integer, ...)
+    )
+
+    def __init_subclass__(cls, *args, **kwargs):
+        """
+        Registers subclasses at creation.
+        """
+        super().__init_subclass__(*args, **kwargs)
+
+        if cls.ftype is not None:
+            register_field_handler(cls)
+
+        cls._unique_registry = {}
+        return cls
+
+    def __init__(self, domain):
+        self.setup_handler(domain)
+
     @classmethod
+    @abc.abstractmethod
     def detect_fields(cls, ds):
         """
         Called once to setup the fields of this type
@@ -165,8 +186,7 @@ class FieldFileHandler(metaclass=RAMSESFieldFileHandlerRegistry):
         * field_list: list of (ftype, fname)
             The list of the field present in the file
         """
-        # this function must be implemented by subclasses
-        raise NotImplementedError
+        pass
 
     @classmethod
     def get_detected_fields(cls, ds):
@@ -227,24 +247,46 @@ class FieldFileHandler(metaclass=RAMSESFieldFileHandlerRegistry):
         if getattr(self, "_offset", None) is not None:
             return self._offset
 
+        nvars = len(self.field_list)
         with FortranFile(self.fname) as fd:
-
             # Skip headers
             nskip = len(self.attrs)
             fd.skip(nskip)
             min_level = self.domain.ds.min_level
 
+            # The file is as follows:
+            # > headers
+            # loop over levels
+            #   loop over cpu domains
+            #     > <ilevel>: current level
+            #     > <nocts>: number of octs in level, domain
+            #     loop over <nvars> variables (positions, velocities, density, ...)
+            #       loop over <2*2*2> cells in each oct
+            #          > <data> with shape (nocts, )
+            #
+            # So there are 8 * nvars records each with length (nocts, )
+            # at each (level, cpus)
             offset, level_count = read_offset(
                 fd,
                 min_level,
                 self.domain.domain_id,
                 self.parameters["nvar"],
                 self.domain.amr_header,
+                skip_len=nvars * 8,
             )
 
         self._offset = offset
         self._level_count = level_count
         return self._offset
+
+    @classmethod
+    def load_fields_from_yt_config(cls) -> List[str]:
+        if cls.config_field and ytcfg.has_section(cls.config_field):
+            cfg = ytcfg.get(cls.config_field, "fields")
+            fields = [_.strip() for _ in cfg if _.strip() != ""]
+            return fields
+
+        return []
 
 
 class HydroFieldFileHandler(FieldFileHandler):
@@ -287,11 +329,17 @@ class HydroFieldFileHandler(FieldFileHandler):
 
         ok = False
 
-        # Either the fields are given by dataset
         if ds._fields_in_file is not None:
+            # Case 1: fields are provided by users on construction of dataset
             fields = list(ds._fields_in_file)
             ok = True
-        elif os.path.exists(fname_desc):
+        else:
+            # Case 2: fields are provided by users in the config
+            fields = cls.load_fields_from_yt_config()
+            ok = len(fields) > 0
+
+        if not ok and os.path.exists(fname_desc):
+            # Case 3: there is a file descriptor
             # Or there is an hydro file descriptor
             mylog.debug("Reading hydro file descriptor.")
             # For now, we can only read double precision fields
@@ -300,18 +348,8 @@ class HydroFieldFileHandler(FieldFileHandler):
             # We get no fields for old-style hydro file descriptor
             ok = len(fields) > 0
 
-        elif cls.config_field and ytcfg.has_section(cls.config_field):
-            # Or this is given by the config
-            cfg = ytcfg.get(cls.config_field, "fields")
-            known_fields = []
-            for field in (_.strip() for _ in cfg.split("\n") if _.strip() != ""):
-                known_fields.append(field.strip())
-            fields = known_fields
-
-            ok = True
-
-        # Else, attempt autodetection
         if not ok:
+            # Case 4: attempt autodetection with usual fields
             foldername = os.path.abspath(os.path.dirname(ds.parameter_filename))
             rt_flag = any(glob.glob(os.sep.join([foldername, "info_rt_*.txt"])))
             if rt_flag:  # rt run
@@ -347,7 +385,8 @@ class HydroFieldFileHandler(FieldFileHandler):
             else:
                 if nvar < 5:
                     mylog.debug(
-                        "nvar=%s is too small! YT doesn't currently support 1D/2D runs in RAMSES %s"
+                        "nvar=%s is too small! YT doesn't currently "
+                        "support 1D/2D runs in RAMSES %s"
                     )
                     raise ValueError
                 # Basic hydro runs
@@ -368,7 +407,8 @@ class HydroFieldFileHandler(FieldFileHandler):
                         "Pressure",
                         "Metallicity",
                     ]
-                # MHD runs - NOTE: THE MHD MODULE WILL SILENTLY ADD 3 TO THE NVAR IN THE MAKEFILE
+                # MHD runs - NOTE:
+                # THE MHD MODULE WILL SILENTLY ADD 3 TO THE NVAR IN THE MAKEFILE
                 if nvar == 11:
                     fields = [
                         "Density",
@@ -399,17 +439,17 @@ class HydroFieldFileHandler(FieldFileHandler):
                         "Metallicity",
                     ]
             mylog.debug(
-                "No fields specified by user; automatically setting fields array to %s"
-                % str(fields)
+                "No fields specified by user; automatically setting fields array to %s",
+                fields,
             )
 
         # Allow some wiggle room for users to add too many variables
         count_extra = 0
         while len(fields) < nvar:
-            fields.append("var" + str(len(fields)))
+            fields.append(f"var_{len(fields)}")
             count_extra += 1
         if count_extra > 0:
-            mylog.debug("Detected %s extra fluid fields." % count_extra)
+            mylog.debug("Detected %s extra fluid fields.", count_extra)
         cls.field_list = [(cls.ftype, e) for e in fields]
 
         cls.set_detected_fields(ds, fields)
@@ -441,19 +481,21 @@ class GravFieldFileHandler(FieldFileHandler):
         nvar = cls.parameters["nvar"]
         ndim = ds.dimensionality
 
-        if nvar == ndim + 1:
-            fields = ["potential"] + ["%s-acceleration" % k for k in "xyz"[:ndim]]
-            ndetected = ndim
-        else:
-            fields = ["%s-acceleration" % k for k in "xyz"[:ndim]]
-            ndetected = ndim
+        fields = cls.load_fields_from_yt_config()
 
-        if ndetected != nvar and not ds._warned_extra_fields["gravity"]:
-            mylog.warning("Detected %s extra gravity fields.", nvar - ndetected)
-            ds._warned_extra_fields["gravity"] = True
+        if not fields:
+            if nvar == ndim + 1:
+                fields = ["Potential"] + [f"{k}-acceleration" for k in "xyz"[:ndim]]
+            else:
+                fields = [f"{k}-acceleration" for k in "xyz"[:ndim]]
+            ndetected = len(fields)
 
-            for i in range(nvar - ndetected):
-                fields.append("var%s" % i)
+            if ndetected != nvar and not ds._warned_extra_fields["gravity"]:
+                mylog.info("Detected %s extra gravity fields.", nvar - ndetected)
+                ds._warned_extra_fields["gravity"] = True
+
+                for i in range(nvar - ndetected):
+                    fields.append(f"var{i}")
 
         cls.field_list = [(cls.ftype, e) for e in fields]
 
@@ -490,29 +532,38 @@ class RTFieldFileHandler(FieldFileHandler):
             p, v = line.split("=")
             rheader[p.strip()] = cast(v)
 
-        with open(fname, "r") as f:
+        with open(fname) as f:
             # Read nRTvar, nions, ngroups, iions
-            for i in range(4):
+            for _ in range(4):
                 read_rhs(int)
-            f.readline()
+
+            # Try to read rtprecision.
+            # Either it is present or the line is simply blank, so
+            # we try to parse the line as an int, and if it fails,
+            # we simply ignore it.
+            try:
+                read_rhs(int)
+                f.readline()
+            except ValueError:
+                pass
 
             # Read X and Y fractions
-            for i in range(2):
+            for _ in range(2):
                 read_rhs(float)
             f.readline()
 
             # Reat unit_np, unit_pfd
-            for i in range(2):
+            for _ in range(2):
                 read_rhs(float)
 
             # Read rt_c_frac
-            # Note: when using variable speed of light, this line will contain multiple values
-            # corresponding the the velocity at each level
+            # Note: when using variable speed of light, this line will contain multiple
+            # values corresponding the the velocity at each level
             read_rhs(lambda line: [float(e) for e in line.split()])
             f.readline()
 
             # Read n star, t2star, g_star
-            for i in range(3):
+            for _ in range(3):
                 read_rhs(float)
 
             # Touchy part, we have to read the photon group properties
@@ -528,15 +579,18 @@ class RTFieldFileHandler(FieldFileHandler):
         with FortranFile(fname) as fd:
             cls.parameters = fd.read_attrs(cls.attrs)
 
-        fields = []
-        for ng in range(ngroups):
+        fields = cls.load_fields_from_yt_config()
+
+        if not fields:
+            fields = []
             tmp = [
                 "Photon_density_%s",
                 "Photon_flux_x_%s",
                 "Photon_flux_y_%s",
                 "Photon_flux_z_%s",
             ]
-            fields.extend([t % (ng + 1) for t in tmp])
+            for ng in range(ngroups):
+                fields.extend([t % (ng + 1) for t in tmp])
 
         cls.field_list = [(cls.ftype, e) for e in fields]
 

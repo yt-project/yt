@@ -109,7 +109,7 @@ class IOHandlerRemote(BaseIOHandler):
         self.pool = pool
         self.comm = pool.comm
         self.proc_map = self.comm.comm.bcast(None, root=pool["io"].ranks[0])
-        super(IOHandlerRemote, self).__init__()
+        super().__init__()
 
     def _read_data_set(self, grid, field):
         dest = self.proc_map[grid.id]
@@ -149,7 +149,7 @@ def remote_io(ds, wg, pool):
 
 
 def io_nodes(fn, n_io, n_work, func, *args, **kwargs):
-    from yt.mods import load
+    from yt.loaders import load
 
     pool, wg = ProcessorPool.from_sizes([(n_io, "io"), (n_work, "work")])
     rv = None
@@ -173,7 +173,7 @@ if __name__ == "__main__":
 
     def gq(ds):
         dd = ds.all_data()
-        return dd.quantities["TotalQuantity"]("CellMassMsun")
+        return dd.quantities["TotalQuantity"](("gas", "cell_mass"))
 
     q = io_nodes("DD0087/DD0087", 8, 24, gq)
     mylog.info(q)

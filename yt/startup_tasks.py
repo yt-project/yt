@@ -4,6 +4,7 @@ import argparse
 import os
 import signal
 import sys
+from typing import List
 
 from yt.config import ytcfg
 from yt.funcs import (
@@ -25,7 +26,7 @@ def turn_on_parallelism():
     except ImportError as e:
         mylog.error(
             "Warning: Attempting to turn on parallelism, "
-            + "but mpi4py import failed. Try pip install mpi4py."
+            "but mpi4py import failed. Try pip install mpi4py."
         )
         raise e
         # Now we have to turn on the parallelism from the perspective of the
@@ -80,7 +81,7 @@ class SetConfigOption(argparse.Action):
         param, val = values.split("=")
         mylog.debug("Overriding config: %s = %s", param, val)
         ytcfg["yt", param] = val
-        if param == "loglevel":  # special case
+        if param == "log_level":  # special case
             mylog.setLevel(int(val))
 
 
@@ -92,7 +93,7 @@ class YTParser(argparse.ArgumentParser):
         and then exits.
         """
         self.print_help(sys.stderr)
-        self.exit(2, "%s: error: %s\n" % (self.prog, message))
+        self.exit(2, f"{self.prog}: error: {message}\n")
 
 
 parser = YTParser(description="yt command line arguments")
@@ -135,21 +136,25 @@ parser.add_argument(
 if not hasattr(sys, "argv") or sys.argv is None:
     sys.argv = []
 
-unparsed_args = []
+unparsed_args: List[str] = []
 
 parallel_capable = False
-if not ytcfg.getboolean("yt", "__command_line"):
+if not ytcfg.get("yt", "internals", "command_line"):
     opts, unparsed_args = parser.parse_known_args()
     # THIS IS NOT SUCH A GOOD IDEA:
     # sys.argv = [a for a in unparsed_args]
     if opts.parallel:
         parallel_capable = turn_on_parallelism()
     subparsers = parser.add_subparsers(
-        title="subcommands", dest="subcommands", description="Valid subcommands",
+        title="subcommands",
+        dest="subcommands",
+        description="Valid subcommands",
     )
 else:
     subparsers = parser.add_subparsers(
-        title="subcommands", dest="subcommands", description="Valid subcommands",
+        title="subcommands",
+        dest="subcommands",
+        description="Valid subcommands",
     )
 
     def print_help(*args, **kwargs):
@@ -162,7 +167,7 @@ else:
 if parallel_capable:
     pass
 elif (
-    exe_name in ["mpi4py", "embed_enzo", "python" + sys.version[:3] + "-mpi"]
+    exe_name in ["mpi4py", "embed_enzo", "python{}.{}-mpi".format(*sys.version_info)]
     or "_parallel" in dir(sys)
     or any(["ipengine" in arg for arg in sys.argv])
     or any(["cluster-id" in arg for arg in sys.argv])

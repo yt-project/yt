@@ -8,17 +8,16 @@ from yt.arraytypes import blankRecordArray
 from yt.config import ytcfg
 from yt.fields.derived_field import ValidateSpatial
 from yt.fields.field_detector import FieldDetector
-from yt.funcs import ensure_list, ensure_numpy_array
+from yt.funcs import ensure_numpy_array, iter_fields
 from yt.geometry.geometry_handler import ChunkDataCache, Index, YTDataChunk
 from yt.utilities.definitions import MAXLEVEL
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.on_demand_imports import _h5py as h5py
 
 from .grid_container import GridTree, MatchPointsToGrids
 
 
 class GridIndex(Index, abc.ABC):
-    """The index class for patch and block AMR datasets. """
+    """The index class for patch and block AMR datasets."""
 
     float_type = "float64"
     _preload_implemented = False
@@ -73,19 +72,6 @@ class GridIndex(Index, abc.ABC):
     def _detect_output_fields_backup(self):
         # grab fields from backup file as well, if present
         return
-        try:
-            backup_filename = self.dataset.backup_filename
-            f = h5py.File(backup_filename, mode="r")
-            g = f["data"]
-            grid = self.grids[0]  # simply check one of the grids
-            grid_group = g["grid_%010i" % (grid.id - grid._id_offset)]
-            for field_name in grid_group:
-                if field_name != "particles":
-                    self.field_list.append(field_name)
-        except KeyError:
-            return
-        except IOError:
-            return
 
     def select_grids(self, level):
         """
@@ -213,9 +199,11 @@ class GridIndex(Index, abc.ABC):
         """
         Prints out (stdout) relevant information about the simulation
         """
-        header = "%3s\t%6s\t%14s\t%14s" % ("level", "# grids", "# cells", "# cells^3")
+        header = "{:>3}\t{:>6}\t{:>14}\t{:>14}".format(
+            "level", "# grids", "# cells", "# cells^3"
+        )
         print(header)
-        print("%s" % (len(header.expandtabs()) * "-"))
+        print(f"{len(header.expandtabs()) * '-'}")
         for level in range(MAXLEVEL):
             if (self.level_stats["numgrids"][level]) == 0:
                 continue
@@ -236,7 +224,7 @@ class GridIndex(Index, abc.ABC):
         )
         print("\n")
         try:
-            print("z = %0.8f" % (self["CosmologyCurrentRedshift"]))
+            print(f"z = {self['CosmologyCurrentRedshift']:0.8f}")
         except Exception:
             pass
         print(
@@ -249,7 +237,7 @@ class GridIndex(Index, abc.ABC):
         )
         print("\nSmallest Cell:")
         for item in ("Mpc", "pc", "AU", "cm"):
-            print("\tWidth: %0.3e %s" % (dx.in_units(item), item))
+            print(f"\tWidth: {dx.in_units(item):0.3e} {item}")
 
     def _find_field_values_at_points(self, fields, coords):
         r"""Find the value of fields at a set of coordinates.
@@ -259,8 +247,8 @@ class GridIndex(Index, abc.ABC):
         """
         coords = self.ds.arr(ensure_numpy_array(coords), "code_length")
         grids = self._find_points(coords[:, 0], coords[:, 1], coords[:, 2])[0]
-        fields = ensure_list(fields)
-        mark = np.zeros(3, dtype=np.int)
+        fields = list(iter_fields(fields))
+        mark = np.zeros(3, dtype="int64")
         out = []
 
         # create point -> grid mapping
@@ -273,7 +261,7 @@ class GridIndex(Index, abc.ABC):
         out = []
         for field in fields:
             funit = self.ds._get_field_info(field).units
-            out.append(self.ds.arr(np.empty((len(coords))), funit))
+            out.append(self.ds.arr(np.empty(len(coords)), funit))
 
         for grid in grid_index:
             cellwidth = (grid.RightEdge - grid.LeftEdge) / grid.ActiveDimensions
@@ -290,13 +278,14 @@ class GridIndex(Index, abc.ABC):
 
     def _find_points(self, x, y, z):
         """
-        Returns the (objects, indices) of leaf grids containing a number of (x,y,z) points
+        Returns the (objects, indices) of leaf grids
+        containing a number of (x,y,z) points
         """
         x = ensure_numpy_array(x)
         y = ensure_numpy_array(y)
         z = ensure_numpy_array(z)
         if not len(x) == len(y) == len(z):
-            raise AssertionError("Arrays of indices must be of the same size")
+            raise ValueError("Arrays of indices must be of the same size")
 
         grid_tree = self._get_grid_tree()
         pts = MatchPointsToGrids(grid_tree, len(x), x, y, z)
@@ -370,7 +359,7 @@ class GridIndex(Index, abc.ABC):
             return fast_index.count(dobj.selector)
         if grids is None:
             grids = dobj._chunk_info
-        count = sum((g.count(dobj.selector) for g in grids))
+        count = sum(g.count(dobj.selector) for g in grids)
         return count
 
     def _chunk_all(self, dobj, cache=True, fast_index=None):
@@ -391,7 +380,7 @@ class GridIndex(Index, abc.ABC):
         preload_fields, _ = self._split_fields(preload_fields)
         if self._preload_implemented and len(preload_fields) > 0 and ngz == 0:
             giter = ChunkDataCache(list(giter), preload_fields, self)
-        for i, og in enumerate(giter):
+        for og in giter:
             if ngz > 0:
                 g = og.retrieve_ghost_zones(ngz, [], smoothed=True)
             else:
@@ -429,7 +418,7 @@ class GridIndex(Index, abc.ABC):
         if chunk_sizing == "auto":
             chunk_ngrids = len(gobjs)
             if chunk_ngrids > 0:
-                nproc = np.float(ytcfg.getint("yt", "__global_parallel_size"))
+                nproc = int(ytcfg.get("yt", "internals", "global_parallel_size"))
                 chunking_factor = np.ceil(
                     self._grid_chunksize * nproc / chunk_ngrids
                 ).astype("int")
@@ -437,14 +426,14 @@ class GridIndex(Index, abc.ABC):
             else:
                 size = self._grid_chunksize
         elif chunk_sizing == "config_file":
-            size = ytcfg.getint("yt", "chunk_size")
+            size = ytcfg.get("yt", "chunk_size")
         elif chunk_sizing == "just_one":
             size = 1
         elif chunk_sizing == "old":
             size = self._grid_chunksize
         else:
             raise RuntimeError(
-                "%s is an invalid value for the 'chunk_sizing' argument." % chunk_sizing
+                f"{chunk_sizing} is an invalid value for the 'chunk_sizing' argument."
             )
         for fn in sorted(gfiles):
             gs = gfiles[fn]
@@ -464,7 +453,7 @@ class GridIndex(Index, abc.ABC):
     def _add_mesh_sampling_particle_field(self, deposit_field, ftype, ptype):
         units = self.ds.field_info[ftype, deposit_field].units
         take_log = self.ds.field_info[ftype, deposit_field].take_log
-        field_name = "cell_%s_%s" % (ftype, deposit_field)
+        field_name = f"cell_{ftype}_{deposit_field}"
 
         def _mesh_sampling_particle_field(field, data):
             pos = data[ptype, "particle_position"]
@@ -475,7 +464,17 @@ class GridIndex(Index, abc.ABC):
 
             i, j, k = np.floor((pos - data.LeftEdge) / data.dds).astype("int64").T
 
-            return field_values[i, j, k]
+            # Make sure all particles are within the current grid, otherwise return nan
+            maxi, maxj, maxk = field_values.shape
+
+            mask = (i < maxi) & (j < maxj) & (k < maxk)
+            mask &= (i >= 0) & (j >= 0) & (k >= 0)
+
+            result = np.full(len(pos), np.nan, dtype="float64")
+            if result.shape[0] > 0:
+                result[mask] = field_values[i[mask], j[mask], k[mask]]
+
+            return data.ds.arr(result, field_values.units)
 
         self.ds.add_field(
             (ptype, field_name),

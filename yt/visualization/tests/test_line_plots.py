@@ -11,14 +11,14 @@ def setup():
     """Test specific setup."""
     from yt.config import ytcfg
 
-    ytcfg["yt", "__withintesting"] = "True"
+    ytcfg["yt", "internals", "within_testing"] = True
 
 
 def compare(ds, plot, test_prefix, test_name, decimals=12):
     def image_from_plot(filename_prefix):
         return plot.save(filename_prefix)
 
-    image_from_plot.__name__ = "line_{}".format(test_prefix)
+    image_from_plot.__name__ = f"line_{test_prefix}"
     test = GenericImageTest(ds, image_from_plot, decimals)
     test.prefix = test_prefix
     test.answer_name = test_name
@@ -65,14 +65,14 @@ def test_multi_line_plot():
 def test_line_buffer():
     ds = fake_random_ds(32)
     lb = yt.LineBuffer(ds, (0, 0, 0), (1, 1, 1), 512, label="diag")
-    lb["density"]
-    lb["velocity_x"]
-    assert_equal(lb["density"].size, 512)
-    lb["density"] = 0
-    assert_equal(lb["density"], 0)
-    assert_equal(set(lb.keys()), set(["density", "velocity_x"]))
-    del lb["velocity_x"]
-    assert_equal(set(lb.keys()), set(["density"]))
+    lb[("gas", "density")]
+    lb[("gas", "velocity_x")]
+    assert_equal(lb[("gas", "density")].size, 512)
+    lb[("gas", "density")] = 0
+    assert_equal(lb[("gas", "density")], 0)
+    assert_equal(set(lb.keys()), {("gas", "density"), ("gas", "velocity_x")})
+    del lb[("gas", "velocity_x")]
+    assert_equal(set(lb.keys()), {("gas", "density")})
 
 
 def test_validate_point():

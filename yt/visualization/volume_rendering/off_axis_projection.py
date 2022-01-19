@@ -1,15 +1,15 @@
 import numpy as np
 
 from yt.data_objects.api import ImageArray
-from yt.funcs import iterable, mylog
-from yt.units.unit_object import Unit
+from yt.funcs import is_sequence, mylog
+from yt.units.unit_object import Unit  # type: ignore
 from yt.utilities.lib.partitioned_grid import PartitionedGrid
 from yt.utilities.lib.pixelization_routines import (
     normalization_2d_utility,
     off_axis_projection_SPH,
 )
 
-from .render_source import VolumeSource
+from .render_source import KDTreeVolumeSource
 from .scene import Scene
 from .transfer_functions import ProjectionTransferFunction
 from .utils import data_source_or_all
@@ -102,19 +102,27 @@ def off_axis_projection(
     Examples
     --------
 
-    >>> image = off_axis_projection(ds, [0.5, 0.5, 0.5], [0.2,0.3,0.4],
-    ...                             0.2, N, "temperature", "density")
+    >>> image = off_axis_projection(
+    ...     ds,
+    ...     [0.5, 0.5, 0.5],
+    ...     [0.2, 0.3, 0.4],
+    ...     0.2,
+    ...     N,
+    ...     ("gas", "temperature"),
+    ...     ("gas", "density"),
+    ... )
     >>> write_image(np.log10(image), "offaxis.png")
 
     """
-    if method not in ["integrate", "sum"]:
+    if method not in ("integrate", "sum"):
         raise NotImplementedError(
             "Only 'integrate' or 'sum' methods are valid for off-axis-projections"
         )
 
     if interpolated:
         raise NotImplementedError(
-            "Only interpolated=False methods are currently implemented for off-axis-projections"
+            "Only interpolated=False methods are currently implemented "
+            "for off-axis-projections"
         )
 
     data_source = data_source_or_all(data_source)
@@ -145,7 +153,7 @@ def off_axis_projection(
         raise_error = False
 
         ptype = sph_ptypes[0]
-        ppos = ["particle_position_%s" % ax for ax in "xyz"]
+        ppos = [f"particle_position_{ax}" for ax in "xyz"]
         # Assure that the field we're trying to off-axis project
         # has a field type as the SPH particle type or if the field is an
         # alias to an SPH field or is a 'gas' field
@@ -299,11 +307,12 @@ def off_axis_projection(
     data_source.ds.index
     if item is None:
         field = data_source.ds.field_list[0]
-        mylog.info("Setting default field to %s" % field.__repr__())
+        mylog.info("Setting default field to %s", field.__repr__())
 
     funits = data_source.ds._get_field_info(item).units
 
-    vol = VolumeSource(data_source, item)
+    vol = KDTreeVolumeSource(data_source, item)
+    vol.num_threads = num_threads
     if weight is None:
         vol.set_field(item)
     else:
@@ -330,10 +339,10 @@ def off_axis_projection(
     vol.set_transfer_function(ptf)
     camera = sc.add_camera(data_source)
     camera.set_width(width)
-    if not iterable(resolution):
+    if not is_sequence(resolution):
         resolution = [resolution] * 2
     camera.resolution = resolution
-    if not iterable(width):
+    if not is_sequence(width):
         width = data_source.ds.arr([width] * 3)
     normal = np.array(normal_vector)
     normal = normal / np.linalg.norm(normal)
@@ -367,7 +376,7 @@ def off_axis_projection(
 
     mylog.debug("Casting rays")
 
-    for i, (grid, mask) in enumerate(data_source.blocks):
+    for (grid, mask) in data_source.blocks:
         data = []
         for f in fields:
             # strip units before multiplying by mask for speed

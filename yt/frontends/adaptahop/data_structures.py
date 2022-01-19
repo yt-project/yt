@@ -10,30 +10,56 @@ Data structures for AdaptaHOP frontend.
 import os
 import re
 import stat
+from itertools import product
+from typing import Optional
 
 import numpy as np
 
-from yt.data_objects.data_containers import YTSelectionContainer
-from yt.data_objects.static_output import Dataset
-from yt.frontends.halo_catalog.data_structures import (
-    HaloCatalogFile,
-    HaloCatalogParticleIndex,
+from yt.data_objects.selection_objects.data_selection_objects import (
+    YTSelectionContainer,
 )
-from yt.funcs import setdefaultattr
-from yt.units import Mpc
+from yt.data_objects.static_output import Dataset
+from yt.frontends.halo_catalog.data_structures import HaloCatalogFile
+from yt.funcs import mylog, setdefaultattr
+from yt.geometry.particle_geometry_handler import ParticleIndex
+from yt.units import Mpc  # type: ignore
 from yt.utilities.cython_fortran_utils import FortranFile
 
-from .definitions import HEADER_ATTRIBUTES
+from .definitions import ADAPTAHOP_TEMPLATES, ATTR_T, HEADER_ATTRIBUTES
 from .fields import AdaptaHOPFieldInfo
 
 
+class AdaptaHOPParticleIndex(ParticleIndex):
+    def _setup_filenames(self):
+        template = self.dataset.filename_template
+        ndoms = self.dataset.file_count
+        cls = self.dataset._file_class
+        if ndoms > 1:
+            self.data_files = [
+                cls(self.dataset, self.io, template % {"num": i}, i, None)
+                for i in range(ndoms)
+            ]
+        else:
+            self.data_files = [
+                cls(
+                    self.dataset,
+                    self.io,
+                    self.dataset.parameter_filename,
+                    0,
+                    None,
+                )
+            ]
+
+
 class AdaptaHOPDataset(Dataset):
-    _index_class = HaloCatalogParticleIndex
+    _index_class = AdaptaHOPParticleIndex
     _file_class = HaloCatalogFile
     _field_info_class = AdaptaHOPFieldInfo
 
     # AdaptaHOP internally assumes 1Mpc == 3.0824cm
     _code_length_to_Mpc = (1.0 * Mpc).to("cm").value / 3.08e24
+    _header_attributes: Optional[ATTR_T] = None
+    _halo_attributes: Optional[ATTR_T] = None
 
     def __init__(
         self,
@@ -49,11 +75,14 @@ class AdaptaHOPDataset(Dataset):
         self.over_refine_factor = over_refine_factor
         if parent_ds is None:
             raise RuntimeError(
-                "The AdaptaHOP frontend requires a parent dataset to be passed as `parent_ds`."
+                "The AdaptaHOP frontend requires a parent dataset "
+                "to be passed as `parent_ds`."
             )
         self.parent_ds = parent_ds
 
-        super(AdaptaHOPDataset, self).__init__(
+        self._guess_headers_from_file(filename)
+
+        super().__init__(
             filename,
             dataset_type,
             units_override=units_override,
@@ -66,9 +95,51 @@ class AdaptaHOPDataset(Dataset):
         setdefaultattr(self, "velocity_unit", self.quan(1.0, "km / s"))
         setdefaultattr(self, "time_unit", self.length_unit / self.velocity_unit)
 
+    def _guess_headers_from_file(self, filename) -> None:
+        with FortranFile(filename) as fpu:
+            ok = False
+            for dp, longint in product((True, False), (True, False)):
+                fpu.seek(0)
+                try:
+                    header_attributes = HEADER_ATTRIBUTES(double=dp, longint=longint)
+                    fpu.read_attrs(header_attributes)
+                    ok = True
+                    break
+                except (ValueError, OSError):
+                    pass
+
+            if not ok:
+                raise OSError("Could not read headers from file %s" % filename)
+
+            istart = fpu.tell()
+            fpu.seek(0, 2)
+            iend = fpu.tell()
+
+            # Try different templates
+            ok = False
+            for name, cls in ADAPTAHOP_TEMPLATES.items():
+                fpu.seek(istart)
+                attributes = cls(longint, dp).HALO_ATTRIBUTES
+                mylog.debug("Trying %s(longint=%s, dp=%s)", name, longint, dp)
+                try:
+                    # Try to read two halos to be sure
+                    fpu.read_attrs(attributes)
+                    if fpu.tell() < iend:
+                        fpu.read_attrs(attributes)
+                    ok = True
+                    break
+                except (ValueError, OSError):
+                    continue
+
+        if not ok:
+            raise OSError("Could not guess fields from file %s" % filename)
+
+        self._header_attributes = header_attributes
+        self._halo_attributes = attributes
+
     def _parse_parameter_file(self):
         with FortranFile(self.parameter_filename) as fpu:
-            params = fpu.read_attrs(HEADER_ATTRIBUTES)
+            params = fpu.read_attrs(self._header_attributes)
         self.dimensionality = 3
         self.unique_identifier = int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         # Domain related things
@@ -84,7 +155,7 @@ class AdaptaHOPDataset(Dataset):
         self.current_time = self.quan(params["age"], "Gyr")
         self.omega_lambda = 0.724  # hard coded if not inferred from parent ds
         self.hubble_constant = 0.7  # hard coded if not inferred from parent ds
-        self.periodicity = (True, True, True)
+        self._periodicity = (True, True, True)
         self.particle_types = "halos"
         self.particle_types_raw = "halos"
 
@@ -102,10 +173,10 @@ class AdaptaHOPDataset(Dataset):
         self.parameters.update(params)
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        fname = os.path.split(args[0])[1]
+    def _is_valid(cls, filename, *args, **kwargs):
+        fname = os.path.split(filename)[1]
         if not fname.startswith("tree_bricks") or not re.match(
-            "^tree_bricks\d{3}$", fname
+            r"^tree_bricks\d{3}$", fname
         ):
             return False
         return True
@@ -178,9 +249,11 @@ class AdaptaHOPHaloContainer(YTSelectionContainer):
     --------
 
     >>> import yt
-    >>> ds = yt.load('output_00080_halos/tree_bricks080', parent_ds=yt.load('output_00080/info_00080.txt'))
-    >>>
-    >>> ds.halo(1, ptype='io')
+    >>> ds = yt.load(
+    ...     "output_00080_halos/tree_bricks080",
+    ...     parent_ds=yt.load("output_00080/info_00080.txt"),
+    ... )
+    >>> ds.halo(1, ptype="io")
     >>> print(halo.mass)
     119.22804260253906 100000000000.0*Msun
     >>> print(halo.position)
@@ -189,11 +262,11 @@ class AdaptaHOPHaloContainer(YTSelectionContainer):
     [3306394.95849609 8584366.60766602 9982682.80029297] cm/s
     >>> print(halo["io", "particle_mass"])
     [3.19273578e-06 3.19273578e-06 ... 3.19273578e-06 3.19273578e-06] code_mass
-    >>>
+
     >>> # particle ids for this halo
     >>> print(halo.member_ids)
     [     48      64     176 ... 999947 1005471 1006779]
-    >>>
+
     """
 
     _type_name = "halo"
@@ -223,7 +296,7 @@ class AdaptaHOPHaloContainer(YTSelectionContainer):
         self._set_halo_member_data()
 
         # Call constructor
-        super(AdaptaHOPHaloContainer, self).__init__(parent_ds, {})
+        super().__init__(parent_ds, {})
 
     def __repr__(self):
         return "%s_%s_%09d" % (self.ds, self.ptype, self.particle_identifier)
@@ -278,7 +351,7 @@ class AdaptaHOPHaloContainer(YTSelectionContainer):
 
         # Build subregion that only contains halo particles
         reg = sph.cut_region(
-            ['np.in1d(obj["io", "particle_identity"].astype(int), members)'],
+            ['np.in1d(obj[("io", "particle_identity")].astype(int), members)'],
             locals=dict(members=members, np=np),
         )
 
@@ -290,6 +363,6 @@ class AdaptaHOPHaloContainer(YTSelectionContainer):
         ds = self.halo_ds
         # Add position, mass, velocity member functions
         for attr_name in ("mass", "position", "velocity"):
-            setattr(self, attr_name, ds.r["halos", "particle_%s" % attr_name][ihalo])
+            setattr(self, attr_name, ds.r["halos", f"particle_{attr_name}"][ihalo])
         # Add members
         self.member_ids = self.halo_ds.index.io.members(ihalo).astype(np.int64)
