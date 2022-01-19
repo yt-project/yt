@@ -4,7 +4,7 @@ Chimera-specific fields
 
 
 """
-
+from yt._typing import KnownFieldsT
 from yt.fields.field_info_container import FieldInfoContainer
 
 # We need to specify which fields we might have in our dataset.  The field info
@@ -13,7 +13,7 @@ from yt.fields.field_info_container import FieldInfoContainer
 
 
 class ChimeraFieldInfo(FieldInfoContainer):
-    known_other_fields = (
+    known_other_fields: KnownFieldsT = (
         ("e_int", ("J", ["Internal Energy"], None)),
         ("entropy", ("s/K", ["Entropy"], None)),
         ("rho_c", ("g/cm**3", ["density", "Density"], "Density")),
