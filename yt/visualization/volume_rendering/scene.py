@@ -452,12 +452,9 @@ class Scene:
             try:
                 tf = rs.transfer_function
                 num_trans_func += 1
-                print(type(tf))
             except AttributeError:
                 print("error")
                 pass
-
-        print("num_trans_func = ", num_trans_func)
 
         # which transfer function?
         if num_trans_func == 1:
