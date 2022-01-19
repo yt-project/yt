@@ -482,7 +482,7 @@ class Scene:
 
             cbh_each = cbh/num_trans_func
 
-            for i, rs in enumerate(rensources):
+            for i, rs in enumerate(self._get_render_sources()):
                 ax = self._render_figure.add_axes([cbx0, cby0 + i*cbh_each, 0.8*cbw, 0.8*cbh_each])
                 try:
                     tf = rs.transfer_function
