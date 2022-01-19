@@ -59,7 +59,7 @@ class IOHandlerGAMER(BaseIOHandler):
                 x = np.asarray(par_posx[start:end], dtype=self._field_dtype)
                 y = np.asarray(par_posy[start:end], dtype=self._field_dtype)
                 z = np.asarray(par_posz[start:end], dtype=self._field_dtype)
-                yield ptype, (x, y, z)
+                yield ptype, (x, y, z), 0.0
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)  # generator --> list

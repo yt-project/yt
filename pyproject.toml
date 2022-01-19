@@ -129,3 +129,15 @@ ignore = [
   "yt/utilities/lib/ragged_arrays.c",
   "yt/utilities/lib/write_array.c",
 ]
+
+
+[tool.mypy]
+python_version = 3.7
+ignore_missing_imports = true
+warn_unused_configs = true
+warn_unused_ignores = true
+warn_unreachable = true
+show_error_context = true
+
+# color_maps can be reactivated after https://github.com/yt-project/yt/pull/3441 is merged
+exclude = "(test_*|lodgeit|color_maps)"

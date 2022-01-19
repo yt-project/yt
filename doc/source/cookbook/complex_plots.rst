@@ -34,7 +34,7 @@ with a fourth entering for particle data that is deposited onto a mesh
 is inherited by
 :class:`~yt.visualization.plot_window.AxisAlignedSlicePlot`,
 :class:`~yt.visualization.plot_window.OffAxisSlicePlot`,
-:class:`~yt.visualization.plot_window.ProjectionPlot`, and
+:class:`~yt.visualization.plot_window.AxisAlignedProjectionPlot`, and
 :class:`~yt.visualization.plot_window.OffAxisProjectionPlot`.  This
 controls the number of resolution elements in the
 :class:`~yt.visualization.fixed_resolution.FixedResolutionBuffer`,
@@ -46,10 +46,7 @@ or during image creation with the ``buff_size`` argument to any
 of the four preceding classes.
 
 2. ``figure_size``, which can be altered with either
-:meth:`~yt.visualization.plot_container.PlotContainer.set_figure_size`
-or with :meth:`~yt.visualization.plot_container.PlotWindow.set_window_size`
-(the latter simply calls
-:meth:`~yt.visualization.plot_container.PlotContainer.set_figure_size`),
+:meth:`~yt.visualization.plot_container.PlotContainer.set_figure_size`,
 or can be set during image creation with the ``window_size`` argument.
 This sets the size of the final image (including the visualization and,
 if applicable, the axes and colorbar as well) in inches.

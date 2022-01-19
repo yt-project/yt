@@ -2,7 +2,6 @@ import builtins
 
 import numpy as np
 
-from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.funcs import mylog
 from yt.units.yt_array import YTQuantity
@@ -273,15 +272,15 @@ def strip_colormap_data(
     fn="color_map_data.py",
     cmaps=(
         "jet",
-        "algae",
+        "cmyt.algae",
         "hot",
         "gist_stern",
         "RdBu",
-        "kamae",
-        "kelp",
-        "arbre",
-        "octarine",
-        "dusk",
+        "cmyt.pastel",
+        "cmyt.kelp",
+        "cmyt.arbre",
+        "cmyt.octarine",
+        "cmyt.dusk",
     ),
 ):
     import pprint
@@ -335,7 +334,6 @@ def write_projection(
     title=None,
     vmin=None,
     vmax=None,
-    limits=None,
     take_log=True,
     figsize=(8, 6),
     dpi=100,
@@ -397,20 +395,6 @@ def write_projection(
         cmap_name = ytcfg.get("yt", "default_colormap")
     import matplotlib.colors
     import matplotlib.figure
-
-    if limits is not None:
-        if vmin is not None or vmax is not None:
-            raise ValueError(
-                "The `limits` keyword argument is deprecated and can not "
-                "be used simultaneously with `vmin` or `vmax`."
-            )
-        issue_deprecation_warning(
-            "The `limits` keyword argument is deprecated and will "
-            "be removed in a future version of yt. Use `vmin` and `vmax` instead.",
-            since="4.0.0",
-            removal="4.1.0",
-        )
-        vmin, vmax = limits
 
     # If this is rendered as log, then apply now.
     if take_log:

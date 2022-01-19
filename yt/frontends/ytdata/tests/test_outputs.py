@@ -32,6 +32,10 @@ def make_tempdir():
 
 
 def compare_unit_attributes(ds1, ds2):
+    r"""
+    Checks to make sure that the length, mass, time, velocity, and
+    magnetic units are the same for two different dataset objects.
+    """
     attrs = ("length_unit", "mass_unit", "time_unit", "velocity_unit", "magnetic_unit")
     for attr in attrs:
         u1 = getattr(ds1, attr, None)

@@ -10,19 +10,14 @@ linux|Linux)
       proj-data \
       proj-bin \
       libgeos-dev \
-      libopenmpi-dev
+      libopenmpi-dev \
+      libfuse2
     ;;
 osx|macOS)
     sudo mkdir -p /usr/local/man
     sudo chown -R "${USER}:admin" /usr/local/man
     brew update
-    # proj can be unpinned when upstream incompatibility issue is resolved. See
-    # https://github.com/SciTools/cartopy/issues/1140
-    export LDFLAGS="$LDFLAGS -L/usr/local/opt/proj@7/lib"
-    export CPPFLAGS="$CPPFLAGS -I/usr/local/opt/proj@7/include"
-    export CFLAGS="$CFLAGS -I/usr/local/opt/proj@7/include"
-    export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:/usr/local/opt/proj@7/lib/pkgconfig"
-    HOMEBREW_NO_AUTO_UPDATE=1 brew install hdf5 proj@7 geos open-mpi netcdf ccache
+    HOMEBREW_NO_AUTO_UPDATE=1 brew install hdf5 proj geos open-mpi netcdf ccache osxfuse
     ;;
 esac
 
@@ -42,6 +37,18 @@ if [[ "${RUNNER_OS}" == "Windows" ]] && [[ ${dependencies} != "minimal" ]]; then
 else
     python -m pip install --upgrade pip
     python -m pip install --upgrade wheel
+
+    # // band aid
+    # TODO: revert https://github.com/yt-project/yt/pull/3733
+    # when the following upstream PR is released
+    # https://github.com/mpi4py/mpi4py/issues/160
+
+    # workaround taken from
+    # https://github.com/mpi4py/mpi4py/issues/157#issuecomment-1001022274
+    export SETUPTOOLS_USE_DISTUTILS=stdlib
+    python -m pip install mpi4py
+    # // end band aid
+
     python -m pip install --upgrade setuptools
 fi
 

@@ -28,19 +28,6 @@ class YTUnidentifiedDataType(YTException):
         return msg
 
 
-class YTOutputNotIdentified(YTUnidentifiedDataType):
-    def __init__(self, filename, args=None, kwargs=None):
-        super(YTUnidentifiedDataType, self).__init__(filename, args, kwargs)
-        # this cannot be imported at the module level (creates circular imports)
-        from yt._maintenance.deprecation import issue_deprecation_warning
-
-        issue_deprecation_warning(
-            "YTOutputNotIdentified is a deprecated alias for YTUnidentifiedDataType",
-            since="4.0.0",
-            removal="4.1.0",
-        )
-
-
 class YTAmbiguousDataType(YTUnidentifiedDataType):
     def __init__(self, filename, candidates):
         self.filename = filename
@@ -51,8 +38,9 @@ class YTAmbiguousDataType(YTUnidentifiedDataType):
         msg += "The following independent classes were detected as valid :\n"
         for c in self.candidates:
             msg += f"{c}\n"
-        msg += "A possible workaround is to directly instantiate one of the above.\n"
-        msg += "Please report this to https://github.com/yt-project/yt/issues/new"
+        msg += (
+            "This degeneracy can be lifted using the `hint` keyword argument in yt.load"
+        )
         return msg
 
 
@@ -934,3 +922,8 @@ class GenerationInProgress(Exception):
     def __init__(self, fields):
         self.fields = fields
         super().__init__()
+
+
+class MountError(Exception):
+    def __init__(self, message):
+        self.message = message

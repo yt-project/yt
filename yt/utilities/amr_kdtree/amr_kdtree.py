@@ -372,17 +372,6 @@ class AMRKDTree(ParallelAnalysisInterface):
             self.brick_dimensions.append(dims)
         return brick
 
-    def locate_brick(self, position):
-        """Given a position, find the node that contains it."""
-        from yt._maintenance.deprecation import issue_deprecation_warning
-
-        issue_deprecation_warning(
-            "`AMRKDTree.locate_brick` is a deprecated alias "
-            "for `AMRKDTree.locate_node`.",
-            removal="4.1.0",
-        )
-        return self.locate_node(position)
-
     def locate_neighbors(self, grid, ci):
         r"""Given a grid and cell index, finds the 26 neighbor grids
         and cell indices.

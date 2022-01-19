@@ -1,13 +1,13 @@
 import numpy as np
 
 from yt.funcs import mylog
-from yt.utilities.io_handler import BaseIOHandler
+from yt.utilities.io_handler import BaseParticleIOHandler
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 _pos_names = ["CenterOfMass", "CentreOfMass"]
 
 
-class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
+class IOHandlerOWLSSubfindHDF5(BaseParticleIOHandler):
     _dataset_type = "subfind_hdf5"
     _position_name = None
 
@@ -34,7 +34,7 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
                     x = coords[:, 0]
                     y = coords[:, 1]
                     z = coords[:, 2]
-                    yield ptype, (x, y, z)
+                    yield ptype, (x, y, z), 0.0
 
     def _yield_coordinates(self, data_file):
         ptypes = self.ds.particle_types_raw

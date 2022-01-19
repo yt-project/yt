@@ -5,12 +5,12 @@ from typing import Optional, Tuple
 import numpy as np
 from unyt.exceptions import UnitConversionError
 
-from yt._maintenance.deprecation import issue_deprecation_warning
+from yt._typing import KnownFieldsT
 from yt.fields.field_exceptions import NeedsConfiguration
 from yt.funcs import mylog, only_on_root
 from yt.geometry.geometry_handler import is_curvilinear
-from yt.units.dimensions import dimensionless
-from yt.units.unit_object import Unit
+from yt.units.dimensions import dimensionless  # type: ignore
+from yt.units.unit_object import Unit  # type: ignore
 from yt.utilities.exceptions import (
     YTCoordinateNotImplemented,
     YTDomainOverflow,
@@ -50,9 +50,9 @@ class FieldInfoContainer(dict):
     """
 
     fallback = None
-    known_other_fields = ()
-    known_particle_fields = ()
-    extra_union_fields = ()
+    known_other_fields: KnownFieldsT = ()
+    known_particle_fields: KnownFieldsT = ()
+    extra_union_fields: Tuple[Tuple[str, str], ...] = ()
 
     def __init__(self, ds, field_list, slice_info=None):
         self._show_field_errors = []
@@ -267,7 +267,7 @@ class FieldInfoContainer(dict):
                 self.alias((ftype, alias), field)
 
     @staticmethod
-    def _sanitize_sampling_type(sampling_type, particle_type=None):
+    def _sanitize_sampling_type(sampling_type):
         """Detect conflicts between deprecated and new parameters to specify the
         sampling type in a new field.
 
@@ -277,9 +277,6 @@ class FieldInfoContainer(dict):
         ----------
         sampling_type : str
             One of "cell", "particle" or "local" (case insensitive)
-        particle_type : str
-            This is a deprecated argument of the add_field method,
-            which was replaced by sampling_type.
 
         Raises
         ------
@@ -300,20 +297,6 @@ class FieldInfoContainer(dict):
                 sampling_type,
                 ", ".join(acceptable_samplings),
             )
-
-        if particle_type:
-            issue_deprecation_warning(
-                "'particle_type' keyword argument is deprecated in favour "
-                "of the positional argument 'sampling_type'.",
-                since="4.0.0",
-                removal="4.1.0",
-            )
-            if sampling_type != "particle":
-                raise RuntimeError(
-                    "Conflicting values for parameters "
-                    "'sampling_type' and 'particle_type'."
-                )
-
         return sampling_type
 
     def add_field(self, name, function, sampling_type, **kwargs):
@@ -395,7 +378,10 @@ class FieldInfoContainer(dict):
         else:
             self[name] = DerivedField(name, sampling_type, function, **kwargs)
 
-    def load_all_plugins(self, ftype="gas"):
+    def load_all_plugins(self, ftype: Optional[str] = "gas"):
+        if ftype is None:
+            return
+        mylog.debug("Loading field plugins for field type: %s.", ftype)
         loaded = []
         for n in sorted(field_plugins):
             loaded += self.load_plugin(n, ftype)
@@ -436,7 +422,7 @@ class FieldInfoContainer(dict):
         alias_name,
         original_name,
         units=None,
-        deprecate: Optional[Tuple[str]] = None,
+        deprecate: Optional[Tuple[str, str]] = None,
     ):
         """
         Alias one field to another field.

@@ -1,6 +1,8 @@
+import abc
 from collections import defaultdict
 from functools import wraps
 from numbers import Number
+from typing import List, Optional, Type, Union
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -15,8 +17,8 @@ from yt.config import ytcfg
 from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
 from yt.funcs import fix_axis, fix_unitary, is_sequence, iter_fields, mylog, obj_length
-from yt.units.unit_object import Unit
-from yt.units.unit_registry import UnitParseError
+from yt.units.unit_object import Unit  # type: ignore
+from yt.units.unit_registry import UnitParseError  # type: ignore
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import (
     YTCannotParseUnitDisplayName,
@@ -269,26 +271,22 @@ class PlotWindow(ImagePlotContainer):
 
     _frb = None
 
-    def frb():
-        doc = "The frb property."
+    @property
+    def frb(self):
+        if self._frb is None or not self._data_valid:
+            self._recreate_frb()
+        return self._frb
 
-        def fget(self):
-            if self._frb is None or not self._data_valid:
-                self._recreate_frb()
-            return self._frb
+    @frb.setter
+    def frb(self, value):
+        self._frb = value
+        self._data_valid = True
 
-        def fset(self, value):
-            self._frb = value
-            self._data_valid = True
-
-        def fdel(self):
-            del self._frb
-            self._frb = None
-            self._data_valid = False
-
-        return locals()
-
-    frb = property(**frb())
+    @frb.deleter
+    def frb(self):
+        del self._frb
+        self._frb = None
+        self._data_valid = False
 
     def _recreate_frb(self):
         old_fields = None
@@ -416,7 +414,7 @@ class PlotWindow(ImagePlotContainer):
 
         """
         if len(deltas) != 2:
-            raise RuntimeError(
+            raise TypeError(
                 f"The pan function accepts a two-element sequence.\nReceived {deltas}."
             )
         if isinstance(deltas[0], Number) and isinstance(deltas[1], Number):
@@ -432,7 +430,7 @@ class PlotWindow(ImagePlotContainer):
         elif isinstance(deltas[0], YTQuantity) and isinstance(deltas[1], YTQuantity):
             pass
         else:
-            raise RuntimeError(
+            raise TypeError(
                 "The arguments of the pan function must be a sequence of floats,\n"
                 "quantities, or (float, unit) tuples. Received %s." % (deltas,)
             )
@@ -776,18 +774,6 @@ class PlotWindow(ImagePlotContainer):
             self.buff_size = (size, size)
         return self
 
-    def set_window_size(self, size):
-        """This calls set_figure_size to adjust the size of the plot window."""
-        from yt._maintenance.deprecation import issue_deprecation_warning
-
-        issue_deprecation_warning(
-            "`PlotWindow.set_window_size` is a deprecated alias "
-            "for `PlotWindow.set_figure_size`.",
-            removal="4.1.0",
-        )
-        self.set_figure_size(size)
-        return self
-
     @invalidate_plot
     def set_axes_unit(self, unit_name):
         r"""Set the unit for display on the x and y axes of the image.
@@ -860,8 +846,8 @@ class PWViewerMPL(PlotWindow):
     """Viewer using matplotlib as a backend via the WindowPlotMPL."""
 
     _current_field = None
-    _frb_generator = None
-    _plot_type = None
+    _frb_generator: Optional[Type[FixedResolutionBuffer]] = None
+    _plot_type: Optional[str] = None
     _data_valid = False
 
     def __init__(self, *args, **kwargs):
@@ -1012,12 +998,17 @@ class PWViewerMPL(PlotWindow):
                 unit_x = unit_y = unit
                 coords = self.ds.coordinates
                 if hasattr(coords, "image_units"):
-                    # this should detect angular coordinates
+                    # check for special cases defined in
+                    # non cartesian CoordinateHandler subclasses
                     image_units = coords.image_units[coords.axis_id[axis_index]]
                     if image_units[0] in ("deg", "rad"):
                         unit_x = "code_length"
+                    elif image_units[0] == 1:
+                        unit_x = "dimensionless"
                     if image_units[1] in ("deg", "rad"):
                         unit_y = "code_length"
+                    elif image_units[1] == 1:
+                        unit_y = "dimensionless"
             else:
                 (unit_x, unit_y) = self._axes_unit_names
 
@@ -1028,10 +1019,22 @@ class PWViewerMPL(PlotWindow):
                 self.aspect = float(
                     (self.ds.quan(1.0, unit_y) / self.ds.quan(1.0, unit_x)).in_cgs()
                 )
-            extentx = [(self.xlim[i] - xc).in_units(unit_x) for i in (0, 1)]
-            extenty = [(self.ylim[i] - yc).in_units(unit_y) for i in (0, 1)]
+            extentx = (self.xlim - xc)[:2]
+            extenty = (self.ylim - yc)[:2]
 
-            extent = extentx + extenty
+            # extentx/y arrays inherit units from xlim and ylim attributes
+            # and these attributes are always length even for angular and
+            # dimensionless axes so we need to stip out units for consistency
+            if unit_x == "dimensionless":
+                extentx = extentx / extentx.units
+            else:
+                extentx.convert_to_units(unit_x)
+            if unit_y == "dimensionless":
+                extenty = extenty / extenty.units
+            else:
+                extenty.convert_to_units(unit_y)
+
+            extent = [*extentx, *extenty]
 
             if f in self.plots.keys():
                 zlim = (self.plots[f].zmin, self.plots[f].zmax)
@@ -1348,28 +1351,6 @@ class PWViewerMPL(PlotWindow):
 
             self.__dict__["annotate_" + cbname] = closure()
 
-    def annotate_clear(self, index=None):
-        """
-        Clear callbacks from the plot.  If index is not set, clear all
-        callbacks.  If index is set, clear that index (ie 0 is the first one
-        created, 1 is the 2nd one created, -1 is the last one created, etc.)
-
-        .. note::
-
-            Deprecated in favor of `clear_annotations`.
-
-        See Also
-        --------
-        :py:meth:`yt.visualization.plot_window.PWViewerMPL.clear_annotations`
-        """
-        issue_deprecation_warning(
-            "`annotate_clear` has been deprecated "
-            "in favor of `clear_annotations`. Using `clear_annotations`.",
-            since="4.0.0",
-            removal="4.1.0",
-        )
-        self.clear_annotations(index=index)
-
     @invalidate_plot
     def clear_annotations(self, index=None):
         """
@@ -1499,7 +1480,313 @@ class PWViewerMPL(PlotWindow):
         return fig
 
 
-class AxisAlignedSlicePlot(PWViewerMPL):
+class NormalPlot(abc.ABC):
+    """This is the abstraction for SlicePlot and ProjectionPlot, where
+    we define the common sanitizing mechanism for user input (normal direction).
+    """
+
+    @staticmethod
+    def sanitize_normal_vector(ds, normal) -> Union[str, np.ndarray]:
+        """Return the name of a cartesian axis whener possible,
+        or a 3-element 1D ndarray of float64 in any other valid case.
+        Fail with a descriptive error message otherwise.
+        """
+        axis_names = ds.coordinates.axis_order
+
+        if isinstance(normal, str):
+            if normal not in axis_names:
+                names_str = ", ".join(f"'{name}'" for name in axis_names)
+                raise ValueError(
+                    f"'{normal}' is not a valid axis name. Expected one of {names_str}."
+                )
+            return normal
+
+        if isinstance(normal, int):
+            if normal not in (0, 1, 2):
+                raise ValueError(
+                    f"{normal} is not a valid axis identifier. Expected either 0, 1, or 2."
+                )
+            return axis_names[normal]
+
+        if not is_sequence(normal):
+            raise TypeError(
+                f"{normal} is not a valid normal vector identifier. "
+                "Expected a string, integer or sequence of 3 floats."
+            )
+
+        if len(normal) != 3:
+            raise ValueError(
+                f"{normal} with length {len(normal)} is not a valid normal vector. "
+                "Expected a 3-element sequence."
+            )
+
+        try:
+            retv = np.array(normal, dtype="float64")
+            if retv.shape != (3,):
+                raise ValueError(f"{normal} is incorrectly shaped.")
+        except ValueError as exc:
+            raise TypeError(f"{normal} is not a valid normal vector.") from exc
+
+        nonzero_idx = np.nonzero(retv)[0]
+        if len(nonzero_idx) == 0:
+            raise ValueError(f"A null vector {normal} isn't a valid normal vector.")
+        if len(nonzero_idx) == 1:
+            return axis_names[nonzero_idx[0]]
+
+        return retv
+
+    @staticmethod
+    def _validate_init_args(*, normal, axis, fields) -> None:
+        # TODO: remove this method in yt 4.2
+
+        if axis is not None:
+            issue_deprecation_warning(
+                "Argument 'axis' is a deprecated alias for 'normal'.",
+                since="4.1.0",
+                removal="4.2.0",
+            )
+            if normal is not None:
+                raise TypeError("Received incompatible arguments 'axis' and 'normal'")
+            normal = axis
+
+        if normal is fields is None:
+            raise TypeError(
+                "missing 2 required positional arguments: 'normal' and 'fields'"
+            )
+
+        if fields is None:
+            raise TypeError("missing required positional argument: 'fields'")
+
+        if normal is None:
+            raise TypeError("missing required positional argument: 'normal'")
+
+        return normal
+
+
+class SlicePlot(NormalPlot):
+    r"""
+    A dispatch class for :class:`yt.visualization.plot_window.AxisAlignedSlicePlot`
+    and :class:`yt.visualization.plot_window.OffAxisSlicePlot` objects.  This
+    essentially allows for a single entry point to both types of slice plots,
+    the distinction being determined by the specified normal vector to the
+    projection.
+
+    The returned plot object can be updated using one of the many helper
+    functions defined in PlotWindow.
+
+    Parameters
+    ----------
+
+    ds : :class:`yt.data_objects.static_output.Dataset`
+        This is the dataset object corresponding to the
+        simulation output to be plotted.
+    normal : int, str, or 3-element sequence of floats
+        This specifies the normal vector to the slice.
+        Valid int values are 0, 1 and 2. Coresponding str values depend on the
+        geometry of the dataset and are generally given by `ds.coordinates.axis_order`.
+        E.g. in cartesian they are 'x', 'y' and 'z'.
+        An arbitrary normal vector may be specified as a 3-element sequence of floats.
+
+        This returns a :class:`OffAxisSlicePlot` object or a
+        :class:`AxisAlignedSlicePlot` object, depending on wether the requested
+        normal directions corresponds to a natural axis of the dataset's geometry.
+
+    fields : a (or a list of) 2-tuple of strings (ftype, fname)
+         The name of the field(s) to be plotted.
+
+    The following are nominally keyword arguments passed onto the respective
+    slice plot objects generated by this function.
+
+    Keyword Arguments
+    -----------------
+
+    center : A sequence floats, a string, or a tuple.
+         The coordinate of the center of the image. If set to 'c', 'center' or
+         left blank, the plot is centered on the middle of the domain. If set to
+         'max' or 'm', the center will be located at the maximum of the
+         ('gas', 'density') field. Centering on the max or min of a specific
+         field is supported by providing a tuple such as ("min","temperature") or
+         ("max","dark_matter_density"). Units can be specified by passing in *center*
+         as a tuple containing a coordinate and string unit name or by passing
+         in a YTArray. If a list or unitless array is supplied, code units are
+         assumed.
+    width : tuple or a float.
+         Width can have four different formats to support windows with variable
+         x and y widths.  They are:
+
+         ==================================     =======================
+         format                                 example
+         ==================================     =======================
+         (float, string)                        (10,'kpc')
+         ((float, string), (float, string))     ((10,'kpc'),(15,'kpc'))
+         float                                  0.2
+         (float, float)                         (0.2, 0.3)
+         ==================================     =======================
+
+         For example, (10, 'kpc') requests a plot window that is 10 kiloparsecs
+         wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a
+         window that is 10 kiloparsecs wide along the x axis and 15
+         kiloparsecs wide along the y axis.  In the other two examples, code
+         units are assumed, for example (0.2, 0.3) requests a plot that has an
+         x width of 0.2 and a y width of 0.3 in code units.  If units are
+         provided the resulting plot axis labels will use the supplied units.
+    axes_unit : string
+         The name of the unit for the tick labels on the x and y axes.
+         Defaults to None, which automatically picks an appropriate unit.
+         If axes_unit is '1', 'u', or 'unitary', it will not display the
+         units, and only show the axes name.
+    origin : string or length 1, 2, or 3 sequence.
+         The location of the origin of the plot coordinate system for
+         `AxisAlignedSlicePlot` object; for `OffAxisSlicePlot` objects this
+         parameter is discarded. This is typically represented by a '-'
+         separated string or a tuple of strings. In the first index the
+         y-location is given by 'lower', 'upper', or 'center'. The second index
+         is the x-location, given as 'left', 'right', or 'center'. Finally, the
+         whether the origin is applied in 'domain' space, plot 'window' space or
+         'native' simulation coordinate system is given. For example, both
+         'upper-right-domain' and ['upper', 'right', 'domain'] place the
+         origin in the upper right hand corner of domain space. If x or y
+         are not given, a value is inferred. For instance, 'left-domain'
+         corresponds to the lower-left hand corner of the simulation domain,
+         'center-domain' corresponds to the center of the simulation domain,
+         or 'center-window' for the center of the plot window. In the event
+         that none of these options place the origin in a desired location,
+         a sequence of tuples and a string specifying the
+         coordinate space can be given. If plain numeric types are input,
+         units of `code_length` are assumed. Further examples:
+
+         =============================================== ===============================
+         format                                          example
+         =============================================== ===============================
+         '{space}'                                       'domain'
+         '{xloc}-{space}'                                'left-window'
+         '{yloc}-{space}'                                'upper-domain'
+         '{yloc}-{xloc}-{space}'                         'lower-right-window'
+         ('{space}',)                                    ('window',)
+         ('{xloc}', '{space}')                           ('right', 'domain')
+         ('{yloc}', '{space}')                           ('lower', 'window')
+         ('{yloc}', '{xloc}', '{space}')                 ('lower', 'right', 'window')
+         ((yloc, '{unit}'), (xloc, '{unit}'), '{space}') ((0, 'm'), (.4, 'm'), 'window')
+         (xloc, yloc, '{space}')                         (0.23, 0.5, 'domain')
+         =============================================== ===============================
+    north_vector : a sequence of floats
+        A vector defining the 'up' direction in the `OffAxisSlicePlot`; not
+        used in `AxisAlignedSlicePlot`.  This option sets the orientation of the
+        slicing plane.  If not set, an arbitrary grid-aligned north-vector is
+        chosen.
+    fontsize : integer
+         The size of the fonts for the axis, colorbar, and tick labels.
+    field_parameters : dictionary
+         A dictionary of field parameters than can be accessed by derived
+         fields.
+    data_source : YTSelectionContainer Object
+         Object to be used for data selection.  Defaults to a region covering
+         the entire simulation.
+
+    Raises
+    ------
+
+    ValueError or TypeError
+        If `normal` cannot be interpreted as a valid normal direction.
+
+    Examples
+    --------
+
+    >>> from yt import load
+    >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> slc = SlicePlot(ds, "x", ("gas", "density"), center=[0.2, 0.3, 0.4])
+
+    >>> slc = SlicePlot(
+    ...     ds, [0.4, 0.2, -0.1], ("gas", "pressure"), north_vector=[0.2, -0.3, 0.1]
+    ... )
+
+    """
+
+    # ignoring type check here, because mypy doesn't allow __new__ methods to
+    # return instances of subclasses. The design we use here is however based
+    # on the pathlib.Path class from the standard library
+    # https://github.com/python/mypy/issues/1020
+    def __new__(  # type: ignore
+        cls, ds, normal=None, fields=None, *args, axis=None, **kwargs
+    ) -> Union["AxisAlignedSlicePlot", "OffAxisSlicePlot"]:
+        # TODO: in yt 4.2, remove default values for normal and fields, drop axis kwarg
+        normal = cls._validate_init_args(normal=normal, axis=axis, fields=fields)
+
+        if cls is SlicePlot:
+            normal = cls.sanitize_normal_vector(ds, normal)
+            if isinstance(normal, str):
+                cls = AxisAlignedSlicePlot
+            else:
+                cls = OffAxisSlicePlot
+        self = object.__new__(cls)
+        return self
+
+
+class ProjectionPlot(NormalPlot):
+    r"""
+    A dispatch class for :class:`yt.visualization.plot_window.AxisAlignedProjectionPlot`
+    and :class:`yt.visualization.plot_window.OffAxisProjectionPlot` objects.  This
+    essentially allows for a single entry point to both types of projection plots,
+    the distinction being determined by the specified normal vector to the
+    slice.
+
+    The returned plot object can be updated using one of the many helper
+    functions defined in PlotWindow.
+
+    Parameters
+    ----------
+
+    ds : :class:`yt.data_objects.static_output.Dataset`
+        This is the dataset object corresponding to the
+        simulation output to be plotted.
+    normal : int, str, or 3-element sequence of floats
+        This specifies the normal vector to the slice.
+        Valid int values are 0, 1 and 2. Coresponding str values depend on the
+        geometry of the dataset and are generally given by `ds.coordinates.axis_order`.
+        E.g. in cartesian they are 'x', 'y' and 'z'.
+        An arbitrary normal vector may be specified as a 3-element sequence of floats.
+
+        This function will return a :class:`OffAxisProjectionPlot` object or a
+        :class:`AxisAlignedProjectionPlot` object, depending on wether the requested
+        normal directions corresponds to a natural axis of the dataset's geometry.
+
+    fields : a (or a list of) 2-tuple of strings (ftype, fname)
+         The name of the field(s) to be plotted.
+
+
+    Any additional positional and keyword arguments are passed down to the appropriate
+    return class. See :class:`yt.visualization.plot_window.AxisAlignedProjectionPlot`
+    and :class:`yt.visualization.plot_window.OffAxisProjectionPlot`.
+
+    Raises
+    ------
+
+    ValueError or TypeError
+        If `normal` cannot be interpreted as a valid normal direction.
+
+    """
+
+    # ignoring type check here, because mypy doesn't allow __new__ methods to
+    # return instances of subclasses. The design we use here is however based
+    # on the pathlib.Path class from the standard library
+    # https://github.com/python/mypy/issues/1020
+    def __new__(  # type: ignore
+        cls, ds, normal=None, fields=None, *args, axis=None, **kwargs
+    ) -> Union["AxisAlignedProjectionPlot", "OffAxisProjectionPlot"]:
+        # TODO: in yt 4.2, remove default values for normal and fields, drop axis kwarg
+        normal = cls._validate_init_args(normal=normal, axis=axis, fields=fields)
+
+        if cls is ProjectionPlot:
+            normal = cls.sanitize_normal_vector(ds, normal)
+            if isinstance(normal, str):
+                cls = AxisAlignedProjectionPlot
+            else:
+                cls = OffAxisProjectionPlot
+        self = object.__new__(cls)
+        return self
+
+
+class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
     r"""Creates a slice plot from a dataset
 
     Given a ds object, an axis to slice along, and a field name
@@ -1514,7 +1801,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
     ds : `Dataset`
          This is the dataset object corresponding to the
          simulation output to be plotted.
-    axis : int or one of 'x', 'y', 'z'
+    normal : int or one of 'x', 'y', 'z'
          An int corresponding to the axis to slice along (0=x, 1=y, 2=z)
          or the axis name itself
     fields : string
@@ -1621,8 +1908,8 @@ class AxisAlignedSlicePlot(PWViewerMPL):
     def __init__(
         self,
         ds,
-        axis,
-        fields,
+        normal=None,
+        fields=None,
         center="c",
         width=None,
         axes_unit=None,
@@ -1634,9 +1921,27 @@ class AxisAlignedSlicePlot(PWViewerMPL):
         aspect=None,
         data_source=None,
         buff_size=(800, 800),
+        *,
+        north_vector=None,
+        axis=None,
     ):
+        # TODO: in yt 4.2, remove default values for normal and fields, drop axis kwarg
+        if north_vector is not None:
+            # this kwarg exists only for symmetry reasons with OffAxisSlicePlot
+            mylog.warning(
+                "Ignoring 'north_vector' keyword as it is ill-defined for "
+                "an AxisAlignedSlicePlot object."
+            )
+            del north_vector
+
+        normal = self._validate_init_args(
+            normal=normal,
+            axis=axis,
+            fields=fields,
+        )
+        normal = self.sanitize_normal_vector(ds, normal)
         # this will handle time series data and controllers
-        axis = fix_axis(axis, ds)
+        axis = fix_axis(normal, ds)
         (bounds, center, display_center) = get_window_parameters(
             axis, center, width, ds
         )
@@ -1684,7 +1989,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
         self.set_axes_unit(axes_unit)
 
 
-class ProjectionPlot(PWViewerMPL):
+class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
     r"""Creates a projection plot from a dataset
 
     Given a ds object, an axis to project along, and a field name
@@ -1699,7 +2004,7 @@ class ProjectionPlot(PWViewerMPL):
     ds : `Dataset`
         This is the dataset object corresponding to the
         simulation output to be plotted.
-    axis : int or one of 'x', 'y', 'z'
+    normal : int or one of 'x', 'y', 'z'
          An int corresponding to the axis to slice along (0=x, 1=y, 2=z)
          or the axis name itself
     fields : string
@@ -1802,9 +2107,6 @@ class ProjectionPlot(PWViewerMPL):
          just a straight summation of the field along the given axis. WARNING:
          This should only be used for uniform resolution grid datasets, as other
          datasets may result in unphysical images.
-    proj_style : string
-         The method of projection--same as method keyword.  Deprecated as of
-         version 3.0.2.  Please use method instead.
     window_size : float
          The size of the window in inches. Set to 8 by default.
     aspect : float
@@ -1828,7 +2130,7 @@ class ProjectionPlot(PWViewerMPL):
 
     >>> from yt import load
     >>> ds = load("IsolateGalaxygalaxy0030/galaxy0030")
-    >>> p = ProjectionPlot(ds, "z", ("gas", "density"), width=(20, "kpc"))
+    >>> p = AxisAlignedProjectionPlot(ds, "z", ("gas", "density"), width=(20, "kpc"))
 
     """
     _plot_type = "Projection"
@@ -1837,8 +2139,8 @@ class ProjectionPlot(PWViewerMPL):
     def __init__(
         self,
         ds,
-        axis,
-        fields,
+        normal=None,
+        fields=None,
         center="c",
         width=None,
         axes_unit=None,
@@ -1850,12 +2152,17 @@ class ProjectionPlot(PWViewerMPL):
         field_parameters=None,
         data_source=None,
         method="integrate",
-        proj_style=None,
         window_size=8.0,
         buff_size=(800, 800),
         aspect=None,
+        *,
+        axis=None,
     ):
-        axis = fix_axis(axis, ds)
+        # TODO: in yt 4.2, remove default values for normal and fields, drop axis kwarg
+        normal = self._validate_init_args(normal=normal, fields=fields, axis=axis)
+        normal = self.sanitize_normal_vector(ds, normal)
+
+        axis = fix_axis(normal, ds)
         if ds.geometry in (
             "spherical",
             "cylindrical",
@@ -1864,12 +2171,6 @@ class ProjectionPlot(PWViewerMPL):
         ):
             mylog.info("Setting origin='native' for %s geometry.", ds.geometry)
             origin = "native"
-        if proj_style is not None:
-            issue_deprecation_warning(
-                "`proj_style` parameter is deprecated, use `method` instead.",
-                removal="4.1.0",
-            )
-            method = proj_style
         # If a non-weighted integral projection, assure field-label reflects that
         if weight_field is None and method == "integrate":
             self.projected = True
@@ -1924,7 +2225,7 @@ class ProjectionPlot(PWViewerMPL):
         self.set_axes_unit(axes_unit)
 
 
-class OffAxisSlicePlot(PWViewerMPL):
+class OffAxisSlicePlot(SlicePlot, PWViewerMPL):
     r"""Creates an off axis slice plot from a dataset
 
     Given a ds object, a normal vector defining a slicing plane, and
@@ -2017,7 +2318,18 @@ class OffAxisSlicePlot(PWViewerMPL):
         field_parameters=None,
         data_source=None,
         buff_size=(800, 800),
+        *,
+        origin=None,
     ):
+        if origin is not None:
+            # this kwarg exists only for symmetry reasons with AxisAlignedSlicePlot
+            # in OffAxisSlicePlot, the origin is hardcoded
+            mylog.warning(
+                "Ignoring 'origin' keyword as it is ill-defined for "
+                "an OffAxisSlicePlot object."
+            )
+            del origin
+
         (bounds, center_rot) = get_oblique_window_parameters(normal, center, width, ds)
         if field_parameters is None:
             field_parameters = {}
@@ -2057,7 +2369,7 @@ class OffAxisSlicePlot(PWViewerMPL):
 
 class OffAxisProjectionDummyDataSource:
     _type_name = "proj"
-    _key_fields = []
+    _key_fields: List[str] = []
 
     def __init__(
         self,
@@ -2103,7 +2415,7 @@ class OffAxisProjectionDummyDataSource:
         return self.dd._determine_fields(*args)
 
 
-class OffAxisProjectionPlot(PWViewerMPL):
+class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
     r"""Creates an off axis projection plot from a dataset
 
     Given a ds object, a normal vector to project along, and
@@ -2347,197 +2659,6 @@ class WindowPlotMPL(ImagePlotMPL):
 
     def _create_axes(self, axrect):
         self.axes = self.figure.add_axes(axrect, projection=self._projection)
-
-
-def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
-    r"""
-    A factory function for
-    :class:`yt.visualization.plot_window.AxisAlignedSlicePlot`
-    and :class:`yt.visualization.plot_window.OffAxisSlicePlot` objects.  This
-    essentially allows for a single entry point to both types of slice plots,
-    the distinction being determined by the specified normal vector to the
-    slice.
-
-    The returned plot object can be updated using one of the many helper
-    functions defined in PlotWindow.
-
-    Parameters
-    ----------
-
-    ds : :class:`yt.data_objects.static_output.Dataset`
-        This is the dataset object corresponding to the
-        simulation output to be plotted.
-    normal : int or one of 'x', 'y', 'z', or sequence of floats
-        This specifies the normal vector to the slice.  If given as an integer
-        or a coordinate string (0=x, 1=y, 2=z), this function will return an
-        :class:`AxisAlignedSlicePlot` object.  If given as a sequence of floats,
-        this is interpreted as an off-axis vector and an
-        :class:`OffAxisSlicePlot` object is returned.
-    fields : string
-         The name of the field(s) to be plotted.
-    axis : int or one of 'x', 'y', 'z'
-         An int corresponding to the axis to slice along (0=x, 1=y, 2=z)
-         or the axis name itself.  If specified, this will replace normal.
-
-
-    The following are nominally keyword arguments passed onto the respective
-    slice plot objects generated by this function.
-
-    Keyword Arguments
-    -----------------
-
-    center : A sequence floats, a string, or a tuple.
-         The coordinate of the center of the image. If set to 'c', 'center' or
-         left blank, the plot is centered on the middle of the domain. If set to
-         'max' or 'm', the center will be located at the maximum of the
-         ('gas', 'density') field. Centering on the max or min of a specific
-         field is supported by providing a tuple such as ("min","temperature") or
-         ("max","dark_matter_density"). Units can be specified by passing in *center*
-         as a tuple containing a coordinate and string unit name or by passing
-         in a YTArray. If a list or unitless array is supplied, code units are
-         assumed.
-    width : tuple or a float.
-         Width can have four different formats to support windows with variable
-         x and y widths.  They are:
-
-         ==================================     =======================
-         format                                 example
-         ==================================     =======================
-         (float, string)                        (10,'kpc')
-         ((float, string), (float, string))     ((10,'kpc'),(15,'kpc'))
-         float                                  0.2
-         (float, float)                         (0.2, 0.3)
-         ==================================     =======================
-
-         For example, (10, 'kpc') requests a plot window that is 10 kiloparsecs
-         wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a
-         window that is 10 kiloparsecs wide along the x axis and 15
-         kiloparsecs wide along the y axis.  In the other two examples, code
-         units are assumed, for example (0.2, 0.3) requests a plot that has an
-         x width of 0.2 and a y width of 0.3 in code units.  If units are
-         provided the resulting plot axis labels will use the supplied units.
-    axes_unit : string
-         The name of the unit for the tick labels on the x and y axes.
-         Defaults to None, which automatically picks an appropriate unit.
-         If axes_unit is '1', 'u', or 'unitary', it will not display the
-         units, and only show the axes name.
-    origin : string or length 1, 2, or 3 sequence.
-         The location of the origin of the plot coordinate system for
-         `AxisAlignedSlicePlot` object; for `OffAxisSlicePlot` objects this
-         parameter is discarded. This is typically represented by a '-'
-         separated string or a tuple of strings. In the first index the
-         y-location is given by 'lower', 'upper', or 'center'. The second index
-         is the x-location, given as 'left', 'right', or 'center'. Finally, the
-         whether the origin is applied in 'domain' space, plot 'window' space or
-         'native' simulation coordinate system is given. For example, both
-         'upper-right-domain' and ['upper', 'right', 'domain'] place the
-         origin in the upper right hand corner of domain space. If x or y
-         are not given, a value is inferred. For instance, 'left-domain'
-         corresponds to the lower-left hand corner of the simulation domain,
-         'center-domain' corresponds to the center of the simulation domain,
-         or 'center-window' for the center of the plot window. In the event
-         that none of these options place the origin in a desired location,
-         a sequence of tuples and a string specifying the
-         coordinate space can be given. If plain numeric types are input,
-         units of `code_length` are assumed. Further examples:
-
-         =============================================== ===============================
-         format                                          example
-         =============================================== ===============================
-         '{space}'                                       'domain'
-         '{xloc}-{space}'                                'left-window'
-         '{yloc}-{space}'                                'upper-domain'
-         '{yloc}-{xloc}-{space}'                         'lower-right-window'
-         ('{space}',)                                    ('window',)
-         ('{xloc}', '{space}')                           ('right', 'domain')
-         ('{yloc}', '{space}')                           ('lower', 'window')
-         ('{yloc}', '{xloc}', '{space}')                 ('lower', 'right', 'window')
-         ((yloc, '{unit}'), (xloc, '{unit}'), '{space}') ((0, 'm'), (.4, 'm'), 'window')
-         (xloc, yloc, '{space}')                         (0.23, 0.5, 'domain')
-         =============================================== ===============================
-    north_vector : a sequence of floats
-        A vector defining the 'up' direction in the `OffAxisSlicePlot`; not
-        used in `AxisAlignedSlicePlot`.  This option sets the orientation of the
-        slicing plane.  If not set, an arbitrary grid-aligned north-vector is
-        chosen.
-    fontsize : integer
-         The size of the fonts for the axis, colorbar, and tick labels.
-    field_parameters : dictionary
-         A dictionary of field parameters than can be accessed by derived
-         fields.
-    data_source : YTSelectionContainer Object
-         Object to be used for data selection.  Defaults to a region covering
-         the entire simulation.
-
-    Raises
-    ------
-
-    AssertionError
-        If a proper normal axis is not specified via the normal or axis
-        keywords, and/or if a field to plot is not specified.
-
-    Examples
-    --------
-
-    >>> from yt import load
-    >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    >>> slc = SlicePlot(ds, "x", ("gas", "density"), center=[0.2, 0.3, 0.4])
-
-    >>> slc = SlicePlot(
-    ...     ds, [0.4, 0.2, -0.1], ("gas", "pressure"), north_vector=[0.2, -0.3, 0.1]
-    ... )
-
-    """
-    if axis is not None:
-        issue_deprecation_warning(
-            "SlicePlot's argument 'axis' is a deprecated alias for 'normal', it "
-            "will be removed in a future version of yt.",
-            since="4.0.0",
-            removal="4.1.0",
-        )
-        if normal is not None:
-            raise TypeError(
-                "SlicePlot() received incompatible arguments 'axis' and 'normal'"
-            )
-        normal = axis
-
-    # to keep positional ordering we had to make 'normal' and 'fields' keywords
-    if normal is None:
-        raise TypeError("Missing argument in SlicePlot(): 'normal'")
-
-    if fields is None:
-        raise TypeError("Missing argument in SlicePlot(): 'fields'")
-
-    # use an AxisAlignedSlicePlot where possible, e.g.:
-    # maybe someone passed normal=[0,0,0.2] when they should have just used "z"
-    if is_sequence(normal) and not isinstance(normal, str):
-        if np.count_nonzero(normal) == 1:
-            normal = ("x", "y", "z")[np.nonzero(normal)[0][0]]
-        else:
-            normal = np.array(normal, dtype="float64")
-            np.divide(normal, np.dot(normal, normal), normal)
-
-    # by now the normal should be properly set to get either a On/Off Axis plot
-    if is_sequence(normal) and not isinstance(normal, str):
-        # OffAxisSlicePlot has hardcoded origin; remove it if in kwargs
-        if "origin" in kwargs:
-            mylog.warning(
-                "Ignoring 'origin' keyword as it is ill-defined for "
-                "an OffAxisSlicePlot object."
-            )
-            del kwargs["origin"]
-
-        return OffAxisSlicePlot(ds, normal, fields, *args, **kwargs)
-    else:
-        # north_vector not used in AxisAlignedSlicePlots; remove it if in kwargs
-        if "north_vector" in kwargs:
-            mylog.warning(
-                "Ignoring 'north_vector' keyword as it is ill-defined for "
-                "an AxisAlignedSlicePlot object."
-            )
-            del kwargs["north_vector"]
-
-        return AxisAlignedSlicePlot(ds, normal, fields, *args, **kwargs)
 
 
 def plot_2d(
