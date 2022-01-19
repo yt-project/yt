@@ -1,6 +1,6 @@
 import numpy as np
 import yt
-from yt.visualization.volume_rendering.api import Scene, VolumeSource
+from yt.visualization.volume_rendering.api import create_volume_source, Scene
 from yt.units import kpc
 
 ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
@@ -14,7 +14,7 @@ sc = Scene()
 field = "density"
 ds._get_field_info(field).take_log = True
 
-vol = VolumeSource(ds, field=field)
+vol = create_volume_source(ds, field=field)
 vol.use_ghost_zones = True
 
 tf =  yt.ColorTransferFunction([-28, -25])
@@ -29,7 +29,7 @@ sc.add_source(vol)
 field = "temperature"
 ds._get_field_info(field).take_log = True
 
-vol2 = VolumeSource(ds, field=field)
+vol2 = create_volume_source(ds, field=field)
 vol2.use_ghost_zones = True
 
 tf =  yt.ColorTransferFunction([4.5, 7.5])
