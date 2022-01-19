@@ -99,17 +99,16 @@ class ChollaDataset(Dataset):
 
     def _parse_parameter_file(self):
 
-        h5f = h5py.File(self.parameter_filename, mode="r")
-        attrs = h5f.attrs
-        self.parameters = {k: v for (k, v) in attrs.items()}
-        self.domain_left_edge = attrs["bounds"][:].astype("=f8")
-        self.domain_right_edge = attrs["domain"][:].astype("=f8")
-        self.dimensionality = len(attrs["dims"][:])
-        self.domain_dimensions = attrs["dims"][:].astype("=f8")
-        self.current_time = attrs["t"][:]
-        self._periodicity = (False, False, False)
-        self.refine_by = 1
-        h5f.close()
+        with h5py.File(self.parameter_filename, mode="r") as h5f:
+            attrs = h5f.attrs
+            self.parameters = {k: v for (k, v) in attrs.items()}
+            self.domain_left_edge = attrs["bounds"][:].astype("=f8")
+            self.domain_right_edge = attrs["domain"][:].astype("=f8")
+            self.dimensionality = len(attrs["dims"][:])
+            self.domain_dimensions = attrs["dims"][:].astype("=f8")
+            self.current_time = attrs["t"][:]
+            self._periodicity = (False, False, False)
+            self.refine_by = 1
 
         # CHOLLA cannot yet be run as a cosmological simulation
         self.cosmological_simulation = 0
