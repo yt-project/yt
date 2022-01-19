@@ -448,8 +448,7 @@ class Scene:
 
         # number of transfer functions?
         num_trans_func = 0
-        for rs in rensources:
-            print("here")
+        for rs in self._get_render_sources():
             try:
                 tf = rs.transfer_function
                 num_trans_func += 1
