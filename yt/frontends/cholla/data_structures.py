@@ -40,9 +40,8 @@ class ChollaHierarchy(GridIndex):
         super().__init__(ds, dataset_type)
 
     def _detect_output_fields(self):
-        h5f = h5py.File(self.index_filename, mode="r")
-        self.field_list = [("cholla", k) for k in h5f.keys()]
-        h5f.close()
+        with h5py.File(self.index_filename, mode="r") as h5f:
+            self.field_list = [("cholla", k) for k in h5f.keys()]
 
     def _count_grids(self):
         # This needs to set self.num_grids (int)
