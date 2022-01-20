@@ -605,8 +605,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         ax.set_ylabel("Opacity")
         ax.set_xlabel("Value")
 
-    def vert_cbar(self, resolution, log_scale, ax, label=None,
-                  label_fmt=None, size=10):
+    def vert_cbar(self, resolution, log_scale, ax, label=None, label_fmt=None, size=10):
         r"""Display an image of the transfer function
 
         This function loads up matplotlib and displays the current transfer function.

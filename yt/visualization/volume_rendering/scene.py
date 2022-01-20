@@ -367,7 +367,7 @@ class Scene:
         dpi: int = 100,
         sigma_clip: Optional[float] = None,
         render: bool = True,
-        tf_rect: Optional[list] = None
+        tf_rect: Optional[list] = None,
     ):
         r"""Saves the most recently rendered image of the Scene to disk,
         including an image of the transfer function and and user-defined
@@ -443,8 +443,9 @@ class Scene:
         """
         fname = self._setup_save(fname, render)
 
-        ax = self._show_mpl(self._last_render.swapaxes(0, 1),
-                            sigma_clip=sigma_clip, dpi=dpi)
+        ax = self._show_mpl(
+            self._last_render.swapaxes(0, 1), sigma_clip=sigma_clip, dpi=dpi
+        )
 
         # number of transfer functions?
         num_trans_func = 0
@@ -472,7 +473,9 @@ class Scene:
                 try:
                     cbx0, cby0, cbw, cbh = tf_rect
                 except ValueError:
-                    print("tf_rect does not have correct number of values.  Using default")
+                    print(
+                        "tf_rect does not have correct number of values.  Using default"
+                    )
                     tf_rect = None
 
             if tf_rect is None:
@@ -481,10 +484,12 @@ class Scene:
                 cbw = 0.12
                 cbh = 0.9
 
-            cbh_each = cbh/num_trans_func
+            cbh_each = cbh / num_trans_func
 
             for i, rs in enumerate(rensources):
-                ax = self._render_figure.add_axes([cbx0, cby0 + i*cbh_each, 0.8*cbw, 0.8*cbh_each])
+                ax = self._render_figure.add_axes(
+                    [cbx0, cby0 + i * cbh_each, 0.8 * cbw, 0.8 * cbh_each]
+                )
                 try:
                     tf = rs.transfer_function
                     label = rs.data_source.ds._get_field_info(rs.field).get_label()
@@ -553,9 +558,14 @@ class Scene:
     def _annotate_multi(self, ax, tf, source, label="", label_fmt=None):
         ax.yaxis.set_label_position("right")
         ax.yaxis.tick_right()
-        tf.vert_cbar(ax=ax, label=label, label_fmt=label_fmt,
-                     resolution=self.camera.resolution[0],
-                     log_scale=source.log_field, size=8)
+        tf.vert_cbar(
+            ax=ax,
+            label=label,
+            label_fmt=label_fmt,
+            resolution=self.camera.resolution[0],
+            log_scale=source.log_field,
+            size=8,
+        )
 
     def _validate(self):
         r"""Validate the current state of the scene."""
