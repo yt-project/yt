@@ -478,10 +478,11 @@ class Scene:
                 )
                 try:
                     tf = rs.transfer_function
-                    label = rs.data_source.ds._get_field_info(rs.field).get_label()
-                    self._annotate_multi(ax, tf, rs, label=label, label_fmt=label_fmt)
                 except AttributeError:
                     pass
+                else:
+                    label = rs.data_source.ds._get_field_info(rs.field).get_label()
+                    self._annotate_multi(ax, tf, rs, label=label, label_fmt=label_fmt)
 
         # any text?
         if text_annotate is not None:
