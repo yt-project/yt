@@ -410,7 +410,7 @@ class Scene:
             If True, will render the scene before saving.
             If False, will use results of previous render if it exists.
             Default: True
-        tf_rect : seqeunce, optional
+        tf_rect : sequence of floats, optional
            A rectangle that defines the location of the transfer
            function legend for the case where there are multiple
            volume sources with associated transfer functions.  tf_rect
