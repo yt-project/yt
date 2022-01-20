@@ -462,14 +462,9 @@ class Scene:
             self._annotate(ax.axes, tf, rs, label=label, label_fmt=label_fmt)
         else:
             # set the origin and width and height of the colorbar region
-            if tf_rect is not None:
-                cbx0, cby0, cbw, cbh = tf_rect
-
             if tf_rect is None:
-                cbx0 = 0.80
-                cby0 = 0.12
-                cbw = 0.12
-                cbh = 0.9
+                tf_rect = 0.80, 0.12, 0.12, 0.9
+            cbx0, cby0, cbw, cbh = tf_rect
 
             cbh_each = cbh / num_trans_func
 
