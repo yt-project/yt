@@ -541,7 +541,7 @@ class Scene:
             log_scale=source.log_field,
         )
 
-    def _annotate_multi(self, ax, tf, source, label="", label_fmt=None):
+    def _annotate_multi(self, ax, tf, source, label, label_fmt):
         ax.yaxis.set_label_position("right")
         ax.yaxis.tick_right()
         tf.vert_cbar(
