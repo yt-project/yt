@@ -466,13 +466,7 @@ class Scene:
         else:
             # set the origin and width and height of the colorbar region
             if tf_rect is not None:
-                try:
-                    cbx0, cby0, cbw, cbh = tf_rect
-                except ValueError:
-                    print(
-                        "tf_rect does not have correct number of values.  Using default"
-                    )
-                    tf_rect = None
+                cbx0, cby0, cbw, cbh = tf_rect
 
             if tf_rect is None:
                 cbx0 = 0.80
