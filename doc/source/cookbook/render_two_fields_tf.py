@@ -1,6 +1,7 @@
 import numpy as np
+
 import yt
-from yt.visualization.volume_rendering.api import create_volume_source, Scene
+from yt.visualization.volume_rendering.api import Scene, create_volume_source
 
 ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
