@@ -450,12 +450,8 @@ class Scene:
         # number of transfer functions?
         num_trans_func = 0
         for rs in self._get_render_sources():
-            try:
-                tf = rs.transfer_function
+            if hasattr(rs, "transfer_function"):
                 num_trans_func += 1
-            except AttributeError:
-                print("error")
-                pass
 
         # which transfer function?
         if num_trans_func == 1:
