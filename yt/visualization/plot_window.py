@@ -1062,7 +1062,11 @@ class PWViewerMPL(PlotWindow):
                         f"Min = {np.nanmin(image)}, Max = {np.nanmax(image)}."
                     )
                     use_symlog = True
-                elif np.nanmax(image) > 0.0 and np.nanmin(image) == 0:
+                elif (
+                    (Version("3.3") <= MPL_VERSION < Version("3.5"))
+                    and np.nanmax(image) > 0.0
+                    and np.nanmin(image) == 0
+                ):
                     # normally, a LogNorm scaling would still be OK here because
                     # LogNorm will mask 0 values when calculating vmin. But
                     # due to a bug in matplotlib's imshow, if the data range
