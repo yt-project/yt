@@ -367,7 +367,7 @@ class Scene:
         dpi: int = 100,
         sigma_clip: Optional[float] = None,
         render: bool = True,
-        tf_rect: Optional[list] = None,
+        tf_rect: Optional[List[float]] = None,
     ):
         r"""Saves the most recently rendered image of the Scene to disk,
         including an image of the transfer function and and user-defined
