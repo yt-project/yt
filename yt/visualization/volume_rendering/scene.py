@@ -412,9 +412,10 @@ class Scene:
             Default: True
         tf_rect : sequence of floats, optional
            A rectangle that defines the location of the transfer
-           function legend for the case where there are multiple
-           volume sources with associated transfer functions.  tf_rect
-           is of the form [x0, y0, width, height], in figure coordinates.
+           function legend.  This is only used for the case where
+           there are multiple volume sources with associated transfer
+           functions.  tf_rect is of the form [x0, y0, width, height],
+           in figure coordinates.
 
         Returns
         -------
