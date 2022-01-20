@@ -463,7 +463,7 @@ class Scene:
         else:
             # set the origin and width and height of the colorbar region
             if tf_rect is None:
-                tf_rect = 0.80, 0.12, 0.12, 0.9
+                tf_rect = [0.80, 0.12, 0.12, 0.9]
             cbx0, cby0, cbw, cbh = tf_rect
 
             cbh_each = cbh / num_trans_func
