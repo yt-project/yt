@@ -449,17 +449,13 @@ class Scene:
 
         # number of transfer functions?
         num_trans_func = 0
-        for rs in rensources:
-            print("here")
+        for rs in self._get_render_sources():
             try:
                 tf = rs.transfer_function
                 num_trans_func += 1
-                print(type(tf))
             except AttributeError:
                 print("error")
                 pass
-
-        print("num_trans_func = ", num_trans_func)
 
         # which transfer function?
         if num_trans_func == 1:
@@ -486,7 +482,7 @@ class Scene:
 
             cbh_each = cbh / num_trans_func
 
-            for i, rs in enumerate(rensources):
+            for i, rs in enumerate(self._get_render_sources()):
                 ax = self._render_figure.add_axes(
                     [cbx0, cby0 + i * cbh_each, 0.8 * cbw, 0.8 * cbh_each]
                 )
