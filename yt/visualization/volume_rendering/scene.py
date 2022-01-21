@@ -552,7 +552,7 @@ class Scene:
             label_fmt=label_fmt,
             resolution=self.camera.resolution[0],
             log_scale=source.log_field,
-            size=8,
+            size=6,
         )
 
     def _validate(self):

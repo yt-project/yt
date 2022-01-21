@@ -42,7 +42,7 @@ sc.add_source(vol2)
 # setup the camera
 
 cam = sc.add_camera(ds, lens_type="perspective")
-cam.resolution = (1920, 1080)
+cam.resolution = (1600, 900)
 cam.zoom(20.0)
 
 # Render the image.
@@ -50,5 +50,8 @@ cam.zoom(20.0)
 sc.render()
 
 sc.save_annotated(
-    "render_two_fields_tf.png", sigma_clip=6.0, tf_rect=[0.88, 0.15, 0.03, 0.8]
+    "render_two_fields_tf.png",
+    sigma_clip=6.0,
+    tf_rect=[0.88, 0.15, 0.03, 0.8],
+    render=False,
 )
