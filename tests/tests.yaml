@@ -198,5 +198,6 @@ other_tests:
      - "--ignore-files=test_normal_plot_api\\.py"
      - "--exclude-test=yt.frontends.gdf.tests.test_outputs.TestGDF"
      - "--exclude-test=yt.frontends.adaptahop.tests.test_outputs"
+     - "--exclude-test=yt.frontends.stream.tests.test_stream_particles.test_stream_non_cartesian_particles"
   cookbook:
      - 'doc/source/cookbook/tests/test_cookbook.py'
