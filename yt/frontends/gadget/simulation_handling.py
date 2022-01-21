@@ -198,7 +198,7 @@ class GadgetSimulation(SimulationTimeSeries):
 
         >>> # after calling get_time_series
         >>> for ds in gs.piter():
-        ...     p = ProjectionPlot(ds, "x", "density")
+        ...     p = ProjectionPlot(ds, "x", ("gas", "density"))
         ...     p.save()
 
         >>> # An example using the setup_function keyword

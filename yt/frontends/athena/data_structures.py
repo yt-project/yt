@@ -1,4 +1,5 @@
 import os
+import re
 import weakref
 
 import numpy as np
@@ -8,7 +9,7 @@ from yt.data_objects.static_output import Dataset
 from yt.funcs import mylog, sglob
 from yt.geometry.geometry_handler import YTDataChunk
 from yt.geometry.grid_geometry_handler import GridIndex
-from yt.utilities.chemical_formulas import default_mu
+from yt.utilities.chemical_formulas import compute_mu
 from yt.utilities.decompose import decompose_array, get_psize
 from yt.utilities.lib.misc_utilities import get_box_grids_level
 
@@ -476,6 +477,7 @@ class AthenaDataset(Dataset):
         units_override=None,
         nprocs=1,
         unit_system="cgs",
+        default_species_fields=None,
     ):
         self.fluid_types += ("athena",)
         self.nprocs = nprocs
@@ -490,6 +492,7 @@ class AthenaDataset(Dataset):
             dataset_type,
             units_override=units_override,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
         self.filename = filename
         if storage_filename is None:
@@ -624,20 +627,37 @@ class AthenaDataset(Dataset):
             self.parameters["Gamma"] = 5.0 / 3.0
         self.geometry = self.specified_parameters.get("geometry", "cartesian")
         self._handle.close()
-        self.mu = self.specified_parameters.get("mu", default_mu)
+        self.mu = self.specified_parameters.get(
+            "mu", compute_mu(self.default_species_fields)
+        )
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
-        try:
-            if "vtk" in filename:
-                return True
-        except Exception:
-            pass
-        return False
+        if not filename.endswith(".vtk"):
+            return False
+
+        with open(filename, "rb") as fh:
+            if not re.match(b"# vtk DataFile Version \\d\\.\\d\n", fh.readline(256)):
+                return False
+            if (
+                re.search(
+                    b"at time= .*, level= \\d, domain= \\d\n",
+                    fh.readline(256),
+                )
+                is None
+            ):
+                # vtk Dumps headers start with either "CONSERVED vars" or "PRIMITIVE vars",
+                # while vtk output headers start with "Really cool Athena data", but
+                # we will consider this an implementation detail and not attempt to
+                # match it exactly here.
+                # See Athena's user guide for reference
+                # https://princetonuniversity.github.io/Athena-Cversion/AthenaDocsUGbtk
+                return False
+        return True
 
     @property
     def _skip_cache(self):
         return True
 
-    def __repr__(self):
+    def __str__(self):
         return self.basename.rsplit(".", 1)[0]

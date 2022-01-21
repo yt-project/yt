@@ -1,6 +1,6 @@
 import numpy as np
 
-from yt.frontends.enzo_p.misc import (
+from yt.frontends.enzo_e.misc import (
     get_block_info,
     get_root_block_id,
     get_root_blocks,
@@ -20,7 +20,7 @@ def get_random_block_string(max_n=64, random_state=None, level=None):
         random_state = np.random.RandomState()
 
     max_l = int(np.log2(max_n))
-    form = "%0" + str(max_l) + "d"
+    form = f"%0{max_l}d"
     num10 = random_state.randint(0, high=max_n)
     num2 = form % int(bin(num10)[2:])  # the slice clips the '0b' prefix
 
@@ -117,8 +117,8 @@ def test_is_parent():
             block = "B" + "_".join(descriptors)
             # since b2 is computed with max_n=32 in the for-loop, block always
             # has a refined great-great-grandparent
-            parent = "B" + "_".join([elem[:-1] for elem in descriptors])
-            grandparent = "B" + "_".join([elem[:-2] for elem in descriptors])
+            parent = "B" + "_".join(elem[:-1] for elem in descriptors)
+            grandparent = "B" + "_".join(elem[:-2] for elem in descriptors)
 
             assert is_parent(parent, block)
             assert is_parent(grandparent, parent)

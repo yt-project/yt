@@ -1,15 +1,16 @@
+from collections import defaultdict
 from numbers import Number as numeric_type
 from typing import Optional, Tuple
 
 import numpy as np
 from unyt.exceptions import UnitConversionError
 
-from yt._maintenance.deprecation import issue_deprecation_warning
+from yt._typing import KnownFieldsT
 from yt.fields.field_exceptions import NeedsConfiguration
 from yt.funcs import mylog, only_on_root
 from yt.geometry.geometry_handler import is_curvilinear
-from yt.units.dimensions import dimensionless
-from yt.units.unit_object import Unit
+from yt.units.dimensions import dimensionless  # type: ignore
+from yt.units.unit_object import Unit  # type: ignore
 from yt.utilities.exceptions import (
     YTCoordinateNotImplemented,
     YTDomainOverflow,
@@ -49,9 +50,9 @@ class FieldInfoContainer(dict):
     """
 
     fallback = None
-    known_other_fields = ()
-    known_particle_fields = ()
-    extra_union_fields = ()
+    known_other_fields: KnownFieldsT = ()
+    known_particle_fields: KnownFieldsT = ()
+    extra_union_fields: Tuple[Tuple[str, str], ...] = ()
 
     def __init__(self, ds, field_list, slice_info=None):
         self._show_field_errors = []
@@ -61,6 +62,7 @@ class FieldInfoContainer(dict):
         self.slice_info = slice_info
         self.field_aliases = {}
         self.species_names = []
+        self._ambiguous_field_names = defaultdict(set)
         if ds is not None and is_curvilinear(ds.geometry):
             self.curvilinear = True
         else:
@@ -265,7 +267,7 @@ class FieldInfoContainer(dict):
                 self.alias((ftype, alias), field)
 
     @staticmethod
-    def _sanitize_sampling_type(sampling_type, particle_type=None):
+    def _sanitize_sampling_type(sampling_type):
         """Detect conflicts between deprecated and new parameters to specify the
         sampling type in a new field.
 
@@ -273,11 +275,8 @@ class FieldInfoContainer(dict):
 
         Parameters
         ----------
-        sampling_type: str
+        sampling_type : str
             One of "cell", "particle" or "local" (case insensitive)
-        particle_type: str
-            This is a deprecated argument of the add_field method,
-            which was replaced by sampling_type.
 
         Raises
         ------
@@ -298,20 +297,6 @@ class FieldInfoContainer(dict):
                 sampling_type,
                 ", ".join(acceptable_samplings),
             )
-
-        if particle_type:
-            issue_deprecation_warning(
-                "'particle_type' keyword argument is deprecated in favour "
-                "of the positional argument 'sampling_type'.",
-                since="4.0.0",
-                removal="4.1.0",
-            )
-            if sampling_type != "particle":
-                raise RuntimeError(
-                    "Conflicting values for parameters "
-                    "'sampling_type' and 'particle_type'."
-                )
-
         return sampling_type
 
     def add_field(self, name, function, sampling_type, **kwargs):
@@ -393,7 +378,10 @@ class FieldInfoContainer(dict):
         else:
             self[name] = DerivedField(name, sampling_type, function, **kwargs)
 
-    def load_all_plugins(self, ftype="gas"):
+    def load_all_plugins(self, ftype: Optional[str] = "gas"):
+        if ftype is None:
+            return
+        mylog.debug("Loading field plugins for field type: %s.", ftype)
         loaded = []
         for n in sorted(field_plugins):
             loaded += self.load_plugin(n, ftype)
@@ -422,12 +410,19 @@ class FieldInfoContainer(dict):
         kwargs.setdefault("ds", self.ds)
         self[name] = DerivedField(name, sampling_type, NullFunc, **kwargs)
 
+    def __setitem__(self, key, value):
+        ftype, fname = key
+        # Mark fields with same `fname`s (but difference `ftype`s) as ambiguous
+        if any((fname == _fname) and (ftype != _ftype) for _ftype, _fname in self):
+            self._ambiguous_field_names[fname].add(ftype)
+        super().__setitem__(key, value)
+
     def alias(
         self,
         alias_name,
         original_name,
         units=None,
-        deprecate: Optional[Tuple[str]] = None,
+        deprecate: Optional[Tuple[str, str]] = None,
     ):
         """
         Alias one field to another field.
@@ -658,4 +653,21 @@ class FieldInfoContainer(dict):
             dfl = filtered_dfl
 
         self.ds.derived_field_list = dfl
+        self._set_linear_fields()
         return deps, unavailable
+
+    def _set_linear_fields(self):
+        """
+        Sets which fields use linear as their default scaling in Profiles and
+        PhasePlots. Default for all fields is set to log, so this sets which
+        are linear.  For now, set linear to geometric fields: position and
+        velocity coordinates.
+        """
+        non_log_prefixes = ("", "velocity_", "particle_position_", "particle_velocity_")
+        coords = ("x", "y", "z")
+        non_log_fields = [
+            prefix + coord for prefix in non_log_prefixes for coord in coords
+        ]
+        for field in self.ds.derived_field_list:
+            if field[1] in non_log_fields:
+                self[field].take_log = False

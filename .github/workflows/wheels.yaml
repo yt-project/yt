@@ -1,0 +1,43 @@
+name: Build CI Wheels
+
+on:
+  push:
+    branches:
+      - main
+      - stable
+    tags:
+      - 'yt-*'
+  workflow_dispatch:
+
+jobs:
+  build_wheels:
+    name: Wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [
+          macos-latest,
+          windows-latest,
+          ubuntu-18.04,  # has to be the oldest possible for manylinux
+        ]
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Build wheels for CPython
+        uses: pypa/cibuildwheel@v2.3.0
+        env:
+          CIBW_BUILD: "cp37-* cp38-* cp39-* cp310-*"
+          CIBW_SKIP: "*-musllinux_*"  #  numpy doesn't have wheels for musllinux so we can't build some quickly and without bloating
+          CIBW_ARCHS_LINUX: "x86_64"
+          CIBW_ARCHS_MACOS: "x86_64"
+          CIBW_ARCHS_WINDOWS: "auto"
+          CIBW_ENVIRONMENT: "LDFLAGS='-static-libstdc++'"
+          CIBW_BUILD_VERBOSITY: 1
+          CIBW_BEFORE_BUILD: "rm -rf build/"  # working around .so files accumulation between builds leading up to bloated wheels
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: wheels
+          path: ./wheelhouse/*.whl

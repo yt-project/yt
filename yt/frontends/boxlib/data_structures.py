@@ -1,14 +1,15 @@
 import glob
 import os
 import re
-import warnings
 from collections import namedtuple
 from stat import ST_CTIME
+from typing import Type
 
 import numpy as np
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
+from yt.fields.field_info_container import FieldInfoContainer
 from yt.funcs import mylog, setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.io_handler import io_registry
@@ -22,6 +23,7 @@ from .fields import (
     NyxFieldInfo,
     WarpXFieldInfo,
 )
+from .misc import BoxlibReadParticleFileMixin
 
 # This is what we use to find scientific notation that might include d's
 # instead of e's.
@@ -141,10 +143,9 @@ class BoxLibParticleHeader:
             try:
                 self.real_type = known_real_types[particle_real_type]
             except KeyError:
-                warnings.warn(
-                    f"yt did not recognize particle real type {particle_real_type}"
-                    "assuming double",
-                    category=RuntimeWarning,
+                mylog.warning(
+                    "yt did not recognize particle real type '%s'. Assuming 'double'.",
+                    particle_real_type,
                 )
                 self.real_type = known_real_types["double"]
 
@@ -408,13 +409,13 @@ class BoxlibHierarchy(GridIndex):
             assert lev == level
             nsteps = int(next(header_file))  # NOQA
             for gi in range(ngrids):
-                xlo, xhi = [float(v) for v in next(header_file).split()]
+                xlo, xhi = (float(v) for v in next(header_file).split())
                 if self.dimensionality > 1:
-                    ylo, yhi = [float(v) for v in next(header_file).split()]
+                    ylo, yhi = (float(v) for v in next(header_file).split())
                 else:
                     ylo, yhi = default_ybounds
                 if self.dimensionality > 2:
-                    zlo, zhi = [float(v) for v in next(header_file).split()]
+                    zlo, zhi = (float(v) for v in next(header_file).split())
                 else:
                     zlo, zhi = default_zbounds
                 self.grid_left_edge[grid_counter + gi, :] = [xlo, ylo, zlo]
@@ -629,10 +630,9 @@ class BoxlibDataset(Dataset):
     """
 
     _index_class = BoxlibHierarchy
-    _field_info_class = BoxlibFieldInfo
+    _field_info_class: Type[FieldInfoContainer] = BoxlibFieldInfo
     _output_prefix = None
     _default_cparam_filename = "job_info"
-    _periodicity = (False, False, False)
 
     def __init__(
         self,
@@ -643,6 +643,7 @@ class BoxlibDataset(Dataset):
         storage_filename=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
         """
         The paramfile is usually called "inputs"
@@ -667,6 +668,7 @@ class BoxlibDataset(Dataset):
             dataset_type,
             units_override=units_override,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
 
         # These are still used in a few places.
@@ -727,6 +729,7 @@ class BoxlibDataset(Dataset):
         Parses the parameter file and establishes the various
         dictionaries.
         """
+        self._periodicity = (False, False, False)
         self._parse_header_file()
         # Let's read the file
         hfn = os.path.join(self.output_dir, "Header")
@@ -740,22 +743,10 @@ class BoxlibDataset(Dataset):
             return
         for line in (line.split("#")[0].strip() for line in open(self.cparam_filename)):
             try:
-                param, vals = [s.strip() for s in line.split("=")]
+                param, vals = (s.strip() for s in line.split("="))
             except ValueError:
                 continue
-            if param == "amr.n_cell":
-                vals = self.domain_dimensions = np.array(vals.split(), dtype="int32")
-
-                # For 1D and 2D simulations in BoxLib usually only the relevant
-                # dimensions have a specified number of zones, but yt requires
-                # domain_dimensions to have three elements, with 1 in the additional
-                # slots if we're not in 3D, so append them as necessary.
-
-                if len(vals) == 1:
-                    vals = self.domain_dimensions = np.array([vals[0], 1, 1])
-                elif len(vals) == 2:
-                    vals = self.domain_dimensions = np.array([vals[0], vals[1], 1])
-            elif param == "amr.ref_ratio":
+            if param == "amr.ref_ratio":
                 vals = self.refine_by = int(vals[0])
             elif param == "Prob.lo_bc":
                 vals = tuple(p == "1" for p in vals.split())
@@ -797,7 +788,7 @@ class BoxlibDataset(Dataset):
         if self.fparam_filename is None:
             return
         for line in (l for l in open(self.fparam_filename) if "=" in l):
-            param, vals = [v.strip() for v in line.split("=")]
+            param, vals = (v.strip() for v in line.split("="))
             # Now, there are a couple different types of parameters.
             # Some will be where you only have floating point values, others
             # will be where things are specified as string literals.
@@ -881,6 +872,7 @@ class BoxlibDataset(Dataset):
         stop = np.array(root_space[1].split(","), dtype="int64")
         dd = np.ones(3, dtype="int64")
         dd[: self.dimensionality] = stop - start + 1
+        self.domain_offset[: self.dimensionality] = start
         self.domain_dimensions = dd
 
         # Skip timesteps per level
@@ -932,7 +924,7 @@ class BoxlibDataset(Dataset):
         return self.refine_by ** (l1 - l0 + offset)
 
 
-class OrionHierarchy(BoxlibHierarchy):
+class OrionHierarchy(BoxlibHierarchy, BoxlibReadParticleFileMixin):
     def __init__(self, ds, dataset_type="orion_native"):
         BoxlibHierarchy.__init__(self, ds, dataset_type)
         self._read_particles()
@@ -973,50 +965,6 @@ class OrionHierarchy(BoxlibHierarchy):
         if self.particle_filename is not None:
             self._read_particle_file(self.particle_filename)
 
-    def _read_particle_file(self, fn):
-        """actually reads the orion particle data file itself."""
-        if not os.path.exists(fn):
-            return
-        with open(fn) as f:
-            lines = f.readlines()
-            self.num_stars = int(lines[0].strip()[0])
-            for num, line in enumerate(lines[1:]):
-                particle_position_x = float(line.split(" ")[1])
-                particle_position_y = float(line.split(" ")[2])
-                particle_position_z = float(line.split(" ")[3])
-                coord = [particle_position_x, particle_position_y, particle_position_z]
-                # for each particle, determine which grids contain it
-                # copied from object_finding_mixin.py
-                mask = np.ones(self.num_grids)
-                for i in range(len(coord)):
-                    np.choose(
-                        np.greater(self.grid_left_edge.d[:, i], coord[i]),
-                        (mask, 0),
-                        mask,
-                    )
-                    np.choose(
-                        np.greater(self.grid_right_edge.d[:, i], coord[i]),
-                        (0, mask),
-                        mask,
-                    )
-                ind = np.where(mask == 1)
-                selected_grids = self.grids[ind]
-                # in orion, particles always live on the finest level.
-                # so, we want to assign the particle to the finest of
-                # the grids we just found
-                if len(selected_grids) != 0:
-                    grid = sorted(selected_grids, key=lambda grid: grid.Level)[-1]
-                    ind = np.where(self.grids == grid)[0][0]
-                    self.grid_particle_count[ind] += 1
-                    self.grids[ind].NumberOfParticles += 1
-
-                    # store the position in the particle file for fast access.
-                    try:
-                        self.grids[ind]._particle_line_numbers.append(num + 1)
-                    except AttributeError:
-                        self.grids[ind]._particle_line_numbers = [num + 1]
-        return True
-
 
 class OrionDataset(BoxlibDataset):
 
@@ -1033,6 +981,7 @@ class OrionDataset(BoxlibDataset):
         storage_filename=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
 
         BoxlibDataset.__init__(
@@ -1043,6 +992,7 @@ class OrionDataset(BoxlibDataset):
             dataset_type,
             units_override=units_override,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
 
 
@@ -1085,6 +1035,7 @@ class CastroDataset(BoxlibDataset):
         storage_filename=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
 
         super().__init__(
@@ -1095,6 +1046,7 @@ class CastroDataset(BoxlibDataset):
             storage_filename,
             units_override,
             unit_system,
+            default_species_fields=default_species_fields,
         )
 
     def _parse_parameter_file(self):
@@ -1163,6 +1115,7 @@ class MaestroDataset(BoxlibDataset):
         storage_filename=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
 
         super().__init__(
@@ -1173,6 +1126,7 @@ class MaestroDataset(BoxlibDataset):
             storage_filename,
             units_override,
             unit_system,
+            default_species_fields=default_species_fields,
         )
 
     def _parse_parameter_file(self):
@@ -1253,6 +1207,7 @@ class NyxDataset(BoxlibDataset):
         storage_filename=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
 
         super().__init__(
@@ -1263,6 +1218,7 @@ class NyxDataset(BoxlibDataset):
             storage_filename,
             units_override,
             unit_system,
+            default_species_fields=default_species_fields,
         )
 
     def _parse_parameter_file(self):
@@ -1618,6 +1574,7 @@ class AMReXDataset(BoxlibDataset):
         storage_filename=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
 
         super().__init__(
@@ -1628,6 +1585,7 @@ class AMReXDataset(BoxlibDataset):
             storage_filename,
             units_override,
             unit_system,
+            default_species_fields=default_species_fields,
         )
 
     def _parse_parameter_file(self):

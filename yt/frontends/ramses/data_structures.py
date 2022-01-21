@@ -565,8 +565,8 @@ class RAMSESIndex(OctreeIndex):
             yield YTDataChunk(dobj, "io", [subset], None, cache=cache)
 
     def _initialize_level_stats(self):
-        levels = sum([dom.level_count for dom in self.domains])
-        desc = {"names": ["numcells", "level"], "formats": ["Int64"] * 2}
+        levels = sum(dom.level_count for dom in self.domains)
+        desc = {"names": ["numcells", "level"], "formats": ["int64"] * 2}
         max_level = self.dataset.min_level + self.dataset.max_level + 2
         self.level_stats = blankRecordArray(desc, max_level)
         self.level_stats["level"] = [i for i in range(max_level)]
@@ -577,8 +577,8 @@ class RAMSESIndex(OctreeIndex):
             )
         for level in range(self.max_level + 1):
             self.level_stats[level + self.dataset.min_level + 1]["numcells"] = levels[
-                level
-            ]
+                :, level
+            ].sum()
 
     def _get_particle_type_counts(self):
         npart = 0
@@ -655,6 +655,7 @@ class RAMSESDataset(Dataset):
         bbox=None,
         max_level=None,
         max_level_convention=None,
+        default_species_fields=None,
     ):
         # Here we want to initiate a traceback, if the reader is not built.
         if isinstance(fields, str):
@@ -710,6 +711,7 @@ class RAMSESDataset(Dataset):
             dataset_type,
             units_override=units_override,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
 
         # Add the particle types
@@ -785,7 +787,7 @@ class RAMSESDataset(Dataset):
                 mylog.info("Adding particle_type: %s", k)
                 self.add_particle_filter(f"{k}")
 
-    def __repr__(self):
+    def __str__(self):
         return self.basename.rsplit(".", 1)[0]
 
     def _set_code_unit_attributes(self):
@@ -838,18 +840,37 @@ class RAMSESDataset(Dataset):
         rheader = {}
 
         def read_rhs(f, cast):
-            line = f.readline().replace("\n", "")
-            p, v = line.split("=")
-            rheader[p.strip()] = cast(v.strip())
+            line = f.readline().strip()
+
+            if line and "=" in line:
+                key, val = (_.strip() for _ in line.split("="))
+                rheader[key] = cast(val)
+                return key
+            else:
+                return None
+
+        def cast_a_else_b(cast_a, cast_b):
+            def caster(val):
+                try:
+                    return cast_a(val)
+                except ValueError:
+                    return cast_b(val)
+
+            return caster
 
         with open(self.parameter_filename) as f:
+            # Standard: first six are ncpu, ndim, levelmin, levelmax, ngridmax, nstep_coarse
             for _ in range(6):
                 read_rhs(f, int)
             f.readline()
+            # Standard: next 11 are boxlen, time, aexp, h0, omega_m, omega_l, omega_k, omega_b, unit_l, unit_d, unit_t
             for _ in range(11):
-                read_rhs(f, float)
-            f.readline()
-            read_rhs(f, str)
+                key = read_rhs(f, float)
+
+            # Read non standard extra fields until hitting the ordering type
+            while key != "ordering type":
+                key = read_rhs(f, cast_a_else_b(float, str))
+
             # This next line deserves some comment.  We specify a min_level that
             # corresponds to the minimum level in the RAMSES simulation.  RAMSES is
             # one-indexed, but it also does refer to the *oct* dimensions -- so

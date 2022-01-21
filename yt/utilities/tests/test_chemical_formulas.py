@@ -1,5 +1,5 @@
 from yt.testing import assert_allclose, assert_equal
-from yt.utilities.chemical_formulas import ChemicalFormula, default_mu
+from yt.utilities.chemical_formulas import ChemicalFormula, compute_mu
 from yt.utilities.periodic_table import periodic_table
 
 _molecules = (
@@ -24,4 +24,6 @@ def test_formulas():
 
 
 def test_default_mu():
-    assert_allclose(default_mu, 0.5924489101195808)
+    assert_allclose(compute_mu(None), 0.5924489101195808)
+    assert_allclose(compute_mu("ionized"), 0.5924489101195808)
+    assert_allclose(compute_mu("neutral"), 1.2285402715185552)

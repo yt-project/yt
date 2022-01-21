@@ -20,7 +20,7 @@ data = {}
 # to happen in parallel automatically across available processors)
 for ds in ts.piter():
     ad = ds.all_data()
-    extrema = ad.quantities.extrema("density")
+    extrema = ad.quantities.extrema(("gas", "density"))
 
     # Fill the dictionary with extrema and redshift information for each dataset
     data[ds.basename] = (extrema, ds.current_redshift)

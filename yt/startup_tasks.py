@@ -4,6 +4,7 @@ import argparse
 import os
 import signal
 import sys
+from typing import List
 
 from yt.config import ytcfg
 from yt.funcs import (
@@ -135,7 +136,7 @@ parser.add_argument(
 if not hasattr(sys, "argv") or sys.argv is None:
     sys.argv = []
 
-unparsed_args = []
+unparsed_args: List[str] = []
 
 parallel_capable = False
 if not ytcfg.get("yt", "internals", "command_line"):
@@ -166,7 +167,7 @@ else:
 if parallel_capable:
     pass
 elif (
-    exe_name in ["mpi4py", "embed_enzo", "python" + sys.version[:3] + "-mpi"]
+    exe_name in ["mpi4py", "embed_enzo", "python{}.{}-mpi".format(*sys.version_info)]
     or "_parallel" in dir(sys)
     or any(["ipengine" in arg for arg in sys.argv])
     or any(["cluster-id" in arg for arg in sys.argv])

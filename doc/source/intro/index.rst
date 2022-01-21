@@ -37,8 +37,7 @@ cylinders), based on :ref:`field values <collection-objects>` (e.g. all gas >
 10^6 K), or for :ref:`constructing new data products <construction-objects>`
 (e.g. projections, slices, isosurfaces).  Furthermore, yt can calculate
 the :ref:`bulk quantities <derived-quantities>` associated with these data
-objects (e.g. total mass, bulk velocity, angular momentum) or you can
-:ref:`define your own <creating_derived_quantities>`.
+objects (e.g. total mass, bulk velocity, angular momentum).
 
 General Analysis
 ^^^^^^^^^^^^^^^^
@@ -56,8 +55,7 @@ processors simultaneously <parallel-computation>`.
 Datasets can be analyzed by simply :ref:`examining raw source data
 <low-level-data-inspection>`, or they can be processed in a number of ways
 to extract relevant information and to explore the data including
-:ref:`visualizing data <visualizing>` and employing :ref:`topic-specific
-analysis modules <analysis-modules>`.
+:ref:`visualizing data <visualizing>`.
 
 Visualization
 ^^^^^^^^^^^^^
@@ -96,30 +94,6 @@ renderings <volume_rendering>`, and :ref:`visualizing isosurfaces in an external
 interactive tool <surfaces>`.  yt even has a special web-based tool for
 exploring your data with a :ref:`google-maps-like interface <mapserver>`.
 
-Topic-Specific Analysis Modules
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Beyond visualization and general analysis tools, yt contains a number
-of :ref:`topic-specific analysis modules <analysis-modules>` for processing
-datasets.  These analysis modules operate somewhat autonomous and oftentimes
-use external libraries or codes.  While they are installed with yt, they are
-not loaded by default in every session so you have to call them specifically.
-Examples include :ref:`halo analysis <halo-analysis>` (including
-:ref:`halo finding <halo-analysis>`, :ref:`merger trees <merger_tree>`,
-:ref:`halo mass functions <halo_mass_function>`), :ref:`synthetic observations
-<synthetic-observations>` (including :ref:`cosmological light cones
-<light-cone-generator>`, :ref:`cosmological light rays <light-ray-generator>`,
-:ref:`synthetic absorption spectra <absorption_spectrum>`, :ref:`spectral
-emission distributions (SEDS) <synthetic_spectrum>`, :ref:`star formation
-rates <star_analysis>`, :ref:`synthetic x-ray observations
-<xray_emission_fields>`, and :ref:`synthetic sunyaev-zeldovich effect
-observations <sunyaev-zeldovich>`), :ref:`two-point correlations functions
-<two_point_functions>`, :ref:`identification of overdensities in arbitrary
-fields (clump finding) <clump_finding>`, :ref:`tracking particle trajectories
-<particle-trajectories>`, and exporting data to external radiative transfer
-codes (e.g. :ref:`Sunrise <sunrise_export>` and :ref:`RadMC-3D
-<radmc3d_export>`).
-
 Executing and Scripting yt
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -157,8 +131,7 @@ like you to support it, add code, add documentation, etc.  As such, we welcome
 members of the public to join :ref:`our community <who-is-yt>` by contributing
 code, bug reports, documentation, and helping to :ref:`support the code in a
 number of ways <getting-involved>`.  Sooner or later, you'll want to
-:ref:`add your own derived field <creating-derived-fields>`, :ref:`derived
-quantity <creating_derived_quantities>`, :ref:`data object
+:ref:`add your own derived field <creating-derived-fields>`, :ref:`data object
 <creating-objects>`, :ref:`code frontend <creating_frontend>` or :ref:`make
 yt compatible with an external code <external-analysis-tools>`.  We have
 detailed instructions on how to :ref:`contribute code <contributing-code>`
@@ -176,7 +149,7 @@ problems.
 Getting Started
 ^^^^^^^^^^^^^^^
 
-We have detailed :ref:`installation instructions <getting-and-installing-yt>`
+We have detailed :ref:`installation instructions <installing-yt>`
 and support for a number of platforms including Unix, Linux, MacOS, and
 Windows.  If you are new to yt, check out the :ref:`yt Quickstart
 <quickstart>` and the :ref:`cookbook <cookbook>` for a demonstration of yt's

@@ -1,11 +1,11 @@
+from yt._typing import KnownFieldsT
 from yt.fields.field_info_container import FieldInfoContainer
 from yt.fields.species_fields import setup_species_fields
 
 
 class SPHFieldInfo(FieldInfoContainer):
-    known_other_fields = ()
 
-    known_particle_fields = (
+    known_particle_fields: KnownFieldsT = (
         ("Mass", ("code_mass", ["particle_mass"], None)),
         ("Masses", ("code_mass", ["particle_mass"], None)),
         ("Coordinates", ("code_length", ["particle_position"], None)),
@@ -21,9 +21,13 @@ class SPHFieldInfo(FieldInfoContainer):
         ("Metals", ("code_metallicity", ["metallicity"], None)),
         ("Metallicity", ("code_metallicity", ["metallicity"], None)),
         ("Phi", ("code_length", [], None)),
+        ("Potential", ("code_velocity**2", ["gravitational_potential"], None)),
         ("StarFormationRate", ("Msun / yr", [], None)),
         ("FormationTime", ("code_time", ["creation_time"], None)),
         ("Metallicity_00", ("", ["metallicity"], None)),
+        ("InitialMass", ("code_mass", [], None)),
+        ("TrueMass", ("code_mass", [], None)),
+        ("ElevenMetalMasses", ("code_mass", [], None)),
     )
 
     def setup_particle_fields(self, ptype, *args, **kwargs):

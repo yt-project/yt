@@ -43,27 +43,27 @@ def test_region_from_d():
     # First, no string units
     reg1 = ds.r[0.2:0.3, 0.4:0.6, :]
     reg2 = ds.region([0.25, 0.5, 0.5], [0.2, 0.4, 0.0], [0.3, 0.6, 1.0])
-    assert_equal(reg1["density"], reg2["density"])
+    assert_equal(reg1[("gas", "density")], reg2[("gas", "density")])
 
     # Now, string units in some -- 1.0 == cm
     reg1 = ds.r[(0.1, "cm"):(0.5, "cm"), :, (0.25, "cm"):(0.35, "cm")]
     reg2 = ds.region([0.3, 0.5, 0.3], [0.1, 0.0, 0.25], [0.5, 1.0, 0.35])
-    assert_equal(reg1["density"], reg2["density"])
+    assert_equal(reg1[("gas", "density")], reg2[("gas", "density")])
 
     # Now, string units in some -- 1.0 == cm
     reg1 = ds.r[(0.1, "cm"):(0.5, "cm"), :, 0.25:0.35]
     reg2 = ds.region([0.3, 0.5, 0.3], [0.1, 0.0, 0.25], [0.5, 1.0, 0.35])
-    assert_equal(reg1["density"], reg2["density"])
+    assert_equal(reg1[("gas", "density")], reg2[("gas", "density")])
 
     # And, lots of : usage!
     reg1 = ds.r[:, :, :]
     reg2 = ds.all_data()
-    assert_equal(reg1["density"], reg2["density"])
+    assert_equal(reg1[("gas", "density")], reg2[("gas", "density")])
 
     # Test slice as an index
     reg1 = ds.r[0.1:0.8]
     reg2 = ds.region([0.45, 0.45, 0.45], [0.1, 0.1, 0.1], [0.8, 0.8, 0.8])
-    assert_equal(reg1["density"], reg2["density"])
+    assert_equal(reg1[("gas", "density")], reg2[("gas", "density")])
 
     # Test with bad boundary initialization
     with assert_raises(RuntimeError):
@@ -75,7 +75,7 @@ def test_region_from_d():
     right_edge = np.array([0.55, 0.65, 0.75])
     dims = np.array([16.0, 32.0, 64.0])
     reg2 = ds.arbitrary_grid(left_edge, right_edge, dims)
-    assert_equal(reg1["density"], reg2["density"])
+    assert_equal(reg1[("gas", "density")], reg2[("gas", "density")])
 
 
 def test_accessing_all_data():
@@ -83,11 +83,11 @@ def test_accessing_all_data():
     # access it multiple times and get the *same object*.
     ds = fake_amr_ds(fields=["density"], units=["g/cm**3"])
     dd = ds.all_data()
-    assert_equal(ds.r["density"], dd["density"])
+    assert_equal(ds.r[("gas", "density")], dd[("gas", "density")])
     # Now let's assert that it's the same object
-    rho = ds.r["density"]
+    rho = ds.r[("gas", "density")]
     rho *= 2.0
-    assert_equal(dd["density"] * 2.0, ds.r["density"])
+    assert_equal(dd[("gas", "density")] * 2.0, ds.r[("gas", "density")])
     assert_equal(dd["gas", "density"] * 2.0, ds.r["gas", "density"])
 
 
@@ -95,29 +95,29 @@ def test_slice_from_r():
     ds = fake_amr_ds(fields=["density"], units=["g/cm**3"])
     sl1 = ds.r[0.5, :, :]
     sl2 = ds.slice("x", 0.5)
-    assert_equal(sl1["density"], sl2["density"])
+    assert_equal(sl1[("gas", "density")], sl2[("gas", "density")])
 
     frb1 = sl1.to_frb(width=1.0, height=1.0, resolution=(1024, 512))
     frb2 = ds.r[0.5, ::1024j, ::512j]
-    assert_equal(frb1["density"], frb2["density"])
+    assert_equal(frb1[("gas", "density")], frb2[("gas", "density")])
 
     # Test slice which doesn't cover the whole domain
     box = ds.box([0.0, 0.25, 0.25], [1.0, 0.75, 0.75])
 
     sl3 = ds.r[0.5, 0.25:0.75, 0.25:0.75]
     sl4 = ds.slice("x", 0.5, data_source=box)
-    assert_equal(sl3["density"], sl4["density"])
+    assert_equal(sl3[("gas", "density")], sl4[("gas", "density")])
 
     frb3 = sl3.to_frb(width=0.5, height=0.5, resolution=(1024, 512))
     frb4 = ds.r[0.5, 0.25:0.75:1024j, 0.25:0.75:512j]
-    assert_equal(frb3["density"], frb4["density"])
+    assert_equal(frb3[("gas", "density")], frb4[("gas", "density")])
 
 
 def test_point_from_r():
     ds = fake_amr_ds(fields=["density"], units=["g/cm**3"])
     pt1 = ds.r[0.5, 0.3, 0.1]
     pt2 = ds.point([0.5, 0.3, 0.1])
-    assert_equal(pt1["density"], pt2["density"])
+    assert_equal(pt1[("gas", "density")], pt2[("gas", "density")])
 
     # Test YTDimensionalityError
     with assert_raises(YTDimensionalityError) as ex:
@@ -129,11 +129,11 @@ def test_ray_from_r():
     ds = fake_amr_ds(fields=["density"], units=["g/cm**3"])
     ray1 = ds.r[(0.1, 0.2, 0.3):(0.4, 0.5, 0.6)]
     ray2 = ds.ray((0.1, 0.2, 0.3), (0.4, 0.5, 0.6))
-    assert_equal(ray1["density"], ray2["density"])
+    assert_equal(ray1[("gas", "density")], ray2[("gas", "density")])
 
     ray3 = ds.r[0.5 * ds.domain_left_edge : 0.5 * ds.domain_right_edge]
     ray4 = ds.ray(0.5 * ds.domain_left_edge, 0.5 * ds.domain_right_edge)
-    assert_equal(ray3["density"], ray4["density"])
+    assert_equal(ray3[("gas", "density")], ray4[("gas", "density")])
 
     start = [(0.1, "cm"), 0.2, (0.3, "cm")]
     end = [(0.5, "cm"), (0.4, "cm"), 0.6]
@@ -141,34 +141,34 @@ def test_ray_from_r():
     start_arr = [ds.quan(0.1, "cm"), ds.quan(0.2, "cm"), ds.quan(0.3, "cm")]
     end_arr = [ds.quan(0.5, "cm"), ds.quan(0.4, "cm"), ds.quan(0.6, "cm")]
     ray6 = ds.ray(start_arr, end_arr)
-    assert_equal(ray5["density"], ray6["density"])
+    assert_equal(ray5[("gas", "density")], ray6[("gas", "density")])
 
     ray7 = ds.r[start:end:500j]
     ray8 = LineBuffer(ds, [0.1, 0.2, 0.3], [0.5, 0.4, 0.6], 500)
-    assert_equal(ray7["density"], ray8["density"])
+    assert_equal(ray7[("gas", "density")], ray8[("gas", "density")])
 
 
 def test_ortho_ray_from_r():
     ds = fake_amr_ds(fields=["density"], units=["g/cm**3"])
     ray1 = ds.r[:, 0.3, 0.2]
     ray2 = ds.ortho_ray("x", [0.3, 0.2])
-    assert_equal(ray1["density"], ray2["density"])
+    assert_equal(ray1[("gas", "density")], ray2[("gas", "density")])
 
     # the y-coord is funny so test it too
     ray3 = ds.r[0.3, :, 0.2]
     ray4 = ds.ortho_ray("y", [0.2, 0.3])
-    assert_equal(ray3["density"], ray4["density"])
+    assert_equal(ray3[("gas", "density")], ray4[("gas", "density")])
 
     # Test ray which doesn't cover the whole domain
     box = ds.box([0.25, 0.0, 0.0], [0.75, 1.0, 1.0])
     ray5 = ds.r[0.25:0.75, 0.3, 0.2]
     ray6 = ds.ortho_ray("x", [0.3, 0.2], data_source=box)
-    assert_equal(ray5["density"], ray6["density"])
+    assert_equal(ray5[("gas", "density")], ray6[("gas", "density")])
 
     # Test fixed-resolution rays
     ray7 = ds.r[0.25:0.75:100j, 0.3, 0.2]
     ray8 = LineBuffer(ds, [0.2525, 0.3, 0.2], [0.7475, 0.3, 0.2], 100)
-    assert_equal(ray7["density"], ray8["density"])
+    assert_equal(ray7[("gas", "density")], ray8[("gas", "density")])
 
 
 def test_particle_counts():

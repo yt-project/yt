@@ -4,6 +4,7 @@ import uuid
 import weakref
 from itertools import chain, product, repeat
 from numbers import Number as numeric_type
+from typing import Type
 
 import numpy as np
 from more_itertools import always_iterable
@@ -19,7 +20,7 @@ from yt.data_objects.particle_unions import ParticleUnion
 from yt.data_objects.static_output import Dataset, ParticleFile
 from yt.data_objects.unions import MeshUnion
 from yt.frontends.sph.data_structures import SPHParticleIndex
-from yt.geometry.geometry_handler import YTDataChunk
+from yt.geometry.geometry_handler import Index, YTDataChunk
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.geometry.oct_container import OctreeContainer
 from yt.geometry.oct_geometry_handler import OctreeIndex
@@ -262,7 +263,7 @@ class StreamHierarchy(GridIndex):
 
 
 class StreamDataset(Dataset):
-    _index_class = StreamHierarchy
+    _index_class: Type[Index] = StreamHierarchy
     _field_info_class = StreamFieldInfo
     _dataset_type = "stream"
 
@@ -272,6 +273,7 @@ class StreamDataset(Dataset):
         storage_filename=None,
         geometry="cartesian",
         unit_system="cgs",
+        default_species_fields=None,
     ):
         self.fluid_types += ("stream",)
         self.geometry = geometry
@@ -281,7 +283,13 @@ class StreamDataset(Dataset):
         from yt.data_objects.static_output import _cached_datasets
 
         _cached_datasets[name] = self
-        Dataset.__init__(self, name, self._dataset_type, unit_system=unit_system)
+        Dataset.__init__(
+            self,
+            name,
+            self._dataset_type,
+            unit_system=unit_system,
+            default_species_fields=default_species_fields,
+        )
 
     def _parse_parameter_file(self):
         self.basename = self.stream_handler.name
@@ -441,12 +449,14 @@ class StreamParticlesDataset(StreamDataset):
         storage_filename=None,
         geometry="cartesian",
         unit_system="cgs",
+        default_species_fields=None,
     ):
         super().__init__(
             stream_handler,
             storage_filename=storage_filename,
             geometry=geometry,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
         fields = list(stream_handler.fields["stream_file"].keys())
         # This is the current method of detecting SPH data.
@@ -572,8 +582,8 @@ def hexahedral_connectivity(xgrid, ygrid, zgrid):
     Examples
     --------
 
-    >>> xgrid = np.array([-1,-0.25,0,0.25,1])
-    >>> coords, conn = hexahedral_connectivity(xgrid,xgrid,xgrid)
+    >>> xgrid = np.array([-1, -0.25, 0, 0.25, 1])
+    >>> coords, conn = hexahedral_connectivity(xgrid, xgrid, xgrid)
     >>> coords
     array([[-1.  , -1.  , -1.  ],
            [-1.  , -1.  , -0.25],
@@ -822,8 +832,15 @@ class StreamOctreeDataset(StreamDataset):
         storage_filename=None,
         geometry="cartesian",
         unit_system="cgs",
+        default_species_fields=None,
     ):
-        super().__init__(stream_handler, storage_filename, geometry, unit_system)
+        super().__init__(
+            stream_handler,
+            storage_filename,
+            geometry,
+            unit_system,
+            default_species_fields=default_species_fields,
+        )
         # Set up levelmax
         self.max_level = stream_handler.levels.max()
         self.min_level = stream_handler.levels.min()

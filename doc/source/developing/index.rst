@@ -24,7 +24,6 @@ and contributing code!
    releasing
    creating_datatypes
    creating_derived_fields
-   creating_derived_quantities
    creating_frontend
    external_analysis
    deprecating_features

@@ -23,7 +23,7 @@ To export to a :class:`~pandas.DataFrame`, use
 .. code-block:: python
 
     sp = ds.sphere("c", (0.2, "unitary"))
-    df2 = sp.to_dataframe(["density", "temperature"])
+    df2 = sp.to_dataframe([("gas", "density"), ("gas", "temperature")])
 
 To export to a :class:`~astropy.table.QTable`, use
 :meth:`~yt.data_objects.data_containers.YTDataContainer.to_astropy_table`:
@@ -31,7 +31,7 @@ To export to a :class:`~astropy.table.QTable`, use
 .. code-block:: python
 
     sp = ds.sphere("c", (0.2, "unitary"))
-    at2 = sp.to_astropy_table(fields=["density", "temperature"])
+    at2 = sp.to_astropy_table(fields=[("gas", "density"), ("gas", "temperature")])
 
 For exports to :class:`~pandas.DataFrame` objects, the unit information is lost, but for
 exports to :class:`~astropy.table.QTable` objects, the :class:`~yt.units.yt_array.YTArray`
@@ -85,9 +85,12 @@ The buffer arrays can be saved out to disk in either HDF5 or FITS format:
 
 .. code-block:: python
 
-   frb.save_as_dataset("my_images.h5", fields=["density", "temperature"])
+   frb.save_as_dataset("my_images.h5", fields=[("gas", "density"), ("gas", "temperature")])
    frb.export_fits(
-       "my_images.fits", fields=["density", "temperature"], clobber=True, units="kpc"
+       "my_images.fits",
+       fields=[("gas", "density"), ("gas", "temperature")],
+       clobber=True,
+       units="kpc",
    )
 
 In the HDF5 case, the created file can be reloaded just like a regular dataset with
@@ -101,7 +104,9 @@ as a 2D dataset itself, which may be operated on in the same way as any other da
 
 .. code-block:: python
 
-   ds_frb = frb.export_dataset(fields=["density", "temperature"], nprocs=8)
+   ds_frb = frb.export_dataset(
+       fields=[("gas", "density"), ("gas", "temperature")], nprocs=8
+   )
    sp = ds_frb.sphere("c", (100.0, "kpc"))
 
 where the ``nprocs`` parameter can be used to decompose the image into ``nprocs`` number of grids.
@@ -146,7 +151,7 @@ density within a sphere can be created in the following way:
            ("gas", "temperature"),  # profile field
            ("gas", "radial_velocity"),
        ],  # profile field
-       weight_field=("gas", "cell_mass"),
+       weight_field=("gas", "mass"),
    )
 
 The binning, weight, and profile data can now be access as:
@@ -180,8 +185,11 @@ temperature can be created as follows:
 .. code-block:: python
 
    profile2d = source.profile(
-       [("gas", "density"), ("gas", "temperature")],  # the x bin field  # the y bin field
-       [("gas", "cell_mass")],  # the profile field
+       [
+           ("gas", "density"),
+           ("gas", "temperature"),
+       ],  # the x bin field  # the y bin field
+       [("gas", "mass")],  # the profile field
        weight_field=None,
    )
 
@@ -191,7 +199,7 @@ Accessing the x, y, and profile fields work just as with one-dimensional profile
 
    print(profile2d.x)
    print(profile2d.y)
-   print(profile2d["gas", "cell_mass"])
+   print(profile2d["gas", "mass"])
 
 One of the more interesting things that is enabled with this approach is
 the generation of 1D profiles that correspond to 2D profiles.  For instance, a
@@ -210,7 +218,7 @@ whether to use a log or linear scale, and whether or not to do accumulation to
 create a cumulative distribution function.  For more information, see the API
 documentation on the :func:`~yt.data_objects.profiles.create_profile` function.
 
-For custom bins the other keyword arguments can be overriden using the
+For custom bins the other keyword arguments can be overridden using the
 ``override_bins`` keyword argument. This accepts a dictionary with an array
 for each bin field or ``None`` to use the default settings.
 
@@ -219,7 +227,7 @@ for each bin field or ``None`` to use the default settings.
     custom_bins = np.array([1e-27, 1e-25, 2e-25, 5e-25, 1e-23])
     profile2d = source.profile(
         [("gas", "density"), ("gas", "temperature")],
-        [("gas", "cell_mass")],
+        [("gas", "mass")],
         override_bins={("gas", "density"): custom_bins, ("gas", "temperature"): None},
     )
 
@@ -230,8 +238,8 @@ Exporting Profiles to DataFrame
 
 One-dimensional profile data can be exported to a :class:`~pandas.DataFrame` object
 using the :meth:`yt.data_objects.profiles.Profile1D.to_dataframe` method. Bins which
-do not have data will have their fields filled with `NaN`s, except for the bin field
-itself. If you only want to export the bins which are used, set `only_used=True`.
+do not have data will have their fields filled with ``NaN``, except for the bin field
+itself. If you only want to export the bins which are used, set ``only_used=True``.
 
 .. code-block:: python
 
@@ -240,7 +248,7 @@ itself. If you only want to export the bins which are used, set `only_used=True`
     # Only adds the used bins to the DataFrame
     df_used = profile.to_dataframe(only_used=True)
     # Only adds the density and temperature fields
-    df2 = profile.to_dataframe(fields=["density", "temperature"])
+    df2 = profile.to_dataframe(fields=[("gas", "density"), ("gas", "temperature")])
 
 The :class:`~pandas.DataFrame` can then analyzed and/or written to disk using pandas
 methods. Note that unit information is lost in this export.
@@ -253,8 +261,8 @@ Exporting Profiles to QTable
 One-dimensional profile data also can be exported to an AstroPy :class:`~astropy.table.QTable`
 object. This table can then be written to disk in a number of formats, such as ASCII text
 or FITS files, and manipulated in a number of ways. Bins which do not have data
-will have their mask values set to `False`. If you only want to export the bins
-which are used, set `only_used=True`. Units are preserved in the table by converting
+will have their mask values set to ``False``. If you only want to export the bins
+which are used, set ``only_used=True``. Units are preserved in the table by converting
 each :class:`~yt.units.yt_array.YTArray` to an :class:`~astropy.units.Quantity`.
 
 To export the 1D profile to a Table object, simply call
@@ -267,7 +275,7 @@ To export the 1D profile to a Table object, simply call
     # Only adds the used bins to the Table
     t_used = profile.to_astropy_table(only_used=True)
     # Only adds the density and temperature fields
-    t2 = profile.to_astropy_table(fields=["density", "temperature"])
+    t2 = profile.to_astropy_table(fields=[("gas", "density"), ("gas", "temperature")])
 
 .. _generating-line-queries:
 
@@ -285,7 +293,7 @@ along that ray:
 .. code-block:: python
 
    ray = ds.ray((0.3, 0.5, 0.9), (0.1, 0.8, 0.5))
-   print(ray["density"])
+   print(ray["gas", "density"])
 
 The points are not ordered, so you may need to sort the data (see the
 example in the
@@ -328,6 +336,6 @@ interoperability with anything that can take xarray data.  The classes that can 
 .. code-block:: python
 
    grid = ds.r[::256j, ::256j, ::256j]
-   obj = grid.to_xarray(fields=["density", "temperature"])
+   obj = grid.to_xarray(fields=[("gas", "density"), ("gas", "temperature")])
 
-The returned object, `obj`, will now have the correct labeled axes and so forth.
+The returned object, ``obj``, will now have the correct labelled axes and so forth.

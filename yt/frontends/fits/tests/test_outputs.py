@@ -12,7 +12,7 @@ from ..data_structures import (
     SpectralCubeFITSDataset,
 )
 
-_fields_grs = ("temperature",)
+_fields_grs = (("fits", "temperature"),)
 
 grs = "radio_fits/grs-50-cube.fits"
 
@@ -26,7 +26,7 @@ def test_grs():
         yield test
 
 
-_fields_vels = ("velocity_x", "velocity_y", "velocity_z")
+_fields_vels = (("fits", "velocity_x"), ("fits", "velocity_y"), ("fits", "velocity_z"))
 
 vf = "UnigridData/velocity_field_20.fits"
 
@@ -44,7 +44,7 @@ def test_velocity_field():
 
 acis = "xray_fits/acisf05356N003_evt2.fits.gz"
 
-_fields_acis = ("counts_0.1-2.0", "counts_2.0-5.0")
+_fields_acis = (("gas", "counts_0.1-2.0"), ("gas", "counts_2.0-5.0"))
 
 
 @requires_ds(acis)
@@ -64,7 +64,7 @@ def test_acis():
 
 A2052 = "xray_fits/A2052_merged_0.3-2_match-core_tmap_bgecorr.fits"
 
-_fields_A2052 = ("flux",)
+_fields_A2052 = (("fits", "flux"),)
 
 
 @requires_ds(A2052)

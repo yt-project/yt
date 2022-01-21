@@ -1,7 +1,8 @@
 import re
 import warnings
 from functools import wraps
-from numbers import Number
+from numbers import Integral, Number
+from typing import Any, Dict, Optional, Tuple, Union
 
 import matplotlib
 import numpy as np
@@ -15,7 +16,7 @@ from yt.funcs import is_sequence, mylog, validate_width_tuple
 from yt.geometry.geometry_handler import is_curvilinear
 from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
 from yt.units import dimensions
-from yt.units.yt_array import YTArray, YTQuantity, uhstack
+from yt.units.yt_array import YTArray, YTQuantity, uhstack  # type: ignore
 from yt.utilities.exceptions import YTDataTypeUnsupported
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
 from yt.utilities.lib.line_integral_convolution import line_integral_convolution_2d
@@ -46,6 +47,24 @@ def _verify_geometry(func):
     return _check_geometry
 
 
+def _validate_factor_tuple(factor) -> Tuple[int, int]:
+    if (
+        is_sequence(factor)
+        and len(factor) == 2
+        and all(isinstance(_, Integral) for _ in factor)
+    ):
+        # - checking for "is_sequence" allows lists, numpy arrays and other containers
+        # - checking for Integral type allows numpy integer types
+        # in any case we return a with strict typing
+        return (int(factor[0]), int(factor[1]))
+    elif isinstance(factor, Integral):
+        return (int(factor), int(factor))
+    else:
+        raise TypeError(
+            f"Expected a single, or a pair of integers, received {factor!r}"
+        )
+
+
 class PlotCallback:
     # _supported_geometries is set by subclasses of PlotCallback to a tuple of
     # strings corresponding to the names of the geometries that a callback
@@ -54,7 +73,7 @@ class PlotCallback:
     # "figure" this is disregarded.  If "force" is included in the tuple, it
     # will *not* check whether or not the coord_system is in axis or figure,
     # and will only look at the geometries.
-    _supported_geometries = None
+    _supported_geometries: Optional[Tuple[str, ...]] = None
 
     def __init_subclass__(cls, *args, **kwargs):
         super().__init_subclass__(*args, **kwargs)
@@ -77,8 +96,11 @@ class PlotCallback:
         """
         if len(coord) == 3:
             if not isinstance(coord, YTArray):
-                coord = plot.data.ds.arr(coord, "code_length")
-            coord.convert_to_units("code_length")
+                coord_copy = plot.data.ds.arr(coord, "code_length")
+            else:
+                # coord is being copied so that if the user has a unyt_array already
+                # we don't change the user's version
+                coord_copy = coord.to("code_length")
             ax = plot.data.axis
             # if this is an on-axis projection or slice, then
             # just grab the appropriate 2 coords for the on-axis view
@@ -87,7 +109,7 @@ class PlotCallback:
                     plot.data.ds.coordinates.x_axis[ax],
                     plot.data.ds.coordinates.y_axis[ax],
                 )
-                coord = (coord[xi], coord[yi])
+                ret_coord = (coord_copy[xi], coord_copy[yi])
 
             # if this is an off-axis project or slice (ie cutting plane)
             # we have to calculate where the data coords fall in the projected
@@ -95,20 +117,20 @@ class PlotCallback:
             elif ax == 4:
                 # transpose is just to get [[x1,x2,...],[y1,y2,...],[z1,z2,...]]
                 # in the same order as plot.data.center for array arithmetic
-                coord_vectors = coord.transpose() - plot.data.center
+                coord_vectors = coord_copy.transpose() - plot.data.center
                 x = np.dot(coord_vectors, plot.data.orienter.unit_vectors[1])
                 y = np.dot(coord_vectors, plot.data.orienter.unit_vectors[0])
                 # Transpose into image coords. Due to VR being not a
                 # right-handed coord system
-                coord = (y, x)
+                ret_coord = (y, x)
             else:
-                raise ValueError("Object being plot must have a `data.axis` defined")
+                raise ValueError("Object being plotted must have a `data.axis` defined")
 
         # if the position is already two-coords, it is expected to be
         # in the proper projected orientation
         else:
             raise ValueError("'data' coordinates must be 3 dimensions")
-        return coord
+        return ret_coord
 
     def _convert_to_plot(self, plot, coord, offset=True):
         """
@@ -304,10 +326,15 @@ class VelocityCallback(PlotCallback):
     _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
 
     def __init__(
-        self, factor=16, scale=None, scale_units=None, normalize=False, plot_args=None
+        self,
+        factor: Union[Tuple[int, int], int] = 16,
+        scale=None,
+        scale_units=None,
+        normalize=False,
+        plot_args=None,
     ):
         PlotCallback.__init__(self)
-        self.factor = factor
+        self.factor = _validate_factor_tuple(factor)
         self.scale = scale
         self.scale_units = scale_units
         self.normalize = normalize
@@ -316,6 +343,7 @@ class VelocityCallback(PlotCallback):
         self.plot_args = plot_args
 
     def __call__(self, plot):
+        ftype = plot.data._current_fluid_type
         # Instantiation of these is cheap
         if plot._type_name == "CuttingPlane":
             if is_curvilinear(plot.data.ds.geometry):
@@ -326,8 +354,8 @@ class VelocityCallback(PlotCallback):
                 )
         if plot._type_name == "CuttingPlane":
             qcb = CuttingQuiverCallback(
-                "cutting_plane_velocity_x",
-                "cutting_plane_velocity_y",
+                (ftype, "cutting_plane_velocity_x"),
+                (ftype, "cutting_plane_velocity_y"),
                 self.factor,
                 scale=self.scale,
                 normalize=self.normalize,
@@ -352,13 +380,13 @@ class VelocityCallback(PlotCallback):
             ):
                 # polar_z and cyl_z is aligned with carteian_z
                 # should convert r-theta plane to x-y plane
-                xv = "velocity_cartesian_x"
-                yv = "velocity_cartesian_y"
+                xv = (ftype, "velocity_cartesian_x")
+                yv = (ftype, "velocity_cartesian_y")
             else:
                 # for other cases (even for cylindrical geometry),
                 # orthogonal planes are generically Cartesian
-                xv = f"velocity_{axis_names[xax]}"
-                yv = f"velocity_{axis_names[yax]}"
+                xv = (ftype, f"velocity_{axis_names[xax]}")
+                yv = (ftype, f"velocity_{axis_names[yax]}")
 
             # determine the full fields including field type
             xv = plot.data._determine_fields(xv)[0]
@@ -393,10 +421,15 @@ class MagFieldCallback(PlotCallback):
     _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
 
     def __init__(
-        self, factor=16, scale=None, scale_units=None, normalize=False, plot_args=None
+        self,
+        factor: Union[Tuple[int, int], int] = 16,
+        scale=None,
+        scale_units=None,
+        normalize=False,
+        plot_args=None,
     ):
         PlotCallback.__init__(self)
-        self.factor = factor
+        self.factor = _validate_factor_tuple(factor)
         self.scale = scale
         self.scale_units = scale_units
         self.normalize = normalize
@@ -405,6 +438,7 @@ class MagFieldCallback(PlotCallback):
         self.plot_args = plot_args
 
     def __call__(self, plot):
+        ftype = plot.data._current_fluid_type
         # Instantiation of these is cheap
         if plot._type_name == "CuttingPlane":
             if is_curvilinear(plot.data.ds.geometry):
@@ -414,8 +448,8 @@ class MagFieldCallback(PlotCallback):
                     % plot.data.ds.geometry
                 )
             qcb = CuttingQuiverCallback(
-                "cutting_plane_magnetic_field_x",
-                "cutting_plane_magnetic_field_y",
+                (ftype, "cutting_plane_magnetic_field_x"),
+                (ftype, "cutting_plane_magnetic_field_y"),
                 self.factor,
                 scale=self.scale,
                 scale_units=self.scale_units,
@@ -433,13 +467,13 @@ class MagFieldCallback(PlotCallback):
             ):
                 # polar_z and cyl_z is aligned with carteian_z
                 # should convert r-theta plane to x-y plane
-                xv = "magnetic_field_cartesian_x"
-                yv = "magnetic_field_cartesian_y"
+                xv = (ftype, "magnetic_field_cartesian_x")
+                yv = (ftype, "magnetic_field_cartesian_y")
             else:
                 # for other cases (even for cylindrical geometry),
                 # orthogonal planes are generically Cartesian
-                xv = f"magnetic_field_{axis_names[xax]}"
-                yv = f"magnetic_field_{axis_names[yax]}"
+                xv = (ftype, f"magnetic_field_{axis_names[xax]}")
+                yv = (ftype, f"magnetic_field_{axis_names[yax]}")
 
             qcb = QuiverCallback(
                 xv,
@@ -472,7 +506,7 @@ class QuiverCallback(PlotCallback):
         self,
         field_x,
         field_y,
-        factor=16,
+        factor: Union[Tuple[int, int], int] = 16,
         scale=None,
         scale_units=None,
         normalize=False,
@@ -485,7 +519,7 @@ class QuiverCallback(PlotCallback):
         self.field_y = field_y
         self.bv_x = bv_x
         self.bv_y = bv_y
-        self.factor = factor
+        self.factor = _validate_factor_tuple(factor)
         self.scale = scale
         self.scale_units = scale_units
         self.normalize = normalize
@@ -524,8 +558,8 @@ class QuiverCallback(PlotCallback):
 
         # We are feeding this size into the pixelizer, where it will properly
         # set it in reverse order
-        nx = plot.image._A.shape[1] // self.factor
-        ny = plot.image._A.shape[0] // self.factor
+        nx = plot.image._A.shape[1] // self.factor[0]
+        ny = plot.image._A.shape[0] // self.factor[1]
         pixX = plot.data.ds.coordinates.pixelize(
             plot.data.axis,
             plot.data,
@@ -582,7 +616,7 @@ class ContourCallback(PlotCallback):
         self,
         field,
         ncont=5,
-        factor=4,
+        factor: Union[Tuple[int, int], int] = 4,
         clim=None,
         plot_args=None,
         label=False,
@@ -596,7 +630,7 @@ class ContourCallback(PlotCallback):
         def_text_args = {"colors": "w"}
         self.ncont = ncont
         self.field = field
-        self.factor = factor
+        self.factor = _validate_factor_tuple(factor)
         self.clim = clim
         self.take_log = take_log
         if plot_args is None:
@@ -634,8 +668,8 @@ class ContourCallback(PlotCallback):
 
         # We want xi, yi in plot coordinates
         xi, yi = np.mgrid[
-            xx0 : xx1 : numPoints_x / (self.factor * 1j),
-            yy0 : yy1 : numPoints_y / (self.factor * 1j),
+            xx0 : xx1 : numPoints_x / (self.factor[0] * 1j),
+            yy0 : yy1 : numPoints_y / (self.factor[1] * 1j),
         ]
         data = self.data_source or plot.data
 
@@ -679,7 +713,7 @@ class ContourCallback(PlotCallback):
             triangulation = Triangulation(x, y)
             zi = LinearTriInterpolator(triangulation, z)(xi, yi)
         elif plot._type_name == "OffAxisProjection":
-            zi = plot.frb[self.field][:: self.factor, :: self.factor].transpose()
+            zi = plot.frb[self.field][:: self.factor[0], :: self.factor[1]].transpose()
 
         if self.take_log is None:
             field = data._determine_fields([self.field])[0]
@@ -902,18 +936,18 @@ class StreamlineCallback(PlotCallback):
         self,
         field_x,
         field_y,
-        factor=16,
+        factor: Union[Tuple[int, int], int] = 16,
         density=1,
         field_color=None,
         display_threshold=None,
         plot_args=None,
     ):
         PlotCallback.__init__(self)
-        def_plot_args = {}
+        def_plot_args: Optional[Dict[str, Any]] = {}
         self.field_x = field_x
         self.field_y = field_y
         self.field_color = field_color
-        self.factor = factor
+        self.factor = _validate_factor_tuple(factor)
         self.dens = density
         self.display_threshold = display_threshold
         if plot_args is None:
@@ -926,8 +960,8 @@ class StreamlineCallback(PlotCallback):
 
         # We are feeding this size into the pixelizer, where it will properly
         # set it in reverse order
-        nx = plot.image._A.shape[1] // self.factor
-        ny = plot.image._A.shape[0] // self.factor
+        nx = plot.image._A.shape[1] // self.factor[0]
+        ny = plot.image._A.shape[0] // self.factor[1]
         pixX = plot.data.ds.coordinates.pixelize(
             plot.data.axis, plot.data, self.field_x, bounds, (nx, ny)
         )
@@ -1016,24 +1050,33 @@ class LinePlotCallback(PlotCallback):
     >>> # Overplot a diagonal white line from the lower left corner to upper
     >>> # right corner
     >>> import yt
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    >>> s = yt.SlicePlot(ds, 'z', 'density')
-    >>> s.annotate_line([0,0], [1,1], coord_system='axis')
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> s = yt.SlicePlot(ds, "z", "density")
+    >>> s.annotate_line([0, 0], [1, 1], coord_system="axis")
     >>> s.save()
 
     >>> # Overplot a red dashed line from data coordinate (0.1, 0.2, 0.3) to
     >>> # (0.5, 0.6, 0.7)
     >>> import yt
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    >>> s = yt.SlicePlot(ds, 'z', 'density')
-    >>> s.annotate_line([0.1, 0.2, 0.3], [0.5, 0.6, 0.7], coord_system='data',
-                        plot_args={'color':'red', 'lineStyles':'--'})
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> s = yt.SlicePlot(ds, "z", "density")
+    >>> s.annotate_line(
+    ...     [0.1, 0.2, 0.3],
+    ...     [0.5, 0.6, 0.7],
+    ...     coord_system="data",
+    ...     plot_args={"color": "red", "lineStyles": "--"},
+    ... )
     >>> s.save()
 
     """
 
     _type_name = "line"
-    _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
+    _supported_geometries: Tuple[str, ...] = (
+        "cartesian",
+        "spectral_cube",
+        "polar",
+        "cylindrical",
+    )
 
     def __init__(self, p1, p2, data_coords=False, coord_system="data", plot_args=None):
         PlotCallback.__init__(self)
@@ -1115,7 +1158,7 @@ class CuttingQuiverCallback(PlotCallback):
         PlotCallback.__init__(self)
         self.field_x = field_x
         self.field_y = field_y
-        self.factor = factor
+        self.factor = _validate_factor_tuple(factor)
         self.scale = scale
         self.scale_units = scale_units
         self.normalize = normalize
@@ -1126,17 +1169,17 @@ class CuttingQuiverCallback(PlotCallback):
     def __call__(self, plot):
         x0, x1, y0, y1 = self._physical_bounds(plot)
         xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
-        nx = plot.image._A.shape[1] // self.factor
-        ny = plot.image._A.shape[0] // self.factor
-        indices = np.argsort(plot.data["dx"])[::-1].astype(np.int_)
+        nx = plot.image._A.shape[1] // self.factor[0]
+        ny = plot.image._A.shape[0] // self.factor[1]
+        indices = np.argsort(plot.data["index", "dx"])[::-1].astype(np.int_)
 
         pixX = np.zeros((ny, nx), dtype="f8")
         pixY = np.zeros((ny, nx), dtype="f8")
         pixelize_off_axis_cartesian(
             pixX,
-            plot.data["x"].to("code_length"),
-            plot.data["y"].to("code_length"),
-            plot.data["z"].to("code_length"),
+            plot.data[("index", "x")].to("code_length"),
+            plot.data[("index", "y")].to("code_length"),
+            plot.data[("index", "z")].to("code_length"),
             plot.data["px"],
             plot.data["py"],
             plot.data["pdx"],
@@ -1150,9 +1193,9 @@ class CuttingQuiverCallback(PlotCallback):
         )
         pixelize_off_axis_cartesian(
             pixY,
-            plot.data["x"].to("code_length"),
-            plot.data["y"].to("code_length"),
-            plot.data["z"].to("code_length"),
+            plot.data[("index", "x")].to("code_length"),
+            plot.data[("index", "y")].to("code_length"),
+            plot.data[("index", "z")].to("code_length"),
             plot.data["px"],
             plot.data["py"],
             plot.data["pdx"],
@@ -1316,18 +1359,19 @@ class ArrowCallback(PlotCallback):
 
     >>> # Overplot an arrow pointing to feature at data coord: (0.2, 0.3, 0.4)
     >>> import yt
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    >>> s = yt.SlicePlot(ds, 'z', 'density')
-    >>> s.annotate_arrow([0.2,0.3,0.4])
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> s = yt.SlicePlot(ds, "z", "density")
+    >>> s.annotate_arrow([0.2, 0.3, 0.4])
     >>> s.save()
 
     >>> # Overplot a red arrow with longer length pointing to plot coordinate
     >>> # (0.1, -0.1)
     >>> import yt
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    >>> s = yt.SlicePlot(ds, 'z', 'density')
-    >>> s.annotate_arrow([0.1, -0.1], length=0.06, coord_system='plot',
-    ...                  plot_args={'color':'red'})
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> s = yt.SlicePlot(ds, "z", "density")
+    >>> s.annotate_arrow(
+    ...     [0.1, -0.1], length=0.06, coord_system="plot", plot_args={"color": "red"}
+    ... )
     >>> s.save()
 
     """
@@ -1467,17 +1511,21 @@ class MarkerAnnotateCallback(PlotCallback):
 
     >>> # Overplot a white X on a feature at data location (0.5, 0.5, 0.5)
     >>> import yt
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    >>> s = yt.SlicePlot(ds, 'z', 'density')
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> s = yt.SlicePlot(ds, "z", "density")
     >>> s.annotate_marker([0.4, 0.5, 0.6])
     >>> s.save()
 
     >>> # Overplot a big yellow circle at axis location (0.1, 0.2)
     >>> import yt
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    >>> s = yt.SlicePlot(ds, 'z', 'density')
-    >>> s.annotate_marker([0.1, 0.2], marker='o', coord_system='axis',
-    ...                   plot_args={'color':'yellow', 's':200})
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> s = yt.SlicePlot(ds, "z", "density")
+    >>> s.annotate_marker(
+    ...     [0.1, 0.2],
+    ...     marker="o",
+    ...     coord_system="axis",
+    ...     plot_args={"color": "yellow", "s": 200},
+    ... )
     >>> s.save()
 
     """
@@ -1549,9 +1597,9 @@ class SphereCallback(PlotCallback):
 
     >>> # Overplot a white circle of radius 100 kpc over the central galaxy
     >>> import yt
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    >>> s = yt.SlicePlot(ds, 'z', 'density')
-    >>> s.annotate_sphere([0.5, 0.5, 0.5], radius=(100, 'kpc'))
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> s = yt.SlicePlot(ds, "z", "density")
+    >>> s.annotate_sphere([0.5, 0.5, 0.5], radius=(100, "kpc"))
     >>> s.save()
 
     """
@@ -1666,27 +1714,39 @@ class TextLabelCallback(PlotCallback):
 
     >>> # Overplot white text at data location [0.55, 0.7, 0.4]
     >>> import yt
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    >>> s = yt.SlicePlot(ds, 'z', 'density')
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> s = yt.SlicePlot(ds, "z", "density")
     >>> s.annotate_text([0.55, 0.7, 0.4], "Here is a galaxy")
     >>> s.save()
 
     >>> # Overplot yellow text at axis location [0.2, 0.8] with
     >>> # a shaded inset box
     >>> import yt
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    >>> s = yt.SlicePlot(ds, 'z', 'density')
-    >>> s.annotate_text([0.2, 0.8], "Here is a galaxy", coord_system='axis',
-    ...                 text_args={'color':'yellow'},
-    ...                 inset_box_args={'boxstyle':'square,pad=0.3',
-    ...                                 'facecolor':'black',
-    ...                                 'linewidth':3,
-    ...                                 'edgecolor':'white', 'alpha':0.5})
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> s = yt.SlicePlot(ds, "z", "density")
+    >>> s.annotate_text(
+    ...     [0.2, 0.8],
+    ...     "Here is a galaxy",
+    ...     coord_system="axis",
+    ...     text_args={"color": "yellow"},
+    ...     inset_box_args={
+    ...         "boxstyle": "square,pad=0.3",
+    ...         "facecolor": "black",
+    ...         "linewidth": 3,
+    ...         "edgecolor": "white",
+    ...         "alpha": 0.5,
+    ...     },
+    ... )
     >>> s.save()
     """
 
     _type_name = "text"
-    _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
+    _supported_geometries: Tuple[str, ...] = (
+        "cartesian",
+        "spectral_cube",
+        "polar",
+        "cylindrical",
+    )
 
     def __init__(
         self,
@@ -1818,7 +1878,9 @@ class HaloCatalogCallback(PlotCallback):
     >>> import yt
     >>> dds = yt.load("Enzo_64/DD0043/data0043")
     >>> hds = yt.load("rockstar_halos/halos_0.0.bin")
-    >>> p = yt.ProjectionPlot(dds, "x", "density", weight_field="density")
+    >>> p = yt.ProjectionPlot(
+    ...     dds, "x", ("gas", "density"), weight_field=("gas", "density")
+    ... )
     >>> p.annotate_halos(hds)
     >>> p.save()
 
@@ -1827,12 +1889,22 @@ class HaloCatalogCallback(PlotCallback):
     >>> dds = yt.load("Enzo_64/DD0043/data0043")
     >>> hds = yt.load("rockstar_halos/halos_0.0.bin")
     >>> # make a region half the width of the box
-    >>> dregion = dds.box(dds.domain_center - 0.25*dds.domain_width,
-    ...                   dds.domain_center + 0.25*dds.domain_width)
-    >>> hregion = hds.box(hds.domain_center - 0.25*hds.domain_width,
-    ...                   hds.domain_center + 0.25*hds.domain_width)
-    >>> p = yt.ProjectionPlot(dds, "x", "density", weight_field="density",
-    ...                       data_source=dregion, width=0.5)
+    >>> dregion = dds.box(
+    ...     dds.domain_center - 0.25 * dds.domain_width,
+    ...     dds.domain_center + 0.25 * dds.domain_width,
+    ... )
+    >>> hregion = hds.box(
+    ...     hds.domain_center - 0.25 * hds.domain_width,
+    ...     hds.domain_center + 0.25 * hds.domain_width,
+    ... )
+    >>> p = yt.ProjectionPlot(
+    ...     dds,
+    ...     "x",
+    ...     ("gas", "density"),
+    ...     weight_field=("gas", "density"),
+    ...     data_source=dregion,
+    ...     width=0.5,
+    ... )
     >>> p.annotate_halos(hregion)
     >>> p.save()
 
@@ -1842,7 +1914,9 @@ class HaloCatalogCallback(PlotCallback):
     >>> dds = yt.load("Enzo_64/DD0043/data0043")
     >>> hds = yt.load("rockstar_halos/halos_0.0.bin")
     >>> hc = HaloCatalog(data_ds=dds, halos_ds=hds)
-    >>> p = yt.ProjectionPlot(dds, "x", "density", weight_field="density")
+    >>> p = yt.ProjectionPlot(
+    ...     dds, "x", ("gas", "density"), weight_field=("gas", "density")
+    ... )
     >>> p.annotate_halos(hc)
     >>> p.save()
 
@@ -1936,8 +2010,8 @@ class HaloCatalogCallback(PlotCallback):
 
         # Convert halo positions to code units of the plotted data
         # and then to units of the plotted window
-        px = halo_data[field_x][:].in_units(units)
-        py = halo_data[field_y][:].in_units(units)
+        px = halo_data[("all", field_x)][:].in_units(units)
+        py = halo_data[("all", field_y)][:].in_units(units)
 
         xplotcenter = (plot.xlim[0] + plot.xlim[1]) / 2
         yplotcenter = (plot.ylim[0] + plot.ylim[1]) / 2
@@ -1960,11 +2034,11 @@ class HaloCatalogCallback(PlotCallback):
         px, py = self._convert_to_plot(plot, [px, py])
 
         # Convert halo radii to a radius in pixels
-        radius = halo_data[self.radius_field][:].in_units(units)
+        radius = halo_data[("all", self.radius_field)][:].in_units(units)
         radius = np.array(radius * pixel_scale * self.factor)
 
         if self.width:
-            pz = halo_data[field_z][:].in_units("code_length")
+            pz = halo_data[("all", field_z)][:].in_units("code_length")
             c = data.center[data.axis]
 
             # I should catch an error here if width isn't in this form
@@ -1984,7 +2058,7 @@ class HaloCatalogCallback(PlotCallback):
         plot._axes.set_ylim(yy0, yy1)
 
         if self.annotate_field:
-            annotate_dat = halo_data[self.annotate_field]
+            annotate_dat = halo_data[("all", self.annotate_field)]
             texts = [f"{float(dat):g}" for dat in annotate_dat]
             labels = []
             for pos_x, pos_y, t in zip(px, py, texts):
@@ -2186,8 +2260,8 @@ class MeshLinesCallback(PlotCallback):
 
     >>> import yt
     >>> ds = yt.load("MOOSE_sample_data/out.e-s010")
-    >>> sl = yt.SlicePlot(ds, 'z', ('connect2', 'convected'))
-    >>> sl.annotate_mesh_lines(plot_args={'color':'black'})
+    >>> sl = yt.SlicePlot(ds, "z", ("connect2", "convected"))
+    >>> sl.annotate_mesh_lines(plot_args={"color": "black"})
 
     """
 
@@ -2293,7 +2367,7 @@ class TriangleFacetsCallback(PlotCallback):
 
 
 class TimestampCallback(PlotCallback):
-    """
+    r"""
     Annotates the timestamp and/or redshift of the data output at a specified
     location in the image (either in a present corner, or by specifying (x,y)
     image coordinates with the x_pos, y_pos arguments.  If no time_units are
@@ -2369,14 +2443,14 @@ class TimestampCallback(PlotCallback):
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
         FancyBboxPatch object as the inset box around the text.
         Defaults: ``{'boxstyle':'square', 'pad':0.3, 'facecolor':'black',
-                     'linewidth':3, 'edgecolor':'white', 'alpha':0.5}``
+        'linewidth':3, 'edgecolor':'white', 'alpha':0.5}``
 
     Example
     -------
 
     >>> import yt
-    >>> ds = yt.load('Enzo_64/DD0020/data0020')
-    >>> s = yt.SlicePlot(ds, 'z', 'density')
+    >>> ds = yt.load("Enzo_64/DD0020/data0020")
+    >>> s = yt.SlicePlot(ds, "z", "density")
     >>> s.annotate_timestamp()
     """
 
@@ -2470,7 +2544,7 @@ class TimestampCallback(PlotCallback):
         if self.time:
             # If no time_units are set, then identify a best fit time unit
             if self.time_unit is None:
-                if plot.ds.unit_system._code_flag:
+                if plot.ds._uses_code_time_unit:
                     # if the unit system is in code units
                     # we should not convert to seconds for the plot.
                     self.time_unit = plot.ds.unit_system.base_units[dimensions.time]
@@ -2487,7 +2561,7 @@ class TimestampCallback(PlotCallback):
                     toffset = plot.ds.quan(self.time_offset, self.time_unit)
                 elif not isinstance(self.time_offset, YTQuantity):
                     raise RuntimeError(
-                        "'time_offset' must be a float, tuple, or" "YTQuantity!"
+                        "'time_offset' must be a float, tuple, or YTQuantity!"
                     )
                 t -= toffset.in_units(self.time_unit)
             try:
@@ -2495,7 +2569,7 @@ class TimestampCallback(PlotCallback):
                 un = self.time_unit.latex_representation()
                 time_unit = r"$\ \ (" + un + r")$"
             except AttributeError as err:
-                if plot.ds.unit_system._code_flag == "code":
+                if plot.ds._uses_code_time_unit:
                     raise RuntimeError(
                         "The time unit str repr didn't match expectations, something is wrong."
                     ) from err
@@ -2512,7 +2586,7 @@ class TimestampCallback(PlotCallback):
                 z = plot.data.ds.current_redshift
             except AttributeError:
                 raise AttributeError(
-                    "Dataset does not have current_redshift. " "Set redshift=False."
+                    "Dataset does not have current_redshift. Set redshift=False."
                 )
             # Replace instances of -0.0* with 0.0* to avoid
             # negative null redshifts (e.g., "-0.00").
@@ -2531,7 +2605,7 @@ class TimestampCallback(PlotCallback):
 
 
 class ScaleCallback(PlotCallback):
-    """
+    r"""
     Annotates the scale of the plot at a specified location in the image
     (either in a preset corner, or by specifying (x,y) image coordinates with
     the pos argument.  Coeff and units (e.g. 1 Mpc or 100 kpc) refer to the
@@ -2588,7 +2662,7 @@ class ScaleCallback(PlotCallback):
     text_args : dictionary, optional
         A dictionary of parameters to used to update the font_properties
         for the text in this callback.  For any property not set, it will
-        use the defaults of the plot.  Thus one can modify the text size with:
+        use the defaults of the plot.  Thus one can modify the text size with
         ``text_args={'size':24}``
 
     size_bar_args : dictionary, optional
@@ -2603,7 +2677,7 @@ class ScaleCallback(PlotCallback):
         A dictionary of keyword arguments to be passed to the matplotlib Patch
         object that represents the inset box.
         Defaults: ``{'facecolor': 'black', 'linewidth': 3,
-                     'edgecolor': 'white', 'alpha': 0.5, 'boxstyle': 'square'}``
+        'edgecolor': 'white', 'alpha': 0.5, 'boxstyle': 'square'}``
 
     scale_text_format : string, optional
         This specifies the format of the scalebar value assuming "scale" is the
@@ -2616,8 +2690,8 @@ class ScaleCallback(PlotCallback):
     -------
 
     >>> import yt
-    >>> ds = yt.load('Enzo_64/DD0020/data0020')
-    >>> s = yt.SlicePlot(ds, 'z', 'density')
+    >>> ds = yt.load("Enzo_64/DD0020/data0020")
+    >>> s = yt.SlicePlot(ds, "z", "density")
     >>> s.annotate_scale()
     """
 
@@ -2798,10 +2872,10 @@ class RayCallback(PlotCallback):
 
     >>> # Overplot a ray and an ortho_ray object on a projection
     >>> import yt
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    >>> oray = ds.ortho_ray(1, (0.3, 0.4)) # orthoray down the y axis
-    >>> ray = ds.ray((0.1, 0.2, 0.3), (0.6, 0.7, 0.8)) # arbitrary ray
-    >>> p = yt.ProjectionPlot(ds, 'z', 'density')
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> oray = ds.ortho_ray(1, (0.3, 0.4))  # orthoray down the y axis
+    >>> ray = ds.ray((0.1, 0.2, 0.3), (0.6, 0.7, 0.8))  # arbitrary ray
+    >>> p = yt.ProjectionPlot(ds, "z", "density")
     >>> p.annotate_ray(oray)
     >>> p.annotate_ray(ray)
     >>> p.save()
@@ -2809,11 +2883,12 @@ class RayCallback(PlotCallback):
     >>> # Overplot a LightRay object on a projection
     >>> import yt
     >>> from trident import LightRay
-    >>> ds = yt.load('enzo_cosmology_plus/RD0004/RD0004')
-    >>> lr = LightRay("enzo_cosmology_plus/AMRCosmology.enzo",
-    ...               'Enzo', 0.0, 0.1, time_data=False)
+    >>> ds = yt.load("enzo_cosmology_plus/RD0004/RD0004")
+    >>> lr = LightRay(
+    ...     "enzo_cosmology_plus/AMRCosmology.enzo", "Enzo", 0.0, 0.1, time_data=False
+    ... )
     >>> lray = lr.make_light_ray(seed=1)
-    >>> p = yt.ProjectionPlot(ds, 'z', 'density')
+    >>> p = yt.ProjectionPlot(ds, "z", "density")
     >>> p.annotate_ray(lr)
     >>> p.save()
 
@@ -2964,10 +3039,11 @@ class LineIntegralConvolutionCallback(PlotCallback):
     -------
 
     >>> import yt
-    >>> ds = yt.load('Enzo_64/DD0020/data0020')
-    >>> s = yt.SlicePlot(ds, 'z', 'density')
-    >>> s.annotate_line_integral_convolution('velocity_x', 'velocity_y',\
-                                             lim=(0.5,0.65))
+    >>> ds = yt.load("Enzo_64/DD0020/data0020")
+    >>> s = yt.SlicePlot(ds, "z", "density")
+    >>> s.annotate_line_integral_convolution(
+    ...     "velocity_x", "velocity_y", lim=(0.5, 0.65)
+    ... )
     """
 
     _type_name = "line_integral_convolution"
@@ -3014,7 +3090,8 @@ class LineIntegralConvolutionCallback(PlotCallback):
         vectors = np.concatenate((pixX[..., np.newaxis], pixY[..., np.newaxis]), axis=2)
 
         if self.texture is None:
-            self.texture = np.random.rand(nx, ny).astype(np.double)
+            prng = np.random.RandomState(0x4D3D3D3)
+            self.texture = prng.random_sample((nx, ny))
         elif self.texture.shape != (nx, ny):
             raise ValueError(
                 "'texture' must have the same shape "
@@ -3027,6 +3104,10 @@ class LineIntegralConvolutionCallback(PlotCallback):
         lic_data = line_integral_convolution_2d(vectors, self.texture, kernel)
         lic_data = lic_data / lic_data.max()
         lic_data_clip = np.clip(lic_data, self.lim[0], self.lim[1])
+
+        mask = ~(np.isfinite(pixX) & np.isfinite(pixY))
+        lic_data[mask] = np.nan
+        lic_data_clip[mask] = np.nan
 
         if self.const_alpha:
             plot._axes.imshow(
@@ -3079,8 +3160,8 @@ class CellEdgesCallback(PlotCallback):
     --------
 
     >>> import yt
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    >>> s = yt.SlicePlot(ds, 'z', 'density')
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> s = yt.SlicePlot(ds, "z", "density")
     >>> s.annotate_cell_edges()
     >>> s.save()
     """

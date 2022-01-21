@@ -2,16 +2,28 @@
 This module gathers all user-facing functions with a `load_` prefix.
 
 """
-
+import atexit
 import os
+import sys
+import tarfile
+import time
+import types
+import warnings
+from multiprocessing import Pipe, Process
+from multiprocessing.connection import Connection
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple, Union
+from urllib.parse import urlsplit
 
 import numpy as np
 from more_itertools import always_iterable
 
-from yt._maintenance.deprecation import issue_deprecation_warning
-from yt.config import ytcfg
+from yt.data_objects.static_output import Dataset
+from yt.funcs import levenshtein_distance
+from yt.sample_data.api import lookup_on_disk_data
 from yt.utilities.decompose import decompose_array, get_psize
 from yt.utilities.exceptions import (
+    MountError,
     YTAmbiguousDataType,
     YTIllDefinedAMR,
     YTSimulationNotIdentified,
@@ -24,13 +36,12 @@ from yt.utilities.object_registries import (
     output_type_registry,
     simulation_time_series_registry,
 )
-from yt.utilities.on_demand_imports import _pooch as pooch
-from yt.utilities.sample_data import PoochHandle, _extensions_to_strip
+from yt.utilities.on_demand_imports import _pooch as pooch, _ratarmount as ratarmount
 
 # --- Loaders for known data formats ---
 
 
-def load(fn, *args, **kwargs):
+def load(fn, *args, hint: Optional[str] = None, **kwargs):
     """
     Load a Dataset or DatasetSeries object.
     The data format is automatically discovered, and the exact return type is the
@@ -43,6 +54,11 @@ def load(fn, *args, **kwargs):
     fn : str, os.Pathlike, or byte (types supported by os.path.expandusers)
         A path to the data location. This can be a file name, directory name, a glob
         pattern, or a url (for data types that support it).
+
+    hint : str, optional
+        Only classes whose name include a hint are considered. If loading fails with
+        a YTAmbiguousDataType exception, this argument can be used to lift ambiguity.
+        Hints are case insensitive.
 
     Additional arguments, if any, are passed down to the return class.
 
@@ -65,25 +81,17 @@ def load(fn, *args, **kwargs):
     yt.utilities.exceptions.YTAmbiguousDataType
         If the data format matches more than one class of similar specilization levels.
     """
-    fn = os.path.expanduser(fn)
+    fn = os.fspath(fn)
 
     if any(wildcard in fn for wildcard in "[]?!*"):
         from yt.data_objects.time_series import DatasetSeries
 
-        return DatasetSeries(fn, *args, **kwargs)
+        return DatasetSeries(fn, *args, hint=hint, **kwargs)
 
-    # Unless the dataset starts with http
-    # look for it using the path or relative to the data dir (in this order).
-    if not (os.path.exists(fn) or fn.startswith("http")):
-        data_dir = ytcfg.get("yt", "test_data_dir")
-        alt_fn = os.path.join(data_dir, fn)
-        if os.path.exists(alt_fn):
-            fn = alt_fn
-        else:
-            msg = f"No such file or directory: '{fn}'."
-            if os.path.exists(data_dir):
-                msg += f"\n(Also tried '{alt_fn}')."
-            raise FileNotFoundError(msg)
+    # This will raise FileNotFoundError if the path isn't matched
+    # either in the current dir or yt.config.ytcfg['data_dir_directory']
+    if not fn.startswith("http"):
+        fn = str(lookup_on_disk_data(fn))
 
     candidates = []
     for cls in output_type_registry.values():
@@ -91,7 +99,7 @@ def load(fn, *args, **kwargs):
             candidates.append(cls)
 
     # Find only the lowest subclasses, i.e. most specialised front ends
-    candidates = find_lowest_subclasses(candidates)
+    candidates = find_lowest_subclasses(candidates, hint=hint)
 
     if len(candidates) == 1:
         return candidates[0](fn, *args, **kwargs)
@@ -126,12 +134,7 @@ def load_simulation(fn, simulation_type, find_outputs=False):
         If simulation_type is unknown.
     """
 
-    if not os.path.exists(fn):
-        alt_fn = os.path.join(ytcfg.get("yt", "test_data_dir"), fn)
-        if os.path.exists(alt_fn):
-            fn = alt_fn
-        else:
-            raise FileNotFoundError(f"No such file or directory: '{fn}'")
+    fn = str(lookup_on_disk_data(fn))
 
     try:
         cls = simulation_time_series_registry[simulation_type]
@@ -139,18 +142,6 @@ def load_simulation(fn, simulation_type, find_outputs=False):
         raise YTSimulationNotIdentified(simulation_type) from e
 
     return cls(fn, find_outputs=find_outputs)
-
-
-def simulation(fn, simulation_type, find_outputs=False):
-    issue_deprecation_warning(
-        "yt.simulation is a deprecated alias for yt.load_simulation"
-        "and will be removed in a future version of yt.",
-        since="4.0.0",
-        removal="4.1.0",
-    )
-    return load_simulation(
-        fn=fn, simulation_type=simulation_type, find_outputs=find_outputs
-    )
 
 
 # --- Loaders for generic ("stream") data ---
@@ -170,6 +161,7 @@ def load_uniform_grid(
     periodicity=(True, True, True),
     geometry="cartesian",
     unit_system="cgs",
+    default_species_fields=None,
 ):
     r"""Load a uniform grid of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
@@ -219,17 +211,19 @@ def load_uniform_grid(
         be z, x, y, this would be: ("cartesian", ("z", "x", "y")).  The same
         can be done for other coordinates, for instance:
         ("spherical", ("theta", "phi", "r")).
+    default_species_fields : string, optional
+        If set, default species fields are created for H and He which also
+        determine the mean molecular weight. Options are "ionized" and "neutral".
 
     Examples
     --------
     >>> np.random.seed(int(0x4D3D3D3))
-    >>> bbox = np.array([[0., 1.0], [-1.5, 1.5], [1.0, 2.5]])
+    >>> bbox = np.array([[0.0, 1.0], [-1.5, 1.5], [1.0, 2.5]])
     >>> arr = np.random.random((128, 128, 128))
     >>> data = dict(density=arr)
-    >>> ds = load_uniform_grid(data, arr.shape, length_unit='cm',
-    ...                        bbox=bbox, nprocs=12)
+    >>> ds = load_uniform_grid(data, arr.shape, length_unit="cm", bbox=bbox, nprocs=12)
     >>> dd = ds.all_data()
-    >>> dd['density']
+    >>> dd[("gas", "density")]
     unyt_array([0.76017901, 0.96855994, 0.49205428, ..., 0.78798258,
                 0.97569432, 0.99453904], 'g/cm**3')
     """
@@ -250,18 +244,6 @@ def load_uniform_grid(
     domain_left_edge = np.array(bbox[:, 0], "float64")
     domain_right_edge = np.array(bbox[:, 1], "float64")
     grid_levels = np.zeros(nprocs, dtype="int32").reshape((nprocs, 1))
-    # If someone included this throw it away--old API
-    if "number_of_particles" in data:
-        issue_deprecation_warning(
-            "It is no longer necessary to include "
-            "the number of particles in the data "
-            "dict. The number of particles is "
-            "determined from the sizes of the "
-            "particle fields.",
-            since="4.0.0",
-            removal="4.1.0",
-        )
-        data.pop("number_of_particles")
     # First we fix our field names, apply units to data
     # and check for consistency of field shapes
     field_units, data, number_of_particles = process_data(
@@ -349,7 +331,12 @@ def load_uniform_grid(
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    sds = StreamDataset(handler, geometry=geometry, unit_system=unit_system)
+    sds = StreamDataset(
+        handler,
+        geometry=geometry,
+        unit_system=unit_system,
+        default_species_fields=default_species_fields,
+    )
 
     # Now figure out where the particles go
     if number_of_particles > 0:
@@ -373,6 +360,7 @@ def load_amr_grids(
     geometry="cartesian",
     refine_by=2,
     unit_system="cgs",
+    default_species_fields=None,
 ):
     r"""Load a set of grids of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
@@ -431,25 +419,35 @@ def load_amr_grids(
         instance, this can be used to say that some datasets have refinement of
         1 in one dimension, indicating that they span the full range in that
         dimension.
+    default_species_fields : string, optional
+        If set, default species fields are created for H and He which also
+        determine the mean molecular weight. Options are "ionized" and "neutral".
 
     Examples
     --------
 
     >>> grid_data = [
-    ...     dict(left_edge = [0.0, 0.0, 0.0],
-    ...          right_edge = [1.0, 1.0, 1.],
-    ...          level = 0,
-    ...          dimensions = [32, 32, 32],
-    ...          number_of_particles = 0),
-    ...     dict(left_edge = [0.25, 0.25, 0.25],
-    ...          right_edge = [0.75, 0.75, 0.75],
-    ...          level = 1,
-    ...          dimensions = [32, 32, 32],
-    ...          number_of_particles = 0)
+    ...     dict(
+    ...         left_edge=[0.0, 0.0, 0.0],
+    ...         right_edge=[1.0, 1.0, 1.0],
+    ...         level=0,
+    ...         dimensions=[32, 32, 32],
+    ...         number_of_particles=0,
+    ...     ),
+    ...     dict(
+    ...         left_edge=[0.25, 0.25, 0.25],
+    ...         right_edge=[0.75, 0.75, 0.75],
+    ...         level=1,
+    ...         dimensions=[32, 32, 32],
+    ...         number_of_particles=0,
+    ...     ),
     ... ]
     ...
     >>> for g in grid_data:
-    ...     g["density"] = (np.random.random(g["dimensions"])*2**g["level"], "g/cm**3")
+    ...     g[("gas", "density")] = (
+    ...         np.random.random(g["dimensions"]) * 2 ** g["level"],
+    ...         "g/cm**3",
+    ...     )
     ...
     >>> ds = load_amr_grids(grid_data, [32, 32, 32], length_unit=1.0)
     """
@@ -478,18 +476,6 @@ def load_amr_grids(
         grid_right_edges[i, :] = g.pop("right_edge")
         grid_dimensions[i, :] = g.pop("dimensions")
         grid_levels[i, :] = g.pop("level")
-        # If someone included this throw it away--old API
-        if "number_of_particles" in g:
-            issue_deprecation_warning(
-                "It is no longer necessary to include "
-                "the number of particles in the data "
-                "dict. The number of particles is "
-                "determined from the sizes of the "
-                "particle fields.",
-                since="4.0.0",
-                removal="4.1.0",
-            )
-            g.pop("number_of_particles")
         field_units, data, n_particles = process_data(
             g, grid_dims=tuple(grid_dimensions[i, :])
         )
@@ -570,7 +556,12 @@ def load_amr_grids(
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    sds = StreamDataset(handler, geometry=geometry, unit_system=unit_system)
+    sds = StreamDataset(
+        handler,
+        geometry=geometry,
+        unit_system=unit_system,
+        default_species_fields=default_species_fields,
+    )
     return sds
 
 
@@ -587,6 +578,7 @@ def load_particles(
     geometry="cartesian",
     unit_system="cgs",
     data_source=None,
+    default_species_fields=None,
 ):
     r"""Load a set of particles into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamParticleHandler`.
@@ -630,15 +622,20 @@ def load_particles(
     data_source : YTSelectionContainer, optional
         If set, parameters like `bbox`, `sim_time`, and code units are derived
         from it.
+    default_species_fields : string, optional
+        If set, default species fields are created for H and He which also
+        determine the mean molecular weight. Options are "ionized" and "neutral".
 
     Examples
     --------
 
-    >>> pos = [np.random.random(128*128*128) for i in range(3)]
-    >>> data = dict(particle_position_x = pos[0],
-    ...             particle_position_y = pos[1],
-    ...             particle_position_z = pos[2])
-    >>> bbox = np.array([[0., 1.0], [0.0, 1.0], [0.0, 1.0]])
+    >>> pos = [np.random.random(128 * 128 * 128) for i in range(3)]
+    >>> data = dict(
+    ...     particle_position_x=pos[0],
+    ...     particle_position_y=pos[1],
+    ...     particle_position_z=pos[2],
+    ... )
+    >>> bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]])
     >>> ds = load_particles(data, 3.08e24, bbox=bbox)
 
     """
@@ -733,7 +730,12 @@ def load_particles(
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    sds = StreamParticlesDataset(handler, geometry=geometry, unit_system=unit_system)
+    sds = StreamParticlesDataset(
+        handler,
+        geometry=geometry,
+        unit_system=unit_system,
+        default_species_fields=default_species_fields,
+    )
 
     return sds
 
@@ -893,6 +895,7 @@ def load_octree(
     over_refine_factor=1,
     partial_coverage=1,
     unit_system="cgs",
+    default_species_fields=None,
 ):
     r"""Load an octree mask into yt.
 
@@ -909,7 +912,7 @@ def load_octree(
         of size n_octs * 8 (but see note about the root oct below), where
         each item is 1 for an oct-cell being refined and 0 for it not being
         refined.  For over_refine_factors != 1, the children count will
-        still be 8, so there will stil be n_octs * 8 entries. Note that if
+        still be 8, so there will still be n_octs * 8 entries. Note that if
         the root oct is not refined, there will be only one entry
         for the root, so the size of the mask will be (n_octs - 1)*8 + 1.
     data : dict
@@ -935,26 +938,28 @@ def load_octree(
     partial_coverage : boolean
         Whether or not an oct can be refined cell-by-cell, or whether all
         8 get refined.
+    default_species_fields : string, optional
+        If set, default species fields are created for H and He which also
+        determine the mean molecular weight. Options are "ionized" and "neutral".
 
     Example
     -------
 
     >>> import numpy as np
-    >>> oct_mask = [8, 0, 0, 0, 0, 8, 0, 8,
-    ...             0, 0, 0, 0, 0, 0, 0, 0,
-    ...             8, 0, 0, 0, 0, 0, 0, 0,
-    ...             0]
-    >>>
+    >>> oct_mask = np.zeros(25)
+    ... oct_mask[[0,  5,  7, 16]] = 8
     >>> octree_mask = np.array(oct_mask, dtype=np.uint8)
     >>> quantities = {}
-    >>> quantities['gas', 'density'] = np.random.random((22, 1))
-    >>> bbox = np.array([[-10., 10.], [-10., 10.], [-10., 10.]])
-    >>>
-    >>> ds = load_octree(octree_mask=octree_mask,
-    ...                  data=quantities,
-    ...                  bbox=bbox,
-    ...                  over_refine_factor=0,
-    ...                  partial_coverage=0)
+    >>> quantities["gas", "density"] = np.random.random((22, 1))
+    >>> bbox = np.array([[-10.0, 10.0], [-10.0, 10.0], [-10.0, 10.0]])
+
+    >>> ds = load_octree(
+    ...     octree_mask=octree_mask,
+    ...     data=quantities,
+    ...     bbox=bbox,
+    ...     over_refine_factor=0,
+    ...     partial_coverage=0,
+    ... )
 
     """
     from yt.frontends.stream.data_structures import (
@@ -1022,7 +1027,9 @@ def load_octree(
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    sds = StreamOctreeDataset(handler, unit_system=unit_system)
+    sds = StreamOctreeDataset(
+        handler, unit_system=unit_system, default_species_fields=default_species_fields
+    )
     sds.octree_mask = octree_mask
     sds.partial_coverage = partial_coverage
     sds.over_refine_factor = over_refine_factor
@@ -1095,6 +1102,8 @@ def load_unstructured_mesh(
         Size of computational domain in units of the length unit.
     sim_time : float, optional
         The simulation time in seconds
+    length_unit : string
+        Unit to use for length.  Defaults to unitless.
     mass_unit : string
         Unit to use for masses.  Defaults to unitless.
     time_unit : string
@@ -1120,27 +1129,32 @@ def load_unstructured_mesh(
     Load a simple mesh consisting of two tets.
 
       >>> # Coordinates for vertices of two tetrahedra
-      >>> coordinates = np.array([[0.0, 0.0, 0.5], [0.0, 1.0, 0.5],
-      ...                         [0.5, 1, 0.5], [0.5, 0.5, 0.0],
-      ...                         [0.5, 0.5, 1.0]])
+      >>> coordinates = np.array(
+      ...     [
+      ...         [0.0, 0.0, 0.5],
+      ...         [0.0, 1.0, 0.5],
+      ...         [0.5, 1, 0.5],
+      ...         [0.5, 0.5, 0.0],
+      ...         [0.5, 0.5, 1.0],
+      ...     ]
+      ... )
       >>> # The indices in the coordinates array of mesh vertices.
       >>> # This mesh has two elements.
       >>> connectivity = np.array([[0, 1, 2, 4], [0, 1, 2, 3]])
-      >>>
+
       >>> # Field data defined at the centers of the two mesh elements.
-      >>> elem_data = {
-      ...     ('connect1', 'elem_field'): np.array([1, 2])
-      ... }
-      >>>
+      >>> elem_data = {("connect1", "elem_field"): np.array([1, 2])}
+
       >>> # Field data defined at node vertices
       >>> node_data = {
-      ...     ('connect1', 'node_field'): np.array([[0.0, 1.0, 2.0, 4.0],
-      ...                                           [0.0, 1.0, 2.0, 3.0]])
+      ...     ("connect1", "node_field"): np.array(
+      ...         [[0.0, 1.0, 2.0, 4.0], [0.0, 1.0, 2.0, 3.0]]
+      ...     )
       ... }
-      >>>
-      >>> ds = load_unstructured_mesh(connectivity, coordinates,
-      ...                             elem_data=elem_data,
-      ...                             node_data=node_data)
+
+      >>> ds = load_unstructured_mesh(
+      ...     connectivity, coordinates, elem_data=elem_data, node_data=node_data
+      ... )
     """
     from yt.frontends.exodus_ii.util import get_num_pseudo_dims
     from yt.frontends.stream.data_structures import (
@@ -1268,90 +1282,280 @@ def load_unstructured_mesh(
 
 
 # --- Loader for yt sample datasets ---
-# This utility will check to see if sample data exists on disc.
-# If not, it will download it.
+def load_sample(
+    fn: Optional[str] = None, *, progressbar: bool = True, timeout=None, **kwargs
+):
+    r"""
+    Load sample data with yt.
 
+    This is a simple wrapper around :func:`~yt.loaders.load` to include fetching
+    data with pooch from remote source.
 
-def load_sample(fn=None, specific_file=None, pbar=True):
-    """
-    Load sample data with yt. Simple wrapper around yt.load to include fetching
-    data with pooch.
+    The data registry table can be retrieved and visualized using
+    :func:`~yt.sample_data.api.get_data_registry_table`.
+    The `filename` column contains usable keys that can be passed
+    as the first positional argument to load_sample.
+    Some data samples contain series of datasets. It may be required to
+    supply the relative path to a specific dataset.
 
     Parameters
     ----------
-    fn : str or None
-        The name of the sample data to load. This is generally the name of the
-        folder of the dataset. For IsolatedGalaxy, the name would be
-        `IsolatedGalaxy`.  If `None` is supplied, the return value
-        will be a list of all known datasets (by name).
 
-    specific_file : str, optional
-        optional argument -- the name of the file to load that is located
-        within sample dataset of `name`. For the dataset `enzo_cosmology_plus`,
-        which has a number of timesteps available, one may wish to choose
-        DD0003. The file specifically would be
-        `enzo_cosmology_plus/DD0003/DD0003`, and the argument passed to this
-        variable would be `DD0003/DD0003`
+    fn: str
+        The `filename` of the dataset to load, as defined in the data registry
+        table.
 
-    pbar: bool
-        display a progress bar
+    progressbar: bool
+        display a progress bar (tqdm).
+
+    timeout: float or int (optional)
+        Maximal waiting time, in seconds, after which download is aborted.
+        `None` means "no limit". This parameter is directly passed to down to
+        requests.get via pooch.HTTPDownloader
+
+    Notes
+    -----
+
+    - This function is experimental as of yt 4.0.0, do not rely on its exact behaviour.
+    - Any additional keyword argument is passed down to :func:`~yt.loaders.load`.
+    - In case of collision with predefined keyword arguments as set in
+      the data registry, the ones passed to this function take priority.
+    - Datasets with slashes '/' in their names can safely be used even on Windows.
+      On the contrary, paths using backslashes '\' won't work outside of Windows, so
+      it is recommended to favour the UNIX convention ('/') in scripts that are meant
+      to be cross-platform.
+    - This function requires pandas and pooch.
+    - Corresponding sample data live at https://yt-project.org/data
 
     """
 
-    fido = PoochHandle()
-
     if fn is None:
-        keys = []
-        for key in fido._registry:
-            for ext in _extensions_to_strip:
-                if key.endswith(ext):
-                    key = key[: -len(ext)]
-            keys.append(key)
-        return keys
+        print(
+            "One can see which sample datasets are available at: https://yt-project.org/data\n"
+            "or alternatively by running: yt.sample_data.api.get_data_registry_table()",
+            file=sys.stderr,
+        )
+        return None
 
-    base_path = fido.pooch_obj.path
-
-    registered_fname, name, extension = fido._validate_sample_fname(
-        fn
-    )  # todo: make this part of the class
-
-    downloader = None
-    if pbar:
-        downloader = pooch.pooch.HTTPDownloader(progressbar=True)
-
-    if extension != "h5":
-        # we are going to assume most files that exist on the hub are
-        # compressed in .tar folders. Some may not.
-        processor = pooch.pooch.Untar()
-    else:
-        processor = None
-
-    storage_fname = fido.pooch_obj.fetch(
-        registered_fname, processor=processor, downloader=downloader
+    from yt.sample_data.api import (
+        _download_sample_data_file,
+        _get_test_data_dir_path,
+        get_data_registry_table,
     )
 
-    # The `folder_path` variable is used here to notify the user where the
-    # files have been unpacked to. However, we can't assume this is reliable
-    # because in some cases the common path will overlap with the `load_name`
-    # variable of the file.
-    folder_path = os.path.commonprefix(storage_fname)
-    mylog.info("Files located at %s", folder_path)
+    pooch_logger = pooch.utils.get_logger()
 
-    # Location of the file to load automatically, registered in the Fido class
-    info = fido[registered_fname]
-    file_lookup = info["load_name"]
-    optional_args = info["load_kwargs"]
+    # normalize path for platform portability
+    # for consistency with yt.load, we also convert to str explicitly,
+    # which gives us support Path objects for free
+    fn = str(fn).replace("/", os.path.sep)
 
-    if specific_file is None:
-        # right now work on loading only untarred files. build out h5 later
-        mylog.info("Default to loading %s for %s dataset", file_lookup, name)
-        loaded_file = os.path.join(
-            base_path, f"{registered_fname}.untar", name, file_lookup
+    topdir, _, specific_file = fn.partition(os.path.sep)
+
+    registry_table = get_data_registry_table()
+
+    known_names: List[str] = registry_table.dropna()["filename"].to_list()
+    if topdir not in known_names:
+        msg = f"'{topdir}' is not an available dataset."
+        lexical_distances: List[Tuple[str, int]] = [
+            (name, levenshtein_distance(name, topdir)) for name in known_names
+        ]
+        suggestions: List[str] = [name for name, dist in lexical_distances if dist < 4]
+        if len(suggestions) == 1:
+            msg += f" Did you mean '{suggestions[0]}' ?"
+        elif suggestions:
+            msg += " Did you mean to type any of the following ?\n\n    "
+            msg += "\n    ".join(f"'{_}'" for _ in suggestions)
+        raise ValueError(msg)
+
+    # PR 3089
+    # note: in the future the registry table should be reindexed
+    # so that the following line can be replaced with
+    #
+    # specs = registry_table.loc[fn]
+    #
+    # however we don't want to do it right now because the "filename" column is
+    # currently incomplete
+    specs = registry_table.query(f"`filename` == '{topdir}'").iloc[0]
+
+    load_name = specific_file or specs["load_name"] or ""
+
+    if not isinstance(specs["load_kwargs"], dict):
+        raise ValueError(
+            "The requested dataset seems to be improperly registered.\n"
+            "Tip: the entry in yt/sample_data_registry.json may be inconsistent with "
+            "https://github.com/yt-project/website/blob/master/data/datafiles.json\n"
+            "Please report this to https://github.com/yt-project/yt/issues/new"
         )
+
+    kwargs = {**specs["load_kwargs"], **kwargs}
+
+    save_dir = _get_test_data_dir_path()
+
+    data_path = save_dir.joinpath(fn)
+    if save_dir.joinpath(topdir).exists():
+        # if the data is already available locally, `load_sample`
+        # only acts as a thin wrapper around `load`
+        if load_name and os.sep not in fn:
+            data_path = data_path.joinpath(load_name)
+        mylog.info("Sample dataset found in '%s'", data_path)
+        if timeout is not None:
+            mylog.info("Ignoring the `timeout` keyword argument received.")
+        return load(data_path, **kwargs)
+
+    mylog.info("'%s' is not available locally. Looking up online.", fn)
+
+    # effectively silence the pooch's logger and create our own log instead
+    pooch_logger.setLevel(100)
+    mylog.info("Downloading from %s", specs["url"])
+
+    # downloading via a pooch.Pooch instance behind the scenes
+    filename = urlsplit(specs["url"]).path.split("/")[-1]
+
+    tmp_file = _download_sample_data_file(
+        filename, progressbar=progressbar, timeout=timeout
+    )
+
+    # pooch has functionalities to unpack downloaded archive files,
+    # but it needs to be told in advance that we are downloading a tarball.
+    # Since that information is not necessarily trivial to guess from the filename,
+    # we rely on the standard library to perform a conditional unpacking instead.
+    if tarfile.is_tarfile(tmp_file):
+        mylog.info("Untaring downloaded file to '%s'", save_dir)
+        with tarfile.open(tmp_file) as fh:
+            fh.extractall(save_dir)
+        os.remove(tmp_file)
     else:
-        mylog.info("Loading %s for %s dataset", specific_file, name)
-        loaded_file = os.path.join(
-            base_path, f"{registered_fname}.untar", name, specific_file
-        )
+        os.replace(tmp_file, save_dir)
 
-    return load(loaded_file, **optional_args)
+    loadable_path = Path.joinpath(save_dir, fn)
+    if load_name not in str(loadable_path):
+        loadable_path = loadable_path.joinpath(load_name, specific_file)
+
+    return load(loadable_path, **kwargs)
+
+
+def _mount_helper(
+    archive: str, mountPoint: str, ratarmount_kwa: Dict, conn: Connection
+):
+    try:
+        fuseOperationsObject = ratarmount.TarMount(
+            pathToMount=archive,
+            mountPoint=mountPoint,
+            lazyMounting=True,
+            **ratarmount_kwa,
+        )
+        fuseOperationsObject.use_ns = True
+        conn.send(True)
+    except Exception:
+        conn.send(False)
+        raise
+
+    ratarmount.fuse.FUSE(
+        operations=fuseOperationsObject,
+        mountpoint=mountPoint,
+        foreground=True,
+        nothreads=True,
+    )
+
+
+# --- Loader for tar-based datasets ---
+def load_archive(
+    fn: Union[str, Path],
+    path: str,
+    ratarmount_kwa: Optional[Dict] = None,
+    mount_timeout: float = 1.0,
+    *args,
+    **kwargs,
+) -> Dataset:
+    r"""
+    Load archived data with yt.
+
+    This is a wrapper around :func:`~yt.loaders.load` to include mounting
+    and unmounting the archive as a read-only filesystem and load it.
+
+    Parameters
+    ----------
+
+    fn: str
+        The `filename` of the archive containing the dataset.
+
+    path: str
+        The path to the dataset in the archive.
+
+    ratarmount_kwa: dict, optional
+        Optional parameters to pass to ratarmount to mount the archive.
+
+    mount_timeout: float, optional
+        The timeout to wait for ratarmount to mount the archive. Default is 1s.
+
+    Notes
+    -----
+
+    - The function is experimental and may work or not depending on your setup.
+    - Any additional keyword argument is passed down to :func:`~yt.loaders.load`.
+    - This function requires ratarmount to be installed.
+    - This function does not work on Windows system.
+    """
+
+    warnings.warn(
+        "The 'load_archive' function is still experimental and may be unstable."
+    )
+
+    fn = os.path.expanduser(fn)
+
+    # This will raise FileNotFoundError if the path isn't matched
+    # either in the current dir or yt.config.ytcfg['data_dir_directory']
+    if not fn.startswith("http"):
+        fn = str(lookup_on_disk_data(fn))
+
+    if ratarmount_kwa is None:
+        ratarmount_kwa = {}
+
+    try:
+        tarfile.open(fn)
+    except tarfile.ReadError:
+        raise YTUnidentifiedDataType(fn, *args, **kwargs)
+
+    # Note: the temporary directory will be created by ratarmount
+    tempdir = fn + ".mount"
+    tempdir_base = tempdir
+    i = 0
+    while os.path.exists(tempdir):
+        i += 1
+        tempdir = f"{tempdir_base}.{i}"
+
+    parent_conn, child_conn = Pipe()
+    proc = Process(target=_mount_helper, args=(fn, tempdir, ratarmount_kwa, child_conn))
+    proc.start()
+    if not parent_conn.recv():
+        raise MountError(f"An error occured while mounting {fn} in {tempdir}")
+
+    # Note: the mounting needs to happen in another process which
+    # needs be run in the foreground (otherwise it may
+    # unmount). To prevent a race-condition here, we wait
+    # for the folder to be mounted within a reasonable time.
+    t = 0.0
+    while t < mount_timeout:
+        if os.path.ismount(tempdir):
+            break
+        time.sleep(0.1)
+        t += 0.1
+    else:
+        raise MountError(f"Folder {tempdir} does not appear to be mounted")
+
+    # We need to kill the process at exit (to force unmounting)
+    def umount_callback():
+        proc.terminate()
+
+    atexit.register(umount_callback)
+
+    # Alternatively, can dismount manually
+    def del_callback(self):
+        proc.terminate()
+        atexit.unregister(umount_callback)
+
+    ds = load(os.path.join(tempdir, path), *args, **kwargs)
+    ds.dismount = types.MethodType(del_callback, ds)
+
+    return ds

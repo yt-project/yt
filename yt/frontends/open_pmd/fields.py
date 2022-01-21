@@ -1,3 +1,5 @@
+from typing import List
+
 import numpy as np
 
 from yt.fields.field_info_container import FieldInfoContainer
@@ -15,18 +17,18 @@ def setup_poynting_vector(self):
             u = mu_0 ** -1
             if axis in "x":
                 return u * (
-                    data["E_y"] * data["magnetic_field_z"]
-                    - data["E_z"] * data["magnetic_field_y"]
+                    data[("openPMD", "E_y")] * data[("gas", "magnetic_field_z")]
+                    - data[("openPMD", "E_z")] * data[("gas", "magnetic_field_y")]
                 )
             elif axis in "y":
                 return u * (
-                    data["E_z"] * data["magnetic_field_x"]
-                    - data["E_x"] * data["magnetic_field_z"]
+                    data[("openPMD", "E_z")] * data[("gas", "magnetic_field_x")]
+                    - data[("openPMD", "E_x")] * data[("gas", "magnetic_field_z")]
                 )
             elif axis in "z":
                 return u * (
-                    data["E_x"] * data["magnetic_field_y"]
-                    - data["E_y"] * data["magnetic_field_x"]
+                    data[("openPMD", "E_x")] * data[("gas", "magnetic_field_y")]
+                    - data[("openPMD", "E_y")] * data[("gas", "magnetic_field_x")]
                 )
 
         return poynting
@@ -134,12 +136,12 @@ class OpenPMDFieldInfo(FieldInfoContainer):
     References
     ----------
     * http://yt-project.org/docs/dev/analyzing/fields.html
-    * http://yt-project.org/docs/dev/developing/creating_frontend.html#data-meaning-structures  # NOQA E501
+    * http://yt-project.org/docs/dev/developing/creating_frontend.html#data-meaning-structures
     * https://github.com/openPMD/openPMD-standard/blob/latest/STANDARD.md
     * [1] http://yt-project.org/docs/dev/reference/field_list.html#universal-fields
     """
 
-    _mag_fields = []
+    _mag_fields: List[str] = []
 
     def __init__(self, ds, field_list):
         f = ds._handle

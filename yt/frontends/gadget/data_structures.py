@@ -1,13 +1,16 @@
 import os
 import stat
 import struct
+from typing import Type
 
 import numpy as np
 
 from yt.data_objects.static_output import ParticleFile
+from yt.fields.field_info_container import FieldInfoContainer
 from yt.frontends.sph.data_structures import SPHDataset, SPHParticleIndex
 from yt.funcs import only_on_root
-from yt.utilities.chemical_formulas import default_mu
+from yt.geometry.geometry_handler import Index
+from yt.utilities.chemical_formulas import compute_mu
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.fortran_utils import read_record
 from yt.utilities.logger import ytLogger as mylog
@@ -87,7 +90,7 @@ class GadgetBinaryHeader:
         # Read the first 4 bytes assuming little endian int32
         with self.open() as f:
             (rhead,) = struct.unpack("<I", f.read(4))
-        # Foramt 1?
+        # Format 1?
         if rhead == first_header_size:
             return 1, "<"
         elif rhead == _byte_swap_32(first_header_size):
@@ -208,9 +211,9 @@ class GadgetBinaryIndex(SPHParticleIndex):
 
 
 class GadgetDataset(SPHDataset):
-    _index_class = GadgetBinaryIndex
-    _file_class = GadgetBinaryFile
-    _field_info_class = GadgetFieldInfo
+    _index_class: Type[Index] = GadgetBinaryIndex
+    _file_class: Type[ParticleFile] = GadgetBinaryFile
+    _field_info_class: Type[FieldInfoContainer] = GadgetFieldInfo
     _particle_mass_name = "Mass"
     _particle_coordinates_name = "Coordinates"
     _particle_velocity_name = "Velocities"
@@ -239,6 +242,7 @@ class GadgetDataset(SPHDataset):
         use_dark_factor=False,
         w_0=-1.0,
         w_a=0.0,
+        default_species_fields=None,
     ):
         if self._instantiated:
             return
@@ -260,14 +264,14 @@ class GadgetDataset(SPHDataset):
         header_size = self._header.size
         if header_size != [256]:
             only_on_root(
-                mylog.warn,
+                mylog.warning,
                 "Non-standard header size is detected! "
                 "Gadget-2 standard header is 256 bytes, but yours is %s. "
                 "Make sure a non-standard header is actually expected. "
                 "Otherwise something is wrong, "
                 "and you might want to check how the dataset is loaded. "
-                "Futher information about header specification can be found in "
-                "https://yt-project.org/docs/dev/examining/loading_data.html#header-specification.",  # NOQA E501
+                "Further information about header specification can be found in "
+                "https://yt-project.org/docs/dev/examining/loading_data.html#header-specification.",
                 header_size,
             )
         self._field_spec = self._setup_binary_spec(field_spec, gadget_field_specs)
@@ -313,6 +317,7 @@ class GadgetDataset(SPHDataset):
             index_filename=index_filename,
             kdtree_filename=kdtree_filename,
             kernel_name=kernel_name,
+            default_species_fields=default_species_fields,
         )
         if self.cosmological_simulation:
             self.time_unit.convert_to_units("s/h")
@@ -323,7 +328,7 @@ class GadgetDataset(SPHDataset):
             self.length_unit.convert_to_units("kpc")
             self.mass_unit.convert_to_units("Msun")
         if mean_molecular_weight is None:
-            self.mu = default_mu
+            self.mu = compute_mu(self.default_species_fields)
         else:
             self.mu = mean_molecular_weight
 
@@ -336,7 +341,7 @@ class GadgetDataset(SPHDataset):
             spec = _hs
         return spec
 
-    def __repr__(self):
+    def __str__(self):
         return os.path.basename(self.parameter_filename).split(".")[0]
 
     def _get_hvals(self):
@@ -520,6 +525,16 @@ class GadgetDataset(SPHDataset):
         specific_energy_unit = _fix_unit_ordering(specific_energy_unit)
         self.specific_energy_unit = self.quan(*specific_energy_unit)
 
+        if "magnetic" in unit_base:
+            magnetic_unit = unit_base["magnetic"]
+        elif "UnitMagneticField_in_gauss" in unit_base:
+            magnetic_unit = (unit_base["UnitMagneticField_in_gauss"], "gauss")
+        else:
+            # Sane default
+            magnetic_unit = (1.0, "gauss")
+        magnetic_unit = _fix_unit_ordering(magnetic_unit)
+        self.magnetic_unit = self.quan(*magnetic_unit)
+
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
         if "header_spec" in kwargs:
@@ -547,10 +562,14 @@ class GadgetDataset(SPHDataset):
         return header.validate()
 
 
+class GadgetHDF5File(ParticleFile):
+    pass
+
+
 class GadgetHDF5Dataset(GadgetDataset):
-    _file_class = ParticleFile
+    _file_class = GadgetHDF5File
     _index_class = SPHParticleIndex
-    _field_info_class = GadgetFieldInfo
+    _field_info_class: Type[FieldInfoContainer] = GadgetFieldInfo
     _particle_mass_name = "Masses"
     _sph_ptypes = ("PartType0",)
     _suffix = ".hdf5"
@@ -566,6 +585,7 @@ class GadgetHDF5Dataset(GadgetDataset):
         bounding_box=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
         self.storage_filename = None
         filename = os.path.abspath(filename)
@@ -583,6 +603,7 @@ class GadgetHDF5Dataset(GadgetDataset):
             kernel_name=kernel_name,
             bounding_box=bounding_box,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
 
     def _get_hvals(self):
@@ -597,6 +618,10 @@ class GadgetHDF5Dataset(GadgetDataset):
             self.gen_hsmls = "SmoothingLength" not in handle[sph_ptypes[0]]
         else:
             self.gen_hsmls = False
+        # Later versions of Gadget and its derivatives have a "Parameters"
+        # group in the HDF5 file.
+        if "Parameters" in handle:
+            hvals.update((str(k), v) for k, v in handle["/Parameters"].attrs.items())
         handle.close()
         return hvals
 

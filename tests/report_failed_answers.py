@@ -63,7 +63,7 @@ def generate_failed_answers_html(failed_answers):
       the answer tests.
     </p>
     <p>
-      <strong>Acutal Image:</strong> plot generated while running the test<br/>
+      <strong>Actual Image:</strong> plot generated while running the test<br/>
       <strong>Expected Image:</strong> golden answer image<br/>
       <strong>Difference Image:</strong> difference in the "actual"
       and "expected" image
@@ -351,7 +351,7 @@ def parse_nose_xml(nose_xml):
 
 def handle_error(error, testcase, missing_errors, missing_answers, failed_answers):
     attribs = ["classname", "name"]
-    test_name = ":".join([testcase.attrib[a] for a in attribs])
+    test_name = ":".join(testcase.attrib[a] for a in attribs)
     message = error.attrib["message"]
     if (
         missing_errors[0] in error.attrib["message"]
@@ -387,14 +387,14 @@ if __name__ == "__main__":
         "-m",
         "--upload-missing-answers",
         action="store_true",
-        help="Upload tests' answers that are not found in " "answer-store.",
+        help="Upload tests' answers that are not found in answer-store.",
     )
     parser.add_argument(
         "--xunit-file",
         action="store",
         dest="nosetest_xml",
         required=True,
-        help="Name of the nosetests xml file to parse for " "failed answer tests.",
+        help="Name of the nosetests xml file to parse for failed answer tests.",
     )
     args = parser.parse_args()
 

@@ -18,7 +18,12 @@ from yt.utilities.answer_testing.framework import (
 )
 from yt.visualization.plot_window import SlicePlot
 
-_fields = ("temperature", "density", "velocity_magnitude", "velocity_divergence")
+_fields = (
+    ("gas", "temperature"),
+    ("gas", "density"),
+    ("gas", "velocity_magnitude"),
+    ("gas", "velocity_divergence"),
+)
 
 two_sphere_test = "ActiveParticleTwoSphere/DD0011/DD0011"
 active_particle_cosmology = "ActiveParticleCosmology/DD0046/DD0046"
@@ -35,17 +40,17 @@ p3mini = "PopIII_mini/DD0034/DD0034"
 def color_conservation(ds):
     species_names = ds.field_info.species_names
     dd = ds.all_data()
-    dens_yt = dd["density"].copy()
+    dens_yt = dd[("gas", "density")].copy()
     # Enumerate our species here
     for s in sorted(species_names):
         if s == "El":
             continue
         dens_yt -= dd[f"{s}_density"]
-    dens_yt -= dd["metal_density"]
-    delta_yt = np.abs(dens_yt / dd["density"])
+    dens_yt -= dd[("enzo", "Metal_Density")]
+    delta_yt = np.abs(dens_yt / dd[("gas", "density")])
     # Now we compare color conservation to Enzo's color conservation
     dd = ds.all_data()
-    dens_enzo = dd["Density"].copy()
+    dens_enzo = dd[("enzo", "Density")].copy()
     for f in sorted(ds.field_list):
         ff = f[1]
         if not ff.endswith("_Density"):
@@ -60,25 +65,25 @@ def color_conservation(ds):
         if any([ff.startswith(ss) for ss in start_strings]):
             continue
         dens_enzo -= dd[f]
-    delta_enzo = np.abs(dens_enzo / dd["Density"])
+    delta_enzo = np.abs(dens_enzo / dd[("enzo", "Density")])
     np.testing.assert_almost_equal(delta_yt, delta_enzo)
 
 
 def check_color_conservation(ds):
     species_names = ds.field_info.species_names
     dd = ds.all_data()
-    dens_yt = dd["density"].copy()
+    dens_yt = dd[("gas", "density")].copy()
     # Enumerate our species here
     for s in sorted(species_names):
         if s == "El":
             continue
         dens_yt -= dd[f"{s}_density"]
-    dens_yt -= dd["metal_density"]
-    delta_yt = np.abs(dens_yt / dd["density"])
+    dens_yt -= dd[("enzo", "Metal_Density")]
+    delta_yt = np.abs(dens_yt / dd[("gas", "density")])
 
     # Now we compare color conservation to Enzo's color conservation
     dd = ds.all_data()
-    dens_enzo = dd["Density"].copy()
+    dens_enzo = dd[("enzo", "Density")].copy()
     for f in sorted(ds.field_list):
         ff = f[1]
         if not ff.endswith("_Density"):
@@ -93,7 +98,7 @@ def check_color_conservation(ds):
         if any([ff.startswith(ss) for ss in start_strings]):
             continue
         dens_enzo -= dd[f]
-    delta_enzo = np.abs(dens_enzo / dd["Density"])
+    delta_enzo = np.abs(dens_enzo / dd[("enzo", "Density")])
     return assert_almost_equal, delta_yt, delta_enzo
 
 
@@ -155,14 +160,15 @@ def test_nuclei_density_fields():
     ds = data_dir_load(ecp)
     ad = ds.all_data()
     assert_array_equal(
-        ad["H_nuclei_density"], (ad["H_p0_number_density"] + ad["H_p1_number_density"])
+        ad[("gas", "H_nuclei_density")],
+        (ad[("gas", "H_p0_number_density")] + ad[("gas", "H_p1_number_density")]),
     )
     assert_array_equal(
-        ad["He_nuclei_density"],
+        ad[("gas", "He_nuclei_density")],
         (
-            ad["He_p0_number_density"]
-            + ad["He_p1_number_density"]
-            + ad["He_p2_number_density"]
+            ad[("gas", "He_p0_number_density")]
+            + ad[("gas", "He_p1_number_density")]
+            + ad[("gas", "He_p2_number_density")]
         ),
     )
 
@@ -196,7 +202,7 @@ def test_active_particle_datasets():
     acc_part_fields = [("AccretingParticle", pf) for pf in ["AccretionRate"] + pfields]
 
     real_acc_part_fields = sorted(
-        [f for f in two_sph.field_list if f[0] == "AccretingParticle"]
+        f for f in two_sph.field_list if f[0] == "AccretingParticle"
     )
     assert_equal(acc_part_fields, real_acc_part_fields)
 
@@ -207,7 +213,7 @@ def test_active_particle_datasets():
 
     apcos_fields = [("CenOstriker", pf) for pf in pfields]
 
-    real_apcos_fields = sorted([f for f in apcos.field_list if f[0] == "CenOstriker"])
+    real_apcos_fields = sorted(f for f in apcos.field_list if f[0] == "CenOstriker")
 
     assert_equal(apcos_fields, real_apcos_fields)
 
@@ -229,9 +235,9 @@ def test_face_centered_mhdct_fields():
         assert_equal(grid[field].shape, tuple(dims) + (2 * sum(flag),))
 
     # Average of face-centered fields should be the same as cell-centered field
-    assert (ad["BxF"].sum(axis=-1) / 2 == ad["Bx"]).all()
-    assert (ad["ByF"].sum(axis=-1) / 2 == ad["By"]).all()
-    assert (ad["BzF"].sum(axis=-1) / 2 == ad["Bz"]).all()
+    assert (ad[("enzo", "BxF")].sum(axis=-1) / 2 == ad[("enzo", "Bx")]).all()
+    assert (ad[("enzo", "ByF")].sum(axis=-1) / 2 == ad[("enzo", "By")]).all()
+    assert (ad[("enzo", "BzF")].sum(axis=-1) / 2 == ad[("enzo", "Bz")]).all()
 
 
 @requires_file(dnz)
@@ -243,11 +249,11 @@ def test_deeply_nested_zoom():
 
     plot = SlicePlot(ds, "z", "density", width=(0.001, "pc"), center=center)
 
-    image = plot.frb["density"]
+    image = plot.frb[("gas", "density")]
 
     assert (image > 0).all()
 
-    v, c = ds.find_max("density")
+    v, c = ds.find_max(("gas", "density"))
 
     assert_allclose_units(v, ds.quan(0.005878286377124154, "g/cm**3"))
 
@@ -255,7 +261,7 @@ def test_deeply_nested_zoom():
     c_actual = ds.arr(c_actual, "code_length")
     assert_allclose_units(c, c_actual)
 
-    assert_equal(max([g["density"].max() for g in ds.index.grids]), v)
+    assert_equal(max(g[("gas", "density")].max() for g in ds.index.grids), v)
 
 
 @requires_file(kh2d)
@@ -265,7 +271,7 @@ def test_2d_grid_shape():
     # returns a 3D array with a dummy dimension.
     ds = data_dir_load(kh2d)
     g = ds.index.grids[1]
-    assert g["density"].shape == (128, 100, 1)
+    assert g[("gas", "density")].shape == (128, 100, 1)
 
 
 @requires_file(p3mini)

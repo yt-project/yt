@@ -4,6 +4,7 @@ from .fits_image import (
     FITSImageData,
     FITSOffAxisProjection,
     FITSOffAxisSlice,
+    FITSParticleProjection,
     FITSProjection,
     FITSSlice,
 )
@@ -22,6 +23,7 @@ from .line_plot import LineBuffer, LinePlot
 from .particle_plots import ParticlePhasePlot, ParticlePlot, ParticleProjectionPlot
 from .plot_modifications import PlotCallback, callback_registry
 from .plot_window import (
+    AxisAlignedProjectionPlot,
     AxisAlignedSlicePlot,
     OffAxisProjectionPlot,
     OffAxisSlicePlot,

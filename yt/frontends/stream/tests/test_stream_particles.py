@@ -222,8 +222,8 @@ def test_load_particles_with_data_source():
 
     # Load from dataset
     ad = ds1.all_data()
-    fields = ["particle_mass"]
-    fields += [f"particle_position_{ax}" for ax in "xyz"]
+    fields = [("all", "particle_mass")]
+    fields += [("all", f"particle_position_{ax}") for ax in "xyz"]
     data = {field: ad[field] for field in fields}
     ds2 = load_particles(data, data_source=ad)
 
@@ -273,7 +273,7 @@ def test_particles_outside_domain():
     wh = (posx_arr < bbox[0, 0]).nonzero()[0]
     assert wh.size == 1000 - ds.particle_type_counts["io"]
     ad = ds.all_data()
-    assert ds.particle_type_counts["io"] == ad["particle_position_x"].size
+    assert ds.particle_type_counts["io"] == ad[("all", "particle_position_x")].size
 
 
 def test_stream_sph_projection():

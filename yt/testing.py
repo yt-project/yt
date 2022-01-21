@@ -5,11 +5,14 @@ import itertools as it
 import os
 import pickle
 import shutil
+import sys
 import tempfile
 import unittest
+from shutil import which
 
 import matplotlib
 import numpy as np
+import pytest
 from more_itertools import always_iterable
 from numpy.random import RandomState
 from unyt.exceptions import UnitOperationError
@@ -25,7 +28,7 @@ from yt.units.yt_array import YTArray, YTQuantity
 from numpy.testing import assert_array_equal, assert_almost_equal  # NOQA isort:skip
 from numpy.testing import assert_equal, assert_array_less  # NOQA isort:skip
 from numpy.testing import assert_string_equal  # NOQA isort:skip
-from numpy.testing import assert_array_almost_equal_nulp  # NOQA isort:skip
+from numpy.testing import assert_array_almost_equal_nulp  # isort:skip
 from numpy.testing import assert_allclose, assert_raises  # NOQA isort:skip
 from numpy.testing import assert_approx_equal  # NOQA isort:skip
 from numpy.testing import assert_array_almost_equal  # NOQA isort:skip
@@ -101,8 +104,8 @@ def amrspace(extent, levels=7, cells=8):
 
     Examples
     --------
-    >>> l, r, lvl = amrspace([0.0, 2.0, 1.0, 2.0, 0.0, 3.14], levels=(3,3,0), cells=2)
-    >>> print l
+    >>> l, r, lvl = amrspace([0.0, 2.0, 1.0, 2.0, 0.0, 3.14], levels=(3, 3, 0), cells=2)
+    >>> print(l)
     [[ 0.     1.     0.   ]
      [ 0.25   1.     0.   ]
      [ 0.     1.125  0.   ]
@@ -144,20 +147,16 @@ def amrspace(extent, levels=7, cells=8):
     # fill non-zero dims
     dcell = 1.0 / cells
     left_slice = tuple(
-        [
-            slice(extent[2 * n], extent[2 * n + 1], extent[2 * n + 1])
-            if dims_zero[n]
-            else slice(0.0, 1.0, dcell)
-            for n in range(ndims)
-        ]
+        slice(extent[2 * n], extent[2 * n + 1], extent[2 * n + 1])
+        if dims_zero[n]
+        else slice(0.0, 1.0, dcell)
+        for n in range(ndims)
     )
     right_slice = tuple(
-        [
-            slice(extent[2 * n + 1], extent[2 * n], -extent[2 * n + 1])
-            if dims_zero[n]
-            else slice(dcell, 1.0 + dcell, dcell)
-            for n in range(ndims)
-        ]
+        slice(extent[2 * n + 1], extent[2 * n], -extent[2 * n + 1])
+        if dims_zero[n]
+        else slice(dcell, 1.0 + dcell, dcell)
+        for n in range(ndims)
     )
     left_norm_grid = np.reshape(np.mgrid[left_slice].T.flat[ndims:], (-1, ndims))
     lng_zero = left_norm_grid[:, dims_zero]
@@ -225,6 +224,7 @@ def fake_random_ds(
     length_unit=1.0,
     unit_system="cgs",
     bbox=None,
+    default_species_fields=None,
 ):
     from yt.loaders import load_uniform_grid
 
@@ -284,6 +284,7 @@ def fake_random_ds(
         nprocs=nprocs,
         unit_system=unit_system,
         bbox=bbox,
+        default_species_fields=default_species_fields,
     )
     return ug
 
@@ -729,8 +730,7 @@ def add_noise_fields(ds):
 
     def _binary_noise(field, data):
         """random binary data"""
-        res = prng.random_integers(0, 1, data.size).astype("float64")
-        return res
+        return prng.randint(low=0, high=2, size=data.size).astype("float64")
 
     def _positive_noise(field, data):
         """random strictly positive data"""
@@ -744,10 +744,10 @@ def add_noise_fields(ds):
         """random data with mixed signs"""
         return 2 * prng.random_sample(data.size) - 1
 
-    ds.add_field("noise0", _binary_noise, sampling_type="cell")
-    ds.add_field("noise1", _positive_noise, sampling_type="cell")
-    ds.add_field("noise2", _negative_noise, sampling_type="cell")
-    ds.add_field("noise3", _even_noise, sampling_type="cell")
+    ds.add_field(("gas", "noise0"), _binary_noise, sampling_type="cell")
+    ds.add_field(("gas", "noise1"), _positive_noise, sampling_type="cell")
+    ds.add_field(("gas", "noise2"), _negative_noise, sampling_type="cell")
+    ds.add_field(("gas", "noise3"), _even_noise, sampling_type="cell")
 
 
 def expand_keywords(keywords, full=False):
@@ -789,24 +789,24 @@ def expand_keywords(keywords, full=False):
     --------
 
     >>> keywords = {}
-    >>> keywords['dpi'] = (50, 100, 200)
-    >>> keywords['cmap'] = ('arbre', 'kelp')
+    >>> keywords["dpi"] = (50, 100, 200)
+    >>> keywords["cmap"] = ("cmyt.arbre", "cmyt.kelp")
     >>> list_of_kwargs = expand_keywords(keywords)
     >>> print(list_of_kwargs)
 
-    array([{'cmap': 'arbre', 'dpi': 50},
-           {'cmap': 'kelp', 'dpi': 100},
-           {'cmap': 'arbre', 'dpi': 200}], dtype=object)
+    array([{'cmap': 'cmyt.arbre', 'dpi': 50},
+           {'cmap': 'cmyt.kelp', 'dpi': 100},
+           {'cmap': 'cmyt.arbre', 'dpi': 200}], dtype=object)
 
     >>> list_of_kwargs = expand_keywords(keywords, full=True)
     >>> print(list_of_kwargs)
 
-    array([{'cmap': 'arbre', 'dpi': 50},
-           {'cmap': 'arbre', 'dpi': 100},
-           {'cmap': 'arbre', 'dpi': 200},
-           {'cmap': 'kelp', 'dpi': 50},
-           {'cmap': 'kelp', 'dpi': 100},
-           {'cmap': 'kelp', 'dpi': 200}], dtype=object)
+    array([{'cmap': 'cmyt.arbre', 'dpi': 50},
+           {'cmap': 'cmyt.arbre', 'dpi': 100},
+           {'cmap': 'cmyt.arbre', 'dpi': 200},
+           {'cmap': 'cmyt.kelp', 'dpi': 50},
+           {'cmap': 'cmyt.kelp', 'dpi': 100},
+           {'cmap': 'cmyt.kelp', 'dpi': 200}], dtype=object)
 
     >>> for kwargs in list_of_kwargs:
     ...     write_projection(*args, **kwargs)
@@ -857,6 +857,21 @@ def expand_keywords(keywords, full=False):
     return list_of_kwarg_dicts
 
 
+def skip_case(*, reason: str):
+    """
+    An adapter test skipping function that should work with both test runners
+    (nosetest or pytest) and with any Python version.
+    """
+    if sys.version_info >= (3, 10):
+        # nose isn't compatible with Python 3.10 so we can't import it here
+        pytest.skip(reason)
+    else:
+        # pytest.skip() isn't recognized by nosetest (but nose.SkipTest works in pytest !)
+        from nose import SkipTest
+
+        raise SkipTest(reason)
+
+
 def requires_module(module):
     """
     Decorator that takes a module name as an argument and tries to import it.
@@ -865,12 +880,11 @@ def requires_module(module):
     being imported will not fail if the module is not installed on the testing
     platform.
     """
-    from nose import SkipTest
 
     def ffalse(func):
         @functools.wraps(func)
         def false_wrapper(*args, **kwargs):
-            raise SkipTest
+            skip_case(reason=f"Missing required module {module}")
 
         return false_wrapper
 
@@ -902,8 +916,6 @@ def requires_module_pytest(*module_names):
 
     So that it can be later renamed to `requires_module`.
     """
-    import pytest
-
     from yt.utilities import on_demand_imports as odi
 
     def deco(func):
@@ -931,8 +943,6 @@ def requires_module_pytest(*module_names):
 
 
 def requires_file(req_file):
-    from nose import SkipTest
-
     path = ytcfg.get("yt", "test_data_dir")
 
     def ffalse(func):
@@ -940,7 +950,7 @@ def requires_file(req_file):
         def false_wrapper(*args, **kwargs):
             if ytcfg.get("yt", "internals", "strict_requires"):
                 raise FileNotFoundError(req_file)
-            raise SkipTest
+            skip_case(reason=f"Missing required file {req_file}")
 
         return false_wrapper
 
@@ -1090,7 +1100,7 @@ def check_results(func):
     ... def field_checker(dd, field_name):
     ...     return dd[field_name]
 
-    >>> field_checker(ds.all_data(), 'density', result_basename='density')
+    >>> field_checker(ds.all_data(), "density", result_basename="density")
 
     """
 
@@ -1109,7 +1119,7 @@ def check_results(func):
             st = _rv.std(dtype="float64")
             su = _rv.sum(dtype="float64")
             si = _rv.size
-            ha = hashlib.md5(_rv.tostring()).hexdigest()
+            ha = hashlib.md5(_rv.tobytes()).hexdigest()
             fn = f"func_results_ref_{name}.cpkl"
             with open(fn, "wb") as f:
                 pickle.dump((mi, ma, st, su, si, ha), f)
@@ -1138,7 +1148,7 @@ def check_results(func):
                 _rv.std(dtype="float64"),
                 _rv.sum(dtype="float64"),
                 _rv.size,
-                hashlib.md5(_rv.tostring()).hexdigest(),
+                hashlib.md5(_rv.tobytes()).hexdigest(),
             )
             fn = f"func_results_ref_{name}.cpkl"
             if not os.path.exists(fn):
@@ -1340,7 +1350,6 @@ def requires_backend(backend):
     Decorated function or null function
 
     """
-    import pytest
 
     def ffalse(func):
         # returning a lambda : None causes an error when using pytest. Having
@@ -1350,9 +1359,8 @@ def requires_backend(backend):
         # needed since None is no longer returned, so we check for the skip
         # exception in the xfail case for that test
         def skip(*args, **kwargs):
-            msg = f"`{backend}` backend not found, skipping: `{func.__name__}`"
-            print(msg)
-            pytest.skip(msg)
+            msg = f"`{backend}` backend not in use, skipping: `{func.__name__}`"
+            skip_case(reason=msg)
 
         if ytcfg.get("yt", "internals", "within_pytest"):
             return skip
@@ -1365,6 +1373,27 @@ def requires_backend(backend):
     if backend.lower() == matplotlib.get_backend().lower():
         return ftrue
     return ffalse
+
+
+def requires_external_executable(*names):
+    def deco(func):
+        missing = []
+        for name in names:
+            if which(name) is None:
+                missing.append(name)
+
+        # note that order between these two decorators matters
+        @pytest.mark.skipif(
+            missing,
+            reason=f"missing external executable(s): {', '.join(missing)}",
+        )
+        @functools.wraps(func)
+        def inner_func(*args, **kwargs):
+            return func(*args, **kwargs)
+
+        return inner_func
+
+    return deco
 
 
 class TempDirTest(unittest.TestCase):

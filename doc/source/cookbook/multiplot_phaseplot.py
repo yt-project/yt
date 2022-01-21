@@ -26,10 +26,10 @@ for i, SnapNum in enumerate([10, 40]):
     ad = ds.all_data()
     p = yt.PhasePlot(
         ad,
-        "density",
-        "temperature",
+        ("gas", "density"),
+        ("gas", "temperature"),
         [
-            "cell_mass",
+            ("gas", "mass"),
         ],
         weight_field=None,
     )
@@ -37,10 +37,10 @@ for i, SnapNum in enumerate([10, 40]):
     # Ensure the axes and colorbar limits match for all plots
     p.set_xlim(1.0e-32, 8.0e-26)
     p.set_ylim(1.0e1, 2.0e7)
-    p.set_zlim("cell_mass", 1e42, 1e46)
+    p.set_zlim(("gas", "mass"), 1e42, 1e46)
 
     # This forces the ProjectionPlot to redraw itself on the AxesGrid axes.
-    plot = p.plots["cell_mass"]
+    plot = p.plots[("gas", "mass")]
     plot.figure = fig
     plot.axes = grid[i].axes
     if i == 0:

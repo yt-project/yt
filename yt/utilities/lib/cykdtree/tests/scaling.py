@@ -60,7 +60,7 @@ def stats_run(
 def time_run(
     npart, nproc, ndim, nrep=1, periodic=False, leafsize=10, suppress_final_output=False
 ):
-    r"""Get runing times using :package:`time`.
+    r"""Get running times using :package:`time`.
 
     Args:
         npart (int): Number of particles.

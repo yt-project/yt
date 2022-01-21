@@ -1,10 +1,13 @@
 import os
 import shutil
 import tempfile
+from importlib.util import find_spec
 from pathlib import Path
 
+import matplotlib
 import pytest
 import yaml
+from packaging.version import Version
 
 from yt.config import ytcfg
 from yt.utilities.answer_testing.testing_utilities import (
@@ -15,6 +18,8 @@ from yt.utilities.answer_testing.testing_utilities import (
     _streamline_for_io,
     data_dir_load,
 )
+
+MPL_VERSION = Version(matplotlib.__version__)
 
 
 def pytest_addoption(parser):
@@ -69,8 +74,97 @@ def pytest_configure(config):
     # Register custom marks for answer tests and big data
     config.addinivalue_line("markers", "answer_test: Run the answer tests.")
     config.addinivalue_line(
-        "markers", "big_data: Run answer tests that require" " large data files."
+        "markers", "big_data: Run answer tests that require large data files."
     )
+    for value in (
+        # treat most warnings as errors
+        "error",
+        # >>> internal deprecation warnings with no obvious solution
+        # see https://github.com/yt-project/yt/issues/3381
+        (
+            r"ignore:The requested field name 'pd?[xyz]' is ambiguous and corresponds "
+            "to any one of the following field types.*:yt._maintenance.deprecation.VisibleDeprecationWarning"
+        ),
+        # >>> warnings emitted by testing frameworks, or in testing contexts
+        # we still have some yield-based tests, awaiting for transition into pytest
+        "ignore::pytest.PytestCollectionWarning",
+        # imp is used in nosetest
+        "ignore:the imp module is deprecated in favour of importlib; see the module's documentation for alternative uses:DeprecationWarning",
+        # the deprecation warning message for imp changed in Python 3.10, so we ignore both versions
+        "ignore:the imp module is deprecated in favour of importlib and slated for removal in Python 3.12; see the module's documentation for alternative uses:DeprecationWarning",
+        # matplotlib warnings related to the Agg backend which is used in CI, not much we can do about it
+        "ignore:Matplotlib is currently using agg, which is a non-GUI backend, so cannot show the figure.:UserWarning",
+        "ignore:tight_layout . falling back to Agg renderer:UserWarning",
+        #
+        # >>> warnings from wrong values passed to numpy
+        # these should normally be curated out of the test suite but they are too numerous
+        # to deal with in a reasonable time at the moment.
+        "ignore:invalid value encountered in log10:RuntimeWarning",
+        "ignore:divide by zero encountered in log10:RuntimeWarning",
+        "ignore:invalid value encountered in true_divide:RuntimeWarning",
+        #
+        # >>> there are many places in yt (most notably at the frontend level)
+        # where we open files but never explicitly close them
+        # Although this is in general bad practice, it can be intentional and
+        # justified in contexts where reading speeds should be optimized.
+        # It is not clear at the time of writing how to approach this,
+        # so I'm going to ignore this class of warnings altogether for now.
+        "ignore:unclosed file.*:ResourceWarning",
+    ):
+        config.addinivalue_line("filterwarnings", value)
+
+    if MPL_VERSION < Version("3.0.0"):
+        config.addinivalue_line(
+            "filterwarnings",
+            (
+                "ignore:Using or importing the ABCs from 'collections' instead of from 'collections.abc' "
+                "is deprecated since Python 3.3,and in 3.9 it will stop working:DeprecationWarning"
+            ),
+        )
+
+    if find_spec("astropy") is not None:
+        # at the time of writing, astropy's wheels are behind numpy's latest
+        # version but this doesn't cause actual problems in our test suite
+        # last updated with astropy 5.0 + numpy 1.22 + pytest 6.2.5
+        config.addinivalue_line(
+            "filterwarnings",
+            (
+                "ignore:numpy.ndarray size changed, may indicate binary incompatibility. Expected "
+                r"(80 from C header, got 88|88 from C header, got 96|80 from C header, got 96)"
+                " from PyObject:RuntimeWarning"
+            ),
+        )
+
+    if find_spec("cartopy") is not None:
+        # This can be removed when cartopy 0.21 is released
+        # see https://github.com/SciTools/cartopy/pull/1957
+        config.addinivalue_line(
+            "filterwarnings",
+            (
+                r"ignore:The default value for the \*approx\* keyword argument to "
+                r"\w+ will change from True to False after 0\.18\.:UserWarning"
+            ),
+        )
+        # this one could be resolved by upgrading PROJ on Jenkins,
+        # but there's isn't much else that can be done about it.
+        config.addinivalue_line(
+            "filterwarnings",
+            (
+                "ignore:The Stereographic projection in Proj older than 5.0.0 incorrectly "
+                "transforms points when central_latitude=0. Use this projection with caution.:UserWarning"
+            ),
+        )
+
+    if find_spec("xarray") is not None:
+        # this can be removed when upstream issue is closed and a fix published
+        # https://github.com/pydata/xarray/issues/6092
+        config.addinivalue_line(
+            "filterwarnings",
+            (
+                "ignore:distutils Version classes are deprecated. "
+                "Use packaging.version instead.:DeprecationWarning"
+            ),
+        )
 
 
 def pytest_collection_modifyitems(config, items):

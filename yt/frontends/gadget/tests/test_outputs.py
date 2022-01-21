@@ -17,12 +17,7 @@ LE_SnapFormat2 = "Gadget3-snap-format2/Gadget3-snap-format2"
 keplerian_ring = "KeplerianRing/keplerian_ring_0020.hdf5"
 snap_33 = "snapshot_033/snap_033.0.hdf5"
 snap_33_dir = "snapshot_033/"
-
-# py2/py3 compat
-try:
-    FileNotFoundError
-except NameError:
-    FileNotFoundError = IOError
+magneticum = "MagneticumCluster/snap_132"
 
 # This maps from field names to weight field names to use for projections
 iso_fields = OrderedDict(
@@ -94,7 +89,7 @@ def test_pid_uniqueness():
     """
     ds = data_dir_load(LE_SnapFormat2)
     ad = ds.all_data()
-    pid = ad["ParticleIDs"]
+    pid = ad[("all", "ParticleIDs")]
     assert len(pid) == len(set(pid.v))
 
 
@@ -124,3 +119,29 @@ def test_bigendian_field_access():
     ds = data_dir_load(BE_Gadget)
     data = ds.all_data()
     data["Halo", "Velocities"]
+
+
+mag_fields = OrderedDict(
+    [
+        (("gas", "density"), None),
+        (("gas", "temperature"), None),
+        (("gas", "temperature"), ("gas", "density")),
+        (("gas", "velocity_magnitude"), None),
+        (("gas", "H_fraction"), None),
+        (("gas", "C_fraction"), None),
+    ]
+)
+
+
+mag_kwargs = dict(
+    long_ids=True,
+    field_spec="magneticum_box2_hr",
+)
+
+
+@requires_ds(magneticum)
+def test_magneticum():
+    ds = data_dir_load(magneticum, kwargs=mag_kwargs)
+    for test in sph_answer(ds, "snap_132", 3718111, mag_fields, center="max"):
+        test_magneticum.__name__ = test.description
+        yield test

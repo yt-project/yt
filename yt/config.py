@@ -4,7 +4,6 @@ import warnings
 import toml
 from more_itertools import always_iterable
 
-from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.utilities.configuration_tree import ConfigLeaf, ConfigNode
 
 ytcfg_defaults = {}
@@ -31,9 +30,6 @@ ytcfg_defaults["yt"] = dict(
     test_storage_dir="/does/not/exist",
     test_data_dir="/does/not/exist",
     enzo_db="",
-    hub_url="https://girder.hub.yt/api/v1",
-    hub_api_key="",
-    hub_sandbox="/collection/yt_sandbox/data",
     notebook_password="",
     answer_testing_tolerance=3,
     answer_testing_bitwise=False,
@@ -42,7 +38,7 @@ ytcfg_defaults["yt"] = dict(
     answer_tests_url="http://answers.yt-project.org/{1}_{2}",
     sketchfab_api_key="None",
     imagebin_api_key="e1977d9195fe39e",
-    imagebin_upload_url="https://api.imgur.com/3/upload",
+    imagebin_upload_url="https://api.imgur.com/3/image",
     imagebin_delete_url="https://api.imgur.com/3/image/{delete_hash}",
     curldrop_upload_url="http://use.yt/upload",
     thread_field_detection=False,
@@ -50,7 +46,7 @@ ytcfg_defaults["yt"] = dict(
     chunk_size=1000,
     xray_data_dir="/does/not/exist",
     supp_data_dir="/does/not/exist",
-    default_colormap="arbre",
+    default_colormap="cmyt.arbre",
     ray_tracing_engine="embree",
     internals=dict(
         within_testing=False,
@@ -80,17 +76,8 @@ def config_dir():
     return conf_dir
 
 
-def old_config_file():
-    return os.path.join(config_dir(), "ytrc")
-
-
-def old_config_dir():
-    return os.path.join(os.path.expanduser("~"), ".yt")
-
-
 # For backward compatibility, do not use these vars internally in yt
 CONFIG_DIR = config_dir()
-_OLD_CONFIG_FILE = old_config_file()
 
 
 class YTConfig:
@@ -202,28 +189,8 @@ class YTConfig:
 _global_config_file = YTConfig.get_global_config_file()
 _local_config_file = YTConfig.get_local_config_file()
 
-if os.path.exists(old_config_file()):
-    if os.path.exists(_global_config_file):
-        issue_deprecation_warning(
-            f"The configuration file {old_config_file()} is deprecated in "
-            f"favor of {_global_config_file}. Currently, both are present. "
-            "Please manually remove the deprecated one to silence "
-            "this warning.",
-            since="4.0.0",
-            removal="4.1.0",
-        )
-    else:
-        issue_deprecation_warning(
-            f"The configuration file {_OLD_CONFIG_FILE} is deprecated. "
-            f"Please migrate your config to {_global_config_file} by running: "
-            "'yt config migrate'",
-            since="4.0.0",
-            removal="4.1.0",
-        )
-
-
 if not os.path.exists(_global_config_file):
-    cfg = {"yt": {}}
+    cfg = {"yt": {}}  # type: ignore
     try:
         with open(_global_config_file, mode="w") as fd:
             toml.dump(cfg, fd)

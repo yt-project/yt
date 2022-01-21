@@ -39,7 +39,7 @@ class GizmoDataset(GadgetHDF5Dataset):
                 vg in fh["/"] for vg in veto_groups
             )
             dmetal = "/PartType0/Metallicity"
-            if dmetal not in fh or fh[dmetal].shape[1] not in (11, 17):
+            if dmetal not in fh or fh[dmetal].shape[1] < 11:
                 valid = False
             fh.close()
         except Exception:
@@ -49,4 +49,3 @@ class GizmoDataset(GadgetHDF5Dataset):
 
     def _set_code_unit_attributes(self):
         super()._set_code_unit_attributes()
-        self.magnetic_unit = self.quan(1.0, "gauss")

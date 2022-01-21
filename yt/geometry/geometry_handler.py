@@ -1,11 +1,12 @@
 import abc
 import os
 import weakref
+from typing import Tuple
 
 import numpy as np
 
 from yt.config import ytcfg
-from yt.units.yt_array import YTArray, uconcatenate
+from yt.units.yt_array import YTArray, uconcatenate  # type: ignore
 from yt.utilities.exceptions import YTFieldNotFound
 from yt.utilities.io_handler import io_registry
 from yt.utilities.logger import ytLogger as mylog
@@ -19,8 +20,8 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import (
 class Index(ParallelAnalysisInterface, abc.ABC):
     """The base index class"""
 
-    _unsupported_objects = ()
-    _index_properties = ()
+    _unsupported_objects: Tuple[str, ...] = ()
+    _index_properties: Tuple[str, ...] = ()
 
     def __init__(self, ds, dataset_type):
         ParallelAnalysisInterface.__init__(self)
@@ -244,6 +245,8 @@ class Index(ParallelAnalysisInterface, abc.ABC):
 
 
 def cached_property(func):
+    # TODO: remove this once minimal supported version of Python reaches 3.8
+    # and replace with functools.cached
     n = f"_{func.__name__}"
 
     def cached_func(self):
