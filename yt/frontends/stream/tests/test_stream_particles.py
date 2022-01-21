@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 import yt.utilities.initial_conditions as ic
 from yt.loaders import load_amr_grids, load_particles, load_uniform_grid
@@ -285,7 +286,7 @@ def test_stream_sph_projection():
     assert image.shape == (256, 256)
 
 
-@pytest.mark.parametrize("loader", (load_uniform_grid, load_amr_grid))
+@pytest.mark.parametrize("loader", (load_uniform_grid, load_amr_grids))
 def test_stream_non_cartesian_particles(loader):
     eps = 1e-6
     r, theta, phi = np.mgrid[
@@ -313,9 +314,9 @@ def test_stream_non_cartesian_particles(loader):
     )
 
     dd = ds.all_data()
-    assert_equal(dd["particle_position_r"].v, particle_position_r)
-    assert_equal(dd["particle_position_phi"].v, particle_position_phi)
-    assert_equal(dd["particle_position_theta"].v, particle_position_theta)
+    assert_equal(dd["all", "particle_position_r"].v, particle_position_r)
+    assert_equal(dd["all", "particle_position_phi"].v, particle_position_phi)
+    assert_equal(dd["all", "particle_position_theta"].v, particle_position_theta)
 
 
 def test_stream_non_cartesian_particles_amr():
@@ -351,6 +352,6 @@ def test_stream_non_cartesian_particles_amr():
     )
 
     dd = ds.all_data()
-    assert_equal(dd["particle_position_r"].v, particle_position_r)
-    assert_equal(dd["particle_position_phi"].v, particle_position_phi)
-    assert_equal(dd["particle_position_theta"].v, particle_position_theta)
+    assert_equal(dd["all", "particle_position_r"].v, particle_position_r)
+    assert_equal(dd["all", "particle_position_phi"].v, particle_position_phi)
+    assert_equal(dd["all", "particle_position_theta"].v, particle_position_theta)
