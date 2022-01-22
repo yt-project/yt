@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from functools import wraps
 
 import numpy as np
@@ -14,7 +15,7 @@ def apply_filter(f):
     return newfunc
 
 
-class FixedResolutionBufferFilter:
+class FixedResolutionBufferFilter(ABC):
 
     """
     This object allows to apply data transformation directly to
@@ -25,9 +26,12 @@ class FixedResolutionBufferFilter:
         super().__init_subclass__(*args, **kwargs)
         filter_registry[cls.__name__] = cls
 
+    @abstractmethod
     def __init__(self, *args, **kwargs):
+        """This method is required in subclasses, but the signature is arbitrary"""
         pass
 
+    @abstractmethod
     def apply(self, buff):
         pass
 
