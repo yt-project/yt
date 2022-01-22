@@ -503,10 +503,7 @@ class FixedResolutionBuffer:
         return rv
 
     def setup_filters(self):
-        ignored = ["FixedResolutionBufferFilter"]
         for key in filter_registry:
-            if key in ignored:
-                continue
             filtername = filter_registry[key]._filter_name
 
             # We need to wrap to create a closure so that
