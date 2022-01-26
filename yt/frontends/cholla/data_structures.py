@@ -109,6 +109,8 @@ class ChollaDataset(Dataset):
             self.domain_dimensions = attrs["dims"][:].astype("=f8")
             self.current_time = attrs["t"][:]
             self._periodicity = tuple(attrs.get("periodicity", (False, False, False)))
+            self.gamma = attrs.get("gamma", 5.0 / 3.0)
+            self.mu = attrs.get("mu", 1.0)
             self.refine_by = 1
 
         # CHOLLA cannot yet be run as a cosmological simulation
