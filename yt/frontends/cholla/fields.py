@@ -60,17 +60,6 @@ class ChollaFieldInfo(FieldInfoContainer):
                 units=unit_system["velocity"],
             )
 
-        def kinetic_energy_density(data):
-            return (
-                0.5
-                * data["cholla", "density"]
-                * (
-                    data["gas", "velocity_x"] * data["gas", "velocity_x"]
-                    + data["gas", "velocity_y"] * data["gas", "velocity_y"]
-                    + data["gas", "velocity_z"] * data["gas", "velocity_z"]
-                )
-            )
-
         # Add pressure field
         if ("cholla", "GasEnergy") in self.field_list:
             self.add_output_field(
@@ -89,7 +78,7 @@ class ChollaFieldInfo(FieldInfoContainer):
 
             def _pressure(field, data):
                 return (data.ds.gamma - 1.0) * (
-                    data["cholla", "Energy"] - kinetic_energy_density(data)
+                    data["cholla", "Energy"] - data["gas", "kinetic_energy_density"]
                 )
 
         self.add_field(
