@@ -24,16 +24,19 @@ class ChollaIOHandler(BaseIOHandler):
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         data = {}
-        offset = 0
+        for field in fields:
+            data[field] = np.empty(size, dtype="float64")
 
         with h5py.File(self.ds.parameter_filename, "r") as fh:
-            for field in fields:
-                ftype, fname = field
-                data[ftype, fname] = np.empty(size, dtype="float64")
-                for chunk in chunks:
-                    for grid in chunk.objs:
+            ind = 0
+            for chunk in chunks:
+                for grid in chunk.objs:
+                    nd = 0
+                    for field in fields:
+                        ftype, fname = field
                         values = fh[fname][:].astype("=f8")
-                        offset += grid.select(selector, values, data[field], offset)
+                        nd = grid.select(selector, values, data[field], ind)
+                    ind += nd
         return data
 
     def _read_chunk_data(self, chunk, fields):
