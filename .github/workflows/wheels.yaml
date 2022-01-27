@@ -27,6 +27,8 @@ jobs:
 
       - name: Build wheels for CPython
         uses: pypa/cibuildwheel@v2.3.0
+        with:
+          output-dir: dist
         env:
           CIBW_BUILD: "cp37-* cp38-* cp39-* cp310-*"
           CIBW_SKIP: "*-musllinux_*"  #  numpy doesn't have wheels for musllinux so we can't build some quickly and without bloating
@@ -40,4 +42,39 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           name: wheels
-          path: ./wheelhouse/*.whl
+          path: ./dist/*.whl
+
+  build_sdist:
+    name: Build source distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Build sdist
+        run: pipx run build --sdist
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: tarball
+          path: dist/*.tar.gz
+
+  upload_pypi:
+    needs: [build_wheels, build_sdist]
+    runs-on: ubuntu-latest
+    # upload to PyPI on every tag starting with 'yt-'
+    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/yt-')
+    steps:
+      - uses: actions/download-artifact@v2
+        with:
+          name: tarball
+          path: dist
+
+      - uses: actions/download-artifact@v2
+        with:
+          name: wheels
+          path: dist
+
+      - uses: pypa/gh-action-pypi-publish@v1.4.2
+        with:
+          user: __token__
+          password: ${{ secrets.pypi_token }}
