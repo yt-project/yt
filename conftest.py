@@ -166,6 +166,16 @@ def pytest_configure(config):
             ),
         )
 
+    if find_spec("glue"):
+        config.addinivalue_line(
+            "filterwarnings",
+            (
+                r"ignore:Error loading config file .*"
+                r"the load_module\(\) method is deprecated and slated for removal in Python 3\.12; "
+                r"use exec_module\(\) instead:DeprecationWarning"
+            ),
+        )
+
 
 def pytest_collection_modifyitems(config, items):
     r"""
