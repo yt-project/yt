@@ -376,7 +376,7 @@ class Dataset(abc.ABC):
                 self._checksum = "nohashlib"
                 return self._checksum
 
-            def generate_file_md5(m, filename, blocksize=2 ** 20):
+            def generate_file_md5(m, filename, blocksize=2**20):
                 with open(filename, "rb") as f:
                     while True:
                         buf = f.read(blocksize)
@@ -1137,7 +1137,7 @@ class Dataset(abc.ABC):
                 # The following modification ensures that we get the conversion to
                 # cgs correct
                 self.unit_registry.modify(
-                    "code_magnetic", self.magnetic_unit.value * 0.1 ** 0.5
+                    "code_magnetic", self.magnetic_unit.value * 0.1**0.5
                 )
 
         us = create_code_unit_system(
@@ -1177,7 +1177,7 @@ class Dataset(abc.ABC):
             self.unit_registry.add("code_magnetic", 1.0, dimensions.magnetic_field)
         else:
             self.unit_registry.add(
-                "code_magnetic", 0.1 ** 0.5, dimensions.magnetic_field_cgs
+                "code_magnetic", 0.1**0.5, dimensions.magnetic_field_cgs
             )
         self.unit_registry.add("code_temperature", 1.0, dimensions.temperature)
         self.unit_registry.add("code_pressure", 0.1, dimensions.pressure)
@@ -1277,9 +1277,9 @@ class Dataset(abc.ABC):
         )
         temperature_unit = getattr(self, "temperature_unit", 1.0)
         density_unit = getattr(
-            self, "density_unit", self.mass_unit / self.length_unit ** 3
+            self, "density_unit", self.mass_unit / self.length_unit**3
         )
-        specific_energy_unit = getattr(self, "specific_energy_unit", vel_unit ** 2)
+        specific_energy_unit = getattr(self, "specific_energy_unit", vel_unit**2)
         self.unit_registry.modify("code_velocity", vel_unit)
         self.unit_registry.modify("code_temperature", temperature_unit)
         self.unit_registry.modify("code_pressure", pressure_unit)

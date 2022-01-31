@@ -167,9 +167,9 @@ class TransferFunction:
         nu = nu[::-1]
 
         for i, logT in enumerate(self.x):
-            T = 10 ** logT
+            T = 10**logT
             # Black body at this nu, T
-            Bnu = ((2.0 * hcgs * nu ** 3) / clight ** 2.0) / (
+            Bnu = ((2.0 * hcgs * nu**3) / clight**2.0) / (
                 np.exp(hcgs * nu / (kboltz * T)) - 1.0
             )
             # transmission
@@ -659,13 +659,13 @@ class ColorTransferFunction(MultiVariateTransferFunction):
                 + self.alpha.x[0]
             )
             if log_scale:
-                val = 10 ** val
+                val = 10**val
             if label_fmt is None:
                 if abs(val) < 1.0e-3 or abs(val) > 1.0e4:
                     if not val == 0.0:
                         e = np.floor(np.log10(abs(val)))
                         return r"${:.2f}\times 10^{{ {:d} }}$".format(
-                            val / 10.0 ** e, int(e)
+                            val / 10.0**e, int(e)
                         )
                     else:
                         return r"$0$"

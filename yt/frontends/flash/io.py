@@ -164,7 +164,7 @@ class IOHandlerFLASHParticle(BaseIOHandler):
 
     @property
     def chunksize(self):
-        return 32 ** 3
+        return 32**3
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         raise NotImplementedError

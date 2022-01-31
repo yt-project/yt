@@ -720,7 +720,7 @@ class StreamOctreeSubset(OctreeSubset):
         oct_handler = self.oct_handler
         ndim = self.ds.dimensionality
         cell_count = (
-            selector.count_octs(self.oct_handler, self.domain_id) * self.nz ** ndim
+            selector.count_octs(self.oct_handler, self.domain_id) * self.nz**ndim
         )
 
         gz_cache = getattr(self, "_ghost_zone_cache", None)

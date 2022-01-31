@@ -77,7 +77,7 @@ def test_non_cosmo_dataset():
 @requires_ds(isothermal_h5)
 def test_iso_collapse():
     ds = data_dir_load(isothermal_h5, kwargs=iso_kwargs)
-    for test in sph_answer(ds, "snap_505", 2 ** 17, iso_fields):
+    for test in sph_answer(ds, "snap_505", 2**17, iso_fields):
         test_iso_collapse.__name__ = test.description
         yield test
 

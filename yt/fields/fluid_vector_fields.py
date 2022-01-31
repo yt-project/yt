@@ -240,7 +240,7 @@ def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
         domegax_dt = data[ftype, "vorticity_x"] / data[ftype, "vorticity_growth_x"]
         domegay_dt = data[ftype, "vorticity_y"] / data[ftype, "vorticity_growth_y"]
         domegaz_dt = data[ftype, "vorticity_z"] / data[ftype, "vorticity_growth_z"]
-        return np.sqrt(domegax_dt ** 2 + domegay_dt ** 2 + domegaz_dt ** 2)
+        return np.sqrt(domegax_dt**2 + domegay_dt**2 + domegaz_dt**2)
 
     registry.add_field(
         (ftype, "vorticity_growth_timescale"),
@@ -390,7 +390,7 @@ def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
             data[ftype, "vorticity_z"]
             / data[ftype, "vorticity_radiation_pressure_growth_z"]
         )
-        return np.sqrt(domegax_dt ** 2 + domegay_dt ** 2 + domegaz_dt ** 2)
+        return np.sqrt(domegax_dt**2 + domegay_dt**2 + domegaz_dt**2)
 
     registry.add_field(
         (ftype, "vorticity_radiation_pressure_growth_timescale"),

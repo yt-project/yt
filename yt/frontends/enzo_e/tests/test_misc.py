@@ -90,7 +90,7 @@ def test_get_block_info():
 def test_root_blocks():
     rs = np.random.RandomState(45652)
     for i in range(6):
-        max_n = 2 ** i
+        max_n = 2**i
         n1, l1, b1 = get_random_block_string(max_n=max_n, random_state=rs, level=0)
         n2, l2, b2 = get_random_block_string(max_n=32, random_state=rs, level=0)
         block = f"{b1}:{b2[1:]}"
@@ -105,7 +105,7 @@ def test_is_parent():
     rs = np.random.RandomState(45652)
     for dim in [1, 2, 3]:
         for i in range(6):
-            max_n = 2 ** i
+            max_n = 2**i
 
             descriptors = []
             for _ in range(dim):

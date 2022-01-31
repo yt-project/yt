@@ -6,7 +6,7 @@ import yt
 ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
 level = 2
-dims = ds.domain_dimensions * ds.refine_by ** level
+dims = ds.domain_dimensions * ds.refine_by**level
 
 # We construct an object that describes the data region and structure we want
 # In this case, we want all data up to the maximum "level" of refinement
