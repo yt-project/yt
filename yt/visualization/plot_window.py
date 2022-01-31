@@ -10,6 +10,7 @@ import numpy as np
 from more_itertools import always_iterable
 from mpl_toolkits.axes_grid1 import ImageGrid
 from packaging.version import Version
+from pyparsing import ParseFatalException
 from unyt.exceptions import UnitConversionError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
@@ -31,6 +32,7 @@ from yt.utilities.exceptions import (
 from yt.utilities.math_utils import ortho_find
 from yt.utilities.orientation import Orientation
 
+from ._commons import MPL_VERSION
 from .base_plot_types import CallbackWrapper, ImagePlotMPL
 from .fixed_resolution import (
     FixedResolutionBuffer,
@@ -64,16 +66,6 @@ else:
         # drop this conditional and call the builtin zip
         # function directly where due
         return zip(*args, strict=True)
-
-
-MPL_VERSION = Version(matplotlib.__version__)
-
-# Some magic for dealing with pyparsing being included or not
-# included in matplotlib (not in gentoo, yes in everything else)
-try:
-    from matplotlib.pyparsing_py3 import ParseFatalException
-except ImportError:
-    from pyparsing import ParseFatalException
 
 
 def get_window_parameters(axis, center, width, ds):
@@ -1210,7 +1202,7 @@ class PWViewerMPL(PlotWindow):
             try:
                 parser.parse(colorbar_label)
             except ParseFatalException as err:
-                raise YTCannotParseUnitDisplayName(f, colorbar_label, str(err))
+                raise YTCannotParseUnitDisplayName(f, colorbar_label, str(err)) from err
 
             self.plots[f].cb.set_label(colorbar_label)
 
