@@ -83,15 +83,20 @@ class ChollaDataset(Dataset):
 
     def _set_code_unit_attributes(self):
         # This is where quantities are created that represent the various
-        # on-disk units.  These are the currently available quantities which
-        # should be set, along with examples of how to set them to standard
-        # values.
+        # on-disk units.  These are the defaults, but if they are listed
+        # in the HDF5 attributes for a file, which is loaded first, then those are
+        # used instead.
         #
-        self.length_unit = self.quan(1.0, "pc")
-        self.mass_unit = self.quan(1.0, "Msun")
-        self.time_unit = self.quan(1000, "yr")
-        self.velocity_unit = self.quan(1.0, "cm/s")
-        self.magnetic_unit = self.quan(1.0, "gauss")
+        if not self.length_unit:
+            self.length_unit = self.quan(1.0, "pc")
+        if not self.mass_unit:
+            self.mass_unit = self.quan(1.0, "Msun")
+        if not self.time_unit:
+            self.time_unit = self.quan(1000, "yr")
+        if not self.velocity_unit:
+            self.velocity_unit = self.quan(1.0, "cm/s")
+        if not self.magnetic_unit:
+            self.magnetic_unit = self.quan(1.0, "gauss")
 
         # this minimalistic implementation fills the requirements for
         # this frontend to run, change it to make it run _correctly_ !
@@ -112,6 +117,28 @@ class ChollaDataset(Dataset):
             self.gamma = attrs.get("gamma", 5.0 / 3.0)
             self.mu = attrs.get("mu", 1.0)
             self.refine_by = 1
+
+            # If header specifies code units, default to those (in CGS)
+            length_unit = attrs.get("length_unit", None)
+            mass_unit = attrs.get("mass_unit", None)
+            time_unit = attrs.get("time_unit", None)
+            velocity_unit = attrs.get("velocity_unit", None)
+            magnetic_unit = attrs.get("magnetic_unit", None)
+            if length_unit:
+                self.length_unit = self.quan(length_unit[0], "cm")
+            if mass_unit:
+                self.mass_unit = self.quan(mass_unit[0], "g")
+            if time_unit:
+                self.time_unit = self.quan(time_unit[0], "s")
+            if velocity_unit:
+                self.velocity_unit = self.quan(velocity_unit[0], "cm/s")
+            if magnetic_unit:
+                self.magnetic_unit = self.quan(magnetic_unit[0], "gauss")
+
+            # this minimalistic implementation fills the requirements for
+            # this frontend to run, change it to make it run _correctly_ !
+            for key, unit in self.__class__.default_units.items():
+                setdefaultattr(self, key, self.quan(1, unit))
 
         # CHOLLA cannot yet be run as a cosmological simulation
         self.cosmological_simulation = 0
