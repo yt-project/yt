@@ -89,7 +89,17 @@ from yt.loaders import (
     load_uniform_grid,
     load_unstructured_mesh,
 )
-from yt.testing import run_nose
+
+
+def run_nose(*args, **kwargs):
+    # we hide this function behind a closure so we
+    # don't make pytest a hard dependency for end users
+    # see https://github.com/yt-project/yt/issues/3771
+    from yt.testing import run_nose
+
+    return run_nose(*args, **kwargs)
+
+
 from yt.units.unit_systems import UnitSystem, unit_system_registry  # type: ignore
 
 # Import some helpful math utilities
