@@ -291,8 +291,11 @@ class StreamDataset(Dataset):
             default_species_fields=default_species_fields,
         )
 
+    @property
+    def filename(self):
+        return self.stream_handler.name
+
     def _parse_parameter_file(self):
-        self.basename = self.stream_handler.name
         self.parameters["CurrentTimeIdentifier"] = time.time()
         self.unique_identifier = self.parameters["CurrentTimeIdentifier"]
         self.domain_left_edge = self.stream_handler.domain_left_edge.copy()

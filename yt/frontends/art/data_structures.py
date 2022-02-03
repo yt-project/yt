@@ -164,7 +164,6 @@ class ARTDataset(Dataset):
         self._file_particle_data = file_particle_data
         self._file_particle_stars = file_particle_stars
         self._find_files(filename)
-        self.parameter_filename = filename
         self.skip_particles = skip_particles
         self.skip_stars = skip_stars
         self.limit_level = limit_level
@@ -449,7 +448,6 @@ class DarkMatterARTDataset(ARTDataset):
         self._file_particle = filename
         self._file_particle_header = file_particle_header
         self._find_files(filename)
-        self.parameter_filename = filename
         self.skip_stars = skip_stars
         self.spread_age = spread_age
         Dataset.__init__(

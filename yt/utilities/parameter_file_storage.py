@@ -101,7 +101,7 @@ class ParameterFileStore:
         """This turns a dataset into a CSV entry."""
         return dict(
             bn=ds.basename,
-            fp=ds.fullpath,
+            fp=ds.directory,
             tt=ds.current_time,
             ctid=ds.unique_identifier,
             class_name=ds.__class__.__name__,
@@ -138,7 +138,7 @@ class ParameterFileStore:
             return
         ds_dict = self._records[hash]
         self._records[hash]["last_seen"] = ds._instantiated
-        if ds_dict["bn"] != ds.basename or ds_dict["fp"] != ds.fullpath:
+        if ds_dict["bn"] != ds.basename or ds_dict["fp"] != ds.directory:
             self.wipe_hash(hash)
             self.insert_ds(ds)
 

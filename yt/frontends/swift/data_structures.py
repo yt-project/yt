@@ -35,8 +35,6 @@ class SwiftDataset(SPHDataset):
         default_species_fields=None,
     ):
 
-        self.filename = filename
-
         super().__init__(
             filename,
             dataset_type,

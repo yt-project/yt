@@ -41,7 +41,9 @@ from yt.utilities.on_demand_imports import _pooch as pooch, _ratarmount as ratar
 # --- Loaders for known data formats ---
 
 
-def load(fn, *args, hint: Optional[str] = None, **kwargs):
+def load(
+    fn: Union[str, "os.PathLike[str]"], *args, hint: Optional[str] = None, **kwargs
+):
     """
     Load a Dataset or DatasetSeries object.
     The data format is automatically discovered, and the exact return type is the
@@ -51,7 +53,7 @@ def load(fn, *args, hint: Optional[str] = None, **kwargs):
 
     Parameters
     ----------
-    fn : str, os.Pathlike, or byte (types supported by os.path.expandusers)
+    fn : str, os.Pathlike[str]
         A path to the data location. This can be a file name, directory name, a glob
         pattern, or a url (for data types that support it).
 

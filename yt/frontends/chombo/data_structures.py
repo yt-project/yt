@@ -93,7 +93,7 @@ class ChomboHierarchy(GridIndex):
         self.dataset = weakref.proxy(ds)
         # for now, the index file is the dataset!
         self.index_filename = os.path.abspath(self.dataset.parameter_filename)
-        self.directory = ds.fullpath
+        self.directory = ds.directory
         self._handle = ds._handle
 
         self._levels = [key for key in self._handle.keys() if key.startswith("level")]

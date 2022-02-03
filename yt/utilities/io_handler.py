@@ -89,7 +89,7 @@ class BaseIOHandler:
         # check backup file first. if field not found,
         # call frontend-specific io method
         backup_filename = grid.ds.backup_filename
-        if not grid.ds.read_from_backup:
+        if not os.path.exists(backup_filename):
             return self._read_data(grid, field)
         elif self._field_in_backup(grid, backup_filename, field):
             fhandle = h5py.File(backup_filename, mode="r")
