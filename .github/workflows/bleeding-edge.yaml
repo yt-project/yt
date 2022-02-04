@@ -4,6 +4,7 @@ name: CI (bleeding edge)
 
 # goals: check stability against
 # - dev version of Python, numpy, and matplotlib
+# - pytest pre-releases
 # - building with future pip default options
 
 on:
@@ -42,6 +43,7 @@ jobs:
         python -m pip install git+https://github.com/numpy/numpy.git
         python -m pip install git+https://github.com/matplotlib/matplotlib.git
         python -m pip install cython
+        python -m pip install --upgrade --pre pytest
 
     - name: Build yt
       # --no-build-isolation is used to guarantee that build time dependencies
