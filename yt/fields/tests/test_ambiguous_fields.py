@@ -1,3 +1,4 @@
+import warnings
 from collections import defaultdict
 
 import pytest
@@ -32,13 +33,12 @@ def test_ambiguous_fails():
 
     # Test no warnings are issued for single fname access that aren't ambiguous
     for fname in unambiguous_fnames:
-        with pytest.warns(None) as record:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
             ds.r[fname]
-        assert len(record) == 0
 
     # Test no warning are issued for tuple access
     for ftype, fname in ds.field_list:
-        with pytest.warns(None) as record:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
             ds.r[(ftype, fname)]
-
-        assert len(record) == 0
