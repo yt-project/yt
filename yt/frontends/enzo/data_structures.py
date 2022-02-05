@@ -1004,11 +1004,6 @@ class EnzoDatasetInMemory(EnzoDataset):
     _index_class = EnzoHierarchyInMemory
     _dataset_type = "enzo_inline"
 
-    def __new__(cls, *args, **kwargs):
-        obj = object.__new__(cls)
-        obj.__init__(*args, **kwargs)
-        return obj
-
     def __init__(self, parameter_override=None, conversion_override=None):
         self.fluid_types += ("enzo",)
         if parameter_override is None:
