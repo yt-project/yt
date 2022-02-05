@@ -293,7 +293,8 @@ class FieldInfoContainer(dict):
         acceptable_samplings = ("cell", "particle", "local")
         if sampling_type not in acceptable_samplings:
             raise ValueError(
-                f'Invalid sampling type {sampling_type}. Valid sampling types are {", ".join(acceptable_samplings)}'
+                f"Received invalid sampling type {sampling_type!r}. "
+                f"Expected any of {acceptable_samplings}"
             )
         return sampling_type
 
