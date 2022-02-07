@@ -135,7 +135,7 @@ def amrspace(extent, levels=7, cells=8):
     dims_nonzero = ~dims_zero
     ndims_nonzero = dims_nonzero.sum()
 
-    npoints = (cells ** ndims_nonzero - 1) * maxlvl + 1
+    npoints = (cells**ndims_nonzero - 1) * maxlvl + 1
     left = np.empty((npoints, ndims), dtype="float64")
     right = np.empty((npoints, ndims), dtype="float64")
     level = np.empty(npoints, dtype="int32")
@@ -169,12 +169,12 @@ def amrspace(extent, levels=7, cells=8):
     level[0] = maxlvl
     left[0, :] = extent[::2]
     right[0, dims_zero] = extent[1::2][dims_zero]
-    right[0, dims_nonzero] = (dcell ** maxlvl) * dextent[dims_nonzero] + extent[::2][
+    right[0, dims_nonzero] = (dcell**maxlvl) * dextent[dims_nonzero] + extent[::2][
         dims_nonzero
     ]
     for i, lvl in enumerate(range(maxlvl, 0, -1)):
-        start = (cells ** ndims_nonzero - 1) * i + 1
-        stop = (cells ** ndims_nonzero - 1) * (i + 1) + 1
+        start = (cells**ndims_nonzero - 1) * i + 1
+        stop = (cells**ndims_nonzero - 1) * (i + 1) + 1
         dsize = dcell ** (lvl - 1) * dextent[dims_nonzero]
         level[start:stop] = lvl
         left[start:stop, dims_zero] = lng_zero
@@ -367,7 +367,7 @@ def fake_particle_ds(
     fields=None,
     units=None,
     negative=None,
-    npart=16 ** 3,
+    npart=16**3,
     length_unit=1.0,
     data=None,
 ):
@@ -422,7 +422,7 @@ def fake_tetrahedral_ds():
 
     # the distance from the origin
     node_data = {}
-    dist = np.sum(_coordinates ** 2, 1)
+    dist = np.sum(_coordinates**2, 1)
     node_data[("connect1", "test")] = dist[_connectivity]
 
     # each element gets a random number
@@ -445,7 +445,7 @@ def fake_hexahedral_ds(fields=None):
     prng = RandomState(0x4D3D3D3)
     # the distance from the origin
     node_data = {}
-    dist = np.sum(_coordinates ** 2, 1)
+    dist = np.sum(_coordinates**2, 1)
     node_data[("connect1", "test")] = dist[_connectivity - 1]
 
     for field in always_iterable(fields):
@@ -480,7 +480,7 @@ def small_fake_hexahedral_ds():
 
     # the distance from the origin
     node_data = {}
-    dist = np.sum(_coordinates ** 2, 1)
+    dist = np.sum(_coordinates**2, 1)
     node_data[("connect1", "test")] = dist[_connectivity - 1]
 
     ds = load_unstructured_mesh(_connectivity - 1, _coordinates, node_data=node_data)

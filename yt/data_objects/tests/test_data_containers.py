@@ -117,7 +117,7 @@ class TestDataContainers(unittest.TestCase):
         fields = ["density", "cell_mass"]
         units = ["g/cm**3", "g"]
         ds = fake_amr_ds(
-            fields=fields, units=units, geometry="cylindrical", particles=16 ** 3
+            fields=fields, units=units, geometry="cylindrical", particles=16**3
         )
         dd = ds.all_data()
         proj = ds.proj(
@@ -134,7 +134,7 @@ class TestDataContainers(unittest.TestCase):
         # Test isocontour properties for AMRGridData
         fields = ["density", "cell_mass"]
         units = ["g/cm**3", "g"]
-        ds = fake_amr_ds(fields=fields, units=units, particles=16 ** 3)
+        ds = fake_amr_ds(fields=fields, units=units, particles=16**3)
         dd = ds.all_data()
         q = dd.quantities["WeightedAverageQuantity"]
         rho = q(("gas", "density"), weight=("gas", "cell_mass"))

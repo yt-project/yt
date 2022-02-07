@@ -1127,7 +1127,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
         write_to_gdf(ds, gdf_path, **kwargs)
 
     def _get_grid_bounds_size(self):
-        dd = self.ds.domain_width / 2 ** self.level
+        dd = self.ds.domain_width / 2**self.level
         bounds = np.zeros(6, dtype="float64")
 
         bounds[0] = self.left_edge[0].in_base("code")
@@ -1136,7 +1136,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
         bounds[3] = bounds[2] + dd[1].d * self.ActiveDimensions[1]
         bounds[4] = self.left_edge[2].in_base("code")
         bounds[5] = bounds[4] + dd[2].d * self.ActiveDimensions[2]
-        size = np.ones(3, dtype="int64") * 2 ** self.level
+        size = np.ones(3, dtype="int64") * 2**self.level
 
         return bounds, size
 
@@ -1736,7 +1736,7 @@ class YTSurface(YTSelectionContainer3D):
             grid.dds,
         )
         # assumes all the fluxing fields have the same units
-        ret_units = field_x_vals.units * ff.units * grid.dds.units ** 2
+        ret_units = field_x_vals.units * ff.units * grid.dds.units**2
         ret = self.ds.arr(ret, ret_units)
         ret.convert_to_units(self.ds.unit_system[ret_units.dimensions])
         return ret

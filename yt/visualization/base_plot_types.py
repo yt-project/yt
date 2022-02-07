@@ -307,19 +307,16 @@ class ImagePlotMPL(PlotMPL):
                 else:
                     offset = 1
 
-                yticks = (
-                    list(
-                        -(
-                            10
-                            ** np.arange(
-                                np.floor(np.log10(-zmin)),
-                                np.rint(np.log10(cblinthresh)) - offset,
-                                -1,
-                            )
+                yticks = list(
+                    -(
+                        10
+                        ** np.arange(
+                            np.floor(np.log10(-zmin)),
+                            np.rint(np.log10(cblinthresh)) - offset,
+                            -1,
                         )
                     )
-                    + [zmax]
-                )
+                ) + [zmax]
             else:
                 yticks = (
                     list(

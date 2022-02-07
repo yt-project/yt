@@ -584,7 +584,7 @@ class QuiverCallback(PlotCallback):
             np.linspace(yy0, yy1, ny, endpoint=True),
         )
         if self.normalize:
-            nn = np.sqrt(pixX ** 2 + pixY ** 2)
+            nn = np.sqrt(pixX**2 + pixY**2)
             pixX /= nn
             pixY /= nn
         plot._axes.quiver(
@@ -1214,7 +1214,7 @@ class CuttingQuiverCallback(PlotCallback):
         )
 
         if self.normalize:
-            nn = np.sqrt(pixX ** 2 + pixY ** 2)
+            nn = np.sqrt(pixX**2 + pixY**2)
             pixX /= nn
             pixY /= nn
 

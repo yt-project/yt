@@ -68,7 +68,7 @@ class ExporterTests(TestCase):
         ds = fake_random_ds(
             16,
             nprocs=4,
-            particles=16 ** 3,
+            particles=16**3,
             fields=("density", "temperature"),
             units=("g/cm**3", "K"),
         )
@@ -129,7 +129,7 @@ class ExporterTests(TestCase):
 
 def test_correct_output_unit_fake_ds():
     # see issue #1368
-    ds = fake_random_ds(64, nprocs=4, particles=16 ** 3)
+    ds = fake_random_ds(64, nprocs=4, particles=16**3)
     x = y = z = 0.5
     sp1 = ds.sphere((x, y, z), (300, "kpc"))
     Nmax = sp1.max(("gas", "density"))
@@ -139,13 +139,13 @@ def test_correct_output_unit_fake_ds():
 
 def test_radius_surface():
     # see #1407
-    ds = fake_random_ds(64, nprocs=4, particles=16 ** 3, length_unit=10.0)
+    ds = fake_random_ds(64, nprocs=4, particles=16**3, length_unit=10.0)
     reg = ds.all_data()
     sp = ds.sphere(ds.domain_center, (0.5, "code_length"))
     for obj in [reg, sp]:
         for rad in [0.05, 0.1, 0.4]:
             surface = ds.surface(obj, ("index", "radius"), (rad, "code_length"))
-            assert_almost_equal(surface.surface_area.v, 4 * np.pi * rad ** 2, decimal=2)
+            assert_almost_equal(surface.surface_area.v, 4 * np.pi * rad**2, decimal=2)
             verts = surface.vertices
             for i in range(3):
                 assert_almost_equal(verts[i, :].min().v, 0.5 - rad, decimal=2)

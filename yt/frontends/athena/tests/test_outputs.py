@@ -62,7 +62,7 @@ def test_blast_override():
 uo_stripping = {
     "time_unit": 3.086e14,
     "length_unit": 8.0236e22,
-    "mass_unit": 9.999e-30 * 8.0236e22 ** 3,
+    "mass_unit": 9.999e-30 * 8.0236e22**3,
 }
 
 _fields_stripping = (

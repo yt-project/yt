@@ -252,7 +252,7 @@ class OpenPMDHierarchy(GridIndex):
         # Meshes of the same size do not need separate chunks
         for shape, *_ in set(self.meshshapes.values()):
             self.num_grids += min(
-                shape[0], int(np.ceil(reduce(mul, shape) * self.vpg ** -1))
+                shape[0], int(np.ceil(reduce(mul, shape) * self.vpg**-1))
             )
 
         # Same goes for particle chunks if they are not inside particlePatches
@@ -264,9 +264,9 @@ class OpenPMDHierarchy(GridIndex):
             else:
                 no_patches[k] = v
         for size in set(no_patches.values()):
-            self.num_grids += int(np.ceil(size * self.vpg ** -1))
+            self.num_grids += int(np.ceil(size * self.vpg**-1))
         for size in patches.values():
-            self.num_grids += int(np.ceil(size * self.vpg ** -1))
+            self.num_grids += int(np.ceil(size * self.vpg**-1))
 
     def _parse_index(self):
         """Fills each grid with appropriate properties (extent, dimensions, ...)
@@ -303,7 +303,7 @@ class OpenPMDHierarchy(GridIndex):
                 domain_dimension, np.ones(3 - len(domain_dimension))
             )
             # Number of grids of this shape
-            num_grids = min(shape[0], int(np.ceil(reduce(mul, shape) * self.vpg ** -1)))
+            num_grids = min(shape[0], int(np.ceil(reduce(mul, shape) * self.vpg**-1)))
             gle = offset * unit_si  # self.dataset.domain_left_edge
             gre = (
                 domain_dimension[: spacing.size] * unit_si * spacing + gle
@@ -354,7 +354,7 @@ class OpenPMDHierarchy(GridIndex):
                 domain_dimension = np.ones(3, dtype=np.int32)
                 for (ind, axis) in enumerate(list(patch["extent"].keys())):
                     domain_dimension[ind] = patch["extent/" + axis][()][int(spec[1])]
-                num_grids = int(np.ceil(count * self.vpg ** -1))
+                num_grids = int(np.ceil(count * self.vpg**-1))
                 gle = []
                 for axis in patch["offset"].keys():
                     gle.append(
@@ -377,7 +377,7 @@ class OpenPMDHierarchy(GridIndex):
                 particle_names = [str(spec[0])]
             elif str(species) not in handled_ptypes:
                 domain_dimension = self.dataset.domain_dimensions
-                num_grids = int(np.ceil(count * self.vpg ** -1))
+                num_grids = int(np.ceil(count * self.vpg**-1))
                 gle = self.dataset.domain_left_edge
                 gre = self.dataset.domain_right_edge
                 particle_count = np.linspace(0, count, num_grids + 1, dtype=np.int32)
@@ -444,7 +444,7 @@ class OpenPMDDataset(Dataset):
         **kwargs,
     ):
         self._handle = HDF5FileHandler(filename)
-        self.gridsize = kwargs.pop("open_pmd_virtual_gridsize", 10 ** 9)
+        self.gridsize = kwargs.pop("open_pmd_virtual_gridsize", 10**9)
         self.standard_version = Version(self._handle.attrs["openPMD"].decode())
         self.iteration = kwargs.pop("iteration", None)
         self._set_paths(self._handle, path.dirname(filename), self.iteration)
