@@ -525,7 +525,8 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
 
     cdef np.float64_t x, y, dx, dy, r0, theta0
     cdef np.float64_t rmax, x0, y0, x1, y1
-    cdef np.float64_t r_i, theta_i, dr_i, dtheta_i, dthetamin
+    cdef np.float64_t r_i, theta_i, dr_i, dtheta_i
+    cdef np.float64_t r_inc, theta_inc
     cdef np.float64_t costheta, sintheta
     cdef int i, pi, pj
 
@@ -558,9 +559,9 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
         rbounds[0] = 0.0
     if y0 < 0 and y1 > 0:
         rbounds[0] = 0.0
-    dthetamin = dx / rmax
-    for i in range(radius.shape[0]):
+    r_inc = 0.5 * fmin(dx, dy)
 
+    for i in range(radius.shape[0]):
         r0 = radius[i]
         theta0 = theta[i]
         dr_i = dradius[i]
@@ -569,15 +570,15 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
         if r0 + dr_i < rbounds[0] or r0 - dr_i > rbounds[1]:
             continue
         theta_i = theta0 - dtheta_i
-        # Buffer of 0.5 here
-        dthetamin = 0.5*dx/(r0 + dr_i)
+        theta_inc = r_inc / (r0 + dr_i)
+
         while theta_i < theta0 + dtheta_i:
             r_i = r0 - dr_i
             costheta = math.cos(theta_i)
             sintheta = math.sin(theta_i)
             while r_i < r0 + dr_i:
                 if rmax <= r_i:
-                    r_i += 0.5*dx
+                    r_i += r_inc
                     continue
                 y = r_i * costheta
                 x = r_i * sintheta
@@ -586,8 +587,8 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
                 if pi >= 0 and pi < buff.shape[0] and \
                    pj >= 0 and pj < buff.shape[1]:
                     buff[pi, pj] = field[i]
-                r_i += 0.5*dx
-            theta_i += dthetamin
+                r_i += r_inc
+            theta_i += theta_inc
 
 cdef int aitoff_Lambda_btheta_to_xy(np.float64_t Lambda, np.float64_t btheta,
                                np.float64_t *x, np.float64_t *y) except -1:
