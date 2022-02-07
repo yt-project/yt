@@ -72,7 +72,7 @@ import struct
 
 # If set to 1, ghost cells are added at the refined level regardless of if the
 # coarse cell containing it is refined in the selector.
-# If set to 0, ghost cells are only added at the refined level of the coarse
+# If set to 0, ghost cells are only added at the refined level if the coarse
 # index for the ghost cell is refined in the selector.
 DEF RefinedExternalGhosts = 1
 
@@ -874,7 +874,6 @@ cdef class ParticleBitmap:
                                            np.float64_t dds1[3], np.uint64_t xex, np.uint64_t yex, np.uint64_t zex,
                                            np.float64_t dds2[3], bool_array &refined_set) except -1:
         cdef int i
-        cdef np.uint64_t new_nsub = 0
         cdef np.uint64_t bounds_l[3], bounds_r[3]
         cdef np.uint64_t miex2, miex2_min, miex2_max
         cdef np.float64_t clip_pos_l[3]
@@ -883,6 +882,7 @@ cdef class ParticleBitmap:
         cdef np.uint64_t ex1[3]
         cdef np.uint64_t xiex_min, yiex_min, ziex_min
         cdef np.uint64_t xiex_max, yiex_max, ziex_max
+        cdef np.uint64_t old_nsub = refined_set.numberOfOnes()
         ex1[0] = xex
         ex1[1] = yex
         ex1[2] = zex
@@ -921,8 +921,7 @@ cdef class ParticleBitmap:
             if (miex2 & zex_max) < (ziex_min): continue
             if (miex2 & zex_max) > (ziex_max): continue
             refined_set.set(miex2)
-            new_nsub += 1
-        return refined_set.numberOfOnes()
+        return refined_set.numberOfOnes() - old_nsub
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
