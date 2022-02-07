@@ -40,9 +40,12 @@ class RAMSESFileSanitizer:
     info_fname = None  # Path | None: path to the info file
     group_name = None  # str | None: name of the first group folder (if any)
 
-    def __init__(self, filename):
+    def __init__(self, filename, preserve_symlinks=False):
+
+        filename = Path(filename)
         # Resolve so that it works with symlinks
-        filename = Path(filename).resolve()
+        if not preserve_symlinks:
+            filename = Path(filename).resolve()
 
         self.original_filename = filename
 
@@ -656,6 +659,7 @@ class RAMSESDataset(Dataset):
         max_level=None,
         max_level_convention=None,
         default_species_fields=None,
+        preserve_symlinks=False,
     ):
         # Here we want to initiate a traceback, if the reader is not built.
         if isinstance(fields, str):
@@ -672,6 +676,9 @@ class RAMSESDataset(Dataset):
         cosmological:
         If set to None, automatically detect cosmological simulation.
         If a boolean, force its value.
+
+        preserve_symlinks:
+        If set to True, does not resolve the symlinks in the filenames.
         """
 
         self._fields_in_file = fields
@@ -685,7 +692,7 @@ class RAMSESDataset(Dataset):
             max_level, max_level_convention
         )
 
-        file_handler = RAMSESFileSanitizer(filename)
+        file_handler = RAMSESFileSanitizer(filename, preserve_symlinks=preserve_symlinks)
 
         # This should not happen, but let's check nonetheless.
         if not file_handler.is_valid:
@@ -983,4 +990,5 @@ class RAMSESDataset(Dataset):
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
-        return RAMSESFileSanitizer(filename).is_valid
+        preserve_symlinks = kwargs.get("preserve_symlinks", False)
+        return RAMSESFileSanitizer(filename, preserve_symlinks).is_valid
