@@ -456,7 +456,7 @@ class TestPerFieldConfig(unittest.TestCase):
 
 def test_on_off_compare():
     # fake density field that varies in the x-direction only
-    den = np.arange(32 ** 3) / 32 ** 2 + 1
+    den = np.arange(32**3) / 32**2 + 1
     den = den.reshape(32, 32, 32)
     den = np.array(den, dtype=np.float64)
     data = dict(density=(den, "g/cm**3"))

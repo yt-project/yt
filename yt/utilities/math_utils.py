@@ -758,17 +758,17 @@ def ortho_find(vec1):
         x2 = 1.0
         y2 = 0.0
         z2 = -(x1 / z1)
-        norm2 = (1.0 + z2 ** 2.0) ** (0.5)
+        norm2 = (1.0 + z2**2.0) ** (0.5)
     elif y1 != 0:
         x2 = 0.0
         z2 = 1.0
         y2 = -(z1 / y1)
-        norm2 = (1.0 + y2 ** 2.0) ** (0.5)
+        norm2 = (1.0 + y2**2.0) ** (0.5)
     else:
         y2 = 1.0
         z2 = 0.0
         x2 = -(y1 / x1)
-        norm2 = (1.0 + z2 ** 2.0) ** (0.5)
+        norm2 = (1.0 + z2**2.0) ** (0.5)
     vec2 = np.array([x2, y2, z2])
     vec2 /= norm2
     vec3 = np.cross(vec1, vec2)
@@ -1187,19 +1187,19 @@ def get_rotation_matrix(theta, rot_vector):
     R = np.array(
         [
             [
-                cost + ux ** 2 * (1 - cost),
+                cost + ux**2 * (1 - cost),
                 ux * uy * (1 - cost) - uz * sint,
                 ux * uz * (1 - cost) + uy * sint,
             ],
             [
                 uy * ux * (1 - cost) + uz * sint,
-                cost + uy ** 2 * (1 - cost),
+                cost + uy**2 * (1 - cost),
                 uy * uz * (1 - cost) - ux * sint,
             ],
             [
                 uz * ux * (1 - cost) - uy * sint,
                 uz * uy * (1 - cost) + ux * sint,
-                cost + uz ** 2 * (1 - cost),
+                cost + uz**2 * (1 - cost),
             ],
         ]
     )
@@ -1240,17 +1240,17 @@ def quaternion_to_rotation_matrix(quaternion):
 
     R = np.empty((3, 3), dtype=np.float64)
 
-    R[0][0] = 1.0 - 2.0 * y ** 2 - 2.0 * z ** 2
+    R[0][0] = 1.0 - 2.0 * y**2 - 2.0 * z**2
     R[0][1] = 2.0 * x * y + 2.0 * w * z
     R[0][2] = 2.0 * x * z - 2.0 * w * y
 
     R[1][0] = 2.0 * x * y - 2.0 * w * z
-    R[1][1] = 1.0 - 2.0 * x ** 2 - 2.0 * z ** 2
+    R[1][1] = 1.0 - 2.0 * x**2 - 2.0 * z**2
     R[1][2] = 2.0 * y * z + 2.0 * w * x
 
     R[2][0] = 2.0 * x * z + 2.0 * w * y
     R[2][1] = 2.0 * y * z - 2.0 * w * x
-    R[2][2] = 1.0 - 2.0 * x ** 2 - 2.0 * y ** 2
+    R[2][2] = 1.0 - 2.0 * x**2 - 2.0 * y**2
 
     return R
 
@@ -1323,7 +1323,7 @@ def get_sph_r(coords):
     # The spherical coordinates radius is simply the magnitude of the
     # coordinate vector.
 
-    return np.sqrt(np.sum(coords ** 2, axis=0))
+    return np.sqrt(np.sum(coords**2, axis=0))
 
 
 def resize_vector(vector, vector_array):
@@ -1362,7 +1362,7 @@ def get_sph_theta(coords, normal):
     JdotCoords = np.sum(J * coords, axis=0)
 
     with np.errstate(invalid="ignore"):
-        ret = np.arccos(JdotCoords / np.sqrt(np.sum(coords ** 2, axis=0)))
+        ret = np.arccos(JdotCoords / np.sqrt(np.sum(coords**2, axis=0)))
 
     ret[np.isnan(ret)] = 0
 
@@ -1407,7 +1407,7 @@ def get_cyl_r(coords, normal):
     J = np.tile(res_normal, tile_shape)
 
     JcrossCoords = np.cross(J, coords, axisa=0, axisb=0, axisc=0)
-    return np.sqrt(np.sum(JcrossCoords ** 2, axis=0))
+    return np.sqrt(np.sum(JcrossCoords**2, axis=0))
 
 
 def get_cyl_z(coords, normal):

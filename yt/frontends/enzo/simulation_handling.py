@@ -719,7 +719,7 @@ class EnzoCosmology(Cosmology):
             (
                 1.5
                 * self.omega_matter
-                * self.hubble_constant ** 2
+                * self.hubble_constant**2
                 * (1 + self.initial_redshift) ** 3
             )
             ** -0.5
