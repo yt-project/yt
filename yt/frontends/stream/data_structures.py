@@ -274,7 +274,6 @@ class StreamDataset(Dataset):
         geometry="cartesian",
         unit_system="cgs",
         default_species_fields=None,
-        use_mks_em_units=False,
     ):
 
         self.fluid_types += ("stream",)
@@ -284,7 +283,7 @@ class StreamDataset(Dataset):
         name = f"InMemoryParameterFile_{uuid.uuid4().hex}"
         from yt.data_objects.static_output import _cached_datasets
 
-        self._use_mks_em_units = use_mks_em_units
+        self._use_mks_em_units = self._check_for_mks_em_units()
 
         _cached_datasets[name] = self
         Dataset.__init__(
@@ -294,6 +293,24 @@ class StreamDataset(Dataset):
             unit_system=unit_system,
             default_species_fields=default_species_fields,
         )
+
+    def _check_for_mks_em_units(self):
+        from yt.units.dimensions import current_mks
+
+        # We assume CGS EM units by default, unless
+        # magnetic_unit is explicitly defined within MKSA
+        magnetic_unit = self.stream_handler.code_units[-1]
+        if magnetic_unit == "code_magnetic":
+            return False
+        elif isinstance(magnetic_unit, str):
+            uq = YTQuantity(1.0, magnetic_unit)
+        elif isinstance(magnetic_unit, YTQuantity):
+            uq = magnetic_unit
+        elif isinstance(magnetic_unit, tuple):
+            uq = YTQuantity(magnetic_unit[0], magnetic_unit[1])
+        else:
+            return False
+        return current_mks in uq.units.dimensions.free_symbols
 
     def _parse_parameter_file(self):
         self.basename = self.stream_handler.name
@@ -454,7 +471,6 @@ class StreamParticlesDataset(StreamDataset):
         geometry="cartesian",
         unit_system="cgs",
         default_species_fields=None,
-        use_mks_em_units=False,
     ):
         super().__init__(
             stream_handler,
@@ -462,7 +478,6 @@ class StreamParticlesDataset(StreamDataset):
             geometry=geometry,
             unit_system=unit_system,
             default_species_fields=default_species_fields,
-            use_mks_em_units=use_mks_em_units,
         )
         fields = list(stream_handler.fields["stream_file"].keys())
         # This is the current method of detecting SPH data.

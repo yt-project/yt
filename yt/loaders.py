@@ -162,7 +162,6 @@ def load_uniform_grid(
     geometry="cartesian",
     unit_system="cgs",
     default_species_fields=None,
-    use_mks_em_units=False,
 ):
     r"""Load a uniform grid of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
@@ -337,7 +336,6 @@ def load_uniform_grid(
         geometry=geometry,
         unit_system=unit_system,
         default_species_fields=default_species_fields,
-        use_mks_em_units=use_mks_em_units,
     )
 
     # Now figure out where the particles go
@@ -363,7 +361,6 @@ def load_amr_grids(
     refine_by=2,
     unit_system="cgs",
     default_species_fields=None,
-    use_mks_em_units=False,
 ):
     r"""Load a set of grids of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
@@ -564,7 +561,6 @@ def load_amr_grids(
         geometry=geometry,
         unit_system=unit_system,
         default_species_fields=default_species_fields,
-        use_mks_em_units=use_mks_em_units,
     )
     return sds
 
@@ -583,7 +579,6 @@ def load_particles(
     unit_system="cgs",
     data_source=None,
     default_species_fields=None,
-    use_mks_em_units=False,
 ):
     r"""Load a set of particles into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamParticleHandler`.
@@ -740,7 +735,6 @@ def load_particles(
         geometry=geometry,
         unit_system=unit_system,
         default_species_fields=default_species_fields,
-        use_mks_em_units=use_mks_em_units,
     )
 
     return sds
@@ -760,7 +754,6 @@ def load_hexahedral_mesh(
     periodicity=(True, True, True),
     geometry="cartesian",
     unit_system="cgs",
-    use_mks_em_units=False,
 ):
     r"""Load a hexahedral mesh of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
@@ -887,7 +880,6 @@ def load_hexahedral_mesh(
         handler,
         geometry=geometry,
         unit_system=unit_system,
-        use_mks_em_units=use_mks_em_units,
     )
 
     return sds

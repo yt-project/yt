@@ -21,8 +21,8 @@ def test_magnetic_code_units():
     assert_allclose(mucu.value, 1.0)
     assert str(mucu.units) == "code_magnetic"
 
-    ds2 = load_uniform_grid(data, ddims, magnetic_unit=(1.0, "T"), unit_system="cgs")
-
+    ds2 = load_uniform_grid(data, ddims, magnetic_unit=(1.0, "T"),
+                            unit_system="cgs")
     assert_allclose(ds2.magnetic_unit.value, 10000.0)
     assert str(ds2.magnetic_unit.units) == "G"
 
@@ -30,7 +30,8 @@ def test_magnetic_code_units():
     assert_allclose(mucu.value, 1.0)
     assert str(mucu.units) == "code_magnetic"
 
-    ds3 = load_uniform_grid(data, ddims, magnetic_unit=(1.0, "T"), unit_system="mks")
+    ds3 = load_uniform_grid(data, ddims, magnetic_unit=(1.0, "T"),
+                            unit_system="mks")
 
     assert_allclose(ds3.magnetic_unit.value, 1.0)
     assert str(ds3.magnetic_unit.units) == "T"
