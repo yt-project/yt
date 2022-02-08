@@ -307,7 +307,7 @@ class ImagePlotMPL(PlotMPL):
                     10
                     ** np.arange(
                         np.rint(np.log10(cblinthresh)),
-                        np.ceil(np.log10(zmax)),
+                        np.ceil(np.log10(1.1 * zmax)),
                     )
                 )
             elif zmax <= 0.0:
@@ -343,10 +343,12 @@ class ImagePlotMPL(PlotMPL):
                         10
                         ** np.arange(
                             np.rint(np.log10(cblinthresh)),
-                            np.ceil(np.log10(zmax)),
+                            np.ceil(np.log10(1.1 * zmax)),
                         )
                     )
                 )
+            if yticks[-1] > zmax:
+                yticks.pop()
             self.cb.set_ticks(yticks)
         else:
             self.cb = self.figure.colorbar(self.image, self.cax)
