@@ -15,11 +15,6 @@ def velocity_field(comp):
     return _velocity
 
 
-# We need to specify which fields we might have in our dataset.  The field info
-# container subclass here will define which fields it knows about.  There are
-# optionally methods on it that get called which can be subclassed.
-
-
 class ChollaFieldInfo(FieldInfoContainer):
     known_other_fields = (
         # Each entry here is of the form
@@ -32,23 +27,14 @@ class ChollaFieldInfo(FieldInfoContainer):
         ("scalar0", (rho_units, [], None)),
     )
 
-    known_particle_fields = (
-        # Identical form to above
-        # ( "name", ("units", ["fields", "to", "alias"], # "display_name")),
-    )
+    known_particle_fields = ()
 
     def __init__(self, ds, field_list):
         super().__init__(ds, field_list)
-        # If you want, you can check self.field_list
 
     # In Cholla, conservative variables are written out.
-    # By default, yt concerns itself with primitive variables. The following
-    # field definitions allow for conversions to primitive variables.
 
     def setup_fluid_fields(self):
-        # Here we do anything that might need info about the dataset.
-        # You can use self.alias, self.add_output_field (for on-disk fields)
-        # and self.add_field (for derived fields).
 
         unit_system = self.ds.unit_system
 
@@ -118,6 +104,11 @@ class ChollaFieldInfo(FieldInfoContainer):
 
         # Add color field if present (scalar0 / density)
         if ("cholla", "scalar0") in self.field_list:
+            self.add_output_field(
+                ("cholla", "scalar0"),
+                sampling_type="cell",
+                units=rho_units,
+            )
 
             def _color(field, data):
                 return data["cholla", "scalar0"] / data["cholla", "density"]
