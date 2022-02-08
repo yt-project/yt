@@ -1140,17 +1140,23 @@ class Dataset(abc.ABC):
             mag_dims = self.magnetic_unit.units.dimensions.free_symbols
             if mks_system:
                 if current_mks not in mag_dims:
-                    self.magnetic_unit = self.magnetic_unit.to("gauss").to("T")
+                    self.magnetic_unit = self.quan(
+                        self.magnetic_unit.to_value("gauss") * 1.0e-4, "T"
+                    )
                     # The following modification ensures that we get the conversion to
                     # mks correct
-                    self.unit_registry.modify("code_magnetic", self.magnetic_unit.value)
+                    self.unit_registry.modify(
+                        "code_magnetic", self.magnetic_unit.value * 1.0e3 * 0.1**-0.5
+                    )
             else:
                 if current_mks in mag_dims:
-                    self.magnetic_unit = self.magnetic_unit.to("T").to("gauss")
+                    self.magnetic_unit = self.quan(
+                        self.magnetic_unit.to_value("T") * 1.0e4, "gauss"
+                    )
                     # The following modification ensures that we get the conversion to
                     # cgs correct
                     self.unit_registry.modify(
-                        "code_magnetic", self.magnetic_unit.value * 0.1 ** 0.5
+                        "code_magnetic", self.magnetic_unit.value * 1.0e-4
                     )
         # _use_mks_em_units tells us if the code unit system needs an MKS current
         current_mks_unit = "code_current" if mks_system else None
@@ -1319,6 +1325,17 @@ class Dataset(abc.ABC):
         self.unit_registry.modify("code_pressure", pressure_unit)
         self.unit_registry.modify("code_density", density_unit)
         self.unit_registry.modify("code_specific_energy", specific_energy_unit)
+        if hasattr(self, "current_unit"):
+            self.unit_registry.modify("code_current", self.current_unit)
+        if hasattr(self, "magnetic_unit"):
+            if self.magnetic_unit.units.dimensions == dimensions.magnetic_field_cgs:
+                # We have to cast this explicitly to MKS base units, otherwise
+                # unyt will convert it automatically to Tesla
+                self.unit_registry.modify(
+                    "code_magnetic", self.magnetic_unit.to("sqrt(kg)/(sqrt(m)*s)")
+                )
+            else:
+                self.unit_registry.modify("code_magnetic", self.magnetic_unit)
         # domain_width does not yet exist
         if self.domain_left_edge is not None and self.domain_right_edge is not None:
             DW = self.arr(self.domain_right_edge - self.domain_left_edge, "code_length")
