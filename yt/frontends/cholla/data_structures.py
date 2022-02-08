@@ -44,8 +44,6 @@ class ChollaHierarchy(GridIndex):
             self.field_list = [("cholla", k) for k in h5f.keys()]
 
     def _count_grids(self):
-        # This needs to set self.num_grids (int)
-        # Probably need to change this.
         self.num_grids = 1
 
     def _parse_index(self):
@@ -98,8 +96,6 @@ class ChollaDataset(Dataset):
         if not self.magnetic_unit:
             self.magnetic_unit = self.quan(1.0, "gauss")
 
-        # this minimalistic implementation fills the requirements for
-        # this frontend to run, change it to make it run _correctly_ !
         for key, unit in self.__class__.default_units.items():
             setdefaultattr(self, key, self.quan(1, unit))
 
@@ -154,11 +150,6 @@ class ChollaDataset(Dataset):
     def _is_valid(cls, filename, *args, **kwargs):
         # This accepts a filename or a set of arguments and returns True or
         # False depending on if the file is of the type requested.
-        #
-        # The functionality in this method should be unique enough that it can
-        # differentiate the frontend from others. Sometimes this means looking
-        # for specific fields or attributes in the dataset in addition to
-        # looking at the file name or extension.
         try:
             fileh = h5py.File(filename, mode="r")
         except (ImportError, OSError):
