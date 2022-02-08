@@ -544,7 +544,6 @@ class OpenPMDDataset(Dataset):
         setdefaultattr(self, "time_unit", self.quan(1.0, "s"))
         setdefaultattr(self, "velocity_unit", self.quan(1.0, "m/s"))
         setdefaultattr(self, "magnetic_unit", self.quan(1.0, "T"))
-        setdefaultattr(self, "current_unit", self.quan(1.0, "A"))
 
     def _parse_parameter_file(self):
         """Read in metadata describing the overall data on-disk."""

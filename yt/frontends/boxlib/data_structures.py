@@ -1548,7 +1548,6 @@ class WarpXDataset(BoxlibDataset):
         setdefaultattr(self, "time_unit", self.quan(1.0, "s"))
         setdefaultattr(self, "velocity_unit", self.quan(1.0, "m/s"))
         setdefaultattr(self, "magnetic_unit", self.quan(1.0, "T"))
-        setdefaultattr(self, "current_unit", self.quan(1.0, "A"))
 
 
 class AMReXHierarchy(BoxlibHierarchy):

@@ -1325,8 +1325,6 @@ class Dataset(abc.ABC):
         self.unit_registry.modify("code_pressure", pressure_unit)
         self.unit_registry.modify("code_density", density_unit)
         self.unit_registry.modify("code_specific_energy", specific_energy_unit)
-        if hasattr(self, "current_unit"):
-            self.unit_registry.modify("code_current", self.current_unit)
         if hasattr(self, "magnetic_unit"):
             if self.magnetic_unit.units.dimensions == dimensions.magnetic_field_cgs:
                 # We have to cast this explicitly to MKS base units, otherwise
