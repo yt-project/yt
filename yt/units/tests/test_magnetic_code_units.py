@@ -50,3 +50,25 @@ def test_magnetic_code_units():
     mucu = ds4.magnetic_unit.to("code_magnetic")
     assert_allclose(mucu.value, 1.0)
     assert str(mucu.units) == "code_magnetic"
+
+    ds5 = load_uniform_grid(
+        data, ddims, magnetic_unit=(1.0, "uG"), unit_system="mks"
+    )
+
+    assert_allclose(ds5.magnetic_unit.value, 1.0e-10)
+    assert str(ds5.magnetic_unit.units) == "T"
+
+    mucu = ds5.magnetic_unit.to("code_magnetic")
+    assert_allclose(mucu.value, 1.0)
+    assert str(mucu.units) == "code_magnetic"
+
+    ds6 = load_uniform_grid(
+        data, ddims, magnetic_unit=(1.0, "nT"), unit_system="cgs"
+    )
+
+    assert_allclose(ds6.magnetic_unit.value, 1.0e-5)
+    assert str(ds6.magnetic_unit.units) == "G"
+
+    mucu = ds6.magnetic_unit.to("code_magnetic")
+    assert_allclose(mucu.value, 1.0)
+    assert str(mucu.units) == "code_magnetic"

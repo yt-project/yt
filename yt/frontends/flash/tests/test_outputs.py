@@ -3,9 +3,11 @@ from collections import OrderedDict
 import numpy as np
 
 from yt.frontends.flash.api import FLASHDataset, FLASHParticleDataset
+from yt.loaders import load
 from yt.testing import (
     ParticleSelectionComparison,
     assert_equal,
+    disable_dataset_cache,
     requires_file,
     units_override_check,
 )
@@ -52,6 +54,23 @@ def test_FLASHDataset():
 @requires_file(sloshing)
 def test_units_override():
     units_override_check(sloshing)
+
+
+@disable_dataset_cache
+@requires_file(sloshing)
+def test_magnetic_units():
+    ds1 = load(sloshing)
+    assert ds1.magnetic_unit.value == np.sqrt(4.0 * np.pi)
+    assert str(ds1.magnetic_unit.units) == "G"
+    mag_unit1 = ds1.magnetic_unit.to("code_magnetic")
+    assert mag_unit1.value == 1.0
+    assert str(mag_unit1.units) == "code_magnetic"
+    ds2 = load(sloshing, unit_system="mks")
+    assert ds2.magnetic_unit.value == np.sqrt(4.0 * np.pi) * 1.0e-4
+    assert str(ds2.magnetic_unit.units) == "T"
+    mag_unit2 = ds2.magnetic_unit.to("code_magnetic")
+    assert mag_unit2.value == 1.0
+    assert str(mag_unit2.units) == "code_magnetic"
 
 
 @requires_file(sloshing)
