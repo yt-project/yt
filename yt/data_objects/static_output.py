@@ -1159,7 +1159,7 @@ class Dataset(abc.ABC):
                         "code_magnetic", self.magnetic_unit.value * 1.0e-4
                     )
         # _use_mks_em_units tells us if the code unit system needs an MKS current
-        current_mks_unit = "code_current" if mks_system else None
+        current_mks_unit = "A" if mks_system else None
         us = create_code_unit_system(
             self.unit_registry, current_mks_unit=current_mks_unit
         )
@@ -1206,8 +1206,6 @@ class Dataset(abc.ABC):
         if unit_system == "mks":
             # 1 T = 1 kg/(A*s**2)
             self.unit_registry.add("code_magnetic", 1.0, dimensions.magnetic_field)
-            # 1 A
-            self.unit_registry.add("code_current", 1.0, dimensions.current_mks)
         else:
             # 1 gauss = 1 sqrt(g)/(sqrt(cm)*s) = 0.1**0.5 sqrt(kg)/(sqrt(m)*s)
             self.unit_registry.add(
