@@ -315,7 +315,7 @@ def test_CastroDataset_2():
     assert isinstance(data_dir_load("castro_sod_x_plt00036"), CastroDataset)
 
 
-@requires_file(LyA)
+@requires_file(plasma)
 def test_WarpXDataset():
     assert isinstance(data_dir_load(plasma), WarpXDataset)
 
