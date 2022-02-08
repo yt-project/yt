@@ -205,6 +205,15 @@ class ImagePlotMPL(PlotMPL):
             vmin=float(self.zmin) if self.zmin is not None else None,
             vmax=float(self.zmax) if self.zmax is not None else None,
         )
+
+        if MPL_VERSION < Version("3.2"):
+            # with MPL 3.1 we use np.inf as a mask instead of np.nan
+            # this is done in CoordinateHandler.sanitize_buffer_fill_values
+            # however masking with inf is problematic here when we search for the max value
+            # so here we revert to nan
+            # see https://github.com/yt-project/yt/pull/2517 and https://github.com/yt-project/yt/pull/3793
+            data[~np.isfinite(data)] = np.nan
+
         zmin = float(self.zmin) if self.zmin is not None else np.nanmin(data)
         zmax = float(self.zmax) if self.zmax is not None else np.nanmax(data)
 
