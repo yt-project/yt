@@ -29,6 +29,7 @@ class ChollaFieldInfo(FieldInfoContainer):
         ("momentum_y", (mom_units, ["momentum_y"], None)),
         ("momentum_z", (mom_units, ["momentum_z"], None)),
         ("Energy", ("code_pressure", ["total_energy_density"], None)),
+        ("scalar0", (rho_units, [], None)),
     )
 
     known_particle_fields = (
@@ -114,6 +115,25 @@ class ChollaFieldInfo(FieldInfoContainer):
             function=_temperature,
             units=unit_system["temperature"],
         )
+
+        # Add color field if present (scalar0 / density)
+        if ("cholla", "scalar0") in self.field_list:
+
+            def _color(field, data):
+                return data["cholla", "scalar0"] / data["cholla", "density"]
+
+            self.add_field(
+                ("cholla", "color"),
+                sampling_type="cell",
+                function=_color,
+                units="",
+            )
+
+            self.alias(
+                ("gas", "color"),
+                ("cholla", "color"),
+                units="",
+            )
 
     def setup_particle_fields(self, ptype):
         super().setup_particle_fields(ptype)
