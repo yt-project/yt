@@ -8,7 +8,13 @@ from yt.frontends.boxlib.api import (
     OrionDataset,
     WarpXDataset,
 )
-from yt.testing import assert_equal, requires_file, units_override_check
+from yt.loaders import load
+from yt.testing import (
+    assert_equal,
+    disable_dataset_cache,
+    requires_file,
+    units_override_check,
+)
 from yt.utilities.answer_testing.framework import (
     GridValuesTest,
     data_dir_load,
@@ -318,6 +324,23 @@ def test_CastroDataset_2():
 @requires_file(plasma)
 def test_WarpXDataset():
     assert isinstance(data_dir_load(plasma), WarpXDataset)
+
+
+@disable_dataset_cache
+@requires_file(plasma)
+def test_magnetic_units():
+    ds1 = load(plasma)
+    assert ds1.magnetic_unit.value == 1.0
+    assert str(ds1.magnetic_unit.units) == "T"
+    mag_unit1 = ds1.magnetic_unit.to("code_magnetic")
+    assert mag_unit1.value == 1.0
+    assert str(mag_unit1.units) == "code_magnetic"
+    ds2 = load(plasma, unit_system="cgs")
+    assert ds2.magnetic_unit.value == 1.0e4
+    assert str(ds2.magnetic_unit.units) == "G"
+    mag_unit2 = ds2.magnetic_unit.to("code_magnetic")
+    assert mag_unit2.value == 1.0
+    assert str(mag_unit2.units) == "code_magnetic"
 
 
 @requires_ds(laser)
