@@ -78,6 +78,7 @@ class SkeletonHierarchy(GridIndex):
 class SkeletonDataset(Dataset):
     _index_class = SkeletonHierarchy
     _field_info_class = SkeletonFieldInfo
+    _use_mks_em_units = False  # this needs to be True if code_current is SI
 
     def __init__(
         self,
@@ -114,6 +115,10 @@ class SkeletonDataset(Dataset):
         # These can also be set:
         # self.velocity_unit = self.quan(1.0, "cm/s")
         # self.magnetic_unit = self.quan(1.0, "gauss")
+        #
+        # If your frontend uses SI current units, set something like:
+        # self.current_unit = self.quan(1.0, "A")
+        # self.magnetic_unit = self.quan(1.0, "T")
 
         # this minimalistic implementation fills the requirements for
         # this frontend to run, change it to make it run _correctly_ !
