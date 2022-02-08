@@ -705,6 +705,7 @@ class RAMSESDataset(Dataset):
 
         resolve_symlinks:
         If set to True, resolves the symlinks in the filenames.
+        Default value is True.
         """
 
         self._fields_in_file = fields
