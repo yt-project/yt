@@ -294,7 +294,7 @@ class StreamDataset(Dataset):
             default_species_fields=default_species_fields,
         )
 
-    def _check_for_mks_em_units(self):
+    def _check_for_mks_em_units(self) -> bool:
         from yt.units.dimensions import current_mks
 
         # We assume CGS EM units by default, unless
