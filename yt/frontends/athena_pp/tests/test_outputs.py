@@ -1,20 +1,13 @@
-import numpy as np
-
 from yt.frontends.athena_pp.api import AthenaPPDataset
 from yt.loaders import load
-from yt.testing import (
-    assert_allclose,
-    assert_equal,
-    requires_file,
-    units_override_check,
-)
+from yt.testing import assert_equal, requires_file, units_override_check
 from yt.utilities.answer_testing.framework import (
-    GenericArrayTest,
     data_dir_load,
     requires_ds,
     small_patch_amr,
 )
 
+"""
 _fields_disk = ("density", "velocity_r")
 
 disk = "KeplerianDisk/disk.out1.00000.athdf"
@@ -35,7 +28,7 @@ def test_disk():
             return dd[field]
 
         yield GenericArrayTest(ds, field_func, args=[field])
-
+"""
 
 _fields_AM06 = ("temperature", "density", "velocity_magnitude", "magnetic_field_x")
 
