@@ -300,10 +300,11 @@ class StreamDataset(Dataset):
         # We assume CGS EM units by default, unless
         # magnetic_unit is explicitly defined within MKSA
         magnetic_unit = self.stream_handler.code_units[-1]
-        if magnetic_unit == "code_magnetic":
-            return False
-        elif isinstance(magnetic_unit, str):
-            uq = YTQuantity(1.0, magnetic_unit)
+        if isinstance(magnetic_unit, str):
+            if magnetic_unit == "code_magnetic":
+                return False
+            else:
+                uq = YTQuantity(1.0, magnetic_unit)
         elif isinstance(magnetic_unit, YTQuantity):
             uq = magnetic_unit
         elif isinstance(magnetic_unit, tuple):
