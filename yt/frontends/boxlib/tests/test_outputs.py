@@ -10,6 +10,7 @@ from yt.frontends.boxlib.api import (
 )
 from yt.loaders import load
 from yt.testing import (
+    assert_allclose,
     assert_equal,
     disable_dataset_cache,
     requires_file,
@@ -330,16 +331,16 @@ def test_WarpXDataset():
 @requires_file(plasma)
 def test_magnetic_units():
     ds1 = load(plasma)
-    assert ds1.magnetic_unit.value == 1.0
+    assert_allclose(ds1.magnetic_unit.value, 1.0)
     assert str(ds1.magnetic_unit.units) == "T"
     mag_unit1 = ds1.magnetic_unit.to("code_magnetic")
-    assert mag_unit1.value == 1.0
+    assert_allclose(mag_unit1.value, 1.0)
     assert str(mag_unit1.units) == "code_magnetic"
     ds2 = load(plasma, unit_system="cgs")
-    assert ds2.magnetic_unit.value == 1.0e4
+    assert_allclose(ds2.magnetic_unit.value, 1.0e4)
     assert str(ds2.magnetic_unit.units) == "G"
     mag_unit2 = ds2.magnetic_unit.to("code_magnetic")
-    assert mag_unit2.value == 1.0
+    assert_allclose(mag_unit2.value, 1.0)
     assert str(mag_unit2.units) == "code_magnetic"
 
 
