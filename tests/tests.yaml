@@ -28,7 +28,7 @@ answer_tests:
     - yt/frontends/athena/tests/test_outputs.py:test_blast
     - yt/frontends/athena/tests/test_outputs.py:test_stripping
 
-  local_athena_pp_005:
+  local_athena_pp_006:
     - yt/frontends/athena_pp/tests/test_outputs.py:test_disk
     - yt/frontends/athena_pp/tests/test_outputs.py:test_AM06
 
