@@ -295,7 +295,7 @@ class StreamDataset(Dataset):
         )
 
     def _check_for_mks_em_units(self) -> bool:
-        from yt.units.dimensions import current_mks
+        from yt.units.dimensions import current_mks  # type: ignore
 
         # We assume CGS EM units by default, unless
         # magnetic_unit is explicitly defined within MKSA
