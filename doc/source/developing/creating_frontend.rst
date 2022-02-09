@@ -187,6 +187,23 @@ This function should always be imported and called from within the
 function is used, converting between magnetic fields in different
 unit systems will be handled automatically.
 
+If you want magnetic fields to use SI/MKSA units in your frontend, the class
+attribute ``_use_mks_em_units`` should be set to ``True`` in your ``Dataset``
+subclass. Here is how it is done for the ``WarpXDataset`` class as an example:
+
+.. code-block:: python
+
+    class WarpXDataset(BoxlibDataset):
+
+        _index_class = WarpXHierarchy
+        _field_info_class = WarpXFieldInfo
+        _subtype_keyword = "warpx"
+        _default_cparam_filename = "warpx_job_info"
+        _use_mks_em_units = True
+
+Otherwise, by default ``_use_mks_em_units`` is ``False`` and magnetic units
+will be in the Gaussian CGS system (see :ref:`bfields` for more information).
+
 Data Localization Structures
 ----------------------------
 
