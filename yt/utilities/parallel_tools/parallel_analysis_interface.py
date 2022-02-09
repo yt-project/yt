@@ -5,7 +5,7 @@ import sys
 import traceback
 from functools import wraps
 from io import StringIO
-from typing import Optional
+from typing import List
 
 import numpy as np
 from more_itertools import always_iterable
@@ -14,7 +14,7 @@ import yt.utilities.logger
 from yt.config import ytcfg
 from yt.data_objects.image_array import ImageArray
 from yt.funcs import is_sequence
-from yt.units.unit_registry import UnitRegistry
+from yt.units.unit_registry import UnitRegistry  # type: ignore
 from yt.units.yt_array import YTArray
 from yt.utilities.exceptions import YTNoDataInObjectError
 from yt.utilities.lib.quad_tree import QuadTree, merge_quadtrees
@@ -69,9 +69,7 @@ def default_mpi_excepthook(exception_type, exception_value, tb):
     MPI.COMM_WORLD.Abort(1)
 
 
-def enable_parallelism(
-    suppress_logging: bool = False, communicator: Optional["MPI.Comm"] = None
-) -> bool:
+def enable_parallelism(suppress_logging: bool = False, communicator=None) -> bool:
     """
     This method is used inside a script to turn on MPI parallelism, via
     mpi4py.  More information about running yt in parallel can be found
@@ -123,7 +121,7 @@ def enable_parallelism(
     ytcfg["yt", "internals", "global_parallel_rank"] = communicator.rank
     ytcfg["yt", "internals", "global_parallel_size"] = communicator.size
     ytcfg["yt", "internals", "parallel"] = True
-    if exe_name == "embed_enzo" or ("_parallel" in dir(sys) and sys._parallel):
+    if exe_name == "embed_enzo" or ("_parallel" in dir(sys) and sys._parallel):  # type: ignore
         ytcfg["yt", "inline"] = True
     yt.utilities.logger.uncolorize_logging()
     # Even though the uncolorize function already resets the format string,
@@ -665,7 +663,7 @@ def parallel_ring(objects, generator_func, mutable=False):
 
 
 class CommunicationSystem:
-    communicators = []
+    communicators: List["Communicator"] = []
 
     def __init__(self):
         self.communicators.append(Communicator(None))
@@ -1306,7 +1304,7 @@ class ParallelAnalysisInterface:
             if n == 1:
                 return [1]
             i = 2
-            limit = n ** 0.5
+            limit = n**0.5
             while i <= limit:
                 if n % i == 0:
                     ret = factor(n / i)

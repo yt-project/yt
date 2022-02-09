@@ -65,8 +65,15 @@ def _parse_byte_size(s: str):
         # input is not a string (likely a np.nan)
         return pd.NA
 
-    val = float(re.search(num_exp, s).group())
-    unit = re.search(byte_unit_exp, s).group()
+    match = re.search(num_exp, s)
+    if match is None:
+        raise ValueError
+    val = float(match.group())
+
+    match = re.search(byte_unit_exp, s)
+    if match is None:
+        raise ValueError
+    unit = match.group()
     prefixes = ["B", "K", "M", "G", "T"]
     raw_res = val * 1024 ** prefixes.index(unit[0])
     return int(float(f"{raw_res:.3e}"))

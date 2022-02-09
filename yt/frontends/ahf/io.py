@@ -2,10 +2,10 @@ from operator import attrgetter
 
 import numpy as np
 
-from yt.utilities.io_handler import BaseIOHandler
+from yt.utilities.io_handler import BaseParticleIOHandler
 
 
-class IOHandlerAHFHalos(BaseIOHandler):
+class IOHandlerAHFHalos(BaseParticleIOHandler):
     _particle_reader = False
     _dataset_type = "ahf"
 
@@ -13,13 +13,13 @@ class IOHandlerAHFHalos(BaseIOHandler):
         raise NotImplementedError
 
     def _read_particle_coords(self, chunks, ptf):
-        # This needs to *yield* a series of tuples of (ptype, (x, y, z)).
+        # This needs to *yield* a series of tuples of (ptype, (x, y, z), hsml).
         # chunks is a list of chunks, and ptf is a dict where the keys are
         # ptypes and the values are lists of fields.
         for data_file in self._get_data_files(chunks, ptf):
             pos = data_file._get_particle_positions("halos")
             x, y, z = (pos[:, i] for i in range(3))
-            yield "halos", (x, y, z)
+            yield "halos", (x, y, z), 0.0
 
     def _yield_coordinates(self, data_file):
         halos = data_file.read_data(usecols=["Xc", "Yc", "Zc"])

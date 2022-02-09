@@ -121,38 +121,23 @@ def pytest_configure(config):
                 "is deprecated since Python 3.3,and in 3.9 it will stop working:DeprecationWarning"
             ),
         )
-    # at the time of writing, astropy's wheels are behind numpy's latest
-    # version but this doesn't cause actual problems in our test suite, so
-    # we allow this warning to pass.
-    # last checked with astropy 4.2.1
-    config.addinivalue_line(
-        "filterwarnings",
-        (
-            "ignore:numpy.ndarray size changed, may indicate binary incompatibility. "
-            "Expected 80 from C header, got 88 from PyObject:RuntimeWarning"
-        ),
-    )
-    if find_spec("astropy") is not None:
-        # astropy triggers this warning from itself, there's not much we can do on our side
-        # last checked with astropy 4.2.1
-        config.addinivalue_line(
-            "filterwarnings", "ignore::astropy.wcs.wcs.FITSFixedWarning"
-        )
 
-    if find_spec("cartopy") is not None:
-        # cartopy still triggers this numpy warning
-        # last checked with cartopy 0.19.0
+    if find_spec("astropy") is not None:
+        # at the time of writing, astropy's wheels are behind numpy's latest
+        # version but this doesn't cause actual problems in our test suite
+        # last updated with astropy 5.0 + numpy 1.22 + pytest 6.2.5
         config.addinivalue_line(
             "filterwarnings",
             (
-                "ignore:`np.float` is a deprecated alias for the builtin `float`. "
-                "To silence this warning, use `float` by itself. "
-                "Doing this will not modify any behavior and is safe. "
-                "If you specifically wanted the numpy scalar type, use `np.float64` here."
-                ":DeprecationWarning: "
+                "ignore:numpy.ndarray size changed, may indicate binary incompatibility. Expected "
+                r"(80 from C header, got 88|88 from C header, got 96|80 from C header, got 96)"
+                " from PyObject:RuntimeWarning"
             ),
         )
-        # this warning *still* shows up on cartopy 0.19 so we'll ignore it
+
+    if find_spec("cartopy") is not None:
+        # This can be removed when cartopy 0.21 is released
+        # see https://github.com/SciTools/cartopy/pull/1957
         config.addinivalue_line(
             "filterwarnings",
             (
@@ -167,6 +152,17 @@ def pytest_configure(config):
             (
                 "ignore:The Stereographic projection in Proj older than 5.0.0 incorrectly "
                 "transforms points when central_latitude=0. Use this projection with caution.:UserWarning"
+            ),
+        )
+
+    if find_spec("xarray") is not None:
+        # this can be removed when upstream issue is closed and a fix published
+        # https://github.com/pydata/xarray/issues/6092
+        config.addinivalue_line(
+            "filterwarnings",
+            (
+                "ignore:distutils Version classes are deprecated. "
+                "Use packaging.version instead.:DeprecationWarning"
             ),
         )
 

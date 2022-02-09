@@ -10,10 +10,14 @@ from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 
+class SwiftParticleFile(ParticleFile):
+    pass
+
+
 class SwiftDataset(SPHDataset):
     _index_class = SPHParticleIndex
     _field_info_class = SPHFieldInfo
-    _file_class = ParticleFile
+    _file_class = SwiftParticleFile
 
     _particle_mass_name = "Masses"
     _particle_coordinates_name = "Coordinates"

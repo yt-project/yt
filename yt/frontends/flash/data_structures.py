@@ -1,11 +1,13 @@
 import os
 import weakref
+from typing import Type
 
 import numpy as np
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset, ParticleFile, validate_index_order
 from yt.funcs import mylog, setdefaultattr
+from yt.geometry.geometry_handler import Index
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.geometry.particle_geometry_handler import ParticleIndex
 from yt.utilities.file_handler import HDF5FileHandler, warn_h5py
@@ -121,7 +123,7 @@ class FLASHHierarchy(GridIndex):
         nlevels = self.grid_levels.max()
         dxs = np.ones((nlevels + 1, 3), dtype="float64")
         for i in range(nlevels + 1):
-            dxs[i, :ND] = rdx[:ND] / self.dataset.refine_by ** i
+            dxs[i, :ND] = rdx[:ND] / self.dataset.refine_by**i
 
         if ND < 3:
             dxs[:, ND:] = rdx[ND:]
@@ -141,7 +143,7 @@ class FLASHHierarchy(GridIndex):
     def _populate_grid_objects(self):
         ii = np.argsort(self.grid_levels.flat)
         gid = self._handle["/gid"][:]
-        first_ind = -(self.dataset.refine_by ** self.dataset.dimensionality)
+        first_ind = -(self.dataset.refine_by**self.dataset.dimensionality)
         for g in self.grids[ii].flat:
             gi = g.id - g._id_offset
             # FLASH uses 1-indexed group info
@@ -162,7 +164,7 @@ class FLASHHierarchy(GridIndex):
 
 
 class FLASHDataset(Dataset):
-    _index_class = FLASHHierarchy
+    _index_class: Type[Index] = FLASHHierarchy
     _field_info_class = FLASHFieldInfo
     _handle = None
 

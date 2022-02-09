@@ -9,16 +9,17 @@ AdaptaHOP data-file handling function
 
 from functools import partial
 from operator import attrgetter
+from typing import List, Tuple, Union
 
 import numpy as np
 
 from yt.utilities.cython_fortran_utils import FortranFile
-from yt.utilities.io_handler import BaseIOHandler
+from yt.utilities.io_handler import BaseParticleIOHandler
 
 from .definitions import ATTR_T
 
 
-class IOHandlerAdaptaHOPBinary(BaseIOHandler):
+class IOHandlerAdaptaHOPBinary(BaseParticleIOHandler):
     _dataset_type = "adaptahop_binary"
 
     _offsets = None  # Location of halos in the file
@@ -51,7 +52,7 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
             if pcount == 0:
                 continue
             pos = self._get_particle_positions()
-            yield ptype, [pos[:, i] for i in range(3)]
+            yield ptype, [pos[:, i] for i in range(3)], 0.0
 
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate
@@ -199,15 +200,18 @@ def _todo_from_attributes(attributes: ATTR_T, halo_attributes: ATTR_T):
     # attributes. This is used to skip fields most of the fields when reading
     # the tree_brick files.
     iskip = 0
-    todo = []
+    todo: List[Union[int, List[Tuple[Union[Tuple[str, ...], str], int, str]]]] = []
 
-    attributes = set(attributes)
+    attributes = tuple(set(attributes))
 
     for i, (attrs, l, k) in enumerate(halo_attributes):
-        if not isinstance(attrs, tuple):
-            attrs_list = (attrs,)
-        else:
+        attrs_list: Tuple[str, ...]
+        if isinstance(attrs, tuple):
+            if not all(isinstance(a, str) for a in attrs):
+                raise TypeError(f"Expected a single str or a tuple of str, got {attrs}")
             attrs_list = attrs
+        else:
+            attrs_list = (attrs,)
         ok = False
         for attr in attrs_list:
             if attr in attributes:
@@ -228,6 +232,8 @@ def _todo_from_attributes(attributes: ATTR_T, halo_attributes: ATTR_T):
                 todo.append(iskip)
                 todo.append([])
                 iskip = 0
+            if not isinstance(todo[-1], list):
+                raise TypeError
             todo[-1].append((attrs, l, k))
             state = "read"
         else:

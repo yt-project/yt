@@ -111,7 +111,7 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
                 if "cmcm" in arepo_unit_base:
                     self._unit_base["cmcm"] = arepo_unit_base["cmcm"]
         super()._set_code_unit_attributes()
-        munit = np.sqrt(self.mass_unit / (self.time_unit ** 2 * self.length_unit)).to(
+        munit = np.sqrt(self.mass_unit / (self.time_unit**2 * self.length_unit)).to(
             "gauss"
         )
         if self.cosmological_simulation:

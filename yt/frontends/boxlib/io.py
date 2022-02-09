@@ -122,7 +122,10 @@ class IOHandlerBoxlib(BaseIOHandler, BoxlibParticleSelectionMixin):
         return data
 
     def _read_particle_coords(self, chunks, ptf):
-        yield from self._read_particle_fields(chunks, ptf, None)
+        yield from (
+            (ptype, xyz, 0.0)
+            for ptype, xyz in self._read_particle_fields(chunks, ptf, None)
+        )
 
     def _read_particle_fields(self, chunks, ptf, selector):
         for chunk in chunks:  # These should be organized by grid filename

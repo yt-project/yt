@@ -278,14 +278,14 @@ class TipsyDataset(SPHDataset):
             mu = (
                 cosmo.critical_density(0.0)
                 * (1 + self.current_redshift) ** 3
-                * self.length_unit ** 3
+                * self.length_unit**3
             )
             self.mass_unit = self.quan(mu.in_units("Msun"), "Msun")
             density_unit = self.mass_unit / (self.length_unit / self.scale_factor) ** 3
             # need to do this again because we've modified the hubble constant
             self.unit_registry.modify("h", self.hubble_constant)
         else:
-            density_unit = self.mass_unit / self.length_unit ** 3
+            density_unit = self.mass_unit / self.length_unit**3
 
         if not hasattr(self, "time_unit"):
             self.time_unit = 1.0 / np.sqrt(density_unit * G)

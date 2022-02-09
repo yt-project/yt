@@ -3,6 +3,7 @@ import builtins
 import os
 from collections import OrderedDict
 from functools import wraps
+from typing import Any, Dict, Optional
 
 import matplotlib
 import numpy as np
@@ -270,45 +271,53 @@ class ProfilePlot(PlotContainer):
         ProfilePlot._initialize_instance(self, profiles, label, plot_spec, y_log)
 
     @validate_plot
-    def save(self, name=None, suffix=".png", mpl_kwargs=None):
+    def save(
+        self,
+        name: Optional[str] = None,
+        suffix: Optional[str] = None,
+        mpl_kwargs: Optional[Dict[str, Any]] = None,
+    ):
         r"""
         Saves a 1d profile plot.
 
         Parameters
         ----------
-        name : str
+        name : str, optional
             The output file keyword.
-        suffix : string
+        suffix : string, optional
             Specify the image type by its suffix. If not specified, the output
-            type will be inferred from the filename. Defaults to PNG.
-        mpl_kwargs : dict
+            type will be inferred from the filename. Defaults to '.png'.
+        mpl_kwargs : dict, optional
             A dict of keyword arguments to be passed to matplotlib.
         """
         if not self._plot_valid:
             self._setup_plots()
-        unique = set(self.plots.values())
-        if len(unique) < len(self.plots):
+
+        # Mypy is hardly convinced that we have a `plots` and a `profile` attr
+        # at this stage, so we're lasily going to deactivate it locally
+        unique = set(self.plots.values())  # type: ignore
+        if len(unique) < len(self.plots):  # type: ignore
             iters = zip(range(len(unique)), sorted(unique))
         else:
-            iters = self.plots.items()
+            iters = self.plots.items()  # type: ignore
 
         if name is None:
-            if len(self.profiles) == 1:
-                name = str(self.profiles[0].ds)
+            if len(self.profiles) == 1:  # type: ignore
+                name = str(self.profiles[0].ds)  # type: ignore
             else:
                 name = "Multi-data"
 
         name = validate_image_name(name, suffix)
         prefix, suffix = os.path.splitext(name)
 
-        xfn = self.profiles[0].x_field
+        xfn = self.profiles[0].x_field  # type: ignore
         if isinstance(xfn, tuple):
             xfn = xfn[1]
 
         names = []
         for uid, plot in iters:
-            if isinstance(uid, tuple):
-                uid = uid[1]
+            if isinstance(uid, tuple):  # type: ignore
+                uid = uid[1]  # type: ignore
             uid_name = f"{prefix}_1d-Profile_{xfn}_{uid}{suffix}"
             names.append(uid_name)
             mylog.info("Saving %s", uid_name)
@@ -1282,18 +1291,20 @@ class PhasePlot(ImagePlotContainer):
         return self
 
     @validate_plot
-    def save(self, name=None, suffix=".png", mpl_kwargs=None):
+    def save(
+        self, name: Optional[str] = None, suffix: Optional[str] = None, mpl_kwargs=None
+    ):
         r"""
         Saves a 2d profile plot.
 
         Parameters
         ----------
-        name : str
+        name : str, optional
             The output file keyword.
-        suffix : string
+        suffix : string, optional
            Specify the image type by its suffix. If not specified, the output
-           type will be inferred from the filename. Defaults to PNG.
-        mpl_kwargs : dict
+           type will be inferred from the filename. Defaults to '.png'.
+        mpl_kwargs : dict, optional
            A dict of keyword arguments to be passed to matplotlib.
 
         >>> plot.save(mpl_kwargs={"bbox_inches": "tight"})
@@ -1630,3 +1641,5 @@ class PhasePlotMPL(ImagePlotMPL):
             self.cb.formatter.set_scientific(True)
             self.cb.formatter.set_powerlimits((-2, 3))
             self.cb.update_ticks()
+
+        self.cax.tick_params(which="both", axis="y", direction="in")

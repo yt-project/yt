@@ -11,6 +11,7 @@ import os
 import re
 import stat
 from itertools import product
+from typing import Optional
 
 import numpy as np
 
@@ -21,7 +22,7 @@ from yt.data_objects.static_output import Dataset
 from yt.frontends.halo_catalog.data_structures import HaloCatalogFile
 from yt.funcs import mylog, setdefaultattr
 from yt.geometry.particle_geometry_handler import ParticleIndex
-from yt.units import Mpc
+from yt.units import Mpc  # type: ignore
 from yt.utilities.cython_fortran_utils import FortranFile
 
 from .definitions import ADAPTAHOP_TEMPLATES, ATTR_T, HEADER_ATTRIBUTES
@@ -57,8 +58,8 @@ class AdaptaHOPDataset(Dataset):
 
     # AdaptaHOP internally assumes 1Mpc == 3.0824cm
     _code_length_to_Mpc = (1.0 * Mpc).to("cm").value / 3.08e24
-    _header_attributes: ATTR_T = None
-    _halo_attributes: ATTR_T = None
+    _header_attributes: Optional[ATTR_T] = None
+    _halo_attributes: Optional[ATTR_T] = None
 
     def __init__(
         self,
@@ -94,7 +95,7 @@ class AdaptaHOPDataset(Dataset):
         setdefaultattr(self, "velocity_unit", self.quan(1.0, "km / s"))
         setdefaultattr(self, "time_unit", self.length_unit / self.velocity_unit)
 
-    def _guess_headers_from_file(self, filename) -> ATTR_T:
+    def _guess_headers_from_file(self, filename) -> None:
         with FortranFile(filename) as fpu:
             ok = False
             for dp, longint in product((True, False), (True, False)):

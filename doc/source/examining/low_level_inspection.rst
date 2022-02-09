@@ -194,7 +194,7 @@ larger dataset:
 .. code-block:: python
 
    all_data_level_2 = ds.covering_grid(
-       level=2, left_edge=[0, 0.0, 0.0], dims=ds.domain_dimensions * 2 ** 2
+       level=2, left_edge=[0, 0.0, 0.0], dims=ds.domain_dimensions * 2**2
    )
 
 And let's see what's the density in the central location:
@@ -220,7 +220,7 @@ to reduce edge effects, it is a nearly identical process:
 .. code-block:: python
 
    all_data_level_2_s = ds.smoothed_covering_grid(
-       2, [0.0, 0.0, 0.0], ds.domain_dimensions * 2 ** 2
+       2, [0.0, 0.0, 0.0], ds.domain_dimensions * 2**2
    )
 
    print(all_data_level_2_s["gas", "density"].shape)

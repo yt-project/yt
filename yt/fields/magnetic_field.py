@@ -2,7 +2,7 @@ import numpy as np
 
 from yt.fields.derived_field import ValidateParameter
 from yt.units import dimensions
-from yt.units.yt_array import ustack
+from yt.units.yt_array import ustack  # type: ignore
 from yt.utilities.math_utils import get_sph_phi_component, get_sph_theta_component
 
 from .field_plugin_registry import register_field_plugin
@@ -195,9 +195,9 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
     if dimensions.current_mks in b_units.dimensions.free_symbols:
         rm_scale = pc.qp.to("C", "SI") ** 3 / (4.0 * np.pi * pc.eps_0)
     else:
-        rm_scale = pc.qp ** 3 / pc.clight
+        rm_scale = pc.qp**3 / pc.clight
     rm_scale *= registry.ds.quan(1.0, "rad") / (
-        2.0 * np.pi * pc.me ** 2 * pc.clight ** 3
+        2.0 * np.pi * pc.me**2 * pc.clight**3
     )
     rm_units = registry.ds.quan(1.0, "rad/m**2").units / unit_system["length"]
 
@@ -278,7 +278,7 @@ def setup_magnetic_field_aliases(registry, ds_ftype, ds_fields, ftype="gas"):
     # Add fields
     if sampling_type in ["cell", "local"]:
         # Grid dataset case
-        def mag_field(fd):
+        def mag_field_from_field(fd):
             def _mag_field(field, data):
                 return data[fd].to(field.units)
 
@@ -288,12 +288,12 @@ def setup_magnetic_field_aliases(registry, ds_ftype, ds_fields, ftype="gas"):
             registry.add_field(
                 (ftype, f"magnetic_field_{ax}"),
                 sampling_type=sampling_type,
-                function=mag_field(fd),
+                function=mag_field_from_field(fd),
                 units=units,
             )
     else:
         # Particle dataset case
-        def mag_field(ax):
+        def mag_field_from_ax(ax):
             def _mag_field(field, data):
                 return data[ds_field][:, "xyz".index(ax)]
 
@@ -304,7 +304,7 @@ def setup_magnetic_field_aliases(registry, ds_ftype, ds_fields, ftype="gas"):
             registry.add_field(
                 (ds_ftype, fname),
                 sampling_type=sampling_type,
-                function=mag_field(ax),
+                function=mag_field_from_ax(ax),
                 units=units,
             )
             sph_ptypes = getattr(registry.ds, "_sph_ptypes", tuple())

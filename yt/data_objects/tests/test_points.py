@@ -58,7 +58,7 @@ def test_domain_point():
 
 
 def test_fast_find_field_values_at_points():
-    ds = fake_random_ds(64, nprocs=8, particles=16 ** 3)
+    ds = fake_random_ds(64, nprocs=8, particles=16**3)
     ad = ds.all_data()
     # right now this is slow for large numbers of particles, so randomly
     # sample 100 particles

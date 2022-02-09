@@ -12,6 +12,7 @@ from shutil import which
 
 import matplotlib
 import numpy as np
+import pytest
 from more_itertools import always_iterable
 from numpy.random import RandomState
 from unyt.exceptions import UnitOperationError
@@ -134,7 +135,7 @@ def amrspace(extent, levels=7, cells=8):
     dims_nonzero = ~dims_zero
     ndims_nonzero = dims_nonzero.sum()
 
-    npoints = (cells ** ndims_nonzero - 1) * maxlvl + 1
+    npoints = (cells**ndims_nonzero - 1) * maxlvl + 1
     left = np.empty((npoints, ndims), dtype="float64")
     right = np.empty((npoints, ndims), dtype="float64")
     level = np.empty(npoints, dtype="int32")
@@ -168,12 +169,12 @@ def amrspace(extent, levels=7, cells=8):
     level[0] = maxlvl
     left[0, :] = extent[::2]
     right[0, dims_zero] = extent[1::2][dims_zero]
-    right[0, dims_nonzero] = (dcell ** maxlvl) * dextent[dims_nonzero] + extent[::2][
+    right[0, dims_nonzero] = (dcell**maxlvl) * dextent[dims_nonzero] + extent[::2][
         dims_nonzero
     ]
     for i, lvl in enumerate(range(maxlvl, 0, -1)):
-        start = (cells ** ndims_nonzero - 1) * i + 1
-        stop = (cells ** ndims_nonzero - 1) * (i + 1) + 1
+        start = (cells**ndims_nonzero - 1) * i + 1
+        stop = (cells**ndims_nonzero - 1) * (i + 1) + 1
         dsize = dcell ** (lvl - 1) * dextent[dims_nonzero]
         level[start:stop] = lvl
         left[start:stop, dims_zero] = lng_zero
@@ -366,7 +367,7 @@ def fake_particle_ds(
     fields=None,
     units=None,
     negative=None,
-    npart=16 ** 3,
+    npart=16**3,
     length_unit=1.0,
     data=None,
 ):
@@ -421,7 +422,7 @@ def fake_tetrahedral_ds():
 
     # the distance from the origin
     node_data = {}
-    dist = np.sum(_coordinates ** 2, 1)
+    dist = np.sum(_coordinates**2, 1)
     node_data[("connect1", "test")] = dist[_connectivity]
 
     # each element gets a random number
@@ -444,7 +445,7 @@ def fake_hexahedral_ds(fields=None):
     prng = RandomState(0x4D3D3D3)
     # the distance from the origin
     node_data = {}
-    dist = np.sum(_coordinates ** 2, 1)
+    dist = np.sum(_coordinates**2, 1)
     node_data[("connect1", "test")] = dist[_connectivity - 1]
 
     for field in always_iterable(fields):
@@ -479,7 +480,7 @@ def small_fake_hexahedral_ds():
 
     # the distance from the origin
     node_data = {}
-    dist = np.sum(_coordinates ** 2, 1)
+    dist = np.sum(_coordinates**2, 1)
     node_data[("connect1", "test")] = dist[_connectivity - 1]
 
     ds = load_unstructured_mesh(_connectivity - 1, _coordinates, node_data=node_data)
@@ -856,6 +857,21 @@ def expand_keywords(keywords, full=False):
     return list_of_kwarg_dicts
 
 
+def skip_case(*, reason: str):
+    """
+    An adapter test skipping function that should work with both test runners
+    (nosetest or pytest) and with any Python version.
+    """
+    if sys.version_info >= (3, 10):
+        # nose isn't compatible with Python 3.10 so we can't import it here
+        pytest.skip(reason)
+    else:
+        # pytest.skip() isn't recognized by nosetest (but nose.SkipTest works in pytest !)
+        from nose import SkipTest
+
+        raise SkipTest(reason)
+
+
 def requires_module(module):
     """
     Decorator that takes a module name as an argument and tries to import it.
@@ -864,12 +880,11 @@ def requires_module(module):
     being imported will not fail if the module is not installed on the testing
     platform.
     """
-    from nose import SkipTest
 
     def ffalse(func):
         @functools.wraps(func)
         def false_wrapper(*args, **kwargs):
-            raise SkipTest
+            skip_case(reason=f"Missing required module {module}")
 
         return false_wrapper
 
@@ -901,8 +916,6 @@ def requires_module_pytest(*module_names):
 
     So that it can be later renamed to `requires_module`.
     """
-    import pytest
-
     from yt.utilities import on_demand_imports as odi
 
     def deco(func):
@@ -930,8 +943,6 @@ def requires_module_pytest(*module_names):
 
 
 def requires_file(req_file):
-    from nose import SkipTest
-
     path = ytcfg.get("yt", "test_data_dir")
 
     def ffalse(func):
@@ -939,7 +950,7 @@ def requires_file(req_file):
         def false_wrapper(*args, **kwargs):
             if ytcfg.get("yt", "internals", "strict_requires"):
                 raise FileNotFoundError(req_file)
-            raise SkipTest
+            skip_case(reason=f"Missing required file {req_file}")
 
         return false_wrapper
 
@@ -965,6 +976,7 @@ def disable_dataset_cache(func):
         restore_cfg_state = False
         if not ytcfg.get("yt", "skip_dataset_cache"):
             ytcfg["yt", "skip_dataset_cache"] = True
+            restore_cfg_state = True
         rv = func(*args, **kwargs)
         if restore_cfg_state:
             ytcfg["yt", "skip_dataset_cache"] = False
@@ -1339,7 +1351,6 @@ def requires_backend(backend):
     Decorated function or null function
 
     """
-    import pytest
 
     def ffalse(func):
         # returning a lambda : None causes an error when using pytest. Having
@@ -1350,8 +1361,7 @@ def requires_backend(backend):
         # exception in the xfail case for that test
         def skip(*args, **kwargs):
             msg = f"`{backend}` backend not in use, skipping: `{func.__name__}`"
-            print(msg, file=sys.stderr)
-            pytest.skip(msg)
+            skip_case(reason=msg)
 
         if ytcfg.get("yt", "internals", "within_pytest"):
             return skip
@@ -1367,8 +1377,6 @@ def requires_backend(backend):
 
 
 def requires_external_executable(*names):
-    import pytest
-
     def deco(func):
         missing = []
         for name in names:

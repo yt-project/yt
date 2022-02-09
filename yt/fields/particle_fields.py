@@ -1,7 +1,7 @@
 import numpy as np
 
 from yt.fields.derived_field import ValidateParameter, ValidateSpatial
-from yt.units.yt_array import uconcatenate, ucross
+from yt.units.yt_array import uconcatenate, ucross  # type: ignore
 from yt.utilities.lib.misc_utilities import (
     obtain_position_vector,
     obtain_relative_velocity_vector,

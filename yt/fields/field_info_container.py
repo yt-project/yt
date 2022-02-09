@@ -5,11 +5,12 @@ from typing import Optional, Tuple
 import numpy as np
 from unyt.exceptions import UnitConversionError
 
+from yt._typing import KnownFieldsT
 from yt.fields.field_exceptions import NeedsConfiguration
 from yt.funcs import mylog, only_on_root
 from yt.geometry.geometry_handler import is_curvilinear
-from yt.units.dimensions import dimensionless
-from yt.units.unit_object import Unit
+from yt.units.dimensions import dimensionless  # type: ignore
+from yt.units.unit_object import Unit  # type: ignore
 from yt.utilities.exceptions import (
     YTCoordinateNotImplemented,
     YTDomainOverflow,
@@ -49,9 +50,9 @@ class FieldInfoContainer(dict):
     """
 
     fallback = None
-    known_other_fields = ()
-    known_particle_fields = ()
-    extra_union_fields = ()
+    known_other_fields: KnownFieldsT = ()
+    known_particle_fields: KnownFieldsT = ()
+    extra_union_fields: Tuple[Tuple[str, str], ...] = ()
 
     def __init__(self, ds, field_list, slice_info=None):
         self._show_field_errors = []
@@ -292,9 +293,8 @@ class FieldInfoContainer(dict):
         acceptable_samplings = ("cell", "particle", "local")
         if sampling_type not in acceptable_samplings:
             raise ValueError(
-                "Invalid sampling type %s. Valid sampling types are %s",
-                sampling_type,
-                ", ".join(acceptable_samplings),
+                f"Received invalid sampling type {sampling_type!r}. "
+                f"Expected any of {acceptable_samplings}"
             )
         return sampling_type
 
@@ -377,7 +377,10 @@ class FieldInfoContainer(dict):
         else:
             self[name] = DerivedField(name, sampling_type, function, **kwargs)
 
-    def load_all_plugins(self, ftype="gas"):
+    def load_all_plugins(self, ftype: Optional[str] = "gas"):
+        if ftype is None:
+            return
+        mylog.debug("Loading field plugins for field type: %s.", ftype)
         loaded = []
         for n in sorted(field_plugins):
             loaded += self.load_plugin(n, ftype)
@@ -418,7 +421,7 @@ class FieldInfoContainer(dict):
         alias_name,
         original_name,
         units=None,
-        deprecate: Optional[Tuple[str]] = None,
+        deprecate: Optional[Tuple[str, str]] = None,
     ):
         """
         Alias one field to another field.

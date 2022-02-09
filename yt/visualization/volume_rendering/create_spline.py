@@ -43,10 +43,10 @@ def create_spline(old_x, old_y, new_x, tension=0.5, sorted=False):
         else:
             print("Bad index during interpolation?")
             sys.exit()
-        b0 = -tension * u + 2 * tension * u ** 2 - tension * u ** 3
-        b1 = 1.0 + (tension - 3) * u ** 2 + (2 - tension) * u ** 3
-        b2 = tension * u + (3 - 2 * tension) * u ** 2 + (tension - 2) * u ** 3
-        b3 = -tension * u ** 2 + tension * u ** 3
+        b0 = -tension * u + 2 * tension * u**2 - tension * u**3
+        b1 = 1.0 + (tension - 3) * u**2 + (2 - tension) * u**3
+        b2 = tension * u + (3 - 2 * tension) * u**2 + (tension - 2) * u**3
+        b3 = -tension * u**2 + tension * u**3
         result[i] = (
             b0 * old_y[im2[i]]
             + b1 * old_y[im1[i]]

@@ -69,7 +69,7 @@ from yt.units import (
     uunion1d,
     uvstack,
 )
-from yt.units.unit_object import define_unit
+from yt.units.unit_object import define_unit  # type: ignore
 from yt.utilities.logger import set_log_level, ytLogger as mylog
 
 frontends = _frontend_container()
@@ -80,6 +80,7 @@ from yt.frontends.ytdata.api import save_as_dataset
 from yt.loaders import (
     load,
     load_amr_grids,
+    load_archive,
     load_hexahedral_mesh,
     load_octree,
     load_particles,
@@ -89,7 +90,7 @@ from yt.loaders import (
     load_unstructured_mesh,
 )
 from yt.testing import run_nose
-from yt.units.unit_systems import UnitSystem, unit_system_registry
+from yt.units.unit_systems import UnitSystem, unit_system_registry  # type: ignore
 
 # Import some helpful math utilities
 from yt.utilities.math_utils import ortho_find, periodic_position, quartiles
