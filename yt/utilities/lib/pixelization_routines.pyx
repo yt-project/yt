@@ -533,8 +533,8 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
     rmax = radius[imax] + dradius[imax]
 
     x0, x1, y0, y1 = extents
-    dx = (x1 - x0) / buff.shape[1]
-    dy = (y1 - y0) / buff.shape[0]
+    dx = (x1 - x0) / buff.shape[0]
+    dy = (y1 - y0) / buff.shape[1]
     cdef np.float64_t rbounds[2]
     cdef np.float64_t corners[8]
     # Find our min and max r
