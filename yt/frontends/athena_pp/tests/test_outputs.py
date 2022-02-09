@@ -7,6 +7,8 @@ from yt.utilities.answer_testing.framework import (
     small_patch_amr,
 )
 
+# Deactivating this problematic test until the dataset type can be
+# handled properly, see https://github.com/yt-project/yt/issues/3619
 """
 _fields_disk = ("density", "velocity_r")
 
