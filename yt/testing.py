@@ -964,6 +964,7 @@ def disable_dataset_cache(func):
         restore_cfg_state = False
         if not ytcfg.get("yt", "skip_dataset_cache"):
             ytcfg["yt", "skip_dataset_cache"] = True
+            restore_cfg_state = True
         rv = func(*args, **kwargs)
         if restore_cfg_state:
             ytcfg["yt", "skip_dataset_cache"] = False
