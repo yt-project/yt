@@ -1148,16 +1148,15 @@ class Dataset(abc.ABC):
                     self.unit_registry.modify(
                         "code_magnetic", self.magnetic_unit.value * 1.0e3 * 0.1**-0.5
                     )
-            else:
-                if current_mks in mag_dims:
-                    self.magnetic_unit = self.quan(
-                        self.magnetic_unit.to_value("T") * 1.0e4, "gauss"
-                    )
-                    # The following modification ensures that we get the conversion to
-                    # cgs correct
-                    self.unit_registry.modify(
-                        "code_magnetic", self.magnetic_unit.value * 1.0e-4
-                    )
+            elif current_mks in mag_dims:
+                self.magnetic_unit = self.quan(
+                    self.magnetic_unit.to_value("T") * 1.0e4, "gauss"
+                )
+                # The following modification ensures that we get the conversion to
+                # cgs correct
+                self.unit_registry.modify(
+                    "code_magnetic", self.magnetic_unit.value * 1.0e-4
+                )
         # _use_mks_em_units tells us if the code unit system needs an MKS current
         current_mks_unit = "A" if mks_system else None
         us = create_code_unit_system(
