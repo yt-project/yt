@@ -24,7 +24,7 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
 
     def mag_factors(dims):
         if dims == dimensions.magnetic_field_cgs:
-            return 4.0 * np.pi
+            return getattr(ds, "mag_factor", 4.0 * np.pi)
         elif dims == dimensions.magnetic_field_mks:
             return ds.units.physical_constants.mu_0
 

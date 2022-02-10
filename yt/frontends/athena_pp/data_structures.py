@@ -241,6 +241,7 @@ class AthenaPPDataset(Dataset):
         units_override=None,
         unit_system="code",
         default_species_fields=None,
+        mag_factor="gaussian",
     ):
         self.fluid_types += ("athena_pp",)
         if parameters is None:
@@ -258,6 +259,9 @@ class AthenaPPDataset(Dataset):
         else:
             self._index_class = AthenaPPHierarchy
             self.logarithmic = False
+        self.mag_factor = {"gaussian": 4.0 * np.pi, "lorentz_heaviside": 1.0}[
+            mag_factor
+        ]
         Dataset.__init__(
             self,
             filename,
@@ -290,7 +294,7 @@ class AthenaPPDataset(Dataset):
             setattr(self, f"{unit}_unit", self.quan(1.0, cgs))
 
         self.magnetic_unit = np.sqrt(
-            4 * np.pi * self.mass_unit / (self.time_unit**2 * self.length_unit)
+            self.mag_factor * self.mass_unit / (self.time_unit**2 * self.length_unit)
         )
         self.magnetic_unit.convert_to_units("gauss")
         self.velocity_unit = self.length_unit / self.time_unit
