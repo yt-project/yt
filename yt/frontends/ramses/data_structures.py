@@ -19,6 +19,7 @@ from yt.utilities.on_demand_imports import _f90nml as f90nml
 from yt.utilities.physical_constants import kb, mp
 
 from .definitions import (
+    OUTPUT_DIR_EXP,
     OUTPUT_DIR_RE,
     STANDARD_FILE_RE,
     field_aliases,
@@ -67,9 +68,33 @@ class RAMSESFileSanitizer:
             self.group_name = None
         self.info_fname = info_fname
 
+    def validate(self) -> None:
+        # raise a TypeError if self.original_filename is not a valid path
+        # we also want to expand '$USER' and '~' because os.path.exists('~') is always False
+        filename: str = os.path.expanduser(self.original_filename)
+
+        if not os.path.exists(filename):
+            raise FileNotFoundError(f"No such file or directory {filename!r}")
+        if self.root_folder is None:
+            raise ValueError(
+                f"Could not determine output directory from {filename!r}\n"
+                f"Expected a directory name of form {OUTPUT_DIR_EXP!r}"
+            )
+
+        # This last case is (erroneously ?) marked as unreachable by mypy
+        # If/when this bug is fixed upstream, mypy will warn that the unused
+        # 'type: ignore' comment can be removed
+        if self.info_fname is None:  # type: ignore [unreachable]
+            raise ValueError(f"Failed to detect info file from {filename!r}")
+
     @property
-    def is_valid(self):
-        return (self.root_folder is not None) and (self.info_fname is not None)
+    def is_valid(self) -> bool:
+        try:
+            self.validate()
+        except (TypeError, FileNotFoundError, ValueError):
+            return False
+        else:
+            return True
 
     @staticmethod
     def check_standard_files(folder, iout):
@@ -687,12 +712,9 @@ class RAMSESDataset(Dataset):
 
         file_handler = RAMSESFileSanitizer(filename)
 
-        # This should not happen, but let's check nonetheless.
-        if not file_handler.is_valid:
-            raise ValueError(
-                "Invalid filename found when building a RAMSESDataset object: %s",
-                filename,
-            )
+        # ensure validation happens even if the class is instanciated
+        # directly rather than from yt.load
+        file_handler.validate()
 
         # Sanitize the filename
         info_fname = file_handler.info_fname
