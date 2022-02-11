@@ -335,7 +335,12 @@ class StreamDataset(Dataset):
         cgs_units = ("cm", "g", "s", "cm/s", "gauss")
         for unit, attr, cgs_unit in zip(base_units, attrs, cgs_units):
             if isinstance(unit, str):
-                uq = self.quan(1.0, unit)
+                if unit == "code_magnetic":
+                    # If no magnetic unit was explicitly specified
+                    # we skip it now and take care of it at the bottom
+                    continue
+                else:
+                    uq = self.quan(1.0, unit)
             elif isinstance(unit, numeric_type):
                 uq = self.quan(unit, cgs_unit)
             elif isinstance(unit, YTQuantity):
@@ -345,6 +350,10 @@ class StreamDataset(Dataset):
             else:
                 raise RuntimeError(f"{attr} ({unit}) is invalid.")
             setattr(self, attr, uq)
+        if not hasattr(self, "magnetic_unit"):
+            self.magnetic_unit = np.sqrt(
+                4 * np.pi * self.mass_unit / (self.time_unit**2 * self.length_unit)
+            )
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
