@@ -114,6 +114,10 @@ class SkeletonDataset(Dataset):
         # These can also be set:
         # self.velocity_unit = self.quan(1.0, "cm/s")
         # self.magnetic_unit = self.quan(1.0, "gauss")
+        #
+        # If your frontend uses SI EM units, set magnetic units like this
+        # instead:
+        # self.magnetic_unit = self.quan(1.0, "T")
 
         # this minimalistic implementation fills the requirements for
         # this frontend to run, change it to make it run _correctly_ !
