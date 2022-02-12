@@ -1,3 +1,5 @@
+.. how-to-deprecate::
+
 How to deprecate a feature
 --------------------------
 
@@ -7,10 +9,10 @@ A functionality can be marked as deprecated using
 message and two version numbers, indicating the earliest release deprecating the feature
 and the one in which it will be removed completely.
 
-The message should indicate a viable alternative to replace the deprecated feature at
-the user level.
-``since`` and ``removal`` are required [#]_ keyword-only arguments so as to enforce
-readability of the source code.
+The message should indicate a viable alternative to replace the deprecated
+feature at the user level. ``since`` and ``removal`` arguments should indicate
+in which release something was first deprecated, and when it's expected to be
+removed. While ``since`` is required, ``removal`` is optional.
 
 Here's an example call.
 
@@ -29,8 +31,6 @@ Here's an example call.
 If a whole function or class is marked as deprecated, it should be removed from
 ``doc/source/reference/api/api.rst``.
 
-
-.. [#] ``since`` is not required yet as of yt 4.0.0 because existing warnings predate its introduction.
 
 Deprecating Derived Fields
 --------------------------
