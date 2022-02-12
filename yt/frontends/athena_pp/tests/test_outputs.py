@@ -1,6 +1,7 @@
 from yt.frontends.athena_pp.api import AthenaPPDataset
 from yt.loaders import load
 from yt.testing import assert_equal, requires_file, units_override_check
+from yt.units import dimensions
 from yt.utilities.answer_testing.framework import (
     data_dir_load,
     requires_ds,
@@ -69,3 +70,10 @@ def test_units_override():
 @requires_file(AM06)
 def test_AthenaPPDataset():
     assert isinstance(data_dir_load(AM06), AthenaPPDataset)
+
+
+@requires_file(AM06)
+def test_magnetic_units():
+    ds = load(AM06, unit_system="code")
+    assert ds.magnetic_unit.units.dimensions == dimensions.magnetic_field_cgs
+    assert (ds.magnetic_unit**2).units.dimensions == dimensions.pressure
