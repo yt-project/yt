@@ -172,7 +172,9 @@ class ChimeraUNSIndex(UnstructuredIndex):
             e_rms = [("chimera", f"e_rms_{i+1}") for i in range(4)]
             lumin = [("chimera", f"lumin_{i+1}") for i in range(4)]
             num_lumin = [("chimera", f"num_lumin_{i+1}") for i in range(4)]
-            a_name = [("chimera", i.decode("utf-8")) for i in f["abundance"]["a_name"]]
+            a_name = [
+                ("chimera", i.decode("utf-8").strip()) for i in f["abundance"]["a_name"]
+            ]
             self.field_list = (
                 fluids
                 + abundance

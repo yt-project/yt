@@ -91,14 +91,16 @@ class ChimeraIOHandler(BaseIOHandler):
                         "shock",
                         "nse_c",
                     )
+
                     a_name_2 = [i.decode("utf-8") for i in f["abundance"]["a_name"]]
+                    a_name_dict = {name.strip(): name for name in a_name_2}
                     if fname not in specials:
                         if fname in f["fluid"]:
                             ds = f["fluid"][f"{fname}"]
                         elif fname in f["abundance"]:
                             ds = f["abundance"][f"{fname}"]
-                        elif fname in a_name_2:
-                            ind_xn = a_name_2.index(fname)
+                        elif fname in a_name_dict:
+                            ind_xn = a_name_2.index(a_name_dict[fname])
                             ds = f["abundance"]["xn_c"][:, :, :, ind_xn]
                         else:
                             sys.exit("Error: Invalid field name")

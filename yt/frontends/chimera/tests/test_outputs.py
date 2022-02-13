@@ -19,26 +19,13 @@ Two_D = "F37_80/chimera_00001_grid_1_01.h5"
 def test_2D():
     ds = data_dir_load(Two_D)
     _fields = [
-        ("chimera", "    n"),
-        ("chimera", "    p"),
-        ("chimera", "  c12"),
-        ("chimera", "  he4"),
-        ("chimera", "  o16"),
-        ("chimera", "  s32"),
-        ("chimera", " ar36"),
-        ("chimera", " ca40"),
-        ("chimera", " cr48"),
-        ("chimera", " fe52"),
-        ("chimera", " fe56"),
-        ("chimera", " mg24"),
-        ("chimera", " ne20"),
-        ("chimera", " ni56"),
-        ("chimera", " si28"),
-        ("chimera", " ti44"),
-        ("chimera", " zn60"),
         ("chimera", "a_nuc_rep_c"),
         ("chimera", "abar"),
+        ("chimera", "ar36"),
         ("chimera", "be_nuc_rep_c"),
+        ("chimera", "c12"),
+        ("chimera", "ca40"),
+        ("chimera", "cr48"),
         ("chimera", "dudt_nu"),
         ("chimera", "dudt_nuc"),
         ("chimera", "e_book"),
@@ -48,21 +35,33 @@ def test_2D():
         ("chimera", "e_rms_3"),
         ("chimera", "e_rms_4"),
         ("chimera", "entropy"),
+        ("chimera", "fe52"),
+        ("chimera", "fe56"),
         ("chimera", "grav_x_c"),
         ("chimera", "grav_y_c"),
         ("chimera", "grav_z_c"),
+        ("chimera", "he4"),
         ("chimera", "lumin_1"),
         ("chimera", "lumin_2"),
         ("chimera", "lumin_3"),
         ("chimera", "lumin_4"),
+        ("chimera", "mg24"),
+        ("chimera", "n"),
+        ("chimera", "ne20"),
+        ("chimera", "ni56"),
         ("chimera", "nse_c"),
         ("chimera", "num_lumin_1"),
         ("chimera", "num_lumin_2"),
         ("chimera", "num_lumin_3"),
         ("chimera", "num_lumin_4"),
+        ("chimera", "o16"),
+        ("chimera", "p"),
         ("chimera", "press"),
         ("chimera", "rho_c"),
+        ("chimera", "s32"),
+        ("chimera", "si28"),
         ("chimera", "t_c"),
+        ("chimera", "ti44"),
         ("chimera", "u_c"),
         ("chimera", "v_c"),
         ("chimera", "v_csound"),
@@ -71,6 +70,7 @@ def test_2D():
         ("chimera", "ye_c"),
         ("chimera", "ylep"),
         ("chimera", "z_nuc_rep_c"),
+        ("chimera", "zn60"),
     ]
     assert_equal(str(ds), "chimera_00001_grid_1_01.h5")
     assert_equal(ds.geometry, "spherical")  # Geometry
@@ -155,10 +155,6 @@ def test_3D():
     ]
     assert_equal(str(ds), "chimera_002715000_grid_1_01.h5")
     assert_equal(ds.geometry, "spherical")  # Geometry
-    print(
-        ds.domain_right_edge
-        - ds.arr([1.06500257e09, 3.14159265e00, 6.28318531e00], "code_length")
-    )
     assert_almost_equal(
         ds.domain_right_edge,
         ds.arr(

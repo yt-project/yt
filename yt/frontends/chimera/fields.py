@@ -61,8 +61,6 @@ class ChimeraFieldInfo(FieldInfoContainer):
             ("chimera", "test"), sampling_type="cell", function=_test, units="g/cm**3"
         )
 
-        pass
-
     def setup_particle_fields(self, ptype):
         super().setup_particle_fields(ptype)
         # This will get called for every particle type.
