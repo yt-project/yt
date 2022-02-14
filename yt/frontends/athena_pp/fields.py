@@ -1,3 +1,4 @@
+from yt._typing import KnownFieldsT
 from yt.fields.field_info_container import FieldInfoContainer
 from yt.utilities.physical_constants import kboltz, mh
 
@@ -15,7 +16,7 @@ def velocity_field(j):
 
 
 class AthenaPPFieldInfo(FieldInfoContainer):
-    known_other_fields = (
+    known_other_fields: KnownFieldsT = (
         ("rho", (rho_units, ["density"], None)),
         ("dens", (rho_units, ["density"], None)),
         ("Bcc1", (b_units, [], None)),

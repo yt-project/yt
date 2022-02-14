@@ -1,7 +1,9 @@
 from contextlib import contextmanager
 from itertools import product, repeat
+from typing import Tuple
 
 import numpy as np
+from unyt import unyt_array
 
 import yt.geometry.particle_deposit as particle_deposit
 import yt.geometry.particle_smooth as particle_smooth
@@ -9,8 +11,7 @@ from yt.data_objects.selection_objects.data_selection_objects import (
     YTSelectionContainer,
 )
 from yt.geometry.particle_oct_container import ParticleOctreeContainer
-from yt.units.dimensions import length
-from yt.units.yt_array import YTArray
+from yt.units.dimensions import length  # type: ignore
 from yt.utilities.exceptions import (
     YTFieldTypeNotFound,
     YTInvalidPositionArray,
@@ -37,7 +38,7 @@ class OctreeSubset(YTSelectionContainer):
     _num_ghost_zones = 0
     _type_name = "octree_subset"
     _skip_add = True
-    _con_args = ("base_region", "domain", "ds")
+    _con_args: Tuple[str, ...] = ("base_region", "domain", "ds")
     _domain_offset = 0
     _cell_count = -1
     _block_order = "C"
@@ -81,7 +82,7 @@ class OctreeSubset(YTSelectionContainer):
     def _reshape_vals(self, arr):
         nz = self.nz
         if len(arr.shape) <= 2:
-            n_oct = arr.shape[0] // (nz ** 3)
+            n_oct = arr.shape[0] // (nz**3)
         elif arr.shape[-1] == 3:
             n_oct = arr.shape[-2]
         else:
@@ -658,7 +659,7 @@ class OctreeSubsetBlockSlice:
             yield i, OctreeSubsetBlockSlicePosition(i, self)
 
 
-class YTPositionArray(YTArray):
+class YTPositionArray(unyt_array):
     @property
     def morton(self):
         self.validate()

@@ -155,7 +155,7 @@ def test_profiles():
             weight_field=None,
         )
         p2d.add_fields(("index", "ones"))
-        av = nv / nb ** 2
+        av = nv / nb**2
         assert_equal(p2d["index", "ones"], np.ones((nb, nb)) * av)
 
         # We re-bin ones with a weight now
@@ -196,7 +196,7 @@ def test_profiles():
             weight_field=None,
         )
         p3d.add_fields(("index", "ones"))
-        av = nv / nb ** 3
+        av = nv / nb**3
         assert_equal(p3d["index", "ones"], np.ones((nb, nb, nb)) * av)
 
         # We re-bin ones with a weight now
@@ -253,14 +253,14 @@ logs_t = {("all", "particle_position_x"): False}
 
 def test_particle_profiles():
     for nproc in [1, 2, 4, 8]:
-        ds = fake_random_ds(32, nprocs=nproc, particles=32 ** 3)
+        ds = fake_random_ds(32, nprocs=nproc, particles=32**3)
         dd = ds.all_data()
 
         p1d = Profile1D(
             dd, ("all", "particle_position_x"), 128, 0.0, 1.0, False, weight_field=None
         )
         p1d.add_fields([("all", "particle_ones")])
-        assert_equal(p1d[("all", "particle_ones")].sum(), 32 ** 3)
+        assert_equal(p1d[("all", "particle_ones")].sum(), 32**3)
 
         p1d = create_profile(
             dd,
@@ -271,7 +271,7 @@ def test_particle_profiles():
             extrema=extrema_s,
             logs=logs_s,
         )
-        assert_equal(p1d[("all", "particle_ones")].sum(), 32 ** 3)
+        assert_equal(p1d[("all", "particle_ones")].sum(), 32**3)
 
         p1d = create_profile(
             dd,
@@ -282,7 +282,7 @@ def test_particle_profiles():
             extrema=extrema_t,
             logs=logs_t,
         )
-        assert_equal(p1d[("all", "particle_ones")].sum(), 32 ** 3)
+        assert_equal(p1d[("all", "particle_ones")].sum(), 32**3)
 
         p2d = Profile2D(
             dd,
@@ -299,7 +299,7 @@ def test_particle_profiles():
             weight_field=None,
         )
         p2d.add_fields([("all", "particle_ones")])
-        assert_equal(p2d[("all", "particle_ones")].sum(), 32 ** 3)
+        assert_equal(p2d[("all", "particle_ones")].sum(), 32**3)
 
         p3d = Profile3D(
             dd,
@@ -321,7 +321,7 @@ def test_particle_profiles():
             weight_field=None,
         )
         p3d.add_fields([("all", "particle_ones")])
-        assert_equal(p3d[("all", "particle_ones")].sum(), 32 ** 3)
+        assert_equal(p3d[("all", "particle_ones")].sum(), 32**3)
 
 
 def test_mixed_particle_mesh_profiles():

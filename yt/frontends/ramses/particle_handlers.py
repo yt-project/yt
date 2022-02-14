@@ -1,5 +1,6 @@
 import abc
 import os
+from typing import List, Optional, Set, Tuple, Type
 
 from yt.config import ytcfg
 from yt.funcs import mylog
@@ -8,7 +9,7 @@ from yt.utilities.cython_fortran_utils import FortranFile
 from .field_handlers import HandlerMixin
 from .io import _read_part_file_descriptor
 
-PARTICLE_HANDLERS = set()
+PARTICLE_HANDLERS: Set[Type["ParticleFileHandler"]] = set()
 
 
 def get_particle_handlers():
@@ -32,13 +33,15 @@ class ParticleFileHandler(abc.ABC, HandlerMixin):
     _file_type = "particle"
 
     # These properties are static properties
-    ptype = None  # The name to give to the particle type
-    fname = None  # The name of the file(s).
-    file_descriptor = None  # The name of the file descriptor (if any)
+    ptype: Optional[str] = None  # The name to give to the particle type
+    fname: Optional[str] = None  # The name of the file(s).
+    file_descriptor: Optional[str] = None  # The name of the file descriptor (if any)
 
-    attrs = None  # The attributes of the header
-    known_fields = None  # A list of tuple containing the field name and its type
-    config_field = None  # Name of the config section (if any)
+    attrs: Tuple[Tuple[str, int, str], ...]  # The attributes of the header
+    known_fields: Optional[
+        List[Tuple[str, str]]
+    ] = None  # A list of tuple containing the field name and its type
+    config_field: Optional[str] = None  # Name of the config section (if any)
 
     # These properties are computed dynamically
     field_offsets = None  # Mapping from field to offset in file

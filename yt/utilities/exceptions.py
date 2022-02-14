@@ -922,3 +922,8 @@ class GenerationInProgress(Exception):
     def __init__(self, fields):
         self.fields = fields
         super().__init__()
+
+
+class MountError(Exception):
+    def __init__(self, message):
+        self.message = message

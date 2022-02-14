@@ -3,11 +3,13 @@ import os
 import re
 from collections import namedtuple
 from stat import ST_CTIME
+from typing import Type
 
 import numpy as np
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
+from yt.fields.field_info_container import FieldInfoContainer
 from yt.funcs import mylog, setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.io_handler import io_registry
@@ -628,10 +630,9 @@ class BoxlibDataset(Dataset):
     """
 
     _index_class = BoxlibHierarchy
-    _field_info_class = BoxlibFieldInfo
+    _field_info_class: Type[FieldInfoContainer] = BoxlibFieldInfo
     _output_prefix = None
     _default_cparam_filename = "job_info"
-    _periodicity = (False, False, False)
 
     def __init__(
         self,
@@ -728,6 +729,7 @@ class BoxlibDataset(Dataset):
         Parses the parameter file and establishes the various
         dictionaries.
         """
+        self._periodicity = (False, False, False)
         self._parse_header_file()
         # Let's read the file
         hfn = os.path.join(self.output_dir, "Header")

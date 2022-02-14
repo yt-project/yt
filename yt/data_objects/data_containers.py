@@ -1,6 +1,8 @@
+import abc
 import weakref
 from collections import defaultdict
 from contextlib import contextmanager
+from typing import List, Tuple, Union
 
 import numpy as np
 
@@ -9,7 +11,7 @@ from yt.data_objects.profiles import create_profile
 from yt.fields.field_exceptions import NeedsGridType
 from yt.frontends.ytdata.utilities import save_as_dataset
 from yt.funcs import get_output_filename, is_sequence, iter_fields, mylog
-from yt.units.yt_array import YTArray, YTQuantity, uconcatenate
+from yt.units.yt_array import YTArray, YTQuantity, uconcatenate  # type: ignore
 from yt.utilities.amr_kdtree.api import AMRKDTree
 from yt.utilities.exceptions import (
     YTCouldNotGenerateField,
@@ -50,7 +52,7 @@ def _get_ipython_key_completion(ds):
     return tuple_keys + fnames
 
 
-class YTDataContainer:
+class YTDataContainer(abc.ABC):
     """
     Generic YTDataContainer container.  By itself, will attempt to
     generate field, read fields (method defined by derived classes)
@@ -59,13 +61,14 @@ class YTDataContainer:
 
     _chunk_info = None
     _num_ghost_zones = 0
-    _con_args = ()
+    _con_args: Tuple[str, ...] = ()
     _skip_add = False
-    _container_fields = ()
-    _tds_attrs = ()
-    _tds_fields = ()
+    _container_fields: Tuple[Union[str, Tuple[str, str]], ...] = ()
+    _tds_attrs: Tuple[str, ...] = ()
+    _tds_fields: Tuple[str, ...] = ()
     _field_cache = None
     _index = None
+    _key_fields: List[str]
 
     def __init__(self, ds, field_parameters):
         """
@@ -428,8 +431,6 @@ class YTDataContainer:
             yield obj
             obj.field_parameters = old_fp
 
-    _key_fields = None
-
     def write_out(self, filename, fields=None, format="%0.16e"):
         """Write out the YTDataContainer object in a text file.
 
@@ -468,9 +469,6 @@ class YTDataContainer:
         """
         if fields is None:
             fields = sorted(self.field_data.keys())
-
-        if self._key_fields is None:
-            raise ValueError
 
         field_order = [("index", k) for k in self._key_fields]
         diff_fields = [field for field in fields if field not in field_order]

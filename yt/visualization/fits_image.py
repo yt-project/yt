@@ -10,7 +10,7 @@ from yt.data_objects.image_array import ImageArray
 from yt.fields.derived_field import DerivedField
 from yt.funcs import fix_axis, is_sequence, iter_fields, mylog
 from yt.units import dimensions
-from yt.units.unit_object import Unit
+from yt.units.unit_object import Unit  # type: ignore
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.on_demand_imports import _astropy
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_root_only
@@ -381,7 +381,7 @@ class FITSImageData:
                         4.0
                         * np.pi
                         * self.mass_unit
-                        / (self.time_unit ** 2 * self.length_unit)
+                        / (self.time_unit**2 * self.length_unit)
                     )
                 else:
                     u = cgs_unit

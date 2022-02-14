@@ -269,7 +269,16 @@ class ImagePlotMPL(PlotMPL):
             # instances.  It is left as a historical note because we will
             # eventually need some form of it.
             # self.axes.set_extent(extent)
-            pass
+
+            # possibly related issue (operation order dependency)
+            # https://github.com/SciTools/cartopy/issues/1468
+
+            # in cartopy 0.19 (or 0.20), some intented behaviour changes produced an
+            # incompatibility here where default values for extent would lead to a crash.
+            # A solution is to let the transform object set the image extents internally
+            # see https://github.com/SciTools/cartopy/issues/1955
+            extent = None
+
         self.image = self.axes.imshow(
             data.to_ndarray(),
             origin="lower",
@@ -298,19 +307,16 @@ class ImagePlotMPL(PlotMPL):
                 else:
                     offset = 1
 
-                yticks = (
-                    list(
-                        -(
-                            10
-                            ** np.arange(
-                                np.floor(np.log10(-zmin)),
-                                np.rint(np.log10(cblinthresh)) - offset,
-                                -1,
-                            )
+                yticks = list(
+                    -(
+                        10
+                        ** np.arange(
+                            np.floor(np.log10(-zmin)),
+                            np.rint(np.log10(cblinthresh)) - offset,
+                            -1,
                         )
                     )
-                    + [zmax]
-                )
+                ) + [zmax]
             else:
                 yticks = (
                     list(
@@ -340,15 +346,17 @@ class ImagePlotMPL(PlotMPL):
     def _get_best_layout(self):
 
         # Ensure the figure size along the long axis is always equal to _figure_size
+        unit_aspect = getattr(self, "_unit_aspect", 1)
         if is_sequence(self._figure_size):
-            x_fig_size = self._figure_size[0]
-            y_fig_size = self._figure_size[1]
+            x_fig_size, y_fig_size = self._figure_size
+            y_fig_size *= unit_aspect
         else:
-            x_fig_size = self._figure_size
-            y_fig_size = self._figure_size / self._aspect
-
-        if hasattr(self, "_unit_aspect"):
-            y_fig_size = y_fig_size * self._unit_aspect
+            x_fig_size = y_fig_size = self._figure_size
+            scaling = self._aspect / unit_aspect
+            if scaling < 1:
+                x_fig_size *= scaling
+            else:
+                y_fig_size /= scaling
 
         if self._draw_colorbar:
             cb_size = self._cb_size

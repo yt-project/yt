@@ -4,7 +4,7 @@ import inspect
 import os
 import weakref
 from functools import wraps
-from typing import Optional
+from typing import Optional, Type
 
 import numpy as np
 from more_itertools import always_iterable
@@ -142,6 +142,10 @@ class DatasetSeries:
     ...     SlicePlot(ds, "x", ("gas", "density")).save()
 
     """
+    # this annotation should really be Optional[Type[Dataset]]
+    # but we cannot import the yt.data_objects.static_output.Dataset
+    # class here without creating a circular import for now
+    _dataset_cls: Optional[Type] = None
 
     def __init_subclass__(cls, *args, **kwargs):
         super().__init_subclass__(*args, **kwargs)
@@ -364,8 +368,6 @@ class DatasetSeries:
             filenames.append(fn)
         obj = cls(filenames, parallel=parallel)
         return obj
-
-    _dataset_cls = None
 
     def _load(self, output_fn, *, hint: Optional[str] = None, **kwargs):
         from yt.loaders import load

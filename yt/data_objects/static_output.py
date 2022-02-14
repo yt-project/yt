@@ -3,12 +3,14 @@ import functools
 import itertools
 import os
 import pickle
+import sys
 import time
 import warnings
 import weakref
 from collections import defaultdict
 from importlib.util import find_spec
 from stat import ST_CTIME
+from typing import DefaultDict, Optional, Tuple, Type, Union
 
 import numpy as np
 from unyt.exceptions import UnitConversionError, UnitParseError
@@ -32,11 +34,15 @@ from yt.geometry.coordinates.api import (
     SpectralCubeCoordinateHandler,
     SphericalCoordinateHandler,
 )
+from yt.geometry.geometry_handler import Index
 from yt.units import UnitContainer, _wrap_display_ytarray, dimensions
-from yt.units.dimensions import current_mks
-from yt.units.unit_object import Unit, define_unit
-from yt.units.unit_registry import UnitRegistry
-from yt.units.unit_systems import create_code_unit_system, unit_system_registry
+from yt.units.dimensions import current_mks  # type: ignore
+from yt.units.unit_object import Unit, define_unit  # type: ignore
+from yt.units.unit_registry import UnitRegistry  # type: ignore
+from yt.units.unit_systems import (  # type: ignore
+    create_code_unit_system,
+    unit_system_registry,
+)
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.exceptions import (
@@ -51,12 +57,18 @@ from yt.utilities.object_registries import data_object_registry, output_type_reg
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_root_only
 from yt.utilities.parameter_file_storage import NoParameterShelf, ParameterFileStore
 
+if sys.version_info >= (3, 9):
+    from collections.abc import MutableMapping
+else:
+    from typing import MutableMapping
 # We want to support the movie format in the future.
 # When such a thing comes to pass, I'll move all the stuff that is constant up
 # to here, and then have it instantiate EnzoDatasets as appropriate.
 
 
-_cached_datasets = weakref.WeakValueDictionary()
+_cached_datasets: MutableMapping[
+    Union[int, str], "Dataset"
+] = weakref.WeakValueDictionary()
 _ds_store = ParameterFileStore()
 
 
@@ -114,20 +126,20 @@ class Dataset(abc.ABC):
 
     default_fluid_type = "gas"
     default_field = ("gas", "density")
-    fluid_types = ("gas", "deposit", "index")
-    particle_types = ("io",)  # By default we have an 'all'
-    particle_types_raw = ("io",)
+    fluid_types: Tuple[str, ...] = ("gas", "deposit", "index")
+    particle_types: Optional[Tuple[str, ...]] = ("io",)  # By default we have an 'all'
+    particle_types_raw: Optional[Tuple[str, ...]] = ("io",)
     geometry = "cartesian"
     coordinates = None
     storage_filename = None
     particle_unions = None
     known_filters = None
-    _index_class = None
+    _index_class: Type[Index]
     field_units = None
     derived_field_list = requires_index("derived_field_list")
     fields = requires_index("fields")
     _instantiated = False
-    _unique_identifier = None
+    _unique_identifier: Optional[Union[str, int]] = None
     _particle_type_counts = None
     _proj_type = "quad_proj"
     _ionization_label_format = "roman_numeral"
@@ -211,18 +223,7 @@ class Dataset(abc.ABC):
         self.units_override = self.__class__._sanitize_units_override(units_override)
         self.default_species_fields = default_species_fields
 
-        # path stuff
-        filename = os.path.expanduser(filename)
-        self.parameter_filename = filename
-        self.basename = os.path.basename(filename)
-        self.directory = os.path.dirname(filename)
-        self.fullpath = os.path.abspath(self.directory)
-        self.backup_filename = self.parameter_filename + "_backup.gdf"
-        self.read_from_backup = False
-        if os.path.exists(self.backup_filename):
-            self.read_from_backup = True
-        if len(self.directory) == 0:
-            self.directory = "."
+        self._input_filename: str = os.fspath(filename)
 
         # to get the timing right, do this before the heavy lifting
         self._instantiated = time.time()
@@ -255,6 +256,41 @@ class Dataset(abc.ABC):
         except NoParameterShelf:
             pass
         self._setup_classes()
+
+    @property
+    def filename(self):
+        if self._input_filename.startswith("http"):
+            return self._input_filename
+        else:
+            return os.path.abspath(os.path.expanduser(self._input_filename))
+
+    @property
+    def parameter_filename(self):
+        # historic alias
+        return self.filename
+
+    @property
+    def basename(self):
+        return os.path.basename(self.filename)
+
+    @property
+    def directory(self):
+        return os.path.dirname(self.filename)
+
+    @property
+    def fullpath(self):
+        issue_deprecation_warning(
+            "the Dataset.fullpath attribute is now aliased to Dataset.directory, "
+            "and all path attributes are now absolute. "
+            "Please use the directory attribute instead",
+            since="4.1.0",
+        )
+        return self.directory
+
+    @property
+    def backup_filename(self):
+        name, _ext = os.path.splitext(self.filename)
+        return name + "_backup.gdf"
 
     @property
     def unique_identifier(self):
@@ -364,7 +400,7 @@ class Dataset(abc.ABC):
                 self._checksum = "nohashlib"
                 return self._checksum
 
-            def generate_file_md5(m, filename, blocksize=2 ** 20):
+            def generate_file_md5(m, filename, blocksize=2**20):
                 with open(filename, "rb") as f:
                     while True:
                         buf = f.read(blocksize)
@@ -598,7 +634,6 @@ class Dataset(abc.ABC):
                 if nfields == 0:
                     mylog.debug("zero common fields, skipping particle union 'nbody'")
         self.field_info.setup_extra_union_fields()
-        mylog.debug("Loading field plugins.")
         self.field_info.load_all_plugins(self.default_fluid_type)
         deps, unloaded = self.field_info.check_derived_fields()
         self.field_dependencies.update(deps)
@@ -1126,7 +1161,7 @@ class Dataset(abc.ABC):
                 # The following modification ensures that we get the conversion to
                 # cgs correct
                 self.unit_registry.modify(
-                    "code_magnetic", self.magnetic_unit.value * 0.1 ** 0.5
+                    "code_magnetic", self.magnetic_unit.value * 0.1**0.5
                 )
 
         us = create_code_unit_system(
@@ -1166,7 +1201,7 @@ class Dataset(abc.ABC):
             self.unit_registry.add("code_magnetic", 1.0, dimensions.magnetic_field)
         else:
             self.unit_registry.add(
-                "code_magnetic", 0.1 ** 0.5, dimensions.magnetic_field_cgs
+                "code_magnetic", 0.1**0.5, dimensions.magnetic_field_cgs
             )
         self.unit_registry.add("code_temperature", 1.0, dimensions.temperature)
         self.unit_registry.add("code_pressure", 0.1, dimensions.pressure)
@@ -1266,9 +1301,9 @@ class Dataset(abc.ABC):
         )
         temperature_unit = getattr(self, "temperature_unit", 1.0)
         density_unit = getattr(
-            self, "density_unit", self.mass_unit / self.length_unit ** 3
+            self, "density_unit", self.mass_unit / self.length_unit**3
         )
-        specific_energy_unit = getattr(self, "specific_energy_unit", vel_unit ** 2)
+        specific_energy_unit = getattr(self, "specific_energy_unit", vel_unit**2)
         self.unit_registry.modify("code_velocity", vel_unit)
         self.unit_registry.modify("code_temperature", temperature_unit)
         self.unit_registry.modify("code_pressure", pressure_unit)
@@ -1816,7 +1851,14 @@ def _reconstruct_ds(*args, **kwargs):
 
 
 @functools.total_ordering
-class ParticleFile:
+class ParticleFile(abc.ABC):
+    filename: str
+    file_id: int
+
+    start: Optional[int] = None
+    end: Optional[int] = None
+    total_particles: Optional[DefaultDict[str, int]] = None
+
     def __init__(self, ds, io, filename, file_id, range=None):
         self.ds = ds
         self.io = weakref.proxy(io)

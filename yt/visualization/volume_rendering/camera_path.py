@@ -77,7 +77,7 @@ class Keyframes:
         else:
             Nz = 1
             ndims = 2
-        if Nx * Ny * Nz != Nx ** ndims:
+        if Nx * Ny * Nz != Nx**ndims:
             print("Need Nx (%d) == Ny (%d) == Nz (%d)" % (Nx, Ny, Nz))
             raise RuntimeError
         self.nframes = Nx

@@ -1,6 +1,6 @@
 import numpy as np
 
-from yt.units.unit_object import Unit
+from yt.units.unit_object import Unit  # type: ignore
 from yt.utilities.chemical_formulas import compute_mu
 from yt.utilities.lib.misc_utilities import obtain_relative_velocity_vector
 
@@ -105,7 +105,7 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
 
     def _kinetic_energy_density(field, data):
         v = obtain_relative_velocity_vector(data)
-        return 0.5 * data[ftype, "density"] * (v ** 2).sum(axis=0)
+        return 0.5 * data[ftype, "density"] * (v**2).sum(axis=0)
 
     registry.add_field(
         (ftype, "kinetic_energy_density"),

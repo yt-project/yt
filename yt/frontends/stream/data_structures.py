@@ -4,6 +4,7 @@ import uuid
 import weakref
 from itertools import chain, product, repeat
 from numbers import Number as numeric_type
+from typing import Type
 
 import numpy as np
 from more_itertools import always_iterable
@@ -19,7 +20,7 @@ from yt.data_objects.particle_unions import ParticleUnion
 from yt.data_objects.static_output import Dataset, ParticleFile
 from yt.data_objects.unions import MeshUnion
 from yt.frontends.sph.data_structures import SPHParticleIndex
-from yt.geometry.geometry_handler import YTDataChunk
+from yt.geometry.geometry_handler import Index, YTDataChunk
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.geometry.oct_container import OctreeContainer
 from yt.geometry.oct_geometry_handler import OctreeIndex
@@ -262,7 +263,7 @@ class StreamHierarchy(GridIndex):
 
 
 class StreamDataset(Dataset):
-    _index_class = StreamHierarchy
+    _index_class: Type[Index] = StreamHierarchy
     _field_info_class = StreamFieldInfo
     _dataset_type = "stream"
 
@@ -290,8 +291,11 @@ class StreamDataset(Dataset):
             default_species_fields=default_species_fields,
         )
 
+    @property
+    def filename(self):
+        return self.stream_handler.name
+
     def _parse_parameter_file(self):
-        self.basename = self.stream_handler.name
         self.parameters["CurrentTimeIdentifier"] = time.time()
         self.unique_identifier = self.parameters["CurrentTimeIdentifier"]
         self.domain_left_edge = self.stream_handler.domain_left_edge.copy()
@@ -719,7 +723,7 @@ class StreamOctreeSubset(OctreeSubset):
         oct_handler = self.oct_handler
         ndim = self.ds.dimensionality
         cell_count = (
-            selector.count_octs(self.oct_handler, self.domain_id) * self.nz ** ndim
+            selector.count_octs(self.oct_handler, self.domain_id) * self.nz**ndim
         )
 
         gz_cache = getattr(self, "_ghost_zone_cache", None)

@@ -1,7 +1,7 @@
 import numpy as np
 
 from yt.funcs import get_pbar
-from yt.units.yt_array import uconcatenate
+from yt.units.yt_array import uconcatenate  # type: ignore
 from yt.utilities.lib.particle_mesh_operations import CICSample_3
 
 

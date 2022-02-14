@@ -2,6 +2,7 @@ import glob
 import os
 import struct
 import weakref
+from typing import Type
 
 import numpy as np
 
@@ -28,7 +29,7 @@ from yt.frontends.art.io import (
     b2t,
 )
 from yt.funcs import mylog, setdefaultattr
-from yt.geometry.geometry_handler import YTDataChunk
+from yt.geometry.geometry_handler import Index, YTDataChunk
 from yt.geometry.oct_container import ARTOctreeContainer
 from yt.geometry.oct_geometry_handler import OctreeIndex
 from yt.geometry.particle_geometry_handler import ParticleIndex
@@ -51,7 +52,7 @@ class ARTIndex(OctreeIndex):
         """
         # Overloaded
         ds = self.dataset
-        return (ds.domain_width / ds.domain_dimensions / (2 ** self.max_level)).min()
+        return (ds.domain_width / ds.domain_dimensions / (2**self.max_level)).min()
 
     def _initialize_oct_handler(self):
         """
@@ -132,7 +133,7 @@ class ARTIndex(OctreeIndex):
 
 
 class ARTDataset(Dataset):
-    _index_class = ARTIndex
+    _index_class: Type[Index] = ARTIndex
     _field_info_class = ARTFieldInfo
 
     def __init__(
@@ -163,7 +164,6 @@ class ARTDataset(Dataset):
         self._file_particle_data = file_particle_data
         self._file_particle_stars = file_particle_stars
         self._find_files(filename)
-        self.parameter_filename = filename
         self.skip_particles = skip_particles
         self.skip_stars = skip_stars
         self.limit_level = limit_level
@@ -229,8 +229,8 @@ class ARTDataset(Dataset):
 
         r0 = boxh / ng
         v0 = 50.0 * r0 * np.sqrt(Om0)
-        rho0 = 2.776e11 * hubble ** 2.0 * Om0
-        aM0 = rho0 * (boxh / hubble) ** 3.0 / ng ** 3.0
+        rho0 = 2.776e11 * hubble**2.0 * Om0
+        aM0 = rho0 * (boxh / hubble) ** 3.0 / ng**3.0
         velocity = v0 / aexpn * 1.0e5  # proper cm/s
         mass = aM0 * 1.98892e33
 
@@ -388,7 +388,6 @@ class ARTDataset(Dataset):
                 return True
             except Exception:
                 return False
-        return False
 
 
 class ARTParticleFile(ParticleFile):
@@ -449,7 +448,6 @@ class DarkMatterARTDataset(ARTDataset):
         self._file_particle = filename
         self._file_particle_header = file_particle_header
         self._find_files(filename)
-        self.parameter_filename = filename
         self.skip_stars = skip_stars
         self.spread_age = spread_age
         Dataset.__init__(
@@ -508,8 +506,8 @@ class DarkMatterARTDataset(ARTDataset):
         hubble = self.parameters["hubble"]
 
         r0 = boxh / ng
-        rho0 = 2.776e11 * hubble ** 2.0 * Om0
-        aM0 = rho0 * (boxh / hubble) ** 3.0 / ng ** 3.0
+        rho0 = 2.776e11 * hubble**2.0 * Om0
+        aM0 = rho0 * (boxh / hubble) ** 3.0 / ng**3.0
         velocity = 100.0 * r0 / aexpn * 1.0e5  # proper cm/s
         mass = aM0 * 1.98892e33
 
@@ -721,7 +719,6 @@ class DarkMatterARTDataset(ARTDataset):
                 return True
             except Exception:
                 return False
-        return False
 
 
 class ARTDomainSubset(OctreeSubset):
@@ -927,7 +924,7 @@ class ARTDomainFile:
         assert oct_handler.nocts == root_fc.shape[0]
         mylog.debug(
             "Added %07i octs on level %02i, cumulative is %07i",
-            root_octs_side ** 3,
+            root_octs_side**3,
             0,
             oct_handler.nocts,
         )

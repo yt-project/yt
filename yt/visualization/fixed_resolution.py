@@ -7,7 +7,10 @@ from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.utilities import save_as_dataset
 from yt.funcs import get_output_filename, iter_fields, mylog
 from yt.loaders import load_uniform_grid
-from yt.utilities.lib.api import CICDeposit_2, add_points_to_greyscale_image
+from yt.utilities.lib.api import (  # type: ignore
+    CICDeposit_2,
+    add_points_to_greyscale_image,
+)
 from yt.utilities.lib.pixelization_routines import pixelize_cylinder
 from yt.utilities.on_demand_imports import _h5py as h5py
 
@@ -500,10 +503,7 @@ class FixedResolutionBuffer:
         return rv
 
     def setup_filters(self):
-        ignored = ["FixedResolutionBufferFilter"]
         for key in filter_registry:
-            if key in ignored:
-                continue
             filtername = filter_registry[key]._filter_name
 
             # We need to wrap to create a closure so that

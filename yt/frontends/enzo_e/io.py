@@ -4,8 +4,6 @@ from yt.utilities.exceptions import YTException
 from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.on_demand_imports import _h5py as h5py
 
-_particle_position_names = {}
-
 
 class EnzoEIOHandler(BaseIOHandler):
 
@@ -67,7 +65,10 @@ class EnzoEIOHandler(BaseIOHandler):
         return fields, ptypes
 
     def _read_particle_coords(self, chunks, ptf):
-        yield from self._read_particle_fields(chunks, ptf, None)
+        yield from (
+            (ptype, xyz, 0.0)
+            for ptype, xyz in self._read_particle_fields(chunks, ptf, None)
+        )
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)

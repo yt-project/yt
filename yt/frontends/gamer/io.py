@@ -37,7 +37,7 @@ class IOHandlerGAMER(BaseIOHandler):
         self._field_dtype = "float64"  # fixed even when FLOAT8 is off
         self._particle_handle = ds._particle_handle
         self.patch_size = ds.parameters["PatchSize"] * ds.refine_by
-        self.pgroup = ds.refine_by ** 3  # number of patches in a patch group
+        self.pgroup = ds.refine_by**3  # number of patches in a patch group
 
     def _read_particle_coords(self, chunks, ptf):
         chunks = list(chunks)  # generator --> list
@@ -59,7 +59,7 @@ class IOHandlerGAMER(BaseIOHandler):
                 x = np.asarray(par_posx[start:end], dtype=self._field_dtype)
                 y = np.asarray(par_posy[start:end], dtype=self._field_dtype)
                 z = np.asarray(par_posz[start:end], dtype=self._field_dtype)
-                yield ptype, (x, y, z)
+                yield ptype, (x, y, z), 0.0
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)  # generator --> list

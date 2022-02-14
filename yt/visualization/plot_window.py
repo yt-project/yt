@@ -2,7 +2,7 @@ import abc
 from collections import defaultdict
 from functools import wraps
 from numbers import Number
-from typing import Union
+from typing import List, Optional, Type, Union
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -10,14 +10,16 @@ import numpy as np
 from more_itertools import always_iterable
 from mpl_toolkits.axes_grid1 import ImageGrid
 from packaging.version import Version
+from pyparsing import ParseFatalException
 from unyt.exceptions import UnitConversionError
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
 from yt.funcs import fix_axis, fix_unitary, is_sequence, iter_fields, mylog, obj_length
-from yt.units.unit_object import Unit
-from yt.units.unit_registry import UnitParseError
+from yt.units.unit_object import Unit  # type: ignore
+from yt.units.unit_registry import UnitParseError  # type: ignore
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import (
     YTCannotParseUnitDisplayName,
@@ -30,6 +32,7 @@ from yt.utilities.exceptions import (
 from yt.utilities.math_utils import ortho_find
 from yt.utilities.orientation import Orientation
 
+from ._commons import MPL_VERSION
 from .base_plot_types import CallbackWrapper, ImagePlotMPL
 from .fixed_resolution import (
     FixedResolutionBuffer,
@@ -63,16 +66,6 @@ else:
         # drop this conditional and call the builtin zip
         # function directly where due
         return zip(*args, strict=True)
-
-
-MPL_VERSION = Version(matplotlib.__version__)
-
-# Some magic for dealing with pyparsing being included or not
-# included in matplotlib (not in gentoo, yes in everything else)
-try:
-    from matplotlib.pyparsing_py3 import ParseFatalException
-except ImportError:
-    from pyparsing import ParseFatalException
 
 
 def get_window_parameters(axis, center, width, ds):
@@ -270,26 +263,22 @@ class PlotWindow(ImagePlotContainer):
 
     _frb = None
 
-    def frb():
-        doc = "The frb property."
+    @property
+    def frb(self):
+        if self._frb is None or not self._data_valid:
+            self._recreate_frb()
+        return self._frb
 
-        def fget(self):
-            if self._frb is None or not self._data_valid:
-                self._recreate_frb()
-            return self._frb
+    @frb.setter
+    def frb(self, value):
+        self._frb = value
+        self._data_valid = True
 
-        def fset(self, value):
-            self._frb = value
-            self._data_valid = True
-
-        def fdel(self):
-            del self._frb
-            self._frb = None
-            self._data_valid = False
-
-        return locals()
-
-    frb = property(**frb())
+    @frb.deleter
+    def frb(self):
+        del self._frb
+        self._frb = None
+        self._data_valid = False
 
     def _recreate_frb(self):
         old_fields = None
@@ -849,8 +838,8 @@ class PWViewerMPL(PlotWindow):
     """Viewer using matplotlib as a backend via the WindowPlotMPL."""
 
     _current_field = None
-    _frb_generator = None
-    _plot_type = None
+    _frb_generator: Optional[Type[FixedResolutionBuffer]] = None
+    _plot_type: Optional[str] = None
     _data_valid = False
 
     def __init__(self, *args, **kwargs):
@@ -1001,12 +990,17 @@ class PWViewerMPL(PlotWindow):
                 unit_x = unit_y = unit
                 coords = self.ds.coordinates
                 if hasattr(coords, "image_units"):
-                    # this should detect angular coordinates
+                    # check for special cases defined in
+                    # non cartesian CoordinateHandler subclasses
                     image_units = coords.image_units[coords.axis_id[axis_index]]
                     if image_units[0] in ("deg", "rad"):
                         unit_x = "code_length"
+                    elif image_units[0] == 1:
+                        unit_x = "dimensionless"
                     if image_units[1] in ("deg", "rad"):
                         unit_y = "code_length"
+                    elif image_units[1] == 1:
+                        unit_y = "dimensionless"
             else:
                 (unit_x, unit_y) = self._axes_unit_names
 
@@ -1017,10 +1011,22 @@ class PWViewerMPL(PlotWindow):
                 self.aspect = float(
                     (self.ds.quan(1.0, unit_y) / self.ds.quan(1.0, unit_x)).in_cgs()
                 )
-            extentx = [(self.xlim[i] - xc).in_units(unit_x) for i in (0, 1)]
-            extenty = [(self.ylim[i] - yc).in_units(unit_y) for i in (0, 1)]
+            extentx = (self.xlim - xc)[:2]
+            extenty = (self.ylim - yc)[:2]
 
-            extent = extentx + extenty
+            # extentx/y arrays inherit units from xlim and ylim attributes
+            # and these attributes are always length even for angular and
+            # dimensionless axes so we need to stip out units for consistency
+            if unit_x == "dimensionless":
+                extentx = extentx / extentx.units
+            else:
+                extentx.convert_to_units(unit_x)
+            if unit_y == "dimensionless":
+                extenty = extenty / extenty.units
+            else:
+                extenty.convert_to_units(unit_y)
+
+            extent = [*extentx, *extenty]
 
             if f in self.plots.keys():
                 zlim = (self.plots[f].zmin, self.plots[f].zmax)
@@ -1048,7 +1054,11 @@ class PWViewerMPL(PlotWindow):
                         f"Min = {np.nanmin(image)}, Max = {np.nanmax(image)}."
                     )
                     use_symlog = True
-                elif np.nanmax(image) > 0.0 and np.nanmin(image) == 0:
+                elif (
+                    (Version("3.3") <= MPL_VERSION < Version("3.5"))
+                    and np.nanmax(image) > 0.0
+                    and np.nanmin(image) == 0
+                ):
                     # normally, a LogNorm scaling would still be OK here because
                     # LogNorm will mask 0 values when calculating vmin. But
                     # due to a bug in matplotlib's imshow, if the data range
@@ -1196,7 +1206,7 @@ class PWViewerMPL(PlotWindow):
             try:
                 parser.parse(colorbar_label)
             except ParseFatalException as err:
-                raise YTCannotParseUnitDisplayName(f, colorbar_label, str(err))
+                raise YTCannotParseUnitDisplayName(f, colorbar_label, str(err)) from err
 
             self.plots[f].cb.set_label(colorbar_label)
 
@@ -1487,7 +1497,7 @@ class NormalPlot(abc.ABC):
                 )
             return normal
 
-        if isinstance(normal, (int, np.integer)):
+        if isinstance(normal, int):
             if normal not in (0, 1, 2):
                 raise ValueError(
                     f"{normal} is not a valid axis identifier. Expected either 0, 1, or 2."
@@ -1520,6 +1530,33 @@ class NormalPlot(abc.ABC):
             return axis_names[nonzero_idx[0]]
 
         return retv
+
+    @staticmethod
+    def _validate_init_args(*, normal, axis, fields) -> None:
+        # TODO: remove this method in yt 4.2
+
+        if axis is not None:
+            issue_deprecation_warning(
+                "Argument 'axis' is a deprecated alias for 'normal'.",
+                since="4.1.0",
+                removal="4.2.0",
+            )
+            if normal is not None:
+                raise TypeError("Received incompatible arguments 'axis' and 'normal'")
+            normal = axis
+
+        if normal is fields is None:
+            raise TypeError(
+                "missing 2 required positional arguments: 'normal' and 'fields'"
+            )
+
+        if fields is None:
+            raise TypeError("missing required positional argument: 'fields'")
+
+        if normal is None:
+            raise TypeError("missing required positional argument: 'normal'")
+
+        return normal
 
 
 class SlicePlot(NormalPlot):
@@ -1661,9 +1698,16 @@ class SlicePlot(NormalPlot):
 
     """
 
-    def __new__(
-        cls, ds, normal, fields, *args, **kwargs
+    # ignoring type check here, because mypy doesn't allow __new__ methods to
+    # return instances of subclasses. The design we use here is however based
+    # on the pathlib.Path class from the standard library
+    # https://github.com/python/mypy/issues/1020
+    def __new__(  # type: ignore
+        cls, ds, normal=None, fields=None, *args, axis=None, **kwargs
     ) -> Union["AxisAlignedSlicePlot", "OffAxisSlicePlot"]:
+        # TODO: in yt 4.2, remove default values for normal and fields, drop axis kwarg
+        normal = cls._validate_init_args(normal=normal, axis=axis, fields=fields)
+
         if cls is SlicePlot:
             normal = cls.sanitize_normal_vector(ds, normal)
             if isinstance(normal, str):
@@ -1718,9 +1762,16 @@ class ProjectionPlot(NormalPlot):
 
     """
 
-    def __new__(
-        cls, ds, normal, fields, *args, **kwargs
+    # ignoring type check here, because mypy doesn't allow __new__ methods to
+    # return instances of subclasses. The design we use here is however based
+    # on the pathlib.Path class from the standard library
+    # https://github.com/python/mypy/issues/1020
+    def __new__(  # type: ignore
+        cls, ds, normal=None, fields=None, *args, axis=None, **kwargs
     ) -> Union["AxisAlignedProjectionPlot", "OffAxisProjectionPlot"]:
+        # TODO: in yt 4.2, remove default values for normal and fields, drop axis kwarg
+        normal = cls._validate_init_args(normal=normal, axis=axis, fields=fields)
+
         if cls is ProjectionPlot:
             normal = cls.sanitize_normal_vector(ds, normal)
             if isinstance(normal, str):
@@ -1746,7 +1797,7 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
     ds : `Dataset`
          This is the dataset object corresponding to the
          simulation output to be plotted.
-    axis : int or one of 'x', 'y', 'z'
+    normal : int or one of 'x', 'y', 'z'
          An int corresponding to the axis to slice along (0=x, 1=y, 2=z)
          or the axis name itself
     fields : string
@@ -1853,8 +1904,8 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
     def __init__(
         self,
         ds,
-        axis,
-        fields,
+        normal=None,
+        fields=None,
         center="c",
         width=None,
         axes_unit=None,
@@ -1868,7 +1919,9 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
         buff_size=(800, 800),
         *,
         north_vector=None,
+        axis=None,
     ):
+        # TODO: in yt 4.2, remove default values for normal and fields, drop axis kwarg
         if north_vector is not None:
             # this kwarg exists only for symmetry reasons with OffAxisSlicePlot
             mylog.warning(
@@ -1877,8 +1930,14 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
             )
             del north_vector
 
+        normal = self._validate_init_args(
+            normal=normal,
+            axis=axis,
+            fields=fields,
+        )
+        normal = self.sanitize_normal_vector(ds, normal)
         # this will handle time series data and controllers
-        axis = fix_axis(axis, ds)
+        axis = fix_axis(normal, ds)
         (bounds, center, display_center) = get_window_parameters(
             axis, center, width, ds
         )
@@ -1941,7 +2000,7 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
     ds : `Dataset`
         This is the dataset object corresponding to the
         simulation output to be plotted.
-    axis : int or one of 'x', 'y', 'z'
+    normal : int or one of 'x', 'y', 'z'
          An int corresponding to the axis to slice along (0=x, 1=y, 2=z)
          or the axis name itself
     fields : string
@@ -2076,8 +2135,8 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
     def __init__(
         self,
         ds,
-        axis,
-        fields,
+        normal=None,
+        fields=None,
         center="c",
         width=None,
         axes_unit=None,
@@ -2092,8 +2151,14 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
         window_size=8.0,
         buff_size=(800, 800),
         aspect=None,
+        *,
+        axis=None,
     ):
-        axis = fix_axis(axis, ds)
+        # TODO: in yt 4.2, remove default values for normal and fields, drop axis kwarg
+        normal = self._validate_init_args(normal=normal, fields=fields, axis=axis)
+        normal = self.sanitize_normal_vector(ds, normal)
+
+        axis = fix_axis(normal, ds)
         if ds.geometry in (
             "spherical",
             "cylindrical",
@@ -2300,7 +2365,7 @@ class OffAxisSlicePlot(SlicePlot, PWViewerMPL):
 
 class OffAxisProjectionDummyDataSource:
     _type_name = "proj"
-    _key_fields = []
+    _key_fields: List[str] = []
 
     def __init__(
         self,

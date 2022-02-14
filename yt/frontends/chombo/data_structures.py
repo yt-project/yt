@@ -1,11 +1,13 @@
 import os
 import re
 import weakref
+from typing import Type
 
 import numpy as np
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
+from yt.fields.field_info_container import FieldInfoContainer
 from yt.frontends.boxlib.misc import BoxlibReadParticleFileMixin
 from yt.funcs import mylog, setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
@@ -91,7 +93,7 @@ class ChomboHierarchy(GridIndex):
         self.dataset = weakref.proxy(ds)
         # for now, the index file is the dataset!
         self.index_filename = os.path.abspath(self.dataset.parameter_filename)
-        self.directory = ds.fullpath
+        self.directory = ds.directory
         self._handle = ds._handle
 
         self._levels = [key for key in self._handle.keys() if key.startswith("level")]
@@ -237,7 +239,7 @@ class ChomboHierarchy(GridIndex):
 
 class ChomboDataset(Dataset):
     _index_class = ChomboHierarchy
-    _field_info_class = ChomboFieldInfo
+    _field_info_class: Type[FieldInfoContainer] = ChomboFieldInfo
 
     def __init__(
         self,

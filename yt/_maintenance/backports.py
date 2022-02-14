@@ -21,7 +21,7 @@
 import sys
 
 if sys.version_info < (3, 8):
-    from _thread import RLock
+    from _thread import RLock  # type: ignore
     from typing import List
 
     GenericAlias = type(List[int])
@@ -77,7 +77,6 @@ if sys.version_info < (3, 8):
             return val
 
         __class_getitem__ = classmethod(GenericAlias)
-
 
 else:
     pass

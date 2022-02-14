@@ -494,11 +494,9 @@ class AthenaDataset(Dataset):
             unit_system=unit_system,
             default_species_fields=default_species_fields,
         )
-        self.filename = filename
         if storage_filename is None:
-            storage_filename = f"{filename.split('/')[-1]}.yt"
+            storage_filename = self.basename + ".yt"
         self.storage_filename = storage_filename
-        self.backup_filename = self.filename[:-4] + "_backup.gdf"
         # Unfortunately we now have to mandate that the index gets
         # instantiated so that we can make sure we have the correct left
         # and right domain edges.
@@ -518,7 +516,7 @@ class AthenaDataset(Dataset):
             mylog.warning("Assuming 1.0 = 1.0 %s", cgs)
             setattr(self, f"{unit}_unit", self.quan(1.0, cgs))
         self.magnetic_unit = np.sqrt(
-            4 * np.pi * self.mass_unit / (self.time_unit ** 2 * self.length_unit)
+            4 * np.pi * self.mass_unit / (self.time_unit**2 * self.length_unit)
         )
         self.magnetic_unit.convert_to_units("gauss")
         self.velocity_unit = self.length_unit / self.time_unit

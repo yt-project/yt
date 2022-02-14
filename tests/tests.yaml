@@ -68,7 +68,7 @@ answer_tests:
     - yt/frontends/gadget/tests/test_outputs.py:test_bigendian_field_access
     - yt/frontends/gadget/tests/test_outputs.py:test_magneticum
 
-  local_gamer_009:
+  local_gamer_010:  # PR 3401
     - yt/frontends/gamer/tests/test_outputs.py:test_jet
     - yt/frontends/gamer/tests/test_outputs.py:test_psiDM
     - yt/frontends/gamer/tests/test_outputs.py:test_plummer
@@ -164,13 +164,13 @@ answer_tests:
     - yt/frontends/ytdata/tests/test_old_outputs.py:test_old_profile_data
     - yt/frontends/ytdata/tests/test_old_outputs.py:test_old_nonspatial_data
 
-  local_axialpix_007:
+  local_axialpix_008: # PR 3628
     - yt/geometry/coordinates/tests/test_axial_pixelization.py:test_axial_pixelization
 
   local_cylindrical_background_011:  # PR 3670
     - yt/geometry/coordinates/tests/test_cylindrical_coordinates.py:test_noise_plots
 
-  local_spherical_background_004:  # PR 3670
+  local_spherical_background_005:  # PR 3633
     - yt/geometry/coordinates/tests/test_spherical_coordinates.py:test_noise_plots
 
   #local_particle_trajectory_001:
@@ -193,8 +193,11 @@ other_tests:
      - "--ignore-files=test_save.py"
      - "--ignore-files=test_registration.py"
      - "--ignore-files=test_invalid_origin.py"
+     - "--ignore-files=test_load_archive\\.py"
      - "--ignore-files=test_outputs_pytest\\.py"
+     - "--ignore-files=test_normal_plot_api\\.py"
      - "--exclude-test=yt.frontends.gdf.tests.test_outputs.TestGDF"
      - "--exclude-test=yt.frontends.adaptahop.tests.test_outputs"
+     - "--exclude-test=yt.frontends.stream.tests.test_stream_particles.test_stream_non_cartesian_particles"
   cookbook:
      - 'doc/source/cookbook/tests/test_cookbook.py'
