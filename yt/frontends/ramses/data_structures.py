@@ -1,6 +1,7 @@
 import os
 import weakref
 from collections import defaultdict
+from itertools import product
 from pathlib import Path
 
 import numpy as np
@@ -40,20 +41,21 @@ class RAMSESFileSanitizer:
     info_fname = None  # Path | None: path to the info file
     group_name = None  # str | None: name of the first group folder (if any)
 
-    def __init__(self, filename, resolve_symlinks=True):
+    def __init__(self, filename):
 
-        filename = Path(filename)
-        # Resolve so that it works with symlinks
-        if resolve_symlinks:
-            filename = Path(filename).resolve()
+        # Make the resolve optional, so that it works with symlinks
+        paths_to_try = (Path(filename), Path(filename).resolve())
 
         self.original_filename = filename
 
         self.output_dir = None
         self.info_fname = None
 
-        for check_fun in (self.test_with_standard_file, self.test_with_folder_name):
-            ok, output_dir, info_fname = check_fun(filename)
+        check_functions = (self.test_with_standard_file, self.test_with_folder_name)
+
+        # Loop on both the functions and the tested paths
+        for path, check_fun in product(paths_to_try, check_functions):
+            ok, output_dir, info_fname = check_fun(path)
             if ok:
                 break
 
@@ -659,8 +661,6 @@ class RAMSESDataset(Dataset):
         max_level=None,
         max_level_convention=None,
         default_species_fields=None,
-        *,
-        resolve_symlinks=True,
     ):
         # Here we want to initiate a traceback, if the reader is not built.
         if isinstance(fields, str):
@@ -677,10 +677,6 @@ class RAMSESDataset(Dataset):
         cosmological:
         If set to None, automatically detect cosmological simulation.
         If a boolean, force its value.
-
-        resolve_symlinks:
-        If set to True, resolves the symlinks in the filenames.
-        Default value is True.
         """
 
         self._fields_in_file = fields
@@ -694,7 +690,7 @@ class RAMSESDataset(Dataset):
             max_level, max_level_convention
         )
 
-        file_handler = RAMSESFileSanitizer(filename, resolve_symlinks=resolve_symlinks)
+        file_handler = RAMSESFileSanitizer(filename)
 
         # This should not happen, but let's check nonetheless.
         if not file_handler.is_valid:
@@ -991,5 +987,5 @@ class RAMSESDataset(Dataset):
             self.parameters["namelist"] = nml
 
     @classmethod
-    def _is_valid(cls, filename, *args, resolve_symlinks=True, **kwargs):
-        return RAMSESFileSanitizer(filename, resolve_symlinks).is_valid
+    def _is_valid(cls, filename, *args, **kwargs):
+        return RAMSESFileSanitizer(filename).is_valid
