@@ -17,6 +17,7 @@ from more_itertools import always_iterable
 from numpy.random import RandomState
 from unyt.exceptions import UnitOperationError
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.funcs import is_sequence
 from yt.loaders import load
@@ -1191,6 +1192,12 @@ def run_nose(
     call_pdb=False,
     module=None,
 ):
+    issue_deprecation_warning(
+        "yt.run_nose (aka yt.testing.run_nose) is deprecated. "
+        "Please do not rely on this function as it will be removed "
+        "in the process of migrating yt tests from nose to pytest.",
+        since="4.1.0",
+    )
     import sys
 
     from yt.utilities.logger import ytLogger as mylog
