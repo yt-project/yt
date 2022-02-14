@@ -29,6 +29,7 @@ repos:
       args: [--branch, main]
     - id: check-shebang-scripts-are-executable
     - id: check-executables-have-shebangs
+    - id: check-yaml
 -   repo: https://github.com/asottile/pyupgrade
     rev: v2.31.0
     hooks:
