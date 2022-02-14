@@ -223,18 +223,7 @@ class Dataset(abc.ABC):
         self.units_override = self.__class__._sanitize_units_override(units_override)
         self.default_species_fields = default_species_fields
 
-        # path stuff
-        filename = os.path.expanduser(filename)
-        self.parameter_filename = filename
-        self.basename = os.path.basename(filename)
-        self.directory = os.path.dirname(filename)
-        self.fullpath = os.path.abspath(self.directory)
-        self.backup_filename = self.parameter_filename + "_backup.gdf"
-        self.read_from_backup = False
-        if os.path.exists(self.backup_filename):
-            self.read_from_backup = True
-        if len(self.directory) == 0:
-            self.directory = "."
+        self._input_filename: str = os.fspath(filename)
 
         # to get the timing right, do this before the heavy lifting
         self._instantiated = time.time()
@@ -267,6 +256,41 @@ class Dataset(abc.ABC):
         except NoParameterShelf:
             pass
         self._setup_classes()
+
+    @property
+    def filename(self):
+        if self._input_filename.startswith("http"):
+            return self._input_filename
+        else:
+            return os.path.abspath(os.path.expanduser(self._input_filename))
+
+    @property
+    def parameter_filename(self):
+        # historic alias
+        return self.filename
+
+    @property
+    def basename(self):
+        return os.path.basename(self.filename)
+
+    @property
+    def directory(self):
+        return os.path.dirname(self.filename)
+
+    @property
+    def fullpath(self):
+        issue_deprecation_warning(
+            "the Dataset.fullpath attribute is now aliased to Dataset.directory, "
+            "and all path attributes are now absolute. "
+            "Please use the directory attribute instead",
+            since="4.1.0",
+        )
+        return self.directory
+
+    @property
+    def backup_filename(self):
+        name, _ext = os.path.splitext(self.filename)
+        return name + "_backup.gdf"
 
     @property
     def unique_identifier(self):
