@@ -27,6 +27,7 @@ repos:
     - id: end-of-file-fixer
     - id: no-commit-to-branch
       args: [--branch, main]
+    - id: check-yaml
 -   repo: https://github.com/asottile/pyupgrade
     rev: v2.19.4
     hooks:
