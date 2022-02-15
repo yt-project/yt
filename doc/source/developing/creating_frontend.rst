@@ -32,8 +32,8 @@ If you are interested in adding a new code, be sure to drop us a line on
 `yt-dev <https://mail.python.org/archives/list/yt-dev@python.org/>`_!
 
 
-Boostraping a new frontend
---------------------------
+Bootstrapping a new frontend
+----------------------------
 
 To get started
 
