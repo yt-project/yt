@@ -113,7 +113,7 @@ class RAMSESFileSanitizer:
         # Three cases for path
         # 1. path == output_XXXXX and group_00001 exists
         # 2. path == output_XXXXX and group_00001 does not exist
-        # 2. path == output_XXXXX/group_YYYYYY
+        # 3. path == output_XXXXX/group_YYYYYY
         iout_match = OUTPUT_DIR_RE.match(path.name)
         if iout_match:
             group_dir = path / "group_00001"
