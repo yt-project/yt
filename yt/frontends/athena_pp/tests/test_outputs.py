@@ -1,20 +1,16 @@
-import numpy as np
-
 from yt.frontends.athena_pp.api import AthenaPPDataset
 from yt.loaders import load
-from yt.testing import (
-    assert_allclose,
-    assert_equal,
-    requires_file,
-    units_override_check,
-)
+from yt.testing import assert_equal, requires_file, units_override_check
+from yt.units import dimensions
 from yt.utilities.answer_testing.framework import (
-    GenericArrayTest,
     data_dir_load,
     requires_ds,
     small_patch_amr,
 )
 
+# Deactivating this problematic test until the dataset type can be
+# handled properly, see https://github.com/yt-project/yt/issues/3619
+"""
 _fields_disk = ("density", "velocity_r")
 
 disk = "KeplerianDisk/disk.out1.00000.athdf"
@@ -35,7 +31,7 @@ def test_disk():
             return dd[field]
 
         yield GenericArrayTest(ds, field_func, args=[field])
-
+"""
 
 _fields_AM06 = ("temperature", "density", "velocity_magnitude", "magnetic_field_x")
 
@@ -74,3 +70,10 @@ def test_units_override():
 @requires_file(AM06)
 def test_AthenaPPDataset():
     assert isinstance(data_dir_load(AM06), AthenaPPDataset)
+
+
+@requires_file(AM06)
+def test_magnetic_units():
+    ds = load(AM06, unit_system="code")
+    assert ds.magnetic_unit.units.dimensions == dimensions.magnetic_field_cgs
+    assert (ds.magnetic_unit ** 2).units.dimensions == dimensions.pressure

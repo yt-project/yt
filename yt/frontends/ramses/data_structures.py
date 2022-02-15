@@ -1,6 +1,7 @@
 import os
 import weakref
 from collections import defaultdict
+from itertools import product
 from pathlib import Path
 
 import numpy as np
@@ -42,16 +43,20 @@ class RAMSESFileSanitizer:
     group_name = None  # str | None: name of the first group folder (if any)
 
     def __init__(self, filename):
-        # Resolve so that it works with symlinks
-        filename = Path(filename).resolve()
+
+        # Make the resolve optional, so that it works with symlinks
+        paths_to_try = (Path(filename), Path(filename).resolve())
 
         self.original_filename = filename
 
         self.output_dir = None
         self.info_fname = None
 
-        for check_fun in (self.test_with_standard_file, self.test_with_folder_name):
-            ok, output_dir, info_fname = check_fun(filename)
+        check_functions = (self.test_with_standard_file, self.test_with_folder_name)
+
+        # Loop on both the functions and the tested paths
+        for path, check_fun in product(paths_to_try, check_functions):
+            ok, output_dir, info_fname = check_fun(path)
             if ok:
                 break
 

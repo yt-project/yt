@@ -324,7 +324,7 @@ class DerivedField:
                 units = Unit(self.units)
         # Add unit label
         if not units.is_dimensionless:
-            data_label += r"\ \ (%s)" % (units.latex_representation())
+            data_label += r"\ \ \left(%s\right)" % (units.latex_representation())
 
         data_label += r"$"
         return data_label
