@@ -1,9 +1,9 @@
 import os
-from typing import Optional, Tuple
 import weakref
 from collections import defaultdict
 from itertools import product
 from pathlib import Path
+from typing import Optional, Tuple
 
 import numpy as np
 
@@ -106,7 +106,9 @@ class RAMSESFileSanitizer:
         return ok
 
     @staticmethod
-    def _match_output_and_group(path: Path) -> Tuple[Path, Optional[Path], Optional[int]]:
+    def _match_output_and_group(
+        path: Path,
+    ) -> Tuple[Path, Optional[Path], Optional[str]]:
         iout_match = OUTPUT_DIR_RE.match(path.name)
 
         if not iout_match:
@@ -115,6 +117,7 @@ class RAMSESFileSanitizer:
         # Two cases:
         # 1. regular structure (all files in the output_XXXXX folder)
         # 2. group structure (files spread in group_YYYYY folders)
+        group_dir: Optional[Path]
 
         if iout_match.group(1) == "output":
             # Case 1, unless the current folder contains a group folder itself
@@ -133,22 +136,27 @@ class RAMSESFileSanitizer:
 
         return output_dir, group_dir, iout_match.group(2) if iout_match else None
 
-
     @classmethod
-    def test_with_folder_name(cls, output_dir) -> Tuple[bool, Optional[Path], Optional[Path], Optional[Path]]:
+    def test_with_folder_name(
+        cls, output_dir: Path
+    ) -> Tuple[bool, Optional[Path], Optional[Path], Optional[Path]]:
         output_dir, group_dir, iout = cls._match_output_and_group(output_dir)
-
         ok = output_dir.is_dir() and iout is not None
+
+        info_fname: Optional[Path]
+
         if ok:
             ok &= cls.check_standard_files(group_dir or output_dir, iout)
             info_fname = (group_dir or output_dir) / f"info_{iout}.txt"
         else:
-            output_dir, group_dir, info_fname = None, None, None
+            info_fname = None
 
         return ok, output_dir, group_dir, info_fname
 
     @classmethod
-    def test_with_standard_file(cls, filename) -> Tuple[bool, Optional[Path], Optional[Path], Optional[Path]]:
+    def test_with_standard_file(
+        cls, filename: Path
+    ) -> Tuple[bool, Optional[Path], Optional[Path], Optional[Path]]:
         output_dir, group_dir, iout = cls._match_output_and_group(filename.parent)
         ok = (
             filename.is_file()
@@ -156,11 +164,13 @@ class RAMSESFileSanitizer:
             and iout is not None
         )
 
+        info_fname: Optional[Path]
+
         if ok:
             ok &= cls.check_standard_files(group_dir or output_dir, iout)
             info_fname = (group_dir or output_dir) / f"info_{iout}.txt"
         else:
-            output_dir, group_dir, info_fname = None, None, None
+            info_fname = None
 
         return ok, output_dir, group_dir, info_fname
 
