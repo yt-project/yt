@@ -1141,17 +1141,16 @@ class Dataset(abc.ABC):
         # we asked for a conversion to something CGS-like, or vice-versa,
         # we have to convert the magnetic field
         if mag_dims is not None:
-            if mks_system:
-                if current_mks not in mag_dims:
-                    self.magnetic_unit = self.quan(
-                        self.magnetic_unit.to_value("gauss") * 1.0e-4, "T"
-                    )
-                    # The following modification ensures that we get the conversion to
-                    # mks correct
-                    self.unit_registry.modify(
-                        "code_magnetic", self.magnetic_unit.value * 1.0e3 * 0.1**-0.5
-                    )
-            elif current_mks in mag_dims:
+            if mks_system and current_mks not in mag_dims:
+                self.magnetic_unit = self.quan(
+                    self.magnetic_unit.to_value("gauss") * 1.0e-4, "T"
+                )
+                # The following modification ensures that we get the conversion to
+                # mks correct
+                self.unit_registry.modify(
+                    "code_magnetic", self.magnetic_unit.value * 1.0e3 * 0.1**-0.5
+                )
+            elif not mks_system and current_mks in mag_dims:
                 self.magnetic_unit = self.quan(
                     self.magnetic_unit.to_value("T") * 1.0e4, "gauss"
                 )
