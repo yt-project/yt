@@ -112,6 +112,10 @@ class RAMSESFileSanitizer:
     @classmethod
     def test_with_folder_name(cls, output_dir):
         iout_match = OUTPUT_DIR_RE.match(output_dir.name)
+        # If we have structure like output_XXXXX/group_YYYYY/
+        # go up one level to find output number
+        if iout_match and iout_match.group(1) == "group":
+            iout_match = OUTPUT_DIR_RE.match(output_dir.parent.name)
         ok = output_dir.is_dir() and iout_match is not None
         if ok:
             iout = iout_match.group(2)
