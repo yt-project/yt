@@ -1,4 +1,5 @@
 import os
+from typing import Optional, Tuple
 import weakref
 from collections import defaultdict
 from itertools import product
@@ -56,7 +57,7 @@ class RAMSESFileSanitizer:
 
         # Loop on both the functions and the tested paths
         for path, check_fun in product(paths_to_try, check_functions):
-            ok, output_dir, info_fname = check_fun(path)
+            ok, output_dir, group_dir, info_fname = check_fun(path)
             if ok:
                 break
 
@@ -64,13 +65,8 @@ class RAMSESFileSanitizer:
         if not ok:
             return
 
-        # Special case when organized in groups
-        if output_dir.name == "group_00001":
-            self.root_folder = output_dir.parent
-            self.group_name = output_dir.name
-        else:
-            self.root_folder = output_dir
-            self.group_name = None
+        self.root_folder = output_dir
+        self.group_name = group_dir.name if group_dir else None
         self.info_fname = info_fname
 
     def validate(self) -> None:
@@ -109,41 +105,64 @@ class RAMSESFileSanitizer:
         ok &= (folder / f"info_{iout}.txt").is_file()
         return ok
 
-    @classmethod
-    def test_with_folder_name(cls, output_dir):
-        iout_match = OUTPUT_DIR_RE.match(output_dir.name)
-        # If we have structure like output_XXXXX/group_YYYYY/
-        # go up one level to find output number
-        if iout_match and iout_match.group(1) == "group":
-            iout_match = OUTPUT_DIR_RE.match(output_dir.parent.name)
-        ok = output_dir.is_dir() and iout_match is not None
-        if ok:
-            iout = iout_match.group(2)
-            ok &= cls.check_standard_files(output_dir, iout)
-            info_fname = output_dir / f"info_{iout}.txt"
+    @staticmethod
+    def _match_output_and_group(path: Path) -> Tuple[Path, Optional[Path], Optional[int]]:
+        iout_match = OUTPUT_DIR_RE.match(path.name)
+
+        if not iout_match:
+            return path, None, None
+
+        # Two cases:
+        # 1. regular structure (all files in the output_XXXXX folder)
+        # 2. group structure (files spread in group_YYYYY folders)
+
+        if iout_match.group(1) == "output":
+            # Case 1, unless the current folder contains a group folder itself
+            if (path / "group_00001").is_dir():
+                group_dir = path / "group_00001"
+            else:
+                group_dir = None
+            output_dir = path
         else:
-            output_dir, info_fname = None, None
+            # Case 2, we need to extract output number from parent output folder
+            group_dir = path
+            output_dir = path.parent
 
-        return ok, output_dir, info_fname
+        # Match again to find output number
+        iout_match = OUTPUT_DIR_RE.match(output_dir.name)
+
+        return output_dir, group_dir, iout_match.group(2) if iout_match else None
+
 
     @classmethod
-    def test_with_standard_file(cls, filename):
-        iout_match = OUTPUT_DIR_RE.match(filename.parent.name)
+    def test_with_folder_name(cls, output_dir) -> Tuple[bool, Optional[Path], Optional[Path], Optional[Path]]:
+        output_dir, group_dir, iout = cls._match_output_and_group(output_dir)
+
+        ok = output_dir.is_dir() and iout is not None
+        if ok:
+            ok &= cls.check_standard_files(group_dir or output_dir, iout)
+            info_fname = (group_dir or output_dir) / f"info_{iout}.txt"
+        else:
+            output_dir, group_dir, info_fname = None, None, None
+
+        return ok, output_dir, group_dir, info_fname
+
+    @classmethod
+    def test_with_standard_file(cls, filename) -> Tuple[bool, Optional[Path], Optional[Path], Optional[Path]]:
+        output_dir, group_dir, iout = cls._match_output_and_group(filename.parent)
         ok = (
             filename.is_file()
             and STANDARD_FILE_RE.match(filename.name) is not None
-            and iout_match is not None
+            and iout is not None
         )
 
         if ok:
-            iout = iout_match.group(2)
-            ok &= cls.check_standard_files(filename.parent, iout)
-            output_dir = filename.parent
-            info_fname = output_dir / f"info_{iout}.txt"
+            ok &= cls.check_standard_files(group_dir or output_dir, iout)
+            info_fname = (group_dir or output_dir) / f"info_{iout}.txt"
         else:
-            output_dir, info_fname = None, None
+            output_dir, group_dir, info_fname = None, None, None
 
-        return ok, output_dir, info_fname
+        return ok, output_dir, group_dir, info_fname
 
 
 class RAMSESDomainFile:
