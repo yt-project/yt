@@ -29,6 +29,8 @@ answer_tests:
     - yt/frontends/athena/tests/test_outputs.py:test_stripping
 
   local_athena_pp_006:
+    # disabling disk test for now until we have better support
+    # for this dataset
     #- yt/frontends/athena_pp/tests/test_outputs.py:test_disk
     - yt/frontends/athena_pp/tests/test_outputs.py:test_AM06
 
