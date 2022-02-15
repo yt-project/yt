@@ -109,32 +109,20 @@ class RAMSESFileSanitizer:
     def _match_output_and_group(
         path: Path,
     ) -> Tuple[Path, Optional[Path], Optional[str]]:
+
+        # Three cases for path
+        # 1. path == output_XXXXX and group_00001 exists
+        # 2. path == output_XXXXX and group_00001 does not exist
+        # 2. path == output_XXXXX/group_YYYYYY
         iout_match = OUTPUT_DIR_RE.match(path.name)
+        if iout_match:
+            group_dir = path / "group_00001"
 
-        if not iout_match:
-            return path, None, None
-
-        # Two cases:
-        # 1. regular structure (all files in the output_XXXXX folder)
-        # 2. group structure (files spread in group_YYYYY folders)
-        group_dir: Optional[Path]
-
-        if iout_match.group(1) == "output":
-            # Case 1, unless the current folder contains a group folder itself
-            if (path / "group_00001").is_dir():
-                group_dir = path / "group_00001"
-            else:
-                group_dir = None
-            output_dir = path
+            return path, group_dir if group_dir.is_dir() else None, iout_match.group(1)
         else:
-            # Case 2, we need to extract output number from parent output folder
-            group_dir = path
-            output_dir = path.parent
+            iout_match = OUTPUT_DIR_RE.match(path.parent.name)
 
-        # Match again to find output number
-        iout_match = OUTPUT_DIR_RE.match(output_dir.name)
-
-        return output_dir, group_dir, iout_match.group(2) if iout_match else None
+            return path.parent, path, iout_match.group(1) if iout_match else None
 
     @classmethod
     def test_with_folder_name(
