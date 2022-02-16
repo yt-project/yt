@@ -110,19 +110,25 @@ class RAMSESFileSanitizer:
         path: Path,
     ) -> Tuple[Path, Optional[Path], Optional[str]]:
 
-        # Three cases for path
-        # 1. path == output_XXXXX and group_00001 exists
-        # 2. path == output_XXXXX and group_00001 does not exist
-        # 3. path == output_XXXXX/group_YYYYYY
-        iout_match = OUTPUT_DIR_RE.match(path.name)
-        if iout_match:
-            group_dir = path / "group_00001"
+        # Make sure we work with a directory of the form `output_XXXXX`
+        for p in (path, path.parent):
+            match = OUTPUT_DIR_RE.match(p.name)
 
-            return path, group_dir if group_dir.is_dir() else None, iout_match.group(1)
+            if match:
+                path = p
+                break
+
+        if match is None:
+            return path, None, None
+
+        iout = match.group(1)
+
+        # See whether a folder named `group_YYYYY` exists
+        group_dir = path / "group_00001"
+        if group_dir.is_dir():
+            return path, group_dir, iout
         else:
-            iout_match = OUTPUT_DIR_RE.match(path.parent.name)
-
-            return path.parent, path, iout_match.group(1) if iout_match else None
+            return path, None, iout
 
     @classmethod
     def test_with_folder_name(
