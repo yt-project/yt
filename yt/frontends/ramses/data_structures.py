@@ -79,7 +79,8 @@ class RAMSESFileSanitizer:
         if self.root_folder is None:
             raise ValueError(
                 f"Could not determine output directory from {filename!r}\n"
-                f"Expected a directory name of form {OUTPUT_DIR_EXP!r}"
+                f"Expected a directory name of form {OUTPUT_DIR_EXP!r} "
+                "containing an info_*.txt file and amr_* files."
             )
 
         # This last case is (erroneously ?) marked as unreachable by mypy
