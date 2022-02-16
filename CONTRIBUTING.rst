@@ -442,31 +442,34 @@ changes in changelogs during the release procedure.  (See `YTEP-0008
 <https://ytep.readthedocs.io/en/latest/YTEPs/YTEP-0008.html>`_ for more
 detail.)
 
+For all types of contributions, it is required that all tests pass.
+
 * New Features
 
   * New unit tests (possibly new answer tests) (See :ref:`testing`)
   * Docstrings in the source code for the public API
   * Addition of new feature to the narrative documentation (See :ref:`writing_documentation`)
   * Addition of cookbook recipe (See :ref:`writing_documentation`)
-  * Issue created on issue tracker, to ensure this is added to the changelog
 
 * Extension or Breakage of API in Existing Features
 
   * Update existing narrative docs and docstrings (See :ref:`writing_documentation`)
   * Update existing cookbook recipes (See :ref:`writing_documentation`)
   * Modify of create new unit tests (See :ref:`testing`)
-  * Issue created on issue tracker, to ensure this is added to the changelog
 
 * Bug fixes
 
   * Unit test is encouraged, to ensure breakage does not happen again in the
     future. (See :ref:`testing`)
-  * Issue created on issue tracker, to ensure this is added to the changelog
+  * At a minimum, a minimal, self-contained example demonstrating the bug should
+    because included in the body of the Pull Request, or as part of an
+    indepedent issue.
 
 When submitting, you will be asked to make sure that your changes meet all of
 these requirements.  They are pretty easy to meet, and we're also happy to help
-out with them.  In :ref:`code-style-guide` there is a list of handy tips for
-how to structure and write your code.
+out with them. See :ref:`code-style-guide` for how to easily conform to our
+style guide.
+
 
 .. _git-with-yt:
 
