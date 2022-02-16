@@ -140,8 +140,9 @@ class RAMSESFileSanitizer:
         info_fname: Optional[Path]
 
         if ok:
-            ok &= cls.check_standard_files(group_dir or output_dir, iout)
-            info_fname = (group_dir or output_dir) / f"info_{iout}.txt"
+            parent_dir = group_dir or output_dir
+            ok &= cls.check_standard_files(parent_dir, iout)
+            info_fname = parent_dir / f"info_{iout}.txt"
         else:
             info_fname = None
 
@@ -161,8 +162,9 @@ class RAMSESFileSanitizer:
         info_fname: Optional[Path]
 
         if ok:
-            ok &= cls.check_standard_files(group_dir or output_dir, iout)
-            info_fname = (group_dir or output_dir) / f"info_{iout}.txt"
+            parent_dir = group_dir or output_dir
+            ok &= cls.check_standard_files(parent_dir, iout)
+            info_fname = parent_dir / f"info_{iout}.txt"
         else:
             info_fname = None
 
