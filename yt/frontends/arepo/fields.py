@@ -53,7 +53,7 @@ class ArepoFieldInfo(GadgetFieldInfo):
         self.add_field(
             (ptype, "cell_volume"),
             function=_volume,
-            sampling_type="particle",
+            sampling_type="local",
             units=self.ds.unit_system["volume"],
         )
 
