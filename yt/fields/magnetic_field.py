@@ -10,6 +10,15 @@ from .field_plugin_registry import register_field_plugin
 cgs_normalizations = {"gaussian": 4.0 * np.pi, "lorentz_heaviside": 1.0}
 
 
+def get_magnetic_normalization(key: str) -> float:
+    if key not in cgs_normalizations:
+        raise ValueError(
+            "Unknown magnetic normalization convention. "
+            f"Got {key!r}, expected one of {tuple(cgs_normalizations)}"
+        )
+    return cgs_normalizations[key]
+
+
 @register_field_plugin
 def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
     ds = registry.ds

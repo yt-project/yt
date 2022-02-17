@@ -6,7 +6,7 @@ import numpy as np
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
-from yt.fields.magnetic_field import cgs_normalizations
+from yt.fields.magnetic_field import get_magnetic_normalization
 from yt.funcs import mylog, sglob
 from yt.geometry.geometry_handler import YTDataChunk
 from yt.geometry.grid_geometry_handler import GridIndex
@@ -488,7 +488,8 @@ class AthenaDataset(Dataset):
         self.specified_parameters = parameters.copy()
         if units_override is None:
             units_override = {}
-        self._magnetic_factor = cgs_normalizations[magnetic_normalization]
+        self._magnetic_factor = get_magnetic_normalization(magnetic_normalization)
+
         Dataset.__init__(
             self,
             filename,

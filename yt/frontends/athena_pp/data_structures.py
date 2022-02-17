@@ -7,7 +7,7 @@ import numpy as np
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.index_subobjects.unstructured_mesh import SemiStructuredMesh
 from yt.data_objects.static_output import Dataset
-from yt.fields.magnetic_field import cgs_normalizations
+from yt.fields.magnetic_field import get_magnetic_normalization
 from yt.funcs import get_pbar, mylog
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
@@ -260,7 +260,7 @@ class AthenaPPDataset(Dataset):
         else:
             self._index_class = AthenaPPHierarchy
             self.logarithmic = False
-        self._magnetic_factor = cgs_normalizations[magnetic_normalization]
+        self._magnetic_factor = get_magnetic_normalization(magnetic_normalization)
         Dataset.__init__(
             self,
             filename,
