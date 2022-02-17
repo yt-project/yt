@@ -2,10 +2,12 @@ import weakref
 from numbers import Number
 
 import numpy as np
+from packaging.version import Version
 
 from yt.funcs import fix_unitary, is_sequence, validate_width_tuple
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTCoordinateNotImplemented, YTInvalidWidthError
+from yt.visualization._commons import MPL_VERSION
 
 
 def _unknown_coord(field, data):
@@ -279,6 +281,9 @@ class CoordinateHandler:
         """Replace nans with +inf in buff, if all valid values are positive"""
         # In buffer with only positive values, maplotlib will raise a warning
         # if nan is used as a filler, while it tolerates np.inf just fine
+        # This hack is however not necessary since Matpltolib 3.2
+        if MPL_VERSION >= Version("3.2"):
+            return
         minval = buff[~np.isnan(buff)].min()
         if minval >= 0:
             buff[np.isnan(buff)] = np.inf
