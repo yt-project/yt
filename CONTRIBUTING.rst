@@ -442,7 +442,7 @@ changes in changelogs during the release procedure.  (See `YTEP-0008
 <https://ytep.readthedocs.io/en/latest/YTEPs/YTEP-0008.html>`_ for more
 detail.)
 
-For all types of contributions, it is required that all tests pass.
+For all types of contributions, it is required that all tests pass, or that all non-passing tests are specifically accounted for.
 
 * New Features
 
