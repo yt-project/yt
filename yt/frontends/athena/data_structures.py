@@ -6,6 +6,7 @@ import numpy as np
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
+from yt.fields.magnetic_field import cgs_normalizations
 from yt.funcs import mylog, sglob
 from yt.geometry.geometry_handler import YTDataChunk
 from yt.geometry.grid_geometry_handler import GridIndex
@@ -478,7 +479,7 @@ class AthenaDataset(Dataset):
         nprocs=1,
         unit_system="cgs",
         default_species_fields=None,
-        mag_factor="gaussian",
+        magnetic_normalization="gaussian",
     ):
         self.fluid_types += ("athena",)
         self.nprocs = nprocs
@@ -487,9 +488,7 @@ class AthenaDataset(Dataset):
         self.specified_parameters = parameters.copy()
         if units_override is None:
             units_override = {}
-        self.mag_factor = {"gaussian": 4.0 * np.pi, "lorentz_heaviside": 1.0}[
-            mag_factor
-        ]
+        self._magnetic_factor = cgs_normalizations[magnetic_normalization]
         Dataset.__init__(
             self,
             filename,
@@ -520,7 +519,9 @@ class AthenaDataset(Dataset):
             mylog.warning("Assuming 1.0 = 1.0 %s", cgs)
             setattr(self, f"{unit}_unit", self.quan(1.0, cgs))
         self.magnetic_unit = np.sqrt(
-            self.mag_factor * self.mass_unit / (self.time_unit**2 * self.length_unit)
+            self._magnetic_factor
+            * self.mass_unit
+            / (self.time_unit**2 * self.length_unit)
         )
         self.magnetic_unit.convert_to_units("gauss")
         self.velocity_unit = self.length_unit / self.time_unit

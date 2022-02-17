@@ -131,7 +131,7 @@ def test_AthenaDataset():
 @requires_file(sloshing)
 @disable_dataset_cache
 def test_mag_factor():
-    ds1 = load(sloshing, units_override=uo_sloshing, mag_factor="gaussian")
+    ds1 = load(sloshing, units_override=uo_sloshing, magnetic_normalization="gaussian")
     assert ds1.magnetic_unit == np.sqrt(
         4.0 * np.pi * ds1.mass_unit / (ds1.time_unit**2 * ds1.length_unit)
     )
@@ -150,7 +150,9 @@ def test_mag_factor():
     pB1b.convert_to_units("dyn/cm**2")
     assert_allclose_units(pB1a, pB1b)
     assert_allclose_units(pB1a, sp1["magnetic_pressure"])
-    ds2 = load(sloshing, units_override=uo_sloshing, mag_factor="lorentz_heaviside")
+    ds2 = load(
+        sloshing, units_override=uo_sloshing, magnetic_normalization="lorentz_heaviside"
+    )
     assert ds2.magnetic_unit == np.sqrt(
         ds2.mass_unit / (ds2.time_unit**2 * ds2.length_unit)
     )

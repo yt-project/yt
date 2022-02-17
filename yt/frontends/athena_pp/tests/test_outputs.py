@@ -90,7 +90,7 @@ def test_magnetic_units():
 @requires_file(AM06)
 @disable_dataset_cache
 def test_mag_factor():
-    ds1 = load(AM06, units_override=uo_AM06, mag_factor="gaussian")
+    ds1 = load(AM06, units_override=uo_AM06, magnetic_normalization="gaussian")
     assert ds1.magnetic_unit == np.sqrt(
         4.0 * np.pi * ds1.mass_unit / (ds1.time_unit**2 * ds1.length_unit)
     )
@@ -109,7 +109,7 @@ def test_mag_factor():
     pB1b.convert_to_units("dyn/cm**2")
     assert_allclose_units(pB1a, pB1b)
     assert_allclose_units(pB1a, sp1["magnetic_pressure"])
-    ds2 = load(AM06, units_override=uo_AM06, mag_factor="lorentz_heaviside")
+    ds2 = load(AM06, units_override=uo_AM06, magnetic_normalization="lorentz_heaviside")
     assert ds2.magnetic_unit == np.sqrt(
         ds2.mass_unit / (ds2.time_unit**2 * ds2.length_unit)
     )
