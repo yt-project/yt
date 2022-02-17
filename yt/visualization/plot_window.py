@@ -1041,7 +1041,7 @@ class PWViewerMPL(PlotWindow):
                     use_symlog = True
                 elif not np.any(np.isfinite(image)):
                     msg = f"Plotting {f}: All values = NaN."
-                elif np.nanmax(image) > 0.0 and np.nanmin(image) < 0:
+                elif np.nanmax(image) > 0.0 and np.nanmin(image) <= 0:
                     msg = (
                         f"Plotting {f}: Both positive and negative values. "
                         f"Min = {np.nanmin(image)}, Max = {np.nanmax(image)}."
@@ -1231,6 +1231,9 @@ class PWViewerMPL(PlotWindow):
                         flinthresh = 10 ** np.floor(
                             np.log10(self.plots[f].cb.norm.linthresh)
                         )
+                        absmax = np.abs((vmin, vmax)).max()
+                        if (absmax - flinthresh) / absmax < 0.1:
+                            flinthresh /= 10
                         mticks = get_symlog_minorticks(flinthresh, vmin, vmax)
                         if MPL_VERSION < Version("3.5.0b"):
                             # https://github.com/matplotlib/matplotlib/issues/21258
