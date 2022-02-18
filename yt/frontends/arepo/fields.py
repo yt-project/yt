@@ -150,7 +150,7 @@ class ArepoFieldInfo(GadgetFieldInfo):
             )
 
             def _cr_pressure(field, data):
-                return data["gas", "cr_energy_density"] / 3.0
+                return (data.ds.gamma_cr - 1.0) * data["gas", "cr_energy_density"]
 
             self.add_field(
                 ("gas", "cr_pressure"),
