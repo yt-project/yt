@@ -41,6 +41,7 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
         # to that of the Voronoi cell to create smoothing lengths.
         self.smoothing_factor = smoothing_factor
         self.gamma = 5.0 / 3.0
+        self.gamma_cr = self.parameters.get("GammaCR", 4.0 / 3.0)
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
