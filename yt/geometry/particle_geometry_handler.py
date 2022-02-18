@@ -89,7 +89,13 @@ class ParticleIndex(Index):
             else:
                 end = None
             while True:
-                df = cls(self.dataset, self.io, template % {"num": i}, fi, (start, end))
+                try:
+                    _filename = template % {"num": i}
+                    df = cls(self.dataset, self.io, _filename, fi, (start, end))
+                except FileNotFoundError:
+                    mylog.warning(
+                        "Failed to load '%s' (missing file or directory)", _filename
+                    )
                 if max(df.total_particles.values()) == 0:
                     break
                 fi += 1
