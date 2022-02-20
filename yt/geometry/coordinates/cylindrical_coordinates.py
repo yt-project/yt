@@ -167,7 +167,7 @@ class CylindricalCoordinateHandler(CoordinateHandler):
         # non-Cartesian coordinates, we usually want to override these for
         # Cartesian coordinates, since we transform them.
         rv = {
-            self.axis_id["r"]: ("theta", "z"),
+            self.axis_id["r"]: ("\\theta", "z"),
             self.axis_id["z"]: ("x", "y"),
             self.axis_id["theta"]: ("r", "z"),
         }
