@@ -530,6 +530,7 @@ class BaseQuiverCallback(PlotCallback, ABC):
     def _finalize(self, plot, X, Y, pixX, pixY, pixC):
         if self.normalize:
             nn = np.sqrt(pixX**2 + pixY**2)
+            nn = np.where(nn == 0, 1, nn)
             pixX /= nn
             pixY /= nn
 
