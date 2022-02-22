@@ -31,7 +31,7 @@ class ArepoFieldInfo(GadgetFieldInfo):
             ("GFM_Metals_08", ("", ["Fe_fraction"], None)),
             (
                 "CosmicRaySpecificEnergy",
-                ("code_specific_energy", ["specific_cr_energy"], None),
+                ("code_specific_energy", ["specific_cosmic_ray_energy"], None),
             ),
         )
         super().__init__(ds, field_list, slice_info=slice_info)
@@ -139,21 +139,41 @@ class ArepoFieldInfo(GadgetFieldInfo):
 
         if (ptype, "CosmicRaySpecificEnergy") in self.field_list:
 
+            self.alias(
+                (ptype, "specific_cosmic_ray_energy"),
+                ("gas", "specific_cosmic_ray_energy"),
+            )
+
             def _cr_energy_density(field, data):
-                return data["PartType0", "specific_cr_energy"] * data["gas", "density"]
+                return (
+                    data["PartType0", "specific_cosmic_ray_energy"]
+                    * data["gas", "density"]
+                )
 
             self.add_field(
-                ("gas", "cr_energy_density"),
+                ("gas", "cosmic_ray_energy_density"),
                 _cr_energy_density,
                 sampling_type="local",
                 units=self.ds.unit_system["pressure"],
+            )
+
+            self.alias(
+                ("PartType0", "specific_cr_energy"),
+                ("PartType0", "specific_cosmic_ray_energy"),
+                deprecate=("4.1.0", "4.2.0"),
+            )
+
+            self.alias(
+                ("gas", "cr_energy_density"),
+                ("gas", "cosmic_ray_energy_density"),
+                deprecate=("4.1.0", "4.2.0"),
             )
 
             def _cr_pressure(field, data):
                 return (data.ds.gamma_cr - 1.0) * data["gas", "cr_energy_density"]
 
             self.add_field(
-                ("gas", "cr_pressure"),
+                ("gas", "cosmic_ray_pressure"),
                 _cr_pressure,
                 sampling_type="local",
                 units=self.ds.unit_system["pressure"],
