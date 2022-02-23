@@ -15,10 +15,11 @@ answer_tests:
     - yt/frontends/amrvac/tests/test_outputs.py:test_riemann_cartesian_175D
     - yt/frontends/amrvac/tests/test_outputs.py:test_rmi_cartesian_dust_2D
 
-  local_arepo_008:  # PR 2909
+  local_arepo_009:  # PR 3815
     - yt/frontends/arepo/tests/test_outputs.py:test_arepo_bullet
     - yt/frontends/arepo/tests/test_outputs.py:test_arepo_tng59
     - yt/frontends/arepo/tests/test_outputs.py:test_index_override
+    - yt/frontends/arepo/tests/test_outputs.py:test_arepo_cr
 
   local_artio_004:
     - yt/frontends/artio/tests/test_outputs.py:test_sizmbhloz
