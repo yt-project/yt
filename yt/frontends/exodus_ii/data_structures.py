@@ -139,17 +139,22 @@ class ExodusIIDataset(Dataset):
         ... )
 
         """
-        self.parameter_filename = filename
-        self.fluid_types += self._get_fluid_types()
         self.step = step
         if displacements is None:
             self.displacements = {}
         else:
             self.displacements = displacements
-        super().__init__(filename, dataset_type, units_override=units_override)
-        self.index_filename = filename
         self.storage_filename = storage_filename
+
+        super().__init__(filename, dataset_type, units_override=units_override)
+
+        self.fluid_types += self._get_fluid_types()
         self.default_field = [f for f in self.field_list if f[0] == "connect1"][-1]
+
+    @property
+    def index_filename(self):
+        # historic alias
+        return self.filename
 
     def _set_code_unit_attributes(self):
         # This is where quantities are created that represent the various

@@ -10,6 +10,7 @@ import numpy as np
 from more_itertools import always_iterable
 from mpl_toolkits.axes_grid1 import ImageGrid
 from packaging.version import Version
+from pyparsing import ParseFatalException
 from unyt.exceptions import UnitConversionError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
@@ -31,6 +32,7 @@ from yt.utilities.exceptions import (
 from yt.utilities.math_utils import ortho_find
 from yt.utilities.orientation import Orientation
 
+from ._commons import MPL_VERSION
 from .base_plot_types import CallbackWrapper, ImagePlotMPL
 from .fixed_resolution import (
     FixedResolutionBuffer,
@@ -64,16 +66,6 @@ else:
         # drop this conditional and call the builtin zip
         # function directly where due
         return zip(*args, strict=True)
-
-
-MPL_VERSION = Version(matplotlib.__version__)
-
-# Some magic for dealing with pyparsing being included or not
-# included in matplotlib (not in gentoo, yes in everything else)
-try:
-    from matplotlib.pyparsing_py3 import ParseFatalException
-except ImportError:
-    from pyparsing import ParseFatalException
 
 
 def get_window_parameters(axis, center, width, ds):
@@ -1056,13 +1048,17 @@ class PWViewerMPL(PlotWindow):
                     use_symlog = True
                 elif not np.any(np.isfinite(image)):
                     msg = f"Plotting {f}: All values = NaN."
-                elif np.nanmax(image) > 0.0 and np.nanmin(image) < 0:
+                elif np.nanmax(image) > 0.0 and np.nanmin(image) <= 0:
                     msg = (
                         f"Plotting {f}: Both positive and negative values. "
                         f"Min = {np.nanmin(image)}, Max = {np.nanmax(image)}."
                     )
                     use_symlog = True
-                elif np.nanmax(image) > 0.0 and np.nanmin(image) == 0:
+                elif (
+                    (Version("3.3") <= MPL_VERSION < Version("3.5"))
+                    and np.nanmax(image) > 0.0
+                    and np.nanmin(image) == 0
+                ):
                     # normally, a LogNorm scaling would still be OK here because
                     # LogNorm will mask 0 values when calculating vmin. But
                     # due to a bug in matplotlib's imshow, if the data range
@@ -1210,7 +1206,7 @@ class PWViewerMPL(PlotWindow):
             try:
                 parser.parse(colorbar_label)
             except ParseFatalException as err:
-                raise YTCannotParseUnitDisplayName(f, colorbar_label, str(err))
+                raise YTCannotParseUnitDisplayName(f, colorbar_label, str(err)) from err
 
             self.plots[f].cb.set_label(colorbar_label)
 
@@ -1242,6 +1238,9 @@ class PWViewerMPL(PlotWindow):
                         flinthresh = 10 ** np.floor(
                             np.log10(self.plots[f].cb.norm.linthresh)
                         )
+                        absmax = np.abs((vmin, vmax)).max()
+                        if (absmax - flinthresh) / absmax < 0.1:
+                            flinthresh /= 10
                         mticks = get_symlog_minorticks(flinthresh, vmin, vmax)
                         if MPL_VERSION < Version("3.5.0b"):
                             # https://github.com/matplotlib/matplotlib/issues/21258

@@ -68,7 +68,6 @@ class MoabHex8Dataset(Dataset):
             unit_system=unit_system,
         )
         self.storage_filename = storage_filename
-        self.filename = filename
         self._handle = HDF5FileHandler(filename)
 
     def _set_code_unit_attributes(self):
@@ -169,7 +168,6 @@ class PyneMoabHex8Dataset(Dataset):
             unit_system=unit_system,
         )
         self.storage_filename = storage_filename
-        self.filename = filename
 
     def _set_code_unit_attributes(self):
         # Almost everything is regarded as dimensionless in MOAB, so these will

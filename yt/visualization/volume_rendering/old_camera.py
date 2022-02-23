@@ -825,7 +825,7 @@ class Camera(ParallelAnalysisInterface):
             "north_vector": self.orienter.unit_vectors[1],
             "normal_vector": self.orienter.unit_vectors[2],
             "width": self.width,
-            "dataset": self.ds.fullpath,
+            "dataset": self.ds.directory,
         }
         return info_dict
 
@@ -1568,7 +1568,7 @@ class HEALpixCamera(Camera):
             "type": self.__class__.__name__,
             "center": self.center,
             "radius": self.radius,
-            "dataset": self.ds.fullpath,
+            "dataset": self.ds.directory,
         }
         return info_dict
 

@@ -266,11 +266,9 @@ class AthenaPPDataset(Dataset):
             unit_system=unit_system,
             default_species_fields=default_species_fields,
         )
-        self.filename = filename
         if storage_filename is None:
-            storage_filename = f"{filename.split('/')[-1]}.yt"
+            storage_filename = self.basename + ".yt"
         self.storage_filename = storage_filename
-        self.backup_filename = self.filename[:-4] + "_backup.gdf"
 
     def _set_code_unit_attributes(self):
         """
@@ -361,7 +359,7 @@ class AthenaPPDataset(Dataset):
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
         try:
-            if filename.endswith("athdf"):
+            if filename.endswith(".athdf"):
                 return True
         except Exception:
             pass

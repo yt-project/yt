@@ -164,7 +164,6 @@ class ARTDataset(Dataset):
         self._file_particle_data = file_particle_data
         self._file_particle_stars = file_particle_stars
         self._find_files(filename)
-        self.parameter_filename = filename
         self.skip_particles = skip_particles
         self.skip_stars = skip_stars
         self.limit_level = limit_level
@@ -188,7 +187,9 @@ class ARTDataset(Dataset):
         """
         base_prefix, base_suffix = filename_pattern["amr"]
         numericstr = file_amr.rsplit("_", 1)[1].replace(base_suffix, "")
-        possibles = glob.glob(os.path.dirname(os.path.abspath(file_amr)) + "/*")
+        possibles = glob.glob(
+            os.path.join(os.path.dirname(os.path.abspath(file_amr)), "*")
+        )
         for filetype, (prefix, suffix) in filename_pattern.items():
             # if this attribute is already set skip it
             if getattr(self, "_file_" + filetype, None) is not None:
@@ -449,7 +450,6 @@ class DarkMatterARTDataset(ARTDataset):
         self._file_particle = filename
         self._file_particle_header = file_particle_header
         self._find_files(filename)
-        self.parameter_filename = filename
         self.skip_stars = skip_stars
         self.spread_age = spread_age
         Dataset.__init__(
@@ -468,7 +468,9 @@ class DarkMatterARTDataset(ARTDataset):
         """
         base_prefix, base_suffix = filename_pattern["particle_data"]
         aexpstr = file_particle.rsplit("s0", 1)[1].replace(base_suffix, "")
-        possibles = glob.glob(os.path.dirname(os.path.abspath(file_particle)) + "/*")
+        possibles = glob.glob(
+            os.path.join(os.path.dirname(os.path.abspath(file_particle)), "*")
+        )
         for filetype, (prefix, suffix) in filename_pattern.items():
             # if this attribute is already set skip it
             if getattr(self, "_file_" + filetype, None) is not None:
@@ -682,7 +684,9 @@ class DarkMatterARTDataset(ARTDataset):
         with open(f, "rb") as fh:
             try:
                 amr_prefix, amr_suffix = filename_pattern["amr"]
-                possibles = glob.glob(os.path.dirname(os.path.abspath(f)) + "/*")
+                possibles = glob.glob(
+                    os.path.join(os.path.dirname(os.path.abspath(f)), "*")
+                )
                 for possible in possibles:
                     if possible.endswith(amr_suffix):
                         if os.path.basename(possible).startswith(amr_prefix):
