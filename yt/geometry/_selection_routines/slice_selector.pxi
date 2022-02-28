@@ -97,7 +97,7 @@ cdef class SliceSelector(SelectorObject):
                                np.float64_t right_edge[3]) nogil:
         if self.reduced_dimensionality == 1:
             return 1
-        if left_edge[self.axis] - grid_eps <= self.coord < right_edge[self.axis]:
+        if left_edge[self.axis] - grid_eps <= self.coord <= right_edge[self.axis]:
             return 1
         return 0
 
@@ -108,7 +108,7 @@ cdef class SliceSelector(SelectorObject):
                                np.float64_t right_edge[3]) nogil:
         if self.reduced_dimensionality == 1:
             return 2
-        if left_edge[self.axis] - grid_eps <= self.coord < right_edge[self.axis]:
+        if left_edge[self.axis] - grid_eps <= self.coord <= right_edge[self.axis]:
             return 2 # a box with non-zero volume can't be inside a plane
         return 0
 
