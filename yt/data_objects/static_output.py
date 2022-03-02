@@ -14,6 +14,7 @@ from stat import ST_CTIME
 from typing import DefaultDict, Dict, List, Optional, Set, Tuple, Type, Union
 
 import numpy as np
+import unyt as un
 from more_itertools import unzip
 from unyt.exceptions import UnitConversionError, UnitParseError
 
@@ -1950,6 +1951,18 @@ class Dataset(abc.ABC):
             prefixable=prefixable,
             registry=self.unit_registry,
         )
+
+    def _is_within_domain(self, point) -> bool:
+        assert len(point) == len(self.domain_left_edge)
+        assert point.units.dimensions == un.dimensions.length
+        for i, x in enumerate(point):
+            if self.periodicity[i]:
+                continue
+            if x < self.domain_left_edge[i]:
+                return False
+            if x > self.domain_right_edge[i]:
+                return False
+        return True
 
 
 def _reconstruct_ds(*args, **kwargs):

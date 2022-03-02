@@ -19,7 +19,7 @@ import urllib.parse
 import urllib.request
 from functools import lru_cache, wraps
 from numbers import Number as numeric_type
-from typing import Any, Callable, Type
+from typing import Any, Callable, Optional, Type
 
 import numpy as np
 from more_itertools import always_iterable, collapse, first
@@ -29,7 +29,7 @@ from tqdm import tqdm
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.units import YTArray, YTQuantity
-from yt.utilities.exceptions import YTInvalidWidthError
+from yt.utilities.exceptions import YTFieldNotFound, YTInvalidWidthError
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _requests as requests
 
@@ -1195,6 +1195,15 @@ def validate_field_key(key):
     )
 
 
+def is_valid_field_key(key):
+    try:
+        validate_field_key(key)
+    except TypeError:
+        return False
+    else:
+        return True
+
+
 def validate_object(obj, data_type):
     if obj is not None and not isinstance(obj, data_type):
         raise TypeError(
@@ -1234,6 +1243,119 @@ def validate_center(center):
             "list/tuple/np.ndarray/YTArray/YTQuantity, "
             "received '%s'." % str(type(center)).split("'")[1]
         )
+
+
+def parse_center_array(center, ds, axis: Optional[int] = None):
+    known_shortnames = {"m": "max", "c": "center", "l": "left", "r": "right"}
+    valid_single_str_values = ("center", "left", "right")
+    valid_field_loc_str_values = ("min", "max")
+    valid_str_values = valid_single_str_values + valid_field_loc_str_values
+    default_error_message = (
+        "Expected any of the following\n"
+        "- 'c', 'center', 'l', 'left', 'r', 'right', 'm', 'max', or 'min'\n"
+        "- 'min' or 'max', followed by a field identifier\n"
+        "- a 3 element unyt_array with length dimensions"
+    )
+
+    if isinstance(center, str):
+        centerl = center.lower()
+        if centerl in known_shortnames:
+            centerl = known_shortnames[centerl]
+
+        match = re.match(r"^(?P<extremum>(min|max))(_(?P<field>[\w_]+))?", centerl)
+        if match is not None:
+            if match["field"] is not None:
+                for ftype, fname in ds.derived_field_list:  # noqa: B007
+                    if fname == match["field"]:
+                        break
+                else:
+                    raise YTFieldNotFound(match["field"], ds)
+            else:
+                # mypy erroneously marks this line as unreachable
+                ftype, fname = ("gas", "density")  # type: ignore [unreachable]
+
+            center = (match["extremum"], (ftype, fname))
+
+        elif centerl in ("center", "left", "right"):
+            # domain_left_edge and domain_right_edge might not be
+            # initialized until we create the index, so create it
+            ds.index
+            center = ds.domain_center.copy()
+            if centerl in ("left", "right") and axis is None:
+                raise ValueError(f"center={center!r} is not valid with axis=None")
+            if centerl == "left":
+                center = ds.domain_center.copy()
+                center[axis] = ds.domain_left_edge[axis]
+            elif centerl == "right":
+                # note that the right edge of a grid is excluded by slice selector
+                # which is why we offset the region center by the smallest distance possible
+                center = ds.domain_center.copy()
+                center[axis] = (
+                    ds.domain_right_edge[axis] - center.uq * np.finfo(center.dtype).eps
+                )
+
+        elif centerl not in valid_str_values:
+            raise ValueError(
+                f"Received unknown center single string value {center!r}. "
+                + default_error_message
+            )
+
+    if is_sequence(center):
+        if (
+            len(center) == 2
+            and isinstance(center[0], str)
+            and (is_valid_field_key(center[1]) or isinstance(center[1], str))
+        ):
+            center0l = center[0].lower()
+
+            if center0l not in valid_str_values:
+                raise ValueError(
+                    f"Received unknown string value {center[0]!r}. "
+                    f"Expected one of {valid_field_loc_str_values} (case insensitive)"
+                )
+            field_key = center[1]
+            if center0l == "min":
+                v, center = ds.find_min(field_key)
+            else:
+                assert center0l == "max"
+                v, center = ds.find_max(field_key)
+            center = ds.arr(center, "code_length")
+        elif len(center) == 2 and is_sequence(center[0]) and isinstance(center[1], str):
+            center = ds.arr(center[0], center[1])
+        elif len(center) == 3 and all(isinstance(_, YTQuantity) for _ in center):
+            center = ds.arr([c.copy() for c in center], dtype="float64")
+        elif len(center) == 3:
+            center = ds.arr(center, "code_length")
+
+    if isinstance(center, np.ndarray) and center.ndim > 1:
+        mylog.debug("Removing singleton dimensions from 'center'.")
+        center = np.squeeze(center)
+
+    if not isinstance(center, YTArray):
+        raise TypeError(f"Invalid center value {center!r}. " + default_error_message)
+
+    if center.shape != (3,):
+        raise TypeError(f"Expected an array with size 3, got {center.size}. ")
+
+    # make sure the return value shares all
+    # unit symbols with ds.unit_registry
+    center = ds.arr(center)
+    # we rely on unyt to invalidate unit dimensionality here
+    center.convert_to_units("code_length")
+
+    if not ds._is_within_domain(center):
+        mylog.warning(
+            "Requested center at %s is outside of data domain with "
+            "left edge = %s, "
+            "right edge = %s, "
+            "periodicity = %s",
+            center,
+            ds.domain_left_edge,
+            ds.domain_right_edge,
+            ds.periodicity,
+        )
+
+    return center.astype("float64")
 
 
 def sglob(pattern):
