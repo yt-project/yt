@@ -350,7 +350,7 @@ class YTProj(YTSelectionContainer2D):
                 self.ds.field_info.pop(field)
         self.tree = tree
 
-    def to_pw(self, fields=None, center="c", width=None, origin="center-window"):
+    def to_pw(self, fields=None, center="center", width=None, origin="center-window"):
         r"""Create a :class:`~yt.visualization.plot_window.PWViewerMPL` from this
         object.
 
