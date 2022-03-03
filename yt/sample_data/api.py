@@ -11,6 +11,7 @@ from warnings import warn
 
 import pkg_resources
 
+from yt.config import ytcfg
 from yt.funcs import mylog
 from yt.utilities.on_demand_imports import (
     _pandas as pd,
@@ -137,8 +138,6 @@ def get_data_registry_table():
 
 
 def _get_test_data_dir_path():
-    from yt.config import ytcfg
-
     p = Path(ytcfg.get("yt", "test_data_dir"))
     if p.is_dir():
         return p

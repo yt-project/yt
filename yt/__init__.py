@@ -100,6 +100,7 @@ def run_nose(*args, **kwargs):
     return run_nose(*args, **kwargs)
 
 
+from yt.config import _setup_postinit_configuration
 from yt.units.unit_systems import UnitSystem, unit_system_registry  # type: ignore
 
 # Import some helpful math utilities
@@ -153,3 +154,8 @@ from yt.visualization.volume_rendering.api import (
 
 #    TransferFunctionHelper, MultiVariateTransferFunction
 #    off_axis_projection
+
+
+# run configuration callbacks
+_setup_postinit_configuration()
+del _setup_postinit_configuration
