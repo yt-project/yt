@@ -1,7 +1,9 @@
 import os
 import warnings
 
-import toml
+# TODO: import tomllib from the standard library instead in Python >= 3.11
+import tomli as tomllib
+import tomli_w
 from more_itertools import always_iterable
 
 from yt._maintenance.deprecation import issue_deprecation_warning
@@ -154,14 +156,16 @@ class YTConfig:
             if not os.path.exists(fname):
                 continue
             metadata = {"source": f"file: {fname}"}
-            self.update(toml.load(fname), metadata=metadata)
+            with open(fname, "rb") as fh:
+                data = tomllib.load(fh)
+            self.update(data, metadata=metadata)
             file_names_read.append(fname)
 
         return file_names_read
 
     def write(self, file_handler):
         value = self.config_root.as_dict()
-        config_as_str = toml.dumps(value)
+        config_as_str = tomli_w.dumps(value)
 
         try:
             # Assuming file_handler has a write attribute
@@ -222,8 +226,8 @@ if os.path.exists(old_config_file()):
 if not os.path.exists(_global_config_file):
     cfg = {"yt": {}}
     try:
-        with open(_global_config_file, mode="w") as fd:
-            toml.dump(cfg, fd)
+        with open(_global_config_file, mode="wb") as fd:
+            tomli_w.dump(cfg, fd)
     except OSError:
         warnings.warn("unable to write new config file")
 
