@@ -964,7 +964,7 @@ class ImagePlotContainer(PlotContainer):
 
     @accepts_all_fields
     @invalidate_plot
-    def set_zlim(self, field, zmin, zmax, dynamic_range=None):
+    def set_zlim(self, field, zmin=None, zmax=None, dynamic_range=None):
         """set the scale of the colormap
 
         Parameters
@@ -972,59 +972,68 @@ class ImagePlotContainer(PlotContainer):
         field : string
             the field to set a colormap scale
             if field == 'all', applies to all plots.
-        zmin : float, tuple, YTQuantity or str
-            the new minimum of the colormap scale. If 'min', will
+        zmin : float, tuple, YTQuantity or 'min'
+            the new minimum of the colormap scale. If None or 'min', will
             set to the minimum value in the current view.
-        zmax : float, tuple, YTQuantity or str
-            the new maximum of the colormap scale. If 'max', will
-            set to the maximum value in the current view.
+        zmax : float, tuple, YTQuantity or 'max'
+            the new maximum of the colormap scale. If None or 'max', will
+            set to the maximum value in the current view (default)
 
         Other Parameters
         ----------------
         dynamic_range : float (default: None)
             The dynamic range of the image.
-            If zmin == None, will set zmin = zmax / dynamic_range
-            If zmax == None, will set zmax = zmin * dynamic_range
+            If zmin is None, will set zmin = zmax / dynamic_range
+            If zmax is None, will set zmax = zmin * dynamic_range
             When dynamic_range is specified, defaults to setting
             zmin = zmax / dynamic_range.
 
         """
+        if zmin is None and zmin is None:
+            # nothing to do
+            return
 
         def _sanitize_units(z, _field):
-            # convert dimensionful inputs to float
-            if isinstance(z, tuple):
+            # return a quantity if we can, a float otherwise
+            if is_sequence(z) and len(z) == 2:
                 z = self.ds.quan(*z)
+
             if isinstance(z, YTQuantity):
-                try:
-                    plot_units = self.frb[_field].units
-                    z = z.to(plot_units).value
-                except AttributeError:
-                    # only certain subclasses have a frb attribute
-                    # they can rely on for inspecting units
-                    mylog.warning(
-                        "%s class doesn't support zmin/zmax"
-                        " as tuples or unyt_quantitiy",
-                        self.__class__.__name__,
-                    )
-                    z = z.value
-            return z
+                return z
+
+            try:
+                plot_units = self.frb[_field].units
+            except AttributeError:
+                # only certain subclasses have a frb attribute
+                # they can rely on for inspecting units
+                mylog.warning(
+                    "%s class doesn't support zmin/zmax" " as tuples or unyt_quantitiy",
+                    self.__class__.__name__,
+                )
+                return float(z)
+            else:
+                return z * plot_units
 
         if field == "all":
             fields = list(self.plots.keys())
         else:
             fields = field
         for field in self.data_source._determine_fields(fields):
-            myzmin = _sanitize_units(zmin, field)
-            myzmax = _sanitize_units(zmax, field)
-            if zmin == "min":
+            if zmin in (None, "min"):
                 myzmin = self.plots[field].image._A.min()
-            if zmax == "max":
+            else:
+                myzmin = _sanitize_units(zmin, field)
+            if zmax in (None, "max"):
                 myzmax = self.plots[field].image._A.max()
+            else:
+                myzmax = _sanitize_units(zmax, field)
             if dynamic_range is not None:
-                if zmax is None:
+                if zmax is None and zmin is not None:
                     myzmax = myzmin * dynamic_range
-                else:
+                elif zmin is None and zmax is not None:
                     myzmin = myzmax / dynamic_range
+                else:
+                    raise TypeError("writeme")
             if myzmin > 0.0 and self._field_transform[field] == symlog_transform:
                 self._field_transform[field] = log_transform
             self.plots[field].zmin = myzmin

@@ -472,6 +472,10 @@ class PlotWindow(ImagePlotContainer):
         for f, u in zip_equal(iter_fields(field), always_iterable(new_unit)):
             self.frb.set_unit(f, u, equivalency, equivalency_kwargs)
             self._equivalencies[f] = (equivalency, equivalency_kwargs)
+            if isinstance(self.plots[f].zmin, YTQuantity):
+                self.plots[f].zmin.convert_to_units(u)
+            if isinstance(self.plots[f].zmax, YTQuantity):
+                self.plots[f].zmax.convert_to_units(u)
         return self
 
     @invalidate_plot
