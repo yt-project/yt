@@ -1,4 +1,5 @@
 import abc
+import contextlib
 import functools
 import itertools
 import os
@@ -1886,6 +1887,26 @@ class ParticleFile(abc.ABC):
             if self.total_particles[ptype] == 0:
                 continue
             yield ptype, self.total_particles[ptype]
+
+    @contextlib.contextmanager
+    def transaction(self, handle=None):
+        # yields an open file handle, without double-reading.
+        if handle is None:
+            with self.open_handle() as handle:
+                yield handle
+        else:
+            # we have end up here recursively so simply yield and the outer
+            # transaction call will handle closing
+            yield handle
+
+    # @abc.abstractmethod
+    @contextlib.contextmanager
+    def open_handle(self):
+        # this method is a file context manager that must yield an open file
+        # handle for self.filename.
+        # TO DO: switch this to abstract method, but not until all the existing
+        # frontends implement it.
+        raise NotImplementedError("This frontend has not implemented open_handle")
 
 
 class ParticleDataset(Dataset):

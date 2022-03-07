@@ -13,11 +13,8 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 
 class SwiftParticleFile(ParticleFile):
     @contextlib.contextmanager
-    def transaction(self, handle=None):
-        if handle is None:
-            with h5py.File(self.filename, mode="r") as handle:
-                yield handle
-        else:
+    def open_handle(self):
+        with h5py.File(self.filename, mode="r") as handle:
             yield handle
 
     def _read_field(self, ptype, field_name, handle=None):

@@ -2,8 +2,8 @@ import contextlib
 import os
 import stat
 import struct
-from typing import Type
 from collections import defaultdict
+from typing import Type
 
 import numpy as np
 
@@ -172,27 +172,7 @@ class GadgetBinaryHeader:
         return True
 
 
-class GadgetParticleFile(ParticleFile):
-    # an intermediate abstract class for both gadget types.
-
-    _opening_func = None  # a function handle for opening the file
-
-    @contextlib.contextmanager
-    def transaction(self, handle=None):
-        if handle is None:
-            handle = self._opening_func(self.filename, mode="r")
-            yield handle
-            handle.close()
-        else:
-            # we have ended up here recursively, so simply yield. The outer
-            # instance will take care of closing the handle.
-            yield handle
-
-
-class GadgetBinaryFile(GadgetParticleFile):
-
-    _opening_func = open
-
+class GadgetBinaryFile(ParticleFile):
     def __init__(self, ds, io, filename, file_id, range=None):
         header = GadgetBinaryHeader(filename, ds._header.spec)
         self.header = header.value
@@ -205,6 +185,12 @@ class GadgetBinaryFile(GadgetParticleFile):
         self._field_dtype["ParticleIDs"] = np.dtype(io._endian + ds._id_dtype)
 
         super().__init__(ds, io, filename, file_id, range)
+
+    @contextlib.contextmanager
+    def open_handle(self):
+        handle = open(self.filename)
+        yield handle
+        handle.close()
 
     def _calculate_offsets(self, field_list, pcounts):
         # Note that we ignore pcounts here because it's the global count.  We
@@ -621,14 +607,13 @@ class GadgetDataset(SPHDataset):
         return header.validate()
 
 
-class GadgetHDF5File(GadgetParticleFile):
+class GadgetHDF5File(ParticleFile):
     _fields_with_cols = ("Metallicity_", "PassiveScalars_", "Chemistry_", "GFM_Metals_")
 
-    @property
-    def _opening_func(self):
-        # the opening function relies on an optional dependency, so isolate it
-        # here rather than as a class variable
-        return h5py.File
+    @contextlib.contextmanager
+    def open_handle(self):
+        with h5py.File(self.filename, mode="r") as handle:
+            yield handle
 
     def _read_field(self, ptype, field_name, handle=None):
 
