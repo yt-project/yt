@@ -705,9 +705,11 @@ class ContourCallback(PlotCallback):
         self.label = label
         if label_args is not None:
             text_args = label_args
-            warnings.warn(
+            issue_deprecation_warning(
                 "The label_args keyword is deprecated.  Please use "
-                "the text_args keyword instead."
+                "the text_args keyword instead.",
+                since="3.2",
+                removal="4.2",
             )
         if text_args is None:
             text_args = def_text_args
@@ -1154,9 +1156,11 @@ class LinePlotCallback(PlotCallback):
         self.plot_args = plot_args
         if data_coords:
             coord_system = "data"
-            warnings.warn(
+            issue_deprecation_warning(
                 "The data_coords keyword is deprecated.  Please set "
-                "the keyword coord_system='data' instead."
+                "the keyword coord_system='data' instead.",
+                since="3.2",
+                removal="4.2",
             )
         self.coord_system = coord_system
         self.transform = None
@@ -1186,10 +1190,12 @@ class ImageLineCallback(LinePlotCallback):
 
     def __init__(self, p1, p2, data_coords=False, coord_system="axis", plot_args=None):
         super().__init__(p1, p2, data_coords, coord_system, plot_args)
-        warnings.warn(
+        issue_deprecation_warning(
             "The ImageLineCallback (annotate_image_line()) is "
             "deprecated.  Please use the LinePlotCallback "
-            "(annotate_line()) instead."
+            "(annotate_line()) instead.",
+            since="3.2",
+            removal="4.2",
         )
 
     def __call__(self, plot):
@@ -1471,10 +1477,12 @@ class ArrowCallback(PlotCallback):
         if self.head_length is not None:
             self.head_length *= plot_diag
         if self.code_size is not None:
-            warnings.warn(
+            issue_deprecation_warning(
                 "The code_size keyword is deprecated.  Please use "
                 "the length keyword in 'axis' units instead. "
-                "Setting code_size overrides length value."
+                "Setting code_size overrides length value.",
+                since="3.2",
+                removal="4.2",
             )
             if is_sequence(self.code_size):
                 self.code_size = plot.data.ds.quan(self.code_size[0], self.code_size[1])
@@ -1815,9 +1823,11 @@ class TextLabelCallback(PlotCallback):
         self.text = text
         if data_coords:
             coord_system = "data"
-            warnings.warn(
+            issue_deprecation_warning(
                 "The data_coords keyword is deprecated.  Please set "
-                "the keyword coord_system='data' instead."
+                "the keyword coord_system='data' instead.",
+                since="3.2",
+                removal="4.2",
             )
         if text_args is None:
             text_args = def_text_args
@@ -1866,10 +1876,12 @@ class PointAnnotateCallback(TextLabelCallback):
         super().__init__(
             pos, text, data_coords, coord_system, text_args, inset_box_args
         )
-        warnings.warn(
+        issue_deprecation_warning(
             "The PointAnnotateCallback (annotate_point()) is "
             "deprecated.  Please use the TextLabelCallback "
-            "(annotate_point()) instead."
+            "(annotate_point()) instead.",
+            since="3.2",
+            removal="4.2",
         )
 
     def __call__(self, plot):
@@ -2032,15 +2044,19 @@ class HaloCatalogCallback(PlotCallback):
         self.annotate_field = annotate_field
         if circle_kwargs is not None:
             circle_args = circle_kwargs
-            warnings.warn(
+            issue_deprecation_warning(
                 "The circle_kwargs keyword is deprecated.  Please "
-                "use the circle_args keyword instead."
+                "use the circle_args keyword instead.",
+                since="3.2",
+                removal="4.2",
             )
         if font_kwargs is not None:
             text_args = font_kwargs
-            warnings.warn(
+            issue_deprecation_warning(
                 "The font_kwargs keyword is deprecated.  Please use "
-                "the text_args keyword instead."
+                "the text_args keyword instead.",
+                since="3.2",
+                removal="4.2",
             )
         if circle_args is None:
             circle_args = def_circle_args
@@ -2169,9 +2185,11 @@ class ParticleCallback(PlotCallback):
         self.alpha = alpha
         self.data_source = data_source
         if self.minimum_mass is not None:
-            warnings.warn(
+            issue_deprecation_warning(
                 "The minimum_mass keyword is deprecated.  Please use "
-                "an appropriate particle filter and the ptype keyword instead."
+                "an appropriate particle filter and the ptype keyword instead.",
+                since="3.5",
+                removal="4.2",
             )
 
     def __call__(self, plot):
