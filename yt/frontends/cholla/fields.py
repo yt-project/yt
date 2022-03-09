@@ -1,3 +1,6 @@
+import numpy as np
+from unyt import Zsun
+
 from yt.fields.field_info_container import FieldInfoContainer
 from yt.utilities.physical_constants import kboltz, mh
 
@@ -25,6 +28,7 @@ class ChollaFieldInfo(FieldInfoContainer):
         ("momentum_z", (mom_units, ["momentum_z"], None)),
         ("Energy", ("code_pressure", ["total_energy_density"], None)),
         ("scalar0", (rho_units, [], None)),
+        ("metal_density", (rho_units, ["metal_density"], None)),
     )
 
     known_particle_fields = ()
@@ -124,6 +128,26 @@ class ChollaFieldInfo(FieldInfoContainer):
                 ("gas", "color"),
                 ("cholla", "color"),
                 units="",
+            )
+
+            # Using color field to define metallicity field, where a color of 1
+            # indicates solar metallicity
+
+            def _metallicity(field, data):
+                # Ensuring that there are no negative metallicities
+                return np.clip(data[("cholla", "color")], 0, np.inf) * Zsun
+
+            self.add_field(
+                ("cholla", "metallicity"),
+                sampling_type="cell",
+                function=_metallicity,
+                units="Zsun",
+            )
+
+            self.alias(
+                ("gas", "metallicity"),
+                ("cholla", "metallicity"),
+                units="Zsun",
             )
 
     def setup_particle_fields(self, ptype):
