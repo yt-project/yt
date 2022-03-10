@@ -1,4 +1,6 @@
 from collections import defaultdict
+from pathlib import Path
+from typing import Union
 
 import numpy as np
 
@@ -209,13 +211,13 @@ class IOHandlerRAMSES(BaseIOHandler):
         return tr
 
 
-def _read_part_file_descriptor(fname):
+def _read_part_file_descriptor(fname: Union[str, Path]):
     """
     Read a file descriptor and returns the array of the fields found.
     """
 
     # Mapping
-    mapping = [
+    mapping_list = [
         ("position_x", "particle_position_x"),
         ("position_y", "particle_position_y"),
         ("position_z", "particle_position_z"),
@@ -229,7 +231,7 @@ def _read_part_file_descriptor(fname):
         ("tag", "particle_tag"),
     ]
     # Convert to dictionary
-    mapping = {k: v for k, v in mapping}
+    mapping = {k: v for k, v in mapping_list}
 
     with open(fname) as f:
         line = f.readline()
@@ -265,23 +267,27 @@ def _read_part_file_descriptor(fname):
     return fields
 
 
-def _read_fluid_file_descriptor(fname):
+def _read_fluid_file_descriptor(fname: Union[str, Path]):
     """
     Read a file descriptor and returns the array of the fields found.
     """
 
     # Mapping
-    mapping = [
+    mapping_list = [
         ("density", "Density"),
         ("velocity_x", "x-velocity"),
         ("velocity_y", "y-velocity"),
         ("velocity_z", "z-velocity"),
         ("pressure", "Pressure"),
         ("metallicity", "Metallicity"),
+        # Add mapping for ionized species
+        ("H_p1_fraction", "HII"),
+        ("He_p1_fraction", "HeII"),
+        ("He_p2_fraction", "HeIII"),
     ]
 
     # Add mapping for magnetic fields
-    mapping += [
+    mapping_list += [
         (key, key)
         for key in (
             f"B_{dim}_{side}" for side in ["left", "right"] for dim in ["x", "y", "z"]
@@ -289,7 +295,7 @@ def _read_fluid_file_descriptor(fname):
     ]
 
     # Convert to dictionary
-    mapping = {k: v for k, v in mapping}
+    mapping = {k: v for k, v in mapping_list}
 
     with open(fname) as f:
         line = f.readline()
