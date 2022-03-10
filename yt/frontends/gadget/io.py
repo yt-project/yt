@@ -409,8 +409,10 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                 pp = data_file._read_field(ptype, self._coord_name, handle=f)
                 yield ptype, pp
 
-    def _get_smoothing_length(self, data_file, position_dtype, position_shape):
-        ret = self._get_field(data_file, "SmoothingLength", "Gas")
+    def _get_smoothing_length(
+        self, data_file, position_dtype, position_shape, handle=None
+    ):
+        ret = self._get_field(data_file, "SmoothingLength", "Gas", handle=None)
         if position_dtype is not None and ret.dtype != position_dtype:
             # Sometimes positions are stored in double precision
             # but smoothing lengths are stored in single precision.
@@ -419,8 +421,8 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
             ret = ret.astype(position_dtype)
         return ret
 
-    def _get_field(self, data_file, field, ptype):
-        return data_file._read_field(ptype, field)
+    def _get_field(self, data_file, field, ptype, handle=None):
+        return data_file._read_field(ptype, field, handle=handle)
 
     def _count_particles(self, data_file):
         si, ei = data_file.start, data_file.end
