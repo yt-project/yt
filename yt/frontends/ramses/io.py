@@ -1,5 +1,5 @@
-from collections import defaultdict
 import os
+from collections import defaultdict
 from typing import Union
 
 import numpy as np
@@ -281,6 +281,12 @@ def _read_fluid_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
         ("pressure", "Pressure"),
         ("metallicity", "Metallicity"),
         # Add mapping for ionized species
+        # Note: we expect internally that these names use the HII, HeII,
+        #       HeIII, ... convention for historical reasons. So we need to map
+        #       the names read from `hydro_file_descriptor.txt` to this
+        #       convention.
+        # This will create fields like ("ramses", "HII") which are mapped
+        # to ("gas", "H_p1_fraction") in fields.py
         ("H_p1_fraction", "HII"),
         ("He_p1_fraction", "HeII"),
         ("He_p2_fraction", "HeIII"),
