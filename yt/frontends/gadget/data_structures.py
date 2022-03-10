@@ -637,7 +637,7 @@ class GadgetHDF5File(ParticleFile):
         if any(field_name.startswith(c) for c in self._fields_with_cols):
             rc = field_name.rsplit("_", 1)
             col = int(rc[-1])
-            rfield = rc[:-1]
+            rfield = "_".join(rc[:-1])
 
             if rfield.startswith("Chemistry"):
                 rfield = rfield + "Abundances"
@@ -645,7 +645,7 @@ class GadgetHDF5File(ParticleFile):
             return rfield, col
 
         if field_name in self.io._element_names:
-            return "ElementAbundance/" + field_name, None
+            return f"ElementAbundance/{field_name}", None
 
         return field_name, None
 

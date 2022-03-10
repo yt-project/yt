@@ -4,8 +4,11 @@ import tempfile
 from collections import OrderedDict
 from itertools import product
 
+from numpy import array_equiv
+
 import yt
 from yt.frontends.gadget.api import GadgetDataset, GadgetHDF5Dataset
+from yt.frontends.gadget.data_structures import GadgetHDF5File
 from yt.frontends.gadget.testing import fake_gadget_binary
 from yt.testing import ParticleSelectionComparison, requires_file
 from yt.utilities.answer_testing.framework import data_dir_load, requires_ds, sph_answer
@@ -112,6 +115,55 @@ def test_particle_subselection():
     ds = data_dir_load(snap_33)
     psc = ParticleSelectionComparison(ds)
     psc.run_defaults()
+
+
+@requires_file(snap_33)
+def test_particle_file_operations():
+    # This runs some unit test operations related particle io
+    ds = data_dir_load(snap_33)
+    ad = ds.all_data()
+    ad.index._identify_base_chunk(ad)
+    chunks = ad.index._chunk_io(ad, cache=False)
+    chunks = list(chunks)
+
+    # check that the chunk emitting runs
+    file_set = ds.index.io._data_files_set(chunks)
+    assert all([isinstance(i, GadgetHDF5File) for i in file_set])
+
+    # check that our ordering works
+    pfiles_1 = list(ds.index.io._sorted_chunk_iterator(chunks))
+    reverse_chunks = chunks[::-1]  # reversed input should still yield in order
+    pfiles_2 = list(ds.index.io._sorted_chunk_iterator(reverse_chunks))
+    assert all([p1 == p2 for p1, p2 in zip(pfiles_1, pfiles_2)])
+
+    # check that the field sanitization returns expected field and column
+    particle_file = list(file_set)[0]
+    for fld in particle_file._fields_with_cols:
+        fld_col = particle_file._sanitize_field_col(f"{fld}1")
+        if "Chemistry" in fld:
+            assert fld_col == ("ChemistryAbundances", 1)
+        else:
+            assert fld_col == (fld.rstrip("_"), 1)
+    fld_col = particle_file._sanitize_field_col("FakeField_1")
+    assert fld_col == ("FakeField_1", None)  # not known, will not find a col
+    for fld in ds.index.io._element_names:
+        fld_col = particle_file._sanitize_field_col(fld)
+        assert fld_col == (f"ElementAbundance/{fld}", None)
+
+    # check that we can read in a field with all permutations of the
+    # transaction handle
+    ptype, field = "PartType0", "Density"
+    # with no existing handle (will open and close internally)
+    den0 = particle_file._read_field(ptype, field)
+    # with the transaction context manager
+    with particle_file.transaction() as handle:
+        den1 = particle_file._read_field(ptype, field, handle=handle)
+        assert array_equiv(den0, den1)
+        # a nested transaction will avoid re-opening
+        with particle_file.transaction(handle) as f:
+            assert handle == f
+            den1 = particle_file._read_field(ptype, field, handle=f)
+    assert array_equiv(den0, den1)
 
 
 @requires_ds(BE_Gadget)

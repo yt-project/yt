@@ -299,7 +299,8 @@ class BaseIOHandler:
             # to not use an iterator.
             yield from data_file_data.items()
 
-    def _data_files_set(self, chunks):
+    def _data_files_set(self, chunks) -> set:
+        # returns a set of datafiles from across chunks
         chunks = list(chunks)
         data_files = set()
         for chunk in chunks:
@@ -308,6 +309,8 @@ class BaseIOHandler:
         return data_files
 
     def _sorted_chunk_iterator(self, chunks):
+        # yields the data files contained in a chunks iterator sorted by
+        # filename and starting position with each file
         data_files = self._data_files_set(chunks)
         yield from sorted(data_files, key=lambda x: (x.filename, x.start))
 
