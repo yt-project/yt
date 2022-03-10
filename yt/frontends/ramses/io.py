@@ -1,5 +1,5 @@
 from collections import defaultdict
-from pathlib import Path
+import os
 from typing import Union
 
 import numpy as np
@@ -211,7 +211,7 @@ class IOHandlerRAMSES(BaseIOHandler):
         return tr
 
 
-def _read_part_file_descriptor(fname: Union[str, Path]):
+def _read_part_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
     """
     Read a file descriptor and returns the array of the fields found.
     """
@@ -267,7 +267,7 @@ def _read_part_file_descriptor(fname: Union[str, Path]):
     return fields
 
 
-def _read_fluid_file_descriptor(fname: Union[str, Path]):
+def _read_fluid_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
     """
     Read a file descriptor and returns the array of the fields found.
     """
