@@ -12,6 +12,7 @@ from more_itertools import always_iterable
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.index_subobjects.octree_subset import OctreeSubset
+from yt.data_objects.index_subobjects.stretched_grid import StretchedGrid
 from yt.data_objects.index_subobjects.unstructured_mesh import (
     SemiStructuredMesh,
     UnstructuredMesh,
@@ -75,6 +76,27 @@ class StreamGrid(AMRGridPatch):
         return [self.index.grids[cid - self._id_offset] for cid in self._children_ids]
 
 
+class StreamStretchedGrid(StretchedGrid):
+    _id_offset = 0
+
+    def __init__(self, id, index):
+        cell_widths = index.grid_cell_widths[id - self._id_offset]
+        super().__init__(id, cell_widths, None, index)
+        self._children_ids = []
+        self._parent_id = -1
+        self.Level = -1
+
+    @property
+    def Parent(self):
+        if self._parent_id == -1:
+            return None
+        return self.index.grids[self._parent_id - self._id_offset]
+
+    @property
+    def Children(self):
+        return [self.index.grids[cid - self._id_offset] for cid in self._children_ids]
+
+
 class StreamHandler:
     def __init__(
         self,
@@ -91,6 +113,7 @@ class StreamHandler:
         io=None,
         particle_types=None,
         periodicity=(True, True, True),
+        cell_widths=None,
     ):
         if particle_types is None:
             particle_types = {}
@@ -108,6 +131,7 @@ class StreamHandler:
         self.io = io
         self.particle_types = particle_types
         self.periodicity = periodicity
+        self.cell_widths = cell_widths
 
     def get_fields(self):
         return self.fields.all_fields
@@ -144,6 +168,8 @@ class StreamHierarchy(GridIndex):
         self.min_level = self.grid_levels.min()
         self.grid_procs = self.stream_handler.processor_ids
         self.grid_particle_count[:] = self.stream_handler.particle_count
+        if self.stream_handler.cell_widths is not None:
+            self.grid_cell_widths = self.stream_handler.cell_widths[:]
         mylog.debug("Copying reverse tree")
         self.grids = []
         # We enumerate, so it's 0-indexed id and 1-indexed pid

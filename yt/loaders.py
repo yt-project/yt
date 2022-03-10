@@ -164,6 +164,7 @@ def load_uniform_grid(
     geometry="cartesian",
     unit_system="cgs",
     default_species_fields=None,
+    cell_widths=None,
 ):
     r"""Load a uniform grid of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
@@ -316,6 +317,7 @@ def load_uniform_grid(
         (length_unit, mass_unit, time_unit, velocity_unit, magnetic_unit),
         particle_types=particle_types,
         periodicity=periodicity,
+        cell_widths=cell_widths,
     )
 
     handler.name = "UniformGridData"
