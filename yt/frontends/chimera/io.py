@@ -139,8 +139,8 @@ class ChimeraIOHandler(BaseIOHandler):
                         for i in range(0, n_groups):
                             d_energy.append(energy_edge[i + 1] - energy_edge[i])
                         d_energy = np.array(d_energy)
-                        e3de = energy_center ** 3 * d_energy
-                        e5de = energy_center ** 5 * d_energy
+                        e3de = energy_center**3 * d_energy
+                        e5de = energy_center**5 * d_energy
 
                         psi0_c = f["radiation"]["psi0_c"][:]
                         row = np.empty(
@@ -173,7 +173,7 @@ class ChimeraIOHandler(BaseIOHandler):
                         ecoef = 4.0 * np.pi * ergmev / (h * cvel) ** 3
                         radius = f["mesh"]["x_ef"][()]
                         agr_e = f["fluid"]["agr_e"][()]
-                        cell_area_GRcorrected = 4 * np.pi * radius ** 2 / agr_e ** 4
+                        cell_area_GRcorrected = 4 * np.pi * radius**2 / agr_e**4
                         psi1_e = f["radiation"]["psi1_e"]
                         energy_edge = f["radiation"]["unubi"][()]
                         energy_center = f["radiation"]["unui"][()]
@@ -181,9 +181,9 @@ class ChimeraIOHandler(BaseIOHandler):
                         for i in range(0, n_groups):
                             d_energy.append(energy_edge[i + 1] - energy_edge[i])
                         d_energy = np.array(d_energy)
-                        e2de = energy_center ** 2 * d_energy
-                        e3de = energy_center ** 3 * d_energy
-                        e5de = energy_center ** 5 * d_energy
+                        e2de = energy_center**2 * d_energy
+                        e3de = energy_center**3 * d_energy
+                        e5de = energy_center**5 * d_energy
                         species = int(fname[-1]) - 1
                         if fname in ("lumin_1", "lumin_2", "lumin_3", "lumin_4"):
                             lumin = (
