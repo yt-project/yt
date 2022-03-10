@@ -412,7 +412,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
     def _get_smoothing_length(
         self, data_file, position_dtype, position_shape, handle=None
     ):
-        ret = self._get_field(data_file, "SmoothingLength", "Gas", handle=None)
+        ret = self._get_field(data_file, "SmoothingLength", "Gas", handle=handle)
         if position_dtype is not None and ret.dtype != position_dtype:
             # Sometimes positions are stored in double precision
             # but smoothing lengths are stored in single precision.

@@ -145,7 +145,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
             hsmls = np.fromfile(f, dtype, count=count)
         return hsmls.astype("float64")
 
-    def _get_smoothing_length(self, data_file, dtype, shape):
+    def _get_smoothing_length(self, data_file, dtype, shape, handle=None):
         return self._read_smoothing_length(data_file, shape[0])
 
     def _read_particle_data_file(self, data_file, ptf, selector=None):
