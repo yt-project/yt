@@ -118,7 +118,7 @@ class TransferFunctionHelper:
         """Setup a default colormap
 
         Creates a ColorTransferFunction including 10 gaussian layers whose
-        colors sample the 'spectral' colormap. Also attempts to scale the
+        colors sample the 'nipy_spectral' colormap. Also attempts to scale the
         transfer function to produce a natural contrast ratio.
 
         """

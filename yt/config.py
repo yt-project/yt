@@ -1,10 +1,11 @@
 import os
 import warnings
 
-import toml
+# TODO: import tomllib from the standard library instead in Python >= 3.11
+import tomli as tomllib
+import tomli_w
 from more_itertools import always_iterable
 
-from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.utilities.configuration_tree import ConfigLeaf, ConfigNode
 
 ytcfg_defaults = {}
@@ -47,7 +48,7 @@ ytcfg_defaults["yt"] = dict(
     chunk_size=1000,
     xray_data_dir="/does/not/exist",
     supp_data_dir="/does/not/exist",
-    default_colormap="arbre",
+    default_colormap="cmyt.arbre",
     ray_tracing_engine="embree",
     internals=dict(
         within_testing=False,
@@ -77,17 +78,8 @@ def config_dir():
     return conf_dir
 
 
-def old_config_file():
-    return os.path.join(config_dir(), "ytrc")
-
-
-def old_config_dir():
-    return os.path.join(os.path.expanduser("~"), ".yt")
-
-
 # For backward compatibility, do not use these vars internally in yt
 CONFIG_DIR = config_dir()
-_OLD_CONFIG_FILE = old_config_file()
 
 
 class YTConfig:
@@ -154,14 +146,16 @@ class YTConfig:
             if not os.path.exists(fname):
                 continue
             metadata = {"source": f"file: {fname}"}
-            self.update(toml.load(fname), metadata=metadata)
+            with open(fname, "rb") as fh:
+                data = tomllib.load(fh)
+            self.update(data, metadata=metadata)
             file_names_read.append(fname)
 
         return file_names_read
 
     def write(self, file_handler):
         value = self.config_root.as_dict()
-        config_as_str = toml.dumps(value)
+        config_as_str = tomli_w.dumps(value)
 
         try:
             # Assuming file_handler has a write attribute
@@ -199,31 +193,11 @@ class YTConfig:
 _global_config_file = YTConfig.get_global_config_file()
 _local_config_file = YTConfig.get_local_config_file()
 
-if os.path.exists(old_config_file()):
-    if os.path.exists(_global_config_file):
-        issue_deprecation_warning(
-            f"The configuration file {old_config_file()} is deprecated in "
-            f"favor of {_global_config_file}. Currently, both are present. "
-            "Please manually remove the deprecated one to silence "
-            "this warning.",
-            since="4.0.0",
-            removal="4.1.0",
-        )
-    else:
-        issue_deprecation_warning(
-            f"The configuration file {_OLD_CONFIG_FILE} is deprecated. "
-            f"Please migrate your config to {_global_config_file} by running: "
-            "'yt config migrate'",
-            since="4.0.0",
-            removal="4.1.0",
-        )
-
-
 if not os.path.exists(_global_config_file):
-    cfg = {"yt": {}}
+    cfg = {"yt": {}}  # type: ignore
     try:
-        with open(_global_config_file, mode="w") as fd:
-            toml.dump(cfg, fd)
+        with open(_global_config_file, mode="wb") as fd:
+            tomli_w.dump(cfg, fd)
     except OSError:
         warnings.warn("unable to write new config file")
 

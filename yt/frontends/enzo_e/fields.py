@@ -1,5 +1,6 @@
 import numpy as np
 
+from yt._typing import KnownFieldsT
 from yt.fields.field_info_container import FieldInfoContainer
 from yt.fields.magnetic_field import setup_magnetic_field_aliases
 from yt.fields.particle_fields import add_union_field
@@ -11,8 +12,6 @@ acc_units = "code_velocity / code_time"
 energy_units = "code_velocity**2"
 b_units = "code_magnetic"
 
-known_species_names = {}
-
 NODAL_FLAGS = {
     "bfieldi_x": [1, 0, 0],
     "bfieldi_y": [0, 1, 0],
@@ -21,7 +20,7 @@ NODAL_FLAGS = {
 
 
 class EnzoEFieldInfo(FieldInfoContainer):
-    known_other_fields = (
+    known_other_fields: KnownFieldsT = (
         ("velocity_x", (vel_units, ["velocity_x"], None)),
         ("velocity_y", (vel_units, ["velocity_y"], None)),
         ("velocity_z", (vel_units, ["velocity_z"], None)),
@@ -40,7 +39,7 @@ class EnzoEFieldInfo(FieldInfoContainer):
         ("bfieldi_z", (b_units, [], None)),
     )
 
-    known_particle_fields = (
+    known_particle_fields: KnownFieldsT = (
         ("x", ("code_length", ["particle_position_x"], None)),
         ("y", ("code_length", ["particle_position_y"], None)),
         ("z", ("code_length", ["particle_position_z"], None)),

@@ -1,3 +1,4 @@
+from yt._typing import KnownFieldsT
 from yt.fields.field_info_container import FieldInfoContainer
 
 m_units = "code_mass"
@@ -5,13 +6,13 @@ p_units = "code_length"
 v_units = "code_velocity"
 
 _pnums = 6
-_type_fields = tuple(
+_type_fields: KnownFieldsT = tuple(
     ("%s%sType_%d" % (ptype, field, pnum), (units, [], None))
     for pnum in range(_pnums)
     for field, units in (("Mass", m_units), ("Len", p_units))
     for ptype in ("Group", "Subhalo")
 )
-_sub_type_fields = tuple(
+_sub_type_fields: KnownFieldsT = tuple(
     ("Subhalo%sType_%d" % (field, pnum), (units, [], None))
     for pnum in range(_pnums)
     for field, units in (
@@ -73,8 +74,6 @@ _particle_fields = (
 
 
 class GadgetFOFFieldInfo(FieldInfoContainer):
-    known_other_fields = ()
-
     known_particle_fields = _particle_fields
 
     # these are extra fields to be created for the "all" particle type
@@ -92,6 +91,4 @@ class GadgetFOFFieldInfo(FieldInfoContainer):
 
 
 class GadgetFOFHaloFieldInfo(FieldInfoContainer):
-    known_other_fields = ()
-
     known_particle_fields = _particle_fields + (("ID", ("", ["member_ids"], None)),)

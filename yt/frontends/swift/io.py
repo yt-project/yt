@@ -21,12 +21,7 @@ class IOHandlerSwift(IOHandlerSPH):
         # This will read chunks and yield the results.
         # yt has the concept of sub_files, i.e, we break up big files into
         # virtual sub_files to deal with the chunking system
-        chunks = list(chunks)
-        sub_files = set()
-        for chunk in chunks:
-            for obj in chunk.objs:
-                sub_files.update(obj.data_files)
-        for sub_file in sorted(sub_files, key=lambda x: x.filename):
+        for sub_file in self._sorted_chunk_iterator(chunks):
             si, ei = sub_file.start, sub_file.end
             f = h5py.File(sub_file.filename, mode="r")
             # This double-reads
@@ -75,41 +70,48 @@ class IOHandlerSwift(IOHandlerSPH):
             hsml = hsml.astype("float64", copy=False)
             return hsml
 
-    def _read_particle_fields(self, chunks, ptf, selector):
-        # Now we have all the sizes, and we can allocate
-        sub_files = set()
-        for chunk in chunks:
-            for obj in chunk.objs:
-                sub_files.update(obj.data_files)
+    def _read_particle_data_file(self, sub_file, ptf, selector=None):
+        # note: this frontend uses the variable name and terminology sub_file.
+        # other frontends use data_file with the understanding that it may
+        # actually be a sub_file, hence the super()._read_datafile is called
+        # ._read_datafile instead of ._read_subfile
+        return_data = {}
 
-        for sub_file in sorted(sub_files, key=lambda x: x.filename):
-            si, ei = sub_file.start, sub_file.end
-            f = h5py.File(sub_file.filename, mode="r")
-            for ptype, field_list in sorted(ptf.items()):
-                if sub_file.total_particles[ptype] == 0:
-                    continue
-                g = f[f"/{ptype}"]
-                # this should load as float64
-                coords = g["Coordinates"][si:ei]
-                if ptype == "PartType0":
-                    hsmls = self._get_smoothing_length(sub_file)
-                else:
-                    hsmls = 0.0
+        si, ei = sub_file.start, sub_file.end
+        f = h5py.File(sub_file.filename, mode="r")
+        for ptype, field_list in sorted(ptf.items()):
+            if sub_file.total_particles[ptype] == 0:
+                continue
+            g = f[f"/{ptype}"]
+            # this should load as float64
+            coords = g["Coordinates"][si:ei]
+            if ptype == "PartType0":
+                hsmls = self._get_smoothing_length(sub_file)
+            else:
+                hsmls = 0.0
+
+            if selector:
                 mask = selector.select_points(
                     coords[:, 0], coords[:, 1], coords[:, 2], hsmls
                 )
-                del coords
-                if mask is None:
-                    continue
-                for field in field_list:
-                    if field in ("Mass", "Masses"):
-                        data = g[self.ds._particle_mass_name][si:ei][mask, ...]
-                    else:
-                        data = g[field][si:ei][mask, ...]
+            del coords
+            if selector and mask is None:
+                continue
+            for field in field_list:
+                if field in ("Mass", "Masses"):
+                    data = g[self.ds._particle_mass_name][si:ei]
+                else:
+                    data = g[field][si:ei]
 
-                    data.astype("float64", copy=False)
-                    yield (ptype, field), data
-            f.close()
+                if selector:
+                    data = data[mask, ...]
+
+                data.astype("float64", copy=False)
+
+                return_data[(ptype, field)] = data
+        f.close()
+
+        return return_data
 
     def _count_particles(self, data_file):
         si, ei = data_file.start, data_file.end

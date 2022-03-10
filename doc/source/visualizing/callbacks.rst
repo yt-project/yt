@@ -14,8 +14,10 @@ lines, text, markers, streamlines, velocity vectors, contours, and more.
 Callbacks can be applied to plots created with
 :class:`~yt.visualization.plot_window.SlicePlot`,
 :class:`~yt.visualization.plot_window.ProjectionPlot`,
+:class:`~yt.visualization.plot_window.AxisAlignedSlicePlot`,
+:class:`~yt.visualization.plot_window.AxisAlignedProjectionPlot`,
 :class:`~yt.visualization.plot_window.OffAxisSlicePlot`, or
-:class:`~yt.visualization.plot_window.OffAxisProjectionPlot` by calling
+:class:`~yt.visualization.plot_window.OffAxisProjectionPlot`, by calling
 one of the ``annotate_`` methods that hang off of the plot object.
 The ``annotate_`` methods are dynamically generated based on the list
 of available callbacks.  For example:
@@ -271,20 +273,23 @@ Overplot Quivers
 Axis-Aligned Data Sources
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. function:: annotate_quiver(self, field_x, field_y, factor=16, scale=None, \
+.. function:: annotate_quiver(self, field_x, field_y, field_c=None, factor=16, scale=None, \
                               scale_units=None, normalize=False, plot_args=None)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.QuiverCallback`.)
 
    Adds a 'quiver' plot to any plot, using the ``field_x`` and ``field_y`` from
-   the associated data, skipping every ``factor`` datapoints in the
-   discretization. ``scale`` is the data units per arrow length unit using
+   the associated data, skipping every ``factor`` pixels in the
+   discretization. A third field, ``field_c``, can be used as color; which is the
+   counterpart of ``matplotlib.axes.Axes.quiver``'s final positional argument ``C``.
+   ``scale`` is the data units per arrow length unit using
    ``scale_units``. If ``normalize`` is ``True``, the fields will be scaled by
    their local (in-plane) length, allowing morphological features to be more
    clearly seen for fields with substantial variation in field strength.
-   Additional arguments can be passed to the ``plot_args`` dictionary, see
-   matplotlib.axes.Axes.quiver for more info.
+   All additional keyword arguments are passed down to ``matplotlib.Axes.axes.quiver``.
+
+   Example using a constant color
 
 .. python-script::
 
@@ -299,9 +304,39 @@ Axis-Aligned Data Sources
        weight_field="density",
        width=(20, "kpc"),
    )
-   p.annotate_quiver(("gas", "velocity_x"), ("gas", "velocity_y"), factor=16,
-                     plot_args={"color": "purple"})
+   p.annotate_quiver(
+      ("gas", "velocity_x"),
+      ("gas", "velocity_y"),
+      factor=16,
+      color="purple",
+   )
    p.save()
+
+
+   And now using a continuous colormap
+
+.. python-script::
+
+   import yt
+
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   p = yt.ProjectionPlot(
+       ds,
+       "z",
+       ("gas", "density"),
+       center=[0.5, 0.5, 0.5],
+       weight_field="density",
+       width=(20, "kpc"),
+   )
+   p.annotate_quiver(
+      ("gas", "velocity_x"),
+      ("gas", "velocity_y"),
+      ("gas", "vorticity_z"),
+      factor=16,
+      cmap="inferno_r",
+   )
+   p.save()
+
 
 Off-Axis Data Sources
 ^^^^^^^^^^^^^^^^^^^^^
@@ -390,60 +425,6 @@ Overplot Cell Edges
    slc.annotate_cell_edges()
    slc.save()
 
-.. _annotate-halos:
-
-Overplot Halo Annotations
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. function:: annotate_halos(self, halo_catalog, circle_args=None, \
-                             width=None, annotate_field=None, \
-                             radius_field='virial_radius', \
-                             center_field_prefix="particle_position", \
-                             text_args=None, factor=1.0)
-
-   (This is a proxy for
-   :class:`~yt.visualization.plot_modifications.HaloCatalogCallback`.)
-
-   Accepts a :class:`~yt_astro_analysis.halo_analysis.halo_catalog.HaloCatalog`
-   and plots a circle at the location of each halo with the radius of the
-   circle corresponding to the virial radius of the halo. Also accepts a
-   :ref:`loaded halo catalog dataset <halo-catalog-data>` or a data
-   container from a halo catalog dataset. If ``width`` is set
-   to None (default) all halos are plotted, otherwise it accepts a tuple in
-   the form (1.0, ‘Mpc’) to only display halos that fall within a slab with
-   width ``width`` centered on the center of the plot data.  The appearance of
-   the circles can be changed with the circle_kwargs dictionary, which is
-   supplied to the Matplotlib patch Circle.  One can label each of the halos
-   with the annotate_field, which accepts a field contained in the halo catalog
-   to add text to the plot near the halo (example: ``annotate_field=
-   'particle_mass'`` will write the halo mass next to each halo, whereas
-   ``'particle_identifier'`` shows the halo number). The size of the circles is
-   found from the field ``radius_field`` which is ``'virial_radius'`` by
-   default. If another radius has been found as part of your halo analysis
-   workflow, you can save that field and use it as the ``radius_field`` to
-   change the size of the halos. The position of each halo is determined using
-   ``center_field_prefix`` in the following way. If ``'particle_position'``
-   is the value of ``center_field_prefix`` as is the default, the x value of
-   the halo position is stored in the field ``'particle_position_x'``, y is
-   ``'particle_position_y'``, and z is ``'particle_position_z'``. If you have
-   stored another set of coordinates for each halo as part of your halo
-   analysis as fields such as ``'halo_position_x'``, you can use these fields
-   to determine halo position by passing ``'halo_position'`` to
-   ``center_field_prefix``. font_kwargs contains the arguments controlling the
-   text appearance of the annotated field. Factor is the number the virial
-   radius is multiplied by for plotting the circles. Ex: ``factor=2.0`` will
-   plot circles with twice the radius of each halo virial radius.
-
-.. python-script::
-
-   import yt
-
-   data_ds = yt.load("Enzo_64/RD0006/RedshiftOutput0006")
-   halos_ds = yt.load("rockstar_halos/halos_0.0.bin")
-
-   prj = yt.ProjectionPlot(data_ds, "z", ("gas", "density"))
-   prj.annotate_halos(halos_ds, annotate_field="particle_identifier")
-   prj.save()
 
 .. _annotate-image-line:
 
@@ -494,7 +475,7 @@ Overplot Magnetic Field Quivers
 
    ds = yt.load(
        "MHDSloshing/virgo_low_res.0054.vtk",
-       parameters={
+       units_override={
            "time_unit": (1, "Myr"),
            "length_unit": (1, "Mpc"),
            "mass_unit": (1e17, "Msun"),

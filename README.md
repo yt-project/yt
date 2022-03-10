@@ -63,12 +63,12 @@ can be found on [the project's website](https://yt-project.org/docs/dev/installi
 yt is designed to provide meaningful analysis of data.  We have some Quickstart
 example notebooks in the repository:
 
- * [Introduction](doc/source/quickstart/1\)_Introduction.ipynb)
- * [Data Inspection](doc/source/quickstart/2\)_Data_Inspection.ipynb)
- * [Simple Visualization](doc/source/quickstart/3\)_Simple_Visualization.ipynb)
- * [Data Objects and Time Series](doc/source/quickstart/4\)_Data_Objects_and_Time_Series.ipynb)
- * [Derived Fields and Profiles](doc/source/quickstart/5\)_Derived_Fields_and_Profiles.ipynb)
- * [Volume Rendering](doc/source/quickstart/6\)_Volume_Rendering.ipynb)
+ * [Introduction](https://github.com/yt-project/yt/tree/main/doc/source/quickstart/1\)_Introduction.ipynb)
+ * [Data Inspection](https://github.com/yt-project/yt/tree/main/doc/source/quickstart/2\)_Data_Inspection.ipynb)
+ * [Simple Visualization](https://github.com/yt-project/yt/tree/main/doc/source/quickstart/3\)_Simple_Visualization.ipynb)
+ * [Data Objects and Time Series](https://github.com/yt-project/yt/tree/main/doc/source/quickstart/4\)_Data_Objects_and_Time_Series.ipynb)
+ * [Derived Fields and Profiles](https://github.com/yt-project/yt/tree/main/doc/source/quickstart/5\)_Derived_Fields_and_Profiles.ipynb)
+ * [Volume Rendering](https://github.com/yt-project/yt/tree/main/doc/source/quickstart/6\)_Volume_Rendering.ipynb)
 
 If you'd like to try these online, you can visit our [yt Hub](https://hub.yt/)
 and run a notebook next to some of our example data.

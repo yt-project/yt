@@ -70,7 +70,7 @@ def get_root_blocks(block, min_dim=3):
         if myb == "":
             continue
         s = get_block_level(myb)
-        nb[i] = 2 ** s
+        nb[i] = 2**s
     return nb
 
 

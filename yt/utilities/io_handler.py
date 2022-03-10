@@ -1,10 +1,18 @@
 import os
+import sys
 from collections import defaultdict
 from contextlib import contextmanager
 from functools import _make_key, lru_cache
+from typing import DefaultDict, List, Tuple
+
+if sys.version_info >= (3, 9):
+    from collections.abc import Iterator, Mapping
+else:
+    from typing import Iterator, Mapping
 
 import numpy as np
 
+from yt._typing import ParticleCoordinateTuple
 from yt.geometry.selection_routines import GridSelector
 from yt.utilities.on_demand_imports import _h5py as h5py
 
@@ -20,8 +28,8 @@ def _make_io_key(args, *_args, **kwargs):
 
 
 class BaseIOHandler:
-    _vector_fields = ()
-    _dataset_type = None
+    _vector_fields: Tuple[str, ...] = ()
+    _dataset_type: str
     _particle_reader = False
     _cache_on = False
     _misses = 0
@@ -46,12 +54,13 @@ class BaseIOHandler:
         # Make sure _vector_fields is a dict of fields and their dimension
         # and assume all non-specified vector fields are 3D
         if not isinstance(self._vector_fields, dict):
+            # note, this type change can cause some mypy errors.
             self._vector_fields = {field: 3 for field in self._vector_fields}
 
     # We need a function for reading a list of sets
     # and a function for *popping* from a queue all the appropriate sets
     @contextmanager
-    def preload(self, chunk, fields, max_size):
+    def preload(self, chunk, fields: List[Tuple[str, str]], max_size):
         yield self
 
     def peek(self, grid, field):
@@ -80,7 +89,7 @@ class BaseIOHandler:
         # check backup file first. if field not found,
         # call frontend-specific io method
         backup_filename = grid.ds.backup_filename
-        if not grid.ds.read_from_backup:
+        if not os.path.exists(backup_filename):
             return self._read_data(grid, field)
         elif self._field_in_backup(grid, backup_filename, field):
             fhandle = h5py.File(backup_filename, mode="r")
@@ -96,7 +105,9 @@ class BaseIOHandler:
     def _read_data(self, grid, field):
         pass
 
-    def _read_fluid_selection(self, chunks, selector, fields, size):
+    def _read_fluid_selection(
+        self, chunks, selector, fields: List[Tuple[str, str]], size
+    ) -> Mapping[Tuple[str, str], np.ndarray]:
         # This function has an interesting history.  It previously was mandate
         # to be defined by all of the subclasses.  But, to avoid having to
         # rewrite a whole bunch of IO handlers all at once, and to allow a
@@ -124,7 +135,7 @@ class BaseIOHandler:
                 ind[field] += obj.select(selector, data, rv[field], ind[field])
         return rv
 
-    def io_iter(self, chunks, fields):
+    def io_iter(self, chunks, fields: List[Tuple[str, str]]):
         raise NotImplementedError(
             "subclassing Dataset.io_iter this is required in order to use the default "
             "implementation of Dataset._read_fluid_selection. "
@@ -149,21 +160,86 @@ class BaseIOHandler:
     def _read_chunk_data(self, chunk, fields):
         return {}
 
-    def _count_particles_chunks(self, psize, chunks, ptf, selector):
-        for ptype, (x, y, z) in self._read_particle_coords(chunks, ptf):
+    def _count_particles_chunks(
+        self,
+        psize: DefaultDict[str, int],
+        chunks,
+        ptf: DefaultDict[str, List[str]],
+        selector,
+    ) -> DefaultDict[str, int]:
+        """
+        Counts particles by particle type across chunks for a selector object
+
+        Parameters
+        ----------
+        psize : defaultdict
+            mapping of particle type to the number of particles
+        chunks
+            the chunks of a dataset Index
+        ptf : defaultdict[list]
+            particle type fields (ptf), the fields currently being read organized
+            by particle type. e.g., ptf['PartType0'] = ['density', 'mass', ...]
+        selector
+            the selector object of a YTSelectionContainer
+
+        Returns
+        -------
+        defaultdict
+            updated psize dictionary
+        """
+        # in this base class, we always manually count particles in the selection.
+        # This does get overridden in the subclass for Particle, since in that
+        # case we know that the chunks are composed to DataFiles.
+        return self._count_selected_particles(psize, chunks, ptf, selector)
+
+    def _count_selected_particles(
+        self,
+        psize: DefaultDict[str, int],
+        chunks,
+        ptf: DefaultDict[str, List[str]],
+        selector,
+    ) -> DefaultDict[str, int]:
+        # counts the number of particles in a selection by chunk, same arguments
+        # as self._count_particles_chunks.
+        for ptype, (x, y, z), hsml in self._read_particle_coords(chunks, ptf):
             # assume particles have zero radius, we break this assumption
             # in the SPH frontend and override this function there
-            psize[ptype] += selector.count_points(x, y, z, 0.0)
+            psize[ptype] += selector.count_points(x, y, z, hsml)
         return psize
 
-    def _read_particle_selection(self, chunks, selector, fields):
-        rv = {}
-        ind = {}
+    def _read_particle_coords(
+        self, chunks, ptf: DefaultDict[str, List[str]]
+    ) -> Iterator[ParticleCoordinateTuple]:
+        # An iterator that yields particle coordinates for each chunk by particle
+        # type. Must be implemented by each frontend. Must yield a tuple of
+        # (particle type, xyz, hsml) by chunk. If the frontend does not have
+        # a smoothing length, yield (particle type, xyz, 0.0)
+        raise NotImplementedError
+
+    def _read_particle_data_file(self, data_file, ptf, selector=None):
+        # each frontend needs to implement this: read from a data_file object
+        # and return a dict of fields for that data_file
+        raise NotImplementedError
+
+    def _read_particle_selection(
+        self, chunks, selector, fields: List[Tuple[str, str]]
+    ) -> Mapping[Tuple[str, str], np.ndarray]:
+        rv = {}  # the return dictionary
+        ind = {}  # holds the most recent max index of the return arrays by field
+
+        # Initialize containers for tracking particle, field information
+        # ptf (particle field types) maps particle type to list of on-disk fields to read
+        # psize maps particle type to on-disk size across chunks
+        # fsize maps particle type to size of return values
+        # field_maps stores fields, accounting for field unions
+        ptf: DefaultDict[str, List[str]] = defaultdict(list)
+        psize: DefaultDict[str, int] = defaultdict(lambda: 0)
+        fsize: DefaultDict[Tuple[str, str], int] = defaultdict(lambda: 0)
+        field_maps: DefaultDict[Tuple[str, str], List[Tuple[str, str]]] = defaultdict(
+            list
+        )
+
         # We first need a set of masks for each particle type
-        ptf = defaultdict(list)  # ptype -> on-disk fields to read
-        fsize = defaultdict(lambda: 0)  # ptype -> size of return value
-        psize = defaultdict(lambda: 0)  # ptype -> particle count on disk
-        field_maps = defaultdict(list)  # ptype -> fields (including unions)
         chunks = list(chunks)
         unions = self.ds.particle_unions
         # What we need is a mapping from particle types to return types
@@ -180,8 +256,7 @@ class BaseIOHandler:
                 field_maps[field].append(field)
         # Now we have our full listing
 
-        # psize maps the names of particle types to the number of
-        # particles of each type
+        # Now we add particle counts across chunks to psize
         self._count_particles_chunks(psize, chunks, ptf, selector)
 
         # Now we allocate
@@ -191,9 +266,15 @@ class BaseIOHandler:
                     fsize[field] += psize.get(pt, 0)
             else:
                 fsize[field] += psize.get(field[0], 0)
+        shape: Tuple[int, ...]
         for field in fields:
             if field[1] in self._vector_fields:
-                shape = (fsize[field], self._vector_fields[field[1]])
+                vsize = self._vector_fields[field[1]]  # type:ignore
+                # note: the above line causes a mypy failure due to how we
+                # convert _vector_fields from a tuple to dict in __init__. mypy
+                # is expecting a tuple here. And since _vector_fields is used in
+                # many places, just ignoring for now...
+                shape = (fsize[field], vsize)
             elif field[1] in self._array_fields:
                 shape = (fsize[field],) + self._array_fields[field[1]]
             else:
@@ -214,6 +295,48 @@ class BaseIOHandler:
         for field_f in ind:
             rv[field_f] = rv[field_f][: ind[field_f]]
         return rv
+
+    def _read_particle_fields(self, chunks, ptf, selector):
+        # Now we have all the sizes, and we can allocate
+        data_files = set()
+        for chunk in chunks:
+            for obj in chunk.objs:
+                data_files.update(obj.data_files)
+        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
+            data_file_data = self._read_particle_data_file(data_file, ptf, selector)
+            # temporary trickery so it's still an iterator, need to adjust
+            # the io_handler.BaseIOHandler.read_particle_selection() method
+            # to not use an iterator.
+            yield from data_file_data.items()
+
+
+# As a note: we don't *actually* want this to be how it is forever.  There's no
+# reason we need to have the fluid and particle IO handlers separated.  But,
+# for keeping track of which frontend is which, this is a useful abstraction.
+class BaseParticleIOHandler(BaseIOHandler):
+    def _sorted_chunk_iterator(self, chunks):
+        chunks = list(chunks)
+        data_files = set()
+        for chunk in chunks:
+            for obj in chunk.objs:
+                data_files.update(obj.data_files)
+        yield from sorted(data_files, key=lambda x: (x.filename, x.start))
+
+    def _count_particles_chunks(
+        self,
+        psize: DefaultDict[str, int],
+        chunks,
+        ptf: DefaultDict[str, List[str]],
+        selector,
+    ) -> DefaultDict[str, int]:
+        if getattr(selector, "is_all_data", False):
+            for data_file in self._sorted_chunk_iterator(chunks):
+                for ptype in ptf.keys():
+                    psize[ptype] += data_file.total_particles[ptype]
+        else:
+            # we must apply the selector and count the result
+            psize = self._count_selected_particles(psize, chunks, ptf, selector)
+        return psize
 
 
 class IOHandlerExtracted(BaseIOHandler):

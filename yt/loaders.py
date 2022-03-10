@@ -2,21 +2,28 @@
 This module gathers all user-facing functions with a `load_` prefix.
 
 """
+import atexit
 import os
 import sys
 import tarfile
+import time
+import types
+import warnings
+from multiprocessing import Pipe, Process
+from multiprocessing.connection import Connection
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 from urllib.parse import urlsplit
 
 import numpy as np
 from more_itertools import always_iterable
 
-from yt._maintenance.deprecation import issue_deprecation_warning
+from yt.data_objects.static_output import Dataset
 from yt.funcs import levenshtein_distance
 from yt.sample_data.api import lookup_on_disk_data
 from yt.utilities.decompose import decompose_array, get_psize
 from yt.utilities.exceptions import (
+    MountError,
     YTAmbiguousDataType,
     YTIllDefinedAMR,
     YTSimulationNotIdentified,
@@ -29,12 +36,14 @@ from yt.utilities.object_registries import (
     output_type_registry,
     simulation_time_series_registry,
 )
-from yt.utilities.on_demand_imports import _pooch as pooch
+from yt.utilities.on_demand_imports import _pooch as pooch, _ratarmount as ratarmount
 
 # --- Loaders for known data formats ---
 
 
-def load(fn, *args, **kwargs):
+def load(
+    fn: Union[str, "os.PathLike[str]"], *args, hint: Optional[str] = None, **kwargs
+):
     """
     Load a Dataset or DatasetSeries object.
     The data format is automatically discovered, and the exact return type is the
@@ -44,9 +53,14 @@ def load(fn, *args, **kwargs):
 
     Parameters
     ----------
-    fn : str, os.Pathlike, or byte (types supported by os.path.expandusers)
+    fn : str, os.Pathlike[str]
         A path to the data location. This can be a file name, directory name, a glob
         pattern, or a url (for data types that support it).
+
+    hint : str, optional
+        Only classes whose name include a hint are considered. If loading fails with
+        a YTAmbiguousDataType exception, this argument can be used to lift ambiguity.
+        Hints are case insensitive.
 
     Additional arguments, if any, are passed down to the return class.
 
@@ -69,12 +83,12 @@ def load(fn, *args, **kwargs):
     yt.utilities.exceptions.YTAmbiguousDataType
         If the data format matches more than one class of similar specilization levels.
     """
-    fn = os.path.expanduser(fn)
+    fn = os.fspath(fn)
 
     if any(wildcard in fn for wildcard in "[]?!*"):
         from yt.data_objects.time_series import DatasetSeries
 
-        return DatasetSeries(fn, *args, **kwargs)
+        return DatasetSeries(fn, *args, hint=hint, **kwargs)
 
     # This will raise FileNotFoundError if the path isn't matched
     # either in the current dir or yt.config.ytcfg['data_dir_directory']
@@ -87,7 +101,7 @@ def load(fn, *args, **kwargs):
             candidates.append(cls)
 
     # Find only the lowest subclasses, i.e. most specialised front ends
-    candidates = find_lowest_subclasses(candidates)
+    candidates = find_lowest_subclasses(candidates, hint=hint)
 
     if len(candidates) == 1:
         return candidates[0](fn, *args, **kwargs)
@@ -130,18 +144,6 @@ def load_simulation(fn, simulation_type, find_outputs=False):
         raise YTSimulationNotIdentified(simulation_type) from e
 
     return cls(fn, find_outputs=find_outputs)
-
-
-def simulation(fn, simulation_type, find_outputs=False):
-    issue_deprecation_warning(
-        "yt.simulation is a deprecated alias for yt.load_simulation"
-        "and will be removed in a future version of yt.",
-        since="4.0.0",
-        removal="4.1.0",
-    )
-    return load_simulation(
-        fn=fn, simulation_type=simulation_type, find_outputs=find_outputs
-    )
 
 
 # --- Loaders for generic ("stream") data ---
@@ -244,18 +246,6 @@ def load_uniform_grid(
     domain_left_edge = np.array(bbox[:, 0], "float64")
     domain_right_edge = np.array(bbox[:, 1], "float64")
     grid_levels = np.zeros(nprocs, dtype="int32").reshape((nprocs, 1))
-    # If someone included this throw it away--old API
-    if "number_of_particles" in data:
-        issue_deprecation_warning(
-            "It is no longer necessary to include "
-            "the number of particles in the data "
-            "dict. The number of particles is "
-            "determined from the sizes of the "
-            "particle fields.",
-            since="4.0.0",
-            removal="4.1.0",
-        )
-        data.pop("number_of_particles")
     # First we fix our field names, apply units to data
     # and check for consistency of field shapes
     field_units, data, number_of_particles = process_data(
@@ -488,18 +478,6 @@ def load_amr_grids(
         grid_right_edges[i, :] = g.pop("right_edge")
         grid_dimensions[i, :] = g.pop("dimensions")
         grid_levels[i, :] = g.pop("level")
-        # If someone included this throw it away--old API
-        if "number_of_particles" in g:
-            issue_deprecation_warning(
-                "It is no longer necessary to include "
-                "the number of particles in the data "
-                "dict. The number of particles is "
-                "determined from the sizes of the "
-                "particle fields.",
-                since="4.0.0",
-                removal="4.1.0",
-            )
-            g.pop("number_of_particles")
         field_units, data, n_particles = process_data(
             g, grid_dims=tuple(grid_dimensions[i, :])
         )
@@ -1457,3 +1435,129 @@ def load_sample(
         loadable_path = loadable_path.joinpath(load_name, specific_file)
 
     return load(loadable_path, **kwargs)
+
+
+def _mount_helper(
+    archive: str, mountPoint: str, ratarmount_kwa: Dict, conn: Connection
+):
+    try:
+        fuseOperationsObject = ratarmount.TarMount(
+            pathToMount=archive,
+            mountPoint=mountPoint,
+            lazyMounting=True,
+            **ratarmount_kwa,
+        )
+        fuseOperationsObject.use_ns = True
+        conn.send(True)
+    except Exception:
+        conn.send(False)
+        raise
+
+    ratarmount.fuse.FUSE(
+        operations=fuseOperationsObject,
+        mountpoint=mountPoint,
+        foreground=True,
+        nothreads=True,
+    )
+
+
+# --- Loader for tar-based datasets ---
+def load_archive(
+    fn: Union[str, Path],
+    path: str,
+    ratarmount_kwa: Optional[Dict] = None,
+    mount_timeout: float = 1.0,
+    *args,
+    **kwargs,
+) -> Dataset:
+    r"""
+    Load archived data with yt.
+
+    This is a wrapper around :func:`~yt.loaders.load` to include mounting
+    and unmounting the archive as a read-only filesystem and load it.
+
+    Parameters
+    ----------
+
+    fn: str
+        The `filename` of the archive containing the dataset.
+
+    path: str
+        The path to the dataset in the archive.
+
+    ratarmount_kwa: dict, optional
+        Optional parameters to pass to ratarmount to mount the archive.
+
+    mount_timeout: float, optional
+        The timeout to wait for ratarmount to mount the archive. Default is 1s.
+
+    Notes
+    -----
+
+    - The function is experimental and may work or not depending on your setup.
+    - Any additional keyword argument is passed down to :func:`~yt.loaders.load`.
+    - This function requires ratarmount to be installed.
+    - This function does not work on Windows system.
+    """
+
+    warnings.warn(
+        "The 'load_archive' function is still experimental and may be unstable."
+    )
+
+    fn = os.path.expanduser(fn)
+
+    # This will raise FileNotFoundError if the path isn't matched
+    # either in the current dir or yt.config.ytcfg['data_dir_directory']
+    if not fn.startswith("http"):
+        fn = str(lookup_on_disk_data(fn))
+
+    if ratarmount_kwa is None:
+        ratarmount_kwa = {}
+
+    try:
+        tarfile.open(fn)
+    except tarfile.ReadError:
+        raise YTUnidentifiedDataType(fn, *args, **kwargs)
+
+    # Note: the temporary directory will be created by ratarmount
+    tempdir = fn + ".mount"
+    tempdir_base = tempdir
+    i = 0
+    while os.path.exists(tempdir):
+        i += 1
+        tempdir = f"{tempdir_base}.{i}"
+
+    parent_conn, child_conn = Pipe()
+    proc = Process(target=_mount_helper, args=(fn, tempdir, ratarmount_kwa, child_conn))
+    proc.start()
+    if not parent_conn.recv():
+        raise MountError(f"An error occured while mounting {fn} in {tempdir}")
+
+    # Note: the mounting needs to happen in another process which
+    # needs be run in the foreground (otherwise it may
+    # unmount). To prevent a race-condition here, we wait
+    # for the folder to be mounted within a reasonable time.
+    t = 0.0
+    while t < mount_timeout:
+        if os.path.ismount(tempdir):
+            break
+        time.sleep(0.1)
+        t += 0.1
+    else:
+        raise MountError(f"Folder {tempdir} does not appear to be mounted")
+
+    # We need to kill the process at exit (to force unmounting)
+    def umount_callback():
+        proc.terminate()
+
+    atexit.register(umount_callback)
+
+    # Alternatively, can dismount manually
+    def del_callback(self):
+        proc.terminate()
+        atexit.unregister(umount_callback)
+
+    ds = load(os.path.join(tempdir, path), *args, **kwargs)
+    ds.dismount = types.MethodType(del_callback, ds)
+
+    return ds

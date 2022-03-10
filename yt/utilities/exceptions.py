@@ -20,26 +20,12 @@ class YTUnidentifiedDataType(YTException):
         self.kwargs = kwargs
 
     def __str__(self):
-        msg = [f"Could not determine input format from `'{self.filename}'"]
+        msg = f"Could not determine input format from {self.filename!r}"
         if self.args:
-            msg.append(", ".join(str(a) for a in self.args))
+            msg += ", " + (", ".join(f"{a!r}" for a in self.args))
         if self.kwargs:
-            msg.append(", ".join(f"{k}={v}" for k, v in self.kwargs.items()))
-        msg = ", ".join(msg) + "`."
+            msg += ", " + (", ".join(f"{k}={v!r}" for k, v in self.kwargs.items()))
         return msg
-
-
-class YTOutputNotIdentified(YTUnidentifiedDataType):
-    def __init__(self, filename, args=None, kwargs=None):
-        super(YTUnidentifiedDataType, self).__init__(filename, args, kwargs)
-        # this cannot be imported at the module level (creates circular imports)
-        from yt._maintenance.deprecation import issue_deprecation_warning
-
-        issue_deprecation_warning(
-            "YTOutputNotIdentified is a deprecated alias for YTUnidentifiedDataType",
-            since="4.0.0",
-            removal="4.1.0",
-        )
 
 
 class YTAmbiguousDataType(YTUnidentifiedDataType):
@@ -52,8 +38,9 @@ class YTAmbiguousDataType(YTUnidentifiedDataType):
         msg += "The following independent classes were detected as valid :\n"
         for c in self.candidates:
             msg += f"{c}\n"
-        msg += "A possible workaround is to directly instantiate one of the above.\n"
-        msg += "Please report this to https://github.com/yt-project/yt/issues/new"
+        msg += (
+            "This degeneracy can be lifted using the `hint` keyword argument in yt.load"
+        )
         return msg
 
 
@@ -667,6 +654,15 @@ class YTPlotCallbackError(Exception):
         return f"{self.callback} callback failed"
 
 
+class YTUnsupportedPlotCallback(YTPlotCallbackError):
+    def __init__(self, callback: str, plot_type: str) -> None:
+        super().__init__(callback)
+        self.plot_type = plot_type
+
+    def __str__(self):
+        return f"The `{self.plot_type}` class currently doesn't support the `{self.callback}` method."
+
+
 class YTPixelizeError(YTException):
     def __init__(self, message):
         self.message = message
@@ -926,3 +922,8 @@ class GenerationInProgress(Exception):
     def __init__(self, fields):
         self.fields = fields
         super().__init__()
+
+
+class MountError(Exception):
+    def __init__(self, message):
+        self.message = message

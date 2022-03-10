@@ -167,9 +167,9 @@ class TransferFunction:
         nu = nu[::-1]
 
         for i, logT in enumerate(self.x):
-            T = 10 ** logT
+            T = 10**logT
             # Black body at this nu, T
-            Bnu = ((2.0 * hcgs * nu ** 3) / clight ** 2.0) / (
+            Bnu = ((2.0 * hcgs * nu**3) / clight**2.0) / (
                 np.exp(hcgs * nu / (kboltz * T)) - 1.0
             )
             # transmission
@@ -605,7 +605,9 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         ax.set_ylabel("Opacity")
         ax.set_xlabel("Value")
 
-    def vert_cbar(self, resolution, log_scale, ax, label=None, label_fmt=None):
+    def vert_cbar(
+        self, resolution, log_scale, ax, label=None, label_fmt=None, *, size=10
+    ):
         r"""Display an image of the transfer function
 
         This function loads up matplotlib and displays the current transfer function.
@@ -659,13 +661,13 @@ class ColorTransferFunction(MultiVariateTransferFunction):
                 + self.alpha.x[0]
             )
             if log_scale:
-                val = 10 ** val
+                val = 10**val
             if label_fmt is None:
                 if abs(val) < 1.0e-3 or abs(val) > 1.0e4:
                     if not val == 0.0:
                         e = np.floor(np.log10(abs(val)))
                         return r"${:.2f}\times 10^{{ {:d} }}$".format(
-                            val / 10.0 ** e, int(e)
+                            val / 10.0**e, int(e)
                         )
                     else:
                         return r"$0$"
@@ -688,7 +690,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         ax.get_xaxis().set_ticks([])
         ax.set_ylim(visible[0], visible[-1])
         ax.tick_params(axis="y", colors="white", size=10)
-        ax.set_ylabel(label, color="white", size=10 * resolution / 512.0)
+        ax.set_ylabel(label, color="white", size=size * resolution / 512.0)
 
     def sample_colormap(self, v, w, alpha=None, colormap="gist_stern", col_bounds=None):
         r"""Add a Gaussian based on an existing colormap.
@@ -724,7 +726,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         --------
 
         >>> tf = ColorTransferFunction((-10.0, -5.0))
-        >>> tf.sample_colormap(-7.0, 0.01, colormap="arbre")
+        >>> tf.sample_colormap(-7.0, 0.01, colormap="cmyt.arbre")
         """
         v = np.float64(v)
         if col_bounds is None:
@@ -773,9 +775,9 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         >>> def linramp(vals, minval, maxval):
         ...     return (vals - vals.min()) / (vals.max() - vals.min())
         >>> tf = ColorTransferFunction((-10.0, -5.0))
-        >>> tf.map_to_colormap(-8.0, -6.0, scale=10.0, colormap="arbre")
+        >>> tf.map_to_colormap(-8.0, -6.0, scale=10.0, colormap="cmyt.arbre")
         >>> tf.map_to_colormap(
-        ...     -6.0, -5.0, scale=10.0, colormap="arbre", scale_func=linramp
+        ...     -6.0, -5.0, scale=10.0, colormap="cmyt.arbre", scale_func=linramp
         ... )
         """
         mi = np.float64(mi)
@@ -787,7 +789,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             self.nbins * (ma - self.x_bounds[0]) / (self.x_bounds[1] - self.x_bounds[0])
         )
         rel0 = max(rel0, 0)
-        rel1 = min(rel1, self.nbins - 1)
+        rel1 = min(rel1, self.nbins - 1) + 1
         tomap = np.linspace(0.0, 1.0, num=rel1 - rel0)
         cmap = get_cmap(colormap)
         cc = cmap(tomap)

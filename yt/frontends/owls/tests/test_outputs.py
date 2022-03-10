@@ -24,7 +24,7 @@ def test_snapshot_033():
     ds = data_dir_load(os33)
     psc = ParticleSelectionComparison(ds)
     psc.run_defaults()
-    for test in sph_answer(ds, "snap_033", 2 * 128 ** 3, _fields):
+    for test in sph_answer(ds, "snap_033", 2 * 128**3, _fields):
         test_snapshot_033.__name__ = test.description
         yield test
 

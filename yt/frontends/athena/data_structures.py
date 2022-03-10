@@ -1,10 +1,12 @@
 import os
+import re
 import weakref
 
 import numpy as np
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
+from yt.fields.magnetic_field import get_magnetic_normalization
 from yt.funcs import mylog, sglob
 from yt.geometry.geometry_handler import YTDataChunk
 from yt.geometry.grid_geometry_handler import GridIndex
@@ -477,6 +479,7 @@ class AthenaDataset(Dataset):
         nprocs=1,
         unit_system="cgs",
         default_species_fields=None,
+        magnetic_normalization="gaussian",
     ):
         self.fluid_types += ("athena",)
         self.nprocs = nprocs
@@ -485,6 +488,8 @@ class AthenaDataset(Dataset):
         self.specified_parameters = parameters.copy()
         if units_override is None:
             units_override = {}
+        self._magnetic_factor = get_magnetic_normalization(magnetic_normalization)
+
         Dataset.__init__(
             self,
             filename,
@@ -493,11 +498,9 @@ class AthenaDataset(Dataset):
             unit_system=unit_system,
             default_species_fields=default_species_fields,
         )
-        self.filename = filename
         if storage_filename is None:
-            storage_filename = f"{filename.split('/')[-1]}.yt"
+            storage_filename = self.basename + ".yt"
         self.storage_filename = storage_filename
-        self.backup_filename = self.filename[:-4] + "_backup.gdf"
         # Unfortunately we now have to mandate that the index gets
         # instantiated so that we can make sure we have the correct left
         # and right domain edges.
@@ -517,7 +520,9 @@ class AthenaDataset(Dataset):
             mylog.warning("Assuming 1.0 = 1.0 %s", cgs)
             setattr(self, f"{unit}_unit", self.quan(1.0, cgs))
         self.magnetic_unit = np.sqrt(
-            4 * np.pi * self.mass_unit / (self.time_unit ** 2 * self.length_unit)
+            self._magnetic_factor
+            * self.mass_unit
+            / (self.time_unit**2 * self.length_unit)
         )
         self.magnetic_unit.convert_to_units("gauss")
         self.velocity_unit = self.length_unit / self.time_unit
@@ -632,12 +637,27 @@ class AthenaDataset(Dataset):
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
-        try:
-            if "vtk" in filename:
-                return True
-        except Exception:
-            pass
-        return False
+        if not filename.endswith(".vtk"):
+            return False
+
+        with open(filename, "rb") as fh:
+            if not re.match(b"# vtk DataFile Version \\d\\.\\d\n", fh.readline(256)):
+                return False
+            if (
+                re.search(
+                    b"at time= .*, level= \\d, domain= \\d\n",
+                    fh.readline(256),
+                )
+                is None
+            ):
+                # vtk Dumps headers start with either "CONSERVED vars" or "PRIMITIVE vars",
+                # while vtk output headers start with "Really cool Athena data", but
+                # we will consider this an implementation detail and not attempt to
+                # match it exactly here.
+                # See Athena's user guide for reference
+                # https://princetonuniversity.github.io/Athena-Cversion/AthenaDocsUGbtk
+                return False
+        return True
 
     @property
     def _skip_cache(self):
