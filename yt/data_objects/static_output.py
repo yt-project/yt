@@ -1904,9 +1904,46 @@ class ParticleFile(abc.ABC):
     def open_handle(self):
         # this method is a file context manager that must yield an open file
         # handle for self.filename.
-        # TO DO: switch this to abstract method, but not until all the existing
-        # frontends implement it.
+        # TO DO: switch to abstract method when existing frontends implement it
         raise NotImplementedError("This frontend has not implemented open_handle")
+
+    def _read_field(self, ptype: str, field: str, handle=None) -> Optional[np.ndarray]:
+        """this method wraps the actual data read (in _read_from_handle) in a
+        transaction context, preventing double reads.
+
+        Parameters
+        ----------
+        ptype : particle type
+        field : field name
+        handle : an optional already-open file handle
+
+        Returns
+        -------
+        np.ndarray or None : the data read from disk
+        """
+        with self.transaction(handle) as f:
+            data = self._read_from_handle(f, ptype, field)
+        return data
+
+    # @abc.abstractmethod
+    def _read_from_handle(self, handle, ptype: str, field: str) -> Optional[np.ndarray]:
+        """
+        This method must read data from an open file handle. It generally
+        should not be called directly except by self._read_field, but must be
+        implemented by each frontend. It can return None if no data is found.
+
+        Parameters
+        ----------
+        handle : an open file handle
+        ptype : particle type
+        field : field name
+
+        Returns
+        -------
+        np.ndarray or None (should be np array_like more generally?)
+        """
+        # TO DO: switch to an abstract method when existing frontends implement it
+        raise NotImplementedError("This frontend has not implemented _read_field")
 
 
 class ParticleDataset(Dataset):

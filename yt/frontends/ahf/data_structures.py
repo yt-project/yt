@@ -1,3 +1,4 @@
+import contextlib
 import glob
 import os
 
@@ -20,14 +21,19 @@ class AHFHalosFile(HaloCatalogFile):
             filename = candidates[0]
         else:
             raise ValueError("Too many AHF_halos files.")
-        self.col_names = self._read_column_names(filename)
         super().__init__(ds, io, filename, file_id, range)
+        self.col_names = self._read_column_names()
+
+    @contextlib.contextmanager
+    def open_handle(self):
+        with open(self.filename) as f:
+            yield f
 
     def read_data(self, usecols=None):
         return np.genfromtxt(self.filename, names=self.col_names, usecols=usecols)
 
-    def _read_column_names(self, filename):
-        with open(filename) as f:
+    def _read_column_names(self):
+        with self.transaction() as f:
             line = f.readline()
             # Remove leading '#'
             line = line[1:]

@@ -1,3 +1,4 @@
+import contextlib
 import glob
 import os
 
@@ -24,26 +25,23 @@ class RockstarBinaryFile(HaloCatalogFile):
 
         super().__init__(ds, io, filename, file_id, range)
 
-    def _read_particle_positions(self, ptype, f=None):
+    @contextlib.contextmanager
+    def open_handle(self):
+        with open(self.filename, "rb") as f:
+            yield f
+
+    def _read_particle_positions(self, ptype, handle=None):
         """
         Read all particle positions in this file.
         """
 
-        if f is None:
-            close = True
-            f = open(self.filename, "rb")
-        else:
-            close = False
-
-        pcount = self.header["num_halos"]
-        pos = np.empty((pcount, 3), dtype="float64")
-        f.seek(self._position_offset, os.SEEK_SET)
-        halos = np.fromfile(f, dtype=self.io._halo_dt, count=pcount)
-        for i, ax in enumerate("xyz"):
-            pos[:, i] = halos[f"particle_position_{ax}"].astype("float64")
-
-        if close:
-            f.close()
+        with self.transaction(handle) as f:
+            pcount = self.header["num_halos"]
+            pos = np.empty((pcount, 3), dtype="float64")
+            f.seek(self._position_offset, os.SEEK_SET)
+            halos = np.fromfile(f, dtype=self.io._halo_dt, count=pcount)
+            for i, ax in enumerate("xyz"):
+                pos[:, i] = halos[f"particle_position_{ax}"].astype("float64")
 
         return pos
 

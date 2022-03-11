@@ -1,3 +1,4 @@
+import contextlib
 import os
 import weakref
 from collections import defaultdict
@@ -225,6 +226,11 @@ class YTDataHDF5File(ParticleFile):
             self.header = {field: parse_h5_attr(f, field) for field in f.attrs.keys()}
 
         super().__init__(ds, io, filename, file_id, range)
+
+    @contextlib.contextmanager
+    def open_handle(self):
+        with h5py.File(self.filename, mode="r") as f:
+            yield f
 
 
 class YTDataContainerDataset(YTDataset):

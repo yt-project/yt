@@ -1,3 +1,4 @@
+import contextlib
 import glob
 import os
 import struct
@@ -399,9 +400,14 @@ class ARTParticleFile(ParticleFile):
             ds.particle_types_raw, ds.parameters["total_particles"]
         ):
             self.total_particles[ptype] = count
-        with open(filename, "rb") as f:
+        with self.transaction() as f:
             f.seek(0, os.SEEK_END)
             self._file_size = f.tell()
+
+    @contextlib.contextmanager
+    def open_handle(self):
+        with open(self.filename, "rb") as f:
+            yield f
 
 
 class ARTParticleIndex(ParticleIndex):
