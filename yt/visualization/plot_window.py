@@ -1643,6 +1643,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
             "cylindrical",
             "geographic",
             "internal_geographic",
+            "polar",
         ):
             mylog.info("Setting origin='native' for %s geometry.", ds.geometry)
             origin = "native"
@@ -1856,6 +1857,7 @@ class ProjectionPlot(PWViewerMPL):
             "cylindrical",
             "geographic",
             "internal_geographic",
+            "polar",
         ):
             mylog.info("Setting origin='native' for %s geometry.", ds.geometry)
             origin = "native"
