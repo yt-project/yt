@@ -18,7 +18,7 @@ class StretchedGrid(AMRGridPatch):
         if self._cache_mask and hash(selector) == self._last_selector_id:
             mask = self._last_mask
         else:
-            mask = selector.fill_mask_grid(self)
+            mask = selector.fill_mask(self)
             if self._cache_mask:
                 self._last_mask = mask
             self._last_selector_id = hash(selector)
@@ -29,12 +29,18 @@ class StretchedGrid(AMRGridPatch):
         return mask
 
     def select_fwidth(self, dobj):
-        count = self.count(dobj.selector)
-        if count == 0:
+        mask = self._get_selector_mask(dobj.selector)
+        if mask is None:
             return np.empty((0, 3), dtype="float64")
-        coords = np.empty((count, 3), dtype="float64")
-        for axis in range(3):
-            coords[:, axis] = self.cell_widths[axis]
+        indices = convert_mask_to_indices(mask, self._last_count)
+
+        coords = np.array(
+            [
+                self.cell_widths[0][indices[:, 0]],
+                self.cell_widths[1][indices[:, 1]],
+                self.cell_widths[2][indices[:, 2]],
+            ]
+        ).T
         return coords
 
     def select_fcoords(self, dobj):

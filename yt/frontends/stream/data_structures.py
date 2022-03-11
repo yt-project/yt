@@ -170,6 +170,9 @@ class StreamHierarchy(GridIndex):
         self.grid_particle_count[:] = self.stream_handler.particle_count
         if self.stream_handler.cell_widths is not None:
             self.grid_cell_widths = self.stream_handler.cell_widths[:]
+            self.grid = StreamStretchedGrid
+        else:
+            self.grid_cell_widths = None
         mylog.debug("Copying reverse tree")
         self.grids = []
         # We enumerate, so it's 0-indexed id and 1-indexed pid

@@ -317,7 +317,7 @@ def load_uniform_grid(
         (length_unit, mass_unit, time_unit, velocity_unit, magnetic_unit),
         particle_types=particle_types,
         periodicity=periodicity,
-        cell_widths=cell_widths,
+        cell_widths=[cell_widths],
     )
 
     handler.name = "UniformGridData"
