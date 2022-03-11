@@ -56,9 +56,9 @@ class StretchedGrid(AMRGridPatch):
         indices = convert_mask_to_indices(mask, self._last_count)
         coords = np.array(
             [
-                cell_centers[indices[0]],
-                cell_centers[indices[1]],
-                cell_centers[indices[2]],
+                cell_centers[0][indices[:, 0]],
+                cell_centers[1][indices[:, 1]],
+                cell_centers[2][indices[:, 2]],
             ]
-        )
+        ).T
         return coords

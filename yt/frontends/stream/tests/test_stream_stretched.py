@@ -33,3 +33,15 @@ def test_variable_dx():
 
     assert_equal(np.unique(ds.index.grids[0]["index", "dx"]).size, 128)
     assert_equal(ds.index.grids[0]["index", "dz"][0, 0, :], cell_widths[2])
+
+    assert_equal(np.unique(ds.index.grids[0]["index", "x"]).size, 128)
+    center_x = np.add.accumulate(cell_widths[0]) - 0.5 * cell_widths[0]
+    assert_equal(center_x, ds.index.grids[0]["index", "x"][:, 0, 0])
+
+    assert_equal(np.unique(ds.index.grids[0]["index", "y"]).size, 128)
+    center_y = np.add.accumulate(cell_widths[1]) - 0.5 * cell_widths[1]
+    assert_equal(center_y, ds.index.grids[0]["index", "y"][0, :, 0])
+
+    assert_equal(np.unique(ds.index.grids[0]["index", "z"]).size, 128)
+    center_z = np.add.accumulate(cell_widths[2]) - 0.5 * cell_widths[2]
+    assert_equal(center_z, ds.index.grids[0]["index", "z"][0, 0, :])
