@@ -386,3 +386,51 @@ def cylindrical_to_cartesian(coord, center=(0, 0, 0)):
     c2[..., 1] = np.sin(coord[..., 0]) * coord[..., 1] + center[1]
     c2[..., 2] = coord[..., 2]
     return c2
+
+
+def _get_polar_bounds(self: CoordinateHandler, axes: Tuple[str, str]):
+    # a small helper function that is needed by two unrelated classes
+    ri = self.axis_id[axes[0]]
+    pi = self.axis_id[axes[1]]
+    rmin = self.ds.domain_left_edge[ri]
+    rmax = self.ds.domain_right_edge[ri]
+    phimin = self.ds.domain_left_edge[pi]
+    phimax = self.ds.domain_right_edge[pi]
+    corners = [
+        (rmin, phimin),
+        (rmin, phimax),
+        (rmax, phimin),
+        (rmax, phimax),
+    ]
+
+    def to_polar_plane(r, phi):
+        x = r * np.cos(phi)
+        y = r * np.sin(phi)
+        return x, y
+
+    conic_corner_coords = [to_polar_plane(*corner) for corner in corners]
+
+    phimin = phimin.d
+    phimax = phimax.d
+
+    if phimin <= np.pi <= phimax:
+        xxmin = -rmax
+    else:
+        xxmin = min(xx for xx, yy in conic_corner_coords)
+
+    if phimin <= 0 <= phimax:
+        xxmax = rmax
+    else:
+        xxmax = max(xx for xx, yy in conic_corner_coords)
+
+    if phimin <= 3 * np.pi / 2 <= phimax:
+        yymin = -rmax
+    else:
+        yymin = min(yy for xx, yy in conic_corner_coords)
+
+    if phimin <= np.pi / 2 <= phimax:
+        yymax = rmax
+    else:
+        yymax = max(yy for xx, yy in conic_corner_coords)
+
+    return xxmin, xxmax, yymin, yymax
