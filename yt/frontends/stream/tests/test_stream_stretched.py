@@ -1,7 +1,7 @@
 import numpy as np
 
 from yt import load_uniform_grid
-from yt.testing import assert_equal
+from yt.testing import assert_almost_equal, assert_equal
 
 
 def test_variable_dx():
@@ -45,3 +45,5 @@ def test_variable_dx():
     assert_equal(np.unique(ds.index.grids[0]["index", "z"]).size, 128)
     center_z = np.add.accumulate(cell_widths[2]) - 0.5 * cell_widths[2]
     assert_equal(center_z, ds.index.grids[0]["index", "z"][0, 0, :])
+
+    assert_almost_equal(ds.r[:].sum(("index", "cell_volume")), ds.domain_width.prod())
