@@ -74,15 +74,15 @@ class YTHaloCatalogFile(HaloCatalogFile):
         with h5py.File(self.filename, mode="r") as f:
             yield f
 
-    def _read_particle_positions(self, ptype, handle=None):
+    def _read_particle_positions(self, ptype, f=None):
         """
         Read all particle positions in this file.
         """
-        with self.transaction(handle) as f:
+        with self.transaction(f) as handle:
             pcount = self.header["num_halos"]
             pos = np.empty((pcount, 3), dtype="float64")
             for i, ax in enumerate("xyz"):
-                pos[:, i] = f[f"particle_position_{ax}"][()]
+                pos[:, i] = handle[f"particle_position_{ax}"][()]
 
         return pos
 

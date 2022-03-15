@@ -431,7 +431,9 @@ class StreamParticleIndex(SPHParticleIndex):
 
 
 class StreamParticleFile(ParticleFile):
-    pass
+    def open_handle(self):
+        # stream is in-memory, so do not need to implement open_handle
+        pass
 
 
 class StreamParticlesDataset(StreamDataset):

@@ -1899,13 +1899,12 @@ class ParticleFile(abc.ABC):
             # transaction call will handle closing
             yield handle
 
-    # @abc.abstractmethod
+    @abc.abstractmethod
     @contextlib.contextmanager
     def open_handle(self):
         # this method is a file context manager that must yield an open file
         # handle for self.filename.
-        # TO DO: switch to abstract method when existing frontends implement it
-        raise NotImplementedError("This frontend has not implemented open_handle")
+        pass
 
     def _read_field(self, ptype: str, field: str, handle=None) -> Optional[np.ndarray]:
         """this method wraps the actual data read (in _read_from_handle) in a
