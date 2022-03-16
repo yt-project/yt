@@ -21,8 +21,8 @@ class AHFHalosFile(HaloCatalogFile):
             filename = candidates[0]
         else:
             raise ValueError("Too many AHF_halos files.")
+        self.col_names = self._read_column_names(filename)
         super().__init__(ds, io, filename, file_id, range)
-        self.col_names = self._read_column_names()
 
     @contextlib.contextmanager
     def open_handle(self):
@@ -32,8 +32,9 @@ class AHFHalosFile(HaloCatalogFile):
     def read_data(self, usecols=None):
         return np.genfromtxt(self.filename, names=self.col_names, usecols=usecols)
 
-    def _read_column_names(self):
-        with self.transaction() as f:
+    def _read_column_names(self, filename):
+        # this gets called before self.filename is set, so do not use open_handle
+        with open(filename) as f:
             line = f.readline()
             # Remove leading '#'
             line = line[1:]

@@ -480,7 +480,9 @@ class FLASHDataset(Dataset):
 
 
 class FLASHParticleFile(ParticleFile):
-    pass
+    def open_handle(self):
+        # flash handles a single file at Dataset level
+        pass
 
 
 class FLASHParticleDataset(FLASHDataset):

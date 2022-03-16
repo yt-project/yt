@@ -30,16 +30,16 @@ class RockstarBinaryFile(HaloCatalogFile):
         with open(self.filename, "rb") as f:
             yield f
 
-    def _read_particle_positions(self, ptype, handle=None):
+    def _read_particle_positions(self, ptype, f=None):
         """
         Read all particle positions in this file.
         """
 
-        with self.transaction(handle) as f:
+        with self.transaction(f) as handle:
             pcount = self.header["num_halos"]
             pos = np.empty((pcount, 3), dtype="float64")
             f.seek(self._position_offset, os.SEEK_SET)
-            halos = np.fromfile(f, dtype=self.io._halo_dt, count=pcount)
+            halos = np.fromfile(handle, dtype=self.io._halo_dt, count=pcount)
             for i, ax in enumerate("xyz"):
                 pos[:, i] = halos[f"particle_position_{ax}"].astype("float64")
 
