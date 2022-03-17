@@ -1,5 +1,5 @@
 import contextlib
-from typing import Optional
+from typing import Any, Optional
 from uuid import uuid4
 
 import numpy as np
@@ -18,10 +18,12 @@ class SwiftParticleFile(ParticleFile):
         with h5py.File(self.filename, mode="r") as handle:
             yield handle
 
-    def _read_from_handle(self, handle, ptype: str, field: str) -> Optional[np.ndarray]:
+    def _read_from_handle(
+        self, handle: Any, ptype: str, field: str
+    ) -> Optional[np.ndarray]:
         field_name = self._sanitize_field(field)
-        if self.total_particles[ptype] == 0:
-            return
+        if self.total_particles and self.total_particles[ptype] == 0:
+            return None
         v = handle[f"/{ptype}/{field_name}"][self.start : self.end, ...]
         return v
 

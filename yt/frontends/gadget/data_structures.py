@@ -3,7 +3,7 @@ import os
 import stat
 import struct
 from collections import defaultdict
-from typing import Optional, Tuple, Type, Union
+from typing import Any, Optional, Tuple, Type, Union
 
 import numpy as np
 
@@ -619,14 +619,14 @@ class GadgetHDF5File(ParticleFile):
             yield handle
 
     def _read_from_handle(
-        self, handle, ptype: str, field_name: str
+        self, handle: Any, ptype: str, field_name: str
     ) -> Optional[np.ndarray]:
 
         field_name, col = self._sanitize_field_col(field_name)
 
-        if self.total_particles[ptype] == 0:
+        if self.total_particles and self.total_particles[ptype] == 0:
             # TODO: consider returning an empty array here instead of None
-            return
+            return None
 
         v = handle[f"/{ptype}/{field_name}"][self.start : self.end, ...]
 

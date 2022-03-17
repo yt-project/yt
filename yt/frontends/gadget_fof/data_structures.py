@@ -3,7 +3,7 @@ import os
 import weakref
 from collections import defaultdict
 from functools import partial
-from typing import Optional
+from typing import Any, Optional
 
 import numpy as np
 
@@ -130,9 +130,11 @@ class GadgetFOFHDF5File(HaloCatalogFile):
             pos = f[ptype][f"{ptype}Pos"][()]
         return pos.astype("float64")
 
-    def _read_from_handle(self, handle, ptype: str, field: str) -> Optional[np.ndarray]:
-        if self.total_particles[ptype] == 0:
-            return
+    def _read_from_handle(
+        self, handle: Any, ptype: str, field: str
+    ) -> Optional[np.ndarray]:
+        if self.total_particles and self.total_particles[ptype] == 0:
+            return None
         v = handle[ptype][field][self.start : self.end, ...]
         return v.astype("float64")
 
