@@ -1827,7 +1827,13 @@ def _reconstruct_ds(*args, **kwargs):
     return ds
 
 
-@functools.total_ordering
+# Note: the use of functools.total_ordering with an abstract class that sets
+# an @abc.abstract_method causes a mypy failure:
+#     Only concrete class can be given where "Type[ParticleFile]" is expected
+# related to the open mypy issue https://github.com/python/mypy/issues/5374
+# Following solution here https://stackoverflow.com/a/70999704/9357244 and
+# ignoring the total_ordering line:
+@functools.total_ordering  # type: ignore[misc]
 class ParticleFile(abc.ABC):
     filename: str
     file_id: int
