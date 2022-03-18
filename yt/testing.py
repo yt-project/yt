@@ -488,6 +488,26 @@ def small_fake_hexahedral_ds():
     return ds
 
 
+def fake_stretched_ds(N=16):
+    from yt.loaders import load_uniform_grid
+
+    np.random.seed(0x4D3D3D3)
+    data = {"density": np.random.random((N, N, N))}
+
+    cell_widths = []
+    for _ in range(3):
+        cw = np.random.random(N)
+        cw /= cw.sum()
+        cell_widths.append(cw)
+    ds = load_uniform_grid(
+        data,
+        [N, N, N],
+        bbox=np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]]),
+        cell_widths=cell_widths,
+    )
+    return ds
+
+
 def fake_vr_orientation_test_ds(N=96, scale=1):
     """
     create a toy dataset that puts a sphere at (0,0,0), a single cube

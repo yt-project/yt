@@ -262,7 +262,14 @@ class YTProj(YTSelectionContainer2D):
         yax = self.ds.coordinates.y_axis[self.axis]
         ox = self.ds.domain_left_edge[xax].v
         oy = self.ds.domain_left_edge[yax].v
-        px, py, pdx, pdy, nvals, nwvals = tree.get_all(False, merge_style)
+        ix, iy, ires, nvals, nwvals = tree.get_all(False, merge_style)
+        pdx = 1.0 / (tree.top_grid_dims[0] * 2**ires)
+        pdy = 1.0 / (tree.top_grid_dims[1] * 2**ires)
+        px = (0.5 + ix) * pdx
+        py = (0.5 + iy) * pdy
+        pdx /= 2.0
+        pdy /= 2.0
+
         nvals = self.comm.mpi_allreduce(nvals, op=op)
         nwvals = self.comm.mpi_allreduce(nwvals, op=op)
         np.multiply(px, self.ds.domain_width[xax], px)
