@@ -12,7 +12,6 @@ sc = Scene()
 # Add density
 
 field = "density"
-ds._get_field_info(field).take_log = True
 
 vol = create_volume_source(ds, field=field)
 vol.use_ghost_zones = True
@@ -27,7 +26,6 @@ sc.add_source(vol)
 # Add temperature
 
 field = "temperature"
-ds._get_field_info(field).take_log = True
 
 vol2 = create_volume_source(ds, field=field)
 vol2.use_ghost_zones = True
