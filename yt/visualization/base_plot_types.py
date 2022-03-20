@@ -1,3 +1,4 @@
+import warnings
 from abc import ABC
 from io import BytesIO
 from typing import Optional, Tuple, Union
@@ -476,10 +477,18 @@ class ImagePlotMPL(PlotMPL, ABC):
             If True, set the axes to be drawn. If False, set the axes to not be
             drawn.
         """
-        if draw_frame is None:
-            draw_frame = choice
         self._draw_axes = choice
         self._draw_frame = draw_frame
+        if draw_frame is None:
+            draw_frame = choice
+        if self.colorbar_handler.has_background_color and not draw_frame:
+            # workaround matplotlib's behaviour
+            # last checked with Matplotlib 3.5
+            warnings.warn(
+                f"Previously set background color {self.colorbar_handler.background_color} "
+                "has no effect. Pass `draw_axis=True` if you wish to preserve background color.",
+                stacklevel=4,
+            )
         self.axes.set_frame_on(draw_frame)
         self.axes.get_xaxis().set_visible(choice)
         self.axes.get_yaxis().set_visible(choice)
@@ -505,7 +514,7 @@ class ImagePlotMPL(PlotMPL, ABC):
         labels += [cbax.yaxis.label, cbax.yaxis.get_offset_text()]
         return labels
 
-    def hide_axes(self, draw_frame=None):
+    def hide_axes(self, *, draw_frame=None):
         """
         Hide the axes for a plot including ticks and labels
         """

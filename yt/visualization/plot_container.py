@@ -795,7 +795,7 @@ class PlotContainer(abc.ABC):
             self.plots[f].show_colorbar()
         return self
 
-    def hide_axes(self, field=None, draw_frame=False):
+    def hide_axes(self, field=None, draw_frame=None):
         """
         Hides the axes for a plot and updates the size of the
         plot accordingly.  Defaults to operating on all fields for a
@@ -841,7 +841,7 @@ class PlotContainer(abc.ABC):
         if field is None:
             field = self.fields
         for f in iter_fields(field):
-            self.plots[f].hide_axes(draw_frame)
+            self.plots[f].hide_axes(draw_frame=draw_frame)
         return self
 
     def show_axes(self, field=None):

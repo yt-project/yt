@@ -294,7 +294,7 @@ class ColorbarHandler:
         draw_cbar: bool = True,
         draw_minorticks: bool = True,
         cmap: Optional[Union[Colormap, str]] = None,
-        background_color: Optional[str] = "white",
+        background_color: Optional[str] = None,
     ):
         self._draw_cbar = draw_cbar
         self._draw_minorticks = draw_minorticks
@@ -346,8 +346,8 @@ class ColorbarHandler:
             )
 
     @property
-    def background_color(self):
-        return self._background_color
+    def background_color(self) -> str:
+        return self._background_color or "white"
 
     @background_color.setter
     def background_color(self, newval):
@@ -355,3 +355,7 @@ class ColorbarHandler:
             self._background_color = self.cmap(0)
         else:
             self._background_color = newval
+
+    @property
+    def has_background_color(self) -> bool:
+        return self._background_color is not None

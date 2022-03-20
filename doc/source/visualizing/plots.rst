@@ -1057,23 +1057,6 @@ value of the color map.
    slc.set_background_color(("gas", "density"), color="black")
    slc.save("black_background")
 
-If you would like to change the background for a plot and also hide the axes,
-you will need to make use of the ``draw_frame`` keyword argument for the ``hide_axes`` function. If you do not use this keyword argument, the call to
-``set_background_color`` will have no effect. Here is an example illustrating how to use the ``draw_frame`` keyword argument for ``hide_axes``:
-
-.. python-script::
-
-   import yt
-
-   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   field = ("deposit", "all_density")
-   slc = yt.ProjectionPlot(ds, "z", field, width=(1.5, "Mpc"))
-   slc.set_background_color(field)
-   slc.hide_axes(draw_frame=True)
-   slc.hide_colorbar()
-   slc.save("just_image")
-
-
 
 Annotations
 ~~~~~~~~~~~

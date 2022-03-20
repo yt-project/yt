@@ -1090,7 +1090,7 @@ class PWViewerMPL(PlotWindow):
             axes = None
             cax = None
             draw_axes = True
-            draw_frame = draw_axes
+            draw_frame = None
             if f in self.plots:
                 draw_axes = self.plots[f]._draw_axes
                 draw_frame = self.plots[f]._draw_frame
