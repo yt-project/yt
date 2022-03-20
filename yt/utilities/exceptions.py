@@ -898,6 +898,10 @@ class YTArrayTooLargeToDisplay(YTException):
         return msg
 
 
+class YTConfigurationError(YTException):
+    pass
+
+
 class GenerationInProgress(Exception):
     def __init__(self, fields):
         self.fields = fields

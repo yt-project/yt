@@ -6,20 +6,24 @@ import sys
 import warnings
 from collections import defaultdict
 from functools import wraps
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
+import matplotlib
 import numpy as np
-from matplotlib.cm import get_cmap
+from matplotlib.colors import LogNorm, Normalize, SymLogNorm
 from matplotlib.font_manager import FontProperties
-from more_itertools.more import always_iterable
+from unyt.dimensions import length
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.data_objects.time_series import DatasetSeries
-from yt.funcs import dictWithFactory, ensure_dir, is_sequence, iter_fields, mylog
-from yt.units import YTQuantity
+from yt.funcs import ensure_dir, is_sequence, iter_fields
 from yt.units.unit_object import Unit  # type: ignore
 from yt.utilities.definitions import formatted_length_unit_names
-from yt.utilities.exceptions import YTNotInsideNotebook
+from yt.utilities.exceptions import YTConfigurationError, YTNotInsideNotebook
+from yt.visualization._commons import get_default_from_config
+from yt.visualization._handlers import ColorbarHandler, NormHandler
+from yt.visualization.base_plot_types import PlotMPL
 
 from ._commons import (
     DEFAULT_FONT_PROPERTIES,
@@ -64,66 +68,6 @@ def accepts_all_fields(func):
     return newfunc
 
 
-def get_log_minorticks(vmin, vmax):
-    """calculate positions of linear minorticks on a log colorbar
-
-    Parameters
-    ----------
-    vmin : float
-        the minimum value in the colorbar
-    vmax : float
-        the maximum value in the colorbar
-
-    """
-    expA = np.floor(np.log10(vmin))
-    expB = np.floor(np.log10(vmax))
-    cofA = np.ceil(vmin / 10**expA).astype("int64")
-    cofB = np.floor(vmax / 10**expB).astype("int64")
-    lmticks = []
-    while cofA * 10**expA <= cofB * 10**expB:
-        if expA < expB:
-            lmticks = np.hstack((lmticks, np.linspace(cofA, 9, 10 - cofA) * 10**expA))
-            cofA = 1
-            expA += 1
-        else:
-            lmticks = np.hstack(
-                (lmticks, np.linspace(cofA, cofB, cofB - cofA + 1) * 10**expA)
-            )
-            expA += 1
-    return np.array(lmticks)
-
-
-def get_symlog_minorticks(linthresh, vmin, vmax):
-    """calculate positions of linear minorticks on a symmetric log colorbar
-
-    Parameters
-    ----------
-    linthresh : float
-        the threshold for the linear region
-    vmin : float
-        the minimum value in the colorbar
-    vmax : float
-        the maximum value in the colorbar
-
-    """
-    if vmin > 0:
-        return get_log_minorticks(vmin, vmax)
-    elif vmax < 0 and vmin < 0:
-        return -get_log_minorticks(-vmax, -vmin)
-    elif vmin == 0:
-        return np.hstack((0, get_log_minorticks(linthresh, vmax)))
-    elif vmax == 0:
-        return np.hstack((-get_log_minorticks(linthresh, -vmin)[::-1], 0))
-    else:
-        return np.hstack(
-            (
-                -get_log_minorticks(linthresh, -vmin)[::-1],
-                0,
-                get_log_minorticks(linthresh, vmax),
-            )
-        )
-
-
 field_transforms = {}
 
 
@@ -166,66 +110,44 @@ class PlotDictionary(defaultdict):
 class PlotContainer(abc.ABC):
     """A container for generic plots"""
 
+    _plot_dict_type: Type[PlotDictionary] = PlotDictionary
     _plot_type: Optional[str] = None
     _plot_valid = False
 
-    # Plot defaults
-    _colormap_config: dict
-    _log_config: dict
-    _units_config: dict
+    _default_figure_size = tuple(matplotlib.rcParams["figure.figsize"])
+    _default_font_size = 14.0
 
-    def __init__(self, data_source, figure_size, fontsize):
+    def __init__(self, data_source, figure_size=None, fontsize: float = None):
         self.data_source = data_source
         self.ds = data_source.ds
         self.ts = self._initialize_dataset(self.ds)
-        if is_sequence(figure_size):
-            self.figure_size = float(figure_size[0]), float(figure_size[1])
-        else:
-            self.figure_size = float(figure_size)
+        self.plots = self.__class__._plot_dict_type(data_source)
 
+        self._set_figure_size(figure_size)
+
+        if fontsize is None:
+            fontsize = self.__class__._default_font_size
         if sys.version_info >= (3, 9):
             font_dict = DEFAULT_FONT_PROPERTIES | {"size": fontsize}
         else:
-            font_dict = {**DEFAULT_FONT_PROPERTIES, "size": fontsize}
+            font_dict = {**DEFAULT_FONT_PROPERTIES, "size": fontsize}  # type:ignore
 
         self._font_properties = FontProperties(**font_dict)
         self._font_color = None
         self._xlabel = None
         self._ylabel = None
-        self._minorticks = {}
-        self._field_transform = {}
-
-        self.setup_defaults()
-
-    def setup_defaults(self):
-        def default_from_config(keys, defaults):
-            _keys = list(always_iterable(keys))
-            _defaults = list(always_iterable(defaults))
-
-            def getter(field):
-                ftype, fname = self.data_source._determine_fields(field)[0]
-                ret = [
-                    ytcfg.get_most_specific("plot", ftype, fname, key, fallback=default)
-                    for key, default in zip(_keys, _defaults)
-                ]
-                if len(ret) == 1:
-                    return ret[0]
-                return ret
-
-            return getter
-
-        default_cmap = ytcfg.get("yt", "default_colormap")
-        self._colormap_config = dictWithFactory(
-            default_from_config("cmap", default_cmap)
-        )()
-        self._log_config = dictWithFactory(
-            default_from_config(["log", "linthresh"], [None, None])
-        )()
-        self._units_config = dictWithFactory(default_from_config("units", [None]))()
+        self._minorticks: Dict[Tuple[str, str], bool] = {}
 
     @accepts_all_fields
     @invalidate_plot
-    def set_log(self, field, log, linthresh=None, symlog_auto=False):
+    def set_log(
+        self,
+        field,
+        log: Optional[bool] = None,
+        *,
+        linthresh: Optional[Union[float, str]] = None,
+        symlog_auto: Optional[bool] = None,  # deprecated
+    ):
         """set a field to log, linear, or symlog.
 
         Symlog scaling is a combination of linear and log, where from 0 to a
@@ -240,30 +162,56 @@ class PlotContainer(abc.ABC):
         field : string
             the field to set a transform
             if field == 'all', applies to all plots.
-        log : boolean
-            Log on/off: on means log scaling; off means linear scaling. Unless
-            a linthresh is set or symlog_auto is set in which case symlog is used.
-        linthresh : float, optional
+        log : boolean, optional
+            Log on/off: on means log scaling; off means linear scaling.
+        linthresh : float, or 'auto', optional
             when using symlog scaling, linthresh is the value at which scaling
             transitions from linear to logarithmic.  linthresh must be positive.
             Note: setting linthresh will automatically enable symlog scale
-        symlog_auto : boolean
-            if symlog_auto is True, then yt will use symlog scaling and attempt to
-            determine a linthresh automatically.  Setting a linthresh manually
-            overrides this value.
 
+        Note that *log* and *linthresh* are mutually exclusive arguments
         """
-        if symlog_auto:
-            self._field_transform[field] = symlog_transform
-        if log:
-            self._field_transform[field] = log_transform
-        else:
-            self._field_transform[field] = linear_transform
+        if log is None and linthresh is None and symlog_auto is None:
+            raise TypeError("set_log requires log or linthresh be set")
+
+        if symlog_auto is not None:
+            issue_deprecation_warning(
+                "the symlog_auto argument is deprecated. Use linthresh='auto' instead",
+                since="4.1",
+            )
+            if symlog_auto is True:
+                linthresh = "auto"
+            elif symlog_auto is False:
+                pass
+            else:
+                raise TypeError(
+                    "Received invalid value for parameter symlog_auto. "
+                    f"Expected a boolean, got {symlog_auto!r}"
+                )
+
+        pnh = self.plots[field].norm_handler
+
         if linthresh is not None:
-            if not linthresh > 0.0:
-                raise ValueError('"linthresh" must be positive')
-            self._field_transform[field] = symlog_transform
-            self._field_transform[field].func = linthresh
+            if isinstance(linthresh, str):
+                if linthresh == "auto":
+                    pnh.norm_type = SymLogNorm
+                else:
+                    raise ValueError(
+                        "Expected a number, a unyt_quantity, a (float, 'unit') tuple, or 'auto'. "
+                        f"Got linthresh={linthresh!r}"
+                    )
+            else:
+                # pnh takes care of switching to symlog when linthresh is set
+                pnh.linthresh = linthresh
+        elif log is True:
+            pnh.norm_type = LogNorm
+        elif log is False:
+            pnh.norm_type = Normalize
+        else:
+            raise TypeError(
+                f"Could not parse arguments log={log!r}, linthresh={linthresh!r}"
+            )
+
         return self
 
     def get_log(self, field):
@@ -278,21 +226,68 @@ class PlotContainer(abc.ABC):
         """
         # devnote : accepts_all_fields decorator is not applicable here because
         # the return variable isn't self
+        issue_deprecation_warning(
+            "The get_log method is not reliable and is deprecated. "
+            "Please do not rely on it.",
+            since="4.1",
+        )
         log = {}
         if field == "all":
             fields = list(self.plots.keys())
         else:
             fields = field
         for field in self.data_source._determine_fields(fields):
-            log[field] = self._field_transform[field] == log_transform
+            pnh = self.plots[field].norm_handler
+            if pnh.norm is not None:
+                log[field] = type(pnh.norm) is LogNorm
+            elif pnh.norm_type is not None:
+                log[field] = pnh.norm_type is LogNorm
+            else:
+                # the NormHandler object has no constraints yet
+                # so we'll assume defaults
+                log[field] = True
         return log
 
     @invalidate_plot
-    def set_transform(self, field, name):
+    def set_transform(self, field, name: str):
         field = self.data_source._determine_fields(field)[0]
-        if name not in field_transforms:
-            raise KeyError(name)
-        self._field_transform[field] = field_transforms[name]
+        pnh = self.plots[field].norm_handler
+        pnh.norm_type = {
+            "linear": Normalize,
+            "log10": LogNorm,
+            "symlog": SymLogNorm,
+        }[name]
+        return self
+
+    @accepts_all_fields
+    @invalidate_plot
+    def set_norm(self, field, norm: Normalize):
+        r"""
+        Set a custom ``matplotlib.colors.Normalize`` to plot *field*.
+
+        Any constraints previously set with `set.log`, `set.zlim` will be
+        dropped.
+
+        Note that any float value attached to *norm* (e.g. vmin, vmax,
+        vcenter ...) will be read in the current displayed units, which can be
+        controlled with the `set_units` method.
+
+        Parameters
+        ----------
+        field : str or tuple[str, str]
+            if field == 'all', applies to all plots.
+        norm : matplotlib.colors.Normalize
+            see https://matplotlib.org/stable/tutorials/colors/colormapnorms.html
+        """
+
+        if field == "all":
+            fields = list(self.plots.keys())
+        else:
+            fields = field
+
+        for field in self.data_source._determine_fields(fields):
+            pnh = self.plots[field].norm_handler
+            pnh.norm = norm
         return self
 
     @accepts_all_fields
@@ -315,6 +310,7 @@ class PlotContainer(abc.ABC):
         self._minorticks[field] = state
         return self
 
+    @abc.abstractmethod
     def _setup_plots(self):
         # Left blank to be overridden in subclasses
         pass
@@ -361,7 +357,6 @@ class PlotContainer(abc.ABC):
                 lim = tuple(new_ds.quan(l.value, str(l.units)) for l in lim)
                 setattr(self, lim_name, lim)
         self.plots.data_source = new_object
-        self._background_color.data_source = new_object
         self._colorbar_label.data_source = new_object
         self._setup_plots()
 
@@ -458,6 +453,16 @@ class PlotContainer(abc.ABC):
         """
         return self.set_font({"size": size})
 
+    def _set_figure_size(self, size):
+        if size is None:
+            self.figure_size = self.__class__._default_figure_size
+        elif is_sequence(size):
+            if len(size) != 2:
+                raise TypeError(f"Expected a single float or a pair, got {size}")
+            self.figure_size = float(size[0]), float(size[1])
+        else:
+            self.figure_size = float(size)
+
     @invalidate_plot
     @invalidate_figure
     def set_figure_size(self, size):
@@ -465,11 +470,13 @@ class PlotContainer(abc.ABC):
 
         parameters
         ----------
-        size : float
-            The size of the figure on the longest axis (in units of inches),
-            including the margins but not the colorbar.
+        size : float, a sequence of two floats, or None
+            The size of the figure (in units of inches),  including the margins
+            but not the colorbar. If a single float is passed, it's interpreted
+            as the size along the long axis.
+            Pass None to reset
         """
-        self.figure_size = float(size)
+        self._set_figure_size(size)
         return self
 
     @validate_plot
@@ -531,8 +538,7 @@ class PlotContainer(abc.ABC):
 
         new_name = validate_image_name(name, suffix)
         if new_name == name:
-            # somehow mypy thinks we may not have a plots attr yet, hence we turn it off here
-            for v in self.plots.values():  # type: ignore
+            for v in self.plots.values():
                 out_name = v.save(name, mpl_kwargs)
                 names.append(out_name)
             return names
@@ -554,7 +560,7 @@ class PlotContainer(abc.ABC):
             plot_type = "OffAxisSlice"
 
         # somehow mypy thinks we may not have a plots attr yet, hence we turn it off here
-        for k, v in self.plots.items():  # type: ignore
+        for k, v in self.plots.items():
             if isinstance(k, tuple):
                 k = k[1]
 
@@ -857,18 +863,57 @@ class PlotContainer(abc.ABC):
         return self
 
 
-class ImagePlotContainer(PlotContainer):
+class ImagePlotContainer(PlotContainer, abc.ABC):
     """A container for plots with colorbars."""
 
     _colorbar_valid = False
 
     def __init__(self, data_source, figure_size, fontsize):
         super().__init__(data_source, figure_size, fontsize)
-        self.plots = PlotDictionary(data_source)
         self._callbacks = []
-        self._cbar_minorticks = {}
-        self._background_color = PlotDictionary(self.data_source, lambda: "w")
         self._colorbar_label = PlotDictionary(self.data_source, lambda: None)
+
+    def _get_default_handlers(
+        self, field, default_display_units: Unit
+    ) -> Tuple[NormHandler, ColorbarHandler]:
+
+        usr_units_str = get_default_from_config(
+            self.data_source, field=field, keys="units", defaults=[None]
+        )
+        if usr_units_str is not None:
+            usr_units = Unit(usr_units_str)
+            d1 = usr_units.dimensions
+            d2 = default_display_units.dimensions
+
+            if d1 == d2:
+                display_units = usr_units
+            elif getattr(self, "projected", False) and d2 / d1 == length:
+                path_length_units = Unit(
+                    ytcfg.get_most_specific(
+                        "plot", *field, "path_length_units", fallback="cm"
+                    ),
+                    registry=self.data_source.ds.unit_registry,
+                )
+                display_units = usr_units * path_length_units
+            else:
+                raise YTConfigurationError(
+                    f"Invalid units in configuration file for field {field!r}. "
+                    f"Found {usr_units!r}"
+                )
+        else:
+            display_units = default_display_units
+
+        pnh = NormHandler(self.data_source, display_units=display_units)
+
+        cbh = ColorbarHandler(
+            cmap=get_default_from_config(
+                self.data_source,
+                field=field,
+                keys="cmap",
+                defaults=[None],
+            )
+        )
+        return pnh, cbh
 
     @accepts_all_fields
     @invalidate_plot
@@ -888,7 +933,7 @@ class ImagePlotContainer(PlotContainer):
 
         """
         self._colorbar_valid = False
-        self._colormap_config[field] = cmap
+        self.plots[field].colorbar_handler.cmap = cmap
         return self
 
     @accepts_all_fields
@@ -907,17 +952,13 @@ class ImagePlotContainer(PlotContainer):
             the color map
 
         """
-        if color is None:
-            cmap = self._colormap_config[field]
-            if isinstance(cmap, str):
-                cmap = get_cmap(cmap)
-            color = cmap(0)
-        self._background_color[field] = color
+        cbh = self[field].colorbar_handler
+        cbh.background_color = color
         return self
 
     @accepts_all_fields
     @invalidate_plot
-    def set_zlim(self, field, zmin, zmax, dynamic_range=None):
+    def set_zlim(self, field, zmin=None, zmax=None, dynamic_range=None):
         """set the scale of the colormap
 
         Parameters
@@ -943,45 +984,26 @@ class ImagePlotContainer(PlotContainer):
 
         """
 
-        def _sanitize_units(z, _field):
-            # convert dimensionful inputs to float
-            if isinstance(z, tuple):
-                z = self.ds.quan(*z)
-            if isinstance(z, YTQuantity):
-                try:
-                    plot_units = self.frb[_field].units
-                    z = z.to(plot_units).value
-                except AttributeError:
-                    # only certain subclasses have a frb attribute
-                    # they can rely on for inspecting units
-                    mylog.warning(
-                        "%s class doesn't support zmin/zmax"
-                        " as tuples or unyt_quantitiy",
-                        self.__class__.__name__,
-                    )
-                    z = z.value
-            return z
-
         if field == "all":
             fields = list(self.plots.keys())
         else:
             fields = field
+        if zmin is None and zmax is None:
+            raise TypeError("Missing required argument zmin or zmax")
         for field in self.data_source._determine_fields(fields):
-            myzmin = _sanitize_units(zmin, field)
-            myzmax = _sanitize_units(zmax, field)
-            if zmin == "min":
-                myzmin = self.plots[field].image._A.min()
-            if zmax == "max":
-                myzmax = self.plots[field].image._A.max()
             if dynamic_range is not None:
-                if zmax is None:
-                    myzmax = myzmin * dynamic_range
+                if zmax is None and zmin is not None:
+                    zmax = zmin * dynamic_range
+                elif zmin is None and zmax is not None:
+                    zmin = zmax / dynamic_range
                 else:
-                    myzmin = myzmax / dynamic_range
-            if myzmin > 0.0 and self._field_transform[field] == symlog_transform:
-                self._field_transform[field] = log_transform
-            self.plots[field].zmin = myzmin
-            self.plots[field].zmax = myzmax
+                    raise TypeError(
+                        "Using dynamic_range requires that either zmin or zmax "
+                        "be specified, but not both."
+                    )
+            pnh = self.plots[field].norm_handler
+            pnh.vmin = zmin
+            pnh.vmax = zmax
         return self
 
     @accepts_all_fields
@@ -1000,7 +1022,7 @@ class ImagePlotContainer(PlotContainer):
         state : bool
             the state indicating 'on' (True) or 'off' (False)
         """
-        self._cbar_minorticks[field] = state
+        self.plots[field].colormap_handler.draw_minorticks = state
         return self
 
     @invalidate_plot
@@ -1020,8 +1042,32 @@ class ImagePlotContainer(PlotContainer):
         ... )
 
         """
+        field = self.data_source._determine_fields(field)
         self._colorbar_label[field] = label
         return self
 
     def _get_axes_labels(self, field):
         return (self._xlabel, self._ylabel, self._colorbar_label[field])
+
+
+class BaseLinePlot(PlotContainer, abc.ABC):
+
+    # A common ancestor to LinePlot and ProfilePlot
+
+    @abc.abstractmethod
+    def _get_axrect(self):
+        pass
+
+    def _get_plot_instance(self, field):
+        if field in self.plots:
+            return self.plots[field]
+        axrect = self._get_axrect()
+
+        pnh = NormHandler(self.data_source, display_units=self.data_source[field].units)
+        finfo = self.data_source.ds._get_field_info(*field)
+        if not finfo.take_log:
+            pnh.norm_type = Normalize
+        plot = PlotMPL(self.figure_size, axrect, norm_handler=pnh)
+        self.plots[field] = plot
+
+        return plot

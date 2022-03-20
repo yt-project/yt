@@ -80,3 +80,18 @@ if sys.version_info < (3, 8):
 
 else:
     pass
+
+
+builtin_zip = zip
+if sys.version_info >= (3, 10):
+    zip = builtin_zip
+else:
+    # this function is deprecated in more_itertools
+    # because it is superseded by the standard library
+    from more_itertools import zip_equal
+
+    def zip(*args, strict=False):
+        if strict:
+            return zip_equal(*args)
+        else:
+            return builtin_zip(*args)

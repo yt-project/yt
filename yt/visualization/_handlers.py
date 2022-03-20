@@ -266,6 +266,9 @@ class NormHandler:
 
         if norm_type is SymLogNorm:
             # if cblinthresh is not specified, try to come up with a reasonable default
+            min_abs_val, max_abs_val = np.sort(
+                np.abs((self.to_float(np.nanmin(data)), self.to_float(np.nanmax(data))))
+            )
             if self.linthresh is not None:
                 linthresh = self.to_float(self.linthresh)
             elif min_abs_val > 0:
