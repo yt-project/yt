@@ -724,6 +724,9 @@ the axes unit labels.
 The same result could have been accomplished by explicitly setting the ``width``
 to ``(.01, 'Mpc')``.
 
+
+.. _set-image-units:
+
 Set image units
 ~~~~~~~~~~~~~~~
 
@@ -903,7 +906,7 @@ customization.
 Colormaps
 ~~~~~~~~~
 
-Each of these functions accept two arguments.  In all cases the first argument
+Each of these functions accepts at least two arguments.  In all cases the first argument
 is a field name.  This makes it possible to use different custom colormaps for
 different fields tracked by the plot object.
 
@@ -920,10 +923,26 @@ Use any of the colormaps listed in the :ref:`colormaps` section.
    slc.set_cmap(("gas", "density"), "RdBu_r")
    slc.save()
 
-The :meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_log` function
-accepts a field name and a boolean.  If the boolean is ``True``, the colormap
-for the field will be log scaled.  If it is ``False`` the colormap will be
-linear.
+Colorbar norms
+::::::::::::::
+
+Slice plots and similar plot classes default to log norms when all values are
+strictly positive, and symlog otherwise. yt supports two different interfaces to
+move away from the defaults. See **constrained norms** and **arbitrary norm**
+hereafter.
+
+**Constrained norms**
+
+The norm properties can be constrained via two methods
+
+- :meth:`~yt.visualization.plot_container.PlotContainer.set_zlim` controls the extrema
+  of the value range ``zmin`` and ``zmax``.
+- :meth:`~yt.visualization.plot_container.ImagePlotContainer.set_log` allows switching to
+  linear or symlog norms. With symlog, the linear threshold can be set
+  explicitly. Otherwise, yt will dynamically determine a resonable value.
+
+Use the :meth:`~yt.visualization.plot_container.PlotContainer.set_zlim`
+method to set a custom colormap range.
 
 .. python-script::
 
@@ -931,19 +950,49 @@ linear.
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    slc = yt.SlicePlot(ds, "z", ("gas", "density"), width=(10, "kpc"))
-   slc.set_log(("gas", "density"), False)
+   slc.set_zlim(("gas", "density"), zmin=(1e-30, "g/cm**3)), zmax=(1e-25, "g/cm**3"))
    slc.save()
 
-Specifically, a field containing both positive and negative values can be plotted
-with symlog scale, by setting the boolean to be ``True`` and either providing an extra
-parameter ``linthresh`` or setting ``symlog_auto = True``. In the region around zero
-(when the log scale approaches to infinity), the linear scale will be applied to the
-region ``(-linthresh, linthresh)`` and stretched relative to the logarithmic range.
-In some cases, if yt detects zeros present in the dataset and the user has selected
-``log`` scaling, yt automatically switches to ``symlog`` scaling and automatically
-chooses a ``linthresh`` value to avoid errors.  This is the same behavior you can
-achieve by setting the keyword ``symlog_auto`` to ``True``. In these cases, yt will
-choose the smallest non-zero value in a dataset to be the ``linthresh`` value.
+Units can be left out, in which case they implicitly match the current display
+units of the colorbar (controlled with the ``set_unit`` method, see
+:ref:`_set-image-units`).
+
+Both ``zmin`` and ``zmax`` are optional, but note that they respectively default
+to 0 and 1, which can be widely inapropriate, so it is recommended to specify both.
+
+:meth:`~yt.visualization.plot_container.ImagePlotContainer.set_log` takes a boolean argument
+to select log (``True``) or linear (``False``) scalings.
+
+.. python-script::
+
+   import yt
+
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = yt.SlicePlot(ds, "z", ("gas", "density"), width=(10, "kpc"))
+   slc.set_log(("gas", "density"), False) # switch to linear scaling
+   slc.save()
+
+One can switch to `symlog
+<https://matplotlib.org/stable/api/_as_gen/matplotlib.colors.SymLogNorm.html?highlight=symlog#matplotlib.colors.SymLogNorm>`_
+by providing a "linear threshold" (``linthresh``)
+
+.. python-script::
+
+   import yt
+
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = yt.SlicePlot(ds, "z", ("gas", "velocity_x"), width=(10, "kpc"))
+   slc.set_log(("gas", "density"), linthresh=(1e-26, "g/cm**3"))
+   slc.save()
+
+Similar to the ``zmin`` and ``zmax`` arguments of the ``set_zlim`` method, units
+can be left out in ``linthresh``.
+
+ ``linthresh="auto"`` is also
+valid, in this case yt will switch to symlog norm and guess an appropriate value
+automatically. Specifically the minimum absolute value in the image is used
+unless it's zero, in which case yt uses 1/1000 of the maximum value.
+
 As an example,
 
 .. python-script::
@@ -952,7 +1001,7 @@ As an example,
 
    ds = yt.load_sample("FIRE_M12i_ref11")
    p = yt.ProjectionPlot(ds, "x", ("gas", "density"))
-   p.set_log(("gas", "density"), True, symlog_auto=True)
+   p.set_log(("gas", "density"), linthresh="auto")
    p.save()
 
 Symlog is very versatile, and will work with positive or negative dataset ranges.
@@ -965,7 +1014,31 @@ Here is an example using symlog scaling to plot a positive field with a linear r
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    slc = yt.SlicePlot(ds, "z", ("gas", "velocity_x"), width=(30, "kpc"))
-   slc.set_log(("gas", "velocity_x"), True, linthresh=1.0e1)
+   slc.set_log(("gas", "velocity_x"), linthresh=1.0e1)
+   slc.save()
+
+**Arbitrary norms**
+
+Alternatively, arbitrary matplotlib norms can be passed via the
+:meth:`~yt.visualization.plot_container.PlotContainer.set_norm` method. In that
+case, any numeric value is treated as having implicit units, matching the
+current display units. This alternative interface is more flexible, but
+considered experimental as of yt 4.1. Don't forget that with great power comes
+great responsibility.
+
+
+.. python-script::
+
+   import yt
+   from matplotlib.colors import TwoSlopeNorm
+
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = yt.SlicePlot(ds, "z", ("gas", "velocity_x"), width=(30, "kpc"))
+   slc.set_norm(("gas", "velocity_x"), TwoSlopeNorm(vcenter=0))
+
+   # using a diverging colormap to emphasize that vcenter corresponds to the
+   # middle value in the color range
+   slc.set_cmap(("gas", "velocity_x"), "RdBu")
    slc.save()
 
 The :meth:`~yt.visualization.plot_container.ImagePlotContainer.set_background_color`
@@ -1000,17 +1073,7 @@ you will need to make use of the ``draw_frame`` keyword argument for the ``hide_
    slc.hide_colorbar()
    slc.save("just_image")
 
-Lastly, the :meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_zlim`
-function makes it possible to set a custom colormap range.
 
-.. python-script::
-
-   import yt
-
-   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   slc = yt.SlicePlot(ds, "z", ("gas", "density"), width=(10, "kpc"))
-   slc.set_zlim(("gas", "density"), 1e-30, 1e-25)
-   slc.save()
 
 Annotations
 ~~~~~~~~~~~
