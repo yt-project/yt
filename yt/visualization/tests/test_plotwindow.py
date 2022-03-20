@@ -5,10 +5,13 @@ import unittest
 from collections import OrderedDict
 
 import numpy as np
+from matplotlib.colors import LogNorm, Normalize, SymLogNorm
 from nose.tools import assert_true
+from unyt import unyt_array
 
 from yt.loaders import load_uniform_grid
 from yt.testing import (
+    assert_allclose_units,
     assert_array_almost_equal,
     assert_array_equal,
     assert_equal,
@@ -423,13 +426,13 @@ class TestPerFieldConfig(unittest.TestCase):
         fields_to_plot = fields + [("index", "radius")]
         if self.ds is None:
             self.ds = fake_random_ds(16, fields=fields, units=units)
-            self.slc = ProjectionPlot(self.ds, 0, fields_to_plot)
+            self.proj = ProjectionPlot(self.ds, 0, fields_to_plot)
 
     def tearDown(self):
         from yt.config import ytcfg
 
         del self.ds
-        del self.slc
+        del self.proj
         for key in self.newConfig.keys():
             ytcfg.remove(*key)
         for key, val in self.oldConfig.items():
@@ -438,21 +441,37 @@ class TestPerFieldConfig(unittest.TestCase):
     def test_units(self):
         from unyt import Unit
 
-        assert_equal(self.slc.frb["gas", "density"].units, Unit("mile*lb/yd**3"))
-        assert_equal(self.slc.frb["gas", "temperature"].units, Unit("cm*K"))
-        assert_equal(self.slc.frb["gas", "pressure"].units, Unit("dyn/cm"))
+        assert_equal(self.proj.frb["gas", "density"].units, Unit("mile*lb/yd**3"))
+        assert_equal(self.proj.frb["gas", "temperature"].units, Unit("cm*K"))
+        assert_equal(self.proj.frb["gas", "pressure"].units, Unit("dyn/cm"))
 
     def test_scale(self):
-        assert_equal(self.slc._field_transform["gas", "density"].name, "linear")
-        assert_equal(self.slc._field_transform["gas", "temperature"].name, "symlog")
-        assert_equal(self.slc._field_transform["gas", "temperature"].func, 100)
-        assert_equal(self.slc._field_transform["gas", "pressure"].name, "log10")
-        assert_equal(self.slc._field_transform["index", "radius"].name, "log10")
+
+        assert_equal(
+            self.proj.plots["gas", "density"].norm_handler.norm_type, Normalize
+        )
+        assert_equal(
+            self.proj.plots["gas", "temperature"].norm_handler.norm_type, SymLogNorm
+        )
+        assert_allclose_units(
+            self.proj.plots["gas", "temperature"].norm_handler.linthresh,
+            unyt_array(100, "K*cm"),
+        )
+        assert_equal(self.proj.plots["gas", "pressure"].norm_handler.norm_type, LogNorm)
+        assert_equal(
+            self.proj.plots["index", "radius"].norm_handler.norm_type, SymLogNorm
+        )
 
     def test_cmap(self):
-        assert_equal(self.slc._colormap_config["gas", "density"], "plasma")
-        assert_equal(self.slc._colormap_config["gas", "temperature"], "hot")
-        assert_equal(self.slc._colormap_config["gas", "pressure"], "viridis")
+        assert_equal(
+            self.proj.plots["gas", "density"].colorbar_handler.cmap.name, "plasma"
+        )
+        assert_equal(
+            self.proj.plots["gas", "temperature"].colorbar_handler.cmap.name, "hot"
+        )
+        assert_equal(
+            self.proj.plots["gas", "pressure"].colorbar_handler.cmap.name, "viridis"
+        )
 
 
 def test_on_off_compare():
