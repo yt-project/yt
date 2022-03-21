@@ -125,7 +125,7 @@ class CylindricalCoordinateHandler(CoordinateHandler):
         period[1] = self.period[self.y_axis[dim]]
         if hasattr(period, "in_units"):
             period = period.in_units("code_length").d
-        buff = np.zeros(size, dtype="f8")
+        buff = np.full(size, np.nan, dtype="float64")
         pixelize_cartesian(
             buff,
             data_source["px"],
