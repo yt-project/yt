@@ -81,7 +81,9 @@ class SavedDataset(Dataset):
                 if cu not in self.unit_registry:
                     self.unit_registry.add(cu, 1.0, getattr(dimensions, dim))
             if "code_magnetic" not in self.unit_registry:
-                self.unit_registry.add("code_magnetic", 1.0, dimensions.magnetic_field)
+                self.unit_registry.add(
+                    "code_magnetic", 0.1**0.5, dimensions.magnetic_field_cgs
+                )
 
         # if saved, set unit system
         if "unit_system_name" in self.parameters:

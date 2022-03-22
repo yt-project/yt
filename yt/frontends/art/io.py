@@ -85,7 +85,7 @@ class IOHandlerART(BaseIOHandler):
                 x = self._get_field((ptype, "particle_position_x"))
                 y = self._get_field((ptype, "particle_position_y"))
                 z = self._get_field((ptype, "particle_position_z"))
-                yield ptype, (x, y, z)
+                yield ptype, (x, y, z), 0.0
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
@@ -405,7 +405,7 @@ def _read_art_level_info(
 
 
 def get_ranges(
-    skip, count, field, words=6, real_size=4, np_per_page=4096 ** 2, num_pages=1
+    skip, count, field, words=6, real_size=4, np_per_page=4096**2, num_pages=1
 ):
     # translate every particle index into a file position ranges
     ranges = []
@@ -437,7 +437,7 @@ def get_ranges(
 def read_particles(file, Nrow, idxa, idxb, fields):
     words = 6  # words (reals) per particle: x,y,z,vx,vy,vz
     real_size = 4  # for file_particle_data; not always true?
-    np_per_page = Nrow ** 2  # defined in ART a_setup.h, # of particles/page
+    np_per_page = Nrow**2  # defined in ART a_setup.h, # of particles/page
     num_pages = os.path.getsize(file) // (real_size * words * np_per_page)
     fh = open(file)
     skip, count = idxa, idxb - idxa
@@ -592,8 +592,8 @@ def quad(fintegrand, xmin, xmax, n=1e4):
 
 def a2b(at, Om0=0.27, Oml0=0.73, h=0.700):
     def f_a2b(x):
-        val = 0.5 * sqrt(Om0) / x ** 3.0
-        val /= sqrt(Om0 / x ** 3.0 + Oml0 + (1.0 - Om0 - Oml0) / x ** 2.0)
+        val = 0.5 * sqrt(Om0) / x**3.0
+        val /= sqrt(Om0 / x**3.0 + Oml0 + (1.0 - Om0 - Oml0) / x**2.0)
         return val
 
     # val, err = si.quad(f_a2b,1,at)
@@ -615,7 +615,7 @@ def b2a(bt, **kwargs):
 
 def a2t(at, Om0=0.27, Oml0=0.73, h=0.700):
     def integrand(x):
-        return 1.0 / (x * sqrt(Oml0 + Om0 * x ** -3.0))
+        return 1.0 / (x * sqrt(Oml0 + Om0 * x**-3.0))
 
     # current_time,err = si.quad(integrand,0.0,at,epsabs=1e-6,epsrel=1e-6)
     current_time = quad(integrand, 1e-4, at)

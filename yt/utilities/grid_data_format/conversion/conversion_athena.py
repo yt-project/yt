@@ -1,3 +1,4 @@
+import os
 from glob import glob
 
 import numpy as np
@@ -24,7 +25,7 @@ class AthenaDistributedConverter(Converter):
         self.ddn = int(name[1])
         if source_dir is None:
             source_dir = "./"
-        self.source_dir = source_dir + "/"
+        self.source_dir = source_dir
         self.basename = name[0]
         if outname is None:
             outname = self.basename + ".%04i" % self.ddn + ".gdf"
@@ -82,7 +83,7 @@ class AthenaDistributedConverter(Converter):
 
     def read_and_write_index(self, basename, ddn, gdf_name):
         """Read Athena legacy vtk file from multiple cpus"""
-        proc_names = glob(self.source_dir + "id*")
+        proc_names = glob(os.path.join(self.source_dir, "id*"))
         # print('Reading a dataset from %i Processor Files' % len(proc_names))
         N = len(proc_names)
         grid_dims = np.empty([N, 3], dtype="int64")
@@ -94,15 +95,12 @@ class AthenaDistributedConverter(Converter):
 
         for i in range(N):
             if i == 0:
-                fn = self.source_dir + "id%i/" % i + basename + ".%04i" % ddn + ".vtk"
+                fn = os.path.join(
+                    self.source_dir, f"id{i}", basename + f".{ddn:04d}.vtk"
+                )
             else:
-                fn = (
-                    self.source_dir
-                    + "id%i/" % i
-                    + basename
-                    + "-id%i" % i
-                    + ".%04i" % ddn
-                    + ".vtk"
+                fn = os.path.join(
+                    self.source_dir, f"id{i}", basename + f"-id{i}.{ddn:04d}.vtk"
                 )
 
             print(f"Reading file {fn}")
@@ -205,20 +203,17 @@ class AthenaDistributedConverter(Converter):
         # f.close()
 
     def read_and_write_data(self, basename, ddn, gdf_name):
-        proc_names = glob(self.source_dir + "id*")
+        proc_names = glob(os.path.join(self.source_dir, "id*"))
         # print('Reading a dataset from %i Processor Files' % len(proc_names))
         N = len(proc_names)
         for i in range(N):
             if i == 0:
-                fn = self.source_dir + "id%i/" % i + basename + ".%04i" % ddn + ".vtk"
+                fn = os.path.join(
+                    self.source_dir, f"id{i}", basename + f".{ddn:04d}.vtk"
+                )
             else:
-                fn = (
-                    self.source_dir
-                    + "id%i/" % i
-                    + basename
-                    + "-id%i" % i
-                    + ".%04i" % ddn
-                    + ".vtk"
+                fn = os.path.join(
+                    self.source_dir, +f"id{i}", basename + f"-id{i}.{ddn:04d}.vtk"
                 )
             f = open(fn, "rb")
             # print('Reading data from %s' % fn)

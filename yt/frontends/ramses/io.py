@@ -1,4 +1,6 @@
+import os
 from collections import defaultdict
+from typing import Union
 
 import numpy as np
 
@@ -145,7 +147,7 @@ class IOHandlerRAMSES(BaseIOHandler):
                         rv[ptype, pn % "x"],
                         rv[ptype, pn % "y"],
                         rv[ptype, pn % "z"],
-                    )
+                    ), 0.0
 
     def _read_particle_fields(self, chunks, ptf, selector):
         pn = "particle_position_%s"
@@ -209,13 +211,13 @@ class IOHandlerRAMSES(BaseIOHandler):
         return tr
 
 
-def _read_part_file_descriptor(fname):
+def _read_part_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
     """
     Read a file descriptor and returns the array of the fields found.
     """
 
     # Mapping
-    mapping = [
+    mapping_list = [
         ("position_x", "particle_position_x"),
         ("position_y", "particle_position_y"),
         ("position_z", "particle_position_z"),
@@ -229,7 +231,7 @@ def _read_part_file_descriptor(fname):
         ("tag", "particle_tag"),
     ]
     # Convert to dictionary
-    mapping = {k: v for k, v in mapping}
+    mapping = {k: v for k, v in mapping_list}
 
     with open(fname) as f:
         line = f.readline()
@@ -265,23 +267,33 @@ def _read_part_file_descriptor(fname):
     return fields
 
 
-def _read_fluid_file_descriptor(fname):
+def _read_fluid_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
     """
     Read a file descriptor and returns the array of the fields found.
     """
 
     # Mapping
-    mapping = [
+    mapping_list = [
         ("density", "Density"),
         ("velocity_x", "x-velocity"),
         ("velocity_y", "y-velocity"),
         ("velocity_z", "z-velocity"),
         ("pressure", "Pressure"),
         ("metallicity", "Metallicity"),
+        # Add mapping for ionized species
+        # Note: we expect internally that these names use the HII, HeII,
+        #       HeIII, ... convention for historical reasons. So we need to map
+        #       the names read from `hydro_file_descriptor.txt` to this
+        #       convention.
+        # This will create fields like ("ramses", "HII") which are mapped
+        # to ("gas", "H_p1_fraction") in fields.py
+        ("H_p1_fraction", "HII"),
+        ("He_p1_fraction", "HeII"),
+        ("He_p2_fraction", "HeIII"),
     ]
 
     # Add mapping for magnetic fields
-    mapping += [
+    mapping_list += [
         (key, key)
         for key in (
             f"B_{dim}_{side}" for side in ["left", "right"] for dim in ["x", "y", "z"]
@@ -289,7 +301,7 @@ def _read_fluid_file_descriptor(fname):
     ]
 
     # Convert to dictionary
-    mapping = {k: v for k, v in mapping}
+    mapping = {k: v for k, v in mapping_list}
 
     with open(fname) as f:
         line = f.readline()

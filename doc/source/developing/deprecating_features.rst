@@ -21,7 +21,7 @@ Here's an example call.
         issue_deprecation_warning(
             "`old_function` is deprecated, use `replacement_function` instead."
             since="4.0.0",
-            removal="4.1.0"
+            removal="4.1.0",
         )
         ...
 

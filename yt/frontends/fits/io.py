@@ -27,7 +27,7 @@ class IOHandlerFITS(BaseIOHandler):
         z = np.ones(x.shape)
         x = (x - 0.5) / self.ds.reblock + 0.5
         y = (y - 0.5) / self.ds.reblock + 0.5
-        yield ptype, (x, y, z)
+        yield ptype, (x, y, z), 0.0
 
     def _read_particle_fields(self, chunks, ptf, selector):
         pdata = self.ds._handle[self.ds.first_image].data

@@ -1,6 +1,7 @@
 import os
 import weakref
 from collections import defaultdict
+from itertools import product
 from pathlib import Path
 
 import numpy as np
@@ -19,6 +20,7 @@ from yt.utilities.on_demand_imports import _f90nml as f90nml
 from yt.utilities.physical_constants import kb, mp
 
 from .definitions import (
+    OUTPUT_DIR_EXP,
     OUTPUT_DIR_RE,
     STANDARD_FILE_RE,
     field_aliases,
@@ -41,16 +43,20 @@ class RAMSESFileSanitizer:
     group_name = None  # str | None: name of the first group folder (if any)
 
     def __init__(self, filename):
-        # Resolve so that it works with symlinks
-        filename = Path(filename).resolve()
+
+        # Make the resolve optional, so that it works with symlinks
+        paths_to_try = (Path(filename), Path(filename).resolve())
 
         self.original_filename = filename
 
         self.output_dir = None
         self.info_fname = None
 
-        for check_fun in (self.test_with_standard_file, self.test_with_folder_name):
-            ok, output_dir, info_fname = check_fun(filename)
+        check_functions = (self.test_with_standard_file, self.test_with_folder_name)
+
+        # Loop on both the functions and the tested paths
+        for path, check_fun in product(paths_to_try, check_functions):
+            ok, output_dir, info_fname = check_fun(path)
             if ok:
                 break
 
@@ -67,9 +73,33 @@ class RAMSESFileSanitizer:
             self.group_name = None
         self.info_fname = info_fname
 
+    def validate(self) -> None:
+        # raise a TypeError if self.original_filename is not a valid path
+        # we also want to expand '$USER' and '~' because os.path.exists('~') is always False
+        filename: str = os.path.expanduser(self.original_filename)
+
+        if not os.path.exists(filename):
+            raise FileNotFoundError(f"No such file or directory {filename!r}")
+        if self.root_folder is None:
+            raise ValueError(
+                f"Could not determine output directory from {filename!r}\n"
+                f"Expected a directory name of form {OUTPUT_DIR_EXP!r}"
+            )
+
+        # This last case is (erroneously ?) marked as unreachable by mypy
+        # If/when this bug is fixed upstream, mypy will warn that the unused
+        # 'type: ignore' comment can be removed
+        if self.info_fname is None:  # type: ignore [unreachable]
+            raise ValueError(f"Failed to detect info file from {filename!r}")
+
     @property
-    def is_valid(self):
-        return (self.root_folder is not None) and (self.info_fname is not None)
+    def is_valid(self) -> bool:
+        try:
+            self.validate()
+        except (TypeError, FileNotFoundError, ValueError):
+            return False
+        else:
+            return True
 
     @staticmethod
     def check_standard_files(folder, iout):
@@ -357,7 +387,7 @@ class RAMSESDomainSubset(OctreeSubset):
         tr = {}
 
         cell_count = (
-            selector.count_octs(self.oct_handler, self.domain_id) * self.nz ** ndim
+            selector.count_octs(self.oct_handler, self.domain_id) * self.nz**ndim
         )
 
         gz_cache = getattr(self, "_ghost_zone_cache", None)
@@ -404,7 +434,7 @@ class RAMSESDomainSubset(OctreeSubset):
             # new_fwidth contains the fwidth of the oct+ghost zones
             # this is a constant array in each oct, so we simply copy
             # the oct value using numpy fancy-indexing
-            new_fwidth = np.zeros((n_oct, self.nz ** 3, 3), dtype=fwidth.dtype)
+            new_fwidth = np.zeros((n_oct, self.nz**3, 3), dtype=fwidth.dtype)
             new_fwidth[:, :, :] = fwidth[:, 0:1, :]
             fwidth = new_fwidth.reshape(-1, 3)
         return fwidth
@@ -422,7 +452,7 @@ class RAMSESDomainSubset(OctreeSubset):
             self.selector, self._num_ghost_zones
         )
 
-        N_per_oct = self.nz ** 3
+        N_per_oct = self.nz**3
         oct_inds = oct_inds.reshape(-1, N_per_oct)
         cell_inds = cell_inds.reshape(-1, N_per_oct)
 
@@ -687,12 +717,9 @@ class RAMSESDataset(Dataset):
 
         file_handler = RAMSESFileSanitizer(filename)
 
-        # This should not happen, but let's check nonetheless.
-        if not file_handler.is_valid:
-            raise ValueError(
-                "Invalid filename found when building a RAMSESDataset object: %s",
-                filename,
-            )
+        # ensure validation happens even if the class is instanciated
+        # directly rather than from yt.load
+        file_handler.validate()
 
         # Sanitize the filename
         info_fname = file_handler.info_fname
@@ -738,7 +765,7 @@ class RAMSESDataset(Dataset):
         #       to be set, so we cannot convert from to yt/ramses
         #       conventions
         if max_level is None and max_level_convention is None:
-            return (2 ** 999, "yt")
+            return (2**999, "yt")
 
         # Check max_level is a valid, positive integer
         if not isinstance(max_level, (int, np.integer)):
@@ -801,14 +828,14 @@ class RAMSESDataset(Dataset):
         time_unit = self.parameters["unit_t"]
 
         # calculating derived units (except velocity and temperature, done below)
-        mass_unit = density_unit * length_unit ** 3
-        magnetic_unit = np.sqrt(4 * np.pi * mass_unit / (time_unit ** 2 * length_unit))
+        mass_unit = density_unit * length_unit**3
+        magnetic_unit = np.sqrt(4 * np.pi * mass_unit / (time_unit**2 * length_unit))
         pressure_unit = density_unit * (length_unit / time_unit) ** 2
 
         # TODO:
         # Generalize the temperature field to account for ionization
         # For now assume an atomic ideal gas with cosmic abundances (x_H = 0.76)
-        mean_molecular_weight_factor = _X ** -1
+        mean_molecular_weight_factor = _X**-1
 
         setdefaultattr(self, "density_unit", self.quan(density_unit, "g/cm**3"))
         setdefaultattr(self, "magnetic_unit", self.quan(magnetic_unit, "gauss"))
@@ -819,7 +846,7 @@ class RAMSESDataset(Dataset):
             self, "velocity_unit", self.quan(length_unit, "cm") / self.time_unit
         )
         temperature_unit = (
-            self.velocity_unit ** 2 * mp * mean_molecular_weight_factor / kb
+            self.velocity_unit**2 * mp * mean_molecular_weight_factor / kb
         )
         setdefaultattr(self, "temperature_unit", temperature_unit.in_units("K"))
 

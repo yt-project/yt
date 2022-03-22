@@ -293,9 +293,8 @@ class FieldInfoContainer(dict):
         acceptable_samplings = ("cell", "particle", "local")
         if sampling_type not in acceptable_samplings:
             raise ValueError(
-                "Invalid sampling type %s. Valid sampling types are %s",
-                sampling_type,
-                ", ".join(acceptable_samplings),
+                f"Received invalid sampling type {sampling_type!r}. "
+                f"Expected any of {acceptable_samplings}"
             )
         return sampling_type
 
@@ -378,7 +377,10 @@ class FieldInfoContainer(dict):
         else:
             self[name] = DerivedField(name, sampling_type, function, **kwargs)
 
-    def load_all_plugins(self, ftype="gas"):
+    def load_all_plugins(self, ftype: Optional[str] = "gas"):
+        if ftype is None:
+            return
+        mylog.debug("Loading field plugins for field type: %s.", ftype)
         loaded = []
         for n in sorted(field_plugins):
             loaded += self.load_plugin(n, ftype)

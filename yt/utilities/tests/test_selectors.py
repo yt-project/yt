@@ -138,8 +138,8 @@ def test_slice_selector():
             data = ds.slice(i, coord)
             data.get_data()
             v = data[d].to_ndarray()
-            assert_equal(data.shape[0], 64 ** 2)
-            assert_equal(data[("index", "ones")].shape[0], 64 ** 2)
+            assert_equal(data.shape[0], 64**2)
+            assert_equal(data[("index", "ones")].shape[0], 64**2)
             assert_array_less(np.abs(v - coord), 1.0 / 128.0 + 1e-6)
 
 

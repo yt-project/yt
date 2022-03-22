@@ -296,14 +296,14 @@ class FieldDetector(defaultdict):
 
     @property
     def ires(self):
-        ir = np.ones(self.nd ** 3, dtype="int64")
+        ir = np.ones(self.nd**3, dtype="int64")
         if not self.flat:
             ir.shape = (self.nd, self.nd, self.nd)
         return ir
 
     @property
     def fwidth(self):
-        fw = np.ones((self.nd ** 3, 3), dtype="float64") / self.nd
+        fw = np.ones((self.nd**3, 3), dtype="float64") / self.nd
         if not self.flat:
             fw.shape = (self.nd, self.nd, self.nd, 3)
         return self.ds.arr(fw, units="code_length")

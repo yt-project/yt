@@ -262,7 +262,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
         p.update(self.ds.parameters)
         ngroups = p["nGroups"]
         rt_c = p["rt_c_frac"] * units.c / (p["unit_l"] / p["unit_t"])
-        dens_conv = (p["unit_np"] / rt_c).value / units.cm ** 3
+        dens_conv = (p["unit_np"] / rt_c).value / units.cm**3
 
         ########################################
         # Adding the fields in the hydro_* files
@@ -316,7 +316,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
                 units=self.ds.unit_system["number_density"],
             )
 
-        flux_conv = p["unit_pf"] / units.cm ** 2 / units.s
+        flux_conv = p["unit_pf"] / units.cm**2 / units.s
 
         def gen_flux(key, igroup):
             def _photon_flux(field, data):

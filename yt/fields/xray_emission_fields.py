@@ -268,7 +268,7 @@ def add_xray_emissivity_field(
     ds.add_field(
         emiss_name,
         function=_emissivity_field,
-        display_name=fr"\epsilon_{{X}} ({e_min}-{e_max} keV)",
+        display_name=rf"\epsilon_{{X}} ({e_min}-{e_max} keV)",
         sampling_type="local",
         units="erg/cm**3/s",
     )
@@ -280,7 +280,7 @@ def add_xray_emissivity_field(
     ds.add_field(
         lum_name,
         function=_luminosity_field,
-        display_name=fr"\rm{{L}}_{{X}} ({e_min}-{e_max} keV)",
+        display_name=rf"\rm{{L}}_{{X}} ({e_min}-{e_max} keV)",
         sampling_type="local",
         units="erg/s",
     )
@@ -305,7 +305,7 @@ def add_xray_emissivity_field(
     ds.add_field(
         phot_name,
         function=_photon_emissivity_field,
-        display_name=fr"\epsilon_{{X}} ({e_min}-{e_max} keV)",
+        display_name=rf"\epsilon_{{X}} ({e_min}-{e_max} keV)",
         sampling_type="local",
         units="photons/cm**3/s",
     )
@@ -354,7 +354,7 @@ def add_xray_emissivity_field(
         ds.add_field(
             ei_name,
             function=_intensity_field,
-            display_name=fr"I_{{X}} ({e_min}-{e_max} keV)",
+            display_name=rf"I_{{X}} ({e_min}-{e_max} keV)",
             sampling_type="local",
             units="erg/cm**3/s/arcsec**2",
         )
@@ -368,7 +368,7 @@ def add_xray_emissivity_field(
         ds.add_field(
             i_name,
             function=_photon_intensity_field,
-            display_name=fr"I_{{X}} ({e_min}-{e_max} keV)",
+            display_name=rf"I_{{X}} ({e_min}-{e_max} keV)",
             sampling_type="local",
             units="photons/cm**3/s/arcsec**2",
         )

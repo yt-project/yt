@@ -90,7 +90,6 @@ class CM1Dataset(Dataset):
             unit_system=unit_system,
         )
         self.storage_filename = storage_filename
-        self.filename = filename
 
     def _setup_coordinate_handler(self):
         # ensure correct ordering of axes so plots aren't rotated (z should always be

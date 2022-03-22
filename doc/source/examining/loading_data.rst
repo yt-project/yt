@@ -36,15 +36,36 @@ any arguments, and it will return a list of the names that can be supplied:
 
 This will return a list of possible filenames; more information can be accessed on the data catalog.
 
+
+.. _loading-archived-data:
+
+Archived Data
+-------------
+
+If your data is stored as a (compressed) tar file, you can access the contained
+dataset directly without extracting the tar file.
+This can be achieved using the ``load_archive`` function:
+
+.. code-block:: python
+
+   import yt
+
+   ds = yt.load_archive("IsolatedGalaxy.tar.gz", "IsolatedGalaxy/galaxy0030/galaxy0030")
+
+The first argument is the path to the archive file, the second one is the path to the file to load
+in the archive. Subsequent arguments are passed to ``yt.load``.
+
+The functionality requires the package `ratarmount <https://github.com/mxmlnkn/ratarmount/>`_ to be installed.
+Under the hood, yt will mount the archive as a (read-only) filesystem. Note that this requires the
+entire archive to be read once to compute the location of each file in the archive; subsequent accesses
+will be much faster.
+All archive formats supported by `ratarmount <https://github.com/mxmlnkn/ratarmount>`_ should be loadable, provided
+the dependencies are installed; this includes ``tar``, ``tar.gz`` and tar.bz2`` formats.
+
 .. _loading-amrvac-data:
 
 AMRVAC Data
 -----------
-
-.. note::
-
-   This frontend is brand new and may be subject to rapid change in the
-   near future.
 
 To load data to yt, simply use
 
@@ -60,15 +81,15 @@ Starting from AMRVAC 2.2, and datfile format 5, a geometry flag
 (e.g. "Cartesian_2.5D", "Polar_2D", "Cylindrical_1.5D"...) was added
 to the datfile header.  yt will fall back to a cartesian mesh if the
 geometry flag is not found.  For older datfiles however it is possible
-to provide it externally with the ``override_geometry`` parameter.
+to provide it externally with the ``geometry_override`` parameter.
 
 .. code-block:: python
 
   # examples
-  ds = yt.load("output0010.dat", override_geometry="polar")
-  ds = yt.load("output0010.dat", override_geometry="cartesian")
+  ds = yt.load("output0010.dat", geometry_override="polar")
+  ds = yt.load("output0010.dat", geometry_override="cartesian")
 
-Note that ``override_geometry`` has priority over any ``geometry`` flag
+Note that ``geometry_override`` has priority over any ``geometry`` flag
 present in recent datfiles, which means it can be used to force ``r``
 VS ``theta`` 2D plots in polar geometries (for example), but this may
 produce unpredictable behaviour and comes with no guarantee.
@@ -312,6 +333,23 @@ This means that the yt fields, e.g. ``("gas","density")``,
 ``("athena","density")``, ``("athena","velocity_x")``,
 ``("athena","cell_centered_B_x")``, will be in code units.
 
+The default normalization for various magnetic-related quantities such as
+magnetic pressure, Alfven speed, etc., as well as the conversion between
+magnetic code units and other units, is Gaussian/CGS, meaning that factors
+of :math:`4\pi` or :math:`\sqrt{4\pi}` will appear in these quantities, e.g.
+:math:`p_B = B^2/8\pi`. To use the Lorentz-Heaviside normalization instead,
+in which the factors of :math:`4\pi` are dropped (:math:`p_B = B^2/2), for
+example), set ``magnetic_normalization="lorentz_heaviside"`` in the call to
+``yt.load``:
+
+.. code-block:: python
+
+    ds = yt.load(
+        "id0/cluster_merger.0250.vtk",
+        units_override=units_override,
+        magnetic_normalization="lorentz_heaviside",
+    )
+
 Some 3D Athena outputs may have large grids (especially parallel datasets
 subsequently joined with the ``join_vtk`` script), and may benefit from being
 subdivided into "virtual grids". For this purpose, one can pass in the
@@ -408,6 +446,23 @@ This means that the yt fields, e.g. ``("gas","density")``,
 (or whatever unit system was specified), but the Athena fields, e.g.,
 ``("athena_pp","density")``, ``("athena_pp","vel1")``, ``("athena_pp","Bcc1")``,
 will be in code units.
+
+The default normalization for various magnetic-related quantities such as
+magnetic pressure, Alfven speed, etc., as well as the conversion between
+magnetic code units and other units, is Gaussian/CGS, meaning that factors
+of :math:`4\pi` or :math:`\sqrt{4\pi}` will appear in these quantities, e.g.
+:math:`p_B = B^2/8\pi`. To use the Lorentz-Heaviside normalization instead,
+in which the factors of :math:`4\pi` are dropped (:math:`p_B = B^2/2), for
+example), set ``magnetic_normalization="lorentz_heaviside"`` in the call to
+``yt.load``:
+
+.. code-block:: python
+
+    ds = yt.load(
+        "AM06/AM06.out1.00400.athdf",
+        units_override=units_override,
+        magnetic_normalization="lorentz_heaviside",
+    )
 
 Alternative values for the following simulation parameters may be specified
 using a ``parameters`` dict, accepting the following keys:

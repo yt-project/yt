@@ -29,6 +29,12 @@
     "load_name": "snapshot_150.hdf5",
     "url": "https://yt-project.org/data/ArepoBullet.tar.gz"
   },
+  "ArepoCosmicRays.tar.gz": {
+    "hash": "e664ea7f634fff778511e9ae7b2e375ba9c5099e427f7c037d48bba9944388f4",
+    "load_kwargs": {},
+    "load_name": "snapshot_039.hdf5",
+    "url": "https://yt-project.org/data/ArepoCosmicRays.tar.gz"
+  },
   "BigEndianGadgetBinary.tar.gz": {
     "hash": "0ab8d69b7c0c1a74282c567823916cc947f9ead7ab54b749a38a17c158b371c9",
     "load_kwargs": {},

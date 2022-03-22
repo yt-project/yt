@@ -22,6 +22,7 @@ prune .tours
 recursive-include yt/visualization/volume_rendering/shaders *.fragmentshader *.vertexshader
 include yt/sample_data_registry.json
 include conftest.py
+include yt/py.typed
 prune yt/frontends/_skeleton
 recursive-include yt/frontends/amrvac *.par
 exclude .codecov.yml .coveragerc .git-blame-ignore-revs .gitmodules .hgchurn .mailmap

@@ -47,7 +47,7 @@ class ARTFieldInfo(FieldInfoContainer):
 
         def _temperature(field, data):
             r0 = data.ds.parameters["boxh"] / data.ds.parameters["ng"]
-            tr = data.ds.quan(3.03e5 * r0 ** 2, "K/code_velocity**2")
+            tr = data.ds.quan(3.03e5 * r0**2, "K/code_velocity**2")
             tr *= data.ds.parameters["wmu"] * data.ds.parameters["Om0"]
             tr *= data.ds.parameters["gamma"] - 1.0
             tr /= data.ds.parameters["aexpn"] ** 2

@@ -1,5 +1,7 @@
+import inspect
 import re
 import warnings
+from abc import ABC, abstractmethod
 from functools import wraps
 from numbers import Integral, Number
 from typing import Any, Dict, Optional, Tuple, Union
@@ -7,6 +9,7 @@ from typing import Any, Dict, Optional, Tuple, Union
 import matplotlib
 import numpy as np
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.data_objects.data_containers import YTDataContainer
 from yt.data_objects.level_sets.clump_handling import Clump
 from yt.data_objects.selection_objects.cut_region import YTCutRegion
@@ -77,6 +80,8 @@ class PlotCallback:
 
     def __init_subclass__(cls, *args, **kwargs):
         super().__init_subclass__(*args, **kwargs)
+        if inspect.isabstract(cls):
+            return
         callback_registry[cls.__name__] = cls
         cls.__call__ = _verify_geometry(cls.__call__)
 
@@ -356,7 +361,7 @@ class VelocityCallback(PlotCallback):
             qcb = CuttingQuiverCallback(
                 (ftype, "cutting_plane_velocity_x"),
                 (ftype, "cutting_plane_velocity_y"),
-                self.factor,
+                factor=self.factor,
                 scale=self.scale,
                 normalize=self.normalize,
                 scale_units=self.scale_units,
@@ -395,7 +400,7 @@ class VelocityCallback(PlotCallback):
             qcb = QuiverCallback(
                 xv,
                 yv,
-                self.factor,
+                factor=self.factor,
                 scale=self.scale,
                 scale_units=self.scale_units,
                 normalize=self.normalize,
@@ -450,7 +455,7 @@ class MagFieldCallback(PlotCallback):
             qcb = CuttingQuiverCallback(
                 (ftype, "cutting_plane_magnetic_field_x"),
                 (ftype, "cutting_plane_magnetic_field_y"),
-                self.factor,
+                factor=self.factor,
                 scale=self.scale,
                 scale_units=self.scale_units,
                 normalize=self.normalize,
@@ -478,7 +483,7 @@ class MagFieldCallback(PlotCallback):
             qcb = QuiverCallback(
                 xv,
                 yv,
-                self.factor,
+                factor=self.factor,
                 scale=self.scale,
                 scale_units=self.scale_units,
                 normalize=self.normalize,
@@ -487,10 +492,65 @@ class MagFieldCallback(PlotCallback):
         return qcb(plot)
 
 
-class QuiverCallback(PlotCallback):
+class BaseQuiverCallback(PlotCallback, ABC):
+    def __init__(
+        self,
+        field_x,
+        field_y,
+        field_c=None,
+        *,
+        factor: Union[Tuple[int, int], int] = 16,
+        scale=None,
+        scale_units=None,
+        normalize=False,
+        plot_args=None,
+        **kwargs,
+    ):
+        PlotCallback.__init__(self)
+        self.field_x = field_x
+        self.field_y = field_y
+        self.field_c = field_c
+        self.factor = _validate_factor_tuple(factor)
+        self.scale = scale
+        self.scale_units = scale_units
+        self.normalize = normalize
+        if plot_args is None:
+            plot_args = kwargs
+        else:
+            # using plot_args should be deprecated at some point,
+            # but it needs to be done consistently for all callbacks
+            plot_args.update(kwargs)
+
+        self.plot_args = plot_args
+
+    @abstractmethod
+    def __call__(self, plot):
+        pass
+
+    def _finalize(self, plot, X, Y, pixX, pixY, pixC):
+        if self.normalize:
+            nn = np.sqrt(pixX**2 + pixY**2)
+            nn = np.where(nn == 0, 1, nn)
+            pixX /= nn
+            pixY /= nn
+
+        args = [X, Y, pixX, pixY]
+        if pixC is not None:
+            args.append(pixC)
+
+        kwargs = dict(
+            scale=self.scale,
+            scale_units=self.scale_units,
+        )
+        kwargs.update(self.plot_args)
+        return plot._axes.quiver(*args, **kwargs)
+
+
+class QuiverCallback(BaseQuiverCallback):
     """
     Adds a 'quiver' plot to any plot, using the *field_x* and *field_y*
-    from the associated data, skipping every *factor* datapoints.
+    from the associated data, skipping every *factor* pixels.
+    *field_c* is an optional field name used for color.
     *scale* is the data units per arrow length unit using *scale_units*
     and *plot_args* allows you to pass in matplotlib arguments (see
     matplotlib.axes.Axes.quiver for more info). if *normalize* is True,
@@ -506,6 +566,8 @@ class QuiverCallback(PlotCallback):
         self,
         field_x,
         field_y,
+        field_c=None,
+        *,
         factor: Union[Tuple[int, int], int] = 16,
         scale=None,
         scale_units=None,
@@ -513,19 +575,21 @@ class QuiverCallback(PlotCallback):
         bv_x=0,
         bv_y=0,
         plot_args=None,
+        **kwargs,
     ):
-        PlotCallback.__init__(self)
-        self.field_x = field_x
-        self.field_y = field_y
+        super().__init__(
+            field_x,
+            field_y,
+            field_c,
+            factor=factor,
+            scale=scale,
+            scale_units=scale_units,
+            normalize=normalize,
+            plot_args=plot_args,
+            **kwargs,
+        )
         self.bv_x = bv_x
         self.bv_y = bv_y
-        self.factor = _validate_factor_tuple(factor)
-        self.scale = scale
-        self.scale_units = scale_units
-        self.normalize = normalize
-        if plot_args is None:
-            plot_args = {}
-        self.plot_args = plot_args
 
     def __call__(self, plot):
         x0, x1, y0, y1 = self._physical_bounds(plot)
@@ -578,25 +642,27 @@ class QuiverCallback(PlotCallback):
             False,  # antialias
             periodic,
         )
+        if self.field_c is not None:
+            pixC = plot.data.ds.coordinates.pixelize(
+                plot.data.axis,
+                plot.data,
+                self.field_c,
+                bounds,
+                (nx, ny),
+                False,  # antialias
+                periodic,
+            )
+        else:
+            pixC = None
+
         X, Y = np.meshgrid(
             np.linspace(xx0, xx1, nx, endpoint=True),
             np.linspace(yy0, yy1, ny, endpoint=True),
         )
-        if self.normalize:
-            nn = np.sqrt(pixX ** 2 + pixY ** 2)
-            pixX /= nn
-            pixY /= nn
-        plot._axes.quiver(
-            X,
-            Y,
-            pixX,
-            pixY,
-            scale=self.scale,
-            scale_units=self.scale_units,
-            **self.plot_args,
-        )
+        retv = self._finalize(plot, X, Y, pixX, pixY, pixC)
         plot._axes.set_xlim(xx0, xx1)
         plot._axes.set_ylim(yy0, yy1)
+        return retv
 
 
 class ContourCallback(PlotCallback):
@@ -1130,7 +1196,7 @@ class ImageLineCallback(LinePlotCallback):
         super().__call__(plot)
 
 
-class CuttingQuiverCallback(PlotCallback):
+class CuttingQuiverCallback(BaseQuiverCallback):
     """
     Get a quiver plot on top of a cutting plane, using *field_x* and
     *field_y*, skipping every *factor* datapoint in the discretization.
@@ -1144,27 +1210,6 @@ class CuttingQuiverCallback(PlotCallback):
 
     _type_name = "cquiver"
     _supported_geometries = ("cartesian", "spectral_cube")
-
-    def __init__(
-        self,
-        field_x,
-        field_y,
-        factor=16,
-        scale=None,
-        scale_units=None,
-        normalize=False,
-        plot_args=None,
-    ):
-        PlotCallback.__init__(self)
-        self.field_x = field_x
-        self.field_y = field_y
-        self.factor = _validate_factor_tuple(factor)
-        self.scale = scale
-        self.scale_units = scale_units
-        self.normalize = normalize
-        if plot_args is None:
-            plot_args = {}
-        self.plot_args = plot_args
 
     def __call__(self, plot):
         x0, x1, y0, y1 = self._physical_bounds(plot)
@@ -1207,27 +1252,35 @@ class CuttingQuiverCallback(PlotCallback):
             plot.data[self.field_y],
             (x0, x1, y0, y1),
         )
+        if self.field_c is not None:
+            pixC = np.zeros((ny, nx), dtype="f8")
+            pixelize_off_axis_cartesian(
+                pixC,
+                plot.data[("index", "x")].to("code_length"),
+                plot.data[("index", "y")].to("code_length"),
+                plot.data[("index", "z")].to("code_length"),
+                plot.data["px"],
+                plot.data["py"],
+                plot.data["pdx"],
+                plot.data["pdy"],
+                plot.data["pdz"],
+                plot.data.center,
+                plot.data._inv_mat,
+                indices,
+                plot.data[self.field_c],
+                (x0, x1, y0, y1),
+            )
+        else:
+            pixC = None
         X, Y = np.meshgrid(
             np.linspace(xx0, xx1, nx, endpoint=True),
             np.linspace(yy0, yy1, ny, endpoint=True),
         )
 
-        if self.normalize:
-            nn = np.sqrt(pixX ** 2 + pixY ** 2)
-            pixX /= nn
-            pixY /= nn
-
-        plot._axes.quiver(
-            X,
-            Y,
-            pixX,
-            pixY,
-            scale=self.scale,
-            scale_units=self.scale_units,
-            **self.plot_args,
-        )
+        retv = self._finalize(plot, X, Y, pixX, pixY, pixC)
         plot._axes.set_xlim(xx0, xx1)
         plot._axes.set_ylim(yy0, yy1)
+        return retv
 
 
 class ClumpContourCallback(PlotCallback):
@@ -1940,6 +1993,14 @@ class HaloCatalogCallback(PlotCallback):
         font_kwargs=None,
         factor=1.0,
     ):
+        issue_deprecation_warning(
+            "The annotate_halos method has been fully migrated to the "
+            "yt_astro_analysis extension. "
+            "Please update the extension to version 1.1 or newer. "
+            "This duplicated functionality will be removed from the main yt package.",
+            since="4.1",
+            removal="4.2",
+        )
 
         try:
             from yt_astro_analysis.halo_analysis.api import HaloCatalog
@@ -3090,7 +3151,8 @@ class LineIntegralConvolutionCallback(PlotCallback):
         vectors = np.concatenate((pixX[..., np.newaxis], pixY[..., np.newaxis]), axis=2)
 
         if self.texture is None:
-            self.texture = np.random.rand(nx, ny).astype(np.double)
+            prng = np.random.RandomState(0x4D3D3D3)
+            self.texture = prng.random_sample((nx, ny))
         elif self.texture.shape != (nx, ny):
             raise ValueError(
                 "'texture' must have the same shape "
@@ -3103,6 +3165,10 @@ class LineIntegralConvolutionCallback(PlotCallback):
         lic_data = line_integral_convolution_2d(vectors, self.texture, kernel)
         lic_data = lic_data / lic_data.max()
         lic_data_clip = np.clip(lic_data, self.lim[0], self.lim[1])
+
+        mask = ~(np.isfinite(pixX) & np.isfinite(pixY))
+        lic_data[mask] = np.nan
+        lic_data_clip[mask] = np.nan
 
         if self.const_alpha:
             plot._axes.imshow(
