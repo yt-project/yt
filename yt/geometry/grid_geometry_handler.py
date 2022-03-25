@@ -450,6 +450,25 @@ class GridIndex(Index, abc.ABC):
                 with self.io.preload(dc, preload_fields, 4.0 * size):
                     yield dc
 
+    def _icoords_to_fcoords(self, icoords, ires, axes=None):
+        """
+        Accepts icoords and ires and returns appropriate fcoords and fwidth.
+        Mostly useful for cases where we have irregularly spaced or structured
+        grids.
+        """
+        dds = self.ds.domain_width[axes,] / (
+            self.ds.domain_dimensions[
+                axes,
+            ]
+            # This may need an additional refinement factor conversion for
+            # non-refine-by-2 cases.
+            * self.ds.refine_by ** ires[:, None]
+        )
+        pos = (0.5 + icoords) * dds + self.ds.domain_left_edge[
+            axes,
+        ]
+        return pos, dds
+
     def _add_mesh_sampling_particle_field(self, deposit_field, ftype, ptype):
         units = self.ds.field_info[ftype, deposit_field].units
         take_log = self.ds.field_info[ftype, deposit_field].take_log
