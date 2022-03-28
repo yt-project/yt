@@ -80,7 +80,7 @@ def test_invalid_sanitizing(valid_path_tuples, invalid_path_tuples):
         if path.exists():
             expected_error = ValueError
             expected_error_message = (
-                f"Could not determine output directory from '{str(path)}'\n"
+                "Could not determine output directory from '.*'\n"
                 "Expected a directory name of form .* "
                 "containing an info_\\*.txt file and amr_\\* files."
             )
@@ -99,7 +99,7 @@ def test_invalid_sanitizing(valid_path_tuples, invalid_path_tuples):
         with pytest.raises(FileNotFoundError, match=expected_error_message):
             sanitizer.validate()
 
-    expected_error_message = "No such file or directory '/this/does/not/exist'"
-    sanitizer = RAMSESFileSanitizer("/this/does/not/exist")
+    expected_error_message = "No such file or directory '.*'"
+    sanitizer = RAMSESFileSanitizer(Path("this") / "does" / "not" / "exist")
     with pytest.raises(FileNotFoundError, match=expected_error_message):
         sanitizer.validate()
