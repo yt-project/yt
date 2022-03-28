@@ -5,6 +5,7 @@ from typing import Union
 import numpy as np
 
 from yt._maintenance.deprecation import issue_deprecation_warning
+from yt.frontends.ramses.definitions import VAR_DESC_RE, VERSION_RE
 from yt.utilities.cython_fortran_utils import FortranFile
 from yt.utilities.exceptions import (
     YTFieldTypeNotFound,
@@ -15,15 +16,12 @@ from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.physical_ratios import cm_per_km, cm_per_mpc
 
-from .definitions import VAR_DESC_RE, VERSION_RE
-
 
 def convert_ramses_ages(ds, conformal_ages):
     issue_deprecation_warning(
         msg=(
-            "The convert_ramses_ages function is deprecated. It was erroneously used "
-            "to convert ages from conformal formation times, leading to incoherent "
-            "results."
+            "The `convert_ramses_ages' function is deprecated. It should be replaced "
+            "by the `convert_ramses_conformal_time_to_physical_age' function."
         ),
         since="4.0.2",
         removal="4.0.4",
@@ -31,7 +29,24 @@ def convert_ramses_ages(ds, conformal_ages):
     return convert_ramses_conformal_time_to_physical_age(ds, conformal_ages)
 
 
-def convert_ramses_conformal_time_to_physical_age(ds, conformal_time):
+def convert_ramses_conformal_time_to_physical_age(
+    ds, conformal_time: np.ndarray
+) -> np.ndarray:
+    """
+    Convert conformal times (as defined in RAMSES) to physical age.
+
+    Arguments
+    ---------
+    ds : RAMSESDataset
+        The RAMSES dataset to use for the conversion
+    conformal_time : np.ndarray
+        The conformal time as read from disk
+
+    Returns
+    -------
+    physical_age : np.ndarray
+        The physical age in code units
+    """
     tf = ds.t_frw
     dtau = ds.dtau
     tauf = ds.tau_frw
