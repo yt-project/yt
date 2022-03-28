@@ -575,9 +575,7 @@ class BaseQuiverCallback(PlotCallback, ABC):
         self.plot_args = plot_args
 
     @abstractmethod
-    def _get_quiver_data(
-        self, plot, bounds: tuple, nx: int, ny: int
-    ) -> Tuple[np.ndarray, np.ndarray, Union[np.ndarray, None]]:
+    def _get_quiver_data(self, plot, bounds: tuple, nx: int, ny: int):
         # must return (pixX, pixY, pixC) arrays (pixC can be None)
         pass
 
@@ -677,9 +675,7 @@ class QuiverCallback(BaseQuiverCallback):
         self.bv_x = bv_x
         self.bv_y = bv_y
 
-    def _get_quiver_data(
-        self, plot, bounds: tuple, nx: int, ny: int
-    ) -> Tuple[np.ndarray, np.ndarray, Union[np.ndarray, None]]:
+    def _get_quiver_data(self, plot, bounds: tuple, nx: int, ny: int):
         # calls the pixelizer, returns pixX, pixY, pixC arrays
 
         def transform(field_name, vector_value):
@@ -1291,9 +1287,7 @@ class CuttingQuiverCallback(BaseQuiverCallback):
     _type_name = "cquiver"
     _supported_geometries = ("cartesian", "spectral_cube")
 
-    def _get_quiver_data(
-        self, plot, bounds: tuple, nx: int, ny: int
-    ) -> Tuple[np.ndarray, np.ndarray, Union[np.ndarray, None]]:
+    def _get_quiver_data(self, plot, bounds: tuple, nx: int, ny: int):
         # calls the pixelizer, returns pixX, pixY, pixC arrays
         indices = np.argsort(plot.data["index", "dx"])[::-1].astype(np.int_)
 
@@ -1332,7 +1326,9 @@ class CuttingQuiverCallback(BaseQuiverCallback):
             bounds,
         )
 
-        if self.field_c is not None:
+        if self.field_c is None:
+            pixC = None
+        else:
             pixC = np.zeros((ny, nx), dtype="f8")
             pixelize_off_axis_cartesian(
                 pixC,
@@ -1350,8 +1346,6 @@ class CuttingQuiverCallback(BaseQuiverCallback):
                 plot.data[self.field_c],
                 bounds,
             )
-        else:
-            pixC = None
 
         return pixX, pixY, pixC
 
