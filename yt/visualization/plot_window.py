@@ -10,6 +10,7 @@ import numpy as np
 from more_itertools import always_iterable
 from mpl_toolkits.axes_grid1 import ImageGrid
 from packaging.version import Version
+from pyparsing import ParseFatalException
 from unyt.exceptions import UnitConversionError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
@@ -31,7 +32,7 @@ from yt.utilities.exceptions import (
 from yt.utilities.math_utils import ortho_find
 from yt.utilities.orientation import Orientation
 
-from ._commons import _swap_axes_extents
+from ._commons import MPL_VERSION, _swap_axes_extents
 from .base_plot_types import CallbackWrapper, ImagePlotMPL
 from .fixed_resolution import (
     FixedResolutionBuffer,
@@ -65,16 +66,6 @@ else:
         # drop this conditional and call the builtin zip
         # function directly where due
         return zip(*args, strict=True)
-
-
-MPL_VERSION = Version(matplotlib.__version__)
-
-# Some magic for dealing with pyparsing being included or not
-# included in matplotlib (not in gentoo, yes in everything else)
-try:
-    from matplotlib.pyparsing_py3 import ParseFatalException
-except ImportError:
-    from pyparsing import ParseFatalException
 
 
 def get_window_parameters(axis, center, width, ds):
@@ -1121,13 +1112,17 @@ class PWViewerMPL(PlotWindow):
                     use_symlog = True
                 elif not np.any(np.isfinite(image)):
                     msg = f"Plotting {f}: All values = NaN."
-                elif np.nanmax(image) > 0.0 and np.nanmin(image) < 0:
+                elif np.nanmax(image) > 0.0 and np.nanmin(image) <= 0:
                     msg = (
                         f"Plotting {f}: Both positive and negative values. "
                         f"Min = {np.nanmin(image)}, Max = {np.nanmax(image)}."
                     )
                     use_symlog = True
-                elif np.nanmax(image) > 0.0 and np.nanmin(image) == 0:
+                elif (
+                    (Version("3.3") <= MPL_VERSION < Version("3.5"))
+                    and np.nanmax(image) > 0.0
+                    and np.nanmin(image) == 0
+                ):
                     # normally, a LogNorm scaling would still be OK here because
                     # LogNorm will mask 0 values when calculating vmin. But
                     # due to a bug in matplotlib's imshow, if the data range
@@ -1285,7 +1280,7 @@ class PWViewerMPL(PlotWindow):
             try:
                 parser.parse(colorbar_label)
             except ParseFatalException as err:
-                raise YTCannotParseUnitDisplayName(f, colorbar_label, str(err))
+                raise YTCannotParseUnitDisplayName(f, colorbar_label, str(err)) from err
 
             self.plots[f].cb.set_label(colorbar_label)
 
@@ -1317,6 +1312,9 @@ class PWViewerMPL(PlotWindow):
                         flinthresh = 10 ** np.floor(
                             np.log10(self.plots[f].cb.norm.linthresh)
                         )
+                        absmax = np.abs((vmin, vmax)).max()
+                        if (absmax - flinthresh) / absmax < 0.1:
+                            flinthresh /= 10
                         mticks = get_symlog_minorticks(flinthresh, vmin, vmax)
                         if MPL_VERSION < Version("3.5.0b"):
                             # https://github.com/matplotlib/matplotlib/issues/21258
@@ -1466,7 +1464,7 @@ class PWViewerMPL(PlotWindow):
         for f in self.fields:
             keys = self.frb.keys()
             for name, (args, kwargs) in self._callbacks:
-                # need to pass _swap_axes and adjust all the callbacks?
+                # need to pass _swap_axes and adjust all the callbacks
                 cbw = CallbackWrapper(
                     self,
                     self.plots[f],
@@ -1624,6 +1622,33 @@ class NormalPlot(abc.ABC):
 
         return retv
 
+    @staticmethod
+    def _validate_init_args(*, normal, axis, fields) -> None:
+        # TODO: remove this method in yt 4.2
+
+        if axis is not None:
+            issue_deprecation_warning(
+                "Argument 'axis' is a deprecated alias for 'normal'.",
+                since="4.1.0",
+                removal="4.2.0",
+            )
+            if normal is not None:
+                raise TypeError("Received incompatible arguments 'axis' and 'normal'")
+            normal = axis
+
+        if normal is fields is None:
+            raise TypeError(
+                "missing 2 required positional arguments: 'normal' and 'fields'"
+            )
+
+        if fields is None:
+            raise TypeError("missing required positional argument: 'fields'")
+
+        if normal is None:
+            raise TypeError("missing required positional argument: 'normal'")
+
+        return normal
+
 
 class SlicePlot(NormalPlot):
     r"""
@@ -1771,8 +1796,11 @@ class SlicePlot(NormalPlot):
     # on the pathlib.Path class from the standard library
     # https://github.com/python/mypy/issues/1020
     def __new__(  # type: ignore
-        cls, ds, normal, fields, *args, **kwargs
+        cls, ds, normal=None, fields=None, *args, axis=None, **kwargs
     ) -> Union["AxisAlignedSlicePlot", "OffAxisSlicePlot"]:
+        # TODO: in yt 4.2, remove default values for normal and fields, drop axis kwarg
+        normal = cls._validate_init_args(normal=normal, axis=axis, fields=fields)
+
         if cls is SlicePlot:
             normal = cls.sanitize_normal_vector(ds, normal)
             if isinstance(normal, str):
@@ -1832,8 +1860,11 @@ class ProjectionPlot(NormalPlot):
     # on the pathlib.Path class from the standard library
     # https://github.com/python/mypy/issues/1020
     def __new__(  # type: ignore
-        cls, ds, normal, fields, *args, **kwargs
+        cls, ds, normal=None, fields=None, *args, axis=None, **kwargs
     ) -> Union["AxisAlignedProjectionPlot", "OffAxisProjectionPlot"]:
+        # TODO: in yt 4.2, remove default values for normal and fields, drop axis kwarg
+        normal = cls._validate_init_args(normal=normal, axis=axis, fields=fields)
+
         if cls is ProjectionPlot:
             normal = cls.sanitize_normal_vector(ds, normal)
             if isinstance(normal, str):
@@ -1859,7 +1890,7 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
     ds : `Dataset`
          This is the dataset object corresponding to the
          simulation output to be plotted.
-    axis : int or one of 'x', 'y', 'z'
+    normal : int or one of 'x', 'y', 'z'
          An int corresponding to the axis to slice along (0=x, 1=y, 2=z)
          or the axis name itself
     fields : string
@@ -1971,8 +2002,8 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
     def __init__(
         self,
         ds,
-        axis,
-        fields,
+        normal=None,
+        fields=None,
         center="c",
         width=None,
         axes_unit=None,
@@ -1986,10 +2017,12 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
         buff_size=(800, 800),
         *,
         north_vector=None,
+        axis=None,
         swap_axes=False,
         flip_horizontal=False,
         flip_vertical=False,
     ):
+        # TODO: in yt 4.2, remove default values for normal and fields, drop axis kwarg
         if north_vector is not None:
             # this kwarg exists only for symmetry reasons with OffAxisSlicePlot
             mylog.warning(
@@ -1998,8 +2031,14 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
             )
             del north_vector
 
+        normal = self._validate_init_args(
+            normal=normal,
+            axis=axis,
+            fields=fields,
+        )
+        normal = self.sanitize_normal_vector(ds, normal)
         # this will handle time series data and controllers
-        axis = fix_axis(axis, ds)
+        axis = fix_axis(normal, ds)
         (bounds, center, display_center) = get_window_parameters(
             axis, center, width, ds
         )
@@ -2011,6 +2050,7 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
             "cylindrical",
             "geographic",
             "internal_geographic",
+            "polar",
         ):
             mylog.info("Setting origin='native' for %s geometry.", ds.geometry)
             origin = "native"
@@ -2065,7 +2105,7 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
     ds : `Dataset`
         This is the dataset object corresponding to the
         simulation output to be plotted.
-    axis : int or one of 'x', 'y', 'z'
+    normal : int or one of 'x', 'y', 'z'
          An int corresponding to the axis to slice along (0=x, 1=y, 2=z)
          or the axis name itself
     fields : string
@@ -2205,8 +2245,8 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
     def __init__(
         self,
         ds,
-        axis,
-        fields,
+        normal=None,
+        fields=None,
         center="c",
         width=None,
         axes_unit=None,
@@ -2222,16 +2262,22 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
         buff_size=(800, 800),
         aspect=None,
         *,
+        axis=None,
         swap_axes=False,
         flip_horizontal=False,
         flip_vertical=False,
     ):
-        axis = fix_axis(axis, ds)
+        # TODO: in yt 4.2, remove default values for normal and fields, drop axis kwarg
+        normal = self._validate_init_args(normal=normal, fields=fields, axis=axis)
+        normal = self.sanitize_normal_vector(ds, normal)
+
+        axis = fix_axis(normal, ds)
         if ds.geometry in (
             "spherical",
             "cylindrical",
             "geographic",
             "internal_geographic",
+            "polar",
         ):
             mylog.info("Setting origin='native' for %s geometry.", ds.geometry)
             origin = "native"

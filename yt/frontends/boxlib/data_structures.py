@@ -576,7 +576,7 @@ class BoxlibHierarchy(GridIndex):
         self.io = io_registry[self.dataset_type](self.dataset)
 
     def _determine_particle_output_type(self, directory_name):
-        header_filename = self.ds.output_dir + "/" + directory_name + "/Header"
+        header_filename = os.path.join(self.ds.output_dir, directory_name, "Header")
         with open(header_filename) as f:
             version_string = f.readline().strip()
             if version_string.startswith("Version_Two"):
@@ -1305,7 +1305,7 @@ def _guess_pcast(vals):
 
 
 def _read_raw_field_names(raw_file):
-    header_files = glob.glob(raw_file + "*_H")
+    header_files = glob.glob(os.path.join(raw_file, "*_H"))
     return [hf.split(os.sep)[-1][:-2] for hf in header_files]
 
 
@@ -1325,7 +1325,7 @@ def _get_active_dimensions(box):
 
 
 def _read_header(raw_file, field):
-    level_files = glob.glob(raw_file + "Level_*")
+    level_files = glob.glob(os.path.join(raw_file, "Level_*"))
     level_files.sort()
 
     all_boxes = []
@@ -1333,7 +1333,7 @@ def _read_header(raw_file, field):
     all_offsets = []
 
     for level_file in level_files:
-        header_file = level_file + "/" + field + "_H"
+        header_file = os.path.join(level_file, field + "_H")
         with open(header_file) as f:
 
             f.readline()  # version
@@ -1437,7 +1437,7 @@ class WarpXHierarchy(BoxlibHierarchy):
             self._read_particles(ptype, is_checkpoint)
 
         # Additional WarpX particle information (used to set up species)
-        self.warpx_header = WarpXHeader(self.ds.output_dir + "/WarpXHeader")
+        self.warpx_header = WarpXHeader(os.path.join(self.ds.output_dir, "WarpXHeader"))
 
         for key, val in self.warpx_header.data.items():
             if key.startswith("species_"):
@@ -1451,8 +1451,8 @@ class WarpXHierarchy(BoxlibHierarchy):
         super()._detect_output_fields()
 
         # now detect the optional, non-cell-centered fields
-        self.raw_file = self.ds.output_dir + "/raw_fields/"
-        self.raw_fields = _read_raw_field_names(self.raw_file + "Level_0/")
+        self.raw_file = os.path.join(self.ds.output_dir, "raw_fields")
+        self.raw_fields = _read_raw_field_names(os.path.join(self.raw_file, "Level_0"))
         self.field_list += [("raw", f) for f in self.raw_fields]
         self.raw_field_map = {}
         self.ds.nodal_flags = {}
@@ -1531,7 +1531,7 @@ class WarpXDataset(BoxlibDataset):
             pass
         self._periodicity = tuple(periodicity)
 
-        particle_types = glob.glob(self.output_dir + "/*/Header")
+        particle_types = glob.glob(os.path.join(self.output_dir, "*", "Header"))
         particle_types = [cpt.split(os.sep)[-2] for cpt in particle_types]
         if len(particle_types) > 0:
             self.parameters["particles"] = 1
@@ -1590,7 +1590,7 @@ class AMReXDataset(BoxlibDataset):
 
     def _parse_parameter_file(self):
         super()._parse_parameter_file()
-        particle_types = glob.glob(self.output_dir + "/*/Header")
+        particle_types = glob.glob(os.path.join(self.output_dir, "*", "Header"))
         particle_types = [cpt.split(os.sep)[-2] for cpt in particle_types]
         if len(particle_types) > 0:
             self.parameters["particles"] = 1

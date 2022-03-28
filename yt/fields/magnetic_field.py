@@ -7,6 +7,17 @@ from yt.utilities.math_utils import get_sph_phi_component, get_sph_theta_compone
 
 from .field_plugin_registry import register_field_plugin
 
+cgs_normalizations = {"gaussian": 4.0 * np.pi, "lorentz_heaviside": 1.0}
+
+
+def get_magnetic_normalization(key: str) -> float:
+    if key not in cgs_normalizations:
+        raise ValueError(
+            "Unknown magnetic normalization convention. "
+            f"Got {key!r}, expected one of {tuple(cgs_normalizations)}"
+        )
+    return cgs_normalizations[key]
+
 
 @register_field_plugin
 def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
@@ -24,7 +35,7 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
 
     def mag_factors(dims):
         if dims == dimensions.magnetic_field_cgs:
-            return 4.0 * np.pi
+            return getattr(ds, "_magnetic_factor", 4.0 * np.pi)
         elif dims == dimensions.magnetic_field_mks:
             return ds.units.physical_constants.mu_0
 
@@ -195,9 +206,9 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
     if dimensions.current_mks in b_units.dimensions.free_symbols:
         rm_scale = pc.qp.to("C", "SI") ** 3 / (4.0 * np.pi * pc.eps_0)
     else:
-        rm_scale = pc.qp ** 3 / pc.clight
+        rm_scale = pc.qp**3 / pc.clight
     rm_scale *= registry.ds.quan(1.0, "rad") / (
-        2.0 * np.pi * pc.me ** 2 * pc.clight ** 3
+        2.0 * np.pi * pc.me**2 * pc.clight**3
     )
     rm_units = registry.ds.quan(1.0, "rad/m**2").units / unit_system["length"]
 

@@ -215,6 +215,15 @@ class ImagePlotMPL(PlotMPL):
             vmin=float(self.zmin) if self.zmin is not None else None,
             vmax=float(self.zmax) if self.zmax is not None else None,
         )
+
+        if MPL_VERSION < Version("3.2"):
+            # with MPL 3.1 we use np.inf as a mask instead of np.nan
+            # this is done in CoordinateHandler.sanitize_buffer_fill_values
+            # however masking with inf is problematic here when we search for the max value
+            # so here we revert to nan
+            # see https://github.com/yt-project/yt/pull/2517 and https://github.com/yt-project/yt/pull/3793
+            data[~np.isfinite(data)] = np.nan
+
         zmin = float(self.zmin) if self.zmin is not None else np.nanmin(data)
         zmax = float(self.zmax) if self.zmax is not None else np.nanmax(data)
 
@@ -279,7 +288,16 @@ class ImagePlotMPL(PlotMPL):
             # instances.  It is left as a historical note because we will
             # eventually need some form of it.
             # self.axes.set_extent(extent)
-            pass
+
+            # possibly related issue (operation order dependency)
+            # https://github.com/SciTools/cartopy/issues/1468
+
+            # in cartopy 0.19 (or 0.20), some intented behaviour changes produced an
+            # incompatibility here where default values for extent would lead to a crash.
+            # A solution is to let the transform object set the image extents internally
+            # see https://github.com/SciTools/cartopy/issues/1955
+            extent = None
+
         self.image = self.axes.imshow(
             data.to_ndarray(),
             origin="lower",
@@ -299,7 +317,7 @@ class ImagePlotMPL(PlotMPL):
                     10
                     ** np.arange(
                         np.rint(np.log10(cblinthresh)),
-                        np.ceil(np.log10(zmax)),
+                        np.ceil(np.log10(1.1 * zmax)),
                     )
                 )
             elif zmax <= 0.0:
@@ -308,19 +326,16 @@ class ImagePlotMPL(PlotMPL):
                 else:
                     offset = 1
 
-                yticks = (
-                    list(
-                        -(
-                            10
-                            ** np.arange(
-                                np.floor(np.log10(-zmin)),
-                                np.rint(np.log10(cblinthresh)) - offset,
-                                -1,
-                            )
+                yticks = list(
+                    -(
+                        10
+                        ** np.arange(
+                            np.floor(np.log10(-zmin)),
+                            np.rint(np.log10(cblinthresh)) - offset,
+                            -1,
                         )
                     )
-                    + [zmax]
-                )
+                ) + [zmax]
             else:
                 yticks = (
                     list(
@@ -338,10 +353,12 @@ class ImagePlotMPL(PlotMPL):
                         10
                         ** np.arange(
                             np.rint(np.log10(cblinthresh)),
-                            np.ceil(np.log10(zmax)),
+                            np.ceil(np.log10(1.1 * zmax)),
                         )
                     )
                 )
+            if yticks[-1] > zmax:
+                yticks.pop()
             self.cb.set_ticks(yticks)
         else:
             self.cb = self.figure.colorbar(self.image, self.cax)

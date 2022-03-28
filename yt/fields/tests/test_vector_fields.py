@@ -10,7 +10,7 @@ def random_unit_vector(prng):
     v = prng.random_sample(3)
     while (v == 0).all():
         v = prng.random_sample(3)
-    return v / np.sqrt((v ** 2).sum())
+    return v / np.sqrt((v**2).sum())
 
 
 def random_velocity_vector(prng):

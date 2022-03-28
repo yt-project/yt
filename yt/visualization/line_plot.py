@@ -335,7 +335,7 @@ class LinePlot(PlotContainer):
 
                 # apply log transforms if requested
                 if self._field_transform[field] != linear_transform:
-                    if (y < 0).any():
+                    if (y <= 0).any():
                         plot.axes.set_yscale("symlog")
                     else:
                         plot.axes.set_yscale("log")

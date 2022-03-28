@@ -57,7 +57,7 @@ def _sample_ray(ray, npoints, field):
         # are two indices if the sampling point happens to fall exactly at
         # a cell boundary
         field_values[i] = ray_field[np.argmax(ray_contains)]
-    dr = np.sqrt((sample_dr ** 2).sum())
+    dr = np.sqrt((sample_dr**2).sum())
     x = np.arange(npoints) / (npoints - 1) * (dr * npoints)
     return x, field_values
 

@@ -1130,10 +1130,12 @@ class PhasePlot(ImagePlotContainer):
             else:
                 cmap = self._colormap_config[f]
 
+            masked_data = data.copy()
+            masked_data[~self.profile.used] = np.nan
             self.plots[f] = PhasePlotMPL(
                 self.profile.x,
                 self.profile.y,
-                data,
+                masked_data,
                 x_scale,
                 y_scale,
                 z_scale,

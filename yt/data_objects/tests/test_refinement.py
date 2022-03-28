@@ -45,13 +45,13 @@ def test_refine_by():
     ds = setup_fake_refby()
     dd = ds.all_data()
     # This checks that we always refine_by 1 in dimensions 2 and 3
-    dims = ds.domain_dimensions * ds.refine_by ** ds.max_level
+    dims = ds.domain_dimensions * ds.refine_by**ds.max_level
     for i in range(1, 3):
         # Check the refine_by == 1
         ncoords = np.unique(dd.icoords[:, i]).size
         assert_equal(ncoords, dims[i])
     for g in ds.index.grids:
-        dims = ds.domain_dimensions * ds.refine_by ** g.Level
+        dims = ds.domain_dimensions * ds.refine_by**g.Level
         # Now we can check converting back to the reference space
         v = ((g.icoords + 1) / dims.astype("f8")).max(axis=0)
         v *= ds.domain_width

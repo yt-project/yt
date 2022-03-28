@@ -41,6 +41,7 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
         # to that of the Voronoi cell to create smoothing lengths.
         self.smoothing_factor = smoothing_factor
         self.gamma = 5.0 / 3.0
+        self.gamma_cr = self.parameters.get("GammaCR", 4.0 / 3.0)
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
@@ -111,7 +112,7 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
                 if "cmcm" in arepo_unit_base:
                     self._unit_base["cmcm"] = arepo_unit_base["cmcm"]
         super()._set_code_unit_attributes()
-        munit = np.sqrt(self.mass_unit / (self.time_unit ** 2 * self.length_unit)).to(
+        munit = np.sqrt(self.mass_unit / (self.time_unit**2 * self.length_unit)).to(
             "gauss"
         )
         if self.cosmological_simulation:

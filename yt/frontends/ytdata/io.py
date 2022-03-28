@@ -137,7 +137,7 @@ class IOHandlerYTGridHDF5(BaseIOHandler):
                     for field in field_list:
                         if np.asarray(f[ptype][field]).ndim > 1:
                             self._array_fields[field] = f[ptype][field].shape[1:]
-                    yield ptype, (x, y, z)
+                    yield ptype, (x, y, z), 0.0
             if f:
                 f.close()
 
@@ -207,7 +207,7 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
                         self.ds.arr(_get_position_array(ptype, f, ax), units)
                         for ax in "xyz"
                     )
-                    yield ptype, (x, y, z)
+                    yield ptype, (x, y, z), 0.0
 
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate
@@ -279,7 +279,7 @@ class IOHandlerYTSpatialPlotHDF5(IOHandlerYTDataContainerHDF5):
                         np.zeros(x.size, dtype="float64")
                         + self.ds.domain_left_edge[2].to("code_length").d
                     )
-                    yield ptype, (x, y, z)
+                    yield ptype, (x, y, z), 0.0
 
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate

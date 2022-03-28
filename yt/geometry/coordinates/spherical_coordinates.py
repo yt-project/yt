@@ -7,6 +7,7 @@ from yt.utilities.lib.pixelization_routines import pixelize_aitoff, pixelize_cyl
 from .coordinate_handler import (
     CoordinateHandler,
     _get_coord_fields,
+    _get_polar_bounds,
     _setup_dummy_cartesian_coords_and_widths,
     _setup_polar_coordinates,
 )
@@ -275,50 +276,7 @@ class SphericalCoordinateHandler(CoordinateHandler):
 
     @cached_property
     def _conic_bounds(self):
-        ri = self.axis_id["r"]
-        pi = self.axis_id["phi"]
-        rmin = self.ds.domain_left_edge[ri]
-        rmax = self.ds.domain_right_edge[ri]
-        phimin = self.ds.domain_left_edge[pi]
-        phimax = self.ds.domain_right_edge[pi]
-        corners = [
-            (rmin, phimin),
-            (rmin, phimax),
-            (rmax, phimin),
-            (rmax, phimax),
-        ]
-
-        def to_conic_plane(r, phi):
-            x = r * np.cos(phi)
-            y = r * np.sin(phi)
-            return x, y
-
-        conic_corner_coords = [to_conic_plane(*corner) for corner in corners]
-
-        phimin = phimin.d
-        phimax = phimax.d
-
-        if phimin <= np.pi <= phimax:
-            xxmin = -rmax
-        else:
-            xxmin = min(xx for xx, yy in conic_corner_coords)
-
-        if phimin <= 0 <= phimax:
-            xxmax = rmax
-        else:
-            xxmax = max(xx for xx, yy in conic_corner_coords)
-
-        if phimin <= 3 * np.pi / 2 <= phimax:
-            yymin = -rmax
-        else:
-            yymin = min(yy for xx, yy in conic_corner_coords)
-
-        if phimin <= np.pi / 2 <= phimax:
-            yymax = rmax
-        else:
-            yymax = max(yy for xx, yy in conic_corner_coords)
-
-        return xxmin, xxmax, yymin, yymax
+        return _get_polar_bounds(self, axes=("r", "phi"))
 
     @cached_property
     def _aitoff_bounds(self):
@@ -430,16 +388,3 @@ class SphericalCoordinateHandler(CoordinateHandler):
             yw = zmax - zmin
             width = [xw, yw]
         return width
-
-    def _sanity_check(self):
-        """This prints out a handful of diagnostics that help verify the
-        dataset is well formed."""
-        # We just check a few things here.
-        dd = self.ds.all_data()
-        r0 = self.ds.domain_left_edge[self.axis_id["r"]]
-        r1 = self.ds.domain_right_edge[self.axis_id["r"]]
-        v1 = 4.0 * np.pi / 3.0 * (r1 ** 3 - r0 ** 3)
-        print(f"Total volume should be 4*pi*r**3 = {v1:0.16e}")
-        v2 = dd.quantities.total_quantity("cell_volume")
-        print(f"Actual volume is                   {v2:0.16e}")
-        print(f"Relative difference: {np.abs(v2 - v1) / (v2 + v1):0.16e}")

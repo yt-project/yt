@@ -291,8 +291,11 @@ class StreamDataset(Dataset):
             default_species_fields=default_species_fields,
         )
 
+    @property
+    def filename(self):
+        return self.stream_handler.name
+
     def _parse_parameter_file(self):
-        self.basename = self.stream_handler.name
         self.parameters["CurrentTimeIdentifier"] = time.time()
         self.unique_identifier = self.parameters["CurrentTimeIdentifier"]
         self.domain_left_edge = self.stream_handler.domain_left_edge.copy()
@@ -335,7 +338,12 @@ class StreamDataset(Dataset):
         cgs_units = ("cm", "g", "s", "cm/s", "gauss")
         for unit, attr, cgs_unit in zip(base_units, attrs, cgs_units):
             if isinstance(unit, str):
-                uq = self.quan(1.0, unit)
+                if unit == "code_magnetic":
+                    # If no magnetic unit was explicitly specified
+                    # we skip it now and take care of it at the bottom
+                    continue
+                else:
+                    uq = self.quan(1.0, unit)
             elif isinstance(unit, numeric_type):
                 uq = self.quan(unit, cgs_unit)
             elif isinstance(unit, YTQuantity):
@@ -345,6 +353,10 @@ class StreamDataset(Dataset):
             else:
                 raise RuntimeError(f"{attr} ({unit}) is invalid.")
             setattr(self, attr, uq)
+        if not hasattr(self, "magnetic_unit"):
+            self.magnetic_unit = np.sqrt(
+                4 * np.pi * self.mass_unit / (self.time_unit**2 * self.length_unit)
+            )
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
@@ -720,7 +732,7 @@ class StreamOctreeSubset(OctreeSubset):
         oct_handler = self.oct_handler
         ndim = self.ds.dimensionality
         cell_count = (
-            selector.count_octs(self.oct_handler, self.domain_id) * self.nz ** ndim
+            selector.count_octs(self.oct_handler, self.domain_id) * self.nz**ndim
         )
 
         gz_cache = getattr(self, "_ghost_zone_cache", None)

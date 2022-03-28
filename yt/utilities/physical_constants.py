@@ -133,7 +133,7 @@ T_pl = planck_temperature = YTQuantity(planck_temperature_K, "K")
 
 # MKS E&M units
 mu_0 = YTQuantity(4.0e-7 * pi, "N/A**2")
-eps_0 = (1.0 / (clight ** 2 * mu_0)).in_units("C**2/N/m**2")
+eps_0 = (1.0 / (clight**2 * mu_0)).in_units("C**2/N/m**2")
 
 # Misc
 standard_gravity_cgs = YTQuantity(standard_gravity_cm_per_s2, "cm/s**2")

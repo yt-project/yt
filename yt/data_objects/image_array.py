@@ -3,6 +3,7 @@ import warnings
 import numpy as np
 from unyt import unyt_array
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.visualization.image_writer import write_bitmap, write_image
 
@@ -80,7 +81,11 @@ class ImageArray(unyt_array):
         input_units=None,
     ):
         if input_units is not None:
-            warnings.warn("'input_units' is deprecated. Please use 'units'.")
+            issue_deprecation_warning(
+                "'input_units' is deprecated. Please use 'units'.",
+                since="4.0.0",
+                removal="4.2.0",
+            )
             units = input_units
         obj = super().__new__(
             cls, input_array, units, registry, bypass_validation=bypass_validation

@@ -562,8 +562,12 @@ class GadgetDataset(SPHDataset):
         return header.validate()
 
 
+class GadgetHDF5File(ParticleFile):
+    pass
+
+
 class GadgetHDF5Dataset(GadgetDataset):
-    _file_class = ParticleFile
+    _file_class = GadgetHDF5File
     _index_class = SPHParticleIndex
     _field_info_class: Type[FieldInfoContainer] = GadgetFieldInfo
     _particle_mass_name = "Masses"

@@ -69,7 +69,7 @@ class IOHandlerBoxlib(BaseIOHandler, BoxlibParticleSelectionMixin):
         offset_list = self.ds.index.raw_field_map[field_name][2]
 
         lev = grid.Level
-        filename = base_dir + "Level_%d/" % lev + fn_list[grid.id]
+        filename = os.path.join(base_dir, f"Level_{lev}", fn_list[grid.id])
         offset = offset_list[grid.id]
         box = box_list[grid.id]
 
@@ -122,7 +122,10 @@ class IOHandlerBoxlib(BaseIOHandler, BoxlibParticleSelectionMixin):
         return data
 
     def _read_particle_coords(self, chunks, ptf):
-        yield from self._read_particle_fields(chunks, ptf, None)
+        yield from (
+            (ptype, xyz, 0.0)
+            for ptype, xyz in self._read_particle_fields(chunks, ptf, None)
+        )
 
     def _read_particle_fields(self, chunks, ptf, selector):
         for chunk in chunks:  # These should be organized by grid filename
@@ -193,7 +196,7 @@ class IOHandlerOrion(IOHandlerBoxlib, IOHandlerParticlesBoxlibMixin):
 
     @property
     def particle_filename(self):
-        fn = self.ds.output_dir + "/StarParticles"
+        fn = os.path.join(self.ds.output_dir, "StarParticles")
         if not os.path.exists(fn):
-            fn = self.ds.output_dir + "/SinkParticles"
+            fn = os.path.join(self.ds.output_dir, "SinkParticles")
         return fn
