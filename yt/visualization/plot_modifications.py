@@ -587,7 +587,10 @@ class BaseQuiverCallback(PlotCallback, ABC):
         self.plot_args = plot_args
 
     @abstractmethod
-    def _get_quiver_data(self, plot, bounds, nx, ny):
+    def _get_quiver_data(
+        self, plot, bounds: tuple, nx: int, ny: int
+    ) -> Tuple[np.ndarray, np.ndarray, Union[np.ndarray, None]]:
+        # must return (pixX, pixY, pixC) arrays (pixC can be None)
         pass
 
     def __call__(self, plot):
@@ -623,8 +626,6 @@ class BaseQuiverCallback(PlotCallback, ABC):
                 pixY = -1 * pixY
             if plot._flip_horizontal:
                 pixX = -1 * pixX
-
-        # do we need pixC to be flipped?
 
         args = [X, Y, pixX, pixY]
         if pixC is not None:
@@ -690,8 +691,8 @@ class QuiverCallback(BaseQuiverCallback):
 
     def _get_quiver_data(
         self, plot, bounds: tuple, nx: int, ny: int
-    ) -> Tuple[np.ndarray, np.ndarray]:
-        # calls the pixelizer, returns pixX, pixY arrays
+    ) -> Tuple[np.ndarray, np.ndarray, Union[np.ndarray, None]]:
+        # calls the pixelizer, returns pixX, pixY, pixC arrays
 
         def transform(field_name, vector_value):
             field_units = plot.data[field_name].units
@@ -1304,8 +1305,8 @@ class CuttingQuiverCallback(BaseQuiverCallback):
 
     def _get_quiver_data(
         self, plot, bounds: tuple, nx: int, ny: int
-    ) -> Tuple[np.ndarray, np.ndarray]:
-        # calls the pixelizer, returns pixX, pixY arrays
+    ) -> Tuple[np.ndarray, np.ndarray, Union[np.ndarray, None]]:
+        # calls the pixelizer, returns pixX, pixY, pixC arrays
         indices = np.argsort(plot.data["index", "dx"])[::-1].astype(np.int_)
 
         pixX = np.zeros((ny, nx), dtype="f8")
