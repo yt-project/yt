@@ -380,8 +380,6 @@ class VelocityCallback(PlotCallback):
 
     _type_name = "velocity"
     _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
-    _relative_field_name: Optional[str] = "bulk_velocity"
-    _determine_full_fields = True
 
     def __init__(
         self,
@@ -400,19 +398,8 @@ class VelocityCallback(PlotCallback):
             plot_args = {}
         self.plot_args = plot_args
 
-    def _get_bv(self, plot, xax, yax):
-        # returns the relative field values if applicable
-        bv_x = bv_y = 0
-        if self._relative_field_name:
-            bv = plot.data.get_field_parameter(self._relative_field_name)
-            if bv is not None:
-                bv_x = bv[xax]
-                bv_y = bv[yax]
-        return bv_x, bv_y
-
     def __call__(self, plot):
         ftype = plot.data._current_fluid_type
-        field = self._type_name
         # Instantiation of these is cheap
         if plot._type_name == "CuttingPlane":
             if is_curvilinear(plot.data.ds.geometry):
@@ -421,10 +408,11 @@ class VelocityCallback(PlotCallback):
                     plane is not supported for %s geometry"
                     % plot.data.ds.geometry
                 )
+        if plot._type_name == "CuttingPlane":
             qcb = CuttingQuiverCallback(
-                (ftype, f"cutting_plane_{field}_x"),
-                (ftype, f"cutting_plane_{field}_y"),
-                self.factor,
+                (ftype, "cutting_plane_velocity_x"),
+                (ftype, "cutting_plane_velocity_y"),
+                factor=self.factor,
                 scale=self.scale,
                 normalize=self.normalize,
                 scale_units=self.scale_units,
@@ -435,7 +423,12 @@ class VelocityCallback(PlotCallback):
             yax = plot.data.ds.coordinates.y_axis[plot.data.axis]
             axis_names = plot.data.ds.coordinates.axis_name
 
-            bv_x, bv_y = self._get_bv(plot, xax, yax)
+            bv = plot.data.get_field_parameter("bulk_velocity")
+            if bv is not None:
+                bv_x = bv[xax]
+                bv_y = bv[yax]
+            else:
+                bv_x = bv_y = 0
 
             if (
                 plot.data.ds.geometry in ["polar", "cylindrical"]
@@ -443,18 +436,17 @@ class VelocityCallback(PlotCallback):
             ):
                 # polar_z and cyl_z is aligned with carteian_z
                 # should convert r-theta plane to x-y plane
-                xv = (ftype, f"{field}_cartesian_x")
-                yv = (ftype, f"{field}_cartesian_y")
+                xv = (ftype, "velocity_cartesian_x")
+                yv = (ftype, "velocity_cartesian_y")
             else:
                 # for other cases (even for cylindrical geometry),
                 # orthogonal planes are generically Cartesian
-                xv = (ftype, f"{field}_{axis_names[xax]}")
-                yv = (ftype, f"{field}_{axis_names[yax]}")
+                xv = (ftype, f"velocity_{axis_names[xax]}")
+                yv = (ftype, f"velocity_{axis_names[yax]}")
 
-            if self._determine_full_fields:
-                # determine the full fields including field type
-                xv = plot.data._determine_fields(xv)[0]
-                yv = plot.data._determine_fields(yv)[0]
+            # determine the full fields including field type
+            xv = plot.data._determine_fields(xv)[0]
+            yv = plot.data._determine_fields(yv)[0]
 
             qcb = QuiverCallback(
                 xv,
@@ -470,7 +462,7 @@ class VelocityCallback(PlotCallback):
         return qcb(plot)
 
 
-class MagFieldCallback(VelocityCallback):
+class MagFieldCallback(PlotCallback):
     """
     Adds a 'quiver' plot of magnetic field to the plot, skipping all but
     every *factor* datapoint. *scale* is the data units per arrow
@@ -482,10 +474,6 @@ class MagFieldCallback(VelocityCallback):
     """
 
     _type_name = "magnetic_field"
-
-    _relative_field_name = None
-    _determine_full_fields = False
-
     _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
 
     def __init__(
