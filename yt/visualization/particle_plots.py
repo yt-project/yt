@@ -293,6 +293,7 @@ class ParticleProjectionPlot(PWViewerMPL):
             window_size=window_size,
             aspect=aspect,
             splat_color=splat_color,
+            geometry=ds.geometry,
         )
 
         self.set_axes_unit(axes_unit)
