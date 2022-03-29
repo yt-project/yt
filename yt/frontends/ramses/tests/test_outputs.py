@@ -124,10 +124,10 @@ def test_unit_cosmo():
         # expected_raw_time = 1.119216564055017 # in ramses unit
         # expected_time = 3.756241729312462e17 # in seconds
 
-        expected_raw_time = 1.121279694787743 # in ramses unit
+        expected_raw_time = 1.121279694787743  # in ramses unit
         assert_equal(ds.current_time.value, expected_raw_time)
 
-        expected_time = 3.7631658742904595e17 # in seconds
+        expected_time = 3.7631658742904595e17  # in seconds
         assert_equal(ds.current_time.in_units("s").value, expected_time)
 
 
