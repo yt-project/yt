@@ -4,6 +4,8 @@ from typing import Union
 
 import numpy as np
 
+from yt._maintenance.deprecation import issue_deprecation_warning
+from yt.frontends.ramses.definitions import VAR_DESC_RE, VERSION_RE
 from yt.utilities.cython_fortran_utils import FortranFile
 from yt.utilities.exceptions import (
     YTFieldTypeNotFound,
@@ -14,30 +16,58 @@ from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.physical_ratios import cm_per_km, cm_per_mpc
 
-from .definitions import VAR_DESC_RE, VERSION_RE
-
 
 def convert_ramses_ages(ds, conformal_ages):
+    issue_deprecation_warning(
+        msg=(
+            "The `convert_ramses_ages' function is deprecated. It should be replaced "
+            "by the `convert_ramses_conformal_time_to_physical_age' function."
+        ),
+        since="4.0.2",
+        removal="4.0.4",
+    )
+    return convert_ramses_conformal_time_to_physical_age(ds, conformal_ages)
+
+
+def convert_ramses_conformal_time_to_physical_age(
+    ds, conformal_time: np.ndarray
+) -> np.ndarray:
+    """
+    Convert conformal times (as defined in RAMSES) to physical age.
+
+    Arguments
+    ---------
+    ds : RAMSESDataset
+        The RAMSES dataset to use for the conversion
+    conformal_time : np.ndarray
+        The conformal time as read from disk
+
+    Returns
+    -------
+    physical_age : np.ndarray
+        The physical age in code units
+    """
     tf = ds.t_frw
     dtau = ds.dtau
     tauf = ds.tau_frw
-    tsim = ds.time_simu
     h100 = ds.hubble_constant
     nOver2 = ds.n_frw / 2
     unit_t = ds.parameters["unit_t"]
+    tsim = ds.time_simu
+
     t_scale = 1.0 / (h100 * 100 * cm_per_km / cm_per_mpc) / unit_t
 
     # calculate index into lookup table (n_frw elements in
     # lookup table)
-    dage = 1 + (10 * conformal_ages / dtau)
+    dage = 1 + (10 * conformal_time / dtau)
     dage = np.minimum(dage, nOver2 + (dage - nOver2) / 10.0)
     iage = np.array(dage, dtype=np.int32)
 
     # linearly interpolate physical times from tf and tauf lookup
     # tables.
-    t = tf[iage] * (conformal_ages - tauf[iage - 1]) / (tauf[iage] - tauf[iage - 1])
+    t = tf[iage] * (conformal_time - tauf[iage - 1]) / (tauf[iage] - tauf[iage - 1])
     t = t + (
-        tf[iage - 1] * (conformal_ages - tauf[iage]) / (tauf[iage - 1] - tauf[iage])
+        tf[iage - 1] * (conformal_time - tauf[iage]) / (tauf[iage - 1] - tauf[iage])
     )
     return (tsim - t) * t_scale
 
@@ -62,6 +92,7 @@ def _ramses_particle_file_handler(fname, foffsets, data_types, subset, fields, c
     """
     tr = {}
     ds = subset.domain.ds
+    current_time = ds.current_time.in_units("code_time").v
     with FortranFile(fname) as fd:
         # We do *all* conversion into boxlen here.
         # This means that no other conversions need to be applied to convert
@@ -76,11 +107,14 @@ def _ramses_particle_file_handler(fname, foffsets, data_types, subset, fields, c
             if field[1].startswith("particle_position"):
                 np.divide(tr[field], ds["boxlen"], tr[field])
             if ds.cosmological_simulation and field[1] == "particle_birth_time":
-                conformal_age = tr[field]
-                tr[field] = convert_ramses_ages(ds, conformal_age)
+                conformal_time = tr[field]
+                physical_age = convert_ramses_conformal_time_to_physical_age(
+                    ds, conformal_time
+                )
+                tr[field] = current_time - physical_age
                 # arbitrarily set particles with zero conformal_age to zero
                 # particle_age. This corresponds to DM particles.
-                tr[field][conformal_age == 0] = 0
+                tr[field][conformal_time == 0] = 0
     return tr
 
 
