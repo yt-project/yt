@@ -18,6 +18,7 @@ from yt.utilities.cython_fortran_utils import FortranFile as fpu
 from yt.utilities.lib.cosmology_time import friedman
 from yt.utilities.on_demand_imports import _f90nml as f90nml
 from yt.utilities.physical_constants import kb, mp
+from yt.utilities.physical_ratios import cm_per_mpc
 
 from .definitions import (
     OUTPUT_DIR_EXP,
@@ -973,7 +974,7 @@ class RAMSESDataset(Dataset):
 
                 self.current_time = (
                     (self.time_tot + self.time_simu)
-                    / (self.hubble_constant * 1e7 / 3.08e24)
+                    / (self.hubble_constant * 1e7 / cm_per_mpc)
                     / self.parameters["unit_t"]
                 )
             except IndexError:
