@@ -219,9 +219,11 @@ class ImagePlotMPL(PlotMPL):
 
         if cbnorm == "symlog":
             # if cblinthresh is not specified, try to come up with a reasonable default
-            min_abs_val = np.min(np.abs((zmin, zmax)))
-            if cblinthresh is None:
-                cblinthresh = np.nanmin(np.absolute(data)[data != 0])
+            min_abs_val, max_abs_val = np.sort(np.abs((zmin, zmax)))
+            if cblinthresh is not None:
+                pass
+            elif min_abs_val > 0:
+                cblinthresh = min_abs_val
             elif zmin * zmax > 0 and cblinthresh < min_abs_val:
                 warnings.warn(
                     f"Cannot set a symlog norm with linear threshold {cblinthresh} "
@@ -229,6 +231,10 @@ class ImagePlotMPL(PlotMPL):
                     "Switching to log norm."
                 )
                 cbnorm = "log10"
+            else:
+                cblinthresh = max_abs_val / 1000
+            if cblinthresh is None:
+                cblinthresh = np.nanmin(np.absolute(data)[data != 0])
 
         if cbnorm == "log10":
             cbnorm_cls = matplotlib.colors.LogNorm
