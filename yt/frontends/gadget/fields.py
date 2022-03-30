@@ -20,6 +20,8 @@ class GadgetFieldInfo(SPHFieldInfo):
             self.species_names = self._setup_four_metal_fractions(ptype)
         elif (ptype, "ElevenMetalMasses") in self.ds.field_list:
             self.species_names = self._setup_eleven_metal_masses(ptype)
+        else:
+            self.species_names = self._check_whitelist_fields(ptype)
 
         super().setup_particle_fields(ptype, *args, **kwargs)
 
@@ -121,6 +123,16 @@ class GadgetFieldInfo(SPHFieldInfo):
         )
 
         return ["H"] + metal_names[:-1]
+
+    def _check_whitelist_fields(self, ptype):
+        from yt.fields.particle_fields import sph_whitelist_fields
+        species_names = []
+        for field in self.ds.field_list:
+            if field[0] == ptype:
+                if field[1].endswith("_fraction") or field[1].endswith("_density"):
+                    if field[1] in sph_whitelist_fields:
+                        species_names.append(field[1].split("_")[0])
+        return species_names
 
     def setup_gas_particle_fields(self, ptype):
         if (ptype, "Temperature") not in self.ds.field_list:
