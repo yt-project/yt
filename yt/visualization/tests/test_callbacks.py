@@ -92,6 +92,15 @@ def test_timestamp_callback():
         assert_fname(p.save(prefix)[0])
 
 
+def test_timestamp_callback_code_units():
+    # see https://github.com/yt-project/yt/issues/3869
+    with _cleanup_fname() as prefix:
+        ds = fake_random_ds(2, unit_system="code")
+        p = SlicePlot(ds, "z", ("gas", "density"))
+        p.annotate_timestamp()
+        assert_fname(p.save(prefix)[0])
+
+
 def test_scale_callback():
     with _cleanup_fname() as prefix:
         ax = "z"

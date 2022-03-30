@@ -2529,11 +2529,7 @@ class TimestampCallback(PlotCallback):
                 # here the time unit will be in brackets on the annotation.
                 un = self.time_unit.latex_representation()
                 time_unit = r"$\ \ (" + un + r")$"
-            except AttributeError as err:
-                if plot.ds._uses_code_time_unit:
-                    raise RuntimeError(
-                        "The time unit str repr didn't match expectations, something is wrong."
-                    ) from err
+            except AttributeError:
                 time_unit = str(self.time_unit).replace("_", " ")
             self.text += self.time_format.format(time=float(t), units=time_unit)
 
