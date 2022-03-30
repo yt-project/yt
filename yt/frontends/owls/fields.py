@@ -202,6 +202,7 @@ class OWLSFieldInfo(SPHFieldInfo):
                 n_e = data[ptype, "H_p1_number_density"]
                 n_e += data[ptype, "He_p1_number_density"]
                 n_e += 2.0 * data[ptype, "He_p2_number_density"]
+                return n_e
 
             self.add_field(
                 (ptype, "El_number_density"),
