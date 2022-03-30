@@ -1,12 +1,12 @@
 import contextlib
 import inspect
 import re
-import warnings
 from typing import Optional, Tuple, Union
 
 from more_itertools import always_iterable
 
 import yt.units.dimensions as ytdims
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.funcs import iter_fields, validate_field_key
 from yt.units.unit_object import Unit  # type: ignore
 from yt.utilities.exceptions import YTFieldNotFound
@@ -81,10 +81,6 @@ class DerivedField:
         How is the field sampled?  This can be one of the following options at
         present: "cell" (cell-centered), "discrete" (or "particle") for
         discretely sampled data.
-    particle_type : bool
-       (Deprecated) Is this a particle (1D) field?  This is deprecated. Use
-       sampling_type = "discrete" or sampling_type = "particle".  This will
-       *override* sampling_type.
     vector_field : bool
        Describes the dimensionality of the field.  Currently unused.
     display_field : bool
@@ -121,7 +117,6 @@ class DerivedField:
         units: Optional[Union[str, bytes, Unit]] = None,
         take_log=True,
         validators=None,
-        particle_type=None,
         vector_field=False,
         display_field=True,
         not_in_all=False,
@@ -130,6 +125,8 @@ class DerivedField:
         dimensions=None,
         ds=None,
         nodal_flag=None,
+        *,
+        particle_type=None,
     ):
         validate_field_key(name)
         self.name = name
@@ -137,11 +134,12 @@ class DerivedField:
         self.display_name = display_name
         self.not_in_all = not_in_all
         self.display_field = display_field
-        if particle_type:
-            warnings.warn(
-                "particle_type for derived fields "
-                "has been replaced with sampling_type = 'particle'",
-                DeprecationWarning,
+        if particle_type is not None:
+            issue_deprecation_warning(
+                "The 'particle_type' keyword argument is deprecated. "
+                "Please use sampling_type='particle' instead.",
+                since="3.2",
+                removal="4.2",
             )
             sampling_type = "particle"
         self.sampling_type = sampling_type

@@ -17,7 +17,6 @@ import time
 import traceback
 import urllib.parse
 import urllib.request
-import warnings
 from functools import lru_cache, wraps
 from numbers import Number as numeric_type
 from typing import Any, Callable, Type
@@ -28,6 +27,7 @@ from more_itertools import always_iterable, collapse, first
 from packaging.version import Version
 from tqdm import tqdm
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.units import YTArray, YTQuantity
 from yt.utilities.exceptions import YTInvalidWidthError
 from yt.utilities.logger import ytLogger as mylog
@@ -1000,11 +1000,13 @@ def get_brewer_cmap(cmap):
     if palettable is not None:
         bmap = palettable.colorbrewer.get_map(*cmap)
     elif brewer2mpl is not None:
-        warnings.warn(
+        issue_deprecation_warning(
             "Using brewer2mpl colormaps is deprecated. "
             "Please install the successor to brewer2mpl, "
             "palettable, with `pip install palettable`. "
-            "Colormap tuple names remain unchanged."
+            "Colormap tuple names remain unchanged.",
+            since="3.3",
+            removal="4.2",
         )
         bmap = brewer2mpl.get_map(*cmap)
     else:

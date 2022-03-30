@@ -1,5 +1,3 @@
-import warnings
-
 import numpy as np
 from unyt import unyt_array
 
@@ -325,8 +323,11 @@ class ImageArray(unyt_array):
             filename += ".png"
 
         if clip_ratio is not None:
-            warnings.warn(
-                "'clip_ratio' keyword is deprecated. Use 'sigma_clip' instead"
+            issue_deprecation_warning(
+                "The 'clip_ratio' keyword argument is a deprecated alias for 'sigma_clip'. "
+                "Please use 'sigma_clip' directly.",
+                since="3.3",
+                removal="4.2",
             )
             sigma_clip = clip_ratio
 
