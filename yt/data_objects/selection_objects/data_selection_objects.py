@@ -536,6 +536,7 @@ class YTSelectionContainer2D(YTSelectionContainer):
             origin=origin,
             frb_generator=frb,
             plot_type=plot_type,
+            geometry=self.ds.geometry,
         )
         pw._setup_plots()
         return pw
