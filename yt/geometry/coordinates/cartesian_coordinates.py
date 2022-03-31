@@ -301,7 +301,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
         if hasattr(period, "in_units"):
             period = period.in_units("code_length").d
 
-        buff = np.zeros((size[1], size[0]), dtype="f8")
+        buff = np.full((size[1], size[0]), np.nan, dtype="float64")
         particle_datasets = (ParticleDataset, StreamParticlesDataset)
         is_sph_field = finfo.is_sph_field
 
@@ -550,7 +550,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
         from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
 
         indices = np.argsort(data_source["pdx"])[::-1].astype(np.int_)
-        buff = np.zeros((size[1], size[0]), dtype="f8")
+        buff = np.full((size[1], size[0]), np.nan, dtype="float64")
         ftype = "index"
         if isinstance(data_source.ds, YTSpatialPlotDataset):
             ftype = "gas"

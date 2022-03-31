@@ -41,7 +41,7 @@ answer_tests:
     - yt/frontends/chombo/tests/test_outputs.py:test_zp
     - yt/frontends/chombo/tests/test_outputs.py:test_kho
 
-  local_enzo_008:  # PR 2926
+  local_enzo_009:  # PR 3856
     - yt/frontends/enzo/tests/test_outputs.py:test_moving7
     - yt/frontends/enzo/tests/test_outputs.py:test_galaxy0030
     - yt/frontends/enzo/tests/test_outputs.py:test_toro1d
@@ -49,7 +49,7 @@ answer_tests:
     - yt/frontends/enzo/tests/test_outputs.py:test_ecp
     - yt/frontends/enzo/tests/test_outputs.py:test_nuclei_density_fields
 
-  local_enzo_e_001: # PR 3273
+  local_enzo_e_002: # PR 3856
     - yt/frontends/enzo_e/tests/test_outputs.py:test_hello_world
     - yt/frontends/enzo_e/tests/test_outputs.py:test_particle_fields
 
@@ -151,7 +151,7 @@ answer_tests:
     - yt/frontends/boxlib/tests/test_outputs.py:test_NyxDataset
     - yt/frontends/boxlib/tests/test_outputs.py:test_WarpXDataset
 
-  local_ramses_004:
+  local_ramses_005:  # PR 3856
     - yt/frontends/ramses/tests/test_outputs.py:test_output_00080
 
   local_ytdata_008:
