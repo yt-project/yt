@@ -154,7 +154,7 @@ class GadgetBinaryHeader:
         for filename in [self.filename, self.filename + ".0"]:
             if os.path.exists(filename):
                 return open(filename, "rb")
-        raise RuntimeError(f"Snapshot file {self.filename} does not exist.")
+        raise FileNotFoundError(f"Snapshot file {self.filename} does not exist.")
 
     def validate(self):
         """Validate data integrity."""
