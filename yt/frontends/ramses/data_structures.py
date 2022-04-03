@@ -75,10 +75,10 @@ class RAMSESFileSanitizer:
         filename: str = os.path.expanduser(self.original_filename)
 
         if not os.path.exists(filename):
-            raise FileNotFoundError(f"No such file or directory {filename!r}")
+            raise FileNotFoundError(rf"No such file or directory '{filename!s}'")
         if self.root_folder is None:
             raise ValueError(
-                f"Could not determine output directory from {filename!r}\n"
+                f"Could not determine output directory from '{filename!s}'\n"
                 f"Expected a directory name of form {OUTPUT_DIR_EXP!r} "
                 "containing an info_*.txt file and amr_* files."
             )
@@ -87,7 +87,7 @@ class RAMSESFileSanitizer:
         # If/when this bug is fixed upstream, mypy will warn that the unused
         # 'type: ignore' comment can be removed
         if self.info_fname is None:  # type: ignore [unreachable]
-            raise ValueError(f"Failed to detect info file from {filename!r}")
+            raise ValueError(f"Failed to detect info file from '{filename!s}'")
 
     @property
     def is_valid(self) -> bool:
