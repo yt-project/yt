@@ -3,6 +3,7 @@ import weakref
 from collections import defaultdict
 from itertools import product
 from pathlib import Path
+from typing import Optional, Tuple
 
 import numpy as np
 
@@ -57,7 +58,7 @@ class RAMSESFileSanitizer:
 
         # Loop on both the functions and the tested paths
         for path, check_fun in product(paths_to_try, check_functions):
-            ok, output_dir, info_fname = check_fun(path)
+            ok, output_dir, group_dir, info_fname = check_fun(path)
             if ok:
                 break
 
@@ -65,13 +66,8 @@ class RAMSESFileSanitizer:
         if not ok:
             return
 
-        # Special case when organized in groups
-        if output_dir.name == "group_00001":
-            self.root_folder = output_dir.parent
-            self.group_name = output_dir.name
-        else:
-            self.root_folder = output_dir
-            self.group_name = None
+        self.root_folder = output_dir
+        self.group_name = group_dir.name if group_dir else None
         self.info_fname = info_fname
 
     def validate(self) -> None:
@@ -80,18 +76,19 @@ class RAMSESFileSanitizer:
         filename: str = os.path.expanduser(self.original_filename)
 
         if not os.path.exists(filename):
-            raise FileNotFoundError(f"No such file or directory {filename!r}")
+            raise FileNotFoundError(rf"No such file or directory '{filename!s}'")
         if self.root_folder is None:
             raise ValueError(
-                f"Could not determine output directory from {filename!r}\n"
-                f"Expected a directory name of form {OUTPUT_DIR_EXP!r}"
+                f"Could not determine output directory from '{filename!s}'\n"
+                f"Expected a directory name of form {OUTPUT_DIR_EXP!r} "
+                "containing an info_*.txt file and amr_* files."
             )
 
         # This last case is (erroneously ?) marked as unreachable by mypy
         # If/when this bug is fixed upstream, mypy will warn that the unused
         # 'type: ignore' comment can be removed
         if self.info_fname is None:  # type: ignore [unreachable]
-            raise ValueError(f"Failed to detect info file from {filename!r}")
+            raise ValueError(f"Failed to detect info file from '{filename!s}'")
 
     @property
     def is_valid(self) -> bool:
@@ -110,37 +107,70 @@ class RAMSESFileSanitizer:
         ok &= (folder / f"info_{iout}.txt").is_file()
         return ok
 
-    @classmethod
-    def test_with_folder_name(cls, output_dir):
-        iout_match = OUTPUT_DIR_RE.match(output_dir.name)
-        ok = output_dir.is_dir() and iout_match is not None
-        if ok:
-            iout = iout_match.group(2)
-            ok &= cls.check_standard_files(output_dir, iout)
-            info_fname = output_dir / f"info_{iout}.txt"
+    @staticmethod
+    def _match_output_and_group(
+        path: Path,
+    ) -> Tuple[Path, Optional[Path], Optional[str]]:
+
+        # Make sure we work with a directory of the form `output_XXXXX`
+        for p in (path, path.parent):
+            match = OUTPUT_DIR_RE.match(p.name)
+
+            if match:
+                path = p
+                break
+
+        if match is None:
+            return path, None, None
+
+        iout = match.group(1)
+
+        # See whether a folder named `group_YYYYY` exists
+        group_dir = path / "group_00001"
+        if group_dir.is_dir():
+            return path, group_dir, iout
         else:
-            output_dir, info_fname = None, None
-
-        return ok, output_dir, info_fname
+            return path, None, iout
 
     @classmethod
-    def test_with_standard_file(cls, filename):
-        iout_match = OUTPUT_DIR_RE.match(filename.parent.name)
+    def test_with_folder_name(
+        cls, output_dir: Path
+    ) -> Tuple[bool, Optional[Path], Optional[Path], Optional[Path]]:
+        output_dir, group_dir, iout = cls._match_output_and_group(output_dir)
+        ok = output_dir.is_dir() and iout is not None
+
+        info_fname: Optional[Path]
+
+        if ok:
+            parent_dir = group_dir or output_dir
+            ok &= cls.check_standard_files(parent_dir, iout)
+            info_fname = parent_dir / f"info_{iout}.txt"
+        else:
+            info_fname = None
+
+        return ok, output_dir, group_dir, info_fname
+
+    @classmethod
+    def test_with_standard_file(
+        cls, filename: Path
+    ) -> Tuple[bool, Optional[Path], Optional[Path], Optional[Path]]:
+        output_dir, group_dir, iout = cls._match_output_and_group(filename.parent)
         ok = (
             filename.is_file()
             and STANDARD_FILE_RE.match(filename.name) is not None
-            and iout_match is not None
+            and iout is not None
         )
 
-        if ok:
-            iout = iout_match.group(2)
-            ok &= cls.check_standard_files(filename.parent, iout)
-            output_dir = filename.parent
-            info_fname = output_dir / f"info_{iout}.txt"
-        else:
-            output_dir, info_fname = None, None
+        info_fname: Optional[Path]
 
-        return ok, output_dir, info_fname
+        if ok:
+            parent_dir = group_dir or output_dir
+            ok &= cls.check_standard_files(parent_dir, iout)
+            info_fname = parent_dir / f"info_{iout}.txt"
+        else:
+            info_fname = None
+
+        return ok, output_dir, group_dir, info_fname
 
 
 class RAMSESDomainFile:
