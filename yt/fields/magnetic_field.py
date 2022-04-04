@@ -195,9 +195,9 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
     if dimensions.current_mks in b_units.dimensions.free_symbols:
         rm_scale = pc.qp.to("C", "SI") ** 3 / (4.0 * np.pi * pc.eps_0)
     else:
-        rm_scale = pc.qp ** 3 / pc.clight
+        rm_scale = pc.qp**3 / pc.clight
     rm_scale *= registry.ds.quan(1.0, "rad") / (
-        2.0 * np.pi * pc.me ** 2 * pc.clight ** 3
+        2.0 * np.pi * pc.me**2 * pc.clight**3
     )
     rm_units = registry.ds.quan(1.0, "rad/m**2").units / unit_system["length"]
 

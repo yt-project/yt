@@ -56,7 +56,7 @@ class FixedResolutionBufferGaussBeamFilter(FixedResolutionBufferFilter):
         l = np.linspace(-hnbeam, hnbeam, num=self.nbeam + 1)
         x, y = np.meshgrid(l, l)
         g2d = (1.0 / (sigma * np.sqrt(2.0 * np.pi))) * np.exp(
-            -((x / sigma) ** 2 + (y / sigma) ** 2) / (2 * sigma ** 2)
+            -((x / sigma) ** 2 + (y / sigma) ** 2) / (2 * sigma**2)
         )
         g2d /= g2d.max()
 

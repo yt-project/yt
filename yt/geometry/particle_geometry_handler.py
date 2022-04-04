@@ -46,7 +46,7 @@ class ParticleIndex(Index):
     @property
     def chunksize(self):
         # This can be overridden in subclasses
-        return 64 ** 3
+        return 64**3
 
     _data_files = None
 

@@ -189,7 +189,7 @@ class YTEllipsoid(YTSelectionContainer3D):
         self._C = self.ds.quan(C, "code_length")
         if self._C < self.index.get_smallest_dx():
             raise YTSphereTooSmall(self.ds, self._C, self.index.get_smallest_dx())
-        self._e0 = e0 = e0 / (e0 ** 2.0).sum() ** 0.5
+        self._e0 = e0 = e0 / (e0**2.0).sum() ** 0.5
         self._tilt = tilt
 
         # find the t1 angle needed to rotate about z axis to align e0 to x

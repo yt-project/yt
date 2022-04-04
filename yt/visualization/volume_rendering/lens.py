@@ -275,7 +275,7 @@ class PerspectiveLens(Lens):
                 # to other corner within the image, which produces visible
                 # domain boundary line
                 sight_length = np.sqrt(width[0] ** 2 + width[1] ** 2)
-                sight_length = sight_length / np.sqrt(1 - sight_angle_cos ** 2)
+                sight_length = sight_length / np.sqrt(1 - sight_angle_cos**2)
             pos1[i] = position + sight_length * sight_vector[i]
 
         dx = np.dot(pos1 - sight_center, camera.unit_vectors[0])
@@ -488,7 +488,7 @@ class StereoPerspectiveLens(Lens):
                 # to other corner within the image, which produces visible
                 # domain boundary line
                 sight_length = np.sqrt(width[0] ** 2 + width[1] ** 2)
-                sight_length = sight_length / np.sqrt(1 - sight_angle_cos ** 2)
+                sight_length = sight_length / np.sqrt(1 - sight_angle_cos**2)
             pos1[i] = camera_position_shift + sight_length * sight_vector[i]
 
         dx = np.dot(pos1 - sight_center, east_vec_rot)

@@ -56,7 +56,7 @@ class IonTableSpectrum:
         dlog_GH1 = logGH1_all[i_zhi] - logGH1_all[i_zlo]
 
         logGH1_table = logGH1_all[i_zlo] + z_frac * dlog_GH1
-        GH1_table = 10.0 ** logGH1_table
+        GH1_table = 10.0**logGH1_table
 
         return GH1_table
 
@@ -174,4 +174,4 @@ class IonTableOWLS:
             + self.ionbal[inH + 1, iT + 1, iz + 1] * (fnH) * (fT) * (fz)
         )
 
-        return 10 ** ionfrac
+        return 10**ionfrac

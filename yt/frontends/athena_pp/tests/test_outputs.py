@@ -76,4 +76,4 @@ def test_AthenaPPDataset():
 def test_magnetic_units():
     ds = load(AM06, unit_system="code")
     assert ds.magnetic_unit.units.dimensions == dimensions.magnetic_field_cgs
-    assert (ds.magnetic_unit ** 2).units.dimensions == dimensions.pressure
+    assert (ds.magnetic_unit**2).units.dimensions == dimensions.pressure

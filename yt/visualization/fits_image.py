@@ -381,7 +381,7 @@ class FITSImageData:
                         4.0
                         * np.pi
                         * self.mass_unit
-                        / (self.time_unit ** 2 * self.length_unit)
+                        / (self.time_unit**2 * self.length_unit)
                     )
                 else:
                     u = cgs_unit

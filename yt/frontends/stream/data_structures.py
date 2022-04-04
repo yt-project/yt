@@ -351,7 +351,7 @@ class StreamDataset(Dataset):
             setattr(self, attr, uq)
         if not hasattr(self, "magnetic_unit"):
             self.magnetic_unit = np.sqrt(
-                4 * np.pi * self.mass_unit / (self.time_unit ** 2 * self.length_unit)
+                4 * np.pi * self.mass_unit / (self.time_unit**2 * self.length_unit)
             )
 
     @classmethod
@@ -728,7 +728,7 @@ class StreamOctreeSubset(OctreeSubset):
         oct_handler = self.oct_handler
         ndim = self.ds.dimensionality
         cell_count = (
-            selector.count_octs(self.oct_handler, self.domain_id) * self.nz ** ndim
+            selector.count_octs(self.oct_handler, self.domain_id) * self.nz**ndim
         )
 
         gz_cache = getattr(self, "_ghost_zone_cache", None)

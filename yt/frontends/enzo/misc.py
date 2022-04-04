@@ -25,13 +25,13 @@ def cosmology_get_units(
 
     time_scaling = np.sqrt(1 / (4 * np.pi * newton_cgs * rho_crit_g_cm3_h2))
     vel_scaling = cm_per_mpc / time_scaling
-    temp_scaling = mass_hydrogen_grams / boltzmann_constant_erg_per_K * vel_scaling ** 2
+    temp_scaling = mass_hydrogen_grams / boltzmann_constant_erg_per_K * vel_scaling**2
 
-    k["utim"] = time_scaling / np.sqrt(omega_matter) / hubble_constant / zip1 ** 1.5
-    k["urho"] = rho_crit_g_cm3_h2 * omega_matter * hubble_constant ** 2 * zp1 ** 3
+    k["utim"] = time_scaling / np.sqrt(omega_matter) / hubble_constant / zip1**1.5
+    k["urho"] = rho_crit_g_cm3_h2 * omega_matter * hubble_constant**2 * zp1**3
     k["uxyz"] = cm_per_mpc * box_size / hubble_constant / zp1
     k["uaye"] = 1.0 / zip1
     k["uvel"] = vel_scaling * box_size * np.sqrt(omega_matter) * np.sqrt(zip1)
-    k["utem"] = temp_scaling * (box_size ** 2) * omega_matter * zip1
+    k["utem"] = temp_scaling * (box_size**2) * omega_matter * zip1
     k["aye"] = zip1 / zp1
     return k
