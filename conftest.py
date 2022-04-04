@@ -124,6 +124,32 @@ def pytest_configure(config):
             ),
         )
 
+    if MPL_VERSION < Version("3.5.2"):
+        if MPL_VERSION < Version("3.3"):
+            try:
+                import PIL
+            except ImportError:
+                PILLOW_INSTALLED = False
+            else:
+                PILLOW_INSTALLED = True
+        else:
+            # pillow became a hard dependency in matplotlib 3.3
+            import PIL
+
+            PILLOW_INSTALLED = True
+        if PILLOW_INSTALLED and Version(PIL.__version__) >= Version("9.1"):
+            # see https://github.com/matplotlib/matplotlib/pull/22766
+            config.addinivalue_line(
+                "filterwarnings",
+                r"ignore:NONE is deprecated and will be removed in Pillow 10 \(2023-07-01\)\. "
+                r"Use Resampling\.NEAREST or Dither\.NONE instead\.:DeprecationWarning",
+            )
+            config.addinivalue_line(
+                "filterwarnings",
+                r"ignore:ADAPTIVE is deprecated and will be removed in Pillow 10 \(2023-07-01\)\. "
+                r"Use Palette\.ADAPTIVE instead\.:DeprecationWarning",
+            )
+
     if NUMPY_VERSION < Version("1.19") and MPL_VERSION < Version("3.3"):
         # This warning is triggered from matplotlib in exactly one test at the time of writing
         # and exclusively on the minimal test env. Upgrading numpy or matplotlib resolves
