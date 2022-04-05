@@ -38,7 +38,7 @@
   "C15-3D-3deg.tar.gz": {
     "hash": "b59a4ea80b3e5bf0c8fc1ab960241b23e8cba6d7346cab25d071d9a63c3be2b7",
     "load_kwargs": {},
-    "load_name": "C15-3D-3deg",
+    "load_name": "chimera_002715000_grid_1_01.h5",
     "url": "https://yt-project.org/data/C15-3D-3deg.tar.gz"
   },
   "CfRadialGrid.tar.gz": {
@@ -134,7 +134,7 @@
   "F37_80.tar.gz": {
     "hash": "ff0eeb2690ec53f25def74a346fdef07878e46d16424ce4f5d31d8c841408a46",
     "load_kwargs": {},
-    "load_name": "F37_80",
+    "load_name": "chimera_00001_grid_1_01.h5",
     "url": "https://yt-project.org/data/F37_80.tar.gz"
   },
   "FIRE_M12i_ref11.tar.gz": {

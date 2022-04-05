@@ -214,7 +214,6 @@ class ChimeraDataset(Dataset):
 
         self.fluid_types += ("chimera",)
         super().__init__(filename, dataset_type, units_override=units_override)
-        self.filename = filename
         self.storage_filename = storage_filename
         self._handle = HDF5FileHandler(filename)
 
