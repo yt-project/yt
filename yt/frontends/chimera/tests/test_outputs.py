@@ -5,7 +5,12 @@ Chimera frontend tests
 
 import numpy as np
 
-from yt.testing import assert_almost_equal, assert_array_equal, assert_equal
+from yt.testing import (
+    assert_almost_equal,
+    assert_array_equal,
+    assert_equal,
+    requires_file,
+)
 from yt.utilities.answer_testing.framework import (
     GenericArrayTest,
     data_dir_load,
@@ -88,7 +93,11 @@ def test_2D():
     for field in _fields:
 
         def field_func(name):
-            return dd[field]
+            min = dd[field].min()
+            max = dd[field].max()
+            avg = np.mean(dd[field])
+            size = dd[field].size
+            return [min, max, avg, size]
 
         if field != ("chimera", "shock"):
             yield GenericArrayTest(ds, field_func, args=[field])
@@ -169,13 +178,17 @@ def test_3D():
     for field in _fields:
 
         def field_func(name):
-            return dd[field]
+            min = dd[field].min()
+            max = dd[field].max()
+            avg = np.mean(dd[field])
+            size = dd[field].size
+            return [min, max, avg, size]
 
         if field != ("chimera", "shock"):
             yield GenericArrayTest(ds, field_func, args=[field])
 
 
-@requires_ds(Three_D)
+@requires_file(Three_D)
 def test_multimesh():  # Tests that the multimesh system for 3D data has been created correctly
     ds = data_dir_load(Three_D)
     assert_equal(len(ds.index.meshes), 45)
