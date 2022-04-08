@@ -772,11 +772,8 @@ two element tuples.
 Adjusting the plot view axes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-By default, all :class:`~yt.visualization.plot_window.PlotWindow` objects plot
-with the assumption that the eastern direction on the plot forms a right handed
-coordinate system with the ``normal`` and ``north_vector`` for the system, whether
-explicitly or implicitly defined. There are a number of ways the orientation of
-the view can be adjusted.
+There are a number of ways in which the initial orientation of a :class:`~yt.visualization.plot_window.PlotWindow`
+object can be adjusted.
 
 The first two axis orientation modifications,
 :meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.flip_horizontal`
@@ -805,7 +802,6 @@ will invert the plot's y-axis
    slc.annotate_title("Flipped vertical")
    slc.save("FlippedVertical.png")
 
-Note that all three operations effectively toggle the plot's right-handedness.
 In addition to inverting the direction of each axis,
 :meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.swap_axes` will exchange
 the plot's vertical and horizontal axes:
@@ -825,12 +821,16 @@ the plot's vertical and horizontal axes:
    slc.annotate_title("Standard Axes")
    slc.save("StandardAxes.png")
 
-Note that when using ``swap_axes``, any plot modifications relating to limits,
-image width or resolution should still be supplied in reference to the standard
-(unswapped) orientation rather than the swapped view.
+When using the ``flip_horizontal`` and ``flip_vertical`` with ``swap_axes``, it
+is important to remember that any ``flip_horizontal`` and ``flip_vertical``
+operations are applied to the image axes (not underlying dataset coordinates)
+after any ``swap_axes`` calls, regardless of the order in which the callbacks
+are added. Also note that when using ``swap_axes``, any plot modifications
+relating to limits, image width or resolution should still be supplied in reference
+to the standard (unswapped) orientation rather than the swapped view.
 
-It's worth mentioning that these three methods can be used in combination to
-rotate the view:
+Finally, it's worth mentioning that these three methods can be used in combination
+to rotate the view:
 
 .. python-script::
 
@@ -842,9 +842,9 @@ rotate the view:
    slc.save("InitialOrientation.png")
    slc.annotate_title("Initial View")
 
-   # vertical flip + swap = rotate 90 degree rotation (clockwise)
-   slc.flip_vertical()
+   # swap + vertical flip = rotate 90 degree rotation (clockwise)
    slc.swap_axes()
+   slc.flip_vertical()
    slc.annotate_title("90 Degree Clockwise Rotation")
    slc.save("SwappedAxes90CW.png")
 
@@ -855,10 +855,10 @@ rotate the view:
    slc.annotate_title("180 Degree Rotation")
    slc.save("FlipAxes180.png")
 
-   # horizontal flip + swap = rotate 90 degree rotation (counter clockwise)
+   # swap + horizontal flip = rotate 90 degree rotation (counter clockwise)
    slc = yt.SlicePlot(ds, "x", ("gas", "velocity_x"))
-   slc.flip_horizontal()
    slc.swap_axes()
+   slc.flip_horizontal()
    slc.annotate_title("90 Degree Counter Clockwise Rotation")
    slc.save("SwappedAxes90CCW.png")
 
