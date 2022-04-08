@@ -206,6 +206,7 @@ class PlotWindow(ImagePlotContainer):
         aspect=None,
         setup=False,
         *,
+        geometry="cartesian",
         swap_axes=False,
         flip_horizontal=False,
         flip_vertical=False,
@@ -232,6 +233,20 @@ class PlotWindow(ImagePlotContainer):
         super().__init__(data_source, window_size, fontsize)
 
         self._set_window(bounds)  # this automatically updates the data and plot
+        if (
+            geometry
+            in (
+                "spherical",
+                "cylindrical",
+                "geographic",
+                "internal_geographic",
+                "polar",
+            )
+            and origin != "native"
+        ):
+            mylog.info("Setting origin='native' for %s geometry.", geometry)
+            origin = "native"
+
         self.origin = origin
         if self.data_source.center is not None and not oblique:
             ax = self.data_source.axis
@@ -2045,16 +2060,6 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
         if field_parameters is None:
             field_parameters = {}
 
-        if ds.geometry in (
-            "spherical",
-            "cylindrical",
-            "geographic",
-            "internal_geographic",
-            "polar",
-        ):
-            mylog.info("Setting origin='native' for %s geometry.", ds.geometry)
-            origin = "native"
-
         if isinstance(ds, YTSpatialPlotDataset):
             slc = ds.all_data()
             slc.axis = axis
@@ -2081,6 +2086,7 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
             aspect=aspect,
             right_handed=right_handed,
             buff_size=buff_size,
+            geometry=ds.geometry,
             swap_axes=swap_axes,
             flip_horizontal=flip_horizontal,
             flip_vertical=flip_vertical,
@@ -2272,15 +2278,6 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
         normal = self.sanitize_normal_vector(ds, normal)
 
         axis = fix_axis(normal, ds)
-        if ds.geometry in (
-            "spherical",
-            "cylindrical",
-            "geographic",
-            "internal_geographic",
-            "polar",
-        ):
-            mylog.info("Setting origin='native' for %s geometry.", ds.geometry)
-            origin = "native"
         # If a non-weighted integral projection, assure field-label reflects that
         if weight_field is None and method == "integrate":
             self.projected = True
@@ -2329,6 +2326,7 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
             window_size=window_size,
             aspect=aspect,
             buff_size=buff_size,
+            geometry=ds.geometry,
             swap_axes=swap_axes,
             flip_horizontal=flip_horizontal,
             flip_vertical=flip_vertical,
