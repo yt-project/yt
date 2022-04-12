@@ -1,6 +1,6 @@
-import contextlib
 import glob
 import os
+from contextlib import contextmanager
 
 import numpy as np
 
@@ -25,7 +25,7 @@ class RockstarBinaryFile(HaloCatalogFile):
 
         super().__init__(ds, io, filename, file_id, range)
 
-    @contextlib.contextmanager
+    @contextmanager
     def open_handle(self):
         with open(self.filename, "rb") as f:
             yield f

@@ -1,7 +1,7 @@
-import contextlib
 import glob
 import os
 from collections import defaultdict
+from contextlib import contextmanager
 from typing import Optional
 
 import numpy as np
@@ -79,7 +79,7 @@ class OWLSSubfindHDF5File(ParticleFile):
         with self.transaction() as f:
             self.header = {field: f.attrs[field] for field in f.attrs.keys()}
 
-    @contextlib.contextmanager
+    @contextmanager
     def open_handle(self):
         with h5py.File(self.filename, mode="r") as handle:
             yield handle

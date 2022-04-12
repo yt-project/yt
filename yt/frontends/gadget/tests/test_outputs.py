@@ -161,7 +161,7 @@ def test_particle_file_operations():
         assert array_equiv(den0, den1)
         # a nested transaction will avoid re-opening
         with particle_file.transaction(handle) as f:
-            assert handle == f
+            assert handle is f
             den1 = particle_file._read_field(ptype, field, handle=f)
     assert array_equiv(den0, den1)
 

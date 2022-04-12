@@ -1,5 +1,4 @@
 import abc
-import contextlib
 import functools
 import itertools
 import os
@@ -9,6 +8,7 @@ import time
 import warnings
 import weakref
 from collections import defaultdict
+from contextlib import contextmanager
 from importlib.util import find_spec
 from stat import ST_CTIME
 from typing import DefaultDict, Optional, Tuple, Type, Union
@@ -1828,7 +1828,7 @@ def _reconstruct_ds(*args, **kwargs):
 
 
 # Note: the use of functools.total_ordering with an abstract class that sets
-# an @abc.abstract_method causes a mypy failure:
+# an @abc.abstractmethod causes a mypy failure:
 #     Only concrete class can be given where "Type[ParticleFile]" is expected
 # related to the open mypy issue https://github.com/python/mypy/issues/5374
 # Following solution here https://stackoverflow.com/a/70999704/9357244 and
@@ -1894,19 +1894,19 @@ class ParticleFile(abc.ABC):
                 continue
             yield ptype, self.total_particles[ptype]
 
-    @contextlib.contextmanager
+    @contextmanager
     def transaction(self, handle=None):
         # yields an open file handle, without double-reading.
         if handle is None:
-            with self.open_handle() as handle:
-                yield handle
+            with self.open_handle() as new_handle:
+                yield new_handle
         else:
             # we have end up here recursively so simply yield and the outer
             # transaction call will handle closing
             yield handle
 
     @abc.abstractmethod
-    @contextlib.contextmanager
+    @contextmanager
     def open_handle(self):
         # this method is a file context manager that must yield an open file
         # handle for self.filename.
@@ -1930,7 +1930,7 @@ class ParticleFile(abc.ABC):
             data = self._read_from_handle(f, ptype, field)
         return data
 
-    # @abc.abstractmethod
+    @abc.abstractmethod
     def _read_from_handle(self, handle, ptype: str, field: str) -> Optional[np.ndarray]:
         """
         This method must read data from an open file handle. It generally
@@ -1947,8 +1947,9 @@ class ParticleFile(abc.ABC):
         -------
         np.ndarray or None (should be np array_like more generally?)
         """
-        # TO DO: switch to an abstract method when existing frontends implement it
-        raise NotImplementedError("This frontend has not implemented _read_field")
+        # TODO: switch to an abstract method when existing frontends implement it
+        # raise NotImplementedError("This frontend has not implemented _read_field")
+        pass
 
 
 class ParticleDataset(Dataset):

@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 
 import numpy as np
 
@@ -19,7 +20,13 @@ units_2HOT_v2_time = 3.1558149984e16
 
 
 class SDFFile(ParticleFile):
-    pass
+
+    # sdf is in-memory, so do not need to implement open_handle or _read_from_handle
+    def open_handle(self):
+        return None
+
+    def _read_from_handle(self, handle, ptype: str, field: str) -> Optional[np.ndarray]:
+        return None
 
 
 class SDFDataset(ParticleDataset):

@@ -1,5 +1,6 @@
 import json
 import time
+from typing import Optional
 
 import numpy as np
 
@@ -10,7 +11,14 @@ from yt.utilities.on_demand_imports import _requests as requests
 
 
 class HTTPParticleFile(ParticleFile):
-    pass
+    # Note: the io.open_stream method for this frontend could be rewritten to
+    # use the following abstractmethods, but some way of testing this frontend
+    # would be required first.
+    def open_handle(self):
+        return None
+
+    def _read_from_handle(self, handle, ptype: str, field: str) -> Optional[np.ndarray]:
+        return None
 
 
 class HTTPStreamDataset(ParticleDataset):

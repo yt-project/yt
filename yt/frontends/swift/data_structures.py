@@ -1,4 +1,4 @@
-import contextlib
+from contextlib import contextmanager
 from typing import Any, Optional
 from uuid import uuid4
 
@@ -13,7 +13,7 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 
 
 class SwiftParticleFile(ParticleFile):
-    @contextlib.contextmanager
+    @contextmanager
     def open_handle(self):
         with h5py.File(self.filename, mode="r") as handle:
             yield handle

@@ -318,6 +318,7 @@ class BaseIOHandler:
 # As a note: we don't *actually* want this to be how it is forever.  There's no
 # reason we need to have the fluid and particle IO handlers separated.  But,
 # for keeping track of which frontend is which, this is a useful abstraction.
+# see https://github.com/yt-project/yt/pull/3526
 class BaseParticleIOHandler(BaseIOHandler):
     def _count_particles_chunks(
         self,

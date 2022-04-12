@@ -1,9 +1,9 @@
-import contextlib
 import glob
 import os
 import struct
 import weakref
-from typing import Type
+from contextlib import contextmanager
+from typing import Optional, Type
 
 import numpy as np
 
@@ -404,10 +404,13 @@ class ARTParticleFile(ParticleFile):
             f.seek(0, os.SEEK_END)
             self._file_size = f.tell()
 
-    @contextlib.contextmanager
+    @contextmanager
     def open_handle(self):
         with open(self.filename, "rb") as f:
             yield f
+
+    def _read_from_handle(self, handle, ptype: str, field: str) -> Optional[np.ndarray]:
+        return None
 
 
 class ARTParticleIndex(ParticleIndex):

@@ -1,8 +1,8 @@
-import contextlib
 import os
 import stat
 import struct
 from collections import defaultdict
+from contextlib import contextmanager
 from typing import Any, Optional, Tuple, Type, Union
 
 import numpy as np
@@ -186,11 +186,10 @@ class GadgetBinaryFile(ParticleFile):
 
         super().__init__(ds, io, filename, file_id, range)
 
-    @contextlib.contextmanager
+    @contextmanager
     def open_handle(self):
-        handle = open(self.filename)
-        yield handle
-        handle.close()
+        with open(self.filename) as handle:
+            yield handle
 
     def _calculate_offsets(self, field_list, pcounts):
         # Note that we ignore pcounts here because it's the global count.  We
@@ -613,7 +612,7 @@ class GadgetDataset(SPHDataset):
 class GadgetHDF5File(ParticleFile):
     _fields_with_cols = ("Metallicity_", "PassiveScalars_", "Chemistry_", "GFM_Metals_")
 
-    @contextlib.contextmanager
+    @contextmanager
     def open_handle(self):
         with h5py.File(self.filename, mode="r") as handle:
             yield handle

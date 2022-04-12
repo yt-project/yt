@@ -1,7 +1,7 @@
-import contextlib
 import os
 import weakref
 from collections import defaultdict
+from contextlib import contextmanager
 from functools import partial
 from typing import Any, Optional
 
@@ -119,7 +119,7 @@ class GadgetFOFHDF5File(HaloCatalogFile):
         self.total_offset = 0
         super().__init__(ds, io, filename, file_id, frange)
 
-    @contextlib.contextmanager
+    @contextmanager
     def open_handle(self):
         with h5py.File(self.filename, mode="r") as handle:
             yield handle

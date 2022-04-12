@@ -1,6 +1,6 @@
-import contextlib
 import glob
 import os
+from contextlib import contextmanager
 
 import numpy as np
 
@@ -24,7 +24,7 @@ class AHFHalosFile(HaloCatalogFile):
         self.col_names = self._read_column_names(filename)
         super().__init__(ds, io, filename, file_id, range)
 
-    @contextlib.contextmanager
+    @contextmanager
     def open_handle(self):
         with open(self.filename) as f:
             yield f
