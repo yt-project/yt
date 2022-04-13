@@ -254,7 +254,7 @@ def hilbert3d(X, bit_length):
 
         # Compute ordering
         for i in range(3 * bit_length):
-            order[ip] = order[ip] + i_bit_mask[i] * 2 ** i
+            order[ip] = order[ip] + i_bit_mask[i] * 2**i
 
     return order
 
@@ -288,11 +288,11 @@ def get_cpu_list(ds, X):
 
     while deltax >= dmax:
         ilevel += 1
-        deltax = 0.5 ** ilevel
+        deltax = 0.5**ilevel
 
     lmin = ilevel
     bit_length = lmin - 1
-    maxdom = 2 ** bit_length
+    maxdom = 2**bit_length
 
     imin, imax, jmin, jmax, kmin, kmax = 0, 0, 0, 0, 0, 0
     if bit_length > 0:

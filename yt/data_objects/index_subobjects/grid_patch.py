@@ -193,7 +193,7 @@ class AMRGridPatch(YTSelectionContainer):
     def _fill_child_mask(self, child, mask, tofill, dlevel=1):
         rf = self.ds.refine_by
         if dlevel != 1:
-            rf = rf ** dlevel
+            rf = rf**dlevel
         gi, cgi = self.get_global_startindex(), child.get_global_startindex()
         startIndex = np.maximum(0, cgi // rf - gi)
         endIndex = np.minimum(

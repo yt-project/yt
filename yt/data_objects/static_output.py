@@ -373,7 +373,7 @@ class Dataset(abc.ABC):
                 self._checksum = "nohashlib"
                 return self._checksum
 
-            def generate_file_md5(m, filename, blocksize=2 ** 20):
+            def generate_file_md5(m, filename, blocksize=2**20):
                 with open(filename, "rb") as f:
                     while True:
                         buf = f.read(blocksize)
@@ -1148,7 +1148,7 @@ class Dataset(abc.ABC):
                 # The following modification ensures that we get the conversion to
                 # mks correct
                 self.unit_registry.modify(
-                    "code_magnetic", self.magnetic_unit.value * 1.0e3 * 0.1 ** -0.5
+                    "code_magnetic", self.magnetic_unit.value * 1.0e3 * 0.1**-0.5
                 )
             elif not mks_system and current_mks in mag_dims:
                 self.magnetic_unit = self.quan(
@@ -1306,9 +1306,9 @@ class Dataset(abc.ABC):
         )
         temperature_unit = getattr(self, "temperature_unit", 1.0)
         density_unit = getattr(
-            self, "density_unit", self.mass_unit / self.length_unit ** 3
+            self, "density_unit", self.mass_unit / self.length_unit**3
         )
-        specific_energy_unit = getattr(self, "specific_energy_unit", vel_unit ** 2)
+        specific_energy_unit = getattr(self, "specific_energy_unit", vel_unit**2)
         self.unit_registry.modify("code_velocity", vel_unit)
         self.unit_registry.modify("code_temperature", temperature_unit)
         self.unit_registry.modify("code_pressure", pressure_unit)
@@ -1329,7 +1329,7 @@ class Dataset(abc.ABC):
         else:
             # Fallback to gauss if no magnetic unit is specified
             # 1 gauss = 1 sqrt(g)/(sqrt(cm)*s) = 0.1**0.5 sqrt(kg)/(sqrt(m)*s)
-            value = 0.1 ** 0.5
+            value = 0.1**0.5
             dims = dimensions.magnetic_field_cgs
         self.unit_registry.add("code_magnetic", value, dims)
         # domain_width does not yet exist

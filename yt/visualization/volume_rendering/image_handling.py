@@ -84,7 +84,7 @@ def plot_channel(
     ma = image[image > 0.0].max()
     image[image == 0.0] = ma * zero_factor
     if log:
-        mynorm = LogNorm(ma / (10.0 ** dex), ma)
+        mynorm = LogNorm(ma / (10.0**dex), ma)
 
     fig = plt.gcf()
     ax = plt.gca()

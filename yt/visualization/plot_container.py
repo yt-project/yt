@@ -155,17 +155,17 @@ def get_log_minorticks(vmin, vmax):
     """
     expA = np.floor(np.log10(vmin))
     expB = np.floor(np.log10(vmax))
-    cofA = np.ceil(vmin / 10 ** expA).astype("int64")
-    cofB = np.floor(vmax / 10 ** expB).astype("int64")
+    cofA = np.ceil(vmin / 10**expA).astype("int64")
+    cofB = np.floor(vmax / 10**expB).astype("int64")
     lmticks = []
-    while cofA * 10 ** expA <= cofB * 10 ** expB:
+    while cofA * 10**expA <= cofB * 10**expB:
         if expA < expB:
-            lmticks = np.hstack((lmticks, np.linspace(cofA, 9, 10 - cofA) * 10 ** expA))
+            lmticks = np.hstack((lmticks, np.linspace(cofA, 9, 10 - cofA) * 10**expA))
             cofA = 1
             expA += 1
         else:
             lmticks = np.hstack(
-                (lmticks, np.linspace(cofA, cofB, cofB - cofA + 1) * 10 ** expA)
+                (lmticks, np.linspace(cofA, cofB, cofB - cofA + 1) * 10**expA)
             )
             expA += 1
     return np.array(lmticks)

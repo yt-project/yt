@@ -26,7 +26,7 @@ class OverDensity(FlaggingMethod):
         self.over_density = over_density
 
     def __call__(self, grid):
-        rho = grid[("gas", "density")] / (grid.ds.refine_by ** grid.Level)
+        rho = grid[("gas", "density")] / (grid.ds.refine_by**grid.Level)
         return rho > self.over_density
 
 

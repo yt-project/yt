@@ -847,4 +847,4 @@ class SpinParameter(DerivedQuantity):
         e = values.pop(0).sum(dtype=np.float64)
         j = values.pop(0).sum(dtype=np.float64)
         m = values.pop(0).sum(dtype=np.float64)
-        return j * np.sqrt(np.abs(e)) / m ** 2.5 / gravitational_constant_cgs
+        return j * np.sqrt(np.abs(e)) / m**2.5 / gravitational_constant_cgs

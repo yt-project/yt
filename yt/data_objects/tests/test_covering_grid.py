@@ -32,7 +32,7 @@ def test_covering_grid():
         for nprocs in [1, 2, 4, 8]:
             ds = fake_random_ds(16, nprocs=nprocs)
             axis_name = ds.coordinates.axis_name
-            dn = ds.refine_by ** level
+            dn = ds.refine_by**level
             cg = ds.covering_grid(level, [0.0, 0.0, 0.0], dn * ds.domain_dimensions)
             # Test coordinate generation
             assert_equal(np.unique(cg[("index", f"d{axis_name[0]}")]).size, 1)
@@ -112,7 +112,7 @@ def test_xarray_export():
     units = ("g/cm**3", "K", "erg/g")
     for level in [0, 1, 2]:
         ds = fake_random_ds(16, fields=fields, units=units)
-        dn = ds.refine_by ** level
+        dn = ds.refine_by**level
         rcg = ds.covering_grid(level, [0.0, 0.0, 0.0], dn * ds.domain_dimensions)
         _run_tests(rcg)
         scg = ds.smoothed_covering_grid(
@@ -134,7 +134,7 @@ def test_smoothed_covering_grid():
     for level in [0, 1, 2]:
         for nprocs in [1, 2, 4, 8]:
             ds = fake_random_ds(16, nprocs=nprocs)
-            dn = ds.refine_by ** level
+            dn = ds.refine_by**level
             cg = ds.smoothed_covering_grid(
                 level, [0.0, 0.0, 0.0], dn * ds.domain_dimensions
             )
@@ -196,10 +196,10 @@ def test_arbitrary_grid():
         ds = fake_random_ds(32, nprocs=nprocs)
         for ref_level in [0, 1, 2]:
             cg = ds.covering_grid(
-                ref_level, [0.0, 0.0, 0.0], 2 ** ref_level * ds.domain_dimensions
+                ref_level, [0.0, 0.0, 0.0], 2**ref_level * ds.domain_dimensions
             )
             ag = ds.arbitrary_grid(
-                [0.0, 0.0, 0.0], [1.0, 1.0, 1.0], 2 ** ref_level * ds.domain_dimensions
+                [0.0, 0.0, 0.0], [1.0, 1.0, 1.0], 2**ref_level * ds.domain_dimensions
             )
             assert_almost_equal(cg[("gas", "density")], ag[("gas", "density")])
 
@@ -225,7 +225,7 @@ def test_arbitrary_grid_derived_field():
         # Calculating some random value
         return data["gas", "density"] * np.random.random_sample()
 
-    ds = fake_random_ds(64, nprocs=8, particles=16 ** 2)
+    ds = fake_random_ds(64, nprocs=8, particles=16**2)
     ds.add_field(
         ("gas", "Metal_Density"),
         units="g/cm**3",
@@ -253,7 +253,7 @@ def test_arbitrary_field_parameters():
         par = data.get_field_parameter("test_parameter")
         return par * data["all", "particle_mass"]
 
-    ds = fake_random_ds(64, nprocs=8, particles=16 ** 2)
+    ds = fake_random_ds(64, nprocs=8, particles=16**2)
     ds.add_field(
         ("all", "test_field"),
         units="g",

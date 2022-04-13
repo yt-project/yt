@@ -610,7 +610,7 @@ def fancy_download_file(url, filename, requests=None):
         if total_length is None:
             fh.write(response.content)
         else:
-            blocksize = 4 * 1024 ** 2
+            blocksize = 4 * 1024**2
             iterations = int(float(total_length) / float(blocksize))
 
             pbar = get_pbar(

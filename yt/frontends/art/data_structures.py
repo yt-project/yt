@@ -51,7 +51,7 @@ class ARTIndex(OctreeIndex):
         """
         # Overloaded
         ds = self.dataset
-        return (ds.domain_width / ds.domain_dimensions / (2 ** self.max_level)).min()
+        return (ds.domain_width / ds.domain_dimensions / (2**self.max_level)).min()
 
     def _initialize_oct_handler(self):
         """
@@ -229,8 +229,8 @@ class ARTDataset(Dataset):
 
         r0 = boxh / ng
         v0 = 50.0 * r0 * np.sqrt(Om0)
-        rho0 = 2.776e11 * hubble ** 2.0 * Om0
-        aM0 = rho0 * (boxh / hubble) ** 3.0 / ng ** 3.0
+        rho0 = 2.776e11 * hubble**2.0 * Om0
+        aM0 = rho0 * (boxh / hubble) ** 3.0 / ng**3.0
         velocity = v0 / aexpn * 1.0e5  # proper cm/s
         mass = aM0 * 1.98892e33
 
@@ -508,8 +508,8 @@ class DarkMatterARTDataset(ARTDataset):
         hubble = self.parameters["hubble"]
 
         r0 = boxh / ng
-        rho0 = 2.776e11 * hubble ** 2.0 * Om0
-        aM0 = rho0 * (boxh / hubble) ** 3.0 / ng ** 3.0
+        rho0 = 2.776e11 * hubble**2.0 * Om0
+        aM0 = rho0 * (boxh / hubble) ** 3.0 / ng**3.0
         velocity = 100.0 * r0 / aexpn * 1.0e5  # proper cm/s
         mass = aM0 * 1.98892e33
 
@@ -927,7 +927,7 @@ class ARTDomainFile:
         assert oct_handler.nocts == root_fc.shape[0]
         mylog.debug(
             "Added %07i octs on level %02i, cumulative is %07i",
-            root_octs_side ** 3,
+            root_octs_side**3,
             0,
             oct_handler.nocts,
         )
