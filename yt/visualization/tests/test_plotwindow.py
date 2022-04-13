@@ -722,6 +722,43 @@ def test_symlog_colorbar():
             plot.save(f.name)
 
 
+def test_symlog_min_zero():
+    # see https://github.com/yt-project/yt/issues/3791
+    shape = (32, 16, 1)
+    a = np.linspace(0, 1, 16)
+    b = np.ones((32, 16))
+    c = np.reshape(a * b, shape)
+    data = {("gas", "density"): c}
+
+    ds = load_uniform_grid(
+        data,
+        shape,
+        bbox=np.array([[0.0, 5.0], [0, 1], [-0.1, +0.1]]),
+    )
+
+    p = SlicePlot(ds, "z", "density")
+    im_arr = p["gas", "density"].image.get_array()
+
+    # check that no data value was mapped to a NaN (log(0))
+    assert np.all(~np.isnan(im_arr))
+    # 0 should be mapped to itself since we expect a symlog norm
+    assert np.min(im_arr) == 0.0
+
+
+def test_symlog_extremely_small_vals():
+    # check that the plot can be constructed without crashing
+    # see https://github.com/yt-project/yt/issues/3858
+    shape = (64, 64, 1)
+    arr = np.full(shape, 5.0e-324)
+    arr[0, 0] = -1e12
+    arr[1, 1] = 200
+    d = {"scalar": arr}
+
+    ds = load_uniform_grid(d, shape)
+    p = SlicePlot(ds, "z", ("stream", "scalar"))
+    p["stream", "scalar"]
+
+
 def test_nan_data():
     data = np.random.random((16, 16, 16)) - 0.5
     data[:9, :9, :9] = np.nan
