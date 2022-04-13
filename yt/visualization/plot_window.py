@@ -201,6 +201,8 @@ class PlotWindow(ImagePlotContainer):
         fontsize=18,
         aspect=None,
         setup=False,
+        *,
+        geometry="cartesian",
     ):
         self.center = None
         self._periodic = periodic
@@ -222,6 +224,20 @@ class PlotWindow(ImagePlotContainer):
         super().__init__(data_source, window_size, fontsize)
 
         self._set_window(bounds)  # this automatically updates the data and plot
+        if (
+            geometry
+            in (
+                "spherical",
+                "cylindrical",
+                "geographic",
+                "internal_geographic",
+                "polar",
+            )
+            and origin != "native"
+        ):
+            mylog.info("Setting origin='native' for %s geometry.", geometry)
+            origin = "native"
+
         self.origin = origin
         if self.data_source.center is not None and not oblique:
             ax = self.data_source.axis
@@ -1638,16 +1654,6 @@ class AxisAlignedSlicePlot(PWViewerMPL):
         if field_parameters is None:
             field_parameters = {}
 
-        if ds.geometry in (
-            "spherical",
-            "cylindrical",
-            "geographic",
-            "internal_geographic",
-            "polar",
-        ):
-            mylog.info("Setting origin='native' for %s geometry.", ds.geometry)
-            origin = "native"
-
         if isinstance(ds, YTSpatialPlotDataset):
             slc = ds.all_data()
             slc.axis = axis
@@ -1674,6 +1680,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
             aspect=aspect,
             right_handed=right_handed,
             buff_size=buff_size,
+            geometry=ds.geometry,
         )
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
@@ -1852,15 +1859,6 @@ class ProjectionPlot(PWViewerMPL):
         aspect=None,
     ):
         axis = fix_axis(axis, ds)
-        if ds.geometry in (
-            "spherical",
-            "cylindrical",
-            "geographic",
-            "internal_geographic",
-            "polar",
-        ):
-            mylog.info("Setting origin='native' for %s geometry.", ds.geometry)
-            origin = "native"
         if proj_style is not None:
             issue_deprecation_warning(
                 "`proj_style` parameter is deprecated, use `method` instead.",
@@ -1915,6 +1913,7 @@ class ProjectionPlot(PWViewerMPL):
             window_size=window_size,
             aspect=aspect,
             buff_size=buff_size,
+            geometry=ds.geometry,
         )
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
