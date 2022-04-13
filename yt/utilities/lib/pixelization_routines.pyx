@@ -256,6 +256,8 @@ def pixelize_cartesian(np.float64_t[:,:] buff,
                                 # This will reduce artifacts if we ever move to
                                 # compositing instead of replacing bitmaps.
                                 if overlap1 * overlap2 < 1.e-6: continue
+                                # make sure pixel value is not a NaN before incrementing it
+                                if buff[i,j] != buff[i,j]: buff[i,j] = 0.0
                                 buff[i,j] += (dsp * overlap1) * overlap2
                             else:
                                 buff[i,j] = dsp
@@ -506,6 +508,8 @@ def pixelize_off_axis_cartesian(
                        fabs(zsp - cz) * 0.99 > dzsp:
                         continue
                     mask[i, j] += 1
+                    # make sure pixel value is not a NaN before incrementing it
+                    if buff[i,j] != buff[i,j]: buff[i,j] = 0.0
                     buff[i, j] += dsp
     for i in range(buff.shape[0]):
         for j in range(buff.shape[1]):
@@ -668,6 +672,26 @@ def pixelize_aitoff(np.float64_t[:] azimuth,
         xmax = fmax(xmax, x)
         ymin = fmin(ymin, y)
         ymax = fmax(ymax, y)
+        # special cases where the projection of the cell isn't
+        # bounded by the rectangle (in image space) that bounds its corners.
+        # Note that performance may take a serious hit here. The overarching algorithm
+        # is optimized for cells with small angular width.
+        if xmin * xmax < 0.0:
+            # on the central meridian
+            aitoff_Lambda_btheta_to_xy(0.0, btheta_p - dbtheta_p, &x, &y)
+            ymin = fmin(ymin, y)
+            ymax = fmax(ymax, y)
+            aitoff_Lambda_btheta_to_xy(0.0, btheta_p + dbtheta_p, &x, &y)
+            ymin = fmin(ymin, y)
+            ymax = fmax(ymax, y)
+        if ymin * ymax < 0.0:
+            # on the equator
+            aitoff_Lambda_btheta_to_xy(Lambda_p - dLambda_p, 0.0, &x, &y)
+            xmin = fmin(xmin, x)
+            xmax = fmax(xmax, x)
+            aitoff_Lambda_btheta_to_xy(Lambda_p + dLambda_p, 0.0, &x, &y)
+            xmin = fmin(xmin, x)
+            xmax = fmax(xmax, x)
         # Now we have the (projected rectangular) bounds.
 
         # Shift into normalized image coords

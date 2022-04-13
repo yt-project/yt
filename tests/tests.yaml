@@ -15,10 +15,11 @@ answer_tests:
     - yt/frontends/amrvac/tests/test_outputs.py:test_riemann_cartesian_175D
     - yt/frontends/amrvac/tests/test_outputs.py:test_rmi_cartesian_dust_2D
 
-  local_arepo_008:  # PR 2909
+  local_arepo_009:  # PR 3815
     - yt/frontends/arepo/tests/test_outputs.py:test_arepo_bullet
     - yt/frontends/arepo/tests/test_outputs.py:test_arepo_tng59
     - yt/frontends/arepo/tests/test_outputs.py:test_index_override
+    - yt/frontends/arepo/tests/test_outputs.py:test_arepo_cr
 
   local_artio_004:
     - yt/frontends/artio/tests/test_outputs.py:test_sizmbhloz
@@ -41,7 +42,7 @@ answer_tests:
     - yt/frontends/chombo/tests/test_outputs.py:test_zp
     - yt/frontends/chombo/tests/test_outputs.py:test_kho
 
-  local_enzo_008:  # PR 2926
+  local_enzo_009:  # PR 3856
     - yt/frontends/enzo/tests/test_outputs.py:test_moving7
     - yt/frontends/enzo/tests/test_outputs.py:test_galaxy0030
     - yt/frontends/enzo/tests/test_outputs.py:test_toro1d
@@ -49,7 +50,7 @@ answer_tests:
     - yt/frontends/enzo/tests/test_outputs.py:test_ecp
     - yt/frontends/enzo/tests/test_outputs.py:test_nuclei_density_fields
 
-  local_enzo_e_001: # PR 3273
+  local_enzo_e_002: # PR 3856
     - yt/frontends/enzo_e/tests/test_outputs.py:test_hello_world
     - yt/frontends/enzo_e/tests/test_outputs.py:test_particle_fields
 
@@ -94,7 +95,7 @@ answer_tests:
     - yt/frontends/owls/tests/test_outputs.py:test_snapshot_033
     - yt/frontends/owls/tests/test_outputs.py:test_OWLS_particlefilter
 
-  local_pw_041:  # PR 3670
+  local_pw_042:  # PR 2504
     - yt/visualization/tests/test_plotwindow.py:test_attributes
     - yt/visualization/tests/test_particle_plot.py:test_particle_projection_answers
     - yt/visualization/tests/test_particle_plot.py:test_particle_projection_filter
@@ -151,7 +152,7 @@ answer_tests:
     - yt/frontends/boxlib/tests/test_outputs.py:test_NyxDataset
     - yt/frontends/boxlib/tests/test_outputs.py:test_WarpXDataset
 
-  local_ramses_004:
+  local_ramses_005:  # PR 3856
     - yt/frontends/ramses/tests/test_outputs.py:test_output_00080
 
   local_ytdata_008:
@@ -169,10 +170,10 @@ answer_tests:
   local_axialpix_008: # PR 3628
     - yt/geometry/coordinates/tests/test_axial_pixelization.py:test_axial_pixelization
 
-  local_cylindrical_background_012:  # PR 3793
+  local_cylindrical_background_013:  # PR 3859
     - yt/geometry/coordinates/tests/test_cylindrical_coordinates.py:test_noise_plots
 
-  local_spherical_background_006:  # PR 3793
+  local_spherical_background_007:  # PR 3859
     - yt/geometry/coordinates/tests/test_spherical_coordinates.py:test_noise_plots
 
   #local_particle_trajectory_001:
@@ -198,6 +199,7 @@ other_tests:
      - "--ignore-files=test_load_archive\\.py"
      - "--ignore-files=test_outputs_pytest\\.py"
      - "--ignore-files=test_normal_plot_api\\.py"
+     - "--ignore-file=test_file_sanitizer\\.py"
      - "--exclude-test=yt.frontends.gdf.tests.test_outputs.TestGDF"
      - "--exclude-test=yt.frontends.adaptahop.tests.test_outputs"
      - "--exclude-test=yt.frontends.stream.tests.test_stream_particles.test_stream_non_cartesian_particles"
