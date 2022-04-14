@@ -32,6 +32,15 @@ def determine_particle_fields(handle):
     return _particle_fields
 
 
+def _conditionally_split_arrays(inp_arrays, condition):
+    output_true = []
+    output_false = []
+    for arr in inp_arrays:
+        output_true.append(arr[condition])
+        output_false.append(arr[~condition])
+    return output_true, output_false
+
+
 class IOHandlerFLASH(BaseIOHandler):
     _particle_reader = False
     _dataset_type = "flash_hdf5"
@@ -69,42 +78,95 @@ class IOHandlerFLASH(BaseIOHandler):
         f_part = self._particle_handle
         p_ind = self.ds.index._particle_indices
         px, py, pz = (self._particle_fields[f"particle_pos{ax}"] for ax in "xyz")
+        pblk = self._particle_fields["particle_blk"]
+        blockless_buffer = self.ds.index._blockless_particle_count
         p_fields = f_part["/tracer particles"]
         assert len(ptf) == 1
         ptype = list(ptf.keys())[0]
+        bxyz = []
+        # We need to track all the particles that don't have blocks and make
+        # sure they get yielded too.  But, we also want our particles to largely
+        # line up with the grids they are resident in.  So we keep a buffer of
+        # particles.  That buffer is checked for any "blockless" particles,
+        # which get yielded at the end.
         for chunk in chunks:
             start = end = None
             for g1, g2 in particle_sequences(chunk.objs):
                 start = p_ind[g1.id - g1._id_offset]
-                end = p_ind[g2.id - g2._id_offset + 1]
-                x = np.asarray(p_fields[start:end, px], dtype="=f8")
-                y = np.asarray(p_fields[start:end, py], dtype="=f8")
-                z = np.asarray(p_fields[start:end, pz], dtype="=f8")
-                yield ptype, (x, y, z)
+                end_nobuff = p_ind[g2.id - g2._id_offset + 1]
+                end = end_nobuff + blockless_buffer
+                maxlen = end_nobuff - start
+                blk = np.asarray(p_fields[start:end, pblk], dtype="=i8") >= 0
+                # Can we use something like np.choose here?
+                xyz = [
+                    np.asarray(p_fields[start:end, _], dtype="=f8")
+                    for _ in (px, py, pz)
+                ]
+                (x, y, z), _xyz = _conditionally_split_arrays(xyz, blk)
+                if _xyz[0].size > 0:
+                    bxyz.append(_xyz)
+                yield ptype, (x[:maxlen], y[:maxlen], z[:maxlen])
+        if len(bxyz) == 0:
+            return
+        bxyz = np.concatenate(bxyz, axis=-1)
+        yield ptype, (bxyz[0, :], bxyz[1, :], bxyz[2, :])
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
         f_part = self._particle_handle
         p_ind = self.ds.index._particle_indices
         px, py, pz = (self._particle_fields[f"particle_pos{ax}"] for ax in "xyz")
+        pblk = self._particle_fields["particle_blk"]
+        blockless_buffer = self.ds.index._blockless_particle_count
         p_fields = f_part["/tracer particles"]
         assert len(ptf) == 1
         ptype = list(ptf.keys())[0]
         field_list = ptf[ptype]
+        bxyz = []
+        bfields = {(ptype, field): [] for field in field_list}
         for chunk in chunks:
             for g1, g2 in particle_sequences(chunk.objs):
                 start = p_ind[g1.id - g1._id_offset]
-                end = p_ind[g2.id - g2._id_offset + 1]
-                x = np.asarray(p_fields[start:end, px], dtype="=f8")
-                y = np.asarray(p_fields[start:end, py], dtype="=f8")
-                z = np.asarray(p_fields[start:end, pz], dtype="=f8")
+                end_nobuff = p_ind[g2.id - g2._id_offset + 1]
+                end = end_nobuff + blockless_buffer
+                maxlen = end_nobuff - start
+                blk = np.asarray(p_fields[start:end, pblk], dtype="=i8") >= 0
+                xyz = [
+                    np.asarray(p_fields[start:end, _], dtype="=f8")
+                    for _ in (px, py, pz)
+                ]
+                (x, y, z), _xyz = _conditionally_split_arrays(xyz, blk)
+                x, y, z = (_[:maxlen] for _ in (x, y, z))
+                if _xyz[0].size > 0:
+                    bxyz.append(_xyz)
                 mask = selector.select_points(x, y, z, 0.0)
-                if mask is None:
+                blockless = _xyz[0] > 0
+                # This checks if none of the particles within these blocks are
+                # included in the mask We need to also allow for blockless
+                # particles to be selected.
+                if mask is None and not blockless:
                     continue
                 for field in field_list:
                     fi = self._particle_fields[field]
-                    data = p_fields[start:end, fi]
-                    yield (ptype, field), data[mask]
+                    (data,), (bdata,) = _conditionally_split_arrays(
+                        [p_fields[start:end, fi]], blk
+                    )
+                    # Note that we have to apply mask to the split array, since
+                    # we select on the split array.
+                    if mask is not None:
+                        # Be sure to truncate off the buffer length!!
+                        yield (ptype, field), data[:maxlen][mask]
+                    if blockless:
+                        bfields[ptype, field].append(bdata)
+        if len(bxyz) == 0:
+            return
+        bxyz = np.concatenate(bxyz, axis=-1)
+        mask = selector.select_points(bxyz[0, :], bxyz[1, :], bxyz[2, :], 0.0)
+        if mask is None:
+            return
+        for field in field_list:
+            data_field = np.concatenate(bfields[ptype, field], axis=-1)
+            yield (ptype, field), data_field[mask]
 
     def _read_obj_field(self, obj, field, ds_offset=None):
         if ds_offset is None:
