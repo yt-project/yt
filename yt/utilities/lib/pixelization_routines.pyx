@@ -528,19 +528,29 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
                       extents):
 
     cdef np.float64_t x, y, dx, dy, r0, theta0
-    cdef np.float64_t rmax, x0, y0, x1, y1
+    cdef np.float64_t rmin, rmax, tmin, tmax, x0, y0, x1, y1, xp, yp
     cdef np.float64_t r_i, theta_i, dr_i, dtheta_i
     cdef np.float64_t r_inc, theta_inc
     cdef np.float64_t costheta, sintheta
-    cdef int i, pi, pj
+    cdef int i, i1, pi, pj
 
-    cdef int imax = np.asarray(radius).argmax()
+    cdef int imin, imax
+    imin = np.asarray(radius).argmin()
+    imax = np.asarray(radius).argmax()
+    rmin = radius[imin] - dradius[imin]
     rmax = radius[imax] + dradius[imax]
+
+    imin = np.asarray(theta).argmin()
+    imax = np.asarray(theta).argmax()
+    tmin = theta[imin] - dtheta[imin]
+    tmax = theta[imax] + dtheta[imax]
 
     x0, x1, y0, y1 = extents
     dx = (x1 - x0) / buff.shape[0]
     dy = (y1 - y0) / buff.shape[1]
     cdef np.float64_t rbounds[2]
+    cdef np.float64_t prbounds[2]
+    cdef np.float64_t ptbounds[2]
     cdef np.float64_t corners[8]
     # Find our min and max r
     corners[0] = x0*x0+y0*y0
@@ -590,7 +600,37 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
                 pj = <int>((y - y0)/dy)
                 if pi >= 0 and pi < buff.shape[0] and \
                    pj >= 0 and pj < buff.shape[1]:
-                    buff[pi, pj] = field[i]
+                    # we got a pixel that intersects the grid cell
+                    # now check that this pixel doesn't go beyond the data domain
+                    xp = x0 + pi*dx
+                    yp = y0 + pj*dy
+                    corners[0] = xp*xp + yp*yp
+                    corners[1] = xp*xp + (yp+dy)**2
+                    corners[2] = (xp+dx)**2 + yp*yp
+                    corners[3] = (xp+dx)**2 + (yp+dy)**2
+                    prbounds[0] = prbounds[1] = corners[3]
+                    for i1 in range(3):
+                        prbounds[0] = fmin(prbounds[0], corners[i1])
+                        prbounds[1] = fmax(prbounds[1], corners[i1])
+                    prbounds[0] = math.sqrt(prbounds[0])
+                    prbounds[1] = math.sqrt(prbounds[1])
+
+                    corners[0] = math.atan2(xp, yp)
+                    corners[1] = math.atan2(xp, yp+dy)
+                    corners[2] = math.atan2(xp+dx, yp)
+                    corners[3] = math.atan2(xp+dx, yp+dy)
+                    ptbounds[0] = ptbounds[1] = corners[3]
+                    for i1 in range(3):
+                        ptbounds[0] = fmin(ptbounds[0], corners[i1])
+                        ptbounds[1] = fmax(ptbounds[1], corners[i1])
+
+                    # shift to a [0, PI] interval
+                    ptbounds[0] = ptbounds[0] % (2*np.pi)
+                    ptbounds[1] = ptbounds[1] % (2*np.pi)
+
+                    if prbounds[0] >= rmin and prbounds[1] <= rmax and \
+                       ptbounds[0] >= tmin and ptbounds[1] <= tmax:
+                        buff[pi, pj] = field[i]
                 r_i += r_inc
             theta_i += theta_inc
 
