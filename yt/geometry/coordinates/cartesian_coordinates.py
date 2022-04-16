@@ -218,7 +218,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
             # re-order the array and squeeze out the dummy dim
             return np.squeeze(np.transpose(img, (yax, xax, ax)))
 
-        elif self.axis_id.get(dimension, dimension) < 3:
+        elif self.axis_id.get(dimension, dimension) is not None:
             return self._ortho_pixelize(
                 data_source, field, bounds, size, antialias, dimension, periodic
             )

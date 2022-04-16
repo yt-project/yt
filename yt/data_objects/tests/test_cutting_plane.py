@@ -43,7 +43,7 @@ def test_cutting_plane():
                 fi = ds._get_field_info(cut_field)
                 data = frb[cut_field]
                 assert_equal(data.info["data_source"], cut.__str__())
-                assert_equal(data.info["axis"], 4)
+                assert_equal(data.info["axis"], None)
                 assert_equal(data.info["field"], str(cut_field))
                 assert_equal(data.units, Unit(fi.units))
                 assert_equal(data.info["xlim"], frb.bounds[:2])
