@@ -182,6 +182,19 @@ answer_tests:
   local_nc4_cm1_001: # PR  2176
     - yt/frontends/nc4_cm1/tests/test_outputs.py:test_cm1_mesh_fields
 
+  local_norm_api_003: # PR 3849
+    - yt/visualization/tests/test_norm_api.py:test_lineplot_set_axis_properties
+    - yt/visualization/tests/test_norm_api.py:test_profileplot_set_axis_properties
+    - yt/visualization/tests/test_norm_api.py:test_sliceplot_custom_norm
+    - yt/visualization/tests/test_norm_api.py:test_two_slope_norm
+    - yt/visualization/tests/test_norm_api.py:test_sliceplot_set_log
+    - yt/visualization/tests/test_norm_api.py:test_sliceplot_set_zlim_and_unit
+    - yt/visualization/tests/test_norm_api.py:test_sliceplot_set_unit_and_zlim
+    - yt/visualization/tests/test_norm_api.py:test_sliceplot_set_background_color
+    - yt/visualization/tests/test_norm_api.py:test_phaseplot_set_colorbar_properties_implicit
+    - yt/visualization/tests/test_norm_api.py:test_phaseplot_set_colorbar_properties_explicit
+    - yt/visualization/tests/test_norm_api.py:test_particleprojectionplot_set_colorbar_properties
+
 other_tests:
   unittests:
      - "--exclude=test_mesh_slices"  # disable randomly failing test
