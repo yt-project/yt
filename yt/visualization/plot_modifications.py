@@ -138,7 +138,7 @@ class PlotCallback(ABC):
             ax = plot.data.axis
             # if this is an on-axis projection or slice, then
             # just grab the appropriate 2 coords for the on-axis view
-            if ax >= 0 and ax <= 2:
+            if ax is not None:
                 (xi, yi) = (
                     plot.data.ds.coordinates.x_axis[ax],
                     plot.data.ds.coordinates.y_axis[ax],
@@ -148,7 +148,7 @@ class PlotCallback(ABC):
             # if this is an off-axis project or slice (ie cutting plane)
             # we have to calculate where the data coords fall in the projected
             # plane
-            elif ax == 4:
+            elif ax is None:
                 # transpose is just to get [[x1,x2,...],[y1,y2,...],[z1,z2,...]]
                 # in the same order as plot.data.center for array arithmetic
                 coord_vectors = coord_copy.transpose() - plot.data.center

@@ -2279,7 +2279,7 @@ class OffAxisSlicePlot(SlicePlot, PWViewerMPL):
 
         if isinstance(ds, YTSpatialPlotDataset):
             cutting = ds.all_data()
-            cutting.axis = 4
+            cutting.axis = None
             cutting._inv_mat = ds.parameters["_inv_mat"]
         else:
             cutting = ds.cutting(
@@ -2333,7 +2333,7 @@ class OffAxisProjectionDummyDataSource:
     ):
         self.center = center
         self.ds = ds
-        self.axis = 4  # always true for oblique data objects
+        self.axis = None  # always true for oblique data objects
         self.normal_vector = normal_vector
         self.width = width
         if data_source is None:

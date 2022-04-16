@@ -56,7 +56,7 @@ class CallbackWrapper:
             if viewer._has_swapped_axes:
                 # store the original un-transposed shape
                 self.raw_image_shape = self.raw_image_shape[1], self.raw_image_shape[0]
-        if frb.axis < 3:
+        if frb.axis is not None:
             DD = frb.ds.domain_width
             xax = frb.ds.coordinates.x_axis[frb.axis]
             yax = frb.ds.coordinates.y_axis[frb.axis]

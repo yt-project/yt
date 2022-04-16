@@ -133,7 +133,7 @@ class FixedResolutionBuffer:
             ds.plots.append(weakref.proxy(self))
 
         # Handle periodicity, just in case
-        if self.data_source.axis < 3:
+        if self.data_source.axis is not None:
             DLE = self.ds.domain_left_edge
             DRE = self.ds.domain_right_edge
             DD = float(self.periodic) * (DRE - DLE)
