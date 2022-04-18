@@ -7,6 +7,9 @@ on:
       - stable
     tags:
       - 'yt-*'
+  pull_request:
+    paths:
+      - '.github/workflows/wheels.yaml'
   workflow_dispatch:
 
 jobs:
