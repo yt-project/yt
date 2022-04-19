@@ -94,11 +94,12 @@ class ParticleIndex(Index):
                     mylog.warning(
                         "Failed to load '%s' (missing file or directory)", _filename
                     )
+                    break
                 if max(df.total_particles.values()) == 0:
                     break
                 fi += 1
                 self.data_files.append(df)
-                if self.chunksize <= 0:
+                if end is None:
                     break
                 start = end
                 end += self.chunksize
