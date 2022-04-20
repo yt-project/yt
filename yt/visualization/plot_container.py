@@ -964,7 +964,7 @@ class ImagePlotContainer(PlotContainer):
 
     @accepts_all_fields
     @invalidate_plot
-    def set_zlim(self, field, zmin, zmax, dynamic_range=None):
+    def set_zlim(self, field, zmin="min", zmax="max", dynamic_range=None):
         """set the scale of the colormap
 
         Parameters
