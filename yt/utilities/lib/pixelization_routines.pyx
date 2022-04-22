@@ -128,6 +128,8 @@ def pixelize_cartesian(np.float64_t[:,:] buff,
        px.shape[0] != pdy.shape[0] or \
        px.shape[0] != data.shape[0]:
         raise YTPixelizeError("Arrays are not of correct shape.")
+    if np.nanmax(data) == np.nanmin(data):
+        antialias = 0
     xiter[0] = yiter[0] = 0
     xiterv[0] = yiterv[0] = 0.0
     # Here's a basic outline of what we're going to do here.  The xiter and
