@@ -163,6 +163,7 @@ class FixedResolutionBuffer:
         except (KeyError, AttributeError):
             units = self.data_source[item].units
 
+        buff = buff.astype("float32", copy=False)
         ia = ImageArray(buff, units=units, info=self._get_info(item))
         self.data[item] = ia
         return self.data[item]
