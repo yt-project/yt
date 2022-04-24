@@ -182,7 +182,7 @@ answer_tests:
   local_nc4_cm1_001: # PR  2176
     - yt/frontends/nc4_cm1/tests/test_outputs.py:test_cm1_mesh_fields
 
-  local_norm_api_005: # PR 3849
+  local_norm_api_006: # PR 3849
     - yt/visualization/tests/test_norm_api_lineplot.py:test_lineplot_set_axis_properties
     - yt/visualization/tests/test_norm_api_profileplot.py:test_profileplot_set_axis_properties
     - yt/visualization/tests/test_norm_api_custom_norm.py:test_sliceplot_custom_norm
