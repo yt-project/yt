@@ -46,6 +46,7 @@ def test_lineplot_set_axis_properties():
 
     test = GenericImageTest(ds, create_image, 12)
     test.prefix = "test_lineplot_set_axis_properties"
+    test.answer_name = "lineplot_set_axis_properties"
     test_lineplot_set_axis_properties.__name__ = test.description
     yield test
 
@@ -68,6 +69,7 @@ def test_profileplot_set_axis_properties():
 
     test = GenericImageTest(ds, create_image, 12)
     test.prefix = "test_profileplot_set_axis_properties"
+    test.answer_name = "profileplot_set_axis_properties"
     test_profileplot_set_axis_properties.__name__ = test.description
     yield test
 
@@ -92,6 +94,7 @@ def test_sliceplot_custom_norm():
 
     test = GenericImageTest(ds, create_image, 12)
     test.prefix = "test_sliceplot_custom_norm"
+    test.answer_name = "sliceplot_custom_norm"
     test_sliceplot_custom_norm.__name__ = test.description
     yield test
 
@@ -111,6 +114,7 @@ def test_two_slope_norm():
 
     test = GenericImageTest(ds, create_image, 12)
     test.prefix = "test_two_slope_norm"
+    test.answer_name = "two_slope_norm"
     test_two_slope_norm.__name__ = test.description
     yield test
 
@@ -124,6 +128,7 @@ def test_sliceplot_set_log():
 
     test = GenericImageTest(ds, create_image, 12)
     test.prefix = "test_sliceplot_set_log"
+    test.answer_name = "sliceplot_set_log"
     test_sliceplot_set_log.__name__ = test.description
     yield test
 
@@ -139,6 +144,7 @@ def test_sliceplot_set_zlim_and_unit():
 
     test = GenericImageTest(ds, create_image, 12)
     test.prefix = "test_sliceplot_set_zlim_and_unit"
+    test.answer_name = "sliceplot_set_zlim_and_unit"
     test_sliceplot_set_zlim_and_unit.__name__ = test.description
     yield test
 
@@ -154,6 +160,7 @@ def test_sliceplot_set_unit_and_zlim():
 
     test = GenericImageTest(ds, create_image, 12)
     test.prefix = "test_sliceplot_set_unit_and_zlim"
+    test.answer_name = "sliceplot_set_unit_and_zlim"
     test_sliceplot_set_unit_and_zlim.__name__ = test.description
     yield test
 
@@ -171,6 +178,7 @@ def test_sliceplot_set_background_color():
 
     test = GenericImageTest(ds, create_image, 12)
     test.prefix = "test_sliceplot_set_background_color"
+    test.answer_name = "sliceplot_set_background_color"
     test_sliceplot_set_background_color.__name__ = test.description
     yield test
 
@@ -196,6 +204,7 @@ def test_phaseplot_set_colorbar_properties_implicit():
 
     test = GenericImageTest(ds, create_image, 12)
     test.prefix = "test_phaseplot_set_colorbar_properties_implicit"
+    test.answer_name = "phaseplot_set_colorbar_properties_implicit"
     test_phaseplot_set_colorbar_properties_implicit.__name__ = test.description
     yield test
 
@@ -221,6 +230,7 @@ def test_phaseplot_set_colorbar_properties_explicit():
 
     test = GenericImageTest(ds, create_image, 12)
     test.prefix = "test_phaseplot_set_colorbar_properties_explicit"
+    test.answer_name = "phaseplot_set_colorbar_properties_explicit"
     test_phaseplot_set_colorbar_properties_explicit.__name__ = test.description
     yield test
 
@@ -243,5 +253,6 @@ def test_particleprojectionplot_set_colorbar_properties():
 
     test = GenericImageTest(ds, create_image, 12)
     test.prefix = "test_particleprojectionplot_set_colorbar_properties"
+    test.answer_name = "particleprojectionplot_set_colorbar_properties"
     test_particleprojectionplot_set_colorbar_properties.__name__ = test.description
     yield test
