@@ -174,19 +174,10 @@ class PlotWindow(ImagePlotContainer):
         The size of the window on the longest axis (in units of inches),
         including the margins but not the colorbar.
     right_handed : boolean
-        Depreceated, please use flip_horizontal.
+        Depreceated, please use flip_horizontal callback.
         Whether the implicit east vector for the image generated is set to make a right
         handed coordinate system with a north vector and the normal vector, the
         direction of the 'window' into the data.
-    swap_axes: boolean
-        If True, will transpose the final image and swap axes labels. default False.
-        Note that if the swap_axes attribute is set, the behavior of all image
-        modifications (e.g., pan or set_origin) are unchanged and remain relative
-        to the underlying coordinate system and not the image display axes.
-    flip_horizontal: boolean
-        If True, will invert the horizontal axis. default False.
-    flip_vertical: boolean
-        If True, will invert the vertical axis. default False.
 
     """
 
@@ -207,23 +198,24 @@ class PlotWindow(ImagePlotContainer):
         setup=False,
         *,
         geometry="cartesian",
-        swap_axes=False,
-        flip_horizontal=False,
-        flip_vertical=False,
     ):
+
+        # axis manipulation operations are callback-only:
+        self._swap_axes_input = False
+        self._flip_vertical = False
+        self._flip_horizontal = False
+
         self.center = None
         self._periodic = periodic
         self.oblique = oblique
-        self._right_handed = _check_right_handed(right_handed, flip_horizontal)
+        self._right_handed = _check_right_handed(right_handed, self._flip_horizontal)
         self._equivalencies = defaultdict(lambda: (None, {}))
         self.buff_size = buff_size
         self.antialias = antialias
         self._axes_unit_names = None
         self._transform = None
         self._projection = None
-        self._swap_axes_input = swap_axes
-        self._flip_vertical = flip_vertical
-        self._flip_horizontal = flip_horizontal
+
         self.aspect = aspect
         skip = list(FixedResolutionBuffer._exclude_fields) + data_source._key_fields
 
@@ -1990,15 +1982,6 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
          Size of the buffer to use for the image, i.e. the number of resolution elements
          used.  Effectively sets a resolution limit to the image if buff_size is
          smaller than the finest gridding.
-    swap_axes: boolean
-        If True, will transpose the final image and swap axes labels. default False.
-        Note that if the swap_axes attribute is set, the behavior of all image
-        modifications (e.g., pan or set_origin) are unchanged and remain relative
-        to the underlying coordinate system and not the image display axes.
-    flip_horizontal: boolean
-        If True, will invert the horizontal axis. default False.
-    flip_vertical: boolean
-        If True, will invert the vertical axis. default False.
 
     Examples
     --------
@@ -2033,9 +2016,6 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
         *,
         north_vector=None,
         axis=None,
-        swap_axes=False,
-        flip_horizontal=False,
-        flip_vertical=False,
     ):
         # TODO: in yt 4.2, remove default values for normal and fields, drop axis kwarg
         if north_vector is not None:
@@ -2087,9 +2067,6 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
             right_handed=right_handed,
             buff_size=buff_size,
             geometry=ds.geometry,
-            swap_axes=swap_axes,
-            flip_horizontal=flip_horizontal,
-            flip_vertical=flip_vertical,
         )
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
@@ -2269,9 +2246,6 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
         aspect=None,
         *,
         axis=None,
-        swap_axes=False,
-        flip_horizontal=False,
-        flip_vertical=False,
     ):
         # TODO: in yt 4.2, remove default values for normal and fields, drop axis kwarg
         normal = self._validate_init_args(normal=normal, fields=fields, axis=axis)
@@ -2327,9 +2301,6 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
             aspect=aspect,
             buff_size=buff_size,
             geometry=ds.geometry,
-            swap_axes=swap_axes,
-            flip_horizontal=flip_horizontal,
-            flip_vertical=flip_vertical,
         )
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
@@ -2406,15 +2377,6 @@ class OffAxisSlicePlot(SlicePlot, PWViewerMPL):
          Size of the buffer to use for the image, i.e. the number of resolution elements
          used.  Effectively sets a resolution limit to the image if buff_size is
          smaller than the finest gridding.
-    swap_axes: boolean
-        If True, will transpose the final image and swap axes labels. default False.
-        Note that if the swap_axes attribute is set, the behavior of all image
-        modifications (e.g., pan or set_origin) are unchanged and remain relative
-        to the underlying coordinate system and not the image display axes.
-    flip_horizontal: boolean
-        If True, will invert the horizontal axis. default False.
-    flip_vertical: boolean
-        If True, will invert the vertical axis. default False.
     """
 
     _plot_type = "OffAxisSlice"
@@ -2436,9 +2398,6 @@ class OffAxisSlicePlot(SlicePlot, PWViewerMPL):
         buff_size=(800, 800),
         *,
         origin=None,
-        swap_axes=False,
-        flip_horizontal=False,
-        flip_vertical=False,
     ):
         if origin is not None:
             # this kwarg exists only for symmetry reasons with AxisAlignedSlicePlot
@@ -2480,9 +2439,6 @@ class OffAxisSlicePlot(SlicePlot, PWViewerMPL):
             oblique=True,
             fontsize=fontsize,
             buff_size=buff_size,
-            swap_axes=swap_axes,
-            flip_horizontal=flip_horizontal,
-            flip_vertical=flip_vertical,
         )
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
@@ -2630,15 +2586,6 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
          Size of the buffer to use for the image, i.e. the number of resolution elements
          used.  Effectively sets a resolution limit to the image if buff_size is
          smaller than the finest gridding.
-    swap_axes: boolean
-        If True, will transpose the final image and swap axes labels. default False.
-        Note that if the swap_axes attribute is set, the behavior of all image
-        modifications (e.g., pan or set_origin) are unchanged and remain relative
-        to the underlying coordinate system and not the image display axes.
-    flip_horizontal: boolean
-        If True, will invert the horizontal axis. default False.
-    flip_vertical: boolean
-        If True, will invert the vertical axis. default False.
     """
     _plot_type = "OffAxisProjection"
     _frb_generator = OffAxisProjectionFixedResolutionBuffer
@@ -2665,10 +2612,6 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
         method="integrate",
         data_source=None,
         buff_size=(800, 800),
-        *,
-        swap_axes=False,
-        flip_horizontal=False,
-        flip_vertical=False,
     ):
         (bounds, center_rot) = get_oblique_window_parameters(
             normal, center, width, ds, depth=depth
@@ -2717,9 +2660,6 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
             right_handed=right_handed,
             fontsize=fontsize,
             buff_size=buff_size,
-            swap_axes=swap_axes,
-            flip_horizontal=flip_horizontal,
-            flip_vertical=flip_vertical,
         )
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
@@ -2949,11 +2889,12 @@ def _check_right_handed(right_handed: bool, flip_horizontal: bool) -> bool:
     # remove this after full depreciation.
     if not right_handed:
         issue_deprecation_warning(
-            "The 'right_handed' argument is deprecated. Use 'flip_horizontal' instead.",
+            "The 'right_handed' argument is deprecated. Use 'flip_horizontal' callback instead.",
             since="4.1.0",
             removal="4.2.0",
         )
         if flip_horizontal:
+            # may be able to remove this now that its not a kwarg
             raise ValueError(
                 "Cannot use both 'right_handed' and 'flip_horizontal' arguments"
             )

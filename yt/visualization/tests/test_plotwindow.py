@@ -73,9 +73,6 @@ ATTR_ARGS = {
     ],
     "zoom": [((10,), {})],
     "toggle_right_handed": [((), {})],
-    "flip_horizontal": [((), {})],
-    "flip_vertical": [((), {})],
-    "swap_axes": [((), {})],
 }
 
 
