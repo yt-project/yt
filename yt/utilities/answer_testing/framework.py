@@ -31,6 +31,7 @@ from yt.testing import (
     assert_almost_equal,
     assert_equal,
     assert_rel_equal,
+    skipif,
 )
 from yt.utilities.exceptions import YTCloudError, YTNoAnswerNameSpecified, YTNoOldAnswer
 from yt.utilities.logger import disable_stream_logging
@@ -1119,47 +1120,15 @@ class AxialPixelizationTest(AnswerTestingTest):
 
 
 def requires_answer_testing():
-    from functools import wraps
-
-    from nose import SkipTest
-
-    def ffalse(func):
-        @wraps(func)
-        def fskip(*args, **kwargs):
-            raise SkipTest
-
-        return fskip
-
-    def ftrue(func):
-        return func
-
-    if AnswerTestingTest.result_storage is not None:
-        return ftrue
-    else:
-        return ffalse
+    return skipif(
+        AnswerTestingTest.result_storage is None,
+        reason="answer testing storage is not properly setup",
+    )
 
 
 def requires_ds(ds_fn, big_data=False, file_check=False):
-    from functools import wraps
-
-    from nose import SkipTest
-
-    def ffalse(func):
-        @wraps(func)
-        def fskip(*args, **kwargs):
-            raise SkipTest
-
-        return fskip
-
-    def ftrue(func):
-        return func
-
-    if not run_big_data and big_data:
-        return ffalse
-    elif not can_run_ds(ds_fn, file_check):
-        return ffalse
-    else:
-        return ftrue
+    condition = (not run_big_data and big_data) or not can_run_ds(ds_fn, file_check)
+    return skipif(condition, reason="cannot load dataset")
 
 
 def small_patch_amr(ds_fn, fields, input_center="max", input_weight=("gas", "density")):
