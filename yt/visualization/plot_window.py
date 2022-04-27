@@ -1970,6 +1970,11 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
          Defaults to None, which automatically picks an appropriate unit.
          If axes_unit is '1', 'u', or 'unitary', it will not display the
          units, and only show the axes name.
+    right_handed : boolean
+        Depreceated, please use flip_horizontal callback.
+        Whether the implicit east vector for the image generated is set to make a right
+        handed coordinate system with a north vector and the normal vector, the
+        direction of the 'window' into the data.
     fontsize : integer
          The size of the fonts for the axis, colorbar, and tick labels.
     field_parameters : dictionary
@@ -2162,6 +2167,11 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
          (xloc, yloc, '{space}')                            (0.23, 0.5, 'domain')
          =============================================== ===============================
 
+    right_handed : boolean
+        Depreceated, please use flip_horizontal callback.
+        Whether the implicit east vector for the image generated is set to make a right
+        handed coordinate system with a north vector and the normal vector, the
+        direction of the 'window' into the data.
     data_source : YTSelectionContainer Object
          Object to be used for data selection.  Defaults to a region covering
          the entire simulation.
@@ -2201,15 +2211,6 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
          Size of the buffer to use for the image, i.e. the number of resolution elements
          used.  Effectively sets a resolution limit to the image if buff_size is
          smaller than the finest gridding.
-    swap_axes: boolean
-        If True, will transpose the final image and swap axes labels. default False.
-        Note that if the swap_axes attribute is set, the behavior of all image
-        modifications (e.g., pan or set_origin) are unchanged and remain relative
-        to the underlying coordinate system and not the image display axes.
-    flip_horizontal: boolean
-        If True, will invert the horizontal axis. default False.
-    flip_vertical: boolean
-        If True, will invert the vertical axis. default False.
 
     Examples
     --------
@@ -2365,6 +2366,11 @@ class OffAxisSlicePlot(SlicePlot, PWViewerMPL):
          A vector defining the 'up' direction in the plot.  This
          option sets the orientation of the slicing plane.  If not
          set, an arbitrary grid-aligned north-vector is chosen.
+    right_handed : boolean
+        Depreceated, please use flip_horizontal callback.
+        Whether the implicit east vector for the image generated is set to make a right
+        handed coordinate system with a north vector and the normal vector, the
+        direction of the 'window' into the data.
     fontsize : integer
          The size of the fonts for the axis, colorbar, and tick labels.
     field_parameters : dictionary
@@ -2560,9 +2566,10 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
          option sets the orientation of the slicing plane.  If not
          set, an arbitrary grid-aligned north-vector is chosen.
     right_handed : boolean
-         Whether the implicit east vector for the image generated is set to make a right
-         handed coordinate system with the north vector and the normal, the direction of
-         the 'window' into the data.
+        Depreceated, please use flip_horizontal callback.
+        Whether the implicit east vector for the image generated is set to make a right
+        handed coordinate system with a north vector and the normal vector, the
+        direction of the 'window' into the data.
     fontsize : integer
          The size of the fonts for the axis, colorbar, and tick labels.
     method : string
