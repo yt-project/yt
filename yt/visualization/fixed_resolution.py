@@ -167,7 +167,7 @@ class FixedResolutionBuffer:
         )
 
         for name, (args, kwargs) in self._filters:
-            buff = filter_registry[name](*args[1:], **kwargs).apply(buff)
+            buff = filter_registry[name](*args, **kwargs).apply(buff)
 
         # FIXME FIXME FIXME we shouldn't need to do this for projections
         # but that will require fixing data object access for particle
