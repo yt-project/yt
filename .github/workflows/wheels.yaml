@@ -7,6 +7,9 @@ on:
       - stable
     tags:
       - 'yt-*'
+  pull_request:
+    paths:
+      - '.github/workflows/wheels.yaml'
   workflow_dispatch:
 
 jobs:
@@ -29,14 +32,14 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Build wheels for CPython
-        uses: pypa/cibuildwheel@v2.3.0
+        uses: pypa/cibuildwheel@v2.4.0
         with:
           output-dir: dist
         env:
           CIBW_BUILD: "cp37-* cp38-* cp39-* cp310-*"
           CIBW_SKIP: "*-musllinux_*"  #  numpy doesn't have wheels for musllinux so we can't build some quickly and without bloating
           CIBW_ARCHS_LINUX: "x86_64"
-          CIBW_ARCHS_MACOS: "x86_64"
+          CIBW_ARCHS_MACOS: x86_64 arm64
           CIBW_ARCHS_WINDOWS: "auto"
           CIBW_ENVIRONMENT: "LDFLAGS='-static-libstdc++'"
           CIBW_BUILD_VERBOSITY: 1
