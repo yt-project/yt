@@ -1127,7 +1127,7 @@ def requires_answer_testing():
 
 
 def requires_ds(ds_fn, big_data=False, file_check=False):
-    condition = (not run_big_data and big_data) or not can_run_ds(ds_fn, file_check)
+    condition = (big_data and not run_big_data) or not can_run_ds(ds_fn, file_check)
     return skipif(condition, reason="cannot load dataset")
 
 

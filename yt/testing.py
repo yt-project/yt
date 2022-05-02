@@ -1322,56 +1322,18 @@ def requires_backend(backend):
     backend : String
         The value which is compared with the current matplotlib backend in use.
 
-    Returns
-    -------
-    Decorated function or null function
-
     """
-
-    def ffalse(func):
-        # returning a lambda : None causes an error when using pytest. Having
-        # a function (skip) that returns None does work, but pytest marks the
-        # test as having passed, which seems bad, since it wasn't actually run.
-        # Using pytest.skip() means that a change to test_requires_backend was
-        # needed since None is no longer returned, so we check for the skip
-        # exception in the xfail case for that test
-        def skip(*args, **kwargs):
-            raise SkipTest(
-                f"`{backend}` backend not in use, skipping: `{func.__name__}`"
-            )
-
-        if ytcfg.get("yt", "internals", "within_pytest"):
-            return skip
-        else:
-            return lambda: None
-
-    def ftrue(func):
-        return func
-
-    if backend.lower() == matplotlib.get_backend().lower():
-        return ftrue
-    return ffalse
+    return skipif(
+        backend.lower() != matplotlib.get_backend().lower(),
+        reason=f"'{backend}' backend not in use",
+    )
 
 
 def requires_external_executable(*names):
-    def deco(func):
-        missing = []
-        for name in names:
-            if which(name) is None:
-                missing.append(name)
-
-        # note that order between these two decorators matters
-        @pytest.mark.skipif(
-            missing,
-            reason=f"missing external executable(s): {', '.join(missing)}",
-        )
-        @wraps(func)
-        def inner_func(*args, **kwargs):
-            return func(*args, **kwargs)
-
-        return inner_func
-
-    return deco
+    missing = [name for name in names if which(name) is None]
+    return skipif(
+        len(missing) > 0, reason=f"missing external executable(s): {', '.join(missing)}"
+    )
 
 
 class TempDirTest(unittest.TestCase):
