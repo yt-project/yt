@@ -1,6 +1,8 @@
 from functools import partial
-
+from more_itertools import sort_together
+from yt.fields.particle_fields import sph_whitelist_fields
 from yt.frontends.sph.fields import SPHFieldInfo
+from yt.utilities.periodic_table import periodic_table
 from yt.utilities.physical_constants import kb, mp
 from yt.utilities.physical_ratios import _primordial_mass_fraction
 
@@ -20,7 +22,7 @@ class GadgetFieldInfo(SPHFieldInfo):
             self.species_names = self._setup_four_metal_fractions(ptype)
         elif (ptype, "ElevenMetalMasses") in self.ds.field_list:
             self.species_names = self._setup_eleven_metal_masses(ptype)
-        else:
+        if len(self.species_names) == 0:
             self.species_names = self._check_whitelist_fields(ptype)
 
         super().setup_particle_fields(ptype, *args, **kwargs)
@@ -125,15 +127,21 @@ class GadgetFieldInfo(SPHFieldInfo):
         return ["H"] + metal_names[:-1]
 
     def _check_whitelist_fields(self, ptype):
-        from yt.fields.particle_fields import sph_whitelist_fields
         species_names = []
+        species_nums = []
         for field in self.ds.field_list:
             if field[0] == ptype:
                 if field[1].endswith("_fraction") or field[1].endswith("_density"):
                     if field[1] in sph_whitelist_fields:
-                        species_names.append(field[1].split("_")[0])
-        return species_names
-
+                        symbol = field[1].split("_")[0]
+                        species_names.append(symbol)
+                        species_nums.append(periodic_table[symbol].num)
+        if len(species_names) > 0:
+            ret = list(sort_together([species_nums, species_names])[1])
+        else:
+            ret = []
+        return ret
+    
     def setup_gas_particle_fields(self, ptype):
         if (ptype, "Temperature") not in self.ds.field_list:
 
