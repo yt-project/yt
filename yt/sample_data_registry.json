@@ -277,6 +277,12 @@
     "load_name": "plt00015",
     "url": "https://yt-project.org/data/Laser.tar.gz"
   },
+  "LocBub_dust.tar.gz": {
+    "hash": "1ad9728ca982616686d9bd6c1c959fece3c067ecbbba64ff8c2c5bfcc1deed01",
+    "load_kwargs": {},
+    "load_name": "LocBub_dust_hdf5_plt_cnt_0220",
+    "url": "https://yt-project.org/data/LocBub_dust.tar.gz"
+  },
   "MagneticumCluster.tar.gz": {
     "hash": "403c2224c205a44ee92a5925053be8aef6e5d530d9297c18151cdb0f588c32a7",
     "load_kwargs": {

@@ -8,9 +8,11 @@ filter_registry = {}
 
 def apply_filter(f):
     @wraps(f)
-    def newfunc(*args, **kwargs):
-        args[0]._filters.append((f.__name__, (args, kwargs)))
-        return args[0]
+    def newfunc(self, *args, **kwargs):
+        self._filters.append((f.__name__, (args, kwargs)))
+        # Invalidate the data of the frb to force its regeneration
+        self._data_valid = False
+        return self
 
     return newfunc
 

@@ -131,3 +131,14 @@ def test_fid_1to3_b1():
     ):
         test_fid_1to3_b1.__name__ = test.description
         yield test
+
+
+loc_bub_dust = "LocBub_dust/LocBub_dust_hdf5_plt_cnt_0220"
+
+
+@requires_file(loc_bub_dust)
+def test_blockless_particles():
+    ds = data_dir_load(loc_bub_dust)
+    dd = ds.all_data()
+    pos = dd["all", "particle_position"]
+    assert_equal(pos.shape, (2239, 3))

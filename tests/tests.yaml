@@ -168,13 +168,13 @@ answer_tests:
     - yt/frontends/ytdata/tests/test_old_outputs.py:test_old_profile_data
     - yt/frontends/ytdata/tests/test_old_outputs.py:test_old_nonspatial_data
 
-  local_axialpix_008: # PR 3628
+  local_axialpix_009: # PR 3818
     - yt/geometry/coordinates/tests/test_axial_pixelization.py:test_axial_pixelization
 
-  local_cylindrical_background_013:  # PR 3859
+  local_cylindrical_background_014:  # PR 3818
     - yt/geometry/coordinates/tests/test_cylindrical_coordinates.py:test_noise_plots
 
-  local_spherical_background_007:  # PR 3859
+  local_spherical_background_008:  # PR 3818
     - yt/geometry/coordinates/tests/test_spherical_coordinates.py:test_noise_plots
 
   #local_particle_trajectory_001:

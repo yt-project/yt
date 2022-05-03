@@ -1,6 +1,7 @@
 import os
 import sys
 import warnings
+from functools import wraps
 from typing import Optional, Type, TypeVar
 
 import matplotlib
@@ -93,6 +94,60 @@ def get_canvas(figure, filename):
             f"without an extension."
         )
     return get_canvas_class(suffix)(figure)
+
+
+def invalidate_plot(f):
+    @wraps(f)
+    def newfunc(self, *args, **kwargs):
+        retv = f(self, *args, **kwargs)
+        self._plot_valid = False
+        return retv
+
+    return newfunc
+
+
+def invalidate_data(f):
+    @wraps(f)
+    def newfunc(self, *args, **kwargs):
+        retv = f(self, *args, **kwargs)
+        self._data_valid = False
+        self._plot_valid = False
+        return retv
+
+    return newfunc
+
+
+def invalidate_figure(f):
+    @wraps(f)
+    def newfunc(self, *args, **kwargs):
+        retv = f(self, *args, **kwargs)
+        for field in self.plots.keys():
+            self.plots[field].figure = None
+            self.plots[field].axes = None
+            self.plots[field].cax = None
+        self._setup_plots()
+        return retv
+
+    return newfunc
+
+
+def validate_plot(f):
+    @wraps(f)
+    def newfunc(self, *args, **kwargs):
+        # TODO: _profile_valid and _data_valid seem to play very similar roles,
+        # there's probably room to abstract these into a common operation
+        if hasattr(self, "_data_valid") and not self._data_valid:
+            self._recreate_frb()
+        if hasattr(self, "_profile_valid") and not self._profile_valid:
+            self._recreate_profile()
+        if not self._plot_valid:
+            # it is the responsibility of _setup_plots to
+            # call plot.run_callbacks()
+            self._setup_plots()
+        retv = f(self, *args, **kwargs)
+        return retv
+
+    return newfunc
 
 
 T = TypeVar("T", tuple, list)

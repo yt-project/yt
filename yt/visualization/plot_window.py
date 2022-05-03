@@ -288,7 +288,11 @@ class PlotWindow(ImagePlotContainer):
 
     @property
     def frb(self):
-        if self._frb is None or not self._data_valid:
+        # Force the regeneration of the fixed resolution buffer
+        # * if there's none
+        # * if the data has been invalidated
+        # * if the frb has been inalidated
+        if not self._data_valid:
             self._recreate_frb()
         return self._frb
 
@@ -301,15 +305,15 @@ class PlotWindow(ImagePlotContainer):
     def frb(self):
         del self._frb
         self._frb = None
-        self._data_valid = False
 
     def _recreate_frb(self):
         old_fields = None
+        old_filters = []
         # If we are regenerating an frb, we want to know what fields we had before
         if self._frb is not None:
-            old_fields = list(self._frb.keys())
-            old_units = [str(self._frb[of].units) for of in old_fields]
-
+            old_fields = list(self._frb.data.keys())
+            old_units = [_.units for _ in self._frb.data.values()]
+            old_filters = self._frb._filters
         # Set the bounds
         if hasattr(self, "zlim"):
             bounds = self.xlim + self.ylim + self.zlim
@@ -323,6 +327,7 @@ class PlotWindow(ImagePlotContainer):
             self.buff_size,
             self.antialias,
             periodic=self._periodic,
+            filters=old_filters,
         )
 
         # At this point the frb has the valid bounds, size, aliasing, etc.
@@ -510,9 +515,6 @@ class PlotWindow(ImagePlotContainer):
            Keyword arguments to be passed to the equivalency. Only used if
            ``equivalency`` is set.
         """
-        if equivalency_kwargs is None:
-            equivalency_kwargs = {}
-        field = self.data_source._determine_fields(field)[0]
         for f, u in zip_equal(iter_fields(field), always_iterable(new_unit)):
             self.frb.set_unit(f, u, equivalency, equivalency_kwargs)
             self._equivalencies[f] = (equivalency, equivalency_kwargs)
@@ -910,7 +912,6 @@ class PWViewerMPL(PlotWindow):
     _current_field = None
     _frb_generator: Optional[Type[FixedResolutionBuffer]] = None
     _plot_type: Optional[str] = None
-    _data_valid = False
 
     def __init__(self, *args, **kwargs):
         if self._frb_generator is None:
@@ -918,7 +919,21 @@ class PWViewerMPL(PlotWindow):
         if self._plot_type is None:
             self._plot_type = kwargs.pop("plot_type")
         self._splat_color = kwargs.pop("splat_color", None)
+        self._frb: Optional[FixedResolutionBuffer] = None
         PlotWindow.__init__(self, *args, **kwargs)
+
+    @property
+    def _data_valid(self) -> bool:
+        return self._frb is not None and self._frb._data_valid
+
+    @_data_valid.setter
+    def _data_valid(self, value):
+        if self._frb is None:
+            # we delegate the (in)validation responsability to the FRB
+            # if we don't have one yet, we can exit without doing anything
+            return
+        else:
+            self._frb._data_valid = value
 
     def _setup_origin(self):
         origin = self.origin
@@ -1040,7 +1055,6 @@ class PWViewerMPL(PlotWindow):
             return
         if not self._data_valid:
             self._recreate_frb()
-            self._data_valid = True
         self._colorbar_valid = True
         field_list = list(set(self.data_source._determine_fields(self.fields)))
         for f in field_list:
