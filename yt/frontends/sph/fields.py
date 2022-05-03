@@ -29,6 +29,7 @@ class SPHFieldInfo(FieldInfoContainer):
         ("TrueMass", ("code_mass", [], None)),
         ("ElevenMetalMasses", ("code_mass", [], None)),
         ("ColdFraction", ("", ["cold_fraction"], None)),
+        ("HotTemperature", ("code_temperature", ["hot_temperature"], None)),
     )
 
     def setup_particle_fields(self, ptype, *args, **kwargs):
