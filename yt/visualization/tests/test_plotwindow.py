@@ -18,6 +18,7 @@ from yt.testing import (
     fake_amr_ds,
     fake_random_ds,
     requires_file,
+    requires_module,
 )
 from yt.units import kboltz
 from yt.units.yt_array import YTArray, YTQuantity
@@ -841,3 +842,13 @@ def test_dispatch_plot_classes():
     assert isinstance(p2, OffAxisProjectionPlot)
     assert isinstance(s1, AxisAlignedSlicePlot)
     assert isinstance(s2, OffAxisSlicePlot)
+
+
+@requires_module("cartopy")
+def test_invalid_swap_projection():
+    # projections and transforms will not work
+    ds = fake_amr_ds(geometry="geographic")
+    slc = SlicePlot(ds, "altitude", ds.field_list[0], origin="native")
+    slc.set_mpl_projection("Robinson")
+    slc.swap_axes()  # should raise mylog.warning and not toggle _swap_axes
+    assert slc._has_swapped_axes is False

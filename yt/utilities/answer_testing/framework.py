@@ -16,6 +16,7 @@ import urllib
 import warnings
 import zlib
 from collections import defaultdict
+from typing import Optional
 
 import numpy as np
 from matplotlib import image as mpimg
@@ -878,15 +879,15 @@ class PlotWindowAttributeTest(AnswerTestingTest):
 
     def __init__(
         self,
-        ds_fn,
-        plot_field,
-        plot_axis,
-        attr_name,
-        attr_args,
-        decimals,
-        plot_type="SlicePlot",
-        callback_id="",
-        callback_runners=None,
+        ds_fn: str,
+        plot_field: str,
+        plot_axis: str,
+        attr_name: Optional[str] = None,
+        attr_args: Optional[tuple] = None,
+        decimals: Optional[int] = 12,
+        plot_type: Optional[str] = "SlicePlot",
+        callback_id: Optional[str] = "",
+        callback_runners: Optional[tuple] = None,
     ):
         super().__init__(ds_fn)
         self.plot_type = plot_type
@@ -900,7 +901,7 @@ class PlotWindowAttributeTest(AnswerTestingTest):
         # run, but instead we call them something
         self.callback_id = callback_id
         if callback_runners is None:
-            callback_runners = []
+            callback_runners = ()
         self.callback_runners = callback_runners
 
     def run(self):
@@ -909,8 +910,9 @@ class PlotWindowAttributeTest(AnswerTestingTest):
         )
         for r in self.callback_runners:
             r(self, plot)
-        attr = getattr(plot, self.attr_name)
-        attr(*self.attr_args[0], **self.attr_args[1])
+        if self.attr_name and self.attr_args:
+            attr = getattr(plot, self.attr_name)
+            attr(*self.attr_args[0], **self.attr_args[1])
         tmpfd, tmpname = tempfile.mkstemp(suffix=".png")
         os.close(tmpfd)
         plot.save(name=tmpname)

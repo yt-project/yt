@@ -30,6 +30,8 @@ from yt.utilities.lib.pixelization_routines import (
 )
 from yt.utilities.math_utils import periodic_ray
 from yt.utilities.on_demand_imports import NotAModule
+from yt.visualization._commons import _swap_arg_pair_order, _swap_axes_extents
+from yt.visualization.base_plot_types import CallbackWrapper
 from yt.visualization.image_writer import apply_colormap
 
 callback_registry = {}
@@ -88,7 +90,7 @@ class PlotCallback:
     def __init__(self, *args, **kwargs):
         pass
 
-    def __call__(self, plot):
+    def __call__(self, plot: CallbackWrapper):
         raise NotImplementedError
 
     def _project_coords(self, plot, coord):
@@ -155,16 +157,10 @@ class PlotCallback:
 
         # Convert the data and plot limits to tiled numpy arrays so that
         # convert_to_plot is automatically vectorized.
-
-        x0 = np.array(np.tile(plot.xlim[0].to("code_length"), ncoord))
-        x1 = np.array(np.tile(plot.xlim[1].to("code_length"), ncoord))
-        xx0 = np.tile(plot._axes.get_xlim()[0], ncoord)
-        xx1 = np.tile(plot._axes.get_xlim()[1], ncoord)
-
-        y0 = np.array(np.tile(plot.ylim[0].to("code_length"), ncoord))
-        y1 = np.array(np.tile(plot.ylim[1].to("code_length"), ncoord))
-        yy0 = np.tile(plot._axes.get_ylim()[0], ncoord)
-        yy1 = np.tile(plot._axes.get_ylim()[1], ncoord)
+        phy_bounds = self._physical_bounds(plot)
+        x0, x1, y0, y1 = (np.array(np.tile(xyi, ncoord)) for xyi in phy_bounds)
+        plt_bounds = self._plot_bounds(plot)
+        xx0, xx1, yy0, yy1 = (np.tile(xyi, ncoord) for xyi in plt_bounds)
 
         try:
             ccoord = np.array(coord.to("code_length"))
@@ -257,10 +253,19 @@ class PlotCallback:
     def _physical_bounds(self, plot):
         xlims = tuple(v.in_units("code_length") for v in plot.xlim)
         ylims = tuple(v.in_units("code_length") for v in plot.ylim)
+        # _swap_axes note: do NOT need to unswap here because plot (a CallbackWrapper
+        # instance) stores the x, y lims of the underlying data object.
         return xlims + ylims
 
     def _plot_bounds(self, plot):
-        return plot._axes.get_xlim() + plot._axes.get_ylim()
+        xlims = plot._axes.get_xlim()
+        ylims = plot._axes.get_ylim()
+        # _swap_axes note: because we are getting the plot limits from the axes
+        # object, if the axes have been swapped, these will be reversed from the
+        # _physical_bounds. So we need to unswap here, but not in _physical_bounds.
+        if plot._swap_axes:
+            return ylims + xlims
+        return xlims + ylims
 
     def _pixel_scale(self, plot):
         x0, x1, y0, y1 = self._physical_bounds(plot)
@@ -313,6 +318,52 @@ class PlotCallback:
             if plot.font_color is not None and "color" not in kwargs:
                 label.set_color(plot.font_color)
             label.set_fontproperties(local_font_properties)
+
+    def _set_plot_limits(self, plot, extent=None) -> None:
+        """
+        calls set_xlim, set_ylim for plot, accounting for swapped axes
+
+        Parameters
+        ----------
+        plot : CallbackWrapper
+            a CallbackWrapper instance
+        extent : tuple or list
+            The raw extent (prior to swapping). if None, will fetch it.
+        """
+        if extent is None:
+            extent = self._plot_bounds(plot)
+
+        if plot._swap_axes:
+            extent = _swap_axes_extents(extent)
+
+        plot._axes.set_xlim(extent[0], extent[1])
+        plot._axes.set_ylim(extent[2], extent[3])
+
+    @staticmethod
+    def _sanitize_xy_order(plot, *args):
+        """
+        flips x-y pairs of plot arguments if needed
+
+        Parameters
+        ----------
+        plot : CallbackWrapper
+            a CallbackWrapper instance
+        *args
+            x, y plot arguments, must have an even number of *args
+
+        Returns
+        -------
+        tuple
+            either the original args or new args, with (x, y) pairs switched. i.e.,
+
+            _sanitize_xy_order(plot, x, y, px, py) returns:
+                x, y, px, py if plot._swap_axes is False
+                y, x, py, px if plot._swap_axes is True
+
+        """
+        if plot._swap_axes:
+            return _swap_arg_pair_order(*args)
+        return args
 
 
 class VelocityCallback(PlotCallback):
@@ -524,8 +575,27 @@ class BaseQuiverCallback(PlotCallback, ABC):
         self.plot_args = plot_args
 
     @abstractmethod
-    def __call__(self, plot):
+    def _get_quiver_data(self, plot, bounds: tuple, nx: int, ny: int):
+        # must return (pixX, pixY, pixC) arrays (pixC can be None)
         pass
+
+    def __call__(self, plot):
+
+        # construct mesh
+        bounds = self._physical_bounds(plot)
+        nx = plot.raw_image_shape[1] // self.factor[0]
+        ny = plot.raw_image_shape[0] // self.factor[1]
+        xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
+        X, Y = np.meshgrid(
+            np.linspace(xx0, xx1, nx, endpoint=True),
+            np.linspace(yy0, yy1, ny, endpoint=True),
+        )
+
+        pixX, pixY, pixC = self._get_quiver_data(plot, bounds, nx, ny)
+
+        retv = self._finalize(plot, X, Y, pixX, pixY, pixC)
+        self._set_plot_limits(plot, (xx0, xx1, yy0, yy1))
+        return retv
 
     def _finalize(self, plot, X, Y, pixX, pixY, pixC):
         if self.normalize:
@@ -533,6 +603,15 @@ class BaseQuiverCallback(PlotCallback, ABC):
             nn = np.where(nn == 0, 1, nn)
             pixX /= nn
             pixY /= nn
+
+        X, Y, pixX, pixY = self._sanitize_xy_order(plot, X, Y, pixX, pixY)
+        # quiver plots ignore x, y axes inversions when using angles="uv" (the
+        # default), so reverse the direction of the vectors when flipping the axis.
+        if self.plot_args.get("angles", None) != "xy":
+            if plot._flip_vertical:
+                pixY = -1 * pixY
+            if plot._flip_horizontal:
+                pixX = -1 * pixX
 
         args = [X, Y, pixX, pixY]
         if pixC is not None:
@@ -560,7 +639,12 @@ class QuiverCallback(BaseQuiverCallback):
     """
 
     _type_name = "quiver"
-    _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
+    _supported_geometries: Tuple[str, ...] = (
+        "cartesian",
+        "spectral_cube",
+        "polar",
+        "cylindrical",
+    )
 
     def __init__(
         self,
@@ -591,11 +675,8 @@ class QuiverCallback(BaseQuiverCallback):
         self.bv_x = bv_x
         self.bv_y = bv_y
 
-    def __call__(self, plot):
-        x0, x1, y0, y1 = self._physical_bounds(plot)
-        xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
-        bounds = [x0, x1, y0, y1]
-        periodic = int(any(plot.data.ds.periodicity))
+    def _get_quiver_data(self, plot, bounds: tuple, nx: int, ny: int):
+        # calls the pixelizer, returns pixX, pixY, pixC arrays
 
         def transform(field_name, vector_value):
             field_units = plot.data[field_name].units
@@ -620,10 +701,7 @@ class QuiverCallback(BaseQuiverCallback):
         else:
             field_x, field_y = self.field_x, self.field_y
 
-        # We are feeding this size into the pixelizer, where it will properly
-        # set it in reverse order
-        nx = plot.image._A.shape[1] // self.factor[0]
-        ny = plot.image._A.shape[0] // self.factor[1]
+        periodic = int(any(plot.data.ds.periodicity))
         pixX = plot.data.ds.coordinates.pixelize(
             plot.data.axis,
             plot.data,
@@ -642,6 +720,7 @@ class QuiverCallback(BaseQuiverCallback):
             False,  # antialias
             periodic,
         )
+
         if self.field_c is not None:
             pixC = plot.data.ds.coordinates.pixelize(
                 plot.data.axis,
@@ -655,14 +734,7 @@ class QuiverCallback(BaseQuiverCallback):
         else:
             pixC = None
 
-        X, Y = np.meshgrid(
-            np.linspace(xx0, xx1, nx, endpoint=True),
-            np.linspace(yy0, yy1, ny, endpoint=True),
-        )
-        retv = self._finalize(plot, X, Y, pixX, pixY, pixC)
-        plot._axes.set_xlim(xx0, xx1)
-        plot._axes.set_ylim(yy0, yy1)
-        return retv
+        return pixX, pixY, pixC
 
 
 class ContourCallback(PlotCallback):
@@ -725,12 +797,11 @@ class ContourCallback(PlotCallback):
 
         # See the note about rows/columns in the pixelizer for more information
         # on why we choose the bounds we do
-        numPoints_x = plot.image._A.shape[1]
-        numPoints_y = plot.image._A.shape[0]
+        numPoints_x = plot.raw_image_shape[1]
+        numPoints_y = plot.raw_image_shape[0]
 
-        # Multiply by dx and dy to go from data->plot
-        dx = (xx1 - xx0) / (x1 - x0)
-        dy = (yy1 - yy0) / (y1 - y0)
+        # Go from data->plot coordinates
+        dx, dy = self._pixel_scale(plot)
 
         # We want xi, yi in plot coordinates
         xi, yi = np.mgrid[
@@ -794,9 +865,9 @@ class ContourCallback(PlotCallback):
         if self.clim is not None:
             self.ncont = np.linspace(self.clim[0], self.clim[1], self.ncont)
 
+        xi, yi = self._sanitize_xy_order(plot, xi, yi)
         cset = plot._axes.contour(xi, yi, zi, self.ncont, **self.plot_args)
-        plot._axes.set_xlim(xx0, xx1)
-        plot._axes.set_ylim(yy0, yy1)
+        self._set_plot_limits(plot, (xx0, xx1, yy0, yy1))
 
         if self.label:
             plot._axes.clabel(cset, **self.text_args)
@@ -868,7 +939,7 @@ class GridBoundaryCallback(PlotCallback):
         x0, x1, y0, y1 = self._physical_bounds(plot)
         xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
         (dx, dy) = self._pixel_scale(plot)
-        (ypix, xpix) = plot.image._A.shape
+        (ypix, xpix) = plot.raw_image_shape
         ax = plot.data.axis
         px_index = plot.data.ds.coordinates.x_axis[ax]
         py_index = plot.data.ds.coordinates.y_axis[ax]
@@ -934,12 +1005,11 @@ class GridBoundaryCallback(PlotCallback):
 
             if visible.nonzero()[0].size == 0:
                 continue
-            verts = np.array(
-                [
-                    (left_edge_x, left_edge_x, right_edge_x, right_edge_x),
-                    (left_edge_y, right_edge_y, right_edge_y, left_edge_y),
-                ]
-            )
+
+            edge_x = (left_edge_x, left_edge_x, right_edge_x, right_edge_x)
+            edge_y = (left_edge_y, right_edge_y, right_edge_y, left_edge_y)
+            edge_x, edge_y = self._sanitize_xy_order(plot, edge_x, edge_y)
+            verts = np.array([edge_x, edge_y])
             verts = verts.transpose()[visible, :, :]
             grid_collection = matplotlib.collections.PolyCollection(
                 verts,
@@ -981,7 +1051,8 @@ class GridBoundaryCallback(PlotCallback):
                             "Allowed values are 'lower left', lower right', "
                             "'upper left', and 'upper right'." % self.id_loc
                         )
-                    plot._axes.text(x[i], y[i], "%d" % block_ids[n], clip_on=True)
+                    xi, yi = self._sanitize_xy_order(plot, x[i], y[i])
+                    plot._axes.text(xi, yi, "%d" % block_ids[n], clip_on=True)
 
 
 class StreamlineCallback(PlotCallback):
@@ -1026,8 +1097,8 @@ class StreamlineCallback(PlotCallback):
 
         # We are feeding this size into the pixelizer, where it will properly
         # set it in reverse order
-        nx = plot.image._A.shape[1] // self.factor[0]
-        ny = plot.image._A.shape[0] // self.factor[1]
+        nx = plot.raw_image_shape[1] // self.factor[0]
+        ny = plot.raw_image_shape[0] // self.factor[1]
         pixX = plot.data.ds.coordinates.pixelize(
             plot.data.axis, plot.data, self.field_x, bounds, (nx, ny)
         )
@@ -1067,6 +1138,13 @@ class StreamlineCallback(PlotCallback):
             np.linspace(xx0, xx1, nx, endpoint=True),
             np.linspace(yy0, yy1, ny, endpoint=True),
         )
+        X, Y, pixX, pixY = self._sanitize_xy_order(plot, X, Y, pixX, pixY)
+        if plot._swap_axes:
+            # need an additional transpose here for streamline tracing
+            pixX = pixX.transpose()
+            pixY = pixY.transpose()
+            X = X.transpose()
+            Y = Y.transpose()
         streamplot_args = {
             "x": X,
             "y": Y,
@@ -1077,8 +1155,7 @@ class StreamlineCallback(PlotCallback):
         }
         streamplot_args.update(self.plot_args)
         plot._axes.streamplot(**streamplot_args)
-        plot._axes.set_xlim(xx0, xx1)
-        plot._axes.set_ylim(yy0, yy1)
+        self._set_plot_limits(plot, (xx0, xx1, yy0, yy1))
 
 
 class LinePlotCallback(PlotCallback):
@@ -1164,12 +1241,11 @@ class LinePlotCallback(PlotCallback):
     def __call__(self, plot):
         p1 = self._sanitize_coord_system(plot, self.p1, coord_system=self.coord_system)
         p2 = self._sanitize_coord_system(plot, self.p2, coord_system=self.coord_system)
-        xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
-        plot._axes.plot(
-            [p1[0], p2[0]], [p1[1], p2[1]], transform=self.transform, **self.plot_args
-        )
-        plot._axes.set_xlim(xx0, xx1)
-        plot._axes.set_ylim(yy0, yy1)
+        start_pt, end_pt = [p1[0], p2[0]], [p1[1], p2[1]]
+        if plot._swap_axes:
+            start_pt, end_pt = [p2[0], p1[0]], [p2[1], p1[1]]
+        plot._axes.plot(start_pt, end_pt, transform=self.transform, **self.plot_args)
+        self._set_plot_limits(plot)
 
 
 class ImageLineCallback(LinePlotCallback):
@@ -1211,11 +1287,8 @@ class CuttingQuiverCallback(BaseQuiverCallback):
     _type_name = "cquiver"
     _supported_geometries = ("cartesian", "spectral_cube")
 
-    def __call__(self, plot):
-        x0, x1, y0, y1 = self._physical_bounds(plot)
-        xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
-        nx = plot.image._A.shape[1] // self.factor[0]
-        ny = plot.image._A.shape[0] // self.factor[1]
+    def _get_quiver_data(self, plot, bounds: tuple, nx: int, ny: int):
+        # calls the pixelizer, returns pixX, pixY, pixC arrays
         indices = np.argsort(plot.data["index", "dx"])[::-1].astype(np.int_)
 
         pixX = np.zeros((ny, nx), dtype="f8")
@@ -1234,7 +1307,7 @@ class CuttingQuiverCallback(BaseQuiverCallback):
             plot.data._inv_mat,
             indices,
             plot.data[self.field_x],
-            (x0, x1, y0, y1),
+            bounds,
         )
         pixelize_off_axis_cartesian(
             pixY,
@@ -1250,9 +1323,12 @@ class CuttingQuiverCallback(BaseQuiverCallback):
             plot.data._inv_mat,
             indices,
             plot.data[self.field_y],
-            (x0, x1, y0, y1),
+            bounds,
         )
-        if self.field_c is not None:
+
+        if self.field_c is None:
+            pixC = None
+        else:
             pixC = np.zeros((ny, nx), dtype="f8")
             pixelize_off_axis_cartesian(
                 pixC,
@@ -1268,19 +1344,10 @@ class CuttingQuiverCallback(BaseQuiverCallback):
                 plot.data._inv_mat,
                 indices,
                 plot.data[self.field_c],
-                (x0, x1, y0, y1),
+                bounds,
             )
-        else:
-            pixC = None
-        X, Y = np.meshgrid(
-            np.linspace(xx0, xx1, nx, endpoint=True),
-            np.linspace(yy0, yy1, ny, endpoint=True),
-        )
 
-        retv = self._finalize(plot, X, Y, pixX, pixY, pixC)
-        plot._axes.set_xlim(xx0, xx1)
-        plot._axes.set_ylim(yy0, yy1)
-        return retv
+        return pixX, pixY, pixC
 
 
 class ClumpContourCallback(PlotCallback):
@@ -1312,7 +1379,7 @@ class ClumpContourCallback(PlotCallback):
         dxf = f"d{xf}"
         dyf = f"d{yf}"
 
-        ny, nx = plot.image._A.shape
+        ny, nx = plot.raw_image_shape
         buff = np.zeros((nx, ny), dtype="float64")
         for i, clump in enumerate(reversed(self.clumps)):
             mylog.info("Pixelizing contour %s", i)
@@ -1341,6 +1408,9 @@ class ClumpContourCallback(PlotCallback):
                 0,
             )
             buff = np.maximum(temp, buff)
+        if plot._swap_axes:
+            buff = buff.transpose()
+            extent = (extent[2], extent[3], extent[0], extent[1])
         self.rv = plot._axes.contour(
             buff, np.unique(buff), extent=extent, **self.plot_args
         )
@@ -1495,6 +1565,8 @@ class ArrowCallback(PlotCallback):
         if dx == dy == 0:
             warnings.warn("The arrow has zero length.  Not annotating.")
             return
+
+        x, y, dx, dy = self._sanitize_xy_order(plot, x, y, dx, dy)
         try:
             plot._axes.arrow(
                 x - dx,
@@ -1522,8 +1594,7 @@ class ArrowCallback(PlotCallback):
                     length_includes_head=True,
                     **self.plot_args,
                 )
-        plot._axes.set_xlim(xx0, xx1)
-        plot._axes.set_ylim(yy0, yy1)
+        self._set_plot_limits(plot, (xx0, xx1, yy0, yy1))
 
 
 class MarkerAnnotateCallback(PlotCallback):
@@ -1600,12 +1671,11 @@ class MarkerAnnotateCallback(PlotCallback):
         x, y = self._sanitize_coord_system(
             plot, self.pos, coord_system=self.coord_system
         )
-        xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
+        x, y = self._sanitize_xy_order(plot, x, y)
         plot._axes.scatter(
             x, y, marker=self.marker, transform=self.transform, **self.plot_args
         )
-        plot._axes.set_xlim(xx0, xx1)
-        plot._axes.set_ylim(yy0, yy1)
+        self._set_plot_limits(plot)
 
 
 class SphereCallback(PlotCallback):
@@ -1711,8 +1781,8 @@ class SphereCallback(PlotCallback):
             plot, self.center, coord_system=self.coord_system
         )
 
+        x, y = self._sanitize_xy_order(plot, x, y)
         cir = Circle((x, y), self.radius, transform=self.transform, **self.circle_args)
-        xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
 
         plot._axes.add_patch(cir)
         if self.text is not None:
@@ -1721,8 +1791,7 @@ class SphereCallback(PlotCallback):
             )
             self._set_font_properties(plot, [label], **self.text_args)
 
-        plot._axes.set_xlim(xx0, xx1)
-        plot._axes.set_ylim(yy0, yy1)
+        self._set_plot_limits(plot)
 
 
 class TextLabelCallback(PlotCallback):
@@ -1834,13 +1903,12 @@ class TextLabelCallback(PlotCallback):
 
         # Set the font properties of text from this callback to be
         # consistent with other text labels in this figure
-        xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
         if self.inset_box_args is not None:
             kwargs["bbox"] = self.inset_box_args
+        x, y = self._sanitize_xy_order(plot, x, y)
         label = plot._axes.text(x, y, self.text, transform=self.transform, **kwargs)
         self._set_font_properties(plot, [label], **kwargs)
-        plot._axes.set_xlim(xx0, xx1)
-        plot._axes.set_ylim(yy0, yy1)
+        self._set_plot_limits(plot)
 
 
 class PointAnnotateCallback(TextLabelCallback):
@@ -2054,8 +2122,6 @@ class HaloCatalogCallback(PlotCallback):
         from matplotlib.patches import Circle
 
         data = plot.data
-        x0, x1, y0, y1 = self._physical_bounds(plot)
-        xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
 
         halo_data = self.halo_data
         axis_names = plot.data.ds.coordinates.axis_name
@@ -2112,11 +2178,10 @@ class HaloCatalogCallback(PlotCallback):
             py = py[indices]
             radius = radius[indices]
 
+        px, py = self._sanitize_xy_order(plot, px, py)
         for x, y, r in zip(px, py, radius):
             plot._axes.add_artist(Circle(xy=(x, y), radius=r, **self.circle_args))
-
-        plot._axes.set_xlim(xx0, xx1)
-        plot._axes.set_ylim(yy0, yy1)
+        self._set_plot_limits(plot)
 
         if self.annotate_field:
             annotate_dat = halo_data[("all", self.annotate_field)]
@@ -2185,7 +2250,6 @@ class ParticleCallback(PlotCallback):
             self.width = plot.data.ds.quan(self.width, "code_length")
         # we construct a rectangular prism
         x0, x1, y0, y1 = self._physical_bounds(plot)
-        xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
         if isinstance(self.data_source, YTCutRegion):
             mylog.warning(
                 "Parameter 'width' is ignored in annotate_particles if the "
@@ -2233,6 +2297,7 @@ class ParticleCallback(PlotCallback):
                 return
         px, py = [particle_x[gg][:: self.stride], particle_y[gg][:: self.stride]]
         px, py = self._convert_to_plot(plot, [px, py])
+        px, py = self._sanitize_xy_order(plot, px, py)
         plot._axes.scatter(
             px,
             py,
@@ -2242,8 +2307,7 @@ class ParticleCallback(PlotCallback):
             c=self.color,
             alpha=self.alpha,
         )
-        plot._axes.set_xlim(xx0, xx1)
-        plot._axes.set_ylim(yy0, yy1)
+        self._set_plot_limits(plot)
 
     def _enforce_periodic(
         self, particle_x, particle_y, x0, x1, period_x, y0, y1, period_y
@@ -2415,11 +2479,17 @@ class TriangleFacetsCallback(PlotCallback):
         ]
         # l_cy is shape (nlines, 2, 2)
         # reformat for conversion to plot coordinates
-        l_cy = np.rollaxis(l_cy, 0, 3)
+        l_cy = np.rollaxis(l_cy, 0, 3)  # shape is now (2, 2, nlines)
         # convert all line starting points
         l_cy[0] = self._convert_to_plot(plot, l_cy[0])
         # convert all line ending points
         l_cy[1] = self._convert_to_plot(plot, l_cy[1])
+        if plot._swap_axes:
+            # more convenient to swap the x, y values here before final roll
+            x0, y0 = l_cy[0]  # x, y values of start points
+            x1, y1 = l_cy[1]  # x, y values of end points
+            l_cy[0] = np.row_stack([y0, x0])  # swap x, y for start points
+            l_cy[1] = np.row_stack([y1, x1])  # swap x, y for end points
         # convert back to shape (nlines, 2, 2)
         l_cy = np.rollaxis(l_cy, 2, 0)
         # create line collection and add it to the plot
@@ -3135,8 +3205,8 @@ class LineIntegralConvolutionCallback(PlotCallback):
 
         # We are feeding this size into the pixelizer, where it will properly
         # set it in reverse order
-        nx = plot.image._A.shape[1]
-        ny = plot.image._A.shape[0]
+        nx = plot.raw_image_shape[1]
+        ny = plot.raw_image_shape[0]
         pixX = plot.data.ds.coordinates.pixelize(
             plot.data.axis, plot.data, self.field_x, bounds, (nx, ny)
         )
@@ -3165,6 +3235,10 @@ class LineIntegralConvolutionCallback(PlotCallback):
         mask = ~(np.isfinite(pixX) & np.isfinite(pixY))
         lic_data[mask] = np.nan
         lic_data_clip[mask] = np.nan
+
+        if plot._swap_axes:
+            lic_data_clip = lic_data_clip.transpose()
+            extent = (extent[2], extent[3], extent[0], extent[1])
 
         if self.const_alpha:
             plot._axes.imshow(
@@ -3242,9 +3316,8 @@ class CellEdgesCallback(PlotCallback):
                 for 2D cylindrical geometry, not 3D"
             )
         x0, x1, y0, y1 = self._physical_bounds(plot)
-        xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
-        nx = plot.image._A.shape[1]
-        ny = plot.image._A.shape[0]
+        nx = plot.raw_image_shape[1]
+        ny = plot.raw_image_shape[0]
         aspect = float((y1 - y0) / (x1 - x0))
         pixel_aspect = float(ny) / nx
         relative_aspect = pixel_aspect / aspect
@@ -3278,12 +3351,15 @@ class CellEdgesCallback(PlotCallback):
         im_buffer = np.zeros((ny, nx, 4), dtype="uint8")
         im_buffer[im > 0, 3] = 255
         im_buffer[im > 0, :3] = self.color
+
+        extent = self._plot_bounds(plot)
+        if plot._swap_axes:
+            im_buffer = im_buffer.transpose((1, 0, 2))
         plot._axes.imshow(
             im_buffer,
             origin="lower",
             interpolation="bilinear",
-            extent=[xx0, xx1, yy0, yy1],
+            extent=extent,
             alpha=self.alpha,
         )
-        plot._axes.set_xlim(xx0, xx1)
-        plot._axes.set_ylim(yy0, yy1)
+        self._set_plot_limits(plot, extent)
