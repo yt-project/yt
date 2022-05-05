@@ -30,5 +30,4 @@ def test_phaseplot_set_colorbar_properties_implicit():
     test = GenericImageTest(ds, create_image, 12)
     test.prefix = "test_phaseplot_set_colorbar_properties_implicit"
     test.answer_name = "phaseplot_set_colorbar_properties_implicit"
-    test_phaseplot_set_colorbar_properties_implicit.__name__ = test.description
     yield test

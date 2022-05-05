@@ -36,5 +36,4 @@ def test_inf_and_finite_values_zlim():
     test = GenericImageTest(ds, create_image, 12)
     test.prefix = "test_inf_and_finite_values_zlim"
     test.answer_name = "inf_and_finite_values_zlim"
-    test_inf_and_finite_values_zlim.__name__ = test.description
     yield test

@@ -39,5 +39,4 @@ def test_sliceplot_custom_norm():
     test = GenericImageTest(ds, create_image, 12)
     test.prefix = "test_sliceplot_custom_norm"
     test.answer_name = "sliceplot_custom_norm"
-    test_sliceplot_custom_norm.__name__ = test.description
     yield test

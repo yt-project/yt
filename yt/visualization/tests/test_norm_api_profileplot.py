@@ -26,5 +26,4 @@ def test_profileplot_set_axis_properties():
     test = GenericImageTest(ds, create_image, 12)
     test.prefix = "test_profileplot_set_axis_properties"
     test.answer_name = "profileplot_set_axis_properties"
-    test_profileplot_set_axis_properties.__name__ = test.description
     yield test

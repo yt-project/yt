@@ -19,5 +19,4 @@ def test_sliceplot_set_zlim_and_unit():
     test = GenericImageTest(ds, create_image, 12)
     test.prefix = "test_sliceplot_set_zlim_and_unit"
     test.answer_name = "sliceplot_set_zlim_and_unit"
-    test_sliceplot_set_zlim_and_unit.__name__ = test.description
     yield test

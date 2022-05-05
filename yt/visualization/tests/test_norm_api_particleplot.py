@@ -26,5 +26,4 @@ def test_particleprojectionplot_set_colorbar_properties():
     test = GenericImageTest(ds, create_image, 12)
     test.prefix = "test_particleprojectionplot_set_colorbar_properties"
     test.answer_name = "particleprojectionplot_set_colorbar_properties"
-    test_particleprojectionplot_set_colorbar_properties.__name__ = test.description
     yield test
