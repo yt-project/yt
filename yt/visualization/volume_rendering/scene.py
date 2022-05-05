@@ -907,9 +907,7 @@ class Scene:
 
         input_array : Iterable
             A tuple, list, or array to attach units to
-        units: String unit specification, unit symbol object, or astropy
-            units object
-        input_units : deprecated in favor of 'units'
+        units: String unit specification, unit symbol object, or astropy units object
             The units of the array. Powers must be specified using python syntax
             (cm**3, not cm^3).
         dtype : string or NumPy dtype object

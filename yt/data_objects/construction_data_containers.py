@@ -11,6 +11,7 @@ import numpy as np
 from more_itertools import always_iterable
 from tqdm import tqdm
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.selection_objects.data_selection_objects import (
@@ -169,16 +170,20 @@ class YTProj(YTSelectionContainer2D):
         center=None,
         ds=None,
         data_source=None,
-        style=None,
         method="integrate",
         field_parameters=None,
         max_level=None,
+        *,
+        style=None,
     ):
         super().__init__(axis, ds, field_parameters)
-        # Style is deprecated, but if it is set, then it trumps method
-        # keyword.  TODO: Remove this keyword and this check at some point in
-        # the future.
         if style is not None:
+            issue_deprecation_warning(
+                "The 'style' keyword argument is a deprecated alias for 'method'. "
+                "Please use method directly.",
+                since="3.2",
+                removal="4.2",
+            )
             method = style
         if method == "sum":
             self.method = "integrate"
@@ -379,10 +384,11 @@ class YTParticleProj(YTProj):
         center=None,
         ds=None,
         data_source=None,
-        style=None,
         method="integrate",
         field_parameters=None,
         max_level=None,
+        *,
+        style=None,
     ):
         super().__init__(
             field,
@@ -391,10 +397,10 @@ class YTParticleProj(YTProj):
             center,
             ds,
             data_source,
-            style,
             method,
             field_parameters,
             max_level,
+            style=style,
         )
 
     def _handle_chunk(self, chunk, fields, tree):
@@ -470,10 +476,11 @@ class YTQuadTreeProj(YTProj):
         center=None,
         ds=None,
         data_source=None,
-        style=None,
         method="integrate",
         field_parameters=None,
         max_level=None,
+        *,
+        style=None,
     ):
         super().__init__(
             field,
@@ -482,10 +489,10 @@ class YTQuadTreeProj(YTProj):
             center,
             ds,
             data_source,
-            style,
             method,
             field_parameters,
             max_level,
+            style=style,
         )
 
         if not self.deserialize(field):

@@ -3,6 +3,7 @@ import warnings
 import numpy as np
 
 import yt.utilities.linear_interpolators as lin
+from yt._maintenance.deprecation import VisibleDeprecationWarning
 from yt.testing import assert_array_almost_equal, assert_array_equal, fake_random_ds
 from yt.utilities.lib.interpolators import ghost_zone_interpolate
 
@@ -129,13 +130,13 @@ def test_get_vertex_centered_data():
         warnings.simplefilter("always")
         vec_str = g.get_vertex_centered_data(("gas", "density"), no_ghost=True)
         assert len(w) == 1
-        assert issubclass(w[-1].category, DeprecationWarning)
+        assert issubclass(w[-1].category, VisibleDeprecationWarning)
         assert "requires list of fields" in str(w[-1].message)
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
         vec_tuple = g.get_vertex_centered_data(("gas", "density"), no_ghost=True)
         assert len(w) == 1
-        assert issubclass(w[-1].category, DeprecationWarning)
+        assert issubclass(w[-1].category, VisibleDeprecationWarning)
         assert (
             "get_vertex_centered_data() requires list of fields, rather than "
             "a single field as an argument."
