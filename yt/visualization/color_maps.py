@@ -34,8 +34,6 @@ def add_colormap(name, cdict):
     """
     # Note: this function modifies the global variable 'yt_colormaps'
     yt_colormaps[name] = cc.LinearSegmentedColormap(name, cdict, 256)
-    mcm.datad[name] = cdict
-    mcm.__dict__[name] = cdict
     mcm.register_cmap(name, yt_colormaps[name])
 
 
