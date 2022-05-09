@@ -143,7 +143,7 @@ class EnzoEFieldInfo(FieldInfoContainer):
                 constants = (constants,)
             names = [c[0] for c in constants]
 
-        group_list  = nested_dict_get(
+        group_list = nested_dict_get(
             self.ds.parameters, ("Particle", ptype, "group_list"), default=()
         )
 
@@ -152,8 +152,9 @@ class EnzoEFieldInfo(FieldInfoContainer):
             # particle masses were stored as densities if the simulation
             # was cosmological.
             pfield = "mass"
-            is_density = "is_gravitating" not in group_list and \
-              self.ds.cosmological_simulation
+            is_density = (
+                "is_gravitating" not in group_list and self.ds.cosmological_simulation
+            )
         elif "density" in names:
             pfield = "density"
             is_density = True
