@@ -128,13 +128,13 @@ class EnzoEFieldInfo(FieldInfoContainer):
         self.setup_particle_mass_field(ptype)
 
     def setup_particle_mass_field(self, ptype):
-        name = "particle_mass"
+        fname = "particle_mass"
         if ptype in self.ds.particle_unions:
-            add_union_field(self, ptype, name, "code_mass")
+            add_union_field(self, ptype, fname, "code_mass")
             return
 
         constants = nested_dict_get(
-            self.ds.parameters, ("Particle", ptype, "constants"), default=[]
+            self.ds.parameters, ("Particle", ptype, "constants"), default=()
         )
         if not constants:
             names = []
@@ -143,17 +143,33 @@ class EnzoEFieldInfo(FieldInfoContainer):
                 constants = (constants,)
             names = [c[0] for c in constants]
 
+        group_list  = nested_dict_get(
+            self.ds.parameters, ("Particle", ptype, "group_list"), default=()
+        )
+
         if "mass" in names:
-            val = constants[names.index("mass")][2]
-            val = self.ds.quan(val, self.ds.mass_unit)
-            if self.ds.cosmological_simulation:
+            # Prior to the addition of the is_gravitating group list,
+            # particle masses were stored as densities if the simulation
+            # was cosmological.
+            pfield = "mass"
+            is_density = "is_gravitating" not in group_list and \
+              self.ds.cosmological_simulation
+        elif "density" in names:
+            pfield = "density"
+            is_density = True
+        else:
+            pfield = None
+
+        if pfield is not None:
+            val = constants[names.index(pfield)][2] * self.ds.mass_unit
+            if is_density:
                 val = val / self.ds.domain_dimensions.prod()
 
             def _pmass(field, data):
                 return val * data[ptype, "particle_ones"]
 
             self.add_field(
-                (ptype, name),
+                (ptype, fname),
                 function=_pmass,
                 units="code_mass",
                 sampling_type="particle",
