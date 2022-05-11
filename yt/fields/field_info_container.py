@@ -1,4 +1,6 @@
+import inspect
 from collections import defaultdict
+from collections.abc import Callable
 from numbers import Number as numeric_type
 from typing import Optional, Tuple
 
@@ -372,6 +374,30 @@ class FieldInfoContainer(dict):
                 return f
 
             return create_function
+
+        if not isinstance(function, Callable):
+            # this is compatible with lambdas and functools.partial objects
+            raise TypeError(
+                f"Expected a callable object, got {function} with type {type(function)}"
+            )
+
+        # lookup parameters that do not have default values
+        fparams = inspect.signature(function).parameters
+        nodefaults = tuple(p.name for p in fparams.values() if p.default is p.empty)
+        if nodefaults != ("field", "data"):
+            raise TypeError(
+                f"Received field function {function} with invalid signature. "
+                f"Expected exactly 2 positional parameters ('field', 'data'), got {nodefaults!r}"
+            )
+        if any(
+            fparams[name].kind == fparams[name].KEYWORD_ONLY
+            for name in ("field", "data")
+        ):
+            raise TypeError(
+                f"Received field function {function} with invalid signature. "
+                "Parameters 'field' and 'data' must accept positional values "
+                "(they cannot be keyword-only)"
+            )
 
         if isinstance(name, tuple):
             self[name] = DerivedField(name, sampling_type, function, **kwargs)

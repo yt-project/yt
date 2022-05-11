@@ -332,8 +332,7 @@ class DerivedField:
 
     @property
     def alias_field(self):
-        func_name = self._function.__name__
-        if func_name == "_TranslationFunc":
+        if getattr(self._function, "__name__", None) == "_TranslationFunc":
             return True
         return False
 
@@ -344,10 +343,9 @@ class DerivedField:
         return None
 
     def __repr__(self):
-        func_name = self._function.__name__
-        if self._function == NullFunc:
+        if self._function is NullFunc:
             s = "On-Disk Field "
-        elif func_name == "_TranslationFunc":
+        elif getattr(self._function, "__name__", None) == "_TranslationFunc":
             s = f'Alias Field for "{self.alias_name}" '
         else:
             s = "Derived Field "
