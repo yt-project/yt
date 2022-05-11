@@ -296,7 +296,9 @@ class FieldInfoContainer(dict):
             )
         return sampling_type
 
-    def add_field(self, name, function, sampling_type, **kwargs):
+    def add_field(
+        self, name, function, sampling_type, *, force_override=False, **kwargs
+    ):
         """
         Add a new field, along with supplemental metadata, to the list of
         available fields.  This respects a number of arguments, all of which
@@ -313,6 +315,8 @@ class FieldInfoContainer(dict):
            arguments (field, data)
         sampling_type: str
            "cell" or "particle" or "local"
+        force_override: bool
+           If False (default), an error will be raised if a field of the same name already exists.
         units : str
            A plain text string encoding the unit.  Powers must be in
            python syntax (** instead of ^). If set to "auto" the units
@@ -327,9 +331,8 @@ class FieldInfoContainer(dict):
            A name used in the plots
 
         """
-        override = kwargs.pop("force_override", False)
         # Handle the case where the field has already been added.
-        if not override and name in self:
+        if not force_override and name in self:
             # See below.
             if function is None:
 
