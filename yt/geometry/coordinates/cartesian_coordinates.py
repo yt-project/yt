@@ -2,7 +2,7 @@ import numpy as np
 
 from yt.data_objects.index_subobjects.unstructured_mesh import SemiStructuredMesh
 from yt.funcs import mylog
-from yt.units.yt_array import YTArray, uconcatenate, uvstack
+from yt.units.yt_array import YTArray, uconcatenate, uvstack  # type: ignore
 from yt.utilities.lib.pixelization_routines import (
     interpolate_sph_grid_gather,
     normalization_2d_utility,
@@ -57,7 +57,7 @@ def _sample_ray(ray, npoints, field):
         # are two indices if the sampling point happens to fall exactly at
         # a cell boundary
         field_values[i] = ray_field[np.argmax(ray_contains)]
-    dr = np.sqrt((sample_dr ** 2).sum())
+    dr = np.sqrt((sample_dr**2).sum())
     x = np.arange(npoints) / (npoints - 1) * (dr * npoints)
     return x, field_values
 
@@ -128,6 +128,10 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 units="code_length",
             )
 
+        self._register_volume(registry)
+        self._check_fields(registry)
+
+    def _register_volume(self, registry):
         def _cell_volume(field, data):
             rv = data["index", "dx"].copy(order="K")
             rv *= data["index", "dy"]
@@ -143,6 +147,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
         )
         registry.alias(("index", "volume"), ("index", "cell_volume"))
 
+    def _check_fields(self, registry):
         registry.check_derived_fields(
             [
                 ("index", "dx"),
@@ -301,7 +306,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
         if hasattr(period, "in_units"):
             period = period.in_units("code_length").d
 
-        buff = np.zeros((size[1], size[0]), dtype="f8")
+        buff = np.full((size[1], size[0]), np.nan, dtype="float64")
         particle_datasets = (ParticleDataset, StreamParticlesDataset)
         is_sph_field = finfo.is_sph_field
 
@@ -550,7 +555,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
         from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
 
         indices = np.argsort(data_source["pdx"])[::-1].astype(np.int_)
-        buff = np.zeros((size[1], size[0]), dtype="f8")
+        buff = np.full((size[1], size[0]), np.nan, dtype="float64")
         ftype = "index"
         if isinstance(data_source.ds, YTSpatialPlotDataset):
             ftype = "gas"

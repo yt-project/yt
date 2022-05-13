@@ -2,6 +2,7 @@ import glob
 import os
 import struct
 import weakref
+from typing import Type
 
 import numpy as np
 
@@ -28,7 +29,7 @@ from yt.frontends.art.io import (
     b2t,
 )
 from yt.funcs import mylog, setdefaultattr
-from yt.geometry.geometry_handler import YTDataChunk
+from yt.geometry.geometry_handler import Index, YTDataChunk
 from yt.geometry.oct_container import ARTOctreeContainer
 from yt.geometry.oct_geometry_handler import OctreeIndex
 from yt.geometry.particle_geometry_handler import ParticleIndex
@@ -51,7 +52,7 @@ class ARTIndex(OctreeIndex):
         """
         # Overloaded
         ds = self.dataset
-        return (ds.domain_width / ds.domain_dimensions / (2 ** self.max_level)).min()
+        return (ds.domain_width / ds.domain_dimensions / (2**self.max_level)).min()
 
     def _initialize_oct_handler(self):
         """
@@ -132,7 +133,7 @@ class ARTIndex(OctreeIndex):
 
 
 class ARTDataset(Dataset):
-    _index_class = ARTIndex
+    _index_class: Type[Index] = ARTIndex
     _field_info_class = ARTFieldInfo
 
     def __init__(
@@ -163,7 +164,6 @@ class ARTDataset(Dataset):
         self._file_particle_data = file_particle_data
         self._file_particle_stars = file_particle_stars
         self._find_files(filename)
-        self.parameter_filename = filename
         self.skip_particles = skip_particles
         self.skip_stars = skip_stars
         self.limit_level = limit_level
@@ -187,7 +187,9 @@ class ARTDataset(Dataset):
         """
         base_prefix, base_suffix = filename_pattern["amr"]
         numericstr = file_amr.rsplit("_", 1)[1].replace(base_suffix, "")
-        possibles = glob.glob(os.path.dirname(os.path.abspath(file_amr)) + "/*")
+        possibles = glob.glob(
+            os.path.join(os.path.dirname(os.path.abspath(file_amr)), "*")
+        )
         for filetype, (prefix, suffix) in filename_pattern.items():
             # if this attribute is already set skip it
             if getattr(self, "_file_" + filetype, None) is not None:
@@ -229,8 +231,8 @@ class ARTDataset(Dataset):
 
         r0 = boxh / ng
         v0 = 50.0 * r0 * np.sqrt(Om0)
-        rho0 = 2.776e11 * hubble ** 2.0 * Om0
-        aM0 = rho0 * (boxh / hubble) ** 3.0 / ng ** 3.0
+        rho0 = 2.776e11 * hubble**2.0 * Om0
+        aM0 = rho0 * (boxh / hubble) ** 3.0 / ng**3.0
         velocity = v0 / aexpn * 1.0e5  # proper cm/s
         mass = aM0 * 1.98892e33
 
@@ -292,7 +294,7 @@ class ARTDataset(Dataset):
             # lextra needs to be loaded as a string, but it's actually
             # array values.  So pop it off here, and then re-insert.
             lextra = amr_header_vals.pop("lextra")
-            amr_header_vals["lextra"] = np.fromstring(lextra, ">f4")
+            amr_header_vals["lextra"] = np.frombuffer(lextra, ">f4")
             self.parameters.update(amr_header_vals)
             amr_header_vals = None
             # estimate the root level
@@ -315,7 +317,7 @@ class ARTDataset(Dataset):
                 # extras needs to be loaded as a string, but it's actually
                 # array values.  So pop it off here, and then re-insert.
                 extras = particle_header_vals.pop("extras")
-                particle_header_vals["extras"] = np.fromstring(extras, ">f4")
+                particle_header_vals["extras"] = np.frombuffer(extras, ">f4")
             self.parameters["wspecies"] = wspecies[:n]
             self.parameters["lspecies"] = lspecies[:n]
             for specie in range(n):
@@ -388,7 +390,6 @@ class ARTDataset(Dataset):
                 return True
             except Exception:
                 return False
-        return False
 
 
 class ARTParticleFile(ParticleFile):
@@ -449,7 +450,6 @@ class DarkMatterARTDataset(ARTDataset):
         self._file_particle = filename
         self._file_particle_header = file_particle_header
         self._find_files(filename)
-        self.parameter_filename = filename
         self.skip_stars = skip_stars
         self.spread_age = spread_age
         Dataset.__init__(
@@ -468,7 +468,9 @@ class DarkMatterARTDataset(ARTDataset):
         """
         base_prefix, base_suffix = filename_pattern["particle_data"]
         aexpstr = file_particle.rsplit("s0", 1)[1].replace(base_suffix, "")
-        possibles = glob.glob(os.path.dirname(os.path.abspath(file_particle)) + "/*")
+        possibles = glob.glob(
+            os.path.join(os.path.dirname(os.path.abspath(file_particle)), "*")
+        )
         for filetype, (prefix, suffix) in filename_pattern.items():
             # if this attribute is already set skip it
             if getattr(self, "_file_" + filetype, None) is not None:
@@ -508,8 +510,8 @@ class DarkMatterARTDataset(ARTDataset):
         hubble = self.parameters["hubble"]
 
         r0 = boxh / ng
-        rho0 = 2.776e11 * hubble ** 2.0 * Om0
-        aM0 = rho0 * (boxh / hubble) ** 3.0 / ng ** 3.0
+        rho0 = 2.776e11 * hubble**2.0 * Om0
+        aM0 = rho0 * (boxh / hubble) ** 3.0 / ng**3.0
         velocity = 100.0 * r0 / aexpn * 1.0e5  # proper cm/s
         mass = aM0 * 1.98892e33
 
@@ -570,43 +572,41 @@ class DarkMatterARTDataset(ARTDataset):
             boxsize = np.fromfile(fh, count=1, dtype=">f4")
         n = nspecs[0]
         particle_header_vals = {}
-        tmp = np.array(
-            [
-                headerstr,
-                aexpn,
-                aexp0,
-                amplt,
-                astep,
-                istep,
-                partw,
-                tintg,
-                ekin,
-                ekin1,
-                ekin2,
-                au0,
-                aeu0,
-                nrowc,
-                ngridc,
-                nspecs,
-                nseed,
-                Om0,
-                Oml0,
-                hubble,
-                Wp5,
-                Ocurv,
-                wspecies,
-                lspecies,
-                extras,
-                boxsize,
-            ]
-        )
-        for i in range(len(tmp)):
+        tmp = [
+            headerstr,
+            aexpn,
+            aexp0,
+            amplt,
+            astep,
+            istep,
+            partw,
+            tintg,
+            ekin,
+            ekin1,
+            ekin2,
+            au0,
+            aeu0,
+            nrowc,
+            ngridc,
+            nspecs,
+            nseed,
+            Om0,
+            Oml0,
+            hubble,
+            Wp5,
+            Ocurv,
+            wspecies,
+            lspecies,
+            extras,
+            boxsize,
+        ]
+        for i, arr in enumerate(tmp):
             a1 = dmparticle_header_struct[0][i]
             a2 = dmparticle_header_struct[1][i]
             if a2 == 1:
-                particle_header_vals[a1] = tmp[i][0]
+                particle_header_vals[a1] = arr[0]
             else:
-                particle_header_vals[a1] = tmp[i][:a2]
+                particle_header_vals[a1] = arr[:a2]
         for specie in range(n):
             self.particle_types.append("specie%i" % specie)
         self.particle_types_raw = tuple(self.particle_types)
@@ -684,7 +684,9 @@ class DarkMatterARTDataset(ARTDataset):
         with open(f, "rb") as fh:
             try:
                 amr_prefix, amr_suffix = filename_pattern["amr"]
-                possibles = glob.glob(os.path.dirname(os.path.abspath(f)) + "/*")
+                possibles = glob.glob(
+                    os.path.join(os.path.dirname(os.path.abspath(f)), "*")
+                )
                 for possible in possibles:
                     if possible.endswith(amr_suffix):
                         if os.path.basename(possible).startswith(amr_prefix):
@@ -723,7 +725,6 @@ class DarkMatterARTDataset(ARTDataset):
                 return True
             except Exception:
                 return False
-        return False
 
 
 class ARTDomainSubset(OctreeSubset):
@@ -929,7 +930,7 @@ class ARTDomainFile:
         assert oct_handler.nocts == root_fc.shape[0]
         mylog.debug(
             "Added %07i octs on level %02i, cumulative is %07i",
-            root_octs_side ** 3,
+            root_octs_side**3,
             0,
             oct_handler.nocts,
         )

@@ -11,7 +11,6 @@ from yt.visualization.image_writer import (
     apply_colormap,
     multi_image_composite,
     splat_points,
-    strip_colormap_data,
     write_bitmap,
 )
 
@@ -29,7 +28,7 @@ class TestImageWriter(unittest.TestCase):
         shutil.rmtree(cls.tmpdir)
 
     def test_multi_image_composite(self):
-        ds = fake_random_ds(64, nprocs=4, particles=16 ** 3)
+        ds = fake_random_ds(64, nprocs=4, particles=16**3)
         center = [0.5, 0.5, 0.5]
         normal = [1, 1, 1]
         cut = ds.cutting(normal, center)
@@ -70,9 +69,6 @@ class TestImageWriter(unittest.TestCase):
         desired = "Expecting image array of shape (N,M,3) or (N,M,4), received (16, 16)"
         assert_equal(str(ex.exception)[:50], desired[:50])
 
-    def test_strip_colormap_data(self):
-        strip_colormap_data("_stripped_cmap.py", ("arbre"))
-
     def test_apply_colormap(self):
         x = np.array(np.random.randint(0, 256, size=(10, 10)), dtype="uint8")
-        apply_colormap(x, color_bounds=None, cmap_name=None, func=lambda x: x ** 2)
+        apply_colormap(x, color_bounds=None, cmap_name=None, func=lambda x: x**2)

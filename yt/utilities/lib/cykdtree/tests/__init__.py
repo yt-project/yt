@@ -198,7 +198,7 @@ def run_test(
     suppress_final_output=False,
     **kwargs,
 ):
-    r"""Run a rountine with a designated number of points & dimensions on a
+    r"""Run a routine with a designated number of points & dimensions on a
     selected number of processors.
 
     Args:

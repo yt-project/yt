@@ -119,10 +119,15 @@ def test_unit_cosmo():
     for force_cosmo in [True, None]:
         ds = yt.load(ramsesCosmo, cosmological=force_cosmo)
 
-        expected_raw_time = 1.119216564055017  # in ramses unit
+        # NOTE: these are the old test values, which used 3.08e24 as
+        # the Mpc to cm conversion factor
+        # expected_raw_time = 1.119216564055017 # in ramses unit
+        # expected_time = 3.756241729312462e17 # in seconds
+
+        expected_raw_time = 1.121279694787743  # in ramses unit
         assert_equal(ds.current_time.value, expected_raw_time)
 
-        expected_time = 3.756241729312462e17  # in seconds
+        expected_time = 3.7631658742904595e17  # in seconds
         assert_equal(ds.current_time.in_units("s").value, expected_time)
 
 
@@ -338,34 +343,6 @@ def test_custom_particle_def():
         check_unit(ds.r["io", "particle_foobar"], "dimensionless")
     finally:
         ytcfg.remove_section("ramses-particles")
-
-
-@requires_file(ramsesCosmo)
-def test_custom_hydro_def():
-    ytcfg.add_section("ramses-hydro")
-    ytcfg[
-        "ramses-hydro", "fields"
-    ] = """
-    Density
-    x-velocity
-    y-velocity
-    z-velocity
-    Foo
-    Bar
-    """
-    ds = yt.load(ramsesCosmo)
-
-    def check_unit(array, unit):
-        assert str(array.in_cgs().units) == unit
-
-    try:
-        assert ("ramses", "Foo") in ds.derived_field_list
-        assert ("ramses", "Bar") in ds.derived_field_list
-
-        check_unit(ds.r["ramses", "Foo"], "dimensionless")
-        check_unit(ds.r["ramses", "Bar"], "dimensionless")
-    finally:
-        ytcfg.remove_section("ramses-hydro")
 
 
 @requires_file(output_00080)

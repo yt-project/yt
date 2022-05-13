@@ -1,3 +1,4 @@
+import abc
 import itertools
 import uuid
 from collections import defaultdict
@@ -31,13 +32,13 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import (
 )
 
 
-class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
+class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
     _locked = False
     _sort_by = None
     _selector = None
     _current_chunk = None
     _data_source = None
-    _dimensionality = None
+    _dimensionality: int
     _max_level = None
     _min_level = None
     _derived_quantity_chunking = "io"
@@ -535,6 +536,7 @@ class YTSelectionContainer2D(YTSelectionContainer):
             origin=origin,
             frb_generator=frb,
             plot_type=plot_type,
+            geometry=self.ds.geometry,
         )
         pw._setup_plots()
         return pw

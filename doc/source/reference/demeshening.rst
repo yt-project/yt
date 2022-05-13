@@ -7,9 +7,9 @@ With yt-4.0, the method by which particles are indexed changed considerably.
 Whereas in previous versions, particles were indexed based on their position in
 an octree (the structure of which was determined by particle number density),
 in yt-4.0 this system was overhauled to utilize a `bitmap
-index<https://en.wikipedia.org/wiki/Bitmap_index>`_ based on a space-filling
+index <https://en.wikipedia.org/wiki/Bitmap_index>`_ based on a space-filling
 curve, using a `enhanced word-aligned
-hybrid<https://github.com/lemire/ewahboolarray>` boolean array as their
+hybrid <https://github.com/lemire/ewahboolarray>`_ boolean array as their
 backend.
 
 .. note::
@@ -21,7 +21,7 @@ backend.
 
 By avoiding the use of octrees as a base mesh, yt is able to create *much* more
 accurate SPH visualizations.  We have a `gallery demonstrating
-this<https://matthewturk.github.io/yt4-gallery/>`_ but even in this
+this <https://matthewturk.github.io/yt4-gallery/>`_ but even in this
 side-by-side comparison the differences can be seen quite easily, with the left
 image being from the old, octree-based approach and the right image the new,
 meshless approach.
@@ -39,10 +39,8 @@ load only those particles it needs.
 .. note::
 
    The theory and implementation of yt's bitmap indexing system is described in
-   some detail in the `yt 4.0
-   paper<https://yt-project.github.io/yt-4.0-paper/>`_ in the section entitled
-   `Indexing Discrete-Point
-   Datasets<https://yt-project.github.io/yt-4.0-paper/#sec:point_indexing>`_.
+   some detail in the `yt 4.0 paper <https://yt-project.github.io/yt-4.0-paper/>`_
+   in the section entitled `Indexing Discrete-Point Datasets <https://yt-project.github.io/yt-4.0-paper/#sec:point_indexing>`_.
 
 In brief, however, what this relies on is two numbers, ``index_order1`` and
 ``index_order2``.  These control the "coarse" and "refined" sets of indices,
@@ -146,7 +144,7 @@ be read from disk before expensive selection operations are conducted.
 
 For those situations that involve particles with regions of influence -- such
 as smoothed particle hydrodynamics, where particles have associated smoothing
-lenghts -- these are taken into account when conducting the indexing system.
+lengths -- these are taken into account when conducting the indexing system.
 
 Efficiency of Index Orders
 --------------------------

@@ -4,6 +4,7 @@ from functools import wraps
 import bottle
 import numpy as np
 
+from yt.fields.derived_field import ValidateSpatial
 from yt.utilities.lib.misc_utilities import get_color_bounds
 from yt.utilities.png_writer import write_png_to_string
 from yt.visualization.fixed_resolution import FixedResolutionBuffer
@@ -134,20 +135,19 @@ class PannableMapServer:
     def list_fields(self):
         d = {}
 
-        # Add deposit fields (only cic + density for now)
-        for ptype in self.ds.particle_types:
-            d[ptype] = [
-                (("deposit", f"{ptype}_cic"), False),
-                (("deposit", f"{ptype}_density"), False),
-            ]
-
         # Add fluid fields (only gas for now)
         for ftype in self.ds.fluid_types:
             d[ftype] = []
             for f in self.ds.derived_field_list:
                 if f[0] != ftype:
                     continue
-
+                # Discard fields which need ghost zones for now
+                df = self.ds.field_info[f]
+                if any(isinstance(v, ValidateSpatial) for v in df.validators):
+                    continue
+                # Discard cutting plane fields
+                if "cutting" in f[1]:
+                    continue
                 active = f[1] == self.field
                 d[ftype].append((f, active))
 

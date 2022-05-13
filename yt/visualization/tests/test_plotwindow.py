@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import os
 import shutil
 import tempfile
@@ -16,8 +15,10 @@ from yt.testing import (
     assert_fname,
     assert_raises,
     assert_rel_equal,
+    fake_amr_ds,
     fake_random_ds,
     requires_file,
+    requires_module,
 )
 from yt.units import kboltz
 from yt.units.yt_array import YTArray, YTQuantity
@@ -27,7 +28,10 @@ from yt.utilities.answer_testing.framework import (
     requires_ds,
 )
 from yt.utilities.exceptions import YTInvalidFieldType
-from yt.visualization.api import (
+from yt.visualization.plot_window import (
+    AxisAlignedProjectionPlot,
+    AxisAlignedSlicePlot,
+    NormalPlot,
     OffAxisProjectionPlot,
     OffAxisSlicePlot,
     ProjectionPlot,
@@ -45,7 +49,6 @@ def setup():
 
 TEST_FLNMS = ["test.png"]
 M7 = "DD0010/moving7_0010"
-WT = "WindTunnel/windtunnel_4lev_hdf5_plt_cnt_0030"
 
 FPROPS = {"family": "sans-serif", "style": "italic", "weight": "bold", "size": 24}
 
@@ -60,7 +63,7 @@ ATTR_ARGS = {
     ],
     "set_buff_size": [((1600,), {}), (((600, 800),), {})],
     "set_center": [(((0.4, 0.3),), {})],
-    "set_cmap": [(("density", "RdBu"), {}), (("density", "kamae"), {})],
+    "set_cmap": [(("density", "RdBu"), {}), (("density", "cmyt.pastel"), {})],
     "set_font": [((OrderedDict(sorted(FPROPS.items(), key=lambda t: t[0])),), {})],
     "set_log": [(("density", False), {})],
     "set_figure_size": [((7.0,), {})],
@@ -188,29 +191,6 @@ def test_attributes():
                         callback_id=n,
                         callback_runners=r,
                     )
-
-
-@requires_ds(WT)
-def test_attributes_wt():
-    plot_field = ("gas", "density")
-    decimals = 12
-
-    ds = data_dir_load(WT)
-    ax = "z"
-    for attr_name in ATTR_ARGS.keys():
-        for args in ATTR_ARGS[attr_name]:
-            yield PlotWindowAttributeTest(ds, plot_field, ax, attr_name, args, decimals)
-            for n, r in CALLBACK_TESTS:
-                yield PlotWindowAttributeTest(
-                    ds,
-                    plot_field,
-                    ax,
-                    attr_name,
-                    args,
-                    decimals,
-                    callback_id=n,
-                    callback_runners=r,
-                )
 
 
 class TestHideAxesColorbar(unittest.TestCase):
@@ -477,7 +457,7 @@ class TestPerFieldConfig(unittest.TestCase):
 
 def test_on_off_compare():
     # fake density field that varies in the x-direction only
-    den = np.arange(32 ** 3) / 32 ** 2 + 1
+    den = np.arange(32**3) / 32**2 + 1
     den = den.reshape(32, 32, 32)
     den = np.array(den, dtype=np.float64)
     data = dict(density=(den, "g/cm**3"))
@@ -743,6 +723,43 @@ def test_symlog_colorbar():
             plot.save(f.name)
 
 
+def test_symlog_min_zero():
+    # see https://github.com/yt-project/yt/issues/3791
+    shape = (32, 16, 1)
+    a = np.linspace(0, 1, 16)
+    b = np.ones((32, 16))
+    c = np.reshape(a * b, shape)
+    data = {("gas", "density"): c}
+
+    ds = load_uniform_grid(
+        data,
+        shape,
+        bbox=np.array([[0.0, 5.0], [0, 1], [-0.1, +0.1]]),
+    )
+
+    p = SlicePlot(ds, "z", "density")
+    im_arr = p["gas", "density"].image.get_array()
+
+    # check that no data value was mapped to a NaN (log(0))
+    assert np.all(~np.isnan(im_arr))
+    # 0 should be mapped to itself since we expect a symlog norm
+    assert np.min(im_arr) == 0.0
+
+
+def test_symlog_extremely_small_vals():
+    # check that the plot can be constructed without crashing
+    # see https://github.com/yt-project/yt/issues/3858
+    shape = (64, 64, 1)
+    arr = np.full(shape, 5.0e-324)
+    arr[0, 0] = -1e12
+    arr[1, 1] = 200
+    d = {"scalar": arr}
+
+    ds = load_uniform_grid(d, shape)
+    p = SlicePlot(ds, "z", ("stream", "scalar"))
+    p["stream", "scalar"]
+
+
 def test_nan_data():
     data = np.random.random((16, 16, 16)) - 0.5
     data[:9, :9, :9] = np.nan
@@ -755,3 +772,83 @@ def test_nan_data():
 
     with tempfile.NamedTemporaryFile(suffix="png") as f:
         plot.save(f.name)
+
+
+def test_sanitize_valid_normal_vector():
+    # note: we don't test against non-cartesian geometries
+    # because the way normal "vectors" work isn't cleary
+    # specified and works more as an implementation detail
+    # at the moment
+    ds = fake_amr_ds(geometry="cartesian")
+
+    # We allow maximal polymorphism for axis-aligned directions:
+    # even if 3-component vector is received, we want to use the
+    # AxisAligned* plotting class (as opposed to OffAxis*) because
+    # it's much easier to optimize so it's expected to be more
+    # performant.
+    axis_label_from_inputs = {
+        "x": ["x", 0, [1, 0, 0], [0.1, 0.0, 0.0], [-10, 0, 0]],
+        "y": ["y", 1, [0, 1, 0], [0.0, 0.1, 0.0], [0, -10, 0]],
+        "z": ["z", 2, [0, 0, 1], [0.0, 0.0, 0.1], [0, 0, -10]],
+    }
+    for expected, user_inputs in axis_label_from_inputs.items():
+        for ui in user_inputs:
+            assert NormalPlot.sanitize_normal_vector(ds, ui) == expected
+
+    # arbitrary 3-floats sequences are also valid input.
+    # They should be returned as np.ndarrays, but the norm and orientation
+    # could be altered. What's important is that their direction is preserved.
+    for ui in [(1, 1, 1), [0.0, -3, 1e9], np.ones(3, dtype="int8")]:
+        res = NormalPlot.sanitize_normal_vector(ds, ui)
+        assert isinstance(res, np.ndarray)
+        assert res.dtype == np.float64
+        assert_array_equal(
+            np.cross(ui, res),
+            [0, 0, 0],
+        )
+
+
+def test_reject_invalid_normal_vector():
+    ds = fake_amr_ds(geometry="cartesian")
+    for ui in [0.0, 1.0, 2.0, 3.0]:
+        # acceptable scalar numeric values are restricted to integers.
+        # Floats might be a sign that something went wrong upstream
+        # e.g., rounding errors, parsing error...
+        assert_raises(TypeError, NormalPlot.sanitize_normal_vector, ds, ui)
+    for ui in [
+        "X",
+        "xy",
+        "not-an-axis",
+        (0, 0, 0),
+        [0, 0, 0],
+        np.zeros(3),
+        [1, 0, 0, 0],
+        [1, 0],
+        [1],
+        [0],
+        3,
+        10,
+    ]:
+        assert_raises(ValueError, NormalPlot.sanitize_normal_vector, ds, ui)
+
+
+def test_dispatch_plot_classes():
+    ds = fake_random_ds(16)
+    p1 = ProjectionPlot(ds, "z", ("gas", "density"))
+    p2 = ProjectionPlot(ds, (1, 2, 3), ("gas", "density"))
+    s1 = SlicePlot(ds, "z", ("gas", "density"))
+    s2 = SlicePlot(ds, (1, 2, 3), ("gas", "density"))
+    assert isinstance(p1, AxisAlignedProjectionPlot)
+    assert isinstance(p2, OffAxisProjectionPlot)
+    assert isinstance(s1, AxisAlignedSlicePlot)
+    assert isinstance(s2, OffAxisSlicePlot)
+
+
+@requires_module("cartopy")
+def test_invalid_swap_projection():
+    # projections and transforms will not work
+    ds = fake_amr_ds(geometry="geographic")
+    slc = SlicePlot(ds, "altitude", ds.field_list[0], origin="native")
+    slc.set_mpl_projection("Robinson")
+    slc.swap_axes()  # should raise mylog.warning and not toggle _swap_axes
+    assert slc._has_swapped_axes is False

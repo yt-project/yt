@@ -3,10 +3,14 @@ import functools
 import itertools
 import os
 import pickle
+import sys
 import time
+import warnings
 import weakref
 from collections import defaultdict
+from importlib.util import find_spec
 from stat import ST_CTIME
+from typing import DefaultDict, Optional, Tuple, Type, Union
 
 import numpy as np
 from unyt.exceptions import UnitConversionError, UnitParseError
@@ -30,11 +34,15 @@ from yt.geometry.coordinates.api import (
     SpectralCubeCoordinateHandler,
     SphericalCoordinateHandler,
 )
+from yt.geometry.geometry_handler import Index
 from yt.units import UnitContainer, _wrap_display_ytarray, dimensions
-from yt.units.dimensions import current_mks
-from yt.units.unit_object import Unit, define_unit
-from yt.units.unit_registry import UnitRegistry
-from yt.units.unit_systems import create_code_unit_system, unit_system_registry
+from yt.units.dimensions import current_mks  # type: ignore
+from yt.units.unit_object import Unit, define_unit  # type: ignore
+from yt.units.unit_registry import UnitRegistry  # type: ignore
+from yt.units.unit_systems import (  # type: ignore
+    create_code_unit_system,
+    unit_system_registry,
+)
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.exceptions import (
@@ -49,12 +57,18 @@ from yt.utilities.object_registries import data_object_registry, output_type_reg
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_root_only
 from yt.utilities.parameter_file_storage import NoParameterShelf, ParameterFileStore
 
+if sys.version_info >= (3, 9):
+    from collections.abc import MutableMapping
+else:
+    from typing import MutableMapping
 # We want to support the movie format in the future.
 # When such a thing comes to pass, I'll move all the stuff that is constant up
 # to here, and then have it instantiate EnzoDatasets as appropriate.
 
 
-_cached_datasets = weakref.WeakValueDictionary()
+_cached_datasets: MutableMapping[
+    Union[int, str], "Dataset"
+] = weakref.WeakValueDictionary()
 _ds_store = ParameterFileStore()
 
 
@@ -80,7 +94,7 @@ class MutableAttribute:
             ret = ret.copy()
         except AttributeError:
             pass
-        if self.display_array:
+        if self.display_array and find_spec("ipywidgets") is not None:
             try:
                 ret._ipython_display_ = functools.partial(_wrap_display_ytarray, ret)
             # This will error out if the items have yet to be turned into
@@ -112,29 +126,33 @@ class Dataset(abc.ABC):
 
     default_fluid_type = "gas"
     default_field = ("gas", "density")
-    fluid_types = ("gas", "deposit", "index")
-    particle_types = ("io",)  # By default we have an 'all'
-    particle_types_raw = ("io",)
+    fluid_types: Tuple[str, ...] = ("gas", "deposit", "index")
+    particle_types: Optional[Tuple[str, ...]] = ("io",)  # By default we have an 'all'
+    particle_types_raw: Optional[Tuple[str, ...]] = ("io",)
     geometry = "cartesian"
     coordinates = None
     storage_filename = None
     particle_unions = None
     known_filters = None
-    _index_class = None
+    _index_class: Type[Index]
     field_units = None
     derived_field_list = requires_index("derived_field_list")
     fields = requires_index("fields")
     _instantiated = False
-    _unique_identifier = None
+    _unique_identifier: Optional[Union[str, int]] = None
     _particle_type_counts = None
     _proj_type = "quad_proj"
     _ionization_label_format = "roman_numeral"
+    _determined_fields = None
     fields_detected = False
 
     # these are set in self._parse_parameter_file()
     domain_left_edge = MutableAttribute(True)
     domain_right_edge = MutableAttribute(True)
     domain_dimensions = MutableAttribute(True)
+    # the point in index space "domain_left_edge" doesn't necessarily
+    # map to (0, 0, 0)
+    domain_offset = np.zeros(3, dtype="int64")
     _periodicity = MutableAttribute()
     _force_periodicity = False
 
@@ -153,7 +171,7 @@ class Dataset(abc.ABC):
             if not is_stream:
                 obj.__init__(filename, *args, **kwargs)
             return obj
-        apath = os.path.abspath(filename)
+        apath = os.path.abspath(os.path.expanduser(filename))
         cache_key = (apath, pickle.dumps(args), pickle.dumps(kwargs))
         if ytcfg.get("yt", "skip_dataset_cache"):
             obj = object.__new__(cls)
@@ -167,6 +185,12 @@ class Dataset(abc.ABC):
 
     def __init_subclass__(cls, *args, **kwargs):
         super().__init_subclass__(*args, **kwargs)
+        if cls.__name__ in output_type_registry:
+            warnings.warn(
+                f"Overwritting {cls.__name__}, which was previously registered. "
+                "This is expected if you're importing a yt extension with a "
+                "frontend that was already migrated to the main code base."
+            )
         output_type_registry[cls.__name__] = cls
         mylog.debug("Registering: %s as %s", cls.__name__, cls)
 
@@ -195,20 +219,11 @@ class Dataset(abc.ABC):
         self.known_filters = self.known_filters or {}
         self.particle_unions = self.particle_unions or {}
         self.field_units = self.field_units or {}
+        self._determined_fields = {}
         self.units_override = self.__class__._sanitize_units_override(units_override)
         self.default_species_fields = default_species_fields
 
-        # path stuff
-        self.parameter_filename = str(filename)
-        self.basename = os.path.basename(filename)
-        self.directory = os.path.expanduser(os.path.dirname(filename))
-        self.fullpath = os.path.abspath(self.directory)
-        self.backup_filename = self.parameter_filename + "_backup.gdf"
-        self.read_from_backup = False
-        if os.path.exists(self.backup_filename):
-            self.read_from_backup = True
-        if len(self.directory) == 0:
-            self.directory = "."
+        self._input_filename: str = os.fspath(filename)
 
         # to get the timing right, do this before the heavy lifting
         self._instantiated = time.time()
@@ -243,6 +258,41 @@ class Dataset(abc.ABC):
         self._setup_classes()
 
     @property
+    def filename(self):
+        if self._input_filename.startswith("http"):
+            return self._input_filename
+        else:
+            return os.path.abspath(os.path.expanduser(self._input_filename))
+
+    @property
+    def parameter_filename(self):
+        # historic alias
+        return self.filename
+
+    @property
+    def basename(self):
+        return os.path.basename(self.filename)
+
+    @property
+    def directory(self):
+        return os.path.dirname(self.filename)
+
+    @property
+    def fullpath(self):
+        issue_deprecation_warning(
+            "the Dataset.fullpath attribute is now aliased to Dataset.directory, "
+            "and all path attributes are now absolute. "
+            "Please use the directory attribute instead",
+            since="4.1.0",
+        )
+        return self.directory
+
+    @property
+    def backup_filename(self):
+        name, _ext = os.path.splitext(self.filename)
+        return name + "_backup.gdf"
+
+    @property
     def unique_identifier(self):
         if self._unique_identifier is None:
             self._unique_identifier = int(os.stat(self.parameter_filename)[ST_CTIME])
@@ -259,25 +309,6 @@ class Dataset(abc.ABC):
         if self._force_periodicity:
             return (True, True, True)
         return self._periodicity
-
-    @periodicity.setter
-    def periodicity(self, val):
-        # remove this setter to break backward compatibility
-        issue_deprecation_warning(
-            "Dataset.periodicity should not be overriden manually. "
-            "In the future, this will become an error. "
-            "Use `Dataset.force_periodicity` instead.",
-            since="4.0.0",
-            removal="4.1.0",
-        )
-        err_msg = f"Expected a 3-element boolean tuple, received `{val}`."
-        if not is_sequence(val):
-            raise TypeError(err_msg)
-        if len(val) != 3:
-            raise ValueError(err_msg)
-        if any(not isinstance(p, (bool, np.bool_)) for p in val):
-            raise TypeError(err_msg)
-        self._periodicity = tuple(bool(p) for p in val)
 
     def force_periodicity(self, val=True):
         """
@@ -369,7 +400,7 @@ class Dataset(abc.ABC):
                 self._checksum = "nohashlib"
                 return self._checksum
 
-            def generate_file_md5(m, filename, blocksize=2 ** 20):
+            def generate_file_md5(m, filename, blocksize=2**20):
                 with open(filename, "rb") as f:
                     while True:
                         buf = f.read(blocksize)
@@ -523,8 +554,6 @@ class Dataset(abc.ABC):
     @property
     def index(self):
         if self._instantiated_index is None:
-            if self._index_class is None:
-                raise RuntimeError("You should not instantiate Dataset.")
             self._instantiated_index = self._index_class(
                 self, dataset_type=self.dataset_type
             )
@@ -605,7 +634,6 @@ class Dataset(abc.ABC):
                 if nfields == 0:
                     mylog.debug("zero common fields, skipping particle union 'nbody'")
         self.field_info.setup_extra_union_fields()
-        mylog.debug("Loading field plugins.")
         self.field_info.load_all_plugins(self.default_fluid_type)
         deps, unloaded = self.field_info.check_derived_fields()
         self.field_dependencies.update(deps)
@@ -677,7 +705,10 @@ class Dataset(abc.ABC):
             cls = PolarCoordinateHandler
         elif self.geometry == "spherical":
             cls = SphericalCoordinateHandler
-            self.no_cgs_equiv_length = True
+            # It shouldn't be required to reset self.no_cgs_equiv_length
+            # to the default value (False) here, but it's still necessary
+            # see https://github.com/yt-project/yt/pull/3618
+            self.no_cgs_equiv_length = False
         elif self.geometry == "geographic":
             cls = GeographicCoordinateHandler
             self.no_cgs_equiv_length = True
@@ -731,7 +762,7 @@ class Dataset(abc.ABC):
     def add_particle_filter(self, filter):
         """Add particle filter to the dataset.
 
-        Add ``filter`` to the dataset and set up relavent derived_field.
+        Add ``filter`` to the dataset and set up relevant derived_field.
         It will also add any ``filtered_type`` that the ``filter`` depends on.
 
         """
@@ -1112,37 +1143,65 @@ class Dataset(abc.ABC):
         return self.refine_by ** (l1 - l0)
 
     def _assign_unit_system(self, unit_system):
-        if unit_system == "cgs":
-            current_mks_unit = None
+        # we need to determine if the requested unit system
+        # is mks-like: i.e., it has a current with the same
+        # dimensions as amperes.
+        mks_system = False
+        if getattr(self, "magnetic_unit", None):
+            mag_dims = self.magnetic_unit.units.dimensions.free_symbols
         else:
-            current_mks_unit = "A"
-        magnetic_unit = getattr(self, "magnetic_unit", None)
-        if magnetic_unit is not None:
-            if unit_system == "mks":
-                if current_mks not in self.magnetic_unit.units.dimensions.free_symbols:
-                    self.magnetic_unit = self.magnetic_unit.to("gauss").to("T")
-                self.unit_registry.modify("code_magnetic", self.magnetic_unit.value)
-            else:
-                # if the magnetic unit is in T, we need to create the code unit
-                # system as an MKS-like system
-                if current_mks in self.magnetic_unit.units.dimensions.free_symbols:
-                    self.magnetic_unit = self.magnetic_unit.to("T").to("gauss")
+            mag_dims = None
+        if unit_system != "code":
+            # if the unit system is known, we can check if it
+            # has a "current_mks" unit
+            us = unit_system_registry[str(unit_system).lower()]
+            mks_system = us.base_units[current_mks] is not None
+        elif mag_dims and current_mks in mag_dims:
+            # if we're using the not-yet defined code unit system,
+            # then we check if the magnetic field unit has a SI
+            # current dimension in it
+            mks_system = True
+        # Now we get to the tricky part. If we have an MKS-like system but
+        # we asked for a conversion to something CGS-like, or vice-versa,
+        # we have to convert the magnetic field
+        if mag_dims is not None:
+            if mks_system and current_mks not in mag_dims:
+                self.magnetic_unit = self.quan(
+                    self.magnetic_unit.to_value("gauss") * 1.0e-4, "T"
+                )
+                # The following modification ensures that we get the conversion to
+                # mks correct
+                self.unit_registry.modify(
+                    "code_magnetic", self.magnetic_unit.value * 1.0e3 * 0.1**-0.5
+                )
+            elif not mks_system and current_mks in mag_dims:
+                self.magnetic_unit = self.quan(
+                    self.magnetic_unit.to_value("T") * 1.0e4, "gauss"
+                )
                 # The following modification ensures that we get the conversion to
                 # cgs correct
                 self.unit_registry.modify(
-                    "code_magnetic", self.magnetic_unit.value * 0.1 ** 0.5
+                    "code_magnetic", self.magnetic_unit.value * 1.0e-4
                 )
-
+        current_mks_unit = "A" if mks_system else None
         us = create_code_unit_system(
             self.unit_registry, current_mks_unit=current_mks_unit
         )
         if unit_system != "code":
             us = unit_system_registry[str(unit_system).lower()]
 
-        us._code_flag = unit_system == "code"
+        self._unit_system_name: str = unit_system
 
         self.unit_system = us
         self.unit_registry.unit_system = self.unit_system
+
+    @property
+    def _uses_code_length_unit(self) -> bool:
+        return self._unit_system_name == "code" or self.no_cgs_equiv_length
+
+    @property
+    def _uses_code_time_unit(self) -> bool:
+        return self._unit_system_name == "code"
 
     def _create_unit_registry(self, unit_system):
         from yt.units import dimensions
@@ -1150,25 +1209,34 @@ class Dataset(abc.ABC):
         # yt assumes a CGS unit system by default (for back compat reasons).
         # Since unyt is MKS by default we specify the MKS values of the base
         # units in the CGS system. So, for length, 1 cm = .01 m. And so on.
+        # Note that the values associated with the code units here will be
+        # modified once we actually determine what the code units are from
+        # the dataset
+        # NOTE that magnetic fields are not done here yet, see set_code_units
         self.unit_registry = UnitRegistry(unit_system=unit_system)
+        # 1 cm = 0.01 m
         self.unit_registry.add("code_length", 0.01, dimensions.length)
+        # 1 g = 0.001 kg
         self.unit_registry.add("code_mass", 0.001, dimensions.mass)
+        # 1 g/cm**3 = 1000 kg/m**3
         self.unit_registry.add("code_density", 1000.0, dimensions.density)
+        # 1 erg/g = 1.0e-4 J/kg
         self.unit_registry.add(
-            "code_specific_energy", 1.0, dimensions.energy / dimensions.mass
+            "code_specific_energy", 1.0e-4, dimensions.energy / dimensions.mass
         )
+        # 1 s = 1 s
         self.unit_registry.add("code_time", 1.0, dimensions.time)
-        if unit_system == "mks":
-            self.unit_registry.add("code_magnetic", 1.0, dimensions.magnetic_field)
-        else:
-            self.unit_registry.add(
-                "code_magnetic", 0.1 ** 0.5, dimensions.magnetic_field_cgs
-            )
+        # 1 K = 1 K
         self.unit_registry.add("code_temperature", 1.0, dimensions.temperature)
+        # 1 dyn/cm**2 = 0.1 N/m**2
         self.unit_registry.add("code_pressure", 0.1, dimensions.pressure)
+        # 1 cm/s = 0.01 m/s
         self.unit_registry.add("code_velocity", 0.01, dimensions.velocity)
+        # metallicity
         self.unit_registry.add("code_metallicity", 1.0, dimensions.dimensionless)
+        # dimensionless hubble parameter
         self.unit_registry.add("h", 1.0, dimensions.dimensionless, r"h")
+        # cosmological scale factor
         self.unit_registry.add("a", 1.0, dimensions.dimensionless)
 
     def set_units(self):
@@ -1262,14 +1330,32 @@ class Dataset(abc.ABC):
         )
         temperature_unit = getattr(self, "temperature_unit", 1.0)
         density_unit = getattr(
-            self, "density_unit", self.mass_unit / self.length_unit ** 3
+            self, "density_unit", self.mass_unit / self.length_unit**3
         )
-        specific_energy_unit = getattr(self, "specific_energy_unit", vel_unit ** 2)
+        specific_energy_unit = getattr(self, "specific_energy_unit", vel_unit**2)
         self.unit_registry.modify("code_velocity", vel_unit)
         self.unit_registry.modify("code_temperature", temperature_unit)
         self.unit_registry.modify("code_pressure", pressure_unit)
         self.unit_registry.modify("code_density", density_unit)
         self.unit_registry.modify("code_specific_energy", specific_energy_unit)
+        # Defining code units for magnetic fields are tricky because
+        # they have different dimensions in different unit systems, so we have
+        # to handle them carefully
+        if hasattr(self, "magnetic_unit"):
+            if self.magnetic_unit.units.dimensions == dimensions.magnetic_field_cgs:
+                # We have to cast this explicitly to MKS base units, otherwise
+                # unyt will convert it automatically to Tesla
+                value = self.magnetic_unit.to_value("sqrt(kg)/(sqrt(m)*s)")
+                dims = dimensions.magnetic_field_cgs
+            else:
+                value = self.magnetic_unit.to_value("T")
+                dims = dimensions.magnetic_field_mks
+        else:
+            # Fallback to gauss if no magnetic unit is specified
+            # 1 gauss = 1 sqrt(g)/(sqrt(cm)*s) = 0.1**0.5 sqrt(kg)/(sqrt(m)*s)
+            value = 0.1**0.5
+            dims = dimensions.magnetic_field_cgs
+        self.unit_registry.add("code_magnetic", value, dims)
         # domain_width does not yet exist
         if self.domain_left_edge is not None and self.domain_right_edge is not None:
             DW = self.arr(self.domain_right_edge - self.domain_left_edge, "code_length")
@@ -1338,7 +1424,7 @@ class Dataset(abc.ABC):
             except KeyError:
                 continue
 
-            # Now attempt to instanciate a unyt.unyt_quantity from val ...
+            # Now attempt to instantiate a unyt.unyt_quantity from val ...
             try:
                 # ... directly (valid if val is a number, or a unyt_quantity)
                 uo[key] = YTQuantity(val)
@@ -1680,51 +1766,7 @@ class Dataset(abc.ABC):
         )
         return ("deposit", field_name)
 
-    def add_smoothed_particle_field(
-        self, smooth_field, method="volume_weighted", nneighbors=64, kernel_name="cubic"
-    ):
-        """Add a new smoothed particle field
-
-        WARNING: This method is deprecated since yt-4.0.
-
-        Creates a new smoothed field based on the particle *smooth_field*.
-
-        Parameters
-        ----------
-
-        smooth_field : tuple
-           The field name tuple of the particle field the smoothed field will
-           be created from.  This must be a field name tuple so yt can
-           appropriately infer the correct particle type.
-        method : string, default 'volume_weighted'
-           The particle smoothing method to use. Can only be 'volume_weighted'
-           for now.
-        nneighbors : int, default 64
-            The number of neighbors to examine during the process.
-        kernel_name : string, default `cubic`
-            This is the name of the smoothing kernel to use. Current supported
-            kernel names include `cubic`, `quartic`, `quintic`, `wendland2`,
-            `wendland4`, and `wendland6`.
-
-        Returns
-        -------
-
-        The field name tuple for the newly created field.
-        """
-        issue_deprecation_warning(
-            "This method is deprecated. "
-            "Since yt-4.0, it's no longer necessary to add a field specifically for "
-            "smoothing, because the global octree is removed. The old behavior of "
-            "interpolating onto a grid structure can be recovered through data objects "
-            "like ds.arbitrary_grid, ds.covering_grid, and most closely ds.octree. The "
-            "visualization machinery now treats SPH fields properly by smoothing onto "
-            "pixel locations. See this page to learn more: "
-            "https://yt-project.org/doc/yt4differences.html",
-            since="4.0.0",
-            removal="4.1.0",
-        )
-
-    def add_gradient_fields(self, fields=None, input_field=None):
+    def add_gradient_fields(self, fields=None):
         """Add gradient fields.
 
         Creates four new grid-based fields that represent the components of the gradient
@@ -1769,18 +1811,6 @@ class Dataset(abc.ABC):
         For instance, with cylindrical data, one gets 'density_gradient_<r,theta,z>'
 
         """
-        if input_field is not None:
-            issue_deprecation_warning(
-                "keyword argument 'input_field' is deprecated in favor of 'fields' "
-                "and will be removed in a future version of yt.",
-                since="4.0.0",
-                removal="4.1.0",
-            )
-            if fields is not None:
-                raise TypeError(
-                    "Can not use both 'fields' and 'input_field' keyword arguments"
-                )
-            fields = input_field
         if fields is None:
             raise TypeError("Missing required positional argument: fields")
 
@@ -1868,7 +1898,14 @@ def _reconstruct_ds(*args, **kwargs):
 
 
 @functools.total_ordering
-class ParticleFile:
+class ParticleFile(abc.ABC):
+    filename: str
+    file_id: int
+
+    start: Optional[int] = None
+    end: Optional[int] = None
+    total_particles: Optional[DefaultDict[str, int]] = None
+
     def __init__(self, ds, io, filename, file_id, range=None):
         self.ds = ds
         self.io = weakref.proxy(io)
@@ -1937,7 +1974,7 @@ class ParticleDataset(Dataset):
 
 def validate_index_order(index_order):
     if index_order is None:
-        index_order = (7, 5)
+        index_order = (6, 2)
     elif not is_sequence(index_order):
         index_order = (int(index_order), 1)
     else:

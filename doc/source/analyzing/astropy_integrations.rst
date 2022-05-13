@@ -15,8 +15,7 @@ similar to that in yt. For this reason, we have implemented "round-trip"
 conversions between :class:`~yt.units.yt_array.YTArray` objects
 and AstroPy's :class:`~astropy.units.Quantity` objects. These are implemented
 in the :meth:`~yt.units.yt_array.YTArray.from_astropy` and
-:meth:`~yt.units.yt_array.YTArray.to_astropy` methods. See
-:ref:`fields_and_unit_conversion` for more information.
+:meth:`~yt.units.yt_array.YTArray.to_astropy` methods.
 
 FITS Image File Reading and Writing
 -----------------------------------
@@ -48,7 +47,7 @@ specifically a
 `QTable <http://docs.astropy.org/en/stable/table/mixin_columns.html#quantity-and-qtable>`_.
 ``QTable`` is unit-aware, and can be manipulated in a number of ways
 and written to disk in several formats, including ASCII text or FITS
-files. For more details, see :ref:`fields-astropy-export`.
+files.
 
 Similarly, 1D profile objects can also be exported to AstroPy
 ``QTable``, optionally writing all of the profile bins or only the ones

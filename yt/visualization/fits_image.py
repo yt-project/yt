@@ -5,12 +5,13 @@ from numbers import Number as numeric_type
 import numpy as np
 from more_itertools import first, mark_ends
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.data_objects.construction_data_containers import YTCoveringGrid
 from yt.data_objects.image_array import ImageArray
 from yt.fields.derived_field import DerivedField
 from yt.funcs import fix_axis, is_sequence, iter_fields, mylog
 from yt.units import dimensions
-from yt.units.unit_object import Unit
+from yt.units.unit_object import Unit  # type: ignore
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.on_demand_imports import _astropy
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_root_only
@@ -381,7 +382,7 @@ class FITSImageData:
                         4.0
                         * np.pi
                         * self.mass_unit
-                        / (self.time_unit ** 2 * self.length_unit)
+                        / (self.time_unit**2 * self.length_unit)
                     )
                 else:
                     u = cgs_unit
@@ -399,20 +400,21 @@ class FITSImageData:
             else:
                 uq = None
 
-            if uq is not None and hasattr(self, "hubble_constant"):
-                # Don't store cosmology units
+            if uq is not None:
                 atoms = {str(a) for a in uq.units.expr.atoms()}
-                if str(uq.units).startswith("cm") or "h" in atoms or "a" in atoms:
+                if hasattr(self, "hubble_constant"):
+                    # Don't store cosmology units
+                    if str(uq.units).startswith("cm") or "h" in atoms or "a" in atoms:
+                        uq.convert_to_cgs()
+                if any(a.startswith("code") for a in atoms):
+                    # Don't store code units
+                    mylog.warning(
+                        "Cannot use code units of '%s' "
+                        "when creating a FITSImageData instance! "
+                        "Converting to a cgs equivalent.",
+                        uq.units,
+                    )
                     uq.convert_to_cgs()
-
-            if uq is not None and uq.units.is_code_unit:
-                mylog.warning(
-                    "Cannot use code units of '%s' "
-                    "when creating a FITSImageData instance! "
-                    "Converting to a cgs equivalent.",
-                    uq.units,
-                )
-                uq.convert_to_cgs()
 
             if attr == "length_unit" and uq.value != 1.0:
                 mylog.warning("Converting length units from %s to %s.", uq, uq.units)
@@ -533,9 +535,11 @@ class FITSImageData:
             self.hdulist[idx].header[key] = value
 
     def update_all_headers(self, key, value):
-        mylog.warning(
+        issue_deprecation_warning(
             "update_all_headers is deprecated. "
-            "Use update_header('all', key, value) instead."
+            "Use update_header('all', key, value) instead.",
+            since="3.3",
+            removal="4.2",
         )
         self.update_header("all", key, value)
 
@@ -577,7 +581,7 @@ class FITSImageData:
         if output is None:
             output = sys.stdout
         if num_cols == 8:
-            header = "No.    Name      Ver    Type      Cards   Dimensions   Format     Units"  # NOQA E501
+            header = "No.    Name      Ver    Type      Cards   Dimensions   Format     Units"
             format = "{:3d}  {:10}  {:3} {:11}  {:5d}   {}   {}   {}"
         else:
             header = (
@@ -735,12 +739,12 @@ class FITSImageData:
         w = first_image.wcs
         img_shape = first_image.shape
         data = []
-        for is_first, _is_last, fid in mark_ends(image_list):
+        for fid in image_list:
             assert_same_wcs(w, fid.wcs)
             if img_shape != fid.shape:
                 raise RuntimeError("Images do not have the same shape!")
             for hdu in fid.hdulist:
-                if is_first:
+                if len(data) == 0:
                     data.append(_astropy.pyfits.PrimaryHDU(hdu.data, header=hdu.header))
                 else:
                     data.append(_astropy.pyfits.ImageHDU(hdu.data, header=hdu.header))
@@ -845,7 +849,10 @@ def sanitize_fits_unit(unit):
     return unit
 
 
-axis_wcs = [[1, 2], [0, 2], [0, 1]]
+# This list allows one to determine which axes are the
+# correct axes of the image in a right-handed coordinate
+# system depending on which axis is sliced or projected
+axis_wcs = [[1, 2], [2, 0], [0, 1]]
 
 
 def construct_image(ds, axis, data_source, center, image_res, width, length_unit):
@@ -888,11 +895,12 @@ def construct_image(ds, axis, data_source, center, image_res, width, length_unit
         else:
             frb = data_source.to_frb(width[0], (nx, ny), center=center, height=width[1])
     elif isinstance(data_source, ParticleAxisAlignedDummyDataSource):
+        axes = axis_wcs[axis]
         bounds = (
-            center[0] - width[0] / 2,
-            center[0] + width[0] / 2,
-            center[1] - width[1] / 2,
-            center[1] + width[1] / 2,
+            center[axes[0]] - width[0] / 2,
+            center[axes[0]] + width[0] / 2,
+            center[axes[1]] - width[1] / 2,
+            center[axes[1]] + width[1] / 2,
         )
         frb = ParticleImageBuffer(
             data_source, bounds, (nx, ny), periodic=all(ds.periodicity)

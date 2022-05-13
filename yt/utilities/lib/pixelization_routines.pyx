@@ -257,6 +257,8 @@ def pixelize_cartesian(np.float64_t[:,:] buff,
                                 # This will reduce artifacts if we ever move to
                                 # compositing instead of replacing bitmaps.
                                 if overlap1 * overlap2 < 1.e-6: continue
+                                # make sure pixel value is not a NaN before incrementing it
+                                if buff[i,j] != buff[i,j]: buff[i,j] = 0.0
                                 buff[i,j] += (dsp * overlap1) * overlap2
                             else:
                                 buff[i,j] = dsp
@@ -507,6 +509,8 @@ def pixelize_off_axis_cartesian(
                        fabs(zsp - cz) * 0.99 > dzsp:
                         continue
                     mask[i, j] += 1
+                    # make sure pixel value is not a NaN before incrementing it
+                    if buff[i,j] != buff[i,j]: buff[i,j] = 0.0
                     buff[i, j] += dsp
     for i in range(buff.shape[0]):
         for j in range(buff.shape[1]):
@@ -525,18 +529,29 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
                       extents):
 
     cdef np.float64_t x, y, dx, dy, r0, theta0
-    cdef np.float64_t rmax, x0, y0, x1, y1
-    cdef np.float64_t r_i, theta_i, dr_i, dtheta_i, dthetamin
+    cdef np.float64_t rmin, rmax, tmin, tmax, x0, y0, x1, y1, xp, yp
+    cdef np.float64_t r_i, theta_i, dr_i, dtheta_i
+    cdef np.float64_t r_inc, theta_inc
     cdef np.float64_t costheta, sintheta
-    cdef int i, pi, pj
+    cdef int i, i1, pi, pj
 
-    cdef int imax = np.asarray(radius).argmax()
+    cdef int imin, imax
+    imin = np.asarray(radius).argmin()
+    imax = np.asarray(radius).argmax()
+    rmin = radius[imin] - dradius[imin]
     rmax = radius[imax] + dradius[imax]
 
+    imin = np.asarray(theta).argmin()
+    imax = np.asarray(theta).argmax()
+    tmin = theta[imin] - dtheta[imin]
+    tmax = theta[imax] + dtheta[imax]
+
     x0, x1, y0, y1 = extents
-    dx = (x1 - x0) / buff.shape[1]
-    dy = (y1 - y0) / buff.shape[0]
+    dx = (x1 - x0) / buff.shape[0]
+    dy = (y1 - y0) / buff.shape[1]
     cdef np.float64_t rbounds[2]
+    cdef np.float64_t prbounds[2]
+    cdef np.float64_t ptbounds[2]
     cdef np.float64_t corners[8]
     # Find our min and max r
     corners[0] = x0*x0+y0*y0
@@ -559,9 +574,9 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
         rbounds[0] = 0.0
     if y0 < 0 and y1 > 0:
         rbounds[0] = 0.0
-    dthetamin = dx / rmax
-    for i in range(radius.shape[0]):
+    r_inc = 0.5 * fmin(dx, dy)
 
+    for i in range(radius.shape[0]):
         r0 = radius[i]
         theta0 = theta[i]
         dr_i = dradius[i]
@@ -570,15 +585,15 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
         if r0 + dr_i < rbounds[0] or r0 - dr_i > rbounds[1]:
             continue
         theta_i = theta0 - dtheta_i
-        # Buffer of 0.5 here
-        dthetamin = 0.5*dx/(r0 + dr_i)
+        theta_inc = r_inc / (r0 + dr_i)
+
         while theta_i < theta0 + dtheta_i:
             r_i = r0 - dr_i
             costheta = math.cos(theta_i)
             sintheta = math.sin(theta_i)
             while r_i < r0 + dr_i:
                 if rmax <= r_i:
-                    r_i += 0.5*dx
+                    r_i += r_inc
                     continue
                 y = r_i * costheta
                 x = r_i * sintheta
@@ -586,40 +601,72 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
                 pj = <int>((y - y0)/dy)
                 if pi >= 0 and pi < buff.shape[0] and \
                    pj >= 0 and pj < buff.shape[1]:
-                    buff[pi, pj] = field[i]
-                r_i += 0.5*dx
-            theta_i += dthetamin
+                    # we got a pixel that intersects the grid cell
+                    # now check that this pixel doesn't go beyond the data domain
+                    xp = x0 + pi*dx
+                    yp = y0 + pj*dy
+                    corners[0] = xp*xp + yp*yp
+                    corners[1] = xp*xp + (yp+dy)**2
+                    corners[2] = (xp+dx)**2 + yp*yp
+                    corners[3] = (xp+dx)**2 + (yp+dy)**2
+                    prbounds[0] = prbounds[1] = corners[3]
+                    for i1 in range(3):
+                        prbounds[0] = fmin(prbounds[0], corners[i1])
+                        prbounds[1] = fmax(prbounds[1], corners[i1])
+                    prbounds[0] = math.sqrt(prbounds[0])
+                    prbounds[1] = math.sqrt(prbounds[1])
 
-cdef int aitoff_thetaphi_to_xy(np.float64_t theta, np.float64_t phi,
+                    corners[0] = math.atan2(xp, yp)
+                    corners[1] = math.atan2(xp, yp+dy)
+                    corners[2] = math.atan2(xp+dx, yp)
+                    corners[3] = math.atan2(xp+dx, yp+dy)
+                    ptbounds[0] = ptbounds[1] = corners[3]
+                    for i1 in range(3):
+                        ptbounds[0] = fmin(ptbounds[0], corners[i1])
+                        ptbounds[1] = fmax(ptbounds[1], corners[i1])
+
+                    # shift to a [0, PI] interval
+                    ptbounds[0] = ptbounds[0] % (2*np.pi)
+                    ptbounds[1] = ptbounds[1] % (2*np.pi)
+
+                    if prbounds[0] >= rmin and prbounds[1] <= rmax and \
+                       ptbounds[0] >= tmin and ptbounds[1] <= tmax:
+                        buff[pi, pj] = field[i]
+                r_i += r_inc
+            theta_i += theta_inc
+
+cdef int aitoff_Lambda_btheta_to_xy(np.float64_t Lambda, np.float64_t btheta,
                                np.float64_t *x, np.float64_t *y) except -1:
-    cdef np.float64_t z = math.sqrt(1 + math.cos(phi) * math.cos(theta / 2.0))
-    x[0] = math.cos(phi) * math.sin(theta / 2.0) / z
-    y[0] = math.sin(phi) / z
+    cdef np.float64_t z = math.sqrt(1 + math.cos(btheta) * math.cos(Lambda / 2.0))
+    x[0] = 2.0 * math.cos(btheta) * math.sin(Lambda / 2.0) / z
+    y[0] = math.sin(btheta) / z
     return 0
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pixelize_aitoff(np.float64_t[:] theta,
-                    np.float64_t[:] dtheta,
-                    np.float64_t[:] phi,
-                    np.float64_t[:] dphi,
+def pixelize_aitoff(np.float64_t[:] azimuth,
+                    np.float64_t[:] dazimuth,
+                    np.float64_t[:] colatitude,
+                    np.float64_t[:] dcolatitude,
                     buff_size,
                     np.float64_t[:] field,
-                    extents, input_img = None,
-                    np.float64_t theta_offset = 0.0,
-                    np.float64_t phi_offset = 0.0):
+                    bounds, # this is a 4-tuple
+                    input_img = None,
+                    np.float64_t azimuth_offset = 0.0,
+                    np.float64_t colatitude_offset = 0.0):
     # http://paulbourke.net/geometry/transformationprojection/
-    # (theta) longitude is -pi to pi
-    # (phi) latitude is -pi/2 to pi/2
+    # (Lambda) longitude is -PI to PI (longitude = azimuth - PI)
+    # (btheta) latitude is -PI/2 to PI/2 (latitude = PI/2 - colatitude)
+    #
     # z^2 = 1 + cos(latitude) cos(longitude/2)
     # x = cos(latitude) sin(longitude/2) / z
     # y = sin(latitude) / z
     cdef np.ndarray[np.float64_t, ndim=2] img
     cdef int i, j, nf, fi
     cdef np.float64_t x, y, z, zb
-    cdef np.float64_t dx, dy
-    cdef np.float64_t theta0, phi0, theta_p, dtheta_p, phi_p, dphi_p
+    cdef np.float64_t dx, dy, xw, yw
+    cdef np.float64_t Lambda0, btheta0, Lambda_p, dLambda_p, btheta_p, dbtheta_p
     cdef np.float64_t PI = np.pi
     cdef np.float64_t s2 = math.sqrt(2.0)
     cdef np.float64_t xmax, ymax, xmin, ymin
@@ -632,65 +679,94 @@ def pixelize_aitoff(np.float64_t[:] theta,
         img = input_img
     # Okay, here's our strategy.  We compute the bounds in x and y, which will
     # be a rectangle, and then for each x, y position we check to see if it's
-    # within our theta.  This will cost *more* computations of the
-    # (x,y)->(theta,phi) calculation, but because we no longer have to search
-    # through the theta, phi arrays, it should be faster.
-    dx = 2.0 / (img.shape[0] - 1)
-    dy = 2.0 / (img.shape[1] - 1)
+    # within our Lambda.  This will cost *more* computations of the
+    # (x,y)->(Lambda,btheta) calculation, but because we no longer have to search
+    # through the Lambda, btheta arrays, it should be faster.
+    xw = bounds[1] - bounds[0]
+    yw = bounds[3] - bounds[2]
+    dx = xw / (img.shape[0] - 1)
+    dy = yw / (img.shape[1] - 1)
     x = y = 0
     for fi in range(nf):
-        theta_p = (theta[fi] + theta_offset) - PI
-        dtheta_p = dtheta[fi]
-        phi_p = (phi[fi] + phi_offset) - PI/2.0
-        dphi_p = dphi[fi]
+        Lambda_p = (azimuth[fi] + azimuth_offset) - PI
+        dLambda_p = dazimuth[fi]
+        btheta_p = PI/2.0 - (colatitude[fi] + colatitude_offset)
+        dbtheta_p = dcolatitude[fi]
         # Four transformations
-        aitoff_thetaphi_to_xy(theta_p - dtheta_p, phi_p - dphi_p, &x, &y)
+        aitoff_Lambda_btheta_to_xy(Lambda_p - dLambda_p, btheta_p - dbtheta_p, &x, &y)
         xmin = x
         xmax = x
         ymin = y
         ymax = y
-        aitoff_thetaphi_to_xy(theta_p - dtheta_p, phi_p + dphi_p, &x, &y)
+        aitoff_Lambda_btheta_to_xy(Lambda_p - dLambda_p, btheta_p + dbtheta_p, &x, &y)
         xmin = fmin(xmin, x)
         xmax = fmax(xmax, x)
         ymin = fmin(ymin, y)
         ymax = fmax(ymax, y)
-        aitoff_thetaphi_to_xy(theta_p + dtheta_p, phi_p - dphi_p, &x, &y)
+        aitoff_Lambda_btheta_to_xy(Lambda_p + dLambda_p, btheta_p - dbtheta_p, &x, &y)
         xmin = fmin(xmin, x)
         xmax = fmax(xmax, x)
         ymin = fmin(ymin, y)
         ymax = fmax(ymax, y)
-        aitoff_thetaphi_to_xy(theta_p + dtheta_p, phi_p + dphi_p, &x, &y)
+        aitoff_Lambda_btheta_to_xy(Lambda_p + dLambda_p, btheta_p + dbtheta_p, &x, &y)
         xmin = fmin(xmin, x)
         xmax = fmax(xmax, x)
         ymin = fmin(ymin, y)
         ymax = fmax(ymax, y)
+        # special cases where the projection of the cell isn't
+        # bounded by the rectangle (in image space) that bounds its corners.
+        # Note that performance may take a serious hit here. The overarching algorithm
+        # is optimized for cells with small angular width.
+        if xmin * xmax < 0.0:
+            # on the central meridian
+            aitoff_Lambda_btheta_to_xy(0.0, btheta_p - dbtheta_p, &x, &y)
+            ymin = fmin(ymin, y)
+            ymax = fmax(ymax, y)
+            aitoff_Lambda_btheta_to_xy(0.0, btheta_p + dbtheta_p, &x, &y)
+            ymin = fmin(ymin, y)
+            ymax = fmax(ymax, y)
+        if ymin * ymax < 0.0:
+            # on the equator
+            aitoff_Lambda_btheta_to_xy(Lambda_p - dLambda_p, 0.0, &x, &y)
+            xmin = fmin(xmin, x)
+            xmax = fmax(xmax, x)
+            aitoff_Lambda_btheta_to_xy(Lambda_p + dLambda_p, 0.0, &x, &y)
+            xmin = fmin(xmin, x)
+            xmax = fmax(xmax, x)
         # Now we have the (projected rectangular) bounds.
-        xmin = (xmin + 1) # Get this into normalized image coords
-        xmax = (xmax + 1) # Get this into normalized image coords
-        ymin = (ymin + 1) # Get this into normalized image coords
-        ymax = (ymax + 1) # Get this into normalized image coords
+
+        # Shift into normalized image coords
+        xmin = (xmin - bounds[0])
+        xmax = (xmax - bounds[0])
+        ymin = (ymin - bounds[2])
+        ymax = (ymax - bounds[2])
+
+        # Finally, select a rectangular region in image space
+        # that fully contains the projected data point.
+        # We'll reject image pixels in that rectangle that are
+        # not actually intersecting the data point as we go.
         x0 = <int> (xmin / dx)
         x1 = <int> (xmax / dx) + 1
         y0 = <int> (ymin / dy)
         y1 = <int> (ymax / dy) + 1
         for i in range(x0, x1):
-            x = (-1.0 + i*dx)*s2*2.0
+            x = (bounds[0] + i * dx) / 2.0
             for j in range(y0, y1):
-                y = (-1.0 + j * dy)*s2
-                zb = (x*x/8.0 + y*y/2.0 - 1.0)
+                y = (bounds[2] + j * dy)
+                zb = (x*x + y*y - 1.0)
                 if zb > 0: continue
-                z = (1.0 - (x * 0.25) * (x * 0.25) - (y * 0.5) * (y * 0.5))
+                z = (1.0 - 0.5*x*x - 0.5*y*y)
                 z = math.sqrt(z)
                 # Longitude
-                theta0 = 2.0*math.atan(z*x/(2.0 * (2.0*z*z-1.0)))
+                Lambda0 = 2.0*math.atan(z*x*s2/(2.0*z*z-1.0))
                 # Latitude
                 # We shift it into co-latitude
-                phi0 = math.asin(z*y)
+                btheta0 = math.asin(z*y*s2)
                 # Now we just need to figure out which pixel contributes.
                 # We do not have a fast search.
-                if not (theta_p - dtheta_p <= theta0 <= theta_p + dtheta_p):
+                if not (Lambda_p - dLambda_p <= Lambda0 <= Lambda_p + dLambda_p):
                     continue
-                if not (phi_p - dphi_p <= phi0 <= phi_p + dphi_p):
+                if not (btheta_p - dbtheta_p <= btheta0 <= btheta_p + dbtheta_p):
                     continue
                 img[i, j] = field[fi]
     return img
@@ -1225,7 +1301,7 @@ def interpolate_sph_grid_gather(np.float64_t[:, :, :] buff,
         int num_neigh=32):
     """
     This function takes in the bounds and number of cells in a grid (well,
-    actually we implicity calculate this from the size of buff). Then we can
+    actually we implicitly calculate this from the size of buff). Then we can
     perform nearest neighbor search and SPH interpolation at the centre of each
     cell in the grid.
     """

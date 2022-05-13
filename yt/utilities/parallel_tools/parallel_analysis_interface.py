@@ -5,6 +5,7 @@ import sys
 import traceback
 from functools import wraps
 from io import StringIO
+from typing import List
 
 import numpy as np
 from more_itertools import always_iterable
@@ -13,7 +14,7 @@ import yt.utilities.logger
 from yt.config import ytcfg
 from yt.data_objects.image_array import ImageArray
 from yt.funcs import is_sequence
-from yt.units.unit_registry import UnitRegistry
+from yt.units.unit_registry import UnitRegistry  # type: ignore
 from yt.units.yt_array import YTArray
 from yt.utilities.exceptions import YTNoDataInObjectError
 from yt.utilities.lib.quad_tree import QuadTree, merge_quadtrees
@@ -64,11 +65,11 @@ def default_mpi_excepthook(exception_type, exception_value, tb):
     mylog.error("%s: %s", exception_type.__name__, exception_value)
     comm = yt.communication_system.communicators[-1]
     if comm.size > 1:
-        mylog.error("Error occured on rank %d.", comm.rank)
+        mylog.error("Error occurred on rank %d.", comm.rank)
     MPI.COMM_WORLD.Abort(1)
 
 
-def enable_parallelism(suppress_logging=False, communicator=None):
+def enable_parallelism(suppress_logging: bool = False, communicator=None) -> bool:
     """
     This method is used inside a script to turn on MPI parallelism, via
     mpi4py.  More information about running yt in parallel can be found
@@ -83,14 +84,18 @@ def enable_parallelism(suppress_logging=False, communicator=None):
     communicator : mpi4py.MPI.Comm
         The MPI communicator to use. This controls which processes yt can see.
         If not specified, will be set to COMM_WORLD.
+
+    Returns
+    -------
+    parallel_capable: bool
+        True if the call was successful. False otherwise.
     """
     global parallel_capable, MPI
     try:
         from mpi4py import MPI as _MPI
     except ImportError:
-        mylog.info("mpi4py was not found. Disabling parallel computation")
-        parallel_capable = False
-        return
+        mylog.error("Could not enable parallelism: mpi4py is not installed")
+        return False
     MPI = _MPI
     exe_name = os.path.basename(sys.executable)
 
@@ -100,7 +105,13 @@ def enable_parallelism(suppress_logging=False, communicator=None):
 
     parallel_capable = communicator.size > 1
     if not parallel_capable:
+        mylog.error(
+            "Could not enable parallelism: only one mpi process is running. "
+            "To remedy this, launch the Python interpreter as\n"
+            "  mpirun -n <X> python3 <yourscript>.py  # with X > 1 ",
+        )
         return False
+
     mylog.info(
         "Global parallel computation enabled: %s / %s",
         communicator.rank,
@@ -110,7 +121,7 @@ def enable_parallelism(suppress_logging=False, communicator=None):
     ytcfg["yt", "internals", "global_parallel_rank"] = communicator.rank
     ytcfg["yt", "internals", "global_parallel_size"] = communicator.size
     ytcfg["yt", "internals", "parallel"] = True
-    if exe_name == "embed_enzo" or ("_parallel" in dir(sys) and sys._parallel):
+    if exe_name == "embed_enzo" or ("_parallel" in dir(sys) and sys._parallel):  # type: ignore
         ytcfg["yt", "inline"] = True
     yt.utilities.logger.uncolorize_logging()
     # Even though the uncolorize function already resets the format string,
@@ -652,7 +663,7 @@ def parallel_ring(objects, generator_func, mutable=False):
 
 
 class CommunicationSystem:
-    communicators = []
+    communicators: List["Communicator"] = []
 
     def __init__(self):
         self.communicators.append(Communicator(None))
@@ -747,7 +758,14 @@ class Communicator:
                     data.update(self.comm.recv(source=i, tag=0))
             else:
                 self.comm.send(data, dest=0, tag=0)
-            data = self.comm.bcast(data, root=0)
+
+            # Send the keys first, then each item one by one
+            # This is to prevent MPI from crashing when sending more
+            # than 2GiB of data over the network.
+            keys = self.comm.bcast(list(data.keys()), root=0)
+            for key in keys:
+                tmp = data.get(key, None)
+                data[key] = self.comm.bcast(tmp, root=0)
             return data
         elif datatype == "dict" and op == "cat":
             field_keys = sorted(data.keys())
@@ -1286,7 +1304,7 @@ class ParallelAnalysisInterface:
             if n == 1:
                 return [1]
             i = 2
-            limit = n ** 0.5
+            limit = n**0.5
             while i <= limit:
                 if n % i == 0:
                     ret = factor(n / i)

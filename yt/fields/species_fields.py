@@ -2,8 +2,6 @@ import re
 
 import numpy as np
 
-from yt._maintenance.deprecation import issue_deprecation_warning
-from yt.fields.field_detector import FieldDetector
 from yt.frontends.sph.data_structures import ParticleDataset
 from yt.utilities.chemical_formulas import ChemicalFormula
 from yt.utilities.physical_ratios import _primordial_mass_fraction
@@ -178,13 +176,6 @@ def add_deprecated_species_alias(registry, ftype, alias_species, species, suffix
         my_units = unit_system[suffix]
 
     def _dep_field(field, data):
-        if not isinstance(data, FieldDetector):
-            issue_deprecation_warning(
-                ('The "%s_%s" field is deprecated. ' + 'Please use "%s_%s" instead.')
-                % (alias_species, suffix, species, suffix),
-                since="4.0.0",
-                removal="4.1.0",
-            )
         return data[ftype, f"{species}_{suffix}"]
 
     registry.add_field(
@@ -263,7 +254,7 @@ def _default_nuclei_density(field, data):
     element = field.name[1][: field.name[1].find("_")]
     amu_cgs = data.ds.units.physical_constants.amu_cgs
     if element == "El":
-        # This is for determing the electron number density.
+        # This is for determining the electron number density.
         # If we got here, this assumes full ionization!
         muinv = 1.0 * _primordial_mass_fraction["H"] / ChemicalFormula("H").weight
         muinv += 2.0 * _primordial_mass_fraction["He"] / ChemicalFormula("He").weight

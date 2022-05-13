@@ -1,14 +1,15 @@
 import glob
 import os
 import re
-import warnings
 from collections import namedtuple
 from stat import ST_CTIME
+from typing import Type
 
 import numpy as np
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
+from yt.fields.field_info_container import FieldInfoContainer
 from yt.funcs import mylog, setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.io_handler import io_registry
@@ -22,6 +23,7 @@ from .fields import (
     NyxFieldInfo,
     WarpXFieldInfo,
 )
+from .misc import BoxlibReadParticleFileMixin
 
 # This is what we use to find scientific notation that might include d's
 # instead of e's.
@@ -141,10 +143,9 @@ class BoxLibParticleHeader:
             try:
                 self.real_type = known_real_types[particle_real_type]
             except KeyError:
-                warnings.warn(
-                    f"yt did not recognize particle real type {particle_real_type} "
-                    "assuming double",
-                    category=RuntimeWarning,
+                mylog.warning(
+                    "yt did not recognize particle real type '%s'. Assuming 'double'.",
+                    particle_real_type,
                 )
                 self.real_type = known_real_types["double"]
 
@@ -575,7 +576,7 @@ class BoxlibHierarchy(GridIndex):
         self.io = io_registry[self.dataset_type](self.dataset)
 
     def _determine_particle_output_type(self, directory_name):
-        header_filename = self.ds.output_dir + "/" + directory_name + "/Header"
+        header_filename = os.path.join(self.ds.output_dir, directory_name, "Header")
         with open(header_filename) as f:
             version_string = f.readline().strip()
             if version_string.startswith("Version_Two"):
@@ -629,10 +630,9 @@ class BoxlibDataset(Dataset):
     """
 
     _index_class = BoxlibHierarchy
-    _field_info_class = BoxlibFieldInfo
+    _field_info_class: Type[FieldInfoContainer] = BoxlibFieldInfo
     _output_prefix = None
     _default_cparam_filename = "job_info"
-    _periodicity = (False, False, False)
 
     def __init__(
         self,
@@ -729,6 +729,7 @@ class BoxlibDataset(Dataset):
         Parses the parameter file and establishes the various
         dictionaries.
         """
+        self._periodicity = (False, False, False)
         self._parse_header_file()
         # Let's read the file
         hfn = os.path.join(self.output_dir, "Header")
@@ -745,19 +746,7 @@ class BoxlibDataset(Dataset):
                 param, vals = (s.strip() for s in line.split("="))
             except ValueError:
                 continue
-            if param == "amr.n_cell":
-                vals = self.domain_dimensions = np.array(vals.split(), dtype="int32")
-
-                # For 1D and 2D simulations in BoxLib usually only the relevant
-                # dimensions have a specified number of zones, but yt requires
-                # domain_dimensions to have three elements, with 1 in the additional
-                # slots if we're not in 3D, so append them as necessary.
-
-                if len(vals) == 1:
-                    vals = self.domain_dimensions = np.array([vals[0], 1, 1])
-                elif len(vals) == 2:
-                    vals = self.domain_dimensions = np.array([vals[0], vals[1], 1])
-            elif param == "amr.ref_ratio":
+            if param == "amr.ref_ratio":
                 vals = self.refine_by = int(vals[0])
             elif param == "Prob.lo_bc":
                 vals = tuple(p == "1" for p in vals.split())
@@ -883,6 +872,7 @@ class BoxlibDataset(Dataset):
         stop = np.array(root_space[1].split(","), dtype="int64")
         dd = np.ones(3, dtype="int64")
         dd[: self.dimensionality] = stop - start + 1
+        self.domain_offset[: self.dimensionality] = start
         self.domain_dimensions = dd
 
         # Skip timesteps per level
@@ -934,7 +924,7 @@ class BoxlibDataset(Dataset):
         return self.refine_by ** (l1 - l0 + offset)
 
 
-class OrionHierarchy(BoxlibHierarchy):
+class OrionHierarchy(BoxlibHierarchy, BoxlibReadParticleFileMixin):
     def __init__(self, ds, dataset_type="orion_native"):
         BoxlibHierarchy.__init__(self, ds, dataset_type)
         self._read_particles()
@@ -974,50 +964,6 @@ class OrionHierarchy(BoxlibHierarchy):
 
         if self.particle_filename is not None:
             self._read_particle_file(self.particle_filename)
-
-    def _read_particle_file(self, fn):
-        """actually reads the orion particle data file itself."""
-        if not os.path.exists(fn):
-            return
-        with open(fn) as f:
-            lines = f.readlines()
-            self.num_stars = int(lines[0].strip()[0])
-            for num, line in enumerate(lines[1:]):
-                particle_position_x = float(line.split(" ")[1])
-                particle_position_y = float(line.split(" ")[2])
-                particle_position_z = float(line.split(" ")[3])
-                coord = [particle_position_x, particle_position_y, particle_position_z]
-                # for each particle, determine which grids contain it
-                # copied from object_finding_mixin.py
-                mask = np.ones(self.num_grids)
-                for i in range(len(coord)):
-                    np.choose(
-                        np.greater(self.grid_left_edge.d[:, i], coord[i]),
-                        (mask, 0),
-                        mask,
-                    )
-                    np.choose(
-                        np.greater(self.grid_right_edge.d[:, i], coord[i]),
-                        (0, mask),
-                        mask,
-                    )
-                ind = np.where(mask == 1)
-                selected_grids = self.grids[ind]
-                # in orion, particles always live on the finest level.
-                # so, we want to assign the particle to the finest of
-                # the grids we just found
-                if len(selected_grids) != 0:
-                    grid = sorted(selected_grids, key=lambda grid: grid.Level)[-1]
-                    ind = np.where(self.grids == grid)[0][0]
-                    self.grid_particle_count[ind] += 1
-                    self.grids[ind].NumberOfParticles += 1
-
-                    # store the position in the particle file for fast access.
-                    try:
-                        self.grids[ind]._particle_line_numbers.append(num + 1)
-                    except AttributeError:
-                        self.grids[ind]._particle_line_numbers = [num + 1]
-        return True
 
 
 class OrionDataset(BoxlibDataset):
@@ -1359,7 +1305,7 @@ def _guess_pcast(vals):
 
 
 def _read_raw_field_names(raw_file):
-    header_files = glob.glob(raw_file + "*_H")
+    header_files = glob.glob(os.path.join(raw_file, "*_H"))
     return [hf.split(os.sep)[-1][:-2] for hf in header_files]
 
 
@@ -1379,7 +1325,7 @@ def _get_active_dimensions(box):
 
 
 def _read_header(raw_file, field):
-    level_files = glob.glob(raw_file + "Level_*")
+    level_files = glob.glob(os.path.join(raw_file, "Level_*"))
     level_files.sort()
 
     all_boxes = []
@@ -1387,7 +1333,7 @@ def _read_header(raw_file, field):
     all_offsets = []
 
     for level_file in level_files:
-        header_file = level_file + "/" + field + "_H"
+        header_file = os.path.join(level_file, field + "_H")
         with open(header_file) as f:
 
             f.readline()  # version
@@ -1491,7 +1437,7 @@ class WarpXHierarchy(BoxlibHierarchy):
             self._read_particles(ptype, is_checkpoint)
 
         # Additional WarpX particle information (used to set up species)
-        self.warpx_header = WarpXHeader(self.ds.output_dir + "/WarpXHeader")
+        self.warpx_header = WarpXHeader(os.path.join(self.ds.output_dir, "WarpXHeader"))
 
         for key, val in self.warpx_header.data.items():
             if key.startswith("species_"):
@@ -1505,8 +1451,8 @@ class WarpXHierarchy(BoxlibHierarchy):
         super()._detect_output_fields()
 
         # now detect the optional, non-cell-centered fields
-        self.raw_file = self.ds.output_dir + "/raw_fields/"
-        self.raw_fields = _read_raw_field_names(self.raw_file + "Level_0/")
+        self.raw_file = os.path.join(self.ds.output_dir, "raw_fields")
+        self.raw_fields = _read_raw_field_names(os.path.join(self.raw_file, "Level_0"))
         self.field_list += [("raw", f) for f in self.raw_fields]
         self.raw_field_map = {}
         self.ds.nodal_flags = {}
@@ -1585,7 +1531,7 @@ class WarpXDataset(BoxlibDataset):
             pass
         self._periodicity = tuple(periodicity)
 
-        particle_types = glob.glob(self.output_dir + "/*/Header")
+        particle_types = glob.glob(os.path.join(self.output_dir, "*", "Header"))
         particle_types = [cpt.split(os.sep)[-2] for cpt in particle_types]
         if len(particle_types) > 0:
             self.parameters["particles"] = 1
@@ -1644,7 +1590,7 @@ class AMReXDataset(BoxlibDataset):
 
     def _parse_parameter_file(self):
         super()._parse_parameter_file()
-        particle_types = glob.glob(self.output_dir + "/*/Header")
+        particle_types = glob.glob(os.path.join(self.output_dir, "*", "Header"))
         particle_types = [cpt.split(os.sep)[-2] for cpt in particle_types]
         if len(particle_types) > 0:
             self.parameters["particles"] = 1

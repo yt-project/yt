@@ -1,6 +1,5 @@
 import numpy as np
 
-from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.funcs import camelcase_to_underscore, iter_fields
 from yt.units.yt_array import array_like_field
 from yt.utilities.exceptions import YTParticleTypeNotFound
@@ -459,18 +458,6 @@ class WeightedStandardDeviation(DerivedQuantity):
         return rvals
 
 
-class WeightedVariance(WeightedStandardDeviation):
-    def __call__(self, fields, weight):
-        issue_deprecation_warning(
-            "'weighted_variance' incorrectly returns the "
-            "standard deviation and has been deprecated. "
-            "Use 'weighted_standard_deviation' instead.",
-            since="4.0.0",
-            removal="4.1.0",
-        )
-        return super().__call__(fields, weight)
-
-
 class AngularMomentumVector(DerivedQuantity):
     r"""
     Calculates the angular momentum vector, using gas (grid-based) and/or particles.
@@ -497,17 +484,18 @@ class AngularMomentumVector(DerivedQuantity):
     Examples
     --------
 
-    # Find angular momentum vector of galaxy in grid-based isolated galaxy dataset
-    >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    >>> ad = ds.all_data()
-    >>> print(ad.quantities.angular_momentum_vector())
-
-    # Find angular momentum vector of gas disk in particle-based dataset
-    >>> ds = load("FIRE_M12i_ref11/snapshot_600.hdf5")
-    >>> _, c = ds.find_max(("gas", "density"))
-    >>> sp = ds.sphere(c, (10, "kpc"))
-    >>> search_args = dict(use_gas=False, use_particles=True, particle_type="PartType0")
-    >>> print(sp.quantities.angular_momentum_vector(**search_args))
+    Find angular momentum vector of galaxy in grid-based isolated galaxy dataset
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    ... ad = ds.all_data()
+    ... print(ad.quantities.angular_momentum_vector())
+    [-7.50868209e+26  1.06032596e+27  2.19274002e+29] cm**2/s
+    >>> # Find angular momentum vector of gas disk in particle-based dataset
+    >>> ds = yt.load("FIRE_M12i_ref11/snapshot_600.hdf5")
+    ... _, c = ds.find_max(("gas", "density"))
+    ... sp = ds.sphere(c, (10, "kpc"))
+    ... search_args = dict(use_gas=False, use_particles=True, particle_type="PartType0")
+    ... print(sp.quantities.angular_momentum_vector(**search_args))
+    [4.88104442e+28 7.38463362e+28 6.20030135e+28] cm**2/s
 
     """
 
@@ -846,4 +834,4 @@ class SpinParameter(DerivedQuantity):
         e = values.pop(0).sum(dtype=np.float64)
         j = values.pop(0).sum(dtype=np.float64)
         m = values.pop(0).sum(dtype=np.float64)
-        return j * np.sqrt(np.abs(e)) / m ** 2.5 / gravitational_constant_cgs
+        return j * np.sqrt(np.abs(e)) / m**2.5 / gravitational_constant_cgs

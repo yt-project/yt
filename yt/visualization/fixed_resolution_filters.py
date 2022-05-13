@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from functools import wraps
 
 import numpy as np
@@ -7,14 +8,16 @@ filter_registry = {}
 
 def apply_filter(f):
     @wraps(f)
-    def newfunc(*args, **kwargs):
-        args[0]._filters.append((f.__name__, (args, kwargs)))
-        return args[0]
+    def newfunc(self, *args, **kwargs):
+        self._filters.append((f.__name__, (args, kwargs)))
+        # Invalidate the data of the frb to force its regeneration
+        self._data_valid = False
+        return self
 
     return newfunc
 
 
-class FixedResolutionBufferFilter:
+class FixedResolutionBufferFilter(ABC):
 
     """
     This object allows to apply data transformation directly to
@@ -25,9 +28,12 @@ class FixedResolutionBufferFilter:
         super().__init_subclass__(*args, **kwargs)
         filter_registry[cls.__name__] = cls
 
+    @abstractmethod
     def __init__(self, *args, **kwargs):
+        """This method is required in subclasses, but the signature is arbitrary"""
         pass
 
+    @abstractmethod
     def apply(self, buff):
         pass
 
@@ -56,7 +62,7 @@ class FixedResolutionBufferGaussBeamFilter(FixedResolutionBufferFilter):
         l = np.linspace(-hnbeam, hnbeam, num=self.nbeam + 1)
         x, y = np.meshgrid(l, l)
         g2d = (1.0 / (sigma * np.sqrt(2.0 * np.pi))) * np.exp(
-            -((x / sigma) ** 2 + (y / sigma) ** 2) / (2 * sigma ** 2)
+            -((x / sigma) ** 2 + (y / sigma) ** 2) / (2 * sigma**2)
         )
         g2d /= g2d.max()
 

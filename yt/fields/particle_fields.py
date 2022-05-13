@@ -1,7 +1,7 @@
 import numpy as np
 
 from yt.fields.derived_field import ValidateParameter, ValidateSpatial
-from yt.units.yt_array import uconcatenate, ucross
+from yt.units.yt_array import uconcatenate, ucross  # type: ignore
 from yt.utilities.lib.misc_utilities import (
     obtain_position_vector,
     obtain_relative_velocity_vector,
@@ -33,14 +33,23 @@ sph_whitelist_fields = (
     "H_fraction",
     "He_fraction",
     "C_fraction",
+    "Ca_fraction",
     "N_fraction",
     "O_fraction",
+    "S_fraction",
     "Ne_fraction",
     "Mg_fraction",
     "Si_fraction",
     "Fe_fraction",
+    "H_density",
+    "He_density",
     "C_density",
+    "Ca_density",
+    "N_density",
     "O_density",
+    "S_density",
+    "Ne_density",
+    "Mg_density",
     "Si_density",
     "Fe_density",
 )
@@ -792,33 +801,6 @@ def add_particle_average(registry, ptype, field_name, weight=None, density=True)
         units=field_units,
     )
     return fn
-
-
-def add_volume_weighted_smoothed_field(
-    ptype,
-    coord_name,
-    mass_name,
-    smoothing_length_name,
-    density_name,
-    smoothed_field,
-    registry,
-    nneighbors=64,
-    kernel_name="cubic",
-):
-    from yt._maintenance.deprecation import issue_deprecation_warning
-
-    issue_deprecation_warning(
-        "This function is deprecated. "
-        "Since yt-4.0, it's no longer necessary to add a field specifically for "
-        "smoothing, because the global octree is removed. The old behavior of "
-        "interpolating onto a grid structure can be recovered through data objects "
-        "like ds.arbitrary_grid, ds.covering_grid, and most closely ds.octree. The "
-        "visualization machinery now treats SPH fields properly by smoothing onto "
-        "pixel locations. See this page to learn more: "
-        "https://yt-project.org/doc/yt4differences.html",
-        since="4.0.0",
-        removal="4.1.0",
-    )
 
 
 def add_nearest_neighbor_field(ptype, coord_name, registry, nneighbors=64):

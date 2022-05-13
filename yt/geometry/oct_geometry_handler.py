@@ -69,7 +69,7 @@ class OctreeIndex(Index):
                 remaining[remaining] = np.isnan(tmp[:Nremaining])
                 Nremaining = remaining.sum()
 
-            return data.ds.arr(ret.astype(np.float64), input_units="1")
+            return data.ds.arr(ret.astype(np.float64), units="1")
 
         def _mesh_sampling_particle_field(field, data):
             """
@@ -99,7 +99,7 @@ class OctreeIndex(Index):
 
                 ret[mask] = cell_data[icell[mask]]
 
-            return data.ds.arr(ret, input_units=cell_data.units)
+            return data.ds.arr(ret, units=cell_data.units)
 
         if (ptype, "cell_index") not in self.ds.derived_field_list:
             self.ds.add_field(

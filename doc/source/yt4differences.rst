@@ -36,7 +36,7 @@ The list below is arranged in order of most to least important changes.
   In the past, you could specify fields as strings like ``"density"``, but
   with the growth of yt and its many derived fields, there can be sometimes
   be overlapping field names (e.g., ``("gas", "density")`` and
-  ``("PartType0", "density")``, where yt doesn't know which to use.  To remove
+  ``("PartType0", "density")``), where yt doesn't know which to use.  To remove
   any ambiguity, it is now strongly recommended to explicitly specify the full
   tuple form of all fields. Just search for all field accesses in your scripts,
   and replace strings with tuples (e.g. replace ``"a"``  with
@@ -70,9 +70,9 @@ The list below is arranged in order of most to least important changes.
   Fields representing energy and momentum quantities are now given names which
   reflect their dimensionality. For example, the ``("gas", "kinetic_energy")``
   field was actually a field for kinetic energy density, and so it has been
-  renamed to ``"gas", "kinetic_energy_density"``. The old name still exists
+  renamed to ``("gas", "kinetic_energy_density")``. The old name still exists
   as an alias as of yt v4.0.0, but it will be removed in yt v4.1.0. See
-  :ref:`deprecated_field_names` below for more information.
+  next item below for more information.
   Other examples include ``"gas", "specific_thermal_energy"`` for thermal
   energy per unit mass, and ``("gas", "momentum_density_x")`` for the x-axis
   component of momentum density. See :ref:`efields` for more information.
@@ -114,6 +114,49 @@ places in yt, code that used ``("gas", "cell_mass")`` has been replaced by
 ``("gas", "mass")``. Since the latter is an alias for the former, old scripts which
 use ``("gas", "cell_mass")`` should not break.
 
+Deprecations
+^^^^^^^^^^^^
+
+The following methods and method arguments are deprecated as of yt 4.0 and will be
+removed in yt 4.1
+
+ * :meth:`~yt.visualization.plot_window.PlotWindow.set_window_size` is deprecated
+   in favor to :meth:`~yt.visualization.plot_container.PlotContainer.set_figure_size`
+ * :meth:`~yt.visualization.eps_writer.return_cmap` is deprecated in favor to
+   :meth:`~yt.visualization.eps_writer.return_colormap`
+ * :meth:`~yt.data_objects.derived_quantities.WeightedVariance` is deprecated in favor
+   to :meth:`~yt.data_objects.derived_quantities.WeightedStandardDeviation`
+ * :meth:`~yt.visualization.plot_window.PWViewerMPL.annotate_clear` is deprecated in
+   favor to :meth:`~yt.visualization.plot_window.PWViewerMPL.clear_annotations`
+ * :meth:`~yt.visualization.color_maps.add_cmap` is deprecated in favor to
+   :meth:`~yt.visualization.color_maps.add_colormap`
+ * :meth:`~yt.loaders.simulation` is deprecated in favor to :meth:`~yt.loaders.load_simulation`
+ * :meth:`~yt.data_objects.index_subobjects.octree_subset.OctreeSubset.get_vertex_centered_data`
+   now takes a list of fields as input, passing a single field is deprecated
+ * manually updating the ``periodicity`` attributed of a :class:`~yt.data_objects.static_output.Dataset` object is deprecated. Use the
+   :meth:`~yt.data_objects.static_output.Dataset.force_periodicity` if you need to force periodicity to ``True`` or ``False`` along all axes.
+ * the :meth:`~yt.data_objects.static_output.Dataset.add_smoothed_particle_field` method is deprecated and already has no effect in yt 4.0 .
+   See :ref:`sph-data`
+ * the :meth:`~yt.data_objects.static_output.Dataset.add_gradient_fields` used to accept an ``input_field`` keyword argument, now deprecated
+   in favor to ``fields``
+ * :meth:`~yt.data_objects.time_series.DatasetSeries.from_filenames` is deprecated because its functionality is now
+   included in the basic ``__init__`` method. Use :class:`~yt.data_objects.time_series.DatasetSeries` directly.
+ * the ``particle_type`` keyword argument from ``yt.add_field()`` (:meth:`~yt.fields.field_info_container.FieldInfoContainer.add_field`) and ``ds.add_field()`` (:meth:`~yt.data_objects.static_output.Dataset.add_field`) methods is now a deprecated in favor to
+   the ``sampling_type`` keyword argument.
+ * the :meth:`~yt.fields.particle_fields.add_volume_weighted_smoothed_field` is deprecated and already has no effect in yt 4.0 .
+   See :ref:`sph-data`
+ * the :meth:`~yt.utilities.amr_kdtree.amr_kdtree.AMRKDTree.locate_brick` method is deprecated in favor to, and is now an alias for :meth:`~yt.utilities.amr_kdtree.amr_kdtree.AMRKDTree.locate_node`
+ * the :class:`~yt.utilities.exceptions.YTOutputNotIdentified` error is a deprecated alias for :class:`~yt.utilities.exceptions.YTUnidentifiedDataType`
+ * the ``limits`` argument from :meth:`~yt.visualization.image_writer.write_projection` is deprecated in
+   favor to ``vmin`` and ``vmax``
+ * :meth:`~yt.visualization.plot_container.ImagePlotContainer.set_cbar_minorticks` is a deprecated alias for :meth:`~yt.visualization.plot_container.ImagePlotContainer.set_colorbar_minorticks`
+ * the ``axis`` argument from :meth:`yt.visualization.plot_window.SlicePlot` is a depreacted alias for the ``normal`` argument
+ * the old configuration file ``ytrc`` is deprecated in favor of the new ``yt.toml`` format. In yt 4.0,
+   you'll get a warning every time you import yt if you're still using the old configuration file,
+   which will instruct you to invoke the yt command line interface to convert automatically to the new format.
+ * the ``load_field_plugins`` parameter is deprecated from the configuration file (note that it is already not used as of yt 4.0)
+
+
 Cool New Things
 ---------------
 
@@ -143,6 +186,8 @@ in yt.
 The new I/O method has opened up a new way of dealing with the particle data and
 in particular, SPH data.
 
+.. _sph-data:
+
 Scatter and Gather approach for SPH data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -150,13 +195,13 @@ As mentioned, previously operations such as slice, projection and arbitrary
 grids would smooth the particle data onto the global octree. As this is no
 longer used, a different approach was required to visualize the SPH data. Using
 SPLASH as inspiration, SPH smoothing pixelization operations were created using
-smooting operations via "scatter" and "gather" approaches. We estimate the
+smoothing operations via "scatter" and "gather" approaches. We estimate the
 contributions of a particle to a single pixel by considering the point at the
 centre of the pixel and using the standard SPH smoothing formula. The heavy
 lifting in these functions is undertaken by cython functions.
 
 It is now possible to generate slice plots, projection plots, covering grids and
-arbitrary grids of smoothed quanitities using these operations. The following
+arbitrary grids of smoothed quantities using these operations. The following
 code demonstrates how this could be achieved. The following would use the scatter
 method:
 
@@ -180,7 +225,7 @@ method:
 
 In the above example the ``covering_grid`` and the ``arbitrary_grid`` will return
 the same data. In fact, these containers are very similar but provide a
-slighlty different API.
+slightly different API.
 
 The above code can be modified to use the gather approach by changing a global
 setting for the dataset. This can be achieved with
@@ -194,7 +239,7 @@ disable the normalization for all future interpolations.
 
 The gather approach requires finding nearest neighbors using the KDTree. The
 first call will generate a KDTree for the entire dataset which will be stored in
-a sidecar file. This will be loaded whenever neccesary.
+a sidecar file. This will be loaded whenever necessary.
 
 Off-Axis Projection for SPH Data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -225,7 +270,7 @@ Smoothing Data onto an Octree
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Whilst the move away from the global octree is a promising one in terms of
-perfomance and dealing with SPH data in a more intuitive manner, it does remove
+performance and dealing with SPH data in a more intuitive manner, it does remove
 a useful feature. We are aware that many users will have older scripts which take
 advantage of the global octree.
 
@@ -265,6 +310,8 @@ a ``depth-first`` which is consistent with the results from yt-3. Depth-first
 search (DFS) means that tree starts refining at the root node (this is the
 largest node which contains every particles) and refines as far as possible
 along each branch before backtracking.
+
+.. _yt-units-is-now-unyt:
 
 ``yt.units`` Is Now a Wrapper for ``unyt``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -361,8 +408,18 @@ You can also use alternate unit names in more complex algebraic unit expressions
 In this example the common british spelling ``"kilometre"`` is resolved to
 ``"km"`` and ``"hour"`` is resolved to ``"hr"``.
 
+Field-Specific Configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You can now set configuration values on a per-field basis.  For instance, this
+means that if you always want a particular colormap associated with a particular
+field, you can do so!
+
+This is documented under :ref:`per-field-config`, and was added in `PR
+1931 <https://github.com/yt-project/yt/pull/1931>`_.
+
 New Method for Accessing Sample Datasets
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 There is now a function entitled ``load_sample()`` that allows the user to
 automatically load sample data from the yt hub in a local yt session.
@@ -372,5 +429,24 @@ and load them into a yt session, but now this occurs from within a python
 session.  For more information see:
 :ref:`Loading Sample Data <loading-sample-data>`
 
-API Changes
------------
+Some Widgets
+^^^^^^^^^^^^
+
+In yt, we now have some simple display wrappers for objects if you are running
+in a Jupyter environment with the `ipywidgets
+<https://ipywidgets.readthedocs.io/>`_ package installed.  For instance, the
+``ds.fields`` object will now display field information in an interactive
+widget, and three-element unyt arrays (such as ``ds.domain_left_edge``) will be
+displayed interactively as well.
+
+The package `widgyts <https://widgyts.readthedocs.io>`_ provides interactive,
+yt-specific visualization of slices, projections, and additional dataset display
+information.
+
+New External Packages
+^^^^^^^^^^^^^^^^^^^^^
+
+As noted above (:ref:`yt-units-is-now-unyt`), unyt has been extracted from
+yt, and we now use it as an external library.  In addition, other parts of yt
+such as :ref:`interactive_data_visualization` have been extracted, and we are
+working toward a more modular approach for things such as Jupyter widgets and other "value-added" integrations.

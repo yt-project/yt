@@ -3,8 +3,9 @@ import os
 import numpy as np
 
 from yt import units
+from yt._typing import KnownFieldsT
 from yt.fields.field_info_container import FieldInfoContainer
-from yt.frontends.ramses.io import convert_ramses_ages
+from yt.frontends.ramses.io import convert_ramses_conformal_time_to_physical_age
 from yt.utilities.cython_fortran_utils import FortranFile
 from yt.utilities.linear_interpolators import BilinearFieldInterpolator
 from yt.utilities.logger import ytLogger as mylog
@@ -92,7 +93,7 @@ _Y = 0.24  # He fraction, hardcoded
 
 
 class RAMSESFieldInfo(FieldInfoContainer):
-    known_other_fields = (
+    known_other_fields: KnownFieldsT = (
         ("Density", (rho_units, ["density"], None)),
         ("x-velocity", (vel_units, ["velocity_x"], None)),
         ("y-velocity", (vel_units, ["velocity_y"], None)),
@@ -114,7 +115,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
         ("B_z_left", (b_units, ["magnetic_field_z_left"], None)),
         ("B_z_right", (b_units, ["magnetic_field_z_right"], None)),
     )
-    known_particle_fields = (
+    known_particle_fields: KnownFieldsT = (
         ("particle_position_x", ("code_length", [], None)),
         ("particle_position_y", ("code_length", [], None)),
         ("particle_position_z", ("code_length", [], None)),
@@ -131,7 +132,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
         ("particle_tag", ("", [], None)),
     )
 
-    known_sink_fields = (
+    known_sink_fields: KnownFieldsT = (
         ("particle_position_x", ("code_length", [], None)),
         ("particle_position_y", ("code_length", [], None)),
         ("particle_position_z", ("code_length", [], None)),
@@ -161,11 +162,13 @@ class RAMSESFieldInfo(FieldInfoContainer):
         def star_age(field, data):
             if data.ds.cosmological_simulation:
                 conformal_age = data[ptype, "conformal_birth_time"]
-                formation_time = convert_ramses_ages(data.ds, conformal_age)
-                formation_time = data.ds.arr(formation_time, "code_time")
+                physical_age = convert_ramses_conformal_time_to_physical_age(
+                    data.ds, conformal_age
+                )
+                return data.ds.arr(physical_age, "code_time")
             else:
                 formation_time = data[ptype, "particle_birth_time"]
-            return data.ds.current_time - formation_time
+                return data.ds.current_time - formation_time
 
         self.add_field(
             (ptype, "star_age"),
@@ -261,7 +264,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
         p.update(self.ds.parameters)
         ngroups = p["nGroups"]
         rt_c = p["rt_c_frac"] * units.c / (p["unit_l"] / p["unit_t"])
-        dens_conv = (p["unit_np"] / rt_c).value / units.cm ** 3
+        dens_conv = (p["unit_np"] / rt_c).value / units.cm**3
 
         ########################################
         # Adding the fields in the hydro_* files
@@ -315,7 +318,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
                 units=self.ds.unit_system["number_density"],
             )
 
-        flux_conv = p["unit_pf"] / units.cm ** 2 / units.s
+        flux_conv = p["unit_pf"] / units.cm**2 / units.s
 
         def gen_flux(key, igroup):
             def _photon_flux(field, data):

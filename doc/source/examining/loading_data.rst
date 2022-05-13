@@ -36,15 +36,36 @@ any arguments, and it will return a list of the names that can be supplied:
 
 This will return a list of possible filenames; more information can be accessed on the data catalog.
 
+
+.. _loading-archived-data:
+
+Archived Data
+-------------
+
+If your data is stored as a (compressed) tar file, you can access the contained
+dataset directly without extracting the tar file.
+This can be achieved using the ``load_archive`` function:
+
+.. code-block:: python
+
+   import yt
+
+   ds = yt.load_archive("IsolatedGalaxy.tar.gz", "IsolatedGalaxy/galaxy0030/galaxy0030")
+
+The first argument is the path to the archive file, the second one is the path to the file to load
+in the archive. Subsequent arguments are passed to ``yt.load``.
+
+The functionality requires the package `ratarmount <https://github.com/mxmlnkn/ratarmount/>`_ to be installed.
+Under the hood, yt will mount the archive as a (read-only) filesystem. Note that this requires the
+entire archive to be read once to compute the location of each file in the archive; subsequent accesses
+will be much faster.
+All archive formats supported by `ratarmount <https://github.com/mxmlnkn/ratarmount>`_ should be loadable, provided
+the dependencies are installed; this includes ``tar``, ``tar.gz`` and tar.bz2`` formats.
+
 .. _loading-amrvac-data:
 
 AMRVAC Data
 -----------
-
-.. note::
-
-   This frontend is brand new and may be subject to rapid change in the
-   near future.
 
 To load data to yt, simply use
 
@@ -60,15 +81,15 @@ Starting from AMRVAC 2.2, and datfile format 5, a geometry flag
 (e.g. "Cartesian_2.5D", "Polar_2D", "Cylindrical_1.5D"...) was added
 to the datfile header.  yt will fall back to a cartesian mesh if the
 geometry flag is not found.  For older datfiles however it is possible
-to provide it externally with the ``override_geometry`` parameter.
+to provide it externally with the ``geometry_override`` parameter.
 
 .. code-block:: python
 
   # examples
-  ds = yt.load("output0010.dat", override_geometry="polar")
-  ds = yt.load("output0010.dat", override_geometry="cartesian")
+  ds = yt.load("output0010.dat", geometry_override="polar")
+  ds = yt.load("output0010.dat", geometry_override="cartesian")
 
-Note that ``override_geometry`` has priority over any ``geometry`` flag
+Note that ``geometry_override`` has priority over any ``geometry`` flag
 present in recent datfiles, which means it can be used to force ``r``
 VS ``theta`` 2D plots in polar geometries (for example), but this may
 produce unpredictable behaviour and comes with no guarantee.
@@ -143,7 +164,7 @@ Appropriate errors are thrown for other combinations.
 * particle data: currently not supported (but might come later)
 * staggered grids (AMRVAC 2.2 and later): yt logs a warning if you load
   staggered datasets, but the flag is currently ignored.
-* "stretched grids" as defined in AMRVAC have no correspondance in yt,
+* "stretched grids" as defined in AMRVAC have no correspondence in yt,
   hence will never be supported.
 
 .. note::
@@ -312,6 +333,23 @@ This means that the yt fields, e.g. ``("gas","density")``,
 ``("athena","density")``, ``("athena","velocity_x")``,
 ``("athena","cell_centered_B_x")``, will be in code units.
 
+The default normalization for various magnetic-related quantities such as
+magnetic pressure, Alfven speed, etc., as well as the conversion between
+magnetic code units and other units, is Gaussian/CGS, meaning that factors
+of :math:`4\pi` or :math:`\sqrt{4\pi}` will appear in these quantities, e.g.
+:math:`p_B = B^2/8\pi`. To use the Lorentz-Heaviside normalization instead,
+in which the factors of :math:`4\pi` are dropped (:math:`p_B = B^2/2), for
+example), set ``magnetic_normalization="lorentz_heaviside"`` in the call to
+``yt.load``:
+
+.. code-block:: python
+
+    ds = yt.load(
+        "id0/cluster_merger.0250.vtk",
+        units_override=units_override,
+        magnetic_normalization="lorentz_heaviside",
+    )
+
 Some 3D Athena outputs may have large grids (especially parallel datasets
 subsequently joined with the ``join_vtk`` script), and may benefit from being
 subdivided into "virtual grids". For this purpose, one can pass in the
@@ -408,6 +446,23 @@ This means that the yt fields, e.g. ``("gas","density")``,
 (or whatever unit system was specified), but the Athena fields, e.g.,
 ``("athena_pp","density")``, ``("athena_pp","vel1")``, ``("athena_pp","Bcc1")``,
 will be in code units.
+
+The default normalization for various magnetic-related quantities such as
+magnetic pressure, Alfven speed, etc., as well as the conversion between
+magnetic code units and other units, is Gaussian/CGS, meaning that factors
+of :math:`4\pi` or :math:`\sqrt{4\pi}` will appear in these quantities, e.g.
+:math:`p_B = B^2/8\pi`. To use the Lorentz-Heaviside normalization instead,
+in which the factors of :math:`4\pi` are dropped (:math:`p_B = B^2/2), for
+example), set ``magnetic_normalization="lorentz_heaviside"`` in the call to
+``yt.load``:
+
+.. code-block:: python
+
+    ds = yt.load(
+        "AM06/AM06.out1.00400.athdf",
+        units_override=units_override,
+        magnetic_normalization="lorentz_heaviside",
+    )
 
 Alternative values for the following simulation parameters may be specified
 using a ``parameters`` dict, accepting the following keys:
@@ -533,8 +588,8 @@ to the z direction.
     print(ad["raw", "Ex"].shape)
     print(ds.field_info[("raw", "Bx")].nodal_flag)
     print(ad["raw", "Bx"].shape)
-    print(ds.field_info[("boxlib", "Bx")].nodal_flag)
-    print(ad["boxlib", "Bx"].shape)
+    print(ds.field_info["raw", "Bx"].nodal_flag)
+    print(ad["raw", "Bx"].shape)
 
 Here, the field ``('raw', 'Ex')`` is nodal in two directions, so four values per cell
 are returned, corresponding to the four edges in each cell on which the variable
@@ -635,11 +690,11 @@ direction.
     ds.index
     ad = ds.all_data()
     print(ds.field_info[("enzo", "Ex")].nodal_flag)
-    print(ad["raw", "Ex"].shape)
+    print(ad["enzo", "Ex"].shape)
     print(ds.field_info[("enzo", "BxF")].nodal_flag)
-    print(ad["raw", "Bx"].shape)
+    print(ad["enzo", "Bx"].shape)
     print(ds.field_info[("enzo", "Bx")].nodal_flag)
-    print(ad["boxlib", "Bx"].shape)
+    print(ad["enzo", "Bx"].shape)
 
 Here, the field ``('enzo', 'Ex')`` is nodal in two directions, so four values
 per cell are returned, corresponding to the four edges in each cell on which the
@@ -1251,7 +1306,7 @@ where :math:`n_e` and :math:`n_i` are the electron and ion number densities,
 .. rubric:: Caveats
 
 * Please be careful that the units are correctly utilized; yt assumes cgs by default, but conversion to
-  other :ref:`unit systems <unit_systems>` is also possible.
+  other unit systems is also possible.
 
 .. _loading-gadget-data:
 
@@ -2097,7 +2152,7 @@ visualization of non-SPH particles. See the example below:
 
     # Make the SPH projection plot
     p = yt.ProjectionPlot(ds_dm, "z", ("io", "density"), center=center, width=(1, "Mpc"))
-    p.set_unit("density", "Msun/kpc**2")
+    p.set_unit(("io", "density"), "Msun/kpc**2")
     p.show()
 
 Here we see two new things. First, ``load_particles`` accepts a ``data_source``
@@ -2171,10 +2226,8 @@ containers.  See :ref:`halo_containers` for more information.
 
 If you have access to both the halo catalog and the simulation snapshot from
 the same redshift, additional analysis can be performed for each halo using
-:ref:`halo_catalog`.  The resulting product can be reloaded in a similar manner
+:ref:`halo-analysis`.  The resulting product can be reloaded in a similar manner
 to the other halo catalogs shown here.
-
-.. _adaptahop:
 
 AdataHOP
 ^^^^^^^^
@@ -2443,7 +2496,7 @@ information.  At this time, halo member particles cannot be loaded.
 YTHaloCatalog
 ^^^^^^^^^^^^^
 
-These are catalogs produced by the analysis discussed in :ref:`halo_catalog`.
+These are catalogs produced by the analysis discussed in :ref:`halo-analysis`.
 In the case where multiple files were produced, one need only provide the path
 to a single one of them.  The field type for all fields is "halos".  The fields
 available here are similar to other catalogs.  Any addition
@@ -2521,7 +2574,7 @@ for each particle attribute/mesh (in Byte).
   import yt
 
   ds = yt.load("example-3d/hdf5/data00000100.h5", open_pmd_virtual_gridsize=10e4)
-  sp = yt.SlicePlot(ds, "x", "rho")
+  sp = yt.SlicePlot(ds, "x", ("openPMD", "rho"))
   sp.show()
 
 Particle data is fully supported:
@@ -2533,7 +2586,10 @@ Particle data is fully supported:
   ds = yt.load("example-3d/hdf5/data00000100.h5")
   ad = f.all_data()
   ppp = yt.ParticlePhasePlot(
-      ad, "particle_position_y", "particle_momentum_y", "particle_weighting"
+      ad,
+      ("all", "particle_position_y"),
+      ("all", "particle_momentum_y"),
+      ("all", "particle_weighting"),
   )
   ppp.show()
 
@@ -2593,7 +2649,7 @@ Any field data or material data on the mesh can then be viewed just like any oth
 RAMSES Data
 -----------
 
-In yt-3.0, RAMSES data is fully supported.  If you are interested in taking a
+In yt-4.x, RAMSES data is fully supported.  If you are interested in taking a
 development or stewardship role, please contact the yt-dev mailing list.  To
 load a RAMSES dataset, you can use the ``yt.load`` command and provide it
 the ``info*.txt`` filename.  For instance, if you were in a
@@ -2715,10 +2771,10 @@ It is possible to provide extra arguments to the load function when loading RAMS
           ds.right_edge == [1, 1, 1]  # is True
 
           ad = ds.all_data()
-          ad["particle_position_x"].max() > 0.1  # _may_ be True
+          ad["all", "particle_position_x"].max() > 0.1  # _may_ be True
 
           bb = ds.box(left_edge=bbox[0], right_edge=bbox[1])
-          bb["particle_position_x"].max() < 0.1  # is True
+          bb["all", "particle_position_x"].max() < 0.1  # is True
 
       .. note::
          When using the bbox argument, yt will read all the CPUs
@@ -2786,17 +2842,26 @@ There are three way to make yt detect all the particle fields. For example, if y
    .. code-block:: none
 
       [ramses-particles]
-      fields = particle_position_x, d
-               particle_position_y, d
-               particle_position_z, d
-               particle_velocity_x, d
-               particle_velocity_y, d
-               particle_velocity_z, d
-               particle_mass, d
-               particle_identifier, i
-               particle_refinement_level, I
-               particle_birth_time, d
-               particle_metallicity, d
+      fields = """
+         particle_position_x, d
+         particle_position_y, d
+         particle_position_z, d
+         particle_velocity_x, d
+         particle_velocity_y, d
+         particle_velocity_z, d
+         particle_mass, d
+         particle_identifier, i
+         particle_refinement_level, I
+         particle_birth_time, d
+         particle_metallicity, d
+      """
+
+   Each line should contain the name of the field and its data type (``d`` for double precision, ``f`` for single precision, ``i`` for integer and ``l`` for long integer). You can also configure the auto detected fields for fluid types by adding a section ``ramses-hydro``, ``ramses-grav`` or ``ramses-rt`` in the config file. For example, if you customized your gravity files so that they contain the potential, the potential in the previous timestep and the x, y and z accelerations, you can use :
+
+   .. code-block:: none
+
+      [ramses-grav]
+      fields = [ "Potential", "Potential-old", "x-acceleration", "y-acceleration", "z-acceleration" ]
 
 3. New RAMSES way. Recent versions of RAMSES automatically write in their output an ``hydro_file_descriptor.txt`` file that gives information about which field is where. If you wish, you can simply create such a file in the folder containing the ``info_xxxxx.txt`` file
 
@@ -2964,9 +3029,7 @@ Tipsy Data
 See :ref:`tipsy-notebook` and :ref:`loading-sph-data` for more details.
 
 yt also supports loading Tipsy data.  Many of its characteristics are similar
-to how Gadget data is loaded; specifically, it shares its definition of
-indexing and mesh-identification with that described in
-:ref:`particle-indexing-criteria`.
+to how Gadget data is loaded.
 
 .. code-block:: python
 

@@ -32,7 +32,8 @@ streamlines.integrate_through_volume()
 
 # Create a 3D matplotlib figure for visualizing the streamlines
 fig = plt.figure()
-ax = Axes3D(fig)
+ax = Axes3D(fig, auto_add_to_figure=False)
+fig.add_axes(ax)
 
 # Trace the streamlines through the volume of the 3D figure
 for stream in streamlines.streamlines:

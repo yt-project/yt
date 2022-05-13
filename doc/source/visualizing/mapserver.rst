@@ -3,12 +3,18 @@
 Mapserver - A Google-Maps-like Interface to your Data
 -----------------------------------------------------
 
-The mapserver is a new, experimental feature.  It's based on `Leaflet
+The mapserver is an experimental feature.  It's based on `Leaflet
 <https://leafletjs.com/>`_, a library written to create zoomable,
 map-tile interfaces.  (Similar to Google Maps.)  yt provides everything you
 need to start up a web server that will interactively re-pixelize an adaptive
 image.  This means you can explore your datasets in a fully pan-n-zoom
 interface.
+
+.. note::
+
+   Previous versions of yt bundled the necessary dependencies, but with more
+   recent released you will need to install the package ``bottle`` via pip or
+   conda.
 
 To start up the mapserver, you can use the command yt (see
 :ref:`command-line`) with the ``mapserver`` subcommand.  It takes several of
@@ -30,5 +36,4 @@ dragging drags.
    :scale: 50%
 
 This is also functional on touch-capable devices such as Android Tablets and
-iPads/iPhones.  In future versions, we hope to add halo-overlays and
-markers-of-interest to this.
+iPads/iPhones.

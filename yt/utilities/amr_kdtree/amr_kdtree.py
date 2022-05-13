@@ -343,7 +343,9 @@ class AMRKDTree(ParallelAnalysisInterface):
             )
             for i, field in enumerate(self.fields):
                 if self.log_fields[i]:
-                    dds.append(np.log10(vcd[field].astype("float64")))
+                    v = vcd[field].astype("float64")
+                    v[v < 0] = np.nan
+                    dds.append(np.log10(v))
                 else:
                     dds.append(vcd[field].astype("float64"))
                 self.current_saved_grids.append(grid)
@@ -369,17 +371,6 @@ class AMRKDTree(ParallelAnalysisInterface):
         if not self._initialized:
             self.brick_dimensions.append(dims)
         return brick
-
-    def locate_brick(self, position):
-        """Given a position, find the node that contains it."""
-        from yt._maintenance.deprecation import issue_deprecation_warning
-
-        issue_deprecation_warning(
-            "`AMRKDTree.locate_brick` is a deprecated alias "
-            "for `AMRKDTree.locate_node`.",
-            removal="4.1.0",
-        )
-        return self.locate_node(position)
 
     def locate_neighbors(self, grid, ci):
         r"""Given a grid and cell index, finds the 26 neighbor grids

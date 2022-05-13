@@ -15,7 +15,7 @@ from setupext import (
 
 install_ccompiler()
 
-VERSION = "4.0.dev0"
+VERSION = "4.1.dev0"
 
 if os.path.exists("MANIFEST"):
     os.remove("MANIFEST")
@@ -62,6 +62,7 @@ lib_exts = [
     "yt/geometry/*.pyx",
     "yt/utilities/cython_fortran_utils.pyx",
     "yt/frontends/ramses/io_utils.pyx",
+    "yt/frontends/gamer/cfields.pyx",
     "yt/utilities/lib/cykdtree/kdtree.pyx",
     "yt/utilities/lib/cykdtree/utils.pyx",
     "yt/frontends/artio/_artio_caller.pyx",

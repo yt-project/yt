@@ -1,11 +1,15 @@
+import abc
 import weakref
 from numbers import Number
+from typing import Tuple
 
 import numpy as np
+from packaging.version import Version
 
 from yt.funcs import fix_unitary, is_sequence, validate_width_tuple
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTCoordinateNotImplemented, YTInvalidWidthError
+from yt.visualization._commons import MPL_VERSION
 
 
 def _unknown_coord(field, data):
@@ -30,6 +34,71 @@ def _get_vert_fields(axi, units="code_length"):
         return rv
 
     return _vert
+
+
+def _setup_dummy_cartesian_coords_and_widths(registry, axes: Tuple[str]):
+    for ax in axes:
+        registry.add_field(
+            ("index", f"d{ax}"), sampling_type="cell", function=_unknown_coord
+        )
+        registry.add_field(("index", ax), sampling_type="cell", function=_unknown_coord)
+
+
+def _setup_polar_coordinates(registry, axis_id):
+    f1, f2 = _get_coord_fields(axis_id["r"])
+    registry.add_field(
+        ("index", "dr"),
+        sampling_type="cell",
+        function=f1,
+        display_field=False,
+        units="code_length",
+    )
+
+    registry.add_field(
+        ("index", "r"),
+        sampling_type="cell",
+        function=f2,
+        display_field=False,
+        units="code_length",
+    )
+
+    f1, f2 = _get_coord_fields(axis_id["theta"], "dimensionless")
+    registry.add_field(
+        ("index", "dtheta"),
+        sampling_type="cell",
+        function=f1,
+        display_field=False,
+        units="dimensionless",
+    )
+
+    registry.add_field(
+        ("index", "theta"),
+        sampling_type="cell",
+        function=f2,
+        display_field=False,
+        units="dimensionless",
+    )
+
+    def _path_r(field, data):
+        return data["index", "dr"]
+
+    registry.add_field(
+        ("index", "path_element_r"),
+        sampling_type="cell",
+        function=_path_r,
+        units="code_length",
+    )
+
+    def _path_theta(field, data):
+        # Note: this already assumes cell-centered
+        return data["index", "r"] * data["index", "dtheta"]
+
+    registry.add_field(
+        ("index", "path_element_theta"),
+        sampling_type="cell",
+        function=_path_theta,
+        units="code_length",
+    )
 
 
 def validate_sequence_width(width, ds, unit=None):
@@ -61,47 +130,56 @@ def validate_sequence_width(width, ds, unit=None):
             )
 
 
-class CoordinateHandler:
-    name = None
+class CoordinateHandler(abc.ABC):
+    name: str
 
     def __init__(self, ds, ordering):
         self.ds = weakref.proxy(ds)
         self.axis_order = ordering
 
+    @abc.abstractmethod
     def setup_fields(self):
         # This should return field definitions for x, y, z, r, theta, phi
-        raise NotImplementedError
+        pass
 
+    @abc.abstractmethod
     def pixelize(self, dimension, data_source, field, bounds, size, antialias=True):
         # This should *actually* be a pixelize call, not just returning the
         # pixelizer
-        raise NotImplementedError
+        pass
 
+    @abc.abstractmethod
     def pixelize_line(self, field, start_point, end_point, npoints):
-        raise NotImplementedError
+        pass
 
     def distance(self, start, end):
         p1 = self.convert_to_cartesian(start)
         p2 = self.convert_to_cartesian(end)
         return np.sqrt(((p1 - p2) ** 2.0).sum())
 
+    @abc.abstractmethod
     def convert_from_cartesian(self, coord):
-        raise NotImplementedError
+        pass
 
+    @abc.abstractmethod
     def convert_to_cartesian(self, coord):
-        raise NotImplementedError
+        pass
 
+    @abc.abstractmethod
     def convert_to_cylindrical(self, coord):
-        raise NotImplementedError
+        pass
 
+    @abc.abstractmethod
     def convert_from_cylindrical(self, coord):
-        raise NotImplementedError
+        pass
 
+    @abc.abstractmethod
     def convert_to_spherical(self, coord):
-        raise NotImplementedError
+        pass
 
+    @abc.abstractmethod
     def convert_from_spherical(self, coord):
-        raise NotImplementedError
+        pass
 
     _data_projection = None
 
@@ -194,8 +272,9 @@ class CoordinateHandler:
         return ya
 
     @property
+    @abc.abstractproperty
     def period(self):
-        raise NotImplementedError
+        pass
 
     def sanitize_depth(self, depth):
         if is_sequence(depth):
@@ -279,6 +358,9 @@ class CoordinateHandler:
         """Replace nans with +inf in buff, if all valid values are positive"""
         # In buffer with only positive values, maplotlib will raise a warning
         # if nan is used as a filler, while it tolerates np.inf just fine
+        # This hack is however not necessary since Matpltolib 3.2
+        if MPL_VERSION >= Version("3.2"):
+            return
         minval = buff[~np.isnan(buff)].min()
         if minval >= 0:
             buff[np.isnan(buff)] = np.inf
@@ -304,3 +386,51 @@ def cylindrical_to_cartesian(coord, center=(0, 0, 0)):
     c2[..., 1] = np.sin(coord[..., 0]) * coord[..., 1] + center[1]
     c2[..., 2] = coord[..., 2]
     return c2
+
+
+def _get_polar_bounds(self: CoordinateHandler, axes: Tuple[str, str]):
+    # a small helper function that is needed by two unrelated classes
+    ri = self.axis_id[axes[0]]
+    pi = self.axis_id[axes[1]]
+    rmin = self.ds.domain_left_edge[ri]
+    rmax = self.ds.domain_right_edge[ri]
+    phimin = self.ds.domain_left_edge[pi]
+    phimax = self.ds.domain_right_edge[pi]
+    corners = [
+        (rmin, phimin),
+        (rmin, phimax),
+        (rmax, phimin),
+        (rmax, phimax),
+    ]
+
+    def to_polar_plane(r, phi):
+        x = r * np.cos(phi)
+        y = r * np.sin(phi)
+        return x, y
+
+    conic_corner_coords = [to_polar_plane(*corner) for corner in corners]
+
+    phimin = phimin.d
+    phimax = phimax.d
+
+    if phimin <= np.pi <= phimax:
+        xxmin = -rmax
+    else:
+        xxmin = min(xx for xx, yy in conic_corner_coords)
+
+    if phimin <= 0 <= phimax:
+        xxmax = rmax
+    else:
+        xxmax = max(xx for xx, yy in conic_corner_coords)
+
+    if phimin <= 3 * np.pi / 2 <= phimax:
+        yymin = -rmax
+    else:
+        yymin = min(yy for xx, yy in conic_corner_coords)
+
+    if phimin <= np.pi / 2 <= phimax:
+        yymax = rmax
+    else:
+        yymax = max(yy for xx, yy in conic_corner_coords)
+
+    return xxmin, xxmax, yymin, yymax

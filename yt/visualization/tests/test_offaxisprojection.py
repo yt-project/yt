@@ -3,6 +3,8 @@ import shutil
 import tempfile
 import unittest
 
+import numpy as np
+
 from yt.testing import (
     assert_equal,
     assert_fname,
@@ -60,7 +62,7 @@ class TestOffAxisProjection(unittest.TestCase):
         wp_kwargs["take_log"] = (True, False)
         wp_kwargs["figsize"] = ((8, 6), [1, 1])
         wp_kwargs["dpi"] = (100, 50)
-        wp_kwargs["cmap_name"] = ("arbre", "kelp")
+        wp_kwargs["cmap_name"] = ("cmyt.arbre", "cmyt.kelp")
         wp_kwargs_list = expand_keywords(wp_kwargs)
 
         # test all off_axis_projection kwargs and write_projection kwargs
@@ -98,5 +100,4 @@ def test_field_cut_off_axis_octree():
         (p3.frb[("gas", "density")] == p4.frb[("gas", "density")]).all(), False
     )
     p4rho = p4.frb[("gas", "density")]
-    assert_equal(p4rho.min() == 0.0, True)  # Lots of zeros
-    assert_equal(p4rho[p4rho > 0.0].min() >= 0.5, True)
+    assert_equal(np.nanmin(p4rho[p4rho > 0.0]) >= 0.5, True)

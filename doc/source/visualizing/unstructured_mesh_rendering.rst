@@ -15,29 +15,17 @@ below, or you can skip to the examples.
 Optional Embree Installation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To install yt with Embree support, you can install yt from source using the
-``install_script.sh`` script. Be sure to set the ``INST_YT_SOURCE``,
-``INST_EMBREE``, and ``INST_NETCDF4`` flags to 1 at the top of the script. The
-``install_script.sh`` script can be downloaded by doing:
+You'll need to `install Python bindings for netCDF4 <https://github.com/Unidata/netcdf4-python#installation>`_.
+Then you'll need to get Embree itself and its corresponding Python bindings (pyembree).
+For conda-based systems, this is trivial, see
+`pyembree's doc <https://github.com/scopatz/pyembree#installation>`_
 
-.. code-block:: bash
-
-  wget https://raw.githubusercontent.com/yt-project/yt/main/doc/install_script.sh
-
-and then run like so:
-
-.. code-block:: bash
-
-  bash install_script.sh
-
-Alternatively, you can install the additional dependencies by hand.
-First, you will need to install Embree, either by compiling from source
+For systems other than conda, you will need to install Embree first, either by
+`compiling from source <https://github.com/embree/embree#installation-of-embree>`_
 or by using one of the pre-built binaries available at Embree's
 `downloads <https://www.embree.org/downloads.html>`_ page.
 
-Second, the python bindings for Embree (called
-`pyembree <https://github.com/scopatz/pyembree>`_) must also be installed. To
-do so, first obtain a copy, by .e.g. cloning the repo:
+Then you'll want to install pyembree from source as follows.
 
 .. code-block:: bash
 
@@ -53,11 +41,12 @@ usr/local. To account for this, you would do:
 
     CFLAGS='-I/opt/local/include' LDFLAGS='-L/opt/local/lib' python setup.py install
 
-Once Embree and pyembree are installed, you must rebuild yt from source in order to use
-the unstructured mesh rendering capability. Once again, if embree is installed in a
-location that is not part of your default search path, you must tell yt where to find it.
-There are a number of ways to do this. One way is to again manually pass in the flags
-when running the setup script in the yt-git directory:
+Once Embree and pyembree are installed, a,d in order to use the unstructured
+mesh rendering capability, you must :ref:`rebuild yt from source
+<install-from-source>`, . Once again, if embree is installed in a location that
+is not part of your default search path, you must tell yt where to find it.
+There are a number of ways to do this. One way is to again manually pass in the
+flags when running the setup script in the yt-git directory:
 
 .. code-block:: bash
 
@@ -461,7 +450,7 @@ file with a fixed camera position:
 
 .. code-block:: python
 
-    import pylab as plt
+    import matplotlib.pyplot as plt
 
     import yt
     from yt.visualization.volume_rendering.api import MeshSource

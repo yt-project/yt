@@ -1,10 +1,11 @@
 import numpy as np
+from more_itertools import collapse
 
 from yt.data_objects.field_data import YTFieldData
 from yt.fields.derived_field import DerivedField
 from yt.frontends.ytdata.utilities import save_as_dataset
 from yt.funcs import get_output_filename, is_sequence, iter_fields, mylog
-from yt.units.unit_object import Unit
+from yt.units.unit_object import Unit  # type: ignore
 from yt.units.yt_array import YTQuantity, array_like_field
 from yt.utilities.exceptions import (
     YTIllDefinedBounds,
@@ -858,7 +859,7 @@ class ParticleProfile(Profile2D):
     weight_field : string field name
         The field to use for weighting. Default is None.
     deposition : string, optional
-        The interpolation kernal to be used for
+        The interpolation kernel to be used for
         deposition. Valid choices:
         "ngp" : nearest grid point interpolation
         "cic" : cloud-in-cell interpolation
@@ -1347,7 +1348,9 @@ def create_profile(
         else:
             logs_list.append(data_source.ds.field_info[bin_field].take_log)
     logs = logs_list
-    if extrema is None:
+
+    # Are the extrema all Nones? Then treat them as though extrema was set as None
+    if extrema is None or not any(collapse(extrema.values())):
         ex = [
             data_source.quantities["Extrema"](f, non_zero=l)
             for f, l in zip(bin_fields, logs)

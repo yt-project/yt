@@ -349,7 +349,6 @@ class ARTIODataset(Dataset):
         unit_system="cgs",
         default_species_fields=None,
     ):
-        from sys import version
 
         if self._handle is not None:
             return
@@ -357,10 +356,7 @@ class ARTIODataset(Dataset):
         self.fluid_types += ("artio",)
         self._filename = filename
         self._fileset_prefix = filename[:-4]
-        if version < "3":
-            self._handle = artio_fileset(self._fileset_prefix)
-        else:
-            self._handle = artio_fileset(bytes(self._fileset_prefix, "utf-8"))
+        self._handle = artio_fileset(bytes(self._fileset_prefix, "utf-8"))
         self.artio_parameters = self._handle.parameters
         # Here we want to initiate a traceback, if the reader is not built.
         Dataset.__init__(
@@ -467,7 +463,7 @@ class ARTIODataset(Dataset):
 
             self.parameters["unit_m"] = self.artio_parameters["mass_unit"][0]
             self.parameters["unit_t"] = (
-                self.artio_parameters["time_unit"][0] * abox ** 2
+                self.artio_parameters["time_unit"][0] * abox**2
             )
             self.parameters["unit_l"] = self.artio_parameters["length_unit"][0] * abox
 

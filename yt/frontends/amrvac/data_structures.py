@@ -7,11 +7,15 @@ AMRVAC data structures
 import os
 import stat
 import struct
+import sys
 import warnings
 import weakref
+from pathlib import Path
 
 import numpy as np
+from more_itertools import always_iterable
 
+from yt.config import ytcfg
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.funcs import mylog, setdefaultattr
@@ -21,6 +25,22 @@ from yt.utilities.physical_constants import boltzmann_constant_cgs as kb_cgs
 from .datfile_utils import get_header, get_tree_info
 from .fields import AMRVACFieldInfo
 from .io import read_amrvac_namelist
+
+if sys.version_info < (3, 9):
+    # This is directly taken from the standard library,
+    # but only available from Python 3.9
+    def _is_relative_to(self, *other):
+        """Return True if the path is relative to another path or False."""
+        try:
+            self.relative_to(*other)
+            return True
+        except ValueError:
+            return False
+
+    Path.is_relative_to = _is_relative_to  # type: ignore
+else:
+    # an else block is mandated for pyupgrade to enable auto-cleanup
+    pass
 
 
 class AMRVACGrid(AMRGridPatch):
@@ -116,7 +136,7 @@ class AMRVACHierarchy(GridIndex):
 
         self.grids = np.empty(self.num_grids, dtype="object")
         for igrid, (ytlevel, morton_index) in enumerate(zip(ytlevels, morton_indices)):
-            dx = dx0 / self.dataset.refine_by ** ytlevel
+            dx = dx0 / self.dataset.refine_by**ytlevel
             left_edge = xmin + (morton_index - 1) * block_nx * dx
 
             # edges and dimensions are filled in a dimensionality-agnostic way
@@ -146,7 +166,7 @@ class AMRVACDataset(Dataset):
         parfiles=None,
         default_species_fields=None,
     ):
-        """Instanciate AMRVACDataset.
+        """Instantiate AMRVACDataset.
 
         Parameters
         ----------
@@ -157,7 +177,7 @@ class AMRVACDataset(Dataset):
             This should always be 'amrvac'.
 
         units_override : dict, optional
-            A dictionnary of physical normalisation factors to interpret on disk data.
+            A dictionary of physical normalisation factors to interpret on disk data.
 
         unit_system : str, optional
             Either "cgs" (default), "mks" or "code"
@@ -191,6 +211,17 @@ class AMRVACDataset(Dataset):
         c_adiab = None
         e_is_internal = None
         if parfiles is not None:
+            parfiles = list(always_iterable(parfiles))
+            ppf = Path(parfiles[0])
+            if not ppf.is_absolute() and Path(filename).resolve().is_relative_to(
+                ytcfg["yt", "test_data_dir"]
+            ):
+                mylog.debug(
+                    "Looks like %s is relative to your test_data_dir. Assuming this is also true for parfiles.",
+                    filename,
+                )
+                parfiles = [Path(ytcfg["yt", "test_data_dir"]) / pf for pf in parfiles]
+
             namelist = read_amrvac_namelist(parfiles)
             if "hd_list" in namelist:
                 c_adiab = namelist["hd_list"].get("hd_adiab", 1.0)
@@ -215,7 +246,7 @@ class AMRVACDataset(Dataset):
             c_adiab *= (
                 self.mass_unit ** (1 - self.gamma)
                 * self.length_unit ** (2 + 3 * (self.gamma - 1))
-                / self.time_unit ** 2
+                / self.time_unit**2
             )
 
         self.namelist = namelist
@@ -384,7 +415,7 @@ class AMRVACDataset(Dataset):
         if "mass_unit" in self.units_override:
             # in this case unit_mass is supplied (and has been set as attribute)
             mass_unit = self.mass_unit
-            density_unit = mass_unit / length_unit ** 3
+            density_unit = mass_unit / length_unit**3
             nd_unit = density_unit / ((1.0 + 4.0 * He_abundance) * mp_cgs)
         else:
             # other case: numberdensity is supplied.
@@ -396,7 +427,7 @@ class AMRVACDataset(Dataset):
                     1.0, self.__class__.default_units["numberdensity_unit"]
                 )
             density_unit = (1.0 + 4.0 * He_abundance) * mp_cgs * nd_unit
-            mass_unit = density_unit * length_unit ** 3
+            mass_unit = density_unit * length_unit**3
 
         # 2. calculations for velocity
         if "time_unit" in self.units_override:
@@ -418,7 +449,7 @@ class AMRVACDataset(Dataset):
             velocity_unit = (np.sqrt(pressure_unit / density_unit)).in_cgs()
         else:
             # velocity is not zero if either time was given OR velocity was given
-            pressure_unit = (density_unit * velocity_unit ** 2).in_cgs()
+            pressure_unit = (density_unit * velocity_unit**2).in_cgs()
             temperature_unit = (
                 pressure_unit / ((2.0 + 3.0 * He_abundance) * nd_unit * kb_cgs)
             ).in_cgs()

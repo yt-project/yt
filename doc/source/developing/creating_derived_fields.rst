@@ -22,7 +22,11 @@ this approach.
 
 
    def _pressure(field, data):
-       return (data.ds.gamma - 1.0) * data["density"] * data["specific_thermal_energy"]
+       return (
+           (data.ds.gamma - 1.0)
+           * data["gas", "density"]
+           * data["gas", "specific_thermal_energy"]
+       )
 
 Note that we do a couple different things here.  We access the ``gamma``
 parameter from the dataset, we access the ``density`` field and we access
@@ -35,7 +39,7 @@ In this example, the ``density`` field will return data with units of
 ``erg/g``, so the result will automatically have units of pressure,
 ``erg/cm**3``. This assumes the unit system is set to the default, which is
 CGS: if a different unit system is selected, the result will be in the same
-dimensions of pressure but different units. See :ref:`unit_systems` for more
+dimensions of pressure but different units. See :ref:`units` for more
 information.
 
 Once we've defined our function, we need to notify yt that the field is
@@ -72,7 +76,7 @@ The units parameter is a "raw" string, in the format that yt
 uses in its :ref:`symbolic units implementation <units>` (e.g., employing only
 unit names, numbers, and mathematical operators in the string, and using
 ``"**"`` for exponentiation). For cosmological datasets and fields, see
-:ref:`cosmological-units`.  We suggest that you name the function that creates
+:ref:`cosmological-units <cosmological-units>`.  We suggest that you name the function that creates
 a derived field with the intended field name prefixed by a single underscore,
 as in the ``_pressure`` example above.
 
@@ -100,9 +104,9 @@ instances by making use of the
 Lastly, if you do not know the units of your field ahead of time, you can
 specify ``units='auto'`` in the call to ``add_field`` for your field.  This will
 automatically determine the appropriate units based on the units of the data
-returned by the field function. This is also a good way to let your derived fields
-be automatically converted to the units of the :ref:`unit system <unit_systems>` in
-your dataset.
+returned by the field function. This is also a good way to let your derived
+fields be automatically converted to the units of the unit system in your
+dataset.
 
 If ``units='auto'`` is set, it is also required to set the ``dimensions`` keyword
 argument so that error-checking can be done on the derived field to make sure that
@@ -115,7 +119,11 @@ the dimensionality of the returned array and the field are the same:
 
 
     def _pressure(field, data):
-        return (data.ds.gamma - 1.0) * data["density"] * data["specific_thermal_energy"]
+        return (
+            (data.ds.gamma - 1.0)
+            * data["gas", "density"]
+            * data["gas", "specific_thermal_energy"]
+        )
 
 
     yt.add_field(
@@ -141,7 +149,11 @@ the previous example:
 
    @derived_field(name="pressure", sampling_type="cell", units="dyne/cm**2")
    def _pressure(field, data):
-       return (data.ds.gamma - 1.0) * data["density"] * data["specific_thermal_energy"]
+       return (
+           (data.ds.gamma - 1.0)
+           * data["gas", "density"]
+           * data["gas", "specific_thermal_energy"]
+       )
 
 The :func:`derived_field` decorator takes the same arguments as
 :func:`add_field`, and is often a more convenient shorthand in cases where
@@ -164,9 +176,9 @@ dataset objects. The calling syntax is the same:
        units="dyne/cm**2",
    )
 
-If you specify fields in this way, you can take advantage of the dataset's
-:ref:`unit system <unit_systems>` to define the units for you, so that
-the units will be returned in the units of that system:
+If you specify fields in this way, you can take advantage of the dataset's unit
+system to define the units for you, so that the units will be returned in the
+units of that system:
 
 .. code-block:: python
 
@@ -219,9 +231,9 @@ transparent and simple example).
        yv = data["gas", "velocity_y"] - bv[1]
        zv = data["gas", "velocity_z"] - bv[2]
        center = data.get_field_parameter("center")
-       x_hat = data["x"] - center[0]
-       y_hat = data["y"] - center[1]
-       z_hat = data["z"] - center[2]
+       x_hat = data["gas", "x"] - center[0]
+       y_hat = data["gas", "y"] - center[1]
+       z_hat = data["gas", "z"] - center[2]
        r = np.sqrt(x_hat * x_hat + y_hat * y_hat + z_hat * z_hat)
        x_hat /= r
        y_hat /= r
@@ -279,11 +291,11 @@ For example, let's write a field that depends on a field parameter named ``'axis
    def my_axis_field(field, data):
        axis = data.get_field_parameter("axis")
        if axis == 0:
-           return data["x-velocity"]
+           return data["gas", "velocity_x"]
        elif axis == 1:
-           return data["y-velocity"]
+           return data["gas", "velocity_y"]
        elif axis == 2:
-           return data["z-velocity"]
+           return data["gas", "velocity_z"]
        else:
            raise ValueError
 
@@ -321,7 +333,7 @@ There are a number of options available, but the only mandatory ones are ``name`
 ``function``
      This is a function handle that defines the field
 ``units``
-     This is a string that describes the units, or a query to a :ref:`UnitSystem <unit_systems>`
+     This is a string that describes the units, or a query to a UnitSystem
      object, e.g. ``ds.unit_system["energy"]``. Powers must be in Python syntax (``**``
      instead of ``^``). Alternatively, it may be set to ``"auto"`` to have the units
      determined automatically. In this case, the ``dimensions`` keyword must be set to the

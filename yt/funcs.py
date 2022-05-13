@@ -17,8 +17,6 @@ import time
 import traceback
 import urllib.parse
 import urllib.request
-import warnings
-from distutils.version import LooseVersion
 from functools import lru_cache, wraps
 from numbers import Number as numeric_type
 from typing import Any, Callable, Type
@@ -26,8 +24,10 @@ from typing import Any, Callable, Type
 import matplotlib
 import numpy as np
 from more_itertools import always_iterable, collapse, first
+from packaging.version import Version
 from tqdm import tqdm
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.units import YTArray, YTQuantity
 from yt.utilities.exceptions import YTInvalidWidthError
 from yt.utilities.logger import ytLogger as mylog
@@ -220,8 +220,7 @@ def print_tb(func):
 def rootonly(func):
     """
     This is a decorator that, when used, will only call the function on the
-    root processor and then broadcast the results of the function to all other
-    processors.
+    root processor.
 
     This can be used like so:
 
@@ -448,7 +447,7 @@ def paste_traceback_detailed(exc_type, exc, tb):
     print()
 
 
-_ss = "fURbBUUBE0cLXgETJnZgJRMXVhVGUQpQAUBuehQMUhJWRFFRAV1ERAtBXw1dAxMLXT4zXBFfABNN\nC0ZEXw1YUURHCxMXVlFERwxWCQw=\n"  # NOQA 501
+_ss = "fURbBUUBE0cLXgETJnZgJRMXVhVGUQpQAUBuehQMUhJWRFFRAV1ERAtBXw1dAxMLXT4zXBFfABNN\nC0ZEXw1YUURHCxMXVlFERwxWCQw=\n"
 
 
 def _rdbeta(key):
@@ -476,7 +475,7 @@ def update_git(path):
     except ImportError:
         print("Updating and precise version information requires ")
         print("gitpython to be installed.")
-        print("Try: pip install gitpython")
+        print("Try: python -m pip install gitpython")
         return -1
     with open(os.path.join(path, "yt_updater.log"), "a") as f:
         repo = git.Repo(path)
@@ -547,7 +546,7 @@ def get_git_version(path):
     except ImportError:
         print("Updating and precise version information requires ")
         print("gitpython to be installed.")
-        print("Try: pip install gitpython")
+        print("Try: python -m pip install gitpython")
         return None
     try:
         repo = git.Repo(path)
@@ -610,7 +609,7 @@ def fancy_download_file(url, filename, requests=None):
         if total_length is None:
             fh.write(response.content)
         else:
-            blocksize = 4 * 1024 ** 2
+            blocksize = 4 * 1024**2
             iterations = int(float(total_length) / float(blocksize))
 
             pbar = get_pbar(
@@ -878,14 +877,14 @@ def enable_plugins(plugin_filename=None):
     in yt scripts without modifying the yt source directly.
 
     If ``plugin_filename`` is omitted, this function will look for a plugin file at
-    ``$HOME/.config/yt/my_plugins.py``, which is the prefered behaviour for a
+    ``$HOME/.config/yt/my_plugins.py``, which is the preferred behaviour for a
     system-level configuration.
 
     Warning: a script using this function will only be reproducible if your plugin
     file is shared with it.
     """
     import yt
-    from yt.config import config_dir, old_config_dir, ytcfg
+    from yt.config import config_dir, ytcfg
     from yt.fields.my_plugin_fields import my_plugins_fields
 
     if plugin_filename is not None:
@@ -898,20 +897,12 @@ def enable_plugins(plugin_filename=None):
         # - CONFIG_DIR
         # - obsolete config dir.
         my_plugin_name = ytcfg.get("yt", "plugin_filename")
-        for base_prefix in ("", config_dir(), old_config_dir()):
+        for base_prefix in ("", config_dir()):
             if os.path.isfile(os.path.join(base_prefix, my_plugin_name)):
                 _fn = os.path.join(base_prefix, my_plugin_name)
                 break
         else:
             raise FileNotFoundError("Could not find a global system plugin file.")
-
-        if _fn.startswith(old_config_dir()):
-            mylog.warning(
-                "Your plugin file is located in a deprecated directory. "
-                "Please move it from %s to %s",
-                os.path.join(old_config_dir(), my_plugin_name),
-                os.path.join(config_dir(), my_plugin_name),
-            )
 
     mylog.info("Loading plugins from %s", _fn)
     ytdict = yt.__dict__
@@ -1009,11 +1000,13 @@ def get_brewer_cmap(cmap):
     if palettable is not None:
         bmap = palettable.colorbrewer.get_map(*cmap)
     elif brewer2mpl is not None:
-        warnings.warn(
+        issue_deprecation_warning(
             "Using brewer2mpl colormaps is deprecated. "
             "Please install the successor to brewer2mpl, "
             "palettable, with `pip install palettable`. "
-            "Colormap tuple names remain unchanged."
+            "Colormap tuple names remain unchanged.",
+            since="3.3",
+            removal="4.2",
         )
         bmap = brewer2mpl.get_map(*cmap)
     else:
@@ -1039,7 +1032,7 @@ def matplotlib_style_context(style_name=None, after_reset=False):
         import matplotlib
 
         style_name = {"mathtext.fontset": "cm"}
-        if LooseVersion(matplotlib.__version__) >= LooseVersion("3.3.0"):
+        if Version(matplotlib.__version__) >= Version("3.3.0"):
             style_name["mathtext.fallback"] = "cm"
         else:
             style_name["mathtext.fallback_to_cm"] = True
@@ -1195,6 +1188,20 @@ def validate_sequence(obj):
         )
 
 
+def validate_field_key(key):
+    if (
+        isinstance(key, tuple)
+        and len(key) == 2
+        and all(isinstance(_, str) for _ in key)
+    ):
+        return
+    raise TypeError(
+        "Expected a 2-tuple of strings formatted as\n"
+        "(field or particle type, field name)\n"
+        f"Received invalid field key: {key}, with type {type(key)}"
+    )
+
+
 def validate_object(obj, data_type):
     if obj is not None and not isinstance(obj, data_type):
         raise TypeError(
@@ -1288,7 +1295,7 @@ def levenshtein_distance(seq1, seq2, max_dist=None):
 
     Returns
     -------
-    The Levensthein distance as an integer.
+    The Levenshtein distance as an integer.
 
     Notes
     -----

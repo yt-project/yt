@@ -34,7 +34,7 @@ with a fourth entering for particle data that is deposited onto a mesh
 is inherited by
 :class:`~yt.visualization.plot_window.AxisAlignedSlicePlot`,
 :class:`~yt.visualization.plot_window.OffAxisSlicePlot`,
-:class:`~yt.visualization.plot_window.ProjectionPlot`, and
+:class:`~yt.visualization.plot_window.AxisAlignedProjectionPlot`, and
 :class:`~yt.visualization.plot_window.OffAxisProjectionPlot`.  This
 controls the number of resolution elements in the
 :class:`~yt.visualization.fixed_resolution.FixedResolutionBuffer`,
@@ -46,10 +46,7 @@ or during image creation with the ``buff_size`` argument to any
 of the four preceding classes.
 
 2. ``figure_size``, which can be altered with either
-:meth:`~yt.visualization.plot_container.PlotContainer.set_figure_size`
-or with :meth:`~yt.visualization.plot_container.PlotWindow.set_window_size`
-(the latter simply calls
-:meth:`~yt.visualization.plot_container.PlotContainer.set_figure_size`),
+:meth:`~yt.visualization.plot_container.PlotContainer.set_figure_size`,
 or can be set during image creation with the ``window_size`` argument.
 This sets the size of the final image (including the visualization and,
 if applicable, the axes and colorbar as well) in inches.
@@ -65,7 +62,7 @@ matter.  On the other hand, increasing these without increasing
 ``buff_size`` accordingly will simply blow up your resolution
 elements to fill several real pixels.
 
-4. (only for meshed particle data) ``n_ref``, the maximum nubmer of
+4. (only for meshed particle data) ``n_ref``, the maximum number of
 particles in a cell in the oct-tree allowed before it is refined
 (removed in yt-4.0 as particle data is no longer deposited onto
 an oct-tree).  For particle data, ``n_ref`` effectively sets the
@@ -401,6 +398,16 @@ new developments and the infrastructure described in :ref:`volume_rendering`.
 
 .. yt_cookbook:: vol-annotated.py
 
+.. _cookbook-render_two_fields_tf:
+
+Volume Rendering Multiple Fields And Annotation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This recipe shows how to display the transfer functions when rendering multiple
+fields in a volume render.
+
+.. yt_cookbook:: render_two_fields_tf.py
+
 .. _cookbook-vol-points:
 
 Volume Rendering with Points
@@ -420,26 +427,6 @@ This recipe demonstrates how to make a volume rendering composited with line
 sources.
 
 .. yt_cookbook:: vol-lines.py
-
-.. _cookbook-opengl_vr:
-
-Advanced Interactive Data Visualization
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-This recipe demonstrates how to manually create all components required to
-start the Interactive Data Visualization.  For more information see
-:ref:`interactive_data_visualization`.
-
-.. yt_cookbook:: opengl_vr.py
-
-Embedding Interactive Data Visualization
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-This recipe demonstrates how to embed the Interactive Data Visualization inside
-the Jupyter notebook.  For more information see
-:ref:`interactive_data_visualization`.
-
-.. yt_cookbook:: opengl_ipython.py
 
 Plotting Streamlines
 ~~~~~~~~~~~~~~~~~~~~

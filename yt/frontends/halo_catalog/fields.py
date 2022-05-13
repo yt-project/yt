@@ -1,3 +1,4 @@
+from yt._typing import KnownFieldsT
 from yt.fields.field_info_container import FieldInfoContainer
 
 m_units = "g"
@@ -5,7 +6,7 @@ p_units = "cm"
 v_units = "cm / s"
 r_units = "cm"
 
-_particle_fields = (
+_particle_fields: KnownFieldsT = (
     ("particle_identifier", ("", [], None)),
     ("particle_position_x", (p_units, [], None)),
     ("particle_position_y", (p_units, [], None)),

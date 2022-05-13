@@ -58,15 +58,20 @@ dataset you could:
    sp = ds.sphere([0.5, 0.5, 0.5], (1, "kpc"))
 
    # Show all temperature values
-   print(sp["temperature"])
+   print(sp["gas", "temperature"])
 
    # Print things in a more human-friendly manner: one temperature at a time
    print("(x,  y,  z) Temperature")
    print("-----------------------")
-   for i in range(sp["temperature"].size):
+   for i in range(sp["gas", "temperature"].size):
        print(
            "(%f,  %f,  %f)    %f"
-           % (sp["x"][i], sp["y"][i], sp["z"][i], sp["temperature"][i])
+           % (
+               sp["gas", "x"][i],
+               sp["gas", "y"][i],
+               sp["gas", "z"][i],
+               sp["gas", "temperature"][i],
+           )
        )
 
 Data objects can also be cloned; for instance:
@@ -103,7 +108,7 @@ on the ``.r`` object, like so:
 .. code-block:: python
 
    ds = yt.load("RedshiftOutput0005")
-   rho = ds.r["density"]
+   rho = ds.r["gas", "density"]
 
 This will return a *flattened* array of data.  The region expression object
 (``r``) doesn't have any derived quantities on it.  This is completely
@@ -113,7 +118,7 @@ equivalent to this set of statements:
 
    ds = yt.load("RedshiftOutput0005")
    dd = ds.all_data()
-   rho = dd["density"]
+   rho = dd["gas", "density"]
 
 .. warning::
 
@@ -566,54 +571,58 @@ after ``max`` will be considerably faster.  Here is an example.
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    reg = ds.r[0.3:0.6, 0.2:0.4, 0.9:0.95]
-   min_rho = reg.min("density")
-   max_rho = reg.max("density")
+   min_rho = reg.min(("gas", "density"))
+   max_rho = reg.max(("gas", "density"))
 
 This is equivalent to:
 
 .. code-block:: python
 
-   min_rho, max_rho = reg.quantities.extrema("density")
+   min_rho, max_rho = reg.quantities.extrema(("gas", "density"))
 
 The ``max`` operation can also compute the maximum intensity projection:
 
 .. code-block:: python
 
-   proj = reg.max("density", axis="x")
+   proj = reg.max(("gas", "density"), axis="x")
    proj.plot()
 
 This is equivalent to:
 
 .. code-block:: python
 
-   proj = ds.proj("density", "x", data_source=reg, method="mip")
+   proj = ds.proj(("gas", "density"), "x", data_source=reg, method="mip")
    proj.plot()
 
 The ``min`` operator does not do this, however, as a minimum intensity
 projection is not currently implemented.
 
-You can also compute the ``mean`` value, which accepts a field, axis and wight
+You can also compute the ``mean`` value, which accepts a field, axis and weight
 function.  If the axis is not specified, it will return the average value of
 the specified field, weighted by the weight argument.  The weight argument
 defaults to ``ones``, which performs an arithmetic average.  For instance:
 
 .. code-block:: python
 
-   mean_rho = reg.mean("density")
-   rho_by_vol = reg.mean("density", weight="cell_volume")
+   mean_rho = reg.mean(("gas", "density"))
+   rho_by_vol = reg.mean(("gas", "density"), weight=("gas", "cell_volume"))
 
 This is equivalent to:
 
 .. code-block:: python
 
-   mean_rho = reg.quantities.weighted_average("density", weight_field="ones")
-   rho_by_vol = reg.quantities.weighted_average("density", weight_field="cell_volume")
+   mean_rho = reg.quantities.weighted_average(
+       ("gas", "density"), weight_field=("index", "ones")
+   )
+   rho_by_vol = reg.quantities.weighted_average(
+       ("gas", "density"), weight_field=("gas", "cell_volume")
+   )
 
 If an axis is provided, it will project along that axis and return it to you:
 
 .. code-block:: python
 
-   rho_proj = reg.mean("temperature", axis="y", weight="density")
+   rho_proj = reg.mean(("gas", "temperature"), axis="y", weight=("gas", "density"))
    rho_proj.plot()
 
 The ``sum`` function will add all the values in the data object.  It accepts a
@@ -622,7 +631,7 @@ the values in the object:
 
 .. code-block:: python
 
-   vol = reg.sum("cell_volume")
+   vol = reg.sum(("gas", "cell_volume"))
 
 If the axis is specified, it will compute a projection using the method ``sum``
 (which does *not* take into account varying path length!) and return that to
@@ -630,7 +639,7 @@ you.
 
 .. code-block:: python
 
-   cell_count = reg.sum("ones", axis="z")
+   cell_count = reg.sum(("index", "ones"), axis="z")
    cell_count.plot()
 
 To compute a projection where the path length *is* taken into account, you can
@@ -638,7 +647,7 @@ use the ``integrate`` function:
 
 .. code-block:: python
 
-   proj = reg.integrate("density", "x")
+   proj = reg.integrate(("gas", "density"), "x")
 
 All of these projections supply the data object as their base input.
 
@@ -648,14 +657,14 @@ this.
 
 .. code-block:: python
 
-   reg.argmin("density", axis="temperature")
+   reg.argmin(("gas", "density"), axis=("gas", "temperature"))
 
 This will return the temperature at the minimum density.
 
 If you don't specify an ``axis``, it will return the spatial position of
 the maximum value of the queried field.  Here is an example::
 
-  x, y, z = reg.argmin("density")
+  x, y, z = reg.argmin(("gas", "density"))
 
 Available Derived Quantities
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -851,7 +860,9 @@ whether or not to conduct it in log space.
 .. code-block:: python
 
    sp = ds.sphere("max", (1.0, "pc"))
-   contour_values, connected_sets = sp.extract_connected_sets("density", 3, 1e-30, 1e-20)
+   contour_values, connected_sets = sp.extract_connected_sets(
+       ("gas", "density"), 3, 1e-30, 1e-20
+   )
 
 The first item, ``contour_values``, will be an array of the min value for each
 set of level sets.  The second (``connected_sets``) will be a dict of dicts.

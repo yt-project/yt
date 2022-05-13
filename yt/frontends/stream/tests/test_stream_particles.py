@@ -1,7 +1,8 @@
 import numpy as np
+import pytest
 
 import yt.utilities.initial_conditions as ic
-from yt.loaders import load_particles, load_uniform_grid
+from yt.loaders import load_amr_grids, load_particles, load_uniform_grid
 from yt.testing import assert_equal, fake_particle_ds, fake_sph_orientation_ds
 
 # Field information
@@ -283,3 +284,74 @@ def test_stream_sph_projection():
     image = frb["gas", "density"]
     assert image.max() > 0
     assert image.shape == (256, 256)
+
+
+@pytest.mark.parametrize("loader", (load_uniform_grid, load_amr_grids))
+def test_stream_non_cartesian_particles(loader):
+    eps = 1e-6
+    r, theta, phi = np.mgrid[
+        0.0 : 1.0 - eps : 64j, 0.0 : np.pi - eps : 64j, 0.0 : 2.0 * np.pi - eps : 64j
+    ]
+    np.random.seed(0x4D3D3D3)
+    ind = np.random.randint(0, 64 * 64 * 64, size=1000)
+
+    particle_position_r = r.ravel()[ind]
+    particle_position_theta = theta.ravel()[ind]
+    particle_position_phi = phi.ravel()[ind]
+
+    ds = load_uniform_grid(
+        {
+            "density": r,
+            "temperature": phi,
+            "entropy": phi,
+            "particle_position_r": particle_position_r,
+            "particle_position_theta": particle_position_theta,
+            "particle_position_phi": particle_position_phi,
+        },
+        (64, 64, 64),
+        bbox=np.array([[0.0, 1.0], [0.0, np.pi], [0.0, 2.0 * np.pi]]),
+        geometry="spherical",
+    )
+
+    dd = ds.all_data()
+    assert_equal(dd["all", "particle_position_r"].v, particle_position_r)
+    assert_equal(dd["all", "particle_position_phi"].v, particle_position_phi)
+    assert_equal(dd["all", "particle_position_theta"].v, particle_position_theta)
+
+
+def test_stream_non_cartesian_particles_amr():
+    eps = 1e-6
+    r, theta, phi = np.mgrid[
+        0.0 : 1.0 - eps : 64j, 0.0 : np.pi - eps : 64j, 0.0 : 2.0 * np.pi - eps : 64j
+    ]
+    np.random.seed(0x4D3D3D3)
+    ind = np.random.randint(0, 64 * 64 * 64, size=1000)
+
+    particle_position_r = r.ravel()[ind]
+    particle_position_theta = theta.ravel()[ind]
+    particle_position_phi = phi.ravel()[ind]
+
+    ds = load_amr_grids(
+        [
+            {
+                "density": r,
+                "temperature": phi,
+                "entropy": phi,
+                "particle_position_r": particle_position_r,
+                "particle_position_theta": particle_position_theta,
+                "particle_position_phi": particle_position_phi,
+                "dimensions": [64, 64, 64],
+                "level": 0,
+                "left_edge": [0.0, 0.0, 0.0],
+                "right_edge": [1.0, np.pi, 2.0 * np.pi],
+            }
+        ],
+        (64, 64, 64),
+        bbox=np.array([[0.0, 1.0], [0.0, np.pi], [0.0, 2.0 * np.pi]]),
+        geometry="spherical",
+    )
+
+    dd = ds.all_data()
+    assert_equal(dd["all", "particle_position_r"].v, particle_position_r)
+    assert_equal(dd["all", "particle_position_phi"].v, particle_position_phi)
+    assert_equal(dd["all", "particle_position_theta"].v, particle_position_theta)

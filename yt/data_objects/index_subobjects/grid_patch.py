@@ -1,9 +1,10 @@
-import warnings
 import weakref
+from typing import List, Tuple
 
 import numpy as np
 
 import yt.geometry.particle_deposit as particle_deposit
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.data_objects.selection_objects.data_selection_objects import (
     YTSelectionContainer,
@@ -192,7 +193,7 @@ class AMRGridPatch(YTSelectionContainer):
     def _fill_child_mask(self, child, mask, tofill, dlevel=1):
         rf = self.ds.refine_by
         if dlevel != 1:
-            rf = rf ** dlevel
+            rf = rf**dlevel
         gi, cgi = self.get_global_startindex(), child.get_global_startindex()
         startIndex = np.maximum(0, cgi // rf - gi)
         endIndex = np.minimum(
@@ -268,15 +269,21 @@ class AMRGridPatch(YTSelectionContainer):
         cube._base_grid = self
         return cube
 
-    def get_vertex_centered_data(self, fields, smoothed=True, no_ghost=False):
+    def get_vertex_centered_data(
+        self,
+        fields: List[Tuple[str, str]],
+        smoothed: bool = True,
+        no_ghost: bool = False,
+    ):
         _old_api = isinstance(fields, (str, tuple))
         if _old_api:
-            message = (
+            issue_deprecation_warning(
                 "get_vertex_centered_data() requires list of fields, rather than "
-                "a single field as an argument."
+                "a single field as an argument.",
+                since="3.3",
+                removal="4.2",
             )
-            warnings.warn(message, DeprecationWarning, stacklevel=2)
-            fields = [fields]
+            fields = [fields]  # type: ignore
 
         # Make sure the field list has only unique entries
         fields = list(set(fields))

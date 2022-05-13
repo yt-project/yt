@@ -610,7 +610,7 @@ class SDFIndex:
         self.set_bounds()
         self._midx_version = self.indexdata.parameters.get("midx_version", 0)
         if self._midx_version >= 1.0:
-            max_key = self.get_key(np.array([2 ** self.level - 1] * 3, dtype="int64"))
+            max_key = self.get_key(np.array([2**self.level - 1] * 3, dtype="int64"))
         else:
             max_key = self.indexdata["index"][-1]
         self._max_key = max_key
@@ -777,7 +777,7 @@ class SDFIndex:
 
     def get_ibbox_slow(self, ileft, iright):
         """
-        Given left and right indicies, return a mask and
+        Given left and right indices, return a mask and
         set of offsets+lengths into the sdf data.
         """
         mask = np.zeros(self.indexdata["index"].shape, dtype="bool")
@@ -796,7 +796,7 @@ class SDFIndex:
 
     def get_ibbox(self, ileft, iright):
         """
-        Given left and right indicies, return a mask and
+        Given left and right indices, return a mask and
         set of offsets+lengths into the sdf data.
         """
         # print('Getting data from ileft to iright:',  ileft, iright)
@@ -863,7 +863,7 @@ class SDFIndex:
 
     def get_bbox(self, left, right):
         """
-        Given left and right indicies, return a mask and
+        Given left and right indices, return a mask and
         set of offsets+lengths into the sdf data.
         """
         ileft = np.floor((left - self.rmin) / self.domain_width * self.domain_dims)
@@ -1393,7 +1393,7 @@ class SDFIndex:
         return data
 
     def get_cell_width(self, level):
-        return self.domain_width / 2 ** level
+        return self.domain_width / 2**level
 
     def iter_padded_bbox_keys(self, level, cell_iarr, pad):
         """

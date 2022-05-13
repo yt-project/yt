@@ -7,7 +7,7 @@ from yt.utilities.exceptions import YTBoundsDefinitionError
 
 
 def test_cic_deposit():
-    ds = fake_random_ds(64, nprocs=8, particles=64 ** 3)
+    ds = fake_random_ds(64, nprocs=8, particles=64**3)
     my_reg = ds.arbitrary_grid(
         ds.domain_left_edge, ds.domain_right_edge, dims=[1, 800, 800]
     )

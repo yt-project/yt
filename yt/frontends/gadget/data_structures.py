@@ -1,12 +1,15 @@
 import os
 import stat
 import struct
+from typing import Type
 
 import numpy as np
 
 from yt.data_objects.static_output import ParticleFile
+from yt.fields.field_info_container import FieldInfoContainer
 from yt.frontends.sph.data_structures import SPHDataset, SPHParticleIndex
 from yt.funcs import only_on_root
+from yt.geometry.geometry_handler import Index
 from yt.utilities.chemical_formulas import compute_mu
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.fortran_utils import read_record
@@ -87,7 +90,7 @@ class GadgetBinaryHeader:
         # Read the first 4 bytes assuming little endian int32
         with self.open() as f:
             (rhead,) = struct.unpack("<I", f.read(4))
-        # Foramt 1?
+        # Format 1?
         if rhead == first_header_size:
             return 1, "<"
         elif rhead == _byte_swap_32(first_header_size):
@@ -154,7 +157,7 @@ class GadgetBinaryHeader:
         for filename in [self.filename, self.filename + ".0"]:
             if os.path.exists(filename):
                 return open(filename, "rb")
-        raise RuntimeError(f"Snapshot file {self.filename} does not exist.")
+        raise FileNotFoundError(f"Snapshot file {self.filename} does not exist.")
 
     def validate(self):
         """Validate data integrity."""
@@ -208,9 +211,9 @@ class GadgetBinaryIndex(SPHParticleIndex):
 
 
 class GadgetDataset(SPHDataset):
-    _index_class = GadgetBinaryIndex
-    _file_class = GadgetBinaryFile
-    _field_info_class = GadgetFieldInfo
+    _index_class: Type[Index] = GadgetBinaryIndex
+    _file_class: Type[ParticleFile] = GadgetBinaryFile
+    _field_info_class: Type[FieldInfoContainer] = GadgetFieldInfo
     _particle_mass_name = "Mass"
     _particle_coordinates_name = "Coordinates"
     _particle_velocity_name = "Velocities"
@@ -261,14 +264,14 @@ class GadgetDataset(SPHDataset):
         header_size = self._header.size
         if header_size != [256]:
             only_on_root(
-                mylog.warn,
+                mylog.warning,
                 "Non-standard header size is detected! "
                 "Gadget-2 standard header is 256 bytes, but yours is %s. "
                 "Make sure a non-standard header is actually expected. "
                 "Otherwise something is wrong, "
                 "and you might want to check how the dataset is loaded. "
-                "Futher information about header specification can be found in "
-                "https://yt-project.org/docs/dev/examining/loading_data.html#header-specification.",  # NOQA E501
+                "Further information about header specification can be found in "
+                "https://yt-project.org/docs/dev/examining/loading_data.html#header-specification.",
                 header_size,
             )
         self._field_spec = self._setup_binary_spec(field_spec, gadget_field_specs)
@@ -424,7 +427,15 @@ class GadgetDataset(SPHDataset):
         )
 
         if hvals["NumFiles"] > 1:
-            self.filename_template = f"{prefix}.%(num)s{self._suffix}"
+            for t in (
+                f"{prefix}.%(num)s{self._suffix}",
+                f"{prefix}.gad.%(num)s{self._suffix}",
+            ):
+                if os.path.isfile(t % {"num": 0}):
+                    self.filename_template = t
+                    break
+            else:
+                raise RuntimeError("Could not determine correct data file template.")
         else:
             self.filename_template = self.parameter_filename
 
@@ -559,10 +570,14 @@ class GadgetDataset(SPHDataset):
         return header.validate()
 
 
+class GadgetHDF5File(ParticleFile):
+    pass
+
+
 class GadgetHDF5Dataset(GadgetDataset):
-    _file_class = ParticleFile
+    _file_class = GadgetHDF5File
     _index_class = SPHParticleIndex
-    _field_info_class = GadgetFieldInfo
+    _field_info_class: Type[FieldInfoContainer] = GadgetFieldInfo
     _particle_mass_name = "Masses"
     _sph_ptypes = ("PartType0",)
     _suffix = ".hdf5"
@@ -611,6 +626,10 @@ class GadgetHDF5Dataset(GadgetDataset):
             self.gen_hsmls = "SmoothingLength" not in handle[sph_ptypes[0]]
         else:
             self.gen_hsmls = False
+        # Later versions of Gadget and its derivatives have a "Parameters"
+        # group in the HDF5 file.
+        if "Parameters" in handle:
+            hvals.update((str(k), v) for k, v in handle["/Parameters"].attrs.items())
         handle.close()
         return hvals
 

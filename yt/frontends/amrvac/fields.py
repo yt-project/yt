@@ -180,7 +180,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
             ("gas", "kinetic_energy_density"),
             function=_kinetic_energy_density,
             units=us["density"] * us["velocity"] ** 2,
-            dimensions=dimensions.density * dimensions.velocity ** 2,
+            dimensions=dimensions.density * dimensions.velocity**2,
             sampling_type="cell",
         )
 
@@ -210,7 +210,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
                 ("gas", "magnetic_energy_density"),
                 function=_magnetic_energy_density,
                 units=us["density"] * us["velocity"] ** 2,
-                dimensions=dimensions.density * dimensions.velocity ** 2,
+                dimensions=dimensions.density * dimensions.velocity**2,
                 sampling_type="cell",
             )
 
@@ -264,7 +264,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
                 ("gas", "thermal_pressure"),
                 function=pressure_recipe,
                 units=us["density"] * us["velocity"] ** 2,
-                dimensions=dimensions.density * dimensions.velocity ** 2,
+                dimensions=dimensions.density * dimensions.velocity**2,
                 sampling_type="cell",
             )
 

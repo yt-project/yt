@@ -34,8 +34,8 @@ class CoredSphere(FluidOperator):
 
     def __call__(self, grid, sub_select=None):
         r = np.zeros(grid.ActiveDimensions, dtype="float64")
-        r2 = self.radius ** 2
-        cr2 = self.core_radius ** 2
+        r2 = self.radius**2
+        cr2 = self.core_radius**2
         for i, ax in enumerate("xyz"):
             np.add(r, (grid[ax] - self.center[i]) ** 2.0, r)
         np.maximum(r, cr2, r)
@@ -57,8 +57,8 @@ class BetaModelSphere(FluidOperator):
 
     def __call__(self, grid, sub_select=None):
         r = np.zeros(grid.ActiveDimensions, dtype="float64")
-        r2 = self.radius ** 2
-        cr2 = self.core_radius ** 2
+        r2 = self.radius**2
+        cr2 = self.core_radius**2
         for i, ax in enumerate("xyz"):
             np.add(r, (grid[ax].ndarray_view() - self.center[i]) ** 2.0, r)
         ind = r <= r2

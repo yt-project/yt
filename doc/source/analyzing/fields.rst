@@ -7,31 +7,33 @@ Fields are spatially-dependent quantities associated with a parent dataset.
 Examples of fields are gas density, gas temperature, particle mass, etc.
 The fundamental way to query data in yt is to access a field, either in its raw
 form (by examining a data container) or a processed form (derived quantities,
-projections, and so on).  "Field" is something of a loaded word, as it can
-refer to quantities that are defined everywhere, which we refer to as "mesh" or
-"fluid" fields, or discrete points that populate the domain, traditionally
-thought of as "particle" fields.  The word "particle" here is gradually falling
-out of favor, as these discrete fields can be any type of sparsely populated
-data.
+projections, aggregations, and so on).  "Field" is something of a loaded word,
+as it can refer to quantities that are defined everywhere, which we refer to as
+"mesh" or "fluid" fields, or discrete points that populate the domain,
+traditionally thought of as "particle" fields.  The word "particle" here is
+gradually falling out of favor, as these discrete fields can be any type of
+sparsely populated data.
+
+.. _what-are-fields:
 
 What are fields?
 ----------------
 
 Fields in yt are denoted by a two-element tuple, of the form ``(field_type,
 field_name)``. The first element, the "field type" is a category for a
-field. Possible field types used in yt include *gas* (for fluid mesh fields
-defined on a mesh) or *io* (for fields defined at particle locations). Field
+field. Possible field types used in yt include ``gas`` (for fluid mesh fields
+defined on a mesh) or ``io`` (for fields defined at particle locations). Field
 types can also correspond to distinct particle of fluid types in a single
 simulation. For example, a plasma physics simulation using the Particle in Cell
-method might have particle types corresponding to *electrons* and *ions*. See
+method might have particle types corresponding to ``electrons`` and ``ions``. See
 :ref:`known-field-types` below for more info about field types in yt.
 
-The second element of field tuples, the "field name", denotes the specific field
-to select, given the field type. Possible field names include *density*,
-*velocity_x* or *pressure* --- these three fields are examples of field names
+The second element of field tuples, the ``field_name``, denotes the specific field
+to select, given the field type. Possible field names include ``density``,
+``velocity_x`` or ``pressure`` --- these three fields are examples of field names
 that might be used for a fluid defined on a mesh. Examples of particle fields
-include *particle_mass*, *particle_position*, or *particle_velocity_x*. In
-general, particle field names are prefixed by "particle\_", which makes it easy
+include ``particle_mass`` ``particle_position`` or ``particle_velocity_x`` In
+general, particle field names are prefixed by ``particle_``, which makes it easy
 to distinguish between a particle field or a mesh field when no field type is
 provided.
 
@@ -118,6 +120,13 @@ field, like its default units or the source code for it.
 Using fields to access data
 ---------------------------
 
+.. warning::
+
+   These *specific* operations will load the entire field -- which can be
+   extremely memory intensive with large datasets!  If you are looking to
+   compute quantities, see :ref:`Data-objects` for methods for computing
+   aggregates, averages, subsets, regriddings, etc.
+
 The primary *use* of fields in yt is to access data from a dataset. For example,
 if I want to use a data object (see :ref:`Data-objects` for more detail about
 data objects) to access the ``('gas', 'density')`` field, one can do any of the
@@ -140,10 +149,11 @@ following:
     density = ad[ds.fields.gas.density]
 
 The first data access example is the simplest. In that example, the field type
-is inferred from the name of the field. The next two examples use the field type
-explicitly, this might be necessary if there is more than one field type with a
-"density" field defined in the same dataset. The third example is slightly more
-verbose but is syntactically identical to the second example due to the way
+is inferred from the name of the field. However, yt will complain if there are multiple
+field names that could be meant by this simple string access.  The next two examples
+use the field type explicitly, this might be necessary if there is more than one field
+type with a "density" field defined in the same dataset. The third example is slightly
+more verbose but is syntactically identical to the second example due to the way
 indexing works in the Python language.
 
 The final example uses the ``ds.fields`` object described above. This way of
@@ -240,8 +250,7 @@ aliasing process allows universally-defined derived fields to take advantage of
 internal names, and it also provides an easy way to address what units something
 should be returned in.  If an aliased field is requested (and aliased fields
 will always be lowercase, with underscores separating words) it will be returned
-in the units specified by the unit system of the database (see :ref:`unit_systems`
-for a guide to using the different unit systems in yt), whereas if the
+in the units specified by the unit system of the database, whereas if the
 frontend-specific field is requested, it will not undergo any unit conversions
 from its natural units.  (This rule is occasionally violated for fields which
 are mesh-dependent, specifically particle masses in some cosmology codes.)
@@ -266,8 +275,7 @@ Recall that fields are formally accessed in two parts: ('*field type*',
 * ``gas`` -- This is the usual default for simulation frontends for fluid
   types.  These fields are typically aliased to the frontend-specific mesh
   fields for grid-based codes or to the deposit fields for particle-based
-  codes.  Default units are in the unit system of the dataset (see
-  :ref:`unit_systems` for more information).
+  codes.  Default units are in the unit system of the dataset.
 * particle type -- These are particle fields that exist on-disk as written
   by individual frontends.  If the frontend designates names for these particles
   (i.e. particle type) those names are the field types.
@@ -408,7 +416,7 @@ systems in terms of the definition of the magnetic pressure:
 
 where :math:`\mu_0 = 4\pi \times 10^{-7}~\rm{N/A^2}` is the vacuum permeability. yt automatically
 detects on a per-frontend basis what units the magnetic should be in, and allows conversion between
-different magnetic field units in the different :ref:`unit systems <unit_systems>` as well. To
+different magnetic field units in the different unit systems as well. To
 determine how to set up special magnetic field handling when designing a new frontend, check out
 :ref:`bfields-frontend`.
 
@@ -635,16 +643,23 @@ this will be handled automatically:
 .. code-block:: python
 
     prj = yt.ProjectionPlot(
-        ds, "z", ("gas", "velocity_los"), weight_field=("gas", "density")
+        ds,
+        "z",
+        fields=("gas", "velocity_los"),
+        weight_field=("gas", "density"),
     )
 
 Which, because the axis is ``"z"``, will give you the same result if you had
-projected the ``"velocity_z"`` field. This also works for off-axis projections:
+projected the ``"velocity_z"`` field. This also works for off-axis projections,
+using an arbitrary normal vector
 
 .. code-block:: python
 
-    prj = yt.OffAxisProjectionPlot(
-        ds, [0.1, -0.2, 0.3], ("gas", "velocity_los"), weight_field=("gas", "density")
+    prj = yt.ProjectionPlot(
+        ds,
+        [0.1, -0.2, 0.3],
+        fields=("gas", "velocity_los"),
+        weight_field=("gas", "density"),
     )
 
 
@@ -682,8 +697,6 @@ General Particle Fields
 
 Every particle will contain both a ``particle_position`` and ``particle_velocity``
 that tracks the position and velocity (respectively) in code units.
-
-.. FIXME: Update the following sections to reflect differences in yt-4.0.
 
 .. _deposited-particle-fields:
 
