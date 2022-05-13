@@ -1,10 +1,10 @@
-import warnings
 import weakref
 from typing import List, Tuple
 
 import numpy as np
 
 import yt.geometry.particle_deposit as particle_deposit
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.data_objects.selection_objects.data_selection_objects import (
     YTSelectionContainer,
@@ -277,11 +277,13 @@ class AMRGridPatch(YTSelectionContainer):
     ):
         _old_api = isinstance(fields, (str, tuple))
         if _old_api:
-            message = (
+            issue_deprecation_warning(
                 "get_vertex_centered_data() requires list of fields, rather than "
-                "a single field as an argument."
+                "a single field as an argument.",
+                since="3.4.0",
+                removal="4.2.0",
+                stacklevel=2,
             )
-            warnings.warn(message, DeprecationWarning, stacklevel=2)
             fields = [fields]  # type: ignore
 
         # Make sure the field list has only unique entries

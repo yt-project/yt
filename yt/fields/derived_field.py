@@ -1,12 +1,12 @@
 import contextlib
 import inspect
 import re
-import warnings
 from typing import Optional, Tuple, Union
 
 from more_itertools import always_iterable
 
 import yt.units.dimensions as ytdims
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.funcs import iter_fields, validate_field_key
 from yt.units.unit_object import Unit  # type: ignore
 from yt.utilities.exceptions import YTFieldNotFound
@@ -138,10 +138,11 @@ class DerivedField:
         self.not_in_all = not_in_all
         self.display_field = display_field
         if particle_type:
-            warnings.warn(
+            issue_deprecation_warning(
                 "particle_type for derived fields "
                 "has been replaced with sampling_type = 'particle'",
-                DeprecationWarning,
+                since="3.4.0",
+                removal="4.2.0",
             )
             sampling_type = "particle"
         self.sampling_type = sampling_type

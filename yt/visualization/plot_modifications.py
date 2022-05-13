@@ -2067,7 +2067,7 @@ class HaloCatalogCallback(PlotCallback):
             "Please update the extension to version 1.1 or newer. "
             "This duplicated functionality will be removed from the main yt package.",
             since="4.1",
-            removal="4.2",
+            removal="4.2.0",
         )
 
         try:
