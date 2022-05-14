@@ -227,7 +227,7 @@ def get_log_minorticks(vmin: float, vmax: float) -> np.ndarray:
     expB = np.floor(np.log10(vmax))
     cofA = np.ceil(vmin / 10**expA).astype("int64")
     cofB = np.floor(vmax / 10**expB).astype("int64")
-    lmticks = []
+    lmticks = np.empty(0)
     while cofA * 10**expA <= cofB * 10**expB:
         if expA < expB:
             lmticks = np.hstack((lmticks, np.linspace(cofA, 9, 10 - cofA) * 10**expA))
