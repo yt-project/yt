@@ -974,26 +974,23 @@ to select log (``True``) or linear (``False``) scalings.
 
 One can switch to `symlog
 <https://matplotlib.org/stable/api/_as_gen/matplotlib.colors.SymLogNorm.html?highlight=symlog#matplotlib.colors.SymLogNorm>`_
-by providing a "linear threshold" (``linthresh``)
+by providing a "linear threshold" (``linthresh``) value.
+With ``linthresh="auto"`` yt will switch to symlog norm and guess an appropriate value
+automatically. Specifically the minimum absolute value in the image is used
+unless it's zero, in which case yt uses 1/1000 of the maximum value.
 
 .. python-script::
 
    import yt
 
-   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   ds = yt.load_sample("IsolatedGalaxy")
    slc = yt.SlicePlot(ds, "z", ("gas", "density"), width=(10, "kpc"))
-   slc.set_log(("gas", "density"), linthresh=(1e-26, "g/cm**3"))
+   slc.set_log(("gas", "density"), linthresh="auto")
    slc.save()
 
-Similar to the ``zmin`` and ``zmax`` arguments of the ``set_zlim`` method, units
-can be left out in ``linthresh``.
 
- ``linthresh="auto"`` is also
-valid, in this case yt will switch to symlog norm and guess an appropriate value
-automatically. Specifically the minimum absolute value in the image is used
-unless it's zero, in which case yt uses 1/1000 of the maximum value.
-
-As an example,
+In some cases, you might find that the automatically selected linear threshold is not
+really suited to your dataset, for instance
 
 .. python-script::
 
@@ -1004,18 +1001,20 @@ As an example,
    p.set_log(("gas", "density"), linthresh="auto")
    p.save()
 
-Symlog is very versatile, and will work with positive or negative dataset ranges.
-Here is an example using symlog scaling to plot a positive field with a linear range of
-``(0, linthresh)``.
+An explicit value can be passed instead
 
 .. python-script::
 
    import yt
 
-   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   slc = yt.SlicePlot(ds, "z", ("gas", "velocity_x"), width=(30, "kpc"))
-   slc.set_log(("gas", "velocity_x"), linthresh=1.0e1)
-   slc.save()
+   ds = yt.load_sample("FIRE_M12i_ref11")
+   p = yt.ProjectionPlot(ds, "x", ("gas", "density"))
+   p.set_log(("gas", "density"), linthresh=(1e-22, "g/cm**2"))
+   p.save()
+
+Similar to the ``zmin`` and ``zmax`` arguments of the ``set_zlim`` method, units
+can be left out in ``linthresh``.
+
 
 **Arbitrary norms**
 
