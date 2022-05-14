@@ -273,6 +273,18 @@ def get_symlog_minorticks(linthresh: float, vmin: float, vmax: float) -> np.ndar
 
 
 def get_symlog_majorticks(linthresh: float, vmin: float, vmax: float) -> np.ndarray:
+    """calculate positions of major ticks on a log colorbar
+
+    Parameters
+    ----------
+    linthresh : float
+        the threshold for the linear region
+    vmin : float
+        the minimum value in the colorbar
+    vmax : float
+        the maximum value in the colorbar
+
+    """
     if vmin >= 0.0:
         yticks = [vmin] + list(
             10
