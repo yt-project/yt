@@ -3,7 +3,7 @@ import sys
 from collections import defaultdict
 from contextlib import contextmanager
 from functools import _make_key, lru_cache
-from typing import DefaultDict, List, Tuple
+from typing import DefaultDict, Dict, List, Tuple
 
 if sys.version_info >= (3, 9):
     from collections.abc import Iterator, Mapping
@@ -28,7 +28,7 @@ def _make_io_key(args, *_args, **kwargs):
 
 
 class BaseIOHandler:
-    _vector_fields: Tuple[str, ...] = ()
+    _vector_fields: Dict[str, int] = {}
     _dataset_type: str
     _particle_reader = False
     _cache_on = False
@@ -51,11 +51,6 @@ class BaseIOHandler:
         self._last_selector_counts = None
         self._array_fields = {}
         self._cached_fields = {}
-        # Make sure _vector_fields is a dict of fields and their dimension
-        # and assume all non-specified vector fields are 3D
-        if not isinstance(self._vector_fields, dict):
-            # note, this type change can cause some mypy errors.
-            self._vector_fields = {field: 3 for field in self._vector_fields}
 
     # We need a function for reading a list of sets
     # and a function for *popping* from a queue all the appropriate sets
@@ -176,8 +171,8 @@ class BaseIOHandler:
 
     def _read_particle_selection(
         self, chunks, selector, fields: List[Tuple[str, str]]
-    ) -> Mapping[Tuple[str, str], np.ndarray]:
-        rv = {}  # the return dictionary
+    ) -> Dict[Tuple[str, str], np.ndarray]:
+        data: Dict[Tuple[str, str], List[np.ndarray]] = {}
 
         # Initialize containers for tracking particle, field information
         # ptf (particle field types) maps particle type to list of on-disk fields to read
@@ -201,25 +196,28 @@ class BaseIOHandler:
             else:
                 ptf[ftype].append(fname)
                 field_maps[field].append(field)
-            rv[field] = []
+            data[field] = []
 
         # Now we read.
         for field_r, vals in self._read_particle_fields(chunks, ptf, selector):
             # Note that we now need to check the mappings
             for field_f in field_maps[field_r]:
-                rv[field_f].append(vals)
-        for field_f in rv:
+                data[field_f].append(vals)
+
+        rv: Dict[Tuple[str, str], np.ndarray] = {}  # the return dictionary
+        fields = list(data.keys())
+        for field_f in fields:
             # We need to ensure the arrays have the right shape if there are no
             # particles in them.
-            total = sum(_.size for _ in rv[field_f])
+            total = sum(_.size for _ in data[field_f])
             if total > 0:
-                rv[field_f] = np.concatenate(rv[field_f], axis=0)
+                rv[field_f] = np.concatenate(data.pop(field_f), axis=0)
             else:
-                shape = (0,)
+                shape = [0]
                 if field[1] in self._vector_fields:
-                    shape += (self._vector_fields[field[1]],)
+                    shape.append(self._vector_fields[field[1]])
                 elif field[1] in self._array_fields:
-                    shape += self._array_fields[field[1]]
+                    shape.append(self._array_fields[field[1]])
                 rv[field_f] = np.empty(shape, dtype="float64")
         return rv
 

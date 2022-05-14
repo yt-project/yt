@@ -14,7 +14,12 @@ from .definitions import SNAP_FORMAT_2_OFFSET, gadget_hdf5_ptypes
 
 class IOHandlerGadgetHDF5(IOHandlerSPH):
     _dataset_type = "gadget_hdf5"
-    _vector_fields = ("Coordinates", "Velocity", "Velocities", "MagneticField")
+    _vector_fields = {
+        "Coordinates": 3,
+        "Velocity": 3,
+        "Velocities": 3,
+        "MagneticField": 3,
+    }
     _known_ptypes = gadget_hdf5_ptypes
     _var_mass = None
     _element_names = (
@@ -303,14 +308,14 @@ ZeroMass = object()
 
 class IOHandlerGadgetBinary(IOHandlerSPH):
     _dataset_type = "gadget_binary"
-    _vector_fields = (  # type: ignore
-        ("Coordinates", 3),
-        ("Velocity", 3),
-        ("Velocities", 3),
-        ("MagneticField", 3),
-        ("FourMetalFractions", 4),
-        ("ElevenMetalMasses", 11),
-    )
+    _vector_fields = {
+        "Coordinates": 3,
+        "Velocity": 3,
+        "Velocities": 3,
+        "MagneticField": 3,
+        "FourMetalFractions": 4,
+        "ElevenMetalMasses": 11,
+    }
 
     # Particle types (Table 3 in GADGET-2 user guide)
     #
@@ -332,7 +337,6 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
     _format = None
 
     def __init__(self, ds, *args, **kwargs):
-        self._vector_fields = dict(self._vector_fields)
         self._fields = ds._field_spec
         self._ptypes = ds._ptype_spec
         self.data_files = set()

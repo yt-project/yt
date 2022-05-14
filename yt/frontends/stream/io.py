@@ -8,7 +8,7 @@ from yt.utilities.logger import ytLogger as mylog
 class IOHandlerStream(BaseIOHandler):
 
     _dataset_type = "stream"
-    _vector_fields = ("particle_velocity", "particle_position")
+    _vector_fields = {"particle_velocity": 3, "particle_position": 3}
 
     def __init__(self, ds):
         self.fields = ds.stream_handler.fields
@@ -93,10 +93,8 @@ class IOHandlerStream(BaseIOHandler):
 
 
 class StreamParticleIOHandler(BaseParticleIOHandler):
-
-    _vector_fields = ("particle_position", "particle_velocity")
     _dataset_type = "stream_particles"
-    _vector_fields = ("particle_velocity", "particle_position")
+    _vector_fields = {"particle_velocity": 3, "particle_position": 3}
 
     def __init__(self, ds):
         self.fields = ds.stream_handler.fields
@@ -211,7 +209,7 @@ class StreamParticleIOHandler(BaseParticleIOHandler):
 
 class IOHandlerStreamHexahedral(BaseIOHandler):
     _dataset_type = "stream_hexahedral"
-    _vector_fields = ("particle_velocity", "particle_position")
+    _vector_fields = {"particle_velocity": 3, "particle_position": 3}
 
     def __init__(self, ds):
         self.fields = ds.stream_handler.fields
@@ -246,7 +244,7 @@ class IOHandlerStreamHexahedral(BaseIOHandler):
 
 class IOHandlerStreamOctree(BaseIOHandler):
     _dataset_type = "stream_octree"
-    _vector_fields = ("particle_velocity", "particle_position")
+    _vector_fields = {"particle_velocity": 3, "particle_position": 3}
 
     def __init__(self, ds):
         self.fields = ds.stream_handler.fields
