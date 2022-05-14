@@ -3,11 +3,12 @@ from numbers import Real
 from typing import Any, Dict, List, Optional, Type, Union
 
 import numpy as np
+import unyt as un
 from matplotlib.cm import get_cmap
 from matplotlib.colors import Colormap, LogNorm, Normalize, SymLogNorm
 from packaging.version import Version
-from unyt import Unit, unyt_quantity
 
+from yt._typing import Quantity, Unit
 from yt.config import ytcfg
 from yt.funcs import get_brewer_cmap, is_sequence, mylog
 from yt.visualization._commons import MPL_VERSION
@@ -45,9 +46,9 @@ class NormHandler:
         self,
         data_source,
         *,
-        display_units: Unit,
-        vmin: Optional[unyt_quantity] = None,
-        vmax: Optional[unyt_quantity] = None,
+        display_units: un.Unit,
+        vmin: Optional[un.unyt_quantity] = None,
+        vmax: Optional[un.unyt_quantity] = None,
         norm_type: Optional[Type[Normalize]] = None,
         norm: Optional[Normalize] = None,
         linthresh: Optional[float] = None,
@@ -99,17 +100,17 @@ class NormHandler:
         mylog.warning("Dropping norm (%s)", self.norm)
         self._norm = None
 
-    def to_float(self, val: unyt_quantity) -> float:
+    def to_float(self, val: un.unyt_quantity) -> float:
         return float(val.to(self.display_units).d)
 
-    def to_quan(self, val) -> unyt_quantity:
-        if isinstance(val, unyt_quantity):
+    def to_quan(self, val) -> un.unyt_quantity:
+        if isinstance(val, un.unyt_quantity):
             return self.ds.quan(val)
         elif (
             is_sequence(val)
             and len(val) == 2
             and isinstance(val[0], Real)
-            and isinstance(val[1], (str, Unit))
+            and isinstance(val[1], (str, un.Unit))
         ):
             return self.ds.quan(*val)
         elif isinstance(val, Real):
@@ -118,15 +119,15 @@ class NormHandler:
             raise TypeError(f"Could not convert {val!r} to unyt_quantity")
 
     @property
-    def display_units(self) -> Unit:
+    def display_units(self) -> un.Unit:
         return self._display_units
 
     @display_units.setter
-    def display_units(self, newval: Union[str, Unit]) -> None:
-        self._display_units = Unit(newval)
+    def display_units(self, newval: Unit) -> None:
+        self._display_units = un.Unit(newval, registry=self.ds.unit_registry)
 
     def _set_quan_attr(
-        self, attr: str, newval: Optional[Union[unyt_quantity, float]]
+        self, attr: str, newval: Optional[Union[Quantity, float]]
     ) -> None:
         if newval is None:
             setattr(self, attr, None)
@@ -144,20 +145,20 @@ class NormHandler:
                 setattr(self, attr, quan)
 
     @property
-    def vmin(self) -> Optional[unyt_quantity]:
+    def vmin(self) -> Optional[un.unyt_quantity]:
         return self._vmin
 
     @vmin.setter
-    def vmin(self, newval: Optional[Union[unyt_quantity, float]]) -> None:
+    def vmin(self, newval: Optional[Union[Quantity, float]]) -> None:
         self._reset_norm()
         self._set_quan_attr("_vmin", newval)
 
     @property
-    def vmax(self) -> Optional[unyt_quantity]:
+    def vmax(self) -> Optional[un.unyt_quantity]:
         return self._vmax
 
     @vmax.setter
-    def vmax(self, newval: Optional[Union[unyt_quantity, float]]) -> None:
+    def vmax(self, newval: Optional[Union[Quantity, float]]) -> None:
         self._reset_norm()
         self._set_quan_attr("_vmax", newval)
 
@@ -199,7 +200,7 @@ class NormHandler:
         return self._linthresh
 
     @linthresh.setter
-    def linthresh(self, newval: Optional[Union[unyt_quantity, float]]) -> None:
+    def linthresh(self, newval: Optional[Union[Quantity, float]]) -> None:
         self._reset_norm()
         self._set_quan_attr("_linthresh", newval)
         if self._linthresh is not None and self._linthresh <= 0:

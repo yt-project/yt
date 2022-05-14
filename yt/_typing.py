@@ -1,7 +1,7 @@
 from typing import List, Optional, Tuple, Union
 
+import unyt as un
 from numpy import ndarray
-from unyt import unyt_quantity
 
 FieldDescT = Tuple[str, Tuple[str, List[str], Optional[str]]]
 KnownFieldsT = Tuple[FieldDescT, ...]
@@ -12,6 +12,9 @@ ParticleCoordinateTuple = Tuple[
     Union[float, ndarray],  # hsml
 ]
 
-# an intentionally restrictive list of types that can
-# be passes to ds.quan (which is a proxy for unyt.unyt_quantity.__init__)
-Quantity = Union[unyt_quantity, Tuple[float, str]]
+
+# types that can be converted to un.Unit
+Unit = Union[un.Unit, str]
+
+# types that can be converted to un.unyt_quantity
+Quantity = Union[un.unyt_quantity, Tuple[float, Unit]]
