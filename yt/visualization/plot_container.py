@@ -15,6 +15,7 @@ from matplotlib.font_manager import FontProperties
 from unyt.dimensions import length
 
 from yt._maintenance.deprecation import issue_deprecation_warning
+from yt._typing import Quantity
 from yt.config import ytcfg
 from yt.data_objects.time_series import DatasetSeries
 from yt.funcs import ensure_dir, is_sequence, iter_fields
@@ -33,6 +34,11 @@ from ._commons import (
     validate_image_name,
     validate_plot,
 )
+
+if sys.version_info >= (3, 8):
+    from typing import Literal
+else:
+    from typing_extensions import Literal
 
 latex_prefixes = {
     "u": r"\mu",
@@ -145,7 +151,7 @@ class PlotContainer(abc.ABC):
         field,
         log: Optional[bool] = None,
         *,
-        linthresh: Optional[Union[float, str]] = None,
+        linthresh: Optional[Union[float, Quantity, Literal["auto"]]] = None,
         symlog_auto: Optional[bool] = None,  # deprecated
     ):
         """set a field to log, linear, or symlog.
@@ -164,7 +170,7 @@ class PlotContainer(abc.ABC):
             if field == 'all', applies to all plots.
         log : boolean, optional
             Log on/off: on means log scaling; off means linear scaling.
-        linthresh : float, (float, str), or 'auto', optional
+        linthresh : float, (float, str), unyt_quantity, or 'auto', optional
             when using symlog scaling, linthresh is the value at which scaling
             transitions from linear to logarithmic.  linthresh must be positive.
             Note: setting linthresh will automatically enable symlog scale
