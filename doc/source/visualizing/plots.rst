@@ -950,7 +950,7 @@ method to set a custom colormap range.
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    slc = yt.SlicePlot(ds, "z", ("gas", "density"), width=(10, "kpc"))
-   slc.set_zlim(("gas", "density"), zmin=(1e-30, "g/cm**3)), zmax=(1e-25, "g/cm**3"))
+   slc.set_zlim(("gas", "density"), zmin=(1e-30, "g/cm**3"), zmax=(1e-25, "g/cm**3"))
    slc.save()
 
 Units can be left out, in which case they implicitly match the current display
@@ -958,7 +958,7 @@ units of the colorbar (controlled with the ``set_unit`` method, see
 :ref:`_set-image-units`).
 
 Both ``zmin`` and ``zmax`` are optional, but note that they respectively default
-to 0 and 1, which can be widely inapropriate, so it is recommended to specify both.
+to 0 and 1, which can be widely inappropriate, so it is recommended to specify both.
 
 :meth:`~yt.visualization.plot_container.ImagePlotContainer.set_log` takes a boolean argument
 to select log (``True``) or linear (``False``) scalings.
@@ -981,7 +981,7 @@ by providing a "linear threshold" (``linthresh``)
    import yt
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   slc = yt.SlicePlot(ds, "z", ("gas", "velocity_x"), width=(10, "kpc"))
+   slc = yt.SlicePlot(ds, "z", ("gas", "density"), width=(10, "kpc"))
    slc.set_log(("gas", "density"), linthresh=(1e-26, "g/cm**3"))
    slc.save()
 

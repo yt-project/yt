@@ -164,7 +164,7 @@ class PlotContainer(abc.ABC):
             if field == 'all', applies to all plots.
         log : boolean, optional
             Log on/off: on means log scaling; off means linear scaling.
-        linthresh : float, or 'auto', optional
+        linthresh : float, (float, str), or 'auto', optional
             when using symlog scaling, linthresh is the value at which scaling
             transitions from linear to logarithmic.  linthresh must be positive.
             Note: setting linthresh will automatically enable symlog scale

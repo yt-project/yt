@@ -212,7 +212,7 @@ def _swap_arg_pair_order(*args):
     return tuple(new_args)
 
 
-def get_log_minorticks(vmin, vmax):
+def get_log_minorticks(vmin: float, vmax: float) -> np.ndarray:
     """calculate positions of linear minorticks on a log colorbar
 
     Parameters
