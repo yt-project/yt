@@ -34,7 +34,7 @@ if [[ "${RUNNER_OS}" == "Windows" ]] && [[ ${dependencies} != "minimal" ]]; then
     # keep in sync: setup.cfg
     while read requirement; do conda install --yes $requirement; done < tests/windows_conda_requirements.txt
 else
-    python -m pip install --upgrade pip
+    python -m pip install --upgrade "pip != 22.1"
     python -m pip install --upgrade wheel
 
     # // band aid
