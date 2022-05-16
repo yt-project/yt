@@ -8,7 +8,7 @@ from yt.utilities.answer_testing.framework import data_dir_load, requires_ds, sp
 
 bullet_h5 = "ArepoBullet/snapshot_150.hdf5"
 tng59_h5 = "TNGHalo/halo_59.hdf5"
-_tng59_bbox = [[45135.0, 51343.0], [51844.0, 56184.0], [60555.0, 63451.0]]
+_tng59_bbox = [[45135.0, 51343.0], [51844.0, 58184.0], [60555.0, 67451.0]]
 cr_h5 = "ArepoCosmicRays/snapshot_039.hdf5"
 
 
