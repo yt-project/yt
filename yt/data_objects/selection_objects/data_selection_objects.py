@@ -271,7 +271,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
                         # supposed to be unitless
                         fd = self.ds.arr(fd, "")
                         if fi.units != "":
-                            raise YTFieldUnitError(fi, fd.units)
+                            raise YTFieldUnitError(fi, fd.units) from None
                     except UnitConversionError as e:
                         raise YTFieldUnitError(fi, fd.units) from e
                     except UnitParseError as e:
