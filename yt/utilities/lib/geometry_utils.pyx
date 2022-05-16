@@ -15,7 +15,7 @@ import numpy as np
 cimport cython
 cimport numpy as np
 from cython cimport floating
-from libc.math cimport copysign, fabs
+from libc.math cimport copysign, fabs, log2
 from libc.stdlib cimport free, malloc
 
 from yt.utilities.lib.fp_utils cimport fclip, i64clip
@@ -40,7 +40,6 @@ cdef extern from "math.h":
     double fabs(double x) nogil
 
 cdef extern from "platform_dep.h":
-    double log2(double x) nogil
     long int lrint(double x) nogil
 
 @cython.cdivision(True)
