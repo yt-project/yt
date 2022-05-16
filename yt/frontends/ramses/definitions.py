@@ -1,8 +1,8 @@
 # These functions are RAMSES-specific
 import re
 
-from yt.config import ytcfg
 from yt.funcs import mylog
+from yt.utilities.configure import YTConfig, configuration_callbacks
 
 
 def ramses_header(hvals):
@@ -70,7 +70,10 @@ particle_families = {
     "gas_tracer": 0,
 }
 
-if ytcfg.has_section("ramses-families"):
+
+def _setup_ramses_particle_families(ytcfg: YTConfig) -> None:
+    if not ytcfg.has_section("ramses-families"):
+        return
     for key in particle_families.keys():
         val = ytcfg.get("ramses-families", key, callback=None)
         if val is not None:
@@ -78,3 +81,6 @@ if ytcfg.has_section("ramses-families"):
                 "Changing family %s from %s to %s", key, particle_families[key], val
             )
             particle_families[key] = val
+
+
+configuration_callbacks.append(_setup_ramses_particle_families)

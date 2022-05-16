@@ -44,6 +44,7 @@ from yt.units.unit_systems import (  # type: ignore
     unit_system_registry,
 )
 from yt.units.yt_array import YTArray, YTQuantity
+from yt.utilities.configure import YTConfig, configuration_callbacks
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.exceptions import (
     YTFieldNotFound,
@@ -69,7 +70,20 @@ else:
 _cached_datasets: MutableMapping[
     Union[int, str], "Dataset"
 ] = weakref.WeakValueDictionary()
-_ds_store = ParameterFileStore()
+
+# we set this global to None as a place holder
+# its actual instanciation is delayed until after yt.__init__
+# is completed because we need yt.config.ytcfg to be instanciated first
+
+_ds_store: Optional[ParameterFileStore] = None
+
+
+def _setup_ds_store(ytcfg: YTConfig) -> None:
+    global _ds_store
+    _ds_store = ParameterFileStore()
+
+
+configuration_callbacks.append(_setup_ds_store)
 
 
 def _unsupported_object(ds, obj_name):

@@ -20,8 +20,6 @@ from yt.utilities.lib.interpolators import ghost_zone_interpolate
 from yt.utilities.lib.mesh_utilities import clamp_edges
 from yt.utilities.nodal_data_utils import get_nodal_slices
 
-RECONSTRUCT_INDEX = bool(ytcfg.get("yt", "reconstruct_index"))
-
 
 class AMRGridPatch(YTSelectionContainer):
     _spatial = True
@@ -170,7 +168,7 @@ class AMRGridPatch(YTSelectionContainer):
         self.RightEdge = h.grid_right_edge[my_ind]
         # This can be expensive so we allow people to disable this behavior
         # via a config option
-        if RECONSTRUCT_INDEX:
+        if ytcfg.get("yt", "reconstruct_index"):
             if is_sequence(self.Parent) and len(self.Parent) > 0:
                 p = self.Parent[0]
             else:

@@ -1,6 +1,7 @@
 import abc
 from functools import wraps
-from typing import Optional
+from types import ModuleType
+from typing import Optional, Union
 
 import numpy as np
 
@@ -10,6 +11,7 @@ from yt.funcs import ensure_numpy_array, is_sequence, mylog
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.geometry.oct_geometry_handler import OctreeIndex
 from yt.utilities.amr_kdtree.api import AMRKDTree
+from yt.utilities.configure import YTConfig, configuration_callbacks
 from yt.utilities.lib.bounding_volume_hierarchy import BVH
 from yt.utilities.lib.misc_utilities import zlines, zpoints
 from yt.utilities.lib.octree_raytracing import OctreeRayTracing
@@ -36,18 +38,26 @@ from .utils import (
 )
 from .zbuffer_array import ZBuffer
 
-try:
-    from yt.utilities.lib.embree_mesh import mesh_traversal  # type: ignore
-# Catch ValueError in case size of objects in Cython change
-except (ImportError, ValueError):
-    mesh_traversal = NotAModule("pyembree")
-    ytcfg["yt", "ray_tracing_engine"] = "yt"
-try:
-    from yt.utilities.lib.embree_mesh import mesh_construction  # type: ignore
-# Catch ValueError in case size of objects in Cython change
-except (ImportError, ValueError):
-    mesh_construction = NotAModule("pyembree")
-    ytcfg["yt", "ray_tracing_engine"] = "yt"
+OptionalModule = Union[ModuleType, NotAModule]
+mesh_traversal: OptionalModule = NotAModule("pyembree")
+mesh_construction: OptionalModule = NotAModule("pyembree")
+
+
+def _setup_raytracing_engine(ytcfg: YTConfig) -> None:
+    global mesh_traversal, mesh_construction
+    try:
+        from yt.utilities.lib.embree_mesh import mesh_traversal  # type: ignore
+    except (ImportError, ValueError):
+        # Catch ValueError in case size of objects in Cython change
+        ytcfg["yt", "ray_tracing_engine"] = "yt"
+    try:
+        from yt.utilities.lib.embree_mesh import mesh_construction  # type: ignore
+    except (ImportError, ValueError):
+        # Catch ValueError in case size of objects in Cython change
+        ytcfg["yt", "ray_tracing_engine"] = "yt"
+
+
+configuration_callbacks.append(_setup_raytracing_engine)
 
 
 def invalidate_volume(f):

@@ -6,6 +6,7 @@ from typing import List, Tuple, Union
 
 import numpy as np
 
+from yt.config import ytcfg
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.profiles import create_profile
 from yt.fields.field_exceptions import NeedsGridType
@@ -676,8 +677,6 @@ class YTDataContainer(abc.ABC):
         otherwise Glue will be started.
         """
         from glue.core import Data, DataCollection
-
-        from yt.config import ytcfg
 
         if ytcfg.get("yt", "internals", "within_testing"):
             from glue.core.application_base import Application as GlueApplication
