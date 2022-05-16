@@ -1383,6 +1383,12 @@ box and units.
 
    ds = yt.load("snap_004", unit_base=unit_base, bounding_box=bbox)
 
+.. warning::
+
+    If a ``bounding_box`` argument is supplied and the original dataset
+    has periodic boundaries, it will no longer have periodic boundaries
+    after the bounding box is applied.
+
 In addition, you can use ``UnitLength_in_cm``, ``UnitVelocity_in_cm_per_s``,
 ``UnitMass_in_g``, and ``UnitMagneticField_in_gauss`` as keys for the
 ``unit_base`` dictionary. These name come from the names used in the Gadget
