@@ -147,10 +147,10 @@ used internally.
   submodules of yt look in for supplemental data files.
 
 
-.. _per-field-config:
+.. _per-field-plotconfig:
 
-Available per-field Configuration Options
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Available per-field Plot Options
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 It is possible to customize the default behaviour of plots using per-field configuration.
 The default options for plotting a given field can be specified in the configuration file
@@ -184,6 +184,25 @@ as illustrated below in the deposit block.
   [plot.deposit]
   path_length_units = "kpc"  # use kpc for deposition projections
 
+.. _per-field-config:
+
+Available per-Field Configuration Options
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+It is possible to set attributes for fields that would typically be set by the
+frontend source code, such as the aliases for field, the units that field
+should be expected in, and the display name.  This allows individuals to
+customize what yt expects of a given dataset without modifying the yt source
+code.  For instance, if your dataset has an on-disk field called
+"particle_extra_field_1" you could specify its units, display name, and what yt
+should think of it as with:
+
+.. code-block:: toml
+
+   [fields.nbody.particle_extra_field_1]
+   aliases = ["particle_other_fancy_name", "particle_alternative_fancy_name"]
+   units = "code_time"
+   display_name = "Dinosaurs Density"
 
 .. _plugin-file:
 

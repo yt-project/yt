@@ -6,6 +6,7 @@ import numpy as np
 from unyt.exceptions import UnitConversionError
 
 from yt._typing import KnownFieldsT
+from yt.config import ytcfg
 from yt.fields.field_exceptions import NeedsConfiguration
 from yt.funcs import mylog, only_on_root
 from yt.geometry.geometry_handler import is_curvilinear
@@ -144,10 +145,16 @@ class FieldInfoContainer(dict):
                 raise RuntimeError
             if field[0] not in self.ds.particle_types:
                 continue
+            units = self.ds.field_units.get(field, None)
+            if units is None:
+                try:
+                    units = ytcfg.get("fields", *field, "units")
+                except KeyError:
+                    units = ""
             self.add_output_field(
                 field,
                 sampling_type="particle",
-                units=self.ds.field_units.get(field, ""),
+                units=units,
             )
         self.setup_smoothed_fields(ptype, num_neighbors=num_neighbors, ftype=ftype)
 
@@ -219,8 +226,19 @@ class FieldInfoContainer(dict):
                 raise RuntimeError
             if field[0] in self.ds.particle_types:
                 continue
-            args = known_other_fields.get(field[1], ("", [], None))
-            units, aliases, display_name = args
+            args = known_other_fields.get(field[1], None)
+            if args is not None:
+                units, aliases, display_name = args
+            else:
+                try:
+                    node = ytcfg.get("fields", *field).as_dict()
+                except KeyError:
+                    node = dict()
+
+                units = node.get("units", "")
+                aliases = node.get("aliases", [])
+                display_name = node.get("display_name", None)
+
             # We allow field_units to override this.  First we check if the
             # field *name* is in there, then the field *tuple*.
             units = self.ds.field_units.get(field[1], units)
