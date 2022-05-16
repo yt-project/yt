@@ -6,7 +6,9 @@ from .field_plugin_registry import register_field_plugin
 
 
 class LocalFieldInfoContainer(FieldInfoContainer):
-    def add_field(self, name, function, sampling_type, **kwargs):
+    def add_field(
+        self, name, function, sampling_type, *, force_override=False, **kwargs
+    ):
 
         sampling_type = self._sanitize_sampling_type(sampling_type)
 
@@ -25,7 +27,9 @@ class LocalFieldInfoContainer(FieldInfoContainer):
                 name,
             )
 
-        return super().add_field(name, function, sampling_type, **kwargs)
+        return super().add_field(
+            name, function, sampling_type, force_override=force_override, **kwargs
+        )
 
 
 # Empty FieldInfoContainer

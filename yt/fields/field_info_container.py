@@ -267,7 +267,7 @@ class FieldInfoContainer(dict):
                 self.alias((ftype, alias), field)
 
     @staticmethod
-    def _sanitize_sampling_type(sampling_type):
+    def _sanitize_sampling_type(sampling_type: str) -> str:
         """Detect conflicts between deprecated and new parameters to specify the
         sampling type in a new field.
 
@@ -282,14 +282,11 @@ class FieldInfoContainer(dict):
         ------
         ValueError
             For unsupported values in sampling_type
-        RuntimeError
-            If conflicting parameters are passed.
         """
-        try:
-            sampling_type = sampling_type.lower()
-        except AttributeError as e:
-            raise TypeError("sampling_type should be a string.") from e
+        if not isinstance(sampling_type, str):
+            raise TypeError("sampling_type should be a string.")
 
+        sampling_type = sampling_type.lower()
         acceptable_samplings = ("cell", "particle", "local")
         if sampling_type not in acceptable_samplings:
             raise ValueError(
@@ -298,7 +295,9 @@ class FieldInfoContainer(dict):
             )
         return sampling_type
 
-    def add_field(self, name, function, sampling_type, **kwargs):
+    def add_field(
+        self, name, function, sampling_type, *, force_override=False, **kwargs
+    ):
         """
         Add a new field, along with supplemental metadata, to the list of
         available fields.  This respects a number of arguments, all of which
@@ -315,6 +314,8 @@ class FieldInfoContainer(dict):
            arguments (field, data)
         sampling_type: str
            "cell" or "particle" or "local"
+        force_override: bool
+           If False (default), an error will be raised if a field of the same name already exists.
         units : str
            A plain text string encoding the unit.  Powers must be in
            python syntax (** instead of ^). If set to "auto" the units
@@ -329,9 +330,12 @@ class FieldInfoContainer(dict):
            A name used in the plots
 
         """
-        override = kwargs.pop("force_override", False)
         # Handle the case where the field has already been added.
-        if not override and name in self:
+        if not force_override and name in self:
+            mylog.warning(
+                "Field %s already exists. To override use `force_override=True`.",
+                name,
+            )
             # See below.
             if function is None:
 
@@ -359,9 +363,7 @@ class FieldInfoContainer(dict):
             self[name] = DerivedField(name, sampling_type, function, **kwargs)
             return
 
-        sampling_type = self._sanitize_sampling_type(
-            sampling_type, particle_type=kwargs.get("particle_type")
-        )
+        sampling_type = self._sanitize_sampling_type(sampling_type)
 
         if sampling_type == "particle":
             ftype = "all"

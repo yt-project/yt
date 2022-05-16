@@ -1579,7 +1579,9 @@ class Dataset(abc.ABC):
         self._quan = functools.partial(YTQuantity, registry=self.unit_registry)
         return self._quan
 
-    def add_field(self, name, function, sampling_type, **kwargs):
+    def add_field(
+        self, name, function, sampling_type, *, force_override=False, **kwargs
+    ):
         """
         Dataset-specific call to add_field
 
@@ -1598,6 +1600,8 @@ class Dataset(abc.ABC):
            arguments (field, data)
         sampling_type: str
            "cell" or "particle" or "local"
+        force_override: bool
+           If False (default), an error will be raised if a field of the same name already exists.
         units : str
            A plain text string encoding the unit.  Powers must be in
            python syntax (** instead of ^).
@@ -1615,20 +1619,15 @@ class Dataset(abc.ABC):
 
         """
         self.index
-        override = kwargs.get("force_override", False)
-        if override and name in self.index.field_list:
+        if force_override and name in self.index.field_list:
             raise RuntimeError(
                 "force_override is only meant to be used with "
                 "derived fields, not on-disk fields."
             )
-        # Handle the case where the field has already been added.
-        if not override and name in self.field_info:
-            mylog.warning(
-                "Field %s already exists. To override use `force_override=True`.",
-                name,
-            )
 
-        self.field_info.add_field(name, function, sampling_type, **kwargs)
+        self.field_info.add_field(
+            name, function, sampling_type, force_override=force_override, **kwargs
+        )
         self.field_info._show_field_errors.append(name)
         deps, _ = self.field_info.check_derived_fields([name])
         self.field_dependencies.update(deps)
