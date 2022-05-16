@@ -40,14 +40,14 @@ ANSWER_TEST_TAG = "answer_test"
 # this is adopted from nose. Doing this here allows us to avoid importing
 # nose at the top level.
 class _Dummy(unittest.TestCase):
-    def nop():
+    def nop(self):
         pass
 
 
 _t = _Dummy("nop")
 
-assert_true = getattr(_t, "assertTrue")  # noqa: B009
-assert_less_equal = getattr(_t, "assertLessEqual")  # noqa: B009
+assert_true = _t.assertTrue
+assert_less_equal = _t.assertLessEqual
 
 
 def assert_rel_equal(a1, a2, decimals, err_msg="", verbose=True):
