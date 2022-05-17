@@ -2039,11 +2039,12 @@ class ParticleDataset(Dataset):
         # user--currently in these circumstances periodicity behaves
         # very oddly (see https://github.com/yt-project/yt/issues/2639),
         # so to prevent buggy behavior we simply disable it.
-        mylog.warning(
-            "A bounding box was explicitly specified, so we "
-            "are disabling periodicity."
-        )
-        self._periodicity = (False,) * 3
+        if self._periodicity != (False,) * 3:
+            mylog.warning(
+                "A bounding box was explicitly specified, so we "
+                "are disabling periodicity."
+            )
+            self._periodicity = (False,) * 3
 
 
 def validate_index_order(index_order):
