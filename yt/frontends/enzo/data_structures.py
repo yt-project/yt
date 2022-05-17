@@ -766,6 +766,22 @@ class EnzoDataset(Dataset):
 
         return ""
 
+    @cached_property
+    def unique_identifier(self) -> str:
+        if "CurrentTimeIdentifier" in self.parameters:
+            # enzo2
+            return str(self.parameters["CurrentTimeIdentifier"])
+        elif "MetaDataDatasetUUID" in self.parameters:
+            # enzo2
+            return str(self.parameters["MetaDataDatasetUUID"])
+        elif "Internal" in self.parameters:
+            # enzo3
+            return str(
+                self.parameters["Internal"]["Provenance"]["CurrentTimeIdentidier"]
+            )
+        else:
+            return super().unique_identifier
+
     def _parse_parameter_file(self):
         """
         Parses the parameter file and establishes the various
@@ -800,7 +816,6 @@ class EnzoDataset(Dataset):
             sim["Domain"]["DomainRightEdge"], dtype="float64"
         )
         self.gamma = phys["Hydro"]["Gamma"]
-        self.unique_identifier = internal["Provenance"]["CurrentTimeIdentifier"]
         self.current_time = internal["InitialTime"]
         self.cosmological_simulation = phys["Cosmology"]["ComovingCoordinates"]
         if self.cosmological_simulation == 1:
@@ -869,10 +884,7 @@ class EnzoDataset(Dataset):
             always_iterable(self.parameters["LeftFaceBoundaryCondition"] == 3)
         )
         self.dimensionality = self.parameters["TopGridRank"]
-        if "MetaDataDatasetUUID" in self.parameters:
-            self.unique_identifier = self.parameters["MetaDataDatasetUUID"]
-        elif "CurrentTimeIdentifier" in self.parameters:
-            self.unique_identifier = self.parameters["CurrentTimeIdentifier"]
+
         if self.dimensionality > 1:
             self.domain_dimensions = self.parameters["TopGridDimensions"]
             if len(self.domain_dimensions) < 3:
@@ -1046,8 +1058,6 @@ class EnzoDatasetInMemory(EnzoDataset):
         self.dimensionality = self.parameters["TopGridRank"]
         self.domain_dimensions = self.parameters["TopGridDimensions"]
         self.current_time = self.parameters["InitialTime"]
-        if "CurrentTimeIdentifier" in self.parameters:
-            self.unique_identifier = self.parameters["CurrentTimeIdentifier"]
         if self.parameters["ComovingCoordinates"]:
             self.cosmological_simulation = 1
             self.current_redshift = self.parameters["CosmologyCurrentRedshift"]

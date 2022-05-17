@@ -1,6 +1,7 @@
 import glob
 import os
 import re
+import sys
 from collections import namedtuple
 from stat import ST_CTIME
 from typing import Type
@@ -25,6 +26,10 @@ from .fields import (
 )
 from .misc import BoxlibReadParticleFileMixin
 
+if sys.version_info >= (3, 8):
+    from functools import cached_property
+else:
+    from yt._maintenance.backports import cached_property
 # This is what we use to find scientific notation that might include d's
 # instead of e's.
 _scinot_finder = re.compile(r"[-+]?[0-9]*\.?[0-9]+([eEdD][-+]?[0-9]+)?")
@@ -724,6 +729,11 @@ class BoxlibDataset(Dataset):
 
         return lookup_table[found.index(True)]
 
+    @cached_property
+    def unique_identifier(self) -> str:
+        hfn = os.path.join(self.output_dir, "Header")
+        return str(int(os.stat(hfn)[ST_CTIME]))
+
     def _parse_parameter_file(self):
         """
         Parses the parameter file and establishes the various
@@ -732,8 +742,6 @@ class BoxlibDataset(Dataset):
         self._periodicity = (False, False, False)
         self._parse_header_file()
         # Let's read the file
-        hfn = os.path.join(self.output_dir, "Header")
-        self.unique_identifier = int(os.stat(hfn)[ST_CTIME])
         # the 'inputs' file is now optional
         self._parse_cparams()
         self._parse_fparams()

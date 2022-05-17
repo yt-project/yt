@@ -9,7 +9,6 @@ Data structures for AdaptaHOP frontend.
 
 import os
 import re
-import stat
 from itertools import product
 from typing import Optional
 
@@ -141,7 +140,6 @@ class AdaptaHOPDataset(Dataset):
         with FortranFile(self.parameter_filename) as fpu:
             params = fpu.read_attrs(self._header_attributes)
         self.dimensionality = 3
-        self.unique_identifier = int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         # Domain related things
         self.filename_template = self.parameter_filename
         self.file_count = 1

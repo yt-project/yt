@@ -1,5 +1,4 @@
 import os
-import stat
 import struct
 from typing import Type
 
@@ -645,7 +644,6 @@ class GadgetHDF5Dataset(GadgetDataset):
         self.dimensionality = 3
         self.refine_by = 2
         self.parameters["HydroMethod"] = "sph"
-        self.unique_identifier = int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
         self._unit_base = self._get_uvals()
         self._unit_base["cmcm"] = 1.0 / self._unit_base["UnitLength_in_cm"]
