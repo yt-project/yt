@@ -57,7 +57,7 @@ tng59_fields = OrderedDict(
 @requires_ds(tng59_h5)
 def test_arepo_tng59():
     ds = data_dir_load(tng59_h5, kwargs={"bounding_box": _tng59_bbox})
-    for test in sph_answer(ds, "halo_59", 10107142, tng59_fields):
+    for test in sph_answer(ds, "halo_59", 10107135, tng59_fields):
         test_arepo_tng59.__name__ = test.description
         yield test
 
