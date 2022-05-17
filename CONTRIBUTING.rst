@@ -262,7 +262,7 @@ provide further assistance or guidance.
 Licensing
 +++++++++
 
-yt is `licensed <https://blog.yt-project.org/post/Relicensing/>`_ under the
+yt is `licensed <https://blog.yt-project.org/posts/relicensing/>`_ under the
 BSD 3-clause license.  Versions previous to yt-2.6 were released under the GPLv3.
 
 All contributed code must be BSD-compatible.  If you'd rather not license in
