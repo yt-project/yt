@@ -1,6 +1,7 @@
 import os
 import re
 import string
+import sys
 import time
 import weakref
 from collections import defaultdict
@@ -19,6 +20,11 @@ from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py, _libconf as libconf
 
 from .fields import EnzoFieldInfo
+
+if sys.version_info >= (3, 8):
+    from functools import cached_property
+else:
+    from yt._maintenance.backports import cached_property
 
 
 class EnzoGrid(AMRGridPatch):
@@ -542,15 +548,12 @@ class EnzoHierarchy(GridIndex):
 class EnzoHierarchyInMemory(EnzoHierarchy):
 
     grid = EnzoGridInMemory
-    _enzo = None
 
-    @property
+    @cached_property
     def enzo(self):
-        if self._enzo is None:
-            import enzo
+        import enzo
 
-            self._enzo = enzo
-        return self._enzo
+        return enzo
 
     def __init__(self, ds, dataset_type=None):
         self.dataset_type = dataset_type
