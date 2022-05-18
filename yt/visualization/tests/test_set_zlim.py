@@ -49,3 +49,27 @@ def test_set_unit_then_float_vmin():
     p._setup_plots()
     cb = p.plots[field].image.colorbar
     assert cb.vmin == 1.0
+
+
+def test_reset_zlim():
+    field = ("gas", "density")
+    ds = fake_amr_ds(fields=[field], units=["g/cm**3"])
+
+    p = SlicePlot(ds, "x", field)
+    p.set_buff_size(16)
+
+    p._setup_plots()
+    cb = p.plots[field].image.colorbar
+    raw_lims = np.array((cb.vmin, cb.vmax))
+
+    # set a new zin value
+    delta = np.diff(raw_lims)[0]
+    p.set_zlim(field, zmin=raw_lims[0] + delta / 2)
+
+    # passing a None explicitly should restore default limit
+    p.set_zlim(field, zmin=None)
+    p._setup_plots()
+
+    cb = p.plots[field].image.colorbar
+    new_lims = np.array((cb.vmin, cb.vmax))
+    npt.assert_array_equal(new_lims, raw_lims)
