@@ -35,9 +35,9 @@ from ._commons import (
 )
 
 if sys.version_info >= (3, 8):
-    from typing import Literal
+    from typing import Final, Literal
 else:
-    from typing_extensions import Literal
+    from typing_extensions import Final, Literal
 
 latex_prefixes = {
     "u": r"\mu",
@@ -71,6 +71,19 @@ def accepts_all_fields(func):
         return self
 
     return newfunc
+
+
+# define a singleton sentinel to be used as default value distinct from None
+class Unset:
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = object.__new__(cls)
+        return cls._instance
+
+
+UNSET: Final = Unset()
 
 
 class PlotDictionary(defaultdict):
@@ -938,7 +951,13 @@ class ImagePlotContainer(PlotContainer, abc.ABC):
 
     @accepts_all_fields
     @invalidate_plot
-    def set_zlim(self, field, zmin=None, zmax=None, dynamic_range=None):
+    def set_zlim(
+        self,
+        field,
+        zmin: Union[float, Quantity, Literal["min"], None, Unset] = UNSET,
+        zmax: Union[float, Quantity, Literal["max"], None, Unset] = UNSET,
+        dynamic_range=None,
+    ):
         """set the scale of the colormap
 
         Parameters
@@ -946,11 +965,11 @@ class ImagePlotContainer(PlotContainer, abc.ABC):
         field : string
             the field to set a colormap scale
             if field == 'all', applies to all plots.
-        zmin : float, tuple, YTQuantity or str
-            the new minimum of the colormap scale. If 'min', will
+        zmin : float, Quantity, None or 'min'
+            the new minimum of the colormap scale. If None or 'min', will
             set to the minimum value in the current view.
-        zmax : float, tuple, YTQuantity or str
-            the new maximum of the colormap scale. If 'max', will
+        zmax : float, Quantity, None or 'max'
+            the new maximum of the colormap scale. If None or 'max', will
             set to the maximum value in the current view.
 
         Other Parameters
@@ -963,19 +982,32 @@ class ImagePlotContainer(PlotContainer, abc.ABC):
             zmin = zmax / dynamic_range.
 
         """
-        if zmin is None and zmax is None:
+        if zmin is UNSET and zmax is UNSET:
             raise TypeError("Missing required argument zmin or zmax")
 
+        if zmin == "min":
+            zmin = None
+
+        if zmax == "max":
+            zmax = None
+
         if dynamic_range is not None:
-            if zmax is None and zmin is not None:
+            if zmax is UNSET and zmin is not UNSET:
                 zmax = zmin * dynamic_range
-            elif zmin is None and zmax is not None:
+            elif zmin is UNSET and zmax is not UNSET:
                 zmin = zmax / dynamic_range
             else:
                 raise TypeError(
                     "Using dynamic_range requires that either zmin or zmax "
-                    "be specified, but not both."
+                    "be explicitly specified, but not both."
                 )
+
+        if zmin is UNSET:
+            zmin = None
+
+        if zmax is UNSET:
+            zmax = None
+
         pnh = self.plots[field].norm_handler
         pnh.vmin = zmin
         pnh.vmax = zmax
