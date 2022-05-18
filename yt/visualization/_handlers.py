@@ -131,8 +131,6 @@ class NormHandler:
     ) -> None:
         if newval is None:
             setattr(self, attr, None)
-        elif isinstance(newval, Real):
-            setattr(self, attr, newval * self.display_units)
         else:
             try:
                 quan = self.to_quan(newval)
