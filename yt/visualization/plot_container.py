@@ -117,7 +117,7 @@ class PlotContainer(abc.ABC):
     _default_figure_size = tuple(matplotlib.rcParams["figure.figsize"])
     _default_font_size = 14.0
 
-    def __init__(self, data_source, figure_size=None, fontsize: float = None):
+    def __init__(self, data_source, figure_size=None, fontsize: Optional[float] = None):
         self.data_source = data_source
         self.ds = data_source.ds
         self.ts = self._initialize_dataset(self.ds)
@@ -956,7 +956,7 @@ class ImagePlotContainer(PlotContainer, abc.ABC):
         field,
         zmin: Union[float, Quantity, Literal["min"], None, Unset] = UNSET,
         zmax: Union[float, Quantity, Literal["max"], None, Unset] = UNSET,
-        dynamic_range=None,
+        dynamic_range: Optional[float] = None,
     ):
         """set the scale of the colormap
 
