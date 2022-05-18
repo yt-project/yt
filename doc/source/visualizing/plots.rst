@@ -1040,6 +1040,15 @@ great responsibility.
    slc.set_cmap(("gas", "velocity_x"), "RdBu")
    slc.save()
 
+.. note:: When calling
+  :meth:`~yt.visualization.plot_container.PlotContainer.set_norm`, any constraints
+  previously set with
+  :meth:`~yt.visualization.plot_container.PlotContainer.set_log` or
+  :meth:`~yt.visualization.plot_container.PlotContainer.set_zlim` will be dropped.
+  Conversely, calling ``set_log`` or ``set_zlim`` will have the
+  effect of dropping any norm previously set via ``set_norm``.
+
+
 The :meth:`~yt.visualization.plot_container.ImagePlotContainer.set_background_color`
 function accepts a field name and a color (optional). If color is given, the function
 will set the plot's background color to that. If not, it will set it to the bottom
