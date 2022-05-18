@@ -133,45 +133,36 @@ class EnzoEFieldInfo(FieldInfoContainer):
             add_union_field(self, ptype, fname, "code_mass")
             return
 
+        pdict = nested_dict_get(
+            self.ds.parameters, ("Particle"), default=None
+        )
+        if pdict is None:
+            return
+
         constants = nested_dict_get(
-            self.ds.parameters, ("Particle", ptype, "constants"), default=()
+            pdict, (ptype, "constants"), default=()
         )
         if not constants:
-            names = []
-        else:
-            if not isinstance(constants[0], tuple):
-                constants = (constants,)
-            names = [c[0] for c in constants]
+            return
 
-        group_list = nested_dict_get(
-            self.ds.parameters, ("Particle", ptype, "group_list"), default=()
+        if not isinstance(constants[0], tuple):
+            constants = (constants,)
+        names = [c[0] for c in constants]
+
+        if "mass" not in names:
+            return
+
+        val = constants[names.index("mass")][2] * self.ds.mass_unit
+        if not getattr(self.ds, "_particle_mass_is_mass", False):
+            val = val * (self.ds.domain_width / self.ds.domain_dimensions).prod() / \
+              self.ds.length_unit**3
+
+        def _pmass(field, data):
+            return val * data[ptype, "particle_ones"]
+
+        self.add_field(
+            (ptype, fname),
+            function=_pmass,
+            units="code_mass",
+            sampling_type="particle",
         )
-
-        if "mass" in names:
-            # Prior to the addition of the is_gravitating group list,
-            # particle masses were stored as densities if the simulation
-            # was cosmological.
-            pfield = "mass"
-            is_density = (
-                "is_gravitating" not in group_list and self.ds.cosmological_simulation
-            )
-        elif "density" in names:
-            pfield = "density"
-            is_density = True
-        else:
-            pfield = None
-
-        if pfield is not None:
-            val = constants[names.index(pfield)][2] * self.ds.mass_unit
-            if is_density:
-                val = val / self.ds.domain_dimensions.prod()
-
-            def _pmass(field, data):
-                return val * data[ptype, "particle_ones"]
-
-            self.add_field(
-                (ptype, fname),
-                function=_pmass,
-                units="code_mass",
-                sampling_type="particle",
-            )

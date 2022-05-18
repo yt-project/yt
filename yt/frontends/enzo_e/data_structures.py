@@ -354,6 +354,14 @@ class EnzoEDataset(Dataset):
         if os.path.exists(lcfn):
             with open(lcfn) as lf:
                 self.parameters = libconf.load(lf)
+
+            # Determine if particle masses are actually densities by the
+            # existence of the "mass_is_mass" particles parameter.
+            mass_flag = nested_dict_get(
+                self.parameters, ("Particle", "mass_is_mass"),
+                default=None)
+            self._particle_mass_is_mass = mass_flag is not None
+
             cosmo = nested_dict_get(self.parameters, ("Physics", "cosmology"))
             if cosmo is not None:
                 self.cosmological_simulation = 1
