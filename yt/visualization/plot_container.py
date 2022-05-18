@@ -285,15 +285,8 @@ class PlotContainer(abc.ABC):
         norm : matplotlib.colors.Normalize
             see https://matplotlib.org/stable/tutorials/colors/colormapnorms.html
         """
-
-        if field == "all":
-            fields = list(self.plots.keys())
-        else:
-            fields = field
-
-        for field in self.data_source._determine_fields(fields):
-            pnh = self.plots[field].norm_handler
-            pnh.norm = norm
+        pnh = self.plots[field].norm_handler
+        pnh.norm = norm
         return self
 
     @accepts_all_fields
@@ -989,27 +982,22 @@ class ImagePlotContainer(PlotContainer, abc.ABC):
             zmin = zmax / dynamic_range.
 
         """
-
-        if field == "all":
-            fields = list(self.plots.keys())
-        else:
-            fields = field
         if zmin is None and zmax is None:
             raise TypeError("Missing required argument zmin or zmax")
-        for field in self.data_source._determine_fields(fields):
-            if dynamic_range is not None:
-                if zmax is None and zmin is not None:
-                    zmax = zmin * dynamic_range
-                elif zmin is None and zmax is not None:
-                    zmin = zmax / dynamic_range
-                else:
-                    raise TypeError(
-                        "Using dynamic_range requires that either zmin or zmax "
-                        "be specified, but not both."
-                    )
-            pnh = self.plots[field].norm_handler
-            pnh.vmin = zmin
-            pnh.vmax = zmax
+
+        if dynamic_range is not None:
+            if zmax is None and zmin is not None:
+                zmax = zmin * dynamic_range
+            elif zmin is None and zmax is not None:
+                zmin = zmax / dynamic_range
+            else:
+                raise TypeError(
+                    "Using dynamic_range requires that either zmin or zmax "
+                    "be specified, but not both."
+                )
+        pnh = self.plots[field].norm_handler
+        pnh.vmin = zmin
+        pnh.vmax = zmax
         return self
 
     @accepts_all_fields
