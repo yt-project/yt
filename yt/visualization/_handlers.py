@@ -205,7 +205,7 @@ class NormHandler:
         self._set_quan_attr("_linthresh", newval)
         if self._linthresh is not None and self._linthresh <= 0:
             raise ValueError(
-                f"linthresh can only be set to stricly positive values, got {newval}"
+                f"linthresh can only be set to strictly positive values, got {newval}"
             )
         if newval is not None:
             self.norm_type = SymLogNorm
@@ -234,7 +234,7 @@ class NormHandler:
         min_abs_val, max_abs_val = np.sort(np.abs((kw["vmin"], kw["vmax"])))
         if self.norm_type is not None:
             # this is a convenience mechanism for backward compat,
-            # allowing to toggle between lin and log scaling without detailled user input
+            # allowing to toggle between lin and log scaling without detailed user input
             norm_type = self.norm_type
         else:
             if kw["vmin"] == kw["vmax"] or not np.any(np.isfinite(data)):

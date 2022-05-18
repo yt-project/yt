@@ -939,7 +939,7 @@ The norm properties can be constrained via two methods
   of the value range ``zmin`` and ``zmax``.
 - :meth:`~yt.visualization.plot_container.ImagePlotContainer.set_log` allows switching to
   linear or symlog norms. With symlog, the linear threshold can be set
-  explicitly. Otherwise, yt will dynamically determine a resonable value.
+  explicitly. Otherwise, yt will dynamically determine a reasonable value.
 
 Use the :meth:`~yt.visualization.plot_container.PlotContainer.set_zlim`
 method to set a custom colormap range.
@@ -997,7 +997,7 @@ really suited to your dataset, for instance
    import yt
 
    ds = yt.load_sample("FIRE_M12i_ref11")
-   p = yt.ProjectionPlot(ds, "x", ("gas", "density"))
+   p = yt.ProjectionPlot(ds, "x", ("gas", "density"), width=(30, "Mpc"))
    p.set_log(("gas", "density"), linthresh="auto")
    p.save()
 
@@ -1008,7 +1008,7 @@ An explicit value can be passed instead
    import yt
 
    ds = yt.load_sample("FIRE_M12i_ref11")
-   p = yt.ProjectionPlot(ds, "x", ("gas", "density"))
+   p = yt.ProjectionPlot(ds, "x", ("gas", "density"), width=(30, "Mpc"))
    p.set_log(("gas", "density"), linthresh=(1e-22, "g/cm**2"))
    p.save()
 

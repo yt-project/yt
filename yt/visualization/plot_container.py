@@ -169,7 +169,7 @@ class PlotContainer(abc.ABC):
             the field to set a transform
             if field == 'all', applies to all plots.
         log : boolean, optional
-            Log on/off: on means log scaling; off means linear scaling.
+            set log to True for log scaling, False for linear scaling.
         linthresh : float, (float, str), unyt_quantity, or 'auto', optional
             when using symlog scaling, linthresh is the value at which scaling
             transitions from linear to logarithmic.  linthresh must be positive.
@@ -271,12 +271,12 @@ class PlotContainer(abc.ABC):
         r"""
         Set a custom ``matplotlib.colors.Normalize`` to plot *field*.
 
-        Any constraints previously set with `set.log`, `set.zlim` will be
+        Any constraints previously set with `set_log`, `set_zlim` will be
         dropped.
 
         Note that any float value attached to *norm* (e.g. vmin, vmax,
         vcenter ...) will be read in the current displayed units, which can be
-        controlled with the `set_units` method.
+        controlled with the `set_unit` method.
 
         Parameters
         ----------
