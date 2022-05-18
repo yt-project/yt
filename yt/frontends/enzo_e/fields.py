@@ -133,15 +133,11 @@ class EnzoEFieldInfo(FieldInfoContainer):
             add_union_field(self, ptype, fname, "code_mass")
             return
 
-        pdict = nested_dict_get(
-            self.ds.parameters, ("Particle"), default=None
-        )
+        pdict = nested_dict_get(self.ds.parameters, ("Particle"), default=None)
         if pdict is None:
             return
 
-        constants = nested_dict_get(
-            pdict, (ptype, "constants"), default=()
-        )
+        constants = nested_dict_get(pdict, (ptype, "constants"), default=())
         if not constants:
             return
 
@@ -154,8 +150,11 @@ class EnzoEFieldInfo(FieldInfoContainer):
 
         val = constants[names.index("mass")][2] * self.ds.mass_unit
         if not getattr(self.ds, "_particle_mass_is_mass", False):
-            val = val * (self.ds.domain_width / self.ds.domain_dimensions).prod() / \
-              self.ds.length_unit**3
+            val = (
+                val
+                * (self.ds.domain_width / self.ds.domain_dimensions).prod()
+                / self.ds.length_unit**3
+            )
 
         def _pmass(field, data):
             return val * data[ptype, "particle_ones"]

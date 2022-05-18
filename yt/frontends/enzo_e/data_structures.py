@@ -358,8 +358,8 @@ class EnzoEDataset(Dataset):
             # Determine if particle masses are actually densities by the
             # existence of the "mass_is_mass" particles parameter.
             mass_flag = nested_dict_get(
-                self.parameters, ("Particle", "mass_is_mass"),
-                default=None)
+                self.parameters, ("Particle", "mass_is_mass"), default=None
+            )
             self._particle_mass_is_mass = mass_flag is not None
 
             cosmo = nested_dict_get(self.parameters, ("Physics", "cosmology"))
