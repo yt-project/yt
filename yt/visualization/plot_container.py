@@ -9,7 +9,6 @@ from functools import wraps
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 import matplotlib
-import numpy as np
 from matplotlib.colors import LogNorm, Normalize, SymLogNorm
 from matplotlib.font_manager import FontProperties
 from unyt.dimensions import length
@@ -72,24 +71,6 @@ def accepts_all_fields(func):
         return self
 
     return newfunc
-
-
-field_transforms = {}
-
-
-class FieldTransform:
-    def __init__(self, name, func):
-        self.name = name
-        self.func = func
-        field_transforms[name] = self
-
-    def __call__(self, *args, **kwargs):
-        return self.func(*args, **kwargs)
-
-
-log_transform = FieldTransform("log10", np.log10)
-linear_transform = FieldTransform("linear", lambda x: x)
-symlog_transform = FieldTransform("symlog", None)
 
 
 class PlotDictionary(defaultdict):
