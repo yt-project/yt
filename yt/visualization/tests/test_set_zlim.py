@@ -62,7 +62,7 @@ def test_reset_zlim():
     cb = p.plots[field].image.colorbar
     raw_lims = np.array((cb.vmin, cb.vmax))
 
-    # set a new zin value
+    # set a new zmin value
     delta = np.diff(raw_lims)[0]
     p.set_zlim(field, zmin=raw_lims[0] + delta / 2)
 
@@ -73,3 +73,54 @@ def test_reset_zlim():
     cb = p.plots[field].image.colorbar
     new_lims = np.array((cb.vmin, cb.vmax))
     npt.assert_array_equal(new_lims, raw_lims)
+
+
+def test_set_dynamic_range_with_vmin():
+    field = ("gas", "density")
+    ds = fake_amr_ds(fields=[field], units=["g/cm**3"])
+
+    p = SlicePlot(ds, "x", field)
+    p.set_buff_size(16)
+
+    zmin = 1e-2
+    p.set_zlim(field, zmin=zmin, dynamic_range=2)
+
+    p._setup_plots()
+    cb = p.plots[field].image.colorbar
+    new_lims = np.array((cb.vmin, cb.vmax))
+    npt.assert_almost_equal(new_lims, (zmin, 2 * zmin))
+
+
+def test_set_dynamic_range_with_vmax():
+    field = ("gas", "density")
+    ds = fake_amr_ds(fields=[field], units=["g/cm**3"])
+
+    p = SlicePlot(ds, "x", field)
+    p.set_buff_size(16)
+
+    zmax = 1
+    p.set_zlim(field, zmax=zmax, dynamic_range=2)
+
+    p._setup_plots()
+    cb = p.plots[field].image.colorbar
+    new_lims = np.array((cb.vmin, cb.vmax))
+    npt.assert_almost_equal(new_lims, (zmax / 2, zmax))
+
+
+def test_set_dynamic_range_with_min():
+    field = ("gas", "density")
+    ds = fake_amr_ds(fields=[field], units=["g/cm**3"])
+
+    p = SlicePlot(ds, "x", field)
+    p.set_buff_size(16)
+
+    p._setup_plots()
+    cb = p.plots[field].image.colorbar
+    vmin = cb.vmin
+
+    p.set_zlim(field, zmin="min", dynamic_range=2)
+
+    p._setup_plots()
+    cb = p.plots[field].image.colorbar
+    new_lims = np.array((cb.vmin, cb.vmax))
+    npt.assert_almost_equal(new_lims, (vmin, 2 * vmin))

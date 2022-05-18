@@ -954,8 +954,8 @@ class ImagePlotContainer(PlotContainer, abc.ABC):
     def set_zlim(
         self,
         field,
-        zmin: Union[float, Quantity, Literal["min"], None, Unset] = UNSET,
-        zmax: Union[float, Quantity, Literal["max"], None, Unset] = UNSET,
+        zmin: Union[float, Quantity, Literal[None, "min"], Unset] = UNSET,
+        zmax: Union[float, Quantity, Literal[None, "max"], Unset] = UNSET,
         dynamic_range: Optional[float] = None,
     ):
         """set the scale of the colormap
@@ -978,29 +978,10 @@ class ImagePlotContainer(PlotContainer, abc.ABC):
             The dynamic range of the image.
             If zmin == None, will set zmin = zmax / dynamic_range
             If zmax == None, will set zmax = zmin * dynamic_range
-            When dynamic_range is specified, defaults to setting
-            zmin = zmax / dynamic_range.
 
         """
         if zmin is UNSET and zmax is UNSET:
             raise TypeError("Missing required argument zmin or zmax")
-
-        if zmin == "min":
-            zmin = None
-
-        if zmax == "max":
-            zmax = None
-
-        if dynamic_range is not None:
-            if zmax is UNSET and zmin is not UNSET:
-                zmax = zmin * dynamic_range
-            elif zmin is UNSET and zmax is not UNSET:
-                zmin = zmax / dynamic_range
-            else:
-                raise TypeError(
-                    "Using dynamic_range requires that either zmin or zmax "
-                    "be explicitly specified, but not both."
-                )
 
         if zmin is UNSET:
             zmin = None
@@ -1011,6 +992,8 @@ class ImagePlotContainer(PlotContainer, abc.ABC):
         pnh = self.plots[field].norm_handler
         pnh.vmin = zmin
         pnh.vmax = zmax
+        pnh.dynamic_range = dynamic_range
+
         return self
 
     @accepts_all_fields

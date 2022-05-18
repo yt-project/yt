@@ -1,6 +1,7 @@
+import sys
 import weakref
 from numbers import Real
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 import numpy as np
 import unyt as un
@@ -12,6 +13,11 @@ from yt._typing import Quantity, Unit
 from yt.config import ytcfg
 from yt.funcs import get_brewer_cmap, is_sequence, mylog
 from yt.visualization._commons import MPL_VERSION
+
+if sys.version_info >= (3, 8):
+    from typing import Literal
+else:
+    from typing_extensions import Literal
 
 
 class NormHandler:
@@ -35,12 +41,19 @@ class NormHandler:
         "_display_units",
         "_vmin",
         "_vmax",
+        "_dynamic_range",
         "_norm_type",
         "_linthresh",
         "_norm_type",
         "_norm",
     )
-    _constraint_attrs: List[str] = ["vmin", "vmax", "norm_type", "linthresh"]
+    _constraint_attrs: List[str] = [
+        "vmin",
+        "vmax",
+        "dynamic_range",
+        "norm_type",
+        "linthresh",
+    ]
 
     def __init__(
         self,
@@ -49,6 +62,7 @@ class NormHandler:
         display_units: un.Unit,
         vmin: Optional[un.unyt_quantity] = None,
         vmax: Optional[un.unyt_quantity] = None,
+        dynamic_range: Optional[float] = None,
         norm_type: Optional[Type[Normalize]] = None,
         norm: Optional[Normalize] = None,
         linthresh: Optional[float] = None,
@@ -60,6 +74,7 @@ class NormHandler:
         self._norm = norm
         self._vmin = vmin
         self._vmax = vmax
+        self._dynamic_range = dynamic_range
         self._norm_type = norm_type
         self._linthresh = linthresh
 
@@ -143,22 +158,86 @@ class NormHandler:
                 setattr(self, attr, quan)
 
     @property
-    def vmin(self) -> Optional[un.unyt_quantity]:
+    def vmin(self) -> Optional[Union[un.unyt_quantity, Literal["min"]]]:
         return self._vmin
 
     @vmin.setter
-    def vmin(self, newval: Optional[Union[Quantity, float]]) -> None:
+    def vmin(self, newval: Optional[Union[Quantity, float, Literal["min"]]]) -> None:
         self._reset_norm()
-        self._set_quan_attr("_vmin", newval)
+        if newval == "min":
+            self._vmin = "min"
+        else:
+            self._set_quan_attr("_vmin", newval)
 
     @property
-    def vmax(self) -> Optional[un.unyt_quantity]:
+    def vmax(self) -> Optional[Union[un.unyt_quantity, Literal["max"]]]:
         return self._vmax
 
     @vmax.setter
-    def vmax(self, newval: Optional[Union[Quantity, float]]) -> None:
+    def vmax(self, newval: Optional[Union[Quantity, float, Literal["max"]]]) -> None:
         self._reset_norm()
-        self._set_quan_attr("_vmax", newval)
+        if newval == "max":
+            self._vmax = "max"
+        else:
+            self._set_quan_attr("_vmax", newval)
+
+    @property
+    def dynamic_range(self) -> Optional[float]:
+        return self._dynamic_range
+
+    @dynamic_range.setter
+    def dynamic_range(self, newval: Optional[float]) -> None:
+        if newval is None:
+            return
+
+        try:
+            newval = float(newval)
+        except TypeError:
+            raise TypeError(
+                "Expected a float. " f"Received {newval} with type {type(newval)}"
+            ) from None
+
+        if newval <= 0:
+            raise ValueError(
+                f"Dynamic range must be strictly positive. Received {newval}"
+            )
+
+        if newval == 1:
+            raise ValueError("Dynamic range cannot be unity.")
+
+        self._reset_norm()
+        self._dynamic_range = newval
+
+    def get_dynamic_range(
+        self, dvmin: Optional[float], dvmax: Optional[float]
+    ) -> Tuple[float, float]:
+        if self.dynamic_range is None:
+            raise RuntimeError(
+                "Something went terribly wrong in setting up a dynamic range"
+            )
+
+        if self.vmax is None:
+            if self.vmin is None:
+                raise TypeError(
+                    "Cannot set dynamic range with neither "
+                    "vmin and vmax being constrained."
+                )
+            if dvmin is None:
+                raise RuntimeError(
+                    "Something went terribly wrong in setting up a dynamic range"
+                )
+            return dvmin, dvmin * self.dynamic_range
+        elif self.vmin is None:
+            if dvmax is None:
+                raise RuntimeError(
+                    "Something went terribly wrong in setting up a dynamic range"
+                )
+            return dvmax / self.dynamic_range, dvmax
+        else:
+            raise TypeError(
+                "Cannot set dynamic range with both "
+                "vmin and vmax already constrained."
+            )
 
     @property
     def norm_type(self) -> Optional[Type[Normalize]]:
@@ -212,20 +291,27 @@ class NormHandler:
         if self.has_norm:
             return self.norm
 
+        dvmin = dvmax = None
+
         finite_values_mask = np.isfinite(data)
-        if self.vmin is not None:
+        if self.vmin not in (None, "min"):
             dvmin = self.to_float(self.vmin)
         elif np.any(finite_values_mask):
             dvmin = self.to_float(np.nanmin(data[finite_values_mask]))
-        else:
-            dvmin = 1 * getattr(data, "units", 1)
-        kw.setdefault("vmin", dvmin)
 
-        if self.vmax is not None:
+        if self.vmax not in (None, "max"):
             dvmax = self.to_float(self.vmax)
         elif np.any(finite_values_mask):
             dvmax = self.to_float(np.nanmax(data[finite_values_mask]))
-        else:
+
+        if self.dynamic_range is not None:
+            dvmin, dvmax = self.get_dynamic_range(dvmin, dvmax)
+
+        if dvmin is None:
+            dvmin = 1 * getattr(data, "units", 1)
+        kw.setdefault("vmin", dvmin)
+
+        if dvmax is None:
             dvmax = 1 * getattr(data, "units", 1)
         kw.setdefault("vmax", dvmax)
 
