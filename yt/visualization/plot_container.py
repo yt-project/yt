@@ -178,6 +178,7 @@ class PlotContainer(abc.ABC):
             issue_deprecation_warning(
                 "the symlog_auto argument is deprecated. Use linthresh='auto' instead",
                 since="4.1",
+                stacklevel=5,
             )
             if symlog_auto is True:
                 linthresh = "auto"
