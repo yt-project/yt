@@ -190,6 +190,13 @@ class PlotContainer(abc.ABC):
                     f"Expected a boolean, got {symlog_auto!r}"
                 )
 
+        if log is not None and linthresh is not None:
+            # we do not raise an error here for backward compatibility
+            warnings.warn(
+                f"Passing log={log} has no effect when linthresh is also specified.",
+                stacklevel=4,
+            )
+
         pnh = self.plots[field].norm_handler
 
         if linthresh is not None:
