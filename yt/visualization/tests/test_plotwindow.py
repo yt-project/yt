@@ -737,7 +737,7 @@ def test_symlog_colorbar():
         ("gas", "negative_density"),
     ]:
         plot = SlicePlot(ds, 2, field)
-        plot.set_log(field, True, linthresh=0.1)
+        plot.set_log(field, linthresh=0.1)
         with tempfile.NamedTemporaryFile(suffix="png") as f:
             plot.save(f.name)
 
