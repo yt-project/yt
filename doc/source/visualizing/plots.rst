@@ -931,6 +931,8 @@ strictly positive, and symlog otherwise. yt supports two different interfaces to
 move away from the defaults. See **constrained norms** and **arbitrary norm**
 hereafter.
 
+.. note:: defaults can be configured on a per-field basis, see :ref:`per-field-plotconfig`
+
 **Constrained norms**
 
 The norm properties can be constrained via two methods
@@ -957,8 +959,11 @@ Units can be left out, in which case they implicitly match the current display
 units of the colorbar (controlled with the ``set_unit`` method, see
 :ref:`_set-image-units`).
 
-Both ``zmin`` and ``zmax`` are optional, but note that they respectively default
-to 0 and 1, which can be widely inappropriate, so it is recommended to specify both.
+It is not required to specify both ``zmin`` and ``zmax``. Left unset, they will
+default to extremal values in the current view. This default beheviour can be
+enforced or restored by passing ``zmin="min"`` (reps. ``zmax="max"``)
+explicitly.
+
 
 :meth:`~yt.visualization.plot_container.ImagePlotContainer.set_log` takes a boolean argument
 to select log (``True``) or linear (``False``) scalings.
