@@ -72,7 +72,7 @@ ATTR_ARGS = {
     "set_figure_size": [((7.0,), {})],
     "set_zlim": [
         (("density", 1e-25, 1e-23), {}),
-        (("density", 1e-25, None), {"dynamic_range": 4}),
+        (("density",), {"zmin": 1e-25, "dynamic_range": 4}),
     ],
     "zoom": [((10,), {})],
     "toggle_right_handed": [((), {})],

@@ -42,7 +42,7 @@ PROJ_ATTR_ARGS["set_cmap"] = [
 PROJ_ATTR_ARGS["set_log"] = [((("all", "particle_mass"), False), {})]
 PROJ_ATTR_ARGS["set_zlim"] = [
     ((("all", "particle_mass"), 1e39, 1e42), {}),
-    ((("all", "particle_mass"), 1e39, None), {"dynamic_range": 4}),
+    ((("all", "particle_mass"),), {"zmin": 1e39, "dynamic_range": 4}),
 ]
 
 PHASE_ATTR_ARGS = {
