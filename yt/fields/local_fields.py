@@ -19,9 +19,8 @@ class LocalFieldInfoContainer(FieldInfoContainer):
                 ftype = "gas"
             name = (ftype, name)
 
-        override = kwargs.get("force_override", False)
         # Handle the case where the field has already been added.
-        if not override and name in self:
+        if not force_override and name in self:
             mylog.warning(
                 "Field %s already exists. To override use `force_override=True`.",
                 name,
