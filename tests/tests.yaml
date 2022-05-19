@@ -95,12 +95,13 @@ answer_tests:
     - yt/frontends/owls/tests/test_outputs.py:test_snapshot_033
     - yt/frontends/owls/tests/test_outputs.py:test_OWLS_particlefilter
 
-  local_pw_042:  # PR 2504
+  local_pw_046:  # PR 3849
     - yt/visualization/tests/test_plotwindow.py:test_attributes
     - yt/visualization/tests/test_particle_plot.py:test_particle_projection_answers
     - yt/visualization/tests/test_particle_plot.py:test_particle_projection_filter
     - yt/visualization/tests/test_particle_plot.py:test_particle_phase_answers
     - yt/visualization/tests/test_raw_field_slices.py:test_raw_field_slices
+    - yt/visualization/tests/test_callbacks.py:test_axis_manipulations
 
   local_tipsy_008:  # PR 2909
     - yt/frontends/tipsy/tests/test_outputs.py:test_pkdgrav
@@ -182,12 +183,10 @@ answer_tests:
   local_nc4_cm1_001: # PR  2176
     - yt/frontends/nc4_cm1/tests/test_outputs.py:test_cm1_mesh_fields
 
-  local_norm_api_007: # PR 3849
+  local_norm_api_008: # PR 3849
     - yt/visualization/tests/test_norm_api_lineplot.py:test_lineplot_set_axis_properties
     - yt/visualization/tests/test_norm_api_profileplot.py:test_profileplot_set_axis_properties
     - yt/visualization/tests/test_norm_api_custom_norm.py:test_sliceplot_custom_norm
-    - yt/visualization/tests/test_norm_api_set_zlim_and_unit.py:test_sliceplot_set_zlim_and_unit
-    - yt/visualization/tests/test_norm_api_set_unit_and_zlim.py:test_sliceplot_set_unit_and_zlim
     - yt/visualization/tests/test_norm_api_set_background_color.py:test_sliceplot_set_background_color
     - yt/visualization/tests/test_norm_api_phaseplot_set_colorbar_implicit.py:test_phaseplot_set_colorbar_properties_implicit
     - yt/visualization/tests/test_norm_api_phaseplot_set_colorbar_explicit.py:test_phaseplot_set_colorbar_properties_explicit
@@ -212,6 +211,8 @@ other_tests:
      - "--ignore-files=test_outputs_pytest\\.py"
      - "--ignore-files=test_normal_plot_api\\.py"
      - "--ignore-file=test_file_sanitizer\\.py"
+     - "--ignore-files=test_version\\.py"
+     - "--ignore-files=test_set_zlim\\.py"
      - "--exclude-test=yt.frontends.gdf.tests.test_outputs.TestGDF"
      - "--exclude-test=yt.frontends.adaptahop.tests.test_outputs"
      - "--exclude-test=yt.frontends.stream.tests.test_stream_particles.test_stream_non_cartesian_particles"
