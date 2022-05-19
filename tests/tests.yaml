@@ -187,8 +187,6 @@ answer_tests:
     - yt/visualization/tests/test_norm_api_lineplot.py:test_lineplot_set_axis_properties
     - yt/visualization/tests/test_norm_api_profileplot.py:test_profileplot_set_axis_properties
     - yt/visualization/tests/test_norm_api_custom_norm.py:test_sliceplot_custom_norm
-    - yt/visualization/tests/test_norm_api_set_zlim_and_unit.py:test_sliceplot_set_zlim_and_unit
-    - yt/visualization/tests/test_norm_api_set_unit_and_zlim.py:test_sliceplot_set_unit_and_zlim
     - yt/visualization/tests/test_norm_api_set_background_color.py:test_sliceplot_set_background_color
     - yt/visualization/tests/test_norm_api_phaseplot_set_colorbar_implicit.py:test_phaseplot_set_colorbar_properties_implicit
     - yt/visualization/tests/test_norm_api_phaseplot_set_colorbar_explicit.py:test_phaseplot_set_colorbar_properties_explicit
