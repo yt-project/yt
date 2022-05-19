@@ -552,7 +552,6 @@ class PlotContainer(abc.ABC):
         if "Cutting" in self.data_source.__class__.__name__:
             plot_type = "OffAxisSlice"
 
-        # somehow mypy thinks we may not have a plots attr yet, hence we turn it off here
         for k, v in self.plots.items():
             if isinstance(k, tuple):
                 k = k[1]

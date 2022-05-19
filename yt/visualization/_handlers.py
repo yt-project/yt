@@ -194,13 +194,11 @@ class NormHandler:
             newval = float(newval)
         except TypeError:
             raise TypeError(
-                "Expected a float. " f"Received {newval} with type {type(newval)}"
+                f"Expected a float. Received {newval} with type {type(newval)}"
             ) from None
 
-        if newval <= 0:
-            raise ValueError(
-                f"Dynamic range must be strictly positive. Received {newval}"
-            )
+        if newval == 0:
+            raise ValueError("Dynamic range cannot be zero.")
 
         if newval == 1:
             raise ValueError("Dynamic range cannot be unity.")
