@@ -953,8 +953,8 @@ class ImagePlotContainer(PlotContainer, abc.ABC):
     def set_zlim(
         self,
         field,
-        zmin: Union[float, Quantity, Literal[None, "min"], Unset] = UNSET,
-        zmax: Union[float, Quantity, Literal[None, "max"], Unset] = UNSET,
+        zmin: Union[float, Quantity, Literal["min"], Unset] = UNSET,
+        zmax: Union[float, Quantity, Literal["max"], Unset] = UNSET,
         dynamic_range: Optional[float] = None,
     ):
         """set the scale of the colormap
@@ -964,11 +964,11 @@ class ImagePlotContainer(PlotContainer, abc.ABC):
         field : string
             the field to set a colormap scale
             if field == 'all', applies to all plots.
-        zmin : float, Quantity, None or 'min'
-            the new minimum of the colormap scale. If None or 'min', will
+        zmin : float, Quantity, or 'min'
+            the new minimum of the colormap scale. If 'min', will
             set to the minimum value in the current view.
-        zmax : float, Quantity, None or 'max'
-            the new maximum of the colormap scale. If None or 'max', will
+        zmax : float, Quantity, or 'max'
+            the new maximum of the colormap scale. If 'max', will
             set to the maximum value in the current view.
 
         Other Parameters
@@ -984,9 +984,34 @@ class ImagePlotContainer(PlotContainer, abc.ABC):
 
         if zmin is UNSET:
             zmin = None
+        elif zmin is None:
+            # this sentinel value juggling is barely maintainable
+            # this use case is deprecated so we can simplify the logic here
+            # in the future and use `None` as the default value,
+            # instead of the custom sentinel UNSET
+            issue_deprecation_warning(
+                "Passing `zmin=None` explicitly is deprecated. "
+                "If you wish to explicitly set zmin to the minimal "
+                "data value, pass `zmin='min'` instead. "
+                "Otherwise leave this argument unset.",
+                since="4.1.0",
+                stacklevel=5,
+            )
+            zmin = "min"
 
         if zmax is UNSET:
             zmax = None
+        elif zmax is None:
+            # see above
+            issue_deprecation_warning(
+                "Passing `zmax=None` explicitly is deprecated. "
+                "If you wish to explicitly set zmax to the maximal "
+                "data value, pass `zmin='max'` instead. "
+                "Otherwise leave this argument unset.",
+                since="4.1.0",
+                stacklevel=5,
+            )
+            zmax = "max"
 
         pnh = self.plots[field].norm_handler
         pnh.vmin = zmin
