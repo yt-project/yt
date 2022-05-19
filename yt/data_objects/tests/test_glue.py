@@ -8,7 +8,7 @@ def setup_func():
     ytcfg["yt", "internals", "within_testing"] = True
 
 
-@requires_module("glue.core")
+@requires_module("glue")
 @nose.with_setup(setup_func)
 def test_glue_data_object():
     ds = fake_random_ds(16)

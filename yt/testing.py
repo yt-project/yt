@@ -1,6 +1,4 @@
-import functools
 import hashlib
-import importlib
 import itertools as it
 import os
 import pickle
@@ -8,7 +6,10 @@ import shutil
 import sys
 import tempfile
 import unittest
+from functools import wraps
+from importlib.util import find_spec
 from shutil import which
+from unittest import SkipTest
 
 import matplotlib
 import numpy as np
@@ -858,19 +859,27 @@ def expand_keywords(keywords, full=False):
     return list_of_kwarg_dicts
 
 
-def skip_case(*, reason: str):
-    """
-    An adapter test skipping function that should work with both test runners
-    (nosetest or pytest) and with any Python version.
-    """
-    if sys.version_info >= (3, 10):
-        # nose isn't compatible with Python 3.10 so we can't import it here
-        pytest.skip(reason)
-    else:
-        # pytest.skip() isn't recognized by nosetest (but nose.SkipTest works in pytest !)
-        from nose import SkipTest
+def skip(reason: str):
+    # a drop-in replacement for pytest.mark.skip decorator with nose-compatibility
+    def dec(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            raise SkipTest(reason)
 
-        raise SkipTest(reason)
+        return wrapper
+
+    return dec
+
+
+def skipif(condition: bool, reason: str):
+    # a drop-in replacement for pytest.mark.skipif decorator with nose-compatibility
+    def dec(func):
+        if condition:
+            return skip(reason)(func)
+        else:
+            return func
+
+    return dec
 
 
 def requires_module(module):
@@ -881,27 +890,7 @@ def requires_module(module):
     being imported will not fail if the module is not installed on the testing
     platform.
     """
-
-    def ffalse(func):
-        @functools.wraps(func)
-        def false_wrapper(*args, **kwargs):
-            skip_case(reason=f"Missing required module {module}")
-
-        return false_wrapper
-
-    def ftrue(func):
-        @functools.wraps(func)
-        def true_wrapper(*args, **kwargs):
-            return func(*args, **kwargs)
-
-        return true_wrapper
-
-    try:
-        importlib.import_module(module)
-    except ImportError:
-        return ffalse
-    else:
-        return ftrue
+    return skipif(find_spec(module) is None, reason=f"Missing required module {module}")
 
 
 def requires_module_pytest(*module_names):
@@ -934,7 +923,7 @@ def requires_module_pytest(*module_names):
             missing,
             reason=f"missing requirement(s): {', '.join(missing)}",
         )
-        @functools.wraps(func)
+        @wraps(func)
         def inner_func(*args, **kwargs):
             return func(*args, **kwargs)
 
@@ -944,35 +933,16 @@ def requires_module_pytest(*module_names):
 
 
 def requires_file(req_file):
-    path = ytcfg.get("yt", "test_data_dir")
-
-    def ffalse(func):
-        @functools.wraps(func)
-        def false_wrapper(*args, **kwargs):
-            if ytcfg.get("yt", "internals", "strict_requires"):
-                raise FileNotFoundError(req_file)
-            skip_case(reason=f"Missing required file {req_file}")
-
-        return false_wrapper
-
-    def ftrue(func):
-        @functools.wraps(func)
-        def true_wrapper(*args, **kwargs):
-            return func(*args, **kwargs)
-
-        return true_wrapper
-
-    if os.path.exists(req_file):
-        return ftrue
-    else:
-        if os.path.exists(os.path.join(path, req_file)):
-            return ftrue
-        else:
-            return ffalse
+    condition = (
+        not os.path.exists(req_file)
+        and not os.path.exists(os.path.join(ytcfg.get("yt", "test_data_dir"), req_file))
+        and not ytcfg.get("yt", "internals", "strict_requires")
+    )
+    return skipif(condition, reason=f"Missing required file {req_file}")
 
 
 def disable_dataset_cache(func):
-    @functools.wraps(func)
+    @wraps(func)
     def newfunc(*args, **kwargs):
         restore_cfg_state = False
         if not ytcfg.get("yt", "skip_dataset_cache"):
@@ -1107,7 +1077,7 @@ def check_results(func):
     """
 
     def compute_results(func):
-        @functools.wraps(func)
+        @wraps(func)
         def _func(*args, **kwargs):
             name = kwargs.pop("result_basename", func.__name__)
             rv = func(*args, **kwargs)
@@ -1135,7 +1105,7 @@ def check_results(func):
         return compute_results(func)
 
     def compare_results(func):
-        @functools.wraps(func)
+        @wraps(func)
         def _func(*args, **kwargs):
             name = kwargs.pop("result_basename", func.__name__)
             rv = func(*args, **kwargs)
@@ -1198,7 +1168,6 @@ def run_nose(
         "in the process of migrating yt tests from nose to pytest.",
         since="4.1.0",
     )
-    import sys
 
     from yt.utilities.logger import ytLogger as mylog
     from yt.utilities.on_demand_imports import _nose
@@ -1353,55 +1322,18 @@ def requires_backend(backend):
     backend : String
         The value which is compared with the current matplotlib backend in use.
 
-    Returns
-    -------
-    Decorated function or null function
-
     """
-
-    def ffalse(func):
-        # returning a lambda : None causes an error when using pytest. Having
-        # a function (skip) that returns None does work, but pytest marks the
-        # test as having passed, which seems bad, since it wasn't actually run.
-        # Using pytest.skip() means that a change to test_requires_backend was
-        # needed since None is no longer returned, so we check for the skip
-        # exception in the xfail case for that test
-        def skip(*args, **kwargs):
-            msg = f"`{backend}` backend not in use, skipping: `{func.__name__}`"
-            skip_case(reason=msg)
-
-        if ytcfg.get("yt", "internals", "within_pytest"):
-            return skip
-        else:
-            return lambda: None
-
-    def ftrue(func):
-        return func
-
-    if backend.lower() == matplotlib.get_backend().lower():
-        return ftrue
-    return ffalse
+    return skipif(
+        backend.lower() != matplotlib.get_backend().lower(),
+        reason=f"'{backend}' backend not in use",
+    )
 
 
 def requires_external_executable(*names):
-    def deco(func):
-        missing = []
-        for name in names:
-            if which(name) is None:
-                missing.append(name)
-
-        # note that order between these two decorators matters
-        @pytest.mark.skipif(
-            missing,
-            reason=f"missing external executable(s): {', '.join(missing)}",
-        )
-        @functools.wraps(func)
-        def inner_func(*args, **kwargs):
-            return func(*args, **kwargs)
-
-        return inner_func
-
-    return deco
+    missing = [name for name in names if which(name) is None]
+    return skipif(
+        len(missing) > 0, reason=f"missing external executable(s): {', '.join(missing)}"
+    )
 
 
 class TempDirTest(unittest.TestCase):
