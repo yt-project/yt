@@ -1638,6 +1638,11 @@ class Dataset(abc.ABC):
                 "force_override is only meant to be used with "
                 "derived fields, not on-disk fields."
             )
+        if not force_override and name in self.field_info:
+            mylog.warning(
+                "Field %s already exists. To override use `force_override=True`.",
+                name,
+            )
 
         self.field_info.add_field(
             name, function, sampling_type, force_override=force_override, **kwargs

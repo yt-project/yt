@@ -350,10 +350,6 @@ class FieldInfoContainer(dict):
         """
         # Handle the case where the field has already been added.
         if not force_override and name in self:
-            mylog.warning(
-                "Field %s already exists. To override use `force_override=True`.",
-                name,
-            )
             # See below.
             if function is None:
 
