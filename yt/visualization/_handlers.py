@@ -437,11 +437,14 @@ class ColorbarHandler:
             )
 
     @property
-    def background_color(self) -> str:
+    def background_color(self) -> Any:
         return self._background_color or "white"
 
     @background_color.setter
-    def background_color(self, newval):
+    def background_color(self, newval: Any):
+        # not attempting to constrain types here because
+        # down the line it really depends on matplotlib.axes.Axes.set_faceolor
+        # which is very type-flexibile
         if newval is None:
             self._background_color = self.cmap(0)
         else:
