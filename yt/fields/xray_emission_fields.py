@@ -209,8 +209,9 @@ def add_xray_emissivity_field(
     >>> import yt
     >>> ds = yt.load("sloshing_nomag2_hdf5_plt_cnt_0100")
     >>> yt.add_xray_emissivity_field(ds, 0.5, 2)
-    >>> p = yt.ProjectionPlot(ds, 'x', ("gas","xray_emissivity_0.5_2_keV"),
-    ...                       table_type='apec')
+    >>> p = yt.ProjectionPlot(
+    ...     ds, "x", ("gas", "xray_emissivity_0.5_2_keV"), table_type="apec"
+    ... )
     >>> p.save()
     """
     if not isinstance(metallicity, float) and metallicity is not None:
@@ -267,7 +268,7 @@ def add_xray_emissivity_field(
     ds.add_field(
         emiss_name,
         function=_emissivity_field,
-        display_name=fr"\epsilon_{{X}} ({e_min}-{e_max} keV)",
+        display_name=rf"\epsilon_{{X}} ({e_min}-{e_max} keV)",
         sampling_type="local",
         units="erg/cm**3/s",
     )
@@ -279,7 +280,7 @@ def add_xray_emissivity_field(
     ds.add_field(
         lum_name,
         function=_luminosity_field,
-        display_name=fr"\rm{{L}}_{{X}} ({e_min}-{e_max} keV)",
+        display_name=rf"\rm{{L}}_{{X}} ({e_min}-{e_max} keV)",
         sampling_type="local",
         units="erg/s",
     )
@@ -304,7 +305,7 @@ def add_xray_emissivity_field(
     ds.add_field(
         phot_name,
         function=_photon_emissivity_field,
-        display_name=fr"\epsilon_{{X}} ({e_min}-{e_max} keV)",
+        display_name=rf"\epsilon_{{X}} ({e_min}-{e_max} keV)",
         sampling_type="local",
         units="photons/cm**3/s",
     )
@@ -335,7 +336,7 @@ def add_xray_emissivity_field(
                     dist = ds.quan(*dist)
                 except (RuntimeError, TypeError):
                     raise TypeError(
-                        "dist should be a YTQuantity " "or a (value, unit) tuple!"
+                        "dist should be a YTQuantity or a (value, unit) tuple!"
                     ) from e
 
             angular_scale = dist / ds.quan(1.0, "radian")
@@ -353,7 +354,7 @@ def add_xray_emissivity_field(
         ds.add_field(
             ei_name,
             function=_intensity_field,
-            display_name=fr"I_{{X}} ({e_min}-{e_max} keV)",
+            display_name=rf"I_{{X}} ({e_min}-{e_max} keV)",
             sampling_type="local",
             units="erg/cm**3/s/arcsec**2",
         )
@@ -367,7 +368,7 @@ def add_xray_emissivity_field(
         ds.add_field(
             i_name,
             function=_photon_intensity_field,
-            display_name=fr"I_{{X}} ({e_min}-{e_max} keV)",
+            display_name=rf"I_{{X}} ({e_min}-{e_max} keV)",
             sampling_type="local",
             units="photons/cm**3/s/arcsec**2",
         )

@@ -85,9 +85,17 @@ class SkeletonDataset(Dataset):
         dataset_type="skeleton",
         storage_filename=None,
         units_override=None,
+        unit_system="cgs",
+        default_species_fields=None,
     ):
         self.fluid_types += ("skeleton",)
-        super().__init__(filename, dataset_type, units_override=units_override)
+        super().__init__(
+            filename,
+            dataset_type,
+            units_override=units_override,
+            unit_system=unit_system,
+            default_species_fields=default_species_fields,
+        )
         self.storage_filename = storage_filename
         # refinement factor between a grid and its subgrid
         # self.refine_by = 2
@@ -106,6 +114,10 @@ class SkeletonDataset(Dataset):
         # These can also be set:
         # self.velocity_unit = self.quan(1.0, "cm/s")
         # self.magnetic_unit = self.quan(1.0, "gauss")
+        #
+        # If your frontend uses SI EM units, set magnetic units like this
+        # instead:
+        # self.magnetic_unit = self.quan(1.0, "T")
 
         # this minimalistic implementation fills the requirements for
         # this frontend to run, change it to make it run _correctly_ !
@@ -137,7 +149,7 @@ class SkeletonDataset(Dataset):
         #   self.omega_matter               <= float
         #   self.hubble_constant            <= float
 
-        # optional (the followin have default implementations)
+        # optional (the following have default implementations)
         #   self.unique_identifier      <= unique identifier for the dataset
         #                                  being read (e.g., UUID or ST_CTIME) (int)
         #

@@ -14,7 +14,9 @@ The Configuration
 
 The configuration is stored in simple text files (in the `toml <https://github.com/toml-lang/toml>`_ format).
 The files allow to set internal yt variables to custom default values to be used in future sessions.
-The configuration can either be stored :ref:`globally<Global Configuration>` or :ref:`locally<Local Configuration>`.
+The configuration can either be stored :ref:`globally <global-conf>` or :ref:`locally <local-conf>`.
+
+.. _global-conf:
 
 Global Configuration
 ^^^^^^^^^^^^^^^^^^^^
@@ -44,6 +46,8 @@ options from the configuration file, e.g.:
    $ yt config set yt log_level 1
    $ yt config rm yt maximum_stored_datasets
 
+
+.. _local-conf:
 
 Local Configuration
 ^^^^^^^^^^^^^^^^^^^
@@ -98,6 +102,8 @@ file. Note that a log level of 1 means that all log messages are printed to
 stdout.  To disable logging, set the log level to 50.
 
 
+.. _config-options:
+
 Available Configuration Options
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -105,7 +111,7 @@ The following external parameters are available.  A number of parameters are
 used internally.
 
 * ``colored_logs`` (default: ``False``): Should logs be colored?
-* ``default_colormap`` (default: ``arbre``): What colormap should be used by
+* ``default_colormap`` (default: ``cmyt.arbre``): What colormap should be used by
   default for yt-produced images?
 * ``plugin_filename``  (default ``my_plugins.py``) The name of our plugin file.
 * ``log_level`` (default: ``20``): What is the threshold (0 to 50) for
@@ -140,6 +146,64 @@ used internally.
 * ``supp_data_dir`` (default: ``/does/not/exist``): The default path certain
   submodules of yt look in for supplemental data files.
 
+
+.. _per-field-plotconfig:
+
+Available per-field Plot Options
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+It is possible to customize the default behaviour of plots using per-field configuration.
+The default options for plotting a given field can be specified in the configuration file
+in ``[plot.field_type.field_name]`` blocks. The available keys are
+
+* ``cmap`` (default: ``yt.default_colormap``, see :ref:`config-options`): the colormap to
+  use for the field.
+* ``log`` (default: ``True``): use a log scale (or symlog if ``linthresh`` is also set).
+* ``linthresh`` (default: ``None``): if set to a float different than ``None`` and ``log`` is
+  ``True``, use a symlog normalization with the given linear threshold.
+* ``units`` (defaults to the units of the field): the units to use to represent the field.
+* ``path_length_units`` (default: ``cm``): the unit of the integration length when doing
+  e.g. projections. This always has the dimensions of a length. Note that this will only
+  be used if ``units`` is also set for the field. The final units will then be
+  ``units*path_length_units``.
+
+You can also set defaults for all fields of a given field type by omitting the field name,
+as illustrated below in the deposit block.
+
+.. code-block:: toml
+
+  [plot.gas.density]
+  cmap = "plasma"
+  log = true
+  units = "mp/cm**3"
+
+  [plot.gas.velocity_divergence]
+  cmap = "bwr"  # use a diverging colormap
+  log = false   # and a linear scale
+
+  [plot.deposit]
+  path_length_units = "kpc"  # use kpc for deposition projections
+
+.. _per-field-config:
+
+Available per-Field Configuration Options
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+It is possible to set attributes for fields that would typically be set by the
+frontend source code, such as the aliases for field, the units that field
+should be expected in, and the display name.  This allows individuals to
+customize what yt expects of a given dataset without modifying the yt source
+code.  For instance, if your dataset has an on-disk field called
+"particle_extra_field_1" you could specify its units, display name, and what yt
+should think of it as with:
+
+.. code-block:: toml
+
+   [fields.nbody.particle_extra_field_1]
+   aliases = ["particle_other_fancy_name", "particle_alternative_fancy_name"]
+   units = "code_time"
+   display_name = "Dinosaurs Density"
+
 .. _plugin-file:
 
 Plugin Files
@@ -157,14 +221,13 @@ Global system plugin file
 
 yt will look for and recognize the file ``$HOME/.config/yt/my_plugins.py`` as a
 plugin file. It is possible to rename this file to ``$HOME/.config/yt/<plugin_filename>.py``
-by defining ``plugin_filename`` in your `yt.toml` file, as mentioned above.
+by defining ``plugin_filename`` in your ``yt.toml`` file, as mentioned above.
 
 .. note::
 
    You can tell that your system plugin file is being parsed by watching for a logging
-   message when you import yt.  Note that both the ``yt load`` and ``iyt``
-   command line entry points parse the plugin file, so the ``my_plugins.py``
-   file will be parsed if you enter yt that way.
+   message when you import yt. Note that the ``yt load`` command line entry point parses
+   the plugin file.
 
 
 Local project plugin file
@@ -180,7 +243,7 @@ Plugin File Format
 Plugin files should contain pure Python code. If accessing yt functions and classes
 they will not require the ``yt.`` prefix, because of how they are loaded.
 
-For example, if I created a plugin file containing:
+For example, if one created a plugin file containing:
 
 .. code-block:: python
 
@@ -244,8 +307,8 @@ Adding Custom Colormaps
 
 To add custom :ref:`colormaps` to your plugin file, you must use the
 :func:`~yt.visualization.color_maps.make_colormap` function to generate a
-colormap of your choice and then add it to the plugin file.  You can see
-an example of this in :ref:`custom-colormaps`.  Remember that you don't need
+colormap of your choice and then add it to the plugin file. You can see
+an example of this in :ref:`custom-colormaps`. Remember that you don't need
 to prefix commands in your plugin file with ``yt.``, but you'll only be
 able to access the colormaps when you load the ``yt.mods`` module, not simply
 ``yt``.

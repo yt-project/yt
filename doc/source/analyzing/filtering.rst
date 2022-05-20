@@ -12,7 +12,7 @@ Filters can be generated based on spatial position, say in a sphere
 in the center of your dataset space, or more generally they can be
 defined by the properties of any field in the simulation.
 
-Because `mesh fields` are internally different from `particle fields`,
+Because *mesh fields* are internally different from *particle fields*,
 there are different ways of filtering each type as indicated below;
 however, filtering fields by spatial location (i.e. geometric
 objects) will apply to both types equally.
@@ -38,8 +38,9 @@ array a conditional.  As a general example of this:
 .. notebook-cell::
 
     import numpy as np
+
     a = np.arange(5)
-    bigger_than_two = (a > 2)
+    bigger_than_two = a > 2
     print("Original Array: a = \n%s" % a)
     print("Boolean Mask: bigger_than_two = \n%s" % bigger_than_two)
     print("Masked Array: a[bigger_than_two] = \n%s" % a[bigger_than_two])
@@ -52,13 +53,19 @@ set a simple mask based on the contents of one of our fields.
 .. notebook-cell::
 
     import yt
-    ds = yt.load('Enzo_64/DD0042/data0042')
+
+    ds = yt.load("Enzo_64/DD0042/data0042")
     ad = ds.all_data()
-    hot = ad["temperature"].in_units('K') > 1e6
-    print('Temperature of all data: ad["temperature"] = \n%s' % ad["temperature"])
+    hot = ad["gas", "temperature"].in_units("K") > 1e6
+    print(
+        'Temperature of all data: ad["gas", "temperature"] = \n%s'
+        % ad["gas", "temperature"]
+    )
     print("Boolean Mask: hot = \n%s" % hot)
-    print('Temperature of "hot" data: ad["temperature"][hot] = \n%s' %
-          ad['temperature'][hot])
+    print(
+        'Temperature of "hot" data: ad["gas", "temperature"][hot] = \n%s'
+        % ad["gas", "temperature"][hot]
+    )
 
 This was a simple example, but one can make the conditionals that define
 a boolean mask have multiple parts, and one can stack masks together to
@@ -68,12 +75,19 @@ used if you simply need to access the NumPy arrays:
 .. notebook-cell::
 
     import yt
-    ds = yt.load('Enzo_64/DD0042/data0042')
+
+    ds = yt.load("Enzo_64/DD0042/data0042")
     ad = ds.all_data()
-    overpressure_and_fast = (ad["pressure"] > 1e-14) & (ad["velocity_magnitude"].in_units('km/s') > 1e2)
-    print('Density of all data: ad["density"] = \n%s' % ad['density'])
-    print('Density of "overpressure and fast" data: overpressure_and_fast['density'] = \n%s' %
-          overpressure_and_fast['density'])
+    overpressure_and_fast = (
+        (ad["gas", "pressure"] > 1e-14) &
+        (ad["gas", "velocity_magnitude"].in_units("km/s") > 1e2)
+    )
+    density = ad["gas", "density"]
+    print('Density of all data: ad["gas", "density"] = \n%s' % density)
+    print(
+        'Density of "overpressure and fast" data: overpressure_and_fast["gas", "density"] = \n%s'
+        % density[overpressure_and_fast]
+    )
 
 .. _cut-regions:
 
@@ -94,15 +108,20 @@ filtering out unwanted regions. Such wrapper functions are methods of
 .. notebook-cell::
 
    import yt
-   ds = yt.load('Enzo_64/DD0042/data0042')
-   ad = ds.all_data()
-   overpressure_and_fast = ad.include_above('pressure', 1e-14)
-   # You can chain include_xx and exclude_xx to produce the intersection of cut regions
-   overpressure_and_fast = overpressure_and_fast.include_above('velocity_magnitude', 1e2, 'km/s')
 
-   print('Density of all data: ad["density"] = \n%s' % ad['density'])
-   print('Density of "overpressure and fast" data: overpressure_and_fast['density'] = \n%s' %
-          overpressure_and_fast['density'])
+   ds = yt.load("Enzo_64/DD0042/data0042")
+   ad = ds.all_data()
+   overpressure_and_fast = ad.include_above(("gas", "pressure"), 1e-14)
+   # You can chain include_xx and exclude_xx to produce the intersection of cut regions
+   overpressure_and_fast = overpressure_and_fast.include_above(
+       ("gas", "velocity_magnitude"), 1e2, "km/s"
+   )
+
+   print('Density of all data: ad["gas", "density"] = \n%s' % ad["gas", "density"])
+   print(
+       'Density of "overpressure and fast" data: overpressure_and_fast["gas", "density"] = \n%s'
+       % overpressure_and_fast["gas", "density"]
+   )
 
 The following exclude and include functions are supported:
    - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.include_equal` - Only include values equal to given value
@@ -118,8 +137,14 @@ The following exclude and include functions are supported:
    - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.exclude_below` - Exclude values below given value
 
 
-Cut regions can also operate on particle fields, but a single cut region object
-cannot operate on both particle fields and mesh fields at the same time.
+.. warning::
+
+    Cut regions are unstable when used on particle fields. Though you can create
+    a cut region using a mesh field or fields as a filter and then obtain a
+    particle field within that region, you cannot create a cut region using
+    particle fields in the filter, as yt will currently raise an error. If
+    you want to filter particle fields, see the next section
+    :ref:`filtering-particles` instead.
 
 .. _filtering-particles:
 
@@ -278,19 +303,22 @@ distributed throughout the dataset.
 .. notebook-cell::
 
     import yt
-    ds = yt.load('Enzo_64/DD0042/data0042')
+
+    ds = yt.load("Enzo_64/DD0042/data0042")
     center = [0.20, 0.50, 0.10]
 
-    sp = ds.sphere(center, (10, 'Mpc'))
-    prj = yt.ProjectionPlot(ds, "x", "density", center=center, width=(50, "Mpc"),
-                            data_source=sp)
+    sp = ds.sphere(center, (10, "Mpc"))
+    prj = yt.ProjectionPlot(
+        ds, "x", ("gas", "density"), center=center, width=(50, "Mpc"), data_source=sp
+    )
 
     # Mark the center with a big X
-    prj.annotate_marker(center, 'x', plot_args={'s':100})
+    prj.annotate_marker(center, "x", plot_args={"s": 100})
 
     prj.show()
 
-    slc = yt.SlicePlot(ds, "x", "density", center=center, width=(50, "Mpc"),
-                       data_source=sp)
+    slc = yt.SlicePlot(
+        ds, "x", ("gas", "density"), center=center, width=(50, "Mpc"), data_source=sp
+    )
 
     slc.show()

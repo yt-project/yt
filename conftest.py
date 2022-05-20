@@ -1,11 +1,14 @@
 import os
 import shutil
 import tempfile
-import typing
+from importlib.util import find_spec
 from pathlib import Path
 
+import matplotlib
+import numpy
 import pytest
 import yaml
+from packaging.version import Version
 
 from yt.config import ytcfg
 from yt.utilities.answer_testing.testing_utilities import (
@@ -16,6 +19,9 @@ from yt.utilities.answer_testing.testing_utilities import (
     _streamline_for_io,
     data_dir_load,
 )
+
+MPL_VERSION = Version(matplotlib.__version__)
+NUMPY_VERSION = Version(numpy.__version__)
 
 
 def pytest_addoption(parser):
@@ -70,8 +76,132 @@ def pytest_configure(config):
     # Register custom marks for answer tests and big data
     config.addinivalue_line("markers", "answer_test: Run the answer tests.")
     config.addinivalue_line(
-        "markers", "big_data: Run answer tests that require" " large data files."
+        "markers", "big_data: Run answer tests that require large data files."
     )
+    for value in (
+        # treat most warnings as errors
+        "error",
+        # >>> internal deprecation warnings with no obvious solution
+        # see https://github.com/yt-project/yt/issues/3381
+        (
+            r"ignore:The requested field name 'pd?[xyz]' is ambiguous and corresponds "
+            "to any one of the following field types.*:yt._maintenance.deprecation.VisibleDeprecationWarning"
+        ),
+        # >>> warnings emitted by testing frameworks, or in testing contexts
+        # we still have some yield-based tests, awaiting for transition into pytest
+        "ignore::pytest.PytestCollectionWarning",
+        # imp is used in nosetest
+        "ignore:the imp module is deprecated in favour of importlib; see the module's documentation for alternative uses:DeprecationWarning",
+        # the deprecation warning message for imp changed in Python 3.10, so we ignore both versions
+        "ignore:the imp module is deprecated in favour of importlib and slated for removal in Python 3.12; see the module's documentation for alternative uses:DeprecationWarning",
+        # matplotlib warnings related to the Agg backend which is used in CI, not much we can do about it
+        "ignore:Matplotlib is currently using agg, which is a non-GUI backend, so cannot show the figure.:UserWarning",
+        "ignore:tight_layout . falling back to Agg renderer:UserWarning",
+        #
+        # >>> warnings from wrong values passed to numpy
+        # these should normally be curated out of the test suite but they are too numerous
+        # to deal with in a reasonable time at the moment.
+        "ignore:invalid value encountered in log10:RuntimeWarning",
+        "ignore:divide by zero encountered in log10:RuntimeWarning",
+        "ignore:invalid value encountered in true_divide:RuntimeWarning",
+        #
+        # >>> there are many places in yt (most notably at the frontend level)
+        # where we open files but never explicitly close them
+        # Although this is in general bad practice, it can be intentional and
+        # justified in contexts where reading speeds should be optimized.
+        # It is not clear at the time of writing how to approach this,
+        # so I'm going to ignore this class of warnings altogether for now.
+        "ignore:unclosed file.*:ResourceWarning",
+    ):
+        config.addinivalue_line("filterwarnings", value)
+
+    if MPL_VERSION < Version("3.0.0"):
+        config.addinivalue_line(
+            "filterwarnings",
+            (
+                "ignore:Using or importing the ABCs from 'collections' instead of from 'collections.abc' "
+                "is deprecated since Python 3.3,and in 3.9 it will stop working:DeprecationWarning"
+            ),
+        )
+
+    if MPL_VERSION < Version("3.5.2"):
+        if MPL_VERSION < Version("3.3"):
+            try:
+                import PIL
+            except ImportError:
+                PILLOW_INSTALLED = False
+            else:
+                PILLOW_INSTALLED = True
+        else:
+            # pillow became a hard dependency in matplotlib 3.3
+            import PIL
+
+            PILLOW_INSTALLED = True
+        if PILLOW_INSTALLED and Version(PIL.__version__) >= Version("9.1"):
+            # see https://github.com/matplotlib/matplotlib/pull/22766
+            config.addinivalue_line(
+                "filterwarnings",
+                r"ignore:NONE is deprecated and will be removed in Pillow 10 \(2023-07-01\)\. "
+                r"Use Resampling\.NEAREST or Dither\.NONE instead\.:DeprecationWarning",
+            )
+            config.addinivalue_line(
+                "filterwarnings",
+                r"ignore:ADAPTIVE is deprecated and will be removed in Pillow 10 \(2023-07-01\)\. "
+                r"Use Palette\.ADAPTIVE instead\.:DeprecationWarning",
+            )
+
+    if NUMPY_VERSION < Version("1.19") and MPL_VERSION < Version("3.3"):
+        # This warning is triggered from matplotlib in exactly one test at the time of writing
+        # and exclusively on the minimal test env. Upgrading numpy or matplotlib resolves
+        # the issue, so we can afford to ignore it.
+        config.addinivalue_line(
+            "filterwarnings",
+            "ignore:invalid value encountered in less_equal:RuntimeWarning",
+        )
+
+    if find_spec("astropy") is not None:
+        # at the time of writing, astropy's wheels are behind numpy's latest
+        # version but this doesn't cause actual problems in our test suite
+        # last updated with astropy 5.0 + numpy 1.22 + pytest 6.2.5
+        config.addinivalue_line(
+            "filterwarnings",
+            (
+                "ignore:numpy.ndarray size changed, may indicate binary incompatibility. Expected "
+                r"(80 from C header, got 88|88 from C header, got 96|80 from C header, got 96)"
+                " from PyObject:RuntimeWarning"
+            ),
+        )
+
+    if find_spec("cartopy") is not None:
+        # This can be removed when cartopy 0.21 is released
+        # see https://github.com/SciTools/cartopy/pull/1957
+        config.addinivalue_line(
+            "filterwarnings",
+            (
+                r"ignore:The default value for the \*approx\* keyword argument to "
+                r"\w+ will change from True to False after 0\.18\.:UserWarning"
+            ),
+        )
+        # this one could be resolved by upgrading PROJ on Jenkins,
+        # but there's isn't much else that can be done about it.
+        config.addinivalue_line(
+            "filterwarnings",
+            (
+                "ignore:The Stereographic projection in Proj older than 5.0.0 incorrectly "
+                "transforms points when central_latitude=0. Use this projection with caution.:UserWarning"
+            ),
+        )
+
+    if find_spec("xarray") is not None:
+        # this can be removed when upstream issue is closed and a fix published
+        # https://github.com/pydata/xarray/issues/6092
+        config.addinivalue_line(
+            "filterwarnings",
+            (
+                "ignore:distutils Version classes are deprecated. "
+                "Use packaging.version instead.:DeprecationWarning"
+            ),
+        )
 
 
 def pytest_collection_modifyitems(config, items):
@@ -199,14 +329,10 @@ def hashing(request):
             with open(request.cls.answer_file) as fd:
                 request.cls.saved_hashes = yaml.safe_load(fd)
         except FileNotFoundError:
-            # On travis and appveyor only a minimal set of answer tests are
-            # run, which means that, for most answer tests, there won't be
-            # an existing answer file when comparing. There is currently no
-            # list of the minimal answer tests, so they can't be marked.
-            # As such, if we're comparing and the file of saved hashes isn't
-            # found, we just skip the test. We do the skip before the test
-            # is run to save time
-            pytest.skip("Answer file not found.")
+            module_filename = f"{request.function.__module__.replace('.', os.sep)}.py"
+            with open(f"generate_test_{os.getpid()}.txt", "a") as fp:
+                fp.write(f"{module_filename}::{request.cls.__name__}\n")
+            pytest.fail(msg="Answer file not found.", pytrace=False)
     request.cls.hashes = {}
     # Load the saved answers if we're comparing. We don't do this for the raw
     # answers because those are huge
@@ -226,7 +352,9 @@ def hashing(request):
     # Compare hashes
     elif not no_hash and not store_hash:
         try:
-            assert hashes == request.cls.saved_hashes
+            for test_name, test_hash in hashes.items():
+                assert test_name in request.cls.saved_hashes
+                assert test_hash == request.cls.saved_hashes[test_name]
         except AssertionError:
             pytest.fail(f"Comparison failure: {request.node.name}", pytrace=False)
     # Save raw data
@@ -265,11 +393,11 @@ def ds(request):
     # data_dir_load can take the cls, args, and kwargs. These optional
     # arguments, if present,  are given in a dictionary as the second
     # element of the list
-    if isinstance(request.param, typing.Sequence):
-        ds_fn, opts = request.param
-    else:
+    if isinstance(request.param, str):
         ds_fn = request.param
         opts = {}
+    else:
+        ds_fn, opts = request.param
     try:
         return data_dir_load(
             ds_fn, cls=opts.get("cls"), args=opts.get("args"), kwargs=opts.get("kwargs")

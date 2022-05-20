@@ -70,7 +70,7 @@ class VariousVRTests(TestCase):
 
     def test_lazy_volume_source_construction(self):
         sc = Scene()
-        source = create_volume_source(self.ds.all_data(), "density")
+        source = create_volume_source(self.ds.all_data(), ("gas", "density"))
 
         assert source._volume is None
         assert source._transfer_function is None
@@ -96,19 +96,19 @@ class VariousVRTests(TestCase):
 
         np.testing.assert_allclose(
             source.transfer_function.x_bounds,
-            np.log10(ad.quantities.extrema("density")),
+            np.log10(ad.quantities.extrema(("gas", "density"))),
         )
         assert source.tfh.log == source.log_field
 
-        source.set_field("velocity_x")
+        source.set_field(("gas", "velocity_x"))
         source.set_log(False)
 
         assert source.transfer_function.x_bounds == list(
-            ad.quantities.extrema("velocity_x")
+            ad.quantities.extrema(("gas", "velocity_x"))
         )
         assert source._volume is None
 
-        source.set_field("density")
+        source.set_field(("gas", "density"))
 
         assert source.volume is not None
         assert not source.volume._initialized
@@ -128,7 +128,7 @@ class VariousVRTests(TestCase):
         assert source.volume.fields == [("gas", "density")]
         assert source.volume.log_fields == [True]
 
-        source.set_field("velocity_x")
+        source.set_field(("gas", "velocity_x"))
         source.set_log(False)
 
         sc.render()

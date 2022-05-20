@@ -4,12 +4,12 @@ import numpy as np
 
 from yt.frontends.gadget_fof.io import IOHandlerGadgetFOFHaloHDF5
 from yt.funcs import parse_h5_attr
-from yt.units.yt_array import uvstack
-from yt.utilities.io_handler import BaseIOHandler
+from yt.units.yt_array import uvstack  # type: ignore
+from yt.utilities.io_handler import BaseParticleIOHandler
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 
-class IOHandlerYTHaloCatalog(BaseIOHandler):
+class IOHandlerYTHaloCatalog(BaseParticleIOHandler):
     _dataset_type = "ythalocatalog"
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
@@ -32,7 +32,7 @@ class IOHandlerYTHaloCatalog(BaseIOHandler):
                 units = parse_h5_attr(f[pn % "x"], "units")
                 pos = data_file._get_particle_positions(ptype, f=f)
                 x, y, z = (self.ds.arr(pos[:, i], units) for i in range(3))
-                yield "halos", (x, y, z)
+                yield "halos", (x, y, z), 0.0
 
     def _yield_coordinates(self, data_file):
         pn = "particle_position_%s"
@@ -116,7 +116,12 @@ class HaloDatasetIOHandler:
     _read_particle_selection = IOHandlerGadgetFOFHaloHDF5._read_particle_selection
 
 
-class IOHandlerYTHalo(HaloDatasetIOHandler, IOHandlerYTHaloCatalog):
+# ignoring type in this mixing to circunvent this error from mypy
+# Definition of "_read_particle_fields" in base class "HaloDatasetIOHandler"
+# is incompatible with definition in base class "IOHandlerYTHaloCatalog"
+#
+# it may not be possible to refactor out of this situation without breaking downstream
+class IOHandlerYTHalo(HaloDatasetIOHandler, IOHandlerYTHaloCatalog):  # type: ignore
     _dataset_type = "ythalo"
 
     def _identify_fields(self, data_file):

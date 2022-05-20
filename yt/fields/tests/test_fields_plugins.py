@@ -4,8 +4,9 @@ import tempfile
 import unittest
 
 import yt
-from yt.config import YTConfig, config_dir, ytcfg
+from yt.config import ytcfg
 from yt.testing import assert_raises, fake_random_ds
+from yt.utilities.configure import YTConfig, config_dir
 
 _TEST_PLUGIN = "_test_plugin.py"
 
@@ -20,8 +21,8 @@ TEST_PLUGIN_FILE = """
 import numpy as np
 
 def _myfunc(field, data):
-    return np.random.random(data['density'].shape)
-add_field('random', dimensions='dimensionless',
+    return np.random.random(data[('gas', 'density')].shape)
+add_field(('gas', 'random'), dimensions='dimensionless',
           function=_myfunc, units='auto', sampling_type='local')
 constant = 3
 def myfunc():
@@ -35,6 +36,7 @@ class TestPluginFile(unittest.TestCase):
     def setUpClass(cls):
         cls.xdg_config_home = os.environ.get("XDG_CONFIG_HOME")
         cls.tmpdir = tempfile.mkdtemp()
+        os.mkdir(os.path.join(cls.tmpdir, "yt"))
         os.environ["XDG_CONFIG_HOME"] = cls.tmpdir
         with open(YTConfig.get_global_config_file(), mode="w") as fh:
             fh.write(_DUMMY_CFG_TOML)
@@ -58,7 +60,7 @@ class TestPluginFile(unittest.TestCase):
 
         ds = fake_random_ds(16)
         dd = ds.all_data()
-        self.assertEqual(str(dd["random"].units), "dimensionless")
-        self.assertEqual(dd["random"].shape, dd["density"].shape)
+        self.assertEqual(str(dd[("gas", "random")].units), "dimensionless")
+        self.assertEqual(dd[("gas", "random")].shape, dd[("gas", "density")].shape)
         assert yt.myfunc() == 12
         assert_raises(AttributeError, getattr, yt, "foobar")

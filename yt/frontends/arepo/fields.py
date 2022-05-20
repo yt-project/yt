@@ -29,6 +29,10 @@ class ArepoFieldInfo(GadgetFieldInfo):
             ("GFM_Metals_06", ("", ["Mg_fraction"], None)),
             ("GFM_Metals_07", ("", ["Si_fraction"], None)),
             ("GFM_Metals_08", ("", ["Fe_fraction"], None)),
+            (
+                "CosmicRaySpecificEnergy",
+                ("code_specific_energy", ["specific_cosmic_ray_energy"], None),
+            ),
         )
         super().__init__(ds, field_list, slice_info=slice_info)
 
@@ -40,6 +44,18 @@ class ArepoFieldInfo(GadgetFieldInfo):
 
     def setup_gas_particle_fields(self, ptype):
         super().setup_gas_particle_fields(ptype)
+
+        # Since the AREPO gas "particles" are Voronoi cells, we can
+        # define a volume here
+        def _volume(field, data):
+            return data[ptype, "mass"] / data[ptype, "density"]
+
+        self.add_field(
+            (ptype, "cell_volume"),
+            function=_volume,
+            sampling_type="local",
+            units=self.ds.unit_system["volume"],
+        )
 
         if (ptype, "InternalEnergy") in self.field_list:
 
@@ -56,6 +72,8 @@ class ArepoFieldInfo(GadgetFieldInfo):
                 sampling_type="particle",
                 units=self.ds.unit_system["pressure"],
             )
+
+            self.alias((ptype, "pressure"), ("gas", "pressure"))
 
         if (ptype, "GFM_Metals_00") in self.field_list:
             self.nuclei_names = metal_elements
@@ -118,3 +136,45 @@ class ArepoFieldInfo(GadgetFieldInfo):
                 units=self.ds.unit_system["number_density"],
             )
             self.alias(("gas", "El_number_density"), (ptype, "El_number_density"))
+
+        if (ptype, "CosmicRaySpecificEnergy") in self.field_list:
+
+            self.alias(
+                (ptype, "specific_cosmic_ray_energy"),
+                ("gas", "specific_cosmic_ray_energy"),
+            )
+
+            def _cr_energy_density(field, data):
+                return (
+                    data["PartType0", "specific_cosmic_ray_energy"]
+                    * data["gas", "density"]
+                )
+
+            self.add_field(
+                ("gas", "cosmic_ray_energy_density"),
+                _cr_energy_density,
+                sampling_type="local",
+                units=self.ds.unit_system["pressure"],
+            )
+
+            self.alias(
+                ("PartType0", "specific_cr_energy"),
+                ("PartType0", "specific_cosmic_ray_energy"),
+                deprecate=("4.1.0", "4.2.0"),
+            )
+
+            self.alias(
+                ("gas", "cr_energy_density"),
+                ("gas", "cosmic_ray_energy_density"),
+                deprecate=("4.1.0", "4.2.0"),
+            )
+
+            def _cr_pressure(field, data):
+                return (data.ds.gamma_cr - 1.0) * data["gas", "cr_energy_density"]
+
+            self.add_field(
+                ("gas", "cosmic_ray_pressure"),
+                _cr_pressure,
+                sampling_type="local",
+                units=self.ds.unit_system["pressure"],
+            )

@@ -1,11 +1,13 @@
 import builtins
 from copy import deepcopy
+from typing import List
 
 import numpy as np
 
 from yt.config import ytcfg
 from yt.data_objects.api import ImageArray
 from yt.funcs import ensure_numpy_array, get_num_threads, get_pbar, is_sequence, mylog
+from yt.geometry.geometry_handler import cached_property
 from yt.units.yt_array import YTArray
 from yt.utilities.amr_kdtree.api import AMRKDTree
 from yt.utilities.exceptions import YTNotInsideNotebook
@@ -95,9 +97,6 @@ class Camera(ParallelAnalysisInterface):
     ds : ~yt.data_objects.static_output.Dataset
         For now, this is a require parameter!  But in the future it will become
         optional.  This is the dataset to volume render.
-    use_kd: bool, optional
-        Specifies whether or not to use a kd-Tree framework for
-        the Homogenized Volume and ray-casting.  Default to True.
     max_level: int, optional
         Specifies the maximum level to be rendered.  Also
         specifies the maximum level used in the kd-Tree
@@ -122,30 +121,29 @@ class Camera(ParallelAnalysisInterface):
     >>> from yt.mods import *
     >>> import yt.visualization.volume_rendering.api as vr
 
-    >>> ds = load('DD1701') # Load a dataset
-    >>> c = [0.5]*3 # Center
-    >>> L = [1.0,1.0,1.0] # Viewpoint
-    >>> W = np.sqrt(3) # Width
-    >>> N = 1024 # Pixels (1024^2)
+    >>> ds = load("DD1701")  # Load a dataset
+    >>> c = [0.5] * 3  # Center
+    >>> L = [1.0, 1.0, 1.0]  # Viewpoint
+    >>> W = np.sqrt(3)  # Width
+    >>> N = 1024  # Pixels (1024^2)
 
     # Get density min, max
-    >>> mi, ma = ds.all_data().quantities['Extrema']('Density')[0]
+    >>> mi, ma = ds.all_data().quantities["Extrema"]("Density")[0]
     >>> mi, ma = np.log10(mi), np.log10(ma)
 
     # Construct transfer function
-    >>> tf = vr.ColorTransferFunction((mi-2, ma+2))
+    >>> tf = vr.ColorTransferFunction((mi - 2, ma + 2))
     # Sample transfer function with 5 gaussians.  Use new col_bounds keyword.
-    >>> tf.add_layers(5,w=0.05, col_bounds = (mi+1,ma), colormap='spectral')
+    >>> tf.add_layers(5, w=0.05, col_bounds=(mi + 1, ma), colormap="nipy_spectral")
 
     # Create the camera object
-    >>> cam = vr.Camera(c, L, W, (N,N), transfer_function=tf, ds=ds)
+    >>> cam = vr.Camera(c, L, W, (N, N), transfer_function=tf, ds=ds)
 
     # Ray cast, and save the image.
-    >>> image = cam.snapshot(fn='my_rendering.png')
+    >>> image = cam.snapshot(fn="my_rendering.png")
 
     """
     _sampler_object = VolumeRenderSampler
-    _pylab = None
     _tf_figure = None
     _render_figure = None
 
@@ -198,7 +196,7 @@ class Camera(ParallelAnalysisInterface):
             self.rotation_vector = self.orienter.unit_vectors[1]
         self._setup_box_properties(width, center, self.orienter.unit_vectors)
         if fields is None:
-            fields = ["density"]
+            fields = [("gas", "density")]
         self.fields = fields
         if transfer_function is None:
             transfer_function = ProjectionTransferFunction()
@@ -291,7 +289,7 @@ class Camera(ParallelAnalysisInterface):
         --------
         >>> im = cam.snapshot()
         >>> cam.add_grids(im)
-        >>> write_bitmap(im, 'render_with_grids.png')
+        >>> write_bitmap(im, "render_with_grids.png")
 
         """
         if cmap is None:
@@ -388,7 +386,7 @@ class Camera(ParallelAnalysisInterface):
         --------
         >>> im = cam.snapshot()
         >>> cam.draw_coordinate_vectors(im)
-        >>> im.write_png('render_with_grids.png')
+        >>> im.write_png("render_with_grids.png")
 
         """
         length_pixels = length * self.resolution[0]
@@ -447,8 +445,8 @@ class Camera(ParallelAnalysisInterface):
         Examples
         --------
         >>> im = cam.snapshot()
-        >>> cam.draw_line(im, np.array([0.1,0.2,0.3], np.array([0.5,0.6,0.7)))
-        >>> write_bitmap(im, 'render_with_line.png')
+        >>> cam.draw_line(im, np.array([0.1, 0.2, 0.3]), np.array([0.5, 0.6, 0.7]))
+        >>> write_bitmap(im, "render_with_line.png")
 
         """
         if color is None:
@@ -497,7 +495,7 @@ class Camera(ParallelAnalysisInterface):
         --------
         >>> im = cam.snapshot()
         >>> nim = cam.draw_domain(im)
-        >>> write_bitmap(nim, 'render_with_domain_boundary.png')
+        >>> write_bitmap(nim, "render_with_domain_boundary.png")
 
         """
         # Must normalize the image
@@ -538,8 +536,8 @@ class Camera(ParallelAnalysisInterface):
         Examples
         --------
         >>> im = cam.snapshot()
-        >>> cam.draw_box(im, np.array([0.1,0.2,0.3], np.array([0.5,0.6,0.7)))
-        >>> write_bitmap(im, 'render_with_box.png')
+        >>> cam.draw_box(im, np.array([0.1, 0.2, 0.3]), np.array([0.5, 0.6, 0.7]))
+        >>> write_bitmap(im, "render_with_box.png")
 
         """
 
@@ -728,22 +726,24 @@ class Camera(ParallelAnalysisInterface):
         image = self.finalize_image(image)
         return image
 
-    def show_tf(self):
-        if self._pylab is None:
-            import pylab
+    @cached_property
+    def _pyplot(self):
+        from matplotlib import pyplot
 
-            self._pylab = pylab
+        return pyplot
+
+    def show_tf(self):
         if self._tf_figure is None:
-            self._tf_figure = self._pylab.figure(2)
+            self._tf_figure = self._pyplot.figure(2)
             self.transfer_function.show(ax=self._tf_figure.axes)
-        self._pylab.draw()
+        self._pyplot.draw()
 
     def annotate(self, ax, enhance=True, label_fmt=None):
         ax.get_xaxis().set_visible(False)
         ax.get_xaxis().set_ticks([])
         ax.get_yaxis().set_visible(False)
         ax.get_yaxis().set_ticks([])
-        cb = self._pylab.colorbar(
+        cb = self._pyplot.colorbar(
             ax.images[0], pad=0.0, fraction=0.05, drawedges=True, shrink=0.9
         )
         label = self.ds._get_field_info(self.fields[0]).get_label()
@@ -752,12 +752,8 @@ class Camera(ParallelAnalysisInterface):
         self.transfer_function.vert_cbar(ax=cb.ax, label=label, label_fmt=label_fmt)
 
     def show_mpl(self, im, enhance=True, clear_fig=True):
-        if self._pylab is None:
-            import pylab
-
-            self._pylab = pylab
         if self._render_figure is None:
-            self._render_figure = self._pylab.figure(1)
+            self._render_figure = self._pyplot.figure(1)
         if clear_fig:
             self._render_figure.clf()
 
@@ -769,11 +765,11 @@ class Camera(ParallelAnalysisInterface):
             del nz
         else:
             nim = im
-        ax = self._pylab.imshow(nim[:, :, :3] / nim[:, :, :3].max(), origin="upper")
+        ax = self._pyplot.imshow(nim[:, :, :3] / nim[:, :, :3].max(), origin="upper")
         return ax
 
     def draw(self):
-        self._pylab.draw()
+        self._pyplot.draw()
 
     def save_annotated(
         self, fn, image, enhance=True, dpi=100, clear_fig=True, label_fmt=None
@@ -792,7 +788,7 @@ class Camera(ParallelAnalysisInterface):
         dpi : int, optional
            Dots per inch in the output image (default: 100)
         clear_fig : bool, optional
-           Reset the figure (through pylab.clf()) before drawing.  Setting
+           Reset the figure (through matplotlib.pyplot.clf()) before drawing.  Setting
            this to false can allow us to overlay the image onto an
            existing figure
         label_fmt : str, optional
@@ -803,7 +799,7 @@ class Camera(ParallelAnalysisInterface):
         image = image.swapaxes(0, 1)
         ax = self.show_mpl(image, enhance=enhance, clear_fig=clear_fig)
         self.annotate(ax.axes, enhance, label_fmt=label_fmt)
-        self._pylab.savefig(fn, bbox_inches="tight", facecolor="black", dpi=dpi)
+        self._pyplot.savefig(fn, bbox_inches="tight", facecolor="black", dpi=dpi)
 
     def save_image(self, image, fn=None, clip_ratio=None, transparent=False):
         if self.comm.rank == 0 and fn is not None:
@@ -829,7 +825,7 @@ class Camera(ParallelAnalysisInterface):
             "north_vector": self.orienter.unit_vectors[1],
             "normal_vector": self.orienter.unit_vectors[2],
             "width": self.width,
-            "dataset": self.ds.fullpath,
+            "dataset": self.ds.directory,
         }
         return info_dict
 
@@ -1007,7 +1003,7 @@ class Camera(ParallelAnalysisInterface):
         Examples
         --------
 
-        >>> for i, snapshot in enumerate(cam.move_to([0.2,0.3,0.6], 10)):
+        >>> for i, snapshot in enumerate(cam.move_to([0.2, 0.3, 0.6], 10)):
         ...     iw.write_bitmap(snapshot, "move_%04i.png" % i)
         """
         dW = None
@@ -1064,7 +1060,7 @@ class Camera(ParallelAnalysisInterface):
         Examples
         --------
 
-        >>> cam.rotate(np.pi/4)
+        >>> cam.rotate(np.pi / 4)
         """
         rotate_all = rot_vector is not None
         if rot_vector is None:
@@ -1076,7 +1072,7 @@ class Camera(ParallelAnalysisInterface):
         R = get_rotation_matrix(theta, rot_vector)
 
         normal_vector = self.front_center - self.center
-        normal_vector = normal_vector / np.sqrt((normal_vector ** 2).sum())
+        normal_vector = normal_vector / np.sqrt((normal_vector**2).sum())
 
         if rotate_all:
             self.switch_view(
@@ -1099,7 +1095,7 @@ class Camera(ParallelAnalysisInterface):
         Examples
         --------
 
-        >>> cam.pitch(np.pi/4)
+        >>> cam.pitch(np.pi / 4)
         """
         rot_vector = self.orienter.unit_vectors[0]
         R = get_rotation_matrix(theta, rot_vector)
@@ -1123,7 +1119,7 @@ class Camera(ParallelAnalysisInterface):
         Examples
         --------
 
-        >>> cam.yaw(np.pi/4)
+        >>> cam.yaw(np.pi / 4)
         """
         rot_vector = self.orienter.unit_vectors[1]
         R = get_rotation_matrix(theta, rot_vector)
@@ -1142,7 +1138,7 @@ class Camera(ParallelAnalysisInterface):
         Examples
         --------
 
-        >>> cam.roll(np.pi/4)
+        >>> cam.roll(np.pi / 4)
         """
         rot_vector = self.orienter.unit_vectors[2]
         R = get_rotation_matrix(theta, rot_vector)
@@ -1177,7 +1173,7 @@ class Camera(ParallelAnalysisInterface):
         --------
 
         >>> for i, snapshot in enumerate(cam.rotation(np.pi, 10)):
-        ...     iw.write_bitmap(snapshot, 'rotation_%04i.png' % i)
+        ...     iw.write_bitmap(snapshot, "rotation_%04i.png" % i)
         """
 
         dtheta = (1.0 * theta) / n_steps
@@ -1190,18 +1186,16 @@ data_object_registry["camera"] = Camera
 
 
 class InteractiveCamera(Camera):
-    frames = []
+    frames: List[ImageArray] = []
 
     def snapshot(self, fn=None, clip_ratio=None):
-        from matplotlib import pylab as pylab
-
-        pylab.figure(2)
+        self._pyplot.figure(2)
         self.transfer_function.show()
-        pylab.draw()
+        self._pyplot.draw()
         im = Camera.snapshot(self, fn, clip_ratio)
-        pylab.figure(1)
-        pylab.imshow(im / im.max())
-        pylab.draw()
+        self._pyplot.figure(1)
+        self._pyplot.imshow(im / im.max())
+        self._pyplot.draw()
         self.frames.append(im)
 
     def rotation(self, theta, n_steps, rot_vector=None):
@@ -1219,7 +1213,7 @@ class InteractiveCamera(Camera):
         self.frames = []
 
     def save(self, fn):
-        self._pylab.savefig(fn, bbox_inches="tight", facecolor="black")
+        self._pyplot.savefig(fn, bbox_inches="tight", facecolor="black")
 
     def save_frames(self, basename, clip_ratio=None):
         for i, frame in enumerate(self.frames):
@@ -1316,8 +1310,8 @@ class PerspectiveCamera(Camera):
         east_vec = self.orienter.unit_vectors[0].reshape(3, 1)
         north_vec = self.orienter.unit_vectors[1].reshape(3, 1)
 
-        px = np.mat(np.linspace(-0.5, 0.5, self.resolution[0]))
-        py = np.mat(np.linspace(-0.5, 0.5, self.resolution[1]))
+        px = np.linspace(-0.5, 0.5, self.resolution[0])[np.newaxis, :]
+        py = np.linspace(-0.5, 0.5, self.resolution[1])[np.newaxis, :]
 
         sample_x = self.width[0] * np.array(east_vec * px).transpose()
         sample_y = self.width[1] * np.array(north_vec * py).transpose()
@@ -1421,7 +1415,7 @@ class PerspectiveCamera(Camera):
                 # boundary line
                 sight_length = np.sqrt(
                     self.width[0] ** 2 + self.width[1] ** 2
-                ) / np.sqrt(1 - sight_angle_cos ** 2)
+                ) / np.sqrt(1 - sight_angle_cos**2)
             pos1[i] = self.center + sight_length * sight_vector[i]
 
         dx = np.dot(pos1 - sight_center, self.orienter.unit_vectors[0])
@@ -1445,13 +1439,13 @@ class PerspectiveCamera(Camera):
         theta : float, in radians
              Angle (in radians) by which to yaw the view.
 
-        center : a tuple (x, y, z)
+        rot_center : a tuple (x, y, z)
              The point to rotate about
 
         Examples
         --------
 
-        >>> cam.yaw(np.pi/4, (0., 0., 0.))
+        >>> cam.yaw(np.pi / 4, (0.0, 0.0, 0.0))
         """
 
         rot_vector = self.orienter.unit_vectors[1]
@@ -1461,7 +1455,7 @@ class PerspectiveCamera(Camera):
         focal_point = np.dot(R, focal_point) + rot_center
 
         normal_vector = rot_center - focal_point
-        normal_vector = normal_vector / np.sqrt((normal_vector ** 2).sum())
+        normal_vector = normal_vector / np.sqrt((normal_vector**2).sum())
 
         self.switch_view(normal_vector=normal_vector, center=focal_point)
 
@@ -1509,11 +1503,11 @@ class HEALpixCamera(Camera):
         raise NotImplementedError
 
     def new_image(self):
-        image = np.zeros((12 * self.nside ** 2, 1, 4), dtype="float64", order="C")
+        image = np.zeros((12 * self.nside**2, 1, 4), dtype="float64", order="C")
         return image
 
     def get_sampler_args(self, image):
-        nv = 12 * self.nside ** 2
+        nv = 12 * self.nside**2
         vs = arr_pix2vec_nest(self.nside, np.arange(nv))
         vs.shape = (nv, 1, 3)
         vs += 1e-8
@@ -1574,7 +1568,7 @@ class HEALpixCamera(Camera):
             "type": self.__class__.__name__,
             "center": self.center,
             "radius": self.radius,
-            "dataset": self.ds.fullpath,
+            "dataset": self.ds.directory,
         }
         return info_dict
 
@@ -1713,7 +1707,7 @@ class FisheyeCamera(Camera):
             transfer_function = ProjectionTransferFunction()
         self.transfer_function = transfer_function
         if fields is None:
-            fields = ["density"]
+            fields = [("gas", "density")]
         dd = self.ds.all_data()
         fields = dd._determine_fields(fields)
         self.fields = fields
@@ -1730,19 +1724,19 @@ class FisheyeCamera(Camera):
         return {}
 
     def new_image(self):
-        image = np.zeros((self.resolution ** 2, 1, 4), dtype="float64", order="C")
+        image = np.zeros((self.resolution**2, 1, 4), dtype="float64", order="C")
         return image
 
     def get_sampler_args(self, image):
         vp = arr_fisheye_vectors(self.resolution, self.fov)
-        vp.shape = (self.resolution ** 2, 1, 3)
+        vp.shape = (self.resolution**2, 1, 3)
         vp2 = vp.copy()
         for i in range(3):
             vp[:, :, i] = (vp2 * self.rotation_matrix[:, i]).sum(axis=2)
         del vp2
         vp *= self.radius
         uv = np.ones(3, dtype="float64")
-        positions = np.ones((self.resolution ** 2, 1, 3), dtype="float64") * self.center
+        positions = np.ones((self.resolution**2, 1, 3), dtype="float64") * self.center
 
         args = (
             positions,
@@ -1839,7 +1833,7 @@ class MosaicCamera(Camera):
         self.north_vector = north_vector
         self.normal_vector = normal_vector
         if fields is None:
-            fields = ["density"]
+            fields = [("gas", "density")]
         self.fields = fields
         if transfer_function is None:
             transfer_function = ProjectionTransferFunction()
@@ -2540,8 +2534,9 @@ def off_axis_projection(
     Examples
     --------
 
-    >>> image = off_axis_projection(ds, [0.5, 0.5, 0.5], [0.2,0.3,0.4],
-                      0.2, N, "temperature", "density")
+    >>> image = off_axis_projection(
+    ...     ds, [0.5, 0.5, 0.5], [0.2, 0.3, 0.4], 0.2, N, "temperature", "density"
+    ... )
     >>> write_image(np.log10(image), "offaxis.png")
 
     """

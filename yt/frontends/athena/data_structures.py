@@ -1,14 +1,16 @@
 import os
+import re
 import weakref
 
 import numpy as np
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
+from yt.fields.magnetic_field import get_magnetic_normalization
 from yt.funcs import mylog, sglob
 from yt.geometry.geometry_handler import YTDataChunk
 from yt.geometry.grid_geometry_handler import GridIndex
-from yt.utilities.chemical_formulas import default_mu
+from yt.utilities.chemical_formulas import compute_mu
 from yt.utilities.decompose import decompose_array, get_psize
 from yt.utilities.lib.misc_utilities import get_box_grids_level
 
@@ -476,6 +478,8 @@ class AthenaDataset(Dataset):
         units_override=None,
         nprocs=1,
         unit_system="cgs",
+        default_species_fields=None,
+        magnetic_normalization="gaussian",
     ):
         self.fluid_types += ("athena",)
         self.nprocs = nprocs
@@ -484,18 +488,19 @@ class AthenaDataset(Dataset):
         self.specified_parameters = parameters.copy()
         if units_override is None:
             units_override = {}
+        self._magnetic_factor = get_magnetic_normalization(magnetic_normalization)
+
         Dataset.__init__(
             self,
             filename,
             dataset_type,
             units_override=units_override,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
-        self.filename = filename
         if storage_filename is None:
-            storage_filename = f"{filename.split('/')[-1]}.yt"
+            storage_filename = self.basename + ".yt"
         self.storage_filename = storage_filename
-        self.backup_filename = self.filename[:-4] + "_backup.gdf"
         # Unfortunately we now have to mandate that the index gets
         # instantiated so that we can make sure we have the correct left
         # and right domain edges.
@@ -515,7 +520,9 @@ class AthenaDataset(Dataset):
             mylog.warning("Assuming 1.0 = 1.0 %s", cgs)
             setattr(self, f"{unit}_unit", self.quan(1.0, cgs))
         self.magnetic_unit = np.sqrt(
-            4 * np.pi * self.mass_unit / (self.time_unit ** 2 * self.length_unit)
+            self._magnetic_factor
+            * self.mass_unit
+            / (self.time_unit**2 * self.length_unit)
         )
         self.magnetic_unit.convert_to_units("gauss")
         self.velocity_unit = self.length_unit / self.time_unit
@@ -609,11 +616,11 @@ class AthenaDataset(Dataset):
         ]
         self.nvtk = len(gridlistread) + 1
 
-        self.current_redshift = (
-            self.omega_lambda
-        ) = (
-            self.omega_matter
-        ) = self.hubble_constant = self.cosmological_simulation = 0.0
+        self.current_redshift = 0.0
+        self.omega_lambda = 0.0
+        self.omega_matter = 0.0
+        self.hubble_constant = 0.0
+        self.cosmological_simulation = 0
         self.parameters["Time"] = self.current_time  # Hardcode time conversion for now.
         self.parameters[
             "HydroMethod"
@@ -624,20 +631,37 @@ class AthenaDataset(Dataset):
             self.parameters["Gamma"] = 5.0 / 3.0
         self.geometry = self.specified_parameters.get("geometry", "cartesian")
         self._handle.close()
-        self.mu = self.specified_parameters.get("mu", default_mu)
+        self.mu = self.specified_parameters.get(
+            "mu", compute_mu(self.default_species_fields)
+        )
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
-        try:
-            if "vtk" in filename:
-                return True
-        except Exception:
-            pass
-        return False
+        if not filename.endswith(".vtk"):
+            return False
+
+        with open(filename, "rb") as fh:
+            if not re.match(b"# vtk DataFile Version \\d\\.\\d\n", fh.readline(256)):
+                return False
+            if (
+                re.search(
+                    b"at time= .*, level= \\d, domain= \\d\n",
+                    fh.readline(256),
+                )
+                is None
+            ):
+                # vtk Dumps headers start with either "CONSERVED vars" or "PRIMITIVE vars",
+                # while vtk output headers start with "Really cool Athena data", but
+                # we will consider this an implementation detail and not attempt to
+                # match it exactly here.
+                # See Athena's user guide for reference
+                # https://princetonuniversity.github.io/Athena-Cversion/AthenaDocsUGbtk
+                return False
+        return True
 
     @property
     def _skip_cache(self):
         return True
 
-    def __repr__(self):
+    def __str__(self):
         return self.basename.rsplit(".", 1)[0]

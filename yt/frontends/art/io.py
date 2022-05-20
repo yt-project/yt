@@ -70,7 +70,7 @@ class IOHandlerART(BaseIOHandler):
         if key in self.masks.keys() and self.caching:
             return self.masks[key]
         pstr = "particle_position_%s"
-        x, y, z = [self._get_field((ftype, pstr % ax)) for ax in "xyz"]
+        x, y, z = (self._get_field((ftype, pstr % ax)) for ax in "xyz")
         mask = selector.select_points(x, y, z, 0.0)
         if self.caching:
             self.masks[key] = mask
@@ -85,7 +85,7 @@ class IOHandlerART(BaseIOHandler):
                 x = self._get_field((ptype, "particle_position_x"))
                 y = self._get_field((ptype, "particle_position_y"))
                 z = self._get_field((ptype, "particle_position_z"))
-                yield ptype, (x, y, z)
+                yield ptype, (x, y, z), 0.0
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
@@ -121,7 +121,7 @@ class IOHandlerART(BaseIOHandler):
                 off = 1.0 / dd
                 tr[field] = rp(fields=[ax])[0] / dd - off
             if fname.startswith(f"particle_velocity_{ax}"):
-                (tr[field],) = rp(["v" + ax])
+                (tr[field],) = rp(fields=["v" + ax])
         if fname.startswith("particle_mass"):
             a = 0
             data = np.zeros(npa, dtype="f8")
@@ -405,7 +405,7 @@ def _read_art_level_info(
 
 
 def get_ranges(
-    skip, count, field, words=6, real_size=4, np_per_page=4096 ** 2, num_pages=1
+    skip, count, field, words=6, real_size=4, np_per_page=4096**2, num_pages=1
 ):
     # translate every particle index into a file position ranges
     ranges = []
@@ -437,7 +437,7 @@ def get_ranges(
 def read_particles(file, Nrow, idxa, idxb, fields):
     words = 6  # words (reals) per particle: x,y,z,vx,vy,vz
     real_size = 4  # for file_particle_data; not always true?
-    np_per_page = Nrow ** 2  # defined in ART a_setup.h, # of particles/page
+    np_per_page = Nrow**2  # defined in ART a_setup.h, # of particles/page
     num_pages = os.path.getsize(file) // (real_size * words * np_per_page)
     fh = open(file)
     skip, count = idxa, idxb - idxa
@@ -499,7 +499,7 @@ def _read_child_mask_level(f, level_child_offsets, level, nLevel, nhydro_vars):
 
 
 nchem = 8 + 2
-dtyp = np.dtype(">i4,>i8,>i8" + f",>{nchem}f4" + ",>%sf4" % (2) + ",>i4")
+dtyp = np.dtype(f">i4,>i8,>i8,>{nchem}f4,>2f4,>i4")
 
 
 def _read_child_level(
@@ -533,7 +533,7 @@ def _read_child_level(
         # idc = np.argsort(arr['idc']) #correct fortran indices
         # translate idc into icell, and then to iOct
         icell = (arr["idc"] >> 3) << 3
-        iocts = (icell - ncell0) / nchild  # without a F correction, theres a +1
+        iocts = (icell - ncell0) / nchild  # without a F correction, there's a +1
         # assert that the children are read in the same order as the octs
         assert np.all(octs == iocts[::nchild])
     else:
@@ -592,8 +592,8 @@ def quad(fintegrand, xmin, xmax, n=1e4):
 
 def a2b(at, Om0=0.27, Oml0=0.73, h=0.700):
     def f_a2b(x):
-        val = 0.5 * sqrt(Om0) / x ** 3.0
-        val /= sqrt(Om0 / x ** 3.0 + Oml0 + (1.0 - Om0 - Oml0) / x ** 2.0)
+        val = 0.5 * sqrt(Om0) / x**3.0
+        val /= sqrt(Om0 / x**3.0 + Oml0 + (1.0 - Om0 - Oml0) / x**2.0)
         return val
 
     # val, err = si.quad(f_a2b,1,at)
@@ -615,7 +615,7 @@ def b2a(bt, **kwargs):
 
 def a2t(at, Om0=0.27, Oml0=0.73, h=0.700):
     def integrand(x):
-        return 1.0 / (x * sqrt(Oml0 + Om0 * x ** -3.0))
+        return 1.0 / (x * sqrt(Oml0 + Om0 * x**-3.0))
 
     # current_time,err = si.quad(integrand,0.0,at,epsabs=1e-6,epsrel=1e-6)
     current_time = quad(integrand, 1e-4, at)
@@ -628,7 +628,7 @@ def a2t(at, Om0=0.27, Oml0=0.73, h=0.700):
 
 def b2t(tb, n=1e2, logger=None, **kwargs):
     tb = np.array(tb)
-    if isinstance(tb, type(1.1)):
+    if isinstance(tb, float):
         return a2t(b2a(tb))
     if tb.shape == ():
         return a2t(b2a(tb))

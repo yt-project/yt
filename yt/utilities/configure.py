@@ -1,8 +1,131 @@
-import configparser
 import os
-import sys
+from typing import Callable, List
 
-from yt.config import YTConfig, old_config_file, ytcfg_defaults
+# TODO: import tomllib from the standard library instead in Python >= 3.11
+import tomli as tomllib
+import tomli_w
+from more_itertools import always_iterable
+
+from yt.utilities.configuration_tree import ConfigLeaf, ConfigNode
+
+configuration_callbacks: List[Callable[["YTConfig"], None]] = []
+
+
+def config_dir():
+    config_root = os.environ.get(
+        "XDG_CONFIG_HOME", os.path.join(os.path.expanduser("~"), ".config")
+    )
+    conf_dir = os.path.join(config_root, "yt")
+    return conf_dir
+
+
+class YTConfig:
+    def __init__(self, defaults=None):
+        if defaults is None:
+            defaults = {}
+        self.config_root = ConfigNode(None)
+
+    def get(self, section, *keys, callback=None):
+        node_or_leaf = self.config_root.get(section, *keys)
+        if isinstance(node_or_leaf, ConfigLeaf):
+            if callback is not None:
+                return callback(node_or_leaf)
+            return node_or_leaf.value
+        return node_or_leaf
+
+    def get_most_specific(self, section, *keys, **kwargs):
+        use_fallback = "fallback" in kwargs
+        fallback = kwargs.pop("fallback", None)
+        try:
+            return self.config_root.get_deepest_leaf(section, *keys)
+        except KeyError as err:
+            if use_fallback:
+                return fallback
+            else:
+                raise err
+
+    def update(self, new_values, metadata=None):
+        if metadata is None:
+            metadata = {}
+        self.config_root.update(new_values, metadata)
+
+    def has_section(self, section):
+        try:
+            self.config_root.get_child(section)
+            return True
+        except KeyError:
+            return False
+
+    def add_section(self, section):
+        self.config_root.add_child(section)
+
+    def remove_section(self, section):
+        if self.has_section(section):
+            self.config_root.remove_child(section)
+            return True
+        else:
+            return False
+
+    def set(self, *args, metadata=None):
+        section, *keys, value = args
+        if metadata is None:
+            metadata = {"source": "runtime"}
+        self.config_root.upsert_from_list(
+            [section] + list(keys), value, extra_data=metadata
+        )
+
+    def remove(self, *args):
+        self.config_root.pop_leaf(args)
+
+    def read(self, file_names):
+        file_names_read = []
+        for fname in always_iterable(file_names):
+            if not os.path.exists(fname):
+                continue
+            metadata = {"source": f"file: {fname}"}
+            with open(fname, "rb") as fh:
+                data = tomllib.load(fh)
+            self.update(data, metadata=metadata)
+            file_names_read.append(fname)
+
+        return file_names_read
+
+    def write(self, file_handler):
+        value = self.config_root.as_dict()
+        config_as_str = tomli_w.dumps(value)
+
+        try:
+            # Assuming file_handler has a write attribute
+            file_handler.write(config_as_str)
+        except AttributeError:
+            # Otherwise we expect a path to a file
+            with open(file_handler, mode="w") as fh:
+                fh.write(config_as_str)
+
+    @staticmethod
+    def get_global_config_file():
+        return os.path.join(config_dir(), "yt.toml")
+
+    @staticmethod
+    def get_local_config_file():
+        return os.path.join(os.path.abspath(os.curdir), "yt.toml")
+
+    def __setitem__(self, args, value):
+        section, *keys = always_iterable(args)
+        self.set(section, *keys, value, metadata=None)
+
+    def __getitem__(self, key):
+        section, *keys = always_iterable(key)
+        return self.get(section, *keys)
+
+    def __contains__(self, item):
+        return item in self.config_root
+
+    # Add support for IPython rich display
+    # see https://ipython.readthedocs.io/en/stable/config/integrating.html
+    def _repr_json_(self):
+        return self.config_root._repr_json_()
+
 
 CONFIG = YTConfig()
 
@@ -45,56 +168,6 @@ def set_config(section, option, value, config_file):
 
 def write_config(config_file):
     CONFIG.write(config_file)
-
-
-def migrate_config():
-    if not os.path.exists(old_config_file()):
-        print("Old config not found.")
-        sys.exit(1)
-
-    old_config = configparser.RawConfigParser()
-    # Preserve case:
-    # See https://stackoverflow.com/questions/1611799/preserve-case-in-configparser
-    old_config.optionxform = str
-    old_config.read(old_config_file())
-
-    # In order to migrate, we'll convert everything to lowercase, and map that
-    # to the new snake_case convention
-    def normalize_key(key):
-        return key.replace("_", "").lower()
-
-    def usesCamelCase(key):
-        if key != key.lower():
-            return True
-        else:
-            return False
-
-    old_keys_to_new = {normalize_key(k): k for k in ytcfg_defaults["yt"].keys()}
-
-    config_as_dict = {}
-    for section in old_config:
-        if section == "DEFAULT":
-            continue
-        config_as_dict[section] = {}
-        for key, value in old_config[section].items():
-            # Cast value to the most specific type possible
-            cast_value = _cast_value_helper(value)
-
-            # Normalize the key (if present in the defaults)
-            if normalize_key(key) in old_keys_to_new and section == "yt":
-                new_key = old_keys_to_new[normalize_key(key)]
-            else:
-                new_key = key
-
-            config_as_dict[section][new_key] = cast_value
-
-    CONFIG.update(config_as_dict)
-
-    global_config_file = YTConfig.get_global_config_file()
-    print(f"Writing a new config file to: {global_config_file}")
-    write_config(global_config_file)
-    print(f"Backing up the old config file: {old_config_file()}.bak")
-    os.rename(old_config_file(), old_config_file() + ".bak")
 
 
 def rm_config(section, option, config_file):

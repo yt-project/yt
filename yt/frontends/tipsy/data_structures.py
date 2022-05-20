@@ -58,6 +58,7 @@ class TipsyDataset(SPHDataset):
         bounding_box=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
         # Because Tipsy outputs don't have a fixed domain boundary, one can
         # specify a bounding box which effectively gives a domain_left_edge
@@ -107,9 +108,10 @@ class TipsyDataset(SPHDataset):
             index_filename=index_filename,
             kdtree_filename=kdtree_filename,
             kernel_name=kernel_name,
+            default_species_fields=default_species_fields,
         )
 
-    def __repr__(self):
+    def __str__(self):
         return os.path.basename(self.parameter_filename)
 
     def _parse_parameter_file(self):
@@ -118,7 +120,7 @@ class TipsyDataset(SPHDataset):
         # the snapshot time and particle counts.
 
         f = open(self.parameter_filename, "rb")
-        hh = self.endian + "".join(["%s" % (b) for a, b in self._header_spec])
+        hh = self.endian + "".join("%s" % (b) for a, b in self._header_spec)
         hvals = {
             a: c
             for (a, b), c in zip(
@@ -276,14 +278,14 @@ class TipsyDataset(SPHDataset):
             mu = (
                 cosmo.critical_density(0.0)
                 * (1 + self.current_redshift) ** 3
-                * self.length_unit ** 3
+                * self.length_unit**3
             )
             self.mass_unit = self.quan(mu.in_units("Msun"), "Msun")
             density_unit = self.mass_unit / (self.length_unit / self.scale_factor) ** 3
             # need to do this again because we've modified the hubble constant
             self.unit_registry.modify("h", self.hubble_constant)
         else:
-            density_unit = self.mass_unit / self.length_unit ** 3
+            density_unit = self.mass_unit / self.length_unit**3
 
         if not hasattr(self, "time_unit"):
             self.time_unit = 1.0 / np.sqrt(density_unit * G)

@@ -8,6 +8,10 @@ Command-Line Usage
 Interactive Prompt
 ~~~~~~~~~~~~~~~~~~
 
+.. warning::
+
+   This section describes a script targeted for removal in yt 4.2.0
+
 The interactive prompt offers a number of excellent opportunities for
 exploration of data.  While there are challenges for repeatability, and some
 operations will be more challenging to operate in parallel, interactive prompts
@@ -35,8 +39,8 @@ or
    yt load DD0030/DD0030
 
 This will spawn ``iyt``, but the dataset given on the command line will
-already be in the namespace as ``ds``.  With interactive mode, you can use the
-``pylab`` module to interactively plot.
+already be in the namespace as ``ds``.  With interactive mode, you can use
+``matplotlib.pyplot`` to build plots interactively.
 
 Command-line Functions
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -45,7 +49,7 @@ The :code:`yt` command-line tool allows you to access some of yt's basic
 functionality without opening a python interpreter.  The tools is a collection of
 subcommands.  These can quickly making plots of slices and projections through a
 dataset, updating yt's codebase, print basic statistics about a dataset, launch
-an IPython notebook session, and more.  To get a quick list of what is
+an IPython notebook session, and more. To get a quick list of what is
 available, just type:
 
 .. code-block:: bash
@@ -82,21 +86,21 @@ First let's see what our options are for plotting:
 
   $ yt plot --help
 
-There are many!  We can choose whether we want a slice (default) or a
+There are many! We can choose whether we want a slice (default) or a
 projection (``-p``), the field, the colormap, the center of the image, the
 width and unit of width of the image, the limits, the weighting field for
-projections, and on and on.  By default the plotting command will execute the
+projections, and on and on. By default the plotting command will execute the
 same thing along all three axes, so keep that in mind if it takes three times
-as long as you'd like!  The center of a slice defaults to the center of
+as long as you'd like! The center of a slice defaults to the center of
 the domain, so let's just give that a shot and see what it looks like:
 
 .. code-block:: bash
 
   $ yt plot DD0010/moving7_0010
 
-Well, that looks pretty bad!  What has happened here is that the center of the
+Well, that looks pretty bad! What has happened here is that the center of the
 domain only has some minor shifts in density, so the plot is essentially
-incomprehensible.  Let's try it again, but instead of slicing, let's project.
+incomprehensible. Let's try it again, but instead of slicing, let's project.
 This is a line integral through the domain, and for the density field this
 becomes a column density:
 
@@ -104,10 +108,10 @@ becomes a column density:
 
   $ yt plot -p DD0010/moving7_0010
 
-Now that looks much better!  Note that all three axes' projections appear
+Now that looks much better! Note that all three axes' projections appear
 nearly indistinguishable, because of how the two spheres are located in the
-domain.  We could center our domain on one of the spheres and take a slice, as
-well.  Now let's see what the domain looks like with grids overlaid, using the
+domain. We could center our domain on one of the spheres and take a slice, as
+well. Now let's see what the domain looks like with grids overlaid, using the
 ``--show-grids`` option:
 
 .. code-block:: bash
@@ -131,43 +135,27 @@ help
 
 Help lists all of the various command-line options in yt.
 
-
-bugreport
-+++++++++
-
-Encountering a bug in your own code can be a big hassle, but it can be
-exponentially worse to find it in someone else's.  That's why we tried to
-make it as easy as possible for users to report bugs they find in yt.
-After you go through the necessary channels to make sure you're not just
-making a mistake (see :ref:`asking-for-help`), you can submit bug
-reports using this nice utility.
-
 instinfo and version
 ++++++++++++++++++++
 
 This gives information about where your yt installation is, what version
 and changeset you're using and more.
 
-load
-++++
-
-This will start the iyt interactive environment with your specified
-dataset already loaded.  See :ref:`interactive-prompt` for more details.
 
 mapserver
 +++++++++
 
-Ever wanted to interact with your data using the
-`google maps <http://maps.google.com/>`_ interface?  Now you can by using the
-yt mapserver.  See :ref:`mapserver` for more details.
+Ever wanted to interact with your data using a
+`google maps <http://maps.google.com/>`_-style interface?  Now you can by using the
+yt mapserver. See :ref:`mapserver` for more details.
 
 pastebin and pastebin_grab
 ++++++++++++++++++++++++++
 
 The `pastebin <http://paste.yt-project.org/>`_ is an online location where
 you can anonymously post code snippets and error messages to share with
-other users in a quick, informal way.  It is often useful for debugging
-code or co-developing.  By running the ``pastebin`` subcommand with a
+other users in a quick, informal way. It is often useful for debugging
+code or co-developing. By running the ``pastebin`` subcommand with a
 text file, you send the contents of that file to an anonymous pastebin;
 
 .. code-block:: bash
@@ -205,28 +193,18 @@ By specifying the axis, center, width, etc. (run ``yt help plot`` for
 details), you can create slices and projections easily at the
 command-line.
 
-upload_notebook
-+++++++++++++++
-
-This command will accept the filename of a ``.ipynb`` file (generated from an
-IPython notebook session) and upload it to the `yt hub
-<https://girder.hub.yt/>`__ where others will be able to view it, and
-download it.  This is an easy method for recording a sequence of commands,
-their output, narrative information, and then sharing that with others.  These
-notebooks will be viewable online, and the appropriate URLs will be returned on
-the command line.
-
 rpdb
 ++++
 
-Connect to a currently running (on localhost) rpd session.
+Connect to a currently running (on localhost) rpdb session. See
+:ref:`remote-debugging` for more info.
 
 notebook
 ++++++++
 
-Launches an IPython notebook server and prints out instructions on how to open
-an ssh tunnel to connect to the notebook server with a web browser.  This is
-most useful when you want to run an IPython notebook using CPUs on a remote
+Launches a Jupyter notebook server and prints out instructions on how to open
+an ssh tunnel to connect to the notebook server with a web browser. This is
+most useful when you want to run a Jupyter notebook using CPUs on a remote
 host.
 
 stats
@@ -234,14 +212,34 @@ stats
 
 This subcommand provides you with some basic statistics on a given dataset.
 It provides you with the number of grids and cells in each level, the time
-of the dataset, the resolution, and the maximum density in a variety of units.
-It is tantamount to performing the ``print_stats()`` inside of yt.
+of the dataset, and the resolution. It is tantamount to calling the
+``Dataset.print_stats`` method.
+
+Additionally, there is the option to print the minimum, maximum, or both for
+a given field. The field is assumed to be density by default:
+
+.. code-block:: bash
+
+   yt stats GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150 --max --min
+
+or a different field can be specified using the ``-f`` flag:
+
+.. code-block:: bash
+
+   yt stats GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150 --max --min -f gas,temperature
+
+The field-related stats output from this command can be directed to a file using
+the ``-o`` flag:
+
+.. code-block:: bash
+
+   yt stats GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150 --max -o out_stats.dat
 
 update
 ++++++
 
 This subcommand updates the yt installation to the most recent version for
-your repository (e.g. stable, 2.0, development, etc.).  Adding the ``--all``
+your repository (e.g. stable, 2.0, development, etc.). Adding the ``--all``
 flag will update the dependencies as well.
 
 .. _upload-image:
@@ -264,38 +262,6 @@ delete_image
 The image uploaded using ``upload_image`` is assigned with a unique hash that
 can be used to remove it. This subcommand provides an easy way to send a delete
 request directly to the `imgur.com <https://imgur.com/>`_.
-
-Hub helper
-~~~~~~~~~~
-
-The :code:`yt hub` command-line tool allows to interact with the `yt hub
-<https://girder.hub.yt>`__. The following subcommands are currently available:
-
-.. config_help:: yt hub
-
-register
-++++++++
-
-This subcommand starts an interactive process of creating an account on the `yt
-hub <https://girder.hub.yt/>`__. Please note that the yt Hub also supports multiple OAuth
-providers such as Google, Bitbucket and GitHub for authentication.
-See :ref:`hub-APIkey` for more information.
-
-start
-+++++
-
-This subcommand launches the Jupyter Notebook on the `yt Hub <https://girder.hub.yt>`__
-with a chosen Hub folder mounted to the ``/data`` directory inside the notebook.
-If no path is given all the `example yt datasets
-<https://yt-project.org/data>`_ are mounted by default. The appropriate URL
-allowing to access the Notebook will be returned on the commandline.
-
-Example:
-
-.. code-block:: bash
-
-   $ yt hub start
-   $ yt hub start /user/xarthisius/Public
 
 download
 ~~~~~~~~

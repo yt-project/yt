@@ -51,7 +51,7 @@ class RotationTest(TestCase):
         vol = sc.get_source(0)
         tf = vol.transfer_function
         tf.clear()
-        mi, ma = dd.quantities.extrema("density")
+        mi, ma = dd.quantities.extrema(("gas", "density"))
         mi = np.log10(mi)
         ma = np.log10(ma)
         mi_bound = ((ma - mi) * (0.10)) + mi
@@ -63,7 +63,7 @@ class RotationTest(TestCase):
 
         tf = vol2.transfer_function
         tf.clear()
-        mi, ma = dd2.quantities.extrema("density")
+        mi, ma = dd2.quantities.extrema(("gas", "density"))
         mi = np.log10(mi)
         ma = np.log10(ma)
         mi_bound = ((ma - mi) * (0.10)) + mi
@@ -75,7 +75,8 @@ class RotationTest(TestCase):
 
         fname = "test_rot.png"
         sc.camera.pitch(np.pi)
-        sc.save(fname, sigma_clip=6.0)
+        sc.render()
+        sc.save(fname, sigma_clip=6.0, render=False)
         assert_fname(fname)
 
 
@@ -97,7 +98,8 @@ def test_annotations():
         assert np.where((im == c).all(axis=-1))[0].shape[0] > 0
     sc[0].tfh.tf.add_layers(10, colormap="cubehelix")
     sc.save_annotated(
-        "test_scene_annotated.png", text_annotate=[[(0.1, 1.05), "test_string"]]
+        "test_scene_annotated.png",
+        text_annotate=[[(0.1, 1.05), "test_string"]],
     )
     image = imread("test_scene_annotated.png")
     assert image.shape == sc.camera.resolution + (4,)

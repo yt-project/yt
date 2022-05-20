@@ -10,10 +10,14 @@ from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 
+class SwiftParticleFile(ParticleFile):
+    pass
+
+
 class SwiftDataset(SPHDataset):
     _index_class = SPHParticleIndex
     _field_info_class = SPHFieldInfo
-    _file_class = ParticleFile
+    _file_class = SwiftParticleFile
 
     _particle_mass_name = "Masses"
     _particle_coordinates_name = "Coordinates"
@@ -22,12 +26,22 @@ class SwiftDataset(SPHDataset):
     _suffix = ".hdf5"
 
     def __init__(
-        self, filename, dataset_type="swift", storage_filename=None, units_override=None
+        self,
+        filename,
+        dataset_type="swift",
+        storage_filename=None,
+        units_override=None,
+        unit_system="cgs",
+        default_species_fields=None,
     ):
 
-        self.filename = filename
-
-        super().__init__(filename, dataset_type, units_override=units_override)
+        super().__init__(
+            filename,
+            dataset_type,
+            units_override=units_override,
+            unit_system=unit_system,
+            default_species_fields=default_species_fields,
+        )
         self.storage_filename = storage_filename
 
     def _set_code_unit_attributes(self):
@@ -36,7 +50,7 @@ class SwiftDataset(SPHDataset):
 
         Currently sets length, mass, time, and temperature.
 
-        SWIFT uses comoving co-ordinates without the usual h-factors.
+        SWIFT uses comoving coordinates without the usual h-factors.
         """
         units = self._get_info_attributes("Units")
 

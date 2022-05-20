@@ -17,19 +17,22 @@ import time
 import traceback
 import urllib.parse
 import urllib.request
-import warnings
-from distutils.version import LooseVersion
 from functools import lru_cache, wraps
 from numbers import Number as numeric_type
+from typing import Any, Callable, Type
 
 import matplotlib
 import numpy as np
 from more_itertools import always_iterable, collapse, first
+from packaging.version import Version
 from tqdm import tqdm
 
+from yt._maintenance.deprecation import issue_deprecation_warning
+from yt.config import ytcfg
 from yt.units import YTArray, YTQuantity
 from yt.utilities.exceptions import YTInvalidWidthError
 from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.on_demand_imports import _requests as requests
 
 # Some functions for handling sequences and other types
 
@@ -37,7 +40,10 @@ from yt.utilities.logger import ytLogger as mylog
 def is_sequence(obj):
     """
     Grabbed from Python Cookbook / matplotlib.cbook.  Returns true/false for
-    *obj* iterable.
+
+    Parameters
+    ----------
+    obj : iterable
     """
     try:
         len(obj)
@@ -54,12 +60,12 @@ def iter_fields(field_or_fields):
 
     Parameters
     ----------
-    obj: str, tuple(str, str), or any iterable of the previous types.
+    field_or_fields: str, tuple(str, str), or any iterable of the previous types.
 
     Examples
     --------
 
-    >>> fields = "density"
+    >>> fields = ("gas", "density")
     >>> for field in iter_fields(fields):
     ...     print(field)
     density
@@ -69,7 +75,7 @@ def iter_fields(field_or_fields):
     ...     print(field)
     ('gas', 'density')
 
-    >>> fields = ["density", "temperature", ("index", "dx")]
+    >>> fields = [("gas", "density"), ("gas", "temperature"), ("index", "dx")]
     >>> for field in iter_fields(fields):
     ...     print(field)
     density
@@ -163,7 +169,7 @@ def get_memory_usage(subtract_share=False):
     if not os.path.isfile(status_file):
         return -1024
     line = open(status_file).read()
-    size, resident, share, text, library, data, dt = [int(i) for i in line.split()]
+    size, resident, share, text, library, data, dt = (int(i) for i in line.split())
     if subtract_share:
         resident -= share
     return resident * pagesize / (1024 * 1024)  # return in megs
@@ -183,8 +189,6 @@ def time_execution(func):
         mylog.debug("%s took %0.3f s", func.__name__, (t2 - t1))
         return res
 
-    from yt.config import ytcfg
-
     if ytcfg.get("yt", "time_functions"):
         return wrapper
     else:
@@ -198,11 +202,9 @@ def print_tb(func):
 
     This can be used like so:
 
-    .. code-block:: python
-
-       @print_tb
-       def some_deeply_nested_function(*args, **kwargs):
-           ...
+    >>> @print_tb
+    ... def some_deeply_nested_function(*args, **kwargs):
+    ...     ...
 
     """
 
@@ -217,8 +219,7 @@ def print_tb(func):
 def rootonly(func):
     """
     This is a decorator that, when used, will only call the function on the
-    root processor and then broadcast the results of the function to all other
-    processors.
+    root processor.
 
     This can be used like so:
 
@@ -228,7 +229,6 @@ def rootonly(func):
        def some_root_only_function(*args, **kwargs):
            ...
     """
-    from yt.config import ytcfg
 
     @wraps(func)
     def check_parallel_rank(*args, **kwargs):
@@ -246,11 +246,9 @@ def pdb_run(func):
 
     This can be used like so:
 
-    .. code-block:: python
-
-       @pdb_run
-       def some_function_to_debug(*args, **kwargs):
-           ...
+    >>> @pdb_run
+    ... def some_function_to_debug(*args, **kwargs):
+    ...     ...
 
     """
 
@@ -337,45 +335,21 @@ class DummyProgressBar:
         return
 
 
-class ParallelProgressBar:
-    # This is just a simple progress bar
-    # that prints on start/stop
-    def __init__(self, title, maxval):
-        self.title = title
-        mylog.info("Starting '%s'", title)
-
-    def update(self, *args, **kwargs):
-        return
-
-    def finish(self):
-        mylog.info("Finishing '%s'", self.title)
-
-
-def get_pbar(title, maxval, parallel=False):
+def get_pbar(title, maxval):
     """
     This returns a progressbar of the most appropriate type, given a *title*
     and a *maxval*.
     """
     maxval = max(maxval, 1)
-    from yt.config import ytcfg
 
     if (
         ytcfg.get("yt", "suppress_stream_logging")
         or ytcfg.get("yt", "internals", "within_testing")
         or maxval == 1
+        or not is_root()
     ):
         return DummyProgressBar()
-    elif ytcfg.get("yt", "internals", "parallel"):
-        # If parallel is True, update progress on root only.
-        if parallel:
-            if is_root():
-                return TqdmProgressBar(title, maxval)
-            else:
-                return DummyProgressBar()
-        else:
-            return ParallelProgressBar(title, maxval)
-    pbar = TqdmProgressBar(title, maxval)
-    return pbar
+    return TqdmProgressBar(title, maxval)
 
 
 def only_on_root(func, *args, **kwargs):
@@ -384,8 +358,6 @@ def only_on_root(func, *args, **kwargs):
     on the root processor calls the function.  All other processors get "None"
     handed back.
     """
-    from yt.config import ytcfg
-
     if kwargs.pop("global_rootonly", False):
         cfg_option = "global_parallel_rank"
     else:
@@ -402,8 +374,6 @@ def is_root():
     This function returns True if it is on the root processor of the
     topcomm and False otherwise.
     """
-    from yt.config import ytcfg
-
     if not ytcfg.get("yt", "internals", "parallel"):
         return True
     return ytcfg.get("yt", "internals", "topcomm_parallel_rank") == 0
@@ -470,12 +440,12 @@ def paste_traceback_detailed(exc_type, exc, tb):
     print()
 
 
-_ss = "fURbBUUBE0cLXgETJnZgJRMXVhVGUQpQAUBuehQMUhJWRFFRAV1ERAtBXw1dAxMLXT4zXBFfABNN\nC0ZEXw1YUURHCxMXVlFERwxWCQw=\n"  # NOQA 501
+_ss = "fURbBUUBE0cLXgETJnZgJRMXVhVGUQpQAUBuehQMUhJWRFFRAV1ERAtBXw1dAxMLXT4zXBFfABNN\nC0ZEXw1YUURHCxMXVlFERwxWCQw=\n"
 
 
 def _rdbeta(key):
     enc_s = base64.decodestring(_ss)
-    dec_s = "".join([chr(ord(a) ^ ord(b)) for a, b in zip(enc_s, itertools.cycle(key))])
+    dec_s = "".join(chr(ord(a) ^ ord(b)) for a, b in zip(enc_s, itertools.cycle(key)))
     print(dec_s)
 
 
@@ -498,7 +468,7 @@ def update_git(path):
     except ImportError:
         print("Updating and precise version information requires ")
         print("gitpython to be installed.")
-        print("Try: pip install gitpython")
+        print("Try: python -m pip install gitpython")
         return -1
     with open(os.path.join(path, "yt_updater.log"), "a") as f:
         repo = git.Repo(path)
@@ -569,7 +539,7 @@ def get_git_version(path):
     except ImportError:
         print("Updating and precise version information requires ")
         print("gitpython to be installed.")
-        print("Try: pip install gitpython")
+        print("Try: python -m pip install gitpython")
         return None
     try:
         repo = git.Repo(path)
@@ -617,11 +587,11 @@ def get_script_contents():
 
 
 def download_file(url, filename):
-    requests = get_requests()
-    if requests is None:
-        return simple_download_file(url, filename)
-    else:
+    try:
         return fancy_download_file(url, filename, requests)
+    except ImportError:
+        # fancy_download_file requires requests
+        return simple_download_file(url, filename)
 
 
 def fancy_download_file(url, filename, requests=None):
@@ -632,7 +602,7 @@ def fancy_download_file(url, filename, requests=None):
         if total_length is None:
             fh.write(response.content)
         else:
-            blocksize = 4 * 1024 ** 2
+            blocksize = 4 * 1024**2
             iterations = int(float(total_length) / float(blocksize))
 
             pbar = get_pbar(
@@ -712,16 +682,13 @@ def parallel_profile(prefix):
 
     >>> from yt import PhasePlot
     >>> from yt.testing import fake_random_ds
-    ...
-    >>> fields = ('density', 'temperature', 'cell_mass')
-    >>> units = ('g/cm**3', 'K', 'g')
+    >>> fields = ("density", "temperature", "cell_mass")
+    >>> units = ("g/cm**3", "K", "g")
     >>> ds = fake_random_ds(16, fields=fields, units=units)
-    >>> with parallel_profile('my_profile'):
+    >>> with parallel_profile("my_profile"):
     ...     plot = PhasePlot(ds.all_data(), *fields)
     """
     import cProfile
-
-    from yt.config import ytcfg
 
     fn = "%s_%04i_%04i.cprof" % (
         prefix,
@@ -864,7 +831,7 @@ def memory_checker(interval=15, dest=None):
     --------
 
     >>> with memory_checker(10):
-    ...     arr = np.zeros(1024*1024*1024, dtype="float64")
+    ...     arr = np.zeros(1024 * 1024 * 1024, dtype="float64")
     ...     time.sleep(15)
     ...     del arr
     MEMORY: -1.000e+00 gb
@@ -901,14 +868,14 @@ def enable_plugins(plugin_filename=None):
     in yt scripts without modifying the yt source directly.
 
     If ``plugin_filename`` is omitted, this function will look for a plugin file at
-    ``$HOME/.config/yt/my_plugins.py``, which is the prefered behaviour for a
+    ``$HOME/.config/yt/my_plugins.py``, which is the preferred behaviour for a
     system-level configuration.
 
     Warning: a script using this function will only be reproducible if your plugin
     file is shared with it.
     """
     import yt
-    from yt.config import config_dir, old_config_dir, ytcfg
+    from yt.config import config_dir, ytcfg
     from yt.fields.my_plugin_fields import my_plugins_fields
 
     if plugin_filename is not None:
@@ -921,20 +888,12 @@ def enable_plugins(plugin_filename=None):
         # - CONFIG_DIR
         # - obsolete config dir.
         my_plugin_name = ytcfg.get("yt", "plugin_filename")
-        for base_prefix in ("", config_dir(), old_config_dir()):
+        for base_prefix in ("", config_dir()):
             if os.path.isfile(os.path.join(base_prefix, my_plugin_name)):
                 _fn = os.path.join(base_prefix, my_plugin_name)
                 break
         else:
             raise FileNotFoundError("Could not find a global system plugin file.")
-
-        if _fn.startswith(old_config_dir()):
-            mylog.warning(
-                "Your plugin file is located in a deprecated directory. "
-                "Please move it from %s to %s",
-                os.path.join(old_config_dir(), my_plugin_name),
-                os.path.join(config_dir(), my_plugin_name),
-            )
 
     mylog.info("Loading plugins from %s", _fn)
     ytdict = yt.__dict__
@@ -989,7 +948,7 @@ def get_hash(infile, algorithm="md5", BLOCKSIZE=65536):
     --------
     >>> from tempfile import NamedTemporaryFile
     >>> with NamedTemporaryFile() as file:
-    ...    get_hash(file.name)
+    ...     get_hash(file.name)
     'd41d8cd98f00b204e9800998ecf8427e'
     """
     import hashlib
@@ -1032,24 +991,18 @@ def get_brewer_cmap(cmap):
     if palettable is not None:
         bmap = palettable.colorbrewer.get_map(*cmap)
     elif brewer2mpl is not None:
-        warnings.warn(
+        issue_deprecation_warning(
             "Using brewer2mpl colormaps is deprecated. "
             "Please install the successor to brewer2mpl, "
             "palettable, with `pip install palettable`. "
-            "Colormap tuple names remain unchanged."
+            "Colormap tuple names remain unchanged.",
+            since="3.3",
+            removal="4.2",
         )
         bmap = brewer2mpl.get_map(*cmap)
     else:
         raise RuntimeError("Please install palettable to use colorbrewer colormaps")
     return bmap.get_mpl_colormap(N=cmap[2])
-
-
-def get_requests():
-    try:
-        import requests
-    except ImportError:
-        requests = None
-    return requests
 
 
 @contextlib.contextmanager
@@ -1070,7 +1023,7 @@ def matplotlib_style_context(style_name=None, after_reset=False):
         import matplotlib
 
         style_name = {"mathtext.fontset": "cm"}
-        if LooseVersion(matplotlib.__version__) >= LooseVersion("3.3.0"):
+        if Version(matplotlib.__version__) >= Version("3.3.0"):
             style_name["mathtext.fallback"] = "cm"
         else:
             style_name["mathtext.fallback_to_cm"] = True
@@ -1186,14 +1139,14 @@ def validate_float(obj):
     --------
     >>> validate_float(1)
     >>> validate_float(1.50)
-    >>> validate_float(YTQuantity(1,"cm"))
-    >>> validate_float((1,"cm"))
+    >>> validate_float(YTQuantity(1, "cm"))
+    >>> validate_float((1, "cm"))
     >>> validate_float([1, 1, 1])
     Traceback (most recent call last):
     ...
     TypeError: Expected a numeric value (or size-1 array), received 'list' of length 3
 
-    >>> validate_float([YTQuantity(1, "cm"), YTQuantity(2,"cm")])
+    >>> validate_float([YTQuantity(1, "cm"), YTQuantity(2, "cm")])
     Traceback (most recent call last):
     ...
     TypeError: Expected a numeric value (or size-1 array), received 'list' of length 2
@@ -1224,6 +1177,20 @@ def validate_sequence(obj):
             "Expected an iterable object,"
             " received '%s'" % str(type(obj)).split("'")[1]
         )
+
+
+def validate_field_key(key):
+    if (
+        isinstance(key, tuple)
+        and len(key) == 2
+        and all(isinstance(_, str) for _ in key)
+    ):
+        return
+    raise TypeError(
+        "Expected a 2-tuple of strings formatted as\n"
+        "(field or particle type, field name)\n"
+        f"Received invalid field key: {key}, with type {type(key)}"
+    )
 
 
 def validate_object(obj, data_type):
@@ -1272,3 +1239,88 @@ def sglob(pattern):
     Return the results of a glob through the sorted() function.
     """
     return sorted(glob.glob(pattern))
+
+
+def dictWithFactory(factory: Callable[[Any], Any]) -> Type:
+    """
+    Create a dictionary class with a default factory function.
+    Contrary to `collections.defaultdict`, the factory takes
+    the missing key as input parameter.
+
+    Parameters
+    ----------
+    factory : callable(key) -> value
+        The factory to call when hitting a missing key
+
+    Returns
+    -------
+    DictWithFactory class
+        A class to create new dictionaries handling missing keys.
+    """
+
+    class DictWithFactory(dict):
+        def __init__(self, *args, **kwargs):
+            self.factory = factory
+            super().__init__(*args, **kwargs)
+
+        def __missing__(self, key):
+            val = self.factory(key)
+            self[key] = val
+            return val
+
+    return DictWithFactory
+
+
+def levenshtein_distance(seq1, seq2, max_dist=None):
+    """
+    Compute the levenshtein distance between seq1 and seq2.
+    From https://stackabuse.com/levenshtein-distance-and-text-similarity-in-python/
+
+    Parameters
+    ----------
+    seq1 : str
+    seq2 : str
+        The strings to compute the distance between
+    max_dist : integer
+        If not None, maximum distance returned (see notes).
+
+    Returns
+    -------
+    The Levenshtein distance as an integer.
+
+    Notes
+    -----
+    This computes the Levenshtein distance, i.e. the number of edits to change
+    seq1 into seq2. If a maximum distance is passed, the algorithm will stop as soon
+    as the number of edits goes above the value. This allows for an earlier break
+    and speeds calculations up.
+    """
+    size_x = len(seq1) + 1
+    size_y = len(seq2) + 1
+    if max_dist is None:
+        max_dist = max(size_x, size_y)
+
+    if abs(size_x - size_y) > max_dist:
+        return max_dist + 1
+    matrix = np.zeros((size_x, size_y), dtype=int)
+    for x in range(size_x):
+        matrix[x, 0] = x
+    for y in range(size_y):
+        matrix[0, y] = y
+
+    for x in range(1, size_x):
+        for y in range(1, size_y):
+            if seq1[x - 1] == seq2[y - 1]:
+                matrix[x, y] = min(
+                    matrix[x - 1, y] + 1, matrix[x - 1, y - 1], matrix[x, y - 1] + 1
+                )
+            else:
+                matrix[x, y] = min(
+                    matrix[x - 1, y] + 1, matrix[x - 1, y - 1] + 1, matrix[x, y - 1] + 1
+                )
+
+        # Early break: the minimum distance is already larger than
+        # maximum allow value, can return safely.
+        if matrix[x].min() > max_dist:
+            return max_dist + 1
+    return matrix[size_x - 1, size_y - 1]

@@ -6,7 +6,7 @@ import yt
 ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
 level = 2
-dims = ds.domain_dimensions * ds.refine_by ** level
+dims = ds.domain_dimensions * ds.refine_by**level
 
 # We construct an object that describes the data region and structure we want
 # In this case, we want all data up to the maximum "level" of refinement
@@ -17,7 +17,7 @@ cube = ds.covering_grid(
     left_edge=[0.0, 0.0, 0.0],
     dims=dims,
     # And any fields to preload (this is optional!)
-    fields=["density"],
+    fields=[("gas", "density")],
 )
 
 # Now we open our output file using h5py
@@ -25,7 +25,7 @@ cube = ds.covering_grid(
 f = h5py.File("my_data.h5", mode="w")
 
 # We create a dataset at the root, calling it "density"
-f.create_dataset("/density", data=cube["density"])
+f.create_dataset("/density", data=cube[("gas", "density")])
 
 # We close our file
 f.close()

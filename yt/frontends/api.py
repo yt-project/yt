@@ -18,7 +18,7 @@ _frontends = [
     "cf_radial",
     "chombo",
     "eagle",
-    "enzo_p",
+    "enzo_e",
     "enzo",
     "exodus_ii",
     "fits",

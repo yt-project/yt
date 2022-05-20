@@ -206,8 +206,9 @@ class EnzoSimulation(SimulationTimeSeries):
 
         >>> import yt
         >>> es = yt.load_simulation("enzo_tiny_cosmology/32Mpc_32.enzo", "Enzo")
-        >>> es.get_time_series(initial_redshift=10, final_time=(13.7, "Gyr"),
-                               redshift_data=False)
+        >>> es.get_time_series(
+        ...     initial_redshift=10, final_time=(13.7, "Gyr"), redshift_data=False
+        ... )
         >>> for ds in es:
         ...     print(ds.current_time)
         >>> es.get_time_series(redshifts=[3, 2, 1, 0])
@@ -684,7 +685,7 @@ class EnzoSimulation(SimulationTimeSeries):
         f = open(filename, "w")
         for q, output in enumerate(outputs):
             f.write(
-                ("CosmologyOutputRedshift[%d] = %." + str(decimals) + "f\n")
+                (f"CosmologyOutputRedshift[%d] = %.{decimals}f\n")
                 % ((q + start_index), output["redshift"])
             )
         f.close()
@@ -718,7 +719,7 @@ class EnzoCosmology(Cosmology):
             (
                 1.5
                 * self.omega_matter
-                * self.hubble_constant ** 2
+                * self.hubble_constant**2
                 * (1 + self.initial_redshift) ** 3
             )
             ** -0.5

@@ -1,11 +1,13 @@
 import os
 import weakref
+from typing import Type
 
 import numpy as np
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset, ParticleFile, validate_index_order
 from yt.funcs import mylog, setdefaultattr
+from yt.geometry.geometry_handler import Index
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.geometry.particle_geometry_handler import ParticleIndex
 from yt.utilities.file_handler import HDF5FileHandler, warn_h5py
@@ -93,12 +95,15 @@ class FLASHHierarchy(GridIndex):
             nyb = ds.parameters["nyb"]
             nzb = ds.parameters["nzb"]
         except KeyError:
-            nxb, nyb, nzb = [
+            nxb, nyb, nzb = (
                 int(f["/simulation parameters"][f"n{ax}b"]) for ax in "xyz"
-            ]
+            )
         self.grid_dimensions[:] *= (nxb, nyb, nzb)
         try:
             self.grid_particle_count[:] = f_part["/localnp"][:][:, None]
+            self._blockless_particle_count = (
+                f_part["/tracer particles"].shape[0] - self.grid_particle_count.sum()
+            )
         except KeyError:
             self.grid_particle_count[:] = 0.0
         self._particle_indices = np.zeros(self.num_grids + 1, dtype="int64")
@@ -121,7 +126,7 @@ class FLASHHierarchy(GridIndex):
         nlevels = self.grid_levels.max()
         dxs = np.ones((nlevels + 1, 3), dtype="float64")
         for i in range(nlevels + 1):
-            dxs[i, :ND] = rdx[:ND] / self.dataset.refine_by ** i
+            dxs[i, :ND] = rdx[:ND] / self.dataset.refine_by**i
 
         if ND < 3:
             dxs[:, ND:] = rdx[ND:]
@@ -141,7 +146,7 @@ class FLASHHierarchy(GridIndex):
     def _populate_grid_objects(self):
         ii = np.argsort(self.grid_levels.flat)
         gid = self._handle["/gid"][:]
-        first_ind = -(self.dataset.refine_by ** self.dataset.dimensionality)
+        first_ind = -(self.dataset.refine_by**self.dataset.dimensionality)
         for g in self.grids[ii].flat:
             gi = g.id - g._id_offset
             # FLASH uses 1-indexed group info
@@ -162,7 +167,7 @@ class FLASHHierarchy(GridIndex):
 
 
 class FLASHDataset(Dataset):
-    _index_class = FLASHHierarchy
+    _index_class: Type[Index] = FLASHHierarchy
     _field_info_class = FLASHFieldInfo
     _handle = None
 
@@ -174,6 +179,7 @@ class FLASHDataset(Dataset):
         particle_filename=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
 
         self.fluid_types += ("flash",)
@@ -223,6 +229,7 @@ class FLASHDataset(Dataset):
             dataset_type,
             units_override=units_override,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
         self.storage_filename = storage_filename
 
@@ -357,9 +364,9 @@ class FLASHDataset(Dataset):
             nyb = self.parameters["nyb"]
             nzb = self.parameters["nzb"]
         except KeyError:
-            nxb, nyb, nzb = [
+            nxb, nyb, nzb = (
                 int(self._handle["/simulation parameters"][f"n{ax}b"]) for ax in "xyz"
-            ]  # FLASH2 only!
+            )  # FLASH2 only!
 
         # Determine dimensionality
         try:
@@ -447,11 +454,11 @@ class FLASHDataset(Dataset):
             self.hubble_constant = self.parameters["hubbleconstant"]
             self.hubble_constant *= cm_per_mpc * 1.0e-5 * 1.0e-2  # convert to 'h'
         except Exception:
-            self.current_redshift = (
-                self.omega_lambda
-            ) = (
-                self.omega_matter
-            ) = self.hubble_constant = self.cosmological_simulation = 0.0
+            self.current_redshift = 0.0
+            self.omega_lambda = 0.0
+            self.omega_matter = 0.0
+            self.hubble_constant = 0.0
+            self.cosmological_simulation = 0
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):

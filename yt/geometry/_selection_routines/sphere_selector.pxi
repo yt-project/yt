@@ -35,7 +35,7 @@ cdef class SphereSelector(SelectorObject):
             pos[2] - 0.5*dds[2] <= self.center[2] <= pos[2]+0.5*dds[2]):
             return 1
         return self.select_point(pos)
-        # # langmm: added to allow sphere to interesect edge/corner of cell
+        # # langmm: added to allow sphere to intersect edge/corner of cell
         # cdef np.float64_t LE[3]
         # cdef np.float64_t RE[3]
         # cdef int i

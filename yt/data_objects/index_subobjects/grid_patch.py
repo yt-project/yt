@@ -1,9 +1,10 @@
-import warnings
 import weakref
+from typing import List, Tuple
 
 import numpy as np
 
 import yt.geometry.particle_deposit as particle_deposit
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.data_objects.selection_objects.data_selection_objects import (
     YTSelectionContainer,
@@ -18,8 +19,6 @@ from yt.utilities.exceptions import (
 from yt.utilities.lib.interpolators import ghost_zone_interpolate
 from yt.utilities.lib.mesh_utilities import clamp_edges
 from yt.utilities.nodal_data_utils import get_nodal_slices
-
-RECONSTRUCT_INDEX = bool(ytcfg.get("yt", "reconstruct_index"))
 
 
 class AMRGridPatch(YTSelectionContainer):
@@ -158,7 +157,7 @@ class AMRGridPatch(YTSelectionContainer):
         self._setup_dx()
 
     def _prepare_grid(self):
-        """ Copies all the appropriate attributes from the index. """
+        """Copies all the appropriate attributes from the index."""
         # This is definitely the slowest part of generating the index
         # Now we give it pointers to all of its attributes
         # Note that to keep in line with Enzo, we have broken PEP-8
@@ -169,7 +168,7 @@ class AMRGridPatch(YTSelectionContainer):
         self.RightEdge = h.grid_right_edge[my_ind]
         # This can be expensive so we allow people to disable this behavior
         # via a config option
-        if RECONSTRUCT_INDEX:
+        if ytcfg.get("yt", "reconstruct_index"):
             if is_sequence(self.Parent) and len(self.Parent) > 0:
                 p = self.Parent[0]
             else:
@@ -185,14 +184,14 @@ class AMRGridPatch(YTSelectionContainer):
         self.NumberOfParticles = h.grid_particle_count[my_ind, 0]
 
     def get_position(self, index):
-        """ Returns center position of an *index*. """
+        """Returns center position of an *index*."""
         pos = (index + 0.5) * self.dds + self.LeftEdge
         return pos
 
     def _fill_child_mask(self, child, mask, tofill, dlevel=1):
         rf = self.ds.refine_by
         if dlevel != 1:
-            rf = rf ** dlevel
+            rf = rf**dlevel
         gi, cgi = self.get_global_startindex(), child.get_global_startindex()
         startIndex = np.maximum(0, cgi // rf - gi)
         endIndex = np.minimum(
@@ -268,15 +267,21 @@ class AMRGridPatch(YTSelectionContainer):
         cube._base_grid = self
         return cube
 
-    def get_vertex_centered_data(self, fields, smoothed=True, no_ghost=False):
+    def get_vertex_centered_data(
+        self,
+        fields: List[Tuple[str, str]],
+        smoothed: bool = True,
+        no_ghost: bool = False,
+    ):
         _old_api = isinstance(fields, (str, tuple))
         if _old_api:
-            message = (
+            issue_deprecation_warning(
                 "get_vertex_centered_data() requires list of fields, rather than "
-                "a single field as an argument."
+                "a single field as an argument.",
+                since="3.3",
+                removal="4.2",
             )
-            warnings.warn(message, DeprecationWarning, stacklevel=2)
-            fields = [fields]
+            fields = [fields]  # type: ignore
 
         # Make sure the field list has only unique entries
         fields = list(set(fields))

@@ -20,13 +20,21 @@ sp1.set_field_parameter("bulk_velocity", bulk_vel)
 # Radial profile without correction
 
 rp0 = yt.create_profile(
-    sp0, "radius", "radial_velocity", units={"radius": "kpc"}, logs={"radius": False}
+    sp0,
+    ("index", "radius"),
+    ("gas", "radial_velocity"),
+    units={("index", "radius"): "kpc"},
+    logs={("index", "radius"): False},
 )
 
 # Radial profile with correction for bulk velocity
 
 rp1 = yt.create_profile(
-    sp1, "radius", "radial_velocity", units={"radius": "kpc"}, logs={"radius": False}
+    sp1,
+    ("index", "radius"),
+    ("gas", "radial_velocity"),
+    units={("index", "radius"): "kpc"},
+    logs={("index", "radius"): False},
 )
 
 # Make a plot using matplotlib
@@ -36,9 +44,9 @@ ax = fig.add_subplot(111)
 
 ax.plot(
     rp0.x.value,
-    rp0["radial_velocity"].in_units("km/s").value,
+    rp0[("gas", "radial_velocity")].in_units("km/s").value,
     rp1.x.value,
-    rp1["radial_velocity"].in_units("km/s").value,
+    rp1[("gas", "radial_velocity")].in_units("km/s").value,
 )
 
 ax.set_xlabel(r"$\mathrm{r\ (kpc)}$")

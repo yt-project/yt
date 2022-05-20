@@ -1,5 +1,6 @@
 import numpy as np
 
+from yt._typing import KnownFieldsT
 from yt.fields.field_info_container import FieldInfoContainer
 from yt.units.yt_array import YTArray
 from yt.utilities.physical_constants import amu_cgs, boltzmann_constant_cgs
@@ -15,7 +16,7 @@ p_units = "code_mass / (code_length * code_time**2)"
 
 
 class ARTIOFieldInfo(FieldInfoContainer):
-    known_other_fields = (
+    known_other_fields: KnownFieldsT = (
         ("HVAR_GAS_DENSITY", (rho_units, ["density"], None)),
         ("HVAR_GAS_ENERGY", (en_units, ["total_energy_density"], None)),
         ("HVAR_INTERNAL_ENERGY", (en_units, ["thermal_energy_density"], None)),
@@ -36,7 +37,7 @@ class ARTIOFieldInfo(FieldInfoContainer):
         ("RT_HVAR_HeIII", (rho_units, ["He_p2_density"], None)),
     )
 
-    known_particle_fields = (
+    known_particle_fields: KnownFieldsT = (
         ("POSITION_X", ("code_length", ["particle_position_x"], None)),
         ("POSITION_Y", ("code_length", ["particle_position_y"], None)),
         ("POSITION_Z", ("code_length", ["particle_position_z"], None)),
@@ -58,7 +59,9 @@ class ARTIOFieldInfo(FieldInfoContainer):
 
         def _get_vel(axis):
             def velocity(field, data):
-                return data[f"momentum_density_{axis}"] / data["density"]
+                return (
+                    data[("gas", f"momentum_density_{axis}")] / data[("gas", "density")]
+                )
 
             return velocity
 
@@ -71,7 +74,7 @@ class ARTIOFieldInfo(FieldInfoContainer):
             )
 
         def _temperature(field, data):
-            tr = data["thermal_energy_density"] / data["density"]
+            tr = data[("gas", "thermal_energy_density")] / data[("gas", "density")]
             # We want this to match *exactly* what ARTIO would compute
             # internally.  We therefore use the exact values that are internal
             # to ARTIO, rather than yt's own internal constants.
@@ -83,7 +86,7 @@ class ARTIOFieldInfo(FieldInfoContainer):
             mb = XH * mH + XHe * mHe
             wmu = 4.0 / (8.0 - 5.0 * Yp)
             # Note that we have gamma = 5.0/3.0 here
-            tr *= data["gamma"] - 1.0
+            tr *= data[("gas", "gamma")] - 1.0
             tr *= wmu
             tr *= mb / boltzmann_constant_cgs
             return tr
@@ -105,8 +108,8 @@ class ARTIOFieldInfo(FieldInfoContainer):
             if flag1 and flag2:
 
                 def _metal_density(field, data):
-                    tr = data["metal_ia_density"].copy()
-                    np.add(tr, data["metal_ii_density"], out=tr)
+                    tr = data[("gas", "metal_ia_density")].copy()
+                    np.add(tr, data[("gas", "metal_ii_density")], out=tr)
                     return tr
 
             elif flag1 and not flag2:

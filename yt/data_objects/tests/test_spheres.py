@@ -9,7 +9,7 @@ from yt.testing import (
     periodicity_cases,
     requires_module,
 )
-from yt.utilities.exceptions import YTException
+from yt.utilities.exceptions import YTException, YTFieldNotFound
 
 
 def setup():
@@ -19,8 +19,8 @@ def setup():
 
 
 _fields_to_compare = (
-    "spherical_r",
-    "cylindrical_r",
+    "spherical_radius",
+    "cylindrical_radius",
     "spherical_theta",
     "cylindrical_theta",
     "spherical_phi",
@@ -49,7 +49,10 @@ def test_domain_sphere():
     # Set the bulk velocity field parameter
     sp1.set_field_parameter("bulk_velocity", bulk_vel)
 
-    assert_equal(np.any(sp0["radial_velocity"] == sp1["radial_velocity"]), False)
+    assert_equal(
+        np.any(sp0[("gas", "radial_velocity")] == sp1[("gas", "radial_velocity")]),
+        False,
+    )
 
     # Radial profile without correction
     # Note we set n_bins = 8 here.
@@ -110,29 +113,39 @@ def test_sphere_center():
     assert_array_equal(sp1.center, sp2.center)
 
 
-@requires_module("MiniballCpp")
+def test_center_error():
+    ds = fake_random_ds(16, nprocs=16)
+
+    with assert_raises(YTFieldNotFound):
+        ds.sphere("min_non_existing_field_name", (0.25, "unitary"))
+
+    with assert_raises(YTFieldNotFound):
+        ds.sphere("max_non_existing_field_name", (0.25, "unitary"))
+
+
+@requires_module("miniball")
 def test_minimal_sphere():
     ds = fake_random_ds(16, nprocs=8, particles=100)
 
-    pos = ds.r["particle_position"]
+    pos = ds.r[("all", "particle_position")]
     sp1 = ds.minimal_sphere(pos)
 
     N0 = len(pos)
 
     # Check all particles have been found
-    N1 = len(sp1["particle_ones"])
+    N1 = len(sp1[("all", "particle_ones")])
     assert_equal(N0, N1)
 
     # Check that any smaller sphere is missing some particles
     sp2 = ds.sphere(sp1.center, sp1.radius * 0.9)
-    N2 = len(sp2["particle_ones"])
+    N2 = len(sp2[("all", "particle_ones")])
     assert N2 < N0
 
 
-@requires_module("MiniballCpp")
+@requires_module("miniball")
 def test_minimal_sphere_bad_inputs():
     ds = fake_random_ds(16, nprocs=8, particles=100)
-    pos = ds.r["particle_position"]
+    pos = ds.r[("all", "particle_position")]
 
     ## Check number of points >= 2
     # -> should fail

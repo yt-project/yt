@@ -1,3 +1,5 @@
+from typing import Dict
+
 import numpy as np
 
 from yt.geometry.selection_routines import GridSelector
@@ -7,7 +9,7 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 
 _convert_mass = ("particle_mass", "mass")
 
-_particle_position_names = {}
+_particle_position_names: Dict[str, str] = {}
 
 
 class IOHandlerPackedHDF5(BaseIOHandler):
@@ -27,6 +29,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         fields = []
         dtypes = set()
         add_io = "io" in grid.ds.particle_types
+        add_dm = "DarkMatter" in grid.ds.particle_types
         for name, v in group.items():
             # NOTE: This won't work with 1D datasets or references.
             # For all versions of Enzo I know about, we can assume all floats
@@ -38,6 +41,8 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                     fields.append(("enzo", str(name)))
                 elif add_io:
                     fields.append(("io", str(name)))
+                elif add_dm:
+                    fields.append(("DarkMatter", str(name)))
             else:
                 fields.append(("enzo", str(name)))
                 dtypes.add(v.dtype)
@@ -58,7 +63,10 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         return (KeyError,)
 
     def _read_particle_coords(self, chunks, ptf):
-        yield from self._read_particle_fields(chunks, ptf, None)
+        yield from (
+            (ptype, xyz, 0.0)
+            for ptype, xyz in self._read_particle_fields(chunks, ptf, None)
+        )
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
@@ -75,12 +83,25 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                     continue
                 ds = f.get("/Grid%08i" % g.id)
                 for ptype, field_list in sorted(ptf.items()):
-                    if ptype != "io":
+                    if ptype == "io":
+                        if g.NumberOfParticles == 0:
+                            continue
+                        pds = ds
+                    elif ptype == "DarkMatter":
                         if g.NumberOfActiveParticles[ptype] == 0:
                             continue
-                        pds = ds.get(f"Particles/{ptype}")
-                    else:
                         pds = ds
+                    elif not g.NumberOfActiveParticles[ptype]:
+                        continue
+                    else:
+                        for pname in ["Active Particles", "Particles"]:
+                            pds = ds.get(f"{pname}/{ptype}")
+                            if pds is not None:
+                                break
+                        else:
+                            raise RuntimeError(
+                                "Could not find active particle group in data."
+                            )
                     pn = _particle_position_names.get(ptype, r"particle_position_%s")
                     x, y, z = (
                         np.asarray(pds.get(pn % ax)[()], dtype="=f8") for ax in "xyz"
@@ -258,7 +279,7 @@ class IOHandlerInMemory(BaseIOHandler):
                         self.grids_in_memory[g.id]["particle_position_y"],
                         self.grids_in_memory[g.id]["particle_position_z"],
                     )
-                    yield ptype, (x, y, z)
+                    yield ptype, (x, y, z), 0.0
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)

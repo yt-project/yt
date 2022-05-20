@@ -65,7 +65,7 @@ class LensTest(TestCase):
         cam = sc.add_camera(dd, lens_type="fisheye")
         cam.lens.fov = 360.0
         cam.set_width(self.ds.domain_width)
-        v, c = self.ds.find_max("density")
+        v, c = self.ds.find_max(("gas", "density"))
         cam.set_position(c - 0.0005 * self.ds.domain_width)
         vol = create_volume_source(dd, field=self.field)
         tf = vol.transfer_function
@@ -78,7 +78,7 @@ class LensTest(TestCase):
         sc = Scene()
         cam = sc.add_camera(dd, lens_type="plane-parallel")
         cam.set_width(self.ds.domain_width * 1e-2)
-        v, c = self.ds.find_max("density")
+        v, c = self.ds.find_max(("gas", "density"))
         vol = create_volume_source(dd, field=self.field)
         tf = vol.transfer_function
         tf.grey_opacity = True

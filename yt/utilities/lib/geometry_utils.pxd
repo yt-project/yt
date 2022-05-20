@@ -284,7 +284,7 @@ cdef inline np.uint64_t bounded_morton_relative(np.float64_t x, np.float64_t y, 
     return mi2
 
 
-# This dosn't seem to be much, if at all, faster...
+# This doesn't seem to be much, if at all, faster...
 @cython.cdivision(True)
 cdef inline np.uint64_t bounded_morton_dds(np.float64_t x, np.float64_t y, np.float64_t z,
                                np.float64_t *DLE, np.float64_t *dds):

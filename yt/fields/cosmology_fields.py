@@ -113,7 +113,7 @@ def setup_cosmology_fields(registry, ftype="gas", slice_info=None):
         if virial_radius == 0.0:
             ret = 0.0
         else:
-            ret = data["radius"] / virial_radius
+            ret = data[("index", "radius")] / virial_radius
         return ret
 
     registry.add_field(

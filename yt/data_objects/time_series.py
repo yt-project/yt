@@ -4,11 +4,11 @@ import inspect
 import os
 import weakref
 from functools import wraps
+from typing import Optional, Type
 
 import numpy as np
 from more_itertools import always_iterable
 
-from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.data_objects.analyzer_objects import AnalysisTask, create_quantity_proxy
 from yt.data_objects.particle_trajectories import ParticleTrajectories
@@ -125,21 +125,27 @@ class DatasetSeries:
     --------
 
     >>> ts = DatasetSeries(
-            "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0[0-6][0-9]0")
+    ...     "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0[0-6][0-9]0"
+    ... )
     >>> for ds in ts:
-    ...     SlicePlot(ds, "x", "Density").save()
+    ...     SlicePlot(ds, "x", ("gas", "density")).save()
     ...
     >>> def print_time(ds):
     ...     print(ds.current_time)
     ...
     >>> ts = DatasetSeries(
     ...     "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0[0-6][0-9]0",
-    ...      setup_function = print_time)
+    ...     setup_function=print_time,
+    ... )
     ...
     >>> for ds in ts:
-    ...     SlicePlot(ds, "x", "Density").save()
+    ...     SlicePlot(ds, "x", ("gas", "density")).save()
 
     """
+    # this annotation should really be Optional[Type[Dataset]]
+    # but we cannot import the yt.data_objects.static_output.Dataset
+    # class here without creating a circular import for now
+    _dataset_cls: Optional[Type] = None
 
     def __init_subclass__(cls, *args, **kwargs):
         super().__init_subclass__(*args, **kwargs)
@@ -155,6 +161,7 @@ class DatasetSeries:
             pass
         ret = super().__new__(cls)
         ret._pre_outputs = outputs[:]
+        ret.kwargs = {}
         return ret
 
     def __init__(
@@ -265,7 +272,7 @@ class DatasetSeries:
 
         >>> ts = DatasetSeries("DD*/DD*.index")
         >>> for ds in ts.piter():
-        ...    SlicePlot(ds, "x", "Density").save()
+        ...     SlicePlot(ds, "x", ("gas", "density")).save()
         ...
 
         This demonstrates how one might store results:
@@ -273,12 +280,11 @@ class DatasetSeries:
         >>> def print_time(ds):
         ...     print(ds.current_time)
         ...
-        >>> ts = DatasetSeries("DD*/DD*.index",
-        ...             setup_function = print_time )
+        >>> ts = DatasetSeries("DD*/DD*.index", setup_function=print_time)
         ...
         >>> my_storage = {}
         >>> for sto, ds in ts.piter(storage=my_storage):
-        ...     v, c = ds.find_max("density")
+        ...     v, c = ds.find_max(("gas", "density"))
         ...     sto.result = (v, c)
         ...
         >>> for i, (v, c) in sorted(my_storage.items()):
@@ -287,10 +293,9 @@ class DatasetSeries:
 
         This shows how to dispatch 4 processors to each dataset:
 
-        >>> ts = DatasetSeries("DD*/DD*.index",
-        ...                     parallel = 4)
+        >>> ts = DatasetSeries("DD*/DD*.index", parallel=4)
         >>> for ds in ts.piter():
-        ...     ProjectionPlot(ds, "x", "Density").save()
+        ...     ProjectionPlot(ds, "x", ("gas", "density")).save()
         ...
 
         """
@@ -353,57 +358,6 @@ class DatasetSeries:
         return [v for k, v in sorted(return_values.items())]
 
     @classmethod
-    def from_filenames(cls, filenames, parallel=True, setup_function=None, **kwargs):
-        r"""Create a time series from either a filename pattern or a list of
-        filenames.
-
-        This method provides an easy way to create a
-        :class:`~yt.data_objects.time_series.DatasetSeries`, given a set of
-        filenames or a pattern that matches them.  Additionally, it can set the
-        parallelism strategy.
-
-        Parameters
-        ----------
-        filenames : list or pattern
-            This can either be a list of filenames (such as ["DD0001/DD0001",
-            "DD0002/DD0002"]) or a pattern to match, such as
-            "DD*/DD*.index").  If it's the former, they will be loaded in
-            order.  The latter will be identified with the glob module and then
-            sorted.
-        parallel : True, False or int
-            This parameter governs the behavior when .piter() is called on the
-            resultant DatasetSeries object.  If this is set to False, the time
-            series will not iterate in parallel when .piter() is called.  If
-            this is set to either True or an integer, it will be iterated with
-            1 or that integer number of processors assigned to each parameter
-            file provided to the loop.
-        setup_function : callable, accepts a ds
-            This function will be called whenever a dataset is loaded.
-
-        Examples
-        --------
-
-        >>> def print_time(ds):
-        ...     print(ds.current_time)
-        ...
-        >>> ts = DatasetSeries.from_filenames(
-        ...     "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0[0-6][0-9]0",
-        ...      setup_function = print_time)
-        ...
-        >>> for ds in ts:
-        ...     SlicePlot(ds, "x", "Density").save()
-
-        """
-        issue_deprecation_warning(
-            "DatasetSeries.from_filenames() is deprecated and will be removed "
-            "in a future version of yt. Use DatasetSeries() directly.",
-            since="4.0.0",
-            removal="4.1.0",
-        )
-        obj = cls(filenames, parallel=parallel, setup_function=setup_function, **kwargs)
-        return obj
-
-    @classmethod
     def from_output_log(cls, output_log, line_prefix="DATASET WRITTEN", parallel=True):
         filenames = []
         for line in open(output_log):
@@ -415,16 +369,14 @@ class DatasetSeries:
         obj = cls(filenames, parallel=parallel)
         return obj
 
-    _dataset_cls = None
-
-    def _load(self, output_fn, **kwargs):
+    def _load(self, output_fn, *, hint: Optional[str] = None, **kwargs):
         from yt.loaders import load
 
         if self._dataset_cls is not None:
             return self._dataset_cls(output_fn, **kwargs)
         elif self._mixed_dataset_types:
-            return load(output_fn, **kwargs)
-        ds = load(output_fn, **kwargs)
+            return load(output_fn, hint=hint, **kwargs)
+        ds = load(output_fn, hint=hint, **kwargs)
         self._dataset_cls = ds.__class__
         return ds
 
@@ -454,19 +406,27 @@ class DatasetSeries:
         --------
         >>> my_fns = glob.glob("orbit_hdf5_chk_00[0-9][0-9]")
         >>> my_fns.sort()
-        >>> fields = ["particle_position_x", "particle_position_y",
-        >>>           "particle_position_z", "particle_velocity_x",
-        >>>           "particle_velocity_y", "particle_velocity_z"]
+        >>> fields = [
+        ...     ("all", "particle_position_x"),
+        ...     ("all", "particle_position_y"),
+        ...     ("all", "particle_position_z"),
+        ...     ("all", "particle_velocity_x"),
+        ...     ("all", "particle_velocity_y"),
+        ...     ("all", "particle_velocity_z"),
+        ... ]
         >>> ds = load(my_fns[0])
-        >>> init_sphere = ds.sphere(ds.domain_center, (.5, "unitary"))
-        >>> indices = init_sphere["particle_index"].astype("int")
+        >>> init_sphere = ds.sphere(ds.domain_center, (0.5, "unitary"))
+        >>> indices = init_sphere[("all", "particle_index")].astype("int")
         >>> ts = DatasetSeries(my_fns)
         >>> trajs = ts.particle_trajectories(indices, fields=fields)
-        >>> for t in trajs :
-        >>>     print(t["particle_velocity_x"].max(), t["particle_velocity_x"].min())
+        >>> for t in trajs:
+        ...     print(
+        ...         t[("all", "particle_velocity_x")].max(),
+        ...         t[("all", "particle_velocity_x")].min(),
+        ...     )
 
-        Note
-        ----
+        Notes
+        -----
         This function will fail if there are duplicate particle ids or if some of the
         particle disappear.
         """
@@ -623,10 +583,10 @@ class SimulationTimeSeries(DatasetSeries):
 
         Parameters
         ----------
-        key: str
+        key : str
             The key by which to retrieve outputs, usually 'time' or
             'redshift'.
-        values: array_like
+        values : array_like
             A list of values, given as floats.
         tolerance : float
             If not None, do not return a dataset unless the value is
@@ -640,7 +600,7 @@ class SimulationTimeSeries(DatasetSeries):
 
         Examples
         --------
-        >>> datasets = es.get_outputs_by_key('redshift', [0, 1, 2], tolerance=0.1)
+        >>> datasets = es.get_outputs_by_key("redshift", [0, 1, 2], tolerance=0.1)
 
         """
 

@@ -7,10 +7,11 @@ import numpy as np
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.index_subobjects.unstructured_mesh import SemiStructuredMesh
 from yt.data_objects.static_output import Dataset
+from yt.fields.magnetic_field import get_magnetic_normalization
 from yt.funcs import get_pbar, mylog
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
-from yt.utilities.chemical_formulas import default_mu
+from yt.utilities.chemical_formulas import compute_mu
 from yt.utilities.file_handler import HDF5FileHandler
 
 from .fields import AthenaPPFieldInfo
@@ -130,7 +131,7 @@ class AthenaPPLogarithmicIndex(UnstructuredIndex):
                 np.array([nxm - 1, nym - 1, nzm - 1]),
             )
             self.meshes.append(mesh)
-            pbar.update(i)
+            pbar.update(i + 1)
         pbar.finish()
         mylog.debug("Done setting up meshes.")
 
@@ -240,6 +241,8 @@ class AthenaPPDataset(Dataset):
         parameters=None,
         units_override=None,
         unit_system="code",
+        default_species_fields=None,
+        magnetic_normalization="gaussian",
     ):
         self.fluid_types += ("athena_pp",)
         if parameters is None:
@@ -257,18 +260,18 @@ class AthenaPPDataset(Dataset):
         else:
             self._index_class = AthenaPPHierarchy
             self.logarithmic = False
+        self._magnetic_factor = get_magnetic_normalization(magnetic_normalization)
         Dataset.__init__(
             self,
             filename,
             dataset_type,
             units_override=units_override,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
-        self.filename = filename
         if storage_filename is None:
-            storage_filename = f"{filename.split('/')[-1]}.yt"
+            storage_filename = self.basename + ".yt"
         self.storage_filename = storage_filename
-        self.backup_filename = self.filename[:-4] + "_backup.gdf"
 
     def _set_code_unit_attributes(self):
         """
@@ -290,7 +293,9 @@ class AthenaPPDataset(Dataset):
             setattr(self, f"{unit}_unit", self.quan(1.0, cgs))
 
         self.magnetic_unit = np.sqrt(
-            4 * np.pi * self.mass_unit / (self.time_unit ** 2 * self.length_unit)
+            self._magnetic_factor
+            * self.mass_unit
+            / (self.time_unit**2 * self.length_unit)
         )
         self.magnetic_unit.convert_to_units("gauss")
         self.velocity_unit = self.length_unit / self.time_unit
@@ -339,11 +344,11 @@ class AthenaPPDataset(Dataset):
         else:
             self.gamma = 5.0 / 3.0
 
-        self.current_redshift = (
-            self.omega_lambda
-        ) = (
-            self.omega_matter
-        ) = self.hubble_constant = self.cosmological_simulation = 0.0
+        self.current_redshift = 0.0
+        self.omega_lambda = 0.0
+        self.omega_matter = 0.0
+        self.hubble_constant = 0.0
+        self.cosmological_simulation = 0
         self.parameters["Time"] = self.current_time  # Hardcode time conversion for now.
         self.parameters[
             "HydroMethod"
@@ -352,12 +357,14 @@ class AthenaPPDataset(Dataset):
             self.parameters["Gamma"] = self.specified_parameters["gamma"]
         else:
             self.parameters["Gamma"] = 5.0 / 3.0
-        self.mu = self.specified_parameters.get("mu", default_mu)
+        self.mu = self.specified_parameters.get(
+            "mu", compute_mu(self.default_species_fields)
+        )
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
         try:
-            if filename.endswith("athdf"):
+            if filename.endswith(".athdf"):
                 return True
         except Exception:
             pass
@@ -367,5 +374,5 @@ class AthenaPPDataset(Dataset):
     def _skip_cache(self):
         return True
 
-    def __repr__(self):
+    def __str__(self):
         return self.basename.rsplit(".", 1)[0]

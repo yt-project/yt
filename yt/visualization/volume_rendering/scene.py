@@ -1,13 +1,14 @@
 import builtins
 import functools
 from collections import OrderedDict
+from typing import List, Optional
 
 import numpy as np
 
 from yt.config import ytcfg
 from yt.funcs import mylog
-from yt.units.dimensions import length
-from yt.units.unit_registry import UnitRegistry
+from yt.units.dimensions import length  # type: ignore
+from yt.units.unit_registry import UnitRegistry  # type: ignore
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTNotInsideNotebook
 from yt.visualization._commons import get_canvas, validate_image_name
@@ -40,10 +41,6 @@ class Scene:
     This does very little setup, and requires additional input
     to do anything useful.
 
-    Parameters
-    ----------
-    None
-
     Examples
     --------
 
@@ -51,11 +48,11 @@ class Scene:
     and a Camera.
 
     >>> import yt
-    >>> from yt.visualization.volume_rendering.api import\
-    ...     Scene, create_volume_source, Camera
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> from yt.visualization.volume_rendering.api import (
+    ...     Camera, Scene, create_volume_source)
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> sc = Scene()
-    >>> source = create_volume_source(ds.all_data(), 'density')
+    >>> source = create_volume_source(ds.all_data(), "density")
     >>> sc.add_source(source)
     >>> cam = sc.add_camera()
     >>> im = sc.render()
@@ -64,8 +61,8 @@ class Scene:
     and then modify the Scene later:
 
     >>> import yt
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    >>>
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
     >>> sc = yt.create_scene(ds)
     >>> # Modify camera, sources, etc...
     >>> im = sc.render()
@@ -202,19 +199,19 @@ class Scene:
         --------
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>>
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
         >>> sc = yt.create_scene(ds)
         >>> # Modify camera, sources, etc...
         >>> im = sc.render()
-        >>> sc.save(sigma_clip=4.0,render=False)
+        >>> sc.save(sigma_clip=4.0, render=False)
 
         Altneratively, if you do not need the image array, you can just call
         ``save`` as follows.
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>>
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
         >>> sc = yt.create_scene(ds)
         >>> # Modify camera, sources, etc...
         >>> sc.save(sigma_clip=4.0)
@@ -251,7 +248,7 @@ class Scene:
     def _get_render_sources(self):
         return [s for s in self.sources.values() if isinstance(s, RenderSource)]
 
-    def _setup_save(self, fname, render):
+    def _setup_save(self, fname, render) -> str:
 
         self._render_on_demand(render)
 
@@ -274,7 +271,12 @@ class Scene:
         mylog.info("Saving rendered image to %s", fname)
         return fname
 
-    def save(self, fname=None, sigma_clip=None, render=True):
+    def save(
+        self,
+        fname: Optional[str] = None,
+        sigma_clip: Optional[float] = None,
+        render: bool = True,
+    ):
         r"""Saves a rendered image of the Scene to disk.
 
         Once you have created a scene, this saves an image array to disk with
@@ -287,8 +289,9 @@ class Scene:
         fname: string, optional
             If specified, save the rendering as to the file "fname".
             If unspecified, it creates a default based on the dataset filename.
-            The file format is inferred from the filename's suffix. Supported
-            fomats are png, pdf, eps, and ps.
+            The file format is inferred from the filename's suffix.
+            Supported formats depend on which version of matplotlib is installed.
+
             Default: None
         sigma_clip: float, optional
             Image values greater than this number times the standard deviation
@@ -310,24 +313,24 @@ class Scene:
         --------
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>>
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
         >>> sc = yt.create_scene(ds)
         >>> # Modify camera, sources, etc...
-        >>> sc.save('test.png', sigma_clip=4)
+        >>> sc.save("test.png", sigma_clip=4)
 
         When saving multiple images without modifying the scene (camera,
         sources,etc.), render=False can be used to avoid re-rendering.
         This is useful for generating images at a range of sigma_clip values:
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>>
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
         >>> sc = yt.create_scene(ds)
         >>> # save with different sigma clipping values
-        >>> sc.save('raw.png')  # The initial render call happens here
-        >>> sc.save('clipped_2.png', sigma_clip=2, render=False)
-        >>> sc.save('clipped_4.png', sigma_clip=4, render=False)
+        >>> sc.save("raw.png")  # The initial render call happens here
+        >>> sc.save("clipped_2.png", sigma_clip=2, render=False)
+        >>> sc.save("clipped_4.png", sigma_clip=4, render=False)
 
         """
         fname = self._setup_save(fname, render)
@@ -358,12 +361,13 @@ class Scene:
 
     def save_annotated(
         self,
-        fname=None,
-        label_fmt=None,
+        fname: Optional[str] = None,
+        label_fmt: Optional[str] = None,
         text_annotate=None,
-        dpi=100,
-        sigma_clip=None,
-        render=True,
+        dpi: int = 100,
+        sigma_clip: Optional[float] = None,
+        render: bool = True,
+        tf_rect: Optional[List[float]] = None,
     ):
         r"""Saves the most recently rendered image of the Scene to disk,
         including an image of the transfer function and and user-defined
@@ -406,6 +410,12 @@ class Scene:
             If True, will render the scene before saving.
             If False, will use results of previous render if it exists.
             Default: True
+        tf_rect : sequence of floats, optional
+           A rectangle that defines the location of the transfer
+           function legend.  This is only used for the case where
+           there are multiple volume sources with associated transfer
+           functions.  tf_rect is of the form [x0, y0, width, height],
+           in figure coordinates.
 
         Returns
         -------
@@ -415,27 +425,60 @@ class Scene:
         Examples
         --------
 
-        >>> sc.save_annotated("fig.png",
-        ...                   text_annotate=[[(0.05, 0.05),
-        ...                                   "t = {}".format(ds.current_time.d),
-        ...                                   dict(horizontalalignment="left")],
-        ...                                  [(0.5,0.95),
-        ...                                   "simulation title",
-        ...                                   dict(color="y", fontsize="24",
-        ...                                        horizontalalignment="center")]])
+        >>> sc.save_annotated(
+        ...     "fig.png",
+        ...     text_annotate=[
+        ...         [
+        ...             (0.05, 0.05),
+        ...             f"t = {ds.current_time.d}",
+        ...             dict(horizontalalignment="left"),
+        ...         ],
+        ...         [
+        ...             (0.5, 0.95),
+        ...             "simulation title",
+        ...             dict(color="y", fontsize="24", horizontalalignment="center"),
+        ...         ],
+        ...     ],
+        ... )
 
         """
         fname = self._setup_save(fname, render)
 
-        # which transfer function?
-        rs = self._get_render_sources()[0]
-        tf = rs.transfer_function
-        label = rs.data_source.ds._get_field_info(rs.field).get_label()
-
         ax = self._show_mpl(
             self._last_render.swapaxes(0, 1), sigma_clip=sigma_clip, dpi=dpi
         )
-        self._annotate(ax.axes, tf, rs, label=label, label_fmt=label_fmt)
+
+        # number of transfer functions?
+        num_trans_func = 0
+        for rs in self._get_render_sources():
+            if hasattr(rs, "transfer_function"):
+                num_trans_func += 1
+
+        # which transfer function?
+        if num_trans_func == 1:
+            rs = self._get_render_sources()[0]
+            tf = rs.transfer_function
+            label = rs.data_source.ds._get_field_info(rs.field).get_label()
+            self._annotate(ax.axes, tf, rs, label=label, label_fmt=label_fmt)
+        else:
+            # set the origin and width and height of the colorbar region
+            if tf_rect is None:
+                tf_rect = [0.80, 0.12, 0.12, 0.9]
+            cbx0, cby0, cbw, cbh = tf_rect
+
+            cbh_each = cbh / num_trans_func
+
+            for i, rs in enumerate(self._get_render_sources()):
+                ax = self._render_figure.add_axes(
+                    [cbx0, cby0 + i * cbh_each, 0.8 * cbw, 0.8 * cbh_each]
+                )
+                try:
+                    tf = rs.transfer_function
+                except AttributeError:
+                    pass
+                else:
+                    label = rs.data_source.ds._get_field_info(rs.field).get_label()
+                    self._annotate_multi(ax, tf, rs, label=label, label_fmt=label_fmt)
 
         # any text?
         if text_annotate is not None:
@@ -495,6 +538,18 @@ class Scene:
             log_scale=source.log_field,
         )
 
+    def _annotate_multi(self, ax, tf, source, label, label_fmt):
+        ax.yaxis.set_label_position("right")
+        ax.yaxis.tick_right()
+        tf.vert_cbar(
+            ax=ax,
+            label=label,
+            label_fmt=label_fmt,
+            resolution=self.camera.resolution[0],
+            log_scale=source.log_field,
+            size=6,
+        )
+
     def _validate(self):
         r"""Validate the current state of the scene."""
 
@@ -524,8 +579,8 @@ class Scene:
         --------
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>>
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
         >>> sc = yt.create_scene(ds)
         >>> # Modify camera, sources, etc...
         >>> im = sc.composite()
@@ -583,15 +638,15 @@ class Scene:
         to be reasonable for the argument Dataset.
 
         >>> import yt
-        >>> from yt.visualization.volume_rendering.api import Scene, Camera
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> from yt.visualization.volume_rendering.api import Camera, Scene
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
         >>> sc = Scene()
         >>> sc.add_camera()
 
         Here, we set the camera properties manually:
 
         >>> import yt
-        >>> from yt.visualization.volume_rendering.api import Scene, Camera
+        >>> from yt.visualization.volume_rendering.api import Camera, Scene
         >>> sc = Scene()
         >>> cam = sc.add_camera()
         >>> cam.position = np.array([0.5, 0.5, -1.0])
@@ -602,68 +657,63 @@ class Scene:
 
         >>> import yt
         >>> from yt.visualization.volume_rendering.api import Camera
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
         >>> sc = Scene()
-        >>> sc.add_camera(ds, lens_type='perspective')
+        >>> sc.add_camera(ds, lens_type="perspective")
 
         """
         self._camera = Camera(self, data_source, lens_type, auto)
         return self.camera
 
-    def camera():
-        doc = r"""The camera property.
+    @property
+    def camera(self):
+        r"""The camera property.
 
         This is the default camera that will be used when rendering. Can be set
         manually, but Camera type will be checked for validity.
         """
+        return self._camera
 
-        def fget(self):
-            return self._camera
+    @camera.setter
+    def camera(self, value):
+        value.width = self.arr(value.width)
+        value.focus = self.arr(value.focus)
+        value.position = self.arr(value.position)
+        self._camera = value
 
-        def fset(self, value):
-            value.width = self.arr(value.width)
-            value.focus = self.arr(value.focus)
-            value.position = self.arr(value.position)
-            self._camera = value
+    @camera.deleter
+    def camera(self):
+        del self._camera
+        self._camera = None
 
-        def fdel(self):
-            del self._camera
-            self._camera = None
+    @property
+    def unit_registry(self):
+        ur = self._unit_registry
+        if ur is None:
+            ur = UnitRegistry()
+            # This will be updated when we add a volume source
+            ur.add("unitary", 1.0, length)
+        self._unit_registry = ur
+        return self._unit_registry
 
-        return locals()
+    @unit_registry.setter
+    def unit_registry(self, value):
+        self._unit_registry = value
+        if self.camera is not None:
+            self.camera.width = YTArray(
+                self.camera.width.in_units("unitary"), registry=value
+            )
+            self.camera.focus = YTArray(
+                self.camera.focus.in_units("unitary"), registry=value
+            )
+            self.camera.position = YTArray(
+                self.camera.position.in_units("unitary"), registry=value
+            )
 
-    camera = property(**camera())
-
-    def unit_registry():
-        def fget(self):
-            ur = self._unit_registry
-            if ur is None:
-                ur = UnitRegistry()
-                # This will be updated when we add a volume source
-                ur.add("unitary", 1.0, length)
-            self._unit_registry = ur
-            return self._unit_registry
-
-        def fset(self, value):
-            self._unit_registry = value
-            if self.camera is not None:
-                self.camera.width = YTArray(
-                    self.camera.width.in_units("unitary"), registry=value
-                )
-                self.camera.focus = YTArray(
-                    self.camera.focus.in_units("unitary"), registry=value
-                )
-                self.camera.position = YTArray(
-                    self.camera.position.in_units("unitary"), registry=value
-                )
-
-        def fdel(self):
-            del self._unit_registry
-            self._unit_registry = None
-
-        return locals()
-
-    unit_registry = property(**unit_registry())
+    @unit_registry.deleter
+    def unit_registry(self):
+        del self._unit_registry
+        self._unit_registry = None
 
     def set_camera(self, camera):
         r"""
@@ -702,8 +752,8 @@ class Scene:
         --------
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>>
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
         >>> sc = yt.create_scene(ds)
         >>> sc.annotate_domain(ds)
         >>> im = sc.render()
@@ -741,8 +791,8 @@ class Scene:
         --------
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>>
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
         >>> sc = yt.create_scene(ds)
         >>> sc.annotate_grids(ds.all_data())
         >>> im = sc.render()
@@ -801,8 +851,8 @@ class Scene:
         --------
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>>
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
         >>> sc = yt.create_scene(ds)
         >>> sc.annotate_axes(alpha=0.5)
         >>> im = sc.render()
@@ -829,8 +879,8 @@ class Scene:
         --------
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>>
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
         >>> sc = yt.create_scene(ds)
         >>> sc.show()
 
@@ -857,9 +907,7 @@ class Scene:
 
         input_array : Iterable
             A tuple, list, or array to attach units to
-        units: String unit specification, unit symbol object, or astropy
-            units object
-        input_units : deprecated in favor of 'units'
+        units: String unit specification, unit symbol object, or astropy units object
             The units of the array. Powers must be specified using python syntax
             (cm**3, not cm^3).
         dtype : string or NumPy dtype object
@@ -868,8 +916,8 @@ class Scene:
         Examples
         --------
 
-        >>> a = sc.arr([1, 2, 3], 'cm')
-        >>> b = sc.arr([4, 5, 6], 'm')
+        >>> a = sc.arr([1, 2, 3], "cm")
+        >>> b = sc.arr([4, 5, 6], "m")
         >>> a + b
         YTArray([ 401.,  502.,  603.]) cm
         >>> b + a
@@ -877,8 +925,8 @@ class Scene:
 
         Arrays returned by this function know about the scene's unit system
 
-        >>> a = sc.arr(np.ones(5), 'unitary')
-        >>> a.in_units('Mpc')
+        >>> a = sc.arr(np.ones(5), "unitary")
+        >>> a.in_units("Mpc")
         YTArray([ 1.00010449,  1.00010449,  1.00010449,  1.00010449,
                  1.00010449]) Mpc
 
@@ -913,8 +961,8 @@ class Scene:
         Examples
         --------
 
-        >>> a = sc.quan(1, 'cm')
-        >>> b = sc.quan(2, 'm')
+        >>> a = sc.quan(1, "cm")
+        >>> b = sc.quan(2, "m")
         >>> a + b
         201.0 cm
         >>> b + a
@@ -923,7 +971,7 @@ class Scene:
         Quantities created this way automatically know about the unit system
         of the scene
 
-        >>> a = ds.quan(5, 'unitary')
+        >>> a = ds.quan(5, "unitary")
         >>> a.in_cgs()
         1.543e+25 cm
 

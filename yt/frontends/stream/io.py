@@ -1,7 +1,7 @@
 import numpy as np
 
 from yt.utilities.exceptions import YTDomainOverflow
-from yt.utilities.io_handler import BaseIOHandler
+from yt.utilities.io_handler import BaseIOHandler, BaseParticleIOHandler
 from yt.utilities.logger import ytLogger as mylog
 
 
@@ -59,8 +59,11 @@ class IOHandlerStream(BaseIOHandler):
                     if (ptype, "particle_position") in gf:
                         x, y, z = gf[ptype, "particle_position"].T
                     else:
-                        x, y, z = (gf[ptype, f"particle_position_{ax}"] for ax in "xyz")
-                    yield ptype, (x, y, z)
+                        x, y, z = (
+                            gf[ptype, f"particle_position_{ax}"]
+                            for ax in self.ds.coordinates.axis_order
+                        )
+                    yield ptype, (x, y, z), 0.0
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
@@ -73,7 +76,10 @@ class IOHandlerStream(BaseIOHandler):
                     if (ptype, "particle_position") in gf:
                         x, y, z = gf[ptype, "particle_position"].T
                     else:
-                        x, y, z = (gf[ptype, f"particle_position_{ax}"] for ax in "xyz")
+                        x, y, z = (
+                            gf[ptype, f"particle_position_{ax}"]
+                            for ax in self.ds.coordinates.axis_order
+                        )
                     mask = selector.select_points(x, y, z, 0.0)
                     if mask is None:
                         continue
@@ -86,7 +92,7 @@ class IOHandlerStream(BaseIOHandler):
         return KeyError
 
 
-class StreamParticleIOHandler(BaseIOHandler):
+class StreamParticleIOHandler(BaseParticleIOHandler):
 
     _vector_fields = ("particle_position", "particle_velocity")
     _dataset_type = "stream_particles"
@@ -107,7 +113,7 @@ class StreamParticleIOHandler(BaseIOHandler):
                     f[ptype, "particle_position_x"],
                     f[ptype, "particle_position_y"],
                     f[ptype, "particle_position_z"],
-                )
+                ), 0.0
 
     def _read_smoothing_length(self, chunks, ptf, ptype):
         for data_file in sorted(
@@ -124,7 +130,7 @@ class StreamParticleIOHandler(BaseIOHandler):
         return data_files
 
     def _count_particles_chunks(self, psize, chunks, ptf, selector):
-        for ptype, (x, y, z) in self._read_particle_coords(chunks, ptf):
+        for ptype, (x, y, z), _ in self._read_particle_coords(chunks, ptf):
             if (ptype, "smoothing_length") in self.ds.field_list:
                 hsml = self._read_smoothing_length(chunks, ptf, ptype)
             else:
@@ -132,29 +138,35 @@ class StreamParticleIOHandler(BaseIOHandler):
             psize[ptype] += selector.count_points(x, y, z, hsml)
         return psize
 
-    def _read_particle_fields(self, chunks, ptf, selector):
-        for data_file in sorted(
-            self._get_data_files(chunks), key=lambda x: (x.filename, x.start)
-        ):
-            f = self.fields[data_file.filename]
-            for ptype, field_list in sorted(ptf.items()):
-                if (ptype, "particle_position") in f:
-                    ppos = f[ptype, "particle_position"]
-                    x = ppos[:, 0]
-                    y = ppos[:, 1]
-                    z = ppos[:, 2]
-                else:
-                    x, y, z = (f[ptype, f"particle_position_{ax}"] for ax in "xyz")
-                if (ptype, "smoothing_length") in self.ds.field_list:
-                    hsml = f[ptype, "smoothing_length"]
-                else:
-                    hsml = 0.0
+    def _read_particle_data_file(self, data_file, ptf, selector=None):
+
+        return_data = {}
+        f = self.fields[data_file.filename]
+        for ptype, field_list in sorted(ptf.items()):
+            if (ptype, "particle_position") in f:
+                ppos = f[ptype, "particle_position"]
+                x = ppos[:, 0]
+                y = ppos[:, 1]
+                z = ppos[:, 2]
+            else:
+                x, y, z = (f[ptype, f"particle_position_{ax}"] for ax in "xyz")
+            if (ptype, "smoothing_length") in self.ds.field_list:
+                hsml = f[ptype, "smoothing_length"]
+            else:
+                hsml = 0.0
+
+            if selector:
                 mask = selector.select_points(x, y, z, hsml)
-                if mask is None:
-                    continue
-                for field in field_list:
-                    data = f[ptype, field][mask]
-                    yield (ptype, field), data
+            if mask is None:
+                continue
+            for field in field_list:
+                data = f[ptype, field]
+                if selector:
+                    data = data[mask]
+
+                return_data[(ptype, field)] = data
+
+        return return_data
 
     def _yield_coordinates(self, data_file, needed_ptype=None):
         # self.fields[g.id][fname] is the pattern here

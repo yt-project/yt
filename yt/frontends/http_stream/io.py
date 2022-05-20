@@ -1,16 +1,15 @@
 import numpy as np
 
-from yt.funcs import get_requests, mylog
-from yt.utilities.io_handler import BaseIOHandler
+from yt.funcs import mylog
+from yt.utilities.io_handler import BaseParticleIOHandler
+from yt.utilities.on_demand_imports import _requests as requests
 
 
-class IOHandlerHTTPStream(BaseIOHandler):
+class IOHandlerHTTPStream(BaseParticleIOHandler):
     _dataset_type = "http_particle_stream"
     _vector_fields = ("Coordinates", "Velocity", "Velocities")
 
     def __init__(self, ds):
-        if get_requests() is None:
-            raise ImportError("This functionality depends on the requests package")
         self._url = ds.base_url
         # This should eventually manage the IO and cache it
         self.total_bytes = 0
@@ -21,7 +20,6 @@ class IOHandlerHTTPStream(BaseIOHandler):
         ftype, fname = field
         s = f"{self._url}/{data_file.file_id}/{ftype}/{fname}"
         mylog.info("Loading URL %s", s)
-        requests = get_requests()
         resp = requests.get(s)
         if resp.status_code != 200:
             raise RuntimeError
@@ -45,7 +43,7 @@ class IOHandlerHTTPStream(BaseIOHandler):
                 s = self._open_stream(data_file, (ptype, "Coordinates"))
                 c = np.frombuffer(s, dtype="float64")
                 c.shape = (c.shape[0] / 3.0, 3)
-                yield ptype, (c[:, 0], c[:, 1], c[:, 2])
+                yield ptype, (c[:, 0], c[:, 1], c[:, 2]), 0.0
 
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate

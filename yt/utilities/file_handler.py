@@ -17,7 +17,7 @@ def warn_h5py(fn):
     needs_h5py = valid_hdf5_signature(fn)
     if needs_h5py and isinstance(h5py.File, NotAModule):
         raise RuntimeError(
-            "This appears to be an HDF5 file, " "but h5py is not installed."
+            "This appears to be an HDF5 file, but h5py is not installed."
         )
 
 

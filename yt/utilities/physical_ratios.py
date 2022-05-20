@@ -139,7 +139,7 @@ TINY = 1.0e-40
 # Planck units
 hbar_cgs = 0.5 * planck_cgs / np.pi
 planck_mass_grams = np.sqrt(hbar_cgs * speed_of_light_cm_per_s / newton_cgs)
-planck_length_cm = np.sqrt(hbar_cgs * newton_cgs / speed_of_light_cm_per_s ** 3)
+planck_length_cm = np.sqrt(hbar_cgs * newton_cgs / speed_of_light_cm_per_s**3)
 planck_time_s = planck_length_cm / speed_of_light_cm_per_s
 planck_energy_erg = (
     planck_mass_grams * speed_of_light_cm_per_s * speed_of_light_cm_per_s

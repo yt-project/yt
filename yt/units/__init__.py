@@ -44,7 +44,7 @@ class UnitContainer:
 
     >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> code_mass = ds.units.code_mass
-    >>> (12*code_mass).to("Msun")
+    >>> (12 * code_mass).to("Msun")
     unyt_quantity(4.89719136e+11, 'Msun')
     >>> code_mass.registry is ds.unit_registry
     True

@@ -3,7 +3,7 @@ from collections import defaultdict
 import numpy as np
 
 from yt.funcs import is_sequence, mylog
-from yt.units.unit_object import Unit
+from yt.units.unit_object import Unit  # type: ignore
 from yt.units.yt_array import YTArray
 from yt.visualization.base_plot_types import PlotMPL
 from yt.visualization.plot_container import (
@@ -40,8 +40,8 @@ class LineBuffer:
 
     Examples
     --------
-    >>> lb = yt.LineBuffer(ds, (.25, 0, 0), (.25, 1, 0), 100)
-    >>> lb[('all', 'u')].max()
+    >>> lb = yt.LineBuffer(ds, (0.25, 0, 0), (0.25, 1, 0), 100)
+    >>> lb[("all", "u")].max()
     0.11562424257143075 dimensionless
 
     """
@@ -142,13 +142,13 @@ class LinePlot(PlotContainer):
     -------
 
     >>> import yt
-    >>>
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    >>>
-    >>> plot = yt.LinePlot(ds, 'density', [0, 0, 0], [1, 1, 1], 512)
-    >>> plot.add_legend('density')
-    >>> plot.set_x_unit('cm')
-    >>> plot.set_unit('density', 'kg/cm**3')
+
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
+    >>> plot = yt.LinePlot(ds, "density", [0, 0, 0], [1, 1, 1], 512)
+    >>> plot.add_legend("density")
+    >>> plot.set_x_unit("cm")
+    >>> plot.set_unit("density", "kg/cm**3")
     >>> plot.save()
 
     """
@@ -161,8 +161,8 @@ class LinePlot(PlotContainer):
         start_point,
         end_point,
         npoints,
-        figure_size=5.0,
-        fontsize=14.0,
+        figure_size=5,
+        fontsize=14,
         field_labels=None,
     ):
         """
@@ -175,7 +175,7 @@ class LinePlot(PlotContainer):
 
     @classmethod
     def _initialize_instance(
-        cls, obj, ds, fields, figure_size=5.0, fontsize=14.0, field_labels=None
+        cls, obj, ds, fields, figure_size=5, fontsize=14, field_labels=None
     ):
         obj._x_unit = None
         obj._y_units = {}
@@ -204,7 +204,7 @@ class LinePlot(PlotContainer):
 
     @classmethod
     def from_lines(
-        cls, ds, fields, lines, figure_size=5.0, font_size=14.0, field_labels=None
+        cls, ds, fields, lines, figure_size=5, font_size=14, field_labels=None
     ):
         """
         A class method for constructing a line plot from multiple sampling lines
@@ -222,7 +222,7 @@ class LinePlot(PlotContainer):
         figure_size : int or two-element iterable of ints
             Size in inches of the image.
             Default: 5 (5x5)
-        fontsize : int
+        font_size : int
             Font size for all text in the plot.
             Default: 14
         field_labels : dictionary
@@ -233,13 +233,12 @@ class LinePlot(PlotContainer):
         Example
         --------
         >>> ds = yt.load(
-        >>>          'SecondOrderTris/RZ_p_no_parts_do_nothing_bcs_cone_out.e',
-        >>>          step=-1
-        >>> )
-        >>> fields = [field for field in ds.field_list if field[0] == 'all']
+        ...     "SecondOrderTris/RZ_p_no_parts_do_nothing_bcs_cone_out.e", step=-1
+        ... )
+        >>> fields = [field for field in ds.field_list if field[0] == "all"]
         >>> lines = [
-        ...    yt.LineBuffer(ds, [0.25, 0, 0], [0.25, 1, 0], 100, label='x = 0.25'),
-        ...    yt.LineBuffer(ds, [0.5, 0, 0], [0.5, 1, 0], 100, label='x = 0.5')
+        ...     yt.LineBuffer(ds, [0.25, 0, 0], [0.25, 1, 0], 100, label="x = 0.25"),
+        ...     yt.LineBuffer(ds, [0.5, 0, 0], [0.5, 1, 0], 100, label="x = 0.5"),
         ... ]
         >>> lines.append()
 
@@ -336,7 +335,7 @@ class LinePlot(PlotContainer):
 
                 # apply log transforms if requested
                 if self._field_transform[field] != linear_transform:
-                    if (y < 0).any():
+                    if (y <= 0).any():
                         plot.axes.set_yscale("symlog")
                     else:
                         plot.axes.set_yscale("log")

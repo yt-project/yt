@@ -83,6 +83,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
         ("b1", ("code_magnetic", ["magnetic_1"], None)),
         ("b2", ("code_magnetic", ["magnetic_2"], None)),
         ("b3", ("code_magnetic", ["magnetic_3"], None)),
+        ("Te", ("code_temperature", ["temperature"], None)),
         *known_dust_fields,
     )
 
@@ -138,7 +139,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
         if n_dust_found > 0:
 
             def _total_dust_density(field, data):
-                tot = np.zeros_like(data["density"])
+                tot = np.zeros_like(data[("gas", "density")])
                 for idust in range(1, n_dust_found + 1):
                     tot += data["dust%d_density" % idust]
                 return tot
@@ -152,7 +153,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
             )
 
             def dust_to_gas_ratio(field, data):
-                return data["total_dust_density"] / data["density"]
+                return data[("gas", "total_dust_density")] / data[("gas", "density")]
 
             self.add_field(
                 ("gas", "dust_to_gas_ratio"),
@@ -179,7 +180,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
             ("gas", "kinetic_energy_density"),
             function=_kinetic_energy_density,
             units=us["density"] * us["velocity"] ** 2,
-            dimensions=dimensions.density * dimensions.velocity ** 2,
+            dimensions=dimensions.density * dimensions.velocity**2,
             sampling_type="cell",
         )
 
@@ -209,7 +210,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
                 ("gas", "magnetic_energy_density"),
                 function=_magnetic_energy_density,
                 units=us["density"] * us["velocity"] ** 2,
-                dimensions=dimensions.density * dimensions.velocity ** 2,
+                dimensions=dimensions.density * dimensions.velocity**2,
                 sampling_type="cell",
             )
 
@@ -263,7 +264,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
                 ("gas", "thermal_pressure"),
                 function=pressure_recipe,
                 units=us["density"] * us["velocity"] ** 2,
-                dimensions=dimensions.density * dimensions.velocity ** 2,
+                dimensions=dimensions.density * dimensions.velocity**2,
                 sampling_type="cell",
             )
 

@@ -54,8 +54,8 @@ def periodic_position(pos, ds):
     Examples
     --------
     >>> a = np.array([1.1, 0.5, 0.5])
-    >>> data = {'Density':np.ones([32,32,32])}
-    >>> ds = load_uniform_grid(data, [32,32,32], 1.0)
+    >>> data = {"Density": np.ones([32, 32, 32])}
+    >>> ds = load_uniform_grid(data, [32, 32, 32], 1.0)
     >>> ppos = periodic_position(a, ds)
     >>> ppos
     array([ 0.1,  0.5,  0.5])
@@ -90,9 +90,9 @@ def periodic_dist(a, b, period, periodicity=(True, True, True)):
     Examples
     --------
     >>> a = [0.1, 0.1, 0.1]
-    >>> b = [0.9, 0,9, 0.9]
-    >>> period = 1.
-    >>> dist = periodic_dist(a, b, 1.)
+    >>> b = [0.9, 0, 9, 0.9]
+    >>> period = 1.0
+    >>> dist = periodic_dist(a, b, 1.0)
     >>> dist
     0.346410161514
     """
@@ -107,7 +107,7 @@ def periodic_dist(a, b, period, periodicity=(True, True, True)):
         raise RuntimeError("Arrays must be the same shape.")
 
     if period.shape != a.shape and len(a.shape) > 1:
-        n_tup = tuple([1 for i in range(a.ndim - 1)])
+        n_tup = tuple(1 for i in range(a.ndim - 1))
         period = np.tile(np.reshape(period, (a.shape[0],) + n_tup), (1,) + a.shape[1:])
     elif len(a.shape) == 1:
         a = np.reshape(a, (a.shape[0],) + (1, 1))
@@ -244,8 +244,8 @@ def euclidean_dist(a, b):
     Examples
     --------
     >>> a = [0.1, 0.1, 0.1]
-    >>> b = [0.9, 0,9, 0.9]
-    >>> period = 1.
+    >>> b = [0.9, 0, 9, 0.9]
+    >>> period = 1.0
     >>> dist = euclidean_dist(a, b)
     >>> dist
     1.38564064606
@@ -291,8 +291,8 @@ def rotate_vector_3D(a, dim, angle):
     Examples
     --------
     >>> a = np.array([[1, 1, 0], [1, 0, 1], [0, 1, 1], [1, 1, 1], [3, 4, 5]])
-    >>> b = rotate_vector_3D(a, 2, np.pi/2)
-    >>> print b
+    >>> b = rotate_vector_3D(a, 2, np.pi / 2)
+    >>> print(b)
     [[  1.00000000e+00  -1.00000000e+00   0.00000000e+00]
     [  6.12323400e-17  -1.00000000e+00   1.00000000e+00]
     [  1.00000000e+00   6.12323400e-17   1.00000000e+00]
@@ -758,17 +758,17 @@ def ortho_find(vec1):
         x2 = 1.0
         y2 = 0.0
         z2 = -(x1 / z1)
-        norm2 = (1.0 + z2 ** 2.0) ** (0.5)
+        norm2 = (1.0 + z2**2.0) ** (0.5)
     elif y1 != 0:
         x2 = 0.0
         z2 = 1.0
         y2 = -(z1 / y1)
-        norm2 = (1.0 + y2 ** 2.0) ** (0.5)
+        norm2 = (1.0 + y2**2.0) ** (0.5)
     else:
         y2 = 1.0
         z2 = 0.0
         x2 = -(y1 / x1)
-        norm2 = (1.0 + z2 ** 2.0) ** (0.5)
+        norm2 = (1.0 + z2**2.0) ** (0.5)
     vec2 = np.array([x2, y2, z2])
     vec2 /= norm2
     vec3 = np.cross(vec1, vec2)
@@ -827,7 +827,7 @@ def quartiles(a, axis=None, out=None, overwrite_input=False):
 
     Examples
     --------
-    >>> a = np.arange(100).reshape(10,10)
+    >>> a = np.arange(100).reshape(10, 10)
     >>> a
     array([[ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9],
            [10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
@@ -841,10 +841,10 @@ def quartiles(a, axis=None, out=None, overwrite_input=False):
            [90, 91, 92, 93, 94, 95, 96, 97, 98, 99]])
     >>> mu.quartiles(a)
     array([ 24.5,  74.5])
-    >>> mu.quartiles(a,axis=0)
+    >>> mu.quartiles(a, axis=0)
     array([[ 15.,  16.,  17.,  18.,  19.,  20.,  21.,  22.,  23.,  24.],
            [ 65.,  66.,  67.,  68.,  69.,  70.,  71.,  72.,  73.,  74.]])
-    >>> mu.quartiles(a,axis=1)
+    >>> mu.quartiles(a, axis=1)
     array([[  1.5,  11.5,  21.5,  31.5,  41.5,  51.5,  61.5,  71.5,  81.5,
              91.5],
            [  6.5,  16.5,  26.5,  36.5,  46.5,  56.5,  66.5,  76.5,  86.5,
@@ -883,7 +883,7 @@ def get_perspective_matrix(fovy, aspect, z_near, z_far):
     """
     Given a field of view in radians, an aspect ratio, and a near
     and far plane distance, this routine computes the transformation matrix
-    corresponding to perspective projection using homogenous coordinates.
+    corresponding to perspective projection using homogeneous coordinates.
 
     Parameters
     ----------
@@ -955,7 +955,7 @@ def get_orthographic_matrix(maxr, aspect, z_near, z_far):
     """
     Given a field of view in radians, an aspect ratio, and a near
     and far plane distance, this routine computes the transformation matrix
-    corresponding to perspective projection using homogenous coordinates.
+    corresponding to perspective projection using homogeneous coordinates.
 
     Parameters
     ----------
@@ -1164,17 +1164,17 @@ def get_rotation_matrix(theta, rot_vector):
 
     Examples
     --------
-    >>> a = [0,1,0]
+    >>> a = [0, 1, 0]
     >>> theta = 0.785398163  # pi/4
-    >>> rot = mu.get_rotation_matrix(theta,a)
+    >>> rot = mu.get_rotation_matrix(theta, a)
     >>> rot
     array([[ 0.70710678,  0.        ,  0.70710678],
            [ 0.        ,  1.        ,  0.        ],
            [-0.70710678,  0.        ,  0.70710678]])
-    >>> np.dot(rot,a)
+    >>> np.dot(rot, a)
     array([ 0.,  1.,  0.])
     # since a is an eigenvector by construction
-    >>> np.dot(rot,[1,0,0])
+    >>> np.dot(rot, [1, 0, 0])
     array([ 0.70710678,  0.        , -0.70710678])
     """
 
@@ -1187,19 +1187,19 @@ def get_rotation_matrix(theta, rot_vector):
     R = np.array(
         [
             [
-                cost + ux ** 2 * (1 - cost),
+                cost + ux**2 * (1 - cost),
                 ux * uy * (1 - cost) - uz * sint,
                 ux * uz * (1 - cost) + uy * sint,
             ],
             [
                 uy * ux * (1 - cost) + uz * sint,
-                cost + uy ** 2 * (1 - cost),
+                cost + uy**2 * (1 - cost),
                 uy * uz * (1 - cost) - ux * sint,
             ],
             [
                 uz * ux * (1 - cost) - uy * sint,
                 uz * uy * (1 - cost) + ux * sint,
-                cost + uz ** 2 * (1 - cost),
+                cost + uz**2 * (1 - cost),
             ],
         ]
     )
@@ -1240,17 +1240,17 @@ def quaternion_to_rotation_matrix(quaternion):
 
     R = np.empty((3, 3), dtype=np.float64)
 
-    R[0][0] = 1.0 - 2.0 * y ** 2 - 2.0 * z ** 2
+    R[0][0] = 1.0 - 2.0 * y**2 - 2.0 * z**2
     R[0][1] = 2.0 * x * y + 2.0 * w * z
     R[0][2] = 2.0 * x * z - 2.0 * w * y
 
     R[1][0] = 2.0 * x * y - 2.0 * w * z
-    R[1][1] = 1.0 - 2.0 * x ** 2 - 2.0 * z ** 2
+    R[1][1] = 1.0 - 2.0 * x**2 - 2.0 * z**2
     R[1][2] = 2.0 * y * z + 2.0 * w * x
 
     R[2][0] = 2.0 * x * z + 2.0 * w * y
     R[2][1] = 2.0 * y * z - 2.0 * w * x
-    R[2][2] = 1.0 - 2.0 * x ** 2 - 2.0 * y ** 2
+    R[2][2] = 1.0 - 2.0 * x**2 - 2.0 * y**2
 
     return R
 
@@ -1323,7 +1323,7 @@ def get_sph_r(coords):
     # The spherical coordinates radius is simply the magnitude of the
     # coordinate vector.
 
-    return np.sqrt(np.sum(coords ** 2, axis=0))
+    return np.sqrt(np.sum(coords**2, axis=0))
 
 
 def resize_vector(vector, vector_array):
@@ -1362,7 +1362,7 @@ def get_sph_theta(coords, normal):
     JdotCoords = np.sum(J * coords, axis=0)
 
     with np.errstate(invalid="ignore"):
-        ret = np.arccos(JdotCoords / np.sqrt(np.sum(coords ** 2, axis=0)))
+        ret = np.arccos(JdotCoords / np.sqrt(np.sum(coords**2, axis=0)))
 
     ret[np.isnan(ret)] = 0
 
@@ -1407,7 +1407,7 @@ def get_cyl_r(coords, normal):
     J = np.tile(res_normal, tile_shape)
 
     JcrossCoords = np.cross(J, coords, axisa=0, axisb=0, axisc=0)
-    return np.sqrt(np.sum(JcrossCoords ** 2, axis=0))
+    return np.sqrt(np.sum(JcrossCoords**2, axis=0))
 
 
 def get_cyl_z(coords, normal):

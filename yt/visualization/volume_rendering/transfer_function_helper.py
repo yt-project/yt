@@ -1,7 +1,5 @@
-from distutils.version import LooseVersion
 from io import BytesIO
 
-import matplotlib
 import numpy as np
 
 from yt.data_objects.profiles import create_profile
@@ -92,9 +90,6 @@ class TransferFunctionHelper:
         Builds the transfer function according to the current state of the
         TransferFunctionHelper.
 
-        Parameters
-        ----------
-        None
 
         Returns
         -------
@@ -123,15 +118,11 @@ class TransferFunctionHelper:
         """Setup a default colormap
 
         Creates a ColorTransferFunction including 10 gaussian layers whose
-        colors sample the 'spectral' colormap. Also attempts to scale the
+        colors sample the 'nipy_spectral' colormap. Also attempts to scale the
         transfer function to produce a natural contrast ratio.
 
         """
-        if LooseVersion(matplotlib.__version__) < LooseVersion("2.0.0"):
-            colormap_name = "spectral"
-        else:
-            colormap_name = "nipy_spectral"
-        self.tf.add_layers(10, colormap=colormap_name)
+        self.tf.add_layers(10, colormap="nipy_spectral")
         factor = self.tf.funcs[-1].y.size / self.tf.funcs[-1].y.sum()
         self.tf.funcs[-1].y *= 2 * factor
 
@@ -165,9 +156,7 @@ class TransferFunctionHelper:
             xmi, xma = np.log10(self.bounds[0]), np.log10(self.bounds[1])
         else:
             xfunc = np.linspace
-            # Need to strip units off of the bounds to avoid a recursion error
-            # in matplotlib 1.3.1
-            xmi, xma = [np.float64(b) for b in self.bounds]
+            xmi, xma = self.bounds
 
         x = xfunc(xmi, xma, tf.nbins)
         y = tf.funcs[3].y
@@ -199,9 +188,8 @@ class TransferFunctionHelper:
                 prof[profile_field]
             except KeyError:
                 prof.add_fields([profile_field])
-            # Strip units, if any, for matplotlib 1.3.1
-            xplot = np.array(prof.x)
-            yplot = np.array(
+            xplot = prof.x
+            yplot = (
                 prof[profile_field] * tf.funcs[3].y.max() / prof[profile_field].max()
             )
             ax.plot(xplot, yplot, color="w", linewidth=3)

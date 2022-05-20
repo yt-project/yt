@@ -1,7 +1,5 @@
 import sys
 
-from pkg_resources import parse_version
-
 
 class NotAModule:
     """
@@ -46,7 +44,7 @@ class NotCartopy(NotAModule):
                 "package to be installed. Try installing proj4 and "
                 "geos with your package manager and building shapely "
                 "and cartopy from source with: \n \n "
-                "pip install --no-binary :all: shapely cartopy \n \n"
+                "python -m pip install --no-binary :all: shapely cartopy \n \n"
                 "For further instruction please refer to the "
                 "yt documentation." % self.pkg_name
             )
@@ -234,18 +232,18 @@ _cartopy = cartopy_imports()
 
 class pooch_imports:
     _name = "pooch"
+    _module = None
 
-    _pooch = None
+    def __init__(self):
+        try:
+            import pooch as myself
 
-    @property
-    def pooch(self):
-        if self._pooch is None:
-            try:
-                import pooch as pooch
-            except ImportError:
-                pooch = NotAModule(self._name)
-            self._pooch = pooch
-        return self._pooch
+            self._module = myself
+        except ImportError:
+            self._module = NotAModule(self._name)
+
+    def __getattr__(self, attr):
+        return getattr(self._module, attr)
 
 
 _pooch = pooch_imports()
@@ -405,21 +403,6 @@ _scipy = scipy_imports()
 class h5py_imports:
     _name = "h5py"
     _err = None
-
-    def __init__(self):
-        try:
-            import h5py
-
-            if parse_version(h5py.__version__) < parse_version("2.4.0"):
-                self._err = RuntimeError(
-                    "yt requires h5py version 2.4.0 or newer, "
-                    'please update h5py with e.g. "pip install -U h5py" '
-                    "and try again"
-                )
-        except ImportError:
-            pass
-        super().__init__()
-
     _File = None
 
     @property
@@ -636,7 +619,7 @@ class NotMiniball(NotAModule):
             "This functionality requires the %s package to be installed. "
             "Installation instructions can be found at "
             "https://github.com/weddige/miniball or alternatively you can "
-            "install via `pip install MiniballCpp`."
+            "install via `python -m pip install MiniballCpp`."
         )
         self.error = ImportError(str % self.pkg_name)
 
@@ -695,3 +678,86 @@ class requests_imports:
 
 
 _requests = requests_imports()
+
+
+class pandas_imports:
+    _name = "pandas"
+    _module = None
+
+    def __init__(self):
+        try:
+            import pandas as myself
+
+            self._module = myself
+        except ImportError:
+            self._module = NotAModule(self._name)
+
+    def __getattr__(self, attr):
+        return getattr(self._module, attr)
+
+
+_pandas = pandas_imports()
+
+
+class firefly_imports:
+    _name = "firefly"
+    _data_reader = None
+    _server = None
+
+    @property
+    def data_reader(self):
+        if self._data_reader is None:
+            try:
+                import Firefly.data_reader as data_reader
+            except ImportError:
+                data_reader = NotAModule(self._name)
+            self._data_reader = data_reader
+        return self._data_reader
+
+    @property
+    def server(self):
+        if self._server is None:
+            try:
+                import Firefly.server as server
+            except ImportError:
+                server = NotAModule(self._name)
+            self._server = server
+        return self._server
+
+
+_firefly = firefly_imports()
+
+
+# Note: ratarmount may fail with an OSError on import if libfuse is missing
+# In this case, we want the on-demand-import to fail _where_ ratarmount
+# is being used, rather than at startup.
+# We could catch the OSError and throw it again when we try to access
+# ratarmount. Instead here, we delay as much as possible the actual import of
+# the package which thus raises an exception where expected.
+#
+# Note 2: we need to store the imported module in __module, as _module plays
+# a special role in on-demand-imports (e.g. used for testing purposes to know
+# if the package has been installed).
+class ratarmount_imports:
+    _name = "ratarmount"
+    __module = None
+
+    @property
+    def _module(self):
+        if self.__module is not None:
+            return self.__module
+
+        try:
+            import ratarmount as myself
+
+            self.__module = myself
+        except ImportError:
+            self.__module = NotAModule(self._name)
+
+        return self.__module
+
+    def __getattr__(self, attr):
+        return getattr(self._module, attr)
+
+
+_ratarmount = ratarmount_imports()

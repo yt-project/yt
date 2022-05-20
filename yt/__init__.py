@@ -7,15 +7,7 @@ yt is a toolkit for analyzing and visualizing volumetric data.
 * Contribute: https://github.com/yt-project/yt
 
 """
-import sys
-
-if sys.version_info[0] < 3:
-    raise Exception(
-        "Python 2 is no longer supported.  Please install Python 3 for use with yt."
-    )
-
-__version__ = "4.0.dev0"
-
+from ._version import __version__, version_info  # isort: skip
 import yt.units as units
 import yt.utilities.physical_constants as physical_constants
 from yt.data_objects.api import (
@@ -76,7 +68,7 @@ from yt.units import (
     uunion1d,
     uvstack,
 )
-from yt.units.unit_object import define_unit
+from yt.units.unit_object import define_unit  # type: ignore
 from yt.utilities.logger import set_log_level, ytLogger as mylog
 
 frontends = _frontend_container()
@@ -84,10 +76,10 @@ frontends = _frontend_container()
 import yt.visualization.volume_rendering.api as volume_rendering
 from yt.frontends.stream.api import hexahedral_connectivity
 from yt.frontends.ytdata.api import save_as_dataset
-from yt.loaders import simulation  # deprecated alias for load_simulation
 from yt.loaders import (
     load,
     load_amr_grids,
+    load_archive,
     load_hexahedral_mesh,
     load_octree,
     load_particles,
@@ -96,8 +88,19 @@ from yt.loaders import (
     load_uniform_grid,
     load_unstructured_mesh,
 )
-from yt.testing import run_nose
-from yt.units.unit_systems import UnitSystem, unit_system_registry
+
+
+def run_nose(*args, **kwargs):
+    # we hide this function behind a closure so we
+    # don't make pytest a hard dependency for end users
+    # see https://github.com/yt-project/yt/issues/3771
+    from yt.testing import run_nose
+
+    return run_nose(*args, **kwargs)
+
+
+from yt.config import _setup_postinit_configuration
+from yt.units.unit_systems import UnitSystem, unit_system_registry  # type: ignore
 
 # Import some helpful math utilities
 from yt.utilities.math_utils import ortho_find, periodic_position, quartiles
@@ -109,10 +112,12 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import (
 
 # Now individual component imports from the visualization API
 from yt.visualization.api import (
+    AxisAlignedProjectionPlot,
     AxisAlignedSlicePlot,
     FITSImageData,
     FITSOffAxisProjection,
     FITSOffAxisSlice,
+    FITSParticleProjection,
     FITSProjection,
     FITSSlice,
     FixedResolutionBuffer,
@@ -150,15 +155,6 @@ from yt.visualization.volume_rendering.api import (
 #    off_axis_projection
 
 
-def _check_deprecated_parameters():
-    from yt._maintenance.deprecation import issue_deprecation_warning
-    from yt.config import ytcfg
-
-    if ytcfg.get("yt", "load_field_plugins"):
-        issue_deprecation_warning(
-            "Found deprecated parameter 'load_field_plugins' in yt's configuration file.",
-            removal="4.1.0",
-        )
-
-
-_check_deprecated_parameters()
+# run configuration callbacks
+_setup_postinit_configuration()
+del _setup_postinit_configuration

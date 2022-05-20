@@ -1,11 +1,20 @@
+import sys
+
 import numpy as np
 
 from yt.utilities.lib.pixelization_routines import pixelize_cartesian, pixelize_cylinder
 
+if sys.version_info >= (3, 8):
+    from functools import cached_property
+else:
+    from yt._maintenance.backports import cached_property
+
 from .coordinate_handler import (
     CoordinateHandler,
     _get_coord_fields,
-    _unknown_coord,
+    _get_polar_bounds,
+    _setup_dummy_cartesian_coords_and_widths,
+    _setup_polar_coordinates,
     cartesian_to_cylindrical,
     cylindrical_to_cartesian,
 )
@@ -26,38 +35,9 @@ class CylindricalCoordinateHandler(CoordinateHandler):
         self.image_units[self.axis_id["z"]] = (None, None)
 
     def setup_fields(self, registry):
-        # return the fields for r, z, theta
-        registry.add_field(
-            ("index", "dx"), sampling_type="cell", function=_unknown_coord
-        )
-
-        registry.add_field(
-            ("index", "dy"), sampling_type="cell", function=_unknown_coord
-        )
-
-        registry.add_field(
-            ("index", "x"), sampling_type="cell", function=_unknown_coord
-        )
-
-        registry.add_field(
-            ("index", "y"), sampling_type="cell", function=_unknown_coord
-        )
-        f1, f2 = _get_coord_fields(self.axis_id["r"])
-        registry.add_field(
-            ("index", "dr"),
-            sampling_type="cell",
-            function=f1,
-            display_field=False,
-            units="code_length",
-        )
-
-        registry.add_field(
-            ("index", "r"),
-            sampling_type="cell",
-            function=f2,
-            display_field=False,
-            units="code_length",
-        )
+        # Missing implementation for x and y coordinates.
+        _setup_dummy_cartesian_coords_and_widths(registry, axes=("x", "y"))
+        _setup_polar_coordinates(registry, self.axis_id)
 
         f1, f2 = _get_coord_fields(self.axis_id["z"])
         registry.add_field(
@@ -76,23 +56,6 @@ class CylindricalCoordinateHandler(CoordinateHandler):
             units="code_length",
         )
 
-        f1, f2 = _get_coord_fields(self.axis_id["theta"], "")
-        registry.add_field(
-            ("index", "dtheta"),
-            sampling_type="cell",
-            function=f1,
-            display_field=False,
-            units="",
-        )
-
-        registry.add_field(
-            ("index", "theta"),
-            sampling_type="cell",
-            function=f2,
-            display_field=False,
-            units="",
-        )
-
         def _CylindricalVolume(field, data):
             r = data["index", "r"]
             dr = data["index", "dr"]
@@ -108,27 +71,6 @@ class CylindricalCoordinateHandler(CoordinateHandler):
             units="code_length**3",
         )
         registry.alias(("index", "volume"), ("index", "cell_volume"))
-
-        def _path_r(field, data):
-            return data["index", "dr"]
-
-        registry.add_field(
-            ("index", "path_element_r"),
-            sampling_type="cell",
-            function=_path_r,
-            units="code_length",
-        )
-
-        def _path_theta(field, data):
-            # Note: this already assumes cell-centered
-            return data["index", "r"] * data["index", "dtheta"]
-
-        registry.add_field(
-            ("index", "path_element_theta"),
-            sampling_type="cell",
-            function=_path_theta,
-            units="code_length",
-        )
 
         def _path_z(field, data):
             return data["index", "dz"]
@@ -160,10 +102,20 @@ class CylindricalCoordinateHandler(CoordinateHandler):
                 data_source, field, bounds, size, antialias, dimension, periodic
             )
         elif ax_name == "z":
+            # This is admittedly a very hacky way to resolve a bug
+            # it's very likely that the *right* fix would have to
+            # be applied upstream of this function, *but* this case
+            # has never worked properly so maybe it's still preferable to
+            # not having a solution ?
+            # see https://github.com/yt-project/yt/pull/3533
+            bounds = (*bounds[2:4], *bounds[:2])
             return self._cyl_pixelize(data_source, field, bounds, size, antialias)
         else:
             # Pixelizing along a cylindrical surface is a bit tricky
             raise NotImplementedError
+
+    def pixelize_line(self, field, start_point, end_point, npoints):
+        raise NotImplementedError
 
     def _ortho_pixelize(
         self, data_source, field, bounds, size, antialias, dim, periodic
@@ -173,7 +125,7 @@ class CylindricalCoordinateHandler(CoordinateHandler):
         period[1] = self.period[self.y_axis[dim]]
         if hasattr(period, "in_units"):
             period = period.in_units("code_length").d
-        buff = np.zeros(size, dtype="f8")
+        buff = np.full(size, np.nan, dtype="float64")
         pixelize_cartesian(
             buff,
             data_source["px"],
@@ -215,7 +167,7 @@ class CylindricalCoordinateHandler(CoordinateHandler):
         # non-Cartesian coordinates, we usually want to override these for
         # Cartesian coordinates, since we transform them.
         rv = {
-            self.axis_id["r"]: ("theta", "z"),
+            self.axis_id["r"]: ("\\theta", "z"),
             self.axis_id["z"]: ("x", "y"),
             self.axis_id["theta"]: ("r", "z"),
         }
@@ -247,6 +199,10 @@ class CylindricalCoordinateHandler(CoordinateHandler):
     def period(self):
         return np.array([0.0, 0.0, 2.0 * np.pi])
 
+    @cached_property
+    def _polar_bounds(self):
+        return _get_polar_bounds(self, axes=("r", "theta"))
+
     def sanitize_center(self, center, axis):
         center, display_center = super().sanitize_center(center, axis)
         display_center = [
@@ -265,6 +221,11 @@ class CylindricalCoordinateHandler(CoordinateHandler):
             # use existing center value
             for idx in (r_ax, z_ax):
                 display_center[idx] = center[idx]
+        elif ax_name == "z":
+            xxmin, xxmax, yymin, yymax = self._polar_bounds
+            xc = (xxmin + xxmax) / 2
+            yc = (yymin + yymax) / 2
+            display_center = (xc, yc, 0 * xc)
         return center, display_center
 
     def sanitize_width(self, axis, width, depth):
@@ -277,12 +238,12 @@ class CylindricalCoordinateHandler(CoordinateHandler):
         # Note: regardless of axes, these are set up to give consistent plots
         # when plotted, which is not strictly a "right hand rule" for axes.
         elif name == "r":  # soup can label
-            width = [2.0 * np.pi * self.ds.domain_width.uq, self.ds.domain_width[z_ax]]
+            width = [self.ds.domain_width[theta_ax], self.ds.domain_width[z_ax]]
         elif name == "theta":
             width = [self.ds.domain_width[r_ax], self.ds.domain_width[z_ax]]
         elif name == "z":
-            width = [
-                2.0 * self.ds.domain_right_edge[r_ax],
-                2.0 * self.ds.domain_right_edge[r_ax],
-            ]
+            xxmin, xxmax, yymin, yymax = self._polar_bounds
+            xw = xxmax - xxmin
+            yw = yymax - yymin
+            width = [xw, yw]
         return width

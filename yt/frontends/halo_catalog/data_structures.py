@@ -355,12 +355,15 @@ class HaloDataset(ParticleDataset):
             setattr(self, attr, getattr(self.real_ds, attr))
 
     def set_code_units(self):
+        self._set_code_unit_attributes()
+        self.unit_registry = self.real_ds.unit_registry
+
+    def _set_code_unit_attributes(self):
         for unit in ["length", "time", "mass", "velocity", "magnetic", "temperature"]:
             my_unit = f"{unit}_unit"
             setattr(self, my_unit, getattr(self.real_ds, my_unit, None))
-        self.unit_registry = self.real_ds.unit_registry
 
-    def __repr__(self):
+    def __str__(self):
         return f"{self.real_ds}"
 
     def _setup_classes(self):
@@ -498,13 +501,13 @@ class YTHaloCatalogHaloContainer(HaloContainer):
 
     >>> import yt
     >>> ds = yt.load("tiny_fof_halos/DD0046/DD0046.0.h5")
-    >>>
+
     >>> halo = ds.halo("halos", 0)
     >>> print(halo.particle_identifier)
     0
     >>> print(halo.mass)
     8724990744704.453 Msun
-    >>> print (halo.radius)
+    >>> print(halo.radius)
     658.8140635766607 kpc
     >>> print(halo.position)
     [0.05496909 0.19451951 0.04056824] code_length

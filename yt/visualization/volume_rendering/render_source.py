@@ -1,5 +1,7 @@
 import abc
 from functools import wraps
+from types import ModuleType
+from typing import Optional, Union
 
 import numpy as np
 
@@ -9,6 +11,7 @@ from yt.funcs import ensure_numpy_array, is_sequence, mylog
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.geometry.oct_geometry_handler import OctreeIndex
 from yt.utilities.amr_kdtree.api import AMRKDTree
+from yt.utilities.configure import YTConfig, configuration_callbacks
 from yt.utilities.lib.bounding_volume_hierarchy import BVH
 from yt.utilities.lib.misc_utilities import zlines, zpoints
 from yt.utilities.lib.octree_raytracing import OctreeRayTracing
@@ -35,18 +38,26 @@ from .utils import (
 )
 from .zbuffer_array import ZBuffer
 
-try:
-    from yt.utilities.lib.embree_mesh import mesh_traversal
-# Catch ValueError in case size of objects in Cython change
-except (ImportError, ValueError):
-    mesh_traversal = NotAModule("pyembree")
-    ytcfg["yt", "ray_tracing_engine"] = "yt"
-try:
-    from yt.utilities.lib.embree_mesh import mesh_construction
-# Catch ValueError in case size of objects in Cython change
-except (ImportError, ValueError):
-    mesh_construction = NotAModule("pyembree")
-    ytcfg["yt", "ray_tracing_engine"] = "yt"
+OptionalModule = Union[ModuleType, NotAModule]
+mesh_traversal: OptionalModule = NotAModule("pyembree")
+mesh_construction: OptionalModule = NotAModule("pyembree")
+
+
+def _setup_raytracing_engine(ytcfg: YTConfig) -> None:
+    global mesh_traversal, mesh_construction
+    try:
+        from yt.utilities.lib.embree_mesh import mesh_traversal  # type: ignore
+    except (ImportError, ValueError):
+        # Catch ValueError in case size of objects in Cython change
+        ytcfg["yt", "ray_tracing_engine"] = "yt"
+    try:
+        from yt.utilities.lib.embree_mesh import mesh_construction  # type: ignore
+    except (ImportError, ValueError):
+        # Catch ValueError in case size of objects in Cython change
+        ytcfg["yt", "ray_tracing_engine"] = "yt"
+
+
+configuration_callbacks.append(_setup_raytracing_engine)
 
 
 def invalidate_volume(f):
@@ -54,7 +65,7 @@ def invalidate_volume(f):
     def wrapper(*args, **kwargs):
         ret = f(*args, **kwargs)
         obj = args[0]
-        if isinstance(obj.transfer_function, ProjectionTransferFunction):
+        if isinstance(obj._transfer_function, ProjectionTransferFunction):
             obj.sampler_type = "projection"
             obj._log_field = False
             obj._use_ghost_zones = False
@@ -84,15 +95,14 @@ def validate_volume(f):
     return wrapper
 
 
-class RenderSource(ParallelAnalysisInterface):
-
+class RenderSource(ParallelAnalysisInterface, abc.ABC):
     """Base Class for Render Sources.
 
     Will be inherited for volumes, streamlines, etc.
 
     """
 
-    volume_method = None
+    volume_method: Optional[str] = None
 
     def __init__(self):
         super().__init__()
@@ -160,7 +170,7 @@ class VolumeSource(RenderSource, abc.ABC):
     example shows how to do this and then access the resulting source:
 
     >>> import yt
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> im, sc = yt.volume_render(ds)
     >>> volume_source = sc.get_source(0)
 
@@ -169,11 +179,11 @@ class VolumeSource(RenderSource, abc.ABC):
     camera, and renders an image.
 
     >>> import yt
-    >>> from yt.visualization.volume_rendering.api import\
-    ...     Scene, create_volume_source, Camera
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> from yt.visualization.volume_rendering.api import (
+    ...     Camera, Scene, create_volume_source)
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> sc = Scene()
-    >>> source = create_volume_source(ds.all_data(), 'density')
+    >>> source = create_volume_source(ds.all_data(), "density")
     >>> sc.add_source(source)
     >>> sc.add_camera()
     >>> im = sc.render()
@@ -182,7 +192,6 @@ class VolumeSource(RenderSource, abc.ABC):
 
     _image = None
     data_source = None
-    volume_method = None
 
     def __init__(self, data_source, field):
         r"""Initialize a new volumetric source for rendering."""
@@ -278,7 +287,7 @@ class VolumeSource(RenderSource, abc.ABC):
         """The field to be rendered"""
         return self._field
 
-    @field.setter
+    @field.setter  # type: ignore
     @invalidate_volume
     def field(self, value):
         field = self.data_source._determine_fields(value)
@@ -304,7 +313,7 @@ class VolumeSource(RenderSource, abc.ABC):
         """Whether or not the field rendering is computed in log space"""
         return self._log_field
 
-    @log_field.setter
+    @log_field.setter  # type: ignore
     @invalidate_volume
     def log_field(self, value):
         self.transfer_function = None
@@ -317,7 +326,7 @@ class VolumeSource(RenderSource, abc.ABC):
         values at grid boundaries"""
         return self._use_ghost_zones
 
-    @use_ghost_zones.setter
+    @use_ghost_zones.setter  # type: ignore
     @invalidate_volume
     def use_ghost_zones(self, value):
         self._use_ghost_zones = value
@@ -330,7 +339,7 @@ class VolumeSource(RenderSource, abc.ABC):
         """
         return self._weight_field
 
-    @weight_field.setter
+    @weight_field.setter  # type: ignore
     @invalidate_volume
     def weight_field(self, value):
         self._weight_field = value
@@ -658,7 +667,7 @@ class MeshSource(OpaqueSource):
 
     Examples
     --------
-    >>> source = MeshSource(ds, ('connect1', 'convected'))
+    >>> source = MeshSource(ds, ("connect1", "convected"))
     """
 
     _image = None
@@ -688,7 +697,7 @@ class MeshSource(OpaqueSource):
         assert self.data_source is not None
         if self.field[0] == "all":
             raise NotImplementedError(
-                "Mesh unions are not implemented " "for 3D rendering"
+                "Mesh unions are not implemented for 3D rendering"
             )
 
         if self.engine == "embree":
@@ -698,29 +707,26 @@ class MeshSource(OpaqueSource):
             self.build_volume_bvh()
         else:
             raise NotImplementedError(
-                "Invalid ray-tracing engine selected. " "Choices are 'embree' and 'yt'."
+                "Invalid ray-tracing engine selected. Choices are 'embree' and 'yt'."
             )
 
-    def cmap():
+    @property
+    def cmap(self):
         """
         This is the name of the colormap that will be used when rendering
-        this MeshSource object. Should be a string, like 'arbre', or 'dusk'.
+        this MeshSource object. Should be a string, like 'cmyt.arbre', or 'cmyt.dusk'.
 
         """
+        return self._cmap
 
-        def fget(self):
-            return self._cmap
+    @cmap.setter
+    def cmap(self, cmap_name):
+        self._cmap = cmap_name
+        if hasattr(self, "data"):
+            self.current_image = self.apply_colormap()
 
-        def fset(self, cmap_name):
-            self._cmap = cmap_name
-            if hasattr(self, "data"):
-                self.current_image = self.apply_colormap()
-
-        return locals()
-
-    cmap = property(**cmap())
-
-    def color_bounds():
+    @property
+    def color_bounds(self):
         """
         These are the bounds that will be used with the colormap to the display
         the rendered image. Should be a (vmin, vmax) tuple, like (0.0, 2.0). If
@@ -728,18 +734,13 @@ class MeshSource(OpaqueSource):
         the rendered data.
 
         """
+        return self._color_bounds
 
-        def fget(self):
-            return self._color_bounds
-
-        def fset(self, bounds):
-            self._color_bounds = bounds
-            if hasattr(self, "data"):
-                self.current_image = self.apply_colormap()
-
-        return locals()
-
-    color_bounds = property(**color_bounds())
+    @color_bounds.setter
+    def color_bounds(self, bounds):
+        self._color_bounds = bounds
+        if hasattr(self, "data"):
+            self.current_image = self.apply_colormap()
 
     def _validate(self):
         """Make sure that all dependencies have been met"""
@@ -915,14 +916,6 @@ class MeshSource(OpaqueSource):
 
         Applies a colormap to the current image without re-rendering.
 
-        Parameters
-        ----------
-        cmap_name : string, optional
-            An acceptable colormap.  See either yt.visualization.color_maps or
-            https://scipy-cookbook.readthedocs.io/items/Matplotlib_Show_colormaps.html .
-        color_bounds : tuple of floats, optional
-            The min and max to scale between.  Outlying values will be clipped.
-
         Returns
         -------
         current_image : A new image with the specified color scale applied to
@@ -977,14 +970,14 @@ class PointSource(OpaqueSource):
     >>> import numpy as np
     >>> from yt.visualization.volume_rendering.api import PointSource
     >>> from yt.units import kpc
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
     >>> im, sc = yt.volume_render(ds)
 
     >>> npoints = 1000
     >>> vertices = np.random.random([npoints, 3]) * 1000 * kpc
     >>> colors = np.random.random([npoints, 4])
-    >>> colors[:,3] = 1.0
+    >>> colors[:, 3] = 1.0
 
     >>> points = PointSource(vertices, colors=colors)
     >>> sc.add_source(points)
@@ -1016,6 +1009,9 @@ class PointSource(OpaqueSource):
         self.colors = colors
         self.color_stride = color_stride
         self.radii = radii
+
+    def _validate(self):
+        pass
 
     def render(self, camera, zbuffer=None):
         """Renders an image using the provided camera
@@ -1100,14 +1096,14 @@ class LineSource(OpaqueSource):
     >>> import numpy as np
     >>> from yt.visualization.volume_rendering.api import LineSource
     >>> from yt.units import kpc
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
     >>> im, sc = yt.volume_render(ds)
 
     >>> nlines = 4
     >>> vertices = np.random.random([nlines, 2, 3]) * 600 * kpc
     >>> colors = np.random.random([nlines, 4])
-    >>> colors[:,3] = 1.0
+    >>> colors[:, 3] = 1.0
 
     >>> lines = LineSource(vertices, colors)
     >>> sc.add_source(lines)
@@ -1138,6 +1134,9 @@ class LineSource(OpaqueSource):
             colors = np.ones((len(positions), 4))
         self.colors = colors
         self.color_stride = color_stride
+
+    def _validate(self):
+        pass
 
     def render(self, camera, zbuffer=None):
         """Renders an image using the provided camera
@@ -1232,15 +1231,15 @@ class BoxSource(LineSource):
 
     >>> import yt
     >>> from yt.visualization.volume_rendering.api import BoxSource
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    >>>
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
     >>> im, sc = yt.volume_render(ds)
-    >>>
-    >>> box_source = BoxSource(ds.domain_left_edge,
-    ...                       ds.domain_right_edge,
-    ...                       [1.0, 1.0, 1.0, 1.0])
+
+    >>> box_source = BoxSource(
+    ...     ds.domain_left_edge, ds.domain_right_edge, [1.0, 1.0, 1.0, 1.0]
+    ... )
     >>> sc.add_source(box_source)
-    >>>
+
     >>> im = sc.render()
 
     """
@@ -1265,6 +1264,9 @@ class BoxSource(LineSource):
         vertices = vertices.reshape((12, 2, 3))
 
         super().__init__(vertices, color, color_stride=24)
+
+    def _validate(self):
+        pass
 
 
 class GridSource(LineSource):
@@ -1294,14 +1296,14 @@ class GridSource(LineSource):
 
     >>> import yt
     >>> from yt.visualization.volume_rendering.api import GridSource
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    >>>
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
     >>> im, sc = yt.volume_render(ds)
-    >>>
+
     >>> grid_source = GridSource(ds.all_data(), alpha=1.0)
-    >>>
+
     >>> sc.add_source(grid_source)
-    >>>
+
     >>> im = sc.render()
 
     This example does the same thing, except it only draws the grids
@@ -1310,15 +1312,15 @@ class GridSource(LineSource):
 
     >>> import yt
     >>> from yt.visualization.volume_rendering.api import GridSource
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    >>>
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
     >>> im, sc = yt.volume_render(ds)
-    >>>
+
     >>> dd = ds.sphere("c", (0.1, "unitary"))
     >>> grid_source = GridSource(dd, alpha=1.0)
-    >>>
+
     >>> sc.add_source(grid_source)
-    >>>
+
     >>> im = sc.render()
 
     """
@@ -1401,15 +1403,16 @@ class CoordinateVectorSource(OpaqueSource):
     --------
 
     >>> import yt
-    >>> from yt.visualization.volume_rendering.api import CoordinateVectorSource
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    >>>
+    >>> from yt.visualization.volume_rendering.api import \
+    ...     CoordinateVectorSource
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
     >>> im, sc = yt.volume_render(ds)
-    >>>
+
     >>> coord_source = CoordinateVectorSource()
-    >>>
+
     >>> sc.add_source(coord_source)
-    >>>
+
     >>> im = sc.render()
 
     """
@@ -1424,6 +1427,9 @@ class CoordinateVectorSource(OpaqueSource):
             colors[2, 2] = 1.0  # z is blue
             colors[:, 3] = alpha
         self.colors = colors
+
+    def _validate(self):
+        pass
 
     def render(self, camera, zbuffer=None):
         """Renders an image using the provided camera

@@ -36,10 +36,9 @@ class YTBooleanContainer(YTSelectionContainer3D):
     >>> import yt
     >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> sp = ds.sphere("c", 0.1)
-    >>> dd = ds.r[:,:,:]
+    >>> dd = ds.r[:, :, :]
     >>> new_obj = sp ^ dd
-    >>> print(new_obj.sum("cell_volume"), dd.sum("cell_volume") -
-    ...    sp.sum("cell_volume"))
+    >>> print(new_obj.sum("cell_volume"), dd.sum("cell_volume") - sp.sum("cell_volume"))
     """
 
     _type_name = "bool"

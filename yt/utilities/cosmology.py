@@ -3,8 +3,8 @@ import functools
 import numpy as np
 
 from yt.units import dimensions
-from yt.units.unit_object import Unit
-from yt.units.unit_registry import UnitRegistry
+from yt.units.unit_object import Unit  # type: ignore
+from yt.units.unit_registry import UnitRegistry  # type: ignore
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.physical_constants import (
     gravitational_constant_cgs as G,
@@ -133,7 +133,7 @@ class Cosmology:
 
         >>> from yt.utilities.cosmology import Cosmology
         >>> co = Cosmology()
-        >>> print(co.comoving_radial_distance(0., 1.).in_units("Mpccm"))
+        >>> print(co.comoving_radial_distance(0.0, 1.0).in_units("Mpccm"))
 
         """
         return (
@@ -158,7 +158,7 @@ class Cosmology:
 
         >>> from yt.utilities.cosmology import Cosmology
         >>> co = Cosmology()
-        >>> print(co.comoving_transverse_distance(0., 1.).in_units("Mpccm"))
+        >>> print(co.comoving_transverse_distance(0.0, 1.0).in_units("Mpccm"))
 
         """
         if self.omega_curvature > 0:
@@ -202,7 +202,7 @@ class Cosmology:
 
         >>> from yt.utilities.cosmology import Cosmology
         >>> co = Cosmology()
-        >>> print(co.comoving_volume(0., 1.).in_units("Gpccm**3"))
+        >>> print(co.comoving_volume(0.0, 1.0).in_units("Gpccm**3"))
 
         """
         if self.omega_curvature > 1e-10:
@@ -277,7 +277,7 @@ class Cosmology:
 
         >>> from yt.utilities.cosmology import Cosmology
         >>> co = Cosmology()
-        >>> print(co.angular_diameter_distance(0., 1.).in_units("Mpc"))
+        >>> print(co.angular_diameter_distance(0.0, 1.0).in_units("Mpc"))
 
         """
 
@@ -303,7 +303,7 @@ class Cosmology:
 
         >>> from yt.utilities.cosmology import Cosmology
         >>> co = Cosmology()
-        >>> print(co.angular_scale(0., 1.).in_units("kpc / arcsec"))
+        >>> print(co.angular_scale(0.0, 1.0).in_units("kpc / arcsec"))
 
         """
 
@@ -327,7 +327,7 @@ class Cosmology:
 
         >>> from yt.utilities.cosmology import Cosmology
         >>> co = Cosmology()
-        >>> print(co.luminosity_distance(0., 1.).in_units("Mpc"))
+        >>> print(co.luminosity_distance(0.0, 1.0).in_units("Mpc"))
 
         """
 
@@ -353,7 +353,7 @@ class Cosmology:
 
         >>> from yt.utilities.cosmology import Cosmology
         >>> co = Cosmology()
-        >>> print(co.lookback_time(0., 1.).in_units("Gyr"))
+        >>> print(co.lookback_time(0.0, 1.0).in_units("Gyr"))
 
         """
         return (trapzint(self.age_integrand, z_i, z_f) / self.hubble_constant).in_base(
@@ -375,7 +375,7 @@ class Cosmology:
 
         >>> from yt.utilities.cosmology import Cosmology
         >>> co = Cosmology()
-        >>> print(co.critical_density(0.).in_units("g/cm**3"))
+        >>> print(co.critical_density(0.0).in_units("g/cm**3"))
         >>> print(co.critical_density(0).in_units("Msun/Mpc**3"))
 
         """
@@ -425,9 +425,9 @@ class Cosmology:
 
         zp1 = 1 + z
         return np.sqrt(
-            self.omega_matter * zp1 ** 3
-            + self.omega_curvature * zp1 ** 2
-            + self.omega_radiation * zp1 ** 4
+            self.omega_matter * zp1**3
+            + self.omega_curvature * zp1**2
+            + self.omega_radiation * zp1**4
             + self.omega_lambda * dark_factor
         )
 
@@ -454,7 +454,7 @@ class Cosmology:
 
         >>> from yt.utilities.cosmology import Cosmology
         >>> co = Cosmology()
-        >>> print(co.t_from_a(1.).in_units("Gyr"))
+        >>> print(co.t_from_a(1.0).in_units("Gyr"))
 
         """
 
@@ -490,7 +490,7 @@ class Cosmology:
 
         >>> from yt.utilities.cosmology import Cosmology
         >>> co = Cosmology()
-        >>> print(co.t_from_z(0.).in_units("Gyr"))
+        >>> print(co.t_from_z(0.0).in_units("Gyr"))
 
         """
 
@@ -511,7 +511,7 @@ class Cosmology:
 
         >>> from yt.utilities.cosmology import Cosmology
         >>> co = Cosmology()
-        >>> print(co.a_from_t(4.e17))
+        >>> print(co.a_from_t(4.0e17))
 
         """
 
@@ -572,7 +572,7 @@ class Cosmology:
 
         >>> from yt.utilities.cosmology import Cosmology
         >>> co = Cosmology()
-        >>> print(co.z_from_t(4.e17))
+        >>> print(co.z_from_t(4.0e17))
 
         """
 

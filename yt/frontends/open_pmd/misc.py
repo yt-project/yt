@@ -4,7 +4,7 @@ from yt.utilities.logger import ytLogger as mylog
 
 
 def parse_unit_dimension(unit_dimension):
-    """Transforms an openPMD unitDimension into a string.
+    r"""Transforms an openPMD unitDimension into a string.
 
     Parameters
     ----------
@@ -22,8 +22,8 @@ def parse_unit_dimension(unit_dimension):
 
     References
     ----------
-    ..
-    https://github.com/openPMD/openPMD-standard/blob/latest/STANDARD.md#unit-systems-and-dimensionality  # NOQA E501
+
+    https://github.com/openPMD/openPMD-standard/blob/latest/STANDARD.md#unit-systems-and-dimensionality
 
 
     Returns
@@ -32,11 +32,11 @@ def parse_unit_dimension(unit_dimension):
 
     Examples
     --------
-    >>> velocity = [1., 0., -1., 0., 0., 0., 0.]
+    >>> velocity = [1.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0]
     >>> print(parse_unit_dimension(velocity))
     'm**1*s**-1'
 
-    >>> magnetic_field = [0., 1., -2., -1., 0., 0., 0.]
+    >>> magnetic_field = [0.0, 1.0, -2.0, -1.0, 0.0, 0.0, 0.0]
     >>> print(parse_unit_dimension(magnetic_field))
     'kg**1*s**-2*A**-1'
     """

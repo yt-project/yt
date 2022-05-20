@@ -7,10 +7,10 @@ ds = yt.load("Enzo_64/DD0029/data0029")
 sp = ds.sphere("max", (1.0, "Mpc"))
 
 # Use the total_quantity derived quantity to sum up the
-# values of the cell_mass and particle_mass fields
+# values of the mass and particle_mass fields
 # within the sphere.
 baryon_mass, particle_mass = sp.quantities.total_quantity(
-    ["cell_mass", "particle_mass"]
+    [("gas", "mass"), ("all", "particle_mass")]
 )
 
 print(

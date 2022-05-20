@@ -1,8 +1,7 @@
 import numpy as np
 
 from yt.data_objects.image_array import ImageArray
-from yt.funcs import mylog
-from yt.units.yt_array import uhstack, unorm, uvstack
+from yt.units.yt_array import uhstack, unorm, uvstack  # type: ignore
 from yt.utilities.lib.grid_traversal import arr_fisheye_vectors
 from yt.utilities.math_utils import get_rotation_matrix
 from yt.utilities.parallel_tools.parallel_analysis_interface import (
@@ -180,8 +179,8 @@ class PerspectiveLens(Lens):
         north_vec = camera.unit_vectors[1]
         normal_vec = camera.unit_vectors[2]
 
-        px = np.mat(np.linspace(-0.5, 0.5, camera.resolution[0]))
-        py = np.mat(np.linspace(-0.5, 0.5, camera.resolution[1]))
+        px = np.linspace(-0.5, 0.5, camera.resolution[0])[np.newaxis, :]
+        py = np.linspace(-0.5, 0.5, camera.resolution[1])[np.newaxis, :]
 
         sample_x = camera.width[0] * np.array(east_vec.reshape(3, 1) * px)
         sample_x = sample_x.transpose()
@@ -233,9 +232,6 @@ class PerspectiveLens(Lens):
             lens_type="perspective",
         )
 
-        mylog.debug(positions)
-        mylog.debug(vectors)
-
         return sampler_params
 
     def set_viewpoint(self, camera):
@@ -279,7 +275,7 @@ class PerspectiveLens(Lens):
                 # to other corner within the image, which produces visible
                 # domain boundary line
                 sight_length = np.sqrt(width[0] ** 2 + width[1] ** 2)
-                sight_length = sight_length / np.sqrt(1 - sight_angle_cos ** 2)
+                sight_length = sight_length / np.sqrt(1 - sight_angle_cos**2)
             pos1[i] = position + sight_length * sight_vector[i]
 
         dx = np.dot(pos1 - sight_center, camera.unit_vectors[0])
@@ -384,8 +380,8 @@ class StereoPerspectiveLens(Lens):
         east_vec_rot = np.dot(R, east_vec)
         normal_vec_rot = np.dot(R, normal_vec)
 
-        px = np.mat(np.linspace(-0.5, 0.5, single_resolution_x))
-        py = np.mat(np.linspace(-0.5, 0.5, camera.resolution[1]))
+        px = np.linspace(-0.5, 0.5, single_resolution_x)[np.newaxis, :]
+        py = np.linspace(-0.5, 0.5, camera.resolution[1])[np.newaxis, :]
 
         sample_x = camera.width[0] * np.array(east_vec_rot.reshape(3, 1) * px)
         sample_x = sample_x.transpose()
@@ -426,9 +422,6 @@ class StereoPerspectiveLens(Lens):
 
         # Here the east_vecs is non-rotated one
         positions = positions + east_vecs * disparity
-
-        mylog.debug(positions)
-        mylog.debug(vectors)
 
         return vectors, positions
 
@@ -495,7 +488,7 @@ class StereoPerspectiveLens(Lens):
                 # to other corner within the image, which produces visible
                 # domain boundary line
                 sight_length = np.sqrt(width[0] ** 2 + width[1] ** 2)
-                sight_length = sight_length / np.sqrt(1 - sight_angle_cos ** 2)
+                sight_length = sight_length / np.sqrt(1 - sight_angle_cos**2)
             pos1[i] = camera_position_shift + sight_length * sight_vector[i]
 
         dx = np.dot(pos1 - sight_center, east_vec_rot)

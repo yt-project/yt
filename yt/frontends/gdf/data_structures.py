@@ -7,9 +7,9 @@ from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.funcs import just_one, setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
-from yt.units.dimensions import dimensionless as sympy_one
-from yt.units.unit_object import Unit
-from yt.units.unit_systems import unit_system_registry
+from yt.units.dimensions import dimensionless as sympy_one  # type: ignore
+from yt.units.unit_object import Unit  # type: ignore
+from yt.units.unit_systems import unit_system_registry  # type: ignore
 from yt.utilities.exceptions import YTGDFUnknownGeometry
 from yt.utilities.lib.misc_utilities import get_box_grids_level
 from yt.utilities.logger import ytLogger as mylog
@@ -46,11 +46,6 @@ class GDFGrid(AMRGridPatch):
         else:
             LE, RE = self.index.grid_left_edge[id, :], self.index.grid_right_edge[id, :]
             self.dds = np.array((RE - LE) / self.ActiveDimensions)
-        if self.ds.data_software != "piernik":
-            if self.ds.dimensionality < 2:
-                self.dds[1] = 1.0
-            if self.ds.dimensionality < 3:
-                self.dds[2] = 1.0
         self.field_data["dx"], self.field_data["dy"], self.field_data["dz"] = self.dds
         self.dds = self.ds.arr(self.dds, "code_length")
 
@@ -163,6 +158,7 @@ class GDFDataset(Dataset):
         geometry=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
         self.geometry = geometry
         self.fluid_types += ("gdf",)
@@ -172,9 +168,9 @@ class GDFDataset(Dataset):
             dataset_type,
             units_override=units_override,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
         self.storage_filename = storage_filename
-        self.filename = filename
 
     def _set_code_unit_attributes(self):
         """
@@ -271,11 +267,11 @@ class GDFDataset(Dataset):
             self.omega_matter = sp["omega_matter"]
             self.hubble_constant = sp["hubble_constant"]
         else:
-            self.current_redshift = (
-                self.omega_lambda
-            ) = (
-                self.omega_matter
-            ) = self.hubble_constant = self.cosmological_simulation = 0.0
+            self.current_redshift = 0.0
+            self.omega_lambda = 0.0
+            self.omega_matter = 0.0
+            self.hubble_constant = 0.0
+            self.cosmological_simulation = 0
         self.parameters["Time"] = 1.0  # Hardcode time conversion for now.
         # Hardcode for now until field staggering is supported.
         self.parameters["HydroMethod"] = 0
@@ -294,5 +290,5 @@ class GDFDataset(Dataset):
             pass
         return False
 
-    def __repr__(self):
+    def __str__(self):
         return self.basename.rsplit(".", 1)[0]

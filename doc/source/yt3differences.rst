@@ -18,7 +18,7 @@ Updating to yt 3.0 from Old Versions (and going back)
 -----------------------------------------------------
 
 First off, you need to update your version of yt to yt 3.0.  If you're
-installing yt for the first time, please visit :ref:`getting-and-installing-yt`.
+installing yt for the first time, please visit :ref:`installing-yt`.
 If you already have a version of yt installed, you should just need one
 command:
 
@@ -29,17 +29,12 @@ command:
 This will update yt to the most recent version and rebuild the source base.
 If you installed using the installer script, it will assure you have all of the
 latest dependencies as well.  This step may take a few minutes.  To test
-to make sure yt is running, try:
+that yt is correctly installed, try:
 
 .. code-block:: bash
 
-    $ yt --help
+    $ python -c "import yt"
 
-If you receive no errors, then you are ready to go.  If you have
-an error, then consult :ref:`update-errors` for solutions.
-
-If you want to switch back to an old version of yt (2.x), see
-:ref:`switching-between-yt-versions`.
 
 .. _transitioning-to-3.0:
 
@@ -115,7 +110,7 @@ important changes.
   information, you have to use spatial chunking and then access them.  See
   :ref:`here <grid-chunking>` for an example.  For datasets that use grid
   hierarchies, you can also access the grids for the entire dataset via
-  `ds.index.grids`.  This attribute is not defined for particle or octree
+  ``ds.index.grids``.  This attribute is not defined for particle or octree
   datasets.
 
 Cool New Things
@@ -265,7 +260,7 @@ Derived quantities can now be accessed via a function that hangs off of the
 ``quantities`` attribute of data objects. Instead of
 ``dd.quantities['TotalMass']()``, you can now use ``dd.quantities.total_mass()``
 to do the same thing. All derived quantities can be accessed via a function that
-hangs off of the `quantities` attribute of data objects.
+hangs off of the ``quantities`` attribute of data objects.
 
 Any derived quantities that *always* returned lists (like ``Extrema``, which
 would return a list even if you only ask for one field) now only returns a

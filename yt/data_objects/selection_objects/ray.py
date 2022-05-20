@@ -54,7 +54,7 @@ class YTOrthoRay(YTSelectionContainer1D):
     >>> import yt
     >>> ds = yt.load("RedshiftOutput0005")
     >>> oray = ds.ortho_ray(0, (0.2, 0.74))
-    >>> print(oray["Density"])
+    >>> print(oray[("gas", "density")])
 
     Note: The low-level data representation for rays are not guaranteed to be
     spatially ordered.  In particular, with AMR datasets, higher resolution
@@ -65,7 +65,7 @@ class YTOrthoRay(YTSelectionContainer1D):
 
     >>> my_ray = ds.ortho_ray(...)
     >>> ray_sort = np.argsort(my_ray["t"])
-    >>> density = my_ray["density"][ray_sort]
+    >>> density = my_ray[("gas", "density")][ray_sort]
     """
 
     _key_fields = ["x", "y", "z", "dx", "dy", "dz"]
@@ -138,7 +138,7 @@ class YTRay(YTSelectionContainer1D):
     >>> import yt
     >>> ds = yt.load("RedshiftOutput0005")
     >>> ray = ds.ray((0.2, 0.74, 0.11), (0.4, 0.91, 0.31))
-    >>> print(ray["Density"], ray["t"], ray["dts"])
+    >>> print(ray[("gas", "density")], ray["t"], ray["dts"])
 
     Note: The low-level data representation for rays are not guaranteed to be
     spatially ordered.  In particular, with AMR datasets, higher resolution
@@ -149,7 +149,7 @@ class YTRay(YTSelectionContainer1D):
 
     >>> my_ray = ds.ray(...)
     >>> ray_sort = np.argsort(my_ray["t"])
-    >>> density = my_ray["density"][ray_sort]
+    >>> density = my_ray[("gas", "density")][ray_sort]
     """
 
     _type_name = "ray"
@@ -218,10 +218,10 @@ class YTRay(YTSelectionContainer1D):
         mass = self[self.ds._sph_ptypes[0], "particle_mass"]
         dens = self[self.ds._sph_ptypes[0], "density"]
         # impact parameter from particle to ray
-        b = np.sqrt(np.sum(r ** 2, axis=1) - l ** 2)
+        b = np.sqrt(np.sum(r**2, axis=1) - l**2)
 
         # Use an interpolation table to evaluate the integrated 2D
         # kernel from the dimensionless impact parameter b/hsml.
         itab = SPHKernelInterpolationTable(self.ds.kernel_name)
-        dl = itab.interpolate_array(b / hsml) * mass / dens / hsml ** 2
+        dl = itab.interpolate_array(b / hsml) * mass / dens / hsml**2
         return dl / length

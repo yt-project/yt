@@ -941,7 +941,7 @@ def test_knn_direct(seed=1):
     N = 1e5
     idx = np.arange(N, dtype=np.uint64)
     rad = np.arange(N, dtype=np.float64)
-    pos = np.vstack(3 * [rad ** 2 / 3.0]).T
+    pos = np.vstack(3 * [rad**2 / 3.0]).T
     sort_shf = np.arange(N, dtype=np.uint64)
     for _ in range(20):
         np.random.shuffle(sort_shf)
@@ -978,6 +978,6 @@ def test_obtain_relative_velocity_vector():
 
     vels = obtain_relative_velocity_vector(dd)
 
-    assert_array_equal(vels[0, :], dd["velocity_x"])
-    assert_array_equal(vels[1, :], dd["velocity_y"])
-    assert_array_equal(vels[2, :], dd["velocity_z"])
+    assert_array_equal(vels[0, :], dd[("gas", "velocity_x")])
+    assert_array_equal(vels[1, :], dd[("gas", "velocity_y")])
+    assert_array_equal(vels[2, :], dd[("gas", "velocity_z")])

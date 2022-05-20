@@ -126,7 +126,7 @@ class EnzoGridGZ(EnzoGrid):
             end_zone = None
         else:
             end_zone = -(NGZ - n_zones)
-        sl = tuple([slice(start_zone, end_zone) for i in range(3)])
+        sl = tuple(slice(start_zone, end_zone) for i in range(3))
         if fields is None:
             return cube
         for field in iter_fields(fields):
@@ -252,7 +252,7 @@ class EnzoHierarchy(GridIndex):
                 nap = None
                 active_particles = False
         for grid_id in range(self.num_grids):
-            pbar.update(grid_id)
+            pbar.update(grid_id + 1)
             # We will unroll this list
             si.append(_next_token_line("GridStartIndex", f))
             ei.append(_next_token_line("GridEndIndex", f))
@@ -370,20 +370,28 @@ class EnzoHierarchy(GridIndex):
                 self.dataset.particle_types = new_ptypes
                 self.dataset.particle_types_raw = new_ptypes
                 continue
-            gs = self.grids[select_grids > 0]
-            g = gs[0]
-            handle = h5py.File(g.filename, mode="r")
-            node = handle["/Grid%08i/Particles/" % g.id]
-            for ptype in (str(p) for p in node):
-                if ptype not in _fields:
-                    continue
-                for field in (str(f) for f in node[ptype]):
-                    _fields[ptype].append(field)
-                    sh = node[ptype][field].shape
-                    if len(sh) > 1:
-                        self.io._array_fields[field] = (sh[1],)
-                fields += [(ptype, field) for field in _fields.pop(ptype)]
-            handle.close()
+            if ptype != "DarkMatter":
+                gs = self.grids[select_grids > 0]
+                g = gs[0]
+                handle = h5py.File(g.filename, "r")
+                grid_group = handle[f"/Grid{g.id:08d}"]
+                for pname in ["Active Particles", "Particles"]:
+                    if pname in grid_group:
+                        break
+                else:
+                    raise RuntimeError("Could not find active particle group in data.")
+                node = grid_group[pname]
+                for ptype in (str(p) for p in node):
+                    if ptype not in _fields:
+                        continue
+                    for field in (str(f) for f in node[ptype]):
+                        _fields[ptype].append(field)
+                        if node[ptype][field].ndim > 1:
+                            self.io._array_fields[field] = (
+                                node[ptype][field].shape[1:],
+                            )
+                    fields += [(ptype, field) for field in _fields.pop(ptype)]
+                handle.close()
         return set(fields)
 
     def _setup_derived_fields(self):
@@ -682,6 +690,7 @@ class EnzoDataset(Dataset):
         storage_filename=None,
         units_override=None,
         unit_system="cgs",
+        default_species_fields=None,
     ):
         """
         This class is a stripped down class that simply reads and parses
@@ -709,6 +718,7 @@ class EnzoDataset(Dataset):
             file_style=file_style,
             units_override=units_override,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
 
     def _setup_1d(self):
@@ -797,11 +807,11 @@ class EnzoDataset(Dataset):
             self.omega_matter = cosmo["OmegaMatterNow"]
             self.hubble_constant = cosmo["HubbleConstantNow"]
         else:
-            self.current_redshift = (
-                self.omega_lambda
-            ) = (
-                self.omega_matter
-            ) = self.hubble_constant = self.cosmological_simulation = 0.0
+            self.current_redshift = 0.0
+            self.omega_lambda = 0.0
+            self.omega_matter = 0.0
+            self.hubble_constant = 0.0
+            self.cosmological_simulation = 0
         self.particle_types = ["DarkMatter"] + phys["ActiveParticles"][
             "ActiveParticlesEnabled"
         ]
@@ -898,11 +908,11 @@ class EnzoDataset(Dataset):
             )
             self.hubble_constant = self.parameters["CosmologyHubbleConstantNow"]
         else:
-            self.current_redshift = (
-                self.omega_lambda
-            ) = (
-                self.omega_matter
-            ) = self.hubble_constant = self.cosmological_simulation = 0.0
+            self.current_redshift = 0.0
+            self.omega_lambda = 0.0
+            self.omega_matter = 0.0
+            self.hubble_constant = 0.0
+            self.cosmological_simulation = 0
         self.particle_types = []
         self.current_time = self.parameters["InitialTime"]
         if (
@@ -950,12 +960,12 @@ class EnzoDataset(Dataset):
         else:
             if "LengthUnits" in self.parameters:
                 length_unit = self.parameters["LengthUnits"]
-                mass_unit = self.parameters["DensityUnits"] * length_unit ** 3
+                mass_unit = self.parameters["DensityUnits"] * length_unit**3
                 time_unit = self.parameters["TimeUnits"]
             elif "SimulationControl" in self.parameters:
                 units = self.parameters["SimulationControl"]["Units"]
                 length_unit = units["Length"]
-                mass_unit = units["Density"] * length_unit ** 3
+                mass_unit = units["Density"] * length_unit**3
                 time_unit = units["Time"]
             else:
                 mylog.warning("Setting 1.0 in code units to be 1.0 cm")
@@ -967,7 +977,7 @@ class EnzoDataset(Dataset):
             setdefaultattr(self, "time_unit", self.quan(time_unit, "s"))
             setdefaultattr(self, "velocity_unit", self.length_unit / self.time_unit)
 
-        density_unit = self.mass_unit / self.length_unit ** 3
+        density_unit = self.mass_unit / self.length_unit**3
         magnetic_unit = np.sqrt(4 * np.pi * density_unit) * self.velocity_unit
         magnetic_unit = np.float64(magnetic_unit.in_cgs())
         setdefaultattr(self, "magnetic_unit", self.quan(magnetic_unit, "gauss"))
@@ -993,11 +1003,6 @@ class EnzoDataset(Dataset):
 class EnzoDatasetInMemory(EnzoDataset):
     _index_class = EnzoHierarchyInMemory
     _dataset_type = "enzo_inline"
-
-    def __new__(cls, *args, **kwargs):
-        obj = object.__new__(cls)
-        obj.__init__(*args, **kwargs)
-        return obj
 
     def __init__(self, parameter_override=None, conversion_override=None):
         self.fluid_types += ("enzo",)
@@ -1047,11 +1052,11 @@ class EnzoDatasetInMemory(EnzoDataset):
             self.omega_matter = self.parameters["CosmologyOmegaMatterNow"]
             self.hubble_constant = self.parameters["CosmologyHubbleConstantNow"]
         else:
-            self.current_redshift = (
-                self.omega_lambda
-            ) = (
-                self.omega_matter
-            ) = self.hubble_constant = self.cosmological_simulation = 0.0
+            self.current_redshift = 0.0
+            self.omega_lambda = 0.0
+            self.omega_matter = 0.0
+            self.hubble_constant = 0.0
+            self.cosmological_simulation = 0
 
     def _obtain_enzo(self):
         import enzo

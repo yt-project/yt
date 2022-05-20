@@ -4,6 +4,7 @@ import uuid
 import weakref
 from itertools import chain, product, repeat
 from numbers import Number as numeric_type
+from typing import Type
 
 import numpy as np
 from more_itertools import always_iterable
@@ -19,7 +20,7 @@ from yt.data_objects.particle_unions import ParticleUnion
 from yt.data_objects.static_output import Dataset, ParticleFile
 from yt.data_objects.unions import MeshUnion
 from yt.frontends.sph.data_structures import SPHParticleIndex
-from yt.geometry.geometry_handler import YTDataChunk
+from yt.geometry.geometry_handler import Index, YTDataChunk
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.geometry.oct_container import OctreeContainer
 from yt.geometry.oct_geometry_handler import OctreeIndex
@@ -262,7 +263,7 @@ class StreamHierarchy(GridIndex):
 
 
 class StreamDataset(Dataset):
-    _index_class = StreamHierarchy
+    _index_class: Type[Index] = StreamHierarchy
     _field_info_class = StreamFieldInfo
     _dataset_type = "stream"
 
@@ -272,6 +273,7 @@ class StreamDataset(Dataset):
         storage_filename=None,
         geometry="cartesian",
         unit_system="cgs",
+        default_species_fields=None,
     ):
         self.fluid_types += ("stream",)
         self.geometry = geometry
@@ -281,10 +283,19 @@ class StreamDataset(Dataset):
         from yt.data_objects.static_output import _cached_datasets
 
         _cached_datasets[name] = self
-        Dataset.__init__(self, name, self._dataset_type, unit_system=unit_system)
+        Dataset.__init__(
+            self,
+            name,
+            self._dataset_type,
+            unit_system=unit_system,
+            default_species_fields=default_species_fields,
+        )
+
+    @property
+    def filename(self):
+        return self.stream_handler.name
 
     def _parse_parameter_file(self):
-        self.basename = self.stream_handler.name
         self.parameters["CurrentTimeIdentifier"] = time.time()
         self.unique_identifier = self.parameters["CurrentTimeIdentifier"]
         self.domain_left_edge = self.stream_handler.domain_left_edge.copy()
@@ -306,11 +317,11 @@ class StreamDataset(Dataset):
             self.omega_matter = self.stream_handler.omega_matter
             self.hubble_constant = self.stream_handler.hubble_constant
         else:
-            self.current_redshift = (
-                self.omega_lambda
-            ) = (
-                self.omega_matter
-            ) = self.hubble_constant = self.cosmological_simulation = 0.0
+            self.current_redshift = 0.0
+            self.omega_lambda = 0.0
+            self.omega_matter = 0.0
+            self.hubble_constant = 0.0
+            self.cosmological_simulation = 0
 
     def _set_units(self):
         self.field_units = self.stream_handler.field_units
@@ -327,7 +338,12 @@ class StreamDataset(Dataset):
         cgs_units = ("cm", "g", "s", "cm/s", "gauss")
         for unit, attr, cgs_unit in zip(base_units, attrs, cgs_units):
             if isinstance(unit, str):
-                uq = self.quan(1.0, unit)
+                if unit == "code_magnetic":
+                    # If no magnetic unit was explicitly specified
+                    # we skip it now and take care of it at the bottom
+                    continue
+                else:
+                    uq = self.quan(1.0, unit)
             elif isinstance(unit, numeric_type):
                 uq = self.quan(unit, cgs_unit)
             elif isinstance(unit, YTQuantity):
@@ -337,6 +353,10 @@ class StreamDataset(Dataset):
             else:
                 raise RuntimeError(f"{attr} ({unit}) is invalid.")
             setattr(self, attr, uq)
+        if not hasattr(self, "magnetic_unit"):
+            self.magnetic_unit = np.sqrt(
+                4 * np.pi * self.mass_unit / (self.time_unit**2 * self.length_unit)
+            )
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
@@ -441,12 +461,14 @@ class StreamParticlesDataset(StreamDataset):
         storage_filename=None,
         geometry="cartesian",
         unit_system="cgs",
+        default_species_fields=None,
     ):
         super().__init__(
             stream_handler,
             storage_filename=storage_filename,
             geometry=geometry,
             unit_system=unit_system,
+            default_species_fields=default_species_fields,
         )
         fields = list(stream_handler.fields["stream_file"].keys())
         # This is the current method of detecting SPH data.
@@ -572,8 +594,8 @@ def hexahedral_connectivity(xgrid, ygrid, zgrid):
     Examples
     --------
 
-    >>> xgrid = np.array([-1,-0.25,0,0.25,1])
-    >>> coords, conn = hexahedral_connectivity(xgrid,xgrid,xgrid)
+    >>> xgrid = np.array([-1, -0.25, 0, 0.25, 1])
+    >>> coords, conn = hexahedral_connectivity(xgrid, xgrid, xgrid)
     >>> coords
     array([[-1.  , -1.  , -1.  ],
            [-1.  , -1.  , -0.25],
@@ -710,7 +732,7 @@ class StreamOctreeSubset(OctreeSubset):
         oct_handler = self.oct_handler
         ndim = self.ds.dimensionality
         cell_count = (
-            selector.count_octs(self.oct_handler, self.domain_id) * self.nz ** ndim
+            selector.count_octs(self.oct_handler, self.domain_id) * self.nz**ndim
         )
 
         gz_cache = getattr(self, "_ghost_zone_cache", None)
@@ -822,8 +844,15 @@ class StreamOctreeDataset(StreamDataset):
         storage_filename=None,
         geometry="cartesian",
         unit_system="cgs",
+        default_species_fields=None,
     ):
-        super().__init__(stream_handler, storage_filename, geometry, unit_system)
+        super().__init__(
+            stream_handler,
+            storage_filename,
+            geometry,
+            unit_system,
+            default_species_fields=default_species_fields,
+        )
         # Set up levelmax
         self.max_level = stream_handler.levels.max()
         self.min_level = stream_handler.levels.min()

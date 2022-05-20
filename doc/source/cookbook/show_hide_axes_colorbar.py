@@ -1,7 +1,7 @@
 import yt
 
 ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-slc = yt.SlicePlot(ds, "x", "density")
+slc = yt.SlicePlot(ds, "x", ("gas", "density"))
 slc.save("default_sliceplot.png")
 
 slc.hide_axes()

@@ -23,12 +23,12 @@ def test_no_rotation():
     right_edge = ds.domain_right_edge
     center = (left_edge + right_edge) / 2
     width = right_edge - left_edge
-    px = ad["particle_position_x"]
-    py = ad["particle_position_y"]
-    hsml = ad["smoothing_length"]
+    px = ad[("all", "particle_position_x")]
+    py = ad[("all", "particle_position_y")]
+    hsml = ad[("all", "smoothing_length")]
     quantity_to_smooth = ad[("gas", "density")]
-    density = ad["density"]
-    mass = ad["particle_mass"]
+    density = ad[("io", "density")]
+    mass = ad[("io", "particle_mass")]
     bounds = [-4, 4, -4, 4, -4, 4]
 
     buf2 = np.zeros(resolution)
@@ -270,7 +270,7 @@ def test_center_3():
 @requires_module("scipy")
 def find_compare_maxima(expected_maxima, buf, resolution, width):
     buf_ndarray = buf.ndarray_view()
-    max_filter_buf = ndimage.filters.maximum_filter(buf_ndarray, size=5)
+    max_filter_buf = ndimage.maximum_filter(buf_ndarray, size=5)
     maxima = np.isclose(max_filter_buf, buf_ndarray, rtol=1e-09)
 
     # ignore contributions from zones of no smoothing

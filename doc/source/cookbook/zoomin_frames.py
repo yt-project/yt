@@ -16,8 +16,8 @@ min_dx = 40
 
 frame_template = "frame_%05i"  # Template for frame filenames
 
-p = yt.SlicePlot(ds, "z", "density")  # Add our slice, along z
-p.annotate_contour("temperature")  # We'll contour in temperature
+p = yt.SlicePlot(ds, "z", ("gas", "density"))  # Add our slice, along z
+p.annotate_contour(("gas", "temperature"))  # We'll contour in temperature
 
 # What we do now is a bit fun.  "enumerate" returns a tuple for every item --
 # the index of the item, and the item itself.  This saves us having to write
