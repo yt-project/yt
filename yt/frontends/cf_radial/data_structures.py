@@ -136,7 +136,7 @@ class CFRadialDataset(Dataset):
     def _parse_parameter_file(self):
         self.parameters = {}
 
-        x, y, z = [self._handle.coords[d] for d in "xyz"]
+        x, y, z = (self._handle.coords[d] for d in "xyz")
 
         self.origin_latitude = self._handle.origin_latitude[0]
         self.origin_longitude = self._handle.origin_longitude[0]
