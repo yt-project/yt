@@ -4,6 +4,7 @@ import re
 import pytest
 
 import yt
+from yt.testing import fake_amr_ds
 
 # avoid testing every supported format as some backends may be buggy on testing platforms
 FORMATS_TO_TEST = [".eps", ".pdf", ".svg"]
@@ -11,7 +12,7 @@ FORMATS_TO_TEST = [".eps", ".pdf", ".svg"]
 
 @pytest.fixture(scope="session")
 def simple_sliceplot():
-    ds = yt.testing.fake_amr_ds()
+    ds = fake_amr_ds()
     p = yt.SlicePlot(ds, "z", "Density")
     yield p
 
