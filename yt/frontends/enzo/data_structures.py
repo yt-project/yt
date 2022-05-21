@@ -54,9 +54,6 @@ class EnzoGrid(AMRGridPatch):
             self.filename = os.path.join(self.index.directory, filename)
         return
 
-    def __repr__(self):
-        return "EnzoGrid_%04i" % (self.id)
-
     @property
     def Parent(self):
         if self._parent_id == -1:

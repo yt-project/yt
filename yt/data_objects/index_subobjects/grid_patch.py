@@ -142,7 +142,8 @@ class AMRGridPatch(YTSelectionContainer):
         self.dds.units = self.index.grid_left_edge.units
 
     def __repr__(self):
-        return "AMRGridPatch_%04i" % (self.id)
+        cls_name = self.__class__.__name__
+        return f"{cls_name}_{self.id:04i} ({self.ActiveDimensions})"
 
     def __int__(self):
         return self.id
