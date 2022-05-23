@@ -201,6 +201,7 @@ other_tests:
      - "--ignore-files=test_registration.py"
      - "--ignore-files=test_invalid_origin.py"
      - "--ignore-files=test_load_archive\\.py"
+     - "--ignore-file=test_on_demand_imports\\.py"
      - "--ignore-files=test_outputs_pytest\\.py"
      - "--ignore-files=test_normal_plot_api\\.py"
      - "--ignore-file=test_file_sanitizer\\.py"
