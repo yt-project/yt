@@ -207,7 +207,7 @@ _pooch = pooch_imports()
 _pooch = pooch_imports()
 
 
-class pyart_imports(OnDemand()):
+class pyart_imports(OnDemand):
     @safe_import
     def io(self):
         from pyart import io
