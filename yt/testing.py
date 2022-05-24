@@ -40,14 +40,14 @@ ANSWER_TEST_TAG = "answer_test"
 # this is adopted from nose. Doing this here allows us to avoid importing
 # nose at the top level.
 class _Dummy(unittest.TestCase):
-    def nop():
+    def nop(self):
         pass
 
 
 _t = _Dummy("nop")
 
-assert_true = getattr(_t, "assertTrue")  # noqa: B009
-assert_less_equal = getattr(_t, "assertLessEqual")  # noqa: B009
+assert_true = _t.assertTrue
+assert_less_equal = _t.assertLessEqual
 
 
 def assert_rel_equal(a1, a2, decimals, err_msg="", verbose=True):
@@ -909,13 +909,11 @@ def requires_module_pytest(*module_names):
     from yt.utilities import on_demand_imports as odi
 
     def deco(func):
-        required_modules = {
-            name: getattr(odi, f"_{name}")._module for name in module_names
-        }
         missing = [
             name
-            for name, mod in required_modules.items()
-            if isinstance(mod, odi.NotAModule)
+            for name in module_names
+            if not getattr(odi, f"_{name}").__is_available__
+            for name in module_names
         ]
 
         # note that order between these two decorators matters
