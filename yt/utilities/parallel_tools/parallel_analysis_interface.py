@@ -13,7 +13,7 @@ from more_itertools import always_iterable
 import yt.utilities.logger
 from yt.config import ytcfg
 from yt.data_objects.image_array import ImageArray
-from yt.funcs import is_sequence
+from yt.funcs import is_sized
 from yt.units.unit_registry import UnitRegistry  # type: ignore
 from yt.units.yt_array import YTArray
 from yt.utilities.exceptions import YTNoDataInObjectError
@@ -419,7 +419,7 @@ class ProcessorPool:
         pool = cls()
         rank = pool.comm.rank
         for i, size in enumerate(always_iterable(sizes)):
-            if is_sequence(size):
+            if is_sized(size):
                 size, name = size
             else:
                 name = "workgroup_%02i" % i

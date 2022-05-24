@@ -13,7 +13,7 @@ from yt.fields.field_exceptions import NeedsGridType
 from yt.frontends.ytdata.utilities import save_as_dataset
 from yt.funcs import (
     get_output_filename,
-    is_sequence,
+    is_sized,
     iter_fields,
     mylog,
     parse_center_array,
@@ -1359,7 +1359,7 @@ class YTDataContainer(abc.ABC):
         except AttributeError:
             pass
 
-        if is_sequence(field) and not isinstance(field, str):
+        if is_sized(field) and not isinstance(field, str):
             try:
                 ftype, fname = field
                 if not all(isinstance(_, str) for _ in field):

@@ -13,7 +13,7 @@ from yt.data_objects.data_containers import YTDataContainer
 from yt.data_objects.derived_quantities import DerivedQuantityCollection
 from yt.data_objects.field_data import YTFieldData
 from yt.fields.field_exceptions import NeedsGridType
-from yt.funcs import fix_axis, is_sequence, iter_fields, validate_width_tuple
+from yt.funcs import fix_axis, is_sized, iter_fields, validate_width_tuple
 from yt.geometry.selection_routines import compose_selector
 from yt.units import YTArray
 from yt.utilities.exceptions import (
@@ -603,7 +603,7 @@ class YTSelectionContainer2D(YTSelectionContainer):
             )
 
             validate_width_tuple(width)
-            if is_sequence(resolution):
+            if is_sized(resolution):
                 resolution = max(resolution)
             frb = CylindricalFixedResolutionBuffer(self, width, resolution)
             return frb
@@ -612,9 +612,9 @@ class YTSelectionContainer2D(YTSelectionContainer):
             center = self.center
             if center is None:
                 center = (self.ds.domain_right_edge + self.ds.domain_left_edge) / 2.0
-        elif is_sequence(center) and not isinstance(center, YTArray):
+        elif is_sized(center) and not isinstance(center, YTArray):
             center = self.ds.arr(center, "code_length")
-        if is_sequence(width):
+        if is_sized(width):
             w, u = width
             if isinstance(w, tuple) and isinstance(u, tuple):
                 height = u
@@ -624,12 +624,12 @@ class YTSelectionContainer2D(YTSelectionContainer):
             width = self.ds.quan(width, "code_length")
         if height is None:
             height = width
-        elif is_sequence(height):
+        elif is_sized(height):
             h, u = height
             height = self.ds.quan(h, units=u)
         elif not isinstance(height, YTArray):
             height = self.ds.quan(height, "code_length")
-        if not is_sequence(resolution):
+        if not is_sized(resolution):
             resolution = (resolution, resolution)
         from yt.visualization.fixed_resolution import FixedResolutionBuffer
 

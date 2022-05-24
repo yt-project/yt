@@ -12,7 +12,7 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import LogFormatterMathtext
 from packaging.version import Version
 
-from yt.funcs import get_interactivity, is_sequence, matplotlib_style_context, mylog
+from yt.funcs import get_interactivity, is_sized, matplotlib_style_context, mylog
 from yt.visualization._handlers import ColorbarHandler, NormHandler
 
 from ._commons import (
@@ -99,7 +99,7 @@ class PlotMPL:
 
         self._plot_valid = True
         if figure is None:
-            if not is_sequence(fsize):
+            if not is_sized(fsize):
                 fsize = (fsize, fsize)
             self.figure = matplotlib.figure.Figure(figsize=fsize, frameon=True)
         else:
@@ -403,7 +403,7 @@ class ImagePlotMPL(PlotMPL, ABC):
 
         # Ensure the figure size along the long axis is always equal to _figure_size
         unit_aspect = getattr(self, "_unit_aspect", 1)
-        if is_sequence(self._figure_size):
+        if is_sized(self._figure_size):
             x_fig_size, y_fig_size = self._figure_size
             y_fig_size *= unit_aspect
         else:

@@ -6,7 +6,7 @@ from typing import Tuple
 import numpy as np
 from packaging.version import Version
 
-from yt.funcs import fix_unitary, is_sequence, parse_center_array, validate_width_tuple
+from yt.funcs import fix_unitary, is_sized, parse_center_array, validate_width_tuple
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTCoordinateNotImplemented, YTInvalidWidthError
 from yt.visualization._commons import MPL_VERSION
@@ -277,7 +277,7 @@ class CoordinateHandler(abc.ABC):
         pass
 
     def sanitize_depth(self, depth):
-        if is_sequence(depth):
+        if is_sized(depth):
             validate_width_tuple(depth)
             depth = (self.ds.quan(depth[0], fix_unitary(depth[1])),)
         elif isinstance(depth, Number):
@@ -295,7 +295,7 @@ class CoordinateHandler(abc.ABC):
             # initialize the index if it is not already initialized
             self.ds.index
             # Default to code units
-            if not is_sequence(axis):
+            if not is_sized(axis):
                 xax = self.x_axis[axis]
                 yax = self.y_axis[axis]
                 w = self.ds.domain_width[np.array([xax, yax])]
@@ -305,7 +305,7 @@ class CoordinateHandler(abc.ABC):
                 mi = np.argmin(self.ds.domain_width)
                 w = self.ds.domain_width[np.array((mi, mi))]
             width = (w[0], w[1])
-        elif is_sequence(width):
+        elif is_sized(width):
             width = validate_sequence_width(width, self.ds)
         elif isinstance(width, YTQuantity):
             width = (width, width)

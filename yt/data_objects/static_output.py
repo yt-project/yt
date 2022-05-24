@@ -26,7 +26,7 @@ from yt.data_objects.region_expression import RegionExpression
 from yt.fields.derived_field import ValidateSpatial
 from yt.fields.field_type_container import FieldTypeContainer
 from yt.fields.fluid_fields import setup_gradient_fields
-from yt.funcs import is_sequence, iter_fields, mylog, set_intersection, setdefaultattr
+from yt.funcs import is_sized, iter_fields, mylog, set_intersection, setdefaultattr
 from yt.geometry.coordinates.api import (
     CartesianCoordinateHandler,
     CoordinateHandler,
@@ -2049,7 +2049,7 @@ class ParticleDataset(Dataset):
 def validate_index_order(index_order):
     if index_order is None:
         index_order = (6, 2)
-    elif not is_sequence(index_order):
+    elif not is_sized(index_order):
         index_order = (int(index_order), 1)
     else:
         if len(index_order) != 2:

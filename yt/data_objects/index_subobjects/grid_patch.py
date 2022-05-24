@@ -9,7 +9,7 @@ from yt.config import ytcfg
 from yt.data_objects.selection_objects.data_selection_objects import (
     YTSelectionContainer,
 )
-from yt.funcs import is_sequence
+from yt.funcs import is_sized
 from yt.geometry.selection_routines import convert_mask_to_indices
 from yt.units.yt_array import YTArray
 from yt.utilities.exceptions import (
@@ -170,7 +170,7 @@ class AMRGridPatch(YTSelectionContainer):
         # This can be expensive so we allow people to disable this behavior
         # via a config option
         if ytcfg.get("yt", "reconstruct_index"):
-            if is_sequence(self.Parent) and len(self.Parent) > 0:
+            if is_sized(self.Parent) and len(self.Parent) > 0:
                 p = self.Parent[0]
             else:
                 p = self.Parent

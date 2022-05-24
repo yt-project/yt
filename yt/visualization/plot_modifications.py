@@ -15,7 +15,7 @@ from yt.data_objects.level_sets.clump_handling import Clump
 from yt.data_objects.selection_objects.cut_region import YTCutRegion
 from yt.data_objects.static_output import Dataset
 from yt.frontends.ytdata.data_structures import YTClumpContainer
-from yt.funcs import is_sequence, mylog, validate_width_tuple
+from yt.funcs import is_sized, mylog, validate_width_tuple
 from yt.geometry.geometry_handler import is_curvilinear
 from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
 from yt.units import dimensions
@@ -40,11 +40,11 @@ callback_registry: Dict[str, Type["PlotCallback"]] = {}
 
 def _validate_factor_tuple(factor) -> Tuple[int, int]:
     if (
-        is_sequence(factor)
+        is_sized(factor)
         and len(factor) == 2
         and all(isinstance(_, Integral) for _ in factor)
     ):
-        # - checking for "is_sequence" allows lists, numpy arrays and other containers
+        # - checking for "is_sized" allows lists, numpy arrays and other containers
         # - checking for Integral type allows numpy integer types
         # in any case we return a with strict typing
         return (int(factor[0]), int(factor[1]))
@@ -1710,7 +1710,7 @@ class ArrowCallback(PlotCallback):
                 since="3.2",
                 removal="4.2",
             )
-            if is_sequence(self.code_size):
+            if is_sized(self.code_size):
                 self.code_size = plot.data.ds.quan(self.code_size[0], self.code_size[1])
                 self.code_size = np.float64(self.code_size.in_units(plot.xlim[0].units))
             self.code_size = self.code_size * self._pixel_scale(plot)[0]
@@ -1933,7 +1933,7 @@ class SphereCallback(PlotCallback):
     def __call__(self, plot):
         from matplotlib.patches import Circle
 
-        if is_sequence(self.radius):
+        if is_sized(self.radius):
             self.radius = plot.data.ds.quan(self.radius[0], self.radius[1])
             self.radius = np.float64(self.radius.in_units(plot.xlim[0].units))
         if isinstance(self.radius, YTQuantity):
@@ -2427,7 +2427,7 @@ class ParticleCallback(PlotCallback):
 
     def __call__(self, plot):
         data = plot.data
-        if is_sequence(self.width):
+        if is_sized(self.width):
             validate_width_tuple(self.width)
             self.width = plot.data.ds.quan(self.width[0], self.width[1])
         elif isinstance(self.width, YTQuantity):

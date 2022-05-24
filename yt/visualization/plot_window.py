@@ -12,7 +12,7 @@ from unyt.exceptions import UnitConversionError
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
-from yt.funcs import fix_axis, fix_unitary, is_sequence, iter_fields, mylog, obj_length
+from yt.funcs import fix_axis, fix_unitary, is_sized, iter_fields, mylog, obj_length
 from yt.units.unit_object import Unit  # type: ignore
 from yt.units.unit_registry import UnitParseError  # type: ignore
 from yt.units.yt_array import YTArray, YTQuantity
@@ -86,10 +86,10 @@ def get_axes_unit(width, ds):
     """
     if ds.no_cgs_equiv_length:
         return ("code_length",) * 2
-    if is_sequence(width):
+    if is_sized(width):
         if isinstance(width[1], str):
             axes_unit = (width[1], width[1])
-        elif is_sequence(width[1]):
+        elif is_sized(width[1]):
             axes_unit = (width[0][1], width[1][1])
         elif isinstance(width[0], YTArray):
             axes_unit = (str(width[0].units), str(width[1].units))
@@ -722,7 +722,7 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
         )
         if new_center is None:
             self.center = None
-        elif is_sequence(new_center):
+        elif is_sized(new_center):
             if len(new_center) != 2:
                 raise error
             for el in new_center:
@@ -756,7 +756,7 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
             The number of data elements in the buffer on the x and y axes.
             If a scalar is provided,  then the buffer is assumed to be square.
         """
-        if is_sequence(size):
+        if is_sized(size):
             self.buff_size = size
         else:
             self.buff_size = (size, size)
@@ -1405,7 +1405,7 @@ class NormalPlot(abc.ABC):
                 )
             return axis_names[normal]
 
-        if not is_sequence(normal):
+        if not is_sized(normal):
             raise TypeError(
                 f"{normal} is not a valid normal vector identifier. "
                 "Expected a string, integer or sequence of 3 floats."
@@ -2581,7 +2581,7 @@ class WindowPlotMPL(ImagePlotMPL):
         if fontscale < 1.0:
             fontscale = np.sqrt(fontscale)
 
-        if is_sequence(figure_size):
+        if is_sized(figure_size):
             self._cb_size = 0.0375 * figure_size[0]
         else:
             self._cb_size = 0.0375 * figure_size

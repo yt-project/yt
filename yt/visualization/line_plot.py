@@ -4,7 +4,7 @@ from typing import Optional
 import numpy as np
 from matplotlib.colors import LogNorm, Normalize, SymLogNorm
 
-from yt.funcs import is_sequence, mylog
+from yt.funcs import is_sized, mylog
 from yt.units.unit_object import Unit  # type: ignore
 from yt.units.yt_array import YTArray
 from yt.visualization.plot_container import (
@@ -203,7 +203,7 @@ class LinePlot(BaseLinePlot):
         y_axis_size = 0.7 * fontscale
         right_buff_size = 0.2 * fontscale
 
-        if is_sequence(self.figure_size):
+        if is_sized(self.figure_size):
             figure_size = self.figure_size
         else:
             figure_size = (self.figure_size, self.figure_size)
@@ -425,7 +425,7 @@ class LinePlot(BaseLinePlot):
 
 
 def _validate_point(point, ds, start=False):
-    if not is_sequence(point):
+    if not is_sized(point):
         raise RuntimeError("Input point must be array-like")
     if not isinstance(point, YTArray):
         point = ds.arr(point, "code_length", dtype=np.float64)

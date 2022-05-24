@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import numpy as np
 
-from yt.funcs import compare_dicts, is_sequence
+from yt.funcs import compare_dicts, is_sized
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.on_demand_imports import _h5py as h5py
 
@@ -48,7 +48,7 @@ def _deserialize_from_h5(g, ds):
         if item == "chunks":
             continue
         if "units" in g[item].attrs:
-            if is_sequence(g[item]):
+            if is_sized(g[item]):
                 result[item] = ds.arr(g[item][:], g[item].attrs["units"])
             else:
                 result[item] = ds.quan(g[item][()], g[item].attrs["units"])

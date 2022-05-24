@@ -3,7 +3,7 @@ from numbers import Number as numeric_type
 
 import numpy as np
 
-from yt.funcs import ensure_numpy_array, is_sequence
+from yt.funcs import ensure_numpy_array, is_sized
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.math_utils import get_rotation_matrix
 from yt.utilities.orientation import Orientation
@@ -13,7 +13,7 @@ from .utils import data_source_or_all
 
 
 def _sanitize_camera_property_units(value, scene):
-    if is_sequence(value):
+    if is_sized(value):
         if len(value) == 1:
             return _sanitize_camera_property_units(value[0], scene)
         elif isinstance(value, YTArray) and len(value) == 3:
@@ -25,7 +25,7 @@ def _sanitize_camera_property_units(value, scene):
         ):
             return scene.arr([scene.arr(value[0], value[1]).in_units("unitary")] * 3)
         if len(value) == 3:
-            if all([is_sequence(v) for v in value]):
+            if all([is_sized(v) for v in value]):
                 if all(
                     [
                         isinstance(v[0], numeric_type) and isinstance(v[1], str)
@@ -249,7 +249,7 @@ class Camera(Orientation):
 
     @resolution.setter
     def resolution(self, value):
-        if is_sequence(value):
+        if is_sized(value):
             if len(value) != 2:
                 raise RuntimeError
         else:
@@ -321,11 +321,11 @@ class Camera(Orientation):
         width = np.sqrt((xma - xmi) ** 2 + (yma - ymi) ** 2 + (zma - zmi) ** 2)
         focus = data_source.get_field_parameter("center")
 
-        if is_sequence(width) and len(width) > 1 and isinstance(width[1], str):
+        if is_sized(width) and len(width) > 1 and isinstance(width[1], str):
             width = data_source.ds.quan(width[0], units=width[1])
             # Now convert back to code length for subsequent manipulation
             width = width.in_units("code_length")  # .value
-        if not is_sequence(width):
+        if not is_sized(width):
             width = data_source.ds.arr([width, width, width], units="code_length")
             # left/right, top/bottom, front/back
         if not isinstance(width, YTArray):

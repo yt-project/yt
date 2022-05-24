@@ -21,7 +21,7 @@ from yt.data_objects.selection_objects.data_selection_objects import (
 )
 from yt.fields.field_exceptions import NeedsGridType, NeedsOriginalGrid
 from yt.frontends.sph.data_structures import ParticleDataset
-from yt.funcs import get_memory_usage, is_sequence, iter_fields, mylog, only_on_root
+from yt.funcs import get_memory_usage, is_sized, iter_fields, mylog, only_on_root
 from yt.geometry import particle_deposit as particle_deposit
 from yt.geometry.coordinates.cartesian_coordinates import all_data
 from yt.loaders import load_uniform_grid
@@ -781,7 +781,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
             self._data_source.set_field_parameter(name, val)
 
     def _sanitize_dims(self, dims):
-        if not is_sequence(dims):
+        if not is_sized(dims):
             dims = [dims] * len(self.ds.domain_left_edge)
         if len(dims) != len(self.ds.domain_left_edge):
             raise RuntimeError(
@@ -790,7 +790,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
         return np.array(dims, dtype="int32")
 
     def _sanitize_edge(self, edge):
-        if not is_sequence(edge):
+        if not is_sized(edge):
             edge = [edge] * len(self.ds.domain_left_edge)
         if len(edge) != len(self.ds.domain_left_edge):
             raise RuntimeError(
@@ -1019,7 +1019,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
             "int64"
         ) * self.ds.relative_refinement(0, self.level)
         refine_by = self.ds.refine_by
-        if not is_sequence(self.ds.refine_by):
+        if not is_sized(self.ds.refine_by):
             refine_by = [refine_by, refine_by, refine_by]
         refine_by = np.array(refine_by, dtype="i8")
         for chunk in parallel_objects(self._data_source.chunks(fields, "io")):
@@ -1405,7 +1405,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         # NOTE: This usage of "refine_by" is actually *okay*, because it's
         # being used with respect to iref, which is *already* scaled!
         refine_by = self.ds.refine_by
-        if not is_sequence(self.ds.refine_by):
+        if not is_sized(self.ds.refine_by):
             refine_by = [refine_by, refine_by, refine_by]
         refine_by = np.array(refine_by, dtype="i8")
 
@@ -2825,7 +2825,7 @@ class YTOctree(YTSelectionContainer3D):
     def _sanitize_edge(self, edge, default):
         if edge is None:
             return default.copy()
-        if not is_sequence(edge):
+        if not is_sized(edge):
             edge = [edge] * len(self.ds.domain_left_edge)
         if len(edge) != len(self.ds.domain_left_edge):
             raise RuntimeError(

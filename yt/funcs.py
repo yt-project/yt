@@ -17,6 +17,7 @@ import time
 import traceback
 import urllib.parse
 import urllib.request
+from collections.abc import Sequence, Sized
 from functools import lru_cache, wraps
 from numbers import Number as numeric_type
 from typing import Any, Callable, Optional, Type
@@ -33,22 +34,52 @@ from yt.utilities.exceptions import YTFieldNotFound, YTInvalidWidthError
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _requests as requests
 
+if sys.version_info >= (3, 10):
+    from typing import TypeGuard
+else:
+    from typing_extensions import TypeGuard
 # Some functions for handling sequences and other types
 
 
-def is_sequence(obj):
-    """
-    Grabbed from Python Cookbook / matplotlib.cbook.  Returns true/false for
+def is_sized(obj) -> TypeGuard[Sized]:
+    """Whether obj supports the __len__ protocol"""
+    # this implementation is safer than `return isinstance(obj, Sized)`
+    # because as of numpy 1.22, 0D arrays are problematic, see
+    # https://github.com/numpy/numpy/issues/19833
+    try:
+        len(obj)
+    except TypeError:
+        return False
+    else:
+        return True
+
+
+def is_sequence(obj, *, check_access: bool = False) -> bool:
+    """Whether obj supports the __len__ (and __getitem__) protocols
 
     Parameters
     ----------
-    obj : iterable
+    obj : any object
+    check_access: bool
+        Enable checking for item access (check if obj[...] is supported)
+        This is disable by default in yt 4.1, but in the future,
+        this will always be enabled.
+        Use is_sized(obj) instead if you need to check for len(obj) only.
     """
-    try:
-        len(obj)
-        return True
-    except TypeError:
-        return False
+    if check_access:
+        return is_sized(obj) and isinstance(obj, Sequence)
+    else:
+        # deprecating this because Sequence is a more contraining abc than Sized
+        # see https://docs.python.org/3/library/collections.abc.html?highlight=collections.abc#collections-abstract-base-classes
+        issue_deprecation_warning(
+            "is_sequence(obj) currently only validates len(obj) is supported. "
+            "In the future, this function will validate item access as well (i.e. obj[...]).\n"
+            "To disable this warning:\n"
+            " - use is_sized(obj) instead to maintain previous behaviour\n"
+            " - call is_sequence(obj, check_access=True) instead to switch to future behaviour",
+            since="4.1.0",
+        )
+        return is_sized(obj)
 
 
 def iter_fields(field_or_fields):
@@ -788,7 +819,7 @@ def ensure_dir(path):
 
 
 def validate_width_tuple(width):
-    if not is_sequence(width) or len(width) != 2:
+    if not is_sized(width) or len(width) != 2:
         raise YTInvalidWidthError(f"width ({width}) is not a two element tuple")
     is_numeric = isinstance(width[0], numeric_type)
     length_has_units = isinstance(width[0], YTArray)
@@ -1085,7 +1116,7 @@ def parse_h5_attr(f, attr):
 
 
 def obj_length(v):
-    if is_sequence(v):
+    if is_sized(v):
         return len(v)
     else:
         # If something isn't iterable, we return 0
@@ -1114,7 +1145,7 @@ def array_like_field(data, x, field):
 
 
 def validate_3d_array(obj):
-    if not is_sequence(obj) or len(obj) != 3:
+    if not is_sized(obj) or len(obj) != 3:
         raise TypeError(
             "Expected an array of size (3,), received '%s' of "
             "length %s" % (str(type(obj)).split("'")[1], len(obj))
@@ -1166,7 +1197,7 @@ def validate_float(obj):
             )
         else:
             return
-    if is_sequence(obj) and (len(obj) != 1 or not isinstance(obj[0], numeric_type)):
+    if is_sized(obj) and (len(obj) != 1 or not isinstance(obj[0], numeric_type)):
         raise TypeError(
             "Expected a numeric value (or size-1 array), "
             "received '%s' of length %s" % (str(type(obj)).split("'")[1], len(obj))
@@ -1174,7 +1205,7 @@ def validate_float(obj):
 
 
 def validate_sequence(obj):
-    if obj is not None and not is_sequence(obj):
+    if obj is not None and not is_sized(obj):
         raise TypeError(
             "Expected an iterable object,"
             " received '%s'" % str(type(obj)).split("'")[1]
@@ -1237,7 +1268,7 @@ def validate_center(center):
                 "'m', 'max', 'min'] or the prefix to be "
                 "'max_'/'min_', received '%s'." % center
             )
-    elif not isinstance(center, (numeric_type, YTQuantity)) and not is_sequence(center):
+    elif not isinstance(center, (numeric_type, YTQuantity)) and not is_sized(center):
         raise TypeError(
             "Expected 'center' to be a numeric object of type "
             "list/tuple/np.ndarray/YTArray/YTQuantity, "

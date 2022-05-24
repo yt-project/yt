@@ -45,6 +45,7 @@ from yt.funcs import (
     insert_ipython,
     is_root,
     is_sequence,
+    is_sized,
     memory_checker,
     only_on_root,
     parallel_profile,
