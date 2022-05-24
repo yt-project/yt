@@ -20,7 +20,7 @@ from unyt.exceptions import UnitOperationError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
-from yt.funcs import is_sized
+from yt.funcs import is_scalar
 from yt.loaders import load
 from yt.units.yt_array import YTArray, YTQuantity
 
@@ -231,11 +231,11 @@ def fake_random_ds(
     from yt.loaders import load_uniform_grid
 
     prng = RandomState(0x4D3D3D3)
-    if not is_sized(ndims):
+    if is_scalar(ndims):
         ndims = [ndims, ndims, ndims]
     else:
         assert len(ndims) == 3
-    if not is_sized(negative):
+    if is_scalar(negative):
         if fields:
             negative = [negative for f in fields]
         else:
@@ -376,7 +376,7 @@ def fake_particle_ds(
     from yt.loaders import load_particles
 
     prng = RandomState(0x4D3D3D3)
-    if negative is not None and not is_sized(negative):
+    if negative is not None and is_scalar(negative):
         negative = [negative for f in fields]
 
     fields, units, negative = _check_field_unit_args_helper(

@@ -67,7 +67,7 @@ def is_sequence(obj, *, check_access: bool = False) -> bool:
         Use is_sized(obj) instead if you need to check for len(obj) only.
     """
     if check_access:
-        return is_sized(obj) and isinstance(obj, Sequence)
+        return is_sized(obj) and isinstance(obj, (Sequence, np.ndarray))
     else:
         # deprecating this because Sequence is a more contraining abc than Sized
         # see https://docs.python.org/3/library/collections.abc.html?highlight=collections.abc#collections-abstract-base-classes
@@ -80,6 +80,10 @@ def is_sequence(obj, *, check_access: bool = False) -> bool:
             since="4.1.0",
         )
         return is_sized(obj)
+
+
+def is_scalar(obj) -> bool:
+    return not is_sized(obj)
 
 
 def iter_fields(field_or_fields):
@@ -819,7 +823,7 @@ def ensure_dir(path):
 
 
 def validate_width_tuple(width):
-    if not is_sized(width) or len(width) != 2:
+    if obj_length(width) != 2:
         raise YTInvalidWidthError(f"width ({width}) is not a two element tuple")
     is_numeric = isinstance(width[0], numeric_type)
     length_has_units = isinstance(width[0], YTArray)
@@ -1145,10 +1149,10 @@ def array_like_field(data, x, field):
 
 
 def validate_3d_array(obj):
-    if not is_sized(obj) or len(obj) != 3:
+    if obj_length(obj) != 3:
         raise TypeError(
             "Expected an array of size (3,), received '%s' of "
-            "length %s" % (str(type(obj)).split("'")[1], len(obj))
+            "length %s" % (str(type(obj)).split("'")[1], obj_length(obj))
         )
 
 
@@ -1197,7 +1201,9 @@ def validate_float(obj):
             )
         else:
             return
-    if is_sized(obj) and (len(obj) != 1 or not isinstance(obj[0], numeric_type)):
+    if is_sequence(obj, check_access=True) and (
+        len(obj) != 1 or not isinstance(obj[0], numeric_type)
+    ):
         raise TypeError(
             "Expected a numeric value (or size-1 array), "
             "received '%s' of length %s" % (str(type(obj)).split("'")[1], len(obj))
@@ -1205,11 +1211,8 @@ def validate_float(obj):
 
 
 def validate_sequence(obj):
-    if obj is not None and not is_sized(obj):
-        raise TypeError(
-            "Expected an iterable object,"
-            " received '%s'" % str(type(obj)).split("'")[1]
-        )
+    if obj is not None and is_scalar(obj):
+        raise TypeError(f"Expected an object with length, received scalar {obj!r}")
 
 
 def validate_field_key(key):
@@ -1268,7 +1271,7 @@ def validate_center(center):
                 "'m', 'max', 'min'] or the prefix to be "
                 "'max_'/'min_', received '%s'." % center
             )
-    elif not isinstance(center, (numeric_type, YTQuantity)) and not is_sized(center):
+    elif not isinstance(center, (numeric_type, YTQuantity)) and is_scalar(center):
         raise TypeError(
             "Expected 'center' to be a numeric object of type "
             "list/tuple/np.ndarray/YTArray/YTQuantity, "
@@ -1331,7 +1334,7 @@ def parse_center_array(center, ds, axis: Optional[int] = None):
                 + default_error_message
             )
 
-    if is_sequence(center):
+    if is_sequence(center, check_access=True):
         if (
             len(center) == 2
             and isinstance(center[0], str)
@@ -1351,7 +1354,7 @@ def parse_center_array(center, ds, axis: Optional[int] = None):
                 assert center0l == "max"
                 v, center = ds.find_max(field_key)
             center = ds.arr(center, "code_length")
-        elif len(center) == 2 and is_sequence(center[0]) and isinstance(center[1], str):
+        elif len(center) == 2 and is_sized(center[0]) and isinstance(center[1], str):
             center = ds.arr(center[0], center[1])
         elif len(center) == 3 and all(isinstance(_, YTQuantity) for _ in center):
             center = ds.arr([c.copy() for c in center], dtype="float64")

@@ -13,7 +13,7 @@ from yt.data_objects.data_containers import YTDataContainer
 from yt.data_objects.derived_quantities import DerivedQuantityCollection
 from yt.data_objects.field_data import YTFieldData
 from yt.fields.field_exceptions import NeedsGridType
-from yt.funcs import fix_axis, is_sized, iter_fields, validate_width_tuple
+from yt.funcs import fix_axis, is_scalar, is_sized, iter_fields, validate_width_tuple
 from yt.geometry.selection_routines import compose_selector
 from yt.units import YTArray
 from yt.utilities.exceptions import (
@@ -629,7 +629,7 @@ class YTSelectionContainer2D(YTSelectionContainer):
             height = self.ds.quan(h, units=u)
         elif not isinstance(height, YTArray):
             height = self.ds.quan(height, "code_length")
-        if not is_sized(resolution):
+        if is_scalar(resolution):
             resolution = (resolution, resolution)
         from yt.visualization.fixed_resolution import FixedResolutionBuffer
 

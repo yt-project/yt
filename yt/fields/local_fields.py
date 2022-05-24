@@ -1,7 +1,7 @@
 from functools import partial
 from typing import Any, Callable, TypeVar
 
-from yt.funcs import is_sized
+from yt.funcs import is_scalar
 from yt.utilities.logger import ytLogger as mylog
 
 from .field_info_container import FieldInfoContainer
@@ -20,7 +20,7 @@ class LocalFieldInfoContainer(FieldInfoContainer):
         from yt.fields.field_functions import validate_field_function
 
         validate_field_function(function)
-        if isinstance(name, str) or not is_sized(name):
+        if isinstance(name, str) or is_scalar(name):
             # the base method only accepts proper tuple field keys
             # and is only used internally, while this method is exposed to users
             # and is documented as usable with single strings as name

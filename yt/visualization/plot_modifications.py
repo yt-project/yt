@@ -15,7 +15,7 @@ from yt.data_objects.level_sets.clump_handling import Clump
 from yt.data_objects.selection_objects.cut_region import YTCutRegion
 from yt.data_objects.static_output import Dataset
 from yt.frontends.ytdata.data_structures import YTClumpContainer
-from yt.funcs import is_sized, mylog, validate_width_tuple
+from yt.funcs import is_sequence, is_sized, mylog, validate_width_tuple
 from yt.geometry.geometry_handler import is_curvilinear
 from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
 from yt.units import dimensions
@@ -40,11 +40,12 @@ callback_registry: Dict[str, Type["PlotCallback"]] = {}
 
 def _validate_factor_tuple(factor) -> Tuple[int, int]:
     if (
-        is_sized(factor)
+        is_sequence(factor, check_access=True)
         and len(factor) == 2
         and all(isinstance(_, Integral) for _ in factor)
     ):
-        # - checking for "is_sized" allows lists, numpy arrays and other containers
+        # - checking for "is_sized" validates that len(factor) is supported
+        # - checking for Sequence abc validates item access, necessary for the 4th check
         # - checking for Integral type allows numpy integer types
         # in any case we return a with strict typing
         return (int(factor[0]), int(factor[1]))

@@ -4,7 +4,7 @@ from typing import Optional
 import numpy as np
 from matplotlib.colors import LogNorm, Normalize, SymLogNorm
 
-from yt.funcs import is_sized, mylog
+from yt.funcs import is_scalar, is_sized, mylog
 from yt.units.unit_object import Unit  # type: ignore
 from yt.units.yt_array import YTArray
 from yt.visualization.plot_container import (
@@ -425,7 +425,7 @@ class LinePlot(BaseLinePlot):
 
 
 def _validate_point(point, ds, start=False):
-    if not is_sized(point):
+    if is_scalar(point):
         raise RuntimeError("Input point must be array-like")
     if not isinstance(point, YTArray):
         point = ds.arr(point, "code_length", dtype=np.float64)

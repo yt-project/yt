@@ -9,7 +9,7 @@ from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.data_objects.construction_data_containers import YTCoveringGrid
 from yt.data_objects.image_array import ImageArray
 from yt.fields.derived_field import DerivedField
-from yt.funcs import fix_axis, is_sized, iter_fields, mylog
+from yt.funcs import fix_axis, is_scalar, is_sized, iter_fields, mylog, obj_length
 from yt.units import dimensions
 from yt.units.unit_object import Unit  # type: ignore
 from yt.units.yt_array import YTArray, YTQuantity
@@ -322,7 +322,7 @@ class FITSImageData:
             else:
                 # If img_data is just an array we use the width and img_ctr
                 # parameters to determine the cell widths
-                if not is_sized(width):
+                if is_scalar(width):
                     width = [width] * self.dimensionality
                 if isinstance(width[0], YTQuantity):
                     cdelt = [
@@ -866,10 +866,14 @@ def construct_image(ds, axis, data_source, center, image_res, width, length_unit
     else:
         width = ds.coordinates.sanitize_width(axis, width, None)
         unit = str(width[0].units)
-    if is_sized(image_res):
+    if obj_length(image_res) == 2:
         nx, ny = image_res
-    else:
+    elif is_scalar(image_res):
         nx, ny = image_res, image_res
+    else:
+        raise ValueError(
+            f"Expected a scalar or a two element sequence for image_res, got {image_res}"
+        )
     dx = width[0] / nx
     dy = width[1] / ny
     crpix = [0.5 * (nx + 1), 0.5 * (ny + 1)]
@@ -1428,7 +1432,7 @@ class FITSOffAxisProjection(FITSImageData):
         buf = {}
         width = ds.coordinates.sanitize_width(normal, width, depth)
         wd = tuple(el.in_units("code_length").v for el in width)
-        if not is_sized(image_res):
+        if is_scalar(image_res):
             image_res = (image_res, image_res)
         res = (image_res[0], image_res[1])
         if data_source is None:

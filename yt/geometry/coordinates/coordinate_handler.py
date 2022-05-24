@@ -6,7 +6,13 @@ from typing import Tuple
 import numpy as np
 from packaging.version import Version
 
-from yt.funcs import fix_unitary, is_sized, parse_center_array, validate_width_tuple
+from yt.funcs import (
+    fix_unitary,
+    is_scalar,
+    is_sized,
+    parse_center_array,
+    validate_width_tuple,
+)
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTCoordinateNotImplemented, YTInvalidWidthError
 from yt.visualization._commons import MPL_VERSION
@@ -295,7 +301,7 @@ class CoordinateHandler(abc.ABC):
             # initialize the index if it is not already initialized
             self.ds.index
             # Default to code units
-            if not is_sized(axis):
+            if is_scalar(axis):
                 xax = self.x_axis[axis]
                 yax = self.y_axis[axis]
                 w = self.ds.domain_width[np.array([xax, yax])]

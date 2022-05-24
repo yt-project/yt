@@ -44,6 +44,7 @@ from yt.funcs import (
     get_yt_version,
     insert_ipython,
     is_root,
+    is_scalar,
     is_sequence,
     is_sized,
     memory_checker,

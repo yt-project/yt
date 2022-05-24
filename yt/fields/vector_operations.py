@@ -107,7 +107,7 @@ def create_los_field(registry, basename, field_units, ftype="gas", slice_info=No
         ax = data.get_field_parameter("axis")
         if is_sized(ax):
             # Make sure this is a unit vector
-            ax /= np.sqrt(np.dot(ax, ax))
+            ax = np.asanyarray(ax) / np.sqrt(np.dot(ax, ax))
             ret = data[fns[0]] * ax[0] + data[fns[1]] * ax[1] + data[fns[2]] * ax[2]
         elif ax in [0, 1, 2]:
             ret = data[fns[ax]]

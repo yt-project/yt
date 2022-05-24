@@ -3,7 +3,7 @@ from numbers import Number as numeric_type
 
 import numpy as np
 
-from yt.funcs import ensure_numpy_array, is_sized
+from yt.funcs import ensure_numpy_array, is_scalar, is_sized
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.math_utils import get_rotation_matrix
 from yt.utilities.orientation import Orientation
@@ -325,7 +325,7 @@ class Camera(Orientation):
             width = data_source.ds.quan(width[0], units=width[1])
             # Now convert back to code length for subsequent manipulation
             width = width.in_units("code_length")  # .value
-        if not is_sized(width):
+        if is_scalar(width):
             width = data_source.ds.arr([width, width, width], units="code_length")
             # left/right, top/bottom, front/back
         if not isinstance(width, YTArray):

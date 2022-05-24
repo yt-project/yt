@@ -17,7 +17,7 @@ from yt._maintenance.deprecation import issue_deprecation_warning
 from yt._typing import Quantity
 from yt.config import ytcfg
 from yt.data_objects.time_series import DatasetSeries
-from yt.funcs import ensure_dir, is_sequence, is_sized, iter_fields
+from yt.funcs import ensure_dir, is_scalar, is_sequence, iter_fields
 from yt.units.unit_object import Unit  # type: ignore
 from yt.utilities.definitions import formatted_length_unit_names
 from yt.utilities.exceptions import YTConfigurationError, YTNotInsideNotebook
@@ -325,7 +325,7 @@ class PlotContainer(abc.ABC):
 
     def _initialize_dataset(self, ts):
         if not isinstance(ts, DatasetSeries):
-            if not is_sized(ts):
+            if is_scalar(ts):
                 ts = [ts]
             ts = DatasetSeries(ts)
         return ts

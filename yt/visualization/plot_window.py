@@ -12,7 +12,15 @@ from unyt.exceptions import UnitConversionError
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
-from yt.funcs import fix_axis, fix_unitary, is_sized, iter_fields, mylog, obj_length
+from yt.funcs import (
+    fix_axis,
+    fix_unitary,
+    is_scalar,
+    is_sized,
+    iter_fields,
+    mylog,
+    obj_length,
+)
 from yt.units.unit_object import Unit  # type: ignore
 from yt.units.unit_registry import UnitParseError  # type: ignore
 from yt.units.yt_array import YTArray, YTQuantity
@@ -1405,7 +1413,7 @@ class NormalPlot(abc.ABC):
                 )
             return axis_names[normal]
 
-        if not is_sized(normal):
+        if is_scalar(normal):
             raise TypeError(
                 f"{normal} is not a valid normal vector identifier. "
                 "Expected a string, integer or sequence of 3 floats."
