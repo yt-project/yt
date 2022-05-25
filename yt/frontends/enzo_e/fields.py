@@ -133,9 +133,7 @@ class EnzoEFieldInfo(FieldInfoContainer):
             add_union_field(self, ptype, fname, "code_mass")
             return
 
-        pdict = nested_dict_get(
-            self.ds.parameters, ("Particle"), default=None
-        )
+        pdict = self.ds.parameters.get("Particle", None)
         if pdict is None:
             return
 
