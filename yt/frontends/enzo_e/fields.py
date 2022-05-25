@@ -143,6 +143,8 @@ class EnzoEFieldInfo(FieldInfoContainer):
         if not constants:
             return
 
+        # constants should be a tuple consisting of multiple tuples of (name, type, value).
+        # When there is only one entry, the enclosing tuple gets stripped, so we put it back.
         if not isinstance(constants[0], tuple):
             constants = (constants,)
         names = [c[0] for c in constants]
