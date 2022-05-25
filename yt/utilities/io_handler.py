@@ -211,7 +211,7 @@ class BaseIOHandler:
             # particles in them.
             total = sum(_.size for _ in data[field_f])
             if total > 0:
-                rv[field_f] = np.concatenate(data.pop(field_f), axis=0)
+                rv[field_f] = np.concatenate(data.pop(field_f), axis=0).astype("float64")
             else:
                 shape = [0]
                 if field[1] in self._vector_fields:
