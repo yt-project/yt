@@ -16,7 +16,7 @@ cimport numpy as np
 from cython.operator cimport dereference as deref, preincrement as inc
 from libc.stdlib cimport abs, free, malloc
 
-from yt.utilities.lib.fp_utils cimport fmax,fmin
+from yt.utilities.lib.fp_utils cimport fmax, fmin
 
 from yt.utilities.exceptions import YTIntDomainOverflow
 
