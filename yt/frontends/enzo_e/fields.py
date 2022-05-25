@@ -4,9 +4,7 @@ from yt._typing import KnownFieldsT
 from yt.fields.field_info_container import FieldInfoContainer
 from yt.fields.magnetic_field import setup_magnetic_field_aliases
 from yt.fields.particle_fields import add_union_field
-from yt.frontends.enzo_e.misc import \
-    get_particle_mass_correction, \
-    nested_dict_get
+from yt.frontends.enzo_e.misc import get_particle_mass_correction, nested_dict_get
 
 rho_units = "code_mass / code_length**3"
 vel_units = "code_velocity"
