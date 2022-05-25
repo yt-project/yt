@@ -4,7 +4,9 @@ from yt._typing import KnownFieldsT
 from yt.fields.field_info_container import FieldInfoContainer
 from yt.fields.magnetic_field import setup_magnetic_field_aliases
 from yt.fields.particle_fields import add_union_field
-from yt.frontends.enzo_e.misc import nested_dict_get
+from yt.frontends.enzo_e.misc import \
+    get_particle_mass_correction, \
+    nested_dict_get
 
 rho_units = "code_mass / code_length**3"
 vel_units = "code_velocity"
@@ -149,12 +151,8 @@ class EnzoEFieldInfo(FieldInfoContainer):
             return
 
         val = constants[names.index("mass")][2] * self.ds.mass_unit
-        if not getattr(self.ds, "_particle_mass_is_mass", False):
-            val = (
-                val
-                * (self.ds.domain_width / self.ds.domain_dimensions).prod()
-                / self.ds.length_unit**3
-            )
+        if not self.ds.index.io._particle_mass_is_mass:
+            val = val * get_particle_mass_correction(self.ds)
 
         def _pmass(field, data):
             return val * data[ptype, "particle_ones"]
