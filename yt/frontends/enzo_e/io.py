@@ -116,10 +116,12 @@ class EnzoEIOHandler(BaseIOHandler):
                         continue
                     for field in field_list:
                         data = np.asarray(group.get(pn % field)[()], "=f8")
-                        if field == "mass" and not getattr(self.ds, "_particle_mass_is_mass", False):
-                            mfac = (self.ds.domain_width /
-                                    self.ds.domain_dimensions).prod() / \
-                                    self.ds.length_unit**3
+                        if field == "mass" and not getattr(
+                            self.ds, "_particle_mass_is_mass", False
+                        ):
+                            mfac = (
+                                self.ds.domain_width / self.ds.domain_dimensions
+                            ).prod() / self.ds.length_unit**3
                             data[mask] *= mfac
                         yield (ptype, field), data[mask]
             if f:
