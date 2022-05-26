@@ -190,6 +190,7 @@ class YTProj(YTSelectionContainer2D):
                 "The 'mip' method value is a deprecated alias for 'max'. "
                 "Please use max directly.",
                 since="4.1",
+                stacklevel=4,
             )
             method = "max"
         if method == "sum":
@@ -266,7 +267,7 @@ class YTProj(YTSelectionContainer2D):
         if self.method in ["max", "mip"]:
             merge_style = -1
             op = "max"
-        if self.method == "min":
+        elif self.method == "min":
             merge_style = -2
             op = "min"
         elif self.method == "integrate":
