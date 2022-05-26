@@ -980,7 +980,7 @@ class YTDataContainer(abc.ABC):
 
         This will, in a parallel-aware fashion, compute the maximum of the
         given field.  Supplying an axis will result in a return value of a
-        YTProjection, with method 'mip' for maximum intensity.  If the max has
+        YTProjection, with method 'max' for maximum intensity.  If the max has
         already been requested, it will use the cached extrema value.
 
         Parameters
@@ -1006,7 +1006,7 @@ class YTDataContainer(abc.ABC):
                 return rv[0]
             return rv
         elif axis in self.ds.coordinates.axis_name:
-            r = self.ds.proj(field, axis, data_source=self, method="mip")
+            r = self.ds.proj(field, axis, data_source=self, method="max")
             return r
         else:
             raise NotImplementedError(f"Unknown axis {axis}")
