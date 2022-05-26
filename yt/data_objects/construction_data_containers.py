@@ -193,7 +193,7 @@ class YTProj(YTSelectionContainer2D):
             self._sum_only = False
         if self.method in ["mip", "max"]:
             self.func = np.max
-        elif self.method in ["min"]:
+        elif self.method == "min":
             self.func = np.min
         elif self.method == "integrate":
             self.func = np.sum  # for the future

@@ -121,9 +121,10 @@ cdef class QuadTree:
                   int nvals, bounds, method = "integrate"):
         if method == "integrate":
             self.combine = QTN_add_value
-        elif method in ["mip","max"]:
+        elif method == "mip" or \
+             method == "max":
             self.combine = QTN_max_value
-        elif method in ["min"]:
+        elif method == "min":
             self.combine = QTN_min_value
         else:
             raise NotImplementedError
@@ -217,7 +218,7 @@ cdef class QuadTree:
                          np.ndarray[np.float64_t, ndim=2] values,
                          np.ndarray[np.float64_t, ndim=1] wval,
                          method):
-        if method in ["mip","max"] or method == -1:
+        if method == "mip" or method == "max" or method == -1:
             self.merged = -1
         if method == "min" or method == -2:
             self.merged = -2
@@ -444,7 +445,7 @@ cdef class QuadTree:
                 vorig[i] = vtoadd[i]
                 vtoadd[i] += node.val[i]
             wtoadd += node.weight_val
-        elif self.merged in [-1,-2]:
+        elif self.merged == -1 or self.merged == -2:
             for i in range(self.nvals):
                 vtoadd[i] = node.val[i]
         for i in range(2):
