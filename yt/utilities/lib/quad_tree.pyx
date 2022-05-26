@@ -127,7 +127,7 @@ cdef class QuadTree:
         elif method == "min":
             self.combine = QTN_min_value
         else:
-            raise NotImplementedError
+            raise NotImplementedError(f"Unknown projection method {self.method!r}")
         self.merged = 1
         self.max_level = 0
         cdef int i, j
