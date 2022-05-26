@@ -42,10 +42,27 @@ else:
 
 
 def is_sized(obj) -> TypeGuard[Sized]:
-    """Whether obj supports the __len__ protocol"""
+    """Whether obj supports the __len__ protocol
+
+    Examples
+    --------
+    >>> is_sized(1)
+    False
+
+    >>> is_sized([1])
+    True
+
+    >>> import numpy as np
+    >>> is_sized(np.array((1, 2)))
+    True
+    >>> is_sized(np.array(1))
+    False
+
+    """
     # this implementation is safer than `return isinstance(obj, Sized)`
     # because as of numpy 1.22, 0D arrays are problematic, see
     # https://github.com/numpy/numpy/issues/19833
+
     try:
         len(obj)
     except TypeError:
@@ -55,7 +72,9 @@ def is_sized(obj) -> TypeGuard[Sized]:
 
 
 def is_sequence(obj, *, check_access: bool = False) -> bool:
-    """Whether obj supports the __len__ (and __getitem__) protocols
+    """
+    An object may be considered a sequence if it satisfies collections.abc.Sequence
+    or is a numpy nd array with n > 0
 
     Parameters
     ----------
@@ -64,10 +83,12 @@ def is_sequence(obj, *, check_access: bool = False) -> bool:
         Enable checking for item access (check if obj[...] is supported)
         This is disable by default in yt 4.1, but in the future,
         this will always be enabled.
-        Use is_sized(obj) instead if you need to check for len(obj) only.
+        Use is_sized(obj) or is_scalar(obj) instead if you need to check for len(obj) only.
     """
     if check_access:
-        return is_sized(obj) and isinstance(obj, (Sequence, np.ndarray))
+        return isinstance(obj, Sequence) or (
+            isinstance(obj, np.ndarray) and is_sized(obj)
+        )
     else:
         # deprecating this because Sequence is a more contraining abc than Sized
         # see https://docs.python.org/3/library/collections.abc.html?highlight=collections.abc#collections-abstract-base-classes
@@ -83,6 +104,25 @@ def is_sequence(obj, *, check_access: bool = False) -> bool:
 
 
 def is_scalar(obj) -> bool:
+    """
+    0d arrays are considered scalars; not nd arrays (n >= 1)
+
+    Examples
+    --------
+    >>> is_scalar(1)
+    True
+
+    >>> is_scalar([1, 2, 3])
+    False
+
+    >>> import numpy as np
+    >>> is_scalar(np.array((1, 2)))
+    False
+
+    >>> import unyt as un
+    >>> is_scalar(un.unyt_quantity(1, 'g'))
+    True
+    """
     return not is_sized(obj)
 
 
