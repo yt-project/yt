@@ -135,3 +135,6 @@ def test_max_level():
 
     proj = ds.proj(("gas", "density"), 2, method="max")
     assert proj[("index", "grid_level")].max() == ds.index.max_level
+
+    proj = ds.proj(("gas", "density"), 2, method="min")
+    assert proj[("index", "grid_level")].min() == ds.index.max_level
