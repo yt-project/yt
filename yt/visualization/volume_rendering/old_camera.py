@@ -1873,7 +1873,7 @@ class MosaicCamera(Camera):
     ):
         if volume is None:
             if self.use_kd:
-                raise NotImplementedError(f"{self.use_kd} is not implemented yet.")
+                raise NotImplementedError
             volume = AMRKDTree(
                 self.ds,
                 l_max=l_max,

@@ -142,7 +142,7 @@ def create_volume_source(data_source, field):
     elif issubclass(index_class, OctreeIndex):
         return OctreeVolumeSource(data_source, field)
     else:
-        raise NotImplementedError(f"{index_class} not implemented yet")
+        raise NotImplementedError
 
 
 class VolumeSource(RenderSource, abc.ABC):

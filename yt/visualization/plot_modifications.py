@@ -91,7 +91,7 @@ class PlotCallback:
         pass
 
     def __call__(self, plot: CallbackWrapper):
-        raise NotImplementedError("PlotCallback __call__ not implemented yet")
+        raise NotImplementedError
 
     def _project_coords(self, plot, coord):
         """

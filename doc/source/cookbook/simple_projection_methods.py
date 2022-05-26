@@ -1,7 +1,7 @@
 import yt
 
 # Load the dataset.
-ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+ds = yt.load("GalaxyClusterMerger/fiducial_1to3_b0.273d_hdf5_plt_cnt_0175")
 
 # Create projections of temperature (with different methods)
 
