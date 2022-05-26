@@ -185,7 +185,7 @@ class YTProj(YTSelectionContainer2D):
                 removal="4.2",
             )
             method = style
-        if method == "mip":         
+        if method == "mip":
             issue_deprecation_warning(
                 "The 'mip' method value is a deprecated alias for 'max'. "
                 "Please use max directly.",
@@ -198,7 +198,7 @@ class YTProj(YTSelectionContainer2D):
         else:
             self.method = method
             self._sum_only = False
-        if self.method in ["max","mip"]:
+        if self.method in ["max", "mip"]:
             self.func = np.max
         elif self.method == "min":
             self.func = np.min
@@ -263,7 +263,7 @@ class YTProj(YTSelectionContainer2D):
         projected_units = self.comm.mpi_bcast(self._projected_units)
         self._projected_units = projected_units
         # Note that this will briefly double RAM usage
-        if self.method in ["max","mip"]:
+        if self.method in ["max", "mip"]:
             merge_style = -1
             op = "max"
         if self.method == "min":
@@ -360,7 +360,7 @@ class YTProj(YTSelectionContainer2D):
                 # for future field accesses.
                 finfo.units = str(chunk[field].units)
             field_unit = Unit(finfo.output_units, registry=self.ds.unit_registry)
-            if self.method in ["min", "max","mip"] or self._sum_only:
+            if self.method in ["min", "max", "mip"] or self._sum_only:
                 path_length_unit = Unit(registry=self.ds.unit_registry)
             else:
                 ax_name = self.ds.coordinates.axis_name[self.axis]
