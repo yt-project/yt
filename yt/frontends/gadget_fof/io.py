@@ -15,7 +15,9 @@ class IOHandlerGadgetFOFHDF5(BaseParticleIOHandler):
         self.offset_fields = set()
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
-        raise NotImplementedError
+        raise NotImplementedError(
+            "IOHandlerGadgetFOFHDF5 _read_fluid_selection not implemented yet"
+        )
 
     def _read_particle_coords(self, chunks, ptf):
         # This will read chunks and yield the results.
