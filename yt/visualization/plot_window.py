@@ -2205,6 +2205,8 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
          field by the weighting field and integrate along the line of sight.
 
          "mip" : pick out the maximum value of the field in the line of sight.
+         "max" : pick out the maximum value of the field in the line of sight.
+         "min" : pick out the minimum value of the field in the line of sight.
 
          "sum" : This method is the same as integrate, except that it does not
          multiply by a path length when performing the integration, and is
