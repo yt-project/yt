@@ -136,5 +136,8 @@ def test_max_level():
     proj = ds.proj(("gas", "density"), 2, method="max")
     assert proj[("index", "grid_level")].max() == ds.index.max_level
 
+
+def test_min_level():
+    ds = fake_amr_ds(fields=[("gas", "density")], units=["mp/cm**3"])
     proj = ds.proj(("gas", "density"), 2, method="min")
-    assert proj[("index", "grid_level")].min() == ds.index.max_level
+    assert proj[("index", "grid_level")].min() == ds.index.min_level
