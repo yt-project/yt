@@ -2264,6 +2264,13 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
         *,
         axis=None,
     ):
+        if method == "mip":
+            issue_deprecation_warning(
+                "'mip' method is a deprecated alias for 'max'. "
+                "Please use method='max' directly.",
+                since="4.1.0",
+            )
+            method = "max"
         # TODO: in yt 4.2, remove default values for normal and fields, drop axis kwarg
         normal = self._validate_init_args(normal=normal, fields=fields, axis=axis)
         normal = self.sanitize_normal_vector(ds, normal)
