@@ -1039,7 +1039,7 @@ class YTDataContainer(abc.ABC):
                 return rv[0]
             return rv
         elif axis in self.ds.coordinates.axis_name:
-            raise NotImplementedError("Minimum intensity projection not implemented.")
+            return self.ds.proj(field, axis, data_source=self, method="min")
         else:
             raise NotImplementedError(f"Unknown axis {axis}")
 
