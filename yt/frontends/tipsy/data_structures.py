@@ -4,6 +4,7 @@ import struct
 
 import numpy as np
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.data_objects.static_output import ParticleFile
 from yt.frontends.sph.data_structures import SPHDataset, SPHParticleIndex
 from yt.utilities.cosmology import Cosmology
@@ -48,7 +49,7 @@ class TipsyDataset(SPHDataset):
         filename,
         dataset_type="tipsy",
         field_dtypes=None,
-        unit_base=None,
+        units_override=None,
         parameter_file=None,
         cosmology_parameters=None,
         index_order=None,
@@ -56,10 +57,18 @@ class TipsyDataset(SPHDataset):
         kdtree_filename=None,
         kernel_name=None,
         bounding_box=None,
-        units_override=None,
         unit_system="cgs",
         default_species_fields=None,
+        *,
+        unit_base=None,
     ):
+        if unit_base is not None:
+            issue_deprecation_warning(
+                "The unit_base argument is a deprecated alias to units_override. "
+                "Please use the units_override argument directly.",
+                since="4.1.0",
+            )
+            units_override = unit_base
         # Because Tipsy outputs don't have a fixed domain boundary, one can
         # specify a bounding box which effectively gives a domain_left_edge
         # and domain_right_edge
@@ -95,15 +104,11 @@ class TipsyDataset(SPHDataset):
             parameter_file = os.path.abspath(parameter_file)
         self._param_file = parameter_file
         filename = os.path.abspath(filename)
-        if units_override is not None:
-            raise RuntimeError(
-                "units_override is not supported for TipsyDataset. "
-                + "Use unit_base instead."
-            )
         super().__init__(
             filename,
             dataset_type=dataset_type,
             unit_system=unit_system,
+            units_override=units_override,
             index_order=index_order,
             index_filename=index_filename,
             kdtree_filename=kdtree_filename,

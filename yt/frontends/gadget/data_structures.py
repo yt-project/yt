@@ -5,6 +5,7 @@ from typing import Type
 
 import numpy as np
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.data_objects.static_output import ParticleFile
 from yt.fields.field_info_container import FieldInfoContainer
 from yt.frontends.sph.data_structures import SPHDataset, SPHParticleIndex
@@ -225,7 +226,7 @@ class GadgetDataset(SPHDataset):
         filename,
         dataset_type="gadget_binary",
         additional_fields=(),
-        unit_base=None,
+        units_override=None,
         index_order=None,
         index_filename=None,
         kdtree_filename=None,
@@ -235,7 +236,6 @@ class GadgetDataset(SPHDataset):
         field_spec="default",
         ptype_spec="default",
         long_ids=False,
-        units_override=None,
         mean_molecular_weight=None,
         header_offset=0,
         unit_system="cgs",
@@ -243,7 +243,17 @@ class GadgetDataset(SPHDataset):
         w_0=-1.0,
         w_a=0.0,
         default_species_fields=None,
+        *,
+        unit_base=None,
     ):
+        if unit_base is not None:
+            issue_deprecation_warning(
+                "The unit_base argument is a deprecated alias to units_override. "
+                "Please use the units_override argument directly.",
+                since="4.1.0",
+            )
+            units_override = unit_base
+
         if self._instantiated:
             return
         # Check if filename is a directory
@@ -283,11 +293,11 @@ class GadgetDataset(SPHDataset):
             self._id_dtype = "u4"
         self.long_ids = long_ids
         self.header_offset = header_offset
-        if unit_base is not None and "UnitLength_in_cm" in unit_base:
+        if units_override is not None and "UnitLength_in_cm" in units_override:
             # We assume this is comoving, because in the absence of comoving
             # integration the redshift will be zero.
-            unit_base["cmcm"] = 1.0 / unit_base["UnitLength_in_cm"]
-        self._unit_base = unit_base
+            units_override["cmcm"] = 1.0 / units_override["UnitLength_in_cm"]
+        self._unit_base = units_override
         if bounding_box is not None:
             # This ensures that we know a bounding box has been applied
             self._domain_override = True
@@ -298,11 +308,6 @@ class GadgetDataset(SPHDataset):
             self.domain_right_edge = bbox[:, 1]
         else:
             self.domain_left_edge = self.domain_right_edge = None
-        if units_override is not None:
-            raise RuntimeError(
-                "units_override is not supported for GadgetDataset. "
-                + "Use unit_base instead."
-            )
 
         # Set dark energy parameters before cosmology object is created
         self.use_dark_factor = use_dark_factor
@@ -313,6 +318,7 @@ class GadgetDataset(SPHDataset):
             filename,
             dataset_type=dataset_type,
             unit_system=unit_system,
+            units_override=units_override,
             index_order=index_order,
             index_filename=index_filename,
             kdtree_filename=kdtree_filename,
@@ -586,26 +592,29 @@ class GadgetHDF5Dataset(GadgetDataset):
         self,
         filename,
         dataset_type="gadget_hdf5",
-        unit_base=None,
+        units_override=None,
         index_order=None,
         index_filename=None,
         kernel_name=None,
         bounding_box=None,
-        units_override=None,
         unit_system="cgs",
         default_species_fields=None,
+        *,
+        unit_base=None,
     ):
         self.storage_filename = None
         filename = os.path.abspath(filename)
-        if units_override is not None:
-            raise RuntimeError(
-                "units_override is not supported for GadgetHDF5Dataset. "
-                "Use unit_base instead."
+        if unit_base is not None:
+            issue_deprecation_warning(
+                "The unit_base argument is a deprecated alias to units_override. "
+                "Please use the units_override argument directly.",
+                since="4.1.0",
             )
+            units_override = unit_base
         super().__init__(
             filename,
             dataset_type,
-            unit_base=unit_base,
+            units_override=units_override,
             index_order=index_order,
             index_filename=index_filename,
             kernel_name=kernel_name,

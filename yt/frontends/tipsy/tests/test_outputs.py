@@ -26,7 +26,7 @@ pkdgrav_cosmology_parameters = dict(
 pkdgrav_kwargs = dict(
     field_dtypes={"Coordinates": "d"},
     cosmology_parameters=pkdgrav_cosmology_parameters,
-    unit_base={"length": (60.0, "Mpccm/h")},
+    units_override={"length": (60.0, "Mpccm/h")},
 )
 
 
@@ -51,7 +51,7 @@ def test_gasoline_dmonly():
     )
     kwargs = dict(
         cosmology_parameters=cosmology_parameters,
-        unit_base={"length": (60.0, "Mpccm/h")},
+        units_override={"length": (60.0, "Mpccm/h")},
     )
     ds = data_dir_load(gasoline_dmonly, TipsyDataset, (), kwargs)
     yield from nbody_answer(ds, "agora_1e11.00400", 10550576, _fields)

@@ -1,5 +1,6 @@
 import numpy as np
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.frontends.gadget.api import GadgetHDF5Dataset
 from yt.funcs import mylog
 from yt.utilities.on_demand_imports import _h5py as h5py
@@ -14,20 +15,27 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
         self,
         filename,
         dataset_type="arepo_hdf5",
-        unit_base=None,
+        units_override=None,
         smoothing_factor=2.0,
         index_order=None,
         index_filename=None,
         kernel_name=None,
         bounding_box=None,
-        units_override=None,
         unit_system="cgs",
         default_species_fields=None,
+        *,
+        unit_base=None,
     ):
+        if unit_base is not None:
+            issue_deprecation_warning(
+                "The unit_base argument is a deprecated alias to units_override. "
+                "Please use the units_override argument directly.",
+                since="4.1.0",
+            )
+            units_override = unit_base
         super().__init__(
             filename,
             dataset_type=dataset_type,
-            unit_base=unit_base,
             index_order=index_order,
             index_filename=index_filename,
             kernel_name=kernel_name,

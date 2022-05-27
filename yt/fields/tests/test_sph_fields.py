@@ -11,7 +11,7 @@ FIRE_m12i = "FIRE_M12i_ref11/snapshot_600.hdf5"
 
 iso_kwargs = dict(
     bounding_box=[[-3, 3], [-3, 3], [-3, 3]],
-    unit_base={
+    units_override={
         "UnitLength_in_cm": 5.0e16,
         "UnitMass_in_g": 1.98992e33,
         "UnitVelocity_in_cm_per_s": 46385.190,

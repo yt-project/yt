@@ -5,6 +5,7 @@ from functools import partial
 
 import numpy as np
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.data_objects.selection_objects.data_selection_objects import (
     YTSelectionContainer,
 )
@@ -147,20 +148,23 @@ class GadgetFOFDataset(ParticleDataset):
         dataset_type="gadget_fof_hdf5",
         index_order=None,
         index_filename=None,
-        unit_base=None,
         units_override=None,
         unit_system="cgs",
+        *,
+        unit_base=None,
     ):
-        if unit_base is not None and "UnitLength_in_cm" in unit_base:
+        if unit_base is not None:
+            issue_deprecation_warning(
+                "The unit_base argument is a deprecated alias to units_override. "
+                "Please use the units_override argument directly.",
+                since="4.1.0",
+            )
+            units_override = unit_base
+        if units_override is not None and "UnitLength_in_cm" in units_override:
             # We assume this is comoving, because in the absence of comoving
             # integration the redshift will be zero.
-            unit_base["cmcm"] = 1.0 / unit_base["UnitLength_in_cm"]
-        self._unit_base = unit_base
-        if units_override is not None:
-            raise RuntimeError(
-                "units_override is not supported for GadgetFOFDataset. "
-                + "Use unit_base instead."
-            )
+            units_override["cmcm"] = 1.0 / units_override["UnitLength_in_cm"]
+        self._unit_base = units_override
         super().__init__(
             filename,
             dataset_type,
