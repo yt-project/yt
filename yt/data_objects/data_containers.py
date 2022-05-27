@@ -1006,8 +1006,7 @@ class YTDataContainer(abc.ABC):
                 return rv[0]
             return rv
         elif axis in self.ds.coordinates.axis_name:
-            r = self.ds.proj(field, axis, data_source=self, method="max")
-            return r
+            return self.ds.proj(field, axis, data_source=self, method="max")
         else:
             raise NotImplementedError(f"Unknown axis {axis}")
 
