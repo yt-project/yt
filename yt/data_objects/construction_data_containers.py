@@ -361,7 +361,7 @@ class YTProj(YTSelectionContainer2D):
                 # for future field accesses.
                 finfo.units = str(chunk[field].units)
             field_unit = Unit(finfo.output_units, registry=self.ds.unit_registry)
-            if self.method in ["min", "max", "mip"] or self._sum_only:
+            if self.method in ("min", "max") or self._sum_only:
                 path_length_unit = Unit(registry=self.ds.unit_registry)
             else:
                 ax_name = self.ds.coordinates.axis_name[self.axis]
@@ -572,7 +572,7 @@ class YTQuadTreeProj(YTProj):
             chunk.ires.size,
             get_memory_usage() / 1024.0,
         )
-        if self.method in ["min", "max", "mip"] or self._sum_only:
+        if self.method in ("min", "max") or self._sum_only:
             dl = self.ds.quan(1.0, "")
         else:
             ax_name = self.ds.coordinates.axis_name[self.axis]
