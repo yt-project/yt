@@ -2204,7 +2204,8 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
          "integrate" with a weight_field specified : weight the requested
          field by the weighting field and integrate along the line of sight.
 
-         "mip" : pick out the maximum value of the field in the line of sight.
+         "max" : pick out the maximum value of the field in the line of sight.
+         "min" : pick out the minimum value of the field in the line of sight.
 
          "sum" : This method is the same as integrate, except that it does not
          multiply by a path length when performing the integration, and is
@@ -2262,6 +2263,13 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
         *,
         axis=None,
     ):
+        if method == "mip":
+            issue_deprecation_warning(
+                "'mip' method is a deprecated alias for 'max'. "
+                "Please use method='max' directly.",
+                since="4.1.0",
+            )
+            method = "max"
         # TODO: in yt 4.2, remove default values for normal and fields, drop axis kwarg
         normal = self._validate_init_args(normal=normal, fields=fields, axis=axis)
         normal = self.sanitize_normal_vector(ds, normal)
