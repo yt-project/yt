@@ -159,7 +159,7 @@ class GadgetFOFDataset(ParticleDataset):
                 "Please use the units_override argument directly.",
                 since="4.1.0",
             )
-            units_override = unit_base
+            units_override = {f"{k}_unit": v for k, v in unit_base.items()}
         if units_override is not None and "UnitLength_in_cm" in units_override:
             # We assume this is comoving, because in the absence of comoving
             # integration the redshift will be zero.

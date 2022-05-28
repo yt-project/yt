@@ -68,7 +68,7 @@ class TipsyDataset(SPHDataset):
                 "Please use the units_override argument directly.",
                 since="4.1.0",
             )
-            units_override = unit_base
+            units_override = {f"{k}_unit": v for k, v in unit_base.items()}
         # Because Tipsy outputs don't have a fixed domain boundary, one can
         # specify a bounding box which effectively gives a domain_left_edge
         # and domain_right_edge

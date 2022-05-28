@@ -252,7 +252,7 @@ class GadgetDataset(SPHDataset):
                 "Please use the units_override argument directly.",
                 since="4.1.0",
             )
-            units_override = unit_base
+            units_override = {f"{k}_unit": v for k, v in unit_base.items()}
 
         if self._instantiated:
             return
@@ -610,7 +610,7 @@ class GadgetHDF5Dataset(GadgetDataset):
                 "Please use the units_override argument directly.",
                 since="4.1.0",
             )
-            units_override = unit_base
+            units_override = {f"{k}_unit": v for k, v in unit_base.items()}
         super().__init__(
             filename,
             dataset_type,
