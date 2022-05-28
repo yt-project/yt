@@ -1438,6 +1438,11 @@ class Dataset(abc.ABC):
             except KeyError:
                 continue
 
+            err = TypeError(
+                "units_override values should be 2-sequence (float, str), "
+                "YTQuantity objects or real numbers; "
+                f"received {val} with type {type(val)}."
+            )
             # Now attempt to instantiate a unyt.unyt_quantity from val ...
             try:
                 # ... directly (valid if val is a number, or a unyt_quantity)
@@ -1450,13 +1455,11 @@ class Dataset(abc.ABC):
                 # ... with tuple unpacking (valid if val is a sequence)
                 uo[key] = YTQuantity(*val)
                 continue
-            except (RuntimeError, TypeError, UnitParseError):
+            except (RuntimeError, TypeError):
                 pass
-            raise TypeError(
-                "units_override values should be 2-sequence (float, str), "
-                "YTQuantity objects or real numbers; "
-                f"received {val} with type {type(val)}."
-            )
+            except UnitParseError as exc:
+                raise err from exc
+            raise err
         for key, q in uo.items():
             if q.units.is_dimensionless:
                 uo[key] = YTQuantity(q, cls.default_units[key])
