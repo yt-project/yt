@@ -1,5 +1,8 @@
 from collections import OrderedDict
 
+from nose.tools import assert_raises
+
+from yt._maintenance.deprecation import VisibleDeprecationWarning
 from yt.frontends.tipsy.api import TipsyDataset
 from yt.testing import ParticleSelectionComparison, requires_file
 from yt.utilities.answer_testing.framework import (
@@ -26,7 +29,7 @@ pkdgrav_cosmology_parameters = dict(
 pkdgrav_kwargs = dict(
     field_dtypes={"Coordinates": "d"},
     cosmology_parameters=pkdgrav_cosmology_parameters,
-    units_override={"length": (60.0, "Mpccm/h")},
+    units_override={"length_unit": (60.0, "Mpccm/h")},
 )
 
 
@@ -102,6 +105,17 @@ def test_tipsy_galaxy():
 def test_TipsyDataset():
     assert isinstance(data_dir_load(pkdgrav, kwargs=pkdgrav_kwargs), TipsyDataset)
     assert isinstance(data_dir_load(gasoline_dmonly), TipsyDataset)
+
+
+@requires_file(pkdgrav)
+def test_unit_base_depr():
+    kwargs = dict(
+        field_dtypes={"Coordinates": "d"},
+        cosmology_parameters=pkdgrav_cosmology_parameters,
+        unit_base={"length": (60.0, "Mpccm/h")},
+    )
+    with assert_raises(VisibleDeprecationWarning):
+        data_dir_load(pkdgrav, kwargs=kwargs)
 
 
 @requires_file(tipsy_gal)
