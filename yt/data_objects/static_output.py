@@ -1470,7 +1470,7 @@ class Dataset(abc.ABC):
                     "Inconsistent dimensionality in units_override. "
                     f"Received {key} = {uo[key]}"
                 ) from err
-            if 1 / uo[key].value == np.inf:
+            if uo[key].value == 0:
                 raise ValueError(
                     f"Invalid 0 normalisation factor in units_override for {key}."
                 )
