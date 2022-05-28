@@ -1375,14 +1375,15 @@ box and units.
 .. code-block:: python
 
    bbox = [[-600.0, 600.0], [-600.0, 600.0], [-600.0, 600.0]]
-   unit_base = {
-       "length": (1.0, "kpc"),
-       "velocity": (1.0, "km/s"),
-       "mass": (1.0, "Msun"),
+   units_override = {
+       "length_unit": (1.0, "kpc"),
+       "velocity_unit": (1.0, "km/s"),
+       "mass_unit": (1.0, "Msun"),
    }
 
-   ds = yt.load("snap_004", unit_base=unit_base, bounding_box=bbox)
+   ds = yt.load("snap_004", units_override=units_override, bounding_box=bbox)
 
+TODO(3947): fix this (?) or make sure it still works
 In addition, you can use ``UnitLength_in_cm``, ``UnitVelocity_in_cm_per_s``,
 ``UnitMass_in_g``, and ``UnitMagneticField_in_gauss`` as keys for the
 ``unit_base`` dictionary. These name come from the names used in the Gadget
@@ -1391,6 +1392,7 @@ units as the example above:
 
 .. code-block:: python
 
+  # TODO(3947): fix this
   unit_base = {
       "UnitLength_in_cm": 3.09e21,
       "UnitVelocity_in_cm_per_s": 1e5,
