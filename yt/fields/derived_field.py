@@ -124,6 +124,7 @@ class DerivedField:
         ds=None,
         nodal_flag=None,
         *,
+        alias: Optional["DerivedField"] = None,
         particle_type=None,
     ):
         validate_field_key(name)
@@ -181,6 +182,12 @@ class DerivedField:
         if isinstance(dimensions, str):
             dimensions = getattr(ytdims, dimensions)
         self.dimensions = dimensions
+
+        if alias is None:
+            self._shared_aliases_list = [self]
+        else:
+            self._shared_aliases_list = alias._shared_aliases_list
+            self._shared_aliases_list.append(self)
 
     def _copy_def(self):
         dd = {}
@@ -321,31 +328,31 @@ class DerivedField:
         return data_label
 
     @property
-    def alias_field(self):
-        if getattr(self._function, "__name__", None) == "_TranslationFunc":
+    def alias_field(self) -> bool:
+        func_name = self._function.__name__
+        if func_name == "_TranslationFunc":
             return True
         return False
 
     @property
-    def alias_name(self):
+    def alias_name(self) -> Optional[str]:
         if self.alias_field:
             return self._function.alias_name
         return None
+
+    def is_alias_to(self, other: "DerivedField") -> bool:
+        return self._shared_aliases_list is other._shared_aliases_list
 
     def __repr__(self):
         if self._function is NullFunc:
             s = "On-Disk Field "
         elif getattr(self._function, "__name__", None) == "_TranslationFunc":
-            s = f'Alias Field for "{self.alias_name}" '
+            s = f"Alias Field for {self.alias_name!r} "
         else:
             s = "Derived Field "
-        if isinstance(self.name, tuple):
-            s += "(%s, %s): " % self.name
-        else:
-            s += f"{self.name}: "
-        s += f"(units: {self.units}"
+        s += f"{self.name!r}: (units: {self.units!r}"
         if self.display_name is not None:
-            s += f", display_name: '{self.display_name}'"
+            s += f", display_name: {self.display_name!r}"
         if self.sampling_type == "particle":
             s += ", particle field"
         s += ")"
