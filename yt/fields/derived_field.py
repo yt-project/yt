@@ -207,7 +207,7 @@ class DerivedField:
         if self.sampling_type == "cell":
             return False
         is_sph_field = False
-        if self.alias_field:
+        if self.is_alias:
             name = self.alias_name
         else:
             name = self.name
@@ -329,24 +329,29 @@ class DerivedField:
 
     @property
     def alias_field(self) -> bool:
-        func_name = self._function.__name__
-        if func_name == "_TranslationFunc":
-            return True
-        return False
+        issue_deprecation_warning(
+            "DerivedField.alias_field is a deprecated equivalent to DerivedField.is_alias ",
+            since="4.1.0",
+        )
+        return self.is_alias
 
     @property
-    def alias_name(self) -> Optional[str]:
-        if self.alias_field:
-            return self._function.alias_name
-        return None
+    def is_alias(self) -> bool:
+        return self._shared_aliases_list.index(self) > 0
 
     def is_alias_to(self, other: "DerivedField") -> bool:
         return self._shared_aliases_list is other._shared_aliases_list
 
+    @property
+    def alias_name(self) -> Optional[Tuple[str, str]]:
+        if self.is_alias:
+            return self._shared_aliases_list[0].name
+        return None
+
     def __repr__(self):
         if self._function is NullFunc:
             s = "On-Disk Field "
-        elif getattr(self._function, "__name__", None) == "_TranslationFunc":
+        elif self.is_alias:
             s = f"Alias Field for {self.alias_name!r} "
         else:
             s = "Derived Field "
@@ -469,6 +474,26 @@ class DerivedField:
             label = label.replace(" ", r"\ ")
             label = r"$\rm{" + label + r"}$"
         return label
+
+    def __copy__(self):
+        # a shallow copy doesn't copy the _shared_alias_list attr
+        # This method is implemented in support to ParticleFilter.wrap_func
+        return type(self)(
+            name=self.name,
+            sampling_type=self.sampling_type,
+            function=self._function,
+            units=self.units,
+            take_log=self.take_log,
+            validators=self.validators,
+            vector_field=self.vector_field,
+            display_field=self.display_field,
+            not_in_all=self.not_in_all,
+            display_name=self.display_name,
+            output_units=self.output_units,
+            dimensions=self.dimensions,
+            ds=self.ds,
+            nodal_flag=self.nodal_flag,
+        )
 
 
 class FieldValidator:
