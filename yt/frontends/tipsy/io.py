@@ -13,7 +13,7 @@ from yt.utilities.logger import ytLogger as mylog
 
 class IOHandlerTipsyBinary(IOHandlerSPH):
     _dataset_type = "tipsy"
-    _vector_fields = ("Coordinates", "Velocity", "Velocities")
+    _vector_fields = {"Coordinates": 3, "Velocity": 3, "Velocities": 3}
 
     _pdtypes = None  # dtypes, to be filled in later
     _aux_pdtypes = None  # auxiliary files' dtypes
