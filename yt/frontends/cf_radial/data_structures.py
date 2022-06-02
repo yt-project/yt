@@ -88,12 +88,40 @@ class CFRadialDataset(Dataset):
         filename,
         dataset_type="cf_radial",
         storage_filename: Optional[str] = None,
+        storage_overwrite: Optional[bool] = False,
         grid_shape: Optional[Tuple[int, int, int]] = None,
         grid_limit_x: Optional[Tuple[float, float]] = None,
         grid_limit_y: Optional[Tuple[float, float]] = None,
         grid_limit_z: Optional[Tuple[float, float]] = None,
         units_override=None,
     ):
+        """
+
+        Parameters
+        ----------
+        filename
+        dataset_type
+        storage_filename: Optional[str]
+            the filename to store gridded file to if necessary. If not provided,
+            the string "_yt_grid" will be appended to the dataset filename.
+        storage_overwrite: Optional[bool]
+            if True and if any gridding parameters are set, then the
+            storage_filename will be over-written if it exists. Default is False.
+        grid_shape : Optional[Tuple[int, int, int]]
+            when gridding to cartesian, grid_shape is the number of cells in the
+            x, y, z coordinates. If not provided, yt attempts to calculate a
+            reasonable shape based on the resolution of the original cfradial grid
+        grid_limit_x : Optional[Tuple[float, float]]
+            The x range of the cartesian-gridded data in the form (xmin, xmax) with
+            x in the native radar range units
+        grid_limit_y
+            The y range of the cartesian-gridded data in the form (ymin, ymax) with
+            y in the native radar range units
+        grid_limit_z
+            The z range of the cartesian-gridded data in the form (zmin, zmax) with
+            z in the native radar range units
+        units_override
+        """
         self.fluid_types += ("cf_radial",)
         self._handle = xr.open_dataset(filename)
 
@@ -102,28 +130,45 @@ class CFRadialDataset(Dataset):
                 f_base, f_ext = os.path.splitext(filename)
                 storage_filename = f_base + "_yt_grid" + f_ext
 
-            # if os.path.exists(storage_filename):
-            #     os.remove(storage_filename)
+            regrid = True
+            if os.path.exists(storage_filename):
+                # pyart grid.write will error if the filename exists, so this logic
+                # forces some explicit behavior to minimize confusion and avoid
+                # overwriting or deleting without explicit user input.
+                if storage_overwrite:
+                    os.remove(storage_filename)
+                elif any([grid_shape, grid_limit_x, grid_limit_y, grid_limit_z]):
+                    mylog.warning(
+                        "Ignoring provided grid parameters because %s exists.",
+                        storage_filename,
+                    )
+                    mylog.warning(
+                        "To re-grid, either provide a unique storage_filename or set "
+                        "storage_overwrite to True to overwrite %s.",
+                        storage_filename,
+                    )
+                    regrid = False
+                else:
+                    mylog.info("loading existing re-gridded file: %s", storage_filename)
+                    regrid = False
 
-            from yt.utilities.on_demand_imports import _pyart as pyart
+            if regrid:
+                from yt.utilities.on_demand_imports import _pyart as pyart
 
-            radar = pyart.io.read_cfradial(filename)
+                radar = pyart.io.read_cfradial(filename)
+                grid_shape, grid_limits = self._validate_grid(
+                    radar, grid_shape, grid_limit_x, grid_limit_y, grid_limit_z
+                )
 
-            grid_shape, grid_limits = self._validate_grid(
-                radar, grid_shape, grid_limit_x, grid_limit_y, grid_limit_z
-            )
+                self.grid_shape = grid_shape
+                self.grid_limits = grid_limits
 
-            self.grid_shape = grid_shape
-            self.grid_limits = grid_limits
+                mylog.info("Building cfradial grid and writing to %s", storage_filename)
+                grid = pyart.map.grid_from_radars(
+                    (radar,), grid_shape=self.grid_shape, grid_limits=self.grid_limits
+                )
+                grid.write(storage_filename)
 
-            mylog.info(
-                f"Building cfradial grid and writing to {storage_filename}  "
-                f"To avoid gridding in the future, you can load {storage_filename} directly."
-            )
-            grid = pyart.map.grid_from_radars(
-                (radar,), grid_shape=self.grid_shape, grid_limits=self.grid_limits
-            )
-            grid.write(storage_filename)
             self._handle = xr.open_dataset(storage_filename)
             filename = storage_filename
 
@@ -141,7 +186,6 @@ class CFRadialDataset(Dataset):
     ) -> Tuple[Tuple, Tuple]:
 
         # radar: a pyart radar handle, from pyart.io.read_cfradial
-
         max_range_meters = radar.range["data"].max()  # along-ray distance
         elevation = radar.elevation["data"]  # angle above horizontal
         if radar.elevation["units"] == "degrees":
@@ -151,25 +195,28 @@ class CFRadialDataset(Dataset):
 
         show_help = False
         if grid_limit_z is None:
-            # radar.altitude['data'].max() does not seem to be consitently set,
+            # radar.altitude['data'].max() does not seem to be consistently set,
             # so we calculate a max altitude in meters from elevation and range parameters
             grid_limit_z = (0.0, max_height)
             mylog.warning(
-                f"grid_limit_z not provided, using max height range in data: {grid_limit_z}"
+                "grid_limit_z not provided, using max height range in data: %f",
+                grid_limit_z,
             )
             show_help = True
 
         if grid_limit_x is None:
             grid_limit_x = (-max_distance, max_distance)
             mylog.warning(
-                f"grid_limit_x not provided, using max horizontal range in data: {grid_limit_x}"
+                "grid_limit_x not provided, using max horizontal range in data: %f",
+                grid_limit_x,
             )
             show_help = True
 
         if grid_limit_y is None:
             grid_limit_y = (-max_distance, max_distance)
             mylog.warning(
-                f"grid_limit_y not provided, using max horizontal range in data: {grid_limit_y}"
+                "grid_limit_y not provided, using max horizontal range in data: %f",
+                grid_limit_y,
             )
             show_help = True
 
@@ -212,13 +259,13 @@ class CFRadialDataset(Dataset):
             grid_shape[grid_shape < 100] = 100
             grid_shape = tuple(grid_shape.astype(int).tolist())
 
-            mylog.warning(f"estimating a good grid_shape: {grid_shape}")
+            mylog.warning("estimating a good grid_shape: %s", str(grid_shape))
             show_help = True
 
         if show_help:
             mylog.warning(
-                f"to override default grid values, use any of the following "
-                f"parameters: grid_limit_x, grid_limit_y, grid_limit_z, grid_shape"
+                "to override default grid values, use any of the following "
+                "parameters: grid_limit_x, grid_limit_y, grid_limit_z, grid_shape"
             )
 
         return grid_shape, grid_limits

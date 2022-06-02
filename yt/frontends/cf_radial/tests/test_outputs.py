@@ -99,4 +99,10 @@ def test_gridding():
     for field in ["x", "y", "z"]:
         assert field in ds._handle.variables.keys()
 
+    # check that we can load the gridded file too
+    ds = data_dir_load(grid_file)
+    assert isinstance(ds, CFRadialDataset)
+
+    # TODO: test the gridding and storage_overwrite parameters
+
     shutil.rmtree(tempdir)
