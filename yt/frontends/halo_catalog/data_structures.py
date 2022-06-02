@@ -1,7 +1,9 @@
 import glob
 import weakref
 from collections import defaultdict
+from contextlib import contextmanager
 from functools import partial
+from typing import Optional
 
 import numpy as np
 
@@ -68,24 +70,23 @@ class YTHaloCatalogFile(HaloCatalogFile):
             self.group_length_sum = self.total_ids
         super().__init__(ds, io, filename, file_id, frange)
 
+    @contextmanager
+    def open_handle(self):
+        with h5py.File(self.filename, mode="r") as f:
+            yield f
+
+    def _read_from_handle(self, handle, ptype: str, field: str) -> Optional[np.ndarray]:
+        return handle[field]
+
     def _read_particle_positions(self, ptype, f=None):
         """
         Read all particle positions in this file.
         """
-
-        if f is None:
-            close = True
-            f = h5py.File(self.filename, mode="r")
-        else:
-            close = False
-
-        pcount = self.header["num_halos"]
-        pos = np.empty((pcount, 3), dtype="float64")
-        for i, ax in enumerate("xyz"):
-            pos[:, i] = f[f"particle_position_{ax}"][()]
-
-        if close:
-            f.close()
+        with self.transaction(f) as handle:
+            pcount = self.header["num_halos"]
+            pos = np.empty((pcount, 3), dtype="float64")
+            for i, ax in enumerate("xyz"):
+                pos[:, i] = handle[f"particle_position_{ax}"][()]
 
         return pos
 

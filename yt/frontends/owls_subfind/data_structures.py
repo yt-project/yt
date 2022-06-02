@@ -1,6 +1,8 @@
 import glob
 import os
 from collections import defaultdict
+from contextlib import contextmanager
+from typing import Optional
 
 import numpy as np
 
@@ -74,8 +76,16 @@ class OWLSSubfindParticleIndex(ParticleIndex):
 class OWLSSubfindHDF5File(ParticleFile):
     def __init__(self, ds, io, filename, file_id, bounds):
         super().__init__(ds, io, filename, file_id, bounds)
-        with h5py.File(filename, mode="r") as f:
+        with self.transaction() as f:
             self.header = {field: f.attrs[field] for field in f.attrs.keys()}
+
+    @contextmanager
+    def open_handle(self):
+        with h5py.File(self.filename, mode="r") as handle:
+            yield handle
+
+    def _read_from_handle(self, handle, ptype: str, field: str) -> Optional[np.ndarray]:
+        return handle[ptype][field][()].astype("float64")
 
 
 class OWLSSubfindDataset(ParticleDataset):

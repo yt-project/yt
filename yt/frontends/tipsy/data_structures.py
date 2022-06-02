@@ -1,6 +1,8 @@
 import glob
 import os
 import struct
+from contextlib import contextmanager
+from typing import Optional
 
 import numpy as np
 
@@ -24,6 +26,14 @@ class TipsyFile(ParticleFile):
 
     def _calculate_offsets(self, field_list, pcounts=None):
         self.field_offsets = self.io._calculate_particle_offsets(self, None)
+
+    @contextmanager
+    def open_handle(self):
+        with open(self.filename, "rb") as f:
+            yield f
+
+    def _read_from_handle(self, handle, ptype: str, field: str) -> Optional[np.ndarray]:
+        return None
 
 
 class TipsyDataset(SPHDataset):

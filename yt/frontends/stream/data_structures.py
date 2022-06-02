@@ -4,7 +4,7 @@ import uuid
 import weakref
 from itertools import chain, product, repeat
 from numbers import Number as numeric_type
-from typing import Type
+from typing import Optional, Type
 
 import numpy as np
 from more_itertools import always_iterable
@@ -443,7 +443,13 @@ class StreamParticleIndex(SPHParticleIndex):
 
 
 class StreamParticleFile(ParticleFile):
-    pass
+
+    # stream is in-memory, so do not need to implement open_handle or _read_from_handle
+    def open_handle(self):
+        return None
+
+    def _read_from_handle(self, handle, ptype: str, field: str) -> Optional[np.ndarray]:
+        return None
 
 
 class StreamParticlesDataset(StreamDataset):

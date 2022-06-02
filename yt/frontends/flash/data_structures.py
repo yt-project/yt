@@ -1,6 +1,6 @@
 import os
 import weakref
-from typing import Type
+from typing import Optional, Type
 
 import numpy as np
 
@@ -483,7 +483,12 @@ class FLASHDataset(Dataset):
 
 
 class FLASHParticleFile(ParticleFile):
-    pass
+    # flash handles a single file at Dataset level
+    def open_handle(self):
+        return None
+
+    def _read_from_handle(self, handle, ptype: str, field: str) -> Optional[np.ndarray]:
+        return None
 
 
 class FLASHParticleDataset(FLASHDataset):

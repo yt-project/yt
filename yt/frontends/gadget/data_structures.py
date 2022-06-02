@@ -1,7 +1,9 @@
 import os
 import stat
 import struct
-from typing import Type
+from collections import defaultdict
+from contextlib import contextmanager
+from typing import Any, Optional, Tuple, Type, Union
 
 import numpy as np
 
@@ -178,7 +180,16 @@ class GadgetBinaryFile(ParticleFile):
         with header.open() as f:
             self._file_size = f.seek(0, os.SEEK_END)
 
+        default_field_type = np.dtype(io._endian + ds._header.float_type)
+        self._field_dtype = defaultdict(lambda: default_field_type)
+        self._field_dtype["ParticleIDs"] = np.dtype(io._endian + ds._id_dtype)
+
         super().__init__(ds, io, filename, file_id, range)
+
+    @contextmanager
+    def open_handle(self):
+        with open(self.filename) as handle:
+            yield handle
 
     def _calculate_offsets(self, field_list, pcounts):
         # Note that we ignore pcounts here because it's the global count.  We
@@ -190,6 +201,42 @@ class GadgetBinaryFile(ParticleFile):
             self.start,
             self._file_size,
         )
+
+    def _field_count(self, ptype, field):
+        # get the expected array size of the current particle type and field
+        count = self.total_particles[ptype]
+        if field in self.io._vector_fields:
+            count *= self.io._vector_fields[field]
+        return count
+
+    def _read_from_handle(self, handle, ptype: str, field: str):
+        # handle: an open file handle
+        # ptype: particle type string
+        # field: field name string
+
+        # get the length of the field and the data type
+        count = self._field_count(ptype, field)
+        if count == 0:
+            return
+        dt = self._field_dtype[field]
+
+        # read in the data from the right offset location
+        poffset = self.field_offsets[ptype, field]
+
+        handle.seek(poffset, os.SEEK_SET)
+        arr = np.fromfile(handle, dtype=dt, count=count)
+
+        # ensure data are in native endianness to avoid errors
+        # when field data are passed to cython
+        dt = dt.newbyteorder("N")
+        arr = arr.astype(dt)
+
+        # reshape if we have a vector
+        if field in self.io._vector_fields:
+            factor = self.io._vector_fields[field]
+            arr = arr.reshape((count // factor, factor), order="C")
+
+        return arr
 
 
 class GadgetBinaryIndex(SPHParticleIndex):
@@ -571,7 +618,47 @@ class GadgetDataset(SPHDataset):
 
 
 class GadgetHDF5File(ParticleFile):
-    pass
+    _fields_with_cols = ("Metallicity_", "PassiveScalars_", "Chemistry_", "GFM_Metals_")
+
+    @contextmanager
+    def open_handle(self):
+        with h5py.File(self.filename, mode="r") as handle:
+            yield handle
+
+    def _read_from_handle(
+        self, handle: Any, ptype: str, field_name: str
+    ) -> Optional[np.ndarray]:
+
+        field_name, col = self._sanitize_field_col(field_name)
+
+        if self.total_particles and self.total_particles[ptype] == 0:
+            # TODO: consider returning an empty array here instead of None
+            return None
+
+        v = handle[f"/{ptype}/{field_name}"][self.start : self.end, ...]
+
+        if col is not None:
+            # extract the column if appropriate for this field
+            v = v[:, col]
+
+        return v
+
+    def _sanitize_field_col(self, field_name: str) -> Tuple[str, Union[int, None]]:
+
+        if any(field_name.startswith(c) for c in self._fields_with_cols):
+            rc = field_name.rsplit("_", 1)
+            col = int(rc[-1])
+            rfield = "_".join(rc[:-1])
+
+            if rfield.startswith("Chemistry"):
+                rfield = rfield + "Abundances"
+
+            return rfield, col
+
+        if field_name in self.io._element_names:
+            return f"ElementAbundance/{field_name}", None
+
+        return field_name, None
 
 
 class GadgetHDF5Dataset(GadgetDataset):

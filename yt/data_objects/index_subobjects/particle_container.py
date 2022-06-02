@@ -1,4 +1,4 @@
-import contextlib
+from contextlib import contextmanager
 
 from more_itertools import always_iterable
 
@@ -64,7 +64,7 @@ class ParticleContainer(YTSelectionContainer):
         mask = selector.select_points(x, y, z)
         return mask
 
-    @contextlib.contextmanager
+    @contextmanager
     def _expand_data_files(self):
         old_data_files = self.data_files
         old_overlap_files = self.overlap_files

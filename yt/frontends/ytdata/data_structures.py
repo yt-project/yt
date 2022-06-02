@@ -1,8 +1,9 @@
 import os
 import weakref
 from collections import defaultdict
+from contextlib import contextmanager
 from numbers import Number as numeric_type
-from typing import Tuple, Type
+from typing import Optional, Tuple, Type
 
 import numpy as np
 
@@ -227,6 +228,14 @@ class YTDataHDF5File(ParticleFile):
             self.header = {field: parse_h5_attr(f, field) for field in f.attrs.keys()}
 
         super().__init__(ds, io, filename, file_id, range)
+
+    @contextmanager
+    def open_handle(self):
+        with h5py.File(self.filename, mode="r") as f:
+            yield f
+
+    def _read_from_handle(self, handle, ptype: str, field: str) -> Optional[np.ndarray]:
+        return None
 
 
 class YTDataContainerDataset(YTDataset):

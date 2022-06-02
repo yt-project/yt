@@ -8,6 +8,7 @@ import time
 import warnings
 import weakref
 from collections import defaultdict
+from contextlib import contextmanager
 from importlib.util import find_spec
 from stat import ST_CTIME
 from typing import DefaultDict, Optional, Tuple, Type, Union
@@ -1915,7 +1916,13 @@ def _reconstruct_ds(*args, **kwargs):
     return ds
 
 
-@functools.total_ordering
+# Note: the use of functools.total_ordering with an abstract class that sets
+# an @abc.abstractmethod causes a mypy failure:
+#     Only concrete class can be given where "Type[ParticleFile]" is expected
+# related to the open mypy issue https://github.com/python/mypy/issues/5374
+# Following solution here https://stackoverflow.com/a/70999704/9357244 and
+# ignoring the total_ordering line:
+@functools.total_ordering  # type: ignore[misc]
 class ParticleFile(abc.ABC):
     filename: str
     file_id: int
@@ -1960,6 +1967,78 @@ class ParticleFile(abc.ABC):
 
     def __hash__(self):
         return hash((self.filename, self.file_id, self.start, self.end))
+
+    def _nonzero_ptf(self, ptf):
+        for ptype, field_list in sorted(ptf.items()):
+            if self.total_particles[ptype] == 0:
+                continue
+            yield ptype, field_list, self.total_particles[ptype]
+
+    def _nonzero_ptypes(self, ptypes=None):
+        if ptypes is None:
+            ptypes = self.total_particles.keys()
+
+        for ptype in sorted(ptypes):
+            if self.total_particles[ptype] == 0:
+                continue
+            yield ptype, self.total_particles[ptype]
+
+    @contextmanager
+    def transaction(self, handle=None):
+        # yields an open file handle, without double-reading.
+        if handle is None:
+            with self.open_handle() as new_handle:
+                yield new_handle
+        else:
+            # we have end up here recursively so simply yield and the outer
+            # transaction call will handle closing
+            yield handle
+
+    @abc.abstractmethod
+    @contextmanager
+    def open_handle(self):
+        # this method is a file context manager that must yield an open file
+        # handle for self.filename.
+        pass
+
+    def _read_field(self, ptype: str, field: str, handle=None) -> Optional[np.ndarray]:
+        """this method wraps the actual data read (in _read_from_handle) in a
+        transaction context, preventing double reads.
+
+        Parameters
+        ----------
+        ptype : particle type
+        field : field name
+        handle : an optional already-open file handle
+
+        Returns
+        -------
+        np.ndarray or None : the data read from disk
+        """
+        with self.transaction(handle) as f:
+            data = self._read_from_handle(f, ptype, field)
+        return data
+
+    @abc.abstractmethod
+    def _read_from_handle(self, handle, ptype: str, field: str) -> Optional[np.ndarray]:
+        """
+        This method must read data from an open file handle. It generally
+        should not be called directly except by self._read_field, but must be
+        implemented by each frontend. It can return None if no data is found.
+
+        Parameters
+        ----------
+        handle : an open file handle
+        ptype : particle type
+        field : field name
+
+        Returns
+        -------
+        np.ndarray or None (should be np array_like more generally?)
+        """
+        # TODO: switch to an abstract method when existing frontends implement it
+        # raise NotImplementedError("This frontend has not implemented _read_field")
+        pass
 
 
 class ParticleDataset(Dataset):

@@ -4,6 +4,11 @@ from yt.funcs import mylog
 from yt.utilities.io_handler import BaseParticleIOHandler
 
 
+def _check_ptf(ptf):
+    assert len(ptf) == 1
+    assert ptf.keys()[0] == "dark_matter"
+
+
 class IOHandlerSDF(BaseParticleIOHandler):
     _dataset_type = "sdf_particles"
 
@@ -14,16 +19,14 @@ class IOHandlerSDF(BaseParticleIOHandler):
     def _read_fluid_selection(self, chunks, selector, fields, size):
         raise NotImplementedError
 
-    def _read_particle_coords(self, chunks, ptf):
-        chunks = list(chunks)
-        data_files = set()
-        assert len(ptf) == 1
-        assert ptf.keys()[0] == "dark_matter"
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
+    def _sorted_chunk_iterator(self, chunks):
+        data_files = list(super()._sorted_chunk_iterator(chunks))
         assert len(data_files) == 1
-        for _data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
+        yield from data_files
+
+    def _read_particle_coords(self, chunks, ptf):
+        _check_ptf(ptf)
+        for _data_file in self._sorted_chunk_iterator(chunks):
             yield "dark_matter", (
                 self._handle["x"],
                 self._handle["y"],
@@ -31,15 +34,8 @@ class IOHandlerSDF(BaseParticleIOHandler):
             ), 0.0
 
     def _read_particle_fields(self, chunks, ptf, selector):
-        chunks = list(chunks)
-        data_files = set()
-        assert len(ptf) == 1
-        assert ptf.keys()[0] == "dark_matter"
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
-        assert len(data_files) == 1
-        for _data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
+        _check_ptf(ptf)
+        for _data_file in self._sorted_chunk_iterator(chunks):
             for ptype, field_list in sorted(ptf.items()):
                 x = self._handle["x"]
                 y = self._handle["y"]
@@ -76,15 +72,8 @@ class IOHandlerHTTPSDF(IOHandlerSDF):
     _dataset_type = "http_sdf_particles"
 
     def _read_particle_coords(self, chunks, ptf):
-        chunks = list(chunks)
-        data_files = set()
-        assert len(ptf) == 1
-        assert ptf.keys()[0] == "dark_matter"
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
-        assert len(data_files) == 1
-        for _data_file in data_files:
+        _check_ptf(ptf)
+        for _data_file in self._sorted_chunk_iterator(chunks):
             pcount = self._handle["x"].size
             yield "dark_matter", (
                 self._handle["x"][:pcount],
@@ -93,15 +82,8 @@ class IOHandlerHTTPSDF(IOHandlerSDF):
             ), 0.0
 
     def _read_particle_fields(self, chunks, ptf, selector):
-        chunks = list(chunks)
-        data_files = set()
-        assert len(ptf) == 1
-        assert ptf.keys()[0] == "dark_matter"
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
-        assert len(data_files) == 1
-        for _data_file in data_files:
+        _check_ptf(ptf)
+        for _data_file in self._sorted_chunk_iterator(chunks):
             pcount = self._handle["x"].size
             for ptype, field_list in sorted(ptf.items()):
                 x = self._handle["x"][:pcount]

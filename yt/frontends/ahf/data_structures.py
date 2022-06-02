@@ -1,5 +1,6 @@
 import glob
 import os
+from contextlib import contextmanager
 
 import numpy as np
 
@@ -23,10 +24,16 @@ class AHFHalosFile(HaloCatalogFile):
         self.col_names = self._read_column_names(filename)
         super().__init__(ds, io, filename, file_id, range)
 
+    @contextmanager
+    def open_handle(self):
+        with open(self.filename) as f:
+            yield f
+
     def read_data(self, usecols=None):
         return np.genfromtxt(self.filename, names=self.col_names, usecols=usecols)
 
     def _read_column_names(self, filename):
+        # this gets called before self.filename is set, so do not use open_handle
         with open(filename) as f:
             line = f.readline()
             # Remove leading '#'

@@ -16,4 +16,7 @@ class IOHandlerSPH(BaseParticleIOHandler):
     determine particle extents.
     """
 
-    pass
+    def _get_smoothing_length(
+        self, data_file, position_dtype, position_shape, handle=None
+    ):
+        raise NotImplementedError("SPH frontends must implement _get_smoothing_length")
