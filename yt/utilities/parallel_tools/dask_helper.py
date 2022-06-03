@@ -1,6 +1,7 @@
 from dask import array as dask_array, compute as dask_compute, delayed
 from dask.distributed import Client
 
+from yt.config import ytcfg
 from yt.utilities.logger import ytLogger as mylog
 
 # a couple of warning messages used in several places
@@ -145,14 +146,13 @@ def is_delayed(obj):
     return isinstance(obj, dask_array.Array)
 
 
-dask_enabled = False
-
 def dask_delay_wrapper(func):
     def call_func(*args, **kwargs):
-        if dask_enabled:
+        if ytcfg.get("yt", "internals", "dask_enabled"):
             # if dask is enabled, we delay
             return delayed(func)(*args, **kwargs)
         else:
             # if dask is not enabled, immediately execute and return result
             return func(*args, **kwargs)
+
     return call_func

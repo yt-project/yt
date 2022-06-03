@@ -13,6 +13,7 @@ else:
 import numpy as np
 
 from yt._typing import ParticleCoordinateTuple
+from yt.config import ytcfg
 from yt.geometry.selection_routines import GridSelector
 from yt.utilities.on_demand_imports import _h5py as h5py
 
@@ -169,14 +170,27 @@ class BaseIOHandler:
         # and return a dict of fields for that data_file
         raise NotImplementedError
 
+    def _read_particle_selection(
+        self, chunks, selector, fields: List[Tuple[str, str]]
+    ) -> Dict[Tuple[str, str], np.ndarray]:
 
-    def _read_particle_selection(self, chunks, selector, fields: List[Tuple[str, str]]
-        ) -> Dict[Tuple[str, str], np.ndarray]:
+        if ytcfg.get("yt", "internals", "dask_allowed"):
+            return self._read_particle_selection_dask(chunks, selector, fields)
+        else:
+            return self._read_particle_selection_plain(chunks, selector, fields)
+
+    def _read_particle_selection_dask(
+        self, chunks, selector, fields: List[Tuple[str, str]]
+    ) -> Dict[Tuple[str, str], np.ndarray]:
         # this particle reader constructs a dask-delayed graph and immediately
         # computes. If dask is not enabled, all dask operations are passthrough
         # functions that have no effect.
 
-        from yt.utilities.parallel_tools.dask_helper import dask_delay_wrapper, dask_compute
+        from yt.utilities.parallel_tools.dask_helper import (
+            dask_compute,
+            dask_delay_wrapper,
+        )
+
         # re-organize the fields to read
         ptf, field_maps = self._get_particle_field_containers(fields)
         data = {field: [] for field in fields}
@@ -191,18 +205,18 @@ class BaseIOHandler:
             delayed_chunk = dask_delay_wrapper(read_f)(data_file, ptf, selector)
             delayed_chunks.append(delayed_chunk)
 
-        # since we are returning in-mem arrays with this function, we immediately
-        # compute and concatenate with plain np.
+        # since we are returning in-mem arrays with this function, we immediately compute
+        # if dask is not enabled, this will pass through the chunks without modification
         data_by_chunk = dask_compute(*delayed_chunks)
 
-        # convert from a list of dicts to dict of lists
+        # convert from a list of dicts to dict of lists in order to concatenate
         for chunk in data_by_chunk:
             for field in chunk.keys():
                 # the chunk will only have the field if there are values
-                final_field = field_maps[field]
                 vals = chunk[field]
-                data[final_field].append(vals)
-                field_sizes[final_field] += vals.size
+                for field_f in field_maps[field]:
+                    data[field_f].append(vals)
+                    field_sizes[field_f] += vals.size
 
         # now concatenate into final dictionary
         rv: Dict[Tuple[str, str], np.ndarray] = {}  # the return dictionary
@@ -215,14 +229,15 @@ class BaseIOHandler:
                 # We need to ensure the arrays have the right shape if there are no
                 # particles in them.
                 shape = [0]
-                if field[1] in self._vector_fields:
-                    shape.append(self._vector_fields[field[1]])
-                elif field[1] in self._array_fields:
-                    shape.append(self._array_fields[field[1]])
+                fname = field_f[1]
+                if fname in self._vector_fields:
+                    shape.append(self._vector_fields[fname])
+                elif fname in self._array_fields:
+                    shape.append(self._array_fields[fname])
                 rv[field_f] = np.empty(shape, dtype="float64")
         return rv
 
-    def _get_particle_field_containers(self,  fields: List[Tuple[str, str]]):
+    def _get_particle_field_containers(self, fields: List[Tuple[str, str]]):
 
         # ptf (particle field types) maps particle type to list of on-disk fields to read
         # field_maps stores fields, accounting for field unions
@@ -231,8 +246,7 @@ class BaseIOHandler:
         # particle unions
 
         ptf: DefaultDict[str, List[str]] = defaultdict(list)
-        field_maps: DefaultDict[
-            Tuple[str, str], List[Tuple[str, str]]] = defaultdict(
+        field_maps: DefaultDict[Tuple[str, str], List[Tuple[str, str]]] = defaultdict(
             list
         )
 
