@@ -23,9 +23,7 @@ class CFRadialFieldInfo(FieldInfoContainer):
         # FieldInfoContainer with sanitized units.
 
         for field in self.field_list:  # field here is ('fluid_type', 'field) tuple
-            units = self.ds.field_units.get(
-                field, ""
-            )  # where does sanitization happen??
+            units = self.ds.field_units.get(field, "")
 
             # sanitization of the units
             if units in self.units_to_ignore:
