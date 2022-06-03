@@ -109,7 +109,7 @@ class CFRadialDataset(Dataset):
             storage_filename will be over-written if it exists. Default is False.
         grid_shape : Optional[Tuple[int, int, int]]
             when gridding to cartesian, grid_shape is the number of cells in the
-            x, y, z coordinates. If not provided, yt attempts to calculate a
+            z, y, x coordinatess. If not provided, yt attempts to calculate a
             reasonable shape based on the resolution of the original cfradial grid
         grid_limit_x : Optional[Tuple[float, float]]
             The x range of the cartesian-gridded data in the form (xmin, xmax) with
@@ -134,7 +134,7 @@ class CFRadialDataset(Dataset):
             if os.path.exists(storage_filename):
                 # pyart grid.write will error if the filename exists, so this logic
                 # forces some explicit behavior to minimize confusion and avoid
-                # overwriting or deleting without explicit user input.
+                # overwriting or deleting without explicit user consent.
                 if storage_overwrite:
                     os.remove(storage_filename)
                 elif any([grid_shape, grid_limit_x, grid_limit_y, grid_limit_z]):
@@ -153,19 +153,29 @@ class CFRadialDataset(Dataset):
                     regrid = False
 
             if regrid:
+                mylog.info("Building cfradial grid")
                 from yt.utilities.on_demand_imports import _pyart as pyart
 
                 radar = pyart.io.read_cfradial(filename)
+
                 grid_shape, grid_limits = self._validate_grid(
                     radar, grid_shape, grid_limit_x, grid_limit_y, grid_limit_z
                 )
 
+                # grid_shape and grid_limits are in (z, y, x) order.
                 self.grid_shape = grid_shape
                 self.grid_limits = grid_limits
-
-                mylog.info("Building cfradial grid and writing to %s", storage_filename)
+                mylog.info("Calling pyart.map.grid_from_radars ... ")
+                # this is fairly slow
                 grid = pyart.map.grid_from_radars(
                     (radar,), grid_shape=self.grid_shape, grid_limits=self.grid_limits
+                )
+                mylog.info(
+                    "Successfully built cfradial grid, writing to %s", storage_filename
+                )
+                mylog.info(
+                    "Subsequent loads of %s will load the gridded file by default",
+                    filename,
                 )
                 grid.write(storage_filename)
 
@@ -184,8 +194,9 @@ class CFRadialDataset(Dataset):
         grid_limit_y: Optional[Tuple[float, float]] = None,
         grid_limit_z: Optional[Tuple[float, float]] = None,
     ) -> Tuple[Tuple, Tuple]:
+        # this function sets all the re-gridding parameters if they are not set
 
-        # radar: a pyart radar handle, from pyart.io.read_cfradial
+        # radar is a pyart radar handle, from pyart.io.read_cfradial()
         max_range_meters = radar.range["data"].max()  # along-ray distance
         elevation = radar.elevation["data"]  # angle above horizontal
         if radar.elevation["units"] == "degrees":
@@ -198,74 +209,43 @@ class CFRadialDataset(Dataset):
             # radar.altitude['data'].max() does not seem to be consistently set,
             # so we calculate a max altitude in meters from elevation and range parameters
             grid_limit_z = (0.0, max_height)
-            mylog.warning(
-                "grid_limit_z not provided, using max height range in data: %f",
-                grid_limit_z,
+            mylog.info(
+                "grid_limit_z not provided, using max height range in data: (%f, %f)",
+                *grid_limit_z,
             )
             show_help = True
 
         if grid_limit_x is None:
             grid_limit_x = (-max_distance, max_distance)
-            mylog.warning(
-                "grid_limit_x not provided, using max horizontal range in data: %f",
-                grid_limit_x,
+            mylog.info(
+                "grid_limit_x not provided, using max horizontal range in data: (%f, %f)",
+                *grid_limit_x,
             )
             show_help = True
 
         if grid_limit_y is None:
             grid_limit_y = (-max_distance, max_distance)
-            mylog.warning(
-                "grid_limit_y not provided, using max horizontal range in data: %f",
-                grid_limit_y,
+            mylog.info(
+                "grid_limit_y not provided, using max horizontal range in data: (%f, %f)",
+                *grid_limit_y,
             )
             show_help = True
 
-        grid_limits = (grid_limit_x, grid_limit_y, grid_limit_z)
+        grid_limits = (grid_limit_z, grid_limit_y, grid_limit_x)
 
         if grid_shape is None:
-            # choose a resolution that respects the original grid to some degree
-            # the following uses only the radar.elevation and radar.range coordinates.
-            # It ignores radar.azimuth and so may result in some empty data when
-            # using pyart.map.grid_from_radars if the azimuth does not span a full 360
-            # degrees. In that case, the user will have to adjust parameters to
-            # improve the gridding...
-
-            # characteristic change in along-ray distance
-            rdata = radar.range["data"]
-            x_vals = rdata * np.cos(elevation.min())
-            d_dist = (x_vals[1:] - x_vals[:-1]).min()
-            dx = d_dist
-            dy = dx
-
-            # representative element close to available resolution in z
-            z_vals = max_range_meters * np.sin(elevation)
-            dz = np.nanmean(z_vals[1:] - z_vals[:-1])
-
-            # calculate number of elements in x, y, z for that grid resolution
-            grid_l = np.array(grid_limits)
-            grid_w = grid_l[:, 1] - grid_l[:, 0]  # width in x, y, z
-            grid_d = np.array([dx, dy, dz])
-            grid_shape = grid_w / grid_d
-
-            # we do not want the initial gridding to take a long time, so
-            # limit the max resolution
-            max_allowed = 400
-            if grid_shape.max() > max_allowed:
-                # reduce, but maintain aspect ratio if we can
-                aspect = grid_shape / grid_shape.max()
-                grid_shape = aspect * max_allowed
-
-            # limit the min resolution
-            grid_shape[grid_shape < 100] = 100
-            grid_shape = tuple(grid_shape.astype(int).tolist())
-
-            mylog.warning("estimating a good grid_shape: %s", str(grid_shape))
+            grid_shape = (400, 400, 400)
+            mylog.info(
+                "grid_shape not provided, using (nz, ny, nx) = (%i, %i, %i)",
+                *grid_shape,
+            )
             show_help = True
 
         if show_help:
-            mylog.warning(
+            mylog.info(
                 "to override default grid values, use any of the following "
                 "parameters: grid_limit_x, grid_limit_y, grid_limit_z, grid_shape"
+                " with yt.load(cf_radial_file, ...)"
             )
 
         return grid_shape, grid_limits
