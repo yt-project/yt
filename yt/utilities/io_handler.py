@@ -169,23 +169,74 @@ class BaseIOHandler:
         # and return a dict of fields for that data_file
         raise NotImplementedError
 
-    def _read_particle_selection(
-        self, chunks, selector, fields: List[Tuple[str, str]]
-    ) -> Dict[Tuple[str, str], np.ndarray]:
-        data: Dict[Tuple[str, str], List[np.ndarray]] = {}
 
-        # Initialize containers for tracking particle, field information
+    def _read_particle_selection(self, chunks, selector, fields: List[Tuple[str, str]]
+        ) -> Dict[Tuple[str, str], np.ndarray]:
+        # this particle reader constructs a dask-delayed graph and immediately
+        # computes. If dask is not enabled, all dask operations are passthrough
+        # functions that have no effect.
+
+        from yt.utilities.parallel_tools.dask_helper import dask_delay_wrapper, dask_compute
+        # re-organize the fields to read
+        ptf, field_maps = self._get_particle_field_containers(fields)
+        data = {field: [] for field in fields}
+        field_sizes = {field: 0 for field in fields}
+
+        # Now we read each chunk
+        delayed_chunks = []
+        for data_file in self._sorted_chunk_iterator(chunks):
+            # note: if dask is not enabled, dask_delay_wrapper is an empty
+            # decorator and results are immediately returned
+            read_f = self._read_particle_data_file
+            delayed_chunk = dask_delay_wrapper(read_f)(data_file, ptf, selector)
+            delayed_chunks.append(delayed_chunk)
+
+        # since we are returning in-mem arrays with this function, we immediately
+        # compute and concatenate with plain np.
+        data_by_chunk = dask_compute(*delayed_chunks)
+
+        # convert from a list of dicts to dict of lists
+        for chunk in data_by_chunk:
+            for field in chunk.keys():
+                # the chunk will only have the field if there are values
+                final_field = field_maps[field]
+                vals = chunk[field]
+                data[final_field].append(vals)
+                field_sizes[final_field] += vals.size
+
+        # now concatenate into final dictionary
+        rv: Dict[Tuple[str, str], np.ndarray] = {}  # the return dictionary
+        fields = list(data.keys())
+        for field_f in fields:
+            if field_sizes[field_f]:
+                vals = data.pop(field_f)
+                rv[field_f] = np.concatenate(vals, axis=0).astype("float64")
+            else:
+                # We need to ensure the arrays have the right shape if there are no
+                # particles in them.
+                shape = [0]
+                if field[1] in self._vector_fields:
+                    shape.append(self._vector_fields[field[1]])
+                elif field[1] in self._array_fields:
+                    shape.append(self._array_fields[field[1]])
+                rv[field_f] = np.empty(shape, dtype="float64")
+        return rv
+
+    def _get_particle_field_containers(self,  fields: List[Tuple[str, str]]):
+
         # ptf (particle field types) maps particle type to list of on-disk fields to read
         # field_maps stores fields, accounting for field unions
+
+        # here we organize the fields to read by particle type, accounting for
+        # particle unions
+
         ptf: DefaultDict[str, List[str]] = defaultdict(list)
-        field_maps: DefaultDict[Tuple[str, str], List[Tuple[str, str]]] = defaultdict(
+        field_maps: DefaultDict[
+            Tuple[str, str], List[Tuple[str, str]]] = defaultdict(
             list
         )
 
-        # We first need a set of masks for each particle type
-        chunks = list(chunks)
         unions = self.ds.particle_unions
-        # What we need is a mapping from particle types to return types
         for field in fields:
             ftype, fname = field
             # We should add a check for p.fparticle_unions or something here
@@ -196,6 +247,19 @@ class BaseIOHandler:
             else:
                 ptf[ftype].append(fname)
                 field_maps[field].append(field)
+
+        return ptf, field_maps
+
+    def _read_particle_selection_plain(
+        self, chunks, selector, fields: List[Tuple[str, str]]
+    ) -> Dict[Tuple[str, str], np.ndarray]:
+        data: Dict[Tuple[str, str], List[np.ndarray]] = {}
+
+        # re-organize the fields to read
+        ptf, field_maps = self._get_particle_field_containers(fields)
+
+        # What we need is a mapping from particle types to return types
+        for field in fields:
             data[field] = []
 
         # Now we read.
@@ -224,22 +288,13 @@ class BaseIOHandler:
 
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate
-        data_files = set()
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
-        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
+        for data_file in self._sorted_chunk_iterator(chunks):
             data_file_data = self._read_particle_data_file(data_file, ptf, selector)
             # temporary trickery so it's still an iterator, need to adjust
             # the io_handler.BaseIOHandler.read_particle_selection() method
             # to not use an iterator.
             yield from data_file_data.items()
 
-
-# As a note: we don't *actually* want this to be how it is forever.  There's no
-# reason we need to have the fluid and particle IO handlers separated.  But,
-# for keeping track of which frontend is which, this is a useful abstraction.
-class BaseParticleIOHandler(BaseIOHandler):
     def _sorted_chunk_iterator(self, chunks):
         chunks = list(chunks)
         data_files = set()
@@ -247,6 +302,13 @@ class BaseParticleIOHandler(BaseIOHandler):
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         yield from sorted(data_files, key=lambda x: (x.filename, x.start))
+
+
+# As a note: we don't *actually* want this to be how it is forever.  There's no
+# reason we need to have the fluid and particle IO handlers separated.  But,
+# for keeping track of which frontend is which, this is a useful abstraction.
+class BaseParticleIOHandler(BaseIOHandler):
+    pass
 
 
 class IOHandlerExtracted(BaseIOHandler):
