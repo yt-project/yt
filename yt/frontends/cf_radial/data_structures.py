@@ -46,19 +46,13 @@ class CFRadialHierarchy(GridIndex):
         self.float_type = np.float64
         super().__init__(ds, dataset_type)
 
-    def _initialize_state_variables(self):
-        super()._initialize_state_variables()
-
     def _detect_output_fields(self):
         # This sets self.field_list, containing all the available on-disk fields and
         # records the units for each field.
         self.field_list = []
         units = {}
         for key in self.ds._handle.variables.keys():
-            if (
-                all(x in self.ds._handle[key].dims for x in ["time", "z", "y", "x"])
-                is True
-            ):
+            if all(x in self.ds._handle[key].dims for x in ["time", "z", "y", "x"]):
                 fld = ("cf_radial", key)
                 self.field_list.append(fld)
                 units[fld] = self.ds._handle[key].units
