@@ -2,9 +2,9 @@ import inspect
 import re
 import warnings
 from abc import ABC, abstractmethod
-from functools import wraps
+from functools import update_wrapper, wraps
 from numbers import Integral, Number
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Type, Union
 
 import matplotlib
 import numpy as np
@@ -33,8 +33,9 @@ from yt.utilities.on_demand_imports import NotAModule
 from yt.visualization._commons import _swap_arg_pair_order, _swap_axes_extents
 from yt.visualization.base_plot_types import CallbackWrapper
 from yt.visualization.image_writer import apply_colormap
+from yt.visualization.plot_window import PWViewerMPL
 
-callback_registry = {}
+callback_registry: Dict[str, Type["PlotCallback"]] = {}
 
 
 def _verify_geometry(func):
@@ -83,7 +84,29 @@ class PlotCallback(ABC):
     def __init_subclass__(cls, *args, **kwargs):
         if inspect.isabstract(cls):
             return
+
+        # register class
         callback_registry[cls.__name__] = cls
+
+        # create a PWViewerMPL method by wrapping __init__
+        if cls.__init__.__doc__ is None:
+            # allow docstring definition at the class level instead of __init__
+            cls.__init__.__doc__ = cls.__doc__
+
+        method_name = "annotate_" + cls._type_name
+
+        def closure(self, *args, **kwargs):
+            self._callbacks.append(cls(*args, **kwargs))
+
+        update_wrapper(
+            wrapper=closure,
+            wrapped=cls.__init__,
+            assigned=("__annotations__", "__doc__"),
+        )
+
+        closure.__name__ = method_name
+        setattr(PWViewerMPL, method_name, closure)
+
         cls.__call__ = _verify_geometry(cls.__call__)
 
     @abstractmethod

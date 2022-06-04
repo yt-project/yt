@@ -1,4 +1,5 @@
 import contextlib
+import inspect
 import shutil
 import tempfile
 
@@ -69,6 +70,32 @@ def _cleanup_fname():
     tmpdir = tempfile.mkdtemp()
     yield tmpdir
     shutil.rmtree(tmpdir)
+
+
+def test_method_signature():
+    ds = fake_amr_ds(
+        fields=[("gas", "density"), ("gas", "velocity_x"), ("gas", "velocity_y")],
+        units=["g/cm**3", "m/s", "m/s"],
+    )
+    p = SlicePlot(ds, "z", ("gas", "density"))
+    sig = inspect.signature(p.annotate_velocity)
+    # checking the first few arguments rather than the whole signature
+    # we just want to validate that method wrapping works
+    assert list(sig.parameters.keys())[:4] == [
+        "factor",
+        "scale",
+        "scale_units",
+        "normalize",
+    ]
+
+
+def test_init_signature_error_callback():
+    ds = fake_amr_ds(
+        fields=[("gas", "density"), ("gas", "velocity_x"), ("gas", "velocity_y")],
+        units=["g/cm**3", "m/s", "m/s"],
+    )
+    p = SlicePlot(ds, "z", ("gas", "density"))
+    assert_raises(TypeError, p.annotate_velocity, {"invalid_argument": 1})
 
 
 def check_axis_manipulation(plot_obj, prefix):

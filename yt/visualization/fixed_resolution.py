@@ -533,7 +533,7 @@ class FixedResolutionBuffer:
                 @wraps(FilterMaker)
                 def method(*args, **kwargs):
                     # We need to also do it here as "invalidate_plot"
-                    # and "apply_callback" require the functions'
+                    # requires the functions'
                     # __name__ in order to work properly
                     @wraps(FilterMaker)
                     def cb(self, *a, **kwa):
