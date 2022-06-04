@@ -2,7 +2,7 @@ import inspect
 import re
 import warnings
 from abc import ABC, abstractmethod
-from functools import update_wrapper, wraps
+from functools import update_wrapper
 from numbers import Integral, Number, Real
 from typing import Any, Dict, Optional, Tuple, Type, Union
 
@@ -36,21 +36,6 @@ from yt.visualization.image_writer import apply_colormap
 from yt.visualization.plot_window import PWViewerMPL
 
 callback_registry: Dict[str, Type["PlotCallback"]] = {}
-
-
-def _verify_geometry(func):
-    @wraps(func)
-    def _check_geometry(self, plot):
-        geom = plot.data.ds.coordinates.name
-        supp = self._supported_geometries
-        cs = getattr(self, "coord_system", None)
-        if supp is None or geom in supp:
-            return func(self, plot)
-        if cs in ("axis", "figure") and "force" not in supp:
-            return func(self, plot)
-        raise YTDataTypeUnsupported(geom, supp)
-
-    return _check_geometry
 
 
 def _validate_factor_tuple(factor) -> Tuple[int, int]:
@@ -95,7 +80,20 @@ class PlotCallback(ABC):
 
         method_name = "annotate_" + cls._type_name
 
+        supp = cls._supported_geometries
+
         def closure(self, *args, **kwargs):
+            nonlocal supp
+            geom = self.ds.geometry
+            if not (
+                supp is None
+                or geom in supp
+                or (
+                    kwargs.get("coord_system") in ("axis", "figure")
+                    and "force" not in supp
+                )
+            ):
+                raise YTDataTypeUnsupported(geom, supp)
             self._callbacks.append(cls(*args, **kwargs))
 
         update_wrapper(
@@ -106,8 +104,6 @@ class PlotCallback(ABC):
 
         closure.__name__ = method_name
         setattr(PWViewerMPL, method_name, closure)
-
-        cls.__call__ = _verify_geometry(cls.__call__)
 
     @abstractmethod
     def __init__(self, *args, **kwargs) -> None:

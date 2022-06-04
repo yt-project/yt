@@ -95,7 +95,7 @@ def test_init_signature_error_callback():
         units=["g/cm**3", "m/s", "m/s"],
     )
     p = SlicePlot(ds, "z", ("gas", "density"))
-    assert_raises(TypeError, p.annotate_velocity, {"invalid_argument": 1})
+    assert_raises(TypeError, p.annotate_velocity, invalid_argument=1)
 
 
 def check_axis_manipulation(plot_obj, prefix):
@@ -139,9 +139,7 @@ def test_timestamp_callback():
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields=("density",), units=("g/cm**3",), geometry="spherical")
         p = ProjectionPlot(ds, "r", ("gas", "density"))
-        p.annotate_timestamp(coord_system="data")
-        assert_raises(YTDataTypeUnsupported, p.save, prefix)
-        p = ProjectionPlot(ds, "r", ("gas", "density"))
+        assert_raises(YTDataTypeUnsupported, p.annotate_timestamp, coord_system="data")
         p.annotate_timestamp(coord_system="axis")
         assert_fname(p.save(prefix)[0])
 
@@ -189,11 +187,8 @@ def test_scale_callback():
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields=("density",), units=("g/cm**3",), geometry="spherical")
         p = ProjectionPlot(ds, "r", ("gas", "density"))
-        p.annotate_scale()
-        assert_raises(YTDataTypeUnsupported, p.save, prefix)
-        p = ProjectionPlot(ds, "r", ("gas", "density"))
-        p.annotate_scale(coord_system="axis")
-        assert_raises(YTDataTypeUnsupported, p.save, prefix)
+        assert_raises(YTDataTypeUnsupported, p.annotate_scale)
+        assert_raises(YTDataTypeUnsupported, p.annotate_scale, coord_system="axis")
 
 
 def test_line_callback():
@@ -221,9 +216,9 @@ def test_line_callback():
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields=("density",), units=("g/cm**3",), geometry="spherical")
         p = ProjectionPlot(ds, "r", ("gas", "density"))
-        p.annotate_line([0.1, 0.1, 0.1], [0.5, 0.5, 0.5])
-        assert_raises(YTDataTypeUnsupported, p.save, prefix)
-        p = ProjectionPlot(ds, "r", ("gas", "density"))
+        assert_raises(
+            YTDataTypeUnsupported, p.annotate_line, [0.1, 0.1, 0.1], [0.5, 0.5, 0.5]
+        )
         p.annotate_line([0.1, 0.1], [0.5, 0.5], coord_system="axis")
         assert_fname(p.save(prefix)[0])
 
@@ -259,11 +254,8 @@ def test_ray_callback():
         ray = ds.ray((0.1, 0.2, 0.3), (0.6, 0.8, 0.5))
         oray = ds.ortho_ray(0, (0.3, 0.4))
         p = ProjectionPlot(ds, "r", ("gas", "density"))
-        p.annotate_ray(oray)
-        assert_raises(YTDataTypeUnsupported, p.save, prefix)
-        p = ProjectionPlot(ds, "r", ("gas", "density"))
-        p.annotate_ray(ray)
-        assert_raises(YTDataTypeUnsupported, p.save, prefix)
+        assert_raises(YTDataTypeUnsupported, p.annotate_ray, oray)
+        assert_raises(YTDataTypeUnsupported, p.annotate_ray, ray)
 
 
 def test_arrow_callback():
@@ -306,9 +298,7 @@ def test_arrow_callback():
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields=("density",), units=("g/cm**3",), geometry="spherical")
         p = ProjectionPlot(ds, "r", ("gas", "density"))
-        p.annotate_arrow([0.5, 0.5, 0.5])
-        assert_raises(YTDataTypeUnsupported, p.save, prefix)
-        p = ProjectionPlot(ds, "r", ("gas", "density"))
+        assert_raises(YTDataTypeUnsupported, p.annotate_arrow, [0.5, 0.5, 0.5])
         p.annotate_arrow([0.5, 0.5], coord_system="axis")
         assert_fname(p.save(prefix)[0])
 
@@ -346,9 +336,7 @@ def test_marker_callback():
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields=("density",), units=("g/cm**3",), geometry="spherical")
         p = ProjectionPlot(ds, "r", ("gas", "density"))
-        p.annotate_marker([0.5, 0.5, 0.5])
-        assert_raises(YTDataTypeUnsupported, p.save, prefix)
-        p = ProjectionPlot(ds, "r", ("gas", "density"))
+        assert_raises(YTDataTypeUnsupported, p.annotate_marker, [0.5, 0.5, 0.5])
         p.annotate_marker([0.5, 0.5], coord_system="axis")
         assert_fname(p.save(prefix)[0])
 
@@ -382,8 +370,7 @@ def test_particles_callback():
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields=("density",), units=("g/cm**3",), geometry="spherical")
         p = ProjectionPlot(ds, "r", ("gas", "density"))
-        p.annotate_particles((10, "Mpc"))
-        assert_raises(YTDataTypeUnsupported, p.save, prefix)
+        assert_raises(YTDataTypeUnsupported, p.annotate_particles, (10, "Mpc"))
 
 
 def test_sphere_callback():
@@ -408,9 +395,12 @@ def test_sphere_callback():
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields=("density",), units=("g/cm**3",), geometry="spherical")
         p = ProjectionPlot(ds, "r", ("gas", "density"))
-        p.annotate_sphere([0.5, 0.5, 0.5], 0.1)
-        assert_raises(YTDataTypeUnsupported, p.save, prefix)
-        p = ProjectionPlot(ds, "r", ("gas", "density"))
+        assert_raises(
+            YTDataTypeUnsupported,
+            p.annotate_sphere,
+            [0.5, 0.5, 0.5],
+            0.1,
+        )
         p.annotate_sphere([0.5, 0.5], 0.1, coord_system="axis", text="blah")
         assert_fname(p.save(prefix)[0])
 
@@ -439,9 +429,9 @@ def test_text_callback():
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields=("density",), units=("g/cm**3",), geometry="spherical")
         p = ProjectionPlot(ds, "r", ("gas", "density"))
-        p.annotate_text([0.5, 0.5, 0.5], "dinosaurs!")
-        assert_raises(YTDataTypeUnsupported, p.save, prefix)
-        p = ProjectionPlot(ds, "r", ("gas", "density"))
+        assert_raises(
+            YTDataTypeUnsupported, p.annotate_text, [0.5, 0.5, 0.5], "dinosaurs!"
+        )
         p.annotate_text(
             [0.5, 0.5], "dinosaurs!", coord_system="axis", text_args={"color": "red"}
         )
@@ -503,8 +493,9 @@ def test_velocity_callback():
             geometry="spherical",
         )
         p = ProjectionPlot(ds, "r", ("gas", "density"))
-        p.annotate_velocity(factor=40, normalize=True)
-        assert_raises(YTDataTypeUnsupported, p.save, prefix)
+        assert_raises(
+            YTDataTypeUnsupported, p.annotate_velocity, factor=40, normalize=True
+        )
 
 
 @requires_file(cyl_2d)
@@ -579,10 +570,8 @@ def test_magnetic_callback():
             geometry="spherical",
         )
         p = ProjectionPlot(ds, "r", ("gas", "density"))
-        p.annotate_magnetic_field(
-            factor=8, scale=0.5, scale_units="inches", normalize=True
-        )
-        assert_raises(YTDataTypeUnsupported, p.save, prefix)
+        kwargs = dict(factor=8, scale=0.5, scale_units="inches", normalize=True)
+        assert_raises(YTDataTypeUnsupported, p.annotate_magnetic_field, **kwargs)
 
 
 @requires_file(cyl_2d)
@@ -647,9 +636,11 @@ def test_quiver_callback():
             geometry="spherical",
         )
         p = ProjectionPlot(ds, "r", ("gas", "density"))
-        p.annotate_quiver(
+        args = (
             ("gas", "velocity_theta"),
             ("gas", "velocity_phi"),
+        )
+        kwargs = dict(
             factor=8,
             scale=0.5,
             scale_units="inches",
@@ -657,7 +648,7 @@ def test_quiver_callback():
             bv_x=0.5 * u.cm / u.s,
             bv_y=0.5 * u.cm / u.s,
         )
-        assert_raises(YTDataTypeUnsupported, p.save, prefix)
+        assert_raises(YTDataTypeUnsupported, p.annotate_quiver, *args, **kwargs)
 
 
 @requires_file(cyl_2d)
@@ -728,8 +719,7 @@ def test_contour_callback():
             geometry="spherical",
         )
         p = SlicePlot(ds, "r", ("gas", "density"))
-        p.annotate_contour(
-            ("gas", "temperature"),
+        kwargs = dict(
             ncont=10,
             factor=8,
             take_log=False,
@@ -738,7 +728,9 @@ def test_contour_callback():
             label=True,
             text_args={"fontsize": "x-large"},
         )
-        assert_raises(YTDataTypeUnsupported, p.save, prefix)
+        assert_raises(
+            YTDataTypeUnsupported, p.annotate_contour, ("gas", "temperature"), **kwargs
+        )
 
 
 @requires_file(cyl_2d)
@@ -782,7 +774,7 @@ def test_grids_callback():
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields=("density",), units=("g/cm**3",), geometry="spherical")
         p = SlicePlot(ds, "r", ("gas", "density"))
-        p.annotate_grids(
+        kwargs = dict(
             alpha=0.7,
             min_pix=10,
             min_pix_ids=30,
@@ -793,7 +785,7 @@ def test_grids_callback():
             max_level=3,
             cmap="gist_stern",
         )
-        assert_raises(YTDataTypeUnsupported, p.save, prefix)
+        assert_raises(YTDataTypeUnsupported, p.annotate_grids, **kwargs)
 
 
 @requires_file(cyl_2d)
@@ -827,8 +819,7 @@ def test_cell_edges_callback():
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields=("density",), units=("g/cm**3",), geometry="spherical")
         p = SlicePlot(ds, "r", ("gas", "density"))
-        p.annotate_cell_edges()
-        assert_raises(YTDataTypeUnsupported, p.save, prefix)
+        assert_raises(YTDataTypeUnsupported, p.annotate_cell_edges)
 
 
 def test_mesh_lines_callback():
@@ -937,8 +928,12 @@ def test_streamline_callback():
             geometry="spherical",
         )
         p = SlicePlot(ds, "r", ("gas", "density"))
-        p.annotate_streamlines(("gas", "velocity_theta"), ("gas", "velocity_phi"))
-        assert_raises(YTDataTypeUnsupported, p.save, prefix)
+        assert_raises(
+            YTDataTypeUnsupported,
+            p.annotate_streamlines,
+            ("gas", "velocity_theta"),
+            ("gas", "velocity_phi"),
+        )
 
 
 @requires_file(cyl_2d)
@@ -1014,10 +1009,12 @@ def test_line_integral_convolution_callback():
             geometry="spherical",
         )
         p = SlicePlot(ds, "r", ("gas", "density"))
-        p.annotate_line_integral_convolution(
-            ("gas", "velocity_theta"), ("gas", "velocity_phi")
+        assert_raises(
+            YTDataTypeUnsupported,
+            p.annotate_line_integral_convolution,
+            ("gas", "velocity_theta"),
+            ("gas", "velocity_phi"),
         )
-        assert_raises(YTDataTypeUnsupported, p.save, prefix)
 
 
 def test_accepts_all_fields_decorator():
