@@ -1,9 +1,9 @@
 import weakref
-from functools import wraps
-from typing import Dict, List, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional
 
 import numpy as np
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.utilities import save_as_dataset
 from yt.funcs import get_output_filename, iter_fields, mylog
@@ -15,12 +15,10 @@ from yt.utilities.lib.api import (  # type: ignore
 from yt.utilities.lib.pixelization_routines import pixelize_cylinder
 from yt.utilities.on_demand_imports import _h5py as h5py
 
-from .fixed_resolution_filters import (
-    FixedResolutionBufferFilter,
-    apply_filter,
-    filter_registry,
-)
 from .volume_rendering.api import off_axis_projection
+
+if TYPE_CHECKING:
+    from yt.visualization.fixed_resolution_filters import FixedResolutionBufferFilter
 
 
 class FixedResolutionBuffer:
@@ -105,7 +103,7 @@ class FixedResolutionBuffer:
         antialias=True,
         periodic=False,
         *,
-        filters: Optional[List[FixedResolutionBufferFilter]] = None,
+        filters: Optional[List["FixedResolutionBufferFilter"]] = None,
     ):
         self.data_source = data_source
         self.ds = data_source.ds
@@ -113,11 +111,18 @@ class FixedResolutionBuffer:
         self.buff_size = (int(buff_size[0]), int(buff_size[1]))
         self.antialias = antialias
         self.data: Dict[str, np.ndarray] = {}
-        self._filters = []
         self.axis = data_source.axis
         self.periodic = periodic
         self._data_valid = False
-        self._filters = filters if filters is not None else []
+
+        # import type here to avoid import cycles
+        from yt.visualization.fixed_resolution_filters import (
+            FixedResolutionBufferFilter,
+        )
+
+        self._filters: List[FixedResolutionBufferFilter] = (
+            filters if filters is not None else []
+        )
 
         ds = getattr(data_source, "ds", None)
         if ds is not None:
@@ -133,8 +138,6 @@ class FixedResolutionBuffer:
             yax = self.ds.coordinates.y_axis[axis]
             self._period = (DD[xax], DD[yax])
             self._edges = ((DLE[xax], DRE[xax]), (DLE[yax], DRE[yax]))
-
-        self.setup_filters()
 
     def keys(self):
         return self.data.keys()
@@ -166,8 +169,7 @@ class FixedResolutionBuffer:
             int(self.antialias),
         )
 
-        for name, (args, kwargs) in self._filters:
-            buff = filter_registry[name](*args, **kwargs).apply(buff)
+        buff = self._apply_filters(buff)
 
         # FIXME FIXME FIXME we shouldn't need to do this for projections
         # but that will require fixing data object access for particle
@@ -185,6 +187,11 @@ class FixedResolutionBuffer:
         self.data[item] = ia
         self._data_valid = True
         return self.data[item]
+
+    def _apply_filters(self, buffer: np.ndarray) -> np.ndarray:
+        for f in self._filters:
+            buffer = f(buffer)
+        return buffer
 
     def __setitem__(self, item, val):
         self.data[item] = val
@@ -522,33 +529,10 @@ class FixedResolutionBuffer:
         return rv
 
     def setup_filters(self):
-        for key in filter_registry:
-            filtername = filter_registry[key]._filter_name
-
-            # We need to wrap to create a closure so that
-            # FilterMaker is bound to the wrapped method.
-            def closure():
-                FilterMaker = filter_registry[key]
-
-                @wraps(FilterMaker)
-                def method(*args, **kwargs):
-                    # We need to also do it here as "invalidate_plot"
-                    # requires the functions'
-                    # __name__ in order to work properly
-                    @wraps(FilterMaker)
-                    def cb(self, *a, **kwa):
-                        # We construct the callback method
-                        # skipping self
-                        return FilterMaker(*a, **kwa)
-
-                    # Create callback
-                    cb = apply_filter(cb)
-
-                    return cb(self, *args, **kwargs)
-
-                return method
-
-            self.__dict__["apply_" + filtername] = closure()
+        issue_deprecation_warning(
+            "The FixedResolutionBuffer.setup_filters method is now a no-op. ",
+            since="4.1.0",
+        )
 
 
 class CylindricalFixedResolutionBuffer(FixedResolutionBuffer):
