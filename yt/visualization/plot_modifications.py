@@ -3,7 +3,7 @@ import re
 import warnings
 from abc import ABC, abstractmethod
 from functools import update_wrapper, wraps
-from numbers import Integral, Number
+from numbers import Integral, Number, Real
 from typing import Any, Dict, Optional, Tuple, Type, Union
 
 import matplotlib
@@ -774,9 +774,9 @@ class ContourCallback(PlotCallback):
     def __init__(
         self,
         field,
-        ncont=5,
+        ncont: int = 5,
         factor: Union[Tuple[int, int], int] = 4,
-        clim=None,
+        clim: Optional[Tuple[float, float]] = None,
         plot_args=None,
         label=False,
         take_log=None,
@@ -874,21 +874,30 @@ class ContourCallback(PlotCallback):
         elif plot._type_name == "OffAxisProjection":
             zi = plot.frb[self.field][:: self.factor[0], :: self.factor[1]].transpose()
 
-        if self.take_log is None:
+        take_log: bool
+        if self.take_log is not None:
+            take_log = self.take_log
+        else:
             field = data._determine_fields([self.field])[0]
-            self.take_log = plot.ds._get_field_info(*field).take_log
+            take_log = plot.ds._get_field_info(*field).take_log
 
-        if self.take_log:
+        if take_log:
             zi = np.log10(zi)
 
-        if self.take_log and self.clim is not None:
-            self.clim = (np.log10(self.clim[0]), np.log10(self.clim[1]))
+        clim: Union[Tuple[Real, Real], None]
+        if take_log and self.clim is not None:
+            clim = np.log10(self.clim[0]), np.log10(self.clim[1])
+        else:
+            clim = self.clim
 
-        if self.clim is not None:
-            self.ncont = np.linspace(self.clim[0], self.clim[1], self.ncont)
+        levels: Union[np.ndarray, int]
+        if clim is not None:
+            levels = np.linspace(clim[0], clim[1], self.ncont)
+        else:
+            levels = self.ncont
 
         xi, yi = self._sanitize_xy_order(plot, xi, yi)
-        cset = plot._axes.contour(xi, yi, zi, self.ncont, **self.plot_args)
+        cset = plot._axes.contour(xi, yi, zi, levels, **self.plot_args)
         self._set_plot_limits(plot, (xx0, xx1, yy0, yy1))
 
         if self.label:
