@@ -116,6 +116,10 @@ class FixedResolutionBuffer:
         self._data_valid = False
 
         # import type here to avoid import cycles
+        # note that this import statement is actually crucial at runtime:
+        # the filter methods for the present class are defined only when
+        # fixed_resolution_filters is imported, so we need to guarantee
+        # that it happens no later than instanciation
         from yt.visualization.fixed_resolution_filters import (
             FixedResolutionBufferFilter,
         )
