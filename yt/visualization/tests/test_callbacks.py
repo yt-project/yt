@@ -95,7 +95,8 @@ def test_init_signature_error_callback():
         units=["g/cm**3", "m/s", "m/s"],
     )
     p = SlicePlot(ds, "z", ("gas", "density"))
-    assert_raises(TypeError, p.annotate_velocity, invalid_argument=1)
+    # annotate_velocity accepts only one positional argument
+    assert_raises(TypeError, p.annotate_velocity, 1, 2, 3)
 
 
 def check_axis_manipulation(plot_obj, prefix):
@@ -207,9 +208,7 @@ def test_line_callback():
         assert_fname(p.save(prefix)[0])
         # Now we'll check a few additional minor things
         p = SlicePlot(ds, "x", ("gas", "density"))
-        p.annotate_line(
-            [0.1, 0.1], [0.5, 0.5], coord_system="axis", plot_args={"color": "red"}
-        )
+        p.annotate_line([0.1, 0.1], [0.5, 0.5], coord_system="axis", color="red")
         p.save(prefix)
         check_axis_manipulation(p, prefix)
 
@@ -245,7 +244,7 @@ def test_ray_callback():
         # Now we'll check a few additional minor things
         p = SlicePlot(ds, "x", ("gas", "density"))
         p.annotate_ray(oray)
-        p.annotate_ray(ray, plot_args={"color": "red"})
+        p.annotate_ray(ray, color="red")
         p.save(prefix)
         check_axis_manipulation(p, prefix)
 
@@ -671,7 +670,7 @@ def test_contour_callback():
         p = SlicePlot(ds, "x", ("gas", "density"))
         p.annotate_contour(
             ("gas", "temperature"),
-            ncont=10,
+            levels=10,
             factor=8,
             take_log=False,
             clim=(0.4, 0.6),
@@ -685,7 +684,7 @@ def test_contour_callback():
         s2 = ds.slice(0, 0.2)
         p.annotate_contour(
             ("gas", "temperature"),
-            ncont=10,
+            levels=10,
             factor=8,
             take_log=False,
             clim=(0.4, 0.6),
@@ -701,7 +700,7 @@ def test_contour_callback():
         slc = SlicePlot(ds, "theta", ("gas", "plasma_beta"))
         slc.annotate_contour(
             ("gas", "plasma_beta"),
-            ncont=2,
+            levels=2,
             factor=7,
             take_log=False,
             clim=(1.0e-1, 1.0e1),
@@ -720,7 +719,7 @@ def test_contour_callback():
         )
         p = SlicePlot(ds, "r", ("gas", "density"))
         kwargs = dict(
-            ncont=10,
+            levels=10,
             factor=8,
             take_log=False,
             clim=(0.4, 0.6),
@@ -828,13 +827,13 @@ def test_mesh_lines_callback():
         ds = fake_hexahedral_ds()
         for field in ds.field_list:
             sl = SlicePlot(ds, 1, field)
-            sl.annotate_mesh_lines(plot_args={"color": "black"})
+            sl.annotate_mesh_lines(color="black")
             assert_fname(sl.save(prefix)[0])
 
         ds = fake_tetrahedral_ds()
         for field in ds.field_list:
             sl = SlicePlot(ds, 1, field)
-            sl.annotate_mesh_lines(plot_args={"color": "black"})
+            sl.annotate_mesh_lines(color="black")
             assert_fname(sl.save(prefix)[0])
         check_axis_manipulation(sl, prefix)  # only test the final field
 
@@ -889,10 +888,8 @@ def test_streamline_callback():
                 ("gas", "velocity_y"),
                 field_color=("stream", "magvel"),
                 display_threshold=0.5,
-                plot_args={
-                    "cmap": ytcfg.get("yt", "default_colormap"),
-                    "arrowstyle": "->",
-                },
+                cmap="viridis",
+                arrowstyle="->",
             )
             assert_fname(p.save(prefix)[0])
 
