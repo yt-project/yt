@@ -20,7 +20,7 @@ from yt.geometry.geometry_handler import is_curvilinear
 from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
 from yt.units import dimensions
 from yt.units.yt_array import YTArray, YTQuantity, uhstack  # type: ignore
-from yt.utilities.exceptions import YTDataTypeUnsupported
+from yt.utilities.exceptions import YTDataTypeUnsupported, YTUnsupportedPlotCallback
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
 from yt.utilities.lib.line_integral_convolution import line_integral_convolution_2d
 from yt.utilities.lib.mesh_triangulation import triangulate_indices
@@ -65,6 +65,7 @@ class PlotCallback(ABC):
     # will *not* check whether or not the coord_system is in axis or figure,
     # and will only look at the geometries.
     _supported_geometries: Optional[Tuple[str, ...]] = None
+    _incompatible_plot_types: Tuple[str, ...] = tuple()
 
     def __init_subclass__(cls, *args, **kwargs):
         if inspect.isabstract(cls):
@@ -78,22 +79,27 @@ class PlotCallback(ABC):
             # allow docstring definition at the class level instead of __init__
             cls.__init__.__doc__ = cls.__doc__
 
-        method_name = "annotate_" + cls._type_name
-
-        supp = cls._supported_geometries
+        supported_geometries = cls._supported_geometries
+        incompatible_plot_types = cls._incompatible_plot_types
+        type_name = cls._type_name
 
         def closure(self, *args, **kwargs):
-            nonlocal supp
+            nonlocal supported_geometries
+            nonlocal incompatible_plot_types
+            nonlocal type_name
+
             geom = self.ds.geometry
             if not (
-                supp is None
-                or geom in supp
+                supported_geometries is None
+                or geom in supported_geometries
                 or (
                     kwargs.get("coord_system") in ("axis", "figure")
-                    and "force" not in supp
+                    and "force" not in supported_geometries
                 )
             ):
-                raise YTDataTypeUnsupported(geom, supp)
+                raise YTDataTypeUnsupported(geom, supported_geometries)
+            if self._plot_type in incompatible_plot_types:
+                raise YTUnsupportedPlotCallback(type_name, self._plot_type)
             self._callbacks.append(cls(*args, **kwargs))
 
         update_wrapper(
@@ -102,6 +108,7 @@ class PlotCallback(ABC):
             assigned=("__annotations__", "__doc__"),
         )
 
+        method_name = "annotate_" + type_name
         closure.__name__ = method_name
         setattr(PWViewerMPL, method_name, closure)
 
@@ -400,6 +407,7 @@ class VelocityCallback(PlotCallback):
 
     _type_name = "velocity"
     _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
+    _incompatible_plot_types = ("OffAxisProjection", "Particle")
 
     def __init__(
         self,
@@ -504,6 +512,7 @@ class MagFieldCallback(PlotCallback):
 
     _type_name = "magnetic_field"
     _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
+    _incompatible_plot_types = ("OffAxisProjection", "Particle")
 
     def __init__(
         self,
@@ -581,6 +590,8 @@ class MagFieldCallback(PlotCallback):
 
 
 class BaseQuiverCallback(PlotCallback, ABC):
+    _incompatible_plot_types = ("OffAxisProjection", "Particle")
+
     def __init__(
         self,
         field_x,
@@ -788,6 +799,7 @@ class ContourCallback(PlotCallback):
 
     _type_name = "contour"
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
+    _incompatible_plot_types = ("Particle",)
 
     def __init__(
         self,
@@ -953,6 +965,7 @@ class GridBoundaryCallback(PlotCallback):
 
     _type_name = "grids"
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
+    _incompatible_plot_types = ("OffAxisSlice", "OffAxisProjection", "Particle")
 
     def __init__(
         self,
@@ -1127,6 +1140,7 @@ class StreamlineCallback(PlotCallback):
 
     _type_name = "streamlines"
     _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
+    _incompatible_plot_types = ("OffAxisProjection", "Particle")
 
     def __init__(
         self,
@@ -1452,6 +1466,7 @@ class ClumpContourCallback(PlotCallback):
 
     _type_name = "clumps"
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
+    _incompatible_plot_types = ("OffAxisSlice", "OffAxisProjection", "Particle")
 
     def __init__(self, clumps, *, plot_args=None, **kwargs):
         self.clumps = clumps
@@ -2344,6 +2359,7 @@ class ParticleCallback(PlotCallback):
     region = None
     _descriptor = None
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
+    _incompatible_plot_types = ("OffAxisSlice", "OffAxisProjection")
 
     def __init__(
         self,
@@ -2526,6 +2542,7 @@ class MeshLinesCallback(PlotCallback):
 
     _type_name = "mesh_lines"
     _supported_geometries = ("cartesian", "spectral_cube")
+    _incompatible_plot_types = ("OffAxisSlice", "OffAxisProjection")
 
     def __init__(self, *, plot_args=None, **kwargs):
         if plot_args is not None:
@@ -3333,6 +3350,7 @@ class LineIntegralConvolutionCallback(PlotCallback):
 
     _type_name = "line_integral_convolution"
     _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
+    _incompatible_plot_types = ("LineIntegralConvolutionCallback",)
 
     def __init__(
         self,
