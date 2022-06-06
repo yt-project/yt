@@ -69,10 +69,9 @@ class DerivedField:
        arguments (field, data)
     units : str
        A plain text string encoding the unit, or a query to a unit system of
-       a dataset. Powers must be in python syntax (** instead of ^). If set
-       to "auto" the units will be inferred from the units of the return
-       value of the field function, and the dimensions keyword must also be
-       set (see below).
+       a dataset. Powers must be in Python syntax (** instead of ^). If set
+       to 'auto' or None (default), units will be inferred from the return value
+       of the field function.
     take_log : bool
        Describes whether the field should be logged
     validators : list
@@ -94,8 +93,7 @@ class DerivedField:
        fields or that get aliased to themselves, we can specify a different
        desired output unit than the unit found on disk.
     dimensions : str or object from yt.units.dimensions
-       The dimensions of the field, only needed if units="auto" and only used
-       for error checking.
+       The dimensions of the field, only used for error checking with units='auto'.
     nodal_flag : array-like with three components
        This describes how the field is centered within a cell. If nodal_flag
        is [0, 0, 0], then the field is cell-centered. If any of the components
@@ -162,18 +160,10 @@ class DerivedField:
 
         # handle units
         self.units: Optional[Union[str, bytes, Unit]]
-        if units is None:
-            self.units = ""
+        if units in (None, "auto"):
+            self.units = None
         elif isinstance(units, str):
-            if units.lower() == "auto":
-                if dimensions is None:
-                    raise RuntimeError(
-                        "To set units='auto', please specify the dimensions "
-                        "of the field with dimensions=<dimensions of field>!"
-                    )
-                self.units = None
-            else:
-                self.units = units
+            self.units = units
         elif isinstance(units, Unit):
             self.units = str(units)
         elif isinstance(units, bytes):
@@ -332,8 +322,7 @@ class DerivedField:
 
     @property
     def alias_field(self):
-        func_name = self._function.__name__
-        if func_name == "_TranslationFunc":
+        if getattr(self._function, "__name__", None) == "_TranslationFunc":
             return True
         return False
 
@@ -344,10 +333,9 @@ class DerivedField:
         return None
 
     def __repr__(self):
-        func_name = self._function.__name__
-        if self._function == NullFunc:
+        if self._function is NullFunc:
             s = "On-Disk Field "
-        elif func_name == "_TranslationFunc":
+        elif getattr(self._function, "__name__", None) == "_TranslationFunc":
             s = f'Alias Field for "{self.alias_name}" '
         else:
             s = "Derived Field "
