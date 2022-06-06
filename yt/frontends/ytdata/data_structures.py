@@ -576,9 +576,6 @@ class YTNonspatialGrid(AMRGridPatch):
         self.LeftEdge = self.index.ds.domain_left_edge
         self.RightEdge = self.index.ds.domain_right_edge
 
-    def __repr__(self):
-        return "YTNonspatialGrid"
-
     def __getitem__(self, key):
         tr = super(AMRGridPatch, self).__getitem__(key)
         try:

@@ -160,9 +160,6 @@ class AthenaPPGrid(AMRGridPatch):
             self.dds[2] = 1.0
         self.field_data["dx"], self.field_data["dy"], self.field_data["dz"] = self.dds
 
-    def __repr__(self):
-        return "AthenaPPGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
-
 
 class AthenaPPHierarchy(GridIndex):
 

@@ -52,9 +52,6 @@ class FITSGrid(AMRGridPatch):
         self.Children = []
         self.Level = 0
 
-    def __repr__(self):
-        return "FITSGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
-
 
 class FITSHierarchy(GridIndex):
 
