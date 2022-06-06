@@ -803,19 +803,19 @@ class ContourCallback(PlotCallback):
 
     def __init__(
         self,
-        field,
+        field: Union[Tuple[str, str], str],
         levels: int = 5,
         *,
         factor: Union[Tuple[int, int], int] = 4,
         clim: Optional[Tuple[float, float]] = None,
-        label=False,
-        take_log=None,
-        data_source=None,
-        plot_args=None,
-        label_args=None,
-        text_args=None,
+        label: bool = False,
+        take_log: Optional[bool] = None,
+        data_source: YTDataContainer = None,
+        plot_args: Optional[Dict[str, Any]] = None,
+        label_args: Optional[Dict[str, Any]] = None,
+        text_args: Optional[Dict[str, Any]] = None,
         ncont: Optional[int] = None,  # deprecated
-    ):
+    ) -> None:
         def_plot_args = {"colors": "k", "linestyles": "solid"}
         def_text_args = {"colors": "w"}
         if ncont is not None:
