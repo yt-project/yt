@@ -395,7 +395,11 @@ class FieldInfoContainer(dict):
 
         sampling_type = self._sanitize_sampling_type(sampling_type)
 
-        if obj_length(name) == 2 and all(isinstance(e, str) for e in name):
+        if (
+            not isinstance(name, str)
+            and obj_length(name) == 2
+            and all(isinstance(e, str) for e in name)
+        ):
             self[name] = DerivedField(
                 name, sampling_type, function, alias=alias, **kwargs
             )
