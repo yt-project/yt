@@ -354,6 +354,7 @@ class EnzoEDataset(Dataset):
         if os.path.exists(lcfn):
             with open(lcfn) as lf:
                 self.parameters = libconf.load(lf)
+
             cosmo = nested_dict_get(self.parameters, ("Physics", "cosmology"))
             if cosmo is not None:
                 self.cosmological_simulation = 1

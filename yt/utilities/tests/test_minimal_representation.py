@@ -34,7 +34,7 @@ def test_store():
     assert_equal(proj2[field], proj2_c[field])
 
     def fail_for_different_method():
-        proj2_c = ds.proj(field, "z", data_source=sp, method="mip")
+        proj2_c = ds.proj(field, "z", data_source=sp, method="max")
         assert_equal(proj2[field], proj2_c[field])
 
     # A note here: a unyt.exceptions.UnitOperationError is raised

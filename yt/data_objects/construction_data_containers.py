@@ -185,14 +185,24 @@ class YTProj(YTSelectionContainer2D):
                 removal="4.2",
             )
             method = style
+        if method == "mip":
+            issue_deprecation_warning(
+                "The 'mip' method value is a deprecated alias for 'max'. "
+                "Please use max directly.",
+                since="4.1",
+                stacklevel=4,
+            )
+            method = "max"
         if method == "sum":
             self.method = "integrate"
             self._sum_only = True
         else:
             self.method = method
             self._sum_only = False
-        if self.method == "mip":
+        if self.method in ["max", "mip"]:
             self.func = np.max
+        elif self.method == "min":
+            self.func = np.min
         elif self.method == "integrate":
             self.func = np.sum  # for the future
         else:
@@ -254,9 +264,12 @@ class YTProj(YTSelectionContainer2D):
         projected_units = self.comm.mpi_bcast(self._projected_units)
         self._projected_units = projected_units
         # Note that this will briefly double RAM usage
-        if self.method == "mip":
+        if self.method in ["max", "mip"]:
             merge_style = -1
             op = "max"
+        elif self.method == "min":
+            merge_style = -2
+            op = "min"
         elif self.method == "integrate":
             merge_style = 1
             op = "sum"
@@ -348,7 +361,7 @@ class YTProj(YTSelectionContainer2D):
                 # for future field accesses.
                 finfo.units = str(chunk[field].units)
             field_unit = Unit(finfo.output_units, registry=self.ds.unit_registry)
-            if self.method == "mip" or self._sum_only:
+            if self.method in ("min", "max") or self._sum_only:
                 path_length_unit = Unit(registry=self.ds.unit_registry)
             else:
                 ax_name = self.ds.coordinates.axis_name[self.axis]
@@ -447,7 +460,9 @@ class YTQuadTreeProj(YTProj):
     method : string, optional
         The method of projection to be performed.
         "integrate" : integration along the axis
-        "mip" : maximum intensity projection
+        "mip" : maximum intensity projection (deprecated)
+        "max" : maximum intensity projection
+        "min" : minimum intensity projection
         "sum" : same as "integrate", except that we don't multiply by the path length
         WARNING: The "sum" option should only be used for uniform resolution grid
         datasets, as other datasets may result in unphysical images.
@@ -557,7 +572,7 @@ class YTQuadTreeProj(YTProj):
             chunk.ires.size,
             get_memory_usage() / 1024.0,
         )
-        if self.method == "mip" or self._sum_only:
+        if self.method in ("min", "max") or self._sum_only:
             dl = self.ds.quan(1.0, "")
         else:
             ax_name = self.ds.coordinates.axis_name[self.axis]
