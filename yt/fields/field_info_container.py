@@ -489,19 +489,11 @@ class FieldInfoContainer(dict):
         if units is None:
             # We default to CGS here, but in principle, this can be pluggable
             # as well.
-
-            # self[original_name].units may be set to `None` at this point
-            # to signal that units should be autoset later
-            oru = self[original_name].units
-            if oru is None:
-                units = None
+            u = Unit(self[original_name].units, registry=self.ds.unit_registry)
+            if u.dimensions is not dimensionless:
+                units = str(self.ds.unit_system[u.dimensions])
             else:
-                u = Unit(oru, registry=self.ds.unit_registry)
-                if u.dimensions is not dimensionless:
-                    units = str(self.ds.unit_system[u.dimensions])
-                else:
-                    units = oru
-
+                units = self[original_name].units
         self.field_aliases[alias_name] = original_name
         function = TranslationFunc(original_name)
         if deprecate is not None:
