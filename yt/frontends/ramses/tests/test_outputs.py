@@ -590,7 +590,6 @@ def test_ghost_zones():
             fname,
             gen_dummy(ngz),
             sampling_type="cell",
-            units="",
             validators=[yt.ValidateSpatial(ghost_zones=ngz)],
         )
         fields.append(fname)

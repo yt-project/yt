@@ -15,7 +15,7 @@ from yt.data_objects.field_data import YTFieldData
 from yt.fields.field_exceptions import NeedsGridType
 from yt.funcs import fix_axis, is_sequence, iter_fields, validate_width_tuple
 from yt.geometry.selection_routines import compose_selector
-from yt.units import YTArray
+from yt.units import YTArray, dimensions as ytdims
 from yt.utilities.exceptions import (
     GenerationInProgress,
     YTBooleanObjectError,
@@ -242,27 +242,22 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
                         # field accesses
                         units = getattr(fd, "units", "")
                         if units == "":
-                            sunits = ""
-                            dimensions = 1
+                            dimensions = ytdims.dimensionless
                         else:
-                            sunits = str(
+                            dimensions = units.dimensions
+                            units = str(
                                 units.get_base_equivalent(self.ds.unit_system.name)
                             )
-                            dimensions = units.dimensions
-
-                        if fi.dimensions is None:
-                            mylog.warning(
-                                "Field %s was added without specifying units or dimensions, "
-                                "auto setting units to %s",
-                                fi.name,
-                                sunits,
-                            )
-                        elif fi.dimensions != dimensions:
+                        if fi.dimensions != dimensions:
                             raise YTDimensionalityError(fi.dimensions, dimensions)
-                        fi.units = sunits
-                        fi.dimensions = dimensions
+                        fi.units = units
                         self.field_data[field] = self.ds.arr(fd, units)
-
+                        mylog.warning(
+                            "Field %s was added without specifying units, "
+                            "assuming units are %s",
+                            fi.name,
+                            units,
+                        )
                     try:
                         fd.convert_to_units(fi.units)
                     except AttributeError:
@@ -271,7 +266,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
                         # supposed to be unitless
                         fd = self.ds.arr(fd, "")
                         if fi.units != "":
-                            raise YTFieldUnitError(fi, fd.units) from None
+                            raise YTFieldUnitError(fi, fd.units)
                     except UnitConversionError as e:
                         raise YTFieldUnitError(fi, fd.units) from e
                     except UnitParseError as e:

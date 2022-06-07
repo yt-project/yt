@@ -1,6 +1,4 @@
-import inspect
 from collections import defaultdict
-from collections.abc import Callable
 from numbers import Number as numeric_type
 from typing import Optional, Tuple
 
@@ -375,30 +373,6 @@ class FieldInfoContainer(dict):
 
             return create_function
 
-        if not isinstance(function, Callable):
-            # this is compatible with lambdas and functools.partial objects
-            raise TypeError(
-                f"Expected a callable object, got {function} with type {type(function)}"
-            )
-
-        # lookup parameters that do not have default values
-        fparams = inspect.signature(function).parameters
-        nodefaults = tuple(p.name for p in fparams.values() if p.default is p.empty)
-        if nodefaults != ("field", "data"):
-            raise TypeError(
-                f"Received field function {function} with invalid signature. "
-                f"Expected exactly 2 positional parameters ('field', 'data'), got {nodefaults!r}"
-            )
-        if any(
-            fparams[name].kind == fparams[name].KEYWORD_ONLY
-            for name in ("field", "data")
-        ):
-            raise TypeError(
-                f"Received field function {function} with invalid signature. "
-                "Parameters 'field' and 'data' must accept positional values "
-                "(they cannot be keyword-only)"
-            )
-
         if isinstance(name, tuple):
             self[name] = DerivedField(name, sampling_type, function, **kwargs)
             return
@@ -460,9 +434,9 @@ class FieldInfoContainer(dict):
 
     def alias(
         self,
-        alias_name: Tuple[str, str],
-        original_name: Tuple[str, str],
-        units: Optional[str] = None,
+        alias_name,
+        original_name,
+        units=None,
         deprecate: Optional[Tuple[str, str]] = None,
     ):
         """
@@ -470,15 +444,15 @@ class FieldInfoContainer(dict):
 
         Parameters
         ----------
-        alias_name : Tuple[str, str]
+        alias_name : Tuple[str]
             The new field name.
-        original_name : Tuple[str, str]
+        original_name : Tuple[str]
             The field to be aliased.
         units : str
            A plain text string encoding the unit.  Powers must be in
            python syntax (** instead of ^). If set to "auto" the units
            will be inferred from the return value of the field function.
-        deprecate : Tuple[str, str], optional
+        deprecate : Tuple[str], optional
             If this is set, then the tuple contains two string version
             numbers: the first marking the version when the field was
             deprecated, and the second marking when the field will be
@@ -489,19 +463,11 @@ class FieldInfoContainer(dict):
         if units is None:
             # We default to CGS here, but in principle, this can be pluggable
             # as well.
-
-            # self[original_name].units may be set to `None` at this point
-            # to signal that units should be autoset later
-            oru = self[original_name].units
-            if oru is None:
-                units = None
+            u = Unit(self[original_name].units, registry=self.ds.unit_registry)
+            if u.dimensions is not dimensionless:
+                units = str(self.ds.unit_system[u.dimensions])
             else:
-                u = Unit(oru, registry=self.ds.unit_registry)
-                if u.dimensions is not dimensionless:
-                    units = str(self.ds.unit_system[u.dimensions])
-                else:
-                    units = oru
-
+                units = self[original_name].units
         self.field_aliases[alias_name] = original_name
         function = TranslationFunc(original_name)
         if deprecate is not None:
