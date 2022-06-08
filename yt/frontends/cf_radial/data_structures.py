@@ -4,7 +4,7 @@ CF Radial data structures
 
 
 """
-
+import contextlib
 import os
 import weakref
 from typing import Optional, Tuple
@@ -52,11 +52,12 @@ class CFRadialHierarchy(GridIndex):
         # records the units for each field.
         self.field_list = []
         units = {}
-        for key in self.ds._handle.variables.keys():
-            if all(x in self.ds._handle[key].dims for x in ["time", "z", "y", "x"]):
-                fld = ("cf_radial", key)
-                self.field_list.append(fld)
-                units[fld] = self.ds._handle[key].units
+        with self.ds._handle() as xr_ds_handle:
+            for key in xr_ds_handle.variables.keys():
+                if all(x in xr_ds_handle[key].dims for x in ["time", "z", "y", "x"]):
+                    fld = ("cf_radial", key)
+                    self.field_list.append(fld)
+                    units[fld] = xr_ds_handle[key].units
 
         self.ds.field_units.update(units)
 
@@ -123,68 +124,83 @@ class CFRadialDataset(Dataset):
         units_override
         """
         self.fluid_types += ("cf_radial",)
-        self._handle = xr.open_dataset(filename)
 
-        if "x" not in self._handle.coords:
-            if storage_filename is None:
-                f_base, f_ext = os.path.splitext(filename)
-                storage_filename = f_base + "_yt_grid" + f_ext
+        with self._handle(filename=filename) as xr_ds_handle:
+            if "x" not in xr_ds_handle.coords:
+                if storage_filename is None:
+                    f_base, f_ext = os.path.splitext(filename)
+                    storage_filename = f_base + "_yt_grid" + f_ext
 
-            regrid = True
-            if os.path.exists(storage_filename):
-                # pyart grid.write will error if the filename exists, so this logic
-                # forces some explicit behavior to minimize confusion and avoid
-                # overwriting or deleting without explicit user consent.
-                if storage_overwrite:
-                    os.remove(storage_filename)
-                elif any([grid_shape, grid_limit_x, grid_limit_y, grid_limit_z]):
-                    mylog.warning(
-                        "Ignoring provided grid parameters because %s exists.",
+                regrid = True
+                if os.path.exists(storage_filename):
+                    # pyart grid.write will error if the filename exists, so this logic
+                    # forces some explicit behavior to minimize confusion and avoid
+                    # overwriting or deleting without explicit user consent.
+                    if storage_overwrite:
+                        os.remove(storage_filename)
+                    elif any([grid_shape, grid_limit_x, grid_limit_y, grid_limit_z]):
+                        mylog.warning(
+                            "Ignoring provided grid parameters because %s exists.",
+                            storage_filename,
+                        )
+                        mylog.warning(
+                            "To re-grid, either provide a unique storage_filename or set "
+                            "storage_overwrite to True to overwrite %s.",
+                            storage_filename,
+                        )
+                        regrid = False
+                    else:
+                        mylog.info(
+                            "loading existing re-gridded file: %s", storage_filename
+                        )
+                        regrid = False
+
+                if regrid:
+                    mylog.info("Building cfradial grid")
+                    from yt.utilities.on_demand_imports import _pyart as pyart
+
+                    radar = pyart.io.read_cfradial(filename)
+
+                    grid_shape, grid_limits = self._validate_grid(
+                        radar, grid_shape, grid_limit_x, grid_limit_y, grid_limit_z
+                    )
+
+                    # grid_shape and grid_limits are in (z, y, x) order.
+                    self.grid_shape = grid_shape
+                    self.grid_limits = grid_limits
+                    mylog.info("Calling pyart.map.grid_from_radars ... ")
+                    # this is fairly slow
+                    grid = pyart.map.grid_from_radars(
+                        (radar,),
+                        grid_shape=self.grid_shape,
+                        grid_limits=self.grid_limits,
+                    )
+                    mylog.info(
+                        "Successfully built cfradial grid, writing to %s",
                         storage_filename,
                     )
-                    mylog.warning(
-                        "To re-grid, either provide a unique storage_filename or set "
-                        "storage_overwrite to True to overwrite %s.",
-                        storage_filename,
+                    mylog.info(
+                        "Subsequent loads of %s will load the gridded file by default",
+                        filename,
                     )
-                    regrid = False
-                else:
-                    mylog.info("loading existing re-gridded file: %s", storage_filename)
-                    regrid = False
+                    grid.write(storage_filename)
 
-            if regrid:
-                mylog.info("Building cfradial grid")
-                from yt.utilities.on_demand_imports import _pyart as pyart
-
-                radar = pyart.io.read_cfradial(filename)
-
-                grid_shape, grid_limits = self._validate_grid(
-                    radar, grid_shape, grid_limit_x, grid_limit_y, grid_limit_z
-                )
-
-                # grid_shape and grid_limits are in (z, y, x) order.
-                self.grid_shape = grid_shape
-                self.grid_limits = grid_limits
-                mylog.info("Calling pyart.map.grid_from_radars ... ")
-                # this is fairly slow
-                grid = pyart.map.grid_from_radars(
-                    (radar,), grid_shape=self.grid_shape, grid_limits=self.grid_limits
-                )
-                mylog.info(
-                    "Successfully built cfradial grid, writing to %s", storage_filename
-                )
-                mylog.info(
-                    "Subsequent loads of %s will load the gridded file by default",
-                    filename,
-                )
-                grid.write(storage_filename)
-
-            self._handle = xr.open_dataset(storage_filename)
-            filename = storage_filename
+                filename = storage_filename
 
         super().__init__(filename, dataset_type, units_override=units_override)
         self.storage_filename = storage_filename
         self.refine_by = 2  # refinement factor between a grid and its subgrid
+
+    @contextlib.contextmanager
+    def _handle(self, filename: Optional[str] = None):
+        if filename is None:
+            if hasattr(self, "filename"):
+                filename = self.filename
+            else:
+                raise RuntimeError("Dataset has no filename yet.")
+
+        with xr.open_dataset(filename) as xrds:
+            yield xrds
 
     def _validate_grid(
         self,
@@ -251,7 +267,8 @@ class CFRadialDataset(Dataset):
         return grid_shape, grid_limits
 
     def _set_code_unit_attributes(self):
-        length_unit = self._handle.variables["x"].attrs["units"]
+        with self._handle() as xr_ds_handle:
+            length_unit = xr_ds_handle.variables["x"].attrs["units"]
         self.length_unit = self.quan(1.0, length_unit)
         self.mass_unit = self.quan(1.0, "kg")
         self.time_unit = self.quan(1.0, "s")
@@ -259,18 +276,19 @@ class CFRadialDataset(Dataset):
     def _parse_parameter_file(self):
         self.parameters = {}
 
-        x, y, z = (self._handle.coords[d] for d in "xyz")
+        with self._handle() as xr_ds_handle:
+            x, y, z = (xr_ds_handle.coords[d] for d in "xyz")
 
-        self.origin_latitude = self._handle.origin_latitude[0]
-        self.origin_longitude = self._handle.origin_longitude[0]
+            self.origin_latitude = xr_ds_handle.origin_latitude[0]
+            self.origin_longitude = xr_ds_handle.origin_longitude[0]
 
-        self.domain_left_edge = np.array([x.min(), y.min(), z.min()])
-        self.domain_right_edge = np.array([x.max(), y.max(), z.max()])
-        self.dimensionality = 3
-        dims = [self._handle.dims[d] for d in "xyz"]
-        self.domain_dimensions = np.array(dims, dtype="int64")
-        self._periodicity = (False, False, False)
-        self.current_time = float(self._handle.time.values)
+            self.domain_left_edge = np.array([x.min(), y.min(), z.min()])
+            self.domain_right_edge = np.array([x.max(), y.max(), z.max()])
+            self.dimensionality = 3
+            dims = [xr_ds_handle.dims[d] for d in "xyz"]
+            self.domain_dimensions = np.array(dims, dtype="int64")
+            self._periodicity = (False, False, False)
+            self.current_time = float(xr_ds_handle.time.values)
 
         # Cosmological information set to zero (not in space).
         self.cosmological_simulation = 0

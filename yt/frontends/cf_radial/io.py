@@ -25,10 +25,11 @@ class CFRadialIOHandler(BaseIOHandler):
 
         offset = 0
 
-        for field in fields:
-            for chunk in chunks:
-                for grid in chunk.objs:
-                    variable = self.ds._handle.variables[field[1]]
-                    data = variable.values[0, ...].T
-                    offset += grid.select(selector, data, rv[field], offset)
+        with self.ds._handle() as xr_ds_handle:
+            for field in fields:
+                for chunk in chunks:
+                    for grid in chunk.objs:
+                        variable = xr_ds_handle.variables[field[1]]
+                        data = variable.values[0, ...].T
+                        offset += grid.select(selector, data, rv[field], offset)
         return rv

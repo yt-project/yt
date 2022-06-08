@@ -58,7 +58,8 @@ def test_cf_radial_gridded():
 
 def check_fields(ds, field):
     assert ("cf_radial", field) in ds.field_list
-    assert field in ds._handle.variables.keys()
+    with ds._handle() as xr_ds_handle:
+        assert field in xr_ds_handle.variables.keys()
 
 
 def check_field_units(ad, field, value):
@@ -103,8 +104,10 @@ def test_auto_gridding():
     assert os.path.exists(grid_file)
 
     # check that the cartesian fields exist now
-    for field in ["x", "y", "z"]:
-        assert field in ds._handle.variables.keys()
+    with ds._handle() as xr_ds_handle:
+        on_disk_fields = xr_ds_handle.variables.keys()
+        for field in ["x", "y", "z"]:
+            assert field in on_disk_fields
 
     assert all(ds.domain_dimensions == grid_shape)
 
@@ -121,7 +124,7 @@ def test_grid_parameters():
     tempdir = tempfile.mkdtemp()
     grid_file = os.path.join(tempdir, "temp_grid_params.nc")
 
-    # check that the other grid parameters work
+    # check that the grid parameters work
     cfkwargs = {
         "storage_filename": grid_file,
         "grid_shape": (10, 10, 10),
@@ -141,43 +144,22 @@ def test_grid_parameters():
     assert all(expected_width == actual_width)
     assert all(ds.domain_dimensions == cfkwargs["grid_shape"])
 
-    shutil.rmtree(tempdir)
-
-
-@requires_file(cf_nongridded)
-def test_grid_param_conflicts():
-
-    # create temporary directory and grid file
-    tempdir = tempfile.mkdtemp()
-    grid_file = os.path.join(tempdir, "temp_grid_conflicts.nc")
-    grid_shape = (10, 10, 10)
-    ds = data_dir_load(
-        cf_nongridded, kwargs={"storage_filename": grid_file, "grid_shape": grid_shape}
-    )
-    assert os.path.exists(grid_file)
+    # check the grid parameter conflicts
 
     # on re-load with default grid params it will reload storage_filename if
-    # it exists.
+    # it exists. Just checking that this runs...
     _ = data_dir_load(cf_nongridded, kwargs={"storage_filename": grid_file})
 
     # if storage_filename exists, grid parameters are ignored (with a warning)
     # and the domain_dimensions will match the original
-    bad_kwargs = {"storage_filename": grid_file, "grid_shape": (15, 15, 15)}
-    ds = data_dir_load(cf_nongridded, kwargs=bad_kwargs)
-    assert all(ds.domain_dimensions == grid_shape)
-    ds._handle.close()  # TODO: handle is staying open. need to fix that.
+    new_kwargs = {"storage_filename": grid_file, "grid_shape": (15, 15, 15)}
+    ds = data_dir_load(cf_nongridded, kwargs=new_kwargs)
+    assert all(ds.domain_dimensions == cfkwargs["grid_shape"])
 
     # if we overwrite, the regridding should run and the dimensions should match
     # the desired dimensions
-
-    cfkwargs = {
-        "storage_filename": grid_file,
-        "grid_shape": (15, 15, 15),
-        "storage_overwrite": True,
-    }
-    ds = data_dir_load(cf_nongridded, kwargs=cfkwargs)
-    print(ds.domain_dimensions)
-    print(cfkwargs["grid_shape"])
-    assert all(ds.domain_dimensions == cfkwargs["grid_shape"])
+    new_kwargs["storage_overwrite"] = True
+    ds = data_dir_load(cf_nongridded, kwargs=new_kwargs)
+    assert all(ds.domain_dimensions == new_kwargs["grid_shape"])
 
     shutil.rmtree(tempdir)
