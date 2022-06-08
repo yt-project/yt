@@ -164,13 +164,8 @@ class CFRadialDataset(Dataset):
                     grid_limit_y = self._validate_grid_dim(radar, "y", grid_limit_y)
                     grid_limits = (grid_limit_z, grid_limit_y, grid_limit_x)
                     grid_shape = self._validate_grid_shape(grid_shape)
+                    # note: grid_shape must be in (z, y, x) order.
 
-                    #
-                    # grid_shape, grid_limits = self._validate_grid(
-                    #     radar, grid_shape, grid_limit_x, grid_limit_y, grid_limit_z
-                    # )
-
-                    # grid_shape and grid_limits are in (z, y, x) order.
                     self.grid_shape = grid_shape
                     self.grid_limits = grid_limits
                     mylog.info("Calling pyart.map.grid_from_radars ... ")
