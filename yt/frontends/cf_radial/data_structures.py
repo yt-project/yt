@@ -10,6 +10,7 @@ import weakref
 from typing import Optional, Tuple
 
 import numpy as np
+from unyt import unyt_array
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
@@ -208,26 +209,28 @@ class CFRadialDataset(Dataset):
         grid_limit_z: Optional[Tuple[float, float]] = None,
     ) -> Tuple[Tuple, Tuple]:
         # this function sets all the re-gridding parameters if they are not set
-
         # radar is a pyart radar handle, from pyart.io.read_cfradial()
-        max_range_meters = radar.range["data"].max()  # along-ray distance
-        elevation = radar.elevation["data"]  # angle above horizontal
-        if radar.elevation["units"] == "degrees":
-            elevation = elevation * np.pi / 180.0
-        max_height = max_range_meters * np.sin(elevation.max())
-        max_distance = max_range_meters * np.cos(elevation.max())
 
         show_help = False
         if grid_limit_z is None:
-            grid_limit_z = (0.0, max_height)
+            gate_alt = radar.gate_altitude["data"]
+            gate_alt_units = radar.gate_altitude["units"]
+            grid_limit_z = (gate_alt.min(), gate_alt.max())
+            grid_limit_z = self._round_grid_guess(grid_limit_z, gate_alt_units)
             mylog.info(
                 "grid_limit_z not provided, using max height range in data: (%f, %f)",
                 *grid_limit_z,
             )
             show_help = True
 
+        if grid_limit_x is None or grid_limit_y is None:
+            max_range = radar.range["data"].max()
+            range_bounds = self._round_grid_guess(
+                (-max_range, max_range), radar.range["units"]
+            )
+
         if grid_limit_x is None:
-            grid_limit_x = (-max_distance, max_distance)
+            grid_limit_x = range_bounds
             mylog.info(
                 "grid_limit_x not provided, using max horizontal range in data: (%f, %f)",
                 *grid_limit_x,
@@ -235,7 +238,7 @@ class CFRadialDataset(Dataset):
             show_help = True
 
         if grid_limit_y is None:
-            grid_limit_y = (-max_distance, max_distance)
+            grid_limit_y = range_bounds
             mylog.info(
                 "grid_limit_y not provided, using max horizontal range in data: (%f, %f)",
                 *grid_limit_y,
@@ -260,6 +263,16 @@ class CFRadialDataset(Dataset):
             )
 
         return grid_shape, grid_limits
+
+    def _round_grid_guess(self, bounds: Tuple[float, float], unit_str: str):
+        # rounds the bounds to the closest 10 km increment that still contains
+        # the grid_limit
+        for findstr, repstr in self._field_info_class.unit_subs:
+            unit_str = unit_str.replace(findstr, repstr)
+        limits = unyt_array(bounds, unit_str).to("km")
+        limits[0] = np.floor(limits[0] / 10) * 10
+        limits[1] = np.ceil(limits[1] / 10) * 10
+        return tuple(limits.to(unit_str).tolist())
 
     def _set_code_unit_attributes(self):
         with self._handle() as xr_ds_handle:
@@ -299,7 +312,14 @@ class CFRadialDataset(Dataset):
 
         try:
             ds = xr.open_dataset(filename)
-        except (ImportError, OSError, AttributeError, TypeError):
+        except (
+            ImportError,
+            OSError,
+            AttributeError,
+            TypeError,
+            ValueError,
+            RuntimeError,
+        ):
             # catch all these to avoid errors when xarray cant handle a file
             return False
 
