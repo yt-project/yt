@@ -86,6 +86,7 @@ def check_domain(ds):
 
 
 @requires_file(cf_nongridded)
+@requires_module("xarray")
 def test_auto_gridding():
     # loads up a radial dataset, which triggers the gridding.
 
@@ -119,8 +120,10 @@ def test_auto_gridding():
 
 
 @requires_file(cf_nongridded)
+@requires_module("xarray")
 def test_grid_parameters():
-    # check that the ds.domain matches what we give for grid limits
+    # checks that the gridding parameters are used and that conflicts in parameters
+    # are resolved as expected.
     tempdir = tempfile.mkdtemp()
     grid_file = os.path.join(tempdir, "temp_grid_params.nc")
 
