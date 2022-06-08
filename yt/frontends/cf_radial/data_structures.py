@@ -86,8 +86,8 @@ class CFRadialDataset(Dataset):
         self,
         filename,
         dataset_type="cf_radial",
-        storage_filename: Optional[str] = None,
-        storage_overwrite: Optional[bool] = False,
+        storage_filename=None,
+        storage_overwrite: bool = False,
         grid_shape: Optional[Tuple[int, int, int]] = None,
         grid_limit_x: Optional[Tuple[float, float]] = None,
         grid_limit_y: Optional[Tuple[float, float]] = None,
@@ -103,7 +103,7 @@ class CFRadialDataset(Dataset):
         storage_filename: Optional[str]
             the filename to store gridded file to if necessary. If not provided,
             the string "_yt_grid" will be appended to the dataset filename.
-        storage_overwrite: Optional[bool]
+        storage_overwrite: bool
             if True and if any gridding parameters are set, then the
             storage_filename will be over-written if it exists. Default is False.
         grid_shape : Optional[Tuple[int, int, int]]
@@ -159,9 +159,16 @@ class CFRadialDataset(Dataset):
 
                     radar = pyart.io.read_cfradial(filename)
 
-                    grid_shape, grid_limits = self._validate_grid(
-                        radar, grid_shape, grid_limit_x, grid_limit_y, grid_limit_z
-                    )
+                    grid_limit_z = self._validate_grid_dim(radar, "z", grid_limit_z)
+                    grid_limit_x = self._validate_grid_dim(radar, "x", grid_limit_x)
+                    grid_limit_y = self._validate_grid_dim(radar, "y", grid_limit_y)
+                    grid_limits = (grid_limit_z, grid_limit_y, grid_limit_x)
+                    grid_shape = self._validate_grid_shape(grid_shape)
+
+                    #
+                    # grid_shape, grid_limits = self._validate_grid(
+                    #     radar, grid_shape, grid_limit_x, grid_limit_y, grid_limit_z
+                    # )
 
                     # grid_shape and grid_limits are in (z, y, x) order.
                     self.grid_shape = grid_shape
@@ -184,9 +191,9 @@ class CFRadialDataset(Dataset):
                     grid.write(storage_filename)
 
                 filename = storage_filename
-                self.storage_filename = storage_filename
 
         super().__init__(filename, dataset_type, units_override=units_override)
+        self.storage_filename = storage_filename
         self.refine_by = 2  # refinement factor between a grid and its subgrid
 
     @contextlib.contextmanager
@@ -200,69 +207,46 @@ class CFRadialDataset(Dataset):
         with xr.open_dataset(filename) as xrds:
             yield xrds
 
-    def _validate_grid(
-        self,
-        radar,
-        grid_shape: Optional[Tuple[int, int, int]] = None,
-        grid_limit_x: Optional[Tuple[float, float]] = None,
-        grid_limit_y: Optional[Tuple[float, float]] = None,
-        grid_limit_z: Optional[Tuple[float, float]] = None,
-    ) -> Tuple[Tuple, Tuple]:
-        # this function sets all the re-gridding parameters if they are not set
-        # radar is a pyart radar handle, from pyart.io.read_cfradial()
+    def _validate_grid_dim(
+        self, radar, dim: str, grid_limit: Optional[Tuple[float, float]] = None
+    ) -> Tuple[float, float]:
+        if grid_limit is None:
+            if dim == "z":
+                gate_alt = radar.gate_altitude["data"]
+                gate_alt_units = radar.gate_altitude["units"]
+                grid_limit = (gate_alt.min(), gate_alt.max())
+                grid_limit = self._round_grid_guess(grid_limit, gate_alt_units)
+                mylog.info(
+                    "grid_limit_z not provided, using max height range in data: (%f, %f)",
+                    *grid_limit,
+                )
+            else:
+                max_range = radar.range["data"].max()
+                grid_limit = self._round_grid_guess(
+                    (-max_range, max_range), radar.range["units"]
+                )
+                mylog.info(
+                    "grid_limit_%s not provided, using max horizontal range in data: (%f, %f)",
+                    dim,
+                    *grid_limit,
+                )
 
-        show_help = False
-        if grid_limit_z is None:
-            gate_alt = radar.gate_altitude["data"]
-            gate_alt_units = radar.gate_altitude["units"]
-            grid_limit_z = (gate_alt.min(), gate_alt.max())
-            grid_limit_z = self._round_grid_guess(grid_limit_z, gate_alt_units)
-            mylog.info(
-                "grid_limit_z not provided, using max height range in data: (%f, %f)",
-                *grid_limit_z,
-            )
-            show_help = True
+        return grid_limit
 
-        if grid_limit_x is None or grid_limit_y is None:
-            max_range = radar.range["data"].max()
-            range_bounds = self._round_grid_guess(
-                (-max_range, max_range), radar.range["units"]
-            )
-
-        if grid_limit_x is None:
-            grid_limit_x = range_bounds
-            mylog.info(
-                "grid_limit_x not provided, using max horizontal range in data: (%f, %f)",
-                *grid_limit_x,
-            )
-            show_help = True
-
-        if grid_limit_y is None:
-            grid_limit_y = range_bounds
-            mylog.info(
-                "grid_limit_y not provided, using max horizontal range in data: (%f, %f)",
-                *grid_limit_y,
-            )
-            show_help = True
-
-        grid_limits = (grid_limit_z, grid_limit_y, grid_limit_x)
-
+    def _validate_grid_shape(
+        self, grid_shape: Optional[Tuple[int, int, int]] = None
+    ) -> Tuple[int, int, int]:
         if grid_shape is None:
             grid_shape = (100, 100, 100)
             mylog.info(
                 "grid_shape not provided, using (nz, ny, nx) = (%i, %i, %i)",
                 *grid_shape,
             )
-            show_help = True
-
-        if show_help:
-            mylog.info(
-                "to override default grid values, use any of the following "
-                "parameters: grid_limit_x, grid_limit_y, grid_limit_z, grid_shape"
-                " with yt.load(cf_radial_file, ...)"
+        if len(grid_shape) != 3:
+            raise ValueError(
+                f"grid_shape must have 3 dimensions, but it has {len(grid_shape)}"
             )
-
-        return grid_shape, grid_limits
+        return grid_shape
 
     def _round_grid_guess(self, bounds: Tuple[float, float], unit_str: str):
         # rounds the bounds to the closest 10 km increment that still contains
@@ -270,8 +254,8 @@ class CFRadialDataset(Dataset):
         for findstr, repstr in self._field_info_class.unit_subs:
             unit_str = unit_str.replace(findstr, repstr)
         limits = unyt_array(bounds, unit_str).to("km")
-        limits[0] = np.floor(limits[0] / 10) * 10
-        limits[1] = np.ceil(limits[1] / 10) * 10
+        limits[0] = np.floor(limits[0] / 10.0) * 10.0
+        limits[1] = np.ceil(limits[1] / 10.0) * 10.0
         return tuple(limits.to(unit_str).tolist())
 
     def _set_code_unit_attributes(self):
