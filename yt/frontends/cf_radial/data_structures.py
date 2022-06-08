@@ -219,8 +219,6 @@ class CFRadialDataset(Dataset):
 
         show_help = False
         if grid_limit_z is None:
-            # radar.altitude['data'].max() does not seem to be consistently set,
-            # so we calculate a max altitude in meters from elevation and range parameters
             grid_limit_z = (0.0, max_height)
             mylog.info(
                 "grid_limit_z not provided, using max height range in data: (%f, %f)",
