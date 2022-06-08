@@ -113,10 +113,10 @@ class CFRadialDataset(Dataset):
         grid_limit_x : Optional[Tuple[float, float]]
             The x range of the cartesian-gridded data in the form (xmin, xmax) with
             x in the native radar range units
-        grid_limit_y
+        grid_limit_y : Optional[Tuple[float, float]]
             The y range of the cartesian-gridded data in the form (ymin, ymax) with
             y in the native radar range units
-        grid_limit_z
+        grid_limit_z : Optional[Tuple[float, float]]
             The z range of the cartesian-gridded data in the form (zmin, zmax) with
             z in the native radar range units
         units_override
@@ -184,9 +184,9 @@ class CFRadialDataset(Dataset):
                     grid.write(storage_filename)
 
                 filename = storage_filename
+                self.storage_filename = storage_filename
 
         super().__init__(filename, dataset_type, units_override=units_override)
-        self.storage_filename = storage_filename
         self.refine_by = 2  # refinement factor between a grid and its subgrid
 
     @contextlib.contextmanager
