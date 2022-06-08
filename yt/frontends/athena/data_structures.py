@@ -86,9 +86,6 @@ class AthenaGrid(AMRGridPatch):
             self.dds[2] = 1.0
         self.field_data["dx"], self.field_data["dy"], self.field_data["dz"] = self.dds
 
-    def __repr__(self):
-        return "AthenaGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
-
 
 def parse_line(line, grid):
     # grid is a dictionary

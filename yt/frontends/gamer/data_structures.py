@@ -22,9 +22,6 @@ class GAMERGrid(AMRGridPatch):
         self.Children = []
         self.Level = level
 
-    def __repr__(self):
-        return "GAMERGrid_%09i (dimension = %s)" % (self.id, self.ActiveDimensions)
-
 
 class GAMERHierarchy(GridIndex):
     grid = GAMERGrid

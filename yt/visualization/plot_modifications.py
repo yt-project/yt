@@ -70,7 +70,7 @@ def _validate_factor_tuple(factor) -> Tuple[int, int]:
         )
 
 
-class PlotCallback:
+class PlotCallback(ABC):
     # _supported_geometries is set by subclasses of PlotCallback to a tuple of
     # strings corresponding to the names of the geometries that a callback
     # supports.  By default it is None, which means it supports everything.
@@ -81,17 +81,18 @@ class PlotCallback:
     _supported_geometries: Optional[Tuple[str, ...]] = None
 
     def __init_subclass__(cls, *args, **kwargs):
-        super().__init_subclass__(*args, **kwargs)
         if inspect.isabstract(cls):
             return
         callback_registry[cls.__name__] = cls
         cls.__call__ = _verify_geometry(cls.__call__)
 
-    def __init__(self, *args, **kwargs):
+    @abstractmethod
+    def __init__(self, *args, **kwargs) -> None:
         pass
 
-    def __call__(self, plot: CallbackWrapper):
-        raise NotImplementedError
+    @abstractmethod
+    def __call__(self, plot: CallbackWrapper) -> None:
+        pass
 
     def _project_coords(self, plot, coord):
         """
@@ -389,7 +390,6 @@ class VelocityCallback(PlotCallback):
         normalize=False,
         plot_args=None,
     ):
-        PlotCallback.__init__(self)
         self.factor = _validate_factor_tuple(factor)
         self.scale = scale
         self.scale_units = scale_units
@@ -484,7 +484,6 @@ class MagFieldCallback(PlotCallback):
         normalize=False,
         plot_args=None,
     ):
-        PlotCallback.__init__(self)
         self.factor = _validate_factor_tuple(factor)
         self.scale = scale
         self.scale_units = scale_units
@@ -557,7 +556,6 @@ class BaseQuiverCallback(PlotCallback, ABC):
         plot_args=None,
         **kwargs,
     ):
-        PlotCallback.__init__(self)
         self.field_x = field_x
         self.field_y = field_y
         self.field_c = field_c
@@ -763,7 +761,6 @@ class ContourCallback(PlotCallback):
         text_args=None,
         data_source=None,
     ):
-        PlotCallback.__init__(self)
         def_plot_args = {"colors": "k", "linestyles": "solid"}
         def_text_args = {"colors": "w"}
         self.ncont = ncont
@@ -910,7 +907,6 @@ class GridBoundaryCallback(PlotCallback):
         edgecolors=None,
         linewidth=1.0,
     ):
-        PlotCallback.__init__(self)
         self.alpha = alpha
         self.min_pix = min_pix
         self.min_pix_ids = min_pix_ids
@@ -1081,7 +1077,6 @@ class StreamlineCallback(PlotCallback):
         display_threshold=None,
         plot_args=None,
     ):
-        PlotCallback.__init__(self)
         def_plot_args: Optional[Dict[str, Any]] = {}
         self.field_x = field_x
         self.field_y = field_y
@@ -1224,7 +1219,6 @@ class LinePlotCallback(PlotCallback):
     )
 
     def __init__(self, p1, p2, data_coords=False, coord_system="data", plot_args=None):
-        PlotCallback.__init__(self)
         def_plot_args = {"color": "white", "linewidth": 2}
         self.p1 = p1
         self.p2 = p2
@@ -2087,7 +2081,6 @@ class HaloCatalogCallback(PlotCallback):
         except ImportError:
             HaloCatalog = NotAModule("yt_astro_analysis")
 
-        PlotCallback.__init__(self)
         def_circle_args = {"edgecolor": "white", "facecolor": "None"}
         def_text_args = {"color": "white"}
 
@@ -2239,7 +2232,6 @@ class ParticleCallback(PlotCallback):
         alpha=1.0,
         data_source=None,
     ):
-        PlotCallback.__init__(self)
         self.width = width
         self.p_size = p_size
         self.color = col
@@ -2375,7 +2367,6 @@ class TitleCallback(PlotCallback):
     _type_name = "title"
 
     def __init__(self, title):
-        PlotCallback.__init__(self)
         self.title = title
 
     def __call__(self, plot):
@@ -3043,7 +3034,6 @@ class RayCallback(PlotCallback):
     _supported_geometries = ("cartesian", "spectral_cube", "force")
 
     def __init__(self, ray, arrow=False, plot_args=None):
-        PlotCallback.__init__(self)
         def_plot_args = {"color": "white", "linewidth": 2}
         self.ray = ray
         self.arrow = arrow
@@ -3205,7 +3195,6 @@ class LineIntegralConvolutionCallback(PlotCallback):
         alpha=0.8,
         const_alpha=False,
     ):
-        PlotCallback.__init__(self)
         self.field_x = field_x
         self.field_y = field_y
         self.texture = texture
@@ -3322,7 +3311,6 @@ class CellEdgesCallback(PlotCallback):
         from matplotlib.colors import ColorConverter
 
         conv = ColorConverter()
-        PlotCallback.__init__(self)
         self.line_width = line_width
         self.alpha = alpha
         self.color = (np.array(conv.to_rgb(color)) * 255).astype("uint8")

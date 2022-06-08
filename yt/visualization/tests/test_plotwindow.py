@@ -135,7 +135,7 @@ WEIGHT_FIELDS = (
     ("gas", "density"),
 )
 
-PROJECTION_METHODS = ("integrate", "sum", "mip")
+PROJECTION_METHODS = ("integrate", "sum", "min", "max")
 
 BUFF_SIZES = [(800, 800), (1600, 1600), (1254, 1254), (800, 600)]
 

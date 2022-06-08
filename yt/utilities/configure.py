@@ -1,4 +1,5 @@
 import os
+import warnings
 from typing import Callable, List
 
 # TODO: import tomllib from the standard library instead in Python >= 3.11
@@ -83,10 +84,16 @@ class YTConfig:
             if not os.path.exists(fname):
                 continue
             metadata = {"source": f"file: {fname}"}
-            with open(fname, "rb") as fh:
-                data = tomllib.load(fh)
-            self.update(data, metadata=metadata)
-            file_names_read.append(fname)
+            try:
+                with open(fname, "rb") as fh:
+                    data = tomllib.load(fh)
+            except tomllib.TOMLDecodeError as exc:
+                warnings.warn(
+                    f"Could not load configuration file {fname} (invalid TOML: {exc})"
+                )
+            else:
+                self.update(data, metadata=metadata)
+                file_names_read.append(fname)
 
         return file_names_read
 

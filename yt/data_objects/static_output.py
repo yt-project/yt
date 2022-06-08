@@ -863,6 +863,11 @@ class Dataset(abc.ABC):
     def _get_field_info(self, ftype, fname=None):
         field_info, is_ambiguous = self._get_field_info_helper(ftype, fname)
 
+        if field_info.name[1] in ("px", "py", "pz", "pdx", "pdy", "pdz"):
+            # escape early as as bandaid solution to
+            # https://github.com/yt-project/yt/issues/3381
+            return field_info
+
         if is_ambiguous:
             ft, fn = field_info.name
             msg = (

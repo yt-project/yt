@@ -312,9 +312,6 @@ def test_add_field_unit_semantics():
         return np.ones(data[("gas", "density")].shape)
 
     ds.add_field(
-        ("gas", "density_alias_no_units"), sampling_type="cell", function=density_alias
-    )
-    ds.add_field(
         ("gas", "density_alias_auto"),
         sampling_type="cell",
         function=density_alias,
@@ -340,7 +337,6 @@ def test_add_field_unit_semantics():
         units="auto",
         dimensions="temperature",
     )
-    assert_raises(YTFieldUnitError, get_data, ds, ("gas", "density_alias_no_units"))
     assert_raises(YTFieldUnitError, get_data, ds, ("gas", "density_alias_wrong_units"))
     assert_raises(
         YTFieldUnitParseError, get_data, ds, ("gas", "density_alias_unparseable_units")
