@@ -30,9 +30,6 @@ class CFRadialGrid(AMRGridPatch):
         self.Level = level
         self.ActiveDimensions = dimensions
 
-    def __repr__(self):
-        return "CFRadialGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
-
 
 class CFRadialHierarchy(GridIndex):
     grid = CFRadialGrid
