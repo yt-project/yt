@@ -234,7 +234,7 @@ class CFRadialDataset(Dataset):
         grid_limits = (grid_limit_z, grid_limit_y, grid_limit_x)
 
         if grid_shape is None:
-            grid_shape = (400, 400, 400)
+            grid_shape = (100, 100, 100)
             mylog.info(
                 "grid_shape not provided, using (nz, ny, nx) = (%i, %i, %i)",
                 *grid_shape,
