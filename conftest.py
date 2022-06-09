@@ -201,8 +201,10 @@ def pytest_configure(config):
         # https://github.com/pydata/xarray/issues/6514
         config.addinivalue_line(
             "filterwarnings",
-            "ignore:SelectableGroups dict interface is deprecated. Use "
-            "select.:DeprecationWarning",
+            (
+                "ignore: SelectableGroups dict interface is deprecated. "
+                "Use select.:DeprecationWarning"
+            ),
         )
 
 
