@@ -184,7 +184,7 @@ answer_tests:
     - yt/frontends/nc4_cm1/tests/test_outputs.py:test_cm1_mesh_fields
 
   local_cf_radial_000: # PR  1990
-    - yt/frontends/cf_radial/tests/test_outputs.py:test_gridding
+    - yt/frontends/cf_radial/tests/test_outputs.py:test_cfradial_grid_field_values
 
 other_tests:
   unittests:

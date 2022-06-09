@@ -18,7 +18,11 @@ from yt.testing import (
     requires_module,
     units_override_check,
 )
-from yt.utilities.answer_testing.framework import data_dir_load
+from yt.utilities.answer_testing.framework import (
+    data_dir_load,
+    requires_ds,
+    small_patch_amr,
+)
 
 cf = "CfRadialGrid/grid1.nc"  # an already gridded cfradial file
 cf_nongridded = (
@@ -166,3 +170,16 @@ def test_grid_parameters():
     assert all(ds.domain_dimensions == new_kwargs["grid_shape"])
 
     shutil.rmtree(tempdir)
+
+
+@requires_ds(cf)
+@requires_module("xarray")
+def test_cfradial_grid_field_values():
+    ds = data_dir_load(cf)
+    fields_to_check = [("cf_radial", field) for field in _fields_cfradial]
+    wtfield = ("cf_radial", "reflectivity")
+    for test in small_patch_amr(
+        ds, fields_to_check, input_center=ds.domain_center, input_weight=wtfield
+    ):
+        test_cfradial_grid_field_values.__name__ = test.description
+        yield test
