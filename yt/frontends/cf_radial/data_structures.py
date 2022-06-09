@@ -294,7 +294,7 @@ class CFRadialDataset(Dataset):
         # False depending on if the file is of the type requested.
 
         try:
-            ds = xr.open_dataset(filename)
+            ds = xr.open_dataset(filename, engine="netcdf4")
         except (
             ImportError,
             OSError,
@@ -302,9 +302,11 @@ class CFRadialDataset(Dataset):
             TypeError,
             ValueError,
             RuntimeError,
-            RuntimeWarning,
         ):
             # catch all these to avoid errors when xarray cant handle a file
+            # note: using engine="netcdf4" avoids warnings that are raised
+            # in newer vesrions of xarray (around v'2022.3.0'). If netcdf4 is not
+            # installed, open_dataset will raise a ValueError when engine="netcdf4"
             return False
 
         if hasattr(ds, "attrs") and isinstance(ds.attrs, dict):
