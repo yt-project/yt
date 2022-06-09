@@ -290,7 +290,10 @@ class CFRadialDataset(Dataset):
         # False depending on if the file is of the type requested.
 
         try:
-            ds = xr.open_dataset(filename)
+            # note: using the engine parameter because this frontend is for netcdf files
+            # but also to avoid the engine-guessing framework of xarray, which
+            # can emit warnings when trying to load files not handled by xarray
+            ds = xr.open_dataset(filename, engine="netcdf4")
         except (
             ImportError,
             OSError,
