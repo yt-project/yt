@@ -225,6 +225,10 @@ class CFRadialDataset(Dataset):
                     dim,
                     *grid_limit,
                 )
+        if len(grid_limit) != 2:
+            raise ValueError(
+                f"grid_limit_{dim} must have 2 dimensions, but it has {len(grid_limit)}"
+            )
 
         return grid_limit
 
@@ -290,9 +294,6 @@ class CFRadialDataset(Dataset):
         # False depending on if the file is of the type requested.
 
         try:
-            # note: using the engine parameter because this frontend is for netcdf files
-            # but also to avoid the engine-guessing framework of xarray, which
-            # can emit warnings when trying to load files not handled by xarray
             ds = xr.open_dataset(filename)
         except (
             ImportError,
