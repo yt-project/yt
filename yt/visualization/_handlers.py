@@ -415,7 +415,7 @@ class ColorbarHandler:
             raise TypeError(
                 f"Excpected a boolean, got {newval} with type {type(newval)}"
             )
-        self._draw_minoticks = newval
+        self._draw_minorticks = newval
 
     @property
     def cmap(self) -> Colormap:

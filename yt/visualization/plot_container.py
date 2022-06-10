@@ -1044,7 +1044,7 @@ class ImagePlotContainer(PlotContainer, abc.ABC):
         state : bool
             the state indicating 'on' (True) or 'off' (False)
         """
-        self.plots[field].colormap_handler.draw_minorticks = state
+        self.plots[field].colorbar_handler.draw_minorticks = state
         return self
 
     @invalidate_plot
