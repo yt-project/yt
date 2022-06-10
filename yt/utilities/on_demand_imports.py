@@ -204,8 +204,6 @@ class pooch_imports(OnDemand):
 
 _pooch = pooch_imports()
 
-_pooch = pooch_imports()
-
 
 class pyart_imports(OnDemand):
     @safe_import
