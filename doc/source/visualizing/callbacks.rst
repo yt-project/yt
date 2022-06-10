@@ -313,7 +313,7 @@ Axis-Aligned Data Sources
    p.save()
 
 
-   And now using a continuous colormap
+And now using a continuous colormap
 
 .. python-script::
 
