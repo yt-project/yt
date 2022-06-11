@@ -10,7 +10,7 @@ import weakref
 from collections import defaultdict
 from importlib.util import find_spec
 from stat import ST_CTIME
-from typing import DefaultDict, List, Optional, Set, Tuple, Type, Union
+from typing import DefaultDict, Dict, List, Optional, Set, Tuple, Type, Union
 
 import numpy as np
 from more_itertools import unzip
@@ -147,7 +147,7 @@ class Dataset(abc.ABC):
     geometry = "cartesian"
     coordinates = None
     storage_filename = None
-    particle_unions = None
+    particle_unions: Optional[Dict[str, ParticleUnion]] = None
     known_filters = None
     _index_class: Type[Index]
     field_units = None
@@ -883,7 +883,13 @@ class Dataset(abc.ABC):
             )
 
             all_equivalent_particle_fields: bool
-            if all(ft in self.particle_types for ft in ftypes):
+            if (
+                self.particle_types is None
+                or self.particle_unions is None
+                or self.particle_types_raw is None
+            ):
+                all_equivalent_particle_fields = False
+            elif all(ft in self.particle_types for ft in ftypes):
                 ptypes = ftypes
 
                 sub_types_list: List[Set[str]] = []
