@@ -186,19 +186,3 @@ g30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
 def test_checksum():
     assert fake_random_ds(16).checksum == "notafile"
     assert data_dir_load(g30).checksum == "6169536e4b9f737ce3d3ad440df44c58"
-
-
-def test_nameonly_field_with_all_aliases_candidates():
-    # see https://github.com/yt-project/yt/issues/3839
-    ds = fake_amr_ds(fields=["density"], units=["g/cm**3"])
-
-    # here we rely on implementations details from fake_amr_ds,
-    # so we verify that it provides the appropriate conditions
-    # for the actual test.
-    candidates = [f for f in ds.derived_field_list if f[1] == "density"]
-    assert len(candidates) == 2
-    fi = ds.field_info
-    assert fi[candidates[0]].is_alias_to(fi[candidates[1]])
-
-    # this is the actual test (check that no error or warning is raised)
-    ds.all_data()["density"]
