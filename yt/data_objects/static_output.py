@@ -10,9 +10,10 @@ import weakref
 from collections import defaultdict
 from importlib.util import find_spec
 from stat import ST_CTIME
-from typing import DefaultDict, List, Optional, Tuple, Type, Union
+from typing import DefaultDict, List, Optional, Set, Tuple, Type, Union
 
 import numpy as np
+from more_itertools import unzip
 from unyt.exceptions import UnitConversionError, UnitParseError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
@@ -868,8 +869,38 @@ class Dataset(abc.ABC):
             # https://github.com/yt-project/yt/issues/3381
             return field_info
 
-        fi = self.field_info
-        if not all(fi[c].is_alias_to(fi[candidates[0]]) for c in candidates):
+        def _are_ambiguous(candidates: List[Tuple[str, str]]) -> bool:
+            if len(candidates) < 2:
+                return False
+
+            ftypes, fnames = (list(_) for _ in unzip(candidates))
+            assert all(name == fnames[0] for name in fnames)
+
+            fi = self.field_info
+
+            all_aliases: bool = all(
+                fi[c].is_alias_to(fi[candidates[0]]) for c in candidates
+            )
+
+            all_equivalent_particle_fields: bool
+            if all(ft in self.particle_types for ft in ftypes):
+                ptypes = ftypes
+
+                sub_types_list: List[Set[str]] = []
+                for pt in ptypes:
+                    if pt in self.particle_types_raw:
+                        sub_types_list.append({pt})
+                    elif pt in self.particle_unions:
+                        sub_types_list.append(set(self.particle_unions[pt].sub_types))
+                all_equivalent_particle_fields = all(
+                    st == sub_types_list[0] for st in sub_types_list
+                )
+            else:
+                all_equivalent_particle_fields = False
+
+            return not (all_aliases or all_equivalent_particle_fields)
+
+        if _are_ambiguous(candidates):
             ft, fn = field_info.name
             possible_ftypes = [c[0] for c in candidates]
             msg = (
