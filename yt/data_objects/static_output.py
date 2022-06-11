@@ -918,15 +918,13 @@ class Dataset(abc.ABC):
         if _are_ambiguous(candidates):
             ft, fn = field_info.name
             possible_ftypes = [c[0] for c in candidates]
-            msg = (
+            raise ValueError(
                 f"The requested field name {fn!r} "
                 "is ambiguous and corresponds to any one of "
                 f"the following field types:\n {possible_ftypes}\n"
                 "Please specify the requested field as an explicit "
                 "tuple (<ftype>, <fname>).\n"
-                f"Defaulting to {field_info.name!r}"
             )
-            issue_deprecation_warning(msg, since="4.0.0", removal="4.1.0")
         return field_info
 
     def _get_field_info_helper(self, ftype, fname=None):

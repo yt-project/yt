@@ -1,6 +1,5 @@
 import pytest
 
-from yt._maintenance.deprecation import VisibleDeprecationWarning
 from yt.testing import fake_amr_ds
 
 
@@ -15,8 +14,8 @@ def test_ambiguous_fails():
     ds.add_field(("io", "mock_field"), _mock_field, sampling_type="particle")
     ds.add_field(("gas", "mock_field"), _mock_field, sampling_type="cell")
 
-    # Test warnings are issued for ambiguous fields
-    with pytest.warns(VisibleDeprecationWarning, match=msg.format("mock_field")):
+    # Test errors are raised for ambiguous fields
+    with pytest.raises(ValueError, match=msg.format("mock_field")):
         ds.r["mock_field"]
 
     # check that explicit name tuples don't raise a warning
