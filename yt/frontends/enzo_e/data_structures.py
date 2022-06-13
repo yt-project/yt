@@ -276,12 +276,15 @@ class EnzoEHierarchy(GridIndex):
             grid = self.grids[0]
             field_list, ptypes = self.io._read_field_names(grid)
             mylog.debug("Grid %s has: %s", grid.id, field_list)
+            sample_pfields = self.io.sample_pfields
         else:
             field_list = None
             ptypes = None
+            sample_pfields = None
         self.field_list = list(self.comm.mpi_bcast(field_list))
         self.dataset.particle_types = list(self.comm.mpi_bcast(ptypes))
         self.dataset.particle_types_raw = self.dataset.particle_types[:]
+        self.io.sample_pfields = self.comm.mpi_bcast(sample_pfields)
 
 
 class EnzoEDataset(Dataset):
