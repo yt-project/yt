@@ -50,7 +50,7 @@ answer_tests:
     - yt/frontends/enzo/tests/test_outputs.py:test_ecp
     - yt/frontends/enzo/tests/test_outputs.py:test_nuclei_density_fields
 
-  local_enzo_e_003:  # PR 3971
+  local_enzo_e_004:  # PR 3971
     - yt/frontends/enzo_e/tests/test_outputs.py:test_hello_world
     - yt/frontends/enzo_e/tests/test_outputs.py:test_particle_fields
 

@@ -14,7 +14,7 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 
 _fields = (
     ("gas", "density"),
-    ("gas", "total_energy"),
+    ("gas", "specific_total_energy"),
     ("gas", "velocity_x"),
     ("gas", "velocity_y"),
 )
