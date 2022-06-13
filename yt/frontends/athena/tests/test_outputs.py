@@ -14,7 +14,11 @@ from yt.utilities.answer_testing.framework import (
     small_patch_amr,
 )
 
-_fields_cloud = (("athena", "scalar[0]"), ("gas", "density"), ("gas", "total_energy"))
+_fields_cloud = (
+    ("athena", "scalar[0]"),
+    ("gas", "density"),
+    ("gas", "total_energy_density"),
+)
 
 cloud = "ShockCloud/id0/Cloud.0050.vtk"
 
