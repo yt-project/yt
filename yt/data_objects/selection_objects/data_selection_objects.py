@@ -262,6 +262,8 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
                         fi.units = sunits
                         fi.dimensions = dimensions
                         self.field_data[field] = self.ds.arr(fd, units)
+                    if fi.output_units is None:
+                        fi.output_units = fi.units
 
                     try:
                         fd.convert_to_units(fi.units)
