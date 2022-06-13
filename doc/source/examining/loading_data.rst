@@ -3082,3 +3082,33 @@ non-default cosmological parameters, you may pass an empty dictionary.
    import yt
 
    ds = yt.load(filename, cosmology_parameters={})
+
+.. _loading-cfradial-data:
+
+CfRadial Data
+-------------
+
+yt provides support for loading cartesian-gridded CfRadial netcdf-4 files. When
+loading a standard CfRadial dataset in native coordinates, yt will first
+build a sample on a cartesian grid (see
+:ref:`cfradial_gridding`). To load a CfRadial data file:
+
+.. code-block:: python
+
+   import yt
+
+   ds = yt.load("CfRadialGrid/grid1.nc")
+
+.. _cfradial_gridding:
+
+Gridding Behavior
+^^^^^^^^^^^^^^^^^
+
+When you load a CfRadial dataset in native coordinates, yt first builds a
+sample on a cartesian grid using the Python-ARM Radar Toolkit (pyart) with
+cartesian bounds that contain the entire domain. The gridded data is saved as
+a new dataset and subsequent loads will load the original native CfRadial
+dataset will use the gridded file. See the documentation for the
+:class:`~yt.frontends.cf_radial.data_structures.CFRadialDataset` class for a
+description of how to adjust the gridding parameters and storage of the gridded
+file.

@@ -230,6 +230,17 @@ AMReX/Boxlib
    ~yt.frontends.boxlib.io.IOHandlerBoxlib
    ~yt.frontends.boxlib.io.IOHandlerOrion
 
+CfRadial
+^^^^^^^^
+
+.. autosummary::
+
+   ~yt.frontends.cf_radial.data_structures.CFRadialGrid
+   ~yt.frontends.cf_radial.data_structures.CFRadialHierarchy
+   ~yt.frontends.cf_radial.data_structures.CFRadialDataset
+   ~yt.frontends.cf_radial.fields.CFRadialFieldInfo
+   ~yt.frontends.cf_radial.io.CFRadialIOHandler
+
 Chombo
 ^^^^^^
 
