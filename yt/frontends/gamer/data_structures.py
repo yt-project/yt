@@ -22,9 +22,6 @@ class GAMERGrid(AMRGridPatch):
         self.Children = []
         self.Level = level
 
-    def __repr__(self):
-        return "GAMERGrid_%09i (dimension = %s)" % (self.id, self.ActiveDimensions)
-
 
 class GAMERHierarchy(GridIndex):
     grid = GAMERGrid
@@ -41,7 +38,7 @@ class GAMERHierarchy(GridIndex):
         self.float_type = "float64"  # fixed even when FLOAT8 is off
         self._particle_handle = ds._particle_handle
         self.refine_by = ds.refine_by
-        self.pgroup = self.refine_by ** 3  # number of patches in a patch group
+        self.pgroup = self.refine_by**3  # number of patches in a patch group
         GridIndex.__init__(self, ds, dataset_type)
 
     def _detect_output_fields(self):

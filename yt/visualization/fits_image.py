@@ -5,6 +5,7 @@ from numbers import Number as numeric_type
 import numpy as np
 from more_itertools import first, mark_ends
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.data_objects.construction_data_containers import YTCoveringGrid
 from yt.data_objects.image_array import ImageArray
 from yt.fields.derived_field import DerivedField
@@ -381,7 +382,7 @@ class FITSImageData:
                         4.0
                         * np.pi
                         * self.mass_unit
-                        / (self.time_unit ** 2 * self.length_unit)
+                        / (self.time_unit**2 * self.length_unit)
                     )
                 else:
                     u = cgs_unit
@@ -399,20 +400,21 @@ class FITSImageData:
             else:
                 uq = None
 
-            if uq is not None and hasattr(self, "hubble_constant"):
-                # Don't store cosmology units
+            if uq is not None:
                 atoms = {str(a) for a in uq.units.expr.atoms()}
-                if str(uq.units).startswith("cm") or "h" in atoms or "a" in atoms:
+                if hasattr(self, "hubble_constant"):
+                    # Don't store cosmology units
+                    if str(uq.units).startswith("cm") or "h" in atoms or "a" in atoms:
+                        uq.convert_to_cgs()
+                if any(a.startswith("code") for a in atoms):
+                    # Don't store code units
+                    mylog.warning(
+                        "Cannot use code units of '%s' "
+                        "when creating a FITSImageData instance! "
+                        "Converting to a cgs equivalent.",
+                        uq.units,
+                    )
                     uq.convert_to_cgs()
-
-            if uq is not None and uq.units.is_code_unit:
-                mylog.warning(
-                    "Cannot use code units of '%s' "
-                    "when creating a FITSImageData instance! "
-                    "Converting to a cgs equivalent.",
-                    uq.units,
-                )
-                uq.convert_to_cgs()
 
             if attr == "length_unit" and uq.value != 1.0:
                 mylog.warning("Converting length units from %s to %s.", uq, uq.units)
@@ -533,9 +535,11 @@ class FITSImageData:
             self.hdulist[idx].header[key] = value
 
     def update_all_headers(self, key, value):
-        mylog.warning(
+        issue_deprecation_warning(
             "update_all_headers is deprecated. "
-            "Use update_header('all', key, value) instead."
+            "Use update_header('all', key, value) instead.",
+            since="3.3",
+            removal="4.2",
         )
         self.update_header("all", key, value)
 

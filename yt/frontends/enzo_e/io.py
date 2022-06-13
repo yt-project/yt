@@ -1,5 +1,6 @@
 import numpy as np
 
+from yt.frontends.enzo_e.misc import get_particle_mass_correction, nested_dict_get
 from yt.utilities.exceptions import YTException
 from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.on_demand_imports import _h5py as h5py
@@ -17,6 +18,13 @@ class EnzoEIOHandler(BaseIOHandler):
         self._base = self.ds.dimensionality * (
             slice(self.ds.ghost_zones, -self.ds.ghost_zones),
         )
+
+        # Determine if particle masses are actually densities by the
+        # existence of the "mass_is_mass" particles parameter.
+        mass_flag = nested_dict_get(
+            self.ds.parameters, ("Particle", "mass_is_mass"), default=None
+        )
+        self._particle_mass_is_mass = mass_flag is not None
 
     def _read_field_names(self, grid):
         if grid.filename is None:
@@ -116,6 +124,8 @@ class EnzoEIOHandler(BaseIOHandler):
                         continue
                     for field in field_list:
                         data = np.asarray(group.get(pn % field)[()], "=f8")
+                        if field == "mass" and not self._particle_mass_is_mass:
+                            data[mask] *= get_particle_mass_correction(self.ds)
                         yield (ptype, field), data[mask]
             if f:
                 f.close()

@@ -20,6 +20,7 @@ cimport numpy as np
 from cython.view cimport array as cvarray
 
 from yt.utilities.lib.fp_utils cimport (
+    any_float,
     fabs,
     fmax,
     fmin,
@@ -86,11 +87,11 @@ cdef extern from "pixelization_constants.hpp":
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def pixelize_cartesian(np.float64_t[:,:] buff,
-                       np.float64_t[:] px,
-                       np.float64_t[:] py,
-                       np.float64_t[:] pdx,
-                       np.float64_t[:] pdy,
-                       np.float64_t[:] data,
+                       any_float[:] px,
+                       any_float[:] py,
+                       any_float[:] pdx,
+                       any_float[:] pdy,
+                       any_float[:] data,
                        bounds,
                        int antialias = 1,
                        period = None,
@@ -256,6 +257,8 @@ def pixelize_cartesian(np.float64_t[:,:] buff,
                                 # This will reduce artifacts if we ever move to
                                 # compositing instead of replacing bitmaps.
                                 if overlap1 * overlap2 < 1.e-6: continue
+                                # make sure pixel value is not a NaN before incrementing it
+                                if buff[i,j] != buff[i,j]: buff[i,j] = 0.0
                                 buff[i,j] += (dsp * overlap1) * overlap2
                             else:
                                 buff[i,j] = dsp
@@ -506,6 +509,8 @@ def pixelize_off_axis_cartesian(
                        fabs(zsp - cz) * 0.99 > dzsp:
                         continue
                     mask[i, j] += 1
+                    # make sure pixel value is not a NaN before incrementing it
+                    if buff[i,j] != buff[i,j]: buff[i,j] = 0.0
                     buff[i, j] += dsp
     for i in range(buff.shape[0]):
         for j in range(buff.shape[1]):
@@ -524,18 +529,29 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
                       extents):
 
     cdef np.float64_t x, y, dx, dy, r0, theta0
-    cdef np.float64_t rmax, x0, y0, x1, y1
-    cdef np.float64_t r_i, theta_i, dr_i, dtheta_i, dthetamin
+    cdef np.float64_t rmin, rmax, tmin, tmax, x0, y0, x1, y1, xp, yp
+    cdef np.float64_t r_i, theta_i, dr_i, dtheta_i
+    cdef np.float64_t r_inc, theta_inc
     cdef np.float64_t costheta, sintheta
-    cdef int i, pi, pj
+    cdef int i, i1, pi, pj
 
-    cdef int imax = np.asarray(radius).argmax()
+    cdef int imin, imax
+    imin = np.asarray(radius).argmin()
+    imax = np.asarray(radius).argmax()
+    rmin = radius[imin] - dradius[imin]
     rmax = radius[imax] + dradius[imax]
 
+    imin = np.asarray(theta).argmin()
+    imax = np.asarray(theta).argmax()
+    tmin = theta[imin] - dtheta[imin]
+    tmax = theta[imax] + dtheta[imax]
+
     x0, x1, y0, y1 = extents
-    dx = (x1 - x0) / buff.shape[1]
-    dy = (y1 - y0) / buff.shape[0]
+    dx = (x1 - x0) / buff.shape[0]
+    dy = (y1 - y0) / buff.shape[1]
     cdef np.float64_t rbounds[2]
+    cdef np.float64_t prbounds[2]
+    cdef np.float64_t ptbounds[2]
     cdef np.float64_t corners[8]
     # Find our min and max r
     corners[0] = x0*x0+y0*y0
@@ -558,9 +574,9 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
         rbounds[0] = 0.0
     if y0 < 0 and y1 > 0:
         rbounds[0] = 0.0
-    dthetamin = dx / rmax
-    for i in range(radius.shape[0]):
+    r_inc = 0.5 * fmin(dx, dy)
 
+    for i in range(radius.shape[0]):
         r0 = radius[i]
         theta0 = theta[i]
         dr_i = dradius[i]
@@ -569,15 +585,15 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
         if r0 + dr_i < rbounds[0] or r0 - dr_i > rbounds[1]:
             continue
         theta_i = theta0 - dtheta_i
-        # Buffer of 0.5 here
-        dthetamin = 0.5*dx/(r0 + dr_i)
+        theta_inc = r_inc / (r0 + dr_i)
+
         while theta_i < theta0 + dtheta_i:
             r_i = r0 - dr_i
             costheta = math.cos(theta_i)
             sintheta = math.sin(theta_i)
             while r_i < r0 + dr_i:
                 if rmax <= r_i:
-                    r_i += 0.5*dx
+                    r_i += r_inc
                     continue
                 y = r_i * costheta
                 x = r_i * sintheta
@@ -585,9 +601,39 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
                 pj = <int>((y - y0)/dy)
                 if pi >= 0 and pi < buff.shape[0] and \
                    pj >= 0 and pj < buff.shape[1]:
-                    buff[pi, pj] = field[i]
-                r_i += 0.5*dx
-            theta_i += dthetamin
+                    # we got a pixel that intersects the grid cell
+                    # now check that this pixel doesn't go beyond the data domain
+                    xp = x0 + pi*dx
+                    yp = y0 + pj*dy
+                    corners[0] = xp*xp + yp*yp
+                    corners[1] = xp*xp + (yp+dy)**2
+                    corners[2] = (xp+dx)**2 + yp*yp
+                    corners[3] = (xp+dx)**2 + (yp+dy)**2
+                    prbounds[0] = prbounds[1] = corners[3]
+                    for i1 in range(3):
+                        prbounds[0] = fmin(prbounds[0], corners[i1])
+                        prbounds[1] = fmax(prbounds[1], corners[i1])
+                    prbounds[0] = math.sqrt(prbounds[0])
+                    prbounds[1] = math.sqrt(prbounds[1])
+
+                    corners[0] = math.atan2(xp, yp)
+                    corners[1] = math.atan2(xp, yp+dy)
+                    corners[2] = math.atan2(xp+dx, yp)
+                    corners[3] = math.atan2(xp+dx, yp+dy)
+                    ptbounds[0] = ptbounds[1] = corners[3]
+                    for i1 in range(3):
+                        ptbounds[0] = fmin(ptbounds[0], corners[i1])
+                        ptbounds[1] = fmax(ptbounds[1], corners[i1])
+
+                    # shift to a [0, PI] interval
+                    ptbounds[0] = ptbounds[0] % (2*np.pi)
+                    ptbounds[1] = ptbounds[1] % (2*np.pi)
+
+                    if prbounds[0] >= rmin and prbounds[1] <= rmax and \
+                       ptbounds[0] >= tmin and ptbounds[1] <= tmax:
+                        buff[pi, pj] = field[i]
+                r_i += r_inc
+            theta_i += theta_inc
 
 cdef int aitoff_Lambda_btheta_to_xy(np.float64_t Lambda, np.float64_t btheta,
                                np.float64_t *x, np.float64_t *y) except -1:
@@ -667,6 +713,26 @@ def pixelize_aitoff(np.float64_t[:] azimuth,
         xmax = fmax(xmax, x)
         ymin = fmin(ymin, y)
         ymax = fmax(ymax, y)
+        # special cases where the projection of the cell isn't
+        # bounded by the rectangle (in image space) that bounds its corners.
+        # Note that performance may take a serious hit here. The overarching algorithm
+        # is optimized for cells with small angular width.
+        if xmin * xmax < 0.0:
+            # on the central meridian
+            aitoff_Lambda_btheta_to_xy(0.0, btheta_p - dbtheta_p, &x, &y)
+            ymin = fmin(ymin, y)
+            ymax = fmax(ymax, y)
+            aitoff_Lambda_btheta_to_xy(0.0, btheta_p + dbtheta_p, &x, &y)
+            ymin = fmin(ymin, y)
+            ymax = fmax(ymax, y)
+        if ymin * ymax < 0.0:
+            # on the equator
+            aitoff_Lambda_btheta_to_xy(Lambda_p - dLambda_p, 0.0, &x, &y)
+            xmin = fmin(xmin, x)
+            xmax = fmax(xmax, x)
+            aitoff_Lambda_btheta_to_xy(Lambda_p + dLambda_p, 0.0, &x, &y)
+            xmin = fmin(xmin, x)
+            xmax = fmax(xmax, x)
         # Now we have the (projected rectangular) bounds.
 
         # Shift into normalized image coords
@@ -992,12 +1058,12 @@ cdef class SPHKernelInterpolationTable:
 @cython.cdivision(True)
 def pixelize_sph_kernel_projection(
         np.float64_t[:, :] buff,
-        np.float64_t[:] posx,
-        np.float64_t[:] posy,
-        np.float64_t[:] hsml,
-        np.float64_t[:] pmass,
-        np.float64_t[:] pdens,
-        np.float64_t[:] quantity_to_smooth,
+        any_float[:] posx,
+        any_float[:] posy,
+        any_float[:] hsml,
+        any_float[:] pmass,
+        any_float[:] pdens,
+        any_float[:] quantity_to_smooth,
         bounds,
         kernel_name="cubic",
         weight_field=None,

@@ -20,7 +20,7 @@ else:
 
 # Create projections of the density (max value in each resolution element in the image):
 prj = yt.ProjectionPlot(
-    ds, "x", ("gas", "density"), method="mip", center="max", width=(100, "kpc")
+    ds, "x", ("gas", "density"), method="max", center="max", width=(100, "kpc")
 )
 
 # nicen up the plot by using a better interpolation:

@@ -101,6 +101,8 @@ class FieldDetector(defaultdict):
         return arr.reshape(self.ActiveDimensions, order="C")
 
     def __missing__(self, item):
+        from yt.fields.derived_field import NullFunc
+
         if not isinstance(item, tuple):
             field = ("unknown", item)
         else:
@@ -115,7 +117,7 @@ class FieldDetector(defaultdict):
         # Note that the *only* way this works is if we also fix our field
         # dependencies during checking.  Bug #627 talks about this.
         item = self.ds._last_freq
-        if finfo is not None and finfo._function.__name__ != "NullFunc":
+        if finfo is not None and finfo._function is not NullFunc:
             try:
                 for param, param_v in permute_params.items():
                     for v in param_v:
@@ -296,14 +298,14 @@ class FieldDetector(defaultdict):
 
     @property
     def ires(self):
-        ir = np.ones(self.nd ** 3, dtype="int64")
+        ir = np.ones(self.nd**3, dtype="int64")
         if not self.flat:
             ir.shape = (self.nd, self.nd, self.nd)
         return ir
 
     @property
     def fwidth(self):
-        fw = np.ones((self.nd ** 3, 3), dtype="float64") / self.nd
+        fw = np.ones((self.nd**3, 3), dtype="float64") / self.nd
         if not self.flat:
             fw.shape = (self.nd, self.nd, self.nd, 3)
         return self.ds.arr(fw, units="code_length")

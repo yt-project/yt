@@ -333,6 +333,23 @@ This means that the yt fields, e.g. ``("gas","density")``,
 ``("athena","density")``, ``("athena","velocity_x")``,
 ``("athena","cell_centered_B_x")``, will be in code units.
 
+The default normalization for various magnetic-related quantities such as
+magnetic pressure, Alfven speed, etc., as well as the conversion between
+magnetic code units and other units, is Gaussian/CGS, meaning that factors
+of :math:`4\pi` or :math:`\sqrt{4\pi}` will appear in these quantities, e.g.
+:math:`p_B = B^2/8\pi`. To use the Lorentz-Heaviside normalization instead,
+in which the factors of :math:`4\pi` are dropped (:math:`p_B = B^2/2), for
+example), set ``magnetic_normalization="lorentz_heaviside"`` in the call to
+``yt.load``:
+
+.. code-block:: python
+
+    ds = yt.load(
+        "id0/cluster_merger.0250.vtk",
+        units_override=units_override,
+        magnetic_normalization="lorentz_heaviside",
+    )
+
 Some 3D Athena outputs may have large grids (especially parallel datasets
 subsequently joined with the ``join_vtk`` script), and may benefit from being
 subdivided into "virtual grids". For this purpose, one can pass in the
@@ -429,6 +446,23 @@ This means that the yt fields, e.g. ``("gas","density")``,
 (or whatever unit system was specified), but the Athena fields, e.g.,
 ``("athena_pp","density")``, ``("athena_pp","vel1")``, ``("athena_pp","Bcc1")``,
 will be in code units.
+
+The default normalization for various magnetic-related quantities such as
+magnetic pressure, Alfven speed, etc., as well as the conversion between
+magnetic code units and other units, is Gaussian/CGS, meaning that factors
+of :math:`4\pi` or :math:`\sqrt{4\pi}` will appear in these quantities, e.g.
+:math:`p_B = B^2/8\pi`. To use the Lorentz-Heaviside normalization instead,
+in which the factors of :math:`4\pi` are dropped (:math:`p_B = B^2/2), for
+example), set ``magnetic_normalization="lorentz_heaviside"`` in the call to
+``yt.load``:
+
+.. code-block:: python
+
+    ds = yt.load(
+        "AM06/AM06.out1.00400.athdf",
+        units_override=units_override,
+        magnetic_normalization="lorentz_heaviside",
+    )
 
 Alternative values for the following simulation parameters may be specified
 using a ``parameters`` dict, accepting the following keys:

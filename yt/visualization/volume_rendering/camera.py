@@ -501,7 +501,7 @@ class Camera(Orientation):
             normal_vector = self.unit_vectors[2]
         else:
             normal_vector = rot_center - new_position
-        normal_vector = normal_vector / np.sqrt((normal_vector ** 2).sum())
+        normal_vector = normal_vector / np.sqrt((normal_vector**2).sum())
 
         if rotate_all:
             self.switch_view(

@@ -157,7 +157,7 @@ class GadgetBinaryHeader:
         for filename in [self.filename, self.filename + ".0"]:
             if os.path.exists(filename):
                 return open(filename, "rb")
-        raise RuntimeError(f"Snapshot file {self.filename} does not exist.")
+        raise FileNotFoundError(f"Snapshot file {self.filename} does not exist.")
 
     def validate(self):
         """Validate data integrity."""
@@ -427,7 +427,15 @@ class GadgetDataset(SPHDataset):
         )
 
         if hvals["NumFiles"] > 1:
-            self.filename_template = f"{prefix}.%(num)s{self._suffix}"
+            for t in (
+                f"{prefix}.%(num)s{self._suffix}",
+                f"{prefix}.gad.%(num)s{self._suffix}",
+            ):
+                if os.path.isfile(t % {"num": 0}):
+                    self.filename_template = t
+                    break
+            else:
+                raise RuntimeError("Could not determine correct data file template.")
         else:
             self.filename_template = self.parameter_filename
 

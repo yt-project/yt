@@ -80,7 +80,7 @@ class HTTPStreamDataset(ParticleDataset):
         length_unit = float(self.parameters["units"]["length"])
         time_unit = float(self.parameters["units"]["time"])
         mass_unit = float(self.parameters["units"]["mass"])
-        density_unit = mass_unit / length_unit ** 3
+        density_unit = mass_unit / length_unit**3
         velocity_unit = length_unit / time_unit
         self._unit_base = {}
         self._unit_base["cm"] = 1.0 / length_unit

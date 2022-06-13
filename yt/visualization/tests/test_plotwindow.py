@@ -18,6 +18,7 @@ from yt.testing import (
     fake_amr_ds,
     fake_random_ds,
     requires_file,
+    requires_module,
 )
 from yt.units import kboltz
 from yt.units.yt_array import YTArray, YTQuantity
@@ -134,7 +135,7 @@ WEIGHT_FIELDS = (
     ("gas", "density"),
 )
 
-PROJECTION_METHODS = ("integrate", "sum", "mip")
+PROJECTION_METHODS = ("integrate", "sum", "min", "max")
 
 BUFF_SIZES = [(800, 800), (1600, 1600), (1254, 1254), (800, 600)]
 
@@ -456,7 +457,7 @@ class TestPerFieldConfig(unittest.TestCase):
 
 def test_on_off_compare():
     # fake density field that varies in the x-direction only
-    den = np.arange(32 ** 3) / 32 ** 2 + 1
+    den = np.arange(32**3) / 32**2 + 1
     den = den.reshape(32, 32, 32)
     den = np.array(den, dtype=np.float64)
     data = dict(density=(den, "g/cm**3"))
@@ -722,6 +723,43 @@ def test_symlog_colorbar():
             plot.save(f.name)
 
 
+def test_symlog_min_zero():
+    # see https://github.com/yt-project/yt/issues/3791
+    shape = (32, 16, 1)
+    a = np.linspace(0, 1, 16)
+    b = np.ones((32, 16))
+    c = np.reshape(a * b, shape)
+    data = {("gas", "density"): c}
+
+    ds = load_uniform_grid(
+        data,
+        shape,
+        bbox=np.array([[0.0, 5.0], [0, 1], [-0.1, +0.1]]),
+    )
+
+    p = SlicePlot(ds, "z", "density")
+    im_arr = p["gas", "density"].image.get_array()
+
+    # check that no data value was mapped to a NaN (log(0))
+    assert np.all(~np.isnan(im_arr))
+    # 0 should be mapped to itself since we expect a symlog norm
+    assert np.min(im_arr) == 0.0
+
+
+def test_symlog_extremely_small_vals():
+    # check that the plot can be constructed without crashing
+    # see https://github.com/yt-project/yt/issues/3858
+    shape = (64, 64, 1)
+    arr = np.full(shape, 5.0e-324)
+    arr[0, 0] = -1e12
+    arr[1, 1] = 200
+    d = {"scalar": arr}
+
+    ds = load_uniform_grid(d, shape)
+    p = SlicePlot(ds, "z", ("stream", "scalar"))
+    p["stream", "scalar"]
+
+
 def test_nan_data():
     data = np.random.random((16, 16, 16)) - 0.5
     data[:9, :9, :9] = np.nan
@@ -804,3 +842,13 @@ def test_dispatch_plot_classes():
     assert isinstance(p2, OffAxisProjectionPlot)
     assert isinstance(s1, AxisAlignedSlicePlot)
     assert isinstance(s2, OffAxisSlicePlot)
+
+
+@requires_module("cartopy")
+def test_invalid_swap_projection():
+    # projections and transforms will not work
+    ds = fake_amr_ds(geometry="geographic")
+    slc = SlicePlot(ds, "altitude", ds.field_list[0], origin="native")
+    slc.set_mpl_projection("Robinson")
+    slc.swap_axes()  # should raise mylog.warning and not toggle _swap_axes
+    assert slc._has_swapped_axes is False

@@ -101,7 +101,6 @@ class AMRVACFieldInfo(FieldInfoContainer):
             if not ("amrvac", "m%d%s" % (idir, dust_flag)) in self.field_list:
                 break
             velocity_fn = functools.partial(_velocity, idir=idir, prefix=dust_label)
-            functools.update_wrapper(velocity_fn, _velocity)
             self.add_field(
                 ("gas", f"{dust_label}velocity_{alias}"),
                 function=velocity_fn,
@@ -180,7 +179,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
             ("gas", "kinetic_energy_density"),
             function=_kinetic_energy_density,
             units=us["density"] * us["velocity"] ** 2,
-            dimensions=dimensions.density * dimensions.velocity ** 2,
+            dimensions=dimensions.density * dimensions.velocity**2,
             sampling_type="cell",
         )
 
@@ -210,7 +209,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
                 ("gas", "magnetic_energy_density"),
                 function=_magnetic_energy_density,
                 units=us["density"] * us["velocity"] ** 2,
-                dimensions=dimensions.density * dimensions.velocity ** 2,
+                dimensions=dimensions.density * dimensions.velocity**2,
                 sampling_type="cell",
             )
 
@@ -264,7 +263,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
                 ("gas", "thermal_pressure"),
                 function=pressure_recipe,
                 units=us["density"] * us["velocity"] ** 2,
-                dimensions=dimensions.density * dimensions.velocity ** 2,
+                dimensions=dimensions.density * dimensions.velocity**2,
                 sampling_type="cell",
             )
 

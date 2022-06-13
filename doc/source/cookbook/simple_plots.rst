@@ -33,6 +33,14 @@ See :ref:`projection-plots` for more information.
 
 .. yt_cookbook:: simple_projection_weighted.py
 
+Simple Projections (Methods)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+And here we illustrate different methods for projection plots (integrate,
+minimum, maximum).
+
+.. yt_cookbook:: simple_projection_methods.py
+
 Simple Phase Plots
 ~~~~~~~~~~~~~~~~~~
 

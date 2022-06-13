@@ -16,7 +16,6 @@ linux|Linux)
 osx|macOS)
     sudo mkdir -p /usr/local/man
     sudo chown -R "${USER}:admin" /usr/local/man
-    brew update
     HOMEBREW_NO_AUTO_UPDATE=1 brew install hdf5 proj geos open-mpi netcdf ccache osxfuse
     ;;
 esac
@@ -37,23 +36,13 @@ if [[ "${RUNNER_OS}" == "Windows" ]] && [[ ${dependencies} != "minimal" ]]; then
 else
     python -m pip install --upgrade pip
     python -m pip install --upgrade wheel
-
-    # // band aid
-    # TODO: revert https://github.com/yt-project/yt/pull/3733
-    # when the following upstream PR is released
-    # https://github.com/mpi4py/mpi4py/issues/160
-
-    # workaround taken from
-    # https://github.com/mpi4py/mpi4py/issues/157#issuecomment-1001022274
-    export SETUPTOOLS_USE_DISTUTILS=stdlib
-    python -m pip install mpi4py
-    # // end band aid
-
     python -m pip install --upgrade setuptools
 fi
 
 # Step 2: install deps and yt
 if [[ ${dependencies} == "minimal" ]]; then
+    # installing in editable mode so this script may be used locally by developers
+    # but the primary intention is to embed this script in CI jobs
     python -m pip install -e .[test,minimal]
 else
     # Cython and numpy are build-time requirements to the following optional deps in yt

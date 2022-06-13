@@ -16,7 +16,7 @@ cimport numpy as np
 from cython.operator cimport dereference as deref, preincrement as inc
 from libc.stdlib cimport abs, free, malloc
 
-from yt.utilities.lib.fp_utils cimport fmax
+from yt.utilities.lib.fp_utils cimport fmax, fmin
 
 from yt.utilities.exceptions import YTIntDomainOverflow
 
@@ -49,6 +49,19 @@ cdef void QTN_max_value(QuadTreeNode *self,
     cdef int i
     for i in range(nvals):
         self.val[i] = fmax(val[i], self.val[i])
+    self.weight_val = 1.0
+
+cdef void QTN_min_value(QuadTreeNode *self,
+        np.float64_t *val, np.float64_t weight_val,
+        int nvals):
+    cdef int i
+    #cdef np.float64_t *big_num = 1.0
+    #big_num = 1.0 #1e10
+    for i in range(nvals):
+        if self.val[i] == 0:
+          self.val[i] = 1e50
+        # end if
+        self.val[i] = fmin(val[i], self.val[i])
     self.weight_val = 1.0
 
 cdef void QTN_refine(QuadTreeNode *self, int nvals):
@@ -108,10 +121,13 @@ cdef class QuadTree:
                   int nvals, bounds, method = "integrate"):
         if method == "integrate":
             self.combine = QTN_add_value
-        elif method == "mip":
+        elif method == "mip" or \
+             method == "max":
             self.combine = QTN_max_value
+        elif method == "min":
+            self.combine = QTN_min_value
         else:
-            raise NotImplementedError
+            raise NotImplementedError(f"Unknown projection method {self.method!r}")
         self.merged = 1
         self.max_level = 0
         cdef int i, j
@@ -202,8 +218,10 @@ cdef class QuadTree:
                          np.ndarray[np.float64_t, ndim=2] values,
                          np.ndarray[np.float64_t, ndim=1] wval,
                          method):
-        if method == "mip" or method == -1:
+        if method == "mip" or method == "max" or method == -1:
             self.merged = -1
+        if method == "min" or method == -2:
+            self.merged = -2
         elif method == "integrate" or method == 1:
             self.merged = 1
         cdef int curpos = 0
@@ -406,6 +424,9 @@ cdef class QuadTree:
             if self.merged == -1:
                 for i in range(self.nvals):
                     vdata[self.nvals * curpos + i] = fmax(node.val[i], vtoadd[i])
+            elif self.merged == -2:
+                for i in range(self.nvals):
+                    vdata[self.nvals * curpos + i] = fmin(node.val[i], vtoadd[i])
                 wdata[curpos] = 1.0
             else:
                 for i in range(self.nvals):
@@ -424,7 +445,7 @@ cdef class QuadTree:
                 vorig[i] = vtoadd[i]
                 vtoadd[i] += node.val[i]
             wtoadd += node.weight_val
-        elif self.merged == -1:
+        elif self.merged == -1 or self.merged == -2:
             for i in range(self.nvals):
                 vtoadd[i] = node.val[i]
         for i in range(2):
@@ -567,6 +588,9 @@ def merge_quadtrees(QuadTree qt1, QuadTree qt2, method = 1):
     elif method == -1:
         qt1.merged = -1
         func = QTN_max_value
+    elif method == -2:
+        qt1.merged = -2
+        func = QTN_min_value
     else:
         raise NotImplementedError
     if qt1.merged != 0 or qt2.merged != 0:

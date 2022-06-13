@@ -24,9 +24,6 @@ class CM1Grid(AMRGridPatch):
         self.Level = level
         self.ActiveDimensions = dimensions
 
-    def __repr__(self):
-        return f"CM1Grid_{self.id:d} ({self.ActiveDimensions})"
-
 
 class CM1Hierarchy(GridIndex):
     grid = CM1Grid
@@ -90,7 +87,6 @@ class CM1Dataset(Dataset):
             unit_system=unit_system,
         )
         self.storage_filename = storage_filename
-        self.filename = filename
 
     def _setup_coordinate_handler(self):
         # ensure correct ordering of axes so plots aren't rotated (z should always be

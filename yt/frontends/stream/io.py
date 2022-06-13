@@ -8,7 +8,7 @@ from yt.utilities.logger import ytLogger as mylog
 class IOHandlerStream(BaseIOHandler):
 
     _dataset_type = "stream"
-    _vector_fields = ("particle_velocity", "particle_position")
+    _vector_fields = {"particle_velocity": 3, "particle_position": 3}
 
     def __init__(self, ds):
         self.fields = ds.stream_handler.fields
@@ -59,7 +59,10 @@ class IOHandlerStream(BaseIOHandler):
                     if (ptype, "particle_position") in gf:
                         x, y, z = gf[ptype, "particle_position"].T
                     else:
-                        x, y, z = (gf[ptype, f"particle_position_{ax}"] for ax in "xyz")
+                        x, y, z = (
+                            gf[ptype, f"particle_position_{ax}"]
+                            for ax in self.ds.coordinates.axis_order
+                        )
                     yield ptype, (x, y, z), 0.0
 
     def _read_particle_fields(self, chunks, ptf, selector):
@@ -73,7 +76,10 @@ class IOHandlerStream(BaseIOHandler):
                     if (ptype, "particle_position") in gf:
                         x, y, z = gf[ptype, "particle_position"].T
                     else:
-                        x, y, z = (gf[ptype, f"particle_position_{ax}"] for ax in "xyz")
+                        x, y, z = (
+                            gf[ptype, f"particle_position_{ax}"]
+                            for ax in self.ds.coordinates.axis_order
+                        )
                     mask = selector.select_points(x, y, z, 0.0)
                     if mask is None:
                         continue
@@ -87,10 +93,8 @@ class IOHandlerStream(BaseIOHandler):
 
 
 class StreamParticleIOHandler(BaseParticleIOHandler):
-
-    _vector_fields = ("particle_position", "particle_velocity")
     _dataset_type = "stream_particles"
-    _vector_fields = ("particle_velocity", "particle_position")
+    _vector_fields = {"particle_velocity": 3, "particle_position": 3}
 
     def __init__(self, ds):
         self.fields = ds.stream_handler.fields
@@ -122,15 +126,6 @@ class StreamParticleIOHandler(BaseParticleIOHandler):
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         return data_files
-
-    def _count_particles_chunks(self, psize, chunks, ptf, selector):
-        for ptype, (x, y, z), _ in self._read_particle_coords(chunks, ptf):
-            if (ptype, "smoothing_length") in self.ds.field_list:
-                hsml = self._read_smoothing_length(chunks, ptf, ptype)
-            else:
-                hsml = 0.0
-            psize[ptype] += selector.count_points(x, y, z, hsml)
-        return psize
 
     def _read_particle_data_file(self, data_file, ptf, selector=None):
 
@@ -214,7 +209,7 @@ class StreamParticleIOHandler(BaseParticleIOHandler):
 
 class IOHandlerStreamHexahedral(BaseIOHandler):
     _dataset_type = "stream_hexahedral"
-    _vector_fields = ("particle_velocity", "particle_position")
+    _vector_fields = {"particle_velocity": 3, "particle_position": 3}
 
     def __init__(self, ds):
         self.fields = ds.stream_handler.fields
@@ -249,7 +244,7 @@ class IOHandlerStreamHexahedral(BaseIOHandler):
 
 class IOHandlerStreamOctree(BaseIOHandler):
     _dataset_type = "stream_octree"
-    _vector_fields = ("particle_velocity", "particle_position")
+    _vector_fields = {"particle_velocity": 3, "particle_position": 3}
 
     def __init__(self, ds):
         self.fields = ds.stream_handler.fields

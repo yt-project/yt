@@ -3,7 +3,7 @@ from yt.utilities.answer_testing.level_sets_tests import ExtractConnectedSetsTes
 
 
 def test_connected_sets():
-    ds = fake_random_ds(16, nprocs=8, particles=16 ** 3)
+    ds = fake_random_ds(16, nprocs=8, particles=16**3)
     data_source = ds.disk([0.5, 0.5, 0.5], [0.0, 0.0, 1.0], (8, "kpc"), (1, "kpc"))
     field = ("gas", "density")
     min_val, max_val = data_source[field].min() / 2, data_source[field].max() / 2

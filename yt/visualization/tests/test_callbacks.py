@@ -15,13 +15,19 @@ from yt.testing import (
     fake_tetrahedral_ds,
     requires_file,
 )
+from yt.utilities.answer_testing.framework import (
+    PlotWindowAttributeTest,
+    data_dir_load,
+    requires_ds,
+)
 from yt.utilities.exceptions import YTDataTypeUnsupported, YTPlotCallbackError
 from yt.visualization.api import OffAxisSlicePlot, ProjectionPlot, SlicePlot
 from yt.visualization.plot_container import accepts_all_fields
 
 # These are a very simple set of tests that verify that each callback is or is
 # not working.  They only check that it functions without an error; they do not
-# check that it is providing correct results.
+# check that it is providing correct results. Note that test_axis_manipulations
+# is one exception, which is a full answer test.
 
 # These are the callbacks still to test:
 #
@@ -50,6 +56,8 @@ from yt.visualization.plot_container import accepts_all_fields
 #    material_boundary
 #  X ray
 #  X line_integral_convolution
+#
+#  X flip_horizontal, flip_vertical, swap_axes (all in test_axis_manipulations)
 
 # cylindrical data for callback test
 cyl_2d = "WDMerger_hdf5_chk_1000/WDMerger_hdf5_chk_1000.hdf5"
@@ -61,6 +69,25 @@ def _cleanup_fname():
     tmpdir = tempfile.mkdtemp()
     yield tmpdir
     shutil.rmtree(tmpdir)
+
+
+def check_axis_manipulation(plot_obj, prefix):
+    # convenience function for testing functionality of axis manipulation
+    # callbacks. Can use in any of the other test functions.
+
+    # test individual callbacks
+    for cb in ("swap_axes", "flip_horizontal", "flip_vertical"):
+        callback_handle = getattr(plot_obj, cb)
+        callback_handle()  # toggles on for axis operation
+        assert_fname(plot_obj.save(prefix)[0])
+        callback_handle()  # toggle off
+
+    # test all at once
+    for cb in ("swap_axes", "flip_horizontal", "flip_vertical"):
+        callback_handle = getattr(plot_obj, cb)
+        callback_handle()
+
+    assert_fname(plot_obj.save(prefix)[0])
 
 
 def test_timestamp_callback():
@@ -89,6 +116,15 @@ def test_timestamp_callback():
         assert_raises(YTDataTypeUnsupported, p.save, prefix)
         p = ProjectionPlot(ds, "r", ("gas", "density"))
         p.annotate_timestamp(coord_system="axis")
+        assert_fname(p.save(prefix)[0])
+
+
+def test_timestamp_callback_code_units():
+    # see https://github.com/yt-project/yt/issues/3869
+    with _cleanup_fname() as prefix:
+        ds = fake_random_ds(2, unit_system="code")
+        p = SlicePlot(ds, "z", ("gas", "density"))
+        p.annotate_timestamp()
         assert_fname(p.save(prefix)[0])
 
 
@@ -153,6 +189,7 @@ def test_line_callback():
             [0.1, 0.1], [0.5, 0.5], coord_system="axis", plot_args={"color": "red"}
         )
         p.save(prefix)
+        check_axis_manipulation(p, prefix)
 
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields=("density",), units=("g/cm**3",), geometry="spherical")
@@ -188,6 +225,7 @@ def test_ray_callback():
         p.annotate_ray(oray)
         p.annotate_ray(ray, plot_args={"color": "red"})
         p.save(prefix)
+        check_axis_manipulation(p, prefix)
 
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields=("density",), units=("g/cm**3",), geometry="spherical")
@@ -236,6 +274,7 @@ def test_arrow_callback():
             [[0.5, 0.6, 0.8], [0.5, 0.6, 0.8]], coord_system="plot", length=0.05
         )
         p.save(prefix)
+        check_axis_manipulation(p, prefix)
 
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields=("density",), units=("g/cm**3",), geometry="spherical")
@@ -275,6 +314,7 @@ def test_marker_callback():
         p.annotate_marker([[0.5, 0.6, 0.8], [0.5, 0.6, 0.8]], coord_system="figure")
         p.annotate_marker([[0.5, 0.6, 0.8], [0.5, 0.6, 0.8]], coord_system="plot")
         p.save(prefix)
+        check_axis_manipulation(p, prefix)
 
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields=("density",), units=("g/cm**3",), geometry="spherical")
@@ -310,6 +350,7 @@ def test_particles_callback():
             data_source=ad,
         )
         p.save(prefix)
+        check_axis_manipulation(p, prefix)
 
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields=("density",), units=("g/cm**3",), geometry="spherical")
@@ -492,6 +533,7 @@ def test_magnetic_callback():
             slc = ProjectionPlot(ds, ax, ("gas", "magnetic_field_strength"))
             slc.annotate_magnetic_field()
             assert_fname(slc.save(prefix)[0])
+        check_axis_manipulation(slc, prefix)  # only test the last axis
 
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(
@@ -549,6 +591,7 @@ def test_quiver_callback():
             bv_y=0.5 * u.cm / u.s,
         )
         assert_fname(p.save(prefix)[0])
+        check_axis_manipulation(p, prefix)
 
     with _cleanup_fname() as prefix:
         ds = load(cyl_2d)
@@ -649,6 +692,7 @@ def test_contour_callback():
             text_args={"fmt": "%1.1f"},
         )
         assert_fname(slc.save(prefix)[0])
+        check_axis_manipulation(slc, prefix)
 
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(
@@ -706,6 +750,7 @@ def test_grids_callback():
         slc = SlicePlot(ds, "theta", ("gas", "density"))
         slc.annotate_grids()
         assert_fname(slc.save(prefix)[0])
+        check_axis_manipulation(slc, prefix)
 
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields=("density",), units=("g/cm**3",), geometry="spherical")
@@ -744,6 +789,7 @@ def test_cell_edges_callback():
         p = SlicePlot(ds, "x", ("gas", "density"))
         p.annotate_cell_edges(alpha=0.7, line_width=0.9, color=(0.0, 1.0, 1.0))
         p.save(prefix)
+        check_axis_manipulation(p, prefix)
 
     with _cleanup_fname() as prefix:
         ds = load(cyl_2d)
@@ -772,6 +818,7 @@ def test_mesh_lines_callback():
             sl = SlicePlot(ds, 1, field)
             sl.annotate_mesh_lines(plot_args={"color": "black"})
             assert_fname(sl.save(prefix)[0])
+        check_axis_manipulation(sl, prefix)  # only test the final field
 
 
 @requires_file(cyl_2d)
@@ -816,6 +863,7 @@ def test_streamline_callback():
                 field_color=("stream", "magvel"),
             )
             assert_fname(p.save(prefix)[0])
+            check_axis_manipulation(p, prefix)
 
             p = SlicePlot(ds, ax, ("gas", "density"))
             p.annotate_streamlines(
@@ -930,6 +978,7 @@ def test_line_integral_convolution_callback():
             ("gas", "magnetic_field_r"), ("gas", "magnetic_field_z")
         )
         assert_fname(slc.save(prefix)[0])
+        check_axis_manipulation(slc, prefix)
 
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(
@@ -970,3 +1019,50 @@ def test_accepts_all_fields_decorator():
     # test using "all" as a field
     plot = set_fake_field_attribute(plot, field="all", value=2)
     assert_array_equal(list(plot.fake_attr.values()), [2] * 4)
+
+
+M7 = "DD0010/moving7_0010"
+
+
+@requires_ds(M7)
+def test_axis_manipulations():
+    # tests flip_horizontal, flip_vertical and swap_axes in different combinations
+    # on a SlicePlot with a velocity callback.
+    plot_field = ("gas", "density")
+    decimals = 12
+    ds = data_dir_load(M7)
+
+    def simple_velocity(test_obj, plot):
+        # test_obj: the active PlotWindowAttributeTest
+        # plot: the actual PlotWindow
+        plot.annotate_velocity()
+
+    def swap_axes(test_obj, plot):
+        plot.swap_axes()
+
+    def flip_horizontal(test_obj, plot):
+        plot.flip_horizontal()
+
+    def flip_vertical(test_obj, plot):
+        plot.flip_vertical()
+
+    callback_tests = (
+        ("flip_horizontal", (simple_velocity, flip_horizontal)),
+        ("flip_vertical", (simple_velocity, flip_vertical)),
+        ("swap_axes", (simple_velocity, swap_axes)),
+        ("flip_and_swap", (simple_velocity, flip_vertical, flip_horizontal, swap_axes)),
+    )
+
+    for n, r in callback_tests:
+        test = PlotWindowAttributeTest(
+            ds,
+            plot_field,
+            "x",
+            attr_name=None,
+            attr_args=None,
+            decimals=decimals,
+            callback_id=n,
+            callback_runners=r,
+        )
+        test_axis_manipulations.__name__ = test.description
+        yield test

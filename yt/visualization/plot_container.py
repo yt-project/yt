@@ -21,65 +21,18 @@ from yt.units.unit_object import Unit  # type: ignore
 from yt.utilities.definitions import formatted_length_unit_names
 from yt.utilities.exceptions import YTNotInsideNotebook
 
-from ._commons import DEFAULT_FONT_PROPERTIES, validate_image_name
+from ._commons import (
+    DEFAULT_FONT_PROPERTIES,
+    invalidate_data,
+    invalidate_figure,
+    invalidate_plot,
+    validate_image_name,
+    validate_plot,
+)
 
 latex_prefixes = {
     "u": r"\mu",
 }
-
-
-def invalidate_data(f):
-    @wraps(f)
-    def newfunc(*args, **kwargs):
-        rv = f(*args, **kwargs)
-        args[0]._data_valid = False
-        args[0]._plot_valid = False
-        return rv
-
-    return newfunc
-
-
-def invalidate_figure(f):
-    @wraps(f)
-    def newfunc(*args, **kwargs):
-        rv = f(*args, **kwargs)
-        for field in args[0].plots.keys():
-            args[0].plots[field].figure = None
-            args[0].plots[field].axes = None
-            args[0].plots[field].cax = None
-        args[0]._setup_plots()
-        return rv
-
-    return newfunc
-
-
-def invalidate_plot(f):
-    @wraps(f)
-    def newfunc(*args, **kwargs):
-        rv = f(*args, **kwargs)
-        args[0]._plot_valid = False
-        return rv
-
-    return newfunc
-
-
-def validate_plot(f):
-    @wraps(f)
-    def newfunc(*args, **kwargs):
-        if hasattr(args[0], "_data_valid"):
-            if not args[0]._data_valid:
-                args[0]._recreate_frb()
-        if hasattr(args[0], "_profile_valid"):
-            if not args[0]._profile_valid:
-                args[0]._recreate_profile()
-        if not args[0]._plot_valid:
-            # it is the responsibility of _setup_plots to
-            # call args[0].run_callbacks()
-            args[0]._setup_plots()
-        rv = f(*args, **kwargs)
-        return rv
-
-    return newfunc
 
 
 def apply_callback(f):
@@ -124,17 +77,17 @@ def get_log_minorticks(vmin, vmax):
     """
     expA = np.floor(np.log10(vmin))
     expB = np.floor(np.log10(vmax))
-    cofA = np.ceil(vmin / 10 ** expA).astype("int64")
-    cofB = np.floor(vmax / 10 ** expB).astype("int64")
+    cofA = np.ceil(vmin / 10**expA).astype("int64")
+    cofB = np.floor(vmax / 10**expB).astype("int64")
     lmticks = []
-    while cofA * 10 ** expA <= cofB * 10 ** expB:
+    while cofA * 10**expA <= cofB * 10**expB:
         if expA < expB:
-            lmticks = np.hstack((lmticks, np.linspace(cofA, 9, 10 - cofA) * 10 ** expA))
+            lmticks = np.hstack((lmticks, np.linspace(cofA, 9, 10 - cofA) * 10**expA))
             cofA = 1
             expA += 1
         else:
             lmticks = np.hstack(
-                (lmticks, np.linspace(cofA, cofB, cofB - cofA + 1) * 10 ** expA)
+                (lmticks, np.linspace(cofA, cofB, cofB - cofA + 1) * 10**expA)
             )
             expA += 1
     return np.array(lmticks)
@@ -373,6 +326,7 @@ class PlotContainer(abc.ABC):
             ts = DatasetSeries(ts)
         return ts
 
+    @invalidate_data
     def _switch_ds(self, new_ds, data_source=None):
         old_object = self.data_source
         name = old_object._type_name
@@ -399,7 +353,6 @@ class PlotContainer(abc.ABC):
             new_object = getattr(new_ds, name)(**kwargs)
 
         self.data_source = new_object
-        self._data_valid = self._plot_valid = False
 
         for d in "xyz":
             lim_name = d + "lim"

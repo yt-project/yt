@@ -48,7 +48,7 @@ class ParticleIndex(Index):
     @property
     def chunksize(self):
         # This can be overridden in subclasses
-        return 64 ** 3
+        return 64**3
 
     _data_files = None
 
@@ -89,12 +89,19 @@ class ParticleIndex(Index):
             else:
                 end = None
             while True:
-                df = cls(self.dataset, self.io, template % {"num": i}, fi, (start, end))
+                try:
+                    _filename = template % {"num": i}
+                    df = cls(self.dataset, self.io, _filename, fi, (start, end))
+                except FileNotFoundError:
+                    mylog.warning(
+                        "Failed to load '%s' (missing file or directory)", _filename
+                    )
+                    break
                 if max(df.total_particles.values()) == 0:
                     break
                 fi += 1
                 self.data_files.append(df)
-                if self.chunksize <= 0:
+                if end is None:
                     break
                 start = end
                 end += self.chunksize

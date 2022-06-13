@@ -14,7 +14,7 @@ from yt.utilities.physical_constants import mu_0, speed_of_light
 def setup_poynting_vector(self):
     def _get_poyn(axis):
         def poynting(field, data):
-            u = mu_0 ** -1
+            u = mu_0**-1
             if axis in "x":
                 return u * (
                     data[("openPMD", "E_y")] * data[("gas", "magnetic_field_z")]
@@ -51,8 +51,8 @@ def setup_kinetic_energy(self, ptype):
         )
         mass = data[ptype, "particle_mass"] * data[ptype, "particle_weighting"]
         return (
-            speed_of_light * np.sqrt(p2 + mass ** 2 * speed_of_light ** 2)
-            - mass * speed_of_light ** 2
+            speed_of_light * np.sqrt(p2 + mass**2 * speed_of_light**2)
+            - mass * speed_of_light**2
         )
 
     self.add_field(
@@ -71,7 +71,7 @@ def setup_velocity(self, ptype):
             mass = data[ptype, "particle_mass"]
             weighting = data[ptype, "particle_weighting"]
             return momentum / np.sqrt(
-                (mass * weighting) ** 2 + (momentum ** 2) / (c ** 2)
+                (mass * weighting) ** 2 + (momentum**2) / (c**2)
             )
 
         return velocity

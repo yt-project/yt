@@ -13,7 +13,7 @@ from yt.utilities.logger import ytLogger as mylog
 
 class IOHandlerTipsyBinary(IOHandlerSPH):
     _dataset_type = "tipsy"
-    _vector_fields = ("Coordinates", "Velocity", "Velocities")
+    _vector_fields = {"Coordinates": 3, "Velocity": 3, "Velocities": 3}
 
     _pdtypes = None  # dtypes, to be filled in later
     _aux_pdtypes = None  # auxiliary files' dtypes
@@ -238,7 +238,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
         #  Because this value is not propagated later on, and does not
         #  impact the construction of the bitmap indices, it should be
         #  acceptable to just use a reasonable number here.
-        chunksize = 64 ** 3
+        chunksize = 64**3
         # Check to make sure that the domain hasn't already been set
         # by the parameter file
         if np.all(np.isfinite(ds.domain_left_edge)) and np.all(

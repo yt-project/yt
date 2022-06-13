@@ -4,12 +4,16 @@ name: CI (bleeding edge)
 
 # goals: check stability against
 # - dev version of Python, numpy, and matplotlib
+# - pytest pre-releases
 # - building with future pip default options
 
 on:
   push:
     branches:
       - main
+  pull_request:
+    paths:
+      - .github/workflows/bleeding-edge.yaml
   schedule:
     # run this every day at 3 am UTC
     - cron: '0 3 * * *'
@@ -18,21 +22,25 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    name: Python3.10-dev
+    name: "tests with bleeding-edge crucial deps"
     timeout-minutes: 60
 
     concurrency:
-      group: ${{ github.ref }}-dev
+      # auto-cancel any in-progress job *on the same branch*
+      group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
 
     steps:
-    - uses: actions/checkout@v2
-      with:
-        fetch-depth: 0
+    - name: Checkout repo
+      uses: actions/checkout@v3
 
-    - name: Set up Python Dev Version
-      uses: actions/setup-python@v2
+    - name: Set up Python (newest testable version)
+      uses: actions/setup-python@v3
       with:
+        # the '-dev' suffix allows to use alphas and betas if no final release is available yet
+        # this version should be upgraded as often as possible, typically once a year when numpy
+        # and Cython are known to be compatible
+        # for next update (to '3.11-dev', 2022), see https://github.com/numpy/numpy/pull/21308
         python-version: '3.10-dev'
 
     - name: Install dependencies
@@ -42,8 +50,9 @@ jobs:
         python -m pip install git+https://github.com/numpy/numpy.git
         python -m pip install git+https://github.com/matplotlib/matplotlib.git
         python -m pip install cython
+        python -m pip install --upgrade --pre pytest
 
-    - name: Build yt
+    - name: Build
       # --no-build-isolation is used to guarantee that build time dependencies
       # are not installed by pip as specified from pyproject.toml, hence we get
       # to use the dev version of numpy at build time.

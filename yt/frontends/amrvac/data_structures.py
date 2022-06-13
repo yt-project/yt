@@ -55,9 +55,6 @@ class AMRVACGrid(AMRGridPatch):
         self.Children = []
         self.Level = level
 
-    def __repr__(self):
-        return "AMRVACGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
-
     def get_global_startindex(self):
         """Refresh and retrieve the starting index for each dimension at current level.
 
@@ -136,7 +133,7 @@ class AMRVACHierarchy(GridIndex):
 
         self.grids = np.empty(self.num_grids, dtype="object")
         for igrid, (ytlevel, morton_index) in enumerate(zip(ytlevels, morton_indices)):
-            dx = dx0 / self.dataset.refine_by ** ytlevel
+            dx = dx0 / self.dataset.refine_by**ytlevel
             left_edge = xmin + (morton_index - 1) * block_nx * dx
 
             # edges and dimensions are filled in a dimensionality-agnostic way
@@ -246,7 +243,7 @@ class AMRVACDataset(Dataset):
             c_adiab *= (
                 self.mass_unit ** (1 - self.gamma)
                 * self.length_unit ** (2 + 3 * (self.gamma - 1))
-                / self.time_unit ** 2
+                / self.time_unit**2
             )
 
         self.namelist = namelist
@@ -415,7 +412,7 @@ class AMRVACDataset(Dataset):
         if "mass_unit" in self.units_override:
             # in this case unit_mass is supplied (and has been set as attribute)
             mass_unit = self.mass_unit
-            density_unit = mass_unit / length_unit ** 3
+            density_unit = mass_unit / length_unit**3
             nd_unit = density_unit / ((1.0 + 4.0 * He_abundance) * mp_cgs)
         else:
             # other case: numberdensity is supplied.
@@ -427,7 +424,7 @@ class AMRVACDataset(Dataset):
                     1.0, self.__class__.default_units["numberdensity_unit"]
                 )
             density_unit = (1.0 + 4.0 * He_abundance) * mp_cgs * nd_unit
-            mass_unit = density_unit * length_unit ** 3
+            mass_unit = density_unit * length_unit**3
 
         # 2. calculations for velocity
         if "time_unit" in self.units_override:
@@ -449,7 +446,7 @@ class AMRVACDataset(Dataset):
             velocity_unit = (np.sqrt(pressure_unit / density_unit)).in_cgs()
         else:
             # velocity is not zero if either time was given OR velocity was given
-            pressure_unit = (density_unit * velocity_unit ** 2).in_cgs()
+            pressure_unit = (density_unit * velocity_unit**2).in_cgs()
             temperature_unit = (
                 pressure_unit / ((2.0 + 3.0 * He_abundance) * nd_unit * kb_cgs)
             ).in_cgs()

@@ -70,7 +70,7 @@ def get_root_blocks(block, min_dim=3):
         if myb == "":
             continue
         s = get_block_level(myb)
-        nb[i] = 2 ** s
+        nb[i] = 2**s
     return nb
 
 
@@ -121,3 +121,14 @@ def nested_dict_get(pdict, keys, default=None):
         except KeyError:
             return default
     return val
+
+
+def get_particle_mass_correction(ds):
+    """
+    Normalize particle masses by the root grid cell volume.
+
+    This correction is used for Enzo-E datasets where particle
+    masses are stored as densities.
+    """
+
+    return (ds.domain_width / ds.domain_dimensions).prod() / ds.length_unit**3

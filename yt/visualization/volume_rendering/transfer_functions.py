@@ -167,9 +167,9 @@ class TransferFunction:
         nu = nu[::-1]
 
         for i, logT in enumerate(self.x):
-            T = 10 ** logT
+            T = 10**logT
             # Black body at this nu, T
-            Bnu = ((2.0 * hcgs * nu ** 3) / clight ** 2.0) / (
+            Bnu = ((2.0 * hcgs * nu**3) / clight**2.0) / (
                 np.exp(hcgs * nu / (kboltz * T)) - 1.0
             )
             # transmission
@@ -605,7 +605,9 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         ax.set_ylabel("Opacity")
         ax.set_xlabel("Value")
 
-    def vert_cbar(self, resolution, log_scale, ax, label=None, label_fmt=None):
+    def vert_cbar(
+        self, resolution, log_scale, ax, label=None, label_fmt=None, *, size=10
+    ):
         r"""Display an image of the transfer function
 
         This function loads up matplotlib and displays the current transfer function.
@@ -659,13 +661,13 @@ class ColorTransferFunction(MultiVariateTransferFunction):
                 + self.alpha.x[0]
             )
             if log_scale:
-                val = 10 ** val
+                val = 10**val
             if label_fmt is None:
                 if abs(val) < 1.0e-3 or abs(val) > 1.0e4:
                     if not val == 0.0:
                         e = np.floor(np.log10(abs(val)))
                         return r"${:.2f}\times 10^{{ {:d} }}$".format(
-                            val / 10.0 ** e, int(e)
+                            val / 10.0**e, int(e)
                         )
                     else:
                         return r"$0$"
@@ -688,7 +690,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         ax.get_xaxis().set_ticks([])
         ax.set_ylim(visible[0], visible[-1])
         ax.tick_params(axis="y", colors="white", size=10)
-        ax.set_ylabel(label, color="white", size=10 * resolution / 512.0)
+        ax.set_ylabel(label, color="white", size=size * resolution / 512.0)
 
     def sample_colormap(self, v, w, alpha=None, colormap="gist_stern", col_bounds=None):
         r"""Add a Gaussian based on an existing colormap.
@@ -933,7 +935,9 @@ class ProjectionTransferFunction(MultiVariateTransferFunction):
 
     def __init__(self, x_bounds=(-1e60, 1e60), n_fields=1):
         if n_fields > 3:
-            raise NotImplementedError
+            raise NotImplementedError(
+                f"supplied ${n_fields} but n_fields > 3 not implemented."
+            )
         MultiVariateTransferFunction.__init__(self)
         # Strip units off of x_bounds, if any
         x_bounds = [np.float64(xb) for xb in x_bounds]

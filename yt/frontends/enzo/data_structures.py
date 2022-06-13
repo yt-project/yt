@@ -54,9 +54,6 @@ class EnzoGrid(AMRGridPatch):
             self.filename = os.path.join(self.index.directory, filename)
         return
 
-    def __repr__(self):
-        return "EnzoGrid_%04i" % (self.id)
-
     @property
     def Parent(self):
         if self._parent_id == -1:
@@ -960,12 +957,12 @@ class EnzoDataset(Dataset):
         else:
             if "LengthUnits" in self.parameters:
                 length_unit = self.parameters["LengthUnits"]
-                mass_unit = self.parameters["DensityUnits"] * length_unit ** 3
+                mass_unit = self.parameters["DensityUnits"] * length_unit**3
                 time_unit = self.parameters["TimeUnits"]
             elif "SimulationControl" in self.parameters:
                 units = self.parameters["SimulationControl"]["Units"]
                 length_unit = units["Length"]
-                mass_unit = units["Density"] * length_unit ** 3
+                mass_unit = units["Density"] * length_unit**3
                 time_unit = units["Time"]
             else:
                 mylog.warning("Setting 1.0 in code units to be 1.0 cm")
@@ -977,7 +974,7 @@ class EnzoDataset(Dataset):
             setdefaultattr(self, "time_unit", self.quan(time_unit, "s"))
             setdefaultattr(self, "velocity_unit", self.length_unit / self.time_unit)
 
-        density_unit = self.mass_unit / self.length_unit ** 3
+        density_unit = self.mass_unit / self.length_unit**3
         magnetic_unit = np.sqrt(4 * np.pi * density_unit) * self.velocity_unit
         magnetic_unit = np.float64(magnetic_unit.in_cgs())
         setdefaultattr(self, "magnetic_unit", self.quan(magnetic_unit, "gauss"))
@@ -1003,11 +1000,6 @@ class EnzoDataset(Dataset):
 class EnzoDatasetInMemory(EnzoDataset):
     _index_class = EnzoHierarchyInMemory
     _dataset_type = "enzo_inline"
-
-    def __new__(cls, *args, **kwargs):
-        obj = object.__new__(cls)
-        obj.__init__(*args, **kwargs)
-        return obj
 
     def __init__(self, parameter_override=None, conversion_override=None):
         self.fluid_types += ("enzo",)

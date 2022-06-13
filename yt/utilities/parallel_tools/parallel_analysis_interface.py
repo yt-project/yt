@@ -681,8 +681,6 @@ class CommunicationSystem:
         return new_comm
 
     def _update_parallel_state(self, new_comm):
-        from yt.config import ytcfg
-
         ytcfg["yt", "internals", "topcomm_parallel_size"] = new_comm.size
         ytcfg["yt", "internals", "topcomm_parallel_rank"] = new_comm.rank
         if new_comm.rank > 0 and ytcfg.get("yt", "serialize"):
@@ -1304,7 +1302,7 @@ class ParallelAnalysisInterface:
             if n == 1:
                 return [1]
             i = 2
-            limit = n ** 0.5
+            limit = n**0.5
             while i <= limit:
                 if n % i == 0:
                     ret = factor(n / i)

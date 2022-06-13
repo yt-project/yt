@@ -125,7 +125,7 @@ class WarpXFieldInfo(FieldInfoContainer):
                 + data[ptype, "particle_momentum_y"] ** 2
                 + data[ptype, "particle_momentum_z"] ** 2
             )
-            return np.sqrt(p2 * c ** 2 + data[ptype, "particle_mass"] ** 2 * c ** 4)
+            return np.sqrt(p2 * c**2 + data[ptype, "particle_mass"] ** 2 * c**4)
 
         self.add_field(
             (ptype, "particle_energy"),
@@ -136,21 +136,21 @@ class WarpXFieldInfo(FieldInfoContainer):
 
         def get_velocity_x(field, data):
             return (
-                c ** 2
+                c**2
                 * data[ptype, "particle_momentum_x"]
                 / data[ptype, "particle_energy"]
             )
 
         def get_velocity_y(field, data):
             return (
-                c ** 2
+                c**2
                 * data[ptype, "particle_momentum_y"]
                 / data[ptype, "particle_energy"]
             )
 
         def get_velocity_z(field, data):
             return (
-                c ** 2
+                c**2
                 * data[ptype, "particle_momentum_z"]
                 / data[ptype, "particle_energy"]
             )

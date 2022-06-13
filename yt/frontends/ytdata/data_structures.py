@@ -81,7 +81,9 @@ class SavedDataset(Dataset):
                 if cu not in self.unit_registry:
                     self.unit_registry.add(cu, 1.0, getattr(dimensions, dim))
             if "code_magnetic" not in self.unit_registry:
-                self.unit_registry.add("code_magnetic", 1.0, dimensions.magnetic_field)
+                self.unit_registry.add(
+                    "code_magnetic", 0.1**0.5, dimensions.magnetic_field_cgs
+                )
 
         # if saved, set unit system
         if "unit_system_name" in self.parameters:
@@ -573,9 +575,6 @@ class YTNonspatialGrid(AMRGridPatch):
         self.Level = 0
         self.LeftEdge = self.index.ds.domain_left_edge
         self.RightEdge = self.index.ds.domain_right_edge
-
-    def __repr__(self):
-        return "YTNonspatialGrid"
 
     def __getitem__(self, key):
         tr = super(AMRGridPatch, self).__getitem__(key)

@@ -44,7 +44,10 @@ class CallbackWrapper:
         self._axes = window_plot.axes
         self._figure = window_plot.figure
         if len(self._axes.images) > 0:
-            self.image = self._axes.images[0]
+            self.raw_image_shape = self._axes.images[0]._A.shape
+            if viewer._has_swapped_axes:
+                # store the original un-transposed shape
+                self.raw_image_shape = self.raw_image_shape[1], self.raw_image_shape[0]
         if frb.axis < 3:
             DD = frb.ds.domain_width
             xax = frb.ds.coordinates.x_axis[frb.axis]
@@ -53,6 +56,13 @@ class CallbackWrapper:
         self.ds = frb.ds
         self.xlim = viewer.xlim
         self.ylim = viewer.ylim
+        self._swap_axes = viewer._has_swapped_axes
+        self._flip_horizontal = viewer._flip_horizontal  # needed for quiver
+        self._flip_vertical = viewer._flip_vertical  # needed for quiver
+        # an important note on _swap_axes: _swap_axes will swap x,y arguments
+        # in callbacks (e.g., plt.plot(x,y) will be plt.plot(y, x). The xlim
+        # and ylim arguments above, and internal callback references to coordinates
+        # are the **unswapped** ranges.
         self._axes_unit_names = viewer._axes_unit_names
         if "OffAxisSlice" in viewer._plot_type:
             self._type_name = "CuttingPlane"
@@ -205,21 +215,36 @@ class ImagePlotMPL(PlotMPL):
             vmin=float(self.zmin) if self.zmin is not None else None,
             vmax=float(self.zmax) if self.zmax is not None else None,
         )
+
+        if MPL_VERSION < Version("3.2"):
+            # with MPL 3.1 we use np.inf as a mask instead of np.nan
+            # this is done in CoordinateHandler.sanitize_buffer_fill_values
+            # however masking with inf is problematic here when we search for the max value
+            # so here we revert to nan
+            # see https://github.com/yt-project/yt/pull/2517 and https://github.com/yt-project/yt/pull/3793
+            data[~np.isfinite(data)] = np.nan
+
         zmin = float(self.zmin) if self.zmin is not None else np.nanmin(data)
         zmax = float(self.zmax) if self.zmax is not None else np.nanmax(data)
 
         if cbnorm == "symlog":
             # if cblinthresh is not specified, try to come up with a reasonable default
-            min_abs_val = np.min(np.abs((zmin, zmax)))
-            if cblinthresh is None:
-                cblinthresh = np.nanmin(np.absolute(data)[data != 0])
-            elif zmin * zmax > 0 and cblinthresh < min_abs_val:
-                warnings.warn(
-                    f"Cannot set a symlog norm with linear threshold {cblinthresh} "
-                    f"lower than the minimal absolute data value {min_abs_val} . "
-                    "Switching to log norm."
-                )
-                cbnorm = "log10"
+            min_abs_val, max_abs_val = np.sort(
+                np.abs((np.nanmin(data), np.nanmax(data)))
+            )
+            if cblinthresh is not None:
+                if zmin * zmax > 0 and cblinthresh < min_abs_val:
+                    # see https://github.com/yt-project/yt/issues/3564
+                    warnings.warn(
+                        f"Cannot set a symlog norm with linear threshold {cblinthresh} "
+                        f"lower than the minimal absolute data value {min_abs_val} . "
+                        "Switching to log norm."
+                    )
+                    cbnorm = "log10"
+            elif min_abs_val > 0:
+                cblinthresh = min_abs_val
+            else:
+                cblinthresh = max_abs_val / 1000
 
         if cbnorm == "log10":
             cbnorm_cls = matplotlib.colors.LogNorm
@@ -298,7 +323,7 @@ class ImagePlotMPL(PlotMPL):
                     10
                     ** np.arange(
                         np.rint(np.log10(cblinthresh)),
-                        np.ceil(np.log10(zmax)),
+                        np.ceil(np.log10(1.1 * zmax)),
                     )
                 )
             elif zmax <= 0.0:
@@ -307,19 +332,16 @@ class ImagePlotMPL(PlotMPL):
                 else:
                     offset = 1
 
-                yticks = (
-                    list(
-                        -(
-                            10
-                            ** np.arange(
-                                np.floor(np.log10(-zmin)),
-                                np.rint(np.log10(cblinthresh)) - offset,
-                                -1,
-                            )
+                yticks = list(
+                    -(
+                        10
+                        ** np.arange(
+                            np.floor(np.log10(-zmin)),
+                            np.rint(np.log10(cblinthresh)) - offset,
+                            -1,
                         )
                     )
-                    + [zmax]
-                )
+                ) + [zmax]
             else:
                 yticks = (
                     list(
@@ -337,10 +359,12 @@ class ImagePlotMPL(PlotMPL):
                         10
                         ** np.arange(
                             np.rint(np.log10(cblinthresh)),
-                            np.ceil(np.log10(zmax)),
+                            np.ceil(np.log10(1.1 * zmax)),
                         )
                     )
                 )
+            if yticks[-1] > zmax:
+                yticks.pop()
             self.cb.set_ticks(yticks)
         else:
             self.cb = self.figure.colorbar(self.image, self.cax)

@@ -7,7 +7,6 @@ import numpy as np
 from yt.config import ytcfg
 from yt.data_objects.api import ImageArray
 from yt.funcs import ensure_numpy_array, get_num_threads, get_pbar, is_sequence, mylog
-from yt.geometry.geometry_handler import cached_property
 from yt.units.yt_array import YTArray
 from yt.utilities.amr_kdtree.api import AMRKDTree
 from yt.utilities.exceptions import YTNotInsideNotebook
@@ -726,7 +725,6 @@ class Camera(ParallelAnalysisInterface):
         image = self.finalize_image(image)
         return image
 
-    @cached_property
     def _pyplot(self):
         from matplotlib import pyplot
 
@@ -825,7 +823,7 @@ class Camera(ParallelAnalysisInterface):
             "north_vector": self.orienter.unit_vectors[1],
             "normal_vector": self.orienter.unit_vectors[2],
             "width": self.width,
-            "dataset": self.ds.fullpath,
+            "dataset": self.ds.directory,
         }
         return info_dict
 
@@ -1072,7 +1070,7 @@ class Camera(ParallelAnalysisInterface):
         R = get_rotation_matrix(theta, rot_vector)
 
         normal_vector = self.front_center - self.center
-        normal_vector = normal_vector / np.sqrt((normal_vector ** 2).sum())
+        normal_vector = normal_vector / np.sqrt((normal_vector**2).sum())
 
         if rotate_all:
             self.switch_view(
@@ -1415,7 +1413,7 @@ class PerspectiveCamera(Camera):
                 # boundary line
                 sight_length = np.sqrt(
                     self.width[0] ** 2 + self.width[1] ** 2
-                ) / np.sqrt(1 - sight_angle_cos ** 2)
+                ) / np.sqrt(1 - sight_angle_cos**2)
             pos1[i] = self.center + sight_length * sight_vector[i]
 
         dx = np.dot(pos1 - sight_center, self.orienter.unit_vectors[0])
@@ -1455,7 +1453,7 @@ class PerspectiveCamera(Camera):
         focal_point = np.dot(R, focal_point) + rot_center
 
         normal_vector = rot_center - focal_point
-        normal_vector = normal_vector / np.sqrt((normal_vector ** 2).sum())
+        normal_vector = normal_vector / np.sqrt((normal_vector**2).sum())
 
         self.switch_view(normal_vector=normal_vector, center=focal_point)
 
@@ -1503,11 +1501,11 @@ class HEALpixCamera(Camera):
         raise NotImplementedError
 
     def new_image(self):
-        image = np.zeros((12 * self.nside ** 2, 1, 4), dtype="float64", order="C")
+        image = np.zeros((12 * self.nside**2, 1, 4), dtype="float64", order="C")
         return image
 
     def get_sampler_args(self, image):
-        nv = 12 * self.nside ** 2
+        nv = 12 * self.nside**2
         vs = arr_pix2vec_nest(self.nside, np.arange(nv))
         vs.shape = (nv, 1, 3)
         vs += 1e-8
@@ -1568,7 +1566,7 @@ class HEALpixCamera(Camera):
             "type": self.__class__.__name__,
             "center": self.center,
             "radius": self.radius,
-            "dataset": self.ds.fullpath,
+            "dataset": self.ds.directory,
         }
         return info_dict
 
@@ -1724,19 +1722,19 @@ class FisheyeCamera(Camera):
         return {}
 
     def new_image(self):
-        image = np.zeros((self.resolution ** 2, 1, 4), dtype="float64", order="C")
+        image = np.zeros((self.resolution**2, 1, 4), dtype="float64", order="C")
         return image
 
     def get_sampler_args(self, image):
         vp = arr_fisheye_vectors(self.resolution, self.fov)
-        vp.shape = (self.resolution ** 2, 1, 3)
+        vp.shape = (self.resolution**2, 1, 3)
         vp2 = vp.copy()
         for i in range(3):
             vp[:, :, i] = (vp2 * self.rotation_matrix[:, i]).sum(axis=2)
         del vp2
         vp *= self.radius
         uv = np.ones(3, dtype="float64")
-        positions = np.ones((self.resolution ** 2, 1, 3), dtype="float64") * self.center
+        positions = np.ones((self.resolution**2, 1, 3), dtype="float64") * self.center
 
         args = (
             positions,
@@ -2066,9 +2064,9 @@ class ProjectionCamera(Camera):
             self.weightfield = ("index", "temp_weightfield_%u" % (id(self),))
 
             def _make_wf(f, w):
-                def temp_weightfield(a, b):
-                    tr = b[f].astype("float64") * b[w]
-                    return b.apply_units(tr, a.units)
+                def temp_weightfield(field, data):
+                    tr = data[f].astype("float64") * data[w]
+                    return data.apply_units(tr, field.units)
 
                 return temp_weightfield
 
