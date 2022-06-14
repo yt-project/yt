@@ -13,6 +13,7 @@ from matplotlib.cm import get_cmap
 from matplotlib.font_manager import FontProperties
 from more_itertools.more import always_iterable
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.data_objects.time_series import DatasetSeries
 from yt.funcs import dictWithFactory, ensure_dir, is_sequence, iter_fields, mylog
@@ -36,6 +37,13 @@ latex_prefixes = {
 
 
 def apply_callback(f):
+    issue_deprecation_warning(
+        "The apply_callback decorator is not used in yt any more and "
+        "will be removed in a future version. "
+        "Please do not use it.",
+        since="4.1",
+    )
+
     @wraps(f)
     def newfunc(*args, **kwargs):
         args[0]._callbacks.append((f.__name__, (args, kwargs)))
