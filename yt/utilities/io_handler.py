@@ -13,9 +13,9 @@ else:
 import numpy as np
 
 from yt._typing import ParticleCoordinateTuple
-from yt.config import ytcfg
 from yt.geometry.selection_routines import GridSelector
 from yt.utilities.on_demand_imports import _h5py as h5py
+from yt.utilities.parallel_tools.dask_helper import compute, dask_delay_wrapper
 
 io_registry = {}
 
@@ -174,22 +174,9 @@ class BaseIOHandler:
         self, chunks, selector, fields: List[Tuple[str, str]]
     ) -> Dict[Tuple[str, str], np.ndarray]:
 
-        if ytcfg.get("yt", "internals", "dask_allowed"):
-            return self._read_particle_selection_dask(chunks, selector, fields)
-        else:
-            return self._read_particle_selection_plain(chunks, selector, fields)
-
-    def _read_particle_selection_dask(
-        self, chunks, selector, fields: List[Tuple[str, str]]
-    ) -> Dict[Tuple[str, str], np.ndarray]:
         # this particle reader constructs a dask-delayed graph and immediately
         # computes. If dask is not enabled, all dask operations are passthrough
         # functions that have no effect.
-
-        from yt.utilities.parallel_tools.dask_helper import (
-            dask_compute,
-            dask_delay_wrapper,
-        )
 
         # re-organize the fields to read
         ptf, field_maps = self._get_particle_field_containers(fields)
@@ -207,7 +194,7 @@ class BaseIOHandler:
 
         # since we are returning in-mem arrays with this function, we immediately compute
         # if dask is not enabled, this will pass through the chunks without modification
-        data_by_chunk = dask_compute(*delayed_chunks)
+        data_by_chunk = compute(*delayed_chunks)
 
         # convert from a list of dicts to dict of lists in order to concatenate
         for chunk in data_by_chunk:
@@ -238,7 +225,7 @@ class BaseIOHandler:
         return rv
 
     def _get_particle_field_containers(self, fields: List[Tuple[str, str]]):
-
+        # returns ptf and field_maps:
         # ptf (particle field types) maps particle type to list of on-disk fields to read
         # field_maps stores fields, accounting for field unions
 
@@ -263,42 +250,6 @@ class BaseIOHandler:
                 field_maps[field].append(field)
 
         return ptf, field_maps
-
-    def _read_particle_selection_plain(
-        self, chunks, selector, fields: List[Tuple[str, str]]
-    ) -> Dict[Tuple[str, str], np.ndarray]:
-        data: Dict[Tuple[str, str], List[np.ndarray]] = {}
-
-        # re-organize the fields to read
-        ptf, field_maps = self._get_particle_field_containers(fields)
-
-        # What we need is a mapping from particle types to return types
-        for field in fields:
-            data[field] = []
-
-        # Now we read.
-        for field_r, vals in self._read_particle_fields(chunks, ptf, selector):
-            # Note that we now need to check the mappings
-            for field_f in field_maps[field_r]:
-                data[field_f].append(vals)
-
-        rv: Dict[Tuple[str, str], np.ndarray] = {}  # the return dictionary
-        fields = list(data.keys())
-        for field_f in fields:
-            # We need to ensure the arrays have the right shape if there are no
-            # particles in them.
-            total = sum(_.size for _ in data[field_f])
-            if total > 0:
-                vals = data.pop(field_f)
-                rv[field_f] = np.concatenate(vals, axis=0).astype("float64")
-            else:
-                shape = [0]
-                if field_f[1] in self._vector_fields:
-                    shape.append(self._vector_fields[field_f[1]])
-                elif field_f[1] in self._array_fields:
-                    shape.append(self._array_fields[field_f[1]])
-                rv[field_f] = np.empty(shape, dtype="float64")
-        return rv
 
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate

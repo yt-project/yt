@@ -1,8 +1,6 @@
-from dask import array as dask_array, compute as dask_compute, delayed
-from dask.distributed import Client
-
 from yt.config import ytcfg
 from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.on_demand_imports import _dask as dask
 
 # a couple of warning messages used in several places
 here_be_dragons = (
@@ -32,6 +30,11 @@ class ClientContainer:
 
     def __init__(self):
         self.client = None
+
+    @property
+    def _dask_enabled(self):
+        # always check config in case user has changed it dynamically
+        return ytcfg.get("yt", "internals", "dask_enabled")
 
     def start_client(self, *args, allow_threads=False, **kwargs):
         """spins up a new dask.distributed.Client and stores in self.client
@@ -74,6 +77,12 @@ class ClientContainer:
         si = reg[('PartType4','Silicon')]
         """
 
+        if self._dask_enabled is False:
+            raise RuntimeError(
+                "To use dask with yt, please set the dask_enabled "
+                "config option to True."
+            )
+
         # some sanitizing and defaults different from dask's normal defaults
         # for dask.distributed.Client:
         tpw = self._sanitize_threading(allow_threads, **kwargs)
@@ -81,7 +90,7 @@ class ClientContainer:
         pr = kwargs.pop("processes", False)
 
         # spin up the Client:
-        self.client = Client(
+        self.client = dask.distributed.Client(
             *args, threads_per_worker=tpw, n_workers=nw, processes=pr, **kwargs
         )
 
@@ -126,7 +135,9 @@ def compute(*args, allow_threads=False, **kwargs):
 
     """
 
-    if dask_client.client is None:
+    if not ytcfg.get("yt", "internals", "dask_enabled"):
+        return args
+    elif dask_client.client is None:
         sch = kwargs.pop("scheduler", "single-threaded")
         safe_sch = ["single-threaded", "processes"]
         if sch not in safe_sch:
@@ -135,22 +146,23 @@ def compute(*args, allow_threads=False, **kwargs):
             else:
                 mylog.warning(thread_override)
                 sch = "single-threaded"
-        return dask_compute(*args, scheduler=sch, **kwargs)
+        return dask.compute(*args, scheduler=sch, **kwargs)
     else:
         # sanitization already taken care of by dask_client.
-        return dask_compute(*args, **kwargs)
+        return dask.compute(*args, **kwargs)
 
 
 def is_delayed(obj):
     """checks if obj is a dask array (or a unyt-dask array)"""
-    return isinstance(obj, dask_array.Array)
+    return isinstance(obj, dask.array.Array)
 
 
 def dask_delay_wrapper(func):
     def call_func(*args, **kwargs):
+        # note: the dask_enabled switch is a permanent config option
         if ytcfg.get("yt", "internals", "dask_enabled"):
             # if dask is enabled, we delay
-            return delayed(func)(*args, **kwargs)
+            return dask.delayed(func)(*args, **kwargs)
         else:
             # if dask is not enabled, immediately execute and return result
             return func(*args, **kwargs)

@@ -110,3 +110,4 @@ doc/source/quickstart/.ipynb_checkpoints/
 dist
 .python-version
 answer_nosetests.xml
+dask-worker-space/*

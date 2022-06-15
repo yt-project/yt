@@ -54,8 +54,7 @@ ytcfg_defaults["yt"] = dict(
         topcomm_parallel_rank=0,
         topcomm_parallel_size=1,
         command_line=False,
-        dask_enabled=True,  # long term user option
-        dask_allowed=True,  # temporary for testing
+        dask_enabled=False,
     ),
 )
 

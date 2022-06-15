@@ -479,3 +479,32 @@ class ratarmount_imports(OnDemand):
 
 
 _ratarmount = ratarmount_imports()
+
+
+class dask_imports(OnDemand):
+    @safe_import
+    def distributed(self):
+        from dask import distributed
+
+        return distributed
+
+    @safe_import
+    def compute(self):
+        from dask import compute
+
+        return compute
+
+    @safe_import
+    def delayed(self):
+        from dask import delayed
+
+        return delayed
+
+    @safe_import
+    def array(self):
+        from dask import array
+
+        return array
+
+
+_dask = dask_imports()
