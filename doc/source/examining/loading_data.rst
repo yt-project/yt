@@ -3114,7 +3114,7 @@ When you load a CfRadial dataset in polar coordinates (elevation, azimuth and
 range), yt will first build a sample by mapping the data onto a cartesian grid
 using the Python-ARM Radar Toolkit (pyart). Grid points are found by interpolation of all data points within a specified radius of influence. This data, now
 in x, y, z coordiante domain is then saved as a new dataset and subsequent
-loads will load the original native CfRadial dataset will use the gridded file.
+loads of the original native CfRadial dataset will use the gridded file.
 Mapping the data from spherical to Cartesian coordinates is useful for 3D volume
 rendering the data using yt.
 
