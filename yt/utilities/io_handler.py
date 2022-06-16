@@ -15,7 +15,7 @@ import numpy as np
 from yt._typing import ParticleCoordinateTuple
 from yt.geometry.selection_routines import GridSelector
 from yt.utilities.on_demand_imports import _h5py as h5py
-from yt.utilities.parallel_tools.dask_helper import compute, dask_delay_wrapper
+from yt.utilities.parallel_tools.dask_helper import _get_dask_compute, _get_dask_delayed
 
 io_registry = {}
 
@@ -35,6 +35,7 @@ class BaseIOHandler:
     _cache_on = False
     _misses = 0
     _hits = 0
+    _dask_enabled = False  # global dask_enabled config option may override
 
     def __init_subclass__(cls, *args, **kwargs):
         super().__init_subclass__(*args, **kwargs)
@@ -174,9 +175,13 @@ class BaseIOHandler:
         self, chunks, selector, fields: List[Tuple[str, str]]
     ) -> Dict[Tuple[str, str], np.ndarray]:
 
-        # this particle reader constructs a dask-delayed graph and immediately
-        # computes. If dask is not enabled, all dask operations are passthrough
+        # this particle reader is dask-optional. If dask is enabled, it
+        # constructs a dask-delayed graph and immediately computes.
+        # If dask is not enabled, all dask operations are passthrough
         # functions that have no effect.
+
+        dask_delay = _get_dask_delayed(self._dask_enabled)
+        dask_compute = _get_dask_compute(self._dask_enabled)
 
         # re-organize the fields to read
         ptf, field_maps = self._get_particle_field_containers(fields)
@@ -189,12 +194,12 @@ class BaseIOHandler:
             # note: if dask is not enabled, dask_delay_wrapper is an empty
             # decorator and results are immediately returned
             read_f = self._read_particle_data_file
-            delayed_chunk = dask_delay_wrapper(read_f)(data_file, ptf, selector)
+            delayed_chunk = dask_delay(read_f)(data_file, ptf, selector)
             delayed_chunks.append(delayed_chunk)
 
         # since we are returning in-mem arrays with this function, we immediately compute
         # if dask is not enabled, this will pass through the chunks without modification
-        data_by_chunk = compute(*delayed_chunks)
+        data_by_chunk = dask_compute(*delayed_chunks)
 
         # convert from a list of dicts to dict of lists in order to concatenate
         for chunk in data_by_chunk:

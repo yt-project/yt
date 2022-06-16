@@ -35,6 +35,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
     )
 
     _coord_name = "Coordinates"
+    _dask_enabled = True
 
     @property
     def var_mass(self):
