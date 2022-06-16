@@ -64,11 +64,6 @@ class EnzoEFieldInfo(FieldInfoContainer):
     def setup_fluid_fields(self):
         self.setup_energy_field()
         setup_magnetic_field_aliases(self, "enzoe", [f"bfield_{ax}" for ax in "xyz"])
-        self.alias(
-            ("gas", "total_energy"),
-            ("gas", "specific_total_energy"),
-            deprecate=("4.0.0", "4.1.0"),
-        )
 
     def uses_dual_energy_formalism(self):
         for name in ["ppm", "mhd_vlct"]:

@@ -58,7 +58,7 @@ mhdvortex = "MHDOrszagTangVortex/Data_000018"
 _fields_mhdvortex = (
     ("gamer", "CCMagX"),
     ("gamer", "CCMagY"),
-    ("gas", "magnetic_energy"),
+    ("gas", "magnetic_energy_density"),
 )
 
 

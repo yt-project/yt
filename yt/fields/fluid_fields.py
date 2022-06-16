@@ -116,18 +116,6 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
         validators=[ValidateParameter("bulk_velocity")],
     )
 
-    registry.alias(
-        (ftype, "kinetic_energy"),
-        (ftype, "kinetic_energy_density"),
-        deprecate=("4.0.0", "4.1.0"),
-    )
-
-    registry.alias(
-        (ftype, "thermal_energy"),
-        (ftype, "specific_thermal_energy"),
-        deprecate=("4.0.0", "4.1.0"),
-    )
-
     def _mach_number(field, data):
         """M{|v|/c_sound}"""
         return data[ftype, "velocity_magnitude"] / data[ftype, "sound_speed"]
