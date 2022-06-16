@@ -67,8 +67,8 @@ class CFRadialHierarchy(GridIndex):
         self.grid_right_edge[0][:] = self.ds.domain_right_edge[:]
         self.grid_dimensions[0][:] = self.ds.domain_dimensions[:]
         self.grid_particle_count[0][0] = 0
-        self.grid_levels[0][0] = 1
-        self.max_level = 1
+        self.grid_levels[0][0] = 0
+        self.max_level = 0
 
     def _populate_grid_objects(self):
         # only a single grid, no need to loop
@@ -206,7 +206,7 @@ class CFRadialDataset(Dataset):
         self, radar, dim: str, grid_limit: Optional[Tuple[float, float]] = None
     ) -> Tuple[float, float]:
         if grid_limit is None:
-            if dim == "z":
+            if dim.lower() == "z":
                 gate_alt = radar.gate_altitude["data"]
                 gate_alt_units = radar.gate_altitude["units"]
                 grid_limit = (gate_alt.min(), gate_alt.max())
@@ -293,8 +293,13 @@ class CFRadialDataset(Dataset):
         # This accepts a filename or a set of arguments and returns True or
         # False depending on if the file is of the type requested.
 
+        is_cfrad = False
         try:
-            ds = xr.open_dataset(filename, engine="netcdf4")
+            with xr.open_dataset(filename, engine="netcdf4") as ds:
+                if hasattr(ds, "attrs") and isinstance(ds.attrs, dict):
+                    con = "Conventions"
+                    cons = ds.attrs.get(con, "") + ds.attrs.get(con.lower(), "")
+                    is_cfrad = "CF/Radial" in cons
         except (
             ImportError,
             OSError,
@@ -309,7 +314,4 @@ class CFRadialDataset(Dataset):
             # installed, open_dataset will raise a ValueError when engine="netcdf4"
             return False
 
-        if hasattr(ds, "attrs") and isinstance(ds.attrs, dict):
-            con = "Conventions"
-            return "CF/Radial" in ds.attrs.get(con, "") + ds.attrs.get(con.lower(), "")
-        return False
+        return is_cfrad
