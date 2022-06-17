@@ -100,7 +100,7 @@ def test_chained_cut_region():
     # see Issue #2233
     ds = load(ISOGAL)
     base = ds.disk([0.5, 0.5, 0.5], [0, 0, 1], (4, "kpc"), (10, "kpc"))
-    c1 = "(obj[('index', 'cylindrical_r')].in_units('kpc') > 2.0)"
+    c1 = "(obj[('index', 'cylindrical_radius')].in_units('kpc') > 2.0)"
     c2 = "(obj[('gas', 'density')].to('g/cm**3') > 1e-26)"
 
     cr12 = base.cut_region([c1, c2])

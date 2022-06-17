@@ -178,13 +178,13 @@ def pytest_configure(config):
         )
 
     if find_spec("xarray") is not None:
-        # this can be removed when upstream issue is closed and a fix published
-        # https://github.com/pydata/xarray/issues/6092
+        # this can be removed when the related fix is published
+        # https://github.com/pydata/xarray/issues/6514
         config.addinivalue_line(
             "filterwarnings",
             (
-                "ignore:distutils Version classes are deprecated. "
-                "Use packaging.version instead.:DeprecationWarning"
+                "ignore: SelectableGroups dict interface is deprecated. "
+                "Use select.:DeprecationWarning"
             ),
         )
 

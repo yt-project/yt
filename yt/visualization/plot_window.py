@@ -1,6 +1,5 @@
 import abc
 from collections import defaultdict
-from functools import wraps
 from numbers import Number
 from typing import List, Optional, Type, Union
 
@@ -26,14 +25,13 @@ from yt.utilities.exceptions import (
     YTInvalidFieldType,
     YTPlotCallbackError,
     YTUnitNotRecognized,
-    YTUnsupportedPlotCallback,
 )
 from yt.utilities.math_utils import ortho_find
 from yt.utilities.orientation import Orientation
 from yt.visualization._handlers import ColorbarHandler, NormHandler
+from yt.visualization.base_plot_types import CallbackWrapper, ImagePlotMPL
 
 from ._commons import _swap_axes_extents, get_default_from_config
-from .base_plot_types import CallbackWrapper, ImagePlotMPL
 from .fixed_resolution import (
     FixedResolutionBuffer,
     OffAxisProjectionFixedResolutionBuffer,
@@ -41,12 +39,10 @@ from .fixed_resolution import (
 from .geo_plot_utils import get_mpl_transform
 from .plot_container import (
     ImagePlotContainer,
-    apply_callback,
     invalidate_data,
     invalidate_figure,
     invalidate_plot,
 )
-from .plot_modifications import callback_registry
 
 import sys  # isort: skip
 
@@ -879,6 +875,15 @@ class PWViewerMPL(PlotWindow):
         self._frb: Optional[FixedResolutionBuffer] = None
         PlotWindow.__init__(self, *args, **kwargs)
 
+        # import type here to avoid import cycles
+        # note that this import statement is actually crucial at runtime:
+        # the filter methods for the present class are defined only when
+        # fixed_resolution_filters is imported, so we need to guarantee
+        # that it happens no later than instanciation
+        from yt.visualization.plot_modifications import PlotCallback
+
+        self._callbacks: List[PlotCallback] = []
+
     @property
     def _data_valid(self) -> bool:
         return self._frb is not None and self._frb._data_valid
@@ -1241,88 +1246,21 @@ class PWViewerMPL(PlotWindow):
         self._plot_valid = True
 
     def setup_callbacks(self):
-        ignored = ["PlotCallback"]
-        if self._plot_type.startswith("OffAxis"):
-            ignored += [
-                "ParticleCallback",
-                "ClumpContourCallback",
-                "GridBoundaryCallback",
-            ]
-        if self._plot_type == "OffAxisProjection":
-            ignored += [
-                "VelocityCallback",
-                "MagFieldCallback",
-                "QuiverCallback",
-                "CuttingQuiverCallback",
-                "StreamlineCallback",
-                "LineIntegralConvolutionCallback",
-            ]
-        elif self._plot_type == "Particle":
-            ignored += [
-                "HopCirclesCallback",
-                "HopParticleCallback",
-                "ClumpContourCallback",
-                "GridBoundaryCallback",
-                "VelocityCallback",
-                "MagFieldCallback",
-                "QuiverCallback",
-                "CuttingQuiverCallback",
-                "StreamlineCallback",
-                "ContourCallback",
-            ]
-
-        def missing_callback_closure(cbname):
-            def _(*args, **kwargs):
-                raise YTUnsupportedPlotCallback(
-                    callback=cbname, plot_type=self._plot_type
-                )
-
-            return _
-
-        for key in callback_registry:
-            cbname = callback_registry[key]._type_name
-
-            if key in ignored:
-                self.__dict__["annotate_" + cbname] = missing_callback_closure(cbname)
-                continue
-
-            # We need to wrap to create a closure so that
-            # CallbackMaker is bound to the wrapped method.
-            def closure():
-                CallbackMaker = callback_registry[key]
-
-                @wraps(CallbackMaker)
-                def method(*args, **kwargs):
-                    # We need to also do it here as "invalidate_plot"
-                    # and "apply_callback" require the functions'
-                    # __name__ in order to work properly
-                    @wraps(CallbackMaker)
-                    def cb(self, *a, **kwa):
-                        # We construct the callback method
-                        # skipping self
-                        return CallbackMaker(*a, **kwa)
-
-                    # Create callback
-                    cb = invalidate_plot(apply_callback(cb))
-
-                    return cb(self, *args, **kwargs)
-
-                return method
-
-            self.__dict__["annotate_" + cbname] = closure()
+        issue_deprecation_warning(
+            "The PWViewer.setup_callbacks method is a no-op.", since="4.1.0"
+        )
 
     @invalidate_plot
-    def clear_annotations(self, index=None):
+    def clear_annotations(self, index: Optional[int] = None):
         """
         Clear callbacks from the plot.  If index is not set, clear all
         callbacks.  If index is set, clear that index (ie 0 is the first one
         created, 1 is the 2nd one created, -1 is the last one created, etc.)
         """
         if index is None:
-            self._callbacks = []
+            self._callbacks.clear()
         else:
-            del self._callbacks[index]
-        self.setup_callbacks()
+            self._callbacks.pop(index)
         return self
 
     def list_annotations(self):
@@ -1337,7 +1275,7 @@ class PWViewerMPL(PlotWindow):
     def run_callbacks(self):
         for f in self.fields:
             keys = self.frb.keys()
-            for name, (args, kwargs) in self._callbacks:
+            for callback in self._callbacks:
                 # need to pass _swap_axes and adjust all the callbacks
                 cbw = CallbackWrapper(
                     self,
@@ -1347,8 +1285,6 @@ class PWViewerMPL(PlotWindow):
                     self._font_properties,
                     self._font_color,
                 )
-                CallbackMaker = callback_registry[name]
-                callback = CallbackMaker(*args[1:], **kwargs)
                 try:
                     callback(cbw)
                 except YTDataTypeUnsupported as e:

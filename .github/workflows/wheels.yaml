@@ -81,10 +81,16 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         python -m pip install check-manifest
-    - name: Install yt
+    - name: Install build time dependencies
       shell: bash
       run: |
-        python -m pip install Cython numpy wheel
+        python -m pip install "Cython>=0.29.21,<3.0"
+        python -m pip install oldest-supported-numpy
+        python -m pip install --upgrade wheel
+        python -m pip install --upgrade setuptools
+    - name: build yt
+      shell: bash
+      run: |
         python -m pip install --no-build-isolation .
     - name: Init submodules
       uses: snickerbockers/submodules-init@v4

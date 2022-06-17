@@ -45,6 +45,13 @@ latex_prefixes = {
 
 
 def apply_callback(f):
+    issue_deprecation_warning(
+        "The apply_callback decorator is not used in yt any more and "
+        "will be removed in a future version. "
+        "Please do not use it.",
+        since="4.1",
+    )
+
     @wraps(f)
     def newfunc(*args, **kwargs):
         args[0]._callbacks.append((f.__name__, (args, kwargs)))

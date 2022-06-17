@@ -77,7 +77,7 @@ The list below is arranged in order of most to least important changes.
   energy per unit mass, and ``("gas", "momentum_density_x")`` for the x-axis
   component of momentum density. See :ref:`efields` for more information.
 * **Deprecated field names**
-  Certain field names are deprecated within yt v4.0 and will be removed in
+  Certain field names are deprecated within yt v4.0.x and removed in
   yt v4.1. For example, ``("gas", "kinetic_energy")`` has been renamed to
   ``("gas", "kinetic_energy_density")``, though the former name has been added
   as an alias. Other fields, such as
