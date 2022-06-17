@@ -183,6 +183,9 @@ answer_tests:
   local_nc4_cm1_001: # PR  2176
     - yt/frontends/nc4_cm1/tests/test_outputs.py:test_cm1_mesh_fields
 
+  local_cf_radial_002: # PR  1990
+    - yt/frontends/cf_radial/tests/test_outputs.py:test_cfradial_grid_field_values
+
 other_tests:
   unittests:
      - "--exclude=test_mesh_slices"  # disable randomly failing test
