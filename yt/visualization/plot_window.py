@@ -240,7 +240,6 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
             self._projection = get_mpl_transform(projection)
             self._transform = get_mpl_transform(transform)
 
-        self.setup_callbacks()
         self._setup_plots()
 
         for field in self.data_source._determine_fields(self.fields):
