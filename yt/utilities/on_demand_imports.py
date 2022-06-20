@@ -205,6 +205,34 @@ class pooch_imports(OnDemand):
 _pooch = pooch_imports()
 
 
+class pyart_imports(OnDemand):
+    @safe_import
+    def io(self):
+        from pyart import io
+
+        return io
+
+    @safe_import
+    def map(self):
+        from pyart import map
+
+        return map
+
+
+_pyart = pyart_imports()
+
+
+class xarray_imports(OnDemand):
+    @safe_import
+    def open_dataset(self):
+        from xarray import open_dataset
+
+        return open_dataset
+
+
+_xarray = xarray_imports()
+
+
 class scipy_imports(OnDemand):
     @safe_import
     def signal(self):

@@ -1,12 +1,20 @@
 from abc import ABC, abstractmethod
-from functools import wraps
+from functools import update_wrapper, wraps
 
 import numpy as np
 
-filter_registry = {}
+from yt._maintenance.deprecation import issue_deprecation_warning
+from yt.visualization.fixed_resolution import FixedResolutionBuffer
 
 
 def apply_filter(f):
+    issue_deprecation_warning(
+        "The apply_filter decorator is not used in yt any more and "
+        "will be removed in a future version. "
+        "Please do not use it.",
+        since="4.1",
+    )
+
     @wraps(f)
     def newfunc(self, *args, **kwargs):
         self._filters.append((f.__name__, (args, kwargs)))
@@ -25,8 +33,27 @@ class FixedResolutionBufferFilter(ABC):
     """
 
     def __init_subclass__(cls, *args, **kwargs):
-        super().__init_subclass__(*args, **kwargs)
-        filter_registry[cls.__name__] = cls
+
+        if cls.__init__.__doc__ is None:
+            # allow docstring definition at the class level instead of __init__
+            cls.__init__.__doc__ = cls.__doc__
+
+        # add a method to FixedResolutionBuffer
+        method_name = "apply_" + cls._filter_name
+
+        def closure(self, *args, **kwargs):
+            self._filters.append(cls(*args, **kwargs))
+            self._data_valid = False
+            return self
+
+        update_wrapper(
+            wrapper=closure,
+            wrapped=cls.__init__,
+            assigned=("__annotations__", "__doc__"),
+        )
+
+        closure.__name__ = method_name
+        setattr(FixedResolutionBuffer, method_name, closure)
 
     @abstractmethod
     def __init__(self, *args, **kwargs):
@@ -34,8 +61,12 @@ class FixedResolutionBufferFilter(ABC):
         pass
 
     @abstractmethod
-    def apply(self, buff):
+    def apply(self, buff: np.ndarray) -> np.ndarray:
         pass
+
+    def __call__(self, buff: np.ndarray) -> np.ndarray:
+        # alias to apply
+        return self.apply(buff)
 
 
 class FixedResolutionBufferGaussBeamFilter(FixedResolutionBufferFilter):

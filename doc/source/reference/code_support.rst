@@ -30,6 +30,8 @@ each supported output format using yt.
 +-----------------------+------------+-----------+------------+-------+----------+----------+------------+-------------+
 | Castro                |     Y      |  Y [#f3]_ |   Partial  |   Y   |    Y     |    Y     |     N      |   Full      |
 +-----------------------+------------+-----------+------------+-------+----------+----------+------------+-------------+
+| CfRadial              |     Y      |    N/A    |      Y     |   Y   |    Y     |    Y     |     Y      |   [#f5]_    |
++-----------------------+------------+-----------+------------+-------+----------+----------+------------+-------------+
 | Chombo                |     Y      |     Y     |      Y     |   Y   |    Y     |    Y     |     Y      |   Full      |
 +-----------------------+------------+-----------+------------+-------+----------+----------+------------+-------------+
 | Enzo                  |     Y      |     Y     |      Y     |   Y   |    Y     |    Y     |     Y      |   Full      |
@@ -84,6 +86,8 @@ each supported output format using yt.
           The older ASCII format is not.
 .. [#f4] The Voronoi cells are currently treated as SPH-like particles, with a smoothing
          length proportional to the cube root of the cell volume.
+.. [#f5] yt provides support for cartesian-gridded CfRadial datasets. Data in native
+         CFRadial coordinates will be gridded on load, see :ref:`loading-cfradial-data`.
 
 If you have a dataset that uses an output format not yet supported by yt, you
 can either input your data following :ref:`loading-numpy-array` or
