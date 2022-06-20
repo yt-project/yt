@@ -6,6 +6,7 @@ Chimera data structures
 """
 
 import os
+import re
 
 import numpy as np
 
@@ -15,6 +16,7 @@ from yt.geometry.geometry_handler import YTDataChunk
 from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
 from yt.utilities.file_handler import HDF5FileHandler
 from yt.utilities.io_handler import io_registry
+from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 from .fields import ChimeraFieldInfo
@@ -28,15 +30,17 @@ class ChimeraMesh(SemiStructuredMesh):
         super().__init__(*args, **kwargs)
 
 
-def _find_files(
-    filename_c,
-):  # Returns a list of all files that share a frame number with the input
+def _find_files(filename_c):
+    # Returns a list of all files that share a frame number with the input
     dirname, file = os.path.split(filename_c)
-    dir_contents = os.listdir(dirname)
-    frames = [f for f in dir_contents if file[:-7] in f]
-    directory = os.path.dirname(filename_c)
-    index_filenames = [directory + os.path.sep + f for f in frames]
-    index_filenames.sort()
+    match = re.match(r"chimera_\d+_grid", file)
+    if match is None:
+        raise RuntimeError(
+            rf"Expected filename to be of form 'chimera_\d+_grid_*', got {file!r}"
+        )
+    prefix = match.group()
+    frames = [f for f in os.listdir(dirname) if f.startswith(prefix)]
+    index_filenames = [os.path.join(dirname, f) for f in sorted(frames)]
     return index_filenames
 
 
@@ -67,9 +71,18 @@ class ChimeraUNSIndex(UnstructuredIndex):
                     phi = f["mesh"]["z_ef"][
                         k * l : k * (l + 1) + 1
                     ]  # Pulls only the individual subgrid's band of phi values
-
+                elif f["mesh"]["z_ef"][-1] == f["mesh"]["z_ef"][0]:
+                    r = f["mesh"]["x_ef"][
+                        : f["mesh"]["radial_index_bound"][1]
+                        - f["mesh"]["x_ef"].shape[0]
+                    ]
+                    theta = f["mesh"]["y_ef"][:]
+                    phi = np.array([f["mesh"]["z_ef"][0], 2 * np.pi])
                 else:
-                    r = f["mesh"]["x_ef"][:]
+                    r = f["mesh"]["x_ef"][
+                        : f["mesh"]["radial_index_bound"][1]
+                        - f["mesh"]["x_ef"].shape[0]
+                    ]
                     theta = f["mesh"]["y_ef"][:]
                     phi = f["mesh"]["z_ef"][:]
 
@@ -85,13 +98,20 @@ class ChimeraUNSIndex(UnstructuredIndex):
                 coords[:, :, :, 0] = r[:, None, None]
                 coords[:, :, :, 1] = theta[None, :, None]
                 coords[:, :, :, 2] = phi[None, None, :]
-                coords.shape = (nxd * nyd * nzd, 3)
 
                 if yy:
                     # Converts coordinates to cartesian in the case of Yin-Yang data
-                    x = coords[:, 0] * np.sin(coords[:, 1]) * np.cos(coords[:, 2])
-                    y = coords[:, 0] * np.sin(coords[:, 1]) * np.sin(coords[:, 2])
-                    z = coords[:, 0] * np.cos(coords[:, 1])
+                    x = (
+                        coords[:, :, :, 0]
+                        * np.sin(coords[:, :, :, 1])
+                        * np.cos(coords[:, :, :, 2])
+                    )
+                    y = (
+                        coords[:, :, :, 0]
+                        * np.sin(coords[:, :, :, 1])
+                        * np.sin(coords[:, :, :, 2])
+                    )
+                    z = coords[:, :, :, 0] * np.cos(coords[:, :, :, 1])
 
                     if (
                         "grid_2" in file
@@ -104,10 +124,10 @@ class ChimeraUNSIndex(UnstructuredIndex):
                         y_hold = y
                         z_hold = z
 
-                    coords[:, 0] = x_hold
-                    coords[:, 1] = y_hold
-                    coords[:, 2] = z_hold
-
+                    coords[:, :, :, 0] = x_hold
+                    coords[:, :, :, 1] = y_hold
+                    coords[:, :, :, 2] = z_hold
+                coords.shape = (nxd * nyd * nzd, 3)
                 # Connectivity is an array of rows, each of which corresponds to a grid cell.
                 # The 8 elements of each row are integers representing the cell verticies.
                 # These integers refrence the numerical index of the element of the
@@ -152,7 +172,7 @@ class ChimeraUNSIndex(UnstructuredIndex):
                 )  # Creates a mesh object
 
                 if "grid_" in file:
-                    print(f"Mesh {n+1}/{len(index_filenames)} generated")
+                    mylog.info("Mesh %s generated", (n + 1) / len(index_filenames))
                     self.meshes.append(
                         mesh
                     )  # Adds new mesh to the list of generated meshes
@@ -260,27 +280,37 @@ class ChimeraDataset(Dataset):
                 self.geometry = "spherical"  # Uses default spherical geometry
                 self._periodicity = (False, False, True)
                 dle = [
-                    f["mesh"]["x_ef"][(0)],
-                    f["mesh"]["y_ef"][(0)],
-                    f["mesh"]["z_ef"][(0)],
+                    f["mesh"]["x_ef"][0],
+                    f["mesh"]["y_ef"][0],
+                    f["mesh"]["z_ef"][0],
                 ]
-                if self.domain_dimensions[2] > 2:
+
+                if (
+                    self.domain_dimensions[2] <= 2
+                    and f["mesh"]["z_ef"][-1] == f["mesh"]["z_ef"][0]
+                ):
                     dre = [
-                        f["mesh"]["x_ef"][(-3)],
-                        f["mesh"]["y_ef"][(-1)],
-                        f["mesh"]["z_ef"][(13)],
+                        f["mesh"]["x_ef"][
+                            f["mesh"]["radial_index_bound"][1]
+                            - f["mesh"]["x_ef"].shape[0]
+                        ],
+                        f["mesh"]["y_ef"][-1],
+                        2 * np.pi,
                     ]
                 else:
                     dre = [
-                        f["mesh"]["x_ef"][(-1)],
-                        f["mesh"]["y_ef"][(-1)],
-                        f["mesh"]["z_ef"][(-1)],
+                        f["mesh"]["x_ef"][
+                            f["mesh"]["radial_index_bound"][1]
+                            - f["mesh"]["x_ef"].shape[0]
+                        ],
+                        f["mesh"]["y_ef"][-1],
+                        f["mesh"]["z_ef"][-1],
                     ]
             # Sets left and right bounds based on earlier definitions
             self.domain_right_edge = np.array(dre)
             self.domain_left_edge = np.array(dle)
 
-        self.cosmological_simulation = 0.0  # Chimera is not a cosmological simulation
+        self.cosmological_simulation = 0  # Chimera is not a cosmological simulation
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
@@ -288,7 +318,11 @@ class ChimeraDataset(Dataset):
         # False depending on if the file is of the type requested.
         try:
             fileh = HDF5FileHandler(args[0])
-            if "fluid" in fileh and "agr_c" in fileh["fluid"].keys():
+            if (
+                "fluid" in fileh
+                and "agr_c" in fileh["fluid"].keys()
+                and "wBVMD" in fileh["fluid"].keys()
+            ):
                 return True  # Numpy bless
         except (OSError, ImportError):
             pass

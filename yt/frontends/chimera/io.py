@@ -5,12 +5,12 @@
 
 """
 
-import sys
-
 import numpy as np
+import unyt as un
 
 from yt.frontends.chimera.data_structures import _find_files
 from yt.utilities.io_handler import BaseIOHandler
+from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 
@@ -72,26 +72,25 @@ class ChimeraIOHandler(BaseIOHandler):
                     nrd = f["mesh"]["array_dimensions"][0]
 
                 mask = np.repeat(mask_0[:, :, np.newaxis], nrd, axis=2).transpose()
+                specials = (
+                    "abar",
+                    "e_rms_1",
+                    "e_rms_2",
+                    "e_rms_3",
+                    "e_rms_4",
+                    "lumin_1",
+                    "lumin_2",
+                    "lumin_3",
+                    "lumin_4",
+                    "num_lumin_1",
+                    "num_lumin_2",
+                    "num_lumin_3",
+                    "num_lumin_4",
+                    "shock",
+                    "nse_c",
+                )
                 for field in fields:  # Reads data by locating subheading
                     ftype, fname = field
-                    specials = (
-                        "abar",
-                        "e_rms_1",
-                        "e_rms_2",
-                        "e_rms_3",
-                        "e_rms_4",
-                        "lumin_1",
-                        "lumin_2",
-                        "lumin_3",
-                        "lumin_4",
-                        "num_lumin_1",
-                        "num_lumin_2",
-                        "num_lumin_3",
-                        "num_lumin_4",
-                        "shock",
-                        "nse_c",
-                    )
-
                     a_name_2 = [i.decode("utf-8") for i in f["abundance"]["a_name"]]
                     a_name_dict = {name.strip(): name for name in a_name_2}
                     if fname not in specials:
@@ -103,7 +102,7 @@ class ChimeraIOHandler(BaseIOHandler):
                             ind_xn = a_name_2.index(a_name_dict[fname])
                             ds = f["abundance"]["xn_c"][:, :, :, ind_xn]
                         else:
-                            sys.exit("Error: Invalid field name")
+                            mylog.warning("Invalid field name %s", fname)
                         dat_1 = ds[:, :, :].transpose()
 
                     elif fname == "nse_c":
@@ -167,9 +166,9 @@ class ChimeraIOHandler(BaseIOHandler):
                         dims = f["mesh"]["array_dimensions"]
                         n_groups = f["radiation"]["raddim"][0]
                         n_hyperslabs = f["mesh"]["nz_hyperslabs"][()]
-                        ergmev = 1.602177e-6
-                        cvel = 2.99792458e10
-                        h = 4.13567e-21
+                        ergmev = float((1 * un.MeV) / (1 * un.erg))
+                        cvel = float(un.c.to("cm/s"))
+                        h = float(un.h.to("MeV * s"))
                         ecoef = 4.0 * np.pi * ergmev / (h * cvel) ** 3
                         radius = f["mesh"]["x_ef"][()]
                         agr_e = f["fluid"]["agr_e"][()]
@@ -181,33 +180,20 @@ class ChimeraIOHandler(BaseIOHandler):
                         for i in range(0, n_groups):
                             d_energy.append(energy_edge[i + 1] - energy_edge[i])
                         d_energy = np.array(d_energy)
-                        e2de = energy_center**2 * d_energy
-                        e3de = energy_center**3 * d_energy
-                        e5de = energy_center**5 * d_energy
                         species = int(fname[-1]) - 1
                         if fname in ("lumin_1", "lumin_2", "lumin_3", "lumin_4"):
-                            lumin = (
-                                np.sum(psi1_e[:, :, :, species] * e3de, axis=3)
-                                * np.tile(
-                                    cell_area_GRcorrected[1 : dims[0] + 1],
-                                    (int(dims[2] / n_hyperslabs), dims[1], 1),
-                                )
-                                * (cvel * ecoef * 1e-51)
+                            eNde = energy_center**3 * d_energy
+                        else:
+                            eNde = energy_center**2 * d_energy
+
+                        lumin = (
+                            np.sum(psi1_e[:, :, :, species] * eNde, axis=3)
+                            * np.tile(
+                                cell_area_GRcorrected[1 : dims[0] + 1],
+                                (int(dims[2] / n_hyperslabs), dims[1], 1),
                             )
-                        elif fname in (
-                            "num_lumin_1",
-                            "num_lumin_2",
-                            "num_lumin_3",
-                            "num_lumin_4",
-                        ):
-                            lumin = (
-                                np.sum(psi1_e[:, :, :, species] * e2de, axis=3)
-                                * np.tile(
-                                    cell_area_GRcorrected[1 : dims[0] + 1],
-                                    (int(dims[2] / n_hyperslabs), dims[1], 1),
-                                )
-                                * (cvel * ecoef * 1e-51)
-                            )
+                            * (cvel * ecoef * 1e-51)
+                        )
                         dat_1 = lumin[:, :, :].transpose()
 
                     if f["mesh"]["array_dimensions"][2] > 1:
