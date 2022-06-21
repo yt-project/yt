@@ -19,6 +19,7 @@ from yt.utilities.answer_testing.testing_utilities import (
     _streamline_for_io,
     data_dir_load,
 )
+from yt.utilities.on_demand_imports import _dask as dask
 
 MPL_VERSION = Version(matplotlib.__version__)
 NUMPY_VERSION = Version(numpy.__version__)
@@ -64,6 +65,16 @@ def pytest_addoption(parser):
         "test_data_dir",
         default=ytcfg.get("yt", "test_data_dir"),
         help="Directory where data for tests is stored.",
+    )
+    # Dask options. Defaults are chosen for github actions.
+    parser.addoption(
+        "--dask_workers", action="store", default=2, help="number of dask workers"
+    )
+    parser.addoption(
+        "--dask_threads_pw",
+        action="store",
+        default=1,
+        help="number of threads per worker",
     )
 
 
@@ -441,3 +452,24 @@ def Npart(request):
     Needed because indirect=True is used for loading the datasets.
     """
     return request.param
+
+
+@pytest.fixture(scope="session")
+def dask_client_fixture(request):
+    """
+    Fixture for spinning up a dask LocalCluster and Client
+    """
+
+    # there are a number of options, including using some of the internal dask
+    # functions for testing, but this seems the simplest way to ensure only a
+    # single cluster is spun up during testing. Some useful discussion here:
+    # https://github.com/dask/distributed/issues/4479#issuecomment-772119435
+    # also note that if running pytest in parallel, this fixture will need
+    # modification (e.g., pytest-xdist would execute this fixture multiple times)
+
+    n_workers = int(request.config.getoption("--dask_workers"))
+    tpw = int(request.config.getoption("--dask_threads_pw"))
+    lc = dask.distributed.LocalCluster
+    with lc(n_workers=n_workers, threads_per_worker=tpw) as cluster:
+        with dask.distributed.Client(cluster) as client:
+            yield client

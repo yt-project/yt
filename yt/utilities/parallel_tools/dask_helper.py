@@ -2,7 +2,7 @@ from yt.config import ytcfg
 from yt.utilities.on_demand_imports import _dask as dask
 
 
-def is_delayed(obj):
+def is_dask_array(obj):
     """checks if obj is a dask array (or a unyt-dask array)"""
     return isinstance(obj, dask.array.Array)
 
