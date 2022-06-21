@@ -336,6 +336,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
 
     _var_mass = None
     _format = None
+    _dask_enabled = True
 
     def __init__(self, ds, *args, **kwargs):
         self._fields = ds._field_spec
