@@ -207,6 +207,7 @@ other_tests:
      - "--ignore-file=test_file_sanitizer\\.py"
      - "--ignore-files=test_version\\.py"
      - "--ignore-file=test_add_field\\.py"
+     - "--ignore-files=test_dask_helper.py"
      - "--exclude-test=yt.frontends.gdf.tests.test_outputs.TestGDF"
      - "--exclude-test=yt.frontends.adaptahop.tests.test_outputs"
      - "--exclude-test=yt.frontends.stream.tests.test_stream_particles.test_stream_non_cartesian_particles"
