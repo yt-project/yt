@@ -788,7 +788,7 @@ will invert the plot's y-axis
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    # slicing with standard view (right-handed)
-   slc = yt.SlicePlot(ds, "x", ("gas", "velocity_x"))
+   slc = yt.SlicePlot(ds, "z", ("gas", "velocity_x"), width=(20, 'kpc'))
    slc.annotate_title("Standard Horizontal (Right Handed)")
    slc.save("Standard.png")
 
@@ -798,7 +798,7 @@ will invert the plot's y-axis
    slc.save("NotRightHanded.png")
 
    # flip the vertical axis
-   slc = yt.SlicePlot(ds, "x", ("gas", "velocity_x"))
+   slc = yt.SlicePlot(ds, "z", ("gas", "velocity_x"), width=(20, 'kpc'))
    slc.flip_vertical()
    slc.annotate_title("Flipped vertical")
    slc.save("FlippedVertical.png")
@@ -813,7 +813,7 @@ the plot's vertical and horizontal axes:
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    # slicing with non right-handed coordinates
-   slc = yt.SlicePlot(ds, "x", ("gas", "velocity_x"))
+   slc = yt.SlicePlot(ds, "z", ("gas", "velocity_x"), width=(20, 'kpc'))
    slc.swap_axes()
    slc.annotate_title("Swapped axes")
    slc.save("SwappedAxes.png")
@@ -840,7 +840,7 @@ to rotate the view:
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    # initial view
-   slc = yt.SlicePlot(ds, "x", ("gas", "velocity_x"))
+   slc = yt.SlicePlot(ds, "z", ("gas", "velocity_x"), width=(20, 'kpc'))
    slc.save("InitialOrientation.png")
    slc.annotate_title("Initial View")
 
@@ -851,14 +851,14 @@ to rotate the view:
    slc.save("SwappedAxes90CW.png")
 
    # vertical flip + horizontal flip = rotate 180 degree rotation
-   slc = yt.SlicePlot(ds, "x", ("gas", "velocity_x"))
+   slc = yt.SlicePlot(ds, "z", ("gas", "velocity_x"), width=(20, 'kpc'))
    slc.flip_horizontal()
    slc.flip_vertical()
    slc.annotate_title("180 Degree Rotation")
    slc.save("FlipAxes180.png")
 
    # swap + horizontal flip = rotate 90 degree rotation (counter clockwise)
-   slc = yt.SlicePlot(ds, "x", ("gas", "velocity_x"))
+   slc = yt.SlicePlot(ds, "z", ("gas", "velocity_x"), width=(20, 'kpc'))
    slc.swap_axes()
    slc.flip_horizontal()
    slc.annotate_title("90 Degree Counter Clockwise Rotation")
