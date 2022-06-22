@@ -544,7 +544,7 @@ To plot only the central particles
 
    ds = yt.load("Enzo_64/DD0043/data0043")
    p = yt.ProjectionPlot(ds, "x", ("gas", "density"), center="m", width=(10, "Mpc"))
-   sp = ds.sphere([0.5, 0.5, 0.5], ds.quan(1, "Mpc"))
+   sp = ds.sphere(p.data_source.center, ds.quan(1, "Mpc"))
    p.annotate_particles((10, "Mpc"), data_source=sp)
    p.save()
 
