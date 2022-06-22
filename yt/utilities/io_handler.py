@@ -177,7 +177,7 @@ class BaseIOHandler:
 
         # re-organize the fields to read
         ptf, field_maps = self._get_particle_field_containers(fields)
-        data = {field: [] for field in fields}
+        data: dict = {field: [] for field in fields}
         field_sizes = {field: 0 for field in fields}
 
         # Now we read.
