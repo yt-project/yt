@@ -351,8 +351,10 @@ class Scene:
             out = self._last_render
             if sigma_clip:
                 max_val = out._clipping_value(sigma_clip)
-                out = np.clip(out[:, :, :3] / max_val, 0.0, 1.0) * 255
+            else:
+                max_val = out[:, :, :3].max()
             alpha = 255 * out[:, :, 3].astype("uint8")
+            out = np.clip(out[:, :, :3] / max_val, 0.0, 1.0) * 255
             out = np.concatenate([out.astype("uint8"), alpha[..., None]], axis=-1)
             # not sure why we need rot90, but this makes the orientation
             # match the png writer
