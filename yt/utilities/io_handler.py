@@ -175,40 +175,17 @@ class BaseIOHandler:
         self, chunks, selector, fields: List[Tuple[str, str]]
     ) -> Dict[Tuple[str, str], np.ndarray]:
 
-        # this particle reader is dask-optional. If dask is enabled, it
-        # constructs a dask-delayed graph and immediately computes.
-        # If dask is not enabled, all dask operations are passthrough
-        # functions that have no effect.
-
-        dask_delay = _get_dask_delayed(self._dask_enabled)
-        dask_compute = _get_dask_compute(self._dask_enabled)
-
         # re-organize the fields to read
         ptf, field_maps = self._get_particle_field_containers(fields)
         data = {field: [] for field in fields}
         field_sizes = {field: 0 for field in fields}
 
-        # Now we read each chunk
-        delayed_chunks = []
-        for data_file in self._sorted_chunk_iterator(chunks):
-            # note: if dask is not enabled, dask_delay_wrapper is an empty
-            # decorator and results are immediately returned
-            read_f = self._read_particle_data_file
-            delayed_chunk = dask_delay(read_f)(data_file, ptf, selector)
-            delayed_chunks.append(delayed_chunk)
-
-        # since we are returning in-mem arrays with this function, we immediately compute
-        # if dask is not enabled, this will pass through the chunks without modification
-        data_by_chunk = dask_compute(*delayed_chunks)
-
-        # convert from a list of dicts to dict of lists in order to concatenate
-        for chunk in data_by_chunk:
-            for field in chunk.keys():
-                # the chunk will only have the field if there are values
-                vals = chunk[field]
-                for field_f in field_maps[field]:
-                    data[field_f].append(vals)
-                    field_sizes[field_f] += vals.size
+        # Now we read.
+        for field_r, vals in self._read_particle_fields(chunks, ptf, selector):
+            # Note that we now need to check the mappings
+            for field_f in field_maps[field_r]:
+                data[field_f].append(vals)
+                field_sizes[field_f] += vals.size
 
         # now concatenate into final dictionary
         rv: Dict[Tuple[str, str], np.ndarray] = {}  # the return dictionary
@@ -257,12 +234,29 @@ class BaseIOHandler:
         return ptf, field_maps
 
     def _read_particle_fields(self, chunks, ptf, selector):
-        # Now we have all the sizes, and we can allocate
+        # this particle reader is dask-optional. If dask is enabled, it
+        # constructs a dask-delayed graph and immediately computes.
+        # If dask is not enabled, all dask operations are passthrough
+        # functions that have no effect.
+
+        dask_delay = _get_dask_delayed(self._dask_enabled)
+        dask_compute = _get_dask_compute(self._dask_enabled)
+
+        # Now we read each chunk
+        delayed_chunks = []
         for data_file in self._sorted_chunk_iterator(chunks):
-            data_file_data = self._read_particle_data_file(data_file, ptf, selector)
-            # temporary trickery so it's still an iterator, need to adjust
-            # the io_handler.BaseIOHandler.read_particle_selection() method
-            # to not use an iterator.
+            # note: if dask is not enabled, dask_delay_wrapper is an empty
+            # decorator and results are immediately returned
+            read_f = self._read_particle_data_file
+            delayed_chunk = dask_delay(read_f)(data_file, ptf, selector)
+            delayed_chunks.append(delayed_chunk)
+
+        # since we are returning in-mem arrays with this function, we immediately compute
+        # if dask is not enabled, this will pass through the chunks without modification
+        data_by_chunk = dask_compute(*delayed_chunks)
+
+        # yield from our in-mem chunks
+        for data_file_data in data_by_chunk:
             yield from data_file_data.items()
 
     def _sorted_chunk_iterator(self, chunks):
