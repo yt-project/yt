@@ -197,6 +197,20 @@ def pytest_configure(config):
             ),
         )
 
+    if find_spec("dask") is not None:
+        # this is fixed upstream, it is only necessary here due to a numpy
+        # version conflict in dask and yt. dask version 2.30.0 is the newest
+        # version that will work with numpy 1.14.2 (the minimum for yt).
+        # once the numpy min can be bumped to >= 1.15.1, the min dask version
+        # can be bumped to 2020.12.0 and this filter can be removed
+        config.addinivalue_line(
+            "filterwarnings",
+            (
+                "ignore:distutils Version classes are deprecated. "
+                "Use packaging.version instead.:DeprecationWarning"
+            ),
+        )
+
 
 def pytest_collection_modifyitems(config, items):
     r"""
