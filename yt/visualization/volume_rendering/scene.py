@@ -349,7 +349,7 @@ class Scene:
             ax = fig.add_axes([0, 0, 1, 1])
             ax.set_axis_off()
             out = self._last_render
-            if sigma_clip:
+            if sigma_clip is not None:
                 max_val = out._clipping_value(sigma_clip)
             else:
                 max_val = out[:, :, :3].max()
