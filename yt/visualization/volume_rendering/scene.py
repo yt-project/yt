@@ -349,8 +349,10 @@ class Scene:
             ax = fig.add_axes([0, 0, 1, 1])
             ax.set_axis_off()
             out = self._last_render
-            nz = out[:, :, :3][out[:, :, :3].nonzero()]
-            max_val = nz.mean() + sigma_clip * nz.std()
+            if sigma_clip is not None:
+                max_val = out._clipping_value(sigma_clip)
+            else:
+                max_val = out[:, :, :3].max()
             alpha = 255 * out[:, :, 3].astype("uint8")
             out = np.clip(out[:, :, :3] / max_val, 0.0, 1.0) * 255
             out = np.concatenate([out.astype("uint8"), alpha[..., None]], axis=-1)
@@ -511,11 +513,9 @@ class Scene:
         ax.set_position([0, 0, 1, 1])
 
         if sigma_clip is not None:
-            nz = im[im > 0.0]
-            nim = im / (nz.mean() + sigma_clip * np.std(nz))
+            nim = im / im._clipping_value(sigma_clip)
             nim[nim > 1.0] = 1.0
             nim[nim < 0.0] = 0.0
-            del nz
         else:
             nim = im
         axim = ax.imshow(nim[:, :, :3] / nim[:, :, :3].max(), interpolation="bilinear")
