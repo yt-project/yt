@@ -326,45 +326,19 @@ class NormHandler:
             # allowing to toggle between lin and log scaling without detailed user input
             norm_type = self.norm_type
         else:
-            if kw["vmin"] == kw["vmax"] or not np.any(np.isfinite(data)):
+            if kw["vmin"] == kw["vmax"] or not np.any(finite_values_mask):
                 norm_type = Normalize
             elif kw["vmin"] <= 0:
                 norm_type = SymLogNorm
-            elif (
-                Version("3.3") <= MPL_VERSION < Version("3.5")
-                and kw["vmin"] == 0
-                and kw["vmax"] > 0
-            ):
-                # normally, a LogNorm scaling would still be OK here because
-                # LogNorm will mask 0 values when calculating vmin. But
-                # due to a bug in matplotlib's imshow, if the data range
-                # spans many orders of magnitude while containing zero points
-                # vmin can get rescaled to 0, resulting in an error when the image
-                # gets drawn. So here we switch to symlog to avoid that until
-                # a fix is in -- see PR #3161 and linked issue.
-                cutoff_sigdigs = 15
-                if (
-                    np.log10(np.nanmax(data[np.isfinite(data)]))
-                    - np.log10(np.nanmin(data[data > 0]))
-                    > cutoff_sigdigs
-                ):
-                    norm_type = SymLogNorm
-                else:
-                    norm_type = LogNorm
             else:
                 norm_type = LogNorm
 
         if norm_type is SymLogNorm:
-            # if cblinthresh is not specified, try to come up with a reasonable default
-            min_abs_val, max_abs_val = np.sort(
-                np.abs((self.to_float(np.nanmin(data)), self.to_float(np.nanmax(data))))
-            )
             if self.linthresh is not None:
                 linthresh = self.to_float(self.linthresh)
-            elif min_abs_val > 0:
-                linthresh = min_abs_val
             else:
-                linthresh = max_abs_val / 1000
+                linthresh = self.to_float(self._guess_linthresh(data))
+
             kw.setdefault("linthresh", linthresh)
             if MPL_VERSION >= Version("3.2"):
                 # note that this creates an inconsistency between mpl versions
@@ -373,6 +347,35 @@ class NormHandler:
                 kw.setdefault("base", 10)
 
         return norm_type(*args, **kw)
+
+    def _guess_linthresh(self, data):
+        # data is the ImageArray to plot
+
+        # get the data range as unyt quantities
+        nz_data = data[data != 0]
+        min_abs_val, max_abs_val = np.sort(
+            (np.abs(np.nanmin(nz_data)), np.abs(np.nanmax(nz_data)))
+        )
+        min_abs_val = self.ds.quan(min_abs_val, data.units)
+        max_abs_val = self.ds.quan(max_abs_val, data.units)
+        min_abs_nonzero = self.ds.quan(np.nanmin(np.abs(nz_data)), data.units)
+
+        linthresh = min_abs_nonzero
+        # the above works well for most data. But need to control for a few
+        # edge cases related to floating point precision errors.
+
+        # first, set the scaling factor
+        cutoff_sigdigs = 30.0  # max allowable range in significant digits
+        actual_log_range = np.log10(max_abs_val) - np.log10(min_abs_val)
+        if actual_log_range < cutoff_sigdigs:
+            cutoff_sigdigs = np.ceil(actual_log_range)
+
+        if np.log10(max_abs_val) - np.log10(linthresh) > cutoff_sigdigs:
+            # this is required to avoid rounding error in the matplotlib normalization
+            # when the range is too large.
+            linthresh = max_abs_val / (10**cutoff_sigdigs)
+
+        return linthresh
 
 
 class ColorbarHandler:
