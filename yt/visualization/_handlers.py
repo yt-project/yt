@@ -321,7 +321,6 @@ class NormHandler:
             dvmax = 1 * getattr(data, "units", 1)
         kw.setdefault("vmax", dvmax)
 
-        min_abs_val, max_abs_val = np.sort(np.abs((kw["vmin"], kw["vmax"])))
         if self.norm_type is not None:
             # this is a convenience mechanism for backward compat,
             # allowing to toggle between lin and log scaling without detailed user input
