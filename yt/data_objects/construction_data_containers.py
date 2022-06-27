@@ -173,6 +173,7 @@ class YTProj(YTSelectionContainer2D):
         method="integrate",
         field_parameters=None,
         max_level=None,
+        moment=1,
         *,
         style=None,
     ):
@@ -208,6 +209,12 @@ class YTProj(YTSelectionContainer2D):
             self.func = np.sum  # for the future
         else:
             raise NotImplementedError(self.method)
+        if moment == 2 and weight_field is None:
+            raise RuntimeError(
+                "Cannot compute the second moment of a projection "
+                "if weight_field=None!"
+            )
+        self.moment = moment
         self._set_center(center)
         self._projected_units = {}
         if data_source is None:
@@ -240,12 +247,32 @@ class YTProj(YTSelectionContainer2D):
 
     def get_data(self, fields=None):
         fields = self._determine_fields(fields)
+        sfields = []
+        if self.moment == 2:
+
+            def make_sq_field(fname):
+                def _sq_field(field, data):
+                    return data[fname] ** 2
+
+                return _sq_field
+
+            for field in fields:
+                fd = self.ds._get_field_info(*field)
+                self.ds.add_field(
+                    (field[0], f"tmp_{field[1]}_squared"),
+                    make_sq_field(field),
+                    sampling_type=fd.sampling_type,
+                    units=f"({fd.units})*({fd.units})",
+                )
+                sfields.append((field[0], f"tmp_{field[1]}_squared"))
+        nfields = len(fields)
+        nsfields = len(sfields)
         # We need a new tree for every single set of fields we add
-        if len(fields) == 0:
+        if nfields == 0:
             return
         if isinstance(self.ds, ParticleDataset):
             return
-        tree = self._get_tree(len(fields))
+        tree = self._get_tree(nfields + nsfields)
         # This only needs to be done if we are in parallel; otherwise, we can
         # safely build the mesh as we go.
         if communication_system.communicators[-1].size > 1:
@@ -259,7 +286,7 @@ class YTProj(YTSelectionContainer2D):
                 if not _units_initialized:
                     self._initialize_projected_units(fields, chunk)
                     _units_initialized = True
-                self._handle_chunk(chunk, fields, tree)
+                self._handle_chunk(chunk, fields + sfields, tree)
         # if there's less than nprocs chunks, units won't be initialized
         # on all processors, so sync with _projected_units on rank 0
         projected_units = self.comm.mpi_bcast(self._projected_units)
@@ -313,14 +340,21 @@ class YTProj(YTSelectionContainer2D):
         data["pdy"] = self.ds.arr(pdy, code_length)
         data["fields"] = nvals
         # Now we run the finalizer, which is ignored if we don't need it
-        field_data = np.hsplit(data.pop("fields"), len(fields))
+        field_data = np.hsplit(data.pop("fields"), nfields + nsfields)
         for fi, field in enumerate(fields):
             mylog.debug("Setting field %s", field)
             input_units = self._projected_units[field]
-            self[field] = self.ds.arr(field_data[fi].ravel(), input_units)
+            fvals = field_data[fi].ravel()
+            if self.moment == 2:
+                fvals = np.sqrt(field_data[fi + nfields].ravel() - fvals * fvals)
+            self[field] = self.ds.arr(fvals, input_units)
         for i in list(data.keys()):
             self[i] = data.pop(i)
         mylog.info("Projection completed")
+        if self.moment == 2:
+            for field in fields:
+                if field[1].startswith("tmp_") and field[1].endswith("_squared"):
+                    self.ds.field_info.pop(field)
         self.tree = tree
 
     def to_pw(self, fields=None, center="c", width=None, origin="center-window"):
@@ -406,6 +440,7 @@ class YTParticleProj(YTProj):
         method="integrate",
         field_parameters=None,
         max_level=None,
+        moment=1,
         *,
         style=None,
     ):
@@ -419,6 +454,7 @@ class YTParticleProj(YTProj):
             method,
             field_parameters,
             max_level,
+            moment,
             style=style,
         )
 
@@ -500,6 +536,7 @@ class YTQuadTreeProj(YTProj):
         method="integrate",
         field_parameters=None,
         max_level=None,
+        moment=1,
         *,
         style=None,
     ):
@@ -513,6 +550,7 @@ class YTQuadTreeProj(YTProj):
             method,
             field_parameters,
             max_level,
+            moment,
             style=style,
         )
 

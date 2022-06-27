@@ -1198,6 +1198,8 @@ class PWViewerMPL(PlotWindow):
 
             if colorbar_label is None:
                 colorbar_label = image.info["label"]
+                if hasattr(self, "moment"):
+                    colorbar_label = "%s Standard Deviation" % colorbar_label
                 if hasattr(self, "projected"):
                     colorbar_label = "$\\rm{Projected }$ %s" % colorbar_label
                 if units is None or units == "":
@@ -2049,6 +2051,7 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
         window_size=8.0,
         buff_size=(800, 800),
         aspect=None,
+        moment=1,
         *,
         axis=None,
     ):
@@ -2100,6 +2103,7 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
                 field_parameters=field_parameters,
                 method=method,
                 max_level=max_level,
+                moment=moment,
             )
         PWViewerMPL.__init__(
             self,
@@ -2117,6 +2121,7 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
         self.set_axes_unit(axes_unit)
+        self.moment = moment
 
 
 class OffAxisSlicePlot(SlicePlot, PWViewerMPL):
