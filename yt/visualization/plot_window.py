@@ -2294,6 +2294,7 @@ class OffAxisProjectionDummyDataSource:
         north_vector=None,
         method="integrate",
         data_source=None,
+        moment=1,
     ):
         self.center = center
         self.ds = ds
@@ -2317,6 +2318,7 @@ class OffAxisProjectionDummyDataSource:
         self.north_vector = north_vector
         self.method = method
         self.orienter = Orientation(normal_vector, north_vector=north_vector)
+        self.moment = moment
 
     def _determine_fields(self, *args):
         return self.dd._determine_fields(*args)
@@ -2441,6 +2443,7 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
         interpolated=False,
         fontsize=18,
         method="integrate",
+        moment=1,
         data_source=None,
         buff_size=(800, 800),
     ):
@@ -2472,6 +2475,7 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
             north_vector=north_vector,
             method=method,
             data_source=data_source,
+            moment=moment,
         )
 
         validate_mesh_fields(OffAxisProj, fields)
