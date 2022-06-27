@@ -18,6 +18,7 @@ from yt.funcs import mylog
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.on_demand_imports import _xarray as xr
 
+from ...utilities.file_handler import NetCDF4FileHandler, warn_netcdf
 from .fields import CFRadialFieldInfo
 
 
@@ -293,25 +294,22 @@ class CFRadialDataset(Dataset):
         # This accepts a filename or a set of arguments and returns True or
         # False depending on if the file is of the type requested.
 
+        warn_netcdf(filename)
         is_cfrad = False
         try:
-            with xr.open_dataset(filename, engine="netcdf4") as ds:
-                if hasattr(ds, "attrs") and isinstance(ds.attrs, dict):
-                    con = "Conventions"
-                    cons = ds.attrs.get(con, "") + ds.attrs.get(con.lower(), "")
-                    is_cfrad = "CF/Radial" in cons
-        except (
-            ImportError,
-            OSError,
-            AttributeError,
-            TypeError,
-            ValueError,
-            RuntimeError,
-        ):
-            # catch all these to avoid errors when xarray cant handle a file
-            # note: using engine="netcdf4" avoids warnings that are raised
-            # in newer vesrions of xarray (around v'2022.3.0'). If netcdf4 is not
-            # installed, open_dataset will raise a ValueError when engine="netcdf4"
+            # note that we use the NetCDF4FileHandler here to avoid some
+            # issues with xarray opening datasets it cannot handle. Once
+            # a dataset is as identified as a CFRadialDataset, xarray is used
+            # for opening. See https://github.com/yt-project/yt/issues/3987
+            nc4_file = NetCDF4FileHandler(filename)
+            with nc4_file.open_ds(keepweakref=True) as ds:
+                con = "Conventions"  # the attribute to check for file conventions
+                cons = ""  # the value of the Conventions attribute
+                for c in [con, con.lower()]:
+                    if hasattr(ds, c):
+                        cons += getattr(ds, c)
+                is_cfrad = "CF/Radial" in cons
+        except (OSError, AttributeError, ImportError):
             return False
 
         return is_cfrad
