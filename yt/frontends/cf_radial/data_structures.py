@@ -16,9 +16,9 @@ from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.funcs import mylog
 from yt.geometry.grid_geometry_handler import GridIndex
+from yt.utilities.file_handler import NetCDF4FileHandler, warn_netcdf
 from yt.utilities.on_demand_imports import _xarray as xr
 
-from ...utilities.file_handler import NetCDF4FileHandler, warn_netcdf
 from .fields import CFRadialFieldInfo
 
 
