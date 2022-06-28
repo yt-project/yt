@@ -1257,7 +1257,7 @@ class YTDataContainer(abc.ABC):
             raise NotImplementedError(f"Unknown axis {axis}")
         return r
 
-    def integrate(self, field, weight=None, axis=None):
+    def integrate(self, field, weight=None, axis=None, moment=1):
         r"""Compute the integral (projection) of a field along an axis.
 
         This projects a field along an axis.
@@ -1285,7 +1285,9 @@ class YTDataContainer(abc.ABC):
         else:
             weight_field = None
         if axis in self.ds.coordinates.axis_name:
-            r = self.ds.proj(field, axis, data_source=self, weight_field=weight_field)
+            r = self.ds.proj(
+                field, axis, data_source=self, weight_field=weight_field, moment=moment
+            )
         else:
             raise NotImplementedError(f"Unknown axis {axis}")
         return r
