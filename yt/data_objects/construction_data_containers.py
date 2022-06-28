@@ -352,9 +352,8 @@ class YTProj(YTSelectionContainer2D):
             self[i] = data.pop(i)
         mylog.info("Projection completed")
         if self.moment == 2:
-            for field in fields:
-                if field[1].startswith("tmp_") and field[1].endswith("_squared"):
-                    self.ds.field_info.pop(field)
+            for field in sfields:
+                self.ds.field_info.pop(field)
         self.tree = tree
 
     def to_pw(self, fields=None, center="c", width=None, origin="center-window"):

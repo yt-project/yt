@@ -638,7 +638,7 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
                 dd.normal_vector,
                 width,
                 self.buff_size,
-                item,
+                item_sq,
                 weight=dd.weight_field,
                 volume=dd.volume,
                 no_ghost=dd.no_ghost,
@@ -648,6 +648,8 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
             )
             self.ds.field_info.pop(item_sq)
             buff = np.sqrt(buff2 - buff * buff)
+
+            self.ds.field_info.pop(item_sq)
 
         ia = ImageArray(buff.swapaxes(0, 1), info=self._get_info(item))
         self[item] = ia
