@@ -308,6 +308,7 @@ class CFRadialDataset(Dataset):
                 for c in [con, con.lower()]:
                     if hasattr(ds, c):
                         cons += getattr(ds, c)
+                        break
                 is_cfrad = "CF/Radial" in cons
         except (OSError, AttributeError, ImportError):
             return False
