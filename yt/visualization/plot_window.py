@@ -2296,6 +2296,11 @@ class OffAxisProjectionDummyDataSource:
         data_source=None,
         moment=1,
     ):
+        if moment == 2 and weight is None:
+            raise RuntimeError(
+                "Cannot compute the second moment of a projection "
+                "if weight_field=None!"
+            )
         self.center = center
         self.ds = ds
         self.axis = 4  # always true for oblique data objects
