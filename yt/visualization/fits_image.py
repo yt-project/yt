@@ -1067,6 +1067,10 @@ class FITSProjection(FITSImageData):
     length_unit : string, optional
         the length units that the coordinates are written in. The default
         is to use the default length unit of the dataset.
+    moment : integer, optional
+        for a weighted projection, moment = 1 (the default) corresponds to a
+        weighted average. moment = 2 corresponds to a weighted standard
+        deviation.
     """
 
     def __init__(
@@ -1079,12 +1083,15 @@ class FITSProjection(FITSImageData):
         width=None,
         weight_field=None,
         length_unit=None,
+        moment=1,
         **kwargs,
     ):
         fields = list(iter_fields(fields))
         axis = fix_axis(axis, ds)
         center, dcenter = ds.coordinates.sanitize_center(center, axis)
-        prj = ds.proj(fields[0], axis, weight_field=weight_field, **kwargs)
+        prj = ds.proj(
+            fields[0], axis, weight_field=weight_field, moment=moment, **kwargs
+        )
         w, frb, lunit = construct_image(
             ds, axis, prj, dcenter, image_res, width, length_unit
         )
@@ -1355,6 +1362,10 @@ class FITSOffAxisProjection(FITSImageData):
     length_unit : string, optional
         the length units that the coordinates are written in. The default
         is to use the default length unit of the dataset.
+    moment : integer, optional
+        for a weighted projection, moment = 1 (the default) corresponds to a
+        weighted average. moment = 2 corresponds to a weighted standard
+        deviation.
     """
 
     def __init__(
@@ -1371,8 +1382,13 @@ class FITSOffAxisProjection(FITSImageData):
         depth=(1.0, "unitary"),
         method="integrate",
         length_unit=None,
+        moment=1,
     ):
-        fields = list(iter_fields(fields))
+        if moment == 2 and weight_field is None:
+            raise RuntimeError(
+                "Cannot compute the second moment of a projection "
+                "if weight_field=None!"
+            )
         center, dcenter = ds.coordinates.sanitize_center(center, 4)
         buf = {}
         width = ds.coordinates.sanitize_width(normal, width, depth)
@@ -1384,6 +1400,7 @@ class FITSOffAxisProjection(FITSImageData):
             source = ds
         else:
             source = data_source
+        fields = source._determine_fields(list(iter_fields(fields)))
         for field in fields:
             buf[field] = off_axis_projection(
                 source,
@@ -1396,6 +1413,42 @@ class FITSOffAxisProjection(FITSImageData):
                 method=method,
                 weight=weight_field,
             ).swapaxes(0, 1)
+
+            if moment == 2:
+
+                def make_sq_field(fname):
+                    def _sq_field(field, data):
+                        return data[fname] ** 2
+
+                    return _sq_field
+
+                fd = ds._get_field_info(*field)
+
+                field_sq = (field[0], f"tmp_{field[1]}_squared")
+
+                ds.add_field(
+                    field_sq,
+                    make_sq_field(field),
+                    sampling_type=fd.sampling_type,
+                    units=f"({fd.units})*({fd.units})",
+                )
+
+                buff2 = off_axis_projection(
+                    source,
+                    center,
+                    normal,
+                    wd,
+                    res,
+                    field_sq,
+                    north_vector=north_vector,
+                    method=method,
+                    weight=weight_field,
+                ).swapaxes(0, 1)
+
+                buf[field] = np.sqrt(buff2 - buf[field] * buf[field])
+
+                ds.field_info.pop(field_sq)
+
         center = ds.arr([0.0] * 2, "code_length")
         w, not_an_frb, lunit = construct_image(
             ds, normal, buf, center, image_res, width, length_unit
