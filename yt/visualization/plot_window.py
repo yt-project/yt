@@ -1198,7 +1198,7 @@ class PWViewerMPL(PlotWindow):
 
             if colorbar_label is None:
                 colorbar_label = image.info["label"]
-                if hasattr(self, "moment"):
+                if getattr(self, "moment", 1) == 2:
                     colorbar_label = "%s Standard Deviation" % colorbar_label
                 if hasattr(self, "projected"):
                     colorbar_label = "$\\rm{Projected }$ %s" % colorbar_label
@@ -2105,6 +2105,7 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
                 max_level=max_level,
                 moment=moment,
             )
+        self.moment = moment
         PWViewerMPL.__init__(
             self,
             proj,
@@ -2121,7 +2122,6 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
         self.set_axes_unit(axes_unit)
-        self.moment = moment
 
 
 class OffAxisSlicePlot(SlicePlot, PWViewerMPL):
@@ -2496,6 +2496,8 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
         # reflects that
         if weight_field is None and OffAxisProj.method == "integrate":
             self.projected = True
+
+        self.moment = moment
 
         # Hard-coding the origin keyword since the other two options
         # aren't well-defined for off-axis data objects

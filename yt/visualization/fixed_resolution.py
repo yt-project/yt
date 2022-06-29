@@ -646,7 +646,6 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
                 north_vector=dd.north_vector,
                 method=dd.method,
             )
-            self.ds.field_info.pop(item_sq)
             buff = np.sqrt(buff2 - buff * buff)
 
             self.ds.field_info.pop(item_sq)
