@@ -1397,7 +1397,7 @@ class FITSOffAxisProjection(FITSImageData):
             image_res = (image_res, image_res)
         res = (image_res[0], image_res[1])
         if data_source is None:
-            source = ds
+            source = ds.all_data()
         else:
             source = data_source
         fields = source._determine_fields(list(iter_fields(fields)))
