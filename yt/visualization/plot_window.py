@@ -2349,80 +2349,84 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
     fields : string
         The name of the field(s) to be plotted.
     center : A sequence of floats, a string, or a tuple.
-         The coordinate of the center of the image. If set to 'c', 'center' or
-         left blank, the plot is centered on the middle of the domain. If set to
-         'max' or 'm', the center will be located at the maximum of the
-         ('gas', 'density') field. Centering on the max or min of a specific
-         field is supported by providing a tuple such as ("min","temperature") or
-         ("max","dark_matter_density"). Units can be specified by passing in *center*
-         as a tuple containing a coordinate and string unit name or by passing
-         in a YTArray. If a list or unitless array is supplied, code units are
-         assumed.
+        The coordinate of the center of the image. If set to 'c', 'center' or
+        left blank, the plot is centered on the middle of the domain. If set to
+        'max' or 'm', the center will be located at the maximum of the
+        ('gas', 'density') field. Centering on the max or min of a specific
+        field is supported by providing a tuple such as ("min","temperature") or
+        ("max","dark_matter_density"). Units can be specified by passing in *center*
+        as a tuple containing a coordinate and string unit name or by passing
+        in a YTArray. If a list or unitless array is supplied, code units are
+        assumed.
     width : tuple or a float.
-         Width can have four different formats to support windows with variable
-         x and y widths.  They are:
+        Width can have four different formats to support windows with variable
+        x and y widths. They are:
 
-         ==================================     =======================
-         format                                 example
-         ==================================     =======================
-         (float, string)                        (10,'kpc')
-         ((float, string), (float, string))     ((10,'kpc'),(15,'kpc'))
-         float                                  0.2
-         (float, float)                         (0.2, 0.3)
-         ==================================     =======================
+        ==================================     =======================
+        format                                 example
+        ==================================     =======================
+        (float, string)                        (10,'kpc')
+        ((float, string), (float, string))     ((10,'kpc'),(15,'kpc'))
+        float                                  0.2
+        (float, float)                         (0.2, 0.3)
+        ==================================     =======================
 
-         For example, (10, 'kpc') requests a plot window that is 10 kiloparsecs
-         wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a
-         window that is 10 kiloparsecs wide along the x axis and 15
-         kiloparsecs wide along the y axis.  In the other two examples, code
-         units are assumed, for example (0.2, 0.3) requests a plot that has an
-         x width of 0.2 and a y width of 0.3 in code units.  If units are
-         provided the resulting plot axis labels will use the supplied units.
+        For example, (10, 'kpc') requests a plot window that is 10 kiloparsecs
+        wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a
+        window that is 10 kiloparsecs wide along the x axis and 15
+        kiloparsecs wide along the y axis.  In the other two examples, code
+        units are assumed, for example (0.2, 0.3) requests a plot that has an
+        x width of 0.2 and a y width of 0.3 in code units.  If units are
+        provided the resulting plot axis labels will use the supplied units.
     depth : A tuple or a float
-         A tuple containing the depth to project through and the string
-         key of the unit: (width, 'unit').  If set to a float, code units
-         are assumed
+        A tuple containing the depth to project through and the string
+        key of the unit: (width, 'unit'). If set to a float, code units
+        are assumed
     weight_field : string
-         The name of the weighting field.  Set to None for no weight.
+        The name of the weighting field.  Set to None for no weight.
     max_level: int
-         The maximum level to project to.
+        The maximum level to project to.
     axes_unit : string
-         The name of the unit for the tick labels on the x and y axes.
-         Defaults to None, which automatically picks an appropriate unit.
-         If axes_unit is '1', 'u', or 'unitary', it will not display the
-         units, and only show the axes name.
+        The name of the unit for the tick labels on the x and y axes.
+        Defaults to None, which automatically picks an appropriate unit.
+        If axes_unit is '1', 'u', or 'unitary', it will not display the
+        units, and only show the axes name.
     north_vector : a sequence of floats
-         A vector defining the 'up' direction in the plot.  This
-         option sets the orientation of the slicing plane.  If not
-         set, an arbitrary grid-aligned north-vector is chosen.
+        A vector defining the 'up' direction in the plot. This
+        option sets the orientation of the slicing plane. If not
+        set, an arbitrary grid-aligned north-vector is chosen.
     right_handed : boolean
         Depreceated, please use flip_horizontal callback.
         Whether the implicit east vector for the image generated is set to make a right
         handed coordinate system with a north vector and the normal vector, the
         direction of the 'window' into the data.
     fontsize : integer
-         The size of the fonts for the axis, colorbar, and tick labels.
+        The size of the fonts for the axis, colorbar, and tick labels.
     method : string
-         The method of projection.  Valid methods are:
+        The method of projection. Valid methods are:
 
-         "integrate" with no weight_field specified : integrate the requested
-         field along the line of sight.
+        "integrate" with no weight_field specified : integrate the requested
+        field along the line of sight.
 
-         "integrate" with a weight_field specified : weight the requested
-         field by the weighting field and integrate along the line of sight.
+        "integrate" with a weight_field specified : weight the requested
+        field by the weighting field and integrate along the line of sight.
 
-         "sum" : This method is the same as integrate, except that it does not
-         multiply by a path length when performing the integration, and is
-         just a straight summation of the field along the given axis. WARNING:
-         This should only be used for uniform resolution grid datasets, as other
-         datasets may result in unphysical images.
+        "sum" : This method is the same as integrate, except that it does not
+        multiply by a path length when performing the integration, and is
+        just a straight summation of the field along the given axis. WARNING:
+        This should only be used for uniform resolution grid datasets, as other
+        datasets may result in unphysical images.
+    moment : integer, optional
+        for a weighted projection, moment = 1 (the default) corresponds to a
+        weighted average. moment = 2 corresponds to a weighted standard
+        deviation.
     data_source: YTSelectionContainer object
-         Object to be used for data selection. Defaults to ds.all_data(), a
-         region covering the full domain
+        Object to be used for data selection. Defaults to ds.all_data(), a
+        region covering the full domain
     buff_size: length 2 sequence
-         Size of the buffer to use for the image, i.e. the number of resolution elements
-         used.  Effectively sets a resolution limit to the image if buff_size is
-         smaller than the finest gridding.
+        Size of the buffer to use for the image, i.e. the number of resolution elements
+        used. Effectively sets a resolution limit to the image if buff_size is
+        smaller than the finest gridding.
     """
     _plot_type = "OffAxisProjection"
     _frb_generator = OffAxisProjectionFixedResolutionBuffer

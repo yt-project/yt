@@ -1270,6 +1270,10 @@ class YTDataContainer(abc.ABC):
             The field to weight the projection by
         axis : string
             The axis to project along.
+        moment : integer, optional
+            for a weighted projection, moment = 1 (the default) corresponds to a
+            weighted average. moment = 2 corresponds to a weighted standard
+            deviation.
 
         Returns
         -------

@@ -513,6 +513,10 @@ class YTQuadTreeProj(YTProj):
     field_parameters : dict of items
         Values to be passed as field parameters that can be
         accessed by generated fields.
+    moment : integer, optional
+        for a weighted projection, moment = 1 (the default) corresponds to a
+        weighted average. moment = 2 corresponds to a weighted standard
+        deviation.
 
     Examples
     --------
