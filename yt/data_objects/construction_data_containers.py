@@ -439,8 +439,8 @@ class YTParticleProj(YTProj):
         method="integrate",
         field_parameters=None,
         max_level=None,
-        moment=1,
         *,
+        moment=1,
         style=None,
     ):
         super().__init__(
@@ -539,8 +539,8 @@ class YTQuadTreeProj(YTProj):
         method="integrate",
         field_parameters=None,
         max_level=None,
-        moment=1,
         *,
+        moment=1,
         style=None,
     ):
         super().__init__(
