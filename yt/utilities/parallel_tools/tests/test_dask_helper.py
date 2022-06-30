@@ -7,8 +7,8 @@ from yt.utilities.on_demand_imports import _dask as dask
 from yt.utilities.parallel_tools import dask_helper
 
 
-@pytest.fixture(autouse=True)
-def run_before_and_after_tests():
+@pytest.fixture(autouse=True, scope="module")
+def with_dask_enabled():
     # Fixture to set dask_enabled config to standard value then reset.
     # ensures that these tests will work even if default value for dask_enabled
     # changes while ensuring the config value gets reset to the default value
