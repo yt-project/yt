@@ -1890,6 +1890,17 @@ zero.
 Semi-Structured Grid Data
 -------------------------
 
+.. note::
+
+   With the release of yt-4.1, functionality has been added to allow loading
+   "stretched" grids that are operated on in a more efficient way.  This is done
+   via the :func:`~yt.frontends.stream.data_structures.load_uniform_grid`
+   operation, supplying the ``cell_widths`` argument.  Using the hexahedral mesh
+   is no longer suggested for situations where the mesh can be adequately
+   described with three arrays of cell widths.
+
+   See :ref:`loading-stretched-grids` for more information.
+
 See :ref:`loading-numpy-array`,
 :func:`~yt.frontends.stream.data_structures.hexahedral_connectivity`,
 :func:`~yt.frontends.stream.data_structures.load_hexahedral_mesh` for
@@ -1944,6 +1955,15 @@ have assumed your data is stored in the three-dimensional array
 * Integration is not implemented.
 * Some functions may behave oddly or not work at all.
 * Data must already reside in memory.
+
+.. _loading-stretched-grids:
+
+Stretched Grid Data
+-------------------
+
+With version 4.1, yt has the ability to specify cell widths for grids.  This
+allows situations where a grid has a functional form for its widths, or where
+widths are provided in advance.
 
 Unstructured Grid Data
 ----------------------

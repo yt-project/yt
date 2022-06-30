@@ -157,6 +157,36 @@ class StreamHierarchy(GridIndex):
     def _count_grids(self):
         self.num_grids = self.stream_handler.num_grids
 
+    def _icoords_to_fcoords(self, icoords, ires, axes=None):
+        """
+        We check here that we have cell_widths, and if we do, we will provide them.
+        """
+        if self.grid_cell_widths is None:
+            return super()._icoord_to_fcoords(icoords, ires, axes)
+        # Ideally this would be ported to something more efficient.  As it
+        # stands, this will use a pure python loop!
+        if axes is None:
+            axes = [0, 1, 2]
+        cell_centers = [
+            self.ds.domain_left_edge[ax]
+            + np.add.accumulate(self.grid_cell_widths[0][ax])
+            - 0.5 * self.grid_cell_widths[0][ax]
+            for ax in axes
+        ]
+        coords = []
+        cell_widths = []
+        for i in range(icoords.shape[0]):
+            coords.append([cell_centers[_][icoords[i, _]] for _, ax in enumerate(axes)])
+            cell_widths.append(
+                [
+                    self.grid_cell_widths[0][ax][icoords[i, _]]
+                    for _, ax in enumerate(axes)
+                ]
+            )
+        coords = np.array(coords).T
+        cell_widths = np.array(cell_widths).T
+        return coords, cell_widths
+
     def _parse_index(self):
         self.grid_dimensions = self.stream_handler.dimensions
         self.grid_left_edge[:] = self.stream_handler.left_edges
