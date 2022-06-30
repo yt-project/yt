@@ -246,7 +246,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
         pdx = data_source["pdx"]
         py = data_source["py"]
         pdy = data_source["pdy"]
-        buff = np.zeros((size[1], size[0]), dtype="f8")
+        buff = np.full((size[1], size[0]), np.nan, dtype="float64")
         pixelize_cartesian(
             buff,
             px,

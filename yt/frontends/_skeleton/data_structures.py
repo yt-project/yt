@@ -20,9 +20,6 @@ class SkeletonGrid(AMRGridPatch):
         self.Children = []
         self.Level = level
 
-    def __repr__(self):
-        return "SkeletonGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
-
 
 class SkeletonHierarchy(GridIndex):
     grid = SkeletonGrid

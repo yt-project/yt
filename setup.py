@@ -15,8 +15,6 @@ from setupext import (
 
 install_ccompiler()
 
-VERSION = "4.1.dev0"
-
 if os.path.exists("MANIFEST"):
     os.remove("MANIFEST")
 

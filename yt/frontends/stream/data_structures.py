@@ -62,9 +62,6 @@ class StreamGrid(AMRGridPatch):
     def set_filename(self, filename):
         pass
 
-    def __repr__(self):
-        return "StreamGrid_%04i" % (self.id)
-
     @property
     def Parent(self):
         if self._parent_id == -1:

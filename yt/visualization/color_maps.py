@@ -8,23 +8,12 @@ from matplotlib.pyplot import get_cmap
 from packaging.version import Version
 
 from yt.funcs import get_brewer_cmap
+from yt.utilities.logger import ytLogger as mylog
 
 from . import _colormap_data as _cm
 from ._commons import MPL_VERSION
 
 yt_colormaps = {}
-
-
-def is_colormap(cmap):
-    return isinstance(cmap, cc.Colormap)
-
-
-def check_color(name):
-    try:
-        cc.colorConverter.to_rgb(name)
-        return True
-    except ValueError:
-        return False
 
 
 def add_colormap(name, cdict):
@@ -33,8 +22,6 @@ def add_colormap(name, cdict):
     """
     # Note: this function modifies the global variable 'yt_colormaps'
     yt_colormaps[name] = cc.LinearSegmentedColormap(name, cdict, 256)
-    mcm.datad[name] = cdict
-    mcm.__dict__[name] = cdict
     mcm.register_cmap(name, yt_colormaps[name])
 
 
@@ -64,8 +51,6 @@ def register_yt_colormaps_from_cmyt():
     """
     from matplotlib.pyplot import get_cmap
 
-    from yt.utilities.logger import ytLogger as mylog
-
     for hist_name, alias in _HISTORICAL_ALIASES.items():
         if MPL_VERSION >= Version("3.4.0"):
             cmap = get_cmap(alias).copy()
@@ -79,7 +64,6 @@ def register_yt_colormaps_from_cmyt():
             # Matplotlib 3.4.0 hard-forbids name collisions, but more recent versions
             # will emit a warning instead, so we emulate this behaviour regardless.
             mylog.warning("cannot register colormap '%s' (naming collision)", hist_name)
-            continue
 
 
 register_yt_colormaps_from_cmyt()
@@ -87,17 +71,18 @@ register_yt_colormaps_from_cmyt()
 # Add colormaps in _colormap_data.py that weren't defined here
 _vs = np.linspace(0, 1, 256)
 for k, v in list(_cm.color_map_luts.items()):
+    if k in yt_colormaps:
+        continue
+    cdict = {
+        "red": np.transpose([_vs, v[0], v[0]]),
+        "green": np.transpose([_vs, v[1], v[1]]),
+        "blue": np.transpose([_vs, v[2], v[2]]),
+    }
     try:
-        colormaps = mcm._cmap_registry
-    except AttributeError:  # mpl < 3.3.0
-        colormaps = mcm.cmap_d
-    if k not in yt_colormaps and k not in colormaps:
-        cdict = {
-            "red": np.transpose([_vs, v[0], v[0]]),
-            "green": np.transpose([_vs, v[1], v[1]]),
-            "blue": np.transpose([_vs, v[2], v[2]]),
-        }
         add_colormap(k, cdict)
+    except ValueError:
+        # expected if another map with identical name was already registered
+        mylog.warning("cannot register colormap '%s' (naming collision)", k)
 
 
 def get_colormap_lut(cmap_id: Union[Tuple[str, str], str]):

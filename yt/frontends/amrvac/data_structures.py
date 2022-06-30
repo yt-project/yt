@@ -55,9 +55,6 @@ class AMRVACGrid(AMRGridPatch):
         self.Children = []
         self.Level = level
 
-    def __repr__(self):
-        return "AMRVACGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
-
     def get_global_startindex(self):
         """Refresh and retrieve the starting index for each dimension at current level.
 

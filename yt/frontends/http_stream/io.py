@@ -7,7 +7,7 @@ from yt.utilities.on_demand_imports import _requests as requests
 
 class IOHandlerHTTPStream(BaseParticleIOHandler):
     _dataset_type = "http_particle_stream"
-    _vector_fields = ("Coordinates", "Velocity", "Velocities")
+    _vector_fields = {"Coordinates": 3, "Velocity": 3, "Velocities": 3}
 
     def __init__(self, ds):
         self._url = ds.base_url

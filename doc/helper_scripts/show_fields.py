@@ -7,6 +7,7 @@ from yt.config import ytcfg
 from yt.fields.derived_field import NullFunc
 from yt.frontends.api import _frontends
 from yt.frontends.stream.fields import StreamFieldInfo
+from yt.funcs import obj_length
 from yt.testing import fake_random_ds
 from yt.units import dimensions
 from yt.units.yt_array import Unit
@@ -145,7 +146,7 @@ def print_all_fields(fl):
         print(s)
         print("^" * len(s))
         print()
-        if len(df.units) > 0:
+        if obj_length(df.units) > 0:
             # Most universal fields are in CGS except for these special fields
             if df.name[1] in [
                 "particle_position",

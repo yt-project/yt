@@ -313,7 +313,7 @@ Axis-Aligned Data Sources
    p.save()
 
 
-   And now using a continuous colormap
+And now using a continuous colormap
 
 .. python-script::
 
@@ -544,7 +544,7 @@ To plot only the central particles
 
    ds = yt.load("Enzo_64/DD0043/data0043")
    p = yt.ProjectionPlot(ds, "x", ("gas", "density"), center="m", width=(10, "Mpc"))
-   sp = ds.sphere([0.5, 0.5, 0.5], ds.quan(1, "Mpc"))
+   sp = ds.sphere(p.data_source.center, ds.quan(1, "Mpc"))
    p.annotate_particles((10, "Mpc"), data_source=sp)
    p.save()
 
@@ -867,4 +867,24 @@ Overplot the Path of a Ray
    p = yt.ProjectionPlot(ds, "z", ("gas", "density"))
    p.annotate_ray(oray)
    p.annotate_ray(ray)
+   p.save()
+
+
+Applying filters on the final image
+-----------------------------------
+
+It is also possible to operate on the plotted image directly by using
+one of the fixed resolution buffer filter as described in
+:ref:`frb-filters`.
+Note that it is necessary to call the plot object's ``refresh`` method
+to apply filters.
+
+.. python-script::
+
+   import yt
+
+   ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+   p = yt.SlicePlot(ds, 'z', 'density')
+   p.frb.apply_gauss_beam(sigma=30)
+   p.refresh()
    p.save()

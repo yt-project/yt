@@ -5,31 +5,33 @@ on:
     branches:
       - main
   pull_request:
-    paths-ignore:
-      - "doc/**"
-      - README.md
+    paths:
+      - yt/**/*.py
+      - .github/workflows/type-checking.yaml
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    name: mypy
+    name: type check
     timeout-minutes: 60
 
     concurrency:
-      group: ${{ github.ref }}-dev
+      # auto-cancel any in-progress job *on the same branch*
+      group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
 
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout repo
+      uses: actions/checkout@v3
       with:
         fetch-depth: 0
 
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v3
       with:
-        python-version: '3.9'
+        python-version: '3.10'
 
-    - name: Build yt + type check deps
+    - name: Build
       run: |
         python3 -m pip install --upgrade pip
         python3 -m pip install -e .[typecheck]

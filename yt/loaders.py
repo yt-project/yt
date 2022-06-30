@@ -1434,7 +1434,7 @@ def load_sample(
             fh.extractall(save_dir)
         os.remove(tmp_file)
     else:
-        os.replace(tmp_file, save_dir)
+        os.replace(tmp_file, os.path.join(save_dir, fn))
 
     loadable_path = Path.joinpath(save_dir, fn)
     if load_name not in str(loadable_path):

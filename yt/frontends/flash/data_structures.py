@@ -26,9 +26,6 @@ class FLASHGrid(AMRGridPatch):
         self.Children = []
         self.Level = level
 
-    def __repr__(self):
-        return "FLASHGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
-
 
 class FLASHHierarchy(GridIndex):
 
@@ -101,6 +98,9 @@ class FLASHHierarchy(GridIndex):
         self.grid_dimensions[:] *= (nxb, nyb, nzb)
         try:
             self.grid_particle_count[:] = f_part["/localnp"][:][:, None]
+            self._blockless_particle_count = (
+                f_part["/tracer particles"].shape[0] - self.grid_particle_count.sum()
+            )
         except KeyError:
             self.grid_particle_count[:] = 0.0
         self._particle_indices = np.zeros(self.num_grids + 1, dtype="int64")

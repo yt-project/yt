@@ -1,6 +1,5 @@
 import abc
 from collections import defaultdict
-from functools import wraps
 from numbers import Number
 from typing import List, Optional, Type, Union
 
@@ -27,13 +26,13 @@ from yt.utilities.exceptions import (
     YTInvalidFieldType,
     YTPlotCallbackError,
     YTUnitNotRecognized,
-    YTUnsupportedPlotCallback,
 )
 from yt.utilities.math_utils import ortho_find
 from yt.utilities.orientation import Orientation
+from yt.visualization.base_plot_types import CallbackWrapper
 
-from ._commons import MPL_VERSION
-from .base_plot_types import CallbackWrapper, ImagePlotMPL
+from ._commons import MPL_VERSION, _swap_axes_extents
+from .base_plot_types import ImagePlotMPL
 from .fixed_resolution import (
     FixedResolutionBuffer,
     OffAxisProjectionFixedResolutionBuffer,
@@ -41,7 +40,6 @@ from .fixed_resolution import (
 from .geo_plot_utils import get_mpl_transform
 from .plot_container import (
     ImagePlotContainer,
-    apply_callback,
     get_log_minorticks,
     get_symlog_minorticks,
     invalidate_data,
@@ -51,7 +49,6 @@ from .plot_container import (
     log_transform,
     symlog_transform,
 )
-from .plot_modifications import callback_registry
 
 import sys  # isort: skip
 
@@ -174,6 +171,7 @@ class PlotWindow(ImagePlotContainer):
         The size of the window on the longest axis (in units of inches),
         including the margins but not the colorbar.
     right_handed : boolean
+        Depreceated, please use flip_horizontal callback.
         Whether the implicit east vector for the image generated is set to make a right
         handed coordinate system with a north vector and the normal vector, the
         direction of the 'window' into the data.
@@ -195,11 +193,19 @@ class PlotWindow(ImagePlotContainer):
         fontsize=18,
         aspect=None,
         setup=False,
+        *,
+        geometry="cartesian",
     ):
+
+        # axis manipulation operations are callback-only:
+        self._swap_axes_input = False
+        self._flip_vertical = False
+        self._flip_horizontal = False
+
         self.center = None
         self._periodic = periodic
         self.oblique = oblique
-        self._right_handed = right_handed
+        self._right_handed = _check_right_handed(right_handed, self._flip_horizontal)
         self._equivalencies = defaultdict(lambda: (None, {}))
         self.buff_size = buff_size
         self.antialias = antialias
@@ -216,6 +222,20 @@ class PlotWindow(ImagePlotContainer):
         super().__init__(data_source, window_size, fontsize)
 
         self._set_window(bounds)  # this automatically updates the data and plot
+        if (
+            geometry
+            in (
+                "spherical",
+                "cylindrical",
+                "geographic",
+                "internal_geographic",
+                "polar",
+            )
+            and origin != "native"
+        ):
+            mylog.info("Setting origin='native' for %s geometry.", geometry)
+            origin = "native"
+
         self.origin = origin
         if self.data_source.center is not None and not oblique:
             ax = self.data_source.axis
@@ -247,7 +267,6 @@ class PlotWindow(ImagePlotContainer):
             # Access the dictionary to force the key to be created
             self._units_config[field]
 
-        self.setup_callbacks()
         self._setup_plots()
 
     def __iter__(self):
@@ -265,7 +284,11 @@ class PlotWindow(ImagePlotContainer):
 
     @property
     def frb(self):
-        if self._frb is None or not self._data_valid:
+        # Force the regeneration of the fixed resolution buffer
+        # * if there's none
+        # * if the data has been invalidated
+        # * if the frb has been inalidated
+        if not self._data_valid:
             self._recreate_frb()
         return self._frb
 
@@ -278,15 +301,15 @@ class PlotWindow(ImagePlotContainer):
     def frb(self):
         del self._frb
         self._frb = None
-        self._data_valid = False
 
     def _recreate_frb(self):
         old_fields = None
+        old_filters = []
         # If we are regenerating an frb, we want to know what fields we had before
         if self._frb is not None:
-            old_fields = list(self._frb.keys())
-            old_units = [str(self._frb[of].units) for of in old_fields]
-
+            old_fields = list(self._frb.data.keys())
+            old_units = [_.units for _ in self._frb.data.values()]
+            old_filters = self._frb._filters
         # Set the bounds
         if hasattr(self, "zlim"):
             bounds = self.xlim + self.ylim + self.zlim
@@ -300,6 +323,7 @@ class PlotWindow(ImagePlotContainer):
             self.buff_size,
             self.antialias,
             periodic=self._periodic,
+            filters=old_filters,
         )
 
         # At this point the frb has the valid bounds, size, aliasing, etc.
@@ -359,6 +383,27 @@ class PlotWindow(ImagePlotContainer):
         # Restore the override fields
         for key in self.override_fields:
             self._frb[key]
+
+    @property
+    def _has_swapped_axes(self):
+        # note: we always run the validations here in case the states of
+        # the conflicting attributes have changed.
+        return self._validate_swap_axes(self._swap_axes_input)
+
+    @invalidate_data
+    def swap_axes(self):
+        # toggles the swap_axes behavior
+        new_swap_value = not self._swap_axes_input
+        # note: we also validate here to catch invalid states immediately, even
+        # though we validate on accessing the attribute in `_has_swapped_axes`.
+        self._swap_axes_input = self._validate_swap_axes(new_swap_value)
+        return self
+
+    def _validate_swap_axes(self, swap_value: bool) -> bool:
+        if swap_value and (self._transform or self._projection):
+            mylog.warning("Cannot swap axes due to transform or projection")
+            return False
+        return swap_value
 
     @property
     def width(self):
@@ -466,9 +511,6 @@ class PlotWindow(ImagePlotContainer):
            Keyword arguments to be passed to the equivalency. Only used if
            ``equivalency`` is set.
         """
-        if equivalency_kwargs is None:
-            equivalency_kwargs = {}
-        field = self.data_source._determine_fields(field)[0]
         for f, u in zip_equal(iter_fields(field), always_iterable(new_unit)):
             self.frb.set_unit(f, u, equivalency, equivalency_kwargs)
             self._equivalencies[f] = (equivalency, equivalency_kwargs)
@@ -676,6 +718,7 @@ class PlotWindow(ImagePlotContainer):
              the unit the width has been specified in. If width is a tuple, this
              argument is ignored. Defaults to code units.
         """
+
         if isinstance(width, Number):
             if unit is None:
                 width = (width, "code_length")
@@ -809,7 +852,32 @@ class PlotWindow(ImagePlotContainer):
 
     @invalidate_plot
     def toggle_right_handed(self):
-        self._right_handed = not self._right_handed
+        issue_deprecation_warning(
+            "the toggle_right_handed method is deprecated, use `.flip_horizontal()` instead.",
+            since="4.1.0",
+            removal="4.2.0",
+        )
+        self.flip_horizontal()
+        return self
+
+    @invalidate_plot
+    def flip_horizontal(self):
+        """
+        inverts the horizontal axis (the image's abscissa)
+        """
+        self._flip_horizontal = not self._flip_horizontal
+        self._right_handed = (
+            not self._right_handed
+        )  # keep in sync until full depreciation
+        return self
+
+    @invalidate_plot
+    def flip_vertical(self):
+        """
+        inverts the vertical axis (the image's ordinate)
+        """
+        self._flip_vertical = not self._flip_vertical
+        return self
 
     def to_fits_data(self, fields=None, other_keys=None, length_unit=None, **kwargs):
         r"""Export the fields in this PlotWindow instance
@@ -840,7 +908,6 @@ class PWViewerMPL(PlotWindow):
     _current_field = None
     _frb_generator: Optional[Type[FixedResolutionBuffer]] = None
     _plot_type: Optional[str] = None
-    _data_valid = False
 
     def __init__(self, *args, **kwargs):
         if self._frb_generator is None:
@@ -848,7 +915,30 @@ class PWViewerMPL(PlotWindow):
         if self._plot_type is None:
             self._plot_type = kwargs.pop("plot_type")
         self._splat_color = kwargs.pop("splat_color", None)
+        self._frb: Optional[FixedResolutionBuffer] = None
         PlotWindow.__init__(self, *args, **kwargs)
+
+        # import type here to avoid import cycles
+        # note that this import statement is actually crucial at runtime:
+        # the filter methods for the present class are defined only when
+        # fixed_resolution_filters is imported, so we need to guarantee
+        # that it happens no later than instanciation
+        from yt.visualization.plot_modifications import PlotCallback
+
+        self._callbacks: List[PlotCallback] = []
+
+    @property
+    def _data_valid(self) -> bool:
+        return self._frb is not None and self._frb._data_valid
+
+    @_data_valid.setter
+    def _data_valid(self, value):
+        if self._frb is None:
+            # we delegate the (in)validation responsability to the FRB
+            # if we don't have one yet, we can exit without doing anything
+            return
+        else:
+            self._frb._data_valid = value
 
     def _setup_origin(self):
         origin = self.origin
@@ -970,9 +1060,9 @@ class PWViewerMPL(PlotWindow):
             return
         if not self._data_valid:
             self._recreate_frb()
-            self._data_valid = True
         self._colorbar_valid = True
-        for f in list(set(self.data_source._determine_fields(self.fields))):
+        field_list = list(set(self.data_source._determine_fields(self.fields)))
+        for f in field_list:
             axis_index = self.data_source.axis
 
             xc, yc = self._setup_origin()
@@ -1115,6 +1205,14 @@ class PWViewerMPL(PlotWindow):
                 ia = ImageArray(ia)
             else:
                 ia = image
+
+            swap_axes = self._has_swapped_axes
+            aspect = self.aspect
+            if swap_axes:
+                extent = _swap_axes_extents(extent)
+                ia = ia.transpose()
+                aspect = 1.0 / aspect  # aspect ends up passed to imshow(aspect=aspect)
+
             self.plots[f] = WindowPlotMPL(
                 ia,
                 self._field_transform[f].name,
@@ -1124,17 +1222,13 @@ class PWViewerMPL(PlotWindow):
                 zlim,
                 self.figure_size,
                 font_size,
-                self.aspect,
+                aspect,
                 fig,
                 axes,
                 cax,
                 self._projection,
                 self._transform,
             )
-
-            if not self._right_handed:
-                ax = self.plots[f].axes
-                ax.invert_xaxis()
 
             axes_unit_labels = self._get_axes_unit_labels(unit_x, unit_y)
 
@@ -1172,7 +1266,10 @@ class PWViewerMPL(PlotWindow):
                         )
                     else:
                         ymin, ymax = (float(y) for y in extenty)
-                    self.plots[f].image.set_extent((xmin, xmax, ymin, ymax))
+                    new_extent = (xmin, xmax, ymin, ymax)
+                    if swap_axes:
+                        new_extent = _swap_axes_extents(new_extent)
+                    self.plots[f].image.set_extent(new_extent)
                     self.plots[f].axes.set_aspect("auto")
 
             x_label, y_label, colorbar_label = self._get_axes_labels(f)
@@ -1181,6 +1278,9 @@ class PWViewerMPL(PlotWindow):
                 labels[0] = x_label
             if y_label is not None:
                 labels[1] = y_label
+
+            if swap_axes:
+                labels.reverse()
 
             self.plots[f].axes.set_xlabel(labels[0])
             self.plots[f].axes.set_ylabel(labels[1])
@@ -1277,91 +1377,37 @@ class PWViewerMPL(PlotWindow):
 
         self._set_font_properties()
         self.run_callbacks()
+
+        if self._flip_horizontal or self._flip_vertical:
+            # some callbacks (e.g., streamlines) fail when applied to a
+            # flipped axis, so flip only at the end.
+            for f in field_list:
+                if self._flip_horizontal:
+                    ax = self.plots[f].axes
+                    ax.invert_xaxis()
+
+                if self._flip_vertical:
+                    ax = self.plots[f].axes
+                    ax.invert_yaxis()
+
         self._plot_valid = True
 
     def setup_callbacks(self):
-        ignored = ["PlotCallback"]
-        if self._plot_type.startswith("OffAxis"):
-            ignored += [
-                "ParticleCallback",
-                "ClumpContourCallback",
-                "GridBoundaryCallback",
-            ]
-        if self._plot_type == "OffAxisProjection":
-            ignored += [
-                "VelocityCallback",
-                "MagFieldCallback",
-                "QuiverCallback",
-                "CuttingQuiverCallback",
-                "StreamlineCallback",
-                "LineIntegralConvolutionCallback",
-            ]
-        elif self._plot_type == "Particle":
-            ignored += [
-                "HopCirclesCallback",
-                "HopParticleCallback",
-                "ClumpContourCallback",
-                "GridBoundaryCallback",
-                "VelocityCallback",
-                "MagFieldCallback",
-                "QuiverCallback",
-                "CuttingQuiverCallback",
-                "StreamlineCallback",
-                "ContourCallback",
-            ]
-
-        def missing_callback_closure(cbname):
-            def _(*args, **kwargs):
-                raise YTUnsupportedPlotCallback(
-                    callback=cbname, plot_type=self._plot_type
-                )
-
-            return _
-
-        for key in callback_registry:
-            cbname = callback_registry[key]._type_name
-
-            if key in ignored:
-                self.__dict__["annotate_" + cbname] = missing_callback_closure(cbname)
-                continue
-
-            # We need to wrap to create a closure so that
-            # CallbackMaker is bound to the wrapped method.
-            def closure():
-                CallbackMaker = callback_registry[key]
-
-                @wraps(CallbackMaker)
-                def method(*args, **kwargs):
-                    # We need to also do it here as "invalidate_plot"
-                    # and "apply_callback" require the functions'
-                    # __name__ in order to work properly
-                    @wraps(CallbackMaker)
-                    def cb(self, *a, **kwa):
-                        # We construct the callback method
-                        # skipping self
-                        return CallbackMaker(*a, **kwa)
-
-                    # Create callback
-                    cb = invalidate_plot(apply_callback(cb))
-
-                    return cb(self, *args, **kwargs)
-
-                return method
-
-            self.__dict__["annotate_" + cbname] = closure()
+        issue_deprecation_warning(
+            "The PWViewer.setup_callbacks method is a no-op.", since="4.1.0"
+        )
 
     @invalidate_plot
-    def clear_annotations(self, index=None):
+    def clear_annotations(self, index: Optional[int] = None):
         """
         Clear callbacks from the plot.  If index is not set, clear all
         callbacks.  If index is set, clear that index (ie 0 is the first one
         created, 1 is the 2nd one created, -1 is the last one created, etc.)
         """
         if index is None:
-            self._callbacks = []
+            self._callbacks.clear()
         else:
-            del self._callbacks[index]
-        self.setup_callbacks()
+            self._callbacks.pop(index)
         return self
 
     def list_annotations(self):
@@ -1376,7 +1422,8 @@ class PWViewerMPL(PlotWindow):
     def run_callbacks(self):
         for f in self.fields:
             keys = self.frb.keys()
-            for name, (args, kwargs) in self._callbacks:
+            for callback in self._callbacks:
+                # need to pass _swap_axes and adjust all the callbacks
                 cbw = CallbackWrapper(
                     self,
                     self.plots[f],
@@ -1385,8 +1432,6 @@ class PWViewerMPL(PlotWindow):
                     self._font_properties,
                     self._font_color,
                 )
-                CallbackMaker = callback_registry[name]
-                callback = CallbackMaker(*args[1:], **kwargs)
                 try:
                     callback(cbw)
                 except YTDataTypeUnsupported as e:
@@ -1681,6 +1726,8 @@ class SlicePlot(NormalPlot):
     data_source : YTSelectionContainer Object
          Object to be used for data selection.  Defaults to a region covering
          the entire simulation.
+    swap_axes : bool
+
 
     Raises
     ------
@@ -1874,9 +1921,10 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
          If axes_unit is '1', 'u', or 'unitary', it will not display the
          units, and only show the axes name.
     right_handed : boolean
-         Whether the implicit east vector for the image generated is set to make a right
-         handed coordinate system with a normal vector, the direction of the
-         'window' into the data.
+        Depreceated, please use flip_horizontal callback.
+        Whether the implicit east vector for the image generated is set to make a right
+        handed coordinate system with a north vector and the normal vector, the
+        direction of the 'window' into the data.
     fontsize : integer
          The size of the fonts for the axis, colorbar, and tick labels.
     field_parameters : dictionary
@@ -1947,15 +1995,6 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
         if field_parameters is None:
             field_parameters = {}
 
-        if ds.geometry in (
-            "spherical",
-            "cylindrical",
-            "geographic",
-            "internal_geographic",
-        ):
-            mylog.info("Setting origin='native' for %s geometry.", ds.geometry)
-            origin = "native"
-
         if isinstance(ds, YTSpatialPlotDataset):
             slc = ds.all_data()
             slc.axis = axis
@@ -1982,6 +2021,7 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
             aspect=aspect,
             right_handed=right_handed,
             buff_size=buff_size,
+            geometry=ds.geometry,
         )
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
@@ -2078,9 +2118,10 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
          =============================================== ===============================
 
     right_handed : boolean
-         Whether the implicit east vector for the image generated is set to make a right
-         handed coordinate system with the direction of the
-         'window' into the data.
+        Depreceated, please use flip_horizontal callback.
+        Whether the implicit east vector for the image generated is set to make a right
+        handed coordinate system with a north vector and the normal vector, the
+        direction of the 'window' into the data.
     data_source : YTSelectionContainer Object
          Object to be used for data selection.  Defaults to a region covering
          the entire simulation.
@@ -2099,7 +2140,8 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
          "integrate" with a weight_field specified : weight the requested
          field by the weighting field and integrate along the line of sight.
 
-         "mip" : pick out the maximum value of the field in the line of sight.
+         "max" : pick out the maximum value of the field in the line of sight.
+         "min" : pick out the minimum value of the field in the line of sight.
 
          "sum" : This method is the same as integrate, except that it does not
          multiply by a path length when performing the integration, and is
@@ -2157,19 +2199,18 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
         *,
         axis=None,
     ):
+        if method == "mip":
+            issue_deprecation_warning(
+                "'mip' method is a deprecated alias for 'max'. "
+                "Please use method='max' directly.",
+                since="4.1.0",
+            )
+            method = "max"
         # TODO: in yt 4.2, remove default values for normal and fields, drop axis kwarg
         normal = self._validate_init_args(normal=normal, fields=fields, axis=axis)
         normal = self.sanitize_normal_vector(ds, normal)
 
         axis = fix_axis(normal, ds)
-        if ds.geometry in (
-            "spherical",
-            "cylindrical",
-            "geographic",
-            "internal_geographic",
-        ):
-            mylog.info("Setting origin='native' for %s geometry.", ds.geometry)
-            origin = "native"
         # If a non-weighted integral projection, assure field-label reflects that
         if weight_field is None and method == "integrate":
             self.projected = True
@@ -2218,6 +2259,7 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
             window_size=window_size,
             aspect=aspect,
             buff_size=buff_size,
+            geometry=ds.geometry,
         )
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
@@ -2283,9 +2325,10 @@ class OffAxisSlicePlot(SlicePlot, PWViewerMPL):
          option sets the orientation of the slicing plane.  If not
          set, an arbitrary grid-aligned north-vector is chosen.
     right_handed : boolean
-         Whether the implicit east vector for the image generated is set to make a right
-         handed coordinate system with the north vector and the normal, the direction of
-         the 'window' into the data.
+        Depreceated, please use flip_horizontal callback.
+        Whether the implicit east vector for the image generated is set to make a right
+        handed coordinate system with a north vector and the normal vector, the
+        direction of the 'window' into the data.
     fontsize : integer
          The size of the fonts for the axis, colorbar, and tick labels.
     field_parameters : dictionary
@@ -2481,9 +2524,10 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
          option sets the orientation of the slicing plane.  If not
          set, an arbitrary grid-aligned north-vector is chosen.
     right_handed : boolean
-         Whether the implicit east vector for the image generated is set to make a right
-         handed coordinate system with the north vector and the normal, the direction of
-         the 'window' into the data.
+        Depreceated, please use flip_horizontal callback.
+        Whether the implicit east vector for the image generated is set to make a right
+        handed coordinate system with a north vector and the normal vector, the
+        direction of the 'window' into the data.
     fontsize : integer
          The size of the fonts for the axis, colorbar, and tick labels.
     method : string
@@ -2803,3 +2847,20 @@ def plot_2d(
         aspect=aspect,
         data_source=data_source,
     )
+
+
+def _check_right_handed(right_handed: bool, flip_horizontal: bool) -> bool:
+    # temporary function to check if right_handed kwarg has been set. can
+    # remove this after full depreciation.
+    if not right_handed:
+        issue_deprecation_warning(
+            "The 'right_handed' argument is deprecated. Use 'flip_horizontal' callback instead.",
+            since="4.1.0",
+            removal="4.2.0",
+        )
+        if flip_horizontal:
+            # may be able to remove this now that its not a kwarg
+            raise ValueError(
+                "Cannot use both 'right_handed' and 'flip_horizontal' arguments"
+            )
+    return right_handed

@@ -7,8 +7,7 @@ yt is a toolkit for analyzing and visualizing volumetric data.
 * Contribute: https://github.com/yt-project/yt
 
 """
-__version__ = "4.1.dev0"
-
+from ._version import __version__, version_info  # isort: skip
 import yt.units as units
 import yt.utilities.physical_constants as physical_constants
 from yt.data_objects.api import (
@@ -100,6 +99,7 @@ def run_nose(*args, **kwargs):
     return run_nose(*args, **kwargs)
 
 
+from yt.config import _setup_postinit_configuration
 from yt.units.unit_systems import UnitSystem, unit_system_registry  # type: ignore
 
 # Import some helpful math utilities
@@ -153,3 +153,8 @@ from yt.visualization.volume_rendering.api import (
 
 #    TransferFunctionHelper, MultiVariateTransferFunction
 #    off_axis_projection
+
+
+# run configuration callbacks
+_setup_postinit_configuration()
+del _setup_postinit_configuration

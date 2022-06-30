@@ -935,7 +935,9 @@ class ProjectionTransferFunction(MultiVariateTransferFunction):
 
     def __init__(self, x_bounds=(-1e60, 1e60), n_fields=1):
         if n_fields > 3:
-            raise NotImplementedError
+            raise NotImplementedError(
+                f"supplied ${n_fields} but n_fields > 3 not implemented."
+            )
         MultiVariateTransferFunction.__init__(self)
         # Strip units off of x_bounds, if any
         x_bounds = [np.float64(xb) for xb in x_bounds]

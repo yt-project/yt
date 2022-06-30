@@ -25,9 +25,6 @@ static __inline double fmax(double x, double y){
 static __inline double fmin(double x, double y){
     return (x < y) ? x : y;
 }
-static __inline double log2(double x) {
-    return log(x) * M_LOG2E;
-}
 
 /* adapted from http://www.johndcook.com/blog/cpp_erf/
    code is under public domain license */

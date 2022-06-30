@@ -1,7 +1,7 @@
 from collections import defaultdict
 
 import yt
-from yt.testing import assert_array_almost_equal, assert_equal, requires_file
+from yt.testing import assert_array_almost_equal, assert_equal, requires_file, skip
 
 isothermal_h5 = "IsothermalCollapse/snap_505.hdf5"
 isothermal_bin = "IsothermalCollapse/snap_505"
@@ -34,6 +34,7 @@ gas_fields_to_particle_fields = {
 }
 
 
+@skip(reason="See https://github.com/yt-project/yt/issues/3909")
 @requires_file(isothermal_bin)
 @requires_file(isothermal_h5)
 @requires_file(snap_33)

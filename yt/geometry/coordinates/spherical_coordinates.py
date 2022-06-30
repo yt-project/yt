@@ -7,6 +7,7 @@ from yt.utilities.lib.pixelization_routines import pixelize_aitoff, pixelize_cyl
 from .coordinate_handler import (
     CoordinateHandler,
     _get_coord_fields,
+    _get_polar_bounds,
     _setup_dummy_cartesian_coords_and_widths,
     _setup_polar_coordinates,
 )
@@ -275,50 +276,7 @@ class SphericalCoordinateHandler(CoordinateHandler):
 
     @cached_property
     def _conic_bounds(self):
-        ri = self.axis_id["r"]
-        pi = self.axis_id["phi"]
-        rmin = self.ds.domain_left_edge[ri]
-        rmax = self.ds.domain_right_edge[ri]
-        phimin = self.ds.domain_left_edge[pi]
-        phimax = self.ds.domain_right_edge[pi]
-        corners = [
-            (rmin, phimin),
-            (rmin, phimax),
-            (rmax, phimin),
-            (rmax, phimax),
-        ]
-
-        def to_conic_plane(r, phi):
-            x = r * np.cos(phi)
-            y = r * np.sin(phi)
-            return x, y
-
-        conic_corner_coords = [to_conic_plane(*corner) for corner in corners]
-
-        phimin = phimin.d
-        phimax = phimax.d
-
-        if phimin <= np.pi <= phimax:
-            xxmin = -rmax
-        else:
-            xxmin = min(xx for xx, yy in conic_corner_coords)
-
-        if phimin <= 0 <= phimax:
-            xxmax = rmax
-        else:
-            xxmax = max(xx for xx, yy in conic_corner_coords)
-
-        if phimin <= 3 * np.pi / 2 <= phimax:
-            yymin = -rmax
-        else:
-            yymin = min(yy for xx, yy in conic_corner_coords)
-
-        if phimin <= np.pi / 2 <= phimax:
-            yymax = rmax
-        else:
-            yymax = max(yy for xx, yy in conic_corner_coords)
-
-        return xxmin, xxmax, yymin, yymax
+        return _get_polar_bounds(self, axes=("r", "phi"))
 
     @cached_property
     def _aitoff_bounds(self):

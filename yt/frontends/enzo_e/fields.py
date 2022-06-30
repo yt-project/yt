@@ -4,7 +4,7 @@ from yt._typing import KnownFieldsT
 from yt.fields.field_info_container import FieldInfoContainer
 from yt.fields.magnetic_field import setup_magnetic_field_aliases
 from yt.fields.particle_fields import add_union_field
-from yt.frontends.enzo_e.misc import nested_dict_get
+from yt.frontends.enzo_e.misc import get_particle_mass_correction, nested_dict_get
 
 rho_units = "code_mass / code_length**3"
 vel_units = "code_velocity"
@@ -64,11 +64,6 @@ class EnzoEFieldInfo(FieldInfoContainer):
     def setup_fluid_fields(self):
         self.setup_energy_field()
         setup_magnetic_field_aliases(self, "enzoe", [f"bfield_{ax}" for ax in "xyz"])
-        self.alias(
-            ("gas", "total_energy"),
-            ("gas", "specific_total_energy"),
-            deprecate=("4.0.0", "4.1.0"),
-        )
 
     def uses_dual_energy_formalism(self):
         for name in ["ppm", "mhd_vlct"]:
@@ -128,33 +123,38 @@ class EnzoEFieldInfo(FieldInfoContainer):
         self.setup_particle_mass_field(ptype)
 
     def setup_particle_mass_field(self, ptype):
-        name = "particle_mass"
+        fname = "particle_mass"
         if ptype in self.ds.particle_unions:
-            add_union_field(self, ptype, name, "code_mass")
+            add_union_field(self, ptype, fname, "code_mass")
             return
 
-        constants = nested_dict_get(
-            self.ds.parameters, ("Particle", ptype, "constants"), default=[]
-        )
+        pdict = self.ds.parameters.get("Particle", None)
+        if pdict is None:
+            return
+
+        constants = nested_dict_get(pdict, (ptype, "constants"), default=())
         if not constants:
-            names = []
-        else:
-            if not isinstance(constants[0], tuple):
-                constants = (constants,)
-            names = [c[0] for c in constants]
+            return
 
-        if "mass" in names:
-            val = constants[names.index("mass")][2]
-            val = self.ds.quan(val, self.ds.mass_unit)
-            if self.ds.cosmological_simulation:
-                val = val / self.ds.domain_dimensions.prod()
+        # constants should be a tuple consisting of multiple tuples of (name, type, value).
+        # When there is only one entry, the enclosing tuple gets stripped, so we put it back.
+        if not isinstance(constants[0], tuple):
+            constants = (constants,)
+        names = [c[0] for c in constants]
 
-            def _pmass(field, data):
-                return val * data[ptype, "particle_ones"]
+        if "mass" not in names:
+            return
 
-            self.add_field(
-                (ptype, name),
-                function=_pmass,
-                units="code_mass",
-                sampling_type="particle",
-            )
+        val = constants[names.index("mass")][2] * self.ds.mass_unit
+        if not self.ds.index.io._particle_mass_is_mass:
+            val = val * get_particle_mass_correction(self.ds)
+
+        def _pmass(field, data):
+            return val * data[ptype, "particle_ones"]
+
+        self.add_field(
+            (ptype, fname),
+            function=_pmass,
+            units="code_mass",
+            sampling_type="particle",
+        )

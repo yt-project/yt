@@ -9,7 +9,7 @@ from io import StringIO
 
 import yt.config
 import yt.utilities.command_line
-from yt.config import YTConfig
+from yt.utilities.configure import YTConfig
 
 _TEST_PLUGIN = "_test_plugin.py"
 # NOTE: the normalization of the crazy camel-case will be checked
@@ -50,6 +50,12 @@ class TestYTConfig(unittest.TestCase):
         self.xdg_config_home = os.environ.get("XDG_CONFIG_HOME")
         self.tmpdir = tempfile.mkdtemp()
         os.environ["XDG_CONFIG_HOME"] = self.tmpdir
+        os.mkdir(os.path.join(self.tmpdir, "yt"))
+
+        # run inside another temporary directory to avoid poluting the
+        # local space when we dump configuration to a local yt.toml file
+        self.origin = os.getcwd()
+        os.chdir(tempfile.mkdtemp())
 
     def tearDown(self):
         shutil.rmtree(self.tmpdir)
@@ -57,6 +63,7 @@ class TestYTConfig(unittest.TestCase):
             os.environ["XDG_CONFIG_HOME"] = self.xdg_config_home
         else:
             os.environ.pop("XDG_CONFIG_HOME")
+        os.chdir(self.origin)
 
     def _runYTConfig(self, args):
         args = ["yt", "config"] + args
@@ -138,6 +145,7 @@ class TestYTConfigCommands(TestYTConfig):
     def tearDown(self):
         if os.path.exists(YTConfig.get_global_config_file()):
             os.remove(YTConfig.get_global_config_file())
+        super().tearDown()
 
 
 class TestYTConfigGlobalLocal(TestYTConfig):

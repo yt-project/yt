@@ -24,7 +24,7 @@ answer_tests:
   local_artio_004:
     - yt/frontends/artio/tests/test_outputs.py:test_sizmbhloz
 
-  local_athena_010: # PR 3059
+  local_athena_011:  # PR 3971
     - yt/frontends/athena/tests/test_outputs.py:test_cloud
     - yt/frontends/athena/tests/test_outputs.py:test_blast
     - yt/frontends/athena/tests/test_outputs.py:test_stripping
@@ -42,7 +42,7 @@ answer_tests:
     - yt/frontends/chombo/tests/test_outputs.py:test_zp
     - yt/frontends/chombo/tests/test_outputs.py:test_kho
 
-  local_enzo_008:  # PR 2926
+  local_enzo_009:  # PR 3856
     - yt/frontends/enzo/tests/test_outputs.py:test_moving7
     - yt/frontends/enzo/tests/test_outputs.py:test_galaxy0030
     - yt/frontends/enzo/tests/test_outputs.py:test_toro1d
@@ -50,7 +50,7 @@ answer_tests:
     - yt/frontends/enzo/tests/test_outputs.py:test_ecp
     - yt/frontends/enzo/tests/test_outputs.py:test_nuclei_density_fields
 
-  local_enzo_e_001: # PR 3273
+  local_enzo_e_004:  # PR 3971
     - yt/frontends/enzo_e/tests/test_outputs.py:test_hello_world
     - yt/frontends/enzo_e/tests/test_outputs.py:test_particle_fields
 
@@ -71,7 +71,7 @@ answer_tests:
     - yt/frontends/gadget/tests/test_outputs.py:test_bigendian_field_access
     - yt/frontends/gadget/tests/test_outputs.py:test_magneticum
 
-  local_gamer_010:  # PR 3401
+  local_gamer_011:  # PR 3971
     - yt/frontends/gamer/tests/test_outputs.py:test_jet
     - yt/frontends/gamer/tests/test_outputs.py:test_psiDM
     - yt/frontends/gamer/tests/test_outputs.py:test_plummer
@@ -95,12 +95,13 @@ answer_tests:
     - yt/frontends/owls/tests/test_outputs.py:test_snapshot_033
     - yt/frontends/owls/tests/test_outputs.py:test_OWLS_particlefilter
 
-  local_pw_041:  # PR 3670
+  local_pw_044:  # PR 3640
     - yt/visualization/tests/test_plotwindow.py:test_attributes
     - yt/visualization/tests/test_particle_plot.py:test_particle_projection_answers
     - yt/visualization/tests/test_particle_plot.py:test_particle_projection_filter
     - yt/visualization/tests/test_particle_plot.py:test_particle_phase_answers
     - yt/visualization/tests/test_raw_field_slices.py:test_raw_field_slices
+    - yt/visualization/tests/test_callbacks.py:test_axis_manipulations
 
   local_tipsy_008:  # PR 2909
     - yt/frontends/tipsy/tests/test_outputs.py:test_pkdgrav
@@ -152,7 +153,7 @@ answer_tests:
     - yt/frontends/boxlib/tests/test_outputs.py:test_NyxDataset
     - yt/frontends/boxlib/tests/test_outputs.py:test_WarpXDataset
 
-  local_ramses_004:
+  local_ramses_005:  # PR 3856
     - yt/frontends/ramses/tests/test_outputs.py:test_output_00080
 
   local_ytdata_008:
@@ -167,13 +168,13 @@ answer_tests:
     - yt/frontends/ytdata/tests/test_old_outputs.py:test_old_profile_data
     - yt/frontends/ytdata/tests/test_old_outputs.py:test_old_nonspatial_data
 
-  local_axialpix_008: # PR 3628
+  local_axialpix_009: # PR 3818
     - yt/geometry/coordinates/tests/test_axial_pixelization.py:test_axial_pixelization
 
-  local_cylindrical_background_012:  # PR 3793
+  local_cylindrical_background_014:  # PR 3818
     - yt/geometry/coordinates/tests/test_cylindrical_coordinates.py:test_noise_plots
 
-  local_spherical_background_006:  # PR 3793
+  local_spherical_background_008:  # PR 3818
     - yt/geometry/coordinates/tests/test_spherical_coordinates.py:test_noise_plots
 
   #local_particle_trajectory_001:
@@ -181,6 +182,9 @@ answer_tests:
 
   local_nc4_cm1_001: # PR  2176
     - yt/frontends/nc4_cm1/tests/test_outputs.py:test_cm1_mesh_fields
+
+  local_cf_radial_002: # PR  1990
+    - yt/frontends/cf_radial/tests/test_outputs.py:test_cfradial_grid_field_values
 
 other_tests:
   unittests:
@@ -197,8 +201,12 @@ other_tests:
      - "--ignore-files=test_registration.py"
      - "--ignore-files=test_invalid_origin.py"
      - "--ignore-files=test_load_archive\\.py"
+     - "--ignore-file=test_on_demand_imports\\.py"
      - "--ignore-files=test_outputs_pytest\\.py"
      - "--ignore-files=test_normal_plot_api\\.py"
+     - "--ignore-file=test_file_sanitizer\\.py"
+     - "--ignore-files=test_version\\.py"
+     - "--ignore-file=test_add_field\\.py"
      - "--exclude-test=yt.frontends.gdf.tests.test_outputs.TestGDF"
      - "--exclude-test=yt.frontends.adaptahop.tests.test_outputs"
      - "--exclude-test=yt.frontends.stream.tests.test_stream_particles.test_stream_non_cartesian_particles"

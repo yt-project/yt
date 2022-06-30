@@ -3,6 +3,8 @@ import shutil
 import tempfile
 import unittest
 
+import numpy as np
+
 from yt.testing import (
     assert_equal,
     assert_fname,
@@ -98,5 +100,4 @@ def test_field_cut_off_axis_octree():
         (p3.frb[("gas", "density")] == p4.frb[("gas", "density")]).all(), False
     )
     p4rho = p4.frb[("gas", "density")]
-    assert_equal(p4rho.min() == 0.0, True)  # Lots of zeros
-    assert_equal(p4rho[p4rho > 0.0].min() >= 0.5, True)
+    assert_equal(np.nanmin(p4rho[p4rho > 0.0]) >= 0.5, True)

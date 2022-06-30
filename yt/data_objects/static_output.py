@@ -44,6 +44,7 @@ from yt.units.unit_systems import (  # type: ignore
     unit_system_registry,
 )
 from yt.units.yt_array import YTArray, YTQuantity
+from yt.utilities.configure import YTConfig, configuration_callbacks
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.exceptions import (
     YTFieldNotFound,
@@ -69,7 +70,20 @@ else:
 _cached_datasets: MutableMapping[
     Union[int, str], "Dataset"
 ] = weakref.WeakValueDictionary()
-_ds_store = ParameterFileStore()
+
+# we set this global to None as a place holder
+# its actual instanciation is delayed until after yt.__init__
+# is completed because we need yt.config.ytcfg to be instanciated first
+
+_ds_store: Optional[ParameterFileStore] = None
+
+
+def _setup_ds_store(ytcfg: YTConfig) -> None:
+    global _ds_store
+    _ds_store = ParameterFileStore()
+
+
+configuration_callbacks.append(_setup_ds_store)
 
 
 def _unsupported_object(ds, obj_name):
@@ -849,6 +863,11 @@ class Dataset(abc.ABC):
     def _get_field_info(self, ftype, fname=None):
         field_info, is_ambiguous = self._get_field_info_helper(ftype, fname)
 
+        if field_info.name[1] in ("px", "py", "pz", "pdx", "pdy", "pdz"):
+            # escape early as as bandaid solution to
+            # https://github.com/yt-project/yt/issues/3381
+            return field_info
+
         if is_ambiguous:
             ft, fn = field_info.name
             msg = (
@@ -1579,7 +1598,9 @@ class Dataset(abc.ABC):
         self._quan = functools.partial(YTQuantity, registry=self.unit_registry)
         return self._quan
 
-    def add_field(self, name, function, sampling_type, **kwargs):
+    def add_field(
+        self, name, function, sampling_type, *, force_override=False, **kwargs
+    ):
         """
         Dataset-specific call to add_field
 
@@ -1598,6 +1619,8 @@ class Dataset(abc.ABC):
            arguments (field, data)
         sampling_type: str
            "cell" or "particle" or "local"
+        force_override: bool
+           If False (default), an error will be raised if a field of the same name already exists.
         units : str
            A plain text string encoding the unit.  Powers must be in
            python syntax (** instead of ^).
@@ -1615,20 +1638,20 @@ class Dataset(abc.ABC):
 
         """
         self.index
-        override = kwargs.get("force_override", False)
-        if override and name in self.index.field_list:
+        if force_override and name in self.index.field_list:
             raise RuntimeError(
                 "force_override is only meant to be used with "
                 "derived fields, not on-disk fields."
             )
-        # Handle the case where the field has already been added.
-        if not override and name in self.field_info:
+        if not force_override and name in self.field_info:
             mylog.warning(
                 "Field %s already exists. To override use `force_override=True`.",
                 name,
             )
 
-        self.field_info.add_field(name, function, sampling_type, **kwargs)
+        self.field_info.add_field(
+            name, function, sampling_type, force_override=force_override, **kwargs
+        )
         self.field_info._show_field_errors.append(name)
         deps, _ = self.field_info.check_derived_fields([name])
         self.field_dependencies.update(deps)
