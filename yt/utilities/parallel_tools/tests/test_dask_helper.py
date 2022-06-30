@@ -22,6 +22,7 @@ def with_dask_enabled():
     ytcfg.set("yt", "internals", "dask_enabled", original_config)
 
 
+@pytest.mark.skipif(not dask.__is_available__, reason="requires dask")
 def test_compute_helper(dask_client_fixture):
     ytcfg.set("yt", "internals", "dask_enabled", True)  # make sure its enabled
     # ensure that results returned by dask_helper.compute match those
@@ -58,6 +59,7 @@ def test_compute_helper(dask_client_fixture):
     assert dask_helper_compute == dask_helper._passthrough_function
 
 
+@pytest.mark.skipif(not dask.__is_available__, reason="requires dask")
 def test_delay_helper(dask_client_fixture):
 
     # a function to delay (or not)

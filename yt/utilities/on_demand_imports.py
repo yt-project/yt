@@ -506,5 +506,11 @@ class dask_imports(OnDemand):
 
         return array
 
+    @safe_import
+    def __version__(self):
+        from dask import __version__ as version
+
+        return version
+
 
 _dask = dask_imports()
