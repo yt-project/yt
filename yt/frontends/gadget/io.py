@@ -35,6 +35,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
     )
 
     _coord_name = "Coordinates"
+    _dask_enabled = True
 
     @property
     def var_mass(self):
@@ -335,6 +336,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
 
     _var_mass = None
     _format = None
+    _dask_enabled = True
 
     def __init__(self, ds, *args, **kwargs):
         self._fields = ds._field_spec

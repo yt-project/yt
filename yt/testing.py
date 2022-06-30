@@ -6,6 +6,7 @@ import shutil
 import sys
 import tempfile
 import unittest
+from contextlib import contextmanager
 from functools import wraps
 from importlib.util import find_spec
 from shutil import which
@@ -1479,3 +1480,20 @@ class ParticleSelectionComparison:
             (0.0 + LE[2], "unitary") : (0.1 + LE[2], "unitary"),
         ]
         self.compare_dobj_selection(reg3)
+
+
+@contextmanager
+def config_toggle_context(newvalue, *keys, metadata=None):
+    # a context manager that caches the value of a config option and sets the
+    # config to the new provided value during setup. During teardown the
+    # config option is reset to the original value.
+    # note: with pytest, can use a fixture instead of this. But the answer tests
+    # running with nosetest need a slightly different approach.
+    set_back_to = keys + (ytcfg.get(*keys),)
+    config_args_for_test = keys + (newvalue,)
+    ytcfg.set(*config_args_for_test, metadata=metadata)
+
+    try:
+        yield  # yield nothing, the code using the generator runs here
+    finally:
+        ytcfg.set(*set_back_to, metadata=metadata)

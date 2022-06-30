@@ -3,6 +3,7 @@ import shutil
 import tempfile
 from importlib.util import find_spec
 from pathlib import Path
+from sys import version_info as py_version_info
 
 import matplotlib
 import numpy
@@ -19,6 +20,7 @@ from yt.utilities.answer_testing.testing_utilities import (
     _streamline_for_io,
     data_dir_load,
 )
+from yt.utilities.on_demand_imports import _dask as dask
 
 MPL_VERSION = Version(matplotlib.__version__)
 NUMPY_VERSION = Version(numpy.__version__)
@@ -64,6 +66,16 @@ def pytest_addoption(parser):
         "test_data_dir",
         default=ytcfg.get("yt", "test_data_dir"),
         help="Directory where data for tests is stored.",
+    )
+    # Dask options. Defaults are chosen for github actions.
+    parser.addoption(
+        "--dask_workers", action="store", default=2, help="number of dask workers"
+    )
+    parser.addoption(
+        "--dask_threads_pw",
+        action="store",
+        default=1,
+        help="number of threads per worker",
     )
 
 
@@ -185,6 +197,30 @@ def pytest_configure(config):
                 "transforms points when central_latitude=0. Use this projection with caution.:UserWarning"
             ),
         )
+
+    if find_spec("dask") is not None:
+        if Version(dask.__version__) < Version("2022.6.0"):
+            # this is fixed upstream, it is only necessary here due to a numpy
+            # version conflict in dask and yt. dask version 2.30.0 is the newest
+            # version that will work with numpy 1.14.2 (the minimum for yt).
+            # once the numpy min can be bumped to >= 1.15.1, the min dask version
+            # can be bumped to 2020.12.0 and this filter can be removed
+            config.addinivalue_line(
+                "filterwarnings",
+                (
+                    "ignore:distutils Version classes are deprecated. "
+                    "Use packaging.version instead.:DeprecationWarning"
+                ),
+            )
+
+        if py_version_info >= (3, 10, 0):
+            # in python >= 3.10, tornado <=6.1 (dask dependency) throws warnings
+            # Fixed and merged upstream, can remove with tornado 6.2 release:
+            # https://github.com/tornadoweb/tornado/issues/3033
+            config.addinivalue_line(
+                "filterwarnings",
+                "ignore:There is no current event loop:DeprecationWarning",
+            )
 
 
 def pytest_collection_modifyitems(config, items):
@@ -441,3 +477,24 @@ def Npart(request):
     Needed because indirect=True is used for loading the datasets.
     """
     return request.param
+
+
+@pytest.fixture(scope="session")
+def dask_client_fixture(request):
+    """
+    Fixture for spinning up a dask LocalCluster and Client
+    """
+
+    # there are a number of options, including using some of the internal dask
+    # functions for testing, but this seems the simplest way to ensure only a
+    # single cluster is spun up during testing. Some useful discussion here:
+    # https://github.com/dask/distributed/issues/4479#issuecomment-772119435
+    # also note that if running pytest in parallel, this fixture will need
+    # modification (e.g., pytest-xdist would execute this fixture multiple times)
+
+    n_workers = int(request.config.getoption("--dask_workers"))
+    tpw = int(request.config.getoption("--dask_threads_pw"))
+    lc = dask.distributed.LocalCluster
+    with lc(n_workers=n_workers, threads_per_worker=tpw) as cluster:
+        with dask.distributed.Client(cluster) as client:
+            yield client

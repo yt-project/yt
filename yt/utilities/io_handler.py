@@ -15,6 +15,7 @@ import numpy as np
 from yt._typing import ParticleCoordinateTuple
 from yt.geometry.selection_routines import GridSelector
 from yt.utilities.on_demand_imports import _h5py as h5py
+from yt.utilities.parallel_tools.dask_helper import _get_dask_compute, _get_dask_delayed
 
 io_registry = {}
 
@@ -34,6 +35,7 @@ class BaseIOHandler:
     _cache_on = False
     _misses = 0
     _hits = 0
+    _dask_enabled = False  # global dask_enabled config option may override
 
     def __init_subclass__(cls, *args, **kwargs):
         super().__init_subclass__(*args, **kwargs)
@@ -172,20 +174,52 @@ class BaseIOHandler:
     def _read_particle_selection(
         self, chunks, selector, fields: List[Tuple[str, str]]
     ) -> Dict[Tuple[str, str], np.ndarray]:
-        data: Dict[Tuple[str, str], List[np.ndarray]] = {}
 
-        # Initialize containers for tracking particle, field information
+        # re-organize the fields to read
+        ptf, field_maps = self._get_particle_field_containers(fields)
+        data: dict = {field: [] for field in fields}
+        field_sizes = {field: 0 for field in fields}
+
+        # Now we read.
+        for field_r, vals in self._read_particle_fields(chunks, ptf, selector):
+            # Note that we now need to check the mappings
+            for field_f in field_maps[field_r]:
+                data[field_f].append(vals)
+                field_sizes[field_f] += vals.size
+
+        # now concatenate into final dictionary
+        rv: Dict[Tuple[str, str], np.ndarray] = {}  # the return dictionary
+        fields = list(data.keys())
+        for field_f in fields:
+            if field_sizes[field_f]:
+                vals = data.pop(field_f)
+                rv[field_f] = np.concatenate(vals, axis=0).astype("float64")
+            else:
+                # We need to ensure the arrays have the right shape if there are no
+                # particles in them.
+                shape = [0]
+                fname = field_f[1]
+                if fname in self._vector_fields:
+                    shape.append(self._vector_fields[fname])
+                elif fname in self._array_fields:
+                    shape.append(self._array_fields[fname])
+                rv[field_f] = np.empty(shape, dtype="float64")
+        return rv
+
+    def _get_particle_field_containers(self, fields: List[Tuple[str, str]]):
+        # returns ptf and field_maps:
         # ptf (particle field types) maps particle type to list of on-disk fields to read
         # field_maps stores fields, accounting for field unions
+
+        # here we organize the fields to read by particle type, accounting for
+        # particle unions
+
         ptf: DefaultDict[str, List[str]] = defaultdict(list)
         field_maps: DefaultDict[Tuple[str, str], List[Tuple[str, str]]] = defaultdict(
             list
         )
 
-        # We first need a set of masks for each particle type
-        chunks = list(chunks)
         unions = self.ds.particle_unions
-        # What we need is a mapping from particle types to return types
         for field in fields:
             ftype, fname = field
             # We should add a check for p.fparticle_unions or something here
@@ -196,50 +230,35 @@ class BaseIOHandler:
             else:
                 ptf[ftype].append(fname)
                 field_maps[field].append(field)
-            data[field] = []
 
-        # Now we read.
-        for field_r, vals in self._read_particle_fields(chunks, ptf, selector):
-            # Note that we now need to check the mappings
-            for field_f in field_maps[field_r]:
-                data[field_f].append(vals)
-
-        rv: Dict[Tuple[str, str], np.ndarray] = {}  # the return dictionary
-        fields = list(data.keys())
-        for field_f in fields:
-            # We need to ensure the arrays have the right shape if there are no
-            # particles in them.
-            total = sum(_.size for _ in data[field_f])
-            if total > 0:
-                vals = data.pop(field_f)
-                rv[field_f] = np.concatenate(vals, axis=0).astype("float64")
-            else:
-                shape = [0]
-                if field_f[1] in self._vector_fields:
-                    shape.append(self._vector_fields[field_f[1]])
-                elif field_f[1] in self._array_fields:
-                    shape.append(self._array_fields[field_f[1]])
-                rv[field_f] = np.empty(shape, dtype="float64")
-        return rv
+        return ptf, field_maps
 
     def _read_particle_fields(self, chunks, ptf, selector):
-        # Now we have all the sizes, and we can allocate
-        data_files = set()
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
-        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
-            data_file_data = self._read_particle_data_file(data_file, ptf, selector)
-            # temporary trickery so it's still an iterator, need to adjust
-            # the io_handler.BaseIOHandler.read_particle_selection() method
-            # to not use an iterator.
+        # this particle reader is dask-optional. If dask is enabled, it
+        # constructs a dask-delayed graph and immediately computes.
+        # If dask is not enabled, all dask operations are passthrough
+        # functions that have no effect.
+
+        dask_delay = _get_dask_delayed(self._dask_enabled)
+        dask_compute = _get_dask_compute(self._dask_enabled)
+
+        # Now we read each chunk
+        delayed_chunks = []
+        for data_file in self._sorted_chunk_iterator(chunks):
+            # note: if dask is not enabled, dask_delay_wrapper is an empty
+            # decorator and results are immediately returned
+            read_f = self._read_particle_data_file
+            delayed_chunk = dask_delay(read_f)(data_file, ptf, selector)
+            delayed_chunks.append(delayed_chunk)
+
+        # since we are returning in-mem arrays with this function, we immediately compute
+        # if dask is not enabled, this will pass through the chunks without modification
+        data_by_chunk = dask_compute(*delayed_chunks)
+
+        # yield from our in-mem chunks
+        for data_file_data in data_by_chunk:
             yield from data_file_data.items()
 
-
-# As a note: we don't *actually* want this to be how it is forever.  There's no
-# reason we need to have the fluid and particle IO handlers separated.  But,
-# for keeping track of which frontend is which, this is a useful abstraction.
-class BaseParticleIOHandler(BaseIOHandler):
     def _sorted_chunk_iterator(self, chunks):
         chunks = list(chunks)
         data_files = set()
@@ -247,6 +266,13 @@ class BaseParticleIOHandler(BaseIOHandler):
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         yield from sorted(data_files, key=lambda x: (x.filename, x.start))
+
+
+# As a note: we don't *actually* want this to be how it is forever.  There's no
+# reason we need to have the fluid and particle IO handlers separated.  But,
+# for keeping track of which frontend is which, this is a useful abstraction.
+class BaseParticleIOHandler(BaseIOHandler):
+    pass
 
 
 class IOHandlerExtracted(BaseIOHandler):

@@ -7,7 +7,7 @@ from itertools import product
 import yt
 from yt.frontends.gadget.api import GadgetDataset, GadgetHDF5Dataset
 from yt.frontends.gadget.testing import fake_gadget_binary
-from yt.testing import ParticleSelectionComparison, requires_file
+from yt.testing import ParticleSelectionComparison, config_toggle_context, requires_file
 from yt.utilities.answer_testing.framework import data_dir_load, requires_ds, sph_answer
 
 isothermal_h5 = "IsothermalCollapse/snap_505.hdf5"
@@ -29,6 +29,8 @@ iso_fields = OrderedDict(
     ]
 )
 iso_kwargs = dict(bounding_box=[[-3, 3], [-3, 3], [-3, 3]])
+
+use_dask = True  # use dask in tests that read
 
 
 def test_gadget_binary():
@@ -76,10 +78,11 @@ def test_non_cosmo_dataset():
 
 @requires_ds(isothermal_h5)
 def test_iso_collapse():
-    ds = data_dir_load(isothermal_h5, kwargs=iso_kwargs)
-    for test in sph_answer(ds, "snap_505", 2**17, iso_fields):
-        test_iso_collapse.__name__ = test.description
-        yield test
+    with config_toggle_context(use_dask, "yt", "internals", "dask_enabled"):
+        ds = data_dir_load(isothermal_h5, kwargs=iso_kwargs)
+        for test in sph_answer(ds, "snap_505", 2**17, iso_fields):
+            test_iso_collapse.__name__ = test.description
+            yield test
 
 
 @requires_ds(LE_SnapFormat2)
@@ -87,9 +90,10 @@ def test_pid_uniqueness():
     """
     ParticleIDs should be unique.
     """
-    ds = data_dir_load(LE_SnapFormat2)
-    ad = ds.all_data()
-    pid = ad[("all", "ParticleIDs")]
+    with config_toggle_context(use_dask, "yt", "internals", "dask_enabled"):
+        ds = data_dir_load(LE_SnapFormat2)
+        ad = ds.all_data()
+        pid = ad[("all", "ParticleIDs")]
     assert len(pid) == len(set(pid.v))
 
 
@@ -109,16 +113,19 @@ def test_particle_subselection():
     # This checks that we correctly subselect from a dataset, first by making
     # sure we get all the particles, then by comparing manual selections against
     # them.
+
     ds = data_dir_load(snap_33)
-    psc = ParticleSelectionComparison(ds)
-    psc.run_defaults()
+    with config_toggle_context(use_dask, "yt", "internals", "dask_enabled"):
+        psc = ParticleSelectionComparison(ds)
+        psc.run_defaults()
 
 
 @requires_ds(BE_Gadget)
 def test_bigendian_field_access():
     ds = data_dir_load(BE_Gadget)
-    data = ds.all_data()
-    data["Halo", "Velocities"]
+    with config_toggle_context(use_dask, "yt", "internals", "dask_enabled"):
+        data = ds.all_data()
+        data["Halo", "Velocities"]
 
 
 mag_fields = OrderedDict(
@@ -142,6 +149,7 @@ mag_kwargs = dict(
 @requires_ds(magneticum)
 def test_magneticum():
     ds = data_dir_load(magneticum, kwargs=mag_kwargs)
-    for test in sph_answer(ds, "snap_132", 3718111, mag_fields, center="max"):
-        test_magneticum.__name__ = test.description
-        yield test
+    with config_toggle_context(use_dask, "yt", "internals", "dask_enabled"):
+        for test in sph_answer(ds, "snap_132", 3718111, mag_fields, center="max"):
+            test_magneticum.__name__ = test.description
+            yield test
