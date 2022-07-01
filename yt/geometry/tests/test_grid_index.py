@@ -8,11 +8,11 @@ def test_icoords_to_ires():
         dd = ds.r[:]
         icoords = dd.icoords
         ires = dd.ires
-        fcoords, fwidth = ds.index._integer_to_float(icoords, ires)
+        fcoords, fwidth = ds.index._icoords_to_fcoords(icoords, ires)
         assert_allclose_units(fcoords, dd.fcoords, rtol=1e-14)
         assert_allclose_units(fwidth, dd.fwidth, rtol=1e-14)
 
-        fcoords_xz, fwidth_xz = ds.index._integer_to_float(
+        fcoords_xz, fwidth_xz = ds.index._icoords_to_fcoords(
             icoords[:, (0, 2)], ires, axes=(0, 2)
         )
         assert_allclose_units(fcoords_xz[:, 0], dd.fcoords[:, 0])
