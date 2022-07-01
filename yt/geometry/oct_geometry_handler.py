@@ -123,7 +123,7 @@ class OctreeIndex(Index):
         Mostly useful for cases where we have irregularly spaced or structured
         grids.
         """
-        dds = self.ds.domain_width[axes] / (
+        dds = self.ds.domain_width[(axes,)] / (
             self.ds.domain_dimensions[
                 axes,
             ]
