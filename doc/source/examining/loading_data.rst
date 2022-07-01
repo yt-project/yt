@@ -1964,22 +1964,54 @@ Stretched Grid Data
 
 .. warning::
 
-   API consistency for loading stretched grids is not guaranteed until yt 4.2!
-   There may be changes in between then and now, as this is a preliminary
-   feature.
+   API consistency for loading stretched grids is not guaranteed until at least
+   yt 4.2!  There may be changes in between then and now, as this is a
+   preliminary feature.
 
 With version 4.1, yt has the ability to specify cell widths for grids.  This
 allows situations where a grid has a functional form for its widths, or where
 widths are provided in advance.
 
-.. note:: 
+.. note::
 
    At present, support is available for a single grid with varying cell-widths,
    loaded through the stream handler.  Future versions of yt will have more
    complete and flexible support!
 
 To load a stretched grid, you use the standard (and now rather-poorly named)
-``load_uniform_grid`` function, but supplying a ``cell_widths`` argument.  
+``load_uniform_grid`` function, but supplying a ``cell_widths`` argument.  This
+argument should be a list of three arrays, corresponding to the first, second
+and third index-direction cell widths.  (For instance, in a "standard"
+cartesian dataset, this would be x, y, z.)
+
+This script, a variation of which is used for testing this functionality,
+demonstrates loading a simple "random" dataset with a random set of cell-widths.
+
+.. code:: python
+
+   import yt
+   import numpy as np
+
+   N = 8
+
+   data = {"density": np.random.random((N, N, N))}
+
+   cell_widths = []
+   for i in range(3):
+       _ = np.random.random(N)
+       _ /= _.sum()
+       cell_widths.append(_)
+
+   ds = yt.load_uniform_grid(
+       data,
+       [N, N, N],
+       bbox=np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]]),
+       cell_widths=cell_widths,
+   )
+
+
+This can be modified to load data from a file, as well as to use more (or
+fewer) cells.
 
 Unstructured Grid Data
 ----------------------
