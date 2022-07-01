@@ -12,7 +12,15 @@ from unyt.exceptions import UnitConversionError
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
-from yt.funcs import fix_axis, fix_unitary, is_sequence, iter_fields, mylog, obj_length
+from yt.funcs import (
+    fix_axis,
+    fix_unitary,
+    is_sequence,
+    iter_fields,
+    mylog,
+    obj_length,
+    validate_moment,
+)
 from yt.units.unit_object import Unit  # type: ignore
 from yt.units.unit_registry import UnitParseError  # type: ignore
 from yt.units.yt_array import YTArray, YTQuantity
@@ -2300,11 +2308,7 @@ class OffAxisProjectionDummyDataSource:
         data_source=None,
         moment=1,
     ):
-        if moment == 2 and weight is None:
-            raise RuntimeError(
-                "Cannot compute the second moment of a projection "
-                "if weight_field=None!"
-            )
+        validate_moment(moment, weight)
         self.center = center
         self.ds = ds
         self.axis = 4  # always true for oblique data objects

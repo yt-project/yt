@@ -21,7 +21,14 @@ from yt.data_objects.selection_objects.data_selection_objects import (
 )
 from yt.fields.field_exceptions import NeedsGridType, NeedsOriginalGrid
 from yt.frontends.sph.data_structures import ParticleDataset
-from yt.funcs import get_memory_usage, is_sequence, iter_fields, mylog, only_on_root
+from yt.funcs import (
+    get_memory_usage,
+    is_sequence,
+    iter_fields,
+    mylog,
+    only_on_root,
+    validate_moment,
+)
 from yt.geometry import particle_deposit as particle_deposit
 from yt.geometry.coordinates.cartesian_coordinates import all_data
 from yt.loaders import load_uniform_grid
@@ -209,11 +216,7 @@ class YTProj(YTSelectionContainer2D):
             self.func = np.sum  # for the future
         else:
             raise NotImplementedError(self.method)
-        if moment == 2 and weight_field is None:
-            raise RuntimeError(
-                "Cannot compute the second moment of a projection "
-                "if weight_field=None!"
-            )
+        validate_moment(moment, weight_field)
         self.moment = moment
         self._set_center(center)
         self._projected_units = {}

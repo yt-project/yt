@@ -9,7 +9,7 @@ from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.data_objects.construction_data_containers import YTCoveringGrid
 from yt.data_objects.image_array import ImageArray
 from yt.fields.derived_field import DerivedField
-from yt.funcs import fix_axis, is_sequence, iter_fields, mylog
+from yt.funcs import fix_axis, is_sequence, iter_fields, mylog, validate_moment
 from yt.units import dimensions
 from yt.units.unit_object import Unit  # type: ignore
 from yt.units.yt_array import YTArray, YTQuantity
@@ -1384,11 +1384,7 @@ class FITSOffAxisProjection(FITSImageData):
         length_unit=None,
         moment=1,
     ):
-        if moment == 2 and weight_field is None:
-            raise RuntimeError(
-                "Cannot compute the second moment of a projection "
-                "if weight_field=None!"
-            )
+        validate_moment(moment, weight_field)
         center, dcenter = ds.coordinates.sanitize_center(center, 4)
         buf = {}
         width = ds.coordinates.sanitize_width(normal, width, depth)
