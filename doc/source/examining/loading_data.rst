@@ -164,8 +164,9 @@ Appropriate errors are thrown for other combinations.
 * particle data: currently not supported (but might come later)
 * staggered grids (AMRVAC 2.2 and later): yt logs a warning if you load
   staggered datasets, but the flag is currently ignored.
-* "stretched grids" as defined in AMRVAC have no correspondence in yt,
-  hence will never be supported.
+* "stretched grids" are being implemented in yt, but are not yet
+  fully-supported.  (Previous versions of this file suggested they would
+  "never" be supported, which we hope to prove incorrect.)
 
 .. note::
 
@@ -1961,9 +1962,24 @@ have assumed your data is stored in the three-dimensional array
 Stretched Grid Data
 -------------------
 
+.. warning::
+
+   API consistency for loading stretched grids is not guaranteed until yt 4.2!
+   There may be changes in between then and now, as this is a preliminary
+   feature.
+
 With version 4.1, yt has the ability to specify cell widths for grids.  This
 allows situations where a grid has a functional form for its widths, or where
 widths are provided in advance.
+
+.. note:: 
+
+   At present, support is available for a single grid with varying cell-widths,
+   loaded through the stream handler.  Future versions of yt will have more
+   complete and flexible support!
+
+To load a stretched grid, you use the standard (and now rather-poorly named)
+``load_uniform_grid`` function, but supplying a ``cell_widths`` argument.  
 
 Unstructured Grid Data
 ----------------------
