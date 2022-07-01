@@ -162,7 +162,7 @@ class StreamHierarchy(GridIndex):
         We check here that we have cell_widths, and if we do, we will provide them.
         """
         if self.grid_cell_widths is None:
-            return super()._icoord_to_fcoords(icoords, ires, axes)
+            return super()._icoords_to_fcoords(icoords, ires, axes)
         # Ideally this would be ported to something more efficient.  As it
         # stands, this will use a pure python loop!
         if axes is None:
