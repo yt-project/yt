@@ -1336,11 +1336,11 @@ def levenshtein_distance(seq1, seq2, max_dist=None):
 
 def validate_moment(moment, weight_field):
     if moment == 2 and weight_field is None:
-        raise RuntimeError(
-            "Cannot compute the second moment of a projection " "if weight_field=None!"
+        raise ValueError(
+            "Cannot compute the second moment of a projection if weight_field=None!"
         )
     if moment not in [1, 2]:
-        raise RuntimeError(
+        raise ValueError(
             "Weighted projections can only be made of averages "
             "(moment = 1) or standard deviations (moment = 2)!"
         )

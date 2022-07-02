@@ -1382,6 +1382,7 @@ class FITSOffAxisProjection(FITSImageData):
         depth=(1.0, "unitary"),
         method="integrate",
         length_unit=None,
+        *,
         moment=1,
     ):
         validate_moment(moment, weight_field)
