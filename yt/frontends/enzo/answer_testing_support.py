@@ -96,7 +96,6 @@ class ShockTubeTest:
     def __call__(self):
         # Read in the ds
         ds = load(self.data_file)
-        ds.setup_deprecated_fields()
         exact = self.get_analytical_solution()
 
         ad = ds.all_data()
