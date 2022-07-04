@@ -122,6 +122,7 @@ def test_offaxis_moment():
         [("gas", "velocity_los"), ("gas", "velocity_los_squared")],
         weight_field=("gas", "density"),
         moment=1,
+        buff_size=(400, 400),
     )
     p2 = OffAxisProjectionPlot(
         ds,
@@ -129,6 +130,7 @@ def test_offaxis_moment():
         ("gas", "velocity_los"),
         weight_field=("gas", "density"),
         moment=2,
+        buff_size=(400, 400),
     )
     assert_rel_equal(
         np.sqrt(
