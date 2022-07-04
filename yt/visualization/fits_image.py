@@ -13,6 +13,7 @@ from yt.funcs import fix_axis, is_sequence, iter_fields, mylog, validate_moment
 from yt.units import dimensions
 from yt.units.unit_object import Unit  # type: ignore
 from yt.units.yt_array import YTArray, YTQuantity
+from yt.utilities.math_utils import compute_stddev_image
 from yt.utilities.on_demand_imports import _astropy
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_root_only
 from yt.visualization.fixed_resolution import FixedResolutionBuffer, ParticleImageBuffer
@@ -1442,7 +1443,7 @@ class FITSOffAxisProjection(FITSImageData):
                     weight=weight_field,
                 ).swapaxes(0, 1)
 
-                buf[field] = np.sqrt(buff2 - buf[field] * buf[field])
+                buf[field] = compute_stddev_image(buff2, buf[field])
 
                 ds.field_info.pop(field_sq)
 

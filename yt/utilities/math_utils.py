@@ -1541,3 +1541,17 @@ def get_sph_theta_component(vectors, theta, phi, normal):
     )
 
     return np.sum(vectors * thetahat, axis=0)
+
+
+def compute_stddev_image(buff2, buff):
+    buff1 = buff * buff
+    y = buff2 - buff1
+    close_negs = np.isclose(np.asarray(buff2), np.asarray(buff1))[y < 0.0]
+    if close_negs.all():
+        y[y < 0.0] = 0.0
+    else:
+        raise ValueError(
+            "Something went wrong, there are significant negative "
+            "variances in the standard deviation image!"
+        )
+    return np.sqrt(y)

@@ -14,6 +14,7 @@ from yt.utilities.lib.pixelization_routines import (
     pixelize_sph_kernel_projection,
     pixelize_sph_kernel_slice,
 )
+from yt.utilities.math_utils import compute_stddev_image
 from yt.utilities.nodal_data_utils import get_nodal_data
 
 from .coordinate_handler import (
@@ -451,7 +452,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                                 weight_field=chunk[weight].in_units(wounits),
                             )
                         normalization_2d_utility(buff2, weight_buff)
-                        buff = np.sqrt(buff2 - buff * buff)
+                        buff = compute_stddev_image(buff2, buff)
             elif isinstance(data_source, YTSlice):
                 smoothing_style = getattr(self.ds, "sph_smoothing_style", "scatter")
                 normalize = getattr(self.ds, "use_sph_normalization", True)

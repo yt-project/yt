@@ -53,6 +53,7 @@ from yt.utilities.lib.pixelization_routines import (
     pixelize_sph_kernel_arbitrary_grid,
 )
 from yt.utilities.lib.quad_tree import QuadTree
+from yt.utilities.math_utils import compute_stddev_image
 from yt.utilities.minimal_representation import MinimalProjectionData
 from yt.utilities.parallel_tools.parallel_analysis_interface import (
     communication_system,
@@ -349,7 +350,7 @@ class YTProj(YTSelectionContainer2D):
             input_units = self._projected_units[field]
             fvals = field_data[fi].ravel()
             if self.moment == 2:
-                fvals = np.sqrt(field_data[fi + nfields].ravel() - fvals * fvals)
+                fvals = compute_stddev_image(field_data[fi + nfields].ravel(), fvals)
             self[field] = self.ds.arr(fvals, input_units)
         for i in list(data.keys()):
             self[i] = data.pop(i)

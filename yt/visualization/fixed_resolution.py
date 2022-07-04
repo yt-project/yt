@@ -13,6 +13,7 @@ from yt.utilities.lib.api import (  # type: ignore
     add_points_to_greyscale_image,
 )
 from yt.utilities.lib.pixelization_routines import pixelize_cylinder
+from yt.utilities.math_utils import compute_stddev_image
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 from .volume_rendering.api import off_axis_projection
@@ -646,7 +647,7 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
                 north_vector=dd.north_vector,
                 method=dd.method,
             )
-            buff = np.sqrt(buff2 - buff * buff)
+            buff = compute_stddev_image(buff2, buff)
 
             self.ds.field_info.pop(item_sq)
 
