@@ -168,7 +168,8 @@ def get_memory_usage(subtract_share=False):
     status_file = f"/proc/{pid}/statm"
     if not os.path.isfile(status_file):
         return -1024
-    line = open(status_file).read()
+    with open(status_file) as fh:
+        line = fh.read()
     size, resident, share, text, library, data, dt = (int(i) for i in line.split())
     if subtract_share:
         resident -= share
