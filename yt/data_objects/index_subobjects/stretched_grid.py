@@ -48,7 +48,7 @@ class StretchedGrid(AMRGridPatch):
         if mask is None:
             return np.empty((0, 3), dtype="float64")
         cell_centers = [
-            self.LeftEdge[i]
+            self.LeftEdge[i].d
             + np.add.accumulate(self.cell_widths[i])
             - 0.5 * self.cell_widths[i]
             for i in range(3)
