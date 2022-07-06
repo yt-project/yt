@@ -881,7 +881,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
         alias = {}
         for field in gen:
             finfo = self.ds._get_field_info(*field)
-            if finfo._function.__name__ == "_TranslationFunc":
+            if finfo.is_alias:
                 alias[field] = finfo
                 continue
             try:

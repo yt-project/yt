@@ -1406,7 +1406,7 @@ class YTDataContainer(abc.ABC):
                     ptypes = self.ds._sph_ptypes
                     if finfo.name[0] in ptypes:
                         ftype = finfo.name[0]
-                    elif finfo.alias_field and finfo.alias_name[0] in ptypes:
+                    elif finfo.is_alias and finfo.alias_name[0] in ptypes:
                         ftype = self._current_fluid_type
             else:
                 ftype = self._current_fluid_type

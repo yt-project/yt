@@ -17,7 +17,7 @@ def get_position_fields(field, data):
     field = data._determine_fields(field)[0]
     finfo = data.ds.field_info[field]
     if finfo.sampling_type == "particle":
-        if finfo.alias_field:
+        if finfo.is_alias:
             ftype = finfo.alias_name[0]
         else:
             ftype = finfo.name[0]
