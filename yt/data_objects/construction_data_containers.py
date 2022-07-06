@@ -282,10 +282,10 @@ class YTProj(YTSelectionContainer2D):
 
         ix, iy, ires, nvals, nwvals = tree.get_all(False, merge_style)
         px, pdx = self.ds.index._icoords_to_fcoords(
-            ix[:, None], ires / self.ds.ires_factor, axes=(xax,)
+            ix[:, None], ires // self.ds.ires_factor, axes=(xax,)
         )
         py, pdy = self.ds.index._icoords_to_fcoords(
-            iy[:, None], ires / self.ds.ires_factor, axes=(yax,)
+            iy[:, None], ires // self.ds.ires_factor, axes=(yax,)
         )
         px = px.ravel()
         py = py.ravel()

@@ -29,7 +29,10 @@ from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
 from yt.units import YTQuantity
 from yt.utilities.io_handler import io_registry
 from yt.utilities.lib.cykdtree import PyKDTree
-from yt.utilities.lib.misc_utilities import get_box_grids_level
+from yt.utilities.lib.misc_utilities import (
+    _obtain_coords_and_widths,
+    get_box_grids_level,
+)
 from yt.utilities.lib.particle_kdtree_tools import (
     estimate_density,
     generate_smoothing_length,
@@ -167,24 +170,16 @@ class StreamHierarchy(GridIndex):
         # stands, this will use a pure python loop!
         if axes is None:
             axes = [0, 1, 2]
-        cell_centers = [
-            self.ds.domain_left_edge[ax]
-            + np.add.accumulate(self.grid_cell_widths[0][ax])
-            - 0.5 * self.grid_cell_widths[0][ax]
-            for ax in axes
-        ]
-        coords = []
-        cell_widths = []
-        for i in range(icoords.shape[0]):
-            coords.append([cell_centers[_][icoords[i, _]] for _, ax in enumerate(axes)])
-            cell_widths.append(
-                [
-                    self.grid_cell_widths[0][ax][icoords[i, _]]
-                    for _, ax in enumerate(axes)
-                ]
+        # Transpose these by reversing the shape
+        coords = np.empty(icoords.shape, dtype="f8")
+        cell_widths = np.empty(icoords.shape, dtype="f8")
+        for i, ax in enumerate(axes):
+            coords[:, i], cell_widths[:, i] = _obtain_coords_and_widths(
+                icoords[:, i],
+                ires,
+                self.grid_cell_widths[0][ax],
+                self.ds.domain_left_edge[ax].d,
             )
-        coords = np.array(coords).T
-        cell_widths = np.array(cell_widths).T
         return coords, cell_widths
 
     def _parse_index(self):
