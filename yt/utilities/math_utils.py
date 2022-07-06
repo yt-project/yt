@@ -1544,6 +1544,32 @@ def get_sph_theta_component(vectors, theta, phi, normal):
 
 
 def compute_stddev_image(buff2, buff):
+    """
+    This function computes the standard deviation of a weighted projection.
+    It defines the standard deviation as sigma^2 = <v^2>-<v>^2, where the
+    brackets indicate averages (with the weight) and v is the field in
+    question.
+
+    There is the possibility that if the projection at a particular location
+    is of a constant or a single cell/particle, then <v^2> = <v>^2 and instead
+    of getting zero one gets roundoff error that results in sigma^2 < 0,
+    which is unphysical.
+
+    We handle this here by performing the subtraction and checking that any
+    and all negative values of sigma^2 can be attributed to roundoff and
+    thus be safely set to zero. We error out if this is not the case. There
+    are ways of computing the standard deviation that are designed to avoid
+    this catastrophic cancellation, but this would require rather substantial
+    and invasive changes to the projection machinery so for the time being
+    it is avoided.
+
+    Parameters
+    ----------
+    buff2 : ImageArray
+        The image of the weighted averge of the field squared
+    buff : ImageArray
+        The image of the weighted averge of the field
+    """
     buff1 = buff * buff
     y = buff2 - buff1
     close_negs = np.isclose(np.asarray(buff2), np.asarray(buff1))[y < 0.0]
