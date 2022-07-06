@@ -184,8 +184,7 @@ List Currently Applied Callbacks
 Overplot Arrow
 ~~~~~~~~~~~~~~
 
-.. function:: annotate_arrow(self, pos, length=0.03, coord_system='data', \
-                             plot_args=None)
+.. function:: annotate_arrow(self, pos, length=0.03, coord_system='data', **kwargs)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.ArrowCallback`.)
@@ -208,7 +207,7 @@ Overplot Arrow
 Clump Finder Callback
 ~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_clumps(self, clumps, plot_args=None)
+.. function:: annotate_clumps(self, clumps, **kwargs)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.ClumpContourCallback`.)
@@ -273,8 +272,8 @@ Overplot Quivers
 Axis-Aligned Data Sources
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. function:: annotate_quiver(self, field_x, field_y, field_c=None, factor=16, scale=None, \
-                              scale_units=None, normalize=False, plot_args=None)
+.. function:: annotate_quiver(self, field_x, field_y, field_c=None, *, factor=16, scale=None, \
+                              scale_units=None, normalize=False, **kwargs)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.QuiverCallback`.)
@@ -341,8 +340,8 @@ And now using a continuous colormap
 Off-Axis Data Sources
 ^^^^^^^^^^^^^^^^^^^^^
 
-.. function:: annotate_cquiver(self, field_x, field_y, factor=16, scale=None, \
-                               scale_units=None, normalize=False, plot_args=None)
+.. function:: annotate_cquiver(self, field_x, field_y, field_c=None, *, factor=16, scale=None, \
+                               scale_units=None, normalize=False, **kwargs)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.CuttingQuiverCallback`.)
@@ -431,7 +430,7 @@ Overplot Cell Edges
 Overplot a Straight Line
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_line(self, p1, p2, coord_system='data', plot_args=None)
+.. function:: annotate_line(self, p1, p2, *, coord_system='data', **kwargs)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.LinePlotCallback`.)
@@ -454,9 +453,9 @@ Overplot a Straight Line
 Overplot Magnetic Field Quivers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_magnetic_field(self, factor=16, scale=None, \
+.. function:: annotate_magnetic_field(self, factor=16, *, scale=None, \
                                       scale_units=None, normalize=False, \
-                                      plot_args=None)
+                                      **kwargs)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.MagFieldCallback`.)
@@ -490,8 +489,7 @@ Overplot Magnetic Field Quivers
 Annotate a Point With a Marker
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_marker(self, pos, marker='x', coord_system='data', \
-                              plot_args=None)
+.. function:: annotate_marker(self, pos, marker='x', *, coord_system='data', **kwargs)
 
     (This is a proxy for
     :class:`~yt.visualization.plot_modifications.MarkerAnnotateCallback`.)
@@ -575,9 +573,9 @@ Overplot a Circle on a Plot
 Overplot Streamlines
 ~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_streamlines(self, field_x, field_y, factor=16, \
+.. function:: annotate_streamlines(self, field_x, field_y, *, factor=16, \
                                    density=1, display_threshold=None, \
-                                   plot_args=None)
+                                   **kwargs)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.StreamlineCallback`.)
@@ -678,8 +676,8 @@ Add a Title
 Overplot Quivers for the Velocity Field
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_velocity(self, factor=16, scale=None, scale_units=None, \
-                                normalize=False, plot_args=None)
+.. function:: annotate_velocity(self, factor=16, *, scale=None, scale_units=None, \
+                                normalize=False, **kwargs)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.VelocityCallback`.)
@@ -778,7 +776,7 @@ Add a Physical Scale Bar
 Annotate Triangle Facets Callback
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_triangle_facets(triangle_vertices, plot_args=None)
+.. function:: annotate_triangle_facets(triangle_vertices, **kwargs)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.TriangleFacetsCallback`.)
@@ -821,7 +819,7 @@ Annotate Triangle Facets Callback
 Annotate Mesh Lines Callback
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_mesh_lines(plot_args=None)
+.. function:: annotate_mesh_lines(**kwargs)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.MeshLinesCallback`.)
@@ -844,7 +842,7 @@ Annotate Mesh Lines Callback
 Overplot the Path of a Ray
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_ray(ray, plot_args=None)
+.. function:: annotate_ray(ray, *, arrow=False, **kwargs)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.RayCallback`.)
