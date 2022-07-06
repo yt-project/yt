@@ -81,7 +81,7 @@ of the x-plane (i.e. with axes in the y and z directions):
 
     # Plot marker and text in figure coords
     # N.B. marker will not render outside of axis bounds
-    s.annotate_marker((0.1, 0.2), coord_system="figure", plot_args={"color": "black"})
+    s.annotate_marker((0.1, 0.2), coord_system="figure", color="black")
     s.annotate_text(
         (0.1, 0.2),
         "figure: (0.1, 0.2)",
@@ -200,7 +200,7 @@ Overplot Arrow
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    slc = yt.SlicePlot(ds, "z", ("gas", "density"), width=(10, "kpc"), center="c")
-   slc.annotate_arrow((0.5, 0.5, 0.5), length=0.06, plot_args={"color": "blue"})
+   slc.annotate_arrow((0.5, 0.5, 0.5), length=0.06, color="blue")
    slc.save()
 
 .. _annotate-clumps:
@@ -366,7 +366,7 @@ Off-Axis Data Sources
        ("gas", "cutting_plane_velocity_x"),
        ("gas", "cutting_plane_velocity_y"),
        factor=10,
-       plot_args={"color": "orange"},
+       color="orange",
    )
    s.zoom(1.5)
    s.save()
@@ -482,7 +482,7 @@ Overplot Magnetic Field Quivers
        },
    )
    p = yt.ProjectionPlot(ds, "z", ("gas", "density"), center="c", width=(300, "kpc"))
-   p.annotate_magnetic_field(plot_args={"headlength": 3})
+   p.annotate_magnetic_field(headlength=3)
    p.save()
 
 .. _annotate-marker:
@@ -504,7 +504,7 @@ Annotate a Point With a Marker
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    s = yt.SlicePlot(ds, "z", ("gas", "density"), center="c", width=(10, "kpc"))
-   s.annotate_marker((-2, -2), coord_system="plot", plot_args={"color": "blue", "s": 500})
+   s.annotate_marker((-2, -2), coord_system="plot", color="blue", s=500)
    s.save()
 
 .. _annotate-particles:
@@ -698,7 +698,7 @@ Overplot Quivers for the Velocity Field
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    p = yt.SlicePlot(ds, "z", ("gas", "density"), center="m", width=(10, "kpc"))
-   p.annotate_velocity(plot_args={"headwidth": 4})
+   p.annotate_velocity(headwidth=4)
    p.save()
 
 .. _annotate-timestamp:
@@ -813,7 +813,7 @@ Annotate Triangle Facets Callback
    points = coords[conn - 1]
 
    # Annotate slice-triangle intersection contours to the plot
-   s.annotate_triangle_facets(points, plot_args={"colors": "black"})
+   s.annotate_triangle_facets(points, colors="black")
    s.save()
 
 .. _annotate-mesh-lines:
@@ -836,7 +836,7 @@ Annotate Mesh Lines Callback
 
    ds = yt.load("MOOSE_sample_data/out.e")
    sl = yt.SlicePlot(ds, "z", ("connect1", "nodal_aux"))
-   sl.annotate_mesh_lines(plot_args={"color": "black"})
+   sl.annotate_mesh_lines(color="black")
    sl.save()
 
 .. _annotate-ray:

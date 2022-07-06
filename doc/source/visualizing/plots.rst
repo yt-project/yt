@@ -556,7 +556,7 @@ We can also annotate the mesh lines, as follows:
 
    ds = yt.load("MOOSE_sample_data/out.e-s010")
    sl = yt.SlicePlot(ds, "z", ("connect1", "diffused"))
-   sl.annotate_mesh_lines(plot_args={"color": "black"})
+   sl.annotate_mesh_lines(color="black")
    sl.zoom(0.75)
    sl.save()
 
