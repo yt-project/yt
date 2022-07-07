@@ -315,12 +315,12 @@ class FieldInfoContainer(dict):
 
     def add_field(
         self,
-        name,
+        name: Tuple[str, str],
         function: Callable,
-        sampling_type,
+        sampling_type: str,
         *,
         alias: Optional[DerivedField] = None,
-        force_override=False,
+        force_override: bool = False,
         **kwargs,
     ):
         """
@@ -332,8 +332,8 @@ class FieldInfoContainer(dict):
         Parameters
         ----------
 
-        name : str
-           is the name of the field.
+        name : tuple[str, str]
+           field (or particle) type, field name
         function : callable
            A function handle that defines the field.  Should accept
            arguments (field, data)
@@ -403,22 +403,8 @@ class FieldInfoContainer(dict):
             self[name] = DerivedField(
                 name, sampling_type, function, alias=alias, **kwargs
             )
-            return
-
-        if sampling_type == "particle":
-            ftype = "all"
         else:
-            ftype = self.ds.default_fluid_type
-
-        if (ftype, name) not in self:
-            tuple_name = (ftype, name)
-            self[tuple_name] = DerivedField(
-                tuple_name, sampling_type, function, alias=alias, **kwargs
-            )
-        else:
-            self[name] = DerivedField(
-                name, sampling_type, function, alias=alias, **kwargs
-            )
+            raise ValueError(f"Expected name to be a tuple[str, str], got {name}")
 
     def load_all_plugins(self, ftype: Optional[str] = "gas"):
         if ftype is None:
