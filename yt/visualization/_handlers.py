@@ -329,6 +329,11 @@ class NormHandler:
             if kw["vmin"] == kw["vmax"] or not np.any(finite_values_mask):
                 norm_type = Normalize
             elif kw["vmin"] <= 0:
+                # note: matplotlib >= 3.5.2 could use LogNorm here if vmin==0
+                # if we do the following: set vmin to the min nonzero value and
+                # supply the interpolation_stage='rgba' keyword arg to imshow.
+                # this would, however, change default behavior and break answer
+                # tests, so needs a wider discussion.
                 norm_type = SymLogNorm
             else:
                 norm_type = LogNorm
@@ -337,7 +342,7 @@ class NormHandler:
             if self.linthresh is not None:
                 linthresh = self.to_float(self.linthresh)
             else:
-                linthresh = self.to_float(self._guess_linthresh(data))
+                linthresh = self._guess_linthresh(data)
 
             kw.setdefault("linthresh", linthresh)
             if MPL_VERSION >= Version("3.2"):
@@ -348,32 +353,49 @@ class NormHandler:
 
         return norm_type(*args, **kw)
 
-    def _guess_linthresh(self, data):
-        # data is the ImageArray to plot
+    def _guess_linthresh(self, plot_data):
+        # data is an ImageArray or ColorbarHandler data
 
-        # get the data range as unyt quantities
-        nz_data = data[data != 0]
-        min_abs_val, max_abs_val = np.sort(
-            (np.abs(np.nanmin(nz_data)), np.abs(np.nanmax(nz_data)))
-        )
-        min_abs_val = self.ds.quan(min_abs_val, data.units)
-        max_abs_val = self.ds.quan(max_abs_val, data.units)
-        min_abs_nonzero = self.ds.quan(np.nanmin(np.abs(nz_data)), data.units)
+        # get the extrema for the negative and positive values separately
+        # neg_min -> neg_max -> 0 -> pos_min -> pos_max
+        def get_minmax(data):
+            if len(data) > 0:
+                return np.nanmin(data), np.nanmax(data)
+            return None, None
 
-        linthresh = min_abs_nonzero
-        # the above works well for most data. But need to control for a few
-        # edge cases related to floating point precision errors.
+        pos_min, pos_max = get_minmax(plot_data[plot_data > 0])
+        neg_min, neg_max = get_minmax(plot_data[plot_data < 0])
 
-        # first, set the scaling factor
-        cutoff_sigdigs = 30.0  # max allowable range in significant digits
-        actual_log_range = np.log10(max_abs_val) - np.log10(min_abs_val)
-        if actual_log_range < cutoff_sigdigs:
-            cutoff_sigdigs = np.ceil(actual_log_range)
+        has_pos = pos_min is not None
+        has_neg = neg_min is not None
 
-        if np.log10(max_abs_val) - np.log10(linthresh) > cutoff_sigdigs:
-            # this is required to avoid rounding error in the matplotlib normalization
-            # when the range is too large.
-            linthresh = max_abs_val / (10**cutoff_sigdigs)
+        # the starting guess is the absolute value of the point closest to 0:
+        if has_pos and has_neg:
+            linthresh = np.min((np.abs(neg_max), pos_min))
+        elif has_pos:
+            linthresh = pos_min
+        elif has_neg:
+            linthresh = np.abs(neg_max)
+        else:
+            # this condition should handled before here in get_norm
+            raise RuntimeError("No negative or positive values")
+
+        log10_linthresh = np.log10(linthresh)
+
+        # if either the pos or neg ranges exceed cutoff_sigdigs, then
+        # linthresh is shifted to decrease the range to avoid floating point
+        # precision errors in the normalization.
+        cutoff_sigdigs = 15.0  # max allowable range in significant digits
+        if has_pos and np.log10(pos_max) - log10_linthresh > cutoff_sigdigs:
+            linthresh = pos_max / (10.0**cutoff_sigdigs)
+            log10_linthresh = np.log10(linthresh)
+
+        if has_neg and np.log10(np.abs(neg_min)) - log10_linthresh > cutoff_sigdigs:
+            linthresh = np.abs(neg_min) / (10.0**cutoff_sigdigs)
+
+        if hasattr(linthresh, "units"):
+            # if the original plot_data has units, linthresh will have units here
+            return self.to_float(linthresh)
 
         return linthresh
 
