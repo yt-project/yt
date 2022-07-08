@@ -372,7 +372,7 @@ class BoxlibHierarchy(GridIndex):
             if self.dimensionality < 2:
                 dx[i].append(DRE[1] - DLE[1])
             if self.dimensionality < 3:
-                dx[i].append(DRE[2] - DLE[1])
+                dx[i].append(DRE[2] - DLE[2])
         self.level_dds = np.array(dx, dtype="float64")
         next(header_file)
         if self.ds.geometry == "cartesian":
