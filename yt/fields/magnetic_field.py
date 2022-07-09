@@ -84,6 +84,9 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
         units=unit_system["pressure"],
     )
 
+    _magnetic_field_toroidal = None
+    _magnetic_field_poloidal = None
+
     if registry.ds.geometry == "cartesian":
 
         def _magnetic_field_poloidal(field, data):
@@ -116,7 +119,7 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
             phi = data["index", "spherical_phi"]
             return get_sph_phi_component(Bfields, phi, normal)
 
-    elif registry.ds.geometry == "cylindrical":
+    elif registry.ds.geometry in ("cylindrical", "polar"):
 
         def _magnetic_field_poloidal(field, data):
             bm = data.get_field_parameter("bulk_magnetic_field")
@@ -146,34 +149,28 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
             bm = data.get_field_parameter("bulk_magnetic_field")
             return data[ftype, "magnetic_field_phi"] - bm[ax]
 
-    else:
-
-        # Unidentified geometry--set to None
-
-        _magnetic_field_toroidal = None
-        _magnetic_field_poloidal = None
-
-    registry.add_field(
-        (ftype, "magnetic_field_poloidal"),
-        sampling_type="local",
-        function=_magnetic_field_poloidal,
-        units=u,
-        validators=[
-            ValidateParameter("normal"),
-            ValidateParameter("bulk_magnetic_field"),
-        ],
-    )
-
-    registry.add_field(
-        (ftype, "magnetic_field_toroidal"),
-        sampling_type="local",
-        function=_magnetic_field_toroidal,
-        units=u,
-        validators=[
-            ValidateParameter("normal"),
-            ValidateParameter("bulk_magnetic_field"),
-        ],
-    )
+    if _magnetic_field_toroidal is not None:
+        registry.add_field(
+            (ftype, "magnetic_field_toroidal"),
+            sampling_type="local",
+            function=_magnetic_field_toroidal,
+            units=u,
+            validators=[
+                ValidateParameter("normal"),
+                ValidateParameter("bulk_magnetic_field"),
+            ],
+        )
+    if _magnetic_field_poloidal is not None:
+        registry.add_field(
+            (ftype, "magnetic_field_poloidal"),
+            sampling_type="local",
+            function=_magnetic_field_poloidal,
+            units=u,
+            validators=[
+                ValidateParameter("normal"),
+                ValidateParameter("bulk_magnetic_field"),
+            ],
+        )
 
     def _alfven_speed(field, data):
         B = data[ftype, "magnetic_field_strength"]
