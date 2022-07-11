@@ -3,7 +3,7 @@ name: CI (bleeding edge)
 # https://github.com/pandas-dev/pandas/blob/master/.github/workflows/python-dev.yml
 
 # goals: check stability against
-# - dev version of Python, numpy, and matplotlib
+# - dev version of Python, numpy, matplotlib, and unyt
 # - pytest pre-releases
 # - building with future pip default options
 
@@ -49,6 +49,7 @@ jobs:
         python -m pip install --upgrade setuptools wheel
         python -m pip install git+https://github.com/numpy/numpy.git
         python -m pip install git+https://github.com/matplotlib/matplotlib.git
+        python -m pip install git+https://github.com/yt-project/unyt.git
         python -m pip install cython
         python -m pip install --upgrade --pre pytest
 
