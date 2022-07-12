@@ -292,8 +292,10 @@ Recall that fields are formally accessed in two parts: ``('*field type*',
   are whatever was designated by the source frontend when written to disk.
 * ``'io'`` -- If a data frontend does not have a set of multiple particle types,
   this is the default for all particles.
-* ``'all'`` -- This is a special particle field type that represents a
-  concatenation of all particle field types using :ref:`particle-unions`.
+* ``'all'`` and ``'nbody'`` -- These are special particle field types that represent a
+  concatenation of several particle field types using :ref:`particle-unions`.
+  ``'all'`` contains every base particle types, while ``'nbody'`` contains only the ones
+  for which a ``'particle_mass'`` field is defined.
 * ``'deposit'`` -- This field type refers to the deposition of particles
   (discrete data) onto a mesh, typically to compute smoothing kernels, local
   density estimates, counts, and the like.  See :ref:`deposited-particle-fields`
