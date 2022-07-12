@@ -617,7 +617,7 @@ class SimulationTimeSeries(DatasetSeries):
         if not outputs:
             return my_outputs
         for value in values:
-            outputs.sort(key=lambda obj: np.abs(value - obj[key]))
+            outputs.sort(key=lambda obj, value=value: np.abs(value - obj[key]))
             if (
                 tolerance is None or np.abs(value - outputs[0][key]) <= tolerance
             ) and outputs[0] not in my_outputs:

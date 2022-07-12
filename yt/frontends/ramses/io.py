@@ -130,7 +130,7 @@ class IOHandlerRAMSES(BaseIOHandler):
             # Gather fields by type to minimize i/o operations
             for ft in ftypes:
                 # Get all the fields of the same type
-                field_subs = list(filter(lambda f: f[0] == ft, fields))
+                field_subs = list(filter(lambda f, ft=ft: f[0] == ft, fields))
 
                 # Loop over subsets
                 for subset in chunk.objs:
@@ -213,7 +213,7 @@ class IOHandlerRAMSES(BaseIOHandler):
         for ptype in {f[0] for f in fields}:
 
             # Select relevant files
-            subs_fields = filter(lambda f: f[0] == ptype, fields)
+            subs_fields = filter(lambda f, ptype=ptype: f[0] == ptype, fields)
 
             ok = False
             for ph in subset.domain.particle_handlers:

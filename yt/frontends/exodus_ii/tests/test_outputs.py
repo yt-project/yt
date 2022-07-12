@@ -84,6 +84,6 @@ def test_displacement_fields():
         for mesh in ds.index.meshes:
 
             def array_func():
-                return mesh.connectivity_coords
+                return mesh.connectivity_coords  # noqa: B023
 
             yield GenericArrayTest(ds, array_func, 12)
