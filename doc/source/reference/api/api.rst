@@ -454,7 +454,6 @@ Loading Data
 .. autosummary::
 
    ~yt.loaders.load
-   ~yt.loaders.simulation
    ~yt.loaders.load_uniform_grid
    ~yt.loaders.load_amr_grids
    ~yt.loaders.load_particles
@@ -535,7 +534,6 @@ Field Functions
    ~yt.data_objects.static_output.Dataset.add_field
    ~yt.data_objects.static_output.Dataset.add_deposited_particle_field
    ~yt.data_objects.static_output.Dataset.add_mesh_sampling_particle_field
-   ~yt.data_objects.static_output.Dataset.add_smoothed_particle_field
    ~yt.data_objects.static_output.Dataset.add_gradient_fields
    ~yt.frontends.stream.data_structures.StreamParticlesDataset.add_sph_fields
 

@@ -1650,7 +1650,7 @@ class ArrowCallback(PlotCallback):
                 "You can now pass arbitrary keyword arguments instead of a dictionary.",
                 since="4.1.0",
             )
-            plot_args = {**def_plot_args, **plot_args}
+            plot_args = {**def_plot_args, **plot_args, **kwargs}
         else:
             plot_args = def_plot_args
         self.plot_args = plot_args
