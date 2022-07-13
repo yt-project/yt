@@ -267,7 +267,7 @@ cdef class ImageSampler:
                     continue
 
                 for i in range(Nch):
-                    idata.rgba[i] = 0
+                    idata.rgba[i] = self.image[vi, vj, i]
                 for i in range(8):
                     vc.mask[i] = 1
 
