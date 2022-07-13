@@ -25,7 +25,6 @@ BADF = [
 ]
 CWD = os.getcwd()
 ytcfg["yt", "serialize"] = False
-PARALLEL_TEST = {"rockstar_nest": "3"}
 BLACKLIST = ["opengl_ipython", "opengl_vr"]
 
 
@@ -45,10 +44,7 @@ def run_recipe(payload):
         tmpdir = tempfile.mkdtemp()
         os.chdir(tmpdir)
         prep_dirs()
-        if module_name in PARALLEL_TEST:
-            cmd = ["mpiexec", "-n", PARALLEL_TEST[module_name], "python2", recipe]
-        else:
-            cmd = ["python", recipe]
+        cmd = ["python", recipe]
         try:
             subprocess.check_call(cmd)
         except Exception:
