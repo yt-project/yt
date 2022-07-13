@@ -4,6 +4,7 @@ from functools import update_wrapper, wraps
 import numpy as np
 
 from yt._maintenance.deprecation import issue_deprecation_warning
+from yt.utilities.on_demand_imports import _scipy
 from yt.visualization.fixed_resolution import FixedResolutionBuffer
 
 
@@ -85,8 +86,6 @@ class FixedResolutionBufferGaussBeamFilter(FixedResolutionBufferFilter):
         self.sigma = sigma
 
     def apply(self, buff):
-        from yt.utilities.on_demand_imports import _scipy
-
         hnbeam = self.nbeam // 2
         sigma = self.sigma
 
