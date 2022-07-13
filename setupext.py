@@ -9,7 +9,7 @@ import sys
 import tempfile
 from textwrap import dedent
 from concurrent.futures import ThreadPoolExecutor
-from distutils.ccompiler import CCompiler, new_compiler
+from distutils.ccompiler import new_compiler
 from distutils.sysconfig import customize_compiler
 from subprocess import PIPE, Popen
 from sys import platform as _platform
@@ -334,37 +334,6 @@ def get_cpu_count():
         ) from e
     max_cores = min(cpu_count, user_max_cores)
     return max_cores
-
-
-def install_ccompiler():
-    def _compile(
-        self,
-        sources,
-        output_dir=None,
-        macros=None,
-        include_dirs=None,
-        debug=0,
-        extra_preargs=None,
-        extra_postargs=None,
-        depends=None,
-    ):
-        """Function to monkey-patch distutils.ccompiler.CCompiler"""
-        macros, objects, extra_postargs, pp_opts, build = self._setup_compile(
-            output_dir, macros, include_dirs, sources, depends, extra_postargs
-        )
-        cc_args = self._get_cc_args(pp_opts, debug, extra_preargs)
-
-        for obj in objects:
-            try:
-                src, ext = build[obj]
-            except KeyError:
-                continue
-            self._compile(obj, src, ext, cc_args, extra_postargs, pp_opts)
-
-        # Return *all* object filenames, not just the ones we just built.
-        return objects
-
-    CCompiler.compile = _compile
 
 
 def create_build_ext(lib_exts, cythonize_aliases):
