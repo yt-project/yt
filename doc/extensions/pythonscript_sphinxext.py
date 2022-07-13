@@ -47,8 +47,10 @@ class PythonScriptDirective(Directive):
         print("")
 
         start = time.time()
-        subprocess.call(["python", "--version"])
-        subprocess.call(["python", "-c", "import scipy"])
+        subprocess.call(
+            ["python", "-c", "import scipy; print('successfully imported scipy')"],
+            check=True,
+        )
         subprocess.call(["python", "temp.py"])
         print(f">> The execution of the script {uid} took {time.time() - start:f} s")
         text = ""
