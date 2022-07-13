@@ -233,24 +233,108 @@ class xarray_imports(OnDemand):
 _xarray = xarray_imports()
 
 
-class scipy_imports(OnDemand):
-    @safe_import
+class scipy_imports:
+    _name = "scipy"
+    _integrate = None
+
+    @property
+    def integrate(self):
+        if self._integrate is None:
+            try:
+                import scipy.integrate as integrate
+            except ImportError:
+                integrate = NotAModule(self._name)
+            self._integrate = integrate
+        return self._integrate
+
+    _stats = None
+
+    @property
+    def stats(self):
+        if self._stats is None:
+            try:
+                import scipy.stats as stats
+            except ImportError:
+                stats = NotAModule(self._name)
+            self._stats = stats
+        return self._stats
+
+    _optimize = None
+
+    @property
+    def optimize(self):
+        if self._optimize is None:
+            try:
+                import scipy.optimize as optimize
+            except ImportError:
+                optimize = NotAModule(self._name)
+            self._optimize = optimize
+        return self._optimize
+
+    _interpolate = None
+
+    @property
+    def interpolate(self):
+        if self._interpolate is None:
+            try:
+                import scipy.interpolate as interpolate
+            except ImportError:
+                interpolate = NotAModule(self._name)
+            self._interpolate = interpolate
+        return self._interpolate
+
+    _special = None
+
+    @property
+    def special(self):
+        if self._special is None:
+            try:
+                import scipy.special as special
+            except ImportError:
+                special = NotAModule(self._name)
+            self._special = special
+        return self._special
+
+    _signal = None
+
+    @property
     def signal(self):
-        from scipy import signal
+        if self._signal is None:
+            try:
+                import scipy.signal as signal
+            except ImportError:
+                signal = NotAModule(self._name)
+            self._signal = signal
+        return self._signal
 
-        return signal
+    _spatial = None
 
-    @safe_import
+    @property
     def spatial(self):
-        from scipy import spatial
+        if self._spatial is None:
+            try:
+                import scipy.spatial as spatial
+            except ImportError:
+                spatial = NotAModule(self._name)
+            self._spatial = spatial
+        return self._spatial
 
-        return spatial
+    _ndimage = None
 
-    @safe_import
+    @property
     def ndimage(self):
-        from scipy import ndimage
+        if self._ndimage is None:
+            try:
+                import scipy.ndimage as ndimage
+            except ImportError:
+                ndimage = NotAModule(self._name)
+            self._ndimage = ndimage
+        return self._ndimage
 
-        return ndimage
+    @property
+    def __is_available__(self) -> bool:
+        # special protocol to support testing framework
+        return find_spec(self._name) is not None
 
 
 _scipy = scipy_imports()
