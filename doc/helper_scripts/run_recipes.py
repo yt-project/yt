@@ -44,9 +44,8 @@ def run_recipe(payload):
         tmpdir = tempfile.mkdtemp()
         os.chdir(tmpdir)
         prep_dirs()
-        cmd = ["python", recipe]
         try:
-            subprocess.check_call(cmd)
+            subprocess.check_call(["python", recipe])
         except Exception:
             trace = "".join(traceback.format_exception(*sys.exc_info()))
             trace += f" in module: {module_name}\n"
