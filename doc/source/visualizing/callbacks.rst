@@ -81,7 +81,7 @@ of the x-plane (i.e. with axes in the y and z directions):
 
     # Plot marker and text in figure coords
     # N.B. marker will not render outside of axis bounds
-    s.annotate_marker((0.1, 0.2), coord_system="figure", plot_args={"color": "black"})
+    s.annotate_marker((0.1, 0.2), coord_system="figure", color="black")
     s.annotate_text(
         (0.1, 0.2),
         "figure: (0.1, 0.2)",
@@ -184,8 +184,7 @@ List Currently Applied Callbacks
 Overplot Arrow
 ~~~~~~~~~~~~~~
 
-.. function:: annotate_arrow(self, pos, length=0.03, coord_system='data', \
-                             plot_args=None)
+.. function:: annotate_arrow(self, pos, length=0.03, coord_system='data', **kwargs)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.ArrowCallback`.)
@@ -200,7 +199,7 @@ Overplot Arrow
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    slc = yt.SlicePlot(ds, "z", ("gas", "density"), width=(10, "kpc"), center="c")
-   slc.annotate_arrow((0.5, 0.5, 0.5), length=0.06, plot_args={"color": "blue"})
+   slc.annotate_arrow((0.5, 0.5, 0.5), length=0.06, color="blue")
    slc.save()
 
 .. _annotate-clumps:
@@ -208,7 +207,7 @@ Overplot Arrow
 Clump Finder Callback
 ~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_clumps(self, clumps, plot_args=None)
+.. function:: annotate_clumps(self, clumps, **kwargs)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.ClumpContourCallback`.)
@@ -273,8 +272,8 @@ Overplot Quivers
 Axis-Aligned Data Sources
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. function:: annotate_quiver(self, field_x, field_y, field_c=None, factor=16, scale=None, \
-                              scale_units=None, normalize=False, plot_args=None)
+.. function:: annotate_quiver(self, field_x, field_y, field_c=None, *, factor=16, scale=None, \
+                              scale_units=None, normalize=False, **kwargs)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.QuiverCallback`.)
@@ -341,8 +340,8 @@ And now using a continuous colormap
 Off-Axis Data Sources
 ^^^^^^^^^^^^^^^^^^^^^
 
-.. function:: annotate_cquiver(self, field_x, field_y, factor=16, scale=None, \
-                               scale_units=None, normalize=False, plot_args=None)
+.. function:: annotate_cquiver(self, field_x, field_y, field_c=None, *, factor=16, scale=None, \
+                               scale_units=None, normalize=False, **kwargs)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.CuttingQuiverCallback`.)
@@ -366,7 +365,7 @@ Off-Axis Data Sources
        ("gas", "cutting_plane_velocity_x"),
        ("gas", "cutting_plane_velocity_y"),
        factor=10,
-       plot_args={"color": "orange"},
+       color="orange",
    )
    s.zoom(1.5)
    s.save()
@@ -431,7 +430,7 @@ Overplot Cell Edges
 Overplot a Straight Line
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_line(self, p1, p2, coord_system='data', plot_args=None)
+.. function:: annotate_line(self, p1, p2, *, coord_system='data', **kwargs)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.LinePlotCallback`.)
@@ -454,9 +453,9 @@ Overplot a Straight Line
 Overplot Magnetic Field Quivers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_magnetic_field(self, factor=16, scale=None, \
+.. function:: annotate_magnetic_field(self, factor=16, *, scale=None, \
                                       scale_units=None, normalize=False, \
-                                      plot_args=None)
+                                      **kwargs)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.MagFieldCallback`.)
@@ -482,7 +481,7 @@ Overplot Magnetic Field Quivers
        },
    )
    p = yt.ProjectionPlot(ds, "z", ("gas", "density"), center="c", width=(300, "kpc"))
-   p.annotate_magnetic_field(plot_args={"headlength": 3})
+   p.annotate_magnetic_field(headlength=3)
    p.save()
 
 .. _annotate-marker:
@@ -490,8 +489,7 @@ Overplot Magnetic Field Quivers
 Annotate a Point With a Marker
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_marker(self, pos, marker='x', coord_system='data', \
-                              plot_args=None)
+.. function:: annotate_marker(self, pos, marker='x', *, coord_system='data', **kwargs)
 
     (This is a proxy for
     :class:`~yt.visualization.plot_modifications.MarkerAnnotateCallback`.)
@@ -504,7 +502,7 @@ Annotate a Point With a Marker
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    s = yt.SlicePlot(ds, "z", ("gas", "density"), center="c", width=(10, "kpc"))
-   s.annotate_marker((-2, -2), coord_system="plot", plot_args={"color": "blue", "s": 500})
+   s.annotate_marker((-2, -2), coord_system="plot", color="blue", s=500)
    s.save()
 
 .. _annotate-particles:
@@ -544,7 +542,7 @@ To plot only the central particles
 
    ds = yt.load("Enzo_64/DD0043/data0043")
    p = yt.ProjectionPlot(ds, "x", ("gas", "density"), center="m", width=(10, "Mpc"))
-   sp = ds.sphere([0.5, 0.5, 0.5], ds.quan(1, "Mpc"))
+   sp = ds.sphere(p.data_source.center, ds.quan(1, "Mpc"))
    p.annotate_particles((10, "Mpc"), data_source=sp)
    p.save()
 
@@ -575,9 +573,9 @@ Overplot a Circle on a Plot
 Overplot Streamlines
 ~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_streamlines(self, field_x, field_y, factor=16, \
+.. function:: annotate_streamlines(self, field_x, field_y, *, factor=16, \
                                    density=1, display_threshold=None, \
-                                   plot_args=None)
+                                   **kwargs)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.StreamlineCallback`.)
@@ -678,8 +676,8 @@ Add a Title
 Overplot Quivers for the Velocity Field
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_velocity(self, factor=16, scale=None, scale_units=None, \
-                                normalize=False, plot_args=None)
+.. function:: annotate_velocity(self, factor=16, *, scale=None, scale_units=None, \
+                                normalize=False, **kwargs)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.VelocityCallback`.)
@@ -698,7 +696,7 @@ Overplot Quivers for the Velocity Field
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    p = yt.SlicePlot(ds, "z", ("gas", "density"), center="m", width=(10, "kpc"))
-   p.annotate_velocity(plot_args={"headwidth": 4})
+   p.annotate_velocity(headwidth=4)
    p.save()
 
 .. _annotate-timestamp:
@@ -778,7 +776,7 @@ Add a Physical Scale Bar
 Annotate Triangle Facets Callback
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_triangle_facets(triangle_vertices, plot_args=None)
+.. function:: annotate_triangle_facets(triangle_vertices, **kwargs)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.TriangleFacetsCallback`.)
@@ -813,7 +811,7 @@ Annotate Triangle Facets Callback
    points = coords[conn - 1]
 
    # Annotate slice-triangle intersection contours to the plot
-   s.annotate_triangle_facets(points, plot_args={"colors": "black"})
+   s.annotate_triangle_facets(points, colors="black")
    s.save()
 
 .. _annotate-mesh-lines:
@@ -821,7 +819,7 @@ Annotate Triangle Facets Callback
 Annotate Mesh Lines Callback
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_mesh_lines(plot_args=None)
+.. function:: annotate_mesh_lines(**kwargs)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.MeshLinesCallback`.)
@@ -836,7 +834,7 @@ Annotate Mesh Lines Callback
 
    ds = yt.load("MOOSE_sample_data/out.e")
    sl = yt.SlicePlot(ds, "z", ("connect1", "nodal_aux"))
-   sl.annotate_mesh_lines(plot_args={"color": "black"})
+   sl.annotate_mesh_lines(color="black")
    sl.save()
 
 .. _annotate-ray:
@@ -844,7 +842,7 @@ Annotate Mesh Lines Callback
 Overplot the Path of a Ray
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_ray(ray, plot_args=None)
+.. function:: annotate_ray(ray, *, arrow=False, **kwargs)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.RayCallback`.)

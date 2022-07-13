@@ -163,7 +163,7 @@ def off_axis_projection(
             else:
                 ptype = item[0]
                 ppos = ["x", "y", "z"]
-        elif fi.alias_field:
+        elif fi.is_alias:
             if fi.alias_name[0] not in sph_ptypes:
                 raise_error = True
             elif item[0] != "gas":

@@ -881,7 +881,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
         alias = {}
         for field in gen:
             finfo = self.ds._get_field_info(*field)
-            if finfo._function.__name__ == "_TranslationFunc":
+            if finfo.is_alias:
                 alias[field] = finfo
                 continue
             try:
@@ -1889,7 +1889,7 @@ class YTSurface(YTSelectionContainer3D):
         ...         * np.sqrt(data[("gas", "temperature")])
         ...     )
         >>> ds.add_field(
-        ...     "emissivity",
+        ...     ("gas", "emissivity"),
         ...     function=_Emissivity,
         ...     sampling_type="cell",
         ...     units=r"g**2*sqrt(K)/cm**6",
@@ -2224,7 +2224,7 @@ class YTSurface(YTSelectionContainer3D):
         ...         * data[("gas", "density")]
         ...         * np.sqrt(data[("gas", "temperature")])
         ...     )
-        >>> ds.add_field("emissivity", function=_Emissivity, units="g / cm**6")
+        >>> ds.add_field(("gas", "emissivity"), function=_Emissivity, units="g / cm**6")
         >>> for i, r in enumerate(rhos):
         ...     surf = ds.surface(sp, "density", r)
         ...     surf.export_obj(

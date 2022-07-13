@@ -10,9 +10,10 @@ import weakref
 from collections import defaultdict
 from importlib.util import find_spec
 from stat import ST_CTIME
-from typing import DefaultDict, Optional, Tuple, Type, Union
+from typing import DefaultDict, Dict, List, Optional, Set, Tuple, Type, Union
 
 import numpy as np
+from more_itertools import unzip
 from unyt.exceptions import UnitConversionError, UnitParseError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
@@ -146,7 +147,7 @@ class Dataset(abc.ABC):
     geometry = "cartesian"
     coordinates = None
     storage_filename = None
-    particle_unions = None
+    particle_unions: Optional[Dict[str, ParticleUnion]] = None
     known_filters = None
     _index_class: Type[Index]
     field_units = None
@@ -861,22 +862,60 @@ class Dataset(abc.ABC):
     _last_finfo = None
 
     def _get_field_info(self, ftype, fname=None):
-        field_info, is_ambiguous = self._get_field_info_helper(ftype, fname)
+        field_info, candidates = self._get_field_info_helper(ftype, fname)
 
         if field_info.name[1] in ("px", "py", "pz", "pdx", "pdy", "pdz"):
-            # escape early as as bandaid solution to
+            # escape early as a bandaid solution to
             # https://github.com/yt-project/yt/issues/3381
             return field_info
 
-        if is_ambiguous:
+        def _are_ambiguous(candidates: List[Tuple[str, str]]) -> bool:
+            if len(candidates) < 2:
+                return False
+
+            ftypes, fnames = (list(_) for _ in unzip(candidates))
+            assert all(name == fnames[0] for name in fnames)
+
+            fi = self.field_info
+
+            all_aliases: bool = all(
+                fi[c].is_alias_to(fi[candidates[0]]) for c in candidates
+            )
+
+            all_equivalent_particle_fields: bool
+            if (
+                self.particle_types is None
+                or self.particle_unions is None
+                or self.particle_types_raw is None
+            ):
+                all_equivalent_particle_fields = False
+            elif all(ft in self.particle_types for ft in ftypes):
+                ptypes = ftypes
+
+                sub_types_list: List[Set[str]] = []
+                for pt in ptypes:
+                    if pt in self.particle_types_raw:
+                        sub_types_list.append({pt})
+                    elif pt in self.particle_unions:
+                        sub_types_list.append(set(self.particle_unions[pt].sub_types))
+                all_equivalent_particle_fields = all(
+                    st == sub_types_list[0] for st in sub_types_list
+                )
+            else:
+                all_equivalent_particle_fields = False
+
+            return not (all_aliases or all_equivalent_particle_fields)
+
+        if _are_ambiguous(candidates):
             ft, fn = field_info.name
+            possible_ftypes = [c[0] for c in candidates]
             msg = (
-                f"The requested field name '{fn}' "
+                f"The requested field name {fn!r} "
                 "is ambiguous and corresponds to any one of "
-                f"the following field types:\n {self.field_info._ambiguous_field_names[fn]}\n"
+                f"the following field types:\n {possible_ftypes}\n"
                 "Please specify the requested field as an explicit "
-                "tuple (ftype, fname).\n"
-                f'Defaulting to \'("{ft}", "{fn}")\'.'
+                "tuple (<ftype>, <fname>).\n"
+                f"Defaulting to {field_info.name!r}"
             )
             issue_deprecation_warning(msg, since="4.0.0", removal="4.1.0")
         return field_info
@@ -892,24 +931,25 @@ class Dataset(abc.ABC):
             except AttributeError:
                 ftype, fname = "unknown", ftype
 
+        candidates: List[Tuple[str, str]] = []
+
         # storing this condition before altering it
         guessing_type = ftype == "unknown"
         if guessing_type:
             ftype = self._last_freq[0] or ftype
-            is_ambiguous = fname in self.field_info._ambiguous_field_names
-        else:
-            is_ambiguous = False
+            candidates = [(ft, fn) for ft, fn in self.field_info.keys() if fn == fname]
+
         field = (ftype, fname)
 
         if (
             field == self._last_freq
             and field not in self.field_info.field_aliases.values()
         ):
-            return self._last_finfo, is_ambiguous
+            return self._last_finfo, candidates
         if field in self.field_info:
             self._last_freq = field
             self._last_finfo = self.field_info[(ftype, fname)]
-            return self._last_finfo, is_ambiguous
+            return self._last_finfo, candidates
 
         try:
             # Sometimes, if guessing_type == True, this will be switched for
@@ -927,7 +967,7 @@ class Dataset(abc.ABC):
             ):
                 field = self.default_fluid_type, field[1]
             self._last_freq = field
-            return self._last_finfo, is_ambiguous
+            return self._last_finfo, candidates
         except KeyError:
             pass
 
@@ -943,7 +983,7 @@ class Dataset(abc.ABC):
                 if (ftype, fname) in self.field_info:
                     self._last_freq = (ftype, fname)
                     self._last_finfo = self.field_info[(ftype, fname)]
-                    return self._last_finfo, is_ambiguous
+                    return self._last_finfo, candidates
         raise YTFieldNotFound(field=INPUT, ds=self)
 
     def _setup_classes(self):
