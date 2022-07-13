@@ -47,7 +47,7 @@ class PythonScriptDirective(Directive):
         print("")
 
         start = time.time()
-        subprocess.call(
+        subprocess.run(
             ["python", "-c", "import scipy; print('successfully imported scipy')"],
             check=True,
         )
