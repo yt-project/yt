@@ -48,7 +48,27 @@ class PythonScriptDirective(Directive):
 
         start = time.time()
         subprocess.run(
-            ["python", "-c", "import scipy; print('successfully imported scipy')"],
+            [
+                "python",
+                "-c",
+                "import scipy; print('successfully imported scipy (1/3)')",
+            ],
+            check=True,
+        )
+        subprocess.run(
+            [
+                "python",
+                "-c",
+                "import scipy.signal; print('successfully imported scipy (2/3)')",
+            ],
+            check=True,
+        )
+        subprocess.run(
+            [
+                "python",
+                "-c",
+                "from scipy.signal import convolve; print('successfully imported scipy (3/3)')",
+            ],
             check=True,
         )
         subprocess.call(["python", "temp.py"])
