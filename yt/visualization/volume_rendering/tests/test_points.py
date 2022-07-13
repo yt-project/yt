@@ -66,4 +66,3 @@ class PointsVRTest(TestCase):
         sc.add_source(points_source)
         im = sc.render()
         im.write_png("points.png")
-        return im

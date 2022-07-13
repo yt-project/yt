@@ -81,4 +81,3 @@ class CompositeVRTest(TestCase):
         im = sc.render()
         im = ImageArray(im.d)
         im.write_png("composite.png")
-        return im
