@@ -34,5 +34,4 @@ class SimpleVRTest(TestCase):
 
     def test_simple_vr(self):
         ds = fake_random_ds(32)
-        im, sc = yt.volume_render(ds, fname="test.png", sigma_clip=4.0)
-        return im, sc
+        _im, _sc = yt.volume_render(ds, fname="test.png", sigma_clip=4.0)

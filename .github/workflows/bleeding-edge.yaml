@@ -40,8 +40,7 @@ jobs:
         # the '-dev' suffix allows to use alphas and betas if no final release is available yet
         # this version should be upgraded as often as possible, typically once a year when numpy
         # and Cython are known to be compatible
-        # for next update (to '3.11-dev', 2022), see https://github.com/numpy/numpy/pull/21308
-        python-version: '3.10-dev'
+        python-version: '3.11-dev'
 
     - name: Install dependencies
       run: |
