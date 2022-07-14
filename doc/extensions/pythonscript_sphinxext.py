@@ -46,6 +46,9 @@ class PythonScriptDirective(Directive):
         print(content)
         print("")
 
+        import platform
+
+        print(f"Platform is {platform.platform()}")
         start = time.time()
         subprocess.run(
             [
