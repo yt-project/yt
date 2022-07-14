@@ -121,7 +121,7 @@ def _wrap_display_ytarray(arr):
     display(display_ytarray(arr))
 
 
-# monkeypatch __format__ method from unyt 2.9
+# monkeypatch __format__ method from unyt 2.9 (which requires Python >= 3.8)
 # see https://github.com/yt-project/unyt/pull/188
 # We should be able to require unyt >= 2.9 when we drop support for Python 3.7
 
