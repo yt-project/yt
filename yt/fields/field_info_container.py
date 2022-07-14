@@ -444,7 +444,7 @@ class FieldInfoContainer(dict):
         alias_name: Tuple[str, str],
         original_name: Tuple[str, str],
         units: Optional[str] = None,
-        deprecate: Optional[Tuple[str, str]] = None,
+        deprecate: Optional[Tuple[str, Optional[str]]] = None,
     ):
         """
         Alias one field to another field.
@@ -459,7 +459,7 @@ class FieldInfoContainer(dict):
            A plain text string encoding the unit.  Powers must be in
            python syntax (** instead of ^). If set to "auto" the units
            will be inferred from the return value of the field function.
-        deprecate : Tuple[str, str], optional
+        deprecate : tuple[str, str | None] | None
             If this is set, then the tuple contains two string version
             numbers: the first marking the version when the field was
             deprecated, and the second marking when the field will be
@@ -507,7 +507,14 @@ class FieldInfoContainer(dict):
             )
 
     def add_deprecated_field(
-        self, name, function, sampling_type, since, removal, ret_name=None, **kwargs
+        self,
+        name,
+        function,
+        sampling_type,
+        since,
+        removal=None,
+        ret_name=None,
+        **kwargs,
     ):
         """
         Add a new field which is deprecated, along with supplemental metadata,
