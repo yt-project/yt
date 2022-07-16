@@ -4,12 +4,9 @@ from numbers import Number
 from typing import List, Optional, Type, Union
 
 import matplotlib
-import matplotlib.pyplot as plt
 import numpy as np
 from more_itertools import always_iterable
-from mpl_toolkits.axes_grid1 import ImageGrid
 from packaging.version import Version
-from pyparsing import ParseFatalException
 from unyt.exceptions import UnitConversionError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
@@ -1303,6 +1300,8 @@ class PWViewerMPL(PlotWindow):
                     colorbar_label += r"$\ \ \left(" + units + r"\right)$"
 
             parser = MathTextParser("Agg")
+            from pyparsing import ParseFatalException
+
             try:
                 parser.parse(colorbar_label)
             except ParseFatalException as err:
@@ -1495,6 +1494,8 @@ class PWViewerMPL(PlotWindow):
         >>> fig.savefig("test.png")
 
         """
+        import matplotlib.pyplot as plt
+        from mpl_toolkits.axes_grid1 import ImageGrid
 
         fig = plt.figure()
         grid = ImageGrid(

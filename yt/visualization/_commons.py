@@ -2,18 +2,13 @@ import os
 import sys
 import warnings
 from functools import wraps
-from typing import Optional, Type, TypeVar
+from typing import TYPE_CHECKING, Optional, Type, TypeVar
 
 import matplotlib
 from packaging.version import Version
 
-from ._mpl_imports import (
-    FigureCanvasAgg,
-    FigureCanvasBase,
-    FigureCanvasPdf,
-    FigureCanvasPS,
-    FigureCanvasSVG,
-)
+if TYPE_CHECKING:
+    from ._mpl_imports import FigureCanvasBase
 
 MPL_VERSION = Version(matplotlib.__version__)
 
@@ -25,17 +20,31 @@ DEFAULT_FONT_PROPERTIES = {
 if MPL_VERSION >= Version("3.4"):
     DEFAULT_FONT_PROPERTIES["math_fontfamily"] = "cm"
 
-SUPPORTED_FORMATS = frozenset(FigureCanvasBase.get_supported_filetypes().keys())
-SUPPORTED_CANVAS_CLASSES = frozenset(
-    (FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS, FigureCanvasSVG)
-)
+
+def _get_supported_image_file_formats():
+    from ._mpl_imports import FigureCanvasBase
+
+    return frozenset(FigureCanvasBase.get_supported_filetypes().keys())
 
 
-def get_canvas_class(suffix: str) -> Type[FigureCanvasBase]:
+def _get_supported_canvas_classes():
+    from ._mpl_imports import (
+        FigureCanvasAgg,
+        FigureCanvasPdf,
+        FigureCanvasPS,
+        FigureCanvasSVG,
+    )
+
+    return frozenset(
+        (FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS, FigureCanvasSVG)
+    )
+
+
+def get_canvas_class(suffix: str) -> Type["FigureCanvasBase"]:
     s = normalize_extension_string(suffix)
-    if s not in SUPPORTED_FORMATS:
+    if s not in _get_supported_image_file_formats():
         raise ValueError(f"Unsupported file format '{suffix}'.")
-    for cls in SUPPORTED_CANVAS_CLASSES:
+    for cls in _get_supported_canvas_classes():
         if s in cls.get_supported_filetypes():
             return cls
     raise RuntimeError(
@@ -66,8 +75,8 @@ def validate_image_name(filename, suffix: Optional[str] = None) -> str:
     if suffix is not None:
         suffix = normalize_extension_string(suffix)
 
-    if psuffix in SUPPORTED_FORMATS:
-        if suffix in SUPPORTED_FORMATS and suffix != psuffix:
+    if psuffix in _get_supported_image_file_formats():
+        if suffix in _get_supported_image_file_formats() and suffix != psuffix:
             warnings.warn(
                 f"Received two valid image formats {psuffix!r} (from filename) "
                 f"and {suffix!r} (from suffix). The former is ignored."
@@ -78,7 +87,7 @@ def validate_image_name(filename, suffix: Optional[str] = None) -> str:
     if suffix is None:
         suffix = "png"
 
-    if suffix not in SUPPORTED_FORMATS:
+    if suffix not in _get_supported_image_file_formats():
         raise ValueError(f"Unsupported file format {suffix!r}")
 
     return f"{filename}.{suffix}"
