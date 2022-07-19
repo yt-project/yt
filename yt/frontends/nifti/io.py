@@ -1,6 +1,6 @@
 import numpy as np
 from yt.utilities.io_handler import BaseIOHandler
-
+from yt.utilities.on_demand_imports import _nibabel as nib
 
 class NiftiIOHandler(BaseIOHandler):
     _particle_reader = False
@@ -25,13 +25,12 @@ class NiftiIOHandler(BaseIOHandler):
 
         offset = 0
 
-        with self.ds._handle() as xr_ds_handle:
-            for field in fields:
-                for chunk in chunks:
-                    for grid in chunk.objs:
-                        variable = xr_ds_handle.variables[field[1]]
-                        data = variable.values[0, ...].T
-                        offset += grid.select(selector, data, rv[field], offset)
+        for field in fields:
+            for chunk in chunks:
+                for grid in chunk.objs:
+                    variable = nib.load(self.ds.filename) 
+                    data = variable.get_fdata()
+                    offset += grid.select(selector, data, rv[field], offset)
         return rv
 
     def _read_chunk_data(self, chunk, fields):

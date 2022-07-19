@@ -7,6 +7,7 @@ from yt.fields.field_info_container import FieldInfoContainer
 
 class NiftiFieldInfo(FieldInfoContainer):
     known_other_fields = (
+        ("intensity", ("", ["intensity"], "None"))
         # Each entry here is of the form
         # ( "name", ("units", ["fields", "to", "alias"], # "display_name")),
     )
