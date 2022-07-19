@@ -1,3 +1,4 @@
+import numpy as np
 from yt.utilities.io_handler import BaseIOHandler
 
 
@@ -20,24 +21,18 @@ class NiftiIOHandler(BaseIOHandler):
         pass
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
-        # This needs to allocate a set of arrays inside a dictionary, where the
-        # keys are the (ftype, fname) tuples and the values are arrays that
-        # have been masked using whatever selector method is appropriate.  The
-        # dict gets returned at the end and it should be flat, with selected
-        # data.  Note that if you're reading grid data, you might need to
-        # special-case a grid selector object.
-        # Also note that "chunks" is a generator for multiple chunks, each of
-        # which contains a list of grids. The returned numpy arrays should be
-        # in 64-bit float and contiguous along the z direction. Therefore, for
-        # a C-like input array with the dimension [x][y][z] or a
-        # Fortran-like input array with the dimension (z,y,x), a matrix
-        # transpose is required (e.g., using np_array.transpose() or
-        # np_array.swapaxes(0,2)).
+        rv = {field: np.empty(size, dtype="float64") for field in fields}
 
-        # This method is not abstract, and has a default implementation
-        # in the base class.However, the default implementation requires that the method
-        # io_iter be defined
-        pass
+        offset = 0
+
+        with self.ds._handle() as xr_ds_handle:
+            for field in fields:
+                for chunk in chunks:
+                    for grid in chunk.objs:
+                        variable = xr_ds_handle.variables[field[1]]
+                        data = variable.values[0, ...].T
+                        offset += grid.select(selector, data, rv[field], offset)
+        return rv
 
     def _read_chunk_data(self, chunk, fields):
         # This reads the data from a single chunk without doing any selection,

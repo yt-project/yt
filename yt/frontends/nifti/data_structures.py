@@ -7,7 +7,7 @@ from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.funcs import setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
-
+from yt.utilities.on_demand_imports import _nibabel as nib, NotAModule
 from .fields import NiftiFieldInfo
 
 
@@ -35,41 +35,26 @@ class NiftiHierarchy(GridIndex):
         super().__init__(ds, dataset_type)
 
     def _detect_output_fields(self):
-        # This needs to set a self.field_list that contains all the available,
-        # on-disk fields. No derived fields should be defined here.
-        # NOTE: Each should be a tuple, where the first element is the on-disk
-        # fluid type or particle type.  Convention suggests that the on-disk
-        # fluid type is usually the dataset_type and the on-disk particle type
-        # (for a single population of particles) is "io".
-        pass
+        self.field_list = [("nifti", "intensity")]
 
     def _count_grids(self):
-        # This needs to set self.num_grids (int)
-        pass
+        self.num_grids = 1
 
     def _parse_index(self):
-        # This needs to fill the following arrays, where N is self.num_grids:
-        #   self.grid_left_edge         (N, 3) <= float64
-        #   self.grid_right_edge        (N, 3) <= float64
-        #   self.grid_dimensions        (N, 3) <= int
-        #   self.grid_particle_count    (N, 1) <= int
-        #   self.grid_levels            (N, 1) <= int
-        #   self.grids                  (N, 1) <= grid objects
-        #   self.max_level = self.grid_levels.max()
-        pass
+        self.grid_left_edge[0][:] = self.ds.domain_left_edge[:]
+        self.grid_right_edge[0][:] = self.ds.domain_right_edge[:]
+        self.grid_dimensions[0][:] = self.ds.domain_dimensions[:]
+        self.grid_particle_count[0][0] = 0
+        self.grid_levels[0][0] = 0
+        self.max_level = 0
 
     def _populate_grid_objects(self):
-        # the minimal form of this method is
-        #
-        # for g in self.grids:
-        #     g._prepare_grid()
-        #     g._setup_dx()
-        #
-        # This must also set:
-        #   g.Children <= list of child grids
-        #   g.Parent   <= parent grid
-        # This is handled by the frontend because often the children must be identified.
-        pass
+        # only a single grid, no need to loop
+        g = self.grid(0, self, self.grid_levels.flat[0], self.grid_dimensions[0])
+        g._prepare_grid()
+        g._setup_dx()
+        self.grids = np.array([g], dtype="object")
+
 
 
 class NiftiDataset(Dataset):
@@ -122,53 +107,39 @@ class NiftiDataset(Dataset):
             setdefaultattr(self, key, self.quan(1, unit))
 
     def _parse_parameter_file(self):
+        img = nib.load(self.filename)
+        self.parameters = {}
+
         # This needs to set up the following items.  Note that these are all
         # assumed to be in code units; domain_left_edge and domain_right_edge
         # will be converted to YTArray automatically at a later time.
         # This includes the cosmological parameters.
         #
-        #   self.unique_identifier      <= unique identifier for the dataset
-        #                                  being read (e.g., UUID or ST_CTIME)
-        #   self.parameters             <= dict full of code-specific items of use
-        #   self.domain_left_edge       <= three-element array of float64
-        #   self.domain_right_edge      <= three-element array of float64
-        #   self.dimensionality         <= int
-        #   self.domain_dimensions      <= three-element array of int64
-        #   self.periodicity            <= three-element tuple of booleans
-        #   self.current_time           <= simulation time in code units (float)
+        
+        self.parameters['header'] = img.header
+        img_data_shape = img.get_fdata().shape
+        self.domain_left_edge = np.array((0,0,0))
+        self.domain_right_edge = np.array(img_data_shape)
+        self.dimensionality = 3
+        self.domain_dimensions = img_data_shape
+        self.periodicity = (False, False, False)
+        self.current_time = 0
         #
         # We also set up cosmological information.  Set these to zero if
         # non-cosmological.
         #
-        #   self.cosmological_simulation    <= int, 0 or 1
-        #   self.current_redshift           <= float
-        #   self.omega_lambda               <= float
-        #   self.omega_matter               <= float
-        #   self.hubble_constant            <= float
-
-        # optional (the following have default implementations)
-        #   self.unique_identifier      <= unique identifier for the dataset
-        #                                  being read (e.g., UUID or ST_CTIME) (int)
-        #
-        #   self.geometry  <= a lower case string
-        #                     ("cartesian", "polar", "cylindrical"...)
-        #                     (defaults to 'cartesian')
-
-        # this attribute is required.
-        # Change this value to a constant 0 if time is not relevant to your dataset.
-        # Otherwise, parse its value in any appropriate fashion.
-        self.current_time = -1
-
-        # required. Change this if need be.
         self.cosmological_simulation = 0
+        self.current_redshift = 0
+        self.omega_lambda = 0
+        self.omega_matter = 0
+        self.hubble_constant = 0
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
-        # This accepts a filename or a set of arguments and returns True or
-        # False depending on if the file is of the type requested.
-        #
-        # The functionality in this method should be unique enough that it can
-        # differentiate the frontend from others. Sometimes this means looking
-        # for specific fields or attributes in the dataset in addition to
-        # looking at the file name or extension.
+        if isinstance(nib.load, NotAModule):
+            return False
+        try:
+            nib.load(filename)
+        except: (nib.ImageFileError)
+
         return False

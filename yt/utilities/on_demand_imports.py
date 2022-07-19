@@ -479,3 +479,17 @@ class ratarmount_imports(OnDemand):
 
 
 _ratarmount = ratarmount_imports()
+
+
+class nibabel_imports(OnDemand):
+    @safe_import
+    def load(self):
+        from nibabel import load
+
+        return load
+    def ImageFileError(self):
+        from nibabel import filebasedimages
+
+        return filebasedimages.ImageFileError
+
+_nibabel = nibabel_imports()
