@@ -1677,6 +1677,9 @@ class Dataset(abc.ABC):
            on-disk fields.
 
         """
+        from yt.fields.field_functions import validate_field_function
+
+        validate_field_function(function)
         self.index
         if force_override and name in self.index.field_list:
             raise RuntimeError(

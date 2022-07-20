@@ -55,9 +55,7 @@ def test_add_field_uncallable():
     class Spam:
         pass
 
-    with pytest.raises(
-        TypeError, match=r"Expected a callable object, got .* with type .*"
-    ):
+    with pytest.raises(TypeError, match=r"(is not a callable object)$"):
         ds.add_field(("bacon", "spam"), Spam(), sampling_type="cell")
 
 
