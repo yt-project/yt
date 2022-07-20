@@ -8,7 +8,7 @@ from yt.data_objects.static_output import Dataset
 from yt.funcs import setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.on_demand_imports import _nibabel as nib, NotAModule
-from .fields import NiftiFieldInfo
+from yt.frontends.nifti.fields import NiftiFieldInfo
 
 
 class NiftiGrid(AMRGridPatch):
