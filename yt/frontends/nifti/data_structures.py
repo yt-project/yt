@@ -136,10 +136,12 @@ class NiftiDataset(Dataset):
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
-        # if isinstance(nib.load, NotAModule):
-        #     return False
-        try:
-            nib.load(filename)
-        except: (nib.ImageFileError)
+        if isinstance(nib.load, NotAModule):
+            return False
+        else:
+            try:
+                print("Works")
+                nib.load(filename)
+            except (nib.ImageFileError):
 
-        return False
+                return False
