@@ -142,6 +142,7 @@ class NiftiDataset(Dataset):
             try:
                 print("Works")
                 nib.load(filename)
+                return True
             except (nib.ImageFileError):
 
                 return False
