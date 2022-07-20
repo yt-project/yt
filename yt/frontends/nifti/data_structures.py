@@ -122,7 +122,7 @@ class NiftiDataset(Dataset):
         self.domain_right_edge = np.array(img_data_shape)
         self.dimensionality = 3
         self.domain_dimensions = img_data_shape
-        self.periodicity = (False, False, False)
+        self._periodicity = (False, False, False)
         self.current_time = 0
         #
         # We also set up cosmological information.  Set these to zero if
@@ -140,7 +140,7 @@ class NiftiDataset(Dataset):
             return False
         else:
             try:
-                print("Works")
+                print(nib.load(filename))
                 nib.load(filename)
                 return True
             except (nib.ImageFileError):
