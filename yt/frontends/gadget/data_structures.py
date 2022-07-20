@@ -363,10 +363,7 @@ class GadgetDataset(SPHDataset):
             self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
 
         self.domain_dimensions = np.ones(3, "int32")
-        if getattr(self, "_domain_override", False):
-            self._disable_periodicity_for_bbox()
-        else:
-            self._periodicity = (True, True, True)
+        self._periodicity = (True, True, True)
 
         self.cosmological_simulation = 1
 

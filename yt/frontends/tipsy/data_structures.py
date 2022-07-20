@@ -190,7 +190,6 @@ class TipsyDataset(SPHDataset):
                 bbox = bbox.transpose()
             self.domain_left_edge = bbox[:, 0]
             self.domain_right_edge = bbox[:, 1]
-            self._disable_periodicity_for_bbox()
 
         # If the cosmology parameters dictionary got set when data is
         # loaded, we can assume it's a cosmological data set

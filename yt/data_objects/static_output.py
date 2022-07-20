@@ -323,6 +323,14 @@ class Dataset(abc.ABC):
     def periodicity(self):
         if self._force_periodicity:
             return (True, True, True)
+        elif hasattr(self, "_domain_override"):
+            # dataset loaded with a bounding box
+            if any(self._periodicity):
+                mylog.warning(
+                    "A bounding box was explicitly specified, so we "
+                    "are disabling periodicity."
+                )
+            return (False, False, False)
         return self._periodicity
 
     def force_periodicity(self, val=True):

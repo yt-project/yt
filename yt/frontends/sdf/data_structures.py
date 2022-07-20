@@ -116,8 +116,6 @@ class SDFDataset(ParticleDataset):
         self.domain_dimensions = np.ones(3, "int32")
         if self.parameters.get("do_periodic", False):
             self._periodicity = (True, True, True)
-            if getattr(self, "_domain_override", False):
-                self._disable_periodicity_for_bbox()
         else:
             self._periodicity = (False, False, False)
 
