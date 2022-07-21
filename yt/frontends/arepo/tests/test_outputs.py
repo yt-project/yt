@@ -8,7 +8,7 @@ from yt.utilities.answer_testing.framework import data_dir_load, requires_ds, sp
 
 bullet_h5 = "ArepoBullet/snapshot_150.hdf5"
 tng59_h5 = "TNGHalo/halo_59.hdf5"
-_tng59_bbox = [[45135.0, 51343.0], [51844.0, 58184.0], [60555.0, 67451.0]]
+_tng59_bbox = [[40669.34, 56669.34], [45984.04, 61984.04], [54114.9, 70114.9]]
 cr_h5 = "ArepoCosmicRays/snapshot_039.hdf5"
 
 
@@ -57,7 +57,7 @@ tng59_fields = OrderedDict(
 @requires_ds(tng59_h5)
 def test_arepo_tng59():
     ds = data_dir_load(tng59_h5, kwargs={"bounding_box": _tng59_bbox})
-    for test in sph_answer(ds, "halo_59", 10107135, tng59_fields):
+    for test in sph_answer(ds, "halo_59", 10107142, tng59_fields):
         test_arepo_tng59.__name__ = test.description
         yield test
 
