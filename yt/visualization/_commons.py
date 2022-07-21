@@ -4,18 +4,23 @@ import warnings
 from functools import wraps
 from typing import TYPE_CHECKING, Optional, Type, TypeVar
 
-import matplotlib
+if sys.version_info >= (3, 8):
+    from importlib.metadata import version
+else:
+    from importlib_metadata import version
+
 from packaging.version import Version
 
 if TYPE_CHECKING:
     from ._mpl_imports import FigureCanvasBase
 
-MPL_VERSION = Version(matplotlib.__version__)
 
 DEFAULT_FONT_PROPERTIES = {
     "family": "stixgeneral",
     "size": 18,
 }
+
+MPL_VERSION = Version(version("matplotlib"))
 
 if MPL_VERSION >= Version("3.4"):
     DEFAULT_FONT_PROPERTIES["math_fontfamily"] = "cm"
