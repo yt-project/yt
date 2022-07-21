@@ -1,3 +1,5 @@
+from functools import lru_cache
+
 import numpy as np
 
 from yt.utilities.lib.misc_utilities import obtain_position_vector
@@ -40,6 +42,7 @@ def get_radius(data, field_prefix, ftype):
     return radius
 
 
+@lru_cache(maxsize=128)
 def get_periodic_rvec(data):
     coords = obtain_position_vector(data).d
     if sum(data.ds.periodicity) == 0:
