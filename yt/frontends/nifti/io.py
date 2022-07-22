@@ -32,7 +32,7 @@ class NiftiIOHandler(BaseIOHandler):
             for chunk in chunks:
                 for grid in chunk.objs:
                     variable = nib.load(self.ds.filename) 
-                    data = variable.get_fdata()
+                    data = variable.get_fdata()#.astype("f8")
                     offset += grid.select(selector, data, rv[field], offset)
         return rv
 
