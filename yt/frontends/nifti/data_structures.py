@@ -50,7 +50,7 @@ class NiftiHierarchy(GridIndex):
 
     def _populate_grid_objects(self):
         # only a single grid, no need to loop
-        g = self.grid(0, self, self.grid_levels.flat[0], self.grid_dimensions[0])
+        g = self.grid(0, self, self.grid_levels.flat[0])
         g._prepare_grid()
         g._setup_dx()
         self.grids = np.array([g], dtype="object")
@@ -88,7 +88,7 @@ class NiftiDataset(Dataset):
         # should be set, along with examples of how to set them to standard
         # values.
         #
-        # self.length_unit = self.quan(1.0, "cm")
+        self.length_unit = self.quan(1.0, "mm")
         # self.mass_unit = self.quan(1.0, "g")
         # self.time_unit = self.quan(1.0, "s")
         # self.time_unit = self.quan(1.0, "s")
@@ -105,10 +105,52 @@ class NiftiDataset(Dataset):
         # this frontend to run, change it to make it run _correctly_ !
         for key, unit in self.__class__.default_units.items():
             setdefaultattr(self, key, self.quan(1, unit))
-
+    
     def _parse_parameter_file(self):
+        def is_number(string):
+            try:
+                float(string)
+                return True
+            except ValueError:
+                return False
         img = nib.load(self.filename)
+        parameters = (list(str(img.header).split('\n')))
+        parameters[16] = str(parameters[16]+(parameters[17]))
+        parameters.remove(parameters[17])
+        (parameters)
+        temp = {}
+        for i in parameters[1::]:
+            temp[(i.split(":"))[0]]=((i.split(":"))[1])
         self.parameters = {}
+        for i in temp.keys():
+            c = i.strip()
+            self.parameters[c]=temp[i]
+
+        for key,value in self.parameters.items():
+            value = str(value).strip()
+            if '[' in value:
+                if value[0] == '[':
+                    value = (value.strip(value[0]))
+                if value[-1] == ']':
+                    value = (value.strip(value[-1]))
+                split_val = (value.split())
+                el_list = []
+                for el in split_val:
+                    el = float(el)
+                    
+                    el_list.append((el))
+
+                self.parameters[key]= el_list
+            else:
+                value = value.lstrip()
+                if value.isnumeric():
+                    value = int(value)
+                elif is_number(value):
+                    value = float(value)
+                self.parameters[key]= value
+                
+        self.parameters['affine'] = img.affine
+        self.parameters['data_shape'] = img.shape
 
         # This needs to set up the following items.  Note that these are all
         # assumed to be in code units; domain_left_edge and domain_right_edge
@@ -116,10 +158,9 @@ class NiftiDataset(Dataset):
         # This includes the cosmological parameters.
         #
         
-        self.parameters['header'] = img.header
-        img_data_shape = img.get_fdata().shape
-        self.domain_left_edge = np.array((0,0,0))
-        self.domain_right_edge = np.array(img_data_shape)
+        img_data_shape = self.parameters['data_shape']
+        self.domain_left_edge = np.array((0,0,0),dtype='f8')
+        self.domain_right_edge = np.array((img_data_shape),dtype='f8')*self.parameters['pixdim'][1:4]
         self.dimensionality = 3
         self.domain_dimensions = img_data_shape
         self._periodicity = (False, False, False)
@@ -140,7 +181,6 @@ class NiftiDataset(Dataset):
             return False
         else:
             try:
-                print(nib.load(filename))
                 nib.load(filename)
                 return True
             except (nib.ImageFileError):
