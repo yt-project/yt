@@ -119,3 +119,17 @@ def _wrap_display_ytarray(arr):
     from IPython.core.display import display
 
     display(display_ytarray(arr))
+
+
+# monkeypatch __format__ method from unyt 2.9 (which requires Python >= 3.8)
+# see https://github.com/yt-project/unyt/pull/188
+# We should be able to require unyt >= 2.9 when we drop support for Python 3.7
+
+from packaging.version import Version
+from unyt import __version__
+if Version(__version__) < Version("2.9"):
+    def __mp_unyt_array_format(self, format_spec):
+         return "{} {}".format(self.d.__format__(format_spec), self.units)
+    unyt_array.__format__ = __mp_unyt_array_format
+del __version__
+del Version
