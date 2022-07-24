@@ -63,6 +63,14 @@ def test_arepo_tng59():
 
 
 @requires_ds(tng59_h5)
+def test_arepo_tng59_periodicity():
+    ds1 = data_dir_load(tng59_h5)
+    assert ds1.periodicity == (True, True, True)
+    ds2 = data_dir_load(tng59_h5, kwargs={"bounding_box": _tng59_bbox})
+    assert ds2.periodicity == (False, False, False)
+
+
+@requires_ds(tng59_h5)
 def test_index_override():
     # This tests that we can supply an index_filename, and that when we do, it
     # doesn't get written if our bounding_box is overwritten.
