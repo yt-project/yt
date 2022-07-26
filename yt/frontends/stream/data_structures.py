@@ -666,10 +666,10 @@ class StreamOctreeSubset(OctreeSubset):
     _domain_offset = 1
 
     def __init__(
-        self, base_region, ds, oct_handler, over_refine_factor=1, num_ghost_zones=0
+        self, base_region, ds, oct_handler, over_refine_factor=2, num_ghost_zones=0
     ):
         self._over_refine_factor = over_refine_factor
-        self._num_zones = 1 << (over_refine_factor)
+        self._num_zones = over_refine_factor
         self.field_data = YTFieldData()
         self.field_parameters = {}
         self.ds = ds

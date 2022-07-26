@@ -39,8 +39,8 @@ cdef class OctVisitor:
     cdef int dims
     cdef np.int32_t domain
     cdef np.int8_t level
-    cdef np.int8_t oref # This is the level of overref.  1 => 8 zones, 2 => 64, etc.
-                        # To calculate nzones, 1 << (oref * 3)
+    cdef np.int8_t oref # This is the level of overref.  1 => 1 zones, 2 => 8, etc.
+                        # To calculate nzones, oref**3
     cdef np.int32_t nz
 
     # There will also be overrides for the memoryviews associated with the
@@ -49,11 +49,11 @@ cdef class OctVisitor:
     cdef void visit(self, Oct*, np.uint8_t selected)
 
     cdef inline int oind(self):
-        cdef int d = (1 << self.oref)
+        cdef int d = self.oref
         return (((self.ind[0]*d)+self.ind[1])*d+self.ind[2])
 
     cdef inline int rind(self):
-        cdef int d = (1 << self.oref)
+        cdef int d = self.oref
         return (((self.ind[2]*d)+self.ind[1])*d+self.ind[0])
 
 cdef class CountTotalOcts(OctVisitor):
@@ -163,7 +163,7 @@ cdef class BaseNeighbourVisitor(OctVisitor):
     cdef void set_neighbour_info(self, Oct *o, int ishift[3])
 
     cdef inline np.uint8_t neighbour_rind(self):
-        cdef int d = (1 << self.oref)
+        cdef int d = self.oref
         return (((self.neigh_ind[2]*d)+self.neigh_ind[1])*d+self.neigh_ind[0])
 
 cdef class NeighbourCellIndexVisitor(BaseNeighbourVisitor):

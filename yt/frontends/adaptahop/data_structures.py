@@ -66,7 +66,7 @@ class AdaptaHOPDataset(Dataset):
         filename,
         dataset_type="adaptahop_binary",
         n_ref=16,
-        over_refine_factor=1,
+        over_refine_factor=2,
         units_override=None,
         unit_system="cgs",
         parent_ds=None,
@@ -145,7 +145,7 @@ class AdaptaHOPDataset(Dataset):
         # Domain related things
         self.filename_template = self.parameter_filename
         self.file_count = 1
-        nz = 1 << self.over_refine_factor
+        nz = self.over_refine_factor
         self.domain_dimensions = np.ones(3, "int32") * nz
 
         # Set things up

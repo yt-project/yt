@@ -59,7 +59,7 @@ class AHFHalosDataset(Dataset):
         filename,
         dataset_type="ahf",
         n_ref=16,
-        over_refine_factor=1,
+        over_refine_factor=2,
         units_override=None,
         unit_system="cgs",
         hubble_constant=1.0,
@@ -98,7 +98,7 @@ class AHFHalosDataset(Dataset):
         # Set up geometrical information.
         self.refine_by = 2
         self.dimensionality = 3
-        nz = 1 << self.over_refine_factor
+        nz = self.over_refine_factor
         self.domain_dimensions = np.ones(self.dimensionality, "int32") * nz
         self.domain_left_edge = np.array([0.0, 0.0, 0.0])
         # Note that boxsize is in Mpc but particle positions are in kpc.

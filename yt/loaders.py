@@ -894,7 +894,7 @@ def load_octree(
     velocity_unit=None,
     magnetic_unit=None,
     periodicity=(True, True, True),
-    over_refine_factor=1,
+    over_refine_factor=2,
     partial_coverage=1,
     unit_system="cgs",
     default_species_fields=None,
@@ -913,7 +913,7 @@ def load_octree(
         This is a depth-first refinement mask for an Octree.  It should be
         of size n_octs * 8 (but see note about the root oct below), where
         each item is 1 for an oct-cell being refined and 0 for it not being
-        refined.  For over_refine_factors != 1, the children count will
+        refined.  For over_refine_factors != 2, the children count will
         still be 8, so there will still be n_octs * 8 entries. Note that if
         the root oct is not refined, there will be only one entry
         for the root, so the size of the mask will be (n_octs - 1)*8 + 1.
@@ -959,7 +959,7 @@ def load_octree(
     ...     octree_mask=octree_mask,
     ...     data=quantities,
     ...     bbox=bbox,
-    ...     over_refine_factor=0,
+    ...     over_refine_factor=1,
     ...     partial_coverage=0,
     ... )
 
@@ -974,7 +974,7 @@ def load_octree(
     if not isinstance(octree_mask, np.ndarray) or octree_mask.dtype != np.uint8:
         raise TypeError("octree_mask should be a Numpy array with type uint8")
 
-    nz = 1 << (over_refine_factor)
+    nz = over_refine_factor
     domain_dimensions = np.array([nz, nz, nz])
     nprocs = 1
     if bbox is None:

@@ -44,10 +44,10 @@ class OctreeSubset(YTSelectionContainer):
     _block_order = "C"
 
     def __init__(
-        self, base_region, domain, ds, over_refine_factor=1, num_ghost_zones=0
+        self, base_region, domain, ds, over_refine_factor=2, num_ghost_zones=0
     ):
         super().__init__(ds, None)
-        self._num_zones = 1 << (over_refine_factor)
+        self._num_zones = over_refine_factor
         self._num_ghost_zones = num_ghost_zones
         self._oref = over_refine_factor
         self.domain = domain
@@ -443,7 +443,7 @@ class OctreeSubset(YTSelectionContainer):
             [1, 1, 1],
             self.ds.domain_left_edge,
             self.ds.domain_right_edge,
-            over_refine=1,
+            over_refine=2,
         )
         particle_octree.n_ref = nneighbors * 2
         particle_octree.add(morton)
@@ -671,7 +671,7 @@ class YTPositionArray(unyt_array):
         morton = compute_morton(self[:, 0], self[:, 1], self[:, 2], LE, RE)
         return morton
 
-    def to_octree(self, over_refine_factor=1, dims=(1, 1, 1), n_ref=64):
+    def to_octree(self, over_refine_factor=2, dims=(1, 1, 1), n_ref=64):
         mi = self.morton
         mi.sort()
         eps = np.finfo(self.dtype).eps

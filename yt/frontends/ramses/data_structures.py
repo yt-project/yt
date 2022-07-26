@@ -346,7 +346,7 @@ class RAMSESDomainSubset(OctreeSubset):
         base_region,
         domain,
         ds,
-        over_refine_factor=1,
+        over_refine_factor=2,
         num_ghost_zones=0,
         base_grid=None,
     ):

@@ -156,7 +156,7 @@ cdef class SelectorObject:
                             visitor.pos[1] = (visitor.pos[1] >> 1)
                             visitor.pos[2] = (visitor.pos[2] >> 1)
                             visitor.level -= 1
-                        elif this_level == 1 and visitor.oref > 0:
+                        elif this_level == 1 and visitor.oref > 1:
                             visitor.global_index += increment
                             increment = 0
                             self.visit_oct_cells(root, ch, spos, sdds,
@@ -175,10 +175,10 @@ cdef class SelectorObject:
     cdef void visit_oct_cells(self, Oct *root, Oct *ch,
                               np.float64_t spos[3], np.float64_t sdds[3],
                               OctVisitor visitor, int i, int j, int k):
-        # We can short-circuit the whole process if data.oref == 1.
+        # We can short-circuit the whole process if data.oref == 2.
         # This saves us some funny-business.
         cdef int selected
-        if visitor.oref == 1:
+        if visitor.oref == 2:
             selected = self.select_cell(spos, sdds)
             if ch != NULL:
                 selected *= self.overlap_cells
@@ -196,7 +196,7 @@ cdef class SelectorObject:
         cdef np.float64_t dds[3]
         cdef np.float64_t pos[3]
         cdef int ci, cj, ck
-        cdef int nr = (1 << (visitor.oref - 1))
+        cdef int nr = (self.oref * 0.5)
         for ci in range(3):
             dds[ci] = sdds[ci] / nr
         # Boot strap at the first index.
