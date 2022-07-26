@@ -487,9 +487,11 @@ class nibabel_imports(OnDemand):
         from nibabel import load
 
         return load
+
     def ImageFileError(self):
         from nibabel import filebasedimages
 
         return filebasedimages.ImageFileError
+
 
 _nibabel = nibabel_imports()
