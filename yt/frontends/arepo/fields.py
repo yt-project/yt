@@ -139,6 +139,7 @@ class ArepoFieldInfo(GadgetFieldInfo):
                     function=_h_number_density,
                     units=self.ds.unit_system["number_density"],
                 )
+                self.alias(("gas", "H_number_density"), (ptype, "H_number_density"))
                 self.alias(("gas", "H_nuclei_density"), ("gas", "H_number_density"))
 
             def _el_number_density(field, data):
