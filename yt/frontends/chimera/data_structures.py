@@ -100,33 +100,9 @@ class ChimeraUNSIndex(UnstructuredIndex):
                 coords[:, :, :, 2] = phi[None, None, :]
 
                 if yy:
-                    # Converts coordinates to cartesian in the case of Yin-Yang data
-                    x = (
-                        coords[:, :, :, 0]
-                        * np.sin(coords[:, :, :, 1])
-                        * np.cos(coords[:, :, :, 2])
+                    mylog.warning(
+                        "Yin-Yang File Detected; This data is not currently supported."
                     )
-                    y = (
-                        coords[:, :, :, 0]
-                        * np.sin(coords[:, :, :, 1])
-                        * np.sin(coords[:, :, :, 2])
-                    )
-                    z = coords[:, :, :, 0] * np.cos(coords[:, :, :, 1])
-
-                    if (
-                        "grid_2" in file
-                    ):  # Applies transform to meshes in the rotated grid
-                        x_hold = -x
-                        y_hold = z
-                        z_hold = y
-                    else:
-                        x_hold = x
-                        y_hold = y
-                        z_hold = z
-
-                    coords[:, :, :, 0] = x_hold
-                    coords[:, :, :, 1] = y_hold
-                    coords[:, :, :, 2] = z_hold
                 coords.shape = (nxd * nyd * nzd, 3)
                 # Connectivity is an array of rows, each of which corresponds to a grid cell.
                 # The 8 elements of each row are integers representing the cell verticies.
@@ -257,55 +233,33 @@ class ChimeraDataset(Dataset):
             self.dimensionality = 3
             self.domain_dimensions = f["mesh"]["array_dimensions"][()]
 
-            index_filenames = _find_files(self.parameter_filename)
-            if any(
-                "grid_2" in file for file in index_filenames
-            ):  # Checks for Yin-Yang and changes to cartesian
-                self.geometry = "cartesian"
-                self._periodicity = (False, False, False)
-                dre = [
-                    f["mesh"]["x_ef"][(-1)],
-                    f["mesh"]["x_ef"][(-1)],
-                    f["mesh"]["x_ef"][(-1)],
-                ]
-                dle = -1 * np.array(dre)
-                self.domain_dimensions = np.array(
-                    [
-                        2 * f["mesh"]["array_dimensions"][0],
-                        2 * f["mesh"]["array_dimensions"][0],
-                        2 * f["mesh"]["array_dimensions"][0],
-                    ]
-                )
-            else:
-                self.geometry = "spherical"  # Uses default spherical geometry
-                self._periodicity = (False, False, True)
-                dle = [
-                    f["mesh"]["x_ef"][0],
-                    f["mesh"]["y_ef"][0],
-                    f["mesh"]["z_ef"][0],
-                ]
+            self.geometry = "spherical"  # Uses default spherical geometry
+            self._periodicity = (False, False, True)
+            dle = [
+                f["mesh"]["x_ef"][0],
+                f["mesh"]["y_ef"][0],
+                f["mesh"]["z_ef"][0],
+            ]
 
-                if (
-                    self.domain_dimensions[2] <= 2
-                    and f["mesh"]["z_ef"][-1] == f["mesh"]["z_ef"][0]
-                ):
-                    dre = [
-                        f["mesh"]["x_ef"][
-                            f["mesh"]["radial_index_bound"][1]
-                            - f["mesh"]["x_ef"].shape[0]
-                        ],
-                        f["mesh"]["y_ef"][-1],
-                        2 * np.pi,
-                    ]
-                else:
-                    dre = [
-                        f["mesh"]["x_ef"][
-                            f["mesh"]["radial_index_bound"][1]
-                            - f["mesh"]["x_ef"].shape[0]
-                        ],
-                        f["mesh"]["y_ef"][-1],
-                        f["mesh"]["z_ef"][-1],
-                    ]
+            if (
+                self.domain_dimensions[2] <= 2
+                and f["mesh"]["z_ef"][-1] == f["mesh"]["z_ef"][0]
+            ):
+                dre = [
+                    f["mesh"]["x_ef"][
+                        f["mesh"]["radial_index_bound"][1] - f["mesh"]["x_ef"].shape[0]
+                    ],
+                    f["mesh"]["y_ef"][-1],
+                    2 * np.pi,
+                ]
+            else:
+                dre = [
+                    f["mesh"]["x_ef"][
+                        f["mesh"]["radial_index_bound"][1] - f["mesh"]["x_ef"].shape[0]
+                    ],
+                    f["mesh"]["y_ef"][-1],
+                    f["mesh"]["z_ef"][-1],
+                ]
             # Sets left and right bounds based on earlier definitions
             self.domain_right_edge = np.array(dre)
             self.domain_left_edge = np.array(dle)
@@ -321,7 +275,7 @@ class ChimeraDataset(Dataset):
             if (
                 "fluid" in fileh
                 and "agr_c" in fileh["fluid"].keys()
-                and "wBVMD" in fileh["fluid"].keys()
+                and "grav_x_c" in fileh["fluid"].keys()
             ):
                 return True  # Numpy bless
         except (OSError, ImportError):

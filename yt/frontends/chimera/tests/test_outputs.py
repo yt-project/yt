@@ -81,7 +81,7 @@ def test_2D():
     assert_equal(ds.geometry, "spherical")  # Geometry
     assert_almost_equal(
         ds.domain_right_edge,
-        ds.arr([1.03651796e10 - 34, 3.14159265e00, 6.28318531e00], "code_length"),
+        ds.arr([1.0116509e10 + 100, 3.14159265e00, 6.28318531e00], "code_length"),
     )  # domain edge
     assert_array_equal(
         ds.domain_left_edge, ds.arr([0.0, 0.0, 0.0], "code_length")
@@ -167,7 +167,7 @@ def test_3D():
     assert_almost_equal(
         ds.domain_right_edge,
         ds.arr(
-            [1.06500257e09 - 1.03818333, 3.14159265e00, 6.0504747e-01], "code_length"
+            [1.06500257e09 - 1.03818333, 3.14159265e00, 6.2831853e00], "code_length"
         ),
     )  # Domain edge
     assert_array_equal(ds.domain_left_edge, [0.0, 0.0, 0.0])  # Domain edge
