@@ -287,6 +287,9 @@ In this case, a normal vector for the cutting plane is supplied in the second
 argument. Optionally, a ``north_vector`` can be specified to fix the orientation
 of the image plane.
 
+.. note:: Not every data types have support for off-axis slices yet.
+   Currently, this operation is supported for grid based data with cartesian geometry.
+
 .. _projection-plots:
 
 Projection Plots
@@ -328,6 +331,10 @@ class description.
 If you want to project through a subset of the full dataset volume,
 you can use the ``data_source`` keyword with a :ref:`data object <data-objects>`.
 The :ref:`thin-slice-projections` recipes demonstrates this functionality.
+
+.. note:: Not every data types have support for off-axis projections yet.
+   Currently, this operation is supported for grid based data with cartesian geometry,
+   as well as SPH particles data.
 
 .. _projection-types:
 
