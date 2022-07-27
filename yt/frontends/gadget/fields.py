@@ -133,9 +133,9 @@ class GadgetFieldInfo(SPHFieldInfo):
         species_nums = []
         for field in self.ds.field_list:
             if field[0] == ptype:
-                if field[1].endswith("_fraction") or field[1].endswith("_density"):
+                if field[1].endswith(("_fraction", "_density")):
                     if field[1] in sph_whitelist_fields:
-                        symbol = field[1].split("_")[0]
+                        symbol, _, _ = field[1].partition("_")
                         species_names.append(symbol)
                         species_nums.append(periodic_table[symbol].num)
         if len(species_names) > 0:
