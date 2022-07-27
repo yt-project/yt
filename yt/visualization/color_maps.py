@@ -16,18 +16,6 @@ from ._commons import MPL_VERSION
 yt_colormaps = {}
 
 
-def is_colormap(cmap):
-    return isinstance(cmap, cc.Colormap)
-
-
-def check_color(name):
-    try:
-        cc.colorConverter.to_rgb(name)
-        return True
-    except ValueError:
-        return False
-
-
 def add_colormap(name, cdict):
     """
     Adds a colormap to the colormaps available in yt for this session

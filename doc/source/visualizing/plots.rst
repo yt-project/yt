@@ -798,7 +798,8 @@ will invert the plot's y-axis
    slc.save("NotRightHanded.png")
 
    # flip the vertical axis
-   slc = yt.SlicePlot(ds, "x", ("gas", "velocity_x"), flip_vertical=True)
+   slc = yt.SlicePlot(ds, "x", ("gas", "velocity_x"))
+   slc.flip_vertical()
    slc.annotate_title("Flipped vertical")
    slc.save("FlippedVertical.png")
 
@@ -812,7 +813,8 @@ the plot's vertical and horizontal axes:
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    # slicing with non right-handed coordinates
-   slc = yt.SlicePlot(ds, "x", ("gas", "velocity_x"), swap_axes=True)
+   slc = yt.SlicePlot(ds, "x", ("gas", "velocity_x"))
+   slc.swap_axes()
    slc.annotate_title("Swapped axes")
    slc.save("SwappedAxes.png")
 

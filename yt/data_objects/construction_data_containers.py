@@ -183,6 +183,7 @@ class YTProj(YTSelectionContainer2D):
                 "Please use method directly.",
                 since="3.2",
                 removal="4.2",
+                stacklevel=4,
             )
             method = style
         if method == "mip":

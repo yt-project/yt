@@ -24,7 +24,7 @@ answer_tests:
   local_artio_004:
     - yt/frontends/artio/tests/test_outputs.py:test_sizmbhloz
 
-  local_athena_010: # PR 3059
+  local_athena_011:  # PR 3971
     - yt/frontends/athena/tests/test_outputs.py:test_cloud
     - yt/frontends/athena/tests/test_outputs.py:test_blast
     - yt/frontends/athena/tests/test_outputs.py:test_stripping
@@ -55,7 +55,7 @@ answer_tests:
     - yt/frontends/enzo/tests/test_outputs.py:test_ecp
     - yt/frontends/enzo/tests/test_outputs.py:test_nuclei_density_fields
 
-  local_enzo_e_002: # PR 3856
+  local_enzo_e_004:  # PR 3971
     - yt/frontends/enzo_e/tests/test_outputs.py:test_hello_world
     - yt/frontends/enzo_e/tests/test_outputs.py:test_particle_fields
 
@@ -76,7 +76,7 @@ answer_tests:
     - yt/frontends/gadget/tests/test_outputs.py:test_bigendian_field_access
     - yt/frontends/gadget/tests/test_outputs.py:test_magneticum
 
-  local_gamer_010:  # PR 3401
+  local_gamer_011:  # PR 3971
     - yt/frontends/gamer/tests/test_outputs.py:test_jet
     - yt/frontends/gamer/tests/test_outputs.py:test_psiDM
     - yt/frontends/gamer/tests/test_outputs.py:test_plummer
@@ -187,6 +187,9 @@ answer_tests:
 
   local_nc4_cm1_001: # PR  2176
     - yt/frontends/nc4_cm1/tests/test_outputs.py:test_cm1_mesh_fields
+
+  local_cf_radial_002: # PR  1990
+    - yt/frontends/cf_radial/tests/test_outputs.py:test_cfradial_grid_field_values
 
 other_tests:
   unittests:
