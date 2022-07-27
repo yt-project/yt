@@ -690,7 +690,7 @@ def fake_octree_ds(
     velocity_unit=None,
     magnetic_unit=None,
     periodicity=(True, True, True),
-    over_refine_factor=2,
+    over_refine_factor=1,
     partial_coverage=1,
     unit_system="cgs",
 ):
