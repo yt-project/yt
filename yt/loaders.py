@@ -1036,7 +1036,7 @@ def load_octree(
     )
     sds.octree_mask = octree_mask
     sds.partial_coverage = partial_coverage
-    sds.over_refine_factor = over_refine_factor
+    sds.over_refine_factor = 1 << over_refine_factor
 
     return sds
 
