@@ -174,15 +174,15 @@ def test_3D():
     assert_array_equal(ds.domain_dimensions, [542, 60, 135])  # Dimensions
     assert_array_equal(ds.field_list, _fields)
 
+    def field_func(field):
+        min = dd[field].min()
+        max = dd[field].max()
+        avg = np.mean(dd[field])
+        size = dd[field].size
+        return [min, max, avg, size]
+
     dd = ds.all_data()
     for field in _fields:
-
-        def field_func(name):
-            min = dd[field].min()
-            max = dd[field].max()
-            avg = np.mean(dd[field])
-            size = dd[field].size
-            return [min, max, avg, size]
 
         if field != ("chimera", "shock"):
             yield GenericArrayTest(ds, field_func, args=[field])
