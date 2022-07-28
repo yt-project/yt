@@ -196,7 +196,7 @@ cdef class SelectorObject:
         cdef np.float64_t dds[3]
         cdef np.float64_t pos[3]
         cdef int ci, cj, ck
-        cdef int nr = (self.oref * 0.5)
+        cdef int nr = (visitor.oref >> 1)
         for ci in range(3):
             dds[ci] = sdds[ci] / nr
         # Boot strap at the first index.
