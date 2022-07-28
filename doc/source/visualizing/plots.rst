@@ -289,6 +289,7 @@ of the image plane.
 
 .. note:: Not every data types have support for off-axis slices yet.
    Currently, this operation is supported for grid based data with cartesian geometry.
+   In some cases (like SPH data) an off-axis projection over a thin region might be used instead.
 
 .. _projection-plots:
 
