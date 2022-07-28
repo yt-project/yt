@@ -2345,6 +2345,7 @@ class OffAxisSlicePlot(SlicePlot, PWViewerMPL):
 
     _plot_type = "OffAxisSlice"
     _frb_generator = FixedResolutionBuffer
+    _supported_geometries = ("cartesian", "spectral_cube")
 
     def __init__(
         self,
@@ -2371,6 +2372,12 @@ class OffAxisSlicePlot(SlicePlot, PWViewerMPL):
                 "an OffAxisSlicePlot object."
             )
             del origin
+
+        if ds.geometry not in self._supported_geometries:
+            raise NotImplementedError(
+                f"off-axis slices are not supported for {ds.geometry!r} geometry\n"
+                f"currently supported geometries: {self._supported_geometries!r}"
+            )
 
         (bounds, center_rot) = get_oblique_window_parameters(normal, center, width, ds)
         if field_parameters is None:
@@ -2554,6 +2561,7 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
     """
     _plot_type = "OffAxisProjection"
     _frb_generator = OffAxisProjectionFixedResolutionBuffer
+    _supported_geometries = ("cartesian", "spectral_cube")
 
     def __init__(
         self,
@@ -2578,6 +2586,12 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
         data_source=None,
         buff_size=(800, 800),
     ):
+        if ds.geometry not in self._supported_geometries:
+            raise NotImplementedError(
+                f"off-axis slices are not supported for {ds.geometry!r} geometry\n"
+                f"currently supported geometries: {self._supported_geometries!r}"
+            )
+
         (bounds, center_rot) = get_oblique_window_parameters(
             normal, center, width, ds, depth=depth
         )
