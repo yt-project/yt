@@ -603,9 +603,13 @@ class YTNonIndexedDataContainer(YTException):
         self.cont = cont
 
     def __str__(self):
+        class_name = self.cont.__class__.__name__
         return (
-            f"The data container type ({type(self.cont)}) is an unindexed type. "
-            "Operations such as ires, icoords, fcoords and fwidth will not work on it."
+            f"The data container type ({class_name}) is an unindexed type. "
+            "Operations such as ires, icoords, fcoords and fwidth will not work on it.\n"
+            "Did you just attempt to perform an off-axis operation ? "
+            "Be sure to consult the latest documentation to see whether the operation "
+            "you tried is actually supported for your data type."
         )
 
 
