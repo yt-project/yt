@@ -899,7 +899,6 @@ def load_octree(
     partial_coverage=1,
     unit_system="cgs",
     default_species_fields=None,
-    
 ):
     r"""Load an octree mask into yt.
 
@@ -980,7 +979,7 @@ def load_octree(
 
     nz = num_zones
     # for compatibility
-    if over_refine_factor != None:
+    if over_refine_factor is not None:
         nz = 1 << over_refine_factor
     domain_dimensions = np.array([nz, nz, nz])
     nprocs = 1
