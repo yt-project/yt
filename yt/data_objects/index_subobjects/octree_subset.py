@@ -43,9 +43,7 @@ class OctreeSubset(YTSelectionContainer):
     _cell_count = -1
     _block_order = "C"
 
-    def __init__(
-        self, base_region, domain, ds, num_zones=2, num_ghost_zones=0
-    ):
+    def __init__(self, base_region, domain, ds, num_zones=2, num_ghost_zones=0):
         super().__init__(ds, None)
         self._num_zones = num_zones
         self._num_ghost_zones = num_ghost_zones

@@ -665,9 +665,7 @@ class StreamOctreeSubset(OctreeSubset):
     domain_id = 1
     _domain_offset = 1
 
-    def __init__(
-        self, base_region, ds, oct_handler, num_zones=2, num_ghost_zones=0
-    ):
+    def __init__(self, base_region, ds, oct_handler, num_zones=2, num_ghost_zones=0):
         self._num_zones = num_zones
         self.field_data = YTFieldData()
         self.field_parameters = {}
@@ -687,9 +685,7 @@ class StreamOctreeSubset(OctreeSubset):
                 mylog.warning(
                     "Ghost zones will wrongly assume the domain to be periodic."
                 )
-            base_grid = StreamOctreeSubset(
-                base_region, ds, oct_handler, num_zones
-            )
+            base_grid = StreamOctreeSubset(base_region, ds, oct_handler, num_zones)
             self._base_grid = base_grid
 
     def retrieve_ghost_zones(self, ngz, fields, smoothed=False):

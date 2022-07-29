@@ -360,9 +360,7 @@ class RAMSESDomainSubset(OctreeSubset):
                     "Ghost zones will wrongly assume the domain to be periodic."
                 )
             # Create a base domain *with no self._base_domain.fwidth
-            base_domain = RAMSESDomainSubset(
-                ds.all_data(), domain, ds, num_zones
-            )
+            base_domain = RAMSESDomainSubset(ds.all_data(), domain, ds, num_zones)
             self._base_domain = base_domain
         elif num_ghost_zones < 0:
             raise RuntimeError(
