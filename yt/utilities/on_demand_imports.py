@@ -488,6 +488,8 @@ class nibabel_imports(OnDemand):
 
         return load
 
+
+    @safe_import
     def ImageFileError(self):
         from nibabel import filebasedimages
 
