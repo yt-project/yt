@@ -87,6 +87,7 @@ class NiftiDataset(Dataset):
         # should be set, along with examples of how to set them to standard
         # values.
         #
+        # TODO: Fix this to match that specified in the header
         self.length_unit = self.quan(1.0, "mm")
         # self.mass_unit = self.quan(1.0, "g")
         # self.time_unit = self.quan(1.0, "s")
@@ -117,7 +118,6 @@ class NiftiDataset(Dataset):
         parameters = list(str(img.header).split("\n"))
         parameters[16] = str(parameters[16] + (parameters[17]))
         parameters.remove(parameters[17])
-        (parameters)
         temp = {}
         for i in parameters[1::]:
             temp[(i.split(":"))[0]] = (i.split(":"))[1]
