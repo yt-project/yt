@@ -130,19 +130,15 @@ class GadgetFieldInfo(SPHFieldInfo):
 
     def _check_whitelist_species_fields(self, ptype):
         species_names = []
-        species_nums = []
         for field in self.ds.field_list:
-            if field[0] == ptype:
-                if field[1].endswith(("_fraction", "_density")):
-                    if field[1] in sph_whitelist_fields:
-                        symbol, _, _ = field[1].partition("_")
-                        species_names.append(symbol)
-                        species_nums.append(periodic_table[symbol].num)
-        if len(species_names) > 0:
-            ret = list(sort_together([species_nums, species_names])[1])
-        else:
-            ret = []
-        return ret
+            if (
+                field[0] == ptype
+                and field[1].endswith(("_fraction", "_density"))
+                and field[1] in sph_whitelist_fields
+            ):
+                symbol, _, _ = field[1].partition("_")
+                species_names.append(symbol)
+        return sorted(species_names, key=lambda symbol: periodic_table[symbol].num)
 
     def setup_gas_particle_fields(self, ptype):
         if (ptype, "Temperature") not in self.ds.field_list:
