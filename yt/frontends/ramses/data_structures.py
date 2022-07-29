@@ -346,11 +346,11 @@ class RAMSESDomainSubset(OctreeSubset):
         base_region,
         domain,
         ds,
-        over_refine_factor=2,
+        num_zones=2,
         num_ghost_zones=0,
         base_grid=None,
     ):
-        super().__init__(base_region, domain, ds, over_refine_factor, num_ghost_zones)
+        super().__init__(base_region, domain, ds, num_zones, num_ghost_zones)
 
         self._base_grid = base_grid
 
@@ -361,7 +361,7 @@ class RAMSESDomainSubset(OctreeSubset):
                 )
             # Create a base domain *with no self._base_domain.fwidth
             base_domain = RAMSESDomainSubset(
-                ds.all_data(), domain, ds, over_refine_factor
+                ds.all_data(), domain, ds, num_zones
             )
             self._base_domain = base_domain
         elif num_ghost_zones < 0:
