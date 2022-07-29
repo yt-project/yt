@@ -131,8 +131,10 @@ class ArepoFieldInfo(GadgetFieldInfo):
             if (ptype, "NeutralHydrogenAbundance") not in self.field_list:
                 amu_cgs = self.ds.units.physical_constants.amu_cgs
                 muinv = _primordial_mass_fraction["H"] / ChemicalFormula("H").weight
+
                 def _h_number_density(field, data):
-                    return data["gas", "density"]*muinv/amu_cgs
+                    return data["gas", "density"] * muinv / amu_cgs
+
                 self.add_field(
                     (ptype, "H_number_density"),
                     sampling_type="particle",
