@@ -1,5 +1,6 @@
 from yt._typing import KnownFieldsT
 from yt.fields.field_info_container import FieldInfoContainer
+from yt.fields.stress_energy import setup_stress_energy_ideal
 
 from .cfields import SRHDFields
 
@@ -240,6 +241,9 @@ class GAMERFieldInfo(FieldInfoContainer):
                 function=_mach_number,
                 units="",
             )
+
+            setup_stress_energy_ideal(self)
+
         else:
 
             # density
