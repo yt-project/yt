@@ -244,7 +244,7 @@ class GAMERFieldInfo(FieldInfoContainer):
 
             setup_stress_energy_ideal(self)
 
-        else:
+        else:  # not RHD
 
             # density
             self.alias(
@@ -310,6 +310,16 @@ class GAMERFieldInfo(FieldInfoContainer):
             sampling_type="cell",
             function=_specific_thermal_energy,
             units=unit_system["specific_energy"],
+        )
+
+        def _thermal_energy_density(field, data):
+            return data["gas", "density"] * data["gas", "specific_thermal_energy"]
+
+        self.add_field(
+            ("gas", "thermal_energy_density"),
+            sampling_type="cell",
+            function=_thermal_energy_density,
+            units=unit_system["pressure"],
         )
 
         self.add_field(
