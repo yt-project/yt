@@ -1,6 +1,6 @@
 from yt._typing import KnownFieldsT
 from yt.fields.field_info_container import FieldInfoContainer
-from yt.fields.stress_energy import setup_stress_energy_ideal
+from yt.fields.tensor_fields import setup_stress_energy_ideal
 
 from .cfields import SRHDFields
 
