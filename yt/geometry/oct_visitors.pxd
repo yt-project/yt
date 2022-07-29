@@ -163,7 +163,7 @@ cdef class BaseNeighbourVisitor(OctVisitor):
     cdef void set_neighbour_info(self, Oct *o, int ishift[3])
 
     cdef inline np.uint8_t neighbour_rind(self):
-        cdef int d = self.nzd
+        cdef int d = self.nz
         return (((self.neigh_ind[2]*d)+self.neigh_ind[1])*d+self.neigh_ind[0])
 
 cdef class NeighbourCellIndexVisitor(BaseNeighbourVisitor):
