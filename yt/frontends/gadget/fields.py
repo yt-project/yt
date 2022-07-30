@@ -1,7 +1,5 @@
 from functools import partial
 
-from more_itertools import sort_together
-
 from yt.fields.particle_fields import sph_whitelist_fields
 from yt.frontends.sph.fields import SPHFieldInfo
 from yt.utilities.periodic_table import periodic_table
