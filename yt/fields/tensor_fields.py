@@ -1,6 +1,5 @@
 from functools import partial
 
-ax = "txyz"
 
 # This is the metric for Minkowski spacetime in SR
 def metric(mu: int, nu: int):
@@ -14,6 +13,8 @@ def metric(mu: int, nu: int):
 
 
 def setup_stress_energy_ideal(registry, ftype="gas"):
+
+    ax = "t" + "".join(registry.ds.coordinates.axis_order)
 
     pc = registry.ds.units.physical_constants
     inv_c2 = 1.0 / (pc.clight * pc.clight)
