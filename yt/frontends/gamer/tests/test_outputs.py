@@ -115,14 +115,11 @@ def test_stress_energy():
     rho = sp["gas", "density"]
     p = sp["gas", "pressure"]
     e = sp["gas", "thermal_energy_density"]
-    gamma = sp["gas", "lorentz_factor"]
     h = rho + (e + p) * inv_c2
-    T00 = gamma * gamma * c2 * h - p
-    assert_array_almost_equal(sp["T00"], T00)
     for mu in range(4):
         for nu in range(4):
             # matrix is symmetric so only do the upper-right part
-            if nu > mu:
+            if nu >= mu:
                 Umu = sp[f"four_velocity_{axes[mu]}"]
                 Unu = sp[f"four_velocity_{axes[nu]}"]
                 Tmunu = h * Umu * Unu
