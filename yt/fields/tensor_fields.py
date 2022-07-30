@@ -2,8 +2,9 @@ from functools import partial
 
 ax = "txyz"
 
-
+# This is the metric for Minkowski spacetime in SR
 def metric(mu: int, nu: int):
+    # This assumes the -+++ signature
     if (mu, nu) == (0, 0):
         return -1
     elif mu == nu:
@@ -28,7 +29,7 @@ def setup_stress_energy_ideal(registry, ftype="gas"):
     for mu in range(5):
         for nu in range(5):
             registry.add_field(
-                (ftype, f"T^{mu}{nu}"),
+                (ftype, f"T{mu}{nu}"),
                 sampling_type="local",
                 function=partial(_T, mu=mu, nu=nu),
                 units=registry.ds.unit_system["pressure"],

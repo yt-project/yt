@@ -118,7 +118,7 @@ def test_stress_energy():
     gamma = sp["gas", "lorentz_factor"]
     h = rho + (e + p) * inv_c2
     T00 = gamma * gamma * c2 * h - p
-    assert_array_almost_equal(sp["T^00"], T00)
+    assert_array_almost_equal(sp["T00"], T00)
     for mu in range(4):
         for nu in range(4):
             # matrix is symmetric so only do the upper-right part
@@ -127,7 +127,7 @@ def test_stress_energy():
                 Unu = sp[f"four_velocity_{axes[nu]}"]
                 Tmunu = h * Umu * Unu
                 if mu != nu:
-                    assert_array_almost_equal(sp[f"T^{mu}{nu}"], sp[f"T^{nu}{mu}"])
+                    assert_array_almost_equal(sp[f"T{mu}{nu}"], sp[f"T{nu}{mu}"])
                 else:
                     Tmunu += p
-                assert_array_almost_equal(sp[f"T^{mu}{nu}"], Tmunu)
+                assert_array_almost_equal(sp[f"T{mu}{nu}"], Tmunu)
