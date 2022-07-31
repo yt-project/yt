@@ -10,7 +10,12 @@ import numpy as np
 
 cimport cython
 
-DEF Nch = 4
+
+cdef extern from *:
+    """
+    #define Nch 4
+    """
+    int Nch
 
 
 cdef class _OctreeRayTracing:

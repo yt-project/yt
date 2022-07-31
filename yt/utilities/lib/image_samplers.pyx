@@ -38,7 +38,11 @@ from ._octree_raytracing cimport RayInfo, _OctreeRayTracing
 cdef extern from "platform_dep.h":
     long int lrint(double x) nogil
 
-DEF Nch = 4
+cdef extern from *:
+    """
+    #define Nch 4
+    """
+    int Nch
 
 from cython.parallel import parallel, prange
 

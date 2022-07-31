@@ -15,7 +15,12 @@ cimport numpy as np
 from cython.view cimport array as cvarray
 from libc.stdlib cimport free, malloc
 
-DEF Nch = 4
+
+cdef extern from *:
+    """
+    #define Nch 4
+    """
+    int Nch
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

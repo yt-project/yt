@@ -22,7 +22,12 @@ from yt.utilities.lib.fp_utils cimport fmin
 
 from .fixed_interpolator cimport *
 
-DEF Nch = 4
+
+cdef extern from *:
+    """
+    #define Nch 4
+    """
+    int Nch
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

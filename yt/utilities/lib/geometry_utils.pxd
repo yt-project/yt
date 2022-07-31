@@ -11,12 +11,21 @@ cimport numpy as np
 from libc.float cimport DBL_MANT_DIG
 from libc.math cimport frexp, ldexp, sqrt
 
-DEF ORDER_MAX=20
-DEF INDEX_MAX_64=2097151
+
+cdef extern from *:
+    """
+    #define ORDER_MAX     20
+    #define INDEX_MAX_64  2097151
+    #define XSHIFT 2
+    #define YSHIFT 1
+    #define ZSHIFT 0
+    """
+    int ORDER_MAX
+    int INDEX_MAX_64
+    int XSHIFT
+    int YSHIFT
+    int ZSHIFT
 # TODO: Handle error for indices past max
-DEF XSHIFT=2
-DEF YSHIFT=1
-DEF ZSHIFT=0
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
