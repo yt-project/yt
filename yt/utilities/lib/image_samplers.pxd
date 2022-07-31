@@ -15,7 +15,6 @@ cimport numpy as np
 from .partitioned_grid cimport PartitionedGrid
 from .volume_container cimport VolumeContainer
 
-DEF Nch = 4
 
 # NOTE: We don't want to import the field_interpolator_tables here, as it
 # breaks a bunch of C++ interop.  Maybe some day it won't.  So, we just forward
@@ -31,7 +30,7 @@ ctypedef void generate_vector_info_function(ImageSampler im,
             np.float64_t v_dir[3], np.float64_t v_pos[3]) nogil
 
 cdef struct ImageAccumulator:
-    np.float64_t rgba[Nch]
+    np.float64_t rgba[4]  # Nch = 4
     void *supp_data
 
 cdef class ImageSampler:
