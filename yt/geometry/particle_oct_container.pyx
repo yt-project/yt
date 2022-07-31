@@ -59,12 +59,6 @@ from ..utilities.lib.ewah_bool_wrap cimport BoolArrayCollection
 
 import os
 
-# If set to 1, ghost cells are added at the refined level regardless of if the
-# coarse cell containing it is refined in the selector.
-# If set to 0, ghost cells are only added at the refined level if the coarse
-# index for the ghost cell is refined in the selector.
-DEF RefinedExternalGhosts = 1
-
 _bitmask_version = np.uint64(5)
 
 from ..utilities.lib.ewah_bool_wrap cimport (
@@ -1682,16 +1676,21 @@ cdef class ParticleBitmapSelector:
             mi1_n = self.neighbor_list1[m]
             mi2_n = self.neighbor_list2[m]
             self.coarse_ghosts_bool[mi1_n] = 1
-            IF RefinedExternalGhosts == 1:
-                if mi1_n == mi1:
-                    self.refined_ghosts_bool[mi2_n] = 1
-                else:
-                    self.refined_ghosts_list._set(mi1_n, mi2_n)
-            ELSE:
-                if mi1_n == mi1:
-                    self.refined_ghosts_bool[mi2_n] = 1
-                elif self.is_refined(mi1_n) == 1:
-                    self.refined_ghosts_list._set(mi1_n, mi2_n)
+
+            # ghost cells are added at the refined level regardless of if the
+            # coarse cell containing it is refined in the selector.
+            if mi1_n == mi1:
+                self.refined_ghosts_bool[mi2_n] = 1
+            else:
+                self.refined_ghosts_list._set(mi1_n, mi2_n)
+
+            # alternative impl: (Authored by Megan Lang in ed95b1a)
+            # ghost cells are only added at the refined level if the coarse
+            # index for the ghost cell is refined in the selector.
+            #if mi1_n == mi1:
+            #    self.refined_ghosts_bool[mi2_n] = 1
+            #elif self.is_refined(mi1_n) == 1:
+            #    self.refined_ghosts_list._set(mi1_n, mi2_n)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
