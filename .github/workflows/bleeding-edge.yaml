@@ -4,7 +4,7 @@ name: CI (bleeding edge)
 
 # goals: check stability against
 # - dev version of Python, numpy, matplotlib, and unyt
-# - pytest pre-releases
+# - Cython and pytest pre-releases
 # - building with future pip default options
 
 on:
@@ -49,7 +49,7 @@ jobs:
         python -m pip install git+https://github.com/numpy/numpy.git
         python -m pip install git+https://github.com/matplotlib/matplotlib.git
         python -m pip install git+https://github.com/yt-project/unyt.git
-        python -m pip install cython
+        python -m pip install --pre cython
         python -m pip install --upgrade --pre pytest
 
     - name: Build
