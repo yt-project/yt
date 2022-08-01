@@ -91,10 +91,7 @@ cdef extern from "boolarray.h" namespace "ewah":
 cimport cython
 cimport numpy as np
 
-IF UNAME_SYSNAME == "Windows":
-    ctypedef uint32_t ewah_word_type
-ELSE:
-    ctypedef np.uint32_t ewah_word_type
+ctypedef uint32_t ewah_word_type
 ctypedef EWAHBoolArray[ewah_word_type] ewah_bool_array
 ctypedef EWAHBoolArraySetBitForwardIterator[ewah_word_type] ewah_bool_iterator
 ctypedef vector[size_t] bitset_array
