@@ -167,7 +167,9 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
     else:
         sl_left, sl_right, div_fac = slice_info
 
-    xn, yn, zn = ((ftype, f"{basename}_{ax}") for ax in "xyz")
+    axis_order = registry.ds.coordinates.axis_order
+
+    xn, yn, zn = ((ftype, f"{basename}_{ax}") for ax in axis_order)
 
     # Is this safe?
     if registry.ds.dimensionality < 3:
@@ -402,10 +404,6 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
             validators=[ValidateParameter("normal")],
         )
 
-        def _cylindrical_radial_absolute(field, data):
-            """This field is deprecated and will be removed in a future version"""
-            return np.abs(data[ftype, f"{basename}_cylindrical_radius"])
-
         def _cylindrical_theta_component(field, data):
             """The cylindrical theta component of the vector field
 
@@ -431,10 +429,6 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
                 ValidateParameter(f"bulk_{basename}"),
             ],
         )
-
-        def _cylindrical_tangential_absolute(field, data):
-            """This field is deprecated and will be removed in a future release"""
-            return np.abs(data[ftype, f"cylindrical_tangential_{basename}"])
 
         def _cylindrical_z_component(field, data):
             """The cylindrical z component of the vector field
