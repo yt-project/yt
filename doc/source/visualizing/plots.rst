@@ -287,6 +287,10 @@ In this case, a normal vector for the cutting plane is supplied in the second
 argument. Optionally, a ``north_vector`` can be specified to fix the orientation
 of the image plane.
 
+.. note:: Not every data types have support for off-axis slices yet.
+   Currently, this operation is supported for grid based data with cartesian geometry.
+   In some cases (like SPH data) an off-axis projection over a thin region might be used instead.
+
 .. _projection-plots:
 
 Projection Plots
@@ -328,6 +332,10 @@ class description.
 If you want to project through a subset of the full dataset volume,
 you can use the ``data_source`` keyword with a :ref:`data object <data-objects>`.
 The :ref:`thin-slice-projections` recipes demonstrates this functionality.
+
+.. note:: Not every data types have support for off-axis projections yet.
+   Currently, this operation is supported for grid based data with cartesian geometry,
+   as well as SPH particles data.
 
 .. _projection-types:
 
@@ -556,7 +564,7 @@ We can also annotate the mesh lines, as follows:
 
    ds = yt.load("MOOSE_sample_data/out.e-s010")
    sl = yt.SlicePlot(ds, "z", ("connect1", "diffused"))
-   sl.annotate_mesh_lines(plot_args={"color": "black"})
+   sl.annotate_mesh_lines(color="black")
    sl.zoom(0.75)
    sl.save()
 

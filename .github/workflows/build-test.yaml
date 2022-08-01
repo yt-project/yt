@@ -8,7 +8,6 @@ on:
     paths-ignore:
       - "doc/**"
       - "**/*.md"
-      - .pre-commit-config.yaml
   workflow_dispatch:
 
 defaults:

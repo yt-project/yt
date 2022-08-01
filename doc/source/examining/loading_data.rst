@@ -1384,6 +1384,12 @@ box and units.
 
    ds = yt.load("snap_004", unit_base=unit_base, bounding_box=bbox)
 
+.. warning::
+
+    If a ``bounding_box`` argument is supplied and the original dataset
+    has periodic boundaries, it will no longer have periodic boundaries
+    after the bounding box is applied.
+
 In addition, you can use ``UnitLength_in_cm``, ``UnitVelocity_in_cm_per_s``,
 ``UnitMass_in_g``, and ``UnitMagneticField_in_gauss`` as keys for the
 ``unit_base`` dictionary. These name come from the names used in the Gadget
@@ -3180,8 +3186,9 @@ Gridding Behavior
 
 When you load a CfRadial dataset in polar coordinates (elevation, azimuth and
 range), yt will first build a sample by mapping the data onto a cartesian grid
-using the Python-ARM Radar Toolkit (`pyart<https://github.com/ARM-DOE/pyart>`_). Grid points are found by interpolation of all data points within a specified radius of influence. This data, now
-in x, y, z coordiante domain is then saved as a new dataset and subsequent
+using the Python-ARM Radar Toolkit (`pyart <https://github.com/ARM-DOE/pyart>`_).
+Grid points are found by interpolation of all data points within a specified radius of influence.
+This data, now in x, y, z coordiante domain is then saved as a new dataset and subsequent
 loads of the original native CfRadial dataset will use the gridded file.
 Mapping the data from spherical to Cartesian coordinates is useful for 3D volume
 rendering the data using yt.

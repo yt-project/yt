@@ -590,10 +590,6 @@ of the gradient, e.g., ``"temperature_gradient_x"``, ``"temperature_gradient_y"`
 ``"temperature_gradient_z"``, and ``"temperature_gradient_magnitude"``. To see an example
 of how to create and use these fields, see :ref:`cookbook-complicated-derived-fields`.
 
-.. note::
-
-    ``add_gradient_fields`` currently only supports Cartesian geometries!
-
 .. _relative_fields:
 
 Relative Vector Fields

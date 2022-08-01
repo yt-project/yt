@@ -1,13 +1,17 @@
 import os
+import sys
 import warnings
 from typing import Callable, List
 
-# TODO: import tomllib from the standard library instead in Python >= 3.11
-import tomli as tomllib
 import tomli_w
 from more_itertools import always_iterable
 
 from yt.utilities.configuration_tree import ConfigLeaf, ConfigNode
+
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomllib
 
 configuration_callbacks: List[Callable[["YTConfig"], None]] = []
 

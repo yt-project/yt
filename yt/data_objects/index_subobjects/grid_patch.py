@@ -143,7 +143,7 @@ class AMRGridPatch(YTSelectionContainer):
 
     def __repr__(self):
         cls_name = self.__class__.__name__
-        return f"{cls_name}_{self.id:04i} ({self.ActiveDimensions})"
+        return f"{cls_name}_{self.id:04d} ({self.ActiveDimensions})"
 
     def __int__(self):
         return self.id

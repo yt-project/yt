@@ -964,7 +964,7 @@ class ImagePlotContainer(PlotContainer):
                     # they can rely on for inspecting units
                     mylog.warning(
                         "%s class doesn't support zmin/zmax"
-                        " as tuples or unyt_quantitiy",
+                        " as tuples or unyt_quantity",
                         self.__class__.__name__,
                     )
                     z = z.value

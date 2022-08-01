@@ -1,5 +1,6 @@
 # We don't need to import 'exceptions'
 import os.path
+from typing import List, Tuple
 
 from unyt.exceptions import UnitOperationError
 
@@ -77,15 +78,8 @@ class YTFieldNotFound(YTException):
     def __init__(self, field, ds):
         self.field = field
         self.ds = ds
-        self.suggestions = []
-        try:
-            self._find_suggestions()
-        except AttributeError:
-            # This may happen if passing a field that is e.g. an Ellipsis
-            # e.g. when using ds.r[...]
-            pass
 
-    def _find_suggestions(self):
+    def _get_suggestions(self) -> List[Tuple[str, str]]:
         from yt.funcs import levenshtein_distance
 
         field = self.field
@@ -127,16 +121,22 @@ class YTFieldNotFound(YTException):
                     suggestions[ft, fn] = distance
 
         # Return suggestions sorted by increasing distance (first are most likely)
-        self.suggestions = [
+        return [
             (ft, fn)
             for (ft, fn), distance in sorted(suggestions.items(), key=lambda v: v[1])
         ]
 
     def __str__(self):
         msg = f"Could not find field {self.field} in {self.ds}."
-        if self.suggestions:
+        try:
+            suggestions = self._get_suggestions()
+        except AttributeError:
+            # This may happen if passing a field that is e.g. an Ellipsis
+            # e.g. when using ds.r[...]
+            suggestions = []
+        if suggestions:
             msg += "\nDid you mean:\n\t"
-            msg += "\n\t".join(str(_) for _ in self.suggestions)
+            msg += "\n\t".join(str(_) for _ in suggestions)
         return msg
 
 
@@ -603,9 +603,13 @@ class YTNonIndexedDataContainer(YTException):
         self.cont = cont
 
     def __str__(self):
+        class_name = self.cont.__class__.__name__
         return (
-            f"The data container type ({type(self.cont)}) is an unindexed type. "
-            "Operations such as ires, icoords, fcoords and fwidth will not work on it."
+            f"The data container type ({class_name}) is an unindexed type. "
+            "Operations such as ires, icoords, fcoords and fwidth will not work on it.\n"
+            "Did you just attempt to perform an off-axis operation ? "
+            "Be sure to consult the latest documentation to see whether the operation "
+            "you tried is actually supported for your data type."
         )
 
 
