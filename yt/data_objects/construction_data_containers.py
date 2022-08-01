@@ -1672,9 +1672,8 @@ class YTSurface(YTSelectionContainer3D):
 
         Returns
         -------
-        flux : float
-            The summed flux.  Note that it is not currently scaled; this is
-            simply the code-unit area times the fields.
+        flux : YTQuantity
+            The summed flux.
 
         References
         ----------
@@ -1717,7 +1716,10 @@ class YTSurface(YTSelectionContainer3D):
 
         vc_data = grid.get_vertex_centered_data(vc_fields)
         if fluxing_field is None:
-            ff = np.ones_like(vc_data[self.surface_field], dtype="float64")
+            ff = self.ds.arr(
+                np.ones_like(vc_data[self.surface_field].d, dtype="float64"),
+                "dimensionless",
+            )
         else:
             ff = vc_data[fluxing_field]
         surf_vals = vc_data[self.surface_field]
