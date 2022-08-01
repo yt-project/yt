@@ -23,12 +23,6 @@ from yt.utilities.lib.fp_utils cimport fmin
 from .fixed_interpolator cimport *
 
 
-cdef extern from *:
-    """
-    #define Nch 4
-    """
-    int Nch
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)

@@ -11,13 +11,6 @@ import numpy as np
 cimport cython
 
 
-cdef extern from *:
-    """
-    #define Nch 4
-    """
-    int Nch
-
-
 cdef class _OctreeRayTracing:
     def __init__(self, np.ndarray LE, np.ndarray RE, int depth):
         cdef double* LE_ptr = <double *>LE.data

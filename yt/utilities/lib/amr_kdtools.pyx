@@ -16,12 +16,6 @@ from cython.view cimport array as cvarray
 from libc.stdlib cimport free, malloc
 
 
-cdef extern from *:
-    """
-    #define Nch 4
-    """
-    int Nch
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
