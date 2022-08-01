@@ -1,5 +1,6 @@
 import weakref
-from typing import TYPE_CHECKING, Dict, List, Optional
+from functools import partial
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -617,18 +618,15 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
         )
         if self.data_source.moment == 2:
 
-            def make_sq_field(fname):
-                def _sq_field(field, data):
-                    return data[fname] ** 2
-
-                return _sq_field
+            def _sq_field(field, data, fname: Tuple[str, str]):
+                return data[fname] ** 2
 
             fd = self.ds._get_field_info(*item)
 
             item_sq = (item[0], f"tmp_{item[1]}_squared")
             self.ds.add_field(
                 item_sq,
-                make_sq_field(item),
+                partial(_sq_field, fname=item),
                 sampling_type=fd.sampling_type,
                 units=f"({fd.units})*({fd.units})",
             )

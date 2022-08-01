@@ -3,9 +3,10 @@ import io
 import os
 import warnings
 import zipfile
-from functools import wraps
+from functools import partial, wraps
 from re import finditer
 from tempfile import NamedTemporaryFile, TemporaryFile
+from typing import Tuple
 
 import numpy as np
 from more_itertools import always_iterable
@@ -254,21 +255,18 @@ class YTProj(YTSelectionContainer2D):
         sfields = []
         if self.moment == 2:
 
-            def make_sq_field(fname):
-                def _sq_field(field, data):
-                    return data[fname] ** 2
+            def _sq_field(field, data, fname: Tuple[str, str]):
+                return data[fname] ** 2
 
-                return _sq_field
-
-            for field in fields:
-                fd = self.ds._get_field_info(*field)
+            for fname in fields:
+                fd = self.ds._get_field_info(*fname)
                 self.ds.add_field(
-                    (field[0], f"tmp_{field[1]}_squared"),
-                    make_sq_field(field),
+                    (fname[0], f"tmp_{fname[1]}_squared"),
+                    partial(_sq_field, fname=fname),
                     sampling_type=fd.sampling_type,
                     units=f"({fd.units})*({fd.units})",
                 )
-                sfields.append((field[0], f"tmp_{field[1]}_squared"))
+                sfields.append((fname[0], f"tmp_{fname[1]}_squared"))
         nfields = len(fields)
         nsfields = len(sfields)
         # We need a new tree for every single set of fields we add

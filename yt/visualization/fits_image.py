@@ -1,6 +1,8 @@
 import re
 import sys
+from functools import partial
 from numbers import Number as numeric_type
+from typing import Tuple
 
 import numpy as np
 from more_itertools import first, mark_ends
@@ -1399,14 +1401,14 @@ class FITSOffAxisProjection(FITSImageData):
         else:
             source = data_source
         fields = source._determine_fields(list(iter_fields(fields)))
-        for field in fields:
-            buf[field] = off_axis_projection(
+        for fname in fields:
+            buf[fname] = off_axis_projection(
                 source,
                 center,
                 normal,
                 wd,
                 res,
-                field,
+                fname,
                 north_vector=north_vector,
                 method=method,
                 weight=weight_field,
@@ -1414,19 +1416,16 @@ class FITSOffAxisProjection(FITSImageData):
 
             if moment == 2:
 
-                def make_sq_field(fname):
-                    def _sq_field(field, data):
-                        return data[fname] ** 2
+                def _sq_field(field, data, fname: Tuple[str, str]):
+                    return data[fname] ** 2
 
-                    return _sq_field
+                fd = ds._get_field_info(*fname)
 
-                fd = ds._get_field_info(*field)
-
-                field_sq = (field[0], f"tmp_{field[1]}_squared")
+                field_sq = (fname[0], f"tmp_{fname[1]}_squared")
 
                 ds.add_field(
                     field_sq,
-                    make_sq_field(field),
+                    partial(_sq_field, fname=fname),
                     sampling_type=fd.sampling_type,
                     units=f"({fd.units})*({fd.units})",
                 )
@@ -1443,7 +1442,7 @@ class FITSOffAxisProjection(FITSImageData):
                     weight=weight_field,
                 ).swapaxes(0, 1)
 
-                buf[field] = compute_stddev_image(buff2, buf[field])
+                buf[fname] = compute_stddev_image(buff2, buf[fname])
 
                 ds.field_info.pop(field_sq)
 
