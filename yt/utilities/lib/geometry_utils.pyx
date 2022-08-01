@@ -24,14 +24,6 @@ from yt.utilities.exceptions import YTDomainOverflow
 from yt.utilities.lib.vec3_ops cimport L2_norm, cross, dot, subtract
 
 
-cdef extern from *:
-    """
-    #define ORDER_MAX     20
-    #define INDEX_MAX_64  2097151
-    """
-    int ORDER_MAX
-    int INDEX_MAX_64
-
 cdef extern from "math.h":
     double exp(double x) nogil
     float expf(float x) nogil
