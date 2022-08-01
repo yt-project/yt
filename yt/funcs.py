@@ -21,7 +21,6 @@ from functools import lru_cache, wraps
 from numbers import Number as numeric_type
 from typing import Any, Callable, Type
 
-import matplotlib
 import numpy as np
 from more_itertools import always_iterable, collapse, first
 from packaging.version import Version
@@ -566,6 +565,8 @@ def get_yt_version():
 
 
 def get_version_stack():
+    import matplotlib
+
     version_info = {}
     version_info["yt"] = get_yt_version()
     version_info["numpy"] = np.version.version
