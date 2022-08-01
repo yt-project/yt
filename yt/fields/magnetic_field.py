@@ -2,8 +2,6 @@ import numpy as np
 
 from yt.fields.derived_field import ValidateParameter
 from yt.units import dimensions
-from yt.units.yt_array import ustack  # type: ignore
-from yt.utilities.math_utils import get_sph_phi_component, get_sph_theta_component
 
 from .field_plugin_registry import register_field_plugin
 
@@ -86,39 +84,8 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
 
     _magnetic_field_poloidal_magnitude = None
     _magnetic_field_toroidal_magnitude = None
-    _magnetic_field_spherical_theta = None
 
     if registry.ds.geometry == "cartesian":
-
-        def _magnetic_field_spherical_theta(field, data):
-            normal = data.get_field_parameter("normal")
-
-            Bfields = ustack(
-                [
-                    data[ftype, "relative_magnetic_field_x"],
-                    data[ftype, "relative_magnetic_field_y"],
-                    data[ftype, "relative_magnetic_field_z"],
-                ]
-            )
-
-            theta = data["index", "spherical_theta"]
-            phi = data["index", "spherical_phi"]
-
-            return get_sph_theta_component(Bfields, theta, phi, normal)
-
-        def _magnetic_field_spherical_phi(field, data):
-            normal = data.get_field_parameter("normal")
-
-            Bfields = ustack(
-                [
-                    data[ftype, "relative_magnetic_field_x"],
-                    data[ftype, "relative_magnetic_field_y"],
-                    data[ftype, "relative_magnetic_field_z"],
-                ]
-            )
-
-            phi = data["index", "spherical_phi"]
-            return get_sph_phi_component(Bfields, phi, normal)
 
         def _magnetic_field_poloidal_magnitude(field, data):
             B2 = (
@@ -194,16 +161,6 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
         )
 
     if registry.ds.geometry == "cartesian":
-        registry.add_field(
-            (ftype, "magnetic_field_spherical_phi"),
-            sampling_type="local",
-            function=_magnetic_field_spherical_phi,
-            units=u,
-            validators=[
-                ValidateParameter("normal"),
-                ValidateParameter("bulk_magnetic_field"),
-            ],
-        )
         registry.alias(
             (ftype, "magnetic_field_toroidal_magnitude"),
             (ftype, "magnetic_field_spherical_phi"),
@@ -215,25 +172,12 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
             units=u,
             deprecate=("4.1.0", None),
         )
-
-    if _magnetic_field_spherical_theta is not None:
-        registry.add_field(
+        registry.alias(
+            (ftype, "magnetic_field_poloidal"),
             (ftype, "magnetic_field_spherical_theta"),
-            sampling_type="local",
-            function=_magnetic_field_spherical_theta,
             units=u,
-            validators=[
-                ValidateParameter("normal"),
-                ValidateParameter("bulk_magnetic_field"),
-            ],
+            deprecate=("4.1.0", None),
         )
-        if registry.ds.geometry == "cartesian":
-            registry.alias(
-                (ftype, "magnetic_field_poloidal"),
-                (ftype, "magnetic_field_spherical_theta"),
-                units=u,
-                deprecate=("4.1.0", None),
-            )
 
     def _alfven_speed(field, data):
         B = data[ftype, "magnetic_field_strength"]
