@@ -19,7 +19,7 @@ class IOHandlerStream(BaseIOHandler):
         # This is where we implement processor-locking
         tr = self.fields[grid.id][field]
         if callable(tr):
-            tr = tr(grid)
+            tr = tr(grid, field)
         # If it's particles, we copy.
         if len(tr.shape) == 1:
             return tr.copy()
