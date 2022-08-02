@@ -66,13 +66,13 @@ class AdaptaHOPDataset(Dataset):
         filename,
         dataset_type="adaptahop_binary",
         n_ref=16,
-        over_refine_factor=1,
+        num_zones=2,
         units_override=None,
         unit_system="cgs",
         parent_ds=None,
     ):
         self.n_ref = n_ref
-        self.over_refine_factor = over_refine_factor
+        self.num_zones = num_zones
         if parent_ds is None:
             raise RuntimeError(
                 "The AdaptaHOP frontend requires a parent dataset "
@@ -145,7 +145,7 @@ class AdaptaHOPDataset(Dataset):
         # Domain related things
         self.filename_template = self.parameter_filename
         self.file_count = 1
-        nz = 1 << self.over_refine_factor
+        nz = self.num_zones
         self.domain_dimensions = np.ones(3, "int32") * nz
 
         # Set things up
