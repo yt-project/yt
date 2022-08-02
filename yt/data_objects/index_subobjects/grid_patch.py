@@ -26,7 +26,6 @@ class AMRGridPatch(YTSelectionContainer):
     _num_ghost_zones = 0
     _grids = None
     _id_offset = 1
-    _cache_mask = True
 
     _type_name = "grid"
     _skip_add = True
@@ -398,12 +397,11 @@ class AMRGridPatch(YTSelectionContainer):
         yield self, mask
 
     def _get_selector_mask(self, selector):
-        if self._cache_mask and hash(selector) == self._last_selector_id:
+        if hash(selector) == self._last_selector_id:
             mask = self._last_mask
         else:
             mask = selector.fill_mask(self)
-            if self._cache_mask:
-                self._last_mask = mask
+            self._last_mask = mask
             self._last_selector_id = hash(selector)
             if mask is None:
                 self._last_count = 0
