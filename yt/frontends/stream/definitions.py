@@ -250,7 +250,9 @@ def set_particle_types(data):
     for key in data.keys():
         if key == "number_of_particles":
             continue
-        if len(data[key].shape) == 1:
+        elif callable(data[key]):
+            particle_types[key] = False
+        elif len(data[key].shape) == 1:
             particle_types[key] = True
         else:
             particle_types[key] = False

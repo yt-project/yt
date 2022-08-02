@@ -48,7 +48,7 @@ class IOHandlerStream(BaseIOHandler):
                 for g in chunk.objs:
                     ds = self.fields[g.id][ftype, fname]
                     if callable(ds):
-                        ds = ds(g)
+                        ds = ds(g, field)
                     ind += g.select(selector, ds, rv[field], ind)  # caches
         return rv
 
