@@ -88,11 +88,18 @@ class NiftiDataset(Dataset):
         # values.
         #
         # TODO: Fix this to match that specified in the header
-        self.length_unit = self.quan(1.0, "mm")
-        # self.mass_unit = self.quan(1.0, "g")
-        # self.time_unit = self.quan(1.0, "s")
-        # self.time_unit = self.quan(1.0, "s")
-        #
+        spatial_units = {1: 'm', 2: 'mm', 3: 'microns'}
+
+        length_unit = (self.parameters['xyzt_units']) & 7
+        self.length_unit = self.quan(1.0, spatial_units[length_unit])
+        
+        temporal_units = {8: 's', 16: 'ms', 24: 'microseconds'}
+        if self.parameters['dim'][4] != 1 or self.parameters['dim'][0] >= 4:
+            time_unit = self.parameters['xyzt_units'] & 56
+            self.time_unit = self.quan(1.0, temporal_units[time_unit])
+
+
+       
         # These can also be set:
         # self.velocity_unit = self.quan(1.0, "cm/s")
         # self.magnetic_unit = self.quan(1.0, "gauss")
@@ -115,42 +122,16 @@ class NiftiDataset(Dataset):
                 return False
 
         img = nib.load(self.filename)
-        parameters = list(str(img.header).split("\n"))
-        parameters[16] = str(parameters[16] + (parameters[17]))
-        parameters.remove(parameters[17])
-        temp = {}
-        for i in parameters[1::]:
-            temp[(i.split(":"))[0]] = (i.split(":"))[1]
-        self.parameters = {}
-        for i in temp.keys():
-            c = i.strip()
-            self.parameters[c] = temp[i]
+        self.parameters = dict(img.header)
 
-        for key, value in self.parameters.items():
-            value = str(value).strip()
-            if "[" in value:
-                if value[0] == "[":
-                    value = value.strip(value[0])
-                if value[-1] == "]":
-                    value = value.strip(value[-1])
-                split_val = value.split()
-                el_list = []
-                for el in split_val:
-                    el = float(el)
+        for key,value in self.parameters.items():
+            if (value.shape)==():
+                value = value.item()
+                self.parameters[key]=value
+                
+        self.parameters['affine'] = img.affine
+        self.parameters['data_shape'] = img.shape
 
-                    el_list.append(el)
-
-                self.parameters[key] = el_list
-            else:
-                value = value.lstrip()
-                if value.isnumeric():
-                    value = int(value)
-                elif is_number(value):
-                    value = float(value)
-                self.parameters[key] = value
-
-        self.parameters["affine"] = img.affine
-        self.parameters["data_shape"] = img.shape
 
         # This needs to set up the following items.  Note that these are all
         # assumed to be in code units; domain_left_edge and domain_right_edge
