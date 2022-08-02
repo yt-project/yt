@@ -164,6 +164,7 @@ def load_uniform_grid(
     geometry="cartesian",
     unit_system="cgs",
     default_species_fields=None,
+    parameters: Optional[dict] = None,
 ):
     r"""Load a uniform grid of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
@@ -216,6 +217,9 @@ def load_uniform_grid(
     default_species_fields : string, optional
         If set, default species fields are created for H and He which also
         determine the mean molecular weight. Options are "ionized" and "neutral".
+    parameters: dictionary, optional
+        Optional dictionary used to populate the dataset parameters, useful
+        for storing dataset metadata.
 
     Examples
     --------
@@ -316,6 +320,7 @@ def load_uniform_grid(
         (length_unit, mass_unit, time_unit, velocity_unit, magnetic_unit),
         particle_types=particle_types,
         periodicity=periodicity,
+        parameters=parameters,
     )
 
     handler.name = "UniformGridData"
@@ -363,6 +368,7 @@ def load_amr_grids(
     refine_by=2,
     unit_system="cgs",
     default_species_fields=None,
+    parameters: Optional[dict] = None,
 ):
     r"""Load a set of grids of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
@@ -424,6 +430,9 @@ def load_amr_grids(
     default_species_fields : string, optional
         If set, default species fields are created for H and He which also
         determine the mean molecular weight. Options are "ionized" and "neutral".
+    parameters: dictionary, optional
+        Optional dictionary used to populate the dataset parameters, useful
+        for storing dataset metadata.
 
     Examples
     --------
@@ -541,6 +550,7 @@ def load_amr_grids(
         (length_unit, mass_unit, time_unit, velocity_unit, magnetic_unit),
         particle_types=particle_types,
         periodicity=periodicity,
+        parameters=parameters,
     )
 
     handler.name = "AMRGridData"
@@ -581,6 +591,7 @@ def load_particles(
     unit_system="cgs",
     data_source=None,
     default_species_fields=None,
+    parameters: Optional[dict] = None,
 ):
     r"""Load a set of particles into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamParticleHandler`.
@@ -627,6 +638,9 @@ def load_particles(
     default_species_fields : string, optional
         If set, default species fields are created for H and He which also
         determine the mean molecular weight. Options are "ionized" and "neutral".
+    parameters: dictionary, optional
+        Optional dictionary used to populate the dataset parameters, useful
+        for storing dataset metadata.
 
     Examples
     --------
@@ -721,6 +735,7 @@ def load_particles(
         (length_unit, mass_unit, time_unit, velocity_unit, magnetic_unit),
         particle_types=particle_types,
         periodicity=periodicity,
+        parameters=parameters,
     )
 
     handler.name = "ParticleData"
@@ -756,6 +771,7 @@ def load_hexahedral_mesh(
     periodicity=(True, True, True),
     geometry="cartesian",
     unit_system="cgs",
+    parameters: Optional[dict] = None,
 ):
     r"""Load a hexahedral mesh of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
@@ -806,7 +822,9 @@ def load_hexahedral_mesh(
         be z, x, y, this would be: ("cartesian", ("z", "x", "y")).  The same
         can be done for other coordinates, for instance:
         ("spherical", ("theta", "phi", "r")).
-
+    parameters: dictionary, optional
+        Optional dictionary used to populate the dataset parameters, useful
+        for storing dataset metadata.
     """
     from yt.frontends.stream.data_structures import (
         StreamDictFieldHandler,
@@ -867,6 +885,7 @@ def load_hexahedral_mesh(
         (length_unit, mass_unit, time_unit, velocity_unit, magnetic_unit),
         particle_types=particle_types,
         periodicity=periodicity,
+        parameters=parameters,
     )
 
     handler.name = "HexahedralMeshData"
@@ -899,6 +918,7 @@ def load_octree(
     partial_coverage=1,
     unit_system="cgs",
     default_species_fields=None,
+    parameters: Optional[dict] = None,
 ):
     r"""Load an octree mask into yt.
 
@@ -946,6 +966,9 @@ def load_octree(
         determine the mean molecular weight. Options are "ionized" and "neutral".
     num_zones : int
         The number of zones along each dimension in an oct
+    parameters: dictionary, optional
+        Optional dictionary used to populate the dataset parameters, useful
+        for storing dataset metadata.
 
     Example
     -------
@@ -1024,6 +1047,7 @@ def load_octree(
         (length_unit, mass_unit, time_unit, velocity_unit, magnetic_unit),
         particle_types=particle_types,
         periodicity=periodicity,
+        parameters=parameters,
     )
 
     handler.name = "OctreeData"
@@ -1060,6 +1084,7 @@ def load_unstructured_mesh(
     periodicity=(False, False, False),
     geometry="cartesian",
     unit_system="cgs",
+    parameters: Optional[dict] = None,
 ):
     r"""Load an unstructured mesh of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
@@ -1130,6 +1155,9 @@ def load_unstructured_mesh(
         be z, x, y, this would be: ("cartesian", ("z", "x", "y")).  The same
         can be done for other coordinates, for instance:
         ("spherical", ("theta", "phi", "r")).
+    parameters: dictionary, optional
+        Optional dictionary used to populate the dataset parameters, useful
+        for storing dataset metadata.
 
     Examples
     --------
@@ -1259,6 +1287,7 @@ def load_unstructured_mesh(
         (length_unit, mass_unit, time_unit, velocity_unit, magnetic_unit),
         particle_types=particle_types,
         periodicity=periodicity,
+        parameters=parameters,
     )
 
     handler.name = "UnstructuredMeshData"

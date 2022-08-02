@@ -4,7 +4,7 @@ import uuid
 import weakref
 from itertools import chain, product, repeat
 from numbers import Number as numeric_type
-from typing import Type
+from typing import Optional, Type
 
 import numpy as np
 from more_itertools import always_iterable
@@ -88,6 +88,7 @@ class StreamHandler:
         io=None,
         particle_types=None,
         periodicity=(True, True, True),
+        parameters: Optional[dict] = None,
     ):
         if particle_types is None:
             particle_types = {}
@@ -105,6 +106,10 @@ class StreamHandler:
         self.io = io
         self.particle_types = particle_types
         self.periodicity = periodicity
+        if parameters is None:
+            self.parameters = {}
+        else:
+            self.parameters = parameters.copy()
 
     def get_fields(self):
         return self.fields.all_fields
@@ -307,6 +312,7 @@ class StreamDataset(Dataset):
         self.parameters["CosmologyHubbleConstantNow"] = 1.0
         self.parameters["CosmologyCurrentRedshift"] = 1.0
         self.parameters["HydroMethod"] = -1
+        self.parameters.update(self.stream_handler.parameters)
         if self.stream_handler.cosmology_simulation:
             self.cosmological_simulation = 1
             self.current_redshift = self.stream_handler.current_redshift
