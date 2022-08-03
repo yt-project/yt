@@ -1,3 +1,5 @@
+from functools import partial
+
 from yt.frontends.sph.fields import SPHFieldInfo
 from yt.utilities.physical_constants import kb, mp
 from yt.utilities.physical_ratios import _primordial_mass_fraction
@@ -34,36 +36,28 @@ class GadgetFieldInfo(SPHFieldInfo):
         as defined in the gadget_field_specs in frontends/gadget/definitions.py
         """
         metal_names = ["C", "O", "Si", "Fe"]
+
+        def _Fraction(field, data, i: int):
+            return data[(ptype, "FourMetalFractions")][:, i]
+
+        def _Metal_density(field, data, i: int):
+            return data[(ptype, "FourMetalFractions")][:, i] * data[(ptype, "density")]
+
         for i, metal_name in enumerate(metal_names):
 
             # add the metal fraction fields
-            def _Fraction_wrap(i):
-                def _Fraction(field, data):
-                    return data[(ptype, "FourMetalFractions")][:, i]
-
-                return _Fraction
-
             self.add_field(
                 (ptype, metal_name + "_fraction"),
                 sampling_type="particle",
-                function=_Fraction_wrap(i),
+                function=partial(_Fraction, i=i),
                 units="",
             )
 
             # add the metal density fields
-            def _Density_wrap(i):
-                def _Metal_density(field, data):
-                    return (
-                        data[(ptype, "FourMetalFractions")][:, i]
-                        * data[(ptype, "density")]
-                    )
-
-                return _Metal_density
-
             self.add_field(
                 (ptype, metal_name + "_density"),
                 sampling_type="particle",
-                function=_Density_wrap(i),
+                function=partial(_Metal_density, i=i),
                 units=self.ds.unit_system["density"],
             )
 
@@ -79,38 +73,28 @@ class GadgetFieldInfo(SPHFieldInfo):
         as defined in the gadget_field_specs in frontends/gadget/definitions.py
         """
         metal_names = ["He", "C", "Ca", "O", "N", "Ne", "Mg", "S", "Si", "Fe", "Ej"]
+
+        def _Fraction(field, data, i: int):
+            return data[(ptype, "ElevenMetalMasses")][:, i] / data[(ptype, "Mass")]
+
+        def _Metal_density(field, data, metal_name: str):
+            return data[(ptype, metal_name + "_fraction")] * data[(ptype, "density")]
+
         for i, metal_name in enumerate(metal_names):
 
             # add the metal fraction fields
-            def _Fraction_wrap(i):
-                def _Fraction(field, data):
-                    return (
-                        data[(ptype, "ElevenMetalMasses")][:, i] / data[(ptype, "Mass")]
-                    )
-
-                return _Fraction
-
             self.add_field(
                 (ptype, metal_name + "_fraction"),
                 sampling_type="particle",
-                function=_Fraction_wrap(i),
+                function=partial(_Fraction, i=i),
                 units="",
             )
 
             # add the metal density fields
-            def _Density_wrap(i):
-                def _Metal_density(field, data):
-                    return (
-                        data[(ptype, metal_name + "_fraction")]
-                        * data[(ptype, "density")]
-                    )
-
-                return _Metal_density
-
             self.add_field(
                 (ptype, metal_name + "_density"),
                 sampling_type="particle",
-                function=_Density_wrap(i),
+                function=partial(_Metal_density, metal_name=metal_name),
                 units=self.ds.unit_system["density"],
             )
 

@@ -17,17 +17,17 @@ import time
 import traceback
 import urllib.parse
 import urllib.request
-import warnings
 from functools import lru_cache, wraps
 from numbers import Number as numeric_type
 from typing import Any, Callable, Type
 
-import matplotlib
 import numpy as np
 from more_itertools import always_iterable, collapse, first
 from packaging.version import Version
 from tqdm import tqdm
 
+from yt._maintenance.deprecation import issue_deprecation_warning
+from yt.config import ytcfg
 from yt.units import YTArray, YTQuantity
 from yt.utilities.exceptions import YTInvalidWidthError
 from yt.utilities.logger import ytLogger as mylog
@@ -167,7 +167,8 @@ def get_memory_usage(subtract_share=False):
     status_file = f"/proc/{pid}/statm"
     if not os.path.isfile(status_file):
         return -1024
-    line = open(status_file).read()
+    with open(status_file) as fh:
+        line = fh.read()
     size, resident, share, text, library, data, dt = (int(i) for i in line.split())
     if subtract_share:
         resident -= share
@@ -187,8 +188,6 @@ def time_execution(func):
         t2 = time.time()
         mylog.debug("%s took %0.3f s", func.__name__, (t2 - t1))
         return res
-
-    from yt.config import ytcfg
 
     if ytcfg.get("yt", "time_functions"):
         return wrapper
@@ -230,7 +229,6 @@ def rootonly(func):
        def some_root_only_function(*args, **kwargs):
            ...
     """
-    from yt.config import ytcfg
 
     @wraps(func)
     def check_parallel_rank(*args, **kwargs):
@@ -343,7 +341,6 @@ def get_pbar(title, maxval):
     and a *maxval*.
     """
     maxval = max(maxval, 1)
-    from yt.config import ytcfg
 
     if (
         ytcfg.get("yt", "suppress_stream_logging")
@@ -361,8 +358,6 @@ def only_on_root(func, *args, **kwargs):
     on the root processor calls the function.  All other processors get "None"
     handed back.
     """
-    from yt.config import ytcfg
-
     if kwargs.pop("global_rootonly", False):
         cfg_option = "global_parallel_rank"
     else:
@@ -379,8 +374,6 @@ def is_root():
     This function returns True if it is on the root processor of the
     topcomm and False otherwise.
     """
-    from yt.config import ytcfg
-
     if not ytcfg.get("yt", "internals", "parallel"):
         return True
     return ytcfg.get("yt", "internals", "topcomm_parallel_rank") == 0
@@ -572,6 +565,8 @@ def get_yt_version():
 
 
 def get_version_stack():
+    import matplotlib
+
     version_info = {}
     version_info["yt"] = get_yt_version()
     version_info["numpy"] = np.version.version
@@ -696,8 +691,6 @@ def parallel_profile(prefix):
     ...     plot = PhasePlot(ds.all_data(), *fields)
     """
     import cProfile
-
-    from yt.config import ytcfg
 
     fn = "%s_%04i_%04i.cprof" % (
         prefix,
@@ -1000,11 +993,13 @@ def get_brewer_cmap(cmap):
     if palettable is not None:
         bmap = palettable.colorbrewer.get_map(*cmap)
     elif brewer2mpl is not None:
-        warnings.warn(
+        issue_deprecation_warning(
             "Using brewer2mpl colormaps is deprecated. "
             "Please install the successor to brewer2mpl, "
             "palettable, with `pip install palettable`. "
-            "Colormap tuple names remain unchanged."
+            "Colormap tuple names remain unchanged.",
+            since="3.3",
+            removal="4.2",
         )
         bmap = brewer2mpl.get_map(*cmap)
     else:

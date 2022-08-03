@@ -9,8 +9,7 @@ from pathlib import Path
 from typing import Optional, Union
 from warnings import warn
 
-import pkg_resources
-
+from yt.config import ytcfg
 from yt.funcs import mylog
 from yt.utilities.on_demand_imports import (
     _pandas as pd,
@@ -90,6 +89,8 @@ def get_data_registry_table():
     The output of this function is cached so it will only generate one request per session.
     """
 
+    import pkg_resources
+
     # it would be nicer to have an actual api on the yt website server,
     # but this will do for now
     api_url = "https://raw.githubusercontent.com/yt-project/website/master/data/datafiles.json"
@@ -137,8 +138,6 @@ def get_data_registry_table():
 
 
 def _get_test_data_dir_path():
-    from yt.config import ytcfg
-
     p = Path(ytcfg.get("yt", "test_data_dir"))
     if p.is_dir():
         return p
@@ -184,6 +183,8 @@ def lookup_on_disk_data(fn) -> Path:
 
 @lru_cache(maxsize=128)
 def _get_pooch_instance():
+    import pkg_resources
+
     data_registry = get_data_registry_table()
     cache_storage = _get_test_data_dir_path() / "yt_download_cache"
 

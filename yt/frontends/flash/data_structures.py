@@ -26,9 +26,6 @@ class FLASHGrid(AMRGridPatch):
         self.Children = []
         self.Level = level
 
-    def __repr__(self):
-        return "FLASHGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
-
 
 class FLASHHierarchy(GridIndex):
 

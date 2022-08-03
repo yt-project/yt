@@ -24,9 +24,6 @@ class CM1Grid(AMRGridPatch):
         self.Level = level
         self.ActiveDimensions = dimensions
 
-    def __repr__(self):
-        return f"CM1Grid_{self.id:d} ({self.ActiveDimensions})"
-
 
 class CM1Hierarchy(GridIndex):
     grid = CM1Grid

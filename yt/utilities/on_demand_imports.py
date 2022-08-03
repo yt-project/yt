@@ -1,4 +1,7 @@
 import sys
+from functools import wraps
+from importlib.util import find_spec
+from typing import Type
 
 
 class NotAModule:
@@ -19,6 +22,121 @@ class NotAModule:
 
     def __call__(self, *args, **kwargs):
         raise self.error
+
+    def __repr__(self) -> str:
+        return f"NotAModule({self.pkg_name!r})"
+
+
+class OnDemand:
+    _default_factory: Type[NotAModule] = NotAModule
+
+    def __init_subclass__(cls):
+        if not cls.__name__.endswith("_imports"):
+            raise TypeError(f"class {cls}'s name needs to be suffixed '_imports'")
+
+    def __new__(cls):
+        if cls is OnDemand:
+            raise TypeError("The OnDemand base class cannot be instanciated.")
+        else:
+            return object.__new__(cls)
+
+    @property
+    def _name(self) -> str:
+        _name, _, _suffix = self.__class__.__name__.rpartition("_")
+        return _name
+
+    @property
+    def __is_available__(self) -> bool:
+        # special protocol to support testing framework
+        return find_spec(self._name) is not None
+
+
+def safe_import(func):
+    @property
+    @wraps(func)
+    def inner(self):
+        try:
+            return func(self)
+        except ImportError:
+            return self._default_factory(self._name)
+
+    return inner
+
+
+class netCDF4_imports(OnDemand):
+    def __init__(self):
+        # this ensures the import ordering between netcdf4 and h5py. If h5py is
+        # imported first, can get file lock errors on some systems (including travis-ci)
+        # so we need to do this before initializing h5py_imports()!
+        # similar to this issue https://github.com/pydata/xarray/issues/2560
+        try:
+            import netCDF4  # noqa F401
+        except ImportError:
+            pass
+
+    @safe_import
+    def Dataset(self):
+        from netCDF4 import Dataset
+
+        return Dataset
+
+
+_netCDF4 = netCDF4_imports()
+
+
+class astropy_imports(OnDemand):
+    @safe_import
+    def log(self):
+        from astropy import log
+
+        if log.exception_logging_enabled():
+            log.disable_exception_logging()
+
+        return log
+
+    @safe_import
+    def pyfits(self):
+        from astropy.io import fits
+
+        return fits
+
+    @safe_import
+    def pywcs(self):
+        import astropy.wcs as pywcs
+
+        self.log
+        return pywcs
+
+    @safe_import
+    def units(self):
+        from astropy import units
+
+        self.log
+        return units
+
+    @safe_import
+    def conv(self):
+        import astropy.convolution as conv
+
+        self.log
+        return conv
+
+    @safe_import
+    def time(self):
+        import astropy.time as time
+
+        self.log
+        return time
+
+    @safe_import
+    def wcsaxes(self):
+        from astropy.visualization import wcsaxes
+
+        self.log
+        return wcsaxes
+
+
+_astropy = astropy_imports()
 
 
 class NotCartopy(NotAModule):
@@ -50,514 +168,181 @@ class NotCartopy(NotAModule):
             )
 
 
-class netCDF4_imports:
-    _name = "netCDF4"
-    _Dataset = None
+class cartopy_imports(OnDemand):
 
-    def __init__(self):
-        # this ensures the import ordering between netcdf4 and h5py. If h5py is
-        # imported first, can get file lock errors on some systems (including travis-ci)
-        # so we need to do this before initializing h5py_imports()!
-        # similar to this issue https://github.com/pydata/xarray/issues/2560
-        try:
-            import netCDF4  # noqa F401
-        except ImportError:
-            pass
+    _default_factory = NotCartopy
 
-    @property
-    def Dataset(self):
-        if self._Dataset is None:
-            try:
-                from netCDF4 import Dataset
-            except ImportError:
-                Dataset = NotAModule(self._name)
-            self._Dataset = Dataset
-        return self._Dataset
-
-
-_netCDF4 = netCDF4_imports()
-
-
-class astropy_imports:
-    _name = "astropy"
-    _pyfits = None
-
-    @property
-    def pyfits(self):
-        if self._pyfits is None:
-            try:
-                import astropy.io.fits as pyfits
-
-                self.log
-            except ImportError:
-                pyfits = NotAModule(self._name)
-            self._pyfits = pyfits
-        return self._pyfits
-
-    _pywcs = None
-
-    @property
-    def pywcs(self):
-        if self._pywcs is None:
-            try:
-                import astropy.wcs as pywcs
-
-                self.log
-            except ImportError:
-                pywcs = NotAModule(self._name)
-            self._pywcs = pywcs
-        return self._pywcs
-
-    _log = None
-
-    @property
-    def log(self):
-        if self._log is None:
-            try:
-                from astropy import log
-
-                if log.exception_logging_enabled():
-                    log.disable_exception_logging()
-            except ImportError:
-                log = NotAModule(self._name)
-            self._log = log
-        return self._log
-
-    _units = None
-
-    @property
-    def units(self):
-        if self._units is None:
-            try:
-                from astropy import units
-
-                self.log
-            except ImportError:
-                units = NotAModule(self._name)
-            self._units = units
-        return self._units
-
-    _conv = None
-
-    @property
-    def conv(self):
-        if self._conv is None:
-            try:
-                import astropy.convolution as conv
-
-                self.log
-            except ImportError:
-                conv = NotAModule(self._name)
-            self._conv = conv
-        return self._conv
-
-    _time = None
-
-    @property
-    def time(self):
-        if self._time is None:
-            try:
-                import astropy.time as time
-
-                self.log
-            except ImportError:
-                time = NotAModule(self._name)
-            self._time = time
-        return self._time
-
-    _wcsaxes = None
-
-    @property
-    def wcsaxes(self):
-        if self._wcsaxes is None:
-            try:
-                import astropy.visualization.wcsaxes as wcsaxes
-
-                self.log
-            except ImportError:
-                wcsaxes = NotAModule(self._name)
-            self._wcsaxes = wcsaxes
-        return self._wcsaxes
-
-    _version = None
-
-    @property
-    def __version__(self):
-        if self._version is None:
-            try:
-                import astropy
-
-                version = astropy.__version__
-            except ImportError:
-                version = NotAModule(self._name)
-            self._version = version
-        return self._version
-
-
-_astropy = astropy_imports()
-
-
-class cartopy_imports:
-    _name = "cartopy"
-
-    _crs = None
-
-    @property
+    @safe_import
     def crs(self):
-        if self._crs is None:
-            try:
-                import cartopy.crs as crs
-            except ImportError:
-                crs = NotCartopy(self._name)
-            self._crs = crs
-        return self._crs
+        import cartopy.crs as crs
 
-    _version = None
-
-    @property
-    def __version__(self):
-        if self._version is None:
-            try:
-                import cartopy
-
-                version = cartopy.__version__
-            except ImportError:
-                version = NotCartopy(self._name)
-            self._version = version
-        return self._version
+        return crs
 
 
 _cartopy = cartopy_imports()
 
 
-class pooch_imports:
-    _name = "pooch"
-    _module = None
+class pooch_imports(OnDemand):
+    @safe_import
+    def HTTPDownloader(self):
+        from pooch import HTTPDownloader
 
-    def __init__(self):
-        try:
-            import pooch as myself
+        return HTTPDownloader
 
-            self._module = myself
-        except ImportError:
-            self._module = NotAModule(self._name)
+    @safe_import
+    def utils(self):
+        from pooch import utils
 
-    def __getattr__(self, attr):
-        return getattr(self._module, attr)
+        return utils
+
+    @safe_import
+    def create(self):
+        from pooch import create
+
+        return create
 
 
 _pooch = pooch_imports()
 
 
-class scipy_imports:
-    _name = "scipy"
-    _integrate = None
+class pyart_imports(OnDemand):
+    @safe_import
+    def io(self):
+        from pyart import io
 
-    @property
-    def integrate(self):
-        if self._integrate is None:
-            try:
-                import scipy.integrate as integrate
-            except ImportError:
-                integrate = NotAModule(self._name)
-            self._integrate = integrate
-        return self._integrate
+        return io
 
-    _stats = None
+    @safe_import
+    def map(self):
+        from pyart import map
 
-    @property
-    def stats(self):
-        if self._stats is None:
-            try:
-                import scipy.stats as stats
-            except ImportError:
-                stats = NotAModule(self._name)
-            self._stats = stats
-        return self._stats
+        return map
 
-    _optimize = None
 
-    @property
-    def optimize(self):
-        if self._optimize is None:
-            try:
-                import scipy.optimize as optimize
-            except ImportError:
-                optimize = NotAModule(self._name)
-            self._optimize = optimize
-        return self._optimize
+_pyart = pyart_imports()
 
-    _interpolate = None
 
-    @property
-    def interpolate(self):
-        if self._interpolate is None:
-            try:
-                import scipy.interpolate as interpolate
-            except ImportError:
-                interpolate = NotAModule(self._name)
-            self._interpolate = interpolate
-        return self._interpolate
+class xarray_imports(OnDemand):
+    @safe_import
+    def open_dataset(self):
+        from xarray import open_dataset
 
-    _special = None
+        return open_dataset
 
-    @property
-    def special(self):
-        if self._special is None:
-            try:
-                import scipy.special as special
-            except ImportError:
-                special = NotAModule(self._name)
-            self._special = special
-        return self._special
 
-    _signal = None
+_xarray = xarray_imports()
 
-    @property
+
+class scipy_imports(OnDemand):
+    @safe_import
     def signal(self):
-        if self._signal is None:
-            try:
-                import scipy.signal as signal
-            except ImportError:
-                signal = NotAModule(self._name)
-            self._signal = signal
-        return self._signal
+        from scipy import signal
 
-    _spatial = None
+        return signal
 
-    @property
+    @safe_import
     def spatial(self):
-        if self._spatial is None:
-            try:
-                import scipy.spatial as spatial
-            except ImportError:
-                spatial = NotAModule(self._name)
-            self._spatial = spatial
-        return self._spatial
+        from scipy import spatial
 
-    _ndimage = None
+        return spatial
 
-    @property
+    @safe_import
     def ndimage(self):
-        if self._ndimage is None:
-            try:
-                import scipy.ndimage as ndimage
-            except ImportError:
-                ndimage = NotAModule(self._name)
-            self._ndimage = ndimage
-        return self._ndimage
+        from scipy import ndimage
+
+        return ndimage
 
 
 _scipy = scipy_imports()
 
 
-class h5py_imports:
-    _name = "h5py"
-    _err = None
-    _File = None
-
-    @property
+class h5py_imports(OnDemand):
+    @safe_import
     def File(self):
-        if self._err:
-            raise self._err
-        if self._File is None:
-            try:
-                from h5py import File
-            except ImportError:
-                File = NotAModule(self._name)
-            self._File = File
-        return self._File
+        from h5py import File
 
-    _Group = None
+        return File
 
-    @property
+    @safe_import
     def Group(self):
-        if self._err:
-            raise self._err
-        if self._Group is None:
-            try:
-                from h5py import Group
-            except ImportError:
-                Group = NotAModule(self._name)
-            self._Group = Group
-        return self._Group
+        from h5py import Group
 
-    _Dataset = None
+        return Group
 
-    @property
+    @safe_import
     def Dataset(self):
-        if self._err:
-            raise self._err
-        if self._Dataset is None:
-            try:
-                from h5py import Dataset
-            except ImportError:
-                Dataset = NotAModule(self._name)
-            self._Dataset = Dataset
-        return self._Dataset
+        from h5py import Dataset
 
-    ___version__ = None
+        return Dataset
 
-    @property
-    def __version__(self):
-        if self._err:
-            raise self._err
-        if self.___version__ is None:
-            try:
-                from h5py import __version__
-            except ImportError:
-                __version__ = NotAModule(self._name)
-            self.___version__ = __version__
-        return self.___version__
-
-    _get_config = None
-
-    @property
+    @safe_import
     def get_config(self):
-        if self._err:
-            raise self._err
-        if self._get_config is None:
-            try:
-                from h5py import get_config
-            except ImportError:
-                get_config = NotAModule(self._name)
-            self._get_config = get_config
-        return self._get_config
+        from h5py import get_config
 
-    _h5f = None
+        return get_config
 
-    @property
+    @safe_import
     def h5f(self):
-        if self._err:
-            raise self._err
-        if self._h5f is None:
-            try:
-                import h5py.h5f as h5f
-            except ImportError:
-                h5f = NotAModule(self._name)
-            self._h5f = h5f
-        return self._h5f
+        from h5py import h5f
 
-    _h5p = None
+        return h5f
 
-    @property
+    @safe_import
     def h5p(self):
-        if self._err:
-            raise self._err
-        if self._h5p is None:
-            try:
-                import h5py.h5p as h5p
-            except ImportError:
-                h5p = NotAModule(self._name)
-            self._h5p = h5p
-        return self._h5p
+        from h5py import h5p
 
-    _h5d = None
+        return h5p
 
-    @property
+    @safe_import
     def h5d(self):
-        if self._err:
-            raise self._err
-        if self._h5d is None:
-            try:
-                import h5py.h5d as h5d
-            except ImportError:
-                h5d = NotAModule(self._name)
-            self._h5d = h5d
-        return self._h5d
+        from h5py import h5d
 
-    _h5s = None
+        return h5d
 
-    @property
+    @safe_import
     def h5s(self):
-        if self._err:
-            raise self._err
-        if self._h5s is None:
-            try:
-                import h5py.h5s as h5s
-            except ImportError:
-                h5s = NotAModule(self._name)
-            self._h5s = h5s
-        return self._h5s
+        from h5py import h5s
 
-    _version = None
-
-    @property
-    def version(self):
-        if self._err:
-            raise self._err
-        if self._version is None:
-            try:
-                import h5py.version as version
-            except ImportError:
-                version = NotAModule(self._name)
-            self._version = version
-        return self._version
+        return h5s
 
 
 _h5py = h5py_imports()
 
 
-class nose_imports:
-    _name = "nose"
-    _run = None
-
-    @property
+class nose_imports(OnDemand):
+    @safe_import
     def run(self):
-        if self._run is None:
-            try:
-                from nose import run
-            except ImportError:
-                run = NotAModule(self._name)
-            self._run = run
-        return self._run
+        from nose import run
+
+        return run
 
 
 _nose = nose_imports()
 
 
-class libconf_imports:
-    _name = "libconf"
-    _load = None
-
-    @property
+class libconf_imports(OnDemand):
+    @safe_import
     def load(self):
-        if self._load is None:
-            try:
-                from libconf import load
-            except ImportError:
-                load = NotAModule(self._name)
-            self._load = load
-        return self._load
+        from libconf import load
+
+        return load
 
 
 _libconf = libconf_imports()
 
 
-class yaml_imports:
-    _name = "yaml"
-    _load = None
-    _FullLoader = None
-
-    @property
+class yaml_imports(OnDemand):
+    @safe_import
     def load(self):
-        if self._load is None:
-            try:
-                from yaml import load
-            except ImportError:
-                load = NotAModule(self._name)
-            self._load = load
-        return self._load
+        from yaml import load
 
-    @property
+        return load
+
+    @safe_import
     def FullLoader(self):
-        if self._FullLoader is None:
-            try:
-                from yaml import FullLoader
-            except ImportError:
-                FullLoader = NotAModule(self._name)
-            self._FullLoader = FullLoader
-        return self._FullLoader
+        from yaml import FullLoader
+
+        return FullLoader
 
 
 _yaml = yaml_imports()
@@ -575,140 +360,122 @@ class NotMiniball(NotAModule):
         self.error = ImportError(str % self.pkg_name)
 
 
-class miniball_imports:
-    _name = "miniball"
-    _Miniball = None
-
-    @property
+class miniball_imports(OnDemand):
+    @safe_import
     def Miniball(self):
-        if self._Miniball is None:
-            try:
-                from miniball import Miniball
-            except ImportError:
-                Miniball = NotMiniball(self._name)
-            self._Miniball = Miniball
-        return self._Miniball
+        from miniball import Miniball
+
+        return Miniball
 
 
 _miniball = miniball_imports()
 
 
-class f90nml_imports:
-    _name = "f90nml"
-    _module = None
+class f90nml_imports(OnDemand):
+    @safe_import
+    def read(self):
+        from f90nml import read
 
-    def __init__(self):
-        try:
-            import f90nml as myself
+        return read
 
-            self._module = myself
-        except ImportError:
-            self._module = NotAModule(self._name)
+    @safe_import
+    def Namelist(self):
+        from f90nml import Namelist
 
-    def __getattr__(self, attr):
-        return getattr(self._module, attr)
+        return Namelist
 
 
 _f90nml = f90nml_imports()
 
 
-class requests_imports:
-    _name = "requests"
-    _module = None
+class requests_imports(OnDemand):
+    @safe_import
+    def post(self):
+        from requests import post
 
-    def __init__(self):
-        try:
-            import requests as myself
+        return post
 
-            self._module = myself
-        except ImportError:
-            self._module = NotAModule(self._name)
+    @safe_import
+    def put(self):
+        from requests import put
 
-    def __getattr__(self, attr):
-        return getattr(self._module, attr)
+        return put
+
+    @safe_import
+    def codes(self):
+        from requests import codes
+
+        return codes
+
+    @safe_import
+    def get(self):
+        from requests import get
+
+        return get
+
+    @safe_import
+    def exceptions(self):
+        from requests import exceptions
+
+        return exceptions
 
 
 _requests = requests_imports()
 
 
-class pandas_imports:
-    _name = "pandas"
-    _module = None
+class pandas_imports(OnDemand):
+    @safe_import
+    def NA(self):
+        from pandas import NA
 
-    def __init__(self):
-        try:
-            import pandas as myself
+        return NA
 
-            self._module = myself
-        except ImportError:
-            self._module = NotAModule(self._name)
+    @safe_import
+    def DataFrame(self):
+        from pandas import DataFrame
 
-    def __getattr__(self, attr):
-        return getattr(self._module, attr)
+        return DataFrame
+
+    @safe_import
+    def concat(self):
+        from pandas import concat
+
+        return concat
 
 
 _pandas = pandas_imports()
 
 
-class firefly_imports:
-    _name = "firefly"
-    _data_reader = None
-    _server = None
-
-    @property
+class Firefly_imports(OnDemand):
+    @safe_import
     def data_reader(self):
-        if self._data_reader is None:
-            try:
-                import Firefly.data_reader as data_reader
-            except ImportError:
-                data_reader = NotAModule(self._name)
-            self._data_reader = data_reader
-        return self._data_reader
+        import Firefly.data_reader as data_reader
 
-    @property
+        return data_reader
+
+    @safe_import
     def server(self):
-        if self._server is None:
-            try:
-                import Firefly.server as server
-            except ImportError:
-                server = NotAModule(self._name)
-            self._server = server
-        return self._server
+        import Firefly.server as server
+
+        return server
 
 
-_firefly = firefly_imports()
+_firefly = Firefly_imports()
 
 
 # Note: ratarmount may fail with an OSError on import if libfuse is missing
-# In this case, we want the on-demand-import to fail _where_ ratarmount
-# is being used, rather than at startup.
-# We could catch the OSError and throw it again when we try to access
-# ratarmount. Instead here, we delay as much as possible the actual import of
-# the package which thus raises an exception where expected.
-#
-# Note 2: we need to store the imported module in __module, as _module plays
-# a special role in on-demand-imports (e.g. used for testing purposes to know
-# if the package has been installed).
-class ratarmount_imports:
-    _name = "ratarmount"
-    __module = None
+class ratarmount_imports(OnDemand):
+    @safe_import
+    def TarMount(self):
+        from ratarmount import TarMount
 
-    @property
-    def _module(self):
-        if self.__module is not None:
-            return self.__module
+        return TarMount
 
-        try:
-            import ratarmount as myself
+    @safe_import
+    def fuse(self):
+        from ratarmount import fuse
 
-            self.__module = myself
-        except ImportError:
-            self.__module = NotAModule(self._name)
-
-        return self.__module
-
-    def __getattr__(self, attr):
-        return getattr(self._module, attr)
+        return fuse
 
 
 _ratarmount = ratarmount_imports()

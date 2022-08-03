@@ -1,5 +1,6 @@
 # We don't need to import 'exceptions'
 import os.path
+from typing import List, Tuple
 
 from unyt.exceptions import UnitOperationError
 
@@ -77,15 +78,8 @@ class YTFieldNotFound(YTException):
     def __init__(self, field, ds):
         self.field = field
         self.ds = ds
-        self.suggestions = []
-        try:
-            self._find_suggestions()
-        except AttributeError:
-            # This may happen if passing a field that is e.g. an Ellipsis
-            # e.g. when using ds.r[...]
-            pass
 
-    def _find_suggestions(self):
+    def _get_suggestions(self) -> List[Tuple[str, str]]:
         from yt.funcs import levenshtein_distance
 
         field = self.field
@@ -127,16 +121,22 @@ class YTFieldNotFound(YTException):
                     suggestions[ft, fn] = distance
 
         # Return suggestions sorted by increasing distance (first are most likely)
-        self.suggestions = [
+        return [
             (ft, fn)
             for (ft, fn), distance in sorted(suggestions.items(), key=lambda v: v[1])
         ]
 
     def __str__(self):
         msg = f"Could not find field {self.field} in {self.ds}."
-        if self.suggestions:
+        try:
+            suggestions = self._get_suggestions()
+        except AttributeError:
+            # This may happen if passing a field that is e.g. an Ellipsis
+            # e.g. when using ds.r[...]
+            suggestions = []
+        if suggestions:
             msg += "\nDid you mean:\n\t"
-            msg += "\n\t".join(str(_) for _ in self.suggestions)
+            msg += "\n\t".join(str(_) for _ in suggestions)
         return msg
 
 
@@ -146,7 +146,7 @@ class YTParticleTypeNotFound(YTException):
         self.ds = ds
 
     def __str__(self):
-        return f"Could not find particle_type '{self.fname}' in {self.ds}."
+        return f"Could not find particle_type {self.fname!r} in {self.ds}."
 
 
 class YTSceneFieldNotFound(YTException):
@@ -166,12 +166,12 @@ class YTFieldTypeNotFound(YTException):
     def __str__(self):
         if self.ds is not None and self.ftype in self.ds.particle_types:
             return (
-                "Could not find field type '%s'.  "
-                + "This field type is a known particle type for this dataset.  "
-                + "Try adding this field with particle_type=True."
-            ) % self.ftype
+                f"Could not find field type {self.ftype!r}. "
+                "This field type is a known particle type for this dataset. "
+                "Try adding this field with sampling_type='particle'."
+            )
         else:
-            return f"Could not find field type '{self.ftype}'."
+            return f"Could not find field type {self.ftype!r}."
 
 
 class YTSimulationNotIdentified(YTException):
@@ -180,7 +180,7 @@ class YTSimulationNotIdentified(YTException):
         self.sim_type = sim_type
 
     def __str__(self):
-        return f"Simulation time-series type {self.sim_type} not defined."
+        return f"Simulation time-series type {self.sim_type!r} not defined."
 
 
 class YTCannotParseFieldDisplayName(YTException):
@@ -191,10 +191,9 @@ class YTCannotParseFieldDisplayName(YTException):
 
     def __str__(self):
         return (
-            'The display name "%s" '
-            "of the derived field %s "
-            "contains the following LaTeX parser errors:\n"
-        ) % (self.display_name, self.field_name) + self.mathtext_error
+            f"The display name {self.display_name!r} of the derived field {self.field_name!r} "
+            f"contains the following LaTeX parser errors:\n{self.mathtext_error}"
+        )
 
 
 class YTCannotParseUnitDisplayName(YTException):
@@ -205,10 +204,9 @@ class YTCannotParseUnitDisplayName(YTException):
 
     def __str__(self):
         return (
-            'The unit display name "%s" '
-            "of the derived field %s "
-            "contains the following LaTeX parser errors:\n"
-        ) % (self.unit_name, self.field_name) + self.mathtext_error
+            f"The unit display name {self.unit_name!r} of the derived field {self.field_name!r} "
+            f"contains the following LaTeX parser errors:\n{self.mathtext_error}"
+        )
 
 
 class InvalidSimulationTimeSeries(YTException):
@@ -233,10 +231,7 @@ class NoStoppingCondition(YTException):
         YTException.__init__(self, ds=ds)
 
     def __str__(self):
-        return (
-            "Simulation %s has no stopping condition. "
-            "StopTime or StopCycle should be set." % self.ds
-        )
+        return f"Simulation {self.ds} has no stopping condition. StopTime or StopCycle should be set."
 
 
 class YTNotInsideNotebook(YTException):
@@ -249,7 +244,7 @@ class YTGeometryNotSupported(YTException):
         self.geom = geom
 
     def __str__(self):
-        return f"We don't currently support {self.geom} geometry"
+        return f"We don't currently support {self.geom!r} geometry"
 
 
 class YTCoordinateNotImplemented(YTException):
@@ -266,16 +261,15 @@ class YTUnitNotRecognized(YTException):
         self.unit = unit
 
     def __str__(self):
-        return f"This dataset doesn't recognize {self.unit}"
+        return f"This dataset doesn't recognize {self.unit!r}"
 
 
 class YTFieldUnitError(YTException):
     def __init__(self, field_info, returned_units):
         self.msg = (
-            "The field function associated with the field '%s' returned "
-            "data with units '%s' but was defined with units '%s'."
+            f"The field function associated with the field {field_info.name!r} returned "
+            f"data with units {returned_units!r} but was defined with units {field_info.units!r}."
         )
-        self.msg = self.msg % (field_info.name, returned_units, field_info.units)
 
     def __str__(self):
         return self.msg
@@ -283,8 +277,9 @@ class YTFieldUnitError(YTException):
 
 class YTFieldUnitParseError(YTException):
     def __init__(self, field_info):
-        self.msg = "The field '%s' has unparsable units '%s'."
-        self.msg = self.msg % (field_info.name, field_info.units)
+        self.msg = (
+            f"The field {field_info.name!r} has unparsable units {field_info.units!r}."
+        )
 
     def __str__(self):
         return self.msg
@@ -292,12 +287,11 @@ class YTFieldUnitParseError(YTException):
 
 class YTSpatialFieldUnitError(YTException):
     def __init__(self, field):
-        msg = (
-            "Field '%s' is a spatial field but has unknown units but "
+        self.msg = (
+            f"Field {field!r} is a spatial field but has unknown units but "
             "spatial fields must have explicitly defined units. Add the "
             "field with explicit 'units' to clear this error."
         )
-        self.msg = msg % (field,)
 
     def __str__(self):
         return self.msg
@@ -306,8 +300,8 @@ class YTSpatialFieldUnitError(YTException):
 class YTHubRegisterError(YTException):
     def __str__(self):
         return (
-            "You must create an API key before uploading.  See "
-            + "https://data.yt-project.org/getting_started.html"
+            "You must create an API key before uploading. See "
+            "https://data.yt-project.org/getting_started.html"
         )
 
 
@@ -316,7 +310,7 @@ class YTNoFilenamesMatchPattern(YTException):
         self.pattern = pattern
 
     def __str__(self):
-        return f"No filenames were found to match the pattern: '{self.pattern}'"
+        return f"No filenames were found to match the pattern: {self.pattern!r}"
 
 
 class YTNoOldAnswer(YTException):
@@ -324,7 +318,7 @@ class YTNoOldAnswer(YTException):
         self.path = path
 
     def __str__(self):
-        return f"There is no old answer available.\n{self.path}"
+        return f"There is no old answer available.\n{self.path!r}"
 
 
 class YTNoAnswerNameSpecified(YTException):
@@ -347,8 +341,8 @@ class YTCloudError(YTException):
         self.path = path
 
     def __str__(self):
-        return "Failed to retrieve cloud data. Connection may be broken.\n" + str(
-            self.path
+        return (
+            f"Failed to retrieve cloud data. Connection may be broken.\n {self.path!r}"
         )
 
 
@@ -370,9 +364,8 @@ class EnzoTestOutputFileNonExistent(YTException):
 
     def __str__(self):
         return (
-            "Enzo test output file (OutputLog) not generated for: "
-            + f"'{self.testname}'"
-            + ".\nTest did not complete."
+            f"Enzo test output file (OutputLog) not generated for: {self.testname!r}.\n"
+            "Test did not complete."
         )
 
 
@@ -382,10 +375,14 @@ class YTNoAPIKey(YTException):
         self.config_name = config_name
 
     def __str__(self):
-        return "You need to set an API key for {} in ~/.config/yt/ytrc as {}".format(
-            self.service,
-            self.config_name,
-        )
+        from yt.config import config_dir
+
+        try:
+            conf = os.path.join(config_dir(), "yt", "yt.toml")
+        except Exception:
+            # this is really not a good time to raise another exception
+            conf = "yt's configuration file"
+        return f"You need to set an API key for {self.service!r} in {conf} as {self.config_name!r}"
 
 
 class YTTooManyVertices(YTException):
@@ -420,7 +417,7 @@ class YTDataSelectorNotImplemented(YTException):
         self.class_name = class_name
 
     def __str__(self):
-        return f"Data selector '{self.class_name}' not implemented."
+        return f"Data selector {self.class_name!r} not implemented."
 
 
 class YTParticleDepositionNotImplemented(YTException):
@@ -428,7 +425,7 @@ class YTParticleDepositionNotImplemented(YTException):
         self.class_name = class_name
 
     def __str__(self):
-        return f"Particle deposition method '{self.class_name}' not implemented."
+        return f"Particle deposition method {self.class_name!r} not implemented."
 
 
 class YTDomainOverflow(YTException):
@@ -439,11 +436,9 @@ class YTDomainOverflow(YTException):
         self.dre = dre
 
     def __str__(self):
-        return "Particle bounds {} and {} exceed domain bounds {} and {}".format(
-            self.mi,
-            self.ma,
-            self.dle,
-            self.dre,
+        return (
+            f"Particle bounds {self.mi} and {self.ma} "
+            f"exceed domain bounds {self.dle} and {self.dre}"
         )
 
 
@@ -463,10 +458,9 @@ class YTIllDefinedFilter(YTException):
         self.s2 = s2
 
     def __str__(self):
-        return "Filter '{}' ill-defined.  Applied to shape {} but is shape {}.".format(
-            self.filter,
-            self.s1,
-            self.s2,
+        return (
+            f"Filter {self.filter!r} ill-defined. "
+            f"Applied to shape {self.s1} but is shape {self.s2}."
         )
 
 
@@ -502,9 +496,7 @@ class YTObjectNotImplemented(YTException):
         self.obj_name = obj_name
 
     def __str__(self):
-        v = r"The object type '%s' is not implemented for the dataset "
-        v += r"'%s'."
-        return v % (self.obj_name, self.ds)
+        return f"The object type {self.obj_name!r} is not implemented for the dataset {self.ds!s}"
 
 
 class YTParticleOutputFormatNotImplemented(YTException):
@@ -518,8 +510,7 @@ class YTFileNotParseable(YTException):
         self.line = line
 
     def __str__(self):
-        v = r"Error while parsing file %s at line %s"
-        return v % (self.fname, self.line)
+        return f"Error while parsing file {self.fname!r} at line {self.line}"
 
 
 class YTRockstarMultiMassNotSupported(YTException):
@@ -545,10 +536,7 @@ class YTElementTypeNotRecognized(YTException):
         self.num_nodes = num_nodes
 
     def __str__(self):
-        return "Element type not recognized - dim = {}, num_nodes = {}".format(
-            self.dim,
-            self.num_nodes,
-        )
+        return f"Element type not recognized - dim = {self.dim}, num_nodes = {self.num_nodes}"
 
 
 class YTDuplicateFieldInProfile(Exception):
@@ -581,9 +569,10 @@ class YTIllDefinedCutRegion(Exception):
         self.conditions = conditions
 
     def __str__(self):
-        r = """Can't mix particle/discrete and fluid/mesh conditions or
-               quantities.  Conditions specified:
-            """
+        r = (
+            "Can't mix particle/discrete and fluid/mesh conditions or quantities. "
+            "Conditions specified:\n"
+        )
         r += "\n".join(c for c in self.conditions)
         return r
 
@@ -614,10 +603,13 @@ class YTNonIndexedDataContainer(YTException):
         self.cont = cont
 
     def __str__(self):
+        class_name = self.cont.__class__.__name__
         return (
-            "The data container (%s) is an unindexed type.  "
-            "Operations such as ires, icoords, fcoords and fwidth "
-            "will not work on it." % type(self.cont)
+            f"The data container type ({class_name}) is an unindexed type. "
+            "Operations such as ires, icoords, fcoords and fwidth will not work on it.\n"
+            "Did you just attempt to perform an off-axis operation ? "
+            "Be sure to consult the latest documentation to see whether the operation "
+            "you tried is actually supported for your data type."
         )
 
 
@@ -640,10 +632,7 @@ class YTInvalidUnitEquivalence(Exception):
         self.unit2 = unit2
 
     def __str__(self):
-        return (
-            "The unit equivalence '%s' does not exist for the units '%s' and '%s'."
-            % (self.equiv, self.unit1, self.unit2)
-        )
+        return f"The unit equivalence {self.equiv!r} does not exist for the units {self.unit1!r} and {self.unit2!r}."
 
 
 class YTPlotCallbackError(Exception):
@@ -685,7 +674,7 @@ class YTInvalidShaderType(YTException):
         self.source = source
 
     def __str__(self):
-        return f"Can't identify shader_type for file '{self.source}.'"
+        return f"Can't identify shader_type for file {self.source!r}"
 
 
 class YTInvalidFieldType(YTException):
@@ -693,17 +682,16 @@ class YTInvalidFieldType(YTException):
         self.fields = fields
 
     def __str__(self):
-        msg = (
+        return (
             "\nSlicePlot, ProjectionPlot, and OffAxisProjectionPlot can "
             "only plot fields that\n"
             "are defined on a mesh or for SPH particles, but received the "
             "following N-body\n"
             "particle fields:\n\n"
-            "    %s\n\n"
+            f"    {self.fields!r}\n\n"
             "Did you mean to use ParticlePlot or plot a deposited particle "
-            "field instead?" % self.fields
+            "field instead?"
         )
-        return msg
 
 
 class YTUnknownUniformKind(YTException):
@@ -711,7 +699,7 @@ class YTUnknownUniformKind(YTException):
         self.kind = kind
 
     def __str__(self):
-        return f"Can't determine kind specification for {self.kind}"
+        return f"Can't determine kind specification for {self.kind!r}"
 
 
 class YTUnknownUniformSize(YTException):
@@ -719,7 +707,7 @@ class YTUnknownUniformSize(YTException):
         self.size_spec = size_spec
 
     def __str__(self):
-        return f"Can't determine size specification for {self.size_spec}"
+        return f"Can't determine size specification for {self.size_spec!r}"
 
 
 class YTDataTypeUnsupported(YTException):
@@ -728,8 +716,8 @@ class YTDataTypeUnsupported(YTException):
         self.this = this
 
     def __str__(self):
-        v = f"This operation is not supported for data of geometry {self.this}; "
-        v += f"It supports data of geometries {self.supported}"
+        v = f"This operation is not supported for data of geometry {self.this!r}; "
+        v += f"It supports data of geometries {self.supported!r}"
         return v
 
 
@@ -739,9 +727,8 @@ class YTBoundsDefinitionError(YTException):
         self.message = message
 
     def __str__(self):
-        v = "This operation has encountered a bounds error: "
-        v += self.message
-        v += f" Specified bounds are '{self.bounds}'."
+        v = f"This operation has encountered a bounds error: {self.message} "
+        v += f"\nSpecified bounds are {self.bounds!r}."
         return v
 
 
@@ -797,9 +784,9 @@ class YTProfileDataShape(YTException):
 
     def __str__(self):
         return (
-            "Profile fields must have same shape: %s has "
-            + "shape %s and %s has shape %s."
-        ) % (self.field1, self.shape1, self.field2, self.shape2)
+            "Profile fields must have same shape: {self.field1!r} has "
+            f"shape {self.shape1} and {self.field2!r} has shape {self.shape2}."
+        )
 
 
 class YTBooleanObjectError(YTException):
@@ -826,11 +813,10 @@ class YTIllDefinedAMR(YTException):
         self.axis = axis
 
     def __str__(self):
-        msg = (
-            "Grids on the level {} are not properly aligned with cell edges "
-            "on the parent level ({} axis)"
-        ).format(self.level, self.axis)
-        return msg
+        return (
+            f"Grids on the level {self.level} are not properly aligned with cell edges "
+            f"on the parent level ({self.axis!r} axis)"
+        )
 
 
 class YTIllDefinedParticleData(YTException):
@@ -848,7 +834,7 @@ class YTInconsistentGridFieldShape(YTException):
     def __str__(self):
         msg = "Not all grid-based fields have the same shape!\n"
         for name, shape in self.shapes:
-            msg += f"    Field {name} has shape {shape}.\n"
+            msg += f"    Field {name!r} has shape {shape}.\n"
         return msg
 
 
@@ -858,9 +844,7 @@ class YTInconsistentParticleFieldShape(YTException):
         self.shapes = shapes
 
     def __str__(self):
-        msg = ("Not all fields with field type '{}' have the same shape!\n").format(
-            self.ptype
-        )
+        msg = "Not all fields with field type {self.ptype!r} have the same shape!\n"
         for name, shape in self.shapes:
             field = (self.ptype, name)
             msg += f"    Field {field} has shape {shape}.\n"
@@ -883,12 +867,12 @@ class YTInconsistentGridFieldShapeGridDims(YTException):
 
 
 class YTCommandRequiresModule(YTException):
-    def __init__(self, module):
+    def __init__(self, module: str):
         self.module = module
 
     def __str__(self):
-        msg = f'This command requires "{self.module}" to be installed.\n\n'
-        msg += f'Please install "{self.module}" with the package manager '
+        msg = f"This command requires {self.module!r} to be installed.\n\n"
+        msg += f"Please install {self.module!r} with the package manager "
         msg += "appropriate for your python environment, e.g.:\n"
         msg += f"  conda install {self.module}\n"
         msg += "or:\n"

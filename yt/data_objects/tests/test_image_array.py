@@ -117,8 +117,9 @@ class TestImageArray(unittest.TestCase):
             warnings.simplefilter("always")
             # Trigger a warning.
             im_arr.write_png("clipped.png", clip_ratio=0.5)
-            assert str(w[0].message) == (
-                "'clip_ratio' keyword is deprecated. Use 'sigma_clip' instead"
+            assert str(w[0].message).startswith(
+                "The 'clip_ratio' keyword argument is a deprecated alias for 'sigma_clip'. "
+                "Please use 'sigma_clip' directly."
             )
 
     def test_image_array_background(self):
@@ -133,6 +134,18 @@ class TestImageArray(unittest.TestCase):
         im_arr = ImageArray(dummy_image(10.0, 4))
         im_arr.write_image("with_cmap", cmap_name="hot")
         im_arr.write_image("channel_1.png", channel=1)
+
+    def test_clipping_value(self):
+        im_arr = ImageArray(dummy_image(10.0, 4))
+        clip_val1 = im_arr._clipping_value(1)
+        clip_val2 = im_arr._clipping_value(1, im=im_arr)
+        assert clip_val2 == clip_val1
+
+        clip_val3 = im_arr._clipping_value(6)
+        assert clip_val3 > clip_val2
+
+        im_arr[:] = 1.0  # std will be 0, mean will be 1, so clip value will be 1
+        assert im_arr._clipping_value(1) == 1.0
 
     def tearDown(self):
         os.chdir(self.curdir)

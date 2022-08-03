@@ -1383,6 +1383,12 @@ box and units.
 
    ds = yt.load("snap_004", unit_base=unit_base, bounding_box=bbox)
 
+.. warning::
+
+    If a ``bounding_box`` argument is supplied and the original dataset
+    has periodic boundaries, it will no longer have periodic boundaries
+    after the bounding box is applied.
+
 In addition, you can use ``UnitLength_in_cm``, ``UnitVelocity_in_cm_per_s``,
 ``UnitMass_in_g``, and ``UnitMagneticField_in_gauss`` as keys for the
 ``unit_base`` dictionary. These name come from the names used in the Gadget
@@ -3082,3 +3088,44 @@ non-default cosmological parameters, you may pass an empty dictionary.
    import yt
 
    ds = yt.load(filename, cosmology_parameters={})
+
+.. _loading-cfradial-data:
+
+CfRadial Data
+-------------
+
+Cf/Radial is a CF compliant netCDF convention for radial data from radar and
+lidar platforms that supports both airborne and ground-based sensors. Because
+of its CF-compliance, CfRadial will allow researchers familiar with CF to read
+the data into a wide variety of analysis tools, models etc. For more see:
+https://www.eol.ucar.edu/system/files/CfRadialDoc.v1.4.20160801.pdf
+
+yt provides support for loading cartesian-gridded CfRadial netcdf-4 files as
+well as polar coordinate Cfradial netcdf-4 files. When loading a standard
+CfRadial dataset in polar coordinates, yt will first build a sample on a
+cartesian grid (see :ref:`cfradial_gridding`). To load a CfRadial data file:
+
+.. code-block:: python
+
+   import yt
+
+   ds = yt.load("CfRadialGrid/grid1.nc")
+
+.. _cfradial_gridding:
+
+Gridding Behavior
+^^^^^^^^^^^^^^^^^
+
+When you load a CfRadial dataset in polar coordinates (elevation, azimuth and
+range), yt will first build a sample by mapping the data onto a cartesian grid
+using the Python-ARM Radar Toolkit (`pyart <https://github.com/ARM-DOE/pyart>`_).
+Grid points are found by interpolation of all data points within a specified radius of influence.
+This data, now in x, y, z coordiante domain is then saved as a new dataset and subsequent
+loads of the original native CfRadial dataset will use the gridded file.
+Mapping the data from spherical to Cartesian coordinates is useful for 3D volume
+rendering the data using yt.
+
+See the documentation for the
+:class:`~yt.frontends.cf_radial.data_structures.CFRadialDataset` class for a
+description of how to adjust the gridding parameters and storage of the gridded
+file.

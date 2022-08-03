@@ -156,9 +156,7 @@ class TransferFunctionHelper:
             xmi, xma = np.log10(self.bounds[0]), np.log10(self.bounds[1])
         else:
             xfunc = np.linspace
-            # Need to strip units off of the bounds to avoid a recursion error
-            # in matplotlib 1.3.1
-            xmi, xma = (np.float64(b) for b in self.bounds)
+            xmi, xma = self.bounds
 
         x = xfunc(xmi, xma, tf.nbins)
         y = tf.funcs[3].y
@@ -190,9 +188,8 @@ class TransferFunctionHelper:
                 prof[profile_field]
             except KeyError:
                 prof.add_fields([profile_field])
-            # Strip units, if any, for matplotlib 1.3.1
-            xplot = np.array(prof.x)
-            yplot = np.array(
+            xplot = prof.x
+            yplot = (
                 prof[profile_field] * tf.funcs[3].y.max() / prof[profile_field].max()
             )
             ax.plot(xplot, yplot, color="w", linewidth=3)

@@ -1,3 +1,6 @@
+from inspect import signature
+from typing import Callable
+
 import numpy as np
 
 from yt.utilities.lib.misc_utilities import obtain_position_vector
@@ -70,3 +73,31 @@ def get_periodic_rvec(data):
         coords[i, ...] + le[i]
 
     return coords
+
+
+def validate_field_function(function: Callable) -> None:
+    """
+    Inspect signature, raise a TypeError if invalid, return None otherwise.
+    """
+    # This is a helper function to user-intended field registration methods
+    # (e.g. Dataset.add_field and yt.derived_field)
+    # it is not used in FieldInfoContainer.add_field to optimize performance
+    # (inspect.signature is quite expensive and we don't want to validate yt's
+    # internal code every time a dataset's fields are defined).
+
+    # lookup parameters that do not have default values
+    fparams = signature(function).parameters
+    nodefaults = tuple(p.name for p in fparams.values() if p.default is p.empty)
+    if nodefaults != ("field", "data"):
+        raise TypeError(
+            f"Received field function {function} with invalid signature. "
+            f"Expected exactly 2 positional parameters ('field', 'data'), got {nodefaults!r}"
+        )
+    if any(
+        fparams[name].kind == fparams[name].KEYWORD_ONLY for name in ("field", "data")
+    ):
+        raise TypeError(
+            f"Received field function {function} with invalid signature. "
+            "Parameters 'field' and 'data' must accept positional values "
+            "(they cannot be keyword-only)"
+        )

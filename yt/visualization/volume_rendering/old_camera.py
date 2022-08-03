@@ -7,7 +7,6 @@ import numpy as np
 from yt.config import ytcfg
 from yt.data_objects.api import ImageArray
 from yt.funcs import ensure_numpy_array, get_num_threads, get_pbar, is_sequence, mylog
-from yt.geometry.geometry_handler import cached_property
 from yt.units.yt_array import YTArray
 from yt.utilities.amr_kdtree.api import AMRKDTree
 from yt.utilities.exceptions import YTNotInsideNotebook
@@ -726,7 +725,6 @@ class Camera(ParallelAnalysisInterface):
         image = self.finalize_image(image)
         return image
 
-    @cached_property
     def _pyplot(self):
         from matplotlib import pyplot
 
@@ -2066,9 +2064,9 @@ class ProjectionCamera(Camera):
             self.weightfield = ("index", "temp_weightfield_%u" % (id(self),))
 
             def _make_wf(f, w):
-                def temp_weightfield(a, b):
-                    tr = b[f].astype("float64") * b[w]
-                    return b.apply_units(tr, a.units)
+                def temp_weightfield(field, data):
+                    tr = data[f].astype("float64") * data[w]
+                    return data.apply_units(tr, field.units)
 
                 return temp_weightfield
 

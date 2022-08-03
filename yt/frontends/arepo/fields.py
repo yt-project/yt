@@ -157,20 +157,10 @@ class ArepoFieldInfo(GadgetFieldInfo):
                 units=self.ds.unit_system["pressure"],
             )
 
-            self.alias(
-                ("PartType0", "specific_cr_energy"),
-                ("PartType0", "specific_cosmic_ray_energy"),
-                deprecate=("4.1.0", "4.2.0"),
-            )
-
-            self.alias(
-                ("gas", "cr_energy_density"),
-                ("gas", "cosmic_ray_energy_density"),
-                deprecate=("4.1.0", "4.2.0"),
-            )
-
             def _cr_pressure(field, data):
-                return (data.ds.gamma_cr - 1.0) * data["gas", "cr_energy_density"]
+                return (data.ds.gamma_cr - 1.0) * data[
+                    "gas", "cosmic_ray_energy_density"
+                ]
 
             self.add_field(
                 ("gas", "cosmic_ray_pressure"),

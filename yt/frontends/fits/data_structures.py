@@ -52,9 +52,6 @@ class FITSGrid(AMRGridPatch):
         self.Children = []
         self.Level = 0
 
-    def __repr__(self):
-        return "FITSGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
-
 
 class FITSHierarchy(GridIndex):
 
@@ -236,7 +233,7 @@ class FITSHierarchy(GridIndex):
 
         for field in self.derived_field_list:
             f = self.dataset.field_info[field]
-            if f._function.__name__ == "_TranslationFunc":
+            if f.is_alias:
                 # Translating an already-converted field
                 self.dataset.conversion_factors[field] = 1.0
 

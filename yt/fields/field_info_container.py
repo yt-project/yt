@@ -1,4 +1,4 @@
-from collections import defaultdict
+from collections.abc import Callable
 from numbers import Number as numeric_type
 from typing import Optional, Tuple
 
@@ -6,8 +6,9 @@ import numpy as np
 from unyt.exceptions import UnitConversionError
 
 from yt._typing import KnownFieldsT
+from yt.config import ytcfg
 from yt.fields.field_exceptions import NeedsConfiguration
-from yt.funcs import mylog, only_on_root
+from yt.funcs import mylog, obj_length, only_on_root
 from yt.geometry.geometry_handler import is_curvilinear
 from yt.units.dimensions import dimensionless  # type: ignore
 from yt.units.unit_object import Unit  # type: ignore
@@ -62,7 +63,6 @@ class FieldInfoContainer(dict):
         self.slice_info = slice_info
         self.field_aliases = {}
         self.species_names = []
-        self._ambiguous_field_names = defaultdict(set)
         if ds is not None and is_curvilinear(ds.geometry):
             self.curvilinear = True
         else:
@@ -144,10 +144,16 @@ class FieldInfoContainer(dict):
                 raise RuntimeError
             if field[0] not in self.ds.particle_types:
                 continue
+            units = self.ds.field_units.get(field, None)
+            if units is None:
+                try:
+                    units = ytcfg.get("fields", *field, "units")
+                except KeyError:
+                    units = ""
             self.add_output_field(
                 field,
                 sampling_type="particle",
-                units=self.ds.field_units.get(field, ""),
+                units=units,
             )
         self.setup_smoothed_fields(ptype, num_neighbors=num_neighbors, ftype=ftype)
 
@@ -219,8 +225,19 @@ class FieldInfoContainer(dict):
                 raise RuntimeError
             if field[0] in self.ds.particle_types:
                 continue
-            args = known_other_fields.get(field[1], ("", [], None))
-            units, aliases, display_name = args
+            args = known_other_fields.get(field[1], None)
+            if args is not None:
+                units, aliases, display_name = args
+            else:
+                try:
+                    node = ytcfg.get("fields", *field).as_dict()
+                except KeyError:
+                    node = dict()
+
+                units = node.get("units", "")
+                aliases = node.get("aliases", [])
+                display_name = node.get("display_name", None)
+
             # We allow field_units to override this.  First we check if the
             # field *name* is in there, then the field *tuple*.
             units = self.ds.field_units.get(field[1], units)
@@ -267,7 +284,7 @@ class FieldInfoContainer(dict):
                 self.alias((ftype, alias), field)
 
     @staticmethod
-    def _sanitize_sampling_type(sampling_type):
+    def _sanitize_sampling_type(sampling_type: str) -> str:
         """Detect conflicts between deprecated and new parameters to specify the
         sampling type in a new field.
 
@@ -282,14 +299,11 @@ class FieldInfoContainer(dict):
         ------
         ValueError
             For unsupported values in sampling_type
-        RuntimeError
-            If conflicting parameters are passed.
         """
-        try:
-            sampling_type = sampling_type.lower()
-        except AttributeError as e:
-            raise TypeError("sampling_type should be a string.") from e
+        if not isinstance(sampling_type, str):
+            raise TypeError("sampling_type should be a string.")
 
+        sampling_type = sampling_type.lower()
         acceptable_samplings = ("cell", "particle", "local")
         if sampling_type not in acceptable_samplings:
             raise ValueError(
@@ -298,7 +312,16 @@ class FieldInfoContainer(dict):
             )
         return sampling_type
 
-    def add_field(self, name, function, sampling_type, **kwargs):
+    def add_field(
+        self,
+        name: Tuple[str, str],
+        function: Callable,
+        sampling_type: str,
+        *,
+        alias: Optional[DerivedField] = None,
+        force_override: bool = False,
+        **kwargs,
+    ) -> None:
         """
         Add a new field, along with supplemental metadata, to the list of
         available fields.  This respects a number of arguments, all of which
@@ -308,13 +331,17 @@ class FieldInfoContainer(dict):
         Parameters
         ----------
 
-        name : str
-           is the name of the field.
+        name : tuple[str, str]
+           field (or particle) type, field name
         function : callable
            A function handle that defines the field.  Should accept
            arguments (field, data)
         sampling_type: str
            "cell" or "particle" or "local"
+        force_override: bool
+           If False (default), an error will be raised if a field of the same name already exists.
+        alias: DerivedField (optional):
+           existing field to be aliased
         units : str
            A plain text string encoding the unit.  Powers must be in
            python syntax (** instead of ^). If set to "auto" the units
@@ -329,53 +356,24 @@ class FieldInfoContainer(dict):
            A name used in the plots
 
         """
-        override = kwargs.pop("force_override", False)
         # Handle the case where the field has already been added.
-        if not override and name in self:
-            # See below.
-            if function is None:
-
-                def create_function(f):
-                    return f
-
-                return create_function
+        if not force_override and name in self:
             return
-        # add_field can be used in two different ways: it can be called
-        # directly, or used as a decorator (as yt.derived_field). If called directly,
-        # the function will be passed in as an argument, and we simply create
-        # the derived field and exit. If used as a decorator, function will
-        # be None. In that case, we return a function that will be applied
-        # to the function that the decorator is applied to.
+
         kwargs.setdefault("ds", self.ds)
-        if function is None:
 
-            def create_function(f):
-                self[name] = DerivedField(name, sampling_type, f, **kwargs)
-                return f
+        sampling_type = self._sanitize_sampling_type(sampling_type)
 
-            return create_function
-
-        if isinstance(name, tuple):
-            self[name] = DerivedField(name, sampling_type, function, **kwargs)
-            return
-
-        sampling_type = self._sanitize_sampling_type(
-            sampling_type, particle_type=kwargs.get("particle_type")
-        )
-
-        if sampling_type == "particle":
-            ftype = "all"
-        else:
-            ftype = self.ds.default_fluid_type
-
-        if (ftype, name) not in self:
-            tuple_name = (ftype, name)
-            self[tuple_name] = DerivedField(
-                tuple_name, sampling_type, function, **kwargs
+        if (
+            not isinstance(name, str)
+            and obj_length(name) == 2
+            and all(isinstance(e, str) for e in name)
+        ):
+            self[name] = DerivedField(
+                name, sampling_type, function, alias=alias, **kwargs
             )
-            self.alias(name, tuple_name)
         else:
-            self[name] = DerivedField(name, sampling_type, function, **kwargs)
+            raise ValueError(f"Expected name to be a tuple[str, str], got {name}")
 
     def load_all_plugins(self, ftype: Optional[str] = "gas"):
         if ftype is None:
@@ -406,37 +404,36 @@ class FieldInfoContainer(dict):
         return loaded, unavailable
 
     def add_output_field(self, name, sampling_type, **kwargs):
+        if name[1] == "density":
+            if name in self:
+                # this should not happen, but it does
+                # it'd be best to raise an error here but
+                # it may take a while to cleanup internal issues
+                return
         kwargs.setdefault("ds", self.ds)
         self[name] = DerivedField(name, sampling_type, NullFunc, **kwargs)
 
-    def __setitem__(self, key, value):
-        ftype, fname = key
-        # Mark fields with same `fname`s (but difference `ftype`s) as ambiguous
-        if any((fname == _fname) and (ftype != _ftype) for _ftype, _fname in self):
-            self._ambiguous_field_names[fname].add(ftype)
-        super().__setitem__(key, value)
-
     def alias(
         self,
-        alias_name,
-        original_name,
-        units=None,
-        deprecate: Optional[Tuple[str, str]] = None,
+        alias_name: Tuple[str, str],
+        original_name: Tuple[str, str],
+        units: Optional[str] = None,
+        deprecate: Optional[Tuple[str, Optional[str]]] = None,
     ):
         """
         Alias one field to another field.
 
         Parameters
         ----------
-        alias_name : Tuple[str]
+        alias_name : Tuple[str, str]
             The new field name.
-        original_name : Tuple[str]
+        original_name : Tuple[str, str]
             The field to be aliased.
         units : str
            A plain text string encoding the unit.  Powers must be in
            python syntax (** instead of ^). If set to "auto" the units
            will be inferred from the return value of the field function.
-        deprecate : Tuple[str], optional
+        deprecate : tuple[str, str | None] | None
             If this is set, then the tuple contains two string version
             numbers: the first marking the version when the field was
             deprecated, and the second marking when the field will be
@@ -447,11 +444,19 @@ class FieldInfoContainer(dict):
         if units is None:
             # We default to CGS here, but in principle, this can be pluggable
             # as well.
-            u = Unit(self[original_name].units, registry=self.ds.unit_registry)
-            if u.dimensions is not dimensionless:
-                units = str(self.ds.unit_system[u.dimensions])
+
+            # self[original_name].units may be set to `None` at this point
+            # to signal that units should be autoset later
+            oru = self[original_name].units
+            if oru is None:
+                units = None
             else:
-                units = self[original_name].units
+                u = Unit(oru, registry=self.ds.unit_registry)
+                if u.dimensions is not dimensionless:
+                    units = str(self.ds.unit_system[u.dimensions])
+                else:
+                    units = oru
+
         self.field_aliases[alias_name] = original_name
         function = TranslationFunc(original_name)
         if deprecate is not None:
@@ -472,10 +477,18 @@ class FieldInfoContainer(dict):
                 sampling_type=self[original_name].sampling_type,
                 display_name=self[original_name].display_name,
                 units=units,
+                alias=self[original_name],
             )
 
     def add_deprecated_field(
-        self, name, function, sampling_type, since, removal, ret_name=None, **kwargs
+        self,
+        name,
+        function,
+        sampling_type,
+        since,
+        removal=None,
+        ret_name=None,
+        **kwargs,
     ):
         """
         Add a new field which is deprecated, along with supplemental metadata,

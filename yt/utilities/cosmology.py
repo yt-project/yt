@@ -83,6 +83,7 @@ class Cosmology:
         self.omega_radiation = float(omega_radiation)
         self.omega_lambda = float(omega_lambda)
         self.omega_curvature = float(omega_curvature)
+        hubble_constant = float(hubble_constant)
         if unit_registry is None:
             unit_registry = UnitRegistry(unit_system=unit_system)
             unit_registry.add("h", hubble_constant, dimensions.dimensionless, r"h")

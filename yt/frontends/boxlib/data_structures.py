@@ -81,9 +81,6 @@ class BoxlibGrid(AMRGridPatch):
         self.dds = self.index.ds.arr(self.index.level_dds[self.Level, :], "code_length")
         self.field_data["dx"], self.field_data["dy"], self.field_data["dz"] = self.dds
 
-    def __repr__(self):
-        return "BoxlibGrid_%04i" % (self.id)
-
     @property
     def Parent(self):
         if len(self._parent_id) == 0:
@@ -375,7 +372,7 @@ class BoxlibHierarchy(GridIndex):
             if self.dimensionality < 2:
                 dx[i].append(DRE[1] - DLE[1])
             if self.dimensionality < 3:
-                dx[i].append(DRE[2] - DLE[1])
+                dx[i].append(DRE[2] - DLE[2])
         self.level_dds = np.array(dx, dtype="float64")
         next(header_file)
         if self.ds.geometry == "cartesian":

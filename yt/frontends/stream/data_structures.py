@@ -61,9 +61,6 @@ class StreamGrid(AMRGridPatch):
     def set_filename(self, filename):
         pass
 
-    def __repr__(self):
-        return "StreamGrid_%04i" % (self.id)
-
     @property
     def Parent(self):
         if self._parent_id == -1:
@@ -668,11 +665,8 @@ class StreamOctreeSubset(OctreeSubset):
     domain_id = 1
     _domain_offset = 1
 
-    def __init__(
-        self, base_region, ds, oct_handler, over_refine_factor=1, num_ghost_zones=0
-    ):
-        self._over_refine_factor = over_refine_factor
-        self._num_zones = 1 << (over_refine_factor)
+    def __init__(self, base_region, ds, oct_handler, num_zones=2, num_ghost_zones=0):
+        self._num_zones = num_zones
         self.field_data = YTFieldData()
         self.field_parameters = {}
         self.ds = ds
@@ -691,9 +685,7 @@ class StreamOctreeSubset(OctreeSubset):
                 mylog.warning(
                     "Ghost zones will wrongly assume the domain to be periodic."
                 )
-            base_grid = StreamOctreeSubset(
-                base_region, ds, oct_handler, over_refine_factor
-            )
+            base_grid = StreamOctreeSubset(base_region, ds, oct_handler, num_zones)
             self._base_grid = base_grid
 
     def retrieve_ghost_zones(self, ngz, fields, smoothed=False):
@@ -705,7 +697,7 @@ class StreamOctreeSubset(OctreeSubset):
                 self.base_region,
                 self.ds,
                 self.oct_handler,
-                self._over_refine_factor,
+                self._num_zones,
                 num_ghost_zones=ngz,
             )
             self._subset_with_gz = new_subset
@@ -778,7 +770,7 @@ class StreamOctreeHandler(OctreeIndex):
             left_edge=self.ds.domain_left_edge,
             right_edge=self.ds.domain_right_edge,
             octree=self.ds.octree_mask,
-            over_refine=self.ds.over_refine_factor,
+            num_zones=self.ds.num_zones,
             partial_coverage=self.ds.partial_coverage,
         )
         self.oct_handler = OctreeContainer.load_octree(header)
@@ -791,7 +783,7 @@ class StreamOctreeHandler(OctreeIndex):
                     base_region,
                     self.dataset,
                     self.oct_handler,
-                    self.ds.over_refine_factor,
+                    self.ds.num_zones,
                 )
             ]
             dobj._chunk_info = subset

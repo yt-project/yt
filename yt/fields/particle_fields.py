@@ -500,12 +500,6 @@ def standard_particle_fields(
         validators=[ValidateParameter("normal"), ValidateParameter("center")],
     )
 
-    registry.alias(
-        (ptype, "particle_spherical_position_radius"),
-        (ptype, "particle_position_spherical_radius"),
-        deprecate=("4.0.0", "4.1.0"),
-    )
-
     def _particle_position_spherical_theta(field, data):
         """The spherical theta coordinate of the particle positions.
 
@@ -524,12 +518,6 @@ def standard_particle_fields(
         validators=[ValidateParameter("center"), ValidateParameter("normal")],
     )
 
-    registry.alias(
-        (ptype, "particle_spherical_position_theta"),
-        (ptype, "particle_position_spherical_theta"),
-        deprecate=("4.0.0", "4.1.0"),
-    )
-
     def _particle_position_spherical_phi(field, data):
         """The spherical phi component of the particle positions
 
@@ -546,12 +534,6 @@ def standard_particle_fields(
         function=_particle_position_spherical_phi,
         units="",
         validators=[ValidateParameter("normal"), ValidateParameter("center")],
-    )
-
-    registry.alias(
-        (ptype, "particle_spherical_position_phi"),
-        (ptype, "particle_position_spherical_phi"),
-        deprecate=("4.0.0", "4.1.0"),
     )
 
     def _particle_velocity_spherical_radius(field, data):
@@ -575,12 +557,6 @@ def standard_particle_fields(
         function=_particle_velocity_spherical_radius,
         units=unit_system["velocity"],
         validators=[ValidateParameter("normal"), ValidateParameter("center")],
-    )
-
-    registry.alias(
-        (ptype, "particle_spherical_velocity_radius"),
-        (ptype, "particle_velocity_spherical_radius"),
-        deprecate=("4.0.0", "4.1.0"),
     )
 
     registry.alias(
@@ -611,12 +587,6 @@ def standard_particle_fields(
         validators=[ValidateParameter("normal"), ValidateParameter("center")],
     )
 
-    registry.alias(
-        (ptype, "particle_spherical_velocity_theta"),
-        (ptype, "particle_velocity_spherical_theta"),
-        deprecate=("4.0.0", "4.1.0"),
-    )
-
     def _particle_velocity_spherical_phi(field, data):
         """The spherical phi component of the particle velocities
 
@@ -636,12 +606,6 @@ def standard_particle_fields(
         function=_particle_velocity_spherical_phi,
         units=unit_system["velocity"],
         validators=[ValidateParameter("normal"), ValidateParameter("center")],
-    )
-
-    registry.alias(
-        (ptype, "particle_spherical_velocity_phi"),
-        (ptype, "particle_velocity_spherical_phi"),
-        deprecate=("4.0.0", "4.1.0"),
     )
 
     def _particle_position_cylindrical_radius(field, data):
@@ -742,12 +706,6 @@ def standard_particle_fields(
         validators=[ValidateParameter("normal"), ValidateParameter("center")],
     )
 
-    registry.alias(
-        (ptype, "particle_cylindrical_velocity_theta"),
-        (ptype, "particle_velocity_cylindrical_theta"),
-        deprecate=("4.0.0", "4.1.0"),
-    )
-
     def _particle_velocity_cylindrical_z(field, data):
         """The cylindrical z component of the particle velocities
 
@@ -765,12 +723,6 @@ def standard_particle_fields(
         function=_particle_velocity_cylindrical_z,
         units=unit_system["velocity"],
         validators=[ValidateParameter("normal"), ValidateParameter("center")],
-    )
-
-    registry.alias(
-        (ptype, "particle_cylindrical_velocity_z"),
-        (ptype, "particle_velocity_cylindrical_z"),
-        deprecate=("4.0.0", "4.1.0"),
     )
 
 

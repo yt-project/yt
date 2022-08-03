@@ -14,6 +14,11 @@ traditionally thought of as "particle" fields.  The word "particle" here is
 gradually falling out of favor, as these discrete fields can be any type of
 sparsely populated data.
 
+If you are developing a frontend or need to customize what yt thinks of as the
+fields for a given datast, see both :ref:`per-field-plotconfig` and
+:ref:`per-field-config` for information on how to change the display units,
+on-disk units, display name, etc.
+
 .. _what-are-fields:
 
 What are fields?
@@ -385,9 +390,7 @@ volume, whereas the ``thermal_energy`` field, usually defined by various
 frontends, was typically thermal energy per unit mass. The above scheme
 rectifies these problems, but for the time being the previous field names are
 mapped to the current field naming scheme with a deprecation warning. These
-aliases will be removed in yt v4.1.0. Following this, new fields will be created
-which have dimensions of energy, which will simply be named ``*_energy`` as
-above.
+aliases were removed in yt v4.1.0.
 
 .. _bfields:
 
@@ -586,10 +589,6 @@ in calculations, representing the 3 different components of the field and the ma
 of the gradient, e.g., ``"temperature_gradient_x"``, ``"temperature_gradient_y"``,
 ``"temperature_gradient_z"``, and ``"temperature_gradient_magnitude"``. To see an example
 of how to create and use these fields, see :ref:`cookbook-complicated-derived-fields`.
-
-.. note::
-
-    ``add_gradient_fields`` currently only supports Cartesian geometries!
 
 .. _relative_fields:
 

@@ -1,44 +1,65 @@
+from functools import partial
+from typing import Any, Callable, TypeVar
+
 from yt.funcs import is_sequence
 from yt.utilities.logger import ytLogger as mylog
 
 from .field_info_container import FieldInfoContainer
 from .field_plugin_registry import register_field_plugin
 
+# workaround mypy not being confortable around decorator preserving signatures
+# adapted from
+# https://github.com/python/mypy/issues/1551#issuecomment-253978622
+TFun = TypeVar("TFun", bound=Callable[..., Any])
+
 
 class LocalFieldInfoContainer(FieldInfoContainer):
-    def add_field(self, name, function, sampling_type, **kwargs):
+    def add_field(
+        self, name, function, sampling_type, *, force_override=False, **kwargs
+    ):
+        from yt.fields.field_functions import validate_field_function
 
-        sampling_type = self._sanitize_sampling_type(sampling_type)
-
+        validate_field_function(function)
         if isinstance(name, str) or not is_sequence(name):
+            # the base method only accepts proper tuple field keys
+            # and is only used internally, while this method is exposed to users
+            # and is documented as usable with single strings as name
             if sampling_type == "particle":
                 ftype = "all"
             else:
                 ftype = "gas"
             name = (ftype, name)
 
-        override = kwargs.get("force_override", False)
         # Handle the case where the field has already been added.
-        if not override and name in self:
+        if not force_override and name in self:
             mylog.warning(
                 "Field %s already exists. To override use `force_override=True`.",
                 name,
             )
 
-        return super().add_field(name, function, sampling_type, **kwargs)
+        return super().add_field(
+            name, function, sampling_type, force_override=force_override, **kwargs
+        )
 
 
 # Empty FieldInfoContainer
 local_fields = LocalFieldInfoContainer(None, [], None)
 
-# we define two handles, pointing to the same function but documented differently
+# we define two handles, essentially pointing to the same function but documented differently
 # yt.add_field() is meant to be used directly, while yt.derived_field is documented
 # as a decorator.
 add_field = local_fields.add_field
 
 
-def derived_field(name, sampling_type, **kwargs):
-    return add_field(name=name, function=None, sampling_type=sampling_type, **kwargs)
+class derived_field:
+    # implement a decorator accepting keyword arguments to be passed down to add_field
+
+    def __init__(self, **kwargs) -> None:
+        self._kwargs = kwargs
+
+    def __call__(self, f: Callable) -> Callable:
+        partial(local_fields.add_field, function=f)(**self._kwargs)
+        return f
 
 
 @register_field_plugin

@@ -163,7 +163,7 @@ def off_axis_projection(
             else:
                 ptype = item[0]
                 ppos = ["x", "y", "z"]
-        elif fi.alias_field:
+        elif fi.is_alias:
             if fi.alias_name[0] not in sph_ptypes:
                 raise_error = True
             elif item[0] != "gas":
@@ -320,8 +320,8 @@ def off_axis_projection(
         weightfield = ("index", "temp_weightfield")
 
         def _make_wf(f, w):
-            def temp_weightfield(a, b):
-                tr = b[f].astype("float64") * b[w]
+            def temp_weightfield(field, data):
+                tr = data[f].astype("float64") * data[w]
                 return tr.d
 
             return temp_weightfield

@@ -41,7 +41,7 @@ def test_orbit_traj():
     for field in pfields + vfields:
 
         def field_func(name):
-            return traj[field]
+            return traj[field]  # noqa: B023
 
         yield GenericArrayTest(ds, field_func, args=[field])
 
@@ -66,7 +66,7 @@ def test_etc_traj():
     for field in pfields + vfields + [("gas", "density")]:
 
         def field_func(name):
-            return traj[field]
+            return traj[field]  # noqa: B023
 
         yield GenericArrayTest(ds, field_func, args=[field])
 

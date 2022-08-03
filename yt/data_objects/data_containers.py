@@ -6,6 +6,7 @@ from typing import List, Tuple, Union
 
 import numpy as np
 
+from yt.config import ytcfg
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.profiles import create_profile
 from yt.fields.field_exceptions import NeedsGridType
@@ -677,8 +678,6 @@ class YTDataContainer(abc.ABC):
         """
         from glue.core import Data, DataCollection
 
-        from yt.config import ytcfg
-
         if ytcfg.get("yt", "internals", "within_testing"):
             from glue.core.application_base import Application as GlueApplication
         else:
@@ -981,7 +980,7 @@ class YTDataContainer(abc.ABC):
 
         This will, in a parallel-aware fashion, compute the maximum of the
         given field.  Supplying an axis will result in a return value of a
-        YTProjection, with method 'mip' for maximum intensity.  If the max has
+        YTProjection, with method 'max' for maximum intensity.  If the max has
         already been requested, it will use the cached extrema value.
 
         Parameters
@@ -1007,8 +1006,7 @@ class YTDataContainer(abc.ABC):
                 return rv[0]
             return rv
         elif axis in self.ds.coordinates.axis_name:
-            r = self.ds.proj(field, axis, data_source=self, method="mip")
-            return r
+            return self.ds.proj(field, axis, data_source=self, method="max")
         else:
             raise NotImplementedError(f"Unknown axis {axis}")
 
@@ -1041,7 +1039,7 @@ class YTDataContainer(abc.ABC):
                 return rv[0]
             return rv
         elif axis in self.ds.coordinates.axis_name:
-            raise NotImplementedError("Minimum intensity projection not implemented.")
+            return self.ds.proj(field, axis, data_source=self, method="min")
         else:
             raise NotImplementedError(f"Unknown axis {axis}")
 
@@ -1408,7 +1406,7 @@ class YTDataContainer(abc.ABC):
                     ptypes = self.ds._sph_ptypes
                     if finfo.name[0] in ptypes:
                         ftype = finfo.name[0]
-                    elif finfo.alias_field and finfo.alias_name[0] in ptypes:
+                    elif finfo.is_alias and finfo.alias_name[0] in ptypes:
                         ftype = self._current_fluid_type
             else:
                 ftype = self._current_fluid_type

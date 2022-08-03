@@ -114,7 +114,7 @@ class SDFDataset(ParticleDataset):
             self.domain_right_edge *= self.parameters.get("a", 1.0)
 
         self.domain_dimensions = np.ones(3, "int32")
-        if "do_periodic" in self.parameters and self.parameters["do_periodic"]:
+        if self.parameters.get("do_periodic", False):
             self._periodicity = (True, True, True)
         else:
             self._periodicity = (False, False, False)

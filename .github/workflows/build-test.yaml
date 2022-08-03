@@ -7,7 +7,8 @@ on:
   pull_request:
     paths-ignore:
       - "doc/**"
-      - README.md
+      - "**/*.md"
+  workflow_dispatch:
 
 defaults:
   run:
@@ -19,6 +20,7 @@ env:
 jobs:
 
   build:
+    name: "${{ matrix.tests-type }} tests: py${{ matrix.python-version }} on ${{ matrix.os }} (${{ matrix.test-runner }})"
     strategy:
       matrix:
         os: [
@@ -26,30 +28,50 @@ jobs:
           windows-latest,
           ubuntu-latest,
         ]
-        python-version: [3.9]
+        python-version: ['3.10']
         dependencies: [full]
         tests-type: [unit]
+        test-runner: [pytest]
         include:
           - os: ubuntu-latest
-            python-version: 3.7
+            python-version: '3.7'
             dependencies: minimal
             tests-type: unit
+            test-runner: pytest
           - os: ubuntu-latest
-            python-version: 3.7
+            # this job is necessary for non-answer, 'yield' based tests
+            # because pytest doesn't support such tests, and nose is not
+            # compatible with Python 3.10
+            python-version: '3.9'
+            dependencies: full
+            tests-type: unit
+            test-runner: nose
+          - os: ubuntu-latest
+            # answer tests use 'yield', so they require nose
+            # they are also attached to a specific, occasionally updated, Python version
+            # but it does *not* have to match the current minimal supported version
+            python-version: '3.7'
             dependencies: full
             tests-type: answer
+            test-runner: nose
 
     runs-on: ${{ matrix.os }}
+
     steps:
-    - name: Install Python
-      uses: actions/setup-python@v2
+    - name: Set up Python
+      uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
-    - uses: actions/checkout@v2
+    - name: Checkout repo (bare)
+      if: matrix.tests-type != 'answer'
+      uses: actions/checkout@v3
+    - name: Checkout repo (with submodules)
+      if: matrix.tests-type == 'answer'
+      uses: actions/checkout@v3
       with:
-        submodules: recursive
-        fetch-depth: 0
-    - uses: s-weigand/setup-conda@v1
+        submodules: true
+    - name: Set up Conda (windows only)
+      uses: s-weigand/setup-conda@v1
       if: matrix.os == 'windows-latest'
       with:
         update-conda: true
@@ -61,7 +83,13 @@ jobs:
       env:
         dependencies: ${{ matrix.dependencies }}
       run: source ./tests/ci_install.sh
-    - name: Run Tests
+    - name: Run Tests (pytest)
+      if: matrix.test-runner == 'pytest'
+      env:
+        testsuite: ${{ matrix.tests-type }}
+      run: pytest
+    - name: Run Tests (nose)
+      if: matrix.test-runner == 'nose'
       env:
         testsuite: ${{ matrix.tests-type }}
       run: python -m nose -c nose_${testsuite}.cfg --traverse-namespace

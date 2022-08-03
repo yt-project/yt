@@ -77,7 +77,7 @@ The list below is arranged in order of most to least important changes.
   energy per unit mass, and ``("gas", "momentum_density_x")`` for the x-axis
   component of momentum density. See :ref:`efields` for more information.
 * **Deprecated field names**
-  Certain field names are deprecated within yt v4.0 and will be removed in
+  Certain field names are deprecated within yt v4.0.x and removed in
   yt v4.1. For example, ``("gas", "kinetic_energy")`` has been renamed to
   ``("gas", "kinetic_energy_density")``, though the former name has been added
   as an alias. Other fields, such as
@@ -415,7 +415,7 @@ You can now set configuration values on a per-field basis.  For instance, this
 means that if you always want a particular colormap associated with a particular
 field, you can do so!
 
-This is documented under :ref:`per-field-config`, and was added in `PR
+This is documented under :ref:`per-field-plotconfig`, and was added in `PR
 1931 <https://github.com/yt-project/yt/pull/1931>`_.
 
 New Method for Accessing Sample Datasets

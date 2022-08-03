@@ -10,9 +10,10 @@ import weakref
 from collections import defaultdict
 from importlib.util import find_spec
 from stat import ST_CTIME
-from typing import DefaultDict, Optional, Tuple, Type, Union
+from typing import DefaultDict, Dict, List, Optional, Set, Tuple, Type, Union
 
 import numpy as np
+from more_itertools import unzip
 from unyt.exceptions import UnitConversionError, UnitParseError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
@@ -44,6 +45,7 @@ from yt.units.unit_systems import (  # type: ignore
     unit_system_registry,
 )
 from yt.units.yt_array import YTArray, YTQuantity
+from yt.utilities.configure import YTConfig, configuration_callbacks
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.exceptions import (
     YTFieldNotFound,
@@ -69,7 +71,20 @@ else:
 _cached_datasets: MutableMapping[
     Union[int, str], "Dataset"
 ] = weakref.WeakValueDictionary()
-_ds_store = ParameterFileStore()
+
+# we set this global to None as a place holder
+# its actual instanciation is delayed until after yt.__init__
+# is completed because we need yt.config.ytcfg to be instanciated first
+
+_ds_store: Optional[ParameterFileStore] = None
+
+
+def _setup_ds_store(ytcfg: YTConfig) -> None:
+    global _ds_store
+    _ds_store = ParameterFileStore()
+
+
+configuration_callbacks.append(_setup_ds_store)
 
 
 def _unsupported_object(ds, obj_name):
@@ -132,7 +147,7 @@ class Dataset(abc.ABC):
     geometry = "cartesian"
     coordinates = None
     storage_filename = None
-    particle_unions = None
+    particle_unions: Optional[Dict[str, ParticleUnion]] = None
     known_filters = None
     _index_class: Type[Index]
     field_units = None
@@ -308,6 +323,9 @@ class Dataset(abc.ABC):
     def periodicity(self):
         if self._force_periodicity:
             return (True, True, True)
+        elif getattr(self, "_domain_override", False):
+            # dataset loaded with a bounding box
+            return (False, False, False)
         return self._periodicity
 
     def force_periodicity(self, val=True):
@@ -592,6 +610,12 @@ class Dataset(abc.ABC):
                     continue
                 v = getattr(self, a)
                 mylog.info("Parameters: %-25s = %s", a, v)
+        if getattr(self, "_domain_override", False):
+            if any(self._periodicity):
+                mylog.warning(
+                    "A bounding box was explicitly specified, so we "
+                    "are disabling periodicity."
+                )
 
     @parallel_root_only
     def print_stats(self):
@@ -847,17 +871,60 @@ class Dataset(abc.ABC):
     _last_finfo = None
 
     def _get_field_info(self, ftype, fname=None):
-        field_info, is_ambiguous = self._get_field_info_helper(ftype, fname)
+        field_info, candidates = self._get_field_info_helper(ftype, fname)
 
-        if is_ambiguous:
+        if field_info.name[1] in ("px", "py", "pz", "pdx", "pdy", "pdz"):
+            # escape early as a bandaid solution to
+            # https://github.com/yt-project/yt/issues/3381
+            return field_info
+
+        def _are_ambiguous(candidates: List[Tuple[str, str]]) -> bool:
+            if len(candidates) < 2:
+                return False
+
+            ftypes, fnames = (list(_) for _ in unzip(candidates))
+            assert all(name == fnames[0] for name in fnames)
+
+            fi = self.field_info
+
+            all_aliases: bool = all(
+                fi[c].is_alias_to(fi[candidates[0]]) for c in candidates
+            )
+
+            all_equivalent_particle_fields: bool
+            if (
+                self.particle_types is None
+                or self.particle_unions is None
+                or self.particle_types_raw is None
+            ):
+                all_equivalent_particle_fields = False
+            elif all(ft in self.particle_types for ft in ftypes):
+                ptypes = ftypes
+
+                sub_types_list: List[Set[str]] = []
+                for pt in ptypes:
+                    if pt in self.particle_types_raw:
+                        sub_types_list.append({pt})
+                    elif pt in self.particle_unions:
+                        sub_types_list.append(set(self.particle_unions[pt].sub_types))
+                all_equivalent_particle_fields = all(
+                    st == sub_types_list[0] for st in sub_types_list
+                )
+            else:
+                all_equivalent_particle_fields = False
+
+            return not (all_aliases or all_equivalent_particle_fields)
+
+        if _are_ambiguous(candidates):
             ft, fn = field_info.name
+            possible_ftypes = [c[0] for c in candidates]
             msg = (
-                f"The requested field name '{fn}' "
+                f"The requested field name {fn!r} "
                 "is ambiguous and corresponds to any one of "
-                f"the following field types:\n {self.field_info._ambiguous_field_names[fn]}\n"
+                f"the following field types:\n {possible_ftypes}\n"
                 "Please specify the requested field as an explicit "
-                "tuple (ftype, fname).\n"
-                f'Defaulting to \'("{ft}", "{fn}")\'.'
+                "tuple (<ftype>, <fname>).\n"
+                f"Defaulting to {field_info.name!r}"
             )
             issue_deprecation_warning(msg, since="4.0.0", removal="4.1.0")
         return field_info
@@ -873,24 +940,25 @@ class Dataset(abc.ABC):
             except AttributeError:
                 ftype, fname = "unknown", ftype
 
+        candidates: List[Tuple[str, str]] = []
+
         # storing this condition before altering it
         guessing_type = ftype == "unknown"
         if guessing_type:
             ftype = self._last_freq[0] or ftype
-            is_ambiguous = fname in self.field_info._ambiguous_field_names
-        else:
-            is_ambiguous = False
+            candidates = [(ft, fn) for ft, fn in self.field_info.keys() if fn == fname]
+
         field = (ftype, fname)
 
         if (
             field == self._last_freq
             and field not in self.field_info.field_aliases.values()
         ):
-            return self._last_finfo, is_ambiguous
+            return self._last_finfo, candidates
         if field in self.field_info:
             self._last_freq = field
             self._last_finfo = self.field_info[(ftype, fname)]
-            return self._last_finfo, is_ambiguous
+            return self._last_finfo, candidates
 
         try:
             # Sometimes, if guessing_type == True, this will be switched for
@@ -908,7 +976,7 @@ class Dataset(abc.ABC):
             ):
                 field = self.default_fluid_type, field[1]
             self._last_freq = field
-            return self._last_finfo, is_ambiguous
+            return self._last_finfo, candidates
         except KeyError:
             pass
 
@@ -924,7 +992,7 @@ class Dataset(abc.ABC):
                 if (ftype, fname) in self.field_info:
                     self._last_freq = (ftype, fname)
                     self._last_finfo = self.field_info[(ftype, fname)]
-                    return self._last_finfo, is_ambiguous
+                    return self._last_finfo, candidates
         raise YTFieldNotFound(field=INPUT, ds=self)
 
     def _setup_classes(self):
@@ -1579,7 +1647,9 @@ class Dataset(abc.ABC):
         self._quan = functools.partial(YTQuantity, registry=self.unit_registry)
         return self._quan
 
-    def add_field(self, name, function, sampling_type, **kwargs):
+    def add_field(
+        self, name, function, sampling_type, *, force_override=False, **kwargs
+    ):
         """
         Dataset-specific call to add_field
 
@@ -1598,6 +1668,8 @@ class Dataset(abc.ABC):
            arguments (field, data)
         sampling_type: str
            "cell" or "particle" or "local"
+        force_override: bool
+           If False (default), an error will be raised if a field of the same name already exists.
         units : str
            A plain text string encoding the unit.  Powers must be in
            python syntax (** instead of ^).
@@ -1614,21 +1686,24 @@ class Dataset(abc.ABC):
            on-disk fields.
 
         """
+        from yt.fields.field_functions import validate_field_function
+
+        validate_field_function(function)
         self.index
-        override = kwargs.get("force_override", False)
-        if override and name in self.index.field_list:
+        if force_override and name in self.index.field_list:
             raise RuntimeError(
                 "force_override is only meant to be used with "
                 "derived fields, not on-disk fields."
             )
-        # Handle the case where the field has already been added.
-        if not override and name in self.field_info:
+        if not force_override and name in self.field_info:
             mylog.warning(
                 "Field %s already exists. To override use `force_override=True`.",
                 name,
             )
 
-        self.field_info.add_field(name, function, sampling_type, **kwargs)
+        self.field_info.add_field(
+            name, function, sampling_type, force_override=force_override, **kwargs
+        )
         self.field_info._show_field_errors.append(name)
         deps, _ = self.field_info.check_derived_fields([name])
         self.field_dependencies.update(deps)

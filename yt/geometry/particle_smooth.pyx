@@ -127,7 +127,7 @@ cdef class ParticleSmoothOperation:
             periodicity = (False, False, False)
         else:
             raise NotImplementedError
-        dims[0] = dims[1] = dims[2] = (1 << mesh_octree.oref)
+        dims[0] = dims[1] = dims[2] = mesh_octree.nz
         cdef int nz = dims[0] * dims[1] * dims[2]
         numpart = positions.shape[0]
         # pcount is the number of particles per oct.
@@ -159,7 +159,7 @@ cdef class ParticleSmoothOperation:
         for i in range(3):
             self.DW[i] = (mesh_octree.DRE[i] - mesh_octree.DLE[i])
             self.periodicity[i] = periodicity[i]
-        cdef np.float64_t factor = (1 << (particle_octree.oref))
+        cdef np.float64_t factor = particle_octree.nz
         for i in range(positions.shape[0]):
             for j in range(3):
                 pos[j] = positions[i, j]
