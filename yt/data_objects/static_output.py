@@ -1205,7 +1205,9 @@ class Dataset(abc.ABC):
         o2 = np.log2(self.refine_by)
         if o2 != int(o2):
             raise RuntimeError
-        return int(o2)
+        # In the case that refine_by is 1 or 0 or something, we just
+        # want to make it a non-operative number, so we set to 1.
+        return max(1, int(o2))
 
     def relative_refinement(self, l0, l1):
         return self.refine_by ** (l1 - l0)
