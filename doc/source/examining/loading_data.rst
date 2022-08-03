@@ -2007,7 +2007,7 @@ demonstrates loading a simple "random" dataset with a random set of cell-widths.
    cell_widths = []
    for i in range(3):
        widths = np.random.random(N)
-       widths /= widths.sum() # Normalize to span 0 .. 1.
+       widths /= widths.sum()  # Normalize to span 0 .. 1.
        cell_widths.append(widths)
 
    ds = yt.load_uniform_grid(
