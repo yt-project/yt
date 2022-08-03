@@ -500,13 +500,12 @@ def fake_stretched_ds(N=16):
         cw = np.random.random(N)
         cw /= cw.sum()
         cell_widths.append(cw)
-    ds = load_uniform_grid(
+    return load_uniform_grid(
         data,
         [N, N, N],
         bbox=np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]]),
         cell_widths=cell_widths,
     )
-    return ds
 
 
 def fake_vr_orientation_test_ds(N=96, scale=1):

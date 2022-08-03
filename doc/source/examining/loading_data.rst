@@ -1975,7 +1975,7 @@ Stretched Grid Data
    preliminary feature.
 
 With version 4.1, yt has the ability to specify cell widths for grids.  This
-allows situations where a grid has a functional form for its widths, or where
+allows situations where a grid has a functional form for cell widths, or where
 widths are provided in advance.
 
 .. note::
@@ -1990,7 +1990,7 @@ argument should be a list of three arrays, corresponding to the first, second
 and third index-direction cell widths.  (For instance, in a "standard"
 cartesian dataset, this would be x, y, z.)
 
-This script, a variation of which is used for testing this functionality,
+This script,
 demonstrates loading a simple "random" dataset with a random set of cell-widths.
 
 .. code:: python

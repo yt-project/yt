@@ -81,7 +81,7 @@ class StreamStretchedGrid(StretchedGrid):
 
     def __init__(self, id, index):
         cell_widths = index.grid_cell_widths[id - self._id_offset]
-        super().__init__(id, cell_widths, None, index)
+        super().__init__(id, cell_widths, index=index)
         self._children_ids = []
         self._parent_id = -1
         self.Level = -1
@@ -113,6 +113,7 @@ class StreamHandler:
         io=None,
         particle_types=None,
         periodicity=(True, True, True),
+        *,
         cell_widths=None,
     ):
         if particle_types is None:

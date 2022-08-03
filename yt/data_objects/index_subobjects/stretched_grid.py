@@ -6,7 +6,7 @@ from .grid_patch import AMRGridPatch
 
 
 class StretchedGrid(AMRGridPatch):
-    def __init__(self, id, cell_widths, filename=None, index=None):
+    def __init__(self, id, cell_widths, *, filename=None, index=None):
         self.cell_widths = [np.array(_) for _ in cell_widths]
         super().__init__(id, filename, index)
 
