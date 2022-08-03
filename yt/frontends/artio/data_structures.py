@@ -349,8 +349,6 @@ class ARTIOIndex(Index):
             self.ds.domain_dimensions[
                 axes,
             ]
-            # This may need an additional refinement factor conversion for
-            # non-refine-by-2 cases.
             * self.ds.refine_by ** ires[:, None]
         )
         pos = (0.5 + icoords) * dds + self.ds.domain_left_edge[
