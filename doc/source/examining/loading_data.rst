@@ -166,7 +166,9 @@ Appropriate errors are thrown for other combinations.
   staggered datasets, but the flag is currently ignored.
 * "stretched grids" are being implemented in yt, but are not yet
   fully-supported.  (Previous versions of this file suggested they would
-  "never" be supported, which we hope to prove incorrect.)
+  "never" be supported, which we hope to prove incorrect once we finish
+  implementing stretched grids in AMR.  At present, stretched grids are
+  only supported on a single level of refinement.)
 
 .. note::
 
@@ -2004,9 +2006,9 @@ demonstrates loading a simple "random" dataset with a random set of cell-widths.
 
    cell_widths = []
    for i in range(3):
-       _ = np.random.random(N)
-       _ /= _.sum()
-       cell_widths.append(_)
+       widths = np.random.random(N)
+       widths /= widths.sum() # Normalize to span 0 .. 1.
+       cell_widths.append(widths)
 
    ds = yt.load_uniform_grid(
        data,
