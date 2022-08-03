@@ -277,25 +277,7 @@ class ImagePlotMPL(PlotMPL):
         else:
             transform = self._transform
 
-        if hasattr(self.axes, "set_extent"):
-            # some projections have trouble when passing extents at or near the
-            # limits. So we only set_extent when the plot is a subset of the
-            # globe, within the tolerance of the transform.
-
-            # add validation to make sure transform IS a cartopy crs? pretty sure
-            # it should always be if we end up here....
-
-            # note that `set_extent` here is setting the extent of the axes.
-            # still need to pass the extent arg to imshow below in order to
-            # ensure that it is properly scaled. also note that set_extent
-            # expects values in the coordinates of the transform: it will
-            # calculate the coordinates in the projection.
-            global_extent = transform.x_limits + transform.y_limits
-            thresh = transform.threshold
-            if all(extent[ie] < (global_extent[ie] - thresh) for ie in range(4)):
-                self.axes.set_extent(extent, crs=transform)
-            else:
-                self.axes.set_global()
+        self._validate_axes_extent(extent, transform)
 
         self.image = self.axes.imshow(
             data.to_ndarray(),
@@ -362,6 +344,27 @@ class ImagePlotMPL(PlotMPL):
         else:
             self.cb = self.figure.colorbar(self.image, self.cax)
         self.cax.tick_params(which="both", axis="y", direction="in")
+
+    def _validate_axes_extent(self, extent, transform):
+        # if the axes are cartopy GeoAxes, this checks that the axes extent
+        # is properly set.
+
+        if hasattr(self.axes, "set_extent"):
+            # some projections have trouble when passing extents at or near the
+            # limits. So we only set_extent when the plot is a subset of the
+            # globe, within the tolerance of the transform.
+
+            # note that `set_extent` here is setting the extent of the axes.
+            # still need to pass the extent arg to imshow in order to
+            # ensure that it is properly scaled. also note that set_extent
+            # expects values in the coordinates of the transform: it will
+            # calculate the coordinates in the projection.
+            global_extent = transform.x_limits + transform.y_limits
+            thresh = transform.threshold
+            if all(
+                abs(extent[ie]) < (abs(global_extent[ie]) - thresh) for ie in range(4)
+            ):
+                self.axes.set_extent(extent, crs=transform)
 
     def _get_best_layout(self):
 
