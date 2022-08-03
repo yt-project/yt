@@ -292,7 +292,7 @@ class ImagePlotMPL(PlotMPL):
             # calculate the coordinates in the projection.
             global_extent = transform.x_limits + transform.y_limits
             thresh = transform.threshold
-            if all([extent[ie] < (global_extent[ie] - thresh) for ie in range(4)]):
+            if all(extent[ie] < (global_extent[ie] - thresh) for ie in range(4)):
                 self.axes.set_extent(extent, crs=transform)
             else:
                 self.axes.set_global()
