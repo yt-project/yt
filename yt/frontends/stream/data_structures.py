@@ -4,7 +4,7 @@ import uuid
 import weakref
 from itertools import chain, product, repeat
 from numbers import Number as numeric_type
-from typing import Optional, Type
+from typing import Type
 
 import numpy as np
 from more_itertools import always_iterable
@@ -88,7 +88,8 @@ class StreamHandler:
         io=None,
         particle_types=None,
         periodicity=(True, True, True),
-        parameters: Optional[dict] = None,
+        *,
+        parameters=None,
     ):
         if particle_types is None:
             particle_types = {}
