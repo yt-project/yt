@@ -1,6 +1,7 @@
 import os
 import weakref
 from collections import defaultdict
+from typing import Optional, Tuple
 
 import numpy as np
 
@@ -333,7 +334,12 @@ class ARTIOIndex(Index):
         )
         return fields_to_return, fields_to_generate
 
-    def _icoords_to_fcoords(self, icoords, ires, axes=None):
+    def _icoords_to_fcoords(
+        self,
+        icoords: np.ndarray,
+        ires: np.ndarray,
+        axes: Optional[Tuple[int, ...]] = None,
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Accepts icoords and ires and returns appropriate fcoords and fwidth.
         Mostly useful for cases where we have irregularly spaced or structured

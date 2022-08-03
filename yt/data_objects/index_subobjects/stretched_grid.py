@@ -11,7 +11,9 @@ class StretchedGrid(AMRGridPatch):
         super().__init__(id, filename, index)
 
     def _check_consistency(self):
-        computed_right_edge = self.LeftEdge + [_.sum() for _ in self.cell_widths]
+        computed_right_edge = self.LeftEdge + [
+            _.sum() for _ in self.cell_widths * self.LeftEdge.uq
+        ]
         assert (computed_right_edge == self.RightEdge).all()
 
     def _get_selector_mask(self, selector):

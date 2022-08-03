@@ -1,6 +1,7 @@
 import abc
 import weakref
 from collections import defaultdict
+from typing import Optional, Tuple
 
 import numpy as np
 
@@ -450,7 +451,12 @@ class GridIndex(Index, abc.ABC):
                 with self.io.preload(dc, preload_fields, 4.0 * size):
                     yield dc
 
-    def _icoords_to_fcoords(self, icoords, ires, axes=None):
+    def _icoords_to_fcoords(
+        self,
+        icoords: np.ndarray,
+        ires: np.ndarray,
+        axes: Optional[Tuple[int, ...]] = None,
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Accepts icoords and ires and returns appropriate fcoords and fwidth.
         Mostly useful for cases where we have irregularly spaced or structured
