@@ -409,9 +409,9 @@ cdef class SelectorObject:
     @cython.wraparound(False)
     @cython.cdivision(True)
     def fill_mask(self, gobj):
-        # This is for an irregular grid.  We make no assumptions about
-        # the shape of the dds values, except that we will regularize to the
-        # max dimension.
+        # This is for an irregular grid.  We make no assumptions about the
+        # shape of the dds values, which are supplied as differing-length
+        # arrays.
         cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
         child_mask = gobj.child_mask
         cdef np.ndarray[np.uint8_t, ndim=3] mask
