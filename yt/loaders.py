@@ -164,6 +164,7 @@ def load_uniform_grid(
     geometry="cartesian",
     unit_system="cgs",
     default_species_fields=None,
+    *,
     parameters=None,
 ):
     r"""Load a uniform grid of data into yt as a
@@ -368,6 +369,7 @@ def load_amr_grids(
     refine_by=2,
     unit_system="cgs",
     default_species_fields=None,
+    *,
     parameters=None,
 ):
     r"""Load a set of grids of data into yt as a
@@ -591,6 +593,7 @@ def load_particles(
     unit_system="cgs",
     data_source=None,
     default_species_fields=None,
+    *,
     parameters=None,
 ):
     r"""Load a set of particles into yt as a
@@ -771,6 +774,7 @@ def load_hexahedral_mesh(
     periodicity=(True, True, True),
     geometry="cartesian",
     unit_system="cgs",
+    *,
     parameters=None,
 ):
     r"""Load a hexahedral mesh of data into yt as a
@@ -918,6 +922,7 @@ def load_octree(
     partial_coverage=1,
     unit_system="cgs",
     default_species_fields=None,
+    *,
     parameters=None,
 ):
     r"""Load an octree mask into yt.
@@ -1084,6 +1089,7 @@ def load_unstructured_mesh(
     periodicity=(False, False, False),
     geometry="cartesian",
     unit_system="cgs",
+    *,
     parameters=None,
 ):
     r"""Load an unstructured mesh of data into yt as a
