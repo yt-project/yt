@@ -78,8 +78,10 @@ class CM1Dataset(Dataset):
     ):
         self.fluid_types += ("cm1",)
         self._handle = NetCDF4FileHandler(filename)
-        # refinement factor between a grid and its subgrid
-        self.refine_by = 1
+        # refinement factor between a grid and its subgrid.
+        # Strictly speaking this is not correct -- but it's also not
+        # *incorrect*.  There are no refined grids in this frontend.
+        self.refine_by = 2
         super().__init__(
             filename,
             dataset_type,
