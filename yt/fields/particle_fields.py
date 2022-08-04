@@ -41,6 +41,10 @@ sph_whitelist_fields = (
     "Mg_fraction",
     "Si_fraction",
     "Fe_fraction",
+    "Na_fraction",
+    "Al_fraction",
+    "Ar_fraction",
+    "Ni_fraction",
     "H_density",
     "He_density",
     "C_density",
@@ -52,6 +56,10 @@ sph_whitelist_fields = (
     "Mg_density",
     "Si_density",
     "Fe_density",
+    "Na_density",
+    "Al_density",
+    "Ar_density",
+    "Ni_density",
 )
 
 
