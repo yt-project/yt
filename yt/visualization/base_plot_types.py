@@ -349,7 +349,13 @@ class ImagePlotMPL(PlotMPL):
         # if the axes are cartopy GeoAxes, this checks that the axes extent
         # is properly set.
 
-        if hasattr(self.axes, "set_extent"):
+        if not "cartopy" in sys.modules:
+            # cartopy isn't already loaded, nothing to do here
+            return
+    
+        from cartopy.mpl.geoaxes import GeoAxes
+ 
+        if isinstance(self.axes, GeoAxes):
             # some projections have trouble when passing extents at or near the
             # limits. So we only set_extent when the plot is a subset of the
             # globe, within the tolerance of the transform.
