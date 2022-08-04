@@ -709,7 +709,7 @@ def fake_octree_ds(
     velocity_unit=None,
     magnetic_unit=None,
     periodicity=(True, True, True),
-    over_refine_factor=1,
+    num_zones=2,
     partial_coverage=1,
     unit_system="cgs",
 ):
@@ -739,7 +739,7 @@ def fake_octree_ds(
         magnetic_unit=magnetic_unit,
         periodicity=periodicity,
         partial_coverage=partial_coverage,
-        over_refine_factor=over_refine_factor,
+        num_zones=num_zones,
         unit_system=unit_system,
     )
     return ds

@@ -1160,7 +1160,7 @@ cdef class ParticleBitmap:
         # self.index_octree = ParticleOctreeContainer([1,1,1],
         #     [self.left_edge[0], self.left_edge[1], self.left_edge[2]],
         #     [self.right_edge[0], self.right_edge[1], self.right_edge[2]],
-        #     over_refine = 0
+        #     num_zones = 1
         # )
         # self.index_octree.n_ref = 1
         # mi = (<ewah_bool_array*> self.collisions.ewah_keys)[0].toArray()
@@ -1328,7 +1328,7 @@ cdef class ParticleBitmap:
     @cython.wraparound(False)
     @cython.cdivision(True)
     def construct_octree(self, index, io_handler, data_files,
-                         over_refine_factor,
+                         num_zones,
                          BoolArrayCollection selector_mask,
                          BoolArrayCollection base_mask = None):
         cdef np.uint64_t total_pcount
@@ -1357,7 +1357,7 @@ cdef class ParticleBitmap:
             (self.dims[0], self.dims[1], self.dims[2]),
             (self.left_edge[0], self.left_edge[1], self.left_edge[2]),
             (self.right_edge[0], self.right_edge[1], self.right_edge[2]),
-            nroot, over_refine_factor)
+            nroot, num_zones)
         octree.n_ref = index.dataset.n_ref
         octree.level_offset = self.index_order1
         octree.allocate_domains()
@@ -1975,10 +1975,10 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
     cdef np.uint64_t[:] _octs_per_root
     cdef public int overlap_cells
     def __init__(self, domain_dimensions, domain_left_edge, domain_right_edge,
-                 int num_root, over_refine = 1):
+                 int num_root, num_zones = 2):
         super(ParticleBitmapOctreeContainer, self).__init__(
             domain_dimensions, domain_left_edge, domain_right_edge,
-            over_refine)
+            num_zones)
         self.loaded = 0
         self.fill_style = "o"
         self.partial_coverage = 2

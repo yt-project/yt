@@ -115,6 +115,7 @@ class StreamHandler:
         periodicity=(True, True, True),
         *,
         cell_widths=None,
+        parameters=None,
     ):
         if particle_types is None:
             particle_types = {}
@@ -133,6 +134,11 @@ class StreamHandler:
         self.particle_types = particle_types
         self.periodicity = periodicity
         self.cell_widths = cell_widths
+
+        if parameters is None:
+            self.parameters = {}
+        else:
+            self.parameters = parameters.copy()
 
     def get_fields(self):
         return self.fields.all_fields
@@ -362,6 +368,7 @@ class StreamDataset(Dataset):
         self.parameters["CosmologyHubbleConstantNow"] = 1.0
         self.parameters["CosmologyCurrentRedshift"] = 1.0
         self.parameters["HydroMethod"] = -1
+        self.parameters.update(self.stream_handler.parameters)
         if self.stream_handler.cosmology_simulation:
             self.cosmological_simulation = 1
             self.current_redshift = self.stream_handler.current_redshift
@@ -720,11 +727,8 @@ class StreamOctreeSubset(OctreeSubset):
     domain_id = 1
     _domain_offset = 1
 
-    def __init__(
-        self, base_region, ds, oct_handler, over_refine_factor=1, num_ghost_zones=0
-    ):
-        self._over_refine_factor = over_refine_factor
-        self._num_zones = 1 << (over_refine_factor)
+    def __init__(self, base_region, ds, oct_handler, num_zones=2, num_ghost_zones=0):
+        self._num_zones = num_zones
         self.field_data = YTFieldData()
         self.field_parameters = {}
         self.ds = ds
@@ -743,9 +747,7 @@ class StreamOctreeSubset(OctreeSubset):
                 mylog.warning(
                     "Ghost zones will wrongly assume the domain to be periodic."
                 )
-            base_grid = StreamOctreeSubset(
-                base_region, ds, oct_handler, over_refine_factor
-            )
+            base_grid = StreamOctreeSubset(base_region, ds, oct_handler, num_zones)
             self._base_grid = base_grid
 
     def retrieve_ghost_zones(self, ngz, fields, smoothed=False):
@@ -757,7 +759,7 @@ class StreamOctreeSubset(OctreeSubset):
                 self.base_region,
                 self.ds,
                 self.oct_handler,
-                self._over_refine_factor,
+                self._num_zones,
                 num_ghost_zones=ngz,
             )
             self._subset_with_gz = new_subset
@@ -830,7 +832,7 @@ class StreamOctreeHandler(OctreeIndex):
             left_edge=self.ds.domain_left_edge,
             right_edge=self.ds.domain_right_edge,
             octree=self.ds.octree_mask,
-            over_refine=self.ds.over_refine_factor,
+            num_zones=self.ds.num_zones,
             partial_coverage=self.ds.partial_coverage,
         )
         self.oct_handler = OctreeContainer.load_octree(header)
@@ -843,7 +845,7 @@ class StreamOctreeHandler(OctreeIndex):
                     base_region,
                     self.dataset,
                     self.oct_handler,
-                    self.ds.over_refine_factor,
+                    self.ds.num_zones,
                 )
             ]
             dobj._chunk_info = subset

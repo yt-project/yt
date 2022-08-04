@@ -34,8 +34,8 @@ cdef class OctVisitor:
         self.dims = 0
         self.domain = domain_id
         self.level = -1
-        self.oref = octree.oref
-        self.nz = (1 << (self.oref*3))
+        self.nz = octree.nz
+        self.nzones = self.nz**3
 
     cdef void visit(self, Oct* o, np.uint8_t selected):
         raise NotImplementedError
@@ -172,7 +172,7 @@ cdef class ICoordsOcts(OctVisitor):
         if selected == 0: return
         cdef int i
         for i in range(3):
-            self.icoords[self.index,i] = (self.pos[i] << self.oref) + self.ind[i]
+            self.icoords[self.index,i] = (self.pos[i] * self.nz) + self.ind[i]
         self.index += 1
 
 # Level
@@ -196,9 +196,9 @@ cdef class FCoordsOcts(OctVisitor):
         if selected == 0: return
         cdef int i
         cdef np.float64_t c, dx
-        dx = 1.0 / ((1 << self.oref) << self.level)
+        dx = 1.0 / ((self.nz) << self.level)
         for i in range(3):
-            c = <np.float64_t> ((self.pos[i] << self.oref ) + self.ind[i])
+            c = <np.float64_t> ((self.pos[i] * self.nz) + self.ind[i])
             self.fcoords[self.index,i] = (c + 0.5) * dx
         self.index += 1
 
@@ -214,7 +214,7 @@ cdef class FWidthOcts(OctVisitor):
         if selected == 0: return
         cdef int i
         cdef np.float64_t dx
-        dx = 1.0 / ((1 << self.oref) << self.level)
+        dx = 1.0 / (self.nz << self.level)
         for i in range(3):
             self.fwidth[self.index,i] = dx
         self.index += 1
@@ -331,7 +331,7 @@ cdef class MortonIndexOcts(OctVisitor):
         cdef np.int64_t coord[3]
         cdef int i
         for i in range(3):
-            coord[i] = (self.pos[i] << self.oref) + self.ind[i]
+            coord[i] = (self.pos[i] * self.nz) + self.ind[i]
             if (coord[i] < 0):
                 raise RuntimeError("Oct coordinate in dimension {} is ".format(i)+
                                    "negative. ({})".format(coord[i]))
@@ -373,12 +373,12 @@ cdef class BaseNeighbourVisitor(OctVisitor):
         cdef Oct *neighbour
         cdef bint local_oct
         cdef bint other_oct
-        dx = 1.0 / ((1 << self.oref) << self.level)
+        dx = 1.0 / (self.nz << self.level)
         local_oct = True
 
         # Compute position of neighbouring cell
         for i in range(3):
-            c = <np.float64_t> (self.pos[i] << self.oref)
+            c = <np.float64_t> (self.pos[i] * self.nz)
             fcoords[i] = (c + 0.5 + ishift[i]) * dx / self.octree.nn[i]
             # Assuming periodicity
             if fcoords[i] < 0:
@@ -395,12 +395,12 @@ cdef class BaseNeighbourVisitor(OctVisitor):
             neighbour = o
             self.oi.level = self.level
             for i in range(3):
-                self.oi.ipos[i] = (self.pos[i] << self.oref) + ishift[i]
+                self.oi.ipos[i] = (self.pos[i] * self.nz) + ishift[i]
 
         # Extra step - compute cell position in neighbouring oct (and store in oi.ipos)
         if self.oi.level == self.level - 1:
             for i in range(3):
-                ipos = (((self.pos[i] << self.oref) + ishift[i])) >> 1
+                ipos = (((self.pos[i] * self.nz) + ishift[i])) >> 1
                 if (self.oi.ipos[i] << 1) == ipos:
                     self.oi.ipos[i] = 0
                 else:
