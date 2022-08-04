@@ -145,15 +145,13 @@ cdef class RegionSelector(SelectorObject):
         cdef np.float64_t p
         cdef np.float64_t r2 = radius**2
         cdef np.float64_t dmin = 0
+        cdef np.float64_t d = 0
         for i in range(3):
-            if self.periodicity[i] and self.check_period[i]:
-                p = pos[i] + self.right_edge_shift[i]
-            else:
-                p = pos[i]
-            if p < self.left_edge[i]:
-                dmin += (p - self.left_edge[i])**2
+            if self.right_edge_shift[i] <= pos[i] < self.left_edge[i]:
+                d = self.periodic_difference(pos[i], self.left_edge[i], i)
             elif pos[i] > self.right_edge[i]:
-                dmin += (p - self.right_edge[i])**2
+                d = self.periodic_difference(pos[i], self.right_edge[i], i)
+            dmin += d*d
         return int(dmin <= r2)
 
     @cython.boundscheck(False)
