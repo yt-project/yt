@@ -354,7 +354,8 @@ class NormHandler:
         return norm_type(*args, **kw)
 
     def _guess_linthresh(self, finite_plot_data):
-        # data is an ImageArray or ColorbarHandler data
+        # finite_plot_data is the ImageArray or ColorbarHandler data, already
+        # filtered to be finite values
 
         # get the extrema for the negative and positive values separately
         # neg_min -> neg_max -> 0 -> pos_min -> pos_max
@@ -369,7 +370,8 @@ class NormHandler:
         has_pos = pos_min is not None
         has_neg = neg_min is not None
 
-        # the starting guess is the absolute value of the point closest to 0:
+        # the starting guess is the absolute value of the point closest to 0
+        # (remember: neg_max is closer to 0 than neg_min)
         if has_pos and has_neg:
             linthresh = np.min((np.abs(neg_max), pos_min))
         elif has_pos:
