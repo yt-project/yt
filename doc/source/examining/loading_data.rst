@@ -1790,9 +1790,9 @@ See :ref:`loading-numpy-array` and
 
 .. note::
 
-   It is now possible to load data using only *callable* functions, rather
-   than using the fully-in-memory method presented here.  For more information
-   and examples, see :ref:`loading-callable-functions`.
+   It is now possible to load data using *only functions*, rather than using the
+   fully-in-memory method presented here.  For more information and examples,
+   see :ref:`loading-via-functions`.
 
 It is possible to create native yt dataset from Python's dictionary
 that describes set of rectangular patches of data of possibly varying
