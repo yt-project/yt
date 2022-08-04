@@ -165,6 +165,7 @@ def load_uniform_grid(
     unit_system="cgs",
     default_species_fields=None,
     *,
+    cell_widths=None,
     parameters=None,
 ):
     r"""Load a uniform grid of data into yt as a
@@ -297,6 +298,10 @@ def load_uniform_grid(
         grid_right_edges = domain_right_edge
         grid_dimensions = domain_dimensions.reshape(nprocs, 3).astype("int32")
 
+    if cell_widths is not None:
+        # make sure this is a list, or else leave it as an empty guard value
+        cell_widths = [cell_widths]
+
     if length_unit is None:
         length_unit = "code_length"
     if mass_unit is None:
@@ -321,6 +326,7 @@ def load_uniform_grid(
         (length_unit, mass_unit, time_unit, velocity_unit, magnetic_unit),
         particle_types=particle_types,
         periodicity=periodicity,
+        cell_widths=cell_widths,
         parameters=parameters,
     )
 

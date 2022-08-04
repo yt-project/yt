@@ -52,8 +52,8 @@ class CM1Hierarchy(GridIndex):
         self.grid_right_edge[0][:] = self.ds.domain_right_edge[:]
         self.grid_dimensions[0][:] = self.ds.domain_dimensions[:]
         self.grid_particle_count[0][0] = 0
-        self.grid_levels[0][0] = 1
-        self.max_level = 1
+        self.grid_levels[0][0] = 0
+        self.max_level = 0
 
     def _populate_grid_objects(self):
         self.grids = np.empty(self.num_grids, dtype="object")
@@ -78,7 +78,7 @@ class CM1Dataset(Dataset):
     ):
         self.fluid_types += ("cm1",)
         self._handle = NetCDF4FileHandler(filename)
-        # refinement factor between a grid and its subgrid
+        # refinement factor between a grid and its subgrid.
         self.refine_by = 1
         super().__init__(
             filename,

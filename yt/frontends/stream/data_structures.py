@@ -12,6 +12,7 @@ from more_itertools import always_iterable
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.index_subobjects.octree_subset import OctreeSubset
+from yt.data_objects.index_subobjects.stretched_grid import StretchedGrid
 from yt.data_objects.index_subobjects.unstructured_mesh import (
     SemiStructuredMesh,
     UnstructuredMesh,
@@ -28,7 +29,10 @@ from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
 from yt.units import YTQuantity
 from yt.utilities.io_handler import io_registry
 from yt.utilities.lib.cykdtree import PyKDTree
-from yt.utilities.lib.misc_utilities import get_box_grids_level
+from yt.utilities.lib.misc_utilities import (
+    _obtain_coords_and_widths,
+    get_box_grids_level,
+)
 from yt.utilities.lib.particle_kdtree_tools import (
     estimate_density,
     generate_smoothing_length,
@@ -72,6 +76,27 @@ class StreamGrid(AMRGridPatch):
         return [self.index.grids[cid - self._id_offset] for cid in self._children_ids]
 
 
+class StreamStretchedGrid(StretchedGrid):
+    _id_offset = 0
+
+    def __init__(self, id, index):
+        cell_widths = index.grid_cell_widths[id - self._id_offset]
+        super().__init__(id, cell_widths, index=index)
+        self._children_ids = []
+        self._parent_id = -1
+        self.Level = -1
+
+    @property
+    def Parent(self):
+        if self._parent_id == -1:
+            return None
+        return self.index.grids[self._parent_id - self._id_offset]
+
+    @property
+    def Children(self):
+        return [self.index.grids[cid - self._id_offset] for cid in self._children_ids]
+
+
 class StreamHandler:
     def __init__(
         self,
@@ -89,6 +114,7 @@ class StreamHandler:
         particle_types=None,
         periodicity=(True, True, True),
         *,
+        cell_widths=None,
         parameters=None,
     ):
         if particle_types is None:
@@ -107,6 +133,8 @@ class StreamHandler:
         self.io = io
         self.particle_types = particle_types
         self.periodicity = periodicity
+        self.cell_widths = cell_widths
+
         if parameters is None:
             self.parameters = {}
         else:
@@ -139,6 +167,28 @@ class StreamHierarchy(GridIndex):
     def _count_grids(self):
         self.num_grids = self.stream_handler.num_grids
 
+    def _icoords_to_fcoords(self, icoords, ires, axes=None):
+        """
+        We check here that we have cell_widths, and if we do, we will provide them.
+        """
+        if self.grid_cell_widths is None:
+            return super()._icoords_to_fcoords(icoords, ires, axes)
+        # Ideally this would be ported to something more efficient.  As it
+        # stands, this will use a pure python loop!
+        if axes is None:
+            axes = [0, 1, 2]
+        # Transpose these by reversing the shape
+        coords = np.empty(icoords.shape, dtype="f8")
+        cell_widths = np.empty(icoords.shape, dtype="f8")
+        for i, ax in enumerate(axes):
+            coords[:, i], cell_widths[:, i] = _obtain_coords_and_widths(
+                icoords[:, i],
+                ires,
+                self.grid_cell_widths[0][ax],
+                self.ds.domain_left_edge[ax].d,
+            )
+        return coords, cell_widths
+
     def _parse_index(self):
         self.grid_dimensions = self.stream_handler.dimensions
         self.grid_left_edge[:] = self.stream_handler.left_edges
@@ -147,6 +197,11 @@ class StreamHierarchy(GridIndex):
         self.min_level = self.grid_levels.min()
         self.grid_procs = self.stream_handler.processor_ids
         self.grid_particle_count[:] = self.stream_handler.particle_count
+        if self.stream_handler.cell_widths is not None:
+            self.grid_cell_widths = self.stream_handler.cell_widths[:]
+            self.grid = StreamStretchedGrid
+        else:
+            self.grid_cell_widths = None
         mylog.debug("Copying reverse tree")
         self.grids = []
         # We enumerate, so it's 0-indexed id and 1-indexed pid
