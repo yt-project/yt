@@ -147,9 +147,10 @@ cdef class RegionSelector(SelectorObject):
         cdef np.float64_t dmin = 0
         cdef np.float64_t d = 0
         for i in range(3):
-            if self.right_edge_shift[i] <= pos[i] < self.left_edge[i]:
+            if (pos[i]+radius < self.left_edge[i] and \
+                pos[i]-radius >= self.right_edge_shift[i]):
                 d = self.periodic_difference(pos[i], self.left_edge[i], i)
-            elif pos[i] > self.right_edge[i]:
+            elif pos[i]-radius > self.right_edge[i]:
                 d = self.periodic_difference(pos[i], self.right_edge[i], i)
             dmin += d*d
         return int(dmin <= r2)
