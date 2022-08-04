@@ -342,7 +342,7 @@ class NormHandler:
             if self.linthresh is not None:
                 linthresh = self.to_float(self.linthresh)
             else:
-                linthresh = self._guess_linthresh(data)
+                linthresh = self._guess_linthresh(data[finite_values_mask])
 
             kw.setdefault("linthresh", linthresh)
             if MPL_VERSION >= Version("3.2"):
@@ -353,7 +353,7 @@ class NormHandler:
 
         return norm_type(*args, **kw)
 
-    def _guess_linthresh(self, plot_data):
+    def _guess_linthresh(self, finite_plot_data):
         # data is an ImageArray or ColorbarHandler data
 
         # get the extrema for the negative and positive values separately
@@ -363,8 +363,8 @@ class NormHandler:
                 return np.nanmin(data), np.nanmax(data)
             return None, None
 
-        pos_min, pos_max = get_minmax(plot_data[plot_data > 0])
-        neg_min, neg_max = get_minmax(plot_data[plot_data < 0])
+        pos_min, pos_max = get_minmax(finite_plot_data[finite_plot_data > 0])
+        neg_min, neg_max = get_minmax(finite_plot_data[finite_plot_data < 0])
 
         has_pos = pos_min is not None
         has_neg = neg_min is not None
