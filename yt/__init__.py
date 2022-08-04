@@ -80,6 +80,7 @@ from yt.loaders import (
     load,
     load_amr_grids,
     load_archive,
+    load_hdf5_file,
     load_hexahedral_mesh,
     load_octree,
     load_particles,

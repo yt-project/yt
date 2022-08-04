@@ -1566,7 +1566,7 @@ def load_archive(
 def load_hdf5_file(
     fn: Union[str, "os.PathLike[str]"],
     root_node: Optional[str] = "/",
-    fields: Optional[list[str]] = None,
+    fields: Optional[List[str]] = None,
     bbox: np.ndarray = None,
     nchunks: int = 0,
     dataset_arguments: Optional[dict] = None,
@@ -1628,7 +1628,7 @@ def load_hdf5_file(
 
     """
 
-    from yt.utilities.on_demand_imports import h5py
+    from yt.utilities.on_demand_imports import _h5py as h5py
 
     dataset_arguments = dataset_arguments or {}
 
