@@ -7,7 +7,6 @@ import matplotlib
 import numpy as np
 from matplotlib.colors import Normalize
 from more_itertools import always_iterable
-from packaging.version import Version
 from unyt.exceptions import UnitConversionError
 
 from yt._maintenance.deprecation import issue_deprecation_warning

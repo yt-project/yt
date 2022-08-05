@@ -14,13 +14,10 @@ from yt.frontends.ytdata.data_structures import YTProfileDataset
 from yt.funcs import iter_fields, matplotlib_style_context
 from yt.utilities.exceptions import YTNotInsideNotebook
 from yt.visualization._handlers import ColorbarHandler, NormHandler
-from yt.visualization.base_plot_types import PlotMPL
+from yt.visualization.base_plot_types import ImagePlotMPL, PlotMPL
 
 from ..data_objects.selection_objects.data_selection_objects import YTSelectionContainer
 from ._commons import validate_image_name
-from .base_plot_types import ImagePlotMPL
-from ._commons import DEFAULT_FONT_PROPERTIES, MPL_VERSION, validate_image_name
-from .base_plot_types import ImagePlotMPL, PlotMPL
 from .plot_container import (
     BaseLinePlot,
     ImagePlotContainer,
