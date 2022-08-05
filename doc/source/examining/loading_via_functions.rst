@@ -3,4 +3,4 @@
 Loading Data via Functions
 ==========================
 
-.. notebook:: Loading_Generic_Array_Data.ipynb
+.. notebook:: Loading_Data_via_Functions.ipynb
