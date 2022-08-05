@@ -1662,6 +1662,6 @@ def load_hdf5_file(
     left_edges, right_edges, shapes, _ = decompose_array(shape, psize, bbox)
     for le, re, s in zip(left_edges, right_edges, shapes):
         data = {_: reader for _ in fields}
-        data.update({"left_edge": le, "right_edge": re, "dimensions": s, "level": 1})
+        data.update({"left_edge": le, "right_edge": re, "dimensions": s, "level": 0})
         grid_data.append(data)
     return load_amr_grids(grid_data, shape, **dataset_arguments)
