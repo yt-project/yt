@@ -323,6 +323,9 @@ class Dataset(abc.ABC):
     def periodicity(self):
         if self._force_periodicity:
             return (True, True, True)
+        elif getattr(self, "_domain_override", False):
+            # dataset loaded with a bounding box
+            return (False, False, False)
         return self._periodicity
 
     def force_periodicity(self, val=True):
@@ -607,6 +610,12 @@ class Dataset(abc.ABC):
                     continue
                 v = getattr(self, a)
                 mylog.info("Parameters: %-25s = %s", a, v)
+        if getattr(self, "_domain_override", False):
+            if any(self._periodicity):
+                mylog.warning(
+                    "A bounding box was explicitly specified, so we "
+                    "are disabling periodicity."
+                )
 
     @parallel_root_only
     def print_stats(self):
@@ -1196,7 +1205,9 @@ class Dataset(abc.ABC):
         o2 = np.log2(self.refine_by)
         if o2 != int(o2):
             raise RuntimeError
-        return int(o2)
+        # In the case that refine_by is 1 or 0 or something, we just
+        # want to make it a non-operative number, so we set to 1.
+        return max(1, int(o2))
 
     def relative_refinement(self, l0, l1):
         return self.refine_by ** (l1 - l0)
@@ -1677,6 +1688,9 @@ class Dataset(abc.ABC):
            on-disk fields.
 
         """
+        from yt.fields.field_functions import validate_field_function
+
+        validate_field_function(function)
         self.index
         if force_override and name in self.index.field_list:
             raise RuntimeError(

@@ -2,8 +2,6 @@ import numpy as np
 
 from yt.fields.derived_field import ValidateParameter
 from yt.units import dimensions
-from yt.units.yt_array import ustack  # type: ignore
-from yt.utilities.math_utils import get_sph_phi_component, get_sph_theta_component
 
 from .field_plugin_registry import register_field_plugin
 
@@ -84,92 +82,101 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
         units=unit_system["pressure"],
     )
 
-    _magnetic_field_toroidal = None
-    _magnetic_field_poloidal = None
+    _magnetic_field_poloidal_magnitude = None
+    _magnetic_field_toroidal_magnitude = None
 
     if registry.ds.geometry == "cartesian":
 
-        def _magnetic_field_poloidal(field, data):
-            normal = data.get_field_parameter("normal")
-
-            Bfields = ustack(
-                [
-                    data[ftype, "relative_magnetic_field_x"],
-                    data[ftype, "relative_magnetic_field_y"],
-                    data[ftype, "relative_magnetic_field_z"],
-                ]
+        def _magnetic_field_poloidal_magnitude(field, data):
+            B2 = (
+                data[ftype, "relative_magnetic_field_x"]
+                * data[ftype, "relative_magnetic_field_x"]
+                + data[ftype, "relative_magnetic_field_y"]
+                * data[ftype, "relative_magnetic_field_y"]
+                + data[ftype, "relative_magnetic_field_z"]
+                * data[ftype, "relative_magnetic_field_z"]
             )
-
-            theta = data["index", "spherical_theta"]
-            phi = data["index", "spherical_phi"]
-
-            return get_sph_theta_component(Bfields, theta, phi, normal)
-
-        def _magnetic_field_toroidal(field, data):
-            normal = data.get_field_parameter("normal")
-
-            Bfields = ustack(
-                [
-                    data[ftype, "relative_magnetic_field_x"],
-                    data[ftype, "relative_magnetic_field_y"],
-                    data[ftype, "relative_magnetic_field_z"],
-                ]
+            Bt2 = (
+                data[ftype, "magnetic_field_spherical_phi"]
+                * data[ftype, "magnetic_field_spherical_phi"]
             )
-
-            phi = data["index", "spherical_phi"]
-            return get_sph_phi_component(Bfields, phi, normal)
+            return np.sqrt(B2 - Bt2)
 
     elif registry.ds.geometry in ("cylindrical", "polar"):
 
-        def _magnetic_field_poloidal(field, data):
+        def _magnetic_field_poloidal_magnitude(field, data):
             bm = data.get_field_parameter("bulk_magnetic_field")
-            r = data["index", "r"]
-            z = data["index", "z"]
-            d = np.sqrt(r * r + z * z)
-            rax = axis_names.find("r")
-            zax = axis_names.find("z")
-            return (data[ftype, "magnetic_field_r"] - bm[rax]) * (r / d) + (
-                data[ftype, "magnetic_field_z"] - bm[zax]
-            ) * (z / d)
+            rax = axis_names.index("r")
+            zax = axis_names.index("z")
 
-        def _magnetic_field_toroidal(field, data):
+            return np.sqrt(
+                (data[ftype, "magnetic_field_r"] - bm[rax]) ** 2
+                + (data[ftype, "magnetic_field_z"] - bm[zax]) ** 2
+            )
+
+        def _magnetic_field_toroidal_magnitude(field, data):
             ax = axis_names.find("theta")
             bm = data.get_field_parameter("bulk_magnetic_field")
             return data[ftype, "magnetic_field_theta"] - bm[ax]
 
     elif registry.ds.geometry == "spherical":
 
-        def _magnetic_field_poloidal(field, data):
-            ax = axis_names.find("theta")
+        def _magnetic_field_poloidal_magnitude(field, data):
             bm = data.get_field_parameter("bulk_magnetic_field")
-            return data[ftype, "magnetic_field_theta"] - bm[ax]
+            rax = axis_names.index("r")
+            tax = axis_names.index("theta")
 
-        def _magnetic_field_toroidal(field, data):
+            return np.sqrt(
+                (data[ftype, "magnetic_field_r"] - bm[rax]) ** 2
+                + (data[ftype, "magnetic_field_theta"] - bm[tax]) ** 2
+            )
+
+        def _magnetic_field_toroidal_magnitude(field, data):
             ax = axis_names.find("phi")
             bm = data.get_field_parameter("bulk_magnetic_field")
             return data[ftype, "magnetic_field_phi"] - bm[ax]
 
-    if _magnetic_field_toroidal is not None:
+    if _magnetic_field_poloidal_magnitude is not None:
         registry.add_field(
-            (ftype, "magnetic_field_toroidal"),
+            (ftype, "magnetic_field_poloidal_magnitude"),
             sampling_type="local",
-            function=_magnetic_field_toroidal,
+            function=_magnetic_field_poloidal_magnitude,
             units=u,
             validators=[
                 ValidateParameter("normal"),
                 ValidateParameter("bulk_magnetic_field"),
             ],
         )
-    if _magnetic_field_poloidal is not None:
+
+    if _magnetic_field_toroidal_magnitude is not None:
         registry.add_field(
-            (ftype, "magnetic_field_poloidal"),
+            (ftype, "magnetic_field_toroidal_magnitude"),
             sampling_type="local",
-            function=_magnetic_field_poloidal,
+            function=_magnetic_field_toroidal_magnitude,
             units=u,
             validators=[
                 ValidateParameter("normal"),
                 ValidateParameter("bulk_magnetic_field"),
             ],
+        )
+
+    if registry.ds.geometry == "cartesian":
+        registry.alias(
+            (ftype, "magnetic_field_toroidal_magnitude"),
+            (ftype, "magnetic_field_spherical_phi"),
+            units=u,
+        )
+        registry.alias(
+            (ftype, "magnetic_field_toroidal"),
+            (ftype, "magnetic_field_spherical_phi"),
+            units=u,
+            deprecate=("4.1.0", None),
+        )
+        registry.alias(
+            (ftype, "magnetic_field_poloidal"),
+            (ftype, "magnetic_field_spherical_theta"),
+            units=u,
+            deprecate=("4.1.0", None),
         )
 
     def _alfven_speed(field, data):

@@ -205,7 +205,7 @@ def test_arbitrary_grid():
 
 
 def test_octree_cg():
-    ds = fake_octree_ds(over_refine_factor=0, partial_coverage=0)
+    ds = fake_octree_ds(num_zones=1, partial_coverage=0)
     cgrid = ds.covering_grid(
         0, left_edge=ds.domain_left_edge, dims=ds.domain_dimensions
     )

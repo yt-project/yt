@@ -2,6 +2,8 @@ from yt.fields.field_info_container import FieldInfoContainer
 from yt.fields.magnetic_field import setup_magnetic_field_aliases
 from yt.fields.species_fields import add_species_field_by_fraction, setup_species_fields
 from yt.frontends.gadget.api import GadgetFieldInfo
+from yt.utilities.chemical_formulas import ChemicalFormula
+from yt.utilities.physical_ratios import _primordial_mass_fraction
 
 metal_elements = ["He", "C", "N", "O", "Ne", "Mg", "Si", "Fe"]
 
@@ -123,6 +125,24 @@ class ArepoFieldInfo(GadgetFieldInfo):
             self.alias(("gas", "H_nuclei_density"), ("gas", "H_number_density"))
 
         if (ptype, "ElectronAbundance") in self.field_list:
+
+            # If we have ElectronAbundance but not NeutralHydrogenAbundance, assume the
+            # cosmic value for hydrogen to generate the H_number_density
+            if (ptype, "NeutralHydrogenAbundance") not in self.field_list:
+                amu_cgs = self.ds.units.physical_constants.amu_cgs
+                muinv = _primordial_mass_fraction["H"] / ChemicalFormula("H").weight
+
+                def _h_number_density(field, data):
+                    return data["gas", "density"] * muinv / amu_cgs
+
+                self.add_field(
+                    (ptype, "H_number_density"),
+                    sampling_type="particle",
+                    function=_h_number_density,
+                    units=self.ds.unit_system["number_density"],
+                )
+                self.alias(("gas", "H_number_density"), (ptype, "H_number_density"))
+                self.alias(("gas", "H_nuclei_density"), ("gas", "H_number_density"))
 
             def _el_number_density(field, data):
                 return (

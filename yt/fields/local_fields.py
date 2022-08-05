@@ -17,6 +17,9 @@ class LocalFieldInfoContainer(FieldInfoContainer):
     def add_field(
         self, name, function, sampling_type, *, force_override=False, **kwargs
     ):
+        from yt.fields.field_functions import validate_field_function
+
+        validate_field_function(function)
         if isinstance(name, str) or not is_sequence(name):
             # the base method only accepts proper tuple field keys
             # and is only used internally, while this method is exposed to users

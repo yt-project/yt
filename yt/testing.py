@@ -489,6 +489,25 @@ def small_fake_hexahedral_ds():
     return ds
 
 
+def fake_stretched_ds(N=16):
+    from yt.loaders import load_uniform_grid
+
+    np.random.seed(0x4D3D3D3)
+    data = {"density": np.random.random((N, N, N))}
+
+    cell_widths = []
+    for _ in range(3):
+        cw = np.random.random(N)
+        cw /= cw.sum()
+        cell_widths.append(cw)
+    return load_uniform_grid(
+        data,
+        [N, N, N],
+        bbox=np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]]),
+        cell_widths=cell_widths,
+    )
+
+
 def fake_vr_orientation_test_ds(N=96, scale=1):
     """
     create a toy dataset that puts a sphere at (0,0,0), a single cube
@@ -690,7 +709,7 @@ def fake_octree_ds(
     velocity_unit=None,
     magnetic_unit=None,
     periodicity=(True, True, True),
-    over_refine_factor=1,
+    num_zones=2,
     partial_coverage=1,
     unit_system="cgs",
 ):
@@ -720,7 +739,7 @@ def fake_octree_ds(
         magnetic_unit=magnetic_unit,
         periodicity=periodicity,
         partial_coverage=partial_coverage,
-        over_refine_factor=over_refine_factor,
+        num_zones=num_zones,
         unit_system=unit_system,
     )
     return ds

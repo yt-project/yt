@@ -59,6 +59,9 @@ See :ref:`manual-line-plots` for more information.
 
 .. yt_cookbook:: simple_1d_line_plot.py
 
+.. note:: Not every data types have support for ``yt.LinePlot`` yet.
+   Currently, this operation is supported for grid based data with cartesian geometry.
+
 Simple Probability Distribution Functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

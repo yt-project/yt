@@ -53,9 +53,15 @@ cdef class SelectorObject:
                                np.float64_t right_edge[3]) nogil
     cdef int select_bbox_edge(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3]) nogil
+    cdef int fill_mask_selector_regular_grid(self, np.float64_t left_edge[3],
+                                             np.float64_t right_edge[3],
+                                             np.float64_t dds[3], int dim[3],
+                                             np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask,
+                                             np.ndarray[np.uint8_t, ndim=3] mask,
+                                             int level)
     cdef int fill_mask_selector(self, np.float64_t left_edge[3],
                                 np.float64_t right_edge[3],
-                                np.float64_t dds[3], int dim[3],
+                                np.float64_t **dds, int dim[3],
                                 np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask,
                                 np.ndarray[np.uint8_t, ndim=3] mask,
                                 int level)

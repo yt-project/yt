@@ -73,3 +73,14 @@ def test_inconsistent_field_shape():
         load_particles(data)
 
     assert_raises(YTInconsistentParticleFieldShape, load_particle_fields_mismatch)
+
+
+def test_parameters():
+    # simple test to check that we can pass in parameters
+    Z = np.random.uniform(size=(32, 32, 32))
+    d = np.random.uniform(size=(32, 32, 32))
+
+    data = {"density": d, "metallicity": Z}
+
+    ds = load_uniform_grid(data, (32, 32, 32), parameters={"metadata_is_nice": True})
+    assert ds.parameters["metadata_is_nice"]

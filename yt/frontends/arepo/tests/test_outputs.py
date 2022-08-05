@@ -8,7 +8,7 @@ from yt.utilities.answer_testing.framework import data_dir_load, requires_ds, sp
 
 bullet_h5 = "ArepoBullet/snapshot_150.hdf5"
 tng59_h5 = "TNGHalo/halo_59.hdf5"
-_tng59_bbox = [[45135.0, 51343.0], [51844.0, 56184.0], [60555.0, 63451.0]]
+_tng59_bbox = [[40669.34, 56669.34], [45984.04, 61984.04], [54114.9, 70114.9]]
 cr_h5 = "ArepoCosmicRays/snapshot_039.hdf5"
 
 
@@ -60,6 +60,14 @@ def test_arepo_tng59():
     for test in sph_answer(ds, "halo_59", 10107142, tng59_fields):
         test_arepo_tng59.__name__ = test.description
         yield test
+
+
+@requires_ds(tng59_h5)
+def test_arepo_tng59_periodicity():
+    ds1 = data_dir_load(tng59_h5)
+    assert ds1.periodicity == (True, True, True)
+    ds2 = data_dir_load(tng59_h5, kwargs={"bounding_box": _tng59_bbox})
+    assert ds2.periodicity == (False, False, False)
 
 
 @requires_ds(tng59_h5)
