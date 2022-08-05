@@ -82,6 +82,21 @@ def test_region():
                 assert_equal(reg["gas", "density"].shape[0], answer)
 
 
+def test_periodic_region():
+    ds = fake_sph_grid_ds(10.0)
+    coords = [0.7, 1.4, 2.8]
+
+    for x in coords:
+        for y in coords:
+            for z in coords:
+                center = np.array([x, y, z])
+                for n, w in zip((8, 27), (1.0, 2.0)):
+                    le = center - 0.5 * w
+                    re = center + 0.5 * w
+                    box = ds.box(le, re)
+                    assert box["io", "particle_ones"].size == n
+
+
 SPHERE_ANSWERS = {
     ((0, 0, 0), 4): 7,
     ((0, 0, 0), 3): 7,
