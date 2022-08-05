@@ -173,8 +173,6 @@ class StreamHierarchy(GridIndex):
         """
         if self.grid_cell_widths is None:
             return super()._icoords_to_fcoords(icoords, ires, axes)
-        # Ideally this would be ported to something more efficient.  As it
-        # stands, this will use a pure python loop!
         if axes is None:
             axes = [0, 1, 2]
         # Transpose these by reversing the shape
