@@ -4,6 +4,7 @@ import re
 from typing import Optional, Tuple, Union
 
 from more_itertools import always_iterable
+from unyt import UnitRegistry
 
 import yt.units.dimensions as ytdims
 from yt._maintenance.deprecation import issue_deprecation_warning
@@ -160,15 +161,18 @@ class DerivedField:
         self.validators = list(always_iterable(validators))
 
         # handle units
-        self.units: Optional[Union[str, bytes, Unit]]
+        self.units: Optional[Unit]
         if units in (None, "auto"):
             self.units = None
-        elif isinstance(units, str):
-            self.units = units
+        elif isinstance(units, (str, bytes)):
+            registry: Optional[UnitRegistry]
+            if self.ds is not None:
+                registry = self.ds.unit_registry
+            else:
+                registry = None
+            self.units = Unit(units, registry=registry)
         elif isinstance(units, Unit):
-            self.units = str(units)
-        elif isinstance(units, bytes):
-            self.units = units.decode("utf-8")
+            self.units = units
         else:
             raise FieldUnitsError(
                 "Cannot handle units '%s' (type %s). "
@@ -220,18 +224,10 @@ class DerivedField:
         return self.sampling_type in ("discrete", "particle", "local")
 
     def get_units(self):
-        if self.ds is not None:
-            u = Unit(self.units, registry=self.ds.unit_registry)
-        else:
-            u = Unit(self.units)
-        return u.latex_representation()
+        return self.units.latex_representation()
 
     def get_projected_units(self):
-        if self.ds is not None:
-            u = Unit(self.units, registry=self.ds.unit_registry)
-        else:
-            u = Unit(self.units)
-        return (u * Unit("cm")).latex_representation()
+        return (self.units * Unit("cm")).latex_representation()
 
     def check_available(self, data):
         """
@@ -315,14 +311,10 @@ class DerivedField:
         # Grab the correct units
         if projected:
             raise NotImplementedError
-        else:
-            if self.ds is not None:
-                units = Unit(self.units, registry=self.ds.unit_registry)
-            else:
-                units = Unit(self.units)
+
         # Add unit label
-        if not units.is_dimensionless:
-            data_label += r"\ \ \left(%s\right)" % (units.latex_representation())
+        if not self.units.is_dimensionless:
+            data_label += r"\ \ \left(%s\right)" % (self.units.latex_representation())
 
         data_label += r"$"
         return data_label
