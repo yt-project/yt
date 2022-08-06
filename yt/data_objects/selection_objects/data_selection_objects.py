@@ -272,7 +272,8 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
                         # dimensionless YTArray and verify that field is
                         # supposed to be unitless
                         fd = self.ds.arr(fd, "")
-                        if Unit(fi.units) != Unit():
+                        fiu = Unit(fi.units, registry=self.ds.unit_registry)
+                        if not fiu.is_dimensionless:
                             raise YTFieldUnitError(fi, fd.units) from None
                     except UnitConversionError as e:
                         raise YTFieldUnitError(fi, fd.units) from e
