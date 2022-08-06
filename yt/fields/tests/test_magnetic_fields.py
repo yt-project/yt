@@ -43,19 +43,19 @@ def test_magnetic_fields():
     dd3 = ds3.all_data()
     dd4 = ds4.all_data()
 
-    assert ds0.fields.gas.magnetic_field_strength.units == "G"
-    assert ds1.fields.gas.magnetic_field_strength.units == "G"
-    assert ds1.fields.gas.magnetic_field_poloidal.units == "G"
-    assert ds1.fields.gas.magnetic_field_toroidal.units == "G"
-    assert ds2.fields.gas.magnetic_field_strength.units == "T"
-    assert ds2.fields.gas.magnetic_field_poloidal.units == "T"
-    assert ds2.fields.gas.magnetic_field_toroidal.units == "T"
-    assert ds3.fields.gas.magnetic_field_strength.units == "code_magnetic"
-    assert ds3.fields.gas.magnetic_field_poloidal.units == "code_magnetic"
-    assert ds3.fields.gas.magnetic_field_toroidal.units == "code_magnetic"
-    assert ds4.fields.gas.magnetic_field_strength.units == "code_magnetic"
-    assert ds4.fields.gas.magnetic_field_poloidal.units == "code_magnetic"
-    assert ds4.fields.gas.magnetic_field_toroidal.units == "code_magnetic"
+    assert str(ds0.fields.gas.magnetic_field_strength.units) == "G"
+    assert str(ds1.fields.gas.magnetic_field_strength.units) == "G"
+    assert str(ds1.fields.gas.magnetic_field_poloidal.units) == "G"
+    assert str(ds1.fields.gas.magnetic_field_toroidal.units) == "G"
+    assert str(ds2.fields.gas.magnetic_field_strength.units) == "T"
+    assert str(ds2.fields.gas.magnetic_field_poloidal.units) == "T"
+    assert str(ds2.fields.gas.magnetic_field_toroidal.units) == "T"
+    assert str(ds3.fields.gas.magnetic_field_strength.units) == "code_magnetic"
+    assert str(ds3.fields.gas.magnetic_field_poloidal.units) == "code_magnetic"
+    assert str(ds3.fields.gas.magnetic_field_toroidal.units) == "code_magnetic"
+    assert str(ds4.fields.gas.magnetic_field_strength.units) == "code_magnetic"
+    assert str(ds4.fields.gas.magnetic_field_poloidal.units) == "code_magnetic"
+    assert str(ds4.fields.gas.magnetic_field_toroidal.units) == "code_magnetic"
 
     emag0 = (
         dd0[("gas", "magnetic_field_x")] ** 2
