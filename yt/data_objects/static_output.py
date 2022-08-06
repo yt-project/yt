@@ -213,7 +213,6 @@ class Dataset(abc.ABC):
         self,
         filename,
         dataset_type=None,
-        file_style=None,
         units_override=None,
         unit_system="cgs",
         default_species_fields=None,
@@ -227,7 +226,6 @@ class Dataset(abc.ABC):
         if self._instantiated:
             return
         self.dataset_type = dataset_type
-        self.file_style = file_style
         self.conversion_factors = {}
         self.parameters = {}
         self.region_expression = self.r = RegionExpression(self)
@@ -2030,7 +2028,6 @@ class ParticleDataset(Dataset):
         self,
         filename,
         dataset_type=None,
-        file_style=None,
         units_override=None,
         unit_system="cgs",
         index_order=None,
@@ -2042,7 +2039,6 @@ class ParticleDataset(Dataset):
         super().__init__(
             filename,
             dataset_type=dataset_type,
-            file_style=file_style,
             units_override=units_override,
             unit_system=unit_system,
             default_species_fields=default_species_fields,
