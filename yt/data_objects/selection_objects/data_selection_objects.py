@@ -6,6 +6,7 @@ from contextlib import contextmanager
 
 import numpy as np
 from more_itertools import always_iterable
+from unyt import Unit
 from unyt.exceptions import UnitConversionError, UnitParseError
 
 import yt.geometry
@@ -272,7 +273,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
                         # dimensionless YTArray and verify that field is
                         # supposed to be unitless
                         fd = self.ds.arr(fd, "")
-                        if fi.units != "":
+                        if fi.units != Unit():
                             raise YTFieldUnitError(fi, fd.units) from None
                     except UnitConversionError as e:
                         raise YTFieldUnitError(fi, fd.units) from e
