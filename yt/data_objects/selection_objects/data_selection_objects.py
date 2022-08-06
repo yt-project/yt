@@ -241,28 +241,27 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
                         # infer the units from the units of the data we get back
                         # from the field function and use these units for future
                         # field accesses
-                        units = getattr(fd, "units", "")
-                        if units == "":
-                            sunits = ""
-                            dimensions = 1
-                        else:
-                            sunits = str(
-                                units.get_base_equivalent(self.ds.unit_system.name)
+                        if hasattr(fd, "units"):
+                            auto_units = fd.units.get_base_equivalent(
+                                self.ds.unit_system.name
                             )
-                            dimensions = units.dimensions
+                        else:
+                            auto_units = Unit(registry=self.ds.unit_registry)
 
                         if fi.dimensions is None:
                             mylog.warning(
                                 "Field %s was added without specifying units or dimensions, "
                                 "auto setting units to %s",
                                 fi.name,
-                                sunits,
+                                auto_units,
                             )
-                        elif fi.dimensions != dimensions:
-                            raise YTDimensionalityError(fi.dimensions, dimensions)
-                        fi.units = sunits
-                        fi.dimensions = dimensions
-                        self.field_data[field] = self.ds.arr(fd, units)
+                        elif fi.dimensions != auto_units.dimensions:
+                            raise YTDimensionalityError(
+                                fi.dimensions, auto_units.dimensions
+                            )
+                        fi.units = auto_units
+                        fi.dimensions = auto_units.dimensions
+                        self.field_data[field] = self.ds.arr(fd, auto_units)
                     if fi.output_units is None:
                         fi.output_units = fi.units
 
@@ -278,6 +277,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
                     except UnitConversionError as e:
                         raise YTFieldUnitError(fi, fd.units) from e
                     except UnitParseError as e:
+                        # TODO(clm): possibly remove this ?
                         raise YTFieldUnitParseError(fi) from e
                     self.field_data[field] = fd
                 except GenerationInProgress as gip:
