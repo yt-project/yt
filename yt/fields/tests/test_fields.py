@@ -1,4 +1,5 @@
 import numpy as np
+from unyt.exceptions import UnitParseError
 
 from yt import load
 from yt.frontends.stream.fields import StreamFieldInfo
@@ -16,11 +17,7 @@ from yt.testing import (
 )
 from yt.units.yt_array import YTArray, YTQuantity, array_like_field
 from yt.utilities.cosmology import Cosmology
-from yt.utilities.exceptions import (
-    YTDimensionalityError,
-    YTFieldUnitError,
-    YTFieldUnitParseError,
-)
+from yt.utilities.exceptions import YTDimensionalityError, YTFieldUnitError
 
 
 def get_params(ds):
@@ -324,7 +321,9 @@ def test_add_field_unit_semantics():
         sampling_type="cell",
         units="m/s",
     )
-    ds.add_field(
+    assert_raises(
+        UnitParseError,
+        ds.add_field,
         ("gas", "density_alias_unparseable_units"),
         sampling_type="cell",
         function=density_alias,
@@ -338,9 +337,6 @@ def test_add_field_unit_semantics():
         dimensions="temperature",
     )
     assert_raises(YTFieldUnitError, get_data, ds, ("gas", "density_alias_wrong_units"))
-    assert_raises(
-        YTFieldUnitParseError, get_data, ds, ("gas", "density_alias_unparseable_units")
-    )
     assert_raises(
         YTDimensionalityError, get_data, ds, ("gas", "density_alias_auto_wrong_dims")
     )
