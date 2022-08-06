@@ -237,6 +237,7 @@ class FieldInfoContainer(dict):
                 units = node.get("units", "")
                 aliases = node.get("aliases", [])
                 display_name = node.get("display_name", None)
+                args = units, aliases, display_name
 
             # We allow field_units to override this.  First we check if the
             # field *name* is in there, then the field *tuple*.
