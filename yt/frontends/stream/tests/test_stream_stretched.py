@@ -47,3 +47,9 @@ def test_variable_dx():
     assert_equal(center_z, ds.index.grids[0]["index", "z"][0, 0, :])
 
     assert_almost_equal(ds.r[:].sum(("index", "cell_volume")), ds.domain_width.prod())
+
+    for ax in "xyz":
+        dd = ds.all_data()
+        p = dd.integrate("ones", axis=ax)
+        assert_almost_equal(p["index", "ones"].max().d, 1.0)
+        assert_almost_equal(p["index", "ones"].min().d, 1.0)
