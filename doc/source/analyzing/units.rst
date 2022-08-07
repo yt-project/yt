@@ -335,3 +335,23 @@ second example returns data in low-redshift comoving megaparsecs.
 Wherever possible it's best to do calculations in physical units when working
 with more than one dataset. If you need to use comoving units or code units then
 extra care must be taken in your code to avoid ambiguity.
+
+
+Defining custom units globally
+------------------------------
+
+Units can be added to yt at runtime using ``yt.units.define_unit``.
+Such units can then be imported from the ``yt.units`` namespace.
+
+For example
+
+.. python-script::
+
+   from yt.units import mm, s
+
+   val = 5*mm/s
+   yt.units.define_unit("snail_speed", val)
+
+   from yt.units import snail_speed
+
+   snail_array = [1, 2, 3] * snail_speed
