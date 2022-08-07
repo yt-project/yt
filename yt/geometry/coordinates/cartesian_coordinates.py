@@ -335,7 +335,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 ptype = data_source.ds._sph_ptypes[0]
             px_name = self.axis_name[self.x_axis[dim]]
             py_name = self.axis_name[self.y_axis[dim]]
-            ounits = data_source.ds.field_info[field].output_units
+            ounits = data_source.ds.field_info[field].units
             bnds = data_source.ds.arr(bounds, "code_length").tolist()
             if isinstance(data_source, YTParticleProj):
                 weight = data_source.weight_field
@@ -393,7 +393,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 else:
                     weight_buff = np.zeros(size, dtype="float64")
                     buff = np.zeros(size, dtype="float64")
-                    wounits = data_source.ds.field_info[weight].output_units
+                    wounits = data_source.ds.field_info[weight].units
                     for chunk in proj_reg.chunks([], "io"):
                         data_source._initialize_projected_units([field], chunk)
                         data_source._initialize_projected_units([weight], chunk)

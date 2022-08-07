@@ -88,10 +88,6 @@ class DerivedField:
        Used for baryon fields from the data that are not in all the grids
     display_name : str
        A name used in the plots
-    output_units : str
-       For fields that exist on disk, which we may want to convert to other
-       fields or that get aliased to themselves, we can specify a different
-       desired output unit than the unit found on disk.
     dimensions : str or object from yt.units.dimensions
        The dimensions of the field, only used for error checking with units='auto'.
     nodal_flag : array-like with three components
@@ -119,7 +115,6 @@ class DerivedField:
         display_field=True,
         not_in_all=False,
         display_name=None,
-        output_units=None,
         dimensions=None,
         ds=None,
         nodal_flag=None,
@@ -175,9 +170,6 @@ class DerivedField:
                 "Please provide a string or Unit "
                 "object." % (units, type(units))
             )
-        if output_units is None:
-            output_units = self.units
-        self.output_units = output_units
 
         if isinstance(dimensions, str):
             dimensions = getattr(ytdims, dimensions)
@@ -489,7 +481,6 @@ class DerivedField:
             display_field=self.display_field,
             not_in_all=self.not_in_all,
             display_name=self.display_name,
-            output_units=self.output_units,
             dimensions=self.dimensions,
             ds=self.ds,
             nodal_flag=self.nodal_flag,

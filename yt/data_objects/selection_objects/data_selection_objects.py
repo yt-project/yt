@@ -198,7 +198,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
         )
         for f, v in read_fluids.items():
             self.field_data[f] = self.ds.arr(v, units=finfos[f].units)
-            self.field_data[f].convert_to_units(finfos[f].output_units)
+            self.field_data[f].convert_to_units(finfos[f].units)
 
         read_particles, gen_particles = self.index._read_particle_fields(
             particles, self, self._current_chunk
@@ -206,7 +206,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
 
         for f, v in read_particles.items():
             self.field_data[f] = self.ds.arr(v, units=finfos[f].units)
-            self.field_data[f].convert_to_units(finfos[f].output_units)
+            self.field_data[f].convert_to_units(finfos[f].units)
 
         fields_to_generate += gen_fluids + gen_particles
         self._generate_fields(fields_to_generate)
@@ -262,9 +262,6 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
                         fi.units = sunits
                         fi.dimensions = dimensions
                         self.field_data[field] = self.ds.arr(fd, units)
-                    if fi.output_units is None:
-                        fi.output_units = fi.units
-
                     try:
                         fd.convert_to_units(fi.units)
                     except AttributeError:

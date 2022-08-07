@@ -1795,7 +1795,7 @@ class Dataset(abc.ABC):
 
         if weight_field is None:
             weight_field = (ptype, "particle_mass")
-        units = self.field_info[ptype, deposit_field].output_units
+        units = self.field_info[ptype, deposit_field].units
         take_log = self.field_info[ptype, deposit_field].take_log
         name_map = {
             "sum": "sum",

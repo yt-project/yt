@@ -656,7 +656,7 @@ class YTNonspatialGrid(AMRGridPatch):
                     v = v.astype(np.float64)
             if convert:
                 self.field_data[f] = self.ds.arr(v, units=finfos[f].units)
-                self.field_data[f].convert_to_units(finfos[f].output_units)
+                self.field_data[f].convert_to_units(finfos[f].units)
 
         read_particles, gen_particles = self.index._read_fluid_fields(
             particles, self, self._current_chunk
@@ -671,7 +671,7 @@ class YTNonspatialGrid(AMRGridPatch):
                     v = v.astype(np.float64)
             if convert:
                 self.field_data[f] = self.ds.arr(v, units=finfos[f].units)
-                self.field_data[f].convert_to_units(finfos[f].output_units)
+                self.field_data[f].convert_to_units(finfos[f].units)
 
         fields_to_generate += gen_fluids + gen_particles
         self._generate_fields(fields_to_generate)

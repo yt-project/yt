@@ -419,7 +419,7 @@ def test_array_like_field_output_units():
     u1 = ad[("all", "particle_mass")].units
     u2 = array_like_field(ad, 1.0, ("all", "particle_mass")).units
     assert u1 == u2
-    assert str(u1) == ds.fields.all.particle_mass.output_units
+    assert str(u1) == ds.fields.all.particle_mass.units
     u1 = ad[("gas", "x")].units
     u2 = array_like_field(ad, 1.0, ("gas", "x")).units
     assert u1 == u2

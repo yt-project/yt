@@ -1099,10 +1099,8 @@ def array_like_field(data, x, field):
         finfo = data.ds._get_field_info(field[0], field[1])
     else:
         finfo = data.ds._get_field_info(field)
-    if finfo.sampling_type == "particle":
-        units = finfo.output_units
-    else:
-        units = finfo.units
+
+    units = finfo.units
     if isinstance(x, YTArray):
         arr = copy.deepcopy(x)
         arr.convert_to_units(units)

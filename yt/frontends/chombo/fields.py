@@ -8,7 +8,6 @@ from yt.fields.field_info_container import (
     standard_particle_fields,
 )
 from yt.frontends.boxlib.misc import BoxlibSetupParticleFieldsMixin
-from yt.units.unit_object import Unit  # type: ignore
 from yt.utilities.exceptions import YTFieldNotFound
 
 rho_units = "code_mass / code_length**3"
@@ -200,16 +199,8 @@ class ChomboPICFieldInfo3D(FieldInfoContainer):
     # I don't want to skip output units for code_length and I do want
     # particle_fields to default to take_log = False.
     def setup_particle_fields(self, ptype, ftype="gas", num_neighbors=64):
-        skip_output_units = ()
         for f, (units, aliases, dn) in sorted(self.known_particle_fields):
             units = self.ds.field_units.get((ptype, f), units)
-            if (
-                f in aliases or ptype not in self.ds.particle_types_raw
-            ) and units not in skip_output_units:
-                u = Unit(units, registry=self.ds.unit_registry)
-                output_units = str(u.get_cgs_equivalent())
-            else:
-                output_units = units
             if (ptype, f) not in self.field_list:
                 continue
             self.add_output_field(
@@ -217,11 +208,10 @@ class ChomboPICFieldInfo3D(FieldInfoContainer):
                 sampling_type="particle",
                 units=units,
                 display_name=dn,
-                output_units=output_units,
                 take_log=False,
             )
             for alias in aliases:
-                self.alias((ptype, alias), (ptype, f), units=output_units)
+                self.alias((ptype, alias), (ptype, f), units=units)
 
         ppos_fields = [f"particle_position_{ax}" for ax in "xyz"]
         pvel_fields = [f"particle_velocity_{ax}" for ax in "xyz"]

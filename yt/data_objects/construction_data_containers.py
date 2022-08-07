@@ -366,7 +366,7 @@ class YTProj(YTSelectionContainer2D):
                 # First time calling a units="auto" field, infer units and cache
                 # for future field accesses.
                 finfo.units = str(chunk[field].units)
-            field_unit = Unit(finfo.output_units, registry=self.ds.unit_registry)
+            field_unit = Unit(finfo.units, registry=self.ds.unit_registry)
             if self.method in ("min", "max") or self._sum_only:
                 path_length_unit = Unit(registry=self.ds.unit_registry)
             else:
@@ -865,7 +865,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
                 self[a] = self._data_source[f]
             else:
                 self[a] = f(self)
-            self.field_data[a].convert_to_units(f.output_units)
+            self.field_data[a].convert_to_units(f.units)
 
         if len(gen) > 0:
             part_gen = []

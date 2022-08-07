@@ -29,15 +29,15 @@ def _sanitize_min_max_units(amin, amax, finfo, registry):
     umin = getattr(amin, "units", None)
     umax = getattr(amax, "units", None)
     if umin is None:
-        umin = Unit(finfo.output_units, registry=registry)
+        umin = Unit(finfo.units, registry=registry)
         rmin = YTQuantity(amin, umin)
     else:
-        rmin = amin.in_units(finfo.output_units)
+        rmin = amin.in_units(finfo.units)
     if umax is None:
-        umax = Unit(finfo.output_units, registry=registry)
+        umax = Unit(finfo.units, registry=registry)
         rmax = YTQuantity(amax, umax)
     else:
-        rmax = amax.in_units(finfo.output_units)
+        rmax = amax.in_units(finfo.units)
     return rmin, rmax
 
 
@@ -245,7 +245,7 @@ class ProfileND(ParallelAnalysisInterface):
                 raise YTProfileDataShape(
                     self.bin_fields[0], bin_fields[0].shape, field, chunk[field].shape
                 )
-            units = chunk.ds.field_info[field].output_units
+            units = chunk.ds.field_info[field].units
             arr[:, i] = chunk[field][pfilter].in_units(units)
         if self.weight_field is not None:
             if pfilter.shape != chunk[self.weight_field].shape:
@@ -255,7 +255,7 @@ class ProfileND(ParallelAnalysisInterface):
                     self.weight_field,
                     chunk[self.weight_field].shape,
                 )
-            units = chunk.ds.field_info[self.weight_field].output_units
+            units = chunk.ds.field_info[self.weight_field].units
             weight_data = chunk[self.weight_field].in_units(units)
         else:
             weight_data = np.ones(pfilter.shape, dtype="float64")
@@ -508,7 +508,7 @@ class Profile1D(ProfileND):
         if rv is None:
             return
         fdata, wdata, (bf_x,) = rv
-        bf_x.convert_to_units(self.field_info[self.x_field].output_units)
+        bf_x.convert_to_units(self.field_info[self.x_field].units)
         bin_ind = np.digitize(bf_x, self.x_bins) - 1
         new_bin_profile1d(
             bin_ind,
@@ -763,9 +763,9 @@ class Profile2D(ProfileND):
         if rv is None:
             return
         fdata, wdata, (bf_x, bf_y) = rv
-        bf_x.convert_to_units(self.field_info[self.x_field].output_units)
+        bf_x.convert_to_units(self.field_info[self.x_field].units)
         bin_ind_x = np.digitize(bf_x, self.x_bins) - 1
-        bf_y.convert_to_units(self.field_info[self.y_field].output_units)
+        bf_y.convert_to_units(self.field_info[self.y_field].units)
         bin_ind_y = np.digitize(bf_y, self.y_bins) - 1
         new_bin_profile2d(
             bin_ind_x,
@@ -1104,11 +1104,11 @@ class Profile3D(ProfileND):
         if rv is None:
             return
         fdata, wdata, (bf_x, bf_y, bf_z) = rv
-        bf_x.convert_to_units(self.field_info[self.x_field].output_units)
+        bf_x.convert_to_units(self.field_info[self.x_field].units)
         bin_ind_x = np.digitize(bf_x, self.x_bins) - 1
-        bf_y.convert_to_units(self.field_info[self.y_field].output_units)
+        bf_y.convert_to_units(self.field_info[self.y_field].units)
         bin_ind_y = np.digitize(bf_y, self.y_bins) - 1
-        bf_z.convert_to_units(self.field_info[self.z_field].output_units)
+        bf_z.convert_to_units(self.field_info[self.z_field].units)
         bin_ind_z = np.digitize(bf_z, self.z_bins) - 1
         new_bin_profile3d(
             bin_ind_x,
@@ -1363,7 +1363,7 @@ def create_profile(
     else:
         ex = []
         for bin_field in bin_fields:
-            bf_units = data_source.ds.field_info[bin_field].output_units
+            bf_units = data_source.ds.field_info[bin_field].units
             try:
                 field_ex = list(extrema[bin_field[-1]])
             except KeyError as e:
@@ -1416,7 +1416,7 @@ def create_profile(
     if override_bins is not None:
         o_bins = []
         for bin_field in bin_fields:
-            bf_units = data_source.ds.field_info[bin_field].output_units
+            bf_units = data_source.ds.field_info[bin_field].units
             try:
                 field_obin = override_bins[bin_field[-1]]
             except KeyError:

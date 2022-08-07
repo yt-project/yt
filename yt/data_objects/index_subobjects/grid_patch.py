@@ -290,7 +290,7 @@ class AMRGridPatch(YTSelectionContainer):
         for field in fields:
             finfo = self.ds._get_field_info(field)
             new_fields[field] = self.ds.arr(
-                np.zeros(self.ActiveDimensions + 1), finfo.output_units
+                np.zeros(self.ActiveDimensions + 1), finfo.units
             )
         if no_ghost:
             for field in fields:

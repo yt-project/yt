@@ -86,16 +86,8 @@ class FieldInfoContainer(dict):
                 self.alias((ftype, f), ("index", f))
 
     def setup_particle_fields(self, ptype, ftype="gas", num_neighbors=64):
-        skip_output_units = ("code_length",)
         for f, (units, aliases, dn) in sorted(self.known_particle_fields):
             units = self.ds.field_units.get((ptype, f), units)
-            output_units = units
-            if (
-                f in aliases or ptype not in self.ds.particle_types_raw
-            ) and units not in skip_output_units:
-                u = Unit(units, registry=self.ds.unit_registry)
-                if u.dimensions is not dimensionless:
-                    output_units = str(self.ds.unit_system[u.dimensions])
             if (ptype, f) not in self.field_list:
                 continue
             self.add_output_field(
@@ -103,10 +95,9 @@ class FieldInfoContainer(dict):
                 sampling_type="particle",
                 units=units,
                 display_name=dn,
-                output_units=output_units,
             )
             for alias in aliases:
-                self.alias((ptype, alias), (ptype, f), units=output_units)
+                self.alias((ptype, alias), (ptype, f), units=units)
 
         # We'll either have particle_position or particle_position_[xyz]
         if (ptype, "particle_position") in self.field_list or (

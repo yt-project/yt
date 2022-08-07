@@ -645,7 +645,7 @@ class OctreeSubsetBlockSlice:
                     new_field += orig_field[slx, sly, slz]
                 new_field *= 0.125
 
-                new_fields[field] = self.ds.arr(new_field, finfo.output_units)
+                new_fields[field] = self.ds.arr(new_field, finfo.units)
 
                 self._vertex_centered_data[field] = new_fields[field]
 

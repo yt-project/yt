@@ -206,7 +206,7 @@ def off_axis_projection(
         z_min = center[2] - width[2] / 2
         z_max = center[2] + width[2] / 2
         finfo = data_source.ds.field_info[item]
-        ounits = finfo.output_units
+        ounits = finfo.units
         bounds = [x_min, x_max, y_min, y_max, z_min, z_max]
 
         if weight is None:
@@ -247,7 +247,7 @@ def off_axis_projection(
             # if there is a weight field, take two projections:
             # one of field*weight, the other of just weight, and divide them
             weight_buff = np.zeros((resolution[0], resolution[1]), dtype="float64")
-            wounits = data_source.ds.field_info[weight].output_units
+            wounits = data_source.ds.field_info[weight].units
 
             for chunk in data_source.chunks([], "io"):
                 off_axis_projection_SPH(

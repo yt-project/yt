@@ -353,10 +353,6 @@ There are a number of options available, but the only mandatory ones are ``name`
      (*Advanced*) Should this field appear in the dropdown box in Reason?
 ``not_in_all``
      (*Advanced*) If this is *True*, the field may not be in all the grids.
-``output_units``
-     (*Advanced*) For fields that exist on disk, which we may want to convert to other
-     fields or that get aliased to themselves, we can specify a different
-     desired output unit than the unit found on disk.
 ``force_override``
      (*Advanced*) Overrides the definition of an old field if a field with the
      same name has already been defined.
