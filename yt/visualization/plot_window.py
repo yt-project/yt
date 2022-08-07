@@ -14,7 +14,7 @@ from yt.config import ytcfg
 from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
 from yt.funcs import fix_axis, fix_unitary, is_sequence, iter_fields, mylog, obj_length
-from yt.units.unit_object import Unit  # type: ignore
+from yt.units.unit_object import Unit
 from yt.units.unit_registry import UnitParseError  # type: ignore
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import (

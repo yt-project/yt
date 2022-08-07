@@ -1,7 +1,7 @@
 import numpy as np
 
 from yt.units.dimensions import current_mks  # type: ignore
-from yt.units.unit_object import Unit  # type: ignore
+from yt.units.unit_object import Unit
 from yt.utilities.chemical_formulas import compute_mu
 from yt.utilities.lib.misc_utilities import obtain_relative_velocity_vector
 

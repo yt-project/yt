@@ -38,7 +38,7 @@ from yt.geometry.coordinates.api import (
 from yt.geometry.geometry_handler import Index
 from yt.units import UnitContainer, _wrap_display_ytarray, dimensions
 from yt.units.dimensions import current_mks  # type: ignore
-from yt.units.unit_object import Unit, define_unit  # type: ignore
+from yt.units.unit_object import Unit, define_unit
 from yt.units.unit_registry import UnitRegistry  # type: ignore
 from yt.units.unit_systems import (  # type: ignore
     create_code_unit_system,

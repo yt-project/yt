@@ -25,7 +25,7 @@ from yt.funcs import get_memory_usage, is_sequence, iter_fields, mylog, only_on_
 from yt.geometry import particle_deposit as particle_deposit
 from yt.geometry.coordinates.cartesian_coordinates import all_data
 from yt.loaders import load_uniform_grid
-from yt.units.unit_object import Unit  # type: ignore
+from yt.units.unit_object import Unit
 from yt.units.yt_array import YTArray, uconcatenate  # type: ignore
 from yt.utilities.exceptions import (
     YTNoAPIKey,

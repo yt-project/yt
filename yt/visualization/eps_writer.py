@@ -5,7 +5,7 @@ import pyx
 from matplotlib import cm, pyplot as plt
 
 from yt.config import ytcfg
-from yt.units.unit_object import Unit  # type: ignore
+from yt.units.unit_object import Unit
 from yt.units.yt_array import YTQuantity
 from yt.utilities.logger import ytLogger as mylog
 

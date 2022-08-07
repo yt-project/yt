@@ -8,7 +8,7 @@ from yt.fields.field_info_container import (
     standard_particle_fields,
 )
 from yt.frontends.boxlib.misc import BoxlibSetupParticleFieldsMixin
-from yt.units.unit_object import Unit  # type: ignore
+from yt.units.unit_object import Unit
 from yt.utilities.exceptions import YTFieldNotFound
 
 rho_units = "code_mass / code_length**3"

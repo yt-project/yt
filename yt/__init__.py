@@ -68,7 +68,7 @@ from yt.units import (
     uunion1d,
     uvstack,
 )
-from yt.units.unit_object import define_unit  # type: ignore
+from yt.units.unit_object import define_unit
 from yt.utilities.logger import set_log_level, ytLogger as mylog
 
 frontends = _frontend_container()

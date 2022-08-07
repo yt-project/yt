@@ -8,7 +8,7 @@ from more_itertools import always_iterable
 import yt.units.dimensions as ytdims
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.funcs import iter_fields, validate_field_key
-from yt.units.unit_object import Unit  # type: ignore
+from yt.units.unit_object import Unit
 from yt.utilities.exceptions import YTFieldNotFound
 from yt.utilities.logger import ytLogger as mylog
 
