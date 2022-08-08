@@ -825,7 +825,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
 
         reg = self.ds.region(self.center, self.left_edge, self.right_edge)
         if self._data_source is None:
-            # alwasy True for YTArbitraryGrid (does not accept a data_source)
+            # always True for YTArbitraryGrid (does not accept a data_source)
             self._data_source = reg
         else:
             self._data_source = self.ds.intersection([self._data_source, reg])
