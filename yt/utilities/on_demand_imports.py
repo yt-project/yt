@@ -494,6 +494,10 @@ class nibabel_imports(OnDemand):
         from nibabel import filebasedimages
 
         return filebasedimages.ImageFileError
+    
+    def apply_affine(self):
+        from nibabel import affines
 
+        return affines
 
 _nibabel = nibabel_imports()

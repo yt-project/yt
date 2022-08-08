@@ -158,6 +158,7 @@ class NiftiDataset(Dataset):
         self.omega_matter = 0
         self.hubble_constant = 0
 
+        self.geometry = "cartesian_subject"
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
         if isinstance(nib.load, NotAModule):

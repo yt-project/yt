@@ -27,6 +27,7 @@ from yt.fields.fluid_fields import setup_gradient_fields
 from yt.funcs import is_sequence, iter_fields, mylog, set_intersection, setdefaultattr
 from yt.geometry.coordinates.api import (
     CartesianCoordinateHandler,
+    CartesianSubjectCoordinateHandler,
     CoordinateHandler,
     CylindricalCoordinateHandler,
     GeographicCoordinateHandler,
@@ -732,6 +733,8 @@ class Dataset(abc.ABC):
             self.no_cgs_equiv_length = True
         elif self.geometry == "spectral_cube":
             cls = SpectralCubeCoordinateHandler
+        elif self.geometry == "cartesian_subject":
+            cls = CartesianSubjectCoordinateHandler
         else:
             raise YTGeometryNotSupported(self.geometry)
         self.coordinates = cls(self, **kwargs)
