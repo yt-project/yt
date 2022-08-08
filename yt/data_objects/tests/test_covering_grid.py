@@ -310,3 +310,7 @@ def test_arbitrary_grid_edge():
         assert ag.left_edge.units.registry == ds.unit_registry
         assert ag.right_edge.units.registry == ds.unit_registry
         ag[("gas", "density")]
+
+
+# def test_covering_grid_data_source_intersection()
+#     placeholder for a great new test

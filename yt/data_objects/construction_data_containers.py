@@ -666,7 +666,9 @@ class YTCoveringGrid(YTSelectionContainer3D):
             center = None
         else:
             center = field_parameters.get("center", None)
-        YTSelectionContainer3D.__init__(self, center, ds, field_parameters)
+        YTSelectionContainer3D.__init__(
+            self, center, ds, field_parameters, data_source=data_source
+        )
 
         self.level = level
         self.left_edge = self._sanitize_edge(left_edge)
@@ -688,7 +690,6 @@ class YTCoveringGrid(YTSelectionContainer3D):
             )
             + self.ds.domain_offset
         )
-        self._base_data_source = data_source
         self._setup_data_source()
         self.get_data(fields)
 
@@ -821,12 +822,14 @@ class YTCoveringGrid(YTSelectionContainer3D):
         return tuple(self.ActiveDimensions.tolist())
 
     def _setup_data_source(self):
-        self._data_source = self.ds.region(self.center, self.left_edge, self.right_edge)
-        if self._base_data_source is not None:
-            # intersect the extra with the region
-            self._data_source = self.ds.intersection(
-                [self._base_data_source, self._data_source]
-            )
+
+        reg = self.ds.region(self.center, self.left_edge, self.right_edge)
+        if self._data_source is None:
+            # alwasy True for YTArbitraryGrid (does not accept a data_source)
+            self._data_source = reg
+        else:
+            self._data_source = self.ds.intersection([self._data_source, reg])
+
         self._data_source.min_level = 0
         self._data_source.max_level = self.level
         # This triggers "special" behavior in the RegionSelector to ensure we
