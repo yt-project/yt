@@ -656,6 +656,8 @@ class YTCoveringGrid(YTSelectionContainer3D):
         num_ghost_zones=0,
         use_pbar=True,
         field_parameters=None,
+        *,
+        data_source=None,
     ):
         if field_parameters is None:
             center = None
@@ -683,6 +685,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
             )
             + self.ds.domain_offset
         )
+        self._extra_data_source = data_source  # copy instead of reference???
         self._setup_data_source()
         self.get_data(fields)
 
@@ -816,6 +819,11 @@ class YTCoveringGrid(YTSelectionContainer3D):
 
     def _setup_data_source(self):
         self._data_source = self.ds.region(self.center, self.left_edge, self.right_edge)
+        if self._extra_data_source is not None:
+            # intersect the extra with the region
+            self._data_source = self.ds.intersection(
+                [self._extra_data_source, self._data_source]
+            )
         self._data_source.min_level = 0
         self._data_source.max_level = self.level
         # This triggers "special" behavior in the RegionSelector to ensure we
