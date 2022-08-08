@@ -119,12 +119,11 @@ To load the above file, we would use the function as follows:
 .. code-block:: python
 
    import yt
+
    ds = yt.load_hdf5_file("UnigridData/turb_vels.h5")
 
 At this point, we now have a dataset that we can do all of our normal
 operations on, and all of the known yt derived fields will be available.
-
-.. code-block:: python
 
 .. _loading-amrvac-data:
 
