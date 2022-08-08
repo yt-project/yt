@@ -627,6 +627,9 @@ class YTCoveringGrid(YTSelectionContainer3D):
         A list of fields that you'd like pre-generated for your object
     num_ghost_zones : integer, optional
         The number of padding ghost zones used when accessing fields.
+    data_source :
+        An existing data_source to intersect with the covering grid. Grid points
+        outside the data_source will exist as empty values.
 
     Examples
     --------
@@ -685,7 +688,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
             )
             + self.ds.domain_offset
         )
-        self._extra_data_source = data_source  # copy instead of reference???
+        self._base_data_source = data_source
         self._setup_data_source()
         self.get_data(fields)
 
@@ -819,10 +822,10 @@ class YTCoveringGrid(YTSelectionContainer3D):
 
     def _setup_data_source(self):
         self._data_source = self.ds.region(self.center, self.left_edge, self.right_edge)
-        if self._extra_data_source is not None:
+        if self._base_data_source is not None:
             # intersect the extra with the region
             self._data_source = self.ds.intersection(
-                [self._extra_data_source, self._data_source]
+                [self._base_data_source, self._data_source]
             )
         self._data_source.min_level = 0
         self._data_source.max_level = self.level
