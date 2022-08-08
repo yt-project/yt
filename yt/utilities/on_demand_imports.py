@@ -488,16 +488,17 @@ class nibabel_imports(OnDemand):
 
         return load
 
-
     @safe_import
     def ImageFileError(self):
         from nibabel import filebasedimages
 
         return filebasedimages.ImageFileError
-    
+
+    @safe_import
     def apply_affine(self):
         from nibabel import affines
 
-        return affines
+        return affines.apply_affine
+
 
 _nibabel = nibabel_imports()
