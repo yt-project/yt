@@ -127,9 +127,9 @@ def test_projection(pf):
             assert_rel_equal(v1, v2.in_units(v1.units), 10)
 
         # Test moment projections
-        def make_vsq_field(an):
+        def make_vsq_field(aname):
             def _vsquared(field, data):
-                return data["gas", f"velocity_{an}"] ** 2
+                return data["gas", f"velocity_{aname}"] ** 2
 
             return _vsquared
 
