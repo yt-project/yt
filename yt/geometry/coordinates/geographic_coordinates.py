@@ -382,6 +382,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
 
     @property
     def data_projection(self):
+        # this will control the default projection to use when displaying data
         if self._data_projection is not None:
             return self._data_projection
         dpj = {}
@@ -397,6 +398,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
 
     @property
     def data_transform(self):
+        # this is the coordinate system on which the data is defined (the crs).
         if self._data_transform is not None:
             return self._data_transform
         dtx = {}

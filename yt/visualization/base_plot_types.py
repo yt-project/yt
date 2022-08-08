@@ -1,3 +1,4 @@
+import sys
 import warnings
 from io import BytesIO
 
@@ -266,33 +267,8 @@ class ImagePlotMPL(PlotMPL):
             transform = self.axes.transData
         else:
             transform = self._transform
-        if hasattr(self.axes, "set_extent"):
-            # CartoPy hangs if we do not set_extent before imshow if we are
-            # displaying a small subset of the globe.  What I believe happens is
-            # that the transform for the points on the outside results in
-            # infinities, and then the scipy.spatial cKDTree hangs trying to
-            # identify nearest points.
-            #
-            # Also, set_extent is defined by cartopy, so not all axes will have
-            # it as a method.
-            #
-            # A potential downside is that other images may change, but I believe
-            # the result of imshow is to set_extent *regardless*.  This just
-            # changes the order in which it happens.
-            #
-            # NOTE: This is currently commented out because it breaks in some
-            # instances.  It is left as a historical note because we will
-            # eventually need some form of it.
-            # self.axes.set_extent(extent)
 
-            # possibly related issue (operation order dependency)
-            # https://github.com/SciTools/cartopy/issues/1468
-
-            # in cartopy 0.19 (or 0.20), some intented behaviour changes produced an
-            # incompatibility here where default values for extent would lead to a crash.
-            # A solution is to let the transform object set the image extents internally
-            # see https://github.com/SciTools/cartopy/issues/1955
-            extent = None
+        self._validate_axes_extent(extent, transform)
 
         self.image = self.axes.imshow(
             data.to_ndarray(),
@@ -359,6 +335,33 @@ class ImagePlotMPL(PlotMPL):
         else:
             self.cb = self.figure.colorbar(self.image, self.cax)
         self.cax.tick_params(which="both", axis="y", direction="in")
+
+    def _validate_axes_extent(self, extent, transform):
+        # if the axes are cartopy GeoAxes, this checks that the axes extent
+        # is properly set.
+
+        if "cartopy" not in sys.modules:
+            # cartopy isn't already loaded, nothing to do here
+            return
+
+        from cartopy.mpl.geoaxes import GeoAxes
+
+        if isinstance(self.axes, GeoAxes):
+            # some projections have trouble when passing extents at or near the
+            # limits. So we only set_extent when the plot is a subset of the
+            # globe, within the tolerance of the transform.
+
+            # note that `set_extent` here is setting the extent of the axes.
+            # still need to pass the extent arg to imshow in order to
+            # ensure that it is properly scaled. also note that set_extent
+            # expects values in the coordinates of the transform: it will
+            # calculate the coordinates in the projection.
+            global_extent = transform.x_limits + transform.y_limits
+            thresh = transform.threshold
+            if all(
+                abs(extent[ie]) < (abs(global_extent[ie]) - thresh) for ie in range(4)
+            ):
+                self.axes.set_extent(extent, crs=transform)
 
     def _get_best_layout(self):
 
