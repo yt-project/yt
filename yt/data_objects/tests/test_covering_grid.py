@@ -82,6 +82,46 @@ def test_covering_grid():
                     ]
                     assert_equal(f, g[("gas", "density")])
 
+            # test the data_source kwarg (new with PR 4063)
+
+            # check that the regularized sphere is centered where it should be,
+            # to within the tolerance of the grid
+            center = (
+                ds.domain_center + np.min(ds.domain_width) * 0.15
+            )  # offset the sphere center a bit
+            sp = ds.sphere(center, (0.1, "code_length"))
+            dims = dn * ds.domain_dimensions
+            cg_sp = ds.covering_grid(level, [0.0, 0.0, 0.0], dims, data_source=sp)
+            cg_mask = cg_sp["gas", "density"] != 0  # only values inside will be nonzero
+            discrete_c = ds.arr(
+                [
+                    np.mean(cg_sp[("index", dim)][cg_mask])
+                    for dim in ds.coordinates.axis_order
+                ]
+            )
+
+            # should be centered to within the tolerance of the grid at least
+            grid_tol = ds.arr(
+                [cg_sp[("index", dim)][0, 0, 0] for dim in ds.coordinates.axis_order]
+            )
+            assert np.all(np.abs(discrete_c - center) <= grid_tol)
+
+            # a region covering the whole domain should look the same as no data_source
+            reg = ds.region(ds.domain_center, ds.domain_left_edge, ds.domain_right_edge)
+            cg_reg = ds.covering_grid(level, [0.0, 0.0, 0.0], dims, data_source=reg)
+            assert np.all(cg[("gas", "density")] == cg_reg[("gas", "density")])
+
+            # check that a box covering a subset of the domain is the right volume
+            right_edge = ds.domain_left_edge + ds.domain_width * 0.5
+            c = (right_edge + ds.domain_left_edge) / 2
+            reg = ds.region(c, ds.domain_left_edge, right_edge)
+            cg_reg = ds.covering_grid(level, [0.0, 0.0, 0.0], dims, data_source=reg)
+            box_vol = cg_reg[("index", "cell_volume")][
+                cg_reg["gas", "density"] != 0
+            ].sum()
+            actual_vol = np.prod(right_edge - ds.domain_left_edge)
+            assert box_vol == actual_vol
+
     # More tests for cylindrical geometry
     for fn in [cyl_2d, cyl_3d]:
         ds = load(fn)
@@ -310,7 +350,3 @@ def test_arbitrary_grid_edge():
         assert ag.left_edge.units.registry == ds.unit_registry
         assert ag.right_edge.units.registry == ds.unit_registry
         ag[("gas", "density")]
-
-
-# def test_covering_grid_data_source_intersection()
-#     placeholder for a great new test
