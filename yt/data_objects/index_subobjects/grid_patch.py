@@ -338,8 +338,8 @@ class AMRGridPatch(YTSelectionContainer):
             return np.empty((0, 3), dtype="float64")
         coords = convert_mask_to_indices(mask, self._last_count).astype("float64")
         coords += 0.5
-        coords *= self.dds[None, :]
-        coords += self.LeftEdge[None, :]
+        coords *= self.dds.d[None, :]
+        coords += self.LeftEdge.d[None, :]
         return coords
 
     def select_fwidth(self, dobj):
