@@ -24,6 +24,11 @@ def test_flux_calculation():
     )
     assert_almost_equal(flux.value, 1.0, 12)
     assert_equal(str(flux.units), "cm**2")
+    flux2 = surf.calculate_flux(
+        ("index", "ones"), ("index", "zeros"), ("index", "zeros")
+    )
+    assert_almost_equal(flux2.value, 1.0, 12)
+    assert_equal(str(flux2.units), "cm**2")
 
 
 def test_sampling():
