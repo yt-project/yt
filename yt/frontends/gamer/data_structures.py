@@ -335,7 +335,7 @@ class GAMERDataset(Dataset):
             self.omega_lambda = 1.0 - self.omega_matter
             # default to 0.7 for old data format
             self.hubble_constant = parameters.get("Hubble0", 0.7)
-            
+
             # use cosmological lookback time as current time when COMOVING is on
             cosmo = Cosmology(
                 hubble_constant=self.hubble_constant,
