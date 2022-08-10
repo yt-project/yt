@@ -329,12 +329,14 @@ class GAMERDataset(Dataset):
         # cosmological parameters
         if parameters["Comoving"]:
             self.cosmological_simulation = 1
+            # here parameters["Time"][0] is the scale factor a at certain redshift
             self.current_redshift = 1.0 / parameters["Time"][0] - 1.0
             self.omega_matter = parameters["OmegaM0"]
             self.omega_lambda = 1.0 - self.omega_matter
             # default to 0.7 for old data format
             self.hubble_constant = parameters.get("Hubble0", 0.7)
             
+            # use cosmological lookback time as current time when COMOVING is on
             cosmo = Cosmology(
                 hubble_constant=self.hubble_constant,
                 omega_matter=self.omega_matter,
@@ -347,6 +349,8 @@ class GAMERDataset(Dataset):
             self.omega_matter = 0.0
             self.omega_lambda = 0.0
             self.hubble_constant = 0.0
+
+            # use parameters["Time"][0] as current time when COMOVIG is off
             self.current_time = parameters["Time"][0]
 
         # make aliases to some frequently used variables
