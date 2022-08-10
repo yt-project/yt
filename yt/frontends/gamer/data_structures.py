@@ -342,7 +342,7 @@ class GAMERDataset(Dataset):
                 omega_matter=self.omega_matter,
                 omega_lambda=self.omega_lambda,
             )
-            self.current_time    = cosmo.lookback_time(self.current_redshift, 1e6)
+            self.current_time = cosmo.lookback_time(self.current_redshift, 1e6)
         else:
             self.cosmological_simulation = 0
             self.current_redshift = 0.0
@@ -350,7 +350,7 @@ class GAMERDataset(Dataset):
             self.omega_lambda = 0.0
             self.hubble_constant = 0.0
 
-            # use parameters["Time"][0] as current time when COMOVIG is off
+            # use parameters["Time"][0] as current time when COMOVING is off
             self.current_time = parameters["Time"][0]
 
         # make aliases to some frequently used variables
