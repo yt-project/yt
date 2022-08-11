@@ -40,7 +40,7 @@ answer_tests:
     - yt/frontends/chimera/tests/test_outputs.py:test_2D
     - yt/frontends/chimera/tests/test_outputs.py:test_3D
 
-  local_chombo_005:
+  local_chombo_006:
     - yt/frontends/chombo/tests/test_outputs.py:test_gc
     - yt/frontends/chombo/tests/test_outputs.py:test_tb
     - yt/frontends/chombo/tests/test_outputs.py:test_iso
