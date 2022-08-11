@@ -348,7 +348,7 @@ class AMRGridPatch(YTSelectionContainer):
             return np.empty((0, 3), dtype="float64")
         coords = np.empty((count, 3), dtype="float64")
         for axis in range(3):
-            coords[:, axis] = self.dds[axis]
+            coords[:, axis] = self.dds.d[axis]
         return coords
 
     def select_ires(self, dobj):
