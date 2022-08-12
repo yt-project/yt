@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
     LodgeIt!
     ~~~~~~~~
@@ -190,6 +189,13 @@ def print_languages():
     """Print a list of all supported languages, with description."""
     xmlrpc = get_xmlrpc_service()
     languages = xmlrpc.pastes.getLanguages().items()
+
+    def cmp(x, y):
+        # emulate Python2's builtin cmp function
+        # https://docs.python.org/2.7/library/functions.html#cmp
+        # https://docs.python.org/3/whatsnew/3.0.html#ordering-comparisons
+        return (x > y) - (x < y)
+
     languages.sort(lambda a, b: cmp(a[1].lower(), b[1].lower()))
     print("Supported Languages:")
     for alias, name in languages:
@@ -326,7 +332,3 @@ def main(
         open_webbrowser(url)
     if clipboard:
         copy_url(url)
-
-
-if __name__ == "__main__":
-    sys.exit(main())
