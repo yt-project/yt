@@ -11,8 +11,9 @@ def get_radius(data, field_prefix, ftype):
     DW = (data.ds.domain_right_edge - data.ds.domain_left_edge).to("code_length")
     # This is in code_length so it can be the destination for our r later.
     radius2 = data.ds.arr(
-        np.zeros(data[ftype, field_prefix + "x"].shape, dtype="float64"), "code_length")
-    
+        np.zeros(data[ftype, field_prefix + "x"].shape, dtype="float64"), "code_length"
+    )
+
     r = radius2.v
     if any(data.ds.periodicity):
         rdw = radius2.v
