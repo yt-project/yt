@@ -14,7 +14,7 @@ def get_radius(data, field_prefix, ftype):
         np.zeros(data[ftype, field_prefix + "x"].shape, dtype="float64"), "code_length"
     )
 
-    r = radius2.v
+    r = np.empty_like(radius2, subok=False)
     if any(data.ds.periodicity):
         rdw = radius2.v
     for i, ax in enumerate("xyz"):
