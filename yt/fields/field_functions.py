@@ -9,7 +9,7 @@ from yt.utilities.lib.misc_utilities import obtain_position_vector
 def get_radius(data, field_prefix, ftype):
     center = data.get_field_parameter("center").to("code_length")
     DW = (data.ds.domain_right_edge - data.ds.domain_left_edge).to("code_length")
-    # This is in cm so it can be the destination for our r later.
+    # This is in code_length so it can be the destination for our r later.
     radius2 = data.ds.arr(
         np.zeros(data[ftype, field_prefix + "x"].shape, dtype="float64"), "code_length")
     
@@ -17,8 +17,6 @@ def get_radius(data, field_prefix, ftype):
     if any(data.ds.periodicity):
         rdw = radius2.v
     for i, ax in enumerate("xyz"):
-        # This will coerce the units, so we don't need to worry that we copied
-        # it from a cm**2 array.
         np.subtract(
             data[ftype, f"{field_prefix}{ax}"].d,
             center[i].d,
