@@ -327,7 +327,7 @@ class YTDataChunk:
             c = obj.select_fcoords(self.dobj)
             if c.shape[0] == 0:
                 continue
-            ci[ind : ind + c.shape[0], :] = c
+            ci.d[ind : ind + c.shape[0], :] = c
             ind += c.shape[0]
         return ci
 
@@ -363,7 +363,8 @@ class YTDataChunk:
             c = obj.select_fwidth(self.dobj)
             if c.shape[0] == 0:
                 continue
-            ci[ind : ind + c.shape[0], :] = c
+            ci.d[ind : ind + c.shape[0], :] = c
+
             ind += c.shape[0]
         return ci
 
@@ -419,7 +420,7 @@ class YTDataChunk:
             c = obj.select_fcoords_vertex(self.dobj)
             if c.shape[0] == 0:
                 continue
-            ci[ind : ind + c.shape[0], :, :] = c
+            ci.d[ind : ind + c.shape[0], :, :] = c
             ind += c.shape[0]
         return ci
 
