@@ -898,9 +898,10 @@ to apply filters.
 Extending annotations methods
 -----------------------------
 
-New ``annotate_`` methods can be added to plot object at runtime (i.e., without
+New ``annotate_`` methods can be added to plot objects at runtime (i.e., without
 modifying yt's source code) by subclassing the base ``PlotCallback`` class.
-This is the recommended way to add custom and unique annotations to yt plots.
+This is the recommended way to add custom and unique annotations to yt plots,
+as it can be done through local plugins, individual scripts, or even external packages.
 
 Here's a minimal example:
 
