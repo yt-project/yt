@@ -18,13 +18,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-      # pinning OS versions to oldest versions available
-      # because forward compatibility is much easier to
-      # guarantee than backward compatibility
         os: [
-          ubuntu-18.04,
+          ubuntu-20.04,
           windows-2019,
-          macos-10.15,
+          macos-11,
         ]
       fail-fast: false
 
