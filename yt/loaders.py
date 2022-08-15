@@ -859,7 +859,7 @@ def load_hexahedral_mesh(
     sfh.update({"connectivity": connectivity, "coordinates": coordinates, 0: data})
     # Simple check for axis length correctness
     if len(data) > 0:
-        fn = list(sorted(data))[0]
+        fn = sorted(data)[0]
         array_values = data[fn]
         if array_values.size != connectivity.shape[0]:
             mylog.error(

@@ -340,7 +340,7 @@ class GridIndex(Index, abc.ABC):
                 _gsort = _grid_sort_mixed
             else:
                 _gsort = _grid_sort_id
-            grids = list(sorted(self.grids[gi], key=_gsort))
+            grids = sorted(self.grids[gi], key=_gsort)
             dobj._chunk_info = np.empty(len(grids), dtype="object")
             for i, g in enumerate(grids):
                 dobj._chunk_info[i] = g
