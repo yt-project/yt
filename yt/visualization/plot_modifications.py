@@ -406,7 +406,13 @@ class VelocityCallback(PlotCallback):
     """
 
     _type_name = "velocity"
-    _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
+    _supported_geometries = (
+        "cartesian",
+        "spectral_cube",
+        "polar",
+        "cylindrical",
+        "spherical",
+    )
     _incompatible_plot_types = ("OffAxisProjection", "Particle")
 
     def __init__(
@@ -475,6 +481,17 @@ class VelocityCallback(PlotCallback):
                 # should convert r-theta plane to x-y plane
                 xv = (ftype, "velocity_cartesian_x")
                 yv = (ftype, "velocity_cartesian_y")
+            elif plot.data.ds.geometry == "spherical":
+                if axis_names[plot.data.axis] == "phi":
+                    xv = (ftype, "velocity_cylindrical_radius")
+                    yv = (ftype, "velocity_cylindrical_z")
+                elif axis_names[plot.data.axis] == "theta":
+                    xv = (ftype, "velocity_conic_x")
+                    yv = (ftype, "velocity_conic_y")
+                else:
+                    raise NotImplementedError(
+                        f"annotate_velocity is missing support for normal={axis_names[plot.data.axis]!r}"
+                    )
             else:
                 # for other cases (even for cylindrical geometry),
                 # orthogonal planes are generically Cartesian
@@ -511,7 +528,13 @@ class MagFieldCallback(PlotCallback):
     """
 
     _type_name = "magnetic_field"
-    _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
+    _supported_geometries = (
+        "cartesian",
+        "spectral_cube",
+        "polar",
+        "cylindrical",
+        "spherical",
+    )
     _incompatible_plot_types = ("OffAxisProjection", "Particle")
 
     def __init__(
@@ -571,6 +594,17 @@ class MagFieldCallback(PlotCallback):
                 # should convert r-theta plane to x-y plane
                 xv = (ftype, "magnetic_field_cartesian_x")
                 yv = (ftype, "magnetic_field_cartesian_y")
+            elif plot.data.ds.geometry == "spherical":
+                if axis_names[plot.data.axis] == "phi":
+                    xv = (ftype, "magnetic_field_cylindrical_radius")
+                    yv = (ftype, "magnetic_field_cylindrical_z")
+                elif axis_names[plot.data.axis] == "theta":
+                    xv = (ftype, "magnetic_field_conic_x")
+                    yv = (ftype, "magnetic_field_conic_y")
+                else:
+                    raise NotImplementedError(
+                        f"annotate_magnetic_field is missing support for normal={axis_names[plot.data.axis]!r}"
+                    )
             else:
                 # for other cases (even for cylindrical geometry),
                 # orthogonal planes are generically Cartesian
@@ -694,6 +728,7 @@ class QuiverCallback(BaseQuiverCallback):
         "spectral_cube",
         "polar",
         "cylindrical",
+        "spherical",
     )
 
     def __init__(
