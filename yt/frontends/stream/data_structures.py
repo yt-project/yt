@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import uuid
 import weakref
@@ -41,6 +42,11 @@ from yt.utilities.logger import ytLogger as mylog
 
 from .definitions import process_data, set_particle_types
 from .fields import StreamFieldInfo
+
+if sys.version_info >= (3, 8):
+    from functools import cached_property
+else:
+    from yt._maintenance.backports import cached_property
 
 
 class StreamGrid(AMRGridPatch):
@@ -351,9 +357,12 @@ class StreamDataset(Dataset):
     def filename(self):
         return self.stream_handler.name
 
+    @cached_property
+    def unique_identifier(self) -> str:
+        return str(self.parameters["CurrentTimeIdentifier"])
+
     def _parse_parameter_file(self):
         self.parameters["CurrentTimeIdentifier"] = time.time()
-        self.unique_identifier = self.parameters["CurrentTimeIdentifier"]
         self.domain_left_edge = self.stream_handler.domain_left_edge.copy()
         self.domain_right_edge = self.stream_handler.domain_right_edge.copy()
         self.refine_by = self.stream_handler.refine_by

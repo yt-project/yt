@@ -1,4 +1,5 @@
 import os
+import sys
 
 import numpy as np
 
@@ -20,6 +21,11 @@ from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py, _libconf as libconf
+
+if sys.version_info >= (3, 8):
+    from functools import cached_property
+else:
+    from yt._maintenance.backports import cached_property
 
 
 class EnzoEGrid(AMRGridPatch):
@@ -79,29 +85,21 @@ class EnzoEGrid(AMRGridPatch):
         cid = get_child_index(a_block, d_block)
         self._children_ids[cid] = child.id
 
-    _particle_count = None
-
-    @property
+    @cached_property
     def particle_count(self):
-        if self._particle_count is None:
-            with h5py.File(self.filename, mode="r") as f:
-                fnstr = "{}/{}".format(
-                    self.block_name,
-                    self.ds.index.io._sep.join(["particle", "%s", "%s"]),
-                )
-                self._particle_count = {
-                    ptype: f.get(fnstr % (ptype, pfield)).size
-                    for ptype, pfield in self.ds.index.io.sample_pfields.items()
-                }
-        return self._particle_count
+        with h5py.File(self.filename, mode="r") as f:
+            fnstr = "{}/{}".format(
+                self.block_name,
+                self.ds.index.io._sep.join(["particle", "%s", "%s"]),
+            )
+            return {
+                ptype: f.get(fnstr % (ptype, pfield)).size
+                for ptype, pfield in self.ds.index.io.sample_pfields.items()
+            }
 
-    _total_particles = None
-
-    @property
-    def total_particles(self):
-        if self._total_particles is None:
-            self._total_particles = sum(self.particle_count.values())
-        return self._total_particles
+    @cached_property
+    def total_particles(self) -> int:
+        return sum(self.particle_count.values())
 
     @property
     def Parent(self):

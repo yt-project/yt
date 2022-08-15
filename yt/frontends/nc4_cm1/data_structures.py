@@ -1,5 +1,4 @@
 import os
-import stat
 import weakref
 from collections import OrderedDict
 
@@ -113,10 +112,7 @@ class CM1Dataset(Dataset):
         # assumed to be in code units; domain_left_edge and domain_right_edge
         # will be converted to YTArray automatically at a later time.
         # This includes the cosmological parameters.
-        #
-        #   self.unique_identifier      <= unique identifier for the dataset
-        #                                  being read (e.g., UUID or ST_CTIME)
-        self.unique_identifier = int(os.stat(self.parameter_filename)[stat.ST_CTIME])
+
         self.parameters = {}  # code-specific items
         with self._handle.open_ds() as _handle:
             # _handle here is a netcdf Dataset object, we need to parse some metadata
