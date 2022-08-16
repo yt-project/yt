@@ -336,7 +336,7 @@ class GAMERDataset(Dataset):
             # default to 0.7 for old data format
             self.hubble_constant = parameters.get("Hubble0", 0.7)
 
-            # use cosmology age computed by the given cosmological parameters as current time when COMOVING is on; cosmology age computed by subtracting lookback time at self.current_redshift, from the lookback time at z = 1e6, i.e. very early universe
+            # use the cosmological age computed by the given cosmological parameters as the current time when COMOVING is on; cosmological age is computed by subtracting the lookback time at self.current_redshift from that at z = 1e6 (i.e., very early universe)
             cosmo = Cosmology(
                 hubble_constant=self.hubble_constant,
                 omega_matter=self.omega_matter,
