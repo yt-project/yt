@@ -35,7 +35,10 @@ from yt.utilities.exceptions import (
 )
 from yt.utilities.grid_data_format.writer import write_to_gdf
 from yt.utilities.lib.cyoctree import CyOctree
-from yt.utilities.lib.interpolators import ghost_zone_interpolate
+from yt.utilities.lib.interpolators import (
+    ghost_zone_interpolate, 
+    fix_nonperiodic
+)
 from yt.utilities.lib.marching_cubes import march_cubes_grid, march_cubes_grid_flux
 from yt.utilities.lib.misc_utilities import fill_region, fill_region_float
 from yt.utilities.lib.pixelization_routines import (
@@ -1513,6 +1516,9 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
 
     def _update_level_state(self, level_state):
         ls = level_state
+        if any(self.fix_nonperiodic):
+            for field in level_state.fields:
+                fix_nonperiodic(field, self.lo_offset, self.hi_offset)
         if ls.current_level >= self.level:
             return
         rf = float(self.ds.relative_refinement(ls.current_level, ls.current_level + 1))
