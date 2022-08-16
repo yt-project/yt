@@ -170,6 +170,7 @@ class Dataset(abc.ABC):
     domain_offset = np.zeros(3, dtype="int64")
     _periodicity = MutableAttribute()
     _force_periodicity = False
+    _set_periodicity = None
 
     # these are set in self._set_derived_attrs()
     domain_width = MutableAttribute(True)
@@ -323,6 +324,8 @@ class Dataset(abc.ABC):
     def periodicity(self):
         if self._force_periodicity:
             return (True, True, True)
+        if self._set_periodicity is not None:
+            return self._set_periodicity
         return self._periodicity
 
     def force_periodicity(self, val=True):
@@ -335,6 +338,18 @@ class Dataset(abc.ABC):
         if not isinstance(val, bool):
             raise TypeError("force_periodicity expected a boolean.")
         self._force_periodicity = val
+
+    def set_periodicity(self, val):
+        """
+        Set box periodicity to user defined periodicity.
+        """
+        if isinstance(val, bool):
+            val = (val, val, val)
+        if not isinstance(val, tuple):
+            raise TypeError("set_periodicity must be a boolean or tuple of booleans.")
+        if len(val) != 3 or not all([isinstance(v, bool) for v in val]):
+            raise TypeError("user supplied periodicities must be a tuple of 3 booleans.")
+        self._set_periodicity = val
 
     # abstract methods require implementation in subclasses
     @classmethod
