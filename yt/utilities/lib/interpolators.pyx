@@ -163,3 +163,47 @@ def ghost_zone_interpolate(int rf,
                 opos[2] += ods[2]
             opos[1] += ods[1]
         opos[0] += ods[0]
+
+@cython.cdivision(True)
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def fix_nonperiodic(np.ndarray[np.float64_t, ndim=3] field,
+                    np.ndarray[np.int_t,     ndim=1] lo_offset,
+                    np.ndarray[np.int_t,     ndim=1] hi_offset):
+    cdef int i, j, k
+    cdef int ii, ij, ik
+    cdef int nx, ny, nz
+    cdef int lx, ly, lz
+    cdef int hx, hy, hz
+    cdef np.float64_t xp, xm, yp, ym, zp, zm
+    cdef np.float64_t qp, qm
+
+    nx = field.shape[0]
+    ny = field.shape[1]
+    nz = field.shape[2]
+    lx = lo_offset[0]
+    ly = lo_offset[1]
+    lz = lo_offset[2]
+    hx = hi_offset[0]
+    hy = hi_offset[1]
+    hz = hi_offset[2]
+
+    # Fix boundaries in the x direction
+    if lx > 0 or hx > 0:
+        for j in range(lo_offset[1], ny-hi_offset[1]):
+            for k in range(lo_offset[2], field.shape[2]-hi_offset[2]):
+                # Fix xlo
+                qm = field[lx,   j, k]
+                qp = field[lx+1, j, k]
+                for i in range(lx):
+                    xp = float(i - lx)
+                    xm = 1.0 - xp
+                    field[i, j, k] = xm*qm + xp*qp
+                # Fix xhi
+                qm = field[nx-hx-2, j, k]
+                qp = field[nx-hx-1, j, k]
+                for i in range(nx-hx, nx):
+                    # print('in xhi fix')
+                    xp = float(i - (nx-hx-1))
+                    xm = 1.0 - xp
+                    field[i, j, k] = xm*qm + xp*qp
