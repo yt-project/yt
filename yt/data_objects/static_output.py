@@ -350,7 +350,7 @@ class Dataset(abc.ABC):
             val = (val, val, val)
         if not isinstance(val, tuple):
             raise TypeError("set_periodicity must be a boolean or tuple of booleans.")
-        if len(val) != 3 or not all([isinstance(v, bool) for v in val]):
+        if len(val) != 3 or not all(isinstance(v, bool) for v in val):
             raise TypeError("user supplied periodicities must be a tuple of 3 booleans.")
         self._periodicity_override = val
 
