@@ -19,6 +19,12 @@ class StreamFieldInfo(FieldInfoContainer):
         ("magnetic_field_x", ("gauss", [], None)),
         ("magnetic_field_y", ("gauss", [], None)),
         ("magnetic_field_z", ("gauss", [], None)),
+        ("velocity_r", ("code_length/code_time", ["velocity_r"], None)),
+        ("velocity_theta", ("code_length/code_time", ["velocity_theta"], None)),
+        ("velocity_phi", ("code_length/code_time", ["velocity_phi"], None)),
+        ("magnetic_field_r", ("gauss", [], None)),
+        ("magnetic_field_theta", ("gauss", [], None)),
+        ("magnetic_field_phi", ("gauss", [], None)),
         (
             "radiation_acceleration_x",
             ("code_length/code_time**2", ["radiation_acceleration_x"], None),
@@ -89,7 +95,9 @@ class StreamFieldInfo(FieldInfoContainer):
             if units != "":
                 self.add_output_field(field, sampling_type="cell", units=units)
         setup_magnetic_field_aliases(
-            self, "stream", [f"magnetic_field_{ax}" for ax in "xyz"]
+            self,
+            "stream",
+            [f"magnetic_field_{ax}" for ax in self.ds.coordinates.axis_order],
         )
 
     def add_output_field(self, name, sampling_type, **kwargs):

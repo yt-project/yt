@@ -338,8 +338,8 @@ class AMRGridPatch(YTSelectionContainer):
             return np.empty((0, 3), dtype="float64")
         coords = convert_mask_to_indices(mask, self._last_count).astype("float64")
         coords += 0.5
-        coords *= self.dds[None, :]
-        coords += self.LeftEdge[None, :]
+        coords *= self.dds.d[None, :]
+        coords += self.LeftEdge.d[None, :]
         return coords
 
     def select_fwidth(self, dobj):
@@ -348,7 +348,7 @@ class AMRGridPatch(YTSelectionContainer):
             return np.empty((0, 3), dtype="float64")
         coords = np.empty((count, 3), dtype="float64")
         for axis in range(3):
-            coords[:, axis] = self.dds[axis]
+            coords[:, axis] = self.dds.d[axis]
         return coords
 
     def select_ires(self, dobj):
@@ -401,7 +401,7 @@ class AMRGridPatch(YTSelectionContainer):
         if self._cache_mask and hash(selector) == self._last_selector_id:
             mask = self._last_mask
         else:
-            mask = selector.fill_mask(self)
+            mask = selector.fill_mask_regular_grid(self)
             if self._cache_mask:
                 self._last_mask = mask
             self._last_selector_id = hash(selector)

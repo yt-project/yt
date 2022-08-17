@@ -1,6 +1,7 @@
 import abc
 import weakref
 from collections import defaultdict
+from typing import Optional, Tuple
 
 import numpy as np
 
@@ -339,7 +340,7 @@ class GridIndex(Index, abc.ABC):
                 _gsort = _grid_sort_mixed
             else:
                 _gsort = _grid_sort_id
-            grids = list(sorted(self.grids[gi], key=_gsort))
+            grids = sorted(self.grids[gi], key=_gsort)
             dobj._chunk_info = np.empty(len(grids), dtype="object")
             for i, g in enumerate(grids):
                 dobj._chunk_info[i] = g
@@ -449,6 +450,28 @@ class GridIndex(Index, abc.ABC):
                 # We allow four full chunks to be included.
                 with self.io.preload(dc, preload_fields, 4.0 * size):
                     yield dc
+
+    def _icoords_to_fcoords(
+        self,
+        icoords: np.ndarray,
+        ires: np.ndarray,
+        axes: Optional[Tuple[int, ...]] = None,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Accepts icoords and ires and returns appropriate fcoords and fwidth.
+        Mostly useful for cases where we have irregularly spaced or structured
+        grids.
+        """
+        dds = self.ds.domain_width[(axes,)] / (
+            self.ds.domain_dimensions[
+                axes,
+            ]
+            * self.ds.refine_by ** ires[:, None]
+        )
+        pos = (0.5 + icoords) * dds + self.ds.domain_left_edge[
+            axes,
+        ]
+        return pos, dds
 
     def _add_mesh_sampling_particle_field(self, deposit_field, ftype, ptype):
         units = self.ds.field_info[ftype, deposit_field].units

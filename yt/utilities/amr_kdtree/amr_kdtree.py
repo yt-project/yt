@@ -354,7 +354,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         if self.data_source.selector is None:
             mask = np.ones(dims, dtype="uint8")
         else:
-            mask = self.data_source.selector.fill_mask(grid)[
+            mask = self.data_source.selector.fill_mask_regular_grid(grid)[
                 li[0] : ri[0], li[1] : ri[1], li[2] : ri[2]
             ].astype("uint8")
 

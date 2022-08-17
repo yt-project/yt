@@ -1,6 +1,7 @@
 import glob
 import os
 import re
+import sys
 from collections import namedtuple
 from stat import ST_CTIME
 from typing import Type
@@ -23,8 +24,11 @@ from .fields import (
     NyxFieldInfo,
     WarpXFieldInfo,
 )
-from .misc import BoxlibReadParticleFileMixin
 
+if sys.version_info >= (3, 8):
+    from functools import cached_property
+else:
+    from yt._maintenance.backports import cached_property
 # This is what we use to find scientific notation that might include d's
 # instead of e's.
 _scinot_finder = re.compile(r"[-+]?[0-9]*\.?[0-9]+([eEdD][-+]?[0-9]+)?")
@@ -721,6 +725,11 @@ class BoxlibDataset(Dataset):
 
         return lookup_table[found.index(True)]
 
+    @cached_property
+    def unique_identifier(self) -> str:
+        hfn = os.path.join(self.output_dir, "Header")
+        return str(int(os.stat(hfn)[ST_CTIME]))
+
     def _parse_parameter_file(self):
         """
         Parses the parameter file and establishes the various
@@ -729,8 +738,6 @@ class BoxlibDataset(Dataset):
         self._periodicity = (False, False, False)
         self._parse_header_file()
         # Let's read the file
-        hfn = os.path.join(self.output_dir, "Header")
-        self.unique_identifier = int(os.stat(hfn)[ST_CTIME])
         # the 'inputs' file is now optional
         self._parse_cparams()
         self._parse_fparams()
@@ -921,7 +928,7 @@ class BoxlibDataset(Dataset):
         return self.refine_by ** (l1 - l0 + offset)
 
 
-class OrionHierarchy(BoxlibHierarchy, BoxlibReadParticleFileMixin):
+class OrionHierarchy(BoxlibHierarchy):
     def __init__(self, ds, dataset_type="orion_native"):
         BoxlibHierarchy.__init__(self, ds, dataset_type)
         self._read_particles()
@@ -961,6 +968,50 @@ class OrionHierarchy(BoxlibHierarchy, BoxlibReadParticleFileMixin):
 
         if self.particle_filename is not None:
             self._read_particle_file(self.particle_filename)
+
+    def _read_particle_file(self, fn):
+        """actually reads the orion particle data file itself."""
+        if not os.path.exists(fn):
+            return
+        with open(fn) as f:
+            lines = f.readlines()
+            self.num_stars = int(lines[0].strip()[0])
+            for num, line in enumerate(lines[1:]):
+                particle_position_x = float(line.split(" ")[1])
+                particle_position_y = float(line.split(" ")[2])
+                particle_position_z = float(line.split(" ")[3])
+                coord = [particle_position_x, particle_position_y, particle_position_z]
+                # for each particle, determine which grids contain it
+                # copied from object_finding_mixin.py
+                mask = np.ones(self.num_grids)
+                for i in range(len(coord)):
+                    np.choose(
+                        np.greater(self.grid_left_edge.d[:, i], coord[i]),
+                        (mask, 0),
+                        mask,
+                    )
+                    np.choose(
+                        np.greater(self.grid_right_edge.d[:, i], coord[i]),
+                        (0, mask),
+                        mask,
+                    )
+                ind = np.where(mask == 1)
+                selected_grids = self.grids[ind]
+                # in orion, particles always live on the finest level.
+                # so, we want to assign the particle to the finest of
+                # the grids we just found
+                if len(selected_grids) != 0:
+                    grid = sorted(selected_grids, key=lambda grid: grid.Level)[-1]
+                    ind = np.where(self.grids == grid)[0][0]
+                    self.grid_particle_count[ind] += 1
+                    self.grids[ind].NumberOfParticles += 1
+
+                    # store the position in the particle file for fast access.
+                    try:
+                        self.grids[ind]._particle_line_numbers.append(num + 1)
+                    except AttributeError:
+                        self.grids[ind]._particle_line_numbers = [num + 1]
+        return True
 
 
 class OrionDataset(BoxlibDataset):

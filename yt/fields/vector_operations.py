@@ -167,7 +167,9 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
     else:
         sl_left, sl_right, div_fac = slice_info
 
-    xn, yn, zn = ((ftype, f"{basename}_{ax}") for ax in "xyz")
+    axis_order = registry.ds.coordinates.axis_order
+
+    xn, yn, zn = ((ftype, f"{basename}_{ax}") for ax in axis_order)
 
     # Is this safe?
     if registry.ds.dimensionality < 3:
@@ -192,6 +194,8 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
         slice_info=slice_info,
         validators=[ValidateParameter(f"bulk_{basename}")],
     )
+
+    axis_names = registry.ds.coordinates.axis_order
 
     if not is_curvilinear(registry.ds.geometry):
 
@@ -402,10 +406,6 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
             validators=[ValidateParameter("normal")],
         )
 
-        def _cylindrical_radial_absolute(field, data):
-            """This field is deprecated and will be removed in a future version"""
-            return np.abs(data[ftype, f"{basename}_cylindrical_radius"])
-
         def _cylindrical_theta_component(field, data):
             """The cylindrical theta component of the vector field
 
@@ -431,10 +431,6 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
                 ValidateParameter(f"bulk_{basename}"),
             ],
         )
-
-        def _cylindrical_tangential_absolute(field, data):
-            """This field is deprecated and will be removed in a future release"""
-            return np.abs(data[ftype, f"cylindrical_tangential_{basename}"])
 
         def _cylindrical_z_component(field, data):
             """The cylindrical z component of the vector field
@@ -559,11 +555,71 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
                     data[(ftype, "theta")]
                 ) - data[(ftype, f"{basename}_theta")] * np.sin(data[(ftype, "theta")])
 
-        if registry.ds.dimensionality == 3:
+        if registry.ds.dimensionality >= 2:
             registry.add_field(
                 (ftype, f"{basename}_cartesian_z"),
                 sampling_type="local",
                 function=_cartesian_z,
+                units=field_units,
+                display_field=True,
+            )
+
+    if registry.ds.geometry == "spherical":
+
+        def _cylindrical_radius_component(field, data):
+            return (
+                np.sin(data[(ftype, "theta")]) * data[(ftype, f"{basename}_r")]
+                + np.cos(data[(ftype, "theta")]) * data[(ftype, f"{basename}_theta")]
+            )
+
+        registry.add_field(
+            (ftype, f"{basename}_cylindrical_radius"),
+            sampling_type="local",
+            function=_cylindrical_radius_component,
+            units=field_units,
+            display_field=True,
+        )
+
+        registry.alias(
+            (ftype, f"{basename}_cylindrical_z"),
+            (ftype, f"{basename}_cartesian_z"),
+        )
+
+        # define vector components appropriate for 'theta'-normal plots.
+        # The projection plane is called 'conic plane' in the code base as well as docs.
+        # Contrary to 'poloidal' and 'toroidal', this isn't a widely spread
+        # naming convention, but here it is exposed to users as part of dedicated
+        # field names, so it needs to be stable.
+        def _conic_x(field, data):
+            rax = axis_names.index("r")
+            pax = axis_names.index("phi")
+            bc = data.get_field_parameter(f"bulk_{basename}")
+            return np.cos(data[ftype, "phi"]) * (
+                data[ftype, f"{basename}_r"] - bc[rax]
+            ) - np.sin(data[ftype, "phi"]) * (data[ftype, f"{basename}_phi"] - bc[pax])
+
+        def _conic_y(field, data):
+            rax = axis_names.index("r")
+            pax = axis_names.index("phi")
+            bc = data.get_field_parameter(f"bulk_{basename}")
+            return np.sin(data[(ftype, "phi")]) * (
+                data[(ftype, f"{basename}_r")] - bc[rax]
+            ) + np.cos(data[(ftype, "phi")]) * (
+                data[(ftype, f"{basename}_phi")] - bc[pax]
+            )
+
+        if registry.ds.dimensionality == 3:
+            registry.add_field(
+                (ftype, f"{basename}_conic_x"),
+                sampling_type="local",
+                function=_conic_x,
+                units=field_units,
+                display_field=True,
+            )
+            registry.add_field(
+                (ftype, f"{basename}_conic_y"),
+                sampling_type="local",
+                function=_conic_y,
                 units=field_units,
                 display_field=True,
             )

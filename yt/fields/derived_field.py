@@ -41,13 +41,13 @@ def DeprecatedFieldFunc(ret_field, func, since, removal):
         # Only log a warning if we've already done
         # field detection
         if data.ds.fields_detected:
-            args = [field.name, since, removal]
-            msg = (
-                "The Derived Field %s is deprecated as of yt v%s "
-                "and will be removed in yt v%s. "
-            )
+            args = [field.name, since]
+            msg = "The Derived Field %s is deprecated as of yt v%s "
+            if removal is not None:
+                msg += "and will be removed in yt v%s "
+                args.append(removal)
             if ret_field != field.name:
-                msg += "Use %s instead."
+                msg += ", use %s instead"
                 args.append(ret_field)
             mylog.warning(msg, *args)
         return func(field, data)

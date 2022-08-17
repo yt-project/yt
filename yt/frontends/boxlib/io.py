@@ -3,10 +3,10 @@ from collections import defaultdict
 
 import numpy as np
 
+from yt.frontends.chombo.io import parse_orion_sinks
 from yt.funcs import mylog
+from yt.geometry.selection_routines import GridSelector
 from yt.utilities.io_handler import BaseIOHandler
-
-from .misc import BoxlibParticleSelectionMixin, IOHandlerParticlesBoxlibMixin
 
 
 def _remove_raw(all_fields, raw_fields):
@@ -16,7 +16,7 @@ def _remove_raw(all_fields, raw_fields):
     return list(centered_fields)
 
 
-class IOHandlerBoxlib(BaseIOHandler, BoxlibParticleSelectionMixin):
+class IOHandlerBoxlib(BaseIOHandler):
 
     _dataset_type = "boxlib_native"
 
@@ -191,12 +191,80 @@ class IOHandlerBoxlib(BaseIOHandler, BoxlibParticleSelectionMixin):
                                 yield (ptype, field), data[mask].flatten()
 
 
-class IOHandlerOrion(IOHandlerBoxlib, IOHandlerParticlesBoxlibMixin):
+class IOHandlerOrion(IOHandlerBoxlib):
     _dataset_type = "orion_native"
+
+    _particle_filename = None
 
     @property
     def particle_filename(self):
         fn = os.path.join(self.ds.output_dir, "StarParticles")
         if not os.path.exists(fn):
             fn = os.path.join(self.ds.output_dir, "SinkParticles")
-        return fn
+        self._particle_filename = fn
+        return self._particle_filename
+
+    _particle_field_index = None
+
+    @property
+    def particle_field_index(self):
+
+        index = parse_orion_sinks(self.particle_filename)
+
+        self._particle_field_index = index
+        return self._particle_field_index
+
+    def _read_particle_selection(self, chunks, selector, fields):
+        rv = {}
+        chunks = list(chunks)
+
+        if isinstance(selector, GridSelector):
+
+            if not (len(chunks) == len(chunks[0].objs) == 1):
+                raise RuntimeError
+
+            grid = chunks[0].objs[0]
+
+            for ftype, fname in fields:
+                rv[ftype, fname] = self._read_particles(grid, fname)
+
+            return rv
+
+        rv = {f: np.array([]) for f in fields}
+        for chunk in chunks:
+            for grid in chunk.objs:
+                for ftype, fname in fields:
+                    data = self._read_particles(grid, fname)
+                    rv[ftype, fname] = np.concatenate((data, rv[ftype, fname]))
+        return rv
+
+    def _read_particles(self, grid, field):
+        """
+        parses the Orion Star Particle text files
+
+        """
+
+        particles = []
+
+        if grid.NumberOfParticles == 0:
+            return np.array(particles)
+
+        def read(line, field):
+            entry = line.strip().split(" ")[self.particle_field_index[field]]
+            return float(entry)
+
+        try:
+            lines = self._cached_lines
+            for num in grid._particle_line_numbers:
+                line = lines[num]
+                particles.append(read(line, field))
+            return np.array(particles)
+        except AttributeError:
+            fn = self.particle_filename
+            with open(fn) as f:
+                lines = f.readlines()
+                self._cached_lines = lines
+                for num in grid._particle_line_numbers:
+                    line = lines[num]
+                    particles.append(read(line, field))
+            return np.array(particles)

@@ -1,4 +1,3 @@
-import inspect
 from collections.abc import Callable
 from numbers import Number as numeric_type
 from typing import Optional, Tuple
@@ -29,17 +28,6 @@ from .particle_fields import (
     sph_whitelist_fields,
     standard_particle_fields,
 )
-
-
-def tupleize(inp):
-    if isinstance(inp, tuple):
-        return inp
-    # prepending with a '?' ensures that the sort order is the same in py2 and
-    # py3, since names of field types shouldn't begin with punctuation
-    return (
-        "?",
-        inp,
-    )
 
 
 class FieldInfoContainer(dict):
@@ -363,31 +351,6 @@ class FieldInfoContainer(dict):
 
         kwargs.setdefault("ds", self.ds)
 
-        if not isinstance(function, Callable):  # type: ignore [arg-type]
-            # type-checking is disabled because of https://github.com/python/mypy/issues/11071
-            # this is compatible with lambdas and functools.partial objects
-            raise TypeError(
-                f"Expected a callable object, got {function} with type {type(function)}"
-            )
-
-        # lookup parameters that do not have default values
-        fparams = inspect.signature(function).parameters
-        nodefaults = tuple(p.name for p in fparams.values() if p.default is p.empty)
-        if nodefaults != ("field", "data"):
-            raise TypeError(
-                f"Received field function {function} with invalid signature. "
-                f"Expected exactly 2 positional parameters ('field', 'data'), got {nodefaults!r}"
-            )
-        if any(
-            fparams[name].kind == fparams[name].KEYWORD_ONLY
-            for name in ("field", "data")
-        ):
-            raise TypeError(
-                f"Received field function {function} with invalid signature. "
-                "Parameters 'field' and 'data' must accept positional values "
-                "(they cannot be keyword-only)"
-            )
-
         sampling_type = self._sanitize_sampling_type(sampling_type)
 
         if (
@@ -426,7 +389,7 @@ class FieldInfoContainer(dict):
         self.ds.field_dependencies.update(deps)
         # Note we may have duplicated
         dfl = set(self.ds.derived_field_list).union(deps.keys())
-        self.ds.derived_field_list = list(sorted(dfl, key=tupleize))
+        self.ds.derived_field_list = sorted(dfl)
         return loaded, unavailable
 
     def add_output_field(self, name, sampling_type, **kwargs):
@@ -444,7 +407,7 @@ class FieldInfoContainer(dict):
         alias_name: Tuple[str, str],
         original_name: Tuple[str, str],
         units: Optional[str] = None,
-        deprecate: Optional[Tuple[str, str]] = None,
+        deprecate: Optional[Tuple[str, Optional[str]]] = None,
     ):
         """
         Alias one field to another field.
@@ -459,7 +422,7 @@ class FieldInfoContainer(dict):
            A plain text string encoding the unit.  Powers must be in
            python syntax (** instead of ^). If set to "auto" the units
            will be inferred from the return value of the field function.
-        deprecate : Tuple[str, str], optional
+        deprecate : tuple[str, str | None] | None
             If this is set, then the tuple contains two string version
             numbers: the first marking the version when the field was
             deprecated, and the second marking when the field will be
@@ -507,7 +470,14 @@ class FieldInfoContainer(dict):
             )
 
     def add_deprecated_field(
-        self, name, function, sampling_type, since, removal, ret_name=None, **kwargs
+        self,
+        name,
+        function,
+        sampling_type,
+        since,
+        removal=None,
+        ret_name=None,
+        **kwargs,
     ):
         """
         Add a new field which is deprecated, along with supplemental metadata,
@@ -658,7 +628,7 @@ class FieldInfoContainer(dict):
         # now populate the derived field list with results
         # this violates isolation principles and should be refactored
         dfl = set(self.ds.derived_field_list).union(deps.keys())
-        dfl = list(sorted(dfl, key=tupleize))
+        dfl = sorted(dfl)
 
         if not hasattr(self.ds.index, "meshes"):
             # the meshes attribute characterizes an unstructured-mesh data structure

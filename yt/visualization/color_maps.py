@@ -4,7 +4,6 @@ from typing import Tuple, Union
 import cmyt  # noqa: F401
 import numpy as np
 from matplotlib import cm as mcm, colors as cc
-from matplotlib.pyplot import get_cmap
 from packaging.version import Version
 
 from yt.funcs import get_brewer_cmap
@@ -49,17 +48,16 @@ def register_yt_colormaps_from_cmyt():
     For backwards compatibility, register yt colormaps without the "cmyt."
     prefix, but do it in a collision-safe way.
     """
-    from matplotlib.pyplot import get_cmap
 
     for hist_name, alias in _HISTORICAL_ALIASES.items():
         if MPL_VERSION >= Version("3.4.0"):
-            cmap = get_cmap(alias).copy()
+            cmap = mcm.get_cmap(alias).copy()
         else:
-            cmap = deepcopy(get_cmap(alias))
+            cmap = deepcopy(mcm.get_cmap(alias))
         cmap.name = hist_name
         try:
             mcm.register_cmap(cmap=cmap)
-            mcm.register_cmap(cmap=get_cmap(hist_name).reversed())
+            mcm.register_cmap(cmap=mcm.get_cmap(hist_name).reversed())
         except ValueError:
             # Matplotlib 3.4.0 hard-forbids name collisions, but more recent versions
             # will emit a warning instead, so we emulate this behaviour regardless.
@@ -97,7 +95,7 @@ def get_colormap_lut(cmap_id: Union[Tuple[str, str], str]):
     if isinstance(cmap_id, tuple) and len(cmap_id) == 2:
         cmap = get_brewer_cmap(cmap_id)
     elif isinstance(cmap_id, str):
-        cmap = get_cmap(cmap_id)
+        cmap = mcm.get_cmap(cmap_id)
     else:
         raise TypeError(
             "Expected a string or a 2-tuple of strings as a colormap id. "
@@ -184,7 +182,7 @@ def show_colormaps(subset="all", filename=None):
     for i, m in enumerate(maps):
         plt.subplot(1, l, i + 1)
         plt.axis("off")
-        plt.imshow(a, aspect="auto", cmap=plt.get_cmap(m), origin="lower")
+        plt.imshow(a, aspect="auto", cmap=mcm.get_cmap(m), origin="lower")
         plt.title(m, rotation=90, fontsize=10, verticalalignment="bottom")
     if filename is not None:
         plt.savefig(filename, dpi=100, facecolor="gray")

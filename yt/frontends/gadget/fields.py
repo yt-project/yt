@@ -1,6 +1,8 @@
 from functools import partial
 
+from yt.fields.particle_fields import sph_whitelist_fields
 from yt.frontends.sph.fields import SPHFieldInfo
+from yt.utilities.periodic_table import periodic_table
 from yt.utilities.physical_constants import kb, mp
 from yt.utilities.physical_ratios import _primordial_mass_fraction
 
@@ -20,6 +22,8 @@ class GadgetFieldInfo(SPHFieldInfo):
             self.species_names = self._setup_four_metal_fractions(ptype)
         elif (ptype, "ElevenMetalMasses") in self.ds.field_list:
             self.species_names = self._setup_eleven_metal_masses(ptype)
+        if len(self.species_names) == 0:
+            self.species_names = self._check_whitelist_species_fields(ptype)
 
         super().setup_particle_fields(ptype, *args, **kwargs)
 
@@ -121,6 +125,18 @@ class GadgetFieldInfo(SPHFieldInfo):
         )
 
         return ["H"] + metal_names[:-1]
+
+    def _check_whitelist_species_fields(self, ptype):
+        species_names = []
+        for field in self.ds.field_list:
+            if (
+                field[0] == ptype
+                and field[1].endswith(("_fraction", "_density"))
+                and field[1] in sph_whitelist_fields
+            ):
+                symbol, _, _ = field[1].partition("_")
+                species_names.append(symbol)
+        return sorted(species_names, key=lambda symbol: periodic_table[symbol].num)
 
     def setup_gas_particle_fields(self, ptype):
         if (ptype, "Temperature") not in self.ds.field_list:

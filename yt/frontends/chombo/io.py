@@ -2,16 +2,12 @@ import re
 
 import numpy as np
 
-from yt.frontends.boxlib.misc import (
-    BoxlibParticleSelectionMixin,
-    IOHandlerParticlesBoxlibMixin,
-)
 from yt.geometry.selection_routines import GridSelector
 from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
 
 
-class IOHandlerChomboHDF5(BaseIOHandler, BoxlibParticleSelectionMixin):
+class IOHandlerChomboHDF5(BaseIOHandler):
     _dataset_type = "chombo_hdf5"
     _offset_string = "data:offsets=0"
     _data_string = "data:datatype=0"
@@ -145,6 +141,30 @@ class IOHandlerChomboHDF5(BaseIOHandler, BoxlibParticleSelectionMixin):
                 ind += nd
         return rv
 
+    def _read_particle_selection(self, chunks, selector, fields):
+        rv = {}
+        chunks = list(chunks)
+
+        if isinstance(selector, GridSelector):
+
+            if not (len(chunks) == len(chunks[0].objs) == 1):
+                raise RuntimeError
+
+            grid = chunks[0].objs[0]
+
+            for ftype, fname in fields:
+                rv[ftype, fname] = self._read_particles(grid, fname)
+
+            return rv
+
+        rv = {f: np.array([]) for f in fields}
+        for chunk in chunks:
+            for grid in chunk.objs:
+                for ftype, fname in fields:
+                    data = self._read_particles(grid, fname)
+                    rv[ftype, fname] = np.concatenate((data, rv[ftype, fname]))
+        return rv
+
     def _read_particles(self, grid, name):
 
         field_index = self.particle_field_index[name]
@@ -175,11 +195,112 @@ class IOHandlerChomboHDF5(BaseIOHandler, BoxlibParticleSelectionMixin):
         )
 
 
-class IOHandlerOrion2HDF5(IOHandlerChomboHDF5, IOHandlerParticlesBoxlibMixin):
+def parse_orion_sinks(fn):
+    r"""
+    Orion sink particles are stored in text files. This function
+    is for figuring what particle fields are present based on the
+    number of entries per line in the \*.sink file.
+    """
+
+    # Figure out the format of the particle file
+    with open(fn) as f:
+        lines = f.readlines()
+
+    try:
+        line = lines[1]
+    except IndexError:
+        # a particle file exists, but there is only one line,
+        # so no sinks have been created yet.
+        index = {}
+        return index
+
+    # The basic fields that all sink particles have
+    index = {
+        "particle_mass": 0,
+        "particle_position_x": 1,
+        "particle_position_y": 2,
+        "particle_position_z": 3,
+        "particle_momentum_x": 4,
+        "particle_momentum_y": 5,
+        "particle_momentum_z": 6,
+        "particle_angmomen_x": 7,
+        "particle_angmomen_y": 8,
+        "particle_angmomen_z": 9,
+        "particle_id": -1,
+    }
+
+    if len(line.strip().split()) == 11:
+        # these are vanilla sinks, do nothing
+        pass
+
+    elif len(line.strip().split()) == 17:
+        # these are old-style stars, add stellar model parameters
+        index["particle_mlast"] = 10
+        index["particle_r"] = 11
+        index["particle_mdeut"] = 12
+        index["particle_n"] = 13
+        index["particle_mdot"] = 14
+        index["particle_burnstate"] = 15
+
+    elif len(line.strip().split()) == 18 or len(line.strip().split()) == 19:
+        # these are the newer style, add luminosity as well
+        index["particle_mlast"] = 10
+        index["particle_r"] = 11
+        index["particle_mdeut"] = 12
+        index["particle_n"] = 13
+        index["particle_mdot"] = 14
+        index["particle_burnstate"] = 15
+        index["particle_luminosity"] = 16
+    else:
+        # give a warning if none of the above apply:
+        mylog.warning("Warning - could not figure out particle output file")
+        mylog.warning("These results could be nonsense!")
+
+    return index
+
+
+class IOHandlerOrion2HDF5(IOHandlerChomboHDF5):
     _dataset_type = "orion_chombo_native"
 
-    _particle_filename = None
+    _particle_field_index = None
 
     @property
-    def particle_filename(self):
-        return self.ds.fullplotdir[:-4] + "sink"
+    def particle_field_index(self):
+
+        fn = self.ds.fullplotdir[:-4] + "sink"
+
+        index = parse_orion_sinks(fn)
+
+        self._particle_field_index = index
+        return self._particle_field_index
+
+    def _read_particles(self, grid, field):
+        """
+        parses the Orion Star Particle text files
+
+        """
+
+        particles = []
+
+        if grid.NumberOfParticles == 0:
+            return np.array(particles)
+
+        def read(line, field):
+            entry = line.strip().split(" ")[self.particle_field_index[field]]
+            return float(entry)
+
+        try:
+            lines = self._cached_lines
+            for num in grid._particle_line_numbers:
+                line = lines[num]
+                particles.append(read(line, field))
+            return np.array(particles)
+        except AttributeError:
+            fn = grid.ds.fullplotdir[:-4] + "sink"
+            with open(fn) as f:
+                lines = f.readlines()
+                self._cached_lines = lines
+                for num in grid._particle_line_numbers:
+                    line = lines[num]
+                    particles.append(read(line, field))
+            return np.array(particles)

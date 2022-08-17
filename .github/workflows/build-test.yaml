@@ -54,6 +54,15 @@ jobs:
             dependencies: full
             tests-type: answer
             test-runner: nose
+          - os: ubuntu-latest
+            # bare environment with latest CPython
+            # (no special requirements, no optional dependencies)
+            # this job is meant to be removed when wheels are available
+            # for all (or most) optional dependencies and we can bump 3.10 -> 3.11
+            python-version: '3.11-dev'
+            dependencies: ""
+            tests-type: unit
+            test-runner: pytest
 
     runs-on: ${{ matrix.os }}
 

@@ -1,7 +1,7 @@
 import abc
 import os
 import weakref
-from typing import Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 
@@ -47,6 +47,19 @@ class Index(ParallelAnalysisInterface, abc.ABC):
     @abc.abstractmethod
     def _detect_output_fields(self):
         pass
+
+    def _icoords_to_fcoords(
+        self,
+        icoords: np.ndarray,
+        ires: np.ndarray,
+        axes: Optional[Tuple[int, ...]] = None,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        # What's the use of raising NotImplementedError for this, when it's an
+        # abstract base class?  Well, only *some* of the subclasses have it --
+        # and for those that *don't*, we should not be calling it -- and since
+        # it's a semi-private method, it shouldn't be called outside of yt
+        # machinery.  So we shouldn't ever get here!
+        raise NotImplementedError
 
     def _initialize_state_variables(self):
         self._parallel_locking = False
@@ -314,7 +327,7 @@ class YTDataChunk:
             c = obj.select_fcoords(self.dobj)
             if c.shape[0] == 0:
                 continue
-            ci[ind : ind + c.shape[0], :] = c
+            ci.d[ind : ind + c.shape[0], :] = c
             ind += c.shape[0]
         return ci
 
@@ -350,7 +363,8 @@ class YTDataChunk:
             c = obj.select_fwidth(self.dobj)
             if c.shape[0] == 0:
                 continue
-            ci[ind : ind + c.shape[0], :] = c
+            ci.d[ind : ind + c.shape[0], :] = c
+
             ind += c.shape[0]
         return ci
 
@@ -406,7 +420,7 @@ class YTDataChunk:
             c = obj.select_fcoords_vertex(self.dobj)
             if c.shape[0] == 0:
                 continue
-            ci[ind : ind + c.shape[0], :, :] = c
+            ci.d[ind : ind + c.shape[0], :, :] = c
             ind += c.shape[0]
         return ci
 
