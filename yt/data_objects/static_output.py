@@ -175,7 +175,7 @@ class Dataset(abc.ABC):
     domain_offset = np.zeros(3, dtype="int64")
     _periodicity = MutableAttribute()
     _force_periodicity = False
-    _set_periodicity = None
+    _periodicity_override: Optional[Tuple[bool, bool, bool]] = None
 
     # these are set in self._set_derived_attrs()
     domain_width = MutableAttribute(True)
