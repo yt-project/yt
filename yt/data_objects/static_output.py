@@ -342,7 +342,7 @@ class Dataset(abc.ABC):
             raise TypeError("force_periodicity expected a boolean.")
         self._force_periodicity = val
 
-    def set_periodicity(self, val):
+    def set_periodicity(self, val: Union[bool, Tuple[bool, bool, bool]]) -> None:
         """
         Set box periodicity to user defined periodicity.
         """
