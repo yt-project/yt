@@ -327,9 +327,10 @@ class Dataset(abc.ABC):
         elif getattr(self, "_domain_override", False):
             # dataset loaded with a bounding box
             return (False, False, False)
-        if self._set_periodicity is not None:
-            return self._set_periodicity
-        return self._periodicity
+        if self._periodicity_override is not None:
+            return self._periodicity_override
+        else:
+            return self._periodicity
 
     def force_periodicity(self, val=True):
         """
