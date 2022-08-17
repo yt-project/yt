@@ -178,15 +178,9 @@ def fix_nonperiodic(np.ndarray[np.float64_t, ndim=3] field,
     cdef np.float64_t xp, xm, yp, ym, zp, zm
     cdef np.float64_t qp, qm
 
-    nx = field.shape[0]
-    ny = field.shape[1]
-    nz = field.shape[2]
-    lx = lo_offset[0]
-    ly = lo_offset[1]
-    lz = lo_offset[2]
-    hx = hi_offset[0]
-    hy = hi_offset[1]
-    hz = hi_offset[2]
+    nx, ny, nz = field.shape
+    lx, ly, lz = lo_offset
+    hx, hy, hz = hi_offset
 
     # Fix boundaries in the x direction
     if lx > 0 or hx > 0:
