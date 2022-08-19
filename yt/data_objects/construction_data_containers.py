@@ -670,8 +670,8 @@ class YTCoveringGrid(YTSelectionContainer3D):
         self.left_edge = self._sanitize_edge(left_edge)
         self.ActiveDimensions = self._sanitize_dims(dims)
         self.fix_nonperiodic = [False, False, False]
-        self.lo_offset = np.array([0,0,0], dtype=int)
-        self.hi_offset = np.array([0,0,0], dtype=int)
+        self.lo_buffer = np.array([0,0,0], dtype=int)
+        self.hi_buffer = np.array([0,0,0], dtype=int)
 
         rdx = self.ds.domain_dimensions * self.ds.relative_refinement(0, level)
 
@@ -687,7 +687,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
             np.rint((self.left_edge - self.ds.domain_left_edge) / self.dds).astype(
                 "int64"
             )
-            + self.ds.domain_offset
+            + self.ds.domain_buffer
         )
         self._setup_data_source()
         
@@ -699,9 +699,9 @@ class YTCoveringGrid(YTSelectionContainer3D):
                 self.fix_nonperiodic[i] = True
             if self.fix_nonperiodic[i]:
                 if self.left_edge[i] < self.ds.domain_left_edge[i]:
-                    self.lo_offset[i] = np.rint((self.ds.domain_left_edge[i] - self.left_edge[i])/self.dds[i])
+                    self.lo_buffer[i] = np.rint((self.ds.domain_left_edge[i] - self.left_edge[i])/self.dds[i])
                 if self.right_edge[i] > self.ds.domain_right_edge[i]:
-                    self.hi_offset[i] = np.rint((self.right_edge[i] - self.ds.domain_right_edge[i])/self.dds[i])
+                    self.hi_buffer[i] = np.rint((self.right_edge[i] - self.ds.domain_right_edge[i])/self.dds[i])
 
         self.get_data(fields)
 
@@ -1526,7 +1526,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         ls = level_state
         if any(self.fix_nonperiodic):
             for field in level_state.fields:
-                fix_nonperiodic(field, self.lo_offset, self.hi_offset)
+                fix_nonperiodic(field, self.lo_buffer, self.hi_buffer)
         if ls.current_level >= self.level:
             return
         rf = float(self.ds.relative_refinement(ls.current_level, ls.current_level + 1))
