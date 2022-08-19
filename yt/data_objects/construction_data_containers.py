@@ -702,6 +702,20 @@ class YTCoveringGrid(YTSelectionContainer3D):
                     self.lo_buffer[i] = np.rint((self.ds.domain_left_edge[i] - self.left_edge[i])/self.dds[i])
                 if self.right_edge[i] > self.ds.domain_right_edge[i]:
                     self.hi_buffer[i] = np.rint((self.right_edge[i] - self.ds.domain_right_edge[i])/self.dds[i])
+        if any(self.fix_nonperiodic):
+            if np.count_nonzero(self.fix_nonperiodic) == 1:
+                extrap_dims = 'xyz'[np.where(self.fix_nonperiodic)[0][0]] + ' ' +\
+                              'dimension'
+            if np.count_nonzero(self.fix_nonperiodic) == 2:
+                extrap_dims = 'xyz'[np.where(self.fix_nonperiodic)[0][0]] + ' and ' + \
+                              'xyz'[np.where(self.fix_nonperiodic)[0][1]] + ' dimensions'
+            if np.count_nonzero(self.fix_nonperiodic) == 3:
+                extrap_dims = 'x, y, and z dimensions'
+            warnings.warn("The region specified is outside of the "
+                          "computational domain with non-periodic boundaries. "
+                          "Therefore, we will extrapolate data for the "
+                          f"{extrap_dims}.", 
+                          category=RuntimeWarning)
 
         self.get_data(fields)
 
