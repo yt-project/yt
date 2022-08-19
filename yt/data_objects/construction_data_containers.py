@@ -687,7 +687,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
             np.rint((self.left_edge - self.ds.domain_left_edge) / self.dds).astype(
                 "int64"
             )
-            + self.ds.domain_buffer
+            + self.ds.domain_offset
         )
         self._setup_data_source()
         
