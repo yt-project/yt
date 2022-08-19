@@ -215,10 +215,10 @@ class BaseIOHandler:
                 rv[field_f] = np.concatenate(vals, axis=0).astype("float64")
             else:
                 shape = [0]
-                if field[1] in self._vector_fields:
-                    shape.append(self._vector_fields[field[1]])
-                elif field[1] in self._array_fields:
-                    shape.append(self._array_fields[field[1]])
+                if field_f[1] in self._vector_fields:
+                    shape.append(self._vector_fields[field_f[1]])
+                elif field_f[1] in self._array_fields:
+                    shape.append(self._array_fields[field_f[1]])
                 rv[field_f] = np.empty(shape, dtype="float64")
         return rv
 

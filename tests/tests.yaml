@@ -15,7 +15,7 @@ answer_tests:
     - yt/frontends/amrvac/tests/test_outputs.py:test_riemann_cartesian_175D
     - yt/frontends/amrvac/tests/test_outputs.py:test_rmi_cartesian_dust_2D
 
-  local_arepo_009:  # PR 3815
+  local_arepo_010:  # PR 3386
     - yt/frontends/arepo/tests/test_outputs.py:test_arepo_bullet
     - yt/frontends/arepo/tests/test_outputs.py:test_arepo_tng59
     - yt/frontends/arepo/tests/test_outputs.py:test_index_override
@@ -147,7 +147,7 @@ answer_tests:
     - yt/frontends/boxlib/tests/test_outputs.py:test_units_override
     - yt/frontends/boxlib/tests/test_outputs.py:test_raw_fields
 
-  local_boxlib_particles_009:
+  local_boxlib_particles_010:
     - yt/frontends/boxlib/tests/test_outputs.py:test_LyA
     - yt/frontends/boxlib/tests/test_outputs.py:test_nyx_particle_io
     - yt/frontends/boxlib/tests/test_outputs.py:test_castro_particle_io
@@ -185,7 +185,7 @@ answer_tests:
   #local_particle_trajectory_001:
   #  - yt/data_objects/tests/test_particle_trajectories.py
 
-  local_nc4_cm1_001: # PR  2176
+  local_nc4_cm1_002: # PR  2176, 2998
     - yt/frontends/nc4_cm1/tests/test_outputs.py:test_cm1_mesh_fields
 
   local_cf_radial_002: # PR  1990

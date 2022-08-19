@@ -1,3 +1,5 @@
+# these imports are very expensive so we delay them to until they are requested
+
 import matplotlib
 from matplotlib.backend_bases import FigureCanvasBase
 from matplotlib.backends.backend_agg import FigureCanvasAgg

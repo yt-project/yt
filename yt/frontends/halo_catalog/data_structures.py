@@ -1,4 +1,5 @@
 import glob
+import sys
 import weakref
 from collections import defaultdict
 from functools import partial
@@ -19,6 +20,11 @@ from yt.geometry.particle_geometry_handler import ParticleIndex
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 from .fields import YTHaloCatalogFieldInfo, YTHaloCatalogHaloFieldInfo
+
+if sys.version_info >= (3, 8):
+    from functools import cached_property
+else:
+    from yt._maintenance.backports import cached_property
 
 
 class HaloCatalogFile(ParticleFile):
@@ -141,13 +147,9 @@ class YTHaloCatalogDataset(SavedDataset):
     def halos_derived_field_list(self):
         return self._halos_ds.derived_field_list
 
-    _instantiated_halo_ds = None
-
-    @property
+    @cached_property
     def _halos_ds(self):
-        if self._instantiated_halo_ds is None:
-            self._instantiated_halo_ds = YTHaloDataset(self)
-        return self._instantiated_halo_ds
+        return YTHaloDataset(self)
 
     def _setup_classes(self):
         super()._setup_classes()
@@ -304,6 +306,7 @@ class YTHaloParticleIndex(ParticleIndex):
         super()._setup_data_io()
         if self.real_ds._instantiated_index is None:
             self.real_ds.index
+        self.real_ds.index
 
         # inherit some things from parent index
         self._data_files = self.real_ds.index.data_files
@@ -434,37 +437,21 @@ class HaloContainer(YTSelectionContainer):
         # starting and ending indices for each file containing particles
         self._set_field_indices()
 
-    _mass = None
-
-    @property
+    @cached_property
     def mass(self):
-        if self._mass is None:
-            self._mass = self[self.ptype, "particle_mass"][0]
-        return self._mass
+        return self[self.ptype, "particle_mass"][0]
 
-    _radius = None
-
-    @property
+    @cached_property
     def radius(self):
-        if self._radius is None:
-            self._radius = self[self.ptype, "virial_radius"][0]
-        return self._radius
+        return self[self.ptype, "virial_radius"][0]
 
-    _position = None
-
-    @property
+    @cached_property
     def position(self):
-        if self._position is None:
-            self._position = self[self.ptype, "particle_position"][0]
-        return self._position
+        return self[self.ptype, "particle_position"][0]
 
-    _velocity = None
-
-    @property
+    @cached_property
     def velocity(self):
-        if self._velocity is None:
-            self._velocity = self[self.ptype, "particle_velocity"][0]
-        return self._velocity
+        return self[self.ptype, "particle_velocity"][0]
 
     def _set_io_data(self):
         halo_fields = self._get_member_fieldnames()

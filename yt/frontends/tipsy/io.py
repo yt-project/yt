@@ -95,7 +95,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
             poff = data_file.field_offsets
             tp = data_file.total_particles
             f = open(data_file.filename, "rb")
-            for ptype in sorted(ptf, key=lambda a: poff.get(a, -1)):
+            for ptype in sorted(ptf, key=lambda a, poff=poff: poff.get(a, -1)):
                 if data_file.total_particles[ptype] == 0:
                     continue
                 f.seek(poff[ptype])

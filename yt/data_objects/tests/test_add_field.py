@@ -2,6 +2,8 @@ from functools import partial
 
 import pytest
 
+from yt import derived_field
+from yt.fields import local_fields
 from yt.testing import fake_random_ds
 
 
@@ -53,9 +55,7 @@ def test_add_field_uncallable():
     class Spam:
         pass
 
-    with pytest.raises(
-        TypeError, match=r"Expected a callable object, got .* with type .*"
-    ):
+    with pytest.raises(TypeError, match=r"(is not a callable object)$"):
         ds.add_field(("bacon", "spam"), Spam(), sampling_type="cell")
 
 
@@ -92,4 +92,18 @@ def test_add_field_keyword_only():
             ("bacon", "spam"),
             _spam,
             sampling_type="cell",
+        )
+
+
+def test_derived_field(monkeypatch):
+
+    tmp_field_info = local_fields.LocalFieldInfoContainer(None, [], None)
+    monkeypatch.setattr(local_fields, "local_fields", tmp_field_info)
+
+    @derived_field(name="pressure", sampling_type="cell", units="dyne/cm**2")
+    def _pressure(field, data):
+        return (
+            (data.ds.gamma - 1.0)
+            * data["gas", "density"]
+            * data["gas", "specific_thermal_energy"]
         )

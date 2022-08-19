@@ -9,7 +9,7 @@ sp = yt.SlicePlot(ds, "x", ("gas", "density"))
 # Overlay the slice plot with thick red contours of density.
 sp.annotate_contour(
     ("gas", "density"),
-    ncont=3,
+    levels=3,
     clim=(1e-2, 1e-1),
     label=True,
     plot_args={"colors": "red", "linewidths": 2},
@@ -18,7 +18,7 @@ sp.annotate_contour(
 # What about some nice temperature contours in blue?
 sp.annotate_contour(
     ("gas", "temperature"),
-    ncont=3,
+    levels=3,
     clim=(1e-8, 1e-6),
     label=True,
     plot_args={"colors": "blue", "linewidths": 2},

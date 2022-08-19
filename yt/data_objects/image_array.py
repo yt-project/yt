@@ -332,10 +332,8 @@ class ImageArray(unyt_array):
             sigma_clip = clip_ratio
 
         if sigma_clip is not None:
-            nz = out[:, :, :3][out[:, :, :3].nonzero()]
-            return write_bitmap(
-                out.swapaxes(0, 1), filename, nz.mean() + sigma_clip * nz.std()
-            )
+            clip_value = self._clipping_value(sigma_clip, im=out)
+            return write_bitmap(out.swapaxes(0, 1), filename, clip_value)
         else:
             return write_bitmap(out.swapaxes(0, 1), filename)
 
@@ -443,3 +441,11 @@ class ImageArray(unyt_array):
             if not filename.endswith(".h5"):
                 filename = filename + ".h5"
             self.write_hdf5(filename, dataset_name)
+
+    def _clipping_value(self, sigma_clip, im=None):
+        # return the max value to clip with given a sigma_clip value. If im
+        # is None, the current instance is used
+        if im is None:
+            im = self
+        nz = im[:, :, :3][im[:, :, :3].nonzero()]
+        return nz.mean() + sigma_clip * nz.std()

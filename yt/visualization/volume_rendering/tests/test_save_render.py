@@ -40,4 +40,6 @@ class SaveRenderTest(TestCase):
         sc.save(os.path.join(self.tmpdir, "clip_2.png"), sigma_clip=2.0, render=False)
         sc.save(os.path.join(self.tmpdir, "clip_4.png"), sigma_clip=4.0, render=False)
 
-        return sc
+        # save a different format with/without sigma clips
+        sc.save(os.path.join(self.tmpdir, "no_clip.jpg"), render=False)
+        sc.save(os.path.join(self.tmpdir, "clip_2.jpg"), sigma_clip=2, render=False)

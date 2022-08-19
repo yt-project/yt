@@ -1,13 +1,18 @@
 import os
+import sys
 import warnings
+from pathlib import Path
 from typing import Callable, List
 
-# TODO: import tomllib from the standard library instead in Python >= 3.11
-import tomli as tomllib
 import tomli_w
 from more_itertools import always_iterable
 
 from yt.utilities.configuration_tree import ConfigLeaf, ConfigNode
+
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomllib
 
 configuration_callbacks: List[Callable[["YTConfig"], None]] = []
 
@@ -102,12 +107,19 @@ class YTConfig:
         config_as_str = tomli_w.dumps(value)
 
         try:
-            # Assuming file_handler has a write attribute
+            file_path = Path(file_handler)
+        except TypeError:
+            if not hasattr(file_handler, "write"):
+                raise TypeError(
+                    f"Expected a path to a file, or a writable object, got {file_handler}"
+                ) from None
             file_handler.write(config_as_str)
-        except AttributeError:
-            # Otherwise we expect a path to a file
-            with open(file_handler, mode="w") as fh:
-                fh.write(config_as_str)
+        else:
+            pdir = file_path.parent
+            if not pdir.exists():
+                warnings.warn(f"{pdir!s} does not exist, creating it (recursively)")
+                os.makedirs(pdir)
+            file_path.write_text(config_as_str)
 
     @staticmethod
     def get_global_config_file():

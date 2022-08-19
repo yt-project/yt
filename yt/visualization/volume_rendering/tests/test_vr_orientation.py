@@ -93,7 +93,7 @@ def test_orientation():
         )
 
         def offaxis_image_func(filename_prefix):
-            return image.write_image(filename_prefix)
+            return image.write_image(filename_prefix)  # noqa: B023
 
         test5 = GenericImageTest(ds, offaxis_image_func, decimals)
         test5.prefix = f"oap_orientation_{i}"

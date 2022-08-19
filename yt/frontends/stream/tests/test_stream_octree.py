@@ -44,7 +44,7 @@ def test_octree():
         octree_mask=octree_mask,
         data=quantities,
         bbox=bbox,
-        over_refine_factor=0,
+        num_zones=1,
         partial_coverage=0,
     )
 

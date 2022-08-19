@@ -1,5 +1,6 @@
 import abc
 import functools
+import hashlib
 import itertools
 import os
 import pickle
@@ -10,9 +11,10 @@ import weakref
 from collections import defaultdict
 from importlib.util import find_spec
 from stat import ST_CTIME
-from typing import DefaultDict, Optional, Tuple, Type, Union
+from typing import DefaultDict, Dict, List, Optional, Set, Tuple, Type, Union
 
 import numpy as np
+from more_itertools import unzip
 from unyt.exceptions import UnitConversionError, UnitParseError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
@@ -57,6 +59,11 @@ from yt.utilities.minimal_representation import MinimalDataset
 from yt.utilities.object_registries import data_object_registry, output_type_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_root_only
 from yt.utilities.parameter_file_storage import NoParameterShelf, ParameterFileStore
+
+if sys.version_info >= (3, 8):
+    from functools import cached_property
+else:
+    from yt._maintenance.backports import cached_property
 
 if sys.version_info >= (3, 9):
     from collections.abc import MutableMapping
@@ -146,14 +153,13 @@ class Dataset(abc.ABC):
     geometry = "cartesian"
     coordinates = None
     storage_filename = None
-    particle_unions = None
+    particle_unions: Optional[Dict[str, ParticleUnion]] = None
     known_filters = None
     _index_class: Type[Index]
     field_units = None
     derived_field_list = requires_index("derived_field_list")
     fields = requires_index("fields")
     _instantiated = False
-    _unique_identifier: Optional[Union[str, int]] = None
     _particle_type_counts = None
     _proj_type = "quad_proj"
     _ionization_label_format = "roman_numeral"
@@ -306,22 +312,20 @@ class Dataset(abc.ABC):
         name, _ext = os.path.splitext(self.filename)
         return name + "_backup.gdf"
 
-    @property
-    def unique_identifier(self):
-        if self._unique_identifier is None:
-            self._unique_identifier = int(os.stat(self.parameter_filename)[ST_CTIME])
-            name_as_bytes = bytearray(map(ord, self.parameter_filename))
-            self._unique_identifier += fnv_hash(name_as_bytes)
-        return self._unique_identifier
-
-    @unique_identifier.setter
-    def unique_identifier(self, value):
-        self._unique_identifier = value
+    @cached_property
+    def unique_identifier(self) -> str:
+        retv = int(os.stat(self.parameter_filename)[ST_CTIME])
+        name_as_bytes = bytearray(map(ord, self.parameter_filename))
+        retv += fnv_hash(name_as_bytes)
+        return str(retv)
 
     @property
     def periodicity(self):
         if self._force_periodicity:
             return (True, True, True)
+        elif getattr(self, "_domain_override", False):
+            # dataset loaded with a bounding box
+            return (False, False, False)
         return self._periodicity
 
     def force_periodicity(self, val=True):
@@ -387,16 +391,9 @@ class Dataset(abc.ABC):
 
     def _hash(self):
         s = f"{self.basename};{self.current_time};{self.unique_identifier}"
-        try:
-            import hashlib
+        return hashlib.md5(s.encode("utf-8")).hexdigest()
 
-            return hashlib.md5(s.encode("utf-8")).hexdigest()
-        except ImportError:
-            return s.replace(";", "*")
-
-    _checksum = None
-
-    @property
+    @cached_property
     def checksum(self):
         """
         Computes md5 sum of a dataset.
@@ -407,36 +404,29 @@ class Dataset(abc.ABC):
         :py:attr:`~parameter_file` is a directory, checksum of all files inside
         the directory is calculated.
         """
-        if self._checksum is None:
-            try:
-                import hashlib
-            except ImportError:
-                self._checksum = "nohashlib"
-                return self._checksum
 
-            def generate_file_md5(m, filename, blocksize=2**20):
-                with open(filename, "rb") as f:
-                    while True:
-                        buf = f.read(blocksize)
-                        if not buf:
-                            break
-                        m.update(buf)
+        def generate_file_md5(m, filename, blocksize=2**20):
+            with open(filename, "rb") as f:
+                while True:
+                    buf = f.read(blocksize)
+                    if not buf:
+                        break
+                    m.update(buf)
 
-            m = hashlib.md5()
-            if os.path.isdir(self.parameter_filename):
-                for root, _, files in os.walk(self.parameter_filename):
-                    for fname in files:
-                        fname = os.path.join(root, fname)
-                        generate_file_md5(m, fname)
-            elif os.path.isfile(self.parameter_filename):
-                generate_file_md5(m, self.parameter_filename)
-            else:
-                m = "notafile"
+        m = hashlib.md5()
+        if os.path.isdir(self.parameter_filename):
+            for root, _, files in os.walk(self.parameter_filename):
+                for fname in files:
+                    fname = os.path.join(root, fname)
+                    generate_file_md5(m, fname)
+        elif os.path.isfile(self.parameter_filename):
+            generate_file_md5(m, self.parameter_filename)
+        else:
+            m = "notafile"
 
-            if hasattr(m, "hexdigest"):
-                m = m.hexdigest()
-            self._checksum = m
-        return self._checksum
+        if hasattr(m, "hexdigest"):
+            m = m.hexdigest()
+        return m
 
     @property
     def _mrep(self):
@@ -606,6 +596,12 @@ class Dataset(abc.ABC):
                     continue
                 v = getattr(self, a)
                 mylog.info("Parameters: %-25s = %s", a, v)
+        if getattr(self, "_domain_override", False):
+            if any(self._periodicity):
+                mylog.warning(
+                    "A bounding box was explicitly specified, so we "
+                    "are disabling periodicity."
+                )
 
     @parallel_root_only
     def print_stats(self):
@@ -861,24 +857,60 @@ class Dataset(abc.ABC):
     _last_finfo = None
 
     def _get_field_info(self, ftype, fname=None):
-        field_info, is_ambiguous = self._get_field_info_helper(ftype, fname)
+        field_info, candidates = self._get_field_info_helper(ftype, fname)
 
         if field_info.name[1] in ("px", "py", "pz", "pdx", "pdy", "pdz"):
-            # escape early as as bandaid solution to
+            # escape early as a bandaid solution to
             # https://github.com/yt-project/yt/issues/3381
             return field_info
 
-        if is_ambiguous:
-            ft, fn = field_info.name
-            msg = (
-                f"The requested field name '{fn}' "
-                "is ambiguous and corresponds to any one of "
-                f"the following field types:\n {self.field_info._ambiguous_field_names[fn]}\n"
-                "Please specify the requested field as an explicit "
-                "tuple (ftype, fname).\n"
-                f'Defaulting to \'("{ft}", "{fn}")\'.'
+        def _are_ambiguous(candidates: List[Tuple[str, str]]) -> bool:
+            if len(candidates) < 2:
+                return False
+
+            ftypes, fnames = (list(_) for _ in unzip(candidates))
+            assert all(name == fnames[0] for name in fnames)
+
+            fi = self.field_info
+
+            all_aliases: bool = all(
+                fi[c].is_alias_to(fi[candidates[0]]) for c in candidates
             )
-            issue_deprecation_warning(msg, since="4.0.0", removal="4.1.0")
+
+            all_equivalent_particle_fields: bool
+            if (
+                self.particle_types is None
+                or self.particle_unions is None
+                or self.particle_types_raw is None
+            ):
+                all_equivalent_particle_fields = False
+            elif all(ft in self.particle_types for ft in ftypes):
+                ptypes = ftypes
+
+                sub_types_list: List[Set[str]] = []
+                for pt in ptypes:
+                    if pt in self.particle_types_raw:
+                        sub_types_list.append({pt})
+                    elif pt in self.particle_unions:
+                        sub_types_list.append(set(self.particle_unions[pt].sub_types))
+                all_equivalent_particle_fields = all(
+                    st == sub_types_list[0] for st in sub_types_list
+                )
+            else:
+                all_equivalent_particle_fields = False
+
+            return not (all_aliases or all_equivalent_particle_fields)
+
+        if _are_ambiguous(candidates):
+            ft, fn = field_info.name
+            possible_ftypes = [c[0] for c in candidates]
+            raise ValueError(
+                f"The requested field name {fn!r} "
+                "is ambiguous and corresponds to any one of "
+                f"the following field types:\n {possible_ftypes}\n"
+                "Please specify the requested field as an explicit "
+                "tuple (<ftype>, <fname>).\n"
+            )
         return field_info
 
     def _get_field_info_helper(self, ftype, fname=None):
@@ -892,24 +924,25 @@ class Dataset(abc.ABC):
             except AttributeError:
                 ftype, fname = "unknown", ftype
 
+        candidates: List[Tuple[str, str]] = []
+
         # storing this condition before altering it
         guessing_type = ftype == "unknown"
         if guessing_type:
             ftype = self._last_freq[0] or ftype
-            is_ambiguous = fname in self.field_info._ambiguous_field_names
-        else:
-            is_ambiguous = False
+            candidates = [(ft, fn) for ft, fn in self.field_info.keys() if fn == fname]
+
         field = (ftype, fname)
 
         if (
             field == self._last_freq
             and field not in self.field_info.field_aliases.values()
         ):
-            return self._last_finfo, is_ambiguous
+            return self._last_finfo, candidates
         if field in self.field_info:
             self._last_freq = field
             self._last_finfo = self.field_info[(ftype, fname)]
-            return self._last_finfo, is_ambiguous
+            return self._last_finfo, candidates
 
         try:
             # Sometimes, if guessing_type == True, this will be switched for
@@ -927,7 +960,7 @@ class Dataset(abc.ABC):
             ):
                 field = self.default_fluid_type, field[1]
             self._last_freq = field
-            return self._last_finfo, is_ambiguous
+            return self._last_finfo, candidates
         except KeyError:
             pass
 
@@ -943,7 +976,7 @@ class Dataset(abc.ABC):
                 if (ftype, fname) in self.field_info:
                     self._last_freq = (ftype, fname)
                     self._last_finfo = self.field_info[(ftype, fname)]
-                    return self._last_finfo, is_ambiguous
+                    return self._last_finfo, candidates
         raise YTFieldNotFound(field=INPUT, ds=self)
 
     def _setup_classes(self):
@@ -1156,7 +1189,9 @@ class Dataset(abc.ABC):
         o2 = np.log2(self.refine_by)
         if o2 != int(o2):
             raise RuntimeError
-        return int(o2)
+        # In the case that refine_by is 1 or 0 or something, we just
+        # want to make it a non-operative number, so we set to 1.
+        return max(1, int(o2))
 
     def relative_refinement(self, l0, l1):
         return self.refine_by ** (l1 - l0)
@@ -1637,6 +1672,9 @@ class Dataset(abc.ABC):
            on-disk fields.
 
         """
+        from yt.fields.field_functions import validate_field_function
+
+        validate_field_function(function)
         self.index
         if force_override and name in self.index.field_list:
             raise RuntimeError(

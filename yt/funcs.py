@@ -21,7 +21,6 @@ from functools import lru_cache, wraps
 from numbers import Number as numeric_type
 from typing import Any, Callable, Type
 
-import matplotlib
 import numpy as np
 from more_itertools import always_iterable, collapse, first
 from packaging.version import Version
@@ -168,7 +167,8 @@ def get_memory_usage(subtract_share=False):
     status_file = f"/proc/{pid}/statm"
     if not os.path.isfile(status_file):
         return -1024
-    line = open(status_file).read()
+    with open(status_file) as fh:
+        line = fh.read()
     size, resident, share, text, library, data, dt = (int(i) for i in line.split())
     if subtract_share:
         resident -= share
@@ -565,6 +565,8 @@ def get_yt_version():
 
 
 def get_version_stack():
+    import matplotlib
+
     version_info = {}
     version_info["yt"] = get_yt_version()
     version_info["numpy"] = np.version.version

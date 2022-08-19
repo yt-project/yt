@@ -287,6 +287,10 @@ In this case, a normal vector for the cutting plane is supplied in the second
 argument. Optionally, a ``north_vector`` can be specified to fix the orientation
 of the image plane.
 
+.. note:: Not every data types have support for off-axis slices yet.
+   Currently, this operation is supported for grid based data with cartesian geometry.
+   In some cases (like SPH data) an off-axis projection over a thin region might be used instead.
+
 .. _projection-plots:
 
 Projection Plots
@@ -328,6 +332,10 @@ class description.
 If you want to project through a subset of the full dataset volume,
 you can use the ``data_source`` keyword with a :ref:`data object <data-objects>`.
 The :ref:`thin-slice-projections` recipes demonstrates this functionality.
+
+.. note:: Not every data types have support for off-axis projections yet.
+   Currently, this operation is supported for grid based data with cartesian geometry,
+   as well as SPH particles data.
 
 .. _projection-types:
 
@@ -556,7 +564,7 @@ We can also annotate the mesh lines, as follows:
 
    ds = yt.load("MOOSE_sample_data/out.e-s010")
    sl = yt.SlicePlot(ds, "z", ("connect1", "diffused"))
-   sl.annotate_mesh_lines(plot_args={"color": "black"})
+   sl.annotate_mesh_lines(color="black")
    sl.zoom(0.75)
    sl.save()
 
@@ -788,7 +796,7 @@ will invert the plot's y-axis
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    # slicing with standard view (right-handed)
-   slc = yt.SlicePlot(ds, "x", ("gas", "velocity_x"))
+   slc = yt.SlicePlot(ds, "z", ("gas", "velocity_x"), width=(20, 'kpc'))
    slc.annotate_title("Standard Horizontal (Right Handed)")
    slc.save("Standard.png")
 
@@ -798,7 +806,7 @@ will invert the plot's y-axis
    slc.save("NotRightHanded.png")
 
    # flip the vertical axis
-   slc = yt.SlicePlot(ds, "x", ("gas", "velocity_x"))
+   slc = yt.SlicePlot(ds, "z", ("gas", "velocity_x"), width=(20, 'kpc'))
    slc.flip_vertical()
    slc.annotate_title("Flipped vertical")
    slc.save("FlippedVertical.png")
@@ -813,7 +821,7 @@ the plot's vertical and horizontal axes:
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    # slicing with non right-handed coordinates
-   slc = yt.SlicePlot(ds, "x", ("gas", "velocity_x"))
+   slc = yt.SlicePlot(ds, "z", ("gas", "velocity_x"), width=(20, 'kpc'))
    slc.swap_axes()
    slc.annotate_title("Swapped axes")
    slc.save("SwappedAxes.png")
@@ -840,7 +848,7 @@ to rotate the view:
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    # initial view
-   slc = yt.SlicePlot(ds, "x", ("gas", "velocity_x"))
+   slc = yt.SlicePlot(ds, "z", ("gas", "velocity_x"), width=(20, 'kpc'))
    slc.save("InitialOrientation.png")
    slc.annotate_title("Initial View")
 
@@ -851,14 +859,14 @@ to rotate the view:
    slc.save("SwappedAxes90CW.png")
 
    # vertical flip + horizontal flip = rotate 180 degree rotation
-   slc = yt.SlicePlot(ds, "x", ("gas", "velocity_x"))
+   slc = yt.SlicePlot(ds, "z", ("gas", "velocity_x"), width=(20, 'kpc'))
    slc.flip_horizontal()
    slc.flip_vertical()
    slc.annotate_title("180 Degree Rotation")
    slc.save("FlipAxes180.png")
 
    # swap + horizontal flip = rotate 90 degree rotation (counter clockwise)
-   slc = yt.SlicePlot(ds, "x", ("gas", "velocity_x"))
+   slc = yt.SlicePlot(ds, "z", ("gas", "velocity_x"), width=(20, 'kpc'))
    slc.swap_axes()
    slc.flip_horizontal()
    slc.annotate_title("90 Degree Counter Clockwise Rotation")

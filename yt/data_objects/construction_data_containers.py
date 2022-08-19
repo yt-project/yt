@@ -279,18 +279,23 @@ class YTProj(YTSelectionContainer2D):
         # TODO: Add the combine operation
         xax = self.ds.coordinates.x_axis[self.axis]
         yax = self.ds.coordinates.y_axis[self.axis]
-        ox = self.ds.domain_left_edge[xax].v
-        oy = self.ds.domain_left_edge[yax].v
-        px, py, pdx, pdy, nvals, nwvals = tree.get_all(False, merge_style)
+
+        ix, iy, ires, nvals, nwvals = tree.get_all(False, merge_style)
+        px, pdx = self.ds.index._icoords_to_fcoords(
+            ix[:, None], ires // self.ds.ires_factor, axes=(xax,)
+        )
+        py, pdy = self.ds.index._icoords_to_fcoords(
+            iy[:, None], ires // self.ds.ires_factor, axes=(yax,)
+        )
+        px = px.ravel()
+        py = py.ravel()
+        pdx = pdx.ravel()
+        pdy = pdy.ravel()
+        np.multiply(pdx, 0.5, pdx)
+        np.multiply(pdy, 0.5, pdy)
+
         nvals = self.comm.mpi_allreduce(nvals, op=op)
         nwvals = self.comm.mpi_allreduce(nwvals, op=op)
-        np.multiply(px, self.ds.domain_width[xax], px)
-        np.add(px, ox, px)
-        np.multiply(pdx, self.ds.domain_width[xax], pdx)
-
-        np.multiply(py, self.ds.domain_width[yax], py)
-        np.add(py, oy, py)
-        np.multiply(pdy, self.ds.domain_width[yax], pdy)
         if self.weight_field is not None:
             # If there are 0s remaining in the weight vals
             # this will not throw an error, but silently
@@ -881,7 +886,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
         alias = {}
         for field in gen:
             finfo = self.ds._get_field_info(*field)
-            if finfo._function.__name__ == "_TranslationFunc":
+            if finfo.is_alias:
                 alias[field] = finfo
                 continue
             try:
@@ -1695,9 +1700,8 @@ class YTSurface(YTSelectionContainer3D):
 
         Returns
         -------
-        flux : float
-            The summed flux.  Note that it is not currently scaled; this is
-            simply the code-unit area times the fields.
+        flux : YTQuantity
+            The summed flux.
 
         References
         ----------
@@ -1740,7 +1744,10 @@ class YTSurface(YTSelectionContainer3D):
 
         vc_data = grid.get_vertex_centered_data(vc_fields)
         if fluxing_field is None:
-            ff = np.ones_like(vc_data[self.surface_field], dtype="float64")
+            ff = self.ds.arr(
+                np.ones_like(vc_data[self.surface_field].d, dtype="float64"),
+                "dimensionless",
+            )
         else:
             ff = vc_data[fluxing_field]
         surf_vals = vc_data[self.surface_field]
@@ -1889,7 +1896,7 @@ class YTSurface(YTSelectionContainer3D):
         ...         * np.sqrt(data[("gas", "temperature")])
         ...     )
         >>> ds.add_field(
-        ...     "emissivity",
+        ...     ("gas", "emissivity"),
         ...     function=_Emissivity,
         ...     sampling_type="cell",
         ...     units=r"g**2*sqrt(K)/cm**6",
@@ -2224,7 +2231,7 @@ class YTSurface(YTSelectionContainer3D):
         ...         * data[("gas", "density")]
         ...         * np.sqrt(data[("gas", "temperature")])
         ...     )
-        >>> ds.add_field("emissivity", function=_Emissivity, units="g / cm**6")
+        >>> ds.add_field(("gas", "emissivity"), function=_Emissivity, units="g / cm**6")
         >>> for i, r in enumerate(rhos):
         ...     surf = ds.surface(sp, "density", r)
         ...     surf.export_obj(

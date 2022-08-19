@@ -147,8 +147,6 @@ class SkeletonDataset(Dataset):
         #   self.hubble_constant            <= float
 
         # optional (the following have default implementations)
-        #   self.unique_identifier      <= unique identifier for the dataset
-        #                                  being read (e.g., UUID or ST_CTIME) (int)
         #
         #   self.geometry  <= a lower case string
         #                     ("cartesian", "polar", "cylindrical"...)

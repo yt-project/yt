@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import uuid
 import warnings
@@ -31,6 +32,10 @@ from yt.utilities.on_demand_imports import NotAModule, _astropy
 
 from .fields import FITSFieldInfo, WCSFITSFieldInfo, YTFITSFieldInfo
 
+if sys.version_info >= (3, 8):
+    from functools import cached_property
+else:
+    from yt._maintenance.backports import cached_property
 lon_prefixes = ["X", "RA", "GLON", "LINEAR"]
 lat_prefixes = ["Y", "DEC", "GLAT", "LINEAR"]
 
@@ -233,7 +238,7 @@ class FITSHierarchy(GridIndex):
 
         for field in self.derived_field_list:
             f = self.dataset.field_info[field]
-            if f._function.__name__ == "_TranslationFunc":
+            if f.is_alias:
                 # Translating an already-converted field
                 self.dataset.conversion_factors[field] = 1.0
 
@@ -426,13 +431,17 @@ class FITSDataset(Dataset):
         self.magnetic_unit.convert_to_units("gauss")
         self.velocity_unit = self.length_unit / self.time_unit
 
+    @cached_property
+    def unique_identifier(self) -> str:
+        if self.parameter_filename.startswith("InMemory"):
+            return str(time.time())
+        else:
+            return super().unique_identifier
+
     def _parse_parameter_file(self):
 
         self._determine_structure()
         self._determine_axes()
-
-        if self.parameter_filename.startswith("InMemory"):
-            self.unique_identifier = time.time()
 
         # Determine dimensionality
 

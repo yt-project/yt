@@ -1,4 +1,5 @@
 import os
+from functools import partial
 
 import numpy as np
 
@@ -279,25 +280,25 @@ class RAMSESFieldInfo(FieldInfoContainer):
             function=_temp_IR,
             units=self.ds.unit_system["temperature"],
         )
+
+        def _species_density(field, data, species: str):
+            return data["gas", f"{species}_fraction"] * data["gas", "density"]
+
+        def _species_mass(field, data, species: str):
+            return data["gas", f"{species}_density"] * data["index", "cell_volume"]
+
         for species in ["H_p1", "He_p1", "He_p2"]:
-
-            def _species_density(field, data):
-                return data["gas", f"{species}_fraction"] * data["gas", "density"]
-
             self.add_field(
                 ("gas", species + "_density"),
                 sampling_type="cell",
-                function=_species_density,
+                function=partial(_species_density, species=species),
                 units=self.ds.unit_system["density"],
             )
-
-            def _species_mass(field, data):
-                return data["gas", f"{species}_density"] * data["index", "cell_volume"]
 
             self.add_field(
                 ("gas", species + "_mass"),
                 sampling_type="cell",
-                function=_species_mass,
+                function=partial(_species_mass, species=species),
                 units=self.ds.unit_system["mass"],
             )
 

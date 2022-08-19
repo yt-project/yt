@@ -578,7 +578,6 @@ class AthenaDataset(Dataset):
             raise RuntimeError("Virtual grids are only supported for 3D outputs!")
         self.dimensionality = dimensionality
         self.current_time = grid["time"]
-        self.unique_identifier = self.parameter_filename.__hash__()
         self.cosmological_simulation = False
         self.num_ghost_zones = 0
         self.field_ordering = "fortran"

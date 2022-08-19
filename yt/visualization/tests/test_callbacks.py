@@ -485,16 +485,23 @@ def test_velocity_callback():
             slc.annotate_velocity()
             assert_fname(slc.save(prefix)[0])
 
+
+def test_velocity_callback_spherical():
+    ds = fake_amr_ds(
+        fields=("density", "velocity_r", "velocity_theta", "velocity_phi"),
+        units=("g/cm**3", "cm/s", "cm/s", "cm/s"),
+        geometry="spherical",
+    )
+
     with _cleanup_fname() as prefix:
-        ds = fake_amr_ds(
-            fields=("density", "velocity_r", "velocity_theta", "velocity_phi"),
-            units=("g/cm**3", "cm/s", "cm/s", "cm/s"),
-            geometry="spherical",
-        )
-        p = ProjectionPlot(ds, "r", ("gas", "density"))
-        assert_raises(
-            YTDataTypeUnsupported, p.annotate_velocity, factor=40, normalize=True
-        )
+        p = ProjectionPlot(ds, "phi", ("stream", "density"))
+        p.annotate_velocity(factor=40, normalize=True)
+        assert_fname(p.save(prefix)[0])
+
+    with _cleanup_fname() as prefix:
+        p = ProjectionPlot(ds, "r", ("stream", "density"))
+        p.annotate_velocity(factor=40, normalize=True)
+        assert_raises(NotImplementedError, p.save, prefix)
 
 
 @requires_file(cyl_2d)
@@ -568,9 +575,23 @@ def test_magnetic_callback():
             ),
             geometry="spherical",
         )
+        p = ProjectionPlot(ds, "phi", ("gas", "density"))
+        p.annotate_magnetic_field(
+            factor=8, scale=0.5, scale_units="inches", normalize=True
+        )
+        assert_fname(slc.save(prefix)[0])
+
+        p = ProjectionPlot(ds, "theta", ("gas", "density"))
+        p.annotate_magnetic_field(
+            factor=8, scale=0.5, scale_units="inches", normalize=True
+        )
+        assert_fname(slc.save(prefix)[0])
+
         p = ProjectionPlot(ds, "r", ("gas", "density"))
-        kwargs = dict(factor=8, scale=0.5, scale_units="inches", normalize=True)
-        assert_raises(YTDataTypeUnsupported, p.annotate_magnetic_field, **kwargs)
+        p.annotate_magnetic_field(
+            factor=8, scale=0.5, scale_units="inches", normalize=True
+        )
+        assert_raises(NotImplementedError, p.save, prefix)
 
 
 @requires_file(cyl_2d)
@@ -628,26 +649,37 @@ def test_quiver_callback():
         slc.annotate_quiver(("gas", "velocity_r"), ("gas", "velocity_z"))
         assert_fname(slc.save(prefix)[0])
 
+
+def test_quiver_callback_spherical():
+    ds = fake_amr_ds(
+        fields=("density", "velocity_r", "velocity_theta", "velocity_phi"),
+        units=("g/cm**3", "cm/s", "cm/s", "cm/s"),
+        geometry="spherical",
+    )
+
     with _cleanup_fname() as prefix:
-        ds = fake_amr_ds(
-            fields=("density", "velocity_x", "velocity_theta", "velocity_phi"),
-            units=("g/cm**3", "cm/s", "cm/s", "cm/s"),
-            geometry="spherical",
-        )
-        p = ProjectionPlot(ds, "r", ("gas", "density"))
-        args = (
-            ("gas", "velocity_theta"),
-            ("gas", "velocity_phi"),
-        )
-        kwargs = dict(
+        p = ProjectionPlot(ds, "phi", ("gas", "density"))
+        p.annotate_quiver(
+            ("gas", "velocity_cylindrical_radius"),
+            ("gas", "velocity_cylindrical_z"),
             factor=8,
             scale=0.5,
             scale_units="inches",
             normalize=True,
-            bv_x=0.5 * u.cm / u.s,
-            bv_y=0.5 * u.cm / u.s,
         )
-        assert_raises(YTDataTypeUnsupported, p.annotate_quiver, *args, **kwargs)
+        assert_fname(p.save(prefix)[0])
+
+    with _cleanup_fname() as prefix:
+        p = ProjectionPlot(ds, "r", ("gas", "density"))
+        p.annotate_quiver(
+            ("gas", "velocity_theta"),
+            ("gas", "velocity_phi"),
+            factor=8,
+            scale=0.5,
+            scale_units="inches",
+            normalize=True,
+        )
+        assert_fname(p.save(prefix)[0])
 
 
 @requires_file(cyl_2d)

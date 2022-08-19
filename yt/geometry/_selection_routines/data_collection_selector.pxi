@@ -25,7 +25,7 @@ cdef class DataCollectionSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def fill_mask(self, gobj):
+    def fill_mask_regular_grid(self, gobj):
         cdef np.ndarray[np.uint8_t, ndim=3] mask
         mask = np.ones(gobj.ActiveDimensions, dtype='uint8')
         return mask.astype("bool")

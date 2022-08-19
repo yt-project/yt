@@ -1,5 +1,7 @@
 import os
+import sys
 from collections import defaultdict
+from typing import Tuple
 
 import numpy as np
 
@@ -11,6 +13,11 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 
 from .definitions import SNAP_FORMAT_2_OFFSET, gadget_hdf5_ptypes
 
+if sys.version_info >= (3, 8):
+    from functools import cached_property
+else:
+    from yt._maintenance.backports import cached_property
+
 
 class IOHandlerGadgetHDF5(IOHandlerSPH):
     _dataset_type = "gadget_hdf5"
@@ -21,7 +28,6 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
         "MagneticField": 3,
     }
     _known_ptypes = gadget_hdf5_ptypes
-    _var_mass = None
     _element_names = (
         "Hydrogen",
         "Helium",
@@ -36,15 +42,13 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
 
     _coord_name = "Coordinates"
 
-    @property
-    def var_mass(self):
-        if self._var_mass is None:
-            vm = []
-            for i, v in enumerate(self.ds["Massarr"]):
-                if v == 0:
-                    vm.append(self._known_ptypes[i])
-            self._var_mass = tuple(vm)
-        return self._var_mass
+    @cached_property
+    def var_mass(self) -> Tuple[str, ...]:
+        vm = []
+        for i, v in enumerate(self.ds["Massarr"]):
+            if v == 0:
+                vm.append(self._known_ptypes[i])
+        return tuple(vm)
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         raise NotImplementedError
@@ -333,7 +337,6 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
     #   ENDT    (only if enabled in makefile)
     #   TSTP    (only if enabled in makefile)
 
-    _var_mass = None
     _format = None
 
     def __init__(self, ds, *args, **kwargs):
@@ -346,15 +349,13 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
         self._endian = endianswap
         super().__init__(ds, *args, **kwargs)
 
-    @property
-    def var_mass(self):
-        if self._var_mass is None:
-            vm = []
-            for i, v in enumerate(self.ds["Massarr"]):
-                if v == 0:
-                    vm.append(self._ptypes[i])
-            self._var_mass = tuple(vm)
-        return self._var_mass
+    @cached_property
+    def var_mass(self) -> Tuple[str, ...]:
+        vm = []
+        for i, v in enumerate(self.ds["Massarr"]):
+            if v == 0:
+                vm.append(self._ptypes[i])
+        return tuple(vm)
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         raise NotImplementedError
