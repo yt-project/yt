@@ -1058,9 +1058,9 @@ class YTCoveringGrid(YTSelectionContainer3D):
         if self.comm.size > 1:
             for i in range(len(fields)):
                 output_fields[i] = self.comm.mpi_allreduce(output_fields[i], op="sum")
-        # if any(ls.fix_nonperiodic):
-        #     for i in range(len(fields)):
-        #         fix_nonperiodic(output_fields[i], self.fix_lo, self.fix_hi)
+        if any(self.fix_nonperiodic):
+            for field in output_fields:
+                fix_nonperiodic(field, self.lo_buffer, self.hi_buffer)
         for name, v in zip(fields, output_fields):
             fi = self.ds._get_field_info(*name)
             self[name] = self.ds.arr(v, fi.units)
