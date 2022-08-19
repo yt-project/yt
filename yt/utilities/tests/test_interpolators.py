@@ -5,7 +5,7 @@ import numpy as np
 import yt.utilities.linear_interpolators as lin
 from yt._maintenance.deprecation import VisibleDeprecationWarning
 from yt.testing import assert_array_almost_equal, assert_array_equal, fake_random_ds
-from yt.utilities.lib.interpolators import ghost_zone_interpolate
+from yt.utilities.lib.interpolators import ghost_zone_interpolate, fix_nonperiodic
 
 
 def setup():
@@ -143,3 +143,33 @@ def test_get_vertex_centered_data():
         ) in str(w[-1].message)
     assert_array_equal(vec_list[("gas", "density")], vec_str)
     assert_array_equal(vec_list[("gas", "density")], vec_tuple)
+
+def test_fix_nonperiodic():
+    for nbuf in range(3):
+        # Initialize domain information
+        nx = np.array([8, 16, 32])
+        dx = 1.0
+        lo = np.zeros((3), dtype="float64") + dx/2
+        hi = lo + (nx-1)*dx
+
+        # Fill field with analytical linear function: f(x,y,z) = x + y + z
+        # excluding the buffer region
+        x, y, z = np.mgrid[
+            lo[0] : hi[0] : nx[0] * 1j, \
+            lo[1] : hi[1] : nx[1] * 1j, \
+            lo[2] : hi[2] : nx[2] * 1j
+        ]
+        func = x + y + z
+        field = np.zeros(nx, dtype="float64")
+        field[nbuf:nx[0]-nbuf, nbuf:nx[1]-nbuf, nbuf:nx[2]-nbuf] = \
+         func[nbuf:nx[0]-nbuf, nbuf:nx[1]-nbuf, nbuf:nx[2]-nbuf]
+
+        # Use fix_nonperiodic function to extrapolate data to buffer region
+        fix_nonperiodic(
+            field, 
+            np.array([nbuf,nbuf,nbuf]), 
+            np.array([nbuf,nbuf,nbuf])
+        )
+
+        # Since this function is linear, the extrapolation should be exact
+        assert_array_equal(field.ravel(), func.ravel())
