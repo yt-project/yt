@@ -190,7 +190,6 @@ specify which particular particle type we want to query:
    print(ad["stars", "particle_position"])
    print(ad["black_holes", "particle_position"])
 
-TODO: does this paragraph still holds ? I think it needs an update
 Each of these three fields may have different sizes.  In order to enable
 falling back on asking only for a field by the name, yt will use the most
 recently requested field type for subsequent queries.  (By default, if no field
