@@ -252,6 +252,12 @@ class scipy_imports(OnDemand):
 
         return ndimage
 
+    @safe_import
+    def optimize(self):
+        from scipy import optimize
+
+        return optimize
+
 
 _scipy = scipy_imports()
 
