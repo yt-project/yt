@@ -945,10 +945,11 @@ hereafter.
 
 **Constrained norms**
 
-The norm properties can be constrained via two methods
+The standard way to change colorbar scalings between linear, log, and symmetric
+log (symlog).  Colorbar properties can be constrained via two methods:
 
-- :meth:`~yt.visualization.plot_container.PlotContainer.set_zlim` controls the extrema
-  of the value range ``zmin`` and ``zmax``.
+- :meth:`~yt.visualization.plot_container.PlotContainer.set_zlim` controls the limits
+ of the colorbar range: ``zmin`` and ``zmax``.
 - :meth:`~yt.visualization.plot_container.ImagePlotContainer.set_log` allows switching to
   linear or symlog norms. With symlog, the linear threshold can be set
   explicitly. Otherwise, yt will dynamically determine a reasonable value.
@@ -970,7 +971,7 @@ units of the colorbar (controlled with the ``set_unit`` method, see
 :ref:`_set-image-units`).
 
 It is not required to specify both ``zmin`` and ``zmax``. Left unset, they will
-default to extremal values in the current view. This default beheviour can be
+default to the extreme values in the current view. This default behavior can be
 enforced or restored by passing ``zmin="min"`` (reps. ``zmax="max"``)
 explicitly.
 

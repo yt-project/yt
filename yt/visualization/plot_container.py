@@ -200,7 +200,7 @@ class PlotContainer(abc.ABC):
         if log is not None and linthresh is not None:
             # we do not raise an error here for backward compatibility
             warnings.warn(
-                f"Passing log={log} has no effect when linthresh is also specified.",
+                f"log={log} has no effect because linthresh specified. Using symlog.",
                 stacklevel=4,
             )
 
