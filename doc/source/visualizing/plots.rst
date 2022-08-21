@@ -933,13 +933,22 @@ Use any of the colormaps listed in the :ref:`colormaps` section.
    slc.set_cmap(("gas", "density"), "RdBu_r")
    slc.save()
 
-Colorbar norms
-::::::::::::::
+Colorbar Normalization / Scaling
+::::::::::::::::::::::::::::::::
 
-Slice plots and similar plot classes default to log norms when all values are
-strictly positive, and symlog otherwise. yt supports two different interfaces to
-move away from the defaults. See **constrained norms** and **arbitrary norm**
-hereafter.
+For a general introduction to the topic of colorbar scaling, see
+`<https://matplotlib.org/stable/tutorials/colors/colormapnorms.html>`_. Here we
+will focus on the defaults, and the ways to customize them, of yt plot classes.
+In this section, "norm" is used as short for "normalization", and is
+interchangeable with "scaling".
+
+Map-like plots e.g., ``SlicePlot``, ``ProjectionPlot`` and ``PhasePlot``,
+default to `logarithmic (log)
+<https://matplotlib.org/stable/tutorials/colors/colormapnorms.html#logarithmic>`_
+normalization when all values are strictly positive, and `symetric log (symlog)
+<https://matplotlib.org/stable/tutorials/colors/colormapnorms.html#symmetric-logarithmic>`_
+otherwise. yt supports two different interfaces to move away from the defaults.
+See **constrained norms** and **arbitrary norm** hereafter.
 
 .. note:: defaults can be configured on a per-field basis, see :ref:`per-field-plotconfig`
 
@@ -1034,12 +1043,13 @@ can be left out in ``linthresh``.
 
 **Arbitrary norms**
 
-Alternatively, arbitrary matplotlib norms can be passed via the
-:meth:`~yt.visualization.plot_container.PlotContainer.set_norm` method. In that
-case, any numeric value is treated as having implicit units, matching the
-current display units. This alternative interface is more flexible, but
-considered experimental as of yt 4.1. Don't forget that with great power comes
-great responsibility.
+Alternatively, arbitrary `matplotlib norms
+<https://matplotlib.org/stable/tutorials/colors/colormapnorms.html>`_ can be
+passed via the :meth:`~yt.visualization.plot_container.PlotContainer.set_norm`
+method. In that case, any numeric value is treated as having implicit units,
+matching the current display units. This alternative interface is more flexible,
+but considered experimental as of yt 4.1. Don't forget that with great power
+comes great responsibility.
 
 
 .. python-script::
