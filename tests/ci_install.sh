@@ -40,11 +40,14 @@ else
 fi
 
 # Step 2: install deps and yt
+# installing in editable mode so this script may be used locally by developers
+# but the primary intention is to embed this script in CI jobs
 if [[ ${dependencies} == "minimal" ]]; then
-    # installing in editable mode so this script may be used locally by developers
-    # but the primary intention is to embed this script in CI jobs
+    # test with minimal versions of runtime dependencies
     python -m pip install -e .[test,minimal]
-else
+elif [[ ${dependencies} == "full" ]]; then
+    # test with all optional runtime dependecies
+
     # Cython and numpy are build-time requirements to the following optional deps in yt
     # - cartopy
     # - netcdf4
@@ -60,6 +63,9 @@ else
     # However it doesn't work on Ubuntu 18.04 (used in CI at the time of writing)
     python -m pip install shapely --no-binary=shapely
     CFLAGS="$CFLAGS -DACCEPT_USE_OF_DEPRECATED_PROJ_API_H" python -m pip install -e .[test,full]
+else
+   # test with no special requirements
+   python -m pip install -e .[test]
 fi
 
 set +x

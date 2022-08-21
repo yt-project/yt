@@ -145,21 +145,20 @@ cdef class RegionSelector(SelectorObject):
         cdef np.float64_t p
         cdef np.float64_t r2 = radius**2
         cdef np.float64_t dmin = 0
+        cdef np.float64_t d = 0
         for i in range(3):
-            if self.periodicity[i] and self.check_period[i]:
-                p = pos[i] + self.right_edge_shift[i]
-            else:
-                p = pos[i]
-            if p < self.left_edge[i]:
-                dmin += (p - self.left_edge[i])**2
-            elif pos[i] > self.right_edge[i]:
-                dmin += (p - self.right_edge[i])**2
+            if (pos[i]+radius < self.left_edge[i] and \
+                pos[i]-radius >= self.right_edge_shift[i]):
+                d = self.periodic_difference(pos[i], self.left_edge[i], i)
+            elif pos[i]-radius > self.right_edge[i]:
+                d = self.periodic_difference(pos[i], self.right_edge[i], i)
+            dmin += d*d
         return int(dmin <= r2)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int fill_mask_selector(self, np.float64_t left_edge[3],
+    cdef int fill_mask_selector_regular_grid(self, np.float64_t left_edge[3],
                                 np.float64_t right_edge[3],
                                 np.float64_t dds[3], int dim[3],
                                 np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask,

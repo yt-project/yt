@@ -35,7 +35,7 @@ answer_tests:
     #- yt/frontends/athena_pp/tests/test_outputs.py:test_disk
     - yt/frontends/athena_pp/tests/test_outputs.py:test_AM06
 
-  local_chombo_005:
+  local_chombo_006:
     - yt/frontends/chombo/tests/test_outputs.py:test_gc
     - yt/frontends/chombo/tests/test_outputs.py:test_tb
     - yt/frontends/chombo/tests/test_outputs.py:test_iso
@@ -180,7 +180,7 @@ answer_tests:
   #local_particle_trajectory_001:
   #  - yt/data_objects/tests/test_particle_trajectories.py
 
-  local_nc4_cm1_001: # PR  2176
+  local_nc4_cm1_002: # PR  2176, 2998
     - yt/frontends/nc4_cm1/tests/test_outputs.py:test_cm1_mesh_fields
 
   local_cf_radial_002: # PR  1990

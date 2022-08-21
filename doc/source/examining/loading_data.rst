@@ -164,8 +164,11 @@ Appropriate errors are thrown for other combinations.
 * particle data: currently not supported (but might come later)
 * staggered grids (AMRVAC 2.2 and later): yt logs a warning if you load
   staggered datasets, but the flag is currently ignored.
-* "stretched grids" as defined in AMRVAC have no correspondence in yt,
-  hence will never be supported.
+* "stretched grids" are being implemented in yt, but are not yet
+  fully-supported.  (Previous versions of this file suggested they would
+  "never" be supported, which we hope to prove incorrect once we finish
+  implementing stretched grids in AMR.  At present, stretched grids are
+  only supported on a single level of refinement.)
 
 .. note::
 
@@ -1896,6 +1899,17 @@ zero.
 Semi-Structured Grid Data
 -------------------------
 
+.. note::
+
+   With the release of yt-4.1, functionality has been added to allow loading
+   "stretched" grids that are operated on in a more efficient way.  This is done
+   via the :func:`~yt.frontends.stream.data_structures.load_uniform_grid`
+   operation, supplying the ``cell_widths`` argument.  Using the hexahedral mesh
+   is no longer suggested for situations where the mesh can be adequately
+   described with three arrays of cell widths.
+
+   See :ref:`loading-stretched-grids` for more information.
+
 See :ref:`loading-numpy-array`,
 :func:`~yt.frontends.stream.data_structures.hexahedral_connectivity`,
 :func:`~yt.frontends.stream.data_structures.load_hexahedral_mesh` for
@@ -1950,6 +1964,62 @@ have assumed your data is stored in the three-dimensional array
 * Integration is not implemented.
 * Some functions may behave oddly or not work at all.
 * Data must already reside in memory.
+
+.. _loading-stretched-grids:
+
+Stretched Grid Data
+-------------------
+
+.. warning::
+
+   API consistency for loading stretched grids is not guaranteed until at least
+   yt 4.2!  There may be changes in between then and now, as this is a
+   preliminary feature.
+
+With version 4.1, yt has the ability to specify cell widths for grids.  This
+allows situations where a grid has a functional form for cell widths, or where
+widths are provided in advance.
+
+.. note::
+
+   At present, support is available for a single grid with varying cell-widths,
+   loaded through the stream handler.  Future versions of yt will have more
+   complete and flexible support!
+
+To load a stretched grid, you use the standard (and now rather-poorly named)
+``load_uniform_grid`` function, but supplying a ``cell_widths`` argument.  This
+argument should be a list of three arrays, corresponding to the first, second
+and third index-direction cell widths.  (For instance, in a "standard"
+cartesian dataset, this would be x, y, z.)
+
+This script,
+demonstrates loading a simple "random" dataset with a random set of cell-widths.
+
+.. code:: python
+
+   import yt
+   import numpy as np
+
+   N = 8
+
+   data = {"density": np.random.random((N, N, N))}
+
+   cell_widths = []
+   for i in range(3):
+       widths = np.random.random(N)
+       widths /= widths.sum()  # Normalize to span 0 .. 1.
+       cell_widths.append(widths)
+
+   ds = yt.load_uniform_grid(
+       data,
+       [N, N, N],
+       bbox=np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]]),
+       cell_widths=cell_widths,
+   )
+
+
+This can be modified to load data from a file, as well as to use more (or
+fewer) cells.
 
 Unstructured Grid Data
 ----------------------

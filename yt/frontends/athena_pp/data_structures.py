@@ -328,7 +328,6 @@ class AthenaPPDataset(Dataset):
             dimensionality = 1
         self.dimensionality = dimensionality
         self.current_time = self._handle.attrs["Time"]
-        self.unique_identifier = self.parameter_filename.__hash__()
         self.cosmological_simulation = False
         self.num_ghost_zones = 0
         self.field_ordering = "fortran"

@@ -1,3 +1,4 @@
+import sys
 from contextlib import contextmanager
 from itertools import product, repeat
 from typing import Tuple
@@ -19,6 +20,11 @@ from yt.utilities.exceptions import (
 )
 from yt.utilities.lib.geometry_utils import compute_morton
 from yt.utilities.logger import ytLogger as mylog
+
+if sys.version_info >= (3, 8):
+    from functools import cached_property
+else:
+    from yt._maintenance.backports import cached_property
 
 
 def cell_count_cache(func):
@@ -97,8 +103,6 @@ class OctreeSubset(YTSelectionContainer):
         arr = arr.reshape(new_shape, order="F")
         return arr
 
-    _domain_ind = None
-
     def mask_refinement(self, selector):
         mask = self.oct_handler.mask(selector, domain_id=self.domain_id)
         return mask
@@ -122,12 +126,9 @@ class OctreeSubset(YTSelectionContainer):
             return np.empty(0, "f8"), np.empty(0, "f8")
         return np.concatenate(dts), np.concatenate(ts)
 
-    @property
+    @cached_property
     def domain_ind(self):
-        if self._domain_ind is None:
-            di = self.oct_handler.domain_ind(self.selector)
-            self._domain_ind = di
-        return self._domain_ind
+        return self.oct_handler.domain_ind(self.selector)
 
     def deposit(self, positions, fields=None, method=None, kernel_name="cubic"):
         r"""Operate on the mesh, in a particle-against-mesh fashion, with

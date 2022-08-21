@@ -1,5 +1,4 @@
 import os
-import stat
 import weakref
 from collections import OrderedDict
 
@@ -52,8 +51,8 @@ class CM1Hierarchy(GridIndex):
         self.grid_right_edge[0][:] = self.ds.domain_right_edge[:]
         self.grid_dimensions[0][:] = self.ds.domain_dimensions[:]
         self.grid_particle_count[0][0] = 0
-        self.grid_levels[0][0] = 1
-        self.max_level = 1
+        self.grid_levels[0][0] = 0
+        self.max_level = 0
 
     def _populate_grid_objects(self):
         self.grids = np.empty(self.num_grids, dtype="object")
@@ -78,7 +77,7 @@ class CM1Dataset(Dataset):
     ):
         self.fluid_types += ("cm1",)
         self._handle = NetCDF4FileHandler(filename)
-        # refinement factor between a grid and its subgrid
+        # refinement factor between a grid and its subgrid.
         self.refine_by = 1
         super().__init__(
             filename,
@@ -113,10 +112,7 @@ class CM1Dataset(Dataset):
         # assumed to be in code units; domain_left_edge and domain_right_edge
         # will be converted to YTArray automatically at a later time.
         # This includes the cosmological parameters.
-        #
-        #   self.unique_identifier      <= unique identifier for the dataset
-        #                                  being read (e.g., UUID or ST_CTIME)
-        self.unique_identifier = int(os.stat(self.parameter_filename)[stat.ST_CTIME])
+
         self.parameters = {}  # code-specific items
         with self._handle.open_ds() as _handle:
             # _handle here is a netcdf Dataset object, we need to parse some metadata
