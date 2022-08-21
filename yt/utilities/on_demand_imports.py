@@ -252,6 +252,9 @@ class scipy_imports(OnDemand):
 
         return ndimage
 
+    # Optimize is not presently used by yt, but appears here to enable
+    # required functionality in yt extension, trident
+
     @safe_import
     def optimize(self):
         from scipy import optimize
