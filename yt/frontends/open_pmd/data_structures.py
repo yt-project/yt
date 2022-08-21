@@ -550,7 +550,6 @@ class OpenPMDDataset(Dataset):
         bp = self.base_path
         mp = self.meshes_path
 
-        self.unique_identifier = 0
         self.parameters = 0
         self._periodicity = np.zeros(3, dtype="bool")
         self.refine_by = 1

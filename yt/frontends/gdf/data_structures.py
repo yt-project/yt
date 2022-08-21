@@ -1,4 +1,5 @@
 import os
+import sys
 import weakref
 
 import numpy as np
@@ -17,6 +18,10 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 
 from .fields import GDFFieldInfo
 
+if sys.version_info >= (3, 8):
+    from functools import cached_property
+else:
+    from yt._maintenance.backports import cached_property
 GEOMETRY_TRANS = {
     0: "cartesian",
     1: "polar",
@@ -228,6 +233,11 @@ class GDFDataset(Dataset):
 
         h5f.close()
 
+    @cached_property
+    def unique_identifier(self) -> str:
+        with h5py.File(self.parameter_filename, mode="r") as handle:
+            return str(handle["/simulation_parameters"].attrs["unique_identifier"])
+
     def _parse_parameter_file(self):
         self._handle = h5py.File(self.parameter_filename, mode="r")
         if "data_software" in self._handle["gridded_data_format"].attrs:
@@ -253,7 +263,6 @@ class GDFDataset(Dataset):
         self.refine_by = refine_by
         self.dimensionality = sp["dimensionality"]
         self.current_time = sp["current_time"]
-        self.unique_identifier = sp["unique_identifier"]
         self.cosmological_simulation = sp["cosmological_simulation"]
         if sp["num_ghost_zones"] != 0:
             raise RuntimeError

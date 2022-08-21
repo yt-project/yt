@@ -1,4 +1,5 @@
 import os
+import sys
 
 import numpy as np
 
@@ -11,6 +12,10 @@ from yt.utilities.sdf import HTTPSDFRead, SDFIndex, SDFRead
 
 from .fields import SDFFieldInfo
 
+if sys.version_info >= (3, 8):
+    from functools import cached_property
+else:
+    from yt._maintenance.backports import cached_property
 # currently specified by units_2HOT == 2 in header
 # in future will read directly from file
 units_2HOT_v2_length = 3.08567802e21
@@ -29,7 +34,6 @@ class SDFDataset(ParticleDataset):
     _particle_mass_name = None
     _particle_coordinates_name = None
     _particle_velocity_name = None
-    _midx = None
     _skip_cache = True
     _subspace = False
 
@@ -135,22 +139,17 @@ class SDFDataset(ParticleDataset):
         self.filename_template = self.parameter_filename
         self.file_count = 1
 
-    @property
+    @cached_property
     def midx(self):
-        if self._midx is None:
-            if self.midx_filename is not None:
+        if self.midx_filename is None:
+            raise RuntimeError("SDF index0 file not supplied in load.")
 
-                if "http" in self.midx_filename:
-                    sdf_class = HTTPSDFRead
-                else:
-                    sdf_class = SDFRead
-                indexdata = sdf_class(self.midx_filename, header=self.midx_header)
-                self._midx = SDFIndex(
-                    self.sdf_container, indexdata, level=self.midx_level
-                )
-            else:
-                raise RuntimeError("SDF index0 file not supplied in load.")
-        return self._midx
+        if "http" in self.midx_filename:
+            sdf_class = HTTPSDFRead
+        else:
+            sdf_class = SDFRead
+        indexdata = sdf_class(self.midx_filename, header=self.midx_header)
+        return SDFIndex(self.sdf_container, indexdata, level=self.midx_level)
 
     def _set_code_unit_attributes(self):
         setdefaultattr(

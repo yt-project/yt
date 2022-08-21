@@ -1285,8 +1285,8 @@ class PWViewerMPL(PlotWindow):
                 )
                 try:
                     callback(cbw)
-                except YTDataTypeUnsupported as e:
-                    raise e
+                except (NotImplementedError, YTDataTypeUnsupported):
+                    raise
                 except Exception as e:
                     raise YTPlotCallbackError(callback._type_name) from e
             for key in self.frb.keys():

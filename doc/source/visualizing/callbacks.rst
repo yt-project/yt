@@ -37,6 +37,10 @@ To clear one or more annotations from an existing plot, see the
 For a brief demonstration of a few of these callbacks in action together,
 see the cookbook recipe: :ref:`annotations-recipe`.
 
+Also note that new ``annotate_`` methods can be defined without modifying yt's
+source code, see :ref:`extend-anotations`.
+
+
 Coordinate Systems in Callbacks
 -------------------------------
 
@@ -885,4 +889,59 @@ to apply filters.
    p = yt.SlicePlot(ds, 'z', 'density')
    p.frb.apply_gauss_beam(sigma=30)
    p.refresh()
+   p.save()
+
+
+.. _extend-annotations:
+
+
+Extending annotations methods
+-----------------------------
+
+New ``annotate_`` methods can be added to plot objects at runtime (i.e., without
+modifying yt's source code) by subclassing the base ``PlotCallback`` class.
+This is the recommended way to add custom and unique annotations to yt plots,
+as it can be done through local plugins, individual scripts, or even external packages.
+
+Here's a minimal example:
+
+
+.. python-script::
+
+   import yt
+   from yt.visualization.api import PlotCallback
+
+
+   class TextToPositionCallback(PlotCallback):
+      # bind a new `annotate_text_to_position` plot method
+      _type_name = "text_to_position"
+
+      def __init__(self, text, x, y):
+         # this method can have arbitrary arguments
+         # and should store them without alteration,
+         # but not run expensive computations
+         self.text = text
+         self.position = (x, y)
+
+      def __call__(self, plot):
+         # this method's signature is required
+         # this is where we perform potentially expensive operations
+
+         # the plot argument exposes matplotlib objects:
+         # - plot._axes is a matplotlib.axes.Axes object
+         # - plot._figure is a matplotlib.figure.Figure object
+         plot._axes.annotate(
+               self.text,
+               xy=self.position,
+               xycoords="data",
+               xytext=(0.2, 0.6),
+               textcoords="axes fraction",
+               color="white",
+               fontsize=30,
+               arrowprops=dict(facecolor="black", shrink=0.05),
+         )
+
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   p = yt.SlicePlot(ds, "z", "density")
+   p.annotate_text_to_position("Galactic center !", x=0, y=0)
    p.save()

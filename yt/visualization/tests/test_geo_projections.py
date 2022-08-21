@@ -1,5 +1,6 @@
 import unittest
 
+import numpy as np
 from nose.plugins.attrib import attr
 
 import yt
@@ -62,6 +63,9 @@ class TestGeoProjections(unittest.TestCase):
     @requires_module("cartopy")
     def setUp(self):
         self.ds = fake_amr_ds(geometry="geographic")
+        # switch off the log plot to avoid some unrelated matplotlib issues
+        f = self.ds._get_field_info("stream", "Density")
+        f.take_log = False
 
     @requires_module("cartopy")
     def tearDown(self):
@@ -133,6 +137,12 @@ class TestGeoProjections(unittest.TestCase):
         from yt.utilities.on_demand_imports import _cartopy as cartopy
 
         axis = "altitude"
+        # Note: The Miller transform has an extent of approx. +/- 180 in x,
+        # +/-132 in y (in Miller, x is longitude, y is a factor of latitude).
+        # So by changing the projection in this way, the dataset goes from
+        # covering the whole globe (+/- 90 latitude), to covering part of the
+        # globe (+/-72 latitude). Totally fine for testing that the code runs,
+        # but good to be aware of!
         self.ds.coordinates.data_transform[axis] = "Miller"
         self.slc = yt.SlicePlot(self.ds, axis, ("stream", "Density"), origin="native")
 
@@ -150,6 +160,21 @@ class TestGeoProjections(unittest.TestCase):
             assert isinstance(
                 self.slc.plots[("stream", "Density")].axes.projection, proj_type
             )
+
+    @requires_module("cartopy")
+    def test_extent(self):
+        # checks that the axis extent is narrowed when doing a subselection
+        axis = "altitude"
+        slc = yt.SlicePlot(self.ds, axis, ("stream", "Density"), origin="native")
+        ax = slc.plots[("stream", "Density")].axes
+        full_extent = np.abs(ax.get_extent())
+
+        slc = yt.SlicePlot(
+            self.ds, axis, ("stream", "Density"), origin="native", width=(80.0, 50.0)
+        )
+        ax = slc.plots[("stream", "Density")].axes
+        extent = np.abs(ax.get_extent())
+        assert np.all(extent < full_extent)
 
 
 class TestNonGeoProjections(unittest.TestCase):

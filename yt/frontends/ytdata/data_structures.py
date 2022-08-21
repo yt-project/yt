@@ -1,4 +1,5 @@
 import os
+import sys
 import weakref
 from collections import defaultdict
 from numbers import Number as numeric_type
@@ -31,6 +32,10 @@ from yt.utilities.tree_container import TreeContainer
 
 from .fields import YTDataContainerFieldInfo, YTGridFieldInfo
 
+if sys.version_info >= (3, 8):
+    from functools import cached_property
+else:
+    from yt._maintenance.backports import cached_property
 _grid_data_containers = ["arbitrary_grid", "covering_grid", "smoothed_covering_grid"]
 _set_attrs = {"periodicity": "_periodicity"}
 
@@ -274,31 +279,25 @@ class YTDataContainerDataset(YTDataset):
         # cover the field_list.
         self.field_info.alias(("gas", "cell_volume"), ("grid", "cell_volume"))
 
-    _data_obj = None
-
-    @property
+    @cached_property
     def data(self):
         """
         Return a data container configured like the original used to
         create this dataset.
         """
 
-        if self._data_obj is None:
-            # Some data containers can't be reconstructed in the same way
-            # since this is now particle-like data.
-            data_type = self.parameters.get("data_type")
-            container_type = self.parameters.get("container_type")
-            ex_container_type = ["cutting", "quad_proj", "ray", "slice", "cut_region"]
-            if data_type == "yt_light_ray" or container_type in ex_container_type:
-                mylog.info("Returning an all_data data container.")
-                return self.all_data()
+        # Some data containers can't be reconstructed in the same way
+        # since this is now particle-like data.
+        data_type = self.parameters.get("data_type")
+        container_type = self.parameters.get("container_type")
+        ex_container_type = ["cutting", "quad_proj", "ray", "slice", "cut_region"]
+        if data_type == "yt_light_ray" or container_type in ex_container_type:
+            mylog.info("Returning an all_data data container.")
+            return self.all_data()
 
-            my_obj = getattr(self, self.parameters["container_type"])
-            my_args = [
-                self.parameters[con_arg] for con_arg in self.parameters["con_args"]
-            ]
-            self._data_obj = my_obj(*my_args)
-        return self._data_obj
+        my_obj = getattr(self, self.parameters["container_type"])
+        my_args = [self.parameters[con_arg] for con_arg in self.parameters["con_args"]]
+        return my_obj(*my_args)
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
@@ -952,16 +951,9 @@ class YTClumpTreeDataset(YTNonspatialDataset):
                 parent = my_tree[clump.parent_id]
                 parent.add_child(clump)
 
-    _leaves = None
-
-    @property
+    @cached_property
     def leaves(self):
-        if self._leaves is None:
-            self._leaves = []
-            for clump in self.tree:
-                if clump.children is None:
-                    self._leaves.append(clump)
-        return self._leaves
+        return [clump for clump in self.tree if clump.children is None]
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):

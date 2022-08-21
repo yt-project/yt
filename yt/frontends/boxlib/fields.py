@@ -5,7 +5,6 @@ import numpy as np
 
 from yt._typing import KnownFieldsT
 from yt.fields.field_info_container import FieldInfoContainer
-from yt.frontends.boxlib.misc import BoxlibSetupParticleFieldsMixin
 from yt.units import YTQuantity
 from yt.utilities.physical_constants import amu_cgs, boltzmann_constant_cgs, c
 
@@ -187,7 +186,7 @@ class NyxFieldInfo(FieldInfoContainer):
     )
 
 
-class BoxlibFieldInfo(FieldInfoContainer, BoxlibSetupParticleFieldsMixin):
+class BoxlibFieldInfo(FieldInfoContainer):
     known_other_fields: KnownFieldsT = (
         ("density", (rho_units, ["density"], None)),
         ("eden", (eden_units, ["total_energy_density"], None)),
@@ -225,6 +224,26 @@ class BoxlibFieldInfo(FieldInfoContainer, BoxlibSetupParticleFieldsMixin):
         # "burnstate",
         # "luminosity",
     )
+
+    def setup_particle_fields(self, ptype):
+        def _get_vel(axis):
+            def velocity(field, data):
+                return (
+                    data[(ptype, f"particle_momentum_{axis}")]
+                    / data[(ptype, "particle_mass")]
+                )
+
+            return velocity
+
+        for ax in "xyz":
+            self.add_field(
+                (ptype, f"particle_velocity_{ax}"),
+                sampling_type="particle",
+                function=_get_vel(ax),
+                units="code_length/code_time",
+            )
+
+        super().setup_particle_fields(ptype)
 
     def setup_fluid_fields(self):
         unit_system = self.ds.unit_system

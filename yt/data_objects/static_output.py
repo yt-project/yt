@@ -1,5 +1,6 @@
 import abc
 import functools
+import hashlib
 import itertools
 import os
 import pickle
@@ -58,6 +59,11 @@ from yt.utilities.minimal_representation import MinimalDataset
 from yt.utilities.object_registries import data_object_registry, output_type_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_root_only
 from yt.utilities.parameter_file_storage import NoParameterShelf, ParameterFileStore
+
+if sys.version_info >= (3, 8):
+    from functools import cached_property
+else:
+    from yt._maintenance.backports import cached_property
 
 if sys.version_info >= (3, 9):
     from collections.abc import MutableMapping
@@ -154,7 +160,6 @@ class Dataset(abc.ABC):
     derived_field_list = requires_index("derived_field_list")
     fields = requires_index("fields")
     _instantiated = False
-    _unique_identifier: Optional[Union[str, int]] = None
     _particle_type_counts = None
     _proj_type = "quad_proj"
     _ionization_label_format = "roman_numeral"
@@ -307,17 +312,12 @@ class Dataset(abc.ABC):
         name, _ext = os.path.splitext(self.filename)
         return name + "_backup.gdf"
 
-    @property
-    def unique_identifier(self):
-        if self._unique_identifier is None:
-            self._unique_identifier = int(os.stat(self.parameter_filename)[ST_CTIME])
-            name_as_bytes = bytearray(map(ord, self.parameter_filename))
-            self._unique_identifier += fnv_hash(name_as_bytes)
-        return self._unique_identifier
-
-    @unique_identifier.setter
-    def unique_identifier(self, value):
-        self._unique_identifier = value
+    @cached_property
+    def unique_identifier(self) -> str:
+        retv = int(os.stat(self.parameter_filename)[ST_CTIME])
+        name_as_bytes = bytearray(map(ord, self.parameter_filename))
+        retv += fnv_hash(name_as_bytes)
+        return str(retv)
 
     @property
     def periodicity(self):
@@ -391,16 +391,9 @@ class Dataset(abc.ABC):
 
     def _hash(self):
         s = f"{self.basename};{self.current_time};{self.unique_identifier}"
-        try:
-            import hashlib
+        return hashlib.md5(s.encode("utf-8")).hexdigest()
 
-            return hashlib.md5(s.encode("utf-8")).hexdigest()
-        except ImportError:
-            return s.replace(";", "*")
-
-    _checksum = None
-
-    @property
+    @cached_property
     def checksum(self):
         """
         Computes md5 sum of a dataset.
@@ -411,36 +404,29 @@ class Dataset(abc.ABC):
         :py:attr:`~parameter_file` is a directory, checksum of all files inside
         the directory is calculated.
         """
-        if self._checksum is None:
-            try:
-                import hashlib
-            except ImportError:
-                self._checksum = "nohashlib"
-                return self._checksum
 
-            def generate_file_md5(m, filename, blocksize=2**20):
-                with open(filename, "rb") as f:
-                    while True:
-                        buf = f.read(blocksize)
-                        if not buf:
-                            break
-                        m.update(buf)
+        def generate_file_md5(m, filename, blocksize=2**20):
+            with open(filename, "rb") as f:
+                while True:
+                    buf = f.read(blocksize)
+                    if not buf:
+                        break
+                    m.update(buf)
 
-            m = hashlib.md5()
-            if os.path.isdir(self.parameter_filename):
-                for root, _, files in os.walk(self.parameter_filename):
-                    for fname in files:
-                        fname = os.path.join(root, fname)
-                        generate_file_md5(m, fname)
-            elif os.path.isfile(self.parameter_filename):
-                generate_file_md5(m, self.parameter_filename)
-            else:
-                m = "notafile"
+        m = hashlib.md5()
+        if os.path.isdir(self.parameter_filename):
+            for root, _, files in os.walk(self.parameter_filename):
+                for fname in files:
+                    fname = os.path.join(root, fname)
+                    generate_file_md5(m, fname)
+        elif os.path.isfile(self.parameter_filename):
+            generate_file_md5(m, self.parameter_filename)
+        else:
+            m = "notafile"
 
-            if hasattr(m, "hexdigest"):
-                m = m.hexdigest()
-            self._checksum = m
-        return self._checksum
+        if hasattr(m, "hexdigest"):
+            m = m.hexdigest()
+        return m
 
     @property
     def _mrep(self):
@@ -918,15 +904,13 @@ class Dataset(abc.ABC):
         if _are_ambiguous(candidates):
             ft, fn = field_info.name
             possible_ftypes = [c[0] for c in candidates]
-            msg = (
+            raise ValueError(
                 f"The requested field name {fn!r} "
                 "is ambiguous and corresponds to any one of "
                 f"the following field types:\n {possible_ftypes}\n"
                 "Please specify the requested field as an explicit "
                 "tuple (<ftype>, <fname>).\n"
-                f"Defaulting to {field_info.name!r}"
             )
-            issue_deprecation_warning(msg, since="4.0.0", removal="4.1.0")
         return field_info
 
     def _get_field_info_helper(self, ftype, fname=None):
