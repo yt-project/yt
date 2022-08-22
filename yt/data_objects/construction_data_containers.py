@@ -35,10 +35,7 @@ from yt.utilities.exceptions import (
 )
 from yt.utilities.grid_data_format.writer import write_to_gdf
 from yt.utilities.lib.cyoctree import CyOctree
-from yt.utilities.lib.interpolators import (
-    ghost_zone_interpolate, 
-    fix_nonperiodic
-)
+from yt.utilities.lib.interpolators import fix_nonperiodic, ghost_zone_interpolate
 from yt.utilities.lib.marching_cubes import march_cubes_grid, march_cubes_grid_flux
 from yt.utilities.lib.misc_utilities import fill_region, fill_region_float
 from yt.utilities.lib.pixelization_routines import (
@@ -670,8 +667,8 @@ class YTCoveringGrid(YTSelectionContainer3D):
         self.left_edge = self._sanitize_edge(left_edge)
         self.ActiveDimensions = self._sanitize_dims(dims)
         self.fix_nonperiodic = [False, False, False]
-        self.lo_buffer = np.array([0,0,0], dtype="int64")
-        self.hi_buffer = np.array([0,0,0], dtype="int64")
+        self.lo_buffer = np.array([0, 0, 0], dtype="int64")
+        self.hi_buffer = np.array([0, 0, 0], dtype="int64")
 
         rdx = self.ds.domain_dimensions * self.ds.relative_refinement(0, level)
 
@@ -690,32 +687,43 @@ class YTCoveringGrid(YTSelectionContainer3D):
             + self.ds.domain_offset
         )
         self._setup_data_source()
-        
+
         # determine if we need to extrapolate data for non-periodic domains
         for i in range(3):
-            if not self.ds.periodicity[i] and \
-                (self.left_edge[i] < self.ds.domain_left_edge[i] or \
-                 self.right_edge[i] > self.ds.domain_right_edge[i]):
+            if self.ds.periodicity[i]:
+                continue
+            if self.left_edge[i] < self.ds.domain_left_edge[i]:
+                self.lo_buffer[i] = np.rint(
+                    (self.ds.domain_left_edge[i] - self.left_edge[i]) / self.dds[i]
+                )
+            if self.right_edge[i] > self.ds.domain_right_edge[i]:
+                self.hi_buffer[i] = np.rint(
+                    (self.right_edge[i] - self.ds.domain_right_edge[i]) / self.dds[i]
+                )
+            if self.lo_buffer[i] > 0 or self.hi_buffer[i] > 0:
                 self.fix_nonperiodic[i] = True
-            if self.fix_nonperiodic[i]:
-                if self.left_edge[i] < self.ds.domain_left_edge[i]:
-                    self.lo_buffer[i] = np.rint((self.ds.domain_left_edge[i] - self.left_edge[i])/self.dds[i])
-                if self.right_edge[i] > self.ds.domain_right_edge[i]:
-                    self.hi_buffer[i] = np.rint((self.right_edge[i] - self.ds.domain_right_edge[i])/self.dds[i])
+        # output warning if we need to extrapolate
         if any(self.fix_nonperiodic):
             if np.count_nonzero(self.fix_nonperiodic) == 1:
-                extrap_dims = 'xyz'[np.where(self.fix_nonperiodic)[0][0]] + ' ' +\
-                              'dimension'
+                extrap_dims = (
+                    "xyz"[np.where(self.fix_nonperiodic)[0][0]] + " " + "dimension"
+                )
             if np.count_nonzero(self.fix_nonperiodic) == 2:
-                extrap_dims = 'xyz'[np.where(self.fix_nonperiodic)[0][0]] + ' and ' + \
-                              'xyz'[np.where(self.fix_nonperiodic)[0][1]] + ' dimensions'
+                extrap_dims = (
+                    "xyz"[np.where(self.fix_nonperiodic)[0][0]]
+                    + " and "
+                    + "xyz"[np.where(self.fix_nonperiodic)[0][1]]
+                    + " dimensions"
+                )
             if np.count_nonzero(self.fix_nonperiodic) == 3:
-                extrap_dims = 'x, y, and z dimensions'
-            warnings.warn("The region specified is outside of the "
-                          "computational domain with non-periodic boundaries. "
-                          "Therefore, we will extrapolate data for the "
-                          f"{extrap_dims}.", 
-                          category=RuntimeWarning)
+                extrap_dims = "x, y, and z dimensions"
+            warnings.warn(
+                "The region specified is outside of the "
+                "computational domain with non-periodic boundaries. "
+                "Therefore, we will extrapolate data for the "
+                f"{extrap_dims}.",
+                category=RuntimeWarning,
+            )
 
         self.get_data(fields)
 
