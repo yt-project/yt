@@ -19,7 +19,7 @@ def get_radius(data, field_prefix, ftype):
         rdw = radius2.v
     for i, ax in enumerate("xyz"):
         np.subtract(
-            data[ftype, f"{field_prefix}{ax}"].d,
+            data[ftype, f"{field_prefix}{ax}"].to("code_length").d,
             center[i].d,
             r,
         )
