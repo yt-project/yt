@@ -167,9 +167,9 @@ def ghost_zone_interpolate(int rf,
 @cython.cdivision(True)
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fix_nonperiodic(np.ndarray[np.float64_t, ndim=3] field,
-                    np.ndarray[np.int_t,     ndim=1] lo_buffer,
-                    np.ndarray[np.int_t,     ndim=1] hi_buffer):
+def replace_nonperiodic_with_extrap(np.ndarray[np.float64_t, ndim=3] field,
+                                    np.ndarray[np.int_t,     ndim=1] ncell_lo,
+                                    np.ndarray[np.int_t,     ndim=1] ncell_hi):
     """
     The purpose of this function is to extrapolate data from the interior of
     the buffer region to replace the given data in the buffer region using a
@@ -179,25 +179,25 @@ def fix_nonperiodic(np.ndarray[np.float64_t, ndim=3] field,
     ----------
     field : 3D array
         Three-dimensional data of the flowfield
-    lo_buffer : 1D array of length 3
+    ncell_lo : 1D array of length 3
         Number of buffer cells to replace on the low side along each axis
-    hi_buffer : 1D array of length 3
+    ncell_hi : 1D array of length 3
         Number of buffer cells to replace on the high side along each axis
 
     This is best illustrated through a one-dimensional example. Consider a
     linear function: f(x) = x , and the `field` variable was filled using
     periodicity, so we have the following data:
 
-    -------------------------------------------
+    -----------------------------------------------
     index:        0  |  1  |  2  |  3  |  4  |  5
-    -------------------------------------------
+    -----------------------------------------------
     x or f(x):  -0.5 | 0.5 | 1.5 | 2.5 | 3.5 | 4.5
-    -------------------------------------------
-    field:       3.5 | 0.5 | 1.5 | 2.5 | 3.5 |-0.5
-    -------------------------------------------
+    -----------------------------------------------
+    field:       3.5 | 0.5 | 1.5 | 2.5 | 3.5 | 0.5
+    -----------------------------------------------
 
-    where field.shape ---> (6,1,1), lo_buffer ---> (1,0,0), and
-    hi_buffer ---> (1,0,0) . For this example, we replace the value of
+    where field.shape ---> (6,1,1), ncell_lo ---> (1,0,0), and
+    ncell_hi ---> (1,0,0) . For this example, we replace the value of
     field[0,0,0] using linear extrapolation from field[1,0,0] and field[2,0,0],
     similarly for upper boundary. Evaluating this function then yields the
     following output of `field`:
@@ -219,8 +219,8 @@ def fix_nonperiodic(np.ndarray[np.float64_t, ndim=3] field,
     cdef np.float64_t qp, qm
 
     nx, ny, nz = (field.shape[0], field.shape[1], field.shape[2])
-    lx, ly, lz = lo_buffer
-    hx, hy, hz = hi_buffer
+    lx, ly, lz = ncell_lo
+    hx, hy, hz = ncell_hi
 
     # Fix boundaries in the x direction
     for j in range(ly, ny-hy):
