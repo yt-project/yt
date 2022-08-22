@@ -86,16 +86,15 @@ class NiftiDataset(Dataset):
         # on-disk units.  These are the currently available quantities which
         # should be set, along with examples of how to set them to standard
         # values.
-        #
-        # TODO: Fix this to match that specified in the header
-        spatial_units = {1: 'm', 2: 'mm', 3: 'microns'}
+    
+        spatial_units = {1: "m", 2: "mm", 3: "microns"}
 
-        length_unit = (self.parameters['xyzt_units']) & 7
+        length_unit = (self.parameters["xyzt_units"]) & 7
         self.length_unit = self.quan(1.0, spatial_units[length_unit])
         
-        temporal_units = {8: 's', 16: 'ms', 24: 'microseconds'}
-        if self.parameters['dim'][4] != 1 or self.parameters['dim'][0] >= 4:
-            time_unit = self.parameters['xyzt_units'] & 56
+        temporal_units = {8: "s", 16: "ms", 24: "microseconds"}
+        if self.parameters["dim"][4] != 1 or self.parameters["dim"][0] >= 4:
+            time_unit = self.parameters["xyzt_units"] & 56
             self.time_unit = self.quan(1.0, temporal_units[time_unit])
 
 
@@ -129,8 +128,8 @@ class NiftiDataset(Dataset):
                 value = value.item()
                 self.parameters[key]=value
                 
-        self.parameters['affine'] = img.affine
-        self.parameters['data_shape'] = img.shape
+        self.parameters["affine"] = img.affine
+        self.parameters["data_shape"] = img.shape
 
 
         # This needs to set up the following items.  Note that these are all
@@ -167,5 +166,4 @@ class NiftiDataset(Dataset):
                 nib.load(filename)
                 return True
             except (nib.ImageFileError):
-
                 return False
