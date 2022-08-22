@@ -7,6 +7,7 @@ from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.funcs import mylog, setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
+from yt.utilities.cosmology import Cosmology
 from yt.utilities.file_handler import HDF5FileHandler
 
 from .definitions import geometry_parameters
@@ -305,7 +306,6 @@ class GAMERDataset(Dataset):
             parameters["Model"] = "Unknown"
 
         # simulation time and domain
-        self.current_time = parameters["Time"][0]
         self.dimensionality = 3  # always 3D
         self.domain_left_edge = parameters.get(
             "BoxEdgeL", np.array([0.0, 0.0, 0.0])
@@ -329,17 +329,29 @@ class GAMERDataset(Dataset):
         # cosmological parameters
         if parameters["Comoving"]:
             self.cosmological_simulation = 1
-            self.current_redshift = 1.0 / self.current_time - 1.0
+            # here parameters["Time"][0] is the scale factor a at certain redshift
+            self.current_redshift = 1.0 / parameters["Time"][0] - 1.0
             self.omega_matter = parameters["OmegaM0"]
             self.omega_lambda = 1.0 - self.omega_matter
             # default to 0.7 for old data format
             self.hubble_constant = parameters.get("Hubble0", 0.7)
+
+            # use the cosmological age computed by the given cosmological parameters as the current time when COMOVING is on; cosmological age is computed by subtracting the lookback time at self.current_redshift from that at z = 1e6 (i.e., very early universe)
+            cosmo = Cosmology(
+                hubble_constant=self.hubble_constant,
+                omega_matter=self.omega_matter,
+                omega_lambda=self.omega_lambda,
+            )
+            self.current_time = cosmo.lookback_time(self.current_redshift, 1e6)
         else:
             self.cosmological_simulation = 0
             self.current_redshift = 0.0
             self.omega_matter = 0.0
             self.omega_lambda = 0.0
             self.hubble_constant = 0.0
+
+            # use parameters["Time"][0] as current time when COMOVING is off
+            self.current_time = parameters["Time"][0]
 
         # make aliases to some frequently used variables
         if parameters["Model"] == "Hydro":
