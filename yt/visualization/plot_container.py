@@ -9,7 +9,6 @@ from functools import wraps
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
-from matplotlib.cm import get_cmap
 from matplotlib.font_manager import FontProperties
 from more_itertools.more import always_iterable
 
@@ -916,9 +915,11 @@ class ImagePlotContainer(PlotContainer):
 
         """
         if color is None:
+            from yt.visualization.color_maps import _get_cmap
+
             cmap = self._colormap_config[field]
             if isinstance(cmap, str):
-                cmap = get_cmap(cmap)
+                cmap = _get_cmap(cmap)
             color = cmap(0)
         self._background_color[field] = color
         return self
