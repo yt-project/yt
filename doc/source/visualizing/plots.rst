@@ -945,7 +945,7 @@ interchangeable with "scaling".
 Map-like plots e.g., ``SlicePlot``, ``ProjectionPlot`` and ``PhasePlot``,
 default to `logarithmic (log)
 <https://matplotlib.org/stable/tutorials/colors/colormapnorms.html#logarithmic>`_
-normalization when all values are strictly positive, and `symetric log (symlog)
+normalization when all values are strictly positive, and `symmetric log (symlog)
 <https://matplotlib.org/stable/tutorials/colors/colormapnorms.html#symmetric-logarithmic>`_
 otherwise. yt supports two different interfaces to move away from the defaults.
 See **constrained norms** and **arbitrary norm** hereafter.
@@ -958,9 +958,9 @@ The standard way to change colorbar scalings between linear, log, and symmetric
 log (symlog).  Colorbar properties can be constrained via two methods:
 
 - :meth:`~yt.visualization.plot_container.PlotContainer.set_zlim` controls the limits
- of the colorbar range: ``zmin`` and ``zmax``.
+  of the colorbar range: ``zmin`` and ``zmax``.
 - :meth:`~yt.visualization.plot_container.ImagePlotContainer.set_log` allows switching to
-  linear or symlog norms. With symlog, the linear threshold can be set
+  linear or symlog normalization. With symlog, the linear threshold can be set
   explicitly. Otherwise, yt will dynamically determine a reasonable value.
 
 Use the :meth:`~yt.visualization.plot_container.PlotContainer.set_zlim`
