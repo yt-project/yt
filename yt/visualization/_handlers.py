@@ -5,7 +5,6 @@ from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 import numpy as np
 import unyt as un
-from matplotlib.cm import get_cmap
 from matplotlib.colors import Colormap, LogNorm, Normalize, SymLogNorm
 from packaging.version import Version
 
@@ -13,6 +12,7 @@ from yt._typing import Quantity, Unit
 from yt.config import ytcfg
 from yt.funcs import get_brewer_cmap, is_sequence, mylog
 from yt.visualization._commons import MPL_VERSION
+from yt.visualization.color_maps import _get_cmap
 
 if sys.version_info >= (3, 8):
     from typing import Literal
@@ -418,14 +418,14 @@ class ColorbarHandler:
 
     @property
     def cmap(self) -> Colormap:
-        return self._cmap or get_cmap(ytcfg.get("yt", "default_colormap"))
+        return self._cmap or _get_cmap(ytcfg.get("yt", "default_colormap"))
 
     @cmap.setter
     def cmap(self, newval) -> None:
         if isinstance(newval, Colormap) or newval is None:
             self._cmap = newval
         elif isinstance(newval, str):
-            self._cmap = get_cmap(newval)
+            self._cmap = _get_cmap(newval)
         elif is_sequence(newval):
             # tuple colormaps are from palettable (or brewer2mpl)
             self._cmap = get_brewer_cmap(newval)
