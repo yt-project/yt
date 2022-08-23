@@ -338,10 +338,7 @@ class Dataset(abc.ABC):
         # workaround in yt user codes.
         if not isinstance(val, bool):
             raise TypeError("force_periodicity expected a boolean.")
-        if val is True:
-            self.set_periodicity(True)
-        else:
-            self.set_periodicity(None)
+        self.set_periodicity(val)
 
     def set_periodicity(self, val: Union[None, bool, Tuple[bool, bool, bool]]) -> None:
         """
