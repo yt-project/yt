@@ -9,7 +9,16 @@ if sys.version_info >= (3, 8):
 else:
     from importlib_metadata import version
 
+import numpy as np
+from more_itertools import always_iterable
 from packaging.version import Version
+
+from yt.config import ytcfg
+
+if sys.version_info >= (3, 10):
+    pass
+else:
+    from yt._maintenance.backports import zip
 
 if TYPE_CHECKING:
     from ._mpl_imports import FigureCanvasBase
@@ -215,3 +224,141 @@ def _swap_arg_pair_order(*args):
         new_args.append(args[x_id + 1])
         new_args.append(args[x_id])
     return tuple(new_args)
+
+
+def get_log_minorticks(vmin: float, vmax: float) -> np.ndarray:
+    """calculate positions of linear minorticks on a log colorbar
+
+    Parameters
+    ----------
+    vmin : float
+        the minimum value in the colorbar
+    vmax : float
+        the maximum value in the colorbar
+
+    """
+    expA = np.floor(np.log10(vmin))
+    expB = np.floor(np.log10(vmax))
+    cofA = np.ceil(vmin / 10**expA).astype("int64")
+    cofB = np.floor(vmax / 10**expB).astype("int64")
+    lmticks = np.empty(0)
+    while cofA * 10**expA <= cofB * 10**expB:
+        if expA < expB:
+            lmticks = np.hstack((lmticks, np.linspace(cofA, 9, 10 - cofA) * 10**expA))
+            cofA = 1
+            expA += 1
+        else:
+            lmticks = np.hstack(
+                (lmticks, np.linspace(cofA, cofB, cofB - cofA + 1) * 10**expA)
+            )
+            expA += 1
+    return np.array(lmticks)
+
+
+def get_symlog_minorticks(linthresh: float, vmin: float, vmax: float) -> np.ndarray:
+    """calculate positions of linear minorticks on a symmetric log colorbar
+
+    Parameters
+    ----------
+    linthresh : float
+        the threshold for the linear region
+    vmin : float
+        the minimum value in the colorbar
+    vmax : float
+        the maximum value in the colorbar
+
+    """
+    if vmin > 0:
+        return get_log_minorticks(vmin, vmax)
+    elif vmax < 0 and vmin < 0:
+        return -get_log_minorticks(-vmax, -vmin)
+    elif vmin == 0:
+        return np.hstack((0, get_log_minorticks(linthresh, vmax)))
+    elif vmax == 0:
+        return np.hstack((-get_log_minorticks(linthresh, -vmin)[::-1], 0))
+    else:
+        return np.hstack(
+            (
+                -get_log_minorticks(linthresh, -vmin)[::-1],
+                0,
+                get_log_minorticks(linthresh, vmax),
+            )
+        )
+
+
+def get_symlog_majorticks(linthresh: float, vmin: float, vmax: float) -> np.ndarray:
+    """calculate positions of major ticks on a log colorbar
+
+    Parameters
+    ----------
+    linthresh : float
+        the threshold for the linear region
+    vmin : float
+        the minimum value in the colorbar
+    vmax : float
+        the maximum value in the colorbar
+
+    """
+    if vmin >= 0.0:
+        yticks = [vmin] + list(
+            10
+            ** np.arange(
+                np.rint(np.log10(linthresh)),
+                np.ceil(np.log10(1.1 * vmax)),
+            )
+        )
+    elif vmax <= 0.0:
+        if MPL_VERSION >= Version("3.5.0b"):
+            offset = 0
+        else:
+            offset = 1
+
+        yticks = list(
+            -(
+                10
+                ** np.arange(
+                    np.floor(np.log10(-vmin)),
+                    np.rint(np.log10(linthresh)) - offset,
+                    -1,
+                )
+            )
+        ) + [vmax]
+    else:
+        yticks = (
+            list(
+                -(
+                    10
+                    ** np.arange(
+                        np.floor(np.log10(-vmin)),
+                        np.rint(np.log10(linthresh)) - 1,
+                        -1,
+                    )
+                )
+            )
+            + [0]
+            + list(
+                10
+                ** np.arange(
+                    np.rint(np.log10(linthresh)),
+                    np.ceil(np.log10(1.1 * vmax)),
+                )
+            )
+        )
+    if yticks[-1] > vmax:
+        yticks.pop()
+    return np.array(yticks)
+
+
+def get_default_from_config(data_source, *, field, keys, defaults):
+    _keys = list(always_iterable(keys))
+    _defaults = list(always_iterable(defaults))
+
+    ftype, fname = data_source._determine_fields(field)[0]
+    ret = [
+        ytcfg.get_most_specific("plot", ftype, fname, key, fallback=default)
+        for key, default in zip(_keys, _defaults, strict=True)
+    ]
+    if len(ret) == 1:
+        return ret[0]
+    else:
+        return ret

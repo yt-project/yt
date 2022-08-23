@@ -278,6 +278,7 @@ class AnswerTestLocalStorage(AnswerTestStorage):
             return default
         # Read data using shelve
         answer_name = f"{ds_name}"
+        os.makedirs(os.path.dirname(self.reference_name), exist_ok=True)
         ds = shelve.open(self.reference_name, protocol=-1)
         try:
             result = ds[answer_name]

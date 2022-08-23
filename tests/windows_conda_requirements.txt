@@ -2,5 +2,5 @@ numpy>=1.19.4
 cython>=0.29.21,<3.0
 cartopy>=0.20.1
 h5py~=3.1.0
-matplotlib!=3.4.2,>=2.2.3  # keep in sync with setup.cfg
+matplotlib!=3.4.2,>=3.1  # keep in sync with setup.cfg
 scipy~=1.5.0

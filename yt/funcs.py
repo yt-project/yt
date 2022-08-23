@@ -1260,6 +1260,12 @@ def dictWithFactory(factory: Callable[[Any], Any]) -> Type:
         A class to create new dictionaries handling missing keys.
     """
 
+    issue_deprecation_warning(
+        "yt.funcs.dictWithFactory will be removed in a future version of yt, please do not rely on it. "
+        "If you need it, copy paste this function from yt's source code",
+        since="4.1",
+    )
+
     class DictWithFactory(dict):
         def __init__(self, *args, **kwargs):
             self.factory = factory

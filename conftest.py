@@ -114,15 +114,6 @@ def pytest_configure(config):
     ):
         config.addinivalue_line("filterwarnings", value)
 
-    if MPL_VERSION < Version("3.0.0"):
-        config.addinivalue_line(
-            "filterwarnings",
-            (
-                "ignore:Using or importing the ABCs from 'collections' instead of from 'collections.abc' "
-                "is deprecated since Python 3.3,and in 3.9 it will stop working:DeprecationWarning"
-            ),
-        )
-
     if MPL_VERSION < Version("3.5.2") and PILLOW_VERSION >= Version("9.1"):
         # see https://github.com/matplotlib/matplotlib/pull/22766
         config.addinivalue_line(
