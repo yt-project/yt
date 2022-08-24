@@ -9,9 +9,6 @@ import numpy as np
 from yt.config import ytcfg
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.profiles import create_profile
-from yt.utilities.lib.cykdtree import PyKDTree
-from yt.utilities.lib.particle_kdtree_tools import \
-    generate_smoothing_length
 from yt.fields.field_exceptions import NeedsGridType
 from yt.frontends.ytdata.utilities import save_as_dataset
 from yt.funcs import get_output_filename, is_sequence, iter_fields, mylog
@@ -26,6 +23,8 @@ from yt.utilities.exceptions import (
     YTNonIndexedDataContainer,
     YTSpatialFieldUnitError,
 )
+from yt.utilities.lib.cykdtree import PyKDTree
+from yt.utilities.lib.particle_kdtree_tools import generate_smoothing_length
 from yt.utilities.object_registries import data_object_registry
 from yt.utilities.on_demand_imports import _firefly as firefly
 from yt.utilities.parameter_file_storage import ParameterFileStore
@@ -1545,9 +1544,14 @@ def _reconstruct_object(*args, **kwargs):
     return obj
 
 
-def monte_carlo_sample(data_source, weight_field=('gas', 'cell_mass'),
-                       n_samples=100000, fields=None,
-                       calculate_smoothing=False, n_neighbors=4):
+def monte_carlo_sample(
+    data_source,
+    weight_field=("gas", "cell_mass"),
+    n_samples=100000,
+    fields=None,
+    calculate_smoothing=False,
+    n_neighbors=4,
+):
     """
     Uses Monte Carlo sampling to create a particle-based dataset out of a
     grid-based data object.  For each sample, the code probabilistically selects
@@ -1600,14 +1604,13 @@ def monte_carlo_sample(data_source, weight_field=('gas', 'cell_mass'),
     >>> ds_grid = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
     >>> ds_sph = monte_carlo_sample(ds_grid)
     """
-    from yt.frontends.stream.api import \
-        load_particles
-    from yt.visualization.profile_plotter import \
-        data_object_or_all_data
-    l_unit = 'code_length'
-    m_unit = 'code_mass'
-    d_unit = 'code_mass/code_length**3'
-    v_unit = 'code_length/code_time'
+    from yt.frontends.stream.api import load_particles
+    from yt.visualization.profile_plotter import data_object_or_all_data
+
+    l_unit = "code_length"
+    m_unit = "code_mass"
+    d_unit = "code_mass/code_length**3"
+    v_unit = "code_length/code_time"
 
     # if a dataset, use ds.all_data()
     data_source = data_object_or_all_data(data_source)
@@ -1621,9 +1624,15 @@ def monte_carlo_sample(data_source, weight_field=('gas', 'cell_mass'),
     x_off = np.random.uniform(-0.5, 0.5, n_samples)
     y_off = np.random.uniform(-0.5, 0.5, n_samples)
     z_off = np.random.uniform(-0.5, 0.5, n_samples)
-    x_pos = data_source[('gas', 'x')][indices] + x_off*data_source[('gas', 'dx')][indices]
-    y_pos = data_source[('gas', 'y')][indices] + y_off*data_source[('gas', 'dy')][indices]
-    z_pos = data_source[('gas', 'z')][indices] + z_off*data_source[('gas', 'dz')][indices]
+    x_pos = (
+        data_source[("gas", "x")][indices] + x_off * data_source[("gas", "dx")][indices]
+    )
+    y_pos = (
+        data_source[("gas", "y")][indices] + y_off * data_source[("gas", "dy")][indices]
+    )
+    z_pos = (
+        data_source[("gas", "z")][indices] + z_off * data_source[("gas", "dz")][indices]
+    )
     pos = ds.arr([x_pos, y_pos, z_pos]).T.to(l_unit).v
     masses = (field_tot / n_samples) * np.ones(n_samples)
 
@@ -1632,37 +1641,50 @@ def monte_carlo_sample(data_source, weight_field=('gas', 'cell_mass'),
     right_edge = ds.domain_right_edge.to(l_unit).v
     if calculate_smoothing:
         kdtree = PyKDTree(
-            pos.astype('float64'),
+            pos.astype("float64"),
             left_edge=left_edge,
             right_edge=right_edge,
             periodic=ds.periodicity,
-            leafsize=2*int(n_neighbors),
+            leafsize=2 * int(n_neighbors),
         )
         pos_kd = pos[kdtree.idx]
         hsml = generate_smoothing_length(pos_kd, kdtree, n_neighbors)
         hsml = hsml[np.argsort(kdtree.idx)]
     else:
-        hsml = data_source[('gas', 'dx')][indices].to(l_unit)
+        hsml = data_source[("gas", "dx")][indices].to(l_unit)
 
-    data = {'particle_position_x' : (x_pos.to(l_unit), l_unit),
-            'particle_position_y' : (y_pos.to(l_unit), l_unit),
-            'particle_position_z' : (z_pos.to(l_unit), l_unit),
-            'particle_velocity_x' : (data_source[('gas', 'velocity_x')][indices].to(v_unit), v_unit),
-            'particle_velocity_y' : (data_source[('gas', 'velocity_y')][indices].to(v_unit), v_unit),
-            'particle_velocity_z' : (data_source[('gas', 'velocity_z')][indices].to(v_unit), v_unit),
-            'particle_mass' : (masses.to(m_unit), m_unit),
-            'density' : (data_source[('gas', 'density')][indices].to(d_unit), d_unit),
-            'smoothing_length' : (hsml, l_unit)}
+    data = {
+        "particle_position_x": (x_pos.to(l_unit), l_unit),
+        "particle_position_y": (y_pos.to(l_unit), l_unit),
+        "particle_position_z": (z_pos.to(l_unit), l_unit),
+        "particle_velocity_x": (
+            data_source[("gas", "velocity_x")][indices].to(v_unit),
+            v_unit,
+        ),
+        "particle_velocity_y": (
+            data_source[("gas", "velocity_y")][indices].to(v_unit),
+            v_unit,
+        ),
+        "particle_velocity_z": (
+            data_source[("gas", "velocity_z")][indices].to(v_unit),
+            v_unit,
+        ),
+        "particle_mass": (masses.to(m_unit), m_unit),
+        "density": (data_source[("gas", "density")][indices].to(d_unit), d_unit),
+        "smoothing_length": (hsml, l_unit),
+    }
 
     # Collect dataset code units
     code_units = {}
-    for key in ['length', 'mass', 'time', 'velocity', 'magnetic']:
-        full_key = key + '_unit'
+    for key in ["length", "mass", "time", "velocity", "magnetic"]:
+        full_key = key + "_unit"
         if hasattr(ds, full_key):
             code_units[full_key] = getattr(ds, full_key)
 
-    return load_particles(data,
-                          bbox=list(zip(left_edge, right_edge)),
-                          sim_time=ds.current_time,
-                          periodicity=ds.periodicity,
-                          **code_units)
+    return load_particles(
+        data,
+        bbox=list(zip(left_edge, right_edge)),
+        sim_time=ds.current_time,
+        periodicity=ds.periodicity,
+        **code_units,
+    )
