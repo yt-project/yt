@@ -321,7 +321,11 @@ class NormHandler:
             dvmax = 1 * getattr(data, "units", 1)
         kw.setdefault("vmax", dvmax)
 
-        if self.norm_type is not None:
+        if data.ndim == 3:
+            assert data.shape[-1] == 4
+            # this is an RGBA array, only linear normalization makes sense here
+            norm_type = Normalize
+        elif self.norm_type is not None:
             # this is a convenience mechanism for backward compat,
             # allowing to toggle between lin and log scaling without detailed user input
             norm_type = self.norm_type
