@@ -34,8 +34,6 @@ class ChollaFieldInfo(FieldInfoContainer):
 
     known_particle_fields = ()
 
-    def __init__(self, ds, field_list):
-        super().__init__(ds, field_list)
 
     # In Cholla, conservative variables are written out.
 
