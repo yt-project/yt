@@ -5,7 +5,10 @@ import numpy as np
 import yt.utilities.linear_interpolators as lin
 from yt._maintenance.deprecation import VisibleDeprecationWarning
 from yt.testing import assert_array_almost_equal, assert_array_equal, fake_random_ds
-from yt.utilities.lib.interpolators import fix_nonperiodic, ghost_zone_interpolate
+from yt.utilities.lib.interpolators import (
+    ghost_zone_interpolate,
+    replace_nonperiodic_with_extrap,
+)
 
 
 def setup():
@@ -145,7 +148,7 @@ def test_get_vertex_centered_data():
     assert_array_equal(vec_list[("gas", "density")], vec_tuple)
 
 
-def test_fix_nonperiodic():
+def test_replace_nonperiodic_with_extrap():
     for nbuf in range(3):
         # Initialize domain information
         nx = np.array([8, 16, 32])
@@ -167,7 +170,7 @@ def test_fix_nonperiodic():
         ]
 
         # Use fix_nonperiodic function to extrapolate data to buffer region
-        fix_nonperiodic(
+        replace_nonperiodic_with_extrap(
             field, np.array([nbuf, nbuf, nbuf]), np.array([nbuf, nbuf, nbuf])
         )
 
