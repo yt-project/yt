@@ -1,38 +1,47 @@
+# distutils: libraries = STD_LIBS
+# distutils: include_dirs = LIB_DIR
+# distutils: language = c++
+# distutils: extra_compile_args = CPP14_FLAG OMP_ARGS
+# distutils: extra_link_args = CPP14_FLAG OMP_ARGS
 cimport cython
+
 import numpy as np
+
 cimport numpy as np
 from libc.math cimport fabs
-from libc.stdlib cimport malloc, free
+from libc.stdlib cimport free, malloc
+
 from cython.parallel import parallel, prange
+
+from yt.utilities.lib.element_mappings cimport (
+    ElementSampler,
+    P1Sampler3D,
+    Q1Sampler3D,
+    S2Sampler3D,
+    Tet2Sampler3D,
+    W1Sampler3D,
+)
+from yt.utilities.lib.primitives cimport (
+    BBox,
+    Patch,
+    Ray,
+    TetPatch,
+    Triangle,
+    patch_bbox,
+    patch_centroid,
+    ray_bbox_intersect,
+    ray_patch_intersect,
+    ray_tet_patch_intersect,
+    ray_triangle_intersect,
+    tet_patch_bbox,
+    tet_patch_centroid,
+    triangle_bbox,
+    triangle_centroid,
+)
+from yt.utilities.lib.vec3_ops cimport L2_norm
+
 from .image_samplers cimport ImageSampler
 
-
-from yt.utilities.lib.primitives cimport \
-    BBox, \
-    Ray, \
-    ray_bbox_intersect, \
-    Triangle, \
-    ray_triangle_intersect, \
-    triangle_centroid, \
-    triangle_bbox, \
-    Patch, \
-    ray_patch_intersect, \
-    patch_centroid, \
-    patch_bbox, \
-    TetPatch, \
-    ray_tet_patch_intersect, \
-    tet_patch_centroid, \
-    tet_patch_bbox
-
-from yt.utilities.lib.element_mappings cimport \
-    ElementSampler, \
-    Q1Sampler3D, \
-    P1Sampler3D, \
-    W1Sampler3D, \
-    S2Sampler3D, \
-    Tet2Sampler3D
-
-from yt.utilities.lib.vec3_ops cimport L2_norm
 
 cdef ElementSampler Q1Sampler = Q1Sampler3D()
 cdef ElementSampler P1Sampler = P1Sampler3D()

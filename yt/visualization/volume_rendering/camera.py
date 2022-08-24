@@ -1,57 +1,49 @@
-"""
-Volume Rendering Camera Class
-
-"""
-
-# ----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-# ----------------------------------------------------------------------------
-
-from yt.funcs import iterable, ensure_numpy_array
-from yt.utilities.orientation import Orientation
-from yt.units.yt_array import \
-    YTArray, \
-    YTQuantity
-from yt.utilities.math_utils import get_rotation_matrix
-from yt.extern.six import string_types
-from .utils import data_source_or_all
-from .lens import \
-    lenses, \
-    Lens
-import numpy as np
-from numbers import Number as numeric_type
 import weakref
+from numbers import Number as numeric_type
+
+import numpy as np
+
+from yt.funcs import ensure_numpy_array, is_sequence
+from yt.units.yt_array import YTArray, YTQuantity
+from yt.utilities.math_utils import get_rotation_matrix
+from yt.utilities.orientation import Orientation
+
+from .lens import Lens, lenses
+from .utils import data_source_or_all
+
 
 def _sanitize_camera_property_units(value, scene):
-    if iterable(value):
+    if is_sequence(value):
         if len(value) == 1:
             return _sanitize_camera_property_units(value[0], scene)
         elif isinstance(value, YTArray) and len(value) == 3:
-            return scene.arr(value).in_units('unitary')
-        elif (len(value) == 2 and isinstance(value[0], numeric_type)
-              and isinstance(value[1], string_types)):
-            return scene.arr([scene.arr(value[0], value[1]).in_units('unitary')]*3)
+            return scene.arr(value).in_units("unitary")
+        elif (
+            len(value) == 2
+            and isinstance(value[0], numeric_type)
+            and isinstance(value[1], str)
+        ):
+            return scene.arr([scene.arr(value[0], value[1]).in_units("unitary")] * 3)
         if len(value) == 3:
-            if all([iterable(v) for v in value]):
-                if all([isinstance(v[0], numeric_type) and
-                        isinstance(v[1], string_types) for v in value]):
-                    return scene.arr(
-                        [scene.arr(v[0], v[1]) for v in value])
+            if all([is_sequence(v) for v in value]):
+                if all(
+                    [
+                        isinstance(v[0], numeric_type) and isinstance(v[1], str)
+                        for v in value
+                    ]
+                ):
+                    return scene.arr([scene.arr(v[0], v[1]) for v in value])
                 else:
                     raise RuntimeError(
-                        "Cannot set camera width to invalid value '%s'" % (value, ))
-            return scene.arr(value, 'unitary')
+                        f"Cannot set camera width to invalid value '{value}'"
+                    )
+            return scene.arr(value, "unitary")
     else:
         if isinstance(value, (YTQuantity, YTArray)):
-            return scene.arr([value.d]*3, value.units).in_units('unitary')
+            return scene.arr([value.d] * 3, value.units).in_units("unitary")
         elif isinstance(value, numeric_type):
-            return scene.arr([value]*3, 'unitary')
-    raise RuntimeError(
-        "Cannot set camera width to invalid value '%s'" % (value, ))
+            return scene.arr([value] * 3, "unitary")
+    raise RuntimeError(f"Cannot set camera width to invalid value '{value}'")
 
 
 class Camera(Orientation):
@@ -89,7 +81,7 @@ class Camera(Orientation):
 
     >>> import yt
     >>> from yt.visualization.volume_rendering.api import Scene
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> sc = Scene()
     >>> cam = sc.add_camera(ds)
 
@@ -107,9 +99,9 @@ class Camera(Orientation):
 
     >>> import yt
     >>> from yt.visualization.volume_rendering.api import Scene
-    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> sc = Scene()
-    >>> cam = sc.add_camera(ds, lens_type='perspective')
+    >>> cam = sc.add_camera(ds, lens_type="perspective")
 
     """
 
@@ -119,14 +111,15 @@ class Camera(Orientation):
     _position = None
     _resolution = None
 
-    def __init__(self, scene, data_source=None, lens_type='plane-parallel',
-                 auto=False):
+    def __init__(self, scene, data_source=None, lens_type="plane-parallel", auto=False):
         # import this here to avoid an import cycle
         from .scene import Scene
+
         if not isinstance(scene, Scene):
             raise RuntimeError(
-                'The first argument passed to the Camera initializer is a '
-                '%s object, expected a %s object' % (type(scene), Scene))
+                "The first argument passed to the Camera initializer is a "
+                "%s object, expected a %s object" % (type(scene), Scene)
+            )
         self.scene = weakref.proxy(scene)
         self.lens = None
         self.north_vector = None
@@ -140,24 +133,27 @@ class Camera(Orientation):
             self._focus = self.data_source.ds.domain_center
             self._position = self.data_source.ds.domain_right_edge
             self._width = self.data_source.ds.arr(
-                [1.5*self.data_source.ds.domain_width.max()]*3)
+                [1.5 * self.data_source.ds.domain_width.max()] * 3
+            )
             self._domain_center = self.data_source.ds.domain_center
             self._domain_width = self.data_source.ds.domain_width
         else:
-            self._focus = scene.arr([0.0, 0.0, 0.0], 'unitary')
-            self._width = scene.arr([1.0, 1.0, 1.0], 'unitary')
-            self._position = scene.arr([1.0, 1.0, 1.0], 'unitary')
+            self._focus = scene.arr([0.0, 0.0, 0.0], "unitary")
+            self._width = scene.arr([1.0, 1.0, 1.0], "unitary")
+            self._position = scene.arr([1.0, 1.0, 1.0], "unitary")
 
         if auto:
             self.set_defaults_from_data_source(data_source)
 
-        super(Camera, self).__init__(self.focus - self.position,
-                                     self.north_vector, steady_north=False)
+        super().__init__(
+            self.focus - self.position, self.north_vector, steady_north=False
+        )
 
         self.set_lens(lens_type)
 
-    def position():
-        doc = '''
+    @property
+    def position(self):
+        r"""
         The location of the camera.
 
         Parameters
@@ -167,27 +163,29 @@ class Camera(Orientation):
             If a scalar, assumes that the position is the same in all three
             coordinates. If an iterable, must contain only scalars or
             (length, unit) tuples.
-        '''
+        """
+        return self._position
 
-        def fget(self):
-            return self._position
+    @position.setter
+    def position(self, value):
+        position = _sanitize_camera_property_units(value, self.scene)
+        if np.array_equal(position, self.focus):
+            raise RuntimeError(
+                "Cannot set the camera focus and position to the same value"
+            )
+        self._position = position
+        self.switch_orientation(
+            normal_vector=self.focus - self._position,
+            north_vector=self.north_vector,
+        )
 
-        def fset(self, value):
-            position = _sanitize_camera_property_units(value, self.scene)
-            if np.array_equal(position, self.focus):
-                raise RuntimeError(
-                    'Cannot set the camera focus and position to the same value')
-            self._position = position
-            self.switch_orientation(normal_vector=self.focus - self._position,
-                                    north_vector=self.north_vector)
+    @position.deleter
+    def position(self):
+        del self._position
 
-        def fdel(self):
-            del self._position
-        return locals()
-    position = property(**position())
-
-    def width():
-        doc = '''The width of the region that will be seen in the image.
+    @property
+    def width(self):
+        r"""The width of the region that will be seen in the image.
 
         Parameters
         ----------
@@ -197,24 +195,23 @@ class Camera(Orientation):
             depth directions. If a scalar, assumes that the width is the same in
             all three directions. If an iterable, must contain only scalars or
             (length, unit) tuples.
-        '''
+        """
+        return self._width
 
-        def fget(self):
-            return self._width
+    @width.setter
+    def width(self, value):
+        width = _sanitize_camera_property_units(value, self.scene)
+        self._width = width
+        self.switch_orientation()
 
-        def fset(self, value):
-            width = _sanitize_camera_property_units(value, self.scene)
-            self._width = width
-            self.switch_orientation()
+    @width.deleter
+    def width(self):
+        del self._width
+        self._width = None
 
-        def fdel(self):
-            del self._width
-            self._width = None
-        return locals()
-    width = property(**width())
-
-    def focus():
-        doc = '''
+    @property
+    def focus(self):
+        r"""
         The focus defines the point the Camera is pointed at.
 
         Parameters
@@ -225,45 +222,44 @@ class Camera(Orientation):
             depth directions. If a scalar, assumes that the width is the same in
             all three directions. If an iterable, must contain only scalars or
             (length, unit) tuples.
-        '''
+        """
+        return self._focus
 
-        def fget(self):
-            return self._focus
+    @focus.setter
+    def focus(self, value):
+        focus = _sanitize_camera_property_units(value, self.scene)
+        if np.array_equal(focus, self.position):
+            raise RuntimeError(
+                "Cannot set the camera focus and position to the same value"
+            )
+        self._focus = focus
+        self.switch_orientation(
+            normal_vector=self.focus - self._position, north_vector=None
+        )
 
-        def fset(self, value):
-            focus = _sanitize_camera_property_units(value, self.scene)
-            if np.array_equal(focus, self.position):
-                raise RuntimeError(
-                    'Cannot set the camera focus and position to the same value')
-            self._focus = focus
-            self.switch_orientation(normal_vector=self.focus - self._position,
-                                    north_vector=None)
+    @focus.deleter
+    def focus(self):
+        del self._focus
 
-        def fdel(self):
-            del self._focus
-        return locals()
-    focus = property(**focus())
+    @property
+    def resolution(self):
+        r"""The resolution is the number of pixels in the image that
+        will be produced. Must be a 2-tuple of integers or an integer."""
+        return self._resolution
 
-    def resolution():
-        doc = '''The resolution is the number of pixels in the image that
-               will be produced. Must be a 2-tuple of integers or an integer.'''
+    @resolution.setter
+    def resolution(self, value):
+        if is_sequence(value):
+            if len(value) != 2:
+                raise RuntimeError
+        else:
+            value = (value, value)
+        self._resolution = value
 
-        def fget(self):
-            return self._resolution
-
-        def fset(self, value):
-            if iterable(value):
-                if len(value) != 2:
-                    raise RuntimeError
-            else:
-                value = (value, value)
-            self._resolution = value
-
-        def fdel(self):
-            del self._resolution
-            self._resolution = None
-        return locals()
-    resolution = property(**resolution())
+    @resolution.deleter
+    def resolution(self):
+        del self._resolution
+        self._resolution = None
 
     def set_resolution(self, resolution):
         """
@@ -283,8 +279,7 @@ class Camera(Orientation):
         lens_params.update(width=self.width)
         pos = self.position.in_units("code_length").d
         width = self.width.in_units("code_length").d
-        lens_params.update(camera_data=np.vstack(
-            (pos, width, self.unit_vectors.d)))
+        lens_params.update(camera_data=np.vstack((pos, width, self.unit_vectors.d)))
         return lens_params
 
     def set_lens(self, lens_type):
@@ -308,7 +303,8 @@ class Camera(Orientation):
         elif lens_type not in lenses:
             raise RuntimeError(
                 "Lens type %s not in available list of available lens "
-                "types (%s)" % (lens_type, list(lenses.keys())))
+                "types (%s)" % (lens_type, list(lenses.keys()))
+            )
         else:
             self.lens = lenses[lens_type]()
         self.lens.set_camera(self)
@@ -319,24 +315,23 @@ class Camera(Orientation):
         position = data_source.ds.domain_right_edge
 
         width = 1.5 * data_source.ds.domain_width.max()
-        (xmi, xma), (ymi, yma), (zmi, zma) = \
-            data_source.quantities['Extrema'](['x', 'y', 'z'])
-        width = np.sqrt((xma - xmi) ** 2 + (yma - ymi) ** 2 +
-                        (zma - zmi) ** 2)
-        focus = data_source.get_field_parameter('center')
+        (xmi, xma), (ymi, yma), (zmi, zma) = data_source.quantities["Extrema"](
+            ["x", "y", "z"]
+        )
+        width = np.sqrt((xma - xmi) ** 2 + (yma - ymi) ** 2 + (zma - zmi) ** 2)
+        focus = data_source.get_field_parameter("center")
 
-        if iterable(width) and len(width) > 1 and isinstance(width[1], string_types):
-            width = data_source.ds.quan(width[0], input_units=width[1])
+        if is_sequence(width) and len(width) > 1 and isinstance(width[1], str):
+            width = data_source.ds.quan(width[0], units=width[1])
             # Now convert back to code length for subsequent manipulation
             width = width.in_units("code_length")  # .value
-        if not iterable(width):
-            width = data_source.ds.arr([width, width, width],
-                                       input_units='code_length')
+        if not is_sequence(width):
+            width = data_source.ds.arr([width, width, width], units="code_length")
             # left/right, top/bottom, front/back
         if not isinstance(width, YTArray):
-            width = data_source.ds.arr(width, input_units="code_length")
+            width = data_source.ds.arr(width, units="code_length")
         if not isinstance(focus, YTArray):
-            focus = data_source.ds.arr(focus, input_units="code_length")
+            focus = data_source.ds.arr(focus, units="code_length")
 
         # We can't use the property setters yet, since they rely on attributes
         # that will not be set up until the base class initializer is called.
@@ -347,8 +342,9 @@ class Camera(Orientation):
         self._domain_center = data_source.ds.domain_center
         self._domain_width = data_source.ds.domain_width
 
-        super(Camera, self).__init__(self.focus - self.position,
-                                     self.north_vector, steady_north=False)
+        super().__init__(
+            self.focus - self.position, self.north_vector, steady_north=False
+        )
         self._moved = True
 
     def set_width(self, width):
@@ -376,13 +372,13 @@ class Camera(Orientation):
         Parameters
         ----------
 
-        width : number, YTQuantity, :obj:`!iterable`, or 3 element YTArray
+        position : number, YTQuantity, :obj:`!iterable`, or 3 element YTArray
             If a scalar, assumes that the position is the same in all three
             coordinates. If an iterable, must contain only scalars or
             (length, unit) tuples.
 
         north_vector : array_like, optional
-            The 'up' direction for the plane of rays.  If not specific,
+            The 'up' direction for the plane of rays. If not specific,
             calculated automatically.
 
         """
@@ -400,7 +396,7 @@ class Camera(Orientation):
         Parameters
         ----------
 
-        focus : number, YTQuantity, :obj:`!iterable`, or 3 element YTArray
+        new_focus : number, YTQuantity, :obj:`!iterable`, or 3 element YTArray
             If a scalar, assumes that the focus is the same is all three
             coordinates. If an iterable, must contain only scalars or
             (length, unit) tuples.
@@ -451,8 +447,7 @@ class Camera(Orientation):
             north_vector = self.north_vector
         if normal_vector is None:
             normal_vector = self.normal_vector
-        self.switch_orientation(normal_vector=normal_vector,
-                                north_vector=north_vector)
+        self.switch_orientation(normal_vector=normal_vector, north_vector=north_vector)
         self._moved = True
 
     def rotate(self, theta, rot_vector=None, rot_center=None):
@@ -483,11 +478,11 @@ class Camera(Orientation):
         >>> sc = Scene()
         >>> cam = sc.add_camera()
         >>> # rotate the camera by pi / 4 radians:
-        >>> cam.rotate(np.pi/4.0)
+        >>> cam.rotate(np.pi / 4.0)
         >>> # rotate the camera about the y-axis instead of cam.north_vector:
-        >>> cam.rotate(np.pi/4.0, np.array([0.0, 1.0, 0.0]))
+        >>> cam.rotate(np.pi / 4.0, np.array([0.0, 1.0, 0.0]))
         >>> # rotate the camera about the origin instead of its own position:
-        >>> cam.rotate(np.pi/4.0, rot_center=np.array([0.0, 0.0, 0.0]))
+        >>> cam.rotate(np.pi / 4.0, rot_center=np.array([0.0, 0.0, 0.0]))
 
         """
         rotate_all = rot_vector is not None
@@ -496,7 +491,7 @@ class Camera(Orientation):
         if rot_center is None:
             rot_center = self._position
         rot_vector = ensure_numpy_array(rot_vector)
-        rot_vector = rot_vector/np.linalg.norm(rot_vector)
+        rot_vector = rot_vector / np.linalg.norm(rot_vector)
 
         new_position = self._position - rot_center
         R = get_rotation_matrix(theta, rot_vector)
@@ -506,15 +501,17 @@ class Camera(Orientation):
             normal_vector = self.unit_vectors[2]
         else:
             normal_vector = rot_center - new_position
-        normal_vector = normal_vector/np.sqrt((normal_vector**2).sum())
+        normal_vector = normal_vector / np.sqrt((normal_vector**2).sum())
 
         if rotate_all:
             self.switch_view(
                 normal_vector=np.dot(R, normal_vector),
-                north_vector=np.dot(R, self.unit_vectors[1]))
+                north_vector=np.dot(R, self.unit_vectors[1]),
+            )
         else:
             self.switch_view(normal_vector=np.dot(R, normal_vector))
-        if (new_position != self._position).any(): self.set_position(new_position)
+        if (new_position != self._position).any():
+            self.set_position(new_position)
 
     def pitch(self, theta, rot_center=None):
         r"""Rotate by a given angle about the horizontal axis
@@ -537,9 +534,9 @@ class Camera(Orientation):
         >>> sc = Scene()
         >>> sc.add_camera()
         >>> # pitch the camera by pi / 4 radians:
-        >>> cam.pitch(np.pi/4.0)
+        >>> cam.pitch(np.pi / 4.0)
         >>> # pitch the camera about the origin instead of its own position:
-        >>> cam.pitch(np.pi/4.0, rot_center=np.array([0.0, 0.0, 0.0]))
+        >>> cam.pitch(np.pi / 4.0, rot_center=np.array([0.0, 0.0, 0.0]))
 
         """
         self.rotate(theta, rot_vector=self.unit_vectors[0], rot_center=rot_center)
@@ -565,9 +562,9 @@ class Camera(Orientation):
         >>> sc = Scene()
         >>> cam = sc.add_camera()
         >>> # yaw the camera by pi / 4 radians:
-        >>> cam.yaw(np.pi/4.0)
+        >>> cam.yaw(np.pi / 4.0)
         >>> # yaw the camera about the origin instead of its own position:
-        >>> cam.yaw(np.pi/4.0, rot_center=np.array([0.0, 0.0, 0.0]))
+        >>> cam.yaw(np.pi / 4.0, rot_center=np.array([0.0, 0.0, 0.0]))
 
         """
         self.rotate(theta, rot_vector=self.unit_vectors[1], rot_center=rot_center)
@@ -593,9 +590,9 @@ class Camera(Orientation):
         >>> sc = Scene()
         >>> cam = sc.add_camera(ds)
         >>> # roll the camera by pi / 4 radians:
-        >>> cam.roll(np.pi/4.0)
+        >>> cam.roll(np.pi / 4.0)
         >>> # roll the camera about the origin instead of its own position:
-        >>> cam.roll(np.pi/4.0, rot_center=np.array([0.0, 0.0, 0.0]))
+        >>> cam.roll(np.pi / 4.0, rot_center=np.array([0.0, 0.0, 0.0]))
 
         """
         self.rotate(theta, rot_vector=self.unit_vectors[2], rot_center=rot_center)
@@ -626,17 +623,17 @@ class Camera(Orientation):
 
         >>> import yt
         >>> import numpy as np
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>>
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
         >>> im, sc = yt.volume_render(ds)
         >>> cam = sc.camera
         >>> for i in cam.iter_rotate(np.pi, 10):
         ...     im = sc.render()
-        ...     sc.save('rotation_%04i.png' % i)
+        ...     sc.save("rotation_%04i.png" % i)
 
         """
 
-        dtheta = (1.0*theta)/n_steps
+        dtheta = (1.0 * theta) / n_steps
         for i in range(n_steps):
             self.rotate(dtheta, rot_vector=rot_vector, rot_center=rot_center)
             yield i
@@ -663,8 +660,8 @@ class Camera(Orientation):
 
         >>> import yt
         >>> import numpy as np
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>> final_position = ds.arr([0.2, 0.3, 0.6], 'unitary')
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+        >>> final_position = ds.arr([0.2, 0.3, 0.6], "unitary")
         >>> im, sc = yt.volume_render(ds)
         >>> cam = sc.camera
         >>> for i in cam.iter_move(final_position, 10):
@@ -674,10 +671,10 @@ class Camera(Orientation):
         """
         assert isinstance(final, YTArray)
         if exponential:
-            position_diff = (final/self.position)*1.0
-            dx = position_diff**(1.0/n_steps)
+            position_diff = (final / self.position) * 1.0
+            dx = position_diff ** (1.0 / n_steps)
         else:
-            dx = (final - self.position)*1.0/n_steps
+            dx = (final - self.position) * 1.0 / n_steps
         for i in range(n_steps):
             if exponential:
                 self.set_position(self.position * dx)
@@ -702,7 +699,7 @@ class Camera(Orientation):
 
         >>> import yt
         >>> from yt.visualization.volume_rendering.api import Scene
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
         >>> sc = Scene()
         >>> cam = sc.add_camera(ds)
         >>> cam.zoom(1.1)
@@ -729,7 +726,7 @@ class Camera(Orientation):
         --------
 
         >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
         >>> im, sc = yt.volume_render(ds)
         >>> cam = sc.camera
         >>> for i in cam.iter_zoom(100.0, 10):
@@ -737,15 +734,22 @@ class Camera(Orientation):
         ...     sc.save("zoom_%04i.png" % i)
 
         """
-        f = final**(1.0/n_steps)
+        f = final ** (1.0 / n_steps)
         for i in range(n_steps):
             self.zoom(f)
             yield i
 
     def __repr__(self):
-        disp = ("<Camera Object>:\n\tposition:%s\n\tfocus:%s\n\t" +
-                "north_vector:%s\n\twidth:%s\n\tlight:%s\n\tresolution:%s\n") \
-            % (self.position, self.focus, self.north_vector, self.width,
-               self.light, self.resolution)
-        disp += "Lens: %s" % self.lens
+        disp = (
+            "<Camera Object>:\n\tposition:%s\n\tfocus:%s\n\t"
+            + "north_vector:%s\n\twidth:%s\n\tlight:%s\n\tresolution:%s\n"
+        ) % (
+            self.position,
+            self.focus,
+            self.north_vector,
+            self.width,
+            self.light,
+            self.resolution,
+        )
+        disp += f"Lens: {self.lens}"
         return disp

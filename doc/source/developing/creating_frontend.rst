@@ -27,24 +27,34 @@ be classified into a couple categories:
  * Data reading: This is the set of routines that actually perform a read of
    either all data in a region or a subset of that data.
 
+
+If you are interested in adding a new code, be sure to drop us a line on
+`yt-dev <https://mail.python.org/archives/list/yt-dev@python.org/>`_!
+
+
+Bootstrapping a new frontend
+----------------------------
+
+To get started
+
+ * make a new directory in ``yt/frontends`` with the name of your code and add the name
+   into ``yt/frontends/api.py:_frontends`` (in alphabetical order).
+ * copy the contents of the ``yt/frontends/_skeleton`` directory, and replace every
+   occurrence of ``Skeleton`` with your frontend's name (preserving case). This
+   adds a lot of boilerplate for the required classes and methods that are needed.
+
+
 Data Meaning Structures
 -----------------------
 
-If you are interested in adding a new code, be sure to drop us a line on
-`yt-dev <https://mail.python.org/mm3/archives/list/yt-dev@python.org/>`_!
-
-To get started, make a new directory in ``yt/frontends`` with the name
-of your code and add the name into ``yt/frontends/api.py``.
-Copying the contents of the ``yt/frontends/_skeleton``
-directory will add a lot of boilerplate for the required classes and
-methods that are needed.  In particular, you'll have to create a
-subclass of ``Dataset`` in the data_structures.py file. This subclass
-will need to handle conversion between the different physical units
-and the code units (typically in the ``_set_code_unit_attributes()``
+You will need to create a subclass of ``Dataset`` in the ``data_structures.py``
+file. This subclass will need to handle conversion between the different physical
+units and the code units (typically in the ``_set_code_unit_attributes()``
 method), read in metadata describing the overall data on disk (via the
 ``_parse_parameter_file()`` method), and provide a ``classmethod``
 called ``_is_valid()`` that lets the ``yt.load`` method help identify an
-input file as belonging to *this* particular ``Dataset`` subclass.
+input file as belonging to *this* particular ``Dataset`` subclass
+(see :ref:`data-format-detection`).
 For the most part, the examples of
 ``yt.frontends.boxlib.data_structures.OrionDataset`` and
 ``yt.frontends.enzo.data_structures.EnzoDataset`` should be followed,
@@ -59,37 +69,39 @@ your code. Here is a snippet from the base BoxLib field container:
 .. code-block:: python
 
     from yt.fields.field_info_container import FieldInfoContainer
+
+
     class BoxlibFieldInfo(FieldInfoContainer):
         known_other_fields = (
             ("density", (rho_units, ["density"], None)),
-	    ("eden", (eden_units, ["energy_density"], None)),
-	    ("xmom", (mom_units, ["momentum_x"], None)),
-	    ("ymom", (mom_units, ["momentum_y"], None)),
-	    ("zmom", (mom_units, ["momentum_z"], None)),
-	    ("temperature", ("K", ["temperature"], None)),
-	    ("Temp", ("K", ["temperature"], None)),
-	    ("x_velocity", ("cm/s", ["velocity_x"], None)),
-	    ("y_velocity", ("cm/s", ["velocity_y"], None)),
-	    ("z_velocity", ("cm/s", ["velocity_z"], None)),
-	    ("xvel", ("cm/s", ["velocity_x"], None)),
-	    ("yvel", ("cm/s", ["velocity_y"], None)),
-	    ("zvel", ("cm/s", ["velocity_z"], None)),
-	)
+            ("eden", (eden_units, ["energy_density"], None)),
+            ("xmom", (mom_units, ["momentum_x"], None)),
+            ("ymom", (mom_units, ["momentum_y"], None)),
+            ("zmom", (mom_units, ["momentum_z"], None)),
+            ("temperature", ("K", ["temperature"], None)),
+            ("Temp", ("K", ["temperature"], None)),
+            ("x_velocity", ("cm/s", ["velocity_x"], None)),
+            ("y_velocity", ("cm/s", ["velocity_y"], None)),
+            ("z_velocity", ("cm/s", ["velocity_z"], None)),
+            ("xvel", ("cm/s", ["velocity_x"], None)),
+            ("yvel", ("cm/s", ["velocity_y"], None)),
+            ("zvel", ("cm/s", ["velocity_z"], None)),
+        )
 
-	known_particle_fields = (
-	    ("particle_mass", ("code_mass", [], None)),
-	    ("particle_position_x", ("code_length", [], None)),
-	    ("particle_position_y", ("code_length", [], None)),
-	    ("particle_position_z", ("code_length", [], None)),
-	    ("particle_momentum_x", (mom_units, [], None)),
-	    ("particle_momentum_y", (mom_units, [], None)),
-	    ("particle_momentum_z", (mom_units, [], None)),
-	    ("particle_angmomen_x", ("code_length**2/code_time", [], None)),
-	    ("particle_angmomen_y", ("code_length**2/code_time", [], None)),
-	    ("particle_angmomen_z", ("code_length**2/code_time", [], None)),
-	    ("particle_id", ("", ["particle_index"], None)),
-	    ("particle_mdot", ("code_mass/code_time", [], None)),
-	)
+        known_particle_fields = (
+            ("particle_mass", ("code_mass", [], None)),
+            ("particle_position_x", ("code_length", [], None)),
+            ("particle_position_y", ("code_length", [], None)),
+            ("particle_position_z", ("code_length", [], None)),
+            ("particle_momentum_x", (mom_units, [], None)),
+            ("particle_momentum_y", (mom_units, [], None)),
+            ("particle_momentum_z", (mom_units, [], None)),
+            ("particle_angmomen_x", ("code_length**2/code_time", [], None)),
+            ("particle_angmomen_y", ("code_length**2/code_time", [], None)),
+            ("particle_angmomen_z", ("code_length**2/code_time", [], None)),
+            ("particle_id", ("", ["particle_index"], None)),
+            ("particle_mdot", ("code_mass/code_time", [], None)),
+        )
 
 The tuples, ``known_other_fields`` and ``known_particle_fields`` contain
 entries, which are tuples of the form ``("name", ("units", ["fields", "to",
@@ -112,6 +124,33 @@ want the field to be displayed on a plot; this can be LaTeX code, for example
 the density field could have a display name of ``r"\rho"``.  Omitting the
 ``"display_name"`` will result in using a capitalized version of the ``"name"``.
 
+
+.. _data-format-detection:
+
+How to make ``yt.load`` magically detect your data format ?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+``yt.load`` takes in a file or directory name, as well as any number of
+positional and keyword arguments. On call, ``yt.load`` attempts to determine
+what ``Dataset`` subclasses are compatible with the set of arguments it
+received. It does so by passing its arguments to *every* ``Dataset`` subclasses'
+``_is_valid`` method. These methods are intended to be heuristics that quickly
+determine wether the arguments (in particular the file/directory) can be loaded
+with their respective classes. In some cases, more than one class might be
+detected as valid. If all candidate classes are siblings, ``yt.load`` will
+select the most specialized one.
+
+When writing a new frontend, it is important to write ``_is_valid`` methods to be
+as specific as possible, otherwise one might constrain the design space for
+future frontends or in some cases deny their ability to leverage ``yt.load``'s
+magic.
+
+Performance is also critical since the new method is going to get called every
+single time along with ``yt.load``, even for unrelated data formats.
+
+Note that ``yt.load`` knows about every ``Dataset`` subclass because they are
+automatically registered on creation.
+
 .. _bfields-frontend:
 
 Creating Aliases for Magnetic Fields
@@ -131,23 +170,22 @@ example of how this is implemented in the FLASH frontend:
 
     class FLASHFieldInfo(FieldInfoContainer):
         known_other_fields = (
-            ...
-            ("magx", (b_units, [], "B_x")), # Note there is no alias here
+            ...("magx", (b_units, [], "B_x")),  # Note there is no alias here
             ("magy", (b_units, [], "B_y")),
             ("magz", (b_units, [], "B_z")),
-            ...
+            ...,
         )
 
         def setup_fluid_fields(self):
-            from yt.fields.magnetic_field import \
-                setup_magnetic_field_aliases
+            from yt.fields.magnetic_field import setup_magnetic_field_aliases
+
             ...
             setup_magnetic_field_aliases(self, "flash", ["mag%s" % ax for ax in "xyz"])
 
 This function should always be imported and called from within the
 ``setup_fluid_fields`` method of the ``FieldInfoContainer``. If this
 function is used, converting between magnetic fields in different
-:ref:`unit systems <unit_systems>` will be handled automatically.
+unit systems will be handled automatically.
 
 Data Localization Structures
 ----------------------------
@@ -226,9 +264,9 @@ that is needed:
     class ChomboGrid(AMRGridPatch):
         _id_offset = 0
         __slots__ = ["_level_id"]
+
         def __init__(self, id, index, level=-1):
-            AMRGridPatch.__init__(self, id, filename=index.index_filename,
-                                  index=index)
+            AMRGridPatch.__init__(self, id, filename=index.index_filename, index=index)
             self.Parent = None
             self.Children = []
             self.Level = level
@@ -276,6 +314,6 @@ fashion, but the ``yt.frontends.boxlib.io.IOHandlerBoxlib`` is a
 decent place to start.
 
 And that just about covers it. Please feel free to email
-`yt-users <https://mail.python.org/mm3/archives/list/yt-users@python.org/>`_ or
-`yt-dev <https://mail.python.org/mm3/archives/list/yt-dev@python.org/>`_ with
+`yt-users <https://mail.python.org/archives/list/yt-users@python.org/>`_ or
+`yt-dev <https://mail.python.org/archives/list/yt-dev@python.org/>`_ with
 any questions, or to let us know you're thinking about adding a new code to yt.

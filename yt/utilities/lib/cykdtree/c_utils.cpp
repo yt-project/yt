@@ -69,7 +69,7 @@ uint64_t argmin_pts_dim(double *pts, uint64_t *idx,
   return idx_min;
 }
 
-// http://www.comp.dit.ie/rlawlor/Alg_DS/sorting/quickSort.c 
+// http://www.comp.dit.ie/rlawlor/Alg_DS/sorting/quickSort.c
 void quickSort(double *pts, uint64_t *idx,
                uint32_t ndim, uint32_t d,
                int64_t l, int64_t r)
@@ -106,7 +106,7 @@ void insertSort(double *pts, uint64_t *idx,
 int64_t pivot(double *pts, uint64_t *idx,
               uint32_t ndim, uint32_t d,
               int64_t l, int64_t r)
-{ 
+{
   if (r < l) {
     return -1;
   } else if (r == l) {
@@ -161,7 +161,7 @@ int64_t partition_given_pivot(double *pts, uint64_t *idx,
 int64_t partition(double *pts, uint64_t *idx,
                   uint32_t ndim, uint32_t d,
                   int64_t l, int64_t r, int64_t p)
-{ 
+{
   double pivot;
   int64_t j;
   uint64_t t;
@@ -190,7 +190,7 @@ int64_t select(double *pts, uint64_t *idx,
 
     p = pivot(pts, idx, ndim, d, l, r);
     p = partition(pts, idx, ndim, d, l, r, p);
-    if (p < 0) 
+    if (p < 0)
       return -1;
     else if (n == (p-l0+1)) {
       return p;
@@ -252,6 +252,3 @@ uint32_t split(double *all_pts, uint64_t *all_idx,
 
   return dmax;
 }
-
-
-

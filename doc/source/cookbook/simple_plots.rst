@@ -33,6 +33,14 @@ See :ref:`projection-plots` for more information.
 
 .. yt_cookbook:: simple_projection_weighted.py
 
+Simple Projections (Methods)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+And here we illustrate different methods for projection plots (integrate,
+minimum, maximum).
+
+.. yt_cookbook:: simple_projection_methods.py
+
 Simple Phase Plots
 ~~~~~~~~~~~~~~~~~~
 
@@ -50,6 +58,9 @@ This script shows how to make a ``LinePlot`` through a dataset.
 See :ref:`manual-line-plots` for more information.
 
 .. yt_cookbook:: simple_1d_line_plot.py
+
+.. note:: Not every data types have support for ``yt.LinePlot`` yet.
+   Currently, this operation is supported for grid based data with cartesian geometry.
 
 Simple Probability Distribution Functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

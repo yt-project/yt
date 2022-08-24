@@ -1,8 +1,14 @@
-import yt
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import AxesGrid
 
-fns = ['Enzo_64/DD0005/data0005','Enzo_64/DD0015/data0015', 'Enzo_64/DD0025/data0025', 'Enzo_64/DD0035/data0035']
+import yt
+
+fns = [
+    "Enzo_64/DD0005/data0005",
+    "Enzo_64/DD0015/data0015",
+    "Enzo_64/DD0025/data0025",
+    "Enzo_64/DD0035/data0035",
+]
 
 fig = plt.figure()
 
@@ -11,26 +17,29 @@ fig = plt.figure()
 # shared narrow colorbar on the right hand side of the multipanel plot. Axes
 # labels are drawn for all plots since we're slicing along different directions
 # for each plot.
-grid = AxesGrid(fig, (0.075,0.075,0.85,0.85),
-                nrows_ncols = (2, 2),
-                axes_pad = 0.05,
-                label_mode = "L",
-                share_all = True,
-                cbar_location="right",
-                cbar_mode="single",
-                cbar_size="3%",
-                cbar_pad="0%")
+grid = AxesGrid(
+    fig,
+    (0.075, 0.075, 0.85, 0.85),
+    nrows_ncols=(2, 2),
+    axes_pad=0.05,
+    label_mode="L",
+    share_all=True,
+    cbar_location="right",
+    cbar_mode="single",
+    cbar_size="3%",
+    cbar_pad="0%",
+)
 
 for i, fn in enumerate(fns):
     # Load the data and create a single plot
-    ds = yt.load(fn) # load data
-    p = yt.ProjectionPlot(ds, 'z', 'density', width=(55, 'Mpccm'))
+    ds = yt.load(fn)  # load data
+    p = yt.ProjectionPlot(ds, "z", ("gas", "density"), width=(55, "Mpccm"))
 
     # Ensure the colorbar limits match for all plots
-    p.set_zlim('density', 1e-4, 1e-2)
+    p.set_zlim(("gas", "density"), 1e-4, 1e-2)
 
     # This forces the ProjectionPlot to redraw itself on the AxesGrid axes.
-    plot = p.plots['density']
+    plot = p.plots[("gas", "density")]
     plot.figure = fig
     plot.axes = grid[i].axes
     plot.cax = grid.cbar_axes[i]
@@ -38,4 +47,4 @@ for i, fn in enumerate(fns):
     # Finally, this actually redraws the plot.
     p._setup_plots()
 
-plt.savefig('multiplot_2x2_time_series.png')
+plt.savefig("multiplot_2x2_time_series.png")

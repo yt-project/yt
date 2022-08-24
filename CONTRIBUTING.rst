@@ -1,5 +1,5 @@
 .. This document is rendered in HTML with cross-reference links filled in at
-   http://yt-project.org/doc/developing/
+   https://yt-project.org/doc/developing/developing.html
 
 .. _getting-involved:
 
@@ -16,20 +16,16 @@ Coding is only one way to be involved!
 Communication Channels
 ----------------------
 
-There are five main communication channels for yt:
+There are three main communication channels for yt:
 
- * We have an IRC channel, on ``irc.freenode.net`` in ``#yt``.
-   You can connect through our web
-   gateway without any special client, at http://yt-project.org/irc.html .
-   *IRC is the first stop for conversation!*
  * Many yt developers participate in the yt Slack community. Slack is a free
    chat service that many teams use to organize their work. You can get an
    invite to yt's Slack organization by clicking the "Join us @ Slack" button
-   on this page: http://yt-project.org/community.html
- * `yt-users <https://mail.python.org/mm3/archives/list/yt-users@python.org/>`_
+   on this page: https://yt-project.org/community.html
+ * `yt-users <https://mail.python.org/archives/list/yt-users@python.org/>`_
    is a relatively high-traffic mailing list where people are encouraged to ask
    questions about the code, figure things out and so on.
- * `yt-dev <https://mail.python.org/mm3/archives/list/yt-dev@python.org/>`_ is
+ * `yt-dev <https://mail.python.org/archives/list/yt-dev@python.org/>`_ is
    a much lower-traffic mailing list designed to focus on discussions of
    improvements to the code, ideas about planning, development issues, and so
    on.
@@ -50,9 +46,17 @@ outdated section, contributing typo or grammatical fixes, adding a FAQ, or
 increasing coverage of functionality, it would be very helpful if you wanted to
 help out.
 
-The easiest way to help out is to fork the main yt repository (where the
-documentation lives in the ``doc`` directory in the root of the yt git
-repository) and then make your changes in your own fork.  When you are done,
+The easiest way to help out is to fork the main yt repository and make changes
+in it to contribute back to the ``yt-project``. A fork is a copy
+of a repository; in this case the fork will live in the space under your
+username on github, rather than the ``yt-project``. If you have never made a
+fork of a repository on github, or are unfamiliar with this process, here is a
+short article about how to do so:
+https://help.github.com/en/github/getting-started-with-github/fork-a-repo .
+The documentation for
+``yt`` lives in the ``doc`` directory in the root of the yt git
+repository. To make a contribution to the yt documentation you will
+make your changes in your own fork of ``yt``.  When you are done,
 issue a pull request through the website for your new fork, and we can comment
 back and forth and eventually accept your changes. See :ref:`sharing-changes` for
 more information about contributing your changes to yt on GitHub.
@@ -62,12 +66,12 @@ Gallery Images and Videos
 
 If you have an image or video you'd like to display in the image or video
 galleries, getting it included it easy!  You can either fork the `yt homepage
-repository <http://github.com/yt-project/website>`_ and add it there, or
+repository <https://github.com/yt-project/website>`_ and add it there, or
 email it to us and we'll add it to the `Gallery
-<http://yt-project.org/gallery.html>`_.
+<https://yt-project.org/gallery.html>`_.
 
 We're eager to show off the images and movies you make with yt, so please feel
-free to drop `us <https://mail.python.org/mm3/archives/list/yt-dev@python.org/>`_
+free to drop `us <https://mail.python.org/archives/list/yt-dev@python.org/>`_
 a line and let us know if you've got something great!
 
 Technical Contributions
@@ -83,7 +87,8 @@ usually we end up accepting.
 
 For more information, see :ref:`contributing-code`, where we spell out how to
 get up and running with a development environment, how to commit, and how to
-use GitHub.
+use GitHub. When you're ready to share your changes with the community, refer to
+:ref:`sharing-changes` to see how to contribute them back upstream.
 
 Online Presence
 ---------------
@@ -100,30 +105,24 @@ Word of Mouth
 
 If you're using yt and it has increased your productivity, please feel
 encouraged to share that information.  Cite our `paper
-<http://adsabs.harvard.edu/abs/2011ApJS..192....9T>`_, tell your colleagues,
+<https://ui.adsabs.harvard.edu/abs/2011ApJS..192....9T>`_, tell your colleagues,
 and just spread word of mouth.  By telling people about your successes, you'll
 help bring more eyes and hands to the table -- in this manner, by increasing
 participation, collaboration, and simply spreading the limits of what the code
 is asked to do, we hope to help scale the utility and capability of yt with the
 community size.
 
-Feel free to `blog <http://blog.yt-project.org/>`_ about, `tweet
-<http://twitter.com/yt_astro>`_ about and talk about what you are up to!
+Feel free to `blog <https://blog.yt-project.org/>`_ about, `tweet
+<https://twitter.com/yt_astro>`_ about and talk about what you are up to!
 
 Long-Term Projects
 ------------------
 
-There are some wild-eyed, out-there ideas that have been bandied about for the
-future directions of yt -- some of them even written into the mission
-statement.  The ultimate goal is to move past simple analysis and visualization
-of data and begin to approach it from the other side, of generating data,
-running solvers.  We also hope to increase its ability to act as an in situ
-analysis code, by presenting a unified protocol.  Other projects include
-interfacing with ParaView and VisIt, creating a web GUI for running
-simulations, creating a run-tracker that follows simulations in progress, a
-federated database for simulation outputs, and so on and so forth.
+There are some out-there ideas that have been bandied about for the
+future directions of yt -- stuff like fun new types of visualization, remapping
+of coordinates, new ways of accessing data, and even new APIs to make life easier.
 
-yt is an ambitious project.  Let's be ambitious together.
+yt is an ambitious project.  Let's be ambitious together!
 
 yt Community Code of Conduct
 ----------------------------
@@ -196,7 +195,7 @@ associated social events, and one-to-one interactions.
 
 The yt Community Code of Conduct was adapted from the
 `Astropy Community Code of Conduct
-<http://www.astropy.org/code_of_conduct.html>`_,
+<https://www.astropy.org/code_of_conduct.html>`_,
 which was partially inspired by the PSF code of conduct.
 
 .. _contributing-code:
@@ -211,7 +210,7 @@ the community!  yt is developed using git, primarily because it enables
 very easy and straightforward submission of revisions.  We're eager to hear
 from you, and if you are developing yt, we encourage you to subscribe to the
 `developer mailing list
-<https://mail.python.org/mm3/archives/list/yt-dev@python.org/>`_. Please feel
+<https://mail.python.org/archives/list/yt-dev@python.org/>`_. Please feel
 free to hack around, commit changes, and send them upstream.
 
 .. note:: If you already know how to use the `git version control system
@@ -237,22 +236,24 @@ Open Issues
 If you're interested in participating in yt development, take a look at the
 `issue tracker on GitHub
 <https://github.com/yt-project/yt/issues>`_.
-Issues are marked with a milestone of "easy", "moderate", or "difficult"
-depending on the estimated level of difficulty for fixing the issue. While we
-try to triage the issue tracker regularly, it may be the case that issues marked
-"moderate" are actually easier than their milestone label indicates since that
-is the default value.
+You can search by labels, indicating estimated level of difficulty or category,
+to find issues that you would like to contribute to.  Good first issues are
+marked with a label of *new contributor friendly*.  While we try to triage the
+issue tracker regularly to assign appropriate labels to every issue, it may be
+the case that issues not marked as *new contributor friendly* are actually
+suitable for new contributors.
 
 Here are some predefined issue searches that might be useful:
 
-* Unresolved issues `marked "easy" <https://github.com/yt-project/yt/issues?utf8=%E2%9C%93&q=is%3Aissue%20is%3Aopen%20milestone%3Aeasy>`_.
-* `All unresolved issues <https://github.com/yt-project/yt/issues>`_
+* Unresolved issues `marked "new contributor friendly"
+  <https://github.com/yt-project/yt/labels/new%20contributor%20friendly>`_.
+* `All unresolved issues <https://github.com/yt-project/yt/issues>`_.
 
 Submitting Changes
 ------------------
 
 We provide a brief introduction to submitting changes here.  yt thrives on the
-strength of its communities (http://arxiv.org/abs/1301.7064 has further
+strength of its communities (https://arxiv.org/abs/1301.7064 has further
 discussion) and we encourage contributions from any user.  While we do not
 discuss version control, git, or the advanced usage of GitHub in detail
 here, we do provide an outline of how to submit changes and we are happy to
@@ -261,7 +262,7 @@ provide further assistance or guidance.
 Licensing
 +++++++++
 
-yt is `licensed <http://blog.yt-project.org/post/Relicensing/>`_ under the
+yt is `licensed <https://blog.yt-project.org/posts/relicensing/>`_ under the
 BSD 3-clause license.  Versions previous to yt-2.6 were released under the GPLv3.
 
 All contributed code must be BSD-compatible.  If you'd rather not license in
@@ -301,7 +302,7 @@ directory.
 
    $ cd yt-git
 
-Verify that you are on the master branch of yt by running:
+Verify that you are on the ``main`` branch of yt by running:
 
 .. code-block:: bash
 
@@ -323,6 +324,19 @@ code (a previous changeset or version) by executing the command:
 
    $ git checkout revision_specifier
 
+You can always return to the most recent version of the code by executing the
+same command as above with the most recent revision specifier in the
+repository. However, using ``git log`` when you're checked out to an older
+revision specifier will not show more recent changes to the repository. An
+alternative option is to use ``checkout`` on a branch. In yt the ``main``
+branch is our primary development branch, so checking out ``main`` should
+return you to the tip (or most up-to-date revision specifier) on the ``main``
+branch.
+
+.. code-block:: bash
+
+   $ git checkout main
+
 Lastly, if you want to use this new downloaded version of your yt repository as
 the *active* version of yt on your computer (i.e. the one which is executed when
 you run yt from the command line or the one that is loaded when you do ``import
@@ -342,7 +356,7 @@ How To Read The Source Code
 
 If you just want to *look* at the source code, you may already have it on your
 computer.  If you build yt using the install script, the source is available at
-``$YT_DEST/src/yt-git``.  See :ref:`source-installation` for more details about
+``$YT_DEST/src/yt-git``.  See :ref:`install-from-source` for more details about
 to obtain the yt source code if you did not build yt using the install
 script.
 
@@ -381,18 +395,13 @@ the following subdirectories:
    classes for data regions, covering grids, time series, and so on.  This
    also includes derived fields and derived quantities.
 
-``gui``
-   This is where all GUI components go.  Typically this will be some small
-   tool used for one or two things, which contains a launching mechanism on
-   the command line.
+``units``
+   This used to be where all the unit-handling code resided, but as of now it's
+   mostly just a thin wrapper around unyt.
 
 ``utilities``
    All broadly useful code that doesn't clearly fit in one of the other
    categories goes here.
-
-``extern``
-   Bundled external modules (i.e. code that was not written by one of
-   the yt authors but that yt depends on) lives here.
 
 
 If you're looking for a specific file or function in the yt source code, use
@@ -418,33 +427,7 @@ Building yt
 +++++++++++
 
 If you have made changes to any C or Cython (``.pyx``) modules, you have to
-rebuild yt.  If your changes have exclusively been to Python modules, you will
-not need to re-build, but (see below) you may need to re-install.
-
-Note that you will need a functioning compilation environment to build yt. On
-linux this typically means installing the package that sets up a basic build
-environment (e.g. ``build-essential`` on Debian and Ubuntu). On MacOS this means
-installing the XCode command line tools. On Windows this means installing the
-version of the Microsoft Visual C++ compiler that is appropriate for your
-version of Python. See `the Python wiki
-<https://wiki.python.org/moin/WindowsCompilers>`_ for more details.
-
-If you are running from a clone that is executable in-place (i.e., has been
-installed via the installation script or you have run ``setup.py develop``) you
-can rebuild these modules by executing:
-
-.. code-block:: bash
-
-  $ python setup.py develop
-
-If you have previously "installed" via ``setup.py install`` you have to
-re-install:
-
-.. code-block:: bash
-
-  $ python setup.py install
-
-Only one of these two options is needed.
+rebuild yt before your changes are usable. See :ref:`install-from-source`.
 
 .. _requirements-for-code-submission:
 
@@ -456,8 +439,10 @@ which have different requirements for acceptance into the code base.  These
 requirements are in place for a few reasons -- to make sure that the code is
 maintainable, testable, and that we can easily include information about
 changes in changelogs during the release procedure.  (See `YTEP-0008
-<https://ytep.readthedocs.org/en/latest/YTEPs/YTEP-0008.html>`_ for more
+<https://ytep.readthedocs.io/en/latest/YTEPs/YTEP-0008.html>`_ for more
 detail.)
+
+For all types of contributions, it is required that all tests pass, or that all non-passing tests are specifically accounted for.
 
 * New Features
 
@@ -465,25 +450,26 @@ detail.)
   * Docstrings in the source code for the public API
   * Addition of new feature to the narrative documentation (See :ref:`writing_documentation`)
   * Addition of cookbook recipe (See :ref:`writing_documentation`)
-  * Issue created on issue tracker, to ensure this is added to the changelog
 
 * Extension or Breakage of API in Existing Features
 
   * Update existing narrative docs and docstrings (See :ref:`writing_documentation`)
   * Update existing cookbook recipes (See :ref:`writing_documentation`)
   * Modify of create new unit tests (See :ref:`testing`)
-  * Issue created on issue tracker, to ensure this is added to the changelog
 
 * Bug fixes
 
   * Unit test is encouraged, to ensure breakage does not happen again in the
     future. (See :ref:`testing`)
-  * Issue created on issue tracker, to ensure this is added to the changelog
+  * At a minimum, a minimal, self-contained example demonstrating the bug should
+    because included in the body of the Pull Request, or as part of an
+    indepedent issue.
 
 When submitting, you will be asked to make sure that your changes meet all of
 these requirements.  They are pretty easy to meet, and we're also happy to help
-out with them.  In :ref:`code-style-guide` there is a list of handy tips for
-how to structure and write your code.
+out with them. See :ref:`code-style-guide` for how to easily conform to our
+style guide.
+
 
 .. _git-with-yt:
 
@@ -494,6 +480,14 @@ If you're new to git, the following resource is pretty great for learning
 the ins and outs:
 
 * https://git-scm.com/
+
+There also exist a number of step-by-step git tutorials to help you get used to
+version controlling files with git. Here are a few resources that you may find
+helpful:
+
+* http://swcarpentry.github.io/git-novice/
+* https://git-scm.com/docs/gittutorial
+* https://try.github.io/
 
 The commands that are essential for using git include:
 
@@ -522,12 +516,12 @@ chat or on the mailing list to walk you through any troubles you might have.
 Here are some general suggestions for using git with yt:
 
 * Although not necessary, a common development work flow is to create a local
-  named branch other than ``master`` to address a feature request or bugfix. If
+  named branch other than ``main`` to address a feature request or bugfix. If
   the dev work addresses a specific yt GitHub issue, you may include that issue
   number in the branch name. For example, if you want to work on issue number X
   regarding a cool new slice plot feature, you might name the branch:
   ``cool_new_plot_feature_X``. When you're ready to share your work, push your
-  feature branch to your remote and create a pull request to the ``master``
+  feature branch to your remote and create a pull request to the ``main``
   branch of the yt-project's repository.
 * When contributing changes, you might be asked to make a handful of
   modifications to your source code.  We'll work through how to do this with
@@ -561,7 +555,7 @@ Here's a more detailed flowchart of how to submit changes.
    this at: https://github.com/yt-project/yt/fork.
 #. If you have used the installation script, the source code for yt can be
    found in ``$YT_DEST/src/yt-git``.  Alternatively see
-   :ref:`source-installation` for instructions on how to build yt from the
+   :ref:`install-from-source` for instructions on how to build yt from the
    git repository. (Below, in :ref:`reading-source`, we describe how to
    find items of interest.) If you have already forked the repository then
    you can clone your fork locally::
@@ -630,8 +624,8 @@ Here's a more detailed flowchart of how to submit changes.
      For consistency, all commands we list in this document will use the HTTPS
      protocol.
 
-     .. _SSH key: https://help.github.com/articles/connecting-to-github-with-ssh/
-#. Issue a pull request at https://github.com/yt-project/yt/pull/new/master A
+     .. _SSH key: https://help.github.com/en/articles/connecting-to-github-with-ssh/
+#. Issue a pull request at https://github.com/yt-project/yt/pull/new/main A
    pull request is essentially just asking people to review and accept the
    modifications you have made to your personal version of the code.
 
@@ -644,19 +638,21 @@ straightforward.
    they should be made.
 #. Commit those changes to your local repository.
 #. Push the changes to your fork::
+
       git push origin my-first-pull-request
+
 #. Your pull request will be automatically updated.
 
 Once your pull request is merged, sync up with the main yt repository by pulling
 from the ``upstream`` remote::
 
-     git checkout master
-     git pull upstream master
+     git checkout main
+     git pull upstream main
 
 You might also want to sync your fork of yt on GitHub::
 
      # sync my fork of yt with upstream
-     git push origin master
+     git push origin main
 
 And delete the branch for the merged pull request::
 
@@ -686,83 +682,84 @@ active PR for which ``feature_1`` is a pointer to the ``HEAD`` commit. A push to
 Coding Style Guide
 ==================
 
-Automatically checking code style
----------------------------------
+Automatically checking and fixing code style
+--------------------------------------------
 
-Below are a list of rules for coding style in yt. Some of these rules are
-suggestions are not explicitly enforced, while some are enforced via automated
-testing. The yt project uses a subset of the rules checked by ``flake8`` to
-verify our code. The ``flake8`` tool is a combination of the ``pyflakes`` and
-``pep8`` tools. To check the coding style of your contributions locally you will
-need to install the ``flake8`` tool from ``pip``:
+We use the `pre-commit <https://pre-commit.com>`_ framework to validate and
+automatically fix code styling.
+It is recommended (though not required) that you install ``pre-commit`` on your machine
+(see their documentation) and, from the top level of the repo, run
 
 .. code-block:: bash
 
-    $ pip install flake8
+    $ pre-commit install
 
-And then navigate to the root of the yt repository and run ``flake8`` on the
-``yt`` subdirectory:
+So that our hooks will run and update your changes on every commit.
+If you do not want to/are unable to configure ``pre-commit`` on your machine, note that
+after opening a pull request, it will still be run as a static checker as part of our CI.
+Some hooks also come with auto-fixing capabilities, which you can trigger manually in a
+PR by commenting ``pre-commit.ci run`` (see ` <https://pre-commit.ci/#features>`_).
+
+Here's a list of the main automated formatters we use along with a short description
+
+- `black <https://black.readthedocs.io/en/stable/>`_ (overall coding style)
+- `isort <https://pycqa.github.io/isort/>`_ (import statements ordering)
+- `pyupgrade <https://github.com/asottile/pyupgrade>`_ (enforce modern python idioms)
+- `flake8 <https://flake8.pycqa.org/en/latest/>`_ + `bugbear <https://github.com/PyCQA/flake8-bugbear>`_ (static code smells detection)
+
+The complete configuration is located in ``.pre-commit-config.yaml``.
+
+Note that formatters should not be run directly on the command line as, for instance
 
 .. code-block:: bash
 
-    $ cd yt-git
-    $ flake8 ./yt
+    $ black yt
 
-This will print out any ``flake8`` errors or warnings that your newly added code
-triggers. The errors will be in your newly added code because we have already
-cleaned up the rest of the yt codebase of the errors and warnings detected by
-the `flake8` tool. Note that this will only trigger a subset of the `full flake8
-error and warning list
-<http://flake8.readthedocs.io/en/latest/user/error-codes.html>`_, since we explicitly
-blacklist a large number of the full list of rules that are checked by
-``flake8`` by default.
+But it can still be done as
+
+.. code-block:: bash
+
+    $ pre-commit run black --all-files
+
+The reason is that you may have a specific version of ``black`` installed which can
+produce different results, while the one that's installed with pre-commit is guaranteed
+to be in sync with the rest of contributors.
+
+Below are a list of additional guidelines for coding in yt, that are not automatically
+enforced.
+
 
 Source code style guide
 -----------------------
 
  * In general, follow PEP-8 guidelines.
-   http://www.python.org/dev/peps/pep-0008/
+   https://www.python.org/dev/peps/pep-0008/
  * Classes are ``ConjoinedCapitals``, methods and functions are
    ``lowercase_with_underscores``.
- * Use 4 spaces, not tabs, to represent indentation.
- * Line widths should not be more than 80 characters.
  * Do not use nested classes unless you have a very good reason to, such as
    requiring a namespace or class-definition modification.  Classes should live
    at the top level.  ``__metaclass__`` is exempt from this.
- * Do not use unnecessary parenthesis in conditionals.  ``if((something) and
-   (something_else))`` should be rewritten as
-   ``if something and something_else``. Python is more forgiving than C.
  * Avoid copying memory when possible. For example, don't do
    ``a = a.reshape(3, 4)`` when ``a.shape = (3, 4)`` will do, and ``a = a * 3``
    should be ``np.multiply(a, 3, a)``.
  * In general, avoid all double-underscore method names: ``__something`` is
    usually unnecessary.
  * When writing a subclass, use the super built-in to access the super class,
-   rather than explicitly. Ex: ``super(SpecialGridSubclass, self).__init__()``
-   rather than ``SpecialGrid.__init__()``.
+   rather than explicitly.
+   Ex: ``super().__init__()`` rather than ``SpecialGrid.__init__()``.
  * Docstrings should describe input, output, behavior, and any state changes
    that occur on an object.  See :ref:`docstrings` below for a fiducial example
    of a docstring.
- * Use only one top-level import per line. Unless there is a good reason not to,
-   imports should happen at the top of the file, after the copyright blurb.
- * Never compare with ``True`` or ``False`` using ``==`` or ``!=``, always use
-   ``is`` or ``is not``.
+ * Unless there is a good reason not to (e.g., to avoid circular imports),
+   imports should happen at the top of the file.
  * If you are comparing with a numpy boolean array, just refer to the array.
    Ex: do ``np.all(array)`` instead of ``np.all(array == True)``.
- * Never compare with None using ``==`` or ``!=``, use ``is None`` or
-   ``is not None``.
- * Use ``statement is not True`` instead of ``not statement is True``
- * Only one statement per line, do not use semicolons to put two or more
-   statements on a single line.
  * Only declare local variables if they will be used later. If you do not use the
    return value of a function, do not store it in a variable.
- * Add tests for new functionality. When fixing a bug, consider adding a test to
-   prevent the bug from recurring.
 
 API Style Guide
 ---------------
 
- * Do not use ``from some_module import *``
  * Internally, only import from source files directly -- instead of:
 
      ``from yt.visualization.api import ProjectionPlot``
@@ -779,14 +776,12 @@ API Style Guide
  * Do not use too many keyword arguments.  If you have a lot of keyword
    arguments, then you are doing too much in ``__init__`` and not enough via
    parameter setting.
- * In function arguments, place spaces before commas.  ``def something(a,b,c)``
-   should be ``def something(a, b, c)``.
  * Don't create a new class to replicate the functionality of an old class --
    replace the old class.  Too many options makes for a confusing user
    experience.
  * Parameter files external to yt are a last resort.
  * The usage of the ``**kwargs`` construction should be avoided.  If they cannot
-   be avoided, they must be explained, even if they are only to be passed on to
+   be avoided, they must be documented, even if they are only to be passed on to
    a nested function.
 
 .. _docstrings:
@@ -797,7 +792,8 @@ Docstrings
 The following is an example docstring. You can use it as a template for
 docstrings in your code and as a guide for how we expect docstrings to look and
 the level of detail we are looking for. Note that we use NumPy style docstrings
-written in `Sphinx restructured text format <http://sphinx-doc.org/rest.html>`_.
+written in `Sphinx restructured text format
+<http://www.sphinx-doc.org/es/master/usage/restructuredtext/>`_.
 
 .. code-block:: rest
 

@@ -5,20 +5,13 @@ Wrapper for EWAH Bool Array: https://github.com/lemire/EWAHBoolArray
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
-cimport numpy as np
-cimport cython
-from libcpp.vector cimport vector
-from libcpp.map cimport map
+from libc.stdint cimport uint32_t, uint64_t
+from libcpp cimport bool
+from libcpp.map cimport map as cmap
 from libcpp.string cimport string
-from libc.stdint cimport uint64_t
+from libcpp.vector cimport vector
+
 
 # Streams req for c++ IO
 cdef extern from "<ostream>" namespace "std":
@@ -36,7 +29,7 @@ cdef extern from "<sstream>" namespace "std":
         istream read(char *, size_t)
         bint eof()
 
-cdef extern from "ewah.h":
+cdef extern from "ewah.h" namespace "ewah":
     cppclass EWAHBoolArraySetBitForwardIterator[uword]:
         # EWAHBoolArraySetBitForwardIterator()
         EWAHBoolArraySetBitForwardIterator(const EWAHBoolArraySetBitForwardIterator &o)
@@ -72,14 +65,39 @@ cdef extern from "ewah.h":
         void readBuffer(stringstream &incoming, const size_t buffersize)
         void write(stringstream &out, bint savesizeinbits)
         void writeBuffer(stringstream &out)
+        size_t addWord(uword newdata)
         vector[uword] &getBuffer()
         # const_iterator begin()
         # const_iterator end()
         EWAHBoolArraySetBitForwardIterator begin()
         EWAHBoolArraySetBitForwardIterator end()
 
-ctypedef EWAHBoolArray[uint64_t] ewah_bool_array
-ctypedef EWAHBoolArraySetBitForwardIterator[uint64_t] ewah_bool_iterator
+cdef extern from "boolarray.h" namespace "ewah":
+    cppclass BoolArray[uword]:
+        void setSizeInBits(size_t sizeib)
+        void set(size_t pos)
+        void unset(size_t pos)
+        bool get(size_t pos)
+        void reset()
+        size_t sizeInBits()
+        size_t sizeInBytes()
+        size_t numberOfOnes()
+        void inplace_logicalxor(BoolArray &other)
+        void inplace_logicalnot()
+        size_t padWithZeroes(size_t totalbits)
+        uword getWord(size_t pos)
+        size_t wordinbits
+
+cimport cython
+cimport numpy as np
+
+IF UNAME_SYSNAME == "Windows":
+    ctypedef uint32_t ewah_word_type
+ELSE:
+    ctypedef np.uint32_t ewah_word_type
+ctypedef EWAHBoolArray[ewah_word_type] ewah_bool_array
+ctypedef EWAHBoolArraySetBitForwardIterator[ewah_word_type] ewah_bool_iterator
 ctypedef vector[size_t] bitset_array
-ctypedef map[np.uint64_t, ewah_bool_array] ewah_map
+ctypedef cmap[np.uint64_t, ewah_bool_array] ewah_map
 ctypedef stringstream sstream
+ctypedef BoolArray[ewah_word_type] bool_array

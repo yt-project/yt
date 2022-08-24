@@ -8,14 +8,615 @@ This is a non-comprehensive log of changes to yt over its many releases.
 Contributors
 ------------
 
-The `CREDITS file <https://github.com/yt-project/yt/blob/master/CREDITS>`_ 
-contains the most up-to-date list of everyone who has contributed to the yt 
+The `CREDITS file <https://github.com/yt-project/yt/blob/main/CREDITS>`_
+contains the most up-to-date list of everyone who has contributed to the yt
 source code.
+
+yt 4.0
+------
+
+Welcome to yt 4.0! This release is the result of several years worth of
+developer effort and has been in progress since the mid 3.x series. Please keep
+in mind that this release **will** have breaking changes. Please see the yt 4.0
+differences page for how you can expect behavior to differ from the 3.x series.
+
+This is a manually curated list of pull requests that went in to yt 4.0,
+representing a subset of `the full
+list <https://gist.github.com/matthewturk/7a1f21d98aa5188de7645eda082ce4e6>`__.
+
+New Functions
+^^^^^^^^^^^^^
+
+-  ``yt.load_sample`` (PR
+   #\ `2417 <https://github.com/yt-project/yt/pull/2417>`__, PR
+   #\ `2496 <https://github.com/yt-project/yt/pull/2496>`__, PR
+   #\ `2875 <https://github.com/yt-project/yt/pull/2875>`__, PR
+   #\ `2877 <https://github.com/yt-project/yt/pull/2877>`__, PR
+   #\ `2894 <https://github.com/yt-project/yt/pull/2894>`__, PR
+   #\ `3262 <https://github.com/yt-project/yt/pull/3262>`__, PR
+   #\ `3263 <https://github.com/yt-project/yt/pull/3263>`__, PR
+   #\ `3277 <https://github.com/yt-project/yt/pull/3277>`__, PR
+   #\ `3309 <https://github.com/yt-project/yt/pull/3309>`__, and PR
+   #\ `3336 <https://github.com/yt-project/yt/pull/3336>`__)
+-  ``yt.set_log_level`` (PR
+   #\ `2869 <https://github.com/yt-project/yt/pull/2869>`__ and PR
+   #\ `3094 <https://github.com/yt-project/yt/pull/3094>`__)
+-  ``list_annotations`` method for plots (PR
+   #\ `2562 <https://github.com/yt-project/yt/pull/2562>`__)
+
+API improvements
+^^^^^^^^^^^^^^^^
+
+-  ``yt.load`` with support for ``os.PathLike`` objects, improved UX
+   and moved a new ``yt.loaders`` module, along with sibling functions (PR
+   #\ `2405 <https://github.com/yt-project/yt/pull/2405>`__, PR
+   #\ `2722 <https://github.com/yt-project/yt/pull/2722>`__, PR
+   #\ `2695 <https://github.com/yt-project/yt/pull/2695>`__, PR
+   #\ `2818 <https://github.com/yt-project/yt/pull/2818>`__, and PR
+   #\ `2831 <https://github.com/yt-project/yt/pull/2831>`__, PR
+   #\ `2832 <https://github.com/yt-project/yt/pull/2832>`__)
+-  ``Dataset`` now has a more useful repr (PR
+   #\ `3217 <https://github.com/yt-project/yt/pull/3217>`__)
+-  Explicit JPEG export support (PR
+   #\ `2549 <https://github.com/yt-project/yt/pull/2549>`__)
+-  ``annotate_clear`` is now ``clear_annotations`` (PR
+   #\ `2569 <https://github.com/yt-project/yt/pull/2569>`__)
+-  Throw an error if field access is ambiguous (PR
+   #\ `2967 <https://github.com/yt-project/yt/pull/2967>`__)
+
+Newly supported data formats
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Arepo
+~~~~~
+
+-  PR #\ `1807 <https://github.com/yt-project/yt/pull/1807>`__
+-  PR #\ `2236 <https://github.com/yt-project/yt/pull/2236>`__
+-  PR #\ `2244 <https://github.com/yt-project/yt/pull/2244>`__
+-  PR #\ `2344 <https://github.com/yt-project/yt/pull/2344>`__
+-  PR #\ `2434 <https://github.com/yt-project/yt/pull/2434>`__
+-  PR #\ `3258 <https://github.com/yt-project/yt/pull/3258>`__
+-  PR #\ `3265 <https://github.com/yt-project/yt/pull/3265>`__
+-  PR #\ `3291 <https://github.com/yt-project/yt/pull/3291>`__
+
+Swift
+~~~~~
+
+-  PR #\ `1962 <https://github.com/yt-project/yt/pull/1962>`__
+
+Improved support and frontend specific bugfixes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+adaptahop
+~~~~~~~~~
+
+-  PR #\ `2678 <https://github.com/yt-project/yt/pull/2678>`__
+
+AMRVAC
+~~~~~~
+
+-  PR #\ `2541 <https://github.com/yt-project/yt/pull/2541>`__
+-  PR #\ `2745 <https://github.com/yt-project/yt/pull/2745>`__
+-  PR #\ `2746 <https://github.com/yt-project/yt/pull/2746>`__
+-  PR #\ `3215 <https://github.com/yt-project/yt/pull/3215>`__
+
+ART
+~~~
+
+-  PR #\ `2688 <https://github.com/yt-project/yt/pull/2688>`__
+
+ARTIO
+~~~~~
+
+-  PR #\ `2613 <https://github.com/yt-project/yt/pull/2613>`__
+
+Athena++
+~~~~~~~~
+
+-  PR #\ `2985 <https://github.com/yt-project/yt/pull/2985>`__
+
+Boxlib
+~~~~~~
+
+-  PR #\ `2807 <https://github.com/yt-project/yt/pull/2807>`__
+-  PR #\ `2814 <https://github.com/yt-project/yt/pull/2814>`__
+-  PR #\ `2938 <https://github.com/yt-project/yt/pull/2938>`__ (AMReX)
+
+Enzo-E (formerly Enzo-P)
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+-  PR #\ `3273 <https://github.com/yt-project/yt/pull/3273>`__
+-  PR #\ `3274 <https://github.com/yt-project/yt/pull/3274>`__
+-  PR #\ `3290 <https://github.com/yt-project/yt/pull/3290>`__
+-  PR #\ `3372 <https://github.com/yt-project/yt/pull/3372>`__
+
+fits
+~~~~
+
+-  PR #\ `2246 <https://github.com/yt-project/yt/pull/2246>`__
+-  PR #\ `2345 <https://github.com/yt-project/yt/pull/2345>`__
+
+Gadget
+~~~~~~
+
+-  PR #\ `2145 <https://github.com/yt-project/yt/pull/2145>`__
+-  PR #\ `3233 <https://github.com/yt-project/yt/pull/3233>`__
+-  PR #\ `3258 <https://github.com/yt-project/yt/pull/3258>`__
+
+Gadget FOF Halo
+~~~~~~~~~~~~~~~
+
+-  PR #\ `2296 <https://github.com/yt-project/yt/pull/2296>`__
+
+GAMER
+~~~~~
+
+-  PR #\ `3033 <https://github.com/yt-project/yt/pull/3033>`__
+
+Gizmo
+~~~~~
+
+-  PR #\ `3234 <https://github.com/yt-project/yt/pull/3234>`__
+
+MOAB
+~~~~
+
+-  PR #\ `2856 <https://github.com/yt-project/yt/pull/2856>`__
+
+Owls
+~~~~
+
+-  PR #\ `3325 <https://github.com/yt-project/yt/pull/3325>`__
+
+Ramses
+~~~~~~
+
+-  PR #\ `2679 <https://github.com/yt-project/yt/pull/2679>`__
+-  PR #\ `2714 <https://github.com/yt-project/yt/pull/2714>`__
+-  PR #\ `2960 <https://github.com/yt-project/yt/pull/2960>`__
+-  PR #\ `3017 <https://github.com/yt-project/yt/pull/3017>`__
+-  PR #\ `3018 <https://github.com/yt-project/yt/pull/3018>`__
+
+Tipsy
+~~~~~
+
+-  PR #\ `2193 <https://github.com/yt-project/yt/pull/2193>`__
+
+Octree Frontends
+~~~~~~~~~~~~~~~~
+
+-  Ghost zone access (PR
+   #\ `2425 <https://github.com/yt-project/yt/pull/2425>`__ and PR
+   #\ `2958 <https://github.com/yt-project/yt/pull/2958>`__)
+-  Volume Rendering (PR
+   #\ `2610 <https://github.com/yt-project/yt/pull/2610>`__)
+
+Configuration file
+^^^^^^^^^^^^^^^^^^
+
+-  Config files are now in `TOML <https://toml.io/en/>`__ (PR
+   #\ `2981 <https://github.com/yt-project/yt/pull/2981>`__)
+-  Allow a local plugin file (PR
+   #\ `2534 <https://github.com/yt-project/yt/pull/2534>`__)
+-  Allow per-field local config (PR
+   #\ `1931 <https://github.com/yt-project/yt/pull/1931>`__)
+
+yt CLI
+^^^^^^
+
+-  Fix broken command-line options (PR
+   #\ `3361 <https://github.com/yt-project/yt/pull/3361>`__)
+-  Drop yt hub command (PR
+   #\ `3363 <https://github.com/yt-project/yt/pull/3363>`__)
+
+Deprecations
+^^^^^^^^^^^^
+
+-  Smoothed fields are no longer necessary (PR
+   #\ `2194 <https://github.com/yt-project/yt/pull/2194>`__)
+-  Energy and momentum field names are more accurate (PR
+   #\ `3059 <https://github.com/yt-project/yt/pull/3059>`__)
+-  Incorrectly-named ``WeightedVariance`` is now
+   ``WeightedStandardDeviation`` and the old name has been deprecated
+   (PR #\ `3132 <https://github.com/yt-project/yt/pull/3132>`__)
+-  Colormap auto-registration has been changed and yt 4.1 will not
+   register ``cmocean`` (PR
+   #\ `3175 <https://github.com/yt-project/yt/pull/3175>`__ and PR
+   #\ `3214 <https://github.com/yt-project/yt/pull/3214>`__)
+
+Removals
+~~~~~~~~
+
+-  ``analysis_modules`` has been
+   `extracted <https://github.com/yt-project/yt_astro_analysis/>`__ (PR
+   #\ `2081 <https://github.com/yt-project/yt/pull/2081>`__)
+-  Interactive volume rendering has been
+   `extracted <https://github.com/yt-project/yt_idv/>`__ (PR
+   #\ `2896 <https://github.com/yt-project/yt/pull/2896>`__)
+-  The bundled version of ``poster`` has been removed (PR
+   #\ `2783 <https://github.com/yt-project/yt/pull/2783>`__)
+-  The deprecated ``particle_position_relative`` field has been removed
+   (PR #\ `2901 <https://github.com/yt-project/yt/pull/2901>`__)
+-  Deprecated functions have been removed (PR
+   #\ `3007 <https://github.com/yt-project/yt/pull/3007>`__)
+-  Vendored packages have been removed (PR
+   #\ `3008 <https://github.com/yt-project/yt/pull/3008>`__)
+-  ``yt.pmods`` has been removed (PR
+   #\ `3061 <https://github.com/yt-project/yt/pull/3061>`__)
+-  yt now utilizes unyt as an external package (PR
+   #\ `2219 <https://github.com/yt-project/yt/pull/2219>`__, PR
+   #\ `2300 <https://github.com/yt-project/yt/pull/2300>`__, and PR
+   #\ `2303 <https://github.com/yt-project/yt/pull/2303>`__)
+
+Version 3.6.1
+-------------
+
+Version 3.6.1 is a bugfix release. It includes the following backport:
+
+- hotfix: support matplotlib 3.3.0.
+  See `PR 2754 <https://github.com/yt-project/yt/pull/2754>`__.
+
+Version 3.6.0
+-------------
+
+Version 3.6.0 our next major release since 3.5.1, which was in February
+2019. It includes roughly 180 pull requests contributed from 39 contributors,
+22 of which committed for their first time to the project.
+
+We have also updated our project governance and contribution guidelines, which
+you can `view here <https://yt-project.github.io/governance/>`_ .
+
+We'd like to thank all of the individuals who contributed to this release. There
+are lots of new features and we're excited to share them with the community.
+
+Breaking Changes
+^^^^^^^^^^^^^^^^
+
+The following breaking change was introduced. Please be aware that this could
+impact your code if you use this feature.
+
+- The angular momentum has been reversed compared to previous versions of yt.
+  See `PR 2043 <https://github.com/yt-project/yt/pull/2043>`__.
+
+
+Major Changes and New Features
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+- New frontend support for the code AMRVAC. Many thanks to Clément Robert
+  and Niels Claes who were major contributors to this initiative. Relevant PRs include
+
+  - Initial PR to support AMRVAC native data files
+    `PR 2321 <https://github.com/yt-project/yt/pull/2321>`__.
+  - added support for dust fields and derived fields
+    `PR 2387 <https://github.com/yt-project/yt/pull/2387>`__.
+  - added support for derived fields for hydro runs
+    `PR 2381 <https://github.com/yt-project/yt/pull/2381>`__.
+  - API documentation and docstrings for AMRVAC frontend
+    `PR 2384 <https://github.com/yt-project/yt/pull/2384>`__,
+    `PR 2380 <https://github.com/yt-project/yt/pull/2380>`__,
+    `PR 2382 <https://github.com/yt-project/yt/pull/2382>`__.
+  - testing-related PRs for AMRVAC:
+    `PR 2379 <https://github.com/yt-project/yt/pull/2379>`__,
+    `PR 2360 <https://github.com/yt-project/yt/pull/2360>`__.
+  - add verbosity to logging of geometry or ``geometry_override``
+    `PR 2421 <https://github.com/yt-project/yt/pull/2421>`__.
+  - add attribute to ``_code_unit_attributes`` specific to AMRVAC to ensure
+    consistent renormalisation of AMRVAC datasets. See
+    `PR 2357 <https://github.com/yt-project/yt/pull/2357>`__.
+  - parse AMRVAC's parfiles if user-provided
+    `PR 2369 <https://github.com/yt-project/yt/pull/2369>`__.
+  - ensure that min_level reflects dataset that has refinement
+    `PR 2475 <https://github.com/yt-project/yt/pull/2475>`__.
+  - fix derived unit parsing  `PR 2362 <https://github.com/yt-project/yt/pull/2362>`__.
+  - update energy field to be ``energy_density`` and have units of code
+    pressure  `PR 2376 <https://github.com/yt-project/yt/pull/2376>`__.
+
+- Support for the AdaptaHOP halo finder code
+  `PR 2385 <https://github.com/yt-project/yt/pull/2385>`__.
+- yt now supports geographic transforms and projections of data with
+  cartopy with support from `PR 1966 <https://github.com/yt-project/yt/pull/1966>`__.
+- annotations used to work for only a single point, they now work for multiple points
+  on a plot, see `PR 2122 <https://github.com/yt-project/yt/pull/2122>`__.
+- cosmology calculations now have support for the relativistic energy density of the
+  universe, see `PR 1714 <https://github.com/yt-project/yt/pull/1714>`__.
+  This feature is accessible to cosmology datasets and was added to the Enzo frontend.
+- the eps writer now allows for arrow rotation. this is accessible with
+  the ``rotate`` kwarg in the ``arrow`` function.
+  See `PR 2151 <https://github.com/yt-project/yt/pull/2151>`__.
+- allow for dynamic load balancing with parallel loading of timeseries
+  data using the ``dynamic`` kwarg. `PR 2149 <https://github.com/yt-project/yt/pull/2149>`__.
+- show/hide colorbar and show/hide axes are now available for
+  ``ProfilePlot`` s. These functions were also moved from the PlotWindow to the
+  PlotContainer class. `PR 2169 <https://github.com/yt-project/yt/pull/2169>`__.
+- add support for ipywidgets with an ``__ipython_display__`` method on the
+  FieldTypeContainer. Field variables, source, and the field array can be
+  viewed with this widget. See PRs `PR 1844 <https://github.com/yt-project/yt/pull/1844>`__
+  and `PR 1848 <https://github.com/yt-project/yt/pull/1848>`__,
+  or try ``display(ds.fields)`` in a Jupyter notebook.
+- cut regions can now be made with ``exclude_`` and ``include_`` on a number of objects,
+  including above and below values, inside or outside regions, equal values, or nans.
+  See `PR 1964 <https://github.com/yt-project/yt/pull/1964>`__ and supporting
+  documentation fix at `PR 2262 <https://github.com/yt-project/yt/pull/2262>`__.
+- previously aliased fluid vector fields in curvilinear geometries were not
+  converted to curvilinear coordinates, this was addressed in
+  `PR 2105 <https://github.com/yt-project/yt/pull/2105>`__.
+- 2d polar and 3d cylindrical geometries now support annotate_quivers,
+  streamlines, line integral convolutions, see
+  `PR 2105 <https://github.com/yt-project/yt/pull/2105>`__.
+- add support for exporting data to firefly `PR 2190 <https://github.com/yt-project/yt/pull/2190>`__.
+- gradient fields are now supported in curvilinear geometries. See
+  `PR 2483 <https://github.com/yt-project/yt/pull/2483>`__.
+- plotwindow colorbars now utilize mathtext in their labels,
+  from `PR 2516 <https://github.com/yt-project/yt/pull/2516>`__.
+- raise deprecation warning when using ``mylog.warn``. Instead use
+  ``mylog.warning``. See `PR 2285 <https://github.com/yt-project/yt/pull/2285>`__.
+- extend support of the ``marker``, ``text``, ``line`` and ``sphere`` annotation
+  callbacks to polar geometries  `PR 2466 <https://github.com/yt-project/yt/pull/2466>`__.
+- Support MHD in the GAMER frontend  `PR 2306 <https://github.com/yt-project/yt/pull/2306>`__.
+- Export data container and profile fields to AstroPy QTables and
+  pandas DataFrames  `PR 2418 <https://github.com/yt-project/yt/pull/2418>`__.
+- Add turbo colormap, a colorblind safe version of jet.  See
+  `PR 2339 <https://github.com/yt-project/yt/pull/2339>`__.
+- Enable exporting regular grids (i.e., covering grids, arbitrary grids and
+  smoothed grids) to ``xarray`` `PR 2294 <https://github.com/yt-project/yt/pull/2294>`__.
+- add automatic loading of ``namelist.txt``, which contains the parameter file
+  RAMSES uses to produce output `PR 2347 <https://github.com/yt-project/yt/pull/2347>`__.
+- adds support for a nearest neighbor value field, accessible with
+  the ``add_nearest_neighbor_value_field`` function for particle fields. See
+  `PR 2301 <https://github.com/yt-project/yt/pull/2301>`__.
+- speed up mesh deposition (uses caching) `PR 2136 <https://github.com/yt-project/yt/pull/2136>`__.
+- speed up ghost zone generation.  `PR 2403 <https://github.com/yt-project/yt/pull/2403>`__.
+- ensure that a series dataset has kwargs passed down to data objects `PR 2366 <https://github.com/yt-project/yt/pull/2366>`__.
+
+Documentation Changes
+^^^^^^^^^^^^^^^^^^^^^
+
+Our documentation has received some attention in the following PRs:
+
+- include donation/funding links in README `PR 2520 <https://github.com/yt-project/yt/pull/2520>`__.
+- Included instructions on how to install yt on the
+  Intel Distribution `PR 2355 <https://github.com/yt-project/yt/pull/2355>`__.
+- include documentation on package vendors `PR 2494 <https://github.com/yt-project/yt/pull/2494>`__.
+- update links to yt hub cookbooks `PR 2477 <https://github.com/yt-project/yt/pull/2477>`__.
+- include relevant API docs in .gitignore `PR 2467 <https://github.com/yt-project/yt/pull/2467>`__.
+- added docstrings for volume renderer cython code. see
+  `PR 2456 <https://github.com/yt-project/yt/pull/2456>`__ and
+  for `PR 2449 <https://github.com/yt-project/yt/pull/2449>`__.
+- update documentation install recommendations to include newer
+  python versions `PR 2452 <https://github.com/yt-project/yt/pull/2452>`__.
+- update custom CSS on docs to sphinx >=1.6.1. See
+  `PR 2199 <https://github.com/yt-project/yt/pull/2199>`__.
+- enhancing the contribution documentation on git, see
+  `PR 2420 <https://github.com/yt-project/yt/pull/2420>`__.
+- update documentation to correctly reference issues suitable for new
+  contributors `PR 2346 <https://github.com/yt-project/yt/pull/2346>`__.
+- fix URLs and spelling errors in a number of the cookbook notebooks
+  `PR 2341 <https://github.com/yt-project/yt/pull/2341>`__.
+- update release docs to include information about building binaries, tagging,
+  and various upload locations. See
+  `PR 2156 <https://github.com/yt-project/yt/pull/2156>`__ and
+  `PR 2160 <https://github.com/yt-project/yt/pull/2160>`__.
+- ensuring the ``load_octree`` API docs are rendered
+  `PR 2088 <https://github.com/yt-project/yt/pull/2088>`__.
+- fixing doc build errors, see: `PR 2077 <https://github.com/yt-project/yt/pull/2077>`__.
+- add an instruction to the doc about continuous mesh colormap
+  `PR 2358 <https://github.com/yt-project/yt/pull/2358>`__.
+- Fix minor typo  `PR 2327 <https://github.com/yt-project/yt/pull/2327>`__.
+- Fix some docs examples `PR 2316 <https://github.com/yt-project/yt/pull/2316>`__.
+- fix sphinx formatting `PR 2409 <https://github.com/yt-project/yt/pull/2409>`__.
+- Improve doc and fix docstring in deposition
+  `PR 2453 <https://github.com/yt-project/yt/pull/2453>`__.
+- Update documentation to reflect usage of rcfile (no brackets allowed),
+  including strings. See `PR 2440 <https://github.com/yt-project/yt/pull/2440>`__.
+
+Minor Enhancements and Bugfixes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- update pressure units in artio frontend (they were unitless
+  previously) `PR 2521 <https://github.com/yt-project/yt/pull/2521>`__.
+- ensure that modules supported by ``on_demand_imports`` are imported
+  with that functionality `PR 2436 <https://github.com/yt-project/yt/pull/2436/files>`__.
+- fix issues with groups in python3 in Ramses frontend
+  `PR 2092 <https://github.com/yt-project/yt/pull/2092>`__.
+- add tests to ytdata frontend api `PR 2075 <https://github.com/yt-project/yt/pull/2075>`__.
+- update internal field usage from ``particle_{}_relative`` to ``relative_particle_{}``
+  so particle-based fields don't see deprecation warnings
+  see `PR 2073 <https://github.com/yt-project/yt/pull/2073>`__.
+- update save of ``field_data`` in clump finder, see
+  `PR 2079 <https://github.com/yt-project/yt/pull/2079>`__.
+- ensure map.js is included in the sdist for mapserver. See
+  `PR 2158 <https://github.com/yt-project/yt/pull/2158>`__.
+- add wrapping around ``yt_astro_analysis`` where it is used, in case it
+  isn't installed `PR 2159 <https://github.com/yt-project/yt/pull/2159>`__.
+- the contour finder now uses a maximum data value supplied by the user,
+  rather than assuming the maximum value in the data container.
+  Previously this caused issues in the clump finder.
+  See `PR 2170 <https://github.com/yt-project/yt/pull/2170>`__.
+- previously ramses data with non-hilbert ordering crashed.
+  fixed by `PR 2200 <https://github.com/yt-project/yt/pull/2200>`__.
+- fix an issue related to creating a ds9 region with
+  FITS `PR 2335 <https://github.com/yt-project/yt/pull/2335>`__.
+- add a check to see if pluginfilename is specified in
+  ytrc `PR 2319 <https://github.com/yt-project/yt/pull/2319>`__.
+- sort .so input file list so that the yt package builds in a reproducible
+  way `PR 2206 <https://github.com/yt-project/yt/pull/2206>`__.
+- update ``stack`` ufunc usage to include ``axis`` kwarg.
+  See `PR 2204 <https://github.com/yt-project/yt/pull/2204>`__.
+- extend support for field names in RAMSES descriptor file to include all names
+  that don't include a comma. See `PR 2202 <https://github.com/yt-project/yt/pull/2202>`__.
+- ``set_buff_size`` now works for ``OffAxisProjectionPlot``,
+  see `PR 2239 <https://github.com/yt-project/yt/pull/2239>`__.
+- fix chunking for chained cut regions. previously chunking commands would
+  only look at the most recent cut region conditionals, and not any of the
+  previous cut regions. See `PR 2234 <https://github.com/yt-project/yt/pull/2234>`__.
+- update git command in Castro frontend to
+  include ``git describe`` `PR 2235 <https://github.com/yt-project/yt/pull/2235>`__.
+- in datasets with a single oct correctly guess the shape of the
+  array `PR 2241 <https://github.com/yt-project/yt/pull/2241>`__.
+- update ``get_yt_version`` function to support python 3.
+  See `PR 2226 <https://github.com/yt-project/yt/pull/2226>`__.
+- the ``"stream"`` frontend now correctly returns ``min_level`` for the mesh refinement.
+  `PR 2519 <https://github.com/yt-project/yt/pull/2519>`__.
+- region expressions (``ds.r[]``) can now be used on 2D
+  datasets `PR 2482 <https://github.com/yt-project/yt/pull/2482>`__.
+- background colors in cylindrical coordinate plots are now set
+  correctly `PR 2517 <https://github.com/yt-project/yt/pull/2517>`__.
+- Utilize current matplotlib interface for the ``_png`` module to write
+  images to disk `PR 2514 <https://github.com/yt-project/yt/pull/2514>`__.
+- fix issue with fortran utils where empty records were not
+  supported `PR 2259 <https://github.com/yt-project/yt/pull/2259>`__.
+- add support for python 3.7 in iterator used by dynamic parallel
+  loading `PR 2265 <https://github.com/yt-project/yt/pull/2265>`__.
+- add support to handle boxlib data where ``raw_fields`` contain
+  ghost zones `PR 2255 <https://github.com/yt-project/yt/pull/2255>`__.
+- update quiver fields to use native units, not assuming
+  cgs `PR 2292 <https://github.com/yt-project/yt/pull/2292>`__.
+- fix annotations on semi-structured mesh data with
+  exodus II `PR 2274 <https://github.com/yt-project/yt/pull/2274>`__.
+- extend support for loading exodus II data
+  `PR 2274 <https://github.com/yt-project/yt/pull/2274>`__.
+- add support for yt to load data generated by WarpX code that
+  includes ``rigid_injected`` species `PR 2289 <https://github.com/yt-project/yt/pull/2289>`__.
+- fix issue in GAMER frontend where periodic boundary conditions were not
+  identified `PR 2287 <https://github.com/yt-project/yt/pull/2287>`__.
+- fix issue in ytdata frontend where data size was calculated to have size
+  ``(nparticles, dimensions)``. Now updated to use
+  ``(nparticles, nparticles, dimensions)``.
+  see `PR 2280 <https://github.com/yt-project/yt/pull/2280>`__.
+- extend support for OpenPMD frontend to load data containing no particles
+  see `PR 2270 <https://github.com/yt-project/yt/pull/2270>`__.
+- raise a meaningful error on negative and zero zooming factors,
+  see `PR 2443 <https://github.com/yt-project/yt/pull/2443>`__.
+- ensure Datasets are consistent in their ``min_level`` attribute.
+  See `PR 2478 <https://github.com/yt-project/yt/pull/2478>`__.
+- adding matplotlib to trove classifiers  `PR 2473 <https://github.com/yt-project/yt/pull/2473>`__.
+- Add support for saving additional formats supported by
+  matplotlib `PR 2318 <https://github.com/yt-project/yt/pull/2318>`__.
+- add support for numpy 1.18.1 and help ensure consistency with unyt
+  `PR 2448 <https://github.com/yt-project/yt/pull/2448>`__.
+- add support for spherical geometries in ``plot_2d``. See
+  `PR 2371 <https://github.com/yt-project/yt/pull/2371>`__.
+- add support for sympy 1.5  `PR 2407 <https://github.com/yt-project/yt/pull/2407>`__.
+- backporting unyt PR 102 for clip  `PR 2329 <https://github.com/yt-project/yt/pull/2329>`__.
+- allow code units in fields ``jeans_mass`` and ``dynamical_time``.
+  See`PR 2454 <https://github.com/yt-project/yt/pull/2454>`__.
+- fix for the case where boxlib nghost is different in different
+  directions `PR 2343 <https://github.com/yt-project/yt/pull/2343>`__.
+- bugfix for numpy 1.18  `PR 2419 <https://github.com/yt-project/yt/pull/2419>`__.
+- Invoke ``_setup_dx`` in the enzo inline analysis. See
+  `PR 2460 <https://github.com/yt-project/yt/pull/2460>`__.
+- Update annotate_timestamp to work with ``"code"`` unit system. See
+  `PR 2435 <https://github.com/yt-project/yt/pull/2435>`__.
+- use ``dict.get`` to pull attributes that may not exist in ytdata
+  frontend `PR 2471 <https://github.com/yt-project/yt/pull/2471>`__.
+- solved bug related to slicing out ghost cells in
+  chombo  `PR 2388 <https://github.com/yt-project/yt/pull/2388>`__.
+- correctly register reversed versions of cmocean
+  cmaps  `PR 2390 <https://github.com/yt-project/yt/pull/2390>`__.
+- correctly set plot axes units to ``"code length"`` for datasets
+  loaded with ``unit_system="code"``  `PR 2354 <https://github.com/yt-project/yt/pull/2354>`__.
+- deprecate ``ImagePlotContainer.set_cbar_minorticks``. See
+  `PR 2444 <https://github.com/yt-project/yt/pull/2444>`__.
+- enzo-e frontend bugfix for single block datasets. See
+  `PR 2424 <https://github.com/yt-project/yt/pull/2424>`__.
+- explicitly default to solid lines in contour callback. See
+  `PR 2330 <https://github.com/yt-project/yt/pull/2330>`__.
+- replace all bare ``Except`` statements `PR 2474 <https://github.com/yt-project/yt/pull/2474>`__.
+- fix an inconsistency between ``argmax`` and ``argmin`` methods in
+  YTDataContainer class  `PR 2457 <https://github.com/yt-project/yt/pull/2457>`__.
+- fixed extra extension added by ``ImageArray.save()``. See
+  `PR 2364 <https://github.com/yt-project/yt/pull/2364>`__.
+- fix incorrect usage of ``is`` comparison with ``==`` comparison throughout the codebase
+  `PR 2351 <https://github.com/yt-project/yt/pull/2351>`__.
+- fix streamlines ``_con_args`` attribute `PR 2470 <https://github.com/yt-project/yt/pull/2470>`__.
+- fix python 3.8 warnings  `PR 2386 <https://github.com/yt-project/yt/pull/2386>`__.
+- fix some invalid escape sequences.  `PR 2488 <https://github.com/yt-project/yt/pull/2488>`__.
+- fix typo in ``_vorticity_z`` field definition. See
+  `PR 2398 <https://github.com/yt-project/yt/pull/2398>`__.
+- fix an inconsistency in annotate_sphere callback.
+  See `PR 2464 <https://github.com/yt-project/yt/pull/2464>`__.
+- initialize unstructured mesh visualization
+  background to ``nan``  `PR 2308 <https://github.com/yt-project/yt/pull/2308>`__.
+- raise a meaningful error on negative and zero
+  zooming factors  `PR 2443 <https://github.com/yt-project/yt/pull/2443>`__.
+- set ``symlog`` scaling to ``log`` if ``vmin > 0``.
+  See `PR 2485 <https://github.com/yt-project/yt/pull/2485>`__.
+- skip blank lines when reading parameters.
+  See `PR 2406 <https://github.com/yt-project/yt/pull/2406>`__.
+- Update magnetic field handling for RAMSES.
+  See `PR 2377 <https://github.com/yt-project/yt/pull/2377>`__.
+- Update ARTIO frontend to support compressed files.
+  See `PR 2314 <https://github.com/yt-project/yt/pull/2314>`__.
+- Use mirror copy of SDF data  `PR 2334 <https://github.com/yt-project/yt/pull/2334>`__.
+- Use sorted glob in athena to ensure reproducible ordering of
+  grids `PR 2363 <https://github.com/yt-project/yt/pull/2363>`__.
+- fix cartopy failures by ensuring data is in lat/lon when passed to
+  cartopy `PR 2378 <https://github.com/yt-project/yt/pull/2378>`__.
+- enforce unit consistency in plot callbacks, which fixes some unexpected
+  behaviour in the plot annotations callbacks that use the plot
+  window width or the data width `PR 2524 <https://github.com/yt-project/yt/pull/2524>`__.
+
+Separate from our list of minor enhancements and bugfixes, we've grouped PRs
+related to infrastructure and testing in the next three sub-sub-sub sections.
+
+Testing and Infrastructure
+""""""""""""""""""""""""""
+- infrastructure to change our testing from nose to pytest, see
+  `PR 2401 <https://github.com/yt-project/yt/pull/2401>`__.
+- Adding test_requirements and test_minimum requirements files to have
+  bounds on installed testing versioning `PR 2083 <https://github.com/yt-project/yt/pull/2083>`__.
+- Update the test failure report to include all failed tests related
+  to a single test specification `PR 2084 <https://github.com/yt-project/yt/pull/2084>`__.
+- add required dependencies for docs testing on Jenkins. See
+  `PR 2090 <https://github.com/yt-project/yt/pull/2090>`__.
+- suppress pyyaml warning that pops up when running
+  tests `PR 2182 <https://github.com/yt-project/yt/pull/2182>`__.
+- add tests for pre-existing ytdata datasets. See
+  `PR 2229 <https://github.com/yt-project/yt/pull/2229>`__.
+- add a test to check if cosmology calculator and cosmology dataset
+  share the same unit registry `PR 2230 <https://github.com/yt-project/yt/pull/2230>`__.
+- fix kh2d test name  `PR 2342 <https://github.com/yt-project/yt/pull/2342>`__.
+- disable OSNI projection answer test to remove cartopy errors `PR 2350 <https://github.com/yt-project/yt/pull/2350>`__.
+
+CI related support
+""""""""""""""""""
+
+- disable coverage on OSX to speed up travis testing and avoid
+  timeouts `PR 2076 <https://github.com/yt-project/yt/pull/2076>`__.
+- update travis base images on Linux and
+  MacOSX `PR 2093 <https://github.com/yt-project/yt/pull/2093>`__.
+- add ``W504`` and ``W605`` to ignored flake8 errors, see
+  `PR 2078 <https://github.com/yt-project/yt/pull/2078>`__.,
+- update pyyaml version in ``test_requirements.txt`` file to address
+  github warning `PR 2148 <https://github.com/yt-project/yt/pull/2148/files>`__.,
+- fix travis build errors resulting from numpy and cython being
+  unavailable `PR 2171 <https://github.com/yt-project/yt/pull/2171>`__.
+- fix appveyor build failures `PR 2231 <https://github.com/yt-project/yt/pull/2231>`__.
+- Add Python 3.7 and Python 3.8 to CI test jobs. See
+  `PR 2450 <https://github.com/yt-project/yt/pull/2450>`__.
+- fix build failure on Windows `PR 2333 <https://github.com/yt-project/yt/pull/2333>`__.
+- fix warnings due to travis configuration file. See
+  `PR 2451 <https://github.com/yt-project/yt/pull/2451>`__.
+- install pyyaml on appveyor `PR 2367 <https://github.com/yt-project/yt/pull/2367>`__.
+- install sympy 1.4 on appveyor to work around regression in
+  1.5  `PR 2395 <https://github.com/yt-project/yt/pull/2395>`__.
+- update CI recipes to fix recent failures  `PR 2489 <https://github.com/yt-project/yt/pull/2489>`__.
+
+Other Infrastructure
+""""""""""""""""""""
+
+- Added a welcomebot to our github page for new contributors, see
+  `PR 2181 <https://github.com/yt-project/yt/pull/2181>`__.
+- Added a pep8 bot to pre-run before tests, see
+  `PR 2179 <https://github.com/yt-project/yt/pull/2179>`__,
+  `PR 2184 <https://github.com/yt-project/yt/pull/2184>`__ and
+  `PR 2185 <https://github.com/yt-project/yt/pull/2185>`__.
 
 Version 3.5.0
 -------------
 
-Version 3.5.0 is the first major release of yt since August 2017. It includes 
+Version 3.5.0 is the first major release of yt since August 2017. It includes
 328 pull requests from 41 contributors, including 22 new contributors.
 
 Major Changes
@@ -66,7 +667,7 @@ Improvements to the RAMSES frontend
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 We would particularly like to recognize Corentin Cadiou for his tireless work over the past year on improving support for RAMSES and octree AMR data in yt.
-  
+
 - Added support for reading RAMSES sink particles. See `PR 1548
   <https://github.com/yt-project/yt/pull/1548>`__.
 - Add support for the new self-describing Ramses particle output format. See `PR
@@ -99,14 +700,14 @@ We would particularly like to recognize Corentin Cadiou for his tireless work ov
   1771 <https://github.com/yt-project/yt/pull/1771>`__.
 
 Additional Improvements
-^^^^^^^^^^^^^^^^^^^^^^^  
-  
-- Added support for particle data in the Enzo-P frontend. See `PR 1490
+^^^^^^^^^^^^^^^^^^^^^^^
+
+- Added support for particle data in the Enzo-E frontend. See `PR 1490
   <https://github.com/yt-project/yt/pull/1490>`__.
 - Added an ``equivalence`` keyword argument to ``YTArray.in_units()`` and
   ``YTArray.to()``. This makes it possible to specify an equivalence when
   converting data to a new unit. Also added ``YTArray.to_value()`` which allows
-  convering to a new unit, then stripping off the units to return a plain numpy
+  converting to a new unit, then stripping off the units to return a plain numpy
   array. See `PR 1563 <https://github.com/yt-project/yt/pull/1563>`__.
 - Rather than crashing, yt will now assume default values for cosmology
   parameters in Gadget HDF5 data if it cannot find the relevant header
@@ -138,8 +739,8 @@ Additional Improvements
   will be registered for a dataset if the dependent particle filter is
   registered with a dataset. See `PR 1624
   <https://github.com/yt-project/yt/pull/1624>`__.
-- The ``save()`` method of the various yt plot objets now optionally can accept
-  a tuple of strings instead of a string. If a tuple is supplied, the elments
+- The ``save()`` method of the various yt plot objects now optionally can accept
+  a tuple of strings instead of a string. If a tuple is supplied, the elements
   are joined with ``os.sep`` to form a path. See `PR 1630
   <https://github.com/yt-project/yt/pull/1630>`__.
 - The quiver callback now accepts a ``plot_args`` keyword argument that allows
@@ -189,7 +790,7 @@ Additional Improvements
   1914 <https://github.com/yt-project/yt/pull/1914>`__.
 - ``ParticleProjectionPlot`` now supports the ``annotate_particles`` plot
   callback. See `PR 1765 <https://github.com/yt-project/yt/pull/1765>`__.
-- Optmized the performance of off-axis projections for octree AMR data. See `PR
+- Optimized the performance of off-axis projections for octree AMR data. See `PR
   1766 <https://github.com/yt-project/yt/pull/1766>`__.
 - Added support for several radiative transfer fields in the ARTIO frontend. See
   `PR 1804 <https://github.com/yt-project/yt/pull/1804>`__.
@@ -210,7 +811,7 @@ Additional Improvements
   incorrect answer. See `PR 1856
   <https://github.com/yt-project/yt/pull/1856>`__.
 - Systematically added validation for inputs to data object initializers. See
-  `PR 1871 <https://github.com/yt-project/yt/pull>`__.
+  `PR 1871 <https://github.com/yt-project/yt/pull/1871>`__.
 - It is now possible to select only a specific particle type in the particle
   trajectories analysis module. See `PR 1887
   <https://github.com/yt-project/yt/pull/1887>`__.
@@ -263,10 +864,10 @@ Additional Improvements
 - Avoid segmentation fault in slice selector by clipping slice integer
   coordinates. See `PR 2055 <https://github.com/yt-project/yt/pull/2055>`__.
 
-  
+
 Minor Enhancements and Bugfixes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  
+
 - Fix incorrect use of floating point division in the parallel analysis framework.
   See `PR 1538 <https://github.com/yt-project/yt/pull/1538>`__.
 - Fix integration with that matplotlib QT backend for interactive plotting.
@@ -288,7 +889,7 @@ Minor Enhancements and Bugfixes
   <https://github.com/yt-project/yt/pull/1555>`__.
 - Fix issue with handling unitless halo quantities in HaloCatalog. See `PR 1558
   <https://github.com/yt-project/yt/pull/1558>`__.
-- Track the halo catalog creation process using a parallel-safe progress bar. 
+- Track the halo catalog creation process using a parallel-safe progress bar.
   See `PR 1559 <https://github.com/yt-project/yt/pull/1559>`__.
 - The PPV Cube functionality no longer crashes if there is no temperature field
   in the dataset. See `PR 1562
@@ -309,8 +910,8 @@ Minor Enhancements and Bugfixes
 - Correct typo in WarpX field definitions. See `PR 1583
   <https://github.com/yt-project/yt/pull/1583>`__.
 - Avoid crashing when loading an Enzo dataset with a parameter file that has
-  commented out parameters. See `PR 1584
-  <https://github.com/yt-project/yt/pull/1584>`__.
+  commented out parameters. See `PR 1586
+  <https://github.com/yt-project/yt/pull/1586>`__.
 - Fix a corner case in the clump finding machinery where the reference to the
   parent clump is invalid after pruning a child clump that has no siblings. See
   `PR 1587 <https://github.com/yt-project/yt/pull/1587>`__.
@@ -334,7 +935,7 @@ Minor Enhancements and Bugfixes
 - Added a cookbook example for a multipanel phase plot. See `PR 1605
   <https://github.com/yt-project/yt/pull/1605>`__.
 - Boolean simulation parameters in the Boxlib frontend will now be interpreted
-  correctly. See `PR 1618 <https://github.com/yt-project/yt/pull/1618>`__.
+  correctly. See `PR 1619 <https://github.com/yt-project/yt/pull/1619>`__.
 - The ``ds.particle_type_counts`` attribute will now be populated correctly for
   AMReX data.
 - The ``"rad"`` unit (added for compatibility with astropy) now has the correct
@@ -525,7 +1126,7 @@ pull requests from 44 contributors including 18 new contributors.
    ``sampling_type`` will always need to be specified.
 -  Added support for the ``Athena++`` code. See `Bitbucket PR
    2149 <https://bitbucket.org/yt_analysis/yt/pull-requests/2149>`__.
--  Added support for the ``Enzo-p`` code. See `Github PR
+-  Added support for the ``Enzo-E`` code. See `Github PR
    1447 <https://github.com/yt-project/yt/pull/1447>`__, `Github PR
    1443 <https://github.com/yt-project/yt/pull/1443>`__ and `Github PR
    1439 <https://github.com/yt-project/yt/pull/1439>`__.
@@ -617,7 +1218,7 @@ pull requests from 44 contributors including 18 new contributors.
    ``OffAxisProjectionPlot``. See `Bitbucket PR
    2490 <https://bitbucket.org/yt_analysis/yt/pull-requests/2490>`__.
 -  Added a ``yt download`` command-line helper to download test data
-   from http://yt-project.org/data. For more information see
+   from https://yt-project.org/data. For more information see
    ``yt download --help`` at the bash command line. See `Bitbucket PR
    2495 <https://bitbucket.org/yt_analysis/yt/pull-requests/2495>`__ and
    `Bitbucket PR
@@ -627,7 +1228,7 @@ pull requests from 44 contributors including 18 new contributors.
    command line. See `Github PR
    1471 <https://github.com/yt-project/yt/pull/1471>`__.
 -  If it's installed, colormaps from the `cmocean
-   package <http://matplotlib.org/cmocean/>`__ will be made available as
+   package <https://matplotlib.org/cmocean/>`__ will be made available as
    yt colormaps. See `Bitbucket PR
    2439 <https://bitbucket.org/yt_analysis/yt/pull-requests/2439>`__.
 -  It is now possible to visualize unstructured mesh fields defined on
@@ -774,11 +1375,11 @@ Major enhancements
 ^^^^^^^^^^^^^^^^^^
 
 * Raw and processed data from selections, projections, profiles and so forth can
-  now be saved in a ytdata format and loaded back in by yt. See 
+  now be saved in a ytdata format and loaded back in by yt. See
   :ref:`saving_data`.
 * Totally re-worked volume rendering API. The old API is still available for users
   who prefer it, however. See :ref:`volume_rendering`.
-* Support for unstructured mesh visualization. See 
+* Support for unstructured mesh visualization. See
   :ref:`unstructured-mesh-slices` and :ref:`unstructured_mesh_rendering`.
 * Interactive Data Visualization for AMR and unstructured mesh datasets. See
   :ref:`interactive_data_visualization`.
@@ -788,11 +1389,11 @@ Major enhancements
   <https://github.com/matplotlib/viscm>`_ and should do a better job of
   representing the data for colorblind viewers and when printed out in
   grayscale. See :ref:`colormaps` for more detail.
-* New frontends for the :ref:`ExodusII <loading-exodusii-data>`, 
-  :ref:`GAMER <loading-gamer-data>`, and :ref:`Gizmo <loading-gizmo-data>` data 
+* New frontends for the :ref:`ExodusII <loading-exodusii-data>`,
+  :ref:`GAMER <loading-gamer-data>`, and :ref:`Gizmo <loading-gizmo-data>` data
   formats.
 * The unit system associated with a dataset is now customizable, defaulting to
-  CGS. See :ref:`unit_systems`.
+  CGS.
 * Enhancements and usability improvements for analysis modules, especially the
   ``absorption_spectrum``, ``photon_simulator``, and ``light_ray`` modules. See
   :ref:`synthetic-observations`.
@@ -1516,7 +2117,7 @@ Most Visible Improvements
    2.4 was release on August 2nd, 2012.
  * numpy is now imported as np, not na.  na will continue to work for the
    foreseeable future.
- * You can now get a `yt cheat sheet <http://yt-project.org/docs/2.5/cheatsheet.pdf>`!
+ * You can now get a `yt cheat sheet <http://yt-project.org/docs/2.5/cheatsheet.pdf>`_!
  * yt can now load simulation data created by Athena.
  * The Rockstar halo finder can now be installed by the install script
  * SciPy can now be installed by the install script
@@ -1768,7 +2369,7 @@ Version 1.7
  * Preliminary support for the Tiger code
  * Default colormap is now ``algae``
  * Lightweight projection loading with ``projload``
- * Improvements to `yt.data_objects.time_series`
+ * Improvements to ``yt.data_objects.time_series``
  * Improvements to :class:`yt.extensions.EnzoSimulation` (See
    :ref:`analyzing-an-entire-simulation`)
  * Removed ``direct_ray_cast``
@@ -1798,7 +2399,7 @@ Version 1.6
 Version 1.6 is a point release, primarily notable for the new parallel halo
 finder (see :ref:`halo-analysis`)
 
- * (New) Parallel HOP ( http://arxiv.org/abs/1001.3411 , :ref:`halo-analysis` )
+ * (New) Parallel HOP ( https://arxiv.org/abs/1001.3411 , :ref:`halo-analysis` )
  * (Beta) Software ray casting and volume rendering
    (see :ref:`volume_rendering`)
  * Rewritten, faster and better contouring engine for clump identification

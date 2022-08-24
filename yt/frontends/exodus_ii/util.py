@@ -1,24 +1,25 @@
-import numpy as np
-import sys
-import string
-from itertools import takewhile
-from collections import OrderedDict
 import re
+import string
+from collections import OrderedDict
+from itertools import takewhile
 
-_printable = set([ord(_) for _ in string.printable])
+import numpy as np
+
 
 def get_num_pseudo_dims(coords):
     D = coords.shape[1]
-    return sum([np.all(coords[:, dim] == 0.0) for dim in range(D)])
+    return sum(np.all(coords[:, dim] == 0.0) for dim in range(D))
+
 
 def sanitize_string(s):
-    if sys.version_info > (3, ):
-        return "".join([chr(_) for _ in takewhile(lambda a: a in _printable, s)])
-    return "".join([_ for _ in takewhile(lambda a: a in string.printable, s)])
+    _printable = {ord(_) for _ in string.printable}
+    return "".join(chr(_) for _ in takewhile(lambda a: a in _printable, s))
+
 
 def load_info_records(info_records):
     info_records_parsed = [sanitize_string(line_chars) for line_chars in info_records]
     return group_by_sections(info_records_parsed)
+
 
 def group_by_sections(info_records):
     # 1. Split by top groupings
@@ -33,31 +34,31 @@ def group_by_sections(info_records):
         except IndexError:
             next_idx = len(info_records) - 1
 
-        for idx in range(top_level[0], next_idx):       
+        for idx in range(top_level[0], next_idx):
             if idx == top_level[0]:
                 continue
 
             grouped[top_level[1]].append(info_records[idx])
 
-    
-    if 'Version Info' in grouped.keys():
+    if "Version Info" in grouped.keys():
         version_info = OrderedDict()
-        for line in grouped['Version Info']:
+        for line in grouped["Version Info"]:
             split_line = line.split(":")
             key = split_line[0]
             val = ":".join(split_line[1:]).lstrip().rstrip()
-            if key != '':
+            if key != "":
                 version_info[key] = val
-        grouped['Version Info'] = version_info
-    
+        grouped["Version Info"] = version_info
+
     return grouped
+
 
 def get_top_levels(info_records):
     top_levels = []
     for idx, line in enumerate(info_records):
-        pattern = re.compile("###[a-zA-Z\s]+")
+        pattern = re.compile(r"###[a-zA-Z\s]+")
         if pattern.match(line):
-            clean_line = re.sub(r'[^\w\s]', '', line).lstrip().rstrip()
+            clean_line = re.sub(r"[^\w\s]", "", line).lstrip().rstrip()
             top_levels.append([idx, clean_line])
-    
+
     return top_levels

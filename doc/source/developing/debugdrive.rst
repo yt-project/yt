@@ -53,7 +53,7 @@ Use the Python Debugger
 yt is almost entirely composed of python code, so it makes sense to use
 the `python debugger`_ as your first stop in trying to debug it.
 
-.. _python debugger: https://docs.python.org/2/library/pdb.html
+.. _python debugger: https://docs.python.org/3/library/pdb.html
 
 Signaling yt to Do Something
 ----------------------------
@@ -89,7 +89,7 @@ Remote and Disconnected Debugging
 
 If you are running a parallel job that fails, often it can be difficult to do a
 post-mortem analysis to determine what went wrong.  To facilitate this, yt
-has implemented an `XML-RPC <http://en.wikipedia.org/wiki/XML-RPC>`_ interface
+has implemented an `XML-RPC <https://en.wikipedia.org/wiki/XML-RPC>`_ interface
 to the Python debugger (``pdb``) event loop.
 
 Running with the ``--rpdb`` command will cause any uncaught exception during
@@ -99,7 +99,7 @@ provided through the yt command.  So if you run the command:
 
 .. code-block:: bash
 
-   $ mpirun -np 4 python2.7 some_script.py --parallel --rpdb
+   $ mpirun -np 4 python some_script.py --parallel --rpdb
 
 and it reaches an error or an exception, it will launch the debugger.
 Additionally, instructions will be printed for connecting to the debugger.

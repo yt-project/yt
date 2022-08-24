@@ -1,3 +1,5 @@
+
+# distutils: libraries = STD_LIBS
 """
 A refine-by-two AMR-specific quadtree
 
@@ -5,24 +7,19 @@ A refine-by-two AMR-specific quadtree
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
 
 import numpy as np
-cimport numpy as np
-cimport cython
 
-from libc.stdlib cimport malloc, free, abs
+cimport cython
+cimport numpy as np
 from cython.operator cimport dereference as deref, preincrement as inc
-from yt.utilities.lib.fp_utils cimport fmax
+from libc.stdlib cimport abs, free, malloc
+
+from yt.utilities.lib.fp_utils cimport fmax, fmin
 
 from yt.utilities.exceptions import YTIntDomainOverflow
+
 
 cdef extern from "platform_dep.h":
     # NOTE that size_t might not be int
@@ -52,6 +49,19 @@ cdef void QTN_max_value(QuadTreeNode *self,
     cdef int i
     for i in range(nvals):
         self.val[i] = fmax(val[i], self.val[i])
+    self.weight_val = 1.0
+
+cdef void QTN_min_value(QuadTreeNode *self,
+        np.float64_t *val, np.float64_t weight_val,
+        int nvals):
+    cdef int i
+    #cdef np.float64_t *big_num = 1.0
+    #big_num = 1.0 #1e10
+    for i in range(nvals):
+        if self.val[i] == 0:
+          self.val[i] = 1e50
+        # end if
+        self.val[i] = fmin(val[i], self.val[i])
     self.weight_val = 1.0
 
 cdef void QTN_refine(QuadTreeNode *self, int nvals):
@@ -98,7 +108,7 @@ cdef void QTN_free(QuadTreeNode *node):
 cdef class QuadTree:
     cdef int nvals
     cdef QuadTreeNode ***root_nodes
-    cdef np.int64_t top_grid_dims[2]
+    cdef public np.int64_t top_grid_dims[2]
     cdef int merged
     cdef int num_cells
     cdef QTN_combine *combine
@@ -111,10 +121,13 @@ cdef class QuadTree:
                   int nvals, bounds, method = "integrate"):
         if method == "integrate":
             self.combine = QTN_add_value
-        elif method == "mip":
+        elif method == "mip" or \
+             method == "max":
             self.combine = QTN_max_value
+        elif method == "min":
+            self.combine = QTN_min_value
         else:
-            raise NotImplementedError
+            raise NotImplementedError(f"Unknown projection method {self.method!r}")
         self.merged = 1
         self.max_level = 0
         cdef int i, j
@@ -205,8 +218,10 @@ cdef class QuadTree:
                          np.ndarray[np.float64_t, ndim=2] values,
                          np.ndarray[np.float64_t, ndim=1] wval,
                          method):
-        if method == "mip" or method == -1:
+        if method == "mip" or method == "max" or method == -1:
             self.merged = -1
+        if method == "min" or method == -2:
+            self.merged = -2
         elif method == "integrate" or method == 1:
             self.merged = 1
         cdef int curpos = 0
@@ -350,23 +365,20 @@ cdef class QuadTree:
                 total += self.count(self.root_nodes[i][j])
         if count_only: return total
         # Allocate our array
-        cdef np.ndarray[np.float64_t, ndim=1] opx
-        cdef np.ndarray[np.float64_t, ndim=1] opy
-        cdef np.ndarray[np.float64_t, ndim=1] opdx
-        cdef np.ndarray[np.float64_t, ndim=1] opdy
+        cdef np.ndarray[np.int64_t, ndim=1] oix
+        cdef np.ndarray[np.int64_t, ndim=1] oiy
+        cdef np.ndarray[np.int64_t, ndim=1] oires
         cdef np.ndarray[np.float64_t, ndim=2] nvals
         cdef np.ndarray[np.float64_t, ndim=1] nwvals
-        opx = np.zeros(total, dtype='float64')
-        opy = np.zeros(total, dtype='float64')
-        opdx = np.zeros(total, dtype='float64')
-        opdy = np.zeros(total, dtype='float64')
+        oix = np.zeros(total, dtype='int64')
+        oiy = np.zeros(total, dtype='int64')
+        oires = np.zeros(total, dtype='int64')
         nvals = np.zeros( (total, self.nvals), dtype='float64')
         nwvals = np.zeros( total, dtype='float64')
         cdef np.int64_t curpos = 0
-        cdef np.float64_t *px = <np.float64_t *> opx.data
-        cdef np.float64_t *py = <np.float64_t *> opy.data
-        cdef np.float64_t *pdx = <np.float64_t *> opdx.data
-        cdef np.float64_t *pdy = <np.float64_t *> opdy.data
+        cdef np.int64_t *ix = <np.int64_t *> oix.data
+        cdef np.int64_t *iy = <np.int64_t *> oiy.data
+        cdef np.int64_t *ires = <np.int64_t *> oires.data
         cdef np.float64_t *vdata = <np.float64_t *> nvals.data
         cdef np.float64_t *wdata = <np.float64_t *> nwvals.data
         cdef np.float64_t wtoadd
@@ -377,9 +389,9 @@ cdef class QuadTree:
                 for vi in range(self.nvals): vtoadd[vi] = 0.0
                 wtoadd = 0.0
                 curpos += self.fill(self.root_nodes[i][j],
-                    curpos, px, py, pdx, pdy, vdata, wdata, vtoadd, wtoadd, 0)
+                    curpos, ix, iy, ires, vdata, wdata, vtoadd, wtoadd, 0)
         free(vtoadd)
-        return opx, opy, opdx, opdy, nvals, nwvals
+        return oix, oiy, oires, nvals, nwvals
 
     cdef int count(self, QuadTreeNode *node):
         cdef int i, j
@@ -393,10 +405,9 @@ cdef class QuadTree:
     @cython.cdivision(True)
     cdef int fill(self, QuadTreeNode *node,
                         np.int64_t curpos,
-                        np.float64_t *px,
-                        np.float64_t *py,
-                        np.float64_t *pdx,
-                        np.float64_t *pdy,
+                        np.int64_t *ix,
+                        np.int64_t *iy,
+                        np.int64_t *ires,
                         np.float64_t *vdata,
                         np.float64_t *wdata,
                         np.float64_t *vtoadd,
@@ -409,17 +420,17 @@ cdef class QuadTree:
             if self.merged == -1:
                 for i in range(self.nvals):
                     vdata[self.nvals * curpos + i] = fmax(node.val[i], vtoadd[i])
+            elif self.merged == -2:
+                for i in range(self.nvals):
+                    vdata[self.nvals * curpos + i] = fmin(node.val[i], vtoadd[i])
                 wdata[curpos] = 1.0
             else:
                 for i in range(self.nvals):
                     vdata[self.nvals * curpos + i] = node.val[i] + vtoadd[i]
                 wdata[curpos] = node.weight_val + wtoadd
-            pdx[curpos] = 1.0 / (self.top_grid_dims[0]*2**level)
-            pdy[curpos] = 1.0 / (self.top_grid_dims[1]*2**level)
-            px[curpos] = (0.5 + node.pos[0]) * pdx[curpos]
-            py[curpos] = (0.5 + node.pos[1]) * pdy[curpos]
-            pdx[curpos] /= 2.0
-            pdy[curpos] /= 2.0
+            ires[curpos] = level
+            ix[curpos] = node.pos[0]
+            iy[curpos] = node.pos[1]
             return 1
         cdef np.int64_t added = 0
         if self.merged == 1:
@@ -427,7 +438,7 @@ cdef class QuadTree:
                 vorig[i] = vtoadd[i]
                 vtoadd[i] += node.val[i]
             wtoadd += node.weight_val
-        elif self.merged == -1:
+        elif self.merged == -1 or self.merged == -2:
             for i in range(self.nvals):
                 vtoadd[i] = node.val[i]
         for i in range(2):
@@ -436,7 +447,7 @@ cdef class QuadTree:
                     for n in range(self.nvals):
                         vtoadd[n] = node.val[n]
                 added += self.fill(node.children[i][j],
-                        curpos + added, px, py, pdx, pdy, vdata, wdata,
+                        curpos + added, ix, iy, ires, vdata, wdata,
                         vtoadd, wtoadd, level + 1)
         if self.merged == 1:
             for i in range(self.nvals):
@@ -570,6 +581,9 @@ def merge_quadtrees(QuadTree qt1, QuadTree qt2, method = 1):
     elif method == -1:
         qt1.merged = -1
         func = QTN_max_value
+    elif method == -2:
+        qt1.merged = -2
+        func = QTN_min_value
     else:
         raise NotImplementedError
     if qt1.merged != 0 or qt2.merged != 0:

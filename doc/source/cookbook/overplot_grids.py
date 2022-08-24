@@ -4,7 +4,7 @@ import yt
 ds = yt.load("Enzo_64/DD0043/data0043")
 
 # Make a density projection.
-p = yt.ProjectionPlot(ds, "y", "density")
+p = yt.ProjectionPlot(ds, "y", ("gas", "density"))
 
 # Modify the projection
 # The argument specifies the region along the line of sight

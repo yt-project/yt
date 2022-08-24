@@ -101,7 +101,7 @@ For everything yt please see \url{http://yt-project.org}.
 Documentation \url{http://yt-project.org/doc/index.html}.
 Need help? Start here \url{http://yt-project.org/doc/help/} and then
 try the IRC chat room \url{http://yt-project.org/irc.html},
-or the mailing list \url{https://mail.python.org/mm3/archives/list/yt-users@python.org/}. \\
+or the mailing list \url{https://mail.python.org/archives/list/yt-users@python.org/}. \\
 
 \subsection{Installing yt} The easiest way to install yt is to use the
 installation script found on the yt homepage or the docs linked above.  If you
@@ -116,7 +116,6 @@ Commands can be followed by
 {\bf {-}{-}help} (e.g. {\bf yt render {-}{-}help}) for detailed help for that command
 including a list of the available flags.
 
-\texttt{iyt}\textemdash\ Load yt and IPython. \\
 \texttt{yt load} \textit{dataset}   \textemdash\ Load a single dataset.  \\
 \texttt{yt help} \textemdash\ Print yt help information. \\
 \texttt{yt stats} \textit{dataset} \textemdash\ Print stats of a dataset. \\
@@ -125,7 +124,7 @@ including a list of the available flags.
 \texttt{yt version} \textemdash\ yt installation information. \\
 \texttt{yt notebook} \textemdash\ Run the IPython notebook server. \\
 \texttt{yt upload\_image} \textit{image.png} \textemdash\ Upload PNG image to imgur.com. \\
-\texttt{yt upload\_notebook} \textit{notebook.nb} \textemdash\ Upload IPython notebook to hub.yt-project.org.\\
+\texttt{yt upload\_notebook} \textit{notebook.nb} \textemdash\ Upload IPython notebook to \url{https://girder.hub.yt}.\\
 \texttt{yt plot} \textit{dataset} \textemdash\ Create a set of images.\\
 \texttt{yt render} \textit{dataset} \textemdash\ Create a simple
  volume rendering. \\
@@ -182,7 +181,7 @@ that are \textit{True}. In the above example \texttt{b} would be all elements of
 \subsection{IPython Tips}
 \settowidth{\MyLen}{\texttt{multicol} }
 These tips work if IPython has been loaded, typically either by invoking
-\texttt{iyt} or \texttt{yt load} on the command line, or using the IPython notebook (\texttt{yt notebook}).
+\texttt{yt load} on the command line, or using the IPython notebook (\texttt{yt notebook}).
 \texttt{Tab complete} \textemdash\ IPython will attempt to auto-complete a
 variable or function name when the \texttt{Tab} key is pressed, e.g. \textit{HaloFi}\textendash\texttt{Tab} would auto-complete
 to \textit{HaloFinder}. This also works with imports, e.g. \textit{from numpy.random.}\textendash\texttt{Tab}
@@ -245,14 +244,13 @@ Or added to an existing dataset using \texttt{ds.add\_field}:
 
 \subsection{Slices and Projections}
 \settowidth{\MyLen}{\texttt{multicol} }
-\texttt{slc = yt.SlicePlot(ds, \textit{axis or normal vector}, \textit{field}, \textit{center=}, \textit{width=}, \textit{weight\_field=}, \textit{additional parameters})} \textemdash\ Make a slice plot
-perpendicular to \textit{axis} (specified via 'x', 'y', or 'z') or a normal vector for an off-axis slice of \textit{field} weighted by \textit{weight\_field} at (code-units) \textit{center} with
+\texttt{slc = yt.SlicePlot(ds, \textit{axis or normal vector}, \textit{fields}, \textit{center=}, \textit{width=}, \textit{weight\_field=}, \textit{additional parameters})} \textemdash\ Make a slice plot
+perpendicular to \textit{axis} (specified via 'x', 'y', or 'z') or a normal vector for an off-axis slice of \textit{fields} weighted by \textit{weight\_field} at (code-units) \textit{center} with
 \textit{width} in code units or a (value, unit) tuple. Hint: try \textit{yt.SlicePlot?} in IPython to see additional parameters.\\
 \texttt{slc.save(\textit{file\_prefix})} \textemdash\ Save the slice to a png with name prefix \textit{file\_prefix}.
 \texttt{.save()} works similarly for the commands below.\\
 
-\texttt{prj = yt.ProjectionPlot(ds, \textit{axis}, \textit{field}, \textit{additional params})} \textemdash\ Make a projection. \\
-\texttt{prj = yt.OffAxisProjectionPlot(ds, \textit{normal}, \textit{fields}, \textit{center=}, \textit{width=}, \textit{depth=},\textit{north\_vector=},\textit{weight\_field=})} \textemdash Make an off axis projection. Note this takes an array of fields. \\
+\texttt{prj = yt.ProjectionPlot(ds, \textit{axis or normal vector}, \textit{fields}, \textit{additional params})} \textemdash\ Same as \texttt{yt.SlicePlot} but for projections.\\
 
 \subsection{Plot Annotations}
 \settowidth{\MyLen}{\texttt{multicol} }
@@ -260,7 +258,7 @@ Plot callbacks are functions itemized in a registry that is attached to every pl
 \texttt{velocity(\textit{factor=},\textit{scale=},\textit{scale\_units=}, \textit{normalize=})} \textemdash\ Uses field "x-velocity" to draw quivers\\
 \texttt{magnetic\_field(\textit{factor=},\textit{scale=},\textit{scale\_units=}, \textit{normalize=})} \textemdash\ Uses field "Bx" to draw quivers\\
 \texttt{quiver(\textit{field\_x},\textit{field\_y},\textit{factor=},\textit{scale=},\textit{scale\_units=}, \textit{normalize=})} \\
-\texttt{contour(\textit{field=},\textit{ncont=},\textit{factor=},\textit{clim=},\textit{take\_log=}, \textit{additional parameters})} \textemdash Plots a number of contours \textit{ncont} to interpolate \textit{field} optionally using \textit{take\_log}, upper and lower \textit{c}ontour\textit{lim}its and \textit{factor} number of points in the interpolation.\\
+\texttt{contour(\textit{field=},\textit{levels=},\textit{factor=},\textit{clim=},\textit{take\_log=}, \textit{additional parameters})} \textemdash Plots a number of contours \textit{ncont} to interpolate \textit{field} optionally using \textit{take\_log}, upper and lower \textit{c}ontour\textit{lim}its and \textit{factor} number of points in the interpolation.\\
 \texttt{grids(\textit{alpha=}, \textit{draw\_ids=}, \textit{periodic=}, \textit{min\_level=}, \textit{max\_level=})} \textemdash Add grid boundaries. \\
 \texttt{streamlines(\textit{field\_x},\textit{field\_y},\textit{factor=},\textit{density=})}\\
 \texttt{clumps(\textit{clumplist})} \textemdash\ Generate \textit{clumplist} using the clump finder and plot. \\
@@ -313,23 +311,29 @@ applications.
 (such as halos or clumps).\\
 
 
-\subsection{Mercurial}
+\subsection{Git}
 \settowidth{\MyLen}{\texttt{multicol}}
-Please see \url{http://mercurial.selenic.com/} for the full Mercurial documentation.
+Please see \url{https://git-scm.com/} for the latest Git documentation.
 
-\texttt{hg clone https://bitbucket.org/yt\_analysis/yt} \textemdash\ Clone a copy of yt. \\
-\texttt{hg status} \textemdash\ Files changed in working directory.\\
-\texttt{hg diff} \textemdash\ Print diff of all changed files in working directory. \\
-\texttt{hg diff -r\textit{RevX} -r\textit{RevY}} \textemdash\ Print diff of all changes between revision \textit{RevX} and \textit{RevY}.\\
-\texttt{hg log} \textemdash\ History of changes.\\
-\texttt{hg cat -r\textit{RevX file}} \textemdash\ Print the contents of \textit{file} from revision \textit{RevX}.\\
-\texttt{hg heads} \textemdash\ Print all the current heads. \\
-\texttt{hg revert -r\textit{RevX file}} \textemdash\ Revert \textit{file} to revision \textit{RevX}. On-disk changed version is
-moved to \textit{file.orig}. \\
-\texttt{hg commit} \textemdash\ Commit changes to repository. \\
-\texttt{hg push} \textemdash\ Push changes to default remote repository. \\
-\texttt{hg pull} \textemdash\ Pull changes from default remote repository. \\
-\texttt{hg serve} \textemdash\ Launch a webserver on the local machine to examine the repository in a web browser. \\
+\texttt{git clone https://github.com/yt-project/yt} \textemdash\ Clone the yt
+repository. \\
+\texttt{git status} \textemdash\ Show status of working tree.\\
+\texttt{git diff} \textemdash\ Show changed files in the working tree. \\
+\texttt{git log} \textemdash\ Show a log of changes in reverse chronological
+oder.\\
+\texttt{git revert <commit>} \textemdash\ Revert the changes in an existing
+commit and create a new commit with reverted changes. \\
+\texttt{git add <pathspec>} \textemdash\ Stage changes in the working tree to
+the index. \\
+\texttt{git commit} \textemdash\ Commit staged changes to the repository. \\
+\texttt{git merge <branch>} Merge the revisions from the specified branch on
+top of the current branch.\\
+\texttt{git push <remote>} \textemdash\ Push changes to remote repository. \\
+\texttt{git push <remote> <branch>} \textemdash\ Push changes in specified
+branch to remote repository. \\
+\texttt{git pull <remote> <branch>} \textemdash\ Pull changes from the
+specified branch of the remote repository. This is equivalent to \texttt{git
+fetch <remote>} and then \texttt{git merge <remote>/<branch>}.\\
 
 \subsection{FAQ}
 \settowidth{\MyLen}{\texttt{multicol}}

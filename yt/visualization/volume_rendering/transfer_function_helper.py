@@ -1,32 +1,13 @@
-"""
-A helper class to build, display, and modify transfer functions for volume
-rendering.
+from io import BytesIO
 
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
-import matplotlib
 import numpy as np
 
-from distutils.version import LooseVersion
-
-from yt.funcs import mylog
 from yt.data_objects.profiles import create_profile
-from yt.visualization.volume_rendering.transfer_functions import \
-    ColorTransferFunction
-from yt.extern.six import BytesIO
+from yt.funcs import mylog
+from yt.visualization.volume_rendering.transfer_functions import ColorTransferFunction
 
 
-class TransferFunctionHelper(object):
+class TransferFunctionHelper:
     r"""A transfer function helper.
 
     This attempts to help set up a good transfer function by finding
@@ -42,7 +23,7 @@ class TransferFunctionHelper(object):
     Notes
     -----
     """
- 
+
     profiles = None
 
     def __init__(self, ds):
@@ -67,15 +48,15 @@ class TransferFunctionHelper(object):
             in the dataset.  This can be slow for very large datasets.
         """
         if bounds is None:
-            bounds = self.ds.h.all_data().quantities['Extrema'](self.field, non_zero=True)
+            bounds = self.ds.all_data().quantities["Extrema"](self.field, non_zero=True)
             bounds = [b.ndarray_view() for b in bounds]
         self.bounds = bounds
 
         # Do some error checking.
-        assert(len(self.bounds) == 2)
+        assert len(self.bounds) == 2
         if self.log:
-            assert(self.bounds[0] > 0.0)
-            assert(self.bounds[1] > 0.0)
+            assert self.bounds[0] > 0.0
+            assert self.bounds[1] > 0.0
         return
 
     def set_field(self, field):
@@ -109,9 +90,6 @@ class TransferFunctionHelper(object):
         Builds the transfer function according to the current state of the
         TransferFunctionHelper.
 
-        Parameters
-        ----------
-        None
 
         Returns
         -------
@@ -120,8 +98,10 @@ class TransferFunctionHelper(object):
 
         """
         if self.bounds is None:
-            mylog.info('Calculating data bounds. This may take a while.' +
-                       '  Set the TransferFunctionHelper.bounds to avoid this.')
+            mylog.info(
+                "Calculating data bounds. This may take a while. "
+                "Set the TransferFunctionHelper.bounds to avoid this."
+            )
             self.set_bounds()
 
         if self.log:
@@ -129,26 +109,22 @@ class TransferFunctionHelper(object):
         else:
             mi, ma = self.bounds
 
-        self.tf = ColorTransferFunction((mi, ma),
-                                        grey_opacity=self.grey_opacity,
-                                        nbins=512)
+        self.tf = ColorTransferFunction(
+            (mi, ma), grey_opacity=self.grey_opacity, nbins=512
+        )
         return self.tf
 
     def setup_default(self):
         """Setup a default colormap
 
         Creates a ColorTransferFunction including 10 gaussian layers whose
-        colors sample the 'spectral' colormap. Also attempts to scale the
+        colors sample the 'nipy_spectral' colormap. Also attempts to scale the
         transfer function to produce a natural contrast ratio.
 
         """
-        if LooseVersion(matplotlib.__version__) < LooseVersion('2.0.0'):
-            colormap_name = 'spectral'
-        else:
-            colormap_name = 'nipy_spectral'
-        self.tf.add_layers(10, colormap=colormap_name)
+        self.tf.add_layers(10, colormap="nipy_spectral")
         factor = self.tf.funcs[-1].y.size / self.tf.funcs[-1].y.sum()
-        self.tf.funcs[-1].y *= 2*factor
+        self.tf.funcs[-1].y *= 2 * factor
 
     def plot(self, fn=None, profile_field=None, profile_weight=None):
         """
@@ -167,8 +143,10 @@ class TransferFunctionHelper(object):
         If fn is None, will return an image to an IPython notebook.
 
         """
-        from yt.visualization._mpl_imports import FigureCanvasAgg
         from matplotlib.figure import Figure
+
+        from yt.visualization._mpl_imports import FigureCanvasAgg
+
         if self.tf is None:
             self.build_transfer_function()
             self.setup_default()
@@ -178,21 +156,27 @@ class TransferFunctionHelper(object):
             xmi, xma = np.log10(self.bounds[0]), np.log10(self.bounds[1])
         else:
             xfunc = np.linspace
-            # Need to strip units off of the bounds to avoid a recursion error
-            # in matplotlib 1.3.1
-            xmi, xma = [np.float64(b) for b in self.bounds]
+            xmi, xma = self.bounds
 
         x = xfunc(xmi, xma, tf.nbins)
         y = tf.funcs[3].y
-        w = np.append(x[1:]-x[:-1], x[-1]-x[-2])
-        colors = np.array([tf.funcs[0].y, tf.funcs[1].y, tf.funcs[2].y,
-                           np.ones_like(x)]).T
+        w = np.append(x[1:] - x[:-1], x[-1] - x[-2])
+        colors = np.array(
+            [tf.funcs[0].y, tf.funcs[1].y, tf.funcs[2].y, np.ones_like(x)]
+        ).T
 
         fig = Figure(figsize=[6, 3])
         canvas = FigureCanvasAgg(fig)
         ax = fig.add_axes([0.2, 0.2, 0.75, 0.75])
-        ax.bar(x, tf.funcs[3].y, w, edgecolor=[0.0, 0.0, 0.0, 0.0],
-               log=self.log, color=colors, bottom=[0])
+        ax.bar(
+            x,
+            tf.funcs[3].y,
+            w,
+            edgecolor=[0.0, 0.0, 0.0, 0.0],
+            log=self.log,
+            color=colors,
+            bottom=[0],
+        )
 
         if profile_field is not None:
             try:
@@ -204,21 +188,22 @@ class TransferFunctionHelper(object):
                 prof[profile_field]
             except KeyError:
                 prof.add_fields([profile_field])
-            # Strip units, if any, for matplotlib 1.3.1
-            xplot = np.array(prof.x)
-            yplot = np.array(prof[profile_field]*tf.funcs[3].y.max() /
-                             prof[profile_field].max())
-            ax.plot(xplot, yplot, color='w', linewidth=3)
-            ax.plot(xplot, yplot, color='k')
+            xplot = prof.x
+            yplot = (
+                prof[profile_field] * tf.funcs[3].y.max() / prof[profile_field].max()
+            )
+            ax.plot(xplot, yplot, color="w", linewidth=3)
+            ax.plot(xplot, yplot, color="k")
 
-        ax.set_xscale({True: 'log', False: 'linear'}[self.log])
+        ax.set_xscale({True: "log", False: "linear"}[self.log])
         ax.set_xlim(x.min(), x.max())
         ax.set_xlabel(self.ds._get_field_info(self.field).get_label())
-        ax.set_ylabel(r'$\mathrm{alpha}$')
-        ax.set_ylim(y.max()*1.0e-3, y.max()*2)
+        ax.set_ylabel(r"$\mathrm{alpha}$")
+        ax.set_ylim(y.max() * 1.0e-3, y.max() * 2)
 
         if fn is None:
             from IPython.core.display import Image
+
             f = BytesIO()
             canvas.print_figure(f)
             f.seek(0)
@@ -229,10 +214,15 @@ class TransferFunctionHelper(object):
 
     def setup_profile(self, profile_field=None, profile_weight=None):
         if profile_field is None:
-            profile_field = 'cell_volume'
-        prof = create_profile(self.ds.all_data(), self.field, profile_field,
-                              n_bins=128, extrema={self.field: self.bounds},
-                              weight_field=profile_weight,
-                              logs = {self.field: self.log})
+            profile_field = "cell_volume"
+        prof = create_profile(
+            self.ds.all_data(),
+            self.field,
+            profile_field,
+            n_bins=128,
+            extrema={self.field: self.bounds},
+            weight_field=profile_weight,
+            logs={self.field: self.log},
+        )
         self.profiles[self.field] = prof
         return

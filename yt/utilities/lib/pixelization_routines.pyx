@@ -1,3 +1,9 @@
+# distutils: include_dirs = LIB_DIR
+# distutils: extra_compile_args = CPP14_FLAG OMP_ARGS
+# distutils: extra_link_args = CPP14_FLAG OMP_ARGS
+# distutils: language = c++
+# distutils: libraries = STD_LIBS
+# distutils: sources = yt/utilities/lib/pixelization_constants.cpp
 """
 Pixelization routines
 
@@ -5,59 +11,62 @@ Pixelization routines
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
 import numpy as np
-cimport numpy as np
-cimport cython
 
-from cython.view cimport array as cvarray
+cimport cython
 cimport libc.math as math
-from yt.utilities.lib.fp_utils cimport fmin, fmax, i64min, i64max, imin, \
-    imax, fabs, iclip
-from yt.utilities.exceptions import \
-    YTPixelizeError, \
-    YTElementTypeNotRecognized
-from libc.stdlib cimport malloc, free
-from vec3_ops cimport dot, cross, subtract
-from yt.utilities.lib.element_mappings cimport \
-    ElementSampler, \
-    P1Sampler1D, \
-    P1Sampler2D, \
-    P1Sampler3D, \
-    Q1Sampler3D, \
-    Q1Sampler2D, \
-    Q2Sampler2D, \
-    S2Sampler3D, \
-    W1Sampler3D, \
-    T2Sampler2D, \
-    Tet2Sampler3D
-from yt.geometry.particle_deposit cimport \
-    kernel_func, get_kernel_func
-from cython.parallel cimport prange
-from cpython.exc cimport PyErr_CheckSignals
-from yt.funcs import get_pbar
-from yt.utilities.lib.cykdtree.kdtree cimport (
-    PyKDTree,
-    KDTree,
-    Node,
-    uint64_t,
-    uint32_t,
+cimport numpy as np
+from cython.view cimport array as cvarray
+
+from yt.utilities.lib.fp_utils cimport (
+    any_float,
+    fabs,
+    fmax,
+    fmin,
+    i64max,
+    i64min,
+    iclip,
+    imax,
+    imin,
 )
-from yt.utilities.lib.particle_kdtree_tools cimport find_neighbors, \
-    axes_range, \
-    set_axes_range
+
+from yt.utilities.exceptions import YTElementTypeNotRecognized, YTPixelizeError
+
+from cpython.exc cimport PyErr_CheckSignals
+from cython.parallel cimport parallel, prange
+from libc.stdlib cimport free, malloc
+from vec3_ops cimport cross, dot, subtract
+
+from yt.geometry.particle_deposit cimport get_kernel_func, kernel_func
+from yt.utilities.lib.element_mappings cimport (
+    ElementSampler,
+    P1Sampler1D,
+    P1Sampler2D,
+    P1Sampler3D,
+    Q1Sampler2D,
+    Q1Sampler3D,
+    Q2Sampler2D,
+    S2Sampler3D,
+    T2Sampler2D,
+    Tet2Sampler3D,
+    W1Sampler3D,
+)
+
+from yt.funcs import get_pbar
+
 from yt.utilities.lib.bounded_priority_queue cimport BoundedPriorityQueue
+from yt.utilities.lib.cykdtree.kdtree cimport KDTree, Node, PyKDTree, uint32_t, uint64_t
+from yt.utilities.lib.particle_kdtree_tools cimport (
+    axes_range,
+    find_neighbors,
+    set_axes_range,
+)
+
 
 cdef int TABLE_NVALS=512
 
-cdef extern from "pixelization_constants.h":
+cdef extern from "pixelization_constants.hpp":
     enum:
         MAX_NUM_FACES
 
@@ -78,11 +87,11 @@ cdef extern from "pixelization_constants.h":
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def pixelize_cartesian(np.float64_t[:,:] buff,
-                       np.float64_t[:] px,
-                       np.float64_t[:] py,
-                       np.float64_t[:] pdx,
-                       np.float64_t[:] pdy,
-                       np.float64_t[:] data,
+                       any_float[:] px,
+                       any_float[:] py,
+                       any_float[:] pdx,
+                       any_float[:] pdy,
+                       any_float[:] data,
                        bounds,
                        int antialias = 1,
                        period = None,
@@ -168,6 +177,7 @@ def pixelize_cartesian(np.float64_t[:,:] buff,
     with nogil:
         for p in range(px.shape[0]):
             xiter[1] = yiter[1] = 999
+            xiterv[1] = yiterv[1] = 0.0
             oxsp = px[p]
             oysp = py[p]
             dxsp = pdx[p]
@@ -246,7 +256,9 @@ def pixelize_cartesian(np.float64_t[:,:] buff,
                                 # conservative about the iteration indices.
                                 # This will reduce artifacts if we ever move to
                                 # compositing instead of replacing bitmaps.
-                                if overlap1 * overlap2 == 0.0: continue
+                                if overlap1 * overlap2 < 1.e-6: continue
+                                # make sure pixel value is not a NaN before incrementing it
+                                if buff[i,j] != buff[i,j]: buff[i,j] = 0.0
                                 buff[i,j] += (dsp * overlap1) * overlap2
                             else:
                                 buff[i,j] = dsp
@@ -352,6 +364,7 @@ def pixelize_cartesian_nodal(np.float64_t[:,:] buff,
     with nogil:
         for p in range(px.shape[0]):
             xiter[1] = yiter[1] = 999
+            xiterv[1] = yiterv[1] = 0.0
             oxsp = px[p]
             oysp = py[p]
             ozsp = pz[p]
@@ -496,6 +509,8 @@ def pixelize_off_axis_cartesian(
                        fabs(zsp - cz) * 0.99 > dzsp:
                         continue
                     mask[i, j] += 1
+                    # make sure pixel value is not a NaN before incrementing it
+                    if buff[i,j] != buff[i,j]: buff[i,j] = 0.0
                     buff[i, j] += dsp
     for i in range(buff.shape[0]):
         for j in range(buff.shape[1]):
@@ -514,18 +529,29 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
                       extents):
 
     cdef np.float64_t x, y, dx, dy, r0, theta0
-    cdef np.float64_t rmax, x0, y0, x1, y1
-    cdef np.float64_t r_i, theta_i, dr_i, dtheta_i, dthetamin
+    cdef np.float64_t rmin, rmax, tmin, tmax, x0, y0, x1, y1, xp, yp
+    cdef np.float64_t r_i, theta_i, dr_i, dtheta_i
+    cdef np.float64_t r_inc, theta_inc
     cdef np.float64_t costheta, sintheta
-    cdef int i, pi, pj
+    cdef int i, i1, pi, pj
 
-    cdef int imax = np.asarray(radius).argmax()
+    cdef int imin, imax
+    imin = np.asarray(radius).argmin()
+    imax = np.asarray(radius).argmax()
+    rmin = radius[imin] - dradius[imin]
     rmax = radius[imax] + dradius[imax]
 
+    imin = np.asarray(theta).argmin()
+    imax = np.asarray(theta).argmax()
+    tmin = theta[imin] - dtheta[imin]
+    tmax = theta[imax] + dtheta[imax]
+
     x0, x1, y0, y1 = extents
-    dx = (x1 - x0) / buff.shape[1]
-    dy = (y1 - y0) / buff.shape[0]
+    dx = (x1 - x0) / buff.shape[0]
+    dy = (y1 - y0) / buff.shape[1]
     cdef np.float64_t rbounds[2]
+    cdef np.float64_t prbounds[2]
+    cdef np.float64_t ptbounds[2]
     cdef np.float64_t corners[8]
     # Find our min and max r
     corners[0] = x0*x0+y0*y0
@@ -548,9 +574,9 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
         rbounds[0] = 0.0
     if y0 < 0 and y1 > 0:
         rbounds[0] = 0.0
-    dthetamin = dx / rmax
-    for i in range(radius.shape[0]):
+    r_inc = 0.5 * fmin(dx, dy)
 
+    for i in range(radius.shape[0]):
         r0 = radius[i]
         theta0 = theta[i]
         dr_i = dradius[i]
@@ -559,15 +585,15 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
         if r0 + dr_i < rbounds[0] or r0 - dr_i > rbounds[1]:
             continue
         theta_i = theta0 - dtheta_i
-        # Buffer of 0.5 here
-        dthetamin = 0.5*dx/(r0 + dr_i)
+        theta_inc = r_inc / (r0 + dr_i)
+
         while theta_i < theta0 + dtheta_i:
             r_i = r0 - dr_i
             costheta = math.cos(theta_i)
             sintheta = math.sin(theta_i)
             while r_i < r0 + dr_i:
                 if rmax <= r_i:
-                    r_i += 0.5*dx
+                    r_i += r_inc
                     continue
                 y = r_i * costheta
                 x = r_i * sintheta
@@ -575,40 +601,72 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
                 pj = <int>((y - y0)/dy)
                 if pi >= 0 and pi < buff.shape[0] and \
                    pj >= 0 and pj < buff.shape[1]:
-                    buff[pi, pj] = field[i]
-                r_i += 0.5*dx
-            theta_i += dthetamin
+                    # we got a pixel that intersects the grid cell
+                    # now check that this pixel doesn't go beyond the data domain
+                    xp = x0 + pi*dx
+                    yp = y0 + pj*dy
+                    corners[0] = xp*xp + yp*yp
+                    corners[1] = xp*xp + (yp+dy)**2
+                    corners[2] = (xp+dx)**2 + yp*yp
+                    corners[3] = (xp+dx)**2 + (yp+dy)**2
+                    prbounds[0] = prbounds[1] = corners[3]
+                    for i1 in range(3):
+                        prbounds[0] = fmin(prbounds[0], corners[i1])
+                        prbounds[1] = fmax(prbounds[1], corners[i1])
+                    prbounds[0] = math.sqrt(prbounds[0])
+                    prbounds[1] = math.sqrt(prbounds[1])
 
-cdef int aitoff_thetaphi_to_xy(np.float64_t theta, np.float64_t phi,
+                    corners[0] = math.atan2(xp, yp)
+                    corners[1] = math.atan2(xp, yp+dy)
+                    corners[2] = math.atan2(xp+dx, yp)
+                    corners[3] = math.atan2(xp+dx, yp+dy)
+                    ptbounds[0] = ptbounds[1] = corners[3]
+                    for i1 in range(3):
+                        ptbounds[0] = fmin(ptbounds[0], corners[i1])
+                        ptbounds[1] = fmax(ptbounds[1], corners[i1])
+
+                    # shift to a [0, PI] interval
+                    ptbounds[0] = ptbounds[0] % (2*np.pi)
+                    ptbounds[1] = ptbounds[1] % (2*np.pi)
+
+                    if prbounds[0] >= rmin and prbounds[1] <= rmax and \
+                       ptbounds[0] >= tmin and ptbounds[1] <= tmax:
+                        buff[pi, pj] = field[i]
+                r_i += r_inc
+            theta_i += theta_inc
+
+cdef int aitoff_Lambda_btheta_to_xy(np.float64_t Lambda, np.float64_t btheta,
                                np.float64_t *x, np.float64_t *y) except -1:
-    cdef np.float64_t z = math.sqrt(1 + math.cos(phi) * math.cos(theta / 2.0))
-    x[0] = math.cos(phi) * math.sin(theta / 2.0) / z
-    y[0] = math.sin(phi) / z
+    cdef np.float64_t z = math.sqrt(1 + math.cos(btheta) * math.cos(Lambda / 2.0))
+    x[0] = 2.0 * math.cos(btheta) * math.sin(Lambda / 2.0) / z
+    y[0] = math.sin(btheta) / z
     return 0
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pixelize_aitoff(np.float64_t[:] theta,
-                    np.float64_t[:] dtheta,
-                    np.float64_t[:] phi,
-                    np.float64_t[:] dphi,
+def pixelize_aitoff(np.float64_t[:] azimuth,
+                    np.float64_t[:] dazimuth,
+                    np.float64_t[:] colatitude,
+                    np.float64_t[:] dcolatitude,
                     buff_size,
                     np.float64_t[:] field,
-                    extents, input_img = None,
-                    np.float64_t theta_offset = 0.0,
-                    np.float64_t phi_offset = 0.0):
+                    bounds, # this is a 4-tuple
+                    input_img = None,
+                    np.float64_t azimuth_offset = 0.0,
+                    np.float64_t colatitude_offset = 0.0):
     # http://paulbourke.net/geometry/transformationprojection/
-    # (theta) longitude is -pi to pi
-    # (phi) latitude is -pi/2 to pi/2
+    # (Lambda) longitude is -PI to PI (longitude = azimuth - PI)
+    # (btheta) latitude is -PI/2 to PI/2 (latitude = PI/2 - colatitude)
+    #
     # z^2 = 1 + cos(latitude) cos(longitude/2)
     # x = cos(latitude) sin(longitude/2) / z
     # y = sin(latitude) / z
     cdef np.ndarray[np.float64_t, ndim=2] img
     cdef int i, j, nf, fi
     cdef np.float64_t x, y, z, zb
-    cdef np.float64_t dx, dy
-    cdef np.float64_t theta0, phi0, theta_p, dtheta_p, phi_p, dphi_p
+    cdef np.float64_t dx, dy, xw, yw
+    cdef np.float64_t Lambda0, btheta0, Lambda_p, dLambda_p, btheta_p, dbtheta_p
     cdef np.float64_t PI = np.pi
     cdef np.float64_t s2 = math.sqrt(2.0)
     cdef np.float64_t xmax, ymax, xmin, ymin
@@ -621,65 +679,94 @@ def pixelize_aitoff(np.float64_t[:] theta,
         img = input_img
     # Okay, here's our strategy.  We compute the bounds in x and y, which will
     # be a rectangle, and then for each x, y position we check to see if it's
-    # within our theta.  This will cost *more* computations of the
-    # (x,y)->(theta,phi) calculation, but because we no longer have to search
-    # through the theta, phi arrays, it should be faster.
-    dx = 2.0 / (img.shape[0] - 1)
-    dy = 2.0 / (img.shape[1] - 1)
+    # within our Lambda.  This will cost *more* computations of the
+    # (x,y)->(Lambda,btheta) calculation, but because we no longer have to search
+    # through the Lambda, btheta arrays, it should be faster.
+    xw = bounds[1] - bounds[0]
+    yw = bounds[3] - bounds[2]
+    dx = xw / (img.shape[0] - 1)
+    dy = yw / (img.shape[1] - 1)
     x = y = 0
     for fi in range(nf):
-        theta_p = (theta[fi] + theta_offset) - PI
-        dtheta_p = dtheta[fi]
-        phi_p = (phi[fi] + phi_offset) - PI/2.0
-        dphi_p = dphi[fi]
+        Lambda_p = (azimuth[fi] + azimuth_offset) - PI
+        dLambda_p = dazimuth[fi]
+        btheta_p = PI/2.0 - (colatitude[fi] + colatitude_offset)
+        dbtheta_p = dcolatitude[fi]
         # Four transformations
-        aitoff_thetaphi_to_xy(theta_p - dtheta_p, phi_p - dphi_p, &x, &y)
+        aitoff_Lambda_btheta_to_xy(Lambda_p - dLambda_p, btheta_p - dbtheta_p, &x, &y)
         xmin = x
         xmax = x
         ymin = y
         ymax = y
-        aitoff_thetaphi_to_xy(theta_p - dtheta_p, phi_p + dphi_p, &x, &y)
+        aitoff_Lambda_btheta_to_xy(Lambda_p - dLambda_p, btheta_p + dbtheta_p, &x, &y)
         xmin = fmin(xmin, x)
         xmax = fmax(xmax, x)
         ymin = fmin(ymin, y)
         ymax = fmax(ymax, y)
-        aitoff_thetaphi_to_xy(theta_p + dtheta_p, phi_p - dphi_p, &x, &y)
+        aitoff_Lambda_btheta_to_xy(Lambda_p + dLambda_p, btheta_p - dbtheta_p, &x, &y)
         xmin = fmin(xmin, x)
         xmax = fmax(xmax, x)
         ymin = fmin(ymin, y)
         ymax = fmax(ymax, y)
-        aitoff_thetaphi_to_xy(theta_p + dtheta_p, phi_p + dphi_p, &x, &y)
+        aitoff_Lambda_btheta_to_xy(Lambda_p + dLambda_p, btheta_p + dbtheta_p, &x, &y)
         xmin = fmin(xmin, x)
         xmax = fmax(xmax, x)
         ymin = fmin(ymin, y)
         ymax = fmax(ymax, y)
+        # special cases where the projection of the cell isn't
+        # bounded by the rectangle (in image space) that bounds its corners.
+        # Note that performance may take a serious hit here. The overarching algorithm
+        # is optimized for cells with small angular width.
+        if xmin * xmax < 0.0:
+            # on the central meridian
+            aitoff_Lambda_btheta_to_xy(0.0, btheta_p - dbtheta_p, &x, &y)
+            ymin = fmin(ymin, y)
+            ymax = fmax(ymax, y)
+            aitoff_Lambda_btheta_to_xy(0.0, btheta_p + dbtheta_p, &x, &y)
+            ymin = fmin(ymin, y)
+            ymax = fmax(ymax, y)
+        if ymin * ymax < 0.0:
+            # on the equator
+            aitoff_Lambda_btheta_to_xy(Lambda_p - dLambda_p, 0.0, &x, &y)
+            xmin = fmin(xmin, x)
+            xmax = fmax(xmax, x)
+            aitoff_Lambda_btheta_to_xy(Lambda_p + dLambda_p, 0.0, &x, &y)
+            xmin = fmin(xmin, x)
+            xmax = fmax(xmax, x)
         # Now we have the (projected rectangular) bounds.
-        xmin = (xmin + 1) # Get this into normalized image coords
-        xmax = (xmax + 1) # Get this into normalized image coords
-        ymin = (ymin + 1) # Get this into normalized image coords
-        ymax = (ymax + 1) # Get this into normalized image coords
+
+        # Shift into normalized image coords
+        xmin = (xmin - bounds[0])
+        xmax = (xmax - bounds[0])
+        ymin = (ymin - bounds[2])
+        ymax = (ymax - bounds[2])
+
+        # Finally, select a rectangular region in image space
+        # that fully contains the projected data point.
+        # We'll reject image pixels in that rectangle that are
+        # not actually intersecting the data point as we go.
         x0 = <int> (xmin / dx)
         x1 = <int> (xmax / dx) + 1
         y0 = <int> (ymin / dy)
         y1 = <int> (ymax / dy) + 1
         for i in range(x0, x1):
-            x = (-1.0 + i*dx)*s2*2.0
+            x = (bounds[0] + i * dx) / 2.0
             for j in range(y0, y1):
-                y = (-1.0 + j * dy)*s2
-                zb = (x*x/8.0 + y*y/2.0 - 1.0)
+                y = (bounds[2] + j * dy)
+                zb = (x*x + y*y - 1.0)
                 if zb > 0: continue
-                z = (1.0 - (x * 0.25) * (x * 0.25) - (y * 0.5) * (y * 0.5))
+                z = (1.0 - 0.5*x*x - 0.5*y*y)
                 z = math.sqrt(z)
                 # Longitude
-                theta0 = 2.0*math.atan(z*x/(2.0 * (2.0*z*z-1.0)))
+                Lambda0 = 2.0*math.atan(z*x*s2/(2.0*z*z-1.0))
                 # Latitude
                 # We shift it into co-latitude
-                phi0 = math.asin(z*y)
+                btheta0 = math.asin(z*y*s2)
                 # Now we just need to figure out which pixel contributes.
                 # We do not have a fast search.
-                if not (theta_p - dtheta_p <= theta0 <= theta_p + dtheta_p):
+                if not (Lambda_p - dLambda_p <= Lambda0 <= Lambda_p + dLambda_p):
                     continue
-                if not (phi_p - dphi_p <= phi0 <= phi_p + dphi_p):
+                if not (btheta_p - dbtheta_p <= btheta0 <= btheta_p + dbtheta_p):
                     continue
                 img[i, j] = field[fi]
     return img
@@ -756,6 +843,7 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
                           int index_offset = 0):
     cdef np.ndarray[np.float64_t, ndim=3] img
     img = np.zeros(buff_size, dtype="float64")
+    img[:] = np.nan
     # Two steps:
     #  1. Is image point within the mesh bounding box?
     #  2. Is image point within the mesh element?
@@ -970,26 +1058,38 @@ cdef class SPHKernelInterpolationTable:
 @cython.cdivision(True)
 def pixelize_sph_kernel_projection(
         np.float64_t[:, :] buff,
-        np.float64_t[:] posx,
-        np.float64_t[:] posy,
-        np.float64_t[:] hsml,
-        np.float64_t[:] pmass,
-        np.float64_t[:] pdens,
-        np.float64_t[:] quantity_to_smooth,
+        any_float[:] posx,
+        any_float[:] posy,
+        any_float[:] hsml,
+        any_float[:] pmass,
+        any_float[:] pdens,
+        any_float[:] quantity_to_smooth,
         bounds,
         kernel_name="cubic",
-        weight_field=None):
+        weight_field=None,
+        int check_period=1,
+        period=None):
 
     cdef np.intp_t xsize, ysize
     cdef np.float64_t x_min, x_max, y_min, y_max, prefactor_j
-    cdef np.int64_t xi, yi, x0, x1, y0, y1
+    cdef np.int64_t xi, yi, x0, x1, y0, y1, xxi, yyi
     cdef np.float64_t q_ij2, posx_diff, posy_diff, ih_j2
-    cdef np.float64_t x, y, dx, dy, idx, idy, h_j2
-    cdef int index, i, j
+    cdef np.float64_t x, y, dx, dy, idx, idy, h_j2, px, py
+    cdef np.float64_t period_x = 0, period_y = 0
+    cdef int index, i, j, ii, jj
     cdef np.float64_t[:] _weight_field
+    cdef int * xiter
+    cdef int * yiter
+    cdef np.float64_t * xiterv
+    cdef np.float64_t * yiterv
+    cdef np.float64_t * local_buf
 
     if weight_field is not None:
         _weight_field = weight_field
+
+    if period is not None:
+        period_x = period[0]
+        period_y = period[1]
 
     # we find the x and y range over which we have pixels and we find how many
     # pixels we have in each dimension
@@ -1009,58 +1109,115 @@ def pixelize_sph_kernel_projection(
         kernel_tables[kernel_name] = SPHKernelInterpolationTable(kernel_name)
     cdef SPHKernelInterpolationTable itab = kernel_tables[kernel_name]
 
-    with nogil:
+    with nogil, parallel():
         # loop through every particle
-        for j in range(0, posx.shape[0]):
+        # NOTE: this loop can be quite time consuming. However it is easily
+        # parallelizable in multiple ways, such as:
+        #   1) use multiple cores to process individual particles (the outer loop)
+        #   2) use multiple cores to process individual pixels for a given particle
+        #      (the inner loops)
+        # Depending on the ratio of particles' "sphere of influence" (a.k.a. the smoothing
+        # length) to the physical width of the pixels, different parallelization
+        # strategies may yield different speed-ups. Strategy #1 works better in the case
+        # of lots of itty bitty particles. Strategy #2 works well when we have a
+        # not-very-large-number of reasonably large-compared-to-pixels particles. We
+        # currently employ #1 as its workload is more even and consistent, even though it
+        # comes with a price of an additional, per thread memory for storing the
+        # intermediate results.
+
+        local_buff = <np.float64_t *> malloc(sizeof(np.float64_t) * xsize * ysize)
+        xiterv = <np.float64_t *> malloc(sizeof(np.float64_t) * 2)
+        yiterv = <np.float64_t *> malloc(sizeof(np.float64_t) * 2)
+        xiter = <int *> malloc(sizeof(int) * 2)
+        yiter = <int *> malloc(sizeof(int) * 2)
+        xiter[0] = yiter[0] = 0
+        xiterv[0] = yiterv[0] = 0.0
+        for i in range(xsize * ysize):
+            local_buff[i] = 0.0
+
+        for j in prange(0, posx.shape[0], schedule="dynamic"):
             if j % 100000 == 0:
                 with gil:
                     PyErr_CheckSignals()
 
-            # here we find the pixels which this particle contributes to
-            x0 = <np.int64_t> ( (posx[j] - hsml[j] - x_min) * idx)
-            x1 = <np.int64_t> ( (posx[j] + hsml[j] - x_min) * idx)
-            x0 = iclip(x0-1, 0, xsize)
-            x1 = iclip(x1+1, 0, xsize)
+            xiter[1] = yiter[1] = 999
 
-            y0 = <np.int64_t> ( (posy[j] - hsml[j] - y_min) * idy)
-            y1 = <np.int64_t> ( (posy[j] + hsml[j] - y_min) * idy)
-            y0 = iclip(y0-1, 0, ysize)
-            y1 = iclip(y1+1, 0, ysize)
+            if check_period == 1:
+                if posx[j] - hsml[j] < x_min:
+                    xiter[1] = +1
+                    xiterv[1] = period_x
+                elif posx[j] + hsml[j] > x_max:
+                    xiter[1] = -1
+                    xiterv[1] = -period_x
+                if posy[j] - hsml[j] < y_min:
+                    yiter[1] = +1
+                    yiterv[1] = period_y
+                elif posy[j] + hsml[j] > y_max:
+                    yiter[1] = -1
+                    yiterv[1] = -period_y
 
             # we set the smoothing length squared with lower limit of the pixel
             h_j2 = fmax(hsml[j]*hsml[j], dx*dy)
             ih_j2 = 1.0/h_j2
 
-            prefactor_j = pmass[j] / pdens[j] / hsml[j]**2
-            if weight_field is None:
-                prefactor_j *= quantity_to_smooth[j]
-            else:
-                prefactor_j *= quantity_to_smooth[j] * _weight_field[j]
+            prefactor_j = pmass[j] / pdens[j] / hsml[j]**2 * quantity_to_smooth[j]
+            if weight_field is not None:
+                prefactor_j *= _weight_field[j]
 
-            # found pixels we deposit on, loop through those pixels
-            for xi in range(x0, x1):
-                # we use the centre of the pixel to calculate contribution
-                x = (xi + 0.5) * dx + x_min
+            for ii in range(2):
+                if xiter[ii] == 999: continue
+                px = posx[j] + xiterv[ii]
+                if (px + hsml[j] < x_min) or (px - hsml[j] > x_max): continue
+                for jj in range(2):
+                    if yiter[jj] == 999: continue
+                    py = posy[j] + yiterv[jj]
+                    if (py + hsml[j] < y_min) or (py - hsml[j] > y_max): continue
 
-                posx_diff = posx[j] - x
-                posx_diff = posx_diff * posx_diff
+                    # here we find the pixels which this particle contributes to
+                    x0 = <np.int64_t> ((px - hsml[j] - x_min)*idx)
+                    x1 = <np.int64_t> ((px + hsml[j] - x_min)*idx)
+                    x0 = iclip(x0-1, 0, xsize)
+                    x1 = iclip(x1+1, 0, xsize)
 
-                if posx_diff > h_j2: continue
+                    y0 = <np.int64_t> ((py - hsml[j] - y_min)*idy)
+                    y1 = <np.int64_t> ((py + hsml[j] - y_min)*idy)
+                    y0 = iclip(y0-1, 0, ysize)
+                    y1 = iclip(y1+1, 0, ysize)
 
-                for yi in range(y0, y1):
-                    y = (yi + 0.5) * dy + y_min
+                    # found pixels we deposit on, loop through those pixels
+                    for xi in range(x0, x1):
+                        # we use the centre of the pixel to calculate contribution
+                        x = (xi + 0.5) * dx + x_min
 
-                    posy_diff = posy[j] - y
-                    posy_diff = posy_diff * posy_diff
-                    if posy_diff > h_j2: continue
+                        posx_diff = px - x
+                        posx_diff = posx_diff * posx_diff
 
-                    q_ij2 = (posx_diff + posy_diff) * ih_j2
-                    if q_ij2 >= 1:
-                        continue
+                        if posx_diff > h_j2: continue
 
-                    # see equation 32 of the SPLASH paper
-                    # now we just use the kernel projection
-                    buff[xi, yi] +=  prefactor_j * itab.interpolate(q_ij2)
+                        for yi in range(y0, y1):
+                            y = (yi + 0.5) * dy + y_min
+
+                            posy_diff = py - y
+                            posy_diff = posy_diff * posy_diff
+                            if posy_diff > h_j2: continue
+
+                            q_ij2 = (posx_diff + posy_diff) * ih_j2
+                            if q_ij2 >= 1:
+                                continue
+
+                            # see equation 32 of the SPLASH paper
+                            # now we just use the kernel projection
+                            local_buff[xi + yi*xsize] +=  prefactor_j * itab.interpolate(q_ij2)
+
+        with gil:
+            for xxi in range(xsize):
+                for yyi in range(ysize):
+                    buff[xxi, yyi] += local_buff[xxi + yyi*xsize]
+        free(local_buff)
+        free(xiterv)
+        free(yiterv)
+        free(xiter)
+        free(yiter)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -1144,7 +1301,7 @@ def interpolate_sph_grid_gather(np.float64_t[:, :, :] buff,
         int num_neigh=32):
     """
     This function takes in the bounds and number of cells in a grid (well,
-    actually we implicity calculate this from the size of buff). Then we can
+    actually we implicitly calculate this from the size of buff). Then we can
     perform nearest neighbor search and SPH interpolation at the centre of each
     cell in the grid.
     """
@@ -1236,15 +1393,27 @@ def pixelize_sph_kernel_slice(
         np.float64_t[:] hsml, np.float64_t[:] pmass,
         np.float64_t[:] pdens,
         np.float64_t[:] quantity_to_smooth,
-        bounds, kernel_name="cubic"):
+        bounds, kernel_name="cubic",
+        int check_period=1,
+        period=None):
 
     # similar method to pixelize_sph_kernel_projection
     cdef np.intp_t xsize, ysize
     cdef np.float64_t x_min, x_max, y_min, y_max, prefactor_j
-    cdef np.int64_t xi, yi, x0, x1, y0, y1
+    cdef np.int64_t xi, yi, x0, x1, y0, y1, xxi, yyi
     cdef np.float64_t q_ij, posx_diff, posy_diff, ih_j
-    cdef np.float64_t x, y, dx, dy, idx, idy, h_j2, h_j
-    cdef int index, i, j
+    cdef np.float64_t x, y, dx, dy, idx, idy, h_j2, h_j, px, py
+    cdef int index, i, j, ii, jj
+    cdef np.float64_t period_x = 0, period_y = 0
+    cdef int * xiter
+    cdef int * yiter
+    cdef np.float64_t * xiterv
+    cdef np.float64_t * yiterv
+    cdef np.float64_t * local_buf
+
+    if period is not None:
+        period_x = period[0]
+        period_y = period[1]
 
     xsize, ysize = buff.shape[0], buff.shape[1]
 
@@ -1260,21 +1429,38 @@ def pixelize_sph_kernel_slice(
 
     kernel_func = get_kernel_func(kernel_name)
 
-    with nogil:
-        for j in range(0, posx.shape[0]):
+    with nogil, parallel():
+        # NOTE see note in pixelize_sph_kernel_projection
+        local_buff = <np.float64_t *> malloc(sizeof(np.float64_t) * xsize * ysize)
+        xiterv = <np.float64_t *> malloc(sizeof(np.float64_t) * 2)
+        yiterv = <np.float64_t *> malloc(sizeof(np.float64_t) * 2)
+        xiter = <int *> malloc(sizeof(int) * 2)
+        yiter = <int *> malloc(sizeof(int) * 2)
+        xiter[0] = yiter[0] = 0
+        xiterv[0] = yiterv[0] = 0.0
+        for i in range(xsize * ysize):
+            local_buff[i] = 0.0
+
+        for j in prange(0, posx.shape[0], schedule="dynamic"):
             if j % 100000 == 0:
                 with gil:
                     PyErr_CheckSignals()
 
-            x0 = <np.int64_t> ( (posx[j] - hsml[j] - x_min) * idx)
-            x1 = <np.int64_t> ( (posx[j] + hsml[j] - x_min) * idx)
-            x0 = iclip(x0-1, 0, xsize)
-            x1 = iclip(x1+1, 0, xsize)
+            xiter[1] = yiter[1] = 999
 
-            y0 = <np.int64_t> ( (posy[j] - hsml[j] - y_min) * idy)
-            y1 = <np.int64_t> ( (posy[j] + hsml[j] - y_min) * idy)
-            y0 = iclip(y0-1, 0, ysize)
-            y1 = iclip(y1+1, 0, ysize)
+            if check_period == 1:
+                if posx[j] - hsml[j] < x_min:
+                    xiter[1] = +1
+                    xiterv[1] = period_x
+                elif posx[j] + hsml[j] > x_max:
+                    xiter[1] = -1
+                    xiterv[1] = -period_x
+                if posy[j] - hsml[j] < y_min:
+                    yiter[1] = +1
+                    yiterv[1] = period_y
+                elif posy[j] + hsml[j] > y_max:
+                    yiter[1] = -1
+                    yiterv[1] = -period_y
 
             h_j2 = fmax(hsml[j]*hsml[j], dx*dy)
             h_j = math.sqrt(h_j2)
@@ -1283,31 +1469,60 @@ def pixelize_sph_kernel_slice(
             prefactor_j = pmass[j] / pdens[j] / hsml[j]**3
             prefactor_j *= quantity_to_smooth[j]
 
-            # Now we know which pixels to deposit onto for this particle,
-            # so loop over them and add this particle's contribution
-            for xi in range(x0, x1):
-                x = (xi + 0.5) * dx + x_min
+            for ii in range(2):
+                if xiter[ii] == 999: continue
+                px = posx[j] + xiterv[ii]
+                if (px + hsml[j] < x_min) or (px - hsml[j] > x_max): continue
+                for jj in range(2):
+                    if yiter[jj] == 999: continue
+                    py = posy[j] + yiterv[jj]
+                    if (py + hsml[j] < y_min) or (py - hsml[j] > y_max): continue
 
-                posx_diff = posx[j] - x
-                posx_diff = posx_diff * posx_diff
-                if posx_diff > h_j2:
-                    continue
+                    x0 = <np.int64_t> ( (px - hsml[j] - x_min) * idx)
+                    x1 = <np.int64_t> ( (px + hsml[j] - x_min) * idx)
+                    x0 = iclip(x0-1, 0, xsize)
+                    x1 = iclip(x1+1, 0, xsize)
 
-                for yi in range(y0, y1):
-                    y = (yi + 0.5) * dy + y_min
+                    y0 = <np.int64_t> ( (py - hsml[j] - y_min) * idy)
+                    y1 = <np.int64_t> ( (py + hsml[j] - y_min) * idy)
+                    y0 = iclip(y0-1, 0, ysize)
+                    y1 = iclip(y1+1, 0, ysize)
 
-                    posy_diff = posy[j] - y
-                    posy_diff = posy_diff * posy_diff
-                    if posy_diff > h_j2:
-                        continue
+                    # Now we know which pixels to deposit onto for this particle,
+                    # so loop over them and add this particle's contribution
+                    for xi in range(x0, x1):
+                        x = (xi + 0.5) * dx + x_min
 
-                    # see equation 4 of the SPLASH paper
-                    q_ij = math.sqrt(posx_diff + posy_diff) * ih_j
-                    if q_ij >= 1:
-                        continue
+                        posx_diff = px - x
+                        posx_diff = posx_diff * posx_diff
+                        if posx_diff > h_j2:
+                            continue
 
-                    # see equations 6, 9, and 11 of the SPLASH paper
-                    buff[xi, yi] += prefactor_j * kernel_func(q_ij)
+                        for yi in range(y0, y1):
+                            y = (yi + 0.5) * dy + y_min
+
+                            posy_diff = py - y
+                            posy_diff = posy_diff * posy_diff
+                            if posy_diff > h_j2:
+                                continue
+
+                            # see equation 4 of the SPLASH paper
+                            q_ij = math.sqrt(posx_diff + posy_diff) * ih_j
+                            if q_ij >= 1:
+                                continue
+
+                            # see equations 6, 9, and 11 of the SPLASH paper
+                            local_buff[xi + yi*xsize] += prefactor_j * kernel_func(q_ij)
+
+        with gil:
+            for xxi in range(xsize):
+                for yyi in range(ysize):
+                    buff[xxi, yyi] += local_buff[xxi + yyi*xsize]
+        free(local_buff)
+        free(xiterv)
+        free(yiterv)
+        free(xiter)
+        free(yiter)
 
 @cython.initializedcheck(False)
 @cython.boundscheck(False)
@@ -1318,14 +1533,31 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
         np.float64_t[:] hsml, np.float64_t[:] pmass,
         np.float64_t[:] pdens,
         np.float64_t[:] quantity_to_smooth,
-        bounds, pbar=None, kernel_name="cubic"):
+        bounds, pbar=None, kernel_name="cubic",
+        int check_period=1, period=None):
 
     cdef np.intp_t xsize, ysize, zsize
     cdef np.float64_t x_min, x_max, y_min, y_max, z_min, z_max, prefactor_j
     cdef np.int64_t xi, yi, zi, x0, x1, y0, y1, z0, z1
-    cdef np.float64_t q_ij, posx_diff, posy_diff, posz_diff
+    cdef np.float64_t q_ij, posx_diff, posy_diff, posz_diff, px, py, pz
     cdef np.float64_t x, y, z, dx, dy, dz, idx, idy, idz, h_j3, h_j2, h_j, ih_j
-    cdef int index, i, j, k
+    cdef int index, i, j, k, ii, jj, kk
+    cdef np.float64_t period_x = 0, period_y = 0, period_z = 0
+
+    cdef int xiter[2]
+    cdef int yiter[2]
+    cdef int ziter[2]
+    cdef np.float64_t xiterv[2]
+    cdef np.float64_t yiterv[2]
+    cdef np.float64_t ziterv[2]
+
+    xiter[0] = yiter[0] = ziter[0] = 0
+    xiterv[0] = yiterv[0] = ziterv[0] = 0.0
+
+    if period is not None:
+        period_x = period[0]
+        period_y = period[1]
+        period_z = period[2]
 
     xsize, ysize, zsize = buff.shape[0], buff.shape[1], buff.shape[2]
     x_min = bounds[0]
@@ -1345,6 +1577,7 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
     kernel_func = get_kernel_func(kernel_name)
 
     with nogil:
+        # TODO make this parallel without using too much memory
         for j in range(0, posx.shape[0]):
             if j % 50000 == 0:
                 with gil:
@@ -1352,61 +1585,97 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
                         pbar.update(50000)
                     PyErr_CheckSignals()
 
-            x0 = <np.int64_t> ( (posx[j] - hsml[j] - x_min) * idx)
-            x1 = <np.int64_t> ( (posx[j] + hsml[j] - x_min) * idx)
-            x0 = iclip(x0-1, 0, xsize)
-            x1 = iclip(x1+1, 0, xsize)
+            xiter[1] = yiter[1] = ziter[1] = 999
+            xiterv[1] = yiterv[1] = ziterv[1] = 0.0
 
-            y0 = <np.int64_t> ( (posy[j] - hsml[j] - y_min) * idy)
-            y1 = <np.int64_t> ( (posy[j] + hsml[j] - y_min) * idy)
-            y0 = iclip(y0-1, 0, ysize)
-            y1 = iclip(y1+1, 0, ysize)
-
-            z0 = <np.int64_t> ( (posz[j] - hsml[j] - z_min) * idz)
-            z1 = <np.int64_t> ( (posz[j] + hsml[j] - z_min) * idz)
-            z0 = iclip(z0-1, 0, zsize)
-            z1 = iclip(z1+1, 0, zsize)
+            if check_period == 1:
+                if posx[j] - hsml[j] < x_min:
+                    xiter[1] = +1
+                    xiterv[1] = period_x
+                elif posx[j] + hsml[j] > x_max:
+                    xiter[1] = -1
+                    xiterv[1] = -period_x
+                if posy[j] - hsml[j] < y_min:
+                    yiter[1] = +1
+                    yiterv[1] = period_y
+                elif posy[j] + hsml[j] > y_max:
+                    yiter[1] = -1
+                    yiterv[1] = -period_y
+                if posz[j] - hsml[j] < z_min:
+                    ziter[1] = +1
+                    ziterv[1] = period_z
+                elif posz[j] + hsml[j] > z_max:
+                    ziter[1] = -1
+                    ziterv[1] = -period_z
 
             h_j3 = fmax(hsml[j]*hsml[j]*hsml[j], dx*dy*dz)
             h_j = math.cbrt(h_j3)
             h_j2 = h_j*h_j
             ih_j = 1/h_j
 
-            prefactor_j = pmass[j] / pdens[j] / hsml[j]**3
-            prefactor_j *= quantity_to_smooth[j]
+            prefactor_j = pmass[j] / pdens[j] / hsml[j]**3 * quantity_to_smooth[j]
 
-            # Now we know which voxels to deposit onto for this particle,
-            # so loop over them and add this particle's contribution
-            for xi in range(x0, x1):
-                x = (xi + 0.5) * dx + x_min
+            for ii in range(2):
+                if xiter[ii] == 999: continue
+                px = posx[j] + xiterv[ii]
+                if (px + hsml[j] < x_min) or (px - hsml[j] > x_max): continue
+                for jj in range(2):
+                    if yiter[jj] == 999: continue
+                    py = posy[j] + yiterv[jj]
+                    if (py + hsml[j] < y_min) or (py - hsml[j] > y_max): continue
+                    for kk in range(2):
+                        if ziter[kk] == 999: continue
+                        pz = posz[j] + ziterv[kk]
+                        if (pz + hsml[j] < z_min) or (pz - hsml[j] > z_max): continue
 
-                posx_diff = posx[j] - x
-                posx_diff = posx_diff * posx_diff
-                if posx_diff > h_j2:
-                    continue
+                        x0 = <np.int64_t> ( (px - hsml[j] - x_min) * idx)
+                        x1 = <np.int64_t> ( (px + hsml[j] - x_min) * idx)
+                        x0 = iclip(x0-1, 0, xsize)
+                        x1 = iclip(x1+1, 0, xsize)
 
-                for yi in range(y0, y1):
-                    y = (yi + 0.5) * dy + y_min
+                        y0 = <np.int64_t> ( (py - hsml[j] - y_min) * idy)
+                        y1 = <np.int64_t> ( (py + hsml[j] - y_min) * idy)
+                        y0 = iclip(y0-1, 0, ysize)
+                        y1 = iclip(y1+1, 0, ysize)
 
-                    posy_diff = posy[j] - y
-                    posy_diff = posy_diff * posy_diff
-                    if posy_diff > h_j2:
-                        continue
+                        z0 = <np.int64_t> ( (pz - hsml[j] - z_min) * idz)
+                        z1 = <np.int64_t> ( (pz + hsml[j] - z_min) * idz)
+                        z0 = iclip(z0-1, 0, zsize)
+                        z1 = iclip(z1+1, 0, zsize)
 
-                    for zi in range(z0, z1):
-                        z = (zi + 0.5) * dz + z_min
+                        # Now we know which voxels to deposit onto for this particle,
+                        # so loop over them and add this particle's contribution
+                        for xi in range(x0, x1):
+                            x = (xi + 0.5) * dx + x_min
 
-                        posz_diff = posz[j] - z
-                        posz_diff = posz_diff * posz_diff
-                        if posz_diff > h_j2:
-                            continue
+                            posx_diff = px - x
+                            posx_diff = posx_diff * posx_diff
+                            if posx_diff > h_j2:
+                                continue
 
-                        # see equation 4 of the SPLASH paper
-                        q_ij = math.sqrt(posx_diff + posy_diff + posz_diff) * ih_j
-                        if q_ij >= 1:
-                            continue
+                            for yi in range(y0, y1):
+                                y = (yi + 0.5) * dy + y_min
 
-                        buff[xi, yi, zi] += prefactor_j * kernel_func(q_ij)
+                                posy_diff = py - y
+                                posy_diff = posy_diff * posy_diff
+                                if posy_diff > h_j2:
+                                    continue
+
+                                for zi in range(z0, z1):
+                                    z = (zi + 0.5) * dz + z_min
+
+                                    posz_diff = pz - z
+                                    posz_diff = posz_diff * posz_diff
+                                    if posz_diff > h_j2:
+                                        continue
+
+                                    # see equation 4 of the SPLASH paper
+                                    q_ij = math.sqrt(posx_diff + posy_diff + posz_diff) * ih_j
+                                    if q_ij >= 1:
+                                        continue
+
+                                    buff[xi, yi, zi] += prefactor_j * kernel_func(q_ij)
+
 
 def pixelize_element_mesh_line(np.ndarray[np.float64_t, ndim=2] coords,
                                np.ndarray[np.int64_t, ndim=2] conn,
@@ -1582,12 +1851,13 @@ def off_axis_projection_SPH(np.float64_t[:] px,
                                    quantity_to_smooth,
                                    [rot_bounds_x0, rot_bounds_x1,
                                     rot_bounds_y0, rot_bounds_y1],
-                                    weight_field=weight_field)
+                                   weight_field=weight_field,
+                                   check_period=0)
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef np.float64_t[:] rotation_matmul(np.float64_t[:, :] rotation_matrix, 
+cdef np.float64_t[:] rotation_matmul(np.float64_t[:, :] rotation_matrix,
                                      np.float64_t[:] coordinate_matrix):
     cdef np.float64_t[:] out = np.zeros(3)
     for i in range(3):
@@ -1614,15 +1884,15 @@ cpdef np.float64_t[:, :] get_rotation_matrix(np.float64_t[:] normal_vector,
     if np.isclose(c, 1, rtol=1e-09):
         return np.identity(3, dtype='float_')
     # if the normal vector is the negative final vector, return the appropriate
-    # rotation matrix for flipping your coordinate system.  
+    # rotation matrix for flipping your coordinate system.
     if np.isclose(s, 0, rtol=1e-09):
         return np.array([[0, -1, 0],[-1, 0, 0],[0, 0, -1]], dtype='float_')
 
     cdef np.float64_t[:, :] cross_product_matrix = np.array([[0, -1 * v[2], v[1]],
                                                       [v[2], 0, -1 * v[0]],
-                                                      [-1 * v[1], v[0], 0]], 
+                                                      [-1 * v[1], v[0], 0]],
                                                       dtype='float_')
-    return np.linalg.inv(np.identity(3, dtype='float_') + cross_product_matrix 
+    return np.linalg.inv(np.identity(3, dtype='float_') + cross_product_matrix
                          + np.matmul(cross_product_matrix, cross_product_matrix)
                          * 1/(1+c))
 

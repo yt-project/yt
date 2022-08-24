@@ -39,7 +39,7 @@ typedef __int32 int32_t;
 int artio_add_volume_to_selection( artio_fileset *handle, int lcoords[3], int rcoords[3],
             int64_t sfcs[8], artio_selection *selection );
 
-int artio_selection_iterator( artio_selection *selection, 
+int artio_selection_iterator( artio_selection *selection,
 		 int64_t max_range_size, int64_t *start, int64_t *end ) {
 
 	if ( selection->cursor < 0 ) {
@@ -64,7 +64,7 @@ int artio_selection_iterator( artio_selection *selection,
 	} else {
 		selection->subcycle = -1;
 		selection->cursor++;
-	}	
+	}
 
 	return ARTIO_SUCCESS;
 }
@@ -113,7 +113,7 @@ int artio_selection_destroy( artio_selection *selection ) {
 	return ARTIO_SUCCESS;
 }
 
-int artio_selection_add_range( artio_selection *selection, 
+int artio_selection_add_range( artio_selection *selection,
 		int64_t start, int64_t end ) {
 	int i, j;
 	int64_t *new_list;
@@ -149,7 +149,7 @@ int artio_selection_add_range( artio_selection *selection,
 
 		if ( ( i == 0 && end < selection->list[2*i]-1 ) ||
 				( i == selection->num_ranges && start > selection->list[2*i-1]+1 ) ||
-				( end < selection->list[2*i]-1 && start > selection->list[2*i-1]+1 ) ) { 
+				( end < selection->list[2*i]-1 && start > selection->list[2*i-1]+1 ) ) {
 			if ( selection->num_ranges == selection->size ) {
 				new_list = (int64_t *)malloc(4*selection->size*sizeof(int64_t));
 				if ( new_list == NULL ) {
@@ -190,13 +190,13 @@ int artio_selection_add_range( artio_selection *selection,
 				selection->num_ranges--;
 				for ( ; i < selection->num_ranges; i++ ) {
 					selection->list[2*i] = selection->list[2*i+2];
-					selection->list[2*i+1] = selection->list[2*i+3];	
+					selection->list[2*i+1] = selection->list[2*i+3];
 				}
 			}
 		}
 	}
 
-	return ARTIO_SUCCESS;	
+	return ARTIO_SUCCESS;
 }
 
 int artio_selection_add_root_cell( artio_selection *selection, int coords[3] ) {
@@ -219,7 +219,7 @@ int artio_selection_add_root_cell( artio_selection *selection, int coords[3] ) {
 
 void artio_selection_print( artio_selection *selection ) {
 	int i;
-	
+
 	for ( i = 0; i < selection->num_ranges; i++ ) {
 		printf("%u: %ld %ld\n", i, selection->list[2*i], selection->list[2*i+1] );
 	}
@@ -283,7 +283,7 @@ artio_selection *artio_select_volume( artio_fileset *handle, double lpos[3], dou
 				}
 			}
 		}
-	} 
+	}
 
 	return selection;
 }
@@ -329,6 +329,6 @@ artio_selection *artio_select_cube( artio_fileset *handle, double center[3], dou
 			}
 		}
 	}
- 			
+
 	return selection;
-} 
+}

@@ -1,17 +1,17 @@
-import yt
 import numpy as np
-from yt.visualization.api import get_multi_plot
-import matplotlib.colorbar as cb
 from matplotlib.colors import LogNorm
 
-fn = "Enzo_64/RD0006/RedshiftOutput0006" # dataset to load
+import yt
+from yt.visualization.api import get_multi_plot
+
+fn = "Enzo_64/RD0006/RedshiftOutput0006"  # dataset to load
 
 # load data and get center value and center location as maximum density location
 ds = yt.load(fn)
-v, c = ds.find_max("density")
+v, c = ds.find_max(("gas", "density"))
 
 # set up our Fixed Resolution Buffer parameters: a width, resolution, and center
-width = (1.0, 'unitary')
+width = (1.0, "unitary")
 res = [1000, 1000]
 #  get_multi_plot returns a containing figure, a list-of-lists of axes
 #   into which we can place plots, and some axes that we'll put
@@ -23,8 +23,8 @@ res = [1000, 1000]
 #  'vertical'), bw is the base-width in inches (4 is about right for
 #  most cases)
 
-orient = 'horizontal'
-fig, axes, colorbars = get_multi_plot( 2, 3, colorbar=orient, bw = 6)
+orient = "horizontal"
+fig, axes, colorbars = get_multi_plot(2, 3, colorbar=orient, bw=6)
 
 # Now we follow the method of "multi_plot.py" but we're going to iterate
 # over the columns, which will become axes of slicing.
@@ -43,8 +43,8 @@ for ax in range(3):
 
     # converting our fixed resolution buffers to NDarray so matplotlib can
     # render them
-    dens = np.array(frb['density'])
-    temp = np.array(frb['temperature'])
+    dens = np.array(frb[("gas", "density")])
+    temp = np.array(frb[("gas", "temperature")])
 
     plots.append(den_axis.imshow(dens, norm=LogNorm()))
     plots[-1].set_clim((5e-32, 1e-29))
@@ -58,8 +58,11 @@ for ax in range(3):
 # the zip command creates triples from each element of the three lists
 # .  Note that it cuts off after the shortest iterator is exhausted,
 # in this case, titles.
-titles=[r'$\mathrm{Density}\ (\mathrm{g\ cm^{-3}})$', r'$\mathrm{temperature}\ (\mathrm{K})$']
-for p, cax, t in zip(plots, colorbars,titles):
+titles = [
+    r"$\mathrm{density}\ (\mathrm{g\ cm^{-3}})$",
+    r"$\mathrm{temperature}\ (\mathrm{K})$",
+]
+for p, cax, t in zip(plots, colorbars, titles):
     # Now we make a colorbar, using the 'image' we stored in plots
     # above. note this is what is *returned* by the imshow method of
     # the plots.
@@ -67,4 +70,4 @@ for p, cax, t in zip(plots, colorbars,titles):
     cbar.set_label(t)
 
 # And now we're done!
-fig.savefig("%s_3x2.png" % ds)
+fig.savefig(f"{ds}_3x2.png")

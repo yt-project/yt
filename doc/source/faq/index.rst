@@ -18,63 +18,61 @@ How can I tell what version of yt I'm using?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If you run into problems with yt and you're writing to the mailing list
-or contacting developers on IRC, they will likely want to know what version of
-yt you're using.  Oftentimes, you'll want to know both the yt version,
-as well as the last changeset that was comitted to the branch you're using.
+or contacting developers on Slack, they will likely want to know what version of
+yt you're using.  Often times, you'll want to know both the yt version,
+as well as the last changeset that was committed to the branch you're using.
 To reveal this, go to a command line and type:
 
 .. code-block:: bash
 
     $ yt version
 
+The result will look something like this:
+
+.. code-block:: bash
+
     yt module located at:
-        /Users/username/src/yt-conda/src/yt-git
+        /Users/mitchell/src/yt-conda/src/yt-git
 
     The current version of yt is:
 
     ---
-    Version = 3.4-dev
-    Changeset = 94033fca00e5
+    Version = 4.0.dev0
+    Changeset = 9f947a930ab4
     ---
-
     This installation CAN be automatically updated.
 
-For more information on this topic, see :ref:`updating-yt`.
+
+For more information on this topic, see :ref:`updating`.
 
 .. _yt-3.0-problems:
 
-I upgraded to yt 3.0 but my code no longer works.  What do I do?
+I upgraded to yt 4.0 but my code no longer works.  What do I do?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Because there are a lot of backwards-incompatible changes in yt 3.0 (see
-:ref:`yt3differences`, it can
-be a daunting effort in transitioning old scripts from yt 2.x to 3.0.
-We have tried to describe the basic process of making that transition
-in :ref:`transitioning-to-3.0`.  If you just want to change back to yt 2.x
-for a while until you're ready to make the transition, you can follow
-the instructions in :ref:`switching-between-yt-versions`.
+We've tried to keep the number of backward-incompatible changes to a minimum
+with the release of yt-4.0, but because of the wide-reaching changes to how
+yt manages data, there may be updates you have to make.
+You can see many of the changes in :ref:`yt4differences`, and
+in :ref:`transitioning-to-4.0` there are helpful tips on how to modify your scripts to update them.
 
 Code Errors and Failures
 ------------------------
 
-yt fails saying that it cannot import yt modules
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Python fails saying that it cannot import yt modules
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This is commonly exhibited with an error about not being able to import code
 that is part of yt. This is likely because the code that is failing to import
-needs to be compiled or recompiled, You can do this automatically by running:
+needs to be compiled or recompiled.
 
-.. code-block:: bash
+This error tends to occur when there are changes in the underlying Cython files
+that need to be rebuilt, like after a major code update or when switching
+between distant branches.
 
-    cd $YT_GIT
-    pip install -e .
+This is solved by running the install command again. See
+:ref:`install-from-source`.
 
-where ``$YT_GIT`` is the path to the yt git repository.
-
-This error tends to occur when there are changes in the underlying cython
-files that need to be rebuilt, like after a major code update or in switching
-from 2.x to 3.x.  For more information on this, see
-:ref:`switching-between-yt-versions`.
 
 .. _faq-mpi4py:
 
@@ -97,9 +95,9 @@ the pip interface.  At the command line, type:
 
 .. code-block:: bash
 
-    pip install mpi4py
+    $ python -m pip install mpi4py
 
-What this does is it finds your default installation of python (presumably
+What this does is it finds your default installation of Python (presumably
 in the yt source directory), and it installs the mpi4py module.  If this
 action is successful, you should never have to worry about your aforementioned
 problems again.  If, on the other hand, this installation fails (as it does on
@@ -110,7 +108,7 @@ If this is the case, you can specify them explicitly as per:
 
 .. code-block:: bash
 
-    env MPICC=/path/to/MPICC pip install mpi4py
+    $ env MPICC=/path/to/MPICC python -m pip install mpi4py
 
 So for example, on Kraken, I switch to the gnu C compilers (because yt
 doesn't work with the portland group C compilers), then I discover that
@@ -118,13 +116,13 @@ cc is the mpi-enabled C compiler (and it is in my path), so I run:
 
 .. code-block:: bash
 
-    module swap PrgEnv-pgi PrgEnv-gnu
-    env MPICC=cc pip install mpi4py
+    $ module swap PrgEnv-pgi PrgEnv-gnu
+    $ env MPICC=cc python -m pip install mpi4py
 
 And voila!  It installs!  If this *still* fails for you, then you can
 build and install from source and specify the mpi-enabled c and c++
 compilers in the mpi.cfg file.  See the
-`mpi4py installation page <http://mpi4py.scipy.org/docs/usrman/install.html>`_
+`mpi4py installation page <https://mpi4py.readthedocs.io/en/stable/install.html>`_
 for details.
 
 
@@ -133,19 +131,13 @@ Units
 
 .. _conversion-factors:
 
-How do I get the convert between code units and physical units for my dataset?
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+How do I convert between code units and physical units for my dataset?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Converting between physical units and code units is a common task.  In yt-2.x,
-the syntax for getting conversion factors was in the units dictionary
-(``pf.units['kpc']``). So in order to convert a variable ``x`` in code units to
-kpc, you might run:
-
-.. code-block:: python
-
-    x = x*pf.units['kpc']
-
-In yt-3.0, this no longer works.  Conversion factors are tied up in the
+Starting with yt-3.0, and continuing to yt-4.0, yt uses an internal symbolic
+unit system.  In yt-3.0 this was bundled with the main yt codebase, and with
+yt-4.0 it is now available as a separate package called `unyt
+<https://unyt.readthedocs.org/>`_.  Conversion factors are tied up in the
 ``length_unit``, ``times_unit``, ``mass_unit``, and ``velocity_unit``
 attributes, which can be converted to any arbitrary desired physical unit:
 
@@ -156,25 +148,25 @@ attributes, which can be converted to any arbitrary desired physical unit:
     print("Mass unit: ", ds.mass_unit)
     print("Velocity unit: ", ds.velocity_unit)
 
-    print("Length unit: ", ds.length_unit.in_units('code_length'))
-    print("Time unit: ", ds.time_unit.in_units('code_time'))
-    print("Mass unit: ", ds.mass_unit.in_units('kg'))
-    print("Velocity unit: ", ds.velocity_unit.in_units('Mpc/year'))
+    print("Length unit: ", ds.length_unit.in_units("code_length"))
+    print("Time unit: ", ds.time_unit.in_units("code_time"))
+    print("Mass unit: ", ds.mass_unit.in_units("kg"))
+    print("Velocity unit: ", ds.velocity_unit.in_units("Mpc/year"))
 
 So to accomplish the example task of converting a scalar variable ``x`` in
-code units to kpc in yt-3.0, you can do one of two things.  If ``x`` is
+code units to kpc in yt-4.0, you can do one of two things.  If ``x`` is
 already a YTQuantity with units in ``code_length``, you can run:
 
 .. code-block:: python
 
-    x.in_units('kpc')
+    x.in_units("kpc")
 
 However, if ``x`` is just a numpy array or native python variable without
 units, you can convert it to a YTQuantity with units of ``kpc`` by running:
 
 .. code-block:: python
 
-    x = x*ds.length_unit.in_units('kpc')
+    x = x * ds.length_unit.in_units("kpc")
 
 For more information about unit conversion, see :ref:`units`.
 
@@ -188,17 +180,18 @@ individual variables) and ``ds.arr`` (for arrays):
 .. code-block:: python
 
     import yt
+
     ds = yt.load(filename)
-    one_Mpc = ds.quan(1, 'Mpc')
-    x_vector = ds.arr([1,0,0], 'code_length')
+    one_Mpc = ds.quan(1, "Mpc")
+    x_vector = ds.arr([1, 0, 0], "code_length")
 
 You can then naturally exploit the units system:
 
 .. code-block:: python
 
-    print("One Mpc in code_units:", one_Mpc.in_units('code_length'))
-    print("One Mpc in AU:", one_Mpc.in_units('AU'))
-    print("One Mpc in comoving kpc:", one_Mpc.in_units('kpccm'))
+    print("One Mpc in code_units:", one_Mpc.in_units("code_length"))
+    print("One Mpc in AU:", one_Mpc.in_units("AU"))
+    print("One Mpc in comoving kpc:", one_Mpc.in_units("kpccm"))
 
 For more information about unit conversion, see :ref:`units`.
 
@@ -229,7 +222,7 @@ attribute, which returns the data itself:
 
 .. code-block:: python
 
-    x = ds.quan(1, 'kpc')
+    x = ds.quan(1, "kpc")
     x_val = x.v
     print(x_val)
 
@@ -259,7 +252,7 @@ logged, you could type:
 
     ds = load("my_data")
     ds.index
-    ds.field_info['density'].take_log = False
+    ds.field_info["gas", "density"].take_log = False
 
 From that point forward, data products such as slices, projections, etc., would
 be presented in linear space. Note that you have to instantiate ds.index before
@@ -335,7 +328,7 @@ end. That way the data will always be ordered correctly. As an example you can:
 
     my_ray = ds.ray(...)
     ray_sort = np.argsort(my_ray["t"])
-    density = my_ray["density"][ray_sort]
+    density = my_ray["gas", "density"][ray_sort]
 
 There is also a full example in the :ref:`manual-line-plots` section of the
 docs.
@@ -370,7 +363,7 @@ Miscellaneous
 How can I get some sample data for yt?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Many different sample datasets can be found at http://yt-project.org/data/ .
+Many different sample datasets can be found at https://yt-project.org/data/ .
 These can be downloaded, unarchived, and they will each create their own
 directory.  It is generally straight forward to load these datasets, but if
 you have any questions about loading data from a code with which you are
@@ -379,11 +372,14 @@ unfamiliar, please visit :ref:`loading-data`.
 To make things easier to load these sample datasets, you can add the parent
 directory to your downloaded sample data to your *yt path*.
 If you set the option ``test_data_dir``, in the section ``[yt]``,
-in ``~/.config/yt/ytrc``, yt will search this path for them.
+in ``~/.config/yt/yt.toml``, yt will search this path for them.
 
 This means you can download these datasets to ``/big_drive/data_for_yt`` , add
-the appropriate item to ``~/.config/yt/ytrc``, and no matter which directory you are
+the appropriate item to ``~/.config/yt/yt.toml``, and no matter which directory you are
 in when running yt, it will also check in *that* directory.
+
+In many cases, these are also available using the ``load_sample`` command,
+described in :ref:`loading-sample-data`.
 
 
 .. _faq-scroll-up:
@@ -397,52 +393,40 @@ environment can use readline, run the following command:
 
 .. code-block:: bash
 
-   $ ~/yt/bin/pip install gnureadline
+   $ python -m pip install gnureadline
 
 .. _faq-old-data:
-
-yt seems to be plotting from old data
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-yt does check the time stamp of the simulation so that if you
-overwrite your data outputs, the new set will be read in fresh by
-yt. However, if you have problems or the yt output seems to be
-in someway corrupted, try deleting the ``.yt`` and
-``.harray`` files from inside your data directory. If this proves to
-be a persistent problem add the line:
-
-.. code-block:: python
-
-   from yt.config import ytcfg; ytcfg["yt","serialize"] = "False"
-
-to the very top of your yt script.  Turning off serialization is the default
-behavior in yt-3.0.
 
 .. _faq-log-level:
 
 How can I change yt's log level?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-yt's default log level is ``INFO``. However, you may want less voluminous logging, especially
-if you are in an IPython notebook or running a long or parallel script. On the other
-hand, you may want it to output a lot more, since you can't figure out exactly what's going
-wrong, and you want to output some debugging information. The yt log level can be
-changed using the :ref:`configuration-file`, either by setting it in the
-``$HOME/.config/yt/ytrc`` file:
+yt's default log level is ``INFO``. However, you may want less voluminous logging,
+especially if you are in an IPython notebook or running a long or parallel script.
+On the other hand, you may want it to output a lot more, since you can't figure out
+exactly what's going wrong, and you want to output some debugging information.
+The default yt log level can be changed using the :ref:`configuration-file`,
+either by setting it in the ``$HOME/.config/yt/yt.toml`` file:
 
 .. code-block:: bash
 
-   $ yt config set yt loglevel 10  # This sets the log level to "DEBUG"
+   $ yt config set yt log_level 10  # This sets the log level to "DEBUG"
 
 which would produce debug (as well as info, warning, and error) messages, or at runtime:
 
 .. code-block:: python
 
-   from yt.funcs import mylog
-   mylog.setLevel(40) # This sets the log level to "ERROR"
+   yt.set_log_level("error")
 
-which in this case would suppress everything below error messages. For reference, the numerical
-values corresponding to different log levels are:
+This is the same as doing:
+
+.. code-block:: python
+
+   yt.set_log_level(40)
+
+which in this case would suppress everything below error messages. For reference,
+the numerical values corresponding to different log levels are:
 
 .. csv-table::
    :header: Level, Numeric Value
@@ -469,7 +453,7 @@ How do I cite yt?
 
 If you use yt in a publication, we'd very much appreciate a citation!  You
 should feel free to cite the `ApJS paper
-<http://adsabs.harvard.edu/abs/2011ApJS..192....9T>`_ with the following BibTeX
+<https://ui.adsabs.harvard.edu/abs/2011ApJS..192....9T>`_ with the following BibTeX
 entry: ::
 
    @ARTICLE{2011ApJS..192....9T,
@@ -487,6 +471,6 @@ entry: ::
          eid = {9},
        pages = {9},
          doi = {10.1088/0067-0049/192/1/9},
-      adsurl = {http://adsabs.harvard.edu/abs/2011ApJS..192....9T},
+      adsurl = {https://ui.adsabs.harvard.edu/abs/2011ApJS..192....9T},
      adsnote = {Provided by the SAO/NASA Astrophysics Data System}
    }

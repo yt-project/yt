@@ -1,62 +1,45 @@
-"""
-Time series analysis functions.
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
-import inspect
 import functools
 import glob
-import numpy as np
+import inspect
 import os
 import weakref
-
 from functools import wraps
+from typing import Optional, Type
 
-from yt.extern.six import add_metaclass, string_types
-from yt.convenience import load
+import numpy as np
+from more_itertools import always_iterable
+
 from yt.config import ytcfg
-from yt.data_objects.data_containers import data_object_registry
-from yt.data_objects.derived_quantities import \
-    derived_quantity_registry
-from yt.data_objects.analyzer_objects import \
-    create_quantity_proxy, \
-    analysis_task_registry, \
-    AnalysisTask
-from yt.data_objects.particle_trajectories import \
-    ParticleTrajectories
-from yt.funcs import \
-    iterable, \
-    ensure_list, \
-    mylog
+from yt.data_objects.analyzer_objects import AnalysisTask, create_quantity_proxy
+from yt.data_objects.particle_trajectories import ParticleTrajectories
+from yt.funcs import is_sequence, mylog
 from yt.units.yt_array import YTArray, YTQuantity
-from yt.utilities.exceptions import \
-    YTException, \
-    YTOutputNotIdentified
-from yt.utilities.parallel_tools.parallel_analysis_interface \
-    import parallel_objects, parallel_root_only
-from yt.utilities.parameter_file_storage import \
-    simulation_time_series_registry
-     
-class AnalysisTaskProxy(object):
+from yt.utilities.exceptions import YTException
+from yt.utilities.object_registries import (
+    analysis_task_registry,
+    data_object_registry,
+    derived_quantity_registry,
+    simulation_time_series_registry,
+)
+from yt.utilities.parallel_tools.parallel_analysis_interface import (
+    communication_system,
+    parallel_objects,
+    parallel_root_only,
+)
+
+
+class AnalysisTaskProxy:
     def __init__(self, time_series):
         self.time_series = time_series
 
     def __getitem__(self, key):
         task_cls = analysis_task_registry[key]
+
         @wraps(task_cls.__init__)
         def func(*args, **kwargs):
             task = task_cls(*args, **kwargs)
             return self.time_series.eval(task)
+
         return func
 
     def keys(self):
@@ -65,33 +48,33 @@ class AnalysisTaskProxy(object):
     def __contains__(self, key):
         return key in analysis_task_registry
 
+
 def get_ds_prop(propname):
     def _eval(params, ds):
         return getattr(ds, propname)
-    cls = type(propname, (AnalysisTask,),
-                dict(eval = _eval, _params = tuple()))
+
+    cls = type(propname, (AnalysisTask,), dict(eval=_eval, _params=tuple()))
     return cls
 
-def get_filenames_from_glob_pattern(filenames):
-    file_list = glob.glob(filenames)
-    if len(file_list) == 0:
-        data_dir = ytcfg.get("yt", "test_data_dir")
-        pattern = os.path.join(data_dir, filenames)
-        td_filenames = glob.glob(pattern)
-        if len(td_filenames) > 0:
-            file_list = td_filenames
-        else:
-            raise YTOutputNotIdentified(filenames, {})
-    return sorted(file_list)
 
-attrs = ("refine_by", "dimensionality", "current_time",
-         "domain_dimensions", "domain_left_edge",
-         "domain_right_edge", "unique_identifier",
-         "current_redshift", "cosmological_simulation",
-         "omega_matter", "omega_lambda", "omega_radiation",
-         "hubble_constant")
+attrs = (
+    "refine_by",
+    "dimensionality",
+    "current_time",
+    "domain_dimensions",
+    "domain_left_edge",
+    "domain_right_edge",
+    "unique_identifier",
+    "current_redshift",
+    "cosmological_simulation",
+    "omega_matter",
+    "omega_lambda",
+    "omega_radiation",
+    "hubble_constant",
+)
 
-class TimeSeriesParametersContainer(object):
+
+class TimeSeriesParametersContainer:
     def __init__(self, data_object):
         self.data_object = data_object
 
@@ -100,7 +83,8 @@ class TimeSeriesParametersContainer(object):
             return self.data_object.eval(get_ds_prop(attr)())
         raise AttributeError(attr)
 
-class DatasetSeries(object):
+
+class DatasetSeries:
     r"""The DatasetSeries object is a container of multiple datasets,
     allowing easy iteration and computation on them.
 
@@ -109,14 +93,17 @@ class DatasetSeries(object):
     primarily expressed through iteration, but can also be constructed via
     analysis tasks (see :ref:`time-series-analysis`).
 
+    Note that contained datasets are lazily loaded and weakly referenced. This means
+    that in order to perform follow-up operations on data it's best to define handles on
+    these datasets during iteration.
+
     Parameters
     ----------
-    filenames : list or pattern
-        This can either be a list of filenames (such as ["DD0001/DD0001",
-        "DD0002/DD0002"]) or a pattern to match, such as
-        "DD*/DD*.index").  If it's the former, they will be loaded in
-        order.  The latter will be identified with the glob module and then
-        sorted.
+    outputs : list of filenames, or pattern
+        A list of filenames, for instance ["DD0001/DD0001", "DD0002/DD0002"],
+        or a glob pattern (i.e. containing wildcards '[]?!*') such as "DD*/DD*.index".
+        In the latter case, results are sorted automatically.
+        Filenames and patterns can be of type str, os.Pathlike or bytes.
     parallel : True, False or int
         This parameter governs the behavior when .piter() is called on the
         resultant DatasetSeries object.  If this is set to False, the time
@@ -138,66 +125,99 @@ class DatasetSeries(object):
     --------
 
     >>> ts = DatasetSeries(
-            "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0[0-6][0-9]0")
+    ...     "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0[0-6][0-9]0"
+    ... )
     >>> for ds in ts:
-    ...     SlicePlot(ds, "x", "Density").save()
+    ...     SlicePlot(ds, "x", ("gas", "density")).save()
     ...
     >>> def print_time(ds):
-    ...     print ds.current_time
+    ...     print(ds.current_time)
     ...
     >>> ts = DatasetSeries(
     ...     "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0[0-6][0-9]0",
-    ...      setup_function = print_time)
+    ...     setup_function=print_time,
+    ... )
     ...
     >>> for ds in ts:
-    ...     SlicePlot(ds, "x", "Density").save()
+    ...     SlicePlot(ds, "x", ("gas", "density")).save()
 
     """
+    # this annotation should really be Optional[Type[Dataset]]
+    # but we cannot import the yt.data_objects.static_output.Dataset
+    # class here without creating a circular import for now
+    _dataset_cls: Optional[Type] = None
+
+    def __init_subclass__(cls, *args, **kwargs):
+        super().__init_subclass__(*args, **kwargs)
+        code_name = cls.__name__[: cls.__name__.find("Simulation")]
+        if code_name:
+            simulation_time_series_registry[code_name] = cls
+            mylog.debug("Registering simulation: %s as %s", code_name, cls)
+
     def __new__(cls, outputs, *args, **kwargs):
-        if isinstance(outputs, string_types):
-            outputs = get_filenames_from_glob_pattern(outputs)
-        ret = super(DatasetSeries, cls).__new__(cls)
         try:
-            ret._pre_outputs = outputs[:]
+            outputs = cls._get_filenames_from_glob_pattern(outputs)
         except TypeError:
-            raise YTOutputNotIdentified(outputs, {})
+            pass
+        ret = super().__new__(cls)
+        ret._pre_outputs = outputs[:]
+        ret.kwargs = {}
         return ret
 
-    def __init__(self, outputs, parallel = True, setup_function = None,
-                 mixed_dataset_types = False, **kwargs):
+    def __init__(
+        self,
+        outputs,
+        parallel=True,
+        setup_function=None,
+        mixed_dataset_types=False,
+        **kwargs,
+    ):
         # This is needed to properly set _pre_outputs for Simulation subclasses.
         self._mixed_dataset_types = mixed_dataset_types
-        if iterable(outputs) and not isinstance(outputs, string_types):
+        if is_sequence(outputs) and not isinstance(outputs, str):
             self._pre_outputs = outputs[:]
         self.tasks = AnalysisTaskProxy(self)
         self.params = TimeSeriesParametersContainer(self)
         if setup_function is None:
-            setup_function = lambda a: None
+
+            def _null(x):
+                return None
+
+            setup_function = _null
         self._setup_function = setup_function
         for type_name in data_object_registry:
-            setattr(self, type_name, functools.partial(
-                DatasetSeriesObject, self, type_name))
+            setattr(
+                self, type_name, functools.partial(DatasetSeriesObject, self, type_name)
+            )
         self.parallel = parallel
         self.kwargs = kwargs
 
-    def __iter__(self):
-        # We can make this fancier, but this works
-        for o in self._pre_outputs:
-            if isinstance(o, string_types):
-                ds = self._load(o, **self.kwargs)
-                self._setup_function(ds)
-                yield ds
-            else:
-                yield o
+    @staticmethod
+    def _get_filenames_from_glob_pattern(outputs):
+        """
+        Helper function to DatasetSeries.__new__
+        handle a special case where "outputs" is assumed to be really a pattern string
+        """
+        pattern = outputs
+        epattern = os.path.expanduser(pattern)
+        data_dir = ytcfg.get("yt", "test_data_dir")
+        # if no match if found from the current work dir,
+        # we try to match the pattern from the test data dir
+        file_list = glob.glob(epattern) or glob.glob(os.path.join(data_dir, epattern))
+        if not file_list:
+            raise FileNotFoundError(f"No match found for pattern : {pattern}")
+        return sorted(file_list)
 
     def __getitem__(self, key):
         if isinstance(key, slice):
             if isinstance(key.start, float):
                 return self.get_range(key.start, key.stop)
             # This will return a sliced up object!
-            return DatasetSeries(self._pre_outputs[key], self.parallel)
+            return DatasetSeries(
+                self._pre_outputs[key], parallel=self.parallel, **self.kwargs
+            )
         o = self._pre_outputs[key]
-        if isinstance(o, string_types):
+        if isinstance(o, (str, os.PathLike)):
             o = self._load(o, **self.kwargs)
             self._setup_function(o)
         return o
@@ -209,7 +229,7 @@ class DatasetSeries(object):
     def outputs(self):
         return self._pre_outputs
 
-    def piter(self, storage = None):
+    def piter(self, storage=None, dynamic=False):
         r"""Iterate over time series components in parallel.
 
         This allows you to iterate over a time series while dispatching
@@ -237,6 +257,13 @@ class DatasetSeries(object):
             course of the iteration.  The keys will be the dataset
             indices and the values will be whatever is assigned to the *result*
             attribute on the storage during iteration.
+        dynamic : boolean
+            This governs whether or not dynamic load balancing will be
+            enabled.  This requires one dedicated processor; if this
+            is enabled with a set of 128 processors available, only
+            127 will be available to iterate over objects as one will
+            be load balancing the rest.
+
 
         Examples
         --------
@@ -245,50 +272,57 @@ class DatasetSeries(object):
 
         >>> ts = DatasetSeries("DD*/DD*.index")
         >>> for ds in ts.piter():
-        ...    SlicePlot(ds, "x", "Density").save()
+        ...     SlicePlot(ds, "x", ("gas", "density")).save()
         ...
-        
+
         This demonstrates how one might store results:
 
         >>> def print_time(ds):
-        ...     print ds.current_time
+        ...     print(ds.current_time)
         ...
-        >>> ts = DatasetSeries("DD*/DD*.index",
-        ...             setup_function = print_time )
+        >>> ts = DatasetSeries("DD*/DD*.index", setup_function=print_time)
         ...
         >>> my_storage = {}
         >>> for sto, ds in ts.piter(storage=my_storage):
-        ...     v, c = ds.find_max("density")
+        ...     v, c = ds.find_max(("gas", "density"))
         ...     sto.result = (v, c)
         ...
         >>> for i, (v, c) in sorted(my_storage.items()):
-        ...     print "% 4i  %0.3e" % (i, v)
+        ...     print("% 4i  %0.3e" % (i, v))
         ...
 
         This shows how to dispatch 4 processors to each dataset:
 
-        >>> ts = DatasetSeries("DD*/DD*.index",
-        ...                     parallel = 4)
+        >>> ts = DatasetSeries("DD*/DD*.index", parallel=4)
         >>> for ds in ts.piter():
-        ...     ProjectionPlot(ds, "x", "Density").save()
+        ...     ProjectionPlot(ds, "x", ("gas", "density")).save()
         ...
 
         """
-        dynamic = False
-        if self.parallel is False:
+        if not self.parallel:
             njobs = 1
-        else:
-            if self.parallel is True:
+        elif not dynamic:
+            if self.parallel:
                 njobs = -1
             else:
                 njobs = self.parallel
+        else:
+            my_communicator = communication_system.communicators[-1]
+            nsize = my_communicator.size
+            if nsize == 1:
+                self.parallel = False
+                dynamic = False
+                njobs = 1
+            else:
+                njobs = nsize - 1
 
-        for output in parallel_objects(self._pre_outputs, njobs=njobs,
-                                       storage=storage, dynamic=dynamic):
+        for output in parallel_objects(
+            self._pre_outputs, njobs=njobs, storage=storage, dynamic=dynamic
+        ):
             if storage is not None:
                 sto, output = output
 
-            if isinstance(output, string_types):
+            if isinstance(output, str):
                 ds = self._load(output, **self.kwargs)
                 self._setup_function(ds)
             else:
@@ -302,16 +336,15 @@ class DatasetSeries(object):
             yield next_ret
 
     def eval(self, tasks, obj=None):
-        tasks = ensure_list(tasks)
         return_values = {}
         for store, ds in self.piter(return_values):
             store.result = []
-            for task in tasks:
+            for task in always_iterable(tasks):
                 try:
                     style = inspect.getargspec(task.eval)[0][1]
-                    if style == 'ds':
+                    if style == "ds":
                         arg = ds
-                    elif style == 'data_object':
+                    elif style == "data_object":
                         if obj is None:
                             obj = DatasetSeriesObject(self, "all_data")
                         arg = obj.get(ds)
@@ -325,87 +358,31 @@ class DatasetSeries(object):
         return [v for k, v in sorted(return_values.items())]
 
     @classmethod
-    def from_filenames(cls, filenames, parallel = True, setup_function = None,
-                       **kwargs):
-        r"""Create a time series from either a filename pattern or a list of
-        filenames.
-
-        This method provides an easy way to create a
-        :class:`~yt.data_objects.time_series.DatasetSeries`, given a set of
-        filenames or a pattern that matches them.  Additionally, it can set the
-        parallelism strategy.
-
-        Parameters
-        ----------
-        filenames : list or pattern
-            This can either be a list of filenames (such as ["DD0001/DD0001",
-            "DD0002/DD0002"]) or a pattern to match, such as
-            "DD*/DD*.index").  If it's the former, they will be loaded in
-            order.  The latter will be identified with the glob module and then
-            sorted.
-        parallel : True, False or int
-            This parameter governs the behavior when .piter() is called on the
-            resultant DatasetSeries object.  If this is set to False, the time
-            series will not iterate in parallel when .piter() is called.  If
-            this is set to either True or an integer, it will be iterated with
-            1 or that integer number of processors assigned to each parameter
-            file provided to the loop.
-        setup_function : callable, accepts a ds
-            This function will be called whenever a dataset is loaded.
-
-        Examples
-        --------
-
-        >>> def print_time(ds):
-        ...     print ds.current_time
-        ...
-        >>> ts = DatasetSeries.from_filenames(
-        ...     "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0[0-6][0-9]0",
-        ...      setup_function = print_time)
-        ...
-        >>> for ds in ts:
-        ...     SlicePlot(ds, "x", "Density").save()
-
-        """
-        
-        if isinstance(filenames, string_types):
-            filenames = get_filenames_from_glob_pattern(filenames)
-
-        # This will crash with a less informative error if filenames is not
-        # iterable, but the plural keyword should give users a clue...
-        for fn in filenames:
-            if not isinstance(fn, string_types):
-                raise YTOutputNotIdentified("DataSeries accepts a list of "
-                                            "strings, but "
-                                            "received {0}".format(fn))
-        obj = cls(filenames[:], parallel = parallel,
-                  setup_function = setup_function, **kwargs)
-        return obj
-
-    @classmethod
-    def from_output_log(cls, output_log,
-                        line_prefix = "DATASET WRITTEN",
-                        parallel = True):
+    def from_output_log(cls, output_log, line_prefix="DATASET WRITTEN", parallel=True):
         filenames = []
         for line in open(output_log):
-            if not line.startswith(line_prefix): continue
-            cut_line = line[len(line_prefix):].strip()
+            if not line.startswith(line_prefix):
+                continue
+            cut_line = line[len(line_prefix) :].strip()
             fn = cut_line.split()[0]
             filenames.append(fn)
-        obj = cls(filenames, parallel = parallel)
+        obj = cls(filenames, parallel=parallel)
         return obj
 
-    _dataset_cls = None
-    def _load(self, output_fn, **kwargs):
+    def _load(self, output_fn, *, hint: Optional[str] = None, **kwargs):
+        from yt.loaders import load
+
         if self._dataset_cls is not None:
             return self._dataset_cls(output_fn, **kwargs)
         elif self._mixed_dataset_types:
-            return load(output_fn, **kwargs)
-        ds = load(output_fn, **kwargs)
+            return load(output_fn, hint=hint, **kwargs)
+        ds = load(output_fn, hint=hint, **kwargs)
         self._dataset_cls = ds.__class__
         return ds
 
-    def particle_trajectories(self, indices, fields=None, suppress_logging=False, ptype=None):
+    def particle_trajectories(
+        self, indices, fields=None, suppress_logging=False, ptype=None
+    ):
         r"""Create a collection of particle trajectories in time over a series of
         datasets.
 
@@ -429,48 +406,66 @@ class DatasetSeries(object):
         --------
         >>> my_fns = glob.glob("orbit_hdf5_chk_00[0-9][0-9]")
         >>> my_fns.sort()
-        >>> fields = ["particle_position_x", "particle_position_y",
-        >>>           "particle_position_z", "particle_velocity_x",
-        >>>           "particle_velocity_y", "particle_velocity_z"]
+        >>> fields = [
+        ...     ("all", "particle_position_x"),
+        ...     ("all", "particle_position_y"),
+        ...     ("all", "particle_position_z"),
+        ...     ("all", "particle_velocity_x"),
+        ...     ("all", "particle_velocity_y"),
+        ...     ("all", "particle_velocity_z"),
+        ... ]
         >>> ds = load(my_fns[0])
-        >>> init_sphere = ds.sphere(ds.domain_center, (.5, "unitary"))
-        >>> indices = init_sphere["particle_index"].astype("int")
+        >>> init_sphere = ds.sphere(ds.domain_center, (0.5, "unitary"))
+        >>> indices = init_sphere[("all", "particle_index")].astype("int")
         >>> ts = DatasetSeries(my_fns)
         >>> trajs = ts.particle_trajectories(indices, fields=fields)
-        >>> for t in trajs :
-        >>>     print t["particle_velocity_x"].max(), t["particle_velocity_x"].min()
+        >>> for t in trajs:
+        ...     print(
+        ...         t[("all", "particle_velocity_x")].max(),
+        ...         t[("all", "particle_velocity_x")].min(),
+        ...     )
 
-        Note
-        ----
-        This function will fail if there are duplicate particle ids or if some of the particle
-        disappear.
+        Notes
+        -----
+        This function will fail if there are duplicate particle ids or if some of the
+        particle disappear.
         """
-        return ParticleTrajectories(self, indices, fields=fields, suppress_logging=suppress_logging,
-                                    ptype=ptype)
+        return ParticleTrajectories(
+            self, indices, fields=fields, suppress_logging=suppress_logging, ptype=ptype
+        )
 
-class TimeSeriesQuantitiesContainer(object):
+
+class TimeSeriesQuantitiesContainer:
     def __init__(self, data_object, quantities):
         self.data_object = data_object
         self.quantities = quantities
 
     def __getitem__(self, key):
-        if key not in self.quantities: raise KeyError(key)
+        if key not in self.quantities:
+            raise KeyError(key)
         q = self.quantities[key]
+
         def run_quantity_wrapper(quantity, quantity_name):
             @wraps(derived_quantity_registry[quantity_name][1])
             def run_quantity(*args, **kwargs):
                 to_run = quantity(*args, **kwargs)
                 return self.data_object.eval(to_run)
+
             return run_quantity
+
         return run_quantity_wrapper(q, key)
 
-class DatasetSeriesObject(object):
+
+class DatasetSeriesObject:
     def __init__(self, time_series, data_object_name, *args, **kwargs):
         self.time_series = weakref.proxy(time_series)
         self.data_object_name = data_object_name
         self._args = args
         self._kwargs = kwargs
-        qs = dict([(qn, create_quantity_proxy(qv)) for qn, qv in derived_quantity_registry.items()])
+        qs = {
+            qn: create_quantity_proxy(qv)
+            for qn, qv in derived_quantity_registry.items()
+        }
         self.quantities = TimeSeriesQuantitiesContainer(self, qs)
 
     def eval(self, tasks):
@@ -482,15 +477,7 @@ class DatasetSeriesObject(object):
         cls = getattr(ds, self.data_object_name)
         return cls(*self._args, **self._kwargs)
 
-class RegisteredSimulationTimeSeries(type):
-    def __init__(cls, name, b, d):
-        type.__init__(cls, name, b, d)
-        code_name = name[:name.find('Simulation')]
-        if code_name:
-            simulation_time_series_registry[code_name] = cls
-            mylog.debug("Registering simulation: %s as %s", code_name, cls)
 
-@add_metaclass(RegisteredSimulationTimeSeries)
 class SimulationTimeSeries(DatasetSeries):
     def __init__(self, parameter_filename, find_outputs=False):
         """
@@ -499,7 +486,7 @@ class SimulationTimeSeries(DatasetSeries):
         """
 
         if not os.path.exists(parameter_filename):
-            raise IOError(parameter_filename)
+            raise FileNotFoundError(parameter_filename)
         self.parameter_filename = parameter_filename
         self.basename = os.path.basename(parameter_filename)
         self.directory = os.path.dirname(parameter_filename)
@@ -516,7 +503,7 @@ class SimulationTimeSeries(DatasetSeries):
         self._calculate_simulation_bounds()
         # Get all possible datasets.
         self._get_all_outputs(find_outputs=find_outputs)
-        
+
         self.print_key_parameters()
 
     def _set_parameter_defaults(self):
@@ -533,47 +520,52 @@ class SimulationTimeSeries(DatasetSeries):
 
     def _get_all_outputs(**kwargs):
         pass
-        
+
     def __repr__(self):
         return self.parameter_filename
 
     _arr = None
+
     @property
     def arr(self):
         if self._arr is not None:
             return self._arr
-        self._arr = functools.partial(YTArray, registry = self.unit_registry)
+        self._arr = functools.partial(YTArray, registry=self.unit_registry)
         return self._arr
-    
+
     _quan = None
+
     @property
     def quan(self):
         if self._quan is not None:
             return self._quan
-        self._quan = functools.partial(YTQuantity,
-                registry = self.unit_registry)
+        self._quan = functools.partial(YTQuantity, registry=self.unit_registry)
         return self._quan
-    
+
     @parallel_root_only
     def print_key_parameters(self):
         """
         Print out some key parameters for the simulation.
         """
         if self.simulation_type == "grid":
-            for a in ["domain_dimensions", "domain_left_edge",
-                      "domain_right_edge"]:
+            for a in ["domain_dimensions", "domain_left_edge", "domain_right_edge"]:
                 self._print_attr(a)
-        for a in ["initial_time", "final_time",
-                  "cosmological_simulation"]:
+        for a in ["initial_time", "final_time", "cosmological_simulation"]:
             self._print_attr(a)
         if getattr(self, "cosmological_simulation", False):
-            for a in ["box_size", "omega_matter", "omega_lambda",
-                      "omega_radiation", "hubble_constant",
-                      "initial_redshift", "final_redshift"]:
+            for a in [
+                "box_size",
+                "omega_matter",
+                "omega_lambda",
+                "omega_radiation",
+                "hubble_constant",
+                "initial_redshift",
+                "final_redshift",
+            ]:
                 self._print_attr(a)
         for a in self.key_parameters:
             self._print_attr(a)
-        mylog.info("Total datasets: %d." % len(self.all_outputs))
+        mylog.info("Total datasets: %d.", len(self.all_outputs))
 
     def _print_attr(self, a):
         """
@@ -591,10 +583,10 @@ class SimulationTimeSeries(DatasetSeries):
 
         Parameters
         ----------
-        key: str
+        key : str
             The key by which to retrieve outputs, usually 'time' or
             'redshift'.
-        values: array_like
+        values : array_like
             A list of values, given as floats.
         tolerance : float
             If not None, do not return a dataset unless the value is
@@ -608,7 +600,7 @@ class SimulationTimeSeries(DatasetSeries):
 
         Examples
         --------
-        >>> datasets = es.get_outputs_by_key('redshift', [0, 1, 2], tolerance=0.1)
+        >>> datasets = es.get_outputs_by_key("redshift", [0, 1, 2], tolerance=0.1)
 
         """
 
@@ -625,12 +617,13 @@ class SimulationTimeSeries(DatasetSeries):
         if not outputs:
             return my_outputs
         for value in values:
-            outputs.sort(key=lambda obj:np.abs(value - obj[key]))
-            if (tolerance is None or np.abs(value - outputs[0][key]) <= tolerance) \
-                    and outputs[0] not in my_outputs:
+            outputs.sort(key=lambda obj, value=value: np.abs(value - obj[key]))
+            if (
+                tolerance is None or np.abs(value - outputs[0][key]) <= tolerance
+            ) and outputs[0] not in my_outputs:
                 my_outputs.append(outputs[0])
             else:
                 mylog.error("No dataset added for %s = %f.", key, value)
 
-        outputs.sort(key=lambda obj: obj['time'])
+        outputs.sort(key=lambda obj: obj["time"])
         return my_outputs

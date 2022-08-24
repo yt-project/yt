@@ -74,13 +74,13 @@ with a series of
 hanging off of it that describe the contents
 of that volume.  It also contains a
 :class:`~yt.visualization.volume_rendering.camera.Camera` for rendering that
-volume..  All of its classes can be
+volume.  All of its classes can be
 accessed and modified as properties hanging off of the scene.
 The scene's most important functions are
 :meth:`~yt.visualization.volume_rendering.scene.Scene.render` for
 casting rays through the scene and
 :meth:`~yt.visualization.volume_rendering.scene.Scene.save` for saving the
-resulting rendered image to disk.
+resulting rendered image to disk (see note on :ref:`when_to_render`).
 
 The easiest way to create a scene with sensible defaults is to use the
 functions:
@@ -189,9 +189,9 @@ simulation:
 
    import yt
 
-   ds = yt.load('Enzo_64/DD0043/data0043')
+   ds = yt.load("Enzo_64/DD0043/data0043")
 
-   sc = yt.create_scene(ds, lens_type='perspective')
+   sc = yt.create_scene(ds, lens_type="perspective")
 
    # Get a reference to the VolumeSource associated with this scene
    # It is the first source associated with the scene, so we can refer to it
@@ -209,10 +209,10 @@ simulation:
 
    # Plot the transfer function, along with the CDF of the density field to
    # see how the transfer function corresponds to structure in the CDF
-   source.tfh.plot('transfer_function.png', profile_field='density')
+   source.tfh.plot("transfer_function.png", profile_field=("gas", "density"))
 
    # save the image, flooring especially bright pixels for better contrast
-   sc.save('rendering.png', sigma_clip=6.0)
+   sc.save("rendering.png", sigma_clip=6.0)
 
 For fun, let's make the same volume_rendering, but this time setting
 ``grey_opacity=False``, which will make overdense regions stand out more:
@@ -221,9 +221,9 @@ For fun, let's make the same volume_rendering, but this time setting
 
    import yt
 
-   ds = yt.load('Enzo_64/DD0043/data0043')
+   ds = yt.load("Enzo_64/DD0043/data0043")
 
-   sc = yt.create_scene(ds, lens_type='perspective')
+   sc = yt.create_scene(ds, lens_type="perspective")
 
    source = sc[0]
 
@@ -232,9 +232,9 @@ For fun, let's make the same volume_rendering, but this time setting
    source.tfh.set_log(True)
    source.tfh.grey_opacity = False
 
-   source.tfh.plot('transfer_function.png', profile_field='density')
+   source.tfh.plot("transfer_function.png", profile_field=("gas", "density"))
 
-   sc.save('rendering.png', sigma_clip=4.0)
+   sc.save("rendering.png", sigma_clip=4.0)
 
 To see a full example on how to use the ``TransferFunctionHelper`` interface,
 follow the annotated :ref:`transfer-function-helper-tutorial`.
@@ -269,15 +269,16 @@ colormap to determine the colors of the layers.
 .. python-script::
 
    import numpy as np
+
    import yt
 
-   ds = yt.load('Enzo_64/DD0043/data0043')
+   ds = yt.load("Enzo_64/DD0043/data0043")
 
-   sc = yt.create_scene(ds, lens_type='perspective')
+   sc = yt.create_scene(ds, lens_type="perspective")
 
    source = sc[0]
 
-   source.set_field('density')
+   source.set_field(("gas", "density"))
    source.set_log(True)
 
    bounds = (3e-31, 5e-27)
@@ -286,14 +287,14 @@ colormap to determine the colors of the layers.
    # to be specified in log space.
    tf = yt.ColorTransferFunction(np.log10(bounds))
 
-   tf.add_layers(5, colormap='arbre')
+   tf.add_layers(5, colormap="cmyt.arbre")
 
    source.tfh.tf = tf
    source.tfh.bounds = bounds
 
-   source.tfh.plot('transfer_function.png', profile_field='density')
+   source.tfh.plot("transfer_function.png", profile_field=("gas", "density"))
 
-   sc.save('rendering.png', sigma_clip=6)
+   sc.save("rendering.png", sigma_clip=6)
 
 sample_colormap
 """""""""""""""
@@ -304,15 +305,16 @@ To add a single gaussian layer with a color determined by a colormap value, use
 .. python-script::
 
    import numpy as np
+
    import yt
 
-   ds = yt.load('Enzo_64/DD0043/data0043')
+   ds = yt.load("Enzo_64/DD0043/data0043")
 
-   sc = yt.create_scene(ds, lens_type='perspective')
+   sc = yt.create_scene(ds, lens_type="perspective")
 
    source = sc[0]
 
-   source.set_field('density')
+   source.set_field(("gas", "density"))
    source.set_log(True)
 
    bounds = (3e-31, 5e-27)
@@ -321,15 +323,15 @@ To add a single gaussian layer with a color determined by a colormap value, use
    # to be specified in log space.
    tf = yt.ColorTransferFunction(np.log10(bounds))
 
-   tf.sample_colormap(np.log10(1e-30), w=.01, colormap='arbre')
+   tf.sample_colormap(np.log10(1e-30), w=0.01, colormap="cmyt.arbre")
 
    source.tfh.tf = tf
    source.tfh.bounds = bounds
 
-   source.tfh.plot('transfer_function.png', profile_field='density')
+   source.tfh.plot("transfer_function.png", profile_field=("gas", "density"))
 
-   sc.save('rendering.png', sigma_clip=6)
-   
+   sc.save("rendering.png", sigma_clip=6)
+
 
 add_gaussian
 """"""""""""
@@ -340,15 +342,16 @@ If you would like to add a gaussian with a customized color or no color, use
 .. python-script::
 
    import numpy as np
+
    import yt
 
-   ds = yt.load('Enzo_64/DD0043/data0043')
+   ds = yt.load("Enzo_64/DD0043/data0043")
 
-   sc = yt.create_scene(ds, lens_type='perspective')
+   sc = yt.create_scene(ds, lens_type="perspective")
 
    source = sc[0]
 
-   source.set_field('density')
+   source.set_field(("gas", "density"))
    source.set_log(True)
 
    bounds = (3e-31, 5e-27)
@@ -357,14 +360,14 @@ If you would like to add a gaussian with a customized color or no color, use
    # to be specified in log space.
    tf = yt.ColorTransferFunction(np.log10(bounds))
 
-   tf.add_gaussian(np.log10(1e-29), width=.005, height=[0.753, 1.0, 0.933, 1.0])
+   tf.add_gaussian(np.log10(1e-29), width=0.005, height=[0.753, 1.0, 0.933, 1.0])
 
    source.tfh.tf = tf
    source.tfh.bounds = bounds
 
-   source.tfh.plot('transfer_function.png', profile_field='density')
+   source.tfh.plot("transfer_function.png", profile_field=("gas", "density"))
 
-   sc.save('rendering.png', sigma_clip=6)
+   sc.save("rendering.png", sigma_clip=6)
 
 
 map_to_colormap
@@ -380,15 +383,16 @@ the volume rendering.
 .. python-script::
 
    import numpy as np
+
    import yt
 
-   ds = yt.load('Enzo_64/DD0043/data0043')
+   ds = yt.load("Enzo_64/DD0043/data0043")
 
-   sc = yt.create_scene(ds, lens_type='perspective')
+   sc = yt.create_scene(ds, lens_type="perspective")
 
    source = sc[0]
 
-   source.set_field('density')
+   source.set_field(("gas", "density"))
    source.set_log(True)
 
    bounds = (3e-31, 5e-27)
@@ -397,18 +401,21 @@ the volume rendering.
    # to be specified in log space.
    tf = yt.ColorTransferFunction(np.log10(bounds))
 
-   def linramp(vals, minval, maxval):
-       return (vals - vals.min())/(vals.max() - vals.min())
 
-   tf.map_to_colormap(np.log10(3e-31), np.log10(5e-27), colormap='arbre', 
-                      scale_func=linramp)
+   def linramp(vals, minval, maxval):
+       return (vals - vals.min()) / (vals.max() - vals.min())
+
+
+   tf.map_to_colormap(
+       np.log10(3e-31), np.log10(5e-27), colormap="cmyt.arbre", scale_func=linramp
+   )
 
    source.tfh.tf = tf
    source.tfh.bounds = bounds
 
-   source.tfh.plot('transfer_function.png', profile_field='density')
+   source.tfh.plot("transfer_function.png", profile_field=("gas", "density"))
 
-   sc.save('rendering.png', sigma_clip=6)   
+   sc.save("rendering.png", sigma_clip=6)
 
 Projection Transfer Function
 ++++++++++++++++++++++++++++
@@ -522,10 +529,10 @@ adjusts for an opening view angle, so that the scene will have an
 element of perspective to it.
 :class:`~yt.visualization.volume_rendering.lens.StereoPerspectiveLens`
 is identical to PerspectiveLens, but it produces two images from nearby
-camera positions for use in 3D viewing. How 3D the image appears at viewing 
-will depend upon the value of 
-:attr:`~yt.visualization.volume_rendering.lens.StereoPerspectiveLens.disparity`, 
-which is half the maximum distance between two corresponding points in the left 
+camera positions for use in 3D viewing. How 3D the image appears at viewing
+will depend upon the value of
+:attr:`~yt.visualization.volume_rendering.lens.StereoPerspectiveLens.disparity`,
+which is half the maximum distance between two corresponding points in the left
 and right images. By default, it is set to 3 pixels.
 
 
@@ -556,11 +563,11 @@ see `the YouTube help: Upload virtual reality videos
 <https://support.google.com/youtube/answer/6316263?hl=en>`_).
 `This virtual reality video
 <https://youtu.be/ZYWY53X7UQE>`_ on YouTube is an example produced with
-:class:`~yt.visualization.volume_rendering.lens.StereoSphericalLens`. As in 
-the case of  
-:class:`~yt.visualization.volume_rendering.lens.StereoPerspectiveLens`, the 
-difference between the two images can be controlled by changing the value of 
-:attr:`~yt.visualization.volume_rendering.lens.StereoSphericalLens.disparity` 
+:class:`~yt.visualization.volume_rendering.lens.StereoSphericalLens`. As in
+the case of
+:class:`~yt.visualization.volume_rendering.lens.StereoPerspectiveLens`, the
+difference between the two images can be controlled by changing the value of
+:attr:`~yt.visualization.volume_rendering.lens.StereoSphericalLens.disparity`
 (See above).
 
 .. _annotated-vr-example:
@@ -573,7 +580,7 @@ Annotated Examples
              information can be hard.  We've provided information about best
              practices and tried to make the interface easy to develop nice
              visualizations, but getting them *just right* is often
-             time-consuming.  It's usually best to start out simple and expand 
+             time-consuming.  It's usually best to start out simple and expand
              and tweak as needed.
 
 The scene interface provides a modular interface for creating renderings
@@ -624,22 +631,23 @@ function to quickly set up defaults is:
 .. python-script::
 
   import yt
+
   # load the data
   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
-  # volume render the 'density' field, and save the resulting image
-  im, sc = yt.volume_render(ds, 'density', fname='rendering.png')
+  # volume render the ("gas", "density") field, and save the resulting image
+  im, sc = yt.volume_render(ds, ("gas", "density"), fname="rendering.png")
 
   # im is the image array generated. it is also saved to 'rendering.png'.
   # sc is an instance of a Scene object, which allows you to further refine
   # your renderings and later save them.
 
   # Let's zoom in and take a closer look
-  sc.camera.width = (300, 'kpc')
+  sc.camera.width = (300, "kpc")
   sc.camera.switch_orientation()
 
   # Save the zoomed in rendering
-  sc.save('zoomed_rendering.png')
+  sc.save("zoomed_rendering.png")
 
 Alternatively, if you don't want to immediately generate an image of your
 volume rendering, and you just want access to the default scene object,
@@ -652,22 +660,26 @@ function. Example:
 .. python-script::
 
     import numpy as np
+
     import yt
-  
 
     ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    sc = yt.create_scene(ds, 'density')
+    sc = yt.create_scene(ds, ("gas", "density"))
 
     source = sc[0]
 
     source.transfer_function = yt.ColorTransferFunction(
-        np.log10((1e-30, 1e-23)), grey_opacity=True)
+        np.log10((1e-30, 1e-23)), grey_opacity=True
+    )
+
 
     def linramp(vals, minval, maxval):
-        return (vals - vals.min())/(vals.max() - vals.min())
+        return (vals - vals.min()) / (vals.max() - vals.min())
+
 
     source.transfer_function.map_to_colormap(
-        np.log10(1e-25), np.log10(8e-24), colormap='arbre', scale_func=linramp)
+        np.log10(1e-25), np.log10(8e-24), colormap="cmyt.arbre", scale_func=linramp
+    )
 
     # For this low resolution dataset it's very important to use interpolated
     # vertex centered data to avoid artifacts. For high resolution data this
@@ -676,12 +688,12 @@ function. Example:
 
     cam = sc.camera
 
-    cam.width = 15*yt.units.kpc
+    cam.width = 15 * yt.units.kpc
     cam.focus = ds.domain_center
     cam.normal_vector = [-0.3, -0.3, 1]
     cam.switch_orientation()
 
-    sc.save('rendering.png')
+    sc.save("rendering.png")
 
 For an in-depth tutorial on how to create a Scene and modify its contents,
 see this annotated :ref:`volume-rendering-tutorial`.
@@ -705,7 +717,7 @@ The volume rendering in yt follows a relatively straightforward approach.
    a function of one or more variables. (:math:`f(v) \rightarrow (r,g,b,a)`)
    These can be functions of any field variable, weighted by independent
    fields, and even weighted by other evaluated transfer functions.  (See
-   `transfer_functions`.)
+   ref:`_transfer_functions`.)
 #. Partition all chunks into non-overlapping, fully domain-tiling "bricks."
    Each of these "bricks" contains the finest available data at any location.
 #. Generate vertex-centered data for all grids in the volume rendered domain.
@@ -856,3 +868,27 @@ dark.  ``sigma_clip = N`` can address this by removing values that are more
 than ``N`` standard deviations brighter than the mean of your image.
 Typically, a choice of 4 to 6 will help dramatically with your resulting image.
 See the cookbook recipe :ref:`cookbook-sigma_clip` for a demonstration.
+
+.. _when_to_render:
+
+When to Render
+^^^^^^^^^^^^^^
+
+The rendering of a scene is the most computationally demanding step in
+creating a final image and there are a number of ways to control at which point
+a scene is actually rendered. The default behavior of the
+:meth:`~yt.visualization.volume_rendering.scene.Scene.save` function includes
+a call to :meth:`~yt.visualization.volume_rendering.scene.Scene.render`. This
+means that in most cases (including the above examples), after you set up your
+scene and volumes, you can simply call
+:meth:`~yt.visualization.volume_rendering.scene.Scene.save` without first
+calling :meth:`~yt.visualization.volume_rendering.scene.Scene.render`. If you
+wish to save the most recently rendered image without rendering again, set
+``render=False`` in the call to
+:meth:`~yt.visualization.volume_rendering.scene.Scene.save`.  Cases where you
+may wish to use ``render=False`` include saving images at different
+``sigma_clip`` values (see :ref:`cookbook-sigma_clip`) or when saving an image
+that has already been rendered in a Jupyter notebook using
+:meth:`~yt.visualization.volume_rendering.scene.Scene.show`. Changes to the
+scene including adding sources, modifying transfer functions or adjusting camera
+settings generally require rendering again.

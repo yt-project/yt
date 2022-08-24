@@ -6,30 +6,28 @@ Geometry selection routine imports.
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
 cimport numpy as np
-from oct_visitors cimport Oct, OctVisitor
+from grid_visitors cimport (
+    GridTreeNode,
+    GridVisitorData,
+    check_child_masked,
+    grid_visitor_function,
+)
 from oct_container cimport OctreeContainer
-from grid_visitors cimport GridTreeNode, GridVisitorData, \
-    grid_visitor_function, check_child_masked
-from yt.utilities.lib.ewah_bool_wrap cimport \
-    BoolArrayCollection
-from yt.utilities.lib.geometry_utils cimport decode_morton_64bit
+from oct_visitors cimport Oct, OctVisitor
+
 from yt.utilities.lib.fp_utils cimport _ensure_code
+from yt.utilities.lib.geometry_utils cimport decode_morton_64bit
+
 
 cdef class SelectorObject:
     cdef public np.int32_t min_level
     cdef public np.int32_t max_level
-    cdef int overlap_cells
-    cdef np.float64_t domain_width[3]
-    cdef bint periodicity[3]
+    cdef public int overlap_cells
+    cdef public np.float64_t domain_width[3]
+    cdef public np.float64_t domain_center[3]
+    cdef public bint periodicity[3]
     cdef bint _hash_initialized
     cdef np.int64_t _hash
 
@@ -43,7 +41,7 @@ cdef class SelectorObject:
                               OctVisitor visitor, int i, int j, int k)
     cdef int select_grid(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3],
-                               np.int32_t level, Oct *o = ?) nogil 
+                               np.int32_t level, Oct *o = ?) nogil
     cdef int select_grid_edge(self, np.float64_t left_edge[3],
                                     np.float64_t right_edge[3],
                                     np.int32_t level, Oct *o = ?) nogil
@@ -55,9 +53,15 @@ cdef class SelectorObject:
                                np.float64_t right_edge[3]) nogil
     cdef int select_bbox_edge(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3]) nogil
+    cdef int fill_mask_selector_regular_grid(self, np.float64_t left_edge[3],
+                                             np.float64_t right_edge[3],
+                                             np.float64_t dds[3], int dim[3],
+                                             np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask,
+                                             np.ndarray[np.uint8_t, ndim=3] mask,
+                                             int level)
     cdef int fill_mask_selector(self, np.float64_t left_edge[3],
-                                np.float64_t right_edge[3], 
-                                np.float64_t dds[3], int dim[3],
+                                np.float64_t right_edge[3],
+                                np.float64_t **dds, int dim[3],
                                 np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask,
                                 np.ndarray[np.uint8_t, ndim=3] mask,
                                 int level)
@@ -89,4 +93,3 @@ cdef inline np.float64_t _periodic_dist(np.float64_t x1, np.float64_t x2,
     elif rel < -dw * 0.5:
         rel += dw
     return rel
-

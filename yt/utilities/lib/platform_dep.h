@@ -1,6 +1,7 @@
 #include <math.h>
 #ifdef MS_WIN32
 #include "malloc.h"
+#include <float.h>
 typedef int int32_t;
 typedef long long int64_t;
 /* Taken from http://siliconandlithium.blogspot.com/2014/05/msvc-c99-mathh-header.html */
@@ -14,17 +15,16 @@ static __inline double rint(double x){
         return copysign(two_to_52 + fa - two_to_52, x);
     }
 }
+#if _MSC_VER < 1928
 static __inline long int lrint(double x){
     return (long)rint(x);
 }
+#endif
 static __inline double fmax(double x, double y){
     return (x > y) ? x : y;
 }
 static __inline double fmin(double x, double y){
     return (x < y) ? x : y;
-}
-static __inline double log2(double x) {
-    return log(x) * M_LOG2E;
 }
 
 /* adapted from http://www.johndcook.com/blog/cpp_erf/
@@ -54,11 +54,12 @@ double erf(double x)
 
     return sign*y;
 }
-
+#elif defined(__FreeBSD__)
+#include <stdint.h>
+#include <stdlib.h>
+#include <math.h>
 #else
 #include <stdint.h>
 #include "alloca.h"
 #include <math.h>
 #endif
-
-

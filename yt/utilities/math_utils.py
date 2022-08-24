@@ -1,57 +1,44 @@
-"""
-Commonly used mathematical functions.
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
+import math
 
 import numpy as np
-import math
-from yt.units.yt_array import \
-    YTArray
+
+from yt.units.yt_array import YTArray
 
 prec_accum = {
-    np.int:                 np.int64,
-    np.int8:                np.int64,
-    np.int16:               np.int64,
-    np.int32:               np.int64,
-    np.int64:               np.int64,
-    np.uint8:               np.uint64,
-    np.uint16:              np.uint64,
-    np.uint32:              np.uint64,
-    np.uint64:              np.uint64,
-    np.float:               np.float64,
-    np.float16:             np.float64,
-    np.float32:             np.float64,
-    np.float64:             np.float64,
-    np.complex:             np.complex128,
-    np.complex64:           np.complex128,
-    np.complex128:          np.complex128,
-    np.dtype('int'):        np.int64,
-    np.dtype('int8'):       np.int64,
-    np.dtype('int16'):      np.int64,
-    np.dtype('int32'):      np.int64,
-    np.dtype('int64'):      np.int64,
-    np.dtype('uint8'):      np.uint64,
-    np.dtype('uint16'):     np.uint64,
-    np.dtype('uint32'):     np.uint64,
-    np.dtype('uint64'):     np.uint64,
-    np.dtype('float'):      np.float64,
-    np.dtype('float16'):    np.float64,
-    np.dtype('float32'):    np.float64,
-    np.dtype('float64'):    np.float64,
-    np.dtype('complex'):    np.complex128,
-    np.dtype('complex64'):  np.complex128,
-    np.dtype('complex128'): np.complex128,
+    int: np.int64,
+    np.int8: np.int64,
+    np.int16: np.int64,
+    np.int32: np.int64,
+    np.int64: np.int64,
+    np.uint8: np.uint64,
+    np.uint16: np.uint64,
+    np.uint32: np.uint64,
+    np.uint64: np.uint64,
+    float: np.float64,
+    np.float16: np.float64,
+    np.float32: np.float64,
+    np.float64: np.float64,
+    complex: np.complex128,
+    np.complex64: np.complex128,
+    np.complex128: np.complex128,
+    np.dtype("int"): np.int64,
+    np.dtype("int8"): np.int64,
+    np.dtype("int16"): np.int64,
+    np.dtype("int32"): np.int64,
+    np.dtype("int64"): np.int64,
+    np.dtype("uint8"): np.uint64,
+    np.dtype("uint16"): np.uint64,
+    np.dtype("uint32"): np.uint64,
+    np.dtype("uint64"): np.uint64,
+    np.dtype("float"): np.float64,
+    np.dtype("float16"): np.float64,
+    np.dtype("float32"): np.float64,
+    np.dtype("float64"): np.float64,
+    np.dtype("complex"): np.complex128,
+    np.dtype("complex64"): np.complex128,
+    np.dtype("complex128"): np.complex128,
 }
+
 
 def periodic_position(pos, ds):
     r"""Assuming periodicity, find the periodic position within the domain.
@@ -61,14 +48,14 @@ def periodic_position(pos, ds):
     pos : array
         An array of floats.
 
-    ds : ~yt.data_objects.static_output.Dataset 
+    ds : ~yt.data_objects.static_output.Dataset
         A simulation static output.
 
     Examples
     --------
     >>> a = np.array([1.1, 0.5, 0.5])
-    >>> data = {'Density':np.ones([32,32,32])}
-    >>> ds = load_uniform_grid(data, [32,32,32], 1.0)
+    >>> data = {"Density": np.ones([32, 32, 32])}
+    >>> ds = load_uniform_grid(data, [32, 32, 32], 1.0)
     >>> ppos = periodic_position(a, ds)
     >>> ppos
     array([ 0.1,  0.5,  0.5])
@@ -76,6 +63,7 @@ def periodic_position(pos, ds):
 
     off = (pos - ds.domain_left_edge) % ds.domain_width
     return ds.domain_left_edge + off
+
 
 def periodic_dist(a, b, period, periodicity=(True, True, True)):
     r"""Find the Euclidean periodic distance between two sets of points.
@@ -102,9 +90,9 @@ def periodic_dist(a, b, period, periodicity=(True, True, True)):
     Examples
     --------
     >>> a = [0.1, 0.1, 0.1]
-    >>> b = [0.9, 0,9, 0.9]
-    >>> period = 1.
-    >>> dist = periodic_dist(a, b, 1.)
+    >>> b = [0.9, 0, 9, 0.9]
+    >>> period = 1.0
+    >>> dist = periodic_dist(a, b, 1.0)
     >>> dist
     0.346410161514
     """
@@ -119,28 +107,29 @@ def periodic_dist(a, b, period, periodicity=(True, True, True)):
         raise RuntimeError("Arrays must be the same shape.")
 
     if period.shape != a.shape and len(a.shape) > 1:
-        n_tup = tuple([1 for i in range(a.ndim-1)])
-        period = np.tile(np.reshape(period, (a.shape[0],)+n_tup), (1,)+a.shape[1:])
+        n_tup = tuple(1 for i in range(a.ndim - 1))
+        period = np.tile(np.reshape(period, (a.shape[0],) + n_tup), (1,) + a.shape[1:])
     elif len(a.shape) == 1:
-        a = np.reshape(a, (a.shape[0],)+(1,1))
-        b = np.reshape(b, (a.shape[0],)+(1,1))
-        period = np.reshape(period, (a.shape[0],)+(1,1))
+        a = np.reshape(a, (a.shape[0],) + (1, 1))
+        b = np.reshape(b, (a.shape[0],) + (1, 1))
+        period = np.reshape(period, (a.shape[0],) + (1, 1))
 
     c = np.empty((2,) + a.shape, dtype="float64")
-    c[0,:] = np.abs(a - b)
+    c[0, :] = np.abs(a - b)
 
-    p_directions = [i for i,p in enumerate(periodicity) if p is True]
-    np_directions = [i for i,p in enumerate(periodicity) if p is False]
+    p_directions = [i for i, p in enumerate(periodicity) if p]
+    np_directions = [i for i, p in enumerate(periodicity) if not p]
     for d in p_directions:
-        c[1,d,:] = period[d,:] - np.abs(a - b)[d,:]
+        c[1, d, :] = period[d, :] - np.abs(a - b)[d, :]
     for d in np_directions:
-        c[1,d,:] = c[0,d,:]
+        c[1, d, :] = c[0, d, :]
 
-    d = np.amin(c, axis=0)**2
+    d = np.amin(c, axis=0) ** 2
     r2 = d.sum(axis=0)
     if r2.size == 1:
-        return np.sqrt(r2[0,0])
+        return np.sqrt(r2[0, 0])
     return np.sqrt(r2)
+
 
 def periodic_ray(start, end, left=None, right=None):
     """
@@ -176,9 +165,16 @@ def periodic_ray(start, end, left=None, right=None):
     >>> start = yt.YTArray([0.5, 0.5, 0.5])
     >>> end = yt.YTArray([1.25, 1.25, 1.25])
     >>> periodic_ray(start, end)
-    [[YTArray([0.5, 0.5, 0.5]) (dimensionless), YTArray([1., 1., 1.]) (dimensionless)],
-     [YTArray([0., 0., 0.]) (dimensionless), YTArray([0.25, 0.25, 0.25]) (dimensionless)]]
-
+    [
+        [
+            YTArray([0.5, 0.5, 0.5]) (dimensionless),
+            YTArray([1., 1., 1.]) (dimensionless)
+        ],
+        [
+            YTArray([0., 0., 0.]) (dimensionless),
+            YTArray([0.25, 0.25, 0.25]) (dimensionless)
+        ]
+     ]
     """
 
     if left is None:
@@ -218,9 +214,9 @@ def periodic_ray(start, end, left=None, right=None):
             this_start[hit_right] -= dim[hit_right]
             this_end[hit_right] -= dim[hit_right]
 
-        nearest = vector.unit_array * \
-          np.array([close[q]([this_end[q], wall[q]]) \
-                    for q in range(start.size)])
+        nearest = vector.unit_array * np.array(
+            [close[q]([this_end[q], wall[q]]) for q in range(start.size)]
+        )
         dt = ((nearest - this_start) / vector)[bound].min()
         now = this_start + vector * dt
         close_enough = np.abs(now - nearest) / np.abs(vector.max()) < 1e-10
@@ -230,6 +226,7 @@ def periodic_ray(start, end, left=None, right=None):
         t += dt
 
     return segments
+
 
 def euclidean_dist(a, b):
     r"""Find the Euclidean distance between two points.
@@ -247,8 +244,8 @@ def euclidean_dist(a, b):
     Examples
     --------
     >>> a = [0.1, 0.1, 0.1]
-    >>> b = [0.9, 0,9, 0.9]
-    >>> period = 1.
+    >>> b = [0.9, 0, 9, 0.9]
+    >>> period = 1.0
     >>> dist = euclidean_dist(a, b)
     >>> dist
     1.38564064606
@@ -256,17 +253,19 @@ def euclidean_dist(a, b):
     """
     a = np.array(a)
     b = np.array(b)
-    if a.shape != b.shape: RuntimeError("Arrays must be the same shape.")
+    if a.shape != b.shape:
+        RuntimeError("Arrays must be the same shape.")
     c = a.copy()
     np.subtract(c, b, c)
     np.power(c, 2, c)
-    c = c.sum(axis = 0)
+    c = c.sum(axis=0)
     if isinstance(c, np.ndarray):
         np.sqrt(c, c)
     else:
         # This happens if a and b only have one entry.
         c = math.sqrt(c)
     return c
+
 
 def rotate_vector_3D(a, dim, angle):
     r"""Rotates the elements of an array around an axis by some angle.
@@ -292,8 +291,8 @@ def rotate_vector_3D(a, dim, angle):
     Examples
     --------
     >>> a = np.array([[1, 1, 0], [1, 0, 1], [0, 1, 1], [1, 1, 1], [3, 4, 5]])
-    >>> b = rotate_vector_3D(a, 2, np.pi/2)
-    >>> print b
+    >>> b = rotate_vector_3D(a, 2, np.pi / 2)
+    >>> print(b)
     [[  1.00000000e+00  -1.00000000e+00   0.00000000e+00]
     [  6.12323400e-17  -1.00000000e+00   1.00000000e+00]
     [  1.00000000e+00   6.12323400e-17   1.00000000e+00]
@@ -305,26 +304,39 @@ def rotate_vector_3D(a, dim, angle):
     if len(a.shape) == 1:
         mod = True
         a = np.array([a])
-    if a.shape[1] !=3:
-        raise SyntaxError("The second dimension of the array a must be == 3!")
+    if a.shape[1] != 3:
+        raise ValueError("The second dimension of the array a must be == 3!")
     if dim == 0:
-        R = np.array([[1, 0,0],
-            [0, np.cos(angle), np.sin(angle)],
-            [0, -np.sin(angle), np.cos(angle)]])
+        R = np.array(
+            [
+                [1, 0, 0],
+                [0, np.cos(angle), np.sin(angle)],
+                [0, -np.sin(angle), np.cos(angle)],
+            ]
+        )
     elif dim == 1:
-        R = np.array([[np.cos(angle), 0, -np.sin(angle)],
-            [0, 1, 0],
-            [np.sin(angle), 0, np.cos(angle)]])
+        R = np.array(
+            [
+                [np.cos(angle), 0, -np.sin(angle)],
+                [0, 1, 0],
+                [np.sin(angle), 0, np.cos(angle)],
+            ]
+        )
     elif dim == 2:
-        R = np.array([[np.cos(angle), np.sin(angle), 0],
-            [-np.sin(angle), np.cos(angle), 0],
-            [0, 0, 1]])
+        R = np.array(
+            [
+                [np.cos(angle), np.sin(angle), 0],
+                [-np.sin(angle), np.cos(angle), 0],
+                [0, 0, 1],
+            ]
+        )
     else:
-        raise SyntaxError("dim must be 0, 1, or 2!")
+        raise ValueError("dim must be 0, 1, or 2!")
     if mod:
         return np.dot(R, a.T).T[0]
     else:
         return np.dot(R, a.T).T
+
 
 def modify_reference_frame(CoM, L, P=None, V=None):
     r"""Rotates and translates data into a new reference frame to make
@@ -445,6 +457,7 @@ def modify_reference_frame(CoM, L, P=None, V=None):
     else:
         return L, P, V
 
+
 def compute_rotational_velocity(CoM, L, P, V):
     r"""Computes the rotational velocity for some data around an axis.
 
@@ -495,11 +508,12 @@ def compute_rotational_velocity(CoM, L, P, V):
     radperp = np.cross([0, 0, 1], P)
     # Find the component of the velocity along the radperp vector.
     # Unf., I don't think there's a better way to do this.
-    res = np.empty(V.shape[0], dtype='float64')
+    res = np.empty(V.shape[0], dtype="float64")
     for i, rp in enumerate(radperp):
         temp = np.dot(rp, V[i]) / np.dot(rp, rp) * rp
-        res[i] = np.dot(temp, temp)**0.5
+        res[i] = np.dot(temp, temp) ** 0.5
     return res
+
 
 def compute_parallel_velocity(CoM, L, P, V):
     r"""Computes the parallel velocity for some data around an axis.
@@ -546,7 +560,8 @@ def compute_parallel_velocity(CoM, L, P, V):
     # First we translate into the simple coordinates.
     L, P, V = modify_reference_frame(CoM, L, P, V)
     # And return just the z-axis velocities.
-    return V[:,2]
+    return V[:, 2]
+
 
 def compute_radial_velocity(CoM, L, P, V):
     r"""Computes the radial velocity for some data around an axis.
@@ -594,12 +609,13 @@ def compute_radial_velocity(CoM, L, P, V):
     # We find the tangential velocity by dotting the velocity vector
     # with the cylindrical radial vector for this point.
     # Unf., I don't think there's a better way to do this.
-    P[:,2] = 0
-    res = np.empty(V.shape[0], dtype='float64')
+    P[:, 2] = 0
+    res = np.empty(V.shape[0], dtype="float64")
     for i, rad in enumerate(P):
         temp = np.dot(rad, V[i]) / np.dot(rad, rad) * rad
-        res[i] = np.dot(temp, temp)**0.5
+        res[i] = np.dot(temp, temp) ** 0.5
     return res
+
 
 def compute_cylindrical_radius(CoM, L, P, V):
     r"""Compute the radius for some data around an axis in cylindrical
@@ -647,8 +663,9 @@ def compute_cylindrical_radius(CoM, L, P, V):
     L, P, V = modify_reference_frame(CoM, L, P, V)
     # Demote all the positions to the z=0 plane, which makes the distance
     # calculation very easy.
-    P[:,2] = 0
+    P[:, 2] = 0
     return np.sqrt((P * P).sum(axis=1))
+
 
 def ortho_find(vec1):
     r"""Find two complementary orthonormal vectors to a given vector.
@@ -741,21 +758,22 @@ def ortho_find(vec1):
         x2 = 1.0
         y2 = 0.0
         z2 = -(x1 / z1)
-        norm2 = (1.0 + z2 ** 2.0) ** (0.5)
+        norm2 = (1.0 + z2**2.0) ** (0.5)
     elif y1 != 0:
         x2 = 0.0
         z2 = 1.0
         y2 = -(z1 / y1)
-        norm2 = (1.0 + y2 ** 2.0) ** (0.5)
+        norm2 = (1.0 + y2**2.0) ** (0.5)
     else:
         y2 = 1.0
         z2 = 0.0
         x2 = -(y1 / x1)
-        norm2 = (1.0 + z2 ** 2.0) ** (0.5)
-    vec2 = np.array([x2,y2,z2])
+        norm2 = (1.0 + z2**2.0) ** (0.5)
+    vec2 = np.array([x2, y2, z2])
     vec2 /= norm2
     vec3 = np.cross(vec1, vec2)
     return vec1, vec2, vec3
+
 
 def quartiles(a, axis=None, out=None, overwrite_input=False):
     """
@@ -809,7 +827,7 @@ def quartiles(a, axis=None, out=None, overwrite_input=False):
 
     Examples
     --------
-    >>> a = np.arange(100).reshape(10,10)
+    >>> a = np.arange(100).reshape(10, 10)
     >>> a
     array([[ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9],
            [10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
@@ -823,10 +841,10 @@ def quartiles(a, axis=None, out=None, overwrite_input=False):
            [90, 91, 92, 93, 94, 95, 96, 97, 98, 99]])
     >>> mu.quartiles(a)
     array([ 24.5,  74.5])
-    >>> mu.quartiles(a,axis=0)
+    >>> mu.quartiles(a, axis=0)
     array([[ 15.,  16.,  17.,  18.,  19.,  20.,  21.,  22.,  23.,  24.],
            [ 65.,  66.,  67.,  68.,  69.,  70.,  71.,  72.,  73.,  74.]])
-    >>> mu.quartiles(a,axis=1)
+    >>> mu.quartiles(a, axis=1)
     array([[  1.5,  11.5,  21.5,  31.5,  41.5,  51.5,  61.5,  71.5,  81.5,
              91.5],
            [  6.5,  16.5,  26.5,  36.5,  46.5,  56.5,  66.5,  76.5,  86.5,
@@ -834,38 +852,38 @@ def quartiles(a, axis=None, out=None, overwrite_input=False):
     """
     if overwrite_input:
         if axis is None:
-            sorted = a.ravel()
-            sorted.sort()
+            a_sorted = sorted(a.ravel())
         else:
             a.sort(axis=axis)
-            sorted = a
+            a_sorted = a
     else:
-        sorted = np.sort(a, axis=axis)
+        a_sorted = np.sort(a, axis=axis)
     if axis is None:
         axis = 0
-    indexer = [slice(None)] * sorted.ndim
-    indices = [int(sorted.shape[axis]/4), int(sorted.shape[axis]*.75)]
+    indexer = [slice(None)] * a_sorted.ndim
+    indices = [int(a_sorted.shape[axis] / 4), int(a_sorted.shape[axis] * 0.75)]
     result = []
     for index in indices:
-        if sorted.shape[axis] % 2 == 1:
+        if a_sorted.shape[axis] % 2 == 1:
             # index with slice to allow mean (below) to work
-            indexer[axis] = slice(index, index+1)
+            indexer[axis] = slice(index, index + 1)
         else:
-            indexer[axis] = slice(index-1, index+1)
+            indexer[axis] = slice(index - 1, index + 1)
         # special cases for small arrays
-        if sorted.shape[axis] == 2:
+        if a_sorted.shape[axis] == 2:
             # index with slice to allow mean (below) to work
-            indexer[axis] = slice(index, index+1)
+            indexer[axis] = slice(index, index + 1)
         # Use mean in odd and even case to coerce data type
         # and check, use out array.
-        result.append(np.mean(sorted[tuple(indexer)], axis=axis, out=out))
+        result.append(np.mean(a_sorted[tuple(indexer)], axis=axis, out=out))
     return np.array(result)
+
 
 def get_perspective_matrix(fovy, aspect, z_near, z_far):
     """
     Given a field of view in radians, an aspect ratio, and a near
     and far plane distance, this routine computes the transformation matrix
-    corresponding to perspective projection using homogenous coordinates.
+    corresponding to perspective projection using homogeneous coordinates.
 
     Parameters
     ----------
@@ -900,19 +918,19 @@ def get_perspective_matrix(fovy, aspect, z_near, z_far):
     hardware that automatically performs the divide by w operation.
     See the following for more details about the OpenGL perspective matrices.
 
-    http://www.tomdalling.com/blog/modern-opengl/explaining-homogenous-coordinates-and-projective-geometry/
+    https://www.tomdalling.com/blog/modern-opengl/explaining-homogenous-coordinates-and-projective-geometry/
     http://www.songho.ca/opengl/gl_projectionmatrix.html
 
     """
 
     tan_half_fovy = np.tan(np.radians(fovy) / 2)
 
-    result = np.zeros( (4, 4), dtype = 'float32', order = 'C')
-    #result[0][0] = 1 / (aspect * tan_half_fovy)
-    #result[1][1] = 1 / tan_half_fovy
-    #result[2][2] = - (z_far + z_near) / (z_far - z_near)
-    #result[3][2] = -1
-    #result[2][3] = -(2 * z_far * z_near) / (z_far - z_near)
+    result = np.zeros((4, 4), dtype="float32", order="C")
+    # result[0][0] = 1 / (aspect * tan_half_fovy)
+    # result[1][1] = 1 / tan_half_fovy
+    # result[2][2] = - (z_far + z_near) / (z_far - z_near)
+    # result[3][2] = -1
+    # result[2][3] = -(2 * z_far * z_near) / (z_far - z_near)
 
     f = z_far
     n = z_near
@@ -920,23 +938,24 @@ def get_perspective_matrix(fovy, aspect, z_near, z_far):
     t = tan_half_fovy * n
     b = -t * aspect
     r = t * aspect
-    l = - t *  aspect
+    l = -t * aspect
 
     result[0][0] = (2 * n) / (r - l)
     result[2][0] = (r + l) / (r - l)
     result[1][1] = (2 * n) / (t - b)
     result[1][2] = (t + b) / (t - b)
     result[2][2] = -(f + n) / (f - n)
-    result[2][3] = -2*f*n/(f - n)
+    result[2][3] = -2 * f * n / (f - n)
     result[3][2] = -1
 
     return result
+
 
 def get_orthographic_matrix(maxr, aspect, z_near, z_far):
     """
     Given a field of view in radians, an aspect ratio, and a near
     and far plane distance, this routine computes the transformation matrix
-    corresponding to perspective projection using homogenous coordinates.
+    corresponding to perspective projection using homogeneous coordinates.
 
     Parameters
     ----------
@@ -972,7 +991,7 @@ def get_orthographic_matrix(maxr, aspect, z_near, z_far):
     See the following for more details about the OpenGL perspective matrices.
 
     http://www.scratchapixel.com/lessons/3d-basic-rendering/perspective-and-orthographic-projection-matrix/orthographic-projection-matrix
-    http://www.tomdalling.com/blog/modern-opengl/explaining-homogenous-coordinates-and-projective-geometry/
+    https://www.tomdalling.com/blog/modern-opengl/explaining-homogenous-coordinates-and-projective-geometry/
     http://www.songho.ca/opengl/gl_projectionmatrix.html
 
     """
@@ -982,17 +1001,18 @@ def get_orthographic_matrix(maxr, aspect, z_near, z_far):
     l = -r
     b = -t
 
-    result = np.zeros( (4, 4), dtype = 'float32', order = 'C')
+    result = np.zeros((4, 4), dtype="float32", order="C")
     result[0][0] = 2.0 / (r - l)
     result[1][1] = 2.0 / (t - b)
     result[2][2] = -2.0 / (z_far - z_near)
     result[3][3] = 1
 
-    result[3][0] = - (r+l)/(r-l)
-    result[3][1] = -(t+b)/(t-b)
+    result[3][0] = -(r + l) / (r - l)
+    result[3][1] = -(t + b) / (t - b)
     result[3][2] = -(z_far + z_near) / (z_far - z_near)
 
     return result
+
 
 def get_lookat_matrix(eye, center, up):
     """
@@ -1031,7 +1051,7 @@ def get_lookat_matrix(eye, center, up):
     s = np.cross(f, up) / np.linalg.norm(np.cross(f, up))
     u = np.cross(s, f)
 
-    result = np.zeros ( (4, 4), dtype = 'float32', order = 'C')
+    result = np.zeros((4, 4), dtype="float32", order="C")
 
     result[0][0] = s[0]
     result[0][1] = s[1]
@@ -1039,11 +1059,11 @@ def get_lookat_matrix(eye, center, up):
     result[1][0] = u[0]
     result[1][1] = u[1]
     result[1][2] = u[2]
-    result[2][0] =-f[0]
-    result[2][1] =-f[1]
-    result[2][2] =-f[2]
-    result[0][3] =-np.dot(s, eye)
-    result[1][3] =-np.dot(u, eye)
+    result[2][0] = -f[0]
+    result[2][1] = -f[1]
+    result[2][2] = -f[2]
+    result[0][3] = -np.dot(s, eye)
+    result[1][3] = -np.dot(u, eye)
     result[2][3] = np.dot(f, eye)
     result[3][3] = 1.0
     return result
@@ -1071,7 +1091,7 @@ def get_translate_matrix(dx, dy, dz):
         A new 4x4 2D array. Represents a translation by dx, dy
         and dz in each coordinate respectively.
     """
-    result = np.zeros( (4, 4), dtype = 'float32', order = 'C')
+    result = np.zeros((4, 4), dtype="float32", order="C")
 
     result[0][0] = 1.0
     result[1][1] = 1.0
@@ -1083,6 +1103,7 @@ def get_translate_matrix(dx, dy, dz):
     result[2][3] = dz
 
     return result
+
 
 def get_scale_matrix(dx, dy, dz):
     """
@@ -1106,7 +1127,7 @@ def get_scale_matrix(dx, dy, dz):
         A new 4x4 2D array. Represents a scaling by dx, dy, and dz
         in each coordinate respectively.
     """
-    result = np.zeros( (4, 4), dtype = 'float32', order = 'C')
+    result = np.zeros((4, 4), dtype="float32", order="C")
 
     result[0][0] = dx
     result[1][1] = dy
@@ -1114,6 +1135,7 @@ def get_scale_matrix(dx, dy, dz):
     result[3][3] = 1
 
     return result
+
 
 def get_rotation_matrix(theta, rot_vector):
     """
@@ -1142,17 +1164,17 @@ def get_rotation_matrix(theta, rot_vector):
 
     Examples
     --------
-    >>> a = [0,1,0]
+    >>> a = [0, 1, 0]
     >>> theta = 0.785398163  # pi/4
-    >>> rot = mu.get_rotation_matrix(theta,a)
+    >>> rot = mu.get_rotation_matrix(theta, a)
     >>> rot
     array([[ 0.70710678,  0.        ,  0.70710678],
            [ 0.        ,  1.        ,  0.        ],
            [-0.70710678,  0.        ,  0.70710678]])
-    >>> np.dot(rot,a)
+    >>> np.dot(rot, a)
     array([ 0.,  1.,  0.])
     # since a is an eigenvector by construction
-    >>> np.dot(rot,[1,0,0])
+    >>> np.dot(rot, [1, 0, 0])
     array([ 0.70710678,  0.        , -0.70710678])
     """
 
@@ -1162,24 +1184,42 @@ def get_rotation_matrix(theta, rot_vector):
     cost = np.cos(theta)
     sint = np.sin(theta)
 
-    R = np.array([[cost+ux**2*(1-cost), ux*uy*(1-cost)-uz*sint, ux*uz*(1-cost)+uy*sint],
-                  [uy*ux*(1-cost)+uz*sint, cost+uy**2*(1-cost), uy*uz*(1-cost)-ux*sint],
-                  [uz*ux*(1-cost)-uy*sint, uz*uy*(1-cost)+ux*sint, cost+uz**2*(1-cost)]])
+    R = np.array(
+        [
+            [
+                cost + ux**2 * (1 - cost),
+                ux * uy * (1 - cost) - uz * sint,
+                ux * uz * (1 - cost) + uy * sint,
+            ],
+            [
+                uy * ux * (1 - cost) + uz * sint,
+                cost + uy**2 * (1 - cost),
+                uy * uz * (1 - cost) - ux * sint,
+            ],
+            [
+                uz * ux * (1 - cost) - uy * sint,
+                uz * uy * (1 - cost) + ux * sint,
+                cost + uz**2 * (1 - cost),
+            ],
+        ]
+    )
 
     return R
 
+
 def quaternion_mult(q1, q2):
-    '''
+    """
 
     Multiply two quaternions. The inputs are 4-component numpy arrays
     in the order [w, x, y, z].
 
-    '''
-    w = q1[0]*q2[0] - q1[1]*q2[1] - q1[2]*q2[2] - q1[3]*q2[3]
-    x = q1[0]*q2[1] + q1[1]*q2[0] + q1[2]*q2[3] - q1[3]*q2[2]
-    y = q1[0]*q2[2] + q1[2]*q2[0] + q1[3]*q2[1] - q1[1]*q2[3]
-    z = q1[0]*q2[3] + q1[3]*q2[0] + q1[1]*q2[2] - q1[2]*q2[1]
+    """
+    w = q1[0] * q2[0] - q1[1] * q2[1] - q1[2] * q2[2] - q1[3] * q2[3]
+    x = q1[0] * q2[1] + q1[1] * q2[0] + q1[2] * q2[3] - q1[3] * q2[2]
+    y = q1[0] * q2[2] + q1[2] * q2[0] + q1[3] * q2[1] - q1[1] * q2[3]
+    z = q1[0] * q2[3] + q1[3] * q2[0] + q1[1] * q2[2] - q1[2] * q2[1]
     return np.array([w, x, y, z])
+
 
 def quaternion_to_rotation_matrix(quaternion):
     """
@@ -1200,22 +1240,23 @@ def quaternion_to_rotation_matrix(quaternion):
 
     R = np.empty((3, 3), dtype=np.float64)
 
-    R[0][0] = 1.0 - 2.0*y**2 - 2.0*z**2
-    R[0][1] = 2.0*x*y + 2.0*w*z
-    R[0][2] = 2.0*x*z - 2.0*w*y
+    R[0][0] = 1.0 - 2.0 * y**2 - 2.0 * z**2
+    R[0][1] = 2.0 * x * y + 2.0 * w * z
+    R[0][2] = 2.0 * x * z - 2.0 * w * y
 
-    R[1][0] = 2.0*x*y - 2.0*w*z
-    R[1][1] = 1.0 - 2.0*x**2 - 2.0*z**2
-    R[1][2] = 2.0*y*z + 2.0*w*x
+    R[1][0] = 2.0 * x * y - 2.0 * w * z
+    R[1][1] = 1.0 - 2.0 * x**2 - 2.0 * z**2
+    R[1][2] = 2.0 * y * z + 2.0 * w * x
 
-    R[2][0] = 2.0*x*z + 2.0*w*y
-    R[2][1] = 2.0*y*z - 2.0*w*x
-    R[2][2] = 1.0 - 2.0*x**2 - 2.0*y**2
+    R[2][0] = 2.0 * x * z + 2.0 * w * y
+    R[2][1] = 2.0 * y * z - 2.0 * w * x
+    R[2][2] = 1.0 - 2.0 * x**2 - 2.0 * y**2
 
     return R
 
+
 def rotation_matrix_to_quaternion(rot_matrix):
-    '''
+    """
 
     Convert a rotation matrix-based representation of an
     orientation to a quaternion. The input should be a
@@ -1224,7 +1265,7 @@ def rotation_matrix_to_quaternion(rot_matrix):
     "3D Math Primer for Graphics and Game Development" by
     Dunn and Parberry.
 
-    '''
+    """
     m11 = rot_matrix[0][0]
     m12 = rot_matrix[0][1]
     m13 = rot_matrix[0][2]
@@ -1241,35 +1282,35 @@ def rotation_matrix_to_quaternion(rot_matrix):
     four_z_squared_minus_1 = m33 - m11 - m22
     max_index = 0
     four_max_squared_minus_1 = four_w_squared_minus_1
-    if (four_x_squared_minus_1 > four_max_squared_minus_1):
+    if four_x_squared_minus_1 > four_max_squared_minus_1:
         four_max_squared_minus_1 = four_x_squared_minus_1
         max_index = 1
-    if (four_y_squared_minus_1 > four_max_squared_minus_1):
+    if four_y_squared_minus_1 > four_max_squared_minus_1:
         four_max_squared_minus_1 = four_y_squared_minus_1
         max_index = 2
-    if (four_z_squared_minus_1 > four_max_squared_minus_1):
+    if four_z_squared_minus_1 > four_max_squared_minus_1:
         four_max_squared_minus_1 = four_z_squared_minus_1
         max_index = 3
 
-    max_val = 0.5*np.sqrt(four_max_squared_minus_1 + 1.0)
+    max_val = 0.5 * np.sqrt(four_max_squared_minus_1 + 1.0)
     mult = 0.25 / max_val
 
-    if (max_index == 0):
+    if max_index == 0:
         w = max_val
         x = (m23 - m32) * mult
         y = (m31 - m13) * mult
         z = (m12 - m21) * mult
-    elif (max_index == 1):
+    elif max_index == 1:
         x = max_val
         w = (m23 - m32) * mult
         y = (m12 + m21) * mult
         z = (m31 + m13) * mult
-    elif (max_index == 2):
+    elif max_index == 2:
         y = max_val
         w = (m31 - m13) * mult
         x = (m12 + m21) * mult
         z = (m23 + m32) * mult
-    elif (max_index == 3):
+    elif max_index == 3:
         z = max_val
         w = (m12 - m21) * mult
         x = (m31 + m13) * mult
@@ -1277,27 +1318,31 @@ def rotation_matrix_to_quaternion(rot_matrix):
 
     return np.array([w, x, y, z])
 
+
 def get_sph_r(coords):
     # The spherical coordinates radius is simply the magnitude of the
     # coordinate vector.
 
     return np.sqrt(np.sum(coords**2, axis=0))
 
-def resize_vector(vector,vector_array):
+
+def resize_vector(vector, vector_array):
     if len(vector_array.shape) == 4:
-        res_vector = np.resize(vector,(3,1,1,1))
+        res_vector = np.resize(vector, (3, 1, 1, 1))
     else:
-        res_vector = np.resize(vector,(3,1))
+        res_vector = np.resize(vector, (3, 1))
     return res_vector
-    
+
+
 def normalize_vector(vector):
     # this function normalizes
     # an input vector
-    
+
     L2 = np.atleast_1d(np.linalg.norm(vector))
-    L2[L2==0] = 1.0
+    L2[L2 == 0] = 1.0
     vector = vector / L2
     return vector
+
 
 def get_sph_theta(coords, normal):
     # The angle (theta) with respect to the normal (J), is the arccos
@@ -1312,16 +1357,17 @@ def get_sph_theta(coords, normal):
 
     tile_shape = [1] + list(coords.shape)[1:]
 
-    J = np.tile(res_normal,tile_shape)
+    J = np.tile(res_normal, tile_shape)
 
-    JdotCoords = np.sum(J*coords,axis=0)
+    JdotCoords = np.sum(J * coords, axis=0)
 
-    with np.errstate(invalid='ignore'):
-        ret = np.arccos( JdotCoords / np.sqrt(np.sum(coords**2,axis=0)))
+    with np.errstate(invalid="ignore"):
+        ret = np.arccos(JdotCoords / np.sqrt(np.sum(coords**2, axis=0)))
 
     ret[np.isnan(ret)] = 0
 
     return ret
+
 
 def get_sph_phi(coords, normal):
     # We have freedom with respect to what axis (xprime) to define
@@ -1341,13 +1387,14 @@ def get_sph_phi(coords, normal):
     res_yprime = resize_vector(yprime, coords)
 
     tile_shape = [1] + list(coords.shape)[1:]
-    Jx = np.tile(res_xprime,tile_shape)
-    Jy = np.tile(res_yprime,tile_shape)
+    Jx = np.tile(res_xprime, tile_shape)
+    Jy = np.tile(res_yprime, tile_shape)
 
-    Px = np.sum(Jx*coords,axis=0)
-    Py = np.sum(Jy*coords,axis=0)
+    Px = np.sum(Jx * coords, axis=0)
+    Py = np.sum(Jy * coords, axis=0)
 
-    return np.arctan2(Py,Px)
+    return np.arctan2(Py, Px)
+
 
 def get_cyl_r(coords, normal):
     # The cross product of the normal (J) with a coordinate vector
@@ -1362,17 +1409,19 @@ def get_cyl_r(coords, normal):
     JcrossCoords = np.cross(J, coords, axisa=0, axisb=0, axisc=0)
     return np.sqrt(np.sum(JcrossCoords**2, axis=0))
 
+
 def get_cyl_z(coords, normal):
     # The dot product of the normal (J) with the coordinate vector
     # gives the cylindrical height.
 
     res_normal = resize_vector(normal, coords)
     res_normal = normalize_vector(res_normal)
-    
+
     tile_shape = [1] + list(coords.shape)[1:]
     J = np.tile(res_normal, tile_shape)
 
-    return np.sum(J*coords, axis=0)
+    return np.sum(J * coords, axis=0)
+
 
 def get_cyl_theta(coords, normal):
     # This is identical to the spherical phi component
@@ -1390,12 +1439,13 @@ def get_cyl_r_component(vectors, theta, normal):
     res_yprime = resize_vector(yprime, vectors)
 
     tile_shape = [1] + list(vectors.shape)[1:]
-    Jx = np.tile(res_xprime,tile_shape)
-    Jy = np.tile(res_yprime,tile_shape)
+    Jx = np.tile(res_xprime, tile_shape)
+    Jy = np.tile(res_yprime, tile_shape)
 
-    rhat = Jx*np.cos(theta) + Jy*np.sin(theta)
+    rhat = Jx * np.cos(theta) + Jy * np.sin(theta)
 
-    return np.sum(vectors*rhat,axis=0)
+    return np.sum(vectors * rhat, axis=0)
+
 
 def get_cyl_theta_component(vectors, theta, normal):
     # The theta component of a vector is the vector dotted with thetahat
@@ -1406,12 +1456,13 @@ def get_cyl_theta_component(vectors, theta, normal):
     res_yprime = resize_vector(yprime, vectors)
 
     tile_shape = [1] + list(vectors.shape)[1:]
-    Jx = np.tile(res_xprime,tile_shape)
-    Jy = np.tile(res_yprime,tile_shape)
+    Jx = np.tile(res_xprime, tile_shape)
+    Jy = np.tile(res_yprime, tile_shape)
 
-    thetahat = -Jx*np.sin(theta) + Jy*np.cos(theta)
+    thetahat = -Jx * np.sin(theta) + Jy * np.cos(theta)
 
-    return np.sum(vectors*thetahat, axis=0)
+    return np.sum(vectors * thetahat, axis=0)
+
 
 def get_cyl_z_component(vectors, normal):
     # The z component of a vector is the vector dotted with zhat
@@ -1423,7 +1474,8 @@ def get_cyl_z_component(vectors, normal):
     tile_shape = [1] + list(vectors.shape)[1:]
     zhat = np.tile(res_zprime, tile_shape)
 
-    return np.sum(vectors*zhat, axis=0)
+    return np.sum(vectors * zhat, axis=0)
+
 
 def get_sph_r_component(vectors, theta, phi, normal):
     # The r component of a vector is the vector dotted with rhat
@@ -1438,13 +1490,17 @@ def get_sph_r_component(vectors, theta, phi, normal):
 
     Jx, Jy, Jz = (
         YTArray(np.tile(rprime, tile_shape), "")
-        for rprime in (res_xprime, res_yprime, res_zprime))
+        for rprime in (res_xprime, res_yprime, res_zprime)
+    )
 
-    rhat = Jx*np.sin(theta)*np.cos(phi) + \
-           Jy*np.sin(theta)*np.sin(phi) + \
-           Jz*np.cos(theta)
+    rhat = (
+        Jx * np.sin(theta) * np.cos(phi)
+        + Jy * np.sin(theta) * np.sin(phi)
+        + Jz * np.cos(theta)
+    )
 
-    return np.sum(vectors*rhat, axis=0)
+    return np.sum(vectors * rhat, axis=0)
+
 
 def get_sph_phi_component(vectors, phi, normal):
     # The phi component of a vector is the vector dotted with phihat
@@ -1455,12 +1511,13 @@ def get_sph_phi_component(vectors, phi, normal):
     res_yprime = resize_vector(yprime, vectors)
 
     tile_shape = [1] + list(vectors.shape)[1:]
-    Jx = YTArray(np.tile(res_xprime,tile_shape), "")
-    Jy = YTArray(np.tile(res_yprime,tile_shape), "")
+    Jx = YTArray(np.tile(res_xprime, tile_shape), "")
+    Jy = YTArray(np.tile(res_yprime, tile_shape), "")
 
-    phihat = -Jx*np.sin(phi) + Jy*np.cos(phi)
+    phihat = -Jx * np.sin(phi) + Jy * np.cos(phi)
 
-    return np.sum(vectors*phihat, axis=0)
+    return np.sum(vectors * phihat, axis=0)
+
 
 def get_sph_theta_component(vectors, theta, phi, normal):
     # The theta component of a vector is the vector dotted with thetahat
@@ -1474,11 +1531,13 @@ def get_sph_theta_component(vectors, theta, phi, normal):
     tile_shape = [1] + list(vectors.shape)[1:]
     Jx, Jy, Jz = (
         YTArray(np.tile(rprime, tile_shape), "")
-        for rprime in (res_xprime, res_yprime, res_zprime))
+        for rprime in (res_xprime, res_yprime, res_zprime)
+    )
 
+    thetahat = (
+        Jx * np.cos(theta) * np.cos(phi)
+        + Jy * np.cos(theta) * np.sin(phi)
+        - Jz * np.sin(theta)
+    )
 
-    thetahat = Jx*np.cos(theta)*np.cos(phi) + \
-               Jy*np.cos(theta)*np.sin(phi) - \
-               Jz*np.sin(theta)
-
-    return np.sum(vectors*thetahat, axis=0)
+    return np.sum(vectors * thetahat, axis=0)
