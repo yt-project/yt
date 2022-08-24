@@ -19,7 +19,7 @@ def velocity_field(comp):
 
 
 class ChollaFieldInfo(FieldInfoContainer):
-    known_other_fields = (
+    known_other_fields: KnownFieldsT = (
         # Each entry here is of the form
         # ( "name", ("units", ["fields", "to", "alias"], # "display_name")),
         ("density", (rho_units, ["density"], None)),
