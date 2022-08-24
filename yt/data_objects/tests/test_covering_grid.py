@@ -215,7 +215,7 @@ def test_octree_cg():
 
 def test_smoothed_covering_grid_2d_dataset():
     ds = fake_random_ds([32, 32, 1], nprocs=4)
-    ds.force_periodicity()
+    ds.set_periodicity((True, True, True))
     scg = ds.smoothed_covering_grid(1, [0.0, 0.0, 0.0], [32, 32, 1])
     assert_equal(scg[("gas", "density")].shape, [32, 32, 1])
 
