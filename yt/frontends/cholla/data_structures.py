@@ -22,8 +22,6 @@ class ChollaGrid(AMRGridPatch):
         self.Level = level
         self.ActiveDimensions = dims
 
-    def __repr__(self):
-        return "ChollaGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
 
 
 class ChollaHierarchy(GridIndex):
