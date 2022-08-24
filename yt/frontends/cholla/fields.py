@@ -1,6 +1,7 @@
 import numpy as np
 from unyt import Zsun
 
+from yt._typing import KnownFieldsT
 from yt.fields.field_info_container import FieldInfoContainer
 from yt.utilities.physical_constants import kboltz, mh
 
