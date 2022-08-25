@@ -20,7 +20,7 @@ def get_radius(data, field_prefix, ftype):
     for i, ax in enumerate("xyz"):
         pos = data[ftype, f"{field_prefix}{ax}"]
         if str(pos.units) != "code_length":
-            pos.convert_to_units("code_length")
+            pos = pos.to("code_length")
         np.subtract(
             pos.d,
             center[i].d,
