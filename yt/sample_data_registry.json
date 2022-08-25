@@ -48,7 +48,7 @@
     "url": "https://yt-project.org/data/CfRadialGrid.tar.gz"
   },
   "ChollaSimple.tar.gz": {
-    "hash": "b9b73eda41a7a4e7d2e5b8e263f4230334d316f003da616648002f913c655c43",
+    "hash": "aa277471f694f9de2e46c190efd8cd631c0694044aa29cb8431f127319774d73",
     "load_kwargs": {},
     "load_name": "0.h5",
     "url": "https://yt-project.org/data/ChollaSimple.tar.gz"
