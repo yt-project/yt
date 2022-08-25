@@ -29,6 +29,9 @@ class EnzoEIOHandler(BaseIOHandler):
             mass_flag = nested_dict_get(
                 self.ds.parameters, ("Particle", "mass_is_mass"), default=None
             )
+        # the historic approach for initializing the value of "mass_is_mass"
+        # was unsound (and could yield a random value). Thus we should only
+        # check for the parameter's existence and not its value 
         self._particle_mass_is_mass = mass_flag is not None
 
     def _read_field_names(self, grid):
