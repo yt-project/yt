@@ -171,10 +171,10 @@ answer_tests:
   local_axialpix_009: # PR 3818
     - yt/geometry/coordinates/tests/test_axial_pixelization.py:test_axial_pixelization
 
-  local_cylindrical_background_014:  # PR 3818
+  local_cylindrical_background_015:  # PR 3818, 3986
     - yt/geometry/coordinates/tests/test_cylindrical_coordinates.py:test_noise_plots
 
-  local_spherical_background_008:  # PR 3818
+  local_spherical_background_009:  # PR 3818, 3986
     - yt/geometry/coordinates/tests/test_spherical_coordinates.py:test_noise_plots
 
   #local_particle_trajectory_001:

@@ -7,6 +7,7 @@ import numpy as np
 import unyt as un
 from matplotlib.colors import Colormap, LogNorm, Normalize, SymLogNorm
 from packaging.version import Version
+from unyt import unyt_quantity
 
 from yt._typing import Quantity, Unit
 from yt.config import ytcfg
@@ -330,45 +331,22 @@ class NormHandler:
             # allowing to toggle between lin and log scaling without detailed user input
             norm_type = self.norm_type
         else:
-            if kw["vmin"] == kw["vmax"] or not np.any(np.isfinite(data)):
+            if kw["vmin"] == kw["vmax"] or not np.any(finite_values_mask):
                 norm_type = Normalize
             elif kw["vmin"] <= 0:
+                # note: see issue 3944 (and PRs and issues linked therein) for a
+                # discussion on when to switch to SymLog and related questions
+                # of how to calculate a default linthresh value.
                 norm_type = SymLogNorm
-            elif (
-                Version("3.3") <= MPL_VERSION < Version("3.5")
-                and kw["vmin"] == 0
-                and kw["vmax"] > 0
-            ):
-                # normally, a LogNorm scaling would still be OK here because
-                # LogNorm will mask 0 values when calculating vmin. But
-                # due to a bug in matplotlib's imshow, if the data range
-                # spans many orders of magnitude while containing zero points
-                # vmin can get rescaled to 0, resulting in an error when the image
-                # gets drawn. So here we switch to symlog to avoid that until
-                # a fix is in -- see PR #3161 and linked issue.
-                cutoff_sigdigs = 15
-                if (
-                    np.log10(np.nanmax(data[np.isfinite(data)]))
-                    - np.log10(np.nanmin(data[data > 0]))
-                    > cutoff_sigdigs
-                ):
-                    norm_type = SymLogNorm
-                else:
-                    norm_type = LogNorm
             else:
                 norm_type = LogNorm
 
         if norm_type is SymLogNorm:
-            # if cblinthresh is not specified, try to come up with a reasonable default
-            min_abs_val, max_abs_val = np.sort(
-                np.abs((self.to_float(np.nanmin(data)), self.to_float(np.nanmax(data))))
-            )
             if self.linthresh is not None:
                 linthresh = self.to_float(self.linthresh)
-            elif min_abs_val > 0:
-                linthresh = min_abs_val
             else:
-                linthresh = max_abs_val / 1000
+                linthresh = self._guess_linthresh(data[finite_values_mask])
+
             kw.setdefault("linthresh", linthresh)
             if MPL_VERSION >= Version("3.2"):
                 # note that this creates an inconsistency between mpl versions
@@ -377,6 +355,54 @@ class NormHandler:
                 kw.setdefault("base", 10)
 
         return norm_type(*args, **kw)
+
+    def _guess_linthresh(self, finite_plot_data):
+        # finite_plot_data is the ImageArray or ColorbarHandler data, already
+        # filtered to be finite values
+
+        # get the extrema for the negative and positive values separately
+        # neg_min -> neg_max -> 0 -> pos_min -> pos_max
+        def get_minmax(data):
+            if len(data) > 0:
+                return np.nanmin(data), np.nanmax(data)
+            return None, None
+
+        pos_min, pos_max = get_minmax(finite_plot_data[finite_plot_data > 0])
+        neg_min, neg_max = get_minmax(finite_plot_data[finite_plot_data < 0])
+
+        has_pos = pos_min is not None
+        has_neg = neg_min is not None
+
+        # the starting guess is the absolute value of the point closest to 0
+        # (remember: neg_max is closer to 0 than neg_min)
+        if has_pos and has_neg:
+            linthresh = np.min((-neg_max, pos_min))
+        elif has_pos:
+            linthresh = pos_min
+        elif has_neg:
+            linthresh = -neg_max
+        else:
+            # this condition should be handled before here in get_norm
+            raise RuntimeError("No finite data points.")
+
+        log10_linthresh = np.log10(linthresh)
+
+        # if either the pos or neg ranges exceed cutoff_sigdigs, then
+        # linthresh is shifted to decrease the range to avoid floating point
+        # precision errors in the normalization.
+        cutoff_sigdigs = 15  # max allowable range in significant digits
+        if has_pos and np.log10(pos_max) - log10_linthresh > cutoff_sigdigs:
+            linthresh = pos_max / (10.0**cutoff_sigdigs)
+            log10_linthresh = np.log10(linthresh)
+
+        if has_neg and np.log10(-neg_min) - log10_linthresh > cutoff_sigdigs:
+            linthresh = np.abs(neg_min) / (10.0**cutoff_sigdigs)
+
+        if isinstance(linthresh, unyt_quantity):
+            # if the original plot_data has units, linthresh will have units here
+            return self.to_float(linthresh)
+
+        return linthresh
 
 
 class ColorbarHandler:
