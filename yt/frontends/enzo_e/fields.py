@@ -67,11 +67,13 @@ class EnzoEFieldInfo(FieldInfoContainer):
 
     def setup_energy_field(self):
         unit_system = self.ds.unit_system
-        # check if we need to include magnetic energy
+        # check if we have a field for internal energy
+        has_ie_field = ("enzoe", "specific_internal_energy") in self.field_list
+        # check if we need to account for magnetic energy
         has_magnetic = "bfield_x" in self.ds.parameters["Field"]["list"]
 
         # identify if the dual energy formalism is in use:
-        if self.ds.parameters['uses_dual_energy']:
+        if self.ds.parameters['uses_dual_energy'] and has_ie_field:
             self.alias(
                 ("gas", "specific_thermal_energy"),
                 ("enzoe", "specific_internal_energy"),
@@ -83,9 +85,6 @@ class EnzoEFieldInfo(FieldInfoContainer):
                     data["enzoe", "total_energy"]
                     - 0.5 * data["gas", "velocity_magnitude"] ** 2.0
                 )
-
-            # check if we need to include magnetic energy
-            has_magnetic = "bfield_x" in self.ds.parameters["Field"]["list"]
 
             if not has_magnetic:
                 # thermal energy = total energy - kinetic energy
