@@ -15,6 +15,7 @@ from yt.frontends.enzo_e.misc import (
     get_root_blocks,
     is_parent,
     nested_dict_get,
+    get_listed_subparam
 )
 from yt.funcs import get_pbar, setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
@@ -464,18 +465,15 @@ class EnzoEDataset(Dataset):
             self.gamma = nested_dict_get(self.parameters, ("Field", "gamma"))
 
             uses_de = False
-            method_list = nested_dict_get(
-                self.parameters,
-                ("Method", "list"),
-                default = []
-            )
             for method in ("ppm", "mhd_vlct"):
-                if method in method_list:
-                    uses_de = nested_dict_get(
-                        self.parameters,
-                        ("Method", method, "dual_energy"),
-                        default = False
-                    )
+                subparams = get_listed_subparam(
+                    self.parameters,
+                    "Method",
+                    method,
+                    default = None
+                )
+                if subparams is not None:
+                    uses_de = subparams.get("dual_energy", False)
         self.parameters['uses_dual_energy'] = uses_de
 
     def _set_code_unit_attributes(self):
