@@ -65,23 +65,16 @@ class EnzoEFieldInfo(FieldInfoContainer):
         self.setup_energy_field()
         setup_magnetic_field_aliases(self, "enzoe", [f"bfield_{ax}" for ax in "xyz"])
 
-    def uses_dual_energy_formalism(self):
-        for name in ["ppm", "mhd_vlct"]:
-            param = nested_dict_get(self.ds.parameters, ("Method", name), None)
-            if (param is not None) and param.get("dual_energy", False):
-                return True
-        return False
-
     def setup_energy_field(self):
         unit_system = self.ds.unit_system
         # check if we need to include magnetic energy
         has_magnetic = "bfield_x" in self.ds.parameters["Field"]["list"]
 
         # identify if the dual energy formalism is in use:
-        if self.uses_dual_energy_formalism():
+        if self.ds.parameters['uses_dual_energy']:
             self.alias(
                 ("gas", "specific_thermal_energy"),
-                ("enzop", "specific_internal_energy"),
+                ("enzoe", "specific_internal_energy"),
             )
         else:
 

@@ -356,8 +356,18 @@ class EnzoEDataset(Dataset):
             with open(lcfn) as lf:
                 self.parameters = libconf.load(lf)
 
-            cosmo = nested_dict_get(self.parameters, ("Physics", "cosmology"))
-            if cosmo is not None:
+            # Enzo-E ignores all cosmology parameters if "cosmology" is not in
+            # the Physics:list parameter
+            physics_list = nested_dict_get(
+                self.parameters,
+                ("Physics", "list"),
+                default = []
+            )
+            if "cosmology" in physics_list:
+                cosmo = nested_dict_get(
+                    self.parameters,
+                    ("Physics", "cosmology")
+                )
                 self.cosmological_simulation = 1
                 co_pars = [
                     "hubble_constant_now",
@@ -422,7 +432,51 @@ class EnzoEDataset(Dataset):
             self.current_redshift = co.z_from_t(self.current_time * self.time_unit)
 
         self._periodicity += (False,) * (3 - self.dimensionality)
-        self.gamma = nested_dict_get(self.parameters, ("Field", "gamma"))
+        self._parse_fluid_prop_params()
+
+    def _parse_fluid_prop_params(self):
+        """
+        Parse the fluid properties.
+        """
+
+        fp_params = nested_dict_get(
+            self.parameters,
+            ("Physics", "fluid_props"),
+            default = None
+        )
+
+        if fp_params is not None:
+            # in newer versions of enzo-e, this data is specified in a
+            # centralized parameter group called Physics:fluid_props
+            # -  for internal reasons related to backwards compatability,
+            #    treatment of this physics-group is somewhat special (compared
+            #    to the cosmology group). The parameters in this group are
+            #    honored even if Physics:list does not include "fluid_props"
+            self.gamma = nested_dict_get(fp_params, ("eos", "gamma"))
+            de_type = nested_dict_get(
+                fp_params,
+                ("dual_energy", "type"),
+                default = "disabled"
+            )
+            uses_de = de_type != "disabled"
+        else:
+            # in older versions, these parameters were more scattered
+            self.gamma = nested_dict_get(self.parameters, ("Field", "gamma"))
+
+            uses_de = False
+            method_list = nested_dict_get(
+                self.parameters,
+                ("Method", "list"),
+                default = []
+            )
+            for method in ("ppm", "mhd_vlct"):
+                if method in method_list:
+                    uses_de = nested_dict_get(
+                        self.parameters,
+                        ("Method", method, "dual_energy"),
+                        default = False
+                    )
+        self.parameters['uses_dual_energy'] = uses_de
 
     def _set_code_unit_attributes(self):
         if self.cosmological_simulation:
