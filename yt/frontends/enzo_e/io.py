@@ -20,7 +20,7 @@ class EnzoEIOHandler(BaseIOHandler):
         )
 
         # Determine if particle masses are actually masses or densities.
-        if self.ds.parameters['version_string'] is not None:
+        if self.ds.parameters['version'] is not None:
             # they're masses for enzo-e versions that record a version string
             mass_flag = True
         else:

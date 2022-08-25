@@ -403,7 +403,7 @@ class EnzoEDataset(Dataset):
             version = fh.attrs.get('version').tobytes().decode('ascii')
         else:
             version = None # earliest recorded version is '0.9.0'
-        self.parameters["version_string"] = version
+        self.parameters["version"] = version
 
         # all blocks are the same size
         ablock = fh[list(fh.keys())[0]]
