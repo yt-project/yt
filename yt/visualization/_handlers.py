@@ -7,6 +7,7 @@ import numpy as np
 import unyt as un
 from matplotlib.colors import Colormap, LogNorm, Normalize, SymLogNorm
 from packaging.version import Version
+from unyt import unyt_quantity
 
 from yt._typing import Quantity, Unit
 from yt.config import ytcfg
@@ -329,11 +330,9 @@ class NormHandler:
             if kw["vmin"] == kw["vmax"] or not np.any(finite_values_mask):
                 norm_type = Normalize
             elif kw["vmin"] <= 0:
-                # note: matplotlib >= 3.5.2 could use LogNorm here if vmin==0
-                # if we do the following: set vmin to the min nonzero value and
-                # supply the interpolation_stage='rgba' keyword arg to imshow.
-                # this would, however, change default behavior and break answer
-                # tests, so needs a wider discussion.
+                # note: see issue 3944 (and PRs and issues linked therein) for a
+                # discussion on when to switch to SymLog and related questions
+                # of how to calculate a default linthresh value.
                 norm_type = SymLogNorm
             else:
                 norm_type = LogNorm
@@ -380,7 +379,7 @@ class NormHandler:
             linthresh = -neg_max
         else:
             # this condition should be handled before here in get_norm
-            raise RuntimeError("No negative or positive values")
+            raise RuntimeError("No finite data points.")
 
         log10_linthresh = np.log10(linthresh)
 

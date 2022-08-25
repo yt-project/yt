@@ -1001,8 +1001,9 @@ One can switch to `symlog
 <https://matplotlib.org/stable/api/_as_gen/matplotlib.colors.SymLogNorm.html?highlight=symlog#matplotlib.colors.SymLogNorm>`_
 by providing a "linear threshold" (``linthresh``) value.
 With ``linthresh="auto"`` yt will switch to symlog norm and guess an appropriate value
-automatically. Specifically the minimum absolute value in the image is used
-unless it's zero, in which case yt uses 1/1000 of the maximum value.
+automatically, with different behavior depending on the dynamic range of the data.
+When the dynamic range of the symlog scale is less than 15 orders of magnitude, the
+linthresh value will be the minimum absolute nonzero value, as in
 
 .. python-script::
 
@@ -1013,9 +1014,10 @@ unless it's zero, in which case yt uses 1/1000 of the maximum value.
    slc.set_log(("gas", "density"), linthresh="auto")
    slc.save()
 
-
-In some cases, you might find that the automatically selected linear threshold is not
-really suited to your dataset, for instance
+When the dynamic range of the symlog scale exceeds 15 orders of magnitude, the
+linthresh value is calculated as 1/10\ :sup:`15` of the maximum nonzero value in
+order to avoid possible floating point precision issues. The following plot
+triggers the dynamic range cutoff
 
 .. python-script::
 
@@ -1026,7 +1028,9 @@ really suited to your dataset, for instance
    p.set_log(("gas", "density"), linthresh="auto")
    p.save()
 
-An explicit value can be passed instead
+In the previous example, it is actually safe to expand the dynamic range and in
+other cases you may find that the selected linear threshold is not well suited to
+your dataset. To pass an explicit value instead
 
 .. python-script::
 
