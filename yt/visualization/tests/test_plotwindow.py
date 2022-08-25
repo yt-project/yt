@@ -783,7 +783,7 @@ def test_symlog_extremely_small_vals():
     d = {"scalar_spans_0": arr, "tiny_vmax": arr2, "scalar_tiny_with_0": arr3}
 
     ds = load_uniform_grid(d, shape)
-    for field in d.keys():
+    for field in d:
         p = SlicePlot(ds, "z", field)
         p["stream", field]
 
@@ -802,7 +802,7 @@ def test_symlog_linthresh_gt_vmax():
     d = {"linthresh_gt_vmax": arr, "linthresh_lt_vmin": arr2}
 
     ds = load_uniform_grid(d, shape)
-    for field in d.keys():
+    for field in d:
         p = SlicePlot(ds, "z", field)
         p["stream", field]
 

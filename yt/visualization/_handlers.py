@@ -373,13 +373,13 @@ class NormHandler:
         # the starting guess is the absolute value of the point closest to 0
         # (remember: neg_max is closer to 0 than neg_min)
         if has_pos and has_neg:
-            linthresh = np.min((np.abs(neg_max), pos_min))
+            linthresh = np.min((-neg_max, pos_min))
         elif has_pos:
             linthresh = pos_min
         elif has_neg:
-            linthresh = np.abs(neg_max)
+            linthresh = -neg_max
         else:
-            # this condition should handled before here in get_norm
+            # this condition should be handled before here in get_norm
             raise RuntimeError("No negative or positive values")
 
         log10_linthresh = np.log10(linthresh)
@@ -387,15 +387,15 @@ class NormHandler:
         # if either the pos or neg ranges exceed cutoff_sigdigs, then
         # linthresh is shifted to decrease the range to avoid floating point
         # precision errors in the normalization.
-        cutoff_sigdigs = 15.0  # max allowable range in significant digits
+        cutoff_sigdigs = 15  # max allowable range in significant digits
         if has_pos and np.log10(pos_max) - log10_linthresh > cutoff_sigdigs:
             linthresh = pos_max / (10.0**cutoff_sigdigs)
             log10_linthresh = np.log10(linthresh)
 
-        if has_neg and np.log10(np.abs(neg_min)) - log10_linthresh > cutoff_sigdigs:
+        if has_neg and np.log10(-neg_min) - log10_linthresh > cutoff_sigdigs:
             linthresh = np.abs(neg_min) / (10.0**cutoff_sigdigs)
 
-        if hasattr(linthresh, "units"):
+        if isinstance(linthresh, unyt_quantity):
             # if the original plot_data has units, linthresh will have units here
             return self.to_float(linthresh)
 
