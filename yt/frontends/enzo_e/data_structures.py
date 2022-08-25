@@ -399,6 +399,11 @@ class EnzoEDataset(Dataset):
         fh = h5py.File(os.path.join(self.directory, fn0), "r")
         self.domain_left_edge = fh.attrs["lower"]
         self.domain_right_edge = fh.attrs["upper"]
+        if 'version' in fh.attrs:
+            version = fh.attrs.get('version').tobytes().decode('ascii')
+        else:
+            version = None # earliest recorded version is '0.9.0'
+        self.parameters["version_string"] = version
 
         # all blocks are the same size
         ablock = fh[list(fh.keys())[0]]
