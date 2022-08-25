@@ -8,16 +8,16 @@ _fields = (
     ("gas", "density"),
 )
 
-cholla_0 = "cholla_0.h5"
+ChollaSimple = "ChollaSimple/0.h5"
 
 
-@requires_file(cholla_0)
+@requires_file(ChollaSimple)
 def test_ChollaDataset():
-    assert isinstance(data_dir_load(cholla_0), ChollaDataset)
+    assert isinstance(data_dir_load(ChollaSimple), ChollaDataset)
 
 
-@requires_file(cholla_0)
-def test_cholla_0_fields():
+@requires_file(ChollaSimple)
+def test_ChollaSimple_fields():
 
     expected_fields = [
         "Energy",
@@ -29,8 +29,8 @@ def test_cholla_0_fields():
         "scalar0",
     ]
 
-    ds = yt.load(cholla_0)
-    assert_equal(str(ds), "cholla_0.h5")
+    ds = yt.load(ChollaSimple)
+    assert_equal(str(ds), "0.h5")
     ad = ds.all_data()
 
     # Check all the expected fields exist and can be accessed
@@ -42,8 +42,8 @@ def test_cholla_0_fields():
         ad["cholla", field]
 
 
-@requires_file(cholla_0)
-def test_cholla_0_derived_fields():
+@requires_file(ChollaSimple)
+def test_ChollaSimple_derived_fields():
 
     expected_derived_fields = [
         "density",
@@ -53,7 +53,7 @@ def test_cholla_0_derived_fields():
         "metallicity",
     ]
 
-    ds = yt.load(cholla_0)
+    ds = yt.load(ChollaSimple)
     ad = ds.all_data()
 
     # Check all the expected fields exist and can be accessed
