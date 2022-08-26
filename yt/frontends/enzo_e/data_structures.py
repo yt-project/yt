@@ -365,10 +365,6 @@ class EnzoEDataset(Dataset):
                 default = []
             )
             if "cosmology" in physics_list:
-                cosmo = nested_dict_get(
-                    self.parameters,
-                    ("Physics", "cosmology")
-                )
                 self.cosmological_simulation = 1
                 co_pars = [
                     "hubble_constant_now",
