@@ -34,7 +34,7 @@ class EnzoEFieldInfo(FieldInfoContainer):
         ("density", (rho_units, ["density"], None)),
         ("density_total", (rho_units, ["total_density"], None)),
         ("total_energy", (energy_units, ["specific_total_energy"], None)),
-        ("internal_energy", (energy_units, ["specific_internal_energy"], None)),
+        ("internal_energy", (energy_units, ["specific_thermal_energy"], None)),
         ("bfield_x", (b_units, [], None)),
         ("bfield_y", (b_units, [], None)),
         ("bfield_z", (b_units, [], None)),
@@ -72,7 +72,7 @@ class EnzoEFieldInfo(FieldInfoContainer):
     def setup_energy_field(self):
         unit_system = self.ds.unit_system
         # check if we have a field for internal energy
-        has_ie_field = ("enzoe", "specific_internal_energy") in self.field_list
+        has_ie_field = ("enzoe", "internal_energy") in self.field_list
         # check if we need to account for magnetic energy
         vlct_params = get_listed_subparam(
             self.ds.parameters,
@@ -82,13 +82,10 @@ class EnzoEFieldInfo(FieldInfoContainer):
         )
         has_magnetic = "no_bfield" != vlct_params.get("mhd_choice","no_bfield")
 
-        # identify if the dual energy formalism is in use:
-        if self.ds.parameters['uses_dual_energy'] and has_ie_field:
-            self.alias(
-                ("gas", "specific_thermal_energy"),
-                ("enzoe", "specific_internal_energy"),
-            )
-        else:
+        # define the ("gas", "specific_thermal_energy") field
+        # - this is already done for us if the simulation used the dual-energy
+        #   formalism AND ("enzoe", "internal_energy") was saved to disk
+        if not (self.ds.parameters['uses_dual_energy'] and has_ie_field):
 
             def _tot_minus_kin(field, data):
                 return (
