@@ -36,7 +36,6 @@ def test_ChollaSimple_fields():
     # Check all the expected fields exist and can be accessed
     for field in expected_fields:
         assert ("cholla", field) in ds.field_list
-        # assert ("gas", field) in ds.derived_field_list
 
         # test that field access works
         ad["cholla", field]
