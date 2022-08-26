@@ -20,7 +20,7 @@ class EnzoEIOHandler(BaseIOHandler):
         )
 
         # Determine if particle masses are actually masses or densities.
-        if self.ds.parameters['version'] is not None:
+        if self.ds.parameters["version"] is not None:
             # they're masses for enzo-e versions that record a version string
             mass_flag = True
         else:
@@ -31,7 +31,7 @@ class EnzoEIOHandler(BaseIOHandler):
             )
         # the historic approach for initializing the value of "mass_is_mass"
         # was unsound (and could yield a random value). Thus we should only
-        # check for the parameter's existence and not its value 
+        # check for the parameter's existence and not its value
         self._particle_mass_is_mass = mass_flag is not None
 
     def _read_field_names(self, grid):
