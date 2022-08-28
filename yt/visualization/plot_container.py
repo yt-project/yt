@@ -17,7 +17,7 @@ from yt._maintenance.deprecation import issue_deprecation_warning
 from yt._typing import Quantity
 from yt.config import ytcfg
 from yt.data_objects.time_series import DatasetSeries
-from yt.funcs import ensure_dir, is_scalar, is_sequence, iter_fields
+from yt.funcs import ensure_dir, is_scalar, is_sized, iter_fields
 from yt.units.unit_object import Unit  # type: ignore
 from yt.utilities.definitions import formatted_length_unit_names
 from yt.utilities.exceptions import YTConfigurationError, YTNotInsideNotebook
@@ -464,7 +464,7 @@ class PlotContainer(abc.ABC):
     def _set_figure_size(self, size):
         if size is None:
             self.figure_size = self.__class__._default_figure_size
-        elif is_sequence(size):
+        elif is_sized(size):
             if len(size) != 2:
                 raise TypeError(f"Expected a single float or a pair, got {size}")
             self.figure_size = float(size[0]), float(size[1])

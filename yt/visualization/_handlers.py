@@ -10,7 +10,7 @@ from packaging.version import Version
 
 from yt._typing import Quantity, Unit
 from yt.config import ytcfg
-from yt.funcs import get_brewer_cmap, is_sequence, mylog
+from yt.funcs import get_brewer_cmap, is_sized, mylog
 from yt.visualization._commons import MPL_VERSION
 from yt.visualization.color_maps import _get_cmap
 
@@ -122,7 +122,7 @@ class NormHandler:
         if isinstance(val, un.unyt_quantity):
             return self.ds.quan(val)
         elif (
-            is_sequence(val)
+            is_sized(val)
             and len(val) == 2
             and isinstance(val[0], Real)
             and isinstance(val[1], (str, un.Unit))
@@ -426,7 +426,7 @@ class ColorbarHandler:
             self._cmap = newval
         elif isinstance(newval, str):
             self._cmap = _get_cmap(newval)
-        elif is_sequence(newval):
+        elif is_sized(newval):
             # tuple colormaps are from palettable (or brewer2mpl)
             self._cmap = get_brewer_cmap(newval)
         else:
