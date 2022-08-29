@@ -79,7 +79,7 @@ class NiftiDataset(Dataset):
         )
         self.storage_filename = storage_filename
         # refinement factor between a grid and its subgrid
-        # self.refine_by = 2
+        self.refine_by = 2
 
     def _set_code_unit_attributes(self):
         # This is where quantities are created that represent the various
