@@ -5,9 +5,9 @@ from yt.fields.field_info_container import FieldInfoContainer
 from yt.fields.magnetic_field import setup_magnetic_field_aliases
 from yt.fields.particle_fields import add_union_field
 from yt.frontends.enzo_e.misc import (
+    get_listed_subparam,
     get_particle_mass_correction,
     nested_dict_get,
-    get_listed_subparam
 )
 
 rho_units = "code_mass / code_length**3"
@@ -74,18 +74,13 @@ class EnzoEFieldInfo(FieldInfoContainer):
         # check if we have a field for internal energy
         has_ie_field = ("enzoe", "internal_energy") in self.field_list
         # check if we need to account for magnetic energy
-        vlct_params = get_listed_subparam(
-            self.ds.parameters,
-            "Method",
-            "mhd_vlct",
-            {}
-        )
-        has_magnetic = "no_bfield" != vlct_params.get("mhd_choice","no_bfield")
+        vlct_params = get_listed_subparam(self.ds.parameters, "Method", "mhd_vlct", {})
+        has_magnetic = "no_bfield" != vlct_params.get("mhd_choice", "no_bfield")
 
         # define the ("gas", "specific_thermal_energy") field
         # - this is already done for us if the simulation used the dual-energy
         #   formalism AND ("enzoe", "internal_energy") was saved to disk
-        if not (self.ds.parameters['uses_dual_energy'] and has_ie_field):
+        if not (self.ds.parameters["uses_dual_energy"] and has_ie_field):
 
             def _tot_minus_kin(field, data):
                 return (

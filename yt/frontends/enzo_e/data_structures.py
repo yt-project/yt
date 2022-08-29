@@ -11,11 +11,11 @@ from yt.frontends.enzo_e.fields import EnzoEFieldInfo
 from yt.frontends.enzo_e.misc import (
     get_block_info,
     get_child_index,
+    get_listed_subparam,
     get_root_block_id,
     get_root_blocks,
     is_parent,
     nested_dict_get,
-    get_listed_subparam
 )
 from yt.funcs import get_pbar, setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
@@ -360,9 +360,7 @@ class EnzoEDataset(Dataset):
             # Enzo-E ignores all cosmology parameters if "cosmology" is not in
             # the Physics:list parameter
             physics_list = nested_dict_get(
-                self.parameters,
-                ("Physics", "list"),
-                default = []
+                self.parameters, ("Physics", "list"), default=[]
             )
             if "cosmology" in physics_list:
                 self.cosmological_simulation = 1
@@ -437,9 +435,7 @@ class EnzoEDataset(Dataset):
         """
 
         fp_params = nested_dict_get(
-            self.parameters,
-            ("Physics", "fluid_props"),
-            default = None
+            self.parameters, ("Physics", "fluid_props"), default=None
         )
 
         if fp_params is not None:
@@ -451,9 +447,7 @@ class EnzoEDataset(Dataset):
             #    honored even if Physics:list does not include "fluid_props"
             self.gamma = nested_dict_get(fp_params, ("eos", "gamma"))
             de_type = nested_dict_get(
-                fp_params,
-                ("dual_energy", "type"),
-                default = "disabled"
+                fp_params, ("dual_energy", "type"), default="disabled"
             )
             uses_de = de_type != "disabled"
         else:
@@ -463,14 +457,11 @@ class EnzoEDataset(Dataset):
             uses_de = False
             for method in ("ppm", "mhd_vlct"):
                 subparams = get_listed_subparam(
-                    self.parameters,
-                    "Method",
-                    method,
-                    default = None
+                    self.parameters, "Method", method, default=None
                 )
                 if subparams is not None:
                     uses_de = subparams.get("dual_energy", False)
-        self.parameters['uses_dual_energy'] = uses_de
+        self.parameters["uses_dual_energy"] = uses_de
 
     def _set_code_unit_attributes(self):
         if self.cosmological_simulation:
