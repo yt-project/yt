@@ -50,7 +50,7 @@ jobs:
             # answer tests use 'yield', so they require nose
             # they are also attached to a specific, occasionally updated, Python version
             # but it does *not* have to match the current minimal supported version
-            python-version: '3.7'
+            python-version: '3.9'
             dependencies: full
             tests-type: answer
             test-runner: nose
