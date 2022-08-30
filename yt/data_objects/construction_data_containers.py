@@ -691,7 +691,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
         )
         self._setup_data_source()
 
-        # determine if we need to extrapolate data for non-periodic domains
+        # extrapolate on non-periodic data if the grid reaches domain edges
         for i in range(3):
             if self.ds.periodicity[i]:
                 continue
