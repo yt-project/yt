@@ -696,38 +696,37 @@ class YTCoveringGrid(YTSelectionContainer3D):
             if self.ds.periodicity[i]:
                 continue
             if self.left_edge[i] < self.ds.domain_left_edge[i]:
-                self.ncell_lo_extrap[i] = np.rint(
+                self._ncell_lo_extrap[i] = np.rint(
                     (self.ds.domain_left_edge[i] - self.left_edge[i]) / self.dds[i]
                 )
             if self.right_edge[i] > self.ds.domain_right_edge[i]:
-                self.ncell_hi_extrap[i] = np.rint(
+                self._ncell_hi_extrap[i] = np.rint(
                     (self.right_edge[i] - self.ds.domain_right_edge[i]) / self.dds[i]
                 )
-            if self.ncell_lo_extrap[i] > 0 or self.ncell_hi_extrap[i] > 0:
-                self.extrap_nonperiodic[i] = True
+            if self._ncell_lo_extrap[i] > 0 or self._ncell_hi_extrap[i] > 0:
+                self._extrap_nonperiodic[i] = True
         # output warning if we need to extrapolate
-        if any(self.extrap_nonperiodic):
-            if np.count_nonzero(self.extrap_nonperiodic) == 1:
+        if any(self._extrap_nonperiodic):
+            if np.count_nonzero(self._extrap_nonperiodic) == 1:
                 extrap_dims = (
-                    "xyz"[np.where(self.extrap_nonperiodic)[0][0]] + " " + "dimension"
+                    "xyz"[np.where(self._extrap_nonperiodic)[0][0]] + " dimension"
                 )
-            if np.count_nonzero(self.extrap_nonperiodic) == 2:
+            if np.count_nonzero(self._extrap_nonperiodic) == 2:
                 extrap_dims = (
-                    "xyz"[np.where(self.extrap_nonperiodic)[0][0]]
+                    "xyz"[np.where(self._extrap_nonperiodic)[0][0]]
                     + " and "
-                    + "xyz"[np.where(self.extrap_nonperiodic)[0][1]]
+                    + "xyz"[np.where(self._extrap_nonperiodic)[0][1]]
                     + " dimensions"
                 )
-            if np.count_nonzero(self.extrap_nonperiodic) == 3:
+            if np.count_nonzero(self._extrap_nonperiodic) == 3:
                 extrap_dims = "x, y, and z dimensions"
-            warnings.warn(
+            mylog.warning(
                 "The region specified is outside of the "
                 "computational domain with non-periodic boundaries. "
                 "Therefore, we will extrapolate data for the "
-                f"{extrap_dims}.",
-                category=RuntimeWarning,
+                "%s.",
+                extrap_dims,
             )
-
         self.get_data(fields)
 
     def get_global_startindex(self):
@@ -1083,10 +1082,10 @@ class YTCoveringGrid(YTSelectionContainer3D):
         if self.comm.size > 1:
             for i in range(len(fields)):
                 output_fields[i] = self.comm.mpi_allreduce(output_fields[i], op="sum")
-        if any(self.extrap_nonperiodic):
+        if any(self._extrap_nonperiodic):
             for field in output_fields:
                 replace_nonperiodic_with_extrap(
-                    field, self.ncell_lo_extrap, self.ncell_hi_extrap
+                    field, self._ncell_lo_extrap, self._ncell_hi_extrap
                 )
         for name, v in zip(fields, output_fields):
             fi = self.ds._get_field_info(*name)
@@ -1551,10 +1550,10 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
 
     def _update_level_state(self, level_state):
         ls = level_state
-        if any(self.extrap_nonperiodic):
+        if any(self._extrap_nonperiodic):
             for field in level_state.fields:
                 replace_nonperiodic_with_extrap(
-                    field, self.ncell_lo_extrap, self.ncell_hi_extrap
+                    field, self._ncell_lo_extrap, self._ncell_hi_extrap
                 )
         if ls.current_level >= self.level:
             return
