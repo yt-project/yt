@@ -669,9 +669,9 @@ class YTCoveringGrid(YTSelectionContainer3D):
         self.level = level
         self.left_edge = self._sanitize_edge(left_edge)
         self.ActiveDimensions = self._sanitize_dims(dims)
-        self.extrap_nonperiodic = [False, False, False]
-        self.ncell_lo_extrap = np.array([0, 0, 0], dtype="int64")
-        self.ncell_hi_extrap = np.array([0, 0, 0], dtype="int64")
+        self._extrap_nonperiodic = [False, False, False]
+        self._ncell_lo_extrap = np.array([0, 0, 0], dtype="int64")
+        self._ncell_hi_extrap = np.array([0, 0, 0], dtype="int64")
 
         rdx = self.ds.domain_dimensions * self.ds.relative_refinement(0, level)
 
