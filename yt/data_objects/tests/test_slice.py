@@ -3,9 +3,9 @@ import tempfile
 from unittest import mock
 
 import numpy as np
+from unyt import Unit
 
 from yt.testing import assert_equal, fake_random_ds
-from yt.units.unit_object import Unit
 
 
 def setup():

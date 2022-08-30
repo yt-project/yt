@@ -7,13 +7,13 @@ import matplotlib
 import numpy as np
 from matplotlib.colors import Normalize
 from more_itertools import always_iterable
+from unyt import Unit
 from unyt.exceptions import UnitConversionError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
 from yt.funcs import fix_axis, fix_unitary, is_sequence, iter_fields, mylog, obj_length
-from yt.units.unit_object import Unit  # type: ignore
 from yt.units.unit_registry import UnitParseError  # type: ignore
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import (

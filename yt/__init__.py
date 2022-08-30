@@ -8,6 +8,8 @@ yt is a toolkit for analyzing and visualizing volumetric data.
 
 """
 from ._version import __version__, version_info  # isort: skip
+from unyt import define_unit
+
 import yt.units as units
 import yt.utilities.physical_constants as physical_constants
 from yt.data_objects.api import (
@@ -68,7 +70,6 @@ from yt.units import (
     uunion1d,
     uvstack,
 )
-from yt.units.unit_object import define_unit  # type: ignore
 from yt.utilities.logger import set_log_level, ytLogger as mylog
 
 frontends = _frontend_container()

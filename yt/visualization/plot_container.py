@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional, Tuple, Type, Union
 import matplotlib
 from matplotlib.colors import LogNorm, Normalize, SymLogNorm
 from matplotlib.font_manager import FontProperties
+from unyt import Unit
 from unyt.dimensions import length
 
 from yt._maintenance.deprecation import issue_deprecation_warning
@@ -18,7 +19,6 @@ from yt._typing import Quantity
 from yt.config import ytcfg
 from yt.data_objects.time_series import DatasetSeries
 from yt.funcs import ensure_dir, is_sequence, iter_fields
-from yt.units.unit_object import Unit  # type: ignore
 from yt.utilities.definitions import formatted_length_unit_names
 from yt.utilities.exceptions import YTConfigurationError, YTNotInsideNotebook
 from yt.visualization._commons import get_default_from_config

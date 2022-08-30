@@ -13,7 +13,7 @@ from unyt.array import (
     uunion1d,
     uvstack,
 )
-from unyt.unit_object import Unit, define_unit  # NOQA: F401
+from unyt.unit_object import Unit # NOQA: F401
 from unyt.unit_registry import UnitRegistry  # NOQA: Ffg401
 from unyt.unit_systems import UnitSystem  # NOQA: F401
 
@@ -22,6 +22,7 @@ from yt.units.physical_constants import _ConstantContainer
 from yt.units.unit_symbols import *
 from yt.units.unit_symbols import _SymbolContainer
 from yt.utilities.exceptions import YTArrayTooLargeToDisplay
+from yt.units.unit_object import define_unit
 
 YTArray = unyt_array
 

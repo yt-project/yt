@@ -10,6 +10,7 @@ from typing import Type
 import numpy as np
 import numpy.core.defchararray as np_char
 from more_itertools import always_iterable
+from unyt.exceptions import UnitParseError
 
 from yt.config import ytcfg
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
@@ -23,7 +24,6 @@ from yt.units.unit_lookup_table import (  # type: ignore
     default_unit_symbol_lut,
     unit_prefixes,
 )
-from yt.units.unit_object import UnitParseError  # type: ignore
 from yt.units.yt_array import YTQuantity
 from yt.utilities.decompose import decompose_array, get_psize
 from yt.utilities.file_handler import FITSFileHandler

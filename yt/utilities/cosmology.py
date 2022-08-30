@@ -1,9 +1,9 @@
 import functools
 
 import numpy as np
+from unyt import Unit
 
 from yt.units import dimensions
-from yt.units.unit_object import Unit  # type: ignore
 from yt.units.unit_registry import UnitRegistry  # type: ignore
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.physical_constants import (

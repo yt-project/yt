@@ -3,6 +3,7 @@ from numbers import Number as numeric_type
 from typing import Optional, Tuple
 
 import numpy as np
+from unyt import Unit
 from unyt.exceptions import UnitConversionError
 
 from yt._typing import KnownFieldsT
@@ -11,7 +12,6 @@ from yt.fields.field_exceptions import NeedsConfiguration
 from yt.funcs import mylog, obj_length, only_on_root
 from yt.geometry.geometry_handler import is_curvilinear
 from yt.units.dimensions import dimensionless  # type: ignore
-from yt.units.unit_object import Unit  # type: ignore
 from yt.utilities.exceptions import (
     YTCoordinateNotImplemented,
     YTDomainOverflow,

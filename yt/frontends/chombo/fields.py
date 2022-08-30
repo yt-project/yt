@@ -1,4 +1,5 @@
 import numpy as np
+from unyt import Unit
 
 from yt._typing import KnownFieldsT
 from yt.fields.field_info_container import (
@@ -7,7 +8,6 @@ from yt.fields.field_info_container import (
     particle_vector_functions,
     standard_particle_fields,
 )
-from yt.units.unit_object import Unit  # type: ignore
 from yt.utilities.exceptions import YTFieldNotFound
 
 rho_units = "code_mass / code_length**3"

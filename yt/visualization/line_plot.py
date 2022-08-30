@@ -3,9 +3,9 @@ from typing import Optional
 
 import numpy as np
 from matplotlib.colors import LogNorm, Normalize, SymLogNorm
+from unyt import Unit
 
 from yt.funcs import is_sequence, mylog
-from yt.units.unit_object import Unit  # type: ignore
 from yt.units.yt_array import YTArray
 from yt.visualization.plot_container import (
     BaseLinePlot,

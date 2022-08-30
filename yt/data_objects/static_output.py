@@ -15,6 +15,7 @@ from typing import DefaultDict, Dict, List, Optional, Set, Tuple, Type, Union
 
 import numpy as np
 from more_itertools import unzip
+from unyt import Unit, define_unit
 from unyt.exceptions import UnitConversionError, UnitParseError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
@@ -39,7 +40,6 @@ from yt.geometry.coordinates.api import (
 from yt.geometry.geometry_handler import Index
 from yt.units import UnitContainer, _wrap_display_ytarray, dimensions
 from yt.units.dimensions import current_mks  # type: ignore
-from yt.units.unit_object import Unit, define_unit  # type: ignore
 from yt.units.unit_registry import UnitRegistry  # type: ignore
 from yt.units.unit_systems import (  # type: ignore
     create_code_unit_system,
