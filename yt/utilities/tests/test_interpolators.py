@@ -4,7 +4,12 @@ import numpy as np
 
 import yt.utilities.linear_interpolators as lin
 from yt._maintenance.deprecation import VisibleDeprecationWarning
-from yt.testing import assert_array_almost_equal, assert_array_equal, fake_random_ds
+from yt.testing import (
+    assert_allclose,
+    assert_array_almost_equal,
+    assert_array_equal,
+    fake_random_ds,
+)
 from yt.utilities.lib.interpolators import (
     ghost_zone_interpolate,
     replace_nonperiodic_with_extrap,
@@ -169,10 +174,11 @@ def test_replace_nonperiodic_with_extrap():
             nbuf : nx[0] - nbuf, nbuf : nx[1] - nbuf, nbuf : nx[2] - nbuf
         ]
 
-        # Use fix_nonperiodic function to extrapolate data to buffer region
+        # Use replace_nonperiodic_with_extrap function to extrapolate data to
+        # buffer region
         replace_nonperiodic_with_extrap(
             field, np.array([nbuf, nbuf, nbuf]), np.array([nbuf, nbuf, nbuf])
         )
 
         # Since this function is linear, the extrapolation should be exact
-        assert_array_equal(field.ravel(), func.ravel())
+        assert_allclose(field.ravel(), func.ravel(), 1e-8, 1e-8)
