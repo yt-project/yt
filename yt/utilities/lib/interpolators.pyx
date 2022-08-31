@@ -171,22 +171,28 @@ def replace_nonperiodic_with_extrap(np.ndarray[np.float64_t, ndim=3] field,
                                     np.ndarray[np.int_t,     ndim=1] ncell_lo,
                                     np.ndarray[np.int_t,     ndim=1] ncell_hi):
     """
-    The purpose of this function is to extrapolate data from the interior of
-    the buffer region to replace the given data in the buffer region using a
-    first-order approximation.
+    The purpose of this function is to use linear extrapolation of
+    simulation data to approximate data just outside of the non-periodic
+    domain. Prior to evaluating this function, the array `field` contains data
+    that was obtained by assuming periodicity of the computational domain. This
+    function replaces the falsely-assumed periodic cells, indicated by
+    `ncell_lo` (for lower end of the array) and `ncell_hi` (for upper end of
+    the array), with values obtained via extrapolation of the data that was
+    not falsely-assumed periodic.
 
     Parameters
     ----------
     field : 3D array
         Three-dimensional data of the flowfield
     ncell_lo : 1D array of length 3
-        Number of buffer cells to replace on the low side along each axis
+        Number of cells to replace on the low side along each axis
     ncell_hi : 1D array of length 3
-        Number of buffer cells to replace on the high side along each axis
+        Number of cells to replace on the high side along each axis
 
     This is best illustrated through a one-dimensional example. Consider a
-    linear function: f(x) = x , and the `field` variable was filled using
-    periodicity, so we have the following data:
+    linear function: f(x) = x , x \in [0,4], and the `field` variable contains
+    values that were obtained by falsely-assuming periodicity of f(x). This
+    would result in the following data:
 
     -----------------------------------------------
     index:        0  |  1  |  2  |  3  |  4  |  5
@@ -197,14 +203,15 @@ def replace_nonperiodic_with_extrap(np.ndarray[np.float64_t, ndim=3] field,
     -----------------------------------------------
 
     where field.shape ---> (6,1,1), ncell_lo ---> (1,0,0), and
-    ncell_hi ---> (1,0,0) . For this example, we replace the value of
-    field[0,0,0] using linear extrapolation from field[1,0,0] and field[2,0,0],
-    similarly for upper boundary. Evaluating this function then yields the
-    following output of `field`:
+    ncell_hi ---> (1,0,0) . For this example, as indicated by `ncell_lo`, we
+    replace the value of field[0,0,0] using linear extrapolation from
+    field[1,0,0] and field[2,0,0]. We would then apply a similar technique for
+    the upper boundary. Evaluating this function then yields the following
+    output of `field`:
 
-    -------------------------------------------
-    field:   -0.5 | 0.5 | 1.5 | 2.5 | 3.5 | 4.5
-    -------------------------------------------
+    -----------------------------------------------
+    field:      -0.5 | 0.5 | 1.5 | 2.5 | 3.5 | 4.5
+    -----------------------------------------------
 
     This is particularly important for estimating gradients near non-periodic
     boundaries in the domain.
@@ -222,7 +229,7 @@ def replace_nonperiodic_with_extrap(np.ndarray[np.float64_t, ndim=3] field,
     lx, ly, lz = ncell_lo
     hx, hy, hz = ncell_hi
 
-    # Fix boundaries in the x direction
+    # Extrapolate in the x direction
     for j in range(ly, ny-hy):
         for k in range(lz, nz-hz):
             # Fix xlo
@@ -240,7 +247,7 @@ def replace_nonperiodic_with_extrap(np.ndarray[np.float64_t, ndim=3] field,
                 xm = 1.0 - xp
                 field[i, j, k] = xm*qm + xp*qp
 
-    # Fix boundaries in the y direction
+    # Extrapolate in the y direction
     for i in range(nx):
         for k in range(lz, nz-hz):
             # Fix ylo
@@ -258,7 +265,7 @@ def replace_nonperiodic_with_extrap(np.ndarray[np.float64_t, ndim=3] field,
                 ym = 1.0 - yp
                 field[i, j, k] = ym*qm + yp*qp
 
-    # Fix boundaries in the z direction
+    # Extrapolate in the z direction
     for i in range(nx):
         for j in range(ny):
             # Fix zlo
