@@ -293,20 +293,12 @@ class NormHandler:
         dvmin = dvmax = None
 
         finite_values_mask = np.isfinite(data)
-        # FUTURE: when the minimal supported version of numpy reaches 1.16 or newer,
-        # this complicated conditional can be simplified into
-        # if self.vmin not in (None, "min"):
-        if self.vmin is not None and not (
-            isinstance(self.vmin, str) and self.vmin == "min"
-        ):
+        if self.vmin not in (None, "min"):
             dvmin = self.to_float(self.vmin)
         elif np.any(finite_values_mask):
             dvmin = self.to_float(np.nanmin(data[finite_values_mask]))
 
-        # FUTURE: see above
-        if self.vmax is not None and not (
-            isinstance(self.vmax, str) and self.vmax == "max"
-        ):
+        if self.vmax not in (None, "max"):
             dvmax = self.to_float(self.vmax)
         elif np.any(finite_values_mask):
             dvmax = self.to_float(np.nanmax(data[finite_values_mask]))
