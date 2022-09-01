@@ -32,17 +32,20 @@ Here's a summary for most recent releases
 +------------+------------+----------------+-----------------+
 | yt release | Python 2.7 | Python3 min    | Python3 max     |
 +============+============+================+=================+
-| 4.1.x      | no         | 3.7            | 3.10 (expected) |
+| 4.1.x      | no         | 3.7            | 3.11 (expected) |
 +------------+------------+----------------+-----------------+
-| 4.0.x      | no         | 3.6            | 3.9             |
+| 4.0.x      | no         | 3.6            | 3.10            |
 +------------+------------+----------------+-----------------+
 | 3.6.x      | no         | 3.5            | 3.8             |
 +------------+------------+----------------+-----------------+
 | 3.5.x      | yes        | 3.4            | 3.5             |
 +------------+------------+----------------+-----------------+
 
-Where the Python3 max column is purely indicative and reflects the newest
-*guaranteed* compatible version.
+Mininum Python versions are strict requirements, while maximum
+indicates the newest version for which the yt development team
+provides pre-compiled binaries via PyPI and conda-forge.
+It may be possible to compile existing yt versions under more
+recent Python versions, though this is never guaranteed.
 
 
 Getting yt
