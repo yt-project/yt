@@ -12,7 +12,7 @@ requires = [
 
 [tool.black]
 line-length = 88
-target-version = ['py37']
+target-version = ['py38']
 include = '\.pyi?$'
 exclude = '''
 /(
@@ -134,7 +134,7 @@ ignore = [
 
 
 [tool.mypy]
-python_version = 3.7
+python_version = 3.8
 show_error_codes = true
 ignore_missing_imports = true
 warn_unused_configs = true
