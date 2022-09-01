@@ -1,7 +1,7 @@
 import os
 import shutil
-import sys
 import tempfile
+from importlib.metadata import version
 from importlib.util import find_spec
 from pathlib import Path
 
@@ -18,11 +18,6 @@ from yt.utilities.answer_testing.testing_utilities import (
     _streamline_for_io,
     data_dir_load,
 )
-
-if sys.version_info >= (3, 8):
-    from importlib.metadata import version
-else:
-    from importlib_metadata import version
 
 MPL_VERSION = Version(version("matplotlib"))
 NUMPY_VERSION = Version(version("numpy"))

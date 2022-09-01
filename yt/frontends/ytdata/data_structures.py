@@ -1,7 +1,7 @@
 import os
-import sys
 import weakref
 from collections import defaultdict
+from functools import cached_property
 from numbers import Number as numeric_type
 from typing import Tuple, Type
 
@@ -33,10 +33,6 @@ from yt.utilities.tree_container import TreeContainer
 
 from .fields import YTDataContainerFieldInfo, YTGridFieldInfo
 
-if sys.version_info >= (3, 8):
-    from functools import cached_property
-else:
-    from yt._maintenance.backports import cached_property
 _grid_data_containers = ["arbitrary_grid", "covering_grid", "smoothed_covering_grid"]
 _set_attrs = {"periodicity": "_periodicity"}
 

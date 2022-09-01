@@ -1,9 +1,9 @@
 import os
-import sys
 import time
 import uuid
 import weakref
 from collections import UserDict
+from functools import cached_property
 from itertools import chain, product, repeat
 from numbers import Number as numeric_type
 from typing import Type
@@ -43,11 +43,6 @@ from yt.utilities.logger import ytLogger as mylog
 
 from .definitions import process_data, set_particle_types
 from .fields import StreamFieldInfo
-
-if sys.version_info >= (3, 8):
-    from functools import cached_property
-else:
-    from yt._maintenance.backports import cached_property
 
 
 class StreamGrid(AMRGridPatch):

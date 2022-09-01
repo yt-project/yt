@@ -2,12 +2,8 @@ import os
 import sys
 import warnings
 from functools import wraps
+from importlib.metadata import version
 from typing import TYPE_CHECKING, Optional, Type, TypeVar
-
-if sys.version_info >= (3, 8):
-    from importlib.metadata import version
-else:
-    from importlib_metadata import version
 
 import numpy as np
 from more_itertools import always_iterable

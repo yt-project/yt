@@ -1,4 +1,4 @@
-import sys
+from functools import cached_property
 from itertools import groupby
 
 import numpy as np
@@ -6,10 +6,6 @@ import numpy as np
 from yt.geometry.selection_routines import AlwaysSelector
 from yt.utilities.io_handler import BaseIOHandler
 
-if sys.version_info >= (3, 8):
-    from functools import cached_property
-else:
-    from yt._maintenance.backports import cached_property
 
 # http://stackoverflow.com/questions/2361945/detecting-consecutive-integers-in-a-list
 def particle_sequences(grids):

@@ -1,6 +1,6 @@
 import os
-import sys
 from collections import defaultdict
+from functools import cached_property
 from typing import Tuple
 
 import numpy as np
@@ -12,11 +12,6 @@ from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 from .definitions import SNAP_FORMAT_2_OFFSET, gadget_hdf5_ptypes
-
-if sys.version_info >= (3, 8):
-    from functools import cached_property
-else:
-    from yt._maintenance.backports import cached_property
 
 
 class IOHandlerGadgetHDF5(IOHandlerSPH):

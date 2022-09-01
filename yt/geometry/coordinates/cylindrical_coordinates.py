@@ -1,13 +1,8 @@
-import sys
+from functools import cached_property
 
 import numpy as np
 
 from yt.utilities.lib.pixelization_routines import pixelize_cartesian, pixelize_cylinder
-
-if sys.version_info >= (3, 8):
-    from functools import cached_property
-else:
-    from yt._maintenance.backports import cached_property
 
 from .coordinate_handler import (
     CoordinateHandler,

@@ -1,10 +1,10 @@
 import os
-import sys
 import time
 import uuid
 import warnings
 import weakref
 from collections import defaultdict
+from functools import cached_property
 from typing import Type
 
 import numpy as np
@@ -32,10 +32,6 @@ from yt.utilities.on_demand_imports import NotAModule, _astropy
 
 from .fields import FITSFieldInfo, WCSFITSFieldInfo, YTFITSFieldInfo
 
-if sys.version_info >= (3, 8):
-    from functools import cached_property
-else:
-    from yt._maintenance.backports import cached_property
 lon_prefixes = ["X", "RA", "GLON", "LINEAR"]
 lat_prefixes = ["Y", "DEC", "GLAT", "LINEAR"]
 

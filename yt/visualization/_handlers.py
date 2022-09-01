@@ -1,7 +1,6 @@
-import sys
 import weakref
 from numbers import Real
-from typing import Any, Dict, List, Optional, Tuple, Type, Union
+from typing import Any, Dict, List, Literal, Optional, Tuple, Type, Union
 
 import numpy as np
 import unyt as un
@@ -14,11 +13,6 @@ from yt.config import ytcfg
 from yt.funcs import get_brewer_cmap, is_sequence, mylog
 from yt.visualization._commons import MPL_VERSION
 from yt.visualization.color_maps import _get_cmap
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class NormHandler:
