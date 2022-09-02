@@ -579,13 +579,13 @@ def test_magnetic_callback():
         p.annotate_magnetic_field(
             factor=8, scale=0.5, scale_units="inches", normalize=True
         )
-        assert_fname(slc.save(prefix)[0])
+        assert_fname(p.save(prefix)[0])
 
         p = ProjectionPlot(ds, "theta", ("gas", "density"))
         p.annotate_magnetic_field(
             factor=8, scale=0.5, scale_units="inches", normalize=True
         )
-        assert_fname(slc.save(prefix)[0])
+        assert_fname(p.save(prefix)[0])
 
         p = ProjectionPlot(ds, "r", ("gas", "density"))
         p.annotate_magnetic_field(
