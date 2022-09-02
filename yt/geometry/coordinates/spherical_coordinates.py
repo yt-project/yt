@@ -153,7 +153,6 @@ class SphericalCoordinateHandler(CoordinateHandler):
             )
         else:
             raise RuntimeError
-        self.sanitize_buffer_fill_values(buff)
         return buff
 
     def convert_from_cartesian(self, coord):

@@ -5,13 +5,11 @@ from typing import Any, Dict, List, Literal, Optional, Tuple, Type, Union
 import numpy as np
 import unyt as un
 from matplotlib.colors import Colormap, LogNorm, Normalize, SymLogNorm
-from packaging.version import Version
 from unyt import unyt_quantity
 
 from yt._typing import Quantity, Unit
 from yt.config import ytcfg
 from yt.funcs import get_brewer_cmap, is_sequence, mylog
-from yt.visualization._commons import MPL_VERSION
 from yt.visualization.color_maps import _get_cmap
 
 
@@ -334,11 +332,7 @@ class NormHandler:
                 linthresh = self._guess_linthresh(data[finite_values_mask])
 
             kw.setdefault("linthresh", linthresh)
-            if MPL_VERSION >= Version("3.2"):
-                # note that this creates an inconsistency between mpl versions
-                # since the default value previous to mpl 3.4.0 is np.e
-                # but it is only exposed since 3.2.0
-                kw.setdefault("base", 10)
+            kw.setdefault("base", 10)
 
         return norm_type(*args, **kw)
 

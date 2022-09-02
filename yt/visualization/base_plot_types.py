@@ -284,14 +284,6 @@ class ImagePlotMPL(PlotMPL, ABC):
     def _init_image(self, data, extent, aspect):
         """Store output of imshow in image variable"""
 
-        if MPL_VERSION < Version("3.2"):
-            # with MPL 3.1 we use np.inf as a mask instead of np.nan
-            # this is done in CoordinateHandler.sanitize_buffer_fill_values
-            # however masking with inf is problematic here when we search for the max value
-            # so here we revert to nan
-            # see https://github.com/yt-project/yt/pull/2517 and https://github.com/yt-project/yt/pull/3793
-            data[~np.isfinite(data)] = np.nan
-
         norm = self.norm_handler.get_norm(data)
         extent = [float(e) for e in extent]
 
@@ -336,7 +328,7 @@ class ImagePlotMPL(PlotMPL, ABC):
             self.cb.ax.ticklabel_format(**fmt_kwargs)
         if self.colorbar_handler.draw_minorticks:
             if isinstance(norm, SymLogNorm):
-                if Version("3.2.0") <= MPL_VERSION < Version("3.5.0b"):
+                if MPL_VERSION < Version("3.5.0b"):
                     # no known working method to draw symlog minor ticks
                     # see https://github.com/yt-project/yt/issues/3535
                     pass

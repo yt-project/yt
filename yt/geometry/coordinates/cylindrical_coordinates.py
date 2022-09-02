@@ -146,7 +146,6 @@ class CylindricalCoordinateHandler(CoordinateHandler):
             data_source[field],
             bounds,
         )
-        self.sanitize_buffer_fill_values(buff)
         return buff
 
     _x_pairs = (("r", "theta"), ("z", "r"), ("theta", "r"))

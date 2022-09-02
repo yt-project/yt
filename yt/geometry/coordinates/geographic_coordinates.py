@@ -284,7 +284,6 @@ class GeographicCoordinateHandler(CoordinateHandler):
         )
         if do_transpose:
             buff = buff.transpose()
-        self.sanitize_buffer_fill_values(buff)
         return buff
 
     def convert_from_cartesian(self, coord):
