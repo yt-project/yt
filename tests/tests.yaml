@@ -35,6 +35,11 @@ answer_tests:
     #- yt/frontends/athena_pp/tests/test_outputs.py:test_disk
     - yt/frontends/athena_pp/tests/test_outputs.py:test_AM06
 
+  local_chimera_002: #PR 3638
+    - yt/frontends/chimera/tests/test_outputs.py:test_multimesh
+    - yt/frontends/chimera/tests/test_outputs.py:test_2D
+    - yt/frontends/chimera/tests/test_outputs.py:test_3D
+
   local_chombo_006:
     - yt/frontends/chombo/tests/test_outputs.py:test_gc
     - yt/frontends/chombo/tests/test_outputs.py:test_tb
