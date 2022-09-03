@@ -3,45 +3,6 @@
 Command-Line Usage
 ------------------
 
-.. _interactive-prompt:
-
-Interactive Prompt
-~~~~~~~~~~~~~~~~~~
-
-.. warning::
-
-   This section describes a script targeted for removal in yt 4.2.0
-
-The interactive prompt offers a number of excellent opportunities for
-exploration of data.  While there are challenges for repeatability, and some
-operations will be more challenging to operate in parallel, interactive prompts
-can be exceptionally useful for debugging, exploring, and tweaking plots.
-
-You can start up an empty shell, with a handful of useful yt utilities (such as
-tab-completion and pre-imported modules) by executing:
-
-.. code-block:: bash
-
-   iyt
-
-The other option, which is shorthand for "iyt plus dataset loading" is to use
-the command-line tool (see :ref:`command-line`) with the ``load`` subcommand
-and to specify a dataset.  For instance:
-
-.. code-block:: bash
-
-   yt load cosmoSim_coolhdf5_chk_0026
-
-or
-
-.. code-block:: bash
-
-   yt load DD0030/DD0030
-
-This will spawn ``iyt``, but the dataset given on the command line will
-already be in the namespace as ``ds``.  With interactive mode, you can use
-``matplotlib.pyplot`` to build plots interactively.
-
 Command-line Functions
 ~~~~~~~~~~~~~~~~~~~~~~
 

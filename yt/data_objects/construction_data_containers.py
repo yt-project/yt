@@ -185,18 +185,9 @@ class YTProj(YTSelectionContainer2D):
         max_level=None,
         *,
         moment=1,
-        style=None,
     ):
         super().__init__(axis, ds, field_parameters)
-        if style is not None:
-            issue_deprecation_warning(
-                "The 'style' keyword argument is a deprecated alias for 'method'. "
-                "Please use method directly.",
-                since="3.2",
-                removal="4.2",
-                stacklevel=4,
-            )
-            method = style
+
         if method == "mip":
             issue_deprecation_warning(
                 "The 'mip' method value is a deprecated alias for 'max'. "
@@ -444,7 +435,6 @@ class YTParticleProj(YTProj):
         max_level=None,
         *,
         moment=1,
-        style=None,
     ):
         super().__init__(
             field,
@@ -457,7 +447,6 @@ class YTParticleProj(YTProj):
             field_parameters,
             max_level,
             moment=moment,
-            style=style,
         )
 
     def _handle_chunk(self, chunk, fields, tree):
@@ -544,7 +533,6 @@ class YTQuadTreeProj(YTProj):
         max_level=None,
         *,
         moment=1,
-        style=None,
     ):
         super().__init__(
             field,
@@ -557,7 +545,6 @@ class YTQuadTreeProj(YTProj):
             field_parameters,
             max_level,
             moment=moment,
-            style=style,
         )
 
         if not self.deserialize(field):

@@ -75,7 +75,6 @@ ATTR_ARGS = {
         (("density",), {"zmin": 1e-25, "dynamic_range": 4}),
     ],
     "zoom": [((10,), {})],
-    "toggle_right_handed": [((), {})],
 }
 
 

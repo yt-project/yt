@@ -7,7 +7,6 @@ from typing import Tuple
 import numpy as np
 from more_itertools import first, mark_ends
 
-from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.data_objects.construction_data_containers import YTCoveringGrid
 from yt.data_objects.image_array import ImageArray
 from yt.fields.derived_field import DerivedField
@@ -542,15 +541,6 @@ class FITSImageData:
                 raise KeyError(f"{field} not an image!")
             idx = self.fields.index(field)
             self.hdulist[idx].header[key] = value
-
-    def update_all_headers(self, key, value):
-        issue_deprecation_warning(
-            "update_all_headers is deprecated. "
-            "Use update_header('all', key, value) instead.",
-            since="3.3",
-            removal="4.2",
-        )
-        self.update_header("all", key, value)
 
     def keys(self):
         return self.fields

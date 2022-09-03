@@ -13,7 +13,6 @@ from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.data_objects.data_containers import YTDataContainer
 from yt.data_objects.level_sets.clump_handling import Clump
 from yt.data_objects.selection_objects.cut_region import YTCutRegion
-from yt.data_objects.static_output import Dataset
 from yt.frontends.ytdata.data_structures import YTClumpContainer
 from yt.funcs import is_sequence, mylog, validate_width_tuple
 from yt.geometry.geometry_handler import is_curvilinear
@@ -29,7 +28,6 @@ from yt.utilities.lib.pixelization_routines import (
     pixelize_off_axis_cartesian,
 )
 from yt.utilities.math_utils import periodic_ray
-from yt.utilities.on_demand_imports import NotAModule
 from yt.visualization._commons import (
     _swap_arg_pair_order,
     _swap_axes_extents,
@@ -853,7 +851,6 @@ class ContourCallback(PlotCallback):
         take_log: Optional[bool] = None,
         data_source: YTDataContainer = None,
         plot_args: Optional[Dict[str, Any]] = None,
-        label_args: Optional[Dict[str, Any]] = None,
         text_args: Optional[Dict[str, Any]] = None,
         ncont: Optional[int] = None,  # deprecated
     ) -> None:
@@ -877,14 +874,6 @@ class ContourCallback(PlotCallback):
             plot_args = def_plot_args
         self.plot_args = plot_args
         self.label = label
-        if label_args is not None:
-            text_args = label_args
-            issue_deprecation_warning(
-                "The label_args keyword is deprecated.  Please use "
-                "the text_args keyword instead.",
-                since="3.2",
-                removal="4.2",
-            )
         if text_args is None:
             text_args = def_text_args
         self.text_args = text_args
@@ -1351,7 +1340,6 @@ class LinePlotCallback(PlotCallback):
         p2,
         *,
         coord_system="data",
-        data_coords=False,
         plot_args: Optional[Dict[str, Any]] = None,
         **kwargs,
     ):
@@ -1368,15 +1356,6 @@ class LinePlotCallback(PlotCallback):
             plot_args.update(kwargs)
 
         self.plot_args = {**def_plot_args, **kwargs}
-
-        if data_coords:
-            coord_system = "data"
-            issue_deprecation_warning(
-                "The data_coords keyword is deprecated.  Please set "
-                "the keyword coord_system='data' instead.",
-                since="3.2",
-                removal="4.2",
-            )
         self.coord_system = coord_system
         self.transform = None
 
@@ -1388,38 +1367,6 @@ class LinePlotCallback(PlotCallback):
             start_pt, end_pt = [p2[0], p1[0]], [p2[1], p1[1]]
         plot._axes.plot(start_pt, end_pt, transform=self.transform, **self.plot_args)
         self._set_plot_limits(plot)
-
-
-class ImageLineCallback(LinePlotCallback):
-    """
-    This callback is deprecated, as it is simply a wrapper around
-    the LinePlotCallback (ie annotate_image()).  The only difference is
-    that it uses coord_system="axis" by default. Please see LinePlotCallback
-    for more information.
-
-    """
-
-    _type_name = "image_line"
-    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
-
-    def __init__(self, p1, p2, data_coords=False, coord_system="axis", plot_args=None):
-        super().__init__(
-            p1,
-            p2,
-            data_coords=data_coords,
-            coord_system=coord_system,
-            plot_args=plot_args,
-        )
-        issue_deprecation_warning(
-            "The ImageLineCallback (annotate_image_line()) is "
-            "deprecated.  Please use the LinePlotCallback "
-            "(annotate_line()) instead.",
-            since="3.2",
-            removal="4.2",
-        )
-
-    def __call__(self, plot):
-        super().__call__(plot)
 
 
 class CuttingQuiverCallback(BaseQuiverCallback):
@@ -1664,7 +1611,6 @@ class ArrowCallback(PlotCallback):
         self,
         pos,
         *,
-        code_size=None,
         length=0.03,
         width=0.0001,
         head_width=0.01,
@@ -1676,7 +1622,6 @@ class ArrowCallback(PlotCallback):
     ):
         def_plot_args = {"color": "white"}
         self.pos = pos
-        self.code_size = code_size
         self.length = length
         self.width = width
         self.head_width = head_width
@@ -1708,29 +1653,16 @@ class ArrowCallback(PlotCallback):
         self.head_width *= plot_diag
         if self.head_length is not None:
             self.head_length *= plot_diag
-        if self.code_size is not None:
-            issue_deprecation_warning(
-                "The code_size keyword is deprecated.  Please use "
-                "the length keyword in 'axis' units instead. "
-                "Setting code_size overrides length value.",
-                since="3.2",
-                removal="4.2",
+
+        if self.starting_pos is not None:
+            start_x, start_y = self._sanitize_coord_system(
+                plot, self.starting_pos, coord_system=self.coord_system
             )
-            if is_sequence(self.code_size):
-                self.code_size = plot.data.ds.quan(self.code_size[0], self.code_size[1])
-                self.code_size = np.float64(self.code_size.in_units(plot.xlim[0].units))
-            self.code_size = self.code_size * self._pixel_scale(plot)[0]
-            dx = dy = self.code_size
+            dx = x - start_x
+            dy = y - start_y
         else:
-            if self.starting_pos is not None:
-                start_x, start_y = self._sanitize_coord_system(
-                    plot, self.starting_pos, coord_system=self.coord_system
-                )
-                dx = x - start_x
-                dy = y - start_y
-            else:
-                dx = (xx1 - xx0) * 2 ** (0.5) * self.length
-                dy = (yy1 - yy0) * 2 ** (0.5) * self.length
+            dx = (xx1 - xx0) * 2 ** (0.5) * self.length
+            dy = (yy1 - yy0) * 2 ** (0.5) * self.length
         # If the arrow is 0 length
         if dx == dy == 0:
             warnings.warn("The arrow has zero length.  Not annotating.")
@@ -2059,19 +1991,10 @@ class TextLabelCallback(PlotCallback):
         coord_system="data",
         text_args=None,
         inset_box_args=None,
-        data_coords=False,  # deprecated
     ):
         def_text_args = {"color": "white"}
         self.pos = pos
         self.text = text
-        if data_coords:
-            coord_system = "data"
-            issue_deprecation_warning(
-                "The data_coords keyword is deprecated.  Please set "
-                "the keyword coord_system='data' instead.",
-                since="3.2",
-                removal="4.2",
-            )
         if text_args is None:
             text_args = def_text_args
         self.text_args = text_args
@@ -2093,296 +2016,6 @@ class TextLabelCallback(PlotCallback):
         label = plot._axes.text(x, y, self.text, transform=self.transform, **kwargs)
         self._set_font_properties(plot, [label], **kwargs)
         self._set_plot_limits(plot)
-
-
-class PointAnnotateCallback(TextLabelCallback):
-    """
-    This callback is deprecated, as it is simply a wrapper around
-    the TextLabelCallback (ie annotate_text()).  Please see TextLabelCallback
-    for more information.
-
-    """
-
-    _type_name = "point"
-    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
-
-    def __init__(
-        self,
-        pos,
-        text,
-        *,
-        coord_system="data",
-        text_args=None,
-        inset_box_args=None,
-        data_coords=False,  # deprecated
-    ):
-        super().__init__(
-            pos, text, data_coords, coord_system, text_args, inset_box_args
-        )
-        issue_deprecation_warning(
-            "The PointAnnotateCallback (annotate_point()) is "
-            "deprecated.  Please use the TextLabelCallback "
-            "(annotate_point()) instead.",
-            since="3.2",
-            removal="4.2",
-        )
-
-    def __call__(self, plot):
-        super().__call__(plot)
-
-
-class HaloCatalogCallback(PlotCallback):
-    """
-    Plots circles at the locations of all the halos
-    in a halo catalog with radii corresponding to the
-    virial radius of each halo.
-
-    Note, this functionality requires the yt_astro_analysis
-    package. See https://yt-astro-analysis.readthedocs.io/
-    for more information.
-
-    Parameters
-    ----------
-    halo_catalog : Dataset, DataContainer,
-                   or ~yt.analysis_modules.halo_analysis.halo_catalog.HaloCatalog
-        The object containing halos to be overplotted. This can
-        be a HaloCatalog object, a loaded halo catalog dataset,
-        or a data container from a halo catalog dataset.
-    circle_args : list
-        Contains the arguments controlling the
-        appearance of the circles, supplied to the
-        Matplotlib patch Circle.
-    width : tuple
-        The width over which to select halos to plot,
-        useful when overplotting to a slice plot. Accepts
-        a tuple in the form (1.0, 'Mpc').
-    annotate_field : str
-        A field contained in the
-        halo catalog to add text to the plot near the halo.
-        Example: annotate_field = 'particle_mass' will
-        write the halo mass next to each halo.
-    radius_field : str
-        A field contained in the halo
-        catalog to set the radius of the circle which will
-        surround each halo. Default: 'virial_radius'.
-    center_field_prefix : str
-        Accepts a field prefix which will
-        be used to find the fields containing the coordinates
-        of the center of each halo. Ex: 'particle_position'
-        will result in the fields 'particle_position_x' for x
-        'particle_position_y' for y, and 'particle_position_z'
-        for z. Default: 'particle_position'.
-    text_args : dict
-        Contains the arguments controlling the text
-        appearance of the annotated field.
-    factor : float
-        A number the virial radius is multiplied by for
-        plotting the circles. Ex: factor = 2.0 will plot
-        circles with twice the radius of each halo virial radius.
-
-    Examples
-    --------
-
-    >>> import yt
-    >>> dds = yt.load("Enzo_64/DD0043/data0043")
-    >>> hds = yt.load("rockstar_halos/halos_0.0.bin")
-    >>> p = yt.ProjectionPlot(
-    ...     dds, "x", ("gas", "density"), weight_field=("gas", "density")
-    ... )
-    >>> p.annotate_halos(hds)
-    >>> p.save()
-
-    >>> # plot a subset of all halos
-    >>> import yt
-    >>> dds = yt.load("Enzo_64/DD0043/data0043")
-    >>> hds = yt.load("rockstar_halos/halos_0.0.bin")
-    >>> # make a region half the width of the box
-    >>> dregion = dds.box(
-    ...     dds.domain_center - 0.25 * dds.domain_width,
-    ...     dds.domain_center + 0.25 * dds.domain_width,
-    ... )
-    >>> hregion = hds.box(
-    ...     hds.domain_center - 0.25 * hds.domain_width,
-    ...     hds.domain_center + 0.25 * hds.domain_width,
-    ... )
-    >>> p = yt.ProjectionPlot(
-    ...     dds,
-    ...     "x",
-    ...     ("gas", "density"),
-    ...     weight_field=("gas", "density"),
-    ...     data_source=dregion,
-    ...     width=0.5,
-    ... )
-    >>> p.annotate_halos(hregion)
-    >>> p.save()
-
-    >>> # plot halos from a HaloCatalog
-    >>> import yt
-    >>> from yt.extensions.astro_analysis.halo_analysis.api import HaloCatalog
-    >>> dds = yt.load("Enzo_64/DD0043/data0043")
-    >>> hds = yt.load("rockstar_halos/halos_0.0.bin")
-    >>> hc = HaloCatalog(data_ds=dds, halos_ds=hds)
-    >>> p = yt.ProjectionPlot(
-    ...     dds, "x", ("gas", "density"), weight_field=("gas", "density")
-    ... )
-    >>> p.annotate_halos(hc)
-    >>> p.save()
-
-    """
-
-    _type_name = "halos"
-    region = None
-    _descriptor = None
-    _supported_geometries = ("cartesian", "spectral_cube")
-
-    def __init__(
-        self,
-        halo_catalog,
-        circle_args=None,
-        circle_kwargs=None,
-        width=None,
-        annotate_field=None,
-        radius_field="virial_radius",
-        center_field_prefix="particle_position",
-        text_args=None,
-        font_kwargs=None,
-        factor=1.0,
-    ):
-        issue_deprecation_warning(
-            "The annotate_halos method has been fully migrated to the "
-            "yt_astro_analysis extension. "
-            "Please update the extension to version 1.1 or newer. "
-            "This duplicated functionality will be removed from the main yt package.",
-            since="4.1",
-            removal="4.2",
-        )
-
-        try:
-            from yt_astro_analysis.halo_analysis.api import HaloCatalog
-        except ImportError:
-            HaloCatalog = NotAModule("yt_astro_analysis")
-
-        def_circle_args = {"edgecolor": "white", "facecolor": "None"}
-        def_text_args = {"color": "white"}
-
-        if isinstance(halo_catalog, YTDataContainer):
-            self.halo_data = halo_catalog
-        elif isinstance(halo_catalog, Dataset):
-            self.halo_data = halo_catalog.all_data()
-        elif isinstance(halo_catalog, HaloCatalog):
-            if halo_catalog.data_source.ds == halo_catalog.halos_ds:
-                self.halo_data = halo_catalog.data_source
-            else:
-                self.halo_data = halo_catalog.halos_ds.all_data()
-        else:
-            raise RuntimeError(
-                "halo_catalog argument must be a HaloCatalog object, "
-                + "a dataset, or a data container."
-            )
-
-        self.width = width
-        self.radius_field = radius_field
-        self.center_field_prefix = center_field_prefix
-        self.annotate_field = annotate_field
-        if circle_kwargs is not None:
-            circle_args = circle_kwargs
-            issue_deprecation_warning(
-                "The circle_kwargs keyword is deprecated.  Please "
-                "use the circle_args keyword instead.",
-                since="3.2",
-                removal="4.2",
-            )
-        if font_kwargs is not None:
-            text_args = font_kwargs
-            issue_deprecation_warning(
-                "The font_kwargs keyword is deprecated.  Please use "
-                "the text_args keyword instead.",
-                since="3.2",
-                removal="4.2",
-            )
-        if circle_args is None:
-            circle_args = def_circle_args
-        self.circle_args = circle_args
-        if text_args is None:
-            text_args = def_text_args
-        self.text_args = text_args
-        self.factor = factor
-
-    def __call__(self, plot):
-        from matplotlib.patches import Circle
-
-        data = plot.data
-
-        halo_data = self.halo_data
-        axis_names = plot.data.ds.coordinates.axis_name
-        xax = plot.data.ds.coordinates.x_axis[data.axis]
-        yax = plot.data.ds.coordinates.y_axis[data.axis]
-        field_x = f"{self.center_field_prefix}_{axis_names[xax]}"
-        field_y = f"{self.center_field_prefix}_{axis_names[yax]}"
-        field_z = f"{self.center_field_prefix}_{axis_names[data.axis]}"
-
-        # Set up scales for pixel size and original data
-        pixel_scale = self._pixel_scale(plot)[0]
-        units = plot.xlim[0].units
-
-        # Convert halo positions to code units of the plotted data
-        # and then to units of the plotted window
-        px = halo_data[("all", field_x)][:].in_units(units)
-        py = halo_data[("all", field_y)][:].in_units(units)
-
-        xplotcenter = (plot.xlim[0] + plot.xlim[1]) / 2
-        yplotcenter = (plot.ylim[0] + plot.ylim[1]) / 2
-
-        xdomaincenter = plot.ds.domain_center[xax]
-        ydomaincenter = plot.ds.domain_center[yax]
-
-        xoffset = xplotcenter - xdomaincenter
-        yoffset = yplotcenter - ydomaincenter
-
-        xdw = plot.ds.domain_width[xax].to(units)
-        ydw = plot.ds.domain_width[yax].to(units)
-
-        modpx = np.mod(px - xoffset, xdw) + xoffset
-        modpy = np.mod(py - yoffset, ydw) + yoffset
-
-        px[modpx != px] = modpx[modpx != px]
-        py[modpy != py] = modpy[modpy != py]
-
-        px, py = self._convert_to_plot(plot, [px, py])
-
-        # Convert halo radii to a radius in pixels
-        radius = halo_data[("all", self.radius_field)][:].in_units(units)
-        radius = np.array(radius * pixel_scale * self.factor)
-
-        if self.width:
-            pz = halo_data[("all", field_z)][:].in_units("code_length")
-            c = data.center[data.axis]
-
-            # I should catch an error here if width isn't in this form
-            # but I dont really want to reimplement get_sanitized_width...
-            width = data.ds.arr(self.width[0], self.width[1]).in_units("code_length")
-
-            indices = np.where((pz > c - 0.5 * width) & (pz < c + 0.5 * width))
-
-            px = px[indices]
-            py = py[indices]
-            radius = radius[indices]
-
-        px, py = self._sanitize_xy_order(plot, px, py)
-        for x, y, r in zip(px, py, radius):
-            plot._axes.add_artist(Circle(xy=(x, y), radius=r, **self.circle_args))
-        self._set_plot_limits(plot)
-
-        if self.annotate_field:
-            annotate_dat = halo_data[("all", self.annotate_field)]
-            texts = [f"{float(dat):g}" for dat in annotate_dat]
-            labels = []
-            for pos_x, pos_y, t in zip(px, py, texts):
-                labels.append(plot._axes.text(pos_x, pos_y, t, **self.text_args))
-
-            # Set the font properties of text from this callback to be
-            # consistent with other text labels in this figure
-            self._set_font_properties(plot, labels, **self.text_args)
 
 
 class ParticleCallback(PlotCallback):
@@ -2410,7 +2043,6 @@ class ParticleCallback(PlotCallback):
         marker="o",
         stride=1,
         ptype="all",
-        minimum_mass=None,
         alpha=1.0,
         data_source=None,
     ):
@@ -2420,16 +2052,8 @@ class ParticleCallback(PlotCallback):
         self.marker = marker
         self.stride = stride
         self.ptype = ptype
-        self.minimum_mass = minimum_mass
         self.alpha = alpha
         self.data_source = data_source
-        if self.minimum_mass is not None:
-            issue_deprecation_warning(
-                "The minimum_mass keyword is deprecated.  Please use "
-                "an appropriate particle filter and the ptype keyword instead.",
-                since="3.5",
-                removal="4.2",
-            )
 
     def __call__(self, plot):
         data = plot.data
@@ -2483,10 +2107,6 @@ class ParticleCallback(PlotCallback):
             & (particle_y >= y0)
             & (particle_y <= y1)
         )
-        if self.minimum_mass is not None:
-            gg &= self.region[pt, "particle_mass"] >= self.minimum_mass
-            if gg.sum() == 0:
-                return
         px, py = [particle_x[gg][:: self.stride], particle_y[gg][:: self.stride]]
         px, py = self._convert_to_plot(plot, [px, py])
         px, py = self._sanitize_xy_order(plot, px, py)

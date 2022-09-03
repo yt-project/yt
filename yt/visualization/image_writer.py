@@ -268,52 +268,6 @@ def map_to_colors(buff, cmap_name):
     return mapped.copy("C")
 
 
-def strip_colormap_data(
-    fn="color_map_data.py",
-    cmaps=(
-        "jet",
-        "cmyt.algae",
-        "hot",
-        "gist_stern",
-        "RdBu",
-        "cmyt.pastel",
-        "cmyt.kelp",
-        "cmyt.arbre",
-        "cmyt.octarine",
-        "cmyt.dusk",
-    ),
-):
-    import pprint
-
-    from yt._maintenance.deprecation import issue_deprecation_warning
-
-    from . import color_maps as rcm
-
-    issue_deprecation_warning(
-        "yt.visualization.image_writer.strip_colormap_data is deprecated.",
-        since="4.1.0",
-        removal="4.2.0",
-    )
-    f = open(fn, "w")
-    f.write("### Auto-generated colormap tables, taken from Matplotlib ###\n\n")
-    f.write("from numpy import array\n")
-    f.write("color_map_luts = {}\n\n\n")
-    if cmaps is None:
-        cmaps = rcm.ColorMaps
-    if isinstance(cmaps, str):
-        cmaps = [cmaps]
-    for cmap_name in sorted(cmaps):
-        vals = get_colormap_lut(cmap_name)
-        f.write(f"### {cmap_name} ###\n\n")
-        f.write(f"color_map_luts['{cmap_name}'] = \\\n")
-        f.write("   (\n")
-        for v in vals:
-            f.write(pprint.pformat(v, indent=3))
-            f.write(",\n")
-        f.write("   )\n\n")
-    f.close()
-
-
 def splat_points(image, points_x, points_y, contribution=None, transposed=False):
     if contribution is None:
         contribution = 100.0
