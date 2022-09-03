@@ -117,7 +117,6 @@ class Camera(ParallelAnalysisInterface):
     Examples
     --------
 
-    >>> from yt.mods import *
     >>> import yt.visualization.volume_rendering.api as vr
 
     >>> ds = load("DD1701")  # Load a dataset

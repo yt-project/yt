@@ -1116,7 +1116,9 @@ def check_results(func):
 
         return _func
 
-    from yt.mods import unparsed_args
+    import yt.startup_tasks as _startup_tasks
+
+    unparsed_args = _startup_tasks.unparsed_args
 
     if "--answer-reference" in unparsed_args:
         return compute_results(func)

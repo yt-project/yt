@@ -703,9 +703,8 @@ class YTLoadCmd(YTCommand):
         import IPython
 
         import yt
-        import yt.mods
 
-        local_ns = yt.mods.__dict__.copy()
+        local_ns = {}
         local_ns["ds"] = args.ds
         local_ns["pf"] = args.ds
         local_ns["yt"] = yt

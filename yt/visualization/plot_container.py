@@ -606,7 +606,7 @@ class PlotContainer(abc.ABC):
         Examples
         --------
 
-        >>> from yt.mods import SlicePlot
+        >>> from yt import SlicePlot
         >>> slc = SlicePlot(
         ...     ds, "x", [("gas", "density"), ("gas", "velocity_magnitude")]
         ... )

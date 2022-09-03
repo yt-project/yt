@@ -324,7 +324,6 @@ class ParticleTrajectories:
 
         Examples
         --------
-        >>> from yt.mods import *
         >>> import matplotlib.pyplot as plt
         >>> trajs = ParticleTrajectories(my_fns, indices)
         >>> traj = trajs.trajectory_from_index(indices[0])
