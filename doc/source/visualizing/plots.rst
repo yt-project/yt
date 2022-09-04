@@ -977,7 +977,7 @@ method to set a custom colormap range.
 
 Units can be left out, in which case they implicitly match the current display
 units of the colorbar (controlled with the ``set_unit`` method, see
-:ref:`_set-image-units`).
+:ref:`set-image-units`).
 
 It is not required to specify both ``zmin`` and ``zmax``. Left unset, they will
 default to the extreme values in the current view. This default behavior can be
