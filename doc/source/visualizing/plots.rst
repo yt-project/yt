@@ -934,7 +934,7 @@ Use any of the colormaps listed in the :ref:`colormaps` section.
    slc.save()
 
 Colorbar Normalization / Scaling
-::::::::::::::::::::::::::::::::
+""""""""""""""""""""""""""""""""
 
 For a general introduction to the topic of colorbar scaling, see
 `<https://matplotlib.org/stable/tutorials/colors/colormapnorms.html>`_. Here we
