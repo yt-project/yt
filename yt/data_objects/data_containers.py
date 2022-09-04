@@ -1045,26 +1045,42 @@ class YTDataContainer(abc.ABC):
         else:
             raise NotImplementedError(f"Unknown axis {axis}")
 
-    def std(self, field, weight=None):
-        """Compute the standard deviation of a field.
+    def std(self, field, axis=None, weight=None):
+        """Compute the standard deviation of a field, optionally along
+        an axis, with a weight.
 
         This will, in a parallel-ware fashion, compute the standard
-        deviation of the given field.
+        deviation of the given field. If an axis is supplied, it
+        will return a projection, where the weight is also supplied.
+
+        By default the weight field will be "ones" or "particle_ones",
+        depending on the field, resulting in an unweighted standard
+        deviation.
 
         Parameters
         ----------
         field : string or tuple field name
             The field to calculate the standard deviation of
-        weight : string or tuple field name
-            The field to weight the standard deviation calculation
-            by. Defaults to unweighted if unset.
+        axis : string, optional
+            If supplied, the axis to compute the standard deviation
+            along (i.e., to project along)
+        weight : string, optional
+            The field to use as a weight.
 
         Returns
         -------
-        Scalar
+        Scalar or YTProjection.
         """
         weight_field = sanitize_weight_field(self.ds, field, weight)
-        return self.quantities.weighted_standard_deviation(field, weight_field)[0]
+        if axis in self.ds.coordinates.axis_name:
+            r = self.ds.proj(
+                field, axis, data_source=self, weight_field=weight_field, moment=2
+            )
+        elif axis is None:
+            r = self.quantities.weighted_standard_deviation(field, weight_field)[0]
+        else:
+            raise NotImplementedError(f"Unknown axis {axis}")
+        return r
 
     def ptp(self, field):
         r"""Compute the range of values (maximum - minimum) of a field.
