@@ -394,10 +394,16 @@ field is mathematically given by:
 in order to make a weighted projection of the standard deviation of a field
 along a line of sight, the ``moment`` keyword argument should be set to 2.
 
-``mip``:
+``max``:
 ++++++++
 
 This method picks out the maximum value of a field along the line of
+sight given by the axis parameter.
+
+``min``:
+++++++++
+
+This method picks out the minimum value of a field along the line of
 sight given by the axis parameter.
 
 ``sum``:
