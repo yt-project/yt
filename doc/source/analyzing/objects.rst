@@ -591,11 +591,23 @@ This is equivalent to:
 
 .. code-block:: python
 
-   proj = ds.proj(("gas", "density"), "x", data_source=reg, method="mip")
+   proj = ds.proj(("gas", "density"), "x", data_source=reg, method="max")
    proj.plot()
 
-The ``min`` operator does not do this, however, as a minimum intensity
-projection is not currently implemented.
+The same can be done with the ``min`` operation, computing a minimum
+intensity projection:
+
+.. code-block:: python
+
+   proj = reg.min(("gas", "density"), axis="x")
+   proj.plot()
+
+This is equivalent to:
+
+.. code-block:: python
+
+   proj = ds.proj(("gas", "density"), "x", data_source=reg, method="min")
+   proj.plot()
 
 You can also compute the ``mean`` value, which accepts a field, axis and weight
 function.  If the axis is not specified, it will return the average value of

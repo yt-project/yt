@@ -1014,7 +1014,8 @@ class YTDataContainer(abc.ABC):
         r"""Compute the minimum of a field.
 
         This will, in a parallel-aware fashion, compute the minimum of the
-        given field.  Supplying an axis is not currently supported.  If the max
+        given field. Supplying an axis will result in a return value of a
+        YTProjection, with method 'min' for minimum intensity.  If the min
         has already been requested, it will use the cached extrema value.
 
         Parameters
@@ -1026,12 +1027,13 @@ class YTDataContainer(abc.ABC):
 
         Returns
         -------
-        Scalar.
+        Either a scalar or a YTProjection.
 
         Examples
         --------
 
         >>> min_temp = reg.min(("gas", "temperature"))
+        >>> min_temp_proj = reg.min(("gas", "temperature"), axis=("index", "x"))
         """
         if axis is None:
             rv = tuple(self._compute_extrema(f)[0] for f in iter_fields(field))
