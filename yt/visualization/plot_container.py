@@ -565,7 +565,7 @@ class PlotContainer(abc.ABC):
             weight = self.data_source.weight_field
             if weight is not None:
                 weight = weight[1].replace(" ", "_")
-            if self.data_source.moment == 2:
+            if getattr(self.data_source, "moment", 1) == 2:
                 stddev = "standard_deviation"
         if "Cutting" in self.data_source.__class__.__name__:
             plot_type = "OffAxisSlice"
