@@ -222,7 +222,7 @@ def test_fits_image():
         ds, "y", ("gas", "velocity_y"), moment=2, weight_field=("gas", "density")
     )
     sigy = np.sqrt(fid8["vysq"].data - fid8["velocity_y"].data ** 2)
-    assert_allclose(sigy, fid9["velocity_y"].data)
+    assert_allclose(sigy, fid9["velocity_y_stddev"].data)
 
     def _vlsq(field, data):
         return data["gas", "velocity_los"] ** 2
@@ -243,7 +243,7 @@ def test_fits_image():
         weight_field=("gas", "density"),
     )
     sigl = np.sqrt(fid10["vlsq"].data - fid10["velocity_los"].data ** 2)
-    assert_allclose(sigl, fid11["velocity_los"].data)
+    assert_allclose(sigl, fid11["velocity_los_stddev"].data)
 
     # We need to manually close all the file descriptors so
     # that windows can delete the folder that contains them.

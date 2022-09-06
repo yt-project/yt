@@ -202,10 +202,13 @@ class FITSImageData:
 
         self.hdulist = _astropy.pyfits.HDUList()
 
+        stddev = False
         if hasattr(data, "keys"):
             img_data = data
             if fields is None:
                 fields = list(img_data.keys())
+            if hasattr(data, "data_source"):
+                stddev = getattr(data.data_source, "moment", 1) == 2
         elif isinstance(data, np.ndarray):
             if fields is None:
                 mylog.warning(
@@ -219,11 +222,14 @@ class FITSImageData:
 
         for fd in fields:
             if isinstance(fd, tuple):
-                self.fields.append(fd[1])
+                fname = fd[1]
             elif isinstance(fd, DerivedField):
-                self.fields.append(fd.name[1])
+                fname = fd.name[1]
             else:
-                self.fields.append(fd)
+                fname = fd
+            if stddev:
+                fname += "_stddev"
+            self.fields.append(fname)
 
         # Sanity checking names
         s = set()
@@ -1402,8 +1408,12 @@ class FITSOffAxisProjection(FITSImageData):
         else:
             source = data_source
         fields = source._determine_fields(list(iter_fields(fields)))
+        stddev_str = "_stddev" if moment == 2 else ""
         for item in fields:
-            buf[item] = off_axis_projection(
+
+            key = (item[0], item[1] + stddev_str)
+
+            buf[key] = off_axis_projection(
                 source,
                 center,
                 normal,
@@ -1443,7 +1453,7 @@ class FITSOffAxisProjection(FITSImageData):
                     weight=weight_field,
                 ).swapaxes(0, 1)
 
-                buf[item] = compute_stddev_image(buff2, buf[item])
+                buf[key] = compute_stddev_image(buff2, buf[key])
 
                 ds.field_info.pop(field_sq)
 
@@ -1451,4 +1461,4 @@ class FITSOffAxisProjection(FITSImageData):
         w, not_an_frb, lunit = construct_image(
             ds, normal, buf, center, image_res, width, length_unit
         )
-        super().__init__(buf, fields=fields, wcs=w, length_unit=lunit, ds=ds)
+        super().__init__(buf, fields=list(buf.keys()), wcs=w, length_unit=lunit, ds=ds)
