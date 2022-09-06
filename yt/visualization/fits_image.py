@@ -1086,6 +1086,7 @@ class FITSProjection(FITSImageData):
         width=None,
         weight_field=None,
         length_unit=None,
+        *,
         moment=1,
         **kwargs,
     ):
@@ -1401,14 +1402,14 @@ class FITSOffAxisProjection(FITSImageData):
         else:
             source = data_source
         fields = source._determine_fields(list(iter_fields(fields)))
-        for fname in fields:
-            buf[fname] = off_axis_projection(
+        for item in fields:
+            buf[item] = off_axis_projection(
                 source,
                 center,
                 normal,
                 wd,
                 res,
-                fname,
+                item,
                 north_vector=north_vector,
                 method=method,
                 weight=weight_field,
@@ -1416,16 +1417,16 @@ class FITSOffAxisProjection(FITSImageData):
 
             if moment == 2:
 
-                def _sq_field(field, data, fname: Tuple[str, str]):
-                    return data[fname] ** 2
+                def _sq_field(field, data, item: Tuple[str, str]):
+                    return data[item] ** 2
 
-                fd = ds._get_field_info(*fname)
+                fd = ds._get_field_info(*item)
 
-                field_sq = (fname[0], f"tmp_{fname[1]}_squared")
+                field_sq = (item[0], f"tmp_{item[1]}_squared")
 
                 ds.add_field(
                     field_sq,
-                    partial(_sq_field, fname=fname),
+                    partial(_sq_field, item=item),
                     sampling_type=fd.sampling_type,
                     units=f"({fd.units})*({fd.units})",
                 )
@@ -1442,7 +1443,7 @@ class FITSOffAxisProjection(FITSImageData):
                     weight=weight_field,
                 ).swapaxes(0, 1)
 
-                buf[fname] = compute_stddev_image(buff2, buf[fname])
+                buf[item] = compute_stddev_image(buff2, buf[item])
 
                 ds.field_info.pop(field_sq)
 

@@ -618,15 +618,15 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
         )
         if self.data_source.moment == 2:
 
-            def _sq_field(field, data, fname: Tuple[str, str]):
-                return data[fname] ** 2
+            def _sq_field(field, data, item: Tuple[str, str]):
+                return data[item] ** 2
 
             fd = self.ds._get_field_info(*item)
 
             item_sq = (item[0], f"tmp_{item[1]}_squared")
             self.ds.add_field(
                 item_sq,
-                partial(_sq_field, fname=item),
+                partial(_sq_field, item=item),
                 sampling_type=fd.sampling_type,
                 units=f"({fd.units})*({fd.units})",
             )

@@ -182,8 +182,8 @@ class YTProj(YTSelectionContainer2D):
         method="integrate",
         field_parameters=None,
         max_level=None,
-        moment=1,
         *,
+        moment=1,
         style=None,
     ):
         super().__init__(axis, ds, field_parameters)
@@ -455,7 +455,7 @@ class YTParticleProj(YTProj):
             method,
             field_parameters,
             max_level,
-            moment,
+            moment=moment,
             style=style,
         )
 
@@ -555,7 +555,7 @@ class YTQuadTreeProj(YTProj):
             method,
             field_parameters,
             max_level,
-            moment,
+            moment=moment,
             style=style,
         )
 

@@ -1207,7 +1207,7 @@ class PWViewerMPL(PlotWindow):
             if colorbar_label is None:
                 colorbar_label = image.info["label"]
                 if getattr(self, "moment", 1) == 2:
-                    colorbar_label = "%s Standard Deviation" % colorbar_label
+                    colorbar_label = "%s \\rm{Standard Deviation}" % colorbar_label
                 if hasattr(self, "projected"):
                     colorbar_label = "$\\rm{Projected }$ %s" % colorbar_label
                 if units is None or units == "":
@@ -2063,8 +2063,8 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
         window_size=8.0,
         buff_size=(800, 800),
         aspect=None,
-        moment=1,
         *,
+        moment=1,
         axis=None,
     ):
         if method == "mip":
@@ -2306,6 +2306,7 @@ class OffAxisProjectionDummyDataSource:
         north_vector=None,
         method="integrate",
         data_source=None,
+        *,
         moment=1,
     ):
         validate_moment(moment, weight)
