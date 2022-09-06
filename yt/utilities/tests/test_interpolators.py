@@ -161,14 +161,14 @@ def test_replace_nonperiodic_with_extrap():
         lo = np.zeros((3), dtype="float64") + dx / 2
         hi = lo + (nx - 1) * dx
 
-        # Fill field with analytical linear function: f(x,y,z) = x + y + z
+        # Fill field with analytical linear function: f(x,y,z) = x + 2y + 3z
         # excluding the buffer region
         x, y, z = np.mgrid[
             lo[0] : hi[0] : nx[0] * 1j,
             lo[1] : hi[1] : nx[1] * 1j,
             lo[2] : hi[2] : nx[2] * 1j,
         ]
-        func = x + y + z
+        func = x + 2 * y + 3 * z
         field = np.zeros(nx, dtype="float64")
         field[nbuf : nx[0] - nbuf, nbuf : nx[1] - nbuf, nbuf : nx[2] - nbuf] = func[
             nbuf : nx[0] - nbuf, nbuf : nx[1] - nbuf, nbuf : nx[2] - nbuf
