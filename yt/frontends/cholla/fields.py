@@ -34,7 +34,6 @@ class ChollaFieldInfo(FieldInfoContainer):
 
     known_particle_fields = ()
 
-
     # In Cholla, conservative variables are written out.
 
     def setup_fluid_fields(self):

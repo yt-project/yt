@@ -23,7 +23,6 @@ class ChollaGrid(AMRGridPatch):
         self.ActiveDimensions = dims
 
 
-
 class ChollaHierarchy(GridIndex):
     grid = ChollaGrid
 
