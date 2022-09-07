@@ -149,11 +149,18 @@ class IOHandlerBoxlib(BaseIOHandler):
                         # Allow reading particles in 1, 2, and 3 dimensions,
                         # setting the appropriate default for unused dimensions.
                         pos = []
-                        for idim in [1,2,3]:
+                        for idim in [1, 2, 3]:
                             if g.ds.dimensionality >= idim:
-                                pos.append(np.asarray(rdata[idim-1 :: pheader.num_real], dtype=np.float64))
+                                pos.append(
+                                    np.asarray(
+                                        rdata[idim - 1 :: pheader.num_real],
+                                        dtype=np.float64,
+                                    )
+                                )
                             else:
-                                center = 0.5 * (g.LeftEdge[idim-1] + g.RightEdge[idim-1])
+                                center = 0.5 * (
+                                    g.LeftEdge[idim - 1] + g.RightEdge[idim - 1]
+                                )
                                 pos.append(np.full_like(pos[0], center))
                         x, y, z = pos
 
