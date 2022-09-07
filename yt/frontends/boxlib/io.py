@@ -146,6 +146,8 @@ class IOHandlerBoxlib(BaseIOHandler):
                             f, pheader.real_type, pheader.num_real * npart
                         )
 
+                        # Allow reading particles in 1, 2, and 3 dimensions,
+                        # setting the appropriate default for unused dimensions.
                         pos = []
                         for idim in [1,2,3]:
                             if g.ds.dimensionality >= idim:
