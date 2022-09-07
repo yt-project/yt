@@ -628,7 +628,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
     num_ghost_zones : integer, optional
         The number of padding ghost zones used when accessing fields.
     data_source :
-        An existing data_source to intersect with the covering grid. Grid points
+        An existing data object to intersect with the covering grid. Grid points
         outside the data_source will exist as empty values.
 
     Examples
@@ -666,7 +666,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
             center = None
         else:
             center = field_parameters.get("center", None)
-        YTSelectionContainer3D.__init__(
+        super().__init__(
             self, center, ds, field_parameters, data_source=data_source
         )
 
