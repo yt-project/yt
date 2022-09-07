@@ -666,9 +666,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
             center = None
         else:
             center = field_parameters.get("center", None)
-        super().__init__(
-            self, center, ds, field_parameters, data_source=data_source
-        )
+        super().__init__(center, ds, field_parameters, data_source=data_source)
 
         self.level = level
         self.left_edge = self._sanitize_edge(left_edge)
@@ -825,7 +823,10 @@ class YTCoveringGrid(YTSelectionContainer3D):
 
         reg = self.ds.region(self.center, self.left_edge, self.right_edge)
         if self._data_source is None:
-            # always True for YTArbitraryGrid (does not accept a data_source)
+            # note: https://github.com/yt-project/yt/pull/4063 implemented
+            # a data_source kwarg for YTCoveringGrid, but not YTArbitraryGrid
+            # so as of 4063, this will always be True for YTArbitraryGrid
+            # instances.
             self._data_source = reg
         else:
             self._data_source = self.ds.intersection([self._data_source, reg])
