@@ -161,9 +161,7 @@ class IOHandlerBoxlib(BaseIOHandler):
                                 center = 0.5 * (
                                     g.LeftEdge[idim - 1] + g.RightEdge[idim - 1]
                                 )
-                                pos.append(
-                                    np.full(npart, center, dtype=np.float64)
-                                )
+                                pos.append(np.full(npart, center, dtype=np.float64))
                         x, y, z = pos
 
                         if selector is None:
