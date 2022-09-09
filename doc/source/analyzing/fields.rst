@@ -399,7 +399,6 @@ aliases were removed in yt v4.1.0.
 
 Magnetic Fields
 ---------------
-TODO: clarify if this section needs an update after https://github.com/yt-project/yt/pull/3812
 
 Magnetic fields require special handling, because their dimensions are different in
 different systems of units, in particular between the CGS and MKS (SI) systems of units.
