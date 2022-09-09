@@ -391,7 +391,7 @@ class FixedResolutionBuffer:
         fid = FITSImageData(self, fields=fields, length_unit=length_unit)
         if other_keys is not None:
             for k, v in other_keys.items():
-                fid.update_all_headers(k, v)
+                fid.update_header("all", k, v)
         return fid
 
     def export_dataset(self, fields=None, nprocs=1):
