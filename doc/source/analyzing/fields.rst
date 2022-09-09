@@ -607,9 +607,9 @@ as detailed below (see :ref:`field_parameters` for more information).
 
 The relative fields which are currently supported for gas fields are:
 
-* ``('gas', 'relative_velocity_x'')``, defined by setting the
+* ``('gas', 'relative_velocity_x')``, defined by setting the
   ``'bulk_velocity'`` field parameter
-* ``('gas', 'relative_magnetic_field_x'')``, defined by setting the
+* ``('gas', 'relative_magnetic_field_x')``, defined by setting the
   ``'bulk_magnetic_field'`` field parameter
 
 For particle fields, for a given particle type ``ptype``, the relative
@@ -625,7 +625,7 @@ fields which are supported are:
   ``'bulk_velocity'`` field parameter
 
 These fields are in use when defining magnitude fields, line-of-sight fields,
-etc.. The ``'bulk_*''`` field parameters are ``[0.0, 0.0, 0.0]`` by default,
+etc.. The ``'bulk_*'`` field parameters are ``[0.0, 0.0, 0.0]`` by default,
 and the ``'center'`` field parameter depends on the data container in use.
 
 There is currently no mechanism to create new relative fields, but one may be
