@@ -2,7 +2,6 @@ import pytest
 
 import yt
 from yt.testing import assert_equal, fake_random_ds
-from yt.utilities.answer_testing.framework import GenericImageTest
 from yt.visualization.line_plot import _validate_point
 
 
@@ -11,17 +10,6 @@ def setup():
     from yt.config import ytcfg
 
     ytcfg["yt", "internals", "within_testing"] = True
-
-
-def compare(ds, plot, test_prefix, test_name, decimals=12):
-    def image_from_plot(filename_prefix):
-        return plot.save(filename_prefix)
-
-    image_from_plot.__name__ = f"line_{test_prefix}"
-    test = GenericImageTest(ds, image_from_plot, decimals)
-    test.prefix = test_prefix
-    test.answer_name = test_name
-    return test
 
 
 class TestLinePlotSimple:
