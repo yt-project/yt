@@ -6,9 +6,6 @@ linux|Linux)
     sudo apt-get -qqy install \
       libhdf5-serial-dev \
       libnetcdf-dev \
-      libproj-dev \
-      proj-data \
-      proj-bin \
       libgeos-dev \
       libopenmpi-dev \
       libfuse2
@@ -16,7 +13,7 @@ linux|Linux)
 osx|macOS)
     sudo mkdir -p /usr/local/man
     sudo chown -R "${USER}:admin" /usr/local/man
-    HOMEBREW_NO_AUTO_UPDATE=1 brew install hdf5 proj geos open-mpi netcdf ccache osxfuse
+    HOMEBREW_NO_AUTO_UPDATE=1 brew install hdf5 geos open-mpi netcdf ccache osxfuse
     ;;
 esac
 
