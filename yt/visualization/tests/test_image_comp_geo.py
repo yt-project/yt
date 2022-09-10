@@ -20,6 +20,7 @@ class TestGeoTransform:
         sl = yt.SlicePlot(self.ds, "altitude", field, origin="native")
         sl.set_mpl_projection("PlateCarree")
         sl.set_log(field, False)
+        sl._setup_plots()
         return sl.plots[field].figure
 
     @requires_module("cartopy")
@@ -29,6 +30,7 @@ class TestGeoTransform:
         sl = yt.SlicePlot(self.ds, "altitude", field, origin="native")
         sl.set_mpl_projection("LambertConformal")
         sl.set_log(field, False)
+        sl._setup_plots()
         return sl.plots[field].figure
 
     @requires_module("cartopy")
@@ -38,6 +40,7 @@ class TestGeoTransform:
         sl = yt.SlicePlot(self.ds, "altitude", field, origin="native")
         sl.set_mpl_projection("LambertCylindrical")
         sl.set_log(field, False)
+        sl._setup_plots()
         return sl.plots[field].figure
 
     @requires_module("cartopy")
@@ -47,6 +50,7 @@ class TestGeoTransform:
         sl = yt.SlicePlot(self.ds, "altitude", field, origin="native")
         sl.set_mpl_projection("Mercator")
         sl.set_log(field, False)
+        sl._setup_plots()
         return sl.plots[field].figure
 
     @requires_module("cartopy")
@@ -56,6 +60,7 @@ class TestGeoTransform:
         sl = yt.SlicePlot(self.ds, "altitude", field, origin="native")
         sl.set_mpl_projection("Miller")
         sl.set_log(field, False)
+        sl._setup_plots()
         return sl.plots[field].figure
 
     @requires_module("cartopy")
@@ -65,6 +70,7 @@ class TestGeoTransform:
         sl = yt.SlicePlot(self.ds, "altitude", field, origin="native")
         sl.set_mpl_projection("Mollweide")
         sl.set_log(field, False)
+        sl._setup_plots()
         return sl.plots[field].figure
 
     @requires_module("cartopy")
@@ -74,6 +80,7 @@ class TestGeoTransform:
         sl = yt.SlicePlot(self.ds, "altitude", field, origin="native")
         sl.set_mpl_projection("Orthographic")
         sl.set_log(field, False)
+        sl._setup_plots()
         return sl.plots[field].figure
 
     @requires_module("cartopy")
@@ -83,6 +90,7 @@ class TestGeoTransform:
         sl = yt.SlicePlot(self.ds, "altitude", field, origin="native")
         sl.set_mpl_projection("Robinson")
         sl.set_log(field, False)
+        sl._setup_plots()
         return sl.plots[field].figure
 
     @requires_module("cartopy")
@@ -92,6 +100,7 @@ class TestGeoTransform:
         sl = yt.SlicePlot(self.ds, "altitude", field, origin="native")
         sl.set_mpl_projection("Stereographic")
         sl.set_log(field, False)
+        sl._setup_plots()
         return sl.plots[field].figure
 
     @requires_module("cartopy")
@@ -101,6 +110,7 @@ class TestGeoTransform:
         sl = yt.SlicePlot(self.ds, "altitude", field, origin="native")
         sl.set_mpl_projection("TransverseMercator")
         sl.set_log(field, False)
+        sl._setup_plots()
         return sl.plots[field].figure
 
     @requires_module("cartopy")
@@ -112,6 +122,7 @@ class TestGeoTransform:
         sl = yt.SlicePlot(self.ds, "altitude", field, origin="native")
         sl.set_mpl_projection("InterruptedGoodeHomolosine")
         sl.set_log(field, False)
+        sl._setup_plots()
         return sl.plots[field].figure
 
     @requires_module("cartopy")
@@ -121,6 +132,7 @@ class TestGeoTransform:
         sl = yt.SlicePlot(self.ds, "altitude", field, origin="native")
         sl.set_mpl_projection("RotatedPole")
         sl.set_log(field, False)
+        sl._setup_plots()
         return sl.plots[field].figure
 
     @requires_module("cartopy")
@@ -130,6 +142,7 @@ class TestGeoTransform:
         sl = yt.SlicePlot(self.ds, "altitude", field, origin="native")
         sl.set_mpl_projection("OSGB")
         sl.set_log(field, False)
+        sl._setup_plots()
         return sl.plots[field].figure
 
     @requires_module("cartopy")
@@ -139,6 +152,7 @@ class TestGeoTransform:
         sl = yt.SlicePlot(self.ds, "altitude", field, origin="native")
         sl.set_mpl_projection("EuroPP")
         sl.set_log(field, False)
+        sl._setup_plots()
         return sl.plots[field].figure
 
     @requires_module("cartopy")
@@ -148,6 +162,7 @@ class TestGeoTransform:
         sl = yt.SlicePlot(self.ds, "altitude", field, origin="native")
         sl.set_mpl_projection("Geostationary")
         sl.set_log(field, False)
+        sl._setup_plots()
         return sl.plots[field].figure
 
     @requires_module("cartopy")
@@ -157,6 +172,7 @@ class TestGeoTransform:
         sl = yt.SlicePlot(self.ds, "altitude", field, origin="native")
         sl.set_mpl_projection("Gnomonic")
         sl.set_log(field, False)
+        sl._setup_plots()
         return sl.plots[field].figure
 
     @requires_module("cartopy")
@@ -166,6 +182,7 @@ class TestGeoTransform:
         sl = yt.SlicePlot(self.ds, "altitude", field, origin="native")
         sl.set_mpl_projection("NorthPolarStereo")
         sl.set_log(field, False)
+        sl._setup_plots()
         return sl.plots[field].figure
 
     @requires_module("cartopy")
@@ -175,6 +192,7 @@ class TestGeoTransform:
         sl = yt.SlicePlot(self.ds, "altitude", field, origin="native")
         sl.set_mpl_projection("SouthPolarStereo")
         sl.set_log(field, False)
+        sl._setup_plots()
         return sl.plots[field].figure
 
     @requires_module("cartopy")
@@ -184,6 +202,7 @@ class TestGeoTransform:
         sl = yt.SlicePlot(self.ds, "altitude", field, origin="native")
         sl.set_mpl_projection("AlbersEqualArea")
         sl.set_log(field, False)
+        sl._setup_plots()
         return sl.plots[field].figure
 
     @requires_module("cartopy")
@@ -193,6 +212,7 @@ class TestGeoTransform:
         sl = yt.SlicePlot(self.ds, "altitude", field, origin="native")
         sl.set_mpl_projection("AzimuthalEquidistant")
         sl.set_log(field, False)
+        sl._setup_plots()
         return sl.plots[field].figure
 
     @requires_module("cartopy")
@@ -202,6 +222,7 @@ class TestGeoTransform:
         sl = yt.SlicePlot(self.ds, "altitude", field, origin="native")
         sl.set_mpl_projection("Sinusoidal")
         sl.set_log(field, False)
+        sl._setup_plots()
         return sl.plots[field].figure
 
     @requires_module("cartopy")
@@ -211,6 +232,7 @@ class TestGeoTransform:
         sl = yt.SlicePlot(self.ds, "altitude", field, origin="native")
         sl.set_mpl_projection("NearsidePerspective")
         sl.set_log(field, False)
+        sl._setup_plots()
         return sl.plots[field].figure
 
     @requires_module("cartopy")
@@ -222,4 +244,5 @@ class TestGeoTransform:
         sl = yt.SlicePlot(self.ds, "altitude", field, origin="native")
         sl.set_mpl_projection("LambertAzimuthalEqualArea")
         sl.set_log(field, False)
+        sl._setup_plots()
         return sl.plots[field].figure

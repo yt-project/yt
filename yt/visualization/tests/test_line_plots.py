@@ -26,6 +26,7 @@ class TestLinePlotSimple:
         plot.set_x_unit("cm")
         plot.set_unit(fields[0], "kg/cm**3")
         plot.annotate_title(fields[0], "Density Plot")
+        plot._setup_plots()
         cls.plot = plot
 
     @pytest.mark.mpl_image_compare(filename="line_plot_simple_density.png")
