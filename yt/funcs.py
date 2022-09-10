@@ -17,6 +17,7 @@ import time
 import traceback
 import urllib.parse
 import urllib.request
+from collections import UserDict
 from functools import lru_cache, wraps
 from numbers import Number as numeric_type
 from typing import Any, Callable, Type
@@ -1266,7 +1267,7 @@ def dictWithFactory(factory: Callable[[Any], Any]) -> Type:
         since="4.1",
     )
 
-    class DictWithFactory(dict):
+    class DictWithFactory(UserDict):
         def __init__(self, *args, **kwargs):
             self.factory = factory
             super().__init__(*args, **kwargs)
