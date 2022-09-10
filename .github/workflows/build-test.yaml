@@ -93,7 +93,13 @@ jobs:
       if: matrix.test-runner == 'pytest'
       env:
         testsuite: ${{ matrix.tests-type }}
-      run: pytest --color=yes
+      run: pytest --color=yes --mpl-generate-summary=html --mpl-results-path=pytest_mpl_results
+    - name: Upload pytest-mpl report
+      if: matrix.test-runner == 'pytest' && failure()
+      uses: actions/upload-artifact@v2
+      with:
+        name: pytest_mpl_report
+        path: pytest_mpl_results/*
     - name: Run Tests (nose)
       if: matrix.test-runner == 'nose'
       env:

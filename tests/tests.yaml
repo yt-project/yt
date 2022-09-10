@@ -176,27 +176,11 @@ answer_tests:
   local_axialpix_009: # PR 3818
     - yt/geometry/coordinates/tests/test_axial_pixelization.py:test_axial_pixelization
 
-  local_cylindrical_background_015:  # PR 3818, 3986
-    - yt/geometry/coordinates/tests/test_cylindrical_coordinates.py:test_noise_plots
-
-  local_spherical_background_009:  # PR 3818, 3986
-    - yt/geometry/coordinates/tests/test_spherical_coordinates.py:test_noise_plots
-
   #local_particle_trajectory_001:
   #  - yt/data_objects/tests/test_particle_trajectories.py
 
   local_nc4_cm1_002: # PR  2176, 2998
     - yt/frontends/nc4_cm1/tests/test_outputs.py:test_cm1_mesh_fields
-
-  local_norm_api_008: # PR 3849
-    - yt/visualization/tests/test_norm_api_lineplot.py:test_lineplot_set_axis_properties
-    - yt/visualization/tests/test_norm_api_profileplot.py:test_profileplot_set_axis_properties
-    - yt/visualization/tests/test_norm_api_custom_norm.py:test_sliceplot_custom_norm
-    - yt/visualization/tests/test_norm_api_set_background_color.py:test_sliceplot_set_background_color
-    - yt/visualization/tests/test_norm_api_phaseplot_set_colorbar_implicit.py:test_phaseplot_set_colorbar_properties_implicit
-    - yt/visualization/tests/test_norm_api_phaseplot_set_colorbar_explicit.py:test_phaseplot_set_colorbar_properties_explicit
-    - yt/visualization/tests/test_norm_api_particleplot.py:test_particleprojectionplot_set_colorbar_properties
-    - yt/visualization/tests/test_norm_api_inf_zlim.py:test_inf_and_finite_values_zlim
 
   local_cf_radial_002: # PR  1990
     - yt/frontends/cf_radial/tests/test_outputs.py:test_cfradial_grid_field_values
@@ -223,6 +207,7 @@ other_tests:
      - "--ignore-files=test_version\\.py"
      - "--ignore-files=test_set_zlim\\.py"
      - "--ignore-file=test_add_field\\.py"
+     - "--ignore-file=test_image_2D_plots\\.py"
      - "--exclude-test=yt.frontends.gdf.tests.test_outputs.TestGDF"
      - "--exclude-test=yt.frontends.adaptahop.tests.test_outputs"
      - "--exclude-test=yt.frontends.stream.tests.test_stream_particles.test_stream_non_cartesian_particles"
