@@ -332,11 +332,11 @@ def data_dir_load(ds_fn, cls=None, args=None, kwargs=None):
     return ds
 
 
-def data_dir_load_v2(fn):
+def data_dir_load_v2(fn, *args, **kwargs):
     # a version of data_dir_load without type flexibility
     # that is simpler to reason about
     path = os.path.join(ytcfg.get("yt", "test_data_dir"), fn)
-    return load(path)
+    return load(path, *args, **kwargs)
 
 
 def sim_dir_load(sim_fn, path=None, sim_type="Enzo", find_outputs=False):

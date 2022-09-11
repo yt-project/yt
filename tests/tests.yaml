@@ -118,24 +118,6 @@ answer_tests:
     - yt/fields/tests/test_xray_fields.py:test_d9p_cloudy
     - yt/fields/tests/test_xray_fields.py:test_d9p_cloudy_local
 
-  local_unstructured_012:
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_composite_mesh_render
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_composite_mesh_render_pyembree
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_hex20_render
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_hex20_render_pyembree
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_hex8_render
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_hex8_render_pyembree
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_perspective_mesh_render
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_perspective_mesh_render_pyembree
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_surface_mesh_render
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_surface_mesh_render_pyembree
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_tet10_render
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_tet10_render_pyembree
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_tet4_render
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_tet4_render_pyembree
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_wedge6_render
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_wedge6_render_pyembree
-
   local_boxlib_011:
     - yt/frontends/boxlib/tests/test_outputs.py:test_radadvect
     - yt/frontends/boxlib/tests/test_outputs.py:test_radtube
@@ -211,6 +193,7 @@ other_tests:
      - "--ignore-file=test_line_plots\\.py"
      - "--ignore-file=test_mesh_slices\\.py"
      - "--ignore-file=test_raw_field_slices\\.py"
+     - "--ignore-file=test_mesh_render\\.py"
      - "--exclude-test=yt.frontends.gdf.tests.test_outputs.TestGDF"
      - "--exclude-test=yt.frontends.adaptahop.tests.test_outputs"
      - "--exclude-test=yt.frontends.stream.tests.test_stream_particles.test_stream_non_cartesian_particles"
