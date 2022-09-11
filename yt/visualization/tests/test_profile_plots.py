@@ -7,10 +7,7 @@ from nose.plugins.attrib import attr
 
 import yt
 from yt.testing import ANSWER_TEST_TAG, assert_allclose_units, fake_random_ds
-from yt.utilities.answer_testing.framework import (
-    GenericImageTest,
-    PhasePlotAttributeTest,
-)
+from yt.utilities.answer_testing.framework import PhasePlotAttributeTest
 
 ATTR_ARGS = {
     "annotate_text": [
@@ -23,17 +20,6 @@ ATTR_ARGS = {
     "set_xlim": [((1e-27, 1e-24), {})],
     "set_ylim": [((1e2, 1e6), {})],
 }
-
-
-def compare(ds, plot, test_prefix, test_name, decimals=12):
-    def image_from_plot(filename_prefix):
-        return plot.save(filename_prefix)
-
-    image_from_plot.__name__ = f"profile_{test_prefix}"
-    test = GenericImageTest(ds, image_from_plot, decimals)
-    test.prefix = test_prefix
-    test.answer_name = test_name
-    return test
 
 
 @attr(ANSWER_TEST_TAG)
