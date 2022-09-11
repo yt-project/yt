@@ -17,7 +17,7 @@ from yt.utilities.answer_testing.framework import (
     GenericImageTest,
     PhasePlotAttributeTest,
 )
-from yt.visualization.profile_plotter import PhasePlot, ProfilePlot
+from yt.visualization.profile_plotter import PhasePlot
 
 ATTR_ARGS = {
     "annotate_text": [
@@ -67,39 +67,6 @@ def test_phase_plot_attributes():
             test.prefix = f"{attr_name}_{args}"
             test.answer_name = "phase_plot_attributes"
             yield test
-
-
-@attr(ANSWER_TEST_TAG)
-def test_profile_plot():
-    fields = ("density", "temperature", "velocity_x", "velocity_y", "velocity_z")
-    units = ("g/cm**3", "K", "cm/s", "cm/s", "cm/s")
-    test_ds = fake_random_ds(16, fields=fields, units=units)
-    regions = [test_ds.region([0.5] * 3, [0.4] * 3, [0.6] * 3), test_ds.all_data()]
-    pr_fields = [
-        [("gas", "density"), ("gas", "temperature")],
-        [("gas", "density"), ("gas", "velocity_x")],
-        [("gas", "temperature"), ("gas", "mass")],
-        [("gas", "density"), ("index", "radius")],
-        [("gas", "velocity_magnitude"), ("gas", "mass")],
-    ]
-    profiles = []
-    for reg in regions:
-        for x_field, y_field in pr_fields:
-            profiles.append(ProfilePlot(reg, x_field, y_field))
-            profiles.append(
-                ProfilePlot(reg, x_field, y_field, fractional=True, accumulation=True)
-            )
-            p1d = create_profile(reg, x_field, y_field)
-            profiles.append(ProfilePlot.from_profiles(p1d))
-    p1 = create_profile(test_ds.all_data(), ("gas", "density"), ("gas", "temperature"))
-    p2 = create_profile(test_ds.all_data(), ("gas", "density"), ("gas", "velocity_x"))
-    profiles.append(
-        ProfilePlot.from_profiles([p1, p2], labels=["temperature", "velocity"])
-    )
-    profiles[0]._repr_html_()
-    for idx, plot in enumerate(profiles):
-        test_prefix = f"{plot.plots.keys()}_{idx}"
-        yield compare(test_ds, plot, test_prefix=test_prefix, test_name="profile_plots")
 
 
 @attr(ANSWER_TEST_TAG)
