@@ -332,6 +332,13 @@ def data_dir_load(ds_fn, cls=None, args=None, kwargs=None):
     return ds
 
 
+def data_dir_load_v2(fn):
+    # a version of data_dir_load without type flexibility
+    # that is simpler to reason about
+    path = os.path.join(ytcfg.get("yt", "test_data_dir"), fn)
+    return load(path)
+
+
 def sim_dir_load(sim_fn, path=None, sim_type="Enzo", find_outputs=False):
     if path is None and not os.path.exists(sim_fn):
         raise OSError
@@ -1131,7 +1138,7 @@ def requires_answer_testing():
 
 def requires_ds(ds_fn, big_data=False, file_check=False):
     condition = (big_data and not run_big_data) or not can_run_ds(ds_fn, file_check)
-    return skipif(condition, reason="cannot load dataset")
+    return skipif(condition, reason=f"cannot load dataset {ds_fn}")
 
 
 def small_patch_amr(ds_fn, fields, input_center="max", input_weight=("gas", "density")):

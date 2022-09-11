@@ -1,47 +1,68 @@
+import pytest
+
 import yt
-from yt.utilities.answer_testing.framework import (
-    GenericImageTest,
-    data_dir_load,
-    requires_ds,
-)
+from yt.utilities.answer_testing.framework import data_dir_load_v2
+
+try:
+    ds = data_dir_load_v2("Laser/plt00015")
+except Exception:
+
+    pytest.skip(
+        reason="dataset 'Laser/plt00015' isn't installed", allow_module_level=True
+    )
 
 
-def setup():
-    """Test specific setup."""
-    from yt.config import ytcfg
+class TestRawFieldSlice:
+    @classmethod
+    def setup_class(cls):
+        cls.ds = ds
+        fields = [
+            ("raw", "Bx"),
+            ("raw", "By"),
+            ("raw", "Bz"),
+            ("raw", "Ex"),
+            ("raw", "Ey"),
+            ("raw", "Ez"),
+            ("raw", "jx"),
+            ("raw", "jy"),
+            ("raw", "jz"),
+        ]
+        cls.sl = yt.SlicePlot(cls.ds, "z", fields)
+        cls.sl.set_log("all", False)
+        cls.sl._setup_plots()
 
-    ytcfg["yt", "internals", "within_testing"] = True
+    @pytest.mark.mpl_image_compare(filename="raw_fields_slice_Bx.png")
+    def test_raw_field_slice_Bx(self):
+        return self.sl.plots["raw", "Bx"].figure
 
+    @pytest.mark.mpl_image_compare(filename="raw_fields_slice_By.png")
+    def test_raw_field_slice_By(self):
+        return self.sl.plots["raw", "By"].figure
 
-def compare(ds, field, test_prefix, decimals=12):
-    def slice_image(filename_prefix):
-        sl = yt.SlicePlot(ds, "z", field)
-        sl.set_log("all", False)
-        image_file = sl.save(filename_prefix)
-        return image_file
+    @pytest.mark.mpl_image_compare(filename="raw_fields_slice_Bz.png")
+    def test_raw_field_slice_Bz(self):
+        return self.sl.plots["raw", "Bz"].figure
 
-    slice_image.__name__ = f"slice_{test_prefix}"
-    test = GenericImageTest(ds, slice_image, decimals)
-    test.prefix = test_prefix
-    return test
+    @pytest.mark.mpl_image_compare(filename="raw_fields_slice_Ex.png")
+    def test_raw_field_slice_Ex(self):
+        return self.sl.plots["raw", "Ex"].figure
 
+    @pytest.mark.mpl_image_compare(filename="raw_fields_slice_Ey.png")
+    def test_raw_field_slice_Ey(self):
+        return self.sl.plots["raw", "Ey"].figure
 
-raw_fields = "Laser/plt00015"
-_raw_field_names = [
-    ("raw", "Bx"),
-    ("raw", "By"),
-    ("raw", "Bz"),
-    ("raw", "Ex"),
-    ("raw", "Ey"),
-    ("raw", "Ez"),
-    ("raw", "jx"),
-    ("raw", "jy"),
-    ("raw", "jz"),
-]
+    @pytest.mark.mpl_image_compare(filename="raw_fields_slice_Ez.png")
+    def test_raw_field_slice_Ez(self):
+        return self.sl.plots["raw", "Ez"].figure
 
+    @pytest.mark.mpl_image_compare(filename="raw_fields_slice_jx.png")
+    def test_raw_field_slice_jx(self):
+        return self.sl.plots["raw", "jx"].figure
 
-@requires_ds(raw_fields)
-def test_raw_field_slices():
-    ds = data_dir_load(raw_fields)
-    for field in _raw_field_names:
-        yield compare(ds, field, f"answers_raw_{field[1]}")
+    @pytest.mark.mpl_image_compare(filename="raw_fields_slice_jy.png")
+    def test_raw_field_slice_jy(self):
+        return self.sl.plots["raw", "jy"].figure
+
+    @pytest.mark.mpl_image_compare(filename="raw_fields_slice_jz.png")
+    def test_raw_field_slice_jz(self):
+        return self.sl.plots["raw", "jz"].figure
