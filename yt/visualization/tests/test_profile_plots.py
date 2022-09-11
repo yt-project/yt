@@ -6,18 +6,11 @@ import unittest
 from nose.plugins.attrib import attr
 
 import yt
-from yt.data_objects.profiles import create_profile
-from yt.testing import (
-    ANSWER_TEST_TAG,
-    assert_allclose_units,
-    assert_array_almost_equal,
-    fake_random_ds,
-)
+from yt.testing import ANSWER_TEST_TAG, assert_allclose_units, fake_random_ds
 from yt.utilities.answer_testing.framework import (
     GenericImageTest,
     PhasePlotAttributeTest,
 )
-from yt.visualization.profile_plotter import PhasePlot
 
 ATTR_ARGS = {
     "annotate_text": [
@@ -67,94 +60,6 @@ def test_phase_plot_attributes():
             test.prefix = f"{attr_name}_{args}"
             test.answer_name = "phase_plot_attributes"
             yield test
-
-
-@attr(ANSWER_TEST_TAG)
-def test_phase_plot():
-    fields = ("density", "temperature", "velocity_x", "velocity_y", "velocity_z")
-    units = ("g/cm**3", "K", "cm/s", "cm/s", "cm/s")
-    test_ds = fake_random_ds(16, fields=fields, units=units)
-    regions = [test_ds.region([0.5] * 3, [0.4] * 3, [0.6] * 3), test_ds.all_data()]
-    phases = []
-    ph_fields = [
-        [("gas", "density"), ("gas", "temperature"), ("gas", "mass")],
-        [("gas", "density"), ("gas", "velocity_x"), ("gas", "mass")],
-        [("index", "radius"), ("gas", "temperature"), ("gas", "velocity_magnitude")],
-    ]
-    for reg in regions:
-        for x_field, y_field, z_field in ph_fields:
-            # set n_bins to [16, 16] since matplotlib's postscript
-            # renderer is slow when it has to write a lot of polygons
-            phases.append(
-                PhasePlot(reg, x_field, y_field, z_field, x_bins=16, y_bins=16)
-            )
-            phases.append(
-                PhasePlot(
-                    reg,
-                    x_field,
-                    y_field,
-                    z_field,
-                    fractional=True,
-                    accumulation=True,
-                    x_bins=16,
-                    y_bins=16,
-                )
-            )
-            p2d = create_profile(reg, [x_field, y_field], z_field, n_bins=[16, 16])
-            phases.append(PhasePlot.from_profile(p2d))
-    pp = PhasePlot(
-        test_ds.all_data(),
-        ("gas", "density"),
-        ("gas", "temperature"),
-        ("gas", "mass"),
-    )
-    pp.set_xlim(0.3, 0.8)
-    pp.set_ylim(0.4, 0.6)
-    pp._setup_plots()
-    xlim = pp.plots[("gas", "mass")].axes.get_xlim()
-    ylim = pp.plots[("gas", "mass")].axes.get_ylim()
-    assert_array_almost_equal(xlim, (0.3, 0.8))
-    assert_array_almost_equal(ylim, (0.4, 0.6))
-    phases.append(pp)
-    phases[0]._repr_html_()
-    for idx, plot in enumerate(phases):
-        test_prefix = f"{plot.plots.keys()}_{idx}"
-        yield compare(test_ds, plot, test_prefix=test_prefix, test_name="phase_plots")
-
-
-@attr(ANSWER_TEST_TAG)
-def test_profile_plot_multiple_field_multiple_plot():
-    fields = ("density", "temperature", "dark_matter_density")
-    units = ("g/cm**3", "K", "g/cm**3")
-    ds = fake_random_ds(16, fields=fields, units=units)
-    sphere = ds.sphere("max", (1.0, "Mpc"))
-    profiles = []
-    profiles.append(
-        yt.create_profile(
-            sphere, [("index", "radius")], fields=[("gas", "density")], n_bins=32
-        )
-    )
-    profiles.append(
-        yt.create_profile(
-            sphere, [("index", "radius")], fields=[("gas", "density")], n_bins=64
-        )
-    )
-    profiles.append(
-        yt.create_profile(
-            sphere,
-            [("index", "radius")],
-            fields=[("gas", "dark_matter_density")],
-            n_bins=64,
-        )
-    )
-
-    plot = yt.ProfilePlot.from_profiles(profiles)
-    yield compare(
-        ds,
-        plot,
-        test_prefix=plot.plots.keys(),
-        test_name="profile_plot_multiple_field_multiple_plot",
-    )
 
 
 def test_set_units():

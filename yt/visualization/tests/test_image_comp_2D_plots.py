@@ -164,7 +164,7 @@ class TestProfilePlot:
         for i_reg, reg in enumerate(regions):
             id_prefix = f"region{i_reg}"
             for x_field, y_field in pr_fields:
-                id_suffix = f"{x_field[0]}_{x_field[1]}_{y_field[0]}_{y_field[1]}"
+                id_suffix = "_".join([*x_field, *y_field])
                 base_id = f"{id_prefix}_{id_suffix}"
                 cls.profiles[base_id] = ProfilePlot(reg, x_field, y_field)
                 cls.profiles[f"{base_id}_fractional_accumulation"] = ProfilePlot(
@@ -542,12 +542,277 @@ class TestProfilePlot:
 class TestPhasePlot:
     @classmethod
     def setup_class(cls):
-        ds = fake_random_ds(16)
-        add_noise_fields(ds)
-        cls.ds = (
-            ds  # create a persistent reference to avoid premature garbage collection
+        fields = ("density", "temperature", "velocity_x", "velocity_y", "velocity_z")
+        units = ("g/cm**3", "K", "cm/s", "cm/s", "cm/s")
+        cls.ds = fake_random_ds(16, fields=fields, units=units)
+        regions = [cls.ds.region([0.5] * 3, [0.4] * 3, [0.6] * 3), cls.ds.all_data()]
+        pr_fields = [
+            [("gas", "density"), ("gas", "temperature"), ("gas", "mass")],
+            [("gas", "density"), ("gas", "velocity_x"), ("gas", "mass")],
+            [
+                ("index", "radius"),
+                ("gas", "temperature"),
+                ("gas", "velocity_magnitude"),
+            ],
+        ]
+        cls.profiles: Dict[str, PhasePlot] = {}
+        for i_reg, reg in enumerate(regions):
+            id_prefix = f"region{i_reg}"
+            for x_field, y_field, z_field in pr_fields:
+                id_suffix = "_".join([*x_field, *y_field, *z_field])
+                base_id = f"{id_prefix}_{id_suffix}"
+                cls.profiles[base_id] = PhasePlot(
+                    reg, x_field, y_field, z_field, x_bins=16, y_bins=16
+                )
+                cls.profiles[f"{base_id}_fractional_accumulation"] = PhasePlot(
+                    reg,
+                    x_field,
+                    y_field,
+                    z_field,
+                    fractional=True,
+                    accumulation=True,
+                    x_bins=16,
+                    y_bins=16,
+                )
+
+                p2d = create_profile(reg, [x_field, y_field], z_field, n_bins=[16, 16])
+                cls.profiles[f"{base_id}_from_profiles"] = PhasePlot.from_profile(p2d)
+
+    @pytest.mark.mpl_image_compare(
+        filename="phaseplot_region0_gas_density_gas_temperature_gas_mass.png"
+    )
+    def test_phaseplot_region0_gas_density_gas_temperature_gas_mass(self):
+        plots = list(
+            self.profiles["region0_gas_density_gas_temperature_gas_mass"].plots.values()
         )
-        cls.data = ds.sphere("c", 1)
+        assert len(plots) == 1
+        return plots[0].figure
+
+    @pytest.mark.mpl_image_compare(
+        filename="phaseplot_region0_gas_density_gas_temperature_gas_mass_fractional_accumulation.png"
+    )
+    def test_phaseplot_region0_gas_density_gas_temperature_gas_mass_fractional_accumulation(
+        self,
+    ):
+        plots = list(
+            self.profiles[
+                "region0_gas_density_gas_temperature_gas_mass_fractional_accumulation"
+            ].plots.values()
+        )
+        assert len(plots) == 1
+        return plots[0].figure
+
+    @pytest.mark.mpl_image_compare(
+        filename="phaseplot_region0_gas_density_gas_temperature_gas_mass_from_profiles.png"
+    )
+    def test_phaseplot_region0_gas_density_gas_temperature_gas_mass_from_profiles(self):
+        plots = list(
+            self.profiles[
+                "region0_gas_density_gas_temperature_gas_mass_from_profiles"
+            ].plots.values()
+        )
+        assert len(plots) == 1
+        return plots[0].figure
+
+    @pytest.mark.mpl_image_compare(
+        filename="phaseplot_region0_gas_density_gas_velocity_x_gas_mass.png"
+    )
+    def test_phaseplot_region0_gas_density_gas_velocity_x_gas_mass(self):
+        plots = list(
+            self.profiles["region0_gas_density_gas_velocity_x_gas_mass"].plots.values()
+        )
+        assert len(plots) == 1
+        return plots[0].figure
+
+    @pytest.mark.mpl_image_compare(
+        filename="phaseplot_region0_gas_density_gas_velocity_x_gas_mass_fractional_accumulation.png"
+    )
+    def test_phaseplot_region0_gas_density_gas_velocity_x_gas_mass_fractional_accumulation(
+        self,
+    ):
+        plots = list(
+            self.profiles[
+                "region0_gas_density_gas_velocity_x_gas_mass_fractional_accumulation"
+            ].plots.values()
+        )
+        assert len(plots) == 1
+        return plots[0].figure
+
+    @pytest.mark.mpl_image_compare(
+        filename="phaseplot_region0_gas_density_gas_velocity_x_gas_mass_from_profiles.png"
+    )
+    def test_phaseplot_region0_gas_density_gas_velocity_x_gas_mass_from_profiles(self):
+        plots = list(
+            self.profiles[
+                "region0_gas_density_gas_velocity_x_gas_mass_from_profiles"
+            ].plots.values()
+        )
+        assert len(plots) == 1
+        return plots[0].figure
+
+    @pytest.mark.mpl_image_compare(
+        filename="phaseplot_region0_index_radius_gas_temperature_gas_velocity_magnitude.png"
+    )
+    def test_phaseplot_region0_index_radius_gas_temperature_gas_velocity_magnitude(
+        self,
+    ):
+        plots = list(
+            self.profiles[
+                "region0_index_radius_gas_temperature_gas_velocity_magnitude"
+            ].plots.values()
+        )
+        assert len(plots) == 1
+        return plots[0].figure
+
+    @pytest.mark.mpl_image_compare(
+        filename="phaseplot_region0_index_radius_gas_temperature_gas_velocity_magnitude_fractional_accumulation.png"
+    )
+    def test_phaseplot_region0_index_radius_gas_temperature_gas_velocity_magnitude_fractional_accumulation(
+        self,
+    ):
+        plots = list(
+            self.profiles[
+                "region0_index_radius_gas_temperature_gas_velocity_magnitude_fractional_accumulation"
+            ].plots.values()
+        )
+        assert len(plots) == 1
+        return plots[0].figure
+
+    @pytest.mark.mpl_image_compare(
+        filename="phaseplot_region0_index_radius_gas_temperature_gas_velocity_magnitude_from_profiles.png"
+    )
+    def test_phaseplot_region0_index_radius_gas_temperature_gas_velocity_magnitude_from_profiles(
+        self,
+    ):
+        plots = list(
+            self.profiles[
+                "region0_index_radius_gas_temperature_gas_velocity_magnitude_from_profiles"
+            ].plots.values()
+        )
+        assert len(plots) == 1
+        return plots[0].figure
+
+    @pytest.mark.mpl_image_compare(
+        filename="phaseplot_region1_gas_density_gas_temperature_gas_mass.png"
+    )
+    def test_phaseplot_region1_gas_density_gas_temperature_gas_mass(self):
+        plots = list(
+            self.profiles["region1_gas_density_gas_temperature_gas_mass"].plots.values()
+        )
+        assert len(plots) == 1
+        return plots[0].figure
+
+    @pytest.mark.mpl_image_compare(
+        filename="phaseplot_region1_gas_density_gas_temperature_gas_mass_fractional_accumulation.png"
+    )
+    def test_phaseplot_region1_gas_density_gas_temperature_gas_mass_fractional_accumulation(
+        self,
+    ):
+        plots = list(
+            self.profiles[
+                "region1_gas_density_gas_temperature_gas_mass_fractional_accumulation"
+            ].plots.values()
+        )
+        assert len(plots) == 1
+        return plots[0].figure
+
+    @pytest.mark.mpl_image_compare(
+        filename="phaseplot_region1_gas_density_gas_temperature_gas_mass_from_profiles.png"
+    )
+    def test_phaseplot_region1_gas_density_gas_temperature_gas_mass_from_profiles(self):
+        plots = list(
+            self.profiles[
+                "region1_gas_density_gas_temperature_gas_mass_from_profiles"
+            ].plots.values()
+        )
+        assert len(plots) == 1
+        return plots[0].figure
+
+    @pytest.mark.mpl_image_compare(
+        filename="phaseplot_region1_gas_density_gas_velocity_x_gas_mass.png"
+    )
+    def test_phaseplot_region1_gas_density_gas_velocity_x_gas_mass(self):
+        plots = list(
+            self.profiles["region1_gas_density_gas_velocity_x_gas_mass"].plots.values()
+        )
+        assert len(plots) == 1
+        return plots[0].figure
+
+    @pytest.mark.mpl_image_compare(
+        filename="phaseplot_region1_gas_density_gas_velocity_x_gas_mass_fractional_accumulation.png"
+    )
+    def test_phaseplot_region1_gas_density_gas_velocity_x_gas_mass_fractional_accumulation(
+        self,
+    ):
+        plots = list(
+            self.profiles[
+                "region1_gas_density_gas_velocity_x_gas_mass_fractional_accumulation"
+            ].plots.values()
+        )
+        assert len(plots) == 1
+        return plots[0].figure
+
+    @pytest.mark.mpl_image_compare(
+        filename="phaseplot_region1_gas_density_gas_velocity_x_gas_mass_from_profiles.png"
+    )
+    def test_phaseplot_region1_gas_density_gas_velocity_x_gas_mass_from_profiles(self):
+        plots = list(
+            self.profiles[
+                "region1_gas_density_gas_velocity_x_gas_mass_from_profiles"
+            ].plots.values()
+        )
+        assert len(plots) == 1
+        return plots[0].figure
+
+    @pytest.mark.mpl_image_compare(
+        filename="phaseplot_region1_index_radius_gas_temperature_gas_velocity_magnitude.png"
+    )
+    def test_phaseplot_region1_index_radius_gas_temperature_gas_velocity_magnitude(
+        self,
+    ):
+        plots = list(
+            self.profiles[
+                "region1_index_radius_gas_temperature_gas_velocity_magnitude"
+            ].plots.values()
+        )
+        assert len(plots) == 1
+        return plots[0].figure
+
+    @pytest.mark.mpl_image_compare(
+        filename="phaseplot_region1_index_radius_gas_temperature_gas_velocity_magnitude_fractional_accumulation.png"
+    )
+    def test_phaseplot_region1_index_radius_gas_temperature_gas_velocity_magnitude_fractional_accumulation(
+        self,
+    ):
+        plots = list(
+            self.profiles[
+                "region1_index_radius_gas_temperature_gas_velocity_magnitude_fractional_accumulation"
+            ].plots.values()
+        )
+        assert len(plots) == 1
+        return plots[0].figure
+
+    @pytest.mark.mpl_image_compare(
+        filename="phaseplot_region1_index_radius_gas_temperature_gas_velocity_magnitude_from_profiles.png"
+    )
+    def test_phaseplot_region1_index_radius_gas_temperature_gas_velocity_magnitude_from_profiles(
+        self,
+    ):
+        plots = list(
+            self.profiles[
+                "region1_index_radius_gas_temperature_gas_velocity_magnitude_from_profiles"
+            ].plots.values()
+        )
+        assert len(plots) == 1
+        return plots[0].figure
+
+
+class TestPhasePlotSetZlim:
+    @classmethod
+    def setup_class(cls):
+        cls.ds = fake_random_ds(16)
+        add_noise_fields(cls.ds)
+        cls.data = cls.ds.sphere("c", 1)
 
     @pytest.mark.mpl_image_compare(
         filename="phaseplot_set_zlim_with_implicit_units.png"
