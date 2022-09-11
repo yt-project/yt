@@ -526,11 +526,17 @@ class TestProfilePlot:
         assert len(plots) == 1
         return plots[0].figure
 
-    @pytest.mark.mpl_image_compare(filename="profile_plot_from_multiple_profiles.png")
-    def test_profileplot_from_multiple_profiles(self):
+    @pytest.mark.mpl_image_compare(filename="profile_plot_from_multiple_profiles_0.png")
+    def test_profileplot_from_multiple_profiles_0(self):
         plots = list(self.profiles["from_multiple_profiles"].plots.values())
-        assert len(plots) == 1
+        assert len(plots) == 2
         return plots[0].figure
+
+    @pytest.mark.mpl_image_compare(filename="profile_plot_from_multiple_profiles_1.png")
+    def test_profileplot_from_multiple_profiles_1(self):
+        plots = list(self.profiles["from_multiple_profiles"].plots.values())
+        assert len(plots) == 2
+        return plots[1].figure
 
 
 class TestPhasePlot:
