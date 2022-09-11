@@ -1,15 +1,8 @@
 import numpy as np
-from nose.plugins.attrib import attr
+import pytest
 
 import yt
-from yt.testing import (
-    ANSWER_TEST_TAG,
-    fake_amr_ds,
-    fake_hexahedral_ds,
-    fake_tetrahedral_ds,
-    small_fake_hexahedral_ds,
-)
-from yt.utilities.answer_testing.framework import GenericImageTest
+from yt.testing import fake_hexahedral_ds, fake_tetrahedral_ds, small_fake_hexahedral_ds
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
 from yt.utilities.lib.mesh_triangulation import triangulate_indices
 
@@ -21,76 +14,160 @@ def setup():
     ytcfg["yt", "internals", "within_testing"] = True
 
 
-def compare(ds, field, idir, test_prefix, test_name, decimals=12, annotate=False):
-    def slice_image(filename_prefix):
-        sl = yt.SlicePlot(ds, idir, field)
-        if annotate:
-            sl.annotate_mesh_lines()
-        sl.set_log("all", False)
-        image_file = sl.save(filename_prefix)
-        return image_file
+class TestTetrahedral:
+    @classmethod
+    def setup_class(cls):
+        cls.ds = fake_tetrahedral_ds()
+        cls.mesh = cls.ds.index.meshes[0]
+        cls.ad = cls.ds.all_data()
 
-    slice_image.__name__ = f"slice_{test_prefix}"
-    test = GenericImageTest(ds, slice_image, decimals)
-    test.prefix = test_prefix
-    test.answer_name = test_name
-    return test
+        cls.slices = [
+            cls.ds.slice(idir, cls.ds.domain_center[idir]) for idir in range(3)
+        ]
+        cls.sps = [yt.SlicePlot(cls.ds, idir, cls.ds.field_list) for idir in range(3)]
+        for sp in cls.sps:
+            sp.annotate_mesh_lines()
+            sp.set_log("all", False)
+            sp._setup_plots()
+
+    @pytest.mark.parametrize("idir", range(3))
+    def test_mesh_selection(self, idir):
+        sl_obj = self.slices[idir]
+        for field in self.ds.field_list:
+            assert sl_obj[field].shape[0] == self.mesh.count(sl_obj.selector)
+            assert sl_obj[field].shape[0] < self.ad[field].shape[0]
+
+    @pytest.mark.mpl_image_compare(filename="mesh_slice_tetrahedral_all_elem_0.png")
+    def test_mesh_slice_tetraheadral_all_elem_0(self):
+        return self.sps[0].plots["all", "elem"].figure
+
+    @pytest.mark.mpl_image_compare(filename="mesh_slice_tetrahedral_all_elem_1.png")
+    def test_mesh_slice_tetraheadral_all_elem_1(self):
+        return self.sps[1].plots["all", "elem"].figure
+
+    @pytest.mark.mpl_image_compare(filename="mesh_slice_tetrahedral_all_elem_2.png")
+    def test_mesh_slice_tetraheadral_all_elem_2(self):
+        return self.sps[2].plots["all", "elem"].figure
+
+    @pytest.mark.mpl_image_compare(filename="mesh_slice_tetrahedral_all_test_0.png")
+    def test_mesh_slice_tetraheadral_all_test_0(self):
+        return self.sps[0].plots["all", "test"].figure
+
+    @pytest.mark.mpl_image_compare(filename="mesh_slice_tetrahedral_all_test_1.png")
+    def test_mesh_slice_tetraheadral_all_test_1(self):
+        return self.sps[1].plots["all", "test"].figure
+
+    @pytest.mark.mpl_image_compare(filename="mesh_slice_tetrahedral_all_test_2.png")
+    def test_mesh_slice_tetraheadral_all_test_2(self):
+        return self.sps[2].plots["all", "test"].figure
+
+    @pytest.mark.mpl_image_compare(
+        filename="mesh_slice_tetrahedral_connect1_elem_0.png"
+    )
+    def test_mesh_slice_tetraheadral_connect1_elem_0(self):
+        return self.sps[0].plots["connect1", "elem"].figure
+
+    @pytest.mark.mpl_image_compare(
+        filename="mesh_slice_tetrahedral_connect1_elem_1.png"
+    )
+    def test_mesh_slice_tetraheadral_connect1_elem_1(self):
+        return self.sps[1].plots["connect1", "elem"].figure
+
+    @pytest.mark.mpl_image_compare(
+        filename="mesh_slice_tetrahedral_connect1_elem_2.png"
+    )
+    def test_mesh_slice_tetraheadral_connect1_elem_2(self):
+        return self.sps[2].plots["connect1", "elem"].figure
+
+    @pytest.mark.mpl_image_compare(
+        filename="mesh_slice_tetrahedral_connect1_test_0.png"
+    )
+    def test_mesh_slice_tetraheadral_connect1_test_0(self):
+        return self.sps[0].plots["connect1", "test"].figure
+
+    @pytest.mark.mpl_image_compare(
+        filename="mesh_slice_tetrahedral_connect1_test_1.png"
+    )
+    def test_mesh_slice_tetraheadral_connect1_test_1(self):
+        return self.sps[1].plots["connect1", "test"].figure
+
+    @pytest.mark.mpl_image_compare(
+        filename="mesh_slice_tetrahedral_connect1_test_2.png"
+    )
+    def test_mesh_slice_tetraheadral_connect1_test_2(self):
+        return self.sps[2].plots["connect1", "test"].figure
 
 
-@attr(ANSWER_TEST_TAG)
-def test_mesh_slices_amr():
-    ds = fake_amr_ds()
-    for field in ds.field_list:
-        prefix = f"{field[0]}_{field[1]}_{0}"
-        yield compare(ds, field, 0, test_prefix=prefix, test_name="mesh_slices_amr")
+class TestHexahedral:
+    @classmethod
+    def setup_class(cls):
+        cls.ds = fake_hexahedral_ds()
+        cls.mesh = cls.ds.index.meshes[0]
+        cls.ad = cls.ds.all_data()
 
+        cls.slices = [
+            cls.ds.slice(idir, cls.ds.domain_center[idir]) for idir in range(3)
+        ]
+        cls.sps = [yt.SlicePlot(cls.ds, idir, cls.ds.field_list) for idir in range(3)]
+        for sp in cls.sps:
+            sp.annotate_mesh_lines()
+            sp.set_log("all", False)
+            sp._setup_plots()
 
-@attr(ANSWER_TEST_TAG)
-def test_mesh_slices_tetrahedral():
-    ds = fake_tetrahedral_ds()
+    @pytest.mark.parametrize("idir", range(3))
+    def test_mesh_selection(self, idir):
+        sl_obj = self.slices[idir]
+        for field in self.ds.field_list:
+            assert sl_obj[field].shape[0] == self.mesh.count(sl_obj.selector)
+            assert sl_obj[field].shape[0] < self.ad[field].shape[0]
 
-    mesh = ds.index.meshes[0]
-    ad = ds.all_data()
+    @pytest.mark.mpl_image_compare(filename="mesh_slice_hexahedral_all_elem_0.png")
+    def test_mesh_slice_hexaheadral_all_elem_0(self):
+        return self.sps[0].plots["all", "elem"].figure
 
-    for field in ds.field_list:
-        for idir in [0, 1, 2]:
-            prefix = f"{field[0]}_{field[1]}_{idir}"
-            yield compare(
-                ds,
-                field,
-                idir,
-                test_prefix=prefix,
-                test_name="mesh_slices_tetrahedral",
-                annotate=True,
-            )
+    @pytest.mark.mpl_image_compare(filename="mesh_slice_hexahedral_all_elem_1.png")
+    def test_mesh_slice_hexaheadral_all_elem_1(self):
+        return self.sps[1].plots["all", "elem"].figure
 
-            sl_obj = ds.slice(idir, ds.domain_center[idir])
-            assert sl_obj[field].shape[0] == mesh.count(sl_obj.selector)
-            assert sl_obj[field].shape[0] < ad[field].shape[0]
+    @pytest.mark.mpl_image_compare(filename="mesh_slice_hexahedral_all_elem_2.png")
+    def test_mesh_slice_hexaheadral_all_elem_2(self):
+        return self.sps[2].plots["all", "elem"].figure
 
+    @pytest.mark.mpl_image_compare(filename="mesh_slice_hexahedral_all_test_0.png")
+    def test_mesh_slice_hexaheadral_all_test_0(self):
+        return self.sps[0].plots["all", "test"].figure
 
-@attr(ANSWER_TEST_TAG)
-def test_mesh_slices_hexahedral():
-    # hexahedral ds
-    ds = fake_hexahedral_ds()
-    ad = ds.all_data()
-    mesh = ds.index.meshes[0]
+    @pytest.mark.mpl_image_compare(filename="mesh_slice_hexahedral_all_test_1.png")
+    def test_mesh_slice_hexaheadral_all_test_1(self):
+        return self.sps[1].plots["all", "test"].figure
 
-    for field in ds.field_list:
-        for idir in [0, 1, 2]:
-            prefix = f"{field[0]}_{field[1]}_{idir}"
-            yield compare(
-                ds,
-                field,
-                idir,
-                test_prefix=prefix,
-                test_name="mesh_slices_hexahedral",
-                annotate=True,
-            )
+    @pytest.mark.mpl_image_compare(filename="mesh_slice_hexahedral_all_test_2.png")
+    def test_mesh_slice_hexaheadral_all_test_2(self):
+        return self.sps[2].plots["all", "test"].figure
 
-            sl_obj = ds.slice(idir, ds.domain_center[idir])
-            assert sl_obj[field].shape[0] == mesh.count(sl_obj.selector)
-            assert sl_obj[field].shape[0] < ad[field].shape[0]
+    @pytest.mark.mpl_image_compare(filename="mesh_slice_hexahedral_connect1_elem_0.png")
+    def test_mesh_slice_hexaheadral_connect1_elem_0(self):
+        return self.sps[0].plots["connect1", "elem"].figure
+
+    @pytest.mark.mpl_image_compare(filename="mesh_slice_hexahedral_connect1_elem_1.png")
+    def test_mesh_slice_hexaheadral_connect1_elem_1(self):
+        return self.sps[1].plots["connect1", "elem"].figure
+
+    @pytest.mark.mpl_image_compare(filename="mesh_slice_hexahedral_connect1_elem_2.png")
+    def test_mesh_slice_hexaheadral_connect1_elem_2(self):
+        return self.sps[2].plots["connect1", "elem"].figure
+
+    @pytest.mark.mpl_image_compare(filename="mesh_slice_hexahedral_connect1_test_0.png")
+    def test_mesh_slice_hexaheadral_connect1_test_0(self):
+        return self.sps[0].plots["connect1", "test"].figure
+
+    @pytest.mark.mpl_image_compare(filename="mesh_slice_hexahedral_connect1_test_1.png")
+    def test_mesh_slice_hexaheadral_connect1_test_1(self):
+        return self.sps[1].plots["connect1", "test"].figure
+
+    @pytest.mark.mpl_image_compare(filename="mesh_slice_hexahedral_connect1_test_2.png")
+    def test_mesh_slice_hexaheadral_connect1_test_2(self):
+        return self.sps[2].plots["connect1", "test"].figure
 
 
 def test_perfect_element_intersection():
