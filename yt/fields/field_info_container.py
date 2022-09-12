@@ -1,3 +1,4 @@
+from collections import UserDict
 from collections.abc import Callable
 from numbers import Number as numeric_type
 from typing import Optional, Tuple
@@ -30,7 +31,7 @@ from .particle_fields import (
 )
 
 
-class FieldInfoContainer(dict):
+class FieldInfoContainer(UserDict):
     """
     This is a generic field container.  It contains a list of potential derived
     fields, all of which know how to act on a data object and return a value.
@@ -45,6 +46,7 @@ class FieldInfoContainer(dict):
     extra_union_fields: Tuple[Tuple[str, str], ...] = ()
 
     def __init__(self, ds, field_list, slice_info=None):
+        super().__init__()
         self._show_field_errors = []
         self.ds = ds
         # Now we start setting things up.
@@ -544,19 +546,19 @@ class FieldInfoContainer(dict):
         return obj
 
     def __contains__(self, key):
-        if dict.__contains__(self, key):
+        if super().__contains__(key):
             return True
         if self.fallback is None:
             return False
         return key in self.fallback
 
     def __iter__(self):
-        yield from dict.__iter__(self)
+        yield from super().__iter__()
         if self.fallback is not None:
             yield from self.fallback
 
     def keys(self):
-        keys = dict.keys(self)
+        keys = super().keys()
         if self.fallback:
             keys += list(self.fallback.keys())
         return keys

@@ -3,6 +3,7 @@ import sys
 import time
 import uuid
 import weakref
+from collections import UserDict
 from itertools import chain, product, repeat
 from numbers import Number as numeric_type
 from typing import Type
@@ -441,7 +442,7 @@ class StreamDataset(Dataset):
         self.particle_types_raw = self.particle_types
 
 
-class StreamDictFieldHandler(dict):
+class StreamDictFieldHandler(UserDict):
     _additional_fields = ()
 
     @property
