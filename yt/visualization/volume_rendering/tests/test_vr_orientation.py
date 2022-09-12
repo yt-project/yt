@@ -28,7 +28,6 @@ def scene_to_mpl_figure(scene):
     ax.set(aspect="equal")
     ax.imshow(image)
     return fig
-    # zlib.compress(image.dumps())
 
 
 class TestOrientation:
