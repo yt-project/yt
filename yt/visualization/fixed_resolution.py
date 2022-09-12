@@ -1,5 +1,6 @@
 import weakref
-from typing import TYPE_CHECKING, Dict, List, Optional
+from functools import partial
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -13,6 +14,7 @@ from yt.utilities.lib.api import (  # type: ignore
     add_points_to_greyscale_image,
 )
 from yt.utilities.lib.pixelization_routines import pixelize_cylinder
+from yt.utilities.math_utils import compute_stddev_image
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 from .volume_rendering.api import off_axis_projection
@@ -614,6 +616,39 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
             north_vector=dd.north_vector,
             method=dd.method,
         )
+        if self.data_source.moment == 2:
+
+            def _sq_field(field, data, item: Tuple[str, str]):
+                return data[item] ** 2
+
+            fd = self.ds._get_field_info(*item)
+
+            item_sq = (item[0], f"tmp_{item[1]}_squared")
+            self.ds.add_field(
+                item_sq,
+                partial(_sq_field, item=item),
+                sampling_type=fd.sampling_type,
+                units=f"({fd.units})*({fd.units})",
+            )
+
+            buff2 = off_axis_projection(
+                dd.dd,
+                dd.center,
+                dd.normal_vector,
+                width,
+                self.buff_size,
+                item_sq,
+                weight=dd.weight_field,
+                volume=dd.volume,
+                no_ghost=dd.no_ghost,
+                interpolated=dd.interpolated,
+                north_vector=dd.north_vector,
+                method=dd.method,
+            )
+            buff = compute_stddev_image(buff2, buff)
+
+            self.ds.field_info.pop(item_sq)
+
         ia = ImageArray(buff.swapaxes(0, 1), info=self._get_info(item))
         self[item] = ia
         return ia

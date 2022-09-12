@@ -343,46 +343,79 @@ Types of Projections
 """"""""""""""""""""
 
 There are several different methods of projections that can be made either
-when creating a projection with ds.proj() or when making a ProjectionPlot.
+when creating a projection with :meth:`~yt.static_output.Dataset.proj` or
+when making a :class:`~yt.visualization.plot_window.ProjectionPlot`.
 In either construction method, set the ``method`` keyword to be one of the
 following:
 
-``integrate`` (unweighted)
-    This is the default projection method. It simply integrates the
-    requested field  :math:`f(x)` along a line of sight  :math:`\hat{n}` ,
-    given by the axis parameter (e.g. :math:`\hat{i},\hat{j},` or
-    :math:`\hat{k}`).  The units of the projected field
-    :math:`g(X)` will be the units of the unprojected field  :math:`f(x)`
-    multiplied by the appropriate length unit, e.g., density in
-    :math:`\mathrm{g\ cm^{-3}}` will be projected to  :math:`\mathrm{g\ cm^{-2}}`.
+``integrate`` (unweighted):
++++++++++++++++++++++++++++
+
+This is the default projection method. It simply integrates the
+requested field :math:`f({\bf x})` along a line of sight :math:`\hat{\bf n}` ,
+given by the axis parameter (e.g. :math:`\hat{\bf i},\hat{\bf j},` or
+:math:`\hat{\bf k}`). The units of the projected field
+:math:`g({\bf X})` will be the units of the unprojected field :math:`f({\bf x})`
+multiplied by the appropriate length unit, e.g., density in
+:math:`\mathrm{g\ cm^{-3}}` will be projected to  :math:`\mathrm{g\ cm^{-2}}`.
 
 .. math::
 
-    g(X) = {\int\ {f(x)\hat{n}\cdot{dx}}}
+    g({\bf X}) = {\int\ {f({\bf x})\hat{\bf n}\cdot{d{\bf x}}}}
 
-``integrate`` (weighted)
-    When using the ``integrate``  method, a ``weight_field`` argument may also
-    be specified, which will produce a weighted projection.  :math:`w(x)`
-    is the field used as a weight. One common example would
-    be to weight the "temperature" field by the "density" field. In this case,
-    the units of the projected field are the same as the unprojected field.
+``integrate`` (weighted):
++++++++++++++++++++++++++
+
+When using the ``integrate``  method, a ``weight_field`` argument may also
+be specified, which will produce a weighted projection. :math:`w({\bf x})`
+is the field used as a weight. One common example would
+be to weight the "temperature" field by the "density" field. In this case,
+the units of the projected field are the same as the unprojected field.
 
 .. math::
 
-    g(X) = \frac{\int\ {f(x)w(x)\hat{n}\cdot{dx}}}{\int\ {w(x)\hat{n}\cdot{dx}}}
+    g({\bf X}) = \int\ {f({\bf x})\tilde{w}({\bf x})\hat{\bf n}\cdot{d{\bf x}}}
 
-``mip``
-    This method picks out the maximum value of a field along the line of
-    sight given by the axis parameter.
+where the "~" over :math:`w({\bf x})` reflects the fact that it has been normalized
+like so:
 
-``sum``
-    This method is the same as ``integrate``, except that it does not
-    multiply by a path length when performing the integration, and is just a
-    straight summation of the field along the given axis. The units of the
-    projected field will be the same as those of the unprojected field. This
-    method is typically only useful for datasets such as 3D FITS cubes where
-    the third axis of the dataset is something like velocity or frequency, and
-    should _only_ be used with fixed-resolution grid-based datasets.
+.. math::
+
+    \tilde{w}({\bf x}) = \frac{w({\bf x})}{\int\ {w({\bf x})\hat{\bf n}\cdot{d{\bf x}}}}
+
+For weighted projections using the ``integrate`` method, it is also possible
+to project the standard deviation of a field. In this case, the projected
+field is mathematically given by:
+
+.. math::
+
+    g({\bf X}) = \left[\int\ {f({\bf x})^2\tilde{w}({\bf x})\hat{\bf n}\cdot{d{\bf x}}} - \left(\int\ {f({\bf x})\tilde{w}({\bf x})\hat{\bf n}\cdot{d{\bf x}}}\right)^2\right]^{1/2}
+
+in order to make a weighted projection of the standard deviation of a field
+along a line of sight, the ``moment`` keyword argument should be set to 2.
+
+``max``:
+++++++++
+
+This method picks out the maximum value of a field along the line of
+sight given by the axis parameter.
+
+``min``:
+++++++++
+
+This method picks out the minimum value of a field along the line of
+sight given by the axis parameter.
+
+``sum``:
+++++++++
+
+This method is the same as ``integrate``, except that it does not
+multiply by a path length when performing the integration, and is just a
+straight summation of the field along the given axis. The units of the
+projected field will be the same as those of the unprojected field. This
+method is typically only useful for datasets such as 3D FITS cubes where
+the third axis of the dataset is something like velocity or frequency, and
+should *only* be used with fixed-resolution grid-based datasets.
 
 .. _off-axis-projections:
 
@@ -444,8 +477,11 @@ to project along, and a field to project.  For example:
 
 ``OffAxisProjectionPlot`` objects can also be created with a number of
 keyword arguments, as described in
-:class:`~yt.visualization.plot_window.OffAxisProjectionPlot`
+:class:`~yt.visualization.plot_window.OffAxisProjectionPlot`.
 
+Like on-axis projections, the projection of the standard deviation
+of a weighted field can be created by setting ``moment=2`` in the call
+to :class:`~yt.visualization.plot_window.ProjectionPlot`.
 
 .. _slices-and-projections-in-spherical-geometry:
 

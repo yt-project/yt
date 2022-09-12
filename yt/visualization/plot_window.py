@@ -12,7 +12,15 @@ from unyt.exceptions import UnitConversionError
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
-from yt.funcs import fix_axis, fix_unitary, is_sequence, iter_fields, mylog, obj_length
+from yt.funcs import (
+    fix_axis,
+    fix_unitary,
+    is_sequence,
+    iter_fields,
+    mylog,
+    obj_length,
+    validate_moment,
+)
 from yt.units.unit_object import Unit  # type: ignore
 from yt.units.unit_registry import UnitParseError  # type: ignore
 from yt.units.yt_array import YTArray, YTQuantity
@@ -1198,6 +1206,8 @@ class PWViewerMPL(PlotWindow):
 
             if colorbar_label is None:
                 colorbar_label = image.info["label"]
+                if getattr(self, "moment", 1) == 2:
+                    colorbar_label = "%s \\rm{Standard Deviation}" % colorbar_label
                 if hasattr(self, "projected"):
                     colorbar_label = "$\\rm{Projected }$ %s" % colorbar_label
                 if units is None or units == "":
@@ -1897,78 +1907,78 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
         This is the dataset object corresponding to the
         simulation output to be plotted.
     normal : int or one of 'x', 'y', 'z'
-         An int corresponding to the axis to slice along (0=x, 1=y, 2=z)
-         or the axis name itself
+        An int corresponding to the axis to slice along (0=x, 1=y, 2=z)
+        or the axis name itself
     fields : string
-         The name of the field(s) to be plotted.
+        The name of the field(s) to be plotted.
     center : A sequence of floats, a string, or a tuple.
-         The coordinate of the center of the image. If set to 'c', 'center' or
-         left blank, the plot is centered on the middle of the domain. If set to
-         'max' or 'm', the center will be located at the maximum of the
-         ('gas', 'density') field. Centering on the max or min of a specific
-         field is supported by providing a tuple such as ("min","temperature") or
-         ("max","dark_matter_density"). Units can be specified by passing in *center*
-         as a tuple containing a coordinate and string unit name or by passing
-         in a YTArray. If a list or unitless array is supplied, code units are
-         assumed.
+        The coordinate of the center of the image. If set to 'c', 'center' or
+        left blank, the plot is centered on the middle of the domain. If set to
+        'max' or 'm', the center will be located at the maximum of the
+        ('gas', 'density') field. Centering on the max or min of a specific
+        field is supported by providing a tuple such as ("min","temperature") or
+        ("max","dark_matter_density"). Units can be specified by passing in *center*
+        as a tuple containing a coordinate and string unit name or by passing
+        in a YTArray. If a list or unitless array is supplied, code units are
+        assumed.
     width : tuple or a float.
-         Width can have four different formats to support windows with variable
-         x and y widths.  They are:
+        Width can have four different formats to support windows with variable
+        x and y widths.  They are:
 
-         ==================================     =======================
-         format                                 example
-         ==================================     =======================
-         (float, string)                        (10,'kpc')
-         ((float, string), (float, string))     ((10,'kpc'),(15,'kpc'))
-         float                                  0.2
-         (float, float)                         (0.2, 0.3)
-         ==================================     =======================
+        ==================================     =======================
+        format                                 example
+        ==================================     =======================
+        (float, string)                        (10,'kpc')
+        ((float, string), (float, string))     ((10,'kpc'),(15,'kpc'))
+        float                                  0.2
+        (float, float)                         (0.2, 0.3)
+        ==================================     =======================
 
-         For example, (10, 'kpc') requests a plot window that is 10 kiloparsecs
-         wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a
-         window that is 10 kiloparsecs wide along the x axis and 15
-         kiloparsecs wide along the y axis.  In the other two examples, code
-         units are assumed, for example (0.2, 0.3) requests a plot that has an
-         x width of 0.2 and a y width of 0.3 in code units.  If units are
-         provided the resulting plot axis labels will use the supplied units.
+        For example, (10, 'kpc') requests a plot window that is 10 kiloparsecs
+        wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a
+        window that is 10 kiloparsecs wide along the x axis and 15
+        kiloparsecs wide along the y axis.  In the other two examples, code
+        units are assumed, for example (0.2, 0.3) requests a plot that has an
+        x width of 0.2 and a y width of 0.3 in code units.  If units are
+        provided the resulting plot axis labels will use the supplied units.
     axes_unit : string
-         The name of the unit for the tick labels on the x and y axes.
-         Defaults to None, which automatically picks an appropriate unit.
-         If axes_unit is '1', 'u', or 'unitary', it will not display the
-         units, and only show the axes name.
+        The name of the unit for the tick labels on the x and y axes.
+        Defaults to None, which automatically picks an appropriate unit.
+        If axes_unit is '1', 'u', or 'unitary', it will not display the
+        units, and only show the axes name.
     origin : string or length 1, 2, or 3 sequence.
-         The location of the origin of the plot coordinate system. This
-         is typically represented by a '-' separated string or a tuple of
-         strings. In the first index the y-location is given by 'lower',
-         'upper', or 'center'. The second index is the x-location, given as
-         'left', 'right', or 'center'. Finally, whether the origin is
-         applied in 'domain' space, plot 'window' space or 'native'
-         simulation coordinate system is given. For example, both
-         'upper-right-domain' and ['upper', 'right', 'domain'] place the
-         origin in the upper right hand corner of domain space. If x or y
-         are not given, a value is inferred. For instance, 'left-domain'
-         corresponds to the lower-left hand corner of the simulation domain,
-         'center-domain' corresponds to the center of the simulation domain,
-         or 'center-window' for the center of the plot window. In the event
-         that none of these options place the origin in a desired location,
-         a sequence of tuples and a string specifying the
-         coordinate space can be given. If plain numeric types are input,
-         units of `code_length` are assumed. Further examples:
+        The location of the origin of the plot coordinate system. This
+        is typically represented by a '-' separated string or a tuple of
+        strings. In the first index the y-location is given by 'lower',
+        'upper', or 'center'. The second index is the x-location, given as
+        'left', 'right', or 'center'. Finally, whether the origin is
+        applied in 'domain' space, plot 'window' space or 'native'
+        simulation coordinate system is given. For example, both
+        'upper-right-domain' and ['upper', 'right', 'domain'] place the
+        origin in the upper right hand corner of domain space. If x or y
+        are not given, a value is inferred. For instance, 'left-domain'
+        corresponds to the lower-left hand corner of the simulation domain,
+        'center-domain' corresponds to the center of the simulation domain,
+        or 'center-window' for the center of the plot window. In the event
+        that none of these options place the origin in a desired location,
+        a sequence of tuples and a string specifying the
+        coordinate space can be given. If plain numeric types are input,
+        units of `code_length` are assumed. Further examples:
 
-         =============================================== ===============================
-         format                                          example
-         =============================================== ===============================
-         '{space}'                                       'domain'
-         '{xloc}-{space}'                                'left-window'
-         '{yloc}-{space}'                                'upper-domain'
-         '{yloc}-{xloc}-{space}'                         'lower-right-window'
-         ('{space}',)                                    ('window',)
-         ('{xloc}', '{space}')                           ('right', 'domain')
-         ('{yloc}', '{space}')                           ('lower', 'window')
-         ('{yloc}', '{xloc}', '{space}')                 ('lower', 'right', 'window')
-         ((yloc, '{unit}'), (xloc, '{unit}'), '{space}') ((0, 'm'), (.4, 'm'), 'window')
-         (xloc, yloc, '{space}')                            (0.23, 0.5, 'domain')
-         =============================================== ===============================
+        =============================================== ===============================
+        format                                          example
+        =============================================== ===============================
+        '{space}'                                       'domain'
+        '{xloc}-{space}'                                'left-window'
+        '{yloc}-{space}'                                'upper-domain'
+        '{yloc}-{xloc}-{space}'                         'lower-right-window'
+        ('{space}',)                                    ('window',)
+        ('{xloc}', '{space}')                           ('right', 'domain')
+        ('{yloc}', '{space}')                           ('lower', 'window')
+        ('{yloc}', '{xloc}', '{space}')                 ('lower', 'right', 'window')
+        ((yloc, '{unit}'), (xloc, '{unit}'), '{space}') ((0, 'm'), (.4, 'm'), 'window')
+        (xloc, yloc, '{space}')                            (0.23, 0.5, 'domain')
+        =============================================== ===============================
 
     right_handed : boolean
         Depreceated, please use flip_horizontal callback.
@@ -1976,45 +1986,49 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
         handed coordinate system with a north vector and the normal vector, the
         direction of the 'window' into the data.
     data_source : YTSelectionContainer Object
-         Object to be used for data selection.  Defaults to a region covering
-         the entire simulation.
+        Object to be used for data selection.  Defaults to a region covering
+        the entire simulation.
     weight_field : string
-         The name of the weighting field.  Set to None for no weight.
+        The name of the weighting field.  Set to None for no weight.
     max_level: int
-         The maximum level to project to.
+        The maximum level to project to.
     fontsize : integer
-         The size of the fonts for the axis, colorbar, and tick labels.
+        The size of the fonts for the axis, colorbar, and tick labels.
     method : string
-         The method of projection.  Valid methods are:
+        The method of projection.  Valid methods are:
 
-         "integrate" with no weight_field specified : integrate the requested
-         field along the line of sight.
+        "integrate" with no weight_field specified : integrate the requested
+        field along the line of sight.
 
-         "integrate" with a weight_field specified : weight the requested
-         field by the weighting field and integrate along the line of sight.
+        "integrate" with a weight_field specified : weight the requested
+        field by the weighting field and integrate along the line of sight.
 
-         "max" : pick out the maximum value of the field in the line of sight.
-         "min" : pick out the minimum value of the field in the line of sight.
+        "max" : pick out the maximum value of the field in the line of sight.
+        "min" : pick out the minimum value of the field in the line of sight.
 
-         "sum" : This method is the same as integrate, except that it does not
-         multiply by a path length when performing the integration, and is
-         just a straight summation of the field along the given axis. WARNING:
-         This should only be used for uniform resolution grid datasets, as other
-         datasets may result in unphysical images.
+        "sum" : This method is the same as integrate, except that it does not
+        multiply by a path length when performing the integration, and is
+        just a straight summation of the field along the given axis. WARNING:
+        This should only be used for uniform resolution grid datasets, as other
+        datasets may result in unphysical images.
     window_size : float
-         The size of the window in inches. Set to 8 by default.
+        The size of the window in inches. Set to 8 by default.
     aspect : float
-         The aspect ratio of the plot.  Set to None for 1.
+        The aspect ratio of the plot.  Set to None for 1.
     field_parameters : dictionary
-         A dictionary of field parameters than can be accessed by derived
-         fields.
+        A dictionary of field parameters than can be accessed by derived
+        fields.
     data_source: YTSelectionContainer object
-         Object to be used for data selection. Defaults to ds.all_data(), a
-         region covering the full domain
+        Object to be used for data selection. Defaults to ds.all_data(), a
+        region covering the full domain
     buff_size: length 2 sequence
-         Size of the buffer to use for the image, i.e. the number of resolution elements
-         used.  Effectively sets a resolution limit to the image if buff_size is
-         smaller than the finest gridding.
+        Size of the buffer to use for the image, i.e. the number of resolution elements
+        used. Effectively sets a resolution limit to the image if buff_size is
+        smaller than the finest gridding.
+    moment : integer, optional
+        for a weighted projection, moment = 1 (the default) corresponds to a
+        weighted average. moment = 2 corresponds to a weighted standard
+        deviation.
 
     Examples
     --------
@@ -2050,6 +2064,7 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
         buff_size=(800, 800),
         aspect=None,
         *,
+        moment=1,
         axis=None,
     ):
         if method == "mip":
@@ -2100,7 +2115,9 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
                 field_parameters=field_parameters,
                 method=method,
                 max_level=max_level,
+                moment=moment,
             )
+        self.moment = moment
         PWViewerMPL.__init__(
             self,
             proj,
@@ -2289,7 +2306,10 @@ class OffAxisProjectionDummyDataSource:
         north_vector=None,
         method="integrate",
         data_source=None,
+        *,
+        moment=1,
     ):
+        validate_moment(moment, weight)
         self.center = center
         self.ds = ds
         self.axis = 4  # always true for oblique data objects
@@ -2312,6 +2332,7 @@ class OffAxisProjectionDummyDataSource:
         self.north_vector = north_vector
         self.method = method
         self.orienter = Orientation(normal_vector, north_vector=north_vector)
+        self.moment = moment
 
     def _determine_fields(self, *args):
         return self.dd._determine_fields(*args)
@@ -2337,80 +2358,84 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
     fields : string
         The name of the field(s) to be plotted.
     center : A sequence of floats, a string, or a tuple.
-         The coordinate of the center of the image. If set to 'c', 'center' or
-         left blank, the plot is centered on the middle of the domain. If set to
-         'max' or 'm', the center will be located at the maximum of the
-         ('gas', 'density') field. Centering on the max or min of a specific
-         field is supported by providing a tuple such as ("min","temperature") or
-         ("max","dark_matter_density"). Units can be specified by passing in *center*
-         as a tuple containing a coordinate and string unit name or by passing
-         in a YTArray. If a list or unitless array is supplied, code units are
-         assumed.
+        The coordinate of the center of the image. If set to 'c', 'center' or
+        left blank, the plot is centered on the middle of the domain. If set to
+        'max' or 'm', the center will be located at the maximum of the
+        ('gas', 'density') field. Centering on the max or min of a specific
+        field is supported by providing a tuple such as ("min","temperature") or
+        ("max","dark_matter_density"). Units can be specified by passing in *center*
+        as a tuple containing a coordinate and string unit name or by passing
+        in a YTArray. If a list or unitless array is supplied, code units are
+        assumed.
     width : tuple or a float.
-         Width can have four different formats to support windows with variable
-         x and y widths.  They are:
+        Width can have four different formats to support windows with variable
+        x and y widths. They are:
 
-         ==================================     =======================
-         format                                 example
-         ==================================     =======================
-         (float, string)                        (10,'kpc')
-         ((float, string), (float, string))     ((10,'kpc'),(15,'kpc'))
-         float                                  0.2
-         (float, float)                         (0.2, 0.3)
-         ==================================     =======================
+        ==================================     =======================
+        format                                 example
+        ==================================     =======================
+        (float, string)                        (10,'kpc')
+        ((float, string), (float, string))     ((10,'kpc'),(15,'kpc'))
+        float                                  0.2
+        (float, float)                         (0.2, 0.3)
+        ==================================     =======================
 
-         For example, (10, 'kpc') requests a plot window that is 10 kiloparsecs
-         wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a
-         window that is 10 kiloparsecs wide along the x axis and 15
-         kiloparsecs wide along the y axis.  In the other two examples, code
-         units are assumed, for example (0.2, 0.3) requests a plot that has an
-         x width of 0.2 and a y width of 0.3 in code units.  If units are
-         provided the resulting plot axis labels will use the supplied units.
+        For example, (10, 'kpc') requests a plot window that is 10 kiloparsecs
+        wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a
+        window that is 10 kiloparsecs wide along the x axis and 15
+        kiloparsecs wide along the y axis.  In the other two examples, code
+        units are assumed, for example (0.2, 0.3) requests a plot that has an
+        x width of 0.2 and a y width of 0.3 in code units.  If units are
+        provided the resulting plot axis labels will use the supplied units.
     depth : A tuple or a float
-         A tuple containing the depth to project through and the string
-         key of the unit: (width, 'unit').  If set to a float, code units
-         are assumed
+        A tuple containing the depth to project through and the string
+        key of the unit: (width, 'unit'). If set to a float, code units
+        are assumed
     weight_field : string
-         The name of the weighting field.  Set to None for no weight.
+        The name of the weighting field.  Set to None for no weight.
     max_level: int
-         The maximum level to project to.
+        The maximum level to project to.
     axes_unit : string
-         The name of the unit for the tick labels on the x and y axes.
-         Defaults to None, which automatically picks an appropriate unit.
-         If axes_unit is '1', 'u', or 'unitary', it will not display the
-         units, and only show the axes name.
+        The name of the unit for the tick labels on the x and y axes.
+        Defaults to None, which automatically picks an appropriate unit.
+        If axes_unit is '1', 'u', or 'unitary', it will not display the
+        units, and only show the axes name.
     north_vector : a sequence of floats
-         A vector defining the 'up' direction in the plot.  This
-         option sets the orientation of the slicing plane.  If not
-         set, an arbitrary grid-aligned north-vector is chosen.
+        A vector defining the 'up' direction in the plot. This
+        option sets the orientation of the slicing plane. If not
+        set, an arbitrary grid-aligned north-vector is chosen.
     right_handed : boolean
         Depreceated, please use flip_horizontal callback.
         Whether the implicit east vector for the image generated is set to make a right
         handed coordinate system with a north vector and the normal vector, the
         direction of the 'window' into the data.
     fontsize : integer
-         The size of the fonts for the axis, colorbar, and tick labels.
+        The size of the fonts for the axis, colorbar, and tick labels.
     method : string
-         The method of projection.  Valid methods are:
+        The method of projection. Valid methods are:
 
-         "integrate" with no weight_field specified : integrate the requested
-         field along the line of sight.
+        "integrate" with no weight_field specified : integrate the requested
+        field along the line of sight.
 
-         "integrate" with a weight_field specified : weight the requested
-         field by the weighting field and integrate along the line of sight.
+        "integrate" with a weight_field specified : weight the requested
+        field by the weighting field and integrate along the line of sight.
 
-         "sum" : This method is the same as integrate, except that it does not
-         multiply by a path length when performing the integration, and is
-         just a straight summation of the field along the given axis. WARNING:
-         This should only be used for uniform resolution grid datasets, as other
-         datasets may result in unphysical images.
+        "sum" : This method is the same as integrate, except that it does not
+        multiply by a path length when performing the integration, and is
+        just a straight summation of the field along the given axis. WARNING:
+        This should only be used for uniform resolution grid datasets, as other
+        datasets may result in unphysical images.
+    moment : integer, optional
+        for a weighted projection, moment = 1 (the default) corresponds to a
+        weighted average. moment = 2 corresponds to a weighted standard
+        deviation.
     data_source: YTSelectionContainer object
-         Object to be used for data selection. Defaults to ds.all_data(), a
-         region covering the full domain
+        Object to be used for data selection. Defaults to ds.all_data(), a
+        region covering the full domain
     buff_size: length 2 sequence
-         Size of the buffer to use for the image, i.e. the number of resolution elements
-         used.  Effectively sets a resolution limit to the image if buff_size is
-         smaller than the finest gridding.
+        Size of the buffer to use for the image, i.e. the number of resolution elements
+        used. Effectively sets a resolution limit to the image if buff_size is
+        smaller than the finest gridding.
     """
     _plot_type = "OffAxisProjection"
     _frb_generator = OffAxisProjectionFixedResolutionBuffer
@@ -2436,6 +2461,7 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
         interpolated=False,
         fontsize=18,
         method="integrate",
+        moment=1,
         data_source=None,
         buff_size=(800, 800),
     ):
@@ -2467,6 +2493,7 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
             north_vector=north_vector,
             method=method,
             data_source=data_source,
+            moment=moment,
         )
 
         validate_mesh_fields(OffAxisProj, fields)
@@ -2478,6 +2505,8 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
         # reflects that
         if weight_field is None and OffAxisProj.method == "integrate":
             self.projected = True
+
+        self.moment = moment
 
         # Hard-coding the origin keyword since the other two options
         # aren't well-defined for off-axis data objects
