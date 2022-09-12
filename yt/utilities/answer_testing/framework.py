@@ -1057,7 +1057,6 @@ def _particle_answers(
     if not can_run_ds(ds):
         return
     assert_equal(str(ds), ds_str_repr)
-    dso = [None, ("sphere", (center, (0.1, "unitary")))]
     dd = ds.all_data()
     # this needs to explicitly be "all"
     assert_equal(dd["all", "particle_position"].shape, (ds_nparticles, 3))
@@ -1065,12 +1064,9 @@ def _particle_answers(
         dd[ptype, "particle_position"].shape[0] for ptype in ds.particle_types_raw
     )
     assert_equal(tot, ds_nparticles)
-    for dobj_name in dso:
-        for field, weight_field in fields.items():
-            particle_type = field[0] in ds.particle_types
-            for axis in [0, 1, 2]:
-                if not particle_type:
-                    yield proj_test_class(ds, axis, field, weight_field, dobj_name)
+    for dobj_name in [None, ("sphere", (center, (0.1, "unitary")))]:
+        for field, _weight_field in fields.items():
+            particle_type: bool = field[0] in ds.particle_types
             yield FieldValuesTest(ds, field, dobj_name, particle_type=particle_type)
 
 
