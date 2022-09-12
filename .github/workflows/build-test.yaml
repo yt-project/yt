@@ -93,7 +93,7 @@ jobs:
       if: matrix.test-runner == 'pytest'
       env:
         testsuite: ${{ matrix.tests-type }}
-      run: pytest
+      run: pytest --color=yes
     - name: Run Tests (nose)
       if: matrix.test-runner == 'nose'
       env:
