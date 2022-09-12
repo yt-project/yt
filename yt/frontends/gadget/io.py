@@ -216,6 +216,9 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                 elif field.startswith("PassiveScalars_"):
                     col = int(field.rsplit("_", 1)[-1])
                     data = g["PassiveScalars"][si:ei, col][mask]
+                elif field.startswith("GFM_StellarPhotometrics_"):
+                    col = int(field.rsplit("_", 1)[-1])
+                    data = g["GFM_StellarPhotometrics"][si:ei, col][mask]
                 elif field == "smoothing_length":
                     # This is for frontends which do not store
                     # the smoothing length on-disk, so we do not
@@ -282,7 +285,13 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                         kk = j
                         fields.append((ptype, str(kk)))
                 elif (
-                    k in ["Metallicity", "GFM_Metals", "PassiveScalars"]
+                    k
+                    in [
+                        "Metallicity",
+                        "GFM_Metals",
+                        "PassiveScalars",
+                        "GFM_StellarPhotometrics",
+                    ]
                     and len(g[k].shape) > 1
                 ):
                     # Vector of metallicity or passive scalar
