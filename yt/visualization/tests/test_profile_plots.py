@@ -3,49 +3,67 @@ import shutil
 import tempfile
 import unittest
 
-from nose.plugins.attrib import attr
+import pytest
 
 import yt
-from yt.testing import ANSWER_TEST_TAG, assert_allclose_units, fake_random_ds
-from yt.utilities.answer_testing.framework import PhasePlotAttributeTest
-
-ATTR_ARGS = {
-    "annotate_text": [
-        (((5e-29, 5e7), "Hello YT"), {}),
-        (((5e-29, 5e7), "Hello YT"), {"color": "b"}),
-    ],
-    "set_title": [((("gas", "mass"), "A phase plot."), {})],
-    "set_log": [((("gas", "mass"), False), {})],
-    "set_unit": [((("gas", "mass"), "Msun"), {})],
-    "set_xlim": [((1e-27, 1e-24), {})],
-    "set_ylim": [((1e2, 1e6), {})],
-}
+from yt.testing import assert_allclose_units, fake_random_ds
+from yt.visualization.api import PhasePlot
 
 
-@attr(ANSWER_TEST_TAG)
-def test_phase_plot_attributes():
-    """
+class TestPhasePlotAPI:
+    @classmethod
+    def setup_class(cls):
+        cls.ds = fake_random_ds(
+            16, fields=("density", "temperature"), units=("g/cm**3", "K")
+        )
 
-    This iterates over the all the plot modification functions in
-    ATTR_ARGS. Each time, it compares the images produced by
-    PhasePlot to the gold standard.
+    def get_plot(self):
+        return PhasePlot(
+            self.ds, ("gas", "density"), ("gas", "temperature"), ("gas", "mass")
+        )
 
+    @pytest.mark.parametrize("kwargs", [{}, {"color": "b"}])
+    @pytest.mark.mpl_image_compare
+    def test_annotate_text(self, kwargs):
+        p = self.get_plot()
+        p.annotate_text(1e-4, 1e-2, "Test text annotation", **kwargs)
+        p._setup_plots()
+        return p.plots["gas", "mass"].figure
 
-    """
+    @pytest.mark.mpl_image_compare
+    def test_set_title(self):
+        p = self.get_plot()
+        p.set_title(("gas", "mass"), "Test Title")
+        p._setup_plots()
+        return p.plots["gas", "mass"].figure
 
-    x_field = ("gas", "density")
-    y_field = ("gas", "temperature")
-    z_field = ("gas", "mass")
-    decimals = 12
-    ds = fake_random_ds(16, fields=("density", "temperature"), units=("g/cm**3", "K"))
-    for attr_name in ATTR_ARGS.keys():
-        for args in ATTR_ARGS[attr_name]:
-            test = PhasePlotAttributeTest(
-                ds, x_field, y_field, z_field, attr_name, args, decimals
-            )
-            test.prefix = f"{attr_name}_{args}"
-            test.answer_name = "phase_plot_attributes"
-            yield test
+    @pytest.mark.mpl_image_compare
+    def test_set_log(self):
+        p = self.get_plot()
+        p.set_log(("gas", "mass"), False)
+        p._setup_plots()
+        return p.plots["gas", "mass"].figure
+
+    @pytest.mark.mpl_image_compare
+    def test_set_unit(self):
+        p = self.get_plot()
+        p.set_unit(("gas", "mass"), "Msun")
+        p._setup_plots()
+        return p.plots["gas", "mass"].figure
+
+    @pytest.mark.mpl_image_compare
+    def test_set_xlim(self):
+        p = self.get_plot()
+        p.set_xlim(1e-3, 1e0)
+        p._setup_plots()
+        return p.plots["gas", "mass"].figure
+
+    @pytest.mark.mpl_image_compare
+    def test_set_ylim(self):
+        p = self.get_plot()
+        p.set_ylim(1e-2, 1e0)
+        p._setup_plots()
+        return p.plots["gas", "mass"].figure
 
 
 def test_set_units():
