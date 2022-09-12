@@ -10,8 +10,10 @@ from packaging.version import Version
 from yt.data_objects.profiles import create_profile
 from yt.loaders import load_uniform_grid
 from yt.testing import add_noise_fields, fake_amr_ds, fake_particle_ds, fake_random_ds
+from yt.utilities.answer_testing.framework import data_dir_load, requires_ds
 from yt.visualization.api import (
     LinePlot,
+    ParticlePhasePlot,
     ParticleProjectionPlot,
     PhasePlot,
     ProfilePlot,
@@ -860,6 +862,67 @@ class TestPhasePlotSetZlim:
         p.set_unit(field, "kg/AU**3")
         p._setup_plots()
         return p.plots[field].figure
+
+
+g30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
+
+
+class TestParticlePhasePlot:
+    @requires_ds(g30, big_data=True)
+    @classmethod
+    def setup_class(cls):
+        cls.ds = data_dir_load(g30)
+
+    def get_plot(self):
+        return ParticlePhasePlot(
+            self.ds,
+            ("all", "particle_velocity_x"),
+            ("all", "particle_velocity_y"),
+            ("all", "particle_mass"),
+        )
+
+    @pytest.mark.parametrize("kwargs", [{}, {"color": "b"}])
+    @pytest.mark.mpl_image_compare
+    def test_annotate_text(self, kwargs):
+        p = self.get_plot()
+        p.annotate_text(1e-4, 1e-2, "Test text annotation", **kwargs)
+        p._setup_plots()
+        return p.plots["all", "particle_mass"].figure
+
+    @pytest.mark.mpl_image_compare
+    def test_set_title(self):
+        p = self.get_plot()
+        p.set_title(("all", "particle_mass"), "Test Title")
+        p._setup_plots()
+        return p.plots["all", "particle_mass"].figure
+
+    @pytest.mark.mpl_image_compare
+    def test_set_log(self):
+        p = self.get_plot()
+        p.set_log(("all", "particle_mass"), False)
+        p._setup_plots()
+        return p.plots["all", "particle_mass"].figure
+
+    @pytest.mark.mpl_image_compare
+    def test_set_unit(self):
+        p = self.get_plot()
+        p.set_unit(("all", "particle_mass"), "Msun")
+        p._setup_plots()
+        return p.plots["all", "particle_mass"].figure
+
+    @pytest.mark.mpl_image_compare
+    def test_set_xlim(self):
+        p = self.get_plot()
+        p.set_xlim(-3e7, 3e7)
+        p._setup_plots()
+        return p.plots["all", "particle_mass"].figure
+
+    @pytest.mark.mpl_image_compare
+    def test_set_ylim(self):
+        p = self.get_plot()
+        p.set_ylim(-3e7, 3e7)
+        p._setup_plots()
+        return p.plots["all", "particle_mass"].figure
 
 
 class TestSetBackgroundColor:

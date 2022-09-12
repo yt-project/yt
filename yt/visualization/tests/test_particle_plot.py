@@ -17,7 +17,6 @@ from yt.testing import (
 )
 from yt.units.yt_array import YTArray
 from yt.utilities.answer_testing.framework import (
-    PhasePlotAttributeTest,
     PlotWindowAttributeTest,
     data_dir_load,
     requires_ds,
@@ -44,18 +43,6 @@ PROJ_ATTR_ARGS["set_zlim"] = [
     ((("all", "particle_mass"), 1e39, 1e42), {}),
     ((("all", "particle_mass"),), {"zmin": 1e39, "dynamic_range": 4}),
 ]
-
-PHASE_ATTR_ARGS = {
-    "annotate_text": [
-        (((5e-29, 5e7), "Hello YT"), {}),
-        (((5e-29, 5e7), "Hello YT"), {"color": "b"}),
-    ],
-    "set_title": [((("all", "particle_mass"), "A phase plot."), {})],
-    "set_log": [((("all", "particle_mass"), False), {})],
-    "set_unit": [((("all", "particle_mass"), "Msun"), {})],
-    "set_xlim": [((-4e7, 4e7), {})],
-    "set_ylim": [((-4e7, 4e7), {})],
-}
 
 TEST_FLNMS = [None, "test", "test.png", "test.eps", "test.ps", "test.pdf"]
 
@@ -161,39 +148,6 @@ def test_particle_projection_filter():
         )
         test_particle_projection_filter.__name__ = test.description
         yield test
-
-
-@requires_ds(g30, big_data=True)
-def test_particle_phase_answers():
-    """
-
-    This iterates over the all the plot modification functions in
-    PHASE_ATTR_ARGS. Each time, it compares the images produced by
-    ParticlePhasePlot to the gold standard.
-
-    """
-
-    decimals = 12
-    ds = data_dir_load(g30)
-
-    x_field = ("all", "particle_velocity_x")
-    y_field = ("all", "particle_velocity_y")
-    z_field = ("all", "particle_mass")
-    for attr_name in PHASE_ATTR_ARGS.keys():
-        for args in PHASE_ATTR_ARGS[attr_name]:
-            test = PhasePlotAttributeTest(
-                ds,
-                x_field,
-                y_field,
-                z_field,
-                attr_name,
-                args,
-                decimals,
-                "ParticlePhasePlot",
-            )
-
-            test_particle_phase_answers.__name__ = test.description
-            yield test
 
 
 class TestParticlePhasePlotSave(unittest.TestCase):
