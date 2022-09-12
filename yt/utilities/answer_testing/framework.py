@@ -815,6 +815,7 @@ def ensure_image_comparability(a, b):
 
 
 def compare_image_lists(new_result, old_result, decimals):
+    # TODO(4118): remove this function ?
     fns = []
     for _ in range(2):
         tmpfd, tmpname = tempfile.mkstemp(suffix=".png")
