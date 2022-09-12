@@ -149,26 +149,6 @@ def pytest_configure(config):
             ),
         )
 
-    if find_spec("cartopy") is not None:
-        # This can be removed when cartopy 0.21 is released
-        # see https://github.com/SciTools/cartopy/pull/1957
-        config.addinivalue_line(
-            "filterwarnings",
-            (
-                r"ignore:The default value for the \*approx\* keyword argument to "
-                r"\w+ will change from True to False after 0\.18\.:UserWarning"
-            ),
-        )
-        # this one could be resolved by upgrading PROJ on Jenkins,
-        # but there's isn't much else that can be done about it.
-        config.addinivalue_line(
-            "filterwarnings",
-            (
-                "ignore:The Stereographic projection in Proj older than 5.0.0 incorrectly "
-                "transforms points when central_latitude=0. Use this projection with caution.:UserWarning"
-            ),
-        )
-
 
 def pytest_collection_modifyitems(config, items):
     r"""
