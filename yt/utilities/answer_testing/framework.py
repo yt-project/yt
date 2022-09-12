@@ -3,7 +3,6 @@ Title: framework.py
 Purpose: Contains answer tests that are used by yt's various frontends
 """
 import contextlib
-import glob
 import hashlib
 import logging
 import os
@@ -852,30 +851,6 @@ def compare_image_lists(new_result, old_result, decimals):
             os.remove(fn)
 
 
-class VRImageComparisonTest(AnswerTestingTest):
-    _type_name = "VRImageComparison"
-    _attrs = ("desc",)
-
-    def __init__(self, scene, ds, desc, decimals):
-        super().__init__(None)
-        self.obj_type = ("vr",)
-        self.ds = ds
-        self.scene = scene
-        self.desc = desc
-        self.decimals = decimals
-
-    def run(self):
-        tmpfd, tmpname = tempfile.mkstemp(suffix=".png")
-        os.close(tmpfd)
-        self.scene.save(tmpname, sigma_clip=1.0)
-        image = mpimg.imread(tmpname)
-        os.remove(tmpname)
-        return [zlib.compress(image.dumps())]
-
-    def compare(self, new_result, old_result):
-        compare_image_lists(new_result, old_result, self.decimals)
-
-
 class PlotWindowAttributeTest(AnswerTestingTest):
     _type_name = "PlotWindowAttribute"
     _attrs = (
@@ -1040,43 +1015,6 @@ class GenericArrayTest(AnswerTestingTest):
                 assert_allclose_units(
                     new_result[k], old_result[k], 10 ** (-self.decimals)
                 )
-
-
-class GenericImageTest(AnswerTestingTest):
-    _type_name = "GenericImage"
-    _attrs = ("image_func_name", "args", "kwargs")
-
-    def __init__(self, ds_fn, image_func, decimals, args=None, kwargs=None):
-        super().__init__(ds_fn)
-        self.image_func = image_func
-        self.image_func_name = image_func.__name__
-        self.args = args
-        self.kwargs = kwargs
-        self.decimals = decimals
-
-    def run(self):
-        if self.args is None:
-            args = []
-        else:
-            args = self.args
-        if self.kwargs is None:
-            kwargs = {}
-        else:
-            kwargs = self.kwargs
-        comp_imgs = []
-        tmpdir = tempfile.mkdtemp()
-        image_prefix = os.path.join(tmpdir, "test_img")
-        self.image_func(image_prefix, *args, **kwargs)
-        imgs = sorted(glob.glob(image_prefix + "*"))
-        assert len(imgs) > 0
-        for img in imgs:
-            img_data = mpimg.imread(img)
-            os.remove(img)
-            comp_imgs.append(zlib.compress(img_data.dumps()))
-        return comp_imgs
-
-    def compare(self, new_result, old_result):
-        compare_image_lists(new_result, old_result, self.decimals)
 
 
 class AxialPixelizationTest(AnswerTestingTest):
