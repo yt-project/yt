@@ -1066,6 +1066,9 @@ def _particle_answers(
     assert_equal(tot, ds_nparticles)
     for dobj_name in [None, ("sphere", (center, (0.1, "unitary")))]:
         for field, _weight_field in fields.items():
+            # weight field used to be needed for image tests
+            # that are now migrated to pytest-mpl. However we don't want to break existing tests so
+            # we don't change the requirements for this function
             particle_type: bool = field[0] in ds.particle_types
             yield FieldValuesTest(ds, field, dobj_name, particle_type=particle_type)
 
