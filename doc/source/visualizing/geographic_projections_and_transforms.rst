@@ -107,12 +107,12 @@ available with matplotlib should be available for customization. Here a
 .. code-block:: python
 
     p.set_mpl_projection("Robinson")
-    p._setup_plots()
+    p.render()
     p.plots["AIRDENS"].axes.set_global()
     p.plots["AIRDENS"].axes.coastlines()
     p.show()
 
-``p._setup_plots()`` is required here to access the plot axes. When a new
+``p.render()`` is required here to access the plot axes. When a new
 projection is called the plot axes are reset and are not available unless set
 up again.
 
