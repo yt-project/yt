@@ -286,12 +286,12 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                         fields.append((ptype, str(kk)))
                 elif (
                     k
-                    in [
+                    in (
                         "Metallicity",
                         "GFM_Metals",
                         "PassiveScalars",
                         "GFM_StellarPhotometrics",
-                    ]
+                    )
                     and len(g[k].shape) > 1
                 ):
                     # Vector of metallicity or passive scalar
