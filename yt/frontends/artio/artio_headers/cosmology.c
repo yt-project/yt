@@ -181,7 +181,7 @@ void cosmology_init(CosmologyParameters *c)
 #ifndef NATIVE_TCODE_NORMALIZATION
       c->tCodeOffset = 0.0 - tCode(c,inv_aBox(c,1.0));
 #endif
-    }      
+    }
 }
 
 
@@ -209,7 +209,7 @@ void cosmology_fill_table_integrate(CosmologyParameters *c, double a, double y[]
 {
   double mu = cosmology_mu(c, a);
   double abox = a*cosmology_dc_factor(c, y[2]);
-  
+
   f[0] = a/(abox*abox*mu);
   f[1] = a/mu;
   f[2] = y[3]/(a*mu);
@@ -241,7 +241,7 @@ void cosmology_fill_table_piece(CosmologyParameters *c, int istart, int n)
 
   /*
   //  Small a regime, use analytical formulae for matter + radiation model
-  */  
+  */
   for(i=istart; c->aUni[i]<(c->aLow+1.0e-9) && i<n; i++)
     {
       x = c->aUni[i]/aeq;
@@ -253,7 +253,7 @@ void cosmology_fill_table_piece(CosmologyParameters *c, int istart, int n)
       c->aBox[i] = c->aUni[i]*cosmology_dc_factor(c,c->dPlus[i]);
       c->tCode[i] = 1.0 - tCodeFac*asinh(sqrt(aeq/c->aBox[i]));
     }
-  
+
   /*
   //  Large a regime, solve ODEs
   */
@@ -294,7 +294,7 @@ void cosmology_fill_table_piece(CosmologyParameters *c, int istart, int n)
 
       c->aBox[i] = c->aUni[i]*cosmology_dc_factor(c,c->dPlus[i]);
     }
-} 
+}
 
 
 void cosmology_fill_table(CosmologyParameters *c, double amin, double amax)
@@ -315,7 +315,7 @@ void cosmology_fill_table(CosmologyParameters *c, double amin, double amax)
   lamin = dla*floor(c->ndex*log10(amin));
   lamax = dla*ceil(c->ndex*log10(amax));
 
-  c->size = 1 + (int)(0.5+c->ndex*(lamax-lamin)); 
+  c->size = 1 + (int)(0.5+c->ndex*(lamax-lamin));
   ASSERT(fabs(lamax-lamin-dla*(c->size-1)) < 1.0e-14);
 
   c->la = NEWARR(c->size);     ASSERT(c->la != NULL);
@@ -362,7 +362,7 @@ void cosmology_fill_table(CosmologyParameters *c, double amin, double amax)
 	  ASSERT(fabs(old_la[old_size-1]-lamin-dla*imax) < 1.0e-14);
 	}
       else imax = c->size - 1;
-  
+
       /*
       //  Re-use the rest
       */

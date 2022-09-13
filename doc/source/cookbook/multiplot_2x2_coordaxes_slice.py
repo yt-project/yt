@@ -1,9 +1,10 @@
-import yt
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import AxesGrid
 
+import yt
+
 fn = "IsolatedGalaxy/galaxy0030/galaxy0030"
-ds = yt.load(fn) # load data
+ds = yt.load(fn)  # load data
 
 fig = plt.figure()
 
@@ -12,18 +13,26 @@ fig = plt.figure()
 # right hand side.  This means there are only two colorbar axes, one for Density
 # and another for temperature.  In addition, axes labels will be drawn for all
 # plots.
-grid = AxesGrid(fig, (0.075,0.075,0.85,0.85),
-                nrows_ncols = (2, 2),
-                axes_pad = 1.0,
-                label_mode = "all",
-                share_all = True,
-                cbar_location="right",
-                cbar_mode="edge",
-                cbar_size="5%",
-                cbar_pad="0%")
+grid = AxesGrid(
+    fig,
+    (0.075, 0.075, 0.85, 0.85),
+    nrows_ncols=(2, 2),
+    axes_pad=1.0,
+    label_mode="all",
+    share_all=True,
+    cbar_location="right",
+    cbar_mode="edge",
+    cbar_size="5%",
+    cbar_pad="0%",
+)
 
-cuts = ['x', 'y', 'z', 'z']
-fields = ['density', 'density', 'density', 'temperature']
+cuts = ["x", "y", "z", "z"]
+fields = [
+    ("gas", "density"),
+    ("gas", "density"),
+    ("gas", "density"),
+    ("gas", "temperature"),
+]
 
 for i, (direction, field) in enumerate(zip(cuts, fields)):
     # Load the data and create a single plot
@@ -40,12 +49,12 @@ for i, (direction, field) in enumerate(zip(cuts, fields)):
     # to index cbar_axes, yielding a plot without a temperature colorbar.
     # This unnecessarily redraws the Density colorbar three times, but that has
     # no effect on the final plot.
-    if field == 'density':
+    if field == ("gas", "density"):
         plot.cax = grid.cbar_axes[0]
-    elif field == 'temperature':
+    elif field == ("gas", "temperature"):
         plot.cax = grid.cbar_axes[1]
 
     # Finally, redraw the plot.
     p._setup_plots()
 
-plt.savefig('multiplot_2x2_coordaxes_slice.png')
+plt.savefig("multiplot_2x2_coordaxes_slice.png")

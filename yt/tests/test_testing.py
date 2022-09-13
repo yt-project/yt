@@ -1,29 +1,36 @@
-"""
-Tests for yt.testing
-"""
-#-----------------------------------------------------------------------------
-# Copyright (c) 2018, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
+from unittest import SkipTest
+
 import matplotlib
 
-from yt.testing import assert_equal, requires_backend
+from yt.testing import requires_backend
+
+active_backend = matplotlib.get_backend()
+inactive_backend = ({"gtkagg", "macosx", "wx", "tkagg"} - {active_backend}).pop()
 
 
-def test_requires_backend():
-    backend = matplotlib.get_backend().lower()
-    other_backends = {"gtkagg", "macosx", "wx", "tkagg"} - {backend}
+def test_requires_inactive_backend():
+    @requires_backend(inactive_backend)
+    def foo():
+        return
 
-    @requires_backend(other_backends.pop())
-    def plot_a():
-        return True
+    try:
+        foo()
+    except SkipTest:
+        pass
+    else:
+        raise AssertionError(
+            "@requires_backend appears to be broken (skip was expected)"
+        )
 
-    @requires_backend(backend)
-    def plot_b():
-        return True
 
-    assert_equal(plot_a(), None)
-    assert_equal(plot_b(), True)
+def test_requires_active_backend():
+    @requires_backend(active_backend)
+    def foo():
+        return
+
+    try:
+        foo()
+    except SkipTest:
+        raise AssertionError(
+            "@requires_backend appears to be broken (skip was not expected)"
+        )

@@ -4,11 +4,11 @@ import yt
 ds = yt.load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150")
 
 # add density contours on the density slice.
-p = yt.SlicePlot(ds, "x", "density")
-p.annotate_contour("density")
+p = yt.SlicePlot(ds, "x", ("gas", "density"))
+p.annotate_contour(("gas", "density"))
 p.save()
 
 # then add temperature contours on the same density slice
-p = yt.SlicePlot(ds, "x", "density")
-p.annotate_contour("temperature")
-p.save(str(ds)+'_T_contour')
+p = yt.SlicePlot(ds, "x", ("gas", "density"))
+p.annotate_contour(("gas", "temperature"))
+p.save(str(ds) + "_T_contour")

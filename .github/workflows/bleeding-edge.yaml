@@ -1,0 +1,64 @@
+name: CI (bleeding edge)
+# this workflow is heavily inspired from pandas, see
+# https://github.com/pandas-dev/pandas/blob/master/.github/workflows/python-dev.yml
+
+# goals: check stability against
+# - dev version of Python, numpy, matplotlib, and unyt
+# - pytest pre-releases
+# - building with future pip default options
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    paths:
+      - .github/workflows/bleeding-edge.yaml
+  schedule:
+    # run this every day at 3 am UTC
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: "tests with bleeding-edge crucial deps"
+    timeout-minutes: 60
+
+    concurrency:
+      # auto-cancel any in-progress job *on the same branch*
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v3
+
+    - name: Set up Python (newest testable version)
+      uses: actions/setup-python@v3
+      with:
+        # the '-dev' suffix allows to use alphas and betas if no final release is available yet
+        # this version should be upgraded as often as possible, typically once a year when numpy
+        # and Cython are known to be compatible
+        python-version: '3.11-dev'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install --upgrade setuptools wheel
+        python -m pip install git+https://github.com/numpy/numpy.git
+        python -m pip install git+https://github.com/matplotlib/matplotlib.git
+        python -m pip install git+https://github.com/yt-project/unyt.git
+        python -m pip install cython
+        python -m pip install --upgrade --pre pytest
+
+    - name: Build
+      # --no-build-isolation is used to guarantee that build time dependencies
+      # are not installed by pip as specified from pyproject.toml, hence we get
+      # to use the dev version of numpy at build time.
+      run: |
+        python setup.py build_ext -q -j2
+        python -m pip install -e .[test] --no-build-isolation
+
+    - name: Run Tests
+      run: pytest -vvv --color=yes

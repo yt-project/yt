@@ -5,16 +5,10 @@ Shareable definitions for common fp/int Cython utilities
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
-cimport numpy as np
 cimport cython
+cimport numpy as np
+
 
 cdef inline np.int64_t imax(np.int64_t i0, np.int64_t i1) nogil:
     if i0 > i1: return i0
@@ -58,3 +52,13 @@ cdef inline np.int64_t i64min(np.int64_t i0, np.int64_t i1) nogil:
     if i0 < i1: return i0
     return i1
 
+cdef inline _ensure_code(arr):
+    if hasattr(arr, "units"):
+        if "code_length" == str(arr.units):
+            return arr
+        arr.convert_to_units("code_length")
+    return arr
+
+ctypedef fused any_float:
+    np.float32_t
+    np.float64_t

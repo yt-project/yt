@@ -1,3 +1,5 @@
+
+# distutils: libraries = STD_LIBS
 """
 Simple integrators for the radiative transfer equation
 
@@ -5,18 +7,14 @@ Simple integrators for the radiative transfer equation
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
-cimport numpy as np
 cimport cython
+cimport numpy as np
+
 import numpy as np
-from yt.utilities.lib.fp_utils cimport imax, fmax, imin, fmin, iclip, fclip
+
+from yt.utilities.lib.fp_utils cimport fclip, fmax, fmin, iclip, imax, imin
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -89,6 +87,7 @@ def CICDeposit_2(np.float64_t[:] posx,
                  np.float64_t[:] mass,
                  np.int64_t npositions,
                  np.float64_t[:, :] field,
+                 np.uint8_t[:, :] field_mask,
                  np.float64_t[:] x_bin_edges,
                  np.float64_t[:] y_bin_edges):
 
@@ -115,8 +114,8 @@ def CICDeposit_2(np.float64_t[:] posx,
         if (ypos < -0.5001) or (ypos > edgey):
             continue
 
-        i1  = <int> (xpos)
-        j1  = <int> (ypos)
+        i1  = <int> (xpos + 0.5)
+        j1  = <int> (ypos + 0.5)
 
         # Compute the weights
         ddx = (<np.float64_t> i1) + 0.5 - xpos
@@ -127,12 +126,16 @@ def CICDeposit_2(np.float64_t[:] posx,
         # Deposit onto field
         if i1 > 0 and j1 > 0:
             field[i1-1,j1-1] += mass[n] * ddx  * ddy
+            field_mask[i1-1,j1-1] = 1
         if j1 > 0 and i1 < field.shape[0]:
             field[i1  ,j1-1] += mass[n] * ddx2 * ddy
+            field_mask[i1,j1-1] = 1
         if i1 > 0 and j1 < field.shape[1]:
             field[i1-1,j1  ] += mass[n] * ddx  * ddy2
+            field_mask[i1-1,j1] = 1
         if i1 < field.shape[0] and j1 < field.shape[1]:
             field[i1  ,j1  ] += mass[n] * ddx2 * ddy2
+            field_mask[i1,j1] = 1
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -142,6 +145,7 @@ def NGPDeposit_2(np.float64_t[:] posx,
                  np.float64_t[:] mass,
                  np.int64_t npositions,
                  np.float64_t[:, :] field,
+                 np.uint8_t[:, :] field_mask,
                  np.float64_t[:] x_bin_edges,
                  np.float64_t[:] y_bin_edges):
 
@@ -177,6 +181,7 @@ def NGPDeposit_2(np.float64_t[:] posx,
 
         # Deposit onto field
         field[i1,j1] += mass[n]
+        field_mask[i1,j1] = 1
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -375,8 +380,3 @@ def recursive_particle_assignment(grids, grid,
             recursive_particle_assignment(grids,grid,left_edges,right_edges,
                                            pos_x[assigned],pos_y[assigned],pos_z[assigned])
     #now we have assigned particles to other subgrids, we are left with particles on our grid
-
-
-
-
-

@@ -6,18 +6,13 @@ A queue for evaluating distances to discrete points
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2016, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
 cimport cython
 cimport numpy as np
+
 import numpy as np
-from libc.stdlib cimport malloc, free
+
+from libc.stdlib cimport free, malloc
 from libc.string cimport memmove
 
 # THESE TWO STRUCTS MUST BE EQUIVALENT

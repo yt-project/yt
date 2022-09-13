@@ -17,16 +17,21 @@ them to apply radiative feedback, one could imagine calling it directly:
 
 .. code-block:: python
 
-   import yt
    import radtrans
+
+   import yt
 
    ds = yt.load("DD0010/DD0010")
    rt_grids = []
 
    for grid in ds.index.grids:
        rt_grid = radtrans.RegularBox(
-            grid.LeftEdge, grid.RightEdge,
-            grid["density"], grid["temperature"], grid["metallicity"])
+           grid.LeftEdge,
+           grid.RightEdge,
+           grid["density"],
+           grid["temperature"],
+           grid["metallicity"],
+       )
        rt_grids.append(rt_grid)
        grid.clear_data()
 
@@ -38,8 +43,9 @@ this:
 
 .. code-block:: python
 
-   import yt
    import pop_synthesis
+
+   import yt
 
    ds = yt.load("DD0010/DD0010")
    ad = ds.all_data()
@@ -69,7 +75,7 @@ you would like to include it in the base distribution of yt, we would be happy
 to do so; drop us a line or see :ref:`contributing-code` for more information.
 
 To accomplish the process of linking Python with our external code, we will be
-using a language called `Cython <http://www.cython.org/>`_, which is
+using a language called `Cython <https://cython.org/>`_, which is
 essentially a superset of Python that compiles down to C.  It is aware of NumPy
 arrays, and it is able to massage data between the interpreted language Python
 and C, Fortran or C++.  It will be much easier to utilize routines and analysis
@@ -135,21 +141,21 @@ Here's a rough outline of what should go in ``axes_calculator_setup.py``:
 
    from distutils.core import setup
    from distutils.extension import Extension
+
    from Cython.Distutils import build_ext
 
-   ext_modules = [Extension(NAME,
-                    [NAME+".pyx"] + EXT_SOURCES,
-                    libraries = EXT_LIBRARIES,
-                    library_dirs = EXT_LIBRARY_DIRS,
-                    include_dirs = EXT_INCLUDE_DIRS,
-                    define_macros = DEFINES)
+   ext_modules = [
+       Extension(
+           NAME,
+           [NAME + ".pyx"] + EXT_SOURCES,
+           libraries=EXT_LIBRARIES,
+           library_dirs=EXT_LIBRARY_DIRS,
+           include_dirs=EXT_INCLUDE_DIRS,
+           define_macros=DEFINES,
+       )
    ]
 
-   setup(
-     name = NAME,
-     cmdclass = {'build_ext': build_ext},
-     ext_modules = ext_modules
-   )
+   setup(name=NAME, cmdclass={"build_ext": build_ext}, ext_modules=ext_modules)
 
 The only variables you should have to change in this are the first six, and
 possibly only the first one.  We'll go through these variables one at a time.
@@ -188,7 +194,7 @@ To build our extension, we would run:
 
 .. code-block:: bash
 
-   $ python2.7 axes_calculator_setup.py build_ext -i
+   $ python axes_calculator_setup.py build_ext -i
 
 Note that since we don't yet have an ``axes_calculator.pyx``, this will fail.
 But once we have it, it ought to run.
@@ -201,7 +207,7 @@ figured out how to build it, which is halfway to being able to test that it
 works, and we now need to start writing Cython code.
 
 For a more detailed introduction to Cython, see the Cython documentation at
-http://docs.cython.org/ .  We'll cover a few of the basics for wrapping code
+http://docs.cython.org/en/latest/ .  We'll cover a few of the basics for wrapping code
 however.
 
 To start out with, we need to open up and edit our file,
@@ -303,6 +309,7 @@ Now, create a sample file that feeds in the particles:
 .. code-block:: python
 
     import axes_calculator
+
     axes_calculator.examine_axes(xpos, ypos, zpos)
 
 Most of the time in that function is spent in converting the data.  So now we
@@ -395,7 +402,8 @@ import, and then save things out into a file.
 .. code-block:: python
 
    import h5py
-   f = h5py.File("some_file.h5")
+
+   f = h5py.File("some_file.h5", mode="w")
    f.create_dataset("/data", data=some_data)
 
 This will create ``some_file.h5`` if necessary and add a new dataset

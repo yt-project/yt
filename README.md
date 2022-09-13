@@ -1,16 +1,25 @@
 # The yt Project
 
-[![Users' Mailing List](https://img.shields.io/badge/Users-List-lightgrey.svg)](https://mail.python.org/mm3/archives/list/yt-users@python.org//)
-[![Devel Mailing List](https://img.shields.io/badge/Devel-List-lightgrey.svg)](https://mail.python.org/mm3/archives/list/yt-dev@python.org//)
-[![Build Status](https://img.shields.io/travis/yt-project/yt.svg?branch=master)](https://travis-ci.org/yt-project/yt)
-[![codecov](https://codecov.io/gh/yt-project/yt/branch/master/graph/badge.svg)](https://codecov.io/gh/yt-project/yt)
+[![PyPI](https://img.shields.io/pypi/v/yt)](https://pypi.org/project/yt)
+[![Supported Python Versions](https://img.shields.io/pypi/pyversions/yt)](https://pypi.org/project/yt/)
 [![Latest Documentation](https://img.shields.io/badge/docs-latest-brightgreen.svg)](http://yt-project.org/docs/dev/)
+[![Users' Mailing List](https://img.shields.io/badge/Users-List-lightgrey.svg)](https://mail.python.org/archives/list/yt-users@python.org//)
+[![Devel Mailing List](https://img.shields.io/badge/Devel-List-lightgrey.svg)](https://mail.python.org/archives/list/yt-dev@python.org//)
 [![Data Hub](https://img.shields.io/badge/data-hub-orange.svg)](https://hub.yt/)
 [![Powered by NumFOCUS](https://img.shields.io/badge/powered%20by-NumFOCUS-orange.svg?style=flat&colorA=E1523D&colorB=007D8A)](http://numfocus.org)
-                
-<a href="http://yt-project.org"><img src="doc/source/_static/yt_logo.png" width="300"></a>
+[![Sponsor our Project](https://img.shields.io/badge/donate-to%20yt-blueviolet)](https://numfocus.salsalabs.org/donate-to-yt/index.html)
 
-yt is an open-source, permissively-licensed python package for analyzing and
+<!--- Tests and style --->
+[![Build and Test](https://github.com/yt-project/yt/actions/workflows/build-test.yaml/badge.svg)](https://github.com/yt-project/yt/actions/workflows/build-test.yaml)
+[![CI (bleeding edge)](https://github.com/yt-project/yt/actions/workflows/bleeding-edge.yaml/badge.svg)](https://github.com/yt-project/yt/actions/workflows/bleeding-edge.yaml)
+[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/yt-project/yt/main.svg)](https://results.pre-commit.ci/latest/github/yt-project/yt/main)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
+<!--- [![codecov](https://codecov.io/gh/yt-project/yt/branch/main/graph/badge.svg)](https://codecov.io/gh/yt-project/yt) --->
+
+<a href="http://yt-project.org"><img src="https://raw.githubusercontent.com/yt-project/yt/main/doc/source/_static/yt_logo.png" width="300"></a>
+
+yt is an open-source, permissively-licensed Python library for analyzing and
 visualizing volumetric data.
 
 yt supports structured, variable-resolution meshes, unstructured meshes, and
@@ -21,7 +30,7 @@ oceanography. Composed of a friendly community of users and developers, we want
 to make it easy to use and develop - we'd love it if you got involved!
 
 We've written a [method
-paper](http://adsabs.harvard.edu/abs/2011ApJS..192....9T) you may be interested
+paper](https://ui.adsabs.harvard.edu/abs/2011ApJS..192....9T) you may be interested
 in; if you use yt in the preparation of a publication, please consider citing
 it.
 
@@ -34,82 +43,32 @@ guide](http://yt-project.org/docs/dev/developing/developing.html#yt-community-co
 ## Installation
 
 You can install the most recent stable version of yt either with conda from
-[conda-forge](http://conda-forge.github.io/):
+[conda-forge](https://conda-forge.org/):
 
-```
+```shell
 conda install -c conda-forge yt
 ```
 
 or with pip:
 
-```
-pip install yt
-```
-
-If you want the latest nightly build, you can manually install from our
-repository:
-
-```
-conda install -c yt-project/label/dev yt
+```shell
+python -m pip install yt
 ```
 
-To get set up with a development version, you want to clone this repository:
-
-```
-git clone https://github.com/yt-project/yt yt-git
-cd yt-git
-```
-
-and work within a conda environment:
-
-```
-# Create a conda environment named yt-git
-$ conda create -n yt-git python=3.6
-# Activate it
-$ source activate yt-git
-# Make sure you run the latest version of conda
-$ conda update conda
-# Install yt's runtime dependencies
-$ conda install -c conda-forge yt --only-deps
-# Install yt's build dependencies
-$ conda install -c conda-forge cython
-# Make sure you run the latest version of pip
-$ pip install --upgrade pip
-$ pip install -v -e .
-# Output installed packages
-$ conda env export
-```
-
-Alternatively, you can install yt in a
-[virtualenv](https://packaging.python.org/installing/#creating-virtual-environments):
-
-```
-# It is conventional to create virtualenvs at ~/.virtualenv/
-$ mkdir -p ~/.virtualenv
-# Assuming your version of Python 3 is 3.4 or higher,
-# create a virtualenv named yt-git
-$ python3 -m venv ~/.virtualenv/yt-git
-# Activate it
-$ source ~/.virtualenv/yt-git/bin/activate
-# Make sure you run the latest version of pip
-$ pip install --upgrade pip
-# Assuming you have cd'd into yt-git
-$ pip install -e .
-# Output installed packages
-$ pip freeze
-```
+More information on the various ways to install yt, and in particular to install from source,
+can be found on [the project's website](https://yt-project.org/docs/dev/installing.html).
 
 ## Getting Started
 
 yt is designed to provide meaningful analysis of data.  We have some Quickstart
 example notebooks in the repository:
 
- * [Introduction](doc/source/quickstart/1\)_Introduction.ipynb)
- * [Data Inspection](doc/source/quickstart/2\)_Data_Inspection.ipynb)
- * [Simple Visualization](doc/source/quickstart/3\)_Simple_Visualization.ipynb)
- * [Data Objects and Time Series](doc/source/quickstart/4\)_Data_Objects_and_Time_Series.ipynb)
- * [Derived Fields and Profiles](doc/source/quickstart/5\)_Derived_Fields_and_Profiles.ipynb)
- * [Volume Rendering](doc/source/quickstart/6\)_Volume_Rendering.ipynb)
+ * [Introduction](https://github.com/yt-project/yt/tree/main/doc/source/quickstart/1\)_Introduction.ipynb)
+ * [Data Inspection](https://github.com/yt-project/yt/tree/main/doc/source/quickstart/2\)_Data_Inspection.ipynb)
+ * [Simple Visualization](https://github.com/yt-project/yt/tree/main/doc/source/quickstart/3\)_Simple_Visualization.ipynb)
+ * [Data Objects and Time Series](https://github.com/yt-project/yt/tree/main/doc/source/quickstart/4\)_Data_Objects_and_Time_Series.ipynb)
+ * [Derived Fields and Profiles](https://github.com/yt-project/yt/tree/main/doc/source/quickstart/5\)_Derived_Fields_and_Profiles.ipynb)
+ * [Volume Rendering](https://github.com/yt-project/yt/tree/main/doc/source/quickstart/6\)_Volume_Rendering.ipynb)
 
 If you'd like to try these online, you can visit our [yt Hub](https://hub.yt/)
 and run a notebook next to some of our example data.
@@ -154,10 +113,31 @@ We have some community and documentation resources available.
  * Our latest documentation is always at http://yt-project.org/docs/dev/ and it
    includes recipes, tutorials, and API documentation
  * The [discussion mailing
-   list](https://mail.python.org/mm3/archives/list/yt-users@python.org//)
+   list](https://mail.python.org/archives/list/yt-users@python.org//)
    should be your first stop for general questions
  * The [development mailing
-   list](https://mail.python.org/mm3/archives/list/yt-dev@python.org//) is
+   list](https://mail.python.org/archives/list/yt-dev@python.org//) is
    better suited for more development issues
  * You can also join us on Slack at yt-project.slack.com ([request an
-   invite](http://yt-project.org/slack.html))
+   invite](https://yt-project.org/slack.html))
+
+Is your code compatible with yt ? Great ! Please consider giving us a shoutout as a shiny badge in your README
+
+- markdown
+```markdown
+[![yt-project](https://img.shields.io/static/v1?label="works%20with"&message="yt"&color="blueviolet")](https://yt-project.org)
+```
+- rst
+```reStructuredText
+|yt-project|
+
+.. |yt-project| image:: https://img.shields.io/static/v1?label="works%20with"&message="yt"&color="blueviolet"
+   :target: https://yt-project.org
+```
+
+## Powered by NumFOCUS
+
+yt is a fiscally sponsored project of [NumFOCUS](https://numfocus.org/).
+If you're interested in
+supporting the active maintenance and development of this project, consider
+[donating to the project](https://numfocus.salsalabs.org/donate-to-yt/index.html).

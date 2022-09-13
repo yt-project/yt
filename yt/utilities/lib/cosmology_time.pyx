@@ -1,6 +1,9 @@
 cimport numpy as np
+
 import numpy as np
+
 from libc.math cimport sqrt
+
 
 cdef double dadtau(double aexp_tau,double O_mat_0,double O_vac_0,double O_k_0):
     cdef double aexp_tau3 = aexp_tau * aexp_tau * aexp_tau
@@ -78,4 +81,3 @@ cpdef friedman(double O_mat_0,double O_vac_0,double O_k_0):
     tau_out[n_out] = tau
 
     return tau_out,t_out,delta_tau,ntable,age_tot
- 

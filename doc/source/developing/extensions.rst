@@ -4,7 +4,7 @@ Extension Packages
 ==================
 
 .. note:: For some additional discussion, see `YTEP-0029
-          <http://ytep.readthedocs.io/en/latest/YTEPs/YTEP-0029.html>`_, where
+          <https://ytep.readthedocs.io/en/latest/YTEPs/YTEP-0029.html>`_, where
           this plan was designed.
 
 As of version 3.3 of yt, we have put into place new methods for easing the
@@ -43,7 +43,7 @@ code to an extension module) can be found at
 https://github.com/yt-project/yt_extension_template .
 
 To get started, download a zipfile of the template (
-https://github.com/yt-project/yt_extension_template/archive/master.zip ) and
+https://codeload.github.com/yt-project/yt_extension_template/zip/master ) and
 follow the directions in ``README.md`` to modify the metadata.
 
 Distributing Extensions

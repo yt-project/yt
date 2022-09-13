@@ -1,51 +1,72 @@
-"""
-Fixed resolution buffer filters.
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
+from abc import ABC, abstractmethod
+from functools import update_wrapper, wraps
 
 import numpy as np
-from yt.extern.six import add_metaclass
-from functools import wraps
 
-filter_registry = {}
+from yt._maintenance.deprecation import issue_deprecation_warning
+from yt.visualization.fixed_resolution import FixedResolutionBuffer
 
 
 def apply_filter(f):
+    issue_deprecation_warning(
+        "The apply_filter decorator is not used in yt any more and "
+        "will be removed in a future version. "
+        "Please do not use it.",
+        since="4.1",
+    )
+
     @wraps(f)
-    def newfunc(*args, **kwargs):
-        args[0]._filters.append((f.__name__, (args, kwargs)))
-        return args[0]
+    def newfunc(self, *args, **kwargs):
+        self._filters.append((f.__name__, (args, kwargs)))
+        # Invalidate the data of the frb to force its regeneration
+        self._data_valid = False
+        return self
+
     return newfunc
 
 
-class RegisteredFilter(type):
-
-    def __init__(cls, name, b, d):
-        type.__init__(cls, name, b, d)
-        filter_registry[name] = cls
-
-
-@add_metaclass(RegisteredFilter)
-class FixedResolutionBufferFilter(object):
+class FixedResolutionBufferFilter(ABC):
 
     """
     This object allows to apply data transformation directly to
     :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer`
     """
 
+    def __init_subclass__(cls, *args, **kwargs):
+
+        if cls.__init__.__doc__ is None:
+            # allow docstring definition at the class level instead of __init__
+            cls.__init__.__doc__ = cls.__doc__
+
+        # add a method to FixedResolutionBuffer
+        method_name = "apply_" + cls._filter_name
+
+        def closure(self, *args, **kwargs):
+            self._filters.append(cls(*args, **kwargs))
+            self._data_valid = False
+            return self
+
+        update_wrapper(
+            wrapper=closure,
+            wrapped=cls.__init__,
+            assigned=("__annotations__", "__doc__"),
+        )
+
+        closure.__name__ = method_name
+        setattr(FixedResolutionBuffer, method_name, closure)
+
+    @abstractmethod
     def __init__(self, *args, **kwargs):
+        """This method is required in subclasses, but the signature is arbitrary"""
         pass
 
-    def apply(self, buff):
+    @abstractmethod
+    def apply(self, buff: np.ndarray) -> np.ndarray:
         pass
+
+    def __call__(self, buff: np.ndarray) -> np.ndarray:
+        # alias to apply
+        return self.apply(buff)
 
 
 class FixedResolutionBufferGaussBeamFilter(FixedResolutionBufferFilter):
@@ -56,7 +77,8 @@ class FixedResolutionBufferGaussBeamFilter(FixedResolutionBufferFilter):
     2d gaussian that is 'nbeam' pixels wide and has standard deviation
     'sigma'.
     """
-    _filter_name = 'gauss_beam'
+
+    _filter_name = "gauss_beam"
 
     def __init__(self, nbeam=30, sigma=2.0):
         self.nbeam = nbeam
@@ -64,19 +86,21 @@ class FixedResolutionBufferGaussBeamFilter(FixedResolutionBufferFilter):
 
     def apply(self, buff):
         from yt.utilities.on_demand_imports import _scipy
+
         hnbeam = self.nbeam // 2
         sigma = self.sigma
 
         l = np.linspace(-hnbeam, hnbeam, num=self.nbeam + 1)
         x, y = np.meshgrid(l, l)
-        g2d = (1.0 / (sigma * np.sqrt(2.0 * np.pi))) * \
-            np.exp(-((x / sigma) ** 2 + (y / sigma) ** 2) / (2 * sigma ** 2))
+        g2d = (1.0 / (sigma * np.sqrt(2.0 * np.pi))) * np.exp(
+            -((x / sigma) ** 2 + (y / sigma) ** 2) / (2 * sigma**2)
+        )
         g2d /= g2d.max()
 
         npm, nqm = np.shape(buff)
         spl = _scipy.signal.convolve(buff, g2d)
 
-        return spl[hnbeam:npm + hnbeam, hnbeam:nqm + hnbeam]
+        return spl[hnbeam : npm + hnbeam, hnbeam : nqm + hnbeam]
 
 
 class FixedResolutionBufferWhiteNoiseFilter(FixedResolutionBufferFilter):
@@ -87,7 +111,8 @@ class FixedResolutionBufferWhiteNoiseFilter(FixedResolutionBufferFilter):
     If "bg_lvl" is not present, 10th percentile of the FRB's value is
     used instead.
     """
-    _filter_name = 'white_noise'
+
+    _filter_name = "white_noise"
 
     def __init__(self, bg_lvl=None):
         self.bg_lvl = bg_lvl

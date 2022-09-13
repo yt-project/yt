@@ -1,17 +1,22 @@
-import yt
 import matplotlib.pyplot as plt
+
+import yt
 
 ds = yt.load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150")
 
 # Get a sphere object
 
-sp = ds.sphere(ds.domain_center, (500., "kpc"))
+sp = ds.sphere(ds.domain_center, (500.0, "kpc"))
 
 # Bin up the data from the sphere into a radial profile
 
-rp = yt.create_profile(sp, 'radius', ['density', 'temperature'],
-                       units = {'radius': 'kpc'},
-                       logs = {'radius': False})
+rp = yt.create_profile(
+    sp,
+    "radius",
+    [("gas", "density"), ("gas", "temperature")],
+    units={"radius": "kpc"},
+    logs={"radius": False},
+)
 
 # Make plots using matplotlib
 
@@ -19,7 +24,7 @@ fig = plt.figure()
 ax = fig.add_subplot(111)
 
 # Plot the density as a log-log plot using the default settings
-dens_plot = ax.loglog(rp.x.value, rp["density"].value)
+dens_plot = ax.loglog(rp.x.value, rp[("gas", "density")].value)
 
 # Here we set the labels of the plot axes
 

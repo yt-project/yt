@@ -1,62 +1,65 @@
-"""
-This is a simple mechanism for interfacing with Particle plots
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
+from typing import List
 
 import numpy as np
 
-from yt.visualization.fixed_resolution import \
-    ParticleImageBuffer
-from yt.funcs import \
-    ensure_list, \
-    fix_axis
+from yt.data_objects.profiles import create_profile
+from yt.data_objects.static_output import Dataset
+from yt.funcs import fix_axis, iter_fields
 from yt.units.yt_array import YTArray
-from .plot_window import \
-    get_axes_unit, \
-    get_window_parameters, \
-    PWViewerMPL
-from yt.data_objects.profiles import \
-    create_profile
-from yt.visualization.profile_plotter import \
-    PhasePlot
+from yt.visualization.fixed_resolution import ParticleImageBuffer
+from yt.visualization.profile_plotter import PhasePlot
+
+from .plot_window import PWViewerMPL, get_axes_unit, get_window_parameters
 
 
-class ParticleAxisAlignedDummyDataSource(object):
-    _type_name = 'Particle'
+class ParticleAxisAlignedDummyDataSource:
+    _type_name = "Particle"
     _dimensionality = 2
-    _con_args = ('center', 'axis', 'width', 'fields', 'weight_field')
+    _con_args = ("center", "axis", "width", "fields", "weight_field")
     _tds_attrs = ()
-    _key_fields = []
+    _key_fields: List[str] = []
 
-    def __init__(self, center, ds, axis, width, fields,
-                 weight_field=None,
-                 field_parameters=None, data_source=None):
+    def __init__(
+        self,
+        center,
+        ds,
+        axis,
+        width,
+        fields,
+        weight_field=None,
+        field_parameters=None,
+        data_source=None,
+        deposition="ngp",
+        density=False,
+    ):
         self.center = center
         self.ds = ds
         self.axis = axis
         self.width = width
         self.weight_field = weight_field
+        self.deposition = deposition
+        self.density = density
 
         if field_parameters is None:
             self.field_parameters = {}
         else:
             self.field_parameters = field_parameters
 
-        LE = center - 0.5*YTArray(width)
-        RE = center + 0.5*YTArray(width)
-        self.dd = ds.region(center, LE, RE, fields,
-                            field_parameters=field_parameters,
-                            data_source=data_source)
+        LE = center - 0.5 * YTArray(width)
+        RE = center + 0.5 * YTArray(width)
+        for ax in range(3):
+            if not ds.periodicity[ax]:
+                LE[ax] = max(LE[ax], ds.domain_left_edge[ax])
+                RE[ax] = min(RE[ax], ds.domain_right_edge[ax])
+
+        self.dd = ds.region(
+            center,
+            LE,
+            RE,
+            fields,
+            field_parameters=field_parameters,
+            data_source=data_source,
+        )
 
         fields = self.dd._determine_fields(fields)
         self.fields = fields
@@ -94,8 +97,8 @@ class ParticleProjectionPlot(PWViewerMPL):
          An int corresponding to the axis to slice along (0=x, 1=y, 2=z)
          or the axis name itself
     fields : string, list or None
-         If a string or list, the name of the particle field(s) to be used 
-         one the colorbar. The color shown will correspond to the sum of the
+         If a string or list, the name of the particle field(s) to be used
+         on the colorbar. The color shown will correspond to the sum of the
          given field along the line of sight. If None, the particle positions
          will be indicated using a fixed color, instead. Default is None.
     color : 'b', 'g', 'r', 'c', 'm', 'y', 'k', or 'w'
@@ -186,6 +189,14 @@ class ParticleProjectionPlot(PWViewerMPL):
     data_source : YTSelectionContainer Object
          Object to be used for data selection.  Defaults to a region covering
          the entire simulation.
+    deposition : string
+        Controls the order of the interpolation of the particles onto the
+        mesh. "ngp" is 0th-order "nearest-grid-point" method (the default),
+        "cic" is 1st-order "cloud-in-cell".
+    density : boolean
+        If True, the quantity to be projected will be divided by the area of
+        the cells, to make a projected density of the quantity. The plot
+        name and units will also reflect this. Default: False
 
     Examples
     --------
@@ -194,25 +205,42 @@ class ParticleProjectionPlot(PWViewerMPL):
     'galaxy0030_Particle_z_particle_mass.png'
 
     >>> from yt import load
-    >>> ds = load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    >>> p = yt.ParticleProjectionPlot(ds, 2, 'particle_mass')
+    >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> p = yt.ParticleProjectionPlot(ds, 2, "particle_mass")
     >>> p.save()
 
     """
-    _plot_type = 'Particle'
+    _plot_type = "Particle"
     _frb_generator = ParticleImageBuffer
 
-    def __init__(self, ds, axis, fields=None, color='b', center='c', width=None,
-                 depth=(1, '1'), weight_field=None, axes_unit=None,
-                 origin='center-window', fontsize=18, field_parameters=None,
-                 window_size=8.0, aspect=None, data_source=None):
+    def __init__(
+        self,
+        ds,
+        axis,
+        fields=None,
+        color="b",
+        center="c",
+        width=None,
+        depth=(1, "1"),
+        weight_field=None,
+        axes_unit=None,
+        origin="center-window",
+        fontsize=18,
+        field_parameters=None,
+        window_size=8.0,
+        aspect=None,
+        data_source=None,
+        deposition="ngp",
+        density=False,
+    ):
         # this will handle time series data and controllers
         ts = self._initialize_dataset(ds)
         self.ts = ts
         ds = self.ds = ts[0]
         axis = fix_axis(axis, ds)
-        (bounds, center, display_center) = \
-            get_window_parameters(axis, center, width, ds)
+        (bounds, center, display_center) = get_window_parameters(
+            axis, center, width, ds
+        )
         if field_parameters is None:
             field_parameters = {}
 
@@ -226,8 +254,8 @@ class ParticleProjectionPlot(PWViewerMPL):
         self._use_cbar = True
         splat_color = None
         if fields is None:
-            fields = ['particle_ones']
-            weight_field = 'particle_ones'
+            fields = [("all", "particle_ones")]
+            weight_field = ("all", "particle_ones")
             self._use_cbar = False
             splat_color = color
 
@@ -241,19 +269,37 @@ class ParticleProjectionPlot(PWViewerMPL):
         width[y_coord] = bounds[3] - bounds[2]
         width[axis] = depth[0].in_units(width[x_coord].units)
 
-        ParticleSource = ParticleAxisAlignedDummyDataSource(center, ds, axis,
-                                        width, fields, weight_field,
-                                        field_parameters=field_parameters,
-                                        data_source=data_source)
+        ParticleSource = ParticleAxisAlignedDummyDataSource(
+            center,
+            ds,
+            axis,
+            width,
+            fields,
+            weight_field,
+            field_parameters=field_parameters,
+            data_source=data_source,
+            deposition=deposition,
+            density=density,
+        )
 
-        PWViewerMPL.__init__(self, ParticleSource, bounds, origin=origin,
-                             fontsize=fontsize, fields=fields,
-                             window_size=window_size, aspect=aspect,
-                             splat_color=splat_color)
+        self.projected = weight_field is None
+
+        PWViewerMPL.__init__(
+            self,
+            ParticleSource,
+            bounds,
+            origin=origin,
+            fontsize=fontsize,
+            fields=fields,
+            window_size=window_size,
+            aspect=aspect,
+            splat_color=splat_color,
+            geometry=ds.geometry,
+        )
 
         self.set_axes_unit(axes_unit)
 
-        if self._use_cbar is False:
+        if not self._use_cbar:
             self.hide_colorbar()
 
 
@@ -263,15 +309,15 @@ class ParticlePhasePlot(PhasePlot):
     a `yt.data_objects.profiles.ParticleProfile` object.
 
     Given a data object (all_data, region, sphere, etc.), an x field,
-    y field, and z field (or fields), this will create a particle plot 
+    y field, and z field (or fields), this will create a particle plot
     by depositing the particles onto a two-dimensional mesh, using either
     nearest grid point or cloud-in-cell deposition.
 
     Parameters
     ----------
-    data_source : YTSelectionContainer Object
-        The data object to be profiled, such as all_data, region, or 
-        sphere.
+    data_source : YTSelectionContainer or Dataset
+        The data object to be profiled, such as all_data, region, or
+        sphere. If data_source is a Dataset, data_source.all_data() will be used.
     x_field : str
         The x field for the mesh.
     y_field : str
@@ -311,6 +357,11 @@ class ParticlePhasePlot(PhasePlot):
     figure_size : int
         Size in inches of the image.
         Default: 8 (8x8)
+    shading : str
+        This argument is directly passed down to matplotlib.axes.Axes.pcolormesh
+        see
+        https://matplotlib.org/3.3.1/gallery/images_contours_and_fields/pcolormesh_grids.html#sphx-glr-gallery-images-contours-and-fields-pcolormesh-grids-py  # noqa
+        Default: 'nearest'
 
     Examples
     --------
@@ -318,44 +369,64 @@ class ParticlePhasePlot(PhasePlot):
     >>> import yt
     >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
-    >>> plot = ParticlePhasePlot(ad, "particle_position_x,
-                                 "particle_position_y", ["particle_mass"],
-    ...                          x_bins=800, y_bins=800)
+    >>> plot = ParticlePhasePlot(
+    ...     ad,
+    ...     "particle_position_x",
+    ...     "particle_position_y",
+    ...     ["particle_mass"],
+    ...     x_bins=800,
+    ...     y_bins=800,
+    ... )
     >>> plot.save()
 
     >>> # Change plot properties.
-    >>> plot.set_log('particle_mass', True)
-    >>> plot.set_unit('particle_position_x', 'Mpc')
-    >>> plot.set_unit('particle_velocity_z', 'km/s')
-    >>> plot.set_unit('particle_mass', 'Msun')
+    >>> plot.set_log("particle_mass", True)
+    >>> plot.set_unit("particle_position_x", "Mpc")
+    >>> plot.set_unit("particle_velocity_z", "km/s")
+    >>> plot.set_unit("particle_mass", "Msun")
 
     """
-    _plot_type = 'ParticlePhase'
+    _plot_type = "ParticlePhase"
 
-    def __init__(self, data_source, x_field, y_field, z_fields=None,
-                 color='b', x_bins=800, y_bins=800, weight_field=None,
-                 deposition='ngp', fontsize=18, figure_size=8.0):
+    def __init__(
+        self,
+        data_source,
+        x_field,
+        y_field,
+        z_fields=None,
+        color="b",
+        x_bins=800,
+        y_bins=800,
+        weight_field=None,
+        deposition="ngp",
+        fontsize=18,
+        figure_size=8.0,
+        shading="nearest",
+    ):
 
+        if isinstance(data_source, Dataset):
+            data_source = data_source.all_data()
         # if no z_fields are passed in, use a constant color
         if z_fields is None:
             self.use_cbar = False
             self.splat_color = color
-            z_fields = ['particle_ones']
+            z_fields = [("all", "particle_ones")]
 
         profile = create_profile(
             data_source,
             [x_field, y_field],
-            ensure_list(z_fields),
+            list(iter_fields(z_fields)),
             n_bins=[x_bins, y_bins],
             weight_field=weight_field,
-            deposition=deposition)
+            deposition=deposition,
+        )
 
-        type(self)._initialize_instance(self, data_source, profile, fontsize,
-                                        figure_size)
+        type(self)._initialize_instance(
+            self, data_source, profile, fontsize, figure_size, shading
+        )
 
 
-def ParticlePlot(ds, x_field, y_field, z_fields=None, color='b', *args,
-                 **kwargs):
+def ParticlePlot(ds, x_field, y_field, z_fields=None, color="b", *args, **kwargs):
     r"""
     A factory function for
     :class:`yt.visualization.particle_plots.ParticleProjectionPlot`
@@ -436,7 +507,7 @@ def ParticlePlot(ds, x_field, y_field, z_fields=None, color='b', *args,
     depth : A tuple or a float
          A tuple containing the depth to project through and the string
          key of the unit: (width, 'unit').  If set to a float, code units
-         are assumed. Defaults to the entire domain. This argument is only 
+         are assumed. Defaults to the entire domain. This argument is only
          accepted by ``ParticleProjectionPlot``.
     axes_unit : A string
          The name of the unit for the tick labels on the x and y axes.
@@ -474,10 +545,10 @@ def ParticlePlot(ds, x_field, y_field, z_fields=None, color='b', *args,
          This argument is only accepted by ``ParticleProjectionPlot``.
     window_size : float
          The size of the window on the longest axis (in units of inches),
-         including the margins but not the colorbar. This argument is only 
+         including the margins but not the colorbar. This argument is only
          accepted by ``ParticleProjectionPlot``.
     aspect : float
-         The aspect ratio of the plot.  Set to None for 1. This argument is 
+         The aspect ratio of the plot.  Set to None for 1. This argument is
          only accepted by ``ParticleProjectionPlot``.
     x_bins : int
         The number of bins in x field for the mesh. Defaults to 800. This
@@ -486,9 +557,8 @@ def ParticlePlot(ds, x_field, y_field, z_fields=None, color='b', *args,
         The number of bins in y field for the mesh. Defaults to 800. This
         argument is only accepted by ``ParticlePhasePlot``.
     deposition : str
-        Either 'ngp' or 'cic'. Controls what type of interpolation will be 
+        Either 'ngp' or 'cic'. Controls what type of interpolation will be
         used to deposit the particle z_fields onto the mesh. Defaults to 'ngp'.
-        This argument is only accepted by ``ParticlePhasePlot``.
     figure_size : int
         Size in inches of the image. Defaults to 8 (product an 8x8 inch figure).
         This argument is only accepted by ``ParticlePhasePlot``.
@@ -498,14 +568,18 @@ def ParticlePlot(ds, x_field, y_field, z_fields=None, color='b', *args,
 
     >>> from yt import load
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    >>> p = yt.ParticlePlot(ds, 'particle_position_x', 'particle_position_y',
-    ...                     'particle_mass', width=(0.5, 0.5))
-    >>> p.set_unit('particle_mass', 'Msun')
-    >>> p = yt.ParticlePlot(ds, 'particle_position_x', 'particle_velocity_z',
-    ...                     color='g')
+    >>> p = yt.ParticlePlot(
+    ...     ds,
+    ...     "particle_position_x",
+    ...     "particle_position_y",
+    ...     "particle_mass",
+    ...     width=(0.5, 0.5),
+    ... )
+    >>> p.set_unit("particle_mass", "Msun")
+    >>> p = yt.ParticlePlot(ds, "particle_position_x", "particle_velocity_z", color="g")
 
     """
-    dd = kwargs.get('data_source', None)
+    dd = kwargs.get("data_source", None)
     if dd is None:
         dd = ds.all_data()
     x_field = dd._determine_fields(x_field)[0]
@@ -516,7 +590,7 @@ def ParticlePlot(ds, x_field, y_field, z_fields=None, color='b', *args,
     for axis in [0, 1, 2]:
         xax = ds.coordinates.x_axis[axis]
         yax = ds.coordinates.y_axis[axis]
-        ax_field_template = 'particle_position_%s'
+        ax_field_template = "particle_position_%s"
         xf = ax_field_template % ds.coordinates.axis_name[xax]
         yf = ax_field_template % ds.coordinates.axis_name[yax]
         if (x_field[1], y_field[1]) in [(xf, yf), (yf, xf)]:
@@ -525,11 +599,9 @@ def ParticlePlot(ds, x_field, y_field, z_fields=None, color='b', *args,
 
     if direction < 3:
         # Make a ParticleProjectionPlot
-        return ParticleProjectionPlot(ds, direction, z_fields, color,
-                                      *args, **kwargs)
+        return ParticleProjectionPlot(ds, direction, z_fields, color, *args, **kwargs)
 
     # Does not correspond to any valid PlotWindow-style plot,
     # use ParticlePhasePlot instead
     else:
-        return ParticlePhasePlot(dd, x_field, y_field,
-                                 z_fields, color, *args, **kwargs)
+        return ParticlePhasePlot(dd, x_field, y_field, z_fields, color, *args, **kwargs)

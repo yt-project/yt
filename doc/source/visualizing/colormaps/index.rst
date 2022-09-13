@@ -50,24 +50,6 @@ not be interpolated, and can be useful for creating
 colorblind/printer/grayscale-friendly plots. For more information, visit
 `http://colorbrewer2.org <http://colorbrewer2.org>`_.
 
-.. _cmocean-cmaps:
-
-Colormaps from cmocean
-~~~~~~~~~~~~~~~~~~~~~~
-
-In addition to ``palettable``, yt will also import colormaps defined in the
-`cmocean <http://matplotlib.org/cmocean>`_ package. These colormaps are
-`perceptually uniform <http://bids.github.io/colormap/>`_ and were originally
-designed for oceanography applications, but can be used for any kind of plots.
-
-Since ``cmocean`` is not installed as a dependency of yt by default, it must be
-installed separately to access the ``cmocean`` colormaps with yt. The easiest
-way to install ``cmocean`` is via ``pip``: ``pip install cmocean``.  To access
-the colormaps in yt, simply specify the name of the ``cmocean`` colormap in any
-context where you would specify a colormap. One caveat is the ``cmocean``
-colormap ``algae``. Since yt already defines a colormap named ``algae``, the
-``cmocean`` version of ``algae`` must be specified with the name
-``algae_cmocean``.
 
 .. _custom-colormaps:
 
@@ -89,11 +71,17 @@ to blue.  These will be accessible for the rest of the yt session as
 
 .. code-block:: python
 
-    yt.make_colormap([('blue', 20), ('white', 20), ('red', 20)],
-                     name='french_flag', interpolate=False)
-    yt.make_colormap([('black', 5), ('red', 10), ('green', 20), ('blue', 0)],
-                     name='weird', interpolate=True)
-    yt.show_colormaps(subset=['french_flag', 'weird'], filename='cmaps.png')
+    yt.make_colormap(
+        [("blue", 20), ("white", 20), ("red", 20)],
+        name="french_flag",
+        interpolate=False,
+    )
+    yt.make_colormap(
+        [("black", 5), ("red", 10), ("green", 20), ("blue", 0)],
+        name="weird",
+        interpolate=True,
+    )
+    yt.show_colormaps(subset=["french_flag", "weird"], filename="cmaps.png")
 
 All Colormaps (including matplotlib)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -124,16 +112,39 @@ available in a local window:
 .. code-block:: python
 
     import yt
+
     yt.show_colormaps()
 
-or to output just a few colormaps to an image file, try:
+or to output the original yt colormaps to an image file, try:
 
 .. code-block:: python
 
     import yt
-    yt.show_colormaps(subset=['algae', 'kamae', 'spectral',
-                              'arbre', 'dusk', 'octarine', 'kelp'],
-                      filename="yt_native.png")
+
+    yt.show_colormaps(
+        subset=[
+            "cmyt.algae",
+            "cmyt.arbre",
+            "cmyt.dusk",
+            "cmyt.kelp",
+            "cmyt.octarine",
+            "cmyt.pastel",
+        ],
+        filename="yt_native.png",
+    )
+
+.. note ::
+
+    Since yt 4.1, yt native colormaps are shipped as a separate package
+    `cmyt <https://pypi.org/project/cmyt/>`_ that can be used
+    outside yt itself.
+    Within `yt` functions, these colormaps can still be referenced without
+    the ``"cmyt."`` prefix. However, there is no guarantee that this will
+    work in upcoming version of matplotlib, so our recommentation is to keep
+    the prefix at all times to retain forward compatibility.
+    yt also retains compatibility with names these colormaps were formerly
+    known as (for instance ``cmyt.pastel`` used to be named ``kamae``).
+
 
 Applying a Colormap to your Rendering
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -143,7 +154,7 @@ manually specify a specific colormap.  For example:
 
 .. code-block:: python
 
-    yt.write_image(im, "output.png", cmap_name = 'jet')
+    yt.write_image(im, "output.png", cmap_name="jet")
 
 If you're using the Plot Window interface (e.g. SlicePlot, ProjectionPlot,
 etc.), it's even easier than that.  Simply create your rendering, and you
@@ -153,13 +164,13 @@ callback:
 .. code-block:: python
 
     ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    p = yt.ProjectionPlot(ds, "z", "density")
+    p = yt.ProjectionPlot(ds, "z", ("gas", "density"))
 
-    p.set_cmap(field="density", cmap='jet')
-    p.save('proj_with_jet_cmap.png')
+    p.set_cmap(field=("gas", "density"), cmap="turbo")
+    p.save("proj_with_jet_cmap.png")
 
-    p.set_cmap(field="density", cmap='hot')
-    p.save('proj_with_hot_cmap.png')
+    p.set_cmap(field=("gas", "density"), cmap="hot")
+    p.save("proj_with_hot_cmap.png")
 
 For more information about the callbacks available to Plot Window objects,
 see :ref:`callbacks`.
@@ -171,6 +182,6 @@ To give the reader a better feel for how a colormap appears once it is applied
 to a dataset, below we provide a library of identical projections of an
 isolated galaxy where only the colormap has changed.  They use the sample
 dataset "IsolatedGalaxy" available at
-`http://yt-project.org/data <http://yt-project.org/data>`_.
+`https://yt-project.org/data <https://yt-project.org/data>`_.
 
 .. yt_colormaps:: cmap_images.py

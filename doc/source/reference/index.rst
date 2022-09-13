@@ -13,7 +13,9 @@ code.
    code_support
    command-line
    api/api
+   api/modules
    configuration
    python_introduction
    field_list
+   demeshening
    changelog

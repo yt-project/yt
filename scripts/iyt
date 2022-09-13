@@ -1,9 +1,19 @@
 #!python
 from __future__ import print_function
+
 import os
 import re
-from yt.mods import *
+
+from IPython.terminal.interactiveshell import TerminalInteractiveShell
+
 from yt.data_objects.data_containers import YTDataContainer
+from yt.mods import *
+from yt._maintenance.deprecation import issue_deprecation_warning
+
+issue_deprecation_warning(
+    "The iyt script is no longer maintained and targeted for removal.",
+    since="4.1.0", removal="4.2.0",
+)
 namespace = locals().copy()
 namespace.pop("__builtins__", None)
 
@@ -24,11 +34,10 @@ except ImportError:
     code.interact(doc, None, namespace)
     sys.exit()
 
-from IPython.terminal.interactiveshell import TerminalInteractiveShell
 ip_shell = TerminalInteractiveShell(user_ns=namespace, banner1 = doc,
                                     display_banner = True)
 if "DISPLAY" in os.environ:
-    ip_shell.enable_pylab(import_all=False)
+    ip_shell.enable_matplotlib(import_all=False)
 
 
 # The rest is a modified version of the IPython default profile code
@@ -77,10 +86,10 @@ def yt_simple_fieldname_completer(self, event):
 
     try:
         obj = eval(expr, self.Completer.namespace)
-    except:
+    except Exception:
         try:
             obj = eval(expr, self.Completer.global_namespace)
-        except:
+        except Exception:
             raise IPython.ipapi.TryNext
 
     if isinstance(obj, YTDataContainer):
@@ -104,10 +113,10 @@ def yt_tuple_fieldname_completer(self, event):
 
     try:
         obj = eval(expr, self.Completer.namespace)
-    except:
+    except Exception:
         try:
             obj = eval(expr, self.Completer.global_namespace)
-        except:
+        except Exception:
             raise IPython.ipapi.TryNext
 
     if isinstance(obj, YTDataContainer):

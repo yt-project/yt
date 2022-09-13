@@ -85,18 +85,15 @@ normal, you can access the grid as you would a normal object:
 .. code-block:: python
 
    g = ds.index.grids[1043]
-   print(g["density"])
-   print(g["density"].min())
+   print(g["gas", "density"])
+   print(g["gas", "density"].min())
 
-To access the raw data, you have to call the IO handler from the index
-instead.  This is somewhat more low-level.
+To access the raw data (as found in the file), use
 
 .. code-block:: python
 
    g = ds.index.grids[1043]
-   rho = ds.index.io.pop(g, "density")
-
-This field will be the raw data found in the file.
+   rho = g["gas", "density"].in_base("code")
 
 .. _finding-data-at-fixed-points:
 
@@ -126,9 +123,11 @@ to find the value of a mesh field at the location of the particles in a
 simulation, one could do::
 
   ad = ds.all_data()
-  ppos = ad['all', 'particle_position']
+  ppos = ad["all", "particle_position"]
   ppos_den_vel = ds.find_field_values_at_points(
-      ['density', 'velocity_x'], ppos)
+    [("gas", "density"), ("gas", "velocity_x")],
+    ppos
+  )
 
 In this example, ``ppos_den_vel`` will be a list of arrays. The first array will
 contain the density values at the particle positions, the second will contain
@@ -153,32 +152,32 @@ lowest level data, we run:
 .. code-block:: python
 
    import yt
-   ds = yt.load('Enzo_64/DD0043/data0043')
-   all_data_level_0 = ds.covering_grid(level=0, left_edge=[0,0.0,0.0],
-                                         dims=[64, 64, 64])
+
+   ds = yt.load("Enzo_64/DD0043/data0043")
+   all_data_level_0 = ds.covering_grid(level=0, left_edge=[0, 0.0, 0.0], dims=[64, 64, 64])
 
 Note that we can also get the same result and rely on the dataset to know
 its own underlying dimensions:
 
 .. code-block:: python
 
-   all_data_level_0 = ds.covering_grid(level=0, left_edge=[0,0.0,0.0],
-                                         dims=ds.domain_dimensions)
+   all_data_level_0 = ds.covering_grid(
+       level=0, left_edge=[0, 0.0, 0.0], dims=ds.domain_dimensions
+   )
 
 We can now access our underlying data at the lowest level by specifying what
 :ref:`field <field-list>` we want to examine:
 
 .. code-block:: python
 
-   print(all_data_level_0['density'].shape)
-   (64, 64, 64)
+  print(all_data_level_0["gas", "density"].shape)
+  # (64, 64, 64)
 
-   print(all_data_level_0['density'])
+  print(all_data_level_0["gas", "density"])
+  # array([[[  1.92588925e-31,   1.74647692e-31,   2.54787518e-31, ...,
 
-   array([[[  1.92588925e-31,   1.74647692e-31,   2.54787518e-31, ...,
-
-   print(all_data_level_0['temperature'].shape)
-   (64, 64, 64)
+  print(all_data_level_0["gas", "temperature"].shape)
+  # (64, 64, 64)
 
 If you create a covering grid that spans two child grids of a single parent
 grid, it will fill those zones covered by a zone of a child grid with the
@@ -194,17 +193,18 @@ larger dataset:
 
 .. code-block:: python
 
-   all_data_level_2 = ds.covering_grid(level=2, left_edge=[0,0.0,0.0],
-                                         dims=ds.domain_dimensions * 2**2)
+   all_data_level_2 = ds.covering_grid(
+       level=2, left_edge=[0, 0.0, 0.0], dims=ds.domain_dimensions * 2**2
+   )
 
 And let's see what's the density in the central location:
 
 .. code-block:: python
 
-   print(all_data_level_2['density'].shape)
+   print(all_data_level_2["gas", "density"].shape)
    (256, 256, 256)
 
-   print(all_data_level_2['density'][128, 128, 128])
+   print(all_data_level_2["gas", "density"][128, 128, 128])
    1.7747457571203124e-31
 
 There are two different types of covering grids: unsmoothed and smoothed.
@@ -219,14 +219,42 @@ to reduce edge effects, it is a nearly identical process:
 
 .. code-block:: python
 
-   all_data_level_2_s = ds.smoothed_covering_grid(2, [0.0, 0.0, 0.0],
-                                                    ds.domain_dimensions * 2**2)
+   all_data_level_2_s = ds.smoothed_covering_grid(
+       2, [0.0, 0.0, 0.0], ds.domain_dimensions * 2**2
+   )
 
-   print(all_data_level_2_s['density'].shape)
+   print(all_data_level_2_s["gas", "density"].shape)
    (256, 256, 256)
 
-   print(all_data_level_2_s['density'][128, 128, 128])
+   print(all_data_level_2_s["gas", "density"][128, 128, 128])
    1.763744852165591e-31
+
+
+Covering grids can also accept a ``data_source`` argument, in which case only
+the cells of the covering grid that are contained by the ``data_source`` will be
+filled. This can be useful to create regularized arrays of more complex
+geometries. For example, if we provide a sphere, we see that the covering grid
+shape is the same, but the number of cells with data is less
+
+.. code-block:: python
+
+   sp = ds.sphere(ds.domain_center, (0.25, "code_length"))
+   cg_sp = ds.covering_grid(
+       level=0, left_edge=[0, 0.0, 0.0], dims=ds.domain_dimensions, data_source=sp
+   )
+
+   print(cg_sp[("gas", "density")].shape)
+   (64, 64, 64)
+
+   print(cg_sp[("gas", "density")].size)
+   262144
+
+   print(cg_sp[("gas", "density")][cg_sp[("gas", "density")] != 0].size)
+   17256
+
+The ``data_source`` can be any :ref:`3D Data Container <region-reference>`. Also
+note that the ``data_source`` argument is only available for the ``covering_grid``
+at present (not the ``smoothed_covering_grid``).
 
 .. _examining-image-data-in-a-fixed-resolution-array:
 

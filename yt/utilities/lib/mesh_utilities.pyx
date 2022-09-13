@@ -1,3 +1,5 @@
+
+# distutils: libraries = STD_LIBS
 """
 Utilities for unstructured and semi-structured meshes
 
@@ -5,20 +7,17 @@ Utilities for unstructured and semi-structured meshes
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
 import numpy as np
-cimport numpy as np
+
 cimport cython
-from libc.stdlib cimport malloc, free, abs
-from yt.utilities.lib.fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, i64clip
+cimport numpy as np
+from libc.stdlib cimport abs, free, malloc
+
+from yt.utilities.lib.fp_utils cimport fclip, fmax, fmin, i64clip, iclip, imax, imin
+
 from yt.units.yt_array import YTArray
+
 
 cdef extern from "platform_dep.h":
     double rint(double x)
