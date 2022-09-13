@@ -659,14 +659,6 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
                 raise
 
 
-class PixelizedParticleProjectionValuesTest(PixelizedProjectionValuesTest):
-    def _get_frb(self, obj):
-        proj_plot = particle_plots.ParticleProjectionPlot(
-            self.ds, self.axis, [self.field], weight_field=self.weight_field
-        )
-        return proj_plot.data_source, proj_plot.frb
-
-
 class GridValuesTest(AnswerTestingTest):
     _type_name = "GridValues"
     _attrs = ("field",)
@@ -1051,9 +1043,7 @@ def big_patch_amr(ds_fn, fields, input_center="max", input_weight=("gas", "densi
                     )
 
 
-def _particle_answers(
-    ds, ds_str_repr, ds_nparticles, fields, proj_test_class, center="c"
-):
+def _particle_answers(ds, ds_str_repr, ds_nparticles, fields, center="c"):
     if not can_run_ds(ds):
         return
     assert_equal(str(ds), ds_str_repr)
@@ -1079,7 +1069,6 @@ def nbody_answer(ds, ds_str_repr, ds_nparticles, fields, center="c"):
         ds_str_repr,
         ds_nparticles,
         fields,
-        PixelizedParticleProjectionValuesTest,
         center=center,
     )
 
