@@ -11,12 +11,6 @@ from yt.funcs import ensure_numpy_array, is_sequence, mylog
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.geometry.oct_geometry_handler import OctreeIndex
 from yt.utilities.amr_kdtree.api import AMRKDTree
-from .transfer_function_helper import TransferFunctionHelper
-from .transfer_functions import TransferFunction, \
-    ProjectionTransferFunction, ColorTransferFunction
-from .utils import new_volume_render_sampler, data_source_or_all, \
-    get_corners, new_projection_sampler, new_mesh_sampler, \
-    new_interpolated_projection_sampler, new_light_render_sampler
 from yt.utilities.configure import YTConfig, configuration_callbacks
 from yt.utilities.lib.bounding_volume_hierarchy import BVH
 from yt.utilities.lib.misc_utilities import zlines, zpoints
@@ -38,6 +32,7 @@ from .utils import (
     data_source_or_all,
     get_corners,
     new_interpolated_projection_sampler,
+    new_light_render_sampler,
     new_mesh_sampler,
     new_projection_sampler,
     new_volume_render_sampler,
@@ -442,7 +437,7 @@ class VolumeSource(RenderSource, abc.ABC):
         """
         if self.sampler_type == "volume-render":
             sampler = new_volume_render_sampler(camera, self)
-        elif self.sampler_type == 'light-render':
+        elif self.sampler_type == "light-render":
             sampler = new_light_render_sampler(camera, self)
         elif self.sampler_type == "projection" and interpolated:
             sampler = new_interpolated_projection_sampler(camera, self)
