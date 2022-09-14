@@ -1,5 +1,7 @@
 set -x   # Show which command is being run
 
+# geos is needed for cartopy, see
+# https://scitools.org.uk/cartopy/docs/latest/installing.html?highlight=install#building-from-source
 case ${RUNNER_OS} in
 linux|Linux)
     sudo apt-get -qqy update
@@ -55,9 +57,8 @@ elif [[ ${dependencies} == "full" ]]; then
     # include a pyproject.toml file or use any pip-comptatible solution to remedy this.
     python -m pip install numpy>=1.19.4 cython~=0.29.21
 
-    # this is required for cartopy. It should normally be specified in our setup.cfg as
-    # cartopy[plotting]
-    # However it doesn't work on Ubuntu 18.04 (used in CI at the time of writing)
+    # this is required for cartopy. see
+    # https://scitools.org.uk/cartopy/docs/latest/installing.html?highlight=install#building-from-source
     python -m pip install shapely --no-binary=shapely
     CFLAGS="$CFLAGS -DACCEPT_USE_OF_DEPRECATED_PROJ_API_H" python -m pip install -e .[test,full]
 else
