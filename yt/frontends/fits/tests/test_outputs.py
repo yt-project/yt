@@ -1,4 +1,9 @@
-from yt.testing import assert_equal, requires_file, units_override_check
+from yt.testing import (
+    assert_equal,
+    requires_file,
+    requires_module,
+    units_override_check,
+)
 from yt.utilities.answer_testing.framework import (
     data_dir_load,
     requires_ds,
@@ -31,6 +36,7 @@ _fields_vels = (("fits", "velocity_x"), ("fits", "velocity_y"), ("fits", "veloci
 vf = "UnigridData/velocity_field_20.fits"
 
 
+@requires_module("astropy")
 @requires_ds(vf)
 def test_velocity_field():
     ds = data_dir_load(vf, cls=FITSDataset)
