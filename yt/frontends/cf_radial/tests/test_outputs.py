@@ -39,14 +39,14 @@ _fields_units = {
 }
 
 
-@requires_file(cf)
 @requires_module("xarray")
+@requires_file(cf)
 def test_units_override():
     units_override_check(cf)
 
 
-@requires_file(cf)
 @requires_module("xarray")
+@requires_file(cf)
 def test_cf_radial_gridded():
     ds = data_dir_load(cf)
     assert isinstance(ds, CFRadialDataset)
@@ -89,8 +89,8 @@ def check_domain(ds):
     assert_equal(ds.domain_right_edge, domain_right_array)
 
 
-@requires_file(cf_nongridded)
 @requires_module("xarray")
+@requires_file(cf_nongridded)
 def test_auto_gridding():
     # loads up a radial dataset, which triggers the gridding.
 
@@ -123,8 +123,8 @@ def test_auto_gridding():
     shutil.rmtree(tempdir)
 
 
-@requires_file(cf_nongridded)
 @requires_module("xarray")
+@requires_file(cf_nongridded)
 def test_grid_parameters():
     # checks that the gridding parameters are used and that conflicts in parameters
     # are resolved as expected.
@@ -172,8 +172,8 @@ def test_grid_parameters():
     shutil.rmtree(tempdir)
 
 
-@requires_ds(cf)
 @requires_module("xarray")
+@requires_ds(cf)
 def test_cfradial_grid_field_values():
     ds = data_dir_load(cf)
     fields_to_check = [("cf_radial", field) for field in _fields_cfradial]
