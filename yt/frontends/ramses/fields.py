@@ -269,7 +269,9 @@ class RAMSESFieldInfo(FieldInfoContainer):
             # Make sure rt_c_frac is at least as long as the number of levels in
             # the simulation
             rt_c_frac = np.pad(
-                rt_c_frac, (0, self.ds.max_level - len(rt_c_frac)), end_values=1
+                rt_c_frac,
+                (0, max(0, self.ds.max_level - len(rt_c_frac))),
+                constant_values=1,
             )
 
         rt_c = rt_c_frac * units.c / (p["unit_l"] / p["unit_t"])
@@ -335,6 +337,9 @@ class RAMSESFieldInfo(FieldInfoContainer):
             )
 
         flux_conv = p["unit_pf"] / units.cm**2 / units.s
+        flux_unit = (
+            1 / self.ds.unit_system["time"] / self.ds.unit_system["length"] ** 2
+        ).units
 
         def gen_flux(key, igroup):
             def _photon_flux(field, data):
@@ -343,9 +348,6 @@ class RAMSESFieldInfo(FieldInfoContainer):
 
             return _photon_flux
 
-        flux_unit = (
-            1 / self.ds.unit_system["time"] / self.ds.unit_system["length"] ** 2
-        ).units
         for key in "xyz":
             for igroup in range(ngroups):
                 self.add_field(
