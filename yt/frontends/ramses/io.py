@@ -323,6 +323,12 @@ def _read_fluid_file_descriptor(fname: Union[str, "os.PathLike[str]"], *, prefix
         ("H_p1_fraction", "HII"),
         ("He_p1_fraction", "HeII"),
         ("He_p2_fraction", "HeIII"),
+        *[(f"photon_density_{i:02d}", f"Photon_density_{i:02d}") for i in range(100)],
+        *[
+            (f"photon_flux_{i:02d}_{dim}", f"Photon_flux_{i:02d}_{dim}")
+            for i in range(100)
+            for dim in "xyz"
+        ],
     ]
 
     # Add mapping for magnetic fields
