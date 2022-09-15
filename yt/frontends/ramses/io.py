@@ -326,9 +326,9 @@ def _read_fluid_file_descriptor(fname: Union[str, "os.PathLike[str]"], *, prefix
         # Photon fluxes / densities are stored as `photon_density_XX`, so
         # only 100 photon bands can be stored with this format. Let's be
         # conservative and support up to 100 bands.
-        *[(f"photon_density_{i:02d}", f"Photon_density_{i:02d}") for i in range(100)],
+        *[(f"photon_density_{i:02d}", f"Photon_density_{i:d}") for i in range(100)],
         *[
-            (f"photon_flux_{i:02d}_{dim}", f"Photon_flux_{dim}_{i:02d}")
+            (f"photon_flux_{i:02d}_{dim}", f"Photon_flux_{dim}_{i:d}")
             for i in range(100)
             for dim in "xyz"
         ],
