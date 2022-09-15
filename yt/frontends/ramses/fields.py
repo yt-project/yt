@@ -264,12 +264,12 @@ class RAMSESFieldInfo(FieldInfoContainer):
         p = RTFieldFileHandler.get_rt_parameters(self.ds).copy()
         p.update(self.ds.parameters)
         ngroups = p["nGroups"]
-        rt_c_frac = p["rt_cfrac"]
+        rt_c_frac = p["rt_c_frac"]
         if isinstance(rt_c_frac, list):
             # Make sure rt_c_frac is at least as long as the number of levels in
             # the simulation
             rt_c_frac = np.pad(
-                rt_c_frac, (0, self.max_level - len(rt_c_frac)), end_values=1
+                rt_c_frac, (0, self.ds.max_level - len(rt_c_frac)), end_values=1
             )
 
         rt_c = rt_c_frac * units.c / (p["unit_l"] / p["unit_t"])
