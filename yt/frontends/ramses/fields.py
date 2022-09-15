@@ -264,7 +264,15 @@ class RAMSESFieldInfo(FieldInfoContainer):
         p = RTFieldFileHandler.get_rt_parameters(self.ds).copy()
         p.update(self.ds.parameters)
         ngroups = p["nGroups"]
-        rt_c = p["rt_c_frac"] * units.c / (p["unit_l"] / p["unit_t"])
+        rt_c_frac = p["rt_cfrac"]
+        if isinstance(rt_c_frac, list):
+            # Make sure rt_c_frac is at least as long as the number of levels in
+            # the simulation
+            rt_c_frac = np.pad(
+                rt_c_frac, (0, self.max_level - len(rt_c_frac)), end_values=1
+            )
+
+        rt_c = rt_c_frac * units.c / (p["unit_l"] / p["unit_t"])
         dens_conv = (p["unit_np"] / rt_c).value / units.cm**3
 
         ########################################
@@ -306,7 +314,14 @@ class RAMSESFieldInfo(FieldInfoContainer):
         # Adding the fields in the rt_ files
         def gen_pdens(igroup):
             def _photon_density(field, data):
-                rv = data["ramses-rt", f"Photon_density_{igroup + 1}"] * dens_conv
+                if isinstance(dens_conv, np.ndarray):
+                    ilvl = data["index", "grid_level"].astype(int)
+                    rv = (
+                        data["ramses-rt", f"Photon_density_{igroup + 1}"]
+                        * dens_conv[ilvl]
+                    )
+                else:
+                    rv = data["ramses-rt", f"Photon_density_{igroup + 1}"] * dens_conv
                 return rv
 
             return _photon_density
