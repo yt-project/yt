@@ -343,7 +343,9 @@ class HydroFieldFileHandler(FieldFileHandler):
             # Or there is an hydro file descriptor
             mylog.debug("Reading hydro file descriptor.")
             # For now, we can only read double precision fields
-            fields = [e[0] for e in _read_fluid_file_descriptor(fname_desc)]
+            fields = [
+                e[0] for e in _read_fluid_file_descriptor(fname_desc, prefix="hydro")
+            ]
 
             # We get no fields for old-style hydro file descriptor
             ok = len(fields) > 0
@@ -597,7 +599,9 @@ class RTFieldFileHandler(FieldFileHandler):
             # Or there is an hydro file descriptor
             mylog.debug("Reading rt file descriptor.")
             # For now, we can only read double precision fields
-            fields = [e[0] for e in _read_fluid_file_descriptor(fname_desc)]
+            fields = [
+                e[0] for e in _read_fluid_file_descriptor(fname_desc, prefix="rt")
+            ]
             ok = len(fields) > 0
 
         if not ok:

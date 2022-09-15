@@ -300,7 +300,7 @@ def _read_part_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
     return fields
 
 
-def _read_fluid_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
+def _read_fluid_file_descriptor(fname: Union[str, "os.PathLike[str]"], *, prefix: str):
     """
     Read a file descriptor and returns the array of the fields found.
     """
@@ -361,7 +361,7 @@ def _read_fluid_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
                 if varname in mapping:
                     varname = mapping[varname]
                 else:
-                    varname = f"hydro_{varname}"
+                    varname = f"{prefix}_{varname}"
 
                 fields.append((varname, dtype))
         else:
