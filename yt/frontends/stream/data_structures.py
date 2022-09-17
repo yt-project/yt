@@ -836,7 +836,7 @@ class StreamOctreeHandler(OctreeIndex):
 
     def _initialize_oct_handler(self):
         header = dict(
-            dims=[1, 1, 1],
+            dims=self.ds.domain_dimensions // self.ds.num_zones,
             left_edge=self.ds.domain_left_edge,
             right_edge=self.ds.domain_right_edge,
             octree=self.ds.octree_mask,
