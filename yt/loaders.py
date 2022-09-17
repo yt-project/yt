@@ -925,12 +925,12 @@ def load_octree(
     periodicity=(True, True, True),
     over_refine_factor=None,
     num_zones=2,
-    domain_dimensions=None,
     partial_coverage=1,
     unit_system="cgs",
     default_species_fields=None,
     *,
     parameters=None,
+    domain_dimensions=None,
 ):
     r"""Load an octree mask into yt.
 
@@ -978,12 +978,12 @@ def load_octree(
         determine the mean molecular weight. Options are "ionized" and "neutral".
     num_zones : int
         The number of zones along each dimension in an oct
-    domain_dimensions : array_like This is the domain dimensions of the root
-        *mesh*, which can be used to specify (indirectly) the number of root
-        oct nodes.
     parameters: dictionary, optional
         Optional dictionary used to populate the dataset parameters, useful
         for storing dataset metadata.
+    domain_dimensions : array_like, optional
+        This is the domain dimensions of the root *mesh*, which can be used to
+        specify (indirectly) the number of root oct nodes.
 
     Example
     -------
