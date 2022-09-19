@@ -171,7 +171,7 @@ cdef class OctreeContainer:
                 pos[2] = self.DLE[2] + dds[2]/2.0
                 for k in range(self.nn[2]):
                     if self.root_mesh[i][j][k] == NULL:
-                        raise RuntimeError
+                        raise KeyError(i,j,k)
                     visitor.pos[0] = i
                     visitor.pos[1] = j
                     visitor.pos[2] = k
@@ -184,6 +184,16 @@ cdef class OctreeContainer:
 
     cdef np.int64_t get_domain_offset(self, int domain_id):
         return 0
+
+    def check_root_mesh(self):
+        cdef count = 0
+        for i in range(self.nn[0]):
+            for j in range(self.nn[1]):
+                for k in range(self.nn[2]):
+                    if self.root_mesh[i][j][k] == NULL:
+                        print("Missing ", i, j, k)
+                        count += 1
+        print("Missing total of %s out of %s" % (count, self.nn[0] * self.nn[1] * self.nn[2]))
 
     cdef int get_root(self, int ind[3], Oct **o) nogil:
         cdef int i
