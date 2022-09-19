@@ -577,7 +577,11 @@ cdef class OctreeContainer:
     def add(self, int curdom, int curlevel,
             np.ndarray[np.float64_t, ndim=2] pos,
             int skip_boundary = 1,
-            int count_boundary = 0):
+            int count_boundary = 0,
+            np.ndarray[np.uint64_t, ndim=1, cast=True] levels = None
+            ):
+        # In this function, if we specify curlevel = -1, then we query the
+        # (optional) levels array for the oct level.
         cdef int no, p, i
         cdef int ind[3]
         cdef int nb = 0
@@ -592,6 +596,12 @@ cdef class OctreeContainer:
         cdef int in_boundary = 0
         # How do we bootstrap ourselves?
         for p in range(no):
+            # We allow specifying curlevel = -1 to query from the levels array
+            # instead.
+            if curlevel == -1:
+                this_level = levels[p]
+            else:
+                this_level = curlevel
             #for every oct we're trying to add find the
             #floating point unitary position on this level
             in_boundary = 0
@@ -609,7 +619,7 @@ cdef class OctreeContainer:
             if cur == NULL: raise RuntimeError
             # Now we find the location we want
             # Note that RAMSES I think 1-findiceses levels, but we don't.
-            for _ in range(curlevel):
+            for _ in range(this_level):
                 # At every level, find the cell this oct
                 # lives inside
                 for i in range(3):
