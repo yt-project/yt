@@ -561,7 +561,7 @@ Separate from our list of minor enhancements and bugfixes, we've grouped PRs
 related to infrastructure and testing in the next three sub-sub-sub sections.
 
 Testing and Infrastructure
-""""""""""""""""""""""""""
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 - infrastructure to change our testing from nose to pytest, see
   `PR 2401 <https://github.com/yt-project/yt/pull/2401>`__.
 - Adding test_requirements and test_minimum requirements files to have
@@ -580,7 +580,7 @@ Testing and Infrastructure
 - disable OSNI projection answer test to remove cartopy errors `PR 2350 <https://github.com/yt-project/yt/pull/2350>`__.
 
 CI related support
-""""""""""""""""""
+~~~~~~~~~~~~~~~~~~
 
 - disable coverage on OSX to speed up travis testing and avoid
   timeouts `PR 2076 <https://github.com/yt-project/yt/pull/2076>`__.
@@ -604,7 +604,7 @@ CI related support
 - update CI recipes to fix recent failures  `PR 2489 <https://github.com/yt-project/yt/pull/2489>`__.
 
 Other Infrastructure
-""""""""""""""""""""
+~~~~~~~~~~~~~~~~~~~~
 
 - Added a welcomebot to our github page for new contributors, see
   `PR 2181 <https://github.com/yt-project/yt/pull/2181>`__.

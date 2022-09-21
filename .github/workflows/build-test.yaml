@@ -5,9 +5,6 @@ on:
     branches:
       - main
   pull_request:
-    paths-ignore:
-      - "doc/**"
-      - "**/*.md"
   workflow_dispatch:
 
 defaults:
@@ -50,7 +47,7 @@ jobs:
             # answer tests use 'yield', so they require nose
             # they are also attached to a specific, occasionally updated, Python version
             # but it does *not* have to match the current minimal supported version
-            python-version: '3.7'
+            python-version: '3.9'
             dependencies: full
             tests-type: answer
             test-runner: nose
@@ -96,7 +93,7 @@ jobs:
       if: matrix.test-runner == 'pytest'
       env:
         testsuite: ${{ matrix.tests-type }}
-      run: pytest
+      run: pytest --color=yes
     - name: Run Tests (nose)
       if: matrix.test-runner == 'nose'
       env:

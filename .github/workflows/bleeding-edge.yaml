@@ -61,4 +61,4 @@ jobs:
         python -m pip install -e .[test] --no-build-isolation
 
     - name: Run Tests
-      run: pytest -vvv
+      run: pytest -vvv --color=yes

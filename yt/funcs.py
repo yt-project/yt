@@ -17,6 +17,7 @@ import time
 import traceback
 import urllib.parse
 import urllib.request
+from collections import UserDict
 from functools import lru_cache, wraps
 from numbers import Number as numeric_type
 from typing import Any, Callable, Type
@@ -1266,7 +1267,7 @@ def dictWithFactory(factory: Callable[[Any], Any]) -> Type:
         since="4.1",
     )
 
-    class DictWithFactory(dict):
+    class DictWithFactory(UserDict):
         def __init__(self, *args, **kwargs):
             self.factory = factory
             super().__init__(*args, **kwargs)
@@ -1332,3 +1333,15 @@ def levenshtein_distance(seq1, seq2, max_dist=None):
         if matrix[x].min() > max_dist:
             return max_dist + 1
     return matrix[size_x - 1, size_y - 1]
+
+
+def validate_moment(moment, weight_field):
+    if moment == 2 and weight_field is None:
+        raise ValueError(
+            "Cannot compute the second moment of a projection if weight_field=None!"
+        )
+    if moment not in [1, 2]:
+        raise ValueError(
+            "Weighted projections can only be made of averages "
+            "(moment = 1) or standard deviations (moment = 2)!"
+        )

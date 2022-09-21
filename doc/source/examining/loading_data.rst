@@ -59,7 +59,7 @@ The functionality requires the package `ratarmount <https://github.com/mxmlnkn/r
 Under the hood, yt will mount the archive as a (read-only) filesystem. Note that this requires the
 entire archive to be read once to compute the location of each file in the archive; subsequent accesses
 will be much faster.
-All archive formats supported by `ratarmount <https://github.com/mxmlnkn/ratarmount>`_ should be loadable, provided
+All archive formats supported by `ratarmount <https://github.com/mxmlnkn/ratarmount>`__ should be loadable, provided
 the dependencies are installed; this includes ``tar``, ``tar.gz`` and tar.bz2`` formats.
 
 .. _loading-amrvac-data:

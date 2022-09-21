@@ -489,7 +489,7 @@ class ImagePlotMPL(PlotMPL, ABC):
             # last checked with Matplotlib 3.5
             warnings.warn(
                 f"Previously set background color {self.colorbar_handler.background_color} "
-                "has no effect. Pass `draw_axis=True` if you wish to preserve background color.",
+                "has no effect. Pass `draw_frame=True` if you wish to preserve background color.",
                 stacklevel=4,
             )
         self.axes.set_frame_on(draw_frame)

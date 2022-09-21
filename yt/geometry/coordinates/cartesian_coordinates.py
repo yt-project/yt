@@ -14,6 +14,7 @@ from yt.utilities.lib.pixelization_routines import (
     pixelize_sph_kernel_projection,
     pixelize_sph_kernel_slice,
 )
+from yt.utilities.math_utils import compute_stddev_image
 from yt.utilities.nodal_data_utils import get_nodal_data
 
 from .coordinate_handler import (
@@ -339,6 +340,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
             bnds = data_source.ds.arr(bounds, "code_length").tolist()
             if isinstance(data_source, YTParticleProj):
                 weight = data_source.weight_field
+                moment = data_source.moment
                 le, re = data_source.data_source.get_bbox()
                 xa = self.x_axis[dim]
                 ya = self.y_axis[dim]
@@ -431,6 +433,26 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             period=period,
                         )
                     normalization_2d_utility(buff, weight_buff)
+                    if moment == 2:
+                        buff2 = np.zeros(size, dtype="float64")
+                        for chunk in proj_reg.chunks([], "io"):
+                            data_source._initialize_projected_units([field], chunk)
+                            data_source._initialize_projected_units([weight], chunk)
+                            pixelize_sph_kernel_projection(
+                                buff2,
+                                chunk[ptype, px_name].to("code_length"),
+                                chunk[ptype, py_name].to("code_length"),
+                                chunk[ptype, "smoothing_length"].to("code_length"),
+                                chunk[ptype, "mass"].to("code_mass"),
+                                chunk[ptype, "density"].to("code_density"),
+                                chunk[field].in_units(ounits) ** 2,
+                                bnds,
+                                check_period=int(periodic),
+                                period=period,
+                                weight_field=chunk[weight].in_units(wounits),
+                            )
+                        normalization_2d_utility(buff2, weight_buff)
+                        buff = compute_stddev_image(buff2, buff)
             elif isinstance(data_source, YTSlice):
                 smoothing_style = getattr(self.ds, "sph_smoothing_style", "scatter")
                 normalize = getattr(self.ds, "use_sph_normalization", True)

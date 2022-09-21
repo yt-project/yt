@@ -18,8 +18,11 @@ def get_radius(data, field_prefix, ftype):
     if any(data.ds.periodicity):
         rdw = radius2.v
     for i, ax in enumerate("xyz"):
+        pos = data[ftype, f"{field_prefix}{ax}"]
+        if str(pos.units) != "code_length":
+            pos = pos.to("code_length")
         np.subtract(
-            data[ftype, f"{field_prefix}{ax}"].d,
+            pos.d,
             center[i].d,
             r,
         )

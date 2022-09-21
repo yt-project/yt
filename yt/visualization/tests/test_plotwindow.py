@@ -768,15 +768,57 @@ def test_symlog_min_zero():
 def test_symlog_extremely_small_vals():
     # check that the plot can be constructed without crashing
     # see https://github.com/yt-project/yt/issues/3858
+    # and https://github.com/yt-project/yt/issues/3944
     shape = (64, 64, 1)
     arr = np.full(shape, 5.0e-324)
     arr[0, 0] = -1e12
     arr[1, 1] = 200
-    d = {"scalar": arr}
+
+    arr2 = np.full(shape, 5.0e-324)
+    arr2[0, 0] = -1e12
+
+    arr3 = arr.copy()
+    arr3[4, 4] = 0.0
+
+    d = {"scalar_spans_0": arr, "tiny_vmax": arr2, "scalar_tiny_with_0": arr3}
 
     ds = load_uniform_grid(d, shape)
-    p = SlicePlot(ds, "z", ("stream", "scalar"))
-    p["stream", "scalar"]
+    for field in d:
+        p = SlicePlot(ds, "z", field)
+        p["stream", field]
+
+
+def test_symlog_linthresh_gt_vmax():
+    # check that some more edge cases do not crash
+
+    # linthresh will end up being larger than vmax here. This is OK.
+    shape = (64, 64, 1)
+    arr = np.full(shape, -1e30)
+    arr[1, 1] = -1e27
+    arr[2, 2] = 1e-12
+    arr[3, 3] = 1e-10
+
+    arr2 = -1 * arr.copy()  # also check the reverse
+    d = {"linthresh_gt_vmax": arr, "linthresh_lt_vmin": arr2}
+
+    ds = load_uniform_grid(d, shape)
+    for field in d:
+        p = SlicePlot(ds, "z", field)
+        p["stream", field]
+
+
+def test_symlog_symmetric():
+    # should run ok when abs(min negative) == abs(pos max)
+    shape = (64, 64, 1)
+    arr = np.full(shape, -1e30)
+    arr[1, 1] = -1e27
+    arr[2, 2] = 1e10
+    arr[3, 3] = 1e30
+    d = {"linthresh_symmetric": arr}
+
+    ds = load_uniform_grid(d, shape)
+    p = SlicePlot(ds, "z", "linthresh_symmetric")
+    p["stream", "linthresh_symmetric"]
 
 
 def test_nan_data():

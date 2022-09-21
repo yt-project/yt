@@ -1014,7 +1014,8 @@ class YTDataContainer(abc.ABC):
         r"""Compute the minimum of a field.
 
         This will, in a parallel-aware fashion, compute the minimum of the
-        given field.  Supplying an axis is not currently supported.  If the max
+        given field. Supplying an axis will result in a return value of a
+        YTProjection, with method 'min' for minimum intensity.  If the min
         has already been requested, it will use the cached extrema value.
 
         Parameters
@@ -1026,12 +1027,13 @@ class YTDataContainer(abc.ABC):
 
         Returns
         -------
-        Scalar.
+        Either a scalar or a YTProjection.
 
         Examples
         --------
 
         >>> min_temp = reg.min(("gas", "temperature"))
+        >>> min_temp_proj = reg.min(("gas", "temperature"), axis=("index", "x"))
         """
         if axis is None:
             rv = tuple(self._compute_extrema(f)[0] for f in iter_fields(field))
@@ -1043,26 +1045,42 @@ class YTDataContainer(abc.ABC):
         else:
             raise NotImplementedError(f"Unknown axis {axis}")
 
-    def std(self, field, weight=None):
-        """Compute the standard deviation of a field.
+    def std(self, field, axis=None, weight=None):
+        """Compute the standard deviation of a field, optionally along
+        an axis, with a weight.
 
         This will, in a parallel-ware fashion, compute the standard
-        deviation of the given field.
+        deviation of the given field. If an axis is supplied, it
+        will return a projection, where the weight is also supplied.
+
+        By default the weight field will be "ones" or "particle_ones",
+        depending on the field, resulting in an unweighted standard
+        deviation.
 
         Parameters
         ----------
         field : string or tuple field name
             The field to calculate the standard deviation of
-        weight : string or tuple field name
-            The field to weight the standard deviation calculation
-            by. Defaults to unweighted if unset.
+        axis : string, optional
+            If supplied, the axis to compute the standard deviation
+            along (i.e., to project along)
+        weight : string, optional
+            The field to use as a weight.
 
         Returns
         -------
-        Scalar
+        Scalar or YTProjection.
         """
         weight_field = sanitize_weight_field(self.ds, field, weight)
-        return self.quantities.weighted_standard_deviation(field, weight_field)[0]
+        if axis in self.ds.coordinates.axis_name:
+            r = self.ds.proj(
+                field, axis, data_source=self, weight_field=weight_field, moment=2
+            )
+        elif axis is None:
+            r = self.quantities.weighted_standard_deviation(field, weight_field)[0]
+        else:
+            raise NotImplementedError(f"Unknown axis {axis}")
+        return r
 
     def ptp(self, field):
         r"""Compute the range of values (maximum - minimum) of a field.
@@ -1257,7 +1275,7 @@ class YTDataContainer(abc.ABC):
             raise NotImplementedError(f"Unknown axis {axis}")
         return r
 
-    def integrate(self, field, weight=None, axis=None):
+    def integrate(self, field, weight=None, axis=None, *, moment=1):
         r"""Compute the integral (projection) of a field along an axis.
 
         This projects a field along an axis.
@@ -1270,6 +1288,10 @@ class YTDataContainer(abc.ABC):
             The field to weight the projection by
         axis : string
             The axis to project along.
+        moment : integer, optional
+            for a weighted projection, moment = 1 (the default) corresponds to a
+            weighted average. moment = 2 corresponds to a weighted standard
+            deviation.
 
         Returns
         -------
@@ -1285,7 +1307,9 @@ class YTDataContainer(abc.ABC):
         else:
             weight_field = None
         if axis in self.ds.coordinates.axis_name:
-            r = self.ds.proj(field, axis, data_source=self, weight_field=weight_field)
+            r = self.ds.proj(
+                field, axis, data_source=self, weight_field=weight_field, moment=moment
+            )
         else:
             raise NotImplementedError(f"Unknown axis {axis}")
         return r

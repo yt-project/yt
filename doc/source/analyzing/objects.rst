@@ -591,13 +591,25 @@ This is equivalent to:
 
 .. code-block:: python
 
-   proj = ds.proj(("gas", "density"), "x", data_source=reg, method="mip")
+   proj = ds.proj(("gas", "density"), "x", data_source=reg, method="max")
    proj.plot()
 
-The ``min`` operator does not do this, however, as a minimum intensity
-projection is not currently implemented.
+The same can be done with the ``min`` operation, computing a minimum
+intensity projection:
 
-You can also compute the ``mean`` value, which accepts a field, axis and weight
+.. code-block:: python
+
+   proj = reg.min(("gas", "density"), axis="x")
+   proj.plot()
+
+This is equivalent to:
+
+.. code-block:: python
+
+   proj = ds.proj(("gas", "density"), "x", data_source=reg, method="min")
+   proj.plot()
+
+You can also compute the ``mean`` value, which accepts a field, axis, and weight
 function.  If the axis is not specified, it will return the average value of
 the specified field, weighted by the weight argument.  The weight argument
 defaults to ``ones``, which performs an arithmetic average.  For instance:
@@ -624,6 +636,34 @@ If an axis is provided, it will project along that axis and return it to you:
 
    rho_proj = reg.mean(("gas", "temperature"), axis="y", weight=("gas", "density"))
    rho_proj.plot()
+
+You can also compute the ``std`` (standard deviation), which accepts a field,
+axis, and weight function. If the axis is not specified, it will
+return the standard deviation of the specified field, weighted by the weight
+argument.  The weight argument defaults to ``ones``. For instance:
+
+.. code-block:: python
+
+   std_rho = reg.std(("gas", "density"))
+   std_rho_by_vol = reg.std(("gas", "density"), weight=("gas", "cell_volume"))
+
+This is equivalent to:
+
+.. code-block:: python
+
+   std_rho = reg.quantities.weighted_standard_deviation(
+       ("gas", "density"), weight_field=("index", "ones")
+   )
+   std_rho_by_vol = reg.quantities.weighted_standard_deviation(
+       ("gas", "density"), weight_field=("gas", "cell_volume")
+   )
+
+If an axis is provided, it will project along that axis and return it to you:
+
+.. code-block:: python
+
+   vy_std = reg.std(("gas", "velocity_y"), axis="y", weight=("gas", "density"))
+   vy_std.plot()
 
 The ``sum`` function will add all the values in the data object.  It accepts a
 field and, optionally, an axis.  If the axis is left unspecified, it will sum

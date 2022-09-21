@@ -38,7 +38,7 @@ For a brief demonstration of a few of these callbacks in action together,
 see the cookbook recipe: :ref:`annotations-recipe`.
 
 Also note that new ``annotate_`` methods can be defined without modifying yt's
-source code, see :ref:`extend-anotations`.
+source code, see :ref:`extend-annotations`.
 
 
 Coordinate Systems in Callbacks

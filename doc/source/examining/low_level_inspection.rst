@@ -229,6 +229,33 @@ to reduce edge effects, it is a nearly identical process:
    print(all_data_level_2_s["gas", "density"][128, 128, 128])
    1.763744852165591e-31
 
+
+Covering grids can also accept a ``data_source`` argument, in which case only
+the cells of the covering grid that are contained by the ``data_source`` will be
+filled. This can be useful to create regularized arrays of more complex
+geometries. For example, if we provide a sphere, we see that the covering grid
+shape is the same, but the number of cells with data is less
+
+.. code-block:: python
+
+   sp = ds.sphere(ds.domain_center, (0.25, "code_length"))
+   cg_sp = ds.covering_grid(
+       level=0, left_edge=[0, 0.0, 0.0], dims=ds.domain_dimensions, data_source=sp
+   )
+
+   print(cg_sp[("gas", "density")].shape)
+   (64, 64, 64)
+
+   print(cg_sp[("gas", "density")].size)
+   262144
+
+   print(cg_sp[("gas", "density")][cg_sp[("gas", "density")] != 0].size)
+   17256
+
+The ``data_source`` can be any :ref:`3D Data Container <region-reference>`. Also
+note that the ``data_source`` argument is only available for the ``covering_grid``
+at present (not the ``smoothed_covering_grid``).
+
 .. _examining-image-data-in-a-fixed-resolution-array:
 
 Examining Image Data in a Fixed Resolution Array

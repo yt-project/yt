@@ -1,6 +1,8 @@
 import re
 import sys
+from functools import partial
 from numbers import Number as numeric_type
+from typing import Tuple
 
 import numpy as np
 from more_itertools import first, mark_ends
@@ -9,10 +11,11 @@ from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.data_objects.construction_data_containers import YTCoveringGrid
 from yt.data_objects.image_array import ImageArray
 from yt.fields.derived_field import DerivedField
-from yt.funcs import fix_axis, is_sequence, iter_fields, mylog
+from yt.funcs import fix_axis, is_sequence, iter_fields, mylog, validate_moment
 from yt.units import dimensions
 from yt.units.unit_object import Unit  # type: ignore
 from yt.units.yt_array import YTArray, YTQuantity
+from yt.utilities.math_utils import compute_stddev_image
 from yt.utilities.on_demand_imports import _astropy
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_root_only
 from yt.visualization.fixed_resolution import FixedResolutionBuffer, ParticleImageBuffer
@@ -199,10 +202,13 @@ class FITSImageData:
 
         self.hdulist = _astropy.pyfits.HDUList()
 
+        stddev = False
         if hasattr(data, "keys"):
             img_data = data
             if fields is None:
                 fields = list(img_data.keys())
+            if hasattr(data, "data_source"):
+                stddev = getattr(data.data_source, "moment", 1) == 2
         elif isinstance(data, np.ndarray):
             if fields is None:
                 mylog.warning(
@@ -216,11 +222,14 @@ class FITSImageData:
 
         for fd in fields:
             if isinstance(fd, tuple):
-                self.fields.append(fd[1])
+                fname = fd[1]
             elif isinstance(fd, DerivedField):
-                self.fields.append(fd.name[1])
+                fname = fd.name[1]
             else:
-                self.fields.append(fd)
+                fname = fd
+            if stddev:
+                fname += "_stddev"
+            self.fields.append(fname)
 
         # Sanity checking names
         s = set()
@@ -1067,6 +1076,10 @@ class FITSProjection(FITSImageData):
     length_unit : string, optional
         the length units that the coordinates are written in. The default
         is to use the default length unit of the dataset.
+    moment : integer, optional
+        for a weighted projection, moment = 1 (the default) corresponds to a
+        weighted average. moment = 2 corresponds to a weighted standard
+        deviation.
     """
 
     def __init__(
@@ -1079,12 +1092,16 @@ class FITSProjection(FITSImageData):
         width=None,
         weight_field=None,
         length_unit=None,
+        *,
+        moment=1,
         **kwargs,
     ):
         fields = list(iter_fields(fields))
         axis = fix_axis(axis, ds)
         center, dcenter = ds.coordinates.sanitize_center(center, axis)
-        prj = ds.proj(fields[0], axis, weight_field=weight_field, **kwargs)
+        prj = ds.proj(
+            fields[0], axis, weight_field=weight_field, moment=moment, **kwargs
+        )
         w, frb, lunit = construct_image(
             ds, axis, prj, dcenter, image_res, width, length_unit
         )
@@ -1355,6 +1372,10 @@ class FITSOffAxisProjection(FITSImageData):
     length_unit : string, optional
         the length units that the coordinates are written in. The default
         is to use the default length unit of the dataset.
+    moment : integer, optional
+        for a weighted projection, moment = 1 (the default) corresponds to a
+        weighted average. moment = 2 corresponds to a weighted standard
+        deviation.
     """
 
     def __init__(
@@ -1371,8 +1392,10 @@ class FITSOffAxisProjection(FITSImageData):
         depth=(1.0, "unitary"),
         method="integrate",
         length_unit=None,
+        *,
+        moment=1,
     ):
-        fields = list(iter_fields(fields))
+        validate_moment(moment, weight_field)
         center, dcenter = ds.coordinates.sanitize_center(center, 4)
         buf = {}
         width = ds.coordinates.sanitize_width(normal, width, depth)
@@ -1381,23 +1404,61 @@ class FITSOffAxisProjection(FITSImageData):
             image_res = (image_res, image_res)
         res = (image_res[0], image_res[1])
         if data_source is None:
-            source = ds
+            source = ds.all_data()
         else:
             source = data_source
-        for field in fields:
-            buf[field] = off_axis_projection(
+        fields = source._determine_fields(list(iter_fields(fields)))
+        stddev_str = "_stddev" if moment == 2 else ""
+        for item in fields:
+
+            key = (item[0], item[1] + stddev_str)
+
+            buf[key] = off_axis_projection(
                 source,
                 center,
                 normal,
                 wd,
                 res,
-                field,
+                item,
                 north_vector=north_vector,
                 method=method,
                 weight=weight_field,
             ).swapaxes(0, 1)
+
+            if moment == 2:
+
+                def _sq_field(field, data, item: Tuple[str, str]):
+                    return data[item] ** 2
+
+                fd = ds._get_field_info(*item)
+
+                field_sq = (item[0], f"tmp_{item[1]}_squared")
+
+                ds.add_field(
+                    field_sq,
+                    partial(_sq_field, item=item),
+                    sampling_type=fd.sampling_type,
+                    units=f"({fd.units})*({fd.units})",
+                )
+
+                buff2 = off_axis_projection(
+                    source,
+                    center,
+                    normal,
+                    wd,
+                    res,
+                    field_sq,
+                    north_vector=north_vector,
+                    method=method,
+                    weight=weight_field,
+                ).swapaxes(0, 1)
+
+                buf[key] = compute_stddev_image(buff2, buf[key])
+
+                ds.field_info.pop(field_sq)
+
         center = ds.arr([0.0] * 2, "code_length")
         w, not_an_frb, lunit = construct_image(
             ds, normal, buf, center, image_res, width, length_unit
         )
-        super().__init__(buf, fields=fields, wcs=w, length_unit=lunit, ds=ds)
+        super().__init__(buf, fields=list(buf.keys()), wcs=w, length_unit=lunit, ds=ds)

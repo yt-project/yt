@@ -559,11 +559,14 @@ class PlotContainer(abc.ABC):
         else:
             axis = None
         weight = None
+        stddev = None
         plot_type = self._plot_type
         if plot_type in ["Projection", "OffAxisProjection"]:
             weight = self.data_source.weight_field
             if weight is not None:
                 weight = weight[1].replace(" ", "_")
+            if getattr(self.data_source, "moment", 1) == 2:
+                stddev = "standard_deviation"
         if "Cutting" in self.data_source.__class__.__name__:
             plot_type = "OffAxisSlice"
 
@@ -582,7 +585,8 @@ class PlotContainer(abc.ABC):
             name_elements.append(k.replace(" ", "_"))
             if weight:
                 name_elements.append(weight)
-
+            if stddev:
+                name_elements.append(stddev)
             name = "_".join(name_elements) + suffix
             names.append(v.save(name, mpl_kwargs))
         return names

@@ -16,6 +16,7 @@ _frontends = [
     "athena_pp",
     "boxlib",
     "cf_radial",
+    "chimera",
     "chombo",
     "cholla",
     "eagle",
