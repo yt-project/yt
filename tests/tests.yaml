@@ -35,6 +35,9 @@ answer_tests:
     #- yt/frontends/athena_pp/tests/test_outputs.py:test_disk
     - yt/frontends/athena_pp/tests/test_outputs.py:test_AM06
 
+  local_cholla_001:
+    - yt/frontends/cholla/tests/test_outputs.py:test_cholla_data
+
   local_chombo_006:
     - yt/frontends/chombo/tests/test_outputs.py:test_gc
     - yt/frontends/chombo/tests/test_outputs.py:test_tb

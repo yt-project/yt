@@ -1,7 +1,11 @@
 import yt
 from yt.frontends.cholla.api import ChollaDataset
 from yt.testing import assert_equal, requires_file
-from yt.utilities.answer_testing.framework import data_dir_load
+from yt.utilities.answer_testing.framework import (
+    data_dir_load,
+    requires_ds,
+    small_patch_amr,
+)
 
 _fields = (
     ("gas", "temperature"),
@@ -61,3 +65,22 @@ def test_ChollaSimple_derived_fields():
 
         # test that field access works
         ad["gas", field]
+
+
+_fields_chollasimple = (
+    ("cholla", "GasEnergy"),
+    ("gas", "temperature"),
+    ("gas", "density"),
+    ("gas", "metallicity"),
+)
+
+
+@requires_ds(ChollaSimple)
+def test_cholla_data():
+    ds = data_dir_load(ChollaSimple)
+    assert_equal(str(ds), "0.h5")
+    for test in small_patch_amr(
+        ds, _fields_chollasimple, input_center="c", input_weight="ones"
+    ):
+        test_cholla_data.__name__ = test.description
+        yield test
