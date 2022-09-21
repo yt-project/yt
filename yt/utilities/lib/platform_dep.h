@@ -1,6 +1,7 @@
 #include <math.h>
 #ifdef MS_WIN32
 #include "malloc.h"
+#include <float.h>
 typedef int int32_t;
 typedef long long int64_t;
 /* Taken from http://siliconandlithium.blogspot.com/2014/05/msvc-c99-mathh-header.html */

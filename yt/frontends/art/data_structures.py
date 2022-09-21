@@ -440,7 +440,7 @@ class DarkMatterARTDataset(ARTDataset):
         units_override=None,
         unit_system="cgs",
     ):
-        self.over_refine_factor = 1
+        self.num_zones = 2
         self.n_ref = 64
         self.particle_types += ("all",)
         if fields is None:

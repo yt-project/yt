@@ -1,19 +1,27 @@
+import sys
 import warnings
+from abc import ABC
 from io import BytesIO
+from typing import Optional, Tuple, Union
 
 import matplotlib
 import numpy as np
+from matplotlib.axis import Axis
+from matplotlib.colors import LogNorm, Normalize, SymLogNorm
+from matplotlib.figure import Figure
+from matplotlib.ticker import LogFormatterMathtext
 from packaging.version import Version
 
-from yt.funcs import (
-    get_brewer_cmap,
-    get_interactivity,
-    is_sequence,
-    matplotlib_style_context,
-    mylog,
-)
+from yt.funcs import get_interactivity, is_sequence, matplotlib_style_context, mylog
+from yt.visualization._handlers import ColorbarHandler, NormHandler
 
-from ._commons import MPL_VERSION, get_canvas, validate_image_name
+from ._commons import (
+    MPL_VERSION,
+    get_canvas,
+    get_symlog_majorticks,
+    get_symlog_minorticks,
+    validate_image_name,
+)
 
 BACKEND_SPECS = {
     "GTK": ["backend_gtk", "FigureCanvasGTK", "FigureManagerGTK"],
@@ -77,7 +85,15 @@ class CallbackWrapper:
 class PlotMPL:
     """A base class for all yt plots made using matplotlib, that is backend independent."""
 
-    def __init__(self, fsize, axrect, figure, axes):
+    def __init__(
+        self,
+        fsize,
+        axrect,
+        *,
+        norm_handler: NormHandler,
+        figure: Optional[Figure] = None,
+        axes: Optional[Axis] = None,
+    ):
         """Initialize PlotMPL class"""
         import matplotlib.figure
 
@@ -105,6 +121,8 @@ class PlotMPL:
         self.axes.tick_params(
             which="both", axis="both", direction="in", top=True, right=True
         )
+
+        self.norm_handler = norm_handler
 
     def _create_axes(self, axrect):
         self.axes = self.figure.add_axes(axrect)
@@ -141,9 +159,7 @@ class PlotMPL:
 
         if mpl_kwargs is None:
             mpl_kwargs = {}
-        if "papertype" not in mpl_kwargs and Version(matplotlib.__version__) < Version(
-            "3.3.0"
-        ):
+        if "papertype" not in mpl_kwargs and MPL_VERSION < Version("3.3.0"):
             mpl_kwargs["papertype"] = "auto"
 
         name = validate_image_name(name)
@@ -195,13 +211,38 @@ class PlotMPL:
         return f.read()
 
 
-class ImagePlotMPL(PlotMPL):
+class ImagePlotMPL(PlotMPL, ABC):
     """A base class for yt plots made using imshow"""
 
-    def __init__(self, fsize, axrect, caxrect, zlim, figure, axes, cax):
+    _default_font_size = 18.0
+
+    def __init__(
+        self,
+        fsize=None,
+        axrect=None,
+        caxrect=None,
+        *,
+        norm_handler: NormHandler,
+        colorbar_handler: ColorbarHandler,
+        figure: Optional[Figure] = None,
+        axes: Optional[Axis] = None,
+        cax: Optional[Axis] = None,
+    ):
         """Initialize ImagePlotMPL class object"""
-        super().__init__(fsize, axrect, figure, axes)
-        self.zmin, self.zmax = zlim
+        self.colorbar_handler = colorbar_handler
+        _missing_layout_specs = [_ is None for _ in (fsize, axrect, caxrect)]
+
+        if all(_missing_layout_specs):
+            fsize, axrect, caxrect = self._get_best_layout()
+        elif any(_missing_layout_specs):
+            raise TypeError(
+                "ImagePlotMPL cannot be initialized with partially specified layout."
+            )
+
+        super().__init__(
+            fsize, axrect, norm_handler=norm_handler, figure=figure, axes=axes
+        )
+
         if cax is None:
             self.cax = self.figure.add_axes(caxrect)
         else:
@@ -209,12 +250,39 @@ class ImagePlotMPL(PlotMPL):
             cax.set_position(caxrect)
             self.cax = cax
 
-    def _init_image(self, data, cbnorm, cblinthresh, cmap, extent, aspect):
+    def _setup_layout_constraints(
+        self, figure_size: Union[Tuple[float, float], float], fontsize: float
+    ):
+        # Setup base layout attributes
+        # derived classes need to call this before super().__init__
+        # but they are free to do other stuff in between
+
+        if isinstance(figure_size, tuple):
+            assert len(figure_size) == 2
+            assert all(isinstance(_, float) for _ in figure_size)
+            self._figure_size = figure_size
+        else:
+            assert isinstance(figure_size, float)
+            self._figure_size = (figure_size, figure_size)
+
+        self._draw_axes = True
+        fontscale = float(fontsize) / self.__class__._default_font_size
+        if fontscale < 1.0:
+            fontscale = np.sqrt(fontscale)
+
+        self._cb_size = 0.0375 * self._figure_size[0]
+        self._ax_text_size = [1.2 * fontscale, 0.9 * fontscale]
+        self._top_buff_size = 0.30 * fontscale
+        self._aspect = 1.0
+
+    def _reset_layout(self) -> None:
+        size, axrect, caxrect = self._get_best_layout()
+        self.axes.set_position(axrect)
+        self.cax.set_position(caxrect)
+        self.figure.set_size_inches(*size)
+
+    def _init_image(self, data, extent, aspect):
         """Store output of imshow in image variable"""
-        cbnorm_kwargs = dict(
-            vmin=float(self.zmin) if self.zmin is not None else None,
-            vmax=float(self.zmax) if self.zmax is not None else None,
-        )
 
         if MPL_VERSION < Version("3.2"):
             # with MPL 3.1 we use np.inf as a mask instead of np.nan
@@ -224,50 +292,8 @@ class ImagePlotMPL(PlotMPL):
             # see https://github.com/yt-project/yt/pull/2517 and https://github.com/yt-project/yt/pull/3793
             data[~np.isfinite(data)] = np.nan
 
-        zmin = float(self.zmin) if self.zmin is not None else np.nanmin(data)
-        zmax = float(self.zmax) if self.zmax is not None else np.nanmax(data)
-
-        if cbnorm == "symlog":
-            # if cblinthresh is not specified, try to come up with a reasonable default
-            min_abs_val, max_abs_val = np.sort(
-                np.abs((np.nanmin(data), np.nanmax(data)))
-            )
-            if cblinthresh is not None:
-                if zmin * zmax > 0 and cblinthresh < min_abs_val:
-                    # see https://github.com/yt-project/yt/issues/3564
-                    warnings.warn(
-                        f"Cannot set a symlog norm with linear threshold {cblinthresh} "
-                        f"lower than the minimal absolute data value {min_abs_val} . "
-                        "Switching to log norm."
-                    )
-                    cbnorm = "log10"
-            elif min_abs_val > 0:
-                cblinthresh = min_abs_val
-            else:
-                cblinthresh = max_abs_val / 1000
-
-        if cbnorm == "log10":
-            cbnorm_cls = matplotlib.colors.LogNorm
-        elif cbnorm == "linear":
-            cbnorm_cls = matplotlib.colors.Normalize
-        elif cbnorm == "symlog":
-            cbnorm_kwargs.update(dict(linthresh=cblinthresh))
-            if MPL_VERSION >= Version("3.2.0"):
-                # note that this creates an inconsistency between mpl versions
-                # since the default value previous to mpl 3.4.0 is np.e
-                # but it is only exposed since 3.2.0
-                cbnorm_kwargs["base"] = 10
-
-            cbnorm_cls = matplotlib.colors.SymLogNorm
-        else:
-            raise ValueError(f"Unknown value `cbnorm` == {cbnorm}")
-
-        norm = cbnorm_cls(**cbnorm_kwargs)
-
+        norm = self.norm_handler.get_norm(data)
         extent = [float(e) for e in extent]
-        # tuple colormaps are from palettable (or brewer2mpl)
-        if isinstance(cmap, tuple):
-            cmap = get_brewer_cmap(cmap)
 
         if self._transform is None:
             # sets the transform to be an ax.TransData object, where the
@@ -276,33 +302,8 @@ class ImagePlotMPL(PlotMPL):
             transform = self.axes.transData
         else:
             transform = self._transform
-        if hasattr(self.axes, "set_extent"):
-            # CartoPy hangs if we do not set_extent before imshow if we are
-            # displaying a small subset of the globe.  What I believe happens is
-            # that the transform for the points on the outside results in
-            # infinities, and then the scipy.spatial cKDTree hangs trying to
-            # identify nearest points.
-            #
-            # Also, set_extent is defined by cartopy, so not all axes will have
-            # it as a method.
-            #
-            # A potential downside is that other images may change, but I believe
-            # the result of imshow is to set_extent *regardless*.  This just
-            # changes the order in which it happens.
-            #
-            # NOTE: This is currently commented out because it breaks in some
-            # instances.  It is left as a historical note because we will
-            # eventually need some form of it.
-            # self.axes.set_extent(extent)
 
-            # possibly related issue (operation order dependency)
-            # https://github.com/SciTools/cartopy/issues/1468
-
-            # in cartopy 0.19 (or 0.20), some intented behaviour changes produced an
-            # incompatibility here where default values for extent would lead to a crash.
-            # A solution is to let the transform object set the image extents internally
-            # see https://github.com/SciTools/cartopy/issues/1955
-            extent = None
+        self._validate_axes_extent(extent, transform)
 
         self.image = self.axes.imshow(
             data.to_ndarray(),
@@ -310,67 +311,95 @@ class ImagePlotMPL(PlotMPL):
             extent=extent,
             norm=norm,
             aspect=aspect,
-            cmap=cmap,
+            cmap=self.colorbar_handler.cmap,
             interpolation="nearest",
             transform=transform,
         )
-        if cbnorm == "symlog":
-            formatter = matplotlib.ticker.LogFormatterMathtext(linthresh=cblinthresh)
+        self._set_axes(norm)
+
+    def _set_axes(self, norm: Normalize) -> None:
+        if isinstance(norm, SymLogNorm):
+            formatter = LogFormatterMathtext(linthresh=norm.linthresh)
             self.cb = self.figure.colorbar(self.image, self.cax, format=formatter)
-
-            if zmin >= 0.0:
-                yticks = [zmin] + list(
-                    10
-                    ** np.arange(
-                        np.rint(np.log10(cblinthresh)),
-                        np.ceil(np.log10(1.1 * zmax)),
-                    )
+            self.cb.set_ticks(
+                get_symlog_majorticks(
+                    linthresh=norm.linthresh, vmin=norm.vmin, vmax=norm.vmax
                 )
-            elif zmax <= 0.0:
-                if MPL_VERSION >= Version("3.5.0b"):
-                    offset = 0
-                else:
-                    offset = 1
-
-                yticks = list(
-                    -(
-                        10
-                        ** np.arange(
-                            np.floor(np.log10(-zmin)),
-                            np.rint(np.log10(cblinthresh)) - offset,
-                            -1,
-                        )
-                    )
-                ) + [zmax]
-            else:
-                yticks = (
-                    list(
-                        -(
-                            10
-                            ** np.arange(
-                                np.floor(np.log10(-zmin)),
-                                np.rint(np.log10(cblinthresh)) - 1,
-                                -1,
-                            )
-                        )
-                    )
-                    + [0]
-                    + list(
-                        10
-                        ** np.arange(
-                            np.rint(np.log10(cblinthresh)),
-                            np.ceil(np.log10(1.1 * zmax)),
-                        )
-                    )
-                )
-            if yticks[-1] > zmax:
-                yticks.pop()
-            self.cb.set_ticks(yticks)
+            )
         else:
             self.cb = self.figure.colorbar(self.image, self.cax)
         self.cax.tick_params(which="both", axis="y", direction="in")
 
+        fmt_kwargs = dict(style="scientific", scilimits=(-2, 3), useMathText=True)
+        self.image.axes.ticklabel_format(**fmt_kwargs)
+        if type(norm) not in (LogNorm, SymLogNorm):
+            self.cb.ax.ticklabel_format(**fmt_kwargs)
+        if self.colorbar_handler.draw_minorticks:
+            if isinstance(norm, SymLogNorm):
+                if Version("3.2.0") <= MPL_VERSION < Version("3.5.0b"):
+                    # no known working method to draw symlog minor ticks
+                    # see https://github.com/yt-project/yt/issues/3535
+                    pass
+                else:
+                    flinthresh = 10 ** np.floor(np.log10(norm.linthresh))
+                    absmax = np.abs((norm.vmin, norm.vmax)).max()
+                    if (absmax - flinthresh) / absmax < 0.1:
+                        flinthresh /= 10
+                    mticks = get_symlog_minorticks(flinthresh, norm.vmin, norm.vmax)
+                    if MPL_VERSION < Version("3.5.0b"):
+                        # https://github.com/matplotlib/matplotlib/issues/21258
+                        mticks = self.image.norm(mticks)
+                    self.cax.yaxis.set_ticks(mticks, minor=True)
+
+            elif isinstance(norm, LogNorm):
+                self.cax.minorticks_on()
+                self.cax.xaxis.set_visible(False)
+
+            else:
+                self.cax.minorticks_on()
+        else:
+            self.cax.minorticks_off()
+
+        self.image.axes.set_facecolor(self.colorbar_handler.background_color)
+
+    def _validate_axes_extent(self, extent, transform):
+        # if the axes are cartopy GeoAxes, this checks that the axes extent
+        # is properly set.
+
+        if "cartopy" not in sys.modules:
+            # cartopy isn't already loaded, nothing to do here
+            return
+
+        from cartopy.mpl.geoaxes import GeoAxes
+
+        if isinstance(self.axes, GeoAxes):
+            # some projections have trouble when passing extents at or near the
+            # limits. So we only set_extent when the plot is a subset of the
+            # globe, within the tolerance of the transform.
+
+            # note that `set_extent` here is setting the extent of the axes.
+            # still need to pass the extent arg to imshow in order to
+            # ensure that it is properly scaled. also note that set_extent
+            # expects values in the coordinates of the transform: it will
+            # calculate the coordinates in the projection.
+            global_extent = transform.x_limits + transform.y_limits
+            thresh = transform.threshold
+            if all(
+                abs(extent[ie]) < (abs(global_extent[ie]) - thresh) for ie in range(4)
+            ):
+                self.axes.set_extent(extent, crs=transform)
+
     def _get_best_layout(self):
+        # this method is called in ImagePlotMPL.__init__
+        # required attributes
+        # - self._figure_size: Union[float, Tuple[float, float]]
+        # - self._aspect: float
+        # - self._ax_text_size: Tuple[float, float]
+        # - self._draw_axes: bool
+        # - self.colorbar_handler: ColorbarHandler
+
+        # optional attribtues
+        # - self._unit_aspect: float
 
         # Ensure the figure size along the long axis is always equal to _figure_size
         unit_aspect = getattr(self, "_unit_aspect", 1)
@@ -385,7 +414,7 @@ class ImagePlotMPL(PlotMPL):
             else:
                 y_fig_size /= scaling
 
-        if self._draw_colorbar:
+        if self.colorbar_handler.draw_cbar:
             cb_size = self._cb_size
             cb_text_size = self._ax_text_size[1] + 0.45
         else:
@@ -401,7 +430,7 @@ class ImagePlotMPL(PlotMPL):
 
         top_buff_size = self._top_buff_size
 
-        if not self._draw_axes and not self._draw_colorbar:
+        if not self._draw_axes and not self.colorbar_handler.draw_cbar:
             x_axis_size = 0.0
             y_axis_size = 0.0
             cb_size = 0.0
@@ -451,25 +480,30 @@ class ImagePlotMPL(PlotMPL):
             If True, set the axes to be drawn. If False, set the axes to not be
             drawn.
         """
-        if draw_frame is None:
-            draw_frame = choice
         self._draw_axes = choice
         self._draw_frame = draw_frame
+        if draw_frame is None:
+            draw_frame = choice
+        if self.colorbar_handler.has_background_color and not draw_frame:
+            # workaround matplotlib's behaviour
+            # last checked with Matplotlib 3.5
+            warnings.warn(
+                f"Previously set background color {self.colorbar_handler.background_color} "
+                "has no effect. Pass `draw_frame=True` if you wish to preserve background color.",
+                stacklevel=4,
+            )
         self.axes.set_frame_on(draw_frame)
         self.axes.get_xaxis().set_visible(choice)
         self.axes.get_yaxis().set_visible(choice)
-        size, axrect, caxrect = self._get_best_layout()
-        self.axes.set_position(axrect)
-        self.cax.set_position(caxrect)
-        self.figure.set_size_inches(*size)
+        self._reset_layout()
 
-    def _toggle_colorbar(self, choice):
+    def _toggle_colorbar(self, choice: bool):
         """
         Turn on/off displaying the colorbar for a plot
 
         choice = True or False
         """
-        self._draw_colorbar = choice
+        self.colorbar_handler.draw_cbar = choice
         self.cax.set_visible(choice)
         size, axrect, caxrect = self._get_best_layout()
         self.axes.set_position(axrect)
@@ -483,7 +517,7 @@ class ImagePlotMPL(PlotMPL):
         labels += [cbax.yaxis.label, cbax.yaxis.get_offset_text()]
         return labels
 
-    def hide_axes(self, draw_frame=None):
+    def hide_axes(self, *, draw_frame=None):
         """
         Hide the axes for a plot including ticks and labels
         """

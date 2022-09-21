@@ -5,10 +5,13 @@ import unittest
 from collections import OrderedDict
 
 import numpy as np
+from matplotlib.colors import LogNorm, Normalize, SymLogNorm
 from nose.tools import assert_true
+from unyt import unyt_array
 
 from yt.loaders import load_uniform_grid
 from yt.testing import (
+    assert_allclose_units,
     assert_array_almost_equal,
     assert_array_equal,
     assert_equal,
@@ -69,7 +72,7 @@ ATTR_ARGS = {
     "set_figure_size": [((7.0,), {})],
     "set_zlim": [
         (("density", 1e-25, 1e-23), {}),
-        (("density", 1e-25, None), {"dynamic_range": 4}),
+        (("density",), {"zmin": 1e-25, "dynamic_range": 4}),
     ],
     "zoom": [((10,), {})],
     "toggle_right_handed": [((), {})],
@@ -423,13 +426,13 @@ class TestPerFieldConfig(unittest.TestCase):
         fields_to_plot = fields + [("index", "radius")]
         if self.ds is None:
             self.ds = fake_random_ds(16, fields=fields, units=units)
-            self.slc = ProjectionPlot(self.ds, 0, fields_to_plot)
+            self.proj = ProjectionPlot(self.ds, 0, fields_to_plot)
 
     def tearDown(self):
         from yt.config import ytcfg
 
         del self.ds
-        del self.slc
+        del self.proj
         for key in self.newConfig.keys():
             ytcfg.remove(*key)
         for key, val in self.oldConfig.items():
@@ -438,21 +441,37 @@ class TestPerFieldConfig(unittest.TestCase):
     def test_units(self):
         from unyt import Unit
 
-        assert_equal(self.slc.frb["gas", "density"].units, Unit("mile*lb/yd**3"))
-        assert_equal(self.slc.frb["gas", "temperature"].units, Unit("cm*K"))
-        assert_equal(self.slc.frb["gas", "pressure"].units, Unit("dyn/cm"))
+        assert_equal(self.proj.frb["gas", "density"].units, Unit("mile*lb/yd**3"))
+        assert_equal(self.proj.frb["gas", "temperature"].units, Unit("cm*K"))
+        assert_equal(self.proj.frb["gas", "pressure"].units, Unit("dyn/cm"))
 
     def test_scale(self):
-        assert_equal(self.slc._field_transform["gas", "density"].name, "linear")
-        assert_equal(self.slc._field_transform["gas", "temperature"].name, "symlog")
-        assert_equal(self.slc._field_transform["gas", "temperature"].func, 100)
-        assert_equal(self.slc._field_transform["gas", "pressure"].name, "log10")
-        assert_equal(self.slc._field_transform["index", "radius"].name, "log10")
+
+        assert_equal(
+            self.proj.plots["gas", "density"].norm_handler.norm_type, Normalize
+        )
+        assert_equal(
+            self.proj.plots["gas", "temperature"].norm_handler.norm_type, SymLogNorm
+        )
+        assert_allclose_units(
+            self.proj.plots["gas", "temperature"].norm_handler.linthresh,
+            unyt_array(100, "K*cm"),
+        )
+        assert_equal(self.proj.plots["gas", "pressure"].norm_handler.norm_type, LogNorm)
+        assert_equal(
+            self.proj.plots["index", "radius"].norm_handler.norm_type, SymLogNorm
+        )
 
     def test_cmap(self):
-        assert_equal(self.slc._colormap_config["gas", "density"], "plasma")
-        assert_equal(self.slc._colormap_config["gas", "temperature"], "hot")
-        assert_equal(self.slc._colormap_config["gas", "pressure"], "viridis")
+        assert_equal(
+            self.proj.plots["gas", "density"].colorbar_handler.cmap.name, "plasma"
+        )
+        assert_equal(
+            self.proj.plots["gas", "temperature"].colorbar_handler.cmap.name, "hot"
+        )
+        assert_equal(
+            self.proj.plots["gas", "pressure"].colorbar_handler.cmap.name, "viridis"
+        )
 
 
 def test_on_off_compare():
@@ -718,7 +737,7 @@ def test_symlog_colorbar():
         ("gas", "negative_density"),
     ]:
         plot = SlicePlot(ds, 2, field)
-        plot.set_log(field, True, linthresh=0.1)
+        plot.set_log(field, linthresh=0.1)
         with tempfile.NamedTemporaryFile(suffix="png") as f:
             plot.save(f.name)
 
@@ -749,15 +768,57 @@ def test_symlog_min_zero():
 def test_symlog_extremely_small_vals():
     # check that the plot can be constructed without crashing
     # see https://github.com/yt-project/yt/issues/3858
+    # and https://github.com/yt-project/yt/issues/3944
     shape = (64, 64, 1)
     arr = np.full(shape, 5.0e-324)
     arr[0, 0] = -1e12
     arr[1, 1] = 200
-    d = {"scalar": arr}
+
+    arr2 = np.full(shape, 5.0e-324)
+    arr2[0, 0] = -1e12
+
+    arr3 = arr.copy()
+    arr3[4, 4] = 0.0
+
+    d = {"scalar_spans_0": arr, "tiny_vmax": arr2, "scalar_tiny_with_0": arr3}
 
     ds = load_uniform_grid(d, shape)
-    p = SlicePlot(ds, "z", ("stream", "scalar"))
-    p["stream", "scalar"]
+    for field in d:
+        p = SlicePlot(ds, "z", field)
+        p["stream", field]
+
+
+def test_symlog_linthresh_gt_vmax():
+    # check that some more edge cases do not crash
+
+    # linthresh will end up being larger than vmax here. This is OK.
+    shape = (64, 64, 1)
+    arr = np.full(shape, -1e30)
+    arr[1, 1] = -1e27
+    arr[2, 2] = 1e-12
+    arr[3, 3] = 1e-10
+
+    arr2 = -1 * arr.copy()  # also check the reverse
+    d = {"linthresh_gt_vmax": arr, "linthresh_lt_vmin": arr2}
+
+    ds = load_uniform_grid(d, shape)
+    for field in d:
+        p = SlicePlot(ds, "z", field)
+        p["stream", field]
+
+
+def test_symlog_symmetric():
+    # should run ok when abs(min negative) == abs(pos max)
+    shape = (64, 64, 1)
+    arr = np.full(shape, -1e30)
+    arr[1, 1] = -1e27
+    arr[2, 2] = 1e10
+    arr[3, 3] = 1e30
+    d = {"linthresh_symmetric": arr}
+
+    ds = load_uniform_grid(d, shape)
+    p = SlicePlot(ds, "z", "linthresh_symmetric")
+    p["stream", "linthresh_symmetric"]
 
 
 def test_nan_data():

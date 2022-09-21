@@ -228,12 +228,10 @@ def off_axis_projection(
                 )
 
             # Assure that the path length unit is in the default length units
-            # for the dataset by scaling the units of the smoothing length
-            path_length_unit = data_source.ds._get_field_info(
-                (ptype, "smoothing_length")
-            ).units
+            # for the dataset by scaling the units of the smoothing length,
+            # which in the above calculation is set to be code_length
             path_length_unit = Unit(
-                path_length_unit, registry=data_source.ds.unit_registry
+                "code_length", registry=data_source.ds.unit_registry
             )
             default_path_length_unit = data_source.ds.unit_system["length"]
             buf *= data_source.ds.quan(1, path_length_unit).in_units(
@@ -327,7 +325,10 @@ def off_axis_projection(
             return temp_weightfield
 
         data_source.ds.field_info.add_field(
-            weightfield, sampling_type="cell", function=_make_wf(item, weight)
+            weightfield,
+            sampling_type="cell",
+            function=_make_wf(item, weight),
+            units="",
         )
         # Now we have to tell the dataset to add it and to calculate
         # its dependencies..

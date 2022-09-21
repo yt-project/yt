@@ -1,3 +1,4 @@
+from collections import UserDict
 from collections.abc import Callable
 from numbers import Number as numeric_type
 from typing import Optional, Tuple
@@ -30,18 +31,7 @@ from .particle_fields import (
 )
 
 
-def tupleize(inp):
-    if isinstance(inp, tuple):
-        return inp
-    # prepending with a '?' ensures that the sort order is the same in py2 and
-    # py3, since names of field types shouldn't begin with punctuation
-    return (
-        "?",
-        inp,
-    )
-
-
-class FieldInfoContainer(dict):
+class FieldInfoContainer(UserDict):
     """
     This is a generic field container.  It contains a list of potential derived
     fields, all of which know how to act on a data object and return a value.
@@ -56,6 +46,7 @@ class FieldInfoContainer(dict):
     extra_union_fields: Tuple[Tuple[str, str], ...] = ()
 
     def __init__(self, ds, field_list, slice_info=None):
+        super().__init__()
         self._show_field_errors = []
         self.ds = ds
         # Now we start setting things up.
@@ -400,7 +391,7 @@ class FieldInfoContainer(dict):
         self.ds.field_dependencies.update(deps)
         # Note we may have duplicated
         dfl = set(self.ds.derived_field_list).union(deps.keys())
-        self.ds.derived_field_list = list(sorted(dfl, key=tupleize))
+        self.ds.derived_field_list = sorted(dfl)
         return loaded, unavailable
 
     def add_output_field(self, name, sampling_type, **kwargs):
@@ -555,19 +546,19 @@ class FieldInfoContainer(dict):
         return obj
 
     def __contains__(self, key):
-        if dict.__contains__(self, key):
+        if super().__contains__(key):
             return True
         if self.fallback is None:
             return False
         return key in self.fallback
 
     def __iter__(self):
-        yield from dict.__iter__(self)
+        yield from super().__iter__()
         if self.fallback is not None:
             yield from self.fallback
 
     def keys(self):
-        keys = dict.keys(self)
+        keys = super().keys()
         if self.fallback:
             keys += list(self.fallback.keys())
         return keys
@@ -639,7 +630,7 @@ class FieldInfoContainer(dict):
         # now populate the derived field list with results
         # this violates isolation principles and should be refactored
         dfl = set(self.ds.derived_field_list).union(deps.keys())
-        dfl = list(sorted(dfl, key=tupleize))
+        dfl = sorted(dfl)
 
         if not hasattr(self.ds.index, "meshes"):
             # the meshes attribute characterizes an unstructured-mesh data structure

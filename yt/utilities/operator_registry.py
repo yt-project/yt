@@ -1,7 +1,8 @@
 import copy
+from collections import UserDict
 
 
-class OperatorRegistry(dict):
+class OperatorRegistry(UserDict):
     def find(self, op, *args, **kwargs):
         if isinstance(op, str):
             # Lookup, assuming string or hashable object

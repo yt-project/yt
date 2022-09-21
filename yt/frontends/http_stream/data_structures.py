@@ -1,4 +1,5 @@
 import json
+import sys
 import time
 
 import numpy as np
@@ -7,6 +8,11 @@ from yt.data_objects.static_output import ParticleDataset, ParticleFile
 from yt.frontends.sph.fields import SPHFieldInfo
 from yt.geometry.particle_geometry_handler import ParticleIndex
 from yt.utilities.on_demand_imports import _requests as requests
+
+if sys.version_info >= (3, 8):
+    from functools import cached_property
+else:
+    from yt._maintenance.backports import cached_property
 
 
 class HTTPParticleFile(ParticleFile):
@@ -42,6 +48,10 @@ class HTTPStreamDataset(ParticleDataset):
     def __str__(self):
         return self.base_url
 
+    @cached_property
+    def unique_identifier(self) -> str:
+        return str(self.parameters.get("unique_identifier", time.time()))
+
     def _parse_parameter_file(self):
         self.dimensionality = 3
         self.refine_by = 2
@@ -64,7 +74,6 @@ class HTTPStreamDataset(ParticleDataset):
         self._periodicity = (True, True, True)
 
         self.current_time = header["current_time"]
-        self.unique_identifier = header.get("unique_identifier", time.time())
         self.cosmological_simulation = int(header["cosmological_simulation"])
         for attr in (
             "current_redshift",

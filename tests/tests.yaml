@@ -35,7 +35,12 @@ answer_tests:
     #- yt/frontends/athena_pp/tests/test_outputs.py:test_disk
     - yt/frontends/athena_pp/tests/test_outputs.py:test_AM06
 
-  local_chombo_005:
+  local_chimera_002: #PR 3638
+    - yt/frontends/chimera/tests/test_outputs.py:test_multimesh
+    - yt/frontends/chimera/tests/test_outputs.py:test_2D
+    - yt/frontends/chimera/tests/test_outputs.py:test_3D
+
+  local_chombo_006:
     - yt/frontends/chombo/tests/test_outputs.py:test_gc
     - yt/frontends/chombo/tests/test_outputs.py:test_tb
     - yt/frontends/chombo/tests/test_outputs.py:test_iso
@@ -95,7 +100,7 @@ answer_tests:
     - yt/frontends/owls/tests/test_outputs.py:test_snapshot_033
     - yt/frontends/owls/tests/test_outputs.py:test_OWLS_particlefilter
 
-  local_pw_044:  # PR 3640
+  local_pw_047:  #  PR 4132
     - yt/visualization/tests/test_plotwindow.py:test_attributes
     - yt/visualization/tests/test_particle_plot.py:test_particle_projection_answers
     - yt/visualization/tests/test_particle_plot.py:test_particle_projection_filter
@@ -171,17 +176,27 @@ answer_tests:
   local_axialpix_009: # PR 3818
     - yt/geometry/coordinates/tests/test_axial_pixelization.py:test_axial_pixelization
 
-  local_cylindrical_background_014:  # PR 3818
+  local_cylindrical_background_016:  # PR 4132
     - yt/geometry/coordinates/tests/test_cylindrical_coordinates.py:test_noise_plots
 
-  local_spherical_background_008:  # PR 3818
+  local_spherical_background_010:  # PR 4132
     - yt/geometry/coordinates/tests/test_spherical_coordinates.py:test_noise_plots
 
   #local_particle_trajectory_001:
   #  - yt/data_objects/tests/test_particle_trajectories.py
 
-  local_nc4_cm1_001: # PR  2176
+  local_nc4_cm1_002: # PR  2176, 2998
     - yt/frontends/nc4_cm1/tests/test_outputs.py:test_cm1_mesh_fields
+
+  local_norm_api_009: # PR 4132
+    - yt/visualization/tests/test_norm_api_lineplot.py:test_lineplot_set_axis_properties
+    - yt/visualization/tests/test_norm_api_profileplot.py:test_profileplot_set_axis_properties
+    - yt/visualization/tests/test_norm_api_custom_norm.py:test_sliceplot_custom_norm
+    - yt/visualization/tests/test_norm_api_set_background_color.py:test_sliceplot_set_background_color
+    - yt/visualization/tests/test_norm_api_phaseplot_set_colorbar_implicit.py:test_phaseplot_set_colorbar_properties_implicit
+    - yt/visualization/tests/test_norm_api_phaseplot_set_colorbar_explicit.py:test_phaseplot_set_colorbar_properties_explicit
+    - yt/visualization/tests/test_norm_api_particleplot.py:test_particleprojectionplot_set_colorbar_properties
+    - yt/visualization/tests/test_norm_api_inf_zlim.py:test_inf_and_finite_values_zlim
 
   local_cf_radial_002: # PR  1990
     - yt/frontends/cf_radial/tests/test_outputs.py:test_cfradial_grid_field_values
@@ -206,6 +221,7 @@ other_tests:
      - "--ignore-files=test_normal_plot_api\\.py"
      - "--ignore-file=test_file_sanitizer\\.py"
      - "--ignore-files=test_version\\.py"
+     - "--ignore-files=test_set_zlim\\.py"
      - "--ignore-file=test_add_field\\.py"
      - "--exclude-test=yt.frontends.gdf.tests.test_outputs.TestGDF"
      - "--exclude-test=yt.frontends.adaptahop.tests.test_outputs"

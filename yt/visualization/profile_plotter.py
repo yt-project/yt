@@ -1,33 +1,27 @@
 import base64
 import builtins
 import os
-from collections import OrderedDict
 from functools import wraps
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Iterable, Optional, Tuple, Union
 
 import matplotlib
 import numpy as np
-from matplotlib.font_manager import FontProperties
 from more_itertools.more import always_iterable, unzip
-from packaging.version import Version
 
 from yt.data_objects.profiles import create_profile, sanitize_field_tuple_keys
 from yt.data_objects.static_output import Dataset
 from yt.frontends.ytdata.data_structures import YTProfileDataset
-from yt.funcs import is_sequence, iter_fields, matplotlib_style_context
+from yt.funcs import iter_fields, matplotlib_style_context
 from yt.utilities.exceptions import YTNotInsideNotebook
-from yt.utilities.logger import ytLogger as mylog
+from yt.visualization._handlers import ColorbarHandler, NormHandler
+from yt.visualization.base_plot_types import ImagePlotMPL, PlotMPL
 
 from ..data_objects.selection_objects.data_selection_objects import YTSelectionContainer
-from ._commons import DEFAULT_FONT_PROPERTIES, MPL_VERSION, validate_image_name
-from .base_plot_types import ImagePlotMPL, PlotMPL
+from ._commons import validate_image_name
 from .plot_container import (
+    BaseLinePlot,
     ImagePlotContainer,
-    PlotContainer,
-    get_log_minorticks,
     invalidate_plot,
-    linear_transform,
-    log_transform,
     validate_plot,
 )
 
@@ -40,42 +34,6 @@ def invalidate_profile(f):
         return rv
 
     return newfunc
-
-
-class PlotContainerDict(OrderedDict):
-    def __missing__(self, key):
-        plot = PlotMPL((10, 8), [0.1, 0.1, 0.8, 0.8], None, None)
-        self[key] = plot
-        return self[key]
-
-
-class FigureContainer(OrderedDict):
-    def __init__(self, plots):
-        self.plots = plots
-        super().__init__()
-
-    def __missing__(self, key):
-        self[key] = self.plots[key].figure
-        return self[key]
-
-    def __iter__(self):
-        return iter(self.plots)
-
-
-class AxesContainer(OrderedDict):
-    def __init__(self, plots):
-        self.plots = plots
-        self.ylim = {}
-        self.xlim = (None, None)
-        super().__init__()
-
-    def __missing__(self, key):
-        self[key] = self.plots[key].axes
-        return self[key]
-
-    def __setitem__(self, key, value):
-        super().__setitem__(key, value)
-        self.ylim[key] = (None, None)
 
 
 def sanitize_label(labels, nprofiles):
@@ -114,7 +72,7 @@ def data_object_or_all_data(data_source):
     return data_source
 
 
-class ProfilePlot(PlotContainer):
+class ProfilePlot(BaseLinePlot):
     r"""
     Create a 1d profile plot from a data source or from a list
     of profile objects.
@@ -217,6 +175,8 @@ class ProfilePlot(PlotContainer):
     Use set_line_property to change line properties of one or all profiles.
 
     """
+    _default_figure_size = (10.0, 8.0)
+    _default_font_size = 18.0
 
     x_log = None
     y_log = None
@@ -238,7 +198,6 @@ class ProfilePlot(PlotContainer):
         x_log=True,
         y_log=True,
     ):
-
         data_source = data_object_or_all_data(data_source)
         y_fields = list(iter_fields(y_fields))
         logs = {x_field: bool(x_log)}
@@ -266,7 +225,42 @@ class ProfilePlot(PlotContainer):
         if not isinstance(plot_spec, list):
             plot_spec = [plot_spec.copy() for p in profiles]
 
-        ProfilePlot._initialize_instance(self, profiles, label, plot_spec, y_log)
+        ProfilePlot._initialize_instance(
+            self, data_source, profiles, label, plot_spec, y_log
+        )
+
+    @classmethod
+    def _initialize_instance(
+        cls,
+        obj,
+        data_source,
+        profiles,
+        labels,
+        plot_specs,
+        y_log,
+    ):
+        obj._plot_title = {}
+        obj._plot_text = {}
+        obj._text_xpos = {}
+        obj._text_ypos = {}
+        obj._text_kwargs = {}
+
+        super(ProfilePlot, obj).__init__(data_source)
+        obj.profiles = list(always_iterable(profiles))
+        obj.x_log = None
+        obj.y_log = sanitize_field_tuple_keys(y_log, data_source) or {}
+        obj.y_title = {}
+        obj.x_title = None
+        obj.label = sanitize_label(labels, len(obj.profiles))
+        if plot_specs is None:
+            plot_specs = [dict() for p in obj.profiles]
+        obj.plot_spec = plot_specs
+        obj._xlim = (None, None)
+        obj._setup_plots()
+        return obj
+
+    def _get_axrect(self):
+        return (0.1, 0.1, 0.8, 0.8)
 
     @validate_plot
     def save(
@@ -291,13 +285,14 @@ class ProfilePlot(PlotContainer):
         if not self._plot_valid:
             self._setup_plots()
 
-        # Mypy is hardly convinced that we have a `plots` and a `profile` attr
+        # Mypy is hardly convinced that we have a `profiles` attribute
         # at this stage, so we're lasily going to deactivate it locally
-        unique = set(self.plots.values())  # type: ignore
-        if len(unique) < len(self.plots):  # type: ignore
-            iters = zip(range(len(unique)), sorted(unique))
+        unique = set(self.plots.values())
+        iters: Iterable[Tuple[Union[int, Tuple[str, str]], PlotMPL]]
+        if len(unique) < len(self.plots):
+            iters = enumerate(sorted(unique))
         else:
-            iters = self.plots.items()  # type: ignore
+            iters = self.plots.items()
 
         if name is None:
             if len(self.profiles) == 1:  # type: ignore
@@ -314,11 +309,10 @@ class ProfilePlot(PlotContainer):
 
         names = []
         for uid, plot in iters:
-            if isinstance(uid, tuple):  # type: ignore
+            if isinstance(uid, tuple):
                 uid = uid[1]  # type: ignore
             uid_name = f"{prefix}_1d-Profile_{xfn}_{uid}{suffix}"
             names.append(uid_name)
-            mylog.info("Saving %s", uid_name)
             with matplotlib_style_context():
                 plot.save(uid_name, mpl_kwargs=mpl_kwargs)
         return names
@@ -373,10 +367,10 @@ class ProfilePlot(PlotContainer):
     def _setup_plots(self):
         if self._plot_valid:
             return
-        for f in self.axes:
-            self.axes[f].cla()
+        for f, p in self.plots.items():
+            p.axes.cla()
             if f in self._plot_text:
-                self.plots[f].axes.text(
+                p.axes.text(
                     self._text_xpos[f],
                     self._text_ypos[f],
                     self._plot_text[f],
@@ -387,7 +381,8 @@ class ProfilePlot(PlotContainer):
 
         for i, profile in enumerate(self.profiles):
             for field, field_data in profile.items():
-                self.axes[field].plot(
+                plot = self._get_plot_instance(field)
+                plot.axes.plot(
                     np.array(profile.x),
                     np.array(field_data),
                     label=self.label[i],
@@ -396,7 +391,7 @@ class ProfilePlot(PlotContainer):
 
         for profile in self.profiles:
             for fname in profile.keys():
-                axes = self.axes[fname]
+                axes = self.plots[fname].axes
                 xscale, yscale = self._get_field_log(fname, profile)
                 xtitle, ytitle = self._get_field_title(fname, profile)
 
@@ -406,8 +401,10 @@ class ProfilePlot(PlotContainer):
                 axes.set_ylabel(ytitle)
                 axes.set_xlabel(xtitle)
 
-                axes.set_ylim(*self.axes.ylim[fname])
-                axes.set_xlim(*self.axes.xlim)
+                pnh = self.plots[fname].norm_handler
+
+                axes.set_ylim(pnh.vmin, pnh.vmax)
+                axes.set_xlim(*self._xlim)
 
                 if fname in self._plot_title:
                     axes.set_title(self._plot_title[fname])
@@ -416,31 +413,6 @@ class ProfilePlot(PlotContainer):
                     axes.legend(loc="best")
         self._set_font_properties()
         self._plot_valid = True
-
-    @classmethod
-    def _initialize_instance(cls, obj, profiles, labels, plot_specs, y_log):
-        obj._plot_title = {}
-        obj._plot_text = {}
-        obj._text_xpos = {}
-        obj._text_ypos = {}
-        obj._text_kwargs = {}
-
-        obj._font_properties = FontProperties(**DEFAULT_FONT_PROPERTIES)
-        obj._font_color = None
-        obj.profiles = list(always_iterable(profiles))
-        obj.x_log = None
-        obj.y_log = sanitize_field_tuple_keys(y_log, obj.profiles[0].data_source) or {}
-        obj.y_title = {}
-        obj.x_title = None
-        obj.label = sanitize_label(labels, len(obj.profiles))
-        if plot_specs is None:
-            plot_specs = [dict() for p in obj.profiles]
-        obj.plot_spec = plot_specs
-        obj.plots = PlotContainerDict()
-        obj.figures = FigureContainer(obj.plots)
-        obj.axes = AxesContainer(obj.plots)
-        obj._setup_plots()
-        return obj
 
     @classmethod
     def from_profiles(cls, profiles, labels=None, plot_specs=None, y_log=None):
@@ -495,7 +467,10 @@ class ProfilePlot(PlotContainer):
                 "Profiles list and plot_specs list must be the same size."
             )
         obj = cls.__new__(cls)
-        return cls._initialize_instance(obj, profiles, labels, plot_specs, y_log)
+        profiles = list(always_iterable(profiles))
+        return cls._initialize_instance(
+            obj, profiles[0].data_source, profiles, labels, plot_specs, y_log
+        )
 
     @invalidate_plot
     def set_line_property(self, property, value, index=None):
@@ -642,7 +617,7 @@ class ProfilePlot(PlotContainer):
         >>> pp.save()
 
         """
-        self.axes.xlim = (xmin, xmax)
+        self._xlim = (xmin, xmax)
         for i, p in enumerate(self.profiles):
             if xmin is None:
                 xmi = p.x_bins.min()
@@ -707,12 +682,14 @@ class ProfilePlot(PlotContainer):
         >>> pp.save()
 
         """
-        fields = list(self.axes.keys()) if field == "all" else field
+        fields = list(self.plots.keys()) if field == "all" else field
         for profile in self.profiles:
             for field in profile.data_source._determine_fields(fields):
                 if field in profile.field_map:
                     field = profile.field_map[field]
-                self.axes.ylim[field] = (ymin, ymax)
+                pnh = self.plots[field].norm_handler
+                pnh.vmin = ymin
+                pnh.vmax = ymax
                 # Continue on to the next profile.
                 break
         return self
@@ -791,7 +768,7 @@ class ProfilePlot(PlotContainer):
         ... )
 
         """
-        fields = list(self.axes.keys()) if field == "all" else field
+        fields = list(self.plots.keys()) if field == "all" else field
         for profile in self.profiles:
             for field in profile.data_source._determine_fields(fields):
                 if field in profile.field_map:
@@ -843,7 +820,7 @@ class ProfilePlot(PlotContainer):
         >>> plot.save()
 
         """
-        fields = list(self.axes.keys()) if field == "all" else field
+        fields = list(self.plots.keys()) if field == "all" else field
         for profile in self.profiles:
             for field in profile.data_source._determine_fields(fields):
                 if field in profile.field_map:
@@ -1057,10 +1034,6 @@ class PhasePlot(ImagePlotContainer):
         scales = {True: "log", False: "linear"}
         return scales[x_log], scales[y_log], scales[z_log]
 
-    def _recreate_frb(self):
-        # needed for API compatibility with PlotWindow
-        pass
-
     @property
     def profile(self):
         if not self._profile_valid:
@@ -1078,44 +1051,25 @@ class PhasePlot(ImagePlotContainer):
             fig = None
             axes = None
             cax = None
-            draw_colorbar = True
             draw_axes = True
-            zlim = (None, None)
             xlim = self._xlim
             ylim = self._ylim
 
             if f in self.plots:
-                draw_colorbar = self.plots[f]._draw_colorbar
+                pnh = self.plots[f].norm_handler
+                cbh = self.plots[f].colorbar_handler
                 draw_axes = self.plots[f]._draw_axes
-                zlim = (self.plots[f].zmin, self.plots[f].zmax)
                 if self.plots[f].figure is not None:
                     fig = self.plots[f].figure
                     axes = self.plots[f].axes
                     cax = self.plots[f].cax
+            else:
+                pnh, cbh = self._get_default_handlers(
+                    field=f, default_display_units=self.profile[f].units
+                )
 
             x_scale, y_scale, z_scale = self._get_field_log(f, self.profile)
             x_title, y_title, z_title = self._get_field_title(f, self.profile)
-
-            if zlim == (None, None):
-                if z_scale == "log":
-                    positive_values = data[data > 0.0]
-                    if len(positive_values) == 0:
-                        mylog.warning(
-                            "Profiled field %s has no positive values. Max = %f.",
-                            f,
-                            np.nanmax(data),
-                        )
-                        mylog.warning("Switching to linear colorbar scaling.")
-                        zmin = np.nanmin(data)
-                        z_scale = "linear"
-                        self._field_transform[f] = linear_transform
-                    else:
-                        zmin = positive_values.min()
-                        self._field_transform[f] = log_transform
-                else:
-                    zmin = np.nanmin(data)
-                    self._field_transform[f] = linear_transform
-                zlim = [zmin, np.nanmax(data)]
 
             font_size = self._font_properties.get_size()
             f = self.profile.data_source._determine_fields(f)[0]
@@ -1124,9 +1078,7 @@ class PhasePlot(ImagePlotContainer):
             # override the colorbar here.
             splat_color = getattr(self, "splat_color", None)
             if splat_color is not None:
-                cmap = matplotlib.colors.ListedColormap(splat_color, "dummy")
-            else:
-                cmap = self._colormap_config[f]
+                cbh.cmap = matplotlib.colors.ListedColormap(splat_color, "dummy")
 
             masked_data = data.copy()
             masked_data[~self.profile.used] = np.nan
@@ -1136,19 +1088,18 @@ class PhasePlot(ImagePlotContainer):
                 masked_data,
                 x_scale,
                 y_scale,
-                z_scale,
-                cmap,
-                zlim,
                 self.figure_size,
                 font_size,
                 fig,
                 axes,
                 cax,
                 shading=self._shading,
+                norm_handler=pnh,
+                colorbar_handler=cbh,
             )
 
             self.plots[f]._toggle_axes(draw_axes)
-            self.plots[f]._toggle_colorbar(draw_colorbar)
+            self.plots[f]._toggle_colorbar(cbh.draw_cbar)
 
             self.plots[f].axes.xaxis.set_label_text(x_title)
             self.plots[f].axes.yaxis.set_label_text(y_title)
@@ -1156,10 +1107,6 @@ class PhasePlot(ImagePlotContainer):
 
             self.plots[f].axes.set_xlim(xlim)
             self.plots[f].axes.set_ylim(ylim)
-
-            color = self._background_color[f]
-
-            self.plots[f].axes.set_facecolor(color)
 
             if f in self._plot_text:
                 self.plots[f].axes.text(
@@ -1180,25 +1127,6 @@ class PhasePlot(ImagePlotContainer):
                 self.plots[f].axes.minorticks_on()
             else:
                 self.plots[f].axes.minorticks_off()
-
-            # colorbar minorticks
-            if f not in self._cbar_minorticks:
-                self._cbar_minorticks[f] = True
-            if self._cbar_minorticks[f]:
-                if self._field_transform[f] == linear_transform:
-                    self.plots[f].cax.minorticks_on()
-                elif MPL_VERSION < Version("3.0.0"):
-                    # before matplotlib 3 log-scaled colorbars internally used
-                    # a linear scale going from zero to one and did not draw
-                    # minor ticks. Since we want minor ticks, calculate
-                    # where the minor ticks should go in this linear scale
-                    # and add them manually.
-                    vmin = np.float64(self.plots[f].cb.norm.vmin)
-                    vmax = np.float64(self.plots[f].cb.norm.vmax)
-                    mticks = self.plots[f].image.norm(get_log_minorticks(vmin, vmax))
-                    self.plots[f].cax.yaxis.set_ticks(mticks, minor=True)
-            else:
-                self.plots[f].cax.minorticks_off()
 
         self._set_font_properties()
 
@@ -1423,7 +1351,7 @@ class PhasePlot(ImagePlotContainer):
                 self.y_log = log
                 self._profile_valid = False
             elif field in p.field_data:
-                self.z_log[field] = log
+                super().set_log(field, log)
             else:
                 raise KeyError(f"Field {field} not in phase plot!")
         return self
@@ -1447,7 +1375,7 @@ class PhasePlot(ImagePlotContainer):
             self.profile.set_y_unit(unit)
         elif fd in self.profile.field_data.keys():
             self.profile.set_field_unit(field, unit)
-            self.plots[field].zmin, self.plots[field].zmax = (None, None)
+            self.plots[field].norm_handler.display_units = unit
         else:
             raise KeyError(f"Field {field} not in phase plot!")
         return self
@@ -1578,50 +1506,47 @@ class PhasePlotMPL(ImagePlotMPL):
         data,
         x_scale,
         y_scale,
-        z_scale,
-        cmap,
-        zlim,
         figure_size,
         fontsize,
         figure,
         axes,
         cax,
         shading="nearest",
+        *,
+        norm_handler: NormHandler,
+        colorbar_handler: ColorbarHandler,
     ):
         self._initfinished = False
-        self._draw_colorbar = True
-        self._draw_axes = True
-        self._figure_size = figure_size
         self._shading = shading
-        # Compute layout
-        fontscale = float(fontsize) / 18.0
-        if fontscale < 1.0:
-            fontscale = np.sqrt(fontscale)
+        self._setup_layout_constraints(figure_size, fontsize)
 
-        if is_sequence(figure_size):
-            self._cb_size = 0.0375 * figure_size[0]
-        else:
-            self._cb_size = 0.0375 * figure_size
-        self._ax_text_size = [1.1 * fontscale, 0.9 * fontscale]
-        self._top_buff_size = 0.30 * fontscale
-        self._aspect = 1.0
+        # this line is added purely to prevent exact image comparison tests
+        # to fail, but eventually we should embrace the change and
+        # use similar values for PhasePlotMPL and WindowPlotMPL
+        self._ax_text_size[0] *= 1.1 / 1.2  # TODO: remove this
 
-        size, axrect, caxrect = self._get_best_layout()
+        super().__init__(
+            figure=figure,
+            axes=axes,
+            cax=cax,
+            norm_handler=norm_handler,
+            colorbar_handler=colorbar_handler,
+        )
 
-        super().__init__(size, axrect, caxrect, zlim, figure, axes, cax)
-
-        self._init_image(x_data, y_data, data, x_scale, y_scale, z_scale, zlim, cmap)
+        self._init_image(x_data, y_data, data, x_scale, y_scale)
 
         self._initfinished = True
 
     def _init_image(
-        self, x_data, y_data, image_data, x_scale, y_scale, z_scale, zlim, cmap
+        self,
+        x_data,
+        y_data,
+        image_data,
+        x_scale,
+        y_scale,
     ):
         """Store output of imshow in image variable"""
-        if z_scale == "log":
-            norm = matplotlib.colors.LogNorm(zlim[0], zlim[1])
-        elif z_scale == "linear":
-            norm = matplotlib.colors.Normalize(zlim[0], zlim[1])
+        norm = self.norm_handler.get_norm(image_data)
         self.image = None
         self.cb = None
 
@@ -1630,16 +1555,10 @@ class PhasePlotMPL(ImagePlotMPL):
             np.array(y_data),
             np.array(image_data.T),
             norm=norm,
-            cmap=cmap,
+            cmap=self.colorbar_handler.cmap,
             shading=self._shading,
         )
 
+        self._set_axes(norm)
         self.axes.set_xscale(x_scale)
         self.axes.set_yscale(y_scale)
-        self.cb = self.figure.colorbar(self.image, self.cax)
-        if z_scale == "linear":
-            self.cb.formatter.set_scientific(True)
-            self.cb.formatter.set_powerlimits((-2, 3))
-            self.cb.update_ticks()
-
-        self.cax.tick_params(which="both", axis="y", direction="in")

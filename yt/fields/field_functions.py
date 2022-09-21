@@ -7,37 +7,37 @@ from yt.utilities.lib.misc_utilities import obtain_position_vector
 
 
 def get_radius(data, field_prefix, ftype):
-    unit_system = data.ds.unit_system
-    center = data.get_field_parameter("center").in_base(unit_system.name)
-    DW = (data.ds.domain_right_edge - data.ds.domain_left_edge).in_base(
-        unit_system.name
-    )
-    # This is in cm**2 so it can be the destination for our r later.
+    center = data.get_field_parameter("center").to("code_length")
+    DW = (data.ds.domain_right_edge - data.ds.domain_left_edge).to("code_length")
+    # This is in code_length so it can be the destination for our r later.
     radius2 = data.ds.arr(
-        np.zeros(data[ftype, field_prefix + "x"].shape, dtype="float64"), "cm**2"
+        np.zeros(data[ftype, field_prefix + "x"].shape, dtype="float64"), "code_length"
     )
-    r = radius2.copy()
+
+    r = np.empty_like(radius2, subok=False)
     if any(data.ds.periodicity):
-        rdw = radius2.copy()
+        rdw = radius2.v
     for i, ax in enumerate("xyz"):
-        # This will coerce the units, so we don't need to worry that we copied
-        # it from a cm**2 array.
+        pos = data[ftype, f"{field_prefix}{ax}"]
+        if str(pos.units) != "code_length":
+            pos = pos.to("code_length")
         np.subtract(
-            data[ftype, f"{field_prefix}{ax}"].in_base(unit_system.name),
-            center[i],
+            pos.d,
+            center[i].d,
             r,
         )
         if data.ds.periodicity[i]:
             np.abs(r, r)
-            np.subtract(r, DW[i], rdw)
+            np.subtract(r, DW.d[i], rdw)
             np.abs(rdw, rdw)
             np.minimum(r, rdw, r)
         np.multiply(r, r, r)
-        np.add(radius2, r, radius2)
+        np.add(radius2.d, r, radius2.d)
         if data.ds.dimensionality < i + 1:
             break
-    # Now it's cm.
-    np.sqrt(radius2, radius2)
+    # Using the views into the array is not changing units and as such keeps
+    # from having to do symbolic manipulations
+    np.sqrt(radius2.d, radius2.d)
     # Alias it, just for clarity.
     radius = radius2
     return radius

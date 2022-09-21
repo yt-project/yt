@@ -2,7 +2,7 @@ import os
 
 import numpy as np
 import pyx
-from matplotlib import cm, pyplot as plt
+from matplotlib import pyplot as plt
 
 from yt.config import ytcfg
 from yt.units.unit_object import Unit  # type: ignore
@@ -744,7 +744,7 @@ class DualEPS:
 
         # Convert the colormap into a string
         x = np.linspace(1, 0, 256)
-        cm_string = cm.get_cmap(name)(x, bytes=True)[:, 0:3].tobytes()
+        cm_string = plt.get_cmap(name)(x, bytes=True)[:, 0:3].tobytes()
 
         cmap_im = pyx.bitmap.image(imsize[0], imsize[1], "RGB", cm_string)
         if orientation == "top" or orientation == "bottom":
@@ -861,7 +861,7 @@ class DualEPS:
         if field is not None:
             self.field = plot.data_source._determine_fields(field)[0]
         if isinstance(plot, (PlotWindow, PhasePlot)):
-            _cmap = plot._colormap_config[self.field]
+            _cmap = plot[self.field].colorbar_handler.cmap
         else:
             if plot.cmap is not None:
                 _cmap = plot.cmap.name

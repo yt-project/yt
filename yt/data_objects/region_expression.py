@@ -1,3 +1,4 @@
+import sys
 import weakref
 
 from yt.funcs import obj_length
@@ -7,18 +8,19 @@ from yt.visualization.line_plot import LineBuffer
 
 from .data_containers import _get_ipython_key_completion
 
+if sys.version_info >= (3, 8):
+    from functools import cached_property
+else:
+    from yt._maintenance.backports import cached_property
+
 
 class RegionExpression:
-    _all_data = None
-
     def __init__(self, ds):
         self.ds = weakref.proxy(ds)
 
-    @property
+    @cached_property
     def all_data(self):
-        if self._all_data is None:
-            self._all_data = self.ds.all_data()
-        return self._all_data
+        return self.ds.all_data()
 
     def __getitem__(self, item):
         # At first, we will only implement this as accepting a slice that is

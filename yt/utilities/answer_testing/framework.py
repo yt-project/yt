@@ -34,7 +34,13 @@ from yt.testing import (
     assert_rel_equal,
     skipif,
 )
-from yt.utilities.exceptions import YTCloudError, YTNoAnswerNameSpecified, YTNoOldAnswer
+from yt.utilities.exceptions import (
+    YTAmbiguousDataType,
+    YTCloudError,
+    YTNoAnswerNameSpecified,
+    YTNoOldAnswer,
+    YTUnidentifiedDataType,
+)
 from yt.utilities.logger import disable_stream_logging
 from yt.visualization import (
     image_writer as image_writer,
@@ -278,6 +284,7 @@ class AnswerTestLocalStorage(AnswerTestStorage):
             return default
         # Read data using shelve
         answer_name = f"{ds_name}"
+        os.makedirs(os.path.dirname(self.reference_name), exist_ok=True)
         ds = shelve.open(self.reference_name, protocol=-1)
         try:
             result = ds[answer_name]
@@ -312,6 +319,9 @@ def can_run_ds(ds_fn, file_check=False):
                 result_storage["tainted"] = True
             raise
         return False
+    except (YTUnidentifiedDataType, YTAmbiguousDataType):
+        return False
+
     return result_storage is not None
 
 

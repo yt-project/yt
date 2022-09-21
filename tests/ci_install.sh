@@ -1,14 +1,13 @@
 set -x   # Show which command is being run
 
+# geos is needed for cartopy, see
+# https://scitools.org.uk/cartopy/docs/latest/installing.html?highlight=install#building-from-source
 case ${RUNNER_OS} in
 linux|Linux)
     sudo apt-get -qqy update
     sudo apt-get -qqy install \
       libhdf5-serial-dev \
       libnetcdf-dev \
-      libproj-dev \
-      proj-data \
-      proj-bin \
       libgeos-dev \
       libopenmpi-dev \
       libfuse2
@@ -16,7 +15,7 @@ linux|Linux)
 osx|macOS)
     sudo mkdir -p /usr/local/man
     sudo chown -R "${USER}:admin" /usr/local/man
-    HOMEBREW_NO_AUTO_UPDATE=1 brew install hdf5 proj geos open-mpi netcdf ccache osxfuse
+    HOMEBREW_NO_AUTO_UPDATE=1 brew install hdf5 geos open-mpi netcdf ccache osxfuse
     ;;
 esac
 
@@ -40,11 +39,14 @@ else
 fi
 
 # Step 2: install deps and yt
+# installing in editable mode so this script may be used locally by developers
+# but the primary intention is to embed this script in CI jobs
 if [[ ${dependencies} == "minimal" ]]; then
-    # installing in editable mode so this script may be used locally by developers
-    # but the primary intention is to embed this script in CI jobs
+    # test with minimal versions of runtime dependencies
     python -m pip install -e .[test,minimal]
-else
+elif [[ ${dependencies} == "full" ]]; then
+    # test with all optional runtime dependecies
+
     # Cython and numpy are build-time requirements to the following optional deps in yt
     # - cartopy
     # - netcdf4
@@ -55,11 +57,13 @@ else
     # include a pyproject.toml file or use any pip-comptatible solution to remedy this.
     python -m pip install numpy>=1.19.4 cython~=0.29.21
 
-    # this is required for cartopy. It should normally be specified in our setup.cfg as
-    # cartopy[plotting]
-    # However it doesn't work on Ubuntu 18.04 (used in CI at the time of writing)
+    # this is required for cartopy. see
+    # https://scitools.org.uk/cartopy/docs/latest/installing.html?highlight=install#building-from-source
     python -m pip install shapely --no-binary=shapely
     CFLAGS="$CFLAGS -DACCEPT_USE_OF_DEPRECATED_PROJ_API_H" python -m pip install -e .[test,full]
+else
+   # test with no special requirements
+   python -m pip install -e .[test]
 fi
 
 set +x

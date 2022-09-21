@@ -114,15 +114,6 @@ def pytest_configure(config):
     ):
         config.addinivalue_line("filterwarnings", value)
 
-    if MPL_VERSION < Version("3.0.0"):
-        config.addinivalue_line(
-            "filterwarnings",
-            (
-                "ignore:Using or importing the ABCs from 'collections' instead of from 'collections.abc' "
-                "is deprecated since Python 3.3,and in 3.9 it will stop working:DeprecationWarning"
-            ),
-        )
-
     if MPL_VERSION < Version("3.5.2") and PILLOW_VERSION >= Version("9.1"):
         # see https://github.com/matplotlib/matplotlib/pull/22766
         config.addinivalue_line(
@@ -155,26 +146,6 @@ def pytest_configure(config):
                 "ignore:numpy.ndarray size changed, may indicate binary incompatibility. Expected "
                 r"(80 from C header, got 88|88 from C header, got 96|80 from C header, got 96)"
                 " from PyObject:RuntimeWarning"
-            ),
-        )
-
-    if find_spec("cartopy") is not None:
-        # This can be removed when cartopy 0.21 is released
-        # see https://github.com/SciTools/cartopy/pull/1957
-        config.addinivalue_line(
-            "filterwarnings",
-            (
-                r"ignore:The default value for the \*approx\* keyword argument to "
-                r"\w+ will change from True to False after 0\.18\.:UserWarning"
-            ),
-        )
-        # this one could be resolved by upgrading PROJ on Jenkins,
-        # but there's isn't much else that can be done about it.
-        config.addinivalue_line(
-            "filterwarnings",
-            (
-                "ignore:The Stereographic projection in Proj older than 5.0.0 incorrectly "
-                "transforms points when central_latitude=0. Use this projection with caution.:UserWarning"
             ),
         )
 

@@ -1,4 +1,5 @@
 import os
+import sys
 
 import numpy as np
 
@@ -10,6 +11,7 @@ from yt.frontends.enzo_e.fields import EnzoEFieldInfo
 from yt.frontends.enzo_e.misc import (
     get_block_info,
     get_child_index,
+    get_listed_subparam,
     get_root_block_id,
     get_root_blocks,
     is_parent,
@@ -20,6 +22,11 @@ from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py, _libconf as libconf
+
+if sys.version_info >= (3, 8):
+    from functools import cached_property
+else:
+    from yt._maintenance.backports import cached_property
 
 
 class EnzoEGrid(AMRGridPatch):
@@ -79,29 +86,21 @@ class EnzoEGrid(AMRGridPatch):
         cid = get_child_index(a_block, d_block)
         self._children_ids[cid] = child.id
 
-    _particle_count = None
-
-    @property
+    @cached_property
     def particle_count(self):
-        if self._particle_count is None:
-            with h5py.File(self.filename, mode="r") as f:
-                fnstr = "{}/{}".format(
-                    self.block_name,
-                    self.ds.index.io._sep.join(["particle", "%s", "%s"]),
-                )
-                self._particle_count = {
-                    ptype: f.get(fnstr % (ptype, pfield)).size
-                    for ptype, pfield in self.ds.index.io.sample_pfields.items()
-                }
-        return self._particle_count
+        with h5py.File(self.filename, mode="r") as f:
+            fnstr = "{}/{}".format(
+                self.block_name,
+                self.ds.index.io._sep.join(["particle", "%s", "%s"]),
+            )
+            return {
+                ptype: f.get(fnstr % (ptype, pfield)).size
+                for ptype, pfield in self.ds.index.io.sample_pfields.items()
+            }
 
-    _total_particles = None
-
-    @property
-    def total_particles(self):
-        if self._total_particles is None:
-            self._total_particles = sum(self.particle_count.values())
-        return self._total_particles
+    @cached_property
+    def total_particles(self) -> int:
+        return sum(self.particle_count.values())
 
     @property
     def Parent(self):
@@ -303,7 +302,6 @@ class EnzoEDataset(Dataset):
         self,
         filename,
         dataset_type=None,
-        file_style=None,
         parameter_override=None,
         conversion_override=None,
         storage_filename=None,
@@ -332,7 +330,6 @@ class EnzoEDataset(Dataset):
             self,
             filename,
             dataset_type,
-            file_style=file_style,
             units_override=units_override,
             unit_system=unit_system,
             default_species_fields=default_species_fields,
@@ -358,8 +355,12 @@ class EnzoEDataset(Dataset):
             with open(lcfn) as lf:
                 self.parameters = libconf.load(lf)
 
-            cosmo = nested_dict_get(self.parameters, ("Physics", "cosmology"))
-            if cosmo is not None:
+            # Enzo-E ignores all cosmology parameters if "cosmology" is not in
+            # the Physics:list parameter
+            physics_list = nested_dict_get(
+                self.parameters, ("Physics", "list"), default=[]
+            )
+            if "cosmology" in physics_list:
                 self.cosmological_simulation = 1
                 co_pars = [
                     "hubble_constant_now",
@@ -401,6 +402,11 @@ class EnzoEDataset(Dataset):
         fh = h5py.File(os.path.join(self.directory, fn0), "r")
         self.domain_left_edge = fh.attrs["lower"]
         self.domain_right_edge = fh.attrs["upper"]
+        if "version" in fh.attrs:
+            version = fh.attrs.get("version").tobytes().decode("ascii")
+        else:
+            version = None  # earliest recorded version is '0.9.0'
+        self.parameters["version"] = version
 
         # all blocks are the same size
         ablock = fh[list(fh.keys())[0]]
@@ -419,7 +425,41 @@ class EnzoEDataset(Dataset):
             self.current_redshift = co.z_from_t(self.current_time * self.time_unit)
 
         self._periodicity += (False,) * (3 - self.dimensionality)
-        self.gamma = nested_dict_get(self.parameters, ("Field", "gamma"))
+        self._parse_fluid_prop_params()
+
+    def _parse_fluid_prop_params(self):
+        """
+        Parse the fluid properties.
+        """
+
+        fp_params = nested_dict_get(
+            self.parameters, ("Physics", "fluid_props"), default=None
+        )
+
+        if fp_params is not None:
+            # in newer versions of enzo-e, this data is specified in a
+            # centralized parameter group called Physics:fluid_props
+            # -  for internal reasons related to backwards compatability,
+            #    treatment of this physics-group is somewhat special (compared
+            #    to the cosmology group). The parameters in this group are
+            #    honored even if Physics:list does not include "fluid_props"
+            self.gamma = nested_dict_get(fp_params, ("eos", "gamma"))
+            de_type = nested_dict_get(
+                fp_params, ("dual_energy", "type"), default="disabled"
+            )
+            uses_de = de_type != "disabled"
+        else:
+            # in older versions, these parameters were more scattered
+            self.gamma = nested_dict_get(self.parameters, ("Field", "gamma"))
+
+            uses_de = False
+            for method in ("ppm", "mhd_vlct"):
+                subparams = get_listed_subparam(
+                    self.parameters, "Method", method, default=None
+                )
+                if subparams is not None:
+                    uses_de = subparams.get("dual_energy", False)
+        self.parameters["uses_dual_energy"] = uses_de
 
     def _set_code_unit_attributes(self):
         if self.cosmological_simulation:

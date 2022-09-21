@@ -1139,3 +1139,23 @@ cdef int assert_similar(memoryview left_, memoryview right_) except -1:
         #assert bytes(left.format) == bytes(right.format)
         assert strcmp(left.format, right.format) == 0, (bytes(left.format), bytes(right.format))
     return 0
+
+def _obtain_coords_and_widths(np.int64_t[:] icoords,
+                              np.int64_t[:] ires,
+                              np.float64_t[:] cell_widths,
+                              np.float64_t offset):
+    # This function only accepts *one* axis of icoords, because we will be
+    # looping over the axes in python.  This also simplifies cell_width
+    # allocation and computation.
+    cdef np.ndarray[np.float64_t, ndim=1] fcoords = np.zeros(icoords.size, dtype="f8")
+    cdef np.ndarray[np.float64_t, ndim=1] fwidth = np.zeros(icoords.size, dtype="f8")
+    cdef np.ndarray[np.float64_t, ndim=1] cell_centers = np.zeros(cell_widths.size, dtype="f8")
+    cdef int i
+    cdef np.float64_t pos = offset
+    for i in range(cell_widths.size):
+        cell_centers[i] = pos + 0.5 * cell_widths[i]
+        pos += cell_widths[i]
+    for i in range(icoords.size):
+        fcoords[i] = cell_centers[icoords[i]]
+        fwidth[i] = cell_widths[icoords[i]]
+    return fcoords, fwidth

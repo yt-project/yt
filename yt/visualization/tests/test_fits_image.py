@@ -2,6 +2,7 @@ import os
 import shutil
 import tempfile
 
+import numpy as np
 from numpy.testing import assert_allclose, assert_equal
 
 from yt.loaders import load
@@ -25,11 +26,8 @@ def test_fits_image():
     tmpdir = tempfile.mkdtemp()
     os.chdir(tmpdir)
 
-    fields = ("density", "temperature")
-    units = (
-        "g/cm**3",
-        "K",
-    )
+    fields = ("density", "temperature", "velocity_x", "velocity_y", "velocity_z")
+    units = ("g/cm**3", "K", "cm/s", "cm/s", "cm/s")
     ds = fake_random_ds(
         64, fields=fields, units=units, nprocs=16, length_unit=100.0, particles=10000
     )
@@ -208,6 +206,45 @@ def test_fits_image():
     assert pdfid["particle_mass"].header["BTYPE"] == "particle_mass"
     assert pdfid["particle_mass"].units == "g/cm**2"
 
+    # Test moments for projections
+    def _vysq(field, data):
+        return data["gas", "velocity_y"] ** 2
+
+    ds.add_field(("gas", "vysq"), _vysq, sampling_type="cell", units="cm**2/s**2")
+    fid8 = FITSProjection(
+        ds,
+        "y",
+        [("gas", "velocity_y"), ("gas", "vysq")],
+        moment=1,
+        weight_field=("gas", "density"),
+    )
+    fid9 = FITSProjection(
+        ds, "y", ("gas", "velocity_y"), moment=2, weight_field=("gas", "density")
+    )
+    sigy = np.sqrt(fid8["vysq"].data - fid8["velocity_y"].data ** 2)
+    assert_allclose(sigy, fid9["velocity_y_stddev"].data)
+
+    def _vlsq(field, data):
+        return data["gas", "velocity_los"] ** 2
+
+    ds.add_field(("gas", "vlsq"), _vlsq, sampling_type="cell", units="cm**2/s**2")
+    fid10 = FITSOffAxisProjection(
+        ds,
+        [1.0, -1.0, 1.0],
+        [("gas", "velocity_los"), ("gas", "vlsq")],
+        moment=1,
+        weight_field=("gas", "density"),
+    )
+    fid11 = FITSOffAxisProjection(
+        ds,
+        [1.0, -1.0, 1.0],
+        ("gas", "velocity_los"),
+        moment=2,
+        weight_field=("gas", "density"),
+    )
+    sigl = np.sqrt(fid10["vlsq"].data - fid10["velocity_los"].data ** 2)
+    assert_allclose(sigl, fid11["velocity_los_stddev"].data)
+
     # We need to manually close all the file descriptors so
     # that windows can delete the folder that contains them.
     ds2.close()
@@ -219,6 +256,8 @@ def test_fits_image():
         fid5,
         fid6,
         fid7,
+        fid8,
+        fid9,
         new_fid1,
         new_fid3,
         pfid,

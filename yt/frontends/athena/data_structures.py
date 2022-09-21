@@ -332,9 +332,9 @@ class AthenaHierarchy(GridIndex):
         ).astype("int")
 
         if self.dataset.dimensionality <= 2:
-            self.dataset.domain_dimensions[2] = np.int(1)
+            self.dataset.domain_dimensions[2] = 1
         if self.dataset.dimensionality == 1:
-            self.dataset.domain_dimensions[1] = np.int(1)
+            self.dataset.domain_dimensions[1] = 1
 
         dle = self.dataset.domain_left_edge
         dre = self.dataset.domain_right_edge
@@ -578,7 +578,6 @@ class AthenaDataset(Dataset):
             raise RuntimeError("Virtual grids are only supported for 3D outputs!")
         self.dimensionality = dimensionality
         self.current_time = grid["time"]
-        self.unique_identifier = self.parameter_filename.__hash__()
         self.cosmological_simulation = False
         self.num_ghost_zones = 0
         self.field_ordering = "fortran"

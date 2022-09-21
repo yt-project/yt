@@ -158,13 +158,10 @@ class NotCartopy(NotAModule):
             )
         else:
             self.error = ImportError(
-                "This functionality requires the %s "
-                "package to be installed. Try installing proj4 and "
-                "geos with your package manager and building shapely "
-                "and cartopy from source with: \n \n "
-                "python -m pip install --no-binary :all: shapely cartopy \n \n"
-                "For further instruction please refer to the "
-                "yt documentation." % self.pkg_name
+                f"This functionality requires the {pkg_name} "
+                "package to be installed.\n"
+                "For further instruction please refer to Cartopy's documentation\n"
+                "https://scitools.org.uk/cartopy/docs/latest/installing.html"
             )
 
 
@@ -251,6 +248,15 @@ class scipy_imports(OnDemand):
         from scipy import ndimage
 
         return ndimage
+
+    # Optimize is not presently used by yt, but appears here to enable
+    # required functionality in yt extension, trident
+
+    @safe_import
+    def optimize(self):
+        from scipy import optimize
+
+        return optimize
 
 
 _scipy = scipy_imports()

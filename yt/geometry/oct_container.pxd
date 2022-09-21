@@ -58,7 +58,7 @@ cdef class OctreeContainer:
     cdef int partial_coverage
     cdef int level_offset
     cdef int nn[3]
-    cdef np.uint8_t oref
+    cdef np.uint8_t nz
     cdef np.float64_t DLE[3]
     cdef np.float64_t DRE[3]
     cdef public np.int64_t nocts
