@@ -67,6 +67,7 @@ addopts = '''
     --ignore-glob='*_nose.py'
     --ignore='yt/frontends/owls_subfind/tests/test_outputs.py'
     --ignore='yt/frontends/ramses/tests/test_outputs.py'
+    --ignore='yt/frontends/cholla/tests/test_outputs.py'
 '''
 
 
