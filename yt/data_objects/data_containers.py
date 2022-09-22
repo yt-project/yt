@@ -703,7 +703,7 @@ class YTDataContainer(abc.ABC):
 
     def create_firefly_object(
         self,
-        JSONdir,
+        datadir,
         fields_to_include=None,
         fields_units=None,
         default_decimation_factor=100,
@@ -719,7 +719,7 @@ class YTDataContainer(abc.ABC):
         Parameters
         ----------
 
-        JSONdir : string
+        datadir : string
             Path to where any `.json` files should be saved. If a relative
             path will assume relative to `${HOME}`
 
@@ -795,7 +795,7 @@ class YTDataContainer(abc.ABC):
 
         ## initialize a firefly reader instance
         reader = firefly.data_reader.Reader(
-            JSONdir=JSONdir, clean_JSONdir=True, **kwargs
+            datadir=datadir, clean_JSONdir=True, **kwargs
         )
 
         ## create a ParticleGroup object that contains *every* field
@@ -816,11 +816,9 @@ class YTDataContainer(abc.ABC):
                             "detected (but did not request) %s %s", ptype, field
                         )
 
-            ## you must have velocities (and they must be named "Velocities")
-            tracked_arrays = [
-                self[ptype, "relative_particle_velocity"].in_units(velocity_units)
-            ]
-            tracked_names = ["Velocities"]
+            
+            field_arrays = []
+            field_names = []
 
             ## explicitly go after the fields we want
             for field, units in zip(fields_to_include, fields_units):
@@ -843,14 +841,14 @@ class YTDataContainer(abc.ABC):
                     this_field_array = np.log10(this_field_array)
 
                 ## add this array to the tracked arrays
-                tracked_arrays += [this_field_array]
-                tracked_names = np.append(tracked_names, [field], axis=0)
+                field_arrays += [this_field_array]
+                field_names = np.append(field_names, [field], axis=0)
 
             ## flag whether we want to filter and/or color by these fields
             ##  we'll assume yes for both cases, this can be changed after
             ##  the reader object is returned to the user.
-            tracked_filter_flags = np.ones(len(tracked_names))
-            tracked_colormap_flags = np.ones(len(tracked_names))
+            field_filter_flags = np.ones(len(field_names))
+            field_colormap_flags = np.ones(len(field_names))
 
             ## create a firefly ParticleGroup for this particle type
             pg = firefly.data_reader.ParticleGroup(
@@ -858,10 +856,13 @@ class YTDataContainer(abc.ABC):
                 coordinates=self[ptype, "relative_particle_position"].in_units(
                     coordinate_units
                 ),
-                tracked_arrays=tracked_arrays,
-                tracked_names=tracked_names,
-                tracked_filter_flags=tracked_filter_flags,
-                tracked_colormap_flags=tracked_colormap_flags,
+                velocities=self[ptype, "relative_particle_velocity"].in_units(
+                    velocity_units
+                ),	
+                field_arrays=field_arrays,
+                field_names=field_names,
+                field_filter_flags=field_filter_flags,
+                field_colormap_flags=field_colormap_flags,
                 decimation_factor=default_decimation_factor,
             )
 

@@ -8,19 +8,19 @@ particle visualization platform that allows you to filter, colormap, and fly
 through their data. The Python frontend allows users to both load in their
 own datasets and customize every aspect of the user interface.
 yt offers to ability
-to export your data to Firefly's JSON format through the
+to export your data to Firefly's ffly or JSON format through the
 :meth:`~yt.data_objects.data_containers.YTDataContainer.create_firefly_object`
 method.
 
 You can adjust the interface settings, particle colors, decimation factors, and
 other `Firefly settings <https://ageller.github.io/Firefly/docs/build/html/index.html>`_
 through the returned ``Firefly.reader`` object. Once the
-settings are tuned to your liking, calling the ``reader.dumpToJSON()`` method will
-produce the final JSON files. Note that ``reader.clean_JSONdir`` defaults to true
+settings are tuned to your liking, calling the ``reader.writeToDisk()`` method will
+produce the final ffly files. Note that ``reader.clean_datadir`` defaults to true
 when using
 :meth:`~yt.data_objects.data_containers.YTDataContainer.create_firefly_object`
 so if you would like to manage multiple datasets make sure to pass different
-``JSONdir`` keyword arguments.
+``datadir`` keyword arguments.
 
 .. image:: _images/firefly_example.png
    :width: 85%
@@ -45,12 +45,11 @@ Here is an example of how to use yt to export data to Firefly using some
    )
 
    ## adjust some of the options
-   reader.options["color"]["io"] = [1, 1, 0, 1]  ## set default color
+   reader.settings["color"]["io"] = [1, 1, 0, 1]  ## set default color
    reader.particleGroups[0].decimation_factor = 100  ## increase the decimation factor
 
    ## dump files to
-   ##  ~/IsoGalaxyRamses/Dataio_0.json
-   ##  ~/IsoGalaxyRamses/Dataio_1.json
-   ##  ~/IsoGalaxyRamses/Dataio_ ... .json
+   ##  ~/IsoGalaxyRamses/Dataio000.ffly
+   ##  ~/IsoGalaxyRamses/filenames.json
    ##  ~/IsoGalaxyRamses/DataSettings.json
-   reader.dumpToJSON()
+   reader.writeToDisk()
