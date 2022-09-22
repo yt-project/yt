@@ -143,7 +143,7 @@ def assign_particle_data(ds, pdata, bbox):
         ds.stream_handler.particle_count[gi] = npart
 
 
-def process_data(data, grid_dims=None):
+def process_data(data, grid_dims=None, allow_callables=True):
     new_data, field_units = {}, {}
     for field, val in data.items():
         # val is a data array
@@ -160,8 +160,13 @@ def process_data(data, grid_dims=None):
         # val is a tuple of (data, units)
         elif isinstance(val, tuple) and len(val) == 2:
             try:
+                valid_data = isinstance(val[0], np.ndarray)
+                if allow_callables:
+                    valid_data = valid_data or callable(val[0])
                 assert isinstance(field, (str, tuple)), "Field name is not a string!"
-                assert isinstance(val[0], np.ndarray), "Field data is not an ndarray!"
+                assert (
+                    valid_data
+                ), "Field data is not an ndarray or callable (with nproc == 1)!"
                 assert isinstance(val[1], str), "Unit specification is not a string!"
                 field_units[field] = val[1]
                 new_data[field] = val[0]
@@ -174,6 +179,11 @@ def process_data(data, grid_dims=None):
             new_data[field] = np.asarray(val)
 
         elif callable(val):
+            if not allow_callables:
+                raise RuntimeError(
+                    "Callable functions can not be specified "
+                    "in conjunction with nprocs > 1."
+                )
             field_units[field] = ""
             new_data[field] = val
         else:

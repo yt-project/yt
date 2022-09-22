@@ -185,9 +185,11 @@ def load_uniform_grid(
     Parameters
     ----------
     data : dict
-        This is a dict of numpy arrays, (numpy array, unit spec) tuples, or
-        callables that accept arguments for (grid_object, field_name) and
-        return numpy arrays.  The keys to the dict are the field names.
+        This is a dict of numpy arrays, (numpy array, unit spec) tuples.
+        Functions may also be supplied in place of numpy arrays as long as the
+        subsequent argument nprocs is not specified to be greater than 1.
+        Supplied functions much accepts the arguments (grid_object, field_name)
+        and return numpy arrays.  The keys to the dict are the field names.
     domain_dimensions : array_like
         This is the domain dimensions of the grid
     length_unit : string
@@ -256,7 +258,7 @@ def load_uniform_grid(
     # First we fix our field names, apply units to data
     # and check for consistency of field shapes
     field_units, data, number_of_particles = process_data(
-        data, grid_dims=tuple(domain_dimensions)
+        data, grid_dims=tuple(domain_dimensions), allow_callables=nprocs == 1
     )
 
     sfh = StreamDictFieldHandler()
@@ -402,6 +404,8 @@ def load_amr_grids(
         grid_data may also include a particle count. If no particle count is
         supplied, the dataset is understood to contain no particles. The
         grid_data will be modified in place and can't be assumed to be static.
+        Grid data may also be supplied as a tuple of (NDarray or function, unit
+        string) to specify the units.
     domain_dimensions : array_like
         This is the domain dimensions of the grid
     length_unit : string or float
@@ -1621,7 +1625,7 @@ def load_hdf5_file(
     dataset_arguments: Optional[dict] = None,
 ):
     """
-    Create a yt dataset given the path to an hdf5 file.
+    Create a (grid-based) yt dataset given the path to an hdf5 file.
 
     This function accepts a filename, as well as (potentially) a bounding box,
     the root node where fields are stored, and the number of chunks to attempt
@@ -1631,6 +1635,7 @@ def load_hdf5_file(
     other loaders, the data is *not* required to be preloaded into memory, and will
     only be loaded *on demand*.
 
+    This does not yet work with particle-type datasets.
 
     Parameters
     ----------
