@@ -7,6 +7,7 @@ on:
   pull_request:
     paths:
       - yt/**/*.py
+      - setup.cfg
       - .github/workflows/type-checking.yaml
 
 jobs:
