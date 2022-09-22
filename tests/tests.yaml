@@ -40,6 +40,9 @@ answer_tests:
     - yt/frontends/chimera/tests/test_outputs.py:test_2D
     - yt/frontends/chimera/tests/test_outputs.py:test_3D
 
+  local_cholla_001:
+    - yt/frontends/cholla/tests/test_outputs.py:test_cholla_data
+
   local_chombo_006:
     - yt/frontends/chombo/tests/test_outputs.py:test_gc
     - yt/frontends/chombo/tests/test_outputs.py:test_tb

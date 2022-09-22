@@ -53,6 +53,12 @@
     "load_name": "grid1.nc",
     "url": "https://yt-project.org/data/CfRadialGrid.tar.gz"
   },
+  "ChollaSimple.tar.gz": {
+    "hash": "aa277471f694f9de2e46c190efd8cd631c0694044aa29cb8431f127319774d73",
+    "load_kwargs": {},
+    "load_name": "0.h5",
+    "url": "https://yt-project.org/data/ChollaSimple.tar.gz"
+  },
   "ClusterMerger.tar.gz": {
     "hash": "862a537bdecb8de363f20abec751665fd2b9208c29ae66331105cf848e7a0033",
     "load_kwargs": {},

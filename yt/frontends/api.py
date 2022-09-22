@@ -18,6 +18,7 @@ _frontends = [
     "cf_radial",
     "chimera",
     "chombo",
+    "cholla",
     "eagle",
     "enzo_e",
     "enzo",
