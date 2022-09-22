@@ -455,13 +455,13 @@ _pandas = pandas_imports()
 class Firefly_imports(OnDemand):
     @safe_import
     def data_reader(self):
-        import Firefly.data_reader as data_reader
+        import firefly.data_reader as data_reader
 
         return data_reader
 
     @safe_import
     def server(self):
-        import Firefly.server as server
+        import firefly.server as server
 
         return server
 
