@@ -1628,7 +1628,7 @@ class SlicePlot(NormalPlot):
             else:
                 cls = OffAxisSlicePlot
         self = object.__new__(cls)
-        return self
+        return self  # type: ignore [return-value]
 
 
 class ProjectionPlot(NormalPlot):
@@ -1692,7 +1692,7 @@ class ProjectionPlot(NormalPlot):
             else:
                 cls = OffAxisProjectionPlot
         self = object.__new__(cls)
-        return self
+        return self  # type: ignore [return-value]
 
 
 class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
