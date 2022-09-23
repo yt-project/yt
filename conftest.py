@@ -90,7 +90,7 @@ def pytest_configure(config):
         "ignore:the imp module is deprecated in favour of importlib and slated for removal in Python 3.12; see the module's documentation for alternative uses:DeprecationWarning",
         # matplotlib warnings related to the Agg backend which is used in CI, not much we can do about it
         "ignore:Matplotlib is currently using agg, which is a non-GUI backend, so cannot show the figure.:UserWarning",
-        "ignore:tight_layout . falling back to Agg renderer:UserWarning",
+        r"ignore:tight_layout.+falling back to Agg renderer:UserWarning",
         #
         # >>> warnings from wrong values passed to numpy
         # these should normally be curated out of the test suite but they are too numerous
