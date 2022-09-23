@@ -18,6 +18,8 @@ class IOHandlerStream(BaseIOHandler):
     def _read_data_set(self, grid, field):
         # This is where we implement processor-locking
         tr = self.fields[grid.id][field]
+        if callable(tr):
+            tr = tr(grid, field)
         # If it's particles, we copy.
         if len(tr.shape) == 1:
             return tr.copy()
@@ -45,6 +47,8 @@ class IOHandlerStream(BaseIOHandler):
             for chunk in chunks:
                 for g in chunk.objs:
                     ds = self.fields[g.id][ftype, fname]
+                    if callable(ds):
+                        ds = ds(g, field)
                     ind += g.select(selector, ds, rv[field], ind)  # caches
         return rv
 
