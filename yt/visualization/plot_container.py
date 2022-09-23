@@ -323,6 +323,21 @@ class PlotContainer(abc.ABC):
         # Left blank to be overridden in subclasses
         pass
 
+    def render(self) -> None:
+        r"""Render plots.
+        This operation is expensive and usually doesn't need to be requested explicitly.
+        In most cases, yt handles rendering automatically and delays it as much as possible
+        to avoid redundant calls on each plot modification (e.g. via `annotate_*` methods).
+
+        However, valid use cases of this method include:
+        - fine control of render (and clear) operations when yt plots are combined with plot
+          customizations other than plot callbacks (`annotate_*`)
+        - testing
+        """
+        # this is a pure alias to the historic `_setup_plots` method
+        # which preserves backward compatibility for extension code
+        self._setup_plots()
+
     def _initialize_dataset(self, ts):
         if not isinstance(ts, DatasetSeries):
             if not is_sequence(ts):
