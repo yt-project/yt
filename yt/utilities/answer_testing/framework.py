@@ -635,13 +635,10 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
             obj = create_obj(self.ds, self.obj_type)
         else:
             obj = None
-        proj = self.ds.proj(
-            self.field, self.axis, weight_field=self.weight_field, data_source=obj
-        )
-        frb = proj.to_frb((1.0, "unitary"), 256)
-        frb[self.field]
+        proj, frb = self._get_frb(obj)
+        frb.render(self.field)
         if self.weight_field is not None:
-            frb[self.weight_field]
+            frb.render(self.weight_field)
         d = frb.data
         for f in proj.field_data:
             # Sometimes f will be a tuple.

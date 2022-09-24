@@ -7,6 +7,7 @@ on:
   pull_request:
     paths:
       - yt/**/*.py
+      - setup.cfg
       - .github/workflows/type-checking.yaml
 
 jobs:
@@ -29,7 +30,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v3
       with:
-        python-version: '3.10'
+        python-version: '3.7'
 
     - name: Build
       run: |

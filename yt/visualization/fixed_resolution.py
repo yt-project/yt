@@ -194,6 +194,11 @@ class FixedResolutionBuffer:
         self._data_valid = True
         return self.data[item]
 
+    def render(self, item):
+        # deleguate to __getitem__ for historical reasons
+        # this method exists for clarity of intention
+        return self[item]
+
     def _apply_filters(self, buffer: np.ndarray) -> np.ndarray:
         for f in self._filters:
             buffer = f(buffer)
@@ -208,7 +213,7 @@ class FixedResolutionBuffer:
         fields += getattr(self.data_source, "field_data", {}).keys()
         for f in fields:
             if f not in exclude and f[0] not in self.data_source.ds.particle_types:
-                self[f]
+                self.render(f)
 
     def _get_info(self, item):
         info = {}
@@ -815,4 +820,4 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         fields += getattr(self.data_source, "field_data", {}).keys()
         for f in fields:
             if f not in exclude:
-                self[f]
+                self.render(f)
