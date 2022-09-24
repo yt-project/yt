@@ -816,7 +816,6 @@ class YTDataContainer(abc.ABC):
                             "detected (but did not request) %s %s", ptype, field
                         )
 
-            
             field_arrays = []
             field_names = []
 
@@ -858,7 +857,7 @@ class YTDataContainer(abc.ABC):
                 ),
                 velocities=self[ptype, "relative_particle_velocity"].in_units(
                     velocity_units
-                ),	
+                ),
                 field_arrays=field_arrays,
                 field_names=field_names,
                 field_filter_flags=field_filter_flags,
