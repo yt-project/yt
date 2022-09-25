@@ -711,6 +711,7 @@ class YTDataContainer(abc.ABC):
         velocity_units="km/s",
         coordinate_units="kpc",
         show_unused_fields=0,
+        *,
         JSONdir=None,
         **kwargs,
     ):
