@@ -738,7 +738,7 @@ class YTDataContainer(abc.ABC):
             not overtax a system. This is adjustable on a per particle group
             basis by changing the returned reader's
             `reader.particleGroup[i].decimation_factor` before calling
-            `reader.dumpToJSON()`.
+            `reader.writeToDisk()`.
 
         velocity_units : string
             The units that the velocity should be converted to in order to
@@ -777,9 +777,9 @@ class YTDataContainer(abc.ABC):
             ...     fields_units=["dimensionless", "dimensionless"],
             ... )
 
-            >>> reader.options["color"]["io"] = [1, 1, 0, 1]
+            >>> reader.settings["color"]["io"] = [1, 1, 0, 1]
             >>> reader.particleGroups[0].decimation_factor = 100
-            >>> reader.dumpToJSON()
+            >>> reader.writeToDisk()
         """
 
         ## handle default arguments
