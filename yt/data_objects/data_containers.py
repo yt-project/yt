@@ -6,6 +6,7 @@ from typing import List, Tuple, Union
 
 import numpy as np
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.profiles import create_profile
@@ -703,13 +704,14 @@ class YTDataContainer(abc.ABC):
 
     def create_firefly_object(
         self,
-        datadir,
+        datadir=None,
         fields_to_include=None,
         fields_units=None,
         default_decimation_factor=100,
         velocity_units="km/s",
         coordinate_units="kpc",
         show_unused_fields=0,
+        JSONdir=None,
         **kwargs,
     ):
         r"""This function links a region of data stored in a yt dataset
@@ -792,6 +794,15 @@ class YTDataContainer(abc.ABC):
 
         ## for safety, in case someone passes a float just cast it
         default_decimation_factor = int(default_decimation_factor)
+
+        if JSONdir is not None:
+            issue_deprecation_warning(
+                "The 'JSONdir' keyword argument is a deprecated alias for 'datadir'."
+                "Please use 'datadir' directly.",
+                since="4.1",
+                removal="4.2",
+            )
+            datadir = JSONdir
 
         ## initialize a firefly reader instance
         reader = firefly.data_reader.Reader(
