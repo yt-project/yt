@@ -724,7 +724,7 @@ class YTDataContainer(abc.ABC):
 
         datadir : string
             Path to where any `.json` files should be saved. If a relative
-            path will assume relative to `${HOME}`
+            path will assume relative to `${HOME}`. A value of `None` will default to `${HOME}/Data`.
 
         fields_to_include : array_like of strings
             A list of fields that you want to include in your
