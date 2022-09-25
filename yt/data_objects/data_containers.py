@@ -800,7 +800,6 @@ class YTDataContainer(abc.ABC):
                 "The 'JSONdir' keyword argument is a deprecated alias for 'datadir'."
                 "Please use 'datadir' directly.",
                 since="4.1",
-                removal="4.2",
             )
             datadir = JSONdir
 
