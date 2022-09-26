@@ -264,15 +264,18 @@ class RAMSESFieldInfo(FieldInfoContainer):
         p = RTFieldFileHandler.get_rt_parameters(self.ds).copy()
         p.update(self.ds.parameters)
         ngroups = p["nGroups"]
-        rt_c_frac = p["rt_c_frac"]
-        if isinstance(rt_c_frac, list):
-            # Make sure rt_c_frac is at least as long as the number of levels in
-            # the simulation
-            rt_c_frac = np.pad(
-                rt_c_frac,
-                (0, max(0, self.ds.max_level - len(rt_c_frac))),
-                constant_values=1,
-            )
+        # Make sure rt_c_frac is at least as long as the number of levels in
+        # the simulation. Pad with either 1 (default) when using level-dependent
+        # reduced speed of light, otherwise pad with a constant value
+        if len(p["rt_c_frac"]) == 1:
+            pad_value = p["rt_c_frac"][0]
+        else:
+            pad_value = 1
+        rt_c_frac = np.pad(
+            p["rt_c_frac"],
+            (0, max(0, self.ds.max_level - len(["rt_c_frac"]) + 1)),
+            constant_values=pad_value,
+        )
 
         rt_c = rt_c_frac * units.c / (p["unit_l"] / p["unit_t"])
         dens_conv = (p["unit_np"] / rt_c).value / units.cm**3
@@ -316,14 +319,10 @@ class RAMSESFieldInfo(FieldInfoContainer):
         # Adding the fields in the rt_ files
         def gen_pdens(igroup):
             def _photon_density(field, data):
-                if isinstance(dens_conv, np.ndarray):
-                    ilvl = data["index", "grid_level"].astype(int)
-                    rv = (
-                        data["ramses-rt", f"Photon_density_{igroup + 1}"]
-                        * dens_conv[ilvl]
-                    )
-                else:
-                    rv = data["ramses-rt", f"Photon_density_{igroup + 1}"] * dens_conv
+                # The photon density depends on the possibly level-dependent conversion factor.
+                ilvl = data["index", "grid_level"].astype(int)
+                dc = dens_conv[ilvl]
+                rv = data["ramses-rt", f"Photon_density_{igroup + 1}"] * dc
                 return rv
 
             return _photon_density
