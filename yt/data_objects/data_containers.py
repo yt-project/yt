@@ -753,9 +753,8 @@ class YTDataContainer(abc.ABC):
             A flag to optionally print the fields that are available, in the
             dataset but were not explicitly requested to be tracked.
 
-        kwargs : dict of items
-            Any additional values are passed as parameters in the
-            firefly.data_reader.Reader initialization.
+        Any additional keyword arguments are passed to
+        firefly.data_reader.Reader.__init__
 
         Returns
         -------
