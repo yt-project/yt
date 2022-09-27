@@ -809,7 +809,7 @@ class YTDataContainer(abc.ABC):
 
         ## initialize a firefly reader instance
         reader = firefly.data_reader.Reader(
-            datadir=datadir, clean_JSONdir=True, **kwargs
+            datadir=datadir, clean_datadir=True, **kwargs
         )
 
         ## create a ParticleGroup object that contains *every* field
