@@ -1254,8 +1254,7 @@ def parse_center_array(center, ds, axis: Optional[int] = None):
                 else:
                     raise YTFieldNotFound(match["field"], ds)
             else:
-                # mypy erroneously marks this line as unreachable
-                ftype, fname = ("gas", "density")  # type: ignore [unreachable]
+                ftype, fname = ("gas", "density")
 
             center = (match["extremum"], (ftype, fname))
 
