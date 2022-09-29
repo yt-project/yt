@@ -612,6 +612,8 @@ The relative fields which are currently supported for gas fields are:
 * ``('gas', 'relative_magnetic_field_x')``, defined by setting the
   ``'bulk_magnetic_field'`` field parameter
 
+Note that fields ending in ``'_x'`` are defined for each component.
+
 For particle fields, for a given particle type ``ptype``, the relative
 fields which are supported are:
 
