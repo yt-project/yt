@@ -145,7 +145,7 @@ class IOHandlerFLASH(BaseIOHandler):
                 if _xyz[0].size > 0:
                     bxyz.append(_xyz)
                 mask = selector.select_points(x, y, z, 0.0)
-                blockless = _xyz[0] > 0
+                blockless = (_xyz[0] > 0).any()
                 # This checks if none of the particles within these blocks are
                 # included in the mask We need to also allow for blockless
                 # particles to be selected.
