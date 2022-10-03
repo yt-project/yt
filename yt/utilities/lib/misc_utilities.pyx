@@ -831,7 +831,7 @@ def count_collisions(np.ndarray[np.uint8_t, ndim=2] masks):
     counts = np.zeros(masks.shape[1], dtype="uint32")
     collides = np.zeros(masks.shape[1], dtype="uint8")
     for i in range(masks.shape[1]):
-        print i
+        print(i)
         for j in range(masks.shape[1]):
             collides[j] = 0
         for k in range(masks.shape[0]):

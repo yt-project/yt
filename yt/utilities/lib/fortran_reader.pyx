@@ -72,7 +72,7 @@ def count_art_octs(char *fn, long offset,
         fseek(f, next_record, SEEK_CUR)
         # Now we skip the second section
         fread(&readin, sizeof(int), 1, f); FIX_LONG(readin)
-        nhydro_vars = next_record/4-2-3 #nhvar in daniel's code
+        nhydro_vars = next_record//4-2-3 #nhvar in daniel's code
         #record length is normally 2 pad bytes, 8 + 2 hvars (the 2 is nchem)
         # and then 3 vars, but we can find nhvars only here and not in other
         # file headers
