@@ -452,21 +452,21 @@ class pandas_imports(OnDemand):
 _pandas = pandas_imports()
 
 
-class Firefly_imports(OnDemand):
+class firefly_imports(OnDemand):
     @safe_import
     def data_reader(self):
-        import Firefly.data_reader as data_reader
+        import firefly.data_reader as data_reader
 
         return data_reader
 
     @safe_import
     def server(self):
-        import Firefly.server as server
+        import firefly.server as server
 
         return server
 
 
-_firefly = Firefly_imports()
+_firefly = firefly_imports()
 
 
 # Note: ratarmount may fail with an OSError on import if libfuse is missing
