@@ -16,14 +16,14 @@ cimport numpy as np
 import numpy as np
 
 from libc.math cimport floor
-from selection_routines cimport AlwaysSelector, SelectorObject
 
-from yt.geometry.oct_visitors cimport (
+from .oct_visitors cimport (
     NeighbourCellIndexVisitor,
     NeighbourCellVisitor,
     OctPadded,
     StoreIndex,
 )
+from .selection_routines cimport AlwaysSelector, SelectorObject
 
 ORDER_MAX = 20
 _ORDER_MAX = ORDER_MAX

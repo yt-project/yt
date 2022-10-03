@@ -143,7 +143,7 @@ cdef inline int cind(int i, int j, int k) nogil:
     # THIS ONLY WORKS FOR CHILDREN.  It is not general for zones.
     return (((i*2)+j)*2+k)
 
-from oct_container cimport OctreeContainer
+from .oct_container cimport OctreeContainer
 
 
 cdef class StoreIndex(OctVisitor):

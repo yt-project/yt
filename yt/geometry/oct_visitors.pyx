@@ -16,9 +16,10 @@ import numpy as np
 
 from libc.stdlib cimport malloc
 
-from yt.geometry.oct_container cimport OctreeContainer
 from yt.utilities.lib.fp_utils cimport *
 from yt.utilities.lib.geometry_utils cimport encode_morton_64bit
+
+from .oct_container cimport OctreeContainer
 
 # Now some visitor functions
 

@@ -9,11 +9,10 @@ Oct definitions file
 
 cimport cython
 cimport numpy as np
-cimport oct_visitors
-cimport selection_routines
 from libc.math cimport floor
 from libc.stdlib cimport bsearch, free, malloc, qsort, realloc
 
+from yt.geometry cimport oct_visitors, selection_routines
 from yt.utilities.lib.allocation_container cimport AllocationContainer, ObjectPool
 from yt.utilities.lib.fp_utils cimport *
 

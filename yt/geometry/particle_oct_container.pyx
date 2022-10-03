@@ -27,20 +27,11 @@ import numpy as np
 
 cimport cython
 cimport numpy as np
-cimport oct_visitors
 from cpython.exc cimport PyErr_CheckSignals
 from cython cimport floating
 from cython.operator cimport dereference, preincrement
-from oct_container cimport (
-    ORDER_MAX,
-    Oct,
-    OctKey,
-    OctreeContainer,
-    SparseOctreeContainer,
-)
-from oct_visitors cimport cind
-from selection_routines cimport AlwaysSelector, SelectorObject
 
+from yt.geometry cimport oct_visitors
 from yt.utilities.lib.fp_utils cimport *
 from yt.utilities.lib.geometry_utils cimport (
     bounded_morton,
@@ -53,9 +44,17 @@ from yt.utilities.lib.geometry_utils cimport (
     morton_neighbors_refined,
 )
 
-from yt.funcs import get_pbar
+from .oct_container cimport (
+    ORDER_MAX,
+    Oct,
+    OctKey,
+    OctreeContainer,
+    SparseOctreeContainer,
+)
+from .oct_visitors cimport cind
+from .selection_routines cimport AlwaysSelector, SelectorObject
 
-#from yt.utilities.lib.ewah_bool_wrap cimport \
+from yt.funcs import get_pbar
 
 from ..utilities.lib.ewah_bool_wrap cimport BoolArrayCollection
 

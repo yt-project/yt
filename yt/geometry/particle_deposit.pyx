@@ -15,9 +15,10 @@ import numpy as np
 
 cimport cython
 from libc.math cimport sqrt
-from oct_container cimport Oct, OctInfo, OctreeContainer
 
 from yt.utilities.lib.fp_utils cimport *
+
+from .oct_container cimport Oct, OctInfo, OctreeContainer
 
 from yt.utilities.lib.misc_utilities import OnceIndirect
 

@@ -16,10 +16,11 @@ import numpy as np
 
 cimport cython
 cimport numpy as np
-from fixed_interpolator cimport *
 from libc.math cimport atan2, cos, fabs, floor, sin, sqrt
 
 from yt.utilities.lib.fp_utils cimport fmin
+
+from .fixed_interpolator cimport *
 
 DEF Nch = 4
 
