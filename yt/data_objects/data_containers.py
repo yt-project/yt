@@ -1469,7 +1469,6 @@ class YTDataContainer(abc.ABC):
                 continue
 
             ftype, fname = self._tupleize_field(field)
-            # print(field, " : ",ftype, fname)
             finfo = self.ds._get_field_info(ftype, fname)
 
             # really ugly check to ensure that this field really does exist somewhere,

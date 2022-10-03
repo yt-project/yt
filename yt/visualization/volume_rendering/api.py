@@ -10,6 +10,7 @@ from .render_source import (
     OpaqueSource,
     PointSource,
     create_volume_source,
+    set_raytracing_engine,
 )
 from .scene import Scene
 from .transfer_function_helper import TransferFunctionHelper

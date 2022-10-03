@@ -1,4 +1,6 @@
 import abc
+import sys
+import warnings
 from functools import wraps
 from types import ModuleType
 from typing import Optional, Union
@@ -38,26 +40,70 @@ from .utils import (
 )
 from .zbuffer_array import ZBuffer
 
+if sys.version_info >= (3, 8):
+    from typing import Literal
+else:
+    from typing_extensions import Literal
+
 OptionalModule = Union[ModuleType, NotAModule]
 mesh_traversal: OptionalModule = NotAModule("pyembree")
 mesh_construction: OptionalModule = NotAModule("pyembree")
 
 
-def _setup_raytracing_engine(ytcfg: YTConfig) -> None:
+def set_raytracing_engine(
+    engine: Literal["yt", "embree"],
+) -> None:
+    """
+    Safely switch raytracing engines at runtime.
+
+    Parameters
+    ----------
+
+    engine: 'yt' or 'embree'
+      - 'yt' selects the default engine.
+      - 'embree' requires extra installation steps, see
+        https://yt-project.org/doc/visualizing/unstructured_mesh_rendering.html?highlight=pyembree#optional-embree-installation
+
+    Raises
+    ------
+
+    UserWarning
+      Raised if the required engine is not available.
+      In this case, the default engine is restored.
+
+    """
+    from yt.config import ytcfg
+
     global mesh_traversal, mesh_construction
-    try:
-        from yt.utilities.lib.embree_mesh import mesh_traversal  # type: ignore
-    except (ImportError, ValueError):
-        # Catch ValueError in case size of objects in Cython change
-        ytcfg["yt", "ray_tracing_engine"] = "yt"
-    try:
-        from yt.utilities.lib.embree_mesh import mesh_construction  # type: ignore
-    except (ImportError, ValueError):
-        # Catch ValueError in case size of objects in Cython change
+
+    if engine == "embree":
+        try:
+            from yt.utilities.lib.embree_mesh import mesh_construction  # type: ignore
+            from yt.utilities.lib.embree_mesh import mesh_traversal  # type: ignore
+        except (ImportError, ValueError) as exc:
+            # Catch ValueError in case size of objects in Cython change
+            warnings.warn(
+                "Failed to switch to embree raytracing engine. "
+                f"The following error was raised:\n{exc}",
+                stacklevel=2,
+            )
+            mesh_traversal = NotAModule("pyembree")
+            mesh_construction = NotAModule("pyembree")
+            ytcfg["yt", "ray_tracing_engine"] = "yt"
+        else:
+            ytcfg["yt", "ray_tracing_engine"] = "embree"
+    else:
+        mesh_traversal = NotAModule("pyembree")
+        mesh_construction = NotAModule("pyembree")
         ytcfg["yt", "ray_tracing_engine"] = "yt"
 
 
-configuration_callbacks.append(_setup_raytracing_engine)
+def _init_raytracing_engine(ytcfg: YTConfig) -> None:
+    # validate option from configuration file or fall back to default engine
+    set_raytracing_engine(engine=ytcfg["yt", "ray_tracing_engine"])
+
+
+configuration_callbacks.append(_init_raytracing_engine)
 
 
 def invalidate_volume(f):
