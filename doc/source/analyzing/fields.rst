@@ -426,8 +426,8 @@ systems in terms of the definition of the magnetic pressure and the Alfvén spee
     v_A = \frac{B}{\sqrt{\mu_0\rho}}~\rm{(MKS)}
 
 where :math:`\mu_0 = 4\pi \times 10^{-7}~\rm{N/A^2}` is the vacuum permeability. This
-different normalization in the definition of the magnetic field shows up in other
-relevant quantities, such
+different normalization in the definition of the magnetic field may show up in other
+relevant quantities as well.
 
 For certain frontends, a third definition of the magnetic field and the magnetic
 pressure may be useful. In many MHD simulations and in some physics areas (such
