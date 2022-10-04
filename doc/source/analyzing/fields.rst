@@ -413,17 +413,38 @@ if we examine the base units, we find that they do indeed have different dimensi
     \rm{1~T = 1~\frac{kg}{A\cdot{s^2}}}
 
 It is easier to see the difference between the dimensionality of the magnetic field in the two
-systems in terms of the definition of the magnetic pressure:
+systems in terms of the definition of the magnetic pressure and the Alfvén speed:
 
 .. math::
 
     p_B = \frac{B^2}{8\pi}~\rm{(cgs)} \\
     p_B = \frac{B^2}{2\mu_0}~\rm{(MKS)}
 
-where :math:`\mu_0 = 4\pi \times 10^{-7}~\rm{N/A^2}` is the vacuum permeability. yt automatically
-detects on a per-frontend basis what units the magnetic should be in, and allows conversion between
-different magnetic field units in the different unit systems as well. To
-determine how to set up special magnetic field handling when designing a new frontend, check out
+.. math::
+
+    v_A = \frac{B}{\sqrt{4\pi\rho}}~\rm{(cgs)} \\
+    v_A = \frac{B}{\sqrt{\mu_0\rho}}~\rm{(MKS)}
+
+where :math:`\mu_0 = 4\pi \times 10^{-7}~\rm{N/A^2}` is the vacuum permeability. This
+different normalization in the definition of the magnetic field may show up in other
+relevant quantities as well.
+
+For certain frontends, a third definition of the magnetic field and the magnetic
+pressure may be useful. In many MHD simulations and in some physics areas (such
+as particle physics/GR) it is more common to use the "Lorentz-Heaviside" convention,
+which results in:
+
+.. math::
+
+    p_B = \frac{B^2}{2} \\
+    v_A = \frac{B}{\sqrt{\rho}}
+
+Using this convention is currently only availabe for :ref:`Athena<loading-athena-data>`
+and :ref:`Athena++<loading-athena-pp-data>` datasets, though it will likely be available
+for more datasets in the future.
+
+yt automatically detects on a per-frontend basis what units the magnetic should be in, and allows conversion between
+different magnetic field units in the different unit systems as well. To determine how to set up special magnetic field handling when designing a new frontend, check out
 :ref:`bfields-frontend`.
 
 .. _species-fields:
