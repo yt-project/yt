@@ -116,7 +116,7 @@ answer_tests:
     - yt/frontends/tipsy/tests/test_outputs.py:test_gasoline_dmonly
     - yt/frontends/tipsy/tests/test_outputs.py:test_tipsy_galaxy
 
-  local_varia_016:
+  local_varia_017:
     - yt/frontends/moab/tests/test_c5.py:test_cantor_5
     - yt/fields/tests/test_xray_fields.py:test_sloshing_apec
     - yt/fields/tests/test_xray_fields.py:test_d9p_cloudy
