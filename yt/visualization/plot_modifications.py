@@ -106,6 +106,7 @@ class PlotCallback(ABC):
             if self._plot_type in incompatible_plot_types:
                 raise YTUnsupportedPlotCallback(type_name, self._plot_type)
             self._callbacks.append(cls(*args, **kwargs))
+            return self
 
         update_wrapper(
             wrapper=closure,
