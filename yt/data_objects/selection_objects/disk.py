@@ -91,5 +91,5 @@ class YTDisk(YTSelectionContainer3D):
         pa = self.center + self._norm_vec * self.height
         pb = self.center - self._norm_vec * self.height
         a = pa - pb
-        db = self.radius * np.sqrt(1.0 - a.d * a.d / np.dot(a, a))
+        db = self.radius * np.sqrt(1.0 - a.d * a.d / np.dot(a.d, a.d))
         return np.minimum(pa - db, pb - db), np.maximum(pa + db, pb + db)
