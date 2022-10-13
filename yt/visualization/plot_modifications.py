@@ -30,7 +30,11 @@ from yt.utilities.lib.pixelization_routines import (
 )
 from yt.utilities.math_utils import periodic_ray
 from yt.utilities.on_demand_imports import NotAModule
-from yt.visualization._commons import _swap_arg_pair_order, _swap_axes_extents
+from yt.visualization._commons import (
+    _swap_arg_pair_order,
+    _swap_axes_extents,
+    invalidate_plot,
+)
 from yt.visualization.base_plot_types import CallbackWrapper
 from yt.visualization.image_writer import apply_colormap
 from yt.visualization.plot_window import PWViewerMPL
@@ -83,6 +87,7 @@ class PlotCallback(ABC):
         incompatible_plot_types = cls._incompatible_plot_types
         type_name = cls._type_name
 
+        @invalidate_plot
         def closure(self, *args, **kwargs):
             nonlocal supported_geometries
             nonlocal incompatible_plot_types
@@ -101,6 +106,7 @@ class PlotCallback(ABC):
             if self._plot_type in incompatible_plot_types:
                 raise YTUnsupportedPlotCallback(type_name, self._plot_type)
             self._callbacks.append(cls(*args, **kwargs))
+            return self
 
         update_wrapper(
             wrapper=closure,
