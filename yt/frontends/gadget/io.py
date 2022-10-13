@@ -6,7 +6,7 @@ from typing import Tuple
 import numpy as np
 
 from yt.frontends.sph.io import IOHandlerSPH
-from yt.units.yt_array import uconcatenate  # type: ignore
+from yt.units._numpy_wrapper_functions import uconcatenate
 from yt.utilities.lib.particle_kdtree_tools import generate_smoothing_length
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py

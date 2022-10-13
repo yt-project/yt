@@ -6,7 +6,8 @@ from typing import Optional, Tuple
 import numpy as np
 
 from yt.config import ytcfg
-from yt.units.yt_array import YTArray, uconcatenate  # type: ignore
+from yt.units._numpy_wrapper_functions import uconcatenate
+from yt.units.yt_array import YTArray
 from yt.utilities.exceptions import YTFieldNotFound
 from yt.utilities.io_handler import io_registry
 from yt.utilities.logger import ytLogger as mylog

@@ -33,8 +33,9 @@ from yt.funcs import (
 from yt.geometry import particle_deposit as particle_deposit
 from yt.geometry.coordinates.cartesian_coordinates import all_data
 from yt.loaders import load_uniform_grid
+from yt.units._numpy_wrapper_functions import uconcatenate
 from yt.units.unit_object import Unit  # type: ignore
-from yt.units.yt_array import YTArray, uconcatenate  # type: ignore
+from yt.units.yt_array import YTArray
 from yt.utilities.exceptions import (
     YTNoAPIKey,
     YTNotInsideNotebook,

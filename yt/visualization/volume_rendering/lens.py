@@ -1,7 +1,7 @@
 import numpy as np
 
 from yt.data_objects.image_array import ImageArray
-from yt.units.yt_array import uhstack, unorm, uvstack  # type: ignore
+from yt.units._numpy_wrapper_functions import uhstack, unorm, uvstack
 from yt.utilities.lib.grid_traversal import arr_fisheye_vectors
 from yt.utilities.math_utils import get_rotation_matrix
 from yt.utilities.parallel_tools.parallel_analysis_interface import (
