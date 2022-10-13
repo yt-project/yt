@@ -2,7 +2,7 @@ import numpy as np
 
 from yt.loaders import load_uniform_grid
 from yt.testing import assert_almost_equal, assert_equal
-from yt.units.yt_array import uconcatenate
+from yt.units._numpy_wrapper_functions import uconcatenate
 from yt.utilities.particle_generator import (
     FromListParticleGenerator,
     LatticeParticleGenerator,

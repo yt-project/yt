@@ -13,7 +13,8 @@ from yt.data_objects.profiles import create_profile
 from yt.fields.field_exceptions import NeedsGridType
 from yt.frontends.ytdata.utilities import save_as_dataset
 from yt.funcs import get_output_filename, is_sequence, iter_fields, mylog
-from yt.units.yt_array import YTArray, YTQuantity, uconcatenate  # type: ignore
+from yt.units._numpy_wrapper_functions import uconcatenate
+from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.amr_kdtree.api import AMRKDTree
 from yt.utilities.exceptions import (
     YTCouldNotGenerateField,

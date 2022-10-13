@@ -22,8 +22,9 @@ from yt.geometry.geometry_handler import Index
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.geometry.particle_geometry_handler import ParticleIndex
 from yt.units import dimensions
+from yt.units._numpy_wrapper_functions import uconcatenate
 from yt.units.unit_registry import UnitRegistry  # type: ignore
-from yt.units.yt_array import YTQuantity, uconcatenate  # type: ignore
+from yt.units.yt_array import YTQuantity
 from yt.utilities.exceptions import GenerationInProgress, YTFieldTypeNotFound
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py
