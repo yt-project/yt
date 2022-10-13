@@ -1073,6 +1073,11 @@ cdef class SparseOctreeContainer(OctreeContainer):
     def __dealloc__(self):
         # This gets called BEFORE the superclass deallocation.  But, both get
         # called.
+        cdef OctKey *ikey
+        for i in range(self.num_root):
+            ikey = &self.root_nodes[i]
+            tdelete(<void *>ikey, &self.tree_root, root_node_compare)
+
         if self.root_nodes != NULL: free(self.root_nodes)
 
 cdef class ARTOctreeContainer(OctreeContainer):
