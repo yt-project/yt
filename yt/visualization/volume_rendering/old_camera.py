@@ -649,7 +649,7 @@ class Camera(ParallelAnalysisInterface):
 
     def get_sampler_args(self, image):
         rotp = np.concatenate(
-            [self.orienter.inv_mat.ravel("F"), self.back_center.ravel()]
+            [self.orienter.inv_mat.ravel("F"), self.back_center.ravel().ndview]
         )
         args = (
             np.atleast_3d(rotp),
@@ -2125,7 +2125,7 @@ class ProjectionCamera(Camera):
 
     def get_sampler_args(self, image):
         rotp = np.concatenate(
-            [self.orienter.inv_mat.ravel("F"), self.back_center.ravel()]
+            [self.orienter.inv_mat.ravel("F"), self.back_center.ravel().ndview]
         )
         args = (
             np.atleast_3d(rotp),
