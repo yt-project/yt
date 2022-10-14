@@ -2,7 +2,8 @@ import numpy as np
 
 from yt.data_objects.index_subobjects.unstructured_mesh import SemiStructuredMesh
 from yt.funcs import mylog
-from yt.units.yt_array import YTArray, uconcatenate, uvstack  # type: ignore
+from yt.units._numpy_wrapper_functions import uconcatenate, uvstack
+from yt.units.yt_array import YTArray
 from yt.utilities.lib.pixelization_routines import (
     interpolate_sph_grid_gather,
     normalization_2d_utility,

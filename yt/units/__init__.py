@@ -1,17 +1,8 @@
 from unyt.array import (
     loadtxt,
     savetxt,
-    uconcatenate,
-    ucross,
-    udot,
-    uhstack,
-    uintersect1d,
-    unorm,
     unyt_array,
     unyt_quantity,
-    ustack,
-    uunion1d,
-    uvstack,
 )
 from unyt.unit_object import Unit, define_unit  # NOQA: F401
 from unyt.unit_registry import UnitRegistry  # NOQA: Ffg401
@@ -22,7 +13,17 @@ from yt.units.physical_constants import _ConstantContainer
 from yt.units.unit_symbols import *
 from yt.units.unit_symbols import _SymbolContainer
 from yt.utilities.exceptions import YTArrayTooLargeToDisplay
-
+from yt.units._numpy_wrapper_functions import (
+    uconcatenate,
+    ucross,
+    udot,
+    uhstack,
+    uintersect1d,
+    unorm,
+    ustack,
+    uunion1d,
+    uvstack,
+)
 YTArray = unyt_array
 
 YTQuantity = unyt_quantity
