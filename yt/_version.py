@@ -7,7 +7,7 @@ __all__ = [
     "version_info",
 ]
 
-__version__ = "4.1.0"  # keep in sync with setup.cfg
+__version__ = "4.1.1"  # keep in sync with setup.cfg
 
 
 class VersionTuple(NamedTuple):
