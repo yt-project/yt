@@ -817,13 +817,14 @@ class YTDataContainer(abc.ABC):
         kys = self.ds.derived_field_list
         all_fields = list(zip(*kys))[1]
         for field in fields_to_include:
-            field = field if not isinstance(field,tuple) else field[1]
+            field = field if not isinstance(field, tuple) else field[1]
             if field not in all_fields:
-                raise YTFieldNotFound(field=field,ds=self.ds)
-        ## Also generate equivalent of particle_fields_by_type including 
+                raise YTFieldNotFound(field=field, ds=self.ds)
+        ## Also generate equivalent of particle_fields_by_type including
         ## derived fields
         kysd = defaultdict(list)
-        for k,v in kys: kysd[k].append(v) 
+        for k, v in kys:
+            kysd[k].append(v)
 
         ## create a ParticleGroup object that contains *every* field
         for ptype in sorted(self.ds.particle_types_raw):
@@ -850,17 +851,15 @@ class YTDataContainer(abc.ABC):
             for field, units in zip(fields_to_include, fields_units):
                 ## Only interested in fields with the current particle type,
                 ## whether that means general fields or field tuples
-                if isinstance(field,tuple):
-                    ftype,field = field
-                    if not (ftype==ptype or ftype=="all"):
+                if isinstance(field, tuple):
+                    ftype, field = field
+                    if not (ftype == ptype or ftype == "all"):
                         continue
                     if field not in kysd[ptype]:
-                        raise YTFieldNotFound(field=(ftype,field),ds=self.ds) 
+                        raise YTFieldNotFound(field=(ftype, field), ds=self.ds)
                 elif field not in kysd[ptype]:
-                    mylog.warning(
-                        "requested (but not available) %s %s", ptype, field
-                    )
-                    continue    
+                    mylog.warning("requested (but not available) %s %s", ptype, field)
+                    continue
 
                 ## determine if you want to take the log of the field for Firefly
                 log_flag = "log(" in units
@@ -893,15 +892,13 @@ class YTDataContainer(abc.ABC):
             ## field_* needs to be explicitly set None if empty
             ## so that Firefly will correctly compute the binary
             ## headers
-            if len(field_arrays)==0:
-                if len(fields_to_include)>0:
-                   mylog.warning(
-                        "No additional fields specified for %s", ptype
-                    )
-                field_arrays=None
-                field_names=None
-                field_filter_flags=None
-                field_colormap_flags=None
+            if len(field_arrays) == 0:
+                if len(fields_to_include) > 0:
+                    mylog.warning("No additional fields specified for %s", ptype)
+                field_arrays = None
+                field_names = None
+                field_filter_flags = None
+                field_colormap_flags = None
 
             ## create a firefly ParticleGroup for this particle type
             pg = firefly.data_reader.ParticleGroup(
