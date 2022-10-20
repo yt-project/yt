@@ -162,11 +162,6 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
     window_size : float
         The size of the window on the longest axis (in units of inches),
         including the margins but not the colorbar.
-    right_handed : boolean
-        Depreceated, please use flip_horizontal callback.
-        Whether the implicit east vector for the image generated is set to make a right
-        handed coordinate system with a north vector and the normal vector, the
-        direction of the 'window' into the data.
 
     """
 
@@ -179,7 +174,6 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
         periodic=True,
         origin="center-window",
         oblique=False,
-        right_handed=True,
         window_size=8.0,
         fields=None,
         fontsize=18,
@@ -197,7 +191,6 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
         self.center = None
         self._periodic = periodic
         self.oblique = oblique
-        self._right_handed = _check_right_handed(right_handed, self._flip_horizontal)
         self._equivalencies = defaultdict(lambda: (None, {}))
         self.buff_size = buff_size
         self.antialias = antialias
@@ -812,24 +805,11 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
         return self
 
     @invalidate_plot
-    def toggle_right_handed(self):
-        issue_deprecation_warning(
-            "the toggle_right_handed method is deprecated, use `.flip_horizontal()` instead.",
-            since="4.1.0",
-            removal="4.2.0",
-        )
-        self.flip_horizontal()
-        return self
-
-    @invalidate_plot
     def flip_horizontal(self):
         """
         inverts the horizontal axis (the image's abscissa)
         """
         self._flip_horizontal = not self._flip_horizontal
-        self._right_handed = (
-            not self._right_handed
-        )  # keep in sync until full depreciation
         return self
 
     @invalidate_plot
@@ -1442,33 +1422,6 @@ class NormalPlot(abc.ABC):
 
         return retv
 
-    @staticmethod
-    def _validate_init_args(*, normal, axis, fields) -> None:
-        # TODO: remove this method in yt 4.2
-
-        if axis is not None:
-            issue_deprecation_warning(
-                "Argument 'axis' is a deprecated alias for 'normal'.",
-                since="4.1.0",
-                removal="4.2.0",
-            )
-            if normal is not None:
-                raise TypeError("Received incompatible arguments 'axis' and 'normal'")
-            normal = axis
-
-        if normal is fields is None:
-            raise TypeError(
-                "missing 2 required positional arguments: 'normal' and 'fields'"
-            )
-
-        if fields is None:
-            raise TypeError("missing required positional argument: 'fields'")
-
-        if normal is None:
-            raise TypeError("missing required positional argument: 'normal'")
-
-        return normal
-
 
 class SlicePlot(NormalPlot):
     r"""
@@ -1616,11 +1569,8 @@ class SlicePlot(NormalPlot):
     # on the pathlib.Path class from the standard library
     # https://github.com/python/mypy/issues/1020
     def __new__(  # type: ignore
-        cls, ds, normal=None, fields=None, *args, axis=None, **kwargs
+        cls, ds, normal, fields, *args, **kwargs
     ) -> Union["AxisAlignedSlicePlot", "OffAxisSlicePlot"]:
-        # TODO: in yt 4.2, remove default values for normal and fields, drop axis kwarg
-        normal = cls._validate_init_args(normal=normal, axis=axis, fields=fields)
-
         if cls is SlicePlot:
             normal = cls.sanitize_normal_vector(ds, normal)
             if isinstance(normal, str):
@@ -1680,10 +1630,8 @@ class ProjectionPlot(NormalPlot):
     # on the pathlib.Path class from the standard library
     # https://github.com/python/mypy/issues/1020
     def __new__(  # type: ignore
-        cls, ds, normal=None, fields=None, *args, axis=None, **kwargs
+        cls, ds, normal, fields, *args, **kwargs
     ) -> Union["AxisAlignedProjectionPlot", "OffAxisProjectionPlot"]:
-        # TODO: in yt 4.2, remove default values for normal and fields, drop axis kwarg
-        normal = cls._validate_init_args(normal=normal, axis=axis, fields=fields)
 
         if cls is ProjectionPlot:
             normal = cls.sanitize_normal_vector(ds, normal)
@@ -1783,11 +1731,6 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
          Defaults to None, which automatically picks an appropriate unit.
          If axes_unit is '1', 'u', or 'unitary', it will not display the
          units, and only show the axes name.
-    right_handed : boolean
-        Depreceated, please use flip_horizontal callback.
-        Whether the implicit east vector for the image generated is set to make a right
-        handed coordinate system with a north vector and the normal vector, the
-        direction of the 'window' into the data.
     fontsize : integer
          The size of the fonts for the axis, colorbar, and tick labels.
     field_parameters : dictionary
@@ -1818,13 +1761,12 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
     def __init__(
         self,
         ds,
-        normal=None,
-        fields=None,
+        normal,
+        fields,
         center="c",
         width=None,
         axes_unit=None,
         origin="center-window",
-        right_handed=True,
         fontsize=18,
         field_parameters=None,
         window_size=8.0,
@@ -1833,9 +1775,7 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
         buff_size=(800, 800),
         *,
         north_vector=None,
-        axis=None,
     ):
-        # TODO: in yt 4.2, remove default values for normal and fields, drop axis kwarg
         if north_vector is not None:
             # this kwarg exists only for symmetry reasons with OffAxisSlicePlot
             mylog.warning(
@@ -1844,11 +1784,6 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
             )
             del north_vector
 
-        normal = self._validate_init_args(
-            normal=normal,
-            axis=axis,
-            fields=fields,
-        )
         normal = self.sanitize_normal_vector(ds, normal)
         # this will handle time series data and controllers
         axis = fix_axis(normal, ds)
@@ -1882,7 +1817,6 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
             fields=fields,
             window_size=window_size,
             aspect=aspect,
-            right_handed=right_handed,
             buff_size=buff_size,
             geometry=ds.geometry,
         )
@@ -1980,11 +1914,6 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
         (xloc, yloc, '{space}')                            (0.23, 0.5, 'domain')
         =============================================== ===============================
 
-    right_handed : boolean
-        Depreceated, please use flip_horizontal callback.
-        Whether the implicit east vector for the image generated is set to make a right
-        handed coordinate system with a north vector and the normal vector, the
-        direction of the 'window' into the data.
     data_source : YTSelectionContainer Object
         Object to be used for data selection.  Defaults to a region covering
         the entire simulation.
@@ -2047,15 +1976,14 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
     def __init__(
         self,
         ds,
-        normal=None,
-        fields=None,
+        normal,
+        fields,
         center="c",
         width=None,
         axes_unit=None,
         weight_field=None,
         max_level=None,
         origin="center-window",
-        right_handed=True,
         fontsize=18,
         field_parameters=None,
         data_source=None,
@@ -2065,7 +1993,6 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
         aspect=None,
         *,
         moment=1,
-        axis=None,
     ):
         if method == "mip":
             issue_deprecation_warning(
@@ -2074,8 +2001,6 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
                 since="4.1.0",
             )
             method = "max"
-        # TODO: in yt 4.2, remove default values for normal and fields, drop axis kwarg
-        normal = self._validate_init_args(normal=normal, fields=fields, axis=axis)
         normal = self.sanitize_normal_vector(ds, normal)
 
         axis = fix_axis(normal, ds)
@@ -2124,7 +2049,6 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
             bounds,
             fields=fields,
             origin=origin,
-            right_handed=right_handed,
             fontsize=fontsize,
             window_size=window_size,
             aspect=aspect,
@@ -2194,11 +2118,6 @@ class OffAxisSlicePlot(SlicePlot, PWViewerMPL):
          A vector defining the 'up' direction in the plot.  This
          option sets the orientation of the slicing plane.  If not
          set, an arbitrary grid-aligned north-vector is chosen.
-    right_handed : boolean
-        Depreceated, please use flip_horizontal callback.
-        Whether the implicit east vector for the image generated is set to make a right
-        handed coordinate system with a north vector and the normal vector, the
-        direction of the 'window' into the data.
     fontsize : integer
          The size of the fonts for the axis, colorbar, and tick labels.
     field_parameters : dictionary
@@ -2226,7 +2145,6 @@ class OffAxisSlicePlot(SlicePlot, PWViewerMPL):
         width=None,
         axes_unit=None,
         north_vector=None,
-        right_handed=True,
         fontsize=18,
         field_parameters=None,
         data_source=None,
@@ -2276,7 +2194,6 @@ class OffAxisSlicePlot(SlicePlot, PWViewerMPL):
             fields=fields,
             origin="center-window",
             periodic=False,
-            right_handed=right_handed,
             oblique=True,
             fontsize=fontsize,
             buff_size=buff_size,
@@ -2404,11 +2321,6 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
         A vector defining the 'up' direction in the plot. This
         option sets the orientation of the slicing plane. If not
         set, an arbitrary grid-aligned north-vector is chosen.
-    right_handed : boolean
-        Depreceated, please use flip_horizontal callback.
-        Whether the implicit east vector for the image generated is set to make a right
-        handed coordinate system with a north vector and the normal vector, the
-        direction of the 'window' into the data.
     fontsize : integer
         The size of the fonts for the axis, colorbar, and tick labels.
     method : string
@@ -2453,7 +2365,6 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
         weight_field=None,
         max_level=None,
         north_vector=None,
-        right_handed=True,
         volume=None,
         no_ghost=False,
         le=None,
@@ -2518,7 +2429,6 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
             origin="center-window",
             periodic=False,
             oblique=True,
-            right_handed=right_handed,
             fontsize=fontsize,
             buff_size=buff_size,
         )
@@ -2725,20 +2635,3 @@ def plot_2d(
         aspect=aspect,
         data_source=data_source,
     )
-
-
-def _check_right_handed(right_handed: bool, flip_horizontal: bool) -> bool:
-    # temporary function to check if right_handed kwarg has been set. can
-    # remove this after full depreciation.
-    if not right_handed:
-        issue_deprecation_warning(
-            "The 'right_handed' argument is deprecated. Use 'flip_horizontal' callback instead.",
-            since="4.1.0",
-            removal="4.2.0",
-        )
-        if flip_horizontal:
-            # may be able to remove this now that its not a kwarg
-            raise ValueError(
-                "Cannot use both 'right_handed' and 'flip_horizontal' arguments"
-            )
-    return right_handed

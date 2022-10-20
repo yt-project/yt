@@ -984,27 +984,13 @@ def get_hash(infile, algorithm="md5", BLOCKSIZE=65536):
 def get_brewer_cmap(cmap):
     """Returns a colorbrewer colormap from palettable"""
     try:
-        import brewer2mpl
-    except ImportError:
-        brewer2mpl = None
-    try:
         import palettable
-    except ImportError:
-        palettable = None
-    if palettable is not None:
-        bmap = palettable.colorbrewer.get_map(*cmap)
-    elif brewer2mpl is not None:
-        issue_deprecation_warning(
-            "Using brewer2mpl colormaps is deprecated. "
-            "Please install the successor to brewer2mpl, "
-            "palettable, with `pip install palettable`. "
-            "Colormap tuple names remain unchanged.",
-            since="3.3",
-            removal="4.2",
-        )
-        bmap = brewer2mpl.get_map(*cmap)
-    else:
-        raise RuntimeError("Please install palettable to use colorbrewer colormaps")
+    except ImportError as exc:
+        raise RuntimeError(
+            "Please install palettable to use colorbrewer colormaps"
+        ) from exc
+
+    bmap = palettable.colorbrewer.get_map(*cmap)
     return bmap.get_mpl_colormap(N=cmap[2])
 
 

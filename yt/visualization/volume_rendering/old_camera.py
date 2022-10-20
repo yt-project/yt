@@ -117,7 +117,6 @@ class Camera(ParallelAnalysisInterface):
     Examples
     --------
 
-    >>> from yt.mods import *
     >>> import yt.visualization.volume_rendering.api as vr
 
     >>> ds = load("DD1701")  # Load a dataset
@@ -801,14 +800,8 @@ class Camera(ParallelAnalysisInterface):
 
     def save_image(self, image, fn=None, clip_ratio=None, transparent=False):
         if self.comm.rank == 0 and fn is not None:
-            if transparent:
-                image.write_png(
-                    fn, clip_ratio=clip_ratio, rescale=True, background=None
-                )
-            else:
-                image.write_png(
-                    fn, clip_ratio=clip_ratio, rescale=True, background="black"
-                )
+            background = None if transparent else "black"
+            image.write_png(fn, rescale=True, background=background)
 
     def initialize_source(self):
         return self.volume.initialize_source(
