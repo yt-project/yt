@@ -1,5 +1,5 @@
 import os
-import sys
+from functools import cached_property
 
 import numpy as np
 
@@ -22,11 +22,6 @@ from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py, _libconf as libconf
-
-if sys.version_info >= (3, 8):
-    from functools import cached_property
-else:
-    from yt._maintenance.backports import cached_property
 
 
 class EnzoEGrid(AMRGridPatch):

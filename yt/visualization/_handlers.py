@@ -1,24 +1,16 @@
-import sys
 import weakref
 from numbers import Real
-from typing import Any, Dict, List, Optional, Tuple, Type, Union
+from typing import Any, Dict, List, Literal, Optional, Tuple, Type, Union
 
 import numpy as np
 import unyt as un
 from matplotlib.colors import Colormap, LogNorm, Normalize, SymLogNorm
-from packaging.version import Version
 from unyt import unyt_quantity
 
 from yt._typing import Quantity, Unit
 from yt.config import ytcfg
 from yt.funcs import get_brewer_cmap, is_sequence, mylog
-from yt.visualization._commons import MPL_VERSION
 from yt.visualization.color_maps import _get_cmap
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class NormHandler:
@@ -293,20 +285,12 @@ class NormHandler:
         dvmin = dvmax = None
 
         finite_values_mask = np.isfinite(data)
-        # FUTURE: when the minimal supported version of numpy reaches 1.16 or newer,
-        # this complicated conditional can be simplified into
-        # if self.vmin not in (None, "min"):
-        if self.vmin is not None and not (
-            isinstance(self.vmin, str) and self.vmin == "min"
-        ):
+        if self.vmin not in (None, "min"):
             dvmin = self.to_float(self.vmin)
         elif np.any(finite_values_mask):
             dvmin = self.to_float(np.nanmin(data[finite_values_mask]))
 
-        # FUTURE: see above
-        if self.vmax is not None and not (
-            isinstance(self.vmax, str) and self.vmax == "max"
-        ):
+        if self.vmax not in (None, "max"):
             dvmax = self.to_float(self.vmax)
         elif np.any(finite_values_mask):
             dvmax = self.to_float(np.nanmax(data[finite_values_mask]))
@@ -348,11 +332,7 @@ class NormHandler:
                 linthresh = self._guess_linthresh(data[finite_values_mask])
 
             kw.setdefault("linthresh", linthresh)
-            if MPL_VERSION >= Version("3.2"):
-                # note that this creates an inconsistency between mpl versions
-                # since the default value previous to mpl 3.4.0 is np.e
-                # but it is only exposed since 3.2.0
-                kw.setdefault("base", 10)
+            kw.setdefault("base", 10)
 
         return norm_type(*args, **kw)
 

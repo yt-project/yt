@@ -33,7 +33,7 @@ jobs:
         test-runner: [pytest]
         include:
           - os: ubuntu-latest
-            python-version: '3.7'
+            python-version: '3.8'
             dependencies: minimal
             tests-type: unit
             test-runner: pytest

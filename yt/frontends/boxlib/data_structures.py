@@ -1,8 +1,8 @@
 import glob
 import os
 import re
-import sys
 from collections import namedtuple
+from functools import cached_property
 from stat import ST_CTIME
 from typing import Type
 
@@ -25,10 +25,6 @@ from .fields import (
     WarpXFieldInfo,
 )
 
-if sys.version_info >= (3, 8):
-    from functools import cached_property
-else:
-    from yt._maintenance.backports import cached_property
 # This is what we use to find scientific notation that might include d's
 # instead of e's.
 _scinot_finder = re.compile(r"[-+]?[0-9]*\.?[0-9]+([eEdD][-+]?[0-9]+)?")

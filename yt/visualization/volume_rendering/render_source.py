@@ -1,9 +1,8 @@
 import abc
-import sys
 import warnings
 from functools import wraps
 from types import ModuleType
-from typing import Optional, Union
+from typing import Literal, Optional, Union
 
 import numpy as np
 
@@ -39,11 +38,6 @@ from .utils import (
     new_volume_render_sampler,
 )
 from .zbuffer_array import ZBuffer
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 OptionalModule = Union[ModuleType, NotAModule]
 mesh_traversal: OptionalModule = NotAModule("pyembree")

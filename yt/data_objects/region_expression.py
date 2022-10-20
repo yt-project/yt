@@ -1,5 +1,5 @@
-import sys
 import weakref
+from functools import cached_property
 
 from yt.funcs import obj_length
 from yt.units.yt_array import YTQuantity
@@ -7,11 +7,6 @@ from yt.utilities.exceptions import YTDimensionalityError, YTFieldNotParseable
 from yt.visualization.line_plot import LineBuffer
 
 from .data_containers import _get_ipython_key_completion
-
-if sys.version_info >= (3, 8):
-    from functools import cached_property
-else:
-    from yt._maintenance.backports import cached_property
 
 
 class RegionExpression:

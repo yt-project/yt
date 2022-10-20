@@ -9,6 +9,7 @@ import time
 import warnings
 import weakref
 from collections import defaultdict
+from functools import cached_property
 from importlib.util import find_spec
 from stat import ST_CTIME
 from typing import DefaultDict, Dict, List, Optional, Set, Tuple, Type, Union
@@ -59,11 +60,6 @@ from yt.utilities.minimal_representation import MinimalDataset
 from yt.utilities.object_registries import data_object_registry, output_type_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_root_only
 from yt.utilities.parameter_file_storage import NoParameterShelf, ParameterFileStore
-
-if sys.version_info >= (3, 8):
-    from functools import cached_property
-else:
-    from yt._maintenance.backports import cached_property
 
 if sys.version_info >= (3, 9):
     from collections.abc import MutableMapping

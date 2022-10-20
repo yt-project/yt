@@ -1,7 +1,7 @@
 import os
 import shutil
-import sys
 import tempfile
+from importlib.metadata import version
 from importlib.util import find_spec
 from pathlib import Path
 
@@ -18,11 +18,6 @@ from yt.utilities.answer_testing.testing_utilities import (
     _streamline_for_io,
     data_dir_load,
 )
-
-if sys.version_info >= (3, 8):
-    from importlib.metadata import version
-else:
-    from importlib_metadata import version
 
 MPL_VERSION = Version(version("matplotlib"))
 NUMPY_VERSION = Version(version("numpy"))
@@ -95,7 +90,7 @@ def pytest_configure(config):
         "ignore:the imp module is deprecated in favour of importlib and slated for removal in Python 3.12; see the module's documentation for alternative uses:DeprecationWarning",
         # matplotlib warnings related to the Agg backend which is used in CI, not much we can do about it
         "ignore:Matplotlib is currently using agg, which is a non-GUI backend, so cannot show the figure.:UserWarning",
-        "ignore:tight_layout . falling back to Agg renderer:UserWarning",
+        r"ignore:tight_layout.+falling back to Agg renderer:UserWarning",
         #
         # >>> warnings from wrong values passed to numpy
         # these should normally be curated out of the test suite but they are too numerous

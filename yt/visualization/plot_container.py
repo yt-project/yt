@@ -6,7 +6,7 @@ import sys
 import warnings
 from collections import defaultdict
 from functools import wraps
-from typing import Any, Dict, List, Optional, Tuple, Type, Union
+from typing import Any, Dict, Final, List, Literal, Optional, Tuple, Type, Union
 
 import matplotlib
 from matplotlib.colors import LogNorm, Normalize, SymLogNorm
@@ -33,11 +33,6 @@ from ._commons import (
     validate_image_name,
     validate_plot,
 )
-
-if sys.version_info >= (3, 8):
-    from typing import Final, Literal
-else:
-    from typing_extensions import Final, Literal
 
 latex_prefixes = {
     "u": r"\mu",

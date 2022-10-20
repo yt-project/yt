@@ -3,16 +3,11 @@ A proxy object for field descriptors, usually living as ds.fields.
 """
 
 import inspect
-import sys
 import textwrap
 import weakref
+from functools import cached_property
 
 from yt.fields.derived_field import DerivedField
-
-if sys.version_info >= (3, 8):
-    from functools import cached_property
-else:
-    from yt._maintenance.backports import cached_property
 
 
 def _fill_values(values):

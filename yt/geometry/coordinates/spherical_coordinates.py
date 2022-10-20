@@ -1,4 +1,4 @@
-import sys
+from functools import cached_property
 
 import numpy as np
 
@@ -11,11 +11,6 @@ from .coordinate_handler import (
     _setup_dummy_cartesian_coords_and_widths,
     _setup_polar_coordinates,
 )
-
-if sys.version_info >= (3, 8):
-    from functools import cached_property
-else:
-    from yt._maintenance.backports import cached_property
 
 
 class SphericalCoordinateHandler(CoordinateHandler):
@@ -158,7 +153,6 @@ class SphericalCoordinateHandler(CoordinateHandler):
             )
         else:
             raise RuntimeError
-        self.sanitize_buffer_fill_values(buff)
         return buff
 
     def convert_from_cartesian(self, coord):

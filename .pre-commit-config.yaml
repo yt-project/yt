@@ -37,7 +37,7 @@ repos:
     rev: v3.1.0
     hooks:
     - id: pyupgrade
-      args: [--py37-plus]
+      args: [--py38-plus]
 -   repo: https://github.com/psf/black
     rev: 22.10.0
     hooks:
@@ -73,7 +73,7 @@ repos:
   rev: 1.5.2
   hooks:
     - id: nbqa-pyupgrade
-      args: [--py37-plus]
+      args: [--py38-plus]
     - id: nbqa-isort
     - id: nbqa-flake8
       args: [--extend-ignore=E402]
