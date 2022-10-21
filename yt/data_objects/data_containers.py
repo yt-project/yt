@@ -900,15 +900,21 @@ class YTDataContainer(abc.ABC):
                 field_filter_flags = None
                 field_colormap_flags = None
 
+            ## Check if particles have velocities
+            if "relative_particle_velocity" in kysd[ptype]:
+                velocities = self[ptype, "relative_particle_velocity"].in_units(
+                    velocity_units
+                )
+            else:
+                velocities = None
+
             ## create a firefly ParticleGroup for this particle type
             pg = firefly.data_reader.ParticleGroup(
                 UIname=ptype,
                 coordinates=self[ptype, "relative_particle_position"].in_units(
                     coordinate_units
                 ),
-                velocities=self[ptype, "relative_particle_velocity"].in_units(
-                    velocity_units
-                ),
+                velocities=velocities,
                 field_arrays=field_arrays,
                 field_names=field_names,
                 field_filter_flags=field_filter_flags,
