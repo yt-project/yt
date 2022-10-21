@@ -1,5 +1,6 @@
 import pytest
 
+from yt._maintenance.deprecation import VisibleDeprecationWarning
 from yt.data_objects.static_output import Dataset
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.loaders import load, load_simulation
@@ -158,3 +159,42 @@ def test_load_ambiguous_data_with_hint(hint, expected_type, tmp_path):
 
     ds = ts[1]
     assert type(ds).__name__ == expected_type
+
+
+@pytest.fixture()
+def catchall_dataset_class():
+    # define a Dataset class matching any input,
+    # just so that we don't have to require an actual
+    # dataset for some tests
+    class MockHierarchy(GridIndex):
+        pass
+
+    class MockDataset(Dataset):
+        _index_class = MockHierarchy
+
+        def _parse_parameter_file(self, *args, **kwargs):
+            self.current_time = -1.0
+            self.cosmological_simulation = 0
+
+        def _set_code_unit_attributes(self, *args, **kwargs):
+            self.length_unit = self.quan(1, "m")
+            self.mass_unit = self.quan(1, "kg")
+            self.time_unit = self.quan(1, "s")
+
+        @classmethod
+        def _is_valid(cls, *args, **kwargs):
+            return True
+
+    yield
+
+    # teardown to avoid possible breakage in following tests
+    output_type_registry.pop("MockDataset")
+
+
+@pytest.mark.usefixtures("catchall_dataset_class")
+def test_depr_load_keyword(tmp_path):
+    with pytest.raises(
+        VisibleDeprecationWarning,
+        match=r"Using the 'fn' argument as keyword \(on position 0\) is deprecated\.",
+    ):
+        load(fn=tmp_path)

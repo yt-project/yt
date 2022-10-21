@@ -1,5 +1,7 @@
 import warnings
-from typing import Optional
+from functools import wraps
+from types import FunctionType
+from typing import Dict, Optional
 
 
 class VisibleDeprecationWarning(UserWarning):
@@ -48,3 +50,30 @@ def issue_deprecation_warning(
     else:
         msg += f"in yt {removal}"
     warnings.warn(msg, VisibleDeprecationWarning, stacklevel=stacklevel)
+
+
+def future_positional_only(positions2names: Dict[int, str], /, **depr_kwargs):
+    """Warn users when using a future positional-only argument as keyword.
+    Note that positional-only arguments are available from Python 3.8
+    See https://www.python.org/dev/peps/pep-0570/
+    """
+
+    def outer(func: FunctionType):
+        @wraps(func)
+        def inner(*args, **kwargs):
+            for no, name in sorted(positions2names.items()):
+                if name not in kwargs:
+                    continue
+                value = kwargs[name]
+                issue_deprecation_warning(
+                    f"Using the {name!r} argument as keyword (on position {no}) "
+                    "is deprecated. "
+                    "Pass the argument as positional to supress this warning, "
+                    f"i.e., use {func.__name__}({value!r}, ...)",
+                    **depr_kwargs,
+                )
+            return func(*args, **kwargs)
+
+        return inner
+
+    return outer
