@@ -23,6 +23,7 @@ from yt.data_objects.particle_unions import ParticleUnion
 from yt.data_objects.static_output import Dataset, ParticleFile
 from yt.data_objects.unions import MeshUnion
 from yt.frontends.sph.data_structures import SPHParticleIndex
+from yt.funcs import setdefaultattr
 from yt.geometry.geometry_handler import Index, YTDataChunk
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.geometry.oct_container import OctreeContainer
@@ -339,6 +340,27 @@ class StreamDataset(Dataset):
         self._find_particle_types()
         name = f"InMemoryParameterFile_{uuid.uuid4().hex}"
         from yt.data_objects.static_output import _cached_datasets
+
+        if geometry == "spectral_cube":
+            # mimick FITSDataset specific interface to allow testing with
+            # fake, in memory data
+            setdefaultattr(self, "lon_axis", 0)
+            setdefaultattr(self, "lat_axis", 1)
+            setdefaultattr(self, "spec_axis", 2)
+            setdefaultattr(self, "lon_name", "X")
+            setdefaultattr(self, "lat_name", "Y")
+            setdefaultattr(self, "spec_name", "z")
+            setdefaultattr(self, "spec_unit", "")
+            setdefaultattr(
+                self,
+                "pixel2spec",
+                lambda pixel_value: self.arr(pixel_value, self.spec_unit),
+            )
+            setdefaultattr(
+                self,
+                "spec2pixel",
+                lambda spec_value: self.arr(spec_value, "code_length"),
+            )
 
         _cached_datasets[name] = self
         Dataset.__init__(
