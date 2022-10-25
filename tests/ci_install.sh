@@ -15,7 +15,7 @@ linux|Linux)
 osx|macOS)
     sudo mkdir -p /usr/local/man
     sudo chown -R "${USER}:admin" /usr/local/man
-    HOMEBREW_NO_AUTO_UPDATE=1 brew install hdf5 geos open-mpi netcdf ccache osxfuse
+    HOMEBREW_NO_AUTO_UPDATE=1 brew install hdf5 geos open-mpi netcdf ccache macfuse
     ;;
 esac
 
