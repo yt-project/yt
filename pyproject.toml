@@ -68,6 +68,8 @@ addopts = '''
     --ignore='yt/frontends/owls_subfind/tests/test_outputs.py'
     --ignore='yt/frontends/ramses/tests/test_outputs.py'
     --ignore='yt/frontends/cholla/tests/test_outputs.py'
+    --ignore='yt/utilities/lib/cykdtree/tests/test_kdtree.py'
+    --ignore='yt/utilities/lib/cykdtree/tests/test_utils.py'
 '''
 
 
