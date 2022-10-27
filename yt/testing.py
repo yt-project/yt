@@ -925,15 +925,9 @@ def requires_module_pytest(*module_names):
 
     So that it can be later renamed to `requires_module`.
     """
-    from yt.utilities import on_demand_imports as odi
 
     def deco(func):
-        missing = [
-            name
-            for name in module_names
-            if not getattr(odi, f"_{name}").__is_available__
-            for name in module_names
-        ]
+        missing = [name for name in module_names if find_spec(name) is None]
 
         # note that order between these two decorators matters
         @pytest.mark.skipif(
