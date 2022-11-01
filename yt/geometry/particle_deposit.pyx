@@ -14,9 +14,7 @@ cimport numpy as np
 import numpy as np
 
 cimport cython
-from cython.view cimport memoryview as cymemview
 from libc.math cimport sqrt
-from libc.stdlib cimport free, malloc
 from oct_container cimport Oct, OctInfo, OctreeContainer
 
 from yt.utilities.lib.fp_utils cimport *

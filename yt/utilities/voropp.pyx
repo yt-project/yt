@@ -7,8 +7,7 @@ Wrapping code for voro++
 
 
 cimport libcpp
-from cython.operator cimport dereference as deref, preincrement as inc
-from libc.stdlib cimport abs, calloc, free, labs, malloc
+from cython.operator cimport dereference as deref
 
 import numpy as np
 

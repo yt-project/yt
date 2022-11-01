@@ -4,13 +4,12 @@
 # distutils: depends = yt/utilities/lib/cykdtree/c_kdtree.hpp, yt/utilities/lib/cykdtree/c_utils.hpp
 # distutils: language = c++
 # distutils: extra_compile_args = CPP03_FLAG
-import cython
 import numpy as np
 
 cimport numpy as np
 from cpython cimport bool as pybool
 from cython.operator cimport dereference
-from libc.stdint cimport int32_t, int64_t, uint32_t, uint64_t
+from libc.stdint cimport uint32_t, uint64_t
 from libc.stdlib cimport free, malloc
 from libcpp cimport bool as cbool
 

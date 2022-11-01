@@ -11,9 +11,8 @@ Oct container tuned for Particles
 """
 
 
-from libc.math cimport ceil, floor, fmod, log2
-from libc.stdlib cimport free, malloc, qsort
-from libc.string cimport memset
+from libc.math cimport ceil, log2
+from libc.stdlib cimport free, malloc
 from libcpp.map cimport map as cmap
 from libcpp.vector cimport vector
 
@@ -21,7 +20,6 @@ from yt.utilities.lib.ewah_bool_array cimport (
     bool_array,
     ewah_bool_array,
     ewah_bool_iterator,
-    ewah_map,
     ewah_word_type,
 )
 
@@ -36,20 +34,17 @@ from cython.operator cimport dereference, preincrement
 from oct_container cimport (
     ORDER_MAX,
     Oct,
-    OctAllocationContainer,
-    OctInfo,
     OctKey,
     OctreeContainer,
     SparseOctreeContainer,
 )
-from oct_visitors cimport OctVisitor, cind
+from oct_visitors cimport cind
 from selection_routines cimport AlwaysSelector, SelectorObject
 
 from yt.utilities.lib.fp_utils cimport *
 from yt.utilities.lib.geometry_utils cimport (
     bounded_morton,
     bounded_morton_dds,
-    bounded_morton_relative_dds,
     bounded_morton_split_dds,
     bounded_morton_split_relative_dds,
     decode_morton_64bit,
@@ -58,13 +53,10 @@ from yt.utilities.lib.geometry_utils cimport (
     morton_neighbors_refined,
 )
 
-from collections import defaultdict
-
 from yt.funcs import get_pbar
 
-from particle_deposit cimport gind
-
 #from yt.utilities.lib.ewah_bool_wrap cimport \
+
 from ..utilities.lib.ewah_bool_wrap cimport BoolArrayCollection
 
 import os
@@ -81,7 +73,6 @@ _bitmask_version = np.uint64(5)
 from ..utilities.lib.ewah_bool_wrap cimport (
     BoolArrayCollectionUncompressed as BoolArrayColl,
     FileBitmasks,
-    SparseUnorderedBitmaskSet as SparseUnorderedBitmask,
     SparseUnorderedRefinedBitmaskSet as SparseUnorderedRefinedBitmask,
 )
 

@@ -18,7 +18,7 @@ from cython cimport floating
 from libc.math cimport copysign, fabs, log2
 from libc.stdlib cimport free, malloc
 
-from yt.utilities.lib.fp_utils cimport fclip, i64clip
+from yt.utilities.lib.fp_utils cimport i64clip
 
 from yt.utilities.exceptions import YTDomainOverflow
 

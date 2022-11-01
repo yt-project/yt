@@ -11,7 +11,6 @@ Simple readers for fortran unformatted data, specifically for the Tiger code.
 import numpy as np
 
 cimport cython
-cimport libc.stdlib as stdlib
 cimport numpy as np
 from libc.stdio cimport FILE, fclose, fopen
 

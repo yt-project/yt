@@ -7,7 +7,6 @@ Utilities for images
 
 import numpy as np
 
-cimport cython
 cimport numpy as np
 
 from yt.utilities.lib.fp_utils cimport iclip

@@ -5,14 +5,9 @@
 # distutils: extra_compile_args = CPP03_FLAG
 import numpy as np
 
-cimport cython
 cimport numpy as np
-from libc.stdint cimport int32_t, int64_t, uint32_t, uint64_t
+from libc.stdint cimport int64_t, uint32_t, uint64_t
 from libcpp cimport bool as cbool
-from libcpp.pair cimport pair
-from libcpp.vector cimport vector
-
-import copy
 
 
 def py_max_pts(np.ndarray[np.float64_t, ndim=2] pos):

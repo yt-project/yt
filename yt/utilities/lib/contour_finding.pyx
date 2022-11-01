@@ -18,7 +18,6 @@ from libc.stdlib cimport free, malloc, realloc
 
 from yt.geometry.oct_container cimport OctInfo, OctreeContainer
 from yt.geometry.oct_visitors cimport Oct
-from yt.utilities.lib.fp_utils cimport imax
 
 from .amr_kdtools cimport Node
 from .partitioned_grid cimport PartitionedGrid

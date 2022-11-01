@@ -56,7 +56,7 @@ from yt.utilities.lib.element_mappings cimport (
 from yt.funcs import get_pbar
 
 from yt.utilities.lib.bounded_priority_queue cimport BoundedPriorityQueue
-from yt.utilities.lib.cykdtree.kdtree cimport KDTree, Node, PyKDTree, uint32_t, uint64_t
+from yt.utilities.lib.cykdtree.kdtree cimport KDTree, PyKDTree
 from yt.utilities.lib.particle_kdtree_tools cimport (
     axes_range,
     find_neighbors,

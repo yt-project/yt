@@ -22,9 +22,7 @@ from fixed_interpolator cimport (
     vertex_interp,
 )
 from libc.math cimport sqrt
-from libc.stdlib cimport abs, free, malloc
-
-from yt.utilities.lib.fp_utils cimport fclip, fmax, fmin, iclip, imax, imin
+from libc.stdlib cimport free, malloc
 
 from yt.units.yt_array import YTArray
 
