@@ -1395,6 +1395,8 @@ cdef class ARTIORootMeshContainer:
     @cython.cdivision(True)
     def ires(self, SelectorObject selector, np.int64_t num_cells = -1,
                 int domain_id = -1):
+        # Note: self.mask has a side effect of setting self._last_mask_sum
+        self.mask(selector)
         num_cells = self._last_mask_sum
         cdef np.ndarray[np.int64_t, ndim=1] res
         res = np.zeros(num_cells, dtype="int64")
