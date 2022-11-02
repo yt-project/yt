@@ -16,12 +16,11 @@ cimport cython
 # Double up here for def'd functions
 cimport numpy as np
 cimport numpy as cnp
-from libc.stdlib cimport abs, free, malloc
+from libc.stdlib cimport free, malloc
 
-from yt.utilities.lib.fp_utils cimport fclip, fmax, fmin, iclip, imax, imin
+from yt.utilities.lib.fp_utils cimport imax
 
 import sys
-import time
 
 
 cdef extern from "platform_dep.h":

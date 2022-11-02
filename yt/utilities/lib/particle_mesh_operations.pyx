@@ -13,7 +13,7 @@ cimport numpy as np
 
 import numpy as np
 
-from yt.utilities.lib.fp_utils cimport fclip, fmax, fmin, iclip, imax, imin
+from yt.utilities.lib.fp_utils cimport fclip
 
 
 @cython.boundscheck(False)

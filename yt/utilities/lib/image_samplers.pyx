@@ -27,14 +27,7 @@ from libc.stdlib cimport free, malloc
 
 from yt.utilities.lib.fp_utils cimport fclip, i64clip, imin
 
-from .fixed_interpolator cimport (
-    eval_gradient,
-    fast_interpolate,
-    offset_fill,
-    offset_interpolate,
-    trilinear_interpolate,
-    vertex_interp,
-)
+from .fixed_interpolator cimport eval_gradient, offset_interpolate
 from .grid_traversal cimport sampler_function, walk_volume
 
 from yt.funcs import mylog
@@ -47,10 +40,9 @@ cdef extern from "platform_dep.h":
 
 DEF Nch = 4
 
-from cython.parallel import parallel, prange, threadid
+from cython.parallel import parallel, prange
 
 from cpython.exc cimport PyErr_CheckSignals
-from vec3_ops cimport L2_norm, dot, fma, subtract
 
 
 cdef struct VolumeRenderAccumulator:

@@ -16,16 +16,15 @@ from yt.funcs import get_pbar
 from yt.units.yt_array import YTArray
 
 cimport cython
-cimport libc.math as math
 cimport numpy as np
 from cpython cimport buffer
-from cython.view cimport array as cvarray, memoryview
+from cython.view cimport memoryview
 from libc.math cimport abs, sqrt
 from libc.stdlib cimport free, malloc
 from libc.string cimport strcmp
 
 from yt.geometry.selection_routines cimport _ensure_code
-from yt.utilities.lib.fp_utils cimport fmax, fmin, i64max, i64min
+from yt.utilities.lib.fp_utils cimport fmax, fmin
 
 
 cdef extern from "platform_dep.h":

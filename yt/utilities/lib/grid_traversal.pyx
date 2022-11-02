@@ -17,25 +17,9 @@ import numpy as np
 cimport cython
 cimport numpy as np
 from fixed_interpolator cimport *
-from libc.math cimport (
-    M_PI,
-    acos,
-    asin,
-    atan,
-    atan2,
-    cos,
-    exp,
-    fabs,
-    floor,
-    log2,
-    sin,
-    sqrt,
-)
+from libc.math cimport atan2, cos, fabs, floor, sin, sqrt
 
-#cimport healpix_interface
-from libc.stdlib cimport abs, calloc, free, malloc
-
-from yt.utilities.lib.fp_utils cimport fclip, fmax, fmin, i64clip, iclip, imax, imin
+from yt.utilities.lib.fp_utils cimport fmin
 
 DEF Nch = 4
 

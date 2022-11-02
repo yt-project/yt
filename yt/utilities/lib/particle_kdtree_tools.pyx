@@ -13,7 +13,6 @@ cimport cython
 cimport numpy as np
 from cpython.exc cimport PyErr_CheckSignals
 from libc.math cimport sqrt
-from libcpp.vector cimport vector
 
 from yt.utilities.lib.cykdtree.kdtree cimport KDTree, Node, PyKDTree, uint32_t, uint64_t
 

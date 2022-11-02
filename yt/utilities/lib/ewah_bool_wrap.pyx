@@ -12,7 +12,7 @@ Wrapper for EWAH Bool Array: https://github.com/lemire/EWAHBoolArray
 import struct
 
 from cython.operator cimport dereference, preincrement
-from libc.stdlib cimport free, malloc, qsort
+from libc.stdlib cimport free, malloc
 from libcpp.algorithm cimport sort
 from libcpp.map cimport map as cmap
 

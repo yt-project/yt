@@ -12,11 +12,8 @@ Note - this file is only used for the Embree-accelerated ray-tracer.
 
 
 cimport cython
-cimport numpy as np
-cimport pyembree.rtcore as rtc
 cimport pyembree.rtcore_ray as rtcr
-from libc.math cimport fabs, fmax
-from pyembree.rtcore cimport Triangle, Vec3f, Vertex
+from pyembree.rtcore cimport Triangle
 
 from yt.utilities.lib.element_mappings cimport (
     ElementSampler,

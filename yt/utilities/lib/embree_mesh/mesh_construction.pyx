@@ -15,13 +15,9 @@ Note - this file is only used for the Embree-accelerated ray-tracer.
 
 import numpy as np
 
-cimport cython
 cimport numpy as np
-cimport pyembree.rtcore as rtc
 cimport pyembree.rtcore_geometry as rtcg
 cimport pyembree.rtcore_geometry_user as rtcgu
-cimport pyembree.rtcore_ray as rtcr
-from libc.math cimport fmax, sqrt
 from libc.stdlib cimport free, malloc
 from mesh_intersection cimport (
     patchBoundsFunc,
@@ -31,7 +27,7 @@ from mesh_intersection cimport (
 )
 from mesh_samplers cimport sample_hex, sample_tetra, sample_wedge
 from mesh_traversal cimport YTEmbreeScene
-from pyembree.rtcore cimport Triangle, Vec3f, Vertex
+from pyembree.rtcore cimport Triangle, Vertex
 
 from yt.utilities.exceptions import YTElementTypeNotRecognized
 

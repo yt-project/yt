@@ -38,7 +38,6 @@ from yt.utilities.lib.primitives cimport (
     triangle_bbox,
     triangle_centroid,
 )
-from yt.utilities.lib.vec3_ops cimport L2_norm
 
 from .image_samplers cimport ImageSampler
 

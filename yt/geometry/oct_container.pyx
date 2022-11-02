@@ -15,7 +15,7 @@ cimport numpy as np
 
 import numpy as np
 
-from libc.math cimport ceil, floor
+from libc.math cimport floor
 from selection_routines cimport AlwaysSelector, SelectorObject
 
 from yt.geometry.oct_visitors cimport (

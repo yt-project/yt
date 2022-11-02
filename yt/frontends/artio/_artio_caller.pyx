@@ -14,14 +14,9 @@ from libc.string cimport memcpy
 from yt.geometry.oct_container cimport OctObjectPool, SparseOctreeContainer
 from yt.geometry.oct_visitors cimport Oct
 from yt.geometry.particle_deposit cimport ParticleDepositOperation
-from yt.geometry.selection_routines cimport (
-    AlwaysSelector,
-    OctreeSubsetSelector,
-    SelectorObject,
-)
+from yt.geometry.selection_routines cimport AlwaysSelector, SelectorObject
 from yt.utilities.lib.fp_utils cimport imax
 
-import data_structures
 
 from yt.utilities.lib.misc_utilities import OnceIndirect
 

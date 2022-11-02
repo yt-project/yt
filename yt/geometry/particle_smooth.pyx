@@ -15,9 +15,8 @@ import numpy as np
 
 cimport cython
 from cpython.exc cimport PyErr_CheckSignals
-from libc.math cimport cos, fabs, sin, sqrt
+from libc.math cimport cos, sin, sqrt
 from libc.stdlib cimport free, malloc, realloc
-from libc.string cimport memmove
 from oct_container cimport Oct, OctInfo, OctreeContainer
 
 

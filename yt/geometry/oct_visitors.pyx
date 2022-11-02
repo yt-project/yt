@@ -14,9 +14,9 @@ cimport numpy as np
 
 import numpy as np
 
-from libc.stdlib cimport free, malloc
+from libc.stdlib cimport malloc
 
-from yt.geometry.oct_container cimport OctInfo, OctreeContainer
+from yt.geometry.oct_container cimport OctreeContainer
 from yt.utilities.lib.fp_utils cimport *
 from yt.utilities.lib.geometry_utils cimport encode_morton_64bit
 
