@@ -85,8 +85,9 @@ class FITSImageData:
             is not already provided by *data*.
         img_ctr : array_like or YTArray
             The center coordinates of the image. If a list or NumPy array,
-            it is assumed to be in *units*. Only used if this information
-            is not already provided by *data*.
+            it is assumed to be in *units*. This will overwrite any center
+            coordinates potentially provided by *data*. Default in other cases
+            is [0.0]*(number of dimensions).
         wcs : `~astropy.wcs.WCS` instance, optional
             Supply an AstroPy WCS instance. Will override automatic WCS
             creation from FixedResolutionBuffers and YTCoveringGrids.
@@ -159,8 +160,6 @@ class FITSImageData:
                 width = YTQuantity(width[0], width[1])
             else:
                 width = ds.quan(width[0], width[1])
-        if img_ctr is None:
-            img_ctr = np.zeros(3)
 
         exclude_fields = [
             "x",
@@ -314,22 +313,30 @@ class FITSImageData:
                 dy = (img_data.bounds[3] - img_data.bounds[2]).to_value(wcs_unit)
                 dx /= self.shape[0]
                 dy /= self.shape[1]
-                xctr = 0.5 * (img_data.bounds[1] + img_data.bounds[0]).to_value(
-                    wcs_unit
-                )
-                yctr = 0.5 * (img_data.bounds[3] + img_data.bounds[2]).to_value(
-                    wcs_unit
-                )
+                if img_ctr is not None:
+                    xctr, yctr = img_ctr
+                else:
+                    xctr = 0.5 * (img_data.bounds[1] + img_data.bounds[0]).to_value(
+                        wcs_unit
+                    )
+                    yctr = 0.5 * (img_data.bounds[3] + img_data.bounds[2]).to_value(
+                        wcs_unit
+                    )
                 center = [xctr, yctr]
                 cdelt = [dx, dy]
             elif isinstance(img_data, YTCoveringGrid):
                 cdelt = img_data.dds.to_value(wcs_unit)
-                center = 0.5 * (img_data.left_edge + img_data.right_edge).to_value(
-                    wcs_unit
-                )
+                if img_ctr is not None:
+                    center = img_ctr
+                else:
+                    center = 0.5 * (img_data.left_edge + img_data.right_edge).to_value(
+                        wcs_unit
+                    )
             else:
                 # If img_data is just an array we use the width and img_ctr
                 # parameters to determine the cell widths
+                if img_ctr is None:
+                    img_ctr = np.zeros(3)
                 if not is_sequence(width):
                     width = [width] * self.dimensionality
                 if isinstance(width[0], YTQuantity):
@@ -855,7 +862,8 @@ def sanitize_fits_unit(unit):
 axis_wcs = [[1, 2], [2, 0], [0, 1]]
 
 
-def construct_image(ds, axis, data_source, center, image_res, width, length_unit):
+def construct_image(ds, axis, data_source, center, image_res, width, length_unit,
+                    origin="domain"):
     if width is None:
         width = ds.domain_width[axis_wcs[axis]]
         unit = ds.get_smallest_appropriate_unit(width[0])
@@ -885,10 +893,13 @@ def construct_image(ds, axis, data_source, center, image_res, width, length_unit
     cunit = [length_unit] * 2
     ctype = ["LINEAR"] * 2
     cdelt = [dx.in_units(length_unit), dy.in_units(length_unit)]
-    if is_sequence(axis):
-        crval = center.in_units(length_unit)
-    else:
-        crval = [center[idx].in_units(length_unit) for idx in axis_wcs[axis]]
+    if origin == "domain":
+        if is_sequence(axis):
+            crval = center.in_units(length_unit)
+        else:
+            crval = [center[idx].in_units(length_unit) for idx in axis_wcs[axis]]
+    elif origin == "image":
+        crval = np.zeros(2)
     if hasattr(data_source, "to_frb"):
         if is_sequence(axis):
             frb = data_source.to_frb(width[0], (nx, ny), height=width[1])
@@ -1005,6 +1016,7 @@ class FITSSlice(FITSImageData):
         center="c",
         width=None,
         length_unit=None,
+        origin="domain",
         **kwargs,
     ):
         fields = list(iter_fields(fields))
@@ -1012,7 +1024,7 @@ class FITSSlice(FITSImageData):
         center, dcenter = ds.coordinates.sanitize_center(center, axis)
         slc = ds.slice(axis, center[axis], **kwargs)
         w, frb, lunit = construct_image(
-            ds, axis, slc, dcenter, image_res, width, length_unit
+            ds, axis, slc, dcenter, image_res, width, length_unit, origin=origin,
         )
         super().__init__(frb, fields=fields, length_unit=lunit, wcs=w)
 
@@ -1083,6 +1095,7 @@ class FITSProjection(FITSImageData):
         width=None,
         weight_field=None,
         length_unit=None,
+        origin="domain",
         *,
         moment=1,
         **kwargs,
@@ -1094,7 +1107,7 @@ class FITSProjection(FITSImageData):
             fields[0], axis, weight_field=weight_field, moment=moment, **kwargs
         )
         w, frb, lunit = construct_image(
-            ds, axis, prj, dcenter, image_res, width, length_unit
+            ds, axis, prj, dcenter, image_res, width, length_unit, origin=origin,
         )
         super().__init__(frb, fields=fields, length_unit=lunit, wcs=w)
 
@@ -1184,6 +1197,7 @@ class FITSParticleProjection(FITSImageData):
         density=False,
         field_parameters=None,
         data_source=None,
+        origin="domain",
     ):
         fields = list(iter_fields(fields))
         axis = fix_axis(axis, ds)
@@ -1207,7 +1221,7 @@ class FITSParticleProjection(FITSImageData):
             density=density,
         )
         w, frb, lunit = construct_image(
-            ds, axis, ps, dcenter, image_res, width, length_unit
+            ds, axis, ps, dcenter, image_res, width, length_unit, origin=origin
         )
         super().__init__(frb, fields=fields, length_unit=lunit, wcs=w)
 
