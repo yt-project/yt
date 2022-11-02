@@ -1,5 +1,5 @@
 # distutils: language = c++
-# distutils: extra_compile_args = CPP14_FLAG
+# distutils: extra_compile_args = CPP14_FLAG OMP_ARGS
 """This is a wrapper around the C++ class to efficiently cast rays into an octree.
 It relies on the seminal paper by  J. Revelles,, C.Ureña and M.Lastra.
 """
