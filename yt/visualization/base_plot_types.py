@@ -333,7 +333,7 @@ class ImagePlotMPL(PlotMPL, ABC):
                         "Failed to format colorbar ticks. "
                         "This is expected when using the set_norm method "
                         "with some matplotlib classes (e.g. TwoSlopeNorm) "
-                        "with versions older than 3.5\n"
+                        "with matplotlib versions older than 3.5\n"
                         "Please try upgrading matplotlib to a more recent version. "
                         "If the problem persists, please file a report to "
                         "https://github.com/yt-project/yt/issues/new"
