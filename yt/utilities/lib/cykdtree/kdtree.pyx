@@ -243,7 +243,7 @@ cdef class PyKDTree:
         if data_version is None:
             data_version = 0
         self.data_version = data_version
-        cdef uint32_t k,i,j
+        cdef uint32_t i
         self.npts = <uint64_t>pts.shape[0]
         self.ndim = <uint32_t>pts.shape[1]
         assert(left_edge.size == self.ndim)
@@ -251,7 +251,7 @@ cdef class PyKDTree:
         self.leafsize = leafsize
         self._left_edge = <double *>malloc(self.ndim*sizeof(double))
         self._right_edge = <double *>malloc(self.ndim*sizeof(double))
-        self._periodic = <cbool *>malloc(self.ndim*sizeof(cbool));
+        self._periodic = <cbool *>malloc(self.ndim*sizeof(cbool))
         for i in range(self.ndim):
             self._left_edge[i] = left_edge[i]
             self._right_edge[i] = right_edge[i]
@@ -323,7 +323,6 @@ cdef class PyKDTree:
         self.leaves = [None for _ in xrange(self.num_leaves)]
         cdef Node* leafnode
         cdef PyNode leafnode_py
-        cdef object leaf_neighbors = None
         for k in xrange(self.num_leaves):
             leafnode = self._tree.leaves[k]
             leafnode_py = PyNode()
@@ -368,7 +367,7 @@ cdef class PyKDTree:
 
     cdef np.ndarray[np.uint32_t, ndim=1] _get_neighbor_ids(self, np.ndarray[double, ndim=1] pos):
         cdef np.uint32_t i
-        cdef vector[uint32_t] vout = self._tree.get_neighbor_ids(&pos[0]);
+        cdef vector[uint32_t] vout = self._tree.get_neighbor_ids(&pos[0])
         cdef np.ndarray[np.uint32_t, ndim=1] out = np.empty(vout.size(), 'uint32')
         for i in xrange(vout.size()):
             out[i] = vout[i]
@@ -395,7 +394,7 @@ cdef class PyKDTree:
 
     cdef np.ndarray[np.uint32_t, ndim=1] _get_neighbor_ids_3(self, np.float64_t pos[3]):
         cdef np.uint32_t i
-        cdef vector[uint32_t] vout = self._tree.get_neighbor_ids(&pos[0]);
+        cdef vector[uint32_t] vout = self._tree.get_neighbor_ids(&pos[0])
         cdef np.ndarray[np.uint32_t, ndim=1] out = np.empty(vout.size(), 'uint32')
         for i in xrange(vout.size()):
             out[i] = vout[i]

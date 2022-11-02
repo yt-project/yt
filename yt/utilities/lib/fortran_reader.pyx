@@ -61,11 +61,11 @@ def count_art_octs(char *fn, long offset,
     cdef FILE *f = fopen(fn, "rb")
     fseek(f, offset, SEEK_SET)
     for _ in range(min_level + 1, max_level + 1):
-        fread(dummy_records, sizeof(int), 2, f);
+        fread(dummy_records, sizeof(int), 2, f)
         fread(&nLevel, sizeof(int), 1, f); FIX_LONG(nLevel)
         print(level_info)
         level_info.append(nLevel)
-        fread(dummy_records, sizeof(int), 2, f);
+        fread(dummy_records, sizeof(int), 2, f)
         fread(&next_record, sizeof(int), 1, f); FIX_LONG(next_record)
         print("Record size is:", next_record)
         # Offset for one record header we just read
@@ -138,7 +138,7 @@ def read_art_tree(char *fn, long offset,
             #oct_parents[iOct] = readin - 1
             fread(&readin, sizeof(int), 1, f); FIX_LONG(readin)
             oct_levels[iOct] = readin
-            fread(&iOct, sizeof(int), 1, f); FIX_LONG(iOct);
+            fread(&iOct, sizeof(int), 1, f); FIX_LONG(iOct)
             iOct -= 1
             assert next_record > 0
             fseek(f, next_record, SEEK_SET)
@@ -150,7 +150,7 @@ def read_art_tree(char *fn, long offset,
         #skip over the hydro variables
         #find the length of one child section
         #print('measuring child record ',)
-        fread(&next_record, sizeof(int), 1, f);
+        fread(&next_record, sizeof(int), 1, f)
         #print(next_record,)
         FIX_LONG(next_record)
         #print(next_record)
@@ -193,7 +193,7 @@ def read_art_root_vars(char *fn, long root_grid_offset,
     fseek(f, cell_record_size * my_offset, SEEK_CUR)
     #(((C)*GridDimension[1]+(B))*GridDimension[0]+A)
     for j in range(nhydro_vars):
-        fread(&temp, sizeof(float), 1, f);
+        fread(&temp, sizeof(float), 1, f)
         if j in fields:
             FIX_FLOAT(temp)
             var[l]=temp

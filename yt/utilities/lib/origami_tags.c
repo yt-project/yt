@@ -14,17 +14,16 @@ int compute_tags(int ng, double boxsize, double **r, int np,
                  unsigned char *m) {
   /* Note that the particles must be fed in according to the order specified in
    * the README file */
-  double predict, xmin,xmax,ymin,ymax,zmin,zmax;
+  double xmin,xmax,ymin,ymax,zmin,zmax;
 
   double negb2, b2;
-  int ng2,ng4, h, i,i2, x,y,z,nhalo,nhalo0,nhalo1,nhalo2,nhaloany;
+  int ng4, h, i,i2, x,y,z,nhalo,nhalo0,nhalo1,nhalo2,nhaloany;
   unsigned char *m0,*m1,*m2, mn,m0n,m1n,m2n; /*Morphology tag */
 
   double dx,d1,d2;
 
   b2 = boxsize/2.;
   negb2 = -boxsize/2.;
-  ng2=ng/2;
   ng4=ng/4;
 
   /* Boxsize should be the range in r, yielding a range 0-1 */

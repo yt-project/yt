@@ -354,7 +354,6 @@ def zpoints(np.ndarray[np.float64_t, ndim=3] image,
 
     cdef int nx = image.shape[0]
     cdef int ny = image.shape[1]
-    cdef int nl = xs.shape[0]
     cdef np.float64_t[:] alpha
     cdef np.float64_t talpha
     cdef int i, j, c
@@ -974,7 +973,7 @@ def gravitational_binding_energy(
         np.float64_t kinetic,
         int num_threads = 0):
 
-    cdef int q_outer, q_inner, n_q, i
+    cdef int q_outer, q_inner, n_q
     cdef np.float64_t mass_o, x_o, y_o, z_o
     cdef np.float64_t mass_i, x_i, y_i, z_i
     cdef np.float64_t total_potential = 0.

@@ -93,7 +93,6 @@ cpdef read_offset(FortranFile f, INT64_t min_level, INT64_t domain_id, INT64_t n
     cdef INT64_t ilevel, icpu
     cdef INT32_t file_ilevel, file_ncache
 
-    numbl = headers['numbl']
     ndim = headers['ndim']
     nboundary = headers['nboundary']
     nlevelmax = headers['nlevelmax']
@@ -157,7 +156,7 @@ def fill_hydro(FortranFile f,
 
     twotondim = 2**ndim
     nfields = len(all_fields)
-    ncpu = offsets.shape[0]
+
     nlevels = offsets.shape[1]
     ncpu_selected = len(cpu_enumerator)
 

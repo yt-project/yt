@@ -346,10 +346,10 @@ cdef class BVH:
             return
 
         # check for leaf
-        cdef np.int64_t i, hit
+        cdef np.int64_t i
         if (node.end - node.begin) <= LEAF_SIZE:
             for i in range(node.begin, node.end):
-                hit = self.get_intersect(self.primitives, self.prim_ids[i], ray)
+                self.get_intersect(self.primitives, self.prim_ids[i], ray)
             return
 
         # if not leaf, intersect with left and right children
