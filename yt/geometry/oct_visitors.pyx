@@ -278,8 +278,6 @@ cdef class StoreOctree(OctVisitor):
     @cython.boundscheck(False)
     @cython.initializedcheck(False)
     cdef void visit(self, Oct* o, np.uint8_t selected):
-        cdef np.uint8_t res, ii
-        ii = cind(self.ind[0], self.ind[1], self.ind[2])
         if o.children == NULL:
             # Not refined.
             res = 0

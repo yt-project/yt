@@ -63,7 +63,6 @@ cdef class VoronoiVolume:
     @cython.wraparound(False)
     def get_volumes(self):
         cdef np.ndarray vol = np.zeros(self.npart, 'double')
-        cdef double *vdouble = <double *> vol.data
         #self.my_con.store_cell_volumes(vdouble)
         cdef c_loop_all *vl = new c_loop_all(deref(self.my_con))
         cdef voronoicell c

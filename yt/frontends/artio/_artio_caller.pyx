@@ -446,7 +446,6 @@ cdef class artio_fileset :
         cdef int subspecies
         cdef int64_t pid
 
-        cdef int num_fields = len(fields)
         cdef np.float64_t pos[3]
 
         # since RuntimeErrors are not fatal, ensure no artio_particles* functions
@@ -552,7 +551,6 @@ cdef class artio_fileset :
         cdef int refined[8]
         cdef int status
         cdef int64_t count
-        cdef int64_t max_octs
         cdef double dpos[3]
         cdef np.float64_t left[3]
         cdef np.float64_t right[3]
@@ -667,7 +665,6 @@ cdef class artio_fileset :
         cdef int64_t sfc_start, sfc_end
         cdef np.float64_t left[3]
         cdef np.float64_t right[3]
-        cdef np.float64_t dds[3]
         cdef artio_selection *selection
         cdef int i, j, k
 
@@ -939,15 +936,10 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
                               np.int64_t sfc):
         # We actually will not be initializing the root mesh here, we will be
         # initializing the entire mesh between sfc_start and sfc_end.
-        cdef np.int64_t oct_ind, tot_octs, ipos, nadded
-        cdef int i, status, level, num_root, num_octs
-        cdef int num_level_octs
+        cdef np.int64_t oct_ind, ipos, nadded
+        cdef int i, status, level
         cdef artio_fileset_handle *handle = self.artio_handle.handle
-        cdef int coords[3]
-        cdef int max_level = self.artio_handle.max_level
         cdef double dpos[3]
-        cdef np.float64_t f64pos[3]
-        cdef np.float64_t dds[3]
         cdef np.ndarray[np.float64_t, ndim=2] pos
         # NOTE: We do not cache any SFC ranges here, as we should only ever be
         # called from within a pre-cached operation in the SFC handler.
@@ -992,10 +984,9 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
              field_indices, dest_fields):
         cdef np.ndarray[np.float32_t, ndim=2] source
         cdef np.ndarray[np.float64_t, ndim=1] dest
-        cdef int n, status, i, di, num_oct_levels, nf, ngv, max_level
+        cdef int status, i, num_oct_levels, nf, ngv, max_level
         cdef int level, j, oct_ind, si
         cdef np.int64_t sfc, ipos
-        cdef np.float64_t val
         cdef artio_fileset_handle *handle = self.artio_handle.handle
         cdef double dpos[3]
         # We duplicate some of the grid_variables stuff here so that we can
@@ -1098,7 +1089,6 @@ cdef read_sfc_particles(artio_fileset artio_handle,
     cdef np.int64_t sfc, particle, pid, ind, vind
     cdef int num_species = artio_handle.num_species
     cdef artio_fileset_handle *handle = artio_handle.handle
-    cdef int num_oct_levels
     cdef int *num_particles_per_species =  <int *>malloc(
         sizeof(int)*num_species)
     cdef int *accessed_species =  <int *>malloc(
@@ -1108,7 +1098,6 @@ cdef read_sfc_particles(artio_fileset artio_handle,
     cdef particle_var_pointers *vpoints = <particle_var_pointers *> malloc(
         sizeof(particle_var_pointers)*num_species)
     cdef double *primary_variables
-    cdef double dpos[3]
     cdef float *secondary_variables
     cdef np.int64_t tp
     cdef int max_level = artio_handle.max_level
@@ -1330,11 +1319,6 @@ cdef class ARTIORootMeshContainer:
     cdef np.int64_t count_cells(self, SelectorObject selector):
         # We visit each cell if it is not refined and determine whether it is
         # included or not.
-        cdef np.int64_t sfc
-        cdef np.float64_t pos[3]
-        cdef np.float64_t right_edge[3]
-        cdef int num_cells = 0
-        cdef int i
         return self.mask(selector).sum()
 
     @cython.boundscheck(False)
@@ -1373,7 +1357,6 @@ cdef class ARTIORootMeshContainer:
         # Note that num_cells does not have to equal sfc_end - sfc_start + 1.
         cdef np.int64_t sfc, sfci = -1
         cdef np.float64_t pos[3]
-        cdef int acoords[3]
         cdef int i
         cdef np.ndarray[np.uint8_t, ndim=1, cast=True] mask
         mask = self.mask(selector)
@@ -1400,8 +1383,6 @@ cdef class ARTIORootMeshContainer:
     def fwidth(self, SelectorObject selector, np.int64_t num_cells = -1,
                 int domain_id = -1):
         cdef int i
-        cdef np.ndarray[np.uint8_t, ndim=1, cast=True] mask
-        mask = self.mask(selector)
         num_cells = self._last_mask_sum
         cdef np.ndarray[np.float64_t, ndim=2] width
         width = np.zeros((num_cells, 3), dtype="float64")
@@ -1414,8 +1395,6 @@ cdef class ARTIORootMeshContainer:
     @cython.cdivision(True)
     def ires(self, SelectorObject selector, np.int64_t num_cells = -1,
                 int domain_id = -1):
-        cdef np.ndarray[np.uint8_t, ndim=1, cast=True] mask
-        mask = self.mask(selector)
         num_cells = self._last_mask_sum
         cdef np.ndarray[np.int64_t, ndim=1] res
         res = np.zeros(num_cells, dtype="int64")
@@ -1434,13 +1413,7 @@ cdef class ARTIORootMeshContainer:
         cdef np.int64_t num_cells = -1
         cdef np.int64_t ind
         cdef np.int64_t sfc, sfci = -1
-        cdef np.float64_t pos[3]
-        cdef np.float64_t dpos[3]
-        cdef int dim, status, filled = 0
-        cdef int num_oct_levels, level
-        cdef int max_level = self.artio_handle.max_level
-        cdef int *num_octs_per_level = <int *>malloc(
-            (max_level + 1)*sizeof(int))
+        cdef int filled = 0
         cdef char *sdata = <char*> source.data
         cdef char *ddata
         cdef int ss = source.dtype.itemsize
@@ -1476,7 +1449,6 @@ cdef class ARTIORootMeshContainer:
     def mask(self, SelectorObject selector, np.int64_t num_cells = -1,
              int domain_id = -1):
         # We take a domain_id here to avoid subclassing
-        cdef int i
         cdef np.float64_t pos[3]
         cdef np.int64_t sfc, sfci = -1
         if self._last_selector_id == hash(selector):
@@ -1508,9 +1480,8 @@ cdef class ARTIORootMeshContainer:
     @cython.cdivision(True)
     def fill_sfc(self, SelectorObject selector, field_indices):
         cdef np.ndarray[np.float64_t, ndim=1] dest
-        cdef int n, status, i, di, num_oct_levels, nf, ngv, max_level
+        cdef int status, i, num_oct_levels, nf, ngv, max_level
         cdef np.int64_t sfc, num_cells, sfci = -1
-        cdef np.float64_t val
         cdef double dpos[3]
         max_level = self.artio_handle.max_level
         cdef int *num_octs_per_level = <int *>malloc(
@@ -1611,8 +1582,7 @@ cdef class ARTIORootMeshContainer:
         cdef int coords[3]
         cdef int dims[3]
         dims[0] = dims[1] = dims[2] = 1
-        cdef np.int64_t offset, moff
-        cdef np.int64_t numpart = positions.shape[0]
+        cdef np.int64_t offset
         for i in range(positions.shape[0]):
             for j in range(nf):
                 field_vals[j] = field_pointers[j][i]

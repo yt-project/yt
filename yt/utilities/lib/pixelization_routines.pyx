@@ -282,7 +282,7 @@ def pixelize_cartesian_nodal(np.float64_t[:,:] buff,
     cdef np.float64_t x_min, x_max, y_min, y_max
     cdef np.float64_t period_x = 0.0, period_y = 0.0
     cdef np.float64_t width, height, px_dx, px_dy, ipx_dx, ipx_dy
-    cdef np.float64_t ld_x, ld_y, cx, cy, cz
+    cdef np.float64_t cx, cy, cz
     cdef int i, j, p, xi, yi
     cdef int lc, lr, rc, rr
     cdef np.float64_t lypx, rypx, lxpx, rxpx, overlap1, overlap2
@@ -807,7 +807,7 @@ cdef int check_face_dot(int nvertices,
         nf = HEX_NF
     else:
         return -1
-    cdef int i, j, n, vi1a, vi1b, vi2a, vi2b
+    cdef int n, vi1a, vi1b, vi2a, vi2b
 
     for n in range(nf):
         vi1a = faces[n][0][0]
@@ -1076,13 +1076,12 @@ def pixelize_sph_kernel_projection(
     cdef np.float64_t q_ij2, posx_diff, posy_diff, ih_j2
     cdef np.float64_t x, y, dx, dy, idx, idy, h_j2, px, py
     cdef np.float64_t period_x = 0, period_y = 0
-    cdef int index, i, j, ii, jj
+    cdef int i, j, ii, jj
     cdef np.float64_t[:] _weight_field
     cdef int * xiter
     cdef int * yiter
     cdef np.float64_t * xiterv
     cdef np.float64_t * yiterv
-    cdef np.float64_t * local_buf
 
     if weight_field is not None:
         _weight_field = weight_field
@@ -1403,13 +1402,12 @@ def pixelize_sph_kernel_slice(
     cdef np.int64_t xi, yi, x0, x1, y0, y1, xxi, yyi
     cdef np.float64_t q_ij, posx_diff, posy_diff, ih_j
     cdef np.float64_t x, y, dx, dy, idx, idy, h_j2, h_j, px, py
-    cdef int index, i, j, ii, jj
+    cdef int i, j, ii, jj
     cdef np.float64_t period_x = 0, period_y = 0
     cdef int * xiter
     cdef int * yiter
     cdef np.float64_t * xiterv
     cdef np.float64_t * yiterv
-    cdef np.float64_t * local_buf
 
     if period is not None:
         period_x = period[0]
@@ -1541,7 +1539,7 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
     cdef np.int64_t xi, yi, zi, x0, x1, y0, y1, z0, z1
     cdef np.float64_t q_ij, posx_diff, posy_diff, posz_diff, px, py, pz
     cdef np.float64_t x, y, z, dx, dy, dz, idx, idy, idz, h_j3, h_j2, h_j, ih_j
-    cdef int index, i, j, k, ii, jj, kk
+    cdef int j, ii, jj, kk
     cdef np.float64_t period_x = 0, period_y = 0, period_z = 0
 
     cdef int xiter[2]

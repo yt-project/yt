@@ -80,7 +80,6 @@ def generate_smoothing_length(np.float64_t[:, ::1] tree_positions,
     cdef np.float64_t * pos
     cdef np.float64_t[:] smoothing_length = np.empty(n_particles)
     cdef BoundedPriorityQueue queue = BoundedPriorityQueue(n_neighbors)
-    cdef np.int64_t skipaxis = -1
 
     # We are using all spatial dimensions
     cdef axes_range axes
@@ -231,7 +230,6 @@ cdef inline int cull_node(Node* node,
     cdef int k
     cdef np.float64_t v
     cdef np.float64_t tpos, ndist = 0
-    cdef uint32_t leafid
 
     if node.leafid == skipleaf:
         return True
@@ -334,7 +332,6 @@ cdef inline int cull_node_ball(Node* node,
     cdef int k
     cdef np.float64_t v
     cdef np.float64_t tpos, ndist = 0
-    cdef uint32_t leafid
 
     if node.leafid == skipleaf:
         return True
@@ -364,7 +361,7 @@ cdef inline int process_node_points_ball(Node* node,
                                          axes_range * axes,
                                          ) nogil except -1:
     """Add points from the leaf node within the ball to the neighbor list."""
-    cdef uint64_t i, k, n
+    cdef uint64_t i, k
     cdef np.float64_t tpos, sq_dist
     for i in range(node.left_idx, node.left_idx + node.children):
         if i == skipidx:

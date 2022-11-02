@@ -249,7 +249,6 @@ cdef class QuadraticElementMesh:
                  np.ndarray vertices,
                  np.ndarray indices,
                  np.ndarray field_data):
-        cdef int i, j
 
         # 20-point hexes
         if indices.shape[1] == 20:
@@ -272,7 +271,6 @@ cdef class QuadraticElementMesh:
                                   np.ndarray field_data):
         cdef int i, j, k, ind, idim
         cdef int ne = indices_in.shape[0]
-        cdef int nv = vertices_in.shape[0]
         cdef int npatch = self.ppe*ne;
 
         cdef unsigned int mesh = rtcgu.rtcNewUserGeometry(scene.scene_i, npatch)
@@ -316,7 +314,6 @@ cdef class QuadraticElementMesh:
                                   np.ndarray field_data):
         cdef int i, j, k, ind, idim
         cdef int ne = indices_in.shape[0]
-        cdef int nv = vertices_in.shape[0]
         cdef int npatch = self.ppe*ne;
 
         cdef unsigned int mesh = rtcgu.rtcNewUserGeometry(scene.scene_i, npatch)

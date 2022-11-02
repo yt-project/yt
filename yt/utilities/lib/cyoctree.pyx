@@ -595,7 +595,7 @@ cdef class CyOctree:
         """
 
         cdef Octree * tree = self.c_octree
-        cdef double q_ij, diff_x, diff_y, diff_z, diff, sx, sy, sz, size
+        cdef double q_ij, diff_x, diff_y, diff_z, diff, sx, sy, sz
         cdef int i
         cdef long int child_node
 
@@ -676,7 +676,7 @@ cdef class CyOctree:
         """
         self.kernel = get_kernel_func(kernel_name)
 
-        cdef int i, j
+        cdef int i
         cdef double prefactor, prefactor_norm
         for i in range(posx.shape[0]):
             prefactor = pmass[i] / pdens[i] / hsml[i]**3

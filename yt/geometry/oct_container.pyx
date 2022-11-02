@@ -51,13 +51,12 @@ cdef class OctreeContainer:
         # This will just initialize the root mesh octs
         self.nz = num_zones
         self.partial_coverage = partial_coverage
-        cdef int i, j, k, p
+        cdef int i
         for i in range(3):
             self.nn[i] = oct_domain_dimensions[i]
         self.num_domains = 0
         self.level_offset = 0
         self.domains = OctObjectPool()
-        p = 0
         self.nocts = 0 # Increment when initialized
         for i in range(3):
             self.DLE[i] = domain_left_edge[i] #0
@@ -89,7 +88,7 @@ cdef class OctreeContainer:
         cdef SelectorObject selector = AlwaysSelector(None)
         cdef oct_visitors.LoadOctree visitor
         visitor = oct_visitors.LoadOctree(obj, -1)
-        cdef int i, j, k, n
+        cdef int i, j, k
         visitor.global_index = -1
         visitor.level = 0
         visitor.nz = visitor.nzones = 1
@@ -153,7 +152,7 @@ cdef class OctreeContainer:
     cdef void visit_all_octs(self, SelectorObject selector,
                         OctVisitor visitor, int vc = -1,
                         np.int64_t *indices = NULL):
-        cdef int i, j, k, n
+        cdef int i, j, k
         if vc == -1:
             vc = self.partial_coverage
         visitor.global_index = -1
@@ -264,7 +263,7 @@ cdef class OctreeContainer:
         cdef np.ndarray[np.int64_t, ndim=1] oct_id
         oct_id = np.ones(positions.shape[0], dtype="int64") * -1
         recorded = np.zeros(self.nocts, dtype="uint8")
-        cdef np.int64_t i, j, k
+        cdef np.int64_t i, j
         for i in range(positions.shape[0]):
             for j in range(3):
                 pos[j] = positions[i,j]
@@ -661,7 +660,6 @@ cdef class OctreeContainer:
     def file_index_octs(self, SelectorObject selector, int domain_id,
                         num_cells = -1):
         # We create oct arrays of the correct size
-        cdef np.int64_t i
         cdef np.ndarray[np.uint8_t, ndim=1] levels
         cdef np.ndarray[np.uint8_t, ndim=1] cell_inds
         cdef np.ndarray[np.int64_t, ndim=1] file_inds
@@ -893,7 +891,6 @@ cdef class OctreeContainer:
         +---+---+---+---+
 
         """
-        cdef np.int64_t i
         cdef int num_octs
         if num_cells < 0:
             num_octs = selector.count_octs(self, domain_id)
@@ -1012,8 +1009,8 @@ cdef class SparseOctreeContainer(OctreeContainer):
                         OctVisitor visitor,
                         int vc = -1,
                         np.int64_t *indices = NULL):
-        cdef int i, j, k, n
-        cdef np.int64_t key, ukey
+        cdef int i, j
+        cdef np.int64_t key
         visitor.global_index = -1
         visitor.level = 0
         if vc == -1:
@@ -1175,7 +1172,6 @@ cdef class OctObjectPool(ObjectPool):
 
     cdef void setup_objs(self, void *obj, np.uint64_t n, np.uint64_t offset,
                          np.int64_t con_id):
-        cdef np.uint64_t i
         cdef Oct* octs = <Oct *> obj
         for n in range(n):
             octs[n].file_ind = octs[n].domain = - 1
@@ -1184,7 +1180,7 @@ cdef class OctObjectPool(ObjectPool):
 
     cdef void teardown_objs(self, void *obj, np.uint64_t n, np.uint64_t offset,
                            np.int64_t con_id):
-        cdef np.uint64_t i, j
+        cdef np.uint64_t i
         cdef Oct *my_octs = <Oct *> obj
         for i in range(n):
             if my_octs[i].children != NULL:

@@ -382,7 +382,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         for i in range(self.nocts):
             if ind[i] < 0: continue
             self.oct_list[i].domain = domain_id
-        ind_out = super(ParticleOctreeContainer,self).domain_ind(selector, domain_id = domain_id)
+        super(ParticleOctreeContainer,self).domain_ind(selector, domain_id = domain_id)
 
     def domain_ind(self, selector, int domain_id = -1,
                    BoolArrayCollection mask = None, int masklevel = 99):
@@ -724,8 +724,6 @@ cdef class ParticleBitmap:
         cdef np.float64_t axiterv[3][2]
         cdef CoarseRefinedSets coarse_refined_map
         cdef np.uint64_t nfully_enclosed = 0, n_calls = 0
-        mi1_max = (1 << self.index_order1) - 1
-        mi2_max = (1 << self.index_order2) - 1
         cdef np.uint64_t max_mi1_elements = 1 << (3*self.index_order1)
         cdef np.uint64_t max_mi2_elements = 1 << (3*self.index_order2)
         cdef np.ndarray[np.uint64_t, ndim=1] refined_count = np.zeros(max_mi1_elements, dtype="uint64")
@@ -874,7 +872,8 @@ cdef class ParticleBitmap:
                                            np.float64_t dds1[3], np.uint64_t xex, np.uint64_t yex, np.uint64_t zex,
                                            np.float64_t dds2[3], bool_array &refined_set) except -1:
         cdef int i
-        cdef np.uint64_t bounds_l[3], bounds_r[3]
+        cdef np.uint64_t bounds_l[3]
+        cdef np.uint64_t bounds_r[3]
         cdef np.uint64_t miex2, miex2_min, miex2_max
         cdef np.float64_t clip_pos_l[3]
         cdef np.float64_t clip_pos_r[3]
@@ -942,7 +941,6 @@ cdef class ParticleBitmap:
                                             np.ndarray[np.uint64_t, ndim=1] sub_mi1,
                                             np.ndarray[np.uint64_t, ndim=1] sub_mi2,
                                             np.uint64_t file_id, np.int64_t nsub_mi):
-        cdef np.int64_t i, p
         cdef FileBitmasks bitmasks = self.bitmasks
         bitmasks._set_refined_index_array(file_id, nsub_mi, sub_mi1, sub_mi2)
 
@@ -1332,7 +1330,7 @@ cdef class ParticleBitmap:
                          BoolArrayCollection selector_mask,
                          BoolArrayCollection base_mask = None):
         cdef np.uint64_t total_pcount
-        cdef np.uint64_t i, j, k, n
+        cdef np.uint64_t i, j, k
         cdef int ind[3]
         cdef np.uint64_t ind64[3]
         cdef ParticleBitmapOctreeContainer octree
@@ -1349,8 +1347,6 @@ cdef class ParticleBitmap:
             DRE[i] = self.right_edge[i]
         cdef np.ndarray[np.uint64_t, ndim=1] morton_ind
         # Determine cells that need to be added to the octree
-        cdef np.ndarray[np.uint32_t, ndim=1] file_idx_p
-        cdef np.ndarray[np.uint32_t, ndim=1] file_idx_g
         cdef np.uint64_t nroot = selector_mask._count_total()
         # Now we can actually create a sparse octree.
         octree = ParticleBitmapOctreeContainer(
@@ -1793,7 +1789,7 @@ cdef class ParticleBitmapSelector:
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void add_ghost_zones(self, BoolArrayColl mm_s, BoolArrayColl mm_g):
-        cdef np.uint64_t mi1, mi2, mi1_n, mi2_n
+        cdef np.uint64_t mi1, mi2
         # Get ghost zones, unordered
         for mi1 in range(self.s1):
             if mm_s._get_coarse(mi1):
@@ -1855,11 +1851,9 @@ cdef class ParticleBitmapSelector:
         cdef np.float64_t rpos[3]
         cdef np.float64_t ndds[3]
         cdef np.uint64_t nlevel
-        cdef np.uint64_t ind1[3]
-        cdef np.uint64_t ind2[3]
         cdef np.uint64_t ncur_ind[3]
         cdef np.uint64_t* zeros = [0, 0, 0]
-        cdef int i, j, k, m, sbbox
+        cdef int i, j, k, sbbox
         PyErr_CheckSignals()
         for i in range(3):
             ndds[i] = dds[i]/2
@@ -1929,7 +1923,6 @@ cdef class ParticleBitmapSelector:
         cdef np.uint64_t nlevel
         cdef np.float64_t DLE[3]
         cdef np.uint64_t ind1[3]
-        cdef np.uint64_t ind2[3]
         cdef int i, j, k, m
         for i in range(3):
             ndds[i] = dds[i]/2
@@ -2104,7 +2097,6 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
         cdef int i, j, k
         cdef int ind[3]
         cdef Oct *noct
-        cdef Oct *noct_ch
         beg = end = 0
         if level > max_level[0]: max_level[0] = level
         # Initialize children
@@ -2157,8 +2149,8 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
         #Then if that oct has children, add it to them recursively
         #If the child needs to be refined because of max particles, do so
         cdef Oct *root = NULL
-        cdef np.int64_t no = indices.shape[0], beg, end, index, nind
-        cdef int i, level
+        cdef np.int64_t no = indices.shape[0], beg, end, index
+        cdef int i
         cdef int ind[3]
         cdef np.uint64_t ind64[3]
         cdef int max_level = self.max_level
@@ -2177,7 +2169,6 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
             index = (indices[beg] >> ((ORDER_MAX - self.level_offset)*3))
             while (end < no) and (index == (indices[end] >> ((ORDER_MAX - self.level_offset)*3))):
                 end += 1
-            nind = (end - beg)
             # Find root for prefix
             decode_morton_64bit(index, ind64)
             for i in range(3):

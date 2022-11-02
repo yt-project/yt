@@ -69,8 +69,8 @@ cdef class SRHDFields:
             np.float64_t mz,
             np.float64_t kT,
         ):
-        cdef np.float64_t u2, c2, vx, vy, vz
-        cdef np.float64_t htilde, fac;
+        cdef np.float64_t u2
+        cdef np.float64_t fac
 
         fac = (1.0 / (rho * (self.h(kT, self._gamma) + 1.0))) ** 2
         u2 = (mx * mx + my * my + mz * mz) * fac
@@ -97,7 +97,6 @@ cdef class SRHDFields:
 
         out = np.empty_like(dens)
         cdef np.float64_t[:] outp = out.ravel()
-        cdef np.float64_t lf
         cdef int i
 
         for i in range(outp.shape[0]):
@@ -125,7 +124,6 @@ cdef class SRHDFields:
         cdef np.float64_t[:] kT = temp.ravel()
         out = np.empty_like(kT)
         cdef np.float64_t[:] outp = out.ravel()
-        cdef np.float64_t hp, cs2;
 
         cdef int i
         for i in range(outp.shape[0]):
@@ -142,7 +140,6 @@ cdef class SRHDFields:
 
         out = np.empty_like(dens)
         cdef np.float64_t[:] outp = out.ravel()
-        cdef np.float64_t[:] ui
         cdef int i
 
         for i in range(outp.shape[0]):
@@ -215,15 +212,10 @@ cdef class SRHDFields:
     @cython.wraparound(False)
     @cython.cdivision(True)
     def specific_thermal_energy(self, dens, momx, momy, momz, temp):
-        cdef np.float64_t[:] rho = dens.ravel()
-        cdef np.float64_t[:] mx = momx.ravel()
-        cdef np.float64_t[:] my = momy.ravel()
-        cdef np.float64_t[:] mz = momz.ravel()
         cdef np.float64_t[:] kT = temp.ravel()
 
         out = np.empty_like(dens)
         cdef np.float64_t[:] outp = out.ravel()
-        cdef np.float64_t lf, p, ht
         cdef int i
 
         for i in range(outp.shape[0]):
@@ -269,7 +261,7 @@ cdef class SRHDFields:
 
         out = np.empty_like(dens)
         cdef np.float64_t[:] outp = out.ravel()
-        cdef np.float64_t lf, u2, hp, cs
+        cdef np.float64_t cs
         cdef int i
 
         for i in range(outp.shape[0]):

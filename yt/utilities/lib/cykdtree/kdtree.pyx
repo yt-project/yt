@@ -243,7 +243,7 @@ cdef class PyKDTree:
         if data_version is None:
             data_version = 0
         self.data_version = data_version
-        cdef uint32_t k,i,j
+        cdef uint32_t i
         self.npts = <uint64_t>pts.shape[0]
         self.ndim = <uint32_t>pts.shape[1]
         assert(left_edge.size == self.ndim)
@@ -323,7 +323,6 @@ cdef class PyKDTree:
         self.leaves = [None for _ in xrange(self.num_leaves)]
         cdef Node* leafnode
         cdef PyNode leafnode_py
-        cdef object leaf_neighbors = None
         for k in xrange(self.num_leaves):
             leafnode = self._tree.leaves[k]
             leafnode_py = PyNode()
