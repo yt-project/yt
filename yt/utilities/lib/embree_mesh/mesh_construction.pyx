@@ -271,7 +271,7 @@ cdef class QuadraticElementMesh:
                                   np.ndarray field_data):
         cdef int i, j, k, ind, idim
         cdef int ne = indices_in.shape[0]
-        cdef int npatch = self.ppe*ne;
+        cdef int npatch = self.ppe*ne
 
         cdef unsigned int mesh = rtcgu.rtcNewUserGeometry(scene.scene_i, npatch)
         cdef np.ndarray[np.float64_t, ndim=2] element_vertices
@@ -314,7 +314,7 @@ cdef class QuadraticElementMesh:
                                   np.ndarray field_data):
         cdef int i, j, k, ind, idim
         cdef int ne = indices_in.shape[0]
-        cdef int npatch = self.ppe*ne;
+        cdef int npatch = self.ppe*ne
 
         cdef unsigned int mesh = rtcgu.rtcNewUserGeometry(scene.scene_i, npatch)
         cdef np.ndarray[np.float64_t, ndim=2] element_vertices

@@ -1207,7 +1207,7 @@ cdef read_sfc_particles(artio_fileset artio_handle,
         check_artio_status(status)
         for ispec in range(num_species) :
             if accessed_species[ispec] == 0: continue
-            status = artio_particle_read_species_begin(handle, ispec);
+            status = artio_particle_read_species_begin(handle, ispec)
             check_artio_status(status)
             vp = &vpoints[ispec]
 

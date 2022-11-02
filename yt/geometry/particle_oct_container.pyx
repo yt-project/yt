@@ -403,7 +403,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
             if o != NULL:
                 _mask_children(oct_mask, o)
                 coct += 1
-            cmi += 1;
+            cmi += 1
             preincrement(iter_set[0])
         # Get domain ind
         cdef np.ndarray[np.int64_t, ndim=1] ind
