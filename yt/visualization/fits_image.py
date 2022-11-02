@@ -789,9 +789,9 @@ class FITSImageData:
         wcsname : string, optional
             The name of the WCS to be stored in the FITS header.
         replace_old_wcs : boolean, optional
-            Whether or not to overwrite the default WCS of the
-            FITSImageData instance. If false, a second WCS will
-            be added to the header. Default: True.
+            If True, the original WCS will be overwritten but
+            first copied to a second WCS ("WCSAXESA"). If False, this
+            new WCS will be placed into the second WCS.
         """
         if ctype is None:
             ctype = ["RA---TAN", "DEC--TAN"]
@@ -831,6 +831,7 @@ class FITSImageData:
             new_wcs.wcs.cd = pc
         if replace_old_wcs:
             self.set_wcs(new_wcs, wcsname=wcsname)
+            self.set_wcs(old_wcs, wcsname="yt", suffix="a")
         else:
             self.set_wcs(new_wcs, wcsname=wcsname, suffix="a")
 
