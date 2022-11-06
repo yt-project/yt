@@ -524,7 +524,7 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
         Assumes that the underlying data has a PlateCarree transform type.
 
         To annotate the plot with coastlines or other annotations,
-        `_setup_plots()` will need to be called after this function
+        `render()` will need to be called after this function
         to make the axes available for annotation.
 
         Parameters
@@ -554,7 +554,7 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
         >>> ds = yt.load("")
         >>> p = yt.SlicePlot(ds, "altitude", "AIRDENS")
         >>> p.set_mpl_projection("AIRDENS", "Mollweide")
-        >>> p._setup_plots()
+        >>> p.render()
         >>> p.plots["AIRDENS"].axes.coastlines()
         >>> p.show()
 
@@ -567,7 +567,7 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
         >>> p.set_mpl_projection(
         ...     "AIRDENS", ("PlateCarree", (), {"central_longitude": 90, "globe": None})
         ... )
-        >>> p._setup_plots()
+        >>> p.render()
         >>> p.plots["AIRDENS"].axes.set_global()
         >>> p.plots["AIRDENS"].axes.coastlines()
         >>> p.show()
@@ -582,7 +582,7 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
         >>> ds = yt.load("")
         >>> p = yt.SlicePlot(ds, "altitude", "AIRDENS")
         >>> p.set_mpl_projection("RotatedPole", (177.5, 37.5))
-        >>> p._setup_plots()
+        >>> p.render()
         >>> p.plots["AIRDENS"].axes.set_global()
         >>> p.plots["AIRDENS"].axes.coastlines()
         >>> p.show()
@@ -597,7 +597,7 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
         >>> p.set_mpl_projection(
         ...     ("RotatedPole", (), {"pole_latitude": 37.5, "pole_longitude": 177.5})
         ... )
-        >>> p._setup_plots()
+        >>> p.render()
         >>> p.plots["AIRDENS"].axes.set_global()
         >>> p.plots["AIRDENS"].axes.coastlines()
         >>> p.show()
