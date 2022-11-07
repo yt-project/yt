@@ -325,7 +325,21 @@ class ImagePlotMPL(PlotMPL, ABC):
         fmt_kwargs = dict(style="scientific", scilimits=(-2, 3), useMathText=True)
         self.image.axes.ticklabel_format(**fmt_kwargs)
         if type(norm) not in (LogNorm, SymLogNorm):
-            self.cb.ax.ticklabel_format(**fmt_kwargs)
+            try:
+                self.cb.ax.ticklabel_format(**fmt_kwargs)
+            except AttributeError as exc:
+                if MPL_VERSION < Version("3.5.0"):
+                    warnings.warn(
+                        "Failed to format colorbar ticks. "
+                        "This is expected when using the set_norm method "
+                        "with some matplotlib classes (e.g. TwoSlopeNorm) "
+                        "with matplotlib versions older than 3.5\n"
+                        "Please try upgrading matplotlib to a more recent version. "
+                        "If the problem persists, please file a report to "
+                        "https://github.com/yt-project/yt/issues/new"
+                    )
+                else:
+                    raise exc
         if self.colorbar_handler.draw_minorticks:
             if isinstance(norm, SymLogNorm):
                 if MPL_VERSION < Version("3.5.0b"):
