@@ -1,3 +1,6 @@
+from .oct_visitors cimport CountTotalCells, CountTotalOcts
+
+
 cdef class SelectorObject:
 
     def __cinit__(self, dobj, *args):
@@ -61,14 +64,14 @@ cdef class SelectorObject:
         return gridi.astype("bool")
 
     def count_octs(self, OctreeContainer octree, int domain_id = -1):
-        cdef oct_visitors.CountTotalOcts visitor
-        visitor = oct_visitors.CountTotalOcts(octree, domain_id)
+        cdef CountTotalOcts visitor
+        visitor = CountTotalOcts(octree, domain_id)
         octree.visit_all_octs(self, visitor)
         return visitor.index
 
     def count_oct_cells(self, OctreeContainer octree, int domain_id = -1):
-        cdef oct_visitors.CountTotalCells visitor
-        visitor = oct_visitors.CountTotalCells(octree, domain_id)
+        cdef CountTotalCells visitor
+        visitor = CountTotalCells(octree, domain_id)
         octree.visit_all_octs(self, visitor)
         return visitor.index
 
