@@ -200,7 +200,6 @@ class ParticleIndex(Index):
             if rflag == 0:
                 raise OSError
         except (OSError, struct.error):
-            print("here", dont_cache)
             self.regions.reset_bitmasks()
             self._initialize_coarse_index()
             self._initialize_refined_index()
@@ -213,7 +212,6 @@ class ParticleIndex(Index):
                 try:
                     self.regions.save_bitmasks(fname)
                 except OSError:
-                    print("bad")
                     pass
             rflag = self.regions.check_bitmasks()
 
