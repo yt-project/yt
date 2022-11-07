@@ -3,6 +3,7 @@ import errno
 import os
 import struct
 import weakref
+from glob import glob
 
 import numpy as np
 
@@ -174,9 +175,10 @@ class ParticleIndex(Index):
         # Load Morton index from file if provided
         def _current_fname():
             if getattr(ds, "index_filename", None) is None:
-                fname = ds.parameter_filename + ".index{}_{}.ewah".format(
-                    self.regions.index_order1, self.regions.index_order2
-                )
+                range = f"[{self.regions.index_order2}-{self.regions.index_order2+2}]"
+                fn_glob = f"{ds.parameter_filename}.index{self.regions.index_order1}_{range}.ewah"
+                fns = glob(fn_glob)
+                fname = "" if len(fns) == 0 else fns[-1]
             else:
                 fname = ds.index_filename
             return fname
