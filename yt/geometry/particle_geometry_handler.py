@@ -176,9 +176,14 @@ class ParticleIndex(Index):
         def _current_fname():
             if getattr(ds, "index_filename", None) is None:
                 range = f"[{self.regions.index_order2}-{self.regions.index_order2+2}]"
-                fn_glob = f"{ds.parameter_filename}.index{self.regions.index_order1}_{range}.ewah"
+                fn_prefix = f"{ds.parameter_filename}.index{self.regions.index_order1}"
+                fn_glob = f"{fn_prefix}_{range}.ewah"
                 fns = glob(fn_glob)
-                fname = "" if len(fns) == 0 else fns[-1]
+                fname = (
+                    f"{fn_prefix}_{self.regions.index_order2}.ewah"
+                    if len(fns) == 0
+                    else fns[-1]
+                )
             else:
                 fname = ds.index_filename
             return fname
@@ -195,6 +200,7 @@ class ParticleIndex(Index):
             if rflag == 0:
                 raise OSError
         except (OSError, struct.error):
+            print("here", dont_cache)
             self.regions.reset_bitmasks()
             self._initialize_coarse_index()
             self._initialize_refined_index()
@@ -207,6 +213,7 @@ class ParticleIndex(Index):
                 try:
                     self.regions.save_bitmasks(fname)
                 except OSError:
+                    print("bad")
                     pass
             rflag = self.regions.check_bitmasks()
 
