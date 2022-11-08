@@ -36,7 +36,6 @@ from yt.utilities.exceptions import YTElementTypeNotRecognized, YTPixelizeError
 from cpython.exc cimport PyErr_CheckSignals
 from cython.parallel cimport parallel, prange
 from libc.stdlib cimport free, malloc
-from vec3_ops cimport cross, dot, subtract
 
 from yt.geometry.particle_deposit cimport get_kernel_func, kernel_func
 from yt.utilities.lib.element_mappings cimport (
@@ -52,6 +51,8 @@ from yt.utilities.lib.element_mappings cimport (
     Tet2Sampler3D,
     W1Sampler3D,
 )
+
+from .vec3_ops cimport cross, dot, subtract
 
 from yt.funcs import get_pbar
 

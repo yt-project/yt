@@ -15,14 +15,15 @@ cimport numpy as np
 
 import numpy as np
 
-from fixed_interpolator cimport (
+from libc.math cimport sqrt
+from libc.stdlib cimport free, malloc
+
+from .fixed_interpolator cimport (
     eval_gradient,
     offset_fill,
     offset_interpolate,
     vertex_interp,
 )
-from libc.math cimport sqrt
-from libc.stdlib cimport free, malloc
 
 from yt.units.yt_array import YTArray
 

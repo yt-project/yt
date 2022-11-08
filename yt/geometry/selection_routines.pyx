@@ -13,7 +13,6 @@ import numpy as np
 
 cimport cython
 cimport numpy as np
-cimport oct_visitors
 from cython cimport floating
 from libc.math cimport sqrt
 from libc.stdlib cimport free, malloc

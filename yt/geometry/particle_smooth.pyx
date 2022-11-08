@@ -17,7 +17,8 @@ cimport cython
 from cpython.exc cimport PyErr_CheckSignals
 from libc.math cimport cos, sin, sqrt
 from libc.stdlib cimport free, malloc, realloc
-from oct_container cimport Oct, OctInfo, OctreeContainer
+
+from .oct_container cimport Oct, OctInfo, OctreeContainer
 
 
 cdef void spherical_coord_setup(np.float64_t ipos[3], np.float64_t opos[3]):

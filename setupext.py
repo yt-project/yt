@@ -381,7 +381,7 @@ def create_build_ext(lib_exts, cythonize_aliases):
             self.distribution.ext_modules[:] = cythonize(
                 lib_exts,
                 aliases=cythonize_aliases,
-                compiler_directives={"language_level": 2},
+                compiler_directives={"language_level": 3},
                 nthreads=get_cpu_count(),
             )
             _build_ext.finalize_options(self)
@@ -430,7 +430,7 @@ def create_build_ext(lib_exts, cythonize_aliases):
             cythonize(
                 lib_exts,
                 aliases=cythonize_aliases,
-                compiler_directives={"language_level": 2},
+                compiler_directives={"language_level": 3},
                 nthreads=get_cpu_count(),
             )
             _sdist.run(self)

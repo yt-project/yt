@@ -15,18 +15,18 @@ Image sampler definitions
 import numpy as np
 
 cimport cython
-cimport lenses
-from field_interpolation_tables cimport (
+from libc.math cimport sqrt
+from libc.stdlib cimport free, malloc
+
+from yt.utilities.lib cimport lenses
+from yt.utilities.lib.fp_utils cimport fclip, i64clip, imin
+
+from .field_interpolation_tables cimport (
     FieldInterpolationTable,
     FIT_eval_transfer,
     FIT_eval_transfer_with_light,
     FIT_initialize_table,
 )
-from libc.math cimport sqrt
-from libc.stdlib cimport free, malloc
-
-from yt.utilities.lib.fp_utils cimport fclip, i64clip, imin
-
 from .fixed_interpolator cimport eval_gradient, offset_interpolate
 from .grid_traversal cimport sampler_function, walk_volume
 

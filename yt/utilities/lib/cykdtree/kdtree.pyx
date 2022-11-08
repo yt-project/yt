@@ -226,7 +226,7 @@ cdef class PyKDTree:
         # Set leafsize of number of leaves provided
         if nleaves > 0:
             nleaves = <int>(2**np.ceil(np.log2(<float>nleaves)))
-            leafsize = pts.shape[0]/nleaves + 1
+            leafsize = pts.shape[0]//nleaves + 1
         if (leafsize < 2):
             # This is here to prevent segfault. The cpp code needs modified to
             # support leafsize = 1

@@ -16,10 +16,11 @@ import numpy as np
 
 cimport cython
 cimport numpy as np
-from fixed_interpolator cimport *
 from libc.math cimport atan2, cos, fabs, floor, sin, sqrt
 
 from yt.utilities.lib.fp_utils cimport fmin
+
+from .fixed_interpolator cimport *
 
 DEF Nch = 4
 
@@ -332,8 +333,8 @@ def arr_fisheye_vectors(int resolution, np.float64_t fov, int nimx=1, int
     cdef int i, j
     cdef np.float64_t r, phi, theta, px, py
     cdef np.float64_t fov_rad = fov * np.pi / 180.0
-    cdef int nx = resolution/nimx
-    cdef int ny = resolution/nimy
+    cdef int nx = resolution//nimx
+    cdef int ny = resolution//nimy
     vp = np.zeros((nx,ny, 3), dtype="float64")
     for i in range(nx):
         px = (2.0 * (nimi*nx + i)) / resolution - 1.0

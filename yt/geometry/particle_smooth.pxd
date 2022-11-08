@@ -14,7 +14,6 @@ import numpy as np
 cimport cython
 from libc.math cimport sqrt
 from libc.stdlib cimport free, malloc, qsort
-from oct_container cimport Oct, OctreeContainer
 
 from yt.utilities.lib.distance_queue cimport (
     DistanceQueue,
@@ -24,6 +23,7 @@ from yt.utilities.lib.distance_queue cimport (
 )
 from yt.utilities.lib.fp_utils cimport *
 
+from .oct_container cimport Oct, OctreeContainer
 from .particle_deposit cimport get_kernel_func, gind, kernel_func
 
 
