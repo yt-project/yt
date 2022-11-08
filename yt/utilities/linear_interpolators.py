@@ -339,7 +339,6 @@ class QuadrilinearFieldInterpolator:
                 w_i = np.minimum(np.maximum(w_i, 0), len(self.w_bins) - 2)
 
         my_vals = np.zeros(x_vals.shape, dtype="float64")
-        print("Interpolating with metallicity in the Quadrilinear Interpolator!")
         lib.QuadrilinearlyInterpolate(
             self.table,
             x_vals,
