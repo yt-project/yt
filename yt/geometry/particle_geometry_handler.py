@@ -175,7 +175,7 @@ class ParticleIndex(Index):
         # Load Morton index from file if provided
         def _current_fname():
             if getattr(ds, "index_filename", None) is None:
-                range = f"[{self.regions.index_order2}-{self.regions.index_order2+2}]"
+                irange = f"[{self.regions.index_order2}-{self.regions.index_order2+2}]"
                 fn_prefix = f"{ds.parameter_filename}.index{self.regions.index_order1}"
                 fn_glob = f"{fn_prefix}_{range}.ewah"
                 fns = glob(fn_glob)
