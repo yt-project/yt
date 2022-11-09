@@ -165,6 +165,11 @@ def test_field_string_specification(
             does_not_raise(),
         ),  # Test existing field tuple (gas, Temperature)
         (
+            [("PartType1", "Masses")],
+            ["code_mass"],
+            does_not_raise(),
+        ),  # Test that tuples only bring in referenced particleGroup
+        (
             [("PartType1", "Temperature")],
             ["code_temperature"],
             pytest.raises(YTFieldNotFound),
