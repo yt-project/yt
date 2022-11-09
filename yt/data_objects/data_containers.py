@@ -852,11 +852,11 @@ class YTDataContainer(abc.ABC):
                 ## Only interested in fields with the current particle type,
                 ## whether that means general fields or field tuples
                 if isinstance(field, tuple):
-                    ftype, field = field
+                    ftype, fname = field
                     if not (ftype == ptype or ftype == "all"):
                         continue
-                    if field not in kysd[ptype]:
-                        raise YTFieldNotFound(field=(ftype, field), ds=self.ds)
+                    if fname not in kysd[ptype]:
+                        raise YTFieldNotFound(field=(ftype, fname), ds=self.ds)
                 elif field not in kysd[ptype]:
                     mylog.warning("requested (but not available) %s %s", ptype, field)
                     continue
