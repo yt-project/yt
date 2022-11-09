@@ -138,7 +138,6 @@ def test_fields_specification(
             coordinate_units="code_length",
         )
     if not isinstance(expectation, dnr):
-        pass
         return
     assert_array_equal(
         dd[("PartType1", "relative_particle_position")].d,
