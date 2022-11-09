@@ -87,8 +87,7 @@ def firefly_test_dataset():
         units=ds_field_units,
         negative=ds_negative,
     )
-    dd = ds.all_data()
-    return (ds, dd)
+    return ds
 
 
 @requires_module("firefly")
@@ -135,7 +134,7 @@ def test_fields_specification(
     if pgs_to_test is None:
         pgs_to_test = ["PartType1", "gas"]
 
-    (ds, dd) = firefly_test_dataset
+    dd = firefly_test_dataset.all_data()
     with expectation:
         reader = dd.create_firefly_object(
             fields_to_include=fields_to_include,
