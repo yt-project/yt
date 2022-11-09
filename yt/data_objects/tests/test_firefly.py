@@ -9,7 +9,7 @@ from yt.testing import fake_particle_ds, requires_module
 from yt.utilities.exceptions import YTFieldNotFound
 
 
-@requires_module("Firefly")
+@requires_module("firefly")
 def test_firefly_JSON_string():
 
     ds = fake_particle_ds()
@@ -20,7 +20,7 @@ def test_firefly_JSON_string():
         coordinate_units="cm",
     )
 
-    reader.dumpToJSON(write_jsons_to_disk=False)
+    reader.writeToDisk(write_to_disk=False, file_extension=".json")
 
     ## reader.JSON was not output to string correctly
     ##  either Firefly is damaged or needs a hotfix-- try reinstalling.
@@ -29,7 +29,8 @@ def test_firefly_JSON_string():
     assert len(reader.JSON) > 0
 
 
-@requires_module("Firefly")
+@requires_module("firefly")
+@pytest.mark.skip(reason="test not fully implemented")
 def test_firefly_write_to_disk():
     tmpdir = tempfile.mkdtemp()
 
@@ -41,7 +42,7 @@ def test_firefly_write_to_disk():
         coordinate_units="cm",
     )
 
-    reader.dumpToJSON()
+    reader.writeToDisk()
 
 
 @pytest.fixture
