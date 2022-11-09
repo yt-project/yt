@@ -206,13 +206,13 @@ def test_field_tuple_specification(
                 assert fname not in pg.field_names
 
 
+@requires_module("firefly")
 def test_field_mixed_specification(firefly_test_dataset):
     dd = firefly_test_dataset.all_data()
 
     reader = dd.create_firefly_object(
         fields_to_include=["Masses", ("gas", "Temperature")],
         fields_units=["code_mass", "code_temperature"],
-        coordinate_units="code_length",
     )
 
     PartType1 = reader.particleGroups[0]
