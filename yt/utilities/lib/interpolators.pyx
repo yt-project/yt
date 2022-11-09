@@ -149,7 +149,7 @@ def QuadrilinearlyInterpolate(np.ndarray[np.float64_t, ndim=4] table,
         xp = (x - x_bins[x_i]) * dx_inv
         yp = (y - y_bins[y_i]) * dy_inv
         zp = (z - z_bins[z_i]) * dz_inv
-        zw = (w - w_bins[w_i]) * dw_inv
+        wp = (w - w_bins[w_i]) * dw_inv
         xm = (x_bins[x_i+1] - x) * dx_inv
         ym = (y_bins[y_i+1] - y) * dy_inv
         zm = (z_bins[z_i+1] - z) * dz_inv
@@ -169,7 +169,7 @@ def QuadrilinearlyInterpolate(np.ndarray[np.float64_t, ndim=4] table,
                    + table[x_i  ,y_i+1,z_i+1,w_i+1] * (xm*yp*zp*wp) \
                    + table[x_i+1,y_i+1,z_i  ,w_i+1] * (xp*yp*zm*wp) \
                    + table[x_i+1,y_i+1,z_i+1,w_i  ] * (xp*yp*zp*wm) \
-                   + table[x_i+1,y_i+1,z_i+1,w_i+1] * (xp*yp*zp*wp) \
+                   + table[x_i+1,y_i+1,z_i+1,w_i+1] * (xp*yp*zp*wp)
 
 @cython.cdivision(True)
 @cython.wraparound(False)
