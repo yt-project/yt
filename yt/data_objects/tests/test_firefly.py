@@ -1,5 +1,5 @@
 import tempfile
-from contextlib import nullcontext as dnr
+from contextlib import nullcontext as does_not_raise
 
 import numpy as np
 import pytest
@@ -95,14 +95,19 @@ def firefly_test_dataset():
 @pytest.mark.parametrize(
     "fields_to_include,fields_units,pgs_to_test,expectation",
     [
-        (None, None, None, dnr()),  # Test default values
-        ([], [], None, dnr()),  # Test empty fields
-        (["Masses"], ["code_mass"], None, dnr()),  # Test common field (Masses)
+        (None, None, None, does_not_raise()),  # Test default values
+        ([], [], None, does_not_raise()),  # Test empty fields
+        (
+            ["Masses"],
+            ["code_mass"],
+            None,
+            does_not_raise(),
+        ),  # Test common field (Masses)
         (
             ["Temperature"],
             ["code_temperature"],
             "gas",
-            dnr(),
+            does_not_raise(),
         ),  # Test unique field (Temperature)
         (
             ["dinos"],
@@ -114,7 +119,7 @@ def firefly_test_dataset():
             [("gas", "Temperature")],
             ["code_temperature"],
             None,
-            dnr(),
+            does_not_raise(),
         ),  # Test existing field tuple (gas, Temperature)
         (
             [("PartType1", "Temperature")],
@@ -137,7 +142,8 @@ def test_fields_specification(
             fields_units=fields_units,
             coordinate_units="code_length",
         )
-    if not isinstance(expectation, dnr):
+    if not isinstance(expectation, does_not_raise):
+        # constructed like this so we don't need to import RaiseError from pytest
         return
     assert_array_equal(
         dd[("PartType1", "relative_particle_position")].d,
