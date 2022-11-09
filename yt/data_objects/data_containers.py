@@ -857,6 +857,7 @@ class YTDataContainer(abc.ABC):
                         continue
                     if fname not in kysd[ptype]:
                         raise YTFieldNotFound(field=(ftype, fname), ds=self.ds)
+                    field = fname
                 elif field not in kysd[ptype]:
                     mylog.warning("requested (but not available) %s %s", ptype, field)
                     continue
