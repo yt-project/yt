@@ -30,7 +30,6 @@ def test_firefly_JSON_string():
 
 
 @requires_module("firefly")
-@pytest.mark.skip(reason="test not fully implemented")
 def test_firefly_write_to_disk():
     tmpdir = tempfile.mkdtemp()
 
