@@ -127,6 +127,14 @@ class YTConfig:
 
     @staticmethod
     def get_local_config_file():
+        path = Path.cwd()
+        while path.parent is not path:
+            candidate = path.joinpath("yt.toml")
+            if candidate.is_file():
+                return os.path.abspath(candidate)
+            else:
+                path = path.parent
+
         return os.path.join(os.path.abspath(os.curdir), "yt.toml")
 
     def __setitem__(self, args, value):
