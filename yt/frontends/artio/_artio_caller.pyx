@@ -1,5 +1,6 @@
 # distutils: sources = ARTIO_SOURCE
 # distutils: include_dirs = LIB_DIR_GEOM_ARTIO
+# distutils: libraries = STD_LIBS
 cimport cython
 
 import numpy as np
