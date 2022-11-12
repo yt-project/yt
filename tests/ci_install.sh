@@ -45,17 +45,7 @@ if [[ ${dependencies} == "minimal" ]]; then
     # test with minimal versions of runtime dependencies
     python -m pip install -e .[test,minimal]
 elif [[ ${dependencies} == "full" ]]; then
-    # test with all optional runtime dependecies
-
-    # Cython and numpy are build-time requirements to the following optional deps in yt
-    # - cartopy
-    # - netcdf4
-    # - pyqt5
-    # The build system is however not specified properly in these projects at the moment
-    # which means we have to install the build-time requirements first.
-    # It is possible that these problems will be fixed in the future if upstream projects
-    # include a pyproject.toml file or use any pip-comptatible solution to remedy this.
-    python -m pip install numpy>=1.19.4 cython~=0.29.21
+    # test with all optional runtime dependencies
 
     # this is required for cartopy. see
     # https://scitools.org.uk/cartopy/docs/latest/installing.html?highlight=install#building-from-source
