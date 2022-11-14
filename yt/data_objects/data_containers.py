@@ -857,22 +857,23 @@ class YTDataContainer(abc.ABC):
                         continue
                     if fname not in kysd[ptype]:
                         raise YTFieldNotFound(field=(ftype, fname), ds=self.ds)
-                    field = fname
                 elif field not in kysd[ptype]:
                     mylog.warning("requested (but not available) %s %s", ptype, field)
                     continue
+                else:
+                    fname = field
 
                 ## determine if you want to take the log of the field for Firefly
                 log_flag = "log(" in units
 
                 ## read the field array from the dataset
-                this_field_array = self[ptype, field]
+                this_field_array = self[ptype, fname]
 
                 ## fix the units string and prepend 'log' to the field for
                 ##  the UI name
                 if log_flag:
                     units = units[len("log(") : -1]
-                    field = f"log{field}"
+                    fname = f"log{field}"
 
                 ## perform the unit conversion and take the log if
                 ##  necessary.
@@ -882,7 +883,7 @@ class YTDataContainer(abc.ABC):
 
                 ## add this array to the tracked arrays
                 field_arrays += [this_field_array]
-                field_names = np.append(field_names, [field], axis=0)
+                field_names = np.append(field_names, [fname], axis=0)
 
             ## flag whether we want to filter and/or color by these fields
             ##  we'll assume yes for both cases, this can be changed after
