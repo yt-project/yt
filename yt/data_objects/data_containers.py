@@ -814,9 +814,12 @@ class YTDataContainer(abc.ABC):
         )
 
         ## Ensure at least one field type contains every field requested
-        # error if any requested field is unknown or ambiguous
-        dd = self.ds.all_data()
-        fields_to_include = dd._determine_fields(fields_to_include)
+        kys = self.ds.derived_field_list
+        all_fields = list(zip(*kys))[1]
+        for field in fields_to_include:
+            field = field if not isinstance(field, tuple) else field[1]
+            if field not in all_fields:
+                raise YTFieldNotFound(field=field, ds=self.ds)
         ## Also generate equivalent of particle_fields_by_type including
         ## derived fields
         kysd = defaultdict(list)
