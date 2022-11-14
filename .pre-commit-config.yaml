@@ -34,7 +34,7 @@ repos:
     - id: check-executables-have-shebangs
     - id: check-yaml
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v3.2.0
+    rev: v3.2.2
     hooks:
     - id: pyupgrade
       args: [--py38-plus]
@@ -83,7 +83,7 @@ repos:
       ]
 
 - repo: https://github.com/MarcoGorelli/cython-lint
-  rev: v0.4.0
+  rev: v0.7.2
   hooks:
   - id: cython-lint
     args: [--no-pycodestyle]
