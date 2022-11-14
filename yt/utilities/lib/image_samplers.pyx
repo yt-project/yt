@@ -509,8 +509,8 @@ cdef class LightSourceRenderSampler(ImageSampler):
                   str volume_method,
                   tf_obj,
                   n_samples = 10,
-                  light_dir=[1.,1.,1.],
-                  light_rgba=[1.,1.,1.,1.],
+                  light_dir=(1.,1.,1.),
+                  light_rgba=(1.,1.,1.,1.),
                   **kwargs):
         ImageSampler.__init__(self, vp_pos, vp_dir, center, bounds, image,
                                x_vec, y_vec, width, volume_method, **kwargs)
