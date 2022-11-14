@@ -134,8 +134,8 @@ def test_field_string_specification(
         return
     all_pgs = ["PartType1", "gas"]
     for field in fields_to_include:
-        for ptype in all_pgs:
-            pg = reader.particleGroups[0 if ptype == "PartType1" else 1]
+        for idx, ptype in enumerate(all_pgs):
+            pg = reader.particleGroups[idx]
             if ptype not in pgs_to_test:
                 assert field not in pg.field_names
                 continue
