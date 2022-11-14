@@ -138,10 +138,10 @@ def test_field_string_specification(
             pg = reader.particleGroups[idx]
             if ptype not in pgs_to_test:
                 assert field not in pg.field_names
-                continue
-            assert field in pg.field_names
-            arrind = np.flatnonzero(pg.field_names == field)[0]
-            assert_array_equal(dd[ptype, field].d, pg.field_arrays[arrind])
+            else:
+                assert field in pg.field_names
+                arrind = np.flatnonzero(pg.field_names == field)[0]
+                assert_array_equal(dd[ptype, field].d, pg.field_arrays[arrind])
 
 
 @requires_module("firefly")
