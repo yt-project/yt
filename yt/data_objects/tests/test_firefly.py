@@ -71,17 +71,7 @@ def firefly_test_dataset():
         "code_mass",
         "code_temperature",
     ]
-    ds_negative = [
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-    ]
+    ds_negative = [0, 0, 0, 0, 0, 0, 0, 0, 0]
     ds = fake_particle_ds(
         fields=ds_fields,
         units=ds_field_units,
