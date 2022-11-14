@@ -1,5 +1,4 @@
 import tempfile
-from contextlib import nullcontext as does_not_raise
 
 import numpy as np
 import pytest
@@ -82,46 +81,31 @@ def firefly_test_dataset():
 
 @requires_module("firefly")
 @pytest.mark.parametrize(
-    "fields_to_include,fields_units,pgs_to_test,expectation",
+    "fields_to_include,fields_units,pgs_to_test",
     [
-        (None, None, None, does_not_raise()),  # Test default values
-        ([], [], None, does_not_raise()),  # Test empty fields
+        (None, None, None),  # Test default values
+        ([], [], None),  # Test empty fields
         (
             ["Masses"],
             ["code_mass"],
-            None,
-            does_not_raise(),
+            ["PartType1", "gas"],
         ),  # Test common field (Masses)
         (
             ["Temperature"],
             ["code_temperature"],
             "gas",
-            does_not_raise(),
         ),  # Test unique field (Temperature)
-        (
-            ["dinos"],
-            ["code_length"],
-            None,
-            pytest.raises(YTFieldNotFound),
-        ),  # Test nonexistent field (dinos)
     ],
 )
 def test_field_string_specification(
-    firefly_test_dataset, fields_to_include, fields_units, pgs_to_test, expectation
+    firefly_test_dataset, fields_to_include, fields_units, pgs_to_test
 ):
-    if pgs_to_test is None:
-        pgs_to_test = ["PartType1", "gas"]
-
     dd = firefly_test_dataset.all_data()
-    with expectation:
-        reader = dd.create_firefly_object(
-            fields_to_include=fields_to_include,
-            fields_units=fields_units,
-            coordinate_units="code_length",
-        )
-    if not isinstance(expectation, does_not_raise):
-        # constructed like this so we don't need to import RaiseError from pytest
-        return
+    reader = dd.create_firefly_object(
+        fields_to_include=fields_to_include,
+        fields_units=fields_units,
+        coordinate_units="code_length",
+    )
     assert_array_equal(
         dd[("PartType1", "relative_particle_position")].d,
         reader.particleGroups[0].coordinates,
@@ -146,39 +130,29 @@ def test_field_string_specification(
 
 @requires_module("firefly")
 @pytest.mark.parametrize(
-    "fields_to_include,fields_units,expectation",
+    "fields_to_include,fields_units",
     [
         (
             [("gas", "Temperature")],
             ["code_temperature"],
-            does_not_raise(),
         ),  # Test existing field tuple (gas, Temperature)
         (
             [("PartType1", "Masses")],
             ["code_mass"],
-            does_not_raise(),
         ),  # Test that tuples only bring in referenced particleGroup
-        (
-            [("PartType1", "Temperature")],
-            ["code_temperature"],
-            pytest.raises(YTFieldNotFound),
-        ),  # Test nonexistent field tuple (PartType1, Temperature)
     ],
 )
 def test_field_tuple_specification(
-    firefly_test_dataset, fields_to_include, fields_units, expectation
+    firefly_test_dataset,
+    fields_to_include,
+    fields_units,
 ):
-
     dd = firefly_test_dataset.all_data()
-    with expectation:
-        reader = dd.create_firefly_object(
-            fields_to_include=fields_to_include,
-            fields_units=fields_units,
-            coordinate_units="code_length",
-        )
-    if not isinstance(expectation, does_not_raise):
-        # constructed like this so we don't need to import RaiseError from pytest
-        return
+    reader = dd.create_firefly_object(
+        fields_to_include=fields_to_include,
+        fields_units=fields_units,
+        coordinate_units="code_length",
+    )
     assert_array_equal(
         dd[("PartType1", "relative_particle_position")].d,
         reader.particleGroups[0].coordinates,
@@ -199,6 +173,33 @@ def test_field_tuple_specification(
                 assert_array_equal(dd[field].d, pg.field_arrays[arrind])
             else:
                 assert fname not in pg.field_names
+
+
+@requires_module("firefly")
+@pytest.mark.parametrize(
+    "fields_to_include,fields_units",
+    [
+        (
+            ["dinos"],
+            ["code_length"],
+        ),  # Test nonexistent field (dinos)
+        (
+            [("PartType1", "Temperature")],
+            ["code_temperature"],
+        ),  # Test nonexistent field tuple (PartType1, Temperature)
+    ],
+)
+def test_invalid_field_specifications(
+    firefly_test_dataset, fields_to_include, fields_units
+):
+
+    dd = firefly_test_dataset.all_data()
+    with pytest.raises(YTFieldNotFound):
+        dd.create_firefly_object(
+            fields_to_include=fields_to_include,
+            fields_units=fields_units,
+            coordinate_units="code_length",
+        )
 
 
 @requires_module("firefly")
