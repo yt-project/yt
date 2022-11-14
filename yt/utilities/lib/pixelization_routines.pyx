@@ -27,8 +27,6 @@ from yt.utilities.lib.fp_utils cimport (
     i64max,
     i64min,
     iclip,
-    imax,
-    imin,
 )
 
 from yt.utilities.exceptions import YTElementTypeNotRecognized, YTPixelizeError
@@ -1251,7 +1249,7 @@ def interpolate_sph_positions_gather(np.float64_t[:] buff,
     if use_normalization:
         buff_den = np.zeros(buff.shape[0], dtype="float64")
 
-    kernel_func = get_kernel_func(kernel_name)
+    kernel = get_kernel_func(kernel_name)
 
     # Loop through all the positions we want to interpolate the SPH field onto
     with nogil:
@@ -1280,13 +1278,13 @@ def interpolate_sph_positions_gather(np.float64_t[:] buff,
                 q_ij = math.sqrt(queue.heap[index]*ih_j2)
                 smoothed_quantity_j = (prefactor_j *
                                        quantity_to_smooth[particle] *
-                                       kernel_func(q_ij))
+                                       kernel(q_ij))
 
                 # See equations 6, 9, and 11 of the SPLASH paper
                 buff[i] += smoothed_quantity_j
 
                 if use_normalization:
-                    buff_den[i] += prefactor_j * kernel_func(q_ij)
+                    buff_den[i] += prefactor_j * kernel(q_ij)
 
     if use_normalization:
         normalization_1d_utility(buff, buff_den)
@@ -1325,7 +1323,7 @@ def interpolate_sph_grid_gather(np.float64_t[:, :, :] buff,
         buff_den = np.zeros([buff.shape[0], buff.shape[1],
                              buff.shape[2]], dtype="float64")
 
-    kernel_func = get_kernel_func(kernel_name)
+    kernel = get_kernel_func(kernel_name)
     dx = (bounds[1] - bounds[0]) / buff.shape[0]
     dy = (bounds[3] - bounds[2]) / buff.shape[1]
     dz = (bounds[5] - bounds[4]) / buff.shape[2]
@@ -1372,13 +1370,13 @@ def interpolate_sph_grid_gather(np.float64_t[:, :, :] buff,
                         q_ij = math.sqrt(queue.heap[index]*ih_j2)
                         smoothed_quantity_j = (prefactor_j *
                                                quantity_to_smooth[particle] *
-                                               kernel_func(q_ij))
+                                               kernel(q_ij))
 
                         # See equations 6, 9, and 11 of the SPLASH paper
                         buff[i, j, k] += smoothed_quantity_j
 
                         if use_normalization:
-                            buff_den[i, j, k] += prefactor_j * kernel_func(q_ij)
+                            buff_den[i, j, k] += prefactor_j * kernel(q_ij)
 
     if use_normalization:
         normalization_3d_utility(buff, buff_den)
@@ -1426,7 +1424,7 @@ def pixelize_sph_kernel_slice(
     idx = 1.0/dx
     idy = 1.0/dy
 
-    kernel_func = get_kernel_func(kernel_name)
+    kernel = get_kernel_func(kernel_name)
 
     with nogil, parallel():
         # NOTE see note in pixelize_sph_kernel_projection
@@ -1511,7 +1509,7 @@ def pixelize_sph_kernel_slice(
                                 continue
 
                             # see equations 6, 9, and 11 of the SPLASH paper
-                            local_buff[xi + yi*xsize] += prefactor_j * kernel_func(q_ij)
+                            local_buff[xi + yi*xsize] += prefactor_j * kernel(q_ij)
 
         with gil:
             for xxi in range(xsize):
@@ -1573,7 +1571,7 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
     idy = 1.0/dy
     idz = 1.0/dz
 
-    kernel_func = get_kernel_func(kernel_name)
+    kernel = get_kernel_func(kernel_name)
 
     with nogil:
         # TODO make this parallel without using too much memory
@@ -1673,7 +1671,7 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
                                     if q_ij >= 1:
                                         continue
 
-                                    buff[xi, yi, zi] += prefactor_j * kernel_func(q_ij)
+                                    buff[xi, yi, zi] += prefactor_j * kernel(q_ij)
 
 
 def pixelize_element_mesh_line(np.ndarray[np.float64_t, ndim=2] coords,

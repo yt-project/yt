@@ -426,9 +426,9 @@ def get_color_bounds(np.ndarray[np.float64_t, ndim=1] px,
                      np.float64_t mindx = -1, np.float64_t maxdx = -1):
     cdef int i
     cdef np.float64_t mi = 1e100, ma = -1e100, v
-    cdef int np = px.shape[0]
+    cdef int npx = px.shape[0]
     with nogil:
-        for i in range(np):
+        for i in range(npx):
             v = value[i]
             if v < mi or v > ma:
                 if px[i] + pdx[i] < leftx: continue
