@@ -820,7 +820,7 @@ class YTDataContainer(abc.ABC):
         ## Also generate equivalent of particle_fields_by_type including
         ## derived fields
         kysd = defaultdict(list)
-        for k, v in kys:
+        for k, v in self.ds.derived_field_list:
             kysd[k].append(v)
 
         ## create a ParticleGroup object that contains *every* field
