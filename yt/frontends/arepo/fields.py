@@ -87,10 +87,7 @@ class ArepoFieldInfo(GadgetFieldInfo):
 
         if (ptype, "GFM_Metals_00") in self.field_list:
             self.nuclei_names = metal_elements
-            self.species_names = ["H"]
-            if (ptype, "NeutralHydrogenAbundance") in self.field_list:
-                self.species_names += ["H_p0", "H_p1"]
-            self.species_names += metal_elements
+            self.species_names = ["H"] + metal_elements
 
         if (ptype, "MagneticField") in self.field_list:
             setup_magnetic_field_aliases(self, ptype, "MagneticField")
