@@ -127,8 +127,6 @@ class ArepoFieldInfo(GadgetFieldInfo):
                     field = f"{species}{suf}"
                     self.alias(("gas", field), (ptype, field))
 
-            self.alias(("gas", "H_nuclei_density"), ("gas", "H_number_density"))
-
         if (ptype, "ElectronAbundance") in self.field_list:
 
             # If we have ElectronAbundance but not NeutralHydrogenAbundance, assume the
