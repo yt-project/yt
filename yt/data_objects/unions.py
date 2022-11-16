@@ -1,8 +1,13 @@
+from abc import ABC, abstractmethod
+
 from more_itertools import always_iterable
 
 
-class Union:
-    _union_type = ""
+class Union(ABC):
+    @property
+    @abstractmethod
+    def _union_type(self) -> str:
+        ...
 
     def __init__(self, name, sub_types):
         self.name = name
@@ -20,5 +25,6 @@ class Union:
 class MeshUnion(Union):
     _union_type = "mesh"
 
-    def __init__(self, name, sub_types):
-        super().__init__(name, sub_types)
+
+class ParticleUnion(Union):
+    _union_type = "particle"

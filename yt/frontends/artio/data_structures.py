@@ -7,8 +7,8 @@ import numpy as np
 
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.index_subobjects.octree_subset import OctreeSubset
-from yt.data_objects.particle_unions import ParticleUnion
 from yt.data_objects.static_output import Dataset
+from yt.data_objects.unions import ParticleUnion
 from yt.frontends.artio import _artio_caller
 from yt.frontends.artio._artio_caller import (
     ARTIOSFCRangeHandler,

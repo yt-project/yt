@@ -8,13 +8,13 @@ from typing import Tuple, Type
 import numpy as np
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
-from yt.data_objects.particle_unions import ParticleUnion
 from yt.data_objects.profiles import (
     Profile1DFromDataset,
     Profile2DFromDataset,
     Profile3DFromDataset,
 )
 from yt.data_objects.static_output import Dataset, ParticleFile, validate_index_order
+from yt.data_objects.unions import ParticleUnion
 from yt.fields.field_exceptions import NeedsGridType
 from yt.fields.field_info_container import FieldInfoContainer
 from yt.funcs import is_root, parse_h5_attr

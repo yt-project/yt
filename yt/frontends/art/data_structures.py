@@ -8,8 +8,8 @@ import numpy as np
 
 import yt.utilities.fortran_utils as fpu
 from yt.data_objects.index_subobjects.octree_subset import OctreeSubset
-from yt.data_objects.particle_unions import ParticleUnion
 from yt.data_objects.static_output import Dataset, ParticleFile
+from yt.data_objects.unions import ParticleUnion
 from yt.frontends.art.definitions import (
     amr_header_struct,
     constants,
