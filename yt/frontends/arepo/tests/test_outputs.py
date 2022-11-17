@@ -3,7 +3,7 @@ import tempfile
 from collections import OrderedDict
 
 from yt.frontends.arepo.api import ArepoHDF5Dataset
-from yt.testing import ParticleSelectionComparison, requires_file
+from yt.testing import ParticleSelectionComparison, assert_allclose_units, requires_file
 from yt.utilities.answer_testing.framework import data_dir_load, requires_ds, sph_answer
 
 bullet_h5 = "ArepoBullet/snapshot_150.hdf5"
@@ -82,6 +82,15 @@ def test_index_override():
     assert isinstance(ds, ArepoHDF5Dataset)
     ds.index
     assert len(open(tmpname).read()) == 0
+
+
+@requires_file(tng59_h5)
+def test_nh_density():
+    ds = data_dir_load(tng59_h5, kwargs={"bounding_box": _tng59_bbox})
+    ad = ds.all_data()
+    assert_allclose_units(
+        ad["gas", "H_number_density"], (ad["gas", "H_nuclei_density"])
+    )
 
 
 @requires_file(tng59_h5)
