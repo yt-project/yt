@@ -19,10 +19,10 @@ def add_points_to_greyscale_image(
         np.ndarray[np.float64_t, ndim=1] py,
         np.ndarray[np.float64_t, ndim=1] pv):
     cdef int i, j, pi
-    cdef int np = px.shape[0]
+    cdef int npx = px.shape[0]
     cdef int xs = buffer.shape[0]
     cdef int ys = buffer.shape[1]
-    for pi in range(np):
+    for pi in range(npx):
         j = <int> (xs * px[pi])
         i = <int> (ys * py[pi])
         buffer[i, j] += pv[pi]
@@ -35,12 +35,12 @@ def add_points_to_image(
         np.ndarray[np.float64_t, ndim=1] py,
         np.float64_t pv):
     cdef int i, j, k, pi
-    cdef int np = px.shape[0]
+    cdef int npx = px.shape[0]
     cdef int xs = buffer.shape[0]
     cdef int ys = buffer.shape[1]
     cdef int v
     v = iclip(<int>(pv * 255), 0, 255)
-    for pi in range(np):
+    for pi in range(npx):
         j = <int> (xs * px[pi])
         i = <int> (ys * py[pi])
         for k in range(3):

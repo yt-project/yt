@@ -203,12 +203,12 @@ cdef class Octree:
             np.ndarray[np.float64_t, ndim=2] pvals,
             np.ndarray[np.float64_t, ndim=1] pweight_vals,
             int treecode = 0):
-        cdef int np = pxs.shape[0]
+        cdef int npx = pxs.shape[0]
         cdef int p
         cdef cnp.float64_t *vals
         cdef cnp.float64_t *data = <cnp.float64_t *> pvals.data
         cdef cnp.int64_t pos[3]
-        for p in range(np):
+        for p in range(npx):
             vals = data + self.nvals*p
             pos[0] = pxs[p]
             pos[1] = pys[p]
