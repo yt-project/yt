@@ -862,8 +862,9 @@ def sanitize_fits_unit(unit):
 axis_wcs = [[1, 2], [2, 0], [0, 1]]
 
 
-def construct_image(ds, axis, data_source, center, image_res, width, length_unit,
-                    origin="domain"):
+def construct_image(
+    ds, axis, data_source, center, image_res, width, length_unit, origin="domain"
+):
     if width is None:
         width = ds.domain_width[axis_wcs[axis]]
         unit = ds.get_smallest_appropriate_unit(width[0])
@@ -1005,6 +1006,11 @@ class FITSSlice(FITSImageData):
     length_unit : string, optional
         the length units that the coordinates are written in. The default
         is to use the default length unit of the dataset.
+    origin : string
+        The origin of the coordinate system in the file. If "domain", then the
+        center coordinates will be the same as the center of the image as
+        defined by the *center* keyword argument. If "image", then the center
+        coordinates will be set to (0,0). Default: "domain"
     """
 
     def __init__(
@@ -1016,6 +1022,7 @@ class FITSSlice(FITSImageData):
         center="c",
         width=None,
         length_unit=None,
+        *,
         origin="domain",
         **kwargs,
     ):
@@ -1024,7 +1031,14 @@ class FITSSlice(FITSImageData):
         center, dcenter = ds.coordinates.sanitize_center(center, axis)
         slc = ds.slice(axis, center[axis], **kwargs)
         w, frb, lunit = construct_image(
-            ds, axis, slc, dcenter, image_res, width, length_unit, origin=origin,
+            ds,
+            axis,
+            slc,
+            dcenter,
+            image_res,
+            width,
+            length_unit,
+            origin=origin,
         )
         super().__init__(frb, fields=fields, length_unit=lunit, wcs=w)
 
@@ -1079,6 +1093,11 @@ class FITSProjection(FITSImageData):
     length_unit : string, optional
         the length units that the coordinates are written in. The default
         is to use the default length unit of the dataset.
+    origin : string
+        The origin of the coordinate system in the file. If "domain", then the
+        center coordinates will be the same as the center of the image as
+        defined by the *center* keyword argument. If "image", then the center
+        coordinates will be set to (0,0). Default: "domain"
     moment : integer, optional
         for a weighted projection, moment = 1 (the default) corresponds to a
         weighted average. moment = 2 corresponds to a weighted standard
@@ -1095,8 +1114,8 @@ class FITSProjection(FITSImageData):
         width=None,
         weight_field=None,
         length_unit=None,
-        origin="domain",
         *,
+        origin="domain",
         moment=1,
         **kwargs,
     ):
@@ -1107,7 +1126,14 @@ class FITSProjection(FITSImageData):
             fields[0], axis, weight_field=weight_field, moment=moment, **kwargs
         )
         w, frb, lunit = construct_image(
-            ds, axis, prj, dcenter, image_res, width, length_unit, origin=origin,
+            ds,
+            axis,
+            prj,
+            dcenter,
+            image_res,
+            width,
+            length_unit,
+            origin=origin,
         )
         super().__init__(frb, fields=fields, length_unit=lunit, wcs=w)
 
@@ -1180,6 +1206,11 @@ class FITSParticleProjection(FITSImageData):
     data_source : yt.data_objects.data_containers.YTSelectionContainer, optional
         If specified, this will be the data source used for selecting regions
         to project.
+    origin : string
+        The origin of the coordinate system in the file. If "domain", then the
+        center coordinates will be the same as the center of the image as
+        defined by the *center* keyword argument. If "image", then the center
+        coordinates will be set to (0,0). Default: "domain"
     """
 
     def __init__(
@@ -1197,6 +1228,7 @@ class FITSParticleProjection(FITSImageData):
         density=False,
         field_parameters=None,
         data_source=None,
+        *,
         origin="domain",
     ):
         fields = list(iter_fields(fields))
