@@ -21,8 +21,8 @@ from unyt.exceptions import UnitConversionError, UnitParseError
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.data_objects.particle_filters import filter_registry
-from yt.data_objects.particle_unions import ParticleUnion
 from yt.data_objects.region_expression import RegionExpression
+from yt.data_objects.unions import ParticleUnion
 from yt.fields.derived_field import ValidateSpatial
 from yt.fields.field_type_container import FieldTypeContainer
 from yt.fields.fluid_fields import setup_gradient_fields
