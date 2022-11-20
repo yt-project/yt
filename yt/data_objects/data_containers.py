@@ -862,7 +862,7 @@ class YTDataContainer(abc.ABC):
                 ##  the UI name
                 if log_flag:
                     units = units[len("log(") : -1]
-                    fname = f"log{field}"
+                    fname = f"log{fname}"
 
                 ## perform the unit conversion and take the log if
                 ##  necessary.
