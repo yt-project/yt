@@ -48,29 +48,19 @@ def firefly_test_dataset():
     # create dataset
     ds_fields = [
         # Assumed present
-        ("PartType1", "particle_position_x"),
-        ("PartType1", "particle_position_y"),
-        ("PartType1", "particle_position_z"),
-        ("gas", "particle_position_x"),
-        ("gas", "particle_position_y"),
-        ("gas", "particle_position_z"),
+        ("pt1", "particle_position_x"),
+        ("pt1", "particle_position_y"),
+        ("pt1", "particle_position_z"),
+        ("pt2", "particle_position_x"),
+        ("pt2", "particle_position_y"),
+        ("pt2", "particle_position_z"),
         # User input
-        ("PartType1", "Masses"),
-        ("gas", "Masses"),
-        ("gas", "Temperature"),
+        ("pt1", "common_field"),
+        ("pt2", "common_field"),
+        ("pt2", "pt2only_field"),
     ]
-    ds_field_units = [
-        "code_length",
-        "code_length",
-        "code_length",
-        "code_length",
-        "code_length",
-        "code_length",
-        "code_mass",
-        "code_mass",
-        "code_temperature",
-    ]
-    ds_negative = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+    ds_field_units = ["code_length"] * 9
+    ds_negative = [0] * 9
     ds = fake_particle_ds(
         fields=ds_fields,
         units=ds_field_units,
@@ -97,51 +87,51 @@ def test_field_empty_specification(
         coordinate_units="code_length",
     )
     assert_array_equal(
-        dd[("PartType1", "relative_particle_position")].d,
+        dd[("pt1", "relative_particle_position")].d,
         reader.particleGroups[0].coordinates,
     )
     assert_array_equal(
-        dd[("gas", "relative_particle_position")].d,
+        dd[("pt2", "relative_particle_position")].d,
         reader.particleGroups[1].coordinates,
     )
 
 
 @requires_module("firefly")
 def test_field_string_specification(firefly_test_dataset):
-    # Test unique field (Temperature)
+    # Test unique field (pt2only_field)
     dd = firefly_test_dataset.all_data()
     # Unique field string will fallback to "all" field type ...
     with pytest.raises(YTFieldNotFound):
         reader = dd.create_firefly_object(
-            fields_to_include=["Temperature"],
-            fields_units=["code_temperature"],
+            fields_to_include=["pt2only_field"],
+            fields_units=["code_length"],
             coordinate_units="code_length",
         )
         pytest.fail()
 
     # ... unless field type has been previously explicitly
     # specified
-    dd["gas", "Temperature"]
+    dd["pt2", "pt2only_field"]
     reader = dd.create_firefly_object(
-        fields_to_include=["Temperature"],
-        fields_units=["code_temperature"],
+        fields_to_include=["pt2only_field"],
+        fields_units=["code_length"],
         coordinate_units="code_length",
     )
 
-    PartType1 = reader.particleGroups[0]
-    gas = reader.particleGroups[1]
+    pt1 = reader.particleGroups[0]
+    pt2 = reader.particleGroups[1]
     assert_array_equal(
-        dd[("PartType1", "relative_particle_position")].d,
-        PartType1.coordinates,
+        dd[("pt1", "relative_particle_position")].d,
+        pt1.coordinates,
     )
     assert_array_equal(
-        dd[("gas", "relative_particle_position")].d,
-        gas.coordinates,
+        dd[("pt2", "relative_particle_position")].d,
+        pt2.coordinates,
     )
-    assert "Temperature" not in PartType1.field_names
-    assert "Temperature" in gas.field_names
-    arrind = np.flatnonzero(gas.field_names == "Temperature")[0]
-    assert_array_equal(dd[("gas", "Temperature")].d, gas.field_arrays[arrind])
+    assert "pt2only_field" not in pt1.field_names
+    assert "pt2only_field" in pt2.field_names
+    arrind = np.flatnonzero(pt2.field_names == "pt2only_field")[0]
+    assert_array_equal(dd[("pt2", "pt2only_field")].d, pt2.field_arrays[arrind])
 
 
 @requires_module("firefly")
@@ -149,16 +139,16 @@ def test_field_string_specification(firefly_test_dataset):
     "fields_to_include,fields_units",
     [
         (
-            [("gas", "Temperature")],
-            ["code_temperature"],
-        ),  # Test existing field tuple (gas, Temperature)
+            [("pt2", "pt2only_field")],
+            ["code_length"],
+        ),  # Test existing field tuple (pt2, pt2only_field)
         (
-            [("PartType1", "Masses")],
-            ["code_mass"],
+            [("pt1", "common_field")],
+            ["code_length"],
         ),  # Test that tuples only bring in referenced particleGroup
         (
-            [("all", "Masses")],
-            ["code_mass"],
+            [("all", "common_field")],
+            ["code_length"],
         ),  # Test that "all" brings in all particleGroups
     ],
 )
@@ -174,15 +164,15 @@ def test_field_tuple_specification(
         coordinate_units="code_length",
     )
     assert_array_equal(
-        dd[("PartType1", "relative_particle_position")].d,
+        dd[("pt1", "relative_particle_position")].d,
         reader.particleGroups[0].coordinates,
     )
     assert_array_equal(
-        dd[("gas", "relative_particle_position")].d,
+        dd[("pt2", "relative_particle_position")].d,
         reader.particleGroups[1].coordinates,
     )
     all_pgs = reader.particleGroups
-    all_pgs_names = ["PartType1", "gas"]
+    all_pgs_names = ["pt1", "pt2"]
     for field in fields_to_include:
         ftype, fname = field
         for pgi in range(2):
@@ -210,15 +200,15 @@ def test_field_tuple_specification(
             YTFieldNotFound,
         ),  # Test nonexistent field (dinos)
         (
-            ["Masses"],
-            ["code_mass"],
+            ["common_field"],
+            ["code_length"],
             ValueError,
-        ),  # Test ambiguous field (masses)
+        ),  # Test ambiguous field (common_field)
         (
-            [("PartType1", "Temperature")],
-            ["code_temperature"],
+            [("pt1", "pt2only_field")],
+            ["code_length"],
             YTFieldNotFound,
-        ),  # Test nonexistent field tuple (PartType1, Temperature)
+        ),  # Test nonexistent field tuple (pt1, pt2only_field)
     ],
 )
 def test_field_invalid_specification(
@@ -239,20 +229,20 @@ def test_field_mixed_specification(firefly_test_dataset):
     dd = firefly_test_dataset.all_data()
 
     # Assume particle type has already been specified
-    dd["gas", "Temperature"]
+    dd["pt2", "pt2only_field"]
     reader = dd.create_firefly_object(
-        fields_to_include=["Temperature", ("PartType1", "Masses")],
-        fields_units=["code_mass", "code_temperature"],
+        fields_to_include=["pt2only_field", ("pt1", "common_field")],
+        fields_units=["code_length", "code_length"],
     )
 
-    PartType1 = reader.particleGroups[0]
-    gas = reader.particleGroups[1]
-    assert "Masses" in PartType1.field_names
-    assert "Masses" not in gas.field_names
-    arrind = np.flatnonzero(PartType1.field_names == "Masses")[0]
-    assert_array_equal(dd[("PartType1", "Masses")].d, PartType1.field_arrays[arrind])
+    pt1 = reader.particleGroups[0]
+    pt2 = reader.particleGroups[1]
+    assert "common_field" in pt1.field_names
+    assert "common_field" not in pt2.field_names
+    arrind = np.flatnonzero(pt1.field_names == "common_field")[0]
+    assert_array_equal(dd[("pt1", "common_field")].d, pt1.field_arrays[arrind])
 
-    assert "Temperature" not in PartType1.field_names
-    assert "Temperature" in gas.field_names
-    arrind = np.flatnonzero(gas.field_names == "Temperature")[0]
-    assert_array_equal(dd[("gas", "Temperature")].d, gas.field_arrays[arrind])
+    assert "pt2only_field" not in pt1.field_names
+    assert "pt2only_field" in pt2.field_names
+    arrind = np.flatnonzero(pt2.field_names == "pt2only_field")[0]
+    assert_array_equal(dd[("pt2", "pt2only_field")].d, pt2.field_arrays[arrind])
