@@ -81,24 +81,14 @@ def firefly_test_dataset():
 
 @requires_module("firefly")
 @pytest.mark.parametrize(
-    "fields_to_include,fields_units,pgs_to_test",
+    "fields_to_include,fields_units",
     [
-        (None, None, None),  # Test default values
-        ([], [], None),  # Test empty fields
-        (
-            ["Masses"],
-            ["code_mass"],
-            ["PartType1", "gas"],
-        ),  # Test common field (Masses)
-        (
-            ["Temperature"],
-            ["code_temperature"],
-            "gas",
-        ),  # Test unique field (Temperature)
+        (None, None),  # Test default values
+        ([], []),  # Test empty fields
     ],
 )
-def test_field_string_specification(
-    firefly_test_dataset, fields_to_include, fields_units, pgs_to_test
+def test_field_empty_specification(
+    firefly_test_dataset, fields_to_include, fields_units
 ):
     dd = firefly_test_dataset.all_data()
     reader = dd.create_firefly_object(
@@ -114,18 +104,44 @@ def test_field_string_specification(
         dd[("gas", "relative_particle_position")].d,
         reader.particleGroups[1].coordinates,
     )
-    if fields_to_include is None:
-        return
-    all_pgs = ["PartType1", "gas"]
-    for field in fields_to_include:
-        for idx, ptype in enumerate(all_pgs):
-            pg = reader.particleGroups[idx]
-            if ptype not in pgs_to_test:
-                assert field not in pg.field_names
-            else:
-                assert field in pg.field_names
-                arrind = np.flatnonzero(pg.field_names == field)[0]
-                assert_array_equal(dd[ptype, field].d, pg.field_arrays[arrind])
+
+
+@requires_module("firefly")
+def test_field_string_specification(firefly_test_dataset):
+    # Test unique field (Temperature)
+    dd = firefly_test_dataset.all_data()
+    # Unique field string will fallback to "all" field type ...
+    with pytest.raises(YTFieldNotFound):
+        reader = dd.create_firefly_object(
+            fields_to_include=["Temperature"],
+            fields_units=["code_temperature"],
+            coordinate_units="code_length",
+        )
+        pytest.fail()
+
+    # ... unless field type has been previously explicitly
+    # specified
+    dd["gas", "Temperature"]
+    reader = dd.create_firefly_object(
+        fields_to_include=["Temperature"],
+        fields_units=["code_temperature"],
+        coordinate_units="code_length",
+    )
+
+    PartType1 = reader.particleGroups[0]
+    gas = reader.particleGroups[1]
+    assert_array_equal(
+        dd[("PartType1", "relative_particle_position")].d,
+        PartType1.coordinates,
+    )
+    assert_array_equal(
+        dd[("gas", "relative_particle_position")].d,
+        gas.coordinates,
+    )
+    assert "Temperature" not in PartType1.field_names
+    assert "Temperature" in gas.field_names
+    arrind = np.flatnonzero(gas.field_names == "Temperature")[0]
+    assert_array_equal(dd[("gas", "Temperature")].d, gas.field_arrays[arrind])
 
 
 @requires_module("firefly")
@@ -140,6 +156,10 @@ def test_field_string_specification(
             [("PartType1", "Masses")],
             ["code_mass"],
         ),  # Test that tuples only bring in referenced particleGroup
+        (
+            [("all", "Masses")],
+            ["code_mass"],
+        ),  # Test that "all" brings in all particleGroups
     ],
 )
 def test_field_tuple_specification(
@@ -171,30 +191,42 @@ def test_field_tuple_specification(
                 assert fname in pg.field_names
                 arrind = np.flatnonzero(pg.field_names == fname)[0]
                 assert_array_equal(dd[field].d, pg.field_arrays[arrind])
+            elif ftype == "all":
+                assert fname in pg.field_names
+                this_pg_name = all_pgs_names[pgi]
+                arrind = np.flatnonzero(pg.field_names == fname)[0]
+                assert_array_equal(dd[this_pg_name, fname].d, pg.field_arrays[arrind])
             else:
                 assert fname not in pg.field_names
 
 
 @requires_module("firefly")
 @pytest.mark.parametrize(
-    "fields_to_include,fields_units",
+    "fields_to_include,fields_units,ErrorType",
     [
         (
             ["dinos"],
             ["code_length"],
+            YTFieldNotFound,
         ),  # Test nonexistent field (dinos)
+        (
+            ["Masses"],
+            ["code_mass"],
+            ValueError,
+        ),  # Test ambiguous field (masses)
         (
             [("PartType1", "Temperature")],
             ["code_temperature"],
+            YTFieldNotFound,
         ),  # Test nonexistent field tuple (PartType1, Temperature)
     ],
 )
-def test_invalid_field_specifications(
-    firefly_test_dataset, fields_to_include, fields_units
+def test_field_invalid_specification(
+    firefly_test_dataset, fields_to_include, fields_units, ErrorType
 ):
 
     dd = firefly_test_dataset.all_data()
-    with pytest.raises(YTFieldNotFound):
+    with pytest.raises(ErrorType):
         dd.create_firefly_object(
             fields_to_include=fields_to_include,
             fields_units=fields_units,
@@ -206,19 +238,19 @@ def test_invalid_field_specifications(
 def test_field_mixed_specification(firefly_test_dataset):
     dd = firefly_test_dataset.all_data()
 
+    # Assume particle type has already been specified
+    dd["gas", "Temperature"]
     reader = dd.create_firefly_object(
-        fields_to_include=["Masses", ("gas", "Temperature")],
+        fields_to_include=["Temperature", ("PartType1", "Masses")],
         fields_units=["code_mass", "code_temperature"],
     )
 
     PartType1 = reader.particleGroups[0]
     gas = reader.particleGroups[1]
     assert "Masses" in PartType1.field_names
+    assert "Masses" not in gas.field_names
     arrind = np.flatnonzero(PartType1.field_names == "Masses")[0]
     assert_array_equal(dd[("PartType1", "Masses")].d, PartType1.field_arrays[arrind])
-    assert "Masses" in gas.field_names
-    arrind = np.flatnonzero(gas.field_names == "Masses")[0]
-    assert_array_equal(dd[("gas", "Masses")].d, gas.field_arrays[arrind])
 
     assert "Temperature" not in PartType1.field_names
     assert "Temperature" in gas.field_names
