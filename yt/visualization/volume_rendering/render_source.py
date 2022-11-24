@@ -327,7 +327,7 @@ class VolumeSource(RenderSource, abc.ABC):
         """The field to be rendered"""
         return self._field
 
-    @field.setter  # type: ignore
+    @field.setter
     @invalidate_volume
     def field(self, value):
         field = self.data_source._determine_fields(value)
@@ -353,7 +353,7 @@ class VolumeSource(RenderSource, abc.ABC):
         """Whether or not the field rendering is computed in log space"""
         return self._log_field
 
-    @log_field.setter  # type: ignore
+    @log_field.setter
     @invalidate_volume
     def log_field(self, value):
         self.transfer_function = None
@@ -366,7 +366,7 @@ class VolumeSource(RenderSource, abc.ABC):
         values at grid boundaries"""
         return self._use_ghost_zones
 
-    @use_ghost_zones.setter  # type: ignore
+    @use_ghost_zones.setter
     @invalidate_volume
     def use_ghost_zones(self, value):
         self._use_ghost_zones = value
@@ -379,7 +379,7 @@ class VolumeSource(RenderSource, abc.ABC):
         """
         return self._weight_field
 
-    @weight_field.setter  # type: ignore
+    @weight_field.setter
     @invalidate_volume
     def weight_field(self, value):
         self._weight_field = value
