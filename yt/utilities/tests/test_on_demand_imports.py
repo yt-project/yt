@@ -27,9 +27,23 @@ def test_access_unavailable_module():
     _bacon = Bacon_imports()
     with pytest.raises(
         ImportError,
-        match=r"This functionality requires the Bacon package to be installed\.",
-    ):
+        match=r"No module named 'Bacon'",
+    ) as excinfo:
         _bacon.spam()
+
+    # yt should add information to the original error message
+    # but this done slightly differently in Python>=3.11
+    # (using exception notes), so we can't just match the error message
+    # directly. Instead this implements a Python-version agnostic check
+    # that the user-visible error message is what we expect.
+    complete_error_message = excinfo.exconly()
+    assert complete_error_message == (
+        "ModuleNotFoundError: No module named 'Bacon'\n"
+        "Something went wrong while trying to lazy-import Bacon. "
+        "Please make sure that Bacon is properly installed.\n"
+        "If the problem persists, please file an issue at "
+        "https://github.com/yt-project/yt/issues/new"
+    )
 
 
 def test_class_invalidation():
