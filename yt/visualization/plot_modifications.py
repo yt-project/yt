@@ -849,7 +849,7 @@ class ContourCallback(PlotCallback):
         clim: Optional[Tuple[float, float]] = None,
         label: bool = False,
         take_log: Optional[bool] = None,
-        data_source: YTDataContainer = None,
+        data_source: Optional[YTDataContainer] = None,
         plot_args: Optional[Dict[str, Any]] = None,
         text_args: Optional[Dict[str, Any]] = None,
         ncont: Optional[int] = None,  # deprecated
