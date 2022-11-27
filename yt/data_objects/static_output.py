@@ -12,15 +12,17 @@ from collections import defaultdict
 from functools import cached_property
 from importlib.util import find_spec
 from stat import ST_CTIME
-from typing import DefaultDict, Dict, List, Optional, Set, Tuple, Type, Union
+from typing import Any, DefaultDict, Dict, List, Optional, Set, Tuple, Type, Union
 
 import numpy as np
 from more_itertools import unzip
+from unyt import Unit
 from unyt.exceptions import UnitConversionError, UnitParseError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
+from yt._typing import AnyFieldKey
 from yt.config import ytcfg
-from yt.data_objects.particle_filters import filter_registry
+from yt.data_objects.particle_filters import ParticleFilter, filter_registry
 from yt.data_objects.region_expression import RegionExpression
 from yt.data_objects.unions import ParticleUnion
 from yt.fields.derived_field import ValidateSpatial
@@ -40,7 +42,7 @@ from yt.geometry.coordinates.api import (
 from yt.geometry.geometry_handler import Index
 from yt.units import UnitContainer, _wrap_display_ytarray, dimensions
 from yt.units.dimensions import current_mks  # type: ignore
-from yt.units.unit_object import Unit, define_unit  # type: ignore
+from yt.units.unit_object import define_unit  # type: ignore
 from yt.units.unit_registry import UnitRegistry  # type: ignore
 from yt.units.unit_systems import (  # type: ignore
     create_code_unit_system,
@@ -150,16 +152,18 @@ class Dataset(abc.ABC):
     coordinates = None
     storage_filename = None
     particle_unions: Optional[Dict[str, ParticleUnion]] = None
-    known_filters = None
+    known_filters: Optional[Dict[str, ParticleFilter]] = None
     _index_class: Type[Index]
-    field_units = None
+    field_units: Optional[Dict[AnyFieldKey, Unit]] = None
     derived_field_list = requires_index("derived_field_list")
     fields = requires_index("fields")
-    _instantiated = False
+    # _instanciated represents an instanciation time (since Epoch)
+    # the default is a place holder sentinel, falsy value
+    _instantiated: float = 0
     _particle_type_counts = None
     _proj_type = "quad_proj"
     _ionization_label_format = "roman_numeral"
-    _determined_fields = None
+    _determined_fields: Optional[Dict[str, List[Tuple[str, str]]]] = None
     fields_detected = False
 
     # these are set in self._parse_parameter_file()
@@ -212,11 +216,13 @@ class Dataset(abc.ABC):
 
     def __init__(
         self,
-        filename,
-        dataset_type=None,
-        units_override=None,
-        unit_system="cgs",
-        default_species_fields=None,
+        filename: str,
+        dataset_type: Optional[str] = None,
+        units_override: Optional[Dict[str, str]] = None,
+        unit_system: str = "cgs",
+        default_species_fields: Optional[
+            "Any"
+        ] = None,  # Any used as a placeholder here
     ):
         """
         Base class for generating new output types.  Principally consists of
@@ -224,11 +230,11 @@ class Dataset(abc.ABC):
         """
         # We return early and do NOT initialize a second time if this file has
         # already been initialized.
-        if self._instantiated:
+        if self._instantiated != 0:
             return
         self.dataset_type = dataset_type
-        self.conversion_factors = {}
-        self.parameters = {}
+        self.conversion_factors: Dict[str, float] = {}
+        self.parameters: Dict[str, Any] = {}
         self.region_expression = self.r = RegionExpression(self)
         self.known_filters = self.known_filters or {}
         self.particle_unions = self.particle_unions or {}
