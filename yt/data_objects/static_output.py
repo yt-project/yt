@@ -271,6 +271,11 @@ class Dataset(abc.ABC):
         # the cache, we move that check to here from __new__.  This avoids
         # double-instantiation.
         # PR 3124: _set_derived_attrs() can change the hash, check store here
+        if _ds_store is None:
+            raise RuntimeError(
+                "Something went wrong during yt's initialization: "
+                "dataset cache isn't properly initialized"
+            )
         try:
             _ds_store.check_ds(self)
         except NoParameterShelf:
