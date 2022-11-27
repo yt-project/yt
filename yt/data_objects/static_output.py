@@ -25,7 +25,7 @@ from yt.config import ytcfg
 from yt.data_objects.particle_filters import ParticleFilter, filter_registry
 from yt.data_objects.region_expression import RegionExpression
 from yt.data_objects.unions import ParticleUnion
-from yt.fields.derived_field import ValidateSpatial
+from yt.fields.derived_field import DerivedField, ValidateSpatial
 from yt.fields.field_type_container import FieldTypeContainer
 from yt.fields.fluid_fields import setup_gradient_fields
 from yt.funcs import is_sequence, iter_fields, mylog, set_intersection, setdefaultattr
@@ -860,7 +860,7 @@ class Dataset(abc.ABC):
             df += self._setup_particle_type(ptype)
         return df
 
-    _last_freq = (None, None)
+    _last_freq: Optional[Tuple[str, str]] = None
     _last_finfo = None
 
     def _get_field_info(self, ftype, fname=None):
@@ -920,26 +920,39 @@ class Dataset(abc.ABC):
             )
         return field_info
 
-    def _get_field_info_helper(self, ftype, fname=None):
+    def _get_field_info_helper(
+        self,
+        ftype: Union[Tuple[str, str], str, DerivedField],
+        fname: Optional[str] = None,
+    ):
+        # note: the present method is only allowed to raise
+        # TypeError or YTFieldNotFound exceptions.
+        # YTRegion.__getattr__'s implementation relies on this behaviour
         self.index
 
         # store the original inputs in case we need to raise an error
         INPUT = ftype, fname
         if fname is None:
-            try:
-                ftype, fname = ftype.name
-            except AttributeError:
+            if isinstance(ftype, str):
                 ftype, fname = "unknown", ftype
+            elif isinstance(ftype, DerivedField):
+                ftype, fname = ftype.name
+            elif is_sequence(ftype) and len(ftype) == 2:
+                ftype, fname = ftype
+            else:
+                raise TypeError("internal field parsing error. ")
+        elif not isinstance(ftype, str):
+            raise TypeError("internal field parsing error. ")
 
         candidates: List[FieldKey] = []
 
         # storing this condition before altering it
         guessing_type = ftype == "unknown"
         if guessing_type:
-            ftype = self._last_freq[0] or ftype
+            ftype = self._last_freq[0] if isinstance(self._last_freq, tuple) else ftype
             candidates = [(ft, fn) for ft, fn in self.field_info.keys() if fn == fname]
 
-        field = (ftype, fname)
+        field: Tuple[str, str] = (ftype, fname)
 
         if (
             field == self._last_freq
@@ -958,11 +971,15 @@ class Dataset(abc.ABC):
             fi = self._last_finfo = self.field_info[fname]
             if (
                 fi.sampling_type == "particle"
+                and isinstance(self._last_freq, tuple)
+                and len(self._last_freq) >= 1
                 and self._last_freq[0] not in self.particle_types
             ):
                 field = "all", field[1]
             elif (
                 not fi.sampling_type == "particle"
+                and isinstance(self._last_freq, tuple)
+                and len(self._last_freq) >= 1
                 and self._last_freq[0] not in self.fluid_types
             ):
                 field = self.default_fluid_type, field[1]
