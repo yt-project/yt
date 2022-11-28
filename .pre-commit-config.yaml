@@ -25,7 +25,7 @@ repos:
         --max-py-version=3.11,
       ]
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.3.0
+    rev: v4.4.0
     hooks:
     - id: trailing-whitespace
     - id: end-of-file-fixer
@@ -52,7 +52,7 @@ repos:
       name: isort (cython)
       types: [cython]
 -   repo: https://github.com/PyCQA/flake8
-    rev: 5.0.4
+    rev: 6.0.0
     hooks:
     - id: flake8
       additional_dependencies: [
@@ -83,7 +83,7 @@ repos:
       ]
 
 - repo: https://github.com/MarcoGorelli/cython-lint
-  rev: v0.8.1
+  rev: v0.9.1
   hooks:
   - id: cython-lint
     args: [--no-pycodestyle]
