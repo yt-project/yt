@@ -771,8 +771,8 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         # requested
         info = self._get_info(item)
         if density:
-            dpx = (self.bounds[1] - self.bounds[0]) / self.buff_size[0]
-            dpy = (self.bounds[3] - self.bounds[2]) / self.buff_size[1]
+            dpx = (bounds[1] - bounds[0]) / self.buff_size[0]
+            dpy = (bounds[3] - bounds[2]) / self.buff_size[1]
             norm = self.ds.quan(dpx * dpy, "code_length**2").in_base()
             buff /= norm.v
             units = data.units / norm.units
