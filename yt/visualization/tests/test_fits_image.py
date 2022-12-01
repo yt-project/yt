@@ -89,6 +89,22 @@ def test_fits_image():
     assert_equal(fid2["density"].data, fits_slc["density"].data)
     assert_equal(fid2["temperature"].data, fits_slc["temperature"].data)
 
+    fits_slc2 = FITSSlice(
+        ds,
+        "z",
+        [("gas", "density"), ("gas", "temperature")],
+        image_res=128,
+        width=(0.5, "unitary"),
+        origin="image",
+    )
+
+    assert_equal(fits_slc2["density"].data, fits_slc["density"].data)
+    assert_equal(fits_slc2["temperature"].data, fits_slc["temperature"].data)
+    assert fits_slc.wcs.wcs.crval[0] == ds.domain_center[0].to_value("cm")
+    assert fits_slc.wcs.wcs.crval[1] == ds.domain_center[1].to_value("cm")
+    assert fits_slc2.wcs.wcs.crval[0] == 0.0
+    assert fits_slc2.wcs.wcs.crval[1] == 0.0
+
     dens_img = fid2.pop("density")
     temp_img = fid2.pop("temperature")
 
@@ -133,6 +149,10 @@ def test_fits_image():
     assert new_fid3.wcs.wcs.cunit[1] == "deg"
     assert new_fid3.wcs.wcs.ctype[0] == "RA---TAN"
     assert new_fid3.wcs.wcs.ctype[1] == "DEC--TAN"
+    assert new_fid3.wcsa.wcs.cunit[0] == "cm"
+    assert new_fid3.wcsa.wcs.cunit[1] == "cm"
+    assert new_fid3.wcsa.wcs.ctype[0] == "linear"
+    assert new_fid3.wcsa.wcs.ctype[1] == "linear"
 
     buf = off_axis_projection(
         ds, ds.domain_center, [0.1, 0.2, -0.9], 0.5, 128, ("gas", "density")
