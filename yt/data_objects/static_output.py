@@ -936,7 +936,7 @@ class Dataset(abc.ABC):
 
         if isinstance(field, str):
             ftype, fname = "unknown", field
-        elif is_sequence(field) and len(field) == 2:
+        elif isinstance(field, tuple) and len(field) == 2:
             ftype, fname = field
         elif isinstance(field, DerivedField):
             ftype, fname = field.name
