@@ -489,14 +489,6 @@ def test_morton_index():
     assert_array_equal(a1, a2)
 
 
-def test_field_inference():
-    ds = fake_random_ds(16)
-    ds.index
-    # If this is not true this means the result of field inference depends
-    # on the order we did field detection, which is random in Python3
-    assert_equal(ds._last_freq, (None, None))
-
-
 @requires_module("h5py")
 @requires_file(ISOGAL)
 def test_deposit_amr():

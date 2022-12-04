@@ -11,9 +11,10 @@ from yt._typing import AnyFieldKey
 from yt.config import ytcfg
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.profiles import create_profile
+from yt.fields.derived_field import DerivedField
 from yt.fields.field_exceptions import NeedsGridType
 from yt.frontends.ytdata.utilities import save_as_dataset
-from yt.funcs import get_output_filename, is_sequence, iter_fields, mylog
+from yt.funcs import get_output_filename, iter_fields, mylog
 from yt.units._numpy_wrapper_functions import uconcatenate
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.amr_kdtree.api import AMRKDTree
@@ -1487,24 +1488,25 @@ class YTDataContainer(abc.ABC):
         obj._current_particle_type = old_particle_type
         obj._current_fluid_type = old_fluid_type
 
-    def _tupleize_field(self, field):
-
-        try:
+    def _tupleize_field(
+        self, field: Union[Tuple[str, str], str, DerivedField]
+    ) -> Tuple[str, str]:
+        if isinstance(field, str):
+            return "unknown", field
+        elif isinstance(field, DerivedField):
             ftype, fname = field.name
             return ftype, fname
-        except AttributeError:
-            pass
 
-        if is_sequence(field) and not isinstance(field, str):
-            try:
-                ftype, fname = field
-                if not all(isinstance(_, str) for _ in field):
-                    raise TypeError
-                return ftype, fname
-            except TypeError as e:
-                raise YTFieldNotParseable(field) from e
-            except ValueError:
-                pass
+        try:
+            ftype, fname = field
+            if not all(isinstance(_, str) for _ in field):
+                raise TypeError
+        except TypeError as exc:
+            raise YTFieldNotParseable(field) from exc
+        except ValueError:
+            pass
+        else:
+            return ftype, fname
 
         try:
             fname = field
@@ -1520,13 +1522,11 @@ class YTDataContainer(abc.ABC):
             else:
                 ftype = self._current_fluid_type
                 if (ftype, fname) not in self.ds.field_info:
-                    ftype = self.ds._last_freq[0]
-            return ftype, fname
+                    raise YTFieldNotFound
         except YTFieldNotFound:
             pass
-
-        if isinstance(field, str):
-            return "unknown", field
+        else:
+            return ftype, fname
 
         raise YTFieldNotParseable(field)
 
@@ -1539,9 +1539,8 @@ class YTDataContainer(abc.ABC):
                 explicit_fields.append(field)
                 continue
 
-            ftype, fname = self._tupleize_field(field)
-            finfo = self.ds._get_field_info((ftype, fname))
-
+            finfo = self.ds._get_field_info(field)
+            ftype, fname = finfo.name
             # really ugly check to ensure that this field really does exist somewhere,
             # in some naming convention, before returning it as a possible field type
             if (

@@ -1,4 +1,5 @@
 from collections import defaultdict
+from typing import Tuple, Union
 
 import numpy as np
 
@@ -100,7 +101,7 @@ class FieldDetector(defaultdict):
             return arr
         return arr.reshape(self.ActiveDimensions, order="C")
 
-    def __missing__(self, item):
+    def __missing__(self, item: Union[Tuple[str, str], str]):
         from yt.fields.derived_field import NullFunc
 
         if not isinstance(item, tuple):
@@ -116,7 +117,7 @@ class FieldDetector(defaultdict):
         # types not getting correctly identified.
         # Note that the *only* way this works is if we also fix our field
         # dependencies during checking.  Bug #627 talks about this.
-        item = self.ds._last_freq
+        _item: Tuple[str, str] = finfo.name
         if finfo is not None and finfo._function is not NullFunc:
             try:
                 for param, param_v in permute_params.items():
@@ -144,43 +145,43 @@ class FieldDetector(defaultdict):
                         self.requested_parameters.append(i)
             if vv is not None:
                 if not self.flat:
-                    self[item] = vv
+                    self[_item] = vv
                 else:
-                    self[item] = vv.ravel()
-                return self[item]
+                    self[_item] = vv.ravel()
+                return self[_item]
         elif finfo is not None and finfo.sampling_type == "particle":
             io = io_registry[self.ds.dataset_type](self.ds)
             if hasattr(io, "_vector_fields") and (
-                item in io._vector_fields or item[1] in io._vector_fields
+                _item in io._vector_fields or _item[1] in io._vector_fields
             ):
                 try:
-                    cols = io._vector_fields[item]
+                    cols = io._vector_fields[_item]
                 except KeyError:
-                    cols = io._vector_fields[item[1]]
+                    cols = io._vector_fields[_item[1]]
                 # A vector
-                self[item] = YTArray(
+                self[_item] = YTArray(
                     np.ones((self.NumberOfParticles, cols)),
                     finfo.units,
                     registry=self.ds.unit_registry,
                 )
             else:
                 # Not a vector
-                self[item] = YTArray(
+                self[_item] = YTArray(
                     np.ones(self.NumberOfParticles),
                     finfo.units,
                     registry=self.ds.unit_registry,
                 )
-            if item == ("STAR", "BIRTH_TIME"):
+            if _item == ("STAR", "BIRTH_TIME"):
                 # hack for the artio frontend so we pass valid times to
                 # the artio functions for calculating physical times
                 # from internal times
-                self[item] *= -0.1
-            self.requested.append(item)
-            return self[item]
-        self.requested.append(item)
-        if item not in self:
-            self[item] = self._read_data(item)
-        return self[item]
+                self[_item] *= -0.1
+            self.requested.append(_item)
+            return self[_item]
+        self.requested.append(_item)
+        if _item not in self:
+            self[_item] = self._read_data(_item)
+        return self[_item]
 
     def _debug(self):
         # We allow this to pass through.

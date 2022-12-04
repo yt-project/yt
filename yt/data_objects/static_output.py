@@ -659,7 +659,6 @@ class Dataset(abc.ABC):
         # Now that we've detected the fields, set this flag so that
         # deprecated fields will be logged if they are used
         self.fields_detected = True
-        self._last_freq = (None, None)
 
     def set_field_label_format(self, format_property, value):
         """
@@ -860,9 +859,6 @@ class Dataset(abc.ABC):
             df += self._setup_particle_type(ptype)
         return df
 
-    _last_freq: Optional[Tuple[str, str]] = None
-    _last_finfo = None
-
     def _get_field_info(
         self,
         field: Union[Tuple[str, str], str, DerivedField],
@@ -948,41 +944,11 @@ class Dataset(abc.ABC):
         # storing this condition before altering it
         guessing_type = ftype == "unknown"
         if guessing_type:
-            ftype = self._last_freq[0] if isinstance(self._last_freq, tuple) else ftype
             candidates = [(ft, fn) for ft, fn in self.field_info.keys() if fn == fname]
 
         ft: Tuple[str, str] = (ftype, fname)
-
-        if ft == self._last_freq and ft not in self.field_info.field_aliases.values():
-            return self._last_finfo, candidates
         if ft in self.field_info:
-            self._last_freq = ft
-            self._last_finfo = self.field_info[(ftype, fname)]
-            return self._last_finfo, candidates
-
-        try:
-            # Sometimes, if guessing_type == True, this will be switched for
-            # the type of field it is.  So we look at the field type and
-            # determine if we need to change the type.
-            fi = self._last_finfo = self.field_info[fname]
-            if (
-                fi.sampling_type == "particle"
-                and isinstance(self._last_freq, tuple)
-                and len(self._last_freq) >= 1
-                and self._last_freq[0] not in self.particle_types
-            ):
-                ft = "all", ft[1]
-            elif (
-                not fi.sampling_type == "particle"
-                and isinstance(self._last_freq, tuple)
-                and len(self._last_freq) >= 1
-                and self._last_freq[0] not in self.fluid_types
-            ):
-                ft = self.default_fluid_type, ft[1]
-            self._last_freq = ft
-            return self._last_finfo, candidates
-        except KeyError:
-            pass
+            return self.field_info[ftype, fname], candidates
 
         # We also should check "all" for particles, which can show up if you're
         # mixing deposition/gas fields with particle fields.
@@ -994,9 +960,7 @@ class Dataset(abc.ABC):
             to_guess += list(self.fluid_types) + list(self.particle_types)
             for ftype in to_guess:
                 if (ftype, fname) in self.field_info:
-                    self._last_freq = (ftype, fname)
-                    self._last_finfo = self.field_info[(ftype, fname)]
-                    return self._last_finfo, candidates
+                    return self.field_info[ftype, fname], candidates
         raise YTFieldNotFound(field, ds=self)
 
     def _setup_classes(self):
