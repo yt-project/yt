@@ -78,7 +78,7 @@ _cached_datasets: MutableMapping[
 
 # we set this global to None as a place holder
 # its actual instanciation is delayed until after yt.__init__
-# is completed because we need yt.config.ytcfg to be instanciated first
+# is completed because we need yt.config.ytcfg to be instantiated first
 
 _ds_store: Optional[ParameterFileStore] = None
 
@@ -159,7 +159,7 @@ class Dataset(abc.ABC):
     field_units: Optional[Dict[AnyFieldKey, Unit]] = None
     derived_field_list = requires_index("derived_field_list")
     fields = requires_index("fields")
-    # _instanciated represents an instanciation time (since Epoch)
+    # _instantiated represents an instantiation time (since Epoch)
     # the default is a place holder sentinel, falsy value
     _instantiated: float = 0
     _particle_type_counts = None
