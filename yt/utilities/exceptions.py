@@ -127,7 +127,7 @@ class YTFieldNotFound(YTException):
         ]
 
     def __str__(self):
-        msg = f"Could not find field {self.field} in {self.ds}."
+        msg = f"Could not find field {self.field!r} in {self.ds}."
         try:
             suggestions = self._get_suggestions()
         except AttributeError:
