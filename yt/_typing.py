@@ -6,6 +6,7 @@ from numpy import ndarray
 FieldDescT = Tuple[str, Tuple[str, List[str], Optional[str]]]
 KnownFieldsT = Tuple[FieldDescT, ...]
 
+ParticleType = str
 FieldType = str
 FieldName = str
 FieldKey = Tuple[FieldType, FieldName]

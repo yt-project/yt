@@ -20,7 +20,7 @@ from unyt import Unit
 from unyt.exceptions import UnitConversionError, UnitParseError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
-from yt._typing import AnyFieldKey
+from yt._typing import AnyFieldKey, FieldType, ParticleType
 from yt.config import ytcfg
 from yt.data_objects.particle_filters import ParticleFilter, filter_registry
 from yt.data_objects.region_expression import RegionExpression
@@ -145,14 +145,16 @@ class Dataset(abc.ABC):
 
     default_fluid_type = "gas"
     default_field = ("gas", "density")
-    fluid_types: Tuple[str, ...] = ("gas", "deposit", "index")
-    particle_types: Optional[Tuple[str, ...]] = ("io",)  # By default we have an 'all'
-    particle_types_raw: Optional[Tuple[str, ...]] = ("io",)
+    fluid_types: Tuple[FieldType, ...] = ("gas", "deposit", "index")
+    particle_types: Optional[Tuple[ParticleType, ...]] = (
+        "io",
+    )  # By default we have an 'all'
+    particle_types_raw: Optional[Tuple[ParticleType, ...]] = ("io",)
     geometry = "cartesian"
     coordinates = None
     storage_filename = None
-    particle_unions: Optional[Dict[str, ParticleUnion]] = None
-    known_filters: Optional[Dict[str, ParticleFilter]] = None
+    particle_unions: Optional[Dict[ParticleType, ParticleUnion]] = None
+    known_filters: Optional[Dict[ParticleType, ParticleFilter]] = None
     _index_class: Type[Index]
     field_units: Optional[Dict[AnyFieldKey, Unit]] = None
     derived_field_list = requires_index("derived_field_list")
