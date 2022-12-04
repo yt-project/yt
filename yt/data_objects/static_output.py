@@ -942,7 +942,7 @@ class Dataset(abc.ABC):
         # storing this condition before altering it
         guessing_type = ftype == "unknown"
         if guessing_type:
-            candidates = [(ft, fn) for ft, fn in self.field_info.keys() if fn == fname]
+            candidates = [(ft, fn) for ft, fn in self.field_info if fn == fname]
 
         ft: Tuple[str, str] = (ftype, fname)
         if ft in self.field_info:
