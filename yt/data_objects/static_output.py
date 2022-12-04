@@ -146,7 +146,7 @@ class Dataset(abc.ABC):
     default_fluid_type = "gas"
     default_field = ("gas", "density")
     fluid_types: Tuple[FieldType, ...] = ("gas", "deposit", "index")
-    particle_types: Optional[Tuple[ParticleType, ...]] = (
+    particle_types: Tuple[ParticleType, ...] = (
         "io",
     )  # By default we have an 'all'
     particle_types_raw: Optional[Tuple[ParticleType, ...]] = ("io",)
