@@ -241,7 +241,7 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
         self._setup_plots()
 
         for field in self.data_source._determine_fields(self.fields):
-            finfo = self.data_source.ds._get_field_info(*field)
+            finfo = self.data_source.ds._get_field_info(field)
             pnh = self.plots[field].norm_handler
             if finfo.take_log is False:
                 # take_log can be `None` so we explicitly compare against a boolean

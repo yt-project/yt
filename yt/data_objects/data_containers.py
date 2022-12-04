@@ -271,9 +271,10 @@ class YTDataContainer(abc.ABC):
             rv = self.field_data[f]
         except KeyError:
             if isinstance(f, tuple):
-                fi = self.ds._get_field_info(*f)
+                fi = self.ds._get_field_info(f)
             elif isinstance(f, bytes):
-                fi = self.ds._get_field_info("unknown", f)
+                # TODO(4229): see if this branch could be dropped
+                fi = self.ds._get_field_info(("unknown", f))
             rv = self.ds.arr(self.field_data[key], fi.units)
         return rv
 
@@ -296,7 +297,7 @@ class YTDataContainer(abc.ABC):
 
     def _generate_field(self, field):
         ftype, fname = field
-        finfo = self.ds._get_field_info(*field)
+        finfo = self.ds._get_field_info(field)
         with self._field_type_state(ftype, finfo):
             if fname in self._container_fields:
                 tr = self._generate_container_field(field)
@@ -310,8 +311,7 @@ class YTDataContainer(abc.ABC):
 
     def _generate_fluid_field(self, field):
         # First we check the validator
-        ftype, fname = field
-        finfo = self.ds._get_field_info(ftype, fname)
+        finfo = self.ds._get_field_info(field)
         if self._current_chunk is None or self._current_chunk.chunk_type != "spatial":
             gen_obj = self
         else:
@@ -326,7 +326,7 @@ class YTDataContainer(abc.ABC):
         return rv
 
     def _generate_spatial_fluid(self, field, ngz):
-        finfo = self.ds._get_field_info(*field)
+        finfo = self.ds._get_field_info(field)
         if finfo.units is None:
             raise YTSpatialFieldUnitError(field)
         units = finfo.units
@@ -383,7 +383,7 @@ class YTDataContainer(abc.ABC):
         else:
             gen_obj = self._current_chunk.objs[0]
         try:
-            finfo = self.ds._get_field_info(*field)
+            finfo = self.ds._get_field_info(field)
             finfo.check_available(gen_obj)
         except NeedsGridType as ngt_exception:
             if ngt_exception.ghost_zones != 0:
@@ -407,7 +407,7 @@ class YTDataContainer(abc.ABC):
                     ind += data.size
         else:
             with self._field_type_state(ftype, finfo, gen_obj):
-                rv = self.ds._get_field_info(*field)(gen_obj)
+                rv = self.ds._get_field_info(field)(gen_obj)
         return rv
 
     def _count_particles(self, ftype):
@@ -1540,7 +1540,7 @@ class YTDataContainer(abc.ABC):
                 continue
 
             ftype, fname = self._tupleize_field(field)
-            finfo = self.ds._get_field_info(ftype, fname)
+            finfo = self.ds._get_field_info((ftype, fname))
 
             # really ugly check to ensure that this field really does exist somewhere,
             # in some naming convention, before returning it as a possible field type

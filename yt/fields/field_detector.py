@@ -107,7 +107,7 @@ class FieldDetector(defaultdict):
             field = ("unknown", item)
         else:
             field = item
-        finfo = self.ds._get_field_info(*field)
+        finfo = self.ds._get_field_info(field)
         params, permute_params = finfo._get_needed_parameters(self)
         self.field_parameters.update(params)
         # For those cases where we are guessing the field type, we will
@@ -212,7 +212,7 @@ class FieldDetector(defaultdict):
 
     def _read_data(self, field_name):
         self.requested.append(field_name)
-        finfo = self.ds._get_field_info(*field_name)
+        finfo = self.ds._get_field_info(field_name)
         if finfo.sampling_type == "particle":
             self.requested.append(field_name)
             return np.ones(self.NumberOfParticles)

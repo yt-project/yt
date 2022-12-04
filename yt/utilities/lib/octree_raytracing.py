@@ -44,7 +44,7 @@ class OctreeRayTracing:
         data_source = self.data_source
         chunks = data_source.index._chunk(data_source, "spatial", ngz=1)
 
-        finfo = data_source.ds._get_field_info(*field)
+        finfo = data_source.ds._get_field_info(field)
         units = finfo.units
         rv = data_source.ds.arr(
             np.zeros((2, 2, 2, data_source.ires.size), dtype="float64"), units

@@ -68,7 +68,7 @@ class TestFieldAccess:
         self.ds = ds
 
     def __call__(self):
-        field = self.ds._get_field_info(*self.field_name)
+        field = self.ds._get_field_info(self.field_name)
         skip_grids = False
         needs_spatial = False
         for v in field.validators:

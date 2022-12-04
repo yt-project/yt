@@ -219,7 +219,7 @@ class FixedResolutionBuffer:
     def _get_info(self, item):
         info = {}
         ftype, fname = field = self.data_source._determine_fields(item)[0]
-        finfo = self.data_source.ds._get_field_info(*field)
+        finfo = self.data_source.ds._get_field_info(field)
         info["data_source"] = self.data_source.__str__()
         info["axis"] = self.data_source.axis
         info["field"] = str(item)
@@ -627,9 +627,10 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
             def _sq_field(field, data, item: FieldKey):
                 return data[item] ** 2
 
-            fd = self.ds._get_field_info(*item)
+            fd = self.ds._get_field_info(item)
+            ftype, fname = item
 
-            item_sq = (item[0], f"tmp_{item[1]}_squared")
+            item_sq = (ftype, f"tmp_{fname}_squared")
             self.ds.add_field(
                 item_sq,
                 partial(_sq_field, item=item),

@@ -754,7 +754,7 @@ class Dataset(abc.ABC):
             units = set()
             for s in union:
                 # First we check our existing fields for units
-                funits = self._get_field_info(s, field).units
+                funits = self._get_field_info((s, field)).units
                 # Then we override with field_units settings.
                 funits = self.field_units.get((s, field), funits)
                 units.add(funits)

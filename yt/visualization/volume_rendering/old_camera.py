@@ -203,7 +203,7 @@ class Camera(ParallelAnalysisInterface):
         dd = self.ds.all_data()
         efields = dd._determine_fields(self.fields)
         if self.log_fields is None:
-            self.log_fields = [self.ds._get_field_info(*f).take_log for f in efields]
+            self.log_fields = [self.ds._get_field_info(f).take_log for f in efields]
         self.no_ghost = no_ghost
         self.use_light = use_light
         self.light_dir = None
@@ -1703,7 +1703,7 @@ class FisheyeCamera(Camera):
         fields = dd._determine_fields(fields)
         self.fields = fields
         if log_fields is None:
-            log_fields = [self.ds._get_field_info(*f).take_log for f in fields]
+            log_fields = [self.ds._get_field_info(f).take_log for f in fields]
         self.log_fields = log_fields
         self.sub_samples = sub_samples
         if volume is None:
@@ -2144,7 +2144,7 @@ class ProjectionCamera(Camera):
         ds = self.ds
         dd = ds.all_data()
         field = dd._determine_fields([self.field])[0]
-        finfo = ds._get_field_info(*field)
+        finfo = ds._get_field_info(field)
         dl = 1.0
         if self.method == "integrate":
             if self.weight is None:
@@ -2201,7 +2201,7 @@ class ProjectionCamera(Camera):
     def save_image(self, image, fn=None, clip_ratio=None):
         dd = self.ds.all_data()
         field = dd._determine_fields([self.field])[0]
-        finfo = self.ds._get_field_info(*field)
+        finfo = self.ds._get_field_info(field)
         if finfo.take_log:
             im = np.log10(image)
         else:

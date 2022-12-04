@@ -107,7 +107,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
             if inspected >= len(fields_to_get):
                 break
             inspected += 1
-            fi = self.ds._get_field_info(*field)
+            fi = self.ds._get_field_info(field)
             fd = self.ds.field_dependencies.get(
                 field, None
             ) or self.ds.field_dependencies.get(field[1], None)
@@ -165,7 +165,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
         for field in self._determine_fields(fields):
             if field in self.field_data:
                 continue
-            finfo = self.ds._get_field_info(*field)
+            finfo = self.ds._get_field_info(field)
             try:
                 finfo.check_available(self)
             except NeedsGridType:
@@ -184,7 +184,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
         fluids, particles = [], []
         finfos = {}
         for ftype, fname in fields_to_get:
-            finfo = self.ds._get_field_info(ftype, fname)
+            finfo = self.ds._get_field_info((ftype, fname))
             finfos[ftype, fname] = finfo
             if finfo.sampling_type == "particle":
                 particles.append((ftype, fname))
@@ -228,7 +228,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
                 index += 1
                 if field in self.field_data:
                     continue
-                fi = self.ds._get_field_info(*field)
+                fi = self.ds._get_field_info(field)
                 try:
                     fd = self._generate_field(field)
                     if hasattr(fd, "units"):
