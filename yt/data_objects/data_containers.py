@@ -271,11 +271,7 @@ class YTDataContainer(abc.ABC):
         try:
             rv = self.field_data[f]
         except KeyError:
-            if isinstance(f, tuple):
-                fi = self.ds._get_field_info(f)
-            elif isinstance(f, bytes):
-                # TODO(4229): see if this branch could be dropped
-                fi = self.ds._get_field_info(("unknown", f))
+            fi = self.ds._get_field_info(f)
             rv = self.ds.arr(self.field_data[key], fi.units)
         return rv
 
