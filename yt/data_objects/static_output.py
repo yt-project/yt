@@ -53,6 +53,7 @@ from yt.utilities.configure import YTConfig, configuration_callbacks
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.exceptions import (
     YTFieldNotFound,
+    YTFieldNotParseable,
     YTGeometryNotSupported,
     YTIllDefinedParticleFilter,
     YTObjectNotImplemented,
@@ -925,9 +926,6 @@ class Dataset(abc.ABC):
         field: Union[Tuple[str, str], str, DerivedField],
         /,
     ):
-        # note: the present method is only allowed to raise
-        # TypeError or YTFieldNotFound exceptions.
-        # YTRegion.__getattr__'s implementation relies on this behaviour
         self.index
 
         if isinstance(field, str):
@@ -937,7 +935,7 @@ class Dataset(abc.ABC):
         elif isinstance(field, DerivedField):
             ftype, fname = field.name
         else:
-            raise TypeError(f"internal field parsing error. Got {field=}")
+            raise YTFieldNotParseable(field)
 
         candidates: List[FieldKey] = []
 

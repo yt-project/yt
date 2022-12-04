@@ -408,7 +408,7 @@ class YTFieldNotParseable(YTException):
         self.field = field
 
     def __str__(self):
-        return f"Cannot identify field {self.field}"
+        return f"Cannot identify field {self.field!r}"
 
 
 class YTDataSelectorNotImplemented(YTException):

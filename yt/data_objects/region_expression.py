@@ -27,9 +27,11 @@ class RegionExpression:
         # that result in a rectangular prism or a slice.
         try:
             return self.all_data[item]
-        except (TypeError, YTFieldNotParseable, YTFieldNotFound):
-            # TODO(4229): see if there's any reason left to catch YTFieldNotParseable here
-            # TODO(4229): Do NOT catch TypeError (may hide subtle bugs like internally broken function call)
+        except (YTFieldNotParseable, YTFieldNotFound):
+            # any error raised by self.ds._get_field_info
+            # signals a type error (not a field), however we don't want to
+            # catch plain TypeErrors as this may create subtle bugs very hard
+            # to decipher, like broken internal function calls.
             pass
 
         if isinstance(item, slice):
