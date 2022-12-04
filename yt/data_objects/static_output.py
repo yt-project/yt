@@ -863,8 +863,12 @@ class Dataset(abc.ABC):
     _last_freq: Optional[Tuple[str, str]] = None
     _last_finfo = None
 
-    def _get_field_info(self, ftype, fname=None):
-        field_info, candidates = self._get_field_info_helper(ftype, fname)
+    def _get_field_info(
+        self,
+        field: Union[Tuple[str, str], str, DerivedField],
+        /,
+    ):
+        field_info, candidates = self._get_field_info_helper(field)
 
         if field_info.name[1] in ("px", "py", "pz", "pdx", "pdy", "pdz"):
             # escape early as a bandaid solution to
@@ -922,27 +926,22 @@ class Dataset(abc.ABC):
 
     def _get_field_info_helper(
         self,
-        ftype: Union[Tuple[str, str], str, DerivedField],
-        fname: Optional[str] = None,
+        field: Union[Tuple[str, str], str, DerivedField],
+        /,
     ):
         # note: the present method is only allowed to raise
         # TypeError or YTFieldNotFound exceptions.
         # YTRegion.__getattr__'s implementation relies on this behaviour
         self.index
 
-        # store the original inputs in case we need to raise an error
-        INPUT = ftype, fname
-        if fname is None:
-            if isinstance(ftype, str):
-                ftype, fname = "unknown", ftype
-            elif isinstance(ftype, DerivedField):
-                ftype, fname = ftype.name
-            elif is_sequence(ftype) and len(ftype) == 2:
-                ftype, fname = ftype
-            else:
-                raise TypeError("internal field parsing error. ")
-        elif not isinstance(ftype, str):
-            raise TypeError("internal field parsing error. ")
+        if isinstance(field, str):
+            ftype, fname = "unknown", field
+        elif is_sequence(field) and len(field) == 2:
+            ftype, fname = field
+        elif isinstance(field, DerivedField):
+            ftype, fname = field.name
+        else:
+            raise TypeError(f"internal field parsing error. Got {field=}")
 
         candidates: List[FieldKey] = []
 
@@ -998,8 +997,7 @@ class Dataset(abc.ABC):
                     self._last_freq = (ftype, fname)
                     self._last_finfo = self.field_info[(ftype, fname)]
                     return self._last_finfo, candidates
-        # TODO(4229): drop INPUT var (field var shouldn't be reused in this scope)
-        raise YTFieldNotFound(field=INPUT, ds=self)
+        raise YTFieldNotFound(field, ds=self)
 
     def _setup_classes(self):
         # Called by subclass
