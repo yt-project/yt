@@ -952,15 +952,12 @@ class Dataset(abc.ABC):
             ftype = self._last_freq[0] if isinstance(self._last_freq, tuple) else ftype
             candidates = [(ft, fn) for ft, fn in self.field_info.keys() if fn == fname]
 
-        field: Tuple[str, str] = (ftype, fname)
+        ft: Tuple[str, str] = (ftype, fname)
 
-        if (
-            field == self._last_freq
-            and field not in self.field_info.field_aliases.values()
-        ):
+        if ft == self._last_freq and ft not in self.field_info.field_aliases.values():
             return self._last_finfo, candidates
-        if field in self.field_info:
-            self._last_freq = field
+        if ft in self.field_info:
+            self._last_freq = ft
             self._last_finfo = self.field_info[(ftype, fname)]
             return self._last_finfo, candidates
 
@@ -975,15 +972,15 @@ class Dataset(abc.ABC):
                 and len(self._last_freq) >= 1
                 and self._last_freq[0] not in self.particle_types
             ):
-                field = "all", field[1]
+                ft = "all", ft[1]
             elif (
                 not fi.sampling_type == "particle"
                 and isinstance(self._last_freq, tuple)
                 and len(self._last_freq) >= 1
                 and self._last_freq[0] not in self.fluid_types
             ):
-                field = self.default_fluid_type, field[1]
-            self._last_freq = field
+                ft = self.default_fluid_type, ft[1]
+            self._last_freq = ft
             return self._last_finfo, candidates
         except KeyError:
             pass
@@ -1001,6 +998,7 @@ class Dataset(abc.ABC):
                     self._last_freq = (ftype, fname)
                     self._last_finfo = self.field_info[(ftype, fname)]
                     return self._last_finfo, candidates
+        # TODO(4229): drop INPUT var (field var shouldn't be reused in this scope)
         raise YTFieldNotFound(field=INPUT, ds=self)
 
     def _setup_classes(self):
