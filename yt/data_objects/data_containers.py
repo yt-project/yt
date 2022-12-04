@@ -11,7 +11,6 @@ from yt._typing import AnyFieldKey
 from yt.config import ytcfg
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.profiles import create_profile
-from yt.fields.derived_field import DerivedField
 from yt.fields.field_exceptions import NeedsGridType
 from yt.frontends.ytdata.utilities import save_as_dataset
 from yt.funcs import get_output_filename, iter_fields, mylog
@@ -22,7 +21,6 @@ from yt.utilities.exceptions import (
     YTCouldNotGenerateField,
     YTException,
     YTFieldNotFound,
-    YTFieldNotParseable,
     YTFieldTypeNotFound,
     YTNonIndexedDataContainer,
     YTSpatialFieldUnitError,
@@ -1483,48 +1481,6 @@ class YTDataContainer(abc.ABC):
         yield
         obj._current_particle_type = old_particle_type
         obj._current_fluid_type = old_fluid_type
-
-    def _tupleize_field(
-        self, field: Union[Tuple[str, str], str, DerivedField]
-    ) -> Tuple[str, str]:
-        if isinstance(field, str):
-            return "unknown", field
-        elif isinstance(field, DerivedField):
-            ftype, fname = field.name
-            return ftype, fname
-
-        try:
-            ftype, fname = field
-            if not all(isinstance(_, str) for _ in field):
-                raise TypeError
-        except TypeError as exc:
-            raise YTFieldNotParseable(field) from exc
-        except ValueError:
-            pass
-        else:
-            return ftype, fname
-
-        try:
-            fname = field
-            finfo = self.ds._get_field_info(field)
-            if finfo.sampling_type == "particle":
-                ftype = self._current_particle_type
-                if hasattr(self.ds, "_sph_ptypes"):
-                    ptypes = self.ds._sph_ptypes
-                    if finfo.name[0] in ptypes:
-                        ftype = finfo.name[0]
-                    elif finfo.is_alias and finfo.alias_name[0] in ptypes:
-                        ftype = self._current_fluid_type
-            else:
-                ftype = self._current_fluid_type
-                if (ftype, fname) not in self.ds.field_info:
-                    raise YTFieldNotFound
-        except YTFieldNotFound:
-            pass
-        else:
-            return ftype, fname
-
-        raise YTFieldNotParseable(field)
 
     def _determine_fields(self, fields):
         if str(fields) in self.ds._determined_fields:
