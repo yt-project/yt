@@ -135,6 +135,13 @@ class astropy_imports(OnDemand):
         self.log
         return wcsaxes
 
+    @safe_import
+    def WCS(self):
+        from astropy.wcs import WCS
+
+        self.log
+        return WCS
+
 
 _astropy = astropy_imports()
 
