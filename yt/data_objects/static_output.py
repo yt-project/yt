@@ -12,15 +12,17 @@ from collections import defaultdict
 from functools import cached_property
 from importlib.util import find_spec
 from stat import ST_CTIME
-from typing import DefaultDict, Dict, List, Optional, Set, Tuple, Type, Union
+from typing import Any, DefaultDict, Dict, List, Optional, Set, Tuple, Type, Union
 
 import numpy as np
 from more_itertools import unzip
+from unyt import Unit
 from unyt.exceptions import UnitConversionError, UnitParseError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
+from yt._typing import AnyFieldKey, FieldType, ParticleType
 from yt.config import ytcfg
-from yt.data_objects.particle_filters import filter_registry
+from yt.data_objects.particle_filters import ParticleFilter, filter_registry
 from yt.data_objects.region_expression import RegionExpression
 from yt.data_objects.unions import ParticleUnion
 from yt.fields.derived_field import ValidateSpatial
@@ -40,7 +42,7 @@ from yt.geometry.coordinates.api import (
 from yt.geometry.geometry_handler import Index
 from yt.units import UnitContainer, _wrap_display_ytarray, dimensions
 from yt.units.dimensions import current_mks  # type: ignore
-from yt.units.unit_object import Unit, define_unit  # type: ignore
+from yt.units.unit_object import define_unit  # type: ignore
 from yt.units.unit_registry import UnitRegistry  # type: ignore
 from yt.units.unit_systems import (  # type: ignore
     create_code_unit_system,
@@ -76,7 +78,7 @@ _cached_datasets: MutableMapping[
 
 # we set this global to None as a place holder
 # its actual instanciation is delayed until after yt.__init__
-# is completed because we need yt.config.ytcfg to be instanciated first
+# is completed because we need yt.config.ytcfg to be instantiated first
 
 _ds_store: Optional[ParameterFileStore] = None
 
@@ -143,23 +145,27 @@ class Dataset(abc.ABC):
 
     default_fluid_type = "gas"
     default_field = ("gas", "density")
-    fluid_types: Tuple[str, ...] = ("gas", "deposit", "index")
-    particle_types: Optional[Tuple[str, ...]] = ("io",)  # By default we have an 'all'
-    particle_types_raw: Optional[Tuple[str, ...]] = ("io",)
+    fluid_types: Tuple[FieldType, ...] = ("gas", "deposit", "index")
+    particle_types: Optional[Tuple[ParticleType, ...]] = (
+        "io",
+    )  # By default we have an 'all'
+    particle_types_raw: Optional[Tuple[ParticleType, ...]] = ("io",)
     geometry = "cartesian"
     coordinates = None
     storage_filename = None
-    particle_unions: Optional[Dict[str, ParticleUnion]] = None
-    known_filters = None
+    particle_unions: Optional[Dict[ParticleType, ParticleUnion]] = None
+    known_filters: Optional[Dict[ParticleType, ParticleFilter]] = None
     _index_class: Type[Index]
-    field_units = None
+    field_units: Optional[Dict[AnyFieldKey, Unit]] = None
     derived_field_list = requires_index("derived_field_list")
     fields = requires_index("fields")
-    _instantiated = False
+    # _instantiated represents an instantiation time (since Epoch)
+    # the default is a place holder sentinel, falsy value
+    _instantiated: float = 0
     _particle_type_counts = None
     _proj_type = "quad_proj"
     _ionization_label_format = "roman_numeral"
-    _determined_fields = None
+    _determined_fields: Optional[Dict[str, List[Tuple[str, str]]]] = None
     fields_detected = False
 
     # these are set in self._parse_parameter_file()
@@ -212,11 +218,13 @@ class Dataset(abc.ABC):
 
     def __init__(
         self,
-        filename,
-        dataset_type=None,
-        units_override=None,
-        unit_system="cgs",
-        default_species_fields=None,
+        filename: str,
+        dataset_type: Optional[str] = None,
+        units_override: Optional[Dict[str, str]] = None,
+        unit_system: str = "cgs",
+        default_species_fields: Optional[
+            "Any"
+        ] = None,  # Any used as a placeholder here
     ):
         """
         Base class for generating new output types.  Principally consists of
@@ -224,11 +232,11 @@ class Dataset(abc.ABC):
         """
         # We return early and do NOT initialize a second time if this file has
         # already been initialized.
-        if self._instantiated:
+        if self._instantiated != 0:
             return
         self.dataset_type = dataset_type
-        self.conversion_factors = {}
-        self.parameters = {}
+        self.conversion_factors: Dict[str, float] = {}
+        self.parameters: Dict[str, Any] = {}
         self.region_expression = self.r = RegionExpression(self)
         self.known_filters = self.known_filters or {}
         self.particle_unions = self.particle_unions or {}
@@ -265,6 +273,11 @@ class Dataset(abc.ABC):
         # the cache, we move that check to here from __new__.  This avoids
         # double-instantiation.
         # PR 3124: _set_derived_attrs() can change the hash, check store here
+        if _ds_store is None:
+            raise RuntimeError(
+                "Something went wrong during yt's initialization: "
+                "dataset cache isn't properly initialized"
+            )
         try:
             _ds_store.check_ds(self)
         except NoParameterShelf:
