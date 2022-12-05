@@ -864,7 +864,7 @@ class Dataset(abc.ABC):
         self,
         field: Union[Tuple[str, str], str, DerivedField],
         /,
-    ):
+    ) -> DerivedField:
         field_info, candidates = self._get_field_info_helper(field)
 
         if field_info.name[1] in ("px", "py", "pz", "pdx", "pdy", "pdz"):
@@ -925,9 +925,11 @@ class Dataset(abc.ABC):
         self,
         field: Union[Tuple[str, str], str, DerivedField],
         /,
-    ):
+    ) -> Tuple[DerivedField, List[Tuple[str, str]]]:
         self.index
 
+        ftype: str
+        fname: str
         if isinstance(field, str):
             ftype, fname = "unknown", field
         elif isinstance(field, tuple) and len(field) == 2:
@@ -937,20 +939,13 @@ class Dataset(abc.ABC):
         else:
             raise YTFieldNotParseable(field)
 
-        candidates: List[FieldKey] = []
+        if ftype == "unknown":
+            candidates: List[FieldKey] = [
+                (ft, fn) for ft, fn in self.field_info if fn == fname
+            ]
 
-        # storing this condition before altering it
-        guessing_type = ftype == "unknown"
-        if guessing_type:
-            candidates = [(ft, fn) for ft, fn in self.field_info if fn == fname]
-
-        ft: Tuple[str, str] = (ftype, fname)
-        if ft in self.field_info:
-            return self.field_info[ftype, fname], candidates
-
-        # We also should check "all" for particles, which can show up if you're
-        # mixing deposition/gas fields with particle fields.
-        if guessing_type:
+            # We also should check "all" for particles, which can show up if you're
+            # mixing deposition/gas fields with particle fields.
             if hasattr(self, "_sph_ptype"):
                 to_guess = [self.default_fluid_type, "all"]
             else:
@@ -959,6 +954,10 @@ class Dataset(abc.ABC):
             for ftype in to_guess:
                 if (ftype, fname) in self.field_info:
                     return self.field_info[ftype, fname], candidates
+
+        elif (ftype, fname) in self.field_info:
+            return self.field_info[ftype, fname], []
+
         raise YTFieldNotFound(field, ds=self)
 
     def _setup_classes(self):
