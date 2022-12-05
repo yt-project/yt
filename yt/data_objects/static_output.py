@@ -20,7 +20,7 @@ from unyt import Unit
 from unyt.exceptions import UnitConversionError, UnitParseError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
-from yt._typing import AnyFieldKey, FieldKey, FieldType, ParticleType
+from yt._typing import AnyFieldKey, FieldKey, FieldType, ImplicitFieldKey, ParticleType
 from yt.config import ytcfg
 from yt.data_objects.particle_filters import ParticleFilter, filter_registry
 from yt.data_objects.region_expression import RegionExpression
@@ -147,9 +147,7 @@ class Dataset(abc.ABC):
     default_fluid_type = "gas"
     default_field = ("gas", "density")
     fluid_types: Tuple[FieldType, ...] = ("gas", "deposit", "index")
-    particle_types: Tuple[ParticleType, ...] = (
-        "io",
-    )  # By default we have an 'all'
+    particle_types: Tuple[ParticleType, ...] = ("io",)  # By default we have an 'all'
     particle_types_raw: Optional[Tuple[ParticleType, ...]] = ("io",)
     geometry = "cartesian"
     coordinates = None
@@ -862,7 +860,7 @@ class Dataset(abc.ABC):
 
     def _get_field_info(
         self,
-        field: Union[Tuple[str, str], str, DerivedField],
+        field: Union[FieldKey, ImplicitFieldKey, DerivedField],
         /,
     ) -> DerivedField:
         field_info, candidates = self._get_field_info_helper(field)
@@ -923,9 +921,9 @@ class Dataset(abc.ABC):
 
     def _get_field_info_helper(
         self,
-        field: Union[Tuple[str, str], str, DerivedField],
+        field: Union[FieldKey, ImplicitFieldKey, DerivedField],
         /,
-    ) -> Tuple[DerivedField, List[Tuple[str, str]]]:
+    ) -> Tuple[DerivedField, List[FieldKey]]:
         self.index
 
         ftype: str
