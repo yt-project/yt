@@ -887,9 +887,9 @@ class Dataset(abc.ABC):
 
             all_equivalent_particle_fields: bool
             if (
-                self.particle_types is None
-                or self.particle_unions is None
-                or self.particle_types_raw is None
+                not self.particle_types
+                or not self.particle_unions
+                or not self.particle_types_raw
             ):
                 all_equivalent_particle_fields = False
             elif all(ft in self.particle_types for ft in ftypes):
