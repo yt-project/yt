@@ -1,7 +1,7 @@
 import sys
 from functools import wraps
 from importlib.util import find_spec
-from typing import Type
+from typing import Optional, Type
 
 
 class NotAModule:
@@ -11,11 +11,27 @@ class NotAModule:
     package installed.
     """
 
-    def __init__(self, pkg_name):
+    def __init__(self, pkg_name, exc: Optional[BaseException] = None):
         self.pkg_name = pkg_name
-        self.error = ImportError(
-            f"This functionality requires the {self.pkg_name} package to be installed."
+        self._original_exception = exc
+        error_note = (
+            f"Something went wrong while trying to lazy-import {pkg_name}. "
+            f"Please make sure that {pkg_name} is properly installed.\n"
+            "If the problem persists, please file an issue at "
+            "https://github.com/yt-project/yt/issues/new"
         )
+        self.error: BaseException
+        if exc is None:
+            self.error = ImportError(error_note)
+        elif sys.version_info >= (3, 11):
+            exc.add_note(error_note)
+            self.error = exc
+        else:
+            # mimick Python 3.11 behaviour:
+            # preserve error message and traceback
+            self.error = type(exc)(f"{exc!s}\n{error_note}").with_traceback(
+                exc.__traceback__
+            )
 
     def __getattr__(self, item):
         raise self.error
@@ -24,7 +40,10 @@ class NotAModule:
         raise self.error
 
     def __repr__(self) -> str:
-        return f"NotAModule({self.pkg_name!r})"
+        if self._original_exception is None:
+            return f"NotAModule({self.pkg_name!r})"
+        else:
+            return f"NotAModule({self.pkg_name!r}, {self._original_exception!r})"
 
 
 class OnDemand:
@@ -57,8 +76,8 @@ def safe_import(func):
     def inner(self):
         try:
             return func(self)
-        except ImportError:
-            return self._default_factory(self._name)
+        except ImportError as exc:
+            return self._default_factory(self._name, exc)
 
     return inner
 
