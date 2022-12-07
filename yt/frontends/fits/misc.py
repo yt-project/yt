@@ -135,8 +135,8 @@ def create_spectral_slabs(filename, slab_centers, slab_width, **kwargs):
 
 def ds9_region(ds, reg, obj=None, field_parameters=None):
     r"""
-    Create a data container from a ds9 region file. Requires the pyregion
-    package (https://pyregion.readthedocs.io/en/latest/) to be installed.
+    Create a data container from a ds9 region file. Requires the regions
+    package (https://astropy-regions.readthedocs.io/) to be installed.
 
     Parameters
     ----------
@@ -157,21 +157,29 @@ def ds9_region(ds, reg, obj=None, field_parameters=None):
     >>> circle_region = ds9_region(ds, "circle.reg")
     >>> print(circle_region.quantities.extrema("flux"))
     """
-    import pyregion
+    from regions import Regions
+
+    from yt.utilities.on_demand_imports import _astropy
+
+    WCS = _astropy.WCS
 
     from yt.frontends.fits.api import EventsFITSDataset
 
     if os.path.exists(reg):
-        r = pyregion.open(reg)
+        method = Regions.read
     else:
-        r = pyregion.parse(reg)
+        method = Regions.parse
+    r = method(reg, format="ds9").regions[0]
+
     reg_name = reg
     header = ds.wcs_2d.to_header()
     # The FITS header only contains WCS-related keywords
-    header["NAXIS1"] = nx = ds.domain_dimensions[ds.lon_axis]
-    header["NAXIS2"] = ny = ds.domain_dimensions[ds.lat_axis]
-    filter = r.get_filter(header=header)
-    mask = filter.mask((ny, nx)).transpose()
+    header["NAXIS1"] = ds.domain_dimensions[ds.lon_axis]
+    header["NAXIS2"] = ds.domain_dimensions[ds.lat_axis]
+
+    pixreg = r.to_pixel(WCS(header))
+    mask = pixreg.to_mask().to_image((header["NAXIS1"], header["NAXIS2"])).astype(bool)
+
     if isinstance(ds, EventsFITSDataset):
         prefix = "event_"
     else:

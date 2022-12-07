@@ -1232,7 +1232,7 @@ and add them to the field registry for the dataset ``ds``.
 This function takes a `ds9 <http://ds9.si.edu/site/Home.html>`_ region and
 creates a "cut region" data container from it, that can be used to select
 the cells in the FITS dataset that fall within the region. To use this
-functionality, the `pyregion <https://github.com/astropy/pyregion/>`_
+functionality, the `regions <https://github.com/astropy/regions/>`_
 package must be installed.
 
 .. code-block:: python
