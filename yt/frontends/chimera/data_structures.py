@@ -267,7 +267,7 @@ class ChimeraDataset(Dataset):
         self.cosmological_simulation = 0  # Chimera is not a cosmological simulation
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(cls, *args, **kwargs):
         # This accepts a filename or a set of arguments and returns True or
         # False depending on if the file is of the type requested.
         try:

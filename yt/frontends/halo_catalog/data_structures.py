@@ -383,7 +383,7 @@ class YTHaloDataset(HaloDataset):
         pass
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(cls, *args, **kwargs):
         # We don't ever want this to be loaded by yt.load.
         return False
 
