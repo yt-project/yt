@@ -1588,8 +1588,8 @@ def load_archive(
 
     try:
         tarfile.open(fn)
-    except tarfile.ReadError:
-        raise YTUnidentifiedDataType(fn, *args, **kwargs)
+    except tarfile.ReadError as exc:
+        raise YTUnidentifiedDataType(fn, *args, **kwargs) from exc
 
     # Note: the temporary directory will be created by ratarmount
     tempdir = fn + ".mount"

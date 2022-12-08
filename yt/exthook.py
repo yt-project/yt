@@ -79,7 +79,7 @@ class ExtensionImporter:
                 # we swallow it and try the next choice.  The skipped frame
                 # is the one from __import__ above which we don't care about
                 if self.is_important_traceback(realname, tb):
-                    raise exc_value.with_traceback(tb.tb_next)
+                    raise exc_value.with_traceback(tb.tb_next)  # noqa: B904
                 continue
             module = sys.modules[fullname] = sys.modules[realname]
             if "." not in modname:

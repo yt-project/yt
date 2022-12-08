@@ -216,8 +216,8 @@ class AnswerTestCloudStorage(AnswerTestStorage):
         url = _url_path.format(self.reference_name, ds_name)
         try:
             resp = urllib.request.urlopen(url)
-        except urllib.error.HTTPError:
-            raise YTNoOldAnswer(url)
+        except urllib.error.HTTPError as exc:
+            raise YTNoOldAnswer(url) from exc
         else:
             for _ in range(3):
                 try:

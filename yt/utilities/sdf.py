@@ -14,7 +14,7 @@ def get_thingking_deps():
     except ImportError:
         raise ImportError(
             "This functionality requires the thingking package to be installed"
-        )
+        ) from None
     return HTTPArray, PageCacheURL
 
 

@@ -75,8 +75,8 @@ class ParameterFileStore:
         try:
             if not os.path.isdir(dbdir):
                 os.mkdir(dbdir)
-        except OSError:
-            raise NoParameterShelf()
+        except OSError as exc:
+            raise NoParameterShelf from exc
         open(dbn, "ab")  # make sure it exists, allow to close
         # Now we read in all our records and return them
         # these will be broadcast
