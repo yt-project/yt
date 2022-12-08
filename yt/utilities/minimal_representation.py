@@ -131,7 +131,7 @@ class MinimalRepresentation(metaclass=abc.ABCMeta):
                     else:
                         g.create_dataset(fname, data=fdata, compression="lzf")
 
-    def restore(self, storage, ds):
+    def restore(self, storage, ds):  # noqa: B027
         pass
 
     def upload(self):
