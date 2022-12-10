@@ -12,6 +12,7 @@ import numpy as np
 
 from yt.data_objects.index_subobjects.unstructured_mesh import SemiStructuredMesh
 from yt.data_objects.static_output import Dataset
+from yt.geometry.api import Geometry
 from yt.geometry.geometry_handler import YTDataChunk
 from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
 from yt.utilities.file_handler import HDF5FileHandler
@@ -233,7 +234,7 @@ class ChimeraDataset(Dataset):
             self.dimensionality = 3
             self.domain_dimensions = f["mesh"]["array_dimensions"][()]
 
-            self.geometry = "spherical"  # Uses default spherical geometry
+            self.geometry = Geometry.SPHERICAL  # Uses default spherical geometry
             self._periodicity = (False, False, True)
             dle = [
                 f["mesh"]["x_ef"][0],

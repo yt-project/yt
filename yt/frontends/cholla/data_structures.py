@@ -6,6 +6,7 @@ import numpy as np
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.funcs import setdefaultattr
+from yt.geometry.api import Geometry
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.on_demand_imports import _h5py as h5py
 
@@ -141,7 +142,7 @@ class ChollaDataset(Dataset):
         self.hubble_constant = 0.0
 
         # CHOLLA datasets are always unigrid cartesian
-        self.geometry = "cartesian"
+        self.geometry = Geometry.CARTESIAN
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):

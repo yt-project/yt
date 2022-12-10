@@ -23,6 +23,7 @@ from yt.data_objects.static_output import Dataset, ParticleFile
 from yt.data_objects.unions import MeshUnion, ParticleUnion
 from yt.frontends.sph.data_structures import SPHParticleIndex
 from yt.funcs import setdefaultattr
+from yt.geometry.api import Geometry
 from yt.geometry.geometry_handler import Index, YTDataChunk
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.geometry.oct_container import OctreeContainer
@@ -334,7 +335,7 @@ class StreamDataset(Dataset):
         default_species_fields=None,
     ):
         self.fluid_types += ("stream",)
-        self.geometry = geometry
+        self.geometry = Geometry(geometry)
         self.stream_handler = stream_handler
         self._find_particle_types()
         name = f"InMemoryParameterFile_{uuid.uuid4().hex}"

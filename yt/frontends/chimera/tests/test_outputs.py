@@ -80,7 +80,7 @@ def test_2D():
         ("chimera", "zn60"),
     ]
     assert_equal(str(ds), "chimera_00001_grid_1_01.h5")
-    assert_equal(ds.geometry, "spherical")  # Geometry
+    assert_equal(str(ds.geometry), "spherical")  # Geometry
     assert_almost_equal(
         ds.domain_right_edge,
         ds.arr([1.0116509e10 + 100, 3.14159265e00, 6.28318531e00], "code_length"),
@@ -166,7 +166,7 @@ def test_3D():
         ("chimera", "zn60"),
     ]
     assert_equal(str(ds), "chimera_002715000_grid_1_01.h5")
-    assert_equal(ds.geometry, "spherical")  # Geometry
+    assert_equal(str(ds.geometry), "spherical")  # Geometry
     assert_almost_equal(
         ds.domain_right_edge,
         ds.arr(

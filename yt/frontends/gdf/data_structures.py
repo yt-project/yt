@@ -7,6 +7,7 @@ import numpy as np
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.funcs import just_one, setdefaultattr
+from yt.geometry.api import Geometry
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.units.dimensions import dimensionless as sympy_one  # type: ignore
 from yt.units.unit_object import Unit  # type: ignore
@@ -246,7 +247,7 @@ class GDFDataset(Dataset):
         if self.geometry is None:
             geometry = just_one(sp.get("geometry", 0))
             try:
-                self.geometry = GEOMETRY_TRANS[geometry]
+                self.geometry = Geometry(GEOMETRY_TRANS[geometry])
             except KeyError as e:
                 raise YTGDFUnknownGeometry(geometry) from e
         self.parameters.update(sp)

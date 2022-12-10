@@ -8,6 +8,7 @@ from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.fields.magnetic_field import get_magnetic_normalization
 from yt.funcs import mylog, sglob
+from yt.geometry.api import Geometry
 from yt.geometry.geometry_handler import YTDataChunk
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.chemical_formulas import compute_mu
@@ -625,7 +626,7 @@ class AthenaDataset(Dataset):
             self.parameters["Gamma"] = self.specified_parameters["gamma"]
         else:
             self.parameters["Gamma"] = 5.0 / 3.0
-        self.geometry = self.specified_parameters.get("geometry", "cartesian")
+        self.geometry = Geometry(self.specified_parameters.get("geometry", "cartesian"))
         self._handle.close()
         self.mu = self.specified_parameters.get(
             "mu", compute_mu(self.default_species_fields)

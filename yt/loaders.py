@@ -430,7 +430,7 @@ def load_amr_grids(
     periodicity : tuple of booleans
         Determines whether the data will be treated as periodic along
         each axis
-    geometry : string or tuple
+    geometry : string or tuple # TODO(4244): fix this
         "cartesian", "cylindrical", "polar", "spherical", "geographic" or
         "spectral_cube".  Optionally, a tuple can be provided to specify the
         axis ordering -- for instance, to specify that the axis ordering should

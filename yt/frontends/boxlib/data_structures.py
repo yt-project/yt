@@ -12,6 +12,7 @@ from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.fields.field_info_container import FieldInfoContainer
 from yt.funcs import mylog, setdefaultattr
+from yt.geometry.api import Geometry
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.io_handler import io_registry
 from yt.utilities.lib.misc_utilities import get_box_grids_level
@@ -890,9 +891,11 @@ class BoxlibDataset(Dataset):
 
         known_types = {0: "cartesian", 1: "cylindrical", 2: "spherical"}
         try:
-            self.geometry = known_types[coordinate_type]
+            geom_str = known_types[coordinate_type]
         except KeyError as err:
             raise ValueError(f"Unknown BoxLib coord_type `{coordinate_type}`.") from err
+        else:
+            self.geometry = Geometry(geom_str)
 
         if self.geometry == "cylindrical":
             dre = self.domain_right_edge

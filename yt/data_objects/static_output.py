@@ -41,6 +41,7 @@ from yt.fields.derived_field import DerivedField, ValidateSpatial
 from yt.fields.field_type_container import FieldTypeContainer
 from yt.fields.fluid_fields import setup_gradient_fields
 from yt.funcs import is_sequence, iter_fields, mylog, set_intersection, setdefaultattr
+from yt.geometry.api import Geometry
 from yt.geometry.coordinates.api import (
     CartesianCoordinateHandler,
     CoordinateHandler,
@@ -161,7 +162,7 @@ class Dataset(abc.ABC):
     fluid_types: Tuple[FieldType, ...] = ("gas", "deposit", "index")
     particle_types: Tuple[ParticleType, ...] = ("io",)  # By default we have an 'all'
     particle_types_raw: Optional[Tuple[ParticleType, ...]] = ("io",)
-    geometry = "cartesian"
+    geometry: Geometry = Geometry.CARTESIAN
     coordinates = None
     storage_filename = None
     particle_unions: Optional[Dict[ParticleType, ParticleUnion]] = None
