@@ -1,7 +1,7 @@
 import abc
 import weakref
 from numbers import Number
-from typing import Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 
@@ -128,12 +128,21 @@ def validate_sequence_width(width, ds, unit=None):
             )
 
 
+# local type annotations helpers
+AxisName = str
+Ordering = Tuple[AxisName, AxisName, AxisName]
+
+
 class CoordinateHandler(abc.ABC):
     name: str
+    _default_axis_order: Ordering
 
-    def __init__(self, ds, ordering):
+    def __init__(self, ds, ordering: Optional[Ordering] = None):
         self.ds = weakref.proxy(ds)
-        self.axis_order = ordering
+        if ordering is not None:
+            self.axis_order = ordering
+        else:
+            self.axis_order = self._default_axis_order
 
     @abc.abstractmethod
     def setup_fields(self):

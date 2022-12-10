@@ -15,8 +15,9 @@ from .coordinate_handler import (
 
 class SphericalCoordinateHandler(CoordinateHandler):
     name = "spherical"
+    _default_axis_order = ("r", "theta", "phi")
 
-    def __init__(self, ds, ordering=("r", "theta", "phi")):
+    def __init__(self, ds, ordering=None):
         super().__init__(ds, ordering)
         # Generate
         self.image_units = {}
