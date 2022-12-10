@@ -58,7 +58,7 @@ else:
             member._value_ = value
             return member
 
-        def _generate_next_value_(name, start, count, last_values):
+        def _generate_next_value_(name, start, count, last_values):  # noqa B902
             """
             Return the lower-cased version of the member name.
             """
