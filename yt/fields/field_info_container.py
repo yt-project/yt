@@ -6,7 +6,7 @@ from typing import Optional, Tuple
 import numpy as np
 from unyt.exceptions import UnitConversionError
 
-from yt._typing import FieldKey, KnownFieldsT
+from yt._typing import FieldKey, FieldType, KnownFieldsT
 from yt.config import ytcfg
 from yt.fields.field_exceptions import NeedsConfiguration
 from yt.funcs import mylog, obj_length, only_on_root
@@ -20,7 +20,7 @@ from yt.utilities.exceptions import (
 )
 
 from .derived_field import DeprecatedFieldFunc, DerivedField, NullFunc, TranslationFunc
-from .field_plugin_registry import field_plugins
+from .field_plugin_registry import FunctionName, field_plugins
 from .particle_fields import (
     add_union_field,
     particle_deposition_functions,
@@ -366,7 +366,7 @@ class FieldInfoContainer(UserDict):
         else:
             raise ValueError(f"Expected name to be a tuple[str, str], got {name}")
 
-    def load_all_plugins(self, ftype: Optional[str] = "gas"):
+    def load_all_plugins(self, ftype: Optional[str] = "gas") -> None:
         if ftype is None:
             return
         mylog.debug("Loading field plugins for field type: %s.", ftype)
@@ -376,11 +376,13 @@ class FieldInfoContainer(UserDict):
             only_on_root(mylog.debug, "Loaded %s (%s new fields)", n, len(loaded))
         self.find_dependencies(loaded)
 
-    def load_plugin(self, plugin_name, ftype="gas", skip_check=False):
-        if callable(plugin_name):
-            f = plugin_name
-        else:
-            f = field_plugins[plugin_name]
+    def load_plugin(
+        self,
+        plugin_name: FunctionName,
+        ftype: FieldType = "gas",
+        skip_check: bool = False,
+    ):
+        f = field_plugins[plugin_name]
         orig = set(self.items())
         f(self, ftype, slice_info=self.slice_info)
         loaded = [n for n, v in set(self.items()).difference(orig)]
