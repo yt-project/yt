@@ -21,6 +21,7 @@ from yt.funcs import (
     obj_length,
     validate_moment,
 )
+from yt.geometry.api import Geometry
 from yt.units.unit_object import Unit  # type: ignore
 from yt.units.unit_registry import UnitParseError  # type: ignore
 from yt.units.yt_array import YTArray, YTQuantity
@@ -50,6 +51,11 @@ from .plot_container import (
 )
 
 import sys  # isort: skip
+
+if sys.version_info >= (3, 11):
+    from typing import assert_never
+else:
+    from typing_extensions import assert_never
 
 if sys.version_info >= (3, 10):
     pass
@@ -180,7 +186,7 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
         aspect=None,
         setup=False,
         *,
-        geometry="cartesian",
+        geometry: Geometry = Geometry.CARTESIAN,
     ) -> None:
 
         # axis manipulation operations are callback-only:
@@ -208,19 +214,21 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
         super().__init__(data_source, window_size, fontsize)
 
         self._set_window(bounds)  # this automatically updates the data and plot
-        if (
-            geometry
-            in (
-                "spherical",
-                "cylindrical",
-                "geographic",
-                "internal_geographic",
-                "polar",
-            )
-            and origin != "native"
-        ):
-            mylog.info("Setting origin='native' for %s geometry.", geometry)
-            origin = "native"
+
+        if origin != "native":
+            if geometry is Geometry.CARTESIAN or geometry is Geometry.SPECTRAL_CUBE:
+                pass
+            elif (
+                geometry is Geometry.CYLINDRICAL
+                or geometry is Geometry.POLAR
+                or geometry is Geometry.SPHERICAL
+                or geometry is Geometry.GEOGRAPHIC
+                or geometry is Geometry.INTERNAL_GEOGRAPHIC
+            ):
+                mylog.info("Setting origin='native' for %s geometry.", geometry)
+                origin = "native"
+            else:
+                assert_never(geometry)
 
         self.origin = origin
         if self.data_source.center is not None and not oblique:
