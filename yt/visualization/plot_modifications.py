@@ -1,5 +1,6 @@
 import inspect
 import re
+import sys
 import warnings
 from abc import ABC, abstractmethod
 from functools import update_wrapper
@@ -16,7 +17,7 @@ from yt.data_objects.level_sets.clump_handling import Clump
 from yt.data_objects.selection_objects.cut_region import YTCutRegion
 from yt.frontends.ytdata.data_structures import YTClumpContainer
 from yt.funcs import is_sequence, mylog, validate_width_tuple
-from yt.geometry.geometry_handler import is_curvilinear
+from yt.geometry.api import Geometry
 from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
 from yt.units import dimensions
 from yt.units.yt_array import YTArray, YTQuantity, uhstack  # type: ignore
@@ -37,6 +38,11 @@ from yt.visualization._commons import (
 from yt.visualization.base_plot_types import CallbackWrapper
 from yt.visualization.image_writer import apply_colormap
 from yt.visualization.plot_window import PWViewerMPL
+
+if sys.version_info >= (3, 11):
+    from typing import assert_never
+else:
+    from typing_extensions import assert_never
 
 callback_registry: Dict[str, Type["PlotCallback"]] = {}
 
@@ -122,7 +128,7 @@ class PlotCallback(ABC):
         pass
 
     @abstractmethod
-    def __call__(self, plot: CallbackWrapper) -> None:
+    def __call__(self, plot: CallbackWrapper) -> Any:
         pass
 
     def _project_coords(self, plot, coord):
@@ -446,16 +452,28 @@ class VelocityCallback(PlotCallback):
 
         self.plot_args = plot_args
 
-    def __call__(self, plot):
+    def __call__(self, plot) -> "BaseQuiverCallback":
         ftype = plot.data._current_fluid_type
         # Instantiation of these is cheap
+        geometry: Geometry = plot.data.ds.geometry
         if plot._type_name == "CuttingPlane":
-            if is_curvilinear(plot.data.ds.geometry):
+            if geometry is Geometry.CARTESIAN:
+                pass
+            elif (
+                geometry is Geometry.POLAR
+                or geometry is Geometry.CYLINDRICAL
+                or geometry is Geometry.SPHERICAL
+                or geometry is Geometry.GEOGRAPHIC
+                or geometry is Geometry.INTERNAL_GEOGRAPHIC
+                or geometry is Geometry.SPECTRAL_CUBE
+            ):
                 raise NotImplementedError(
-                    "Velocity annotation for cutting \
-                    plane is not supported for %s geometry"
-                    % plot.data.ds.geometry
+                    "Velocity annotation for cutting "
+                    f"plane is not supported for {geometry=}"
                 )
+            else:
+                assert_never(geometry)
+        qcb: "BaseQuiverCallback"
         if plot._type_name == "CuttingPlane":
             qcb = CuttingQuiverCallback(
                 (ftype, "cutting_plane_velocity_x"),
@@ -567,16 +585,28 @@ class MagFieldCallback(PlotCallback):
             plot_args = kwargs
         self.plot_args = plot_args
 
-    def __call__(self, plot):
+    def __call__(self, plot) -> "BaseQuiverCallback":
         ftype = plot.data._current_fluid_type
         # Instantiation of these is cheap
+        geometry: Geometry = plot.data.ds.geometry
+        qcb: "BaseQuiverCallback"
         if plot._type_name == "CuttingPlane":
-            if is_curvilinear(plot.data.ds.geometry):
+            if geometry is Geometry.CARTESIAN:
+                pass
+            elif (
+                geometry is Geometry.POLAR
+                or geometry is Geometry.CYLINDRICAL
+                or geometry is Geometry.SPHERICAL
+                or geometry is Geometry.GEOGRAPHIC
+                or geometry is Geometry.INTERNAL_GEOGRAPHIC
+                or geometry is Geometry.SPECTRAL_CUBE
+            ):
                 raise NotImplementedError(
-                    "Magnetic field annotation for cutting \
-                    plane is not supported for %s geometry"
-                    % plot.data.ds.geometry
+                    "Magnetic field annotation for cutting "
+                    f"plane is not supported for {geometry=}"
                 )
+            else:
+                assert_never(geometry)
             qcb = CuttingQuiverCallback(
                 (ftype, "cutting_plane_magnetic_field_x"),
                 (ftype, "cutting_plane_magnetic_field_y"),

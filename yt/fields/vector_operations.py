@@ -1,7 +1,12 @@
-import numpy as np
+import sys
+from typing import TYPE_CHECKING
 
+import numpy as np
+from unyt import Unit
+
+from yt._typing import FieldName, FieldType
 from yt.funcs import is_sequence, just_one
-from yt.geometry.geometry_handler import is_curvilinear
+from yt.geometry.api import Geometry
 from yt.utilities.lib.misc_utilities import obtain_relative_velocity_vector
 from yt.utilities.math_utils import (
     get_cyl_r_component,
@@ -13,6 +18,15 @@ from yt.utilities.math_utils import (
 )
 
 from .derived_field import NeedsParameter, ValidateParameter, ValidateSpatial
+
+if sys.version_info >= (3, 11):
+    from typing import assert_never
+else:
+    from typing_extensions import assert_never
+
+if TYPE_CHECKING:
+    # avoid circular imports
+    from yt.fields.field_info_container import FieldInfoContainer
 
 
 def get_bulk(data, basename, unit):
@@ -152,9 +166,13 @@ def create_squared_field(
     )
 
 
-def create_vector_fields(registry, basename, field_units, ftype="gas", slice_info=None):
-    from yt.units.unit_object import Unit
-
+def create_vector_fields(
+    registry: "FieldInfoContainer",
+    basename: FieldName,
+    field_units,
+    ftype: FieldType = "gas",
+    slice_info=None,
+) -> None:
     # slice_info would be the left, the right, and the factor.
     # For example, with the old Enzo-ZEUS fields, this would be:
     # slice(None, -2, None)
@@ -198,7 +216,8 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
 
     axis_names = registry.ds.coordinates.axis_order
 
-    if not is_curvilinear(registry.ds.geometry):
+    geometry: Geometry = registry.ds.geometry
+    if geometry is Geometry.CARTESIAN:
 
         # The following fields are invalid for curvilinear geometries
         def _spherical_radius_component(field, data):
@@ -457,7 +476,11 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
             ],
         )
 
-    else:  # Create Cartesian fields for curvilinear coordinates
+    elif (
+        geometry is Geometry.POLAR
+        or geometry is Geometry.CYLINDRICAL
+        or geometry is Geometry.SPHERICAL
+    ):  # Create Cartesian fields for curvilinear coordinates
 
         def _cartesian_x(field, data):
             if registry.ds.geometry == "polar":
@@ -564,6 +587,15 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
                 units=field_units,
                 display_field=True,
             )
+    elif (
+        geometry is Geometry.GEOGRAPHIC
+        or geometry is Geometry.INTERNAL_GEOGRAPHIC
+        or geometry is Geometry.SPECTRAL_CUBE
+    ):
+        # nothing to do
+        pass
+    else:
+        assert_never(geometry)
 
     if registry.ds.geometry == "spherical":
 

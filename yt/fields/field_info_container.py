@@ -10,7 +10,7 @@ from yt._typing import FieldKey, FieldType, KnownFieldsT
 from yt.config import ytcfg
 from yt.fields.field_exceptions import NeedsConfiguration
 from yt.funcs import mylog, obj_length, only_on_root
-from yt.geometry.geometry_handler import is_curvilinear
+from yt.geometry.api import Geometry
 from yt.units.dimensions import dimensionless  # type: ignore
 from yt.units.unit_object import Unit  # type: ignore
 from yt.utilities.exceptions import (
@@ -54,10 +54,11 @@ class FieldInfoContainer(UserDict):
         self.slice_info = slice_info
         self.field_aliases = {}
         self.species_names = []
-        if ds is not None and is_curvilinear(ds.geometry):
-            self.curvilinear = True
-        else:
-            self.curvilinear = False
+        self.curvilinear = ds is not None and (
+            ds.geometry is Geometry.POLAR
+            or ds.geometry is Geometry.CYLINDRICAL
+            or ds.geometry is Geometry.SPHERICAL
+        )
         self.setup_fluid_aliases()
 
     def setup_fluid_fields(self):
