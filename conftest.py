@@ -144,6 +144,18 @@ def pytest_configure(config):
             ),
         )
 
+    if find_spec("cartopy") is not None:
+        # this warning is triggered from cartopy 21.1
+        # see https://github.com/SciTools/cartopy/issues/2113
+        SHAPELY_VERSION = Version(version("shapely"))
+        if SHAPELY_VERSION >= Version("2.0"):
+            config.addinivalue_line(
+                "filterwarnings",
+                (
+                    r"ignore:The 'geom_factory' function is deprecated in Shapely 2\.0:DeprecationWarning"
+                ),
+            )
+
 
 def pytest_collection_modifyitems(config, items):
     r"""
