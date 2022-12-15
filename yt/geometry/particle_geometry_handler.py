@@ -172,7 +172,8 @@ class ParticleIndex(Index):
                 fname = f"{fn_prefix}_{order2}.ewah" if len(fns) == 0 else fns[-1]
             else:
                 fname = ds.index_filename
-            new_order2 = int(fname.split("_")[-1].split(".")[0])
+            lfname = os.path.split(fname)[-1]
+            new_order2 = int(lfname.split("_")[-1].split(".")[0])
             return fname, new_order2
 
         # We set order2 in case we loaded an index filename
