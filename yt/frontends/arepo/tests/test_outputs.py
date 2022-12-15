@@ -74,7 +74,7 @@ def test_arepo_tng59_periodicity():
 def test_index_override():
     # This tests that we can supply an index_filename, and that when we do, it
     # doesn't get written if our bounding_box is overwritten.
-    tmpfd, tmpname = tempfile.mkstemp(suffix=".ewah")
+    tmpfd, tmpname = tempfile.mkstemp(suffix=".index6_4.ewah")
     os.close(tmpfd)
     ds = data_dir_load(
         tng59_h5, kwargs={"index_filename": tmpname, "bounding_box": _tng59_bbox}
