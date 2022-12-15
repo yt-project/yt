@@ -599,8 +599,8 @@ class YTSelectionContainer2D(YTSelectionContainer):
         >>> write_image(np.log10(frb[("gas", "density")]), "density_100kpc.png")
         """
 
-        if (self.ds.geometry == "cylindrical" and self.axis == 1) or (
-            self.ds.geometry == "polar" and self.axis == 2
+        if (self.ds.geometry is Geometry.CYLINDRICAL and self.axis == 1) or (
+            self.ds.geometry is Geometry.POLAR and self.axis == 2
         ):
             if center is not None and center != (0.0, 0.0):
                 raise NotImplementedError(

@@ -482,13 +482,20 @@ def create_vector_fields(
         or geometry is Geometry.SPHERICAL
     ):  # Create Cartesian fields for curvilinear coordinates
 
-        def _cartesian_x(field, data):
-            if registry.ds.geometry == "polar":
+        if geometry is Geometry.POLAR:
 
+            def _cartesian_x(field, data):
                 return data[(ftype, f"{basename}_r")] * np.cos(data[(ftype, "theta")])
 
-            elif registry.ds.geometry == "cylindrical":
+            def _cartesian_y(field, data):
+                return data[(ftype, f"{basename}_r")] * np.sin(data[(ftype, "theta")])
 
+            def _cartesian_z(field, data):
+                return data[(ftype, f"{basename}_z")]
+
+        elif geometry is Geometry.CYLINDRICAL:
+
+            def _cartesian_x(field, data):
                 if data.ds.dimensionality == 2:
                     return data[(ftype, f"{basename}_r")]
                 elif data.ds.dimensionality == 3:
@@ -498,8 +505,22 @@ def create_vector_fields(
                         data[(ftype, "theta")]
                     )
 
-            elif registry.ds.geometry == "spherical":
+            def _cartesian_y(field, data):
+                if data.ds.dimensionality == 2:
+                    return data[(ftype, f"{basename}_z")]
+                elif data.ds.dimensionality == 3:
+                    return data[(ftype, f"{basename}_r")] * np.sin(
+                        data[(ftype, "theta")]
+                    ) + data[(ftype, f"{basename}_theta")] * np.cos(
+                        data[(ftype, "theta")]
+                    )
 
+            def _cartesian_z(field, data):
+                return data[(ftype, f"{basename}_z")]
+
+        elif geometry is Geometry.SPHERICAL:
+
+            def _cartesian_x(field, data):
                 if data.ds.dimensionality == 2:
                     return data[(ftype, f"{basename}_r")] * np.sin(
                         data[(ftype, "theta")]
@@ -518,34 +539,7 @@ def create_vector_fields(
                         * np.sin(data[(ftype, "phi")])
                     )
 
-        # it's redundant to define a cartesian x field for 1D data
-        if registry.ds.dimensionality > 1:
-            registry.add_field(
-                (ftype, f"{basename}_cartesian_x"),
-                sampling_type="local",
-                function=_cartesian_x,
-                units=field_units,
-                display_field=True,
-            )
-
-        def _cartesian_y(field, data):
-            if registry.ds.geometry == "polar":
-
-                return data[(ftype, f"{basename}_r")] * np.sin(data[(ftype, "theta")])
-
-            elif registry.ds.geometry == "cylindrical":
-
-                if data.ds.dimensionality == 2:
-                    return data[(ftype, f"{basename}_z")]
-                elif data.ds.dimensionality == 3:
-                    return data[(ftype, f"{basename}_r")] * np.sin(
-                        data[(ftype, "theta")]
-                    ) + data[(ftype, f"{basename}_theta")] * np.cos(
-                        data[(ftype, "theta")]
-                    )
-
-            elif registry.ds.geometry == "spherical":
-
+            def _cartesian_y(field, data):
                 if data.ds.dimensionality == 2:
                     return data[(ftype, f"{basename}_r")] * np.cos(
                         data[(ftype, "theta")]
@@ -562,7 +556,24 @@ def create_vector_fields(
                         * np.cos(data[(ftype, "phi")])
                     )
 
+            def _cartesian_z(field, data):
+                return data[(ftype, f"{basename}_r")] * np.cos(
+                    data[(ftype, "theta")]
+                ) - data[(ftype, f"{basename}_theta")] * np.sin(data[(ftype, "theta")])
+
+        else:
+            assert_never(geometry)
+
+        # it's redundant to define a cartesian x field for 1D data
         if registry.ds.dimensionality >= 2:
+            registry.add_field(
+                (ftype, f"{basename}_cartesian_x"),
+                sampling_type="local",
+                function=_cartesian_x,
+                units=field_units,
+                display_field=True,
+            )
+
             registry.add_field(
                 (ftype, f"{basename}_cartesian_y"),
                 sampling_type="local",
@@ -571,15 +582,6 @@ def create_vector_fields(
                 display_field=True,
             )
 
-        def _cartesian_z(field, data):
-            if registry.ds.geometry == "cylindrical":
-                return data[(ftype, f"{basename}_z")]
-            elif registry.ds.geometry == "spherical":
-                return data[(ftype, f"{basename}_r")] * np.cos(
-                    data[(ftype, "theta")]
-                ) - data[(ftype, f"{basename}_theta")] * np.sin(data[(ftype, "theta")])
-
-        if registry.ds.dimensionality >= 2:
             registry.add_field(
                 (ftype, f"{basename}_cartesian_z"),
                 sampling_type="local",
@@ -597,7 +599,7 @@ def create_vector_fields(
     else:
         assert_never(geometry)
 
-    if registry.ds.geometry == "spherical":
+    if registry.ds.geometry is Geometry.SPHERICAL:
 
         def _cylindrical_radius_component(field, data):
             return (
