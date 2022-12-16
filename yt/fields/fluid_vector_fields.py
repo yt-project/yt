@@ -17,11 +17,7 @@ def setup_fluid_vector_fields(
 ) -> None:
     # Current implementation for gradient is not valid for curvilinear geometries
     geometry: Geometry = registry.ds.geometry
-    if (
-        geometry is Geometry.POLAR
-        or geometry is Geometry.CYLINDRICAL
-        or geometry is Geometry.SPHERICAL
-    ):
+    if geometry is not Geometry.CARTESIAN:
         return
 
     unit_system = registry.ds.unit_system
