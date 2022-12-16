@@ -32,7 +32,14 @@ from unyt import Unit, unyt_quantity
 from unyt.exceptions import UnitConversionError, UnitParseError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
-from yt._typing import AnyFieldKey, FieldKey, FieldType, ImplicitFieldKey, ParticleType
+from yt._typing import (
+    AnyFieldKey,
+    AxisOrder,
+    FieldKey,
+    FieldType,
+    ImplicitFieldKey,
+    ParticleType,
+)
 from yt.config import ytcfg
 from yt.data_objects.particle_filters import ParticleFilter, filter_registry
 from yt.data_objects.region_expression import RegionExpression
@@ -253,7 +260,9 @@ class Dataset(abc.ABC):
         default_species_fields: Optional[
             "Any"
         ] = None,  # Any used as a placeholder here
-    ):
+        *,
+        axis_order: Optional[AxisOrder] = None,
+    ) -> None:
         """
         Base class for generating new output types.  Principally consists of
         a *filename* and a *dataset_type* which will be passed on to children.
@@ -294,7 +303,7 @@ class Dataset(abc.ABC):
         self.set_units()
         self.setup_cosmology()
         self._assign_unit_system(unit_system)
-        self._setup_coordinate_handler()
+        self._setup_coordinate_handler(axis_order)
         self.print_key_parameters()
         self._set_derived_attrs()
         # Because we need an instantiated class to check the ds's existence in
@@ -728,25 +737,24 @@ class Dataset(abc.ABC):
             added.append(("gas", old_name))
         self.field_info.find_dependencies(added)
 
-    def _setup_coordinate_handler(self) -> None:
+    def _setup_coordinate_handler(self, axis_order: Optional[AxisOrder]) -> None:
         # backward compatibility layer:
         # turning off type-checker on a per-line basis
 
-        # ordering is tuple of axis names
-        # None is used as a sentinel value for "unset"
-        ordering: Optional[Tuple[str, str, str]] = None
         if isinstance(self.geometry, tuple):  # type: ignore [unreachable]
             issue_deprecation_warning(  # type: ignore [unreachable]
                 f"Dataset object {self} has a tuple for its geometry attribute. "
                 "This is interpreted as meaning the first element is the actual geometry string, "
                 "and the second represents an arbitrary axis order. "
                 "This will stop working in a future version of yt.\n"
-                "If your code relies on this behaviour, please reach out and open an issue:\n"
+                "If you're loading data using yt.load_* functions, "
+                "you should be able to clear this warning by using the axis_order keyword argument.\n"
+                "Otherwise, if your code relies on this behaviour, please reach out and open an issue:\n"
                 "https://github.com/yt-project/yt/issues/new",
                 since="4.2",
                 stacklevel=2,
             )
-            self.geometry, ordering = self.geometry
+            self.geometry, axis_order = self.geometry
         if type(self.geometry) is str:
             issue_deprecation_warning(
                 f"Dataset object {self} has a raw string for its geometry attribute. "
@@ -805,7 +813,7 @@ class Dataset(abc.ABC):
         else:
             assert_never(self.geometry)
 
-        self.coordinates = cls(self, ordering=ordering)
+        self.coordinates = cls(self, ordering=axis_order)
 
     def add_particle_union(self, union):
         # No string lookups here, we need an actual union.

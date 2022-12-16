@@ -6,11 +6,12 @@ from collections import UserDict
 from functools import cached_property
 from itertools import chain, product, repeat
 from numbers import Number as numeric_type
-from typing import Type
+from typing import Optional, Tuple, Type
 
 import numpy as np
 from more_itertools import always_iterable
 
+from yt._typing import AxisOrder, FieldKey
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.index_subobjects.octree_subset import OctreeSubset
@@ -333,6 +334,8 @@ class StreamDataset(Dataset):
         geometry="cartesian",
         unit_system="cgs",
         default_species_fields=None,
+        *,
+        axis_order: Optional[AxisOrder] = None,
     ):
         self.fluid_types += ("stream",)
         self.geometry = Geometry(geometry)
@@ -354,7 +357,7 @@ class StreamDataset(Dataset):
             setdefaultattr(
                 self,
                 "pixel2spec",
-                lambda pixel_value: self.arr(pixel_value, self.spec_unit),
+                lambda pixel_value: self.arr(pixel_value, self.spec_unit),  # type: ignore [attr-defined]
             )
             setdefaultattr(
                 self,
@@ -369,6 +372,7 @@ class StreamDataset(Dataset):
             self._dataset_type,
             unit_system=unit_system,
             default_species_fields=default_species_fields,
+            axis_order=axis_order,
         )
 
     @property
@@ -460,7 +464,7 @@ class StreamDataset(Dataset):
 
 
 class StreamDictFieldHandler(UserDict):
-    _additional_fields = ()
+    _additional_fields: Tuple[FieldKey, ...] = ()
 
     @property
     def all_fields(self):

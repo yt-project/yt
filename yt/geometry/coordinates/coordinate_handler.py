@@ -5,6 +5,7 @@ from typing import Optional, Tuple
 
 import numpy as np
 
+from yt._typing import AxisOrder
 from yt.funcs import fix_unitary, is_sequence, validate_width_tuple
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTCoordinateNotImplemented, YTInvalidWidthError
@@ -128,16 +129,11 @@ def validate_sequence_width(width, ds, unit=None):
             )
 
 
-# local type annotations helpers
-AxisName = str
-Ordering = Tuple[AxisName, AxisName, AxisName]
-
-
 class CoordinateHandler(abc.ABC):
     name: str
-    _default_axis_order: Ordering
+    _default_axis_order: AxisOrder
 
-    def __init__(self, ds, ordering: Optional[Ordering] = None):
+    def __init__(self, ds, ordering: Optional[AxisOrder] = None):
         self.ds = weakref.proxy(ds)
         if ordering is not None:
             self.axis_order = ordering
