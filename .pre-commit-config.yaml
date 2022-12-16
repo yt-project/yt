@@ -56,7 +56,7 @@ repos:
     hooks:
     - id: flake8
       additional_dependencies: [
-        flake8-bugbear==22.7.1,
+        flake8-bugbear==22.12.6,
         flake8-logging-format==0.7.4,
         flake8-2020==1.6.1,
       ]
@@ -78,7 +78,7 @@ repos:
     - id: nbqa-flake8
       args: [--extend-ignore=E402]
       additional_dependencies: [
-        flake8-bugbear==22.7.1,
+        flake8-bugbear==22.12.6,
         flake8-logging-format==0.7.4,
       ]
 

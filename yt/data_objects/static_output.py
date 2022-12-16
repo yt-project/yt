@@ -456,7 +456,7 @@ class Dataset(abc.ABC):
         """
         return [], True
 
-    def close(self):
+    def close(self):  # noqa: B027
         pass
 
     def __getitem__(self, key):
@@ -1966,7 +1966,7 @@ def _reconstruct_ds(*args, **kwargs):
 
 
 @functools.total_ordering
-class ParticleFile(abc.ABC):
+class ParticleFile:
     filename: str
     file_id: int
 
@@ -1989,13 +1989,13 @@ class ParticleFile(abc.ABC):
             self.start = 0
         self.end = max(self.total_particles.values()) + self.start
 
-    def select(self, selector):
+    def select(self, selector):  # noqa: B027
         pass
 
-    def count(self, selector):
+    def count(self, selector):  # noqa: B027
         pass
 
-    def _calculate_offsets(self, fields, pcounts):
+    def _calculate_offsets(self, fields, pcounts):  # noqa: B027
         pass
 
     def __lt__(self, other):

@@ -49,7 +49,7 @@ def call_unix_command(command):
         raise RuntimeError(
             "Command '%s' failed with return code '%s' and error:\n\n%s"
             % (command, er.returncode, er.output.decode("utf-8"))
-        )
+        ) from er
     finally:
         if len(output.splitlines()) > 25:
             print("truncated output:")

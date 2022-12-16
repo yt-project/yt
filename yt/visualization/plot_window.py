@@ -1367,9 +1367,10 @@ class PWViewerMPL(PlotWindow):
         return fig
 
 
-class NormalPlot(abc.ABC):
+class NormalPlot:
     """This is the abstraction for SlicePlot and ProjectionPlot, where
     we define the common sanitizing mechanism for user input (normal direction).
+    It is implemented as a mixin class.
     """
 
     @staticmethod

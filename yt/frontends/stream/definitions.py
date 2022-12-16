@@ -159,20 +159,19 @@ def process_data(data, grid_dims=None, allow_callables=True):
 
         # val is a tuple of (data, units)
         elif isinstance(val, tuple) and len(val) == 2:
-            try:
-                valid_data = isinstance(val[0], np.ndarray)
-                if allow_callables:
-                    valid_data = valid_data or callable(val[0])
-                assert isinstance(field, (str, tuple)), "Field name is not a string!"
-                assert (
-                    valid_data
-                ), "Field data is not an ndarray or callable (with nproc == 1)!"
-                assert isinstance(val[1], str), "Unit specification is not a string!"
-                field_units[field] = val[1]
-                new_data[field] = val[0]
-            except AssertionError as e:
-                raise RuntimeError("The data dict appears to be invalid.\n" + str(e))
-
+            valid_data = isinstance(val[0], np.ndarray)
+            if allow_callables:
+                valid_data = valid_data or callable(val[0])
+            if not isinstance(field, (str, tuple)):
+                raise TypeError("Field name is not a string!")
+            if not valid_data:
+                raise TypeError(
+                    "Field data is not an ndarray or callable (with nproc == 1)!"
+                )
+            if not isinstance(val[1], str):
+                raise TypeError("Unit specification is not a string!")
+            field_units[field] = val[1]
+            new_data[field] = val[0]
         # val is a list of data to be turned into an array
         elif is_sequence(val):
             field_units[field] = ""

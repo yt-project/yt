@@ -2536,14 +2536,16 @@ class TimestampCallback(PlotCallback):
         if self.time and self.redshift:
             self.text += "\n"
 
+        if self.redshift and not hasattr(plot.data.ds, "current_redshift"):
+            warnings.warn(
+                f"dataset {plot.data.ds} does not have current_redshift attribute. "
+                "Set redshift=False to silence this warning."
+            )
+            self.redshift = False
+
         # If we're annotating the redshift, put it in the correct format
         if self.redshift:
-            try:
-                z = plot.data.ds.current_redshift
-            except AttributeError:
-                raise AttributeError(
-                    "Dataset does not have current_redshift. Set redshift=False."
-                )
+            z = plot.data.ds.current_redshift
             # Replace instances of -0.0* with 0.0* to avoid
             # negative null redshifts (e.g., "-0.00").
             self.text += self.redshift_format.format(redshift=float(z))
