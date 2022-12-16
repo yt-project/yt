@@ -2511,7 +2511,7 @@ def plot_2d(
     window_size=8.0,
     aspect=None,
     data_source=None,
-):
+) -> AxisAlignedSlicePlot:
     r"""Creates a plot of a 2D dataset
 
     Given a ds object and a field name string, this will return a
@@ -2606,16 +2606,25 @@ def plot_2d(
     """
     if ds.dimensionality != 2:
         raise RuntimeError("plot_2d only plots 2D datasets!")
-    if ds.geometry in ["cartesian", "polar", "spectral_cube"]:
+    if (
+        ds.geometry is Geometry.CARTESIAN
+        or ds.geometry is Geometry.POLAR
+        or ds.geometry is Geometry.SPECTRAL_CUBE
+    ):
         axis = "z"
-    elif ds.geometry == "cylindrical":
+    elif ds.geometry is Geometry.CYLINDRICAL:
         axis = "theta"
-    elif ds.geometry == "spherical":
+    elif ds.geometry is Geometry.SPHERICAL:
         axis = "phi"
-    else:
+    elif (
+        ds.geometry is Geometry.GEOGRAPHIC
+        or ds.geometry is Geometry.INTERNAL_GEOGRAPHIC
+    ):
         raise NotImplementedError(
             f"plot_2d does not yet support datasets with {ds.geometry} geometries"
         )
+    else:
+        assert_never(ds.geometry)
     # Part of the convenience of plot_2d is to eliminate the use of the
     # superfluous coordinate, so we do that also with the center argument
     if not isinstance(center, str) and obj_length(center) == 2:
@@ -2623,7 +2632,8 @@ def plot_2d(
         c1_string = isinstance(center[1], str)
         if not c0_string and not c1_string:
             if obj_length(center[0]) == 2 and c1_string:
-                center = ds.arr(center[0], center[1])
+                # turning off type checking locally because center arg is hard to type correctly
+                center = ds.arr(center[0], center[1])  # type: ignore [unreachable]
             elif not isinstance(center, YTArray):
                 center = ds.arr(center, "code_length")
             center.convert_to_units("code_length")
