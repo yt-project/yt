@@ -52,9 +52,10 @@ options from the configuration file, e.g.:
 Local Configuration
 ^^^^^^^^^^^^^^^^^^^
 
-yt will look for a file named ``yt.toml`` in the current directory. If present, its options
-are loaded and the global configuration is not read. Local configuration files
-can contain the same options as the global one.
+yt will look for a file named ``yt.toml`` in the current directory, and upwards
+in the file tree until a match is found. If so, its options are loaded and any
+global configuration is ignored. Local configuration files can contain the same
+options as the global one.
 
 Local configuration files can either be edited manually, or alternatively they
 can be managed using ``yt config --local``. It can list, add, modify and remove
