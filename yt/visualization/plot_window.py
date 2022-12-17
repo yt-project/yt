@@ -274,7 +274,7 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
             self._switch_ds(ds)
             yield self
 
-    _frb = None
+    _frb: Optional[FixedResolutionBuffer] = None
 
     @property
     def frb(self):
@@ -850,7 +850,7 @@ class PWViewerMPL(PlotWindow):
     _frb_generator: Optional[Type[FixedResolutionBuffer]] = None
     _plot_type: Optional[str] = None
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         if self._frb_generator is None:
             self._frb_generator = kwargs.pop("frb_generator")
         if self._plot_type is None:
