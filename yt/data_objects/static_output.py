@@ -12,11 +12,23 @@ from collections import defaultdict
 from functools import cached_property
 from importlib.util import find_spec
 from stat import ST_CTIME
-from typing import Any, DefaultDict, Dict, List, Optional, Set, Tuple, Type, Union
+from typing import (
+    Any,
+    DefaultDict,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Set,
+    Tuple,
+    Type,
+    Union,
+)
 
 import numpy as np
 from more_itertools import unzip
-from unyt import Unit
+from sympy import Symbol
+from unyt import Unit, unyt_quantity
 from unyt.exceptions import UnitConversionError, UnitParseError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
@@ -221,7 +233,7 @@ class Dataset(abc.ABC):
         filename: str,
         dataset_type: Optional[str] = None,
         units_override: Optional[Dict[str, str]] = None,
-        unit_system: str = "cgs",
+        unit_system: Literal["cgs", "mks", "code"] = "cgs",
         default_species_fields: Optional[
             "Any"
         ] = None,  # Any used as a placeholder here
@@ -1203,13 +1215,15 @@ class Dataset(abc.ABC):
     def relative_refinement(self, l0, l1):
         return self.refine_by ** (l1 - l0)
 
-    def _assign_unit_system(self, unit_system):
+    def _assign_unit_system(self, unit_system: Literal["cgs", "mks", "code"]) -> None:
         # we need to determine if the requested unit system
         # is mks-like: i.e., it has a current with the same
         # dimensions as amperes.
         mks_system = False
-        if getattr(self, "magnetic_unit", None):
-            mag_dims = self.magnetic_unit.units.dimensions.free_symbols
+        mag_unit: Optional[unyt_quantity] = getattr(self, "magnetic_unit", None)
+        mag_dims: Optional[Set[Symbol]]
+        if mag_unit is not None:
+            mag_dims = mag_unit.units.dimensions.free_symbols
         else:
             mag_dims = None
         if unit_system != "code":
@@ -1226,6 +1240,7 @@ class Dataset(abc.ABC):
         # we asked for a conversion to something CGS-like, or vice-versa,
         # we have to convert the magnetic field
         if mag_dims is not None:
+            self.magnetic_unit: unyt_quantity
             if mks_system and current_mks not in mag_dims:
                 self.magnetic_unit = self.quan(
                     self.magnetic_unit.to_value("gauss") * 1.0e-4, "T"
