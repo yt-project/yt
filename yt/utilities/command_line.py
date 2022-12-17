@@ -1309,7 +1309,7 @@ class YTUploadFileCmd(YTCommand):
 
 
 class YTConfigLocalConfigHandler:
-    def load_config(self, args):
+    def load_config(self, args) -> None:
         import os
 
         from yt.config import YTConfig
@@ -1324,12 +1324,12 @@ class YTConfigLocalConfigHandler:
         local_arg_exists = hasattr(args, "local")
         global_arg_exists = hasattr(args, "global")
 
+        config_file: Optional[str] = None
         if getattr(args, "local", False):
             config_file = local_config_file
         elif getattr(args, "global", False):
             config_file = global_config_file
         else:
-            config_file: Optional[str] = None
             if local_exists and global_exists:
                 s = (
                     "Yt detected a local and a global configuration file, refusing "
