@@ -181,7 +181,7 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
         setup=False,
         *,
         geometry="cartesian",
-    ):
+    ) -> None:
 
         # axis manipulation operations are callback-only:
         self._swap_axes_input = False
@@ -191,7 +191,7 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
         self.center = None
         self._periodic = periodic
         self.oblique = oblique
-        self._equivalencies = defaultdict(lambda: (None, {}))
+        self._equivalencies = defaultdict(lambda: (None, {}))  # type: ignore [var-annotated]
         self.buff_size = buff_size
         self.antialias = antialias
         self._axes_unit_names = None
@@ -204,6 +204,7 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
         fields = list(iter_fields(fields))
         self.override_fields = list(set(fields).intersection(set(skip)))
         self.fields = [f for f in fields if f not in skip]
+        self._frb: Optional[FixedResolutionBuffer] = None
         super().__init__(data_source, window_size, fontsize)
 
         self._set_window(bounds)  # this automatically updates the data and plot
@@ -273,8 +274,6 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
         for ds in self.ts.piter(*args, **kwargs):
             self._switch_ds(ds)
             yield self
-
-    _frb: Optional[FixedResolutionBuffer] = None
 
     @property
     def frb(self):
@@ -856,7 +855,6 @@ class PWViewerMPL(PlotWindow):
         if self._plot_type is None:
             self._plot_type = kwargs.pop("plot_type")
         self._splat_color = kwargs.pop("splat_color", None)
-        self._frb: Optional[FixedResolutionBuffer] = None
         PlotWindow.__init__(self, *args, **kwargs)
 
         # import type here to avoid import cycles
