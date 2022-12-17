@@ -714,6 +714,7 @@ class YTDataContainer(abc.ABC):
         show_unused_fields=0,
         *,
         JSONdir=None,
+        match_any_particle_types=None,
         **kwargs,
     ):
         r"""This function links a region of data stored in a yt dataset
@@ -727,7 +728,7 @@ class YTDataContainer(abc.ABC):
             Path to where any `.json` files should be saved. If a relative
             path will assume relative to `${HOME}`. A value of `None` will default to `${HOME}/Data`.
 
-        fields_to_include : array_like of strings
+        fields_to_include : array_like of strings or field tuples
             A list of fields that you want to include in your
             Firefly visualization for on-the-fly filtering and
             colormapping.
@@ -753,6 +754,12 @@ class YTDataContainer(abc.ABC):
         show_unused_fields : boolean
             A flag to optionally print the fields that are available, in the
             dataset but were not explicitly requested to be tracked.
+
+        match_any_particle_types : boolean
+            A flag to specify that ambiguous fields in fields_to_include
+            should match all relevant particle groups instead of raising an
+            error. Note that the default value (True, to match previous
+            behavior) will change to False in the future.
 
         Any additional keyword arguments are passed to
         firefly.data_reader.Reader.__init__
@@ -808,13 +815,56 @@ class YTDataContainer(abc.ABC):
             )
             datadir = JSONdir
 
+        if match_any_particle_types is None:
+            # not specified, switching to (temporary) default
+            issue_deprecation_warning(
+                "match_any_particle_types wasn't specified. Its current default "
+                "value (True) will be changed to False in the future. "
+                "Pass an actual value (True or False) to silence this warning. ",
+                since="4.2",
+            )
+            # Note that all of the tests in test_firefly.py have this explicitly
+            # specified (and labeled) to avoid this warning. They will need to be
+            # changed when this behavior changes in the future
+            match_any_particle_types = True
+
         ## initialize a firefly reader instance
         reader = firefly.data_reader.Reader(
             datadir=datadir, clean_datadir=True, **kwargs
         )
 
         ## Ensure at least one field type contains every field requested
-        # error if any requested field is unknown or ambiguous
+        if match_any_particle_types:
+            # Need to keep previous behavior: single string field names that
+            # are ambiguous should bring in any matching ParticleGroups instead
+            # of raising an error
+            # This can be expanded/changed in the future to include field
+            # tuples containing some sort of special "any" ParticleGroup
+            unambiguous_fields_to_include = []
+            unambiguous_fields_units = []
+            for field, field_unit in zip(fields_to_include, fields_units):
+                if isinstance(field, tuple):
+                    # skip tuples, they'll be checked with _determine_fields
+                    unambiguous_fields_to_include.append(field)
+                    unambiguous_fields_units.append(field_unit)
+                    continue
+                _, candidates = self.ds._get_field_info_helper(field)
+                if len(candidates) < 2:
+                    # Field is unambiguous, add in tuple form
+                    # This should be equivalent to _tupleize_field
+                    unambiguous_fields_to_include.append(candidates[0])
+                    unambiguous_fields_units.append(field_unit)
+                else:
+                    # Field has multiple candidates, add all of them instead
+                    # of original field. Note this may bring in aliases and
+                    # equivalent particle fields
+                    for c in candidates:
+                        unambiguous_fields_to_include.append(c)
+                        unambiguous_fields_units.append(field_unit)
+            fields_to_include = unambiguous_fields_to_include
+            fields_units = unambiguous_fields_units
+        # error if any requested field is unknown or (still) ambiguous
+        # This is also sufficient if match_any_particle_types=False
         dd = self.ds.all_data()
         fields_to_include = dd._determine_fields(fields_to_include)
         ## Also generate equivalent of particle_fields_by_type including

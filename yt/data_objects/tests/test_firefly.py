@@ -17,6 +17,7 @@ def test_firefly_JSON_string():
         None,
         velocity_units="cm/s",
         coordinate_units="cm",
+        match_any_particle_types=True,  # Explicitly specifying to avoid deprecation warning
     )
 
     reader.writeToDisk(write_to_disk=False, file_extension=".json")
@@ -38,6 +39,7 @@ def test_firefly_write_to_disk():
         tmpdir,
         velocity_units="cm/s",
         coordinate_units="cm",
+        match_any_particle_types=True,  # Explicitly specifying to avoid deprecation warning
     )
 
     reader.writeToDisk()
@@ -85,6 +87,7 @@ def test_field_empty_specification(
         fields_to_include=fields_to_include,
         fields_units=fields_units,
         coordinate_units="code_length",
+        match_any_particle_types=True,  # Explicitly specifying to avoid deprecation warning
     )
     assert_array_equal(
         dd[("pt1", "relative_particle_position")].d,
@@ -97,25 +100,17 @@ def test_field_empty_specification(
 
 
 @requires_module("firefly")
-def test_field_string_specification(firefly_test_dataset):
+def test_field_unique_string_specification(firefly_test_dataset):
     # Test unique field (pt2only_field)
     dd = firefly_test_dataset.all_data()
-    # Unique field string will fallback to "all" field type ...
-    with pytest.raises(YTFieldNotFound):
-        reader = dd.create_firefly_object(
-            fields_to_include=["pt2only_field"],
-            fields_units=["code_length"],
-            coordinate_units="code_length",
-        )
-        pytest.fail()
-
-    # ... unless field type has been previously explicitly
-    # specified
-    dd["pt2", "pt2only_field"]
+    # Unique field string will fallback to "all" field type and fail
+    # as nonexistent ("all", "pt2only_field") unless we set
+    # match_any_particle_types=True
     reader = dd.create_firefly_object(
         fields_to_include=["pt2only_field"],
         fields_units=["code_length"],
         coordinate_units="code_length",
+        match_any_particle_types=True,
     )
 
     pt1 = reader.particleGroups[0]
@@ -132,6 +127,37 @@ def test_field_string_specification(firefly_test_dataset):
     assert "pt2only_field" in pt2.field_names
     arrind = np.flatnonzero(pt2.field_names == "pt2only_field")[0]
     assert_array_equal(dd[("pt2", "pt2only_field")].d, pt2.field_arrays[arrind])
+
+
+@requires_module("firefly")
+def test_field_common_string_specification(firefly_test_dataset):
+    # Test common field (common_field)
+    dd = firefly_test_dataset.all_data()
+    # Common field string will be ambiguous and fail
+    # unless we set match_any_particle_types=True
+    reader = dd.create_firefly_object(
+        fields_to_include=["common_field"],
+        fields_units=["code_length"],
+        coordinate_units="code_length",
+        match_any_particle_types=True,
+    )
+
+    pt1 = reader.particleGroups[0]
+    pt2 = reader.particleGroups[1]
+    assert_array_equal(
+        dd[("pt1", "relative_particle_position")].d,
+        pt1.coordinates,
+    )
+    assert_array_equal(
+        dd[("pt2", "relative_particle_position")].d,
+        pt2.coordinates,
+    )
+    assert "common_field" in pt1.field_names
+    assert "common_field" in pt2.field_names
+    arrind = np.flatnonzero(pt1.field_names == "common_field")[0]
+    assert_array_equal(dd[("pt1", "common_field")].d, pt1.field_arrays[arrind])
+    arrind = np.flatnonzero(pt2.field_names == "common_field")[0]
+    assert_array_equal(dd[("pt2", "common_field")].d, pt2.field_arrays[arrind])
 
 
 @requires_module("firefly")
@@ -162,6 +188,7 @@ def test_field_tuple_specification(
         fields_to_include=fields_to_include,
         fields_units=fields_units,
         coordinate_units="code_length",
+        match_any_particle_types=True,  # Explicitly specifying to avoid deprecation warning
     )
     assert_array_equal(
         dd[("pt1", "relative_particle_position")].d,
@@ -200,15 +227,25 @@ def test_field_tuple_specification(
             YTFieldNotFound,
         ),  # Test nonexistent field (dinos)
         (
+            ["pt2only_field"],
+            ["code_length"],
+            YTFieldNotFound,
+        ),  # Test unique field (match_any_particle_types=False)
+        (
             ["common_field"],
             ["code_length"],
             ValueError,
-        ),  # Test ambiguous field (common_field)
+        ),  # Test ambiguous field (match_any_particle_types=False)
         (
             [("pt1", "pt2only_field")],
             ["code_length"],
             YTFieldNotFound,
         ),  # Test nonexistent field tuple (pt1, pt2only_field)
+        (
+            ["pt2only_field", ("pt1", "common_field")],
+            ["code_length", "code_length"],
+            YTFieldNotFound,
+        ),  # Test mixed field spec (match_any_particle_types=False)
     ],
 )
 def test_field_invalid_specification(
@@ -216,11 +253,14 @@ def test_field_invalid_specification(
 ):
 
     dd = firefly_test_dataset.all_data()
+    # Note that we have specfied match_any_particle_types as False since
+    # that is the behavior expected in the future
     with pytest.raises(ErrorType):
         dd.create_firefly_object(
             fields_to_include=fields_to_include,
             fields_units=fields_units,
             coordinate_units="code_length",
+            match_any_particle_types=False,
         )
 
 
@@ -228,11 +268,10 @@ def test_field_invalid_specification(
 def test_field_mixed_specification(firefly_test_dataset):
     dd = firefly_test_dataset.all_data()
 
-    # Assume particle type has already been specified
-    dd["pt2", "pt2only_field"]
     reader = dd.create_firefly_object(
         fields_to_include=["pt2only_field", ("pt1", "common_field")],
         fields_units=["code_length", "code_length"],
+        match_any_particle_types=True,  # Explicitly specifying to avoid deprecation warning
     )
 
     pt1 = reader.particleGroups[0]
