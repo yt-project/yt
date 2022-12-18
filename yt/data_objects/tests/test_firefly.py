@@ -17,7 +17,6 @@ def test_firefly_JSON_string():
         None,
         velocity_units="cm/s",
         coordinate_units="cm",
-        match_any_particle_types=True,  # Explicitly specifying to avoid deprecation warning
     )
 
     reader.writeToDisk(write_to_disk=False, file_extension=".json")
@@ -87,7 +86,6 @@ def test_field_empty_specification(
         fields_to_include=fields_to_include,
         fields_units=fields_units,
         coordinate_units="code_length",
-        match_any_particle_types=True,  # Explicitly specifying to avoid deprecation warning
     )
     assert_array_equal(
         dd[("pt1", "relative_particle_position")].d,
@@ -188,7 +186,6 @@ def test_field_tuple_specification(
         fields_to_include=fields_to_include,
         fields_units=fields_units,
         coordinate_units="code_length",
-        match_any_particle_types=True,  # Explicitly specifying to avoid deprecation warning
     )
     assert_array_equal(
         dd[("pt1", "relative_particle_position")].d,
@@ -271,7 +268,6 @@ def test_field_mixed_specification(firefly_test_dataset):
     reader = dd.create_firefly_object(
         fields_to_include=["pt2only_field", ("pt1", "common_field")],
         fields_units=["code_length", "code_length"],
-        match_any_particle_types=True,  # Explicitly specifying to avoid deprecation warning
     )
 
     pt1 = reader.particleGroups[0]

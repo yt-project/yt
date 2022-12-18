@@ -714,7 +714,7 @@ class YTDataContainer(abc.ABC):
         show_unused_fields=0,
         *,
         JSONdir=None,
-        match_any_particle_types=None,
+        match_any_particle_types=True,
         **kwargs,
     ):
         r"""This function links a region of data stored in a yt dataset
@@ -758,9 +758,7 @@ class YTDataContainer(abc.ABC):
         match_any_particle_types : boolean
             A flag to specify that ambiguous fields in fields_to_include
             should match all relevant particle groups instead of raising an
-            error. Note that the default value (True, to match previous
-            behavior) will change to False in the future.
-
+            error. 
         Any additional keyword arguments are passed to
         firefly.data_reader.Reader.__init__
 
@@ -814,19 +812,6 @@ class YTDataContainer(abc.ABC):
                 since="4.1",
             )
             datadir = JSONdir
-
-        if match_any_particle_types is None:
-            # not specified, switching to (temporary) default
-            issue_deprecation_warning(
-                "match_any_particle_types wasn't specified. Its current default "
-                "value (True) will be changed to False in the future. "
-                "Pass an actual value (True or False) to silence this warning. ",
-                since="4.2",
-            )
-            # Note that all of the tests in test_firefly.py have this explicitly
-            # specified (and labeled) to avoid this warning. They will need to be
-            # changed when this behavior changes in the future
-            match_any_particle_types = True
 
         ## initialize a firefly reader instance
         reader = firefly.data_reader.Reader(
