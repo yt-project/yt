@@ -758,7 +758,7 @@ class YTDataContainer(abc.ABC):
         match_any_particle_types : boolean
             A flag to specify that ambiguous fields in fields_to_include
             should match all relevant particle groups instead of raising an
-            error. 
+            error.
         Any additional keyword arguments are passed to
         firefly.data_reader.Reader.__init__
 
