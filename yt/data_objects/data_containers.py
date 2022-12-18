@@ -849,7 +849,7 @@ class YTDataContainer(abc.ABC):
                     unambiguous_fields_units.append(field_unit)
                     continue
                 _, candidates = self.ds._get_field_info_helper(field)
-                if len(candidates) < 2:
+                if len(candidates) == 1:
                     # Field is unambiguous, add in tuple form
                     # This should be equivalent to _tupleize_field
                     unambiguous_fields_to_include.append(candidates[0])
