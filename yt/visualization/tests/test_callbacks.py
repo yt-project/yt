@@ -710,7 +710,8 @@ def test_contour_callback():
         text_args={"fmt": "%1.1f"},
     )
     slc.render()
-    check_axis_manipulation(slc)
+    # deactivated because it makes the test case 7 times as long (10s to 70s)
+    # check_axis_manipulation(slc)
 
     ds = fake_amr_ds(
         fields=("density", "temperature"),
