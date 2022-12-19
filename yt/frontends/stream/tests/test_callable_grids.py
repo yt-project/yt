@@ -1,6 +1,7 @@
 import numpy as np
+import pytest
 
-from yt import load_amr_grids, load_hdf5_file
+from yt import load_amr_grids, load_hdf5_file, load_uniform_grid
 from yt.testing import (
     _amr_grid_index,
     assert_almost_equal,
@@ -100,3 +101,19 @@ def test_load_callable():
     assert_equal(ds.r[:].sum("cell_volume"), ds.domain_width.prod())
     assert_almost_equal(ds.r[:].max("density").d, 2660218.62833899)
     assert_almost_equal(ds.r[:].min("density").d, -2660218.62833899)
+
+
+def test_load_uniform_grid_callable():
+    data = {"density": _grid_data_function}
+    ds = load_uniform_grid(
+        data, [32, 32, 32], bbox=np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]])
+    )
+    assert_equal(ds.r[:].sum("cell_volume"), ds.domain_width.prod())
+
+    with pytest.raises(RuntimeError, match="Callable functions can not be specified"):
+        _ = load_uniform_grid(
+            data,
+            [32, 32, 32],
+            bbox=np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]]),
+            nprocs=16,
+        )

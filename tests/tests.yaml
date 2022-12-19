@@ -228,6 +228,7 @@ other_tests:
      - "--ignore-file=test_add_field\\.py"
      - "--ignore-file=test_glue\\.py"
      - "--ignore-file=test_geometries\\.py"
+     - "--ignore-file=test_callable_grids\\.py"
      - "--exclude-test=yt.frontends.gdf.tests.test_outputs.TestGDF"
      - "--exclude-test=yt.frontends.adaptahop.tests.test_outputs"
      - "--exclude-test=yt.frontends.stream.tests.test_stream_particles.test_stream_non_cartesian_particles"
