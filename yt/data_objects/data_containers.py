@@ -756,9 +756,9 @@ class YTDataContainer(abc.ABC):
             dataset but were not explicitly requested to be tracked.
 
         match_any_particle_types : boolean
-            A flag to specify that ambiguous fields in fields_to_include
-            should match all relevant particle groups instead of raising an
-            error.
+            If True, when any of the fields_to_include match multiple particle groups then 
+            the field will be added for all matching particle groups. If False, an error is raised 
+            when encountering an ambiguous field. Default is True.
         Any additional keyword arguments are passed to
         firefly.data_reader.Reader.__init__
 
