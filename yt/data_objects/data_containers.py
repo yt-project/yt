@@ -852,8 +852,7 @@ class YTDataContainer(abc.ABC):
             fields_units = unambiguous_fields_units
         # error if any requested field is unknown or (still) ambiguous
         # This is also sufficient if match_any_particle_types=False
-        dd = self.ds.all_data()
-        fields_to_include = dd._determine_fields(fields_to_include)
+        fields_to_include = self._determine_fields(fields_to_include)
         ## Also generate equivalent of particle_fields_by_type including
         ## derived fields
         kysd = defaultdict(list)
