@@ -2,3 +2,6 @@
 	path = answer-store
 	url = https://github.com/yt-project/answer-store
 	branch = yt-4.0
+[submodule "tests/pytest_mpl_baseline"]
+	path = tests/pytest_mpl_baseline
+	url = https://github.com/yt-project/yt_pytest_mpl_baseline

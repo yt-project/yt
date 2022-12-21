@@ -95,6 +95,7 @@ def pytest_configure(config):
         "ignore:invalid value encountered in log10:RuntimeWarning",
         "ignore:divide by zero encountered in log10:RuntimeWarning",
         "ignore:invalid value encountered in true_divide:RuntimeWarning",
+        "ignore:invalid value encountered in divide:RuntimeWarning",
         #
         # >>> there are many places in yt (most notably at the frontend level)
         # where we open files but never explicitly close them
@@ -203,6 +204,16 @@ def pytest_collection_modifyitems(config, items):
             "--with-answer-testing"
         ):
             item.add_marker(skip_unit)
+
+
+def pytest_itemcollected(item):
+    # Customize pytest-mpl decorator to add sensible defaults
+
+    mpl_marker = item.get_closest_marker("mpl_image_compare")
+    if mpl_marker is not None:
+        # in a future version, pytest-mpl may gain an option for doing this:
+        # https://github.com/matplotlib/pytest-mpl/pull/181
+        mpl_marker.kwargs.setdefault("tolerance", 0.5)
 
 
 def _param_list(request):
