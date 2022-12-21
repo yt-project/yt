@@ -633,7 +633,7 @@ def load_amr_grids(
 
 
 def load_particles(
-    data,
+    data: Dict[AnyFieldKey, np.ndarray],
     length_unit=None,
     bbox=None,
     sim_time=None,
@@ -768,8 +768,9 @@ def load_particles(
     field_units, data, _ = process_data(data)
     sfh = StreamDictFieldHandler()
 
-    pdata = {}
+    pdata: Dict[AnyFieldKey, np.ndarray] = {}
     for key in data.keys():
+        field: FieldKey
         if not isinstance(key, tuple):
             field = ("io", key)
             mylog.debug("Reassigning '%s' to '%s'", key, field)
@@ -801,14 +802,14 @@ def load_particles(
         parameters=parameters,
     )
 
-    handler.name = "ParticleData"
-    handler.domain_left_edge = domain_left_edge
-    handler.domain_right_edge = domain_right_edge
-    handler.refine_by = 2
-    handler.dimensionality = 3
-    handler.domain_dimensions = domain_dimensions
-    handler.simulation_time = sim_time
-    handler.cosmology_simulation = 0
+    handler.name = "ParticleData"  # type: ignore [attr-defined]
+    handler.domain_left_edge = domain_left_edge  # type: ignore [attr-defined]
+    handler.domain_right_edge = domain_right_edge  # type: ignore [attr-defined]
+    handler.refine_by = 2  # type: ignore [attr-defined]
+    handler.dimensionality = 3  # type: ignore [attr-defined]
+    handler.domain_dimensions = domain_dimensions  # type: ignore [attr-defined]
+    handler.simulation_time = sim_time  # type: ignore [attr-defined]
+    handler.cosmology_simulation = 0  # type: ignore [attr-defined]
 
     sds = StreamParticlesDataset(
         handler,
