@@ -714,6 +714,7 @@ class YTDataContainer(abc.ABC):
         show_unused_fields=0,
         *,
         JSONdir=None,
+        match_any_particle_types=True,
         **kwargs,
     ):
         r"""This function links a region of data stored in a yt dataset
@@ -727,7 +728,7 @@ class YTDataContainer(abc.ABC):
             Path to where any `.json` files should be saved. If a relative
             path will assume relative to `${HOME}`. A value of `None` will default to `${HOME}/Data`.
 
-        fields_to_include : array_like of strings
+        fields_to_include : array_like of strings or field tuples
             A list of fields that you want to include in your
             Firefly visualization for on-the-fly filtering and
             colormapping.
@@ -753,6 +754,12 @@ class YTDataContainer(abc.ABC):
         show_unused_fields : boolean
             A flag to optionally print the fields that are available, in the
             dataset but were not explicitly requested to be tracked.
+
+        match_any_particle_types : boolean
+            If True, when any of the fields_to_include match multiple particle
+            groups then the field will be added for all matching particle
+            groups. If False, an error is raised when encountering an ambiguous
+            field. Default is True.
 
         Any additional keyword arguments are passed to
         firefly.data_reader.Reader.__init__
@@ -813,6 +820,45 @@ class YTDataContainer(abc.ABC):
             datadir=datadir, clean_datadir=True, **kwargs
         )
 
+        ## Ensure at least one field type contains every field requested
+        if match_any_particle_types:
+            # Need to keep previous behavior: single string field names that
+            # are ambiguous should bring in any matching ParticleGroups instead
+            # of raising an error
+            # This can be expanded/changed in the future to include field
+            # tuples containing some sort of special "any" ParticleGroup
+            unambiguous_fields_to_include = []
+            unambiguous_fields_units = []
+            for field, field_unit in zip(fields_to_include, fields_units):
+                if isinstance(field, tuple):
+                    # skip tuples, they'll be checked with _determine_fields
+                    unambiguous_fields_to_include.append(field)
+                    unambiguous_fields_units.append(field_unit)
+                    continue
+                _, candidates = self.ds._get_field_info_helper(field)
+                if len(candidates) == 1:
+                    # Field is unambiguous, add in tuple form
+                    # This should be equivalent to _tupleize_field
+                    unambiguous_fields_to_include.append(candidates[0])
+                    unambiguous_fields_units.append(field_unit)
+                else:
+                    # Field has multiple candidates, add all of them instead
+                    # of original field. Note this may bring in aliases and
+                    # equivalent particle fields
+                    for c in candidates:
+                        unambiguous_fields_to_include.append(c)
+                        unambiguous_fields_units.append(field_unit)
+            fields_to_include = unambiguous_fields_to_include
+            fields_units = unambiguous_fields_units
+        # error if any requested field is unknown or (still) ambiguous
+        # This is also sufficient if match_any_particle_types=False
+        fields_to_include = self._determine_fields(fields_to_include)
+        ## Also generate equivalent of particle_fields_by_type including
+        ## derived fields
+        kysd = defaultdict(list)
+        for k, v in self.ds.derived_field_list:
+            kysd[k].append(v)
+
         ## create a ParticleGroup object that contains *every* field
         for ptype in sorted(self.ds.particle_types_raw):
             ## skip this particle type if it has no particles in this dataset
@@ -836,17 +882,23 @@ class YTDataContainer(abc.ABC):
 
             ## explicitly go after the fields we want
             for field, units in zip(fields_to_include, fields_units):
+                ## Only interested in fields with the current particle type,
+                ## whether that means general fields or field tuples
+                ftype, fname = field
+                if ftype not in (ptype, "all"):
+                    continue
+
                 ## determine if you want to take the log of the field for Firefly
                 log_flag = "log(" in units
 
                 ## read the field array from the dataset
-                this_field_array = self[ptype, field]
+                this_field_array = self[ptype, fname]
 
                 ## fix the units string and prepend 'log' to the field for
                 ##  the UI name
                 if log_flag:
                     units = units[len("log(") : -1]
-                    field = f"log{field}"
+                    fname = f"log{fname}"
 
                 ## perform the unit conversion and take the log if
                 ##  necessary.
@@ -856,7 +908,7 @@ class YTDataContainer(abc.ABC):
 
                 ## add this array to the tracked arrays
                 field_arrays += [this_field_array]
-                field_names = np.append(field_names, [field], axis=0)
+                field_names = np.append(field_names, [fname], axis=0)
 
             ## flag whether we want to filter and/or color by these fields
             ##  we'll assume yes for both cases, this can be changed after
@@ -864,15 +916,32 @@ class YTDataContainer(abc.ABC):
             field_filter_flags = np.ones(len(field_names))
             field_colormap_flags = np.ones(len(field_names))
 
+            ## field_* needs to be explicitly set None if empty
+            ## so that Firefly will correctly compute the binary
+            ## headers
+            if len(field_arrays) == 0:
+                if len(fields_to_include) > 0:
+                    mylog.warning("No additional fields specified for %s", ptype)
+                field_arrays = None
+                field_names = None
+                field_filter_flags = None
+                field_colormap_flags = None
+
+            ## Check if particles have velocities
+            if "relative_particle_velocity" in kysd[ptype]:
+                velocities = self[ptype, "relative_particle_velocity"].in_units(
+                    velocity_units
+                )
+            else:
+                velocities = None
+
             ## create a firefly ParticleGroup for this particle type
             pg = firefly.data_reader.ParticleGroup(
                 UIname=ptype,
                 coordinates=self[ptype, "relative_particle_position"].in_units(
                     coordinate_units
                 ),
-                velocities=self[ptype, "relative_particle_velocity"].in_units(
-                    velocity_units
-                ),
+                velocities=velocities,
                 field_arrays=field_arrays,
                 field_names=field_names,
                 field_filter_flags=field_filter_flags,
