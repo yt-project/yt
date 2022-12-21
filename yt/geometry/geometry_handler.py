@@ -467,7 +467,7 @@ def is_curvilinear(geo):
     # tell geometry is curvilinear or not
     issue_deprecation_warning(
         "the is_curvilear() function is deprecated. "
-        "Insteadn, compare the geometry object directly with yt.geometry.geometry_enum.Geometry "
+        "Instead, compare the geometry object directly with yt.geometry.geometry_enum.Geometry "
         "enum members, as for instance:\n"
         "if is_curvilinear(geometry):\n    ...\n"
         "should be rewritten as:"
