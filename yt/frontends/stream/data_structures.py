@@ -550,6 +550,8 @@ class StreamParticlesDataset(StreamDataset):
         geometry="cartesian",
         unit_system="cgs",
         default_species_fields=None,
+        *,
+        axis_order: Optional[AxisOrder] = None,
     ):
         super().__init__(
             stream_handler,
@@ -557,6 +559,7 @@ class StreamParticlesDataset(StreamDataset):
             geometry=geometry,
             unit_system=unit_system,
             default_species_fields=default_species_fields,
+            axis_order=axis_order,
         )
         fields = list(stream_handler.fields["stream_file"].keys())
         # This is the current method of detecting SPH data.

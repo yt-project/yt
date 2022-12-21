@@ -647,6 +647,7 @@ def load_particles(
     data_source=None,
     default_species_fields=None,
     *,
+    axis_order: Optional[AxisOrder] = None,
     parameters=None,
 ):
     r"""Load a set of particles into yt as a
@@ -688,12 +689,18 @@ def load_particles(
     periodicity : tuple of booleans
         Determines whether the data will be treated as periodic along
         each axis
+    geometry : string (or tuple, deprecated)
+        "cartesian", "cylindrical", "polar", "spherical", "geographic" or
+        "spectral_cube".
     data_source : YTSelectionContainer, optional
         If set, parameters like `bbox`, `sim_time`, and code units are derived
         from it.
     default_species_fields : string, optional
         If set, default species fields are created for H and He which also
         determine the mean molecular weight. Options are "ionized" and "neutral".
+    axis_order: tuple of three strings, optional
+        Force axis ordering, e.g. ("z", "y", "x") with cartesian geometry
+        Otherwise use geometry-specific default ordering.
     parameters: dictionary, optional
         Optional dictionary used to populate the dataset parameters, useful
         for storing dataset metadata.
@@ -808,6 +815,7 @@ def load_particles(
         geometry=geometry,
         unit_system=unit_system,
         default_species_fields=default_species_fields,
+        axis_order=axis_order,
     )
 
     return sds
