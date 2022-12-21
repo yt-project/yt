@@ -183,13 +183,13 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
         # We now split up into readers for the types of fields
         fluids, particles = [], []
         finfos = {}
-        for ftype, fname in fields_to_get:
-            finfo = self.ds._get_field_info((ftype, fname))
-            finfos[ftype, fname] = finfo
+        for field_key in fields_to_get:
+            finfo = self.ds._get_field_info(field_key)
+            finfos[field_key] = finfo
             if finfo.sampling_type == "particle":
-                particles.append((ftype, fname))
-            elif (ftype, fname) not in fluids:
-                fluids.append((ftype, fname))
+                particles.append(field_key)
+            elif field_key not in fluids:
+                fluids.append(field_key)
         # The _read method will figure out which fields it needs to get from
         # disk, and return a dict of those fields along with the fields that
         # need to be generated.
