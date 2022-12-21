@@ -53,5 +53,5 @@ def test_stream_hexahedral():
     assert_almost_equal(dd[("index", "dz")].to_ndarray(), 1.0 / Nz)
 
     s = SlicePlot(ds, "x", "random_field")
-    s._setup_plots()
+    s.render()
     s.frb[("stream", "random_field")]

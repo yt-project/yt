@@ -28,6 +28,6 @@ def test_field_access():
         oap = ProjectionPlot(ds, [1, 1, 1], field)
 
         for plot_object in [s, oas, p, oap, prof, phase]:
-            plot_object._setup_plots()
+            plot_object.render()
             if hasattr(plot_object, "_frb"):
                 plot_object._frb[field]

@@ -3,191 +3,67 @@ import shutil
 import tempfile
 import unittest
 
-from nose.plugins.attrib import attr
+import pytest
 
 import yt
-from yt.data_objects.profiles import create_profile
-from yt.testing import (
-    ANSWER_TEST_TAG,
-    assert_allclose_units,
-    assert_array_almost_equal,
-    fake_random_ds,
-)
-from yt.utilities.answer_testing.framework import (
-    GenericImageTest,
-    PhasePlotAttributeTest,
-)
-from yt.visualization.profile_plotter import PhasePlot, ProfilePlot
-
-ATTR_ARGS = {
-    "annotate_text": [
-        (((5e-29, 5e7), "Hello YT"), {}),
-        (((5e-29, 5e7), "Hello YT"), {"color": "b"}),
-    ],
-    "set_title": [((("gas", "mass"), "A phase plot."), {})],
-    "set_log": [((("gas", "mass"), False), {})],
-    "set_unit": [((("gas", "mass"), "Msun"), {})],
-    "set_xlim": [((1e-27, 1e-24), {})],
-    "set_ylim": [((1e2, 1e6), {})],
-}
+from yt.testing import assert_allclose_units, fake_random_ds
+from yt.visualization.api import PhasePlot
 
 
-def compare(ds, plot, test_prefix, test_name, decimals=12):
-    def image_from_plot(filename_prefix):
-        return plot.save(filename_prefix)
-
-    image_from_plot.__name__ = f"profile_{test_prefix}"
-    test = GenericImageTest(ds, image_from_plot, decimals)
-    test.prefix = test_prefix
-    test.answer_name = test_name
-    return test
-
-
-@attr(ANSWER_TEST_TAG)
-def test_phase_plot_attributes():
-    """
-
-    This iterates over the all the plot modification functions in
-    ATTR_ARGS. Each time, it compares the images produced by
-    PhasePlot to the gold standard.
-
-
-    """
-
-    x_field = ("gas", "density")
-    y_field = ("gas", "temperature")
-    z_field = ("gas", "mass")
-    decimals = 12
-    ds = fake_random_ds(16, fields=("density", "temperature"), units=("g/cm**3", "K"))
-    for attr_name in ATTR_ARGS.keys():
-        for args in ATTR_ARGS[attr_name]:
-            test = PhasePlotAttributeTest(
-                ds, x_field, y_field, z_field, attr_name, args, decimals
-            )
-            test.prefix = f"{attr_name}_{args}"
-            test.answer_name = "phase_plot_attributes"
-            yield test
-
-
-@attr(ANSWER_TEST_TAG)
-def test_profile_plot():
-    fields = ("density", "temperature", "velocity_x", "velocity_y", "velocity_z")
-    units = ("g/cm**3", "K", "cm/s", "cm/s", "cm/s")
-    test_ds = fake_random_ds(16, fields=fields, units=units)
-    regions = [test_ds.region([0.5] * 3, [0.4] * 3, [0.6] * 3), test_ds.all_data()]
-    pr_fields = [
-        [("gas", "density"), ("gas", "temperature")],
-        [("gas", "density"), ("gas", "velocity_x")],
-        [("gas", "temperature"), ("gas", "mass")],
-        [("gas", "density"), ("index", "radius")],
-        [("gas", "velocity_magnitude"), ("gas", "mass")],
-    ]
-    profiles = []
-    for reg in regions:
-        for x_field, y_field in pr_fields:
-            profiles.append(ProfilePlot(reg, x_field, y_field))
-            profiles.append(
-                ProfilePlot(reg, x_field, y_field, fractional=True, accumulation=True)
-            )
-            p1d = create_profile(reg, x_field, y_field)
-            profiles.append(ProfilePlot.from_profiles(p1d))
-    p1 = create_profile(test_ds.all_data(), ("gas", "density"), ("gas", "temperature"))
-    p2 = create_profile(test_ds.all_data(), ("gas", "density"), ("gas", "velocity_x"))
-    profiles.append(
-        ProfilePlot.from_profiles([p1, p2], labels=["temperature", "velocity"])
-    )
-    profiles[0]._repr_html_()
-    for idx, plot in enumerate(profiles):
-        test_prefix = f"{plot.plots.keys()}_{idx}"
-        yield compare(test_ds, plot, test_prefix=test_prefix, test_name="profile_plots")
-
-
-@attr(ANSWER_TEST_TAG)
-def test_phase_plot():
-    fields = ("density", "temperature", "velocity_x", "velocity_y", "velocity_z")
-    units = ("g/cm**3", "K", "cm/s", "cm/s", "cm/s")
-    test_ds = fake_random_ds(16, fields=fields, units=units)
-    regions = [test_ds.region([0.5] * 3, [0.4] * 3, [0.6] * 3), test_ds.all_data()]
-    phases = []
-    ph_fields = [
-        [("gas", "density"), ("gas", "temperature"), ("gas", "mass")],
-        [("gas", "density"), ("gas", "velocity_x"), ("gas", "mass")],
-        [("index", "radius"), ("gas", "temperature"), ("gas", "velocity_magnitude")],
-    ]
-    for reg in regions:
-        for x_field, y_field, z_field in ph_fields:
-            # set n_bins to [16, 16] since matplotlib's postscript
-            # renderer is slow when it has to write a lot of polygons
-            phases.append(
-                PhasePlot(reg, x_field, y_field, z_field, x_bins=16, y_bins=16)
-            )
-            phases.append(
-                PhasePlot(
-                    reg,
-                    x_field,
-                    y_field,
-                    z_field,
-                    fractional=True,
-                    accumulation=True,
-                    x_bins=16,
-                    y_bins=16,
-                )
-            )
-            p2d = create_profile(reg, [x_field, y_field], z_field, n_bins=[16, 16])
-            phases.append(PhasePlot.from_profile(p2d))
-    pp = PhasePlot(
-        test_ds.all_data(),
-        ("gas", "density"),
-        ("gas", "temperature"),
-        ("gas", "mass"),
-    )
-    pp.set_xlim(0.3, 0.8)
-    pp.set_ylim(0.4, 0.6)
-    pp._setup_plots()
-    xlim = pp.plots[("gas", "mass")].axes.get_xlim()
-    ylim = pp.plots[("gas", "mass")].axes.get_ylim()
-    assert_array_almost_equal(xlim, (0.3, 0.8))
-    assert_array_almost_equal(ylim, (0.4, 0.6))
-    phases.append(pp)
-    phases[0]._repr_html_()
-    for idx, plot in enumerate(phases):
-        test_prefix = f"{plot.plots.keys()}_{idx}"
-        yield compare(test_ds, plot, test_prefix=test_prefix, test_name="phase_plots")
-
-
-@attr(ANSWER_TEST_TAG)
-def test_profile_plot_multiple_field_multiple_plot():
-    fields = ("density", "temperature", "dark_matter_density")
-    units = ("g/cm**3", "K", "g/cm**3")
-    ds = fake_random_ds(16, fields=fields, units=units)
-    sphere = ds.sphere("max", (1.0, "Mpc"))
-    profiles = []
-    profiles.append(
-        yt.create_profile(
-            sphere, [("index", "radius")], fields=[("gas", "density")], n_bins=32
+class TestPhasePlotAPI:
+    @classmethod
+    def setup_class(cls):
+        cls.ds = fake_random_ds(
+            16, fields=("density", "temperature"), units=("g/cm**3", "K")
         )
-    )
-    profiles.append(
-        yt.create_profile(
-            sphere, [("index", "radius")], fields=[("gas", "density")], n_bins=64
-        )
-    )
-    profiles.append(
-        yt.create_profile(
-            sphere,
-            [("index", "radius")],
-            fields=[("gas", "dark_matter_density")],
-            n_bins=64,
-        )
-    )
 
-    plot = yt.ProfilePlot.from_profiles(profiles)
-    yield compare(
-        ds,
-        plot,
-        test_prefix=plot.plots.keys(),
-        test_name="profile_plot_multiple_field_multiple_plot",
-    )
+    def get_plot(self):
+        return PhasePlot(
+            self.ds, ("gas", "density"), ("gas", "temperature"), ("gas", "mass")
+        )
+
+    @pytest.mark.parametrize("kwargs", [{}, {"color": "b"}])
+    @pytest.mark.mpl_image_compare
+    def test_phaseplot_annotate_text(self, kwargs):
+        p = self.get_plot()
+        p.annotate_text(1e-4, 1e-2, "Test text annotation", **kwargs)
+        p.render()
+        return p.plots["gas", "mass"].figure
+
+    @pytest.mark.mpl_image_compare
+    def test_phaseplot_set_title(self):
+        p = self.get_plot()
+        p.set_title(("gas", "mass"), "Test Title")
+        p.render()
+        return p.plots["gas", "mass"].figure
+
+    @pytest.mark.mpl_image_compare
+    def test_phaseplot_set_log(self):
+        p = self.get_plot()
+        p.set_log(("gas", "mass"), False)
+        p.render()
+        return p.plots["gas", "mass"].figure
+
+    @pytest.mark.mpl_image_compare
+    def test_phaseplot_set_unit(self):
+        p = self.get_plot()
+        p.set_unit(("gas", "mass"), "Msun")
+        p.render()
+        return p.plots["gas", "mass"].figure
+
+    @pytest.mark.mpl_image_compare
+    def test_phaseplot_set_xlim(self):
+        p = self.get_plot()
+        p.set_xlim(1e-3, 1e0)
+        p.render()
+        return p.plots["gas", "mass"].figure
+
+    @pytest.mark.mpl_image_compare
+    def test_phaseplot_set_ylim(self):
+        p = self.get_plot()
+        p.set_ylim(1e-2, 1e0)
+        p.render()
+        return p.plots["gas", "mass"].figure
 
 
 def test_set_units():
