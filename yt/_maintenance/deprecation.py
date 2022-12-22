@@ -44,11 +44,9 @@ def issue_deprecation_warning(
     ... )
     """
 
-    msg += f"\nDeprecated since yt {since}\nThis feature is planned for removal "
-    if removal is None:
-        msg += "two minor releases later (anticipated)"
-    else:
-        msg += f"in yt {removal}"
+    msg += f"\nDeprecated since yt {since}"
+    if removal is not None:
+        msg += f"\nThis feature is planned for removal in yt {removal}"
     warnings.warn(msg, VisibleDeprecationWarning, stacklevel=stacklevel)
 
 
