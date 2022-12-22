@@ -2,12 +2,12 @@ import abc
 import weakref
 from collections import defaultdict
 from contextlib import contextmanager
-from typing import List, Tuple
+from typing import TYPE_CHECKING, List, Tuple
 
 import numpy as np
 
 from yt._maintenance.deprecation import issue_deprecation_warning
-from yt._typing import AnyFieldKey
+from yt._typing import AnyFieldKey, FieldKey, FieldName
 from yt.config import ytcfg
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.profiles import create_profile
@@ -28,6 +28,9 @@ from yt.utilities.exceptions import (
 from yt.utilities.object_registries import data_object_registry
 from yt.utilities.on_demand_imports import _firefly as firefly
 from yt.utilities.parameter_file_storage import ParameterFileStore
+
+if TYPE_CHECKING:
+    from yt.data_objects.static_output import Dataset
 
 
 def sanitize_weight_field(ds, field, weight):
@@ -84,6 +87,8 @@ class YTDataContainer(abc.ABC):
         # Dataset._add_object_class but it can also be passed as a parameter to the
         # constructor, in which case it will override the default.
         # This code ensures it is never not set.
+
+        self.ds: "Dataset"
         if ds is not None:
             self.ds = ds
         else:
@@ -161,7 +166,7 @@ class YTDataContainer(abc.ABC):
         except AttributeError:
             return self.ds.arr(arr, units=units)
 
-    def _first_matching_field(self, field):
+    def _first_matching_field(self, field: FieldName) -> FieldKey:
         for ftype, fname in self.ds.derived_field_list:
             if fname == field:
                 return (ftype, fname)
