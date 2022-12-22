@@ -222,11 +222,6 @@ def test_field_tuple_specification(
             YTFieldNotFound,
         ),  # Test nonexistent field (dinos)
         (
-            ["pt2only_field"],
-            ["code_length"],
-            YTFieldNotFound,
-        ),  # Test unique field (match_any_particle_types=False)
-        (
             ["common_field"],
             ["code_length"],
             ValueError,
@@ -236,11 +231,6 @@ def test_field_tuple_specification(
             ["code_length"],
             YTFieldNotFound,
         ),  # Test nonexistent field tuple (pt1, pt2only_field)
-        (
-            ["pt2only_field", ("pt1", "common_field")],
-            ["code_length", "code_length"],
-            YTFieldNotFound,
-        ),  # Test mixed field spec (match_any_particle_types=False)
     ],
 )
 def test_field_invalid_specification(
