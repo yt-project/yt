@@ -10,6 +10,7 @@ import matplotlib
 import numpy as np
 
 from yt._maintenance.deprecation import issue_deprecation_warning
+from yt._typing import AnyFieldKey
 from yt.data_objects.data_containers import YTDataContainer
 from yt.data_objects.level_sets.clump_handling import Clump
 from yt.data_objects.selection_objects.cut_region import YTCutRegion
@@ -842,7 +843,7 @@ class ContourCallback(PlotCallback):
 
     def __init__(
         self,
-        field: Union[Tuple[str, str], str],
+        field: AnyFieldKey,
         levels: int = 5,
         *,
         factor: Union[Tuple[int, int], int] = 4,

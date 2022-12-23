@@ -1,10 +1,11 @@
 import weakref
 from functools import partial
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Dict, List, Optional
 
 import numpy as np
 
 from yt._maintenance.deprecation import issue_deprecation_warning
+from yt._typing import FieldKey
 from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.utilities import save_as_dataset
 from yt.funcs import get_output_filename, iter_fields, mylog
@@ -623,7 +624,7 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
         )
         if self.data_source.moment == 2:
 
-            def _sq_field(field, data, item: Tuple[str, str]):
+            def _sq_field(field, data, item: FieldKey):
                 return data[item] ** 2
 
             fd = self.ds._get_field_info(*item)

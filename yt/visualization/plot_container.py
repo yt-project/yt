@@ -14,7 +14,7 @@ from matplotlib.font_manager import FontProperties
 from unyt.dimensions import length
 
 from yt._maintenance.deprecation import issue_deprecation_warning
-from yt._typing import Quantity
+from yt._typing import FieldKey, Quantity
 from yt.config import ytcfg
 from yt.data_objects.time_series import DatasetSeries
 from yt.funcs import ensure_dir, is_sequence, iter_fields
@@ -138,7 +138,7 @@ class PlotContainer(abc.ABC):
         self._font_color = None
         self._xlabel = None
         self._ylabel = None
-        self._minorticks: Dict[Tuple[str, str], bool] = {}
+        self._minorticks: Dict[FieldKey, bool] = {}
 
     @accepts_all_fields
     @invalidate_plot

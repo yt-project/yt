@@ -20,7 +20,7 @@ from unyt import Unit
 from unyt.exceptions import UnitConversionError, UnitParseError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
-from yt._typing import AnyFieldKey, FieldType, ParticleType
+from yt._typing import AnyFieldKey, FieldKey, FieldType, ParticleType
 from yt.config import ytcfg
 from yt.data_objects.particle_filters import ParticleFilter, filter_registry
 from yt.data_objects.region_expression import RegionExpression
@@ -165,7 +165,7 @@ class Dataset(abc.ABC):
     _particle_type_counts = None
     _proj_type = "quad_proj"
     _ionization_label_format = "roman_numeral"
-    _determined_fields: Optional[Dict[str, List[Tuple[str, str]]]] = None
+    _determined_fields: Optional[Dict[str, List[FieldKey]]] = None
     fields_detected = False
 
     # these are set in self._parse_parameter_file()
@@ -871,7 +871,7 @@ class Dataset(abc.ABC):
             # https://github.com/yt-project/yt/issues/3381
             return field_info
 
-        def _are_ambiguous(candidates: List[Tuple[str, str]]) -> bool:
+        def _are_ambiguous(candidates: List[FieldKey]) -> bool:
             if len(candidates) < 2:
                 return False
 
@@ -931,7 +931,7 @@ class Dataset(abc.ABC):
             except AttributeError:
                 ftype, fname = "unknown", ftype
 
-        candidates: List[Tuple[str, str]] = []
+        candidates: List[FieldKey] = []
 
         # storing this condition before altering it
         guessing_type = ftype == "unknown"

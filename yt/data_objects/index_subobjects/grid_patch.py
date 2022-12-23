@@ -1,9 +1,10 @@
 import weakref
-from typing import List, Tuple
+from typing import List
 
 import numpy as np
 
 import yt.geometry.particle_deposit as particle_deposit
+from yt._typing import FieldKey
 from yt.config import ytcfg
 from yt.data_objects.selection_objects.data_selection_objects import (
     YTSelectionContainer,
@@ -269,7 +270,7 @@ class AMRGridPatch(YTSelectionContainer):
 
     def get_vertex_centered_data(
         self,
-        fields: List[Tuple[str, str]],
+        fields: List[FieldKey],
         smoothed: bool = True,
         no_ghost: bool = False,
     ):

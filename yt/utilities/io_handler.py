@@ -3,7 +3,9 @@ import sys
 from collections import defaultdict
 from contextlib import contextmanager
 from functools import _make_key, lru_cache
-from typing import DefaultDict, Dict, List, Tuple
+from typing import DefaultDict, Dict, List
+
+from yt._typing import FieldKey
 
 if sys.version_info >= (3, 9):
     from collections.abc import Iterator, Mapping
@@ -55,7 +57,7 @@ class BaseIOHandler:
     # We need a function for reading a list of sets
     # and a function for *popping* from a queue all the appropriate sets
     @contextmanager
-    def preload(self, chunk, fields: List[Tuple[str, str]], max_size):
+    def preload(self, chunk, fields: List[FieldKey], max_size):
         yield self
 
     def peek(self, grid, field):
@@ -101,8 +103,8 @@ class BaseIOHandler:
         pass
 
     def _read_fluid_selection(
-        self, chunks, selector, fields: List[Tuple[str, str]], size
-    ) -> Mapping[Tuple[str, str], np.ndarray]:
+        self, chunks, selector, fields: List[FieldKey], size
+    ) -> Mapping[FieldKey, np.ndarray]:
         # This function has an interesting history.  It previously was mandate
         # to be defined by all of the subclasses.  But, to avoid having to
         # rewrite a whole bunch of IO handlers all at once, and to allow a
@@ -130,7 +132,7 @@ class BaseIOHandler:
                 ind[field] += obj.select(selector, data, rv[field], ind[field])
         return rv
 
-    def io_iter(self, chunks, fields: List[Tuple[str, str]]):
+    def io_iter(self, chunks, fields: List[FieldKey]):
         raise NotImplementedError(
             "subclassing Dataset.io_iter this is required in order to use the default "
             "implementation of Dataset._read_fluid_selection. "
@@ -170,17 +172,15 @@ class BaseIOHandler:
         raise NotImplementedError
 
     def _read_particle_selection(
-        self, chunks, selector, fields: List[Tuple[str, str]]
-    ) -> Dict[Tuple[str, str], np.ndarray]:
-        data: Dict[Tuple[str, str], List[np.ndarray]] = {}
+        self, chunks, selector, fields: List[FieldKey]
+    ) -> Dict[FieldKey, np.ndarray]:
+        data: Dict[FieldKey, List[np.ndarray]] = {}
 
         # Initialize containers for tracking particle, field information
         # ptf (particle field types) maps particle type to list of on-disk fields to read
         # field_maps stores fields, accounting for field unions
         ptf: DefaultDict[str, List[str]] = defaultdict(list)
-        field_maps: DefaultDict[Tuple[str, str], List[Tuple[str, str]]] = defaultdict(
-            list
-        )
+        field_maps: DefaultDict[FieldKey, List[FieldKey]] = defaultdict(list)
 
         # We first need a set of masks for each particle type
         chunks = list(chunks)
@@ -204,7 +204,7 @@ class BaseIOHandler:
             for field_f in field_maps[field_r]:
                 data[field_f].append(vals)
 
-        rv: Dict[Tuple[str, str], np.ndarray] = {}  # the return dictionary
+        rv: Dict[FieldKey, np.ndarray] = {}  # the return dictionary
         fields = list(data.keys())
         for field_f in fields:
             # We need to ensure the arrays have the right shape if there are no

@@ -2,11 +2,12 @@ import abc
 import weakref
 from collections import defaultdict
 from contextlib import contextmanager
-from typing import List, Tuple, Union
+from typing import List, Tuple
 
 import numpy as np
 
 from yt._maintenance.deprecation import issue_deprecation_warning
+from yt._typing import AnyFieldKey
 from yt.config import ytcfg
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.profiles import create_profile
@@ -66,7 +67,7 @@ class YTDataContainer(abc.ABC):
     _num_ghost_zones = 0
     _con_args: Tuple[str, ...] = ()
     _skip_add = False
-    _container_fields: Tuple[Union[str, Tuple[str, str]], ...] = ()
+    _container_fields: Tuple[AnyFieldKey, ...] = ()
     _tds_attrs: Tuple[str, ...] = ()
     _tds_fields: Tuple[str, ...] = ()
     _field_cache = None

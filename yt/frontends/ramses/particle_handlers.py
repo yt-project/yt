@@ -2,6 +2,7 @@ import abc
 import os
 from typing import List, Optional, Set, Tuple, Type
 
+from yt._typing import FieldKey
 from yt.config import ytcfg
 from yt.funcs import mylog
 from yt.utilities.cython_fortran_utils import FortranFile
@@ -39,7 +40,7 @@ class ParticleFileHandler(abc.ABC, HandlerMixin):
 
     attrs: Tuple[Tuple[str, int, str], ...]  # The attributes of the header
     known_fields: Optional[
-        List[Tuple[str, str]]
+        List[FieldKey]
     ] = None  # A list of tuple containing the field name and its type
     config_field: Optional[str] = None  # Name of the config section (if any)
 

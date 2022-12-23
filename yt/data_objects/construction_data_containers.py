@@ -6,13 +6,13 @@ import zipfile
 from functools import partial, wraps
 from re import finditer
 from tempfile import NamedTemporaryFile, TemporaryFile
-from typing import Tuple
 
 import numpy as np
 from more_itertools import always_iterable
 from tqdm import tqdm
 
 from yt._maintenance.deprecation import issue_deprecation_warning
+from yt._typing import FieldKey
 from yt.config import ytcfg
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.selection_objects.data_selection_objects import (
@@ -247,7 +247,7 @@ class YTProj(YTSelectionContainer2D):
         sfields = []
         if self.moment == 2:
 
-            def _sq_field(field, data, fname: Tuple[str, str]):
+            def _sq_field(field, data, fname: FieldKey):
                 return data[fname] ** 2
 
             for fname in fields:
