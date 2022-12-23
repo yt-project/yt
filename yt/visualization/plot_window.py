@@ -608,6 +608,7 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
         axname = self.ds.coordinates.axis_name[self.data_source.axis]
         transform = self.ds.coordinates.data_transform[axname]
         self._transform = get_mpl_transform(transform)
+        self._setup_plots()
         return self
 
     @invalidate_data

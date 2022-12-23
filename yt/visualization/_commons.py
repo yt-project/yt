@@ -144,7 +144,6 @@ def invalidate_figure(f):
             self.plots[field].figure = None
             self.plots[field].axes = None
             self.plots[field].cax = None
-        # self._setup_plots()
         return retv
 
     return newfunc
