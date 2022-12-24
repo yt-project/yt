@@ -2,13 +2,11 @@ import sys
 import warnings
 from abc import ABC
 from io import BytesIO
-from typing import Optional, Tuple, Union
+from typing import TYPE_CHECKING, Optional, Tuple, Union
 
 import matplotlib
 import numpy as np
-from matplotlib.axis import Axis
 from matplotlib.colors import LogNorm, Normalize, SymLogNorm
-from matplotlib.figure import Figure
 from matplotlib.ticker import LogFormatterMathtext
 from packaging.version import Version
 
@@ -22,6 +20,10 @@ from ._commons import (
     get_symlog_minorticks,
     validate_image_name,
 )
+
+if TYPE_CHECKING:
+    from matplotlib.axis import Axis
+    from matplotlib.figure import Figure
 
 BACKEND_SPECS = {
     "GTK": ["backend_gtk", "FigureCanvasGTK", "FigureManagerGTK"],
@@ -91,8 +93,8 @@ class PlotMPL:
         axrect,
         *,
         norm_handler: NormHandler,
-        figure: Optional[Figure] = None,
-        axes: Optional[Axis] = None,
+        figure: Optional["Figure"] = None,
+        axes: Optional["Axis"] = None,
     ):
         """Initialize PlotMPL class"""
         import matplotlib.figure
@@ -224,9 +226,9 @@ class ImagePlotMPL(PlotMPL, ABC):
         *,
         norm_handler: NormHandler,
         colorbar_handler: ColorbarHandler,
-        figure: Optional[Figure] = None,
-        axes: Optional[Axis] = None,
-        cax: Optional[Axis] = None,
+        figure: Optional["Figure"] = None,
+        axes: Optional["Axis"] = None,
+        cax: Optional["Axis"] = None,
     ):
         """Initialize ImagePlotMPL class object"""
         self.colorbar_handler = colorbar_handler
