@@ -10,7 +10,6 @@ from typing import Tuple
 
 import numpy as np
 from more_itertools import always_iterable
-from tqdm import tqdm
 
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
@@ -952,6 +951,8 @@ class YTCoveringGrid(YTSelectionContainer3D):
             self[p] = self._data_source[p]
 
     def _fill_sph_particles(self, fields):
+        from tqdm import tqdm
+
         # checks that we have the field and gets information
         fields = [f for f in fields if f not in self.field_data]
         if len(fields) == 0:
@@ -2948,6 +2949,8 @@ class YTOctree(YTSelectionContainer3D):
         self[fields] = self.ds.arr(buff[~self[("index", "refined")]], units)
 
     def _scatter_smooth(self, fields, units, normalize):
+        from tqdm import tqdm
+
         buff = np.zeros(self.tree.num_nodes, dtype="float64")
 
         if normalize:

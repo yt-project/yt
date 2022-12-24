@@ -3,20 +3,17 @@ import builtins
 import contextlib
 import copy
 import errno
-import getpass
 import glob
 import inspect
 import itertools
 import os
-import pdb
 import re
 import struct
 import subprocess
 import sys
 import time
 import traceback
-import urllib.parse
-import urllib.request
+import urllib
 from collections import UserDict
 from functools import lru_cache, wraps
 from numbers import Number as numeric_type
@@ -25,7 +22,6 @@ from typing import Any, Callable, Type
 import numpy as np
 from more_itertools import always_iterable, collapse, first
 from packaging.version import Version
-from tqdm import tqdm
 
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
@@ -148,23 +144,20 @@ def humanize_time(secs):
 # Some function wrappers that come in handy once in a while
 #
 
-# we use the resource module to get the memory page size
-
-try:
-    import resource
-except ImportError:
-    pass
-
 
 def get_memory_usage(subtract_share=False):
     """
     Returning resident size in megabytes
     """
     pid = os.getpid()
+    # we use the resource module to get the memory page size
+
     try:
-        pagesize = resource.getpagesize()
-    except NameError:
+        import resource
+    except ImportError:
         return -1024
+    else:
+        pagesize = resource.getpagesize()
     status_file = f"/proc/{pid}/statm"
     if not os.path.isfile(status_file):
         return -1024
@@ -252,6 +245,7 @@ def pdb_run(func):
     ...     ...
 
     """
+    import pdb
 
     @wraps(func)
     def wrapper(*args, **kw):
@@ -309,6 +303,8 @@ class TqdmProgressBar:
     # This is a drop in replacement for pbar
     # called tqdm
     def __init__(self, title, maxval):
+        from tqdm import tqdm
+
         self._pbar = tqdm(leave=True, total=maxval, desc=title)
         self.i = 0
 
@@ -634,6 +630,8 @@ def simple_download_file(url, filename):
 
 # This code snippet is modified from Georg Brandl
 def bb_apicall(endpoint, data, use_pass=True):
+    import getpass
+
     uri = f"https://api.bitbucket.org/1.0/{endpoint}/"
     # since bitbucket doesn't return the required WWW-Authenticate header when
     # making a request without Authorization, we cannot use the standard urllib2
