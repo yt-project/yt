@@ -5,6 +5,7 @@ from yt.testing import (
     assert_almost_equal,
     assert_equal,
     requires_file,
+    requires_module,
     units_override_check,
 )
 from yt.utilities.answer_testing.framework import (
@@ -18,6 +19,7 @@ _fields = (("moab", "flux"),)
 c5 = "c5/c5.h5m"
 
 
+@requires_module("h5py")
 @requires_ds(c5)
 def test_cantor_5():
     np.random.seed(0x4D3D3D3)
@@ -51,6 +53,7 @@ def test_cantor_5():
             yield FieldValuesTest(c5, field, dobj_name)
 
 
+@requires_module("h5py")
 @requires_file(c5)
 def test_MoabHex8Dataset():
     assert isinstance(data_dir_load(c5), MoabHex8Dataset)

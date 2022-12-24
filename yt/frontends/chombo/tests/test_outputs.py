@@ -1,5 +1,10 @@
 from yt.frontends.chombo.api import ChomboDataset, Orion2Dataset, PlutoDataset
-from yt.testing import assert_equal, requires_file, units_override_check
+from yt.testing import (
+    assert_equal,
+    requires_file,
+    requires_module,
+    units_override_check,
+)
 from yt.utilities.answer_testing.framework import (
     data_dir_load,
     requires_ds,
@@ -27,6 +32,7 @@ def test_gc():
 tb = "TurbBoxLowRes/data.0005.3d.hdf5"
 
 
+@requires_module("h5py")
 @requires_ds(tb)
 def test_tb():
     ds = data_dir_load(tb)
@@ -39,6 +45,7 @@ def test_tb():
 iso = "IsothermalSphere/data.0000.3d.hdf5"
 
 
+@requires_module("h5py")
 @requires_ds(iso)
 def test_iso():
     ds = data_dir_load(iso)
@@ -52,6 +59,7 @@ _zp_fields = (("chombo", "rhs"), ("chombo", "phi"))
 zp = "ZeldovichPancake/plt32.2d.hdf5"
 
 
+@requires_module("h5py")
 @requires_ds(zp)
 def test_zp():
     ds = data_dir_load(zp)
@@ -64,6 +72,7 @@ def test_zp():
 kho = "KelvinHelmholtz/data.0004.hdf5"
 
 
+@requires_module("h5py")
 @requires_ds(kho)
 def test_kho():
     ds = data_dir_load(kho)
@@ -73,31 +82,37 @@ def test_kho():
         yield test
 
 
+@requires_module("h5py")
 @requires_file(zp)
 def test_ChomboDataset():
     assert isinstance(data_dir_load(zp), ChomboDataset)
 
 
+@requires_module("h5py")
 @requires_file(gc)
 def test_Orion2Dataset():
     assert isinstance(data_dir_load(gc), Orion2Dataset)
 
 
+@requires_module("h5py")
 @requires_file(kho)
 def test_PlutoDataset():
     assert isinstance(data_dir_load(kho), PlutoDataset)
 
 
+@requires_module("h5py")
 @requires_file(zp)
 def test_units_override_zp():
     units_override_check(zp)
 
 
+@requires_module("h5py")
 @requires_file(gc)
 def test_units_override_gc():
     units_override_check(gc)
 
 
+@requires_module("h5py")
 @requires_file(kho)
 def test_units_override_kho():
     units_override_check(kho)

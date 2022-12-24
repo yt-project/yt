@@ -10,6 +10,7 @@ from yt.testing import (
     assert_equal,
     disable_dataset_cache,
     requires_file,
+    requires_module,
     units_override_check,
 )
 from yt.utilities.answer_testing.framework import (
@@ -38,6 +39,7 @@ _fields_2d = (("gas", "temperature"), ("gas", "density"))
 wt = "WindTunnel/windtunnel_4lev_hdf5_plt_cnt_0030"
 
 
+@requires_module("h5py")
 @requires_ds(wt)
 def test_wind_tunnel():
     ds = data_dir_load(wt)
@@ -47,17 +49,20 @@ def test_wind_tunnel():
         yield test
 
 
+@requires_module("h5py")
 @requires_file(wt)
 def test_FLASHDataset():
     assert isinstance(data_dir_load(wt), FLASHDataset)
 
 
+@requires_module("h5py")
 @requires_file(sloshing)
 def test_units_override():
     units_override_check(sloshing)
 
 
 @disable_dataset_cache
+@requires_module("h5py")
 @requires_file(sloshing)
 def test_magnetic_units():
     ds1 = load(sloshing)
@@ -74,6 +79,7 @@ def test_magnetic_units():
     assert str(mag_unit2.units) == "code_magnetic"
 
 
+@requires_module("h5py")
 @requires_file(sloshing)
 def test_mu():
     ds = data_dir_load(sloshing)
@@ -96,11 +102,13 @@ fid_1to3_b1_fields = OrderedDict(
 )
 
 
+@requires_module("h5py")
 @requires_file(fid_1to3_b1)
 def test_FLASHParticleDataset():
     assert isinstance(data_dir_load(fid_1to3_b1), FLASHParticleDataset)
 
 
+@requires_module("h5py")
 @requires_file(fid_1to3_b1)
 def test_FLASHParticleDataset_selection():
     ds = data_dir_load(fid_1to3_b1)
@@ -111,6 +119,7 @@ def test_FLASHParticleDataset_selection():
 dens_turb_mag = "DensTurbMag/DensTurbMag_hdf5_plt_cnt_0015"
 
 
+@requires_module("h5py")
 @requires_file(dens_turb_mag)
 def test_FLASH25_dataset():
     ds = data_dir_load(dens_turb_mag)
@@ -123,6 +132,7 @@ def test_FLASH25_dataset():
     dd[("gas", "density")]
 
 
+@requires_module("h5py")
 @requires_ds(fid_1to3_b1, big_data=True)
 def test_fid_1to3_b1():
     ds = data_dir_load(fid_1to3_b1)
@@ -136,6 +146,7 @@ def test_fid_1to3_b1():
 loc_bub_dust = "LocBub_dust/LocBub_dust_hdf5_plt_cnt_0220"
 
 
+@requires_module("h5py")
 @requires_file(loc_bub_dust)
 def test_blockless_particles():
     ds = data_dir_load(loc_bub_dust)

@@ -1,5 +1,10 @@
 from yt.frontends.gdf.api import GDFDataset
-from yt.testing import assert_equal, requires_file, units_override_check
+from yt.testing import (
+    assert_equal,
+    requires_file,
+    requires_module,
+    units_override_check,
+)
 from yt.utilities.answer_testing.framework import (
     data_dir_load,
     requires_ds,
@@ -20,11 +25,13 @@ def test_sedov_tunnel():
         yield test
 
 
+@requires_module("h5py")
 @requires_file(sedov)
 def test_GDFDataset():
     assert isinstance(data_dir_load(sedov), GDFDataset)
 
 
+@requires_module("h5py")
 @requires_file(sedov)
 def test_units_override():
     units_override_check(sedov)

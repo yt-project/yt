@@ -1,5 +1,5 @@
 from yt import load
-from yt.testing import fake_amr_ds, fake_hexahedral_ds, requires_file
+from yt.testing import fake_amr_ds, fake_hexahedral_ds, requires_file, requires_module
 
 
 def do_field_type(ft):
@@ -19,6 +19,7 @@ def do_field_type(ft):
 enzotiny = "enzo_tiny_cosmology/DD0046/DD0046"
 
 
+@requires_module("h5py")
 @requires_file(enzotiny)
 def test_field_name_container():
     ds = load(enzotiny)

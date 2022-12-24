@@ -1,9 +1,10 @@
-from yt.testing import assert_allclose_units, requires_file
+from yt.testing import assert_allclose_units, requires_file, requires_module
 from yt.utilities.answer_testing.framework import data_dir_load
 
 g30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
 
 
+@requires_module("h5py")
 @requires_file(g30)
 def test_relative_particle_fields():
     ds = data_dir_load(g30)

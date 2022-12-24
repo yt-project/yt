@@ -3,7 +3,7 @@ from collections import OrderedDict
 import yt
 from yt.frontends.gizmo.api import GizmoDataset
 from yt.frontends.gizmo.fields import metal_elements
-from yt.testing import requires_file
+from yt.testing import requires_file, requires_module
 from yt.utilities.answer_testing.framework import requires_ds, sph_answer
 
 # This maps from field names to weight field names to use for projections
@@ -22,6 +22,7 @@ gmhd = "gizmo_mhd_mwdisk/gizmo_mhd_mwdisk.hdf5"
 gmhd_bbox = [[-400, 400]] * 3
 
 
+@requires_module("h5py")
 @requires_ds(g64, big_data=True)
 def test_gizmo_64():
     ds = yt.load(g64)
@@ -31,6 +32,7 @@ def test_gizmo_64():
         yield test
 
 
+@requires_module("h5py")
 @requires_file(gmhd)
 def test_gizmo_mhd():
     """
@@ -53,6 +55,7 @@ def test_gizmo_mhd():
         assert f.shape == (409013,)
 
 
+@requires_module("h5py")
 @requires_file(gmhd)
 def test_gas_particle_fields():
     """
@@ -87,6 +90,7 @@ def test_gas_particle_fields():
         assert (ptype, field) in ds.derived_field_list
 
 
+@requires_module("h5py")
 @requires_file(gmhd)
 def test_star_particle_fields():
     """

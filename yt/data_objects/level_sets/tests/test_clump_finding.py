@@ -8,7 +8,7 @@ from yt.data_objects.level_sets.api import Clump, add_clump_info, find_clumps
 from yt.data_objects.level_sets.clump_info_items import clump_info_registry
 from yt.fields.derived_field import ValidateParameter
 from yt.loaders import load, load_uniform_grid
-from yt.testing import assert_array_equal, assert_equal, requires_file
+from yt.testing import assert_array_equal, assert_equal, requires_file, requires_module
 from yt.utilities.answer_testing.framework import data_dir_load
 
 
@@ -89,6 +89,7 @@ def test_clump_finding():
 i30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
 
 
+@requires_module("h5py")
 @requires_file(i30)
 def test_clump_tree_save():
     tmpdir = tempfile.mkdtemp()
@@ -152,6 +153,7 @@ def test_clump_tree_save():
 i30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
 
 
+@requires_module("h5py")
 @requires_file(i30)
 def test_clump_field_parameters():
     """

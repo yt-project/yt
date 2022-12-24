@@ -2,7 +2,7 @@ from collections import OrderedDict
 
 from yt.data_objects.particle_filters import add_particle_filter
 from yt.frontends.owls.api import OWLSDataset
-from yt.testing import ParticleSelectionComparison, requires_file
+from yt.testing import ParticleSelectionComparison, requires_file, requires_module
 from yt.utilities.answer_testing.framework import data_dir_load, requires_ds, sph_answer
 
 os33 = "snapshot_033/snap_033.0.hdf5"
@@ -19,6 +19,7 @@ _fields = OrderedDict(
 )
 
 
+@requires_module("h5py")
 @requires_ds(os33, big_data=True)
 def test_snapshot_033():
     ds = data_dir_load(os33)
@@ -29,11 +30,13 @@ def test_snapshot_033():
         yield test
 
 
+@requires_module("h5py")
 @requires_file(os33)
 def test_OWLSDataset():
     assert isinstance(data_dir_load(os33), OWLSDataset)
 
 
+@requires_module("h5py")
 @requires_ds(os33)
 def test_OWLS_particlefilter():
     ds = data_dir_load(os33)

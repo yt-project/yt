@@ -13,6 +13,7 @@ from yt.testing import (
     fake_particle_ds,
     fake_random_ds,
     requires_file,
+    requires_module,
 )
 from yt.units.yt_array import YTArray, YTQuantity, array_like_field
 from yt.utilities.cosmology import Cosmology
@@ -412,6 +413,7 @@ def test_array_like_field():
 ISOGAL = "IsolatedGalaxy/galaxy0030/galaxy0030"
 
 
+@requires_module("h5py")
 @requires_file(ISOGAL)
 def test_array_like_field_output_units():
     ds = load(ISOGAL)
@@ -495,6 +497,7 @@ def test_field_inference():
     assert_equal(ds._last_freq, (None, None))
 
 
+@requires_module("h5py")
 @requires_file(ISOGAL)
 def test_deposit_amr():
     ds = load(ISOGAL)

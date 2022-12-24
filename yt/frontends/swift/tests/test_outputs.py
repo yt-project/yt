@@ -2,7 +2,12 @@ import numpy as np
 
 from yt import load
 from yt.frontends.swift.api import SwiftDataset
-from yt.testing import ParticleSelectionComparison, assert_almost_equal, requires_file
+from yt.testing import (
+    ParticleSelectionComparison,
+    assert_almost_equal,
+    requires_file,
+    requires_module,
+)
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 keplerian_ring = "KeplerianRing/keplerian_ring_0020.hdf5"
@@ -10,6 +15,7 @@ EAGLE_6 = "EAGLE_6/eagle_0005.hdf5"
 
 # Combined the tests for loading a file and ensuring the units have been
 # implemented correctly to save time on re-loading a dataset
+@requires_module("h5py")
 @requires_file(keplerian_ring)
 def test_non_cosmo_dataset():
     ds = load(keplerian_ring)
@@ -49,6 +55,7 @@ def test_non_cosmo_dataset():
     assert_almost_equal(yt_density.d, raw_density)
 
 
+@requires_module("h5py")
 @requires_file(keplerian_ring)
 def test_non_cosmo_dataset_selection():
     ds = load(keplerian_ring)
@@ -56,6 +63,7 @@ def test_non_cosmo_dataset_selection():
     psc.run_defaults()
 
 
+@requires_module("h5py")
 @requires_file(EAGLE_6)
 def test_cosmo_dataset():
     ds = load(EAGLE_6)
@@ -100,6 +108,7 @@ def test_cosmo_dataset():
     assert_almost_equal(yt_density.d, raw_density)
 
 
+@requires_module("h5py")
 @requires_file(EAGLE_6)
 def test_cosmo_dataset_selection():
     ds = load(EAGLE_6)
