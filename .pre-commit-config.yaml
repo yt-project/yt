@@ -44,7 +44,7 @@ repos:
     - id: black-jupyter
 
 -   repo: https://github.com/PyCQA/isort
-    rev: v5.11.3
+    rev: 5.11.4
     hooks:
     - id: isort
       name: isort (python)
@@ -70,7 +70,7 @@ repos:
     hooks:
     -   id: rst-backticks
 - repo: https://github.com/nbQA-dev/nbQA
-  rev: 1.5.3
+  rev: 1.6.0
   hooks:
     - id: nbqa-pyupgrade
       args: [--py38-plus]
@@ -83,7 +83,7 @@ repos:
       ]
 
 - repo: https://github.com/MarcoGorelli/cython-lint
-  rev: v0.10.0
+  rev: v0.10.1
   hooks:
   - id: cython-lint
     args: [--no-pycodestyle]
