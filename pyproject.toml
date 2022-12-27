@@ -70,6 +70,7 @@ Source = "https://github.com/yt-project/yt/"
 Tracker = "https://github.com/yt-project/yt/issues"
 
 [project.entry-points."nose.plugins.0.10"]
+# this section can be cleaned when nose tests on GHA are removed
 answer-testing = "yt.utilities.answer_testing.framework:AnswerTesting"
 
 [project.optional-dependencies]
