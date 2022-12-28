@@ -227,6 +227,7 @@ typecheck = [
     "types-chardet==5.0.4",
     "types-requests==2.28.11.5",
     "types-setuptools==65.6.0.1",
+    "typing-extensions==4.1.0;python_version < '3.11'",
 ]
 
 [project.scripts]
