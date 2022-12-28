@@ -8,6 +8,7 @@ from yt.testing import (
     fake_particle_ds,
     fake_random_ds,
     requires_file,
+    requires_module,
 )
 from yt.utilities.answer_testing.framework import data_dir_load
 from yt.utilities.exceptions import YTDimensionalityError
@@ -182,6 +183,7 @@ def test_particle_counts():
 g30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
 
 
+@requires_module("h5py")
 @requires_file(g30)
 def test_checksum():
     assert fake_random_ds(16).checksum == "notafile"

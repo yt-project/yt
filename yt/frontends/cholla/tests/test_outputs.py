@@ -1,6 +1,6 @@
 import yt
 from yt.frontends.cholla.api import ChollaDataset
-from yt.testing import assert_equal, requires_file
+from yt.testing import assert_equal, requires_file, requires_module
 from yt.utilities.answer_testing.framework import (
     data_dir_load,
     requires_ds,
@@ -15,11 +15,13 @@ _fields = (
 ChollaSimple = "ChollaSimple/0.h5"
 
 
+@requires_module("h5py")
 @requires_file(ChollaSimple)
 def test_ChollaDataset():
     assert isinstance(data_dir_load(ChollaSimple), ChollaDataset)
 
 
+@requires_module("h5py")
 @requires_file(ChollaSimple)
 def test_ChollaSimple_fields():
 
@@ -45,6 +47,7 @@ def test_ChollaSimple_fields():
         ad["cholla", field]
 
 
+@requires_module("h5py")
 @requires_file(ChollaSimple)
 def test_ChollaSimple_derived_fields():
 
@@ -75,6 +78,7 @@ _fields_chollasimple = (
 )
 
 
+@requires_module("h5py")
 @requires_ds(ChollaSimple)
 def test_cholla_data():
     ds = data_dir_load(ChollaSimple)

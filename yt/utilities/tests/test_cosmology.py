@@ -255,6 +255,7 @@ def test_cosmology_calculator_answers():
 enzotiny = "enzo_tiny_cosmology/DD0020/DD0020"
 
 
+@requires_module("h5py")
 @requires_file(enzotiny)
 def test_dataset_cosmology_calculator():
     """

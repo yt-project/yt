@@ -1,6 +1,6 @@
 import os.path
 
-from yt.testing import assert_equal
+from yt.testing import assert_equal, requires_module
 from yt.utilities.answer_testing.framework import (
     FieldValuesTest,
     data_dir_load,
@@ -21,6 +21,7 @@ g1 = "owls_fof_halos/groups_001/group_001.0.hdf5"
 g8 = "owls_fof_halos/groups_008/group_008.0.hdf5"
 
 
+@requires_module("h5py")
 @requires_ds(g8)
 def test_fields_g8():
     ds = data_dir_load(g8)
@@ -29,6 +30,7 @@ def test_fields_g8():
         yield FieldValuesTest(g8, field, particle_type=True)
 
 
+@requires_module("h5py")
 @requires_ds(g1)
 def test_fields_g1():
     ds = data_dir_load(g1)

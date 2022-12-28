@@ -1,12 +1,13 @@
 import pickle
 
-from yt.testing import assert_equal, requires_file
+from yt.testing import assert_equal, requires_file, requires_module
 from yt.utilities.answer_testing.framework import data_dir_load
 
 tipsy_ds = "TipsyGalaxy/galaxy.00300"
 enzo_ds = "enzo_tiny_cosmology/DD0000/DD0000"
 
 
+@requires_module("h5py")
 @requires_file(enzo_ds)
 def test_grid_pickles():
     ds = data_dir_load(enzo_ds)

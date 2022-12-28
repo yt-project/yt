@@ -10,6 +10,7 @@ from yt.testing import (
     assert_array_equal,
     assert_equal,
     requires_file,
+    requires_module,
 )
 from yt.utilities.answer_testing.framework import (
     GenericArrayTest,
@@ -20,6 +21,7 @@ from yt.utilities.answer_testing.framework import (
 Two_D = "F37_80/chimera_00001_grid_1_01.h5"
 
 
+@requires_module("h5py")
 @requires_ds(Two_D)
 def test_2D():
     ds = data_dir_load(Two_D)
@@ -106,6 +108,7 @@ def test_2D():
 Three_D = "C15-3D-3deg/chimera_002715000_grid_1_01.h5"
 
 
+@requires_module("h5py")
 @requires_ds(Three_D)
 def test_3D():
     ds = data_dir_load(Three_D)

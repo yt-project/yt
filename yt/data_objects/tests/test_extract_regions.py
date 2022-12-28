@@ -7,6 +7,7 @@ from yt.testing import (
     fake_amr_ds,
     fake_random_ds,
     requires_file,
+    requires_module,
 )
 
 
@@ -85,6 +86,7 @@ def test_region_and_particles():
 ISOGAL = "IsolatedGalaxy/galaxy0030/galaxy0030"
 
 
+@requires_module("h5py")
 @requires_file(ISOGAL)
 def test_region_chunked_read():
     # see #2104
@@ -95,6 +97,7 @@ def test_region_chunked_read():
     dense_sp.quantities.angular_momentum_vector()
 
 
+@requires_module("h5py")
 @requires_file(ISOGAL)
 def test_chained_cut_region():
     # see Issue #2233

@@ -24,6 +24,7 @@ def setup():
     ytcfg["yt", "internals", "within_testing"] = True
 
 
+@requires_module("h5py")
 @requires_file(cyl_2d)
 @requires_file(cyl_3d)
 def test_covering_grid():
@@ -91,6 +92,7 @@ def test_covering_grid():
         sp.quantities.total_mass()
 
 
+@requires_module("h5py")
 @requires_file(cyl_2d)
 @requires_file(cyl_3d)
 def test_covering_grid_data_source():

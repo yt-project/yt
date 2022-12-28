@@ -7,7 +7,7 @@ from itertools import product
 import yt
 from yt.frontends.gadget.api import GadgetDataset, GadgetHDF5Dataset
 from yt.frontends.gadget.testing import fake_gadget_binary
-from yt.testing import ParticleSelectionComparison, requires_file
+from yt.testing import ParticleSelectionComparison, requires_file, requires_module
 from yt.utilities.answer_testing.framework import data_dir_load, requires_ds, sph_answer
 
 isothermal_h5 = "IsothermalCollapse/snap_505.hdf5"
@@ -55,6 +55,7 @@ def test_gadget_binary():
     shutil.rmtree(tmpdir)
 
 
+@requires_module("h5py")
 @requires_file(isothermal_h5)
 def test_gadget_hdf5():
     assert isinstance(
