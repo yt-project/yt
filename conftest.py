@@ -109,6 +109,12 @@ def pytest_configure(config):
     ):
         config.addinivalue_line("filterwarnings", value)
 
+    if MPL_VERSION < Version("3.5.0"):
+        config.addinivalue_line(
+            "filterwarnings",
+            r"ignore:distutils Version classes are deprecated:DeprecationWarning",
+        )
+
     if MPL_VERSION < Version("3.5.2") and PILLOW_VERSION >= Version("9.1"):
         # see https://github.com/matplotlib/matplotlib/pull/22766
         config.addinivalue_line(

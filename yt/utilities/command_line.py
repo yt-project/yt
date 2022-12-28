@@ -1,18 +1,15 @@
 import argparse
 import base64
-import getpass
 import json
 import os
 import pprint
 import sys
 import textwrap
 import urllib
-import urllib.request
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from more_itertools import always_iterable
-from tqdm import tqdm
 
 from yt.config import ytcfg
 from yt.funcs import (
@@ -144,6 +141,8 @@ class FileStreamer:
         self.f = f
 
     def __iter__(self):
+        from tqdm import tqdm
+
         with tqdm(
             total=self.final_size, desc="Uploading file", unit="B", unit_scale=True
         ) as pbar:
@@ -629,22 +628,6 @@ _common_options = dict(
         help="Make projections with halo profiler.",
     ),
 )
-
-# This code snippet is modified from Georg Brandl
-def bb_apicall(endpoint, data, use_pass=True):
-    uri = f"https://api.bitbucket.org/1.0/{endpoint}/"
-    # since bitbucket doesn't return the required WWW-Authenticate header when
-    # making a request without Authorization, we cannot use the standard urllib2
-    # auth handlers; we have to add the requisite header from the start
-    if data is not None:
-        data = urllib.parse.urlencode(data)
-    req = urllib.request.Request(uri, data)
-    if use_pass:
-        username = input("Bitbucket Username? ")
-        password = getpass.getpass()
-        upw = f"{username}:{password}"
-        req.add_header("Authorization", f"Basic {base64.b64encode(upw).strip()}")
-    return urllib.request.urlopen(req).read()
 
 
 class YTInstInfoCmd(YTCommand):
