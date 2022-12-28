@@ -198,7 +198,7 @@ class PlotMPL:
         for label in self._get_labels():
             label.set_fontproperties(font_properties)
             if font_color is not None:
-                label.set_color(self.font_color)
+                label.set_color(font_color)
 
     def _repr_png_(self):
         from ._mpl_imports import FigureCanvasAgg

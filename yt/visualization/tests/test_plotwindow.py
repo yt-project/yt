@@ -913,3 +913,19 @@ def test_invalid_swap_projection():
     slc.set_mpl_projection("Robinson")
     slc.swap_axes()  # should raise mylog.warning and not toggle _swap_axes
     assert slc._has_swapped_axes is False
+
+
+def test_set_font():
+    # simply check that calling the set_font method doesn't raise an error
+    # https://github.com/yt-project/yt/issues/4263
+    ds = fake_amr_ds()
+    slc = SlicePlot(ds, "x", "Density")
+    slc.set_font(
+        {
+            "family": "sans-serif",
+            "style": "italic",
+            "weight": "bold",
+            "size": 24,
+            "color": "blue",
+        }
+    )
