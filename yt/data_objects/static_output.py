@@ -233,7 +233,17 @@ class Dataset(abc.ABC):
         filename: str,
         dataset_type: Optional[str] = None,
         units_override: Optional[Dict[str, str]] = None,
-        unit_system: Literal["cgs", "mks", "code"] = "cgs",
+        # valid unit_system values include all keys from unyt.unit_systems.unit_systems_registry + "code"
+        unit_system: Literal[
+            "cgs",
+            "mks",
+            "imperial",
+            "galactic",
+            "solar",
+            "geometrized",
+            "planck",
+            "code",
+        ] = "cgs",
         default_species_fields: Optional[
             "Any"
         ] = None,  # Any used as a placeholder here
@@ -1215,7 +1225,20 @@ class Dataset(abc.ABC):
     def relative_refinement(self, l0, l1):
         return self.refine_by ** (l1 - l0)
 
-    def _assign_unit_system(self, unit_system: Literal["cgs", "mks", "code"]) -> None:
+    def _assign_unit_system(
+        self,
+        # valid unit_system values include all keys from unyt.unit_systems.unit_systems_registry + "code"
+        unit_system: Literal[
+            "cgs",
+            "mks",
+            "imperial",
+            "galactic",
+            "solar",
+            "geometrized",
+            "planck",
+            "code",
+        ],
+    ) -> None:
         # we need to determine if the requested unit system
         # is mks-like: i.e., it has a current with the same
         # dimensions as amperes.
