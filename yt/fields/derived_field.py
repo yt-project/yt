@@ -1,12 +1,13 @@
 import contextlib
 import inspect
 import re
-from typing import Optional, Tuple, Union
+from typing import Optional, Union
 
 from more_itertools import always_iterable
 
 import yt.units.dimensions as ytdims
 from yt._maintenance.deprecation import issue_deprecation_warning
+from yt._typing import FieldKey
 from yt.funcs import iter_fields, validate_field_key
 from yt.units.unit_object import Unit  # type: ignore
 from yt.utilities.exceptions import YTFieldNotFound
@@ -109,7 +110,7 @@ class DerivedField:
 
     def __init__(
         self,
-        name: Tuple[str, str],
+        name: FieldKey,
         sampling_type,
         function,
         units: Optional[Union[str, bytes, Unit]] = None,
@@ -334,7 +335,7 @@ class DerivedField:
         return self._shared_aliases_list is other._shared_aliases_list
 
     @property
-    def alias_name(self) -> Optional[Tuple[str, str]]:
+    def alias_name(self) -> Optional[FieldKey]:
         if self.is_alias:
             return self._shared_aliases_list[0].name
         return None

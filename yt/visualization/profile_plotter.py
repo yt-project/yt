@@ -8,6 +8,7 @@ import matplotlib
 import numpy as np
 from more_itertools.more import always_iterable, unzip
 
+from yt._typing import FieldKey
 from yt.data_objects.profiles import create_profile, sanitize_field_tuple_keys
 from yt.data_objects.static_output import Dataset
 from yt.frontends.ytdata.data_structures import YTProfileDataset
@@ -288,7 +289,7 @@ class ProfilePlot(BaseLinePlot):
         # Mypy is hardly convinced that we have a `profiles` attribute
         # at this stage, so we're lasily going to deactivate it locally
         unique = set(self.plots.values())
-        iters: Iterable[Tuple[Union[int, Tuple[str, str]], PlotMPL]]
+        iters: Iterable[Tuple[Union[int, FieldKey], PlotMPL]]
         if len(unique) < len(self.plots):
             iters = enumerate(sorted(unique))
         else:

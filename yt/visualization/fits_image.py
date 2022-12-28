@@ -2,11 +2,11 @@ import re
 import sys
 from functools import partial
 from numbers import Number as numeric_type
-from typing import Tuple
 
 import numpy as np
 from more_itertools import first, mark_ends
 
+from yt._typing import FieldKey
 from yt.data_objects.construction_data_containers import YTCoveringGrid
 from yt.data_objects.image_array import ImageArray
 from yt.fields.derived_field import DerivedField
@@ -1464,7 +1464,7 @@ class FITSOffAxisProjection(FITSImageData):
 
             if moment == 2:
 
-                def _sq_field(field, data, item: Tuple[str, str]):
+                def _sq_field(field, data, item: FieldKey):
                     return data[item] ** 2
 
                 fd = ds._get_field_info(*item)

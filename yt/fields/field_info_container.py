@@ -6,7 +6,7 @@ from typing import Optional, Tuple
 import numpy as np
 from unyt.exceptions import UnitConversionError
 
-from yt._typing import KnownFieldsT
+from yt._typing import FieldKey, KnownFieldsT
 from yt.config import ytcfg
 from yt.fields.field_exceptions import NeedsConfiguration
 from yt.funcs import mylog, obj_length, only_on_root
@@ -43,7 +43,7 @@ class FieldInfoContainer(UserDict):
     fallback = None
     known_other_fields: KnownFieldsT = ()
     known_particle_fields: KnownFieldsT = ()
-    extra_union_fields: Tuple[Tuple[str, str], ...] = ()
+    extra_union_fields: Tuple[FieldKey, ...] = ()
 
     def __init__(self, ds, field_list, slice_info=None):
         super().__init__()
@@ -305,7 +305,7 @@ class FieldInfoContainer(UserDict):
 
     def add_field(
         self,
-        name: Tuple[str, str],
+        name: FieldKey,
         function: Callable,
         sampling_type: str,
         *,
@@ -406,8 +406,8 @@ class FieldInfoContainer(UserDict):
 
     def alias(
         self,
-        alias_name: Tuple[str, str],
-        original_name: Tuple[str, str],
+        alias_name: FieldKey,
+        original_name: FieldKey,
         units: Optional[str] = None,
         deprecate: Optional[Tuple[str, Optional[str]]] = None,
     ):
@@ -416,9 +416,9 @@ class FieldInfoContainer(UserDict):
 
         Parameters
         ----------
-        alias_name : Tuple[str, str]
+        alias_name : tuple[str, str]
             The new field name.
-        original_name : Tuple[str, str]
+        original_name : tuple[str, str]
             The field to be aliased.
         units : str
            A plain text string encoding the unit.  Powers must be in

@@ -1,8 +1,10 @@
 # We don't need to import 'exceptions'
 import os.path
-from typing import List, Tuple
+from typing import List
 
 from unyt.exceptions import UnitOperationError
+
+from yt._typing import FieldKey
 
 
 class YTException(Exception):
@@ -77,7 +79,7 @@ class YTFieldNotFound(YTException):
         self.field = field
         self.ds = ds
 
-    def _get_suggestions(self) -> List[Tuple[str, str]]:
+    def _get_suggestions(self) -> List[FieldKey]:
         from yt.funcs import levenshtein_distance
 
         field = self.field
