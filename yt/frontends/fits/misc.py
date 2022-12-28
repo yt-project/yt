@@ -157,9 +157,9 @@ def ds9_region(ds, reg, obj=None, field_parameters=None):
     >>> circle_region = ds9_region(ds, "circle.reg")
     >>> print(circle_region.quantities.extrema("flux"))
     """
-    from regions import Regions
+    from yt.utilities.on_demand_imports import _astropy, _regions
 
-    from yt.utilities.on_demand_imports import _astropy
+    Regions = _regions.Regions
 
     WCS = _astropy.WCS
 

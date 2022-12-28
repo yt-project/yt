@@ -165,6 +165,17 @@ class astropy_imports(OnDemand):
 _astropy = astropy_imports()
 
 
+class regions_imports(OnDemand):
+    @safe_import
+    def Regions(self):
+        from regions import Regions
+
+        return Regions
+
+
+_regions = regions_imports()
+
+
 class NotCartopy(NotAModule):
     """
     A custom class to return error messages dependent on system installation
