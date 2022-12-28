@@ -16,14 +16,6 @@ ci:
     autofix_prs: false
 
 repos:
--   repo: https://github.com/asottile/setup-cfg-fmt
-    rev: v2.2.0
-    hooks:
-    - id: setup-cfg-fmt
-      args: [
-        --include-version-classifiers,
-        --max-py-version=3.11,
-      ]
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0
     hooks:
