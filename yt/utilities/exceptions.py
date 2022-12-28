@@ -6,9 +6,7 @@ from unyt.exceptions import UnitOperationError
 
 
 class YTException(Exception):
-    def __init__(self, message=None, ds=None):
-        Exception.__init__(self, message)
-        self.ds = ds
+    pass
 
 
 # Data access exceptions:
@@ -47,7 +45,7 @@ class YTAmbiguousDataType(YTUnidentifiedDataType):
 
 class YTSphereTooSmall(YTException):
     def __init__(self, ds, radius, smallest_cell):
-        YTException.__init__(self, ds=ds)
+        self.ds = ds
         self.radius = radius
         self.smallest_cell = smallest_cell
 
@@ -176,7 +174,6 @@ class YTFieldTypeNotFound(YTException):
 
 class YTSimulationNotIdentified(YTException):
     def __init__(self, sim_type):
-        YTException.__init__(self)
         self.sim_type = sim_type
 
     def __str__(self):
@@ -219,7 +216,7 @@ class InvalidSimulationTimeSeries(YTException):
 
 class MissingParameter(YTException):
     def __init__(self, ds, parameter):
-        YTException.__init__(self, ds=ds)
+        self.ds = ds
         self.parameter = parameter
 
     def __str__(self):
@@ -228,7 +225,7 @@ class MissingParameter(YTException):
 
 class NoStoppingCondition(YTException):
     def __init__(self, ds):
-        YTException.__init__(self, ds=ds)
+        self.ds = ds
 
     def __str__(self):
         return f"Simulation {self.ds} has no stopping condition. StopTime or StopCycle should be set."
@@ -348,7 +345,7 @@ class YTCloudError(YTException):
 
 class YTEllipsoidOrdering(YTException):
     def __init__(self, ds, A, B, C):
-        YTException.__init__(self, ds=ds)
+        self.ds = ds
         self._A = A
         self._B = B
         self._C = C
@@ -539,7 +536,7 @@ class YTElementTypeNotRecognized(YTException):
         return f"Element type not recognized - dim = {self.dim}, num_nodes = {self.num_nodes}"
 
 
-class YTDuplicateFieldInProfile(Exception):
+class YTDuplicateFieldInProfile(YTException):
     def __init__(self, field, new_spec, old_spec):
         self.field = field
         self.new_spec = new_spec
@@ -553,7 +550,7 @@ class YTDuplicateFieldInProfile(Exception):
         return r
 
 
-class YTInvalidPositionArray(Exception):
+class YTInvalidPositionArray(YTException):
     def __init__(self, shape, dimensions):
         self.shape = shape
         self.dimensions = dimensions
@@ -564,7 +561,7 @@ class YTInvalidPositionArray(Exception):
         return r
 
 
-class YTIllDefinedCutRegion(Exception):
+class YTIllDefinedCutRegion(YTException):
     def __init__(self, conditions):
         self.conditions = conditions
 
@@ -577,7 +574,7 @@ class YTIllDefinedCutRegion(Exception):
         return r
 
 
-class YTMixedCutRegion(Exception):
+class YTMixedCutRegion(YTException):
     def __init__(self, conditions, field):
         self.conditions = conditions
         self.field = field
@@ -590,7 +587,7 @@ class YTMixedCutRegion(Exception):
         return r
 
 
-class YTGDFAlreadyExists(Exception):
+class YTGDFAlreadyExists(YTException):
     def __init__(self, filename):
         self.filename = filename
 
@@ -613,7 +610,7 @@ class YTNonIndexedDataContainer(YTException):
         )
 
 
-class YTGDFUnknownGeometry(Exception):
+class YTGDFUnknownGeometry(YTException):
     def __init__(self, geometry):
         self.geometry = geometry
 
@@ -625,7 +622,7 @@ class YTGDFUnknownGeometry(Exception):
         )
 
 
-class YTInvalidUnitEquivalence(Exception):
+class YTInvalidUnitEquivalence(YTException):
     def __init__(self, equiv, unit1, unit2):
         self.equiv = equiv
         self.unit1 = unit1
@@ -635,7 +632,7 @@ class YTInvalidUnitEquivalence(Exception):
         return f"The unit equivalence {self.equiv!r} does not exist for the units {self.unit1!r} and {self.unit2!r}."
 
 
-class YTPlotCallbackError(Exception):
+class YTPlotCallbackError(YTException):
     def __init__(self, callback):
         self.callback = "annotate_" + callback
 
@@ -880,14 +877,14 @@ class YTCommandRequiresModule(YTException):
         return msg
 
 
-class YTModuleRemoved(Exception):
+class YTModuleRemoved(YTException):
     def __init__(self, name, new_home=None, info=None):
         message = f"The {name} module has been removed from yt."
         if new_home is not None:
             message += f"\nIt has been moved to {new_home}."
         if info is not None:
             message += f"\nFor more information, see {info}."
-        Exception.__init__(self, message)
+        super().__init__(message)
 
 
 class YTArrayTooLargeToDisplay(YTException):
@@ -909,7 +906,6 @@ class YTConfigurationError(YTException):
 class GenerationInProgress(Exception):
     def __init__(self, fields):
         self.fields = fields
-        super().__init__()
 
 
 class MountError(Exception):
