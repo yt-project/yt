@@ -85,7 +85,7 @@ Additional requirements (pip only)
 
 yt knows about several data file formats. In many cases (e.g. HDF5), additional
 dependencies are needed to enable parsing, that are not installed with yt by default.
-In order to install every requirements for a specific format alongside yt,
+In order to install all required packages for a specific format alongside yt,
 one can specify them as, for instance
 
 .. code-block:: bash
