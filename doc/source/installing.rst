@@ -65,7 +65,7 @@ will work best for you depends on your precise situation:
 Installing a stable release
 +++++++++++++++++++++++++++
 
-The latest stable release can be obtained from Pypi with pip
+The latest stable release can be obtained from PyPI with pip
 
 .. code-block:: bash
 
@@ -78,6 +78,23 @@ Or using the Anaconda/Miniconda Python distributions
 .. code-block:: bash
 
   $ conda install --channel conda-forge yt
+
+
+Additional requirements (pip only)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+yt knows about several data file formats. In many cases (e.g. HDF5), additional
+dependencies are needed to enable parsing, that are not installed with yt by default.
+In order to install every requirements for a specific format alongside yt,
+one can specify them as, for instance
+
+.. code-block:: bash
+
+  $ python -m pip install --upgrade pip
+  $ python -m pip install --user "yt[ramses]"
+
+Extra requirements can be combined, separated by commas (say ``yt[ramses,enzo_e]``).
+Note that all format names are normalized to lower case.
 
 
 .. _install-from-source:
