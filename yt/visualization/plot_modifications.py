@@ -3,7 +3,7 @@ import re
 import warnings
 from abc import ABC, abstractmethod
 from functools import update_wrapper
-from numbers import Integral, Number, Real
+from numbers import Integral, Number
 from typing import Any, Dict, Optional, Tuple, Type, Union
 
 import matplotlib
@@ -880,7 +880,7 @@ class ContourCallback(PlotCallback):
         self.text_args = text_args
         self.data_source = data_source
 
-    def __call__(self, plot):
+    def __call__(self, plot) -> None:
         from matplotlib.tri import LinearTriInterpolator, Triangulation
 
         # These need to be in code_length
@@ -918,7 +918,7 @@ class ContourCallback(PlotCallback):
                 XShifted = data["px"].copy()
                 YShifted = data["py"].copy()
                 dom_x, dom_y = plot._period
-                for shift in np.mgrid[-1:1:3j]:
+                for shift in np.mgrid[-1:1:3j]:  # type: ignore [misc]
                     xlim = (data["px"] + shift * dom_x >= x0) & (
                         data["px"] + shift * dom_x <= x1
                     )
@@ -956,7 +956,7 @@ class ContourCallback(PlotCallback):
         if take_log:
             zi = np.log10(zi)
 
-        clim: Union[Tuple[Real, Real], None]
+        clim: Optional[Tuple[float, float]]
         if take_log and self.clim is not None:
             clim = np.log10(self.clim[0]), np.log10(self.clim[1])
         else:
