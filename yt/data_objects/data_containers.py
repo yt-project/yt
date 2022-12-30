@@ -2,7 +2,7 @@ import abc
 import weakref
 from collections import defaultdict
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, List, Tuple
+from typing import TYPE_CHECKING, List, Optional, Tuple
 
 import numpy as np
 
@@ -76,7 +76,7 @@ class YTDataContainer(abc.ABC):
     _index = None
     _key_fields: List[str]
 
-    def __init__(self, ds, field_parameters):
+    def __init__(self, ds: Optional["Dataset"], field_parameters) -> None:
         """
         Typically this is never called directly, but only due to inheritance.
         It associates a :class:`~yt.data_objects.static_output.Dataset` with the class,
