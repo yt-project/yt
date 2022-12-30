@@ -40,7 +40,7 @@ def test_cutting_plane():
         for width in [(1.0, "unitary"), 1.0, ds.quan(0.5, "code_length")]:
             frb = cut.to_frb(width, 64)
             for cut_field in [("index", "ones"), ("gas", "density")]:
-                fi = ds._get_field_info("unknown", cut_field)
+                fi = ds._get_field_info(cut_field)
                 data = frb[cut_field]
                 assert_equal(data.info["data_source"], cut.__str__())
                 assert_equal(data.info["axis"], 4)

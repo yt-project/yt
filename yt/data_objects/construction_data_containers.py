@@ -249,15 +249,16 @@ class YTProj(YTSelectionContainer2D):
             def _sq_field(field, data, fname: FieldKey):
                 return data[fname] ** 2
 
-            for fname in fields:
-                fd = self.ds._get_field_info(*fname)
+            for field in fields:
+                fd = self.ds._get_field_info(field)
+                ftype, fname = field
                 self.ds.add_field(
-                    (fname[0], f"tmp_{fname[1]}_squared"),
-                    partial(_sq_field, fname=fname),
+                    (ftype, f"tmp_{fname}_squared"),
+                    partial(_sq_field, fname=field),
                     sampling_type=fd.sampling_type,
                     units=f"({fd.units})*({fd.units})",
                 )
-                sfields.append((fname[0], f"tmp_{fname[1]}_squared"))
+                sfields.append((ftype, f"tmp_{fname}_squared"))
         nfields = len(fields)
         nsfields = len(sfields)
         # We need a new tree for every single set of fields we add
@@ -387,7 +388,7 @@ class YTProj(YTSelectionContainer2D):
         for field in self.data_source._determine_fields(fields):
             if field in self._projected_units:
                 continue
-            finfo = self.ds._get_field_info(*field)
+            finfo = self.ds._get_field_info(field)
             if finfo.units is None:
                 # First time calling a units="auto" field, infer units and cache
                 # for future field accesses.
@@ -930,7 +931,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
         particles = []
         alias = {}
         for field in gen:
-            finfo = self.ds._get_field_info(*field)
+            finfo = self.ds._get_field_info(field)
             if finfo.is_alias:
                 alias[field] = finfo
                 continue
@@ -939,7 +940,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
             except NeedsOriginalGrid:
                 fill.append(field)
         for field in fill:
-            finfo = self.ds._get_field_info(*field)
+            finfo = self.ds._get_field_info(field)
             if finfo.sampling_type == "particle":
                 particles.append(field)
         gen = [f for f in gen if f not in fill and f not in alias]
@@ -1086,9 +1087,9 @@ class YTCoveringGrid(YTSelectionContainer3D):
         if self.comm.size > 1:
             for i in range(len(fields)):
                 output_fields[i] = self.comm.mpi_allreduce(output_fields[i], op="sum")
-        for name, v in zip(fields, output_fields):
-            fi = self.ds._get_field_info(*name)
-            self[name] = self.ds.arr(v, fi.units)
+        for field, v in zip(fields, output_fields):
+            fi = self.ds._get_field_info(field)
+            self[field] = self.ds.arr(v, fi.units)
 
     def _generate_container_field(self, field):
         rv = self.ds.arr(np.ones(self.ActiveDimensions, dtype="float64"), "")
@@ -1492,11 +1493,11 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
                 category=RuntimeWarning,
             )
             mylog.debug("Caught %d runtime errors.", runtime_errors_count)
-        for name, v in zip(fields, ls.fields):
+        for field, v in zip(fields, ls.fields):
             if self.level > 0:
                 v = v[1:-1, 1:-1, 1:-1]
-            fi = self.ds._get_field_info(*name)
-            self[name] = self.ds.arr(v, fi.units)
+            fi = self.ds._get_field_info(field)
+            self[field] = self.ds.arr(v, fi.units)
 
     def _initialize_level_state(self, fields):
         ls = LevelState()

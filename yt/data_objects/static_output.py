@@ -32,12 +32,12 @@ from unyt import Unit, unyt_quantity
 from unyt.exceptions import UnitConversionError, UnitParseError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
-from yt._typing import AnyFieldKey, FieldKey, FieldType, ParticleType
+from yt._typing import AnyFieldKey, FieldKey, FieldType, ImplicitFieldKey, ParticleType
 from yt.config import ytcfg
 from yt.data_objects.particle_filters import ParticleFilter, filter_registry
 from yt.data_objects.region_expression import RegionExpression
 from yt.data_objects.unions import ParticleUnion
-from yt.fields.derived_field import ValidateSpatial
+from yt.fields.derived_field import DerivedField, ValidateSpatial
 from yt.fields.field_type_container import FieldTypeContainer
 from yt.fields.fluid_fields import setup_gradient_fields
 from yt.funcs import is_sequence, iter_fields, mylog, set_intersection, setdefaultattr
@@ -65,6 +65,7 @@ from yt.utilities.configure import YTConfig, configuration_callbacks
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.exceptions import (
     YTFieldNotFound,
+    YTFieldNotParseable,
     YTGeometryNotSupported,
     YTIllDefinedParticleFilter,
     YTObjectNotImplemented,
@@ -158,9 +159,7 @@ class Dataset(abc.ABC):
     default_fluid_type = "gas"
     default_field = ("gas", "density")
     fluid_types: Tuple[FieldType, ...] = ("gas", "deposit", "index")
-    particle_types: Optional[Tuple[ParticleType, ...]] = (
-        "io",
-    )  # By default we have an 'all'
+    particle_types: Tuple[ParticleType, ...] = ("io",)  # By default we have an 'all'
     particle_types_raw: Optional[Tuple[ParticleType, ...]] = ("io",)
     geometry = "cartesian"
     coordinates = None
@@ -681,7 +680,6 @@ class Dataset(abc.ABC):
         # Now that we've detected the fields, set this flag so that
         # deprecated fields will be logged if they are used
         self.fields_detected = True
-        self._last_freq = (None, None)
 
     def set_field_label_format(self, format_property, value):
         """
@@ -776,7 +774,7 @@ class Dataset(abc.ABC):
             units = set()
             for s in union:
                 # First we check our existing fields for units
-                funits = self._get_field_info(s, field).units
+                funits = self._get_field_info((s, field)).units
                 # Then we override with field_units settings.
                 funits = self.field_units.get((s, field), funits)
                 units.add(funits)
@@ -882,11 +880,12 @@ class Dataset(abc.ABC):
             df += self._setup_particle_type(ptype)
         return df
 
-    _last_freq = (None, None)
-    _last_finfo = None
-
-    def _get_field_info(self, ftype, fname=None):
-        field_info, candidates = self._get_field_info_helper(ftype, fname)
+    def _get_field_info(
+        self,
+        field: Union[FieldKey, ImplicitFieldKey, DerivedField],
+        /,
+    ) -> DerivedField:
+        field_info, candidates = self._get_field_info_helper(field)
 
         if field_info.name[1] in ("px", "py", "pz", "pdx", "pdy", "pdz"):
             # escape early as a bandaid solution to
@@ -908,9 +907,9 @@ class Dataset(abc.ABC):
 
             all_equivalent_particle_fields: bool
             if (
-                self.particle_types is None
-                or self.particle_unions is None
-                or self.particle_types_raw is None
+                not self.particle_types
+                or not self.particle_unions
+                or not self.particle_types_raw
             ):
                 all_equivalent_particle_fields = False
             elif all(ft in self.particle_types for ft in ftypes):
@@ -942,60 +941,31 @@ class Dataset(abc.ABC):
             )
         return field_info
 
-    def _get_field_info_helper(self, ftype, fname=None):
+    def _get_field_info_helper(
+        self,
+        field: Union[FieldKey, ImplicitFieldKey, DerivedField],
+        /,
+    ) -> Tuple[DerivedField, List[FieldKey]]:
         self.index
 
-        # store the original inputs in case we need to raise an error
-        INPUT = ftype, fname
-        if fname is None:
-            try:
-                ftype, fname = ftype.name
-            except AttributeError:
-                ftype, fname = "unknown", ftype
+        ftype: str
+        fname: str
+        if isinstance(field, str):
+            ftype, fname = "unknown", field
+        elif isinstance(field, tuple) and len(field) == 2:
+            ftype, fname = field
+        elif isinstance(field, DerivedField):
+            ftype, fname = field.name
+        else:
+            raise YTFieldNotParseable(field)
 
-        candidates: List[FieldKey] = []
+        if ftype == "unknown":
+            candidates: List[FieldKey] = [
+                (ft, fn) for ft, fn in self.field_info if fn == fname
+            ]
 
-        # storing this condition before altering it
-        guessing_type = ftype == "unknown"
-        if guessing_type:
-            ftype = self._last_freq[0] or ftype
-            candidates = [(ft, fn) for ft, fn in self.field_info.keys() if fn == fname]
-
-        field = (ftype, fname)
-
-        if (
-            field == self._last_freq
-            and field not in self.field_info.field_aliases.values()
-        ):
-            return self._last_finfo, candidates
-        if field in self.field_info:
-            self._last_freq = field
-            self._last_finfo = self.field_info[(ftype, fname)]
-            return self._last_finfo, candidates
-
-        try:
-            # Sometimes, if guessing_type == True, this will be switched for
-            # the type of field it is.  So we look at the field type and
-            # determine if we need to change the type.
-            fi = self._last_finfo = self.field_info[fname]
-            if (
-                fi.sampling_type == "particle"
-                and self._last_freq[0] not in self.particle_types
-            ):
-                field = "all", field[1]
-            elif (
-                not fi.sampling_type == "particle"
-                and self._last_freq[0] not in self.fluid_types
-            ):
-                field = self.default_fluid_type, field[1]
-            self._last_freq = field
-            return self._last_finfo, candidates
-        except KeyError:
-            pass
-
-        # We also should check "all" for particles, which can show up if you're
-        # mixing deposition/gas fields with particle fields.
-        if guessing_type:
+            # We also should check "all" for particles, which can show up if you're
+            # mixing deposition/gas fields with particle fields.
             if hasattr(self, "_sph_ptype"):
                 to_guess = [self.default_fluid_type, "all"]
             else:
@@ -1003,10 +973,12 @@ class Dataset(abc.ABC):
             to_guess += list(self.fluid_types) + list(self.particle_types)
             for ftype in to_guess:
                 if (ftype, fname) in self.field_info:
-                    self._last_freq = (ftype, fname)
-                    self._last_finfo = self.field_info[(ftype, fname)]
-                    return self._last_finfo, candidates
-        raise YTFieldNotFound(field=INPUT, ds=self)
+                    return self.field_info[ftype, fname], candidates
+
+        elif (ftype, fname) in self.field_info:
+            return self.field_info[ftype, fname], []
+
+        raise YTFieldNotFound(field, ds=self)
 
     def _setup_classes(self):
         # Called by subclass

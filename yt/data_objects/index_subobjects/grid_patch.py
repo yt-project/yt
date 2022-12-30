@@ -78,7 +78,7 @@ class AMRGridPatch(YTSelectionContainer):
             fields = self._determine_fields(key)
         except YTFieldTypeNotFound:
             return tr
-        finfo = self.ds._get_field_info(*fields[0])
+        finfo = self.ds._get_field_info(fields[0])
         if not finfo.sampling_type == "particle":
             num_nodes = 2 ** sum(finfo.nodal_flag)
             new_shape = list(self.ActiveDimensions)

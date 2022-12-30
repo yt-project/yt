@@ -407,7 +407,7 @@ class YTGrid(AMRGridPatch):
             fields = self._determine_fields(key)
         except YTFieldTypeNotFound:
             return tr
-        finfo = self.ds._get_field_info(*fields[0])
+        finfo = self.ds._get_field_info(fields[0])
         if not finfo.sampling_type == "particle":
             return tr.reshape(self.ActiveDimensions[: self.ds.dimensionality])
         return tr
@@ -578,7 +578,7 @@ class YTNonspatialGrid(AMRGridPatch):
             fields = self._determine_fields(key)
         except YTFieldTypeNotFound:
             return tr
-        self.ds._get_field_info(*fields[0])
+        self.ds._get_field_info(fields[0])
         return tr
 
     def get_data(self, fields=None):
@@ -610,7 +610,7 @@ class YTNonspatialGrid(AMRGridPatch):
         for field in self._determine_fields(fields):
             if field in self.field_data:
                 continue
-            finfo = self.ds._get_field_info(*field)
+            finfo = self.ds._get_field_info(field)
             try:
                 finfo.check_available(self)
             except NeedsGridType:
@@ -628,13 +628,13 @@ class YTNonspatialGrid(AMRGridPatch):
         # We now split up into readers for the types of fields
         fluids, particles = [], []
         finfos = {}
-        for ftype, fname in fields_to_get:
-            finfo = self.ds._get_field_info(ftype, fname)
-            finfos[ftype, fname] = finfo
+        for field_key in fields_to_get:
+            finfo = self.ds._get_field_info(field_key)
+            finfos[field_key] = finfo
             if finfo.sampling_type == "particle":
-                particles.append((ftype, fname))
-            elif (ftype, fname) not in fluids:
-                fluids.append((ftype, fname))
+                particles.append(field_key)
+            elif field_key not in fluids:
+                fluids.append(field_key)
 
         # The _read method will figure out which fields it needs to get from
         # disk, and return a dict of those fields along with the fields that

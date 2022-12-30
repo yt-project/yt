@@ -1080,10 +1080,7 @@ def obj_length(v):
 
 def array_like_field(data, x, field):
     field = data._determine_fields(field)[0]
-    if isinstance(field, tuple):
-        finfo = data.ds._get_field_info(field[0], field[1])
-    else:
-        finfo = data.ds._get_field_info(field)
+    finfo = data.ds._get_field_info(field)
     if finfo.sampling_type == "particle":
         units = finfo.output_units
     else:

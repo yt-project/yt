@@ -216,7 +216,7 @@ def add_xray_emissivity_field(
     """
     if not isinstance(metallicity, float) and metallicity is not None:
         try:
-            metallicity = ds._get_field_info(*metallicity)
+            metallicity = ds._get_field_info(metallicity)
         except YTFieldNotFound as e:
             raise RuntimeError(
                 f"Your dataset does not have a {metallicity} field! "

@@ -951,7 +951,7 @@ class ContourCallback(PlotCallback):
             take_log = self.take_log
         else:
             field = data._determine_fields([self.field])[0]
-            take_log = plot.ds._get_field_info(*field).take_log
+            take_log = plot.ds._get_field_info(field).take_log
 
         if take_log:
             zi = np.log10(zi)

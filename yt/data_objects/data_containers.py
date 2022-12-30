@@ -2,18 +2,18 @@ import abc
 import weakref
 from collections import defaultdict
 from contextlib import contextmanager
-from typing import List, Tuple
+from typing import TYPE_CHECKING, List, Tuple
 
 import numpy as np
 
 from yt._maintenance.deprecation import issue_deprecation_warning
-from yt._typing import AnyFieldKey
+from yt._typing import AnyFieldKey, FieldKey, FieldName
 from yt.config import ytcfg
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.profiles import create_profile
 from yt.fields.field_exceptions import NeedsGridType
 from yt.frontends.ytdata.utilities import save_as_dataset
-from yt.funcs import get_output_filename, is_sequence, iter_fields, mylog
+from yt.funcs import get_output_filename, iter_fields, mylog
 from yt.units._numpy_wrapper_functions import uconcatenate
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.amr_kdtree.api import AMRKDTree
@@ -21,7 +21,6 @@ from yt.utilities.exceptions import (
     YTCouldNotGenerateField,
     YTException,
     YTFieldNotFound,
-    YTFieldNotParseable,
     YTFieldTypeNotFound,
     YTNonIndexedDataContainer,
     YTSpatialFieldUnitError,
@@ -29,6 +28,9 @@ from yt.utilities.exceptions import (
 from yt.utilities.object_registries import data_object_registry
 from yt.utilities.on_demand_imports import _firefly as firefly
 from yt.utilities.parameter_file_storage import ParameterFileStore
+
+if TYPE_CHECKING:
+    from yt.data_objects.static_output import Dataset
 
 
 def sanitize_weight_field(ds, field, weight):
@@ -85,6 +87,8 @@ class YTDataContainer(abc.ABC):
         # Dataset._add_object_class but it can also be passed as a parameter to the
         # constructor, in which case it will override the default.
         # This code ensures it is never not set.
+
+        self.ds: "Dataset"
         if ds is not None:
             self.ds = ds
         else:
@@ -162,7 +166,7 @@ class YTDataContainer(abc.ABC):
         except AttributeError:
             return self.ds.arr(arr, units=units)
 
-    def _first_matching_field(self, field):
+    def _first_matching_field(self, field: FieldName) -> FieldKey:
         for ftype, fname in self.ds.derived_field_list:
             if fname == field:
                 return (ftype, fname)
@@ -270,10 +274,7 @@ class YTDataContainer(abc.ABC):
         try:
             rv = self.field_data[f]
         except KeyError:
-            if isinstance(f, tuple):
-                fi = self.ds._get_field_info(*f)
-            elif isinstance(f, bytes):
-                fi = self.ds._get_field_info("unknown", f)
+            fi = self.ds._get_field_info(f)
             rv = self.ds.arr(self.field_data[key], fi.units)
         return rv
 
@@ -296,7 +297,7 @@ class YTDataContainer(abc.ABC):
 
     def _generate_field(self, field):
         ftype, fname = field
-        finfo = self.ds._get_field_info(*field)
+        finfo = self.ds._get_field_info(field)
         with self._field_type_state(ftype, finfo):
             if fname in self._container_fields:
                 tr = self._generate_container_field(field)
@@ -310,8 +311,7 @@ class YTDataContainer(abc.ABC):
 
     def _generate_fluid_field(self, field):
         # First we check the validator
-        ftype, fname = field
-        finfo = self.ds._get_field_info(ftype, fname)
+        finfo = self.ds._get_field_info(field)
         if self._current_chunk is None or self._current_chunk.chunk_type != "spatial":
             gen_obj = self
         else:
@@ -326,7 +326,7 @@ class YTDataContainer(abc.ABC):
         return rv
 
     def _generate_spatial_fluid(self, field, ngz):
-        finfo = self.ds._get_field_info(*field)
+        finfo = self.ds._get_field_info(field)
         if finfo.units is None:
             raise YTSpatialFieldUnitError(field)
         units = finfo.units
@@ -383,7 +383,7 @@ class YTDataContainer(abc.ABC):
         else:
             gen_obj = self._current_chunk.objs[0]
         try:
-            finfo = self.ds._get_field_info(*field)
+            finfo = self.ds._get_field_info(field)
             finfo.check_available(gen_obj)
         except NeedsGridType as ngt_exception:
             if ngt_exception.ghost_zones != 0:
@@ -407,7 +407,7 @@ class YTDataContainer(abc.ABC):
                     ind += data.size
         else:
             with self._field_type_state(ftype, finfo, gen_obj):
-                rv = self.ds._get_field_info(*field)(gen_obj)
+                rv = self.ds._get_field_info(field)(gen_obj)
         return rv
 
     def _count_particles(self, ftype):
@@ -1487,49 +1487,6 @@ class YTDataContainer(abc.ABC):
         obj._current_particle_type = old_particle_type
         obj._current_fluid_type = old_fluid_type
 
-    def _tupleize_field(self, field):
-
-        try:
-            ftype, fname = field.name
-            return ftype, fname
-        except AttributeError:
-            pass
-
-        if is_sequence(field) and not isinstance(field, str):
-            try:
-                ftype, fname = field
-                if not all(isinstance(_, str) for _ in field):
-                    raise TypeError
-                return ftype, fname
-            except TypeError as e:
-                raise YTFieldNotParseable(field) from e
-            except ValueError:
-                pass
-
-        try:
-            fname = field
-            finfo = self.ds._get_field_info(field)
-            if finfo.sampling_type == "particle":
-                ftype = self._current_particle_type
-                if hasattr(self.ds, "_sph_ptypes"):
-                    ptypes = self.ds._sph_ptypes
-                    if finfo.name[0] in ptypes:
-                        ftype = finfo.name[0]
-                    elif finfo.is_alias and finfo.alias_name[0] in ptypes:
-                        ftype = self._current_fluid_type
-            else:
-                ftype = self._current_fluid_type
-                if (ftype, fname) not in self.ds.field_info:
-                    ftype = self.ds._last_freq[0]
-            return ftype, fname
-        except YTFieldNotFound:
-            pass
-
-        if isinstance(field, str):
-            return "unknown", field
-
-        raise YTFieldNotParseable(field)
-
     def _determine_fields(self, fields):
         if str(fields) in self.ds._determined_fields:
             return self.ds._determined_fields[str(fields)]
@@ -1539,9 +1496,8 @@ class YTDataContainer(abc.ABC):
                 explicit_fields.append(field)
                 continue
 
-            ftype, fname = self._tupleize_field(field)
-            finfo = self.ds._get_field_info(ftype, fname)
-
+            finfo = self.ds._get_field_info(field)
+            ftype, fname = finfo.name
             # really ugly check to ensure that this field really does exist somewhere,
             # in some naming convention, before returning it as a possible field type
             if (

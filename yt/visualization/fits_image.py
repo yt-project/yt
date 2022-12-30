@@ -1447,8 +1447,8 @@ class FITSOffAxisProjection(FITSImageData):
         fields = source._determine_fields(list(iter_fields(fields)))
         stddev_str = "_stddev" if moment == 2 else ""
         for item in fields:
-
-            key = (item[0], item[1] + stddev_str)
+            ftype, fname = item
+            key = (ftype, f"{fname}{stddev_str}")
 
             buf[key] = off_axis_projection(
                 source,
@@ -1467,9 +1467,8 @@ class FITSOffAxisProjection(FITSImageData):
                 def _sq_field(field, data, item: FieldKey):
                     return data[item] ** 2
 
-                fd = ds._get_field_info(*item)
-
-                field_sq = (item[0], f"tmp_{item[1]}_squared")
+                fd = ds._get_field_info(item)
+                field_sq = (ftype, f"tmp_{fname}_squared")
 
                 ds.add_field(
                     field_sq,

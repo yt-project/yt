@@ -68,7 +68,7 @@ class TestFieldAccess:
         self.ds = ds
 
     def __call__(self):
-        field = self.ds._get_field_info(*self.field_name)
+        field = self.ds._get_field_info(self.field_name)
         skip_grids = False
         needs_spatial = False
         for v in field.validators:
@@ -487,14 +487,6 @@ def test_morton_index():
     a1 = np.argsort(mi)
     a2 = np.argsort(mi2)
     assert_array_equal(a1, a2)
-
-
-def test_field_inference():
-    ds = fake_random_ds(16)
-    ds.index
-    # If this is not true this means the result of field inference depends
-    # on the order we did field detection, which is random in Python3
-    assert_equal(ds._last_freq, (None, None))
 
 
 @requires_module("h5py")
