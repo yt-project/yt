@@ -2358,15 +2358,19 @@ class TimestampCallback(PlotCallback):
         be used solo or in conjunction with the time parameter.
 
     time_format : string, optional
-        This specifies the format of the time output assuming "time" is the
+        This specifies the format of the time output. It can either be a format
+        string or the string 'datetime'. If a format string, then "time" is the
         number of time and "unit" is units of the time (e.g. 's', 'Myr', etc.)
         The time can be specified to arbitrary precision according to printf
         formatting codes (defaults to .1f -- a float with 1 digits after
         decimal).  Example: "Age = {time:.2f} {units}".
+        If time_format=='datetime' then the current time will be converted to
+        a date format for display.
 
     time_unit : string, optional
         time_unit must be a valid yt time unit (e.g. 's', 'min', 'hr', 'yr',
-        'Myr', etc.)
+        'Myr', etc.) OR if time_format=='datetime' then it can be one of the
+        datetime format options ('Y', 'M', 'D', 'h',  etc.)
 
     redshift_format : string, optional
         This specifies the format of the redshift output.  The redshift can
@@ -2465,6 +2469,8 @@ class TimestampCallback(PlotCallback):
             inset_box_args = def_inset_box_args
         self.inset_box_args = inset_box_args
 
+        self._enforce_datetime_constraints()
+
         # if inset box is not desired, set inset_box_args to {}
         if not draw_inset_box:
             self.inset_box_args = None
@@ -2503,35 +2509,7 @@ class TimestampCallback(PlotCallback):
 
         # If we're annotating the time, put it in the correct format
         if self.time:
-            # If no time_units are set, then identify a best fit time unit
-            if self.time_unit is None:
-                if plot.ds._uses_code_time_unit:
-                    # if the unit system is in code units
-                    # we should not convert to seconds for the plot.
-                    self.time_unit = plot.ds.unit_system.base_units[dimensions.time]
-                else:
-                    # in the case of non- code units then we
-                    self.time_unit = plot.ds.get_smallest_appropriate_unit(
-                        plot.ds.current_time, quantity="time"
-                    )
-            t = plot.ds.current_time.in_units(self.time_unit)
-            if self.time_offset is not None:
-                if isinstance(self.time_offset, tuple):
-                    toffset = plot.ds.quan(self.time_offset[0], self.time_offset[1])
-                elif isinstance(self.time_offset, Number):
-                    toffset = plot.ds.quan(self.time_offset, self.time_unit)
-                elif not isinstance(self.time_offset, YTQuantity):
-                    raise RuntimeError(
-                        "'time_offset' must be a float, tuple, or YTQuantity!"
-                    )
-                t -= toffset.in_units(self.time_unit)
-            try:
-                # here the time unit will be in brackets on the annotation.
-                un = self.time_unit.latex_representation()
-                time_unit = r"$\ \ (" + un + r")$"
-            except AttributeError:
-                time_unit = str(self.time_unit).replace("_", " ")
-            self.text += self.time_format.format(time=float(t), units=time_unit)
+            self.text += self._get_time_text(plot)
 
         # If time and redshift both shown, do one on top of the other
         if self.time and self.redshift:
@@ -2561,6 +2539,75 @@ class TimestampCallback(PlotCallback):
             inset_box_args=self.inset_box_args,
         )
         return tcb(plot)
+
+    def _enforce_datetime_constraints(self):
+        # catches conflicting arguments at initialization
+        if self.time_format == "datetime":
+            if self.time_offset is not None:
+                # note: could implement this with time deltas, but not a clear
+                # need to do so.
+                raise NotImplementedError(
+                    "time_offset is not available to use with 'datetime' time_format"
+                )
+            valid_datetime_formats = [
+                "Y",
+                "M",
+                "D",
+                "W",
+                "s",
+                "h",
+                "m",
+                "s",
+                "ms",
+                "us",
+                "ns",
+            ]
+            if self.time_unit is None:
+                self.time_unit = "ns"
+            elif self.time_unit not in valid_datetime_formats:
+                raise ValueError(
+                    f"time_format='datetime' but time_unit ({self.time_unit}) is not a valid format."
+                )
+
+    def _get_time_text(self, plot):
+
+        if self.time_format == "datetime":
+            # there will be some potential rounding error here do to the required
+            # cast to int.
+            dtime = np.datetime64(int(plot.ds.current_time.in_units("ns")), "ns")
+            dtime = dtime.astype(f"datetime64[{self.time_unit}]")
+            return str(dtime)
+
+        # If no time_units are set, then identify a best fit time unit
+        if self.time_unit is None:
+            if plot.ds._uses_code_time_unit:
+                # if the unit system is in code units
+                # we should not convert to seconds for the plot.
+                self.time_unit = plot.ds.unit_system.base_units[dimensions.time]
+            else:
+                # in the case of non-code units then we
+                self.time_unit = plot.ds.get_smallest_appropriate_unit(
+                    plot.ds.current_time, quantity="time"
+                )
+
+        t = plot.ds.current_time.in_units(self.time_unit)
+        if self.time_offset is not None:
+            if isinstance(self.time_offset, tuple):
+                toffset = plot.ds.quan(self.time_offset[0], self.time_offset[1])
+            elif isinstance(self.time_offset, Number):
+                toffset = plot.ds.quan(self.time_offset, self.time_unit)
+            elif not isinstance(self.time_offset, YTQuantity):
+                raise RuntimeError(
+                    "'time_offset' must be a float, tuple, or YTQuantity!"
+                )
+            t -= toffset.in_units(self.time_unit)
+        try:
+            # here the time unit will be in brackets on the annotation.
+            un = self.time_unit.latex_representation()
+            time_unit = r"$\ \ (" + un + r")$"
+        except AttributeError:
+            time_unit = str(self.time_unit).replace("_", " ")
+        return self.time_format.format(time=float(t), units=time_unit)
 
 
 class ScaleCallback(PlotCallback):

@@ -334,6 +334,7 @@ class StreamDataset(Dataset):
         default_species_fields=None,
     ):
         self.fluid_types += ("stream",)
+        self._display_datetime = False
         self.geometry = geometry
         self.stream_handler = stream_handler
         self._find_particle_types()
@@ -378,6 +379,11 @@ class StreamDataset(Dataset):
     def unique_identifier(self) -> str:
         return str(self.parameters["CurrentTimeIdentifier"])
 
+    def _format_display_time(self, time):
+        if self._display_datetime:
+            return np.datetime64(int(time.in_units("ns")), "ns")
+        return time
+
     def _parse_parameter_file(self):
         self.parameters["CurrentTimeIdentifier"] = time.time()
         self.domain_left_edge = self.stream_handler.domain_left_edge.copy()
@@ -386,7 +392,16 @@ class StreamDataset(Dataset):
         self.dimensionality = self.stream_handler.dimensionality
         self._periodicity = self.stream_handler.periodicity
         self.domain_dimensions = self.stream_handler.domain_dimensions
-        self.current_time = self.stream_handler.simulation_time
+
+        if isinstance(self.stream_handler.simulation_time, np.datetime64):
+            # always cast to ns before float so the float representation is
+            # properly padded. the result here will always be nanoseconds from
+            # 1970-01-01.
+            dtime = self.stream_handler.simulation_time.astype("datetime64[ns]")
+            self.current_time = self.quan(float(dtime), "ns")
+            self._display_datetime = True
+        else:
+            self.current_time = self.stream_handler.simulation_time
         self.gamma = 5.0 / 3.0
         self.parameters["EOSType"] = -1
         self.parameters["CosmologyHubbleConstantNow"] = 1.0

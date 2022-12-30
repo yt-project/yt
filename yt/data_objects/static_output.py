@@ -597,6 +597,9 @@ class Dataset(abc.ABC):
             np.seterr(**oldsettings)
         return self._instantiated_index
 
+    def _format_display_time(self, time):
+        return time
+
     @parallel_root_only
     def print_key_parameters(self):
         for a in [
@@ -610,6 +613,8 @@ class Dataset(abc.ABC):
                 mylog.error("Missing %s in parameter file definition!", a)
                 continue
             v = getattr(self, a)
+            if a == "current_time":
+                v = self._format_display_time(v)
             mylog.info("Parameters: %-25s = %s", a, v)
         if hasattr(self, "cosmological_simulation") and self.cosmological_simulation:
             for a in [
