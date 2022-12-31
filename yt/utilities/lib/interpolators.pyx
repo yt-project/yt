@@ -218,7 +218,6 @@ def replace_nonperiodic_with_extrap(np.ndarray[np.float64_t, ndim=3] field,
 
     """
     cdef int i, j, k
-    cdef int ii, ij, ik
     cdef int nx, ny, nz
     cdef int lx, ly, lz
     cdef int hx, hy, hz
