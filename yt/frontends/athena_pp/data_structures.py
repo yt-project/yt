@@ -75,7 +75,7 @@ class AthenaPPLogarithmicIndex(UnstructuredIndex):
         nb = np.array([nbx, nby, nbz], dtype="int64")
         self.mesh_factors = np.ones(3, dtype="int64") * ((nb > 1).astype("int") + 1)
 
-        block_grid = -np.ones((nbx, nby, nbz, nlevel), dtype=np.int)
+        block_grid = -np.ones((nbx, nby, nbz, nlevel), dtype="int64")
         block_grid[log_loc[:, 0], log_loc[:, 1], log_loc[:, 2], levels[:]] = np.arange(
             num_blocks
         )

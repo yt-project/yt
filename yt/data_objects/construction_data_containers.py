@@ -3,15 +3,15 @@ import io
 import os
 import warnings
 import zipfile
-from functools import wraps
+from functools import partial, wraps
 from re import finditer
 from tempfile import NamedTemporaryFile, TemporaryFile
 
 import numpy as np
 from more_itertools import always_iterable
-from tqdm import tqdm
 
 from yt._maintenance.deprecation import issue_deprecation_warning
+from yt._typing import FieldKey
 from yt.config import ytcfg
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.selection_objects.data_selection_objects import (
@@ -21,12 +21,20 @@ from yt.data_objects.selection_objects.data_selection_objects import (
 )
 from yt.fields.field_exceptions import NeedsGridType, NeedsOriginalGrid
 from yt.frontends.sph.data_structures import ParticleDataset
-from yt.funcs import get_memory_usage, is_sequence, iter_fields, mylog, only_on_root
+from yt.funcs import (
+    get_memory_usage,
+    is_sequence,
+    iter_fields,
+    mylog,
+    only_on_root,
+    validate_moment,
+)
 from yt.geometry import particle_deposit as particle_deposit
 from yt.geometry.coordinates.cartesian_coordinates import all_data
 from yt.loaders import load_uniform_grid
+from yt.units._numpy_wrapper_functions import uconcatenate
 from yt.units.unit_object import Unit  # type: ignore
-from yt.units.yt_array import YTArray, uconcatenate  # type: ignore
+from yt.units.yt_array import YTArray
 from yt.utilities.exceptions import (
     YTNoAPIKey,
     YTNotInsideNotebook,
@@ -49,6 +57,7 @@ from yt.utilities.lib.pixelization_routines import (
     pixelize_sph_kernel_arbitrary_grid,
 )
 from yt.utilities.lib.quad_tree import QuadTree
+from yt.utilities.math_utils import compute_stddev_image
 from yt.utilities.minimal_representation import MinimalProjectionData
 from yt.utilities.parallel_tools.parallel_analysis_interface import (
     communication_system,
@@ -177,18 +186,10 @@ class YTProj(YTSelectionContainer2D):
         field_parameters=None,
         max_level=None,
         *,
-        style=None,
+        moment=1,
     ):
         super().__init__(axis, ds, field_parameters)
-        if style is not None:
-            issue_deprecation_warning(
-                "The 'style' keyword argument is a deprecated alias for 'method'. "
-                "Please use method directly.",
-                since="3.2",
-                removal="4.2",
-                stacklevel=4,
-            )
-            method = style
+
         if method == "mip":
             issue_deprecation_warning(
                 "The 'mip' method value is a deprecated alias for 'max'. "
@@ -211,6 +212,8 @@ class YTProj(YTSelectionContainer2D):
             self.func = np.sum  # for the future
         else:
             raise NotImplementedError(self.method)
+        validate_moment(moment, weight_field)
+        self.moment = moment
         self._set_center(center)
         self._projected_units = {}
         if data_source is None:
@@ -243,12 +246,30 @@ class YTProj(YTSelectionContainer2D):
 
     def get_data(self, fields=None):
         fields = self._determine_fields(fields)
+        sfields = []
+        if self.moment == 2:
+
+            def _sq_field(field, data, fname: FieldKey):
+                return data[fname] ** 2
+
+            for field in fields:
+                fd = self.ds._get_field_info(field)
+                ftype, fname = field
+                self.ds.add_field(
+                    (ftype, f"tmp_{fname}_squared"),
+                    partial(_sq_field, fname=field),
+                    sampling_type=fd.sampling_type,
+                    units=f"({fd.units})*({fd.units})",
+                )
+                sfields.append((ftype, f"tmp_{fname}_squared"))
+        nfields = len(fields)
+        nsfields = len(sfields)
         # We need a new tree for every single set of fields we add
-        if len(fields) == 0:
+        if nfields == 0:
             return
         if isinstance(self.ds, ParticleDataset):
             return
-        tree = self._get_tree(len(fields))
+        tree = self._get_tree(nfields + nsfields)
         # This only needs to be done if we are in parallel; otherwise, we can
         # safely build the mesh as we go.
         if communication_system.communicators[-1].size > 1:
@@ -262,7 +283,7 @@ class YTProj(YTSelectionContainer2D):
                 if not _units_initialized:
                     self._initialize_projected_units(fields, chunk)
                     _units_initialized = True
-                self._handle_chunk(chunk, fields, tree)
+                self._handle_chunk(chunk, fields + sfields, tree)
         # if there's less than nprocs chunks, units won't be initialized
         # on all processors, so sync with _projected_units on rank 0
         projected_units = self.comm.mpi_bcast(self._projected_units)
@@ -316,14 +337,20 @@ class YTProj(YTSelectionContainer2D):
         data["pdy"] = self.ds.arr(pdy, code_length)
         data["fields"] = nvals
         # Now we run the finalizer, which is ignored if we don't need it
-        field_data = np.hsplit(data.pop("fields"), len(fields))
+        field_data = np.hsplit(data.pop("fields"), nfields + nsfields)
         for fi, field in enumerate(fields):
             mylog.debug("Setting field %s", field)
             input_units = self._projected_units[field]
-            self[field] = self.ds.arr(field_data[fi].ravel(), input_units)
+            fvals = field_data[fi].ravel()
+            if self.moment == 2:
+                fvals = compute_stddev_image(field_data[fi + nfields].ravel(), fvals)
+            self[field] = self.ds.arr(fvals, input_units)
         for i in list(data.keys()):
             self[i] = data.pop(i)
         mylog.info("Projection completed")
+        if self.moment == 2:
+            for field in sfields:
+                self.ds.field_info.pop(field)
         self.tree = tree
 
     def to_pw(self, fields=None, center="c", width=None, origin="center-window"):
@@ -364,7 +391,7 @@ class YTProj(YTSelectionContainer2D):
         for field in self.data_source._determine_fields(fields):
             if field in self._projected_units:
                 continue
-            finfo = self.ds._get_field_info(*field)
+            finfo = self.ds._get_field_info(field)
             if finfo.units is None:
                 # First time calling a units="auto" field, infer units and cache
                 # for future field accesses.
@@ -410,7 +437,7 @@ class YTParticleProj(YTProj):
         field_parameters=None,
         max_level=None,
         *,
-        style=None,
+        moment=1,
     ):
         super().__init__(
             field,
@@ -422,7 +449,7 @@ class YTParticleProj(YTProj):
             method,
             field_parameters,
             max_level,
-            style=style,
+            moment=moment,
         )
 
     def _handle_chunk(self, chunk, fields, tree):
@@ -481,6 +508,10 @@ class YTQuadTreeProj(YTProj):
     field_parameters : dict of items
         Values to be passed as field parameters that can be
         accessed by generated fields.
+    moment : integer, optional
+        for a weighted projection, moment = 1 (the default) corresponds to a
+        weighted average. moment = 2 corresponds to a weighted standard
+        deviation.
 
     Examples
     --------
@@ -504,7 +535,7 @@ class YTQuadTreeProj(YTProj):
         field_parameters=None,
         max_level=None,
         *,
-        style=None,
+        moment=1,
     ):
         super().__init__(
             field,
@@ -516,7 +547,7 @@ class YTQuadTreeProj(YTProj):
             method,
             field_parameters,
             max_level,
-            style=style,
+            moment=moment,
         )
 
         if not self.deserialize(field):
@@ -630,6 +661,9 @@ class YTCoveringGrid(YTSelectionContainer3D):
         A list of fields that you'd like pre-generated for your object
     num_ghost_zones : integer, optional
         The number of padding ghost zones used when accessing fields.
+    data_source :
+        An existing data object to intersect with the covering grid. Grid points
+        outside the data_source will exist as empty values.
 
     Examples
     --------
@@ -659,12 +693,14 @@ class YTCoveringGrid(YTSelectionContainer3D):
         num_ghost_zones=0,
         use_pbar=True,
         field_parameters=None,
+        *,
+        data_source=None,
     ):
         if field_parameters is None:
             center = None
         else:
             center = field_parameters.get("center", None)
-        YTSelectionContainer3D.__init__(self, center, ds, field_parameters)
+        super().__init__(center, ds, field_parameters, data_source=data_source)
 
         self.level = level
         self.left_edge = self._sanitize_edge(left_edge)
@@ -858,7 +894,17 @@ class YTCoveringGrid(YTSelectionContainer3D):
         return tuple(self.ActiveDimensions.tolist())
 
     def _setup_data_source(self):
-        self._data_source = self.ds.region(self.center, self.left_edge, self.right_edge)
+
+        reg = self.ds.region(self.center, self.left_edge, self.right_edge)
+        if self._data_source is None:
+            # note: https://github.com/yt-project/yt/pull/4063 implemented
+            # a data_source kwarg for YTCoveringGrid, but not YTArbitraryGrid
+            # so as of 4063, this will always be True for YTArbitraryGrid
+            # instances.
+            self._data_source = reg
+        else:
+            self._data_source = self.ds.intersection([self._data_source, reg])
+
         self._data_source.min_level = 0
         self._data_source.max_level = self.level
         # This triggers "special" behavior in the RegionSelector to ensure we
@@ -928,7 +974,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
         particles = []
         alias = {}
         for field in gen:
-            finfo = self.ds._get_field_info(*field)
+            finfo = self.ds._get_field_info(field)
             if finfo.is_alias:
                 alias[field] = finfo
                 continue
@@ -937,7 +983,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
             except NeedsOriginalGrid:
                 fill.append(field)
         for field in fill:
-            finfo = self.ds._get_field_info(*field)
+            finfo = self.ds._get_field_info(field)
             if finfo.sampling_type == "particle":
                 particles.append(field)
         gen = [f for f in gen if f not in fill and f not in alias]
@@ -949,6 +995,8 @@ class YTCoveringGrid(YTSelectionContainer3D):
             self[p] = self._data_source[p]
 
     def _fill_sph_particles(self, fields):
+        from tqdm import tqdm
+
         # checks that we have the field and gets information
         fields = [f for f in fields if f not in self.field_data]
         if len(fields) == 0:
@@ -1087,9 +1135,9 @@ class YTCoveringGrid(YTSelectionContainer3D):
                 replace_nonperiodic_with_extrap(
                     field, self._ncell_lo_extrap, self._ncell_hi_extrap
                 )
-        for name, v in zip(fields, output_fields):
-            fi = self.ds._get_field_info(*name)
-            self[name] = self.ds.arr(v, fi.units)
+        for field, v in zip(fields, output_fields):
+            fi = self.ds._get_field_info(field)
+            self[field] = self.ds.arr(v, fi.units)
 
     def _generate_container_field(self, field):
         rv = self.ds.arr(np.ones(self.ActiveDimensions, dtype="float64"), "")
@@ -1493,11 +1541,11 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
                 category=RuntimeWarning,
             )
             mylog.debug("Caught %d runtime errors.", runtime_errors_count)
-        for name, v in zip(fields, ls.fields):
+        for field, v in zip(fields, ls.fields):
             if self.level > 0:
                 v = v[1:-1, 1:-1, 1:-1]
-            fi = self.ds._get_field_info(*name)
-            self[name] = self.ds.arr(v, fi.units)
+            fi = self.ds._get_field_info(field)
+            self[field] = self.ds.arr(v, fi.units)
 
     def _initialize_level_state(self, fields):
         ls = LevelState()
@@ -2955,6 +3003,8 @@ class YTOctree(YTSelectionContainer3D):
         self[fields] = self.ds.arr(buff[~self[("index", "refined")]], units)
 
     def _scatter_smooth(self, fields, units, normalize):
+        from tqdm import tqdm
+
         buff = np.zeros(self.tree.num_nodes, dtype="float64")
 
         if normalize:

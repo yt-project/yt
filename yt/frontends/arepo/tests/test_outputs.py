@@ -3,7 +3,12 @@ import tempfile
 from collections import OrderedDict
 
 from yt.frontends.arepo.api import ArepoHDF5Dataset
-from yt.testing import ParticleSelectionComparison, requires_file
+from yt.testing import (
+    ParticleSelectionComparison,
+    assert_allclose_units,
+    requires_file,
+    requires_module,
+)
 from yt.utilities.answer_testing.framework import data_dir_load, requires_ds, sph_answer
 
 bullet_h5 = "ArepoBullet/snapshot_150.hdf5"
@@ -12,6 +17,7 @@ _tng59_bbox = [[40669.34, 56669.34], [45984.04, 61984.04], [54114.9, 70114.9]]
 cr_h5 = "ArepoCosmicRays/snapshot_039.hdf5"
 
 
+@requires_module("h5py")
 @requires_file(bullet_h5)
 def test_arepo_hdf5_selection():
     ds = data_dir_load(bullet_h5)
@@ -30,6 +36,7 @@ bullet_fields = OrderedDict(
 )
 
 
+@requires_module("h5py")
 @requires_ds(bullet_h5)
 def test_arepo_bullet():
     ds = data_dir_load(bullet_h5)
@@ -54,6 +61,7 @@ tng59_fields = OrderedDict(
 )
 
 
+@requires_module("h5py")
 @requires_ds(tng59_h5)
 def test_arepo_tng59():
     ds = data_dir_load(tng59_h5, kwargs={"bounding_box": _tng59_bbox})
@@ -62,6 +70,7 @@ def test_arepo_tng59():
         yield test
 
 
+@requires_module("h5py")
 @requires_ds(tng59_h5)
 def test_arepo_tng59_periodicity():
     ds1 = data_dir_load(tng59_h5)
@@ -70,11 +79,12 @@ def test_arepo_tng59_periodicity():
     assert ds2.periodicity == (False, False, False)
 
 
+@requires_module("h5py")
 @requires_ds(tng59_h5)
 def test_index_override():
     # This tests that we can supply an index_filename, and that when we do, it
     # doesn't get written if our bounding_box is overwritten.
-    tmpfd, tmpname = tempfile.mkstemp(suffix=".ewah")
+    tmpfd, tmpname = tempfile.mkstemp(suffix=".index6_4.ewah")
     os.close(tmpfd)
     ds = data_dir_load(
         tng59_h5, kwargs={"index_filename": tmpname, "bounding_box": _tng59_bbox}
@@ -84,6 +94,17 @@ def test_index_override():
     assert len(open(tmpname).read()) == 0
 
 
+@requires_module("h5py")
+@requires_file(tng59_h5)
+def test_nh_density():
+    ds = data_dir_load(tng59_h5, kwargs={"bounding_box": _tng59_bbox})
+    ad = ds.all_data()
+    assert_allclose_units(
+        ad["gas", "H_number_density"], (ad["gas", "H_nuclei_density"])
+    )
+
+
+@requires_module("h5py")
 @requires_file(tng59_h5)
 def test_arepo_tng59_selection():
     ds = data_dir_load(tng59_h5, kwargs={"bounding_box": _tng59_bbox})
@@ -100,6 +121,7 @@ cr_fields = OrderedDict(
 )
 
 
+@requires_module("h5py")
 @requires_ds(cr_h5)
 def test_arepo_cr():
     ds = data_dir_load(cr_h5)

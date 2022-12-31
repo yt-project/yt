@@ -15,6 +15,7 @@ from yt.testing import (
     fake_random_ds,
     fake_tetrahedral_ds,
     requires_file,
+    requires_module,
 )
 from yt.utilities.answer_testing.framework import (
     PlotWindowAttributeTest,
@@ -437,6 +438,7 @@ def test_text_callback():
         assert_fname(p.save(prefix)[0])
 
 
+@requires_module("h5py")
 @requires_file(cyl_2d)
 @requires_file(cyl_3d)
 def test_velocity_callback():
@@ -504,6 +506,7 @@ def test_velocity_callback_spherical():
         assert_raises(NotImplementedError, p.save, prefix)
 
 
+@requires_module("h5py")
 @requires_file(cyl_2d)
 @requires_file(cyl_3d)
 def test_magnetic_callback():
@@ -579,13 +582,13 @@ def test_magnetic_callback():
         p.annotate_magnetic_field(
             factor=8, scale=0.5, scale_units="inches", normalize=True
         )
-        assert_fname(slc.save(prefix)[0])
+        assert_fname(p.save(prefix)[0])
 
         p = ProjectionPlot(ds, "theta", ("gas", "density"))
         p.annotate_magnetic_field(
             factor=8, scale=0.5, scale_units="inches", normalize=True
         )
-        assert_fname(slc.save(prefix)[0])
+        assert_fname(p.save(prefix)[0])
 
         p = ProjectionPlot(ds, "r", ("gas", "density"))
         p.annotate_magnetic_field(
@@ -594,6 +597,7 @@ def test_magnetic_callback():
         assert_raises(NotImplementedError, p.save, prefix)
 
 
+@requires_module("h5py")
 @requires_file(cyl_2d)
 @requires_file(cyl_3d)
 def test_quiver_callback():
@@ -682,6 +686,7 @@ def test_quiver_callback_spherical():
         assert_fname(p.save(prefix)[0])
 
 
+@requires_module("h5py")
 @requires_file(cyl_2d)
 def test_contour_callback():
     with _cleanup_fname() as prefix:
@@ -764,6 +769,7 @@ def test_contour_callback():
         )
 
 
+@requires_module("h5py")
 @requires_file(cyl_2d)
 def test_grids_callback():
     with _cleanup_fname() as prefix:
@@ -819,6 +825,7 @@ def test_grids_callback():
         assert_raises(YTDataTypeUnsupported, p.annotate_grids, **kwargs)
 
 
+@requires_module("h5py")
 @requires_file(cyl_2d)
 def test_cell_edges_callback():
     with _cleanup_fname() as prefix:
@@ -870,6 +877,7 @@ def test_mesh_lines_callback():
         check_axis_manipulation(sl, prefix)  # only test the final field
 
 
+@requires_module("h5py")
 @requires_file(cyl_2d)
 @requires_file(cyl_3d)
 def test_streamline_callback():
@@ -965,6 +973,7 @@ def test_streamline_callback():
         )
 
 
+@requires_module("h5py")
 @requires_file(cyl_2d)
 @requires_file(cyl_3d)
 def test_line_integral_convolution_callback():

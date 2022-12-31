@@ -1,10 +1,10 @@
 import os
 import re
 import string
-import sys
 import time
 import weakref
 from collections import defaultdict
+from functools import cached_property
 
 import numpy as np
 from more_itertools import always_iterable
@@ -20,11 +20,6 @@ from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py, _libconf as libconf
 
 from .fields import EnzoFieldInfo
-
-if sys.version_info >= (3, 8):
-    from functools import cached_property
-else:
-    from yt._maintenance.backports import cached_property
 
 
 class EnzoGrid(AMRGridPatch):
@@ -154,10 +149,6 @@ class EnzoHierarchy(GridIndex):
     def __init__(self, ds, dataset_type):
 
         self.dataset_type = dataset_type
-        if ds.file_style is not None:
-            self._bn = ds.file_style
-        else:
-            self._bn = "%s.cpu%%04i"
         self.index_filename = os.path.abspath(f"{ds.parameter_filename}.hierarchy")
         if os.path.getsize(self.index_filename) == 0:
             raise OSError(-1, "File empty", self.index_filename)
@@ -684,7 +675,6 @@ class EnzoDataset(Dataset):
         self,
         filename,
         dataset_type=None,
-        file_style=None,
         parameter_override=None,
         conversion_override=None,
         storage_filename=None,
@@ -715,7 +705,6 @@ class EnzoDataset(Dataset):
             self,
             filename,
             dataset_type,
-            file_style=file_style,
             units_override=units_override,
             unit_system=unit_system,
             default_species_fields=default_species_fields,

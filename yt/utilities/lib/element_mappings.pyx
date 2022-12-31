@@ -750,11 +750,10 @@ cdef class W1Sampler3D(NonlinearSolveSampler3D):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int check_mesh_lines(self, double* mapped_coord) nogil:
-        cdef double r, s, t
+        cdef double r, s
         cdef double thresh = 5.0e-2
         r = mapped_coord[0]
         s = mapped_coord[1]
-        t = mapped_coord[2]
 
         cdef int near_edge_r, near_edge_s, near_edge_t
         near_edge_r = (r < thresh) or (fabs(r + s - 1.0) < thresh)
@@ -932,7 +931,6 @@ cdef class Q2Sampler2D(NonlinearSolveSampler2D):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef double sample_at_unit_point(self, double* coord, double* vals) nogil:
-        cdef double F, rm, rp, sm, sp
         cdef double[9] phi
         cdef double rv = 0
 

@@ -145,15 +145,24 @@ class IOHandlerBoxlib(BaseIOHandler):
                         rdata = np.fromfile(
                             f, pheader.real_type, pheader.num_real * npart
                         )
-                        x = np.asarray(rdata[0 :: pheader.num_real], dtype=np.float64)
-                        y = np.asarray(rdata[1 :: pheader.num_real], dtype=np.float64)
-                        if g.ds.dimensionality == 2:
-                            z = np.ones_like(y)
-                            z *= 0.5 * (g.LeftEdge[2] + g.RightEdge[2])
-                        else:
-                            z = np.asarray(
-                                rdata[2 :: pheader.num_real], dtype=np.float64
-                            )
+
+                        # Allow reading particles in 1, 2, and 3 dimensions,
+                        # setting the appropriate default for unused dimensions.
+                        pos = []
+                        for idim in [1, 2, 3]:
+                            if g.ds.dimensionality >= idim:
+                                pos.append(
+                                    np.asarray(
+                                        rdata[idim - 1 :: pheader.num_real],
+                                        dtype=np.float64,
+                                    )
+                                )
+                            else:
+                                center = 0.5 * (
+                                    g.LeftEdge[idim - 1] + g.RightEdge[idim - 1]
+                                )
+                                pos.append(np.full(npart, center, dtype=np.float64))
+                        x, y, z = pos
 
                         if selector is None:
                             # This only ever happens if the call is made from

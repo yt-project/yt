@@ -1,4 +1,4 @@
-import matplotlib.cm as cm
+import matplotlib as mpl
 
 import yt
 
@@ -8,7 +8,7 @@ ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 # Create projections using each colormap available.
 p = yt.ProjectionPlot(ds, "z", "density", weight_field="density", width=0.4)
 
-for cmap in cm.datad:
+for cmap in mpl.colormaps:
     if cmap.startswith("idl"):
         continue
     p.set_cmap(field="density", cmap=cmap)

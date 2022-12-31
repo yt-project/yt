@@ -1,8 +1,7 @@
 import glob
-import sys
 import weakref
 from collections import defaultdict
-from functools import partial
+from functools import cached_property, partial
 
 import numpy as np
 
@@ -20,11 +19,6 @@ from yt.geometry.particle_geometry_handler import ParticleIndex
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 from .fields import YTHaloCatalogFieldInfo, YTHaloCatalogHaloFieldInfo
-
-if sys.version_info >= (3, 8):
-    from functools import cached_property
-else:
-    from yt._maintenance.backports import cached_property
 
 
 class HaloCatalogFile(ParticleFile):
@@ -389,7 +383,7 @@ class YTHaloDataset(HaloDataset):
         pass
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(cls, *args, **kwargs):
         # We don't ever want this to be loaded by yt.load.
         return False
 

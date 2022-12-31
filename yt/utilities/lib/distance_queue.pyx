@@ -66,7 +66,6 @@ cdef class PriorityQueue:
     is because our typical use case is to store radii.
     """
     def __cinit__(self, int maxn):
-        cdef int i
         self.maxn = maxn
         self.curn = 0
         self.items = <ItemList *> malloc(

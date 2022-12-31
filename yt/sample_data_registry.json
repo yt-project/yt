@@ -41,11 +41,23 @@
     "load_name": "BigEndianGadgetBinary",
     "url": "https://yt-project.org/data/BigEndianGadgetBinary.tar.gz"
   },
+  "C15-3D-3deg.tar.gz": {
+    "hash": "b59a4ea80b3e5bf0c8fc1ab960241b23e8cba6d7346cab25d071d9a63c3be2b7",
+    "load_kwargs": {},
+    "load_name": "chimera_002715000_grid_1_01.h5",
+    "url": "https://yt-project.org/data/C15-3D-3deg.tar.gz"
+  },
   "CfRadialGrid.tar.gz": {
     "hash": "22a45b322773d4b2864ccab93c521d8e3d637d81c8d8c0852e1a67c7fa883e0c",
     "load_kwargs": {},
     "load_name": "grid1.nc",
     "url": "https://yt-project.org/data/CfRadialGrid.tar.gz"
+  },
+  "ChollaSimple.tar.gz": {
+    "hash": "aa277471f694f9de2e46c190efd8cd631c0694044aa29cb8431f127319774d73",
+    "load_kwargs": {},
+    "load_name": "0.h5",
+    "url": "https://yt-project.org/data/ChollaSimple.tar.gz"
   },
   "ClusterMerger.tar.gz": {
     "hash": "862a537bdecb8de363f20abec751665fd2b9208c29ae66331105cf848e7a0033",
@@ -130,6 +142,12 @@
     "load_kwargs": {},
     "load_name": "ExodusII/gold.e",
     "url": "https://yt-project.org/data/ExodusII_tests.tar.gz"
+  },
+  "F37_80.tar.gz": {
+    "hash": "ff0eeb2690ec53f25def74a346fdef07878e46d16424ce4f5d31d8c841408a46",
+    "load_kwargs": {},
+    "load_name": "chimera_00001_grid_1_01.h5",
+    "url": "https://yt-project.org/data/F37_80.tar.gz"
   },
   "FIRE_M12i_ref11.tar.gz": {
     "hash": "74488ca3158810ad76ed65bf43a5769b899b63d3985a9b43ff55bffd04bf3af2",

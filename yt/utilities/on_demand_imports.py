@@ -1,7 +1,7 @@
 import sys
 from functools import wraps
 from importlib.util import find_spec
-from typing import Type
+from typing import Optional, Type
 
 
 class NotAModule:
@@ -11,11 +11,27 @@ class NotAModule:
     package installed.
     """
 
-    def __init__(self, pkg_name):
+    def __init__(self, pkg_name, exc: Optional[BaseException] = None):
         self.pkg_name = pkg_name
-        self.error = ImportError(
-            f"This functionality requires the {self.pkg_name} package to be installed."
+        self._original_exception = exc
+        error_note = (
+            f"Something went wrong while trying to lazy-import {pkg_name}. "
+            f"Please make sure that {pkg_name} is properly installed.\n"
+            "If the problem persists, please file an issue at "
+            "https://github.com/yt-project/yt/issues/new"
         )
+        self.error: BaseException
+        if exc is None:
+            self.error = ImportError(error_note)
+        elif sys.version_info >= (3, 11):
+            exc.add_note(error_note)
+            self.error = exc
+        else:
+            # mimick Python 3.11 behaviour:
+            # preserve error message and traceback
+            self.error = type(exc)(f"{exc!s}\n{error_note}").with_traceback(
+                exc.__traceback__
+            )
 
     def __getattr__(self, item):
         raise self.error
@@ -24,7 +40,10 @@ class NotAModule:
         raise self.error
 
     def __repr__(self) -> str:
-        return f"NotAModule({self.pkg_name!r})"
+        if self._original_exception is None:
+            return f"NotAModule({self.pkg_name!r})"
+        else:
+            return f"NotAModule({self.pkg_name!r}, {self._original_exception!r})"
 
 
 class OnDemand:
@@ -57,8 +76,8 @@ def safe_import(func):
     def inner(self):
         try:
             return func(self)
-        except ImportError:
-            return self._default_factory(self._name)
+        except ImportError as exc:
+            return self._default_factory(self._name, exc)
 
     return inner
 
@@ -135,8 +154,26 @@ class astropy_imports(OnDemand):
         self.log
         return wcsaxes
 
+    @safe_import
+    def WCS(self):
+        from astropy.wcs import WCS
+
+        self.log
+        return WCS
+
 
 _astropy = astropy_imports()
+
+
+class regions_imports(OnDemand):
+    @safe_import
+    def Regions(self):
+        from regions import Regions
+
+        return Regions
+
+
+_regions = regions_imports()
 
 
 class NotCartopy(NotAModule):
@@ -158,13 +195,10 @@ class NotCartopy(NotAModule):
             )
         else:
             self.error = ImportError(
-                "This functionality requires the %s "
-                "package to be installed. Try installing proj4 and "
-                "geos with your package manager and building shapely "
-                "and cartopy from source with: \n \n "
-                "python -m pip install --no-binary :all: shapely cartopy \n \n"
-                "For further instruction please refer to the "
-                "yt documentation." % self.pkg_name
+                f"This functionality requires the {pkg_name} "
+                "package to be installed.\n"
+                "For further instruction please refer to Cartopy's documentation\n"
+                "https://scitools.org.uk/cartopy/docs/latest/installing.html"
             )
 
 
@@ -251,6 +285,15 @@ class scipy_imports(OnDemand):
         from scipy import ndimage
 
         return ndimage
+
+    # Optimize is not presently used by yt, but appears here to enable
+    # required functionality in yt extension, trident
+
+    @safe_import
+    def optimize(self):
+        from scipy import optimize
+
+        return optimize
 
 
 _scipy = scipy_imports()
@@ -446,21 +489,21 @@ class pandas_imports(OnDemand):
 _pandas = pandas_imports()
 
 
-class Firefly_imports(OnDemand):
+class firefly_imports(OnDemand):
     @safe_import
     def data_reader(self):
-        import Firefly.data_reader as data_reader
+        import firefly.data_reader as data_reader
 
         return data_reader
 
     @safe_import
     def server(self):
-        import Firefly.server as server
+        import firefly.server as server
 
         return server
 
 
-_firefly = Firefly_imports()
+_firefly = firefly_imports()
 
 
 # Note: ratarmount may fail with an OSError on import if libfuse is missing

@@ -19,11 +19,19 @@ class EnzoEIOHandler(BaseIOHandler):
             slice(self.ds.ghost_zones, -self.ds.ghost_zones),
         )
 
-        # Determine if particle masses are actually densities by the
-        # existence of the "mass_is_mass" particles parameter.
-        mass_flag = nested_dict_get(
-            self.ds.parameters, ("Particle", "mass_is_mass"), default=None
-        )
+        # Determine if particle masses are actually masses or densities.
+        if self.ds.parameters["version"] is not None:
+            # they're masses for enzo-e versions that record a version string
+            mass_flag = True
+        else:
+            # in earlier versions: query the existence of the "mass_is_mass"
+            # particle parameter
+            mass_flag = nested_dict_get(
+                self.ds.parameters, ("Particle", "mass_is_mass"), default=None
+            )
+        # the historic approach for initializing the value of "mass_is_mass"
+        # was unsound (and could yield a random value). Thus we should only
+        # check for the parameter's existence and not its value
         self._particle_mass_is_mass = mass_flag is not None
 
     def _read_field_names(self, grid):

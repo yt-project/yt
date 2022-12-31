@@ -1,8 +1,10 @@
 name: CodeTour watch
 
 on:
-    pull_request:
-        types: [opened, edited, synchronize, reopened]
+    # all triggers are temporarily switched off
+    # see https://github.com/yt-project/yt/issues/4213
+    #pull_request:
+    #    types: [opened, edited, synchronize, reopened]
 
 jobs:
     codetour-watch:

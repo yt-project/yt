@@ -2,23 +2,25 @@ import abc
 import weakref
 from collections import defaultdict
 from contextlib import contextmanager
-from typing import List, Tuple, Union
+from typing import TYPE_CHECKING, List, Optional, Tuple
 
 import numpy as np
 
+from yt._maintenance.deprecation import issue_deprecation_warning
+from yt._typing import AnyFieldKey, FieldKey, FieldName
 from yt.config import ytcfg
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.profiles import create_profile
 from yt.fields.field_exceptions import NeedsGridType
 from yt.frontends.ytdata.utilities import save_as_dataset
-from yt.funcs import get_output_filename, is_sequence, iter_fields, mylog
-from yt.units.yt_array import YTArray, YTQuantity, uconcatenate  # type: ignore
+from yt.funcs import get_output_filename, iter_fields, mylog
+from yt.units._numpy_wrapper_functions import uconcatenate
+from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.amr_kdtree.api import AMRKDTree
 from yt.utilities.exceptions import (
     YTCouldNotGenerateField,
     YTException,
     YTFieldNotFound,
-    YTFieldNotParseable,
     YTFieldTypeNotFound,
     YTNonIndexedDataContainer,
     YTSpatialFieldUnitError,
@@ -26,6 +28,9 @@ from yt.utilities.exceptions import (
 from yt.utilities.object_registries import data_object_registry
 from yt.utilities.on_demand_imports import _firefly as firefly
 from yt.utilities.parameter_file_storage import ParameterFileStore
+
+if TYPE_CHECKING:
+    from yt.data_objects.static_output import Dataset
 
 
 def sanitize_weight_field(ds, field, weight):
@@ -64,14 +69,14 @@ class YTDataContainer(abc.ABC):
     _num_ghost_zones = 0
     _con_args: Tuple[str, ...] = ()
     _skip_add = False
-    _container_fields: Tuple[Union[str, Tuple[str, str]], ...] = ()
+    _container_fields: Tuple[AnyFieldKey, ...] = ()
     _tds_attrs: Tuple[str, ...] = ()
     _tds_fields: Tuple[str, ...] = ()
     _field_cache = None
     _index = None
     _key_fields: List[str]
 
-    def __init__(self, ds, field_parameters):
+    def __init__(self, ds: Optional["Dataset"], field_parameters) -> None:
         """
         Typically this is never called directly, but only due to inheritance.
         It associates a :class:`~yt.data_objects.static_output.Dataset` with the class,
@@ -82,6 +87,8 @@ class YTDataContainer(abc.ABC):
         # Dataset._add_object_class but it can also be passed as a parameter to the
         # constructor, in which case it will override the default.
         # This code ensures it is never not set.
+
+        self.ds: "Dataset"
         if ds is not None:
             self.ds = ds
         else:
@@ -159,7 +166,7 @@ class YTDataContainer(abc.ABC):
         except AttributeError:
             return self.ds.arr(arr, units=units)
 
-    def _first_matching_field(self, field):
+    def _first_matching_field(self, field: FieldName) -> FieldKey:
         for ftype, fname in self.ds.derived_field_list:
             if fname == field:
                 return (ftype, fname)
@@ -267,10 +274,7 @@ class YTDataContainer(abc.ABC):
         try:
             rv = self.field_data[f]
         except KeyError:
-            if isinstance(f, tuple):
-                fi = self.ds._get_field_info(*f)
-            elif isinstance(f, bytes):
-                fi = self.ds._get_field_info("unknown", f)
+            fi = self.ds._get_field_info(f)
             rv = self.ds.arr(self.field_data[key], fi.units)
         return rv
 
@@ -293,7 +297,7 @@ class YTDataContainer(abc.ABC):
 
     def _generate_field(self, field):
         ftype, fname = field
-        finfo = self.ds._get_field_info(*field)
+        finfo = self.ds._get_field_info(field)
         with self._field_type_state(ftype, finfo):
             if fname in self._container_fields:
                 tr = self._generate_container_field(field)
@@ -307,8 +311,7 @@ class YTDataContainer(abc.ABC):
 
     def _generate_fluid_field(self, field):
         # First we check the validator
-        ftype, fname = field
-        finfo = self.ds._get_field_info(ftype, fname)
+        finfo = self.ds._get_field_info(field)
         if self._current_chunk is None or self._current_chunk.chunk_type != "spatial":
             gen_obj = self
         else:
@@ -323,7 +326,7 @@ class YTDataContainer(abc.ABC):
         return rv
 
     def _generate_spatial_fluid(self, field, ngz):
-        finfo = self.ds._get_field_info(*field)
+        finfo = self.ds._get_field_info(field)
         if finfo.units is None:
             raise YTSpatialFieldUnitError(field)
         units = finfo.units
@@ -380,7 +383,7 @@ class YTDataContainer(abc.ABC):
         else:
             gen_obj = self._current_chunk.objs[0]
         try:
-            finfo = self.ds._get_field_info(*field)
+            finfo = self.ds._get_field_info(field)
             finfo.check_available(gen_obj)
         except NeedsGridType as ngt_exception:
             if ngt_exception.ghost_zones != 0:
@@ -404,7 +407,7 @@ class YTDataContainer(abc.ABC):
                     ind += data.size
         else:
             with self._field_type_state(ftype, finfo, gen_obj):
-                rv = self.ds._get_field_info(*field)(gen_obj)
+                rv = self.ds._get_field_info(field)(gen_obj)
         return rv
 
     def _count_particles(self, ftype):
@@ -703,13 +706,16 @@ class YTDataContainer(abc.ABC):
 
     def create_firefly_object(
         self,
-        JSONdir,
+        datadir=None,
         fields_to_include=None,
         fields_units=None,
         default_decimation_factor=100,
         velocity_units="km/s",
         coordinate_units="kpc",
         show_unused_fields=0,
+        *,
+        JSONdir=None,
+        match_any_particle_types=True,
         **kwargs,
     ):
         r"""This function links a region of data stored in a yt dataset
@@ -719,11 +725,11 @@ class YTDataContainer(abc.ABC):
         Parameters
         ----------
 
-        JSONdir : string
+        datadir : string
             Path to where any `.json` files should be saved. If a relative
-            path will assume relative to `${HOME}`
+            path will assume relative to `${HOME}`. A value of `None` will default to `${HOME}/Data`.
 
-        fields_to_include : array_like of strings
+        fields_to_include : array_like of strings or field tuples
             A list of fields that you want to include in your
             Firefly visualization for on-the-fly filtering and
             colormapping.
@@ -736,7 +742,7 @@ class YTDataContainer(abc.ABC):
             not overtax a system. This is adjustable on a per particle group
             basis by changing the returned reader's
             `reader.particleGroup[i].decimation_factor` before calling
-            `reader.dumpToJSON()`.
+            `reader.writeToDisk()`.
 
         velocity_units : string
             The units that the velocity should be converted to in order to
@@ -749,6 +755,15 @@ class YTDataContainer(abc.ABC):
         show_unused_fields : boolean
             A flag to optionally print the fields that are available, in the
             dataset but were not explicitly requested to be tracked.
+
+        match_any_particle_types : boolean
+            If True, when any of the fields_to_include match multiple particle
+            groups then the field will be added for all matching particle
+            groups. If False, an error is raised when encountering an ambiguous
+            field. Default is True.
+
+        Any additional keyword arguments are passed to
+        firefly.data_reader.Reader.__init__
 
         Returns
         -------
@@ -775,9 +790,9 @@ class YTDataContainer(abc.ABC):
             ...     fields_units=["dimensionless", "dimensionless"],
             ... )
 
-            >>> reader.options["color"]["io"] = [1, 1, 0, 1]
+            >>> reader.settings["color"]["io"] = [1, 1, 0, 1]
             >>> reader.particleGroups[0].decimation_factor = 100
-            >>> reader.dumpToJSON()
+            >>> reader.writeToDisk()
         """
 
         ## handle default arguments
@@ -793,10 +808,57 @@ class YTDataContainer(abc.ABC):
         ## for safety, in case someone passes a float just cast it
         default_decimation_factor = int(default_decimation_factor)
 
+        if JSONdir is not None:
+            issue_deprecation_warning(
+                "The 'JSONdir' keyword argument is a deprecated alias for 'datadir'."
+                "Please use 'datadir' directly.",
+                since="4.1",
+            )
+            datadir = JSONdir
+
         ## initialize a firefly reader instance
         reader = firefly.data_reader.Reader(
-            JSONdir=JSONdir, clean_JSONdir=True, **kwargs
+            datadir=datadir, clean_datadir=True, **kwargs
         )
+
+        ## Ensure at least one field type contains every field requested
+        if match_any_particle_types:
+            # Need to keep previous behavior: single string field names that
+            # are ambiguous should bring in any matching ParticleGroups instead
+            # of raising an error
+            # This can be expanded/changed in the future to include field
+            # tuples containing some sort of special "any" ParticleGroup
+            unambiguous_fields_to_include = []
+            unambiguous_fields_units = []
+            for field, field_unit in zip(fields_to_include, fields_units):
+                if isinstance(field, tuple):
+                    # skip tuples, they'll be checked with _determine_fields
+                    unambiguous_fields_to_include.append(field)
+                    unambiguous_fields_units.append(field_unit)
+                    continue
+                _, candidates = self.ds._get_field_info_helper(field)
+                if len(candidates) == 1:
+                    # Field is unambiguous, add in tuple form
+                    # This should be equivalent to _tupleize_field
+                    unambiguous_fields_to_include.append(candidates[0])
+                    unambiguous_fields_units.append(field_unit)
+                else:
+                    # Field has multiple candidates, add all of them instead
+                    # of original field. Note this may bring in aliases and
+                    # equivalent particle fields
+                    for c in candidates:
+                        unambiguous_fields_to_include.append(c)
+                        unambiguous_fields_units.append(field_unit)
+            fields_to_include = unambiguous_fields_to_include
+            fields_units = unambiguous_fields_units
+        # error if any requested field is unknown or (still) ambiguous
+        # This is also sufficient if match_any_particle_types=False
+        fields_to_include = self._determine_fields(fields_to_include)
+        ## Also generate equivalent of particle_fields_by_type including
+        ## derived fields
+        kysd = defaultdict(list)
+        for k, v in self.ds.derived_field_list:
+            kysd[k].append(v)
 
         ## create a ParticleGroup object that contains *every* field
         for ptype in sorted(self.ds.particle_types_raw):
@@ -816,25 +878,28 @@ class YTDataContainer(abc.ABC):
                             "detected (but did not request) %s %s", ptype, field
                         )
 
-            ## you must have velocities (and they must be named "Velocities")
-            tracked_arrays = [
-                self[ptype, "relative_particle_velocity"].in_units(velocity_units)
-            ]
-            tracked_names = ["Velocities"]
+            field_arrays = []
+            field_names = []
 
             ## explicitly go after the fields we want
             for field, units in zip(fields_to_include, fields_units):
+                ## Only interested in fields with the current particle type,
+                ## whether that means general fields or field tuples
+                ftype, fname = field
+                if ftype not in (ptype, "all"):
+                    continue
+
                 ## determine if you want to take the log of the field for Firefly
                 log_flag = "log(" in units
 
                 ## read the field array from the dataset
-                this_field_array = self[ptype, field]
+                this_field_array = self[ptype, fname]
 
                 ## fix the units string and prepend 'log' to the field for
                 ##  the UI name
                 if log_flag:
                     units = units[len("log(") : -1]
-                    field = f"log{field}"
+                    fname = f"log{fname}"
 
                 ## perform the unit conversion and take the log if
                 ##  necessary.
@@ -843,14 +908,33 @@ class YTDataContainer(abc.ABC):
                     this_field_array = np.log10(this_field_array)
 
                 ## add this array to the tracked arrays
-                tracked_arrays += [this_field_array]
-                tracked_names = np.append(tracked_names, [field], axis=0)
+                field_arrays += [this_field_array]
+                field_names = np.append(field_names, [fname], axis=0)
 
             ## flag whether we want to filter and/or color by these fields
             ##  we'll assume yes for both cases, this can be changed after
             ##  the reader object is returned to the user.
-            tracked_filter_flags = np.ones(len(tracked_names))
-            tracked_colormap_flags = np.ones(len(tracked_names))
+            field_filter_flags = np.ones(len(field_names))
+            field_colormap_flags = np.ones(len(field_names))
+
+            ## field_* needs to be explicitly set None if empty
+            ## so that Firefly will correctly compute the binary
+            ## headers
+            if len(field_arrays) == 0:
+                if len(fields_to_include) > 0:
+                    mylog.warning("No additional fields specified for %s", ptype)
+                field_arrays = None
+                field_names = None
+                field_filter_flags = None
+                field_colormap_flags = None
+
+            ## Check if particles have velocities
+            if "relative_particle_velocity" in kysd[ptype]:
+                velocities = self[ptype, "relative_particle_velocity"].in_units(
+                    velocity_units
+                )
+            else:
+                velocities = None
 
             ## create a firefly ParticleGroup for this particle type
             pg = firefly.data_reader.ParticleGroup(
@@ -858,10 +942,11 @@ class YTDataContainer(abc.ABC):
                 coordinates=self[ptype, "relative_particle_position"].in_units(
                     coordinate_units
                 ),
-                tracked_arrays=tracked_arrays,
-                tracked_names=tracked_names,
-                tracked_filter_flags=tracked_filter_flags,
-                tracked_colormap_flags=tracked_colormap_flags,
+                velocities=velocities,
+                field_arrays=field_arrays,
+                field_names=field_names,
+                field_filter_flags=field_filter_flags,
+                field_colormap_flags=field_colormap_flags,
                 decimation_factor=default_decimation_factor,
             )
 
@@ -1014,7 +1099,8 @@ class YTDataContainer(abc.ABC):
         r"""Compute the minimum of a field.
 
         This will, in a parallel-aware fashion, compute the minimum of the
-        given field.  Supplying an axis is not currently supported.  If the max
+        given field. Supplying an axis will result in a return value of a
+        YTProjection, with method 'min' for minimum intensity.  If the min
         has already been requested, it will use the cached extrema value.
 
         Parameters
@@ -1026,12 +1112,13 @@ class YTDataContainer(abc.ABC):
 
         Returns
         -------
-        Scalar.
+        Either a scalar or a YTProjection.
 
         Examples
         --------
 
         >>> min_temp = reg.min(("gas", "temperature"))
+        >>> min_temp_proj = reg.min(("gas", "temperature"), axis=("index", "x"))
         """
         if axis is None:
             rv = tuple(self._compute_extrema(f)[0] for f in iter_fields(field))
@@ -1043,26 +1130,42 @@ class YTDataContainer(abc.ABC):
         else:
             raise NotImplementedError(f"Unknown axis {axis}")
 
-    def std(self, field, weight=None):
-        """Compute the standard deviation of a field.
+    def std(self, field, axis=None, weight=None):
+        """Compute the standard deviation of a field, optionally along
+        an axis, with a weight.
 
         This will, in a parallel-ware fashion, compute the standard
-        deviation of the given field.
+        deviation of the given field. If an axis is supplied, it
+        will return a projection, where the weight is also supplied.
+
+        By default the weight field will be "ones" or "particle_ones",
+        depending on the field, resulting in an unweighted standard
+        deviation.
 
         Parameters
         ----------
         field : string or tuple field name
             The field to calculate the standard deviation of
-        weight : string or tuple field name
-            The field to weight the standard deviation calculation
-            by. Defaults to unweighted if unset.
+        axis : string, optional
+            If supplied, the axis to compute the standard deviation
+            along (i.e., to project along)
+        weight : string, optional
+            The field to use as a weight.
 
         Returns
         -------
-        Scalar
+        Scalar or YTProjection.
         """
         weight_field = sanitize_weight_field(self.ds, field, weight)
-        return self.quantities.weighted_standard_deviation(field, weight_field)[0]
+        if axis in self.ds.coordinates.axis_name:
+            r = self.ds.proj(
+                field, axis, data_source=self, weight_field=weight_field, moment=2
+            )
+        elif axis is None:
+            r = self.quantities.weighted_standard_deviation(field, weight_field)[0]
+        else:
+            raise NotImplementedError(f"Unknown axis {axis}")
+        return r
 
     def ptp(self, field):
         r"""Compute the range of values (maximum - minimum) of a field.
@@ -1257,7 +1360,7 @@ class YTDataContainer(abc.ABC):
             raise NotImplementedError(f"Unknown axis {axis}")
         return r
 
-    def integrate(self, field, weight=None, axis=None):
+    def integrate(self, field, weight=None, axis=None, *, moment=1):
         r"""Compute the integral (projection) of a field along an axis.
 
         This projects a field along an axis.
@@ -1270,6 +1373,10 @@ class YTDataContainer(abc.ABC):
             The field to weight the projection by
         axis : string
             The axis to project along.
+        moment : integer, optional
+            for a weighted projection, moment = 1 (the default) corresponds to a
+            weighted average. moment = 2 corresponds to a weighted standard
+            deviation.
 
         Returns
         -------
@@ -1285,7 +1392,9 @@ class YTDataContainer(abc.ABC):
         else:
             weight_field = None
         if axis in self.ds.coordinates.axis_name:
-            r = self.ds.proj(field, axis, data_source=self, weight_field=weight_field)
+            r = self.ds.proj(
+                field, axis, data_source=self, weight_field=weight_field, moment=moment
+            )
         else:
             raise NotImplementedError(f"Unknown axis {axis}")
         return r
@@ -1378,49 +1487,6 @@ class YTDataContainer(abc.ABC):
         obj._current_particle_type = old_particle_type
         obj._current_fluid_type = old_fluid_type
 
-    def _tupleize_field(self, field):
-
-        try:
-            ftype, fname = field.name
-            return ftype, fname
-        except AttributeError:
-            pass
-
-        if is_sequence(field) and not isinstance(field, str):
-            try:
-                ftype, fname = field
-                if not all(isinstance(_, str) for _ in field):
-                    raise TypeError
-                return ftype, fname
-            except TypeError as e:
-                raise YTFieldNotParseable(field) from e
-            except ValueError:
-                pass
-
-        try:
-            fname = field
-            finfo = self.ds._get_field_info(field)
-            if finfo.sampling_type == "particle":
-                ftype = self._current_particle_type
-                if hasattr(self.ds, "_sph_ptypes"):
-                    ptypes = self.ds._sph_ptypes
-                    if finfo.name[0] in ptypes:
-                        ftype = finfo.name[0]
-                    elif finfo.is_alias and finfo.alias_name[0] in ptypes:
-                        ftype = self._current_fluid_type
-            else:
-                ftype = self._current_fluid_type
-                if (ftype, fname) not in self.ds.field_info:
-                    ftype = self.ds._last_freq[0]
-            return ftype, fname
-        except YTFieldNotFound:
-            pass
-
-        if isinstance(field, str):
-            return "unknown", field
-
-        raise YTFieldNotParseable(field)
-
     def _determine_fields(self, fields):
         if str(fields) in self.ds._determined_fields:
             return self.ds._determined_fields[str(fields)]
@@ -1430,10 +1496,8 @@ class YTDataContainer(abc.ABC):
                 explicit_fields.append(field)
                 continue
 
-            ftype, fname = self._tupleize_field(field)
-            # print(field, " : ",ftype, fname)
-            finfo = self.ds._get_field_info(ftype, fname)
-
+            finfo = self.ds._get_field_info(field)
+            ftype, fname = finfo.name
             # really ugly check to ensure that this field really does exist somewhere,
             # in some naming convention, before returning it as a possible field type
             if (

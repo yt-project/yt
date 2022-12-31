@@ -59,7 +59,7 @@ cdef np.uint64_t triangle_hash(np.int64_t tri[3]) nogil:
     cdef np.uint64_t h = 1
     for i in range(3):
         h *= (1779033703 + 2*tri[i])
-    return h / 2
+    return h // 2
 
 # should be enough, consider dynamic resizing in the future
 cdef np.int64_t TABLE_SIZE = 2**24

@@ -24,6 +24,7 @@ def setup():
     ytcfg["yt", "internals", "within_testing"] = True
 
 
+@requires_module("h5py")
 @requires_file(cyl_2d)
 @requires_file(cyl_3d)
 def test_covering_grid():
@@ -89,6 +90,59 @@ def test_covering_grid():
         upper_ad = ad.cut_region(["obj[('index', 'z')] > 0"])
         sp = ds.sphere((0, 0, 0), 0.5 * ds.domain_width[0], data_source=upper_ad)
         sp.quantities.total_mass()
+
+
+@requires_module("h5py")
+@requires_file(cyl_2d)
+@requires_file(cyl_3d)
+def test_covering_grid_data_source():
+    # test the data_source kwarg (new with PR 4063)
+
+    for level in [0, 1, 2]:
+        for nprocs in [1, 2, 4, 8]:
+            ds = fake_random_ds(16, nprocs=nprocs)
+            dn = ds.refine_by**level
+            cg = ds.covering_grid(level, [0.0, 0.0, 0.0], dn * ds.domain_dimensions)
+
+            # check that the regularized sphere is centered where it should be,
+            # to within the tolerance of the grid. Use a center offsect from
+            # the domain center by a bit
+            center = ds.domain_center + np.min(ds.domain_width) * 0.15
+            sp = ds.sphere(center, (0.1, "code_length"))
+            dims = dn * ds.domain_dimensions
+            cg_sp = ds.covering_grid(level, [0.0, 0.0, 0.0], dims, data_source=sp)
+
+            # find the discrete center of the sphere by averaging the position
+            # along each dimension where values are non-zero
+            cg_mask = cg_sp["gas", "density"] != 0
+            discrete_c = ds.arr(
+                [
+                    np.mean(cg_sp[("index", dim)][cg_mask])
+                    for dim in ds.coordinates.axis_order
+                ]
+            )
+
+            # should be centered to within the tolerance of the grid at least
+            grid_tol = ds.arr(
+                [cg_sp[("index", dim)][0, 0, 0] for dim in ds.coordinates.axis_order]
+            )
+            assert np.all(np.abs(discrete_c - center) <= grid_tol)
+
+            # check that a region covering the whole domain matches no data_source
+            reg = ds.region(ds.domain_center, ds.domain_left_edge, ds.domain_right_edge)
+            cg_reg = ds.covering_grid(level, [0.0, 0.0, 0.0], dims, data_source=reg)
+            assert np.all(cg[("gas", "density")] == cg_reg[("gas", "density")])
+
+            # check that a box covering a subset of the domain is the right volume
+            right_edge = ds.domain_left_edge + ds.domain_width * 0.5
+            c = (right_edge + ds.domain_left_edge) / 2
+            reg = ds.region(c, ds.domain_left_edge, right_edge)
+            cg_reg = ds.covering_grid(level, [0.0, 0.0, 0.0], dims, data_source=reg)
+            box_vol = cg_reg[("index", "cell_volume")][
+                cg_reg["gas", "density"] != 0
+            ].sum()
+            actual_vol = np.prod(right_edge - ds.domain_left_edge)
+            assert box_vol == actual_vol
 
 
 @requires_module("xarray")

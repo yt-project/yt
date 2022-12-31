@@ -5,15 +5,22 @@ from typing import List, Optional, Type, Union
 
 import matplotlib
 import numpy as np
+from matplotlib.colors import Normalize
 from more_itertools import always_iterable
-from packaging.version import Version
 from unyt.exceptions import UnitConversionError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
-from yt.config import ytcfg
 from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
-from yt.funcs import fix_axis, fix_unitary, is_sequence, iter_fields, mylog, obj_length
+from yt.funcs import (
+    fix_axis,
+    fix_unitary,
+    is_sequence,
+    iter_fields,
+    mylog,
+    obj_length,
+    validate_moment,
+)
 from yt.units.unit_object import Unit  # type: ignore
 from yt.units.unit_registry import UnitParseError  # type: ignore
 from yt.units.yt_array import YTArray, YTQuantity
@@ -26,10 +33,10 @@ from yt.utilities.exceptions import (
 )
 from yt.utilities.math_utils import ortho_find
 from yt.utilities.orientation import Orientation
-from yt.visualization.base_plot_types import CallbackWrapper
+from yt.visualization._handlers import ColorbarHandler, NormHandler
+from yt.visualization.base_plot_types import CallbackWrapper, ImagePlotMPL
 
-from ._commons import MPL_VERSION, _swap_axes_extents
-from .base_plot_types import ImagePlotMPL
+from ._commons import _swap_axes_extents, get_default_from_config
 from .fixed_resolution import (
     FixedResolutionBuffer,
     OffAxisProjectionFixedResolutionBuffer,
@@ -37,29 +44,17 @@ from .fixed_resolution import (
 from .geo_plot_utils import get_mpl_transform
 from .plot_container import (
     ImagePlotContainer,
-    get_log_minorticks,
-    get_symlog_minorticks,
     invalidate_data,
     invalidate_figure,
     invalidate_plot,
-    linear_transform,
-    log_transform,
-    symlog_transform,
 )
 
 import sys  # isort: skip
 
-if sys.version_info < (3, 10):
-    # this function is deprecated in more_itertools
-    # because it is superseded by the standard library
-    from more_itertools import zip_equal
+if sys.version_info >= (3, 10):
+    pass
 else:
-
-    def zip_equal(*args):
-        # FUTURE: when only Python 3.10+ is supported,
-        # drop this conditional and call the builtin zip
-        # function directly where due
-        return zip(*args, strict=True)
+    from yt._maintenance.backports import zip
 
 
 def get_window_parameters(axis, center, width, ds):
@@ -137,7 +132,7 @@ def validate_mesh_fields(data_source, fields):
         raise YTInvalidFieldType(invalid_fields)
 
 
-class PlotWindow(ImagePlotContainer):
+class PlotWindow(ImagePlotContainer, abc.ABC):
     r"""
     A plotting mechanism based around the concept of a window into a
     data source. It can have arbitrary fields, each of which will be
@@ -167,11 +162,6 @@ class PlotWindow(ImagePlotContainer):
     window_size : float
         The size of the window on the longest axis (in units of inches),
         including the margins but not the colorbar.
-    right_handed : boolean
-        Depreceated, please use flip_horizontal callback.
-        Whether the implicit east vector for the image generated is set to make a right
-        handed coordinate system with a north vector and the normal vector, the
-        direction of the 'window' into the data.
 
     """
 
@@ -184,7 +174,6 @@ class PlotWindow(ImagePlotContainer):
         periodic=True,
         origin="center-window",
         oblique=False,
-        right_handed=True,
         window_size=8.0,
         fields=None,
         fontsize=18,
@@ -192,7 +181,7 @@ class PlotWindow(ImagePlotContainer):
         setup=False,
         *,
         geometry="cartesian",
-    ):
+    ) -> None:
 
         # axis manipulation operations are callback-only:
         self._swap_axes_input = False
@@ -202,8 +191,7 @@ class PlotWindow(ImagePlotContainer):
         self.center = None
         self._periodic = periodic
         self.oblique = oblique
-        self._right_handed = _check_right_handed(right_handed, self._flip_horizontal)
-        self._equivalencies = defaultdict(lambda: (None, {}))
+        self._equivalencies = defaultdict(lambda: (None, {}))  # type: ignore [var-annotated]
         self.buff_size = buff_size
         self.antialias = antialias
         self._axes_unit_names = None
@@ -216,6 +204,7 @@ class PlotWindow(ImagePlotContainer):
         fields = list(iter_fields(fields))
         self.override_fields = list(set(fields).intersection(set(skip)))
         self.fields = [f for f in fields if f not in skip]
+        self._frb: Optional[FixedResolutionBuffer] = None
         super().__init__(data_source, window_size, fontsize)
 
         self._set_window(bounds)  # this automatically updates the data and plot
@@ -250,21 +239,30 @@ class PlotWindow(ImagePlotContainer):
             self._projection = get_mpl_transform(projection)
             self._transform = get_mpl_transform(transform)
 
-        for field in self.data_source._determine_fields(self.fields):
-            finfo = self.data_source.ds._get_field_info(*field)
-            if finfo.take_log:
-                self._field_transform[field] = log_transform
-            else:
-                self._field_transform[field] = linear_transform
-
-            log, linthresh = self._log_config[field]
-            if log is not None:
-                self.set_log(field, log, linthresh=linthresh)
-
-            # Access the dictionary to force the key to be created
-            self._units_config[field]
-
         self._setup_plots()
+
+        for field in self.data_source._determine_fields(self.fields):
+            finfo = self.data_source.ds._get_field_info(field)
+            pnh = self.plots[field].norm_handler
+            if finfo.take_log is False:
+                # take_log can be `None` so we explicitly compare against a boolean
+                pnh.norm_type = Normalize
+            else:
+                # do nothing, the norm handler is responsible for
+                # determining a viable norm, and defaults to LogNorm/SymLogNorm
+                pass
+
+            # override from user configuration if any
+            log, linthresh = get_default_from_config(
+                self.data_source,
+                field=field,
+                keys=["log", "linthresh"],
+                defaults=[None, None],
+            )
+            if linthresh is not None:
+                self.set_log(field, linthresh=linthresh)
+            elif log is not None:
+                self.set_log(field, log)
 
     def __iter__(self):
         for ds in self.ts:
@@ -276,8 +274,6 @@ class PlotWindow(ImagePlotContainer):
         for ds in self.ts.piter(*args, **kwargs):
             self._switch_ds(ds)
             yield self
-
-    _frb = None
 
     @property
     def frb(self):
@@ -309,6 +305,7 @@ class PlotWindow(ImagePlotContainer):
             old_filters = self._frb._filters
         # Set the bounds
         if hasattr(self, "zlim"):
+            # Support OffAxisProjectionPlot and OffAxisSlicePlot
             bounds = self.xlim + self.ylim + self.zlim
         else:
             bounds = self.xlim + self.ylim
@@ -324,53 +321,10 @@ class PlotWindow(ImagePlotContainer):
         )
 
         # At this point the frb has the valid bounds, size, aliasing, etc.
-        if old_fields is None:
-            self._frb._get_data_source_fields()
-
-            # New frb, apply default units (if any)
-            for field, field_unit in self._units_config.items():
-                if field_unit is None:
-                    continue
-
-                field_unit = Unit(field_unit, registry=self.ds.unit_registry)
-                is_projected = getattr(self, "projected", False)
-                if is_projected:
-                    # Obtain config
-                    path_length_units = Unit(
-                        ytcfg.get_most_specific(
-                            "plot", *field, "path_length_units", fallback="cm"
-                        ),
-                        registry=self.ds.unit_registry,
-                    )
-                    units = field_unit * path_length_units
-                else:
-                    units = field_unit
-                try:
-                    self.frb[field].convert_to_units(units)
-                except UnitConversionError:
-                    msg = (
-                        "Could not apply default units from configuration.\n"
-                        "Tried converting projected field %s from %s to %s, retaining units %s:\n"
-                        "\tgot units for field: %s"
-                    )
-                    args = [
-                        field,
-                        self.frb[field].units,
-                        units,
-                        field_unit,
-                        units,
-                    ]
-                    if is_projected:
-                        msg += "\n\tgot units for integration length: %s"
-                        args += [path_length_units]
-
-                    msg += "\nCheck your configuration file."
-
-                    mylog.error(msg, *args)
-        else:
+        if old_fields is not None:
             # Restore the old fields
             for key, units in zip(old_fields, old_units):
-                self._frb[key]
+                self._frb.render(key)
                 equiv = self._equivalencies[key]
                 if equiv[0] is None:
                     self._frb[key].convert_to_units(units)
@@ -379,7 +333,7 @@ class PlotWindow(ImagePlotContainer):
 
         # Restore the override fields
         for key in self.override_fields:
-            self._frb[key]
+            self._frb.render(key)
 
     @property
     def _has_swapped_axes(self):
@@ -497,7 +451,6 @@ class PlotWindow(ImagePlotContainer):
            The name of the field that is to be changed.
 
         new_unit : string or Unit object
-           The name of the new unit.
 
         equivalency : string, optional
            If set, the equivalency to use to convert the current units to
@@ -508,9 +461,11 @@ class PlotWindow(ImagePlotContainer):
            Keyword arguments to be passed to the equivalency. Only used if
            ``equivalency`` is set.
         """
-        for f, u in zip_equal(iter_fields(field), always_iterable(new_unit)):
+        for f, u in zip(iter_fields(field), always_iterable(new_unit), strict=True):
             self.frb.set_unit(f, u, equivalency, equivalency_kwargs)
             self._equivalencies[f] = (equivalency, equivalency_kwargs)
+            pnh = self.plots[f].norm_handler
+            pnh.display_units = u
         return self
 
     @invalidate_plot
@@ -568,7 +523,7 @@ class PlotWindow(ImagePlotContainer):
         Assumes that the underlying data has a PlateCarree transform type.
 
         To annotate the plot with coastlines or other annotations,
-        `_setup_plots()` will need to be called after this function
+        `render()` will need to be called after this function
         to make the axes available for annotation.
 
         Parameters
@@ -598,7 +553,7 @@ class PlotWindow(ImagePlotContainer):
         >>> ds = yt.load("")
         >>> p = yt.SlicePlot(ds, "altitude", "AIRDENS")
         >>> p.set_mpl_projection("AIRDENS", "Mollweide")
-        >>> p._setup_plots()
+        >>> p.render()
         >>> p.plots["AIRDENS"].axes.coastlines()
         >>> p.show()
 
@@ -611,7 +566,7 @@ class PlotWindow(ImagePlotContainer):
         >>> p.set_mpl_projection(
         ...     "AIRDENS", ("PlateCarree", (), {"central_longitude": 90, "globe": None})
         ... )
-        >>> p._setup_plots()
+        >>> p.render()
         >>> p.plots["AIRDENS"].axes.set_global()
         >>> p.plots["AIRDENS"].axes.coastlines()
         >>> p.show()
@@ -626,7 +581,7 @@ class PlotWindow(ImagePlotContainer):
         >>> ds = yt.load("")
         >>> p = yt.SlicePlot(ds, "altitude", "AIRDENS")
         >>> p.set_mpl_projection("RotatedPole", (177.5, 37.5))
-        >>> p._setup_plots()
+        >>> p.render()
         >>> p.plots["AIRDENS"].axes.set_global()
         >>> p.plots["AIRDENS"].axes.coastlines()
         >>> p.show()
@@ -641,7 +596,7 @@ class PlotWindow(ImagePlotContainer):
         >>> p.set_mpl_projection(
         ...     ("RotatedPole", (), {"pole_latitude": 37.5, "pole_longitude": 177.5})
         ... )
-        >>> p._setup_plots()
+        >>> p.render()
         >>> p.plots["AIRDENS"].axes.set_global()
         >>> p.plots["AIRDENS"].axes.coastlines()
         >>> p.show()
@@ -676,6 +631,7 @@ class PlotWindow(ImagePlotContainer):
             self.xlim = tuple(bounds[0:2])
             self.ylim = tuple(bounds[2:4])
             if len(bounds) == 6:
+                # Support OffAxisProjectionPlot and OffAxisSlicePlot
                 self.zlim = tuple(bounds[4:6])
         mylog.info("xlim = %f %f", self.xlim[0], self.xlim[1])
         mylog.info("ylim = %f %f", self.ylim[0], self.ylim[1])
@@ -848,24 +804,11 @@ class PlotWindow(ImagePlotContainer):
         return self
 
     @invalidate_plot
-    def toggle_right_handed(self):
-        issue_deprecation_warning(
-            "the toggle_right_handed method is deprecated, use `.flip_horizontal()` instead.",
-            since="4.1.0",
-            removal="4.2.0",
-        )
-        self.flip_horizontal()
-        return self
-
-    @invalidate_plot
     def flip_horizontal(self):
         """
         inverts the horizontal axis (the image's abscissa)
         """
         self._flip_horizontal = not self._flip_horizontal
-        self._right_handed = (
-            not self._right_handed
-        )  # keep in sync until full depreciation
         return self
 
     @invalidate_plot
@@ -906,13 +849,12 @@ class PWViewerMPL(PlotWindow):
     _frb_generator: Optional[Type[FixedResolutionBuffer]] = None
     _plot_type: Optional[str] = None
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         if self._frb_generator is None:
             self._frb_generator = kwargs.pop("frb_generator")
         if self._plot_type is None:
             self._plot_type = kwargs.pop("plot_type")
         self._splat_color = kwargs.pop("splat_color", None)
-        self._frb: Optional[FixedResolutionBuffer] = None
         PlotWindow.__init__(self, *args, **kwargs)
 
         # import type here to avoid import cycles
@@ -1115,72 +1057,28 @@ class PWViewerMPL(PlotWindow):
 
             extent = [*extentx, *extenty]
 
-            if f in self.plots.keys():
-                zlim = (self.plots[f].zmin, self.plots[f].zmax)
-            else:
-                zlim = (None, None)
-
             image = self.frb[f]
-            if self._field_transform[f] == log_transform:
-                msg = None
-                use_symlog = False
-                if zlim != (None, None):
-                    pass
-                elif np.nanmax(image) == np.nanmin(image):
-                    msg = f"Plotting {f}: All values = {np.nanmax(image)}"
-                elif np.nanmax(image) <= 0:
-                    msg = (
-                        f"Plotting {f}: All negative values. Max = {np.nanmax(image)}."
-                    )
-                    use_symlog = True
-                elif not np.any(np.isfinite(image)):
-                    msg = f"Plotting {f}: All values = NaN."
-                elif np.nanmax(image) > 0.0 and np.nanmin(image) <= 0:
-                    msg = (
-                        f"Plotting {f}: Both positive and negative values. "
-                        f"Min = {np.nanmin(image)}, Max = {np.nanmax(image)}."
-                    )
-                    use_symlog = True
-                elif (
-                    (Version("3.3") <= MPL_VERSION < Version("3.5"))
-                    and np.nanmax(image) > 0.0
-                    and np.nanmin(image) == 0
-                ):
-                    # normally, a LogNorm scaling would still be OK here because
-                    # LogNorm will mask 0 values when calculating vmin. But
-                    # due to a bug in matplotlib's imshow, if the data range
-                    # spans many orders of magnitude while containing zero points
-                    # vmin can get rescaled to 0, resulting in an error when the image
-                    # gets drawn. So here we switch to symlog to avoid that until
-                    # a fix is in -- see PR #3161 and linked issue.
-                    cutoff_sigdigs = 15
-                    if (
-                        np.log10(np.nanmax(image[np.isfinite(image)]))
-                        - np.log10(np.nanmin(image[image > 0]))
-                        > cutoff_sigdigs
-                    ):
-                        msg = f"Plotting {f}: Wide range and zeros."
-                        use_symlog = True
-                if msg is not None:
-                    mylog.warning(msg)
-                    if use_symlog:
-                        mylog.warning("Switching to symlog colorbar scaling.")
-                        self._field_transform[f] = symlog_transform
-                        self._field_transform[f].func = None
-                    else:
-                        mylog.warning("Switching to linear colorbar scaling.")
-                        self._field_transform[f] = linear_transform
-
             font_size = self._font_properties.get_size()
+
+            if f in self.plots.keys():
+                pnh = self.plots[f].norm_handler
+                cbh = self.plots[f].colorbar_handler
+            else:
+                pnh, cbh = self._get_default_handlers(
+                    field=f, default_display_units=image.units
+                )
+                if pnh.display_units != image.units:
+                    equivalency, equivalency_kwargs = self._equivalencies[f]
+                    image.convert_to_units(
+                        pnh.display_units, equivalency, **equivalency_kwargs
+                    )
 
             fig = None
             axes = None
             cax = None
-            draw_colorbar = True
             draw_axes = True
-            draw_frame = draw_axes
+            draw_frame = None
             if f in self.plots:
-                draw_colorbar = self.plots[f]._draw_colorbar
                 draw_axes = self.plots[f]._draw_axes
                 draw_frame = self.plots[f]._draw_frame
                 if self.plots[f].figure is not None:
@@ -1212,11 +1110,7 @@ class PWViewerMPL(PlotWindow):
 
             self.plots[f] = WindowPlotMPL(
                 ia,
-                self._field_transform[f].name,
-                self._field_transform[f].func,
-                self._colormap_config[f],
                 extent,
-                zlim,
                 self.figure_size,
                 font_size,
                 aspect,
@@ -1225,6 +1119,8 @@ class PWViewerMPL(PlotWindow):
                 cax,
                 self._projection,
                 self._transform,
+                norm_handler=pnh,
+                colorbar_handler=cbh,
             )
 
             axes_unit_labels = self._get_axes_unit_labels(unit_x, unit_y)
@@ -1282,16 +1178,14 @@ class PWViewerMPL(PlotWindow):
             self.plots[f].axes.set_xlabel(labels[0])
             self.plots[f].axes.set_ylabel(labels[1])
 
-            color = self._background_color[f]
-
-            self.plots[f].axes.set_facecolor(color)
-
             # Determine the units of the data
             units = Unit(self.frb[f].units, registry=self.ds.unit_registry)
             units = units.latex_representation()
 
             if colorbar_label is None:
                 colorbar_label = image.info["label"]
+                if getattr(self, "moment", 1) == 2:
+                    colorbar_label = "%s \\rm{Standard Deviation}" % colorbar_label
                 if hasattr(self, "projected"):
                     colorbar_label = "$\\rm{Projected }$ %s" % colorbar_label
                 if units is None or units == "":
@@ -1317,62 +1211,8 @@ class PWViewerMPL(PlotWindow):
             else:
                 self.plots[f].axes.minorticks_off()
 
-            # colorbar minorticks
-            if f not in self._cbar_minorticks:
-                self._cbar_minorticks[f] = True
-
-            if self._cbar_minorticks[f]:
-                vmin = np.float64(self.plots[f].cb.norm.vmin)
-                vmax = np.float64(self.plots[f].cb.norm.vmax)
-
-                if self._field_transform[f] == linear_transform:
-                    self.plots[f].cax.minorticks_on()
-
-                elif self._field_transform[f] == symlog_transform:
-                    if Version("3.2.0") <= MPL_VERSION < Version("3.5.0b"):
-                        # no known working method to draw symlog minor ticks
-                        # see https://github.com/yt-project/yt/issues/3535
-                        pass
-                    else:
-                        flinthresh = 10 ** np.floor(
-                            np.log10(self.plots[f].cb.norm.linthresh)
-                        )
-                        absmax = np.abs((vmin, vmax)).max()
-                        if (absmax - flinthresh) / absmax < 0.1:
-                            flinthresh /= 10
-                        mticks = get_symlog_minorticks(flinthresh, vmin, vmax)
-                        if MPL_VERSION < Version("3.5.0b"):
-                            # https://github.com/matplotlib/matplotlib/issues/21258
-                            mticks = self.plots[f].image.norm(mticks)
-                        self.plots[f].cax.yaxis.set_ticks(mticks, minor=True)
-
-                elif self._field_transform[f] == log_transform:
-                    if MPL_VERSION >= Version("3.0.0"):
-                        self.plots[f].cax.minorticks_on()
-                        self.plots[f].cax.xaxis.set_visible(False)
-                    else:
-                        mticks = self.plots[f].image.norm(
-                            get_log_minorticks(vmin, vmax)
-                        )
-                        self.plots[f].cax.yaxis.set_ticks(mticks, minor=True)
-
-                else:
-                    mylog.error(
-                        "Unable to draw cbar minorticks for field "
-                        "%s with transform %s ",
-                        f,
-                        self._field_transform[f],
-                    )
-                    self._cbar_minorticks[f] = False
-
-            if not self._cbar_minorticks[f]:
-                self.plots[f].cax.minorticks_off()
-
             if not draw_axes:
                 self.plots[f]._toggle_axes(draw_axes, draw_frame)
-
-            if not draw_colorbar:
-                self.plots[f]._toggle_colorbar(draw_colorbar)
 
         self._set_font_properties()
         self.run_callbacks()
@@ -1525,9 +1365,10 @@ class PWViewerMPL(PlotWindow):
         return fig
 
 
-class NormalPlot(abc.ABC):
+class NormalPlot:
     """This is the abstraction for SlicePlot and ProjectionPlot, where
     we define the common sanitizing mechanism for user input (normal direction).
+    It is implemented as a mixin class.
     """
 
     @staticmethod
@@ -1579,33 +1420,6 @@ class NormalPlot(abc.ABC):
             return axis_names[nonzero_idx[0]]
 
         return retv
-
-    @staticmethod
-    def _validate_init_args(*, normal, axis, fields) -> None:
-        # TODO: remove this method in yt 4.2
-
-        if axis is not None:
-            issue_deprecation_warning(
-                "Argument 'axis' is a deprecated alias for 'normal'.",
-                since="4.1.0",
-                removal="4.2.0",
-            )
-            if normal is not None:
-                raise TypeError("Received incompatible arguments 'axis' and 'normal'")
-            normal = axis
-
-        if normal is fields is None:
-            raise TypeError(
-                "missing 2 required positional arguments: 'normal' and 'fields'"
-            )
-
-        if fields is None:
-            raise TypeError("missing required positional argument: 'fields'")
-
-        if normal is None:
-            raise TypeError("missing required positional argument: 'normal'")
-
-        return normal
 
 
 class SlicePlot(NormalPlot):
@@ -1754,11 +1568,8 @@ class SlicePlot(NormalPlot):
     # on the pathlib.Path class from the standard library
     # https://github.com/python/mypy/issues/1020
     def __new__(  # type: ignore
-        cls, ds, normal=None, fields=None, *args, axis=None, **kwargs
+        cls, ds, normal, fields, *args, **kwargs
     ) -> Union["AxisAlignedSlicePlot", "OffAxisSlicePlot"]:
-        # TODO: in yt 4.2, remove default values for normal and fields, drop axis kwarg
-        normal = cls._validate_init_args(normal=normal, axis=axis, fields=fields)
-
         if cls is SlicePlot:
             normal = cls.sanitize_normal_vector(ds, normal)
             if isinstance(normal, str):
@@ -1766,7 +1577,7 @@ class SlicePlot(NormalPlot):
             else:
                 cls = OffAxisSlicePlot
         self = object.__new__(cls)
-        return self
+        return self  # type: ignore [return-value]
 
 
 class ProjectionPlot(NormalPlot):
@@ -1818,10 +1629,8 @@ class ProjectionPlot(NormalPlot):
     # on the pathlib.Path class from the standard library
     # https://github.com/python/mypy/issues/1020
     def __new__(  # type: ignore
-        cls, ds, normal=None, fields=None, *args, axis=None, **kwargs
+        cls, ds, normal, fields, *args, **kwargs
     ) -> Union["AxisAlignedProjectionPlot", "OffAxisProjectionPlot"]:
-        # TODO: in yt 4.2, remove default values for normal and fields, drop axis kwarg
-        normal = cls._validate_init_args(normal=normal, axis=axis, fields=fields)
 
         if cls is ProjectionPlot:
             normal = cls.sanitize_normal_vector(ds, normal)
@@ -1830,7 +1639,7 @@ class ProjectionPlot(NormalPlot):
             else:
                 cls = OffAxisProjectionPlot
         self = object.__new__(cls)
-        return self
+        return self  # type: ignore [return-value]
 
 
 class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
@@ -1921,11 +1730,6 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
          Defaults to None, which automatically picks an appropriate unit.
          If axes_unit is '1', 'u', or 'unitary', it will not display the
          units, and only show the axes name.
-    right_handed : boolean
-        Depreceated, please use flip_horizontal callback.
-        Whether the implicit east vector for the image generated is set to make a right
-        handed coordinate system with a north vector and the normal vector, the
-        direction of the 'window' into the data.
     fontsize : integer
          The size of the fonts for the axis, colorbar, and tick labels.
     field_parameters : dictionary
@@ -1956,13 +1760,12 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
     def __init__(
         self,
         ds,
-        normal=None,
-        fields=None,
+        normal,
+        fields,
         center="c",
         width=None,
         axes_unit=None,
         origin="center-window",
-        right_handed=True,
         fontsize=18,
         field_parameters=None,
         window_size=8.0,
@@ -1971,9 +1774,7 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
         buff_size=(800, 800),
         *,
         north_vector=None,
-        axis=None,
     ):
-        # TODO: in yt 4.2, remove default values for normal and fields, drop axis kwarg
         if north_vector is not None:
             # this kwarg exists only for symmetry reasons with OffAxisSlicePlot
             mylog.warning(
@@ -1982,11 +1783,6 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
             )
             del north_vector
 
-        normal = self._validate_init_args(
-            normal=normal,
-            axis=axis,
-            fields=fields,
-        )
         normal = self.sanitize_normal_vector(ds, normal)
         # this will handle time series data and controllers
         axis = fix_axis(normal, ds)
@@ -2020,7 +1816,6 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
             fields=fields,
             window_size=window_size,
             aspect=aspect,
-            right_handed=right_handed,
             buff_size=buff_size,
             geometry=ds.geometry,
         )
@@ -2045,124 +1840,123 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
         This is the dataset object corresponding to the
         simulation output to be plotted.
     normal : int or one of 'x', 'y', 'z'
-         An int corresponding to the axis to slice along (0=x, 1=y, 2=z)
-         or the axis name itself
+        An int corresponding to the axis to slice along (0=x, 1=y, 2=z)
+        or the axis name itself
     fields : string
-         The name of the field(s) to be plotted.
+        The name of the field(s) to be plotted.
     center : A sequence of floats, a string, or a tuple.
-         The coordinate of the center of the image. If set to 'c', 'center' or
-         left blank, the plot is centered on the middle of the domain. If set to
-         'max' or 'm', the center will be located at the maximum of the
-         ('gas', 'density') field. Centering on the max or min of a specific
-         field is supported by providing a tuple such as ("min","temperature") or
-         ("max","dark_matter_density"). Units can be specified by passing in *center*
-         as a tuple containing a coordinate and string unit name or by passing
-         in a YTArray. If a list or unitless array is supplied, code units are
-         assumed.
+        The coordinate of the center of the image. If set to 'c', 'center' or
+        left blank, the plot is centered on the middle of the domain. If set to
+        'max' or 'm', the center will be located at the maximum of the
+        ('gas', 'density') field. Centering on the max or min of a specific
+        field is supported by providing a tuple such as ("min","temperature") or
+        ("max","dark_matter_density"). Units can be specified by passing in *center*
+        as a tuple containing a coordinate and string unit name or by passing
+        in a YTArray. If a list or unitless array is supplied, code units are
+        assumed.
     width : tuple or a float.
-         Width can have four different formats to support windows with variable
-         x and y widths.  They are:
+        Width can have four different formats to support windows with variable
+        x and y widths.  They are:
 
-         ==================================     =======================
-         format                                 example
-         ==================================     =======================
-         (float, string)                        (10,'kpc')
-         ((float, string), (float, string))     ((10,'kpc'),(15,'kpc'))
-         float                                  0.2
-         (float, float)                         (0.2, 0.3)
-         ==================================     =======================
+        ==================================     =======================
+        format                                 example
+        ==================================     =======================
+        (float, string)                        (10,'kpc')
+        ((float, string), (float, string))     ((10,'kpc'),(15,'kpc'))
+        float                                  0.2
+        (float, float)                         (0.2, 0.3)
+        ==================================     =======================
 
-         For example, (10, 'kpc') requests a plot window that is 10 kiloparsecs
-         wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a
-         window that is 10 kiloparsecs wide along the x axis and 15
-         kiloparsecs wide along the y axis.  In the other two examples, code
-         units are assumed, for example (0.2, 0.3) requests a plot that has an
-         x width of 0.2 and a y width of 0.3 in code units.  If units are
-         provided the resulting plot axis labels will use the supplied units.
+        For example, (10, 'kpc') requests a plot window that is 10 kiloparsecs
+        wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a
+        window that is 10 kiloparsecs wide along the x axis and 15
+        kiloparsecs wide along the y axis.  In the other two examples, code
+        units are assumed, for example (0.2, 0.3) requests a plot that has an
+        x width of 0.2 and a y width of 0.3 in code units.  If units are
+        provided the resulting plot axis labels will use the supplied units.
     axes_unit : string
-         The name of the unit for the tick labels on the x and y axes.
-         Defaults to None, which automatically picks an appropriate unit.
-         If axes_unit is '1', 'u', or 'unitary', it will not display the
-         units, and only show the axes name.
+        The name of the unit for the tick labels on the x and y axes.
+        Defaults to None, which automatically picks an appropriate unit.
+        If axes_unit is '1', 'u', or 'unitary', it will not display the
+        units, and only show the axes name.
     origin : string or length 1, 2, or 3 sequence.
-         The location of the origin of the plot coordinate system. This
-         is typically represented by a '-' separated string or a tuple of
-         strings. In the first index the y-location is given by 'lower',
-         'upper', or 'center'. The second index is the x-location, given as
-         'left', 'right', or 'center'. Finally, whether the origin is
-         applied in 'domain' space, plot 'window' space or 'native'
-         simulation coordinate system is given. For example, both
-         'upper-right-domain' and ['upper', 'right', 'domain'] place the
-         origin in the upper right hand corner of domain space. If x or y
-         are not given, a value is inferred. For instance, 'left-domain'
-         corresponds to the lower-left hand corner of the simulation domain,
-         'center-domain' corresponds to the center of the simulation domain,
-         or 'center-window' for the center of the plot window. In the event
-         that none of these options place the origin in a desired location,
-         a sequence of tuples and a string specifying the
-         coordinate space can be given. If plain numeric types are input,
-         units of `code_length` are assumed. Further examples:
+        The location of the origin of the plot coordinate system. This
+        is typically represented by a '-' separated string or a tuple of
+        strings. In the first index the y-location is given by 'lower',
+        'upper', or 'center'. The second index is the x-location, given as
+        'left', 'right', or 'center'. Finally, whether the origin is
+        applied in 'domain' space, plot 'window' space or 'native'
+        simulation coordinate system is given. For example, both
+        'upper-right-domain' and ['upper', 'right', 'domain'] place the
+        origin in the upper right hand corner of domain space. If x or y
+        are not given, a value is inferred. For instance, 'left-domain'
+        corresponds to the lower-left hand corner of the simulation domain,
+        'center-domain' corresponds to the center of the simulation domain,
+        or 'center-window' for the center of the plot window. In the event
+        that none of these options place the origin in a desired location,
+        a sequence of tuples and a string specifying the
+        coordinate space can be given. If plain numeric types are input,
+        units of `code_length` are assumed. Further examples:
 
-         =============================================== ===============================
-         format                                          example
-         =============================================== ===============================
-         '{space}'                                       'domain'
-         '{xloc}-{space}'                                'left-window'
-         '{yloc}-{space}'                                'upper-domain'
-         '{yloc}-{xloc}-{space}'                         'lower-right-window'
-         ('{space}',)                                    ('window',)
-         ('{xloc}', '{space}')                           ('right', 'domain')
-         ('{yloc}', '{space}')                           ('lower', 'window')
-         ('{yloc}', '{xloc}', '{space}')                 ('lower', 'right', 'window')
-         ((yloc, '{unit}'), (xloc, '{unit}'), '{space}') ((0, 'm'), (.4, 'm'), 'window')
-         (xloc, yloc, '{space}')                            (0.23, 0.5, 'domain')
-         =============================================== ===============================
+        =============================================== ===============================
+        format                                          example
+        =============================================== ===============================
+        '{space}'                                       'domain'
+        '{xloc}-{space}'                                'left-window'
+        '{yloc}-{space}'                                'upper-domain'
+        '{yloc}-{xloc}-{space}'                         'lower-right-window'
+        ('{space}',)                                    ('window',)
+        ('{xloc}', '{space}')                           ('right', 'domain')
+        ('{yloc}', '{space}')                           ('lower', 'window')
+        ('{yloc}', '{xloc}', '{space}')                 ('lower', 'right', 'window')
+        ((yloc, '{unit}'), (xloc, '{unit}'), '{space}') ((0, 'm'), (.4, 'm'), 'window')
+        (xloc, yloc, '{space}')                            (0.23, 0.5, 'domain')
+        =============================================== ===============================
 
-    right_handed : boolean
-        Depreceated, please use flip_horizontal callback.
-        Whether the implicit east vector for the image generated is set to make a right
-        handed coordinate system with a north vector and the normal vector, the
-        direction of the 'window' into the data.
     data_source : YTSelectionContainer Object
-         Object to be used for data selection.  Defaults to a region covering
-         the entire simulation.
+        Object to be used for data selection.  Defaults to a region covering
+        the entire simulation.
     weight_field : string
-         The name of the weighting field.  Set to None for no weight.
+        The name of the weighting field.  Set to None for no weight.
     max_level: int
-         The maximum level to project to.
+        The maximum level to project to.
     fontsize : integer
-         The size of the fonts for the axis, colorbar, and tick labels.
+        The size of the fonts for the axis, colorbar, and tick labels.
     method : string
-         The method of projection.  Valid methods are:
+        The method of projection.  Valid methods are:
 
-         "integrate" with no weight_field specified : integrate the requested
-         field along the line of sight.
+        "integrate" with no weight_field specified : integrate the requested
+        field along the line of sight.
 
-         "integrate" with a weight_field specified : weight the requested
-         field by the weighting field and integrate along the line of sight.
+        "integrate" with a weight_field specified : weight the requested
+        field by the weighting field and integrate along the line of sight.
 
-         "max" : pick out the maximum value of the field in the line of sight.
-         "min" : pick out the minimum value of the field in the line of sight.
+        "max" : pick out the maximum value of the field in the line of sight.
+        "min" : pick out the minimum value of the field in the line of sight.
 
-         "sum" : This method is the same as integrate, except that it does not
-         multiply by a path length when performing the integration, and is
-         just a straight summation of the field along the given axis. WARNING:
-         This should only be used for uniform resolution grid datasets, as other
-         datasets may result in unphysical images.
+        "sum" : This method is the same as integrate, except that it does not
+        multiply by a path length when performing the integration, and is
+        just a straight summation of the field along the given axis. WARNING:
+        This should only be used for uniform resolution grid datasets, as other
+        datasets may result in unphysical images.
     window_size : float
-         The size of the window in inches. Set to 8 by default.
+        The size of the window in inches. Set to 8 by default.
     aspect : float
-         The aspect ratio of the plot.  Set to None for 1.
+        The aspect ratio of the plot.  Set to None for 1.
     field_parameters : dictionary
-         A dictionary of field parameters than can be accessed by derived
-         fields.
+        A dictionary of field parameters than can be accessed by derived
+        fields.
     data_source: YTSelectionContainer object
-         Object to be used for data selection. Defaults to ds.all_data(), a
-         region covering the full domain
+        Object to be used for data selection. Defaults to ds.all_data(), a
+        region covering the full domain
     buff_size: length 2 sequence
-         Size of the buffer to use for the image, i.e. the number of resolution elements
-         used.  Effectively sets a resolution limit to the image if buff_size is
-         smaller than the finest gridding.
+        Size of the buffer to use for the image, i.e. the number of resolution elements
+        used. Effectively sets a resolution limit to the image if buff_size is
+        smaller than the finest gridding.
+    moment : integer, optional
+        for a weighted projection, moment = 1 (the default) corresponds to a
+        weighted average. moment = 2 corresponds to a weighted standard
+        deviation.
 
     Examples
     --------
@@ -2181,15 +1975,14 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
     def __init__(
         self,
         ds,
-        normal=None,
-        fields=None,
+        normal,
+        fields,
         center="c",
         width=None,
         axes_unit=None,
         weight_field=None,
         max_level=None,
         origin="center-window",
-        right_handed=True,
         fontsize=18,
         field_parameters=None,
         data_source=None,
@@ -2198,7 +1991,7 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
         buff_size=(800, 800),
         aspect=None,
         *,
-        axis=None,
+        moment=1,
     ):
         if method == "mip":
             issue_deprecation_warning(
@@ -2207,8 +2000,6 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
                 since="4.1.0",
             )
             method = "max"
-        # TODO: in yt 4.2, remove default values for normal and fields, drop axis kwarg
-        normal = self._validate_init_args(normal=normal, fields=fields, axis=axis)
         normal = self.sanitize_normal_vector(ds, normal)
 
         axis = fix_axis(normal, ds)
@@ -2248,14 +2039,15 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
                 field_parameters=field_parameters,
                 method=method,
                 max_level=max_level,
+                moment=moment,
             )
+        self.moment = moment
         PWViewerMPL.__init__(
             self,
             proj,
             bounds,
             fields=fields,
             origin=origin,
-            right_handed=right_handed,
             fontsize=fontsize,
             window_size=window_size,
             aspect=aspect,
@@ -2325,11 +2117,6 @@ class OffAxisSlicePlot(SlicePlot, PWViewerMPL):
          A vector defining the 'up' direction in the plot.  This
          option sets the orientation of the slicing plane.  If not
          set, an arbitrary grid-aligned north-vector is chosen.
-    right_handed : boolean
-        Depreceated, please use flip_horizontal callback.
-        Whether the implicit east vector for the image generated is set to make a right
-        handed coordinate system with a north vector and the normal vector, the
-        direction of the 'window' into the data.
     fontsize : integer
          The size of the fonts for the axis, colorbar, and tick labels.
     field_parameters : dictionary
@@ -2357,7 +2144,6 @@ class OffAxisSlicePlot(SlicePlot, PWViewerMPL):
         width=None,
         axes_unit=None,
         north_vector=None,
-        right_handed=True,
         fontsize=18,
         field_parameters=None,
         data_source=None,
@@ -2407,7 +2193,6 @@ class OffAxisSlicePlot(SlicePlot, PWViewerMPL):
             fields=fields,
             origin="center-window",
             periodic=False,
-            right_handed=right_handed,
             oblique=True,
             fontsize=fontsize,
             buff_size=buff_size,
@@ -2437,7 +2222,10 @@ class OffAxisProjectionDummyDataSource:
         north_vector=None,
         method="integrate",
         data_source=None,
+        *,
+        moment=1,
     ):
+        validate_moment(moment, weight)
         self.center = center
         self.ds = ds
         self.axis = 4  # always true for oblique data objects
@@ -2460,6 +2248,7 @@ class OffAxisProjectionDummyDataSource:
         self.north_vector = north_vector
         self.method = method
         self.orienter = Orientation(normal_vector, north_vector=north_vector)
+        self.moment = moment
 
     def _determine_fields(self, *args):
         return self.dd._determine_fields(*args)
@@ -2485,80 +2274,79 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
     fields : string
         The name of the field(s) to be plotted.
     center : A sequence of floats, a string, or a tuple.
-         The coordinate of the center of the image. If set to 'c', 'center' or
-         left blank, the plot is centered on the middle of the domain. If set to
-         'max' or 'm', the center will be located at the maximum of the
-         ('gas', 'density') field. Centering on the max or min of a specific
-         field is supported by providing a tuple such as ("min","temperature") or
-         ("max","dark_matter_density"). Units can be specified by passing in *center*
-         as a tuple containing a coordinate and string unit name or by passing
-         in a YTArray. If a list or unitless array is supplied, code units are
-         assumed.
+        The coordinate of the center of the image. If set to 'c', 'center' or
+        left blank, the plot is centered on the middle of the domain. If set to
+        'max' or 'm', the center will be located at the maximum of the
+        ('gas', 'density') field. Centering on the max or min of a specific
+        field is supported by providing a tuple such as ("min","temperature") or
+        ("max","dark_matter_density"). Units can be specified by passing in *center*
+        as a tuple containing a coordinate and string unit name or by passing
+        in a YTArray. If a list or unitless array is supplied, code units are
+        assumed.
     width : tuple or a float.
-         Width can have four different formats to support windows with variable
-         x and y widths.  They are:
+        Width can have four different formats to support windows with variable
+        x and y widths. They are:
 
-         ==================================     =======================
-         format                                 example
-         ==================================     =======================
-         (float, string)                        (10,'kpc')
-         ((float, string), (float, string))     ((10,'kpc'),(15,'kpc'))
-         float                                  0.2
-         (float, float)                         (0.2, 0.3)
-         ==================================     =======================
+        ==================================     =======================
+        format                                 example
+        ==================================     =======================
+        (float, string)                        (10,'kpc')
+        ((float, string), (float, string))     ((10,'kpc'),(15,'kpc'))
+        float                                  0.2
+        (float, float)                         (0.2, 0.3)
+        ==================================     =======================
 
-         For example, (10, 'kpc') requests a plot window that is 10 kiloparsecs
-         wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a
-         window that is 10 kiloparsecs wide along the x axis and 15
-         kiloparsecs wide along the y axis.  In the other two examples, code
-         units are assumed, for example (0.2, 0.3) requests a plot that has an
-         x width of 0.2 and a y width of 0.3 in code units.  If units are
-         provided the resulting plot axis labels will use the supplied units.
+        For example, (10, 'kpc') requests a plot window that is 10 kiloparsecs
+        wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a
+        window that is 10 kiloparsecs wide along the x axis and 15
+        kiloparsecs wide along the y axis.  In the other two examples, code
+        units are assumed, for example (0.2, 0.3) requests a plot that has an
+        x width of 0.2 and a y width of 0.3 in code units.  If units are
+        provided the resulting plot axis labels will use the supplied units.
     depth : A tuple or a float
-         A tuple containing the depth to project through and the string
-         key of the unit: (width, 'unit').  If set to a float, code units
-         are assumed
+        A tuple containing the depth to project through and the string
+        key of the unit: (width, 'unit'). If set to a float, code units
+        are assumed
     weight_field : string
-         The name of the weighting field.  Set to None for no weight.
+        The name of the weighting field.  Set to None for no weight.
     max_level: int
-         The maximum level to project to.
+        The maximum level to project to.
     axes_unit : string
-         The name of the unit for the tick labels on the x and y axes.
-         Defaults to None, which automatically picks an appropriate unit.
-         If axes_unit is '1', 'u', or 'unitary', it will not display the
-         units, and only show the axes name.
+        The name of the unit for the tick labels on the x and y axes.
+        Defaults to None, which automatically picks an appropriate unit.
+        If axes_unit is '1', 'u', or 'unitary', it will not display the
+        units, and only show the axes name.
     north_vector : a sequence of floats
-         A vector defining the 'up' direction in the plot.  This
-         option sets the orientation of the slicing plane.  If not
-         set, an arbitrary grid-aligned north-vector is chosen.
-    right_handed : boolean
-        Depreceated, please use flip_horizontal callback.
-        Whether the implicit east vector for the image generated is set to make a right
-        handed coordinate system with a north vector and the normal vector, the
-        direction of the 'window' into the data.
+        A vector defining the 'up' direction in the plot. This
+        option sets the orientation of the slicing plane. If not
+        set, an arbitrary grid-aligned north-vector is chosen.
     fontsize : integer
-         The size of the fonts for the axis, colorbar, and tick labels.
+        The size of the fonts for the axis, colorbar, and tick labels.
     method : string
-         The method of projection.  Valid methods are:
+        The method of projection. Valid methods are:
 
-         "integrate" with no weight_field specified : integrate the requested
-         field along the line of sight.
+        "integrate" with no weight_field specified : integrate the requested
+        field along the line of sight.
 
-         "integrate" with a weight_field specified : weight the requested
-         field by the weighting field and integrate along the line of sight.
+        "integrate" with a weight_field specified : weight the requested
+        field by the weighting field and integrate along the line of sight.
 
-         "sum" : This method is the same as integrate, except that it does not
-         multiply by a path length when performing the integration, and is
-         just a straight summation of the field along the given axis. WARNING:
-         This should only be used for uniform resolution grid datasets, as other
-         datasets may result in unphysical images.
+        "sum" : This method is the same as integrate, except that it does not
+        multiply by a path length when performing the integration, and is
+        just a straight summation of the field along the given axis. WARNING:
+        This should only be used for uniform resolution grid datasets, as other
+        datasets may result in unphysical images.
+    moment : integer, optional
+        for a weighted projection, moment = 1 (the default) corresponds to a
+        weighted average. moment = 2 corresponds to a weighted standard
+        deviation.
     data_source: YTSelectionContainer object
-         Object to be used for data selection. Defaults to ds.all_data(), a
-         region covering the full domain
+        Object to be used for data selection. Defaults to ds.all_data(), a
+        region covering the full domain
     buff_size: length 2 sequence
-         Size of the buffer to use for the image, i.e. the number of resolution elements
-         used.  Effectively sets a resolution limit to the image if buff_size is
-         smaller than the finest gridding.
+        Size of the buffer to use for the image, i.e. the number of resolution elements
+        used. Effectively sets a resolution limit to the image if buff_size is
+        smaller than the finest gridding.
     """
     _plot_type = "OffAxisProjection"
     _frb_generator = OffAxisProjectionFixedResolutionBuffer
@@ -2576,7 +2364,6 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
         weight_field=None,
         max_level=None,
         north_vector=None,
-        right_handed=True,
         volume=None,
         no_ghost=False,
         le=None,
@@ -2584,6 +2371,7 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
         interpolated=False,
         fontsize=18,
         method="integrate",
+        moment=1,
         data_source=None,
         buff_size=(800, 800),
     ):
@@ -2615,6 +2403,7 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
             north_vector=north_vector,
             method=method,
             data_source=data_source,
+            moment=moment,
         )
 
         validate_mesh_fields(OffAxisProj, fields)
@@ -2627,6 +2416,8 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
         if weight_field is None and OffAxisProj.method == "integrate":
             self.projected = True
 
+        self.moment = moment
+
         # Hard-coding the origin keyword since the other two options
         # aren't well-defined for off-axis data objects
         PWViewerMPL.__init__(
@@ -2637,7 +2428,6 @@ class OffAxisProjectionPlot(ProjectionPlot, PWViewerMPL):
             origin="center-window",
             periodic=False,
             oblique=True,
-            right_handed=right_handed,
             fontsize=fontsize,
             buff_size=buff_size,
         )
@@ -2652,11 +2442,7 @@ class WindowPlotMPL(ImagePlotMPL):
     def __init__(
         self,
         data,
-        cbname,
-        cblinthresh,
-        cmap,
         extent,
-        zlim,
         figure_size,
         fontsize,
         aspect,
@@ -2665,55 +2451,41 @@ class WindowPlotMPL(ImagePlotMPL):
         cax,
         mpl_proj,
         mpl_transform,
+        *,
+        norm_handler: NormHandler,
+        colorbar_handler: ColorbarHandler,
     ):
-        from matplotlib.ticker import ScalarFormatter
-
-        self._draw_colorbar = True
-        self._draw_axes = True
-        self._draw_frame = True
-        self._fontsize = fontsize
-        self._figure_size = figure_size
         self._projection = mpl_proj
         self._transform = mpl_transform
 
+        self._setup_layout_constraints(figure_size, fontsize)
+        self._draw_frame = True
+        self._aspect = ((extent[1] - extent[0]) / (extent[3] - extent[2])).in_cgs()
+        self._unit_aspect = aspect
+
         # Compute layout
-        fontscale = float(fontsize) / 18.0
+        self._figure_size = figure_size
+        self._draw_axes = True
+        fontscale = float(fontsize) / self.__class__._default_font_size
         if fontscale < 1.0:
             fontscale = np.sqrt(fontscale)
 
         if is_sequence(figure_size):
-            fsize = figure_size[0]
+            self._cb_size = 0.0375 * figure_size[0]
         else:
-            fsize = figure_size
-        self._cb_size = 0.0375 * fsize
+            self._cb_size = 0.0375 * figure_size
         self._ax_text_size = [1.2 * fontscale, 0.9 * fontscale]
         self._top_buff_size = 0.30 * fontscale
-        self._aspect = ((extent[1] - extent[0]) / (extent[3] - extent[2])).in_cgs()
-        self._unit_aspect = aspect
 
-        size, axrect, caxrect = self._get_best_layout()
+        super().__init__(
+            figure=figure,
+            axes=axes,
+            cax=cax,
+            norm_handler=norm_handler,
+            colorbar_handler=colorbar_handler,
+        )
 
-        super().__init__(size, axrect, caxrect, zlim, figure, axes, cax)
-
-        self._init_image(data, cbname, cblinthresh, cmap, extent, aspect)
-
-        # In matplotlib 2.1 and newer we'll be able to do this using
-        # self.image.axes.ticklabel_format
-        # See https://github.com/matplotlib/matplotlib/pull/6337
-        formatter = ScalarFormatter(useMathText=True)
-        formatter.set_scientific(True)
-        formatter.set_powerlimits((-2, 3))
-        self.image.axes.xaxis.set_major_formatter(formatter)
-        self.image.axes.yaxis.set_major_formatter(formatter)
-        if cbname == "linear":
-            self.cb.formatter.set_scientific(True)
-            try:
-                self.cb.formatter.set_useMathText(True)
-            except AttributeError:
-                # this is only available in mpl > 2.1
-                pass
-            self.cb.formatter.set_powerlimits((-2, 3))
-            self.cb.update_ticks()
+        self._init_image(data, extent, aspect)
 
     def _create_axes(self, axrect):
         self.axes = self.figure.add_axes(axrect, projection=self._projection)
@@ -2862,20 +2634,3 @@ def plot_2d(
         aspect=aspect,
         data_source=data_source,
     )
-
-
-def _check_right_handed(right_handed: bool, flip_horizontal: bool) -> bool:
-    # temporary function to check if right_handed kwarg has been set. can
-    # remove this after full depreciation.
-    if not right_handed:
-        issue_deprecation_warning(
-            "The 'right_handed' argument is deprecated. Use 'flip_horizontal' callback instead.",
-            since="4.1.0",
-            removal="4.2.0",
-        )
-        if flip_horizontal:
-            # may be able to remove this now that its not a kwarg
-            raise ValueError(
-                "Cannot use both 'right_handed' and 'flip_horizontal' arguments"
-            )
-    return right_handed

@@ -1,7 +1,7 @@
 import numpy as np
 
 from yt.fields.derived_field import ValidateParameter, ValidateSpatial
-from yt.units.yt_array import uconcatenate, ucross  # type: ignore
+from yt.units._numpy_wrapper_functions import uconcatenate, ucross
 from yt.utilities.lib.misc_utilities import (
     obtain_position_vector,
     obtain_relative_velocity_vector,
@@ -67,7 +67,6 @@ def _field_concat(fname):
     def _AllFields(field, data):
         v = []
         for ptype in data.ds.particle_types:
-            data.ds._last_freq = (ptype, None)
             if ptype == "all" or ptype in data.ds.known_filters:
                 continue
             v.append(data[ptype, fname].copy())
@@ -81,7 +80,6 @@ def _field_concat_slice(fname, axi):
     def _AllFields(field, data):
         v = []
         for ptype in data.ds.particle_types:
-            data.ds._last_freq = (ptype, None)
             if ptype == "all" or ptype in data.ds.known_filters:
                 continue
             v.append(data[ptype, fname][:, axi])

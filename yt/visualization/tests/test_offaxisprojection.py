@@ -8,6 +8,7 @@ import numpy as np
 from yt.testing import (
     assert_equal,
     assert_fname,
+    assert_rel_equal,
     expand_keywords,
     fake_octree_ds,
     fake_random_ds,
@@ -101,3 +102,40 @@ def test_field_cut_off_axis_octree():
     )
     p4rho = p4.frb[("gas", "density")]
     assert_equal(np.nanmin(p4rho[p4rho > 0.0]) >= 0.5, True)
+
+
+def test_offaxis_moment():
+    ds = fake_random_ds(64)
+
+    def _vlos_sq(field, data):
+        return data["gas", "velocity_los"] ** 2
+
+    ds.add_field(
+        ("gas", "velocity_los_squared"),
+        _vlos_sq,
+        sampling_type="local",
+        units="cm**2/s**2",
+    )
+    p1 = OffAxisProjectionPlot(
+        ds,
+        [1, 1, 1],
+        [("gas", "velocity_los"), ("gas", "velocity_los_squared")],
+        weight_field=("gas", "density"),
+        moment=1,
+        buff_size=(400, 400),
+    )
+    p2 = OffAxisProjectionPlot(
+        ds,
+        [1, 1, 1],
+        ("gas", "velocity_los"),
+        weight_field=("gas", "density"),
+        moment=2,
+        buff_size=(400, 400),
+    )
+    assert_rel_equal(
+        np.sqrt(
+            p1.frb["gas", "velocity_los_squared"] - p1.frb["gas", "velocity_los"] ** 2
+        ),
+        p2.frb["gas", "velocity_los"],
+        10,
+    )

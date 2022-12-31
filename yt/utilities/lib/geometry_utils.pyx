@@ -18,7 +18,7 @@ from cython cimport floating
 from libc.math cimport copysign, fabs, log2
 from libc.stdlib cimport free, malloc
 
-from yt.utilities.lib.fp_utils cimport fclip, i64clip
+from yt.utilities.lib.fp_utils cimport i64clip
 
 from yt.utilities.exceptions import YTDomainOverflow
 
@@ -906,7 +906,6 @@ cdef np.int64_t position_to_morton(np.ndarray[floating, ndim=1] pos_x,
                         np.float64_t DRE[3],
                         np.ndarray[np.uint64_t, ndim=1] ind,
                         int filter):
-    cdef np.uint64_t mi
     cdef np.uint64_t ii[3]
     cdef np.float64_t p[3]
     cdef np.int64_t i, j, use
@@ -1114,7 +1113,6 @@ def csearch_morton(np.ndarray[np.float64_t, ndim=2] P, int k, np.uint64_t i,
         ValueError: If l<i<h. l and h must be on the same side of i.
 
     """
-    cdef int j
     cdef np.uint64_t m
     # Make sure that h and l are both larger/smaller than i
     if (l < i) and (h > i):

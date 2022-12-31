@@ -1,10 +1,10 @@
 import os
-import sys
 import time
 import uuid
 import warnings
 import weakref
 from collections import defaultdict
+from functools import cached_property
 from typing import Type
 
 import numpy as np
@@ -32,10 +32,6 @@ from yt.utilities.on_demand_imports import NotAModule, _astropy
 
 from .fields import FITSFieldInfo, WCSFITSFieldInfo, YTFITSFieldInfo
 
-if sys.version_info >= (3, 8):
-    from functools import cached_property
-else:
-    from yt._maintenance.backports import cached_property
 lon_prefixes = ["X", "RA", "GLON", "LINEAR"]
 lat_prefixes = ["Y", "DEC", "GLAT", "LINEAR"]
 
@@ -540,7 +536,11 @@ class FITSDataset(Dataset):
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
-        fileh = check_fits_valid(filename)
+        try:
+            fileh = check_fits_valid(filename)
+        except Exception:
+            return False
+
         if fileh is None:
             return False
         else:
@@ -638,7 +638,11 @@ class YTFITSDataset(FITSDataset):
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
-        fileh = check_fits_valid(filename)
+        try:
+            fileh = check_fits_valid(filename)
+        except Exception:
+            return False
+
         if fileh is None:
             return False
         else:
@@ -711,7 +715,10 @@ class SkyDataFITSDataset(FITSDataset):
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
-        return check_sky_coords(filename, ndim=2)
+        try:
+            return check_sky_coords(filename, ndim=2)
+        except Exception:
+            return False
 
 
 class SpectralCubeFITSHierarchy(FITSHierarchy):
@@ -821,7 +828,10 @@ class SpectralCubeFITSDataset(SkyDataFITSDataset):
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
-        return check_sky_coords(filename, ndim=3)
+        try:
+            return check_sky_coords(filename, ndim=3)
+        except Exception:
+            return False
 
 
 class EventsFITSHierarchy(FITSHierarchy):
@@ -920,7 +930,10 @@ class EventsFITSDataset(SkyDataFITSDataset):
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
-        fileh = check_fits_valid(filename)
+        try:
+            fileh = check_fits_valid(filename)
+        except Exception:
+            return False
         if fileh is not None:
             try:
                 valid = fileh[1].name == "EVENTS"

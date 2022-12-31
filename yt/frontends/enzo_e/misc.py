@@ -123,6 +123,18 @@ def nested_dict_get(pdict, keys, default=None):
     return val
 
 
+def get_listed_subparam(pdict, parent_param, subparam, default=None):
+    """
+    Returns nested_dict_get(pdict, (parent_param,subparam), default) if
+    subparam is an entry in nested_dict_get(pdict, (parent_param, 'list'), [])
+
+    This is a common idiom in Enzo-E's parameter parsing
+    """
+    if subparam in nested_dict_get(pdict, (parent_param, "list"), []):
+        return nested_dict_get(pdict, (parent_param, subparam), default)
+    return default
+
+
 def get_particle_mass_correction(ds):
     """
     Normalize particle masses by the root grid cell volume.

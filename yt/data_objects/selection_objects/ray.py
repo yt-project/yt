@@ -1,5 +1,4 @@
 import numpy as np
-from unyt import udot, unorm
 
 from yt.data_objects.selection_objects.data_selection_objects import (
     YTSelectionContainer,
@@ -16,6 +15,7 @@ from yt.funcs import (
     validate_sequence,
 )
 from yt.units import YTArray, YTQuantity
+from yt.units._numpy_wrapper_functions import udot, unorm
 from yt.utilities.lib.pixelization_routines import SPHKernelInterpolationTable
 from yt.utilities.logger import ytLogger as mylog
 

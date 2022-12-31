@@ -76,8 +76,9 @@ def plot_channel(
     specified.
     """
     from matplotlib import pyplot as plt
-    from matplotlib.cm import get_cmap
     from matplotlib.colors import LogNorm
+
+    from yt.visualization.color_maps import _get_cmap
 
     Nvec = image.shape[0]
     image[np.isnan(image)] = 0.0
@@ -94,7 +95,7 @@ def plot_channel(
     fig.subplots_adjust(
         left=0.0, right=1.0, bottom=0.0, top=1.0, wspace=0.0, hspace=0.0
     )
-    mycm = get_cmap(cmap)
+    mycm = _get_cmap(cmap)
     if log:
         ax.imshow(image, cmap=mycm, norm=mynorm, interpolation="nearest")
     else:

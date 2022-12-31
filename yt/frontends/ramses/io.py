@@ -24,7 +24,6 @@ def convert_ramses_ages(ds, conformal_ages):
             "by the `convert_ramses_conformal_time_to_physical_age' function."
         ),
         since="4.0.2",
-        removal="4.0.4",
     )
     return convert_ramses_conformal_time_to_physical_age(ds, conformal_ages)
 

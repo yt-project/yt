@@ -64,7 +64,7 @@ class TestGeoProjections(unittest.TestCase):
     def setUp(self):
         self.ds = fake_amr_ds(geometry="geographic")
         # switch off the log plot to avoid some unrelated matplotlib issues
-        f = self.ds._get_field_info("stream", "Density")
+        f = self.ds._get_field_info(("stream", "Density"))
         f.take_log = False
 
     @requires_module("cartopy")

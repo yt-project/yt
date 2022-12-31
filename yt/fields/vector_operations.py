@@ -121,6 +121,7 @@ def create_los_field(registry, basename, field_units, ftype="gas", slice_info=No
         function=_los_field,
         units=field_units,
         validators=validators,
+        display_name=r"\mathrm{Line of Sight %s}" % basename.capitalize(),
     )
 
 

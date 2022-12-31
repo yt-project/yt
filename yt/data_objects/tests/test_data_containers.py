@@ -56,7 +56,7 @@ class TestDataContainers(unittest.TestCase):
         # Delete a non-existent field
         with assert_raises(YTFieldNotFound) as ex:
             del proj["p_mass"]
-        desired = "Could not find field ('unknown', 'p_mass') in UniformGridData."
+        desired = "Could not find field 'p_mass' in UniformGridData."
         assert_equal(str(ex.exception), desired)
 
     def test_write_out(self):

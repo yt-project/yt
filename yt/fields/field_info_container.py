@@ -1,3 +1,4 @@
+from collections import UserDict
 from collections.abc import Callable
 from numbers import Number as numeric_type
 from typing import Optional, Tuple
@@ -5,7 +6,7 @@ from typing import Optional, Tuple
 import numpy as np
 from unyt.exceptions import UnitConversionError
 
-from yt._typing import KnownFieldsT
+from yt._typing import FieldKey, KnownFieldsT
 from yt.config import ytcfg
 from yt.fields.field_exceptions import NeedsConfiguration
 from yt.funcs import mylog, obj_length, only_on_root
@@ -30,7 +31,7 @@ from .particle_fields import (
 )
 
 
-class FieldInfoContainer(dict):
+class FieldInfoContainer(UserDict):
     """
     This is a generic field container.  It contains a list of potential derived
     fields, all of which know how to act on a data object and return a value.
@@ -42,9 +43,10 @@ class FieldInfoContainer(dict):
     fallback = None
     known_other_fields: KnownFieldsT = ()
     known_particle_fields: KnownFieldsT = ()
-    extra_union_fields: Tuple[Tuple[str, str], ...] = ()
+    extra_union_fields: Tuple[FieldKey, ...] = ()
 
     def __init__(self, ds, field_list, slice_info=None):
+        super().__init__()
         self._show_field_errors = []
         self.ds = ds
         # Now we start setting things up.
@@ -303,7 +305,7 @@ class FieldInfoContainer(dict):
 
     def add_field(
         self,
-        name: Tuple[str, str],
+        name: FieldKey,
         function: Callable,
         sampling_type: str,
         *,
@@ -404,8 +406,8 @@ class FieldInfoContainer(dict):
 
     def alias(
         self,
-        alias_name: Tuple[str, str],
-        original_name: Tuple[str, str],
+        alias_name: FieldKey,
+        original_name: FieldKey,
         units: Optional[str] = None,
         deprecate: Optional[Tuple[str, Optional[str]]] = None,
     ):
@@ -414,9 +416,9 @@ class FieldInfoContainer(dict):
 
         Parameters
         ----------
-        alias_name : Tuple[str, str]
+        alias_name : tuple[str, str]
             The new field name.
-        original_name : Tuple[str, str]
+        original_name : tuple[str, str]
             The field to be aliased.
         units : str
            A plain text string encoding the unit.  Powers must be in
@@ -544,19 +546,19 @@ class FieldInfoContainer(dict):
         return obj
 
     def __contains__(self, key):
-        if dict.__contains__(self, key):
+        if super().__contains__(key):
             return True
         if self.fallback is None:
             return False
         return key in self.fallback
 
     def __iter__(self):
-        yield from dict.__iter__(self)
+        yield from super().__iter__()
         if self.fallback is not None:
             yield from self.fallback
 
     def keys(self):
-        keys = dict.keys(self)
+        keys = super().keys()
         if self.fallback:
             keys += list(self.fallback.keys())
         return keys

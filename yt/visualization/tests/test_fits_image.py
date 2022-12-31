@@ -2,6 +2,7 @@ import os
 import shutil
 import tempfile
 
+import numpy as np
 from numpy.testing import assert_allclose, assert_equal
 
 from yt.loaders import load
@@ -25,11 +26,8 @@ def test_fits_image():
     tmpdir = tempfile.mkdtemp()
     os.chdir(tmpdir)
 
-    fields = ("density", "temperature")
-    units = (
-        "g/cm**3",
-        "K",
-    )
+    fields = ("density", "temperature", "velocity_x", "velocity_y", "velocity_z")
+    units = ("g/cm**3", "K", "cm/s", "cm/s", "cm/s")
     ds = fake_random_ds(
         64, fields=fields, units=units, nprocs=16, length_unit=100.0, particles=10000
     )
@@ -91,6 +89,22 @@ def test_fits_image():
     assert_equal(fid2["density"].data, fits_slc["density"].data)
     assert_equal(fid2["temperature"].data, fits_slc["temperature"].data)
 
+    fits_slc2 = FITSSlice(
+        ds,
+        "z",
+        [("gas", "density"), ("gas", "temperature")],
+        image_res=128,
+        width=(0.5, "unitary"),
+        origin="image",
+    )
+
+    assert_equal(fits_slc2["density"].data, fits_slc["density"].data)
+    assert_equal(fits_slc2["temperature"].data, fits_slc["temperature"].data)
+    assert fits_slc.wcs.wcs.crval[0] == ds.domain_center[0].to_value("cm")
+    assert fits_slc.wcs.wcs.crval[1] == ds.domain_center[1].to_value("cm")
+    assert fits_slc2.wcs.wcs.crval[0] == 0.0
+    assert fits_slc2.wcs.wcs.crval[1] == 0.0
+
     dens_img = fid2.pop("density")
     temp_img = fid2.pop("temperature")
 
@@ -135,6 +149,10 @@ def test_fits_image():
     assert new_fid3.wcs.wcs.cunit[1] == "deg"
     assert new_fid3.wcs.wcs.ctype[0] == "RA---TAN"
     assert new_fid3.wcs.wcs.ctype[1] == "DEC--TAN"
+    assert new_fid3.wcsa.wcs.cunit[0] == "cm"
+    assert new_fid3.wcsa.wcs.cunit[1] == "cm"
+    assert new_fid3.wcsa.wcs.ctype[0] == "linear"
+    assert new_fid3.wcsa.wcs.ctype[1] == "linear"
 
     buf = off_axis_projection(
         ds, ds.domain_center, [0.1, 0.2, -0.9], 0.5, 128, ("gas", "density")
@@ -208,6 +226,45 @@ def test_fits_image():
     assert pdfid["particle_mass"].header["BTYPE"] == "particle_mass"
     assert pdfid["particle_mass"].units == "g/cm**2"
 
+    # Test moments for projections
+    def _vysq(field, data):
+        return data["gas", "velocity_y"] ** 2
+
+    ds.add_field(("gas", "vysq"), _vysq, sampling_type="cell", units="cm**2/s**2")
+    fid8 = FITSProjection(
+        ds,
+        "y",
+        [("gas", "velocity_y"), ("gas", "vysq")],
+        moment=1,
+        weight_field=("gas", "density"),
+    )
+    fid9 = FITSProjection(
+        ds, "y", ("gas", "velocity_y"), moment=2, weight_field=("gas", "density")
+    )
+    sigy = np.sqrt(fid8["vysq"].data - fid8["velocity_y"].data ** 2)
+    assert_allclose(sigy, fid9["velocity_y_stddev"].data)
+
+    def _vlsq(field, data):
+        return data["gas", "velocity_los"] ** 2
+
+    ds.add_field(("gas", "vlsq"), _vlsq, sampling_type="cell", units="cm**2/s**2")
+    fid10 = FITSOffAxisProjection(
+        ds,
+        [1.0, -1.0, 1.0],
+        [("gas", "velocity_los"), ("gas", "vlsq")],
+        moment=1,
+        weight_field=("gas", "density"),
+    )
+    fid11 = FITSOffAxisProjection(
+        ds,
+        [1.0, -1.0, 1.0],
+        ("gas", "velocity_los"),
+        moment=2,
+        weight_field=("gas", "density"),
+    )
+    sigl = np.sqrt(fid10["vlsq"].data - fid10["velocity_los"].data ** 2)
+    assert_allclose(sigl, fid11["velocity_los_stddev"].data)
+
     # We need to manually close all the file descriptors so
     # that windows can delete the folder that contains them.
     ds2.close()
@@ -219,6 +276,8 @@ def test_fits_image():
         fid5,
         fid6,
         fid7,
+        fid8,
+        fid9,
         new_fid1,
         new_fid3,
         pfid,

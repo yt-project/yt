@@ -1,4 +1,5 @@
 import os
+from collections import UserDict
 from io import StringIO
 
 import numpy as np
@@ -13,7 +14,7 @@ def get_thingking_deps():
     except ImportError:
         raise ImportError(
             "This functionality requires the thingking package to be installed"
-        )
+        ) from None
     return HTTPArray, PageCacheURL
 
 
@@ -256,7 +257,7 @@ class HTTPDataStruct(DataStruct):
             self.data[k] = RedirectArray(self.handle, k)
 
 
-class SDFRead(dict):
+class SDFRead(UserDict):
 
     _eof = "SDF-EO"
     _data_struct = DataStruct
@@ -297,6 +298,7 @@ class SDFRead(dict):
         >>> print(sdf["x"])
 
         """
+        super().__init__()
         self.filename = filename
         if header is None:
             header = filename

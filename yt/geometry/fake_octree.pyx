@@ -10,13 +10,13 @@ Make a fake octree, deposit particle at every leaf
 
 
 cimport numpy as np
-from libc.stdlib cimport RAND_MAX, free, malloc, rand
-from oct_visitors cimport cind
+from libc.stdlib cimport RAND_MAX, rand
+
+from .oct_visitors cimport cind
 
 import numpy as np
 
-cimport cython
-from oct_container cimport Oct, SparseOctreeContainer
+from .oct_container cimport Oct, SparseOctreeContainer
 
 
 # Create a balanced octree by a random walk that recursively

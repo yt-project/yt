@@ -12,11 +12,8 @@ import numpy as np
 
 cimport cython
 cimport numpy as np
-from libc.stdlib cimport abs, free, malloc
 
-from yt.utilities.lib.fp_utils cimport fclip, fmax, fmin, i64clip, iclip, imax, imin
-
-from yt.units.yt_array import YTArray
+from yt.utilities.lib.fp_utils cimport fmax, fmin
 
 
 cdef extern from "platform_dep.h":

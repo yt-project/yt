@@ -1,20 +1,20 @@
 import os
-import sys
 import weakref
 from collections import defaultdict
+from functools import cached_property
 from numbers import Number as numeric_type
 from typing import Tuple, Type
 
 import numpy as np
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
-from yt.data_objects.particle_unions import ParticleUnion
 from yt.data_objects.profiles import (
     Profile1DFromDataset,
     Profile2DFromDataset,
     Profile3DFromDataset,
 )
 from yt.data_objects.static_output import Dataset, ParticleFile, validate_index_order
+from yt.data_objects.unions import ParticleUnion
 from yt.fields.field_exceptions import NeedsGridType
 from yt.fields.field_info_container import FieldInfoContainer
 from yt.funcs import is_root, parse_h5_attr
@@ -22,8 +22,9 @@ from yt.geometry.geometry_handler import Index
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.geometry.particle_geometry_handler import ParticleIndex
 from yt.units import dimensions
+from yt.units._numpy_wrapper_functions import uconcatenate
 from yt.units.unit_registry import UnitRegistry  # type: ignore
-from yt.units.yt_array import YTQuantity, uconcatenate  # type: ignore
+from yt.units.yt_array import YTQuantity
 from yt.utilities.exceptions import GenerationInProgress, YTFieldTypeNotFound
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py
@@ -32,10 +33,6 @@ from yt.utilities.tree_container import TreeContainer
 
 from .fields import YTDataContainerFieldInfo, YTGridFieldInfo
 
-if sys.version_info >= (3, 8):
-    from functools import cached_property
-else:
-    from yt._maintenance.backports import cached_property
 _grid_data_containers = ["arbitrary_grid", "covering_grid", "smoothed_covering_grid"]
 _set_attrs = {"periodicity": "_periodicity"}
 
@@ -410,7 +407,7 @@ class YTGrid(AMRGridPatch):
             fields = self._determine_fields(key)
         except YTFieldTypeNotFound:
             return tr
-        finfo = self.ds._get_field_info(*fields[0])
+        finfo = self.ds._get_field_info(fields[0])
         if not finfo.sampling_type == "particle":
             return tr.reshape(self.ActiveDimensions[: self.ds.dimensionality])
         return tr
@@ -581,7 +578,7 @@ class YTNonspatialGrid(AMRGridPatch):
             fields = self._determine_fields(key)
         except YTFieldTypeNotFound:
             return tr
-        self.ds._get_field_info(*fields[0])
+        self.ds._get_field_info(fields[0])
         return tr
 
     def get_data(self, fields=None):
@@ -613,7 +610,7 @@ class YTNonspatialGrid(AMRGridPatch):
         for field in self._determine_fields(fields):
             if field in self.field_data:
                 continue
-            finfo = self.ds._get_field_info(*field)
+            finfo = self.ds._get_field_info(field)
             try:
                 finfo.check_available(self)
             except NeedsGridType:
@@ -631,13 +628,13 @@ class YTNonspatialGrid(AMRGridPatch):
         # We now split up into readers for the types of fields
         fluids, particles = [], []
         finfos = {}
-        for ftype, fname in fields_to_get:
-            finfo = self.ds._get_field_info(ftype, fname)
-            finfos[ftype, fname] = finfo
+        for field_key in fields_to_get:
+            finfo = self.ds._get_field_info(field_key)
+            finfos[field_key] = finfo
             if finfo.sampling_type == "particle":
-                particles.append((ftype, fname))
-            elif (ftype, fname) not in fluids:
-                fluids.append((ftype, fname))
+                particles.append(field_key)
+            elif field_key not in fluids:
+                fluids.append(field_key)
 
         # The _read method will figure out which fields it needs to get from
         # disk, and return a dict of those fields along with the fields that

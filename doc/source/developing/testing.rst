@@ -171,8 +171,7 @@ In order to run the answer tests locally:
 
 * Add folders of the required data to this directory. Other yt data, such as ``IsolatedGalaxy``, can be downloaded to this directory as well.
 
-* Tell yt where it can find the data. This is done by setting the config parameter ``test_data_dir`` to the path of the
-directory with the test data downloaded from https://yt-project.org/data/. For example,
+* Tell yt where it can find the data. This is done by setting the config parameter ``test_data_dir`` to the path of the directory with the test data downloaded from https://yt-project.org/data/. For example,
 
 .. code-block:: bash
 

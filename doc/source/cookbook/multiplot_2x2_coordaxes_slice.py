@@ -55,6 +55,6 @@ for i, (direction, field) in enumerate(zip(cuts, fields)):
         plot.cax = grid.cbar_axes[1]
 
     # Finally, redraw the plot.
-    p._setup_plots()
+    p.render()
 
 plt.savefig("multiplot_2x2_coordaxes_slice.png")

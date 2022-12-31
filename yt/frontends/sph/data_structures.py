@@ -18,7 +18,6 @@ class SPHDataset(ParticleDataset):
         self,
         filename,
         dataset_type=None,
-        file_style=None,
         units_override=None,
         unit_system="cgs",
         index_order=None,
@@ -35,7 +34,6 @@ class SPHDataset(ParticleDataset):
         super().__init__(
             filename,
             dataset_type=dataset_type,
-            file_style=file_style,
             units_override=units_override,
             unit_system=unit_system,
             index_order=index_order,

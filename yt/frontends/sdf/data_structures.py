@@ -1,5 +1,5 @@
 import os
-import sys
+from functools import cached_property
 
 import numpy as np
 
@@ -12,10 +12,6 @@ from yt.utilities.sdf import HTTPSDFRead, SDFIndex, SDFRead
 
 from .fields import SDFFieldInfo
 
-if sys.version_info >= (3, 8):
-    from functools import cached_property
-else:
-    from yt._maintenance.backports import cached_property
 # currently specified by units_2HOT == 2 in header
 # in future will read directly from file
 units_2HOT_v2_length = 3.08567802e21

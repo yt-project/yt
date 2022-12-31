@@ -38,7 +38,6 @@ from yt.utilities.lib.primitives cimport (
     triangle_bbox,
     triangle_centroid,
 )
-from yt.utilities.lib.vec3_ops cimport L2_norm
 
 from .image_samplers cimport ImageSampler
 
@@ -346,10 +345,10 @@ cdef class BVH:
             return
 
         # check for leaf
-        cdef np.int64_t i, hit
+        cdef np.int64_t i
         if (node.end - node.begin) <= LEAF_SIZE:
             for i in range(node.begin, node.end):
-                hit = self.get_intersect(self.primitives, self.prim_ids[i], ray)
+                self.get_intersect(self.primitives, self.prim_ids[i], ray)
             return
 
         # if not leaf, intersect with left and right children

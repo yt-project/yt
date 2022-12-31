@@ -1,7 +1,7 @@
 import os
 import shutil
-import sys
 import tempfile
+from importlib.metadata import version
 from importlib.util import find_spec
 from pathlib import Path
 
@@ -18,11 +18,6 @@ from yt.utilities.answer_testing.testing_utilities import (
     _streamline_for_io,
     data_dir_load,
 )
-
-if sys.version_info >= (3, 8):
-    from importlib.metadata import version
-else:
-    from importlib_metadata import version
 
 MPL_VERSION = Version(version("matplotlib"))
 NUMPY_VERSION = Version(version("numpy"))
@@ -95,7 +90,7 @@ def pytest_configure(config):
         "ignore:the imp module is deprecated in favour of importlib and slated for removal in Python 3.12; see the module's documentation for alternative uses:DeprecationWarning",
         # matplotlib warnings related to the Agg backend which is used in CI, not much we can do about it
         "ignore:Matplotlib is currently using agg, which is a non-GUI backend, so cannot show the figure.:UserWarning",
-        "ignore:tight_layout . falling back to Agg renderer:UserWarning",
+        r"ignore:tight_layout.+falling back to Agg renderer:UserWarning",
         #
         # >>> warnings from wrong values passed to numpy
         # these should normally be curated out of the test suite but they are too numerous
@@ -114,13 +109,10 @@ def pytest_configure(config):
     ):
         config.addinivalue_line("filterwarnings", value)
 
-    if MPL_VERSION < Version("3.0.0"):
+    if MPL_VERSION < Version("3.5.0"):
         config.addinivalue_line(
             "filterwarnings",
-            (
-                "ignore:Using or importing the ABCs from 'collections' instead of from 'collections.abc' "
-                "is deprecated since Python 3.3,and in 3.9 it will stop working:DeprecationWarning"
-            ),
+            r"ignore:distutils Version classes are deprecated:DeprecationWarning",
         )
 
     if MPL_VERSION < Version("3.5.2") and PILLOW_VERSION >= Version("9.1"):
@@ -159,24 +151,16 @@ def pytest_configure(config):
         )
 
     if find_spec("cartopy") is not None:
-        # This can be removed when cartopy 0.21 is released
-        # see https://github.com/SciTools/cartopy/pull/1957
-        config.addinivalue_line(
-            "filterwarnings",
-            (
-                r"ignore:The default value for the \*approx\* keyword argument to "
-                r"\w+ will change from True to False after 0\.18\.:UserWarning"
-            ),
-        )
-        # this one could be resolved by upgrading PROJ on Jenkins,
-        # but there's isn't much else that can be done about it.
-        config.addinivalue_line(
-            "filterwarnings",
-            (
-                "ignore:The Stereographic projection in Proj older than 5.0.0 incorrectly "
-                "transforms points when central_latitude=0. Use this projection with caution.:UserWarning"
-            ),
-        )
+        # this warning is triggered from cartopy 21.1
+        # see https://github.com/SciTools/cartopy/issues/2113
+        SHAPELY_VERSION = Version(version("shapely"))
+        if SHAPELY_VERSION >= Version("2.0"):
+            config.addinivalue_line(
+                "filterwarnings",
+                (
+                    r"ignore:The 'geom_factory' function is deprecated in Shapely 2\.0:DeprecationWarning"
+                ),
+            )
 
 
 def pytest_collection_modifyitems(config, items):

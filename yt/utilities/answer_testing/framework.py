@@ -34,7 +34,13 @@ from yt.testing import (
     assert_rel_equal,
     skipif,
 )
-from yt.utilities.exceptions import YTCloudError, YTNoAnswerNameSpecified, YTNoOldAnswer
+from yt.utilities.exceptions import (
+    YTAmbiguousDataType,
+    YTCloudError,
+    YTNoAnswerNameSpecified,
+    YTNoOldAnswer,
+    YTUnidentifiedDataType,
+)
 from yt.utilities.logger import disable_stream_logging
 from yt.visualization import (
     image_writer as image_writer,
@@ -210,8 +216,8 @@ class AnswerTestCloudStorage(AnswerTestStorage):
         url = _url_path.format(self.reference_name, ds_name)
         try:
             resp = urllib.request.urlopen(url)
-        except urllib.error.HTTPError:
-            raise YTNoOldAnswer(url)
+        except urllib.error.HTTPError as exc:
+            raise YTNoOldAnswer(url) from exc
         else:
             for _ in range(3):
                 try:
@@ -278,6 +284,7 @@ class AnswerTestLocalStorage(AnswerTestStorage):
             return default
         # Read data using shelve
         answer_name = f"{ds_name}"
+        os.makedirs(os.path.dirname(self.reference_name), exist_ok=True)
         ds = shelve.open(self.reference_name, protocol=-1)
         try:
             result = ds[answer_name]
@@ -312,6 +319,9 @@ def can_run_ds(ds_fn, file_check=False):
                 result_storage["tainted"] = True
             raise
         return False
+    except (YTUnidentifiedDataType, YTAmbiguousDataType):
+        return False
+
     return result_storage is not None
 
 
@@ -625,13 +635,10 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
             obj = create_obj(self.ds, self.obj_type)
         else:
             obj = None
-        proj = self.ds.proj(
-            self.field, self.axis, weight_field=self.weight_field, data_source=obj
-        )
-        frb = proj.to_frb((1.0, "unitary"), 256)
-        frb[self.field]
+        proj, frb = self._get_frb(obj)
+        frb.render(self.field)
         if self.weight_field is not None:
-            frb[self.weight_field]
+            frb.render(self.weight_field)
         d = frb.data
         for f in proj.field_data:
             # Sometimes f will be a tuple.

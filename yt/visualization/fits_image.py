@@ -1,18 +1,20 @@
 import re
 import sys
+from functools import partial
 from numbers import Number as numeric_type
 
 import numpy as np
 from more_itertools import first, mark_ends
 
-from yt._maintenance.deprecation import issue_deprecation_warning
+from yt._typing import FieldKey
 from yt.data_objects.construction_data_containers import YTCoveringGrid
 from yt.data_objects.image_array import ImageArray
 from yt.fields.derived_field import DerivedField
-from yt.funcs import fix_axis, is_sequence, iter_fields, mylog
+from yt.funcs import fix_axis, is_sequence, iter_fields, mylog, validate_moment
 from yt.units import dimensions
 from yt.units.unit_object import Unit  # type: ignore
 from yt.units.yt_array import YTArray, YTQuantity
+from yt.utilities.math_utils import compute_stddev_image
 from yt.utilities.on_demand_imports import _astropy
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_root_only
 from yt.visualization.fixed_resolution import FixedResolutionBuffer, ParticleImageBuffer
@@ -83,8 +85,9 @@ class FITSImageData:
             is not already provided by *data*.
         img_ctr : array_like or YTArray
             The center coordinates of the image. If a list or NumPy array,
-            it is assumed to be in *units*. Only used if this information
-            is not already provided by *data*.
+            it is assumed to be in *units*. This will overwrite any center
+            coordinates potentially provided by *data*. Default in other cases
+            is [0.0]*(number of dimensions).
         wcs : `~astropy.wcs.WCS` instance, optional
             Supply an AstroPy WCS instance. Will override automatic WCS
             creation from FixedResolutionBuffers and YTCoveringGrids.
@@ -157,8 +160,6 @@ class FITSImageData:
                 width = YTQuantity(width[0], width[1])
             else:
                 width = ds.quan(width[0], width[1])
-        if img_ctr is None:
-            img_ctr = np.zeros(3)
 
         exclude_fields = [
             "x",
@@ -199,10 +200,13 @@ class FITSImageData:
 
         self.hdulist = _astropy.pyfits.HDUList()
 
+        stddev = False
         if hasattr(data, "keys"):
             img_data = data
             if fields is None:
                 fields = list(img_data.keys())
+            if hasattr(data, "data_source"):
+                stddev = getattr(data.data_source, "moment", 1) == 2
         elif isinstance(data, np.ndarray):
             if fields is None:
                 mylog.warning(
@@ -216,11 +220,14 @@ class FITSImageData:
 
         for fd in fields:
             if isinstance(fd, tuple):
-                self.fields.append(fd[1])
+                fname = fd[1]
             elif isinstance(fd, DerivedField):
-                self.fields.append(fd.name[1])
+                fname = fd.name[1]
             else:
-                self.fields.append(fd)
+                fname = fd
+            if stddev:
+                fname += "_stddev"
+            self.fields.append(fname)
 
         # Sanity checking names
         s = set()
@@ -306,22 +313,30 @@ class FITSImageData:
                 dy = (img_data.bounds[3] - img_data.bounds[2]).to_value(wcs_unit)
                 dx /= self.shape[0]
                 dy /= self.shape[1]
-                xctr = 0.5 * (img_data.bounds[1] + img_data.bounds[0]).to_value(
-                    wcs_unit
-                )
-                yctr = 0.5 * (img_data.bounds[3] + img_data.bounds[2]).to_value(
-                    wcs_unit
-                )
+                if img_ctr is not None:
+                    xctr, yctr = img_ctr
+                else:
+                    xctr = 0.5 * (img_data.bounds[1] + img_data.bounds[0]).to_value(
+                        wcs_unit
+                    )
+                    yctr = 0.5 * (img_data.bounds[3] + img_data.bounds[2]).to_value(
+                        wcs_unit
+                    )
                 center = [xctr, yctr]
                 cdelt = [dx, dy]
             elif isinstance(img_data, YTCoveringGrid):
                 cdelt = img_data.dds.to_value(wcs_unit)
-                center = 0.5 * (img_data.left_edge + img_data.right_edge).to_value(
-                    wcs_unit
-                )
+                if img_ctr is not None:
+                    center = img_ctr
+                else:
+                    center = 0.5 * (img_data.left_edge + img_data.right_edge).to_value(
+                        wcs_unit
+                    )
             else:
                 # If img_data is just an array we use the width and img_ctr
                 # parameters to determine the cell widths
+                if img_ctr is None:
+                    img_ctr = np.zeros(3)
                 if not is_sequence(width):
                     width = [width] * self.dimensionality
                 if isinstance(width[0], YTQuantity):
@@ -533,15 +548,6 @@ class FITSImageData:
                 raise KeyError(f"{field} not an image!")
             idx = self.fields.index(field)
             self.hdulist[idx].header[key] = value
-
-    def update_all_headers(self, key, value):
-        issue_deprecation_warning(
-            "update_all_headers is deprecated. "
-            "Use update_header('all', key, value) instead.",
-            since="3.3",
-            removal="4.2",
-        )
-        self.update_header("all", key, value)
 
     def keys(self):
         return self.fields
@@ -790,9 +796,9 @@ class FITSImageData:
         wcsname : string, optional
             The name of the WCS to be stored in the FITS header.
         replace_old_wcs : boolean, optional
-            Whether or not to overwrite the default WCS of the
-            FITSImageData instance. If false, a second WCS will
-            be added to the header. Default: True.
+            If True, the original WCS will be overwritten but
+            first copied to a second WCS ("WCSAXESA"). If False, this
+            new WCS will be placed into the second WCS.
         """
         if ctype is None:
             ctype = ["RA---TAN", "DEC--TAN"]
@@ -832,6 +838,7 @@ class FITSImageData:
             new_wcs.wcs.cd = pc
         if replace_old_wcs:
             self.set_wcs(new_wcs, wcsname=wcsname)
+            self.set_wcs(old_wcs, wcsname="yt", suffix="a")
         else:
             self.set_wcs(new_wcs, wcsname=wcsname, suffix="a")
 
@@ -855,7 +862,9 @@ def sanitize_fits_unit(unit):
 axis_wcs = [[1, 2], [2, 0], [0, 1]]
 
 
-def construct_image(ds, axis, data_source, center, image_res, width, length_unit):
+def construct_image(
+    ds, axis, data_source, center, image_res, width, length_unit, origin="domain"
+):
     if width is None:
         width = ds.domain_width[axis_wcs[axis]]
         unit = ds.get_smallest_appropriate_unit(width[0])
@@ -885,10 +894,13 @@ def construct_image(ds, axis, data_source, center, image_res, width, length_unit
     cunit = [length_unit] * 2
     ctype = ["LINEAR"] * 2
     cdelt = [dx.in_units(length_unit), dy.in_units(length_unit)]
-    if is_sequence(axis):
-        crval = center.in_units(length_unit)
-    else:
-        crval = [center[idx].in_units(length_unit) for idx in axis_wcs[axis]]
+    if origin == "domain":
+        if is_sequence(axis):
+            crval = center.in_units(length_unit)
+        else:
+            crval = [center[idx].in_units(length_unit) for idx in axis_wcs[axis]]
+    elif origin == "image":
+        crval = np.zeros(2)
     if hasattr(data_source, "to_frb"):
         if is_sequence(axis):
             frb = data_source.to_frb(width[0], (nx, ny), height=width[1])
@@ -994,6 +1006,11 @@ class FITSSlice(FITSImageData):
     length_unit : string, optional
         the length units that the coordinates are written in. The default
         is to use the default length unit of the dataset.
+    origin : string
+        The origin of the coordinate system in the file. If "domain", then the
+        center coordinates will be the same as the center of the image as
+        defined by the *center* keyword argument. If "image", then the center
+        coordinates will be set to (0,0). Default: "domain"
     """
 
     def __init__(
@@ -1005,6 +1022,8 @@ class FITSSlice(FITSImageData):
         center="c",
         width=None,
         length_unit=None,
+        *,
+        origin="domain",
         **kwargs,
     ):
         fields = list(iter_fields(fields))
@@ -1012,7 +1031,14 @@ class FITSSlice(FITSImageData):
         center, dcenter = ds.coordinates.sanitize_center(center, axis)
         slc = ds.slice(axis, center[axis], **kwargs)
         w, frb, lunit = construct_image(
-            ds, axis, slc, dcenter, image_res, width, length_unit
+            ds,
+            axis,
+            slc,
+            dcenter,
+            image_res,
+            width,
+            length_unit,
+            origin=origin,
         )
         super().__init__(frb, fields=fields, length_unit=lunit, wcs=w)
 
@@ -1067,6 +1093,15 @@ class FITSProjection(FITSImageData):
     length_unit : string, optional
         the length units that the coordinates are written in. The default
         is to use the default length unit of the dataset.
+    origin : string
+        The origin of the coordinate system in the file. If "domain", then the
+        center coordinates will be the same as the center of the image as
+        defined by the *center* keyword argument. If "image", then the center
+        coordinates will be set to (0,0). Default: "domain"
+    moment : integer, optional
+        for a weighted projection, moment = 1 (the default) corresponds to a
+        weighted average. moment = 2 corresponds to a weighted standard
+        deviation.
     """
 
     def __init__(
@@ -1079,14 +1114,26 @@ class FITSProjection(FITSImageData):
         width=None,
         weight_field=None,
         length_unit=None,
+        *,
+        origin="domain",
+        moment=1,
         **kwargs,
     ):
         fields = list(iter_fields(fields))
         axis = fix_axis(axis, ds)
         center, dcenter = ds.coordinates.sanitize_center(center, axis)
-        prj = ds.proj(fields[0], axis, weight_field=weight_field, **kwargs)
+        prj = ds.proj(
+            fields[0], axis, weight_field=weight_field, moment=moment, **kwargs
+        )
         w, frb, lunit = construct_image(
-            ds, axis, prj, dcenter, image_res, width, length_unit
+            ds,
+            axis,
+            prj,
+            dcenter,
+            image_res,
+            width,
+            length_unit,
+            origin=origin,
         )
         super().__init__(frb, fields=fields, length_unit=lunit, wcs=w)
 
@@ -1159,6 +1206,11 @@ class FITSParticleProjection(FITSImageData):
     data_source : yt.data_objects.data_containers.YTSelectionContainer, optional
         If specified, this will be the data source used for selecting regions
         to project.
+    origin : string
+        The origin of the coordinate system in the file. If "domain", then the
+        center coordinates will be the same as the center of the image as
+        defined by the *center* keyword argument. If "image", then the center
+        coordinates will be set to (0,0). Default: "domain"
     """
 
     def __init__(
@@ -1176,6 +1228,8 @@ class FITSParticleProjection(FITSImageData):
         density=False,
         field_parameters=None,
         data_source=None,
+        *,
+        origin="domain",
     ):
         fields = list(iter_fields(fields))
         axis = fix_axis(axis, ds)
@@ -1199,7 +1253,7 @@ class FITSParticleProjection(FITSImageData):
             density=density,
         )
         w, frb, lunit = construct_image(
-            ds, axis, ps, dcenter, image_res, width, length_unit
+            ds, axis, ps, dcenter, image_res, width, length_unit, origin=origin
         )
         super().__init__(frb, fields=fields, length_unit=lunit, wcs=w)
 
@@ -1355,6 +1409,10 @@ class FITSOffAxisProjection(FITSImageData):
     length_unit : string, optional
         the length units that the coordinates are written in. The default
         is to use the default length unit of the dataset.
+    moment : integer, optional
+        for a weighted projection, moment = 1 (the default) corresponds to a
+        weighted average. moment = 2 corresponds to a weighted standard
+        deviation.
     """
 
     def __init__(
@@ -1371,8 +1429,10 @@ class FITSOffAxisProjection(FITSImageData):
         depth=(1.0, "unitary"),
         method="integrate",
         length_unit=None,
+        *,
+        moment=1,
     ):
-        fields = list(iter_fields(fields))
+        validate_moment(moment, weight_field)
         center, dcenter = ds.coordinates.sanitize_center(center, 4)
         buf = {}
         width = ds.coordinates.sanitize_width(normal, width, depth)
@@ -1381,23 +1441,60 @@ class FITSOffAxisProjection(FITSImageData):
             image_res = (image_res, image_res)
         res = (image_res[0], image_res[1])
         if data_source is None:
-            source = ds
+            source = ds.all_data()
         else:
             source = data_source
-        for field in fields:
-            buf[field] = off_axis_projection(
+        fields = source._determine_fields(list(iter_fields(fields)))
+        stddev_str = "_stddev" if moment == 2 else ""
+        for item in fields:
+            ftype, fname = item
+            key = (ftype, f"{fname}{stddev_str}")
+
+            buf[key] = off_axis_projection(
                 source,
                 center,
                 normal,
                 wd,
                 res,
-                field,
+                item,
                 north_vector=north_vector,
                 method=method,
                 weight=weight_field,
             ).swapaxes(0, 1)
+
+            if moment == 2:
+
+                def _sq_field(field, data, item: FieldKey):
+                    return data[item] ** 2
+
+                fd = ds._get_field_info(item)
+                field_sq = (ftype, f"tmp_{fname}_squared")
+
+                ds.add_field(
+                    field_sq,
+                    partial(_sq_field, item=item),
+                    sampling_type=fd.sampling_type,
+                    units=f"({fd.units})*({fd.units})",
+                )
+
+                buff2 = off_axis_projection(
+                    source,
+                    center,
+                    normal,
+                    wd,
+                    res,
+                    field_sq,
+                    north_vector=north_vector,
+                    method=method,
+                    weight=weight_field,
+                ).swapaxes(0, 1)
+
+                buf[key] = compute_stddev_image(buff2, buf[key])
+
+                ds.field_info.pop(field_sq)
+
         center = ds.arr([0.0] * 2, "code_length")
         w, not_an_frb, lunit = construct_image(
             ds, normal, buf, center, image_res, width, length_unit
         )
-        super().__init__(buf, fields=fields, wcs=w, length_unit=lunit, ds=ds)
+        super().__init__(buf, fields=list(buf.keys()), wcs=w, length_unit=lunit, ds=ds)

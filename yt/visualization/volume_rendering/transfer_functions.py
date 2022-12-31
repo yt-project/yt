@@ -1,5 +1,4 @@
 import numpy as np
-from matplotlib.cm import get_cmap
 from more_itertools import always_iterable
 
 from yt.funcs import mylog
@@ -728,12 +727,14 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         >>> tf = ColorTransferFunction((-10.0, -5.0))
         >>> tf.sample_colormap(-7.0, 0.01, colormap="cmyt.arbre")
         """
+        from yt.visualization.color_maps import _get_cmap
+
         v = np.float64(v)
         if col_bounds is None:
             rel = (v - self.x_bounds[0]) / (self.x_bounds[1] - self.x_bounds[0])
         else:
             rel = (v - col_bounds[0]) / (col_bounds[1] - col_bounds[0])
-        cmap = get_cmap(colormap)
+        cmap = _get_cmap(colormap)
         r, g, b, a = cmap(rel)
         if alpha is None:
             alpha = a
@@ -780,6 +781,8 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         ...     -6.0, -5.0, scale=10.0, colormap="cmyt.arbre", scale_func=linramp
         ... )
         """
+        from yt.visualization.color_maps import _get_cmap
+
         mi = np.float64(mi)
         ma = np.float64(ma)
         rel0 = int(
@@ -791,7 +794,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         rel0 = max(rel0, 0)
         rel1 = min(rel1, self.nbins - 1) + 1
         tomap = np.linspace(0.0, 1.0, num=rel1 - rel0)
-        cmap = get_cmap(colormap)
+        cmap = _get_cmap(colormap)
         cc = cmap(tomap)
         if scale_func is None:
             scale_mult = 1.0

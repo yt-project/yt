@@ -6,6 +6,7 @@ from yt.testing import (
     assert_array_equal,
     assert_equal,
     requires_file,
+    requires_module,
 )
 from yt.utilities.answer_testing.framework import (
     FieldValuesTest,
@@ -29,18 +30,21 @@ g5 = "gadget_fof_halos/groups_005/fof_subhalo_tab_005.0.hdf5"
 g42 = "gadget_fof_halos/groups_042/fof_subhalo_tab_042.0.hdf5"
 
 
+@requires_module("h5py")
 @requires_ds(g5)
 def test_fields_g5():
     for field in _fields:
         yield FieldValuesTest(g5, field, particle_type=True)
 
 
+@requires_module("h5py")
 @requires_ds(g42)
 def test_fields_g42():
     for field in _fields:
         yield FieldValuesTest(g42, field, particle_type=True)
 
 
+@requires_module("h5py")
 @requires_file(g42)
 def test_GadgetFOFDataset():
     assert isinstance(data_dir_load(g42), GadgetFOFDataset)
@@ -50,6 +54,7 @@ def test_GadgetFOFDataset():
 g298 = "gadget_halos/data/groups_298/fof_subhalo_tab_298.0.hdf5"
 
 
+@requires_module("h5py")
 @requires_file(g298)
 def test_particle_selection():
     ds = data_dir_load(g298)
@@ -57,6 +62,7 @@ def test_particle_selection():
     psc.run_defaults()
 
 
+@requires_module("h5py")
 @requires_file(g298)
 def test_subhalos():
     ds = data_dir_load(g298)
@@ -75,6 +81,7 @@ def test_subhalos():
     assert_equal(total_sub, total_int)
 
 
+@requires_module("h5py")
 @requires_file(g298)
 def test_halo_masses():
     ds = data_dir_load(g298)
@@ -97,6 +104,7 @@ g56 = "gadget_halos/data/groups_056/fof_subhalo_tab_056.0.hdf5"
 
 # This dataset has halos in one file and ids in another,
 # which can confuse the field detection.
+@requires_module("h5py")
 @requires_file(g56)
 def test_unbalanced_dataset():
     ds = data_dir_load(g56)
@@ -111,6 +119,7 @@ g76 = "gadget_halos/data/groups_076/fof_subhalo_tab_076.0.hdf5"
 
 # This dataset has one halo with particles distributed over 3 files
 # with the 2nd file being empty.
+@requires_module("h5py")
 @requires_file(g76)
 def test_3file_halo():
     ds = data_dir_load(g76)

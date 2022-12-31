@@ -3,20 +3,18 @@ import builtins
 import contextlib
 import copy
 import errno
-import getpass
 import glob
 import inspect
 import itertools
 import os
-import pdb
 import re
 import struct
 import subprocess
 import sys
 import time
 import traceback
-import urllib.parse
-import urllib.request
+import urllib
+from collections import UserDict
 from functools import lru_cache, wraps
 from numbers import Number as numeric_type
 from typing import Any, Callable, Type
@@ -24,7 +22,6 @@ from typing import Any, Callable, Type
 import numpy as np
 from more_itertools import always_iterable, collapse, first
 from packaging.version import Version
-from tqdm import tqdm
 
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
@@ -147,23 +144,20 @@ def humanize_time(secs):
 # Some function wrappers that come in handy once in a while
 #
 
-# we use the resource module to get the memory page size
-
-try:
-    import resource
-except ImportError:
-    pass
-
 
 def get_memory_usage(subtract_share=False):
     """
     Returning resident size in megabytes
     """
     pid = os.getpid()
+    # we use the resource module to get the memory page size
+
     try:
-        pagesize = resource.getpagesize()
-    except NameError:
+        import resource
+    except ImportError:
         return -1024
+    else:
+        pagesize = resource.getpagesize()
     status_file = f"/proc/{pid}/statm"
     if not os.path.isfile(status_file):
         return -1024
@@ -251,6 +245,7 @@ def pdb_run(func):
     ...     ...
 
     """
+    import pdb
 
     @wraps(func)
     def wrapper(*args, **kw):
@@ -308,6 +303,8 @@ class TqdmProgressBar:
     # This is a drop in replacement for pbar
     # called tqdm
     def __init__(self, title, maxval):
+        from tqdm import tqdm
+
         self._pbar = tqdm(leave=True, total=maxval, desc=title)
         self.i = 0
 
@@ -633,6 +630,8 @@ def simple_download_file(url, filename):
 
 # This code snippet is modified from Georg Brandl
 def bb_apicall(endpoint, data, use_pass=True):
+    import getpass
+
     uri = f"https://api.bitbucket.org/1.0/{endpoint}/"
     # since bitbucket doesn't return the required WWW-Authenticate header when
     # making a request without Authorization, we cannot use the standard urllib2
@@ -983,27 +982,13 @@ def get_hash(infile, algorithm="md5", BLOCKSIZE=65536):
 def get_brewer_cmap(cmap):
     """Returns a colorbrewer colormap from palettable"""
     try:
-        import brewer2mpl
-    except ImportError:
-        brewer2mpl = None
-    try:
         import palettable
-    except ImportError:
-        palettable = None
-    if palettable is not None:
-        bmap = palettable.colorbrewer.get_map(*cmap)
-    elif brewer2mpl is not None:
-        issue_deprecation_warning(
-            "Using brewer2mpl colormaps is deprecated. "
-            "Please install the successor to brewer2mpl, "
-            "palettable, with `pip install palettable`. "
-            "Colormap tuple names remain unchanged.",
-            since="3.3",
-            removal="4.2",
-        )
-        bmap = brewer2mpl.get_map(*cmap)
-    else:
-        raise RuntimeError("Please install palettable to use colorbrewer colormaps")
+    except ImportError as exc:
+        raise RuntimeError(
+            "Please install palettable to use colorbrewer colormaps"
+        ) from exc
+
+    bmap = palettable.colorbrewer.get_map(*cmap)
     return bmap.get_mpl_colormap(N=cmap[2])
 
 
@@ -1095,10 +1080,7 @@ def obj_length(v):
 
 def array_like_field(data, x, field):
     field = data._determine_fields(field)[0]
-    if isinstance(field, tuple):
-        finfo = data.ds._get_field_info(field[0], field[1])
-    else:
-        finfo = data.ds._get_field_info(field)
+    finfo = data.ds._get_field_info(field)
     if finfo.sampling_type == "particle":
         units = finfo.output_units
     else:
@@ -1260,7 +1242,13 @@ def dictWithFactory(factory: Callable[[Any], Any]) -> Type:
         A class to create new dictionaries handling missing keys.
     """
 
-    class DictWithFactory(dict):
+    issue_deprecation_warning(
+        "yt.funcs.dictWithFactory will be removed in a future version of yt, please do not rely on it. "
+        "If you need it, copy paste this function from yt's source code",
+        since="4.1",
+    )
+
+    class DictWithFactory(UserDict):
         def __init__(self, *args, **kwargs):
             self.factory = factory
             super().__init__(*args, **kwargs)
@@ -1326,3 +1314,15 @@ def levenshtein_distance(seq1, seq2, max_dist=None):
         if matrix[x].min() > max_dist:
             return max_dist + 1
     return matrix[size_x - 1, size_y - 1]
+
+
+def validate_moment(moment, weight_field):
+    if moment == 2 and weight_field is None:
+        raise ValueError(
+            "Cannot compute the second moment of a projection if weight_field=None!"
+        )
+    if moment not in [1, 2]:
+        raise ValueError(
+            "Weighted projections can only be made of averages "
+            "(moment = 1) or standard deviations (moment = 2)!"
+        )

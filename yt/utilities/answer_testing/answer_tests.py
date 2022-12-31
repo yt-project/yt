@@ -109,9 +109,9 @@ def pixelized_projection_values(ds, axis, field, weight_field=None, dobj_type=No
         obj = None
     proj = ds.proj(field, axis, weight_field=weight_field, data_source=obj)
     frb = proj.to_frb((1.0, "unitary"), 256)
-    frb[field]
+    frb.render(field)
     if weight_field is not None:
-        frb[weight_field]
+        frb.render(weight_field)
     d = frb.data
     for f in proj.field_data:
         # Sometimes f will be a tuple.

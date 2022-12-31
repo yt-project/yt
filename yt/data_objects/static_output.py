@@ -9,20 +9,35 @@ import time
 import warnings
 import weakref
 from collections import defaultdict
+from functools import cached_property
 from importlib.util import find_spec
 from stat import ST_CTIME
-from typing import DefaultDict, Dict, List, Optional, Set, Tuple, Type, Union
+from typing import (
+    Any,
+    DefaultDict,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Set,
+    Tuple,
+    Type,
+    Union,
+)
 
 import numpy as np
 from more_itertools import unzip
+from sympy import Symbol
+from unyt import Unit, UnitSystem, unyt_quantity
 from unyt.exceptions import UnitConversionError, UnitParseError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
+from yt._typing import AnyFieldKey, FieldKey, FieldType, ImplicitFieldKey, ParticleType
 from yt.config import ytcfg
-from yt.data_objects.particle_filters import filter_registry
-from yt.data_objects.particle_unions import ParticleUnion
+from yt.data_objects.particle_filters import ParticleFilter, filter_registry
 from yt.data_objects.region_expression import RegionExpression
-from yt.fields.derived_field import ValidateSpatial
+from yt.data_objects.unions import ParticleUnion
+from yt.fields.derived_field import DerivedField, ValidateSpatial
 from yt.fields.field_type_container import FieldTypeContainer
 from yt.fields.fluid_fields import setup_gradient_fields
 from yt.funcs import is_sequence, iter_fields, mylog, set_intersection, setdefaultattr
@@ -39,7 +54,7 @@ from yt.geometry.coordinates.api import (
 from yt.geometry.geometry_handler import Index
 from yt.units import UnitContainer, _wrap_display_ytarray, dimensions
 from yt.units.dimensions import current_mks  # type: ignore
-from yt.units.unit_object import Unit, define_unit  # type: ignore
+from yt.units.unit_object import define_unit  # type: ignore
 from yt.units.unit_registry import UnitRegistry  # type: ignore
 from yt.units.unit_systems import (  # type: ignore
     create_code_unit_system,
@@ -50,6 +65,7 @@ from yt.utilities.configure import YTConfig, configuration_callbacks
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.exceptions import (
     YTFieldNotFound,
+    YTFieldNotParseable,
     YTGeometryNotSupported,
     YTIllDefinedParticleFilter,
     YTObjectNotImplemented,
@@ -59,11 +75,6 @@ from yt.utilities.minimal_representation import MinimalDataset
 from yt.utilities.object_registries import data_object_registry, output_type_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_root_only
 from yt.utilities.parameter_file_storage import NoParameterShelf, ParameterFileStore
-
-if sys.version_info >= (3, 8):
-    from functools import cached_property
-else:
-    from yt._maintenance.backports import cached_property
 
 if sys.version_info >= (3, 9):
     from collections.abc import MutableMapping
@@ -80,7 +91,7 @@ _cached_datasets: MutableMapping[
 
 # we set this global to None as a place holder
 # its actual instanciation is delayed until after yt.__init__
-# is completed because we need yt.config.ytcfg to be instanciated first
+# is completed because we need yt.config.ytcfg to be instantiated first
 
 _ds_store: Optional[ParameterFileStore] = None
 
@@ -147,23 +158,25 @@ class Dataset(abc.ABC):
 
     default_fluid_type = "gas"
     default_field = ("gas", "density")
-    fluid_types: Tuple[str, ...] = ("gas", "deposit", "index")
-    particle_types: Optional[Tuple[str, ...]] = ("io",)  # By default we have an 'all'
-    particle_types_raw: Optional[Tuple[str, ...]] = ("io",)
+    fluid_types: Tuple[FieldType, ...] = ("gas", "deposit", "index")
+    particle_types: Tuple[ParticleType, ...] = ("io",)  # By default we have an 'all'
+    particle_types_raw: Optional[Tuple[ParticleType, ...]] = ("io",)
     geometry = "cartesian"
     coordinates = None
     storage_filename = None
-    particle_unions: Optional[Dict[str, ParticleUnion]] = None
-    known_filters = None
+    particle_unions: Optional[Dict[ParticleType, ParticleUnion]] = None
+    known_filters: Optional[Dict[ParticleType, ParticleFilter]] = None
     _index_class: Type[Index]
-    field_units = None
+    field_units: Optional[Dict[AnyFieldKey, Unit]] = None
     derived_field_list = requires_index("derived_field_list")
     fields = requires_index("fields")
-    _instantiated = False
+    # _instantiated represents an instantiation time (since Epoch)
+    # the default is a place holder sentinel, falsy value
+    _instantiated: float = 0
     _particle_type_counts = None
     _proj_type = "quad_proj"
     _ionization_label_format = "roman_numeral"
-    _determined_fields = None
+    _determined_fields: Optional[Dict[str, List[FieldKey]]] = None
     fields_detected = False
 
     # these are set in self._parse_parameter_file()
@@ -216,12 +229,23 @@ class Dataset(abc.ABC):
 
     def __init__(
         self,
-        filename,
-        dataset_type=None,
-        file_style=None,
-        units_override=None,
-        unit_system="cgs",
-        default_species_fields=None,
+        filename: str,
+        dataset_type: Optional[str] = None,
+        units_override: Optional[Dict[str, str]] = None,
+        # valid unit_system values include all keys from unyt.unit_systems.unit_systems_registry + "code"
+        unit_system: Literal[
+            "cgs",
+            "mks",
+            "imperial",
+            "galactic",
+            "solar",
+            "geometrized",
+            "planck",
+            "code",
+        ] = "cgs",
+        default_species_fields: Optional[
+            "Any"
+        ] = None,  # Any used as a placeholder here
     ):
         """
         Base class for generating new output types.  Principally consists of
@@ -229,12 +253,11 @@ class Dataset(abc.ABC):
         """
         # We return early and do NOT initialize a second time if this file has
         # already been initialized.
-        if self._instantiated:
+        if self._instantiated != 0:
             return
         self.dataset_type = dataset_type
-        self.file_style = file_style
-        self.conversion_factors = {}
-        self.parameters = {}
+        self.conversion_factors: Dict[str, float] = {}
+        self.parameters: Dict[str, Any] = {}
         self.region_expression = self.r = RegionExpression(self)
         self.known_filters = self.known_filters or {}
         self.particle_unions = self.particle_unions or {}
@@ -271,6 +294,11 @@ class Dataset(abc.ABC):
         # the cache, we move that check to here from __new__.  This avoids
         # double-instantiation.
         # PR 3124: _set_derived_attrs() can change the hash, check store here
+        if _ds_store is None:
+            raise RuntimeError(
+                "Something went wrong during yt's initialization: "
+                "dataset cache isn't properly initialized"
+            )
         try:
             _ds_store.check_ds(self)
         except NoParameterShelf:
@@ -468,7 +496,7 @@ class Dataset(abc.ABC):
         """
         return [], True
 
-    def close(self):
+    def close(self):  # noqa: B027
         pass
 
     def __getitem__(self, key):
@@ -671,7 +699,6 @@ class Dataset(abc.ABC):
         # Now that we've detected the fields, set this flag so that
         # deprecated fields will be logged if they are used
         self.fields_detected = True
-        self._last_freq = (None, None)
 
     def set_field_label_format(self, format_property, value):
         """
@@ -766,7 +793,7 @@ class Dataset(abc.ABC):
             units = set()
             for s in union:
                 # First we check our existing fields for units
-                funits = self._get_field_info(s, field).units
+                funits = self._get_field_info((s, field)).units
                 # Then we override with field_units settings.
                 funits = self.field_units.get((s, field), funits)
                 units.add(funits)
@@ -872,18 +899,19 @@ class Dataset(abc.ABC):
             df += self._setup_particle_type(ptype)
         return df
 
-    _last_freq = (None, None)
-    _last_finfo = None
-
-    def _get_field_info(self, ftype, fname=None):
-        field_info, candidates = self._get_field_info_helper(ftype, fname)
+    def _get_field_info(
+        self,
+        field: Union[FieldKey, ImplicitFieldKey, DerivedField],
+        /,
+    ) -> DerivedField:
+        field_info, candidates = self._get_field_info_helper(field)
 
         if field_info.name[1] in ("px", "py", "pz", "pdx", "pdy", "pdz"):
             # escape early as a bandaid solution to
             # https://github.com/yt-project/yt/issues/3381
             return field_info
 
-        def _are_ambiguous(candidates: List[Tuple[str, str]]) -> bool:
+        def _are_ambiguous(candidates: List[FieldKey]) -> bool:
             if len(candidates) < 2:
                 return False
 
@@ -898,9 +926,9 @@ class Dataset(abc.ABC):
 
             all_equivalent_particle_fields: bool
             if (
-                self.particle_types is None
-                or self.particle_unions is None
-                or self.particle_types_raw is None
+                not self.particle_types
+                or not self.particle_unions
+                or not self.particle_types_raw
             ):
                 all_equivalent_particle_fields = False
             elif all(ft in self.particle_types for ft in ftypes):
@@ -923,71 +951,40 @@ class Dataset(abc.ABC):
         if _are_ambiguous(candidates):
             ft, fn = field_info.name
             possible_ftypes = [c[0] for c in candidates]
-            msg = (
+            raise ValueError(
                 f"The requested field name {fn!r} "
                 "is ambiguous and corresponds to any one of "
                 f"the following field types:\n {possible_ftypes}\n"
                 "Please specify the requested field as an explicit "
                 "tuple (<ftype>, <fname>).\n"
-                f"Defaulting to {field_info.name!r}"
             )
-            issue_deprecation_warning(msg, since="4.0.0", removal="4.1.0")
         return field_info
 
-    def _get_field_info_helper(self, ftype, fname=None):
+    def _get_field_info_helper(
+        self,
+        field: Union[FieldKey, ImplicitFieldKey, DerivedField],
+        /,
+    ) -> Tuple[DerivedField, List[FieldKey]]:
         self.index
 
-        # store the original inputs in case we need to raise an error
-        INPUT = ftype, fname
-        if fname is None:
-            try:
-                ftype, fname = ftype.name
-            except AttributeError:
-                ftype, fname = "unknown", ftype
+        ftype: str
+        fname: str
+        if isinstance(field, str):
+            ftype, fname = "unknown", field
+        elif isinstance(field, tuple) and len(field) == 2:
+            ftype, fname = field
+        elif isinstance(field, DerivedField):
+            ftype, fname = field.name
+        else:
+            raise YTFieldNotParseable(field)
 
-        candidates: List[Tuple[str, str]] = []
+        if ftype == "unknown":
+            candidates: List[FieldKey] = [
+                (ft, fn) for ft, fn in self.field_info if fn == fname
+            ]
 
-        # storing this condition before altering it
-        guessing_type = ftype == "unknown"
-        if guessing_type:
-            ftype = self._last_freq[0] or ftype
-            candidates = [(ft, fn) for ft, fn in self.field_info.keys() if fn == fname]
-
-        field = (ftype, fname)
-
-        if (
-            field == self._last_freq
-            and field not in self.field_info.field_aliases.values()
-        ):
-            return self._last_finfo, candidates
-        if field in self.field_info:
-            self._last_freq = field
-            self._last_finfo = self.field_info[(ftype, fname)]
-            return self._last_finfo, candidates
-
-        try:
-            # Sometimes, if guessing_type == True, this will be switched for
-            # the type of field it is.  So we look at the field type and
-            # determine if we need to change the type.
-            fi = self._last_finfo = self.field_info[fname]
-            if (
-                fi.sampling_type == "particle"
-                and self._last_freq[0] not in self.particle_types
-            ):
-                field = "all", field[1]
-            elif (
-                not fi.sampling_type == "particle"
-                and self._last_freq[0] not in self.fluid_types
-            ):
-                field = self.default_fluid_type, field[1]
-            self._last_freq = field
-            return self._last_finfo, candidates
-        except KeyError:
-            pass
-
-        # We also should check "all" for particles, which can show up if you're
-        # mixing deposition/gas fields with particle fields.
-        if guessing_type:
+            # We also should check "all" for particles, which can show up if you're
+            # mixing deposition/gas fields with particle fields.
             if hasattr(self, "_sph_ptype"):
                 to_guess = [self.default_fluid_type, "all"]
             else:
@@ -995,10 +992,12 @@ class Dataset(abc.ABC):
             to_guess += list(self.fluid_types) + list(self.particle_types)
             for ftype in to_guess:
                 if (ftype, fname) in self.field_info:
-                    self._last_freq = (ftype, fname)
-                    self._last_finfo = self.field_info[(ftype, fname)]
-                    return self._last_finfo, candidates
-        raise YTFieldNotFound(field=INPUT, ds=self)
+                    return self.field_info[ftype, fname], candidates
+
+        elif (ftype, fname) in self.field_info:
+            return self.field_info[ftype, fname], []
+
+        raise YTFieldNotFound(field, ds=self)
 
     def _setup_classes(self):
         # Called by subclass
@@ -1217,13 +1216,28 @@ class Dataset(abc.ABC):
     def relative_refinement(self, l0, l1):
         return self.refine_by ** (l1 - l0)
 
-    def _assign_unit_system(self, unit_system):
+    def _assign_unit_system(
+        self,
+        # valid unit_system values include all keys from unyt.unit_systems.unit_systems_registry + "code"
+        unit_system: Literal[
+            "cgs",
+            "mks",
+            "imperial",
+            "galactic",
+            "solar",
+            "geometrized",
+            "planck",
+            "code",
+        ],
+    ) -> None:
         # we need to determine if the requested unit system
         # is mks-like: i.e., it has a current with the same
         # dimensions as amperes.
         mks_system = False
-        if getattr(self, "magnetic_unit", None):
-            mag_dims = self.magnetic_unit.units.dimensions.free_symbols
+        mag_unit: Optional[unyt_quantity] = getattr(self, "magnetic_unit", None)
+        mag_dims: Optional[Set[Symbol]]
+        if mag_unit is not None:
+            mag_dims = mag_unit.units.dimensions.free_symbols
         else:
             mag_dims = None
         if unit_system != "code":
@@ -1240,6 +1254,7 @@ class Dataset(abc.ABC):
         # we asked for a conversion to something CGS-like, or vice-versa,
         # we have to convert the magnetic field
         if mag_dims is not None:
+            self.magnetic_unit: unyt_quantity
             if mks_system and current_mks not in mag_dims:
                 self.magnetic_unit = self.quan(
                     self.magnetic_unit.to_value("gauss") * 1.0e-4, "T"
@@ -1267,7 +1282,7 @@ class Dataset(abc.ABC):
 
         self._unit_system_name: str = unit_system
 
-        self.unit_system = us
+        self.unit_system: UnitSystem = us
         self.unit_registry.unit_system = self.unit_system
 
     @property
@@ -1980,7 +1995,7 @@ def _reconstruct_ds(*args, **kwargs):
 
 
 @functools.total_ordering
-class ParticleFile(abc.ABC):
+class ParticleFile:
     filename: str
     file_id: int
 
@@ -2003,13 +2018,13 @@ class ParticleFile(abc.ABC):
             self.start = 0
         self.end = max(self.total_particles.values()) + self.start
 
-    def select(self, selector):
+    def select(self, selector):  # noqa: B027
         pass
 
-    def count(self, selector):
+    def count(self, selector):  # noqa: B027
         pass
 
-    def _calculate_offsets(self, fields, pcounts):
+    def _calculate_offsets(self, fields, pcounts):  # noqa: B027
         pass
 
     def __lt__(self, other):
@@ -2035,7 +2050,6 @@ class ParticleDataset(Dataset):
         self,
         filename,
         dataset_type=None,
-        file_style=None,
         units_override=None,
         unit_system="cgs",
         index_order=None,
@@ -2047,7 +2061,6 @@ class ParticleDataset(Dataset):
         super().__init__(
             filename,
             dataset_type=dataset_type,
-            file_style=file_style,
             units_override=units_override,
             unit_system=unit_system,
             default_species_fields=default_species_fields,

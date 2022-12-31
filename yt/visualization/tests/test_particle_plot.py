@@ -42,7 +42,7 @@ PROJ_ATTR_ARGS["set_cmap"] = [
 PROJ_ATTR_ARGS["set_log"] = [((("all", "particle_mass"), False), {})]
 PROJ_ATTR_ARGS["set_zlim"] = [
     ((("all", "particle_mass"), 1e39, 1e42), {}),
-    ((("all", "particle_mass"), 1e39, None), {"dynamic_range": 4}),
+    ((("all", "particle_mass"),), {"zmin": 1e39, "dynamic_range": 4}),
 ]
 
 PHASE_ATTR_ARGS = {
@@ -150,12 +150,17 @@ def test_particle_projection_filter():
     ds.add_particle_filter("formed_star")
     for ax in "xyz":
         attr_name = "set_log"
-        for args in PROJ_ATTR_ARGS[attr_name]:
-            test = PlotWindowAttributeTest(
-                ds, plot_field, ax, attr_name, args, decimals, "ParticleProjectionPlot"
-            )
-            test_particle_projection_filter.__name__ = test.description
-            yield test
+        test = PlotWindowAttributeTest(
+            ds,
+            plot_field,
+            ax,
+            attr_name,
+            ((plot_field, False), {}),
+            decimals,
+            "ParticleProjectionPlot",
+        )
+        test_particle_projection_filter.__name__ = test.description
+        yield test
 
 
 @requires_ds(g30, big_data=True)

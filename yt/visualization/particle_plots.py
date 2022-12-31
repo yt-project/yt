@@ -3,6 +3,7 @@ from typing import List
 import numpy as np
 
 from yt.data_objects.profiles import create_profile
+from yt.data_objects.static_output import Dataset
 from yt.funcs import fix_axis, iter_fields
 from yt.units.yt_array import YTArray
 from yt.visualization.fixed_resolution import ParticleImageBuffer
@@ -314,9 +315,9 @@ class ParticlePhasePlot(PhasePlot):
 
     Parameters
     ----------
-    data_source : YTSelectionContainer Object
+    data_source : YTSelectionContainer or Dataset
         The data object to be profiled, such as all_data, region, or
-        sphere.
+        sphere. If data_source is a Dataset, data_source.all_data() will be used.
     x_field : str
         The x field for the mesh.
     y_field : str
@@ -403,6 +404,8 @@ class ParticlePhasePlot(PhasePlot):
         shading="nearest",
     ):
 
+        if isinstance(data_source, Dataset):
+            data_source = data_source.all_data()
         # if no z_fields are passed in, use a constant color
         if z_fields is None:
             self.use_cbar = False

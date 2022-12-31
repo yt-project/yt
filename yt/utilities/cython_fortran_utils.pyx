@@ -1,12 +1,8 @@
 # distutils: libraries = STD_LIBS
 cimport numpy as np
-
-import cython
 import numpy as np
 
 from libc.stdio cimport *
-
-import struct
 
 
 cdef INT32_SIZE = sizeof(np.int32_t)

@@ -56,35 +56,35 @@ def test_stream_particles():
 
     for ptype in ("all", "io"):
         assert (
-            ug1._get_field_info(ptype, "particle_position_x").sampling_type
+            ug1._get_field_info((ptype, "particle_position_x")).sampling_type
             == "particle"
         )
         assert (
-            ug1._get_field_info(ptype, "particle_position_y").sampling_type
+            ug1._get_field_info((ptype, "particle_position_y")).sampling_type
             == "particle"
         )
         assert (
-            ug1._get_field_info(ptype, "particle_position_z").sampling_type
+            ug1._get_field_info((ptype, "particle_position_z")).sampling_type
             == "particle"
         )
-        assert ug1._get_field_info(ptype, "particle_mass").sampling_type == "particle"
-    assert not ug1._get_field_info("gas", "density").sampling_type == "particle"
+        assert ug1._get_field_info((ptype, "particle_mass")).sampling_type == "particle"
+    assert not ug1._get_field_info(("gas", "density")).sampling_type == "particle"
 
     for ptype in ("all", "io"):
         assert (
-            ug2._get_field_info(ptype, "particle_position_x").sampling_type
+            ug2._get_field_info((ptype, "particle_position_x")).sampling_type
             == "particle"
         )
         assert (
-            ug2._get_field_info(ptype, "particle_position_y").sampling_type
+            ug2._get_field_info((ptype, "particle_position_y")).sampling_type
             == "particle"
         )
         assert (
-            ug2._get_field_info(ptype, "particle_position_z").sampling_type
+            ug2._get_field_info((ptype, "particle_position_z")).sampling_type
             == "particle"
         )
-        assert ug2._get_field_info(ptype, "particle_mass").sampling_type == "particle"
-    assert not ug2._get_field_info("gas", "density").sampling_type == "particle"
+        assert ug2._get_field_info((ptype, "particle_mass")).sampling_type == "particle"
+    assert not ug2._get_field_info(("gas", "density")).sampling_type == "particle"
 
     # Now perform similar checks, but with multiple particle types
 
@@ -138,31 +138,31 @@ def test_stream_particles():
 
     for ptype in ("dm", "star"):
         assert (
-            ug3._get_field_info(ptype, "particle_position_x").sampling_type
+            ug3._get_field_info((ptype, "particle_position_x")).sampling_type
             == "particle"
         )
         assert (
-            ug3._get_field_info(ptype, "particle_position_y").sampling_type
+            ug3._get_field_info((ptype, "particle_position_y")).sampling_type
             == "particle"
         )
         assert (
-            ug3._get_field_info(ptype, "particle_position_z").sampling_type
+            ug3._get_field_info((ptype, "particle_position_z")).sampling_type
             == "particle"
         )
-        assert ug3._get_field_info(ptype, "particle_mass").sampling_type == "particle"
+        assert ug3._get_field_info((ptype, "particle_mass")).sampling_type == "particle"
         assert (
-            ug4._get_field_info(ptype, "particle_position_x").sampling_type
-            == "particle"
-        )
-        assert (
-            ug4._get_field_info(ptype, "particle_position_y").sampling_type
+            ug4._get_field_info((ptype, "particle_position_x")).sampling_type
             == "particle"
         )
         assert (
-            ug4._get_field_info(ptype, "particle_position_z").sampling_type
+            ug4._get_field_info((ptype, "particle_position_y")).sampling_type
             == "particle"
         )
-        assert ug4._get_field_info(ptype, "particle_mass").sampling_type == "particle"
+        assert (
+            ug4._get_field_info((ptype, "particle_position_z")).sampling_type
+            == "particle"
+        )
+        assert ug4._get_field_info((ptype, "particle_mass")).sampling_type == "particle"
 
 
 def test_load_particles_types():

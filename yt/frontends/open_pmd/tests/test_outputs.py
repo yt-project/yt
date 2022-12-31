@@ -9,6 +9,7 @@ from yt.testing import (
     assert_array_equal,
     assert_equal,
     requires_file,
+    requires_module,
 )
 from yt.utilities.answer_testing.framework import data_dir_load
 
@@ -34,6 +35,7 @@ particle_fields = [
 ]
 
 
+@requires_module("h5py")
 @requires_file(threeD)
 def test_3d_out():
     ds = data_dir_load(threeD)
@@ -56,6 +58,7 @@ def test_3d_out():
     assert_almost_equal(ds.domain_right_edge - ds.domain_left_edge, domain_width)
 
 
+@requires_module("h5py")
 @requires_file(twoD)
 def test_2d_out():
     ds = data_dir_load(twoD)
@@ -89,6 +92,7 @@ def test_2d_out():
     assert_almost_equal(ds.domain_right_edge - ds.domain_left_edge, domain_width)
 
 
+@requires_module("h5py")
 @requires_file(noFields)
 def test_no_fields_out():
     ds = data_dir_load(noFields)
@@ -111,6 +115,7 @@ def test_no_fields_out():
     assert_almost_equal(ds.domain_right_edge - ds.domain_left_edge, domain_width)
 
 
+@requires_module("h5py")
 @requires_file(noParticles)
 def test_no_particles_out():
     ds = data_dir_load(noParticles)
@@ -136,6 +141,7 @@ def test_no_particles_out():
     assert_almost_equal(ds.domain_right_edge - ds.domain_left_edge, domain_width)
 
 
+@requires_module("h5py")
 @requires_file(groupBased)
 def test_groupBased_out():
     dss = load(groupBased)

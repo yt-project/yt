@@ -1,22 +1,17 @@
 import os
-import sys
 from collections import defaultdict
+from functools import cached_property
 from typing import Tuple
 
 import numpy as np
 
 from yt.frontends.sph.io import IOHandlerSPH
-from yt.units.yt_array import uconcatenate  # type: ignore
+from yt.units._numpy_wrapper_functions import uconcatenate
 from yt.utilities.lib.particle_kdtree_tools import generate_smoothing_length
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 from .definitions import SNAP_FORMAT_2_OFFSET, gadget_hdf5_ptypes
-
-if sys.version_info >= (3, 8):
-    from functools import cached_property
-else:
-    from yt._maintenance.backports import cached_property
 
 
 class IOHandlerGadgetHDF5(IOHandlerSPH):
@@ -216,6 +211,9 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                 elif field.startswith("PassiveScalars_"):
                     col = int(field.rsplit("_", 1)[-1])
                     data = g["PassiveScalars"][si:ei, col][mask]
+                elif field.startswith("GFM_StellarPhotometrics_"):
+                    col = int(field.rsplit("_", 1)[-1])
+                    data = g["GFM_StellarPhotometrics"][si:ei, col][mask]
                 elif field == "smoothing_length":
                     # This is for frontends which do not store
                     # the smoothing length on-disk, so we do not
@@ -282,7 +280,13 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                         kk = j
                         fields.append((ptype, str(kk)))
                 elif (
-                    k in ["Metallicity", "GFM_Metals", "PassiveScalars"]
+                    k
+                    in (
+                        "Metallicity",
+                        "GFM_Metals",
+                        "PassiveScalars",
+                        "GFM_StellarPhotometrics",
+                    )
                     and len(g[k].shape) > 1
                 ):
                     # Vector of metallicity or passive scalar

@@ -8,17 +8,18 @@ Geometry selection routine imports.
 
 
 cimport numpy as np
-from grid_visitors cimport (
+
+from yt.geometry.grid_visitors cimport (
     GridTreeNode,
     GridVisitorData,
     check_child_masked,
     grid_visitor_function,
 )
-from oct_container cimport OctreeContainer
-from oct_visitors cimport Oct, OctVisitor
-
 from yt.utilities.lib.fp_utils cimport _ensure_code
 from yt.utilities.lib.geometry_utils cimport decode_morton_64bit
+
+from .oct_container cimport OctreeContainer
+from .oct_visitors cimport Oct, OctVisitor
 
 
 cdef class SelectorObject:

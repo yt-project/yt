@@ -3,7 +3,6 @@ import os
 import struct
 
 import numpy as np
-from numpy.lib.recfunctions import append_fields
 
 from yt.frontends.sph.io import IOHandlerSPH
 from yt.frontends.tipsy.definitions import npart_mapping
@@ -152,6 +151,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
         return self._read_smoothing_length(data_file, shape[0])
 
     def _read_particle_data_file(self, data_file, ptf, selector=None):
+        from numpy.lib.recfunctions import append_fields
 
         return_data = {}
 

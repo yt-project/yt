@@ -16,16 +16,15 @@ from yt.funcs import get_pbar
 from yt.units.yt_array import YTArray
 
 cimport cython
-cimport libc.math as math
 cimport numpy as np
 from cpython cimport buffer
-from cython.view cimport array as cvarray, memoryview
+from cython.view cimport memoryview
 from libc.math cimport abs, sqrt
 from libc.stdlib cimport free, malloc
 from libc.string cimport strcmp
 
 from yt.geometry.selection_routines cimport _ensure_code
-from yt.utilities.lib.fp_utils cimport fmax, fmin, i64max, i64min
+from yt.utilities.lib.fp_utils cimport fmax, fmin
 
 
 cdef extern from "platform_dep.h":
@@ -354,7 +353,6 @@ def zpoints(np.ndarray[np.float64_t, ndim=3] image,
 
     cdef int nx = image.shape[0]
     cdef int ny = image.shape[1]
-    cdef int nl = xs.shape[0]
     cdef np.float64_t[:] alpha
     cdef np.float64_t talpha
     cdef int i, j, c
@@ -428,9 +426,9 @@ def get_color_bounds(np.ndarray[np.float64_t, ndim=1] px,
                      np.float64_t mindx = -1, np.float64_t maxdx = -1):
     cdef int i
     cdef np.float64_t mi = 1e100, ma = -1e100, v
-    cdef int np = px.shape[0]
+    cdef int npx = px.shape[0]
     with nogil:
-        for i in range(np):
+        for i in range(npx):
             v = value[i]
             if v < mi or v > ma:
                 if px[i] + pdx[i] < leftx: continue
@@ -833,7 +831,7 @@ def count_collisions(np.ndarray[np.uint8_t, ndim=2] masks):
     counts = np.zeros(masks.shape[1], dtype="uint32")
     collides = np.zeros(masks.shape[1], dtype="uint8")
     for i in range(masks.shape[1]):
-        print i
+        print(i)
         for j in range(masks.shape[1]):
             collides[j] = 0
         for k in range(masks.shape[0]):
@@ -974,7 +972,7 @@ def gravitational_binding_energy(
         np.float64_t kinetic,
         int num_threads = 0):
 
-    cdef int q_outer, q_inner, n_q, i
+    cdef int q_outer, q_inner, n_q
     cdef np.float64_t mass_o, x_o, y_o, z_o
     cdef np.float64_t mass_i, x_i, y_i, z_i
     cdef np.float64_t total_potential = 0.

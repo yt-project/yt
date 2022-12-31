@@ -1,9 +1,11 @@
 import weakref
+from functools import partial
 from typing import TYPE_CHECKING, Dict, List, Optional
 
 import numpy as np
 
 from yt._maintenance.deprecation import issue_deprecation_warning
+from yt._typing import FieldKey
 from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.utilities import save_as_dataset
 from yt.funcs import get_output_filename, iter_fields, mylog
@@ -13,6 +15,7 @@ from yt.utilities.lib.api import (  # type: ignore
     add_points_to_greyscale_image,
 )
 from yt.utilities.lib.pixelization_routines import pixelize_cylinder
+from yt.utilities.math_utils import compute_stddev_image
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 from .volume_rendering.api import off_axis_projection
@@ -192,6 +195,11 @@ class FixedResolutionBuffer:
         self._data_valid = True
         return self.data[item]
 
+    def render(self, item):
+        # deleguate to __getitem__ for historical reasons
+        # this method exists for clarity of intention
+        return self[item]
+
     def _apply_filters(self, buffer: np.ndarray) -> np.ndarray:
         for f in self._filters:
             buffer = f(buffer)
@@ -206,12 +214,12 @@ class FixedResolutionBuffer:
         fields += getattr(self.data_source, "field_data", {}).keys()
         for f in fields:
             if f not in exclude and f[0] not in self.data_source.ds.particle_types:
-                self[f]
+                self.render(f)
 
     def _get_info(self, item):
         info = {}
         ftype, fname = field = self.data_source._determine_fields(item)[0]
-        finfo = self.data_source.ds._get_field_info(*field)
+        finfo = self.data_source.ds._get_field_info(field)
         info["data_source"] = self.data_source.__str__()
         info["axis"] = self.data_source.axis
         info["field"] = str(item)
@@ -391,7 +399,7 @@ class FixedResolutionBuffer:
         fid = FITSImageData(self, fields=fields, length_unit=length_unit)
         if other_keys is not None:
             for k, v in other_keys.items():
-                fid.update_all_headers(k, v)
+                fid.update_header("all", k, v)
         return fid
 
     def export_dataset(self, fields=None, nprocs=1):
@@ -614,6 +622,40 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
             north_vector=dd.north_vector,
             method=dd.method,
         )
+        if self.data_source.moment == 2:
+
+            def _sq_field(field, data, item: FieldKey):
+                return data[item] ** 2
+
+            fd = self.ds._get_field_info(item)
+            ftype, fname = item
+
+            item_sq = (ftype, f"tmp_{fname}_squared")
+            self.ds.add_field(
+                item_sq,
+                partial(_sq_field, item=item),
+                sampling_type=fd.sampling_type,
+                units=f"({fd.units})*({fd.units})",
+            )
+
+            buff2 = off_axis_projection(
+                dd.dd,
+                dd.center,
+                dd.normal_vector,
+                width,
+                self.buff_size,
+                item_sq,
+                weight=dd.weight_field,
+                volume=dd.volume,
+                no_ghost=dd.no_ghost,
+                interpolated=dd.interpolated,
+                north_vector=dd.north_vector,
+                method=dd.method,
+            )
+            buff = compute_stddev_image(buff2, buff)
+
+            self.ds.field_info.pop(item_sq)
+
         ia = ImageArray(buff.swapaxes(0, 1), info=self._get_info(item))
         self[item] = ia
         return ia
@@ -731,9 +773,9 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         # requested
         info = self._get_info(item)
         if density:
-            width = self.data_source.width
-            norm = width[self.xax] * width[self.yax] / np.prod(self.buff_size)
-            norm = norm.in_base()
+            dpx = (bounds[1] - bounds[0]) / self.buff_size[0]
+            dpy = (bounds[3] - bounds[2]) / self.buff_size[1]
+            norm = self.ds.quan(dpx * dpy, "code_length**2").in_base()
             buff /= norm.v
             units = data.units / norm.units
             info["label"] = "%s $\\rm{Density}$" % info["label"]
@@ -780,4 +822,4 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         fields += getattr(self.data_source, "field_data", {}).keys()
         for f in fields:
             if f not in exclude:
-                self[f]
+                self.render(f)

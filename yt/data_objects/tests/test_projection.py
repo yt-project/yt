@@ -125,6 +125,38 @@ def test_projection(pf):
             v1 = proj[("gas", "density")].sum()
             v2 = (dd[("gas", "density")] * dd[("index", f"d{an}")]).sum()
             assert_rel_equal(v1, v2.in_units(v1.units), 10)
+
+        # Test moment projections
+        def make_vsq_field(aname):
+            def _vsquared(field, data):
+                return data["gas", f"velocity_{aname}"] ** 2
+
+            return _vsquared
+
+        for ax, an in enumerate("xyz"):
+            ds.add_field(
+                ("gas", f"velocity_{an}_squared"),
+                make_vsq_field(an),
+                sampling_type="local",
+                units="cm**2/s**2",
+            )
+            proj1 = ds.proj(
+                [("gas", f"velocity_{an}"), ("gas", f"velocity_{an}_squared")],
+                ax,
+                weight_field=("gas", "density"),
+                moment=1,
+            )
+            proj2 = ds.proj(
+                ("gas", f"velocity_{an}"), ax, weight_field=("gas", "density"), moment=2
+            )
+            assert_rel_equal(
+                np.sqrt(
+                    proj1["gas", f"velocity_{an}_squared"]
+                    - proj1["gas", f"velocity_{an}"] ** 2
+                ),
+                proj2["gas", f"velocity_{an}"],
+                10,
+            )
     teardown_func(fns)
 
 

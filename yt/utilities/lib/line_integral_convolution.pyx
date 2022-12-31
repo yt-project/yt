@@ -63,7 +63,6 @@ def line_integral_convolution_2d(
 
     w = vectors.shape[0]
     h = vectors.shape[1]
-    t = vectors.shape[2]
 
     kernellen = kernel.shape[0]
     result = np.zeros((w,h),dtype=np.double)

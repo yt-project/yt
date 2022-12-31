@@ -1,17 +1,16 @@
 from collections import defaultdict
+from typing import Optional
 
 import numpy as np
+from matplotlib.colors import LogNorm, Normalize, SymLogNorm
 
 from yt.funcs import is_sequence, mylog
 from yt.units.unit_object import Unit  # type: ignore
 from yt.units.yt_array import YTArray
-from yt.visualization.base_plot_types import PlotMPL
 from yt.visualization.plot_container import (
-    PlotContainer,
+    BaseLinePlot,
     PlotDictionary,
     invalidate_plot,
-    linear_transform,
-    log_transform,
 )
 
 
@@ -87,10 +86,7 @@ class LinePlotDictionary(PlotDictionary):
         ).dimensions
         if dimensions not in self.known_dimensions:
             self.known_dimensions[dimensions] = item
-            ret_item = item
-        else:
-            ret_item = self.known_dimensions[dimensions]
-        return ret_item
+        return self.known_dimensions[dimensions]
 
     def __getitem__(self, item):
         ret_item = self._sanitize_dimensions(item)
@@ -105,7 +101,7 @@ class LinePlotDictionary(PlotDictionary):
         return super().__contains__(ret_item)
 
 
-class LinePlot(PlotContainer):
+class LinePlot(BaseLinePlot):
     r"""
     A class for constructing line plots
 
@@ -152,7 +148,11 @@ class LinePlot(PlotContainer):
     >>> plot.save()
 
     """
+    _plot_dict_type = LinePlotDictionary
     _plot_type = "line_plot"
+
+    _default_figure_size = (5.0, 5.0)
+    _default_font_size = 14.0
 
     def __init__(
         self,
@@ -161,8 +161,8 @@ class LinePlot(PlotContainer):
         start_point,
         end_point,
         npoints,
-        figure_size=5,
-        fontsize=14,
+        figure_size=None,
+        fontsize: Optional[float] = None,
         field_labels=None,
     ):
         """
@@ -175,25 +175,18 @@ class LinePlot(PlotContainer):
 
     @classmethod
     def _initialize_instance(
-        cls, obj, ds, fields, figure_size=5, fontsize=14, field_labels=None
+        cls, obj, ds, fields, figure_size, fontsize, field_labels=None
     ):
         obj._x_unit = None
-        obj._y_units = {}
         obj._titles = {}
 
         data_source = ds.all_data()
 
         obj.fields = data_source._determine_fields(fields)
-        obj.plots = LinePlotDictionary(data_source)
         obj.include_legend = defaultdict(bool)
-        super(LinePlot, obj).__init__(data_source, figure_size, fontsize)
-        for f in obj.fields:
-            finfo = obj.data_source.ds._get_field_info(*f)
-            if finfo.take_log:
-                obj._field_transform[f] = log_transform
-            else:
-                obj._field_transform[f] = linear_transform
-
+        super(LinePlot, obj).__init__(
+            data_source, figure_size=figure_size, fontsize=fontsize
+        )
         if field_labels is None:
             obj.field_labels = {}
         else:
@@ -202,9 +195,35 @@ class LinePlot(PlotContainer):
             if f not in obj.field_labels:
                 obj.field_labels[f] = f[1]
 
+    def _get_axrect(self):
+        fontscale = self._font_properties._size / self.__class__._default_font_size
+        top_buff_size = 0.35 * fontscale
+
+        x_axis_size = 1.35 * fontscale
+        y_axis_size = 0.7 * fontscale
+        right_buff_size = 0.2 * fontscale
+
+        if is_sequence(self.figure_size):
+            figure_size = self.figure_size
+        else:
+            figure_size = (self.figure_size, self.figure_size)
+
+        xbins = np.array([x_axis_size, figure_size[0], right_buff_size])
+        ybins = np.array([y_axis_size, figure_size[1], top_buff_size])
+
+        x_frac_widths = xbins / xbins.sum()
+        y_frac_widths = ybins / ybins.sum()
+
+        return (
+            x_frac_widths[0],
+            y_frac_widths[0],
+            x_frac_widths[1],
+            y_frac_widths[1],
+        )
+
     @classmethod
     def from_lines(
-        cls, ds, fields, lines, figure_size=5, font_size=14, field_labels=None
+        cls, ds, fields, lines, figure_size=None, font_size=None, field_labels=None
     ):
         """
         A class method for constructing a line plot from multiple sampling lines
@@ -252,41 +271,6 @@ class LinePlot(PlotContainer):
         obj._setup_plots()
         return obj
 
-    def _get_plot_instance(self, field):
-        fontscale = self._font_properties._size / 14.0
-        top_buff_size = 0.35 * fontscale
-
-        x_axis_size = 1.35 * fontscale
-        y_axis_size = 0.7 * fontscale
-        right_buff_size = 0.2 * fontscale
-
-        if is_sequence(self.figure_size):
-            figure_size = self.figure_size
-        else:
-            figure_size = (self.figure_size, self.figure_size)
-
-        xbins = np.array([x_axis_size, figure_size[0], right_buff_size])
-        ybins = np.array([y_axis_size, figure_size[1], top_buff_size])
-
-        size = [xbins.sum(), ybins.sum()]
-
-        x_frac_widths = xbins / size[0]
-        y_frac_widths = ybins / size[1]
-
-        axrect = (
-            x_frac_widths[0],
-            y_frac_widths[0],
-            x_frac_widths[1],
-            y_frac_widths[1],
-        )
-
-        try:
-            plot = self.plots[field]
-        except KeyError:
-            plot = PlotMPL(self.figure_size, axrect, None, None)
-            self.plots[field] = plot
-        return plot
-
     def _setup_plots(self):
         if self._plot_valid:
             return
@@ -315,13 +299,10 @@ class LinePlot(PlotContainer):
                 else:
                     unit_x = self._x_unit
 
-                if field in self._y_units:
-                    unit_y = self._y_units[field]
-                else:
-                    unit_y = y.units
+                unit_y = plot.norm_handler.display_units
 
-                x = x.to(unit_x)
-                y = y.to(unit_y)
+                x.convert_to_units(unit_x)
+                y.convert_to_units(unit_y)
 
                 # determine legend label
                 str_seq = []
@@ -334,11 +315,18 @@ class LinePlot(PlotContainer):
                 plot.axes.plot(x, y, label=legend_label)
 
                 # apply log transforms if requested
-                if self._field_transform[field] != linear_transform:
-                    if (y <= 0).any():
-                        plot.axes.set_yscale("symlog")
-                    else:
-                        plot.axes.set_yscale("log")
+                norm = plot.norm_handler.get_norm(data=y)
+                y_norm_type = type(norm)
+                if y_norm_type is Normalize:
+                    plot.axes.set_yscale("linear")
+                elif y_norm_type is LogNorm:
+                    plot.axes.set_yscale("log")
+                elif y_norm_type is SymLogNorm:
+                    plot.axes.set_yscale("symlog")
+                else:
+                    raise NotImplementedError(
+                        f"LinePlot doesn't support y norm with type {type(norm)}"
+                    )
 
                 # set font properties
                 plot._set_font_properties(self._font_properties, None)
@@ -409,17 +397,18 @@ class LinePlot(PlotContainer):
         self._x_unit = unit_name
 
     @invalidate_plot
-    def set_unit(self, field, unit_name):
+    def set_unit(self, field, new_unit):
         """Set the unit used to plot the field
 
         Parameters
         ----------
         field: str or field tuple
            The name of the field to set the units for
-        unit_name: str
-           The name of the unit to use for this field
+        new_unit: string or Unit object
         """
-        self._y_units[self.data_source._determine_fields(field)[0]] = unit_name
+        field = self.data_source._determine_fields(field)[0]
+        pnh = self.plots[field].norm_handler
+        pnh.display_units = new_unit
 
     @invalidate_plot
     def annotate_title(self, field, title):

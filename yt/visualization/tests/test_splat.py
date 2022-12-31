@@ -8,6 +8,7 @@ import numpy as np
 import yt
 from yt.testing import assert_equal
 from yt.utilities.lib.api import add_rgba_points_to_image  # type: ignore
+from yt.visualization.color_maps import _get_cmap
 
 
 def setup():
@@ -30,7 +31,7 @@ def test_splat():
     xs = prng.random_sample(Np)
     ys = prng.random_sample(Np)
 
-    cbx = yt.visualization.color_maps.mcm.RdBu
+    cbx = _get_cmap("RdBu")
     cs = cbx(prng.random_sample(Np))
     add_rgba_points_to_image(image, xs, ys, cs)
 

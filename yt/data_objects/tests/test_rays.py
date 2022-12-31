@@ -1,8 +1,14 @@
 import numpy as np
 
 from yt import load
-from yt.testing import assert_equal, assert_rel_equal, fake_random_ds, requires_file
-from yt.units.yt_array import uconcatenate
+from yt.testing import (
+    assert_equal,
+    assert_rel_equal,
+    fake_random_ds,
+    requires_file,
+    requires_module,
+)
+from yt.units._numpy_wrapper_functions import uconcatenate
 
 
 def test_ray():
@@ -58,6 +64,7 @@ def test_ray():
             assert_rel_equal(my_ray["dts"].sum(), unitary, 14)
 
 
+@requires_module("h5py")
 @requires_file("GadgetDiskGalaxy/snapshot_200.hdf5")
 def test_ray_particle():
     ds = load("GadgetDiskGalaxy/snapshot_200.hdf5")

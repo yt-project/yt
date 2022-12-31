@@ -1,6 +1,6 @@
 [build-system]
 requires = [
-  "setuptools>=59.0.1",
+  "setuptools>=61.2",
   # see https://github.com/numpy/numpy/pull/18389
   "wheel>=0.36.2",
 
@@ -10,9 +10,237 @@ requires = [
   "oldest-supported-numpy",
 ]
 
+[project]
+name = "yt"
+version = "4.2.dev0"
+description = "An analysis and visualization toolkit for volumetric data"
+authors = [
+    { name = "The yt project", email = "yt-dev@python.org" },
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Framework :: Matplotlib",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: POSIX :: AIX",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: C",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Astronomy",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Scientific/Engineering :: Visualization",
+]
+keywords = [
+    "astronomy astrophysics visualization amr adaptivemeshrefinement",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "cmyt>=1.1.2",
+    "ipywidgets>=8.0.0",
+    "matplotlib!=3.4.2,>=3.2", # keep in sync with tests/windows_conda_requirements.txt
+    "more-itertools>=8.4",
+    "numpy>=1.17.5",
+    "packaging>=20.9",
+    "pillow>=6.2.1", # transitive dependency via MPL (>=3.3)
+    "pyparsing>=2.0.3", # transitive dependency via packaging and MPL
+    "tomli-w>=0.4.0",
+    "tqdm>=3.4.0",
+    "unyt>=2.9.2,<3.0", # see https://github.com/yt-project/yt/issues/4162
+    "tomli>=1.2.3;python_version < '3.11'",
+]
+
+[project.readme]
+file = "README.md"
+content-type = "text/markdown"
+
+[project.license]
+text = "BSD 3-Clause"
+
+[project.urls]
+Homepage = "https://yt-project.org/"
+Documentation = "https://yt-project.org/doc/"
+Source = "https://github.com/yt-project/yt/"
+Tracker = "https://github.com/yt-project/yt/issues"
+
+[project.entry-points."nose.plugins.0.10"]
+# this section can be cleaned when nose tests on GHA are removed
+answer-testing = "yt.utilities.answer_testing.framework:AnswerTesting"
+
+[project.optional-dependencies]
+# some generic, reusable constraints on optional-deps
+HDF5 = ["h5py>=3.1.0,<4.0.0"]
+netCDF4 = ["netCDF4!=1.6.1,>=1.5.3"]  # see https://github.com/Unidata/netcdf4-python/issues/1192
+Fortran = ["f90nml>=1.1"]
+
+# frontend-specific requirements
+# all frontends should have a target, even if no additional requirements are needed
+# note that, because pip normalizes underscores to hyphens, we need to apply this transformation
+# in target names here so that recursive dependencies link correctly.
+# This does *not* prevent end-users to write, say `pip install yt[enzo_e]`.
+# We also normalize all target names to lower case for consistency.
+adaptahop = []
+ahf = []
+amrvac = ["yt[Fortran]"]
+art = []
+arepo = ["yt[HDF5]"]
+artio = []
+athena = []
+athena-pp = []
+boxlib = []
+cf-radial = ["xarray>=0.16.1", "arm-pyart!=1.12.5,>=1.11.4"]
+chimera = ["yt[HDF5]"]
+chombo = ["yt[HDF5]"]
+cholla = ["yt[HDF5]"]
+eagle = ["yt[HDF5]"]
+enzo-e = ["yt[HDF5]", "libconf>=1.0.1"]
+enzo = ["yt[HDF5]", "libconf>=1.0.1"]
+exodus-ii = ["yt[netCDF4]"]
+fits = ["astropy>=4.0.1", "regions>=0.7"]
+flash = ["yt[HDF5]"]
+gadget = ["yt[HDF5]"]
+gadget-fof = ["yt[HDF5]"]
+gamer = ["yt[HDF5]"]
+gdf = ["yt[HDF5]"]
+gizmo = ["yt[HDF5]"]
+halo-catalog = ["yt[HDF5]"]
+http-stream = ["requests>=2.20.0"]
+moab = ["yt[HDF5]"]
+nc4-cm1 = ["yt[netCDF4]"]
+open-pmd = ["yt[HDF5]"]
+owls = ["yt[HDF5]"]
+owls-subfind = ["yt[HDF5]"]
+ramses = ["yt[Fortran]"]
+rockstar = []
+sdf = ["requests>=2.20.0"]
+stream = []
+swift = ["yt[HDF5]"]
+tipsy = []
+ytdata = ["yt[HDF5]"]
+
+# "full" should contain all optional dependencies intended for users (not devs)
+# in particular it should enable support for all frontends
+full = [
+    "firefly>=3.2.0,<4.0.0",
+    "glueviz>=0.13.3",
+    "ipython>=2.0.0",
+    "miniballcpp>=0.2.1",
+    "mpi4py>=3.0.3",
+    "pandas>=1.1.2",
+    "pooch>=0.7.0",
+    "pyaml>=17.10.0",
+    "pykdtree>=1.3.1",
+    "pyx>=0.15",
+    "scipy>=1.5.0",
+    "glue-core!=1.2.4;python_version >= '3.10'",  # see https://github.com/glue-viz/glue/issues/2263
+    "ratarmount~=0.8.1;platform_system!='Windows' and platform_system!='Darwin'",
+    "yt[adaptahop]",
+    "yt[ahf]",
+    "yt[amrvac]",
+    "yt[art]",
+    "yt[arepo]",
+    "yt[artio]",
+    "yt[athena]",
+    "yt[athena_pp]",
+    "yt[boxlib]",
+    "yt[cf_radial]",
+    "yt[chimera]",
+    "yt[chombo]",
+    "yt[cholla]",
+    "yt[eagle]",
+    "yt[enzo_e]",
+    "yt[enzo]",
+    "yt[exodus_ii]",
+    "yt[fits]",
+    "yt[flash]",
+    "yt[gadget]",
+    "yt[gadget_fof]",
+    "yt[gamer]",
+    "yt[gdf]",
+    "yt[gizmo]",
+    "yt[halo_catalog]",
+    "yt[http_stream]",
+    "yt[moab]",
+    "yt[nc4_cm1]",
+    "yt[open_pmd]",
+    "yt[owls]",
+    "yt[owls_subfind]",
+    "yt[ramses]",
+    "yt[rockstar]",
+    "yt[sdf]",
+    "yt[stream]",
+    "yt[swift]",
+    "yt[tipsy]",
+    "yt[ytdata]",
+]
+
+# dev-only extra targets
+doc = [
+    "alabaster",
+    "bottle",
+    "jinja2<3.1.0", # see https://github.com/readthedocs/readthedocs.org/issues/9037
+    "jupyter-client<7.0",
+    "nbconvert==5.6.1",
+    "pyx>=0.15",
+    "runnotebook",
+    "scipy<=1.7.1", # see https://github.com/yt-project/yt/issues/3966 and https://github.com/scipy/scipy/issues/16602
+    "sphinx==3.1.2",
+    "sphinx-bootstrap-theme",
+    "sphinx-rtd-theme",
+]
+mapserver = [
+    "bottle",
+]
+minimal = [
+    "cmyt==1.1.2",
+    "ipywidgets==8.0.0",
+    "matplotlib==3.2",
+    "more-itertools==8.4",
+    "numpy==1.17.5",
+    "packaging==20.9",
+    "pillow==6.2.1",
+    "pyparsing==2.0.3",
+    "tomli-w==0.4.0",
+    "tqdm==3.4.0",
+    "unyt==2.9.2",
+    "tomli==1.2.3;python_version < '3.11'",
+]
+test = [
+    "nose~=1.3.7",
+    "nose-exclude",
+    "nose-timer~=1.0.0",
+    "pyaml>=17.10.0",
+    "pytest>=6.1",
+    "sympy!=1.10,!=1.9", # see https://github.com/sympy/sympy/issues/22241
+]
+typecheck = [
+    "mypy==0.991",
+    "types-PyYAML==6.0.12.2",
+    "types-chardet==5.0.4",
+    "types-requests==2.28.11.5",
+    "types-setuptools==65.6.0.1",
+]
+
+[project.scripts]
+yt = "yt.utilities.command_line:run_main"
+
+[tool.setuptools]
+include-package-data = true
+zip-safe = false
+
+[tool.setuptools.packages.find]
+namespaces = false
+
+
 [tool.black]
 line-length = 88
-target-version = ['py37']
+target-version = ['py38']
 include = '\.pyi?$'
 exclude = '''
 /(
@@ -67,6 +295,9 @@ addopts = '''
     --ignore-glob='*_nose.py'
     --ignore='yt/frontends/owls_subfind/tests/test_outputs.py'
     --ignore='yt/frontends/ramses/tests/test_outputs.py'
+    --ignore='yt/frontends/cholla/tests/test_outputs.py'
+    --ignore='yt/utilities/lib/cykdtree/tests/test_kdtree.py'
+    --ignore='yt/utilities/lib/cykdtree/tests/test_utils.py'
 '''
 
 
@@ -133,7 +364,7 @@ ignore = [
 
 
 [tool.mypy]
-python_version = 3.7
+python_version = 3.8
 show_error_codes = true
 ignore_missing_imports = true
 warn_unused_configs = true

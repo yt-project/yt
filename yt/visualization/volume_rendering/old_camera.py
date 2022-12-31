@@ -117,7 +117,6 @@ class Camera(ParallelAnalysisInterface):
     Examples
     --------
 
-    >>> from yt.mods import *
     >>> import yt.visualization.volume_rendering.api as vr
 
     >>> ds = load("DD1701")  # Load a dataset
@@ -204,7 +203,7 @@ class Camera(ParallelAnalysisInterface):
         dd = self.ds.all_data()
         efields = dd._determine_fields(self.fields)
         if self.log_fields is None:
-            self.log_fields = [self.ds._get_field_info(*f).take_log for f in efields]
+            self.log_fields = [self.ds._get_field_info(f).take_log for f in efields]
         self.no_ghost = no_ghost
         self.use_light = use_light
         self.light_dir = None
@@ -649,7 +648,7 @@ class Camera(ParallelAnalysisInterface):
 
     def get_sampler_args(self, image):
         rotp = np.concatenate(
-            [self.orienter.inv_mat.ravel("F"), self.back_center.ravel()]
+            [self.orienter.inv_mat.ravel("F"), self.back_center.ravel().ndview]
         )
         args = (
             np.atleast_3d(rotp),
@@ -801,14 +800,8 @@ class Camera(ParallelAnalysisInterface):
 
     def save_image(self, image, fn=None, clip_ratio=None, transparent=False):
         if self.comm.rank == 0 and fn is not None:
-            if transparent:
-                image.write_png(
-                    fn, clip_ratio=clip_ratio, rescale=True, background=None
-                )
-            else:
-                image.write_png(
-                    fn, clip_ratio=clip_ratio, rescale=True, background="black"
-                )
+            background = None if transparent else "black"
+            image.write_png(fn, rescale=True, background=background)
 
     def initialize_source(self):
         return self.volume.initialize_source(
@@ -1710,7 +1703,7 @@ class FisheyeCamera(Camera):
         fields = dd._determine_fields(fields)
         self.fields = fields
         if log_fields is None:
-            log_fields = [self.ds._get_field_info(*f).take_log for f in fields]
+            log_fields = [self.ds._get_field_info(f).take_log for f in fields]
         self.log_fields = log_fields
         self.sub_samples = sub_samples
         if volume is None:
@@ -2125,7 +2118,7 @@ class ProjectionCamera(Camera):
 
     def get_sampler_args(self, image):
         rotp = np.concatenate(
-            [self.orienter.inv_mat.ravel("F"), self.back_center.ravel()]
+            [self.orienter.inv_mat.ravel("F"), self.back_center.ravel().ndview]
         )
         args = (
             np.atleast_3d(rotp),
@@ -2151,7 +2144,7 @@ class ProjectionCamera(Camera):
         ds = self.ds
         dd = ds.all_data()
         field = dd._determine_fields([self.field])[0]
-        finfo = ds._get_field_info(*field)
+        finfo = ds._get_field_info(field)
         dl = 1.0
         if self.method == "integrate":
             if self.weight is None:
@@ -2208,7 +2201,7 @@ class ProjectionCamera(Camera):
     def save_image(self, image, fn=None, clip_ratio=None):
         dd = self.ds.all_data()
         field = dd._determine_fields([self.field])[0]
-        finfo = self.ds._get_field_info(*field)
+        finfo = self.ds._get_field_info(field)
         if finfo.take_log:
             im = np.log10(image)
         else:

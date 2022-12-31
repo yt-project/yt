@@ -17,5 +17,6 @@ you want to examine the raw data for your particular dataset, visit
    loading_data
    generic_array_data
    generic_particle_data
+   loading_via_functions
    spherical_data
    low_level_inspection

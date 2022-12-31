@@ -1,12 +1,13 @@
 import contextlib
 import inspect
 import re
-from typing import Optional, Tuple, Union
+from typing import Optional, Union
 
 from more_itertools import always_iterable
 
 import yt.units.dimensions as ytdims
 from yt._maintenance.deprecation import issue_deprecation_warning
+from yt._typing import FieldKey
 from yt.funcs import iter_fields, validate_field_key
 from yt.units.unit_object import Unit  # type: ignore
 from yt.utilities.exceptions import YTFieldNotFound
@@ -109,7 +110,7 @@ class DerivedField:
 
     def __init__(
         self,
-        name: Tuple[str, str],
+        name: FieldKey,
         sampling_type,
         function,
         units: Optional[Union[str, bytes, Unit]] = None,
@@ -125,7 +126,6 @@ class DerivedField:
         nodal_flag=None,
         *,
         alias: Optional["DerivedField"] = None,
-        particle_type=None,
     ):
         validate_field_key(name)
         self.name = name
@@ -133,14 +133,6 @@ class DerivedField:
         self.display_name = display_name
         self.not_in_all = not_in_all
         self.display_field = display_field
-        if particle_type is not None:
-            issue_deprecation_warning(
-                "The 'particle_type' keyword argument is deprecated. "
-                "Please use sampling_type='particle' instead.",
-                since="3.2",
-                removal="4.2",
-            )
-            sampling_type = "particle"
         self.sampling_type = sampling_type
         self.vector_field = vector_field
         self.ds = ds
@@ -343,7 +335,7 @@ class DerivedField:
         return self._shared_aliases_list is other._shared_aliases_list
 
     @property
-    def alias_name(self) -> Optional[Tuple[str, str]]:
+    def alias_name(self) -> Optional[FieldKey]:
         if self.is_alias:
             return self._shared_aliases_list[0].name
         return None

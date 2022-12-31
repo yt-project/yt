@@ -299,6 +299,7 @@ _geom_transforms = {
     "polar": ((0.0, 0.0, 0.0), (1.0, 2.0 * np.pi, 1.0)),  # rtz
     "geographic": ((-90.0, -180.0, 0.0), (90.0, 180.0, 1000.0)),  # latlonalt
     "internal_geographic": ((-90.0, -180.0, 0.0), (90.0, 180.0, 1000.0)),  # latlondep
+    "spectral_cube": ((0.0, 0.0, 0.0), (1.0, 1.0, 1.0)),
 }
 
 
@@ -925,15 +926,9 @@ def requires_module_pytest(*module_names):
 
     So that it can be later renamed to `requires_module`.
     """
-    from yt.utilities import on_demand_imports as odi
 
     def deco(func):
-        missing = [
-            name
-            for name in module_names
-            if not getattr(odi, f"_{name}").__is_available__
-            for name in module_names
-        ]
+        missing = [name for name in module_names if find_spec(name) is None]
 
         # note that order between these two decorators matters
         @pytest.mark.skipif(
@@ -1116,7 +1111,9 @@ def check_results(func):
 
         return _func
 
-    from yt.mods import unparsed_args
+    import yt.startup_tasks as _startup_tasks
+
+    unparsed_args = _startup_tasks.unparsed_args
 
     if "--answer-reference" in unparsed_args:
         return compute_results(func)

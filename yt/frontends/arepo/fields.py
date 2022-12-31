@@ -31,6 +31,14 @@ class ArepoFieldInfo(GadgetFieldInfo):
             ("GFM_Metals_06", ("", ["Mg_fraction"], None)),
             ("GFM_Metals_07", ("", ["Si_fraction"], None)),
             ("GFM_Metals_08", ("", ["Fe_fraction"], None)),
+            ("GFM_StellarPhotometrics_00", ("", ["U_magnitude"], None)),
+            ("GFM_StellarPhotometrics_01", ("", ["B_magnitude"], None)),
+            ("GFM_StellarPhotometrics_02", ("", ["V_magnitude"], None)),
+            ("GFM_StellarPhotometrics_03", ("", ["K_magnitude"], None)),
+            ("GFM_StellarPhotometrics_04", ("", ["g_magnitude"], None)),
+            ("GFM_StellarPhotometrics_05", ("", ["r_magnitude"], None)),
+            ("GFM_StellarPhotometrics_06", ("", ["i_magnitude"], None)),
+            ("GFM_StellarPhotometrics_07", ("", ["z_magnitude"], None)),
             (
                 "CosmicRaySpecificEnergy",
                 ("code_specific_energy", ["specific_cosmic_ray_energy"], None),
@@ -79,10 +87,7 @@ class ArepoFieldInfo(GadgetFieldInfo):
 
         if (ptype, "GFM_Metals_00") in self.field_list:
             self.nuclei_names = metal_elements
-            self.species_names = ["H"]
-            if (ptype, "NeutralHydrogenAbundance") in self.field_list:
-                self.species_names += ["H_p0", "H_p1"]
-            self.species_names += metal_elements
+            self.species_names = ["H"] + metal_elements
 
         if (ptype, "MagneticField") in self.field_list:
             setup_magnetic_field_aliases(self, ptype, "MagneticField")
@@ -121,8 +126,6 @@ class ArepoFieldInfo(GadgetFieldInfo):
                 for suf in ["_density", "_number_density"]:
                     field = f"{species}{suf}"
                     self.alias(("gas", field), (ptype, field))
-
-            self.alias(("gas", "H_nuclei_density"), ("gas", "H_number_density"))
 
         if (ptype, "ElectronAbundance") in self.field_list:
 

@@ -1,6 +1,6 @@
 import os
-import sys
 import weakref
+from functools import cached_property
 
 import numpy as np
 
@@ -18,10 +18,6 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 
 from .fields import GDFFieldInfo
 
-if sys.version_info >= (3, 8):
-    from functools import cached_property
-else:
-    from yt._maintenance.backports import cached_property
 GEOMETRY_TRANS = {
     0: "cartesian",
     1: "polar",

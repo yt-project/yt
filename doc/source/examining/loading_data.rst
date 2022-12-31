@@ -59,8 +59,71 @@ The functionality requires the package `ratarmount <https://github.com/mxmlnkn/r
 Under the hood, yt will mount the archive as a (read-only) filesystem. Note that this requires the
 entire archive to be read once to compute the location of each file in the archive; subsequent accesses
 will be much faster.
-All archive formats supported by `ratarmount <https://github.com/mxmlnkn/ratarmount>`_ should be loadable, provided
+All archive formats supported by `ratarmount <https://github.com/mxmlnkn/ratarmount>`__ should be loadable, provided
 the dependencies are installed; this includes ``tar``, ``tar.gz`` and tar.bz2`` formats.
+
+.. _loading-hdf5-data:
+
+Simple HDF5 Data
+----------------
+
+.. note::
+
+   This wrapper takes advantage of the functionality described in
+   :ref:`loading-via-functions` but the basics of setting up function handlers,
+   guessing fields, etc, are handled by yt.
+
+Using the function :func:`yt.loaders.load_hdf5_file`, you can load a generic
+set of fields from an HDF5 file and have a fully-operational yt dataset.  For
+instance, in the yt sample data repository, we have the `UniGrid
+Data<https://yt-project.org/data/UnigridData.tar.gz>`_ dataset (~1.6GB).  This dataset includes the file ``turb_vels.h5`` with this structure:
+
+.. code-block:: bash
+
+   $ h5ls -r h5ls -r ./UnigridData/turb_vels.h5
+
+   /                        Group
+   /Bx                      Dataset {256, 256, 256}
+   /By                      Dataset {256, 256, 256}
+   /Bz                      Dataset {256, 256, 256}
+   /Density                 Dataset {256, 256, 256}
+   /MagneticEnergy          Dataset {256, 256, 256}
+   /Temperature             Dataset {256, 256, 256}
+   /turb_x-velocity         Dataset {256, 256, 256}
+   /turb_y-velocity         Dataset {256, 256, 256}
+   /turb_z-velocity         Dataset {256, 256, 256}
+   /x-velocity              Dataset {256, 256, 256}
+   /y-velocity              Dataset {256, 256, 256}
+   /z-velocity              Dataset {256, 256, 256}
+
+In versions of yt prior to 4.1, these could be loaded into memory individually
+and then accessed *en masse* by the :func:`yt.loaders.load_uniform_grid`
+function.  Introduced in version 4.1, however, was the ability to provide the
+filename and then allow yt to identify the available fields and even subset
+them into chunks to preserve memory.  Only those requested fields will be
+loaded at the time of the request, and they will be subset into chunks to avoid
+over-allocating for reduction operations.
+
+To use the auto-loader, call :func:`~yt.loaders.load_hdf5_file` with the name
+of the file.  Optionally, you can specify the root node of the file to probe
+for fields -- for instance, if all of the fields are stored under ``/grid`` (as
+they are in output from the ytdata frontend).  You can also provide the
+expected bounding box, which will otherwise default to 0..1 in all dimensions,
+the names of fields to make available (by default yt will probe for them) and
+the number of chunks to subdivide the file into.  If the number of chunks is
+not specified it defaults to trying to keep the size of each individual chunk
+no more than $64^3$ zones.
+
+To load the above file, we would use the function as follows:
+
+.. code-block:: python
+
+   import yt
+
+   ds = yt.load_hdf5_file("UnigridData/turb_vels.h5")
+
+At this point, we now have a dataset that we can do all of our normal
+operations on, and all of the known yt derived fields will be available.
 
 .. _loading-amrvac-data:
 
@@ -1169,7 +1232,7 @@ and add them to the field registry for the dataset ``ds``.
 This function takes a `ds9 <http://ds9.si.edu/site/Home.html>`_ region and
 creates a "cut region" data container from it, that can be used to select
 the cells in the FITS dataset that fall within the region. To use this
-functionality, the `pyregion <https://github.com/astropy/pyregion/>`_
+functionality, the `regions <https://github.com/astropy/regions/>`_
 package must be installed.
 
 .. code-block:: python
@@ -1790,6 +1853,12 @@ Generic AMR Data
 
 See :ref:`loading-numpy-array` and
 :func:`~yt.frontends.stream.data_structures.load_amr_grids` for more detail.
+
+.. note::
+
+   It is now possible to load data using *only functions*, rather than using the
+   fully-in-memory method presented here.  For more information and examples,
+   see :ref:`loading-via-functions`.
 
 It is possible to create native yt dataset from Python's dictionary
 that describes set of rectangular patches of data of possibly varying

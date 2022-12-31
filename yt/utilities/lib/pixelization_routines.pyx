@@ -27,8 +27,6 @@ from yt.utilities.lib.fp_utils cimport (
     i64max,
     i64min,
     iclip,
-    imax,
-    imin,
 )
 
 from yt.utilities.exceptions import YTElementTypeNotRecognized, YTPixelizeError
@@ -36,7 +34,6 @@ from yt.utilities.exceptions import YTElementTypeNotRecognized, YTPixelizeError
 from cpython.exc cimport PyErr_CheckSignals
 from cython.parallel cimport parallel, prange
 from libc.stdlib cimport free, malloc
-from vec3_ops cimport cross, dot, subtract
 
 from yt.geometry.particle_deposit cimport get_kernel_func, kernel_func
 from yt.utilities.lib.element_mappings cimport (
@@ -53,10 +50,12 @@ from yt.utilities.lib.element_mappings cimport (
     W1Sampler3D,
 )
 
+from .vec3_ops cimport cross, dot, subtract
+
 from yt.funcs import get_pbar
 
 from yt.utilities.lib.bounded_priority_queue cimport BoundedPriorityQueue
-from yt.utilities.lib.cykdtree.kdtree cimport KDTree, Node, PyKDTree, uint32_t, uint64_t
+from yt.utilities.lib.cykdtree.kdtree cimport KDTree, PyKDTree
 from yt.utilities.lib.particle_kdtree_tools cimport (
     axes_range,
     find_neighbors,
@@ -282,7 +281,7 @@ def pixelize_cartesian_nodal(np.float64_t[:,:] buff,
     cdef np.float64_t x_min, x_max, y_min, y_max
     cdef np.float64_t period_x = 0.0, period_y = 0.0
     cdef np.float64_t width, height, px_dx, px_dy, ipx_dx, ipx_dy
-    cdef np.float64_t ld_x, ld_y, cx, cy, cz
+    cdef np.float64_t cx, cy, cz
     cdef int i, j, p, xi, yi
     cdef int lc, lr, rc, rr
     cdef np.float64_t lypx, rypx, lxpx, rxpx, overlap1, overlap2
@@ -807,7 +806,7 @@ cdef int check_face_dot(int nvertices,
         nf = HEX_NF
     else:
         return -1
-    cdef int i, j, n, vi1a, vi1b, vi2a, vi2b
+    cdef int n, vi1a, vi1b, vi2a, vi2b
 
     for n in range(nf):
         vi1a = faces[n][0][0]
@@ -1076,13 +1075,12 @@ def pixelize_sph_kernel_projection(
     cdef np.float64_t q_ij2, posx_diff, posy_diff, ih_j2
     cdef np.float64_t x, y, dx, dy, idx, idy, h_j2, px, py
     cdef np.float64_t period_x = 0, period_y = 0
-    cdef int index, i, j, ii, jj
+    cdef int i, j, ii, jj
     cdef np.float64_t[:] _weight_field
     cdef int * xiter
     cdef int * yiter
     cdef np.float64_t * xiterv
     cdef np.float64_t * yiterv
-    cdef np.float64_t * local_buf
 
     if weight_field is not None:
         _weight_field = weight_field
@@ -1251,7 +1249,7 @@ def interpolate_sph_positions_gather(np.float64_t[:] buff,
     if use_normalization:
         buff_den = np.zeros(buff.shape[0], dtype="float64")
 
-    kernel_func = get_kernel_func(kernel_name)
+    kernel = get_kernel_func(kernel_name)
 
     # Loop through all the positions we want to interpolate the SPH field onto
     with nogil:
@@ -1280,13 +1278,13 @@ def interpolate_sph_positions_gather(np.float64_t[:] buff,
                 q_ij = math.sqrt(queue.heap[index]*ih_j2)
                 smoothed_quantity_j = (prefactor_j *
                                        quantity_to_smooth[particle] *
-                                       kernel_func(q_ij))
+                                       kernel(q_ij))
 
                 # See equations 6, 9, and 11 of the SPLASH paper
                 buff[i] += smoothed_quantity_j
 
                 if use_normalization:
-                    buff_den[i] += prefactor_j * kernel_func(q_ij)
+                    buff_den[i] += prefactor_j * kernel(q_ij)
 
     if use_normalization:
         normalization_1d_utility(buff, buff_den)
@@ -1325,7 +1323,7 @@ def interpolate_sph_grid_gather(np.float64_t[:, :, :] buff,
         buff_den = np.zeros([buff.shape[0], buff.shape[1],
                              buff.shape[2]], dtype="float64")
 
-    kernel_func = get_kernel_func(kernel_name)
+    kernel = get_kernel_func(kernel_name)
     dx = (bounds[1] - bounds[0]) / buff.shape[0]
     dy = (bounds[3] - bounds[2]) / buff.shape[1]
     dz = (bounds[5] - bounds[4]) / buff.shape[2]
@@ -1372,13 +1370,13 @@ def interpolate_sph_grid_gather(np.float64_t[:, :, :] buff,
                         q_ij = math.sqrt(queue.heap[index]*ih_j2)
                         smoothed_quantity_j = (prefactor_j *
                                                quantity_to_smooth[particle] *
-                                               kernel_func(q_ij))
+                                               kernel(q_ij))
 
                         # See equations 6, 9, and 11 of the SPLASH paper
                         buff[i, j, k] += smoothed_quantity_j
 
                         if use_normalization:
-                            buff_den[i, j, k] += prefactor_j * kernel_func(q_ij)
+                            buff_den[i, j, k] += prefactor_j * kernel(q_ij)
 
     if use_normalization:
         normalization_3d_utility(buff, buff_den)
@@ -1403,13 +1401,12 @@ def pixelize_sph_kernel_slice(
     cdef np.int64_t xi, yi, x0, x1, y0, y1, xxi, yyi
     cdef np.float64_t q_ij, posx_diff, posy_diff, ih_j
     cdef np.float64_t x, y, dx, dy, idx, idy, h_j2, h_j, px, py
-    cdef int index, i, j, ii, jj
+    cdef int i, j, ii, jj
     cdef np.float64_t period_x = 0, period_y = 0
     cdef int * xiter
     cdef int * yiter
     cdef np.float64_t * xiterv
     cdef np.float64_t * yiterv
-    cdef np.float64_t * local_buf
 
     if period is not None:
         period_x = period[0]
@@ -1427,7 +1424,7 @@ def pixelize_sph_kernel_slice(
     idx = 1.0/dx
     idy = 1.0/dy
 
-    kernel_func = get_kernel_func(kernel_name)
+    kernel = get_kernel_func(kernel_name)
 
     with nogil, parallel():
         # NOTE see note in pixelize_sph_kernel_projection
@@ -1512,7 +1509,7 @@ def pixelize_sph_kernel_slice(
                                 continue
 
                             # see equations 6, 9, and 11 of the SPLASH paper
-                            local_buff[xi + yi*xsize] += prefactor_j * kernel_func(q_ij)
+                            local_buff[xi + yi*xsize] += prefactor_j * kernel(q_ij)
 
         with gil:
             for xxi in range(xsize):
@@ -1541,7 +1538,7 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
     cdef np.int64_t xi, yi, zi, x0, x1, y0, y1, z0, z1
     cdef np.float64_t q_ij, posx_diff, posy_diff, posz_diff, px, py, pz
     cdef np.float64_t x, y, z, dx, dy, dz, idx, idy, idz, h_j3, h_j2, h_j, ih_j
-    cdef int index, i, j, k, ii, jj, kk
+    cdef int j, ii, jj, kk
     cdef np.float64_t period_x = 0, period_y = 0, period_z = 0
 
     cdef int xiter[2]
@@ -1574,7 +1571,7 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
     idy = 1.0/dy
     idz = 1.0/dz
 
-    kernel_func = get_kernel_func(kernel_name)
+    kernel = get_kernel_func(kernel_name)
 
     with nogil:
         # TODO make this parallel without using too much memory
@@ -1674,7 +1671,7 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
                                     if q_ij >= 1:
                                         continue
 
-                                    buff[xi, yi, zi] += prefactor_j * kernel_func(q_ij)
+                                    buff[xi, yi, zi] += prefactor_j * kernel(q_ij)
 
 
 def pixelize_element_mesh_line(np.ndarray[np.float64_t, ndim=2] coords,

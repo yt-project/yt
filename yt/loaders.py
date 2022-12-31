@@ -18,6 +18,7 @@ from urllib.parse import urlsplit
 import numpy as np
 from more_itertools import always_iterable
 
+from yt._maintenance.deprecation import future_positional_only
 from yt.data_objects.static_output import Dataset
 from yt.funcs import levenshtein_distance
 from yt.sample_data.api import lookup_on_disk_data
@@ -41,6 +42,7 @@ from yt.utilities.on_demand_imports import _pooch as pooch, _ratarmount as ratar
 # --- Loaders for known data formats ---
 
 
+@future_positional_only({0: "fn"}, since="4.2.0")
 def load(
     fn: Union[str, "os.PathLike[str]"], *args, hint: Optional[str] = None, **kwargs
 ):
@@ -185,8 +187,11 @@ def load_uniform_grid(
     Parameters
     ----------
     data : dict
-        This is a dict of numpy arrays or (numpy array, unit spec) tuples.
-        The keys are the field names.
+        This is a dict of numpy arrays, (numpy array, unit spec) tuples.
+        Functions may also be supplied in place of numpy arrays as long as the
+        subsequent argument nprocs is not specified to be greater than 1.
+        Supplied functions much accepts the arguments (grid_object, field_name)
+        and return numpy arrays.  The keys to the dict are the field names.
     domain_dimensions : array_like
         This is the domain dimensions of the grid
     length_unit : string
@@ -255,7 +260,7 @@ def load_uniform_grid(
     # First we fix our field names, apply units to data
     # and check for consistency of field shapes
     field_units, data, number_of_particles = process_data(
-        data, grid_dims=tuple(domain_dimensions)
+        data, grid_dims=tuple(domain_dimensions), allow_callables=nprocs == 1
     )
 
     sfh = StreamDictFieldHandler()
@@ -396,10 +401,13 @@ def load_amr_grids(
     grid_data : list of dicts
         This is a list of dicts. Each dict must have entries "left_edge",
         "right_edge", "dimensions", "level", and then any remaining entries are
-        assumed to be fields. Field entries must map to an NDArray. The grid_data
-        may also include a particle count. If no particle count is supplied, the
-        dataset is understood to contain no particles. The grid_data will be
-        modified in place and can't be assumed to be static.
+        assumed to be fields. Field entries must map to an NDArray *or* a
+        function with the signature (grid_object, field_name) -> NDArray. The
+        grid_data may also include a particle count. If no particle count is
+        supplied, the dataset is understood to contain no particles. The
+        grid_data will be modified in place and can't be assumed to be static.
+        Grid data may also be supplied as a tuple of (NDarray or function, unit
+        string) to specify the units.
     domain_dimensions : array_like
         This is the domain dimensions of the grid
     length_unit : string or float
@@ -1472,7 +1480,26 @@ def load_sample(
     if tarfile.is_tarfile(tmp_file):
         mylog.info("Untaring downloaded file to '%s'", save_dir)
         with tarfile.open(tmp_file) as fh:
-            fh.extractall(save_dir)
+
+            def is_within_directory(directory, target):
+
+                abs_directory = os.path.abspath(directory)
+                abs_target = os.path.abspath(target)
+
+                prefix = os.path.commonprefix([abs_directory, abs_target])
+
+                return prefix == abs_directory
+
+            def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
+
+                for member in tar.getmembers():
+                    member_path = os.path.join(path, member.name)
+                    if not is_within_directory(path, member_path):
+                        raise Exception("Attempted Path Traversal in Tar File")
+
+                tar.extractall(path, members, numeric_owner=numeric_owner)
+
+            safe_extract(fh, save_dir)
         os.remove(tmp_file)
     else:
         os.replace(tmp_file, os.path.join(save_dir, fn))
@@ -1563,8 +1590,8 @@ def load_archive(
 
     try:
         tarfile.open(fn)
-    except tarfile.ReadError:
-        raise YTUnidentifiedDataType(fn, *args, **kwargs)
+    except tarfile.ReadError as exc:
+        raise YTUnidentifiedDataType(fn, *args, **kwargs) from exc
 
     # Note: the temporary directory will be created by ratarmount
     tempdir = fn + ".mount"
@@ -1608,3 +1635,109 @@ def load_archive(
     ds.dismount = types.MethodType(del_callback, ds)
 
     return ds
+
+
+def load_hdf5_file(
+    fn: Union[str, "os.PathLike[str]"],
+    root_node: Optional[str] = "/",
+    fields: Optional[List[str]] = None,
+    bbox: Optional[np.ndarray] = None,
+    nchunks: int = 0,
+    dataset_arguments: Optional[dict] = None,
+):
+    """
+    Create a (grid-based) yt dataset given the path to an hdf5 file.
+
+    This function accepts a filename, as well as (potentially) a bounding box,
+    the root node where fields are stored, and the number of chunks to attempt
+    to decompose the object into.  This function will then introspect that HDF5
+    file, attempt to determine the available fields, and then supply a
+    :class:`yt.data_objects.static_output.Dataset` object.  However, unlike the
+    other loaders, the data is *not* required to be preloaded into memory, and will
+    only be loaded *on demand*.
+
+    This does not yet work with particle-type datasets.
+
+    Parameters
+    ----------
+    fn : str, os.Pathlike[str]
+        A path to the hdf5 file that contains the data.
+
+    root_node: str, optional
+        If the fields to be loaded are stored under an HDF5 group object,
+        specify it here.  Otherwise, the fields are assumed to be at the root
+        level of the HDF5 file hierarchy.
+
+    fields : list of str, optional
+        The fields to be included as part of the dataset.  If this is not
+        included, all of the datasets under *root_node* will be included.
+        If your file contains, for instance, a "parameters" node at the root
+        level next to other fields, it would be (mistakenly) included.  This
+        allows you to specify only those that should be included.
+
+    bbox : array_like (xdim:zdim, LE:RE), optional
+        If supplied, this will be the bounding box for the dataset.  If not
+        supplied, it will be assumed to be from 0 to 1 in all dimensions.
+
+    nchunks : int, optional
+        How many chunks should this dataset be split into?  If 0 or not
+        supplied, yt will attempt to ensure that there is one chunk for every
+        64**3 zones in the dataset.
+
+    dataset_arguments : dict, optional
+        Any additional arguments that should be passed to
+        :class:`yt.loaders.load_amr_grids`, including things like the unit
+        length and the coordinates.
+
+    Returns
+    -------
+    :class:`yt.data_objects.static_output.Dataset` object
+        This returns an instance of a dataset, created with `load_amr_grids`,
+        that can read from the HDF5 file supplied to this function.  An open
+        handle to the HDF5 file is retained.
+
+    Raises
+    ------
+    FileNotFoundError
+        If fn does not match any existing file or directory.
+
+    """
+
+    from yt.utilities.on_demand_imports import _h5py as h5py
+
+    dataset_arguments = dataset_arguments or {}
+
+    if bbox is None:
+        bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]])
+        mylog.info("Assuming unitary (0..1) bounding box.")
+
+    def _read_data(handle, root_node):
+        def _reader(grid, field_name):
+            ftype, fname = field_name
+            si = grid.get_global_startindex()
+            ei = si + grid.ActiveDimensions
+            return handle[root_node][fname][si[0] : ei[0], si[1] : ei[1], si[2] : ei[2]]
+
+        return _reader
+
+    fn = str(lookup_on_disk_data(fn))
+    handle = h5py.File(fn, "r")
+    reader = _read_data(handle, root_node)
+    if fields is None:
+        fields = list(handle[root_node].keys())
+        mylog.debug("Identified fields %s", fields)
+    shape = handle[root_node][fields[0]].shape
+    if nchunks <= 0:
+        # We apply a pretty simple heuristic here.  We don't want more than
+        # about 64^3 zones per chunk.  So ...
+        full_size = np.prod(shape)
+        nchunks = full_size // (64**3)
+        mylog.info("Auto-guessing %s chunks from a size of %s", nchunks, full_size)
+    grid_data = []
+    psize = get_psize(np.array(shape), nchunks)
+    left_edges, right_edges, shapes, _ = decompose_array(shape, psize, bbox)
+    for le, re, s in zip(left_edges, right_edges, shapes):
+        data = {_: reader for _ in fields}
+        data.update({"left_edge": le, "right_edge": re, "dimensions": s, "level": 0})
+        grid_data.append(data)
+    return load_amr_grids(grid_data, shape, **dataset_arguments)
