@@ -12,7 +12,7 @@ import warnings
 from multiprocessing import Pipe, Process
 from multiprocessing.connection import Connection
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 from urllib.parse import urlsplit
 
 import numpy as np
@@ -174,7 +174,7 @@ def _sanitize_axis_order_args(
 
 
 def load_uniform_grid(
-    data: Dict[AnyFieldKey, np.ndarray],
+    data,
     domain_dimensions,
     length_unit=None,
     bbox=None,
@@ -306,6 +306,7 @@ def load_uniform_grid(
                     field = ("io", key)
                     mylog.debug("Reassigning '%s' to '%s'", key, field)
                 else:
+                    key = cast(FieldKey, key)
                     field = key
                 sfh._additional_fields += (field,)
                 pdata[field] = data.pop(key)
