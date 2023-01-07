@@ -1,30 +1,30 @@
-import configparser
-import io
 import re
-from collections.abc import MutableMapping
+import sys
+from typing import List
+
+import tomli_w
+
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomllib
 
 PINNED_VERSION_REGEXP = re.compile(r",?(<|<=|==)([0-9a-z]+\.?)+")
 
 
-def unpin(s: str) -> str:
-    return re.sub(PINNED_VERSION_REGEXP, "", s)
-
-
-def unpin_mapping(m: MutableMapping, key) -> None:
-    reqs = m[key].split("\n")
-    m[key] = "\n".join(unpin(_) for _ in reqs)
+def unpin_requirements(requirements: List[str]) -> List[str]:
+    return [re.sub(PINNED_VERSION_REGEXP, "", _) for _ in requirements]
 
 
 if __name__ == "__main__":
-    cp = configparser.ConfigParser()
-    cp.read("setup.cfg")
-    unpin_mapping(cp["options"], "install_requires")
-    for target in cp["options.extras_require"].keys():
-        unpin_mapping(cp["options.extras_require"], target)
+    with open("pyproject.toml", "rb") as fr:
+        config = tomllib.load(fr)
 
-    output = io.StringIO()
-    cp.write(output)
-    s = output.getvalue().replace("\t", " " * 4)
-    s = "\n".join(_.rstrip() for _ in s.split("\n"))
-    with open("setup_out.cfg", "w") as fh:
-        fh.write(s)
+    config["project"]["dependencies"] = unpin_requirements(
+        config["project"]["dependencies"]
+    )
+    for key, reqs in config["project"]["optional-dependencies"].items():
+        config["project"]["optional-dependencies"][key] = unpin_requirements(reqs)
+
+    with open("pyproject_out.toml", "wb") as fw:
+        tomli_w.dump(config, fw)

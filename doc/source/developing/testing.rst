@@ -363,7 +363,7 @@ the answers. This way, we can avoid accidentally covering up test breakages.
 Handling yt Dependencies
 ------------------------
 
-Our dependencies are specified in ``setup.cfg``. Hard dependencies are found in
+Our dependencies are specified in ``pyproject.toml``. Hard dependencies are found in
 ``options.install_requires``, while optional dependencies are specified in
 ``options.extras_require``. The ``full`` target contains the specs to run our
 test suite, which are intended to be as modern as possible (we don't set upper
@@ -390,7 +390,7 @@ that the yt community decides not to support an old version of that project.
 **Note.**
 Some of our optional dependencies are not trivial to install and their support
 may vary across platforms. To manage such issue, we currently use requirement
-files in additions to ``setup.cfg``. They are found in
+files in additions to ``pyproject.toml``. They are found in
 ``tests/*requirements.txt`` and used in ``tests/ci_install.sh``.
 
 We attempt to make yt compatible with a wide variety of upstream software
