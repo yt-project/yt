@@ -317,3 +317,21 @@ And that just about covers it. Please feel free to email
 `yt-users <https://mail.python.org/archives/list/yt-users@python.org/>`_ or
 `yt-dev <https://mail.python.org/archives/list/yt-dev@python.org/>`_ with
 any questions, or to let us know you're thinking about adding a new code to yt.
+
+
+How to add extra dependencies ?
+-------------------------------
+
+It is required that a specific target be added to ``pyproject.toml`` to define a list
+of additional requirements (even if empty), see :ref:`install-additional`.
+
+At runtime, extra third party dependencies should be loaded lazily, meaning their import
+needs to be delayed until actually needed. This is achieved by importing a wrapper from
+``yt.utitilies.on_demand_imports.py``, instead of the actual package like so
+
+.. code-block:: python
+
+    from yt.utilities.on_demand_imports import _mypackage as mypackage
+
+Such import statements can live at the top of a module without generating overhead or errors
+in case the actual package isn't installed.
