@@ -1,10 +1,10 @@
 import sys
-import tempfile
-from unittest import mock
 
+import pytest
+
+import yt
 from yt.data_objects.static_output import Dataset
 from yt.geometry.grid_geometry_handler import GridIndex
-from yt.loaders import load
 from yt.utilities.object_registries import output_type_registry
 
 
@@ -28,21 +28,32 @@ class MockEntryPoint:
 
             @classmethod
             def _is_valid(cls, filename, *args, **kwargs):
-                prefix = tempfile.gettempdir()
-                return filename.startswith(prefix) and filename.endswith("mock")
+                return filename.endswith("mock")
 
 
-def test_external_frontend():
+@pytest.fixture()
+def mock_external_frontend(monkeypatch):
+    def mock_entry_points(group=None):
+        if sys.version_info >= (3, 10):
+            return [MockEntryPoint]
+        else:
+            return {"yt.frontends": [MockEntryPoint]}
+
+    monkeypatch.setattr(yt.loaders, "entry_points", mock_entry_points)
     assert "ExtDataset" not in output_type_registry
 
-    with tempfile.NamedTemporaryFile(suffix="mock") as test_file:
-        with mock.patch("yt.loaders.entry_points") as ep:
-            if sys.version_info >= (3, 10):
-                ep.return_value = [MockEntryPoint]
-            else:
-                ep.return_value = {"yt.frontends": [MockEntryPoint]}
-            ds = load(test_file.name)
-            assert "ExtDataset" in str(ds.__class__)
+    yield
 
     assert "ExtDataset" in output_type_registry
+    # teardown to avoid test pollution
     output_type_registry.pop("ExtDataset")
+
+
+@pytest.mark.usefixtures("mock_external_frontend")
+def test_external_frontend(tmp_path):
+    test_file = tmp_path / "tmp.mock"
+    test_file.write_text("")  # create the file
+    assert test_file.is_file()
+
+    ds = yt.load(test_file)
+    assert "ExtDataset" in ds.__class__.__name__
