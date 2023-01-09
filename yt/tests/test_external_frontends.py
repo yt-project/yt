@@ -19,6 +19,7 @@ class MockEntryPoint:
 
             def _parse_parameter_file(self):
                 self.current_time = 1.0
+                self.cosmological_simulation = 0
 
             def _set_code_unit_attributes(self):
                 self.length_unit = self.quan(1.0, "code_length")
