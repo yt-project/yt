@@ -35,6 +35,37 @@ In subsequent versions, we plan to include in yt a catalog of known extensions
 and where to find them; this will put discoverability directly into the code
 base.
 
+Frontend as an extension
+------------------------
+
+Starting with version 4.2 of yt, any externally installed package that exports
+:class:`~yt.data_objects.static_output.Dataset` subclass as an entrypoint in
+``yt.frontends`` namespace in ``setup.py`` or ``pyproject.toml`` will be
+automatically loaded and immediately available in :func:`~yt.loaders.load`.
+
+To add an entrypoint in an external project's ``setup.py``:
+
+.. code-block:: python
+
+   setup(
+       # ...,
+       entry_points={
+           "yt.frontends": [
+               "myFrontend = my_frontend.api.MyFrontendDataset",
+               "myOtherFrontend = my_frontend.api.MyOtherFrontendDataset",
+           ]
+       }
+   )
+
+or ``pyproject.toml``:
+
+.. code-block:: toml
+
+   [project.entry-points."yt.frontends"]
+   myFrontend = "my_frontend.api:MyFrontendDataset"
+   myOtherFrontend = "my_frontend.api:MyOtherFrontendDataset"
+
+
 Extension Template
 ------------------
 

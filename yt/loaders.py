@@ -9,6 +9,7 @@ import tarfile
 import time
 import types
 import warnings
+from importlib.metadata import entry_points
 from multiprocessing import Pipe, Process
 from multiprocessing.connection import Connection
 from pathlib import Path
@@ -96,6 +97,15 @@ def load(
     # either in the current dir or yt.config.ytcfg['data_dir_directory']
     if not fn.startswith("http"):
         fn = str(lookup_on_disk_data(fn))
+
+    if sys.version_info >= (3, 10):
+        external_frontends = entry_points(group="yt.frontends")
+    else:
+        external_frontends = entry_points().get("yt.frontends", [])
+
+    # Ensure that external frontends are loaded
+    for entrypoint in external_frontends:
+        entrypoint.load()
 
     candidates = []
     for cls in output_type_registry.values():
