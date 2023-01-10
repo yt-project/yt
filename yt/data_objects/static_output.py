@@ -28,7 +28,7 @@ from typing import (
 import numpy as np
 from more_itertools import unzip
 from sympy import Symbol
-from unyt import Unit, unyt_quantity
+from unyt import Unit, UnitSystem, unyt_quantity
 from unyt.exceptions import UnitConversionError, UnitParseError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
@@ -1333,7 +1333,7 @@ class Dataset(abc.ABC):
 
         self._unit_system_name: str = unit_system
 
-        self.unit_system = us
+        self.unit_system: UnitSystem = us
         self.unit_registry.unit_system = self.unit_system
 
     @property

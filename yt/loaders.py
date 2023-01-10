@@ -89,7 +89,7 @@ def load(
     yt.utilities.exceptions.YTAmbiguousDataType
         If the data format matches more than one class of similar specilization levels.
     """
-    fn = os.fspath(fn)
+    fn = os.path.expanduser(fn)
 
     if any(wildcard in fn for wildcard in "[]?!*"):
         from yt.data_objects.time_series import DatasetSeries
