@@ -740,6 +740,7 @@ class Dataset(abc.ABC):
     def _setup_coordinate_handler(self, axis_order: Optional[AxisOrder]) -> None:
         # backward compatibility layer:
         # turning off type-checker on a per-line basis
+        cls: Type[CoordinateHandler]
 
         if isinstance(self.geometry, tuple):  # type: ignore [unreachable]
             issue_deprecation_warning(  # type: ignore [unreachable]
@@ -750,11 +751,24 @@ class Dataset(abc.ABC):
                 "If you're loading data using yt.load_* functions, "
                 "you should be able to clear this warning by using the axis_order keyword argument.\n"
                 "Otherwise, if your code relies on this behaviour, please reach out and open an issue:\n"
-                "https://github.com/yt-project/yt/issues/new",
+                "https://github.com/yt-project/yt/issues/new\n"
+                "Also see https://github.com/yt-project/yt/pull/4244#discussion_r1063486520 for reference",
                 since="4.2",
                 stacklevel=2,
             )
             self.geometry, axis_order = self.geometry
+        elif callable(self.geometry):
+            issue_deprecation_warning(
+                f"Dataset object {self} has a class for its geometry attribute. "
+                "This was accepted in previous versions of yt but leads to undefined behaviour. "
+                "This will stop working in a future version of yt.\n"
+                "If you are relying on this behaviour, please reach out and open an issue:\n"
+                "https://github.com/yt-project/yt/issues/new",
+                since="4.2",
+                stacklevel=2,
+            )
+            cls = self.geometry  # type: ignore [assignment]
+
         if type(self.geometry) is str:
             issue_deprecation_warning(
                 f"Dataset object {self} has a raw string for its geometry attribute. "
@@ -789,7 +803,6 @@ class Dataset(abc.ABC):
                 f"Got {self.geometry=} with type {type(self.geometry)}"
             )
 
-        cls: Type[CoordinateHandler]
         if self.geometry is Geometry.CARTESIAN:
             cls = CartesianCoordinateHandler
         elif self.geometry is Geometry.CYLINDRICAL:
