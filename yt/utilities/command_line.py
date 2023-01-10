@@ -1,5 +1,6 @@
 import argparse
 import base64
+import importlib.resources
 import json
 import os
 import pprint
@@ -655,10 +656,13 @@ class YTInstInfoCmd(YTCommand):
         """
 
     def __call__(self, opts):
-        import pkg_resources
+        if sys.version_info >= (3, 9):
+            path = os.path.dirname(importlib.resources.files("yt"))
+        else:
+            from pkg_resources import get_provider
 
-        yt_provider = pkg_resources.get_provider("yt")
-        path = os.path.dirname(yt_provider.module_path)
+            path = os.path.dirname(get_provider("yt").module_path)
+
         vstring = _print_installation_information(path)
         if vstring is not None:
             print("This installation CAN be automatically updated.")
@@ -1180,10 +1184,12 @@ class YTUpdateCmd(YTCommand):
         """
 
     def __call__(self, opts):
-        import pkg_resources
+        if sys.version_info >= (3, 9):
+            path = os.path.dirname(importlib.resources.files("yt"))
+        else:
+            from pkg_resources import get_provider
 
-        yt_provider = pkg_resources.get_provider("yt")
-        path = os.path.dirname(yt_provider.module_path)
+            path = os.path.dirname(get_provider("yt").module_path)
         vstring = _print_installation_information(path)
         if vstring is not None:
             print()

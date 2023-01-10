@@ -4,6 +4,7 @@ import contextlib
 import copy
 import errno
 import glob
+import importlib.resources
 import inspect
 import itertools
 import os
@@ -547,10 +548,13 @@ def get_git_version(path):
 
 
 def get_yt_version():
-    import pkg_resources
+    if sys.version_info >= (3, 9):
+        path = os.path.dirname(importlib.resources.files("yt"))
+    else:
+        from pkg_resources import get_provider
 
-    yt_provider = pkg_resources.get_provider("yt")
-    path = os.path.dirname(yt_provider.module_path)
+        path = os.path.dirname(get_provider("yt").module_path)
+
     version = get_git_version(path)
     if version is None:
         return version
