@@ -28,7 +28,7 @@ jobs:
         fetch-depth: 0
 
     - name: Set up Python
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v4
       with:
         # run with oldest support python version
         # so that we always get compatible versions of
