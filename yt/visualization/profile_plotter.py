@@ -1,6 +1,7 @@
 import base64
 import builtins
 import os
+import weakref
 from functools import wraps
 from typing import Any, Dict, Iterable, Optional, Tuple, Union
 
@@ -22,6 +23,7 @@ from ._commons import validate_image_name
 from .plot_container import (
     BaseLinePlot,
     ImagePlotContainer,
+    invalidate_data,
     invalidate_plot,
     validate_plot,
 )
@@ -981,6 +983,35 @@ class PhasePlot(ImagePlotContainer):
         obj._setup_plots()
         obj._initfinished = True
         return obj
+
+    @invalidate_data
+    def _switch_ds(self, new_ds, data_source=None):
+        if data_source is not None:
+            raise RuntimeError(
+                "The data_source keyword argument "
+                "is not supported for PhasePlot._switch_ds"
+            )
+
+        old_object = self.data_source
+        type_name = old_object._type_name
+        kwargs = {n: getattr(old_object, n) for n in old_object._con_args}
+        self.data_source = getattr(new_ds, type_name)(**kwargs)
+        self.ds = weakref.proxy(new_ds)
+
+        op = self.profile  # old profile
+        self._profile = create_profile(
+            self.data_source,
+            bin_fields=[op.x_field, op.y_field],
+            fields=op.field_data.keys(),
+            n_bins=(len(op.x_bins), len(op.y_bins)),
+            weight_field=op.weight_field,
+            accumulation=op.accumulation,
+            fractional=op.fractional,
+        )
+        self._profile_valid = True
+        self.plots.data_source = self.data_source
+        self._colorbar_label.data_source = self.data_source
+        self._setup_plots()
 
     def _get_field_title(self, field_z, profile):
         field_x = profile.x_field
