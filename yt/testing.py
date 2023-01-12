@@ -308,7 +308,13 @@ _fake_amr_ds_default_units = ("g/cm**3",)
 
 
 def fake_amr_ds(
-    fields=None, units=None, geometry="cartesian", particles=0, length_unit=None
+    fields=None,
+    units=None,
+    geometry="cartesian",
+    particles=0,
+    length_unit=None,
+    *,
+    seed=0x4D3D3D3,
 ):
     from yt.loaders import load_amr_grids
 
@@ -323,7 +329,7 @@ def fake_amr_ds(
         },
     )
 
-    prng = RandomState(0x4D3D3D3)
+    prng = RandomState(seed)
     LE, RE = _geom_transforms[geometry]
     LE = np.array(LE)
     RE = np.array(RE)
