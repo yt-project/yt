@@ -11,6 +11,7 @@ from yt.testing import (
     ANSWER_TEST_TAG,
     assert_allclose_units,
     assert_array_almost_equal,
+    fake_amr_ds,
     fake_random_ds,
 )
 from yt.utilities.answer_testing.framework import (
@@ -350,3 +351,22 @@ def test_phaseplot_showhide_colorbar_axes():
     plot.show_axes()
     with tempfile.NamedTemporaryFile(suffix="png") as f4:
         plot.save(f4.name)
+
+
+def test_phase_plot_switch_dataset():
+    # see bug https://github.com/yt-project/yt/issues/4291
+    fields = [("gas", "field1"), ("gas", "field2"), ("gas", "mass")]
+    units = ["code_length", "code_length", "code_mass"]
+
+    ds1 = fake_amr_ds(fields=fields, units=units, seed=1)
+    pp = PhasePlot(ds1, *fields[:2], z_fields=("gas", "field1"))
+    assert pp.ds == ds1
+    assert pp.profile.ds == ds1
+
+    # the seed isn't used in dataset comparison
+    # but it's useful for visual testing
+    ds2 = fake_amr_ds(fields=fields, units=units, seed=2)
+    assert ds2 != ds1
+    pp._switch_ds(ds2)
+    assert pp.ds == ds2
+    assert pp.profile.ds == ds2
