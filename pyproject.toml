@@ -54,6 +54,8 @@ dependencies = [
     "tqdm>=3.4.0",
     "unyt>=2.9.2,<3.0", # see https://github.com/yt-project/yt/issues/4162
     "tomli>=1.2.3;python_version < '3.11'",
+    "traitlets>=5.8.0",
+    "traittypes>=0.2.1"
 ]
 
 [project.readme]
