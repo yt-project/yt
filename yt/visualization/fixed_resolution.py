@@ -131,7 +131,6 @@ class FixedResolutionBuffer(traitlets.HasTraits):
             ds=data_source.ds,
             axis=data_source.axis,
         )
-        self.data = {}
         self.data: Dict[str, np.ndarray] = {}
         self._data_valid = False
 
