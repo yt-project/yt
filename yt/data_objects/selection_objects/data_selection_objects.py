@@ -605,7 +605,9 @@ class YTSelectionContainer2D(YTSelectionContainer):
             validate_width_tuple(width)
             if is_sequence(resolution):
                 resolution = max(resolution)
-            frb = CylindricalFixedResolutionBuffer(self, width, resolution)
+            frb = CylindricalFixedResolutionBuffer(
+                self, width, (resolution, resolution)
+            )
             return frb
 
         if center is None:
