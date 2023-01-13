@@ -4,8 +4,8 @@ set -x   # Show which command is being run
 # https://scitools.org.uk/cartopy/docs/latest/installing.html?highlight=install#building-from-source
 case ${RUNNER_OS} in
 linux|Linux)
-    sudo apt-get -qqy update
-    sudo apt-get -qqy install \
+    sudo apt-get -q update
+    sudo apt-get -q install \
       libhdf5-serial-dev \
       libnetcdf-dev \
       libgeos-dev \
