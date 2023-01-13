@@ -104,12 +104,23 @@ class FixedResolutionBuffer(traitlets.HasTraits):
         ("index", "dtheta"),
     )
     antialias = traitlets.Bool(True)
-    buff_size = traitlets.Tuple(traitlets.Int(), traitlets.Int())
+    buff_size = traitlets.Tuple(traitlets.CInt(), traitlets.CInt())
     period = traitlets.Tuple(YTDimensionfulTrait(), YTDimensionfulTrait())
     periodic = traitlets.Bool(True)
     bounds = traitlets.List(YTDimensionfulTrait())
     axis = traitlets.Enum([0, 1, 2, 3, 4])
-    data_source = traitlets.Instance(YTDataContainer)
+    data_source = traitlets.Union(
+        [
+            traitlets.Instance(YTDataContainer),
+            traitlets.Instance(
+                "yt.visualization.plot_window.OffAxisProjectionDummyDataSource"
+            ),
+            traitlets.Instance(
+                "yt.visualization.particle_plots.ParticleAxisAlignedDummyDataSource"
+            ),
+        ]
+    )
+
     ds = traitlets.Instance(Dataset, allow_none=True)
 
     def __init__(
