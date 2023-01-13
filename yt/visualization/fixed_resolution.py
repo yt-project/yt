@@ -1,9 +1,14 @@
 import weakref
 from functools import partial
 from typing import TYPE_CHECKING, Dict, List, Optional
+
+import numpy as np
+
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt._typing import FieldKey
+from yt.data_objects.data_containers import YTDataContainer
 from yt.data_objects.image_array import ImageArray
+from yt.data_objects.static_output import Dataset
 from yt.frontends.ytdata.utilities import save_as_dataset
 from yt.funcs import get_output_filename, iter_fields, mylog
 from yt.loaders import load_uniform_grid
@@ -21,8 +26,9 @@ if TYPE_CHECKING:
     from yt.visualization.fixed_resolution_filters import FixedResolutionBufferFilter
 
 import traitlets
-from yt.utilities.traitlets_support import \
-    YTDimensionfulTrait, YTPositionTrait
+
+from yt.utilities.traitlets_support import YTDimensionfulTrait
+
 
 class FixedResolutionBuffer(traitlets.HasTraits):
     r"""
@@ -99,13 +105,12 @@ class FixedResolutionBuffer(traitlets.HasTraits):
     )
     antialias = traitlets.Bool(True)
     buff_size = traitlets.Tuple(traitlets.Int(), traitlets.Int())
-    period = traitlets.Tuple(YTDimensionfulTrait(dimensions = dims.length),
-                             YTDimensionfulTrait(dimensions = dims.length))
+    period = traitlets.Tuple(YTDimensionfulTrait(), YTDimensionfulTrait())
     periodic = traitlets.Bool(True)
-    bounds = traitlets.List(YTDimensionfulTrait(dimensions = dims.length))
-    axis = traitlets.Enum([0,1,2,3,4])
+    bounds = traitlets.List(YTDimensionfulTrait())
+    axis = traitlets.Enum([0, 1, 2, 3, 4])
     data_source = traitlets.Instance(YTDataContainer)
-    ds = traitlets.Instance(Dataset, allow_none = True)
+    ds = traitlets.Instance(Dataset, allow_none=True)
 
     def __init__(
         self,
@@ -117,10 +122,15 @@ class FixedResolutionBuffer(traitlets.HasTraits):
         *,
         filters: Optional[List["FixedResolutionBufferFilter"]] = None,
     ):
-        super().__init__(data_source = data_source, bounds = bounds,
-                         antialias = antialias, buff_size = buff_size,
-                         periodic = periodic, ds = data_source.ds,
-                         axis = data_source.axis)
+        super().__init__(
+            data_source=data_source,
+            bounds=bounds,
+            antialias=antialias,
+            buff_size=buff_size,
+            periodic=periodic,
+            ds=data_source.ds,
+            axis=data_source.axis,
+        )
         self.data = {}
         self.data: Dict[str, np.ndarray] = {}
         self._data_valid = False
