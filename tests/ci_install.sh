@@ -5,7 +5,7 @@ set -x   # Show which command is being run
 case ${RUNNER_OS} in
 linux|Linux)
     sudo apt-get -q update
-    sudo apt-get -q install \
+    sudo apt-get -q --fix-missing install \
       libhdf5-serial-dev \
       libnetcdf-dev \
       libgeos-dev \
