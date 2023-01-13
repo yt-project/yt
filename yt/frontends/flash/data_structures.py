@@ -400,7 +400,7 @@ class FLASHDataset(Dataset):
         dle = np.array([self.parameters[f"{ax}min"] for ax in "xyz"]).astype("float64")
         dre = np.array([self.parameters[f"{ax}max"] for ax in "xyz"]).astype("float64")
         if self.dimensionality < 3:
-            for d in [dimensionality] + list(range(3 - dimensionality)):
+            for d in range(self.dimensionality, 3):
                 if dle[d] == dre[d]:
                     mylog.warning(
                         "Identical domain left edge and right edges "
