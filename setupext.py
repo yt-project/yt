@@ -1,5 +1,6 @@
 import contextlib
 import glob
+import importlib.resources
 import logging
 import os
 import platform
@@ -13,8 +14,6 @@ from distutils.ccompiler import CCompiler, new_compiler
 from distutils.sysconfig import customize_compiler
 from subprocess import PIPE, Popen
 from sys import platform as _platform
-
-from pkg_resources import resource_filename
 from setuptools.command.build_ext import build_ext as _build_ext
 from setuptools.command.sdist import sdist as _sdist
 from setuptools.errors import CompileError, LinkError
@@ -204,8 +203,16 @@ def check_CPP14_flags(possible_compile_flags):
 def check_for_pyembree(std_libs):
     embree_libs = []
     embree_aliases = {}
+
+    if sys.version_info >= (3, 9):
+        _path_finder = importlib.resources.files
+    else:
+        from pkg_resources import resource_filename
+        from functools import partial
+        _path_finder = partial(resource_filename, resource_name="rtcore.pxd")
+
     try:
-        _ = resource_filename("pyembree", "rtcore.pxd")
+        _path_finder("pyembree")
     except ImportError:
         return embree_libs, embree_aliases
 

@@ -1,8 +1,10 @@
 """
 This is a collection of helper functions to yt.load_sample
 """
+import importlib.resources
 import json
 import re
+import sys
 from functools import lru_cache
 from itertools import chain
 from pathlib import Path
@@ -78,6 +80,20 @@ def _parse_byte_size(s: str):
     return int(float(f"{raw_res:.3e}"))
 
 
+def _get_sample_data_registry():
+    if sys.version_info >= (3, 9):
+        return json.loads(
+            importlib.resources.files("yt")
+            .joinpath("sample_data_registry.json")
+            .read_bytes()
+        )
+    else:
+        from pkg_resources import resource_stream
+
+        with resource_stream("yt", "sample_data_registry.json") as fh:
+            return json.load(fh)
+
+
 @lru_cache(maxsize=128)
 def get_data_registry_table():
     """
@@ -88,9 +104,6 @@ def get_data_registry_table():
 
     The output of this function is cached so it will only generate one request per session.
     """
-
-    import pkg_resources
-
     # it would be nicer to have an actual api on the yt website server,
     # but this will do for now
     api_url = "https://raw.githubusercontent.com/yt-project/website/master/data/datafiles.json"
@@ -121,9 +134,7 @@ def get_data_registry_table():
     )
 
     # load local data
-    with pkg_resources.resource_stream("yt", "sample_data_registry.json") as fh:
-        pooch_json = json.load(fh)
-    pooch_table = pd.DataFrame(pooch_json.values())
+    pooch_table = pd.DataFrame(_get_sample_data_registry().values())
 
     # merge tables
     unified_table = website_table.merge(pooch_table, on="url", how="outer")
@@ -183,14 +194,10 @@ def lookup_on_disk_data(fn) -> Path:
 
 @lru_cache(maxsize=128)
 def _get_pooch_instance():
-    import pkg_resources
-
     data_registry = get_data_registry_table()
     cache_storage = _get_test_data_dir_path() / "yt_download_cache"
 
-    with pkg_resources.resource_stream("yt", "sample_data_registry.json") as fh:
-        sample_data_registry = json.load(fh)
-    registry = {k: v["hash"] for k, v in sample_data_registry.items()}
+    registry = {k: v["hash"] for k, v in _get_sample_data_registry().items()}
     return pooch.create(
         path=cache_storage, base_url="https://yt-project.org/data/", registry=registry
     )
