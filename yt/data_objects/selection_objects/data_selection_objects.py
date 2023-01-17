@@ -16,7 +16,7 @@ from yt.data_objects.data_containers import YTDataContainer
 from yt.data_objects.derived_quantities import DerivedQuantityCollection
 from yt.data_objects.field_data import YTFieldData
 from yt.fields.field_exceptions import NeedsGridType
-from yt.funcs import fix_axis, is_sequence, iter_fields, validate_width_tuple
+from yt.funcs import fix_axis, is_sequence, iter_fields
 from yt.geometry.api import Geometry
 from yt.geometry.selection_routines import compose_selector
 from yt.units import YTArray
@@ -598,31 +598,14 @@ class YTSelectionContainer2D(YTSelectionContainer):
         >>> frb = proj.to_frb((100.0, "kpc"), 1024)
         >>> write_image(np.log10(frb[("gas", "density")]), "density_100kpc.png")
         """
+        from yt.visualization.fixed_resolution import (
+            CylindricalFixedResolutionBuffer,
+            FixedResolutionBuffer,
+        )
 
-        if (self.ds.geometry is Geometry.CYLINDRICAL and self.axis == 1) or (
-            self.ds.geometry is Geometry.POLAR and self.axis == 2
-        ):
-            if center is not None and center != (0.0, 0.0):
-                raise NotImplementedError(
-                    "Currently we only support images centered at R=0. "
-                    + "We plan to generalize this in the near future"
-                )
-            from yt.visualization.fixed_resolution import (
-                CylindricalFixedResolutionBuffer,
-            )
+        if not is_sequence(resolution):
+            resolution = (resolution, resolution)
 
-            validate_width_tuple(width)
-            if is_sequence(resolution):
-                resolution = max(resolution)
-            frb = CylindricalFixedResolutionBuffer(self, width, resolution)
-            return frb
-
-        if center is None:
-            center = self.center
-            if center is None:
-                center = (self.ds.domain_right_edge + self.ds.domain_left_edge) / 2.0
-        elif is_sequence(center) and not isinstance(center, YTArray):
-            center = self.ds.arr(center, "code_length")
         if is_sequence(width):
             w, u = width
             if isinstance(w, tuple) and isinstance(u, tuple):
@@ -638,9 +621,31 @@ class YTSelectionContainer2D(YTSelectionContainer):
             height = self.ds.quan(h, units=u)
         elif not isinstance(height, YTArray):
             height = self.ds.quan(height, "code_length")
-        if not is_sequence(resolution):
-            resolution = (resolution, resolution)
-        from yt.visualization.fixed_resolution import FixedResolutionBuffer
+
+        if (self.ds.geometry == "cylindrical" and self.axis == 1) or (
+            self.ds.geometry == "polar" and self.axis == 2
+        ):
+            if center is None:
+                center = (0, 0)
+
+            if center != (0, 0):
+                raise NotImplementedError(
+                    "Currently we only support images centered at R=0. "
+                    "We plan to generalize this in the near future"
+                )
+            # reinterpret width and height in cylindrical coordinates
+            # width is read as a radial span and height is read an angular span...
+            bounds = (center[0], center[0] + width, center[1], center[1] + height)
+
+            frb = CylindricalFixedResolutionBuffer(self, bounds, resolution)
+            return frb
+
+        if center is None:
+            center = self.center
+            if center is None:
+                center = (self.ds.domain_right_edge + self.ds.domain_left_edge) / 2.0
+        elif is_sequence(center) and not isinstance(center, YTArray):
+            center = self.ds.arr(center, "code_length")
 
         xax = self.ds.coordinates.x_axis[self.axis]
         yax = self.ds.coordinates.y_axis[self.axis]

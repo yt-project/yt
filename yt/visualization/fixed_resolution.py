@@ -554,10 +554,10 @@ class CylindricalFixedResolutionBuffer(FixedResolutionBuffer):
     that supports non-aligned input data objects, primarily cutting planes.
     """
 
-    def __init__(self, data_source, radius, buff_size, antialias=True, *, filters=None):
+    def __init__(self, data_source, bounds, buff_size, antialias=True, *, filters=None):
         self.data_source = data_source
         self.ds = data_source.ds
-        self.radius = radius
+        self.bounds = bounds
         self.buff_size = buff_size
         self.antialias = antialias
         self.data = {}
@@ -578,10 +578,14 @@ class CylindricalFixedResolutionBuffer(FixedResolutionBuffer):
             self.data_source["theta"],
             self.data_source["dtheta"],
             self.data_source[item].astype("float64"),
-            self.radius,
+            self.bounds,
         )
         self[item] = buff
         return buff
+
+    @property
+    def radius(self):
+        return self.bounds[1]
 
 
 class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
