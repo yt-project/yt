@@ -662,58 +662,6 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
         return ia
 
 
-def _get_tet_interpolated_particles(Ngrid, p3d, split=1):
-    """A fast function to create particles inside tetrahedra
-    with the same linear map that made the tet."""
-    vert = np.array(
-        (
-            (0, 0, 0),
-            (1, 0, 0),
-            (1, 1, 0),
-            (0, 0, 1),
-            (0, 0, 1),
-            (1, 0, 1),
-            (1, 1, 1),
-            (0, 1, 1),
-        )
-    )
-    conn = np.array(
-        (
-            (4, 0, 7, 1),
-            (1, 0, 7, 3),
-            (5, 1, 7, 4),
-            (2, 7, 1, 3),
-            (1, 5, 7, 6),
-            (2, 6, 1, 7),
-        )
-    )
-    Ntetpp = len(conn)
-    Np = Ngrid * Ngrid * Ngrid
-    newp = np.zeros((Ntetpp, split, Np, 3))
-    ro = np.random.random(size=(Ntetpp, split, 3))  # random offsets
-    for m in range(Ntetpp):  # 6 tets
-        off = vert[conn[m]]
-        sx, sy, sz = (
-            [slice(off[i][j], Ngrid + off[i][j]) for i in range(4)] for j in range(3)
-        )
-
-        orig = p3d[sx[3], sy[3], sz[3], :]
-
-        b = (p3d[sx[1], sy[1], sz[1], :] - orig).reshape((Np, 3))
-        c = (p3d[sx[2], sy[2], sz[2], :] - orig).reshape((Np, 3))
-        a = (p3d[sx[0], sy[0], sz[0], :] - orig).reshape((Np, 3))
-
-        oo = orig.reshape(Np, 3)[None, :, :]
-
-        for i in range(3):
-            newp[m, :, :, i] = oo[:, :, i] + (
-                ro[m, :, None, 0] * a[None, :, i]
-                + ro[m, :, None, 1] * b[None, :, i]
-                + ro[m, :, None, 2] * c[None, :, i]
-            )
-    return newp
-
-
 class ParticleImageBuffer(FixedResolutionBuffer):
     """
 

@@ -1,4 +1,3 @@
-
 # distutils: libraries = STD_LIBS
 """
 Utilities for images
@@ -9,7 +8,6 @@ import numpy as np
 
 cimport cython
 cimport numpy as np
-from cython.parallel cimport prange
 
 from yt.utilities.lib.fp_utils cimport iclip
 
@@ -117,7 +115,7 @@ def add_points_to_greyscale_image_with_lagrangian_tesselation(
                         b[idim] = p3d[i + off[1][0], j + off[1][1], k + off[1][2], idim] - orig[idim]
                         c[idim] = p3d[i + off[2][0], j + off[2][1], k + off[2][2], idim] - orig[idim]
 
-                    for s in prange(split, nogil=True):
+                    for s in range(split):
                         for idim in range(2):  # stop at 2, because z is not used
                             newp[idim] = orig[idim] + (
                                 ro[s, 0] * a[idim] +
