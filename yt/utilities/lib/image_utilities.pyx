@@ -122,10 +122,7 @@ def add_points_to_greyscale_image_with_lagrangian_tesselation(
                                 ro[s, 1] * b[idim] +
                                 ro[s, 2] * c[idim]
                             )
-                            while newp[idim] < 0.0:
-                                newp[idim] += 1.0
-                            while newp[idim] >= 1.0:
-                                newp[idim] -= 1.0
+                            newp[idim] %= 1.0
 
                         _add_point_to_greyscale_image(
                             buffer_view, buffer_mask_view, newp[0], newp[1], f, xs, ys
