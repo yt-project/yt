@@ -97,7 +97,7 @@ def add_points_to_greyscale_image_with_lagrangian_tesselation(
 
     cdef int i, j, k, m, s, idim
 
-    cdef np.float64_t f = 1.0 / split
+    cdef np.float64_t f = 1.0 / split / 6
 
     cdef np.uint8_t[:, :] off
     cdef np.float64_t[:, :] ro
