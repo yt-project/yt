@@ -365,6 +365,11 @@ class YTCuttingPlane(YTSelectionContainer2D):
             resolution = (resolution, resolution)
         from yt.visualization.fixed_resolution import FixedResolutionBuffer
 
-        bounds = (-width / 2.0, width / 2.0, -height / 2.0, height / 2.0)
+        bounds = (
+            (-width / 2.0, "unitary"),
+            (width / 2.0, "unitary"),
+            (-height / 2.0, "unitary"),
+            (height / 2.0, "unitary"),
+        )
         frb = FixedResolutionBuffer(self, bounds, resolution, periodic=periodic)
         return frb

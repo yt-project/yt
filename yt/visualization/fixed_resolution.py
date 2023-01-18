@@ -6,7 +6,9 @@ import numpy as np
 
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt._typing import FieldKey
+from yt.data_objects.data_containers import YTDataContainer
 from yt.data_objects.image_array import ImageArray
+from yt.data_objects.static_output import Dataset
 from yt.frontends.ytdata.utilities import save_as_dataset
 from yt.funcs import get_output_filename, iter_fields, mylog
 from yt.loaders import load_uniform_grid
@@ -23,8 +25,12 @@ from .volume_rendering.api import off_axis_projection
 if TYPE_CHECKING:
     from yt.visualization.fixed_resolution_filters import FixedResolutionBufferFilter
 
+import traitlets
 
-class FixedResolutionBuffer:
+from yt.utilities.traitlets_support import YTDimensionfulTrait
+
+
+class FixedResolutionBuffer(traitlets.HasTraits):
     r"""
     FixedResolutionBuffer(data_source, bounds, buff_size, antialias = True)
 
@@ -97,6 +103,25 @@ class FixedResolutionBuffer:
         ("index", "theta"),
         ("index", "dtheta"),
     )
+    antialias = traitlets.Bool(True)
+    buff_size = traitlets.Tuple(traitlets.CInt(), traitlets.CInt())
+    period = traitlets.Tuple(YTDimensionfulTrait(), YTDimensionfulTrait())
+    periodic = traitlets.Bool(True)
+    bounds = traitlets.List(YTDimensionfulTrait())
+    axis = traitlets.Enum([0, 1, 2, 3, 4])
+    data_source = traitlets.Union(
+        [
+            traitlets.Instance(YTDataContainer),
+            traitlets.Instance(
+                "yt.visualization.plot_window.OffAxisProjectionDummyDataSource"
+            ),
+            traitlets.Instance(
+                "yt.visualization.particle_plots.ParticleAxisAlignedDummyDataSource"
+            ),
+        ]
+    )
+
+    ds = traitlets.Instance(Dataset, allow_none=True)
 
     def __init__(
         self,
@@ -108,14 +133,16 @@ class FixedResolutionBuffer:
         *,
         filters: Optional[List["FixedResolutionBufferFilter"]] = None,
     ):
-        self.data_source = data_source
-        self.ds = data_source.ds
-        self.bounds = bounds
-        self.buff_size = (int(buff_size[0]), int(buff_size[1]))
-        self.antialias = antialias
+        super().__init__(
+            data_source=data_source,
+            bounds=bounds,
+            antialias=antialias,
+            buff_size=buff_size,
+            periodic=periodic,
+            ds=data_source.ds,
+            axis=data_source.axis,
+        )
         self.data: Dict[str, np.ndarray] = {}
-        self.axis = data_source.axis
-        self.periodic = periodic
         self._data_valid = False
 
         # import type here to avoid import cycles
