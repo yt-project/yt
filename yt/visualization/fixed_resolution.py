@@ -13,6 +13,7 @@ from yt.loaders import load_uniform_grid
 from yt.utilities.lib.api import (  # type: ignore
     CICDeposit_2,
     add_points_to_greyscale_image,
+    add_points_to_greyscale_image_with_lagrangian_tesselation,
 )
 from yt.utilities.lib.pixelization_routines import pixelize_cylinder
 from yt.utilities.math_utils import compute_stddev_image
@@ -661,6 +662,58 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
         return ia
 
 
+def _get_tet_interpolated_particles(Ngrid, p3d, split=1):
+    """A fast function to create particles inside tetrahedra
+    with the same linear map that made the tet."""
+    vert = np.array(
+        (
+            (0, 0, 0),
+            (1, 0, 0),
+            (1, 1, 0),
+            (0, 0, 1),
+            (0, 0, 1),
+            (1, 0, 1),
+            (1, 1, 1),
+            (0, 1, 1),
+        )
+    )
+    conn = np.array(
+        (
+            (4, 0, 7, 1),
+            (1, 0, 7, 3),
+            (5, 1, 7, 4),
+            (2, 7, 1, 3),
+            (1, 5, 7, 6),
+            (2, 6, 1, 7),
+        )
+    )
+    Ntetpp = len(conn)
+    Np = Ngrid * Ngrid * Ngrid
+    newp = np.zeros((Ntetpp, split, Np, 3))
+    ro = np.random.random(size=(Ntetpp, split, 3))  # random offsets
+    for m in range(Ntetpp):  # 6 tets
+        off = vert[conn[m]]
+        sx, sy, sz = (
+            [slice(off[i][j], Ngrid + off[i][j]) for i in range(4)] for j in range(3)
+        )
+
+        orig = p3d[sx[3], sy[3], sz[3], :]
+
+        b = (p3d[sx[1], sy[1], sz[1], :] - orig).reshape((Np, 3))
+        c = (p3d[sx[2], sy[2], sz[2], :] - orig).reshape((Np, 3))
+        a = (p3d[sx[0], sy[0], sz[0], :] - orig).reshape((Np, 3))
+
+        oo = orig.reshape(Np, 3)[None, :, :]
+
+        for i in range(3):
+            newp[m, :, :, i] = oo[:, :, i] + (
+                ro[m, :, None, 0] * a[None, :, i]
+                + ro[m, :, None, 1] * b[None, :, i]
+                + ro[m, :, None, 2] * c[None, :, i]
+            )
+    return newp
+
+
 class ParticleImageBuffer(FixedResolutionBuffer):
     """
 
@@ -689,9 +742,11 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         axis = self.axis
         self.xax = self.ds.coordinates.x_axis[axis]
         self.yax = self.ds.coordinates.y_axis[axis]
+        self.zax = list({0, 1, 2} - {self.xax, self.yax})[0]
         ax_field_template = "particle_position_%s"
         self.x_field = ax_field_template % self.ds.coordinates.axis_name[self.xax]
         self.y_field = ax_field_template % self.ds.coordinates.axis_name[self.yax]
+        self.z_field = ax_field_template % self.ds.coordinates.axis_name[self.zax]
 
     def __getitem__(self, item):
         if item in self.data:
@@ -763,6 +818,20 @@ class ParticleImageBuffer(FixedResolutionBuffer):
                 x_bin_edges,
                 y_bin_edges,
             )
+        elif deposition == "lagrangian_tesselation":
+            z_data = self.data_source.dd[ftype, self.z_field]
+            dz = z_data.in_units("code_length").d
+            # TODO: handle periodicity
+            pz = dz / (bounds[1] - bounds[0])
+            Nsplit = 100
+            order = np.argsort(self.data_source.dd[ftype, "particle_index"])
+            p3d = np.stack([px[order], py[order], pz[order]], axis=1).reshape(
+                64, 64, 64, 3
+            )
+
+            add_points_to_greyscale_image_with_lagrangian_tesselation(
+                buff, buff_mask, p3d, splat_vals[None, None, :], Nsplit
+            )
         else:
             raise ValueError(f"Received unknown deposition method '{deposition}'")
 
@@ -785,7 +854,7 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         ia = ImageArray(buff, units=units, info=info)
 
         # divide by the weight_field, if needed
-        if weight_field is not None:
+        if weight_field is not None and deposition != "lagrangian_tesselation":
             weight_buff = np.zeros(self.buff_size)
             weight_buff_mask = np.zeros(self.buff_size, dtype="uint8")
             if deposition == "ngp":
