@@ -3,7 +3,6 @@ import errno
 import os
 import struct
 import weakref
-from glob import glob
 
 import numpy as np
 
@@ -154,32 +153,11 @@ class ParticleIndex(Index):
         else:
             dont_cache = False
 
-        # If we have applied a bounding box then we can't cache the
-        # ParticleBitmap because it is domain dependent
-        if getattr(ds, "_domain_override", False):
-            dont_cache = True
-
         if not hasattr(self.ds, "_file_hash"):
             self.ds._file_hash = self._generate_hash()
 
         # Load Morton index from file if provided
-        def _current_fname(order1, order2):
-            if getattr(ds, "index_filename", None) is None:
-                irange = f"[{order2}-{order2+2}]"
-                fn_prefix = f"{ds.parameter_filename}.index{order1}"
-                fn_glob = f"{fn_prefix}_{irange}.ewah"
-                fns = glob(fn_glob)
-                fname = f"{fn_prefix}_{order2}.ewah" if len(fns) == 0 else fns[-1]
-            else:
-                fname = ds.index_filename
-            lfname = os.path.split(fname)[-1]
-            new_order2 = int(lfname.split("_")[-1].split(".")[0])
-            return fname, new_order2
-
-        # We set order2 in case we loaded an index filename
-        # where the order2 is +2 the one which is assumed at
-        # first
-        fname, order2 = _current_fname(order1, order2)
+        fname = getattr(ds, "index_filename", None) or f"{ds.parameter_filename}.ewah"
 
         self.regions = ParticleBitmap(
             ds.domain_left_edge,
@@ -205,8 +183,8 @@ class ParticleIndex(Index):
             self._initialize_coarse_index()
             self._initialize_refined_index()
             # We now update fname since index_order2 may have changed
-            fname, _ = _current_fname(
-                self.regions.index_order1, self.regions.index_order2
+            fname = (
+                getattr(ds, "index_filename", None) or f"{ds.parameter_filename}.ewah"
             )
             wdir = os.path.dirname(fname)
             if not dont_cache and os.access(wdir, os.W_OK):
