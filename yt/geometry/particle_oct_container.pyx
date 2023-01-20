@@ -1023,7 +1023,7 @@ cdef class ParticleBitmap:
 
             for ifile in range(self.nfiles):
                 serial_BAC = self.bitmasks._dumps(ifile)
-                grp.create_dataset(f"nfile_{ifile}", data=np.void(serial_BAC))
+                grp.create_dataset(f"nfile_{ifile:05}", data=np.void(serial_BAC))
             serial_BAC = self.collisions._dumps()
             grp.create_dataset("collisions", data=np.void(serial_BAC))
 
@@ -1061,7 +1061,7 @@ cdef class ParticleBitmap:
             pb = get_pbar("Loading particle index", self.nfiles)
             for ifile in range(self.nfiles):
                 pb.update(ifile+1)
-                irflag = self.bitmasks._loads(ifile, grp[f"nfile_{ifile}"][...].tobytes())
+                irflag = self.bitmasks._loads(ifile, grp[f"nfile_{ifile:05}"][...].tobytes())
                 if irflag == 0:
                     read_flag = 0
             pb.finish()
