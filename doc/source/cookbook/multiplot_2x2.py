@@ -53,6 +53,6 @@ for i, field in enumerate(fields):
     plot.cax = grid.cbar_axes[i]
 
 # Finally, redraw the plot on the AxesGrid axes.
-p._setup_plots()
+p.render()
 
 plt.savefig("multiplot_2x2.png")
