@@ -7,7 +7,6 @@ Oct container tuned for Particles
 
 
 
-
 """
 
 
@@ -23,7 +22,6 @@ from yt.utilities.lib.ewah_bool_array cimport (
     ewah_word_type,
 )
 
-import h5py
 import numpy as np
 
 cimport cython
@@ -1003,6 +1001,7 @@ cdef class ParticleBitmap:
         return self.bitmasks._iseq(solf.get_bitmasks())
 
     def save_bitmasks(self, fname):
+        import h5py
         cdef bytes serial_BAC
         cdef np.uint64_t ifile
         with h5py.File(fname, mode="a") as fp:
@@ -1035,6 +1034,7 @@ cdef class ParticleBitmap:
         self.bitmasks._reset()
 
     def load_bitmasks(self, fname):
+        import h5py
         cdef bint read_flag = 1
         cdef bint irflag
         cdef np.uint64_t ver

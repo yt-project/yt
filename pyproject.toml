@@ -43,7 +43,6 @@ keywords = [
 requires-python = ">=3.8"
 dependencies = [
     "cmyt>=1.1.2",
-    "h5py>=3.1.0",
     "ipywidgets>=8.0.0",
     "matplotlib!=3.4.2,>=3.2", # keep in sync with tests/windows_conda_requirements.txt
     "more-itertools>=8.4",
@@ -76,6 +75,7 @@ answer-testing = "yt.utilities.answer_testing.framework:AnswerTesting"
 
 [project.optional-dependencies]
 # some generic, reusable constraints on optional-deps
+HDF5 = ["h5py>=3.1.0,<4.0.0"]
 netCDF4 = ["netCDF4!=1.6.1,>=1.5.3"]  # see https://github.com/Unidata/netcdf4-python/issues/1192
 Fortran = ["f90nml>=1.1"]
 
@@ -89,40 +89,40 @@ adaptahop = []
 ahf = []
 amrvac = ["yt[Fortran]"]
 art = []
-arepo = []
+arepo = ["yt[HDF5]"]
 artio = []
 athena = []
 athena-pp = []
 boxlib = []
 cf-radial = ["xarray>=0.16.1", "arm-pyart!=1.12.5,>=1.11.4"]
-chimera = []
-chombo = []
-cholla = []
-eagle = []
-enzo-e = ["libconf>=1.0.1"]
-enzo = ["libconf>=1.0.1"]
+chimera = ["yt[HDF5]"]
+chombo = ["yt[HDF5]"]
+cholla = ["yt[HDF5]"]
+eagle = ["yt[HDF5]"]
+enzo-e = ["yt[HDF5]", "libconf>=1.0.1"]
+enzo = ["yt[HDF5]", "libconf>=1.0.1"]
 exodus-ii = ["yt[netCDF4]"]
 fits = ["astropy>=4.0.1", "regions>=0.7"]
-flash = []
-gadget = []
-gadget-fof = []
-gamer = []
-gdf = []
-gizmo = []
-halo-catalog = []
+flash = ["yt[HDF5]"]
+gadget = ["yt[HDF5]"]
+gadget-fof = ["yt[HDF5]"]
+gamer = ["yt[HDF5]"]
+gdf = ["yt[HDF5]"]
+gizmo = ["yt[HDF5]"]
+halo-catalog = ["yt[HDF5]"]
 http-stream = ["requests>=2.20.0"]
-moab = []
+moab = ["yt[HDF5]"]
 nc4-cm1 = ["yt[netCDF4]"]
-open-pmd = []
-owls = []
-owls-subfind = []
+open-pmd = ["yt[HDF5]"]
+owls = ["yt[HDF5]"]
+owls-subfind = ["yt[HDF5]"]
 ramses = ["yt[Fortran]"]
 rockstar = []
 sdf = ["requests>=2.20.0"]
 stream = []
-swift = []
+swift = ["yt[HDF5]"]
 tipsy = []
-ytdata = []
+ytdata = ["yt[HDF5]"]
 
 # "full" should contain all optional dependencies intended for users (not devs)
 # in particular it should enable support for all frontends
@@ -199,7 +199,6 @@ mapserver = [
 ]
 minimal = [
     "cmyt==1.1.2",
-    "h5py==3.1.0",
     "ipywidgets==8.0.0",
     "matplotlib==3.2",
     "more-itertools==8.4",

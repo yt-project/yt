@@ -31,6 +31,7 @@ iso_fields = OrderedDict(
 iso_kwargs = dict(bounding_box=[[-3, 3], [-3, 3], [-3, 3]])
 
 
+@requires_module("h5py")
 def test_gadget_binary():
     header_specs = ["default", "default+pad32", ["default", "pad32"]]
     curdir = os.getcwd()
