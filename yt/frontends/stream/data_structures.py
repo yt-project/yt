@@ -6,11 +6,12 @@ from collections import UserDict
 from functools import cached_property
 from itertools import chain, product, repeat
 from numbers import Number as numeric_type
-from typing import Type
+from typing import Optional, Tuple, Type
 
 import numpy as np
 from more_itertools import always_iterable
 
+from yt._typing import AxisOrder, FieldKey
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.index_subobjects.octree_subset import OctreeSubset
@@ -23,6 +24,7 @@ from yt.data_objects.static_output import Dataset, ParticleFile
 from yt.data_objects.unions import MeshUnion, ParticleUnion
 from yt.frontends.sph.data_structures import SPHParticleIndex
 from yt.funcs import setdefaultattr
+from yt.geometry.api import Geometry
 from yt.geometry.geometry_handler import Index, YTDataChunk
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.geometry.oct_container import OctreeContainer
@@ -332,9 +334,11 @@ class StreamDataset(Dataset):
         geometry="cartesian",
         unit_system="cgs",
         default_species_fields=None,
+        *,
+        axis_order: Optional[AxisOrder] = None,
     ):
         self.fluid_types += ("stream",)
-        self.geometry = geometry
+        self.geometry = Geometry(geometry)
         self.stream_handler = stream_handler
         self._find_particle_types()
         name = f"InMemoryParameterFile_{uuid.uuid4().hex}"
@@ -353,7 +357,7 @@ class StreamDataset(Dataset):
             setdefaultattr(
                 self,
                 "pixel2spec",
-                lambda pixel_value: self.arr(pixel_value, self.spec_unit),
+                lambda pixel_value: self.arr(pixel_value, self.spec_unit),  # type: ignore [attr-defined]
             )
             setdefaultattr(
                 self,
@@ -368,6 +372,7 @@ class StreamDataset(Dataset):
             self._dataset_type,
             unit_system=unit_system,
             default_species_fields=default_species_fields,
+            axis_order=axis_order,
         )
 
     @property
@@ -459,7 +464,7 @@ class StreamDataset(Dataset):
 
 
 class StreamDictFieldHandler(UserDict):
-    _additional_fields = ()
+    _additional_fields: Tuple[FieldKey, ...] = ()
 
     @property
     def all_fields(self):
@@ -545,6 +550,8 @@ class StreamParticlesDataset(StreamDataset):
         geometry="cartesian",
         unit_system="cgs",
         default_species_fields=None,
+        *,
+        axis_order: Optional[AxisOrder] = None,
     ):
         super().__init__(
             stream_handler,
@@ -552,6 +559,7 @@ class StreamParticlesDataset(StreamDataset):
             geometry=geometry,
             unit_system=unit_system,
             default_species_fields=default_species_fields,
+            axis_order=axis_order,
         )
         fields = list(stream_handler.fields["stream_file"].keys())
         # This is the current method of detecting SPH data.

@@ -238,14 +238,6 @@ class YTNotInsideNotebook(YTException):
         return "This function only works from within an IPython Notebook."
 
 
-class YTGeometryNotSupported(YTException):
-    def __init__(self, geom):
-        self.geom = geom
-
-    def __str__(self):
-        return f"We don't currently support {self.geom!r} geometry"
-
-
 class YTCoordinateNotImplemented(YTException):
     def __str__(self):
         return "This coordinate is not implemented for this geometry type."

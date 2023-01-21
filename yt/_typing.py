@@ -19,6 +19,9 @@ ParticleCoordinateTuple = Tuple[
     Union[float, ndarray],  # hsml
 ]
 
+# Geometry specific types
+AxisName = str
+AxisOrder = Tuple[AxisName, AxisName, AxisName]
 
 # types that can be converted to un.Unit
 Unit = Union[un.Unit, str]

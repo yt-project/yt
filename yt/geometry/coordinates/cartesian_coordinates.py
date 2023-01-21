@@ -90,9 +90,7 @@ def all_data(data, ptype, fields, kdtree=False):
 
 class CartesianCoordinateHandler(CoordinateHandler):
     name = "cartesian"
-
-    def __init__(self, ds, ordering=("x", "y", "z")):
-        super().__init__(ds, ordering)
+    _default_axis_order = ("x", "y", "z")
 
     def setup_fields(self, registry):
         for axi, ax in enumerate(self.axis_order):

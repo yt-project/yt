@@ -9,6 +9,7 @@ from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.fields.field_info_container import FieldInfoContainer
 from yt.funcs import mylog, setdefaultattr
+from yt.geometry.api import Geometry
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.file_handler import HDF5FileHandler, warn_h5py
 from yt.utilities.lib.misc_utilities import get_box_grids_level
@@ -254,7 +255,7 @@ class ChomboDataset(Dataset):
         self._handle = HDF5FileHandler(filename)
         self.dataset_type = dataset_type
 
-        self.geometry = "cartesian"
+        self.geometry = Geometry.CARTESIAN
         self.ini_filename = ini_filename
         self.fullplotdir = os.path.abspath(filename)
         Dataset.__init__(

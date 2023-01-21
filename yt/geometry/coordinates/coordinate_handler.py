@@ -1,10 +1,11 @@
 import abc
 import weakref
 from numbers import Number
-from typing import Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 
+from yt._typing import AxisOrder
 from yt.funcs import fix_unitary, is_sequence, validate_width_tuple
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTCoordinateNotImplemented, YTInvalidWidthError
@@ -130,10 +131,14 @@ def validate_sequence_width(width, ds, unit=None):
 
 class CoordinateHandler(abc.ABC):
     name: str
+    _default_axis_order: AxisOrder
 
-    def __init__(self, ds, ordering):
+    def __init__(self, ds, ordering: Optional[AxisOrder] = None):
         self.ds = weakref.proxy(ds)
-        self.axis_order = ordering
+        if ordering is not None:
+            self.axis_order = ordering
+        else:
+            self.axis_order = self._default_axis_order
 
     @abc.abstractmethod
     def setup_fields(self):

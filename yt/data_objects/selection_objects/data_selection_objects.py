@@ -1,11 +1,14 @@
 import abc
 import itertools
+import sys
 import uuid
 from collections import defaultdict
 from contextlib import contextmanager
+from typing import Tuple
 
 import numpy as np
 from more_itertools import always_iterable
+from unyt import unyt_array
 from unyt.exceptions import UnitConversionError, UnitParseError
 
 import yt.geometry
@@ -14,6 +17,7 @@ from yt.data_objects.derived_quantities import DerivedQuantityCollection
 from yt.data_objects.field_data import YTFieldData
 from yt.fields.field_exceptions import NeedsGridType
 from yt.funcs import fix_axis, is_sequence, iter_fields, validate_width_tuple
+from yt.geometry.api import Geometry
 from yt.geometry.selection_routines import compose_selector
 from yt.units import YTArray
 from yt.utilities.exceptions import (
@@ -30,6 +34,11 @@ from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import (
     ParallelAnalysisInterface,
 )
+
+if sys.version_info >= (3, 11):
+    from typing import assert_never
+else:
+    from typing_extensions import assert_never
 
 
 class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
@@ -590,8 +599,8 @@ class YTSelectionContainer2D(YTSelectionContainer):
         >>> write_image(np.log10(frb[("gas", "density")]), "density_100kpc.png")
         """
 
-        if (self.ds.geometry == "cylindrical" and self.axis == 1) or (
-            self.ds.geometry == "polar" and self.axis == 2
+        if (self.ds.geometry is Geometry.CYLINDRICAL and self.axis == 1) or (
+            self.ds.geometry is Geometry.POLAR and self.axis == 2
         ):
             if center is not None and center != (0.0, 0.0):
                 raise NotImplementedError(
@@ -1379,18 +1388,29 @@ class YTSelectionContainer3D(YTSelectionContainer):
         """
         return self.ds.domain_left_edge, self.ds.domain_right_edge
 
-    def get_bbox(self):
+    def get_bbox(self) -> Tuple[unyt_array, unyt_array]:
         """
         Return the bounding box for this data container.
         """
-        if self.ds.geometry != "cartesian":
+        geometry: Geometry = self.ds.geometry
+        if geometry is Geometry.CARTESIAN:
+            le, re = self._get_bbox()
+            le.convert_to_units("code_length")
+            re.convert_to_units("code_length")
+            return le, re
+        elif (
+            geometry is Geometry.CYLINDRICAL
+            or geometry is Geometry.POLAR
+            or geometry is Geometry.SPHERICAL
+            or geometry is Geometry.GEOGRAPHIC
+            or geometry is Geometry.INTERNAL_GEOGRAPHIC
+            or geometry is Geometry.SPECTRAL_CUBE
+        ):
             raise NotImplementedError(
-                "get_bbox is currently only implemented for cartesian geometries!"
+                f"get_bbox is currently not implemented for {geometry=}!"
             )
-        le, re = self._get_bbox()
-        le.convert_to_units("code_length")
-        re.convert_to_units("code_length")
-        return le, re
+        else:
+            assert_never(geometry)
 
     def volume(self):
         """

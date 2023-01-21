@@ -32,7 +32,14 @@ from unyt import Unit, UnitSystem, unyt_quantity
 from unyt.exceptions import UnitConversionError, UnitParseError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
-from yt._typing import AnyFieldKey, FieldKey, FieldType, ImplicitFieldKey, ParticleType
+from yt._typing import (
+    AnyFieldKey,
+    AxisOrder,
+    FieldKey,
+    FieldType,
+    ImplicitFieldKey,
+    ParticleType,
+)
 from yt.config import ytcfg
 from yt.data_objects.particle_filters import ParticleFilter, filter_registry
 from yt.data_objects.region_expression import RegionExpression
@@ -41,6 +48,7 @@ from yt.fields.derived_field import DerivedField, ValidateSpatial
 from yt.fields.field_type_container import FieldTypeContainer
 from yt.fields.fluid_fields import setup_gradient_fields
 from yt.funcs import is_sequence, iter_fields, mylog, set_intersection, setdefaultattr
+from yt.geometry.api import Geometry
 from yt.geometry.coordinates.api import (
     CartesianCoordinateHandler,
     CoordinateHandler,
@@ -53,7 +61,7 @@ from yt.geometry.coordinates.api import (
 )
 from yt.geometry.geometry_handler import Index
 from yt.units import UnitContainer, _wrap_display_ytarray, dimensions
-from yt.units.dimensions import current_mks  # type: ignore
+from yt.units.dimensions import current_mks
 from yt.units.unit_object import define_unit  # type: ignore
 from yt.units.unit_registry import UnitRegistry  # type: ignore
 from yt.units.unit_systems import (  # type: ignore
@@ -66,7 +74,6 @@ from yt.utilities.cosmology import Cosmology
 from yt.utilities.exceptions import (
     YTFieldNotFound,
     YTFieldNotParseable,
-    YTGeometryNotSupported,
     YTIllDefinedParticleFilter,
     YTObjectNotImplemented,
 )
@@ -76,10 +83,17 @@ from yt.utilities.object_registries import data_object_registry, output_type_reg
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_root_only
 from yt.utilities.parameter_file_storage import NoParameterShelf, ParameterFileStore
 
+if sys.version_info >= (3, 11):
+    from typing import assert_never
+else:
+    from typing_extensions import assert_never
+
 if sys.version_info >= (3, 9):
     from collections.abc import MutableMapping
 else:
     from typing import MutableMapping
+
+
 # We want to support the movie format in the future.
 # When such a thing comes to pass, I'll move all the stuff that is constant up
 # to here, and then have it instantiate EnzoDatasets as appropriate.
@@ -161,7 +175,7 @@ class Dataset(abc.ABC):
     fluid_types: Tuple[FieldType, ...] = ("gas", "deposit", "index")
     particle_types: Tuple[ParticleType, ...] = ("io",)  # By default we have an 'all'
     particle_types_raw: Optional[Tuple[ParticleType, ...]] = ("io",)
-    geometry = "cartesian"
+    geometry: Geometry = Geometry.CARTESIAN
     coordinates = None
     storage_filename = None
     particle_unions: Optional[Dict[ParticleType, ParticleUnion]] = None
@@ -246,7 +260,9 @@ class Dataset(abc.ABC):
         default_species_fields: Optional[
             "Any"
         ] = None,  # Any used as a placeholder here
-    ):
+        *,
+        axis_order: Optional[AxisOrder] = None,
+    ) -> None:
         """
         Base class for generating new output types.  Principally consists of
         a *filename* and a *dataset_type* which will be passed on to children.
@@ -287,7 +303,7 @@ class Dataset(abc.ABC):
         self.set_units()
         self.setup_cosmology()
         self._assign_unit_system(unit_system)
-        self._setup_coordinate_handler()
+        self._setup_coordinate_handler(axis_order)
         self.print_key_parameters()
         self._set_derived_attrs()
         # Because we need an instantiated class to check the ds's existence in
@@ -721,42 +737,96 @@ class Dataset(abc.ABC):
             added.append(("gas", old_name))
         self.field_info.find_dependencies(added)
 
-    def _setup_coordinate_handler(self):
-        kwargs = {}
-        if isinstance(self.geometry, tuple):
-            self.geometry, ordering = self.geometry
-            kwargs["ordering"] = ordering
-        if isinstance(self.geometry, CoordinateHandler):
-            # I kind of dislike this.  The geometry field should always be a
-            # string, but the way we're set up with subclassing, we can't
-            # mandate that quite the way I'd like.
-            self.coordinates = self.geometry
-            return
+    def _setup_coordinate_handler(self, axis_order: Optional[AxisOrder]) -> None:
+        # backward compatibility layer:
+        # turning off type-checker on a per-line basis
+        cls: Type[CoordinateHandler]
+
+        if isinstance(self.geometry, tuple):  # type: ignore [unreachable]
+            issue_deprecation_warning(  # type: ignore [unreachable]
+                f"Dataset object {self} has a tuple for its geometry attribute. "
+                "This is interpreted as meaning the first element is the actual geometry string, "
+                "and the second represents an arbitrary axis order. "
+                "This will stop working in a future version of yt.\n"
+                "If you're loading data using yt.load_* functions, "
+                "you should be able to clear this warning by using the axis_order keyword argument.\n"
+                "Otherwise, if your code relies on this behaviour, please reach out and open an issue:\n"
+                "https://github.com/yt-project/yt/issues/new\n"
+                "Also see https://github.com/yt-project/yt/pull/4244#discussion_r1063486520 for reference",
+                since="4.2",
+                stacklevel=2,
+            )
+            self.geometry, axis_order = self.geometry
         elif callable(self.geometry):
-            cls = self.geometry
-        elif self.geometry == "cartesian":
+            issue_deprecation_warning(
+                f"Dataset object {self} has a class for its geometry attribute. "
+                "This was accepted in previous versions of yt but leads to undefined behaviour. "
+                "This will stop working in a future version of yt.\n"
+                "If you are relying on this behaviour, please reach out and open an issue:\n"
+                "https://github.com/yt-project/yt/issues/new",
+                since="4.2",
+                stacklevel=2,
+            )
+            cls = self.geometry  # type: ignore [assignment]
+
+        if type(self.geometry) is str:
+            issue_deprecation_warning(
+                f"Dataset object {self} has a raw string for its geometry attribute. "
+                "In yt>=4.2, a yt.geometry.geometry_enum.Geometry member is expected instead. "
+                "This will stop working in a future version of yt.\n",
+                since="4.2",
+                stacklevel=2,
+            )
+            self.geometry = Geometry(self.geometry.lower())
+        if isinstance(self.geometry, CoordinateHandler):
+            issue_deprecation_warning(
+                f"Dataset object {self} has a CoordinateHandler object for its geometry attribute. "
+                "In yt>=4.2, a yt.geometry.geometry_enum.Geometry member is expected instead. "
+                "This will stop working in a future version of yt.\n",
+                since="4.2",
+                stacklevel=2,
+            )
+            _class_name = type(self.geometry).__name__
+            if not _class_name.endswith("CoordinateHandler"):
+                raise RuntimeError(
+                    "Expected CoordinateHandler child class name to end with CoordinateHandler"
+                )
+            _geom_str = _class_name[: -len("CoordinateHandler")]
+            self.geometry = Geometry(_geom_str.lower())
+            del _class_name, _geom_str
+
+        # end compatibility layer
+        if not isinstance(self.geometry, Geometry):
+            raise TypeError(
+                "Excpected dataset.geometry attribute to be of "
+                "type yt.geometry.geometry_enum.Geometry\n"
+                f"Got {self.geometry=} with type {type(self.geometry)}"
+            )
+
+        if self.geometry is Geometry.CARTESIAN:
             cls = CartesianCoordinateHandler
-        elif self.geometry == "cylindrical":
+        elif self.geometry is Geometry.CYLINDRICAL:
             cls = CylindricalCoordinateHandler
-        elif self.geometry == "polar":
+        elif self.geometry is Geometry.POLAR:
             cls = PolarCoordinateHandler
-        elif self.geometry == "spherical":
+        elif self.geometry is Geometry.SPHERICAL:
             cls = SphericalCoordinateHandler
             # It shouldn't be required to reset self.no_cgs_equiv_length
             # to the default value (False) here, but it's still necessary
             # see https://github.com/yt-project/yt/pull/3618
             self.no_cgs_equiv_length = False
-        elif self.geometry == "geographic":
+        elif self.geometry is Geometry.GEOGRAPHIC:
             cls = GeographicCoordinateHandler
             self.no_cgs_equiv_length = True
-        elif self.geometry == "internal_geographic":
+        elif self.geometry is Geometry.INTERNAL_GEOGRAPHIC:
             cls = InternalGeographicCoordinateHandler
             self.no_cgs_equiv_length = True
-        elif self.geometry == "spectral_cube":
+        elif self.geometry is Geometry.SPECTRAL_CUBE:
             cls = SpectralCubeCoordinateHandler
         else:
-            raise YTGeometryNotSupported(self.geometry)
-        self.coordinates = cls(self, **kwargs)
+            assert_never(self.geometry)
+
+        self.coordinates = cls(self, ordering=axis_order)
 
     def add_particle_union(self, union):
         # No string lookups here, we need an actual union.

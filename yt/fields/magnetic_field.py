@@ -1,9 +1,19 @@
+import sys
+
 import numpy as np
 
+from yt._typing import FieldType
 from yt.fields.derived_field import ValidateParameter
+from yt.fields.field_info_container import FieldInfoContainer
+from yt.geometry.api import Geometry
 from yt.units import dimensions
 
 from .field_plugin_registry import register_field_plugin
+
+if sys.version_info >= (3, 11):
+    from typing import assert_never
+else:
+    from typing_extensions import assert_never
 
 cgs_normalizations = {"gaussian": 4.0 * np.pi, "lorentz_heaviside": 1.0}
 
@@ -18,7 +28,9 @@ def get_magnetic_normalization(key: str) -> float:
 
 
 @register_field_plugin
-def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
+def setup_magnetic_field_fields(
+    registry: FieldInfoContainer, ftype: FieldType = "gas", slice_info=None
+) -> None:
     ds = registry.ds
 
     unit_system = ds.unit_system
@@ -85,7 +97,9 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
     _magnetic_field_poloidal_magnitude = None
     _magnetic_field_toroidal_magnitude = None
 
-    if registry.ds.geometry == "cartesian":
+    geometry: Geometry = registry.ds.geometry
+
+    if geometry is Geometry.CARTESIAN:
 
         def _magnetic_field_poloidal_magnitude(field, data):
             B2 = (
@@ -102,7 +116,7 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
             )
             return np.sqrt(B2 - Bt2)
 
-    elif registry.ds.geometry in ("cylindrical", "polar"):
+    elif geometry is Geometry.CYLINDRICAL or geometry is Geometry.POLAR:
 
         def _magnetic_field_poloidal_magnitude(field, data):
             bm = data.get_field_parameter("bulk_magnetic_field")
@@ -119,7 +133,7 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
             bm = data.get_field_parameter("bulk_magnetic_field")
             return data[ftype, "magnetic_field_theta"] - bm[ax]
 
-    elif registry.ds.geometry == "spherical":
+    elif geometry is Geometry.SPHERICAL:
 
         def _magnetic_field_poloidal_magnitude(field, data):
             bm = data.get_field_parameter("bulk_magnetic_field")
@@ -135,6 +149,15 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
             ax = axis_names.find("phi")
             bm = data.get_field_parameter("bulk_magnetic_field")
             return data[ftype, "magnetic_field_phi"] - bm[ax]
+
+    elif geometry is Geometry.GEOGRAPHIC or geometry is Geometry.INTERNAL_GEOGRAPHIC:
+        # not implemented
+        pass
+    elif geometry is Geometry.SPECTRAL_CUBE:
+        # nothing to be done
+        pass
+    else:
+        assert_never(geometry)
 
     if _magnetic_field_poloidal_magnitude is not None:
         registry.add_field(
@@ -160,7 +183,7 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
             ],
         )
 
-    if registry.ds.geometry == "cartesian":
+    if geometry is Geometry.CARTESIAN:
         registry.alias(
             (ftype, "magnetic_field_toroidal_magnitude"),
             (ftype, "magnetic_field_spherical_phi"),
@@ -178,6 +201,22 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
             units=u,
             deprecate=("4.1.0", None),
         )
+    elif (
+        geometry is Geometry.CYLINDRICAL
+        or geometry is Geometry.POLAR
+        or geometry is Geometry.SPHERICAL
+    ):
+        # These cases should be covered already, just check that they are
+        assert (ftype, "magnetic_field_toroidal_magnitude") in registry
+        assert (ftype, "magnetic_field_poloidal_magnitude") in registry
+    elif geometry is Geometry.GEOGRAPHIC or geometry is Geometry.INTERNAL_GEOGRAPHIC:
+        # not implemented
+        pass
+    elif geometry is Geometry.SPECTRAL_CUBE:
+        # nothing to be done
+        pass
+    else:
+        assert_never(Geometry)
 
     def _alfven_speed(field, data):
         B = data[ftype, "magnetic_field_strength"]

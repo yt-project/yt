@@ -5,10 +5,11 @@ from .coordinate_handler import _get_coord_fields
 class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
     name = "spectral_cube"
 
-    def __init__(self, ds, ordering=("x", "y", "z")):
-        ordering = tuple(
-            "xyz"[axis] for axis in (ds.lon_axis, ds.lat_axis, ds.spec_axis)
-        )
+    def __init__(self, ds, ordering=None):
+        if ordering is None:
+            ordering = tuple(
+                "xyz"[axis] for axis in (ds.lon_axis, ds.lat_axis, ds.spec_axis)
+            )
         super().__init__(ds, ordering)
 
         self.default_unit_label = {}

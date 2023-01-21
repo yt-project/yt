@@ -21,6 +21,7 @@ from yt.funcs import (
     obj_length,
     validate_moment,
 )
+from yt.geometry.api import Geometry
 from yt.units.unit_object import Unit  # type: ignore
 from yt.units.unit_registry import UnitParseError  # type: ignore
 from yt.units.yt_array import YTArray, YTQuantity
@@ -50,6 +51,11 @@ from .plot_container import (
 )
 
 import sys  # isort: skip
+
+if sys.version_info >= (3, 11):
+    from typing import assert_never
+else:
+    from typing_extensions import assert_never
 
 if sys.version_info >= (3, 10):
     pass
@@ -180,7 +186,7 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
         aspect=None,
         setup=False,
         *,
-        geometry="cartesian",
+        geometry: Geometry = Geometry.CARTESIAN,
     ) -> None:
 
         # axis manipulation operations are callback-only:
@@ -208,19 +214,21 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
         super().__init__(data_source, window_size, fontsize)
 
         self._set_window(bounds)  # this automatically updates the data and plot
-        if (
-            geometry
-            in (
-                "spherical",
-                "cylindrical",
-                "geographic",
-                "internal_geographic",
-                "polar",
-            )
-            and origin != "native"
-        ):
-            mylog.info("Setting origin='native' for %s geometry.", geometry)
-            origin = "native"
+
+        if origin != "native":
+            if geometry is Geometry.CARTESIAN or geometry is Geometry.SPECTRAL_CUBE:
+                pass
+            elif (
+                geometry is Geometry.CYLINDRICAL
+                or geometry is Geometry.POLAR
+                or geometry is Geometry.SPHERICAL
+                or geometry is Geometry.GEOGRAPHIC
+                or geometry is Geometry.INTERNAL_GEOGRAPHIC
+            ):
+                mylog.info("Setting origin='native' for %s geometry.", geometry)
+                origin = "native"
+            else:
+                assert_never(geometry)
 
         self.origin = origin
         if self.data_source.center is not None and not oblique:
@@ -2503,7 +2511,7 @@ def plot_2d(
     window_size=8.0,
     aspect=None,
     data_source=None,
-):
+) -> AxisAlignedSlicePlot:
     r"""Creates a plot of a 2D dataset
 
     Given a ds object and a field name string, this will return a
@@ -2598,16 +2606,25 @@ def plot_2d(
     """
     if ds.dimensionality != 2:
         raise RuntimeError("plot_2d only plots 2D datasets!")
-    if ds.geometry in ["cartesian", "polar", "spectral_cube"]:
+    if (
+        ds.geometry is Geometry.CARTESIAN
+        or ds.geometry is Geometry.POLAR
+        or ds.geometry is Geometry.SPECTRAL_CUBE
+    ):
         axis = "z"
-    elif ds.geometry == "cylindrical":
+    elif ds.geometry is Geometry.CYLINDRICAL:
         axis = "theta"
-    elif ds.geometry == "spherical":
+    elif ds.geometry is Geometry.SPHERICAL:
         axis = "phi"
-    else:
+    elif (
+        ds.geometry is Geometry.GEOGRAPHIC
+        or ds.geometry is Geometry.INTERNAL_GEOGRAPHIC
+    ):
         raise NotImplementedError(
             f"plot_2d does not yet support datasets with {ds.geometry} geometries"
         )
+    else:
+        assert_never(ds.geometry)
     # Part of the convenience of plot_2d is to eliminate the use of the
     # superfluous coordinate, so we do that also with the center argument
     if not isinstance(center, str) and obj_length(center) == 2:
@@ -2615,7 +2632,8 @@ def plot_2d(
         c1_string = isinstance(center[1], str)
         if not c0_string and not c1_string:
             if obj_length(center[0]) == 2 and c1_string:
-                center = ds.arr(center[0], center[1])
+                # turning off type checking locally because center arg is hard to type correctly
+                center = ds.arr(center[0], center[1])  # type: ignore [unreachable]
             elif not isinstance(center, YTArray):
                 center = ds.arr(center, "code_length")
             center.convert_to_units("code_length")
