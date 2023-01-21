@@ -10,6 +10,7 @@ from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.utilities import save_as_dataset
 from yt.funcs import get_output_filename, iter_fields, mylog
 from yt.loaders import load_uniform_grid
+from yt.utilities.exceptions import YTException
 from yt.utilities.lib.api import (  # type: ignore
     CICDeposit_2,
     add_points_to_greyscale_image,
@@ -773,8 +774,33 @@ class ParticleImageBuffer(FixedResolutionBuffer):
             pz = dz / (bounds[1] - bounds[0])
             Nsplit = 100
             order = np.argsort(self.data_source.dd[ftype, "particle_index"])
+
+            # Check all particles have the same mass
+            if not np.allclose(
+                self.data_source.dd[ftype, "particle_mass"].v,
+                self.data_source.dd[ftype, "particle_mass"][0].v,
+            ):
+                raise YTException(
+                    message=(
+                        "Particles must have the same mass for Lagrangian "
+                        "tesselation to make sense."
+                    )
+                )
+
+            # Check particles are compatible with being initially on a grid
+            Ngrid = 1
+            while Ngrid**3 < len(order):
+                Ngrid += 1
+
+            if Ngrid**3 != len(order):
+                raise YTException(
+                    message=(
+                        "Particles must initially reside on a grid for Lagrangian "
+                        "tesselation to make sense."
+                    )
+                )
             p3d = np.stack([px[order], py[order], pz[order]], axis=1).reshape(
-                64, 64, 64, 3
+                Ngrid, Ngrid, Ngrid, 3
             )
 
             add_points_to_greyscale_image_with_lagrangian_tesselation(
