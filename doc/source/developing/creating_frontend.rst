@@ -24,6 +24,10 @@ be classified into a couple categories:
    either all data in a region or a subset of that data.
 
 
+Note that a frontend can be built as an external package. This is useful to
+develop and maintain a maturing frontend at your own pace. For technical details, see
+:ref:`frontends-as-extensions`.
+
 If you are interested in adding a new code, be sure to drop us a line on
 `yt-dev <https://mail.python.org/archives/list/yt-dev@python.org/>`_!
 

@@ -35,8 +35,11 @@ In subsequent versions, we plan to include in yt a catalog of known extensions
 and where to find them; this will put discoverability directly into the code
 base.
 
-Frontend as an extension
-------------------------
+
+.. _frontends-as-extensions:
+
+Frontends as extensions
+-----------------------
 
 Starting with version 4.2 of yt, any externally installed package that exports
 :class:`~yt.data_objects.static_output.Dataset` subclass as an entrypoint in
