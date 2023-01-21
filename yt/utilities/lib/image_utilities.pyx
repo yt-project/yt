@@ -55,6 +55,29 @@ def add_points_to_greyscale_image(
         _add_point_to_greyscale_image(buffer_view, buffer_mask_view, px[pi], py[pi], pv[pi], xs, ys)
     return
 
+@cython.boundscheck(False)
+cdef np.ndarray[np.float64_t, ndim=2] sample_tetrahedron(int sample):
+    cdef int i
+    cdef np.float64_t a, b, c
+
+    cdef np.ndarray[np.float64_t, ndim=2] buffer_out = np.zeros((sample, 3))
+    cdef np.float64_t[:, :] buffer = buffer_out
+
+    for i in range(sample):
+        a = np.random.rand()
+        b = np.random.rand()
+        c = np.random.rand()
+
+        while a + b + c > 1:
+            a = np.random.rand()
+            b = np.random.rand()
+            c = np.random.rand()
+
+        buffer[i, 0] = a
+        buffer[i, 1] = b
+        buffer[i, 2] = c
+
+    return buffer_out
 
 @cython.boundscheck(False)
 def add_points_to_greyscale_image_with_lagrangian_tesselation(
@@ -111,7 +134,7 @@ def add_points_to_greyscale_image_with_lagrangian_tesselation(
     cdef np.float64_t[:, :] ro
 
     for m in range(len(conn)):
-        ro = np.random.random(size=(split, 3)) # random offsets
+        ro = sample_tetrahedron(split)
         off = vert[conn[m]]
 
         for i in range(Ngrid):
