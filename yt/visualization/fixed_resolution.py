@@ -772,7 +772,6 @@ class ParticleImageBuffer(FixedResolutionBuffer):
             dz = z_data.in_units("code_length").d
             # TODO: handle periodicity
             pz = dz / (bounds[1] - bounds[0])
-            Nsplit = 100
             order = np.argsort(self.data_source.dd[ftype, "particle_index"])
 
             # Check all particles have the same mass
@@ -804,7 +803,10 @@ class ParticleImageBuffer(FixedResolutionBuffer):
             )
 
             add_points_to_greyscale_image_with_lagrangian_tesselation(
-                buff, buff_mask, p3d, splat_vals[None, None, :], Nsplit
+                buff,
+                buff_mask,
+                p3d.copy(),
+                splat_vals[None, None, :],
             )
         else:
             raise ValueError(f"Received unknown deposition method '{deposition}'")
