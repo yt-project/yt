@@ -1,5 +1,4 @@
 from yt.fields.field_info_container import FieldInfoContainer
-from yt.fields.magnetic_field import setup_magnetic_field_aliases
 from yt.fields.species_fields import add_species_field_by_fraction, setup_species_fields
 from yt.frontends.gadget.api import GadgetFieldInfo
 from yt.utilities.chemical_formulas import ChemicalFormula
@@ -53,6 +52,8 @@ class ArepoFieldInfo(GadgetFieldInfo):
             setup_species_fields(self, ptype)
 
     def setup_gas_particle_fields(self, ptype):
+        from yt.fields.magnetic_field import setup_magnetic_field_aliases
+
         super().setup_gas_particle_fields(ptype)
 
         # Since the AREPO gas "particles" are Voronoi cells, we can
