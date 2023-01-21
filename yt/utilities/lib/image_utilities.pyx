@@ -29,6 +29,14 @@ cdef inline void _add_point_to_greyscale_image(
     buffer_mask[i, j] = 1
 
 
+cdef inline np.float64_t  _wrap_dist(np.float64_t dx):
+    if dx > 0.5:
+        return 1 - dx
+    elif dx < -0.5:
+        return 1 + dx
+    else:
+        return dx
+
 def add_points_to_greyscale_image(
         np.ndarray[np.float64_t, ndim=2] buffer,
         np.ndarray[np.uint8_t,   ndim=2] buffer_mask,
@@ -111,9 +119,9 @@ def add_points_to_greyscale_image_with_lagrangian_tesselation(
                 for k in range(Ngrid):
                     for idim in range(2):   # stop at 2, because z is not used
                         orig[idim] = p3d[i + off[3][0], j + off[3][1], k + off[3][2], idim]
-                        a[idim] = p3d[i + off[0][0], j + off[0][1], k + off[0][2], idim] - orig[idim]
-                        b[idim] = p3d[i + off[1][0], j + off[1][1], k + off[1][2], idim] - orig[idim]
-                        c[idim] = p3d[i + off[2][0], j + off[2][1], k + off[2][2], idim] - orig[idim]
+                        a[idim] = _wrap_dist(p3d[i + off[0][0], j + off[0][1], k + off[0][2], idim] - orig[idim])
+                        b[idim] = _wrap_dist(p3d[i + off[1][0], j + off[1][1], k + off[1][2], idim] - orig[idim])
+                        c[idim] = _wrap_dist(p3d[i + off[2][0], j + off[2][1], k + off[2][2], idim] - orig[idim])
 
                     for s in range(split):
                         for idim in range(2):  # stop at 2, because z is not used
