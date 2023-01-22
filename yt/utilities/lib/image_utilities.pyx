@@ -24,8 +24,8 @@ cdef inline void _add_point_to_greyscale_image(
     int ys
 ) nogil:
     cdef int i, j
-    j = <int> (xs * px)
-    i = <int> (ys * py)
+    j = (<int> (xs * px)) % xs
+    i = (<int> (ys * py)) % ys
     buffer[i, j] += pv
     buffer_mask[i, j] = 1
 
@@ -222,10 +222,9 @@ cdef void integrate_quad(
 
     # Special case: Vtot == 0
     if Vtot == 0:
-        i = <int> (xs * (A[0] + B[0] + C[0]) / 3) % xs
-        j = <int> (ys * (A[1] + B[1] + C[1]) / 3) % ys
-        buffer[j, i] += value
-        buffer_mask[j, i] = 1
+        _add_point_to_greyscale_image(
+            buffer, buffer_mask, P[0], P[1], value, xs, ys
+        )
         return
 
     # Second pass: deposit
@@ -263,7 +262,7 @@ cdef void integrate_quad(
             buffer_mask[j % ys, i % xs] = 1
 
 @cython.boundscheck(False)
-cdef integrate_tetrahedron_proj(
+cdef void integrate_tetrahedron_proj(
     np.float64_t[::1] origin,
     np.float64_t[::1] a,
     np.float64_t[::1] b,
@@ -274,29 +273,10 @@ cdef integrate_tetrahedron_proj(
     int xs,
     int ys
 ) nogil:
-    # Shortcut: if the tetrahedron is smaller than a pixel
-    # then just deposit the value in the center of the pixel
-    cdef np.float64_t Vtetra = 1 / 6 * fabs(
-        a[0] * (b[1] * c[2] - b[2] * c[1]) +
-        a[1] * (b[2] * c[0] - b[0] * c[2]) +
-        a[2] * (b[0] * c[1] - b[1] * c[0])
-    )
-
-    if Vtetra**2 < 1 / (xs * ys)**3:
-        i = <int> (xs * (origin[0] + a[0] + b[0] + c[0]) / 4) % xs
-        j = <int> (ys * (origin[1] + a[1] + b[1] + c[1]) / 4) % ys
-        buffer[j, i] += value
-        buffer_mask[j, i] = 1
-        return
-    # Find location of four vertices
-    # cdef np.ndarray[np.float64_t, ndim=1] A = origin
-    # cdef np.ndarray[np.float64_t, ndim=1] B = origin + a
-    # cdef np.ndarray[np.float64_t, ndim=1] C = origin + b
-    # cdef np.ndarray[np.float64_t, ndim=1] D = origin + c
-
-    # Project them onto the xy plane
     cdef np.float64_t[4][2] ABCD_xy
     cdef np.float64_t[2] A_xy, B_xy, C_xy, D_xy, P_xy, P1_xy, P2_xy
+    cdef np.float64_t det, S1, S2
+
     ABCD_xy[0][0] = origin[0]
     ABCD_xy[0][1] = origin[1]
     ABCD_xy[1][0] = origin[0] + a[0]
@@ -312,7 +292,7 @@ cdef integrate_tetrahedron_proj(
 
     cdef int Nhull = convex_hull(ABCD_xy, iABC)
     # print(iABC[0], iABC[1], iABC[2], iABC[3])
-    cdef np.float64_t det, S1, S2
+
     A_xy[0] = ABCD_xy[iABC[0]][0]
     A_xy[1] = ABCD_xy[iABC[0]][1]
     B_xy[0] = ABCD_xy[iABC[1]][0]
@@ -508,7 +488,7 @@ def tetra_helper(
     int xs,
     int ys,
 ):
-    cdef np.float64_t Vtetra = 1 / 6 * abs(
+    cdef np.float64_t Vtetra = 1 / 6 * fabs(
         a[0] * (b[1] * c[2] - b[2] * c[1]) +
         a[1] * (b[2] * c[0] - b[0] * c[2]) +
         a[2] * (b[0] * c[1] - b[1] * c[0])
