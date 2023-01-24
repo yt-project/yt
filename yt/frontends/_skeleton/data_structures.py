@@ -148,9 +148,8 @@ class SkeletonDataset(Dataset):
 
         # optional (the following have default implementations)
         #
-        #   self.geometry  <= a lower case string
-        #                     ("cartesian", "polar", "cylindrical"...)
-        #                     (defaults to 'cartesian')
+        #   self.geometry: any yt.geometry.api.Geometry enum member
+        #                  defaults to Geometry.CARTESIAN
 
         # this attribute is required.
         # Change this value to a constant 0 if time is not relevant to your dataset.
