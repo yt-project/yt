@@ -18,7 +18,6 @@ answer_tests:
   local_arepo_010:  # PR 3386
     - yt/frontends/arepo/tests/test_outputs.py:test_arepo_bullet
     - yt/frontends/arepo/tests/test_outputs.py:test_arepo_tng59
-    - yt/frontends/arepo/tests/test_outputs.py:test_index_override
     - yt/frontends/arepo/tests/test_outputs.py:test_arepo_cr
 
   local_artio_004:

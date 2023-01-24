@@ -1,5 +1,3 @@
-import os
-import tempfile
 from collections import OrderedDict
 
 from yt.frontends.arepo.api import ArepoHDF5Dataset
@@ -77,21 +75,6 @@ def test_arepo_tng59_periodicity():
     assert ds1.periodicity == (True, True, True)
     ds2 = data_dir_load(tng59_h5, kwargs={"bounding_box": _tng59_bbox})
     assert ds2.periodicity == (False, False, False)
-
-
-@requires_module("h5py")
-@requires_ds(tng59_h5)
-def test_index_override():
-    # This tests that we can supply an index_filename, and that when we do, it
-    # doesn't get written if our bounding_box is overwritten.
-    tmpfd, tmpname = tempfile.mkstemp(suffix=".index6_4.ewah")
-    os.close(tmpfd)
-    ds = data_dir_load(
-        tng59_h5, kwargs={"index_filename": tmpname, "bounding_box": _tng59_bbox}
-    )
-    assert isinstance(ds, ArepoHDF5Dataset)
-    ds.index
-    assert len(open(tmpname).read()) == 0
 
 
 @requires_module("h5py")

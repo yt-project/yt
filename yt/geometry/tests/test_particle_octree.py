@@ -6,7 +6,7 @@ import yt.units.dimensions as dimensions
 from yt.geometry.oct_container import _ORDER_MAX
 from yt.geometry.particle_oct_container import ParticleBitmap, ParticleOctreeContainer
 from yt.geometry.selection_routines import RegionSelector
-from yt.testing import assert_array_equal, assert_equal, assert_true
+from yt.testing import assert_array_equal, assert_equal, assert_true, requires_module
 from yt.units.unit_registry import UnitRegistry
 from yt.units.yt_array import YTArray
 from yt.utilities.lib.geometry_utils import (
@@ -276,6 +276,7 @@ def test_bitmap_collisions():
     assert_equal(nr, 2 ** (3 * (order1 + order2)), "%d collisions" % nr)
 
 
+@requires_module("h5py")
 def test_bitmap_save_load():
     # Test init for slabs of points in x
     left_edge = np.array([0.0, 0.0, 0.0])
