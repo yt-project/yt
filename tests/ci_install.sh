@@ -34,8 +34,6 @@ if [[ "${RUNNER_OS}" == "Windows" ]] && [[ ${dependencies} != "minimal" ]]; then
     while read requirement; do conda install --yes $requirement; done < tests/windows_conda_requirements.txt
 else
     python -m pip install --upgrade pip
-    python -m pip install --upgrade wheel
-    python -m pip install --upgrade setuptools
 fi
 
 # Step 2: install deps and yt
