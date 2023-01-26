@@ -32,6 +32,9 @@ if [[ "${RUNNER_OS}" == "Windows" ]] && [[ ${dependencies} != "minimal" ]]; then
     # keep in sync: setup.cfg
     while read requirement; do conda install --yes $requirement; done < tests/windows_conda_requirements.txt
 else
+    # upgrading pip to guarantee installing extra dependencies with [full] is supported
+    # this is only necessary for some versions of Python 3.8 and 3.9
+    # see https://github.com/yt-project/yt/issues/4270
     python -m pip install --upgrade pip
 fi
 
