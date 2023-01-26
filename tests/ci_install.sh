@@ -20,10 +20,9 @@ osx|macOS)
 esac
 
 # Disable excessive output
-mkdir -p $HOME/.config/yt
-echo "[yt]" > $HOME/.config/yt/yt.toml
-echo "suppress_stream_logging = true" >> $HOME/.config/yt/yt.toml
-cat $HOME/.config/yt/yt.toml
+echo "[yt]\nlog_level = 50" > yt.toml
+cat yt.toml
+
 # Sets default backend to Agg
 cp tests/matplotlibrc .
 
