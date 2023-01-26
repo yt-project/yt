@@ -40,17 +40,17 @@ fi
 # but the primary intention is to embed this script in CI jobs
 if [[ ${dependencies} == "minimal" ]]; then
     # test with minimal versions of runtime dependencies
-    python -m pip install -e .[test,minimal]
+    python -m pip install -e ".[test,minimal]"
 elif [[ ${dependencies} == "full" ]]; then
     # test with all optional runtime dependencies
 
     # this is required for cartopy. see
     # https://scitools.org.uk/cartopy/docs/latest/installing.html?highlight=install#building-from-source
     python -m pip install shapely --no-binary=shapely
-    CFLAGS="$CFLAGS -DACCEPT_USE_OF_DEPRECATED_PROJ_API_H" python -m pip install -e .[test,full]
+    CFLAGS="$CFLAGS -DACCEPT_USE_OF_DEPRECATED_PROJ_API_H" python -m pip install -e ".[test,full]"
 else
    # test with no special requirements
-   python -m pip install -e .[test]
+   python -m pip install -e ".[test]"
 fi
 
 set +x
