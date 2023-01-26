@@ -47,7 +47,7 @@ elif [[ ${dependencies} == "full" ]]; then
     # this is required for cartopy. see
     # https://scitools.org.uk/cartopy/docs/latest/installing.html?highlight=install#building-from-source
     python -m pip install shapely --no-binary=shapely
-    CFLAGS="$CFLAGS -DACCEPT_USE_OF_DEPRECATED_PROJ_API_H" python -m pip install -e ".[test,full]"
+    python -m pip install -e ".[test,full]"
 else
    # test with no special requirements
    python -m pip install -e ".[test]"
