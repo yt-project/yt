@@ -204,25 +204,31 @@ class YTCuttingPlane(YTSelectionContainer2D):
         ds=None,
         field_parameters=None,
         data_source=None,
+        rotation_matrix=None,
     ):
-        validate_3d_array(normal)
-        validate_center(center)
-        if north_vector is not None:
-            validate_3d_array(north_vector)
-        validate_object(ds, Dataset)
-        validate_object(field_parameters, dict)
-        validate_object(data_source, YTSelectionContainer)
         YTSelectionContainer2D.__init__(self, 4, ds, field_parameters, data_source)
+        validate_center(center)
         self._set_center(center)
         self.set_field_parameter("center", center)
-        # Let's set up our plane equation
-        # ax + by + cz + d = 0
-        self.orienter = Orientation(normal, north_vector=north_vector)
-        self._norm_vec = self.orienter.normal_vector
+        if rotation_matrix is not None:
+            self._x_vec = rotation_matrix[:, 0]
+            self._y_vec = rotation_matrix[:, 1]
+            self._norm_vec = rotation_matrix[:, 2]
+        else:
+            validate_3d_array(normal)
+            if north_vector is not None:
+                validate_3d_array(north_vector)
+            validate_object(ds, Dataset)
+            validate_object(field_parameters, dict)
+            validate_object(data_source, YTSelectionContainer)
+            # Let's set up our plane equation
+            # ax + by + cz + d = 0
+            self.orienter = Orientation(normal, north_vector=north_vector)
+            self._norm_vec = self.orienter.normal_vector
+            self._x_vec = self.orienter.unit_vectors[0]
+            self._y_vec = self.orienter.unit_vectors[1]
+            # First we try all three, see which has the best result:
         self._d = -1.0 * np.dot(self._norm_vec, self.center)
-        self._x_vec = self.orienter.unit_vectors[0]
-        self._y_vec = self.orienter.unit_vectors[1]
-        # First we try all three, see which has the best result:
         self._rot_mat = np.array([self._x_vec, self._y_vec, self._norm_vec])
         self._inv_mat = np.linalg.pinv(self._rot_mat)
         self.set_field_parameter("cp_x_vec", self._x_vec)
