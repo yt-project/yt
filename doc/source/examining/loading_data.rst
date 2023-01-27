@@ -76,7 +76,7 @@ Simple HDF5 Data
 Using the function :func:`yt.loaders.load_hdf5_file`, you can load a generic
 set of fields from an HDF5 file and have a fully-operational yt dataset.  For
 instance, in the yt sample data repository, we have the `UniGrid
-Data<https://yt-project.org/data/UnigridData.tar.gz>`_ dataset (~1.6GB).  This dataset includes the file ``turb_vels.h5`` with this structure:
+Data <https://yt-project.org/data/UnigridData.tar.gz>`_ dataset (~1.6GB).  This dataset includes the file ``turb_vels.h5`` with this structure:
 
 .. code-block:: bash
 
