@@ -427,7 +427,7 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
         else:
             raise TypeError(
                 "The arguments of the pan function must be a sequence of floats,\n"
-                "quantities, or (float, unit) tuples. Received %s." % (deltas,)
+                f"quantities, or (float, unit) tuples. Received {deltas}"
             )
         self.xlim = (self.xlim[0] + deltas[0], self.xlim[1] + deltas[0])
         self.ylim = (self.ylim[0] + deltas[1], self.ylim[1] + deltas[1])

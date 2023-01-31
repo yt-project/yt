@@ -133,8 +133,8 @@ class ParticleIndex(Index):
                     max_ppos = np.nanmax(np.vstack([max_ppos, ppos]), axis=0)
             only_on_root(
                 mylog.info,
-                "Load this dataset with bounding_box=[%s, %s] to avoid I/O "
-                "overhead from inferring bounding_box." % (min_ppos, max_ppos),
+                f"Load this dataset with bounding_box=[{min_ppos}, {max_ppos}] "
+                "to avoid I/O overhead from inferring bounding_box.",
             )
             ds.domain_left_edge = ds.arr(1.05 * min_ppos, "code_length")
             ds.domain_right_edge = ds.arr(1.05 * max_ppos, "code_length")

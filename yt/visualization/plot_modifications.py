@@ -2814,8 +2814,8 @@ class ScaleCallback(PlotCallback):
             except AttributeError as e:
                 raise AttributeError(
                     "Cannot set text_args keyword "
-                    "to include '%s' because MPL's fontproperties object does "
-                    "not contain function '%s'." % (key, setter_func)
+                    f"to include {key!r} because MPL's fontproperties object does "
+                    f"not contain function {setter_func!r}"
                 ) from e
 
         # this "anchors" the size bar to a box centered on self.pos in axis
