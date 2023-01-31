@@ -118,7 +118,7 @@ class Camera(Orientation):
         if not isinstance(scene, Scene):
             raise RuntimeError(
                 "The first argument passed to the Camera initializer is a "
-                "%s object, expected a %s object" % (type(scene), Scene)
+                f"{type(scene)} object, expected a {Scene} object"
             )
         self.scene = weakref.proxy(scene)
         self.lens = None
@@ -302,8 +302,8 @@ class Camera(Orientation):
             self.lens = lens_type
         elif lens_type not in lenses:
             raise RuntimeError(
-                "Lens type %s not in available list of available lens "
-                "types (%s)" % (lens_type, list(lenses.keys()))
+                f"Lens type {lens_type} not in available list of available lens "
+                "types ({})".format(", ".join([f"{_!r}" for _ in lenses]))
             )
         else:
             self.lens = lenses[lens_type]()
