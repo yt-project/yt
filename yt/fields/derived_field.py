@@ -163,9 +163,8 @@ class DerivedField:
             self.units = units.decode("utf-8")
         else:
             raise FieldUnitsError(
-                "Cannot handle units '%s' (type %s). "
-                "Please provide a string or Unit "
-                "object." % (units, type(units))
+                f"Cannot handle units {units!r} (type {type(units)}). "
+                "Please provide a string or Unit object."
             )
         if output_units is None:
             output_units = self.units

@@ -175,7 +175,7 @@ def off_axis_projection(
         if raise_error:
             raise RuntimeError(
                 "Can only perform off-axis projections for SPH fields, "
-                "Received '%s'" % (item,)
+                f"Received {item!r}"
             )
 
         normal = np.array(normal_vector)
