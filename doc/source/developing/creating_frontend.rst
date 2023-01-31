@@ -335,3 +335,6 @@ needs to be delayed until actually needed. This is achieved by importing a wrapp
 
 Such import statements can live at the top of a module without generating overhead or errors
 in case the actual package isn't installed.
+
+If the extra third party dependency is new, a new import wrapper must also be added. To do so, 
+follow the example of the existing wrappers in ``yt.utilities.on_demand_imports.py``.
