@@ -322,6 +322,11 @@ any questions, or to let us know you're thinking about adding a new code to yt.
 How to add extra dependencies ?
 -------------------------------
 
+.. note:: This section covers the technical details of how optional runtime
+   dependencies are implemented and used in yt.
+   If your frontend has specific or complicated dependencies other than yt's,
+   we advise writing your frontend as an extension package :ref:`frontends-as-extensions`
+
 It is required that a specific target be added to ``pyproject.toml`` to define a list
 of additional requirements (even if empty), see :ref:`install-additional`.
 
@@ -336,5 +341,5 @@ needs to be delayed until actually needed. This is achieved by importing a wrapp
 Such import statements can live at the top of a module without generating overhead or errors
 in case the actual package isn't installed.
 
-If the extra third party dependency is new, a new import wrapper must also be added. To do so, 
+If the extra third party dependency is new, a new import wrapper must also be added. To do so,
 follow the example of the existing wrappers in ``yt.utilities.on_demand_imports.py``.
