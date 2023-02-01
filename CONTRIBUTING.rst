@@ -698,16 +698,12 @@ So that our hooks will run and update your changes on every commit.
 If you do not want to/are unable to configure ``pre-commit`` on your machine, note that
 after opening a pull request, it will still be run as a static checker as part of our CI.
 Some hooks also come with auto-fixing capabilities, which you can trigger manually in a
-PR by commenting ``pre-commit.ci run`` (see ` <https://pre-commit.ci/#features>`_).
+PR by commenting ``pre-commit.ci autofix`` (see ` <https://pre-commit.ci/#features>`_).
 
-Here's a list of the main automated formatters we use along with a short description
-
-- `black <https://black.readthedocs.io/en/stable/>`_ (overall coding style)
-- `isort <https://pycqa.github.io/isort/>`_ (import statements ordering)
-- `pyupgrade <https://github.com/asottile/pyupgrade>`_ (enforce modern python idioms)
-- `flake8 <https://flake8.pycqa.org/en/latest/>`_ + `bugbear <https://github.com/PyCQA/flake8-bugbear>`_ (static code smells detection)
-
-The complete configuration is located in ``.pre-commit-config.yaml``.
+We use a combination of `black <https://black.readthedocs.io/en/stable/>`_,
+`ruff <https://beta.ruff.rs/docs//>`_ and `cython-lint
+<https://github.com/MarcoGorelli/cython-lint>`_. See ``.pre-commit-config.yaml``
+and ``pyproject.toml`` for the complete configuration details.
 
 Note that formatters should not be run directly on the command line as, for instance
 
