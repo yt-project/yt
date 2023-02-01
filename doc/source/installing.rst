@@ -80,6 +80,9 @@ Or using the Anaconda/Miniconda Python distributions
   $ conda install --channel conda-forge yt
 
 
+
+.. _install-additional:
+
 Additional requirements (pip only)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

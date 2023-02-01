@@ -3,10 +3,6 @@
 Creating A New Code Frontend
 ============================
 
-.. warning: This section is not yet updated to work with yt 3.0.  If you
-            have a question about making a custom derived quantity, please
-            contact the mailing list.
-
 yt is designed to support analysis and visualization of data from
 multiple different simulation codes. For a list of codes and the level
 of support they enjoy, see :ref:`code-support`.
@@ -27,6 +23,10 @@ be classified into a couple categories:
  * Data reading: This is the set of routines that actually perform a read of
    either all data in a region or a subset of that data.
 
+
+Note that a frontend can be built as an external package. This is useful to
+develop and maintain a maturing frontend at your own pace. For technical details, see
+:ref:`frontends-as-extensions`.
 
 If you are interested in adding a new code, be sure to drop us a line on
 `yt-dev <https://mail.python.org/archives/list/yt-dev@python.org/>`_!
@@ -170,7 +170,7 @@ example of how this is implemented in the FLASH frontend:
 
     class FLASHFieldInfo(FieldInfoContainer):
         known_other_fields = (
-            ...("magx", (b_units, [], "B_x")),  # Note there is no alias here
+            ("magx", (b_units, [], "B_x")),  # Note there is no alias here
             ("magy", (b_units, [], "B_y")),
             ("magz", (b_units, [], "B_z")),
             ...,
@@ -317,3 +317,29 @@ And that just about covers it. Please feel free to email
 `yt-users <https://mail.python.org/archives/list/yt-users@python.org/>`_ or
 `yt-dev <https://mail.python.org/archives/list/yt-dev@python.org/>`_ with
 any questions, or to let us know you're thinking about adding a new code to yt.
+
+
+How to add extra dependencies ?
+-------------------------------
+
+.. note:: This section covers the technical details of how optional runtime
+   dependencies are implemented and used in yt.
+   If your frontend has specific or complicated dependencies other than yt's,
+   we advise writing your frontend as an extension package :ref:`frontends-as-extensions`
+
+It is required that a specific target be added to ``pyproject.toml`` to define a list
+of additional requirements (even if empty), see :ref:`install-additional`.
+
+At runtime, extra third party dependencies should be loaded lazily, meaning their import
+needs to be delayed until actually needed. This is achieved by importing a wrapper from
+``yt.utitilies.on_demand_imports.py``, instead of the actual package like so
+
+.. code-block:: python
+
+    from yt.utilities.on_demand_imports import _mypackage as mypackage
+
+Such import statements can live at the top of a module without generating overhead or errors
+in case the actual package isn't installed.
+
+If the extra third party dependency is new, a new import wrapper must also be added. To do so,
+follow the example of the existing wrappers in ``yt.utilities.on_demand_imports.py``.

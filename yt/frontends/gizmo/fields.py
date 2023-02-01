@@ -1,6 +1,5 @@
 from yt._typing import KnownFieldsT
 from yt.fields.field_info_container import FieldInfoContainer
-from yt.fields.magnetic_field import setup_magnetic_field_aliases
 from yt.fields.species_fields import add_species_field_by_density, setup_species_fields
 from yt.frontends.gadget.fields import GadgetFieldInfo
 from yt.frontends.sph.fields import SPHFieldInfo
@@ -60,6 +59,8 @@ class GizmoFieldInfo(GadgetFieldInfo):
             self.setup_star_particle_fields(ptype)
 
     def setup_gas_particle_fields(self, ptype):
+        from yt.fields.magnetic_field import setup_magnetic_field_aliases
+
         super().setup_gas_particle_fields(ptype)
 
         def _h_p0_density(field, data):
