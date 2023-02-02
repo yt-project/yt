@@ -26,10 +26,18 @@ repos:
     - id: check-executables-have-shebangs
     - id: check-yaml
 
--   repo: https://github.com/psf/black
-    rev: 22.12.0
+-   repo: local
     hooks:
-    - id: black-jupyter
+    # NOTE: we make `black` a local hook because if it's installed from
+    # PyPI (rather than from source) then it'll run twice as fast thanks to mypyc
+    -   id: black
+        name: black
+        description: "Black: The uncompromising Python code formatter"
+        entry: black
+        language: python
+        require_serial: true
+        types_or: [python, pyi]
+        additional_dependencies: [black==22.10.0]
 
 -   repo: https://github.com/asottile/blacken-docs
     rev: 1.13.0
