@@ -52,7 +52,7 @@ repos:
         flake8-logging-format==0.7.4,
         flake8-2020==1.6.1,
       ]
--   repo: https://github.com/asottile/blacken-docs
+-   repo: https://github.com/adamchainz/blacken-docs
     rev: 1.13.0
     hooks:
     -   id: blacken-docs
