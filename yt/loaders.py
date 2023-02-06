@@ -261,6 +261,10 @@ def load_uniform_grid(
     axis_order: tuple of three strings, optional
         Force axis ordering, e.g. ("z", "y", "x") with cartesian geometry
         Otherwise use geometry-specific default ordering.
+    cell_widths: list, optional
+        If set, cell_widths is a list of arrays with an array for each dimension,
+        specificing the cell spacing in that dimension. Must be consistent with
+        the domain_dimensions.
     parameters: dictionary, optional
         Optional dictionary used to populate the dataset parameters, useful
         for storing dataset metadata.
@@ -287,6 +291,7 @@ def load_uniform_grid(
         process_data,
         set_particle_types,
     )
+    from yt.frontends.stream.misc import _validate_cell_widths
 
     geometry, axis_order = _sanitize_axis_order_args(geometry, axis_order)
     domain_dimensions = np.array(domain_dimensions)
@@ -346,8 +351,7 @@ def load_uniform_grid(
         grid_dimensions = domain_dimensions.reshape(nprocs, 3).astype("int32")
 
     if cell_widths is not None:
-        # make sure this is a list, or else leave it as an empty guard value
-        cell_widths = [cell_widths]
+        cell_widths = _validate_cell_widths(cell_widths, domain_dimensions)
 
     if length_unit is None:
         length_unit = "code_length"

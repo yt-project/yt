@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from yt import load_uniform_grid
 from yt.testing import assert_almost_equal, assert_equal
@@ -53,3 +54,55 @@ def test_variable_dx():
         p = dd.integrate("ones", axis=ax)
         assert_almost_equal(p["index", "ones"].max().d, 1.0)
         assert_almost_equal(p["index", "ones"].min().d, 1.0)
+
+
+def test_cell_width_type():
+
+    # checks that cell widths are properly upcast to float64 (this errors
+    # if that is not the case).
+
+    np.random.seed(0x4D3D3D3)
+    N = 16
+    data = {"density": np.random.random((N, N, N))}
+
+    cell_widths = []
+    for _ in range(3):
+        cw = np.random.random(N)
+        cw /= cw.sum()
+        cell_widths.append(cw.astype(np.float32))
+
+    ds = load_uniform_grid(
+        data,
+        [N, N, N],
+        bbox=np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]]),
+        cell_widths=cell_widths,
+    )
+
+    _ = ds.slice(0, ds.domain_center[0])[("stream", "density")]
+
+def test_cell_width_dimensionality():
+    np.random.seed(0x4D3D3D3)
+    N = 16
+    data = {"density": np.random.random((N, N, N))}
+
+
+    cw = np.random.random(N)
+    cw /= cw.sum()
+
+    # single np array in list should error
+    with pytest.raises(ValueError, match="The number of elements in cell_widths"):
+        _ = load_uniform_grid(
+            data,
+            [N, N, N],
+            bbox=np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]]),
+            cell_widths=[cw],
+        )
+
+    # mismatched shapes should error
+    with pytest.raises(ValueError, match="The number of elements in cell_widths"):
+        _ = load_uniform_grid(
+            data,
+            [N, N, N],
+            bbox=np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]]),
+            cell_widths=[cw, cw],
+        )
