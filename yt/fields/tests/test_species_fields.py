@@ -4,7 +4,6 @@ from yt.utilities.physical_ratios import _primordial_mass_fraction
 
 
 def test_default_species_fields():
-
     # Test default case (no species fields)
 
     ds = fake_random_ds(32)

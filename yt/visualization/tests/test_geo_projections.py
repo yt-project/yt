@@ -73,7 +73,6 @@ class TestGeoProjections(unittest.TestCase):
 
     @requires_module("cartopy")
     def test_geo_projection_setup(self):
-
         from yt.utilities.on_demand_imports import _cartopy as cartopy
 
         axis = "altitude"
@@ -149,7 +148,6 @@ class TestGeoProjections(unittest.TestCase):
         shortlist = ["Orthographic", "PlateCarree", "Mollweide"]
 
         for transform in shortlist:
-
             self.slc.set_mpl_projection(transform)
             proj_type = type(get_mpl_transform(transform))
 

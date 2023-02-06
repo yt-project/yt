@@ -294,7 +294,6 @@ class GridIndex(Index, abc.ABC):
         return self.grids[ind], ind
 
     def _get_grid_tree(self):
-
         left_edge = self.ds.arr(np.zeros((self.num_grids, 3)), "code_length")
         right_edge = self.ds.arr(np.zeros((self.num_grids, 3)), "code_length")
         level = np.zeros((self.num_grids), dtype="int64")
@@ -303,7 +302,6 @@ class GridIndex(Index, abc.ABC):
         dimensions = np.zeros((self.num_grids, 3), dtype="int32")
 
         for i, grid in enumerate(self.grids):
-
             left_edge[i, :] = grid.LeftEdge
             right_edge[i, :] = grid.RightEdge
             level[i] = grid.Level
@@ -463,14 +461,9 @@ class GridIndex(Index, abc.ABC):
         grids.
         """
         dds = self.ds.domain_width[(axes,)] / (
-            self.ds.domain_dimensions[
-                axes,
-            ]
-            * self.ds.refine_by ** ires[:, None]
+            self.ds.domain_dimensions[axes,] * self.ds.refine_by ** ires[:, None]
         )
-        pos = (0.5 + icoords) * dds + self.ds.domain_left_edge[
-            axes,
-        ]
+        pos = (0.5 + icoords) * dds + self.ds.domain_left_edge[axes,]
         return pos, dds
 
     def _add_mesh_sampling_particle_field(self, deposit_field, ftype, ptype):

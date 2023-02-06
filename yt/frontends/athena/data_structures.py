@@ -120,7 +120,6 @@ def parse_line(line, grid):
 
 
 class AthenaHierarchy(GridIndex):
-
     grid = AthenaGrid
     _dataset_type = "athena"
     _data_file = None

@@ -12,7 +12,6 @@ def setup():
 
 
 def test_magnetic_fields():
-
     ddims = (16, 16, 16)
     data1 = {
         "magnetic_field_x": (np.random.random(size=ddims), "T"),

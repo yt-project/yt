@@ -436,7 +436,6 @@ def test_formation_time():
 
 @requires_file(ramses_new_format)
 def test_cooling_fields():
-
     # Test the field is being loaded correctly
     ds = yt.load(ramses_new_format)
 
@@ -524,7 +523,6 @@ def test_namelist_reading():
 @requires_file(output_00080)
 @requires_module("f90nml")
 def test_namelist_reading_should_not_fail():
-
     for ds_name in (ramses_empty_record, output_00080):
         # Test that the reading does not fail for malformed namelist.txt files
         ds = data_dir_load(ds_name)

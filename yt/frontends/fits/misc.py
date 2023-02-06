@@ -51,7 +51,7 @@ def setup_counts_fields(ds, ebounds, ftype="gas"):
     >>> ebounds = [(0.1, 2.0), (2.0, 3.0)]
     >>> setup_counts_fields(ds, ebounds)
     """
-    for (emin, emax) in ebounds:
+    for emin, emax in ebounds:
         cfunc = _make_counts(emin, emax)
         fname = f"counts_{emin}-{emax}"
         mylog.info("Creating counts field %s.", fname)

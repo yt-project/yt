@@ -13,7 +13,6 @@ _particle_position_names: Dict[str, str] = {}
 
 
 class IOHandlerPackedHDF5(BaseIOHandler):
-
     _dataset_type = "enzo_packed_3d"
     _base = slice(None)
     _field_dtype = "float64"
@@ -191,7 +190,6 @@ class IOHandlerPackedHDF5GhostZones(IOHandlerPackedHDF5):
 
 
 class IOHandlerInMemory(BaseIOHandler):
-
     _dataset_type = "enzo_inline"
 
     def __init__(self, ds, ghost_zones=3):
@@ -307,7 +305,6 @@ class IOHandlerInMemory(BaseIOHandler):
 
 
 class IOHandlerPacked2D(IOHandlerPackedHDF5):
-
     _dataset_type = "enzo_packed_2d"
     _particle_reader = False
 
@@ -364,7 +361,6 @@ class IOHandlerPacked2D(IOHandlerPackedHDF5):
 
 
 class IOHandlerPacked1D(IOHandlerPackedHDF5):
-
     _dataset_type = "enzo_packed_1d"
     _particle_reader = False
 

@@ -56,7 +56,6 @@ class FITSGrid(AMRGridPatch):
 
 
 class FITSHierarchy(GridIndex):
-
     grid = FITSGrid
 
     def __init__(self, ds, dataset_type="fits"):
@@ -334,7 +333,6 @@ class FITSDataset(Dataset):
         units_override=None,
         unit_system="cgs",
     ):
-
         if parameters is None:
             parameters = {}
         parameters["nprocs"] = nprocs
@@ -436,7 +434,6 @@ class FITSDataset(Dataset):
             return super().unique_identifier
 
     def _parse_parameter_file(self):
-
         self._determine_structure()
         self._determine_axes()
 

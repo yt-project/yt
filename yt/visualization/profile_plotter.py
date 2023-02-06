@@ -934,7 +934,6 @@ class PhasePlot(ImagePlotContainer):
         figure_size=8.0,
         shading="nearest",
     ):
-
         data_source = data_object_or_all_data(data_source)
 
         if isinstance(z_fields, tuple):

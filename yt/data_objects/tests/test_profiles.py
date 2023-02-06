@@ -578,7 +578,6 @@ def test_profile_override_limits():
 
 
 class TestBadProfiles(unittest.TestCase):
-
     tmpdir = None
     curdir = None
 

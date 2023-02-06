@@ -1285,7 +1285,6 @@ class BoxSource(LineSource):
     """
 
     def __init__(self, left_edge, right_edge, color=None):
-
         assert left_edge.shape == (3,)
         assert right_edge.shape == (3,)
 

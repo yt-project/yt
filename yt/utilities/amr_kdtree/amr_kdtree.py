@@ -72,7 +72,6 @@ class Tree:
         max_level=None,
         data_source=None,
     ):
-
         self.ds = ds
         try:
             self._id_offset = ds.index.grids[0]._id_offset
@@ -171,7 +170,6 @@ class AMRKDTree(ParallelAnalysisInterface):
     no_ghost = True
 
     def __init__(self, ds, min_level=None, max_level=None, data_source=None):
-
         if not issubclass(ds.index.__class__, GridIndex):
             raise RuntimeError(
                 "AMRKDTree does not support particle or octree-based data."

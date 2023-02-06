@@ -1313,7 +1313,6 @@ class YTSelectionContainer3D(YTSelectionContainer):
     def _calculate_flux_in_grid(
         self, grid, mask, field, value, field_x, field_y, field_z, fluxing_field=None
     ):
-
         vc_fields = [field, field_x, field_y, field_z]
         if fluxing_field is not None:
             vc_fields.append(fluxing_field)

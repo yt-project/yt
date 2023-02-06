@@ -6,7 +6,6 @@ from yt.utilities.logger import ytLogger as mylog
 
 
 class IOHandlerStream(BaseIOHandler):
-
     _dataset_type = "stream"
     _vector_fields = {"particle_velocity": 3, "particle_position": 3}
 
@@ -132,7 +131,6 @@ class StreamParticleIOHandler(BaseParticleIOHandler):
         return data_files
 
     def _read_particle_data_file(self, data_file, ptf, selector=None):
-
         return_data = {}
         f = self.fields[data_file.filename]
         for ptype, field_list in sorted(ptf.items()):

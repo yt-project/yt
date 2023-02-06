@@ -112,13 +112,11 @@ class EnzoEGrid(AMRGridPatch):
 
 
 class EnzoEHierarchy(GridIndex):
-
     _strip_path = False
     grid = EnzoEGrid
     _preload_implemented = True
 
     def __init__(self, ds, dataset_type):
-
         self.dataset_type = dataset_type
         self.directory = os.path.dirname(ds.parameter_filename)
         self.index_filename = ds.parameter_filename

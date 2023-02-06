@@ -233,7 +233,6 @@ class GeographicCoordinateHandler(CoordinateHandler):
     def _ortho_pixelize(
         self, data_source, field, bounds, size, antialias, dimension, periodic
     ):
-
         period = self.period[:2].copy()
         period[0] = self.period[self.x_axis[dimension]]
         period[1] = self.period[self.y_axis[dimension]]

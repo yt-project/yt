@@ -26,7 +26,6 @@ def check_all_vertices(sampler, vertices, field_values):
 
 
 def test_P1Sampler1D():
-
     vertices = np.array([[0.1], [0.3]])
     field_values = np.array([1.0, 2.0])
 
@@ -34,7 +33,6 @@ def test_P1Sampler1D():
 
 
 def test_P1Sampler2D():
-
     vertices = np.array([[0.1, 0.2], [0.6, 0.3], [0.2, 0.7]])
     field_values = np.array([1.0, 2.0, 3.0])
 
@@ -52,7 +50,6 @@ def test_P1Sampler3D():
 
 
 def test_Q1Sampler2D():
-
     vertices = np.array([[0.1, 0.2], [0.6, 0.3], [0.7, 0.9], [0.2, 0.7]])
 
     field_values = np.array([1.0, 2.0, 3.0, 4.0])
@@ -61,7 +58,6 @@ def test_Q1Sampler2D():
 
 
 def test_Q2Sampler2D():
-
     vertices = np.array(
         [
             [2.0, 3.0],
@@ -166,7 +162,6 @@ def test_S2Sampler3D():
 
 
 def test_W1Sampler3D():
-
     vertices = np.array(
         [
             [-0.34641016, 0.3, 0.0],
@@ -184,7 +179,6 @@ def test_W1Sampler3D():
 
 
 def test_T2Sampler2D():
-
     vertices = np.array(
         [[0.1, 0.2], [0.3, 0.5], [0.2, 0.9], [0.2, 0.35], [0.25, 0.7], [0.15, 0.55]]
     )
@@ -195,7 +189,6 @@ def test_T2Sampler2D():
 
 
 def test_Tet2Sampler3D():
-
     vertices = np.array(
         [
             [0.3, -0.4, 0.6],

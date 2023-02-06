@@ -6,6 +6,7 @@ if sys.version_info >= (3, 11):
 else:
     from yt._maintenance.backports import StrEnum
 
+
 # register all valid geometries
 class Geometry(StrEnum):
     CARTESIAN = auto()

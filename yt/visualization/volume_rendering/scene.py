@@ -249,7 +249,6 @@ class Scene:
         return [s for s in self.sources.values() if isinstance(s, RenderSource)]
 
     def _setup_save(self, fname, render) -> str:
-
         self._render_on_demand(render)
 
         rensources = self._get_render_sources()

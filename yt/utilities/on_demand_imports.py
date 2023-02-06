@@ -203,7 +203,6 @@ class NotCartopy(NotAModule):
 
 
 class cartopy_imports(OnDemand):
-
     _default_factory = NotCartopy
 
     @safe_import

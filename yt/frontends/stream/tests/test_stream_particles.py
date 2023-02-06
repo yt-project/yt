@@ -166,7 +166,6 @@ def test_stream_particles():
 
 
 def test_load_particles_types():
-
     num_particles = 10000
 
     data1 = {

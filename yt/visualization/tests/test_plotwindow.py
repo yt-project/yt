@@ -196,7 +196,6 @@ def test_attributes():
 
 
 class TestHideAxesColorbar(unittest.TestCase):
-
     ds = None
 
     def setUp(self):
@@ -232,7 +231,6 @@ class TestHideAxesColorbar(unittest.TestCase):
 
 
 class TestSetWidth(unittest.TestCase):
-
     ds = None
 
     def setUp(self):
@@ -388,7 +386,6 @@ class TestPlotWindowSave(unittest.TestCase):
 
 
 class TestPerFieldConfig(unittest.TestCase):
-
     ds = None
 
     def setUp(self):
@@ -445,7 +442,6 @@ class TestPerFieldConfig(unittest.TestCase):
         assert_equal(self.proj.frb["gas", "pressure"].units, Unit("dyn/cm"))
 
     def test_scale(self):
-
         assert_equal(
             self.proj.plots["gas", "density"].norm_handler.norm_type, Normalize
         )

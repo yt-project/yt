@@ -4,7 +4,6 @@ from yt.fields.species_fields import setup_species_fields
 
 
 class SPHFieldInfo(FieldInfoContainer):
-
     known_particle_fields: KnownFieldsT = (
         ("Mass", ("code_mass", ["particle_mass"], None)),
         ("Masses", ("code_mass", ["particle_mass"], None)),

@@ -169,7 +169,6 @@ def requires_index(attr_name):
 
 
 class Dataset(abc.ABC):
-
     default_fluid_type = "gas"
     default_field = ("gas", "density")
     fluid_types: Tuple[FieldType, ...] = ("gas", "deposit", "index")

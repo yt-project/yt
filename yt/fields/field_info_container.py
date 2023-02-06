@@ -597,7 +597,6 @@ class FieldInfoContainer(UserDict):
         return keys
 
     def check_derived_fields(self, fields_to_check=None):
-
         # The following exceptions lists were obtained by expanding an
         # all-catching `except Exception`.
         # We define

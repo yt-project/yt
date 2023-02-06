@@ -45,7 +45,6 @@ class RAMSESFileSanitizer:
     group_name = None  # str | None: name of the first group folder (if any)
 
     def __init__(self, filename):
-
         # Make the resolve optional, so that it works with symlinks
         paths_to_try = (Path(filename), Path(filename).resolve())
 
@@ -111,7 +110,6 @@ class RAMSESFileSanitizer:
     def _match_output_and_group(
         path: Path,
     ) -> Tuple[Path, Optional[Path], Optional[str]]:
-
         # Make sure we work with a directory of the form `output_XXXXX`
         for p in (path, path.parent):
             match = OUTPUT_DIR_RE.match(p.name)
@@ -335,7 +333,6 @@ class RAMSESDomainFile:
 
 
 class RAMSESDomainSubset(OctreeSubset):
-
     _domain_offset = 1
     _block_order = "F"
 

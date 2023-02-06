@@ -24,7 +24,6 @@ from .fields import ChimeraFieldInfo
 
 
 class ChimeraMesh(SemiStructuredMesh):
-
     _index_offset = 0
 
     def __init__(self, *args, **kwargs):
