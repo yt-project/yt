@@ -85,7 +85,6 @@ def write_to_gdf(
         particle_type_name=particle_type_name,
         overwrite=overwrite,
     ) as f:
-
         # now add the fields one-by-one
         _write_fields_to_gdf(ds, f, fields, particle_type_name)
 
@@ -128,7 +127,6 @@ def save_field(ds, fields, field_parameters=None):
 def _write_fields_to_gdf(
     ds, fhandle, fields, particle_type_name, field_parameters=None
 ):
-
     for field in fields:
         # add field info to field_types group
         g = fhandle["field_types"]
@@ -161,7 +159,6 @@ def _write_fields_to_gdf(
     g = fhandle["data"]
     for grid in ds.index.grids:
         for field in fields:
-
             # sanitize get the field info object
             fi = ds._get_field_info(field)
             ftype, fname = fi.name
@@ -184,7 +181,6 @@ def _write_fields_to_gdf(
         for chunk in ds.index._chunk_io(region):
             for grid in chunk.objs:
                 for field in fields:
-
                     # sanitize and get the field info object
                     fi = ds._get_field_info(field)
                     ftype, fname = fi.name

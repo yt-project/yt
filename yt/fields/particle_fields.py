@@ -238,7 +238,6 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
 
 
 def particle_scalar_functions(ptype, coord_name, vel_name, registry):
-
     # Now we have to set up the various velocity and coordinate things.  In the
     # future, we'll actually invert this and use the 3-component items
     # elsewhere, and stop using these.
@@ -271,7 +270,6 @@ def particle_scalar_functions(ptype, coord_name, vel_name, registry):
 
 
 def particle_vector_functions(ptype, coord_names, vel_names, registry):
-
     unit_system = registry.ds.unit_system
 
     # This will column_stack a set of scalars to create vector fields.

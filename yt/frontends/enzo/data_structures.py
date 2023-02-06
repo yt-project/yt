@@ -85,7 +85,6 @@ class EnzoGridInMemory(EnzoGrid):
 
 
 class EnzoGridGZ(EnzoGrid):
-
     __slots__ = ()
 
     def retrieve_ghost_zones(self, n_zones, fields, all_levels=False, smoothed=False):
@@ -141,13 +140,11 @@ class EnzoGridGZ(EnzoGrid):
 
 
 class EnzoHierarchy(GridIndex):
-
     _strip_path = False
     grid = EnzoGrid
     _preload_implemented = True
 
     def __init__(self, ds, dataset_type):
-
         self.dataset_type = dataset_type
         self.index_filename = os.path.abspath(f"{ds.parameter_filename}.hierarchy")
         if os.path.getsize(self.index_filename) == 0:
@@ -534,7 +531,6 @@ class EnzoHierarchy(GridIndex):
 
 
 class EnzoHierarchyInMemory(EnzoHierarchy):
-
     grid = EnzoGridInMemory
 
     @cached_property

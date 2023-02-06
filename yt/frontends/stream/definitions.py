@@ -15,7 +15,6 @@ from .fields import StreamFieldInfo
 
 
 def assign_particle_data(ds, pdata, bbox):
-
     """
     Assign particle data to the grids using MatchPointsToGrids. This
     will overwrite any existing particle data, so be careful!

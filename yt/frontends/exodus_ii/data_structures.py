@@ -318,7 +318,6 @@ class ExodusIIDataset(Dataset):
             return coords
 
     def _apply_displacement(self, coords, mesh_id):
-
         mesh_name = "connect%d" % (mesh_id + 1)
         if mesh_name not in self.displacements:
             new_coords = coords.copy()

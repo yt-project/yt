@@ -32,7 +32,6 @@ class SwiftDataset(SPHDataset):
         unit_system="cgs",
         default_species_fields=None,
     ):
-
         super().__init__(
             filename,
             dataset_type,

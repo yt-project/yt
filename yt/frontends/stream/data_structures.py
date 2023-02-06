@@ -148,7 +148,6 @@ class StreamHandler:
         return self.fields.all_fields
 
     def get_particle_type(self, field):
-
         if field in self.particle_types:
             return self.particle_types[field]
         else:
@@ -156,7 +155,6 @@ class StreamHandler:
 
 
 class StreamHierarchy(GridIndex):
-
     grid = StreamGrid
 
     def __init__(self, ds, dataset_type=None):

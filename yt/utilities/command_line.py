@@ -1514,7 +1514,6 @@ class YTSearchCmd(YTCommand):
 
 
 class YTDownloadData(YTCommand):
-
     args = (
         dict(
             short="filename",

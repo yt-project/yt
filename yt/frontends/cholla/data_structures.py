@@ -98,7 +98,6 @@ class ChollaDataset(Dataset):
             setdefaultattr(self, key, self.quan(1, unit))
 
     def _parse_parameter_file(self):
-
         with h5py.File(self.parameter_filename, mode="r") as h5f:
             attrs = h5f.attrs
             self.parameters = {k: v for (k, v) in attrs.items()}

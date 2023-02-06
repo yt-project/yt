@@ -44,7 +44,6 @@ def _get_ion_mass_frac(ion, ftype, itab, data):
 
 
 class OWLSFieldInfo(SPHFieldInfo):
-
     _ions: Tuple[str, ...] = (
         "c1",
         "c2",
@@ -87,7 +86,6 @@ class OWLSFieldInfo(SPHFieldInfo):
     _add_ions = "PartType0"
 
     def __init__(self, ds, field_list, slice_info=None):
-
         new_particle_fields = (
             ("Hydrogen", ("", ["H_fraction"], None)),
             ("Helium", ("", ["He_fraction"], None)),
@@ -120,7 +118,6 @@ class OWLSFieldInfo(SPHFieldInfo):
         # we add particle element fields for stars and gas
         # -----------------------------------------------------
         if ptype in self._add_elements:
-
             # this adds the particle element fields
             # X_density, X_mass, and X_number_density
             # where X is an item of self._elements.
@@ -148,7 +145,6 @@ class OWLSFieldInfo(SPHFieldInfo):
         # and now we add the smoothed versions for PartType0
         # -----------------------------------------------------
         if ptype == "PartType0":
-
             # we only add ion fields for gas.  this takes some
             # time as the ion abundances have to be interpolated
             # from cloudy tables (optically thin)
@@ -163,7 +159,6 @@ class OWLSFieldInfo(SPHFieldInfo):
             # X_fraction, X_mass, X_number_density
             # -----------------------------------------------
             for ion in self._ions:
-
                 # construct yt name for ion
                 # ---------------------------------------------------
                 if ion[0:2].isalpha():
@@ -215,7 +210,6 @@ class OWLSFieldInfo(SPHFieldInfo):
             # alias ion fields
             # -----------------------------------------------
             for ion in self._ions:
-
                 # construct yt name for ion
                 # ---------------------------------------------------
                 if ion[0:2].isalpha():
@@ -241,7 +235,6 @@ class OWLSFieldInfo(SPHFieldInfo):
         # loop over all ions and make fields
         # ----------------------------------------------
         for ion in self._ions:
-
             # construct yt name for ion
             # ---------------------------------------------------
             if ion[0:2].isalpha():
@@ -314,14 +307,12 @@ class OWLSFieldInfo(SPHFieldInfo):
     # X_number_density fields where X is the name of an OWLS element.
     # -------------------------------------------------------------
     def setup_fluid_fields(self):
-
         return
 
     # this function returns the owls_ion_data directory. if it doesn't
     # exist it will download the data from http://yt-project.org/data
     # -------------------------------------------------------------
     def _get_owls_ion_data_dir(self):
-
         txt = "Attempting to download ~ 30 Mb of owls ion data from %s to %s."
         data_file = "owls_ion_data.tar.gz"
         data_url = "http://yt-project.org/data"

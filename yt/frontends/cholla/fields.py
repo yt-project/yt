@@ -37,7 +37,6 @@ class ChollaFieldInfo(FieldInfoContainer):
     # In Cholla, conservative variables are written out.
 
     def setup_fluid_fields(self):
-
         unit_system = self.ds.unit_system
 
         # Add velocity fields

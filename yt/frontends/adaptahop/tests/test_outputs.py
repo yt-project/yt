@@ -47,7 +47,7 @@ def test_field_access(brick):
 
     ad = ds.all_data()
 
-    for (ptype, field) in fields:
+    for ptype, field in fields:
         ad[(ptype, field)]
 
 

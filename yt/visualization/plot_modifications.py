@@ -715,7 +715,6 @@ class BaseQuiverCallback(PlotCallback, ABC):
         pass
 
     def __call__(self, plot):
-
         # construct mesh
         bounds = self._physical_bounds(plot)
         nx = plot.raw_image_shape[1] // self.factor[0]
@@ -1270,7 +1269,6 @@ class StreamlineCallback(PlotCallback):
             )
 
             if self.display_threshold:
-
                 mask = field_colors > self.display_threshold
                 lwdefault = matplotlib.rcParams["lines.linewidth"]
 
@@ -2281,7 +2279,6 @@ class MeshLinesCallback(PlotCallback):
         return new_coords, new_connects
 
     def __call__(self, plot):
-
         index = plot.ds.index
         if not issubclass(type(index), UnstructuredIndex):
             raise RuntimeError(
@@ -2480,7 +2477,6 @@ class TimestampCallback(PlotCallback):
         text_args=None,
         inset_box_args=None,
     ):
-
         def_text_args = {
             "color": "white",
             "horizontalalignment": "center",
@@ -2719,7 +2715,6 @@ class ScaleCallback(PlotCallback):
         inset_box_args=None,
         scale_text_format="{scale} {units}",
     ):
-
         def_size_bar_args = {"pad": 0.05, "sep": 5, "borderpad": 1, "color": "w"}
 
         def_inset_box_args = {

@@ -862,7 +862,6 @@ def test_cell_edges_callback():
 
 def test_mesh_lines_callback():
     with _cleanup_fname() as prefix:
-
         ds = fake_hexahedral_ds()
         for field in ds.field_list:
             sl = SlicePlot(ds, 1, field)
@@ -881,9 +880,7 @@ def test_mesh_lines_callback():
 @requires_file(cyl_2d)
 @requires_file(cyl_3d)
 def test_streamline_callback():
-
     with _cleanup_fname() as prefix:
-
         ds = fake_amr_ds(
             fields=("density", "velocity_x", "velocity_y", "magvel"),
             units=("g/cm**3", "cm/s", "cm/s", "cm/s"),
@@ -936,7 +933,6 @@ def test_streamline_callback():
     # Axisymmetric dataset
 
     with _cleanup_fname() as prefix:
-
         ds = load(cyl_2d)
         slc = SlicePlot(ds, "theta", ("gas", "velocity_magnitude"))
         slc.annotate_streamlines(("gas", "velocity_r"), ("gas", "velocity_z"))
@@ -958,7 +954,6 @@ def test_streamline_callback():
 
     # Spherical dataset
     with _cleanup_fname() as prefix:
-
         ds = fake_amr_ds(
             fields=("density", "velocity_r", "velocity_theta", "velocity_phi"),
             units=("g/cm**3", "cm/s", "cm/s", "cm/s"),

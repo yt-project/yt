@@ -17,7 +17,6 @@ def _remove_raw(all_fields, raw_fields):
 
 
 class IOHandlerBoxlib(BaseIOHandler):
-
     _dataset_type = "boxlib_native"
 
     def __init__(self, ds, *args, **kwargs):
@@ -217,7 +216,6 @@ class IOHandlerOrion(IOHandlerBoxlib):
 
     @property
     def particle_field_index(self):
-
         index = parse_orion_sinks(self.particle_filename)
 
         self._particle_field_index = index
@@ -228,7 +226,6 @@ class IOHandlerOrion(IOHandlerBoxlib):
         chunks = list(chunks)
 
         if isinstance(selector, GridSelector):
-
             if not (len(chunks) == len(chunks[0].objs) == 1):
                 raise RuntimeError
 

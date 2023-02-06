@@ -180,7 +180,6 @@ class MinimalDataset(MinimalRepresentation):
 
 
 class MinimalMappableData(MinimalRepresentation):
-
     _attr_list: Tuple[str, ...] = (
         "field_data",
         "field",

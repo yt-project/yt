@@ -36,6 +36,8 @@ from numpy.testing import assert_approx_equal  # NOQA isort:skip
 from numpy.testing import assert_array_almost_equal  # NOQA isort:skip
 
 ANSWER_TEST_TAG = "answer_test"
+
+
 # Expose assert_true and assert_less_equal from unittest.TestCase
 # this is adopted from nose. Doing this here allows us to avoid importing
 # nose at the top level.

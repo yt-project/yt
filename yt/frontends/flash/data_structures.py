@@ -29,7 +29,6 @@ class FLASHGrid(AMRGridPatch):
 
 
 class FLASHHierarchy(GridIndex):
-
     grid = FLASHGrid
     _preload_implemented = True
 
@@ -179,7 +178,6 @@ class FLASHDataset(Dataset):
         unit_system="cgs",
         default_species_fields=None,
     ):
-
         self.fluid_types += ("flash",)
         if self._handle is not None:
             return
@@ -235,7 +233,6 @@ class FLASHDataset(Dataset):
         self.parameters["Time"] = 1.0  # default unit is 1...
 
     def _set_code_unit_attributes(self):
-
         if "unitsystem" in self.parameters:
             # Some versions of FLASH inject quotes in the runtime parameters
             # See issue #1721

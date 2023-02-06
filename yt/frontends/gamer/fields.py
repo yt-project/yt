@@ -59,7 +59,6 @@ class GAMERFieldInfo(FieldInfoContainer):
         unit_system.registry = self.ds.unit_registry  # TODO: Why do I need this?!
 
         if self.ds.srhd:
-
             c2 = pc.clight * pc.clight
             c = pc.clight.in_units("code_length / code_time")
             if self.ds.eos == 4:
@@ -245,7 +244,6 @@ class GAMERFieldInfo(FieldInfoContainer):
             setup_stress_energy_ideal(self)
 
         else:  # not RHD
-
             # density
             self.alias(
                 ("gas", "density"), ("gamer", "Dens"), units=unit_system["density"]

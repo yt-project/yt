@@ -33,7 +33,6 @@ temp_axes = [axes[0][1], axes[1][1]]
 vels_axes = [axes[0][2], axes[1][2]]
 
 for dax, tax, vax in zip(dens_axes, temp_axes, vels_axes):
-
     dax.xaxis.set_visible(False)
     dax.yaxis.set_visible(False)
     tax.xaxis.set_visible(False)

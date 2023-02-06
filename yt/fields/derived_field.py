@@ -394,7 +394,6 @@ class DerivedField:
         p = re.compile("_p[0-9]+_")
         m = p.search(self.name[1])
         if m is not None:
-
             # Find the ionization state
             pstr = m.string[m.start() + 1 : m.end() - 1]
             segments = self.name[1].split("_")

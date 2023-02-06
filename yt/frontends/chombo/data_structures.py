@@ -81,7 +81,6 @@ class ChomboGrid(AMRGridPatch):
 
 
 class ChomboHierarchy(GridIndex):
-
     grid = ChomboGrid
     _data_file = None
 
@@ -103,7 +102,6 @@ class ChomboHierarchy(GridIndex):
         self._read_particles()
 
     def _read_particles(self):
-
         # only do anything if the dataset contains particles
         if not any([f[1].startswith("particle_") for f in self.field_list]):
             return
@@ -128,7 +126,6 @@ class ChomboHierarchy(GridIndex):
     # we will look for "fluid" fields by finding the string "component" in
     # the output file, and "particle" fields by finding the string "particle".
     def _detect_output_fields(self):
-
         # look for fluid fields
         output_fields = []
         for key, val in self._handle.attrs.items():
@@ -293,7 +290,6 @@ class ChomboDataset(Dataset):
         return f
 
     def _parse_parameter_file(self):
-
         self.dimensionality = self._handle["Chombo_global/"].attrs["SpaceDim"]
         self.domain_left_edge = self._calc_left_edge()
         self.domain_right_edge = self._calc_right_edge()
@@ -364,7 +360,6 @@ class ChomboDataset(Dataset):
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
-
         if not is_chombo_hdf5(filename):
             return False
 
@@ -467,7 +462,6 @@ class PlutoHierarchy(ChomboHierarchy):
 
 
 class PlutoDataset(ChomboDataset):
-
     _index_class = PlutoHierarchy
     _field_info_class = PlutoFieldInfo
 
@@ -481,7 +475,6 @@ class PlutoDataset(ChomboDataset):
         unit_system="cgs",
         default_species_fields=None,
     ):
-
         ChomboDataset.__init__(
             self,
             filename,
@@ -561,7 +554,6 @@ class PlutoDataset(ChomboDataset):
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
-
         if not is_chombo_hdf5(filename):
             return False
 
@@ -583,7 +575,6 @@ class Orion2Hierarchy(ChomboHierarchy):
         ChomboHierarchy.__init__(self, ds, dataset_type)
 
     def _detect_output_fields(self):
-
         # look for fluid fields
         output_fields = []
         for key, val in self._handle.attrs.items():
@@ -642,7 +633,6 @@ class Orion2Hierarchy(ChomboHierarchy):
 
 
 class Orion2Dataset(ChomboDataset):
-
     _index_class = Orion2Hierarchy
     _field_info_class = Orion2FieldInfo
 
@@ -655,7 +645,6 @@ class Orion2Dataset(ChomboDataset):
         units_override=None,
         default_species_fields=None,
     ):
-
         ChomboDataset.__init__(
             self,
             filename,
@@ -722,7 +711,6 @@ class Orion2Dataset(ChomboDataset):
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
-
         if not is_chombo_hdf5(filename):
             return False
 
@@ -760,7 +748,6 @@ class ChomboPICHierarchy(ChomboHierarchy):
 
 
 class ChomboPICDataset(ChomboDataset):
-
     _index_class = ChomboPICHierarchy
     _field_info_class = ChomboPICFieldInfo3D
 
@@ -772,7 +759,6 @@ class ChomboPICDataset(ChomboDataset):
         ini_filename=None,
         units_override=None,
     ):
-
         ChomboDataset.__init__(
             self,
             filename,
@@ -790,7 +776,6 @@ class ChomboPICDataset(ChomboDataset):
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
-
         warn_h5py(filename)
 
         if not is_chombo_hdf5(filename):

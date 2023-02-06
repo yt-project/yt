@@ -403,7 +403,6 @@ class ParticlePhasePlot(PhasePlot):
         figure_size=8.0,
         shading="nearest",
     ):
-
         if isinstance(data_source, Dataset):
             data_source = data_source.all_data()
         # if no z_fields are passed in, use a constant color

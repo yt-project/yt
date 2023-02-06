@@ -7,7 +7,6 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 
 
 class EnzoEIOHandler(BaseIOHandler):
-
     _dataset_type = "enzo_e"
     _base = slice(None)
     _field_dtype = "float64"

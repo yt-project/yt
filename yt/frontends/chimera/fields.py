@@ -54,7 +54,6 @@ class ChimeraFieldInfo(FieldInfoContainer):
         # and self.add_field (for derived fields).
 
         def _test(field, data):
-
             return data["chimera", "rho_c"]
 
         self.add_field(

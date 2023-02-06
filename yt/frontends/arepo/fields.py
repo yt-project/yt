@@ -129,7 +129,6 @@ class ArepoFieldInfo(GadgetFieldInfo):
                     self.alias(("gas", field), (ptype, field))
 
         if (ptype, "ElectronAbundance") in self.field_list:
-
             # If we have ElectronAbundance but not NeutralHydrogenAbundance, assume the
             # cosmic value for hydrogen to generate the H_number_density
             if (ptype, "NeutralHydrogenAbundance") not in self.field_list:
@@ -162,7 +161,6 @@ class ArepoFieldInfo(GadgetFieldInfo):
             self.alias(("gas", "El_number_density"), (ptype, "El_number_density"))
 
         if (ptype, "CosmicRaySpecificEnergy") in self.field_list:
-
             self.alias(
                 (ptype, "specific_cosmic_ray_energy"),
                 ("gas", "specific_cosmic_ray_energy"),

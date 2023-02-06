@@ -8,7 +8,6 @@ from yt.utilities.exceptions import YTFieldNotFound
 
 @requires_module("firefly")
 def test_firefly_JSON_string():
-
     ds = fake_particle_ds()
     ad = ds.all_data()
     reader = ad.create_firefly_object(
@@ -236,7 +235,6 @@ def test_field_tuple_specification(
 def test_field_invalid_specification(
     firefly_test_dataset, fields_to_include, fields_units, ErrorType
 ):
-
     dd = firefly_test_dataset.all_data()
     # Note that we have specified match_any_particle_types as False since
     # that is the behavior expected in the future

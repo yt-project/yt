@@ -61,6 +61,7 @@ def accepts_all_fields(func):
     field == 'all', looping over all fields already present in the PlotContainer object.
 
     """
+
     # This is to be applied to PlotContainer class methods with the following signature:
     #
     # f(self, field, *args, **kwargs) -> self
@@ -897,7 +898,6 @@ class ImagePlotContainer(PlotContainer, abc.ABC):
     def _get_default_handlers(
         self, field, default_display_units: Unit
     ) -> Tuple[NormHandler, ColorbarHandler]:
-
         usr_units_str = get_default_from_config(
             self.data_source, field=field, keys="units", defaults=[None]
         )
@@ -1094,7 +1094,6 @@ class ImagePlotContainer(PlotContainer, abc.ABC):
 
 
 class BaseLinePlot(PlotContainer, abc.ABC):
-
     # A common ancestor to LinePlot and ProfilePlot
 
     @abc.abstractmethod

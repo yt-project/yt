@@ -104,7 +104,6 @@ def validate_image_name(filename, suffix: Optional[str] = None) -> str:
 
 
 def get_canvas(figure, filename):
-
     name, suffix = os.path.splitext(filename)
 
     if not suffix:

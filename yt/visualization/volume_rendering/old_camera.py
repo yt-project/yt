@@ -1471,7 +1471,6 @@ def corners(left_edge, right_edge):
 
 
 class HEALpixCamera(Camera):
-
     _sampler_object = None
 
     def __init__(
@@ -1800,7 +1799,6 @@ class MosaicCamera(Camera):
         preload=True,
         use_light=False,
     ):
-
         ParallelAnalysisInterface.__init__(self)
 
         self.procs_per_wg = procs_per_wg
@@ -1921,7 +1919,6 @@ class MosaicCamera(Camera):
         self.width = owidth
 
     def snapshot(self, fn=None, clip_ratio=None, double_check=False, num_threads=0):
-
         my_storage = {}
         offx, offy = np.meshgrid(range(self.nimx), range(self.nimy))
         offxy = zip(offx.ravel(), offy.ravel())
@@ -2039,7 +2036,6 @@ class ProjectionCamera(Camera):
         interpolated=False,
         method="integrate",
     ):
-
         if not interpolated:
             volume = 1
 
@@ -2182,7 +2178,7 @@ class ProjectionCamera(Camera):
         # Now we have a bounding box.
         data_source = ds.region(self.center, mi, ma)
 
-        for (grid, mask) in data_source.blocks:
+        for grid, mask in data_source.blocks:
             data = [(grid[field] * mask).astype("float64") for field in fields]
             pg = PartitionedGrid(
                 grid.id,
@@ -2213,7 +2209,6 @@ class ProjectionCamera(Camera):
                 write_image(im, fn)
 
     def snapshot(self, fn=None, clip_ratio=None, double_check=False, num_threads=0):
-
         if num_threads is None:
             num_threads = get_num_threads()
 
@@ -2393,7 +2388,6 @@ class StereoSphericalCamera(Camera):
         num_threads=0,
         transparent=False,
     ):
-
         if num_threads is None:
             num_threads = get_num_threads()
 

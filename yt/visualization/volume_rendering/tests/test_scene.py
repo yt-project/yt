@@ -21,7 +21,6 @@ def setup():
 
 
 class RotationTest(TestCase):
-
     # This toggles using a temporary directory. Turn off to examine images.
     use_tmpdir = True
 

@@ -130,7 +130,6 @@ class BoxlibGrid(AMRGridPatch):
 
 class BoxLibParticleHeader:
     def __init__(self, ds, directory_name, is_checkpoint, extra_field_names=None):
-
         self.particle_type = directory_name
         header_filename = os.path.join(ds.output_dir, directory_name, "Header")
         with open(header_filename) as f:
@@ -187,7 +186,6 @@ class BoxLibParticleHeader:
         self._generate_particle_fields(extra_field_names)
 
     def _generate_particle_fields(self, extra_field_names):
-
         # these are the 'base' integer fields
         self.known_int_fields = [
             (self.particle_type, "particle_id"),
@@ -239,7 +237,6 @@ class BoxLibParticleHeader:
 
 class AMReXParticleHeader:
     def __init__(self, ds, directory_name, is_checkpoint, extra_field_names=None):
-
         self.particle_type = directory_name
         header_filename = os.path.join(ds.output_dir, directory_name, "Header")
         self.real_component_names = []
@@ -297,7 +294,6 @@ class AMReXParticleHeader:
         self._generate_particle_fields()
 
     def _generate_particle_fields(self):
-
         # these are the 'base' integer fields
         self.known_int_fields = [
             (self.particle_type, "particle_id"),
@@ -339,7 +335,6 @@ class AMReXParticleHeader:
 
 
 class BoxlibHierarchy(GridIndex):
-
     grid = BoxlibGrid
 
     def __init__(self, ds, dataset_type="boxlib_native"):
@@ -1014,7 +1009,6 @@ class OrionHierarchy(BoxlibHierarchy):
 
 
 class OrionDataset(BoxlibDataset):
-
     _index_class = OrionHierarchy
     _subtype_keyword = "hyp."
     _default_cparam_filename = "inputs"
@@ -1030,7 +1024,6 @@ class OrionDataset(BoxlibDataset):
         unit_system="cgs",
         default_species_fields=None,
     ):
-
         BoxlibDataset.__init__(
             self,
             output_dir,
@@ -1048,7 +1041,6 @@ class CastroHierarchy(BoxlibHierarchy):
         super().__init__(ds, dataset_type)
 
         if "particles" in self.ds.parameters:
-
             # extra beyond the base real fields that all Boxlib
             # particles have, i.e. the xyz positions
             castro_extra_real_fields = [
@@ -1067,7 +1059,6 @@ class CastroHierarchy(BoxlibHierarchy):
 
 
 class CastroDataset(BoxlibDataset):
-
     _index_class = CastroHierarchy
     _field_info_class = CastroFieldInfo
     _subtype_keyword = "castro"
@@ -1084,7 +1075,6 @@ class CastroDataset(BoxlibDataset):
         unit_system="cgs",
         default_species_fields=None,
     ):
-
         super().__init__(
             output_dir,
             cparam_filename,
@@ -1148,7 +1138,6 @@ class CastroDataset(BoxlibDataset):
 
 
 class MaestroDataset(BoxlibDataset):
-
     _field_info_class = MaestroFieldInfo
     _subtype_keyword = "maestro"
     _default_cparam_filename = "job_info"
@@ -1164,7 +1153,6 @@ class MaestroDataset(BoxlibDataset):
         unit_system="cgs",
         default_species_fields=None,
     ):
-
         super().__init__(
             output_dir,
             cparam_filename,
@@ -1239,7 +1227,6 @@ class NyxHierarchy(BoxlibHierarchy):
 
 
 class NyxDataset(BoxlibDataset):
-
     _index_class = NyxHierarchy
     _field_info_class = NyxFieldInfo
     _subtype_keyword = "nyx"
@@ -1256,7 +1243,6 @@ class NyxDataset(BoxlibDataset):
         unit_system="cgs",
         default_species_fields=None,
     ):
-
         super().__init__(
             output_dir,
             cparam_filename,
@@ -1382,7 +1368,6 @@ def _read_header(raw_file, field):
     for level_file in level_files:
         header_file = os.path.join(level_file, field + "_H")
         with open(header_file) as f:
-
             f.readline()  # version
             f.readline()  # how
             f.readline()  # ncomp
@@ -1523,7 +1508,6 @@ def _skip_line(line):
 
 
 class WarpXDataset(BoxlibDataset):
-
     _index_class = WarpXHierarchy
     _field_info_class = WarpXFieldInfo
     _subtype_keyword = "warpx"
@@ -1539,7 +1523,6 @@ class WarpXDataset(BoxlibDataset):
         units_override=None,
         unit_system="mks",
     ):
-
         self.default_fluid_type = "mesh"
         self.default_field = ("mesh", "density")
         self.fluid_types = ("mesh", "index", "raw")
@@ -1607,7 +1590,6 @@ class AMReXHierarchy(BoxlibHierarchy):
 
 
 class AMReXDataset(BoxlibDataset):
-
     _index_class = AMReXHierarchy
     _subtype_keyword = "amrex"
     _default_cparam_filename = "job_info"
@@ -1623,7 +1605,6 @@ class AMReXDataset(BoxlibDataset):
         unit_system="cgs",
         default_species_fields=None,
     ):
-
         super().__init__(
             output_dir,
             cparam_filename,

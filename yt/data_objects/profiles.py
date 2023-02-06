@@ -885,7 +885,6 @@ class ParticleProfile(Profile2D):
         weight_field=None,
         deposition="ngp",
     ):
-
         x_field = data_source._determine_fields(x_field)[0]
         y_field = data_source._determine_fields(y_field)[0]
 

@@ -53,7 +53,6 @@ class GDFGrid(AMRGridPatch):
 
 
 class GDFHierarchy(GridIndex):
-
     grid = GDFGrid
 
     def __init__(self, ds, dataset_type="grid_data_format"):

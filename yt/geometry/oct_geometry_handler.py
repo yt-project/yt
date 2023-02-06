@@ -131,12 +131,7 @@ class OctreeIndex(Index):
         grids.
         """
         dds = self.ds.domain_width[(axes,)] / (
-            self.ds.domain_dimensions[
-                axes,
-            ]
-            * self.ds.refine_by ** ires[:, None]
+            self.ds.domain_dimensions[axes,] * self.ds.refine_by ** ires[:, None]
         )
-        pos = (0.5 + icoords) * dds + self.ds.domain_left_edge[
-            axes,
-        ]
+        pos = (0.5 + icoords) * dds + self.ds.domain_left_edge[axes,]
         return pos, dds

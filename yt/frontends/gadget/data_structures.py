@@ -348,7 +348,6 @@ class GadgetDataset(SPHDataset):
         return self._header.value
 
     def _parse_parameter_file(self):
-
         hvals = self._get_hvals()
 
         self.dimensionality = 3
@@ -640,7 +639,6 @@ class GadgetHDF5Dataset(GadgetDataset):
         return uvals
 
     def _set_owls_eagle(self):
-
         self.dimensionality = 3
         self.refine_by = 2
         self.parameters["HydroMethod"] = "sph"
@@ -678,7 +676,6 @@ class GadgetHDF5Dataset(GadgetDataset):
         self.file_count = self.parameters["NumFilesPerSnapshot"]
 
     def _set_owls_eagle_units(self):
-
         # note the contents of the HDF5 Units group are in _unit_base
         # note the velocity stored on disk is sqrt(a) dx/dt
         # physical velocity [cm/s] = a dx/dt
