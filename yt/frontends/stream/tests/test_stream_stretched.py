@@ -57,7 +57,6 @@ def test_variable_dx():
 
 
 def test_cell_width_type():
-
     # checks that cell widths are properly upcast to float64 (this errors
     # if that is not the case).
 
@@ -80,11 +79,11 @@ def test_cell_width_type():
 
     _ = ds.slice(0, ds.domain_center[0])[("stream", "density")]
 
+
 def test_cell_width_dimensionality():
     np.random.seed(0x4D3D3D3)
     N = 16
     data = {"density": np.random.random((N, N, N))}
-
 
     cw = np.random.random(N)
     cw /= cw.sum()

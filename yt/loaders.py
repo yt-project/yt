@@ -351,6 +351,7 @@ def load_uniform_grid(
         grid_dimensions = domain_dimensions.reshape(nprocs, 3).astype("int32")
 
     if cell_widths is not None:
+        # cell_widths left as an empty guard value if None
         cell_widths = _validate_cell_widths(cell_widths, domain_dimensions)
 
     if length_unit is None:
