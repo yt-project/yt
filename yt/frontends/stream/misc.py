@@ -4,7 +4,8 @@ import numpy as np
 
 
 def _validate_cell_widths(
-    cell_widths: List[np.ndarray], domain_dimensions: Tuple[int, ...]
+    cell_widths: List[np.ndarray],
+    domain_dimensions: Tuple[int, ...],
 ) -> List[List[np.ndarray],]:
     # check dimensionality
     ndims = len(domain_dimensions)
@@ -25,7 +26,7 @@ def _validate_cell_widths(
         cell_widths[idim] = cell_widths[idim].astype(np.float64)
 
     # finally, need to return a list of the cell_widths for each grid object.
-    # since there is only single grid, just wrap it in a list.
+    # since there is only a single grid, just wrap it in a list.
     cell_widths = [
         cell_widths,
     ]

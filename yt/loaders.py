@@ -264,7 +264,7 @@ def load_uniform_grid(
     cell_widths: list, optional
         If set, cell_widths is a list of arrays with an array for each dimension,
         specificing the cell spacing in that dimension. Must be consistent with
-        the domain_dimensions.
+        the domain_dimensions. nprocs must remain 1 to set cell_widths.
     parameters: dictionary, optional
         Optional dictionary used to populate the dataset parameters, useful
         for storing dataset metadata.
@@ -352,6 +352,8 @@ def load_uniform_grid(
 
     if cell_widths is not None:
         # cell_widths left as an empty guard value if None
+        if nprocs != 1:
+            raise NotImplementedError("nprocs must equal 1 if supplying cell_widths.")
         cell_widths = _validate_cell_widths(cell_widths, domain_dimensions)
 
     if length_unit is None:
