@@ -1,14 +1,15 @@
-from typing import List, Tuple
+from typing import List
 
 import numpy as np
+from numpy.typing import ArrayLike
 
 
 def _validate_cell_widths(
     cell_widths: List[np.ndarray],
-    domain_dimensions: Tuple[int, ...],
+    domain_dimensions: ArrayLike,
 ) -> List[List[np.ndarray],]:
     # check dimensionality
-    ndims = len(domain_dimensions)
+    ndims = len(np.asarray(domain_dimensions))  # cast to array for type checking
     nwids = len(cell_widths)
     if nwids != ndims:
         raise ValueError(
@@ -27,7 +28,7 @@ def _validate_cell_widths(
 
     # finally, need to return a list of the cell_widths for each grid object.
     # since there is only a single grid, just wrap it in a list.
-    cell_widths = [
+    cell_widths_out = [
         cell_widths,
     ]
-    return cell_widths
+    return cell_widths_out
