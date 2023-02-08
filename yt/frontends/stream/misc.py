@@ -1,15 +1,16 @@
 from typing import List
 
 import numpy as np
-from numpy.typing import ArrayLike
+
+from yt._typing import DomainDimensions
 
 
 def _validate_cell_widths(
     cell_widths: List[np.ndarray],
-    domain_dimensions: ArrayLike,
+    domain_dimensions: DomainDimensions,
 ) -> List[List[np.ndarray],]:
     # check dimensionality
-    ndims = len(np.asarray(domain_dimensions))  # cast to array for type checking
+    ndims = len(domain_dimensions)
     nwids = len(cell_widths)
     if nwids != ndims:
         raise ValueError(
