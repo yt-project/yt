@@ -353,6 +353,7 @@ def load_uniform_grid(
     if cell_widths is not None:
         # cell_widths left as an empty guard value if None
         if nprocs != 1:
+            # see https://github.com/yt-project/yt/issues/4330
             raise NotImplementedError("nprocs must equal 1 if supplying cell_widths.")
         cell_widths = _validate_cell_widths(cell_widths, domain_dimensions)
 
