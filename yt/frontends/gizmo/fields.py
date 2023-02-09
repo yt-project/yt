@@ -49,6 +49,8 @@ class GizmoFieldInfo(GadgetFieldInfo):
         if ("PartType0", "Metallicity_00") in self.field_list:
             self.nuclei_names = metal_elements
             self.species_names = ["H_p0", "H_p1"] + metal_elements
+        else:
+            self.nuclei_names = []
 
     def setup_particle_fields(self, ptype):
         FieldInfoContainer.setup_particle_fields(self, ptype)
