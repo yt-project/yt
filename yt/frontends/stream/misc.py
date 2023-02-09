@@ -17,7 +17,7 @@ def _validate_cell_widths(
         )
 
     # check the dtypes for each dimension, upcast to float64 if needed
-    for idim in len(cell_widths):
+    for idim in range(len(cell_widths)):
         cell_widths[idim] = cell_widths[idim].astype(np.float64, copy=False)
 
     # finally, need to return a list of the cell_widths for each grid object.
