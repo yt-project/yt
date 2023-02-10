@@ -7,7 +7,6 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 
 @requires_module_pytest("h5py")
 def test_save_as_data_unit_system(tmp_path):
-
     # This test checks that the file saved with calling save_as_dataset
     # for a ds with a "code" unit system contains the proper "unit_system_name".
     # It checks the hdf5 file directly rather than using yt.load(), because
