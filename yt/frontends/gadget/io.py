@@ -191,7 +191,6 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
             if mask is None:
                 continue
             for field in field_list:
-
                 if field in ("Mass", "Masses") and ptype not in self.var_mass:
                     data = np.empty(mask_sum, dtype="float64")
                     ind = self._known_ptypes.index(ptype)
@@ -253,7 +252,6 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
         # loop over all keys in OWLS hdf5 file
         # --------------------------------------------------
         for key in f.keys():
-
             # only want particle data
             # --------------------------------------
             if not key.startswith("PartType"):
@@ -273,7 +271,6 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
             # loop over all keys in PartTypeX group
             # ----------------------------------------
             for k in g.keys():
-
                 if k == "ElementAbundance":
                     gp = g[k]
                     for j in gp.keys():

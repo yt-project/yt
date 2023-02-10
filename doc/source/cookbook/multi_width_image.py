@@ -14,7 +14,6 @@ widths = [(1, "Mpc"), (15, "kpc")]
 
 # Loop through the list of widths and units.
 for width, unit in widths:
-
     # Set the width.
     slc.set_width(width, unit)
 
@@ -27,7 +26,6 @@ zoomFactors = [2, 4, 5]
 slc = yt.SlicePlot(ds, "z", ("gas", "density"))
 
 for zoomFactor in zoomFactors:
-
     # zoom in
     slc.zoom(zoomFactor)
 

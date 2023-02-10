@@ -9,7 +9,6 @@ import functools
 import numpy as np
 
 from yt.fields.field_info_container import FieldInfoContainer
-from yt.fields.magnetic_field import setup_magnetic_field_aliases
 from yt.units import dimensions
 from yt.utilities.logger import ytLogger as mylog
 
@@ -162,6 +161,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
             )
 
     def setup_fluid_fields(self):
+        from yt.fields.magnetic_field import setup_magnetic_field_aliases
 
         setup_magnetic_field_aliases(self, "amrvac", [f"mag{ax}" for ax in "xyz"])
         self._setup_velocity_fields()  # gas velocities

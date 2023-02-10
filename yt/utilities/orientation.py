@@ -10,7 +10,6 @@ def _aligned(a, b):
 
 
 def _validate_unit_vectors(normal_vector, north_vector):
-
     # Make sure vectors are unitless
     if north_vector is not None:
         north_vector = YTArray(north_vector, "", dtype="float64")

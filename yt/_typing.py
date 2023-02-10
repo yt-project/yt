@@ -12,6 +12,7 @@ FieldName = str
 FieldKey = Tuple[FieldType, FieldName]
 ImplicitFieldKey = FieldName
 AnyFieldKey = Union[FieldKey, ImplicitFieldKey]
+DomainDimensions = Union[Tuple[int, ...], List[int], ndarray]
 
 ParticleCoordinateTuple = Tuple[
     str,  # particle type

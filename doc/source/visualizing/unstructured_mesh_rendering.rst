@@ -461,7 +461,6 @@ file with a fixed camera position:
     VMAX = 2000.0
 
     for step in range(NUM_STEPS):
-
         ds = yt.load("MOOSE_sample_data/mps_out.e", step=step)
 
 	time = ds._get_current_time()

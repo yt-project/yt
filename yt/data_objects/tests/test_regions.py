@@ -3,7 +3,6 @@ from yt.units import cm
 
 
 def test_box_creation():
-
     # test that creating a region with left and right edge
     # with units works
     ds = fake_random_ds(32, length_unit=2)

@@ -115,7 +115,6 @@ class TipsyDataset(SPHDataset):
         return os.path.basename(self.parameter_filename)
 
     def _parse_parameter_file(self):
-
         # Parsing the header of the tipsy file, from this we obtain
         # the snapshot time and particle counts.
 

@@ -130,7 +130,6 @@ class PlotMPL:
         self.axes = self.figure.add_axes(axrect)
 
     def _get_canvas_classes(self):
-
         if self.interactivity:
             key = str(matplotlib.get_backend())
         else:

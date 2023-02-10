@@ -851,7 +851,6 @@ class YTCoveringGrid(YTSelectionContainer3D):
         return tuple(self.ActiveDimensions.tolist())
 
     def _setup_data_source(self):
-
         reg = self.ds.region(self.center, self.left_edge, self.right_edge)
         if self._data_source is None:
             # note: https://github.com/yt-project/yt/pull/4063 implemented
@@ -1785,7 +1784,6 @@ class YTSurface(YTSelectionContainer3D):
     def _calculate_flux_in_grid(
         self, grid, mask, field_x, field_y, field_z, fluxing_field=None
     ):
-
         vc_fields = [self.surface_field, field_x, field_y, field_z]
         if fluxing_field is not None:
             vc_fields.append(fluxing_field)

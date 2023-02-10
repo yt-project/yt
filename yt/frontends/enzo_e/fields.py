@@ -2,7 +2,6 @@ import numpy as np
 
 from yt._typing import KnownFieldsT
 from yt.fields.field_info_container import FieldInfoContainer
-from yt.fields.magnetic_field import setup_magnetic_field_aliases
 from yt.fields.particle_fields import add_union_field
 from yt.frontends.enzo_e.misc import (
     get_listed_subparam,
@@ -66,6 +65,8 @@ class EnzoEFieldInfo(FieldInfoContainer):
                 finfo.nodal_flag = np.array(arr)
 
     def setup_fluid_fields(self):
+        from yt.fields.magnetic_field import setup_magnetic_field_aliases
+
         self.setup_energy_field()
         setup_magnetic_field_aliases(self, "enzoe", [f"bfield_{ax}" for ax in "xyz"])
 

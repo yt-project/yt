@@ -11,7 +11,6 @@ from .domain_context import DomainContext
 
 
 class AstroSimulation(DomainContext):
-
     # This is an immutable of immutables.  Note that we do not specify the
     # fluid type here, although in most cases we expect it to be "gas".
     _known_fluid_fields = (

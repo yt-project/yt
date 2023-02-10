@@ -59,7 +59,6 @@ class ParticleTrajectories:
     def __init__(
         self, outputs, indices, fields=None, suppress_logging=False, ptype=None
     ):
-
         indices.sort()  # Just in case the caller wasn't careful
         self.field_data = YTFieldData()
         self.data_series = outputs

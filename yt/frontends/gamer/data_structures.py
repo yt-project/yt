@@ -219,7 +219,6 @@ class GAMERDataset(Dataset):
         unit_system="cgs",
         default_species_fields=None,
     ):
-
         if self._handle is not None:
             return
 
@@ -287,7 +286,6 @@ class GAMERDataset(Dataset):
                     mylog.warning("Assuming %8s unit = %f %s", unit, value, cgs)
 
     def _parse_parameter_file(self):
-
         # code-specific parameters
         for t in self._handle["Info"]:
             info_category = self._handle["Info"][t]

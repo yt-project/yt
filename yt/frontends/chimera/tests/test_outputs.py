@@ -100,7 +100,6 @@ def test_2D():
 
     dd = ds.all_data()
     for field in _fields:
-
         if field != ("chimera", "shock"):
             yield GenericArrayTest(ds, field_func, args=[field])
 
@@ -186,7 +185,6 @@ def test_3D():
 
     dd = ds.all_data()
     for field in _fields:
-
         if field != ("chimera", "shock"):
             yield GenericArrayTest(ds, field_func, args=[field])
 

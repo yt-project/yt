@@ -258,7 +258,6 @@ class HTTPDataStruct(DataStruct):
 
 
 class SDFRead(UserDict):
-
     _eof = "SDF-EO"
     _data_struct = DataStruct
 
@@ -440,7 +439,6 @@ class SDFRead(UserDict):
 
 
 class HTTPSDFRead(SDFRead):
-
     r"""Read an SDF file hosted on the internet.
 
     Given an SDF file (see https://bitbucket.org/JohnSalmon/sdf), parse the
@@ -618,7 +616,6 @@ class SDFIndex:
         self._max_key = max_key
 
     def _fix_rexact(self, rmin, rmax):
-
         center = 0.5 * (rmax + rmin)
         mysize = rmax - rmin
         mysize *= 1.0 + 4.0 * np.finfo(np.float32).eps
@@ -1142,7 +1139,6 @@ class SDFIndex:
         return self.iter_data(inds, fields)
 
     def get_contiguous_chunk(self, left_key, right_key, fields):
-
         lbase = 0
         if left_key > self._max_key:
             raise RuntimeError(

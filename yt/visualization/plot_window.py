@@ -188,7 +188,6 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
         *,
         geometry: Geometry = Geometry.CARTESIAN,
     ) -> None:
-
         # axis manipulation operations are callback-only:
         self._swap_axes_input = False
         self._flip_vertical = False
@@ -1639,7 +1638,6 @@ class ProjectionPlot(NormalPlot):
     def __new__(  # type: ignore
         cls, ds, normal, fields, *args, **kwargs
     ) -> Union["AxisAlignedProjectionPlot", "OffAxisProjectionPlot"]:
-
         if cls is ProjectionPlot:
             normal = cls.sanitize_normal_vector(ds, normal)
             if isinstance(normal, str):

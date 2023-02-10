@@ -74,6 +74,7 @@ lib_exts += embree_libs
 # This overrides using lib_exts, so it has to happen after lib_exts is fully defined
 build_ext, sdist = create_build_ext(lib_exts, cythonize_aliases)
 
+
 # Force setuptools to consider that there are ext modules, even if empty.
 # See https://github.com/yt-project/yt/issues/2922 and
 # https://stackoverflow.com/a/62668026/2601223 for the fix.

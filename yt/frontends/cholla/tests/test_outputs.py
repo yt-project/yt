@@ -24,7 +24,6 @@ def test_ChollaDataset():
 @requires_module("h5py")
 @requires_file(ChollaSimple)
 def test_ChollaSimple_fields():
-
     expected_fields = [
         "Energy",
         "GasEnergy",
@@ -50,7 +49,6 @@ def test_ChollaSimple_fields():
 @requires_module("h5py")
 @requires_file(ChollaSimple)
 def test_ChollaSimple_derived_fields():
-
     expected_derived_fields = [
         "density",
         "momentum_x",

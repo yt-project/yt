@@ -9,7 +9,6 @@ def setup():
 
 
 def test_sample():
-
     grid = {}
 
     dims = np.array([64, 64, 64], dtype="int32")

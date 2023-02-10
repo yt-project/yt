@@ -17,6 +17,8 @@ from yt.funcs import (
 from yt.utilities import rpdb
 
 exe_name = os.path.basename(sys.executable)
+
+
 # At import time, we determined whether or not we're being run in parallel.
 def turn_on_parallelism():
     parallel_capable = False

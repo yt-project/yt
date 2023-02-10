@@ -250,7 +250,6 @@ class BaseParticleIOHandler(BaseIOHandler):
 
 
 class IOHandlerExtracted(BaseIOHandler):
-
     _dataset_type = "extracted"
 
     def _read_data_set(self, grid, field):

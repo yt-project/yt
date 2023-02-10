@@ -46,7 +46,6 @@ def create_magnitude_field(
     validators=None,
     sampling_type=None,
 ):
-
     axis_order = registry.ds.coordinates.axis_order
 
     field_components = [(ftype, f"{basename}_{ax}") for ax in axis_order]
@@ -79,7 +78,6 @@ def create_magnitude_field(
 def create_relative_field(
     registry, basename, field_units, ftype="gas", slice_info=None, validators=None
 ):
-
     axis_order = registry.ds.coordinates.axis_order
 
     field_components = [(ftype, f"{basename}_{ax}") for ax in axis_order]
@@ -142,7 +140,6 @@ def create_los_field(registry, basename, field_units, ftype="gas", slice_info=No
 def create_squared_field(
     registry, basename, field_units, ftype="gas", slice_info=None, validators=None
 ):
-
     axis_order = registry.ds.coordinates.axis_order
 
     field_components = [(ftype, f"{basename}_{ax}") for ax in axis_order]
@@ -218,7 +215,6 @@ def create_vector_fields(
 
     geometry: Geometry = registry.ds.geometry
     if geometry is Geometry.CARTESIAN:
-
         # The following fields are invalid for curvilinear geometries
         def _spherical_radius_component(field, data):
             """The spherical radius component of the vector field
@@ -481,7 +477,6 @@ def create_vector_fields(
         or geometry is Geometry.CYLINDRICAL
         or geometry is Geometry.SPHERICAL
     ):  # Create Cartesian fields for curvilinear coordinates
-
         if geometry is Geometry.POLAR:
 
             def _cartesian_x(field, data):
@@ -669,7 +664,6 @@ def create_averaged_field(
     validators=None,
     weight="mass",
 ):
-
     if validators is None:
         validators = []
     validators += [ValidateSpatial(1, [(ftype, basename)])]

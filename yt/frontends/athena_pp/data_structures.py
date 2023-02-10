@@ -163,7 +163,6 @@ class AthenaPPGrid(AMRGridPatch):
 
 
 class AthenaPPHierarchy(GridIndex):
-
     grid = AthenaPPGrid
     _dataset_type = "athena_pp"
     _data_file = None
@@ -299,7 +298,6 @@ class AthenaPPDataset(Dataset):
         self.velocity_unit = self.length_unit / self.time_unit
 
     def _parse_parameter_file(self):
-
         xmin, xmax = self._handle.attrs["RootGridX1"][:2]
         ymin, ymax = self._handle.attrs["RootGridX2"][:2]
         zmin, zmax = self._handle.attrs["RootGridX3"][:2]

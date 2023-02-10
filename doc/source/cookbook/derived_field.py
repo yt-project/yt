@@ -7,6 +7,7 @@ ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 # in any way you choose.  In this case, let's just make a simple one:
 # thermal_energy_density = 3/2 nkT
 
+
 # First create a function which yields your new derived field
 def thermal_energy_dens(field, data):
     return (3 / 2) * data["gas", "number_density"] * data["gas", "kT"]

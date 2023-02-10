@@ -242,7 +242,6 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
 
 
 def setup_gradient_fields(registry, grad_field, field_units, slice_info=None):
-
     assert isinstance(grad_field, tuple)
     ftype, fname = grad_field
     if slice_info is None:

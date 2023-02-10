@@ -1,6 +1,5 @@
 import argparse
 import base64
-import importlib.resources
 import json
 import os
 import pprint
@@ -26,6 +25,11 @@ from yt.loaders import load
 from yt.utilities.exceptions import YTFieldNotParseable, YTUnidentifiedDataType
 from yt.utilities.metadata import get_metadata
 from yt.visualization.plot_window import ProjectionPlot, SlicePlot
+
+if sys.version_info >= (3, 9):
+    import importlib.resources as importlib_resources
+else:
+    import importlib_resources
 
 # isort: off
 # This needs to be set before importing startup_tasks
@@ -656,13 +660,7 @@ class YTInstInfoCmd(YTCommand):
         """
 
     def __call__(self, opts):
-        if sys.version_info >= (3, 9):
-            path = os.path.dirname(importlib.resources.files("yt"))
-        else:
-            from pkg_resources import get_provider
-
-            path = os.path.dirname(get_provider("yt").module_path)
-
+        path = os.path.dirname(importlib_resources.files("yt"))
         vstring = _print_installation_information(path)
         if vstring is not None:
             print("This installation CAN be automatically updated.")
@@ -1184,12 +1182,7 @@ class YTUpdateCmd(YTCommand):
         """
 
     def __call__(self, opts):
-        if sys.version_info >= (3, 9):
-            path = os.path.dirname(importlib.resources.files("yt"))
-        else:
-            from pkg_resources import get_provider
-
-            path = os.path.dirname(get_provider("yt").module_path)
+        path = os.path.dirname(importlib_resources.files("yt"))
         vstring = _print_installation_information(path)
         if vstring is not None:
             print()
@@ -1514,7 +1507,6 @@ class YTSearchCmd(YTCommand):
 
 
 class YTDownloadData(YTCommand):
-
     args = (
         dict(
             short="filename",

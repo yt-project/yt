@@ -215,7 +215,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                                 self.known_particle_fields += (
                                     (ytname, (unit, aliases, None)),
                                 )
-                    except (KeyError):
+                    except KeyError:
                         if recname != "particlePatches":
                             mylog.info(
                                 "open_pmd - %s_%s does not seem to have "

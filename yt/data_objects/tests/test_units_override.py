@@ -9,7 +9,6 @@ mock_quan = partial(YTQuantity, registry=UnitRegistry())
 
 
 def test_schema_validation():
-
     valid_schemas = [
         {"length_unit": 1.0},
         {"length_unit": [1.0]},

@@ -254,7 +254,7 @@ class ARTIOIndex(Index):
             ci = []
             # v = np.array(list_sfc_ranges)
             # list_sfc_ranges = [ (v.min(), v.max()) ]
-            for (start, end) in list_sfc_ranges:
+            for start, end in list_sfc_ranges:
                 if (start, end) in self.range_handlers.keys():
                     range_handler = self.range_handlers[(start, end)]
                 else:
@@ -346,14 +346,9 @@ class ARTIOIndex(Index):
         grids.
         """
         dds = self.ds.domain_width[(axes,)] / (
-            self.ds.domain_dimensions[
-                axes,
-            ]
-            * self.ds.refine_by ** ires[:, None]
+            self.ds.domain_dimensions[axes,] * self.ds.refine_by ** ires[:, None]
         )
-        pos = (0.5 + icoords) * dds + self.ds.domain_left_edge[
-            axes,
-        ]
+        pos = (0.5 + icoords) * dds + self.ds.domain_left_edge[axes,]
         return pos, dds
 
 
@@ -372,7 +367,6 @@ class ARTIODataset(Dataset):
         unit_system="cgs",
         default_species_fields=None,
     ):
-
         if self._handle is not None:
             return
         self.max_range = max_range

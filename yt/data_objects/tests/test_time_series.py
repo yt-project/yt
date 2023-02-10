@@ -34,7 +34,6 @@ def test_no_match_pattern():
 
 
 def test_init_fake_dataseries():
-
     file_list = [f"fake_data_file_{str(i).zfill(4)}" for i in range(10)]
     with tempfile.TemporaryDirectory() as tmpdir:
         pfile_list = [Path(tmpdir) / file for file in file_list]

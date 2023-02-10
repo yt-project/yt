@@ -19,13 +19,11 @@ def test_normalplot_all_positional_args(ds, plot_cls):
 
 @pytest.mark.parametrize("plot_cls", (SlicePlot, ProjectionPlot))
 def test_normalplot_normal_kwarg(ds, plot_cls):
-
     plot_cls(ds, normal="z", fields=("stream", "Density"))
 
 
 @pytest.mark.parametrize("plot_cls", (SlicePlot, ProjectionPlot))
 def test_error_with_missing_fields_and_normal(ds, plot_cls):
-
     with pytest.raises(
         TypeError,
         match="missing 2 required positional arguments: 'normal' and 'fields'",
@@ -35,7 +33,6 @@ def test_error_with_missing_fields_and_normal(ds, plot_cls):
 
 @pytest.mark.parametrize("plot_cls", (SlicePlot, ProjectionPlot))
 def test_error_with_missing_fields_with_normal_kwarg(ds, plot_cls):
-
     with pytest.raises(
         TypeError, match=r"missing (1 )?required positional argument: 'fields'$"
     ):
@@ -44,7 +41,6 @@ def test_error_with_missing_fields_with_normal_kwarg(ds, plot_cls):
 
 @pytest.mark.parametrize("plot_cls", (SlicePlot, ProjectionPlot))
 def test_error_with_missing_fields_with_positional(ds, plot_cls):
-
     with pytest.raises(
         TypeError, match=r"missing (1 )?required positional argument: 'fields'$"
     ):

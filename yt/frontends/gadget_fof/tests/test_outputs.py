@@ -102,6 +102,7 @@ def test_halo_masses():
 # fof/subhalo catalog with no member ids in first file
 g56 = "gadget_halos/data/groups_056/fof_subhalo_tab_056.0.hdf5"
 
+
 # This dataset has halos in one file and ids in another,
 # which can confuse the field detection.
 @requires_module("h5py")
@@ -116,6 +117,7 @@ def test_unbalanced_dataset():
 
 # fof/subhalo catalog with no member ids in first file
 g76 = "gadget_halos/data/groups_076/fof_subhalo_tab_076.0.hdf5"
+
 
 # This dataset has one halo with particles distributed over 3 files
 # with the 2nd file being empty.

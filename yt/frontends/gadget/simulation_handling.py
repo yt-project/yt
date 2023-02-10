@@ -126,7 +126,6 @@ class GadgetSimulation(SimulationTimeSeries):
         parallel=True,
         setup_function=None,
     ):
-
         """
         Instantiate a DatasetSeries object for a set of outputs.
 

@@ -330,7 +330,6 @@ processors (or cores).  Please see this heavily-commented example:
    # would look like:
    #       for fn in parallel_objects(fns, num_procs):
    for sto, fn in yt.parallel_objects(fns, num_procs, storage=my_storage):
-
        # Open a data file, remembering that fn is different on each task.
        ds = yt.load(fn)
        dd = ds.all_data()
@@ -469,7 +468,6 @@ separate processor.
    # assume 6 total cores
    # allocate 3 work groups of 2 cores each
    for ax in yt.parallel_objects("xyz", njobs=3):
-
        # project each field with one of the two cores in the workgroup
        for field in yt.parallel_objects([("gas", "density"), ("gas", "temperature")]):
            p = yt.ProjectionPlot(ds, ax, field, weight_field=("gas", "density"))

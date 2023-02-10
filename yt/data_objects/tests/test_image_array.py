@@ -43,7 +43,6 @@ def test_rgba_rescale():
 
 
 class TestImageArray(unittest.TestCase):
-
     tmpdir = None
     curdir = None
 

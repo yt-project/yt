@@ -365,7 +365,6 @@ class StereoPerspectiveLens(Lens):
         return sampler_params
 
     def _get_positions_vectors(self, camera, disparity):
-
         single_resolution_x = int(np.floor(camera.resolution[0]) / 2)
 
         east_vec = camera.unit_vectors[0]
@@ -451,7 +450,6 @@ class StereoPerspectiveLens(Lens):
         return px, py, dz
 
     def _get_px_py_dz(self, camera, pos, res, disparity):
-
         res0_h = np.floor(res[0]) / 2
 
         east_vec = camera.unit_vectors[0]
