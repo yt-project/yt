@@ -1,6 +1,5 @@
 import contextlib
 import glob
-import importlib.resources
 import logging
 import os
 import platform
@@ -17,6 +16,11 @@ from sys import platform as _platform
 from setuptools.command.build_ext import build_ext as _build_ext
 from setuptools.command.sdist import sdist as _sdist
 from setuptools.errors import CompileError, LinkError
+
+if sys.version_info >= (3, 9):
+    import importlib.resources as importlib_resources
+else:
+    import importlib_resources
 
 log = logging.getLogger("setupext")
 
@@ -204,15 +208,8 @@ def check_for_pyembree(std_libs):
     embree_libs = []
     embree_aliases = {}
 
-    if sys.version_info >= (3, 9):
-        _path_finder = importlib.resources.files
-    else:
-        from pkg_resources import resource_filename
-        from functools import partial
-        _path_finder = partial(resource_filename, resource_name="rtcore.pxd")
-
     try:
-        _path_finder("pyembree")
+        importlib_resources.files("pyembree")
     except ImportError:
         return embree_libs, embree_aliases
 

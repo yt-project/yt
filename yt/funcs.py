@@ -4,7 +4,6 @@ import contextlib
 import copy
 import errno
 import glob
-import importlib.resources
 import inspect
 import itertools
 import os
@@ -30,6 +29,11 @@ from yt.units import YTArray, YTQuantity
 from yt.utilities.exceptions import YTInvalidWidthError
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _requests as requests
+
+if sys.version_info >= (3, 9):
+    import importlib.resources as importlib_resources
+else:
+    import importlib_resources
 
 # Some functions for handling sequences and other types
 
@@ -548,14 +552,7 @@ def get_git_version(path):
 
 
 def get_yt_version():
-    if sys.version_info >= (3, 9):
-        path = os.path.dirname(importlib.resources.files("yt"))
-    else:
-        from pkg_resources import get_provider
-
-        path = os.path.dirname(get_provider("yt").module_path)
-
-    version = get_git_version(path)
+    version = get_git_version(os.path.dirname(importlib_resources.files("yt")))
     if version is None:
         return version
     else:

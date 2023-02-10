@@ -1,7 +1,6 @@
 """
 This is a collection of helper functions to yt.load_sample
 """
-import importlib.resources
 import json
 import re
 import sys
@@ -18,6 +17,11 @@ from yt.utilities.on_demand_imports import (
     _pooch as pooch,
     _requests as requests,
 )
+
+if sys.version_info >= (3, 9):
+    import importlib.resources as importlib_resources
+else:
+    import importlib_resources
 
 num_exp = re.compile(r"\d*(\.\d*)?")
 byte_unit_exp = re.compile(r"[KMGT]?B")
@@ -81,17 +85,11 @@ def _parse_byte_size(s: str):
 
 
 def _get_sample_data_registry():
-    if sys.version_info >= (3, 9):
-        return json.loads(
-            importlib.resources.files("yt")
-            .joinpath("sample_data_registry.json")
-            .read_bytes()
-        )
-    else:
-        from pkg_resources import resource_stream
-
-        with resource_stream("yt", "sample_data_registry.json") as fh:
-            return json.load(fh)
+    return json.loads(
+        importlib_resources.files("yt")
+        .joinpath("sample_data_registry.json")
+        .read_bytes()
+    )
 
 
 @lru_cache(maxsize=128)
