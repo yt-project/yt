@@ -1394,7 +1394,7 @@ class FITSParticleOffAxisProjection(FITSImageData):
         fields = list(iter_fields(fields))
         center, dcenter = ds.coordinates.sanitize_center(center, 4)
         width = ds.coordinates.sanitize_width(normal, width, depth)
-        width[-1].convert_to_units(width[0].units)
+        wd = tuple(el.in_units("code_length").v for el in width)
 
         if field_parameters is None:
             field_parameters = {}
@@ -1403,7 +1403,7 @@ class FITSParticleOffAxisProjection(FITSImageData):
             center,
             ds,
             normal,
-            width,
+            wd,
             fields,
             weight_field,
             field_parameters=field_parameters,
