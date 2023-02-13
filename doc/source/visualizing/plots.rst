@@ -165,6 +165,7 @@ the following alternative options for the ``center`` keyword:
 
 * ``"center"``, ``"c"``: the domain center
 * ``"left"``, ``"l"``, ``"right"`` ``"r"``: the domain's left/right edge along the normal direction
+  (``SlicePlot``'s second argument). Remaining axes use their respective domain center values.
 * ``"min"``: the position of the minimum density
 * ``"max"``, ``"m"``: the position of the maximum density
 * ``"min/max_<field name>"``: the position of the minimum/maximum in the first field matching field name
