@@ -159,7 +159,7 @@ class PlotCallback(ABC):
             # if this is an off-axis project or slice (ie cutting plane)
             # we have to calculate where the data coords fall in the projected
             # plane
-            elif ax is None:
+            else:
                 # transpose is just to get [[x1,x2,...],[y1,y2,...],[z1,z2,...]]
                 # in the same order as plot.data.center for array arithmetic
                 coord_vectors = coord_copy.transpose() - plot.data.center
@@ -168,8 +168,6 @@ class PlotCallback(ABC):
                 # Transpose into image coords. Due to VR being not a
                 # right-handed coord system
                 ret_coord = (y, x)
-            else:
-                raise ValueError("Object being plotted must have a `data.axis` defined")
 
         # if the position is already two-coords, it is expected to be
         # in the proper projected orientation

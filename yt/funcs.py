@@ -15,6 +15,7 @@ import time
 import traceback
 import urllib
 from collections import UserDict
+from copy import deepcopy
 from functools import lru_cache, wraps
 from numbers import Number as numeric_type
 from typing import Any, Callable, Optional, Type
@@ -1236,9 +1237,11 @@ def parse_center_array(center, ds, axis: Optional[int] = None):
     default_error_message = (
         "Expected any of the following\n"
         "- 'c', 'center', 'l', 'left', 'r', 'right', 'm', 'max', or 'min'\n"
-        "- 'min' or 'max', followed by a field identifier\n"
-        "- a 3 element unyt_array with length dimensions"
+        "- a 2 element tuple with 'min' or 'max' as the first element, followed by a field identifier\n"
+        "- a 3 element array-like: for a unyt_array, expects length dimensions, otherwise code_lenght is assumed"
     )
+    # store an unmodified copy of user input to be inserted in error messages
+    center_input = deepcopy(center)
 
     if isinstance(center, str):
         centerl = center.lower()
@@ -1314,10 +1317,20 @@ def parse_center_array(center, ds, axis: Optional[int] = None):
         center = np.squeeze(center)
 
     if not isinstance(center, YTArray):
-        raise TypeError(f"Invalid center value {center!r}. " + default_error_message)
+        raise TypeError(
+            f"Received {center_input!r}, but failed to transform to a unyt_array (obtained {center!r}).\n"
+            + default_error_message
+            + "\n"
+            "If you supplied an expected type, consider filing a bug report"
+        )
 
     if center.shape != (3,):
-        raise TypeError(f"Expected an array with size 3, got {center.size}. ")
+        raise TypeError(
+            f"Received {center_input!r} and obtained {center!r} after sanitizing.\n"
+            + default_error_message
+            + "\n"
+            "If you supplied an expected type, consider filing a bug report"
+        )
 
     # make sure the return value shares all
     # unit symbols with ds.unit_registry

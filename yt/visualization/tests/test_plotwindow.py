@@ -85,6 +85,8 @@ CENTER_SPECS = (
     "Max",
     "min",
     "Min",
+    "c",
+    "C",
     "center",
     "Center",
     "left",

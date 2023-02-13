@@ -106,7 +106,7 @@ class ParticleProjectionPlot(PWViewerMPL):
          The color that will indicate the particle locations
          on the mesh. This argument is ignored if z_fields is
          not None. Default is 'b'.
-    center : 'center', 'c', 'left', 'l', 'right', 'r' id of a global extremum, or array-like
+    center : 'center', 'c', 'left', 'l', 'right', 'r', id of a global extremum, or array-like
         The coordinate of the selection's center.
         Defaults to the 'center', i.e. center of the domain.
 
@@ -483,7 +483,7 @@ def ParticlePlot(ds, x_field, y_field, z_fields=None, color="b", *args, **kwargs
     data_source : YTSelectionContainer Object
          Object to be used for data selection.  Defaults to a region covering
          the entire simulation.
-    center : 'center', 'c', 'left', 'l', 'right', 'r' id of a global extremum, or array-like
+    center : 'center', 'c', 'left', 'l', 'right', 'r', id of a global extremum, or array-like
         The coordinate of the selection's center.
         Defaults to the 'center', i.e. center of the domain.
 

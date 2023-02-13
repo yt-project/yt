@@ -974,7 +974,7 @@ class FITSSlice(FITSImageData):
         Specify the resolution of the resulting image. A single value will be
         used for both axes, whereas a tuple of values will be used for the
         individual axes. Default: 512
-    center : 'center', 'c', 'left', 'l', 'right', 'r' id of a global extremum, or array-like
+    center : 'center', 'c', 'left', 'l', 'right', 'r', id of a global extremum, or array-like
         The coordinate of the selection's center.
         Defaults to the 'center', i.e. center of the domain.
 
@@ -1071,7 +1071,7 @@ class FITSProjection(FITSImageData):
         Specify the resolution of the resulting image. A single value will be
         used for both axes, whereas a tuple of values will be used for the
         individual axes. Default: 512
-    center : 'center', 'c', 'left', 'l', 'right', 'r' id of a global extremum, or array-like
+    center : 'center', 'c', 'left', 'l', 'right', 'r', id of a global extremum, or array-like
         The coordinate of the selection's center.
         Defaults to the 'center', i.e. center of the domain.
 
@@ -1178,7 +1178,7 @@ class FITSParticleProjection(FITSImageData):
         Specify the resolution of the resulting image. A single value will be
         used for both axes, whereas a tuple of values will be used for the
         individual axes. Default: 512
-    center : 'center', 'c', 'left', 'l', 'right', 'r' id of a global extremum, or array-like
+    center : 'center', 'c', 'left', 'l', 'right', 'r', id of a global extremum, or array-like
         The coordinate of the selection's center.
         Defaults to the 'center', i.e. center of the domain.
 

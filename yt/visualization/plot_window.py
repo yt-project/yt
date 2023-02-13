@@ -1466,7 +1466,7 @@ class SlicePlot(NormalPlot):
     Keyword Arguments
     -----------------
 
-    center : 'center', 'c', 'left', 'l', 'right', 'r' id of a global extremum, or array-like
+    center : 'center', 'c', 'left', 'l', 'right', 'r', id of a global extremum, or array-like
         The coordinate of the selection's center.
         Defaults to the 'center', i.e. center of the domain.
 
@@ -1679,7 +1679,7 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
          or the axis name itself
     fields : string
          The name of the field(s) to be plotted.
-    center : 'center', 'c', 'left', 'l', 'right', 'r' id of a global extremum, or array-like
+    center : 'center', 'c', 'left', 'l', 'right', 'r', id of a global extremum, or array-like
         The coordinate of the selection's center.
         Defaults to the 'center', i.e. center of the domain.
 
@@ -1872,7 +1872,7 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
         or the axis name itself
     fields : string
         The name of the field(s) to be plotted.
-    center : 'center', 'c', 'left', 'l', 'right', 'r' id of a global extremum, or array-like
+    center : 'center', 'c', 'left', 'l', 'right', 'r', id of a global extremum, or array-like
         The coordinate of the selection's center.
         Defaults to the 'center', i.e. center of the domain.
 
