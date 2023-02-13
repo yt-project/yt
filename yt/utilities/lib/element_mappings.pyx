@@ -256,7 +256,7 @@ cdef class P1Sampler3D(ElementSampler):
             col1[i] = vertices[3 + i]     - vertices[9 + i]
             col2[i] = vertices[6 + i]     - vertices[9 + i]
 
-        d = determinant_3x3(col0, col1, col2)
+        d = determinant_3x3(col0, col1, col2) + 1e-16
         mapped_x[0] = determinant_3x3(bvec, col1, col2)/d
         mapped_x[1] = determinant_3x3(col0, bvec, col2)/d
         mapped_x[2] = determinant_3x3(col0, col1, bvec)/d
@@ -388,7 +388,7 @@ cdef class NonlinearSolveSampler3D(ElementSampler):
         # begin Newton iteration
         while (err_c > self.tolerance and iterations < self.max_iter):
             self.jac(r, s, t, x, vertices, physical_x)
-            d = determinant_3x3(r, s, t)
+            d = determinant_3x3(r, s, t) + 1e-16
 
             s_n[0] = - (determinant_3x3(f, s, t)/d)
             s_n[1] = - (determinant_3x3(r, f, t)/d)
@@ -841,7 +841,7 @@ cdef class NonlinearSolveSampler2D(ElementSampler):
         # begin Newton iteration
         while (err_c > self.tolerance and iterations < self.max_iter):
             self.jac(&A[0], &A[2], x, vertices, physical_x)
-            d = (A[0]*A[3] - A[1]*A[2])
+            d = (A[0]*A[3] - A[1]*A[2])  + 1e-16
 
             s_n[0] = -( A[3]*f[0] - A[2]*f[1]) / d
             s_n[1] = -(-A[1]*f[0] + A[0]*f[1]) / d
