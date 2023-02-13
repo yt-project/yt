@@ -729,8 +729,8 @@ class ParticleImageBuffer(FixedResolutionBuffer):
                 px,
                 py,
                 pz,
-                self.data_source.center,
-                self.data_source.width,
+                self.data_source.center.to("code_length").d,
+                self.data_source.width.to("code_length").d,
                 self.data_source.normal_vector,
                 self.data_source.north_vector,
             )
