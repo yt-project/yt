@@ -6,16 +6,17 @@ from yt.data_objects.profiles import create_profile
 from yt.data_objects.static_output import Dataset
 from yt.funcs import fix_axis, iter_fields
 from yt.units.yt_array import YTArray
+from yt.utilities.orientation import Orientation
 from yt.visualization.fixed_resolution import ParticleImageBuffer
 from yt.visualization.profile_plotter import PhasePlot
 
 from .plot_window import PWViewerMPL, get_axes_unit, get_window_parameters
 
 
-class ParticleAxisAlignedDummyDataSource:
+class ParticleDummyDataSource:
     _type_name = "Particle"
     _dimensionality = 2
-    _con_args = ("center", "axis", "width", "fields", "weight_field")
+    _con_args = ("center", "width", "fields", "weight_field")
     _tds_attrs = ()
     _key_fields: List[str] = []
 
@@ -23,20 +24,23 @@ class ParticleAxisAlignedDummyDataSource:
         self,
         center,
         ds,
-        axis,
         width,
         fields,
+        dd,
         weight_field=None,
         field_parameters=None,
-        data_source=None,
         deposition="ngp",
         density=False,
     ):
         self.center = center
         self.ds = ds
-        self.axis = axis
         self.width = width
+        self.dd = dd
+
+        if weight_field is not None:
+            weight_field = self.dd._determine_fields(weight_field)[0]
         self.weight_field = weight_field
+
         self.deposition = deposition
         self.density = density
 
@@ -44,22 +48,6 @@ class ParticleAxisAlignedDummyDataSource:
             self.field_parameters = {}
         else:
             self.field_parameters = field_parameters
-
-        LE = center - 0.5 * YTArray(width)
-        RE = center + 0.5 * YTArray(width)
-        for ax in range(3):
-            if not ds.periodicity[ax]:
-                LE[ax] = max(LE[ax], ds.domain_left_edge[ax])
-                RE[ax] = min(RE[ax], ds.domain_right_edge[ax])
-
-        self.dd = ds.region(
-            center,
-            LE,
-            RE,
-            fields,
-            field_parameters=field_parameters,
-            data_source=data_source,
-        )
 
         fields = self.dd._determine_fields(fields)
         self.fields = fields
@@ -76,6 +64,92 @@ class ParticleAxisAlignedDummyDataSource:
             return self.field_parameters[name]
         else:
             return default
+
+
+class ParticleAxisAlignedDummyDataSource(ParticleDummyDataSource):
+    _con_args = ("center", "axis", "width", "fields", "weight_field")
+
+    def __init__(
+        self,
+        center,
+        ds,
+        axis,
+        width,
+        fields,
+        weight_field=None,
+        field_parameters=None,
+        data_source=None,
+        deposition="ngp",
+        density=False,
+    ):
+        self.axis = axis
+
+        LE = center - 0.5 * YTArray(width)
+        RE = center + 0.5 * YTArray(width)
+        for ax in range(3):
+            if not ds.periodicity[ax]:
+                LE[ax] = max(LE[ax], ds.domain_left_edge[ax])
+                RE[ax] = min(RE[ax], ds.domain_right_edge[ax])
+
+        dd = ds.region(
+            center,
+            LE,
+            RE,
+            fields,
+            field_parameters=field_parameters,
+            data_source=data_source,
+        )
+
+        super().__init__(
+            center,
+            ds,
+            width,
+            fields,
+            dd,
+            weight_field=weight_field,
+            field_parameters=field_parameters,
+            deposition=deposition,
+            density=density,
+        )
+
+
+class ParticleOffAxisDummyDataSource(ParticleDummyDataSource):
+    def __init__(
+        self,
+        center,
+        ds,
+        normal_vector,
+        width,
+        fields,
+        weight_field=None,
+        field_parameters=None,
+        data_source=None,
+        deposition="ngp",
+        density=False,
+        north_vector=None,
+    ):
+        self.axis = 4  # always true for oblique data objects
+        self.normal_vector = normal_vector
+
+        if data_source is None:
+            dd = ds.all_data()
+        else:
+            dd = data_source
+
+        self.north_vector = north_vector
+        self.orienter = Orientation(normal_vector, north_vector=north_vector)
+
+        super().__init__(
+            center,
+            ds,
+            width,
+            fields,
+            dd,
+            weight_field=weight_field,
+            field_parameters=field_parameters,
+            deposition=deposition,
+            density=density,
+        )
 
 
 class ParticleProjectionPlot(PWViewerMPL):

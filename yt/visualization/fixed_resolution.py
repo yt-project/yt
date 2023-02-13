@@ -14,7 +14,10 @@ from yt.utilities.lib.api import (  # type: ignore
     CICDeposit_2,
     add_points_to_greyscale_image,
 )
-from yt.utilities.lib.pixelization_routines import pixelize_cylinder
+from yt.utilities.lib.pixelization_routines import (
+    pixelize_cylinder,
+    rotate_particle_coord,
+)
 from yt.utilities.math_utils import compute_stddev_image
 from yt.utilities.on_demand_imports import _h5py as h5py
 
@@ -687,11 +690,12 @@ class ParticleImageBuffer(FixedResolutionBuffer):
 
         # set up the axis field names
         axis = self.axis
-        self.xax = self.ds.coordinates.x_axis[axis]
-        self.yax = self.ds.coordinates.y_axis[axis]
-        ax_field_template = "particle_position_%s"
-        self.x_field = ax_field_template % self.ds.coordinates.axis_name[self.xax]
-        self.y_field = ax_field_template % self.ds.coordinates.axis_name[self.yax]
+        if axis != 4:
+            self.xax = self.ds.coordinates.x_axis[axis]
+            self.yax = self.ds.coordinates.y_axis[axis]
+            ax_field_template = "particle_position_%s"
+            self.x_field = ax_field_template % self.ds.coordinates.axis_name[self.xax]
+            self.y_field = ax_field_template % self.ds.coordinates.axis_name[self.yax]
 
     def __getitem__(self, item):
         if item in self.data:
@@ -714,10 +718,20 @@ class ParticleImageBuffer(FixedResolutionBuffer):
                 b = float(b.in_units("code_length"))
             bounds.append(b)
 
+        dd = self.data_source.dd
+
         ftype = item[0]
-        x_data = self.data_source.dd[ftype, self.x_field]
-        y_data = self.data_source.dd[ftype, self.y_field]
-        data = self.data_source.dd[item]
+        if self.axis == 4:
+            px = dd[ftype, "particle_position_x"]
+            py = dd[ftype, "particle_position_y"]
+            pz = dd[ftype, "particle_position_z"]
+            px_rotated, py_rotated, _, _, _, _ = rotate_particle_coord(
+                px, py, pz, dd.center, dd.width, dd.normal_vector, dd.north_vector
+            )
+        else:
+            x_data = dd[ftype, self.x_field]
+            y_data = dd[ftype, self.y_field]
+        data = dd[item]
 
         # handle periodicity
         dx = x_data.in_units("code_length").d - bounds[0]
@@ -739,7 +753,7 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         if weight_field is None:
             weight_data = np.ones_like(data.v)
         else:
-            weight_data = self.data_source.dd[weight_field]
+            weight_data = dd[weight_field]
         splat_vals = weight_data[mask] * data[mask]
 
         x_bin_edges = np.linspace(0.0, 1.0, self.buff_size[0] + 1)
