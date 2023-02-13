@@ -43,9 +43,8 @@ def test_invalid_center_type_default_error(reusable_fake_dataset, user_input):
     ds = reusable_fake_dataset
     with pytest.raises(
         TypeError,
-        match=re.escape(
-            f"Invalid center value {user_input!r}. " + DEFAUT_ERROR_MESSAGE
-        ),
+        match=re.escape(f"Received {user_input!r}, ")
+        + r"but failed to transform to a unyt_array \(obtained .+\)\.",
     ):
         # at the time of writing `axis` is an unused parameter of the base
         # sanitize center method, which is used directly for cartesian coordinate handlers
@@ -91,18 +90,22 @@ def test_invalid_center_type_default_error(reusable_fake_dataset, user_input):
         (
             unyt_array([0.5] * 2, "cm"),
             TypeError,
-            re.escape("Expected an array with size 3, got 2."),
+            re.escape("Received unyt_array([0.5, 0.5], 'cm')"),
         ),
         (
             unyt_array([0.5] * 4, "cm"),
             TypeError,
-            re.escape("Expected an array with size 3, got 4."),
+            # don't attempt to match error message as details of how
+            # a unyt array with more than a couple elements is displayed are out of our control
+            "...",
         ),
         (
             # check that the whole shape is used in validation, not just the length (number of rows)
             unyt_array([0.5] * 6, "cm").reshape(3, 2),
             TypeError,
-            re.escape("Expected an array with size 3, got 6."),
+            # don't attempt to match error message as details of how
+            # a unyt array with more than a couple elements is displayed are out of our control
+            "...",
         ),
     ),
 )
