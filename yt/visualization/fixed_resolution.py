@@ -722,20 +722,28 @@ class ParticleImageBuffer(FixedResolutionBuffer):
 
         ftype = item[0]
         if self.axis == 4:
-            px = dd[ftype, "particle_position_x"]
-            py = dd[ftype, "particle_position_y"]
-            pz = dd[ftype, "particle_position_z"]
-            px_rotated, py_rotated, _, _, _, _ = rotate_particle_coord(
-                px, py, pz, dd.center, dd.width, dd.normal_vector, dd.north_vector
+            px = dd[ftype, "particle_position_x"].to("code_length").d
+            py = dd[ftype, "particle_position_y"].to("code_length").d
+            pz = dd[ftype, "particle_position_z"].to("code_length").d
+            x_data, y_data, _, _, _, _ = rotate_particle_coord(
+                px,
+                py,
+                pz,
+                self.data_source.center,
+                self.data_source.width,
+                self.data_source.normal_vector,
+                self.data_source.north_vector,
             )
+            x_data = np.array(x_data)
+            y_data = np.array(y_data)
         else:
-            x_data = dd[ftype, self.x_field]
-            y_data = dd[ftype, self.y_field]
+            x_data = dd[ftype, self.x_field].in_units("code_length").d
+            y_data = dd[ftype, self.y_field].in_units("code_length").d
         data = dd[item]
 
         # handle periodicity
-        dx = x_data.in_units("code_length").d - bounds[0]
-        dy = y_data.in_units("code_length").d - bounds[2]
+        dx = x_data - bounds[0]
+        dy = y_data - bounds[2]
         if self.periodic:
             dx %= float(self._period[0].in_units("code_length"))
             dy %= float(self._period[1].in_units("code_length"))

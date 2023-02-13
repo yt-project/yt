@@ -129,14 +129,30 @@ class ParticleOffAxisDummyDataSource(ParticleDummyDataSource):
         north_vector=None,
     ):
         self.axis = 4  # always true for oblique data objects
-        self.normal_vector = normal_vector
+        normal = np.array(normal_vector)
+        normal = normal / np.linalg.norm(normal)
+
+        # If north_vector is None, we set the default here.
+        # This is chosen so that if normal_vector is one of the
+        # cartesian coordinate axes, the projection will match
+        # the corresponding on-axis projection.
+        if north_vector is None:
+            vecs = np.identity(3)
+            t = np.cross(vecs, normal).sum(axis=1)
+            ax = t.argmax()
+            east_vector = np.cross(vecs[ax, :], normal).ravel()
+            north = np.cross(normal, east_vector).ravel()
+        else:
+            north = np.array(north_vector)
+            north = north / np.linalg.norm(north)
+        self.normal_vector = normal
+        self.north_vector = north
 
         if data_source is None:
             dd = ds.all_data()
         else:
             dd = data_source
 
-        self.north_vector = north_vector
         self.orienter = Orientation(normal_vector, north_vector=north_vector)
 
         super().__init__(

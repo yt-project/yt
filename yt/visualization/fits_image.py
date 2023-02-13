@@ -1390,8 +1390,6 @@ class FITSParticleOffAxisProjection(FITSImageData):
         field_parameters=None,
         data_source=None,
         north_vector=None,
-        *,
-        origin="domain",
     ):
         fields = list(iter_fields(fields))
         center, dcenter = ds.coordinates.sanitize_center(center, 4)
@@ -1415,7 +1413,14 @@ class FITSParticleOffAxisProjection(FITSImageData):
             north_vector=north_vector,
         )
         w, frb, lunit = construct_image(
-            ds, normal, ps, dcenter, image_res, width, length_unit, origin=origin
+            ds,
+            normal,
+            ps,
+            dcenter,
+            image_res,
+            width,
+            length_unit,
+            origin="image",
         )
         super().__init__(frb, fields=fields, length_unit=lunit, wcs=w)
 
