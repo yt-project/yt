@@ -712,39 +712,36 @@ class ParticleImageBuffer(FixedResolutionBuffer):
             deposition,
         )
 
-        bounds = []
-        for b in self.bounds:
-            if hasattr(b, "in_units"):
-                b = float(b.in_units("code_length"))
-            bounds.append(b)
-
         dd = self.data_source.dd
 
         ftype = item[0]
         if self.axis == 4:
-            px = dd[ftype, "particle_position_x"].to("code_length").d
-            py = dd[ftype, "particle_position_y"].to("code_length").d
-            pz = dd[ftype, "particle_position_z"].to("code_length").d
-            x_data, y_data, _, _, _, _ = rotate_particle_coord(
-                px,
-                py,
-                pz,
+            x_data, y_data, rbx0, rbx1, rby0, rby1 = rotate_particle_coord(
+                dd[ftype, "particle_position_x"].to_value("code_length"),
+                dd[ftype, "particle_position_y"].to_value("code_length"),
+                dd[ftype, "particle_position_z"].to_value("code_length"),
                 self.data_source.center.to("code_length").d,
                 self.data_source.width,
                 self.data_source.normal_vector,
                 self.data_source.north_vector,
             )
+            bounds = [rbx0, rbx1, rby0, rby1]
             x_data = np.array(x_data)
             y_data = np.array(y_data)
         else:
-            x_data = dd[ftype, self.x_field].in_units("code_length").d
-            y_data = dd[ftype, self.y_field].in_units("code_length").d
+            bounds = []
+            for b in self.bounds:
+                if hasattr(b, "in_units"):
+                    b = float(b.in_units("code_length"))
+                bounds.append(b)
+            x_data = dd[ftype, self.x_field].to_value("code_length")
+            y_data = dd[ftype, self.y_field].to_value("code_length")
         data = dd[item]
 
         # handle periodicity
         dx = x_data - bounds[0]
         dy = y_data - bounds[2]
-        if self.periodic:
+        if self.axis != 4 and self.periodic:
             dx %= float(self._period[0].in_units("code_length"))
             dy %= float(self._period[1].in_units("code_length"))
 
