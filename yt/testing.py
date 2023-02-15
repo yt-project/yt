@@ -1261,8 +1261,8 @@ def assert_allclose_units(actual, desired, rtol=1e-7, atol=0, **kwargs):
         des = des.in_units(act.units)
     except UnitOperationError as e:
         raise AssertionError(
-            "Units of actual (%s) and desired (%s) do not have "
-            "equivalent dimensions" % (act.units, des.units)
+            f"Units of actual ({act.units}) and desired ({des.units}) "
+            "do not have equivalent dimensions"
         ) from e
 
     rt = YTArray(rtol)
@@ -1276,8 +1276,8 @@ def assert_allclose_units(actual, desired, rtol=1e-7, atol=0, **kwargs):
         at = at.in_units(act.units)
     except UnitOperationError as e:
         raise AssertionError(
-            "Units of atol (%s) and actual (%s) do not have "
-            "equivalent dimensions" % (at.units, act.units)
+            f"Units of atol ({at.units}) and actual ({act.units}) "
+            "do not have equivalent dimensions"
         ) from e
 
     # units have been validated, so we strip units before calling numpy
@@ -1316,12 +1316,9 @@ def assert_fname(fname):
 
     extension = os.path.splitext(fname)[1]
 
-    assert (
-        image_type == extension
-    ), "Expected an image of type '{}' but '{}' is an image of type '{}'".format(
-        extension,
-        fname,
-        image_type,
+    assert image_type == extension, (
+        f"Expected an image of type {extension!r} but {fname!r} "
+        "is an image of type {image_type!r}"
     )
 
 

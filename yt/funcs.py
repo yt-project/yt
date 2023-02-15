@@ -1099,8 +1099,8 @@ def array_like_field(data, x, field):
 def validate_3d_array(obj):
     if not is_sequence(obj) or len(obj) != 3:
         raise TypeError(
-            "Expected an array of size (3,), received '%s' of "
-            "length %s" % (str(type(obj)).split("'")[1], len(obj))
+            "Expected an array of size (3,), received '{}' of "
+            "length {}".format(str(type(obj)).split("'")[1], len(obj))
         )
 
 
@@ -1152,15 +1152,15 @@ def validate_float(obj):
     if is_sequence(obj) and (len(obj) != 1 or not isinstance(obj[0], numeric_type)):
         raise TypeError(
             "Expected a numeric value (or size-1 array), "
-            "received '%s' of length %s" % (str(type(obj)).split("'")[1], len(obj))
+            "received '{}' of length {}".format(str(type(obj)).split("'")[1], len(obj))
         )
 
 
 def validate_sequence(obj):
     if obj is not None and not is_sequence(obj):
         raise TypeError(
-            "Expected an iterable object,"
-            " received '%s'" % str(type(obj)).split("'")[1]
+            "Expected an iterable object, "
+            "received '%s'" % str(type(obj)).split("'")[1]
         )
 
 
@@ -1188,14 +1188,13 @@ def validate_object(obj, data_type):
 
 def validate_axis(ds, axis):
     if ds is not None:
-        valid_axis = ds.coordinates.axis_name.keys()
+        valid_axis = sorted(
+            list(ds.coordinates.axis_name.keys()), key=lambda k: str(k).swapcase()
+        )
     else:
         valid_axis = [0, 1, 2, "x", "y", "z", "X", "Y", "Z"]
     if axis not in valid_axis:
-        raise TypeError(
-            "Expected axis of int or char type (can be %s), "
-            "received '%s'." % (list(valid_axis), axis)
-        )
+        raise TypeError(f"Expected axis to be any of {valid_axis}, received {axis!r}")
 
 
 def validate_center(center):

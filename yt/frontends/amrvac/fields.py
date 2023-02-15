@@ -97,7 +97,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
 
         us = self.ds.unit_system
         for idir, alias in enumerate(direction_aliases[self.ds.geometry], start=1):
-            if not ("amrvac", "m%d%s" % (idir, dust_flag)) in self.field_list:
+            if ("amrvac", "m%d%s" % (idir, dust_flag)) not in self.field_list:
                 break
             velocity_fn = functools.partial(_velocity, idir=idir, prefix=dust_label)
             self.add_field(
@@ -189,7 +189,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
             def _magnetic_energy_density(field, data):
                 emag = 0.5 * data["gas", "magnetic_1"] ** 2
                 for idim in "23":
-                    if not ("amrvac", f"b{idim}") in self.field_list:
+                    if ("amrvac", f"b{idim}") not in self.field_list:
                         break
                     emag += 0.5 * data["gas", f"magnetic_{idim}"] ** 2
                 # in AMRVAC the magnetic field is defined in units where mu0 = 1,
