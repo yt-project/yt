@@ -22,6 +22,7 @@ from yt.utilities.answer_testing.testing_utilities import (
 MPL_VERSION = Version(version("matplotlib"))
 NUMPY_VERSION = Version(version("numpy"))
 PILLOW_VERSION = Version(version("pillow"))
+SETUPTOOLS_VERSION = Version(version("setuptools"))
 
 
 def pytest_addoption(parser):
@@ -84,10 +85,6 @@ def pytest_configure(config):
         # >>> warnings emitted by testing frameworks, or in testing contexts
         # we still have some yield-based tests, awaiting for transition into pytest
         "ignore::pytest.PytestCollectionWarning",
-        # imp is used in nosetest
-        "ignore:the imp module is deprecated in favour of importlib; see the module's documentation for alternative uses:DeprecationWarning",
-        # the deprecation warning message for imp changed in Python 3.10, so we ignore both versions
-        "ignore:the imp module is deprecated in favour of importlib and slated for removal in Python 3.12; see the module's documentation for alternative uses:DeprecationWarning",
         # matplotlib warnings related to the Agg backend which is used in CI, not much we can do about it
         "ignore:Matplotlib is currently using agg, which is a non-GUI backend, so cannot show the figure.:UserWarning",
         r"ignore:tight_layout.+falling back to Agg renderer:UserWarning",
@@ -108,6 +105,19 @@ def pytest_configure(config):
         "ignore:unclosed file.*:ResourceWarning",
     ):
         config.addinivalue_line("filterwarnings", value)
+
+    if find_spec("nose") is not None:
+        # this will be an actual blocker when testing on Python 3.12
+        config.addinivalue_line(
+            "filterwarnings",
+            "ignore:the imp module is deprecated in favour of importlib:DeprecationWarning",
+        )
+
+        if SETUPTOOLS_VERSION >= Version("67.3.0"):
+            config.addinivalue_line(
+                "filterwarnings",
+                r"ignore:Implementing implicit namespace packages \(as specified in PEP 420\) is preferred to `pkg_resources\.declare_namespace`\.:DeprecationWarning",
+            )
 
     if MPL_VERSION < Version("3.5.0"):
         config.addinivalue_line(
