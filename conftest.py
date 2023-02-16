@@ -116,7 +116,9 @@ def pytest_configure(config):
         if SETUPTOOLS_VERSION >= Version("67.3.0"):
             config.addinivalue_line(
                 "filterwarnings",
-                r"ignore:Implementing implicit namespace packages \(as specified in PEP 420\) is preferred to `pkg_resources\.declare_namespace`\.:DeprecationWarning",
+                r"ignore:(Deprecated call to `pkg_resources\.declare_namespace\('mpl_toolkits'\)`\.\n)?"
+                r"Implementing implicit namespace packages \(as specified in PEP 420\) "
+                r"is preferred to `pkg_resources\.declare_namespace`\.:DeprecationWarning",
             )
 
     if MPL_VERSION < Version("3.5.0"):
