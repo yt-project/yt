@@ -106,20 +106,16 @@ def pytest_configure(config):
     ):
         config.addinivalue_line("filterwarnings", value)
 
-    if find_spec("nose") is not None:
-        # this will be an actual blocker when testing on Python 3.12
+    if SETUPTOOLS_VERSION >= Version("67.3.0"):
+        # may be triggered by multiple dependencies
+        # see https://github.com/glue-viz/glue/issues/2364
+        # see https://github.com/matplotlib/matplotlib/issues/25244
         config.addinivalue_line(
             "filterwarnings",
-            "ignore:the imp module is deprecated in favour of importlib:DeprecationWarning",
+            r"ignore:(Deprecated call to `pkg_resources\.declare_namespace\('.*'\)`\.\n)?"
+            r"Implementing implicit namespace packages \(as specified in PEP 420\) "
+            r"is preferred to `pkg_resources\.declare_namespace`\.:DeprecationWarning",
         )
-
-        if SETUPTOOLS_VERSION >= Version("67.3.0"):
-            config.addinivalue_line(
-                "filterwarnings",
-                r"ignore:(Deprecated call to `pkg_resources\.declare_namespace\('mpl_toolkits'\)`\.\n)?"
-                r"Implementing implicit namespace packages \(as specified in PEP 420\) "
-                r"is preferred to `pkg_resources\.declare_namespace`\.:DeprecationWarning",
-            )
 
     if MPL_VERSION < Version("3.5.0"):
         config.addinivalue_line(
