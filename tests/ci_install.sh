@@ -20,7 +20,7 @@ osx|macOS)
 esac
 
 # Disable excessive output
-echo "[yt]\nlog_level = 50" > yt.toml
+echo "[yt]\nlog_level = 50\n" > yt.toml
 cat yt.toml
 
 # Sets default backend to Agg
