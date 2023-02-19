@@ -39,7 +39,7 @@ def capturable_logger(caplog):
     ytLogger.propagate = propagate
 
 
-@requires_module_pytest("pandas", "pooch")
+@requires_module_pytest("pandas", "pooch", "f90nml")
 @pytest.mark.usefixtures("capturable_logger")
 @pytest.mark.parametrize(
     "fn, archive, exact_loc, class_",
