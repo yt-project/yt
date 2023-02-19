@@ -33,7 +33,7 @@ def capturable_logger(caplog):
     propagate = ytLogger.propagate
     ytLogger.propagate = True
 
-    with caplog.at_level(logging.INFO):
+    with caplog.at_level(logging.INFO, "yt"):
         yield
 
     ytLogger.propagate = propagate
