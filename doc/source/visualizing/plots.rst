@@ -164,13 +164,18 @@ If supplied without units, the center is assumed by in code units.  There are al
 the following alternative options for the ``center`` keyword:
 
 * ``"center"``, ``"c"``: the domain center
+* ``"left"``, ``"l"``, ``"right"`` ``"r"``: the domain's left/right edge along the normal direction
+  (``SlicePlot``'s second argument). Remaining axes use their respective domain center values.
+* ``"min"``: the position of the minimum density
 * ``"max"``, ``"m"``: the position of the maximum density
+* ``"min/max_<field name>"``: the position of the minimum/maximum in the first field matching field name
 * ``("min", field)``: the position of the minimum of ``field``
 * ``("max", field)``: the position of the maximum of ``field``
 
 where for the last two objects any spatial field, such as ``"density"``,
 ``"velocity_z"``,
 etc., may be used, e.g. ``center=("min", ("gas", "temperature"))``.
+``"left"`` and ``"right"`` are not allowed for off-axis slices.
 
 The effective resolution of the plot (i.e. the number of resolution elements
 in the image itself) can be controlled with the ``buff_size`` argument:

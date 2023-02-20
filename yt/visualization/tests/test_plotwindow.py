@@ -83,13 +83,19 @@ CENTER_SPECS = (
     "M",
     "max",
     "Max",
+    "min",
+    "Min",
     "c",
     "C",
     "center",
     "Center",
+    "left",
+    "right",
     [0.5, 0.5, 0.5],
     [[0.2, 0.3, 0.4], "cm"],
     YTArray([0.3, 0.4, 0.7], "cm"),
+    ("max", ("gas", "density")),
+    ("min", ("gas", "density")),
 )
 
 WIDTH_SPECS = {

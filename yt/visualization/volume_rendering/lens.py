@@ -585,8 +585,8 @@ class FisheyeLens(Lens):
 
     def __repr__(self):
         disp = (
-            "<Lens Object>:\n\tlens_type:fisheye\n\tviewpoint:%s"
-            "\nt\tfov:%s\n\tradius:%s" % (self.viewpoint, self.fov, self.radius)
+            f"<Lens Object>:\n\tlens_type:fisheye\n\tviewpoint:{self.viewpoint}"
+            f"\nt\tfov:{self.fov}\n\tradius:{self.radius}"
         )
         return disp
 

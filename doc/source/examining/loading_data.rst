@@ -2144,7 +2144,7 @@ The in-memory dataset can then be visualized as usual, e.g.:
 
 .. code-block:: python
 
-    sl = yt.SlicePlot(ds, "z", "test")
+    sl = yt.SlicePlot(ds, "z", ("connect1", "test"))
     sl.annotate_mesh_lines()
 
 Note that load_unstructured_mesh can take either a single mesh or a list of meshes.

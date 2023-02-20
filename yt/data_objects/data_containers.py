@@ -13,9 +13,8 @@ from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.profiles import create_profile
 from yt.fields.field_exceptions import NeedsGridType
 from yt.frontends.ytdata.utilities import save_as_dataset
-from yt.funcs import get_output_filename, iter_fields, mylog
+from yt.funcs import get_output_filename, iter_fields, mylog, parse_center_array
 from yt.units._numpy_wrapper_functions import uconcatenate
-from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.amr_kdtree.api import AMRKDTree
 from yt.utilities.exceptions import (
     YTCouldNotGenerateField,
@@ -177,43 +176,10 @@ class YTDataContainer(abc.ABC):
         if center is None:
             self.center = None
             return
-        elif isinstance(center, YTArray):
-            self.center = self.ds.arr(center.astype("float64"))
-            self.center.convert_to_units("code_length")
-        elif isinstance(center, (list, tuple, np.ndarray)):
-            if isinstance(center[0], YTQuantity):
-                self.center = self.ds.arr([c.copy() for c in center], dtype="float64")
-                self.center.convert_to_units("code_length")
-            else:
-                self.center = self.ds.arr(center, "code_length", dtype="float64")
-        elif isinstance(center, str):
-            if center.lower() in ("c", "center"):
-                self.center = self.ds.domain_center
-            # is this dangerous for race conditions?
-            elif center.lower() in ("max", "m"):
-                self.center = self.ds.find_max(("gas", "density"))[1]
-            elif center.startswith("max_"):
-                field = self._first_matching_field(center[4:])
-                self.center = self.ds.find_max(field)[1]
-            elif center.lower() == "min":
-                self.center = self.ds.find_min(("gas", "density"))[1]
-            elif center.startswith("min_"):
-                field = self._first_matching_field(center[4:])
-                self.center = self.ds.find_min(field)[1]
         else:
-            self.center = self.ds.arr(center, "code_length", dtype="float64")
-
-        if self.center.ndim > 1:
-            mylog.debug("Removing singleton dimensions from 'center'.")
-            self.center = np.squeeze(self.center)
-            if self.center.ndim > 1:
-                msg = (
-                    "center array must be 1 dimensional, supplied center has "
-                    f"{self.center.ndim} dimensions with shape {self.center.shape}."
-                )
-                raise YTException(msg)
-
-        self.set_field_parameter("center", self.center)
+            axis = getattr(self, "axis", None)
+            self.center = parse_center_array(center, ds=self.ds, axis=axis)
+            self.set_field_parameter("center", self.center)
 
     def get_field_parameter(self, name, default=None):
         """

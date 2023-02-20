@@ -26,6 +26,7 @@ from typing import (
 )
 
 import numpy as np
+import unyt as un
 from more_itertools import unzip
 from sympy import Symbol
 from unyt import Unit, UnitSystem, unyt_quantity
@@ -2036,6 +2037,18 @@ class Dataset(abc.ABC):
             prefixable=prefixable,
             registry=self.unit_registry,
         )
+
+    def _is_within_domain(self, point) -> bool:
+        assert len(point) == len(self.domain_left_edge)
+        assert point.units.dimensions == un.dimensions.length
+        for i, x in enumerate(point):
+            if self.periodicity[i]:
+                continue
+            if x < self.domain_left_edge[i]:
+                return False
+            if x > self.domain_right_edge[i]:
+                return False
+        return True
 
 
 def _reconstruct_ds(*args, **kwargs):

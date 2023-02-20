@@ -265,12 +265,41 @@ exclude = '''
 | yt/visualization/_colormap_data.py
 '''
 
+[tool.ruff]
+target-version = "py38"  # https://github.com/charliermarsh/ruff/issues/2039
+exclude = [
+    "doc",
+    "benchmarks",
+    "*/api.py",
+    "*/__init__.py",
+    "*/__config__.py",
+    "yt/units",
+    "yt/frontends/stream/sample_data",
+    "yt/visualization/_mpl_imports.py",
+    "yt/utilities/fits_image.py",
+    "yt/utilities/lodgeit.py",
+    "yt/mods.py",
+    "yt/visualization/_colormap_data.py",
+]
+select = [
+    "E",
+    "F",
+    "W",
+    "B",    # flake8-bugbear
+    "G",    # flake8-logging-format
+    "YTT",  # flake8-2020
+    "UP",   # pyupgrade
+    "I",    # isort
+]
+ignore = [
+    "E501",  # line too long
+    "E741",  # Do not use variables named 'I', 'O', or 'l'
+]
 
-[tool.isort]
-profile = "black"
-combine_as_imports = true
-skip =  ["venv", "benchmarks"]
-known_third_party = [
+
+[tool.ruff.isort]
+combine-as-imports = true
+known-third-party = [
   "IPython",
   "nose",
   "numpy",
@@ -286,8 +315,7 @@ known_third_party = [
   "pyx",
   "glue",
 ]
-known_first_party = ["yt"]
-sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+known-first-party = ["yt"]
 
 # The -s option prevents pytest from capturing output sent to stdout
 # -v runs pytest in verbose mode

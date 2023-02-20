@@ -1106,8 +1106,8 @@ class YTNotebookCmd(YTCommand):
         print("where the first number is the port on your local machine. ")
         print()
         print(
-            "If you are using %s on your machine already, try "
-            "-L8889:localhost:%s" % (app.port, app.port)
+            f"If you are using {app.port} on your machine already, "
+            f"try -L8889:localhost:{app.port}"
         )
         print()
         print("***************************************************************")
