@@ -1048,13 +1048,6 @@ class PhasePlot(ImagePlotContainer):
         if self._plot_valid:
             return
         for f, data in self.profile.items():
-            fig = None
-            axes = None
-            cax = None
-            draw_axes = True
-            xlim = self._xlim
-            ylim = self._ylim
-
             if f in self.plots:
                 pnh = self.plots[f].norm_handler
                 cbh = self.plots[f].colorbar_handler
@@ -1067,6 +1060,10 @@ class PhasePlot(ImagePlotContainer):
                 pnh, cbh = self._get_default_handlers(
                     field=f, default_display_units=self.profile[f].units
                 )
+                fig = None
+                axes = None
+                cax = None
+                draw_axes = True
 
             x_scale, y_scale, z_scale = self._get_field_log(f, self.profile)
             x_title, y_title, z_title = self._get_field_title(f, self.profile)
@@ -1105,8 +1102,8 @@ class PhasePlot(ImagePlotContainer):
             self.plots[f].axes.yaxis.set_label_text(y_title)
             self.plots[f].cax.yaxis.set_label_text(z_title)
 
-            self.plots[f].axes.set_xlim(xlim)
-            self.plots[f].axes.set_ylim(ylim)
+            self.plots[f].axes.set_xlim(self._xlim)
+            self.plots[f].axes.set_ylim(self._ylim)
 
             if f in self._plot_text:
                 self.plots[f].axes.text(
