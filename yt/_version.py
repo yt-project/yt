@@ -7,7 +7,7 @@ __all__ = [
     "version_info",
 ]
 
-__version__ = "4.2.dev0"  # keep in sync with setup.cfg
+__version__ = "4.2.dev0"  # keep in sync with pyproject.toml
 
 
 class VersionTuple(NamedTuple):
