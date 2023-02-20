@@ -103,7 +103,12 @@ def save_as_dataset(ds, filename, data, field_types=None, extra_attrs=None):
         _yt_array_hdf5_attr(fh, "unit_registry_json", ds.unit_registry.to_json())
 
     if hasattr(ds, "unit_system"):
-        _yt_array_hdf5_attr(fh, "unit_system_name", ds.unit_system.name.split("_")[0])
+        # Note: ds._unit_system_name is written here rather than
+        # ds.unit_system.name because for a 'code' unit system, ds.unit_system.name
+        # is a hash, not a unit system. And on re-load, we want to designate
+        # a unit system not a hash value.
+        # See https://github.com/yt-project/yt/issues/4315 for more background.
+        _yt_array_hdf5_attr(fh, "unit_system_name", ds._unit_system_name)
 
     for attr in base_attrs:
         if isinstance(ds, dict):
