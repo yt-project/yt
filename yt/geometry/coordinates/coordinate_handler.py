@@ -6,7 +6,7 @@ from typing import Optional, Tuple
 import numpy as np
 
 from yt._typing import AxisOrder
-from yt.funcs import fix_unitary, is_sequence, validate_width_tuple
+from yt.funcs import fix_unitary, is_sequence, parse_center_array, validate_width_tuple
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTCoordinateNotImplemented, YTInvalidWidthError
 
@@ -325,34 +325,7 @@ class CoordinateHandler(abc.ABC):
         return width
 
     def sanitize_center(self, center, axis):
-        if isinstance(center, str):
-            if center.lower() == "m" or center.lower() == "max":
-                v, center = self.ds.find_max(("gas", "density"))
-                center = self.ds.arr(center, "code_length")
-            elif center.lower() == "c" or center.lower() == "center":
-                # domain_left_edge and domain_right_edge might not be
-                # initialized until we create the index, so create it
-                self.ds.index
-                center = (self.ds.domain_left_edge + self.ds.domain_right_edge) / 2
-            else:
-                raise RuntimeError(f'center keyword "{center}" not recognized')
-        elif isinstance(center, YTArray):
-            return self.ds.arr(center), self.convert_to_cartesian(center)
-        elif is_sequence(center):
-            if isinstance(center[0], str) and isinstance(center[1], str):
-                if center[0].lower() == "min":
-                    v, center = self.ds.find_min(center[1])
-                elif center[0].lower() == "max":
-                    v, center = self.ds.find_max(center[1])
-                else:
-                    raise RuntimeError(f'center keyword "{center}" not recognized')
-                center = self.ds.arr(center, "code_length")
-            elif is_sequence(center[0]) and isinstance(center[1], str):
-                center = self.ds.arr(center[0], center[1])
-            else:
-                center = self.ds.arr(center, "code_length")
-        else:
-            raise RuntimeError(f'center keyword "{center}" not recognized')
+        center = parse_center_array(center, ds=self.ds, axis=axis)
         # This has to return both a center and a display_center
         display_center = self.convert_to_cartesian(center)
         return center, display_center
