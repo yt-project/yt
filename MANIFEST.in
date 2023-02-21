@@ -7,7 +7,6 @@ include yt/utilities/tests/cosmology_answers.yml
 include yt/utilities/mesh_types.yaml
 exclude scripts/pr_backport.py
 exclude yt/utilities/lib/cykdtree/c_kdtree.cpp
-exclude .flake8
 prune docker
 prune tests
 prune answer-store
@@ -27,4 +26,4 @@ include yt/py.typed
 prune yt/frontends/_skeleton
 recursive-include yt/frontends/amrvac *.par
 exclude .codecov.yml .coveragerc .git-blame-ignore-revs .gitmodules .hgchurn .mailmap
-exclude .pre-commit-config.yaml clean.sh nose_answer.cfg nose_unit.cfg
+exclude .pre-commit-config.yaml clean.sh nose_answer.cfg nose_unit.cfg nose_ignores.txt
