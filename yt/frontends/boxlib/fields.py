@@ -446,7 +446,15 @@ class MaestroFieldInfo(FieldInfoContainer):
     def setup_fluid_fields(self):
         unit_system = self.ds.unit_system
         # pick the correct temperature field
-        if self.ds.parameters["use_tfromp"]:
+        tfromp = False
+        if "use_tfromp" in self.ds.parameters:
+            # original MAESTRO (F90) code
+            tfromp = self.ds.parameters["use_tfromp"]
+        elif "maestro.use_tfromp" in self.ds.parameters:
+            # new MAESTROeX (C++) code
+            tfromp = self.ds.parameters["maestro.use_tfromp"]
+
+        if tfromp:
             self.alias(
                 ("gas", "temperature"),
                 ("boxlib", "tfromp"),
