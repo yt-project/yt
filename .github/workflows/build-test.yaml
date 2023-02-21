@@ -84,14 +84,10 @@ jobs:
       run: source ./tests/ci_install.sh
     - name: Run Tests (pytest)
       if: matrix.test-runner == 'pytest'
-      env:
-        testsuite: ${{ matrix.tests-type }}
       run: pytest --color=yes
     - name: Run Tests (nose)
       if: matrix.test-runner == 'nose'
-      env:
-        testsuite: ${{ matrix.tests-type }}
-      run: python -m nose -c nose_${testsuite}.cfg --traverse-namespace
+      run: cat nose_ignores.txt | xargs python -m nose -c nose_unit.cfg --traverse-namespace
     - name: Report Failed Answers
       if: ${{ matrix.tests-type == 'answer' && failure() }}
       shell: bash
