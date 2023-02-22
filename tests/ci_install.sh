@@ -19,10 +19,6 @@ osx|macOS)
     ;;
 esac
 
-# Disable excessive output
-echo "[yt]\nlog_level = 50" > yt.toml
-cat yt.toml
-
 # Sets default backend to Agg
 cp tests/matplotlibrc .
 
@@ -55,5 +51,9 @@ else
    # test with no special requirements
    python -m pip install -e ".[test]"
 fi
+
+# Disable excessive output
+yt config set --local yt log_level 50
+cat yt.toml
 
 set +x
