@@ -358,7 +358,7 @@ class FixedResolutionBuffer:
             fields = list(self.data.keys())
         output = h5py.File(filename, mode="a")
         for field in fields:
-            output.create_dataset(field, data=self[field])
+            output.create_dataset("_".join(field), data=self[field])
         output.close()
 
     def to_fits_data(self, fields=None, other_keys=None, length_unit=None, **kwargs):
