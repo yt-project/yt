@@ -87,10 +87,13 @@ def field_values(ds, field, obj_type=None, particle_type=False):
     # If needed build an instance of the dataset type
     obj = create_obj(ds, obj_type)
     determined_field = obj._determine_fields(field)[0]
+    fd = ds.field_info[determined_field]
     # Get the proper weight field depending on if we're looking at
     # particles or not
     if particle_type:
         weight_field = (determined_field[0], "particle_ones")
+    elif fd.is_sph_field:
+        weight_field = (determined_field[0], "ones")
     else:
         weight_field = ("index", "ones")
     # Get the average, min, and max
