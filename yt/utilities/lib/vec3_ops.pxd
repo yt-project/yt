@@ -1,5 +1,5 @@
 cimport cython
-cimport cython.floating
+from cython cimport floating
 from libc.math cimport sqrt
 
 
