@@ -54,7 +54,7 @@ def test_particle_generator():
 
     def new_indices():
         # We just add new indices onto the existing ones
-        return np.arange(np.product(pdims)) + num_particles
+        return np.arange(np.prod(pdims)) + num_particles
 
     le = np.array([0.25, 0.25, 0.25])
     re = np.array([0.75, 0.75, 0.75])
@@ -97,7 +97,7 @@ def test_particle_generator():
     # Test the uniqueness of tags
     tags = np.concatenate([grid[("all", "particle_index")] for grid in ds.index.grids])
     tags.sort()
-    assert_equal(tags, np.arange(np.product(pdims) + num_particles))
+    assert_equal(tags, np.arange(np.prod(pdims) + num_particles))
 
     del tags
 
@@ -108,7 +108,7 @@ def test_particle_generator():
         pdata[field] = dd[field]
 
     # Test the "from-list" generator and particle field overwrite
-    num_particles3 = num_particles + np.product(pdims)
+    num_particles3 = num_particles + np.prod(pdims)
     particles3 = FromListParticleGenerator(ds, num_particles3, pdata)
     particles3.apply_to_stream(overwrite=True)
 

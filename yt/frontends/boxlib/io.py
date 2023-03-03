@@ -78,7 +78,7 @@ class IOHandlerBoxlib(BaseIOHandler):
         with open(filename, "rb") as f:
             f.seek(offset)
             f.readline()  # always skip the first line
-            arr = np.fromfile(f, "float64", np.product(shape))
+            arr = np.fromfile(f, "float64", np.prod(shape))
             arr = arr.reshape(shape, order="F")
         return arr[
             tuple(

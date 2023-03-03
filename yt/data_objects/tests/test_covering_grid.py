@@ -227,7 +227,7 @@ def test_arbitrary_grid():
                 dims = np.array(dims)
 
                 dds = (RE - LE) / dims
-                volume = ds.quan(np.product(dds), "cm**3")
+                volume = ds.quan(np.prod(dds), "cm**3")
 
                 obj = ds.arbitrary_grid(LE, RE, dims)
                 deposited_mass = obj[("deposit", "all_density")].sum() * volume
