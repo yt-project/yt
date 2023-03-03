@@ -202,7 +202,7 @@ def load_uniform_grid(
     axis_order: Optional[AxisOrder] = None,
     cell_widths=None,
     parameters=None,
-    basename=None,
+    basename: str = "UniformGridData",
 ):
     r"""Load a uniform grid of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
