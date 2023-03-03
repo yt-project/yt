@@ -343,6 +343,11 @@ class SphericalCoordinateHandler(CoordinateHandler):
 
     def sanitize_center(self, center, axis):
         center, display_center = super().sanitize_center(center, axis)
+        display_center = [
+            0.0 * display_center[0],
+            0.0 * display_center[1],
+            0.0 * display_center[2],
+        ]
         name = self.axis_name[axis]
         if name == "r":
             xxmin, xxmax, yymin, yymax = self._aitoff_bounds
@@ -355,10 +360,9 @@ class SphericalCoordinateHandler(CoordinateHandler):
             yc = (yymin + yymax) / 2
             display_center = (xc, 0 * xc, yc)
         elif name == "phi":
-            Rmin, Rmax, zmin, zmax = self._poloidal_bounds
-            xc = (Rmin + Rmax) / 2
-            yc = (zmin + zmax) / 2
-            display_center = (xc, yc)
+            # use existing center value
+            for idx in (self.axis_id["r"], self.axis_id["theta"]):
+                display_center[idx] = center[idx]
         return center, display_center
 
     def sanitize_width(self, axis, width, depth):
