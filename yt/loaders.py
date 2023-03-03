@@ -436,7 +436,7 @@ def load_amr_grids(
     default_species_fields=None,
     *,
     parameters=None,
-    basename=None,
+    basename: str = "AMRGridData",
     axis_order: Optional[AxisOrder] = None,
 ):
     r"""Load a set of grids of data into yt as a
@@ -632,10 +632,7 @@ def load_amr_grids(
         parameters=parameters,
     )
 
-    if basename is None:
-        handler.name = "AMRGridData"  # type: ignore [attr-defined]
-    else:
-        handler.name = basename  # type: ignore [attr-defined]
+    handler.name = basename  # type: ignore [attr-defined]
     handler.domain_left_edge = domain_left_edge  # type: ignore [attr-defined]
     handler.domain_right_edge = domain_right_edge  # type: ignore [attr-defined]
     handler.refine_by = refine_by  # type: ignore [attr-defined]
@@ -677,7 +674,7 @@ def load_particles(
     *,
     axis_order: Optional[AxisOrder] = None,
     parameters=None,
-    basename=None,
+    basename: str = "ParticleData",
 ):
     r"""Load a set of particles into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamParticleHandler`.
@@ -833,10 +830,7 @@ def load_particles(
         parameters=parameters,
     )
 
-    if basename is None:
-        handler.name = "ParticleData"  # type: ignore [attr-defined]
-    else:
-        handler.name = basename  # type: ignore [attr-defined]
+    handler.name = basename  # type: ignore [attr-defined]
     handler.domain_left_edge = domain_left_edge  # type: ignore [attr-defined]
     handler.domain_right_edge = domain_right_edge  # type: ignore [attr-defined]
     handler.refine_by = 2  # type: ignore [attr-defined]
@@ -873,7 +867,7 @@ def load_hexahedral_mesh(
     *,
     axis_order: Optional[AxisOrder] = None,
     parameters=None,
-    basename=None,
+    basename: str = "HexahedralMeshData",
 ):
     r"""Load a hexahedral mesh of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
@@ -997,10 +991,7 @@ def load_hexahedral_mesh(
         parameters=parameters,
     )
 
-    if basename is None:
-        handler.name = "HexahedralMeshData"  # type: ignore [attr-defined]
-    else:
-        handler.basename = basename  # type: ignore [attr-defined]
+    handler.basename = basename  # type: ignore [attr-defined]
     handler.domain_left_edge = domain_left_edge  # type: ignore [attr-defined]
     handler.domain_right_edge = domain_right_edge  # type: ignore [attr-defined]
     handler.refine_by = 2  # type: ignore [attr-defined]
@@ -1034,7 +1025,7 @@ def load_octree(
     default_species_fields=None,
     *,
     parameters=None,
-    basename=None,
+    basename: str = "OctreeData",
 ):
     r"""Load an octree mask into yt.
 
@@ -1168,10 +1159,7 @@ def load_octree(
         parameters=parameters,
     )
 
-    if basename is None:
-        handler.name = "OctreeData"
-    else:
-        handler.name = basename
+    handler.name = basename
     handler.domain_left_edge = domain_left_edge
     handler.domain_right_edge = domain_right_edge
     handler.refine_by = 2
@@ -1208,7 +1196,7 @@ def load_unstructured_mesh(
     *,
     axis_order: Optional[AxisOrder] = None,
     parameters=None,
-    basename=None,
+    basename: str = "UnstructuredMeshData",
 ):
     r"""Load an unstructured mesh of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
@@ -1421,10 +1409,7 @@ def load_unstructured_mesh(
         parameters=parameters,
     )
 
-    if basename is None:
-        handler.name = "UnstructuredMeshData"  # type: ignore [attr-defined]
-    else:
-        handler.name = basename  # type: ignore [attr-defined]
+    handler.name = basename  # type: ignore [attr-defined]
     handler.domain_left_edge = domain_left_edge  # type: ignore [attr-defined]
     handler.domain_right_edge = domain_right_edge  # type: ignore [attr-defined]
     handler.refine_by = 2  # type: ignore [attr-defined]
