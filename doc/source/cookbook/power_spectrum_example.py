@@ -31,7 +31,7 @@ def doit(ds):
 
     max_level = ds.index.max_level
 
-    ref = int(np.product(ds.ref_factors[0:max_level]))
+    ref = int(np.prod(ds.ref_factors[0:max_level]))
 
     low = ds.domain_left_edge
     dims = ds.domain_dimensions * ref
