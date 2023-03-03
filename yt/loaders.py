@@ -391,7 +391,7 @@ def load_uniform_grid(
     if basename is None:
         handler.name = "UniformGridData"  # type: ignore [attr-defined]
     else:
-        handler.name = basename
+        handler.name = basename  # type: ignore [attr-defined]
     handler.domain_left_edge = domain_left_edge  # type: ignore [attr-defined]
     handler.domain_right_edge = domain_right_edge  # type: ignore [attr-defined]
     handler.refine_by = 2  # type: ignore [attr-defined]
@@ -638,7 +638,7 @@ def load_amr_grids(
     if basename is None:
         handler.name = "AMRGridData"  # type: ignore [attr-defined]
     else:
-        handler.name = basename
+        handler.name = basename  # type: ignore [attr-defined]
     handler.domain_left_edge = domain_left_edge  # type: ignore [attr-defined]
     handler.domain_right_edge = domain_right_edge  # type: ignore [attr-defined]
     handler.refine_by = refine_by  # type: ignore [attr-defined]
@@ -839,7 +839,7 @@ def load_particles(
     if basename is None:
         handler.name = "ParticleData"  # type: ignore [attr-defined]
     else:
-        handler.name = basename
+        handler.name = basename  # type: ignore [attr-defined]
     handler.domain_left_edge = domain_left_edge  # type: ignore [attr-defined]
     handler.domain_right_edge = domain_right_edge  # type: ignore [attr-defined]
     handler.refine_by = 2  # type: ignore [attr-defined]
@@ -1003,7 +1003,7 @@ def load_hexahedral_mesh(
     if basename is None:
         handler.name = "HexahedralMeshData"  # type: ignore [attr-defined]
     else:
-        handler.basename = basename
+        handler.basename = basename  # type: ignore [attr-defined]
     handler.domain_left_edge = domain_left_edge  # type: ignore [attr-defined]
     handler.domain_right_edge = domain_right_edge  # type: ignore [attr-defined]
     handler.refine_by = 2  # type: ignore [attr-defined]
@@ -1174,7 +1174,7 @@ def load_octree(
     if basename is None:
         handler.name = "OctreeData"
     else:
-        handler.basename = basename
+        handler.name = basename
     handler.domain_left_edge = domain_left_edge
     handler.domain_right_edge = domain_right_edge
     handler.refine_by = 2
@@ -1427,7 +1427,7 @@ def load_unstructured_mesh(
     if basename is None:
         handler.name = "UnstructuredMeshData"  # type: ignore [attr-defined]
     else:
-        handler.name = basename
+        handler.name = basename  # type: ignore [attr-defined]
     handler.domain_left_edge = domain_left_edge  # type: ignore [attr-defined]
     handler.domain_right_edge = domain_right_edge  # type: ignore [attr-defined]
     handler.refine_by = 2  # type: ignore [attr-defined]
