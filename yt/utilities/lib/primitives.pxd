@@ -1,5 +1,4 @@
 cimport cython
-from cython cimport floating
 
 import numpy as np
 

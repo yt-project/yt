@@ -16,7 +16,6 @@ cimport cython
 
 import numpy as np
 
-from cython cimport floating
 cimport numpy as np
 from libc.math cimport fabs
 
