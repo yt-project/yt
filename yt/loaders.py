@@ -991,7 +991,7 @@ def load_hexahedral_mesh(
         parameters=parameters,
     )
 
-    handler.basename = basename  # type: ignore [attr-defined]
+    handler.name = basename  # type: ignore [attr-defined]
     handler.domain_left_edge = domain_left_edge  # type: ignore [attr-defined]
     handler.domain_right_edge = domain_right_edge  # type: ignore [attr-defined]
     handler.refine_by = 2  # type: ignore [attr-defined]
