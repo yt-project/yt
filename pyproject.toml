@@ -7,6 +7,7 @@ requires = [
 
   # Cython 3.0 is the next version after 0.29, and a major change,
   # we forbid it until we can properly test against it
+  # https://github.com/yt-project/yt/issues/4355
   "Cython>=0.29.21,<3.0",
   "oldest-supported-numpy",
 ]
