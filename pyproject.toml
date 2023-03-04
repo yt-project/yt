@@ -7,6 +7,7 @@ requires = [
 
   # Cython 3.0 is the next version after 0.29, and a major change,
   # we forbid it until we can properly test against it
+  # https://github.com/yt-project/yt/issues/4355
   "Cython>=0.29.21,<3.0",
   "oldest-supported-numpy",
 ]
@@ -78,7 +79,7 @@ answer-testing = "yt.utilities.answer_testing.framework:AnswerTesting"
 
 [project.optional-dependencies]
 # some generic, reusable constraints on optional-deps
-HDF5 = ["h5py>=3.1.0,<4.0.0"]
+HDF5 = ["h5py>=3.1.0"]
 netCDF4 = ["netCDF4!=1.6.1,>=1.5.3"]  # see https://github.com/Unidata/netcdf4-python/issues/1192
 Fortran = ["f90nml>=1.1"]
 
@@ -130,7 +131,7 @@ ytdata = ["yt[HDF5]"]
 # "full" should contain all optional dependencies intended for users (not devs)
 # in particular it should enable support for all frontends
 full = [
-    "firefly>=3.2.0,<4.0.0",
+    "firefly>=3.2.0",
     "glueviz>=0.13.3",
     "ipython>=2.0.0",
     "miniballcpp>=0.2.1",
