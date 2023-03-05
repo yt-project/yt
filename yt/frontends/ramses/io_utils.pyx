@@ -14,6 +14,7 @@ ctypedef np.int32_t INT32_t
 ctypedef np.int64_t INT64_t
 ctypedef np.float64_t DOUBLE_t
 
+@cython.cpow(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
@@ -82,6 +83,7 @@ def read_amr(FortranFile f, dict headers,
 
     return max_level
 
+@cython.cpow(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
@@ -132,6 +134,7 @@ cpdef read_offset(FortranFile f, INT64_t min_level, INT64_t domain_id, INT64_t n
 
     return offset, level_count
 
+@cython.cpow(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)

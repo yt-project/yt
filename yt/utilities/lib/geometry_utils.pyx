@@ -85,6 +85,7 @@ cdef np.int64_t tsb(np.int64_t x, np.int64_t width):
         i += 1
     return i
 
+@cython.cpow(True)
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -92,6 +93,7 @@ cdef np.int64_t bitrange(np.int64_t x, np.int64_t width,
                          np.int64_t start, np.int64_t end):
     return x >> (width-end) & ((2**(end-start))-1)
 
+@cython.cpow(True)
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -100,6 +102,7 @@ cdef np.int64_t rrot(np.int64_t x, np.int64_t i, np.int64_t width):
     x = (x>>i) | (x<<width-i)
     return x&(2**width-1)
 
+@cython.cpow(True)
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -122,6 +125,7 @@ cdef np.int64_t entry(np.int64_t x):
     if x == 0: return 0
     return graycode(2*((x-1)/2))
 
+@cython.cpow(True)
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -1186,7 +1190,8 @@ def knn_morton(np.ndarray[np.float64_t, ndim=2] P0, int k, np.uint64_t i0,
     cdef np.ndarray[np.uint64_t, ndim=1] sort_fwd = np.arange(N,dtype=np.uint64)
     cdef np.ndarray[np.uint64_t, ndim=1] sort_rev = np.arange(N,dtype=np.uint64)
     cdef np.ndarray[np.uint64_t, ndim=1] Ai
-    cdef np.int64_t idxmin, idxmax, u, l, I
+    cdef np.int64_t idxmin, idxmax, u, l
+    cdef np.uint64_t I
     # Sort if necessary
     if issorted:
         P = P0
