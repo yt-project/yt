@@ -1183,7 +1183,7 @@ cdef class ParticleBitmap:
         gmask = BoolArrayCollection()
         dmask._get_ghost_zones(ngz, self.index_order1, self.index_order2,
                                periodicity, gmask, <bint>coarse_ghosts)
-        dfiles, gfiles = self.masks_to_files(dmask, gmask)
+        _dfiles, gfiles = self.masks_to_files(dmask, gmask)
         out = BoolArrayCollection()
         gmask._logicalor(dmask, out)
         return gfiles, out
