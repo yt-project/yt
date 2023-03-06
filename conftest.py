@@ -117,6 +117,15 @@ def pytest_configure(config):
             r"is preferred to `pkg_resources\.declare_namespace`\.:DeprecationWarning",
         )
 
+    if SETUPTOOLS_VERSION >= Version("67.5.0"):
+        # may be triggered by multiple dependencies
+        # see https://github.com/glue-viz/glue/issues/2364
+        # see https://github.com/matplotlib/matplotlib/issues/25244
+        config.addinivalue_line(
+            "filterwarnings",
+            "ignore:pkg_resources is deprecated as an API:DeprecationWarning",
+        )
+
     if MPL_VERSION < Version("3.5.0"):
         config.addinivalue_line(
             "filterwarnings",
