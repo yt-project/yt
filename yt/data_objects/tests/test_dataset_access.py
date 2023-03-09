@@ -180,7 +180,7 @@ def test_particle_counts():
     assert pds.particle_type_counts == {"io": 128}
 
 
-def test_domain_size_multiples():
+def test_domain_size_multiples_slices():
     # Some nice primes
     ds = fake_random_ds([9, 17, 23])
 
@@ -197,18 +197,11 @@ def test_domain_size_multiples():
 
     # Let's make some slices
 
-    s1 = ds.r[:: multiples[0] * -1j, :: multiples[1] * -1j, 0.5]
-    xax = ds.coordinates.x_axis[2]
-    yax = ds.coordinates.y_axis[2]
-    size = s1["ones"].shape
-    assert size[1] == ds.domain_dimensions[xax] * multiples[xax]
-    assert size[0] == ds.domain_dimensions[yax] * multiples[yax]
-
     # Let's make some slices
-    s1 = ds.r[0.5, :: multiples[1] * -1j, :: multiples[2] * -1j]
+    s0 = ds.r[0.5, :: multiples[1] * -1j, :: multiples[2] * -1j]
     xax = ds.coordinates.x_axis[0]
     yax = ds.coordinates.y_axis[0]
-    size = s1["ones"].shape
+    size = s0["ones"].shape
     assert size[1] == ds.domain_dimensions[xax] * multiples[xax]
     assert size[0] == ds.domain_dimensions[yax] * multiples[yax]
 
@@ -219,6 +212,26 @@ def test_domain_size_multiples():
     size = s1["ones"].shape
     assert size[1] == ds.domain_dimensions[xax] * multiples[xax]
     assert size[0] == ds.domain_dimensions[yax] * multiples[yax]
+
+    s2 = ds.r[:: multiples[0] * -1j, :: multiples[1] * -1j, 0.5]
+    xax = ds.coordinates.x_axis[2]
+    yax = ds.coordinates.y_axis[2]
+    size = s2["ones"].shape
+    assert size[1] == ds.domain_dimensions[xax] * multiples[xax]
+    assert size[0] == ds.domain_dimensions[yax] * multiples[yax]
+
+
+def test_domain_size_multiples_boxes():
+    # Some nice primes
+    ds = fake_random_ds([9, 17, 23])
+
+    multiples = [3, 4, 2]
+
+    g = ds.r[:: multiples[0] * -1j, :: multiples[1] * -1j, :: multiples[2] * -1j]
+    s1 = g.ActiveDimensions
+    s2 = g["ones"].shape
+    assert np.all(s1 == s2)
+    assert np.all(s1 == ds.domain_dimensions * multiples)
 
 
 g30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
