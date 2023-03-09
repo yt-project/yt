@@ -136,8 +136,23 @@ class RegionExpression:
             # We'll do this by getting the x/y axes, and then using that.
             width = source.right_edge[xax] - source.left_edge[xax]
             height = source.right_edge[yax] - source.left_edge[yax]
-            # Make a resolution tuple with
+            # We have two cases here.  The first is that the imaginary component
+            # is *positive*.  In that case, the component is the number of
+            # values to sample.
+            # In the case that it is *negative*, the absolute value of it
+            # corresponds to the factor of the base resolution of the dataset in
+            # that dimension.
             resolution = (int(new_slice[xax].step.imag), int(new_slice[yax].step.imag))
+            if resolution[0] < 0:
+                resolution = (
+                    self.ds.domain_dimensions[xax] * -resolution[0],
+                    resolution[1],
+                )
+            if resolution[1] < 0:
+                resolution = (
+                    resolution[0],
+                    self.ds.domain_dimensions[yax] * -resolution[1],
+                )
             sl = sl.to_frb(width=width, resolution=resolution, height=height)
         return sl
 
@@ -164,7 +179,12 @@ class RegionExpression:
             right_edge[ax] = r
             d = getattr(b.step, "imag", None)
             if d is not None:
+                # This allows us (like with slices) to specify negative
+                # imaginary components to get a multiple of the domain size.
+                if d < 0:
+                    d = self.ds.domain_dimensions[ax] * -d
                 d = int(d)
+
             dims[ax] = d
         center = [(cl + cr) / 2.0 for cl, cr in zip(left_edge, right_edge)]
         if None not in dims:
