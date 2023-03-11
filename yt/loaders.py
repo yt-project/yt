@@ -1159,21 +1159,21 @@ def load_octree(
         parameters=parameters,
     )
 
-    handler.name = basename
-    handler.domain_left_edge = domain_left_edge
-    handler.domain_right_edge = domain_right_edge
-    handler.refine_by = 2
-    handler.dimensionality = 3
-    handler.domain_dimensions = domain_dimensions
-    handler.simulation_time = sim_time
-    handler.cosmology_simulation = 0
+    handler.name = basename  # type: ignore [attr-defined]
+    handler.domain_left_edge = domain_left_edge  # type: ignore [attr-defined]
+    handler.domain_right_edge = domain_right_edge  # type: ignore [attr-defined]
+    handler.refine_by = 2  # type: ignore [attr-defined]
+    handler.dimensionality = 3  # type: ignore [attr-defined]
+    handler.domain_dimensions = domain_dimensions  # type: ignore [attr-defined]
+    handler.simulation_time = sim_time  # type: ignore [attr-defined]
+    handler.cosmology_simulation = 0  # type: ignore [attr-defined]
 
     sds = StreamOctreeDataset(
         handler, unit_system=unit_system, default_species_fields=default_species_fields
     )
-    sds.octree_mask = octree_mask
-    sds.partial_coverage = partial_coverage
-    sds.num_zones = num_zones
+    sds.octree_mask = octree_mask  # type: ignore [attr-defined]
+    sds.partial_coverage = partial_coverage  # type: ignore [attr-defined]
+    sds.num_zones = num_zones  # type: ignore [attr-defined]
 
     return sds
 
