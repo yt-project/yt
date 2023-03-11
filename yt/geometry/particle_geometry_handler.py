@@ -173,6 +173,9 @@ class ParticleIndex(Index):
         try:
             if dont_load:
                 raise OSError
+            # We must make sure the index order is correct, here and
+            # in the particle bitmap
+            self.ds.index_order = self.regions.correct_index_order(fname)
             rflag = self.regions.load_bitmasks(fname)
             rflag = self.regions.check_bitmasks()
             self._initialize_frontend_specific()

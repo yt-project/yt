@@ -1033,6 +1033,21 @@ cdef class ParticleBitmap:
     def reset_bitmasks(self):
         self.bitmasks._reset()
 
+    def correct_index_order(self, fname):
+        import h5py
+        # Verify that file is correct version
+        if not os.path.isfile(fname):
+            raise OSError
+        with h5py.File(fname, mode="r") as fp:
+            try:
+                grp = fp[str(self.hash_value)]
+            except KeyError:
+                raise OSError(f"Index not found in the {fname}")
+            index_order = grp.attrs["index_order1"], grp.attrs["index_order2"]
+        self.index_order1 = index_order[0]
+        self.index_order2 = index_order[1]
+        return index_order
+
     def load_bitmasks(self, fname):
         import h5py
         cdef bint read_flag = 1
