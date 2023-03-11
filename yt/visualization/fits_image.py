@@ -1392,7 +1392,7 @@ class FITSParticleOffAxisProjection(FITSImageData):
         north_vector=None,
     ):
         fields = list(iter_fields(fields))
-        center, dcenter = ds.coordinates.sanitize_center(center, 4)
+        center, dcenter = ds.coordinates.sanitize_center(center, None)
         width = ds.coordinates.sanitize_width(normal, width, depth)
         wd = tuple(el.in_units("code_length").v for el in width)
 
