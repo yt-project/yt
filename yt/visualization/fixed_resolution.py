@@ -690,7 +690,7 @@ class ParticleImageBuffer(FixedResolutionBuffer):
 
         # set up the axis field names
         axis = self.axis
-        if axis != 4:
+        if axis is not None:
             self.xax = self.ds.coordinates.x_axis[axis]
             self.yax = self.ds.coordinates.y_axis[axis]
             ax_field_template = "particle_position_%s"
@@ -715,7 +715,7 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         dd = self.data_source.dd
 
         ftype = item[0]
-        if self.axis == 4:
+        if self.axis is None:
             x_data, y_data, rbx0, rbx1, rby0, rby1 = rotate_particle_coord(
                 dd[ftype, "particle_position_x"].to_value("code_length"),
                 dd[ftype, "particle_position_y"].to_value("code_length"),
@@ -741,7 +741,7 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         # handle periodicity
         dx = x_data - bounds[0]
         dy = y_data - bounds[2]
-        if self.axis != 4 and self.periodic:
+        if self.axis is not None and self.periodic:
             dx %= float(self._period[0].in_units("code_length"))
             dy %= float(self._period[1].in_units("code_length"))
 

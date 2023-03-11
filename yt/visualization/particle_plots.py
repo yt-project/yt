@@ -128,7 +128,7 @@ class ParticleOffAxisDummyDataSource(ParticleDummyDataSource):
         density=False,
         north_vector=None,
     ):
-        self.axis = 4  # always true for oblique data objects
+        self.axis = None  # always true for oblique data objects
         normal = np.array(normal_vector)
         normal = normal / np.linalg.norm(normal)
 
