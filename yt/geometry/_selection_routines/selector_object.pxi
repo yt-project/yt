@@ -567,9 +567,9 @@ cdef class SelectorObject:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def count_points(self, np.ndarray[floating, ndim=1] x,
-                           np.ndarray[floating, ndim=1] y,
-                           np.ndarray[floating, ndim=1] z,
+    def count_points(self, np.ndarray[cython.floating, ndim=1] x,
+                           np.ndarray[cython.floating, ndim=1] y,
+                           np.ndarray[cython.floating, ndim=1] z,
                            radii):
         cdef int count = 0
         cdef int i
@@ -602,9 +602,9 @@ cdef class SelectorObject:
     @cython.wraparound(False)
     @cython.cdivision(True)
     def select_points(self,
-                      np.ndarray[floating, ndim=1] x,
-                      np.ndarray[floating, ndim=1] y,
-                      np.ndarray[floating, ndim=1] z,
+                      np.ndarray[cython.floating, ndim=1] x,
+                      np.ndarray[cython.floating, ndim=1] y,
+                      np.ndarray[cython.floating, ndim=1] z,
                       radii):
         cdef int count = 0
         cdef int i

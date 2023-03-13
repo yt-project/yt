@@ -27,7 +27,6 @@ import numpy as np
 cimport cython
 cimport numpy as np
 from cpython.exc cimport PyErr_CheckSignals
-from cython cimport floating
 from cython.operator cimport dereference, preincrement
 
 from yt.geometry cimport oct_visitors
@@ -537,8 +536,8 @@ cdef class ParticleBitmap:
     @cython.wraparound(False)
     @cython.cdivision(True)
     def _coarse_index_data_file(self,
-                                np.ndarray[floating, ndim=2] pos,
-                                np.ndarray[floating, ndim=1] hsml,
+                                np.ndarray[cython.floating, ndim=2] pos,
+                                np.ndarray[cython.floating, ndim=1] hsml,
                                 np.uint64_t file_id):
         return self.__coarse_index_data_file(pos, hsml, file_id)
 
@@ -546,8 +545,8 @@ cdef class ParticleBitmap:
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void __coarse_index_data_file(self,
-                                       np.ndarray[floating, ndim=2] pos,
-                                       np.ndarray[floating, ndim=1] hsml,
+                                       np.ndarray[cython.floating, ndim=2] pos,
+                                       np.ndarray[cython.floating, ndim=1] hsml,
                                        np.uint64_t file_id) except *:
         # Initialize
         cdef np.int64_t i, p
@@ -667,8 +666,8 @@ cdef class ParticleBitmap:
     @cython.initializedcheck(False)
     def _refined_index_data_file(self,
                                  BoolArrayCollection in_collection,
-                                 np.ndarray[floating, ndim=2] pos,
-                                 np.ndarray[floating, ndim=1] hsml,
+                                 np.ndarray[cython.floating, ndim=2] pos,
+                                 np.ndarray[cython.floating, ndim=1] hsml,
                                  np.ndarray[np.uint8_t, ndim=1] mask,
                                  np.ndarray[np.uint64_t, ndim=1] sub_mi1,
                                  np.ndarray[np.uint64_t, ndim=1] sub_mi2,
@@ -690,8 +689,8 @@ cdef class ParticleBitmap:
     cdef BoolArrayCollection __refined_index_data_file(
         self,
         BoolArrayCollection in_collection,
-        np.ndarray[floating, ndim=2] pos,
-        np.ndarray[floating, ndim=1] hsml,
+        np.ndarray[cython.floating, ndim=2] pos,
+        np.ndarray[cython.floating, ndim=1] hsml,
         np.ndarray[np.uint8_t, ndim=1] mask,
         np.uint64_t count_threshold, np.uint8_t mask_threshold
     ):
