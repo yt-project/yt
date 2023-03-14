@@ -38,7 +38,7 @@ cdef struct OctreeNode:
     np.float64_t *val
     np.float64_t weight_val
     np.int64_t pos[3]
-    int level
+    np.uint64_t level
     int nvals
     int max_level # The maximum level under this node with mass.
     OctreeNode *children[2][2][2]
@@ -129,7 +129,7 @@ cdef class Octree:
 
     def __cinit__(self, np.ndarray[np.int64_t, ndim=1] top_grid_dims,
                   int nvals, int incremental = False):
-        cdef int i, j, k
+        cdef np.uint64_t i, j, k
         self.incremental = incremental
         cdef np.int64_t pos[3]
         cdef np.float64_t *vals = <np.float64_t *> alloca(
@@ -499,7 +499,8 @@ cdef class Octree:
 
     cdef int node_ID(self, OctreeNode *node):
         # Returns an unique ID for this node based on its position and level.
-        cdef int ID, i, offset, root
+        cdef int ID, offset, root
+        cdef np.uint64_t i
         cdef np.int64_t this_grid_dims[3]
         offset = 0
         root = 1
