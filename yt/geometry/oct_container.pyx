@@ -928,7 +928,7 @@ cdef class OctreeContainer:
         self.visit_all_octs(selector, visitor)
         assert ((visitor.global_index+1)*visitor.nzones == visitor.index)
 
-cdef int root_node_compare(const void *a, const void *b) nogil:
+cdef int root_node_compare(const void *a, const void *b) noexcept nogil:
     cdef OctKey *ao
     cdef OctKey *bo
     ao = <OctKey *>a
