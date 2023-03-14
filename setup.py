@@ -25,7 +25,7 @@ CPP14_CONFIG = defaultdict(
     lambda: check_CPP14_flags(["-std=c++14", "-std=c++1y", "-std=gnu++0x"]),
     {"msvc": ["/std:c++14"]},
 )
-CPP03_CONFIG = defaultdict(lambda: ["-std=c++03"], {"msvc": ["/std:c++03"]})
+CPP11_CONFIG = defaultdict(lambda: ["-std=c++11"], {"msvc": ["/std:c++11"]})
 
 _COMPILER = get_default_compiler()
 
@@ -37,7 +37,7 @@ else:
     std_libs = ["m"]
 
 CPP14_FLAG = CPP14_CONFIG[_COMPILER]
-CPP03_FLAG = CPP03_CONFIG[_COMPILER]
+CPP11_FLAG = CPP11_CONFIG[_COMPILER]
 
 cythonize_aliases = {
     "LIB_DIR": "yt/utilities/lib/",
@@ -53,7 +53,7 @@ cythonize_aliases = {
     "FIXED_INTERP": "yt/utilities/lib/fixed_interpolator.cpp",
     "ARTIO_SOURCE": glob.glob("yt/frontends/artio/artio_headers/*.c"),
     "CPP14_FLAG": CPP14_FLAG,
-    "CPP03_FLAG": CPP03_FLAG,
+    "CPP11_FLAG": CPP11_FLAG,
 }
 
 lib_exts = [
