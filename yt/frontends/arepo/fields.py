@@ -59,10 +59,10 @@ class ArepoFieldInfo(GadgetFieldInfo):
         # Since the AREPO gas "particles" are Voronoi cells, we can
         # define a volume here
         def _volume(field, data):
-            return data[ptype, "mass"] / data[ptype, "density"]
+            return data["gas", "mass"] / data["gas", "density"]
 
         self.add_field(
-            (ptype, "cell_volume"),
+            ("gas", "cell_volume"),
             function=_volume,
             sampling_type="local",
             units=self.ds.unit_system["volume"],
