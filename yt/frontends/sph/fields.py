@@ -21,7 +21,7 @@ class SPHFieldInfo(FieldInfoContainer):
         ("Metallicity", ("code_metallicity", ["metallicity"], None)),
         ("Phi", ("code_length", [], None)),
         ("Potential", ("code_velocity**2", ["gravitational_potential"], None)),
-        ("StarFormationRate", ("Msun / yr", [], None)),
+        ("StarFormationRate", ("Msun / yr", ["star_formation_rate"], None)),
         ("FormationTime", ("code_time", ["creation_time"], None)),
         ("Metallicity_00", ("", ["metallicity"], None)),
         ("InitialMass", ("code_mass", [], None)),
