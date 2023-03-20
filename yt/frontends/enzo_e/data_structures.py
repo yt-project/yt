@@ -433,7 +433,7 @@ class EnzoEDataset(Dataset):
         if fp_params is not None:
             # in newer versions of enzo-e, this data is specified in a
             # centralized parameter group called Physics:fluid_props
-            # -  for internal reasons related to backwards compatability,
+            # -  for internal reasons related to backwards compatibility,
             #    treatment of this physics-group is somewhat special (compared
             #    to the cosmology group). The parameters in this group are
             #    honored even if Physics:list does not include "fluid_props"

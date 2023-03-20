@@ -57,6 +57,6 @@ def test_class_invalidation():
 
 def test_base_class_instanciation():
     with pytest.raises(
-        TypeError, match="The OnDemand base class cannot be instanciated."
+        TypeError, match="The OnDemand base class cannot be instantiated."
     ):
         OnDemand()

@@ -405,7 +405,7 @@ class ImagePlotMPL(PlotMPL, ABC):
         # - self._draw_axes: bool
         # - self.colorbar_handler: ColorbarHandler
 
-        # optional attribtues
+        # optional attributes
         # - self._unit_aspect: float
 
         # Ensure the figure size along the long axis is always equal to _figure_size

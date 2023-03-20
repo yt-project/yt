@@ -838,7 +838,7 @@ def test_nan_data():
 
 def test_sanitize_valid_normal_vector():
     # note: we don't test against non-cartesian geometries
-    # because the way normal "vectors" work isn't cleary
+    # because the way normal "vectors" work isn't clearly
     # specified and works more as an implementation detail
     # at the moment
     ds = fake_amr_ds(geometry="cartesian")

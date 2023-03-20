@@ -85,7 +85,7 @@ def test_invalid_format_from_filename(simple_sliceplot, tmp_path):
     output_files = list(tmp_path.glob("*"))
     assert len(output_files) == 1
     # the output filename may contain a generated part
-    # it's not exactly clear if it's desirable or intented in this case
+    # it's not exactly clear if it's desirable or intended in this case
     # so we just check conditions that should hold in any case
     assert output_files[0].name.startswith("myfile.nope")
     assert output_files[0].name.endswith(".png")

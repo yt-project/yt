@@ -27,7 +27,7 @@ class NotAModule:
             exc.add_note(error_note)
             self.error = exc
         else:
-            # mimick Python 3.11 behaviour:
+            # mimic Python 3.11 behaviour:
             # preserve error message and traceback
             self.error = type(exc)(f"{exc!s}\n{error_note}").with_traceback(
                 exc.__traceback__
@@ -55,7 +55,7 @@ class OnDemand:
 
     def __new__(cls):
         if cls is OnDemand:
-            raise TypeError("The OnDemand base class cannot be instanciated.")
+            raise TypeError("The OnDemand base class cannot be instantiated.")
         else:
             return object.__new__(cls)
 

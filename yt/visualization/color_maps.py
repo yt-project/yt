@@ -104,10 +104,10 @@ for k, v in list(_cm.color_map_luts.items()):
 
 def get_colormap_lut(cmap_id: Union[Tuple[str, str], str]):
     # "lut" stands for "lookup table". This function provides a consistent and
-    # reusable accessor to a hidden (and by defaut, uninitialized) attribute
+    # reusable accessor to a hidden (and by default, uninitialized) attribute
     # (`_lut`) in registered colormaps, from matplotlib or palettable.
     # colormap "lookup tables" are RGBA arrays in matplotlib,
-    # and contain sufficient data to reconstruct the colormaps entierly.
+    # and contain sufficient data to reconstruct the colormaps entirely.
     # This exists mostly for historical reasons, hence the custom output format.
     # It isn't meant as part of yt's public api.
 
