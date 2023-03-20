@@ -529,7 +529,7 @@ def create_vector_fields(
                         * np.cos(data[(ftype, "phi")])
                         + data[(ftype, f"{basename}_theta")]
                         * np.cos(data[(ftype, "theta")])
-                        * np.cos([(ftype, "phi")])
+                        * np.cos(data[(ftype, "phi")])
                         - data[(ftype, f"{basename}_phi")]
                         * np.sin(data[(ftype, "phi")])
                     )
@@ -546,7 +546,7 @@ def create_vector_fields(
                         * np.sin(data[(ftype, "phi")])
                         + data[(ftype, f"{basename}_theta")]
                         * np.cos(data[(ftype, "theta")])
-                        * np.sin([(ftype, "phi")])
+                        * np.sin(data[(ftype, "phi")])
                         + data[(ftype, f"{basename}_phi")]
                         * np.cos(data[(ftype, "phi")])
                     )
