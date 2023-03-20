@@ -1213,7 +1213,13 @@ class StreamlineCallback(PlotCallback):
     """
 
     _type_name = "streamlines"
-    _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical", "spherical")
+    _supported_geometries = (
+        "cartesian",
+        "spectral_cube",
+        "polar",
+        "cylindrical",
+        "spherical",
+    )
     _incompatible_plot_types = ("OffAxisProjection", "Particle")
 
     def __init__(
@@ -3052,7 +3058,13 @@ class LineIntegralConvolutionCallback(PlotCallback):
     """
 
     _type_name = "line_integral_convolution"
-    _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical", "spherical")
+    _supported_geometries = (
+        "cartesian",
+        "spectral_cube",
+        "polar",
+        "cylindrical",
+        "spherical",
+    )
     _incompatible_plot_types = ("LineIntegralConvolutionCallback",)
 
     def __init__(
