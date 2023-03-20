@@ -959,13 +959,16 @@ def test_streamline_callback():
             units=("g/cm**3", "cm/s", "cm/s", "cm/s"),
             geometry="spherical",
         )
-        p = SlicePlot(ds, "r", ("gas", "density"))
-        assert_raises(
-            YTDataTypeUnsupported,
-            p.annotate_streamlines,
-            ("gas", "velocity_theta"),
-            ("gas", "velocity_phi"),
+        slc = SlicePlot(ds, "phi", ("gas", "velocity_magnitude"))
+        slc.annotate_streamlines(
+            ("gas", "velocity_cylindrical_radius"), ("gas", "velocity_cylindrical_z")
         )
+        assert_fname(slc.save(prefix)[0])
+        slc = SlicePlot(ds, "theta", ("gas", "velocity_magnitude"))
+        slc.annotate_streamlines(
+            ("gas", "velocity_conic_x"), ("gas", "velocity_conic_y")
+        )
+        assert_fname(slc.save(prefix)[0])
 
 
 @requires_module("h5py")
@@ -1041,13 +1044,17 @@ def test_line_integral_convolution_callback():
             units=("g/cm**3", "cm/s", "cm/s", "cm/s"),
             geometry="spherical",
         )
-        p = SlicePlot(ds, "r", ("gas", "density"))
-        assert_raises(
-            YTDataTypeUnsupported,
-            p.annotate_line_integral_convolution,
-            ("gas", "velocity_theta"),
-            ("gas", "velocity_phi"),
+        slc = SlicePlot(ds, "phi", ("gas", "velocity_magnitude"))
+        slc.annotate_line_integral_convolution(
+            ("gas", "velocity_cylindrical_radius"), ("gas", "velocity_cylindrical_z")
         )
+        assert_fname(slc.save(prefix)[0])
+        slc = SlicePlot(ds, "theta", ("gas", "velocity_magnitude"))
+        slc.annotate_line_integral_convolution(
+            ("gas", "velocity_conic_x"), ("gas", "velocity_conic_y")
+        )
+        assert_fname(slc.save(prefix)[0])
+        check_axis_manipulation(slc, prefix)
 
 
 def test_accepts_all_fields_decorator():
