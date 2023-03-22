@@ -145,7 +145,7 @@ def pytest_configure(config):
             r"Use Palette\.ADAPTIVE instead\.:DeprecationWarning",
         )
 
-    if NUMPY_VERSION < Version("1.19") and MPL_VERSION < Version("3.3"):
+    if NUMPY_VERSION < Version("1.19") and MPL_VERSION < Version("3.4"):
         # This warning is triggered from matplotlib in exactly one test at the time of writing
         # and exclusively on the minimal test env. Upgrading numpy or matplotlib resolves
         # the issue, so we can afford to ignore it.
