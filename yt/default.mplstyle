@@ -12,4 +12,3 @@ ytick.direction: in
 font.family: stixgeneral
 
 mathtext.fontset: cm
-mathtext.fallback: cm
