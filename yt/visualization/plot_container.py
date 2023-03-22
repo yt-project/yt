@@ -133,7 +133,7 @@ class PlotContainer(abc.ABC):
         if sys.version_info >= (3, 9):
             font_dict = DEFAULT_FONT_PROPERTIES | {"size": fontsize}
         else:
-            font_dict = {**DEFAULT_FONT_PROPERTIES, "size": fontsize}  # type:ignore
+            font_dict = {**DEFAULT_FONT_PROPERTIES, "size": fontsize}
 
         self._font_properties = FontProperties(**font_dict)
         self._font_color = None
@@ -451,10 +451,11 @@ class PlotContainer(abc.ABC):
             self._font_color = font_dict.pop("color")
         # Set default values if the user does not explicitly set them.
         # this prevents reverting to the matplotlib defaults.
+        _default_size = {"size": self.__class__._default_font_size}
         if sys.version_info >= (3, 9):
-            font_dict = DEFAULT_FONT_PROPERTIES | font_dict
+            font_dict = DEFAULT_FONT_PROPERTIES | _default_size | font_dict
         else:
-            font_dict = {**DEFAULT_FONT_PROPERTIES, **font_dict}
+            font_dict = {**DEFAULT_FONT_PROPERTIES, **_default_size, **font_dict}
         self._font_properties = FontProperties(**font_dict)
         return self
 
