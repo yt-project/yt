@@ -2419,3 +2419,80 @@ an example that includes slices and phase plots:
     )
 
     mp.save_fig("multi_slice_phase")
+
+
+Using yt's style with matplotlib
+--------------------------------
+
+It is possible to use yt's plot style in outside of yt itself, with the
+:func:`~yt.funcs.matplotlib_style_context` context manager
+
+.. code-block:: python
+
+   import matplotlib.pyplot as plt
+   import numpy as np
+   import yt
+
+   plt.rcParams["font.size"] = 14
+
+   x = np.linspace(-np.pi, np.pi, 100)
+   y = np.sin(x)
+
+   with yt.funcs.matplotlib_style_context():
+       fig, ax = plt.subplots()
+       ax.plot(x, y)
+       ax.set(
+           xlabel=r"$x$",
+           ylabel=r"$y$",
+           title="A yt-styled matplotlib figure",
+       )
+
+Note that :func:`~yt.funcs.matplotlib_style_context` doesn't control the font
+size, so we adjust it manually in the preamble.
+
+With matplotlib 3.7 and newer, you can avoid importing yt altogether
+
+.. code-block:: python
+
+   # requires matplotlib>=3.7
+   import matplotlib.pyplot as plt
+   import numpy as np
+
+   plt.rcParams["font.size"] = 14
+
+   x = np.linspace(-np.pi, np.pi, 100)
+   y = np.sin(x)
+
+   with plt.style.context("yt.default"):
+       fig, ax = plt.subplots()
+       ax.plot(x, y)
+       ax.set(
+           xlabel=r"$x$",
+           ylabel=r"$y$",
+           title="A yt-styled matplotlib figure",
+       )
+
+and you can also enable yt's style without a context manager as
+
+.. code-block:: python
+
+   # requires matplotlib>=3.7
+   import matplotlib.pyplot as plt
+   import numpy as np
+
+   plt.style.use("yt.default")
+   plt.rcParams["font.size"] = 14
+
+   x = np.linspace(-np.pi, np.pi, 100)
+   y = np.sin(x)
+
+   fig, ax = plt.subplots()
+   ax.plot(x, y)
+   ax.set(
+       xlabel=r"$x$",
+       ylabel=r"$y$",
+       title="A yt-styled matplotlib figure",
+   )
+
+For more details, see `matplotlib's documentation
+<https://matplotlib.org/stable/tutorials/introductory/customizing.html#customizing-with-style-sheets>_`

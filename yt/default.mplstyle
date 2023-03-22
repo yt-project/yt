@@ -1,0 +1,14 @@
+# basic usage (requires matplotlib 3.7+)
+# >>> import matplotlib as mpl
+# >>> mpl.style.use("yt.default")
+
+xtick.top: True
+ytick.right: True
+xtick.minor.visible: True
+ytick.minor.visible: True
+xtick.direction: in
+ytick.direction: in
+
+font.family: stixgeneral
+
+mathtext.fontset: cm

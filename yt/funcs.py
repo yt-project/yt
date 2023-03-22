@@ -994,35 +994,22 @@ def get_brewer_cmap(cmap):
     return bmap.get_mpl_colormap(N=cmap[2])
 
 
-@contextlib.contextmanager
-def dummy_context_manager(*args, **kwargs):
-    yield
-
-
-def matplotlib_style_context(style_name=None, after_reset=False):
+def matplotlib_style_context(style="yt.default", after_reset=False):
     """Returns a context manager for controlling matplotlib style.
 
     Arguments are passed to matplotlib.style.context() if specified. Defaults
-    to setting "classic" style, after resetting to the default config parameters.
-
-    On older matplotlib versions (<=1.5.0) where matplotlib.style isn't
-    available, returns a dummy context manager.
+    to setting yt's "yt.default" style, after resetting to the default config parameters.
     """
-    if style_name is None:
-        import matplotlib
+    # FUTURE: this function should be deprecated in favour of matplotlib.style.context
+    # after support for matplotlib 3.6 and older versions is dropped.
+    import matplotlib.style
 
-        style_name = {"mathtext.fontset": "cm"}
-        if Version(matplotlib.__version__) >= Version("3.3.0"):
-            style_name["mathtext.fallback"] = "cm"
-        else:
-            style_name["mathtext.fallback_to_cm"] = True
-    try:
-        import matplotlib.style
+    from yt.visualization._commons import MPL_VERSION
 
-        return matplotlib.style.context(style_name, after_reset=after_reset)
-    except ImportError:
-        pass
-    return dummy_context_manager()
+    if style == "yt.default" and MPL_VERSION < Version("3.7"):
+        style = importlib_resources.files("yt") / "default.mplstyle"
+
+    return matplotlib.style.context(style, after_reset=after_reset)
 
 
 interactivity = False
