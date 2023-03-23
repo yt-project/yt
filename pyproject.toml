@@ -51,7 +51,6 @@ dependencies = [
     "numpy>=1.17.5",
     "packaging>=20.9",
     "pillow>=6.2.1", # transitive dependency via MPL (>=3.3)
-    "pyparsing>=2.0.3", # transitive dependency via packaging and MPL
     "tomli-w>=0.4.0",
     "tqdm>=3.4.0",
     "unyt>=2.9.2,<3.0", # see https://github.com/yt-project/yt/issues/4162
@@ -209,7 +208,6 @@ minimal = [
     "numpy==1.17.5",
     "packaging==20.9",
     "pillow==6.2.1",
-    "pyparsing==2.0.3",
     "tomli-w==0.4.0",
     "tqdm==3.4.0",
     "unyt==2.9.2",
