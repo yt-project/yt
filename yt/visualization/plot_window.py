@@ -1201,11 +1201,11 @@ class PWViewerMPL(PlotWindow):
                     colorbar_label += r"$\ \ \left(" + units + r"\right)$"
 
             parser = MathTextParser("Agg")
-            from pyparsing import ParseFatalException
 
             try:
                 parser.parse(colorbar_label)
-            except ParseFatalException as err:
+            except Exception as err:
+                # unspecified exceptions might be raised from matplotlib via its own dependencies
                 raise YTCannotParseUnitDisplayName(f, colorbar_label, str(err)) from err
 
             self.plots[f].cb.set_label(colorbar_label)
