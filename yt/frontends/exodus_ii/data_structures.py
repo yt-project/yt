@@ -121,7 +121,7 @@ class ExodusIIDataset(Dataset):
         >>> ds = yt.load(
         ...     "MOOSE_sample_data/mps_out.e",
         ...     step=10,
-        ...     displacements={"connect2": (1.0, [0.0, 0.0, 0.0])},
+        ...     displacements={"connect2": (5.0, [0.0, 0.0, 0.0])},
         ... )
 
         This will load the Dataset at index 10, scaling the displacements for
@@ -319,11 +319,9 @@ class ExodusIIDataset(Dataset):
 
     def _apply_displacement(self, coords, mesh_id):
         mesh_name = "connect%d" % (mesh_id + 1)
+        new_coords = coords.copy()
         if mesh_name not in self.displacements:
-            new_coords = coords.copy()
             return new_coords
-
-        new_coords = np.zeros_like(coords)
         fac = self.displacements[mesh_name][0]
         offset = self.displacements[mesh_name][1]
 
