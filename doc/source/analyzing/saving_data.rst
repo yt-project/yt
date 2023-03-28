@@ -227,8 +227,8 @@ selection is not possible, but the data can be accessed through the
    yt.save_as_dataset(ds, "test_data.h5", my_data)
 
    array_ds = yt.load("test_data.h5")
-   print (array_ds.data["region_density"])
-   print (array_ds.data["sphere_density"])
+   print (array_ds.data["data", "region_density"])
+   print (array_ds.data["data", "sphere_density"])
 
 Array data can be saved with or without a dataset loaded.  If no
 dataset has been loaded, as fake dataset can be provided as a
@@ -245,4 +245,4 @@ dictionary.
    yt.save_as_dataset(fake_ds, "random_data.h5", my_data)
 
    new_ds = yt.load("random_data.h5")
-   print (new_ds.data["gas", "density"])
+   print (new_ds.data["data", "density"])
