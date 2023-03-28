@@ -532,6 +532,7 @@ class Dataset(abc.ABC):
                 "rsun",
                 "km",
                 "cm",
+                "mm",
                 "um",
                 "nm",
                 "pm",
