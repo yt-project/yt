@@ -157,6 +157,10 @@ class ChollaDataset(Dataset):
         except AttributeError:
             return False
         else:
-            return "bounds" in attrs and "domain" in attrs
+            # Avoiding issue where CHOLLA LightRay datasets get selected
+            if attrs["data_type"] == "yt_light_ray":
+                return False
+            else:
+                return "bounds" in attrs and "domain" in attrs
         finally:
             fileh.close()
