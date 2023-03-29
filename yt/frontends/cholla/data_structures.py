@@ -157,6 +157,10 @@ class ChollaDataset(Dataset):
         except AttributeError:
             return False
         else:
-            return "bounds" in attrs and "domain" in attrs
+            return (
+                "bounds" in attrs
+                and "domain" in attrs
+                and attrs.get("data_type") != "yt_light_ray"
+            )
         finally:
             fileh.close()
