@@ -160,7 +160,7 @@ class ChollaDataset(Dataset):
             return (
                 "bounds" in attrs
                 and "domain" in attrs
-                and attrs.get("data_type", None) != "yt_light_ray"
+                and attrs.get("data_type") != "yt_light_ray"
             )
         finally:
             fileh.close()
