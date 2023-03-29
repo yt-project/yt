@@ -1626,19 +1626,19 @@ cdef class SFCRangeSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) noexcept nogil:
         return 1
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) noexcept nogil:
         return self.select_point(pos)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_point(self, np.float64_t pos[3]) nogil:
+    cdef int select_point(self, np.float64_t pos[3]) noexcept nogil:
         cdef np.int64_t sfc = self.mesh_container.pos_to_sfc(pos)
         if sfc > self.sfc_end: return 0
         cdef np.int64_t oc = self.range_handler.doct_count[
@@ -1650,7 +1650,7 @@ cdef class SFCRangeSelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_bbox(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3]) nogil:
+                               np.float64_t right_edge[3]) noexcept nogil:
         return self.base_selector.select_bbox(left_edge, right_edge)
 
     @cython.boundscheck(False)
@@ -1658,7 +1658,7 @@ cdef class SFCRangeSelector(SelectorObject):
     @cython.cdivision(True)
     cdef int select_grid(self, np.float64_t left_edge[3],
                          np.float64_t right_edge[3], np.int32_t level,
-                         Oct *o = NULL) nogil:
+                         Oct *o = NULL) noexcept nogil:
         # Because visitors now use select_grid, we should be explicitly
         # checking this.
         return self.base_selector.select_grid(left_edge, right_edge, level, o)

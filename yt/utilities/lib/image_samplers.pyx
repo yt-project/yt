@@ -313,7 +313,7 @@ cdef class ImageSampler:
                  np.float64_t enter_t,
                  np.float64_t exit_t,
                  int index[3],
-                 void *data) nogil:
+                 void *data) noexcept nogil:
         return
 
     def ensure_code_unit_params(self, params):
@@ -337,7 +337,7 @@ cdef class ProjectionSampler(ImageSampler):
                  np.float64_t enter_t,
                  np.float64_t exit_t,
                  int index[3],
-                 void *data) nogil:
+                 void *data) noexcept nogil:
         cdef ImageAccumulator *im = <ImageAccumulator *> data
         cdef int i
         cdef np.float64_t dl = (exit_t - enter_t)
@@ -379,7 +379,7 @@ cdef class InterpolatedProjectionSampler(ImageSampler):
                      np.float64_t enter_t,
                      np.float64_t exit_t,
                      int index[3],
-                     void *data) nogil:
+                     void *data) noexcept nogil:
         cdef ImageAccumulator *im = <ImageAccumulator *> data
         cdef VolumeRenderAccumulator *vri = <VolumeRenderAccumulator *> \
                 im.supp_data
@@ -460,7 +460,7 @@ cdef class VolumeRenderSampler(ImageSampler):
                      np.float64_t enter_t,
                      np.float64_t exit_t,
                      int index[3],
-                     void *data) nogil:
+                     void *data) noexcept nogil:
         cdef ImageAccumulator *im = <ImageAccumulator *> data
         cdef VolumeRenderAccumulator *vri = <VolumeRenderAccumulator *> \
                 im.supp_data
@@ -561,7 +561,7 @@ cdef class LightSourceRenderSampler(ImageSampler):
                      np.float64_t enter_t,
                      np.float64_t exit_t,
                      int index[3],
-                     void *data) nogil:
+                     void *data) noexcept nogil:
         cdef ImageAccumulator *im = <ImageAccumulator *> data
         cdef VolumeRenderAccumulator *vri = <VolumeRenderAccumulator *> \
                 im.supp_data

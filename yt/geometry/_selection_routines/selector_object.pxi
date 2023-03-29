@@ -225,7 +225,7 @@ cdef class SelectorObject:
     @cython.cdivision(True)
     cdef int select_grid(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3],
-                               np.int32_t level, Oct *o = NULL) nogil:
+                               np.int32_t level, Oct *o = NULL) noexcept nogil:
         if level < self.min_level or level > self.max_level: return 0
         return self.select_bbox(left_edge, right_edge)
 
@@ -234,21 +234,21 @@ cdef class SelectorObject:
     @cython.cdivision(True)
     cdef int select_grid_edge(self, np.float64_t left_edge[3],
                                     np.float64_t right_edge[3],
-                                    np.int32_t level, Oct *o = NULL) nogil:
+                                    np.int32_t level, Oct *o = NULL) noexcept nogil:
         if level < self.min_level or level > self.max_level: return 0
         return self.select_bbox_edge(left_edge, right_edge)
 
-    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) noexcept nogil:
         return 0
 
-    cdef int select_point(self, np.float64_t pos[3]) nogil:
+    cdef int select_point(self, np.float64_t pos[3]) noexcept nogil:
         return 0
 
-    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) noexcept nogil:
         return 0
 
     cdef int select_bbox(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3]) nogil:
+                               np.float64_t right_edge[3]) noexcept nogil:
         """
         Returns:
           0: If the selector does not touch the bounding box.
@@ -257,7 +257,7 @@ cdef class SelectorObject:
         return 0
 
     cdef int select_bbox_edge(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3]) nogil:
+                               np.float64_t right_edge[3]) noexcept nogil:
         """
         Returns:
           0: If the selector does not touch the bounding box.
