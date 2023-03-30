@@ -202,7 +202,7 @@ def load_uniform_grid(
     axis_order: Optional[AxisOrder] = None,
     cell_widths=None,
     parameters=None,
-    basename: str = "UniformGridData",
+    dataset_name: str = "UniformGridData",
 ):
     r"""Load a uniform grid of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
@@ -269,8 +269,9 @@ def load_uniform_grid(
     parameters: dictionary, optional
         Optional dictionary used to populate the dataset parameters, useful
         for storing dataset metadata.
-    basename: string, optional
-        Optional string used to assign a basename to the dataset.
+    dataset_name: string, optional
+        Optional string used to assign a name to the dataset. Stream datasets will use
+        this value in place of a filename (in image prefixing, etc.)
 
     Examples
     --------
@@ -388,7 +389,7 @@ def load_uniform_grid(
         parameters=parameters,
     )
 
-    handler.name = basename  # type: ignore [attr-defined]
+    handler.name = dataset_name  # type: ignore [attr-defined]
     handler.domain_left_edge = domain_left_edge  # type: ignore [attr-defined]
     handler.domain_right_edge = domain_right_edge  # type: ignore [attr-defined]
     handler.refine_by = 2  # type: ignore [attr-defined]
@@ -436,7 +437,7 @@ def load_amr_grids(
     default_species_fields=None,
     *,
     parameters=None,
-    basename: str = "AMRGridData",
+    dataset_name: str = "AMRGridData",
     axis_order: Optional[AxisOrder] = None,
 ):
     r"""Load a set of grids of data into yt as a
@@ -506,8 +507,9 @@ def load_amr_grids(
     parameters: dictionary, optional
         Optional dictionary used to populate the dataset parameters, useful
         for storing dataset metadata.
-    basename: string, optional
-        Optional string used to assign a basename to the dataset.
+    dataset_name: string, optional
+        Optional string used to assign a name to the dataset. Stream datasets will use
+        this value in place of a filename (in image prefixing, etc.)
     axis_order: tuple of three strings, optional
         Force axis ordering, e.g. ("z", "y", "x") with cartesian geometry
         Otherwise use geometry-specific default ordering.
@@ -632,7 +634,7 @@ def load_amr_grids(
         parameters=parameters,
     )
 
-    handler.name = basename  # type: ignore [attr-defined]
+    handler.name = dataset_name  # type: ignore [attr-defined]
     handler.domain_left_edge = domain_left_edge  # type: ignore [attr-defined]
     handler.domain_right_edge = domain_right_edge  # type: ignore [attr-defined]
     handler.refine_by = refine_by  # type: ignore [attr-defined]
@@ -674,7 +676,7 @@ def load_particles(
     *,
     axis_order: Optional[AxisOrder] = None,
     parameters=None,
-    basename: str = "ParticleData",
+    dataset_name: str = "ParticleData",
 ):
     r"""Load a set of particles into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamParticleHandler`.
@@ -730,8 +732,9 @@ def load_particles(
     parameters: dictionary, optional
         Optional dictionary used to populate the dataset parameters, useful
         for storing dataset metadata.
-    basename: string, optional
-        Optional string used to assign a basename to the dataset.
+    dataset_name: string, optional
+        Optional string used to assign a name to the dataset. Stream datasets will use
+        this value in place of a filename (in image prefixing, etc.)
 
     Examples
     --------
@@ -830,7 +833,7 @@ def load_particles(
         parameters=parameters,
     )
 
-    handler.name = basename  # type: ignore [attr-defined]
+    handler.name = dataset_name  # type: ignore [attr-defined]
     handler.domain_left_edge = domain_left_edge  # type: ignore [attr-defined]
     handler.domain_right_edge = domain_right_edge  # type: ignore [attr-defined]
     handler.refine_by = 2  # type: ignore [attr-defined]
@@ -867,7 +870,7 @@ def load_hexahedral_mesh(
     *,
     axis_order: Optional[AxisOrder] = None,
     parameters=None,
-    basename: str = "HexahedralMeshData",
+    dataset_name: str = "HexahedralMeshData",
 ):
     r"""Load a hexahedral mesh of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
@@ -925,8 +928,9 @@ def load_hexahedral_mesh(
     parameters: dictionary, optional
         Optional dictionary used to populate the dataset parameters, useful
         for storing dataset metadata.
-    basename: string, optional
-        Optional string used to assign a basename to the dataset.
+    dataset_name: string, optional
+        Optional string used to assign a name to the dataset. Stream datasets will use
+        this value in place of a filename (in image prefixing, etc.)
     """
     from yt.frontends.stream.data_structures import (
         StreamDictFieldHandler,
@@ -991,7 +995,7 @@ def load_hexahedral_mesh(
         parameters=parameters,
     )
 
-    handler.name = basename  # type: ignore [attr-defined]
+    handler.name = dataset_name  # type: ignore [attr-defined]
     handler.domain_left_edge = domain_left_edge  # type: ignore [attr-defined]
     handler.domain_right_edge = domain_right_edge  # type: ignore [attr-defined]
     handler.refine_by = 2  # type: ignore [attr-defined]
@@ -1025,7 +1029,7 @@ def load_octree(
     default_species_fields=None,
     *,
     parameters=None,
-    basename: str = "OctreeData",
+    dataset_name: str = "OctreeData",
 ):
     r"""Load an octree mask into yt.
 
@@ -1076,8 +1080,9 @@ def load_octree(
     parameters: dictionary, optional
         Optional dictionary used to populate the dataset parameters, useful
         for storing dataset metadata.
-    basename : string, optional
-        Optional string used to assign a basename to the dataset.
+    dataset_name : string, optional
+        Optional string used to assign a name to the dataset. Stream datasets will use
+        this value in place of a filename (in image prefixing, etc.)
 
     Example
     -------
@@ -1159,7 +1164,7 @@ def load_octree(
         parameters=parameters,
     )
 
-    handler.name = basename  # type: ignore [attr-defined]
+    handler.name = dataset_name  # type: ignore [attr-defined]
     handler.domain_left_edge = domain_left_edge  # type: ignore [attr-defined]
     handler.domain_right_edge = domain_right_edge  # type: ignore [attr-defined]
     handler.refine_by = 2  # type: ignore [attr-defined]
@@ -1196,7 +1201,7 @@ def load_unstructured_mesh(
     *,
     axis_order: Optional[AxisOrder] = None,
     parameters=None,
-    basename: str = "UnstructuredMeshData",
+    dataset_name: str = "UnstructuredMeshData",
 ):
     r"""Load an unstructured mesh of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
@@ -1274,8 +1279,9 @@ def load_unstructured_mesh(
     parameters: dictionary, optional
         Optional dictionary used to populate the dataset parameters, useful
         for storing dataset metadata.
-    basename: string, optional
-        Optional string used to assign a basename to the dataset.
+    dataset_name: string, optional
+        Optional string used to assign a name to the dataset. Stream datasets will use
+        this value in place of a filename (in image prefixing, etc.)
 
     Examples
     --------
@@ -1409,7 +1415,7 @@ def load_unstructured_mesh(
         parameters=parameters,
     )
 
-    handler.name = basename  # type: ignore [attr-defined]
+    handler.name = dataset_name  # type: ignore [attr-defined]
     handler.domain_left_edge = domain_left_edge  # type: ignore [attr-defined]
     handler.domain_right_edge = domain_right_edge  # type: ignore [attr-defined]
     handler.refine_by = 2  # type: ignore [attr-defined]
