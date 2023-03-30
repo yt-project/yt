@@ -531,6 +531,7 @@ class Dataset(abc.ABC):
                 "au",
                 "rsun",
                 "km",
+                "m",
                 "cm",
                 "mm",
                 "um",
