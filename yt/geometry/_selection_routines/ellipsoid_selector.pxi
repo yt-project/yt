@@ -24,13 +24,13 @@ cdef class EllipsoidSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) noexcept nogil:
         return self.select_point(pos)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_point(self, np.float64_t pos[3]) nogil:
+    cdef int select_point(self, np.float64_t pos[3]) noexcept nogil:
         cdef np.float64_t dot_evec[3]
         cdef np.float64_t dist
         cdef int i, j
@@ -49,7 +49,7 @@ cdef class EllipsoidSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) noexcept nogil:
         # this is the sphere selection
         cdef int i
         cdef np.float64_t dist, dist2_max, dist2 = 0
@@ -65,7 +65,7 @@ cdef class EllipsoidSelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_bbox(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3]) nogil:
+                               np.float64_t right_edge[3]) noexcept nogil:
         # This is the sphere selection
         cdef int i
         cdef np.float64_t box_center, relcenter, closest, dist, edge, dist_max
@@ -90,7 +90,7 @@ cdef class EllipsoidSelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_bbox_edge(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3]) nogil:
+                               np.float64_t right_edge[3]) noexcept nogil:
         # This is the sphere selection
         cdef int i
         cdef np.float64_t box_center, relcenter, closest, farthest, cdist, fdist, edge

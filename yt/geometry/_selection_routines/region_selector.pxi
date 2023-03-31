@@ -82,7 +82,7 @@ cdef class RegionSelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_bbox(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3]) nogil:
+                               np.float64_t right_edge[3]) noexcept nogil:
         cdef int i
         for i in range(3):
             if (right_edge[i] < self.left_edge[i] and \
@@ -95,7 +95,7 @@ cdef class RegionSelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_bbox_edge(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3]) nogil:
+                               np.float64_t right_edge[3]) noexcept nogil:
         cdef int i
         for i in range(3):
             if (right_edge[i] < self.left_edge[i] and \
@@ -114,7 +114,7 @@ cdef class RegionSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) noexcept nogil:
         cdef np.float64_t left_edge[3]
         cdef np.float64_t right_edge[3]
         cdef int i
@@ -128,7 +128,7 @@ cdef class RegionSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_point(self, np.float64_t pos[3]) nogil:
+    cdef int select_point(self, np.float64_t pos[3]) noexcept nogil:
         cdef int i
         for i in range(3):
             if (self.right_edge_shift[i] <= pos[i] < self.left_edge[i]) or \
@@ -139,7 +139,7 @@ cdef class RegionSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) noexcept nogil:
         # adapted from http://stackoverflow.com/a/4579192/1382869
         cdef int i
         cdef np.float64_t p

@@ -173,14 +173,14 @@ cdef class RaySelector(SelectorObject):
         free(ia)
         return dtr, tr
 
-    cdef int select_point(self, np.float64_t pos[3]) nogil:
+    cdef int select_point(self, np.float64_t pos[3]) noexcept nogil:
         # two 0-volume constructs don't intersect
         return 0
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) noexcept nogil:
 
         cdef int i
         cdef np.float64_t length = norm(self.vec)
@@ -204,7 +204,7 @@ cdef class RaySelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_bbox(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3]) nogil:
+                               np.float64_t right_edge[3]) noexcept nogil:
         cdef int i, rv
         cdef VolumeContainer vc
         cdef IntegrationAccumulator *ia
@@ -235,7 +235,7 @@ cdef class RaySelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_bbox_edge(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3]) nogil:
+                               np.float64_t right_edge[3]) noexcept nogil:
         cdef int i
         cdef np.uint8_t cm = 1
         cdef VolumeContainer vc
@@ -261,7 +261,7 @@ cdef class RaySelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_cell(self, np.float64_t pos[3],
-                               np.float64_t dds[3]) nogil:
+                               np.float64_t dds[3]) noexcept nogil:
         # This is terribly inefficient for Octrees.  For grids, it will never
         # get called.
         cdef int i

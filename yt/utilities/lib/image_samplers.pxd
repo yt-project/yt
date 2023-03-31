@@ -66,7 +66,7 @@ cdef class ImageSampler:
                 np.float64_t enter_t,
                 np.float64_t exit_t,
                 int index[3],
-                void *data) nogil
+                void *data) noexcept nogil
 
 cdef class ProjectionSampler(ImageSampler):
     pass
