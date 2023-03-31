@@ -208,6 +208,9 @@ html_show_sourcelink = False
 htmlhelp_basename = "ytdoc"
 
 
+linkcheck_exclude_documents = [r'reference/changelog']
+
+
 # -- Options for LaTeX output --------------------------------------------------
 
 # The paper size ('letter' or 'a4').
