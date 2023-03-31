@@ -208,7 +208,7 @@ html_show_sourcelink = False
 htmlhelp_basename = "ytdoc"
 
 
-linkcheck_exclude_documents = [r'reference/changelog']
+linkcheck_exclude_documents = [r"reference/changelog"]
 
 
 # -- Options for LaTeX output --------------------------------------------------
