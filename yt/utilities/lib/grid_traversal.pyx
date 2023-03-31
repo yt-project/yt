@@ -22,7 +22,6 @@ from yt.utilities.lib.fp_utils cimport fmin
 
 from .fixed_interpolator cimport *
 
-DEF Nch = 4
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

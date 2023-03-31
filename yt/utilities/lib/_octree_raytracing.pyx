@@ -10,8 +10,6 @@ import numpy as np
 
 cimport cython
 
-DEF Nch = 4
-
 
 cdef class _OctreeRayTracing:
     def __init__(self, np.ndarray LE, np.ndarray RE, int depth):
