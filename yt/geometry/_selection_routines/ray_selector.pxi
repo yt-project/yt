@@ -11,7 +11,7 @@ cdef void dt_sampler(
              np.float64_t enter_t,
              np.float64_t exit_t,
              int index[3],
-             void *data) nogil:
+             void *data) noexcept nogil:
     cdef IntegrationAccumulator *am = <IntegrationAccumulator *> data
     cdef int di = (index[0]*vc.dims[1]+index[1])*vc.dims[2]+index[2]
     if am.child_mask[di] == 0 or enter_t == exit_t:
