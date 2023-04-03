@@ -607,7 +607,7 @@ def fancy_download_file(url, filename, requests=None):
             iterations = int(float(total_length) / float(blocksize))
 
             pbar = get_pbar(
-                "Downloading %s to %s " % os.path.split(filename)[::-1], iterations
+                "Downloading {} to {} ".format(*os.path.split(filename)[::-1]), iterations
             )
             iteration = 0
             for chunk in response.iter_content(chunk_size=blocksize):
