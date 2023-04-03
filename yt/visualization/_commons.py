@@ -96,7 +96,8 @@ def validate_image_name(filename, suffix: Optional[str] = None) -> str:
         if suffix in _get_supported_image_file_formats() and suffix != psuffix:
             warnings.warn(
                 f"Received two valid image formats {psuffix!r} (from filename) "
-                f"and {suffix!r} (from suffix). The former is ignored."
+                f"and {suffix!r} (from suffix). The former is ignored.",
+                stacklevel=2,
             )
             return f"{name}.{suffix}"
         return str(filename)

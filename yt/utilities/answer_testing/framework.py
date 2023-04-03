@@ -797,7 +797,8 @@ def ensure_image_comparability(a, b):
 
     warnings.warn(
         f"Images have different shapes {a.shape} and {b.shape}. "
-        "Padding nans to make them comparable."
+        "Padding nans to make them comparable.",
+        stacklevel=2,
     )
     smallest_containing_shape = (
         max(a.shape[0], b.shape[0]),

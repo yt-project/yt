@@ -236,7 +236,8 @@ class Dataset(abc.ABC):
             warnings.warn(
                 f"Overwritting {cls.__name__}, which was previously registered. "
                 "This is expected if you're importing a yt extension with a "
-                "frontend that was already migrated to the main code base."
+                "frontend that was already migrated to the main code base.",
+                stacklevel=2,
             )
         output_type_registry[cls.__name__] = cls
         mylog.debug("Registering: %s as %s", cls.__name__, cls)

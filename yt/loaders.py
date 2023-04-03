@@ -1678,7 +1678,8 @@ def load_archive(
     """
 
     warnings.warn(
-        "The 'load_archive' function is still experimental and may be unstable."
+        "The 'load_archive' function is still experimental and may be unstable.",
+        stacklevel=2,
     )
 
     fn = os.path.expanduser(fn)
