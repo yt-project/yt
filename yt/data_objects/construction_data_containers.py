@@ -1490,6 +1490,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
                 "This is likely due to missing ghost-zones support "
                 f"in class {type(self.ds)}",
                 category=RuntimeWarning,
+                stacklevel=1,
             )
             mylog.debug("Caught %d runtime errors.", runtime_errors_count)
         for field, v in zip(fields, ls.fields):

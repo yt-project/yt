@@ -532,7 +532,8 @@ class PlotContainer(abc.ABC):
             if new_suffix != suffix:
                 warnings.warn(
                     f"Overriding suffix {suffix!r} with mpl_kwargs['format'] = {new_suffix!r}. "
-                    "Use the `suffix` argument directly to suppress this warning."
+                    "Use the `suffix` argument directly to suppress this warning.",
+                    stacklevel=2,
                 )
             suffix = new_suffix
 
