@@ -96,6 +96,10 @@ def ambiguous_dataset_classes():
             self.mass_unit = self.quan(1, "kg")
             self.time_unit = self.quan(1, "s")
 
+        @classmethod
+        def _is_valid(cls, *args, **kwargs):
+            return True
+
     class AlphaDataset(MockDataset):
         @classmethod
         def _is_valid(cls, *args, **kwargs):
@@ -139,6 +143,8 @@ def test_load_ambiguous_data(tmp_path):
         ("beta", "BetaDataset"),
         ("BeTA", "BetaDataset"),
         ("b", "BetaDataset"),
+        ("mock", "MockDataset"),
+        ("MockDataset", "MockDataset"),
     ],
 )
 @pytest.mark.usefixtures("ambiguous_dataset_classes")
