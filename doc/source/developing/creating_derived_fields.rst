@@ -42,15 +42,15 @@ CGS: if a different unit system is selected, the result will be in the same
 dimensions of pressure but different units. See :ref:`units` for more
 information.
 
-Once we've defined our function, we need to notify yt that the field is
-available.  The :func:`add_field` function is the means of doing this; it has a
-number of fairly specific parameters that can be passed in, but here we'll only
-look at the most basic ones needed for a simple scalar baryon field.
-
 .. note::
 
     There are two different :func:`add_field` functions.  For the differences,
     see :ref:`faq-add-field-diffs`.
+
+Once we've defined our function, we need to notify yt that the field is
+available.  The :func:`add_field` function is the means of doing this; it has a
+number of fairly specific parameters that can be passed in, but here we'll only
+look at the most basic ones needed for a simple scalar baryon field.
 
 .. code-block:: python
 
