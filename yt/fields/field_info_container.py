@@ -253,6 +253,7 @@ class FieldInfoContainer(UserDict):
                 continue
             args = known_other_fields.get(field[1], None)
             if args is not None:
+                field_spec: List[Dict]
                 units, aliases, display_name, *field_spec = args
             else:
                 try:
