@@ -83,11 +83,11 @@ class MeshCodeGenerator:
         assert self.num_vertices == len(self.N)
         assert self.num_dim == self.num_mapped_coords
 
-        X = MatrixSymbol("vertices", self.num_vertices, self.num_dim)
+        self.X = MatrixSymbol("vertices", self.num_vertices, self.num_dim)
         self.fx = MatrixSymbol("fx", self.num_dim, 1)
-        physical_position = MatrixSymbol("phys_x", self.num_dim, 1)
+        self.physical_position = MatrixSymbol("phys_x", self.num_dim, 1)
 
-        self.f = (self.N.T * Matrix(X)).T - physical_position
+        self.f = (self.N.T * Matrix(self.X)).T - self.physical_position
 
         self.J = symarray("J", (self.num_dim, self.num_dim))
         for i in range(self.num_dim):
