@@ -224,7 +224,7 @@ class FieldInfoContainer(UserDict):
                 if field[0] in self.ds.particle_types:
                     continue
                 args = known_other_fields.get(field[1], ("", [], None))
-                units, aliases, display_name = args
+                units, aliases, display_name, *field_spec = args
                 aliases_gallery.extend(aliases)
         elif (
             geometry is Geometry.CARTESIAN
@@ -252,7 +252,7 @@ class FieldInfoContainer(UserDict):
                 continue
             args = known_other_fields.get(field[1], None)
             if args is not None:
-                units, aliases, display_name = args
+                units, aliases, display_name, *field_spec = args
             else:
                 try:
                     node = ytcfg.get("fields", *field).as_dict()
