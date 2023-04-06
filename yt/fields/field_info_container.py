@@ -220,6 +220,7 @@ class FieldInfoContainer(UserDict):
             or geometry is Geometry.SPHERICAL
         ):
             aliases: List[FieldName]
+            field_spec: List[Dict]
             for field in sorted(self.field_list):
                 if field[0] in self.ds.particle_types:
                     continue
