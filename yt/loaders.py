@@ -116,8 +116,12 @@ def load(
         if cls._is_valid(fn, *args, **kwargs):
             candidates.append(cls)
 
+    # Filter the candidates if a hint was given
+    if hint is not None:
+        candidates = [c for c in candidates if hint.lower() in c.__name__.lower()]
+
     # Find only the lowest subclasses, i.e. most specialised front ends
-    candidates = find_lowest_subclasses(candidates, hint=hint)
+    candidates = find_lowest_subclasses(candidates)
 
     if len(candidates) == 1:
         return candidates[0](fn, *args, **kwargs)
