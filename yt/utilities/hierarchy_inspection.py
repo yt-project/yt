@@ -39,4 +39,4 @@ def find_lowest_subclasses(candidates: List[Type]) -> List[Type]:
 
     count = reduce(lambda x, y: x + y, counters)
 
-    return [x for x in count.keys() if count[x] == 1]
+    return [x for x in candidates if count[x] == 1]

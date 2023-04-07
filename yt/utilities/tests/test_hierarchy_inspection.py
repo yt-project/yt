@@ -55,3 +55,9 @@ def test_diverging_tree():
     result = find_lowest_subclasses([level1, level2, level3, level1a])
     assert len(result) == 2
     assert level1a in result and level3 in result
+
+
+def test_without_parents():
+    result = find_lowest_subclasses([level1, level3])
+    assert len(result) == 1
+    assert level3 in result
