@@ -439,7 +439,7 @@ which have different requirements for acceptance into the code base.  These
 requirements are in place for a few reasons -- to make sure that the code is
 maintainable, testable, and that we can easily include information about
 changes in changelogs during the release procedure.  (See `YTEP-0008
-<https://ytep.readthedocs.io/en/latest/YTEPs/YTEP-0008.html>`_ for more
+<https://ytep.readthedocs.io/en/master/YTEPs/YTEP-0008.html>`_ for more
 detail.)
 
 For all types of contributions, it is required that all tests pass, or that all non-passing tests are specifically accounted for.
