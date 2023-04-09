@@ -213,8 +213,8 @@ from you, and if you are developing yt, we encourage you to subscribe to the
 <https://mail.python.org/archives/list/yt-dev@python.org/>`_. Please feel
 free to hack around, commit changes, and send them upstream.
 
-.. note:: If you already know how to use the `git version control system
-   <https://git-scm.com/>`_ and are comfortable with handling it yourself,
+.. note:: If you already know how to use `git <https://git-scm.com/>`_
+   and are comfortable with handling it yourself,
    the quickest way to contribute to yt is to `fork us on GitHub
    <https://github.com/yt-project/yt/fork>`_, make your changes, push the
    changes to your fork and issue a `pull request
