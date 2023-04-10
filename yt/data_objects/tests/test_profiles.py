@@ -706,6 +706,15 @@ def test_export_astropy():
     assert "velocity_x" not in at2.colnames
     assert_equal(prof.x.d[prof.used], at2["radius"].value)
     assert_equal(prof[("gas", "density")].d[prof.used], at2["density"].value)
+    at3 = prof.to_astropy_table(fields=("gas", "density"), include_std=True)
+    assert_equal(prof[("gas", "density")].d, at3["density"].value)
+    assert_equal(
+        prof.standard_deviation[("gas", "density")].d, at3["density_stddev"].value
+    )
+    assert (
+        prof.standard_deviation[("gas", "density")].units
+        == YTArray.from_astropy(at3["density_stddev"]).units
+    )
 
 
 @requires_module("pandas")
@@ -731,3 +740,8 @@ def test_export_pandas():
     assert "velocity_x" not in df2.columns
     assert_equal(prof.x.d[prof.used], df2["radius"])
     assert_equal(prof[("gas", "density")].d[prof.used], df2["density"])
+    df3 = prof.to_dataframe(fields=("gas", "density"), include_std=True)
+    assert_equal(
+        prof.standard_deviation[("gas", "density")].d,
+        np.nan_to_num(df3["density_stddev"]),
+    )
