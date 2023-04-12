@@ -635,7 +635,7 @@ class Profile1D(ProfileND):
             copied, but the bins which are not used are masked.
             Default: False
         include_std : boolean, optional
-            If True, include the standard deviotion of the profile
+            If True, include the standard deviation of the profile
             in the AstroPy QTable. It will appear in the table as the
             field name with "_stddev" appended, e.g. "velocity_x_stddev".
             Default: False
