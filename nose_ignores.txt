@@ -25,3 +25,4 @@
 --ignore-file=test_stream_particles\.py
 --ignore-file=test_stream_stretched\.py
 --ignore-file=test_version\.py
+--ignore-file=test_gadget_pytests\.py

@@ -633,13 +633,9 @@ class GadgetHDF5Dataset(GadgetDataset):
         # ensure that 1-element arrays are reduced to scalars
         updated_hvals = {}
         for hvalname, value in hvals.items():
-            if isinstance(value, np.ndarray):
-                if value.ndim == 0:
-                    mylog.warning(f"Casting 0d {hvalname} to float.")
-                    updated_hvals[hvalname] = float(value)
-                elif value.ndim == 1 and value.size == 1:
-                    mylog.warning(f"Reducing length-1 array {hvalname} to scalar.")
-                    updated_hvals[hvalname] = value[0]
+            if isinstance(value, np.ndarray) and value.size == 1:
+                mylog.info(f"Reducing singleton array {hvalname} to scalar.")
+                updated_hvals[hvalname] = value.item()
         hvals.update(updated_hvals)
 
         return hvals
