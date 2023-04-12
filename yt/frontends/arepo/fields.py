@@ -129,14 +129,26 @@ class ArepoFieldInfo(GadgetFieldInfo):
                     self.alias(("gas", field), (ptype, field))
 
         if (ptype, "ElectronAbundance") in self.field_list:
-            # If we have ElectronAbundance but not NeutralHydrogenAbundance, assume the
+            # If we have ElectronAbundance but not NeutralHydrogenAbundance,
+            # try first to use the H_fraction, but otherwise we assume the
             # cosmic value for hydrogen to generate the H_number_density
             if (ptype, "NeutralHydrogenAbundance") not in self.field_list:
-                amu_cgs = self.ds.units.physical_constants.amu_cgs
-                muinv = _primordial_mass_fraction["H"] / ChemicalFormula("H").weight
+                m_u = self.ds.units.physical_constants.amu_cgs
+                A_H = ChemicalFormula("H").weight
+                if (ptype, "GFM_Metals_00") in self.field_list:
 
-                def _h_number_density(field, data):
-                    return data["gas", "density"] * muinv / amu_cgs
+                    def _h_number_density(field, data):
+                        return (
+                            data["gas", "density"]
+                            * data["gas", "H_fraction"]
+                            / (A_H * m_u)
+                        )
+
+                else:
+                    X_H = _primordial_mass_fraction["H"]
+
+                    def _h_number_density(field, data):
+                        return data["gas", "density"] * X_H / (A_H * m_u)
 
                 self.add_field(
                     (ptype, "H_number_density"),
