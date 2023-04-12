@@ -12,7 +12,7 @@ def test_gadget_header_array_reduction(tmp_path):
     ds = yt.load("snapshot_033/snap_033.0.hdf5")
     hvals = ds._get_hvals()
     hvals_orig = hvals.copy()
-    # wrap some of the values in nested arrays
+    # wrap some of the scalar values in nested arrays
     hvals["Redshift"] = np.array(
         [
             hvals["Redshift"],
@@ -39,5 +39,6 @@ def test_gadget_header_array_reduction(tmp_path):
     # arrays are reduced
     ds._input_filename = tmp_header_only_file
     hvals = ds._get_hvals()
-    assert hvals["Redshift"] == hvals_orig["Redshift"]
-    assert hvals["Omega0"] == hvals_orig["Omega0"]
+    for attr in ("Redshift", "Omega0"):
+        assert hvals[attr] == hvals_orig[attr]
+        assert isinstance(hvals[attr], np.ndarray) is False
