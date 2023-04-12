@@ -580,7 +580,7 @@ class Profile1D(ProfileND):
             all the bins will be exported, but the elements for those bins
             in the data arrays will be filled with NaNs.
         include_std : boolean, optional
-            If True, include the standard deviotion of the profile
+            If True, include the standard deviation of the profile
             in the pandas DataFrame. It will appear in the table as the
             field name with "_stddev" appended, e.g. "velocity_x_stddev".
             Default: False
