@@ -184,6 +184,7 @@ class Dataset(abc.ABC):
     field_units: Optional[Dict[AnyFieldKey, Unit]] = None
     derived_field_list = requires_index("derived_field_list")
     fields = requires_index("fields")
+    conversion_factors: Optional[Dict[str, float]] = None
     # _instantiated represents an instantiation time (since Epoch)
     # the default is a place holder sentinel, falsy value
     _instantiated: float = 0
@@ -273,7 +274,7 @@ class Dataset(abc.ABC):
         if self._instantiated != 0:
             return
         self.dataset_type = dataset_type
-        self.conversion_factors: Dict[str, float] = {}
+        self.conversion_factors = {}
         self.parameters: Dict[str, Any] = {}
         self.region_expression = self.r = RegionExpression(self)
         self.known_filters = self.known_filters or {}
