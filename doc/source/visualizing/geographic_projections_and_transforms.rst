@@ -11,7 +11,7 @@ With support from `cartopy <https://scitools.org.uk/cartopy/docs/latest/>`_,
 ``yt`` now supports these projection
 types for geographically loaded data.
 Underlying data is assumed to have a transform of `PlateCarree
-<https://scitools.org.uk/cartopy/docs/latest/crs/projections.html#platecarree>`__,
+<https://scitools.org.uk/cartopy/docs/latest/reference/projections.html#platecarree>`__,
 which is data on a flattened, rectangular, latitude/longitude grid. This is a
 a typical format for geographic data.
 

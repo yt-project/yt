@@ -239,7 +239,9 @@ Exporting Profiles to DataFrame
 One-dimensional profile data can be exported to a :class:`~pandas.DataFrame` object
 using the :meth:`yt.data_objects.profiles.Profile1D.to_dataframe` method. Bins which
 do not have data will have their fields filled with ``NaN``, except for the bin field
-itself. If you only want to export the bins which are used, set ``only_used=True``.
+itself. If you only want to export the bins which are used, set ``only_used=True``,
+and if you want to export the standard deviation of the profile as well, set
+``include_std=True``:
 
 .. code-block:: python
 
@@ -249,6 +251,8 @@ itself. If you only want to export the bins which are used, set ``only_used=True
     df_used = profile.to_dataframe(only_used=True)
     # Only adds the density and temperature fields
     df2 = profile.to_dataframe(fields=[("gas", "density"), ("gas", "temperature")])
+    # Include standard deviation
+    df3 = profile.to_dataframe(include_std=True)
 
 The :class:`~pandas.DataFrame` can then analyzed and/or written to disk using pandas
 methods. Note that unit information is lost in this export.
@@ -262,8 +266,9 @@ One-dimensional profile data also can be exported to an AstroPy :class:`~astropy
 object. This table can then be written to disk in a number of formats, such as ASCII text
 or FITS files, and manipulated in a number of ways. Bins which do not have data
 will have their mask values set to ``False``. If you only want to export the bins
-which are used, set ``only_used=True``. Units are preserved in the table by converting
-each :class:`~yt.units.yt_array.YTArray` to an :class:`~astropy.units.Quantity`.
+which are used, set ``only_used=True``. If you want to include the standard deviation
+of the field in the export, set ``include_std=True``. Units are preserved in the table
+by converting each :class:`~yt.units.yt_array.YTArray` to an :class:`~astropy.units.Quantity`.
 
 To export the 1D profile to a Table object, simply call
 :meth:`yt.data_objects.profiles.Profile1D.to_astropy_table`:
@@ -276,6 +281,8 @@ To export the 1D profile to a Table object, simply call
     t_used = profile.to_astropy_table(only_used=True)
     # Only adds the density and temperature fields
     t2 = profile.to_astropy_table(fields=[("gas", "density"), ("gas", "temperature")])
+    # Export the standard deviation
+    t3 = profile.to_astropy_table(include_std=True)
 
 .. _generating-line-queries:
 

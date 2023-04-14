@@ -1,7 +1,8 @@
 import inspect
 from collections import Counter
-from functools import reduce
 from typing import List, Type
+
+from more_itertools import flatten
 
 
 def find_lowest_subclasses(candidates: List[Type]) -> List[Type]:
@@ -22,21 +23,5 @@ def find_lowest_subclasses(candidates: List[Type]) -> List[Type]:
         A list of classes which are not super classes for any others in
         candidates.
     """
-
-    # If there is only one input, the input candidate is always the
-    # lowest class
-    if len(candidates) == 1:
-        return candidates
-    elif len(candidates) == 0:
-        return []
-
-    mros = [inspect.getmro(c) for c in candidates]
-
-    counters = [Counter(mro) for mro in mros]
-
-    if len(counters) == 0:
-        return []
-
-    count = reduce(lambda x, y: x + y, counters)
-
+    count = Counter(flatten(inspect.getmro(c) for c in candidates))
     return [x for x in candidates if count[x] == 1]

@@ -10,14 +10,21 @@
 --ignore-file=test_firefly\.py
 --ignore-file=test_geometries\.py
 --ignore-file=test_glue\.py
+--ignore-file=test_image_comp_2D_plots\.py
+--ignore-file=test_image_comp_geo\.py
 --ignore-file=test_invalid_origin\.py
 --ignore-file=test_line_annotation_unit\.py
+--ignore-file=test_line_plots\.py
 --ignore-file=test_load_archive\.py
 --ignore-file=test_load_errors\.py
 --ignore-file=test_load_sample\.py
+--ignore-file=test_mesh_render\.py
+--ignore-file=test_mesh_slices\.py
 --ignore-file=test_normal_plot_api\.py
 --ignore-file=test_on_demand_imports\.py
 --ignore-file=test_outputs_pytest\.py
+--ignore-file=test_profile_plots\.py
+--ignore-file=test_raw_field_slices\.py
 --ignore-file=test_registration\.py
 --ignore-file=test_sanitize_center\.py
 --ignore-file=test_save\.py
@@ -26,3 +33,4 @@
 --ignore-file=test_stream_stretched\.py
 --ignore-file=test_version\.py
 --ignore-file=test_gadget_pytests\.py
+--ignore-file=test_vr_orientation\.py
