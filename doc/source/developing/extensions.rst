@@ -4,7 +4,7 @@ Extension Packages
 ==================
 
 .. note:: For some additional discussion, see `YTEP-0029
-          <https://ytep.readthedocs.io/en/latest/YTEPs/YTEP-0029.html>`_, where
+          <https://ytep.readthedocs.io/en/master/YTEPs/YTEP-0029.html>`_, where
           this plan was designed.
 
 As of version 3.3 of yt, we have put into place new methods for easing the

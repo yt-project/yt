@@ -3237,7 +3237,7 @@ Cf/Radial is a CF compliant netCDF convention for radial data from radar and
 lidar platforms that supports both airborne and ground-based sensors. Because
 of its CF-compliance, CfRadial will allow researchers familiar with CF to read
 the data into a wide variety of analysis tools, models etc. For more see:
-https://www.eol.ucar.edu/system/files/CfRadialDoc.v1.4.20160801.pdf
+[CfRadialDoc.v1.4.20160801.pdf](https://github.com/NCAR/CfRadial/blob/d4562a995d0589cea41f4f6a4165728077c9fc9b/docs/CfRadialDoc.v1.4.20160801.pdf)
 
 yt provides support for loading cartesian-gridded CfRadial netcdf-4 files as
 well as polar coordinate Cfradial netcdf-4 files. When loading a standard
