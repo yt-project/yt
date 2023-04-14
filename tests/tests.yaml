@@ -107,7 +107,6 @@ answer_tests:
     - yt/visualization/tests/test_particle_plot.py:test_particle_projection_answers
     - yt/visualization/tests/test_particle_plot.py:test_particle_projection_filter
     - yt/visualization/tests/test_particle_plot.py:test_particle_phase_answers
-    - yt/visualization/tests/test_raw_field_slices.py:test_raw_field_slices
     - yt/visualization/tests/test_callbacks.py:test_axis_manipulations
 
   local_tipsy_008:  # PR 2909
@@ -120,24 +119,6 @@ answer_tests:
     - yt/fields/tests/test_xray_fields.py:test_sloshing_apec
     - yt/fields/tests/test_xray_fields.py:test_d9p_cloudy
     - yt/fields/tests/test_xray_fields.py:test_d9p_cloudy_local
-
-  local_unstructured_012:
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_composite_mesh_render
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_composite_mesh_render_pyembree
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_hex20_render
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_hex20_render_pyembree
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_hex8_render
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_hex8_render_pyembree
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_perspective_mesh_render
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_perspective_mesh_render_pyembree
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_surface_mesh_render
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_surface_mesh_render_pyembree
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_tet10_render
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_tet10_render_pyembree
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_tet4_render
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_tet4_render_pyembree
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_wedge6_render
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_wedge6_render_pyembree
 
   local_boxlib_011:
     - yt/frontends/boxlib/tests/test_outputs.py:test_radadvect
@@ -178,30 +159,11 @@ answer_tests:
   local_axialpix_009: # PR 3818
     - yt/geometry/coordinates/tests/test_axial_pixelization.py:test_axial_pixelization
 
-  local_cylindrical_background_016:  # PR 4132
-    - yt/geometry/coordinates/tests/test_cylindrical_coordinates.py:test_noise_plots
-
-  local_spherical_background_010:  # PR 4132
-    - yt/geometry/coordinates/tests/test_spherical_coordinates.py:test_noise_plots
-
   #local_particle_trajectory_001:
   #  - yt/data_objects/tests/test_particle_trajectories.py
 
   local_nc4_cm1_002: # PR  2176, 2998
     - yt/frontends/nc4_cm1/tests/test_outputs.py:test_cm1_mesh_fields
-
-  local_norm_api_009: # PR 4132
-    - yt/visualization/tests/test_norm_api_lineplot.py:test_lineplot_set_axis_properties
-    - yt/visualization/tests/test_norm_api_profileplot.py:test_profileplot_set_axis_properties
-    - yt/visualization/tests/test_norm_api_custom_norm.py:test_sliceplot_custom_norm
-    - yt/visualization/tests/test_norm_api_set_background_color.py:test_sliceplot_set_background_color
-    - yt/visualization/tests/test_norm_api_phaseplot_set_colorbar_implicit.py:test_phaseplot_set_colorbar_properties_implicit
-    - yt/visualization/tests/test_norm_api_phaseplot_set_colorbar_explicit.py:test_phaseplot_set_colorbar_properties_explicit
-    - yt/visualization/tests/test_norm_api_particleplot.py:test_particleprojectionplot_set_colorbar_properties
-    - yt/visualization/tests/test_norm_api_inf_zlim.py:test_inf_and_finite_values_zlim
-
-  local_cf_radial_002: # PR  1990
-    - yt/frontends/cf_radial/tests/test_outputs.py:test_cfradial_grid_field_values
 
 other_tests:
   unittests:
@@ -220,14 +182,21 @@ other_tests:
      - "--ignore-file=test_firefly\\.py"
      - "--ignore-file=test_geometries\\.py"
      - "--ignore-file=test_glue\\.py"
+     - "--ignore-file=test_image_comp_2D_plots\\.py"
+     - "--ignore-file=test_image_comp_geo\\.py"
      - "--ignore-file=test_invalid_origin\\.py"
      - "--ignore-file=test_line_annotation_unit\\.py"
+     - "--ignore-file=test_line_plots\\.py"
      - "--ignore-file=test_load_archive\\.py"
      - "--ignore-file=test_load_errors\\.py"
      - "--ignore-file=test_load_sample\\.py"
+     - "--ignore-file=test_mesh_render\\.py"
+     - "--ignore-file=test_mesh_slices\\.py"
      - "--ignore-file=test_normal_plot_api\\.py"
      - "--ignore-file=test_on_demand_imports\\.py"
      - "--ignore-file=test_outputs_pytest\\.py"
+     - "--ignore-file=test_profile_plots\\.py"
+     - "--ignore-file=test_raw_field_slices\\.py"
      - "--ignore-file=test_registration\\.py"
      - "--ignore-file=test_sanitize_center\\.py"
      - "--ignore-file=test_save\\.py"
@@ -235,6 +204,7 @@ other_tests:
      - "--ignore-file=test_stream_particles\\.py"
      - "--ignore-file=test_stream_stretched\\.py"
      - "--ignore-file=test_version\\.py"
+     - "--ignore-file=test_vr_orientation\\.py"
      - "--exclude-test=yt.frontends.gdf.tests.test_outputs.TestGDF"
      - "--exclude-test=yt.frontends.adaptahop.tests.test_outputs"
      - "--exclude-test=yt.frontends.stream.tests.test_stream_particles.test_stream_non_cartesian_particles"
