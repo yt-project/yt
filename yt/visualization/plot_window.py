@@ -37,7 +37,11 @@ from yt.utilities.orientation import Orientation
 from yt.visualization._handlers import ColorbarHandler, NormHandler
 from yt.visualization.base_plot_types import CallbackWrapper, ImagePlotMPL
 
-from ._commons import _swap_axes_extents, get_default_from_config
+from ._commons import (
+    _get_units_label,
+    _swap_axes_extents,
+    get_default_from_config,
+)
 from .fixed_resolution import (
     FixedResolutionBuffer,
     OffAxisProjectionFixedResolutionBuffer,
@@ -1195,10 +1199,8 @@ class PWViewerMPL(PlotWindow):
                     colorbar_label = "%s \\rm{Standard Deviation}" % colorbar_label
                 if hasattr(self, "projected"):
                     colorbar_label = "$\\rm{Projected }$ %s" % colorbar_label
-                if units is None or units == "":
-                    pass
-                else:
-                    colorbar_label += r"$\ \ \left(" + units + r"\right)$"
+                if units is not None and units != "":
+                    colorbar_label += _get_units_label(units)
 
             parser = MathTextParser("Agg")
 

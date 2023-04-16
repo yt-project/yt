@@ -27,6 +27,7 @@ from yt.visualization.base_plot_types import PlotMPL
 
 from ._commons import (
     DEFAULT_FONT_PROPERTIES,
+    _get_units_label,
     invalidate_data,
     invalidate_figure,
     invalidate_plot,
@@ -718,7 +719,7 @@ class PlotContainer(abc.ABC):
                 axes_unit_labels[i] = ""
                 continue
             if unn is not None:
-                axes_unit_labels[i] = r"\ \ \left(" + unn + r"\right)"
+                axes_unit_labels[i] = _get_units_label(unn).strip("$")
                 continue
             # Use sympy to factor h out of the unit.  In this context 'un'
             # is a string, so we call the Unit constructor.
@@ -755,10 +756,7 @@ class PlotContainer(abc.ABC):
                         symbol_wo_prefix = un[1:]
                         if symbol_wo_prefix in self.ds.unit_registry.prefixable_units:
                             un = un.replace(pp, "{" + latex_prefixes[pp] + "}", 1)
-                if r"\frac" in un:
-                    axes_unit_labels[i] = r"\ \ \left(" + un + r"\right)"
-                else:
-                    axes_unit_labels[i] = r"\ \ (" + un + r")"
+                axes_unit_labels[i] = _get_units_label(un).strip("$")
         return axes_unit_labels
 
     def hide_colorbar(self, field=None):
