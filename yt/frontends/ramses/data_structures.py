@@ -743,7 +743,7 @@ class RAMSESDataset(Dataset):
 
         file_handler = RAMSESFileSanitizer(filename)
 
-        # ensure validation happens even if the class is instanciated
+        # ensure validation happens even if the class is instantiated
         # directly rather than from yt.load
         file_handler.validate()
 

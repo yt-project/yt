@@ -7,7 +7,7 @@ from yt.utilities.logger import ytLogger as mylog
 from .field_info_container import FieldInfoContainer
 from .field_plugin_registry import register_field_plugin
 
-# workaround mypy not being confortable around decorator preserving signatures
+# workaround mypy not being comfortable around decorator preserving signatures
 # adapted from
 # https://github.com/python/mypy/issues/1551#issuecomment-253978622
 TFun = TypeVar("TFun", bound=Callable[..., Any])

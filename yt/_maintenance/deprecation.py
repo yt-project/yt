@@ -66,7 +66,7 @@ def future_positional_only(positions2names: Dict[int, str], /, **depr_kwargs):
                 issue_deprecation_warning(
                     f"Using the {name!r} argument as keyword (on position {no}) "
                     "is deprecated. "
-                    "Pass the argument as positional to supress this warning, "
+                    "Pass the argument as positional to suppress this warning, "
                     f"i.e., use {func.__name__}({value!r}, ...)",
                     **depr_kwargs,
                 )

@@ -343,7 +343,7 @@ class StreamDataset(Dataset):
         from yt.data_objects.static_output import _cached_datasets
 
         if geometry == "spectral_cube":
-            # mimick FITSDataset specific interface to allow testing with
+            # mimic FITSDataset specific interface to allow testing with
             # fake, in memory data
             setdefaultattr(self, "lon_axis", 0)
             setdefaultattr(self, "lat_axis", 1)

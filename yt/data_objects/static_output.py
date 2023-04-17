@@ -105,7 +105,7 @@ _cached_datasets: MutableMapping[
 ] = weakref.WeakValueDictionary()
 
 # we set this global to None as a place holder
-# its actual instanciation is delayed until after yt.__init__
+# its actual instantiation is delayed until after yt.__init__
 # is completed because we need yt.config.ytcfg to be instantiated first
 
 _ds_store: Optional[ParameterFileStore] = None
@@ -235,7 +235,7 @@ class Dataset(abc.ABC):
         super().__init_subclass__(*args, **kwargs)
         if cls.__name__ in output_type_registry:
             warnings.warn(
-                f"Overwritting {cls.__name__}, which was previously registered. "
+                f"Overwriting {cls.__name__}, which was previously registered. "
                 "This is expected if you're importing a yt extension with a "
                 "frontend that was already migrated to the main code base.",
                 stacklevel=2,
@@ -802,7 +802,7 @@ class Dataset(abc.ABC):
         # end compatibility layer
         if not isinstance(self.geometry, Geometry):
             raise TypeError(
-                "Excpected dataset.geometry attribute to be of "
+                "Expected dataset.geometry attribute to be of "
                 "type yt.geometry.geometry_enum.Geometry\n"
                 f"Got {self.geometry=} with type {type(self.geometry)}"
             )

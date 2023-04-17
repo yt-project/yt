@@ -88,7 +88,7 @@ def load(
         If fn matches existing files or directories with undetermined format.
 
     yt.utilities.exceptions.YTAmbiguousDataType
-        If the data format matches more than one class of similar specilization levels.
+        If the data format matches more than one class of similar specialization levels.
     """
     fn = os.path.expanduser(fn)
 
@@ -1713,7 +1713,7 @@ def load_archive(
     proc = Process(target=_mount_helper, args=(fn, tempdir, ratarmount_kwa, child_conn))
     proc.start()
     if not parent_conn.recv():
-        raise MountError(f"An error occured while mounting {fn} in {tempdir}")
+        raise MountError(f"An error occurred while mounting {fn} in {tempdir}")
 
     # Note: the mounting needs to happen in another process which
     # needs be run in the foreground (otherwise it may

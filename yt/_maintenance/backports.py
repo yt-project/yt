@@ -1,5 +1,5 @@
 # A namespace to store simple backports from most recent Python versions
-# Backports should be contained in (if/else) blocks, cheking on the runtime
+# Backports should be contained in (if/else) blocks, checking on the runtime
 # Python version, e.g.
 #
 # if sys.version_info < (3, 8):
