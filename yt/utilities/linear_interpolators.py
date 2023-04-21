@@ -265,12 +265,11 @@ class QuadrilinearFieldInterpolator:
 
         Examples
         --------
-        ####### Needs updating
         ad = ds.all_data()
-        table_data = np.random.random((64, 64, 64))
+        table_data = np.random.random((64, 64, 64, 64))
         interp = BilinearFieldInterpolator(table_data,
-                                           (0.0, 1.0, 0.0, 1.0, 0.0, 1.0),
-                                           ["x", "y", "z"],
+                                           (0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0),
+                                           ["x", "y", "z", "w"],
                                            truncate=True)
         field_data = interp(ad)
 
