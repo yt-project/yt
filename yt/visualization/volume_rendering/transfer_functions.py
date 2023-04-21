@@ -687,7 +687,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         ax.xaxis.set_major_formatter(FuncFormatter(y_format))
         ax.set_xlim(0.0, max_alpha)
         ax.get_xaxis().set_ticks([])
-        ax.set_ylim(visible[0], visible[-1])
+        ax.set_ylim(visible[0].item(), visible[-1].item())
         ax.tick_params(axis="y", colors="white", size=10)
         ax.set_ylabel(label, color="white", size=size * resolution / 512.0)
 
