@@ -20,7 +20,7 @@ def test_hilbert3d():
     outputs = [0, 1, 7, 6, 3, 2, 4, 5]
 
     for i, o in zip(inputs, outputs):
-        assert_equal(int(hilbert3d(i, 3)), o)
+        assert_equal(hilbert3d(i, 3).item(), o)
 
 
 output_00080 = "output_00080/info_00080.txt"

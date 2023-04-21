@@ -585,7 +585,7 @@ def load_amr_grids(
         get_box_grids_level(
             grid_left_edges[gi, :],
             grid_right_edges[gi, :],
-            grid_levels[gi] + 1,
+            grid_levels[gi].item() + 1,
             grid_left_edges,
             grid_right_edges,
             grid_levels,
