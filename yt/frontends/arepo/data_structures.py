@@ -72,7 +72,7 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
         for i, unit in enumerate(
             ["UnitLength_in_cm", "UnitMass_in_g", "UnitVelocity_in_cm_per_s"]
         ):
-            for grp in ["/Header", "/Parameters", "/Units"]:
+            for grp in ["Header", "Parameters", "Units"]:
                 if grp in handle:
                     if unit in handle[grp].attrs:
                         uvals[unit] = handle[grp].attrs[unit]
