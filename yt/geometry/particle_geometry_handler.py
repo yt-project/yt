@@ -7,13 +7,37 @@ import weakref
 import numpy as np
 
 from yt.data_objects.index_subobjects.particle_container import ParticleContainer
-from yt.funcs import get_pbar, only_on_root
+from yt.funcs import get_pbar, is_sequence, only_on_root
 from yt.geometry.geometry_handler import Index, YTDataChunk
 from yt.geometry.particle_oct_container import ParticleBitmap
 from yt.utilities.lib.ewah_bool_wrap import BoolArrayCollection
 from yt.utilities.lib.fnv_hash import fnv_hash
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_objects
+
+
+def validate_index_order(index_order):
+    if index_order is None:
+        index_order = (6, 2)
+    elif not is_sequence(index_order):
+        index_order = (int(index_order), 1)
+    else:
+        if len(index_order) != 2:
+            raise RuntimeError(
+                "Tried to load a dataset with index_order={}, but "
+                "index_order\nmust be an integer or a two-element tuple of "
+                "integers.".format(index_order)
+            )
+        index_order = tuple(int(o) for o in index_order)
+    return index_order
+
+
+class ParticleIndexInfo:
+    def __init__(self, order1, order2, filename, mutable_index):
+        self.order1 = order1
+        self.order2 = order2
+        self.filename = filename
+        self.mutable_index = mutable_index
 
 
 class ParticleIndex(Index):
@@ -140,13 +164,18 @@ class ParticleIndex(Index):
             ds.domain_right_edge = ds.arr(1.05 * max_ppos, "code_length")
             ds.domain_width = ds.domain_right_edge - ds.domain_left_edge
 
+        mutable_index = True
+
         # use a trivial morton index for datasets containing a single chunk
         if len(self.data_files) == 1:
             order1 = 1
             order2 = 1
+            mutable_index = False
         else:
-            order1 = ds.index_order[0]
-            order2 = ds.index_order[1]
+            mutable_index = ds.index_order is not None
+            index_order = validate_index_order(ds.index_order)
+            order1 = index_order[0]
+            order2 = index_order[1]
 
         if order1 == 1 and order2 == 1:
             dont_cache = True
@@ -158,6 +187,8 @@ class ParticleIndex(Index):
 
         # Load Morton index from file if provided
         fname = getattr(ds, "index_filename", None) or f"{ds.parameter_filename}.ewah"
+
+        self.pii = ParticleIndexInfo(order1, order2, fname, mutable_index)
 
         self.regions = ParticleBitmap(
             ds.domain_left_edge,
@@ -182,10 +213,6 @@ class ParticleIndex(Index):
             self.regions.reset_bitmasks()
             self._initialize_coarse_index()
             self._initialize_refined_index()
-            # We now update fname since index_order2 may have changed
-            fname = (
-                getattr(ds, "index_filename", None) or f"{ds.parameter_filename}.ewah"
-            )
             wdir = os.path.dirname(fname)
             if not dont_cache and os.access(wdir, os.W_OK):
                 # Sometimes os mis-reports whether a directory is writable,
@@ -195,6 +222,9 @@ class ParticleIndex(Index):
                 except OSError:
                     pass
             rflag = self.regions.check_bitmasks()
+
+        self.ds.index_order = (self.pii.order1, self.pii.order2)
+        del self.pii
 
     def _initialize_coarse_index(self):
         max_hsml = 0.0
@@ -233,6 +263,7 @@ class ParticleIndex(Index):
             mylog.info(
                 "Updating index_order2 from %s to %s", ds.index_order[1], new_order2
             )
+            self.pii.order2 = new_order2
             self.ds.index_order = (self.ds.index_order[0], new_order2)
 
     def _initialize_refined_index(self):

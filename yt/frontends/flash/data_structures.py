@@ -5,7 +5,7 @@ from typing import Type
 import numpy as np
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
-from yt.data_objects.static_output import Dataset, ParticleFile, validate_index_order
+from yt.data_objects.static_output import Dataset, ParticleFile
 from yt.funcs import mylog, setdefaultattr
 from yt.geometry.api import Geometry
 from yt.geometry.geometry_handler import Index
@@ -496,7 +496,7 @@ class FLASHParticleDataset(FLASHDataset):
         index_filename=None,
         unit_system="cgs",
     ):
-        self.index_order = validate_index_order(index_order)
+        self.index_order = index_order
         self.index_filename = index_filename
 
         if self._handle is not None:
