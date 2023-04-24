@@ -250,7 +250,7 @@ class ParticleIndex(Index):
         for data_file in self.data_files:
             self.regions._set_coarse_index_data_file(data_file.file_id)
         self.regions.find_collisions_coarse()
-        if max_hsml > 0.0 and len(self.data_files) > 1:
+        if max_hsml > 0.0 and self.pii.mutable_index:
             # By passing this in, we only allow index_order2 to be increased by
             # two at most, never increased.  One place this becomes particularly
             # useful is in the case of an extremely small section of gas
@@ -259,12 +259,14 @@ class ParticleIndex(Index):
             # domain, it will correspond to a very very high index order, which
             # is a large amount of memory!  Having multiple indexes, one for
             # each particle type, would fix this.
-            new_order2 = self.regions.update_mi2(max_hsml, ds.index_order[1] + 2)
+            new_order2 = self.regions.update_mi2(max_hsml, self.pii.order2 + 2)
             mylog.info(
-                "Updating index_order2 from %s to %s", ds.index_order[1], new_order2
+                "Updating index_order2 from %s to %s", self.pii.order2, new_order2
             )
             self.pii.order2 = new_order2
-            self.ds.index_order = (self.ds.index_order[0], new_order2)
+            return max_hsml
+        else:
+            return 0.0
 
     def _initialize_refined_index(self):
         mask = self.regions.masks.sum(axis=1).astype("uint8")
