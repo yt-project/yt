@@ -78,13 +78,11 @@ class ArepoFieldInfo(GadgetFieldInfo):
                 )
 
             self.add_field(
-                (ptype, "pressure"),
+                ("gas", "pressure"),
                 function=_pressure,
-                sampling_type="particle",
+                sampling_type="local",
                 units=self.ds.unit_system["pressure"],
             )
-
-            self.alias((ptype, "pressure"), ("gas", "pressure"))
 
         if (ptype, "GFM_Metals_00") in self.field_list:
             self.nuclei_names = metal_elements
