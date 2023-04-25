@@ -206,7 +206,7 @@ def check_CPP14_flags(possible_compile_flags):
 
 def get_ewah_bool_utils_path():
     if sys.version_info >= (3, 9):
-        return os.path.abspath(importlib.resources.files("ewah_bool_utils"))
+        return os.path.abspath(importlib_resources.files("ewah_bool_utils"))
     else:
         from pkg_resources import resource_filename
         return os.path.dirname(os.path.abspath(resource_filename("ewah_bool_utils", "ewah_bool_wrap.pxd")))
