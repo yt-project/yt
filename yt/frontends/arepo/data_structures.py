@@ -73,15 +73,14 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
             ["UnitLength_in_cm", "UnitMass_in_g", "UnitVelocity_in_cm_per_s"]
         ):
             for grp in ["Header", "Parameters", "Units"]:
-                if grp in handle:
-                    if unit in handle[grp].attrs:
-                        uvals[unit] = handle[grp].attrs[unit]
-                        missing[i] = False
-                        break
-            if unit == "UnitLength_in_cm" and unit in uvals:
-                # We assume this is comoving, because in the absence of comoving
-                # integration the redshift will be zero.
-                uvals["cmcm"] = 1.0 / uvals[unit]
+                if grp in handle and unit in handle[grp].attrs:
+                    uvals[unit] = handle[grp].attrs[unit]
+                    missing[i] = False
+                    break
+        if "UnitLength_in_cm" in uvals:
+            # We assume this is comoving, because in the absence of comoving
+            # integration the redshift will be zero.
+            uvals["cmcm"] = 1.0 / uvals["UnitLength_in_cm"]
         handle.close()
         if all(missing):
             uvals = None
