@@ -43,7 +43,7 @@ Here's a summary for most recent releases
 | 3.5.x      | yes        | 3.4            | 3.5             |
 +------------+------------+----------------+-----------------+
 
-Mininum Python versions are strict requirements, while maximum
+Minimum Python versions are strict requirements, while maximum
 indicates the newest version for which the yt development team
 provides pre-compiled binaries via PyPI and conda-forge.
 It may be possible to compile existing yt versions under more
