@@ -369,7 +369,7 @@ Our dependencies are specified in ``pyproject.toml``. Hard dependencies are foun
 test suite, which are intended to be as modern as possible (we don't set upper
 limits to versions unless we need to). The ``minimal`` target is used to check
 that we don't break backward compatibility with old versions of upstream
-projects by accident. It is intended to pin stricly our minimal supported
+projects by accident. It is intended to pin strictly our minimal supported
 versions. The ``test`` target specifies the tools neeed to run the tests, but
 not needed by yt itself.
 

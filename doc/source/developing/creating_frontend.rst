@@ -135,7 +135,7 @@ positional and keyword arguments. On call, ``yt.load`` attempts to determine
 what ``Dataset`` subclasses are compatible with the set of arguments it
 received. It does so by passing its arguments to *every* ``Dataset`` subclasses'
 ``_is_valid`` method. These methods are intended to be heuristics that quickly
-determine wether the arguments (in particular the file/directory) can be loaded
+determine whether the arguments (in particular the file/directory) can be loaded
 with their respective classes. In some cases, more than one class might be
 detected as valid. If all candidate classes are siblings, ``yt.load`` will
 select the most specialized one.

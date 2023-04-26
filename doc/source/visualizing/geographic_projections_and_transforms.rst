@@ -34,7 +34,7 @@ Installing Cartopy
 
 In order to access the geographic projection functionality, you will need to have an
 installation of ``cartopy`` available on your machine. Please refer to `Cartopy's
-documentation for detailled instructions <https://scitools.org.uk/cartopy/docs/latest/installing.html>`_
+documentation for detailed instructions <https://scitools.org.uk/cartopy/docs/latest/installing.html>`_
 
 Using Basic Transforms
 ^^^^^^^^^^^^^^^^^^^^^^^
