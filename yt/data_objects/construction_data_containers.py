@@ -950,6 +950,28 @@ class YTCoveringGrid(YTSelectionContainer3D):
         for p in part:
             self[p] = self._data_source[p]
 
+    def _check_sph_type(self, fi):
+        field = fi.name
+        sph_ptypes = self.ds._sph_ptypes
+        raise_error = False
+        ptype = sph_ptypes[0]
+        if field[0] in self.ds.known_filters:
+            if field[0] not in sph_ptypes:
+                raise_error = True
+            else:
+                ptype = field[0]
+        elif fi.is_alias:
+            if fi.alias_name[0] not in sph_ptypes:
+                raise_error = True
+            elif field[0] != "gas":
+                ptype = field[0]
+        else:
+            if fi.name[0] not in sph_ptypes and fi.name[0] != "gas":
+                raise_error = True
+        if raise_error:
+            raise KeyError(f"{field[0]} is not a SPH particle type!")
+        return ptype
+
     def _fill_sph_particles(self, fields):
         from tqdm import tqdm
 
@@ -969,31 +991,10 @@ class YTCoveringGrid(YTSelectionContainer3D):
         # TODO maybe there is a better way of handling this
         is_periodic = int(any(self.ds.periodicity))
 
-        sph_ptypes = self.ds._sph_ptypes
-
-        raise_error = False
-
         if smoothing_style == "scatter":
             for field in fields:
                 fi = self.ds._get_field_info(field)
-                ptype = sph_ptypes[0]
-                ppos = [f"particle_position_{ax}" for ax in "xyz"]
-                if field[0] in self.ds.known_filters:
-                    if field[0] not in sph_ptypes:
-                        raise_error = True
-                    else:
-                        ptype = field[0]
-                        ppos = ["x", "y", "z"]
-                elif fi.is_alias:
-                    if fi.alias_name[0] not in sph_ptypes:
-                        raise_error = True
-                    elif field[0] != "gas":
-                        ptype = field[0]
-                else:
-                    if fi.name[0] not in sph_ptypes and fi.name[0] != "gas":
-                        raise_error = True
-                if raise_error:
-                    raise KeyError(f"{field[0]} is not a SPH particle type!")
+                ptype = self._check_sph_type(fi)
 
                 buff = np.zeros(size, dtype="float64")
                 if normalize:
@@ -1001,9 +1002,9 @@ class YTCoveringGrid(YTSelectionContainer3D):
 
                 pbar = tqdm(desc=f"Interpolating SPH field {field}")
                 for chunk in self._data_source.chunks([field], "io"):
-                    px = chunk[(ptype, ppos[0])].in_base("code").d
-                    py = chunk[(ptype, ppos[1])].in_base("code").d
-                    pz = chunk[(ptype, ppos[2])].in_base("code").d
+                    px = chunk[(ptype, "particle_position_x")].in_base("code").d
+                    py = chunk[(ptype, "particle_position_y")].in_base("code").d
+                    pz = chunk[(ptype, "particle_position_z")].in_base("code").d
                     hsml = chunk[(ptype, "smoothing_length")].in_base("code").d
                     mass = chunk[(ptype, "particle_mass")].in_base("code").d
                     dens = chunk[(ptype, "density")].in_base("code").d
@@ -1048,6 +1049,9 @@ class YTCoveringGrid(YTSelectionContainer3D):
         if smoothing_style == "gather":
             num_neighbors = getattr(self.ds, "num_neighbors", 32)
             for field in fields:
+                fi = self.ds._get_field_info(field)
+                ptype = self._check_sph_type(fi)
+
                 buff = np.zeros(size, dtype="float64")
 
                 fields_to_get = [
@@ -1057,9 +1061,8 @@ class YTCoveringGrid(YTSelectionContainer3D):
                     "smoothing_length",
                     field[1],
                 ]
-                all_fields = all_data(self.ds, field[0], fields_to_get, kdtree=True)
+                all_fields = all_data(self.ds, ptype, fields_to_get, kdtree=True)
 
-                fi = self.ds._get_field_info(field)
                 interpolate_sph_grid_gather(
                     buff,
                     all_fields["particle_position"],
