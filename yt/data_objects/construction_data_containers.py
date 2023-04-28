@@ -969,21 +969,41 @@ class YTCoveringGrid(YTSelectionContainer3D):
         # TODO maybe there is a better way of handling this
         is_periodic = int(any(self.ds.periodicity))
 
+        sph_ptypes = self.ds._sph_ptypes
+
+        raise_error = False
+
         if smoothing_style == "scatter":
             for field in fields:
                 fi = self.ds._get_field_info(field)
-                ptype = fi.name[0]
-                if ptype not in self.ds._sph_ptypes:
-                    raise KeyError(f"{ptype} is not a SPH particle type!")
+                ptype = sph_ptypes[0]
+                ppos = [f"particle_position_{ax}" for ax in "xyz"]
+                if field[0] in self.ds.known_filters:
+                    if field[0] not in sph_ptypes:
+                        raise_error = True
+                    else:
+                        ptype = field[0]
+                        ppos = ["x", "y", "z"]
+                elif fi.is_alias:
+                    if fi.alias_name[0] not in sph_ptypes:
+                        raise_error = True
+                    elif field[0] != "gas":
+                        ptype = field[0]
+                else:
+                    if fi.name[0] not in sph_ptypes and fi.name[0] != "gas":
+                        raise_error = True
+                if raise_error:
+                    raise KeyError(f"{field[0]} is not a SPH particle type!")
+
                 buff = np.zeros(size, dtype="float64")
                 if normalize:
                     buff_den = np.zeros(size, dtype="float64")
 
                 pbar = tqdm(desc=f"Interpolating SPH field {field}")
                 for chunk in self._data_source.chunks([field], "io"):
-                    px = chunk[(ptype, "particle_position_x")].in_base("code").d
-                    py = chunk[(ptype, "particle_position_y")].in_base("code").d
-                    pz = chunk[(ptype, "particle_position_z")].in_base("code").d
+                    px = chunk[(ptype, ppos[0])].in_base("code").d
+                    py = chunk[(ptype, ppos[1])].in_base("code").d
+                    pz = chunk[(ptype, ppos[2])].in_base("code").d
                     hsml = chunk[(ptype, "smoothing_length")].in_base("code").d
                     mass = chunk[(ptype, "particle_mass")].in_base("code").d
                     dens = chunk[(ptype, "density")].in_base("code").d
