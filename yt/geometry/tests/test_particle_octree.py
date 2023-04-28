@@ -295,7 +295,7 @@ def test_bitmap_save_load():
         fname = fname_fmt.format(i)
     # Create bitmap and save to file
     reg0 = FakeBitmap(npart, nfiles, order1, order2, left_edge, right_edge, periodicity)
-    reg0.save_bitmasks(fname)
+    reg0.save_bitmasks(fname, 0.0)
     # Attempt to load bitmap
     reg1 = ParticleBitmap(
         left_edge, right_edge, periodicity, file_hash, nfiles, order1, order2
