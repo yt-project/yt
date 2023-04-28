@@ -202,27 +202,42 @@ class ParticleIndex(Index):
         try:
             if dont_load:
                 raise OSError
-            rflag = self.regions.load_bitmasks(fname)
+            rflag, max_hsml = self.regions.load_bitmasks(fname)
+            if max_hsml > 0.0 and self.pii.mutable_index:
+                self._order2_update(max_hsml)
             rflag = self.regions.check_bitmasks()
             self._initialize_frontend_specific()
             if rflag == 0:
                 raise OSError
         except (OSError, struct.error):
             self.regions.reset_bitmasks()
-            self._initialize_coarse_index()
+            max_hsml = self._initialize_coarse_index()
             self._initialize_refined_index()
             wdir = os.path.dirname(fname)
             if not dont_cache and os.access(wdir, os.W_OK):
                 # Sometimes os mis-reports whether a directory is writable,
                 # So pass if writing the bitmask file fails.
                 try:
-                    self.regions.save_bitmasks(fname)
+                    self.regions.save_bitmasks(fname, max_hsml)
                 except OSError:
                     pass
             rflag = self.regions.check_bitmasks()
 
         self.ds.index_order = (self.pii.order1, self.pii.order2)
         del self.pii
+
+    def _order2_update(self, max_hsml):
+        # By passing this in, we only allow index_order2 to be increased by
+        # two at most, never increased.  One place this becomes particularly
+        # useful is in the case of an extremely small section of gas
+        # particles embedded in a much much larger domain.  The max
+        # smoothing length will be quite small, so based on the larger
+        # domain, it will correspond to a very very high index order, which
+        # is a large amount of memory!  Having multiple indexes, one for
+        # each particle type, would fix this.
+        new_order2 = self.regions.update_mi2(max_hsml, self.pii.order2 + 2)
+        mylog.info("Updating index_order2 from %s to %s", self.pii.order2, new_order2)
+        self.pii.order2 = new_order2
 
     def _initialize_coarse_index(self):
         max_hsml = 0.0
@@ -249,22 +264,8 @@ class ParticleIndex(Index):
             self.regions._set_coarse_index_data_file(data_file.file_id)
         self.regions.find_collisions_coarse()
         if max_hsml > 0.0 and self.pii.mutable_index:
-            # By passing this in, we only allow index_order2 to be increased by
-            # two at most, never increased.  One place this becomes particularly
-            # useful is in the case of an extremely small section of gas
-            # particles embedded in a much much larger domain.  The max
-            # smoothing length will be quite small, so based on the larger
-            # domain, it will correspond to a very very high index order, which
-            # is a large amount of memory!  Having multiple indexes, one for
-            # each particle type, would fix this.
-            new_order2 = self.regions.update_mi2(max_hsml, self.pii.order2 + 2)
-            mylog.info(
-                "Updating index_order2 from %s to %s", self.pii.order2, new_order2
-            )
-            self.pii.order2 = new_order2
-            return max_hsml
-        else:
-            return 0.0
+            self._order2_update(max_hsml)
+        return max_hsml
 
     def _initialize_refined_index(self):
         mask = self.regions.masks.sum(axis=1).astype("uint8")
