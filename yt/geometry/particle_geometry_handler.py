@@ -164,15 +164,13 @@ class ParticleIndex(Index):
             ds.domain_right_edge = ds.arr(1.05 * max_ppos, "code_length")
             ds.domain_width = ds.domain_right_edge - ds.domain_left_edge
 
-        mutable_index = True
-
         # use a trivial morton index for datasets containing a single chunk
         if len(self.data_files) == 1:
             order1 = 1
             order2 = 1
             mutable_index = False
         else:
-            mutable_index = ds.index_order is not None
+            mutable_index = ds.index_order is None
             index_order = validate_index_order(ds.index_order)
             order1 = index_order[0]
             order2 = index_order[1]
