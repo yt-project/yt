@@ -50,6 +50,9 @@ class ParticleIndexInfo:
 
     @order2.setter
     def order2(self, value):
+        if value == self._order2:
+            # do nothing if nothing changes
+            return
         mylog.debug("Updating index_order2 from %s to %s", self._order2, value)
         self._order2 = value
 
@@ -253,7 +256,6 @@ class ParticleIndex(Index):
         # is a large amount of memory!  Having multiple indexes, one for
         # each particle type, would fix this.
         new_order2 = self.regions.update_mi2(max_hsml, self.pii.order2 + 2)
-        mylog.info("Updating index_order2 from %s to %s", self.pii.order2, new_order2)
         self.pii.order2 = new_order2
 
     def _initialize_coarse_index(self):

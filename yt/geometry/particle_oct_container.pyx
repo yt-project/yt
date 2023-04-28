@@ -1071,7 +1071,7 @@ cdef class ParticleBitmap:
 
         # Save in correct format
         if overwrite == 1:
-            self.save_bitmasks(fname)
+            self.save_bitmasks(fname, max_hsml)
         return read_flag, max_hsml
 
     def print_info(self):
