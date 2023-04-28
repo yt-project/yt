@@ -34,10 +34,28 @@ def validate_index_order(index_order):
 
 class ParticleIndexInfo:
     def __init__(self, order1, order2, filename, mutable_index):
-        self.order1 = order1
-        self.order2 = order2
+        self._order1 = order1
+        self._order2 = order2
+        self._order2_orig = order2
         self.filename = filename
         self.mutable_index = mutable_index
+
+    @property
+    def order1(self):
+        return self._order1
+
+    @property
+    def order2(self):
+        return self._order2
+
+    @order2.setter
+    def order2(self, value):
+        mylog.debug("Updating index_order2 from %s to %s", self._order2, value)
+        self._order2 = value
+
+    @property
+    def order2_orig(self):
+        return self._order2_orig
 
 
 class ParticleIndex(Index):
@@ -194,8 +212,8 @@ class ParticleIndex(Index):
             ds.periodicity,
             self.ds._file_hash,
             len(self.data_files),
-            index_order1=order1,
-            index_order2=order2,
+            index_order1=self.pii.order1,
+            index_order2=self.pii.order2_orig,
         )
 
         dont_load = dont_cache and not hasattr(ds, "index_filename")
@@ -224,7 +242,6 @@ class ParticleIndex(Index):
             rflag = self.regions.check_bitmasks()
 
         self.ds.index_order = (self.pii.order1, self.pii.order2)
-        del self.pii
 
     def _order2_update(self, max_hsml):
         # By passing this in, we only allow index_order2 to be increased by
