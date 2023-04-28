@@ -1044,7 +1044,10 @@ cdef class ParticleBitmap:
                 raise OSError(f"Index not found in the {fname}")
 
             ver = grp.attrs["bitmask_version"]
-            max_hsml = grp.attrs["max_hsml"]
+            try:
+                max_hsml = grp.attrs["max_hsml"]
+            except KeyError:
+                raise OSError(f"'max_hsml' not found in the {fname}")
             if ver == self.nfiles and ver != _bitmask_version:
                 overwrite = 1
                 ver = 0 # Original bitmaps had number of files first
