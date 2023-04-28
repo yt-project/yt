@@ -486,6 +486,12 @@ class pandas_imports(OnDemand):
 
         return concat
 
+    @safe_import
+    def read_csv(self):
+        from pandas import read_csv
+
+        return read_csv
+
 
 _pandas = pandas_imports()
 
