@@ -365,3 +365,12 @@ def get_default_from_config(data_source, *, field, keys, defaults):
         return ret[0]
     else:
         return ret
+
+
+def _get_units_label(units: str) -> str:
+    if r"\frac" in units:
+        return r"$\ \ \left(%s\right)$" % units
+    elif units:
+        return r"$\ \ (%s)$" % units
+    else:
+        return ""
