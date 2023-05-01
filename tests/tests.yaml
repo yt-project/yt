@@ -176,6 +176,7 @@ other_tests:
      - "--ignore-file=test_commons\\.py"
      - "--ignore-file=test_data_reload\\.py"
      - "--ignore-file=test_eps_writer\\.py"
+     - "--ignore-file=test_ewah_write_load\\.py"
      - "--ignore-file=test_external_frontends\\.py"
      - "--ignore-file=test_field_access_pytest\\.py"
      - "--ignore-file=test_file_sanitizer\\.py"
