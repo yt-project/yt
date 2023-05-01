@@ -48,7 +48,7 @@ from yt.data_objects.unions import ParticleUnion
 from yt.fields.derived_field import DerivedField, ValidateSpatial
 from yt.fields.field_type_container import FieldTypeContainer
 from yt.fields.fluid_fields import setup_gradient_fields
-from yt.funcs import is_sequence, iter_fields, mylog, set_intersection, setdefaultattr
+from yt.funcs import iter_fields, mylog, set_intersection, setdefaultattr
 from yt.geometry.api import Geometry
 from yt.geometry.coordinates.api import (
     CartesianCoordinateHandler,
@@ -2123,7 +2123,7 @@ class ParticleDataset(Dataset):
         index_filename=None,
         default_species_fields=None,
     ):
-        self.index_order = validate_index_order(index_order)
+        self.index_order = index_order
         self.index_filename = index_filename
         super().__init__(
             filename,
@@ -2132,19 +2132,3 @@ class ParticleDataset(Dataset):
             unit_system=unit_system,
             default_species_fields=default_species_fields,
         )
-
-
-def validate_index_order(index_order):
-    if index_order is None:
-        index_order = (6, 2)
-    elif not is_sequence(index_order):
-        index_order = (int(index_order), 1)
-    else:
-        if len(index_order) != 2:
-            raise RuntimeError(
-                "Tried to load a dataset with index_order={}, but "
-                "index_order\nmust be an integer or a two-element tuple of "
-                "integers.".format(index_order)
-            )
-        index_order = tuple(int(o) for o in index_order)
-    return index_order

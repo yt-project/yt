@@ -994,7 +994,7 @@ cdef class ParticleBitmap:
     def iseq_bitmask(self, solf):
         return self.bitmasks._iseq(solf.get_bitmasks())
 
-    def save_bitmasks(self, fname):
+    def save_bitmasks(self, fname, max_hsml):
         import h5py
         cdef bytes serial_BAC
         cdef np.uint64_t ifile
@@ -1007,6 +1007,7 @@ cdef class ParticleBitmap:
 
             grp.attrs["bitmask_version"] = _bitmask_version
             grp.attrs["nfiles"] = self.nfiles
+            grp.attrs["max_hsml"] = max_hsml
             # Add some attrs for convenience. They're not read back.
             grp.attrs["file_hash"] = self.file_hash
             grp.attrs["left_edge"] = self.left_edge
@@ -1043,6 +1044,10 @@ cdef class ParticleBitmap:
                 raise OSError(f"Index not found in the {fname}")
 
             ver = grp.attrs["bitmask_version"]
+            try:
+                max_hsml = grp.attrs["max_hsml"]
+            except KeyError:
+                raise OSError(f"'max_hsml' not found in the {fname}")
             if ver == self.nfiles and ver != _bitmask_version:
                 overwrite = 1
                 ver = 0 # Original bitmaps had number of files first
@@ -1066,8 +1071,8 @@ cdef class ParticleBitmap:
 
         # Save in correct format
         if overwrite == 1:
-            self.save_bitmasks(fname)
-        return read_flag
+            self.save_bitmasks(fname, max_hsml)
+        return read_flag, max_hsml
 
     def print_info(self):
         cdef np.uint64_t ifile

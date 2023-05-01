@@ -11,7 +11,6 @@ from yt.data_objects.selection_objects.data_selection_objects import (
 from yt.data_objects.static_output import (
     ParticleDataset,
     ParticleFile,
-    validate_index_order,
 )
 from yt.frontends.ytdata.data_structures import SavedDataset
 from yt.funcs import parse_h5_attr
@@ -121,7 +120,7 @@ class YTHaloCatalogDataset(SavedDataset):
         units_override=None,
         unit_system="cgs",
     ):
-        self.index_order = validate_index_order(index_order)
+        self.index_order = index_order
         super().__init__(
             filename,
             dataset_type,
