@@ -91,8 +91,7 @@ class XrayEmissivityIntegrator:
         else:
             only_on_root(
                 mylog.info,
-                "X-ray '%s' emissivity data version: %s."
-                % (table_type, parse_h5_attr(in_file, "version")),
+                "X-ray '{}' emissivity data version: {}.".format(table_type, parse_h5_attr(in_file, "version")),
             )
 
         self.log_T = in_file["log_T"][:]

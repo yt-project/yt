@@ -102,9 +102,8 @@ class GadgetBinaryHeader:
         else:
             raise RuntimeError(
                 "Gadget snapshot file is likely corrupted! "
-                "The first 4 bytes represent %s (as little endian int32). "
-                "But we are looking for %s (for format 1) or 8 (for format 2)."
-                % (rhead, first_header_size)
+                "The first 4 bytes represent {} (as little endian int32). "
+                "But we are looking for {} (for format 1) or 8 (for format 2).".format(rhead, first_header_size)
             )
 
     @property

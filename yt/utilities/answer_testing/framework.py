@@ -597,8 +597,7 @@ class ProjectionValuesTest(AnswerTestingTest):
         nind = ~nind
         for k in new_result:
             err_msg = (
-                "%s values of %s (%s weighted) projection (axis %s) not equal."
-                % (k, self.field, self.weight_field, self.axis)
+                f"{k} values of {self.field} ({self.weight_field} weighted) projection (axis {self.axis}) not equal."
             )
             if k == "weight_field":
                 # Our weight_field can vary between unit systems, whereas we

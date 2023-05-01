@@ -320,8 +320,7 @@ class Keyframes:
         )
         for i in range(self.npoints):
             fp.write(
-                "%.12f %.12f %.12f %.12f %.12f %.12f %.12f %.12f %.12f\n"
-                % (
+                "{:.12f} {:.12f} {:.12f} {:.12f} {:.12f} {:.12f} {:.12f} {:.12f} {:.12f}\n".format(
                     self.path["position"][i, 0],
                     self.path["position"][i, 1],
                     self.path["position"][i, 2],

@@ -238,8 +238,7 @@ class TransferFunction:
     def __repr__(self):
         disp = (
             "<Transfer Function Object>: "
-            "x_bounds:(%3.2g, %3.2g) nbins:%3.2g features:%s"
-            % (self.x_bounds[0], self.x_bounds[1], self.nbins, self.features)
+            "x_bounds:({:3.2g}, {:3.2g}) nbins:{:3.2g} features:{}".format(self.x_bounds[0], self.x_bounds[1], self.nbins, self.features)
         )
         return disp
 
@@ -438,8 +437,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
                 "gaussian",
                 f"location(x):{location:3.2g}",
                 f"width(x):{width:3.2g}",
-                "height(y):(%3.2g, %3.2g, %3.2g, %3.2g)"
-                % (height[0], height[1], height[2], height[3]),
+                f"height(y):({height[0]:3.2g}, {height[1]:3.2g}, {height[2]:3.2g}, {height[3]:3.2g})",
             )
         )
 
@@ -480,8 +478,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
                 "step",
                 f"start(x):{start:3.2g}",
                 f"stop(x):{stop:3.2g}",
-                "value(y):(%3.2g, %3.2g, %3.2g, %3.2g)"
-                % (value[0], value[1], value[2], value[3]),
+                f"value(y):({value[0]:3.2g}, {value[1]:3.2g}, {value[2]:3.2g}, {value[3]:3.2g})",
             )
         )
 

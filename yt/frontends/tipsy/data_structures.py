@@ -71,8 +71,7 @@ class TipsyDataset(SPHDataset):
         if not success:
             print("SOMETHING HAS GONE WRONG.  NBODIES != SUM PARTICLES.")
             print(
-                "%s != (sum == %s + %s + %s)"
-                % (
+                "{} != (sum == {} + {} + {})".format(
                     self.parameters["nbodies"],
                     self.parameters["nsph"],
                     self.parameters["ndark"],
