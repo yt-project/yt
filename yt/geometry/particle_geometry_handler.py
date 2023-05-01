@@ -39,6 +39,7 @@ class ParticleIndexInfo:
         self._order2_orig = order2
         self.filename = filename
         self.mutable_index = mutable_index
+        self.loaded = False
 
     @property
     def order1(self):
@@ -230,6 +231,7 @@ class ParticleIndex(Index):
             self._initialize_frontend_specific()
             if rflag == 0:
                 raise OSError
+            self.pii.loaded = True
         except (OSError, struct.error):
             self.regions.reset_bitmasks()
             max_hsml = self._initialize_coarse_index()
