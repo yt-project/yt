@@ -6,7 +6,15 @@ import yt.units.dimensions as dimensions
 from yt.geometry.oct_container import _ORDER_MAX
 from yt.geometry.particle_oct_container import ParticleBitmap, ParticleOctreeContainer
 from yt.geometry.selection_routines import RegionSelector
-from yt.testing import assert_array_equal, assert_equal, assert_true, requires_module
+from yt.loaders import load
+from yt.sample_data.api import _get_test_data_dir_path
+from yt.testing import (
+    assert_array_equal,
+    assert_equal,
+    assert_true,
+    requires_file,
+    requires_module,
+)
 from yt.units.unit_registry import UnitRegistry
 from yt.units.yt_array import YTArray
 from yt.utilities.lib.geometry_utils import (
@@ -396,6 +404,70 @@ def test_bitmap_select():
                         gf_ans.append(rf_ghost % nfiles)
                     gf_ans = np.array(sorted(gf_ans))
                     assert_array_equal(gf, gf_ans, f"selector {i}, ghost file array")
+
+
+@requires_file("TNGHalo/halo_59.hdf5")
+def test_ewah_write_load(tmp_path):
+    mock_file = tmp_path / "halo_59.hdf5"
+    mock_file.symlink_to(_get_test_data_dir_path() / "TNGHalo" / "halo_59.hdf5")
+
+    ds = load(mock_file)
+    _, c = ds.find_max(("gas", "density"))
+    assert ds.index.pii.mutable_index
+    assert ds.index.pii.order1 == 6
+    assert ds.index.pii.order2_orig == 2
+    assert ds.index.pii.order2 == 4
+    assert not ds.index.pii.loaded
+    c += ds.quan(0.5, "Mpc")
+    sp = ds.sphere(c, (20.0, "kpc"))
+    mass = sp.sum(("gas", "mass"))
+
+    del ds
+
+    ds2 = load(mock_file)
+    _, c2 = ds2.find_max(("gas", "density"))
+    assert ds2.index.pii.mutable_index
+    assert ds2.index.pii.order1 == 6
+    assert ds2.index.pii.order2_orig == 2
+    assert ds2.index.pii.order2 == 4
+    assert ds2.index.pii.loaded
+    c2 += ds2.quan(0.5, "Mpc")
+    sp2 = ds2.sphere(c, (20.0, "kpc"))
+    mass2 = sp2.sum(("gas", "mass"))
+
+    assert_array_equal(mass, mass2)
+
+    del ds2
+
+    ds3 = load(mock_file, index_order=(5, 3))
+    _, c3 = ds3.find_max(("gas", "density"))
+    assert not ds3.index.pii.mutable_index
+    assert ds3.index.pii.order1 == 5
+    assert ds3.index.pii.order2_orig == 3
+    assert ds3.index.pii.order2 == 3
+    assert not ds3.index.pii.loaded
+    c3 += ds3.quan(0.5, "Mpc")
+    sp3 = ds3.sphere(c, (20.0, "kpc"))
+    mass3 = sp3.sum(("gas", "mass"))
+
+    assert_array_equal(mass, mass3)
+
+    del ds3
+
+    ds4 = load(mock_file, index_order=(5, 3))
+    _, c4 = ds4.find_max(("gas", "density"))
+    assert not ds4.index.pii.mutable_index
+    assert ds4.index.pii.order1 == 5
+    assert ds4.index.pii.order2_orig == 3
+    assert ds4.index.pii.order2 == 3
+    assert ds4.index.pii.loaded
+    c4 += ds4.quan(0.5, "Mpc")
+    sp4 = ds4.sphere(c, (20.0, "kpc"))
+    mass4 = sp4.sum(("gas", "mass"))
+
+    assert_array_equal(mass, mass4)
+
+    del ds4
 
 
 def cell_centers(order, left_edge, right_edge):
