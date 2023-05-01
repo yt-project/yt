@@ -238,9 +238,8 @@ class TransferFunction:
     def __repr__(self):
         disp = (
             "<Transfer Function Object>: "
-            "x_bounds:({:3.2g}, {:3.2g}) nbins:{:3.2g} features:{}".format(
-                self.x_bounds[0], self.x_bounds[1], self.nbins, self.features
-            )
+            f"x_bounds:({self.x_bounds[0]:3.2g}, {self.x_bounds[1]:3.2g}) "
+            f"nbins:{self.nbins:3.2g} features:{self.features}"
         )
         return disp
 
