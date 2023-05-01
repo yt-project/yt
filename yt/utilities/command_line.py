@@ -1163,11 +1163,15 @@ class YTStatsCmd(YTCommand):
                 f.write(f"{ds} ({t:0.5e})\n")
                 if "min" in vals:
                     f.write(
-                        "Minimum {} is {:0.5e} at {}\n".format(field.name, vals["min"][0], vals["min"][1])
+                        "Minimum {} is {:0.5e} at {}\n".format(
+                            field.name, vals["min"][0], vals["min"][1]
+                        )
                     )
                 if "max" in vals:
                     f.write(
-                        "Maximum {} is {:0.5e} at {}\n".format(field.name, vals["max"][0], vals["max"][1])
+                        "Maximum {} is {:0.5e} at {}\n".format(
+                            field.name, vals["max"][0], vals["max"][1]
+                        )
                     )
 
 

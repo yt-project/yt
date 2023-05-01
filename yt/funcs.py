@@ -1178,7 +1178,9 @@ def is_valid_field_key(key):
 def validate_object(obj, data_type):
     if obj is not None and not isinstance(obj, data_type):
         raise TypeError(
-            "Expected an object of '{}' type, received '{}'".format(str(data_type).split("'")[1], str(type(obj)).split("'")[1])
+            "Expected an object of '{}' type, received '{}'".format(
+                str(data_type).split("'")[1], str(type(obj)).split("'")[1]
+            )
         )
 
 
