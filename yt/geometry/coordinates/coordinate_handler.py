@@ -2,14 +2,27 @@ import abc
 import weakref
 from functools import cached_property
 from numbers import Number
-from typing import Optional, Tuple
+from typing import Dict, Optional, Tuple, TypedDict
 
 import numpy as np
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt._typing import AxisOrder
 from yt.funcs import fix_unitary, is_sequence, parse_center_array, validate_width_tuple
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTCoordinateNotImplemented, YTInvalidWidthError
+from yt.utilities.lib.pixelization_routines import pixelize_cartesian
+
+from ._axes_transforms import AxesTransform
+
+
+class DefaultProperties(TypedDict):
+    x_axis_label: str
+    y_axis_label: str
+    # note that an empty string maps to "dimensionless",
+    # while None means "figure it out yourself"
+    x_axis_units: Optional[str]
+    y_axis_units: Optional[str]
 
 
 def _unknown_coord(field, data):
@@ -133,6 +146,7 @@ def validate_sequence_width(width, ds, unit=None):
 class CoordinateHandler(abc.ABC):
     name: str
     _default_axis_order: AxisOrder
+    _default_axes_transforms: Dict[str, AxesTransform]
 
     def __init__(self, ds, ordering: Optional[AxisOrder] = None):
         self.ds = weakref.proxy(ds)
@@ -147,7 +161,17 @@ class CoordinateHandler(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def pixelize(self, dimension, data_source, field, bounds, size, antialias=True):
+    def pixelize(
+        self,
+        dimension,
+        data_source,
+        field,
+        bounds,
+        size,
+        antialias=True,
+        *,
+        axes_transform=AxesTransform.DEFAULT,
+    ):
         # This should *actually* be a pixelize call, not just returning the
         # pixelizer
         pass
@@ -185,8 +209,16 @@ class CoordinateHandler(abc.ABC):
     def convert_from_spherical(self, coord):
         pass
 
+    @classmethod
+    @abc.abstractmethod
+    def _get_plot_axes_default_properties(
+        cls, normal_axis_name: str, axes_transform: AxesTransform
+    ) -> DefaultProperties:
+        ...
+
     @cached_property
     def data_projection(self):
+        # see https://github.com/yt-project/yt/issues/4182
         return {ax: None for ax in self.axis_order}
 
     @cached_property
@@ -211,6 +243,12 @@ class CoordinateHandler(abc.ABC):
 
     @property
     def image_axis_name(self):
+        issue_deprecation_warning(
+            "The image_axis_name property isn't used "
+            "internally in yt anymore and is deprecated",
+            since="4.2.0",
+            stacklevel=3,
+        )
         rv = {}
         for i in range(3):
             rv[i] = (self.axis_name[self.x_axis[i]], self.axis_name[self.y_axis[i]])
@@ -253,7 +291,16 @@ class CoordinateHandler(abc.ABC):
             raise YTInvalidWidthError(depth)
         return depth
 
-    def sanitize_width(self, axis, width, depth):
+    def sanitize_width(
+        self, axis, width, depth, *, axes_transform=AxesTransform.DEFAULT
+    ):
+        if axes_transform is AxesTransform.DEFAULT:
+            axes_transform = AxesTransform.GEOMETRY_NATIVE
+
+        if axes_transform is not AxesTransform.GEOMETRY_NATIVE:
+            raise NotImplementedError(
+                f"generic coordinate handler doesn't implement {axes_transform}"
+            )
         if width is None:
             # initialize the index if it is not already initialized
             self.ds.index
@@ -284,11 +331,45 @@ class CoordinateHandler(abc.ABC):
             return width + depth
         return width
 
-    def sanitize_center(self, center, axis):
+    def _get_display_center(self, center, axes_transform: AxesTransform):
+        # default implementation
+        return self.convert_to_cartesian(center)
+
+    def sanitize_center(self, center, axis, *, axes_transform=AxesTransform.DEFAULT):
+        if axes_transform is AxesTransform.DEFAULT:
+            axes_transform = AxesTransform.GEOMETRY_NATIVE
+
+        if axes_transform is not AxesTransform.GEOMETRY_NATIVE:
+            raise NotImplementedError(
+                f"generic coordinate handler doesn't implement {axes_transform}"
+            )
         center = parse_center_array(center, ds=self.ds, axis=axis)
         # This has to return both a center and a display_center
-        display_center = self.convert_to_cartesian(center)
+        display_center = self._get_display_center(center, axes_transform)
         return center, display_center
+
+    def _ortho_pixelize(
+        self, data_source, field, bounds, size, antialias, dim, periodic
+    ):
+        period = self.period[:2].copy()  # dummy here
+        period[0] = self.period[self.x_axis[dim]]
+        period[1] = self.period[self.y_axis[dim]]
+        if hasattr(period, "in_units"):
+            period = period.in_units("code_length").d
+        buff = np.full(size, np.nan, dtype="float64")
+        pixelize_cartesian(
+            buff,
+            data_source["px"],
+            data_source["py"],
+            data_source["pdx"],
+            data_source["pdy"],
+            data_source[field],
+            bounds,
+            int(antialias),
+            period,
+            int(periodic),
+        )
+        return buff
 
 
 def cartesian_to_cylindrical(coord, center=(0, 0, 0)):

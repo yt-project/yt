@@ -9,6 +9,7 @@ from yt._typing import FieldKey
 from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.utilities import save_as_dataset
 from yt.funcs import get_output_filename, iter_fields, mylog
+from yt.geometry.coordinates._axes_transforms import AxesTransform
 from yt.loaders import load_uniform_grid
 from yt.utilities.lib.api import (  # type: ignore
     CICDeposit_2,
@@ -107,6 +108,7 @@ class FixedResolutionBuffer:
         periodic=False,
         *,
         filters: Optional[List["FixedResolutionBufferFilter"]] = None,
+        axes_transform: AxesTransform = AxesTransform.DEFAULT,
     ):
         self.data_source = data_source
         self.ds = data_source.ds
@@ -117,6 +119,7 @@ class FixedResolutionBuffer:
         self.axis = data_source.axis
         self.periodic = periodic
         self._data_valid = False
+        self._axes_transform = axes_transform
 
         # import type here to avoid import cycles
         # note that this import statement is actually crucial at runtime:
@@ -174,6 +177,7 @@ class FixedResolutionBuffer:
             bounds,
             self.buff_size,
             int(self.antialias),
+            axes_transform=self._axes_transform,
         )
 
         buff = self._apply_filters(buff)
@@ -680,9 +684,16 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         periodic=False,
         *,
         filters=None,
+        axes_transform=AxesTransform.DEFAULT,
     ):
         super().__init__(
-            data_source, bounds, buff_size, antialias, periodic, filters=filters
+            data_source,
+            bounds,
+            buff_size,
+            antialias,
+            periodic,
+            filters=filters,
+            axes_transform=axes_transform,
         )
 
         # set up the axis field names

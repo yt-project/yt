@@ -1,9 +1,22 @@
-from .cartesian_coordinates import CartesianCoordinateHandler
+from typing import Dict
+
+from yt._maintenance.deprecation import issue_deprecation_warning
+
+from ._axes_transforms import AxesTransform
+from .cartesian_coordinates import (
+    CartesianCoordinateHandler,
+    DefaultProperties,
+)
 from .coordinate_handler import _get_coord_fields
 
 
 class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
     name = "spectral_cube"
+    _default_axes_transforms: Dict[str, AxesTransform] = {
+        "x": AxesTransform.GEOMETRY_NATIVE,
+        "y": AxesTransform.GEOMETRY_NATIVE,
+        "z": AxesTransform.GEOMETRY_NATIVE,
+    }
 
     def __init__(self, ds, ordering=None):
         if ordering is None:
@@ -12,7 +25,8 @@ class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
             )
         super().__init__(ds, ordering)
 
-        self.default_unit_label = {}
+        # TODO(4179): migrate this
+        self.default_unit_label = {}  # deprecated
         names = {}
         if ds.lon_name != "X" or ds.lat_name != "Y":
             names["x"] = r"Image\ x"
@@ -24,7 +38,7 @@ class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
         # Again, can use spec_axis here
         self.default_unit_label[ds.spec_axis] = ds.spec_unit
 
-        self._image_axis_name = ian = {}
+        self._image_axis_name = ian = {}  # deprecated
         for ax in "xyz":
             axi = self.axis_id[ax]
             xax = self.axis_name[self.x_axis[ax]]
@@ -94,4 +108,44 @@ class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
 
     @property
     def image_axis_name(self):
+        issue_deprecation_warning(
+            "The image_axis_name property isn't used "
+            "internally in yt anymore and is deprecated",
+            since="4.2.0",
+        )
         return self._image_axis_name
+
+    @classmethod
+    def _get_plot_axes_default_properties(
+        cls, normal_axis_name: str, axes_transform: AxesTransform
+    ) -> DefaultProperties:
+        if axes_transform is AxesTransform.DEFAULT:
+            axes_transform = AxesTransform.GEOMETRY_NATIVE
+        if axes_transform is not AxesTransform.GEOMETRY_NATIVE:
+            raise NotImplementedError(
+                f"spectral cube coordinates don't implement {axes_transform} yet"
+            )
+
+        if normal_axis_name == "x":
+            return dict(
+                x_axis_label="y",
+                y_axis_label="z",
+                x_axis_units=None,
+                y_axis_units=None,
+            )
+        elif normal_axis_name == "y":
+            return dict(
+                x_axis_label="x",
+                y_axis_label="z",
+                x_axis_units=None,
+                y_axis_units=None,
+            )
+        elif normal_axis_name == "z":
+            return dict(
+                x_axis_label="x",
+                y_axis_label="y",
+                x_axis_units=None,
+                y_axis_units=None,
+            )
+        else:
+            raise ValueError(f"Unknown axis {normal_axis_name!r}")

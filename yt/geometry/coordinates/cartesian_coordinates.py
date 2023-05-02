@@ -18,8 +18,10 @@ from yt.utilities.lib.pixelization_routines import (
 from yt.utilities.math_utils import compute_stddev_image
 from yt.utilities.nodal_data_utils import get_nodal_data
 
+from ._axes_transforms import AxesTransform
 from .coordinate_handler import (
     CoordinateHandler,
+    DefaultProperties,
     _get_coord_fields,
     _get_vert_fields,
     cartesian_to_cylindrical,
@@ -161,13 +163,29 @@ class CartesianCoordinateHandler(CoordinateHandler):
         )
 
     def pixelize(
-        self, dimension, data_source, field, bounds, size, antialias=True, periodic=True
+        self,
+        dimension,
+        data_source,
+        field,
+        bounds,
+        size,
+        antialias=True,
+        periodic=True,
+        *,
+        axes_transform=AxesTransform.DEFAULT,
     ):
         """
         Method for pixelizing datasets in preparation for
         two-dimensional image plots. Relies on several sampling
         routines written in cython
         """
+        if axes_transform is AxesTransform.DEFAULT:
+            axes_transform = AxesTransform.GEOMETRY_NATIVE
+
+        if axes_transform is not AxesTransform.GEOMETRY_NATIVE:
+            raise NotImplementedError(
+                f"cartesian coordinates don't implement {axes_transform} yet"
+            )
         index = data_source.ds.index
         if hasattr(index, "meshes") and not isinstance(
             index.meshes[0], SemiStructuredMesh
@@ -624,3 +642,46 @@ class CartesianCoordinateHandler(CoordinateHandler):
     @property
     def period(self):
         return self.ds.domain_width
+
+    @classmethod
+    def _get_plot_axes_default_properties(
+        cls, normal_axis_name: str, axes_transform: AxesTransform
+    ) -> DefaultProperties:
+        if axes_transform is AxesTransform.DEFAULT:
+            axes_transform = AxesTransform.GEOMETRY_NATIVE
+
+        if axes_transform is not AxesTransform.GEOMETRY_NATIVE:
+            raise NotImplementedError(
+                f"cartesian coordinates don't implement {axes_transform} yet"
+            )
+
+        if normal_axis_name == "x":
+            return dict(
+                x_axis_label="y",
+                y_axis_label="z",
+                x_axis_units=None,
+                y_axis_units=None,
+            )
+        elif normal_axis_name == "y":
+            return dict(
+                x_axis_label="z",
+                y_axis_label="x",
+                x_axis_units=None,
+                y_axis_units=None,
+            )
+        elif normal_axis_name == "z":
+            return dict(
+                x_axis_label="x",
+                y_axis_label="y",
+                x_axis_units=None,
+                y_axis_units=None,
+            )
+        elif normal_axis_name == "oblique":
+            return dict(
+                x_axis_label="Image x",
+                y_axis_label="Image y",
+                x_axis_units=None,
+                y_axis_units=None,
+            )
+        else:
+            raise ValueError(f"Unknown axis {normal_axis_name!r}")

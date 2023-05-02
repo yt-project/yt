@@ -18,6 +18,7 @@ from yt.data_objects.field_data import YTFieldData
 from yt.fields.field_exceptions import NeedsGridType
 from yt.funcs import fix_axis, is_sequence, iter_fields, validate_width_tuple
 from yt.geometry.api import Geometry
+from yt.geometry.coordinates._axes_transforms import AxesTransform
 from yt.geometry.selection_routines import compose_selector
 from yt.units import YTArray
 from yt.utilities.exceptions import (
@@ -530,20 +531,28 @@ class YTSelectionContainer2D(YTSelectionContainer):
     def _convert_field_name(self, field):
         return field
 
-    def _get_pw(self, fields, center, width, origin, plot_type):
+    def _get_pw(
+        self, fields, center, width, origin, plot_type, *, axes_transform: AxesTransform
+    ):
         from yt.visualization.fixed_resolution import FixedResolutionBuffer as frb
         from yt.visualization.plot_window import PWViewerMPL, get_window_parameters
 
         axis = self.axis
         skip = self._key_fields
-        skip += list(set(frb._exclude_fields).difference(set(self._key_fields)))
+        # this line works, but mypy incorrectly flags it, so turning it off locally
+        skip += list(set(frb._exclude_fields).difference(set(self._key_fields)))  # type: ignore [arg-type]
         self.fields = [k for k in self.field_data if k not in skip]
         if fields is not None:
             self.fields = list(iter_fields(fields)) + self.fields
         if len(self.fields) == 0:
             raise ValueError("No fields found to plot in get_pw")
+
         (bounds, center, display_center) = get_window_parameters(
-            axis, center, width, self.ds
+            axis,
+            center,
+            width,
+            self.ds,
+            axes_transform=axes_transform,
         )
         pw = PWViewerMPL(
             self,

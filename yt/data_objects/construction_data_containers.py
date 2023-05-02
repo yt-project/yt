@@ -6,6 +6,7 @@ import zipfile
 from functools import partial, wraps
 from re import finditer
 from tempfile import NamedTemporaryFile, TemporaryFile
+from typing import Optional
 
 import numpy as np
 from more_itertools import always_iterable
@@ -30,6 +31,7 @@ from yt.funcs import (
     validate_moment,
 )
 from yt.geometry import particle_deposit as particle_deposit
+from yt.geometry.coordinates._axes_transforms import parse_axes_transform
 from yt.geometry.coordinates.cartesian_coordinates import all_data
 from yt.loaders import load_uniform_grid
 from yt.units._numpy_wrapper_functions import uconcatenate
@@ -350,7 +352,15 @@ class YTProj(YTSelectionContainer2D):
                 self.ds.field_info.pop(field)
         self.tree = tree
 
-    def to_pw(self, fields=None, center="center", width=None, origin="center-window"):
+    def to_pw(
+        self,
+        fields=None,
+        center="center",
+        width=None,
+        origin="center-window",
+        *,
+        axes_transform: Optional[str] = None,
+    ):
         r"""Create a :class:`~yt.visualization.plot_window.PWViewerMPL` from this
         object.
 
@@ -358,7 +368,10 @@ class YTProj(YTSelectionContainer2D):
         object, which can then be moved around, zoomed, and on and on.  All
         behavior of the plot window is relegated to that routine.
         """
-        pw = self._get_pw(fields, center, width, origin, "Projection")
+        _axt = parse_axes_transform(axes_transform)
+        pw = self._get_pw(
+            fields, center, width, origin, "Projection", axes_transform=_axt
+        )
         return pw
 
     def plot(self, fields=None):

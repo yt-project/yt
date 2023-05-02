@@ -707,6 +707,7 @@ class PlotContainer(abc.ABC):
         for i, un in enumerate((unit_x, unit_y)):
             unn = None
             if hasattr(self.data_source, "axis"):
+                # TODO(4179): remove this
                 if hasattr(self.ds.coordinates, "image_units"):
                     # This *forces* an override
                     unn = self.ds.coordinates.image_units[self.data_source.axis][i]
@@ -741,7 +742,7 @@ class PlotContainer(abc.ABC):
                 # It doesn't make sense to scale a position by anything
                 # other than h**-1
                 raise RuntimeError
-            if un not in ["1", "u", "unitary"]:
+            if un not in ["dimensionless", "1", "u", "unitary"]:
                 if un in formatted_length_unit_names:
                     un = formatted_length_unit_names[un]
                 else:

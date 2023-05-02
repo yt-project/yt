@@ -97,6 +97,7 @@ class CM1Dataset(Dataset):
         # type checking is deactivated in the following two lines because changing them is not
         # within the scope of the PR that _enabled_ typechecking here (#4244), but it'd be worth
         # having a careful look at *why* these warnings appear, as they may point to rotten code
+        # TODO(4179): refactor this out
         self.coordinates._x_pairs = (("x", "y"), ("y", "x"), ("z", "x"))  # type: ignore [union-attr]
         self.coordinates._y_pairs = (("x", "z"), ("y", "z"), ("z", "y"))  # type: ignore [union-attr]
 
