@@ -1,8 +1,14 @@
-from enum import Enum, auto
+import sys
+from enum import auto
 from typing import Optional
 
+if sys.version_info >= (3, 11):
+    from enum import StrEnum
+else:
+    from yt._maintenance.backports import StrEnum
 
-class AxesTransform(Enum):
+
+class AxesTransform(StrEnum):
     DEFAULT = auto()
     GEOMETRY_NATIVE = auto()
     POLAR = auto()
@@ -12,12 +18,5 @@ class AxesTransform(Enum):
 def parse_axes_transform(axes_transform: Optional[str]) -> AxesTransform:
     if axes_transform is None:
         # pass the responsability to ds.coordinates
-        return AxesTransform.DEFAULT
-    elif axes_transform == "geometry_native":
-        return AxesTransform.GEOMETRY_NATIVE
-    elif axes_transform == "polar":
-        return AxesTransform.POLAR
-    elif axes_transform == "aitoff_hammer":
-        return AxesTransform.AITOFF_HAMMER
-    else:
-        raise ValueError(f"Unknown axes transform {axes_transform!r}")
+        axes_transform = "default"
+    return AxesTransform(axes_transform)
