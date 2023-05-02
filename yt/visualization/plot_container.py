@@ -707,11 +707,8 @@ class PlotContainer(abc.ABC):
         for i, un in enumerate((unit_x, unit_y)):
             unn = None
             if hasattr(self.data_source, "axis"):
-                # TODO(4179): remove this
-                if hasattr(self.ds.coordinates, "image_units"):
-                    # This *forces* an override
-                    unn = self.ds.coordinates.image_units[self.data_source.axis][i]
-                elif hasattr(self.ds.coordinates, "default_unit_label"):
+                # TODO(4179): remove this (only used for spectral cube)
+                if hasattr(self.ds.coordinates, "default_unit_label"):
                     axax = getattr(self.ds.coordinates, f"{'xy'[i]}_axis")[
                         self.data_source.axis
                     ]
