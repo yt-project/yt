@@ -643,9 +643,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
     def period(self):
         return self.ds.domain_width
 
-    @classmethod
     def _get_plot_axes_default_properties(
-        cls, normal_axis_name: str, axes_transform: AxesTransform
+        self, normal_axis_name: str, axes_transform: AxesTransform
     ) -> DefaultProperties:
         if axes_transform is AxesTransform.DEFAULT:
             axes_transform = AxesTransform.GEOMETRY_NATIVE

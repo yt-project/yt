@@ -299,12 +299,11 @@ class CylindricalCoordinateHandler(CoordinateHandler):
             width = [xw, yw]
         return width
 
-    @classmethod
     def _get_plot_axes_default_properties(
-        cls, normal_axis_name: str, axes_transform: AxesTransform
+        self, normal_axis_name: str, axes_transform: AxesTransform
     ) -> DefaultProperties:
         if axes_transform is AxesTransform.DEFAULT:
-            axes_transform = cls._default_axes_transforms[normal_axis_name]
+            axes_transform = self._default_axes_transforms[normal_axis_name]
 
         if normal_axis_name == "r":
             if axes_transform is AxesTransform.GEOMETRY_NATIVE:

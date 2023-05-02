@@ -209,10 +209,9 @@ class CoordinateHandler(abc.ABC):
     def convert_from_spherical(self, coord):
         pass
 
-    @classmethod
     @abc.abstractmethod
     def _get_plot_axes_default_properties(
-        cls, normal_axis_name: str, axes_transform: AxesTransform
+        self, normal_axis_name: str, axes_transform: AxesTransform
     ) -> DefaultProperties:
         ...
 

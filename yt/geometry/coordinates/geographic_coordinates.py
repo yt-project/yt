@@ -481,12 +481,11 @@ class GeographicCoordinateHandler(CoordinateHandler):
             width = [self.ds.domain_width[ri], 2.0 * self.ds.domain_width[ri]]
         return width
 
-    @classmethod
     def _get_plot_axes_default_properties(
-        cls, normal_axis_name: str, axes_transform: AxesTransform
+        self, normal_axis_name: str, axes_transform: AxesTransform
     ) -> DefaultProperties:
         if axes_transform is AxesTransform.DEFAULT:
-            axes_transform = cls._default_axes_transforms[normal_axis_name]
+            axes_transform = self._default_axes_transforms[normal_axis_name]
 
         if normal_axis_name == "latitude":
             if axes_transform is AxesTransform.GEOMETRY_NATIVE:
@@ -522,7 +521,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
                 )
             else:
                 raise NotImplementedError
-        elif normal_axis_name == cls.radial_axis:
+        elif normal_axis_name == self.radial_axis:
             # TODO(4179): either clean this or refactor something elsewhere,
             # because it is currently never used:
             # this case is deleguated to cartopy,

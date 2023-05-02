@@ -25,29 +25,6 @@ class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
             )
         super().__init__(ds, ordering)
 
-        # TODO(4179): migrate this
-        self.default_unit_label = {}  # deprecated
-        names = {}
-        if ds.lon_name != "X" or ds.lat_name != "Y":
-            names["x"] = r"Image\ x"
-            names["y"] = r"Image\ y"
-            # We can just use ds.lon_axis here
-            self.default_unit_label[ds.lon_axis] = "pixel"
-            self.default_unit_label[ds.lat_axis] = "pixel"
-        names["z"] = ds.spec_name
-        # Again, can use spec_axis here
-        self.default_unit_label[ds.spec_axis] = ds.spec_unit
-
-        self._image_axis_name = ian = {}  # deprecated
-        for ax in "xyz":
-            axi = self.axis_id[ax]
-            xax = self.axis_name[self.x_axis[ax]]
-            yax = self.axis_name[self.y_axis[ax]]
-            ian[axi] = ian[ax] = ian[ax.upper()] = (
-                names.get(xax, xax),
-                names.get(yax, yax),
-            )
-
         def _spec_axis(ax, x, y):
             p = (x, y)[ax]
             return [self.ds.pixel2spec(pp).v for pp in p]
@@ -115,9 +92,8 @@ class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
         )
         return self._image_axis_name
 
-    @classmethod
     def _get_plot_axes_default_properties(
-        cls, normal_axis_name: str, axes_transform: AxesTransform
+        self, normal_axis_name: str, axes_transform: AxesTransform
     ) -> DefaultProperties:
         if axes_transform is AxesTransform.DEFAULT:
             axes_transform = AxesTransform.GEOMETRY_NATIVE
@@ -127,25 +103,55 @@ class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
             )
 
         if normal_axis_name == "x":
-            return dict(
-                x_axis_label="y",
-                y_axis_label="z",
-                x_axis_units=None,
-                y_axis_units=None,
-            )
+            if self.ds.lon_name == "X" and self.ds.lat_name == "Y":
+                return dict(
+                    x_axis_label="x",
+                    y_axis_label=self.ds.spec_name,
+                    x_axis_units=None,
+                    y_axis_units=None,
+                )
+            else:
+                return dict(
+                    x_axis_label=r"Image\ x",
+                    y_axis_label=self.ds.spec_name,
+                    x_axis_units="pixel",
+                    y_axis_units=None,
+                )
         elif normal_axis_name == "y":
-            return dict(
+            dict(
                 x_axis_label="x",
-                y_axis_label="z",
+                y_axis_label=self.ds.spec_name,
                 x_axis_units=None,
                 y_axis_units=None,
             )
+            if self.ds.lon_name == "X" and self.ds.lat_name == "Y":
+                return dict(
+                    x_axis_label="x",
+                    y_axis_label=self.ds.spec_name,
+                    x_axis_units=None,
+                    y_axis_units=None,
+                )
+            else:
+                return dict(
+                    x_axis_label=r"Image\ x",
+                    y_axis_label=self.ds.spec_name,
+                    x_axis_units="pixel",
+                    y_axis_units=None,
+                )
         elif normal_axis_name == "z":
-            return dict(
-                x_axis_label="x",
-                y_axis_label="y",
-                x_axis_units=None,
-                y_axis_units=None,
-            )
+            if self.ds.lon_name == "X" and self.ds.lat_name == "Y":
+                return dict(
+                    x_axis_label="x",
+                    y_axis_label="y",
+                    x_axis_units=None,
+                    y_axis_units=None,
+                )
+            else:
+                return dict(
+                    x_axis_label=r"Image\ x",
+                    y_axis_label=r"Image\ y",
+                    x_axis_units="pixel",
+                    y_axis_units="pixel",
+                )
         else:
             raise ValueError(f"Unknown axis {normal_axis_name!r}")
