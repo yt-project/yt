@@ -212,6 +212,7 @@ class FieldInfoContainer(UserDict):
             for alias, source in new_aliases:
                 self.alias(alias, source)
         self.alias((ftype, "particle_position"), (ptype, "particle_position"))
+        self.alias((ftype, "particle_mass"), (ptype, "particle_mass"))
 
     # Collect the names for all aliases if geometry is curvilinear
     def get_aliases_gallery(self) -> List[FieldName]:
