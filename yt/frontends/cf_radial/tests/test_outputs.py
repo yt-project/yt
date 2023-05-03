@@ -9,11 +9,10 @@ import shutil
 import tempfile
 
 import numpy as np
+from numpy.testing import assert_almost_equal, assert_equal
 
 from yt.frontends.cf_radial.data_structures import CFRadialDataset
 from yt.testing import (
-    assert_almost_equal,
-    assert_equal,
     requires_file,
     requires_module,
     units_override_check,

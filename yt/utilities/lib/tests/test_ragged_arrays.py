@@ -1,6 +1,7 @@
 import numpy as np
+from numpy.testing import assert_equal
 
-from yt.testing import assert_equal, assert_rel_equal
+from yt.testing import assert_rel_equal
 from yt.utilities.lib.ragged_arrays import index_unop
 
 operations = ((np.sum, "sum"), (np.prod, "prod"), (np.max, "max"), (np.min, "min"))

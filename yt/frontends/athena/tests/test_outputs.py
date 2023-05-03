@@ -1,10 +1,10 @@
 import numpy as np
+from numpy.testing import assert_equal
 
 from yt.frontends.athena.api import AthenaDataset
 from yt.loaders import load
 from yt.testing import (
     assert_allclose_units,
-    assert_equal,
     disable_dataset_cache,
     requires_file,
 )

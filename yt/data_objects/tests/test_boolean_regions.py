@@ -1,6 +1,7 @@
 import numpy as np
+from numpy.testing import assert_array_equal
 
-from yt.testing import assert_array_equal, fake_amr_ds
+from yt.testing import fake_amr_ds
 
 # We use morton indices in this test because they are single floating point
 # values that uniquely identify each cell.  That's a convenient way to compare

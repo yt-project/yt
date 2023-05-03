@@ -4,13 +4,12 @@ import tempfile
 import unittest
 
 import numpy as np
+from numpy.testing import assert_equal, assert_raises
 
 import yt
 from yt.data_objects.particle_filters import add_particle_filter
 from yt.data_objects.profiles import Profile1D, Profile2D, Profile3D, create_profile
 from yt.testing import (
-    assert_equal,
-    assert_raises,
     assert_rel_equal,
     fake_random_ds,
     fake_sph_orientation_ds,

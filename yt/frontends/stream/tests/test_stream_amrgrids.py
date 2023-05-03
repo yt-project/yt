@@ -1,7 +1,7 @@
 import numpy as np
+from numpy.testing import assert_raises
 
 from yt import ProjectionPlot, load_amr_grids
-from yt.testing import assert_raises
 from yt.utilities.exceptions import YTIllDefinedAMR, YTIntDomainOverflow
 
 

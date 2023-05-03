@@ -3,12 +3,13 @@ import shutil
 import tempfile
 
 import numpy as np
+from numpy.testing import assert_array_equal, assert_equal
 
 from yt.data_objects.level_sets.api import Clump, add_clump_info, find_clumps
 from yt.data_objects.level_sets.clump_info_items import clump_info_registry
 from yt.fields.derived_field import ValidateParameter
 from yt.loaders import load, load_uniform_grid
-from yt.testing import assert_array_equal, assert_equal, requires_file, requires_module
+from yt.testing import requires_file, requires_module
 from yt.utilities.answer_testing.framework import data_dir_load
 
 

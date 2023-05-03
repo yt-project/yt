@@ -1,9 +1,9 @@
 import numpy as np
+from numpy.testing import assert_almost_equal, assert_equal
 
 from yt import SlicePlot
 from yt.frontends.stream.data_structures import hexahedral_connectivity
 from yt.loaders import load_hexahedral_mesh
-from yt.testing import assert_almost_equal, assert_equal
 
 # Field information
 

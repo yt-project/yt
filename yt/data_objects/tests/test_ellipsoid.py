@@ -1,6 +1,7 @@
 import numpy as np
+from numpy.testing import assert_array_less
 
-from yt.testing import assert_array_less, fake_random_ds
+from yt.testing import fake_random_ds
 
 
 def setup():

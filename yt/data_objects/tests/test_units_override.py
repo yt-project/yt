@@ -1,7 +1,8 @@
 from functools import partial
 
+from numpy.testing import assert_raises
+
 from yt.data_objects.static_output import Dataset
-from yt.testing import assert_raises
 from yt.units import YTQuantity
 from yt.units.unit_registry import UnitRegistry
 

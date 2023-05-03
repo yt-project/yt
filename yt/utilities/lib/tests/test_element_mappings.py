@@ -1,6 +1,6 @@
 import numpy as np
+from numpy.testing import assert_almost_equal
 
-from yt.testing import assert_almost_equal
 from yt.utilities.lib.element_mappings import (
     test_hex20_sampler,
     test_hex_sampler,

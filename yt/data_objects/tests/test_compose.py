@@ -1,6 +1,7 @@
 import numpy as np
+from numpy.testing import assert_array_equal
 
-from yt.testing import assert_array_equal, fake_amr_ds, fake_random_ds
+from yt.testing import fake_amr_ds, fake_random_ds
 from yt.units._numpy_wrapper_functions import uintersect1d
 from yt.units.yt_array import YTArray
 

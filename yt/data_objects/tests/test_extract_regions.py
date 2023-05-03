@@ -1,9 +1,8 @@
 import numpy as np
+from numpy.testing import assert_almost_equal, assert_equal
 
 from yt.loaders import load
 from yt.testing import (
-    assert_almost_equal,
-    assert_equal,
     fake_amr_ds,
     fake_random_ds,
     requires_file,

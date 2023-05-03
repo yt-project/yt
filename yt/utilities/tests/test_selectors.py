@@ -1,6 +1,7 @@
 import numpy as np
+from numpy.testing import assert_array_less, assert_equal
 
-from yt.testing import assert_array_less, assert_equal, fake_random_ds
+from yt.testing import fake_random_ds
 from yt.utilities.math_utils import periodic_dist
 
 

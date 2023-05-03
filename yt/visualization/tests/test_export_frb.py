@@ -1,6 +1,7 @@
 import numpy as np
+from numpy.testing import assert_equal
 
-from yt.testing import assert_allclose_units, assert_equal, fake_random_ds
+from yt.testing import assert_allclose_units, fake_random_ds
 
 
 def setup():

@@ -1,9 +1,8 @@
 import numpy as np
 from nose.tools import assert_raises
+from numpy.testing import assert_almost_equal, assert_equal
 
 from yt.testing import (
-    assert_almost_equal,
-    assert_equal,
     fake_amr_ds,
     fake_particle_ds,
     fake_random_ds,

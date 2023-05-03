@@ -4,9 +4,9 @@ import tempfile
 import unittest
 
 import numpy as np
+from numpy.testing import assert_equal
 
 from yt.testing import (
-    assert_equal,
     assert_fname,
     assert_rel_equal,
     expand_keywords,

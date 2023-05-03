@@ -1,7 +1,7 @@
 import numpy as np
+from numpy.testing import assert_almost_equal
 
 from yt.loaders import load_uniform_grid
-from yt.testing import assert_almost_equal
 from yt.utilities.physical_constants import mu_0
 
 
