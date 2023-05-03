@@ -952,8 +952,8 @@ class YTCoveringGrid(YTSelectionContainer3D):
 
     def _check_sph_type(self, finfo):
         """
-        This function checks if a particle field has an SPH
-        type. There are several ways that this can happen,
+        Check if a particle field has an SPH type.
+        There are several ways that this can happen,
         checked in this order:
         1. If the field type is a known particle filter, and
            is in the list of SPH ptypes, use this type
