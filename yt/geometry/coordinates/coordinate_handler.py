@@ -235,7 +235,7 @@ class CoordinateHandler(abc.ABC):
         return ya
 
     @property
-    @abc.abstractproperty
+    @abc.abstractmethod
     def period(self):
         pass
 
