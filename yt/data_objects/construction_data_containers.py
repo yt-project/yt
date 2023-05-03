@@ -950,26 +950,38 @@ class YTCoveringGrid(YTSelectionContainer3D):
         for p in part:
             self[p] = self._data_source[p]
 
-    def _check_sph_type(self, fi):
-        field = fi.name
+    def _check_sph_type(self, finfo):
+        """
+        This function checks if a particle field has an SPH
+        type. There are several ways that this can happen,
+        checked in this order:
+        1. If the field type is a known particle filter, and
+           is in the list of SPH ptypes, use this type
+        2. If the field is an alias of an SPH field, but its
+           type is not "gas", use this type
+        3. Otherwise, if the field type is not in the SPH
+           types list and it is not "gas", we fail
+        If we get through without erroring out, we either have
+        a known SPH particle filter, an alias of an SPH field,
+        the default SPH ptype, or "gas" for an SPH field. Then
+        we return the particle type. 
+        """
+        ftype, fname = finfo.name
         sph_ptypes = self.ds._sph_ptypes
-        raise_error = False
         ptype = sph_ptypes[0]
-        if field[0] in self.ds.known_filters:
-            if field[0] not in sph_ptypes:
-                raise_error = True
+        err = KeyError(f"{ftype} is not a SPH particle type!")
+        if ftype in self.ds.known_filters:
+            if ftype not in sph_ptypes:
+                raise err
             else:
-                ptype = field[0]
-        elif fi.is_alias:
-            if fi.alias_name[0] not in sph_ptypes:
-                raise_error = True
-            elif field[0] != "gas":
-                ptype = field[0]
-        else:
-            if fi.name[0] not in sph_ptypes and fi.name[0] != "gas":
-                raise_error = True
-        if raise_error:
-            raise KeyError(f"{field[0]} is not a SPH particle type!")
+                ptype = ftype
+        elif finfo.is_alias:
+            if finfo.alias_name[0] not in sph_ptypes:
+                raise err
+            elif ftype != "gas":
+                ptype = ftype
+        elif ftype not in sph_ptypes and ftype != "gas":
+            raise err
         return ptype
 
     def _fill_sph_particles(self, fields):
