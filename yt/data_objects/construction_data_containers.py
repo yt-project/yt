@@ -964,7 +964,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
         If we get through without erroring out, we either have
         a known SPH particle filter, an alias of an SPH field,
         the default SPH ptype, or "gas" for an SPH field. Then
-        we return the particle type. 
+        we return the particle type.
         """
         ftype, fname = finfo.name
         sph_ptypes = self.ds._sph_ptypes
