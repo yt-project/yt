@@ -34,3 +34,4 @@
 --ignore-file=test_stream_stretched\.py
 --ignore-file=test_version\.py
 --ignore-file=test_vr_orientation\.py
+--ignore-file=test_cython_fortran_utils\.py
