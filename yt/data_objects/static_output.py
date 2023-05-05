@@ -202,7 +202,7 @@ class Dataset(abc.ABC):
     # map to (0, 0, 0)
     domain_offset = np.zeros(3, dtype="int64")
     _periodicity = MutableAttribute()
-    _force_periodicity = False
+    _periodicity_override: Optional[Tuple[bool, bool, bool]] = None
 
     # these are set in self._set_derived_attrs()
     domain_width = MutableAttribute(True)
@@ -367,12 +367,13 @@ class Dataset(abc.ABC):
 
     @property
     def periodicity(self):
-        if self._force_periodicity:
-            return (True, True, True)
-        elif getattr(self, "_domain_override", False):
+        if getattr(self, "_domain_override", False):
             # dataset loaded with a bounding box
             return (False, False, False)
-        return self._periodicity
+        if self._periodicity_override is not None:
+            return self._periodicity_override
+        else:
+            return self._periodicity
 
     def force_periodicity(self, val=True):
         """
@@ -383,7 +384,25 @@ class Dataset(abc.ABC):
         # workaround in yt user codes.
         if not isinstance(val, bool):
             raise TypeError("force_periodicity expected a boolean.")
-        self._force_periodicity = val
+        self.set_periodicity(val)
+
+    def set_periodicity(self, val: Union[None, bool, Tuple[bool, bool, bool]]) -> None:
+        """
+        Set box periodicity to user defined periodicity.
+        """
+        if val is None:
+            # reset periodicity override
+            self._periodicity_override = None
+            return
+        if isinstance(val, bool):
+            val = (val, val, val)
+        if not isinstance(val, tuple):
+            raise TypeError("set_periodicity must be a boolean or tuple of booleans.")
+        if len(val) != 3 or not all(isinstance(v, bool) for v in val):
+            raise TypeError(
+                "user supplied periodicities must be a tuple of 3 booleans."
+            )
+        self._periodicity_override = val
 
     # abstract methods require implementation in subclasses
     @classmethod

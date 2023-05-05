@@ -41,42 +41,23 @@ cdef class RegionSelector(SelectorObject):
                         i, region_width[i]))
 
         for i in range(3):
+            # First, we check if any criteria requires a period check,
+            # without any adjustments.  This is for short-circuiting the
+            # short-circuit of the loop down below in mask filling.
+            if LE[i] < DLE[i] or LE[i] > DRE[i] or RE[i] > DRE[i]:
+                self.check_period[i] = True
+            # shift so left_edge guaranteed in domain
+            if LE[i] < DLE[i]:
+                LE[i] += DW[i]
+                RE[i] += DW[i]
+            elif LE[i] > DRE[i]:
+                LE[i] -= DW[i]
+                RE[i] -= DW[i]
 
-            if p[i]:
-                # First, we check if any criteria requires a period check,
-                # without any adjustments.  This is for short-circuiting the
-                # short-circuit of the loop down below in mask filling.
-                if LE[i] < DLE[i] or LE[i] > DRE[i] or RE[i] > DRE[i]:
-                    self.check_period[i] = True
-                # shift so left_edge guaranteed in domain
-                if LE[i] < DLE[i]:
-                    LE[i] += DW[i]
-                    RE[i] += DW[i]
-                elif LE[i] > DRE[i]:
-                    LE[i] -= DW[i]
-                    RE[i] -= DW[i]
-            else:
-                if LE[i] < DLE[i] or RE[i] > DRE[i]:
-                    raise RuntimeError(
-                        "yt attempted to read outside the boundaries of "
-                        "a non-periodic domain along dimension %s.\n"
-                        "Region left edge = %s, Region right edge = %s\n"
-                        "Dataset left edge = %s, Dataset right edge = %s\n\n"
-                        "This commonly happens when trying to compute ghost cells "
-                        "up to the domain boundary. Two possible solutions are to "
-                        "select a smaller region that does not border domain edge "
-                        "(see https://yt-project.org/docs/analyzing/objects.html?highlight=region)\n"
-                        "or override the periodicity with\n"
-                        "ds.force_periodicity()" % \
-                        (i, dobj.left_edge[i], dobj.right_edge[i],
-                         dobj.ds.domain_left_edge[i], dobj.ds.domain_right_edge[i])
-                    )
             # Already ensured in code
             self.left_edge[i] = LE[i]
             self.right_edge[i] = RE[i]
             self.right_edge_shift[i] = RE[i] - DW[i]
-            if not self.periodicity[i]:
-                self.right_edge_shift[i] = -np.inf
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

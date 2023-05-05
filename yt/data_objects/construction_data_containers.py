@@ -43,7 +43,10 @@ from yt.utilities.exceptions import (
 )
 from yt.utilities.grid_data_format.writer import write_to_gdf
 from yt.utilities.lib.cyoctree import CyOctree
-from yt.utilities.lib.interpolators import ghost_zone_interpolate
+from yt.utilities.lib.interpolators import (
+    ghost_zone_interpolate,
+    replace_nonperiodic_with_extrap,
+)
 from yt.utilities.lib.marching_cubes import march_cubes_grid, march_cubes_grid_flux
 from yt.utilities.lib.misc_utilities import fill_region, fill_region_float
 from yt.utilities.lib.pixelization_routines import (
@@ -702,6 +705,9 @@ class YTCoveringGrid(YTSelectionContainer3D):
         self.level = level
         self.left_edge = self._sanitize_edge(left_edge)
         self.ActiveDimensions = self._sanitize_dims(dims)
+        self._extrap_nonperiodic = [False, False, False]
+        self._ncell_lo_extrap = np.array([0, 0, 0], dtype="int64")
+        self._ncell_hi_extrap = np.array([0, 0, 0], dtype="int64")
 
         rdx = self.ds.domain_dimensions * self.ds.relative_refinement(0, level)
 
@@ -720,6 +726,43 @@ class YTCoveringGrid(YTSelectionContainer3D):
             + self.ds.domain_offset
         )
         self._setup_data_source()
+
+        # extrapolate on non-periodic data if the grid reaches domain edges
+        for i in range(3):
+            if self.ds.periodicity[i]:
+                continue
+            if self.left_edge[i] < self.ds.domain_left_edge[i]:
+                self._ncell_lo_extrap[i] = np.rint(
+                    (self.ds.domain_left_edge[i] - self.left_edge[i]) / self.dds[i]
+                )
+            if self.right_edge[i] > self.ds.domain_right_edge[i]:
+                self._ncell_hi_extrap[i] = np.rint(
+                    (self.right_edge[i] - self.ds.domain_right_edge[i]) / self.dds[i]
+                )
+            if self._ncell_lo_extrap[i] > 0 or self._ncell_hi_extrap[i] > 0:
+                self._extrap_nonperiodic[i] = True
+        # output warning if we need to extrapolate
+        if any(self._extrap_nonperiodic):
+            if np.count_nonzero(self._extrap_nonperiodic) == 1:
+                extrap_dims = (
+                    "xyz"[np.where(self._extrap_nonperiodic)[0][0]] + " dimension"
+                )
+            if np.count_nonzero(self._extrap_nonperiodic) == 2:
+                extrap_dims = (
+                    "xyz"[np.where(self._extrap_nonperiodic)[0][0]]
+                    + " and "
+                    + "xyz"[np.where(self._extrap_nonperiodic)[0][1]]
+                    + " dimensions"
+                )
+            if np.count_nonzero(self._extrap_nonperiodic) == 3:
+                extrap_dims = "x, y, and z dimensions"
+            mylog.warning(
+                "The region specified is outside of the "
+                "computational domain with non-periodic boundaries. "
+                "Therefore, we will extrapolate data for the "
+                "%s.",
+                extrap_dims,
+            )
         self.get_data(fields)
 
     def get_global_startindex(self):
@@ -1086,6 +1129,11 @@ class YTCoveringGrid(YTSelectionContainer3D):
         if self.comm.size > 1:
             for i in range(len(fields)):
                 output_fields[i] = self.comm.mpi_allreduce(output_fields[i], op="sum")
+        if any(self._extrap_nonperiodic):
+            for field in output_fields:
+                replace_nonperiodic_with_extrap(
+                    field, self._ncell_lo_extrap, self._ncell_hi_extrap
+                )
         for field, v in zip(fields, output_fields):
             fi = self.ds._get_field_info(field)
             self[field] = self.ds.arr(v, fi.units)
@@ -1550,6 +1598,11 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
 
     def _update_level_state(self, level_state):
         ls = level_state
+        if any(self._extrap_nonperiodic):
+            for field in level_state.fields:
+                replace_nonperiodic_with_extrap(
+                    field, self._ncell_lo_extrap, self._ncell_hi_extrap
+                )
         if ls.current_level >= self.level:
             return
         rf = float(self.ds.relative_refinement(ls.current_level, ls.current_level + 1))

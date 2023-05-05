@@ -1,8 +1,16 @@
 import numpy as np
 
 import yt.utilities.linear_interpolators as lin
-from yt.testing import assert_array_almost_equal, assert_array_equal, fake_random_ds
-from yt.utilities.lib.interpolators import ghost_zone_interpolate
+from yt.testing import (
+    assert_allclose,
+    assert_array_almost_equal,
+    assert_array_equal,
+    fake_random_ds,
+)
+from yt.utilities.lib.interpolators import (
+    ghost_zone_interpolate,
+    replace_nonperiodic_with_extrap,
+)
 
 
 def setup():
@@ -122,3 +130,34 @@ def test_get_vertex_centered_data():
     ds = fake_random_ds(16)
     g = ds.index.grids[0]
     g.get_vertex_centered_data([("gas", "density")], no_ghost=True)
+
+
+def test_replace_nonperiodic_with_extrap():
+    for nbuf in range(3):
+        # Initialize domain information
+        nx = np.array([8, 16, 32])
+        dx = 1.0
+        lo = np.zeros((3), dtype="float64") + dx / 2
+        hi = lo + (nx - 1) * dx
+
+        # Fill field with analytical linear function: f(x,y,z) = x + 2y + 3z
+        # excluding the buffer region
+        x, y, z = np.mgrid[
+            lo[0] : hi[0] : nx[0] * 1j,
+            lo[1] : hi[1] : nx[1] * 1j,
+            lo[2] : hi[2] : nx[2] * 1j,
+        ]
+        func = x + 2 * y + 3 * z
+        field = np.zeros(nx, dtype="float64")
+        field[nbuf : nx[0] - nbuf, nbuf : nx[1] - nbuf, nbuf : nx[2] - nbuf] = func[
+            nbuf : nx[0] - nbuf, nbuf : nx[1] - nbuf, nbuf : nx[2] - nbuf
+        ]
+
+        # Use replace_nonperiodic_with_extrap function to extrapolate data to
+        # buffer region
+        replace_nonperiodic_with_extrap(
+            field, np.array([nbuf, nbuf, nbuf]), np.array([nbuf, nbuf, nbuf])
+        )
+
+        # Since this function is linear, the extrapolation should be exact
+        assert_allclose(field.ravel(), func.ravel(), 1e-8, 1e-8)

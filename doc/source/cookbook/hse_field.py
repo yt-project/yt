@@ -36,10 +36,6 @@ ds.add_field(
     sampling_type="cell",
 )
 
-# The gradient operator requires periodic boundaries.  This dataset has
-# open boundary conditions.
-ds.force_periodicity()
-
 # Take a slice through the center of the domain
 slc = yt.SlicePlot(ds, 2, [("gas", "density"), ("gas", "HSE")], width=(1, "Mpc"))
 
