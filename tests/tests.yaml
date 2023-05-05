@@ -209,5 +209,6 @@ other_tests:
      - "--exclude-test=yt.frontends.gdf.tests.test_outputs.TestGDF"
      - "--exclude-test=yt.frontends.adaptahop.tests.test_outputs"
      - "--exclude-test=yt.frontends.stream.tests.test_stream_particles.test_stream_non_cartesian_particles"
+     - "--ignore-file=test_cython_fortran_utils\\.py"
   cookbook:
      - 'doc/source/cookbook/tests/test_cookbook.py'
