@@ -1,8 +1,10 @@
 import os.path
 
+from numpy.testing import assert_equal, assert_raises
+
 import yt
 from yt.config import ytcfg
-from yt.testing import assert_equal, assert_raises, requires_file, requires_module
+from yt.testing import requires_file, requires_module
 
 G30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
 

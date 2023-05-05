@@ -4,8 +4,9 @@ import tempfile
 from unittest import TestCase
 
 import numpy as np
+from numpy.testing import assert_almost_equal
 
-from yt.testing import assert_almost_equal, fake_random_ds
+from yt.testing import fake_random_ds
 from yt.visualization.volume_rendering.api import (
     OpaqueSource,
     Scene,

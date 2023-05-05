@@ -1,4 +1,5 @@
-from yt.testing import assert_allclose, assert_equal
+from numpy.testing import assert_allclose, assert_equal
+
 from yt.utilities.chemical_formulas import ChemicalFormula, compute_mu
 from yt.utilities.periodic_table import periodic_table
 

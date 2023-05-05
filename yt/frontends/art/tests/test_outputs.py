@@ -1,8 +1,8 @@
+from numpy.testing import assert_almost_equal, assert_equal
+
 from yt.frontends.art.api import ARTDataset
 from yt.testing import (
     ParticleSelectionComparison,
-    assert_almost_equal,
-    assert_equal,
     requires_file,
     units_override_check,
 )

@@ -1,6 +1,7 @@
 import numpy as np
+from numpy.testing import assert_almost_equal, assert_equal
 
-from yt.testing import assert_almost_equal, assert_equal, fake_sph_grid_ds
+from yt.testing import fake_sph_grid_ds
 
 n_ref = 4
 

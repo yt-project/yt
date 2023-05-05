@@ -1,14 +1,16 @@
 import numpy as np
-
-from yt import load
-from yt.frontends.stream.fields import StreamFieldInfo
-from yt.testing import (
-    assert_allclose_units,
+from numpy.testing import (
     assert_almost_equal,
     assert_array_almost_equal_nulp,
     assert_array_equal,
     assert_equal,
     assert_raises,
+)
+
+from yt import load
+from yt.frontends.stream.fields import StreamFieldInfo
+from yt.testing import (
+    assert_allclose_units,
     fake_amr_ds,
     fake_particle_ds,
     fake_random_ds,

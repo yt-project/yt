@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
+from numpy.testing import assert_almost_equal, assert_equal
 
 from yt import load_uniform_grid
-from yt.testing import assert_almost_equal, assert_equal
 
 
 def test_variable_dx():

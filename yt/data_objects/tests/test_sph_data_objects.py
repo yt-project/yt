@@ -1,10 +1,10 @@
 import numpy as np
+from numpy.testing import assert_equal
 
 from yt import SlicePlot, add_particle_filter
 from yt.loaders import load
 from yt.testing import (
     assert_almost_equal,
-    assert_equal,
     fake_sph_grid_ds,
     fake_sph_orientation_ds,
     requires_file,

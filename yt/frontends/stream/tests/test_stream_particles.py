@@ -1,9 +1,10 @@
 import numpy as np
 import pytest
+from numpy.testing import assert_equal
 
 import yt.utilities.initial_conditions as ic
 from yt.loaders import load_amr_grids, load_particles, load_uniform_grid
-from yt.testing import assert_equal, fake_particle_ds, fake_sph_orientation_ds
+from yt.testing import fake_particle_ds, fake_sph_orientation_ds
 
 # Field information
 

@@ -5,12 +5,11 @@ import unittest
 
 import numpy as np
 from nose.tools import assert_raises
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_equal
 
 from yt.data_objects.data_containers import YTDataContainer
 from yt.data_objects.particle_filters import particle_filter
 from yt.testing import (
-    assert_equal,
     fake_amr_ds,
     fake_particle_ds,
     fake_random_ds,

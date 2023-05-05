@@ -1,17 +1,13 @@
 import os
 
 import numpy as np
+from numpy.testing import assert_array_equal, assert_equal
 
 import yt.units.dimensions as dimensions
 from yt.geometry.oct_container import _ORDER_MAX
 from yt.geometry.particle_oct_container import ParticleBitmap, ParticleOctreeContainer
 from yt.geometry.selection_routines import RegionSelector
-from yt.testing import (
-    assert_array_equal,
-    assert_equal,
-    assert_true,
-    requires_module,
-)
+from yt.testing import assert_true, requires_module
 from yt.units.unit_registry import UnitRegistry
 from yt.units.yt_array import YTArray
 from yt.utilities.lib.geometry_utils import (

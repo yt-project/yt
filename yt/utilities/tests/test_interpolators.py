@@ -1,7 +1,8 @@
 import numpy as np
+from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 import yt.utilities.linear_interpolators as lin
-from yt.testing import assert_array_almost_equal, assert_array_equal, fake_random_ds
+from yt.testing import fake_random_ds
 from yt.utilities.lib.interpolators import ghost_zone_interpolate
 
 

@@ -6,18 +6,20 @@ from collections import OrderedDict
 
 import numpy as np
 from matplotlib.colors import LogNorm, Normalize, SymLogNorm
-from nose.tools import assert_true
+from numpy.testing import (
+    assert_array_almost_equal,
+    assert_array_equal,
+    assert_equal,
+    assert_raises,
+)
 from unyt import unyt_array
 
 from yt.loaders import load_uniform_grid
 from yt.testing import (
     assert_allclose_units,
-    assert_array_almost_equal,
-    assert_array_equal,
-    assert_equal,
     assert_fname,
-    assert_raises,
     assert_rel_equal,
+    assert_true,
     fake_amr_ds,
     fake_random_ds,
     requires_file,

@@ -1,4 +1,6 @@
-from yt.testing import assert_allclose_units, assert_raises, requires_file
+from numpy.testing import assert_raises
+
+from yt.testing import assert_allclose_units, requires_file
 from yt.units import YTQuantity
 from yt.utilities.answer_testing.framework import data_dir_load
 

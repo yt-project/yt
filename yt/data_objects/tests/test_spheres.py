@@ -1,14 +1,8 @@
 import numpy as np
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_equal, assert_raises
 
 from yt.data_objects.profiles import create_profile
-from yt.testing import (
-    assert_equal,
-    assert_raises,
-    fake_random_ds,
-    periodicity_cases,
-    requires_module,
-)
+from yt.testing import fake_random_ds, periodicity_cases, requires_module
 from yt.utilities.exceptions import YTException, YTFieldNotFound
 
 

@@ -1,9 +1,9 @@
 import random
 
 import numpy as np
+from numpy.testing import assert_equal, assert_raises
 
 from yt.loaders import load_amr_grids
-from yt.testing import assert_equal, assert_raises
 
 
 def setup_test_ds():

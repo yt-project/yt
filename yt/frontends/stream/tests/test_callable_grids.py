@@ -1,15 +1,10 @@
 import numpy as np
 import pytest
 import unyt
+from numpy.testing import assert_almost_equal, assert_equal
 
 from yt import load_amr_grids, load_hdf5_file, load_uniform_grid
-from yt.testing import (
-    _amr_grid_index,
-    assert_almost_equal,
-    assert_equal,
-    requires_file,
-    requires_module,
-)
+from yt.testing import _amr_grid_index, requires_file, requires_module
 
 turb_vels = "UnigridData/turb_vels.h5"
 
