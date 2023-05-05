@@ -7,7 +7,7 @@ import yt.units.dimensions as dimensions
 from yt.geometry.oct_container import _ORDER_MAX
 from yt.geometry.particle_oct_container import ParticleBitmap, ParticleOctreeContainer
 from yt.geometry.selection_routines import RegionSelector
-from yt.testing import assert_true, requires_module
+from yt.testing import requires_module
 from yt.units.unit_registry import UnitRegistry
 from yt.units.yt_array import YTArray
 from yt.utilities.lib.geometry_utils import (
@@ -302,7 +302,7 @@ def test_bitmap_save_load():
         left_edge, right_edge, periodicity, file_hash, nfiles, order1, order2
     )
     reg1.load_bitmasks(fname)
-    assert_true(reg0.iseq_bitmask(reg1))
+    assert reg0.iseq_bitmask(reg1)
     # Remove file
     os.remove(fname)
 
