@@ -840,6 +840,10 @@ def expand_keywords(keywords, full=False):
     ...     write_projection(*args, **kwargs)
     """
 
+    issue_deprecation_warning(
+        "yt.testing.expand_keywords is deprecated", since="4.2", stacklevel=2
+    )
+
     # if we want every possible combination of keywords, use iter magic
     if full:
         keys = sorted(keywords)
