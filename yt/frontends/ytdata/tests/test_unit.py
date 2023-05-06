@@ -3,10 +3,10 @@ import shutil
 import tempfile
 
 import numpy as np
+from numpy.testing import assert_array_equal
 
 from yt.loaders import load, load_uniform_grid
 from yt.testing import (
-    assert_array_equal,
     assert_fname,
     fake_random_ds,
     requires_file,

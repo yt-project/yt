@@ -6,9 +6,10 @@ import unittest
 import matplotlib.pyplot as plt
 import numpy as np
 from nose.tools import assert_raises
+from numpy.testing import assert_almost_equal, assert_equal
 
 from yt import make_colormap, show_colormaps
-from yt.testing import assert_almost_equal, assert_equal, requires_backend
+from yt.testing import requires_backend
 
 
 class TestColorMaps(unittest.TestCase):

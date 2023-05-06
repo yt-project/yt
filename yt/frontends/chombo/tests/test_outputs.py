@@ -1,10 +1,7 @@
+from numpy.testing import assert_equal
+
 from yt.frontends.chombo.api import ChomboDataset, Orion2Dataset, PlutoDataset
-from yt.testing import (
-    assert_equal,
-    requires_file,
-    requires_module,
-    units_override_check,
-)
+from yt.testing import requires_file, requires_module, units_override_check
 from yt.utilities.answer_testing.framework import (
     data_dir_load,
     requires_ds,

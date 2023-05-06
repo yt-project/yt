@@ -1,7 +1,8 @@
 from nose.tools import assert_raises
+from numpy.testing import assert_equal
 
 from yt.funcs import just_one, levenshtein_distance, validate_axis, validate_center
-from yt.testing import assert_equal, fake_amr_ds
+from yt.testing import fake_amr_ds
 from yt.units import YTArray, YTQuantity
 
 
