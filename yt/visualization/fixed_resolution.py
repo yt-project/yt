@@ -716,12 +716,13 @@ class ParticleImageBuffer(FixedResolutionBuffer):
 
         ftype = item[0]
         if self.axis is None:
+            wd = tuple(el.in_units("code_length").v for el in self.data_source.width)
             x_data, y_data, rbx0, rbx1, rby0, rby1 = rotate_particle_coord(
                 dd[ftype, "particle_position_x"].to_value("code_length"),
                 dd[ftype, "particle_position_y"].to_value("code_length"),
                 dd[ftype, "particle_position_z"].to_value("code_length"),
                 self.data_source.center.to("code_length").d,
-                self.data_source.width,
+                wd,
                 self.data_source.normal_vector,
                 self.data_source.north_vector,
             )
