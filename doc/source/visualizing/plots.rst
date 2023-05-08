@@ -2027,7 +2027,24 @@ domain:
    p.set_unit(("all", "particle_mass"), "Msun")
    p.save()
 
-and here is an example of using the ``data_source`` argument to :class:`~yt.visualization.particle_plots.ParticlePhasePlot`
+Using :class:`~yt.visualization.particle_plots.ParticleProjectionPlot`, you can also plot particles
+along an off-axis direction:
+
+.. python-script::
+
+   import yt
+
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
+   L = [1, 1, 1] # normal or "line of sight" vector
+   N = [0, 1, 0] # north or "up" vector
+
+   p = yt.ParticleProjectionPlot(ds, L, [("all", "particle_mass")], width=(0.5, 0.5), depth=0.1,
+                                 north_vector=N)
+   p.set_unit(("all", "particle_mass"), "Msun")
+   p.save()
+
+Here is an example of using the ``data_source`` argument to :class:`~yt.visualization.particle_plots.ParticlePhasePlot`
 to only consider the particles that lie within a 50 kpc sphere around the domain center:
 
 .. python-script::
