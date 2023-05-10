@@ -716,7 +716,11 @@ class ParticleImageBuffer(FixedResolutionBuffer):
 
         ftype = item[0]
         if self.axis is None:
-            wd = tuple(el.in_units("code_length").v for el in self.data_source.width)
+            wd = []
+            for w in self.data_source.width:
+                if hasattr(w, "to_value"):
+                    w = w.to_value("code_length")
+                wd.append(w)
             x_data, y_data, rbx0, rbx1, rby0, rby1 = rotate_particle_coord(
                 dd[ftype, "particle_position_x"].to_value("code_length"),
                 dd[ftype, "particle_position_y"].to_value("code_length"),
@@ -732,8 +736,8 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         else:
             bounds = []
             for b in self.bounds:
-                if hasattr(b, "in_units"):
-                    b = float(b.in_units("code_length"))
+                if hasattr(b, "to_value"):
+                    b = b.to_value("code_length")
                 bounds.append(b)
             x_data = dd[ftype, self.x_field].to_value("code_length")
             y_data = dd[ftype, self.y_field].to_value("code_length")
