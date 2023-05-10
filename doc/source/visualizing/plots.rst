@@ -2039,7 +2039,7 @@ along an off-axis direction:
    L = [1, 1, 1] # normal or "line of sight" vector
    N = [0, 1, 0] # north or "up" vector
 
-   p = yt.ParticleProjectionPlot(ds, L, [("all", "particle_mass")], width=(0.5, 0.5), depth=0.1,
+   p = yt.ParticleProjectionPlot(ds, L, [("all", "particle_mass")], width=(0.05, 0.05), depth=0.3,
                                  north_vector=N)
    p.set_unit(("all", "particle_mass"), "Msun")
    p.save()
