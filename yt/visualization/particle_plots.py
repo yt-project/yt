@@ -22,7 +22,7 @@ from .plot_window import (
 class ParticleDummyDataSource:
     _type_name = "Particle"
     _dimensionality = 2
-    _con_args = ("center", "width", "fields", "weight_field")
+    _con_args = ("center", "axis", "width", "fields", "weight_field")
     _tds_attrs = ()
     _key_fields: List[str] = []
 
@@ -73,8 +73,6 @@ class ParticleDummyDataSource:
 
 
 class ParticleAxisAlignedDummyDataSource(ParticleDummyDataSource):
-    _con_args = ("center", "axis", "width", "fields", "weight_field")
-
     def __init__(
         self,
         center,
