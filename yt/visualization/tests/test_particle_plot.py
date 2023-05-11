@@ -120,6 +120,27 @@ def test_particle_projection_answers():
 
 
 @requires_ds(g30, big_data=True)
+def test_particle_offaxis_projection_answers():
+    plot_field = ("all", "particle_mass")
+    decimals = 12
+    ds = data_dir_load(g30)
+    attr_name = "set_cmap"
+    attr_args = ((("all", "particle_mass"), "RdBu"), {})
+    L = [1, 1, 1]
+    test = PlotWindowAttributeTest(
+        ds,
+        plot_field,
+        L,
+        attr_name,
+        attr_args,
+        decimals,
+        "ParticleProjectionPlot",
+    )
+    test_particle_offaxis_projection_answers.__name__ = test.description
+    yield test
+
+
+@requires_ds(g30, big_data=True)
 def test_particle_projection_filter():
     """
 
@@ -409,6 +430,19 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
                     "yt.visualization._mpl_imports.FigureCanvasAgg.print_figure"
                 ):
                     pplot_wf.save()
+
+    def test_particle_plot_offaxis(self):
+        test_ds = fake_particle_ds()
+        Ls = [[1, 1, 1], [0, 1, -0.5]]
+        Ns = [None, [1, 1, 1]]
+        for L, N in zip(Ls, Ns):
+            pplot_off = ParticleProjectionPlot(
+                test_ds, L, ("all", "particle_mass"), north_vector=N
+            )
+            with mock.patch(
+                "yt.visualization._mpl_imports.FigureCanvasAgg.print_figure"
+            ):
+                pplot_off.save()
 
     def test_creation_with_width(self):
         test_ds = fake_particle_ds()
