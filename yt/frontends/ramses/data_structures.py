@@ -689,7 +689,7 @@ class RAMSESIndex(OctreeIndex):
         )
         print("\nSmallest Cell:")
         for item in ("Mpc", "pc", "AU", "cm"):
-            print(f"\tWidth: {dx.in_units(item):0.3e} {item}")
+            print(f"\tWidth: {dx.in_units(item):0.3e}")
 
 
 class RAMSESDataset(Dataset):
