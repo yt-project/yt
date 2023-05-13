@@ -237,7 +237,7 @@ class GridIndex(Index, abc.ABC):
         )
         print("\nSmallest Cell:")
         for item in ("Mpc", "pc", "AU", "cm"):
-            print(f"\tWidth: {dx.in_units(item):0.3e} {item}")
+            print(f"\tWidth: {dx.in_units(item):0.3e}")
 
     def _find_field_values_at_points(self, fields, coords):
         r"""Find the value of fields at a set of coordinates.
