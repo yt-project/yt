@@ -379,7 +379,7 @@ class AthenaHierarchy(GridIndex):
             self.grid_left_edge = self.ds.arr(gle_all, "code_length")
             self.grid_right_edge = self.ds.arr(gre_all, "code_length")
             self.grid_dimensions = np.array(
-                [shape for shape in shapes_all], dtype="int32"
+                list(shapes_all), dtype="int32"
             )
             gdds = (self.grid_right_edge - self.grid_left_edge) / self.grid_dimensions
             glis = np.round(

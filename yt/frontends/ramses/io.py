@@ -263,7 +263,7 @@ def _read_part_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
         ("tag", "particle_tag"),
     ]
     # Convert to dictionary
-    mapping = {k: v for k, v in mapping_list}
+    mapping = dict(mapping_list)
 
     with open(fname) as f:
         line = f.readline()
@@ -342,7 +342,7 @@ def _read_fluid_file_descriptor(fname: Union[str, "os.PathLike[str]"], *, prefix
     ]
 
     # Convert to dictionary
-    mapping = {k: v for k, v in mapping_list}
+    mapping = dict(mapping_list)
 
     with open(fname) as f:
         line = f.readline()

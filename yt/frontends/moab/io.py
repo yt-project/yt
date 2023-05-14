@@ -62,7 +62,7 @@ class IOHandlerMoabPyneHex8(BaseIOHandler):
             ftype, fname = field
             if pyne_mesh.structured:
                 tag = pyne_mesh.mesh.tag_get_handle("idx")
-                hex_list = [ent for ent in pyne_mesh.structured_iterate_hex()]
+                hex_list = list(pyne_mesh.structured_iterate_hex())
                 indices = pyne_mesh.mesh.tag_get_data(tag, hex_list).flatten()
             else:
                 indices = slice(None)

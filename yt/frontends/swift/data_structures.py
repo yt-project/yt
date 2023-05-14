@@ -152,14 +152,14 @@ class SwiftDataset(SPHDataset):
             self.hubble_constant = 0.0
 
         # Store the un-parsed information should people want it.
-        self.parameters = dict(
-            header=header,
-            runtime_parameters=runtime_parameters,
-            policy=policy,
-            parameters=parameters,
-            hydro=hydro,
-            subgrid=subgrid,
-        )
+        self.parameters = {
+            "header": header,
+            "runtime_parameters": runtime_parameters,
+            "policy": policy,
+            "parameters": parameters,
+            "hydro": hydro,
+            "subgrid": subgrid,
+        }
 
         # SWIFT never has multi file snapshots
         self.file_count = 1

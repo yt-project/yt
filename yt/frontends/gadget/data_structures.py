@@ -447,10 +447,10 @@ class GadgetDataset(SPHDataset):
                 only_on_root(
                     mylog.info, "Assuming length units are in kpc/h (comoving)"
                 )
-                self._unit_base = dict(length=(1.0, "kpccm/h"))
+                self._unit_base = {"length": (1.0, "kpccm/h")}
             else:
                 only_on_root(mylog.info, "Assuming length units are in kpc (physical)")
-                self._unit_base = dict(length=(1.0, "kpc"))
+                self._unit_base = {"length": (1.0, "kpc")}
 
         # If units passed in by user, decide what to do about
         # co-moving and factors of h

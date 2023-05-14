@@ -63,7 +63,7 @@ def color_conservation(ds):
             "Dark_Matter",
             "Star_Particle_",
         ]
-        if any([ff.startswith(ss) for ss in start_strings]):
+        if any(ff.startswith(ss) for ss in start_strings):
             continue
         dens_enzo -= dd[f]
     delta_enzo = np.abs(dens_enzo / dd[("enzo", "Density")])
@@ -96,7 +96,7 @@ def check_color_conservation(ds):
             "Dark_Matter",
             "Star_Particle_",
         ]
-        if any([ff.startswith(ss) for ss in start_strings]):
+        if any(ff.startswith(ss) for ss in start_strings):
             continue
         dens_enzo -= dd[f]
     delta_enzo = np.abs(dens_enzo / dd[("enzo", "Density")])

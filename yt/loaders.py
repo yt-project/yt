@@ -344,7 +344,7 @@ def load_uniform_grid(
             grid_left_edges, grid_right_edges, shapes, slices = decompose_array(
                 data[key].shape, psize, bbox
             )
-            grid_dimensions = np.array([shape for shape in shapes], dtype="int32")
+            grid_dimensions = np.array(list(shapes), dtype="int32")
             temp[key] = [data[key][slice] for slice in slices]
         for gid in range(nprocs):
             new_data[gid] = {}

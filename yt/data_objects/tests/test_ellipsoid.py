@@ -36,7 +36,7 @@ def test_ellipsoid():
         ABC[:, 0] = 0.1
         for i in range(12):
             for c in cs:
-                A, B, C = reversed(sorted(ABC[:, i]))
+                A, B, C = sorted(ABC[:, i], reverse=True)
                 A = max(A, min_dx[0])
                 B = max(B, min_dx[1])
                 C = max(C, min_dx[2])

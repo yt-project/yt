@@ -30,7 +30,7 @@ def test_exclude_below():
 def test_exclude_nan():
     test_array = np.nan * np.ones((10, 10, 10))
     test_array[1, 1, :] = 1
-    data = dict(density=test_array)
+    data = {"density": test_array}
     ds = load_uniform_grid(data, test_array.shape, length_unit="cm", nprocs=1)
     ad = ds.all_data()
     no_nan_ds = ad.exclude_nan(("gas", "density"))
@@ -41,7 +41,7 @@ def test_equal():
     test_array = np.ones((10, 10, 10))
     test_array[1, 1, :] = 2.0
     test_array[2, 1, :] = 3.0
-    data = dict(density=test_array)
+    data = {"density": test_array}
     ds = load_uniform_grid(data, test_array.shape, length_unit="cm", nprocs=1)
     ad = ds.all_data()
     no_ones = ad.exclude_equal(("gas", "density"), 1.0)
@@ -54,7 +54,7 @@ def test_inside_outside():
     test_array = np.ones((10, 10, 10))
     test_array[1, 1, :] = 2.0
     test_array[2, 1, :] = 3.0
-    data = dict(density=test_array)
+    data = {"density": test_array}
     ds = load_uniform_grid(data, test_array.shape, length_unit="cm", nprocs=1)
     ad = ds.all_data()
 

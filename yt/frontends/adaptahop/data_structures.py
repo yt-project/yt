@@ -349,7 +349,7 @@ class AdaptaHOPHaloContainer(YTSelectionContainer):
         # Build subregion that only contains halo particles
         reg = sph.cut_region(
             ['np.in1d(obj[("io", "particle_identity")].astype(int), members)'],
-            locals=dict(members=members, np=np),
+            locals={"members": members, "np": np},
         )
 
         self.sphere = sph

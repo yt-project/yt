@@ -490,7 +490,7 @@ class Scene:
                 if len(t) == 3:
                     opt = t[2]
                 else:
-                    opt = dict()
+                    opt = {}
 
                 # sane default
                 if "color" not in opt:

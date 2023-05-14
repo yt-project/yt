@@ -266,7 +266,7 @@ class FieldInfoContainer(UserDict):
                 try:
                     node = ytcfg.get("fields", *field).as_dict()
                 except KeyError:
-                    node = dict()
+                    node = {}
 
                 units = node.get("units", "")
                 aliases = node.get("aliases", [])

@@ -74,7 +74,7 @@ class PlotCallback(ABC):
     # will *not* check whether or not the coord_system is in axis or figure,
     # and will only look at the geometries.
     _supported_geometries: Optional[Tuple[str, ...]] = None
-    _incompatible_plot_types: Tuple[str, ...] = tuple()
+    _incompatible_plot_types: Tuple[str, ...] = ()
 
     def __init_subclass__(cls, *args, **kwargs):
         if inspect.isabstract(cls):
@@ -749,10 +749,10 @@ class BaseQuiverCallback(PlotCallback, ABC):
         if pixC is not None:
             args.append(pixC)
 
-        kwargs = dict(
-            scale=self.scale,
-            scale_units=self.scale_units,
-        )
+        kwargs = {
+            "scale": self.scale,
+            "scale_units": self.scale_units,
+        }
         kwargs.update(self.plot_args)
         return plot._axes.quiver(*args, **kwargs)
 

@@ -223,7 +223,7 @@ class ProfilePlot(BaseLinePlot):
             ]
 
         if plot_spec is None:
-            plot_spec = [dict() for p in profiles]
+            plot_spec = [{} for p in profiles]
         if not isinstance(plot_spec, list):
             plot_spec = [plot_spec.copy() for p in profiles]
 
@@ -255,7 +255,7 @@ class ProfilePlot(BaseLinePlot):
         obj.x_title = None
         obj.label = sanitize_label(labels, len(obj.profiles))
         if plot_specs is None:
-            plot_specs = [dict() for p in obj.profiles]
+            plot_specs = [{} for p in obj.profiles]
         obj.plot_spec = plot_specs
         obj._xlim = (None, None)
         obj._setup_plots()

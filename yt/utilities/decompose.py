@@ -53,7 +53,7 @@ def factorize_number(pieces):
     """Return array consisting of prime, its power and number of different
     decompositions in three dimensions for this prime
     """
-    factors = [factor for factor in decompose_to_primes(pieces)]
+    factors = list(decompose_to_primes(pieces))
     temp = np.bincount(factors)
     return np.array(
         [

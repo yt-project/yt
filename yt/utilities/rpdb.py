@@ -123,4 +123,4 @@ def run_rpdb(task=None):
     except OSError:
         print("Connection refused.  Is the server running?")
         sys.exit(1)
-    pp.cmdloop(__header % dict(task=port - 8010))
+    pp.cmdloop(__header % {"task": port - 8010})

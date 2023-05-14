@@ -68,7 +68,7 @@ class ARTIOOctreeSubset(OctreeSubset):
         self.oct_handler.fill_sfc(
             levels, cell_inds, file_inds, domain_counts, field_indices, tr
         )
-        tr = {field: v for field, v in zip(fields, tr)}
+        tr = dict(zip(fields, tr))
         return tr
 
     def fill_particles(self, fields):
@@ -114,7 +114,7 @@ class ARTIORootMeshSubset(ARTIOOctreeSubset):
         ]
         tr = self.oct_handler.fill_sfc(selector, field_indices)
         self.data_size = tr[0].size
-        tr = {field: v for field, v in zip(fields, tr)}
+        tr = dict(zip(fields, tr))
         return tr
 
     def deposit(self, positions, fields=None, method=None, kernel_name="cubic"):

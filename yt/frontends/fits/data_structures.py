@@ -509,7 +509,7 @@ class FITSDataset(Dataset):
             self.wcs.wcs.cdelt = wcs.wcs.cdelt[:3]
             self.wcs.wcs.crval = wcs.wcs.crval[:3]
             self.wcs.wcs.cunit = [str(unit) for unit in wcs.wcs.cunit][:3]
-            self.wcs.wcs.ctype = [type for type in wcs.wcs.ctype][:3]
+            self.wcs.wcs.ctype = list(wcs.wcs.ctype)[:3]
         else:
             self.wcs = wcs
 

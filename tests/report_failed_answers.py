@@ -333,7 +333,7 @@ def parse_nose_xml(nose_xml):
 
     """
     missing_answers = set()
-    failed_answers = collections.defaultdict(lambda: dict())
+    failed_answers = collections.defaultdict(lambda: {})
     missing_errors = ["No such file or directory", "There is no old answer available"]
     tree = ET.parse(nose_xml)
     testsuite = tree.getroot()

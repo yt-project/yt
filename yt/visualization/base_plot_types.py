@@ -323,7 +323,7 @@ class ImagePlotMPL(PlotMPL, ABC):
             self.cb = self.figure.colorbar(self.image, self.cax)
         self.cax.tick_params(which="both", axis="y", direction="in")
 
-        fmt_kwargs = dict(style="scientific", scilimits=(-2, 3), useMathText=True)
+        fmt_kwargs = {"style": "scientific", "scilimits": (-2, 3), "useMathText": True}
         self.image.axes.ticklabel_format(**fmt_kwargs)
         if type(norm) not in (LogNorm, SymLogNorm):
             try:

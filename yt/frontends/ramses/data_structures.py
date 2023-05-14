@@ -625,7 +625,7 @@ class RAMSESIndex(OctreeIndex):
         desc = {"names": ["numcells", "level"], "formats": ["int64"] * 2}
         max_level = self.dataset.min_level + self.dataset.max_level + 2
         self.level_stats = blankRecordArray(desc, max_level)
-        self.level_stats["level"] = [i for i in range(max_level)]
+        self.level_stats["level"] = list(range(max_level))
         self.level_stats["numcells"] = [0 for i in range(max_level)]
         for level in range(self.dataset.min_level + 1):
             self.level_stats[level + 1]["numcells"] = 2 ** (

@@ -563,7 +563,7 @@ class BoxlibHierarchy(GridIndex):
         self.field_indexes = {f[1]: i for i, f in enumerate(self.field_list)}
         # There are times when field_list may change.  We copy it here to
         # avoid that possibility.
-        self.field_order = [f for f in self.field_list]
+        self.field_order = list(self.field_list)
 
     def _setup_data_io(self):
         self.io = io_registry[self.dataset_type](self.dataset)
@@ -959,7 +959,7 @@ class OrionHierarchy(BoxlibHierarchy):
         self.field_indexes = {f[1]: i for i, f in enumerate(self.field_list)}
         # There are times when field_list may change.  We copy it here to
         # avoid that possibility.
-        self.field_order = [f for f in self.field_list]
+        self.field_order = list(self.field_list)
 
         # look for particle fields
         self.particle_filename = None
