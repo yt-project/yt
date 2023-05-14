@@ -326,7 +326,10 @@ def fake_amr_ds(
         left_edge = left_edge * (RE - LE) + LE
         right_edge = right_edge * (RE - LE) + LE
         gdata = {
-            "level": level, "left_edge": left_edge, "right_edge": right_edge, "dimensions": dims
+            "level": level,
+            "left_edge": left_edge,
+            "right_edge": right_edge,
+            "dimensions": dims,
         }
         for f, u in zip(fields, units):
             gdata[f] = (prng.random_sample(dims), u)

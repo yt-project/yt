@@ -378,9 +378,7 @@ class AthenaHierarchy(GridIndex):
             self.grid_filenames = new_gridfilenames
             self.grid_left_edge = self.ds.arr(gle_all, "code_length")
             self.grid_right_edge = self.ds.arr(gre_all, "code_length")
-            self.grid_dimensions = np.array(
-                list(shapes_all), dtype="int32"
-            )
+            self.grid_dimensions = np.array(list(shapes_all), dtype="int32")
             gdds = (self.grid_right_edge - self.grid_left_edge) / self.grid_dimensions
             glis = np.round(
                 (self.grid_left_edge - self.ds.domain_left_edge) / gdds

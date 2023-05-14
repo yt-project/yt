@@ -442,7 +442,10 @@ def read_particles(file, Nrow, idxa, idxb, fields):
     fh = open(file)
     skip, count = idxa, idxb - idxa
     kwargs = {
-        "words": words, "real_size": real_size, "np_per_page": np_per_page, "num_pages": num_pages
+        "words": words,
+        "real_size": real_size,
+        "np_per_page": np_per_page,
+        "num_pages": num_pages,
     }
     arrs = []
     for field in fields:

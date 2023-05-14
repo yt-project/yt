@@ -311,9 +311,7 @@ class ExodusIIDataset(Dataset):
                 )
             else:
                 coords = (
-                    np.array(list(ds.variables["coord"][:]))
-                    .transpose()
-                    .astype("f8")
+                    np.array(list(ds.variables["coord"][:])).transpose().astype("f8")
                 )
             return coords
 

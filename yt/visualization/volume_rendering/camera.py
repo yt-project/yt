@@ -28,7 +28,7 @@ def _sanitize_camera_property_units(value, scene):
             if all(is_sequence(v) for v in value):
                 if all(
                     isinstance(v[0], numeric_type) and isinstance(v[1], str)
-                        for v in value
+                    for v in value
                 ):
                     return scene.arr([scene.arr(v[0], v[1]) for v in value])
                 else:

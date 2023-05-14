@@ -257,7 +257,12 @@ _common_options = {
             "effect."
         ),
     },
-    "ds": {"short": "ds", "action": GetParameterFiles, "nargs": "+", "help": "datasets to run on"},
+    "ds": {
+        "short": "ds",
+        "action": GetParameterFiles,
+        "nargs": "+",
+        "help": "datasets to run on",
+    },
     "ods": {
         "action": GetParameterFiles,
         "dest": "ds",

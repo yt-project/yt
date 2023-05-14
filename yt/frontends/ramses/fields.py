@@ -411,13 +411,15 @@ class RAMSESFieldInfo(FieldInfoContainer):
                     return
                 if var.size == n1 * n2:
                     tvals[tname] = {
-                        "data": var.reshape((n1, n2), order="F"), "unit": unit
+                        "data": var.reshape((n1, n2), order="F"),
+                        "unit": unit,
                     }
                 else:
                     var = var.reshape((n1, n2, var.size // (n1 * n2)), order="F")
                     for i in range(var.shape[-1]):
                         tvals[_cool_species[i]] = {
-                            "data": var[:, :, i], "unit": "1/cm**3"
+                            "data": var[:, :, i],
+                            "unit": "1/cm**3",
                         }
 
         # Add the mu field first, as it is needed for the number density

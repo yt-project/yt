@@ -47,7 +47,9 @@ def test_normalisations_length_temp_nb():
 def test_normalisations_length_temp_mass():
     # overriding length, temperature, mass
     overrides = {
-        "length_unit": length_unit, "temperature_unit": temperature_unit, "mass_unit": mass_unit
+        "length_unit": length_unit,
+        "temperature_unit": temperature_unit,
+        "mass_unit": mass_unit,
     }
     ds = data_dir_load(khi_cartesian_2D, kwargs={"units_override": overrides})
     _assert_normalisations_equal(ds)
@@ -56,7 +58,11 @@ def test_normalisations_length_temp_mass():
 @requires_file(khi_cartesian_2D)
 def test_normalisations_length_time_mass():
     # overriding length, time, mass
-    overrides = {"length_unit": length_unit, "time_unit": time_unit, "mass_unit": mass_unit}
+    overrides = {
+        "length_unit": length_unit,
+        "time_unit": time_unit,
+        "mass_unit": mass_unit,
+    }
     ds = data_dir_load(khi_cartesian_2D, kwargs={"units_override": overrides})
     _assert_normalisations_equal(ds)
 
@@ -77,7 +83,9 @@ def test_normalisations_length_vel_nb():
 def test_normalisations_length_vel_mass():
     # overriding length, velocity, mass
     overrides = {
-        "length_unit": length_unit, "velocity_unit": velocity_unit, "mass_unit": mass_unit
+        "length_unit": length_unit,
+        "velocity_unit": velocity_unit,
+        "mass_unit": mass_unit,
     }
     ds = data_dir_load(khi_cartesian_2D, kwargs={"units_override": overrides})
     _assert_normalisations_equal(ds)

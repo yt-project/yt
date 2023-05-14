@@ -21,7 +21,10 @@ _fields = OrderedDict(
 
 pkdgrav = "halo1e11_run1.00400/halo1e11_run1.00400"
 pkdgrav_cosmology_parameters = {
-    "current_redshift": 0.0, "omega_lambda": 0.728, "omega_matter": 0.272, "hubble_constant": 0.702
+    "current_redshift": 0.0,
+    "omega_lambda": 0.728,
+    "omega_matter": 0.272,
+    "hubble_constant": 0.702,
 }
 pkdgrav_kwargs = {
     "field_dtypes": {"Coordinates": "d"},
