@@ -2,6 +2,7 @@ from typing import List
 
 import numpy as np
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.data_objects.profiles import create_profile
 from yt.data_objects.static_output import Dataset
 from yt.funcs import fix_axis, iter_fields
@@ -33,6 +34,7 @@ class ParticleDummyDataSource:
         width,
         fields,
         dd,
+        *,
         weight_field=None,
         field_parameters=None,
         deposition="ngp",
@@ -44,7 +46,7 @@ class ParticleDummyDataSource:
         self.dd = dd
 
         if weight_field is not None:
-            weight_field = self.dd._determine_fields(weight_field)[0]
+            weight_field = self._determine_fields(weight_field)[0]
         self.weight_field = weight_field
 
         self.deposition = deposition
@@ -55,7 +57,7 @@ class ParticleDummyDataSource:
         else:
             self.field_parameters = field_parameters
 
-        fields = self.dd._determine_fields(fields)
+        fields = self._determine_fields(fields)
         self.fields = fields
 
     def _determine_fields(self, *args):
@@ -80,6 +82,7 @@ class ParticleAxisAlignedDummyDataSource(ParticleDummyDataSource):
         axis,
         width,
         fields,
+        *,
         weight_field=None,
         field_parameters=None,
         data_source=None,
@@ -125,6 +128,7 @@ class ParticleOffAxisDummyDataSource(ParticleDummyDataSource):
         normal_vector,
         width,
         fields,
+        *,
         weight_field=None,
         field_parameters=None,
         data_source=None,
@@ -329,7 +333,7 @@ class ParticleProjectionPlot(PWViewerMPL, NormalPlot):
     def __init__(
         self,
         ds,
-        normal,
+        normal=None,
         fields=None,
         color="b",
         center="center",
@@ -347,7 +351,19 @@ class ParticleProjectionPlot(PWViewerMPL, NormalPlot):
         density=False,
         *,
         north_vector=None,
+        axis=None,
     ):
+        if axis is not None:
+            issue_deprecation_warning(
+                "The 'axis' argument is a deprecated alias for the 'normal' argument. ",
+                "4.2.0",
+                "4.3.0",
+            )
+            normal = axis
+        if normal is None:
+            raise ValueError(
+                "You must specify an axis name or normal vector for this plot."
+            )
         # this will handle time series data and controllers
         ts = self._initialize_dataset(ds)
         self.ts = ts
