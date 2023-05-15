@@ -54,6 +54,7 @@ jobs:
         python -m pip install git+https://github.com/matplotlib/matplotlib.git
         python -m pip install git+https://github.com/yt-project/unyt.git
         python -m pip install --pre cython
+        python -m pip install ewah-bool-utils
         python -m pip install --upgrade --pre pytest
         python -m pip install PyYAML
 

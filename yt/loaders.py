@@ -88,7 +88,7 @@ def load(
         If fn matches existing files or directories with undetermined format.
 
     yt.utilities.exceptions.YTAmbiguousDataType
-        If the data format matches more than one class of similar specilization levels.
+        If the data format matches more than one class of similar specialization levels.
     """
     fn = os.path.expanduser(fn)
 
@@ -116,8 +116,12 @@ def load(
         if cls._is_valid(fn, *args, **kwargs):
             candidates.append(cls)
 
+    # Filter the candidates if a hint was given
+    if hint is not None:
+        candidates = [c for c in candidates if hint.lower() in c.__name__.lower()]
+
     # Find only the lowest subclasses, i.e. most specialised front ends
-    candidates = find_lowest_subclasses(candidates, hint=hint)
+    candidates = find_lowest_subclasses(candidates)
 
     if len(candidates) == 1:
         return candidates[0](fn, *args, **kwargs)
@@ -202,6 +206,7 @@ def load_uniform_grid(
     axis_order: Optional[AxisOrder] = None,
     cell_widths=None,
     parameters=None,
+    dataset_name: str = "UniformGridData",
 ):
     r"""Load a uniform grid of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
@@ -268,6 +273,9 @@ def load_uniform_grid(
     parameters: dictionary, optional
         Optional dictionary used to populate the dataset parameters, useful
         for storing dataset metadata.
+    dataset_name: string, optional
+        Optional string used to assign a name to the dataset. Stream datasets will use
+        this value in place of a filename (in image prefixing, etc.)
 
     Examples
     --------
@@ -385,7 +393,7 @@ def load_uniform_grid(
         parameters=parameters,
     )
 
-    handler.name = "UniformGridData"  # type: ignore [attr-defined]
+    handler.name = dataset_name  # type: ignore [attr-defined]
     handler.domain_left_edge = domain_left_edge  # type: ignore [attr-defined]
     handler.domain_right_edge = domain_right_edge  # type: ignore [attr-defined]
     handler.refine_by = 2  # type: ignore [attr-defined]
@@ -433,6 +441,7 @@ def load_amr_grids(
     default_species_fields=None,
     *,
     parameters=None,
+    dataset_name: str = "AMRGridData",
     axis_order: Optional[AxisOrder] = None,
 ):
     r"""Load a set of grids of data into yt as a
@@ -499,12 +508,15 @@ def load_amr_grids(
     default_species_fields : string, optional
         If set, default species fields are created for H and He which also
         determine the mean molecular weight. Options are "ionized" and "neutral".
-    axis_order: tuple of three strings, optional
-        Force axis ordering, e.g. ("z", "y", "x") with cartesian geometry
-        Otherwise use geometry-specific default ordering.
     parameters: dictionary, optional
         Optional dictionary used to populate the dataset parameters, useful
         for storing dataset metadata.
+    dataset_name: string, optional
+        Optional string used to assign a name to the dataset. Stream datasets will use
+        this value in place of a filename (in image prefixing, etc.)
+    axis_order: tuple of three strings, optional
+        Force axis ordering, e.g. ("z", "y", "x") with cartesian geometry
+        Otherwise use geometry-specific default ordering.
 
     Examples
     --------
@@ -573,7 +585,7 @@ def load_amr_grids(
         get_box_grids_level(
             grid_left_edges[gi, :],
             grid_right_edges[gi, :],
-            grid_levels[gi] + 1,
+            grid_levels[gi].item() + 1,
             grid_left_edges,
             grid_right_edges,
             grid_levels,
@@ -626,7 +638,7 @@ def load_amr_grids(
         parameters=parameters,
     )
 
-    handler.name = "AMRGridData"  # type: ignore [attr-defined]
+    handler.name = dataset_name  # type: ignore [attr-defined]
     handler.domain_left_edge = domain_left_edge  # type: ignore [attr-defined]
     handler.domain_right_edge = domain_right_edge  # type: ignore [attr-defined]
     handler.refine_by = refine_by  # type: ignore [attr-defined]
@@ -668,6 +680,7 @@ def load_particles(
     *,
     axis_order: Optional[AxisOrder] = None,
     parameters=None,
+    dataset_name: str = "ParticleData",
 ):
     r"""Load a set of particles into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamParticleHandler`.
@@ -723,6 +736,9 @@ def load_particles(
     parameters: dictionary, optional
         Optional dictionary used to populate the dataset parameters, useful
         for storing dataset metadata.
+    dataset_name: string, optional
+        Optional string used to assign a name to the dataset. Stream datasets will use
+        this value in place of a filename (in image prefixing, etc.)
 
     Examples
     --------
@@ -821,7 +837,7 @@ def load_particles(
         parameters=parameters,
     )
 
-    handler.name = "ParticleData"  # type: ignore [attr-defined]
+    handler.name = dataset_name  # type: ignore [attr-defined]
     handler.domain_left_edge = domain_left_edge  # type: ignore [attr-defined]
     handler.domain_right_edge = domain_right_edge  # type: ignore [attr-defined]
     handler.refine_by = 2  # type: ignore [attr-defined]
@@ -858,6 +874,7 @@ def load_hexahedral_mesh(
     *,
     axis_order: Optional[AxisOrder] = None,
     parameters=None,
+    dataset_name: str = "HexahedralMeshData",
 ):
     r"""Load a hexahedral mesh of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
@@ -915,6 +932,9 @@ def load_hexahedral_mesh(
     parameters: dictionary, optional
         Optional dictionary used to populate the dataset parameters, useful
         for storing dataset metadata.
+    dataset_name: string, optional
+        Optional string used to assign a name to the dataset. Stream datasets will use
+        this value in place of a filename (in image prefixing, etc.)
     """
     from yt.frontends.stream.data_structures import (
         StreamDictFieldHandler,
@@ -979,7 +999,7 @@ def load_hexahedral_mesh(
         parameters=parameters,
     )
 
-    handler.name = "HexahedralMeshData"  # type: ignore [attr-defined]
+    handler.name = dataset_name  # type: ignore [attr-defined]
     handler.domain_left_edge = domain_left_edge  # type: ignore [attr-defined]
     handler.domain_right_edge = domain_right_edge  # type: ignore [attr-defined]
     handler.refine_by = 2  # type: ignore [attr-defined]
@@ -1013,6 +1033,7 @@ def load_octree(
     default_species_fields=None,
     *,
     parameters=None,
+    dataset_name: str = "OctreeData",
 ):
     r"""Load an octree mask into yt.
 
@@ -1063,6 +1084,9 @@ def load_octree(
     parameters: dictionary, optional
         Optional dictionary used to populate the dataset parameters, useful
         for storing dataset metadata.
+    dataset_name : string, optional
+        Optional string used to assign a name to the dataset. Stream datasets will use
+        this value in place of a filename (in image prefixing, etc.)
 
     Example
     -------
@@ -1144,21 +1168,21 @@ def load_octree(
         parameters=parameters,
     )
 
-    handler.name = "OctreeData"
-    handler.domain_left_edge = domain_left_edge
-    handler.domain_right_edge = domain_right_edge
-    handler.refine_by = 2
-    handler.dimensionality = 3
-    handler.domain_dimensions = domain_dimensions
-    handler.simulation_time = sim_time
-    handler.cosmology_simulation = 0
+    handler.name = dataset_name  # type: ignore [attr-defined]
+    handler.domain_left_edge = domain_left_edge  # type: ignore [attr-defined]
+    handler.domain_right_edge = domain_right_edge  # type: ignore [attr-defined]
+    handler.refine_by = 2  # type: ignore [attr-defined]
+    handler.dimensionality = 3  # type: ignore [attr-defined]
+    handler.domain_dimensions = domain_dimensions  # type: ignore [attr-defined]
+    handler.simulation_time = sim_time  # type: ignore [attr-defined]
+    handler.cosmology_simulation = 0  # type: ignore [attr-defined]
 
     sds = StreamOctreeDataset(
         handler, unit_system=unit_system, default_species_fields=default_species_fields
     )
-    sds.octree_mask = octree_mask
-    sds.partial_coverage = partial_coverage
-    sds.num_zones = num_zones
+    sds.octree_mask = octree_mask  # type: ignore [attr-defined]
+    sds.partial_coverage = partial_coverage  # type: ignore [attr-defined]
+    sds.num_zones = num_zones  # type: ignore [attr-defined]
 
     return sds
 
@@ -1181,6 +1205,7 @@ def load_unstructured_mesh(
     *,
     axis_order: Optional[AxisOrder] = None,
     parameters=None,
+    dataset_name: str = "UnstructuredMeshData",
 ):
     r"""Load an unstructured mesh of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
@@ -1258,6 +1283,9 @@ def load_unstructured_mesh(
     parameters: dictionary, optional
         Optional dictionary used to populate the dataset parameters, useful
         for storing dataset metadata.
+    dataset_name: string, optional
+        Optional string used to assign a name to the dataset. Stream datasets will use
+        this value in place of a filename (in image prefixing, etc.)
 
     Examples
     --------
@@ -1391,7 +1419,7 @@ def load_unstructured_mesh(
         parameters=parameters,
     )
 
-    handler.name = "UnstructuredMeshData"  # type: ignore [attr-defined]
+    handler.name = dataset_name  # type: ignore [attr-defined]
     handler.domain_left_edge = domain_left_edge  # type: ignore [attr-defined]
     handler.domain_right_edge = domain_right_edge  # type: ignore [attr-defined]
     handler.refine_by = 2  # type: ignore [attr-defined]
@@ -1654,7 +1682,8 @@ def load_archive(
     """
 
     warnings.warn(
-        "The 'load_archive' function is still experimental and may be unstable."
+        "The 'load_archive' function is still experimental and may be unstable.",
+        stacklevel=2,
     )
 
     fn = os.path.expanduser(fn)
@@ -1684,7 +1713,7 @@ def load_archive(
     proc = Process(target=_mount_helper, args=(fn, tempdir, ratarmount_kwa, child_conn))
     proc.start()
     if not parent_conn.recv():
-        raise MountError(f"An error occured while mounting {fn} in {tempdir}")
+        raise MountError(f"An error occurred while mounting {fn} in {tempdir}")
 
     # Note: the mounting needs to happen in another process which
     # needs be run in the foreground (otherwise it may

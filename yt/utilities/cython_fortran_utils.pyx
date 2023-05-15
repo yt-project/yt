@@ -4,7 +4,6 @@ import numpy as np
 
 from libc.stdio cimport *
 
-
 cdef INT32_SIZE = sizeof(np.int32_t)
 cdef DOUBLE_SIZE = sizeof(np.float64_t)
 
@@ -28,6 +27,10 @@ cdef class FortranFile:
     def __cinit__(self, str fname):
         self.cfile = fopen(fname.encode('utf-8'), 'rb')
         self._closed = False
+
+        if self.cfile is NULL:
+            self._closed = True
+            raise FileNotFoundError(fname.encode('utf-8'))
 
     def __enter__(self):
         return self

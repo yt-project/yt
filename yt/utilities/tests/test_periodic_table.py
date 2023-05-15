@@ -1,4 +1,5 @@
-from yt.testing import assert_equal
+from numpy.testing import assert_equal
+
 from yt.utilities.periodic_table import _elements, periodic_table
 
 

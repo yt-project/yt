@@ -414,7 +414,7 @@ class ColorbarHandler:
     def draw_cbar(self, newval) -> None:
         if not isinstance(newval, bool):
             raise TypeError(
-                f"Excpected a boolean, got {newval} with type {type(newval)}"
+                f"Expected a boolean, got {newval} with type {type(newval)}"
             )
         self._draw_cbar = newval
 
@@ -426,7 +426,7 @@ class ColorbarHandler:
     def draw_minorticks(self, newval) -> None:
         if not isinstance(newval, bool):
             raise TypeError(
-                f"Excpected a boolean, got {newval} with type {type(newval)}"
+                f"Expected a boolean, got {newval} with type {type(newval)}"
             )
         self._draw_minorticks = newval
 

@@ -41,8 +41,7 @@ class EnzoEIOHandler(BaseIOHandler):
             group = f[grid.block_name]
         except KeyError as e:
             raise YTException(
-                message="Grid %s is missing from data file %s."
-                % (grid.block_name, grid.filename),
+                message=f"Grid {grid.block_name} is missing from data file {grid.filename}.",
                 ds=self.ds,
             ) from e
         fields = []

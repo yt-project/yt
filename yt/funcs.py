@@ -607,7 +607,8 @@ def fancy_download_file(url, filename, requests=None):
             iterations = int(float(total_length) / float(blocksize))
 
             pbar = get_pbar(
-                "Downloading %s to %s " % os.path.split(filename)[::-1], iterations
+                "Downloading {} to {} ".format(*os.path.split(filename)[::-1]),
+                iterations,
             )
             iteration = 0
             for chunk in response.iter_content(chunk_size=blocksize):
@@ -622,8 +623,7 @@ def simple_download_file(url, filename):
     class MyURLopener(urllib.request.FancyURLopener):
         def http_error_default(self, url, fp, errcode, errmsg, headers):
             raise RuntimeError(
-                "Attempt to download file from %s failed with error %s: %s."
-                % (url, errcode, errmsg)
+                f"Attempt to download file from {url} failed with error {errcode}: {errmsg}."
             )
 
     fn, h = MyURLopener().retrieve(url, filename)
@@ -1178,8 +1178,9 @@ def is_valid_field_key(key):
 def validate_object(obj, data_type):
     if obj is not None and not isinstance(obj, data_type):
         raise TypeError(
-            "Expected an object of '%s' type, received '%s'"
-            % (str(data_type).split("'")[1], str(type(obj)).split("'")[1])
+            "Expected an object of '{}' type, received '{}'".format(
+                str(data_type).split("'")[1], str(type(obj)).split("'")[1]
+            )
         )
 
 

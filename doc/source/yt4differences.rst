@@ -150,7 +150,7 @@ removed in yt 4.1
  * the ``limits`` argument from :meth:`~yt.visualization.image_writer.write_projection` is deprecated in
    favor to ``vmin`` and ``vmax``
  * :meth:`~yt.visualization.plot_container.ImagePlotContainer.set_cbar_minorticks` is a deprecated alias for :meth:`~yt.visualization.plot_container.ImagePlotContainer.set_colorbar_minorticks`
- * the ``axis`` argument from :meth:`yt.visualization.plot_window.SlicePlot` is a depreacted alias for the ``normal`` argument
+ * the ``axis`` argument from :meth:`yt.visualization.plot_window.SlicePlot` is a deprecated alias for the ``normal`` argument
  * the old configuration file ``ytrc`` is deprecated in favor of the new ``yt.toml`` format. In yt 4.0,
    you'll get a warning every time you import yt if you're still using the old configuration file,
    which will instruct you to invoke the yt command line interface to convert automatically to the new format.

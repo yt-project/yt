@@ -4,13 +4,12 @@ import tempfile
 import unittest
 
 import numpy as np
+from numpy.testing import assert_equal, assert_raises
 
 import yt
 from yt.data_objects.particle_filters import add_particle_filter
 from yt.data_objects.profiles import Profile1D, Profile2D, Profile3D, create_profile
 from yt.testing import (
-    assert_equal,
-    assert_raises,
     assert_rel_equal,
     fake_random_ds,
     fake_sph_orientation_ds,
@@ -706,6 +705,15 @@ def test_export_astropy():
     assert "velocity_x" not in at2.colnames
     assert_equal(prof.x.d[prof.used], at2["radius"].value)
     assert_equal(prof[("gas", "density")].d[prof.used], at2["density"].value)
+    at3 = prof.to_astropy_table(fields=("gas", "density"), include_std=True)
+    assert_equal(prof[("gas", "density")].d, at3["density"].value)
+    assert_equal(
+        prof.standard_deviation[("gas", "density")].d, at3["density_stddev"].value
+    )
+    assert (
+        prof.standard_deviation[("gas", "density")].units
+        == YTArray.from_astropy(at3["density_stddev"]).units
+    )
 
 
 @requires_module("pandas")
@@ -731,3 +739,8 @@ def test_export_pandas():
     assert "velocity_x" not in df2.columns
     assert_equal(prof.x.d[prof.used], df2["radius"])
     assert_equal(prof[("gas", "density")].d[prof.used], df2["density"])
+    df3 = prof.to_dataframe(fields=("gas", "density"), include_std=True)
+    assert_equal(
+        prof.standard_deviation[("gas", "density")].d,
+        np.nan_to_num(df3["density_stddev"]),
+    )

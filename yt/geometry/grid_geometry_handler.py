@@ -229,8 +229,7 @@ class GridIndex(Index, abc.ABC):
         except Exception:
             pass
         print(
-            "t = %0.8e = %0.8e s = %0.8e years"
-            % (
+            "t = {:0.8e} = {:0.8e} s = {:0.8e} years".format(
                 self.ds.current_time.in_units("code_time"),
                 self.ds.current_time.in_units("s"),
                 self.ds.current_time.in_units("yr"),
@@ -238,7 +237,7 @@ class GridIndex(Index, abc.ABC):
         )
         print("\nSmallest Cell:")
         for item in ("Mpc", "pc", "AU", "cm"):
-            print(f"\tWidth: {dx.in_units(item):0.3e} {item}")
+            print(f"\tWidth: {dx.in_units(item):0.3e}")
 
     def _find_field_values_at_points(self, fields, coords):
         r"""Find the value of fields at a set of coordinates.

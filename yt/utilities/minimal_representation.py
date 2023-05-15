@@ -85,7 +85,8 @@ class MinimalRepresentation(metaclass=abc.ABCMeta):
     def _generate_post(self):
         pass
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def _attr_list(self):
         pass
 

@@ -1,11 +1,9 @@
 import numpy as np
+from numpy.testing import assert_almost_equal, assert_array_equal, assert_equal
 
 from yt.fields.derived_field import ValidateParameter
 from yt.loaders import load, load_particles
 from yt.testing import (
-    assert_almost_equal,
-    assert_array_equal,
-    assert_equal,
     fake_octree_ds,
     fake_random_ds,
     requires_file,

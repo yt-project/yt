@@ -4,9 +4,9 @@ import tempfile
 import unittest
 
 import numpy as np
+from numpy.testing import assert_equal, assert_raises
 
 from yt.loaders import load_particles, load_uniform_grid
-from yt.testing import assert_equal, assert_raises
 from yt.utilities.exceptions import (
     YTInconsistentGridFieldShape,
     YTInconsistentGridFieldShapeGridDims,

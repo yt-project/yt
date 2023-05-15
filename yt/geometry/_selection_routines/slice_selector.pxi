@@ -66,7 +66,7 @@ cdef class SliceSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) noexcept nogil:
         if self.reduced_dimensionality == 1:
             return 1
         if pos[self.axis] + 0.5*dds[self.axis] > self.coord \
@@ -74,14 +74,14 @@ cdef class SliceSelector(SelectorObject):
             return 1
         return 0
 
-    cdef int select_point(self, np.float64_t pos[3]) nogil:
+    cdef int select_point(self, np.float64_t pos[3]) noexcept nogil:
         # two 0-volume constructs don't intersect
         return 0
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) noexcept nogil:
         if self.reduced_dimensionality == 1:
             return 1
         cdef np.float64_t dist = self.periodic_difference(
@@ -94,7 +94,7 @@ cdef class SliceSelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_bbox(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3]) nogil:
+                               np.float64_t right_edge[3]) noexcept nogil:
         if self.reduced_dimensionality == 1:
             return 1
         if left_edge[self.axis] - grid_eps <= self.coord < right_edge[self.axis]:
@@ -105,7 +105,7 @@ cdef class SliceSelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_bbox_edge(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3]) nogil:
+                               np.float64_t right_edge[3]) noexcept nogil:
         if self.reduced_dimensionality == 1:
             return 2
         if left_edge[self.axis] - grid_eps <= self.coord < right_edge[self.axis]:

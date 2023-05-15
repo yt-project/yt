@@ -337,7 +337,8 @@ class ImagePlotMPL(PlotMPL, ABC):
                         "with matplotlib versions older than 3.5\n"
                         "Please try upgrading matplotlib to a more recent version. "
                         "If the problem persists, please file a report to "
-                        "https://github.com/yt-project/yt/issues/new"
+                        "https://github.com/yt-project/yt/issues/new",
+                        stacklevel=2,
                     )
                 else:
                     raise exc
@@ -405,7 +406,7 @@ class ImagePlotMPL(PlotMPL, ABC):
         # - self._draw_axes: bool
         # - self.colorbar_handler: ColorbarHandler
 
-        # optional attribtues
+        # optional attributes
         # - self._unit_aspect: float
 
         # Ensure the figure size along the long axis is always equal to _figure_size

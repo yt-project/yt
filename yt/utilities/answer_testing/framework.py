@@ -3,7 +3,6 @@ Title: framework.py
 Purpose: Contains answer tests that are used by yt's various frontends
 """
 import contextlib
-import glob
 import hashlib
 import logging
 import os
@@ -341,6 +340,13 @@ def data_dir_load(ds_fn, cls=None, args=None, kwargs=None):
     return ds
 
 
+def data_dir_load_v2(fn, *args, **kwargs):
+    # a version of data_dir_load without type flexibility
+    # that is simpler to reason about
+    path = os.path.join(ytcfg.get("yt", "test_data_dir"), fn)
+    return load(path, *args, **kwargs)
+
+
 def sim_dir_load(sim_fn, path=None, sim_type="Enzo", find_outputs=False):
     if path is None and not os.path.exists(sim_fn):
         raise OSError
@@ -590,10 +596,7 @@ class ProjectionValuesTest(AnswerTestingTest):
         oind = ~oind
         nind = ~nind
         for k in new_result:
-            err_msg = (
-                "%s values of %s (%s weighted) projection (axis %s) not equal."
-                % (k, self.field, self.weight_field, self.axis)
-            )
+            err_msg = f"{k} values of {self.field} ({self.weight_field} weighted) projection (axis {self.axis}) not equal."
             if k == "weight_field":
                 # Our weight_field can vary between unit systems, whereas we
                 # can do a unitful comparison for the other fields.  So we do
@@ -797,7 +800,8 @@ def ensure_image_comparability(a, b):
 
     warnings.warn(
         f"Images have different shapes {a.shape} and {b.shape}. "
-        "Padding nans to make them comparable."
+        "Padding nans to make them comparable.",
+        stacklevel=2,
     )
     smallest_containing_shape = (
         max(a.shape[0], b.shape[0]),
@@ -848,30 +852,6 @@ def compare_image_lists(new_result, old_result, decimals):
         assert_equal(results, None, results)
         for fn in fns:
             os.remove(fn)
-
-
-class VRImageComparisonTest(AnswerTestingTest):
-    _type_name = "VRImageComparison"
-    _attrs = ("desc",)
-
-    def __init__(self, scene, ds, desc, decimals):
-        super().__init__(None)
-        self.obj_type = ("vr",)
-        self.ds = ds
-        self.scene = scene
-        self.desc = desc
-        self.decimals = decimals
-
-    def run(self):
-        tmpfd, tmpname = tempfile.mkstemp(suffix=".png")
-        os.close(tmpfd)
-        self.scene.save(tmpname, sigma_clip=1.0)
-        image = mpimg.imread(tmpname)
-        os.remove(tmpname)
-        return [zlib.compress(image.dumps())]
-
-    def compare(self, new_result, old_result):
-        compare_image_lists(new_result, old_result, self.decimals)
 
 
 class PlotWindowAttributeTest(AnswerTestingTest):
@@ -1040,43 +1020,6 @@ class GenericArrayTest(AnswerTestingTest):
                 )
 
 
-class GenericImageTest(AnswerTestingTest):
-    _type_name = "GenericImage"
-    _attrs = ("image_func_name", "args", "kwargs")
-
-    def __init__(self, ds_fn, image_func, decimals, args=None, kwargs=None):
-        super().__init__(ds_fn)
-        self.image_func = image_func
-        self.image_func_name = image_func.__name__
-        self.args = args
-        self.kwargs = kwargs
-        self.decimals = decimals
-
-    def run(self):
-        if self.args is None:
-            args = []
-        else:
-            args = self.args
-        if self.kwargs is None:
-            kwargs = {}
-        else:
-            kwargs = self.kwargs
-        comp_imgs = []
-        tmpdir = tempfile.mkdtemp()
-        image_prefix = os.path.join(tmpdir, "test_img")
-        self.image_func(image_prefix, *args, **kwargs)
-        imgs = sorted(glob.glob(image_prefix + "*"))
-        assert len(imgs) > 0
-        for img in imgs:
-            img_data = mpimg.imread(img)
-            os.remove(img)
-            comp_imgs.append(zlib.compress(img_data.dumps()))
-        return comp_imgs
-
-    def compare(self, new_result, old_result):
-        compare_image_lists(new_result, old_result, self.decimals)
-
-
 class AxialPixelizationTest(AnswerTestingTest):
     # This test is typically used once per geometry or coordinates type.
     # Feed it a dataset, and it checks that the results of basic pixelization
@@ -1137,7 +1080,7 @@ def requires_answer_testing():
 
 def requires_ds(ds_fn, big_data=False, file_check=False):
     condition = (big_data and not run_big_data) or not can_run_ds(ds_fn, file_check)
-    return skipif(condition, reason="cannot load dataset")
+    return skipif(condition, reason=f"cannot load dataset {ds_fn}")
 
 
 def small_patch_amr(ds_fn, fields, input_center="max", input_weight=("gas", "density")):

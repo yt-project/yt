@@ -37,7 +37,11 @@ from yt.utilities.orientation import Orientation
 from yt.visualization._handlers import ColorbarHandler, NormHandler
 from yt.visualization.base_plot_types import CallbackWrapper, ImagePlotMPL
 
-from ._commons import _swap_axes_extents, get_default_from_config
+from ._commons import (
+    _get_units_label,
+    _swap_axes_extents,
+    get_default_from_config,
+)
 from .fixed_resolution import (
     FixedResolutionBuffer,
     OffAxisProjectionFixedResolutionBuffer,
@@ -868,7 +872,7 @@ class PWViewerMPL(PlotWindow):
         # note that this import statement is actually crucial at runtime:
         # the filter methods for the present class are defined only when
         # fixed_resolution_filters is imported, so we need to guarantee
-        # that it happens no later than instanciation
+        # that it happens no later than instantiation
         from yt.visualization.plot_modifications import PlotCallback
 
         self._callbacks: List[PlotCallback] = []
@@ -880,7 +884,7 @@ class PWViewerMPL(PlotWindow):
     @_data_valid.setter
     def _data_valid(self, value):
         if self._frb is None:
-            # we delegate the (in)validation responsability to the FRB
+            # we delegate the (in)validation responsibility to the FRB
             # if we don't have one yet, we can exit without doing anything
             return
         else:
@@ -1052,7 +1056,7 @@ class PWViewerMPL(PlotWindow):
 
             # extentx/y arrays inherit units from xlim and ylim attributes
             # and these attributes are always length even for angular and
-            # dimensionless axes so we need to stip out units for consistency
+            # dimensionless axes so we need to strip out units for consistency
             if unit_x == "dimensionless":
                 extentx = extentx / extentx.units
             else:
@@ -1195,10 +1199,8 @@ class PWViewerMPL(PlotWindow):
                     colorbar_label = "%s \\rm{Standard Deviation}" % colorbar_label
                 if hasattr(self, "projected"):
                     colorbar_label = "$\\rm{Projected }$ %s" % colorbar_label
-                if units is None or units == "":
-                    pass
-                else:
-                    colorbar_label += r"$\ \ \left(" + units + r"\right)$"
+                if units is not None and units != "":
+                    colorbar_label += _get_units_label(units)
 
             parser = MathTextParser("Agg")
 
@@ -1448,13 +1450,13 @@ class SlicePlot(NormalPlot):
         simulation output to be plotted.
     normal : int, str, or 3-element sequence of floats
         This specifies the normal vector to the slice.
-        Valid int values are 0, 1 and 2. Coresponding str values depend on the
+        Valid int values are 0, 1 and 2. Corresponding str values depend on the
         geometry of the dataset and are generally given by `ds.coordinates.axis_order`.
         E.g. in cartesian they are 'x', 'y' and 'z'.
         An arbitrary normal vector may be specified as a 3-element sequence of floats.
 
         This returns a :class:`OffAxisSlicePlot` object or a
-        :class:`AxisAlignedSlicePlot` object, depending on wether the requested
+        :class:`AxisAlignedSlicePlot` object, depending on whether the requested
         normal directions corresponds to a natural axis of the dataset's geometry.
 
     fields : a (or a list of) 2-tuple of strings (ftype, fname)
@@ -1617,13 +1619,13 @@ class ProjectionPlot(NormalPlot):
         simulation output to be plotted.
     normal : int, str, or 3-element sequence of floats
         This specifies the normal vector to the slice.
-        Valid int values are 0, 1 and 2. Coresponding str values depend on the
+        Valid int values are 0, 1 and 2. Corresponding str values depend on the
         geometry of the dataset and are generally given by `ds.coordinates.axis_order`.
         E.g. in cartesian they are 'x', 'y' and 'z'.
         An arbitrary normal vector may be specified as a 3-element sequence of floats.
 
         This function will return a :class:`OffAxisProjectionPlot` object or a
-        :class:`AxisAlignedProjectionPlot` object, depending on wether the requested
+        :class:`AxisAlignedProjectionPlot` object, depending on whether the requested
         normal directions corresponds to a natural axis of the dataset's geometry.
 
     fields : a (or a list of) 2-tuple of strings (ftype, fname)

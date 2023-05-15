@@ -1714,7 +1714,7 @@ class ArrowCallback(PlotCallback):
             dy = (yy1 - yy0) * 2 ** (0.5) * self.length
         # If the arrow is 0 length
         if dx == dy == 0:
-            warnings.warn("The arrow has zero length.  Not annotating.")
+            warnings.warn("The arrow has zero length. Not annotating.", stacklevel=2)
             return
 
         x, y, dx, dy = self._sanitize_xy_order(plot, x, y, dx, dy)
@@ -2586,7 +2586,8 @@ class TimestampCallback(PlotCallback):
         if self.redshift and not hasattr(plot.data.ds, "current_redshift"):
             warnings.warn(
                 f"dataset {plot.data.ds} does not have current_redshift attribute. "
-                "Set redshift=False to silence this warning."
+                "Set redshift=False to silence this warning.",
+                stacklevel=2,
             )
             self.redshift = False
 

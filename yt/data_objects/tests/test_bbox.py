@@ -1,8 +1,9 @@
 # Some tests for finding bounding boxes
 
 import numpy as np
+from numpy.testing import assert_equal
 
-from yt.testing import assert_allclose_units, assert_equal, fake_amr_ds
+from yt.testing import assert_allclose_units, fake_amr_ds
 
 
 def test_object_bbox():

@@ -1,5 +1,7 @@
+from numpy.testing import assert_equal
+
 from yt.data_objects.profiles import create_profile
-from yt.testing import assert_equal, fake_random_ds
+from yt.testing import fake_random_ds
 from yt.visualization.plot_window import ProjectionPlot, SlicePlot
 from yt.visualization.profile_plotter import PhasePlot, ProfilePlot
 
@@ -28,6 +30,6 @@ def test_field_access():
         oap = ProjectionPlot(ds, [1, 1, 1], field)
 
         for plot_object in [s, oas, p, oap, prof, phase]:
-            plot_object._setup_plots()
+            plot_object.render()
             if hasattr(plot_object, "_frb"):
                 plot_object._frb[field]

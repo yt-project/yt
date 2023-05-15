@@ -1,10 +1,9 @@
 import numpy as np
+from numpy.testing import assert_almost_equal, assert_equal
 
 import yt
 from yt import particle_filter
 from yt.testing import (
-    assert_almost_equal,
-    assert_equal,
     assert_rel_equal,
     fake_particle_ds,
     fake_random_ds,

@@ -6,18 +6,20 @@ from collections import OrderedDict
 
 import numpy as np
 from matplotlib.colors import LogNorm, Normalize, SymLogNorm
-from nose.tools import assert_true
+from numpy.testing import (
+    assert_array_almost_equal,
+    assert_array_equal,
+    assert_equal,
+    assert_raises,
+)
 from unyt import unyt_array
 
 from yt.loaders import load_uniform_grid
 from yt.testing import (
     assert_allclose_units,
-    assert_array_almost_equal,
-    assert_array_equal,
-    assert_equal,
     assert_fname,
-    assert_raises,
     assert_rel_equal,
+    assert_true,
     fake_amr_ds,
     fake_random_ds,
     requires_file,
@@ -613,7 +615,7 @@ def test_set_background_color():
     ds = fake_random_ds(32)
     plot = SlicePlot(ds, 2, ("gas", "density"))
     plot.set_background_color(("gas", "density"), "red")
-    plot._setup_plots()
+    plot.render()
     ax = plot.plots[("gas", "density")].axes
     assert_equal(ax.get_facecolor(), (1.0, 0.0, 0.0, 1.0))
 
@@ -838,7 +840,7 @@ def test_nan_data():
 
 def test_sanitize_valid_normal_vector():
     # note: we don't test against non-cartesian geometries
-    # because the way normal "vectors" work isn't cleary
+    # because the way normal "vectors" work isn't clearly
     # specified and works more as an implementation detail
     # at the moment
     ds = fake_amr_ds(geometry="cartesian")

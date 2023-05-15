@@ -1,7 +1,7 @@
-# distutils: include_dirs = LIB_DIR_EWAH
 # distutils: language = c++
 # distutils: extra_compile_args = CPP14_FLAG
-# distutils: libraries = STD_LIBS
+# distutils: include_dirs = LIB_DIR
+# distutils: libraries = EWAH_LIBS
 """
 Oct container tuned for Particles
 
@@ -10,17 +10,16 @@ Oct container tuned for Particles
 """
 
 
-from libc.math cimport ceil, log2
-from libc.stdlib cimport free, malloc
-from libcpp.map cimport map as cmap
-from libcpp.vector cimport vector
-
-from yt.utilities.lib.ewah_bool_array cimport (
+from ewah_bool_utils.ewah_bool_array cimport (
     bool_array,
     ewah_bool_array,
     ewah_bool_iterator,
     ewah_word_type,
 )
+from libc.math cimport ceil, log2
+from libc.stdlib cimport free, malloc
+from libcpp.map cimport map as cmap
+from libcpp.vector cimport vector
 
 import numpy as np
 
@@ -55,23 +54,20 @@ from .selection_routines cimport AlwaysSelector, SelectorObject
 
 from yt.funcs import get_pbar
 
-from ..utilities.lib.ewah_bool_wrap cimport BoolArrayCollection
+from ewah_bool_utils.ewah_bool_wrap cimport BoolArrayCollection
 
 import os
 
-# If set to 1, ghost cells are added at the refined level regardless of if the
-# coarse cell containing it is refined in the selector.
-# If set to 0, ghost cells are only added at the refined level if the coarse
-# index for the ghost cell is refined in the selector.
-DEF RefinedExternalGhosts = 1
-
-_bitmask_version = np.uint64(5)
-
-from ..utilities.lib.ewah_bool_wrap cimport (
+from ewah_bool_utils.ewah_bool_wrap cimport (
     BoolArrayCollectionUncompressed as BoolArrayColl,
     FileBitmasks,
     SparseUnorderedRefinedBitmaskSet as SparseUnorderedRefinedBitmask,
 )
+
+
+_bitmask_version = np.uint64(5)
+
+
 
 ctypedef cmap[np.uint64_t, bool_array] CoarseRefinedSets
 
@@ -999,7 +995,7 @@ cdef class ParticleBitmap:
     def iseq_bitmask(self, solf):
         return self.bitmasks._iseq(solf.get_bitmasks())
 
-    def save_bitmasks(self, fname):
+    def save_bitmasks(self, fname, max_hsml):
         import h5py
         cdef bytes serial_BAC
         cdef np.uint64_t ifile
@@ -1012,6 +1008,7 @@ cdef class ParticleBitmap:
 
             grp.attrs["bitmask_version"] = _bitmask_version
             grp.attrs["nfiles"] = self.nfiles
+            grp.attrs["max_hsml"] = max_hsml
             # Add some attrs for convenience. They're not read back.
             grp.attrs["file_hash"] = self.file_hash
             grp.attrs["left_edge"] = self.left_edge
@@ -1048,6 +1045,10 @@ cdef class ParticleBitmap:
                 raise OSError(f"Index not found in the {fname}")
 
             ver = grp.attrs["bitmask_version"]
+            try:
+                max_hsml = grp.attrs["max_hsml"]
+            except KeyError:
+                raise OSError(f"'max_hsml' not found in the {fname}")
             if ver == self.nfiles and ver != _bitmask_version:
                 overwrite = 1
                 ver = 0 # Original bitmaps had number of files first
@@ -1071,8 +1072,8 @@ cdef class ParticleBitmap:
 
         # Save in correct format
         if overwrite == 1:
-            self.save_bitmasks(fname)
-        return read_flag
+            self.save_bitmasks(fname, max_hsml)
+        return read_flag, max_hsml
 
     def print_info(self):
         cdef np.uint64_t ifile
@@ -1682,16 +1683,22 @@ cdef class ParticleBitmapSelector:
             mi1_n = self.neighbor_list1[m]
             mi2_n = self.neighbor_list2[m]
             self.coarse_ghosts_bool[mi1_n] = 1
-            IF RefinedExternalGhosts == 1:
-                if mi1_n == mi1:
-                    self.refined_ghosts_bool[mi2_n] = 1
-                else:
-                    self.refined_ghosts_list._set(mi1_n, mi2_n)
-            ELSE:
-                if mi1_n == mi1:
-                    self.refined_ghosts_bool[mi2_n] = 1
-                elif self.is_refined(mi1_n) == 1:
-                    self.refined_ghosts_list._set(mi1_n, mi2_n)
+
+            # Ghost cells are added at the refined level regardless of if the
+            # coarse cell containing it is refined in the selector.
+            if mi1_n == mi1:
+                self.refined_ghosts_bool[mi2_n] = 1
+            else:
+                self.refined_ghosts_list._set(mi1_n, mi2_n)
+
+            # alternative implementation by Meagan Lang
+            # see ed95b1ac2f7105092b1116f9c76568ae27024751
+            # Ghost cells are only added at the refined level if the coarse
+            # index for the ghost cell is refined in the selector.
+            #if mi1_n == mi1:
+            #    self.refined_ghosts_bool[mi2_n] = 1
+            #elif self.is_refined(mi1_n) == 1:
+            #    self.refined_ghosts_list._set(mi1_n, mi2_n)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

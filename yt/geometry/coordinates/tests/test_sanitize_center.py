@@ -84,7 +84,7 @@ def test_invalid_center_type_default_error(reusable_fake_dataset, user_input):
         (
             unyt_array([0.5] * 3, "kg"),
             UnitConversionError,
-            "...",  # don't match the exact error message since it's unyt's responsability
+            "...",  # don't match the exact error message since it's unyt's responsibility
         ),
         # only validate 3 elements unyt_arrays
         (

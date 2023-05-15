@@ -1,6 +1,8 @@
 import pickle
 
-from yt.testing import assert_equal, requires_file, requires_module
+from numpy.testing import assert_equal
+
+from yt.testing import requires_file, requires_module
 from yt.utilities.answer_testing.framework import data_dir_load
 
 tipsy_ds = "TipsyGalaxy/galaxy.00300"

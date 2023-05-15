@@ -334,7 +334,7 @@ class SphericalCoordinateHandler(CoordinateHandler):
             xmin = min(xmin, ONE * aitoff_x(0, lonmin))
             xmax = max(xmax, ONE * aitoff_x(0, lonmax))
 
-        # the y direction is more straighforward because aitoff-projected parallels (y)
+        # the y direction is more straightforward because aitoff-projected parallels (y)
         # draw a convex shape, while aitoff-projected meridians (x) draw a concave shape
         ymin = ONE * min(y for x, y in aitoff_corner_coords)
         ymax = ONE * max(y for x, y in aitoff_corner_coords)

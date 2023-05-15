@@ -22,7 +22,7 @@ ctypedef void sampler_function(
                 np.float64_t enter_t,
                 np.float64_t exit_t,
                 int index[3],
-                void *data) nogil
+                void *data) noexcept nogil
 
 #-----------------------------------------------------------------------------
 # walk_volume(VolumeContainer *vc,  np.float64_t v_pos[3], np.float64_t v_dir[3], sampler_function *sample,
@@ -50,4 +50,4 @@ cdef int walk_volume(VolumeContainer *vc,
                      sampler_function *sampler,
                      void *data,
                      np.float64_t *return_t = *,
-                     np.float64_t max_t = *) nogil
+                     np.float64_t max_t = *) noexcept nogil

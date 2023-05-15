@@ -97,6 +97,7 @@ class AMRVACGrid(AMRGridPatch):
                 "ghost-zones interpolation/smoothing is not "
                 "currently supported for AMRVAC data.",
                 category=RuntimeWarning,
+                stacklevel=2,
             )
             smoothed = False
         return super().retrieve_ghost_zones(

@@ -1,7 +1,9 @@
 from collections import defaultdict
 
+from numpy.testing import assert_array_almost_equal, assert_equal
+
 import yt
-from yt.testing import assert_array_almost_equal, assert_equal, requires_file, skip
+from yt.testing import requires_file, skip
 
 isothermal_h5 = "IsothermalCollapse/snap_505.hdf5"
 isothermal_bin = "IsothermalCollapse/snap_505"

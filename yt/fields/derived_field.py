@@ -12,6 +12,7 @@ from yt.funcs import iter_fields, validate_field_key
 from yt.units.unit_object import Unit  # type: ignore
 from yt.utilities.exceptions import YTFieldNotFound
 from yt.utilities.logger import ytLogger as mylog
+from yt.visualization._commons import _get_units_label
 
 from .field_detector import FieldDetector
 from .field_exceptions import (
@@ -313,7 +314,7 @@ class DerivedField:
                 units = Unit(self.units)
         # Add unit label
         if not units.is_dimensionless:
-            data_label += r"\ \ \left(%s\right)" % (units.latex_representation())
+            data_label += _get_units_label(units.latex_representation()).strip("$")
 
         data_label += r"$"
         return data_label

@@ -14,6 +14,7 @@ from yt.data_objects.static_output import Dataset
 from yt.frontends.ytdata.data_structures import YTProfileDataset
 from yt.funcs import iter_fields, matplotlib_style_context
 from yt.utilities.exceptions import YTNotInsideNotebook
+from yt.visualization._commons import _get_units_label
 from yt.visualization._handlers import ColorbarHandler, NormHandler
 from yt.visualization.base_plot_types import ImagePlotMPL, PlotMPL
 
@@ -723,10 +724,8 @@ class ProfilePlot(BaseLinePlot):
             label = field_name + r"$\rm{\ Probability\ Density}$"
         elif field_unit is None or field_unit == "":
             label = field_name
-        elif r"\frac" in field_unit:
-            label = field_name + r"$\ \ \left(" + field_unit + r"\right)$"
         else:
-            label = field_name + r"$\ \ (" + field_unit + r")$"
+            label = field_name + _get_units_label(field_unit)
         return label
 
     def _get_field_title(self, field_y, profile):
@@ -1011,10 +1010,8 @@ class PhasePlot(ImagePlotContainer):
             label = field_name + r"$\rm{\ Probability\ Density}$"
         elif field_unit is None or field_unit == "":
             label = field_name
-        elif r"\frac" in field_unit:
-            label = field_name + r"$\ \ \left(" + field_unit + r"\right)$"
         else:
-            label = field_name + r"$\ \ (" + field_unit + r")$"
+            label = field_name + _get_units_label(field_unit)
         return label
 
     def _get_field_log(self, field_z, profile):

@@ -1,6 +1,6 @@
 import numpy as np
+from numpy.testing import assert_array_almost_equal
 
-from yt.testing import assert_array_almost_equal
 from yt.utilities.math_utils import (
     get_cyl_r,
     get_cyl_r_component,

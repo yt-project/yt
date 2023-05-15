@@ -681,8 +681,7 @@ class RAMSESIndex(OctreeIndex):
         except Exception:
             pass
         print(
-            "t = %0.8e = %0.8e s = %0.8e years"
-            % (
+            "t = {:0.8e} = {:0.8e} s = {:0.8e} years".format(
                 self.ds.current_time.in_units("code_time"),
                 self.ds.current_time.in_units("s"),
                 self.ds.current_time.in_units("yr"),
@@ -690,7 +689,7 @@ class RAMSESIndex(OctreeIndex):
         )
         print("\nSmallest Cell:")
         for item in ("Mpc", "pc", "AU", "cm"):
-            print(f"\tWidth: {dx.in_units(item):0.3e} {item}")
+            print(f"\tWidth: {dx.in_units(item):0.3e}")
 
 
 class RAMSESDataset(Dataset):
@@ -743,7 +742,7 @@ class RAMSESDataset(Dataset):
 
         file_handler = RAMSESFileSanitizer(filename)
 
-        # ensure validation happens even if the class is instanciated
+        # ensure validation happens even if the class is instantiated
         # directly rather than from yt.load
         file_handler.validate()
 

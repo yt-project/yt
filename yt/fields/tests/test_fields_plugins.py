@@ -3,9 +3,11 @@ import shutil
 import tempfile
 import unittest
 
+from numpy.testing import assert_raises
+
 import yt
 from yt.config import ytcfg
-from yt.testing import assert_raises, fake_random_ds
+from yt.testing import fake_random_ds
 from yt.utilities.configure import YTConfig, config_dir
 
 _TEST_PLUGIN = "_test_plugin.py"

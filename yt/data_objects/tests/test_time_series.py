@@ -1,9 +1,10 @@
 import tempfile
 from pathlib import Path
 
+from numpy.testing import assert_raises
+
 from yt.data_objects.static_output import Dataset
 from yt.data_objects.time_series import DatasetSeries
-from yt.testing import assert_raises
 from yt.utilities.exceptions import YTUnidentifiedDataType
 from yt.utilities.object_registries import output_type_registry
 

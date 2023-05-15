@@ -48,7 +48,7 @@ from yt.data_objects.unions import ParticleUnion
 from yt.fields.derived_field import DerivedField, ValidateSpatial
 from yt.fields.field_type_container import FieldTypeContainer
 from yt.fields.fluid_fields import setup_gradient_fields
-from yt.funcs import is_sequence, iter_fields, mylog, set_intersection, setdefaultattr
+from yt.funcs import iter_fields, mylog, set_intersection, setdefaultattr
 from yt.geometry.api import Geometry
 from yt.geometry.coordinates.api import (
     CartesianCoordinateHandler,
@@ -105,7 +105,7 @@ _cached_datasets: MutableMapping[
 ] = weakref.WeakValueDictionary()
 
 # we set this global to None as a place holder
-# its actual instanciation is delayed until after yt.__init__
+# its actual instantiation is delayed until after yt.__init__
 # is completed because we need yt.config.ytcfg to be instantiated first
 
 _ds_store: Optional[ParameterFileStore] = None
@@ -184,6 +184,7 @@ class Dataset(abc.ABC):
     field_units: Optional[Dict[AnyFieldKey, Unit]] = None
     derived_field_list = requires_index("derived_field_list")
     fields = requires_index("fields")
+    conversion_factors: Optional[Dict[str, float]] = None
     # _instantiated represents an instantiation time (since Epoch)
     # the default is a place holder sentinel, falsy value
     _instantiated: float = 0
@@ -234,9 +235,10 @@ class Dataset(abc.ABC):
         super().__init_subclass__(*args, **kwargs)
         if cls.__name__ in output_type_registry:
             warnings.warn(
-                f"Overwritting {cls.__name__}, which was previously registered. "
+                f"Overwriting {cls.__name__}, which was previously registered. "
                 "This is expected if you're importing a yt extension with a "
-                "frontend that was already migrated to the main code base."
+                "frontend that was already migrated to the main code base.",
+                stacklevel=2,
             )
         output_type_registry[cls.__name__] = cls
         mylog.debug("Registering: %s as %s", cls.__name__, cls)
@@ -272,7 +274,7 @@ class Dataset(abc.ABC):
         if self._instantiated != 0:
             return
         self.dataset_type = dataset_type
-        self.conversion_factors: Dict[str, float] = {}
+        self.conversion_factors = {}
         self.parameters: Dict[str, Any] = {}
         self.region_expression = self.r = RegionExpression(self)
         self.known_filters = self.known_filters or {}
@@ -531,7 +533,9 @@ class Dataset(abc.ABC):
                 "au",
                 "rsun",
                 "km",
+                "m",
                 "cm",
+                "mm",
                 "um",
                 "nm",
                 "pm",
@@ -798,7 +802,7 @@ class Dataset(abc.ABC):
         # end compatibility layer
         if not isinstance(self.geometry, Geometry):
             raise TypeError(
-                "Excpected dataset.geometry attribute to be of "
+                "Expected dataset.geometry attribute to be of "
                 "type yt.geometry.geometry_enum.Geometry\n"
                 f"Got {self.geometry=} with type {type(self.geometry)}"
             )
@@ -2119,7 +2123,7 @@ class ParticleDataset(Dataset):
         index_filename=None,
         default_species_fields=None,
     ):
-        self.index_order = validate_index_order(index_order)
+        self.index_order = index_order
         self.index_filename = index_filename
         super().__init__(
             filename,
@@ -2128,19 +2132,3 @@ class ParticleDataset(Dataset):
             unit_system=unit_system,
             default_species_fields=default_species_fields,
         )
-
-
-def validate_index_order(index_order):
-    if index_order is None:
-        index_order = (6, 2)
-    elif not is_sequence(index_order):
-        index_order = (int(index_order), 1)
-    else:
-        if len(index_order) != 2:
-            raise RuntimeError(
-                "Tried to load a dataset with index_order={}, but "
-                "index_order\nmust be an integer or a two-element tuple of "
-                "integers.".format(index_order)
-            )
-        index_order = tuple(int(o) for o in index_order)
-    return index_order

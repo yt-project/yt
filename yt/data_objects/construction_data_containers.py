@@ -950,6 +950,40 @@ class YTCoveringGrid(YTSelectionContainer3D):
         for p in part:
             self[p] = self._data_source[p]
 
+    def _check_sph_type(self, finfo):
+        """
+        Check if a particle field has an SPH type.
+        There are several ways that this can happen,
+        checked in this order:
+        1. If the field type is a known particle filter, and
+           is in the list of SPH ptypes, use this type
+        2. If the field is an alias of an SPH field, but its
+           type is not "gas", use this type
+        3. Otherwise, if the field type is not in the SPH
+           types list and it is not "gas", we fail
+        If we get through without erroring out, we either have
+        a known SPH particle filter, an alias of an SPH field,
+        the default SPH ptype, or "gas" for an SPH field. Then
+        we return the particle type.
+        """
+        ftype, fname = finfo.name
+        sph_ptypes = self.ds._sph_ptypes
+        ptype = sph_ptypes[0]
+        err = KeyError(f"{ftype} is not a SPH particle type!")
+        if ftype in self.ds.known_filters:
+            if ftype not in sph_ptypes:
+                raise err
+            else:
+                ptype = ftype
+        elif finfo.is_alias:
+            if finfo.alias_name[0] not in sph_ptypes:
+                raise err
+            elif ftype != "gas":
+                ptype = ftype
+        elif ftype not in sph_ptypes and ftype != "gas":
+            raise err
+        return ptype
+
     def _fill_sph_particles(self, fields):
         from tqdm import tqdm
 
@@ -972,9 +1006,8 @@ class YTCoveringGrid(YTSelectionContainer3D):
         if smoothing_style == "scatter":
             for field in fields:
                 fi = self.ds._get_field_info(field)
-                ptype = fi.name[0]
-                if ptype not in self.ds._sph_ptypes:
-                    raise KeyError(f"{ptype} is not a SPH particle type!")
+                ptype = self._check_sph_type(fi)
+
                 buff = np.zeros(size, dtype="float64")
                 if normalize:
                     buff_den = np.zeros(size, dtype="float64")
@@ -1028,6 +1061,9 @@ class YTCoveringGrid(YTSelectionContainer3D):
         if smoothing_style == "gather":
             num_neighbors = getattr(self.ds, "num_neighbors", 32)
             for field in fields:
+                fi = self.ds._get_field_info(field)
+                ptype = self._check_sph_type(fi)
+
                 buff = np.zeros(size, dtype="float64")
 
                 fields_to_get = [
@@ -1037,9 +1073,8 @@ class YTCoveringGrid(YTSelectionContainer3D):
                     "smoothing_length",
                     field[1],
                 ]
-                all_fields = all_data(self.ds, field[0], fields_to_get, kdtree=True)
+                all_fields = all_data(self.ds, ptype, fields_to_get, kdtree=True)
 
-                fi = self.ds._get_field_info(field)
                 interpolate_sph_grid_gather(
                     buff,
                     all_fields["particle_position"],
@@ -1490,6 +1525,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
                 "This is likely due to missing ghost-zones support "
                 f"in class {type(self.ds)}",
                 category=RuntimeWarning,
+                stacklevel=1,
             )
             mylog.debug("Caught %d runtime errors.", runtime_errors_count)
         for field, v in zip(fields, ls.fields):

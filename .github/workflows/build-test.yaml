@@ -82,13 +82,68 @@ jobs:
       env:
         dependencies: ${{ matrix.dependencies }}
       run: source ./tests/ci_install.sh
-    - name: Run Tests (pytest)
+    - name: Run Unit Tests (pytest)
       if: matrix.test-runner == 'pytest'
       run: pytest --color=yes
     - name: Run Tests (nose)
       if: matrix.test-runner == 'nose'
       run: cat nose_ignores.txt | xargs python -m nose -c nose_unit.cfg --traverse-namespace
-    - name: Report Failed Answers
-      if: ${{ matrix.tests-type == 'answer' && failure() }}
+
+  image-tests:
+    name: Image tests
+    runs-on: ubuntu-latest
+
+    concurrency:
+      # auto-cancel any in-progress job *on the same branch*
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+
+    steps:
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Checkout repo (with submodules)
+      uses: actions/checkout@v3
+      with:
+        submodules: true
+
+    - name: Install dependencies and yt
       shell: bash
-      run: python tests/report_failed_answers.py -f -m --xunit-file answer_nosetests.xml
+      env:
+        dependencies: ''
+      run: |
+        source ./tests/ci_install.sh
+        python -m pip install cartopy scipy
+
+    - name: Run Image Tests
+      run: |
+        pytest --color=yes --mpl -m mpl_image_compare \
+               --mpl-generate-summary=html \
+               --mpl-results-path=pytest_mpl_results \
+               --mpl-baseline-path=tests/pytest_mpl_baseline
+
+    - name: Generate new image baseline
+      if: failure()
+      run: |
+        pytest --color=yes --mpl -m mpl_image_compare \
+               --mpl-generate-path=pytest_mpl_new_baseline \
+               --last-failed
+
+    # always attempt to upload artifacts, even
+    # (and especially) in case of failure.
+    - name: Upload pytest-mpl report
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: yt_pytest_mpl_results
+        path: pytest_mpl_results/*
+
+    - name: Upload pytest-mpl baseline
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: yt_pytest_mpl_new_baseline
+        path: pytest_mpl_new_baseline/*
+        if-no-files-found: ignore

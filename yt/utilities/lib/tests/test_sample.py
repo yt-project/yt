@@ -1,6 +1,6 @@
 import numpy as np
+from numpy.testing import assert_allclose
 
-from yt.testing import assert_allclose
 from yt.utilities.lib.particle_mesh_operations import CICSample_3
 
 

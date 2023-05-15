@@ -5,8 +5,9 @@ import unittest
 
 import numpy as np
 from nose.tools import assert_raises
+from numpy.testing import assert_equal
 
-from yt.testing import assert_equal, fake_random_ds
+from yt.testing import fake_random_ds
 from yt.visualization.image_writer import (
     apply_colormap,
     multi_image_composite,

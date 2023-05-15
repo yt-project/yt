@@ -562,7 +562,7 @@ class Profile1D(ProfileND):
             fields = self.data_source._determine_fields(fields)
         return idxs, masked, fields
 
-    def to_dataframe(self, fields=None, only_used=False):
+    def to_dataframe(self, fields=None, only_used=False, include_std=False):
         r"""Export a profile object to a pandas DataFrame.
 
         This function will take a data object and construct from it and
@@ -577,8 +577,13 @@ class Profile1D(ProfileND):
             profile, along with the bin field, will be exported.
         only_used : boolean, default False
             If True, only the bins which have data will be exported. If False,
-            all of the bins will be exported, but the elements for those bins
+            all the bins will be exported, but the elements for those bins
             in the data arrays will be filled with NaNs.
+        include_std : boolean, optional
+            If True, include the standard deviation of the profile
+            in the pandas DataFrame. It will appear in the table as the
+            field name with "_stddev" appended, e.g. "velocity_x_stddev".
+            Default: False
 
         Returns
         -------
@@ -600,6 +605,8 @@ class Profile1D(ProfileND):
         pdata = {self.x_field[-1]: self.x[idxs]}
         for field in fields:
             pdata[field[-1]] = self[field][idxs]
+            if include_std:
+                pdata[f"{field[-1]}_stddev"] = self.standard_deviation[field][idxs]
         df = pd.DataFrame(pdata)
         if masked:
             mask = np.zeros(df.shape, dtype="bool")
@@ -607,7 +614,7 @@ class Profile1D(ProfileND):
             df.mask(mask, inplace=True)
         return df
 
-    def to_astropy_table(self, fields=None, only_used=False):
+    def to_astropy_table(self, fields=None, only_used=False, include_std=False):
         """
         Export the profile data to a :class:`~astropy.table.table.QTable`,
         which is a Table object which is unit-aware. The QTable can then
@@ -627,10 +634,15 @@ class Profile1D(ProfileND):
             to the QTable as rows. If False, all bins are
             copied, but the bins which are not used are masked.
             Default: False
+        include_std : boolean, optional
+            If True, include the standard deviation of the profile
+            in the AstroPy QTable. It will appear in the table as the
+            field name with "_stddev" appended, e.g. "velocity_x_stddev".
+            Default: False
 
         Returns
         -------
-        df : :class:`~astropy.table.QTable`
+        qt : :class:`~astropy.table.QTable`
             The data contained in the profile.
 
         Examples
@@ -653,6 +665,12 @@ class Profile1D(ProfileND):
             qt[field[-1]] = self[field][idxs].to_astropy()
             if masked:
                 qt[field[-1]].mask = self.used
+            if include_std:
+                qt[f"{field[-1]}_stddev"] = self.standard_deviation[field][
+                    idxs
+                ].to_astropy()
+                if masked:
+                    qt[f"{field[-1]}_stddev"].mask = self.used
         return qt
 
 

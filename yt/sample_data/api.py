@@ -172,7 +172,7 @@ def lookup_on_disk_data(fn) -> Path:
     FileNotFoundError
     """
 
-    path = Path(fn).expanduser()
+    path = Path(fn).expanduser().resolve()
 
     if path.exists():
         return path
@@ -182,7 +182,7 @@ def lookup_on_disk_data(fn) -> Path:
     if not test_data_dir.is_dir():
         raise FileNotFoundError(err_msg)
 
-    alt_path = _get_test_data_dir_path() / fn
+    alt_path = _get_test_data_dir_path().joinpath(fn).resolve()
     if alt_path != path:
         if alt_path.exists():
             return alt_path

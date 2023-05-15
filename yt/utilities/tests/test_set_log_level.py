@@ -1,4 +1,5 @@
-from yt.testing import assert_raises
+from numpy.testing import assert_raises
+
 from yt.utilities.logger import set_log_level
 
 

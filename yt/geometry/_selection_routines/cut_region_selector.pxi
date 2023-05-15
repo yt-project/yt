@@ -11,24 +11,24 @@ cdef class CutRegionSelector(SelectorObject):
         self._positions = set(tuple(position) for position in positions)
 
     cdef int select_bbox(self,  np.float64_t left_edge[3],
-                     np.float64_t right_edge[3]) nogil:
+                     np.float64_t right_edge[3]) noexcept nogil:
         return 1
 
     cdef int select_bbox_dge(self,  np.float64_t left_edge[3],
-                     np.float64_t right_edge[3]) nogil:
+                     np.float64_t right_edge[3]) noexcept nogil:
         return 1
 
-    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) noexcept nogil:
         with gil:
             if (pos[0], pos[1], pos[2]) in self._positions:
                 return 1
             else:
                 return 0
 
-    cdef int select_point(self, np.float64_t pos[3]) nogil:
+    cdef int select_point(self, np.float64_t pos[3]) noexcept nogil:
         return 1
 
-    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) noexcept nogil:
         return 1
 
     def _hash_vals(self):

@@ -13,7 +13,7 @@ from yt.data_objects.profiles import (
     Profile2DFromDataset,
     Profile3DFromDataset,
 )
-from yt.data_objects.static_output import Dataset, ParticleFile, validate_index_order
+from yt.data_objects.static_output import Dataset, ParticleFile
 from yt.data_objects.unions import ParticleUnion
 from yt.fields.field_exceptions import NeedsGridType
 from yt.fields.field_info_container import FieldInfoContainer
@@ -252,7 +252,7 @@ class YTDataContainerDataset(YTDataset):
         units_override=None,
         unit_system="cgs",
     ):
-        self.index_order = validate_index_order(index_order)
+        self.index_order = index_order
         self.index_filename = index_filename
         super().__init__(
             filename,
