@@ -1,7 +1,7 @@
-# distutils: include_dirs = LIB_DIR_EWAH
 # distutils: language = c++
 # distutils: extra_compile_args = CPP14_FLAG
-# distutils: libraries = STD_LIBS
+# distutils: include_dirs = LIB_DIR
+# distutils: libraries = EWAH_LIBS
 """
 Oct container tuned for Particles
 
@@ -10,17 +10,16 @@ Oct container tuned for Particles
 """
 
 
-from libc.math cimport ceil, log2
-from libc.stdlib cimport free, malloc
-from libcpp.map cimport map as cmap
-from libcpp.vector cimport vector
-
-from yt.utilities.lib.ewah_bool_array cimport (
+from ewah_bool_utils.ewah_bool_array cimport (
     bool_array,
     ewah_bool_array,
     ewah_bool_iterator,
     ewah_word_type,
 )
+from libc.math cimport ceil, log2
+from libc.stdlib cimport free, malloc
+from libcpp.map cimport map as cmap
+from libcpp.vector cimport vector
 
 import numpy as np
 
@@ -55,18 +54,20 @@ from .selection_routines cimport AlwaysSelector, SelectorObject
 
 from yt.funcs import get_pbar
 
-from ..utilities.lib.ewah_bool_wrap cimport BoolArrayCollection
+from ewah_bool_utils.ewah_bool_wrap cimport BoolArrayCollection
 
 import os
 
-
-_bitmask_version = np.uint64(5)
-
-from ..utilities.lib.ewah_bool_wrap cimport (
+from ewah_bool_utils.ewah_bool_wrap cimport (
     BoolArrayCollectionUncompressed as BoolArrayColl,
     FileBitmasks,
     SparseUnorderedRefinedBitmaskSet as SparseUnorderedRefinedBitmask,
 )
+
+
+_bitmask_version = np.uint64(5)
+
+
 
 ctypedef cmap[np.uint64_t, bool_array] CoarseRefinedSets
 
