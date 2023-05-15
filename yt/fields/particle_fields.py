@@ -30,6 +30,7 @@ sph_whitelist_fields = (
     "metallicity",
     "thermal_energy",
     "smoothing_length",
+    "star_formation_rate",
     "H_fraction",
     "He_fraction",
     "C_fraction",
