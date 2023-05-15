@@ -1848,7 +1848,7 @@ def off_axis_projection_SPH(np.float64_t[:] px,
                             north_vector,
                             weight_field=None):
     # Do nothing in event of a 0 normal vector
-    if np.allclose(normal_vector, np.array([0., 0., 0.]), rtol=1e-09):
+    if np.allclose(normal_vector, 0.):
         return
 
     px_rotated, py_rotated, rot_bounds_x0, \
