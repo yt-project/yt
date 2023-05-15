@@ -408,7 +408,7 @@ class ParticleProjectionPlot(PWViewerMPL, NormalPlot):
                 axis,
                 width,
                 fields,
-                weight_field,
+                weight_field=weight_field,
                 field_parameters=field_parameters,
                 data_source=data_source,
                 deposition=deposition,
