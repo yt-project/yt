@@ -345,6 +345,7 @@ class ParticleProjectionPlot(PWViewerMPL, NormalPlot):
         data_source=None,
         deposition="ngp",
         density=False,
+        *,
         north_vector=None,
     ):
         # this will handle time series data and controllers

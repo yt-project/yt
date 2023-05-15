@@ -1851,10 +1851,10 @@ def off_axis_projection_SPH(np.float64_t[:] px,
     if np.allclose(normal_vector, 0.):
         return
 
-    px_rotated, py_rotated, rot_bounds_x0, \
-        rot_bounds_x1, rot_bounds_y0, \
-        rot_bounds_y1 = rotate_particle_coord(px, py, pz, center, width,
-                                              normal_vector, north_vector)
+    px_rotated, py_rotated,
+    rot_bounds_x0, rot_bounds_x1,
+    rot_bounds_y0, rot_bounds_y1 = rotate_particle_coord(px, py, pz, 
+                                                         center, width, normal_vector, north_vector)
 
     pixelize_sph_kernel_projection(projection_array,
                                    px_rotated,

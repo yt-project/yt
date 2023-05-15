@@ -693,9 +693,9 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         if axis is not None:
             self.xax = self.ds.coordinates.x_axis[axis]
             self.yax = self.ds.coordinates.y_axis[axis]
-            ax_field_template = "particle_position_%s"
-            self.x_field = ax_field_template % self.ds.coordinates.axis_name[self.xax]
-            self.y_field = ax_field_template % self.ds.coordinates.axis_name[self.yax]
+            axis_name = self.ds.coordinates.axis_name
+            self.x_field = f"particle_position_{axis_name[self.xax]}"
+            self.y_field = f"particle_position_{axis_name[self.yax]}"
 
     def __getitem__(self, item):
         if item in self.data:
@@ -721,16 +721,15 @@ class ParticleImageBuffer(FixedResolutionBuffer):
                 if hasattr(w, "to_value"):
                     w = w.to_value("code_length")
                 wd.append(w)
-            x_data, y_data, rbx0, rbx1, rby0, rby1 = rotate_particle_coord(
+            x_data, y_data, *bounds = rotate_particle_coord(
                 dd[ftype, "particle_position_x"].to_value("code_length"),
                 dd[ftype, "particle_position_y"].to_value("code_length"),
                 dd[ftype, "particle_position_z"].to_value("code_length"),
-                self.data_source.center.to("code_length").d,
+                self.data_source.center.to_value("code_length"),
                 wd,
                 self.data_source.normal_vector,
                 self.data_source.north_vector,
             )
-            bounds = [rbx0, rbx1, rby0, rby1]
             x_data = np.array(x_data)
             y_data = np.array(y_data)
         else:
