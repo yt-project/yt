@@ -356,13 +356,12 @@ class ParticleProjectionPlot(PWViewerMPL, NormalPlot):
         if axis is not None:
             issue_deprecation_warning(
                 "The 'axis' argument is a deprecated alias for the 'normal' argument. ",
-                "4.2.0",
-                "4.3.0",
+                since="4.2.0",
             )
             normal = axis
         if normal is None:
-            raise ValueError(
-                "You must specify an axis name or normal vector for this plot."
+            raise TypeError(
+                "ParticleProjectionPlot() missing 1 required positional argument: 'normal'"
             )
         # this will handle time series data and controllers
         ts = self._initialize_dataset(ds)
