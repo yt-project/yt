@@ -30,7 +30,7 @@ def test_linear_interpolator_1d():
 def test_linear_interpolator_2d():
     random_data = np.random.random((64, 64))
     # evenly spaced bins
-    fv = {ax: v for ax, v in zip("xyz", np.mgrid[0.0:1.0:64j, 0.0:1.0:64j])}
+    fv = dict(zip("xyz", np.mgrid[0.0:1.0:64j, 0.0:1.0:64j]))
     bfi = lin.BilinearFieldInterpolator(random_data, (0.0, 1.0, 0.0, 1.0), "xy", True)
     assert_array_equal(bfi(fv), random_data)
 
@@ -49,9 +49,7 @@ def test_linear_interpolator_2d():
 def test_linear_interpolator_3d():
     random_data = np.random.random((64, 64, 64))
     # evenly spaced bins
-    fv = {
-        ax: v for ax, v in zip("xyz", np.mgrid[0.0:1.0:64j, 0.0:1.0:64j, 0.0:1.0:64j])
-    }
+    fv = dict(zip("xyz", np.mgrid[0.0:1.0:64j, 0.0:1.0:64j, 0.0:1.0:64j]))
     tfi = lin.TrilinearFieldInterpolator(
         random_data, (0.0, 1.0, 0.0, 1.0, 0.0, 1.0), "xyz", True
     )

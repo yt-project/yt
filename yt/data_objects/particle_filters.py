@@ -52,11 +52,11 @@ class ParticleFilter:
         return all((self.filtered_type, field) in field_list for field in self.requires)
 
     def missing(self, field_list):
-        return list(
+        return [
             (self.filtered_type, field)
             for field in self.requires
             if (self.filtered_type, field) not in field_list
-        )
+        ]
 
     def wrap_func(self, field_name, old_fi):
         new_fi = copy.copy(old_fi)

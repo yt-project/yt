@@ -60,7 +60,7 @@ def identify_contours(data_source, field, min_val, max_val, cached_fields=None):
         contour_ids[pg.parent_grid_id].append((sl, ff))
         pbar.update(i + 1)
     pbar.finish()
-    rv = dict()
+    rv = {}
     rv.update(contour_ids)
     # NOTE: Because joins can appear in both a "final join" and a subsequent
     # "join", we can't know for sure how many unique joins there are without

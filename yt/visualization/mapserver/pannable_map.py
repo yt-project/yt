@@ -152,4 +152,9 @@ class PannableMapServer:
                 d[ftype].append((f, active))
 
         print(self.px2unit, self.unit)
-        return dict(data=d, px2unit=self.px2unit, unit=self.unit, active=self.field)
+        return {
+            "data": d,
+            "px2unit": self.px2unit,
+            "unit": self.unit,
+            "active": self.field,
+        }

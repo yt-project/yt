@@ -5,7 +5,7 @@ from yt.visualization.plot_window import SlicePlot
 
 @requires_file("amrvac/bw_3d0000.dat")
 def test_code_units_xy_labels():
-    ds = data_dir_load("amrvac/bw_3d0000.dat", kwargs=dict(unit_system="code"))
+    ds = data_dir_load("amrvac/bw_3d0000.dat", kwargs={"unit_system": "code"})
     p = SlicePlot(ds, "x", ("gas", "density"))
 
     ax = p.plots[("gas", "density")].axes

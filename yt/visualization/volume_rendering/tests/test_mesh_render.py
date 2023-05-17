@@ -174,7 +174,7 @@ class TestTet4DefaultEngine:
     @classmethod
     def setup_class(cls):
         cls.ds = data_dir_load_v2(tet4, step=-1)
-        cls.images = dict()
+        cls.images = {}
         for field in [("connect1", "u")]:
             sc = create_scene(cls.ds, field)
             im = sc.render()
@@ -193,7 +193,7 @@ class TestTet4PyembreeEngine:
     @classmethod
     def setup_class(cls):
         cls.ds = data_dir_load_v2(tet4, step=-1)
-        cls.images = dict()
+        cls.images = {}
         for field in [("connect1", "u")]:
             sc = create_scene(cls.ds, field)
             im = sc.render()
@@ -215,7 +215,7 @@ class TestHex20DefaultEngine:
     @classmethod
     def setup_class(cls):
         cls.ds = data_dir_load_v2(hex20, step=-1)
-        cls.images = dict()
+        cls.images = {}
         for field in [("connect2", "temp")]:
             sc = create_scene(cls.ds, field)
             im = sc.render()
@@ -234,7 +234,7 @@ class TestHex20PyembreeEngine:
     @classmethod
     def setup_class(cls):
         cls.ds = data_dir_load_v2(hex20, step=-1)
-        cls.images = dict()
+        cls.images = {}
         for field in [("connect2", "temp")]:
             sc = create_scene(cls.ds, field)
             im = sc.render()
@@ -256,7 +256,7 @@ class TestWedge6DefaultEngine:
     @classmethod
     def setup_class(cls):
         cls.ds = data_dir_load_v2(wedge6, step=-1)
-        cls.images = dict()
+        cls.images = {}
         for field in [("connect1", "diffused")]:
             sc = create_scene(cls.ds, field)
             im = sc.render()
@@ -275,7 +275,7 @@ class TestWedge6PyembreeEngine:
     @classmethod
     def setup_class(cls):
         cls.ds = data_dir_load_v2(wedge6, step=-1)
-        cls.images = dict()
+        cls.images = {}
         for field in [("connect1", "diffused")]:
             sc = create_scene(cls.ds, field)
             im = sc.render()
@@ -297,7 +297,7 @@ class TestTet10DefaultEngine:
     @classmethod
     def setup_class(cls):
         cls.ds = data_dir_load_v2(tet10, step=-1)
-        cls.images = dict()
+        cls.images = {}
         for field in [("connect1", "uz")]:
             sc = create_scene(cls.ds, field)
             im = sc.render()
@@ -316,7 +316,7 @@ class TestTet10PyembreeEngine:
     @classmethod
     def setup_class(cls):
         cls.ds = data_dir_load_v2(tet10, step=-1)
-        cls.images = dict()
+        cls.images = {}
         for field in [("connect1", "uz")]:
             sc = create_scene(cls.ds, field)
             im = sc.render()

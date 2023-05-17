@@ -263,12 +263,12 @@ def test_particles_outside_domain():
     posy_arr = np.random.uniform(low=-1.5, high=1.5, size=1000)
     posz_arr = np.random.uniform(low=-1.5, high=1.5, size=1000)
     dens_arr = np.random.random((16, 16, 16))
-    data = dict(
-        density=dens_arr,
-        particle_position_x=posx_arr,
-        particle_position_y=posy_arr,
-        particle_position_z=posz_arr,
-    )
+    data = {
+        "density": dens_arr,
+        "particle_position_x": posx_arr,
+        "particle_position_y": posy_arr,
+        "particle_position_z": posz_arr,
+    }
     bbox = np.array([[-1.5, 1.5], [-1.5, 1.5], [-1.5, 1.5]])
     ds = load_uniform_grid(data, (16, 16, 16), bbox=bbox, nprocs=4)
     wh = (posx_arr < bbox[0, 0]).nonzero()[0]

@@ -325,9 +325,12 @@ def fake_amr_ds(
         level, left_edge, right_edge, dims = gspec
         left_edge = left_edge * (RE - LE) + LE
         right_edge = right_edge * (RE - LE) + LE
-        gdata = dict(
-            level=level, left_edge=left_edge, right_edge=right_edge, dimensions=dims
-        )
+        gdata = {
+            "level": level,
+            "left_edge": left_edge,
+            "right_edge": right_edge,
+            "dimensions": dims,
+        }
         for f, u in zip(fields, units):
             gdata[f] = (prng.random_sample(dims), u)
         if particles:
@@ -585,7 +588,7 @@ def fake_vr_orientation_test_ds(N=96, scale=1):
         )
         arr[idx] = 0.6
 
-    data = dict(density=(arr, "g/cm**3"))
+    data = {"density": (arr, "g/cm**3")}
     ds = load_uniform_grid(data, arr.shape, bbox=bbox)
     return ds
 
@@ -853,7 +856,7 @@ def expand_keywords(keywords, full=False):
         # the possible values of the kwargs
 
         # initialize array
-        list_of_kwarg_dicts = np.array([dict() for x in range(num_lists)])
+        list_of_kwarg_dicts = np.array([{} for x in range(num_lists)])
 
         # fill in array
         for i in np.arange(num_lists):

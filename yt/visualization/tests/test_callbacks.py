@@ -755,15 +755,15 @@ def test_contour_callback():
             geometry="spherical",
         )
         p = SlicePlot(ds, "r", ("gas", "density"))
-        kwargs = dict(
-            levels=10,
-            factor=8,
-            take_log=False,
-            clim=(0.4, 0.6),
-            plot_args={"linewidths": 2.0},
-            label=True,
-            text_args={"fontsize": "x-large"},
-        )
+        kwargs = {
+            "levels": 10,
+            "factor": 8,
+            "take_log": False,
+            "clim": (0.4, 0.6),
+            "plot_args": {"linewidths": 2.0},
+            "label": True,
+            "text_args": {"fontsize": "x-large"},
+        }
         assert_raises(
             YTDataTypeUnsupported, p.annotate_contour, ("gas", "temperature"), **kwargs
         )
@@ -811,17 +811,17 @@ def test_grids_callback():
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields=("density",), units=("g/cm**3",), geometry="spherical")
         p = SlicePlot(ds, "r", ("gas", "density"))
-        kwargs = dict(
-            alpha=0.7,
-            min_pix=10,
-            min_pix_ids=30,
-            draw_ids=True,
-            id_loc="upper right",
-            periodic=False,
-            min_level=2,
-            max_level=3,
-            cmap="gist_stern",
-        )
+        kwargs = {
+            "alpha": 0.7,
+            "min_pix": 10,
+            "min_pix_ids": 30,
+            "draw_ids": True,
+            "id_loc": "upper right",
+            "periodic": False,
+            "min_level": 2,
+            "max_level": 3,
+            "cmap": "gist_stern",
+        }
         assert_raises(YTDataTypeUnsupported, p.annotate_grids, **kwargs)
 
 

@@ -93,7 +93,7 @@ def test_non_square_frb():
 
     # construct an arbitrary dataset
     arr = np.arange(8.0 * 9.0 * 10.0).reshape((8, 9, 10))
-    data = dict(density=(arr, "g/cm**3"))
+    data = {"density": (arr, "g/cm**3")}
     bbox = np.array([[-4, 4.0], [-4.5, 4.5], [-5.0, 5]])
     ds = load_uniform_grid(
         data, arr.shape, length_unit="Mpc", bbox=bbox, periodicity=(False, False, False)

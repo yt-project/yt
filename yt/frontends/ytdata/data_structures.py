@@ -844,8 +844,9 @@ class YTProfileDataset(YTNonspatialDataset):
             ):
                 self.parameters[bin_field] = None
             elif isinstance(self.parameters[bin_field], np.ndarray):
-                self.parameters[bin_field] = tuple(
-                    ["data", self.parameters[bin_field].astype(str)[1]]
+                self.parameters[bin_field] = (
+                    "data",
+                    self.parameters[bin_field].astype(str)[1],
                 )
             setattr(self, bin_field, self.parameters[bin_field])
         self.domain_left_edge = domain_left_edge

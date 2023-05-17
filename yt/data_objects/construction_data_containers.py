@@ -2516,7 +2516,7 @@ class YTSurface(YTSelectionContainer3D):
             DLE = self.ds.domain_left_edge
             DRE = self.ds.domain_right_edge
             bounds = [(DLE[i], DRE[i]) for i in range(3)]
-        elif any([not all([isinstance(be, YTArray) for be in b]) for b in bounds]):
+        elif any(not all(isinstance(be, YTArray) for be in b) for b in bounds):
             bounds = [
                 tuple(
                     be if isinstance(be, YTArray) else self.ds.quan(be, "code_length")

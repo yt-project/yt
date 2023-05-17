@@ -28,7 +28,7 @@ iso_fields = OrderedDict(
         (("gas", "velocity_magnitude"), None),
     ]
 )
-iso_kwargs = dict(bounding_box=[[-3, 3], [-3, 3], [-3, 3]])
+iso_kwargs = {"bounding_box": [[-3, 3], [-3, 3], [-3, 3]]}
 
 
 @requires_module("h5py")
@@ -135,10 +135,10 @@ mag_fields = OrderedDict(
 )
 
 
-mag_kwargs = dict(
-    long_ids=True,
-    field_spec="magneticum_box2_hr",
-)
+mag_kwargs = {
+    "long_ids": True,
+    "field_spec": "magneticum_box2_hr",
+}
 
 
 @requires_ds(magneticum)

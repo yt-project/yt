@@ -299,7 +299,7 @@ class IOHandlerStreamUnstructured(BaseIOHandler):
             ind = 0
             ftype, fname = field
             if ftype == "all":
-                objs = [mesh for mesh in self.ds.index.mesh_union]
+                objs = list(self.ds.index.mesh_union)
             else:
                 mesh_ids = [int(ftype[-1])]
                 chunk = chunks[mesh_ids[0] - 1]

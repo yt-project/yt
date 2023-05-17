@@ -103,7 +103,7 @@ class ChomboHierarchy(GridIndex):
 
     def _read_particles(self):
         # only do anything if the dataset contains particles
-        if not any([f[1].startswith("particle_") for f in self.field_list]):
+        if not any(f[1].startswith("particle_") for f in self.field_list):
             return
 
         self.num_particles = 0

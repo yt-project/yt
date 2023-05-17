@@ -482,7 +482,7 @@ def test_on_off_compare():
     den = np.arange(32**3) / 32**2 + 1
     den = den.reshape(32, 32, 32)
     den = np.array(den, dtype=np.float64)
-    data = dict(density=(den, "g/cm**3"))
+    data = {"density": (den, "g/cm**3")}
     bbox = np.array([[-1.5, 1.5], [-1.5, 1.5], [-1.5, 1.5]])
     ds = load_uniform_grid(data, den.shape, length_unit="Mpc", bbox=bbox, nprocs=64)
 

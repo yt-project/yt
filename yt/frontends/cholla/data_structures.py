@@ -100,7 +100,7 @@ class ChollaDataset(Dataset):
     def _parse_parameter_file(self):
         with h5py.File(self.parameter_filename, mode="r") as h5f:
             attrs = h5f.attrs
-            self.parameters = {k: v for (k, v) in attrs.items()}
+            self.parameters = dict(attrs.items())
             self.domain_left_edge = attrs["bounds"][:].astype("=f8")
             self.domain_right_edge = attrs["domain"][:].astype("=f8")
             self.dimensionality = len(attrs["dims"][:])

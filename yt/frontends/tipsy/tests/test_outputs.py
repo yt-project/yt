@@ -20,14 +20,17 @@ _fields = OrderedDict(
 )
 
 pkdgrav = "halo1e11_run1.00400/halo1e11_run1.00400"
-pkdgrav_cosmology_parameters = dict(
-    current_redshift=0.0, omega_lambda=0.728, omega_matter=0.272, hubble_constant=0.702
-)
-pkdgrav_kwargs = dict(
-    field_dtypes={"Coordinates": "d"},
-    cosmology_parameters=pkdgrav_cosmology_parameters,
-    unit_base={"length": (60.0, "Mpccm/h")},
-)
+pkdgrav_cosmology_parameters = {
+    "current_redshift": 0.0,
+    "omega_lambda": 0.728,
+    "omega_matter": 0.272,
+    "hubble_constant": 0.702,
+}
+pkdgrav_kwargs = {
+    "field_dtypes": {"Coordinates": "d"},
+    "cosmology_parameters": pkdgrav_cosmology_parameters,
+    "unit_base": {"length": (60.0, "Mpccm/h")},
+}
 
 
 @requires_ds(pkdgrav, big_data=True, file_check=True)
@@ -43,16 +46,16 @@ gasoline_dmonly = "agora_1e11.00400/agora_1e11.00400"
 
 @requires_ds(gasoline_dmonly, big_data=True, file_check=True)
 def test_gasoline_dmonly():
-    cosmology_parameters = dict(
-        current_redshift=0.0,
-        omega_lambda=0.728,
-        omega_matter=0.272,
-        hubble_constant=0.702,
-    )
-    kwargs = dict(
-        cosmology_parameters=cosmology_parameters,
-        unit_base={"length": (60.0, "Mpccm/h")},
-    )
+    cosmology_parameters = {
+        "current_redshift": 0.0,
+        "omega_lambda": 0.728,
+        "omega_matter": 0.272,
+        "hubble_constant": 0.702,
+    }
+    kwargs = {
+        "cosmology_parameters": cosmology_parameters,
+        "unit_base": {"length": (60.0, "Mpccm/h")},
+    }
     ds = data_dir_load(gasoline_dmonly, TipsyDataset, (), kwargs)
     yield from nbody_answer(ds, "agora_1e11.00400", 10550576, _fields)
     psc = ParticleSelectionComparison(ds)

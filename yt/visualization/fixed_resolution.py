@@ -531,7 +531,7 @@ class FixedResolutionBuffer:
 
     @property
     def limits(self):
-        rv = dict(x=None, y=None, z=None)
+        rv = {"x": None, "y": None, "z": None}
         xax = self.ds.coordinates.x_axis[self.axis]
         yax = self.ds.coordinates.y_axis[self.axis]
         xn = self.ds.coordinates.axis_name[xax]

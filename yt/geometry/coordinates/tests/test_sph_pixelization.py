@@ -4,10 +4,10 @@ from yt.utilities.math_utils import compute_stddev_image
 
 magneticum = "MagneticumCluster/snap_132"
 
-mag_kwargs = dict(
-    long_ids=True,
-    field_spec="magneticum_box2_hr",
-)
+mag_kwargs = {
+    "long_ids": True,
+    "field_spec": "magneticum_box2_hr",
+}
 
 
 @requires_file(magneticum)

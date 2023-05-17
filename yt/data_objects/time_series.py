@@ -54,7 +54,7 @@ def get_ds_prop(propname):
     def _eval(params, ds):
         return getattr(ds, propname)
 
-    cls = type(propname, (AnalysisTask,), dict(eval=_eval, _params=tuple()))
+    cls = type(propname, (AnalysisTask,), {"eval": _eval, "_params": ()})
     return cls
 
 

@@ -9,12 +9,12 @@ from .parallel_analysis_interface import (
     parallel_capable,
 )
 
-messages = dict(
-    task=dict(msg="next"),
-    result=dict(msg="result"),
-    task_req=dict(msg="task_req"),
-    end=dict(msg="no_more_tasks"),
-)
+messages = {
+    "task": {"msg": "next"},
+    "result": {"msg": "result"},
+    "task_req": {"msg": "task_req"},
+    "end": {"msg": "no_more_tasks"},
+}
 
 
 class TaskQueueNonRoot:

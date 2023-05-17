@@ -290,7 +290,7 @@ def insert_ipython(num_up=1):
     frame = inspect.stack()[num_up]
     loc = frame[0].f_locals.copy()
     glo = frame[0].f_globals
-    dd = dict(fname=frame[3], filename=frame[1], lineno=frame[2])
+    dd = {"fname": frame[3], "filename": frame[1], "lineno": frame[2]}
     cfg = Config()
     cfg.InteractiveShellEmbed.local_ns = loc
     cfg.InteractiveShellEmbed.global_ns = glo
@@ -1187,7 +1187,7 @@ def validate_object(obj, data_type):
 def validate_axis(ds, axis):
     if ds is not None:
         valid_axis = sorted(
-            list(ds.coordinates.axis_name.keys()), key=lambda k: str(k).swapcase()
+            ds.coordinates.axis_name.keys(), key=lambda k: str(k).swapcase()
         )
     else:
         valid_axis = [0, 1, 2, "x", "y", "z", "X", "Y", "Z"]

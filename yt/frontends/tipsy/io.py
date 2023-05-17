@@ -329,7 +329,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
         if None not in (si, ei):
             np.clip(pcount - si, 0, ei - si, out=pcount)
         ptypes = ["Gas", "Stars", "DarkMatter"]
-        npart = {ptype: v for ptype, v in zip(ptypes, pcount)}
+        npart = dict(zip(ptypes, pcount))
         return npart
 
     @classmethod
@@ -419,7 +419,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
             self._aux_fields.remove(afield)
         # Add the auxiliary fields to each ptype we have
         for ptype in self._ptypes:
-            if any([ptype == field[0] for field in self._field_list]):
+            if any(ptype == field[0] for field in self._field_list):
                 self._field_list += [(ptype, afield) for afield in self._aux_fields]
         return self._field_list
 
