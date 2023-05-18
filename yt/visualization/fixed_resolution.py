@@ -745,7 +745,7 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         # handle periodicity
         dx = x_data - bounds[0]
         dy = y_data - bounds[2]
-        if self.axis is not None and self.periodic:
+        if self.periodic:
             dx %= float(self._period[0].in_units("code_length"))
             dy %= float(self._period[1].in_units("code_length"))
 

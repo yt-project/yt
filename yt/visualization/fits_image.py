@@ -912,9 +912,12 @@ def construct_image(
             frb = data_source.to_frb(width[0], (nx, ny), center=center, height=width[1])
     elif isinstance(data_source, ParticleDummyDataSource):
         if hasattr(data_source, "normal_vector"):
+            # If we have a normal vector, this means
+            # that the data source is off-axis
             bounds = (-width[0] / 2, width[0] / 2, -width[1] / 2, width[1] / 2)
             periodic = False
         else:
+            # Otherwise, this is an on-axis data source
             axes = axis_wcs[axis]
             bounds = (
                 center[axes[0]] - width[0] / 2,

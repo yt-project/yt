@@ -386,7 +386,7 @@ class ParticleProjectionPlot(PWViewerMPL, NormalPlot):
             self._use_cbar = False
             splat_color = color
 
-        if isinstance(normal, (int, str)):
+        if isinstance(normal, str):
             axis = fix_axis(normal, ds)
             (bounds, center, display_center) = get_window_parameters(
                 axis, center, width, ds
