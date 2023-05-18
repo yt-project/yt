@@ -489,36 +489,36 @@ class GeographicCoordinateHandler(CoordinateHandler):
 
         if normal_axis_name == "latitude":
             if axes_transform is AxesTransform.GEOMETRY_NATIVE:
-                return dict(
-                    x_axis_label=r"longitude",
-                    y_axis_label=r"R",
-                    x_axis_units="deg",
-                    y_axis_units=None,
-                )
+                return {
+                    "x_axis_label": r"longitude",
+                    "y_axis_label": r"R",
+                    "x_axis_units": "deg",
+                    "y_axis_units": None,
+                }
             elif axes_transform is AxesTransform.POLAR:
-                return dict(
-                    x_axis_label=r"x / \sin(\mathrm{latitude})",
-                    y_axis_label=r"y / \sin(\mathrm{latitude})",
-                    x_axis_units=None,
-                    y_axis_units=None,
-                )
+                return {
+                    "x_axis_label": r"x / \sin(\mathrm{latitude})",
+                    "y_axis_label": r"y / \sin(\mathrm{latitude})",
+                    "x_axis_units": None,
+                    "y_axis_units": None,
+                }
             else:
                 raise NotImplementedError
         elif normal_axis_name == "longitude":
             if axes_transform is AxesTransform.GEOMETRY_NATIVE:
-                return dict(
-                    x_axis_label="latitude",
-                    y_axis_label="R",
-                    x_axis_units="deg",
-                    y_axis_units=None,
-                )
+                return {
+                    "x_axis_label": "latitude",
+                    "y_axis_label": "R",
+                    "x_axis_units": "deg",
+                    "y_axis_units": None,
+                }
             elif axes_transform is AxesTransform.POLAR:
-                return dict(
-                    x_axis_label="R",
-                    y_axis_label="z",
-                    x_axis_units=None,
-                    y_axis_units=None,
-                )
+                return {
+                    "x_axis_label": "R",
+                    "y_axis_label": "z",
+                    "x_axis_units": None,
+                    "y_axis_units": None,
+                }
             else:
                 raise NotImplementedError
         elif normal_axis_name == self.radial_axis:
@@ -528,19 +528,25 @@ class GeographicCoordinateHandler(CoordinateHandler):
             # though we have everything needed to do it ourselves !
             # see https://github.com/yt-project/yt/issues/4182
             if axes_transform is AxesTransform.GEOMETRY_NATIVE:
-                return dict(
-                    x_axis_label="longitude",
-                    y_axis_label="latitude",
-                    x_axis_units="deg",
-                    y_axis_units="deg",
-                )
+                return {
+                    "x_axis_label": "longitude",
+                    "y_axis_label": "latitude",
+                    "x_axis_units": "deg",
+                    "y_axis_units": "deg",
+                }
             elif axes_transform is AxesTransform.AITOFF_HAMMER:
-                return dict(
-                    x_axis_label=r"\frac{2\cos(\mathrm{\mathrm{latitude}})\sin(\mathrm{longitude}/2)}{\sqrt{1 + \cos(\mathrm{latitude}) \cos(\mathrm{longitude}/2)}}",
-                    y_axis_label=r"\frac{sin(\mathrm{latitude})}{\sqrt{1 + \cos(\mathrm{latitude}) \cos(\mathrm{longitude}/2)}}",
-                    x_axis_units="dimensionless",
-                    y_axis_units="dimensionless",
-                )
+                return {
+                    "x_axis_label": (
+                        r"\frac{2\cos(\mathrm{\mathrm{latitude}})\sin(\mathrm{longitude}/2)}"
+                        r"{\sqrt{1 + \cos(\mathrm{latitude}) \cos(\mathrm{longitude}/2)}}"
+                    ),
+                    "y_axis_label": (
+                        r"\frac{sin(\mathrm{latitude})}"
+                        r"{\sqrt{1 + \cos(\mathrm{latitude}) \cos(\mathrm{longitude}/2)}}"
+                    ),
+                    "x_axis_units": "dimensionless",
+                    "y_axis_units": "dimensionless",
+                }
             else:
                 raise NotImplementedError
         else:

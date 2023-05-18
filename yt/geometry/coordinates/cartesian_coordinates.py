@@ -655,32 +655,32 @@ class CartesianCoordinateHandler(CoordinateHandler):
             )
 
         if normal_axis_name == "x":
-            return dict(
-                x_axis_label="y",
-                y_axis_label="z",
-                x_axis_units=None,
-                y_axis_units=None,
-            )
+            return {
+                "x_axis_label": "y",
+                "y_axis_label": "z",
+                "x_axis_units": None,
+                "y_axis_units": None,
+            }
         elif normal_axis_name == "y":
-            return dict(
-                x_axis_label="z",
-                y_axis_label="x",
-                x_axis_units=None,
-                y_axis_units=None,
-            )
+            return {
+                "x_axis_label": "z",
+                "y_axis_label": "x",
+                "x_axis_units": None,
+                "y_axis_units": None,
+            }
         elif normal_axis_name == "z":
-            return dict(
-                x_axis_label="x",
-                y_axis_label="y",
-                x_axis_units=None,
-                y_axis_units=None,
-            )
+            return {
+                "x_axis_label": "x",
+                "y_axis_label": "y",
+                "x_axis_units": None,
+                "y_axis_units": None,
+            }
         elif normal_axis_name == "oblique":
-            return dict(
-                x_axis_label="Image x",
-                y_axis_label="Image y",
-                x_axis_units=None,
-                y_axis_units=None,
-            )
+            return {
+                "x_axis_label": "Image x",
+                "y_axis_label": "Image y",
+                "x_axis_units": None,
+                "y_axis_units": None,
+            }
         else:
             raise ValueError(f"Unknown axis {normal_axis_name!r}")

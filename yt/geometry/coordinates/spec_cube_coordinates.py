@@ -104,54 +104,54 @@ class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
 
         if normal_axis_name == "x":
             if self.ds.lon_name == "X" and self.ds.lat_name == "Y":
-                return dict(
-                    x_axis_label="x",
-                    y_axis_label=self.ds.spec_name,
-                    x_axis_units=None,
-                    y_axis_units=None,
-                )
+                return {
+                    "x_axis_label": "x",
+                    "y_axis_label": self.ds.spec_name,
+                    "x_axis_units": None,
+                    "y_axis_units": None,
+                }
             else:
-                return dict(
-                    x_axis_label=r"Image\ x",
-                    y_axis_label=self.ds.spec_name,
-                    x_axis_units="pixel",
-                    y_axis_units=None,
-                )
+                return {
+                    "x_axis_label": r"Image\ x",
+                    "y_axis_label": self.ds.spec_name,
+                    "x_axis_units": "pixel",
+                    "y_axis_units": None,
+                }
         elif normal_axis_name == "y":
-            dict(
-                x_axis_label="x",
-                y_axis_label=self.ds.spec_name,
-                x_axis_units=None,
-                y_axis_units=None,
-            )
+            {
+                "x_axis_label": "x",
+                "y_axis_label": self.ds.spec_name,
+                "x_axis_units": None,
+                "y_axis_units": None,
+            }
             if self.ds.lon_name == "X" and self.ds.lat_name == "Y":
-                return dict(
-                    x_axis_label="x",
-                    y_axis_label=self.ds.spec_name,
-                    x_axis_units=None,
-                    y_axis_units=None,
-                )
+                return {
+                    "x_axis_label": "x",
+                    "y_axis_label": self.ds.spec_name,
+                    "x_axis_units": None,
+                    "y_axis_units": None,
+                }
             else:
-                return dict(
-                    x_axis_label=r"Image\ x",
-                    y_axis_label=self.ds.spec_name,
-                    x_axis_units="pixel",
-                    y_axis_units=None,
-                )
+                return {
+                    "x_axis_label": r"Image\ x",
+                    "y_axis_label": self.ds.spec_name,
+                    "x_axis_units": "pixel",
+                    "y_axis_units": None,
+                }
         elif normal_axis_name == "z":
             if self.ds.lon_name == "X" and self.ds.lat_name == "Y":
-                return dict(
-                    x_axis_label="x",
-                    y_axis_label="y",
-                    x_axis_units=None,
-                    y_axis_units=None,
-                )
+                return {
+                    "x_axis_label": "x",
+                    "y_axis_label": "y",
+                    "x_axis_units": None,
+                    "y_axis_units": None,
+                }
             else:
-                return dict(
-                    x_axis_label=r"Image\ x",
-                    y_axis_label=r"Image\ y",
-                    x_axis_units="pixel",
-                    y_axis_units="pixel",
-                )
+                return {
+                    "x_axis_label": r"Image\ x",
+                    "y_axis_label": r"Image\ y",
+                    "x_axis_units": "pixel",
+                    "y_axis_units": "pixel",
+                }
         else:
             raise ValueError(f"Unknown axis {normal_axis_name!r}")

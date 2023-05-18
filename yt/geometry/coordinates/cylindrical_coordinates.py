@@ -307,39 +307,39 @@ class CylindricalCoordinateHandler(CoordinateHandler):
 
         if normal_axis_name == "r":
             if axes_transform is AxesTransform.GEOMETRY_NATIVE:
-                return dict(
-                    x_axis_label=r"\theta",
-                    y_axis_label="z",
-                    x_axis_units="rad",
-                    y_axis_units=None,
-                )
+                return {
+                    "x_axis_label": r"\theta",
+                    "y_axis_label": "z",
+                    "x_axis_units": "rad",
+                    "y_axis_units": None,
+                }
             else:
                 raise NotImplementedError
         elif normal_axis_name == "theta":
             if axes_transform is AxesTransform.GEOMETRY_NATIVE:
-                return dict(
-                    x_axis_label="R",
-                    y_axis_label="z",
-                    x_axis_units=None,
-                    y_axis_units=None,
-                )
+                return {
+                    "x_axis_label": "R",
+                    "y_axis_label": "z",
+                    "x_axis_units": None,
+                    "y_axis_units": None,
+                }
             else:
                 raise NotImplementedError
         elif normal_axis_name == "z":
             if axes_transform is AxesTransform.GEOMETRY_NATIVE:
-                return dict(
-                    x_axis_label="R",
-                    y_axis_label=r"\theta",
-                    x_axis_units=None,
-                    y_axis_units="rad",
-                )
+                return {
+                    "x_axis_label": "R",
+                    "y_axis_label": r"\theta",
+                    "x_axis_units": None,
+                    "y_axis_units": "rad",
+                }
             elif axes_transform is AxesTransform.POLAR:
-                return dict(
-                    x_axis_label="x",
-                    y_axis_label="y",
-                    x_axis_units=None,
-                    y_axis_units=None,
-                )
+                return {
+                    "x_axis_label": "x",
+                    "y_axis_label": "y",
+                    "x_axis_units": None,
+                    "y_axis_units": None,
+                }
             else:
                 raise NotImplementedError
         else:

@@ -268,53 +268,53 @@ class SphericalCoordinateHandler(CoordinateHandler):
 
         if normal_axis_name == "r":
             if axes_transform is AxesTransform.GEOMETRY_NATIVE:
-                return dict(
-                    x_axis_label=r"\theta",
-                    y_axis_label=r"\phi",
-                    x_axis_units="rad",
-                    y_axis_units="rad",
-                )
+                return {
+                    "x_axis_label": r"\theta",
+                    "y_axis_label": r"\phi",
+                    "x_axis_units": "rad",
+                    "y_axis_units": "rad",
+                }
             elif axes_transform is AxesTransform.AITOFF_HAMMER:
-                return dict(
-                    x_axis_label=r"\frac{2\cos(\mathrm{\bar{\theta}})\sin(\lambda/2)}{\sqrt{1 + \cos(\bar{\theta}) \cos(\lambda/2)}}",
-                    y_axis_label=r"\frac{sin(\bar{\theta})}{\sqrt{1 + \cos(\bar{\theta}) \cos(\lambda/2)}}",
-                    x_axis_units="dimensionless",
-                    y_axis_units="dimensionless",
-                )
+                return {
+                    "x_axis_label": r"\frac{2\cos(\mathrm{\bar{\theta}})\sin(\lambda/2)}{\sqrt{1 + \cos(\bar{\theta}) \cos(\lambda/2)}}",
+                    "y_axis_label": r"\frac{sin(\bar{\theta})}{\sqrt{1 + \cos(\bar{\theta}) \cos(\lambda/2)}}",
+                    "x_axis_units": "dimensionless",
+                    "y_axis_units": "dimensionless",
+                }
             else:
                 raise NotImplementedError
         elif normal_axis_name == "theta":
             if axes_transform is AxesTransform.GEOMETRY_NATIVE:
-                return dict(
-                    x_axis_label="r",
-                    y_axis_label=r"\phi",
-                    x_axis_units=None,
-                    y_axis_units="rad",
-                )
+                return {
+                    "x_axis_label": "r",
+                    "y_axis_label": r"\phi",
+                    "x_axis_units": None,
+                    "y_axis_units": "rad",
+                }
             elif axes_transform is AxesTransform.POLAR:
-                return dict(
-                    x_axis_label=r"x / \sin(\theta)",
-                    y_axis_label=r"y / \sin(\theta)",
-                    x_axis_units=None,
-                    y_axis_units=None,
-                )
+                return {
+                    "x_axis_label": r"x / \sin(\theta)",
+                    "y_axis_label": r"y / \sin(\theta)",
+                    "x_axis_units": None,
+                    "y_axis_units": None,
+                }
             else:
                 raise NotImplementedError
         elif normal_axis_name == "phi":
             if axes_transform is AxesTransform.GEOMETRY_NATIVE:
-                return dict(
-                    x_axis_label="r",
-                    y_axis_label=r"\theta",
-                    x_axis_units=None,
-                    y_axis_units="rad",
-                )
+                return {
+                    "x_axis_label": "r",
+                    "y_axis_label": r"\theta",
+                    "x_axis_units": None,
+                    "y_axis_units": "rad",
+                }
             elif axes_transform is AxesTransform.POLAR:
-                return dict(
-                    x_axis_label="R",
-                    y_axis_label="z",
-                    x_axis_units=None,
-                    y_axis_units=None,
-                )
+                return {
+                    "x_axis_label": "R",
+                    "y_axis_label": "z",
+                    "x_axis_units": None,
+                    "y_axis_units": None,
+                }
             else:
                 raise NotImplementedError
         else:
