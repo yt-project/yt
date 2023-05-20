@@ -344,18 +344,14 @@ class ImagePlotMPL(PlotMPL, ABC):
                     raise exc
         if self.colorbar_handler.draw_minorticks:
             if isinstance(norm, SymLogNorm):
-                if MPL_VERSION < Version("3.5.0b"):
+                if MPL_VERSION >= Version("3.5.0b"):
+                    mticks = get_symlog_minorticks(norm.linthresh, norm.vmin, norm.vmax)
+                    self.cax.yaxis.set_ticks(mticks, minor=True)
+                else:
                     # no known working method to draw symlog minor ticks
                     # see https://github.com/yt-project/yt/issues/3535
                     # and https://github.com/matplotlib/matplotlib/issues/21258
                     pass
-                else:
-                    flinthresh = 10 ** np.floor(np.log10(norm.linthresh))
-                    absmax = np.abs((norm.vmin, norm.vmax)).max()
-                    if (absmax - flinthresh) / absmax < 0.1:
-                        flinthresh /= 10
-                    mticks = get_symlog_minorticks(flinthresh, norm.vmin, norm.vmax)
-                    self.cax.yaxis.set_ticks(mticks, minor=True)
             else:
                 self.cax.minorticks_on()
         else:

@@ -273,9 +273,15 @@ def get_symlog_minorticks(linthresh: float, vmin: float, vmax: float) -> np.ndar
     """
     if vmin > 0:
         return get_log_minorticks(vmin, vmax)
-    elif vmax < 0 and vmin < 0:
+    elif vmax < 0:
         return -get_log_minorticks(-vmax, -vmin)
-    elif vmin == 0:
+
+    linthresh = 10 ** np.floor(np.log10(linthresh))
+    absmax = np.abs((vmin, vmax)).max()
+    if (absmax - linthresh) / absmax < 0.1:
+        linthresh /= 10
+
+    if vmin == 0:
         return np.hstack((0, get_log_minorticks(linthresh, vmax)))
     elif vmax == 0:
         return np.hstack((-get_log_minorticks(linthresh, -vmin)[::-1], 0))
