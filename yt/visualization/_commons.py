@@ -255,7 +255,7 @@ def get_log_minorticks(vmin: float, vmax: float) -> np.ndarray:
                 (lmticks, np.linspace(cofA, cofB, cofB - cofA + 1) * 10**expA)
             )
             expA += 1
-    return np.array(lmticks)
+    return lmticks
 
 
 def get_symlog_minorticks(linthresh: float, vmin: float, vmax: float) -> np.ndarray:
