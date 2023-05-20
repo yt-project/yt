@@ -347,6 +347,7 @@ class ImagePlotMPL(PlotMPL, ABC):
                 if MPL_VERSION < Version("3.5.0b"):
                     # no known working method to draw symlog minor ticks
                     # see https://github.com/yt-project/yt/issues/3535
+                    # and https://github.com/matplotlib/matplotlib/issues/21258
                     pass
                 else:
                     flinthresh = 10 ** np.floor(np.log10(norm.linthresh))
@@ -354,9 +355,6 @@ class ImagePlotMPL(PlotMPL, ABC):
                     if (absmax - flinthresh) / absmax < 0.1:
                         flinthresh /= 10
                     mticks = get_symlog_minorticks(flinthresh, norm.vmin, norm.vmax)
-                    if MPL_VERSION < Version("3.5.0b"):
-                        # https://github.com/matplotlib/matplotlib/issues/21258
-                        mticks = self.image.norm(mticks)
                     self.cax.yaxis.set_ticks(mticks, minor=True)
 
             elif isinstance(norm, LogNorm):
