@@ -321,7 +321,7 @@ class ImagePlotMPL(PlotMPL, ABC):
             )
         else:
             self.cb = self.figure.colorbar(self.image, self.cax)
-        self.cax.tick_params(which="both", axis="y", direction="in")
+        self.cax.tick_params(which="both", direction="in")
 
         fmt_kwargs = {"style": "scientific", "scilimits": (-2, 3), "useMathText": True}
         self.image.axes.ticklabel_format(**fmt_kwargs)
