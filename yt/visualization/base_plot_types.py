@@ -356,11 +356,6 @@ class ImagePlotMPL(PlotMPL, ABC):
                         flinthresh /= 10
                     mticks = get_symlog_minorticks(flinthresh, norm.vmin, norm.vmax)
                     self.cax.yaxis.set_ticks(mticks, minor=True)
-
-            elif isinstance(norm, LogNorm):
-                self.cax.minorticks_on()
-                self.cax.xaxis.set_visible(False)
-
             else:
                 self.cax.minorticks_on()
         else:
