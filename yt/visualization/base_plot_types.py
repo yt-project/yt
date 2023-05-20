@@ -345,8 +345,10 @@ class ImagePlotMPL(PlotMPL, ABC):
         if self.colorbar_handler.draw_minorticks:
             if isinstance(norm, SymLogNorm):
                 if MPL_VERSION >= Version("3.5.0b"):
-                    mticks = get_symlog_minorticks(norm.linthresh, norm.vmin, norm.vmax)
-                    self.cax.yaxis.set_ticks(mticks, minor=True)
+                    self.cb.set_ticks(
+                        get_symlog_minorticks(norm.linthresh, norm.vmin, norm.vmax),
+                        minor=True,
+                    )
                 else:
                     # no known working method to draw symlog minor ticks
                     # see https://github.com/yt-project/yt/issues/3535
