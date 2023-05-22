@@ -31,6 +31,8 @@ sph_whitelist_fields = (
     "thermal_energy",
     "smoothing_length",
     "star_formation_rate",
+    "cold_fraction",
+    "hot_temperature",
     "H_fraction",
     "He_fraction",
     "C_fraction",
