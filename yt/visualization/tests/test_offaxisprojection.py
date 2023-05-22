@@ -106,7 +106,7 @@ def expand_keywords(keywords, full=False):
         # the possible values of the kwargs
 
         # initialize array
-        list_of_kwarg_dicts = np.array([dict() for x in range(num_lists)])
+        list_of_kwarg_dicts = np.array([{} for x in range(num_lists)])
 
         # fill in array
         for i in np.arange(num_lists):
