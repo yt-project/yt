@@ -1,12 +1,10 @@
 import numpy as np
+from numpy.testing import assert_almost_equal, assert_array_equal, assert_equal
 
 from yt.frontends.enzo.api import EnzoDataset
 from yt.frontends.enzo.fields import NODAL_FLAGS
 from yt.testing import (
     assert_allclose_units,
-    assert_almost_equal,
-    assert_array_equal,
-    assert_equal,
     requires_file,
     requires_module,
     units_override_check,

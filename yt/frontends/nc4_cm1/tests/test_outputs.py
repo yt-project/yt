@@ -1,5 +1,7 @@
+from numpy.testing import assert_equal
+
 from yt.frontends.nc4_cm1.api import CM1Dataset
-from yt.testing import assert_equal, requires_file, units_override_check
+from yt.testing import requires_file, units_override_check
 from yt.utilities.answer_testing.framework import (
     FieldValuesTest,
     GridValuesTest,

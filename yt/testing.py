@@ -30,6 +30,19 @@ ANSWER_TEST_TAG = "answer_test"
 # Expose assert_true and assert_less_equal from unittest.TestCase
 # this is adopted from nose. Doing this here allows us to avoid importing
 # nose at the top level.
+def _deprecated_assert_func(func):
+    @wraps(func)
+    def retf(*args, **kwargs):
+        issue_deprecation_warning(
+            f"yt.testing.{func.__name__} is deprecated",
+            since="4.2",
+            stacklevel=3,
+        )
+        return func(*args, **kwargs)
+
+    return retf
+
+
 class _Dummy(unittest.TestCase):
     def nop(self):
         pass
@@ -37,8 +50,8 @@ class _Dummy(unittest.TestCase):
 
 _t = _Dummy("nop")
 
-assert_true = _t.assertTrue
-assert_less_equal = _t.assertLessEqual
+assert_true = _deprecated_assert_func(_t.assertTrue)
+assert_less_equal = _deprecated_assert_func(_t.assertLessEqual)
 
 
 def assert_rel_equal(a1, a2, decimals, err_msg="", verbose=True):
@@ -829,6 +842,10 @@ def expand_keywords(keywords, full=False):
     >>> for kwargs in list_of_kwargs:
     ...     write_projection(*args, **kwargs)
     """
+
+    issue_deprecation_warning(
+        "yt.testing.expand_keywords is deprecated", since="4.2", stacklevel=2
+    )
 
     # if we want every possible combination of keywords, use iter magic
     if full:
