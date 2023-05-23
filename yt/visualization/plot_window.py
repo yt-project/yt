@@ -22,6 +22,7 @@ from yt.funcs import (
     validate_moment,
 )
 from yt.geometry.api import Geometry
+from yt.geometry.coordinates._axes_transforms import AxesTransform, parse_axes_transform
 from yt.units.unit_object import Unit  # type: ignore
 from yt.units.unit_registry import UnitParseError  # type: ignore
 from yt.units.yt_array import YTArray, YTQuantity
@@ -67,9 +68,15 @@ else:
     from yt._maintenance.backports import zip
 
 
-def get_window_parameters(axis, center, width, ds):
-    width = ds.coordinates.sanitize_width(axis, width, None)
-    center, display_center = ds.coordinates.sanitize_center(center, axis)
+def get_window_parameters(
+    axis, center, width, ds, axes_transform: AxesTransform = AxesTransform.DEFAULT
+):
+    width = ds.coordinates.sanitize_width(
+        axis, width, None, axes_transform=axes_transform
+    )
+    center, display_center = ds.coordinates.sanitize_center(
+        center, axis, axes_transform=axes_transform
+    )
     xax = ds.coordinates.x_axis[axis]
     yax = ds.coordinates.y_axis[axis]
     bounds = (
@@ -102,6 +109,8 @@ def get_axes_unit(width, ds):
     r"""
     Infers the axes unit names from the input width specification
     """
+    if width is None:
+        return None
     if ds.no_cgs_equiv_length:
         return ("code_length",) * 2
     if is_sequence(width):
@@ -191,6 +200,7 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
         setup=False,
         *,
         geometry: Geometry = Geometry.CARTESIAN,
+        axes_transform: AxesTransform = AxesTransform.DEFAULT,
     ) -> None:
         # axis manipulation operations are callback-only:
         self._swap_axes_input = False
@@ -204,8 +214,12 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
         self.buff_size = buff_size
         self.antialias = antialias
         self._axes_unit_names = None
+
+        # TODO(4179): handle compat with _transform and _projection ?
+        # see https://github.com/yt-project/yt/issues/4182
         self._transform = None
         self._projection = None
+        self._axes_transform = axes_transform
 
         self.aspect = aspect
         skip = list(FixedResolutionBuffer._exclude_fields) + data_source._key_fields
@@ -235,11 +249,12 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
 
         self.origin = origin
         if self.data_source.center is not None and not oblique:
+            # see https://github.com/yt-project/yt/issues/4182
             ax = self.data_source.axis
             xax = self.ds.coordinates.x_axis[ax]
             yax = self.ds.coordinates.y_axis[ax]
             center, display_center = self.ds.coordinates.sanitize_center(
-                self.data_source.center, ax
+                self.data_source.center, ax, axes_transform=self._axes_transform
             )
             center = [display_center[xax], display_center[yax]]
             self.set_center(center)
@@ -329,6 +344,7 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
             self.antialias,
             periodic=self._periodic,
             filters=old_filters,
+            axes_transform=self._axes_transform,
         )
 
         # At this point the frb has the valid bounds, size, aliasing, etc.
@@ -691,8 +707,9 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
 
         axes_unit = get_axes_unit(width, self.ds)
 
-        width = self.ds.coordinates.sanitize_width(self.frb.axis, width, None)
-
+        width = self.ds.coordinates.sanitize_width(
+            self.frb.axis, width, None, axes_transform=self._axes_transform
+        )
         centerx = (self.xlim[1] + self.xlim[0]) / 2.0
         centery = (self.ylim[1] + self.ylim[0]) / 2.0
 
@@ -866,7 +883,8 @@ class PWViewerMPL(PlotWindow):
         if self._plot_type is None:
             self._plot_type = kwargs.pop("plot_type")
         self._splat_color = kwargs.pop("splat_color", None)
-        PlotWindow.__init__(self, *args, **kwargs)
+        self._frb: Optional[FixedResolutionBuffer] = None
+        super().__init__(*args, **kwargs)
 
         # import type here to avoid import cycles
         # note that this import statement is actually crucial at runtime:
@@ -1012,61 +1030,72 @@ class PWViewerMPL(PlotWindow):
             self._recreate_frb()
         self._colorbar_valid = True
         field_list = list(set(self.data_source._determine_fields(self.fields)))
-        for f in field_list:
-            axis_index = self.data_source.axis
 
+        coordinates = self.ds.coordinates
+        normal_axis_index = self.data_source.axis
+
+        if self.oblique:
+            normal_axis_name = "oblique"
+        else:
+            normal_axis_name = coordinates.axis_name[normal_axis_index]
+
+        default_plot_properties = coordinates._get_plot_axes_default_properties(
+            normal_axis_name, self._axes_transform
+        )
+
+        for f in field_list:
             xc, yc = self._setup_origin()
-            if self.ds._uses_code_length_unit:
-                # this should happen only if the dataset was initialized with
-                # argument unit_system="code" or if it's set to have no CGS
-                # equivalent.  This only needs to happen here in the specific
-                # case that we're doing a computationally intense operation
-                # like using cartopy, but it prevents crashes in that case.
-                (unit_x, unit_y) = ("code_length", "code_length")
-            elif self._axes_unit_names is None:
-                unit = self.ds.get_smallest_appropriate_unit(
-                    self.xlim[1] - self.xlim[0]
-                )
-                unit_x = unit_y = unit
-                coords = self.ds.coordinates
-                if hasattr(coords, "image_units"):
-                    # check for special cases defined in
-                    # non cartesian CoordinateHandler subclasses
-                    image_units = coords.image_units[coords.axis_id[axis_index]]
-                    if image_units[0] in ("deg", "rad"):
+            if self._axes_unit_names is None:
+                unit_x = default_plot_properties["x_axis_units"]
+                unit_y = default_plot_properties["y_axis_units"]
+                if unit_x is None:
+                    if self.ds._uses_code_length_unit:
                         unit_x = "code_length"
-                    elif image_units[0] == 1:
-                        unit_x = "dimensionless"
-                    if image_units[1] in ("deg", "rad"):
+                    else:
+                        unit_x = self.ds.get_smallest_appropriate_unit(
+                            self.xlim[1] - self.xlim[0]
+                        )
+                if unit_y is None:
+                    if self.ds._uses_code_length_unit:
                         unit_y = "code_length"
-                    elif image_units[1] == 1:
-                        unit_y = "dimensionless"
+                    else:
+                        unit_y = self.ds.get_smallest_appropriate_unit(
+                            self.ylim[1] - self.ylim[0]
+                        )
             else:
                 (unit_x, unit_y) = self._axes_unit_names
 
-            # For some plots we may set aspect by hand, such as for spectral cube data.
-            # This will likely be replaced at some point by the coordinate handler
-            # setting plot aspect.
-            if self.aspect is None:
-                self.aspect = float(
-                    (self.ds.quan(1.0, unit_y) / self.ds.quan(1.0, unit_x)).in_cgs()
-                )
             extentx = (self.xlim - xc)[:2]
             extenty = (self.ylim - yc)[:2]
 
             # extentx/y arrays inherit units from xlim and ylim attributes
             # and these attributes are always length even for angular and
             # dimensionless axes so we need to strip out units for consistency
-            if unit_x == "dimensionless":
+            if unit_x in ("dimensionless", "rad", "deg"):
                 extentx = extentx / extentx.units
             else:
                 extentx.convert_to_units(unit_x)
-            if unit_y == "dimensionless":
+            if unit_y in ("dimensionless", "rad", "deg"):
                 extenty = extenty / extenty.units
             else:
                 extenty.convert_to_units(unit_y)
 
             extent = [*extentx, *extenty]
+
+            # For some plots we may set aspect by hand, such as for spectral cube data.
+            # This will likely be replaced at some point by the coordinate handler
+            # setting plot aspect.
+            if self.aspect is None:
+                ratio = (self.ds.quan(1.0, unit_y) / self.ds.quan(1.0, unit_x)).in_cgs()
+                if ratio.units.is_dimensionless:
+                    self.aspect = float(ratio)
+                else:
+                    # maybe we have length on the x axis and radians on the y axis
+                    # in that case, it doesn't make much sense to impose a 1 to 1 ratio
+                    # so instead we set the image to be a square by default
+                    self.aspect = float(
+                        ((extentx[1] - extentx[0]) / (extenty[1] - extenty[0])).value
+                    )
 
             image = self.frb[f]
             font_size = self._font_properties.get_size()
@@ -1134,30 +1163,31 @@ class PWViewerMPL(PlotWindow):
                 colorbar_handler=cbh,
             )
 
-            axes_unit_labels = self._get_axes_unit_labels(unit_x, unit_y)
+            # construct default axes labels
+            x_unit_label, y_unit_label = self._get_axes_unit_labels(unit_x, unit_y)
 
             if self.oblique:
                 labels = [
-                    r"$\rm{Image\ x" + axes_unit_labels[0] + "}$",
-                    r"$\rm{Image\ y" + axes_unit_labels[1] + "}$",
+                    r"$\rm{Image\ x" + x_unit_label + "}$",
+                    r"$\rm{Image\ y" + y_unit_label + "}$",
                 ]
             else:
-                coordinates = self.ds.coordinates
-                axis_names = coordinates.image_axis_name[axis_index]
-                xax = coordinates.x_axis[axis_index]
-                yax = coordinates.y_axis[axis_index]
-
-                if hasattr(coordinates, "axis_default_unit_name"):
-                    axes_unit_labels = [
-                        coordinates.axis_default_unit_name[xax],
-                        coordinates.axis_default_unit_name[yax],
-                    ]
                 labels = [
-                    r"$\rm{" + axis_names[0] + axes_unit_labels[0] + r"}$",
-                    r"$\rm{" + axis_names[1] + axes_unit_labels[1] + r"}$",
+                    r"$\rm{"
+                    + default_plot_properties["x_axis_label"]
+                    + x_unit_label
+                    + r"}$",
+                    r"$\rm{"
+                    + default_plot_properties["y_axis_label"]
+                    + y_unit_label
+                    + r"}$",
                 ]
 
                 if hasattr(coordinates, "axis_field"):
+                    # this is exclusive to spectral_cube geometries
+                    xax = coordinates.x_axis[normal_axis_index]
+                    yax = coordinates.y_axis[normal_axis_index]
+
                     if xax in coordinates.axis_field:
                         xmin, xmax = coordinates.axis_field[xax](
                             0, self.xlim, self.ylim
@@ -1178,9 +1208,9 @@ class PWViewerMPL(PlotWindow):
 
             x_label, y_label, colorbar_label = self._get_axes_labels(f)
 
-            if x_label is not None:
+            if x_label:
                 labels[0] = x_label
-            if y_label is not None:
+            if y_label:
                 labels[1] = y_label
 
             if swap_axes:
@@ -1193,7 +1223,7 @@ class PWViewerMPL(PlotWindow):
             units = Unit(self.frb[f].units, registry=self.ds.unit_registry)
             units = units.latex_representation()
 
-            if colorbar_label is None:
+            if not colorbar_label:
                 colorbar_label = image.info["label"]
                 if getattr(self, "moment", 1) == 2:
                     colorbar_label = "%s \\rm{Standard Deviation}" % colorbar_label
@@ -1804,6 +1834,7 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
         buff_size=(800, 800),
         *,
         north_vector=None,
+        axes_transform: Optional[str] = None,
     ):
         if north_vector is not None:
             # this kwarg exists only for symmetry reasons with OffAxisSlicePlot
@@ -1814,10 +1845,17 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
             del north_vector
 
         normal = self.sanitize_normal_vector(ds, normal)
+
+        _axt = parse_axes_transform(axes_transform)
+
         # this will handle time series data and controllers
         axis = fix_axis(normal, ds)
         (bounds, center, display_center) = get_window_parameters(
-            axis, center, width, ds
+            axis,
+            center,
+            width,
+            ds,
+            axes_transform=_axt,
         )
         if field_parameters is None:
             field_parameters = {}
@@ -1837,8 +1875,7 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
             )
             slc.get_data(fields)
         validate_mesh_fields(slc, fields)
-        PWViewerMPL.__init__(
-            self,
+        super().__init__(
             slc,
             bounds,
             origin=origin,
@@ -1848,6 +1885,7 @@ class AxisAlignedSlicePlot(SlicePlot, PWViewerMPL):
             aspect=aspect,
             buff_size=buff_size,
             geometry=ds.geometry,
+            axes_transform=_axt,
         )
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
@@ -2033,6 +2071,7 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
         aspect=None,
         *,
         moment=1,
+        axes_transform: Optional[str] = None,
     ):
         if method == "mip":
             issue_deprecation_warning(
@@ -2043,12 +2082,18 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
             method = "max"
         normal = self.sanitize_normal_vector(ds, normal)
 
+        _axt = parse_axes_transform(axes_transform)
+
         axis = fix_axis(normal, ds)
         # If a non-weighted integral projection, assure field-label reflects that
         if weight_field is None and method == "integrate":
             self.projected = True
         (bounds, center, display_center) = get_window_parameters(
-            axis, center, width, ds
+            axis,
+            center,
+            width,
+            ds,
+            axes_transform=_axt,
         )
         if field_parameters is None:
             field_parameters = {}
@@ -2094,6 +2139,7 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
             aspect=aspect,
             buff_size=buff_size,
             geometry=ds.geometry,
+            axes_transform=_axt,
         )
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
@@ -2560,6 +2606,8 @@ def plot_2d(
     window_size=8.0,
     aspect=None,
     data_source=None,
+    *,
+    axes_transform: Optional[str] = None,
 ) -> AxisAlignedSlicePlot:
     r"""Creates a plot of a 2D dataset
 
@@ -2710,4 +2758,5 @@ def plot_2d(
         window_size=window_size,
         aspect=aspect,
         data_source=data_source,
+        axes_transform=axes_transform,
     )

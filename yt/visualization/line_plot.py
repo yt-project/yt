@@ -334,12 +334,12 @@ class LinePlot(BaseLinePlot):
                 # set x and y axis labels
                 axes_unit_labels = self._get_axes_unit_labels(unit_x, unit_y)
 
-                if self._xlabel is not None:
+                if self._xlabel:
                     x_label = self._xlabel
                 else:
                     x_label = r"$\rm{Path\ Length" + axes_unit_labels[0] + "}$"
 
-                if self._ylabel is not None:
+                if self._ylabel:
                     y_label = self._ylabel
                 else:
                     finfo = self.ds.field_info[field]

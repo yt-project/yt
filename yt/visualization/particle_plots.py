@@ -5,6 +5,7 @@ import numpy as np
 from yt.data_objects.profiles import create_profile
 from yt.data_objects.static_output import Dataset
 from yt.funcs import fix_axis, iter_fields
+from yt.geometry.coordinates._axes_transforms import AxesTransform
 from yt.units.yt_array import YTArray
 from yt.visualization.fixed_resolution import ParticleImageBuffer
 from yt.visualization.profile_plotter import PhasePlot
@@ -250,7 +251,11 @@ class ParticleProjectionPlot(PWViewerMPL):
         ds = self.ds = ts[0]
         axis = fix_axis(axis, ds)
         (bounds, center, display_center) = get_window_parameters(
-            axis, center, width, ds
+            axis,
+            center,
+            width,
+            ds,
+            axes_transform=AxesTransform.DEFAULT,
         )
         if field_parameters is None:
             field_parameters = {}

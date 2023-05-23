@@ -705,22 +705,6 @@ class PlotContainer(abc.ABC):
         comoving = False
         hinv = False
         for i, un in enumerate((unit_x, unit_y)):
-            unn = None
-            if hasattr(self.data_source, "axis"):
-                if hasattr(self.ds.coordinates, "image_units"):
-                    # This *forces* an override
-                    unn = self.ds.coordinates.image_units[self.data_source.axis][i]
-                elif hasattr(self.ds.coordinates, "default_unit_label"):
-                    axax = getattr(self.ds.coordinates, f"{'xy'[i]}_axis")[
-                        self.data_source.axis
-                    ]
-                    unn = self.ds.coordinates.default_unit_label.get(axax, None)
-            if unn in (1, "1", "dimensionless"):
-                axes_unit_labels[i] = ""
-                continue
-            if unn is not None:
-                axes_unit_labels[i] = _get_units_label(unn).strip("$")
-                continue
             # Use sympy to factor h out of the unit.  In this context 'un'
             # is a string, so we call the Unit constructor.
             expr = Unit(un, registry=self.ds.unit_registry).expr
@@ -741,7 +725,7 @@ class PlotContainer(abc.ABC):
                 # It doesn't make sense to scale a position by anything
                 # other than h**-1
                 raise RuntimeError
-            if un not in ["1", "u", "unitary"]:
+            if un not in ["dimensionless", "1", "u", "unitary"]:
                 if un in formatted_length_unit_names:
                     un = formatted_length_unit_names[un]
                 else:

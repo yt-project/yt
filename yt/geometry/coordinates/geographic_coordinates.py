@@ -1,9 +1,14 @@
+from typing import Dict
+
 import numpy as np
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.utilities.lib.pixelization_routines import pixelize_cartesian, pixelize_cylinder
 
+from ._axes_transforms import AxesTransform
 from .coordinate_handler import (
     CoordinateHandler,
+    DefaultProperties,
     _get_coord_fields,
     _setup_dummy_cartesian_coords_and_widths,
 )
@@ -12,15 +17,16 @@ from .coordinate_handler import (
 class GeographicCoordinateHandler(CoordinateHandler):
     radial_axis = "altitude"
     name = "geographic"
+    _default_axes_transforms: Dict[str, AxesTransform] = {
+        "latitude": AxesTransform.POLAR,
+        "longitude": AxesTransform.POLAR,
+        "altitude": AxesTransform.AITOFF_HAMMER,
+    }
 
     def __init__(self, ds, ordering=None):
         if ordering is None:
             ordering = ("latitude", "longitude", self.radial_axis)
         super().__init__(ds, ordering)
-        self.image_units = {}
-        self.image_units[self.axis_id["latitude"]] = (None, None)
-        self.image_units[self.axis_id["longitude"]] = (None, None)
-        self.image_units[self.axis_id[self.radial_axis]] = ("deg", "deg")
 
     def setup_fields(self, registry):
         # Missing implementation for x, y and z coordinates.
@@ -214,13 +220,29 @@ class GeographicCoordinateHandler(CoordinateHandler):
         return surface_height, 1.0
 
     def pixelize(
-        self, dimension, data_source, field, bounds, size, antialias=True, periodic=True
+        self,
+        dimension,
+        data_source,
+        field,
+        bounds,
+        size,
+        antialias=True,
+        periodic=True,
+        *,
+        axes_transform=AxesTransform.DEFAULT,
     ):
-        if self.axis_name[dimension] in ("latitude", "longitude"):
+        if axes_transform is AxesTransform.GEOMETRY_NATIVE:
+            return super()._ortho_pixelize(
+                data_source, field, bounds, size, antialias, dimension, periodic
+            )
+        if axes_transform is not AxesTransform.DEFAULT:
+            raise NotImplementedError
+        name = self.axis_name[dimension]
+        if name in ("latitude", "longitude"):
             return self._cyl_pixelize(
                 data_source, field, bounds, size, antialias, dimension
             )
-        elif self.axis_name[dimension] == self.radial_axis:
+        elif name == self.radial_axis:
             return self._ortho_pixelize(
                 data_source, field, bounds, size, antialias, dimension, periodic
             )
@@ -326,10 +348,15 @@ class GeographicCoordinateHandler(CoordinateHandler):
     def convert_from_spherical(self, coord):
         raise NotImplementedError
 
-    _image_axis_name = None
+    _image_axis_name = None  # deprecated
 
     @property
     def image_axis_name(self):
+        issue_deprecation_warning(
+            "The image_axis_name property isn't used "
+            "internally in yt anymore and is deprecated",
+            since="4.2.0",
+        )
         if self._image_axis_name is not None:
             return self._image_axis_name
         # This is the x and y axes labels that get displayed.  For
@@ -349,13 +376,13 @@ class GeographicCoordinateHandler(CoordinateHandler):
         self._image_axis_name = rv
         return rv
 
-    _x_pairs = (
+    _x_pairs = (  # deprecated
         ("latitude", "longitude"),
         ("longitude", "latitude"),
         ("altitude", "longitude"),
     )
 
-    _y_pairs = (
+    _y_pairs = (  # deprecated
         ("latitude", "altitude"),
         ("longitude", "altitude"),
         ("altitude", "latitude"),
@@ -365,6 +392,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
 
     @property
     def data_projection(self):
+        # see https://github.com/yt-project/yt/issues/4182
         # this will control the default projection to use when displaying data
         if self._data_projection is not None:
             return self._data_projection
@@ -397,7 +425,12 @@ class GeographicCoordinateHandler(CoordinateHandler):
     def period(self):
         return self.ds.domain_width
 
-    def sanitize_center(self, center, axis):
+    def sanitize_center(self, center, axis, *, axes_transform=AxesTransform.DEFAULT):
+        if axes_transform is AxesTransform.GEOMETRY_NATIVE:
+            return super().sanitize_center(center, axis, axes_transform=axes_transform)
+        if axes_transform is not AxesTransform.DEFAULT:
+            raise NotImplementedError
+
         center, display_center = super().sanitize_center(center, axis)
         name = self.axis_name[axis]
         if name == self.radial_axis:
@@ -419,7 +452,16 @@ class GeographicCoordinateHandler(CoordinateHandler):
             display_center[self.axis_id["latitude"]] = c
         return center, display_center
 
-    def sanitize_width(self, axis, width, depth):
+    def sanitize_width(
+        self, axis, width, depth, *, axes_transform=AxesTransform.DEFAULT
+    ):
+        if axes_transform is AxesTransform.GEOMETRY_NATIVE:
+            return super().sanitize_width(
+                axis, width, depth, axes_transform=axes_transform
+            )
+        if axes_transform is not AxesTransform.DEFAULT:
+            raise NotImplementedError
+
         name = self.axis_name[axis]
         if width is not None:
             width = super().sanitize_width(axis, width, depth)
@@ -439,10 +481,86 @@ class GeographicCoordinateHandler(CoordinateHandler):
             width = [self.ds.domain_width[ri], 2.0 * self.ds.domain_width[ri]]
         return width
 
+    def _get_plot_axes_default_properties(
+        self, normal_axis_name: str, axes_transform: AxesTransform
+    ) -> DefaultProperties:
+        if axes_transform is AxesTransform.DEFAULT:
+            axes_transform = self._default_axes_transforms[normal_axis_name]
+
+        if normal_axis_name == "latitude":
+            if axes_transform is AxesTransform.GEOMETRY_NATIVE:
+                return {
+                    "x_axis_label": r"longitude",
+                    "y_axis_label": r"R",
+                    "x_axis_units": "deg",
+                    "y_axis_units": None,
+                }
+            elif axes_transform is AxesTransform.POLAR:
+                return {
+                    "x_axis_label": r"x / \sin(\mathrm{latitude})",
+                    "y_axis_label": r"y / \sin(\mathrm{latitude})",
+                    "x_axis_units": None,
+                    "y_axis_units": None,
+                }
+            else:
+                raise NotImplementedError
+        elif normal_axis_name == "longitude":
+            if axes_transform is AxesTransform.GEOMETRY_NATIVE:
+                return {
+                    "x_axis_label": "latitude",
+                    "y_axis_label": "R",
+                    "x_axis_units": "deg",
+                    "y_axis_units": None,
+                }
+            elif axes_transform is AxesTransform.POLAR:
+                return {
+                    "x_axis_label": "R",
+                    "y_axis_label": "z",
+                    "x_axis_units": None,
+                    "y_axis_units": None,
+                }
+            else:
+                raise NotImplementedError
+        elif normal_axis_name == self.radial_axis:
+            # TODO(4179): either clean this or refactor something elsewhere,
+            # because it is currently never used:
+            # this case is deleguated to cartopy,
+            # though we have everything needed to do it ourselves !
+            # see https://github.com/yt-project/yt/issues/4182
+            if axes_transform is AxesTransform.GEOMETRY_NATIVE:
+                return {
+                    "x_axis_label": "longitude",
+                    "y_axis_label": "latitude",
+                    "x_axis_units": "deg",
+                    "y_axis_units": "deg",
+                }
+            elif axes_transform is AxesTransform.AITOFF_HAMMER:
+                return {
+                    "x_axis_label": (
+                        r"\frac{2\cos(\mathrm{\mathrm{latitude}})\sin(\mathrm{longitude}/2)}"
+                        r"{\sqrt{1 + \cos(\mathrm{latitude}) \cos(\mathrm{longitude}/2)}}"
+                    ),
+                    "y_axis_label": (
+                        r"\frac{sin(\mathrm{latitude})}"
+                        r"{\sqrt{1 + \cos(\mathrm{latitude}) \cos(\mathrm{longitude}/2)}}"
+                    ),
+                    "x_axis_units": "dimensionless",
+                    "y_axis_units": "dimensionless",
+                }
+            else:
+                raise NotImplementedError
+        else:
+            raise ValueError(f"Unknown axis {normal_axis_name!r}")
+
 
 class InternalGeographicCoordinateHandler(GeographicCoordinateHandler):
     radial_axis = "depth"
     name = "internal_geographic"
+    _default_axes_transforms: Dict[str, AxesTransform] = {
+        "latitude": AxesTransform.POLAR,
+        "longitude": AxesTransform.POLAR,
+        "depth": AxesTransform.AITOFF_HAMMER,
+    }
 
     def _setup_radial_fields(self, registry):
         # Altitude is the radius from the central zone minus the radius of the
@@ -488,9 +606,18 @@ class InternalGeographicCoordinateHandler(GeographicCoordinateHandler):
         ("depth", "longitude"),
     )
 
-    _y_pairs = (("latitude", "depth"), ("longitude", "depth"), ("depth", "latitude"))
+    _y_pairs = (
+        ("latitude", "depth"),
+        ("longitude", "depth"),
+        ("depth", "latitude"),
+    )
 
-    def sanitize_center(self, center, axis):
+    def sanitize_center(self, center, axis, *, axes_transform=AxesTransform.DEFAULT):
+        if axes_transform is AxesTransform.GEOMETRY_NATIVE:
+            return super().sanitize_center(center, axis, axes_transform=axes_transform)
+        if axes_transform is not AxesTransform.DEFAULT:
+            raise NotImplementedError
+
         center, display_center = super(
             GeographicCoordinateHandler, self
         ).sanitize_center(center, axis)
@@ -515,12 +642,19 @@ class InternalGeographicCoordinateHandler(GeographicCoordinateHandler):
             display_center[self.axis_id["latitude"]] = outermost / 2.0
         return center, display_center
 
-    def sanitize_width(self, axis, width, depth):
+    def sanitize_width(
+        self, axis, width, depth, *, axes_transform=AxesTransform.DEFAULT
+    ):
+        if axes_transform is AxesTransform.GEOMETRY_NATIVE:
+            return super().sanitize_width(
+                axis, width, depth, axes_transform=axes_transform
+            )
+        if axes_transform is not AxesTransform.DEFAULT:
+            raise NotImplementedError
+
         name = self.axis_name[axis]
         if width is not None:
-            width = super(GeographicCoordinateHandler, self).sanitize_width(
-                axis, width, depth
-            )
+            width = super().sanitize_width(axis, width, depth)
         elif name == self.radial_axis:
             rax = self.radial_axis
             width = [

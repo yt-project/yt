@@ -1,11 +1,15 @@
 from functools import cached_property
+from typing import Dict
 
 import numpy as np
 
-from yt.utilities.lib.pixelization_routines import pixelize_cartesian, pixelize_cylinder
+from yt._maintenance.deprecation import issue_deprecation_warning
+from yt.utilities.lib.pixelization_routines import pixelize_cylinder
 
+from ._axes_transforms import AxesTransform
 from .coordinate_handler import (
     CoordinateHandler,
+    DefaultProperties,
     _get_coord_fields,
     _get_polar_bounds,
     _setup_dummy_cartesian_coords_and_widths,
@@ -22,13 +26,14 @@ from .coordinate_handler import (
 class CylindricalCoordinateHandler(CoordinateHandler):
     name = "cylindrical"
     _default_axis_order = ("r", "z", "theta")
+    _default_axes_transforms: Dict[str, AxesTransform] = {
+        "r": AxesTransform.GEOMETRY_NATIVE,
+        "theta": AxesTransform.GEOMETRY_NATIVE,
+        "z": AxesTransform.POLAR,
+    }
 
     def __init__(self, ds, ordering=None):
         super().__init__(ds, ordering)
-        self.image_units = {}
-        self.image_units[self.axis_id["r"]] = ("rad", None)
-        self.image_units[self.axis_id["theta"]] = (None, None)
-        self.image_units[self.axis_id["z"]] = (None, None)
 
     def setup_fields(self, registry):
         # Missing implementation for x and y coordinates.
@@ -87,17 +92,35 @@ class CylindricalCoordinateHandler(CoordinateHandler):
         size,
         antialias=True,
         periodic=False,
+        *,
+        axes_transform=AxesTransform.DEFAULT,
     ):
         # Note that above, we set periodic by default to be *false*.  This is
         # because our pixelizers, at present, do not handle periodicity
         # correctly, and if you change the "width" of a cylindrical plot, it
         # double-counts in the edge buffers.  See, for instance, issue 1669.
-        ax_name = self.axis_name[dimension]
-        if ax_name in ("r", "theta"):
+        if axes_transform is AxesTransform.GEOMETRY_NATIVE:
             return self._ortho_pixelize(
                 data_source, field, bounds, size, antialias, dimension, periodic
             )
-        elif ax_name == "z":
+
+        name = self.axis_name[dimension]
+        if axes_transform is AxesTransform.DEFAULT:
+            axes_transform = self._default_axes_transforms[name]
+
+        if name in ("r", "theta"):
+            if axes_transform is not AxesTransform.GEOMETRY_NATIVE:
+                raise NotImplementedError(
+                    f"{axes_transform} is not implemented for normal axis {name!r}"
+                )
+            return self._ortho_pixelize(
+                data_source, field, bounds, size, antialias, dimension, periodic
+            )
+        elif name == "z":
+            if axes_transform is not AxesTransform.POLAR:
+                raise NotImplementedError(
+                    f"{axes_transform} is not implemented for normal axis {name!r}"
+                )
             # This is admittedly a very hacky way to resolve a bug
             # it's very likely that the *right* fix would have to
             # be applied upstream of this function, *but* this case
@@ -113,29 +136,6 @@ class CylindricalCoordinateHandler(CoordinateHandler):
     def pixelize_line(self, field, start_point, end_point, npoints):
         raise NotImplementedError
 
-    def _ortho_pixelize(
-        self, data_source, field, bounds, size, antialias, dim, periodic
-    ):
-        period = self.period[:2].copy()  # dummy here
-        period[0] = self.period[self.x_axis[dim]]
-        period[1] = self.period[self.y_axis[dim]]
-        if hasattr(period, "in_units"):
-            period = period.in_units("code_length").d
-        buff = np.full(size, np.nan, dtype="float64")
-        pixelize_cartesian(
-            buff,
-            data_source["px"],
-            data_source["py"],
-            data_source["pdx"],
-            data_source["pdy"],
-            data_source[field],
-            bounds,
-            int(antialias),
-            period,
-            int(periodic),
-        )
-        return buff
-
     def _cyl_pixelize(self, data_source, field, bounds, size, antialias):
         buff = np.full((size[1], size[0]), np.nan, dtype="f8")
         pixelize_cylinder(
@@ -149,13 +149,18 @@ class CylindricalCoordinateHandler(CoordinateHandler):
         )
         return buff
 
-    _x_pairs = (("r", "theta"), ("z", "r"), ("theta", "r"))
-    _y_pairs = (("r", "z"), ("z", "theta"), ("theta", "z"))
+    _x_pairs = (("r", "theta"), ("z", "r"), ("theta", "r"))  # deprecated
+    _y_pairs = (("r", "z"), ("z", "theta"), ("theta", "z"))  # deprecated
 
-    _image_axis_name = None
+    _image_axis_name = None  # deprecated
 
     @property
     def image_axis_name(self):
+        issue_deprecation_warning(
+            "The image_axis_name property isn't used "
+            "internally in yt anymore and is deprecated",
+            since="4.2.0",
+        )
         if self._image_axis_name is not None:
             return self._image_axis_name
         # This is the x and y axes labels that get displayed.  For
@@ -198,47 +203,144 @@ class CylindricalCoordinateHandler(CoordinateHandler):
     def _polar_bounds(self):
         return _get_polar_bounds(self, axes=("r", "theta"))
 
-    def sanitize_center(self, center, axis):
-        center, display_center = super().sanitize_center(center, axis)
+    def _get_display_center(self, center, axes_transform):
+        if axes_transform is AxesTransform.GEOMETRY_NATIVE:
+            return center
+        else:
+            return super()._get_display_center(center, axes_transform)
+
+    def sanitize_center(self, center, axis, *, axes_transform=AxesTransform.DEFAULT):
+        if axes_transform is AxesTransform.GEOMETRY_NATIVE:
+            return super().sanitize_center(center, axis, axes_transform=axes_transform)
+
+        name = self.axis_name[axis]
+        if axes_transform is AxesTransform.DEFAULT:
+            axes_transform = self._default_axes_transforms[name]
+        center, display_center = super().sanitize_center(
+            center, axis, axes_transform=AxesTransform.GEOMETRY_NATIVE
+        )
         display_center = [
             0.0 * display_center[0],
             0.0 * display_center[1],
             0.0 * display_center[2],
         ]
-        ax_name = self.axis_name[axis]
         r_ax = self.axis_id["r"]
         theta_ax = self.axis_id["theta"]
         z_ax = self.axis_id["z"]
-        if ax_name == "r":
+        if name == "r":
+            if axes_transform is not AxesTransform.GEOMETRY_NATIVE:
+                raise NotImplementedError(
+                    f"{axes_transform} is not implemented for normal axis {name!r}"
+                )
             display_center[theta_ax] = self.ds.domain_center[theta_ax]
             display_center[z_ax] = self.ds.domain_center[z_ax]
-        elif ax_name == "theta":
+        elif name == "theta":
+            if axes_transform is not AxesTransform.GEOMETRY_NATIVE:
+                raise NotImplementedError(
+                    f"{axes_transform} is not implemented for normal axis {name!r}"
+                )
             # use existing center value
             for idx in (r_ax, z_ax):
                 display_center[idx] = center[idx]
-        elif ax_name == "z":
+        elif name == "z":
+            if axes_transform is not AxesTransform.POLAR:
+                raise NotImplementedError(
+                    f"{axes_transform} is not implemented for normal axis {name!r}"
+                )
             xxmin, xxmax, yymin, yymax = self._polar_bounds
             xc = (xxmin + xxmax) / 2
             yc = (yymin + yymax) / 2
             display_center = (xc, yc, 0 * xc)
+        else:
+            RuntimeError(f"Unknown axis name {name!r} for cylindrical coordinates")
         return center, display_center
 
-    def sanitize_width(self, axis, width, depth):
+    def sanitize_width(
+        self, axis, width, depth, *, axes_transform=AxesTransform.DEFAULT
+    ):
+        if axes_transform is AxesTransform.GEOMETRY_NATIVE:
+            return super().sanitize_width(
+                axis, width, depth, axes_transform=axes_transform
+            )
+
         name = self.axis_name[axis]
+        if axes_transform is AxesTransform.DEFAULT:
+            axes_transform = self._default_axes_transforms[name]
+
         r_ax, theta_ax, z_ax = (
             self.ds.coordinates.axis_id[ax] for ax in ("r", "theta", "z")
         )
         if width is not None:
-            width = super().sanitize_width(axis, width, depth)
+            width = super().sanitize_width(
+                axis, width, depth, axes_transform=axes_transform
+            )
         # Note: regardless of axes, these are set up to give consistent plots
         # when plotted, which is not strictly a "right hand rule" for axes.
         elif name == "r":  # soup can label
+            if axes_transform is not AxesTransform.GEOMETRY_NATIVE:
+                raise NotImplementedError(
+                    f"{axes_transform} is not implemented for normal axis {name!r}"
+                )
             width = [self.ds.domain_width[theta_ax], self.ds.domain_width[z_ax]]
         elif name == "theta":
+            if axes_transform is not AxesTransform.GEOMETRY_NATIVE:
+                raise NotImplementedError(
+                    f"{axes_transform} is not implemented for normal axis {name!r}"
+                )
             width = [self.ds.domain_width[r_ax], self.ds.domain_width[z_ax]]
         elif name == "z":
+            if axes_transform is not AxesTransform.POLAR:
+                raise NotImplementedError(
+                    f"{axes_transform} is not implemented for normal axis {name!r}"
+                )
             xxmin, xxmax, yymin, yymax = self._polar_bounds
             xw = xxmax - xxmin
             yw = yymax - yymin
             width = [xw, yw]
         return width
+
+    def _get_plot_axes_default_properties(
+        self, normal_axis_name: str, axes_transform: AxesTransform
+    ) -> DefaultProperties:
+        if axes_transform is AxesTransform.DEFAULT:
+            axes_transform = self._default_axes_transforms[normal_axis_name]
+
+        if normal_axis_name == "r":
+            if axes_transform is AxesTransform.GEOMETRY_NATIVE:
+                return {
+                    "x_axis_label": r"\theta",
+                    "y_axis_label": "z",
+                    "x_axis_units": "rad",
+                    "y_axis_units": None,
+                }
+            else:
+                raise NotImplementedError
+        elif normal_axis_name == "theta":
+            if axes_transform is AxesTransform.GEOMETRY_NATIVE:
+                return {
+                    "x_axis_label": "R",
+                    "y_axis_label": "z",
+                    "x_axis_units": None,
+                    "y_axis_units": None,
+                }
+            else:
+                raise NotImplementedError
+        elif normal_axis_name == "z":
+            if axes_transform is AxesTransform.GEOMETRY_NATIVE:
+                return {
+                    "x_axis_label": "R",
+                    "y_axis_label": r"\theta",
+                    "x_axis_units": None,
+                    "y_axis_units": "rad",
+                }
+            elif axes_transform is AxesTransform.POLAR:
+                return {
+                    "x_axis_label": "x",
+                    "y_axis_label": "y",
+                    "x_axis_units": None,
+                    "y_axis_units": None,
+                }
+            else:
+                raise NotImplementedError
+        else:
+            raise ValueError(f"Unknown axis name {normal_axis_name!r}")

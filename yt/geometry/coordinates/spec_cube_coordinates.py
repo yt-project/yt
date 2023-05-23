@@ -1,9 +1,22 @@
-from .cartesian_coordinates import CartesianCoordinateHandler
+from typing import Dict
+
+from yt._maintenance.deprecation import issue_deprecation_warning
+
+from ._axes_transforms import AxesTransform
+from .cartesian_coordinates import (
+    CartesianCoordinateHandler,
+    DefaultProperties,
+)
 from .coordinate_handler import _get_coord_fields
 
 
 class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
     name = "spectral_cube"
+    _default_axes_transforms: Dict[str, AxesTransform] = {
+        "x": AxesTransform.GEOMETRY_NATIVE,
+        "y": AxesTransform.GEOMETRY_NATIVE,
+        "z": AxesTransform.GEOMETRY_NATIVE,
+    }
 
     def __init__(self, ds, ordering=None):
         if ordering is None:
@@ -11,28 +24,6 @@ class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
                 "xyz"[axis] for axis in (ds.lon_axis, ds.lat_axis, ds.spec_axis)
             )
         super().__init__(ds, ordering)
-
-        self.default_unit_label = {}
-        names = {}
-        if ds.lon_name != "X" or ds.lat_name != "Y":
-            names["x"] = r"Image\ x"
-            names["y"] = r"Image\ y"
-            # We can just use ds.lon_axis here
-            self.default_unit_label[ds.lon_axis] = "pixel"
-            self.default_unit_label[ds.lat_axis] = "pixel"
-        names["z"] = ds.spec_name
-        # Again, can use spec_axis here
-        self.default_unit_label[ds.spec_axis] = ds.spec_unit
-
-        self._image_axis_name = ian = {}
-        for ax in "xyz":
-            axi = self.axis_id[ax]
-            xax = self.axis_name[self.x_axis[ax]]
-            yax = self.axis_name[self.y_axis[ax]]
-            ian[axi] = ian[ax] = ian[ax.upper()] = (
-                names.get(xax, xax),
-                names.get(yax, yax),
-            )
 
         def _spec_axis(ax, x, y):
             p = (x, y)[ax]
@@ -94,4 +85,73 @@ class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
 
     @property
     def image_axis_name(self):
+        issue_deprecation_warning(
+            "The image_axis_name property isn't used "
+            "internally in yt anymore and is deprecated",
+            since="4.2.0",
+        )
         return self._image_axis_name
+
+    def _get_plot_axes_default_properties(
+        self, normal_axis_name: str, axes_transform: AxesTransform
+    ) -> DefaultProperties:
+        if axes_transform is AxesTransform.DEFAULT:
+            axes_transform = AxesTransform.GEOMETRY_NATIVE
+        if axes_transform is not AxesTransform.GEOMETRY_NATIVE:
+            raise NotImplementedError(
+                f"spectral cube coordinates don't implement {axes_transform} yet"
+            )
+
+        if normal_axis_name == "x":
+            if self.ds.lon_name == "X" and self.ds.lat_name == "Y":
+                return {
+                    "x_axis_label": "x",
+                    "y_axis_label": self.ds.spec_name,
+                    "x_axis_units": None,
+                    "y_axis_units": None,
+                }
+            else:
+                return {
+                    "x_axis_label": r"Image\ x",
+                    "y_axis_label": self.ds.spec_name,
+                    "x_axis_units": "pixel",
+                    "y_axis_units": None,
+                }
+        elif normal_axis_name == "y":
+            {
+                "x_axis_label": "x",
+                "y_axis_label": self.ds.spec_name,
+                "x_axis_units": None,
+                "y_axis_units": None,
+            }
+            if self.ds.lon_name == "X" and self.ds.lat_name == "Y":
+                return {
+                    "x_axis_label": "x",
+                    "y_axis_label": self.ds.spec_name,
+                    "x_axis_units": None,
+                    "y_axis_units": None,
+                }
+            else:
+                return {
+                    "x_axis_label": r"Image\ x",
+                    "y_axis_label": self.ds.spec_name,
+                    "x_axis_units": "pixel",
+                    "y_axis_units": None,
+                }
+        elif normal_axis_name == "z":
+            if self.ds.lon_name == "X" and self.ds.lat_name == "Y":
+                return {
+                    "x_axis_label": "x",
+                    "y_axis_label": "y",
+                    "x_axis_units": None,
+                    "y_axis_units": None,
+                }
+            else:
+                return {
+                    "x_axis_label": r"Image\ x",
+                    "y_axis_label": r"Image\ y",
+                    "x_axis_units": "pixel",
+                    "y_axis_units": "pixel",
+                }
+        else:
+            raise ValueError(f"Unknown axis {normal_axis_name!r}")

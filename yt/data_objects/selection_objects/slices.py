@@ -1,3 +1,5 @@
+from typing import Optional
+
 import numpy as np
 
 from yt.data_objects.selection_objects.data_selection_objects import (
@@ -15,6 +17,7 @@ from yt.funcs import (
     validate_object,
     validate_width_tuple,
 )
+from yt.geometry.coordinates._axes_transforms import parse_axes_transform
 from yt.utilities.exceptions import YTNotInsideNotebook
 from yt.utilities.minimal_representation import MinimalSliceData
 from yt.utilities.orientation import Orientation
@@ -104,7 +107,15 @@ class YTSlice(YTSelectionContainer2D):
     def _mrep(self):
         return MinimalSliceData(self)
 
-    def to_pw(self, fields=None, center="center", width=None, origin="center-window"):
+    def to_pw(
+        self,
+        fields=None,
+        center="center",
+        width=None,
+        origin="center-window",
+        *,
+        axes_transform: Optional[str] = None,
+    ):
         r"""Create a :class:`~yt.visualization.plot_window.PWViewerMPL` from this
         object.
 
@@ -112,7 +123,8 @@ class YTSlice(YTSelectionContainer2D):
         object, which can then be moved around, zoomed, and on and on.  All
         behavior of the plot window is relegated to that routine.
         """
-        pw = self._get_pw(fields, center, width, origin, "Slice")
+        _axt = parse_axes_transform(axes_transform)
+        pw = self._get_pw(fields, center, width, origin, "Slice", axes_transform=_axt)
         return pw
 
     def plot(self, fields=None):
