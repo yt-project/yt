@@ -212,6 +212,9 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                 elif field.startswith("GFM_StellarPhotometrics_"):
                     col = int(field.rsplit("_", 1)[-1])
                     data = g["GFM_StellarPhotometrics"][si:ei, col][mask]
+                elif field.startswith("MetalMasses_"):
+                    col = int(field.rsplit("_", 1)[-1])
+                    data = g["Mass of Metals"][si:ei, col][mask]
                 elif field == "smoothing_length":
                     # This is for frontends which do not store
                     # the smoothing length on-disk, so we do not
@@ -282,12 +285,14 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                         "GFM_Metals",
                         "PassiveScalars",
                         "GFM_StellarPhotometrics",
+                        "Mass of Metals",
                     )
                     and len(g[k].shape) > 1
                 ):
                     # Vector of metallicity or passive scalar
                     for i in range(g[k].shape[1]):
-                        fields.append((ptype, "%s_%02i" % (k, i)))
+                        key = "MetalMasses" if k == "Mass of Metals" else k
+                        fields.append((ptype, "%s_%02i" % (key, i)))
                 elif k == "ChemistryAbundances" and len(g[k].shape) > 1:
                     for i in range(g[k].shape[1]):
                         fields.append((ptype, "Chemistry_%03i" % i))
