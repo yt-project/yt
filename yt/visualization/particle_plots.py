@@ -5,7 +5,7 @@ import numpy as np
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.data_objects.profiles import create_profile
 from yt.data_objects.static_output import Dataset
-from yt.funcs import fix_axis, iter_fields
+from yt.funcs import fix_axis, iter_fields, mylog
 from yt.units.yt_array import YTArray
 from yt.utilities.orientation import Orientation
 from yt.visualization.fixed_resolution import ParticleImageBuffer
@@ -415,6 +415,8 @@ class ParticleProjectionPlot(PWViewerMPL, NormalPlot):
             )
 
             oblique = False
+            plt_origin = origin
+            periodic = True
 
         else:
             (bounds, center_rot) = get_oblique_window_parameters(
@@ -438,6 +440,13 @@ class ParticleProjectionPlot(PWViewerMPL, NormalPlot):
             )
 
             oblique = True
+            periodic = False
+            if origin != "center-window":
+                mylog.warning(
+                    "The 'origin' keyword is ignored for off-axis "
+                    "particle projections, it is always 'center-window'"
+                )
+            plt_origin = "center-window"
 
         self.projected = weight_field is None
 
@@ -445,13 +454,14 @@ class ParticleProjectionPlot(PWViewerMPL, NormalPlot):
             self,
             ParticleSource,
             bounds,
-            origin=origin,
+            origin=plt_origin,
             fontsize=fontsize,
             fields=fields,
             window_size=window_size,
             aspect=aspect,
             splat_color=splat_color,
             geometry=ds.geometry,
+            periodic=periodic,
             oblique=oblique,
         )
 
