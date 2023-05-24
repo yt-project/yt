@@ -1,4 +1,4 @@
-import sys
+from functools import cached_property
 from itertools import groupby
 
 import numpy as np
@@ -6,23 +6,19 @@ import numpy as np
 from yt.geometry.selection_routines import AlwaysSelector
 from yt.utilities.io_handler import BaseIOHandler
 
-if sys.version_info >= (3, 8):
-    from functools import cached_property
-else:
-    from yt._maintenance.backports import cached_property
 
 # http://stackoverflow.com/questions/2361945/detecting-consecutive-integers-in-a-list
 def particle_sequences(grids):
     g_iter = sorted(grids, key=lambda g: g.id)
     for _k, g in groupby(enumerate(g_iter), lambda i_x: i_x[0] - i_x[1].id):
-        seq = list(v[1] for v in g)
+        seq = [v[1] for v in g]
         yield seq[0], seq[-1]
 
 
 def grid_sequences(grids):
     g_iter = sorted(grids, key=lambda g: g.id)
     for _k, g in groupby(enumerate(g_iter), lambda i_x1: i_x1[0] - i_x1[1].id):
-        seq = list(v[1] for v in g)
+        seq = [v[1] for v in g]
         yield seq
 
 
@@ -145,7 +141,7 @@ class IOHandlerFLASH(BaseIOHandler):
                 if _xyz[0].size > 0:
                     bxyz.append(_xyz)
                 mask = selector.select_points(x, y, z, 0.0)
-                blockless = _xyz[0] > 0
+                blockless = (_xyz[0] > 0).any()
                 # This checks if none of the particles within these blocks are
                 # included in the mask We need to also allow for blockless
                 # particles to be selected.

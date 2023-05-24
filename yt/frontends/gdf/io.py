@@ -21,7 +21,6 @@ class IOHandlerGDFHDF5(BaseParticleIOHandler):
     _data_string = "data:datatype=0"
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
-
         rv = {}
         chunks = list(chunks)
 

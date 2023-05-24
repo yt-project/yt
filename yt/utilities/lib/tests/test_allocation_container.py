@@ -1,4 +1,5 @@
-from yt.testing import assert_array_equal, assert_equal
+from numpy.testing import assert_array_equal, assert_equal
+
 from yt.utilities.lib.allocation_container import BitmaskPool
 
 

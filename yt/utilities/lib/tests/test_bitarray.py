@@ -1,7 +1,7 @@
 import numpy as np
+from numpy.testing import assert_array_equal, assert_equal
 
 import yt.utilities.lib.bitarray as ba
-from yt.testing import assert_array_equal, assert_equal
 
 
 def test_inout_bitarray():

@@ -106,16 +106,27 @@ class ParticleProjectionPlot(PWViewerMPL):
          The color that will indicate the particle locations
          on the mesh. This argument is ignored if z_fields is
          not None. Default is 'b'.
-    center : A sequence of floats, a string, or a tuple.
-         The coordinate of the center of the image. If set to 'c', 'center' or
-         left blank, the plot is centered on the middle of the domain. If set to
-         'max' or 'm', the center will be located at the maximum of the
-         ('gas', 'density') field. Centering on the max or min of a specific
-         field is supported by providing a tuple such as ("min","temperature") or
-         ("max","dark_matter_density"). Units can be specified by passing in *center*
-         as a tuple containing a coordinate and string unit name or by passing
-         in a YTArray. If a list or unitless array is supplied, code units are
-         assumed.
+    center : 'center', 'c', 'left', 'l', 'right', 'r', id of a global extremum, or array-like
+        The coordinate of the selection's center.
+        Defaults to the 'center', i.e. center of the domain.
+
+        Centering on the min or max of a field is supported by passing a tuple
+        such as ('min', ('gas', 'density')) or ('max', ('gas', 'temperature'). A
+        single string may also be used (e.g. "min_density" or
+        "max_temperature"), though it's not as flexible and does not allow to
+        select an exact field/particle type. With this syntax, the first field
+        matching the provided name is selected.
+        'max' or 'm' can be used as a shortcut for ('max', ('gas', 'density'))
+        'min' can be used as a shortcut for ('min', ('gas', 'density'))
+
+        One can also select an exact point as a 3 element coordinate sequence,
+        e.g. [0.5, 0.5, 0]
+        Units can be specified by passing in *center* as a tuple containing a
+        3-element coordinate sequence and string unit name, e.g. ([0, 0.5, 0.5], "cm"),
+        or by passing in a YTArray. Code units are assumed if unspecified.
+
+        The domain edges along the selected *axis* can be selected with
+        'left'/'l' and 'right'/'r' respectively.
     width : tuple or a float.
          Width can have four different formats to support windows with variable
          x and y widths.  They are:
@@ -219,7 +230,7 @@ class ParticleProjectionPlot(PWViewerMPL):
         axis,
         fields=None,
         color="b",
-        center="c",
+        center="center",
         width=None,
         depth=(1, "1"),
         weight_field=None,
@@ -403,7 +414,6 @@ class ParticlePhasePlot(PhasePlot):
         figure_size=8.0,
         shading="nearest",
     ):
-
         if isinstance(data_source, Dataset):
             data_source = data_source.all_data()
         # if no z_fields are passed in, use a constant color
@@ -473,16 +483,29 @@ def ParticlePlot(ds, x_field, y_field, z_fields=None, color="b", *args, **kwargs
     data_source : YTSelectionContainer Object
          Object to be used for data selection.  Defaults to a region covering
          the entire simulation.
-    center : A sequence of floats, a string, or a tuple.
-         The coordinate of the center of the image. If set to 'c', 'center' or
-         left blank, the plot is centered on the middle of the domain. If set to
-         'max' or 'm', the center will be located at the maximum of the
-         ('gas', 'density') field. Centering on the max or min of a specific
-         field is supported by providing a tuple such as ("min","temperature") or
-         ("max","dark_matter_density"). Units can be specified by passing in *center*
-         as a tuple containing a coordinate and string unit name or by passing
-         in a YTArray. If a list or unitless array is supplied, code units are
-         assumed. This argument is only accepted by ``ParticleProjectionPlot``.
+    center : 'center', 'c', 'left', 'l', 'right', 'r', id of a global extremum, or array-like
+        The coordinate of the selection's center.
+        Defaults to the 'center', i.e. center of the domain.
+
+        Centering on the min or max of a field is supported by passing a tuple
+        such as ('min', ('gas', 'density')) or ('max', ('gas', 'temperature'). A
+        single string may also be used (e.g. "min_density" or
+        "max_temperature"), though it's not as flexible and does not allow to
+        select an exact field/particle type. With this syntax, the first field
+        matching the provided name is selected.
+        'max' or 'm' can be used as a shortcut for ('max', ('gas', 'density'))
+        'min' can be used as a shortcut for ('min', ('gas', 'density'))
+
+        One can also select an exact point as a 3 element coordinate sequence,
+        e.g. [0.5, 0.5, 0]
+        Units can be specified by passing in *center* as a tuple containing a
+        3-element coordinate sequence and string unit name, e.g. ([0, 0.5, 0.5], "cm"),
+        or by passing in a YTArray. Code units are assumed if unspecified.
+
+        The domain edges along the selected *axis* can be selected with
+        'left'/'l' and 'right'/'r' respectively.
+
+        This argument is only accepted by ``ParticleProjectionPlot``.
     width : tuple or a float.
          Width can have four different formats to support windows with variable
          x and y widths.  They are:

@@ -1,8 +1,9 @@
 import pickle
 
 import numpy as np
+from numpy.testing import assert_equal
 
-from yt.testing import assert_equal, fake_particle_ds
+from yt.testing import fake_particle_ds
 
 
 def test_pickleability():

@@ -8,16 +8,13 @@ from yt.visualization.api import SlicePlot
 
 
 def test_float_vmin_then_set_unit():
-    # this test doesn't represent how users should interact with plot containers
-    # in particular it uses the `_setup_plots()` private method, as a quick way to
-    # create a plot without having to make it an answer test
     field = ("gas", "density")
     ds = fake_amr_ds(fields=[field], units=["g/cm**3"])
 
     p = SlicePlot(ds, "x", field)
     p.set_buff_size(16)
 
-    p._setup_plots()
+    p.render()
     cb = p.plots[field].image.colorbar
     raw_lims = np.array((cb.vmin, cb.vmax))
     desired_lims = raw_lims.copy()
@@ -25,14 +22,14 @@ def test_float_vmin_then_set_unit():
 
     p.set_zlim(field, zmin=desired_lims[0])
 
-    p._setup_plots()
+    p.render()
     cb = p.plots[field].image.colorbar
     new_lims = np.array((cb.vmin, cb.vmax))
     npt.assert_almost_equal(new_lims, desired_lims)
 
     # 1 g/cm**3 == 1000 kg/m**3
     p.set_unit(field, "kg/m**3")
-    p._setup_plots()
+    p.render()
 
     cb = p.plots[field].image.colorbar
     new_lims = np.array((cb.vmin, cb.vmax))
@@ -48,7 +45,7 @@ def test_set_unit_then_float_vmin():
 
     p.set_unit(field, "kg/m**3")
     p.set_zlim(field, zmin=1)
-    p._setup_plots()
+    p.render()
     cb = p.plots[field].image.colorbar
     assert cb.vmin == 1.0
 
@@ -60,7 +57,7 @@ def test_reset_zlim():
     p = SlicePlot(ds, "x", field)
     p.set_buff_size(16)
 
-    p._setup_plots()
+    p.render()
     cb = p.plots[field].image.colorbar
     raw_lims = np.array((cb.vmin, cb.vmax))
 
@@ -70,7 +67,7 @@ def test_reset_zlim():
 
     # passing "min" should restore default limit
     p.set_zlim(field, zmin="min")
-    p._setup_plots()
+    p.render()
 
     cb = p.plots[field].image.colorbar
     new_lims = np.array((cb.vmin, cb.vmax))
@@ -87,7 +84,7 @@ def test_set_dynamic_range_with_vmin():
     zmin = 1e-2
     p.set_zlim(field, zmin=zmin, dynamic_range=2)
 
-    p._setup_plots()
+    p.render()
     cb = p.plots[field].image.colorbar
     new_lims = np.array((cb.vmin, cb.vmax))
     npt.assert_almost_equal(new_lims, (zmin, 2 * zmin))
@@ -103,7 +100,7 @@ def test_set_dynamic_range_with_vmax():
     zmax = 1
     p.set_zlim(field, zmax=zmax, dynamic_range=2)
 
-    p._setup_plots()
+    p.render()
     cb = p.plots[field].image.colorbar
     new_lims = np.array((cb.vmin, cb.vmax))
     npt.assert_almost_equal(new_lims, (zmax / 2, zmax))
@@ -116,13 +113,13 @@ def test_set_dynamic_range_with_min():
     p = SlicePlot(ds, "x", field)
     p.set_buff_size(16)
 
-    p._setup_plots()
+    p.render()
     cb = p.plots[field].image.colorbar
     vmin = cb.vmin
 
     p.set_zlim(field, zmin="min", dynamic_range=2)
 
-    p._setup_plots()
+    p.render()
     cb = p.plots[field].image.colorbar
     new_lims = np.array((cb.vmin, cb.vmax))
     npt.assert_almost_equal(new_lims, (vmin, 2 * vmin))
@@ -135,7 +132,7 @@ def test_set_dynamic_range_with_None():
     p = SlicePlot(ds, "x", field)
     p.set_buff_size(16)
 
-    p._setup_plots()
+    p.render()
     cb = p.plots[field].image.colorbar
     vmin = cb.vmin
 
@@ -144,7 +141,7 @@ def test_set_dynamic_range_with_None():
     ):
         p.set_zlim(field, zmin=None, dynamic_range=2)
 
-        p._setup_plots()
+        p.render()
         cb = p.plots[field].image.colorbar
         new_lims = np.array((cb.vmin, cb.vmax))
         npt.assert_almost_equal(new_lims, (vmin, 2 * vmin))

@@ -33,7 +33,6 @@ class FixedResolutionBufferFilter(ABC):
     """
 
     def __init_subclass__(cls, *args, **kwargs):
-
         if cls.__init__.__doc__ is None:
             # allow docstring definition at the class level instead of __init__
             cls.__init__.__doc__ = cls.__doc__

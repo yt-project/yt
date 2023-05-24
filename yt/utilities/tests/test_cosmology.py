@@ -1,14 +1,9 @@
 import os
 
 import numpy as np
+from numpy.testing import assert_almost_equal, assert_equal
 
-from yt.testing import (
-    assert_almost_equal,
-    assert_equal,
-    assert_rel_equal,
-    requires_file,
-    requires_module,
-)
+from yt.testing import assert_rel_equal, requires_file, requires_module
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.answer_testing.framework import data_dir_load
 from yt.utilities.cosmology import Cosmology
@@ -255,6 +250,7 @@ def test_cosmology_calculator_answers():
 enzotiny = "enzo_tiny_cosmology/DD0020/DD0020"
 
 
+@requires_module("h5py")
 @requires_file(enzotiny)
 def test_dataset_cosmology_calculator():
     """

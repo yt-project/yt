@@ -1,7 +1,7 @@
 import numpy as np
 
 from yt.loaders import load_uniform_grid
-from yt.testing import assert_allclose
+from numpy.testing import assert_allclose
 
 
 def test_magnetic_code_units():

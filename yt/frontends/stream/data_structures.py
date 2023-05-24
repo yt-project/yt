@@ -1,16 +1,17 @@
 import os
-import sys
 import time
 import uuid
 import weakref
 from collections import UserDict
+from functools import cached_property
 from itertools import chain, product, repeat
 from numbers import Number as numeric_type
-from typing import Type
+from typing import Optional, Tuple, Type
 
 import numpy as np
 from more_itertools import always_iterable
 
+from yt._typing import AxisOrder, FieldKey
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.index_subobjects.octree_subset import OctreeSubset
@@ -19,10 +20,11 @@ from yt.data_objects.index_subobjects.unstructured_mesh import (
     SemiStructuredMesh,
     UnstructuredMesh,
 )
-from yt.data_objects.particle_unions import ParticleUnion
 from yt.data_objects.static_output import Dataset, ParticleFile
-from yt.data_objects.unions import MeshUnion
+from yt.data_objects.unions import MeshUnion, ParticleUnion
 from yt.frontends.sph.data_structures import SPHParticleIndex
+from yt.funcs import setdefaultattr
+from yt.geometry.api import Geometry
 from yt.geometry.geometry_handler import Index, YTDataChunk
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.geometry.oct_container import OctreeContainer
@@ -43,11 +45,6 @@ from yt.utilities.logger import ytLogger as mylog
 
 from .definitions import process_data, set_particle_types
 from .fields import StreamFieldInfo
-
-if sys.version_info >= (3, 8):
-    from functools import cached_property
-else:
-    from yt._maintenance.backports import cached_property
 
 
 class StreamGrid(AMRGridPatch):
@@ -151,7 +148,6 @@ class StreamHandler:
         return self.fields.all_fields
 
     def get_particle_type(self, field):
-
         if field in self.particle_types:
             return self.particle_types[field]
         else:
@@ -159,7 +155,6 @@ class StreamHandler:
 
 
 class StreamHierarchy(GridIndex):
-
     grid = StreamGrid
 
     def __init__(self, ds, dataset_type=None):
@@ -337,13 +332,36 @@ class StreamDataset(Dataset):
         geometry="cartesian",
         unit_system="cgs",
         default_species_fields=None,
+        *,
+        axis_order: Optional[AxisOrder] = None,
     ):
         self.fluid_types += ("stream",)
-        self.geometry = geometry
+        self.geometry = Geometry(geometry)
         self.stream_handler = stream_handler
         self._find_particle_types()
         name = f"InMemoryParameterFile_{uuid.uuid4().hex}"
         from yt.data_objects.static_output import _cached_datasets
+
+        if geometry == "spectral_cube":
+            # mimic FITSDataset specific interface to allow testing with
+            # fake, in memory data
+            setdefaultattr(self, "lon_axis", 0)
+            setdefaultattr(self, "lat_axis", 1)
+            setdefaultattr(self, "spec_axis", 2)
+            setdefaultattr(self, "lon_name", "X")
+            setdefaultattr(self, "lat_name", "Y")
+            setdefaultattr(self, "spec_name", "z")
+            setdefaultattr(self, "spec_unit", "")
+            setdefaultattr(
+                self,
+                "pixel2spec",
+                lambda pixel_value: self.arr(pixel_value, self.spec_unit),  # type: ignore [attr-defined]
+            )
+            setdefaultattr(
+                self,
+                "spec2pixel",
+                lambda spec_value: self.arr(spec_value, "code_length"),
+            )
 
         _cached_datasets[name] = self
         Dataset.__init__(
@@ -352,6 +370,7 @@ class StreamDataset(Dataset):
             self._dataset_type,
             unit_system=unit_system,
             default_species_fields=default_species_fields,
+            axis_order=axis_order,
         )
 
     @property
@@ -443,7 +462,7 @@ class StreamDataset(Dataset):
 
 
 class StreamDictFieldHandler(UserDict):
-    _additional_fields = ()
+    _additional_fields: Tuple[FieldKey, ...] = ()
 
     @property
     def all_fields(self):
@@ -529,6 +548,8 @@ class StreamParticlesDataset(StreamDataset):
         geometry="cartesian",
         unit_system="cgs",
         default_species_fields=None,
+        *,
+        axis_order: Optional[AxisOrder] = None,
     ):
         super().__init__(
             stream_handler,
@@ -536,6 +557,7 @@ class StreamParticlesDataset(StreamDataset):
             geometry=geometry,
             unit_system=unit_system,
             default_species_fields=default_species_fields,
+            axis_order=axis_order,
         )
         fields = list(stream_handler.fields["stream_file"].keys())
         # This is the current method of detecting SPH data.
@@ -835,14 +857,15 @@ class StreamOctreeHandler(OctreeIndex):
             self.io = io_registry[self.dataset_type](self.ds)
 
     def _initialize_oct_handler(self):
-        header = dict(
-            dims=self.ds.domain_dimensions // self.ds.num_zones,
-            left_edge=self.ds.domain_left_edge,
-            right_edge=self.ds.domain_right_edge,
-            octree=self.ds.octree_mask,
-            num_zones=self.ds.num_zones,
-            partial_coverage=self.ds.partial_coverage,
-        )
+        header = {
+            "dims": [1, 1, 1],
+            "dims" : self.ds.domain_dimensions // self.ds.num_zones,
+            "left_edge": self.ds.domain_left_edge,
+            "right_edge": self.ds.domain_right_edge,
+            "octree": self.ds.octree_mask,
+            "num_zones": self.ds.num_zones,
+            "partial_coverage": self.ds.partial_coverage,
+        }
         self.oct_handler = OctreeContainer.load_octree(header)
 
     def _identify_base_chunk(self, dobj):

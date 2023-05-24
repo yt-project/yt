@@ -1,8 +1,7 @@
 import os
-import sys
 import weakref
 from collections import defaultdict
-from functools import partial
+from functools import cached_property, partial
 
 import numpy as np
 
@@ -18,11 +17,6 @@ from yt.geometry.particle_geometry_handler import ParticleIndex
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py
-
-if sys.version_info >= (3, 8):
-    from functools import cached_property
-else:
-    from yt._maintenance.backports import cached_property
 
 
 class GadgetFOFParticleIndex(ParticleIndex):
@@ -238,7 +232,7 @@ class GadgetFOFDataset(ParticleDataset):
         # Set a sane default for cosmological simulations.
         if self._unit_base is None and self.cosmological_simulation == 1:
             only_on_root(mylog.info, "Assuming length units are in Mpc/h (comoving)")
-            self._unit_base = dict(length=(1.0, "Mpccm/h"))
+            self._unit_base = {"length": (1.0, "Mpccm/h")}
         # The other same defaults we will use from the standard Gadget
         # defaults.
         unit_base = self._unit_base or {}

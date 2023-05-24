@@ -14,11 +14,12 @@ cimport numpy as np
 
 import numpy as np
 
-from libc.stdlib cimport free, malloc
+from libc.stdlib cimport malloc
 
-from yt.geometry.oct_container cimport OctInfo, OctreeContainer
 from yt.utilities.lib.fp_utils cimport *
 from yt.utilities.lib.geometry_utils cimport encode_morton_64bit
+
+from .oct_container cimport OctreeContainer
 
 # Now some visitor functions
 
@@ -278,8 +279,6 @@ cdef class StoreOctree(OctVisitor):
     @cython.boundscheck(False)
     @cython.initializedcheck(False)
     cdef void visit(self, Oct* o, np.uint8_t selected):
-        cdef np.uint8_t res, ii
-        ii = cind(self.ind[0], self.ind[1], self.ind[2])
         if o.children == NULL:
             # Not refined.
             res = 0

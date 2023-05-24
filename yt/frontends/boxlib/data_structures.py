@@ -1,8 +1,8 @@
 import glob
 import os
 import re
-import sys
 from collections import namedtuple
+from functools import cached_property
 from stat import ST_CTIME
 from typing import Type
 
@@ -12,6 +12,7 @@ from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.fields.field_info_container import FieldInfoContainer
 from yt.funcs import mylog, setdefaultattr
+from yt.geometry.api import Geometry
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.io_handler import io_registry
 from yt.utilities.lib.misc_utilities import get_box_grids_level
@@ -25,10 +26,6 @@ from .fields import (
     WarpXFieldInfo,
 )
 
-if sys.version_info >= (3, 8):
-    from functools import cached_property
-else:
-    from yt._maintenance.backports import cached_property
 # This is what we use to find scientific notation that might include d's
 # instead of e's.
 _scinot_finder = re.compile(r"[-+]?[0-9]*\.?[0-9]+([eEdD][-+]?[0-9]+)?")
@@ -133,7 +130,6 @@ class BoxlibGrid(AMRGridPatch):
 
 class BoxLibParticleHeader:
     def __init__(self, ds, directory_name, is_checkpoint, extra_field_names=None):
-
         self.particle_type = directory_name
         header_filename = os.path.join(ds.output_dir, directory_name, "Header")
         with open(header_filename) as f:
@@ -190,7 +186,6 @@ class BoxLibParticleHeader:
         self._generate_particle_fields(extra_field_names)
 
     def _generate_particle_fields(self, extra_field_names):
-
         # these are the 'base' integer fields
         self.known_int_fields = [
             (self.particle_type, "particle_id"),
@@ -242,7 +237,6 @@ class BoxLibParticleHeader:
 
 class AMReXParticleHeader:
     def __init__(self, ds, directory_name, is_checkpoint, extra_field_names=None):
-
         self.particle_type = directory_name
         header_filename = os.path.join(ds.output_dir, directory_name, "Header")
         self.real_component_names = []
@@ -300,7 +294,6 @@ class AMReXParticleHeader:
         self._generate_particle_fields()
 
     def _generate_particle_fields(self):
-
         # these are the 'base' integer fields
         self.known_int_fields = [
             (self.particle_type, "particle_id"),
@@ -342,7 +335,6 @@ class AMReXParticleHeader:
 
 
 class BoxlibHierarchy(GridIndex):
-
     grid = BoxlibGrid
 
     def __init__(self, ds, dataset_type="boxlib_native"):
@@ -571,7 +563,7 @@ class BoxlibHierarchy(GridIndex):
         self.field_indexes = {f[1]: i for i, f in enumerate(self.field_list)}
         # There are times when field_list may change.  We copy it here to
         # avoid that possibility.
-        self.field_order = [f for f in self.field_list]
+        self.field_order = list(self.field_list)
 
     def _setup_data_io(self):
         self.io = io_registry[self.dataset_type](self.dataset)
@@ -894,9 +886,11 @@ class BoxlibDataset(Dataset):
 
         known_types = {0: "cartesian", 1: "cylindrical", 2: "spherical"}
         try:
-            self.geometry = known_types[coordinate_type]
+            geom_str = known_types[coordinate_type]
         except KeyError as err:
             raise ValueError(f"Unknown BoxLib coord_type `{coordinate_type}`.") from err
+        else:
+            self.geometry = Geometry(geom_str)
 
         if self.geometry == "cylindrical":
             dre = self.domain_right_edge
@@ -928,6 +922,31 @@ class BoxlibDataset(Dataset):
         return self.refine_by ** (l1 - l0 + offset)
 
 
+class AMReXHierarchy(BoxlibHierarchy):
+    def __init__(self, ds, dataset_type="boxlib_native"):
+        super().__init__(ds, dataset_type)
+
+        if "particles" in self.ds.parameters:
+            is_checkpoint = True
+            for ptype in self.ds.particle_types:
+                self._read_particles(ptype, is_checkpoint)
+
+
+class AMReXDataset(BoxlibDataset):
+    _index_class: Type[BoxlibHierarchy] = AMReXHierarchy
+    _subtype_keyword = "amrex"
+    _default_cparam_filename = "job_info"
+
+    def _parse_parameter_file(self):
+        super()._parse_parameter_file()
+        particle_types = glob.glob(os.path.join(self.output_dir, "*", "Header"))
+        particle_types = [cpt.split(os.sep)[-2] for cpt in particle_types]
+        if len(particle_types) > 0:
+            self.parameters["particles"] = 1
+            self.particle_types = tuple(particle_types)
+            self.particle_types_raw = self.particle_types
+
+
 class OrionHierarchy(BoxlibHierarchy):
     def __init__(self, ds, dataset_type="orion_native"):
         BoxlibHierarchy.__init__(self, ds, dataset_type)
@@ -940,7 +959,7 @@ class OrionHierarchy(BoxlibHierarchy):
         self.field_indexes = {f[1]: i for i, f in enumerate(self.field_list)}
         # There are times when field_list may change.  We copy it here to
         # avoid that possibility.
-        self.field_order = [f for f in self.field_list]
+        self.field_order = list(self.field_list)
 
         # look for particle fields
         self.particle_filename = None
@@ -1015,7 +1034,6 @@ class OrionHierarchy(BoxlibHierarchy):
 
 
 class OrionDataset(BoxlibDataset):
-
     _index_class = OrionHierarchy
     _subtype_keyword = "hyp."
     _default_cparam_filename = "inputs"
@@ -1031,7 +1049,6 @@ class OrionDataset(BoxlibDataset):
         unit_system="cgs",
         default_species_fields=None,
     ):
-
         BoxlibDataset.__init__(
             self,
             output_dir,
@@ -1049,7 +1066,6 @@ class CastroHierarchy(BoxlibHierarchy):
         super().__init__(ds, dataset_type)
 
         if "particles" in self.ds.parameters:
-
             # extra beyond the base real fields that all Boxlib
             # particles have, i.e. the xyz positions
             castro_extra_real_fields = [
@@ -1067,8 +1083,7 @@ class CastroHierarchy(BoxlibHierarchy):
             )
 
 
-class CastroDataset(BoxlibDataset):
-
+class CastroDataset(AMReXDataset):
     _index_class = CastroHierarchy
     _field_info_class = CastroFieldInfo
     _subtype_keyword = "castro"
@@ -1085,7 +1100,6 @@ class CastroDataset(BoxlibDataset):
         unit_system="cgs",
         default_species_fields=None,
     ):
-
         super().__init__(
             output_dir,
             cparam_filename,
@@ -1148,8 +1162,8 @@ class CastroDataset(BoxlibDataset):
             self.particle_types_raw = self.particle_types
 
 
-class MaestroDataset(BoxlibDataset):
-
+class MaestroDataset(AMReXDataset):
+    _index_class = BoxlibHierarchy
     _field_info_class = MaestroFieldInfo
     _subtype_keyword = "maestro"
     _default_cparam_filename = "job_info"
@@ -1165,7 +1179,6 @@ class MaestroDataset(BoxlibDataset):
         unit_system="cgs",
         default_species_fields=None,
     ):
-
         super().__init__(
             output_dir,
             cparam_filename,
@@ -1240,7 +1253,6 @@ class NyxHierarchy(BoxlibHierarchy):
 
 
 class NyxDataset(BoxlibDataset):
-
     _index_class = NyxHierarchy
     _field_info_class = NyxFieldInfo
     _subtype_keyword = "nyx"
@@ -1257,7 +1269,6 @@ class NyxDataset(BoxlibDataset):
         unit_system="cgs",
         default_species_fields=None,
     ):
-
         super().__init__(
             output_dir,
             cparam_filename,
@@ -1383,7 +1394,6 @@ def _read_header(raw_file, field):
     for level_file in level_files:
         header_file = os.path.join(level_file, field + "_H")
         with open(header_file) as f:
-
             f.readline()  # version
             f.readline()  # how
             f.readline()  # ncomp
@@ -1524,7 +1534,6 @@ def _skip_line(line):
 
 
 class WarpXDataset(BoxlibDataset):
-
     _index_class = WarpXHierarchy
     _field_info_class = WarpXFieldInfo
     _subtype_keyword = "warpx"
@@ -1540,7 +1549,6 @@ class WarpXDataset(BoxlibDataset):
         units_override=None,
         unit_system="mks",
     ):
-
         self.default_fluid_type = "mesh"
         self.default_field = ("mesh", "density")
         self.fluid_types = ("mesh", "index", "raw")
@@ -1595,52 +1603,3 @@ class WarpXDataset(BoxlibDataset):
         setdefaultattr(self, "time_unit", self.quan(1.0, "s"))
         setdefaultattr(self, "velocity_unit", self.quan(1.0, "m/s"))
         setdefaultattr(self, "magnetic_unit", self.quan(1.0, "T"))
-
-
-class AMReXHierarchy(BoxlibHierarchy):
-    def __init__(self, ds, dataset_type="boxlib_native"):
-        super().__init__(ds, dataset_type)
-
-        if "particles" in self.ds.parameters:
-            is_checkpoint = True
-            for ptype in self.ds.particle_types:
-                self._read_particles(ptype, is_checkpoint)
-
-
-class AMReXDataset(BoxlibDataset):
-
-    _index_class = AMReXHierarchy
-    _subtype_keyword = "amrex"
-    _default_cparam_filename = "job_info"
-
-    def __init__(
-        self,
-        output_dir,
-        cparam_filename=None,
-        fparam_filename=None,
-        dataset_type="boxlib_native",
-        storage_filename=None,
-        units_override=None,
-        unit_system="cgs",
-        default_species_fields=None,
-    ):
-
-        super().__init__(
-            output_dir,
-            cparam_filename,
-            fparam_filename,
-            dataset_type,
-            storage_filename,
-            units_override,
-            unit_system,
-            default_species_fields=default_species_fields,
-        )
-
-    def _parse_parameter_file(self):
-        super()._parse_parameter_file()
-        particle_types = glob.glob(os.path.join(self.output_dir, "*", "Header"))
-        particle_types = [cpt.split(os.sep)[-2] for cpt in particle_types]
-        if len(particle_types) > 0:
-            self.parameters["particles"] = 1
-            self.particle_types = tuple(particle_types)
-            self.particle_types_raw = self.particle_types

@@ -13,7 +13,7 @@ cimport cython
 cimport numpy as np
 from libc.stdlib cimport free, malloc
 
-from yt.utilities.lib.bitarray cimport ba_get_value, ba_set_value
+from yt.utilities.lib.bitarray cimport ba_set_value
 from yt.utilities.lib.fp_utils cimport iclip
 
 

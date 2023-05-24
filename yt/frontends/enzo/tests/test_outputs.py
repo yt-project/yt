@@ -1,13 +1,12 @@
 import numpy as np
+from numpy.testing import assert_almost_equal, assert_array_equal, assert_equal
 
 from yt.frontends.enzo.api import EnzoDataset
 from yt.frontends.enzo.fields import NODAL_FLAGS
 from yt.testing import (
     assert_allclose_units,
-    assert_almost_equal,
-    assert_array_equal,
-    assert_equal,
     requires_file,
+    requires_module,
     units_override_check,
 )
 from yt.utilities.answer_testing.framework import (
@@ -62,7 +61,7 @@ def color_conservation(ds):
             "Dark_Matter",
             "Star_Particle_",
         ]
-        if any([ff.startswith(ss) for ss in start_strings]):
+        if any(ff.startswith(ss) for ss in start_strings):
             continue
         dens_enzo -= dd[f]
     delta_enzo = np.abs(dens_enzo / dd[("enzo", "Density")])
@@ -95,7 +94,7 @@ def check_color_conservation(ds):
             "Dark_Matter",
             "Star_Particle_",
         ]
-        if any([ff.startswith(ss) for ss in start_strings]):
+        if any(ff.startswith(ss) for ss in start_strings):
             continue
         dens_enzo -= dd[f]
     delta_enzo = np.abs(dens_enzo / dd[("enzo", "Density")])
@@ -105,6 +104,7 @@ def check_color_conservation(ds):
 m7 = "DD0010/moving7_0010"
 
 
+@requires_module("h5py")
 @requires_ds(m7)
 def test_moving7():
     ds = data_dir_load(m7)
@@ -114,6 +114,7 @@ def test_moving7():
         yield test
 
 
+@requires_module("h5py")
 @requires_ds(g30, big_data=True)
 def test_galaxy0030():
     ds = data_dir_load(g30)
@@ -125,6 +126,7 @@ def test_galaxy0030():
     assert_equal(ds.particle_type_counts, {"io": 1124453})
 
 
+@requires_module("h5py")
 @requires_ds(toro1d)
 def test_toro1d():
     ds = data_dir_load(toro1d)
@@ -134,6 +136,7 @@ def test_toro1d():
         yield test
 
 
+@requires_module("h5py")
 @requires_ds(kh2d)
 def test_kh2d():
     ds = data_dir_load(kh2d)
@@ -143,6 +146,7 @@ def test_kh2d():
         yield test
 
 
+@requires_module("h5py")
 @requires_ds(ecp, big_data=True)
 def test_ecp():
     ds = data_dir_load(ecp)
@@ -150,11 +154,13 @@ def test_ecp():
     yield check_color_conservation(ds)
 
 
+@requires_module("h5py")
 @requires_file(enzotiny)
 def test_units_override():
     units_override_check(enzotiny)
 
 
+@requires_module("h5py")
 @requires_ds(ecp, big_data=True)
 def test_nuclei_density_fields():
     ds = data_dir_load(ecp)
@@ -173,11 +179,13 @@ def test_nuclei_density_fields():
     )
 
 
+@requires_module("h5py")
 @requires_file(enzotiny)
 def test_EnzoDataset():
     assert isinstance(data_dir_load(enzotiny), EnzoDataset)
 
 
+@requires_module("h5py")
 @requires_file(two_sphere_test)
 @requires_file(active_particle_cosmology)
 def test_active_particle_datasets():
@@ -222,6 +230,7 @@ def test_active_particle_datasets():
     )
 
 
+@requires_module("h5py")
 @requires_file(mhdctot)
 def test_face_centered_mhdct_fields():
     ds = data_dir_load(mhdctot)
@@ -240,6 +249,7 @@ def test_face_centered_mhdct_fields():
     assert (ad[("enzo", "BzF")].sum(axis=-1) / 2 == ad[("enzo", "Bz")]).all()
 
 
+@requires_module("h5py")
 @requires_file(dnz)
 def test_deeply_nested_zoom():
     ds = data_dir_load(dnz)
@@ -264,6 +274,7 @@ def test_deeply_nested_zoom():
     assert_equal(max(g[("gas", "density")].max() for g in ds.index.grids), v)
 
 
+@requires_module("h5py")
 @requires_file(kh2d)
 def test_2d_grid_shape():
     # see issue #1601
@@ -274,6 +285,7 @@ def test_2d_grid_shape():
     assert g[("gas", "density")].shape == (128, 100, 1)
 
 
+@requires_module("h5py")
 @requires_file(p3mini)
 def test_nonzero_omega_radiation():
     """

@@ -12,6 +12,7 @@ import numpy as np
 
 from yt.data_objects.index_subobjects.unstructured_mesh import SemiStructuredMesh
 from yt.data_objects.static_output import Dataset
+from yt.geometry.api import Geometry
 from yt.geometry.geometry_handler import YTDataChunk
 from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
 from yt.utilities.file_handler import HDF5FileHandler
@@ -23,7 +24,6 @@ from .fields import ChimeraFieldInfo
 
 
 class ChimeraMesh(SemiStructuredMesh):
-
     _index_offset = 0
 
     def __init__(self, *args, **kwargs):
@@ -105,8 +105,8 @@ class ChimeraUNSIndex(UnstructuredIndex):
                     )
                 coords.shape = (nxd * nyd * nzd, 3)
                 # Connectivity is an array of rows, each of which corresponds to a grid cell.
-                # The 8 elements of each row are integers representing the cell verticies.
-                # These integers refrence the numerical index of the element of the
+                # The 8 elements of each row are integers representing the cell vertices.
+                # These integers reference the numerical index of the element of the
                 # "coords" array which corresponds to the spatial coordinate.
 
                 connectivity = np.zeros(
@@ -233,7 +233,7 @@ class ChimeraDataset(Dataset):
             self.dimensionality = 3
             self.domain_dimensions = f["mesh"]["array_dimensions"][()]
 
-            self.geometry = "spherical"  # Uses default spherical geometry
+            self.geometry = Geometry.SPHERICAL  # Uses default spherical geometry
             self._periodicity = (False, False, True)
             dle = [
                 f["mesh"]["x_ef"][0],
@@ -267,7 +267,7 @@ class ChimeraDataset(Dataset):
         self.cosmological_simulation = 0  # Chimera is not a cosmological simulation
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(cls, *args, **kwargs):
         # This accepts a filename or a set of arguments and returns True or
         # False depending on if the file is of the type requested.
         try:

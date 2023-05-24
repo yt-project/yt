@@ -16,7 +16,7 @@ import numpy as np
 
 cimport cython
 cimport numpy as np
-from libc.stdlib cimport abs, calloc, free, malloc
+from libc.stdlib cimport free, malloc
 
 from .fixed_interpolator cimport offset_interpolate
 

@@ -1,12 +1,13 @@
 import os
 
 import numpy as np
+from numpy.testing import assert_array_equal, assert_equal
 
 import yt.units.dimensions as dimensions
 from yt.geometry.oct_container import _ORDER_MAX
 from yt.geometry.particle_oct_container import ParticleBitmap, ParticleOctreeContainer
 from yt.geometry.selection_routines import RegionSelector
-from yt.testing import assert_array_equal, assert_equal, assert_true
+from yt.testing import requires_module
 from yt.units.unit_registry import UnitRegistry
 from yt.units.yt_array import YTArray
 from yt.utilities.lib.geometry_utils import (
@@ -276,6 +277,7 @@ def test_bitmap_collisions():
     assert_equal(nr, 2 ** (3 * (order1 + order2)), "%d collisions" % nr)
 
 
+@requires_module("h5py")
 def test_bitmap_save_load():
     # Test init for slabs of points in x
     left_edge = np.array([0.0, 0.0, 0.0])
@@ -294,13 +296,13 @@ def test_bitmap_save_load():
         fname = fname_fmt.format(i)
     # Create bitmap and save to file
     reg0 = FakeBitmap(npart, nfiles, order1, order2, left_edge, right_edge, periodicity)
-    reg0.save_bitmasks(fname)
+    reg0.save_bitmasks(fname, 0.0)
     # Attempt to load bitmap
     reg1 = ParticleBitmap(
         left_edge, right_edge, periodicity, file_hash, nfiles, order1, order2
     )
     reg1.load_bitmasks(fname)
-    assert_true(reg0.iseq_bitmask(reg1))
+    assert reg0.iseq_bitmask(reg1)
     # Remove file
     os.remove(fname)
 

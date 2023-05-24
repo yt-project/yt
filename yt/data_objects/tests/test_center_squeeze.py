@@ -1,4 +1,6 @@
-from yt.testing import assert_equal, fake_amr_ds, fake_particle_ds, fake_random_ds
+from numpy.testing import assert_equal
+
+from yt.testing import fake_amr_ds, fake_particle_ds, fake_random_ds
 
 
 def test_center_squeeze():

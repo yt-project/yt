@@ -13,8 +13,7 @@ import numpy as np
 
 cimport cython
 cimport numpy as np
-from cython.operator cimport dereference as deref, preincrement as inc
-from libc.stdlib cimport abs, free, malloc
+from libc.stdlib cimport free, malloc
 
 from yt.utilities.lib.fp_utils cimport fmax, fmin
 

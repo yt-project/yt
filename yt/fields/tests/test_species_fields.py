@@ -1,10 +1,11 @@
-from yt.testing import assert_allclose_units, assert_equal, fake_random_ds
+from numpy.testing import assert_equal
+
+from yt.testing import assert_allclose_units, fake_random_ds
 from yt.utilities.chemical_formulas import ChemicalFormula
 from yt.utilities.physical_ratios import _primordial_mass_fraction
 
 
 def test_default_species_fields():
-
     # Test default case (no species fields)
 
     ds = fake_random_ds(32)

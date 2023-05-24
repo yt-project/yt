@@ -43,7 +43,7 @@ cdef struct FieldInterpolationTable:
 @cython.cdivision(True)
 cdef inline void FIT_initialize_table(FieldInterpolationTable *fit, int nbins,
               np.float64_t *values, np.float64_t bounds1, np.float64_t bounds2,
-              int field_id, int weight_field_id, int weight_table_id) nogil:
+              int field_id, int weight_field_id, int weight_table_id) noexcept nogil:
     cdef int i
     fit.bounds[0] = bounds1; fit.bounds[1] = bounds2
     fit.nbins = nbins
@@ -64,7 +64,7 @@ cdef inline void FIT_initialize_table(FieldInterpolationTable *fit, int nbins,
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef inline np.float64_t FIT_get_value(const FieldInterpolationTable *fit,
-                                       np.float64_t dvs[6]) nogil:
+                                       np.float64_t dvs[6]) noexcept nogil:
     cdef np.float64_t dd, dout
     cdef int bin_id
     if dvs[fit.field_id] >= fit.bounds[1] or dvs[fit.field_id] <= fit.bounds[0]: return 0.0
@@ -86,7 +86,7 @@ cdef inline void FIT_eval_transfer(
         const np.float64_t dt, np.float64_t *dvs,
         np.float64_t *rgba, const int n_fits,
         const FieldInterpolationTable fits[6],
-        const int field_table_ids[6], const int grey_opacity) nogil:
+        const int field_table_ids[6], const int grey_opacity) noexcept nogil:
     cdef int i, fid
     cdef np.float64_t ta
     cdef np.float64_t istorage[6]
@@ -116,7 +116,7 @@ cdef inline void FIT_eval_transfer_with_light(np.float64_t dt, np.float64_t *dvs
         np.float64_t *grad, np.float64_t *l_dir, np.float64_t *l_rgba,
         np.float64_t *rgba, int n_fits,
         FieldInterpolationTable fits[6],
-        int field_table_ids[6], int grey_opacity) nogil:
+        int field_table_ids[6], int grey_opacity) noexcept nogil:
     cdef int i, fid
     cdef np.float64_t ta, dot_prod
     cdef np.float64_t istorage[6]

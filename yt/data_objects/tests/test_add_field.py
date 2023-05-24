@@ -96,7 +96,6 @@ def test_add_field_keyword_only():
 
 
 def test_derived_field(monkeypatch):
-
     tmp_field_info = local_fields.LocalFieldInfoContainer(None, [], None)
     monkeypatch.setattr(local_fields, "local_fields", tmp_field_info)
 

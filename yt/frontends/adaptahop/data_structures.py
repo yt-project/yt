@@ -276,8 +276,7 @@ class AdaptaHOPHaloContainer(YTSelectionContainer):
     def __init__(self, ptype, particle_identifier, parent_ds, halo_ds):
         if ptype not in parent_ds.particle_types_raw:
             raise RuntimeError(
-                'Possible halo types are %s, supplied "%s".'
-                % (parent_ds.particle_types_raw, ptype)
+                f'Possible halo types are {parent_ds.particle_types_raw}, supplied "{ptype}".'
             )
 
         # Setup required fields
@@ -350,7 +349,7 @@ class AdaptaHOPHaloContainer(YTSelectionContainer):
         # Build subregion that only contains halo particles
         reg = sph.cut_region(
             ['np.in1d(obj[("io", "particle_identity")].astype(int), members)'],
-            locals=dict(members=members, np=np),
+            locals={"members": members, "np": np},
         )
 
         self.sphere = sph

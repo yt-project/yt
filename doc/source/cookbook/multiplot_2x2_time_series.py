@@ -45,6 +45,6 @@ for i, fn in enumerate(fns):
     plot.cax = grid.cbar_axes[i]
 
     # Finally, this actually redraws the plot.
-    p._setup_plots()
+    p.render()
 
 plt.savefig("multiplot_2x2_time_series.png")

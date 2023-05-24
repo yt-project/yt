@@ -2,7 +2,8 @@ import numpy as np
 
 from yt.data_objects.index_subobjects.unstructured_mesh import SemiStructuredMesh
 from yt.funcs import mylog
-from yt.units.yt_array import YTArray, uconcatenate, uvstack  # type: ignore
+from yt.units._numpy_wrapper_functions import uconcatenate, uvstack
+from yt.units.yt_array import YTArray
 from yt.utilities.lib.pixelization_routines import (
     interpolate_sph_grid_gather,
     normalization_2d_utility,
@@ -89,9 +90,7 @@ def all_data(data, ptype, fields, kdtree=False):
 
 class CartesianCoordinateHandler(CoordinateHandler):
     name = "cartesian"
-
-    def __init__(self, ds, ordering=("x", "y", "z")):
-        super().__init__(ds, ordering)
+    _default_axis_order = ("x", "y", "z")
 
     def setup_fields(self, registry):
         for axi, ax in enumerate(self.axis_order):
@@ -219,7 +218,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
             # re-order the array and squeeze out the dummy dim
             return np.squeeze(np.transpose(img, (yax, xax, ax)))
 
-        elif self.axis_id.get(dimension, dimension) < 3:
+        elif self.axis_id.get(dimension, dimension) is not None:
             return self._ortho_pixelize(
                 data_source, field, bounds, size, antialias, dimension, periodic
             )

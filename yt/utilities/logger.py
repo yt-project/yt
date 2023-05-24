@@ -128,7 +128,7 @@ def disable_stream_logging():
 
 
 def _runtime_configuration(ytcfg: YTConfig) -> None:
-    # only run this at the end of yt.__init__, after yt.config.ytcfg was instanciated
+    # only run this at the end of yt.__init__, after yt.config.ytcfg was instantiated
 
     global _original_emitter, _yt_sh
 

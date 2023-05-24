@@ -7,8 +7,7 @@ Wrapping code for voro++
 
 
 cimport libcpp
-from cython.operator cimport dereference as deref, preincrement as inc
-from libc.stdlib cimport abs, calloc, free, labs, malloc
+from cython.operator cimport dereference as deref
 
 import numpy as np
 
@@ -63,7 +62,6 @@ cdef class VoronoiVolume:
     @cython.wraparound(False)
     def get_volumes(self):
         cdef np.ndarray vol = np.zeros(self.npart, 'double')
-        cdef double *vdouble = <double *> vol.data
         #self.my_con.store_cell_volumes(vdouble)
         cdef c_loop_all *vl = new c_loop_all(deref(self.my_con))
         cdef voronoicell c

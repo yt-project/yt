@@ -5,8 +5,10 @@ from typing import Optional, Tuple
 
 import numpy as np
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
-from yt.units.yt_array import YTArray, uconcatenate  # type: ignore
+from yt.units._numpy_wrapper_functions import uconcatenate
+from yt.units.yt_array import YTArray
 from yt.utilities.exceptions import YTFieldNotFound
 from yt.utilities.io_handler import io_registry
 from yt.utilities.logger import ytLogger as mylog
@@ -463,6 +465,15 @@ class ChunkDataCache:
 
 def is_curvilinear(geo):
     # tell geometry is curvilinear or not
+    issue_deprecation_warning(
+        "the is_curvilear() function is deprecated. "
+        "Instead, compare the geometry object directly with yt.geometry.geometry_enum.Geometry "
+        "enum members, as for instance:\n"
+        "if is_curvilinear(geometry):\n    ...\n"
+        "should be rewritten as:"
+        "if geometry is Geometry.POLAR or geometry is Geometry.CYLINDRICAL or geometry is Geometry.SPHERICAL:\n    ...",
+        since="4.2",
+    )
     if geo in ["polar", "cylindrical", "spherical"]:
         return True
     else:

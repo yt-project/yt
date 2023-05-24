@@ -1,10 +1,9 @@
 # Some tests for the Spherical coordinates handler
 
 import numpy as np
+from numpy.testing import assert_almost_equal, assert_equal
 
-from yt import SlicePlot
-from yt.testing import add_noise_fields, assert_almost_equal, assert_equal, fake_amr_ds
-from yt.utilities.answer_testing.framework import GenericImageTest
+from yt.testing import fake_amr_ds
 
 # Our canonical tests are that we can access all of our fields and we can
 # compute our volume correctly.
@@ -40,20 +39,3 @@ def test_spherical_coordinates():
         dd["index", "path_element_phi"],
         (dd["index", "r"] * dd["index", "dphi"] * np.sin(dd["index", "theta"])),
     )
-
-
-def test_noise_plots():
-    ds = fake_amr_ds(geometry="spherical")
-    add_noise_fields(ds)
-
-    def create_image(filename_prefix):
-        fields = ["noise%d" % i for i in range(4)]
-
-        for normal in ("phi", "theta"):
-            p = SlicePlot(ds, normal, fields)
-            p.save(f"{filename_prefix}_{normal}")
-
-    test = GenericImageTest(ds, create_image, 12)
-    test.prefix = "test_noise_plot_lin"
-    test_noise_plots.__name__ = test.description
-    yield test

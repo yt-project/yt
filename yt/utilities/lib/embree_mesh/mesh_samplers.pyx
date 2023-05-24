@@ -12,11 +12,8 @@ Note - this file is only used for the Embree-accelerated ray-tracer.
 
 
 cimport cython
-cimport numpy as np
-cimport pyembree.rtcore as rtc
 cimport pyembree.rtcore_ray as rtcr
-from libc.math cimport fabs, fmax
-from pyembree.rtcore cimport Triangle, Vec3f, Vertex
+from pyembree.rtcore cimport Triangle
 
 from yt.utilities.lib.element_mappings cimport (
     ElementSampler,
@@ -175,7 +172,7 @@ cdef void sample_wedge(void* userPtr,
 @cython.cdivision(True)
 cdef void sample_hex20(void* userPtr,
                        rtcr.RTCRay& ray) nogil:
-    cdef int ray_id, elem_id, i
+    cdef int ray_id, i
     cdef double val
     cdef double[3] position
     cdef float[3] pos
@@ -191,7 +188,6 @@ cdef void sample_hex20(void* userPtr,
     # embree, in which the primitives are patches. Here,
     # we convert this to the element id by dividing by the
     # number of patches per element.
-    elem_id = ray_id / 6
 
     # fills "position" with the physical position of the hit
     patchSurfaceFunc(data[ray_id].v, ray.u, ray.v, pos)
@@ -258,7 +254,7 @@ cdef void sample_tetra(void* userPtr,
 @cython.cdivision(True)
 cdef void sample_tet10(void* userPtr,
                        rtcr.RTCRay& ray) nogil:
-    cdef int ray_id, elem_id, i
+    cdef int ray_id, i
     cdef double val
     cdef double[3] position
     cdef float[3] pos
@@ -274,7 +270,6 @@ cdef void sample_tet10(void* userPtr,
     # embree, in which the primitives are patches. Here,
     # we convert this to the element id by dividing by the
     # number of patches per element.
-    elem_id = ray_id / 4
 
     # fills "position" with the physical position of the hit
     tet_patchSurfaceFunc(data[ray_id].v, ray.u, ray.v, pos)

@@ -109,7 +109,7 @@ class CFRadialDataset(Dataset):
             storage_filename will be over-written if it exists. Default is False.
         grid_shape : Optional[Tuple[int, int, int]]
             when gridding to cartesian, grid_shape is the number of cells in the
-            z, y, x coordinatess. If not provided, yt attempts to calculate a
+            z, y, x coordinates. If not provided, yt attempts to calculate a
             reasonable shape based on the resolution of the original cfradial grid
         grid_limit_x : Optional[Tuple[float, float]]
             The x range of the cartesian-gridded data in the form (xmin, xmax) with

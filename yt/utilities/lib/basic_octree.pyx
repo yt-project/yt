@@ -16,12 +16,11 @@ cimport cython
 # Double up here for def'd functions
 cimport numpy as np
 cimport numpy as cnp
-from libc.stdlib cimport abs, free, malloc
+from libc.stdlib cimport free, malloc
 
-from yt.utilities.lib.fp_utils cimport fclip, fmax, fmin, iclip, imax, imin
+from yt.utilities.lib.fp_utils cimport imax
 
 import sys
-import time
 
 
 cdef extern from "platform_dep.h":
@@ -39,7 +38,7 @@ cdef struct OctreeNode:
     np.float64_t *val
     np.float64_t weight_val
     np.int64_t pos[3]
-    int level
+    np.uint64_t level
     int nvals
     int max_level # The maximum level under this node with mass.
     OctreeNode *children[2][2][2]
@@ -130,7 +129,7 @@ cdef class Octree:
 
     def __cinit__(self, np.ndarray[np.int64_t, ndim=1] top_grid_dims,
                   int nvals, int incremental = False):
-        cdef int i, j, k
+        cdef np.uint64_t i, j, k
         self.incremental = incremental
         cdef np.int64_t pos[3]
         cdef np.float64_t *vals = <np.float64_t *> alloca(
@@ -204,12 +203,12 @@ cdef class Octree:
             np.ndarray[np.float64_t, ndim=2] pvals,
             np.ndarray[np.float64_t, ndim=1] pweight_vals,
             int treecode = 0):
-        cdef int np = pxs.shape[0]
+        cdef int npx = pxs.shape[0]
         cdef int p
         cdef cnp.float64_t *vals
         cdef cnp.float64_t *data = <cnp.float64_t *> pvals.data
         cdef cnp.int64_t pos[3]
-        for p in range(np):
+        for p in range(npx):
             vals = data + self.nvals*p
             pos[0] = pxs[p]
             pos[1] = pys[p]
@@ -500,7 +499,8 @@ cdef class Octree:
 
     cdef int node_ID(self, OctreeNode *node):
         # Returns an unique ID for this node based on its position and level.
-        cdef int ID, i, offset, root
+        cdef int ID, offset, root
+        cdef np.uint64_t i
         cdef np.int64_t this_grid_dims[3]
         offset = 0
         root = 1

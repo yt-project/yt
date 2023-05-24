@@ -1,5 +1,5 @@
-import sys
 from contextlib import contextmanager
+from functools import cached_property
 from itertools import product, repeat
 from typing import Tuple
 
@@ -20,11 +20,6 @@ from yt.utilities.exceptions import (
 )
 from yt.utilities.lib.geometry_utils import compute_morton
 from yt.utilities.logger import ytLogger as mylog
-
-if sys.version_info >= (3, 8):
-    from functools import cached_property
-else:
-    from yt._maintenance.backports import cached_property
 
 
 def cell_count_cache(func):
@@ -69,7 +64,7 @@ class OctreeSubset(YTSelectionContainer):
             fields = self._determine_fields(key)
         except YTFieldTypeNotFound:
             return tr
-        finfo = self.ds._get_field_info(*fields[0])
+        finfo = self.ds._get_field_info(fields[0])
         if not finfo.sampling_type == "particle":
             # We may need to reshape the field, if it is being queried from
             # field_data.  If it's already cached, it just passes through.

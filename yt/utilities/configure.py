@@ -94,7 +94,8 @@ class YTConfig:
                     data = tomllib.load(fh)
             except tomllib.TOMLDecodeError as exc:
                 warnings.warn(
-                    f"Could not load configuration file {fname} (invalid TOML: {exc})"
+                    f"Could not load configuration file {fname} (invalid TOML: {exc})",
+                    stacklevel=2,
                 )
             else:
                 self.update(data, metadata=metadata)
@@ -117,7 +118,9 @@ class YTConfig:
         else:
             pdir = file_path.parent
             if not pdir.exists():
-                warnings.warn(f"{pdir!s} does not exist, creating it (recursively)")
+                warnings.warn(
+                    f"{pdir!s} does not exist, creating it (recursively)", stacklevel=2
+                )
                 os.makedirs(pdir)
             file_path.write_text(config_as_str)
 
@@ -127,6 +130,14 @@ class YTConfig:
 
     @staticmethod
     def get_local_config_file():
+        path = Path.cwd()
+        while path.parent is not path:
+            candidate = path.joinpath("yt.toml")
+            if candidate.is_file():
+                return os.path.abspath(candidate)
+            else:
+                path = path.parent
+
         return os.path.join(os.path.abspath(os.curdir), "yt.toml")
 
     def __setitem__(self, args, value):

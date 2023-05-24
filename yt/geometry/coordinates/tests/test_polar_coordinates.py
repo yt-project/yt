@@ -2,8 +2,9 @@
 # (Pretty similar to cylindrical, but different ordering)
 
 import numpy as np
+from numpy.testing import assert_almost_equal, assert_equal
 
-from yt.testing import assert_almost_equal, assert_equal, fake_amr_ds
+from yt.testing import fake_amr_ds
 
 # Our canonical tests are that we can access all of our fields and we can
 # compute our volume correctly.

@@ -2,18 +2,20 @@ import os
 import sys
 import warnings
 from functools import wraps
+from importlib.metadata import version
 from typing import TYPE_CHECKING, Optional, Type, TypeVar
 
-if sys.version_info >= (3, 8):
-    from importlib.metadata import version
-else:
-    from importlib_metadata import version
-
+import matplotlib as mpl
 import numpy as np
 from more_itertools import always_iterable
 from packaging.version import Version
 
 from yt.config import ytcfg
+
+if sys.version_info >= (3, 9):
+    import importlib.resources as importlib_resources
+else:
+    import importlib_resources
 
 if sys.version_info >= (3, 10):
     pass
@@ -24,15 +26,16 @@ if TYPE_CHECKING:
     from ._mpl_imports import FigureCanvasBase
 
 
-DEFAULT_FONT_PROPERTIES = {
-    "family": "stixgeneral",
-    "size": 18,
-}
-
 MPL_VERSION = Version(version("matplotlib"))
 
+_yt_style = mpl.rc_params_from_file(
+    importlib_resources.files("yt") / "default.mplstyle", use_default_template=False
+)
+DEFAULT_FONT_PROPERTIES = {"family": _yt_style["font.family"][0]}
+
 if MPL_VERSION >= Version("3.4"):
-    DEFAULT_FONT_PROPERTIES["math_fontfamily"] = "cm"
+    DEFAULT_FONT_PROPERTIES["math_fontfamily"] = _yt_style["mathtext.fontset"]
+del _yt_style
 
 
 def _get_supported_image_file_formats():
@@ -93,7 +96,8 @@ def validate_image_name(filename, suffix: Optional[str] = None) -> str:
         if suffix in _get_supported_image_file_formats() and suffix != psuffix:
             warnings.warn(
                 f"Received two valid image formats {psuffix!r} (from filename) "
-                f"and {suffix!r} (from suffix). The former is ignored."
+                f"and {suffix!r} (from suffix). The former is ignored.",
+                stacklevel=2,
             )
             return f"{name}.{suffix}"
         return str(filename)
@@ -108,7 +112,6 @@ def validate_image_name(filename, suffix: Optional[str] = None) -> str:
 
 
 def get_canvas(figure, filename):
-
     name, suffix = os.path.splitext(filename)
 
     if not suffix:
@@ -362,3 +365,12 @@ def get_default_from_config(data_source, *, field, keys, defaults):
         return ret[0]
     else:
         return ret
+
+
+def _get_units_label(units: str) -> str:
+    if r"\frac" in units:
+        return r"$\ \ \left(%s\right)$" % units
+    elif units:
+        return r"$\ \ (%s)$" % units
+    else:
+        return ""

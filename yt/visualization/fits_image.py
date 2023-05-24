@@ -2,12 +2,11 @@ import re
 import sys
 from functools import partial
 from numbers import Number as numeric_type
-from typing import Tuple
 
 import numpy as np
 from more_itertools import first, mark_ends
 
-from yt._maintenance.deprecation import issue_deprecation_warning
+from yt._typing import FieldKey
 from yt.data_objects.construction_data_containers import YTCoveringGrid
 from yt.data_objects.image_array import ImageArray
 from yt.fields.derived_field import DerivedField
@@ -86,8 +85,9 @@ class FITSImageData:
             is not already provided by *data*.
         img_ctr : array_like or YTArray
             The center coordinates of the image. If a list or NumPy array,
-            it is assumed to be in *units*. Only used if this information
-            is not already provided by *data*.
+            it is assumed to be in *units*. This will overwrite any center
+            coordinates potentially provided by *data*. Default in other cases
+            is [0.0]*(number of dimensions).
         wcs : `~astropy.wcs.WCS` instance, optional
             Supply an AstroPy WCS instance. Will override automatic WCS
             creation from FixedResolutionBuffers and YTCoveringGrids.
@@ -160,8 +160,6 @@ class FITSImageData:
                 width = YTQuantity(width[0], width[1])
             else:
                 width = ds.quan(width[0], width[1])
-        if img_ctr is None:
-            img_ctr = np.zeros(3)
 
         exclude_fields = [
             "x",
@@ -315,22 +313,30 @@ class FITSImageData:
                 dy = (img_data.bounds[3] - img_data.bounds[2]).to_value(wcs_unit)
                 dx /= self.shape[0]
                 dy /= self.shape[1]
-                xctr = 0.5 * (img_data.bounds[1] + img_data.bounds[0]).to_value(
-                    wcs_unit
-                )
-                yctr = 0.5 * (img_data.bounds[3] + img_data.bounds[2]).to_value(
-                    wcs_unit
-                )
+                if img_ctr is not None:
+                    xctr, yctr = img_ctr
+                else:
+                    xctr = 0.5 * (img_data.bounds[1] + img_data.bounds[0]).to_value(
+                        wcs_unit
+                    )
+                    yctr = 0.5 * (img_data.bounds[3] + img_data.bounds[2]).to_value(
+                        wcs_unit
+                    )
                 center = [xctr, yctr]
                 cdelt = [dx, dy]
             elif isinstance(img_data, YTCoveringGrid):
                 cdelt = img_data.dds.to_value(wcs_unit)
-                center = 0.5 * (img_data.left_edge + img_data.right_edge).to_value(
-                    wcs_unit
-                )
+                if img_ctr is not None:
+                    center = img_ctr
+                else:
+                    center = 0.5 * (img_data.left_edge + img_data.right_edge).to_value(
+                        wcs_unit
+                    )
             else:
                 # If img_data is just an array we use the width and img_ctr
                 # parameters to determine the cell widths
+                if img_ctr is None:
+                    img_ctr = np.zeros(3)
                 if not is_sequence(width):
                     width = [width] * self.dimensionality
                 if isinstance(width[0], YTQuantity):
@@ -542,15 +548,6 @@ class FITSImageData:
                 raise KeyError(f"{field} not an image!")
             idx = self.fields.index(field)
             self.hdulist[idx].header[key] = value
-
-    def update_all_headers(self, key, value):
-        issue_deprecation_warning(
-            "update_all_headers is deprecated. "
-            "Use update_header('all', key, value) instead.",
-            since="3.3",
-            removal="4.2",
-        )
-        self.update_header("all", key, value)
 
     def keys(self):
         return self.fields
@@ -799,9 +796,9 @@ class FITSImageData:
         wcsname : string, optional
             The name of the WCS to be stored in the FITS header.
         replace_old_wcs : boolean, optional
-            Whether or not to overwrite the default WCS of the
-            FITSImageData instance. If false, a second WCS will
-            be added to the header. Default: True.
+            If True, the original WCS will be overwritten but
+            first copied to a second WCS ("WCSAXESA"). If False, this
+            new WCS will be placed into the second WCS.
         """
         if ctype is None:
             ctype = ["RA---TAN", "DEC--TAN"]
@@ -841,6 +838,7 @@ class FITSImageData:
             new_wcs.wcs.cd = pc
         if replace_old_wcs:
             self.set_wcs(new_wcs, wcsname=wcsname)
+            self.set_wcs(old_wcs, wcsname="yt", suffix="a")
         else:
             self.set_wcs(new_wcs, wcsname=wcsname, suffix="a")
 
@@ -864,7 +862,9 @@ def sanitize_fits_unit(unit):
 axis_wcs = [[1, 2], [2, 0], [0, 1]]
 
 
-def construct_image(ds, axis, data_source, center, image_res, width, length_unit):
+def construct_image(
+    ds, axis, data_source, center, image_res, width, length_unit, origin="domain"
+):
     if width is None:
         width = ds.domain_width[axis_wcs[axis]]
         unit = ds.get_smallest_appropriate_unit(width[0])
@@ -894,10 +894,13 @@ def construct_image(ds, axis, data_source, center, image_res, width, length_unit
     cunit = [length_unit] * 2
     ctype = ["LINEAR"] * 2
     cdelt = [dx.in_units(length_unit), dy.in_units(length_unit)]
-    if is_sequence(axis):
-        crval = center.in_units(length_unit)
-    else:
-        crval = [center[idx].in_units(length_unit) for idx in axis_wcs[axis]]
+    if origin == "domain":
+        if is_sequence(axis):
+            crval = center.in_units(length_unit)
+        else:
+            crval = [center[idx].in_units(length_unit) for idx in axis_wcs[axis]]
+    elif origin == "image":
+        crval = np.zeros(2)
     if hasattr(data_source, "to_frb"):
         if is_sequence(axis):
             frb = data_source.to_frb(width[0], (nx, ny), height=width[1])
@@ -971,19 +974,31 @@ class FITSSlice(FITSImageData):
         Specify the resolution of the resulting image. A single value will be
         used for both axes, whereas a tuple of values will be used for the
         individual axes. Default: 512
-    center : A sequence of floats, a string, or a tuple.
-        The coordinate of the center of the image. If set to 'c', 'center' or
-        left blank, the plot is centered on the middle of the domain. If set
-        to 'max' or 'm', the center will be located at the maximum of the
-        ('gas', 'density') field. Centering on the max or min of a specific
-        field is supported by providing a tuple such as ("min","temperature")
-        or ("max","dark_matter_density"). Units can be specified by passing in
-        *center* as a tuple containing a coordinate and string unit name or by
-        passing in a YTArray. If a list or unitless array is supplied, code
-        units are assumed.
+    center : 'center', 'c', 'left', 'l', 'right', 'r', id of a global extremum, or array-like
+        The coordinate of the selection's center.
+        Defaults to the 'center', i.e. center of the domain.
+
+        Centering on the min or max of a field is supported by passing a tuple
+        such as ('min', ('gas', 'density')) or ('max', ('gas', 'temperature'). A
+        single string may also be used (e.g. "min_density" or
+        "max_temperature"), though it's not as flexible and does not allow to
+        select an exact field/particle type. With this syntax, the first field
+        matching the provided name is selected.
+        'max' or 'm' can be used as a shortcut for ('max', ('gas', 'density'))
+        'min' can be used as a shortcut for ('min', ('gas', 'density'))
+
+        One can also select an exact point as a 3 element coordinate sequence,
+        e.g. [0.5, 0.5, 0]
+        Units can be specified by passing in *center* as a tuple containing a
+        3-element coordinate sequence and string unit name, e.g. ([0, 0.5, 0.5], "cm"),
+        or by passing in a YTArray. Code units are assumed if unspecified.
+
+        The domain edges along the selected *axis* can be selected with
+        'left'/'l' and 'right'/'r' respectively.
+
     width : tuple or a float.
-        Width can have four different formats to support variable
-        x and y widths.  They are:
+        Width can have four different formats to support variable x and y
+        widths.  They are:
 
         ==================================     =======================
         format                                 example
@@ -994,15 +1009,20 @@ class FITSSlice(FITSImageData):
         (float, float)                         (0.2, 0.3)
         ==================================     =======================
 
-        For example, (10, 'kpc') specifies a width that is 10 kiloparsecs
-        wide in the x and y directions, ((10,'kpc'),(15,'kpc')) specifies a
-        width that is 10 kiloparsecs wide along the x axis and 15
-        kiloparsecs wide along the y axis.  In the other two examples, code
-        units are assumed, for example (0.2, 0.3) specifies a width that has an
-        x width of 0.2 and a y width of 0.3 in code units.
+        For example, (10, 'kpc') specifies a width that is 10 kiloparsecs wide
+        in the x and y directions, ((10,'kpc'),(15,'kpc')) specifies a width
+        that is 10 kiloparsecs wide along the x axis and 15 kiloparsecs wide
+        along the y axis.  In the other two examples, code units are assumed,
+        for example (0.2, 0.3) specifies a width that has an x width of 0.2 and
+        a y width of 0.3 in code units.
     length_unit : string, optional
         the length units that the coordinates are written in. The default
         is to use the default length unit of the dataset.
+    origin : string
+        The origin of the coordinate system in the file. If "domain", then the
+        center coordinates will be the same as the center of the image as
+        defined by the *center* keyword argument. If "image", then the center
+        coordinates will be set to (0,0). Default: "domain"
     """
 
     def __init__(
@@ -1011,9 +1031,11 @@ class FITSSlice(FITSImageData):
         axis,
         fields,
         image_res=512,
-        center="c",
+        center="center",
         width=None,
         length_unit=None,
+        *,
+        origin="domain",
         **kwargs,
     ):
         fields = list(iter_fields(fields))
@@ -1021,7 +1043,14 @@ class FITSSlice(FITSImageData):
         center, dcenter = ds.coordinates.sanitize_center(center, axis)
         slc = ds.slice(axis, center[axis], **kwargs)
         w, frb, lunit = construct_image(
-            ds, axis, slc, dcenter, image_res, width, length_unit
+            ds,
+            axis,
+            slc,
+            dcenter,
+            image_res,
+            width,
+            length_unit,
+            origin=origin,
         )
         super().__init__(frb, fields=fields, length_unit=lunit, wcs=w)
 
@@ -1042,16 +1071,27 @@ class FITSProjection(FITSImageData):
         Specify the resolution of the resulting image. A single value will be
         used for both axes, whereas a tuple of values will be used for the
         individual axes. Default: 512
-    center : A sequence of floats, a string, or a tuple.
-        The coordinate of the center of the image. If set to 'c', 'center' or
-        left blank, the plot is centered on the middle of the domain. If set
-        to 'max' or 'm', the center will be located at the maximum of the
-        ('gas', 'density') field. Centering on the max or min of a specific
-        field is supported by providing a tuple such as ("min","temperature")
-        or ("max","dark_matter_density"). Units can be specified by passing in
-        *center* as a tuple containing a coordinate and string unit name or by
-        passing in a YTArray. If a list or unitless array is supplied, code
-        units are assumed.
+    center : 'center', 'c', 'left', 'l', 'right', 'r', id of a global extremum, or array-like
+        The coordinate of the selection's center.
+        Defaults to the 'center', i.e. center of the domain.
+
+        Centering on the min or max of a field is supported by passing a tuple
+        such as ('min', ('gas', 'density')) or ('max', ('gas', 'temperature'). A
+        single string may also be used (e.g. "min_density" or
+        "max_temperature"), though it's not as flexible and does not allow to
+        select an exact field/particle type. With this syntax, the first field
+        matching the provided name is selected.
+        'max' or 'm' can be used as a shortcut for ('max', ('gas', 'density'))
+        'min' can be used as a shortcut for ('min', ('gas', 'density'))
+
+        One can also select an exact point as a 3 element coordinate sequence,
+        e.g. [0.5, 0.5, 0]
+        Units can be specified by passing in *center* as a tuple containing a
+        3-element coordinate sequence and string unit name, e.g. ([0, 0.5, 0.5], "cm"),
+        or by passing in a YTArray. Code units are assumed if unspecified.
+
+        The domain edges along the selected *axis* can be selected with
+        'left'/'l' and 'right'/'r' respectively.
     width : tuple or a float.
         Width can have four different formats to support variable
         x and y widths.  They are:
@@ -1076,6 +1116,11 @@ class FITSProjection(FITSImageData):
     length_unit : string, optional
         the length units that the coordinates are written in. The default
         is to use the default length unit of the dataset.
+    origin : string
+        The origin of the coordinate system in the file. If "domain", then the
+        center coordinates will be the same as the center of the image as
+        defined by the *center* keyword argument. If "image", then the center
+        coordinates will be set to (0,0). Default: "domain"
     moment : integer, optional
         for a weighted projection, moment = 1 (the default) corresponds to a
         weighted average. moment = 2 corresponds to a weighted standard
@@ -1088,11 +1133,12 @@ class FITSProjection(FITSImageData):
         axis,
         fields,
         image_res=512,
-        center="c",
+        center="center",
         width=None,
         weight_field=None,
         length_unit=None,
         *,
+        origin="domain",
         moment=1,
         **kwargs,
     ):
@@ -1103,7 +1149,14 @@ class FITSProjection(FITSImageData):
             fields[0], axis, weight_field=weight_field, moment=moment, **kwargs
         )
         w, frb, lunit = construct_image(
-            ds, axis, prj, dcenter, image_res, width, length_unit
+            ds,
+            axis,
+            prj,
+            dcenter,
+            image_res,
+            width,
+            length_unit,
+            origin=origin,
         )
         super().__init__(frb, fields=fields, length_unit=lunit, wcs=w)
 
@@ -1125,16 +1178,27 @@ class FITSParticleProjection(FITSImageData):
         Specify the resolution of the resulting image. A single value will be
         used for both axes, whereas a tuple of values will be used for the
         individual axes. Default: 512
-    center : A sequence of floats, a string, or a tuple.
-        The coordinate of the center of the image. If set to 'c', 'center' or
-        left blank, the plot is centered on the middle of the domain. If set
-        to 'max' or 'm', the center will be located at the maximum of the
-        ('gas', 'density') field. Centering on the max or min of a specific
-        field is supported by providing a tuple such as ("min","temperature")
-        or ("max","dark_matter_density"). Units can be specified by passing in
-        *center* as a tuple containing a coordinate and string unit name or by
-        passing in a YTArray. If a list or unitless array is supplied, code
-        units are assumed.
+    center : 'center', 'c', 'left', 'l', 'right', 'r', id of a global extremum, or array-like
+        The coordinate of the selection's center.
+        Defaults to the 'center', i.e. center of the domain.
+
+        Centering on the min or max of a field is supported by passing a tuple
+        such as ('min', ('gas', 'density')) or ('max', ('gas', 'temperature'). A
+        single string may also be used (e.g. "min_density" or
+        "max_temperature"), though it's not as flexible and does not allow to
+        select an exact field/particle type. With this syntax, the first field
+        matching the provided name is selected.
+        'max' or 'm' can be used as a shortcut for ('max', ('gas', 'density'))
+        'min' can be used as a shortcut for ('min', ('gas', 'density'))
+
+        One can also select an exact point as a 3 element coordinate sequence,
+        e.g. [0.5, 0.5, 0]
+        Units can be specified by passing in *center* as a tuple containing a
+        3-element coordinate sequence and string unit name, e.g. ([0, 0.5, 0.5], "cm"),
+        or by passing in a YTArray. Code units are assumed if unspecified.
+
+        The domain edges along the selected *axis* can be selected with
+        'left'/'l' and 'right'/'r' respectively.
     width : tuple or a float.
         Width can have four different formats to support variable
         x and y widths.  They are:
@@ -1176,6 +1240,11 @@ class FITSParticleProjection(FITSImageData):
     data_source : yt.data_objects.data_containers.YTSelectionContainer, optional
         If specified, this will be the data source used for selecting regions
         to project.
+    origin : string
+        The origin of the coordinate system in the file. If "domain", then the
+        center coordinates will be the same as the center of the image as
+        defined by the *center* keyword argument. If "image", then the center
+        coordinates will be set to (0,0). Default: "domain"
     """
 
     def __init__(
@@ -1184,7 +1253,7 @@ class FITSParticleProjection(FITSImageData):
         axis,
         fields,
         image_res=512,
-        center="c",
+        center="center",
         width=None,
         depth=(1, "1"),
         weight_field=None,
@@ -1193,6 +1262,8 @@ class FITSParticleProjection(FITSImageData):
         density=False,
         field_parameters=None,
         data_source=None,
+        *,
+        origin="domain",
     ):
         fields = list(iter_fields(fields))
         axis = fix_axis(axis, ds)
@@ -1216,7 +1287,7 @@ class FITSParticleProjection(FITSImageData):
             density=density,
         )
         w, frb, lunit = construct_image(
-            ds, axis, ps, dcenter, image_res, width, length_unit
+            ds, axis, ps, dcenter, image_res, width, length_unit, origin=origin
         )
         super().__init__(frb, fields=fields, length_unit=lunit, wcs=w)
 
@@ -1237,16 +1308,25 @@ class FITSOffAxisSlice(FITSImageData):
         Specify the resolution of the resulting image. A single value will be
         used for both axes, whereas a tuple of values will be used for the
         individual axes. Default: 512
-    center : A sequence of floats, a string, or a tuple.
-        The coordinate of the center of the image. If set to 'c', 'center' or
-        left blank, the plot is centered on the middle of the domain. If set
-        to 'max' or 'm', the center will be located at the maximum of the
-        ('gas', 'density') field. Centering on the max or min of a specific
-        field is supported by providing a tuple such as ("min","temperature")
-        or ("max","dark_matter_density"). Units can be specified by passing in
-        *center* as a tuple containing a coordinate and string unit name or by
-        passing in a YTArray. If a list or unitless array is supplied, code
-        units are assumed.
+    center : 'center', 'c', id of a global extremum, or array-like
+        The coordinate of the selection's center.
+        Defaults to the 'center', i.e. center of the domain.
+
+        Centering on the min or max of a field is supported by passing a tuple
+        such as ('min', ('gas', 'density')) or ('max', ('gas', 'temperature'). A
+        single string may also be used (e.g. "min_density" or
+        "max_temperature"), though it's not as flexible and does not allow to
+        select an exact field/particle type. With this syntax, the first field
+        matching the provided name is selected.
+        'max' or 'm' can be used as a shortcut for ('max', ('gas', 'density'))
+        'min' can be used as a shortcut for ('min', ('gas', 'density'))
+
+        One can also select an exact point as a 3 element coordinate sequence,
+        e.g. [0.5, 0.5, 0]
+        Units can be specified by passing in *center* as a tuple containing a
+        3-element coordinate sequence and string unit name, e.g. ([0, 0.5, 0.5], "cm"),
+        or by passing in a YTArray. Code units are assumed if unspecified.
+
     width : tuple or a float.
         Width can have four different formats to support variable
         x and y widths.  They are:
@@ -1281,13 +1361,13 @@ class FITSOffAxisSlice(FITSImageData):
         normal,
         fields,
         image_res=512,
-        center="c",
+        center="center",
         width=None,
         north_vector=None,
         length_unit=None,
     ):
         fields = list(iter_fields(fields))
-        center, dcenter = ds.coordinates.sanitize_center(center, 4)
+        center, dcenter = ds.coordinates.sanitize_center(center, axis=None)
         cut = ds.cutting(normal, center, north_vector=north_vector)
         center = ds.arr([0.0] * 2, "code_length")
         w, frb, lunit = construct_image(
@@ -1313,16 +1393,24 @@ class FITSOffAxisProjection(FITSImageData):
         Specify the resolution of the resulting image. A single value will be
         used for both axes, whereas a tuple of values will be used for the
         individual axes. Default: 512
-    center : A sequence of floats, a string, or a tuple.
-        The coordinate of the center of the image. If set to 'c', 'center' or
-        left blank, the plot is centered on the middle of the domain. If set
-        to 'max' or 'm', the center will be located at the maximum of the
-        ('gas', 'density') field. Centering on the max or min of a specific
-        field is supported by providing a tuple such as ("min","temperature")
-        or ("max","dark_matter_density"). Units can be specified by passing in
-        *center* as a tuple containing a coordinate and string unit name or by
-        passing in a YTArray. If a list or unitless array is supplied, code
-        units are assumed.
+    center : 'center', 'c', id of a global extremum, or array-like
+        The coordinate of the selection's center.
+        Defaults to the 'center', i.e. center of the domain.
+
+        Centering on the min or max of a field is supported by passing a tuple
+        such as ('min', ('gas', 'density')) or ('max', ('gas', 'temperature'). A
+        single string may also be used (e.g. "min_density" or
+        "max_temperature"), though it's not as flexible and does not allow to
+        select an exact field/particle type. With this syntax, the first field
+        matching the provided name is selected.
+        'max' or 'm' can be used as a shortcut for ('max', ('gas', 'density'))
+        'min' can be used as a shortcut for ('min', ('gas', 'density'))
+
+        One can also select an exact point as a 3 element coordinate sequence,
+        e.g. [0.5, 0.5, 0]
+        Units can be specified by passing in *center* as a tuple containing a
+        3-element coordinate sequence and string unit name, e.g. ([0, 0.5, 0.5], "cm"),
+        or by passing in a YTArray. Code units are assumed if unspecified.
     width : tuple or a float.
         Width can have four different formats to support variable
         x and y widths.  They are:
@@ -1383,7 +1471,7 @@ class FITSOffAxisProjection(FITSImageData):
         ds,
         normal,
         fields,
-        center="c",
+        center="center",
         width=(1.0, "unitary"),
         weight_field=None,
         image_res=512,
@@ -1396,7 +1484,8 @@ class FITSOffAxisProjection(FITSImageData):
         moment=1,
     ):
         validate_moment(moment, weight_field)
-        center, dcenter = ds.coordinates.sanitize_center(center, 4)
+        center, dcenter = ds.coordinates.sanitize_center(center, axis=None)
+        fields = list(iter_fields(fields))
         buf = {}
         width = ds.coordinates.sanitize_width(normal, width, depth)
         wd = tuple(el.in_units("code_length").v for el in width)
@@ -1410,8 +1499,8 @@ class FITSOffAxisProjection(FITSImageData):
         fields = source._determine_fields(list(iter_fields(fields)))
         stddev_str = "_stddev" if moment == 2 else ""
         for item in fields:
-
-            key = (item[0], item[1] + stddev_str)
+            ftype, fname = item
+            key = (ftype, f"{fname}{stddev_str}")
 
             buf[key] = off_axis_projection(
                 source,
@@ -1427,12 +1516,11 @@ class FITSOffAxisProjection(FITSImageData):
 
             if moment == 2:
 
-                def _sq_field(field, data, item: Tuple[str, str]):
+                def _sq_field(field, data, item: FieldKey):
                     return data[item] ** 2
 
-                fd = ds._get_field_info(*item)
-
-                field_sq = (item[0], f"tmp_{item[1]}_squared")
+                fd = ds._get_field_info(item)
+                field_sq = (ftype, f"tmp_{fname}_squared")
 
                 ds.add_field(
                     field_sq,

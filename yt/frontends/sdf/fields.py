@@ -8,7 +8,6 @@ class SDFFieldInfo(FieldInfoContainer):
     _mass_field = None
 
     def __init__(self, ds, field_list):
-
         if "mass" in field_list:
             self.known_particle_fields.append(
                 ("mass", "code_mass", ["particle_mass"], None)

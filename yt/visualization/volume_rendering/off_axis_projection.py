@@ -175,7 +175,7 @@ def off_axis_projection(
         if raise_error:
             raise RuntimeError(
                 "Can only perform off-axis projections for SPH fields, "
-                "Received '%s'" % (item,)
+                f"Received {item!r}"
             )
 
         normal = np.array(normal_vector)
@@ -377,7 +377,7 @@ def off_axis_projection(
 
     mylog.debug("Casting rays")
 
-    for (grid, mask) in data_source.blocks:
+    for grid, mask in data_source.blocks:
         data = []
         for f in fields:
             # strip units before multiplying by mask for speed

@@ -7,7 +7,6 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 
 
 class EnzoEIOHandler(BaseIOHandler):
-
     _dataset_type = "enzo_e"
     _base = slice(None)
     _field_dtype = "float64"
@@ -42,8 +41,7 @@ class EnzoEIOHandler(BaseIOHandler):
             group = f[grid.block_name]
         except KeyError as e:
             raise YTException(
-                message="Grid %s is missing from data file %s."
-                % (grid.block_name, grid.filename),
+                message=f"Grid {grid.block_name} is missing from data file {grid.filename}.",
                 ds=self.ds,
             ) from e
         fields = []

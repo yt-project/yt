@@ -5,16 +5,12 @@ import unittest
 from unittest import mock
 
 import numpy as np
+from numpy.testing import assert_allclose, assert_array_almost_equal
 
 from yt.data_objects.particle_filters import add_particle_filter
 from yt.data_objects.profiles import create_profile
 from yt.loaders import load
-from yt.testing import (
-    assert_allclose,
-    assert_array_almost_equal,
-    fake_particle_ds,
-    requires_file,
-)
+from yt.testing import fake_particle_ds, requires_file
 from yt.units.yt_array import YTArray
 from yt.utilities.answer_testing.framework import (
     PhasePlotAttributeTest,

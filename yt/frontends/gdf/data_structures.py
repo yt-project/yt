@@ -1,12 +1,13 @@
 import os
-import sys
 import weakref
+from functools import cached_property
 
 import numpy as np
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.funcs import just_one, setdefaultattr
+from yt.geometry.api import Geometry
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.units.dimensions import dimensionless as sympy_one  # type: ignore
 from yt.units.unit_object import Unit  # type: ignore
@@ -18,10 +19,6 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 
 from .fields import GDFFieldInfo
 
-if sys.version_info >= (3, 8):
-    from functools import cached_property
-else:
-    from yt._maintenance.backports import cached_property
 GEOMETRY_TRANS = {
     0: "cartesian",
     1: "polar",
@@ -56,7 +53,6 @@ class GDFGrid(AMRGridPatch):
 
 
 class GDFHierarchy(GridIndex):
-
     grid = GDFGrid
 
     def __init__(self, ds, dataset_type="grid_data_format"):
@@ -250,7 +246,7 @@ class GDFDataset(Dataset):
         if self.geometry is None:
             geometry = just_one(sp.get("geometry", 0))
             try:
-                self.geometry = GEOMETRY_TRANS[geometry]
+                self.geometry = Geometry(GEOMETRY_TRANS[geometry])
             except KeyError as e:
                 raise YTGDFUnknownGeometry(geometry) from e
         self.parameters.update(sp)

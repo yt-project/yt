@@ -18,6 +18,7 @@ from yt.config import ytcfg
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.funcs import mylog, setdefaultattr
+from yt.geometry.api import Geometry
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.physical_constants import boltzmann_constant_cgs as kb_cgs
 
@@ -40,6 +41,31 @@ if sys.version_info < (3, 9):
 else:
     # an else block is mandated for pyupgrade to enable auto-cleanup
     pass
+
+
+def _parse_geometry(geometry_tag: str) -> Geometry:
+    """Translate AMRVAC's geometry tag to yt's format.
+
+    Parameters
+    ----------
+    geometry_tag : str
+        A geometry tag as read from AMRVAC's datfile from v5.
+
+    Returns
+    -------
+    geometry_yt : Geometry
+        An enum member of the yt.geometry.geometry_enum.Geometry class
+
+    Examples
+    --------
+    >>> _parse_geometry("Polar_2.5D")
+     <Geometry.POLAR: 'polar'>
+    >>> _parse_geometry("Cartesian_2.5D")
+    <Geometry.CARTESIAN: 'cartesian'>
+
+    """
+    geometry_str, _, _dimension_str = geometry_tag.partition("_")
+    return Geometry(geometry_str.lower())
 
 
 class AMRVACGrid(AMRGridPatch):
@@ -71,6 +97,7 @@ class AMRVACGrid(AMRGridPatch):
                 "ghost-zones interpolation/smoothing is not "
                 "currently supported for AMRVAC data.",
                 category=RuntimeWarning,
+                stacklevel=2,
             )
             smoothed = False
         return super().retrieve_ghost_zones(
@@ -278,38 +305,6 @@ class AMRVACDataset(Dataset):
                 pass
         return validation
 
-    def _parse_geometry(self, geometry_tag):
-        """Translate AMRVAC's geometry tag to yt's format.
-
-        Parameters
-        ----------
-        geometry_tag : str
-            A geometry tag as read from AMRVAC's datfile from v5.
-            If "default" is found, it is translated to "cartesian".
-
-        Returns
-        -------
-        geometry_yt : str
-            Lower case geometry tag ("cartesian", "polar", "cylindrical" or "spherical")
-
-        Examples
-        --------
-        >>> print(self._parse_geometry("Polar_2.5D"))
-        "polar"
-        >>> print(self._parse_geometry("Cartesian_2.5D"))
-
-        """
-        # frontend specific method
-        known_geoms = {
-            "default": "cartesian",
-            "cartesian": "cartesian",
-            "polar": "polar",
-            "cylindrical": "cylindrical",
-            "spherical": "spherical",
-        }
-        geom_key = geometry_tag.split("_")[0].lower()
-        return known_geoms[geom_key]
-
     def _parse_parameter_file(self):
         """Parse input datfile's header. Apply geometry_override if specified."""
         # required method
@@ -336,21 +331,20 @@ class AMRVACDataset(Dataset):
         # - geometry_override
         # - "geometry" parameter from datfile
         # - if all fails, default to "cartesian"
-        self.geometry = None
+        self.geometry = Geometry.CARTESIAN
+
         amrvac_geom = self.parameters.get("geometry", None)
         if amrvac_geom is not None:
-            self.geometry = self._parse_geometry(amrvac_geom)
+            self.geometry = _parse_geometry(amrvac_geom)
         elif self.parameters["datfile_version"] > 4:
-            # py38: walrus here
             mylog.error(
                 "No 'geometry' flag found in datfile with version %d >4.",
                 self.parameters["datfile_version"],
             )
 
         if self._geometry_override is not None:
-            # py38: walrus here
             try:
-                new_geometry = self._parse_geometry(self._geometry_override)
+                new_geometry = _parse_geometry(self._geometry_override)
                 if new_geometry == self.geometry:
                     mylog.info("geometry_override is identical to datfile parameter.")
                 else:
@@ -363,12 +357,6 @@ class AMRVACDataset(Dataset):
                     "Unable to parse geometry_override '%s' (will be ignored).",
                     self._geometry_override,
                 )
-
-        if self.geometry is None:
-            mylog.warning(
-                "No geometry parameter supplied or found, defaulting to cartesian."
-            )
-            self.geometry = "cartesian"
 
         # parse peridiocity
         periodicity = self.parameters.get("periodic", ())

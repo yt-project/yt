@@ -1,13 +1,8 @@
-import sys
+from functools import cached_property
 
 import numpy as np
 
 from yt.utilities.lib.pixelization_routines import pixelize_cartesian, pixelize_cylinder
-
-if sys.version_info >= (3, 8):
-    from functools import cached_property
-else:
-    from yt._maintenance.backports import cached_property
 
 from .coordinate_handler import (
     CoordinateHandler,
@@ -26,8 +21,9 @@ from .coordinate_handler import (
 
 class CylindricalCoordinateHandler(CoordinateHandler):
     name = "cylindrical"
+    _default_axis_order = ("r", "z", "theta")
 
-    def __init__(self, ds, ordering=("r", "z", "theta")):
+    def __init__(self, ds, ordering=None):
         super().__init__(ds, ordering)
         self.image_units = {}
         self.image_units[self.axis_id["r"]] = ("rad", None)
@@ -151,7 +147,6 @@ class CylindricalCoordinateHandler(CoordinateHandler):
             data_source[field],
             bounds,
         )
-        self.sanitize_buffer_fill_values(buff)
         return buff
 
     _x_pairs = (("r", "theta"), ("z", "r"), ("theta", "r"))

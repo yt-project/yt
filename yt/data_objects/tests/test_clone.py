@@ -1,4 +1,6 @@
-from yt.testing import assert_array_equal, assert_equal, fake_random_ds
+from numpy.testing import assert_array_equal, assert_equal
+
+from yt.testing import fake_random_ds
 
 
 def test_clone_sphere():

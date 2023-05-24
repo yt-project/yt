@@ -87,7 +87,7 @@ class IOHandlerOpenPMDHDF5(BaseIOHandler):
         ptf = defaultdict(list)  # ParticleTypes&Fields
         rfm = defaultdict(list)  # RequestFieldMapping
 
-        for (ptype, pname) in fields:
+        for ptype, pname in fields:
             pfield = (ptype, pname)
             # Overestimate the size of all pfields so they include all particles
             # and shrink it later
@@ -180,7 +180,7 @@ class IOHandlerOpenPMDHDF5(BaseIOHandler):
             rv[field] = np.empty(size, dtype=np.float64)
             ind[field] = 0
 
-        for (ftype, fname) in fields:
+        for ftype, fname in fields:
             field = (ftype, fname)
             for chunk in chunks:
                 for grid in chunk.objs:

@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.testing import assert_allclose, assert_equal
 
 from yt.frontends.boxlib.api import (
     AMReXDataset,
@@ -10,8 +11,6 @@ from yt.frontends.boxlib.api import (
 )
 from yt.loaders import load
 from yt.testing import (
-    assert_allclose,
-    assert_equal,
     disable_dataset_cache,
     requires_file,
     units_override_check,

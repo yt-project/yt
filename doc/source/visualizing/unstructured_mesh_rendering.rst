@@ -23,7 +23,7 @@ For conda-based systems, this is trivial, see
 For systems other than conda, you will need to install Embree first, either by
 `compiling from source <https://github.com/embree/embree#installation-of-embree>`_
 or by using one of the pre-built binaries available at Embree's
-`downloads <https://www.embree.org/downloads.html>`_ page.
+`releases <https://github.com/embree/embree/releases>`_ page.
 
 Then you'll want to install pyembree from source as follows.
 
@@ -461,7 +461,6 @@ file with a fixed camera position:
     VMAX = 2000.0
 
     for step in range(NUM_STEPS):
-
         ds = yt.load("MOOSE_sample_data/mps_out.e", step=step)
 
 	time = ds._get_current_time()

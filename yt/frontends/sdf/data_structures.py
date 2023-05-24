@@ -1,5 +1,5 @@
 import os
-import sys
+from functools import cached_property
 
 import numpy as np
 
@@ -12,10 +12,6 @@ from yt.utilities.sdf import HTTPSDFRead, SDFIndex, SDFRead
 
 from .fields import SDFFieldInfo
 
-if sys.version_info >= (3, 8):
-    from functools import cached_property
-else:
-    from yt._maintenance.backports import cached_property
 # currently specified by units_2HOT == 2 in header
 # in future will read directly from file
 units_2HOT_v2_length = 3.08567802e21
@@ -187,8 +183,11 @@ class SDFDataset(ParticleDataset):
             # Grab a whole 4k page.
             line = next(hreq.iter_content(4096))
         elif os.path.isfile(sdf_header):
-            with open(sdf_header, encoding="ISO-8859-1") as f:
-                line = f.read(10).strip()
+            try:
+                with open(sdf_header, encoding="ISO-8859-1") as f:
+                    line = f.read(10).strip()
+            except PermissionError:
+                return False
         else:
             return False
         return line.startswith("# SDF")

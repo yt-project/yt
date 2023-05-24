@@ -7,7 +7,9 @@ on:
   pull_request:
     paths:
       - yt/**/*.py
+      - setup.cfg
       - .github/workflows/type-checking.yaml
+  workflow_dispatch:
 
 jobs:
   build:
@@ -23,13 +25,14 @@ jobs:
     steps:
     - name: Checkout repo
       uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
 
     - name: Set up Python
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v4
       with:
-        python-version: '3.10'
+        # run with oldest support python version
+        # so that we always get compatible versions of
+        # core dependencies at type-check time
+        python-version: '3.8'
 
     - name: Build
       run: |

@@ -1,10 +1,10 @@
 import os
 import re
 import string
-import sys
 import time
 import weakref
 from collections import defaultdict
+from functools import cached_property
 
 import numpy as np
 from more_itertools import always_iterable
@@ -20,11 +20,6 @@ from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py, _libconf as libconf
 
 from .fields import EnzoFieldInfo
-
-if sys.version_info >= (3, 8):
-    from functools import cached_property
-else:
-    from yt._maintenance.backports import cached_property
 
 
 class EnzoGrid(AMRGridPatch):
@@ -90,7 +85,6 @@ class EnzoGridInMemory(EnzoGrid):
 
 
 class EnzoGridGZ(EnzoGrid):
-
     __slots__ = ()
 
     def retrieve_ghost_zones(self, n_zones, fields, all_levels=False, smoothed=False):
@@ -146,13 +140,11 @@ class EnzoGridGZ(EnzoGrid):
 
 
 class EnzoHierarchy(GridIndex):
-
     _strip_path = False
     grid = EnzoGrid
     _preload_implemented = True
 
     def __init__(self, ds, dataset_type):
-
         self.dataset_type = dataset_type
         self.index_filename = os.path.abspath(f"{ds.parameter_filename}.hierarchy")
         if os.path.getsize(self.index_filename) == 0:
@@ -539,7 +531,6 @@ class EnzoHierarchy(GridIndex):
 
 
 class EnzoHierarchyInMemory(EnzoHierarchy):
-
     grid = EnzoGridInMemory
 
     @cached_property
@@ -1023,7 +1014,9 @@ class EnzoDatasetInMemory(EnzoDataset):
 
     def _parse_parameter_file(self):
         enzo = self._obtain_enzo()
-        self.basename = "cycle%08i" % (enzo.yt_parameter_file["NumberOfPythonCalls"])
+        self._input_filename = "cycle%08i" % (
+            enzo.yt_parameter_file["NumberOfPythonCalls"]
+        )
         self.parameters["CurrentTimeIdentifier"] = time.time()
         self.parameters.update(enzo.yt_parameter_file)
         self.conversion_factors.update(enzo.conversion_factors)

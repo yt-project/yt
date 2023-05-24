@@ -1,17 +1,8 @@
 from unyt.array import (
     loadtxt,
     savetxt,
-    uconcatenate,
-    ucross,
-    udot,
-    uhstack,
-    uintersect1d,
-    unorm,
     unyt_array,
     unyt_quantity,
-    ustack,
-    uunion1d,
-    uvstack,
 )
 from unyt.unit_object import Unit, define_unit  # NOQA: F401
 from unyt.unit_registry import UnitRegistry  # NOQA: Ffg401
@@ -22,7 +13,17 @@ from yt.units.physical_constants import _ConstantContainer
 from yt.units.unit_symbols import *
 from yt.units.unit_symbols import _SymbolContainer
 from yt.utilities.exceptions import YTArrayTooLargeToDisplay
-
+from yt.units._numpy_wrapper_functions import (
+    uconcatenate,
+    ucross,
+    udot,
+    uhstack,
+    uintersect1d,
+    unorm,
+    ustack,
+    uunion1d,
+    uvstack,
+)
 YTArray = unyt_array
 
 YTQuantity = unyt_quantity
@@ -119,17 +120,3 @@ def _wrap_display_ytarray(arr):
     from IPython.core.display import display
 
     display(display_ytarray(arr))
-
-
-# monkeypatch __format__ method from unyt 2.9 (which requires Python >= 3.8)
-# see https://github.com/yt-project/unyt/pull/188
-# We should be able to require unyt >= 2.9 when we drop support for Python 3.7
-
-from packaging.version import Version
-from unyt import __version__
-if Version(__version__) < Version("2.9"):
-    def __mp_unyt_array_format(self, format_spec):
-         return "{} {}".format(self.d.__format__(format_spec), self.units)
-    unyt_array.__format__ = __mp_unyt_array_format
-del __version__
-del Version

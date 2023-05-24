@@ -6,6 +6,7 @@ import numpy as np
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.funcs import mylog, setdefaultattr
+from yt.geometry.api import Geometry
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.file_handler import HDF5FileHandler
@@ -218,7 +219,6 @@ class GAMERDataset(Dataset):
         unit_system="cgs",
         default_species_fields=None,
     ):
-
         if self._handle is not None:
             return
 
@@ -286,7 +286,6 @@ class GAMERDataset(Dataset):
                     mylog.warning("Assuming %8s unit = %f %s", unit, value, cgs)
 
     def _parse_parameter_file(self):
-
         # code-specific parameters
         for t in self._handle["Info"]:
             info_category = self._handle["Info"][t]
@@ -370,7 +369,7 @@ class GAMERDataset(Dataset):
         # old data format (version < 2210) did not contain any information of code units
         self.parameters.setdefault("Opt__Unit", 0)
 
-        self.geometry = geometry_parameters[parameters.get("Coordinate", 1)]
+        self.geometry = Geometry(geometry_parameters[parameters.get("Coordinate", 1)])
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):

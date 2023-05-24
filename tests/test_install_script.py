@@ -47,9 +47,9 @@ def call_unix_command(command):
         output = subprocess.check_output(command, stderr=subprocess.STDOUT, shell=True)
     except subprocess.CalledProcessError as er:
         raise RuntimeError(
-            "Command '%s' failed with return code '%s' and error:\n\n%s"
-            % (command, er.returncode, er.output.decode("utf-8"))
-        )
+            f"Command '{command}' failed with return code "
+            f"'{er.returncode}' and error:\n\n{er.output.decode()}"
+        ) from er
     finally:
         if len(output.splitlines()) > 25:
             print("truncated output:")

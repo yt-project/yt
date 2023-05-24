@@ -15,8 +15,6 @@ cimport numpy as np
 from cython.view cimport array as cvarray
 from libc.stdlib cimport free, malloc
 
-DEF Nch = 4
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)

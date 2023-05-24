@@ -4,9 +4,9 @@ import shutil
 import tempfile
 
 import numpy as np
+from numpy.testing import assert_equal
 
 import yt
-from yt.testing import assert_equal
 from yt.utilities.lib.api import add_rgba_points_to_image  # type: ignore
 from yt.visualization.color_maps import _get_cmap
 

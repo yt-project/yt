@@ -5,8 +5,9 @@ from typing import Type
 import numpy as np
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
-from yt.data_objects.static_output import Dataset, ParticleFile, validate_index_order
+from yt.data_objects.static_output import Dataset, ParticleFile
 from yt.funcs import mylog, setdefaultattr
+from yt.geometry.api import Geometry
 from yt.geometry.geometry_handler import Index
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.geometry.particle_geometry_handler import ParticleIndex
@@ -28,7 +29,6 @@ class FLASHGrid(AMRGridPatch):
 
 
 class FLASHHierarchy(GridIndex):
-
     grid = FLASHGrid
     _preload_implemented = True
 
@@ -178,7 +178,6 @@ class FLASHDataset(Dataset):
         unit_system="cgs",
         default_species_fields=None,
     ):
-
         self.fluid_types += ("flash",)
         if self._handle is not None:
             return
@@ -234,7 +233,6 @@ class FLASHDataset(Dataset):
         self.parameters["Time"] = 1.0  # default unit is 1...
 
     def _set_code_unit_attributes(self):
-
         if "unitsystem" in self.parameters:
             # Some versions of FLASH inject quotes in the runtime parameters
             # See issue #1721
@@ -379,7 +377,7 @@ class FLASHDataset(Dataset):
 
         self.dimensionality = dimensionality
 
-        self.geometry = self.parameters["geometry"]
+        self.geometry = Geometry(self.parameters["geometry"])
         # Determine base grid parameters
         if "lrefine_min" in self.parameters.keys():  # PARAMESH
             nblockx = self.parameters["nblockx"]
@@ -400,7 +398,7 @@ class FLASHDataset(Dataset):
         dle = np.array([self.parameters[f"{ax}min"] for ax in "xyz"]).astype("float64")
         dre = np.array([self.parameters[f"{ax}max"] for ax in "xyz"]).astype("float64")
         if self.dimensionality < 3:
-            for d in [dimensionality] + list(range(3 - dimensionality)):
+            for d in range(self.dimensionality, 3):
                 if dle[d] == dre[d]:
                     mylog.warning(
                         "Identical domain left edge and right edges "
@@ -498,7 +496,7 @@ class FLASHParticleDataset(FLASHDataset):
         index_filename=None,
         unit_system="cgs",
     ):
-        self.index_order = validate_index_order(index_order)
+        self.index_order = index_order
         self.index_filename = index_filename
 
         if self._handle is not None:

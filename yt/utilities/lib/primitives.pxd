@@ -1,10 +1,10 @@
 cimport cython
-cimport cython.floating
 
 import numpy as np
 
 cimport numpy as np
-from vec3_ops cimport cross, dot, subtract
+
+from .vec3_ops cimport cross, dot, subtract
 
 
 cdef struct Ray:

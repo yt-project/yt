@@ -265,7 +265,7 @@ union into a single ``darkmatter`` field.  The ``all`` particle type is a
 special case of this.
 
 To create a particle union, you need to import the ``ParticleUnion`` class from
-``yt.data_objects.particle_unions``, which you then create and pass into
+``yt.data_objects.unions``, which you then create and pass into
 ``add_particle_union`` on a dataset object.
 
 Here is an example, where we union the ``halo`` and ``disk`` particle types
@@ -274,7 +274,7 @@ accessible to this new particle type and it will add them.
 
 .. code-block:: python
 
-   from yt.data_objects.particle_unions import ParticleUnion
+   from yt.data_objects.unions import ParticleUnion
 
    u = ParticleUnion("star", ["halo", "disk"])
    ds.add_particle_union(u)

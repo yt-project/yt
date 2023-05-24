@@ -7,8 +7,8 @@ import numpy as np
 
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.index_subobjects.octree_subset import OctreeSubset
-from yt.data_objects.particle_unions import ParticleUnion
 from yt.data_objects.static_output import Dataset
+from yt.data_objects.unions import ParticleUnion
 from yt.frontends.artio import _artio_caller
 from yt.frontends.artio._artio_caller import (
     ARTIOSFCRangeHandler,
@@ -68,7 +68,7 @@ class ARTIOOctreeSubset(OctreeSubset):
         self.oct_handler.fill_sfc(
             levels, cell_inds, file_inds, domain_counts, field_indices, tr
         )
-        tr = {field: v for field, v in zip(fields, tr)}
+        tr = dict(zip(fields, tr))
         return tr
 
     def fill_particles(self, fields):
@@ -114,7 +114,7 @@ class ARTIORootMeshSubset(ARTIOOctreeSubset):
         ]
         tr = self.oct_handler.fill_sfc(selector, field_indices)
         self.data_size = tr[0].size
-        tr = {field: v for field, v in zip(fields, tr)}
+        tr = dict(zip(fields, tr))
         return tr
 
     def deposit(self, positions, fields=None, method=None, kernel_name="cubic"):
@@ -254,7 +254,7 @@ class ARTIOIndex(Index):
             ci = []
             # v = np.array(list_sfc_ranges)
             # list_sfc_ranges = [ (v.min(), v.max()) ]
-            for (start, end) in list_sfc_ranges:
+            for start, end in list_sfc_ranges:
                 if (start, end) in self.range_handlers.keys():
                     range_handler = self.range_handlers[(start, end)]
                 else:
@@ -346,14 +346,9 @@ class ARTIOIndex(Index):
         grids.
         """
         dds = self.ds.domain_width[(axes,)] / (
-            self.ds.domain_dimensions[
-                axes,
-            ]
-            * self.ds.refine_by ** ires[:, None]
+            self.ds.domain_dimensions[axes,] * self.ds.refine_by ** ires[:, None]
         )
-        pos = (0.5 + icoords) * dds + self.ds.domain_left_edge[
-            axes,
-        ]
+        pos = (0.5 + icoords) * dds + self.ds.domain_left_edge[axes,]
         return pos, dds
 
 
@@ -372,7 +367,6 @@ class ARTIODataset(Dataset):
         unit_system="cgs",
         default_species_fields=None,
     ):
-
         if self._handle is not None:
             return
         self.max_range = max_range

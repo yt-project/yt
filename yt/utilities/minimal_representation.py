@@ -85,7 +85,8 @@ class MinimalRepresentation(metaclass=abc.ABCMeta):
     def _generate_post(self):
         pass
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def _attr_list(self):
         pass
 
@@ -131,7 +132,7 @@ class MinimalRepresentation(metaclass=abc.ABCMeta):
                     else:
                         g.create_dataset(fname, data=fdata, compression="lzf")
 
-    def restore(self, storage, ds):
+    def restore(self, storage, ds):  # noqa: B027
         pass
 
     def upload(self):
@@ -180,7 +181,6 @@ class MinimalDataset(MinimalRepresentation):
 
 
 class MinimalMappableData(MinimalRepresentation):
-
     _attr_list: Tuple[str, ...] = (
         "field_data",
         "field",

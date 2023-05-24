@@ -80,7 +80,6 @@ class MeshCodeGenerator:
         self._compute_jacobian()
 
     def _compute_jacobian(self):
-
         assert self.num_vertices == len(self.N)
         assert self.num_dim == self.num_mapped_coords
 
@@ -144,7 +143,6 @@ class MeshCodeGenerator:
 
 
 if __name__ == "__main__":
-
     with open("mesh_types.yaml") as f:
         lines = f.read()
 

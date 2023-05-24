@@ -150,7 +150,6 @@ class IOHandlerSIndexSDF(IOHandlerSDF):
                 required_fields.append(field)
 
         for dd in self.ds.midx.iter_bbox_data(dle, dre, required_fields):
-
             for ptype, field_list in sorted(ptf.items()):
                 x = dd["x"]
                 y = dd["y"]

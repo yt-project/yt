@@ -1,9 +1,10 @@
-from yt.testing import assert_array_equal, assert_raises, fake_amr_ds, fake_random_ds
+from numpy.testing import assert_array_equal, assert_raises
+
+from yt.testing import fake_amr_ds, fake_random_ds
 from yt.units import cm
 
 
 def test_box_creation():
-
     # test that creating a region with left and right edge
     # with units works
     ds = fake_random_ds(32, length_unit=2)

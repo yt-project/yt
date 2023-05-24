@@ -1,7 +1,7 @@
 import numpy as np
 
 from yt.funcs import get_pbar
-from yt.units.yt_array import uconcatenate  # type: ignore
+from yt.units._numpy_wrapper_functions import uconcatenate
 from yt.utilities.lib.particle_mesh_operations import CICSample_3
 
 
@@ -407,7 +407,6 @@ class WithDensityParticleGenerator(ParticleGenerator):
         tot_num_accepted = int(0)
 
         while num_particles_left > 0:
-
             m = np.random.uniform(high=1.01 * max_mass, size=num_particles_left)
             idxs = np.random.randint(low=0, high=num_cells, size=num_particles_left)
             m_true = (

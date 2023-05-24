@@ -47,7 +47,6 @@ def _temperature(field, data):
 
 
 class WarpXFieldInfo(FieldInfoContainer):
-
     known_other_fields: KnownFieldsT = (
         ("Bx", ("T", ["magnetic_field_x", "B_x"], None)),
         ("By", ("T", ["magnetic_field_y", "B_y"], None)),
@@ -304,7 +303,6 @@ class BoxlibFieldInfo(FieldInfoContainer):
 
 
 class CastroFieldInfo(FieldInfoContainer):
-
     known_other_fields: KnownFieldsT = (
         ("density", ("g/cm**3", ["density"], r"\rho")),
         ("xmom", ("g/(cm**2 * s)", ["momentum_density_x"], r"\rho u")),
@@ -382,7 +380,6 @@ class CastroFieldInfo(FieldInfoContainer):
 
 
 class MaestroFieldInfo(FieldInfoContainer):
-
     known_other_fields: KnownFieldsT = (
         ("density", ("g/cm**3", ["density"], None)),
         ("x_vel", ("cm/s", ["velocity_x"], r"\tilde{u}")),
@@ -449,7 +446,15 @@ class MaestroFieldInfo(FieldInfoContainer):
     def setup_fluid_fields(self):
         unit_system = self.ds.unit_system
         # pick the correct temperature field
-        if self.ds.parameters["use_tfromp"]:
+        tfromp = False
+        if "use_tfromp" in self.ds.parameters:
+            # original MAESTRO (F90) code
+            tfromp = self.ds.parameters["use_tfromp"]
+        elif "maestro.use_tfromp" in self.ds.parameters:
+            # new MAESTROeX (C++) code
+            tfromp = self.ds.parameters["maestro.use_tfromp"]
+
+        if tfromp:
             self.alias(
                 ("gas", "temperature"),
                 ("boxlib", "tfromp"),

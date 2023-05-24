@@ -75,8 +75,8 @@ class ParameterFileStore:
         try:
             if not os.path.isdir(dbdir):
                 os.mkdir(dbdir)
-        except OSError:
-            raise NoParameterShelf()
+        except OSError as exc:
+            raise NoParameterShelf from exc
         open(dbn, "ab")  # make sure it exists, allow to close
         # Now we read in all our records and return them
         # these will be broadcast
@@ -99,14 +99,14 @@ class ParameterFileStore:
 
     def _adapt_ds(self, ds):
         """This turns a dataset into a CSV entry."""
-        return dict(
-            bn=ds.basename,
-            fp=ds.directory,
-            tt=ds.current_time,
-            ctid=ds.unique_identifier,
-            class_name=ds.__class__.__name__,
-            last_seen=ds._instantiated,
-        )
+        return {
+            "bn": ds.basename,
+            "fp": ds.directory,
+            "tt": ds.current_time,
+            "ctid": ds.unique_identifier,
+            "class_name": ds.__class__.__name__,
+            "last_seen": ds._instantiated,
+        }
 
     def _convert_ds(self, ds_dict):
         """This turns a CSV entry into a dataset."""

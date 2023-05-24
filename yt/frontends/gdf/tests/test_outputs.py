@@ -1,7 +1,7 @@
 import pytest
 
 from yt.frontends.gdf.api import GDFDataset
-from yt.testing import requires_file, units_override_check
+from yt.testing import requires_file, requires_module, units_override_check
 from yt.utilities.answer_testing.answer_tests import small_patch_amr
 
 # Test data
@@ -23,6 +23,7 @@ class TestGDF:
     def test_GDFDataset(self, ds):
         assert isinstance(ds, GDFDataset)
 
+    @requires_module("h5py")
     @requires_file(sedov)
     def test_units_override(self):
         units_override_check(sedov)

@@ -14,6 +14,7 @@ ctypedef np.int32_t INT32_t
 ctypedef np.int64_t INT64_t
 ctypedef np.float64_t DOUBLE_t
 
+@cython.cpow(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
@@ -82,6 +83,7 @@ def read_amr(FortranFile f, dict headers,
 
     return max_level
 
+@cython.cpow(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
@@ -93,7 +95,6 @@ cpdef read_offset(FortranFile f, INT64_t min_level, INT64_t domain_id, INT64_t n
     cdef INT64_t ilevel, icpu
     cdef INT32_t file_ilevel, file_ncache
 
-    numbl = headers['numbl']
     ndim = headers['ndim']
     nboundary = headers['nboundary']
     nlevelmax = headers['nlevelmax']
@@ -133,6 +134,7 @@ cpdef read_offset(FortranFile f, INT64_t min_level, INT64_t domain_id, INT64_t n
 
     return offset, level_count
 
+@cython.cpow(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
@@ -157,7 +159,7 @@ def fill_hydro(FortranFile f,
 
     twotondim = 2**ndim
     nfields = len(all_fields)
-    ncpu = offsets.shape[0]
+
     nlevels = offsets.shape[1]
     ncpu_selected = len(cpu_enumerator)
 

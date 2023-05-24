@@ -3,12 +3,13 @@ import shutil
 import tempfile
 
 import numpy as np
+from numpy.testing import assert_array_equal, assert_equal
 
 from yt.data_objects.level_sets.api import Clump, add_clump_info, find_clumps
 from yt.data_objects.level_sets.clump_info_items import clump_info_registry
 from yt.fields.derived_field import ValidateParameter
 from yt.loaders import load, load_uniform_grid
-from yt.testing import assert_array_equal, assert_equal, requires_file
+from yt.testing import requires_file, requires_module
 from yt.utilities.answer_testing.framework import data_dir_load
 
 
@@ -89,6 +90,7 @@ def test_clump_finding():
 i30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
 
 
+@requires_module("h5py")
 @requires_file(i30)
 def test_clump_tree_save():
     tmpdir = tempfile.mkdtemp()
@@ -122,8 +124,8 @@ def test_clump_tree_save():
     ds2 = load(fn)
 
     # compare clumps in the tree
-    t1 = [c for c in master_clump]
-    t2 = [c for c in ds2.tree]
+    t1 = list(master_clump)
+    t2 = list(ds2.tree)
     mt1 = ds.arr([c.info["cell_mass"][1] for c in t1])
     mt2 = ds2.arr([c["clump", "cell_mass"] for c in t2])
     it1 = np.array(np.argsort(mt1).astype(int))
@@ -137,8 +139,8 @@ def test_clump_tree_save():
         assert_array_equal(ct1["all", "particle_mass"], ct2["all", "particle_mass"])
 
     # compare leaf clumps
-    c1 = [c for c in leaf_clumps]
-    c2 = [c for c in ds2.leaves]
+    c1 = list(leaf_clumps)
+    c2 = list(ds2.leaves)
     mc1 = ds.arr([c.info["cell_mass"][1] for c in c1])
     mc2 = ds2.arr([c["clump", "cell_mass"] for c in c2])
     ic1 = np.array(np.argsort(mc1).astype(int))
@@ -152,6 +154,7 @@ def test_clump_tree_save():
 i30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
 
 
+@requires_module("h5py")
 @requires_file(i30)
 def test_clump_field_parameters():
     """

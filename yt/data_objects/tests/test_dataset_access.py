@@ -1,13 +1,13 @@
 import numpy as np
 from nose.tools import assert_raises
+from numpy.testing import assert_almost_equal, assert_equal
 
 from yt.testing import (
-    assert_almost_equal,
-    assert_equal,
     fake_amr_ds,
     fake_particle_ds,
     fake_random_ds,
     requires_file,
+    requires_module,
 )
 from yt.utilities.answer_testing.framework import data_dir_load
 from yt.utilities.exceptions import YTDimensionalityError
@@ -182,6 +182,7 @@ def test_particle_counts():
 g30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
 
 
+@requires_module("h5py")
 @requires_file(g30)
 def test_checksum():
     assert fake_random_ds(16).checksum == "notafile"

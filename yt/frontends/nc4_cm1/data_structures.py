@@ -1,9 +1,11 @@
 import os
 import weakref
 from collections import OrderedDict
+from typing import Optional
 
 import numpy as np
 
+from yt._typing import AxisOrder
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.geometry.grid_geometry_handler import GridIndex
@@ -87,12 +89,16 @@ class CM1Dataset(Dataset):
         )
         self.storage_filename = storage_filename
 
-    def _setup_coordinate_handler(self):
+    def _setup_coordinate_handler(self, axis_order: Optional[AxisOrder]) -> None:
         # ensure correct ordering of axes so plots aren't rotated (z should always be
         # on the vertical axis).
-        super()._setup_coordinate_handler()
-        self.coordinates._x_pairs = (("x", "y"), ("y", "x"), ("z", "x"))
-        self.coordinates._y_pairs = (("x", "z"), ("y", "z"), ("z", "y"))
+        super()._setup_coordinate_handler(axis_order)
+
+        # type checking is deactivated in the following two lines because changing them is not
+        # within the scope of the PR that _enabled_ typechecking here (#4244), but it'd be worth
+        # having a careful look at *why* these warnings appear, as they may point to rotten code
+        self.coordinates._x_pairs = (("x", "y"), ("y", "x"), ("z", "x"))  # type: ignore [union-attr]
+        self.coordinates._y_pairs = (("x", "z"), ("y", "z"), ("z", "y"))  # type: ignore [union-attr]
 
     def _set_code_unit_attributes(self):
         # This is where quantities are created that represent the various

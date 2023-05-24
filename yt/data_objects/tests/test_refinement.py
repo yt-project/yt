@@ -1,7 +1,7 @@
 import numpy as np
+from numpy.testing import assert_array_equal, assert_equal
 
 import yt
-from yt.testing import assert_array_equal, assert_equal
 
 
 def setup_fake_refby():
@@ -12,18 +12,18 @@ def setup_fake_refby():
     n3 = 2
 
     grid_data = [
-        dict(
-            left_edge=[0.0, 0.0, 0.0],
-            right_edge=[1.0, np.pi, np.pi * 2.0],
-            level=0,
-            dimensions=np.array([n1, n2, n3]),
-        ),
-        dict(
-            left_edge=[0.0, 0.0, 0.0],
-            right_edge=[0.5, np.pi, np.pi * 2.0],
-            level=1,
-            dimensions=refine_by * [n1 / 2.0, n2, n3],
-        ),
+        {
+            "left_edge": [0.0, 0.0, 0.0],
+            "right_edge": [1.0, np.pi, np.pi * 2.0],
+            "level": 0,
+            "dimensions": np.array([n1, n2, n3]),
+        },
+        {
+            "left_edge": [0.0, 0.0, 0.0],
+            "right_edge": [0.5, np.pi, np.pi * 2.0],
+            "level": 1,
+            "dimensions": refine_by * [n1 / 2.0, n2, n3],
+        },
     ]
 
     for g in grid_data:

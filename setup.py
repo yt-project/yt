@@ -10,6 +10,7 @@ from setupext import (
     check_for_openmp,
     check_for_pyembree,
     create_build_ext,
+    get_ewah_bool_utils_path,
     install_ccompiler,
 )
 
@@ -25,7 +26,7 @@ CPP14_CONFIG = defaultdict(
     lambda: check_CPP14_flags(["-std=c++14", "-std=c++1y", "-std=gnu++0x"]),
     {"msvc": ["/std:c++14"]},
 )
-CPP03_CONFIG = defaultdict(lambda: ["-std=c++03"], {"msvc": ["/std:c++03"]})
+CPP11_CONFIG = defaultdict(lambda: ["-std=c++11"], {"msvc": ["/std:c++11"]})
 
 _COMPILER = get_default_compiler()
 
@@ -37,11 +38,10 @@ else:
     std_libs = ["m"]
 
 CPP14_FLAG = CPP14_CONFIG[_COMPILER]
-CPP03_FLAG = CPP03_CONFIG[_COMPILER]
+CPP11_FLAG = CPP11_CONFIG[_COMPILER]
 
 cythonize_aliases = {
     "LIB_DIR": "yt/utilities/lib/",
-    "LIB_DIR_EWAH": ["yt/utilities/lib/", "yt/utilities/lib/ewahboolarray/"],
     "LIB_DIR_GEOM": ["yt/utilities/lib/", "yt/geometry/"],
     "LIB_DIR_GEOM_ARTIO": [
         "yt/utilities/lib/",
@@ -49,11 +49,12 @@ cythonize_aliases = {
         "yt/frontends/artio/artio_headers/",
     ],
     "STD_LIBS": std_libs,
+    "EWAH_LIBS": std_libs + [get_ewah_bool_utils_path()],
     "OMP_ARGS": omp_args,
     "FIXED_INTERP": "yt/utilities/lib/fixed_interpolator.cpp",
     "ARTIO_SOURCE": glob.glob("yt/frontends/artio/artio_headers/*.c"),
     "CPP14_FLAG": CPP14_FLAG,
-    "CPP03_FLAG": CPP03_FLAG,
+    "CPP11_FLAG": CPP11_FLAG,
 }
 
 lib_exts = [
@@ -73,6 +74,7 @@ lib_exts += embree_libs
 
 # This overrides using lib_exts, so it has to happen after lib_exts is fully defined
 build_ext, sdist = create_build_ext(lib_exts, cythonize_aliases)
+
 
 # Force setuptools to consider that there are ext modules, even if empty.
 # See https://github.com/yt-project/yt/issues/2922 and

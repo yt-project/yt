@@ -1,19 +1,14 @@
 import os
 
 import numpy as np
+from numpy.testing import assert_equal, assert_raises
 
 import yt
 from yt.config import ytcfg
 from yt.fields.field_detector import FieldDetector
 from yt.frontends.ramses.api import RAMSESDataset
 from yt.frontends.ramses.field_handlers import DETECTED_FIELDS, HydroFieldFileHandler
-from yt.testing import (
-    assert_equal,
-    assert_raises,
-    requires_file,
-    requires_module,
-    units_override_check,
-)
+from yt.testing import requires_file, requires_module, units_override_check
 from yt.utilities.answer_testing.framework import (
     FieldValuesTest,
     PixelizedProjectionValuesTest,
@@ -436,7 +431,6 @@ def test_formation_time():
 
 @requires_file(ramses_new_format)
 def test_cooling_fields():
-
     # Test the field is being loaded correctly
     ds = yt.load(ramses_new_format)
 
@@ -524,7 +518,6 @@ def test_namelist_reading():
 @requires_file(output_00080)
 @requires_module("f90nml")
 def test_namelist_reading_should_not_fail():
-
     for ds_name in (ramses_empty_record, output_00080):
         # Test that the reading does not fail for malformed namelist.txt files
         ds = data_dir_load(ds_name)

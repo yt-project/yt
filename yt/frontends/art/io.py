@@ -186,7 +186,7 @@ class IOHandlerDarkMatterART(IOHandlerART):
 
     def _identify_fields(self, domain):
         field_list = []
-        self.particle_field_list = [f for f in particle_fields]
+        self.particle_field_list = list(particle_fields)
         for ptype in self.ds.particle_types_raw:
             for pfield in self.particle_field_list:
                 pfn = (ptype, pfield)
@@ -441,9 +441,12 @@ def read_particles(file, Nrow, idxa, idxb, fields):
     num_pages = os.path.getsize(file) // (real_size * words * np_per_page)
     fh = open(file)
     skip, count = idxa, idxb - idxa
-    kwargs = dict(
-        words=words, real_size=real_size, np_per_page=np_per_page, num_pages=num_pages
-    )
+    kwargs = {
+        "words": words,
+        "real_size": real_size,
+        "np_per_page": np_per_page,
+        "num_pages": num_pages,
+    }
     arrs = []
     for field in fields:
         ranges = get_ranges(skip, count, field, **kwargs)

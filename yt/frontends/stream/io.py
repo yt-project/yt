@@ -6,7 +6,6 @@ from yt.utilities.logger import ytLogger as mylog
 
 
 class IOHandlerStream(BaseIOHandler):
-
     _dataset_type = "stream"
     _vector_fields = {"particle_velocity": 3, "particle_position": 3}
 
@@ -18,6 +17,8 @@ class IOHandlerStream(BaseIOHandler):
     def _read_data_set(self, grid, field):
         # This is where we implement processor-locking
         tr = self.fields[grid.id][field]
+        if callable(tr):
+            tr = tr(grid, field)
         # If it's particles, we copy.
         if len(tr.shape) == 1:
             return tr.copy()
@@ -45,6 +46,8 @@ class IOHandlerStream(BaseIOHandler):
             for chunk in chunks:
                 for g in chunk.objs:
                     ds = self.fields[g.id][ftype, fname]
+                    if callable(ds):
+                        ds = ds(g, field)
                     ind += g.select(selector, ds, rv[field], ind)  # caches
         return rv
 
@@ -128,7 +131,6 @@ class StreamParticleIOHandler(BaseParticleIOHandler):
         return data_files
 
     def _read_particle_data_file(self, data_file, ptf, selector=None):
-
         return_data = {}
         f = self.fields[data_file.filename]
         for ptype, field_list in sorted(ptf.items()):
@@ -297,7 +299,7 @@ class IOHandlerStreamUnstructured(BaseIOHandler):
             ind = 0
             ftype, fname = field
             if ftype == "all":
-                objs = [mesh for mesh in self.ds.index.mesh_union]
+                objs = list(self.ds.index.mesh_union)
             else:
                 mesh_ids = [int(ftype[-1])]
                 chunk = chunks[mesh_ids[0] - 1]

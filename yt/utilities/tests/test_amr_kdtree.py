@@ -1,8 +1,9 @@
 import itertools
 
 import numpy as np
+from numpy.testing import assert_almost_equal
 
-from yt.testing import assert_almost_equal, fake_amr_ds
+from yt.testing import fake_amr_ds
 
 
 def test_amr_kdtree_set_fields():

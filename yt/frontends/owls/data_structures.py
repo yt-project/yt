@@ -14,7 +14,6 @@ class OWLSDataset(GadgetHDF5Dataset):
     _time_readin = "Time_GYR"
 
     def _parse_parameter_file(self):
-
         # read values from header
         hvals = self._get_hvals()
         self.parameters = hvals

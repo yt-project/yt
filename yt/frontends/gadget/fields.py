@@ -15,7 +15,6 @@ class GadgetFieldInfo(SPHFieldInfo):
         super().__init__(ds, field_list, slice_info=slice_info)
 
     def setup_particle_fields(self, ptype, *args, **kwargs):
-
         # setup some special fields that only make sense for SPH particles
 
         if (ptype, "FourMetalFractions") in self.ds.field_list:
@@ -48,7 +47,6 @@ class GadgetFieldInfo(SPHFieldInfo):
             return data[(ptype, "FourMetalFractions")][:, i] * data[(ptype, "density")]
 
         for i, metal_name in enumerate(metal_names):
-
             # add the metal fraction fields
             self.add_field(
                 (ptype, metal_name + "_fraction"),
@@ -85,7 +83,6 @@ class GadgetFieldInfo(SPHFieldInfo):
             return data[(ptype, metal_name + "_fraction")] * data[(ptype, "density")]
 
         for i, metal_name in enumerate(metal_names):
-
             # add the metal fraction fields
             self.add_field(
                 (ptype, metal_name + "_fraction"),
@@ -140,7 +137,6 @@ class GadgetFieldInfo(SPHFieldInfo):
 
     def setup_gas_particle_fields(self, ptype):
         if (ptype, "Temperature") not in self.ds.field_list:
-
             if (ptype, "ElectronAbundance") in self.ds.field_list:
 
                 def _temperature(field, data):

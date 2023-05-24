@@ -4,13 +4,9 @@ Chimera frontend tests
 """
 
 import numpy as np
+from numpy.testing import assert_almost_equal, assert_array_equal, assert_equal
 
-from yt.testing import (
-    assert_almost_equal,
-    assert_array_equal,
-    assert_equal,
-    requires_file,
-)
+from yt.testing import requires_file, requires_module
 from yt.utilities.answer_testing.framework import (
     GenericArrayTest,
     data_dir_load,
@@ -20,6 +16,7 @@ from yt.utilities.answer_testing.framework import (
 Two_D = "F37_80/chimera_00001_grid_1_01.h5"
 
 
+@requires_module("h5py")
 @requires_ds(Two_D)
 def test_2D():
     ds = data_dir_load(Two_D)
@@ -78,7 +75,7 @@ def test_2D():
         ("chimera", "zn60"),
     ]
     assert_equal(str(ds), "chimera_00001_grid_1_01.h5")
-    assert_equal(ds.geometry, "spherical")  # Geometry
+    assert_equal(str(ds.geometry), "spherical")  # Geometry
     assert_almost_equal(
         ds.domain_right_edge,
         ds.arr([1.0116509e10 + 100, 3.14159265e00, 6.28318531e00], "code_length"),
@@ -98,7 +95,6 @@ def test_2D():
 
     dd = ds.all_data()
     for field in _fields:
-
         if field != ("chimera", "shock"):
             yield GenericArrayTest(ds, field_func, args=[field])
 
@@ -106,6 +102,7 @@ def test_2D():
 Three_D = "C15-3D-3deg/chimera_002715000_grid_1_01.h5"
 
 
+@requires_module("h5py")
 @requires_ds(Three_D)
 def test_3D():
     ds = data_dir_load(Three_D)
@@ -163,7 +160,7 @@ def test_3D():
         ("chimera", "zn60"),
     ]
     assert_equal(str(ds), "chimera_002715000_grid_1_01.h5")
-    assert_equal(ds.geometry, "spherical")  # Geometry
+    assert_equal(str(ds.geometry), "spherical")  # Geometry
     assert_almost_equal(
         ds.domain_right_edge,
         ds.arr(
@@ -183,7 +180,6 @@ def test_3D():
 
     dd = ds.all_data()
     for field in _fields:
-
         if field != ("chimera", "shock"):
             yield GenericArrayTest(ds, field_func, args=[field])
 

@@ -13,22 +13,13 @@ import numpy as np
 
 cimport cython
 cimport numpy as np
-cimport oct_visitors
-from cython cimport floating
 from libc.math cimport sqrt
 from libc.stdlib cimport free, malloc
 
-from yt.utilities.lib.bitarray cimport ba_get_value, ba_set_value
+from yt.utilities.lib.bitarray cimport ba_get_value
 from yt.utilities.lib.fnv_hash cimport c_fnv_hash as fnv_hash
-from yt.utilities.lib.fp_utils cimport fclip, fmax, fmin, iclip, imax, imin
-from yt.utilities.lib.geometry_utils cimport (
-    bounded_morton_dds,
-    decode_morton_64bit,
-    encode_morton_64bit,
-    morton_neighbors_coarse,
-    morton_neighbors_refined,
-)
-from yt.utilities.lib.grid_traversal cimport sampler_function, walk_volume
+from yt.utilities.lib.fp_utils cimport fclip, fmax, fmin, iclip
+from yt.utilities.lib.grid_traversal cimport walk_volume
 from yt.utilities.lib.volume_container cimport VolumeContainer
 
 from .oct_container cimport Oct, OctreeContainer
@@ -100,7 +91,7 @@ def convert_mask_to_indices(np.ndarray[np.uint8_t, ndim=3, cast=True] mask,
 cdef _mask_fill(np.ndarray[np.float64_t, ndim=1] out,
                 np.int64_t offset,
                 np.ndarray[np.uint8_t, ndim=3, cast=True] mask,
-                np.ndarray[floating, ndim=3] vals):
+                np.ndarray[cython.floating, ndim=3] vals):
     cdef np.int64_t count = 0
     cdef int i, j, k
     for i in range(mask.shape[0]):

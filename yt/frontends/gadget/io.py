@@ -1,22 +1,17 @@
 import os
-import sys
 from collections import defaultdict
+from functools import cached_property
 from typing import Tuple
 
 import numpy as np
 
 from yt.frontends.sph.io import IOHandlerSPH
-from yt.units.yt_array import uconcatenate  # type: ignore
+from yt.units._numpy_wrapper_functions import uconcatenate
 from yt.utilities.lib.particle_kdtree_tools import generate_smoothing_length
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 from .definitions import SNAP_FORMAT_2_OFFSET, gadget_hdf5_ptypes
-
-if sys.version_info >= (3, 8):
-    from functools import cached_property
-else:
-    from yt._maintenance.backports import cached_property
 
 
 class IOHandlerGadgetHDF5(IOHandlerSPH):
@@ -196,7 +191,6 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
             if mask is None:
                 continue
             for field in field_list:
-
                 if field in ("Mass", "Masses") and ptype not in self.var_mass:
                     data = np.empty(mask_sum, dtype="float64")
                     ind = self._known_ptypes.index(ptype)
@@ -258,7 +252,6 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
         # loop over all keys in OWLS hdf5 file
         # --------------------------------------------------
         for key in f.keys():
-
             # only want particle data
             # --------------------------------------
             if not key.startswith("PartType"):
@@ -278,7 +271,6 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
             # loop over all keys in PartTypeX group
             # ----------------------------------------
             for k in g.keys():
-
                 if k == "ElementAbundance":
                     gp = g[k]
                     for j in gp.keys():

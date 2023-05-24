@@ -1,8 +1,9 @@
 import numpy as np
+from numpy.testing import assert_equal
 
 import yt
 from yt.frontends.ramses.hilbert import get_cpu_list, hilbert3d
-from yt.testing import assert_equal, requires_file
+from yt.testing import requires_file
 
 
 def test_hilbert3d():
@@ -20,7 +21,7 @@ def test_hilbert3d():
     outputs = [0, 1, 7, 6, 3, 2, 4, 5]
 
     for i, o in zip(inputs, outputs):
-        assert_equal(int(hilbert3d(i, 3)), o)
+        assert_equal(hilbert3d(i, 3).item(), o)
 
 
 output_00080 = "output_00080/info_00080.txt"

@@ -1,3 +1,6 @@
+from .oct_visitors cimport CountTotalCells, CountTotalOcts
+
+
 cdef class SelectorObject:
 
     def __cinit__(self, dobj, *args):
@@ -61,14 +64,14 @@ cdef class SelectorObject:
         return gridi.astype("bool")
 
     def count_octs(self, OctreeContainer octree, int domain_id = -1):
-        cdef oct_visitors.CountTotalOcts visitor
-        visitor = oct_visitors.CountTotalOcts(octree, domain_id)
+        cdef CountTotalOcts visitor
+        visitor = CountTotalOcts(octree, domain_id)
         octree.visit_all_octs(self, visitor)
         return visitor.index
 
     def count_oct_cells(self, OctreeContainer octree, int domain_id = -1):
-        cdef oct_visitors.CountTotalCells visitor
-        visitor = oct_visitors.CountTotalCells(octree, domain_id)
+        cdef CountTotalCells visitor
+        visitor = CountTotalCells(octree, domain_id)
         octree.visit_all_octs(self, visitor)
         return visitor.index
 
@@ -222,7 +225,7 @@ cdef class SelectorObject:
     @cython.cdivision(True)
     cdef int select_grid(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3],
-                               np.int32_t level, Oct *o = NULL) nogil:
+                               np.int32_t level, Oct *o = NULL) noexcept nogil:
         if level < self.min_level or level > self.max_level: return 0
         return self.select_bbox(left_edge, right_edge)
 
@@ -231,21 +234,21 @@ cdef class SelectorObject:
     @cython.cdivision(True)
     cdef int select_grid_edge(self, np.float64_t left_edge[3],
                                     np.float64_t right_edge[3],
-                                    np.int32_t level, Oct *o = NULL) nogil:
+                                    np.int32_t level, Oct *o = NULL) noexcept nogil:
         if level < self.min_level or level > self.max_level: return 0
         return self.select_bbox_edge(left_edge, right_edge)
 
-    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) noexcept nogil:
         return 0
 
-    cdef int select_point(self, np.float64_t pos[3]) nogil:
+    cdef int select_point(self, np.float64_t pos[3]) noexcept nogil:
         return 0
 
-    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) noexcept nogil:
         return 0
 
     cdef int select_bbox(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3]) nogil:
+                               np.float64_t right_edge[3]) noexcept nogil:
         """
         Returns:
           0: If the selector does not touch the bounding box.
@@ -254,7 +257,7 @@ cdef class SelectorObject:
         return 0
 
     cdef int select_bbox_edge(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3]) nogil:
+                               np.float64_t right_edge[3]) noexcept nogil:
         """
         Returns:
           0: If the selector does not touch the bounding box.
@@ -564,9 +567,9 @@ cdef class SelectorObject:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def count_points(self, np.ndarray[floating, ndim=1] x,
-                           np.ndarray[floating, ndim=1] y,
-                           np.ndarray[floating, ndim=1] z,
+    def count_points(self, np.ndarray[cython.floating, ndim=1] x,
+                           np.ndarray[cython.floating, ndim=1] y,
+                           np.ndarray[cython.floating, ndim=1] z,
                            radii):
         cdef int count = 0
         cdef int i
@@ -599,9 +602,9 @@ cdef class SelectorObject:
     @cython.wraparound(False)
     @cython.cdivision(True)
     def select_points(self,
-                      np.ndarray[floating, ndim=1] x,
-                      np.ndarray[floating, ndim=1] y,
-                      np.ndarray[floating, ndim=1] z,
+                      np.ndarray[cython.floating, ndim=1] x,
+                      np.ndarray[cython.floating, ndim=1] y,
+                      np.ndarray[cython.floating, ndim=1] z,
                       radii):
         cdef int count = 0
         cdef int i

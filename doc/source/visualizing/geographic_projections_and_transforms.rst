@@ -11,7 +11,7 @@ With support from `cartopy <https://scitools.org.uk/cartopy/docs/latest/>`_,
 ``yt`` now supports these projection
 types for geographically loaded data.
 Underlying data is assumed to have a transform of `PlateCarree
-<https://scitools.org.uk/cartopy/docs/latest/crs/projections.html#platecarree>`__,
+<https://scitools.org.uk/cartopy/docs/latest/reference/projections.html#platecarree>`__,
 which is data on a flattened, rectangular, latitude/longitude grid. This is a
 a typical format for geographic data.
 
@@ -34,7 +34,7 @@ Installing Cartopy
 
 In order to access the geographic projection functionality, you will need to have an
 installation of ``cartopy`` available on your machine. Please refer to `Cartopy's
-documentation for detailled instructions <https://scitools.org.uk/cartopy/docs/latest/installing.html>`_
+documentation for detailed instructions <https://scitools.org.uk/cartopy/docs/latest/installing.html>`_
 
 Using Basic Transforms
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -107,12 +107,12 @@ available with matplotlib should be available for customization. Here a
 .. code-block:: python
 
     p.set_mpl_projection("Robinson")
-    p._setup_plots()
+    p.render()
     p.plots["AIRDENS"].axes.set_global()
     p.plots["AIRDENS"].axes.coastlines()
     p.show()
 
-``p._setup_plots()`` is required here to access the plot axes. When a new
+``p.render()`` is required here to access the plot axes. When a new
 projection is called the plot axes are reset and are not available unless set
 up again.
 

@@ -15,26 +15,19 @@ Image sampler definitions
 import numpy as np
 
 cimport cython
-cimport lenses
-from field_interpolation_tables cimport (
+from libc.math cimport sqrt
+from libc.stdlib cimport free, malloc
+
+from yt.utilities.lib cimport lenses
+from yt.utilities.lib.fp_utils cimport fclip, i64clip, imin
+
+from .field_interpolation_tables cimport (
     FieldInterpolationTable,
     FIT_eval_transfer,
     FIT_eval_transfer_with_light,
     FIT_initialize_table,
 )
-from libc.math cimport sqrt
-from libc.stdlib cimport free, malloc
-
-from yt.utilities.lib.fp_utils cimport fclip, i64clip, imin
-
-from .fixed_interpolator cimport (
-    eval_gradient,
-    fast_interpolate,
-    offset_fill,
-    offset_interpolate,
-    trilinear_interpolate,
-    vertex_interp,
-)
+from .fixed_interpolator cimport eval_gradient, offset_interpolate
 from .grid_traversal cimport sampler_function, walk_volume
 
 from yt.funcs import mylog
@@ -47,10 +40,9 @@ cdef extern from "platform_dep.h":
 
 DEF Nch = 4
 
-from cython.parallel import parallel, prange, threadid
+from cython.parallel import parallel, prange
 
 from cpython.exc cimport PyErr_CheckSignals
-from vec3_ops cimport L2_norm, dot, fma, subtract
 
 
 cdef struct VolumeRenderAccumulator:
@@ -321,7 +313,7 @@ cdef class ImageSampler:
                  np.float64_t enter_t,
                  np.float64_t exit_t,
                  int index[3],
-                 void *data) nogil:
+                 void *data) noexcept nogil:
         return
 
     def ensure_code_unit_params(self, params):
@@ -345,7 +337,7 @@ cdef class ProjectionSampler(ImageSampler):
                  np.float64_t enter_t,
                  np.float64_t exit_t,
                  int index[3],
-                 void *data) nogil:
+                 void *data) noexcept nogil:
         cdef ImageAccumulator *im = <ImageAccumulator *> data
         cdef int i
         cdef np.float64_t dl = (exit_t - enter_t)
@@ -387,7 +379,7 @@ cdef class InterpolatedProjectionSampler(ImageSampler):
                      np.float64_t enter_t,
                      np.float64_t exit_t,
                      int index[3],
-                     void *data) nogil:
+                     void *data) noexcept nogil:
         cdef ImageAccumulator *im = <ImageAccumulator *> data
         cdef VolumeRenderAccumulator *vri = <VolumeRenderAccumulator *> \
                 im.supp_data
@@ -468,7 +460,7 @@ cdef class VolumeRenderSampler(ImageSampler):
                      np.float64_t enter_t,
                      np.float64_t exit_t,
                      int index[3],
-                     void *data) nogil:
+                     void *data) noexcept nogil:
         cdef ImageAccumulator *im = <ImageAccumulator *> data
         cdef VolumeRenderAccumulator *vri = <VolumeRenderAccumulator *> \
                 im.supp_data
@@ -517,8 +509,8 @@ cdef class LightSourceRenderSampler(ImageSampler):
                   str volume_method,
                   tf_obj,
                   n_samples = 10,
-                  light_dir=[1.,1.,1.],
-                  light_rgba=[1.,1.,1.,1.],
+                  light_dir=(1.,1.,1.),
+                  light_rgba=(1.,1.,1.,1.),
                   **kwargs):
         ImageSampler.__init__(self, vp_pos, vp_dir, center, bounds, image,
                                x_vec, y_vec, width, volume_method, **kwargs)
@@ -569,7 +561,7 @@ cdef class LightSourceRenderSampler(ImageSampler):
                      np.float64_t enter_t,
                      np.float64_t exit_t,
                      int index[3],
-                     void *data) nogil:
+                     void *data) noexcept nogil:
         cdef ImageAccumulator *im = <ImageAccumulator *> data
         cdef VolumeRenderAccumulator *vri = <VolumeRenderAccumulator *> \
                 im.supp_data
