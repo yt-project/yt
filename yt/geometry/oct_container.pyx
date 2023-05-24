@@ -184,7 +184,7 @@ cdef class OctreeContainer:
     cdef np.int64_t get_domain_offset(self, int domain_id):
         return 0
 
-    def check_root_mesh(self):
+    def _check_root_mesh(self):
         cdef count = 0
         for i in range(self.nn[0]):
             for j in range(self.nn[1]):
