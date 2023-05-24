@@ -1033,6 +1033,7 @@ def load_octree(
     default_species_fields=None,
     *,
     parameters=None,
+    domain_dimensions=None,
     dataset_name: str = "OctreeData",
 ):
     r"""Load an octree mask into yt.
@@ -1084,6 +1085,9 @@ def load_octree(
     parameters: dictionary, optional
         Optional dictionary used to populate the dataset parameters, useful
         for storing dataset metadata.
+    domain_dimensions : 3 elements array-like, optional
+        This is the domain dimensions of the root *mesh*, which can be used to
+        specify (indirectly) the number of root oct nodes.
     dataset_name : string, optional
         Optional string used to assign a name to the dataset. Stream datasets will use
         this value in place of a filename (in image prefixing, etc.)
@@ -1122,7 +1126,12 @@ def load_octree(
     # for compatibility
     if over_refine_factor is not None:
         nz = 1 << over_refine_factor
-    domain_dimensions = np.array([nz, nz, nz])
+    if domain_dimensions is None:
+        # We assume that if it isn't specified, it defaults to the number of
+        # zones (i.e., a single root oct.)
+        domain_dimensions = np.array([nz, nz, nz])
+    else:
+        domain_dimensions = np.array(domain_dimensions)
     nprocs = 1
     if bbox is None:
         bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]], "float64")
