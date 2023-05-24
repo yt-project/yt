@@ -1129,8 +1129,9 @@ def load_octree(
     if domain_dimensions is None:
         # We assume that if it isn't specified, it defaults to the number of
         # zones (i.e., a single root oct.)
-        domain_dimensions = [nz, nz, nz]
-    domain_dimensions = np.array(domain_dimensions)
+        domain_dimensions = np.array([nz, nz, nz])
+    else:
+        domain_dimensions = np.array(domain_dimensions)
     nprocs = 1
     if bbox is None:
         bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]], "float64")
