@@ -981,7 +981,7 @@ def load_octree(
     parameters: dictionary, optional
         Optional dictionary used to populate the dataset parameters, useful
         for storing dataset metadata.
-    domain_dimensions : array_like, optional
+    domain_dimensions : 3 elements array-like, optional
         This is the domain dimensions of the root *mesh*, which can be used to
         specify (indirectly) the number of root oct nodes.
 
