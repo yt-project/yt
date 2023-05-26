@@ -173,12 +173,16 @@ class ArepoFieldInfo(GadgetFieldInfo):
 
         if (ptype, "GFM_CoolingRate") in self.field_list:
             self.alias(("gas", "cooling_rate"), ("PartType0", "cooling_rate"))
+
             def _cooling_time(field, data):
                 nH = data["gas", "H_nuclei_density"]
-                dedt = -data["gas", "cooling_rate"]*nH*nH
-                e = 1.5*data["gas", "pressure"]
-                return e/dedt
-            self.add_field(("gas", "cooling_time"), _cooling_time, sampling_type="local", units="s")
+                dedt = -data["gas", "cooling_rate"] * nH * nH
+                e = 1.5 * data["gas", "pressure"]
+                return e / dedt
+
+            self.add_field(
+                ("gas", "cooling_time"), _cooling_time, sampling_type="local", units="s"
+            )
 
         if (ptype, "CosmicRaySpecificEnergy") in self.field_list:
             self.alias(

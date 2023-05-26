@@ -14,7 +14,7 @@ class GadgetFieldInfo(SPHFieldInfo):
             self.known_particle_fields += hsml
         for field in field_list:
             if field[1].startswith("MetalMasses"):
-                mm = (field[1], ("code_mass", [], None)),
+                mm = ((field[1], ("code_mass", [], None)),)
                 self.known_particle_fields += mm
         super().__init__(ds, field_list, slice_info=slice_info)
 
@@ -73,30 +73,66 @@ class GadgetFieldInfo(SPHFieldInfo):
 
     def _make_fraction_functions(self, ptype, fname):
         if fname == "ElevenMetalMasses":
+
             def _fraction(field, data, i: int):
-                return data[(ptype, "ElevenMetalMasses")][:, i] / data[(ptype, "particle_mass")]
+                return (
+                    data[(ptype, "ElevenMetalMasses")][:, i]
+                    / data[(ptype, "particle_mass")]
+                )
 
             def _metallicity(field, data):
-                ret = data[(ptype, "ElevenMetalMasses")][:,1].sum(axis=1) / data[(ptype, "particle_mass")]
+                ret = (
+                    data[(ptype, "ElevenMetalMasses")][:, 1].sum(axis=1)
+                    / data[(ptype, "particle_mass")]
+                )
                 return ret
 
             def _h_fraction(field, data):
-                ret = data[(ptype, "ElevenMetalMasses")].sum(axis=1) / data[(ptype, "particle_mass")]
+                ret = (
+                    data[(ptype, "ElevenMetalMasses")].sum(axis=1)
+                    / data[(ptype, "particle_mass")]
+                )
                 return 1.0 - ret
 
             elem_names = ["He", "C", "Ca", "O", "N", "Ne", "Mg", "S", "Si", "Fe", "Ej"]
 
         elif fname == "MetalMasses":
-            n_elem = len([fd for fd in self.ds.field_list if fd[0] == ptype and fd[1].startswith("MetalMasses")])
+            n_elem = len(
+                [
+                    fd
+                    for fd in self.ds.field_list
+                    if fd[0] == ptype and fd[1].startswith("MetalMasses")
+                ]
+            )
             elem_names = {
                 7: ["C", "N", "O", "Mg", "Si", "Fe", "Ej"],
                 8: ["He", "C", "O", "Mg", "S", "Si", "Fe", "Ej"],
                 11: ["He", "C", "Ca", "O", "N", "Ne", "Mg", "S", "Si", "Fe", "Ej"],
-                15: ["He", "C", "Ca", "O", "N", "Ne", "Mg", "S", "Si", "Fe", "Na", "Al", "Ar", "Ni", "Ej"]
+                15: [
+                    "He",
+                    "C",
+                    "Ca",
+                    "O",
+                    "N",
+                    "Ne",
+                    "Mg",
+                    "S",
+                    "Si",
+                    "Fe",
+                    "Na",
+                    "Al",
+                    "Ar",
+                    "Ni",
+                    "Ej",
+                ],
             }[n_elem]
             no_He = "He" not in elem_names
+
             def _fraction(field, data, i: int):
-                return data[(ptype, f"MetalMasses_{i:02d}")] / data[(ptype, "particle_mass")]
+                return (
+                    data[(ptype, f"MetalMasses_{i:02d}")]
+                    / data[(ptype, "particle_mass")]
+                )
 
             def _metallicity(field, data):
                 mass = 0.0
@@ -114,7 +150,9 @@ class GadgetFieldInfo(SPHFieldInfo):
                 return 1.0 - ret
 
         else:
-            raise KeyError(f"Making element fraction fields from '{ptype}','{fname}' not possible!")
+            raise KeyError(
+                f"Making element fraction fields from '{ptype}','{fname}' not possible!"
+            )
         return _fraction, _h_fraction, _metallicity, elem_names
 
     def _setup_metal_masses(self, ptype, fname):
@@ -127,7 +165,12 @@ class GadgetFieldInfo(SPHFieldInfo):
         as defined in the gadget_field_specs in frontends/gadget/definitions.py
         """
         sampling_type = "local" if ptype in self.ds._sph_ptypes else "particle"
-        _fraction, _h_fraction, _metallicity, elem_names = self._make_fraction_functions(ptype, fname)
+        (
+            _fraction,
+            _h_fraction,
+            _metallicity,
+            elem_names,
+        ) = self._make_fraction_functions(ptype, fname)
 
         def _metal_density(field, data, elem_name: str):
             return data[(ptype, f"{elem_name}_fraction")] * data[(ptype, "density")]
