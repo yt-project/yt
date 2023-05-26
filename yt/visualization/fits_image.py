@@ -18,7 +18,11 @@ from yt.utilities.math_utils import compute_stddev_image
 from yt.utilities.on_demand_imports import _astropy
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_root_only
 from yt.visualization.fixed_resolution import FixedResolutionBuffer, ParticleImageBuffer
-from yt.visualization.particle_plots import ParticleAxisAlignedDummyDataSource
+from yt.visualization.particle_plots import (
+    ParticleAxisAlignedDummyDataSource,
+    ParticleDummyDataSource,
+    ParticleOffAxisDummyDataSource,
+)
 from yt.visualization.volume_rendering.off_axis_projection import off_axis_projection
 
 
@@ -906,17 +910,23 @@ def construct_image(
             frb = data_source.to_frb(width[0], (nx, ny), height=width[1])
         else:
             frb = data_source.to_frb(width[0], (nx, ny), center=center, height=width[1])
-    elif isinstance(data_source, ParticleAxisAlignedDummyDataSource):
-        axes = axis_wcs[axis]
-        bounds = (
-            center[axes[0]] - width[0] / 2,
-            center[axes[0]] + width[0] / 2,
-            center[axes[1]] - width[1] / 2,
-            center[axes[1]] + width[1] / 2,
-        )
-        frb = ParticleImageBuffer(
-            data_source, bounds, (nx, ny), periodic=all(ds.periodicity)
-        )
+    elif isinstance(data_source, ParticleDummyDataSource):
+        if hasattr(data_source, "normal_vector"):
+            # If we have a normal vector, this means
+            # that the data source is off-axis
+            bounds = (-width[0] / 2, width[0] / 2, -width[1] / 2, width[1] / 2)
+            periodic = False
+        else:
+            # Otherwise, this is an on-axis data source
+            axes = axis_wcs[axis]
+            bounds = (
+                center[axes[0]] - width[0] / 2,
+                center[axes[0]] + width[0] / 2,
+                center[axes[1]] - width[1] / 2,
+                center[axes[1]] + width[1] / 2,
+            )
+            periodic = all(ds.periodicity)
+        frb = ParticleImageBuffer(data_source, bounds, (nx, ny), periodic=periodic)
     else:
         frb = None
     w = _astropy.pywcs.WCS(naxis=2)
@@ -1107,8 +1117,8 @@ class FITSProjection(FITSImageData):
 
         For example, (10, 'kpc') specifies a width that is 10 kiloparsecs
         wide in the x and y directions, ((10,'kpc'),(15,'kpc')) specifies a
-        width that is 10 kiloparsecs wide along the x axis and 15
-        kiloparsecs wide along the y axis.  In the other two examples, code
+        width that is 10 kiloparsecs wide along the x-axis and 15
+        kiloparsecs wide along the y-axis.  In the other two examples, code
         units are assumed, for example (0.2, 0.3) specifies a width that has an
         x width of 0.2 and a y width of 0.3 in code units.
     weight_field : string
@@ -1214,8 +1224,8 @@ class FITSParticleProjection(FITSImageData):
 
         For example, (10, 'kpc') specifies a width that is 10 kiloparsecs
         wide in the x and y directions, ((10,'kpc'),(15,'kpc')) specifies a
-        width that is 10 kiloparsecs wide along the x axis and 15
-        kiloparsecs wide along the y axis.  In the other two examples, code
+        width that is 10 kiloparsecs wide along the x-axis and 15
+        kiloparsecs wide along the y-axis.  In the other two examples, code
         units are assumed, for example (0.2, 0.3) specifies a width that has an
         x width of 0.2 and a y width of 0.3 in code units.
     depth : A tuple or a float
@@ -1280,7 +1290,7 @@ class FITSParticleProjection(FITSImageData):
             axis,
             width,
             fields,
-            weight_field,
+            weight_field=weight_field,
             field_parameters=field_parameters,
             data_source=data_source,
             deposition=deposition,
@@ -1288,6 +1298,132 @@ class FITSParticleProjection(FITSImageData):
         )
         w, frb, lunit = construct_image(
             ds, axis, ps, dcenter, image_res, width, length_unit, origin=origin
+        )
+        super().__init__(frb, fields=fields, length_unit=lunit, wcs=w)
+
+
+class FITSParticleOffAxisProjection(FITSImageData):
+    r"""
+    Generate a FITSImageData of an off-axis projection of a
+    particle field.
+
+    Parameters
+    ----------
+    ds : :class:`~yt.data_objects.static_output.Dataset`
+        The dataset object.
+    axis : character or integer
+        The axis along which to project. One of "x","y","z", or 0,1,2.
+    fields : string or list of strings
+        The fields to project
+    image_res : an int or 2-tuple of ints
+        Specify the resolution of the resulting image. A single value will be
+        used for both axes, whereas a tuple of values will be used for the
+        individual axes. Default: 512
+    center : A sequence of floats, a string, or a tuple.
+        The coordinate of the center of the image. If set to 'c', 'center' or
+        left blank, the plot is centered on the middle of the domain. If set
+        to 'max' or 'm', the center will be located at the maximum of the
+        ('gas', 'density') field. Centering on the max or min of a specific
+        field is supported by providing a tuple such as ("min","temperature")
+        or ("max","dark_matter_density"). Units can be specified by passing in
+        *center* as a tuple containing a coordinate and string unit name or by
+        passing in a YTArray. If a list or unitless array is supplied, code
+        units are assumed.
+    width : tuple or a float.
+        Width can have four different formats to support variable
+        x and y widths.  They are:
+
+        ==================================     =======================
+        format                                 example
+        ==================================     =======================
+        (float, string)                        (10,'kpc')
+        ((float, string), (float, string))     ((10,'kpc'),(15,'kpc'))
+        float                                  0.2
+        (float, float)                         (0.2, 0.3)
+        ==================================     =======================
+
+        For example, (10, 'kpc') specifies a width that is 10 kiloparsecs
+        wide in the x and y directions, ((10,'kpc'),(15,'kpc')) specifies a
+        width that is 10 kiloparsecs wide along the x-axis and 15
+        kiloparsecs wide along the y-axis.  In the other two examples, code
+        units are assumed, for example (0.2, 0.3) specifies a width that has an
+        x width of 0.2 and a y width of 0.3 in code units.
+    depth : A tuple or a float
+         A tuple containing the depth to project through and the string
+         key of the unit: (width, 'unit').  If set to a float, code units
+         are assumed. Defaults to the entire domain.
+    weight_field : string
+        The field used to weight the projection.
+    length_unit : string, optional
+        the length units that the coordinates are written in. The default
+        is to use the default length unit of the dataset.
+    deposition : string, optional
+        Controls the order of the interpolation of the particles onto the
+        mesh. "ngp" is 0th-order "nearest-grid-point" method (the default),
+        "cic" is 1st-order "cloud-in-cell".
+    density : boolean, optional
+        If True, the quantity to be projected will be divided by the area of
+        the cells, to make a projected density of the quantity. Default: False
+    field_parameters : dictionary
+         A dictionary of field parameters than can be accessed by derived
+         fields.
+    data_source : yt.data_objects.data_containers.YTSelectionContainer, optional
+        If specified, this will be the data source used for selecting regions
+        to project.
+    origin : string
+        The origin of the coordinate system in the file. If "domain", then the
+        center coordinates will be the same as the center of the image as
+        defined by the *center* keyword argument. If "image", then the center
+        coordinates will be set to (0,0). Default: "domain"
+    """
+
+    def __init__(
+        self,
+        ds,
+        normal,
+        fields,
+        image_res=512,
+        center="c",
+        width=None,
+        depth=(1, "1"),
+        weight_field=None,
+        length_unit=None,
+        deposition="ngp",
+        density=False,
+        field_parameters=None,
+        data_source=None,
+        north_vector=None,
+    ):
+        fields = list(iter_fields(fields))
+        center, dcenter = ds.coordinates.sanitize_center(center, None)
+        width = ds.coordinates.sanitize_width(normal, width, depth)
+        wd = tuple(el.in_units("code_length").v for el in width)
+
+        if field_parameters is None:
+            field_parameters = {}
+
+        ps = ParticleOffAxisDummyDataSource(
+            center,
+            ds,
+            normal,
+            wd,
+            fields,
+            weight_field=weight_field,
+            field_parameters=field_parameters,
+            data_source=data_source,
+            deposition=deposition,
+            density=density,
+            north_vector=north_vector,
+        )
+        w, frb, lunit = construct_image(
+            ds,
+            normal,
+            ps,
+            dcenter,
+            image_res,
+            width,
+            length_unit,
+            origin="image",
         )
         super().__init__(frb, fields=fields, length_unit=lunit, wcs=w)
 
@@ -1426,8 +1562,8 @@ class FITSOffAxisProjection(FITSImageData):
 
         For example, (10, 'kpc') specifies a width that is 10 kiloparsecs
         wide in the x and y directions, ((10,'kpc'),(15,'kpc')) specifies a
-        width that is 10 kiloparsecs wide along the x axis and 15
-        kiloparsecs wide along the y axis.  In the other two examples, code
+        width that is 10 kiloparsecs wide along the x-axis and 15
+        kiloparsecs wide along the y-axis. In the other two examples, code
         units are assumed, for example (0.2, 0.3) specifies a width that has an
         x width of 0.2 and a y width of 0.3 in code units.
     depth : A tuple or a float

@@ -1618,7 +1618,7 @@ class ProjectionPlot(NormalPlot):
         This is the dataset object corresponding to the
         simulation output to be plotted.
     normal : int, str, or 3-element sequence of floats
-        This specifies the normal vector to the slice.
+        This specifies the normal vector to the projection.
         Valid int values are 0, 1 and 2. Corresponding str values depend on the
         geometry of the dataset and are generally given by `ds.coordinates.axis_order`.
         E.g. in cartesian they are 'x', 'y' and 'z'.

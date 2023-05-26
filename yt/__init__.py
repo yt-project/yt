@@ -118,6 +118,7 @@ from yt.visualization.api import (
     FITSImageData,
     FITSOffAxisProjection,
     FITSOffAxisSlice,
+    FITSParticleOffAxisProjection,
     FITSParticleProjection,
     FITSProjection,
     FITSSlice,
