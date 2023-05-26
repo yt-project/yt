@@ -101,7 +101,6 @@ class GadgetFieldInfo(SPHFieldInfo):
             def _metallicity(field, data):
                 mass = 0.0
                 start_idx = int(not no_He)
-                print(start_idx)
                 for i in range(start_idx, n_elem):
                     mass += data[(ptype, f"MetalMasses_{i:02d}")]
                 ret = mass / data[(ptype, "particle_mass")]
