@@ -50,13 +50,10 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         python -m pip install --upgrade setuptools wheel
-        python -m pip install git+https://github.com/numpy/numpy.git
-        python -m pip install git+https://github.com/matplotlib/matplotlib.git
+        python -m pip install --pre --upgrade --extra-index https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy matplotlib
+        python -m pip install --pre cython ewah-bool-utils
         python -m pip install git+https://github.com/yt-project/unyt.git
-        python -m pip install --pre cython
-        python -m pip install ewah-bool-utils
-        python -m pip install --upgrade --pre pytest
-        python -m pip install PyYAML
+        python -m pip install --pre pytest PyYAML
 
     - name: Build
       # --no-build-isolation is used to guarantee that build time dependencies
