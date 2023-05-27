@@ -56,6 +56,11 @@ jobs:
 
     runs-on: ${{ matrix.os }}
 
+    concurrency:
+      # auto-cancel any in-progress job *on the same branch*
+      group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.tests-type }}-py${{ matrix.python-version }}-${{ matrix.os }}-${{ matrix.test-runner }}
+      cancel-in-progress: true
+
     steps:
     - name: Set up Python
       uses: actions/setup-python@v4
