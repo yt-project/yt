@@ -64,4 +64,6 @@ jobs:
         python -m pip install -e .[test] --no-build-isolation
 
     - name: Run Tests
-      run: pytest -vvv --color=yes
+      run: |
+        yt config set --local yt log_level 50  # Disable excessive output
+        pytest -vvv --color=yes
