@@ -110,6 +110,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
     )
 
     def particle_mass(field, data):
+        print(ptype, coord_name, mass_name)
         pos = data[ptype, coord_name]
         pmass = data[ptype, mass_name]
         pmass.convert_to_units(field.units)
