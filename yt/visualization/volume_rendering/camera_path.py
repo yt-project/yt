@@ -117,7 +117,7 @@ class Keyframes:
             path.  Default: False
         """
         # randomize tour
-        self.tour = range(self.nframes)
+        self.tour = list(range(self.nframes))
         np.random.shuffle(self.tour)
         if fixed_start:
             first = self.tour.index(0)
@@ -137,7 +137,7 @@ class Keyframes:
         Generates values in random order, equivalent to using shuffle
         in random without generation all values at once.
         """
-        values = range(self.nframes)
+        values = list(range(self.nframes))
         for i in range(self.nframes):
             # pick a random index into remaining values
             j = i + int(random.random() * (self.nframes - i))
