@@ -886,12 +886,49 @@ class QuiverCallback(BaseQuiverCallback):
 
 class ContourCallback(PlotCallback):
     """
-    Add contours in *field* to the plot. *levels* governs the number of
-    contours generated, *factor* governs the number of points used in the
-    interpolation, *take_log* governs how it is contoured and *clim* gives
-    the (upper, lower) limits for contouring.  An alternate data source can be
-    specified with *data_source*, but by default the plot's data source will be
-    queried.
+    Add contours using matplotlib.axes.Axes.contour
+
+    Arguments
+    ---------
+
+    field: field key
+        The field to draw contours of.
+
+    levels: int
+        Number of levels to be plotted.
+
+    factor: int, or tuple[int, int] (default: 16)
+        Fields are downed-sampled by this factor with respect to the background image
+        buffer size. A single integer factor will be used for both direction, but a
+        tuple of 2 integers can be passed to set x and y downsampling independently.
+
+    clim: tuple[float, float] (optional)
+        If provided, countour values will be selected within the open interval
+        [clim[0], clim[1])
+        See `take_log` for how to control the spacing between consecutive contour values.
+
+    take_log: bool (optional)
+        Coutour values will be evenly spaced on a linear scale or a log10 scale
+        depending on this parameter. By default, the value of this parameter is
+        infered from the field container attached to the dataset.
+
+    data_source: a yt data object (optional)
+        An alternative data source. By default the plot's data_source is queried.
+
+    label: bool (default: False)
+        Toggle contour labels.
+
+    text_args: dict[str, Any] (optional)
+        Used only if `label=True`. Arbitrary keyword arguments to be passed to
+        matplotlib.axes.Axes.clabel
+        In contrast to matplotlib.axes.Axes.clabel, the following
+        parameters are used by default: colors='white'
+
+    **kwargs: any additional keyword arguments will be passed
+        directly to matplotlib.axes.Axes.contour
+        In contrast to matplotlib.axes.Axes.contour, the
+        following parameters are used by default:
+        colors='black', linestyles='solid'
     """
 
     _type_name = "contour"
@@ -905,12 +942,13 @@ class ContourCallback(PlotCallback):
         *,
         factor: Union[Tuple[int, int], int] = 4,
         clim: Optional[Tuple[float, float]] = None,
-        label: bool = False,
         take_log: Optional[bool] = None,
         data_source: Optional[YTDataContainer] = None,
-        plot_args: Optional[Dict[str, Any]] = None,
+        label: bool = False,
         text_args: Optional[Dict[str, Any]] = None,
+        plot_args: Optional[Dict[str, Any]] = None,  # deprecated
         ncont: Optional[int] = None,  # deprecated
+        **kwargs,
     ) -> None:
         if ncont is not None:
             issue_deprecation_warning(
@@ -927,10 +965,19 @@ class ContourCallback(PlotCallback):
         self.factor = _validate_factor_tuple(factor)
         self.clim = clim
         self.take_log = take_log
+
+        if plot_args is not None:
+            issue_deprecation_warning(
+                "`plot_args` is deprecated. "
+                "You can now pass arbitrary keyword arguments instead of a dictionary.",
+                since="4.3",
+                stacklevel=5,
+            )
         self.plot_args = {
             "colors": "black",
             "linestyles": "solid",
             **(plot_args or {}),
+            **kwargs,
         }
         self.label = label
         self.text_args = {
