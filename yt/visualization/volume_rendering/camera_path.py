@@ -117,7 +117,7 @@ class Keyframes:
             path.  Default: False
         """
         # randomize tour
-        self.tour = range(self.nframes)
+        self.tour = list(range(self.nframes))
         np.random.shuffle(self.tour)
         if fixed_start:
             first = self.tour.index(0)
