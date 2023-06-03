@@ -324,7 +324,7 @@ class DerivedField:
         issue_deprecation_warning(
             "DerivedField.alias_field is a deprecated equivalent to DerivedField.is_alias ",
             stacklevel=3,
-            since="4.1.0",
+            since="4.1",
         )
         return self.is_alias
 

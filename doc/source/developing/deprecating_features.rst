@@ -21,7 +21,7 @@ Here's an example call.
         issue_deprecation_warning(
             "`old_function` is deprecated, use `replacement_function` instead."
             stacklevel=3,
-            since="4.0.0",
+            since="4.0",
             removal="4.1.0",
         )
         ...
@@ -55,7 +55,7 @@ deprecated. In that case, you call
         (ftype, f"cylindrical_radial_{basename}_absolute"),
         sampling_type="local",
         function=_cylindrical_radial_absolute,
-        since="4.0.0",
+        since="4.0",
         removal="4.1.0",
         units=field_units,
         validators=[ValidateParameter("normal")],

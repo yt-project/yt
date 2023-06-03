@@ -1243,7 +1243,7 @@ class PWViewerMPL(PlotWindow):
     def setup_callbacks(self):
         issue_deprecation_warning(
             "The PWViewer.setup_callbacks method is a no-op.",
-            since="4.1.0",
+            since="4.1",
             stacklevel=3,
         )
 
@@ -2040,7 +2040,7 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
             issue_deprecation_warning(
                 "'mip' method is a deprecated alias for 'max'. "
                 "Please use method='max' directly.",
-                since="4.1.0",
+                since="4.1",
                 stacklevel=3,
             )
             method = "max"

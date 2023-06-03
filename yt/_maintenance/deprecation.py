@@ -48,7 +48,7 @@ def issue_deprecation_warning(
     Examples
     --------
     >>> issue_deprecation_warning(
-    ...     "This code is deprecated.", stacklevel=3, since="4.0.0"
+    ...     "This code is deprecated.", stacklevel=3, since="4.0"
     ... )
     """
 

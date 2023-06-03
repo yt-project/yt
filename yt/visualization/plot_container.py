@@ -1025,7 +1025,7 @@ class ImagePlotContainer(PlotContainer, abc.ABC):
                 "If you wish to explicitly set zmin to the minimal "
                 "data value, pass `zmin='min'` instead. "
                 "Otherwise leave this argument unset.",
-                since="4.1.0",
+                since="4.1",
                 stacklevel=5,
             )
             zmin = "min"
@@ -1039,7 +1039,7 @@ class ImagePlotContainer(PlotContainer, abc.ABC):
                 "If you wish to explicitly set zmax to the maximal "
                 "data value, pass `zmin='max'` instead. "
                 "Otherwise leave this argument unset.",
-                since="4.1.0",
+                since="4.1",
                 stacklevel=5,
             )
             zmax = "max"

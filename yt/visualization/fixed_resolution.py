@@ -547,7 +547,7 @@ class FixedResolutionBuffer:
         issue_deprecation_warning(
             "The FixedResolutionBuffer.setup_filters method is now a no-op. ",
             stacklevel=3,
-            since="4.1.0",
+            since="4.1",
         )
 
 

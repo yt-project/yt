@@ -47,7 +47,7 @@ from yt.utilities.on_demand_imports import _pooch as pooch, _ratarmount as ratar
 # --- Loaders for known data formats ---
 
 
-@future_positional_only({0: "fn"}, since="4.2.0")
+@future_positional_only({0: "fn"}, since="4.2")
 def load(
     fn: Union[str, "os.PathLike[str]"], *args, hint: Optional[str] = None, **kwargs
 ):

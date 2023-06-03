@@ -442,7 +442,7 @@ class VelocityCallback(PlotCallback):
             issue_deprecation_warning(
                 "`plot_args` is deprecated. "
                 "You can now pass arbitrary keyword arguments instead of a dictionary.",
-                since="4.1.0",
+                since="4.1",
                 stacklevel=5,
             )
             plot_args.update(kwargs)
@@ -585,7 +585,7 @@ class MagFieldCallback(PlotCallback):
             issue_deprecation_warning(
                 "`plot_args` is deprecated. "
                 "You can now pass arbitrary keyword arguments instead of a dictionary.",
-                since="4.1.0",
+                since="4.1",
                 stacklevel=5,
             )
             plot_args.update(kwargs)
@@ -703,7 +703,7 @@ class BaseQuiverCallback(PlotCallback, ABC):
             issue_deprecation_warning(
                 "`plot_args` is deprecated. "
                 "You can now pass arbitrary keyword arguments instead of a dictionary.",
-                since="4.1.0",
+                since="4.1",
                 stacklevel=5,
             )
             plot_args.update(kwargs)
@@ -906,7 +906,7 @@ class ContourCallback(PlotCallback):
         if ncont is not None:
             issue_deprecation_warning(
                 "The `ncont` keyword argument is deprecated, use `levels` instead.",
-                since="4.1.0",
+                since="4.1",
                 stacklevel=5,
             )
             levels = ncont
@@ -1249,7 +1249,7 @@ class StreamlineCallback(PlotCallback):
             issue_deprecation_warning(
                 "`plot_args` is deprecated. "
                 "You can now pass arbitrary keyword arguments instead of a dictionary.",
-                since="4.1.0",
+                since="4.1",
                 stacklevel=5,
             )
             plot_args.update(kwargs)
@@ -1405,7 +1405,7 @@ class LinePlotCallback(PlotCallback):
             issue_deprecation_warning(
                 "`plot_args` is deprecated. "
                 "You can now pass arbitrary keyword arguments instead of a dictionary.",
-                since="4.1.0",
+                since="4.1",
                 stacklevel=5,
             )
             plot_args.update(kwargs)
@@ -1517,7 +1517,7 @@ class ClumpContourCallback(PlotCallback):
             issue_deprecation_warning(
                 "`plot_args` is deprecated. "
                 "You can now pass arbitrary keyword arguments instead of a dictionary.",
-                since="4.1.0",
+                since="4.1",
                 stacklevel=5,
             )
             plot_args.update(kwargs)
@@ -1690,7 +1690,7 @@ class ArrowCallback(PlotCallback):
             issue_deprecation_warning(
                 "`plot_args` is deprecated. "
                 "You can now pass arbitrary keyword arguments instead of a dictionary.",
-                since="4.1.0",
+                since="4.1",
                 stacklevel=5,
             )
             plot_args = {**def_plot_args, **plot_args, **kwargs}
@@ -1827,7 +1827,7 @@ class MarkerAnnotateCallback(PlotCallback):
             issue_deprecation_warning(
                 "`plot_args` is deprecated. "
                 "You can now pass arbitrary keyword arguments instead of a dictionary.",
-                since="4.1.0",
+                since="4.1",
                 stacklevel=5,
             )
             plot_args = {**def_plot_args, **plot_args, **kwargs}
@@ -2268,7 +2268,7 @@ class MeshLinesCallback(PlotCallback):
             issue_deprecation_warning(
                 "`plot_args` is deprecated. "
                 "You can now pass arbitrary keyword arguments instead of a dictionary.",
-                since="4.1.0",
+                since="4.1",
                 stacklevel=5,
             )
             plot_args.update(kwargs)
@@ -2343,7 +2343,7 @@ class TriangleFacetsCallback(PlotCallback):
             issue_deprecation_warning(
                 "`plot_args` is deprecated. "
                 "You can now pass arbitrary keyword arguments instead of a dictionary.",
-                since="4.1.0",
+                since="4.1",
                 stacklevel=5,
             )
             plot_args.update(kwargs)
@@ -2922,7 +2922,7 @@ class RayCallback(PlotCallback):
             issue_deprecation_warning(
                 "`plot_args` is deprecated. "
                 "You can now pass arbitrary keyword arguments instead of a dictionary.",
-                since="4.1.0",
+                since="4.1",
                 stacklevel=5,
             )
             plot_args = {**def_plot_args, **plot_args, **kwargs}

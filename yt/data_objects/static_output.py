@@ -350,7 +350,7 @@ class Dataset(abc.ABC):
             "and all path attributes are now absolute. "
             "Please use the directory attribute instead",
             stacklevel=3,
-            since="4.1.0",
+            since="4.1",
         )
         return self.directory
 
