@@ -472,6 +472,7 @@ def is_curvilinear(geo):
         "if is_curvilinear(geometry):\n    ...\n"
         "should be rewritten as:"
         "if geometry is Geometry.POLAR or geometry is Geometry.CYLINDRICAL or geometry is Geometry.SPHERICAL:\n    ...",
+        stacklevel=3,
         since="4.2",
     )
     if geo in ["polar", "cylindrical", "spherical"]:

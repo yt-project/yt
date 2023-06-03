@@ -1197,6 +1197,7 @@ def run_nose(
         "yt.run_nose (aka yt.testing.run_nose) is deprecated. "
         "Please do not rely on this function as it will be removed "
         "in the process of migrating yt tests from nose to pytest.",
+        stacklevel=3,
         since="4.1.0",
     )
 

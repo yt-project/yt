@@ -45,6 +45,7 @@ def apply_callback(f):
         "The apply_callback decorator is not used in yt any more and "
         "will be removed in a future version. "
         "Please do not use it.",
+        stacklevel=3,
         since="4.1",
     )
 
@@ -241,6 +242,7 @@ class PlotContainer(abc.ABC):
         issue_deprecation_warning(
             "The get_log method is not reliable and is deprecated. "
             "Please do not rely on it.",
+            stacklevel=3,
             since="4.1",
         )
         log = {}

@@ -20,6 +20,7 @@ Here's an example call.
         from yt._maintenance.deprecation import issue_deprecation_warning
         issue_deprecation_warning(
             "`old_function` is deprecated, use `replacement_function` instead."
+            stacklevel=3,
             since="4.0.0",
             removal="4.1.0",
         )

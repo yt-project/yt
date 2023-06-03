@@ -23,6 +23,7 @@ def convert_ramses_ages(ds, conformal_ages):
             "The `convert_ramses_ages' function is deprecated. It should be replaced "
             "by the `convert_ramses_conformal_time_to_physical_age' function."
         ),
+        stacklevel=3,
         since="4.0.2",
     )
     return convert_ramses_conformal_time_to_physical_age(ds, conformal_ages)

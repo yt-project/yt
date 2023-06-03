@@ -66,6 +66,7 @@ class FieldInfoContainer(UserDict):
         issue_deprecation_warning(
             "FieldInfoContainer.curvilinear attribute is deprecated. "
             "Please compare the internal dataset geometry directly to known Geometry enum members instead. ",
+            stacklevel=3,
             since="4.2",
         )
         geometry = self.ds.geometry

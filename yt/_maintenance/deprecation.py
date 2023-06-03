@@ -18,7 +18,11 @@ class VisibleDeprecationWarning(UserWarning):
 
 
 def issue_deprecation_warning(
-    msg: str, *, since: str, removal: Optional[str] = None, stacklevel: int = 3
+    msg: str,
+    *,
+    stacklevel: int,
+    since: str,
+    removal: Optional[str] = None,
 ):
     """
     Parameters
@@ -26,6 +30,10 @@ def issue_deprecation_warning(
     msg : str
         A text message explaining that the code surrounding the call to this function is
         deprecated, and what should be changed on the user side to avoid it.
+
+    stacklevel: int
+        Number of stack frames to be skipped when pointing at caller code, starting from
+        *this* function's frame. In general 3 is a minimum.
 
     since and removal: str version numbers, indicating the anticipated removal date
 
@@ -40,7 +48,7 @@ def issue_deprecation_warning(
     Examples
     --------
     >>> issue_deprecation_warning(
-    ...     "This code is deprecated.", since="4.0.0", removal="4.2.0"
+    ...     "This code is deprecated.", stacklevel=3, since="4.0.0"
     ... )
     """
 
@@ -68,6 +76,7 @@ def future_positional_only(positions2names: Dict[int, str], /, **depr_kwargs):
                     "is deprecated. "
                     "Pass the argument as positional to suppress this warning, "
                     f"i.e., use {func.__name__}({value!r}, ...)",
+                    stacklevel=3,
                     **depr_kwargs,
                 )
             return func(*args, **kwargs)
