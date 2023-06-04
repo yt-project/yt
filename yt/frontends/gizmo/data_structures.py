@@ -96,8 +96,8 @@ class GizmoDataset(GadgetHDF5Dataset):
             else:
                 # Should still support old GIZMO versions too
                 only_on_root(
-                    mylog.info, 
-                    "ComovingIntegrationOn does not exist, falling back to OmegaLambda"
+                    mylog.info,
+                    "ComovingIntegrationOn does not exist, falling back to OmegaLambda",
                 )
                 self.omega_lambda = hvals["OmegaLambda"]
                 self.omega_matter = hvals["Omega0"]
