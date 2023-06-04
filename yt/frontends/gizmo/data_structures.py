@@ -95,9 +95,14 @@ class GizmoDataset(GadgetHDF5Dataset):
                 self.hubble_constant = hvals["HubbleParam"]
             else:
                 # Should still support old GIZMO versions too
+                only_on_root(
+                    mylog.info, 
+                    "ComovingIntegrationOn does not exist, falling back to OmegaLambda"
+                )
                 self.omega_lambda = hvals["OmegaLambda"]
                 self.omega_matter = hvals["Omega0"]
-                self.hubble_constant = self.omega_lambda == 0.0
+                self.hubble_constant = hvals["HubbleParam"]
+                self.cosmological_simulation = self.omega_lambda == 0.0
         except KeyError:
             # If these are not set it is definitely not a cosmological dataset.
             self.omega_lambda = 0.0
