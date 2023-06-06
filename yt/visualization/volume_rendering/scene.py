@@ -4,7 +4,6 @@ from collections import OrderedDict
 from typing import List, Optional
 
 import numpy as np
-
 from yt.config import ytcfg
 from yt.funcs import mylog
 from yt.units.dimensions import length  # type: ignore
@@ -14,17 +13,9 @@ from yt.utilities.exceptions import YTNotInsideNotebook
 from yt.visualization._commons import get_canvas, validate_image_name
 
 from .camera import Camera
-from .render_source import (
-    BoxSource,
-    CoordinateVectorSource,
-    GridSource,
-    LineSource,
-    MeshSource,
-    OpaqueSource,
-    PointSource,
-    RenderSource,
-    VolumeSource,
-)
+from .render_source import (BoxSource, CoordinateVectorSource, GridSource,
+                            LineSource, MeshSource, OpaqueSource, PointSource,
+                            RenderSource, VolumeSource)
 from .zbuffer_array import ZBuffer
 
 
@@ -829,7 +820,7 @@ class Scene:
                 source.annotate_mesh_lines(color=color, alpha=alpha)
         return self
 
-    def annotate_axes(self, colors=None, alpha=1.0):
+    def annotate_axes(self, colors=None, alpha=1.0, thick=1):
         r"""
 
         Modifies this scene by drawing the coordinate axes.
@@ -845,6 +836,8 @@ class Scene:
             ``alpha`` is ignored.
         alpha : float, optional
             The opacity of the vectors.
+        thick : int, optional
+            The line thickness
 
         Examples
         --------
@@ -857,7 +850,7 @@ class Scene:
         >>> im = sc.render()
 
         """
-        coords = CoordinateVectorSource(colors, alpha)
+        coords = CoordinateVectorSource(colors, alpha, thick)
         self.add_source(coords)
         return self
 
