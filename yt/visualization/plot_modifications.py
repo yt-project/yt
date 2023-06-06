@@ -901,8 +901,6 @@ class ContourCallback(PlotCallback):
         text_args: Optional[Dict[str, Any]] = None,
         ncont: Optional[int] = None,  # deprecated
     ) -> None:
-        def_plot_args = {"colors": "k", "linestyles": "solid"}
-        def_text_args = {"colors": "w"}
         if ncont is not None:
             issue_deprecation_warning(
                 "The `ncont` keyword argument is deprecated, use `levels` instead.",
@@ -918,13 +916,16 @@ class ContourCallback(PlotCallback):
         self.factor = _validate_factor_tuple(factor)
         self.clim = clim
         self.take_log = take_log
-        if plot_args is None:
-            plot_args = def_plot_args
-        self.plot_args = plot_args
+        self.plot_args = {
+            "colors": "black",
+            "linestyles": "solid",
+            **(plot_args or {}),
+        }
         self.label = label
-        if text_args is None:
-            text_args = def_text_args
-        self.text_args = text_args
+        self.text_args = {
+            "colors": "white",
+            **(text_args or {}),
+        }
         self.data_source = data_source
 
     def __call__(self, plot) -> None:
@@ -1397,8 +1398,6 @@ class LinePlotCallback(PlotCallback):
         plot_args: Optional[Dict[str, Any]] = None,
         **kwargs,
     ):
-        def_plot_args = {"color": "white", "linewidth": 2}
-
         self.p1 = p1
         self.p2 = p2
         if plot_args is not None:
@@ -1408,9 +1407,13 @@ class LinePlotCallback(PlotCallback):
                 since="4.1",
                 stacklevel=5,
             )
-            plot_args.update(kwargs)
 
-        self.plot_args = {**def_plot_args, **kwargs}
+        self.plot_args = {
+            "color": "white",
+            "linewidth": 2,
+            **(plot_args or {}),
+            **kwargs,
+        }
         self.coord_system = coord_system
         self.transform = None
 
@@ -1676,7 +1679,6 @@ class ArrowCallback(PlotCallback):
         plot_args: Optional[Dict[str, Any]] = None,  # deprecated
         **kwargs,
     ):
-        def_plot_args = {"color": "white"}
         self.pos = pos
         self.length = length
         self.width = width
@@ -1693,10 +1695,11 @@ class ArrowCallback(PlotCallback):
                 since="4.1",
                 stacklevel=5,
             )
-            plot_args = {**def_plot_args, **plot_args, **kwargs}
-        else:
-            plot_args = def_plot_args
-        self.plot_args = plot_args
+        self.plot_args = {
+            "color": "white",
+            **(plot_args or {}),
+            **kwargs,
+        }
 
     def __call__(self, plot):
         x, y = self._sanitize_coord_system(
@@ -1820,7 +1823,6 @@ class MarkerAnnotateCallback(PlotCallback):
     def __init__(
         self, pos, marker="x", *, coord_system="data", plot_args=None, **kwargs
     ):
-        def_plot_args = {"color": "w", "s": 50}
         self.pos = pos
         self.marker = marker
         if plot_args is not None:
@@ -1830,21 +1832,21 @@ class MarkerAnnotateCallback(PlotCallback):
                 since="4.1",
                 stacklevel=5,
             )
-            plot_args = {**def_plot_args, **plot_args, **kwargs}
-        else:
-            plot_args = {**def_plot_args, **kwargs}
-        self.plot_args = plot_args
+        self.plot_args = {
+            "color": "white",
+            "s": 50,
+            "transform": None,
+            **(plot_args or {}),
+            **kwargs,
+        }
         self.coord_system = coord_system
-        self.transform = None
 
     def __call__(self, plot):
         x, y = self._sanitize_coord_system(
             plot, self.pos, coord_system=self.coord_system
         )
         x, y = self._sanitize_xy_order(plot, x, y)
-        plot._axes.scatter(
-            x, y, marker=self.marker, transform=self.transform, **self.plot_args
-        )
+        plot._axes.scatter(x, y, marker=self.marker, **self.plot_args)
         self._set_plot_limits(plot)
 
 
@@ -1910,19 +1912,18 @@ class SphereCallback(PlotCallback):
         circle_args=None,
         text_args=None,
     ):
-        def_text_args = {"color": "white"}
-        def_circle_args = {"color": "white"}
         self.center = center
         self.radius = radius
-        if circle_args is None:
-            circle_args = def_circle_args
-        if "fill" not in circle_args:
-            circle_args["fill"] = False
-        self.circle_args = circle_args
+        self.circle_args = {
+            "color": "white",
+            "fill": False,
+            **(circle_args or {}),
+        }
         self.text = text
-        if text_args is None:
-            text_args = def_text_args
-        self.text_args = text_args
+        self.text_args = {
+            "color": "white",
+            **(text_args or {}),
+        }
         self.coord_system = coord_system
         self.transform = None
 
@@ -2050,12 +2051,12 @@ class TextLabelCallback(PlotCallback):
         text_args=None,
         inset_box_args=None,
     ):
-        def_text_args = {"color": "white"}
         self.pos = pos
         self.text = text
-        if text_args is None:
-            text_args = def_text_args
-        self.text_args = text_args
+        self.text_args = {
+            "color": "white",
+            **(text_args or {}),
+        }
         self.inset_box_args = inset_box_args
         self.coord_system = coord_system
         self.transform = None
@@ -2492,19 +2493,6 @@ class TimestampCallback(PlotCallback):
         text_args=None,
         inset_box_args=None,
     ):
-        def_text_args = {
-            "color": "white",
-            "horizontalalignment": "center",
-            "verticalalignment": "top",
-        }
-        def_inset_box_args = {
-            "boxstyle": "square,pad=0.3",
-            "facecolor": "black",
-            "linewidth": 3,
-            "edgecolor": "white",
-            "alpha": 0.5,
-        }
-
         # Set position based on corner argument.
         self.pos = (x_pos, y_pos)
         self.corner = corner
@@ -2515,15 +2503,23 @@ class TimestampCallback(PlotCallback):
         self.time_unit = time_unit
         self.coord_system = coord_system
         self.time_offset = time_offset
-        if text_args is None:
-            text_args = def_text_args
-        self.text_args = text_args
-        if inset_box_args is None:
-            inset_box_args = def_inset_box_args
-        self.inset_box_args = inset_box_args
+        self.text_args = {
+            "color": "white",
+            "horizontalalignment": "center",
+            "verticalalignment": "top",
+            **(text_args or {}),
+        }
 
-        # if inset box is not desired, set inset_box_args to {}
-        if not draw_inset_box:
+        if draw_inset_box:
+            self.inset_box_args = {
+                "boxstyle": "square,pad=0.3",
+                "facecolor": "black",
+                "linewidth": 3,
+                "edgecolor": "white",
+                "alpha": 0.5,
+                **(inset_box_args or {}),
+            }
+        else:
             self.inset_box_args = None
 
     def __call__(self, plot):
@@ -2731,16 +2727,6 @@ class ScaleCallback(PlotCallback):
         inset_box_args=None,
         scale_text_format="{scale} {units}",
     ):
-        def_size_bar_args = {"pad": 0.05, "sep": 5, "borderpad": 1, "color": "w"}
-
-        def_inset_box_args = {
-            "facecolor": "black",
-            "linewidth": 3,
-            "edgecolor": "white",
-            "alpha": 0.5,
-            "boxstyle": "square",
-        }
-
         # Set position based on corner argument.
         self.corner = corner
         self.coeff = coeff
@@ -2750,18 +2736,24 @@ class ScaleCallback(PlotCallback):
         self.min_frac = min_frac
         self.coord_system = coord_system
         self.scale_text_format = scale_text_format
-        if size_bar_args is None:
-            self.size_bar_args = def_size_bar_args
-        else:
-            self.size_bar_args = size_bar_args
-        if inset_box_args is None:
-            self.inset_box_args = def_inset_box_args
-        else:
-            self.inset_box_args = inset_box_args
+
+        self.size_bar_args = {
+            "pad": 0.05,
+            "sep": 5,
+            "borderpad": 1,
+            "color": "white",
+            **(size_bar_args or {}),
+        }
+        self.inset_box_args = {
+            "facecolor": "black",
+            "linewidth": 3,
+            "edgecolor": "white",
+            "alpha": 0.5,
+            "boxstyle": "square",
+            **(inset_box_args or {}),
+        }
+        self.text_args = text_args or {}
         self.draw_inset_box = draw_inset_box
-        if text_args is None:
-            text_args = {}
-        self.text_args = text_args
 
     def __call__(self, plot):
         from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
@@ -2915,7 +2907,6 @@ class RayCallback(PlotCallback):
     _supported_geometries = ("cartesian", "spectral_cube", "force")
 
     def __init__(self, ray, *, arrow=False, plot_args=None, **kwargs):
-        def_plot_args = {"color": "white", "linewidth": 2}
         self.ray = ray
         self.arrow = arrow
         if plot_args is not None:
@@ -2925,10 +2916,12 @@ class RayCallback(PlotCallback):
                 since="4.1",
                 stacklevel=5,
             )
-            plot_args = {**def_plot_args, **plot_args, **kwargs}
-        else:
-            plot_args = {**def_plot_args, **kwargs}
-        self.plot_args = plot_args
+        self.plot_args = {
+            "color": "white",
+            "linewidth": 2,
+            **(plot_args or {}),
+            **kwargs,
+        }
 
     def _process_ray(self):
         """
