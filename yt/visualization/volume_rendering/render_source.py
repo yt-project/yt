@@ -5,6 +5,7 @@ from types import ModuleType
 from typing import Literal, Optional, Union
 
 import numpy as np
+
 from yt.config import ytcfg
 from yt.data_objects.image_array import ImageArray
 from yt.funcs import ensure_numpy_array, is_sequence, mylog
@@ -17,16 +18,25 @@ from yt.utilities.lib.misc_utilities import zlines, zpoints
 from yt.utilities.lib.octree_raytracing import OctreeRayTracing
 from yt.utilities.lib.partitioned_grid import PartitionedGrid
 from yt.utilities.on_demand_imports import NotAModule
-from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelAnalysisInterface
+from yt.utilities.parallel_tools.parallel_analysis_interface import (
+    ParallelAnalysisInterface,
+)
 from yt.visualization.image_writer import apply_colormap
 
 from .transfer_function_helper import TransferFunctionHelper
-from .transfer_functions import (ColorTransferFunction,
-                                 ProjectionTransferFunction, TransferFunction)
-from .utils import (data_source_or_all, get_corners,
-                    new_interpolated_projection_sampler, new_mesh_sampler,
-                    new_projection_sampler, new_volume_render_sampler)
+from .transfer_functions import (
+    ColorTransferFunction,
+    ProjectionTransferFunction,
+    TransferFunction,
+)
+from .utils import (
+    data_source_or_all,
+    get_corners,
+    new_interpolated_projection_sampler,
+    new_mesh_sampler,
+    new_projection_sampler,
+    new_volume_render_sampler,
+)
 from .zbuffer_array import ZBuffer
 
 OptionalModule = Union[ModuleType, NotAModule]
@@ -63,7 +73,9 @@ def set_raytracing_engine(
     if engine == "embree":
         try:
             from yt.utilities.lib.embree_mesh import (  # type: ignore
-                mesh_construction, mesh_traversal)
+                mesh_construction,
+                mesh_traversal,
+            )
         except (ImportError, ValueError) as exc:
             # Catch ValueError in case size of objects in Cython change
             warnings.warn(
@@ -1545,10 +1557,10 @@ class CoordinateVectorSource(OpaqueSource):
             # For stereo-lens, two sets of pos for each eye are contained
             # in px...pz
             zlines(
-                empty, z, px[0, :], py[0, :], dz[0, :], self.colors.astype("float64", thick=self.thick)
+                empty, z, px[0, :], py[0, :], dz[0, :], self.colors.astype("float64"), thick=self.thick
             )
             zlines(
-                empty, z, px[1, :], py[1, :], dz[1, :], self.colors.astype("float64", thick=self.thick)
+                empty, z, px[1, :], py[1, :], dz[1, :], self.colors.astype("float64"), thick=self.thick
             )
 
         # Set the new zbuffer
