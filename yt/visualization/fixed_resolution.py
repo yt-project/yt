@@ -546,7 +546,8 @@ class FixedResolutionBuffer:
     def setup_filters(self):
         issue_deprecation_warning(
             "The FixedResolutionBuffer.setup_filters method is now a no-op. ",
-            since="4.1.0",
+            stacklevel=3,
+            since="4.1",
         )
 
 

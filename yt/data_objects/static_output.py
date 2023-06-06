@@ -349,7 +349,8 @@ class Dataset(abc.ABC):
             "the Dataset.fullpath attribute is now aliased to Dataset.directory, "
             "and all path attributes are now absolute. "
             "Please use the directory attribute instead",
-            since="4.1.0",
+            stacklevel=3,
+            since="4.1",
         )
         return self.directory
 

@@ -356,7 +356,8 @@ class ParticleProjectionPlot(PWViewerMPL, NormalPlot):
         if axis is not None:
             issue_deprecation_warning(
                 "The 'axis' argument is a deprecated alias for the 'normal' argument. ",
-                since="4.2.0",
+                stacklevel=3,
+                since="4.2",
             )
             normal = axis
         if normal is None:

@@ -12,6 +12,7 @@ def apply_filter(f):
         "The apply_filter decorator is not used in yt any more and "
         "will be removed in a future version. "
         "Please do not use it.",
+        stacklevel=3,
         since="4.1",
     )
 
