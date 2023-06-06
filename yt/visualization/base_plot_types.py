@@ -202,7 +202,7 @@ class PlotMPL:
                 label.set_color(font_color)
 
     def _repr_png_(self):
-        from ._mpl_imports import FigureCanvasAgg
+        from matplotlib.backends.backend_agg import FigureCanvasAgg
 
         canvas = FigureCanvasAgg(self.figure)
         f = BytesIO()
@@ -593,6 +593,7 @@ def get_multi_plot(nx, ny, colorbar="vertical", bw=4, dpi=300, cbar_padding=0.4)
     complicated or more specific sets of multiplots for your own purposes.
     """
     import matplotlib.figure
+    from matplotlib.backends.backend_agg import FigureCanvasAgg
 
     hf, wf = 1.0 / ny, 1.0 / nx
     fudge_x = fudge_y = 1.0
@@ -605,7 +606,6 @@ def get_multi_plot(nx, ny, colorbar="vertical", bw=4, dpi=300, cbar_padding=0.4)
         fudge_x = 1.0
         fudge_y = ny / (cbar_padding + ny)
     fig = matplotlib.figure.Figure((bw * nx / fudge_x, bw * ny / fudge_y), dpi=dpi)
-    from ._mpl_imports import FigureCanvasAgg
 
     fig.set_canvas(FigureCanvasAgg(fig))
     fig.subplots_adjust(

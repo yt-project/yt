@@ -276,7 +276,7 @@ class PlotWindowWCS:
         self.pw.save(name=name, mpl_kwargs=mpl_kwargs)
 
     def _repr_html_(self):
-        from yt.visualization._mpl_imports import FigureCanvasAgg
+        from matplotlib.backends.backend_agg import FigureCanvasAgg
 
         ret = ""
         for v in self.plots.values():

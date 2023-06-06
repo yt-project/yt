@@ -279,7 +279,6 @@ exclude = [
     "*/__config__.py",
     "yt/units",
     "yt/frontends/stream/sample_data",
-    "yt/visualization/_mpl_imports.py",
     "yt/utilities/fits_image.py",
     "yt/utilities/lodgeit.py",
     "yt/mods.py",
