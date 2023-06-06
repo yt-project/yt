@@ -4,6 +4,7 @@ from collections import OrderedDict
 from typing import List, Optional
 
 import numpy as np
+
 from yt.config import ytcfg
 from yt.funcs import mylog
 from yt.units.dimensions import length  # type: ignore
@@ -13,9 +14,17 @@ from yt.utilities.exceptions import YTNotInsideNotebook
 from yt.visualization._commons import get_canvas, validate_image_name
 
 from .camera import Camera
-from .render_source import (BoxSource, CoordinateVectorSource, GridSource,
-                            LineSource, MeshSource, OpaqueSource, PointSource,
-                            RenderSource, VolumeSource)
+from .render_source import (
+    BoxSource,
+    CoordinateVectorSource,
+    GridSource,
+    LineSource,
+    MeshSource,
+    OpaqueSource,
+    PointSource,
+    RenderSource,
+    VolumeSource,
+)
 from .zbuffer_array import ZBuffer
 
 

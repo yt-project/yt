@@ -1552,15 +1552,29 @@ class CoordinateVectorSource(OpaqueSource):
         py = py.astype("int64")
 
         if len(px.shape) == 1:
-            zlines(empty, z, px, py, dz, self.colors.astype("float64"), thick=self.thick)
+            zlines(
+                empty, z, px, py, dz, self.colors.astype("float64"), thick=self.thick
+            )
         else:
             # For stereo-lens, two sets of pos for each eye are contained
             # in px...pz
             zlines(
-                empty, z, px[0, :], py[0, :], dz[0, :], self.colors.astype("float64"), thick=self.thick
+                empty,
+                z,
+                px[0, :],
+                py[0, :],
+                dz[0, :],
+                self.colors.astype("float64"),
+                thick=self.thick,
             )
             zlines(
-                empty, z, px[1, :], py[1, :], dz[1, :], self.colors.astype("float64"), thick=self.thick
+                empty,
+                z,
+                px[1, :],
+                py[1, :],
+                dz[1, :],
+                self.colors.astype("float64"),
+                thick=self.thick,
             )
 
         # Set the new zbuffer
