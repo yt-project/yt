@@ -5,6 +5,7 @@ from types import ModuleType
 from typing import Literal, Optional, Union
 
 import numpy as np
+
 from yt.config import ytcfg
 from yt.data_objects.image_array import ImageArray
 from yt.funcs import ensure_numpy_array, is_sequence, mylog
