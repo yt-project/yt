@@ -363,12 +363,13 @@ class Scene:
         self,
         fname: Optional[str] = None,
         label_fmt: Optional[str] = None,
-        label_fontsize: int = 10,
         text_annotate=None,
         dpi: int = 100,
         sigma_clip: Optional[float] = None,
         render: bool = True,
         tf_rect: Optional[List[float]] = None,
+        *,
+        label_fontsize: int = 10,
     ):
         r"""Saves the most recently rendered image of the Scene to disk,
         including an image of the transfer function and and user-defined
