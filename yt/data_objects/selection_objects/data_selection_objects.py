@@ -262,9 +262,9 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
                         if fi.dimensions is None:
                             mylog.warning(
                                 "Field %s was added without specifying units or dimensions, "
-                                "auto setting units to %s",
+                                "auto setting units to %r",
                                 fi.name,
-                                sunits,
+                                sunits or "dimensionless",
                             )
                         elif fi.dimensions != dimensions:
                             raise YTDimensionalityError(fi.dimensions, dimensions)
