@@ -828,7 +828,7 @@ class Scene:
                 source.annotate_mesh_lines(color=color, alpha=alpha)
         return self
 
-    def annotate_axes(self, colors=None, alpha=1.0, thickness=1):
+    def annotate_axes(self, colors=None, alpha=1.0, *, thickness=1):
         r"""
 
         Modifies this scene by drawing the coordinate axes.
