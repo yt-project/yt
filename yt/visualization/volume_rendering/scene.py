@@ -4,6 +4,7 @@ from collections import OrderedDict
 from typing import List, Optional
 
 import numpy as np
+
 from yt.config import ytcfg
 from yt.funcs import mylog
 from yt.units.dimensions import length  # type: ignore
