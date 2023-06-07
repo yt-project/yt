@@ -5,7 +5,6 @@ from types import ModuleType
 from typing import Literal, Optional, Union
 
 import numpy as np
-
 from yt.config import ytcfg
 from yt.data_objects.image_array import ImageArray
 from yt.funcs import ensure_numpy_array, is_sequence, mylog
@@ -1439,6 +1438,8 @@ class CoordinateVectorSource(OpaqueSource):
         ignored.
     alpha : float, optional
         The opacity of the vectors.
+    thickness : int, optional
+        The line thickness
 
     Examples
     --------
@@ -1458,7 +1459,7 @@ class CoordinateVectorSource(OpaqueSource):
 
     """
 
-    def __init__(self, colors=None, alpha=1.0, thick=1):
+    def __init__(self, colors=None, alpha=1.0, *, thickness=1):
         super().__init__()
         # If colors aren't individually set, make black with full opacity
         if colors is None:
@@ -1468,7 +1469,7 @@ class CoordinateVectorSource(OpaqueSource):
             colors[2, 2] = 1.0  # z is blue
             colors[:, 3] = alpha
         self.colors = colors
-        self.thick = thick
+        self.thick = thickness
 
     def _validate(self):
         pass

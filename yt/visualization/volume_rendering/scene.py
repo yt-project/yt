@@ -4,7 +4,6 @@ from collections import OrderedDict
 from typing import List, Optional
 
 import numpy as np
-
 from yt.config import ytcfg
 from yt.funcs import mylog
 from yt.units.dimensions import length  # type: ignore
@@ -829,7 +828,7 @@ class Scene:
                 source.annotate_mesh_lines(color=color, alpha=alpha)
         return self
 
-    def annotate_axes(self, colors=None, alpha=1.0, thick=1):
+    def annotate_axes(self, colors=None, alpha=1.0, thickness=1):
         r"""
 
         Modifies this scene by drawing the coordinate axes.
@@ -845,7 +844,7 @@ class Scene:
             ``alpha`` is ignored.
         alpha : float, optional
             The opacity of the vectors.
-        thick : int, optional
+        thickness : int, optional
             The line thickness
 
         Examples
@@ -859,7 +858,7 @@ class Scene:
         >>> im = sc.render()
 
         """
-        coords = CoordinateVectorSource(colors, alpha, thick)
+        coords = CoordinateVectorSource(colors, alpha, thickness=thickness)
         self.add_source(coords)
         return self
 
