@@ -806,8 +806,6 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         else:
             units = data.units
 
-        ia = ImageArray(buff, units=units, info=info)
-
         # divide by the weight_field, if needed
         if weight_field is not None:
             weight_buff = np.zeros(self.buff_size)
@@ -827,15 +825,12 @@ class ParticleImageBuffer(FixedResolutionBuffer):
                     y_bin_edges,
                     x_bin_edges,
                 )
-            weight_array = ImageArray(
-                weight_buff, units=weight_data.units, info=self._get_info(item)
-            )
             # remove values in no-particle region
             weight_buff[weight_buff_mask == 0] = np.nan
-            locs = np.where(weight_array > 0)
-            ia[locs] /= weight_array[locs]
+            locs = np.where(weight_buff > 0)
+            buff[locs] /= weight_buff[locs]
 
-        self.data[item] = ia
+        self.data[item] = ImageArray(buff, units=units, info=info)
         return self.data[item]
 
     # over-ride the base class version, since we don't want to exclude
