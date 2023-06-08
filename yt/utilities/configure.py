@@ -161,9 +161,9 @@ CONFIG = YTConfig()
 
 
 def _cast_bool_helper(value):
-    if value == "True":
+    if value in ("true", "True", True):
         return True
-    elif value == "False":
+    elif value in ("false", "False", False):
         return False
     else:
         raise ValueError("Cannot safely cast to bool")
