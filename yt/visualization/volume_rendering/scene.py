@@ -1,10 +1,9 @@
 import builtins
 import functools
 from collections import OrderedDict
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import numpy as np
-
 from yt.config import ytcfg
 from yt.funcs import mylog
 from yt.units.dimensions import length  # type: ignore
@@ -370,7 +369,7 @@ class Scene:
         render: bool = True,
         tf_rect: Optional[List[float]] = None,
         *,
-        label_fontsize: int = 10,
+        label_fontsize: Union[float, str] = 10,
     ):
         r"""Saves the most recently rendered image of the Scene to disk,
         including an image of the transfer function and and user-defined
@@ -403,7 +402,7 @@ class Scene:
            the data values that label the transfer function colorbar.
         label_fontsize : int, optional
            The fontsize used to display the numbers on the transfer function
-           colorbar.
+           colorbar. (default: 10)
         text_annotate : list of iterables
            Any text that you wish to display on the image.  This should be an
            list containing a tuple of coordinates (in normalized figure

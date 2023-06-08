@@ -1,6 +1,5 @@
 import numpy as np
 from more_itertools import always_iterable
-
 from yt.funcs import mylog
 from yt.utilities.physical_constants import clight, hcgs, kboltz
 
@@ -607,9 +606,9 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         resolution,
         log_scale,
         ax,
-        *,
         label=None,
         label_fmt=None,
+        *,
         label_fontsize=10,
         size=10,
     ):
