@@ -436,13 +436,18 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
         Ls = [[1, 1, 1], [0, 1, -0.5]]
         Ns = [None, [1, 1, 1]]
         for L, N in zip(Ls, Ns):
-            pplot_off = ParticleProjectionPlot(
-                test_ds, L, ("all", "particle_mass"), north_vector=N
-            )
-            with mock.patch(
-                "yt.visualization._mpl_imports.FigureCanvasAgg.print_figure"
-            ):
-                pplot_off.save()
+            for weight_field in WEIGHT_FIELDS:
+                pplot_off = ParticleProjectionPlot(
+                    test_ds,
+                    L,
+                    ("all", "particle_mass"),
+                    north_vector=N,
+                    weight_field=weight_field,
+                )
+                with mock.patch(
+                    "yt.visualization._mpl_imports.FigureCanvasAgg.print_figure"
+                ):
+                    pplot_off.save()
 
     def test_creation_with_width(self):
         test_ds = fake_particle_ds()
