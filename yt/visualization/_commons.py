@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Optional, Type, TypeVar
 
 import matplotlib as mpl
 import numpy as np
+from matplotlib.ticker import SymmetricalLogLocator
 from more_itertools import always_iterable
 from packaging.version import Version
 
@@ -229,66 +230,6 @@ def _swap_arg_pair_order(*args):
     return tuple(new_args)
 
 
-def get_log_minorticks(vmin: float, vmax: float) -> np.ndarray:
-    """calculate positions of linear minorticks on a log colorbar
-
-    Parameters
-    ----------
-    vmin : float
-        the minimum value in the colorbar
-    vmax : float
-        the maximum value in the colorbar
-
-    """
-    expA = np.floor(np.log10(vmin))
-    expB = np.floor(np.log10(vmax))
-    cofA = np.ceil(vmin / 10**expA).astype("int64")
-    cofB = np.floor(vmax / 10**expB).astype("int64")
-    lmticks = np.empty(0)
-    while cofA * 10**expA <= cofB * 10**expB:
-        if expA < expB:
-            lmticks = np.hstack((lmticks, np.linspace(cofA, 9, 10 - cofA) * 10**expA))
-            cofA = 1
-            expA += 1
-        else:
-            lmticks = np.hstack(
-                (lmticks, np.linspace(cofA, cofB, cofB - cofA + 1) * 10**expA)
-            )
-            expA += 1
-    return np.array(lmticks)
-
-
-def get_symlog_minorticks(linthresh: float, vmin: float, vmax: float) -> np.ndarray:
-    """calculate positions of linear minorticks on a symmetric log colorbar
-
-    Parameters
-    ----------
-    linthresh : float
-        the threshold for the linear region
-    vmin : float
-        the minimum value in the colorbar
-    vmax : float
-        the maximum value in the colorbar
-
-    """
-    if vmin > 0:
-        return get_log_minorticks(vmin, vmax)
-    elif vmax < 0 and vmin < 0:
-        return -get_log_minorticks(-vmax, -vmin)
-    elif vmin == 0:
-        return np.hstack((0, get_log_minorticks(linthresh, vmax)))
-    elif vmax == 0:
-        return np.hstack((-get_log_minorticks(linthresh, -vmin)[::-1], 0))
-    else:
-        return np.hstack(
-            (
-                -get_log_minorticks(linthresh, -vmin)[::-1],
-                0,
-                get_log_minorticks(linthresh, vmax),
-            )
-        )
-
-
 def get_symlog_majorticks(linthresh: float, vmin: float, vmax: float) -> np.ndarray:
     """calculate positions of major ticks on a log colorbar
 
@@ -302,6 +243,9 @@ def get_symlog_majorticks(linthresh: float, vmin: float, vmax: float) -> np.ndar
         the maximum value in the colorbar
 
     """
+    if MPL_VERSION >= Version("3.5"):
+        raise RuntimeError("get_symlog_majorticks is not needed with matplotlib>=3.5")
+
     if vmin >= 0.0:
         yticks = [vmin] + list(
             10
@@ -350,6 +294,28 @@ def get_symlog_majorticks(linthresh: float, vmin: float, vmax: float) -> np.ndar
     if yticks[-1] > vmax:
         yticks.pop()
     return np.array(yticks)
+
+
+class _MPL38_SymmetricalLogLocator(SymmetricalLogLocator):
+    # Backporting behaviour from matplotlib 3.8 (in development at the time of writing)
+    # see https://github.com/matplotlib/matplotlib/pull/25970
+
+    def __init__(self, *args, **kwargs):
+        if MPL_VERSION >= Version("3.8"):
+            raise RuntimeError(
+                "_MPL38_SymmetricalLogLocator is not needed with matplotlib>=3.8"
+            )
+        super().__init__(*args, **kwargs)
+
+    def tick_values(self, vmin, vmax):
+        linthresh = self._linthresh
+        if vmax < vmin:
+            vmin, vmax = vmax, vmin
+        if -linthresh <= vmin < vmax <= linthresh:
+            # only the linear range is present
+            return sorted({vmin, 0, vmax})
+
+        return super().tick_values(vmin, vmax)
 
 
 def get_default_from_config(data_source, *, field, keys, defaults):

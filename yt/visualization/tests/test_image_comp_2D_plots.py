@@ -7,6 +7,7 @@ from typing import Dict
 import numpy as np
 import numpy.testing as npt
 import pytest
+from matplotlib.colors import SymLogNorm
 from packaging.version import Version
 
 from yt.data_objects.profiles import create_profile
@@ -86,6 +87,25 @@ def test_sliceplot_custom_norm():
     field = ("gas", "density")
     p = SlicePlot(ds, "z", field)
     p.set_norm(field, norm=TwoSlopeNorm(vcenter=0, vmin=-0.5, vmax=1))
+
+    p.render()
+    return p.plots[field].figure
+
+
+@pytest.mark.skipif(
+    MPL_VERSION < Version("3.5"),
+    reason=f"Correct behaviour requires MPL 3.5 we have {MPL_VERSION}",
+)
+@pytest.mark.mpl_image_compare
+def test_sliceplot_custom_norm_symlog_int_base():
+    ds = fake_random_ds(16)
+    add_noise_fields(ds)
+    field = "noise3"
+    p = SlicePlot(ds, "z", field)
+
+    # using integer base !=10 and >2 to exercise special case
+    # for colorbar minor ticks
+    p.set_norm(field, norm=SymLogNorm(linthresh=0.1, base=5))
 
     p.render()
     return p.plots[field].figure
