@@ -141,7 +141,6 @@ def test_timestamp_callback():
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields=("density",), units=("g/cm**3",), geometry="spherical")
         p = ProjectionPlot(ds, "r", ("gas", "density"))
-        assert_raises(YTDataTypeUnsupported, p.annotate_timestamp, coord_system="data")
         p.annotate_timestamp(coord_system="axis")
         assert_fname(p.save(prefix)[0])
 

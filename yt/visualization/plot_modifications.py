@@ -2462,7 +2462,13 @@ class TimestampCallback(PlotCallback):
     """
 
     _type_name = "timestamp"
-    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
+    _supported_geometries = (
+        "cartesian",
+        "spectral_cube",
+        "cylindrical",
+        "polar",
+        "spherical",
+    )
 
     def __init__(
         self,
