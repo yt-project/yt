@@ -400,9 +400,10 @@ class Scene:
         label_fmt : str, optional
            A format specifier (e.g., label_fmt="%.2g") to use in formatting
            the data values that label the transfer function colorbar.
-        label_fontsize : int, optional
+        label_fontsize : float or string, optional
            The fontsize used to display the numbers on the transfer function
-           colorbar. (default: 10)
+           colorbar.  This can be any matplotlib font size specification, e.g.,
+           "large" or 12. (default: 10)
         text_annotate : list of iterables
            Any text that you wish to display on the image.  This should be an
            list containing a tuple of coordinates (in normalized figure
