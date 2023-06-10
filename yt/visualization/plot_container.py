@@ -333,8 +333,9 @@ class PlotContainer(abc.ABC):
           customizations other than plot callbacks (`annotate_*`)
         - testing
         """
-        # this is a pure alias to the historic `_setup_plots` method
-        # which preserves backward compatibility for extension code
+        # this public API method should never be no-op, so we invalidate
+        # the plot to force a fresh render in _setup_plots()
+        self._plot_valid = False
         self._setup_plots()
 
     def _initialize_dataset(self, ts):
