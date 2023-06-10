@@ -95,7 +95,6 @@ def pytest_configure(config):
         "ignore:invalid value encountered in log10:RuntimeWarning",
         "ignore:divide by zero encountered in log10:RuntimeWarning",
         "ignore:invalid value encountered in true_divide:RuntimeWarning",
-        "ignore:invalid value encountered in divide:RuntimeWarning",
         #
         # >>> there are many places in yt (most notably at the frontend level)
         # where we open files but never explicitly close them
