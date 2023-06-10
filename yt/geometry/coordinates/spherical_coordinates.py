@@ -81,6 +81,53 @@ class SphericalCoordinateHandler(CoordinateHandler):
             units="code_length",
         )
 
+        self.setup_cartesian_fields(registry)
+
+    def setup_cartesian_fields(self, registry):
+        def _cartesian_x(field, data):
+            return (
+                data[("index", "r")]
+                * np.sin(data[("index", "theta")])
+                * np.cos(data[("index", "phi")])
+            )
+
+        def _cartesian_y(field, data):
+            return (
+                data[("index", "r")]
+                * np.sin(data[("index", "theta")])
+                * np.sin(data[("index", "phi")])
+            )
+
+        def _cartesian_z(field, data):
+            return data[("index", "r")] * np.cos(data[("index", "theta")])
+
+        registry.add_field(
+            ("index", "cartesian_x"),
+            sampling_type="local",
+            function=_cartesian_x,
+            units="code_length",
+            display_field=True,
+            take_log=False,
+        )
+
+        registry.add_field(
+            ("index", "cartesian_y"),
+            sampling_type="local",
+            function=_cartesian_y,
+            units="code_length",
+            display_field=True,
+            take_log=False,
+        )
+
+        registry.add_field(
+            ("index", "cartesian_z"),
+            sampling_type="local",
+            function=_cartesian_z,
+            units="code_length",
+            display_field=True,
+            take_log=False,
+        )
+
     def pixelize(
         self, dimension, data_source, field, bounds, size, antialias=True, periodic=True
     ):
