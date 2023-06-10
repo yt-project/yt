@@ -156,7 +156,7 @@ class ParticleIndex(Index):
         ds = self.dataset
         only_on_root(
             mylog.info,
-            "Allocating for %0.3e particles",
+            "Allocating for %0.4g particles",
             self.total_particles,
             global_rootonly=True,
         )
