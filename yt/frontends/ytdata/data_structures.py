@@ -514,7 +514,7 @@ class YTGridDataset(YTDataset):
                 )
                 self.domain_dimensions = (
                     (self.domain_right_edge - self.domain_left_edge) / dx
-                ).astype(int)
+                ).astype("int64")
             else:
                 self.domain_right_edge = self.parameters["right_edge"]
                 self.domain_dimensions = self.parameters["ActiveDimensions"]

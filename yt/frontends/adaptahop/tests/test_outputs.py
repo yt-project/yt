@@ -68,10 +68,10 @@ def test_get_halo(brick):
     members = np.sort(halo.member_ids)
 
     # Check sphere contains all the members
-    id_sphere = halo.sphere["io", "particle_identity"].astype(int)
+    id_sphere = halo.sphere["io", "particle_identity"].astype("int64")
     assert len(np.lib.arraysetops.setdiff1d(members, id_sphere)) == 0
 
     # Check region contains *only* halo particles
-    id_reg = np.sort(halo["io", "particle_identity"].astype(int))
+    id_reg = np.sort(halo["io", "particle_identity"].astype("int64"))
 
     np.testing.assert_equal(members, id_reg)

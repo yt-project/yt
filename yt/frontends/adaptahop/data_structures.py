@@ -309,7 +309,7 @@ class AdaptaHOPHaloContainer(YTSelectionContainer):
             return ihalo
         else:
             halo_id = self.particle_identifier
-            halo_ids = self.halo_ds.r["halos", "particle_identifier"].astype(int)
+            halo_ids = self.halo_ds.r["halos", "particle_identifier"].astype("int64")
             ihalo = np.searchsorted(halo_ids, halo_id)
 
             assert halo_ids[ihalo] == halo_id
@@ -339,7 +339,7 @@ class AdaptaHOPHaloContainer(YTSelectionContainer):
             f *= 1.1
             sph = parent_ds.sphere(center, f * radius)
 
-            part_ids = sph[ptype, "particle_identity"].astype(int)
+            part_ids = sph[ptype, "particle_identity"].astype("int64")
 
             ok = len(np.lib.arraysetops.setdiff1d(members, part_ids)) == 0
 
@@ -348,7 +348,7 @@ class AdaptaHOPHaloContainer(YTSelectionContainer):
 
         # Build subregion that only contains halo particles
         reg = sph.cut_region(
-            ['np.in1d(obj[("io", "particle_identity")].astype(int), members)'],
+            ['np.in1d(obj[("io", "particle_identity")].astype("int64"), members)'],
             locals={"members": members, "np": np},
         )
 

@@ -40,7 +40,7 @@ def identify_contours(data_source, field, min_val, max_val, cached_fields=None):
             g.id, [contour_ids.view("float64")], mask, LE, RE, dims.astype("int64")
         )
         contours[nid] = (g.Level, node.node_ind, pg, sl)
-    node_ids = np.array(node_ids).astype("int64")
+    node_ids = np.array(node_ids, dtype="int64")
     if node_ids.size == 0:
         return 0, {}
     trunk = data_source.tiles.tree.trunk

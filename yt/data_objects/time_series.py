@@ -417,7 +417,7 @@ class DatasetSeries:
         ... ]
         >>> ds = load(my_fns[0])
         >>> init_sphere = ds.sphere(ds.domain_center, (0.5, "unitary"))
-        >>> indices = init_sphere[("all", "particle_index")].astype("int")
+        >>> indices = init_sphere[("all", "particle_index")].astype("int64")
         >>> ts = DatasetSeries(my_fns)
         >>> trajs = ts.particle_trajectories(indices, fields=fields)
         >>> for t in trajs:

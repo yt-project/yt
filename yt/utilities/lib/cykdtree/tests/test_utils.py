@@ -6,13 +6,13 @@ from yt.utilities.lib.cykdtree.tests import assert_less_equal, parametrize
 
 
 def test_max_pts():
-    pts = np.arange(5 * 3).reshape((5, 3)).astype("float64")
+    pts = np.arange(5 * 3, dtype="float64").reshape((5, 3))
     out = utils.py_max_pts(pts)
     np.testing.assert_allclose(out, np.max(pts, axis=0))
 
 
 def test_min_pts():
-    pts = np.arange(5 * 3).reshape((5, 3)).astype("float64")
+    pts = np.arange(5 * 3, dtype="float64").reshape((5, 3))
     out = utils.py_min_pts(pts)
     np.testing.assert_allclose(out, np.min(pts, axis=0))
 

@@ -186,8 +186,8 @@ def ds9_region(ds, reg, obj=None, field_parameters=None):
         prefix = ""
 
     def _reg_field(field, data):
-        i = data[prefix + "xyz"[ds.lon_axis]].d.astype("int") - 1
-        j = data[prefix + "xyz"[ds.lat_axis]].d.astype("int") - 1
+        i = data[prefix + "xyz"[ds.lon_axis]].d.astype("int64") - 1
+        j = data[prefix + "xyz"[ds.lat_axis]].d.astype("int64") - 1
         new_mask = mask[i, j]
         ret = np.zeros(data[prefix + "x"].shape)
         ret[new_mask] = 1.0
