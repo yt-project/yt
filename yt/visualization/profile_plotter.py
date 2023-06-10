@@ -259,6 +259,7 @@ class ProfilePlot(BaseLinePlot):
         obj.plot_spec = plot_specs
         obj._xlim = (None, None)
         obj._setup_plots()
+        obj._plot_valid = False  # see https://github.com/yt-project/yt/issues/4489
         return obj
 
     def _get_axrect(self):
@@ -977,6 +978,7 @@ class PhasePlot(ImagePlotContainer):
         obj._ylim = (None, None)
         super(PhasePlot, obj).__init__(data_source, figure_size, fontsize)
         obj._setup_plots()
+        obj._plot_valid = False  # see https://github.com/yt-project/yt/issues/4489
         obj._initfinished = True
         return obj
 
