@@ -116,21 +116,46 @@ class YTSlice(YTSelectionContainer2D):
         return pw
 
     def plot(self, fields=None):
-        if hasattr(self._data_source, "left_edge") and hasattr(
-            self._data_source, "right_edge"
+        from yt.geometry.api import Geometry
+        from yt.visualization.plot_window import get_window_parameters
+
+        geometry = self.ds.geometry
+        if (
+            geometry is Geometry.POLAR
+            or geometry is Geometry.CYLINDRICAL
+            or geometry is Geometry.SPHERICAL
         ):
-            left_edge = self._data_source.left_edge
-            right_edge = self._data_source.right_edge
-            center = (left_edge + right_edge) / 2.0
-            width = right_edge - left_edge
-            xax = self.ds.coordinates.x_axis[self.axis]
-            yax = self.ds.coordinates.y_axis[self.axis]
-            lx, rx = left_edge[xax], right_edge[xax]
-            ly, ry = left_edge[yax], right_edge[yax]
-            width = (rx - lx), (ry - ly)
+            bounds, center, _display_center = get_window_parameters(
+                self.axis, center="center", width=None, ds=self.ds
+            )
+            xmin, xmax, ymin, ymax = bounds
+            width = [xmax - xmin, ymax - ymin]
         else:
-            width = self.ds.domain_width
-            center = self.ds.domain_center
+            # context: previous to yt 4.2.1, this function only worked correctly with
+            # cartesian-like geometry, but wasn't properly tested. In order to fix the
+            # behaviour for curvilinear geometries without breaking existing known-working
+            # cases, we keep this bug-for-bug compatibility with yt 4.2.0
+            # Additional tests would enable a simplifying refactor.
+            # Special care is needed to test that a general implementation
+            # works even for zooms in curvilinear geometries, see
+            # https://github.com/yt-project/yt/issues/4499
+            # https://github.com/yt-project/yt/pull/4362
+            if hasattr(self._data_source, "left_edge") and hasattr(
+                self._data_source, "right_edge"
+            ):
+                left_edge = self._data_source.left_edge
+                right_edge = self._data_source.right_edge
+                center = (left_edge + right_edge) / 2.0
+                width = right_edge - left_edge
+                xax = self.ds.coordinates.x_axis[self.axis]
+                yax = self.ds.coordinates.y_axis[self.axis]
+                lx, rx = left_edge[xax], right_edge[xax]
+                ly, ry = left_edge[yax], right_edge[yax]
+                width = (rx - lx), (ry - ly)
+            else:
+                width = self.ds.domain_width
+                center = self.ds.domain_center
+
         pw = self._get_pw(fields, center, width, "native", "Slice")
         try:
             pw.show()
