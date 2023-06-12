@@ -5,7 +5,6 @@ from typing import List, Optional, Type, Union
 
 import matplotlib
 import numpy as np
-from matplotlib.colors import Normalize
 from more_itertools import always_iterable
 from unyt.exceptions import UnitConversionError
 
@@ -255,13 +254,9 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
         for field in self.data_source._determine_fields(self.fields):
             finfo = self.data_source.ds._get_field_info(field)
             pnh = self.plots[field].norm_handler
-            if finfo.take_log is False:
-                # take_log can be `None` so we explicitly compare against a boolean
-                pnh.norm_type = Normalize
-            else:
-                # do nothing, the norm handler is responsible for
-                # determining a viable norm, and defaults to LogNorm/SymLogNorm
-                pass
+
+            # take_log can be `None` so we explicitly compare against a boolean
+            pnh.prefer_log = finfo.take_log is not False
 
             # override from user configuration if any
             log, linthresh = get_default_from_config(
