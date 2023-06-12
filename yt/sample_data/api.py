@@ -5,13 +5,11 @@ import json
 import re
 import sys
 from functools import lru_cache
-from itertools import chain
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional
 from warnings import warn
 
 from yt.config import ytcfg
-from yt.funcs import mylog
 from yt.utilities.on_demand_imports import (
     _pandas as pd,
     _pooch as pooch,
