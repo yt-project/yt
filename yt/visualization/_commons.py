@@ -24,7 +24,7 @@ else:
     from yt._maintenance.backports import zip
 
 if TYPE_CHECKING:
-    from ._mpl_imports import FigureCanvasBase
+    from matplotlib.backend_bases import FigureCanvasBase
 
 
 MPL_VERSION = Version(version("matplotlib"))
@@ -40,18 +40,16 @@ del _yt_style
 
 
 def _get_supported_image_file_formats():
-    from ._mpl_imports import FigureCanvasBase
+    from matplotlib.backend_bases import FigureCanvasBase
 
     return frozenset(FigureCanvasBase.get_supported_filetypes().keys())
 
 
 def _get_supported_canvas_classes():
-    from ._mpl_imports import (
-        FigureCanvasAgg,
-        FigureCanvasPdf,
-        FigureCanvasPS,
-        FigureCanvasSVG,
-    )
+    from matplotlib.backends.backend_agg import FigureCanvasAgg
+    from matplotlib.backends.backend_pdf import FigureCanvasPdf
+    from matplotlib.backends.backend_ps import FigureCanvasPS
+    from matplotlib.backends.backend_svg import FigureCanvasSVG
 
     return frozenset(
         (FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS, FigureCanvasSVG)

@@ -597,7 +597,7 @@ class DualEPS:
         For best results, set use_colorbar=False when creating the yt
         image.
         """
-        from ._mpl_imports import FigureCanvasAgg
+        from matplotlib.backends.backend_agg import FigureCanvasAgg
 
         # We need to remove the colorbar (if necessary), remove the
         # axes, and resize the figure to span the entire figure

@@ -268,11 +268,11 @@ class TestParticlePhasePlotSave(unittest.TestCase):
         particle_phases[0]._repr_html_()
 
         with mock.patch(
-            "yt.visualization._mpl_imports.FigureCanvasAgg.print_figure"
+            "matplotlib.backends.backend_agg.FigureCanvasAgg.print_figure"
         ), mock.patch(
-            "yt.visualization._mpl_imports.FigureCanvasPdf.print_figure"
+            "matplotlib.backends.backend_pdf.FigureCanvasPdf.print_figure"
         ), mock.patch(
-            "yt.visualization._mpl_imports.FigureCanvasPS.print_figure"
+            "matplotlib.backends.backend_ps.FigureCanvasPS.print_figure"
         ):
             for p in particle_phases:
                 for fname in TEST_FLNMS:
@@ -385,11 +385,11 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
             ]
         particle_projs[0]._repr_html_()
         with mock.patch(
-            "yt.visualization._mpl_imports.FigureCanvasAgg.print_figure"
+            "matplotlib.backends.backend_agg.FigureCanvasAgg.print_figure"
         ), mock.patch(
-            "yt.visualization._mpl_imports.FigureCanvasPdf.print_figure"
+            "matplotlib.backends.backend_pdf.FigureCanvasPdf.print_figure"
         ), mock.patch(
-            "yt.visualization._mpl_imports.FigureCanvasPS.print_figure"
+            "matplotlib.backends.backend_ps.FigureCanvasPS.print_figure"
         ):
             for p in particle_projs:
                 for fname in TEST_FLNMS:
@@ -403,7 +403,7 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
                 test_ds, dim, ("all", "particle_mass"), data_source=ds_region
             )
             with mock.patch(
-                "yt.visualization._mpl_imports.FigureCanvasAgg.print_figure"
+                "matplotlib.backends.backend_agg.FigureCanvasAgg.print_figure"
             ):
                 pplot_ds.save()
 
@@ -415,7 +415,7 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
                     test_ds, dim, ("all", "particle_mass"), center=center
                 )
                 with mock.patch(
-                    "yt.visualization._mpl_imports.FigureCanvasAgg.print_figure"
+                    "matplotlib.backends.backend_agg.FigureCanvasAgg.print_figure"
                 ):
                     pplot_c.save()
 
@@ -427,7 +427,7 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
                     test_ds, dim, ("all", "particle_mass"), weight_field=weight_field
                 )
                 with mock.patch(
-                    "yt.visualization._mpl_imports.FigureCanvasAgg.print_figure"
+                    "matplotlib.backends.backend_agg.FigureCanvasAgg.print_figure"
                 ):
                     pplot_wf.save()
 
@@ -445,7 +445,7 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
                     weight_field=weight_field,
                 )
                 with mock.patch(
-                    "yt.visualization._mpl_imports.FigureCanvasAgg.print_figure"
+                    "matplotlib.backends.backend_agg.FigureCanvasAgg.print_figure"
                 ):
                     pplot_off.save()
 
