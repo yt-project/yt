@@ -1,7 +1,7 @@
 import contextlib
 import inspect
 import re
-from typing import Optional, Union
+from typing import Iterable, Optional, Union
 
 from more_itertools import always_iterable
 
@@ -489,17 +489,34 @@ class DerivedField:
 
 
 class FieldValidator:
+    """
+    Base class for FieldValidator objects. Available subclasses include:
+    """
+
+    # note: the above docstring is dynamically modified with a list of child
+    # classes by _set_field_validator_base_docstring() below.
     pass
 
 
 class ValidateParameter(FieldValidator):
-    def __init__(self, parameters, parameter_values=None):
-        """
-        This validator ensures that the dataset has a given parameter.
+    """
+    A :class:`FieldValidator` that ensures the dataset has a given parameter.
 
-        If *parameter_values* is supplied, this will also ensure that the field
+    Parameters
+    ----------
+    parameters: Union[str, Iterable[str]
+        a single parameter or list of parameters to require
+    parameter_values: Optional[dict]
+        If *parameter_values* is supplied, this dict should map from field
+        parameter to a value or list of values. It will ensure that the field
         is available for all permutations of the field parameter.
-        """
+    """
+
+    def __init__(
+        self,
+        parameters: Union[str, Iterable[str]],
+        parameter_values: Optional[dict] = None,
+    ):
         FieldValidator.__init__(self)
         self.parameters = list(always_iterable(parameters))
         self.parameter_values = parameter_values
@@ -515,11 +532,17 @@ class ValidateParameter(FieldValidator):
 
 
 class ValidateDataField(FieldValidator):
+    """
+    A :class:`FieldValidator` that ensures the output file has a given data field stored
+    in it.
+
+    Parameters
+    ----------
+    field: str, tuple(str, str), or any iterable of the previous types.
+        the field or fields to require
+    """
+
     def __init__(self, field):
-        """
-        This validator ensures that the output file has a given data field stored
-        in it.
-        """
         FieldValidator.__init__(self)
         self.fields = list(iter_fields(field))
 
@@ -536,29 +559,42 @@ class ValidateDataField(FieldValidator):
 
 
 class ValidateProperty(FieldValidator):
-    def __init__(self, prop):
-        """
-        This validator ensures that the data object has a given python attribute.
-        """
+    """
+    A :class:`FieldValidator` that ensures the data object has a given python attribute.
+
+    Parameters
+    ----------
+    prop: Union[str, Iterable[str]]
+        the required property or properties to require
+    """
+
+    def __init__(self, prop: Union[str, Iterable[str]]):
         FieldValidator.__init__(self)
         self.prop = list(always_iterable(prop))
 
     def __call__(self, data):
-        doesnt_have = []
-        for p in self.prop:
-            if not hasattr(data, p):
-                doesnt_have.append(p)
+        doesnt_have = [p for p in self.prop if not hasattr(data, p)]
         if len(doesnt_have) > 0:
             raise NeedsProperty(doesnt_have)
         return True
 
 
 class ValidateSpatial(FieldValidator):
-    def __init__(self, ghost_zones=0, fields=None):
-        """
-        This validator ensures that the data handed to the field is of spatial
-        nature -- that is to say, 3-D.
-        """
+    """
+    A :class:`FieldValidator` that ensures the data handed to the field is of spatial
+    nature -- that is to say, 3-D.
+
+    Parameters
+    ----------
+    ghost_zones: Optional[int]
+        If supplied, will validate that the number of ghost zones required
+        for the field is <= the available ghost zones. Default is 0.
+    fields: Optional str, tuple(str, str), or any iterable of the previous types.
+        The field or fields to validate.
+
+    """
+
+    def __init__(self, ghost_zones: Optional[int] = 0, fields=None):
         FieldValidator.__init__(self)
         self.ghost_zones = ghost_zones
         self.fields = fields
@@ -566,7 +602,6 @@ class ValidateSpatial(FieldValidator):
     def __call__(self, data):
         # When we say spatial information, we really mean
         # that it has a three-dimensional data structure
-        # if isinstance(data, FieldDetector): return True
         if not getattr(data, "_spatial", False):
             raise NeedsGridType(self.ghost_zones, self.fields)
         if self.ghost_zones <= data._num_ghost_zones:
@@ -575,11 +610,12 @@ class ValidateSpatial(FieldValidator):
 
 
 class ValidateGridType(FieldValidator):
+    """
+    A :class:`FieldValidator` that ensures the data handed to the field is an actual
+    grid patch, not a covering grid of any kind. Does not accept parameters.
+    """
+
     def __init__(self):
-        """
-        This validator ensures that the data handed to the field is an actual
-        grid patch, not a covering grid of any kind.
-        """
         FieldValidator.__init__(self)
 
     def __call__(self, data):
@@ -589,3 +625,14 @@ class ValidateGridType(FieldValidator):
         if getattr(data, "_type_name", None) == "grid":
             return True
         raise NeedsOriginalGrid()
+
+
+def _set_field_validator_base_docstring():
+    # adds a list of FieldValidator children to the FieldValidator docstring.
+    extra_docstring = []
+    for sc in FieldValidator.__subclasses__():
+        extra_docstring.append(f":class:`{sc.__name__}`")
+    FieldValidator.__doc__ += " , ".join(extra_docstring)
+
+
+_set_field_validator_base_docstring()
