@@ -634,7 +634,7 @@ class GadgetHDF5Dataset(GadgetDataset):
         updated_hvals = {}
         for hvalname, value in hvals.items():
             if isinstance(value, np.ndarray) and value.size == 1:
-                mylog.info(f"Reducing singleton array {hvalname} to scalar.")
+                mylog.info("Reducing single-element array %s to scalar.", hvalname)
                 updated_hvals[hvalname] = value.item()
         hvals.update(updated_hvals)
 
