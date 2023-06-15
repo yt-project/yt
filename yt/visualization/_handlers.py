@@ -39,6 +39,7 @@ class NormHandler:
         "_linthresh",
         "_norm_type",
         "_norm",
+        "prefer_log",
     )
     _constraint_attrs: List[str] = [
         "vmin",
@@ -70,6 +71,7 @@ class NormHandler:
         self._dynamic_range = dynamic_range
         self._norm_type = norm_type
         self._linthresh = linthresh
+        self.prefer_log = True
 
         if self.has_norm and self.has_constraints:
             raise TypeError(
@@ -319,7 +321,11 @@ class NormHandler:
             # allowing to toggle between lin and log scaling without detailed user input
             norm_type = self.norm_type
         else:
-            if kw["vmin"] == kw["vmax"] or not np.any(finite_values_mask):
+            if (
+                not self.prefer_log
+                or kw["vmin"] == kw["vmax"]
+                or not np.any(finite_values_mask)
+            ):
                 norm_type = Normalize
             elif kw["vmin"] <= 0:
                 # note: see issue 3944 (and PRs and issues linked therein) for a
