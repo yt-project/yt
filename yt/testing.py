@@ -13,7 +13,6 @@ from unittest import SkipTest
 
 import matplotlib
 import numpy as np
-import pytest
 from more_itertools import always_iterable
 from numpy.random import RandomState
 from unyt.exceptions import UnitOperationError
@@ -939,6 +938,9 @@ def requires_module_pytest(*module_names):
 
     So that it can be later renamed to `requires_module`.
     """
+    # note: import pytest here so that it is not a hard requirement for
+    # importing yt.testing see https://github.com/yt-project/yt/issues/4507
+    import pytest
 
     def deco(func):
         missing = [name for name in module_names if find_spec(name) is None]
