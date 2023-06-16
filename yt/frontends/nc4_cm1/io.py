@@ -43,10 +43,11 @@ class CM1IOHandler(BaseIOHandler):
         # np_array.swapaxes(0,2)).
 
         data = {}
-        offset = 0
+        chunks = list(chunks)
         with self._handle.open_ds() as ds:
             for field in fields:
                 data[field] = np.empty(size, dtype="float64")
+                offset = 0
                 for chunk in chunks:
                     for grid in chunk.objs:
                         variable = ds.variables[field[1]][:][0]
