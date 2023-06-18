@@ -125,12 +125,6 @@ def pytest_configure(config):
             "ignore:pkg_resources is deprecated as an API:DeprecationWarning",
         )
 
-    if MPL_VERSION < Version("3.5.0"):
-        config.addinivalue_line(
-            "filterwarnings",
-            r"ignore:distutils Version classes are deprecated:DeprecationWarning",
-        )
-
     if MPL_VERSION < Version("3.5.2") and PILLOW_VERSION >= Version("9.1"):
         # see https://github.com/matplotlib/matplotlib/pull/22766
         config.addinivalue_line(
@@ -144,7 +138,7 @@ def pytest_configure(config):
             r"Use Palette\.ADAPTIVE instead\.:DeprecationWarning",
         )
 
-    if NUMPY_VERSION < Version("1.19") and MPL_VERSION < Version("3.4"):
+    if NUMPY_VERSION < Version("1.19") and MPL_VERSION < Version("3.6"):
         # This warning is triggered from matplotlib in exactly one test at the time of writing
         # and exclusively on the minimal test env. Upgrading numpy or matplotlib resolves
         # the issue, so we can afford to ignore it.

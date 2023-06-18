@@ -2,14 +2,11 @@ import os
 import sys
 import warnings
 from functools import wraps
-from importlib.metadata import version
 from typing import TYPE_CHECKING, Optional, Type, TypeVar
 
 import matplotlib as mpl
-import numpy as np
 from matplotlib.ticker import SymmetricalLogLocator
 from more_itertools import always_iterable
-from packaging.version import Version
 
 from yt.config import ytcfg
 
@@ -27,15 +24,13 @@ if TYPE_CHECKING:
     from matplotlib.backend_bases import FigureCanvasBase
 
 
-MPL_VERSION = Version(version("matplotlib"))
-
 _yt_style = mpl.rc_params_from_file(
     importlib_resources.files("yt") / "default.mplstyle", use_default_template=False
 )
-DEFAULT_FONT_PROPERTIES = {"family": _yt_style["font.family"][0]}
-
-if MPL_VERSION >= Version("3.4"):
-    DEFAULT_FONT_PROPERTIES["math_fontfamily"] = _yt_style["mathtext.fontset"]
+DEFAULT_FONT_PROPERTIES = {
+    "family": _yt_style["font.family"][0],
+    "math_fontfamily": _yt_style["mathtext.fontset"],
+}
 del _yt_style
 
 
@@ -228,78 +223,12 @@ def _swap_arg_pair_order(*args):
     return tuple(new_args)
 
 
-def get_symlog_majorticks(linthresh: float, vmin: float, vmax: float) -> np.ndarray:
-    """calculate positions of major ticks on a log colorbar
-
-    Parameters
-    ----------
-    linthresh : float
-        the threshold for the linear region
-    vmin : float
-        the minimum value in the colorbar
-    vmax : float
-        the maximum value in the colorbar
-
-    """
-    if MPL_VERSION >= Version("3.5"):
-        raise RuntimeError("get_symlog_majorticks is not needed with matplotlib>=3.5")
-
-    if vmin >= 0.0:
-        yticks = [vmin] + list(
-            10
-            ** np.arange(
-                np.rint(np.log10(linthresh)),
-                np.ceil(np.log10(1.1 * vmax)),
-            )
-        )
-    elif vmax <= 0.0:
-        if MPL_VERSION >= Version("3.5.0b"):
-            offset = 0
-        else:
-            offset = 1
-
-        yticks = list(
-            -(
-                10
-                ** np.arange(
-                    np.floor(np.log10(-vmin)),
-                    np.rint(np.log10(linthresh)) - offset,
-                    -1,
-                )
-            )
-        ) + [vmax]
-    else:
-        yticks = (
-            list(
-                -(
-                    10
-                    ** np.arange(
-                        np.floor(np.log10(-vmin)),
-                        np.rint(np.log10(linthresh)) - 1,
-                        -1,
-                    )
-                )
-            )
-            + [0]
-            + list(
-                10
-                ** np.arange(
-                    np.rint(np.log10(linthresh)),
-                    np.ceil(np.log10(1.1 * vmax)),
-                )
-            )
-        )
-    if yticks[-1] > vmax:
-        yticks.pop()
-    return np.array(yticks)
-
-
 class _MPL38_SymmetricalLogLocator(SymmetricalLogLocator):
     # Backporting behaviour from matplotlib 3.8 (in development at the time of writing)
     # see https://github.com/matplotlib/matplotlib/pull/25970
 
     def __init__(self, *args, **kwargs):
-        if MPL_VERSION >= Version("3.8"):
+        if mpl.__version_info__ >= (3, 8):
             raise RuntimeError(
                 "_MPL38_SymmetricalLogLocator is not needed with matplotlib>=3.8"
             )

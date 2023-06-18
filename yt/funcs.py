@@ -22,7 +22,6 @@ from typing import Any, Callable, Optional, Type
 
 import numpy as np
 from more_itertools import always_iterable, collapse, first
-from packaging.version import Version
 
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
@@ -1002,11 +1001,10 @@ def matplotlib_style_context(style="yt.default", after_reset=False):
     """
     # FUTURE: this function should be deprecated in favour of matplotlib.style.context
     # after support for matplotlib 3.6 and older versions is dropped.
+    import matplotlib as mpl
     import matplotlib.style
 
-    from yt.visualization._commons import MPL_VERSION
-
-    if style == "yt.default" and MPL_VERSION < Version("3.7"):
+    if style == "yt.default" and mpl.__version_info__ < (3, 7):
         style = importlib_resources.files("yt") / "default.mplstyle"
 
     return matplotlib.style.context(style, after_reset=after_reset)
