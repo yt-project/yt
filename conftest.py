@@ -172,14 +172,6 @@ def pytest_configure(config):
                 "ignore:`product` is deprecated as of NumPy 1.25.0"
                 ":DeprecationWarning",
             )
-        if find_spec("pandas") is not None and (
-            Version(version("pandas")) < Version("2.0.2")
-        ):
-            # https://github.com/pandas-dev/pandas/pull/53343
-            config.addinivalue_line(
-                "filterwarnings",
-                "ignore:np.find_common_type is deprecated.:DeprecationWarning",
-            )
 
     if find_spec("astropy") is not None:
         # at the time of writing, astropy's wheels are behind numpy's latest
