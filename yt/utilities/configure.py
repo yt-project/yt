@@ -4,15 +4,9 @@ import warnings
 from pathlib import Path
 from typing import Callable, List
 
-import tomli_w
 from more_itertools import always_iterable
 
 from yt.utilities.configuration_tree import ConfigLeaf, ConfigNode
-
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib
 
 configuration_callbacks: List[Callable[["YTConfig"], None]] = []
 
@@ -89,6 +83,10 @@ class YTConfig:
             if not os.path.exists(fname):
                 continue
             metadata = {"source": f"file: {fname}"}
+            if sys.version_info >= (3, 11):
+                import tomllib
+            else:
+                import tomli as tomllib
             try:
                 with open(fname, "rb") as fh:
                     data = tomllib.load(fh)
@@ -104,6 +102,8 @@ class YTConfig:
         return file_names_read
 
     def write(self, file_handler):
+        import tomli_w
+
         value = self.config_root.as_dict()
         config_as_str = tomli_w.dumps(value)
 
