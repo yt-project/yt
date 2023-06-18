@@ -1516,6 +1516,7 @@ def load_sample(
         _download_sample_data_file,
         _get_test_data_dir_path,
         get_data_registry_table,
+        get_download_cache_dir,
     )
 
     pooch_logger = pooch.utils.get_logger()
@@ -1623,6 +1624,13 @@ def load_sample(
     loadable_path = Path.joinpath(save_dir, fn)
     if load_name not in str(loadable_path):
         loadable_path = loadable_path.joinpath(load_name, specific_file)
+
+    try:
+        # clean cache dir
+        get_download_cache_dir().rmdir()
+    except OSError:
+        # cache dir isn't empty
+        pass
 
     return load(loadable_path, **kwargs)
 

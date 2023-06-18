@@ -5,13 +5,11 @@ import json
 import re
 import sys
 from functools import lru_cache
-from itertools import chain
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional
 from warnings import warn
 
 from yt.config import ytcfg
-from yt.funcs import mylog
 from yt.utilities.on_demand_imports import (
     _pandas as pd,
     _pooch as pooch,
@@ -190,15 +188,26 @@ def lookup_on_disk_data(fn) -> Path:
     raise FileNotFoundError(err_msg)
 
 
-@lru_cache(maxsize=128)
-def _get_pooch_instance():
-    data_registry = get_data_registry_table()
-    cache_storage = _get_test_data_dir_path() / "yt_download_cache"
+def get_download_cache_dir():
+    return _get_test_data_dir_path() / "yt_download_cache"
 
-    registry = {k: v["hash"] for k, v in _get_sample_data_registry().items()}
-    return pooch.create(
-        path=cache_storage, base_url="https://yt-project.org/data/", registry=registry
-    )
+
+_POOCHIE = None
+
+
+def _get_pooch_instance():
+    global _POOCHIE
+    if _POOCHIE is None:
+        data_registry = get_data_registry_table()
+        cache_storage = get_download_cache_dir()
+
+        registry = {k: v["hash"] for k, v in _get_sample_data_registry().items()}
+        _POOCHIE = pooch.create(
+            path=cache_storage,
+            base_url="https://yt-project.org/data/",
+            registry=registry,
+        )
+    return _POOCHIE
 
 
 def _download_sample_data_file(
@@ -216,4 +225,4 @@ def _download_sample_data_file(
 
     poochie = _get_pooch_instance()
     poochie.fetch(filename, downloader=downloader)
-    return Path.joinpath(poochie.path, filename)
+    return poochie.path / filename
