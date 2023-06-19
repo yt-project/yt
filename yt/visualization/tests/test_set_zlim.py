@@ -2,7 +2,6 @@ import numpy as np
 import numpy.testing as npt
 import pytest
 
-from yt._maintenance.deprecation import VisibleDeprecationWarning
 from yt.testing import fake_amr_ds
 from yt.visualization.api import SlicePlot
 
@@ -136,9 +135,7 @@ def test_set_dynamic_range_with_None():
     cb = p.plots[field].image.colorbar
     vmin = cb.vmin
 
-    with pytest.raises(
-        VisibleDeprecationWarning, match="Passing `zmin=None` explicitly is deprecated"
-    ):
+    with pytest.deprecated_call(match="Passing `zmin=None` explicitly is deprecated"):
         p.set_zlim(field, zmin=None, dynamic_range=2)
 
         p.render()
