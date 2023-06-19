@@ -4,9 +4,10 @@ from typing import Optional, Tuple, Union
 import cmyt  # noqa: F401
 import matplotlib as mpl
 import numpy as np
-from matplotlib.colors import Colormap, LinearSegmentedColormap
+from matplotlib.colors import Colormap, ListedColormap
 from packaging.version import Version
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.funcs import get_brewer_cmap
 from yt.utilities.logger import ytLogger as mylog
 
@@ -38,9 +39,30 @@ def add_colormap(name, cdict):
     """
     Adds a colormap to the colormaps available in yt for this session
     """
+    from matplotlib.colors import LinearSegmentedColormap
+
+    issue_deprecation_warning(
+        "yt.visualization.color_maps.add_colormap is deprecated",
+        since="4.3",
+        stacklevel=2,
+    )
     # Note: this function modifies the global variable 'yt_colormaps'
     yt_colormaps[name] = LinearSegmentedColormap(name, cdict, 256)
     _register_cmap(yt_colormaps[name], name=name)
+
+
+def _add_colormap(name, colors):
+    """
+    Adds a colormap to the colormaps available in yt for this session
+    """
+    # Note: this function modifies the global variable 'yt_colormaps'
+    cmap = ListedColormap(colors, name=name, N=256)
+    yt_colormaps[cmap.name] = cmap
+    _register_cmap(cmap, name=cmap.name)
+
+    cmap_r = cmap.reversed()
+    yt_colormaps[cmap_r.name] = cmap_r
+    _register_cmap(cmap_r, name=cmap_r.name)
 
 
 # YTEP-0040 backward compatibility layer
@@ -86,17 +108,11 @@ def register_yt_colormaps_from_cmyt():
 register_yt_colormaps_from_cmyt()
 
 # Add colormaps in _colormap_data.py that weren't defined here
-_vs = np.linspace(0, 1, 256)
-for k, v in list(_cm.color_map_luts.items()):
+for k, v in _cm.color_map_luts.items():
     if k in yt_colormaps:
         continue
-    cdict = {
-        "red": np.transpose([_vs, v[0], v[0]]),
-        "green": np.transpose([_vs, v[1], v[1]]),
-        "blue": np.transpose([_vs, v[2], v[2]]),
-    }
     try:
-        add_colormap(k, cdict)
+        _add_colormap(k, v)
     except ValueError:
         # expected if another map with identical name was already registered
         mylog.warning("cannot register colormap '%s' (naming collision)", k)
