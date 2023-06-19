@@ -153,6 +153,26 @@ def pytest_configure(config):
             "ignore:invalid value encountered in less_equal:RuntimeWarning",
         )
 
+    if NUMPY_VERSION >= Version("1.25"):
+        if find_spec("cartopy") is not None and (
+            Version(version("cartopy")) <= Version("0.21.1")
+        ):
+            # https://github.com/SciTools/cartopy/pull/2194
+            config.addinivalue_line(
+                "filterwarnings",
+                "ignore:Conversion of an array with ndim > 0 to a scalar is deprecated"
+                ":DeprecationWarning",
+            )
+        if find_spec("h5py") is not None and (
+            Version(version("h5py")) < Version("3.9")
+        ):
+            # https://github.com/h5py/h5py/pull/2242
+            config.addinivalue_line(
+                "filterwarnings",
+                "ignore:`product` is deprecated as of NumPy 1.25.0"
+                ":DeprecationWarning",
+            )
+
     if find_spec("astropy") is not None:
         # at the time of writing, astropy's wheels are behind numpy's latest
         # version but this doesn't cause actual problems in our test suite
@@ -167,7 +187,7 @@ def pytest_configure(config):
         )
 
     if find_spec("cartopy") is not None:
-        # this warning is triggered from cartopy 21.1
+        # this warning is triggered from cartopy 0.21.1
         # see https://github.com/SciTools/cartopy/issues/2113
         SHAPELY_VERSION = Version(version("shapely"))
         if SHAPELY_VERSION >= Version("2.0"):
