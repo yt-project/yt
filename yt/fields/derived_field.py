@@ -538,7 +538,7 @@ class ValidateDataField(FieldValidator):
 
     Parameters
     ----------
-    field: str, tuple(str, str), or any iterable of the previous types.
+    field: str, tuple[str, str], or any iterable of the previous types.
         the field or fields to require
     """
 
