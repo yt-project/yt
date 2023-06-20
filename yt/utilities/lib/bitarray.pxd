@@ -89,9 +89,12 @@ cdef class bitarray:
     cdef np.uint8_t *buf
     cdef np.uint64_t size
     cdef np.uint64_t buf_size # Not exactly the same
+    cdef np.uint8_t final_bitmask
     cdef public object ibuf
 
     cdef void _set_value(self, np.uint64_t ind, np.uint8_t val)
     cdef np.uint8_t _query_value(self, np.uint64_t ind)
     cdef void _set_range(self, np.uint64_t start, np.uint64_t stop, np.uint8_t val)
     cdef np.uint64_t _count(self)
+    cdef bitarray _logical_and(self, bitarray other, bitarray result = *)
+    cdef bitarray _logical_or(self, bitarray other, bitarray result = *)
