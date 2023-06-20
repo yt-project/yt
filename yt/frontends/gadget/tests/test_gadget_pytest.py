@@ -13,18 +13,8 @@ def test_gadget_header_array_reduction(tmp_path):
     hvals = ds._get_hvals()
     hvals_orig = hvals.copy()
     # wrap some of the scalar values in nested arrays
-    hvals["Redshift"] = np.array(
-        [
-            hvals["Redshift"],
-        ]
-    )
-    hvals["Omega0"] = np.array(
-        [
-            [
-                hvals["Omega0"],
-            ],
-        ]
-    )
+    hvals["Redshift"] = np.array([hvals["Redshift"]])
+    hvals["Omega0"] = np.array([[hvals["Omega0"]]])
 
     # drop those header values into a fake header-only file
     tmp_snpshot_dir = tmp_path / "snapshot_033"
