@@ -86,5 +86,5 @@ cdef class bitarray:
 
     cdef void _set_value(self, np.uint64_t ind, np.uint8_t val)
     cdef np.uint8_t _query_value(self, np.uint64_t ind)
-    #cdef void set_range(self, np.uint64_t ind, np.uint64_t count, int val)
+    cdef void _set_range(self, np.uint64_t start, np.uint64_t stop, np.uint8_t val)
     #cdef int query_range(self, np.uint64_t ind, np.uint64_t count, int *val)

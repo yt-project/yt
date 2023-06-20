@@ -92,12 +92,6 @@ cdef class bitarray:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def set_range(self, np.uint64_t start, np.uint64_t stop, np.uint8_t val):
-        ba_set_range(self.buf, start, stop, val)
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
     def as_bool_array(self):
         r"""Return a copy of this array, as a boolean array.
 
@@ -169,3 +163,36 @@ cdef class bitarray:
 
         """
         return ba_get_value(self.buf, ind)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void _set_range(self, np.uint64_t start, np.uint64_t stop, np.uint8_t val):
+        ba_set_range(self.buf, start, stop, val)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def set_range(self, np.uint64_t start, np.uint64_t stop, np.uint8_t val):
+        r"""Set a range of values to on/off.  Uses slice-style indexing.
+
+        No return value.
+
+        Parameters
+        ----------
+        start : int
+            The starting component of a slice.
+        stop : int
+            The ending component of a slice.
+        val : bool or uint8_t
+            What to set the range to
+
+        Examples
+        --------
+
+        >>> arr_in = np.array([True, True, False, True, True, False])
+        >>> a = ba.bitarray(arr = arr_in)
+        >>> a.set_range(0, 3, 0)
+
+        """
+        ba_set_range(self.buf, start, stop, val)
