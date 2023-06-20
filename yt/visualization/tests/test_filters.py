@@ -30,7 +30,6 @@ def test_gauss_beam_filter():
 
 @requires_module("scipy")
 def test_filter_wiring():
-
     ds = fake_amr_ds(fields=[("gas", "density")], units=["g/cm**3"])
     p = yt.SlicePlot(ds, "x", "density")
 

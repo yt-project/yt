@@ -1,12 +1,12 @@
 import numpy as np
+from numpy.testing import assert_almost_equal, assert_equal
 
 from yt.loaders import load
 from yt.testing import (
-    assert_almost_equal,
-    assert_equal,
     fake_amr_ds,
     fake_random_ds,
     requires_file,
+    requires_module,
 )
 
 
@@ -85,6 +85,7 @@ def test_region_and_particles():
 ISOGAL = "IsolatedGalaxy/galaxy0030/galaxy0030"
 
 
+@requires_module("h5py")
 @requires_file(ISOGAL)
 def test_region_chunked_read():
     # see #2104
@@ -95,6 +96,7 @@ def test_region_chunked_read():
     dense_sp.quantities.angular_momentum_vector()
 
 
+@requires_module("h5py")
 @requires_file(ISOGAL)
 def test_chained_cut_region():
     # see Issue #2233

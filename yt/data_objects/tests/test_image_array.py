@@ -4,9 +4,10 @@ import tempfile
 import unittest
 
 import numpy as np
+from numpy.testing import assert_equal
 
 from yt.data_objects.image_array import ImageArray
-from yt.testing import assert_equal, requires_module
+from yt.testing import requires_module
 
 
 def setup():
@@ -43,7 +44,6 @@ def test_rgba_rescale():
 
 
 class TestImageArray(unittest.TestCase):
-
     tmpdir = None
     curdir = None
 

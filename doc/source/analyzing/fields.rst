@@ -439,7 +439,7 @@ which results in:
     p_B = \frac{B^2}{2} \\
     v_A = \frac{B}{\sqrt{\rho}}
 
-Using this convention is currently only availabe for :ref:`Athena<loading-athena-data>`
+Using this convention is currently only available for :ref:`Athena<loading-athena-data>`
 and :ref:`Athena++<loading-athena-pp-data>` datasets, though it will likely be available
 for more datasets in the future.
 

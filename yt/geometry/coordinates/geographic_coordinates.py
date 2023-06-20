@@ -14,7 +14,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
     name = "geographic"
 
     def __init__(self, ds, ordering=None):
-        if not ordering:
+        if ordering is None:
             ordering = ("latitude", "longitude", self.radial_axis)
         super().__init__(ds, ordering)
         self.image_units = {}
@@ -233,7 +233,6 @@ class GeographicCoordinateHandler(CoordinateHandler):
     def _ortho_pixelize(
         self, data_source, field, bounds, size, antialias, dimension, periodic
     ):
-
         period = self.period[:2].copy()
         period[0] = self.period[self.x_axis[dimension]]
         period[1] = self.period[self.y_axis[dimension]]

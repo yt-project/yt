@@ -23,7 +23,7 @@ brick_new = "output_00080_new_halos/tree_bricks080"
 @pytest.mark.parametrize("brick", [brick_old, brick_new])
 def test_opening(brick):
     ds_parent = data_dir_load(r0)
-    ds = data_dir_load(brick, kwargs=dict(parent_ds=ds_parent))
+    ds = data_dir_load(brick, kwargs={"parent_ds": ds_parent})
 
     ds.index
 
@@ -36,7 +36,7 @@ def test_opening(brick):
 @pytest.mark.parametrize("brick", [brick_old, brick_new])
 def test_field_access(brick):
     ds_parent = data_dir_load(r0)
-    ds = data_dir_load(brick, kwargs=dict(parent_ds=ds_parent))
+    ds = data_dir_load(brick, kwargs={"parent_ds": ds_parent})
 
     skip_list = ("particle_identities", "mesh_id", "radius_profile", "rho_profile")
     fields = [
@@ -47,7 +47,7 @@ def test_field_access(brick):
 
     ad = ds.all_data()
 
-    for (ptype, field) in fields:
+    for ptype, field in fields:
         ad[(ptype, field)]
 
 
@@ -57,7 +57,7 @@ def test_field_access(brick):
 @pytest.mark.parametrize("brick", [brick_old, brick_new])
 def test_get_halo(brick):
     ds_parent = data_dir_load(r0)
-    ds = data_dir_load(brick, kwargs=dict(parent_ds=ds_parent))
+    ds = data_dir_load(brick, kwargs={"parent_ds": ds_parent})
 
     halo = ds.halo(1, ptype="io")
 

@@ -37,7 +37,7 @@ def _strip_ftype(field):
 
 
 np.random.seed(int(0x4D3D3D3))
-units = [base_ds._get_field_info(*f).units for f in fields]
+units = [base_ds._get_field_info(f).units for f in fields]
 fields = [_strip_ftype(f) for f in fields]
 ds = fake_random_ds(16, fields=fields, units=units, particles=1)
 ds.parameters["HydroMethod"] = "streaming"

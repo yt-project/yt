@@ -1,5 +1,6 @@
 import os
 from functools import cached_property
+from typing import Tuple
 
 import numpy as np
 
@@ -111,13 +112,11 @@ class EnzoEGrid(AMRGridPatch):
 
 
 class EnzoEHierarchy(GridIndex):
-
     _strip_path = False
     grid = EnzoEGrid
     _preload_implemented = True
 
     def __init__(self, ds, dataset_type):
-
         self.dataset_type = dataset_type
         self.directory = os.path.dirname(ds.parameter_filename)
         self.index_filename = ds.parameter_filename
@@ -290,7 +289,7 @@ class EnzoEDataset(Dataset):
     _index_class = EnzoEHierarchy
     _field_info_class = EnzoEFieldInfo
     _suffix = ".block_list"
-    particle_types = None
+    particle_types: Tuple[str, ...] = ()
     particle_types_raw = None
 
     def __init__(
@@ -434,7 +433,7 @@ class EnzoEDataset(Dataset):
         if fp_params is not None:
             # in newer versions of enzo-e, this data is specified in a
             # centralized parameter group called Physics:fluid_props
-            # -  for internal reasons related to backwards compatability,
+            # -  for internal reasons related to backwards compatibility,
             #    treatment of this physics-group is somewhat special (compared
             #    to the cosmology group). The parameters in this group are
             #    honored even if Physics:list does not include "fluid_props"

@@ -3,8 +3,9 @@ import tempfile
 from unittest import mock
 
 import numpy as np
+from numpy.testing import assert_equal
 
-from yt.testing import assert_equal, assert_rel_equal, fake_amr_ds, fake_random_ds
+from yt.testing import assert_rel_equal, fake_amr_ds, fake_random_ds
 from yt.units.unit_object import Unit
 
 LENGTH_UNIT = 2.0
@@ -24,7 +25,7 @@ def teardown_func(fns):
             pass
 
 
-@mock.patch("yt.visualization._mpl_imports.FigureCanvasAgg.print_figure")
+@mock.patch("matplotlib.backends.backend_agg.FigureCanvasAgg.print_figure")
 def test_projection(pf):
     fns = []
     for nprocs in [8, 1]:

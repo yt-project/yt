@@ -6,13 +6,12 @@ import zipfile
 from functools import partial, wraps
 from re import finditer
 from tempfile import NamedTemporaryFile, TemporaryFile
-from typing import Tuple
 
 import numpy as np
 from more_itertools import always_iterable
-from tqdm import tqdm
 
 from yt._maintenance.deprecation import issue_deprecation_warning
+from yt._typing import FieldKey
 from yt.config import ytcfg
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.selection_objects.data_selection_objects import (
@@ -247,18 +246,19 @@ class YTProj(YTSelectionContainer2D):
         sfields = []
         if self.moment == 2:
 
-            def _sq_field(field, data, fname: Tuple[str, str]):
+            def _sq_field(field, data, fname: FieldKey):
                 return data[fname] ** 2
 
-            for fname in fields:
-                fd = self.ds._get_field_info(*fname)
+            for field in fields:
+                fd = self.ds._get_field_info(field)
+                ftype, fname = field
                 self.ds.add_field(
-                    (fname[0], f"tmp_{fname[1]}_squared"),
-                    partial(_sq_field, fname=fname),
+                    (ftype, f"tmp_{fname}_squared"),
+                    partial(_sq_field, fname=field),
                     sampling_type=fd.sampling_type,
                     units=f"({fd.units})*({fd.units})",
                 )
-                sfields.append((fname[0], f"tmp_{fname[1]}_squared"))
+                sfields.append((ftype, f"tmp_{fname}_squared"))
         nfields = len(fields)
         nsfields = len(sfields)
         # We need a new tree for every single set of fields we add
@@ -350,7 +350,7 @@ class YTProj(YTSelectionContainer2D):
                 self.ds.field_info.pop(field)
         self.tree = tree
 
-    def to_pw(self, fields=None, center="c", width=None, origin="center-window"):
+    def to_pw(self, fields=None, center="center", width=None, origin="center-window"):
         r"""Create a :class:`~yt.visualization.plot_window.PWViewerMPL` from this
         object.
 
@@ -388,7 +388,7 @@ class YTProj(YTSelectionContainer2D):
         for field in self.data_source._determine_fields(fields):
             if field in self._projected_units:
                 continue
-            finfo = self.ds._get_field_info(*field)
+            finfo = self.ds._get_field_info(field)
             if finfo.units is None:
                 # First time calling a units="auto" field, infer units and cache
                 # for future field accesses.
@@ -851,7 +851,6 @@ class YTCoveringGrid(YTSelectionContainer3D):
         return tuple(self.ActiveDimensions.tolist())
 
     def _setup_data_source(self):
-
         reg = self.ds.region(self.center, self.left_edge, self.right_edge)
         if self._data_source is None:
             # note: https://github.com/yt-project/yt/pull/4063 implemented
@@ -931,7 +930,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
         particles = []
         alias = {}
         for field in gen:
-            finfo = self.ds._get_field_info(*field)
+            finfo = self.ds._get_field_info(field)
             if finfo.is_alias:
                 alias[field] = finfo
                 continue
@@ -940,7 +939,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
             except NeedsOriginalGrid:
                 fill.append(field)
         for field in fill:
-            finfo = self.ds._get_field_info(*field)
+            finfo = self.ds._get_field_info(field)
             if finfo.sampling_type == "particle":
                 particles.append(field)
         gen = [f for f in gen if f not in fill and f not in alias]
@@ -951,7 +950,43 @@ class YTCoveringGrid(YTSelectionContainer3D):
         for p in part:
             self[p] = self._data_source[p]
 
+    def _check_sph_type(self, finfo):
+        """
+        Check if a particle field has an SPH type.
+        There are several ways that this can happen,
+        checked in this order:
+        1. If the field type is a known particle filter, and
+           is in the list of SPH ptypes, use this type
+        2. If the field is an alias of an SPH field, but its
+           type is not "gas", use this type
+        3. Otherwise, if the field type is not in the SPH
+           types list and it is not "gas", we fail
+        If we get through without erroring out, we either have
+        a known SPH particle filter, an alias of an SPH field,
+        the default SPH ptype, or "gas" for an SPH field. Then
+        we return the particle type.
+        """
+        ftype, fname = finfo.name
+        sph_ptypes = self.ds._sph_ptypes
+        ptype = sph_ptypes[0]
+        err = KeyError(f"{ftype} is not a SPH particle type!")
+        if ftype in self.ds.known_filters:
+            if ftype not in sph_ptypes:
+                raise err
+            else:
+                ptype = ftype
+        elif finfo.is_alias:
+            if finfo.alias_name[0] not in sph_ptypes:
+                raise err
+            elif ftype != "gas":
+                ptype = ftype
+        elif ftype not in sph_ptypes and ftype != "gas":
+            raise err
+        return ptype
+
     def _fill_sph_particles(self, fields):
+        from tqdm import tqdm
+
         # checks that we have the field and gets information
         fields = [f for f in fields if f not in self.field_data]
         if len(fields) == 0:
@@ -971,9 +1006,8 @@ class YTCoveringGrid(YTSelectionContainer3D):
         if smoothing_style == "scatter":
             for field in fields:
                 fi = self.ds._get_field_info(field)
-                ptype = fi.name[0]
-                if ptype not in self.ds._sph_ptypes:
-                    raise KeyError(f"{ptype} is not a SPH particle type!")
+                ptype = self._check_sph_type(fi)
+
                 buff = np.zeros(size, dtype="float64")
                 if normalize:
                     buff_den = np.zeros(size, dtype="float64")
@@ -1027,6 +1061,9 @@ class YTCoveringGrid(YTSelectionContainer3D):
         if smoothing_style == "gather":
             num_neighbors = getattr(self.ds, "num_neighbors", 32)
             for field in fields:
+                fi = self.ds._get_field_info(field)
+                ptype = self._check_sph_type(fi)
+
                 buff = np.zeros(size, dtype="float64")
 
                 fields_to_get = [
@@ -1036,9 +1073,8 @@ class YTCoveringGrid(YTSelectionContainer3D):
                     "smoothing_length",
                     field[1],
                 ]
-                all_fields = all_data(self.ds, field[0], fields_to_get, kdtree=True)
+                all_fields = all_data(self.ds, ptype, fields_to_get, kdtree=True)
 
-                fi = self.ds._get_field_info(field)
                 interpolate_sph_grid_gather(
                     buff,
                     all_fields["particle_position"],
@@ -1085,9 +1121,9 @@ class YTCoveringGrid(YTSelectionContainer3D):
         if self.comm.size > 1:
             for i in range(len(fields)):
                 output_fields[i] = self.comm.mpi_allreduce(output_fields[i], op="sum")
-        for name, v in zip(fields, output_fields):
-            fi = self.ds._get_field_info(*name)
-            self[name] = self.ds.arr(v, fi.units)
+        for field, v in zip(fields, output_fields):
+            fi = self.ds._get_field_info(field)
+            self[field] = self.ds.arr(v, fi.units)
 
     def _generate_container_field(self, field):
         rv = self.ds.arr(np.ones(self.ActiveDimensions, dtype="float64"), "")
@@ -1489,13 +1525,14 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
                 "This is likely due to missing ghost-zones support "
                 f"in class {type(self.ds)}",
                 category=RuntimeWarning,
+                stacklevel=1,
             )
             mylog.debug("Caught %d runtime errors.", runtime_errors_count)
-        for name, v in zip(fields, ls.fields):
+        for field, v in zip(fields, ls.fields):
             if self.level > 0:
                 v = v[1:-1, 1:-1, 1:-1]
-            fi = self.ds._get_field_info(*name)
-            self[name] = self.ds.arr(v, fi.units)
+            fi = self.ds._get_field_info(field)
+            self[field] = self.ds.arr(v, fi.units)
 
     def _initialize_level_state(self, fields):
         ls = LevelState()
@@ -1783,7 +1820,6 @@ class YTSurface(YTSelectionContainer3D):
     def _calculate_flux_in_grid(
         self, grid, mask, field_x, field_y, field_z, fluxing_field=None
     ):
-
         vc_fields = [self.surface_field, field_x, field_y, field_z]
         if fluxing_field is not None:
             vc_fields.append(fluxing_field)
@@ -2480,7 +2516,7 @@ class YTSurface(YTSelectionContainer3D):
             DLE = self.ds.domain_left_edge
             DRE = self.ds.domain_right_edge
             bounds = [(DLE[i], DRE[i]) for i in range(3)]
-        elif any([not all([isinstance(be, YTArray) for be in b]) for b in bounds]):
+        elif any(not all(isinstance(be, YTArray) for be in b) for b in bounds):
             bounds = [
                 tuple(
                     be if isinstance(be, YTArray) else self.ds.quan(be, "code_length")
@@ -2948,6 +2984,8 @@ class YTOctree(YTSelectionContainer3D):
         self[fields] = self.ds.arr(buff[~self[("index", "refined")]], units)
 
     def _scatter_smooth(self, fields, units, normalize):
+        from tqdm import tqdm
+
         buff = np.zeros(self.tree.num_nodes, dtype="float64")
 
         if normalize:

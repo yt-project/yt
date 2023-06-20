@@ -46,11 +46,11 @@ def run_recipe(payload):
         prep_dirs()
         try:
             subprocess.check_call(["python", recipe])
-        except Exception:
+        except Exception as exc:
             trace = "".join(traceback.format_exception(*sys.exc_info()))
             trace += f" in module: {module_name}\n"
             trace += f" recipe: {recipe}\n"
-            raise Exception(trace)
+            raise Exception(trace) from exc
         open(f"{CWD}/_temp/{module_name}.done", "wb").close()
         for pattern in FPATTERNS:
             for fname in glob.glob(pattern):

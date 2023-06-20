@@ -35,7 +35,7 @@ cdef class BoundedPriorityQueue:
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
-    cdef int max_heapify(self, np.intp_t index) nogil except -1:
+    cdef int max_heapify(self, np.intp_t index) except -1 nogil:
         cdef np.intp_t left = 2 * index + 1
         cdef np.intp_t right = 2 * index + 2
         cdef np.intp_t largest = index
@@ -60,7 +60,7 @@ cdef class BoundedPriorityQueue:
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
-    cdef int propagate_up(self, np.intp_t index) nogil except -1:
+    cdef int propagate_up(self, np.intp_t index) except -1 nogil:
         while index != 0 and self.heap_ptr[(index - 1) // 2] < self.heap_ptr[index]:
             self.heap_ptr[index], self.heap_ptr[(index - 1) // 2] = self.heap_ptr[(index - 1) // 2], self.heap_ptr[index]
             if self.use_pids:
@@ -73,7 +73,7 @@ cdef class BoundedPriorityQueue:
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
-    cdef int add(self, np.float64_t val) nogil except -1:
+    cdef int add(self, np.float64_t val) except -1 nogil:
         # if not at max size append, if at max size, only append if smaller than
         # the maximum value
         if self.size == self.max_elements:
@@ -88,7 +88,7 @@ cdef class BoundedPriorityQueue:
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
-    cdef int add_pid(self, np.float64_t val, np.int64_t ind) nogil except -1:
+    cdef int add_pid(self, np.float64_t val, np.int64_t ind) except -1 nogil:
         if self.size == self.max_elements:
             if val < self.heap_ptr[0]:
                 self.extract_max()
@@ -101,7 +101,7 @@ cdef class BoundedPriorityQueue:
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
-    cdef int heap_append(self, np.float64_t val, np.int64_t ind) nogil except -1:
+    cdef int heap_append(self, np.float64_t val, np.int64_t ind) except -1 nogil:
         self.heap_ptr[self.size] = val
         if self.use_pids:
             self.pids_ptr[self.size] = ind
@@ -113,7 +113,7 @@ cdef class BoundedPriorityQueue:
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
-    cdef np.float64_t extract_max(self) nogil except -1:
+    cdef np.float64_t extract_max(self) except -1 nogil:
         cdef np.float64_t maximum = self.heap_ptr[0]
         cdef np.float64_t val
         cdef np.int64_t ind
@@ -133,7 +133,7 @@ cdef class BoundedPriorityQueue:
             self.max_heapify(0)
         return maximum
 
-    cdef int validate_heap(self) nogil except -1:
+    cdef int validate_heap(self) except -1 nogil:
         # this function loops through every element in the heap, if any children
         # are greater than their parents then we return zero, which is an error
         # as the heap condition is not satisfied
@@ -174,7 +174,7 @@ cdef class NeighborList:
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
-    cdef int _extend(self) nogil except -1:
+    cdef int _extend(self) except -1 nogil:
         if self.size == self._max_size:
             self._max_size *= 2
             with gil:
@@ -193,7 +193,7 @@ cdef class NeighborList:
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
-    cdef int add_pid(self, np.float64_t val, np.int64_t ind) nogil except -1:
+    cdef int add_pid(self, np.float64_t val, np.int64_t ind) except -1 nogil:
         self._extend()
         self.data_ptr[self.size] = val
         self.pids_ptr[self.size] = ind

@@ -25,14 +25,14 @@ from yt.utilities.logger import ytLogger as mylog
 MPI = None
 parallel_capable = False
 
-dtype_names = dict(
-    float32="MPI.FLOAT",
-    float64="MPI.DOUBLE",
-    int32="MPI.INT",
-    int64="MPI.LONG",
-    c="MPI.CHAR",
-)
-op_names = dict(sum="MPI.SUM", min="MPI.MIN", max="MPI.MAX")
+dtype_names = {
+    "float32": "MPI.FLOAT",
+    "float64": "MPI.DOUBLE",
+    "int32": "MPI.INT",
+    "int64": "MPI.LONG",
+    "c": "MPI.CHAR",
+}
+op_names = {"sum": "MPI.SUM", "min": "MPI.MIN", "max": "MPI.MAX"}
 
 
 class FilterAllMessages(logging.Filter):
@@ -142,15 +142,15 @@ def enable_parallelism(suppress_logging: bool = False, communicator=None) -> boo
             "Log Level is set low -- this could affect parallel performance!"
         )
     dtype_names.update(
-        dict(
-            float32=MPI.FLOAT,
-            float64=MPI.DOUBLE,
-            int32=MPI.INT,
-            int64=MPI.LONG,
-            c=MPI.CHAR,
-        )
+        {
+            "float32": MPI.FLOAT,
+            "float64": MPI.DOUBLE,
+            "int32": MPI.INT,
+            "int64": MPI.LONG,
+            "c": MPI.CHAR,
+        }
     )
-    op_names.update(dict(sum=MPI.SUM, min=MPI.MIN, max=MPI.MAX))
+    op_names.update({"sum": MPI.SUM, "min": MPI.MIN, "max": MPI.MAX})
     # Turn off logging on all but the root rank, if specified.
     if suppress_logging:
         if communicator.rank > 0:

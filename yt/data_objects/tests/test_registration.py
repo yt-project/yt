@@ -10,7 +10,7 @@ def test_reregistration_warning():
         with pytest.warns(
             UserWarning,
             match=(
-                "Overwritting EnzoDataset, which was previously registered. "
+                "Overwriting EnzoDataset, which was previously registered. "
                 "This is expected if you're importing a yt extension with a "
                 "frontend that was already migrated to the main code base."
             ),

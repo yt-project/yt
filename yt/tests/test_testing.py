@@ -33,4 +33,4 @@ def test_requires_active_backend():
     except SkipTest:
         raise AssertionError(
             "@requires_backend appears to be broken (skip was not expected)"
-        )
+        ) from None

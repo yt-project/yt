@@ -1,4 +1,6 @@
-from yt.testing import assert_allclose_units, assert_raises, requires_file
+from numpy.testing import assert_raises
+
+from yt.testing import assert_allclose_units, requires_file
 from yt.units import YTQuantity
 from yt.utilities.answer_testing.framework import data_dir_load
 
@@ -32,11 +34,11 @@ def _assert_normalisations_equal(ds):
 @requires_file(khi_cartesian_2D)
 def test_normalisations_length_temp_nb():
     # overriding length, temperature, numberdensity
-    overrides = dict(
-        length_unit=length_unit,
-        temperature_unit=temperature_unit,
-        numberdensity_unit=numberdensity_unit,
-    )
+    overrides = {
+        "length_unit": length_unit,
+        "temperature_unit": temperature_unit,
+        "numberdensity_unit": numberdensity_unit,
+    }
     ds = data_dir_load(khi_cartesian_2D, kwargs={"units_override": overrides})
     _assert_normalisations_equal(ds)
 
@@ -44,9 +46,11 @@ def test_normalisations_length_temp_nb():
 @requires_file(khi_cartesian_2D)
 def test_normalisations_length_temp_mass():
     # overriding length, temperature, mass
-    overrides = dict(
-        length_unit=length_unit, temperature_unit=temperature_unit, mass_unit=mass_unit
-    )
+    overrides = {
+        "length_unit": length_unit,
+        "temperature_unit": temperature_unit,
+        "mass_unit": mass_unit,
+    }
     ds = data_dir_load(khi_cartesian_2D, kwargs={"units_override": overrides})
     _assert_normalisations_equal(ds)
 
@@ -54,7 +58,11 @@ def test_normalisations_length_temp_mass():
 @requires_file(khi_cartesian_2D)
 def test_normalisations_length_time_mass():
     # overriding length, time, mass
-    overrides = dict(length_unit=length_unit, time_unit=time_unit, mass_unit=mass_unit)
+    overrides = {
+        "length_unit": length_unit,
+        "time_unit": time_unit,
+        "mass_unit": mass_unit,
+    }
     ds = data_dir_load(khi_cartesian_2D, kwargs={"units_override": overrides})
     _assert_normalisations_equal(ds)
 
@@ -62,11 +70,11 @@ def test_normalisations_length_time_mass():
 @requires_file(khi_cartesian_2D)
 def test_normalisations_length_vel_nb():
     # overriding length, velocity, numberdensity
-    overrides = dict(
-        length_unit=length_unit,
-        velocity_unit=velocity_unit,
-        numberdensity_unit=numberdensity_unit,
-    )
+    overrides = {
+        "length_unit": length_unit,
+        "velocity_unit": velocity_unit,
+        "numberdensity_unit": numberdensity_unit,
+    }
     ds = data_dir_load(khi_cartesian_2D, kwargs={"units_override": overrides})
     _assert_normalisations_equal(ds)
 
@@ -74,9 +82,11 @@ def test_normalisations_length_vel_nb():
 @requires_file(khi_cartesian_2D)
 def test_normalisations_length_vel_mass():
     # overriding length, velocity, mass
-    overrides = dict(
-        length_unit=length_unit, velocity_unit=velocity_unit, mass_unit=mass_unit
-    )
+    overrides = {
+        "length_unit": length_unit,
+        "velocity_unit": velocity_unit,
+        "mass_unit": mass_unit,
+    }
     ds = data_dir_load(khi_cartesian_2D, kwargs={"units_override": overrides})
     _assert_normalisations_equal(ds)
 
@@ -104,12 +114,12 @@ def test_normalisations_default():
 @requires_file(khi_cartesian_2D)
 def test_normalisations_too_many_args():
     # test forbidden case: too many arguments (max 3 are allowed)
-    overrides = dict(
-        length_unit=length_unit,
-        numberdensity_unit=numberdensity_unit,
-        temperature_unit=temperature_unit,
-        time_unit=time_unit,
-    )
+    overrides = {
+        "length_unit": length_unit,
+        "numberdensity_unit": numberdensity_unit,
+        "temperature_unit": temperature_unit,
+        "time_unit": time_unit,
+    }
     with assert_raises(ValueError):
         data_dir_load(khi_cartesian_2D, kwargs={"units_override": overrides})
 
@@ -117,10 +127,10 @@ def test_normalisations_too_many_args():
 @requires_file(khi_cartesian_2D)
 def test_normalisations_vel_and_length():
     # test forbidden case: both velocity and temperature are specified as overrides
-    overrides = dict(
-        length_unit=length_unit,
-        velocity_unit=velocity_unit,
-        temperature_unit=temperature_unit,
-    )
+    overrides = {
+        "length_unit": length_unit,
+        "velocity_unit": velocity_unit,
+        "temperature_unit": temperature_unit,
+    }
     with assert_raises(ValueError):
         data_dir_load(khi_cartesian_2D, kwargs={"units_override": overrides})

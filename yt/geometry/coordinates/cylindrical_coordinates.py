@@ -21,8 +21,9 @@ from .coordinate_handler import (
 
 class CylindricalCoordinateHandler(CoordinateHandler):
     name = "cylindrical"
+    _default_axis_order = ("r", "z", "theta")
 
-    def __init__(self, ds, ordering=("r", "z", "theta")):
+    def __init__(self, ds, ordering=None):
         super().__init__(ds, ordering)
         self.image_units = {}
         self.image_units[self.axis_id["r"]] = ("rad", None)

@@ -121,7 +121,7 @@ class GridIndex(Index, abc.ABC):
         #   2 = blank
         desc = {"names": ["numgrids", "numcells", "level"], "formats": ["int64"] * 3}
         self.level_stats = blankRecordArray(desc, MAXLEVEL)
-        self.level_stats["level"] = [i for i in range(MAXLEVEL)]
+        self.level_stats["level"] = list(range(MAXLEVEL))
         self.level_stats["numgrids"] = [0 for i in range(MAXLEVEL)]
         self.level_stats["numcells"] = [0 for i in range(MAXLEVEL)]
         for level in range(self.max_level + 1):
@@ -229,8 +229,7 @@ class GridIndex(Index, abc.ABC):
         except Exception:
             pass
         print(
-            "t = %0.8e = %0.8e s = %0.8e years"
-            % (
+            "t = {:0.8e} = {:0.8e} s = {:0.8e} years".format(
                 self.ds.current_time.in_units("code_time"),
                 self.ds.current_time.in_units("s"),
                 self.ds.current_time.in_units("yr"),
@@ -238,7 +237,7 @@ class GridIndex(Index, abc.ABC):
         )
         print("\nSmallest Cell:")
         for item in ("Mpc", "pc", "AU", "cm"):
-            print(f"\tWidth: {dx.in_units(item):0.3e} {item}")
+            print(f"\tWidth: {dx.in_units(item):0.3e}")
 
     def _find_field_values_at_points(self, fields, coords):
         r"""Find the value of fields at a set of coordinates.
@@ -294,7 +293,6 @@ class GridIndex(Index, abc.ABC):
         return self.grids[ind], ind
 
     def _get_grid_tree(self):
-
         left_edge = self.ds.arr(np.zeros((self.num_grids, 3)), "code_length")
         right_edge = self.ds.arr(np.zeros((self.num_grids, 3)), "code_length")
         level = np.zeros((self.num_grids), dtype="int64")
@@ -303,7 +301,6 @@ class GridIndex(Index, abc.ABC):
         dimensions = np.zeros((self.num_grids, 3), dtype="int32")
 
         for i, grid in enumerate(self.grids):
-
             left_edge[i, :] = grid.LeftEdge
             right_edge[i, :] = grid.RightEdge
             level[i] = grid.Level
@@ -336,7 +333,7 @@ class GridIndex(Index, abc.ABC):
             gi = dobj.selector.select_grids(
                 self.grid_left_edge, self.grid_right_edge, self.grid_levels
             )
-            if any([g.filename is not None for g in self.grids[gi]]):
+            if any(g.filename is not None for g in self.grids[gi]):
                 _gsort = _grid_sort_mixed
             else:
                 _gsort = _grid_sort_id
@@ -463,14 +460,9 @@ class GridIndex(Index, abc.ABC):
         grids.
         """
         dds = self.ds.domain_width[(axes,)] / (
-            self.ds.domain_dimensions[
-                axes,
-            ]
-            * self.ds.refine_by ** ires[:, None]
+            self.ds.domain_dimensions[axes,] * self.ds.refine_by ** ires[:, None]
         )
-        pos = (0.5 + icoords) * dds + self.ds.domain_left_edge[
-            axes,
-        ]
+        pos = (0.5 + icoords) * dds + self.ds.domain_left_edge[axes,]
         return pos, dds
 
     def _add_mesh_sampling_particle_field(self, deposit_field, ftype, ptype):

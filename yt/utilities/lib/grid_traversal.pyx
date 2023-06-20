@@ -22,7 +22,6 @@ from yt.utilities.lib.fp_utils cimport fmin
 
 from .fixed_interpolator cimport *
 
-DEF Nch = 4
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -33,7 +32,7 @@ cdef int walk_volume(VolumeContainer *vc,
                      sampler_function *sample,
                      void *data,
                      np.float64_t *return_t = NULL,
-                     np.float64_t max_t = 1.0) nogil:
+                     np.float64_t max_t = 1.0) noexcept nogil:
     cdef int cur_ind[3]
     cdef int step[3]
     cdef int x, y, i, hit, direction

@@ -7,8 +7,8 @@ include yt/utilities/tests/cosmology_answers.yml
 include yt/utilities/mesh_types.yaml
 exclude scripts/pr_backport.py
 exclude yt/utilities/lib/cykdtree/c_kdtree.cpp
-prune tests
 prune docker
+prune tests
 prune answer-store
 recursive-include yt *.py *.pyx *.pxi *.pxd *.h *.hpp README* *.txt LICENSE* *.cu
 recursive-include doc *.rst *.txt *.py *.ipynb *.png *.jpg *.css *.html
@@ -23,7 +23,9 @@ recursive-include yt/visualization/volume_rendering/shaders *.fragmentshader *.v
 include yt/sample_data_registry.json
 include conftest.py
 include yt/py.typed
+include yt/default.mplstyle
+
 prune yt/frontends/_skeleton
 recursive-include yt/frontends/amrvac *.par
 exclude .codecov.yml .coveragerc .git-blame-ignore-revs .gitmodules .hgchurn .mailmap
-exclude .pre-commit-config.yaml clean.sh nose_answer.cfg nose_unit.cfg
+exclude .pre-commit-config.yaml clean.sh nose_answer.cfg nose_unit.cfg nose_ignores.txt

@@ -15,13 +15,13 @@ from yt.utilities.logger import ytLogger as mylog
 # --> grids are assumed to be sorted into ascending numerical order already
 def grid_sequences(grids):
     for _k, g in groupby(enumerate(grids), lambda i_x: i_x[0] - i_x[1].id):
-        seq = list(v[1] for v in g)
+        seq = [v[1] for v in g]
         yield seq
 
 
 def particle_sequences(grids):
     for _k, g in groupby(enumerate(grids), lambda i_x: i_x[0] - i_x[1].id):
-        seq = list(v[1] for v in g)
+        seq = [v[1] for v in g]
         yield seq[0], seq[-1]
 
 

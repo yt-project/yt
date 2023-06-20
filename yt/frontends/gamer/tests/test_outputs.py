@@ -1,10 +1,7 @@
+from numpy.testing import assert_array_almost_equal, assert_equal
+
 from yt.frontends.gamer.api import GAMERDataset
-from yt.testing import (
-    assert_array_almost_equal,
-    assert_equal,
-    requires_file,
-    units_override_check,
-)
+from yt.testing import requires_file, units_override_check
 from yt.utilities.answer_testing.framework import (
     data_dir_load,
     requires_ds,

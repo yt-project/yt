@@ -7,7 +7,6 @@ from yt.visualization.volume_rendering.api import Camera, Scene
 
 
 def get_rays(camera):
-
     normal_vector = camera.unit_vectors[2].d
     W = np.array([8.0, 8.0])
     N = np.array([800, 800])

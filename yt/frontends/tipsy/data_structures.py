@@ -71,8 +71,7 @@ class TipsyDataset(SPHDataset):
         if not success:
             print("SOMETHING HAS GONE WRONG.  NBODIES != SUM PARTICLES.")
             print(
-                "%s != (sum == %s + %s + %s)"
-                % (
+                "{} != (sum == {} + {} + {})".format(
                     self.parameters["nbodies"],
                     self.parameters["nsph"],
                     self.parameters["ndark"],
@@ -115,7 +114,6 @@ class TipsyDataset(SPHDataset):
         return os.path.basename(self.parameter_filename)
 
     def _parse_parameter_file(self):
-
         # Parsing the header of the tipsy file, from this we obtain
         # the snapshot time and particle counts.
 
@@ -197,18 +195,18 @@ class TipsyDataset(SPHDataset):
             cosm = self._cosmology_parameters or {}
             # In comoving simulations, time stores the scale factor a
             self.scale_factor = hvals["time"]
-            dcosm = dict(
-                current_redshift=(1.0 / self.scale_factor) - 1.0,
-                omega_lambda=self.parameters.get(
+            dcosm = {
+                "current_redshift": (1.0 / self.scale_factor) - 1.0,
+                "omega_lambda": self.parameters.get(
                     "dLambda", cosm.get("omega_lambda", 0.0)
                 ),
-                omega_matter=self.parameters.get(
+                "omega_matter": self.parameters.get(
                     "dOmega0", cosm.get("omega_matter", 0.0)
                 ),
-                hubble_constant=self.parameters.get(
+                "hubble_constant": self.parameters.get(
                     "dHubble0", cosm.get("hubble_constant", 1.0)
                 ),
-            )
+            }
             for param in dcosm.keys():
                 pval = dcosm[param]
                 setattr(self, param, pval)

@@ -15,8 +15,9 @@ from .coordinate_handler import (
 
 class SphericalCoordinateHandler(CoordinateHandler):
     name = "spherical"
+    _default_axis_order = ("r", "theta", "phi")
 
-    def __init__(self, ds, ordering=("r", "theta", "phi")):
+    def __init__(self, ds, ordering=None):
         super().__init__(ds, ordering)
         # Generate
         self.image_units = {}
@@ -333,7 +334,7 @@ class SphericalCoordinateHandler(CoordinateHandler):
             xmin = min(xmin, ONE * aitoff_x(0, lonmin))
             xmax = max(xmax, ONE * aitoff_x(0, lonmax))
 
-        # the y direction is more straighforward because aitoff-projected parallels (y)
+        # the y direction is more straightforward because aitoff-projected parallels (y)
         # draw a convex shape, while aitoff-projected meridians (x) draw a concave shape
         ymin = ONE * min(y for x, y in aitoff_corner_coords)
         ymax = ONE * max(y for x, y in aitoff_corner_coords)

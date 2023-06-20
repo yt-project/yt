@@ -1,5 +1,4 @@
 import cmd
-import pdb
 import signal
 import sys
 import traceback
@@ -59,6 +58,8 @@ def rpdb_excepthook(exc_type, exc, tb):
 
 class pdb_handler:
     def __init__(self, tb):
+        import pdb
+
         self.cin = StringIO()
         sys.stdin = self.cin
         self.cout = StringIO()
@@ -122,4 +123,4 @@ def run_rpdb(task=None):
     except OSError:
         print("Connection refused.  Is the server running?")
         sys.exit(1)
-    pp.cmdloop(__header % dict(task=port - 8010))
+    pp.cmdloop(__header % {"task": port - 8010})

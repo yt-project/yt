@@ -157,7 +157,7 @@ cdef class ParticleDepositOperation:
     cdef int process(self, int dim[3], int ipart, np.float64_t left_edge[3],
                      np.float64_t dds[3], np.int64_t offset,
                      np.float64_t ppos[3], np.float64_t[:] fields,
-                     np.int64_t domain_ind) nogil except -1:
+                     np.int64_t domain_ind) except -1 nogil:
         with gil:
             raise NotImplementedError
 
@@ -177,7 +177,7 @@ cdef class CountParticles(ParticleDepositOperation):
                      np.float64_t ppos[3], # this particle's position
                      np.float64_t[:] fields,
                      np.int64_t domain_ind
-                     ) nogil except -1:
+                     ) except -1 nogil:
         # here we do our thing; this is the kernel
         cdef int ii[3]
         cdef int i
@@ -215,7 +215,7 @@ cdef class SimpleSmooth(ParticleDepositOperation):
                      np.float64_t ppos[3],
                      np.float64_t[:] fields,
                      np.int64_t domain_ind
-                     ) nogil except -1:
+                     ) except -1 nogil:
         cdef int ii[3]
         cdef int ib0[3]
         cdef int ib1[3]
@@ -276,7 +276,7 @@ cdef class SumParticleField(ParticleDepositOperation):
                      np.float64_t ppos[3],
                      np.float64_t[:] fields,
                      np.int64_t domain_ind
-                     ) nogil except -1:
+                     ) except -1 nogil:
         cdef int ii[3]
         cdef int i
         for i in range(3):
@@ -319,7 +319,7 @@ cdef class StdParticleField(ParticleDepositOperation):
                      np.float64_t ppos[3],
                      np.float64_t[:] fields,
                      np.int64_t domain_ind
-                     ) nogil except -1:
+                     ) except -1 nogil:
         cdef int ii[3]
         cdef int i
         cdef float k, mk, qk
@@ -370,7 +370,7 @@ cdef class CICDeposit(ParticleDepositOperation):
                      np.float64_t ppos[3], # this particle's position
                      np.float64_t[:] fields,
                      np.int64_t domain_ind
-                     ) nogil except -1:
+                     ) except -1 nogil:
 
         cdef int i, j, k
         cdef int ind[3]
@@ -421,7 +421,7 @@ cdef class WeightedMeanParticleField(ParticleDepositOperation):
                      np.float64_t ppos[3],
                      np.float64_t[:] fields,
                      np.int64_t domain_ind
-                     ) nogil except -1:
+                     ) except -1 nogil:
         cdef int ii[3]
         cdef int i
         for i in range(3):
@@ -456,7 +456,7 @@ cdef class MeshIdentifier(ParticleDepositOperation):
                       np.float64_t ppos[3],
                       np.float64_t[:] fields,
                       np.int64_t domain_ind
-                      ) nogil except -1:
+                      ) except -1 nogil:
         fields[0] = domain_ind
         return 0
 
@@ -482,7 +482,7 @@ cdef class CellIdentifier(ParticleDepositOperation):
                       np.float64_t ppos[3],
                       np.float64_t[:] fields,
                       np.int64_t domain_ind
-                      ) nogil except -1:
+                      ) except -1 nogil:
         cdef int i, icell
         self.indexes[ipart] = offset
 
@@ -520,7 +520,7 @@ cdef class NNParticleField(ParticleDepositOperation):
                      np.float64_t ppos[3],
                      np.float64_t[:] fields,
                      np.int64_t domain_ind
-                     ) nogil except -1:
+                     ) except -1 nogil:
         # This one is a bit slow.  Every grid cell is going to be iterated
         # over, and we're going to deposit particles in it.
         cdef int i, j, k

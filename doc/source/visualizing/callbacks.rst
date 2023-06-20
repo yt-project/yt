@@ -577,9 +577,8 @@ Overplot a Circle on a Plot
 Overplot Streamlines
 ~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_streamlines(self, field_x, field_y, *, factor=16, \
-                                   density=1, display_threshold=None, \
-                                   **kwargs)
+.. function:: annotate_streamlines(self, field_x, field_y, *, linewidth=1.0, linewidth_upscaling=1.0, \
+                                   color=None, color_threshold=float('-inf'), factor=16, **kwargs)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.StreamlineCallback`.)
@@ -590,6 +589,9 @@ Overplot Streamlines
    plot, set ``start_at_xedge`` to ``True``; for the bottom edge, use
    ``start_at_yedge``.  A line with the qmean vector magnitude will cover
    1.0/``factor`` of the image.
+
+   Additional keyword arguments are passed down to
+   `matplotlib.axes.Axes.streamplot <https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.streamplot.html>`_
 
 .. python-script::
 

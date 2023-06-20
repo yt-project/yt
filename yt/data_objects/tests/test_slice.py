@@ -3,8 +3,9 @@ import tempfile
 from unittest import mock
 
 import numpy as np
+from numpy.testing import assert_equal
 
-from yt.testing import assert_equal, fake_random_ds
+from yt.testing import fake_random_ds
 from yt.units.unit_object import Unit
 
 
@@ -22,7 +23,7 @@ def teardown_func(fns):
             pass
 
 
-@mock.patch("yt.visualization._mpl_imports.FigureCanvasAgg.print_figure")
+@mock.patch("matplotlib.backends.backend_agg.FigureCanvasAgg.print_figure")
 def test_slice(pf):
     fns = []
     grid_eps = np.finfo(np.float64).eps

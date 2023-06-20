@@ -1,8 +1,10 @@
 import numpy as np
 
+from yt._typing import FieldType
 from yt.fields.derived_field import ValidateParameter, ValidateSpatial
+from yt.fields.field_info_container import FieldInfoContainer
 from yt.funcs import just_one
-from yt.geometry.geometry_handler import is_curvilinear
+from yt.geometry.api import Geometry
 from yt.utilities.exceptions import YTDimensionalityError, YTFieldNotFound
 
 from .field_plugin_registry import register_field_plugin
@@ -10,9 +12,12 @@ from .vector_operations import create_magnitude_field, create_squared_field
 
 
 @register_field_plugin
-def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
+def setup_fluid_vector_fields(
+    registry: FieldInfoContainer, ftype: FieldType = "gas", slice_info=None
+) -> None:
     # Current implementation for gradient is not valid for curvilinear geometries
-    if is_curvilinear(registry.ds.geometry):
+    geometry: Geometry = registry.ds.geometry
+    if geometry is not Geometry.CARTESIAN:
         return
 
     unit_system = registry.ds.unit_system

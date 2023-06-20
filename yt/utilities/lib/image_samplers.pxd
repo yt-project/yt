@@ -23,7 +23,7 @@ DEF Nch = 4
 cdef struct VolumeRenderAccumulator
 
 ctypedef int calculate_extent_function(ImageSampler image,
-            VolumeContainer *vc, np.int64_t rv[4]) nogil except -1
+            VolumeContainer *vc, np.int64_t rv[4]) except -1 nogil
 
 ctypedef void generate_vector_info_function(ImageSampler im,
             np.int64_t vi, np.int64_t vj,
@@ -66,7 +66,7 @@ cdef class ImageSampler:
                 np.float64_t enter_t,
                 np.float64_t exit_t,
                 int index[3],
-                void *data) nogil
+                void *data) noexcept nogil
 
 cdef class ProjectionSampler(ImageSampler):
     pass

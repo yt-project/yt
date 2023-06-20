@@ -1,10 +1,9 @@
 import numpy as np
+from numpy.testing import assert_almost_equal, assert_equal
 
 import yt
 from yt import particle_filter
 from yt.testing import (
-    assert_almost_equal,
-    assert_equal,
     assert_rel_equal,
     fake_particle_ds,
     fake_random_ds,
@@ -46,7 +45,6 @@ def test_average():
     for nprocs in [1, 2, 4, 8]:
         ds = fake_random_ds(16, nprocs=nprocs, fields=("density",), units=("g/cm**3",))
         for ad in [ds.all_data(), ds.r[0.5, :, :]]:
-
             my_mean = ad.quantities["WeightedAverageQuantity"](
                 ("gas", "density"), ("index", "ones")
             )
@@ -65,7 +63,6 @@ def test_standard_deviation():
     for nprocs in [1, 2, 4, 8]:
         ds = fake_random_ds(16, nprocs=nprocs, fields=("density",), units=("g/cm**3",))
         for ad in [ds.all_data(), ds.r[0.5, :, :]]:
-
             my_std, my_mean = ad.quantities["WeightedStandardDeviation"](
                 ("gas", "density"), ("index", "ones")
             )
@@ -92,7 +89,6 @@ def test_max_location():
     for nprocs in [1, 2, 4, 8]:
         ds = fake_random_ds(16, nprocs=nprocs, fields=("density",), units=("g/cm**3",))
         for ad in [ds.all_data(), ds.r[0.5, :, :]]:
-
             mv, x, y, z = ad.quantities.max_location(("gas", "density"))
 
             assert_equal(mv, ad[("gas", "density")].max())
@@ -108,7 +104,6 @@ def test_min_location():
     for nprocs in [1, 2, 4, 8]:
         ds = fake_random_ds(16, nprocs=nprocs, fields=("density",), units=("g/cm**3",))
         for ad in [ds.all_data(), ds.r[0.5, :, :]]:
-
             mv, x, y, z = ad.quantities.min_location(("gas", "density"))
 
             assert_equal(mv, ad[("gas", "density")].min())
@@ -129,7 +124,6 @@ def test_sample_at_min_field_values():
             units=("g/cm**3", "K", "cm/s"),
         )
         for ad in [ds.all_data(), ds.r[0.5, :, :]]:
-
             mv, temp, vm = ad.quantities.sample_at_min_field_values(
                 ("gas", "density"), [("gas", "temperature"), ("gas", "velocity_x")]
             )
@@ -151,7 +145,6 @@ def test_sample_at_max_field_values():
             units=("g/cm**3", "K", "cm/s"),
         )
         for ad in [ds.all_data(), ds.r[0.5, :, :]]:
-
             mv, temp, vm = ad.quantities.sample_at_max_field_values(
                 ("gas", "density"), [("gas", "temperature"), ("gas", "velocity_x")]
             )
@@ -220,7 +213,6 @@ def test_sph_datasets_derived_quantities():
 
 
 def test_derived_quantities_with_particle_types():
-
     ds = fake_particle_ds()
 
     @particle_filter(requires=["particle_position_x"], filtered_type="all")

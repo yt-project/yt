@@ -25,12 +25,10 @@ def _sanitize_camera_property_units(value, scene):
         ):
             return scene.arr([scene.arr(value[0], value[1]).in_units("unitary")] * 3)
         if len(value) == 3:
-            if all([is_sequence(v) for v in value]):
+            if all(is_sequence(v) for v in value):
                 if all(
-                    [
-                        isinstance(v[0], numeric_type) and isinstance(v[1], str)
-                        for v in value
-                    ]
+                    isinstance(v[0], numeric_type) and isinstance(v[1], str)
+                    for v in value
                 ):
                     return scene.arr([scene.arr(v[0], v[1]) for v in value])
                 else:
@@ -118,7 +116,7 @@ class Camera(Orientation):
         if not isinstance(scene, Scene):
             raise RuntimeError(
                 "The first argument passed to the Camera initializer is a "
-                "%s object, expected a %s object" % (type(scene), Scene)
+                f"{type(scene)} object, expected a {Scene} object"
             )
         self.scene = weakref.proxy(scene)
         self.lens = None
@@ -302,8 +300,8 @@ class Camera(Orientation):
             self.lens = lens_type
         elif lens_type not in lenses:
             raise RuntimeError(
-                "Lens type %s not in available list of available lens "
-                "types (%s)" % (lens_type, list(lenses.keys()))
+                f"Lens type {lens_type} not in available list of available lens "
+                "types ({})".format(", ".join([f"{_!r}" for _ in lenses]))
             )
         else:
             self.lens = lenses[lens_type]()

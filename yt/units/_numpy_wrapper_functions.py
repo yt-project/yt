@@ -1,6 +1,6 @@
 # This module is not part of the public namespace `yt.units`
 # It is home to wrapper functions that are directly copied from unyt 2.9.2
-# We vendor them as a transition step towards unyt 3.0 (in devlopment),
+# We vendor them as a transition step towards unyt 3.0 (in development),
 # where these wrapper functions are deprecated and are should be replaced with vanilla numpy API
 # FUTURE:
 # - require unyt>=3.0

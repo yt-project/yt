@@ -17,7 +17,6 @@ def _remove_raw(all_fields, raw_fields):
 
 
 class IOHandlerBoxlib(BaseIOHandler):
-
     _dataset_type = "boxlib_native"
 
     def __init__(self, ds, *args, **kwargs):
@@ -79,7 +78,7 @@ class IOHandlerBoxlib(BaseIOHandler):
         with open(filename, "rb") as f:
             f.seek(offset)
             f.readline()  # always skip the first line
-            arr = np.fromfile(f, "float64", np.product(shape))
+            arr = np.fromfile(f, "float64", np.prod(shape))
             arr = arr.reshape(shape, order="F")
         return arr[
             tuple(
@@ -217,7 +216,6 @@ class IOHandlerOrion(IOHandlerBoxlib):
 
     @property
     def particle_field_index(self):
-
         index = parse_orion_sinks(self.particle_filename)
 
         self._particle_field_index = index
@@ -228,7 +226,6 @@ class IOHandlerOrion(IOHandlerBoxlib):
         chunks = list(chunks)
 
         if isinstance(selector, GridSelector):
-
             if not (len(chunks) == len(chunks[0].objs) == 1):
                 raise RuntimeError
 

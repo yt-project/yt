@@ -8,7 +8,6 @@ v_units = "km/s"
 
 
 class AHFHalosFieldInfo(FieldInfoContainer):
-
     # See http://popia.ft.uam.es/AHF/files/AHF.pdf
     # and search for '*.AHF_halos'.
     known_particle_fields: KnownFieldsT = (

@@ -146,7 +146,6 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         chunks = list(chunks)
 
         if isinstance(selector, GridSelector):
-
             if not (len(chunks) == len(chunks[0].objs) == 1):
                 raise RuntimeError
 
@@ -166,7 +165,6 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         return rv
 
     def _read_particles(self, grid, name):
-
         field_index = self.particle_field_index[name]
         lev = f"level_{grid.Level}"
 
@@ -266,7 +264,6 @@ class IOHandlerOrion2HDF5(IOHandlerChomboHDF5):
 
     @property
     def particle_field_index(self):
-
         fn = self.ds.fullplotdir[:-4] + "sink"
 
         index = parse_orion_sinks(fn)

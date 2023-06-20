@@ -6,6 +6,7 @@ import numpy as np
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.funcs import setdefaultattr
+from yt.geometry.api import Geometry
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.on_demand_imports import _h5py as h5py
 
@@ -97,10 +98,9 @@ class ChollaDataset(Dataset):
             setdefaultattr(self, key, self.quan(1, unit))
 
     def _parse_parameter_file(self):
-
         with h5py.File(self.parameter_filename, mode="r") as h5f:
             attrs = h5f.attrs
-            self.parameters = {k: v for (k, v) in attrs.items()}
+            self.parameters = dict(attrs.items())
             self.domain_left_edge = attrs["bounds"][:].astype("=f8")
             self.domain_right_edge = attrs["domain"][:].astype("=f8")
             self.dimensionality = len(attrs["dims"][:])
@@ -141,7 +141,7 @@ class ChollaDataset(Dataset):
         self.hubble_constant = 0.0
 
         # CHOLLA datasets are always unigrid cartesian
-        self.geometry = "cartesian"
+        self.geometry = Geometry.CARTESIAN
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
@@ -157,6 +157,10 @@ class ChollaDataset(Dataset):
         except AttributeError:
             return False
         else:
-            return "bounds" in attrs and "domain" in attrs
+            return (
+                "bounds" in attrs
+                and "domain" in attrs
+                and attrs.get("data_type") != "yt_light_ray"
+            )
         finally:
             fileh.close()

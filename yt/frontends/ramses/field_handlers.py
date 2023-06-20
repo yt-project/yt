@@ -343,7 +343,9 @@ class HydroFieldFileHandler(FieldFileHandler):
             # Or there is an hydro file descriptor
             mylog.debug("Reading hydro file descriptor.")
             # For now, we can only read double precision fields
-            fields = [e[0] for e in _read_fluid_file_descriptor(fname_desc)]
+            fields = [
+                e[0] for e in _read_fluid_file_descriptor(fname_desc, prefix="hydro")
+            ]
 
             # We get no fields for old-style hydro file descriptor
             ok = len(fields) > 0
@@ -505,6 +507,7 @@ class GravFieldFileHandler(FieldFileHandler):
 class RTFieldFileHandler(FieldFileHandler):
     ftype = "ramses-rt"
     fname = "rt_{iout:05d}.out{icpu:05d}"
+    file_descriptor = "rt_file_descriptor.txt"
     config_field = "ramses-rt"
 
     attrs = (
@@ -576,12 +579,32 @@ class RTFieldFileHandler(FieldFileHandler):
         iout = int(str(ds).split("_")[1])
         basedir = os.path.split(ds.parameter_filename)[0]
         fname = os.path.join(basedir, cls.fname.format(iout=iout, icpu=1))
+        fname_desc = os.path.join(basedir, cls.file_descriptor)
         with FortranFile(fname) as fd:
             cls.parameters = fd.read_attrs(cls.attrs)
 
-        fields = cls.load_fields_from_yt_config()
+        ok = False
 
-        if not fields:
+        if ds._fields_in_file is not None:
+            # Case 1: fields are provided by users on construction of dataset
+            fields = list(ds._fields_in_file)
+            ok = True
+        else:
+            # Case 2: fields are provided by users in the config
+            fields = cls.load_fields_from_yt_config()
+            ok = len(fields) > 0
+
+        if not ok and os.path.exists(fname_desc):
+            # Case 3: there is a file descriptor
+            # Or there is an hydro file descriptor
+            mylog.debug("Reading rt file descriptor.")
+            # For now, we can only read double precision fields
+            fields = [
+                e[0] for e in _read_fluid_file_descriptor(fname_desc, prefix="rt")
+            ]
+            ok = len(fields) > 0
+
+        if not ok:
             fields = []
             tmp = [
                 "Photon_density_%s",

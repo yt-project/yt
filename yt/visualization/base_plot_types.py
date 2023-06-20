@@ -2,26 +2,28 @@ import sys
 import warnings
 from abc import ABC
 from io import BytesIO
-from typing import Optional, Tuple, Union
+from typing import TYPE_CHECKING, Optional, Tuple, Union
 
 import matplotlib
 import numpy as np
-from matplotlib.axis import Axis
-from matplotlib.colors import LogNorm, Normalize, SymLogNorm
-from matplotlib.figure import Figure
 from matplotlib.ticker import LogFormatterMathtext
-from packaging.version import Version
 
 from yt.funcs import get_interactivity, is_sequence, matplotlib_style_context, mylog
 from yt.visualization._handlers import ColorbarHandler, NormHandler
 
 from ._commons import (
-    MPL_VERSION,
     get_canvas,
-    get_symlog_majorticks,
-    get_symlog_minorticks,
     validate_image_name,
 )
+
+if matplotlib.__version_info__ >= (3, 8):
+    from matplotlib.ticker import SymmetricalLogLocator
+else:
+    from ._commons import _MPL38_SymmetricalLogLocator as SymmetricalLogLocator
+
+if TYPE_CHECKING:
+    from matplotlib.axis import Axis
+    from matplotlib.figure import Figure
 
 BACKEND_SPECS = {
     "GTK": ["backend_gtk", "FigureCanvasGTK", "FigureManagerGTK"],
@@ -56,7 +58,7 @@ class CallbackWrapper:
             if viewer._has_swapped_axes:
                 # store the original un-transposed shape
                 self.raw_image_shape = self.raw_image_shape[1], self.raw_image_shape[0]
-        if frb.axis < 3:
+        if frb.axis is not None:
             DD = frb.ds.domain_width
             xax = frb.ds.coordinates.x_axis[frb.axis]
             yax = frb.ds.coordinates.y_axis[frb.axis]
@@ -91,8 +93,8 @@ class PlotMPL:
         axrect,
         *,
         norm_handler: NormHandler,
-        figure: Optional[Figure] = None,
-        axes: Optional[Axis] = None,
+        figure: Optional["Figure"] = None,
+        axes: Optional["Axis"] = None,
     ):
         """Initialize PlotMPL class"""
         import matplotlib.figure
@@ -128,7 +130,6 @@ class PlotMPL:
         self.axes = self.figure.add_axes(axrect)
 
     def _get_canvas_classes(self):
-
         if self.interactivity:
             key = str(matplotlib.get_backend())
         else:
@@ -159,8 +160,6 @@ class PlotMPL:
 
         if mpl_kwargs is None:
             mpl_kwargs = {}
-        if "papertype" not in mpl_kwargs and MPL_VERSION < Version("3.3.0"):
-            mpl_kwargs["papertype"] = "auto"
 
         name = validate_image_name(name)
 
@@ -198,10 +197,10 @@ class PlotMPL:
         for label in self._get_labels():
             label.set_fontproperties(font_properties)
             if font_color is not None:
-                label.set_color(self.font_color)
+                label.set_color(font_color)
 
     def _repr_png_(self):
-        from ._mpl_imports import FigureCanvasAgg
+        from matplotlib.backends.backend_agg import FigureCanvasAgg
 
         canvas = FigureCanvasAgg(self.figure)
         f = BytesIO()
@@ -224,9 +223,9 @@ class ImagePlotMPL(PlotMPL, ABC):
         *,
         norm_handler: NormHandler,
         colorbar_handler: ColorbarHandler,
-        figure: Optional[Figure] = None,
-        axes: Optional[Axis] = None,
-        cax: Optional[Axis] = None,
+        figure: Optional["Figure"] = None,
+        axes: Optional["Axis"] = None,
+        cax: Optional["Axis"] = None,
     ):
         """Initialize ImagePlotMPL class object"""
         self.colorbar_handler = colorbar_handler
@@ -307,66 +306,43 @@ class ImagePlotMPL(PlotMPL, ABC):
             interpolation="nearest",
             transform=transform,
         )
-        self._set_axes(norm)
+        self._set_axes()
 
-    def _set_axes(self, norm: Normalize) -> None:
-        if isinstance(norm, SymLogNorm):
-            formatter = LogFormatterMathtext(linthresh=norm.linthresh)
-            self.cb = self.figure.colorbar(self.image, self.cax, format=formatter)
-            self.cb.set_ticks(
-                get_symlog_majorticks(
-                    linthresh=norm.linthresh, vmin=norm.vmin, vmax=norm.vmax
-                )
-            )
-        else:
-            self.cb = self.figure.colorbar(self.image, self.cax)
-        self.cax.tick_params(which="both", axis="y", direction="in")
-
-        fmt_kwargs = dict(style="scientific", scilimits=(-2, 3), useMathText=True)
+    def _set_axes(self) -> None:
+        fmt_kwargs = {"style": "scientific", "scilimits": (-2, 3), "useMathText": True}
         self.image.axes.ticklabel_format(**fmt_kwargs)
-        if type(norm) not in (LogNorm, SymLogNorm):
-            try:
-                self.cb.ax.ticklabel_format(**fmt_kwargs)
-            except AttributeError as exc:
-                if MPL_VERSION < Version("3.5.0"):
-                    warnings.warn(
-                        "Failed to format colorbar ticks. "
-                        "This is expected when using the set_norm method "
-                        "with some matplotlib classes (e.g. TwoSlopeNorm) "
-                        "with matplotlib versions older than 3.5\n"
-                        "Please try upgrading matplotlib to a more recent version. "
-                        "If the problem persists, please file a report to "
-                        "https://github.com/yt-project/yt/issues/new"
-                    )
-                else:
-                    raise exc
-        if self.colorbar_handler.draw_minorticks:
-            if isinstance(norm, SymLogNorm):
-                if MPL_VERSION < Version("3.5.0b"):
-                    # no known working method to draw symlog minor ticks
-                    # see https://github.com/yt-project/yt/issues/3535
-                    pass
-                else:
-                    flinthresh = 10 ** np.floor(np.log10(norm.linthresh))
-                    absmax = np.abs((norm.vmin, norm.vmax)).max()
-                    if (absmax - flinthresh) / absmax < 0.1:
-                        flinthresh /= 10
-                    mticks = get_symlog_minorticks(flinthresh, norm.vmin, norm.vmax)
-                    if MPL_VERSION < Version("3.5.0b"):
-                        # https://github.com/matplotlib/matplotlib/issues/21258
-                        mticks = self.image.norm(mticks)
-                    self.cax.yaxis.set_ticks(mticks, minor=True)
-
-            elif isinstance(norm, LogNorm):
-                self.cax.minorticks_on()
-                self.cax.xaxis.set_visible(False)
-
-            else:
-                self.cax.minorticks_on()
-        else:
-            self.cax.minorticks_off()
-
         self.image.axes.set_facecolor(self.colorbar_handler.background_color)
+
+        self.cax.tick_params(which="both", direction="in")
+        self.cb = self.figure.colorbar(self.image, self.cax)
+
+        if self.cb.orientation == "vertical":
+            cb_axis = self.cb.ax.yaxis
+        else:
+            cb_axis = self.cb.ax.xaxis
+
+        cb_scale = cb_axis.get_scale()
+        if cb_scale == "symlog":
+            trf = cb_axis.get_transform()
+            cb_axis.set_major_locator(SymmetricalLogLocator(trf))
+            cb_axis.set_major_formatter(
+                LogFormatterMathtext(linthresh=trf.linthresh, base=trf.base)
+            )
+
+        if cb_scale not in ("log", "symlog"):
+            self.cb.ax.ticklabel_format(**fmt_kwargs)
+
+        if self.colorbar_handler.draw_minorticks and cb_scale == "symlog":
+            # no minor ticks are drawn by default in symlog, as of matplotlib 3.7.1
+            # see https://github.com/matplotlib/matplotlib/issues/25994
+            trf = cb_axis.get_transform()
+            if float(trf.base).is_integer():
+                locator = SymmetricalLogLocator(trf, subs=np.arange(1, trf.base))
+                cb_axis.set_minor_locator(locator)
+        elif self.colorbar_handler.draw_minorticks:
+            self.cb.minorticks_on()
+        else:
+            self.cb.minorticks_off()
 
     def _validate_axes_extent(self, extent, transform):
         # if the axes are cartopy GeoAxes, this checks that the axes extent
@@ -404,7 +380,7 @@ class ImagePlotMPL(PlotMPL, ABC):
         # - self._draw_axes: bool
         # - self.colorbar_handler: ColorbarHandler
 
-        # optional attribtues
+        # optional attributes
         # - self._unit_aspect: float
 
         # Ensure the figure size along the long axis is always equal to _figure_size
@@ -591,6 +567,7 @@ def get_multi_plot(nx, ny, colorbar="vertical", bw=4, dpi=300, cbar_padding=0.4)
     complicated or more specific sets of multiplots for your own purposes.
     """
     import matplotlib.figure
+    from matplotlib.backends.backend_agg import FigureCanvasAgg
 
     hf, wf = 1.0 / ny, 1.0 / nx
     fudge_x = fudge_y = 1.0
@@ -603,7 +580,6 @@ def get_multi_plot(nx, ny, colorbar="vertical", bw=4, dpi=300, cbar_padding=0.4)
         fudge_x = 1.0
         fudge_y = ny / (cbar_padding + ny)
     fig = matplotlib.figure.Figure((bw * nx / fudge_x, bw * ny / fudge_y), dpi=dpi)
-    from ._mpl_imports import FigureCanvasAgg
 
     fig.set_canvas(FigureCanvasAgg(fig))
     fig.subplots_adjust(

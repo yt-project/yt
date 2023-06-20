@@ -17,6 +17,8 @@ from yt.funcs import (
 from yt.utilities import rpdb
 
 exe_name = os.path.basename(sys.executable)
+
+
 # At import time, we determined whether or not we're being run in parallel.
 def turn_on_parallelism():
     parallel_capable = False
@@ -169,8 +171,8 @@ if parallel_capable:
 elif (
     exe_name in ["mpi4py", "embed_enzo", "python{}.{}-mpi".format(*sys.version_info)]
     or "_parallel" in dir(sys)
-    or any(["ipengine" in arg for arg in sys.argv])
-    or any(["cluster-id" in arg for arg in sys.argv])
+    or any("ipengine" in arg for arg in sys.argv)
+    or any("cluster-id" in arg for arg in sys.argv)
 ):
     parallel_capable = turn_on_parallelism()
 else:

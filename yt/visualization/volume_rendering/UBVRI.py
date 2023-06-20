@@ -1,8 +1,8 @@
 import numpy as np
 
-johnson_filters = dict(
-    B=dict(
-        wavelen=np.array(
+johnson_filters = {
+    "B": {
+        "wavelen": np.array(
             [
                 3600,
                 3650,
@@ -47,7 +47,7 @@ johnson_filters = dict(
             ],
             dtype="float64",
         ),
-        trans=np.array(
+        "trans": np.array(
             [
                 0.0,
                 0.0,
@@ -92,9 +92,9 @@ johnson_filters = dict(
             ],
             dtype="float64",
         ),
-    ),
-    I=dict(
-        wavelen=np.array(
+    },
+    "I": {
+        "wavelen": np.array(
             [
                 6800,
                 6850,
@@ -201,7 +201,7 @@ johnson_filters = dict(
             ],
             dtype="float64",
         ),
-        trans=np.array(
+        "trans": np.array(
             [
                 0.0,
                 0.0,
@@ -308,9 +308,9 @@ johnson_filters = dict(
             ],
             dtype="float64",
         ),
-    ),
-    R=dict(
-        wavelen=np.array(
+    },
+    "R": {
+        "wavelen": np.array(
             [
                 5200,
                 5250,
@@ -402,7 +402,7 @@ johnson_filters = dict(
             ],
             dtype="float64",
         ),
-        trans=np.array(
+        "trans": np.array(
             [
                 0.0,
                 0.01,
@@ -494,9 +494,9 @@ johnson_filters = dict(
             ],
             dtype="float64",
         ),
-    ),
-    U=dict(
-        wavelen=np.array(
+    },
+    "U": {
+        "wavelen": np.array(
             [
                 3000,
                 3050,
@@ -525,7 +525,7 @@ johnson_filters = dict(
             ],
             dtype="float64",
         ),
-        trans=np.array(
+        "trans": np.array(
             [
                 0.0,
                 0.04,
@@ -554,9 +554,9 @@ johnson_filters = dict(
             ],
             dtype="float64",
         ),
-    ),
-    V=dict(
-        wavelen=np.array(
+    },
+    "V": {
+        "wavelen": np.array(
             [
                 4600,
                 4650,
@@ -617,7 +617,7 @@ johnson_filters = dict(
             ],
             dtype="float64",
         ),
-        trans=np.array(
+        "trans": np.array(
             [
                 0.0,
                 0.0,
@@ -678,8 +678,8 @@ johnson_filters = dict(
             ],
             dtype="float64",
         ),
-    ),
-)
+    },
+}
 
 for vals in johnson_filters.values():
     wavelen = vals["wavelen"]

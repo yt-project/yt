@@ -1,7 +1,9 @@
 import os.path
 
+from numpy.testing import assert_equal
+
 from yt.frontends.ahf.api import AHFHalosDataset
-from yt.testing import ParticleSelectionComparison, assert_equal, requires_file
+from yt.testing import ParticleSelectionComparison, requires_file
 from yt.utilities.answer_testing.framework import (
     FieldValuesTest,
     data_dir_load,

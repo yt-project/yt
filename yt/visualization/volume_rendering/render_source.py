@@ -72,8 +72,10 @@ def set_raytracing_engine(
 
     if engine == "embree":
         try:
-            from yt.utilities.lib.embree_mesh import mesh_construction  # type: ignore
-            from yt.utilities.lib.embree_mesh import mesh_traversal  # type: ignore
+            from yt.utilities.lib.embree_mesh import (  # type: ignore
+                mesh_construction,
+                mesh_traversal,
+            )
         except (ImportError, ValueError) as exc:
             # Catch ValueError in case size of objects in Cython change
             warnings.warn(
@@ -327,7 +329,7 @@ class VolumeSource(RenderSource, abc.ABC):
         """The field to be rendered"""
         return self._field
 
-    @field.setter  # type: ignore
+    @field.setter
     @invalidate_volume
     def field(self, value):
         field = self.data_source._determine_fields(value)
@@ -353,7 +355,7 @@ class VolumeSource(RenderSource, abc.ABC):
         """Whether or not the field rendering is computed in log space"""
         return self._log_field
 
-    @log_field.setter  # type: ignore
+    @log_field.setter
     @invalidate_volume
     def log_field(self, value):
         self.transfer_function = None
@@ -366,7 +368,7 @@ class VolumeSource(RenderSource, abc.ABC):
         values at grid boundaries"""
         return self._use_ghost_zones
 
-    @use_ghost_zones.setter  # type: ignore
+    @use_ghost_zones.setter
     @invalidate_volume
     def use_ghost_zones(self, value):
         self._use_ghost_zones = value
@@ -379,7 +381,7 @@ class VolumeSource(RenderSource, abc.ABC):
         """
         return self._weight_field
 
-    @weight_field.setter  # type: ignore
+    @weight_field.setter
     @invalidate_volume
     def weight_field(self, value):
         self._weight_field = value
@@ -1285,7 +1287,6 @@ class BoxSource(LineSource):
     """
 
     def __init__(self, left_edge, right_edge, color=None):
-
         assert left_edge.shape == (3,)
         assert right_edge.shape == (3,)
 
@@ -1438,6 +1439,8 @@ class CoordinateVectorSource(OpaqueSource):
         ignored.
     alpha : float, optional
         The opacity of the vectors.
+    thickness : int, optional
+        The line thickness
 
     Examples
     --------
@@ -1457,7 +1460,7 @@ class CoordinateVectorSource(OpaqueSource):
 
     """
 
-    def __init__(self, colors=None, alpha=1.0):
+    def __init__(self, colors=None, alpha=1.0, *, thickness=1):
         super().__init__()
         # If colors aren't individually set, make black with full opacity
         if colors is None:
@@ -1467,6 +1470,7 @@ class CoordinateVectorSource(OpaqueSource):
             colors[2, 2] = 1.0  # z is blue
             colors[:, 3] = alpha
         self.colors = colors
+        self.thick = thickness
 
     def _validate(self):
         pass
@@ -1550,15 +1554,29 @@ class CoordinateVectorSource(OpaqueSource):
         py = py.astype("int64")
 
         if len(px.shape) == 1:
-            zlines(empty, z, px, py, dz, self.colors.astype("float64"))
+            zlines(
+                empty, z, px, py, dz, self.colors.astype("float64"), thick=self.thick
+            )
         else:
             # For stereo-lens, two sets of pos for each eye are contained
             # in px...pz
             zlines(
-                empty, z, px[0, :], py[0, :], dz[0, :], self.colors.astype("float64")
+                empty,
+                z,
+                px[0, :],
+                py[0, :],
+                dz[0, :],
+                self.colors.astype("float64"),
+                thick=self.thick,
             )
             zlines(
-                empty, z, px[1, :], py[1, :], dz[1, :], self.colors.astype("float64")
+                empty,
+                z,
+                px[1, :],
+                py[1, :],
+                dz[1, :],
+                self.colors.astype("float64"),
+                thick=self.thick,
             )
 
         # Set the new zbuffer

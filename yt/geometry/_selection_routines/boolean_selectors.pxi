@@ -15,7 +15,7 @@ cdef class BooleanSelector(SelectorObject):
 
 cdef class BooleanANDSelector(BooleanSelector):
     cdef int select_bbox(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3]) nogil:
+                               np.float64_t right_edge[3]) noexcept nogil:
         cdef int rv1 = self.sel1.select_bbox(left_edge, right_edge)
         if rv1 == 0: return 0
         cdef int rv2 = self.sel2.select_bbox(left_edge, right_edge)
@@ -23,7 +23,7 @@ cdef class BooleanANDSelector(BooleanSelector):
         return 1
 
     cdef int select_bbox_edge(self, np.float64_t left_edge[3],
-                              np.float64_t right_edge[3]) nogil:
+                              np.float64_t right_edge[3]) noexcept nogil:
         cdef int rv1 = self.sel1.select_bbox_edge(left_edge, right_edge)
         if rv1 == 0: return 0
         cdef int rv2 = self.sel2.select_bbox_edge(left_edge, right_edge)
@@ -32,28 +32,28 @@ cdef class BooleanANDSelector(BooleanSelector):
 
     cdef int select_grid(self, np.float64_t left_edge[3],
                          np.float64_t right_edge[3], np.int32_t level,
-                         Oct *o = NULL) nogil:
+                         Oct *o = NULL) noexcept nogil:
         cdef int rv1 = self.sel1.select_grid(left_edge, right_edge, level, o)
         if rv1 == 0: return 0
         cdef int rv2 = self.sel2.select_grid(left_edge, right_edge, level, o)
         if rv2 == 0: return 0
         return 1
 
-    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) noexcept nogil:
         cdef int rv1 = self.sel1.select_cell(pos, dds)
         if rv1 == 0: return 0
         cdef int rv2 = self.sel2.select_cell(pos, dds)
         if rv2 == 0: return 0
         return 1
 
-    cdef int select_point(self, np.float64_t pos[3]) nogil:
+    cdef int select_point(self, np.float64_t pos[3]) noexcept nogil:
         cdef int rv1 = self.sel1.select_point(pos)
         if rv1 == 0: return 0
         cdef int rv2 = self.sel2.select_point(pos)
         if rv2 == 0: return 0
         return 1
 
-    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) noexcept nogil:
         cdef int rv1 = self.sel1.select_sphere(pos, radius)
         if rv1 == 0: return 0
         cdef int rv2 = self.sel2.select_sphere(pos, radius)
@@ -67,7 +67,7 @@ cdef class BooleanANDSelector(BooleanSelector):
 
 cdef class BooleanORSelector(BooleanSelector):
     cdef int select_bbox(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3]) nogil:
+                               np.float64_t right_edge[3]) noexcept nogil:
         cdef int rv1 = self.sel1.select_bbox(left_edge, right_edge)
         if rv1 == 1: return 1
         cdef int rv2 = self.sel2.select_bbox(left_edge, right_edge)
@@ -75,7 +75,7 @@ cdef class BooleanORSelector(BooleanSelector):
         return 0
 
     cdef int select_bbox_edge(self, np.float64_t left_edge[3],
-                              np.float64_t right_edge[3]) nogil:
+                              np.float64_t right_edge[3]) noexcept nogil:
         cdef int rv1 = self.sel1.select_bbox_edge(left_edge, right_edge)
         if rv1 == 1: return 1
         cdef int rv2 = self.sel2.select_bbox_edge(left_edge, right_edge)
@@ -84,7 +84,7 @@ cdef class BooleanORSelector(BooleanSelector):
 
     cdef int select_grid(self, np.float64_t left_edge[3],
                          np.float64_t right_edge[3], np.int32_t level,
-                         Oct *o = NULL) nogil:
+                         Oct *o = NULL) noexcept nogil:
         cdef int rv1 = self.sel1.select_grid(left_edge, right_edge, level, o)
         if rv1 == 1: return 1
         cdef int rv2 = self.sel2.select_grid(left_edge, right_edge, level, o)
@@ -92,21 +92,21 @@ cdef class BooleanORSelector(BooleanSelector):
         if (rv1 == 2) or (rv2 == 2): return 2
         return 0
 
-    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) noexcept nogil:
         cdef int rv1 = self.sel1.select_cell(pos, dds)
         if rv1 == 1: return 1
         cdef int rv2 = self.sel2.select_cell(pos, dds)
         if rv2 == 1: return 1
         return 0
 
-    cdef int select_point(self, np.float64_t pos[3]) nogil:
+    cdef int select_point(self, np.float64_t pos[3]) noexcept nogil:
         cdef int rv1 = self.sel1.select_point(pos)
         if rv1 == 1: return 1
         cdef int rv2 = self.sel2.select_point(pos)
         if rv2 == 1: return 1
         return 0
 
-    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) noexcept nogil:
         cdef int rv1 = self.sel1.select_sphere(pos, radius)
         if rv1 == 1: return 1
         cdef int rv2 = self.sel2.select_sphere(pos, radius)
@@ -120,13 +120,13 @@ cdef class BooleanORSelector(BooleanSelector):
 
 cdef class BooleanNOTSelector(BooleanSelector):
     cdef int select_bbox(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3]) nogil:
+                               np.float64_t right_edge[3]) noexcept nogil:
         # We always return True here, because we don't have a "fully included"
         # check anywhere else.
         return 1
 
     cdef int select_bbox_edge(self, np.float64_t left_edge[3],
-                              np.float64_t right_edge[3]) nogil:
+                              np.float64_t right_edge[3]) noexcept nogil:
         cdef int rv1 = self.sel1.select_bbox_edge(left_edge, right_edge)
         if rv1 == 0: return 1
         elif rv1 == 1: return 0
@@ -134,20 +134,20 @@ cdef class BooleanNOTSelector(BooleanSelector):
 
     cdef int select_grid(self, np.float64_t left_edge[3],
                          np.float64_t right_edge[3], np.int32_t level,
-                         Oct *o = NULL) nogil:
+                         Oct *o = NULL) noexcept nogil:
         return 1
 
-    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) noexcept nogil:
         cdef int rv1 = self.sel1.select_cell(pos, dds)
         if rv1 == 0: return 1
         return 0
 
-    cdef int select_point(self, np.float64_t pos[3]) nogil:
+    cdef int select_point(self, np.float64_t pos[3]) noexcept nogil:
         cdef int rv1 = self.sel1.select_point(pos)
         if rv1 == 0: return 1
         return 0
 
-    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) noexcept nogil:
         cdef int rv1 = self.sel1.select_sphere(pos, radius)
         if rv1 == 0: return 1
         return 0
@@ -159,13 +159,13 @@ cdef class BooleanNOTSelector(BooleanSelector):
 cdef class BooleanXORSelector(BooleanSelector):
 
     cdef int select_bbox(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3]) nogil:
+                               np.float64_t right_edge[3]) noexcept nogil:
         # We always return True here, because we don't have a "fully included"
         # check anywhere else.
         return 1
 
     cdef int select_bbox_edge(self, np.float64_t left_edge[3],
-                              np.float64_t right_edge[3]) nogil:
+                              np.float64_t right_edge[3]) noexcept nogil:
         # Return 2 in cases where one or both selectors partially overlap since
         # part of the bounding box could satisfy the condition unless the
         # selectors are identical.
@@ -184,22 +184,22 @@ cdef class BooleanXORSelector(BooleanSelector):
 
     cdef int select_grid(self, np.float64_t left_edge[3],
                          np.float64_t right_edge[3], np.int32_t level,
-                         Oct *o = NULL) nogil:
+                         Oct *o = NULL) noexcept nogil:
         return 1
 
-    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) noexcept nogil:
         cdef int rv1 = self.sel1.select_cell(pos, dds)
         cdef int rv2 = self.sel2.select_cell(pos, dds)
         if rv1 == rv2: return 0
         return 1
 
-    cdef int select_point(self, np.float64_t pos[3]) nogil:
+    cdef int select_point(self, np.float64_t pos[3]) noexcept nogil:
         cdef int rv1 = self.sel1.select_point(pos)
         cdef int rv2 = self.sel2.select_point(pos)
         if rv1 == rv2: return 0
         return 1
 
-    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) noexcept nogil:
         cdef int rv1 = self.sel1.select_sphere(pos, radius)
         cdef int rv2 = self.sel2.select_sphere(pos, radius)
         if rv1 == rv2: return 0
@@ -213,13 +213,13 @@ cdef class BooleanXORSelector(BooleanSelector):
 cdef class BooleanNEGSelector(BooleanSelector):
 
     cdef int select_bbox(self, np.float64_t left_edge[3],
-                         np.float64_t right_edge[3]) nogil:
+                         np.float64_t right_edge[3]) noexcept nogil:
         # We always return True here, because we don't have a "fully included"
         # check anywhere else.
         return self.sel1.select_bbox(left_edge, right_edge)
 
     cdef int select_bbox_edge(self, np.float64_t left_edge[3],
-                              np.float64_t right_edge[3]) nogil:
+                              np.float64_t right_edge[3]) noexcept nogil:
         cdef int rv1 = self.sel1.select_bbox_edge(left_edge, right_edge)
         if rv1 == 0: return 0
         cdef int rv2 = self.sel2.select_bbox_edge(left_edge, right_edge)
@@ -234,24 +234,24 @@ cdef class BooleanNEGSelector(BooleanSelector):
 
     cdef int select_grid(self, np.float64_t left_edge[3],
                          np.float64_t right_edge[3], np.int32_t level,
-                         Oct *o = NULL) nogil:
+                         Oct *o = NULL) noexcept nogil:
         return self.sel1.select_grid(left_edge, right_edge, level, o)
 
-    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) noexcept nogil:
         cdef int rv1 = self.sel1.select_cell(pos, dds)
         if rv1 == 0: return 0
         cdef int rv2 = self.sel2.select_cell(pos, dds)
         if rv2 == 1: return 0
         return 1
 
-    cdef int select_point(self, np.float64_t pos[3]) nogil:
+    cdef int select_point(self, np.float64_t pos[3]) noexcept nogil:
         cdef int rv1 = self.sel1.select_point(pos)
         if rv1 == 0: return 0
         cdef int rv2 = self.sel2.select_point(pos)
         if rv2 == 1: return 0
         return 1
 
-    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) noexcept nogil:
         cdef int rv1 = self.sel1.select_sphere(pos, radius)
         if rv1 == 0: return 0
         cdef int rv2 = self.sel2.select_sphere(pos, radius)
@@ -278,7 +278,7 @@ cdef class ChainedBooleanANDSelector(ChainedBooleanSelector):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef int select_bbox(self, np.float64_t left_edge[3],
-                         np.float64_t right_edge[3]) nogil:
+                         np.float64_t right_edge[3]) noexcept nogil:
         with gil:
             for i in range(self.n_obj):
                 if (<SelectorObject>self.selectors[i]).select_bbox(
@@ -290,7 +290,7 @@ cdef class ChainedBooleanANDSelector(ChainedBooleanSelector):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef int select_bbox_edge(self, np.float64_t left_edge[3],
-                              np.float64_t right_edge[3]) nogil:
+                              np.float64_t right_edge[3]) noexcept nogil:
         cdef int selected = 1
         cdef int ret
         with gil:
@@ -308,7 +308,7 @@ cdef class ChainedBooleanANDSelector(ChainedBooleanSelector):
     @cython.wraparound(False)
     cdef int select_grid(self, np.float64_t left_edge[3],
                          np.float64_t right_edge[3], np.int32_t level,
-                         Oct *o = NULL) nogil:
+                         Oct *o = NULL) noexcept nogil:
         with gil:
             for i in range(self.n_obj):
                 if (<SelectorObject>self.selectors[i]).select_grid(
@@ -319,7 +319,7 @@ cdef class ChainedBooleanANDSelector(ChainedBooleanSelector):
     @cython.cdivision(True)
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) noexcept nogil:
         with gil:
             for i in range(self.n_obj):
                 if (<SelectorObject>self.selectors[i]).select_cell(
@@ -330,7 +330,7 @@ cdef class ChainedBooleanANDSelector(ChainedBooleanSelector):
     @cython.cdivision(True)
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef int select_point(self, np.float64_t pos[3]) nogil:
+    cdef int select_point(self, np.float64_t pos[3]) noexcept nogil:
         with gil:
             for i in range(self.n_obj):
                 if (<SelectorObject>self.selectors[i]).select_point(pos) == 0:
@@ -340,7 +340,7 @@ cdef class ChainedBooleanANDSelector(ChainedBooleanSelector):
     @cython.cdivision(True)
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) noexcept nogil:
         with gil:
             for i in range(self.n_obj):
                 if (<SelectorObject>self.selectors[i]).select_sphere(
@@ -361,7 +361,7 @@ cdef class ChainedBooleanORSelector(ChainedBooleanSelector):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef int select_bbox(self, np.float64_t left_edge[3],
-                         np.float64_t right_edge[3]) nogil:
+                         np.float64_t right_edge[3]) noexcept nogil:
         with gil:
             for i in range(self.n_obj):
                 if (<SelectorObject>self.selectors[i]).select_bbox(
@@ -373,7 +373,7 @@ cdef class ChainedBooleanORSelector(ChainedBooleanSelector):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef int select_bbox_edge(self, np.float64_t left_edge[3],
-                         np.float64_t right_edge[3]) nogil:
+                         np.float64_t right_edge[3]) noexcept nogil:
         cdef int selected = 0
         cdef int ret
         with gil:
@@ -391,7 +391,7 @@ cdef class ChainedBooleanORSelector(ChainedBooleanSelector):
     @cython.wraparound(False)
     cdef int select_grid(self, np.float64_t left_edge[3],
                          np.float64_t right_edge[3], np.int32_t level,
-                         Oct *o = NULL) nogil:
+                         Oct *o = NULL) noexcept nogil:
         with gil:
             for i in range(self.n_obj):
                 if (<SelectorObject>self.selectors[i]).select_grid(
@@ -402,7 +402,7 @@ cdef class ChainedBooleanORSelector(ChainedBooleanSelector):
     @cython.cdivision(True)
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) noexcept nogil:
         with gil:
             for i in range(self.n_obj):
                 if (<SelectorObject>self.selectors[i]).select_cell(
@@ -413,7 +413,7 @@ cdef class ChainedBooleanORSelector(ChainedBooleanSelector):
     @cython.cdivision(True)
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef int select_point(self, np.float64_t pos[3]) nogil:
+    cdef int select_point(self, np.float64_t pos[3]) noexcept nogil:
         with gil:
             for i in range(self.n_obj):
                 if (<SelectorObject>self.selectors[i]).select_point(pos) == 1:
@@ -423,7 +423,7 @@ cdef class ChainedBooleanORSelector(ChainedBooleanSelector):
     @cython.cdivision(True)
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) noexcept nogil:
         with gil:
             for i in range(self.n_obj):
                 if (<SelectorObject>self.selectors[i]).select_sphere(

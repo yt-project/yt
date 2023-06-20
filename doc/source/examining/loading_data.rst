@@ -76,7 +76,7 @@ Simple HDF5 Data
 Using the function :func:`yt.loaders.load_hdf5_file`, you can load a generic
 set of fields from an HDF5 file and have a fully-operational yt dataset.  For
 instance, in the yt sample data repository, we have the `UniGrid
-Data<https://yt-project.org/data/UnigridData.tar.gz>`_ dataset (~1.6GB).  This dataset includes the file ``turb_vels.h5`` with this structure:
+Data <https://yt-project.org/data/UnigridData.tar.gz>`_ dataset (~1.6GB).  This dataset includes the file ``turb_vels.h5`` with this structure:
 
 .. code-block:: bash
 
@@ -1232,7 +1232,7 @@ and add them to the field registry for the dataset ``ds``.
 This function takes a `ds9 <http://ds9.si.edu/site/Home.html>`_ region and
 creates a "cut region" data container from it, that can be used to select
 the cells in the FITS dataset that fall within the region. To use this
-functionality, the `pyregion <https://github.com/astropy/pyregion/>`_
+functionality, the `regions <https://github.com/astropy/regions/>`_
 package must be installed.
 
 .. code-block:: python
@@ -2144,7 +2144,7 @@ The in-memory dataset can then be visualized as usual, e.g.:
 
 .. code-block:: python
 
-    sl = yt.SlicePlot(ds, "z", "test")
+    sl = yt.SlicePlot(ds, "z", ("connect1", "test"))
     sl.annotate_mesh_lines()
 
 Note that load_unstructured_mesh can take either a single mesh or a list of meshes.
@@ -3237,7 +3237,7 @@ Cf/Radial is a CF compliant netCDF convention for radial data from radar and
 lidar platforms that supports both airborne and ground-based sensors. Because
 of its CF-compliance, CfRadial will allow researchers familiar with CF to read
 the data into a wide variety of analysis tools, models etc. For more see:
-https://www.eol.ucar.edu/system/files/CfRadialDoc.v1.4.20160801.pdf
+[CfRadialDoc.v1.4.20160801.pdf](https://github.com/NCAR/CfRadial/blob/d4562a995d0589cea41f4f6a4165728077c9fc9b/docs/CfRadialDoc.v1.4.20160801.pdf)
 
 yt provides support for loading cartesian-gridded CfRadial netcdf-4 files as
 well as polar coordinate Cfradial netcdf-4 files. When loading a standard
@@ -3259,7 +3259,7 @@ When you load a CfRadial dataset in polar coordinates (elevation, azimuth and
 range), yt will first build a sample by mapping the data onto a cartesian grid
 using the Python-ARM Radar Toolkit (`pyart <https://github.com/ARM-DOE/pyart>`_).
 Grid points are found by interpolation of all data points within a specified radius of influence.
-This data, now in x, y, z coordiante domain is then saved as a new dataset and subsequent
+This data, now in x, y, z coordinate domain is then saved as a new dataset and subsequent
 loads of the original native CfRadial dataset will use the gridded file.
 Mapping the data from spherical to Cartesian coordinates is useful for 3D volume
 rendering the data using yt.

@@ -1,7 +1,7 @@
 import numpy as np
+from numpy.testing import assert_raises
 
 from yt import ProjectionPlot, load_amr_grids
-from yt.testing import assert_raises
 from yt.utilities.exceptions import YTIllDefinedAMR, YTIntDomainOverflow
 
 
@@ -56,18 +56,18 @@ def test_refine_by():
 def test_validation():
     dims = np.array([4, 2, 4])
     grid_data = [
-        dict(
-            left_edge=[0.0, 0.0, 0.0],
-            right_edge=[1.0, 1.0, 1.0],
-            level=0,
-            dimensions=dims,
-        ),
-        dict(
-            left_edge=[0.25, 0.25, 0.25],
-            right_edge=[0.75, 0.75, 0.75],
-            level=1,
-            dimensions=dims,
-        ),
+        {
+            "left_edge": [0.0, 0.0, 0.0],
+            "right_edge": [1.0, 1.0, 1.0],
+            "level": 0,
+            "dimensions": dims,
+        },
+        {
+            "left_edge": [0.25, 0.25, 0.25],
+            "right_edge": [0.75, 0.75, 0.75],
+            "level": 1,
+            "dimensions": dims,
+        },
     ]
     bbox = np.array([[0, 1], [0, 1], [0, 1]])
 

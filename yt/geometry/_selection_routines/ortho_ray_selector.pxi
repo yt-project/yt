@@ -59,7 +59,7 @@ cdef class OrthoRaySelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) noexcept nogil:
         if self.px >= pos[self.px_ax] - 0.5*dds[self.px_ax] and \
            self.px <  pos[self.px_ax] + 0.5*dds[self.px_ax] and \
            self.py >= pos[self.py_ax] - 0.5*dds[self.py_ax] and \
@@ -67,14 +67,14 @@ cdef class OrthoRaySelector(SelectorObject):
             return 1
         return 0
 
-    cdef int select_point(self, np.float64_t pos[3]) nogil:
+    cdef int select_point(self, np.float64_t pos[3]) noexcept nogil:
         # two 0-volume constructs don't intersect
         return 0
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) noexcept nogil:
         cdef np.float64_t dx = self.periodic_difference(
             pos[self.px_ax], self.px, self.px_ax)
         cdef np.float64_t dy = self.periodic_difference(
@@ -87,7 +87,7 @@ cdef class OrthoRaySelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_bbox(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3]) nogil:
+                               np.float64_t right_edge[3]) noexcept nogil:
         if left_edge[self.px_ax] <= self.px < right_edge[self.px_ax] and \
            left_edge[self.py_ax] <= self.py < right_edge[self.py_ax] :
             return 1
@@ -97,7 +97,7 @@ cdef class OrthoRaySelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_bbox_edge(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3]) nogil:
+                               np.float64_t right_edge[3]) noexcept nogil:
         if left_edge[self.px_ax] <= self.px < right_edge[self.px_ax] and \
            left_edge[self.py_ax] <= self.py < right_edge[self.py_ax] :
             return 2 # a box of non-zero volume can't be inside a ray

@@ -249,7 +249,6 @@ class Scene:
         return [s for s in self.sources.values() if isinstance(s, RenderSource)]
 
     def _setup_save(self, fname, render) -> str:
-
         self._render_on_demand(render)
 
         rensources = self._get_render_sources()
@@ -491,7 +490,7 @@ class Scene:
                 if len(t) == 3:
                     opt = t[2]
                 else:
-                    opt = dict()
+                    opt = {}
 
                 # sane default
                 if "color" not in opt:
@@ -830,7 +829,7 @@ class Scene:
                 source.annotate_mesh_lines(color=color, alpha=alpha)
         return self
 
-    def annotate_axes(self, colors=None, alpha=1.0):
+    def annotate_axes(self, colors=None, alpha=1.0, *, thickness=1):
         r"""
 
         Modifies this scene by drawing the coordinate axes.
@@ -846,6 +845,8 @@ class Scene:
             ``alpha`` is ignored.
         alpha : float, optional
             The opacity of the vectors.
+        thickness : int, optional
+            The line thickness
 
         Examples
         --------
@@ -858,7 +859,7 @@ class Scene:
         >>> im = sc.render()
 
         """
-        coords = CoordinateVectorSource(colors, alpha)
+        coords = CoordinateVectorSource(colors, alpha, thickness=thickness)
         self.add_source(coords)
         return self
 

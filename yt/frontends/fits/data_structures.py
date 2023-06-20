@@ -16,6 +16,7 @@ from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.fields.field_info_container import FieldInfoContainer
 from yt.funcs import mylog, setdefaultattr
+from yt.geometry.api import Geometry
 from yt.geometry.geometry_handler import YTDataChunk
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.units import dimensions
@@ -55,7 +56,6 @@ class FITSGrid(AMRGridPatch):
 
 
 class FITSHierarchy(GridIndex):
-
     grid = FITSGrid
 
     def __init__(self, ds, dataset_type="fits"):
@@ -333,7 +333,6 @@ class FITSDataset(Dataset):
         units_override=None,
         unit_system="cgs",
     ):
-
         if parameters is None:
             parameters = {}
         parameters["nprocs"] = nprocs
@@ -435,14 +434,13 @@ class FITSDataset(Dataset):
             return super().unique_identifier
 
     def _parse_parameter_file(self):
-
         self._determine_structure()
         self._determine_axes()
 
         # Determine dimensionality
 
         self.dimensionality = self.naxis
-        self.geometry = "cartesian"
+        self.geometry = Geometry.CARTESIAN
 
         # Sometimes a FITS file has a 4D datacube, in which case
         # we take the 4th axis and assume it consists of different fields.
@@ -511,7 +509,7 @@ class FITSDataset(Dataset):
             self.wcs.wcs.cdelt = wcs.wcs.cdelt[:3]
             self.wcs.wcs.crval = wcs.wcs.crval[:3]
             self.wcs.wcs.cunit = [str(unit) for unit in wcs.wcs.cunit][:3]
-            self.wcs.wcs.ctype = [type for type in wcs.wcs.ctype][:3]
+            self.wcs.wcs.ctype = list(wcs.wcs.ctype)[:3]
         else:
             self.wcs = wcs
 
@@ -670,7 +668,7 @@ class SkyDataFITSDataset(FITSDataset):
 
         end = min(self.dimensionality + 1, 4)
 
-        self.geometry = "spectral_cube"
+        self.geometry = Geometry.SPECTRAL_CUBE
 
         log_str = "Detected these axes: " + "%s " * len(self.ctypes)
         mylog.info(log_str, *self.ctypes)
@@ -774,7 +772,7 @@ class SpectralCubeFITSDataset(SkyDataFITSDataset):
     def _parse_parameter_file(self):
         super()._parse_parameter_file()
 
-        self.geometry = "spectral_cube"
+        self.geometry = Geometry.SPECTRAL_CUBE
 
         end = min(self.dimensionality + 1, 4)
 

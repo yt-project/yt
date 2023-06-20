@@ -1,5 +1,4 @@
 from yt.fields.field_info_container import FieldInfoContainer
-from yt.fields.magnetic_field import setup_magnetic_field_aliases
 from yt.fields.species_fields import add_species_field_by_fraction, setup_species_fields
 from yt.frontends.gadget.api import GadgetFieldInfo
 from yt.utilities.chemical_formulas import ChemicalFormula
@@ -53,15 +52,17 @@ class ArepoFieldInfo(GadgetFieldInfo):
             setup_species_fields(self, ptype)
 
     def setup_gas_particle_fields(self, ptype):
+        from yt.fields.magnetic_field import setup_magnetic_field_aliases
+
         super().setup_gas_particle_fields(ptype)
 
         # Since the AREPO gas "particles" are Voronoi cells, we can
         # define a volume here
         def _volume(field, data):
-            return data[ptype, "mass"] / data[ptype, "density"]
+            return data["gas", "mass"] / data["gas", "density"]
 
         self.add_field(
-            (ptype, "cell_volume"),
+            ("gas", "cell_volume"),
             function=_volume,
             sampling_type="local",
             units=self.ds.unit_system["volume"],
@@ -77,20 +78,15 @@ class ArepoFieldInfo(GadgetFieldInfo):
                 )
 
             self.add_field(
-                (ptype, "pressure"),
+                ("gas", "pressure"),
                 function=_pressure,
-                sampling_type="particle",
+                sampling_type="local",
                 units=self.ds.unit_system["pressure"],
             )
 
-            self.alias((ptype, "pressure"), ("gas", "pressure"))
-
         if (ptype, "GFM_Metals_00") in self.field_list:
             self.nuclei_names = metal_elements
-            self.species_names = ["H"]
-            if (ptype, "NeutralHydrogenAbundance") in self.field_list:
-                self.species_names += ["H_p0", "H_p1"]
-            self.species_names += metal_elements
+            self.species_names = ["H"] + metal_elements
 
         if (ptype, "MagneticField") in self.field_list:
             setup_magnetic_field_aliases(self, ptype, "MagneticField")
@@ -130,18 +126,27 @@ class ArepoFieldInfo(GadgetFieldInfo):
                     field = f"{species}{suf}"
                     self.alias(("gas", field), (ptype, field))
 
-            self.alias(("gas", "H_nuclei_density"), ("gas", "H_number_density"))
-
         if (ptype, "ElectronAbundance") in self.field_list:
-
-            # If we have ElectronAbundance but not NeutralHydrogenAbundance, assume the
+            # If we have ElectronAbundance but not NeutralHydrogenAbundance,
+            # try first to use the H_fraction, but otherwise we assume the
             # cosmic value for hydrogen to generate the H_number_density
             if (ptype, "NeutralHydrogenAbundance") not in self.field_list:
-                amu_cgs = self.ds.units.physical_constants.amu_cgs
-                muinv = _primordial_mass_fraction["H"] / ChemicalFormula("H").weight
+                m_u = self.ds.units.physical_constants.amu_cgs
+                A_H = ChemicalFormula("H").weight
+                if (ptype, "GFM_Metals_00") in self.field_list:
 
-                def _h_number_density(field, data):
-                    return data["gas", "density"] * muinv / amu_cgs
+                    def _h_number_density(field, data):
+                        return (
+                            data["gas", "density"]
+                            * data["gas", "H_fraction"]
+                            / (A_H * m_u)
+                        )
+
+                else:
+                    X_H = _primordial_mass_fraction["H"]
+
+                    def _h_number_density(field, data):
+                        return data["gas", "density"] * X_H / (A_H * m_u)
 
                 self.add_field(
                     (ptype, "H_number_density"),
@@ -166,7 +171,6 @@ class ArepoFieldInfo(GadgetFieldInfo):
             self.alias(("gas", "El_number_density"), (ptype, "El_number_density"))
 
         if (ptype, "CosmicRaySpecificEnergy") in self.field_list:
-
             self.alias(
                 (ptype, "specific_cosmic_ray_energy"),
                 ("gas", "specific_cosmic_ray_energy"),

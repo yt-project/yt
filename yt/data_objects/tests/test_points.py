@@ -1,7 +1,8 @@
 import numpy as np
+from numpy.testing import assert_equal
 
 import yt
-from yt.testing import assert_equal, fake_random_ds
+from yt.testing import fake_random_ds
 
 
 def setup():

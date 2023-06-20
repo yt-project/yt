@@ -26,13 +26,12 @@ energy density spectrum).
 
 
 def doit(ds):
-
     # a FFT operates on uniformly gridded data.  We'll use the yt
     # covering grid for this.
 
     max_level = ds.index.max_level
 
-    ref = int(np.product(ds.ref_factors[0:max_level]))
+    ref = int(np.prod(ds.ref_factors[0:max_level]))
 
     low = ds.domain_left_edge
     dims = ds.domain_dimensions * ref
@@ -44,7 +43,6 @@ def doit(ds):
     Kk = np.zeros((nx // 2 + 1, ny // 2 + 1, nz // 2 + 1))
 
     for vel in [("gas", "velocity_x"), ("gas", "velocity_y"), ("gas", "velocity_z")]:
-
         Kk += 0.5 * fft_comp(
             ds, ("gas", "density"), vel, nindex_rho, max_level, low, dims
         )
@@ -92,7 +90,6 @@ def doit(ds):
 
 
 def fft_comp(ds, irho, iu, nindex_rho, level, low, delta):
-
     cube = ds.covering_grid(level, left_edge=low, dims=delta, fields=[irho, iu])
 
     rho = cube[irho].d

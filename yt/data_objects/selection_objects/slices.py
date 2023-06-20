@@ -104,7 +104,7 @@ class YTSlice(YTSelectionContainer2D):
     def _mrep(self):
         return MinimalSliceData(self)
 
-    def to_pw(self, fields=None, center="c", width=None, origin="center-window"):
+    def to_pw(self, fields=None, center="center", width=None, origin="center-window"):
         r"""Create a :class:`~yt.visualization.plot_window.PWViewerMPL` from this
         object.
 
@@ -212,7 +212,7 @@ class YTCuttingPlane(YTSelectionContainer2D):
         validate_object(ds, Dataset)
         validate_object(field_parameters, dict)
         validate_object(data_source, YTSelectionContainer)
-        YTSelectionContainer2D.__init__(self, 4, ds, field_parameters, data_source)
+        YTSelectionContainer2D.__init__(self, None, ds, field_parameters, data_source)
         self._set_center(center)
         self.set_field_parameter("center", center)
         # Let's set up our plane equation
@@ -275,7 +275,7 @@ class YTCuttingPlane(YTSelectionContainer2D):
         else:
             raise KeyError(field)
 
-    def to_pw(self, fields=None, center="c", width=None, axes_unit=None):
+    def to_pw(self, fields=None, center="center", width=None, axes_unit=None):
         r"""Create a :class:`~yt.visualization.plot_window.PWViewerMPL` from this
         object.
 

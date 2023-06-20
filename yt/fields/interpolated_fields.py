@@ -23,7 +23,6 @@ def add_interpolated_field(
     validators=None,
     truncate=True,
 ):
-
     if len(table_data.shape) not in _int_class:
         raise RuntimeError(
             "Interpolated field can only be created from 1d, 2d, or 3d data."

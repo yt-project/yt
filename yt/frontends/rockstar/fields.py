@@ -8,7 +8,6 @@ r_units = "kpccm / h"  # kpc / h comoving
 
 
 class RockstarFieldInfo(FieldInfoContainer):
-
     known_particle_fields: KnownFieldsT = (
         ("particle_identifier", ("", [], None)),
         ("particle_position_x", (p_units, [], None)),

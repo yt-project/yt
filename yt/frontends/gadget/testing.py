@@ -53,7 +53,6 @@ def fake_gadget_binary(
     with open(filename, "wb") as fp:
         # Generate and write header blocks
         for i_header, header_spec in enumerate(header.spec):
-
             specs = []
             for name, dim, dtype in header_spec:
                 # workaround a FutureWarning in numpy where np.dtype(name, type, 1)

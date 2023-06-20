@@ -10,6 +10,7 @@ plot.set_zlim(("gas", "density"), 8e-29, 3e-26)
 
 fig = plot.plots[("gas", "density")].figure
 
+
 # animate must accept an integer frame number. We use the frame number
 # to identify which dataset in the time series we want to load
 def animate(i):

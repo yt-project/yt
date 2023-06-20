@@ -1,18 +1,21 @@
 import numpy as np
-
-from yt import load
-from yt.frontends.stream.fields import StreamFieldInfo
-from yt.testing import (
-    assert_allclose_units,
+from numpy.testing import (
     assert_almost_equal,
     assert_array_almost_equal_nulp,
     assert_array_equal,
     assert_equal,
     assert_raises,
+)
+
+from yt import load
+from yt.frontends.stream.fields import StreamFieldInfo
+from yt.testing import (
+    assert_allclose_units,
     fake_amr_ds,
     fake_particle_ds,
     fake_random_ds,
     requires_file,
+    requires_module,
 )
 from yt.units.yt_array import YTArray, YTQuantity, array_like_field
 from yt.utilities.cosmology import Cosmology
@@ -24,20 +27,20 @@ from yt.utilities.exceptions import (
 
 
 def get_params(ds):
-    return dict(
-        axis=0,
-        center=YTArray((0.0, 0.0, 0.0), "cm", registry=ds.unit_registry),
-        bulk_velocity=YTArray((0.0, 0.0, 0.0), "cm/s", registry=ds.unit_registry),
-        bulk_magnetic_field=YTArray((0.0, 0.0, 0.0), "G", registry=ds.unit_registry),
-        normal=YTArray((0.0, 0.0, 1.0), "", registry=ds.unit_registry),
-        cp_x_vec=YTArray((1.0, 0.0, 0.0), "", registry=ds.unit_registry),
-        cp_y_vec=YTArray((0.0, 1.0, 0.0), "", registry=ds.unit_registry),
-        cp_z_vec=YTArray((0.0, 0.0, 1.0), "", registry=ds.unit_registry),
-        omega_baryon=0.04,
-        observer_redshift=0.0,
-        source_redshift=3.0,
-        virial_radius=YTQuantity(1.0, "cm"),
-    )
+    return {
+        "axis": 0,
+        "center": YTArray((0.0, 0.0, 0.0), "cm", registry=ds.unit_registry),
+        "bulk_velocity": YTArray((0.0, 0.0, 0.0), "cm/s", registry=ds.unit_registry),
+        "bulk_magnetic_field": YTArray((0.0, 0.0, 0.0), "G", registry=ds.unit_registry),
+        "normal": YTArray((0.0, 0.0, 1.0), "", registry=ds.unit_registry),
+        "cp_x_vec": YTArray((1.0, 0.0, 0.0), "", registry=ds.unit_registry),
+        "cp_y_vec": YTArray((0.0, 1.0, 0.0), "", registry=ds.unit_registry),
+        "cp_z_vec": YTArray((0.0, 0.0, 1.0), "", registry=ds.unit_registry),
+        "omega_baryon": 0.04,
+        "observer_redshift": 0.0,
+        "source_redshift": 3.0,
+        "virial_radius": YTQuantity(1.0, "cm"),
+    }
 
 
 _base_fields = (
@@ -67,7 +70,7 @@ class TestFieldAccess:
         self.ds = ds
 
     def __call__(self):
-        field = self.ds._get_field_info(*self.field_name)
+        field = self.ds._get_field_info(self.field_name)
         skip_grids = False
         needs_spatial = False
         for v in field.validators:
@@ -412,6 +415,7 @@ def test_array_like_field():
 ISOGAL = "IsolatedGalaxy/galaxy0030/galaxy0030"
 
 
+@requires_module("h5py")
 @requires_file(ISOGAL)
 def test_array_like_field_output_units():
     ds = load(ISOGAL)
@@ -487,14 +491,7 @@ def test_morton_index():
     assert_array_equal(a1, a2)
 
 
-def test_field_inference():
-    ds = fake_random_ds(16)
-    ds.index
-    # If this is not true this means the result of field inference depends
-    # on the order we did field detection, which is random in Python3
-    assert_equal(ds._last_freq, (None, None))
-
-
+@requires_module("h5py")
 @requires_file(ISOGAL)
 def test_deposit_amr():
     ds = load(ISOGAL)

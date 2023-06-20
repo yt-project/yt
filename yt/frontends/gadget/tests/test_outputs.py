@@ -7,7 +7,7 @@ from itertools import product
 import yt
 from yt.frontends.gadget.api import GadgetDataset, GadgetHDF5Dataset
 from yt.frontends.gadget.testing import fake_gadget_binary
-from yt.testing import ParticleSelectionComparison, requires_file
+from yt.testing import ParticleSelectionComparison, requires_file, requires_module
 from yt.utilities.answer_testing.framework import data_dir_load, requires_ds, sph_answer
 
 isothermal_h5 = "IsothermalCollapse/snap_505.hdf5"
@@ -28,9 +28,10 @@ iso_fields = OrderedDict(
         (("gas", "velocity_magnitude"), None),
     ]
 )
-iso_kwargs = dict(bounding_box=[[-3, 3], [-3, 3], [-3, 3]])
+iso_kwargs = {"bounding_box": [[-3, 3], [-3, 3], [-3, 3]]}
 
 
+@requires_module("h5py")
 def test_gadget_binary():
     header_specs = ["default", "default+pad32", ["default", "pad32"]]
     curdir = os.getcwd()
@@ -55,6 +56,7 @@ def test_gadget_binary():
     shutil.rmtree(tmpdir)
 
 
+@requires_module("h5py")
 @requires_file(isothermal_h5)
 def test_gadget_hdf5():
     assert isinstance(
@@ -133,10 +135,10 @@ mag_fields = OrderedDict(
 )
 
 
-mag_kwargs = dict(
-    long_ids=True,
-    field_spec="magneticum_box2_hr",
-)
+mag_kwargs = {
+    "long_ids": True,
+    "field_spec": "magneticum_box2_hr",
+}
 
 
 @requires_ds(magneticum)

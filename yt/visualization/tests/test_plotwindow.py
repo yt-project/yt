@@ -6,17 +6,18 @@ from collections import OrderedDict
 
 import numpy as np
 from matplotlib.colors import LogNorm, Normalize, SymLogNorm
-from nose.tools import assert_true
+from numpy.testing import (
+    assert_array_almost_equal,
+    assert_array_equal,
+    assert_equal,
+    assert_raises,
+)
 from unyt import unyt_array
 
 from yt.loaders import load_uniform_grid
 from yt.testing import (
     assert_allclose_units,
-    assert_array_almost_equal,
-    assert_array_equal,
-    assert_equal,
     assert_fname,
-    assert_raises,
     assert_rel_equal,
     fake_amr_ds,
     fake_random_ds,
@@ -83,13 +84,19 @@ CENTER_SPECS = (
     "M",
     "max",
     "Max",
+    "min",
+    "Min",
     "c",
     "C",
     "center",
     "Center",
+    "left",
+    "right",
     [0.5, 0.5, 0.5],
     [[0.2, 0.3, 0.4], "cm"],
     YTArray([0.3, 0.4, 0.7], "cm"),
+    ("max", ("gas", "density")),
+    ("min", ("gas", "density")),
 )
 
 WIDTH_SPECS = {
@@ -196,7 +203,6 @@ def test_attributes():
 
 
 class TestHideAxesColorbar(unittest.TestCase):
-
     ds = None
 
     def setUp(self):
@@ -232,7 +238,6 @@ class TestHideAxesColorbar(unittest.TestCase):
 
 
 class TestSetWidth(unittest.TestCase):
-
     ds = None
 
     def setUp(self):
@@ -269,7 +274,7 @@ class TestSetWidth(unittest.TestCase):
             [self.slc.xlim, self.slc.ylim, self.slc.width],
             [(0.0, 1.0), (0.0, 1.0), (1.0, 1.0)],
         )
-        assert_true(self.slc._axes_unit_names is None)
+        assert self.slc._axes_unit_names is None
 
     def test_set_width_nonequal(self):
         self.slc.set_width((0.5, 0.8))
@@ -278,22 +283,22 @@ class TestSetWidth(unittest.TestCase):
             [(0.25, 0.75), (0.1, 0.9), (0.5, 0.8)],
             15,
         )
-        assert_true(self.slc._axes_unit_names is None)
+        assert self.slc._axes_unit_names is None
 
     def test_twoargs_eq(self):
         self.slc.set_width(0.5, "cm")
         self._assert_05cm()
-        assert_true(self.slc._axes_unit_names == ("cm", "cm"))
+        assert self.slc._axes_unit_names == ("cm", "cm")
 
     def test_tuple_eq(self):
         self.slc.set_width((0.5, "cm"))
         self._assert_05cm()
-        assert_true(self.slc._axes_unit_names == ("cm", "cm"))
+        assert self.slc._axes_unit_names == ("cm", "cm")
 
     def test_tuple_of_tuples_neq(self):
         self.slc.set_width(((0.5, "cm"), (0.75, "cm")))
         self._assert_05_075cm()
-        assert_true(self.slc._axes_unit_names == ("cm", "cm"))
+        assert self.slc._axes_unit_names == ("cm", "cm")
 
 
 class TestPlotWindowSave(unittest.TestCase):
@@ -384,11 +389,10 @@ class TestPlotWindowSave(unittest.TestCase):
             [assert_array_almost_equal(px, x, 14) for px, x in zip(plot.xlim, xlim)]
             [assert_array_almost_equal(py, y, 14) for py, y in zip(plot.ylim, ylim)]
             [assert_array_almost_equal(pw, w, 14) for pw, w in zip(plot.width, pwidth)]
-            assert_true(aun == plot._axes_unit_names)
+            assert aun == plot._axes_unit_names
 
 
 class TestPerFieldConfig(unittest.TestCase):
-
     ds = None
 
     def setUp(self):
@@ -445,7 +449,6 @@ class TestPerFieldConfig(unittest.TestCase):
         assert_equal(self.proj.frb["gas", "pressure"].units, Unit("dyn/cm"))
 
     def test_scale(self):
-
         assert_equal(
             self.proj.plots["gas", "density"].norm_handler.norm_type, Normalize
         )
@@ -478,7 +481,7 @@ def test_on_off_compare():
     den = np.arange(32**3) / 32**2 + 1
     den = den.reshape(32, 32, 32)
     den = np.array(den, dtype=np.float64)
-    data = dict(density=(den, "g/cm**3"))
+    data = {"density": (den, "g/cm**3")}
     bbox = np.array([[-1.5, 1.5], [-1.5, 1.5], [-1.5, 1.5]])
     ds = load_uniform_grid(data, den.shape, length_unit="Mpc", bbox=bbox, nprocs=64)
 
@@ -611,7 +614,7 @@ def test_set_background_color():
     ds = fake_random_ds(32)
     plot = SlicePlot(ds, 2, ("gas", "density"))
     plot.set_background_color(("gas", "density"), "red")
-    plot._setup_plots()
+    plot.render()
     ax = plot.plots[("gas", "density")].axes
     assert_equal(ax.get_facecolor(), (1.0, 0.0, 0.0, 1.0))
 
@@ -836,7 +839,7 @@ def test_nan_data():
 
 def test_sanitize_valid_normal_vector():
     # note: we don't test against non-cartesian geometries
-    # because the way normal "vectors" work isn't cleary
+    # because the way normal "vectors" work isn't clearly
     # specified and works more as an implementation detail
     # at the moment
     ds = fake_amr_ds(geometry="cartesian")
@@ -912,3 +915,19 @@ def test_invalid_swap_projection():
     slc.set_mpl_projection("Robinson")
     slc.swap_axes()  # should raise mylog.warning and not toggle _swap_axes
     assert slc._has_swapped_axes is False
+
+
+def test_set_font():
+    # simply check that calling the set_font method doesn't raise an error
+    # https://github.com/yt-project/yt/issues/4263
+    ds = fake_amr_ds()
+    slc = SlicePlot(ds, "x", "Density")
+    slc.set_font(
+        {
+            "family": "sans-serif",
+            "style": "italic",
+            "weight": "bold",
+            "size": 24,
+            "color": "blue",
+        }
+    )

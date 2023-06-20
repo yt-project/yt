@@ -27,6 +27,11 @@ class level4(level3):
     pass
 
 
+def test_empty():
+    result = find_lowest_subclasses([])
+    assert len(result) == 0
+
+
 def test_single():
     result = find_lowest_subclasses([level2])
     assert len(result) == 1
@@ -55,3 +60,15 @@ def test_diverging_tree():
     result = find_lowest_subclasses([level1, level2, level3, level1a])
     assert len(result) == 2
     assert level1a in result and level3 in result
+
+
+def test_without_parents():
+    result = find_lowest_subclasses([level1, level3])
+    assert len(result) == 1
+    assert result[0] is level3
+
+
+def test_without_grandparents():
+    result = find_lowest_subclasses([level1, level4])
+    assert len(result) == 1
+    assert result[0] is level4

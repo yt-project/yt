@@ -23,7 +23,8 @@ def convert_ramses_ages(ds, conformal_ages):
             "The `convert_ramses_ages' function is deprecated. It should be replaced "
             "by the `convert_ramses_conformal_time_to_physical_age' function."
         ),
-        since="4.0.2",
+        stacklevel=3,
+        since="4.0.3",
     )
     return convert_ramses_conformal_time_to_physical_age(ds, conformal_ages)
 
@@ -210,7 +211,6 @@ class IOHandlerRAMSES(BaseIOHandler):
 
         # Sequential read depending on particle type
         for ptype in {f[0] for f in fields}:
-
             # Select relevant files
             subs_fields = filter(lambda f, ptype=ptype: f[0] == ptype, fields)
 
@@ -264,7 +264,7 @@ def _read_part_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
         ("tag", "particle_tag"),
     ]
     # Convert to dictionary
-    mapping = {k: v for k, v in mapping_list}
+    mapping = dict(mapping_list)
 
     with open(fname) as f:
         line = f.readline()
@@ -300,7 +300,7 @@ def _read_part_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
     return fields
 
 
-def _read_fluid_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
+def _read_fluid_file_descriptor(fname: Union[str, "os.PathLike[str]"], *, prefix: str):
     """
     Read a file descriptor and returns the array of the fields found.
     """
@@ -323,6 +323,15 @@ def _read_fluid_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
         ("H_p1_fraction", "HII"),
         ("He_p1_fraction", "HeII"),
         ("He_p2_fraction", "HeIII"),
+        # Photon fluxes / densities are stored as `photon_density_XX`, so
+        # only 100 photon bands can be stored with this format. Let's be
+        # conservative and support up to 100 bands.
+        *[(f"photon_density_{i:02d}", f"Photon_density_{i:d}") for i in range(100)],
+        *[
+            (f"photon_flux_{i:02d}_{dim}", f"Photon_flux_{dim}_{i:d}")
+            for i in range(100)
+            for dim in "xyz"
+        ],
     ]
 
     # Add mapping for magnetic fields
@@ -334,7 +343,7 @@ def _read_fluid_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
     ]
 
     # Convert to dictionary
-    mapping = {k: v for k, v in mapping_list}
+    mapping = dict(mapping_list)
 
     with open(fname) as f:
         line = f.readline()
@@ -361,7 +370,7 @@ def _read_fluid_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
                 if varname in mapping:
                     varname = mapping[varname]
                 else:
-                    varname = f"hydro_{varname}"
+                    varname = f"{prefix}_{varname}"
 
                 fields.append((varname, dtype))
         else:

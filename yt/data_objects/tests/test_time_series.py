@@ -1,9 +1,10 @@
 import tempfile
 from pathlib import Path
 
+from numpy.testing import assert_raises
+
 from yt.data_objects.static_output import Dataset
 from yt.data_objects.time_series import DatasetSeries
-from yt.testing import assert_raises
 from yt.utilities.exceptions import YTUnidentifiedDataType
 from yt.utilities.object_registries import output_type_registry
 
@@ -34,7 +35,6 @@ def test_no_match_pattern():
 
 
 def test_init_fake_dataseries():
-
     file_list = [f"fake_data_file_{str(i).zfill(4)}" for i in range(10)]
     with tempfile.TemporaryDirectory() as tmpdir:
         pfile_list = [Path(tmpdir) / file for file in file_list]

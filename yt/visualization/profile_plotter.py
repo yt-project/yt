@@ -8,11 +8,13 @@ import matplotlib
 import numpy as np
 from more_itertools.more import always_iterable, unzip
 
+from yt._typing import FieldKey
 from yt.data_objects.profiles import create_profile, sanitize_field_tuple_keys
 from yt.data_objects.static_output import Dataset
 from yt.frontends.ytdata.data_structures import YTProfileDataset
 from yt.funcs import iter_fields, matplotlib_style_context
 from yt.utilities.exceptions import YTNotInsideNotebook
+from yt.visualization._commons import _get_units_label
 from yt.visualization._handlers import ColorbarHandler, NormHandler
 from yt.visualization.base_plot_types import ImagePlotMPL, PlotMPL
 
@@ -221,7 +223,7 @@ class ProfilePlot(BaseLinePlot):
             ]
 
         if plot_spec is None:
-            plot_spec = [dict() for p in profiles]
+            plot_spec = [{} for p in profiles]
         if not isinstance(plot_spec, list):
             plot_spec = [plot_spec.copy() for p in profiles]
 
@@ -253,10 +255,11 @@ class ProfilePlot(BaseLinePlot):
         obj.x_title = None
         obj.label = sanitize_label(labels, len(obj.profiles))
         if plot_specs is None:
-            plot_specs = [dict() for p in obj.profiles]
+            plot_specs = [{} for p in obj.profiles]
         obj.plot_spec = plot_specs
         obj._xlim = (None, None)
         obj._setup_plots()
+        obj._plot_valid = False  # see https://github.com/yt-project/yt/issues/4489
         return obj
 
     def _get_axrect(self):
@@ -288,7 +291,7 @@ class ProfilePlot(BaseLinePlot):
         # Mypy is hardly convinced that we have a `profiles` attribute
         # at this stage, so we're lasily going to deactivate it locally
         unique = set(self.plots.values())
-        iters: Iterable[Tuple[Union[int, Tuple[str, str]], PlotMPL]]
+        iters: Iterable[Tuple[Union[int, FieldKey], PlotMPL]]
         if len(unique) < len(self.plots):
             iters = enumerate(sorted(unique))
         else:
@@ -722,10 +725,8 @@ class ProfilePlot(BaseLinePlot):
             label = field_name + r"$\rm{\ Probability\ Density}$"
         elif field_unit is None or field_unit == "":
             label = field_name
-        elif r"\frac" in field_unit:
-            label = field_name + r"$\ \ \left(" + field_unit + r"\right)$"
         else:
-            label = field_name + r"$\ \ (" + field_unit + r")$"
+            label = field_name + _get_units_label(field_unit)
         return label
 
     def _get_field_title(self, field_y, profile):
@@ -933,7 +934,6 @@ class PhasePlot(ImagePlotContainer):
         figure_size=8.0,
         shading="nearest",
     ):
-
         data_source = data_object_or_all_data(data_source)
 
         if isinstance(z_fields, tuple):
@@ -978,6 +978,7 @@ class PhasePlot(ImagePlotContainer):
         obj._ylim = (None, None)
         super(PhasePlot, obj).__init__(data_source, figure_size, fontsize)
         obj._setup_plots()
+        obj._plot_valid = False  # see https://github.com/yt-project/yt/issues/4489
         obj._initfinished = True
         return obj
 
@@ -1011,10 +1012,8 @@ class PhasePlot(ImagePlotContainer):
             label = field_name + r"$\rm{\ Probability\ Density}$"
         elif field_unit is None or field_unit == "":
             label = field_name
-        elif r"\frac" in field_unit:
-            label = field_name + r"$\ \ \left(" + field_unit + r"\right)$"
         else:
-            label = field_name + r"$\ \ (" + field_unit + r")$"
+            label = field_name + _get_units_label(field_unit)
         return label
 
     def _get_field_log(self, field_z, profile):
@@ -1048,13 +1047,6 @@ class PhasePlot(ImagePlotContainer):
         if self._plot_valid:
             return
         for f, data in self.profile.items():
-            fig = None
-            axes = None
-            cax = None
-            draw_axes = True
-            xlim = self._xlim
-            ylim = self._ylim
-
             if f in self.plots:
                 pnh = self.plots[f].norm_handler
                 cbh = self.plots[f].colorbar_handler
@@ -1067,6 +1059,10 @@ class PhasePlot(ImagePlotContainer):
                 pnh, cbh = self._get_default_handlers(
                     field=f, default_display_units=self.profile[f].units
                 )
+                fig = None
+                axes = None
+                cax = None
+                draw_axes = True
 
             x_scale, y_scale, z_scale = self._get_field_log(f, self.profile)
             x_title, y_title, z_title = self._get_field_title(f, self.profile)
@@ -1105,8 +1101,8 @@ class PhasePlot(ImagePlotContainer):
             self.plots[f].axes.yaxis.set_label_text(y_title)
             self.plots[f].cax.yaxis.set_label_text(z_title)
 
-            self.plots[f].axes.set_xlim(xlim)
-            self.plots[f].axes.set_ylim(ylim)
+            self.plots[f].axes.set_xlim(self._xlim)
+            self.plots[f].axes.set_ylim(self._ylim)
 
             if f in self._plot_text:
                 self.plots[f].axes.text(
@@ -1559,6 +1555,6 @@ class PhasePlotMPL(ImagePlotMPL):
             shading=self._shading,
         )
 
-        self._set_axes(norm)
+        self._set_axes()
         self.axes.set_xscale(x_scale)
         self.axes.set_yscale(y_scale)

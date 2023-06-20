@@ -2,6 +2,7 @@ import weakref
 from numbers import Real
 from typing import Any, Dict, List, Literal, Optional, Tuple, Type, Union
 
+import matplotlib as mpl
 import numpy as np
 import unyt as un
 from matplotlib.colors import Colormap, LogNorm, Normalize, SymLogNorm
@@ -10,7 +11,6 @@ from unyt import unyt_quantity
 from yt._typing import Quantity, Unit
 from yt.config import ytcfg
 from yt.funcs import get_brewer_cmap, is_sequence, mylog
-from yt.visualization.color_maps import _get_cmap
 
 
 class NormHandler:
@@ -39,6 +39,7 @@ class NormHandler:
         "_linthresh",
         "_norm_type",
         "_norm",
+        "prefer_log",
     )
     _constraint_attrs: List[str] = [
         "vmin",
@@ -70,6 +71,7 @@ class NormHandler:
         self._dynamic_range = dynamic_range
         self._norm_type = norm_type
         self._linthresh = linthresh
+        self.prefer_log = True
 
         if self.has_norm and self.has_constraints:
             raise TypeError(
@@ -285,12 +287,16 @@ class NormHandler:
         dvmin = dvmax = None
 
         finite_values_mask = np.isfinite(data)
-        if self.vmin not in (None, "min"):
+        if self.vmin is not None and not (
+            isinstance(self.vmin, str) and self.vmin == "min"
+        ):
             dvmin = self.to_float(self.vmin)
         elif np.any(finite_values_mask):
             dvmin = self.to_float(np.nanmin(data[finite_values_mask]))
 
-        if self.vmax not in (None, "max"):
+        if self.vmax is not None and not (
+            isinstance(self.vmax, str) and self.vmax == "max"
+        ):
             dvmax = self.to_float(self.vmax)
         elif np.any(finite_values_mask):
             dvmax = self.to_float(np.nanmax(data[finite_values_mask]))
@@ -315,7 +321,11 @@ class NormHandler:
             # allowing to toggle between lin and log scaling without detailed user input
             norm_type = self.norm_type
         else:
-            if kw["vmin"] == kw["vmax"] or not np.any(finite_values_mask):
+            if (
+                not self.prefer_log
+                or kw["vmin"] == kw["vmax"]
+                or not np.any(finite_values_mask)
+            ):
                 norm_type = Normalize
             elif kw["vmin"] <= 0:
                 # note: see issue 3944 (and PRs and issues linked therein) for a
@@ -410,7 +420,7 @@ class ColorbarHandler:
     def draw_cbar(self, newval) -> None:
         if not isinstance(newval, bool):
             raise TypeError(
-                f"Excpected a boolean, got {newval} with type {type(newval)}"
+                f"Expected a boolean, got {newval} with type {type(newval)}"
             )
         self._draw_cbar = newval
 
@@ -422,20 +432,20 @@ class ColorbarHandler:
     def draw_minorticks(self, newval) -> None:
         if not isinstance(newval, bool):
             raise TypeError(
-                f"Excpected a boolean, got {newval} with type {type(newval)}"
+                f"Expected a boolean, got {newval} with type {type(newval)}"
             )
         self._draw_minorticks = newval
 
     @property
     def cmap(self) -> Colormap:
-        return self._cmap or _get_cmap(ytcfg.get("yt", "default_colormap"))
+        return self._cmap or mpl.colormaps[ytcfg.get("yt", "default_colormap")]
 
     @cmap.setter
     def cmap(self, newval) -> None:
         if isinstance(newval, Colormap) or newval is None:
             self._cmap = newval
         elif isinstance(newval, str):
-            self._cmap = _get_cmap(newval)
+            self._cmap = mpl.colormaps[newval]
         elif is_sequence(newval):
             # tuple colormaps are from palettable (or brewer2mpl)
             self._cmap = get_brewer_cmap(newval)

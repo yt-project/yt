@@ -1,9 +1,10 @@
 import weakref
-from typing import List, Tuple
+from typing import List
 
 import numpy as np
 
 import yt.geometry.particle_deposit as particle_deposit
+from yt._typing import FieldKey
 from yt.config import ytcfg
 from yt.data_objects.selection_objects.data_selection_objects import (
     YTSelectionContainer,
@@ -77,7 +78,7 @@ class AMRGridPatch(YTSelectionContainer):
             fields = self._determine_fields(key)
         except YTFieldTypeNotFound:
             return tr
-        finfo = self.ds._get_field_info(*fields[0])
+        finfo = self.ds._get_field_info(fields[0])
         if not finfo.sampling_type == "particle":
             num_nodes = 2 ** sum(finfo.nodal_flag)
             new_shape = list(self.ActiveDimensions)
@@ -269,7 +270,7 @@ class AMRGridPatch(YTSelectionContainer):
 
     def get_vertex_centered_data(
         self,
-        fields: List[Tuple[str, str]],
+        fields: List[FieldKey],
         smoothed: bool = True,
         no_ghost: bool = False,
     ):

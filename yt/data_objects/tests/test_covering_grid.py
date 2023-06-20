@@ -1,11 +1,9 @@
 import numpy as np
+from numpy.testing import assert_almost_equal, assert_array_equal, assert_equal
 
 from yt.fields.derived_field import ValidateParameter
 from yt.loaders import load, load_particles
 from yt.testing import (
-    assert_almost_equal,
-    assert_array_equal,
-    assert_equal,
     fake_octree_ds,
     fake_random_ds,
     requires_file,
@@ -24,6 +22,7 @@ def setup():
     ytcfg["yt", "internals", "within_testing"] = True
 
 
+@requires_module("h5py")
 @requires_file(cyl_2d)
 @requires_file(cyl_3d)
 def test_covering_grid():
@@ -91,6 +90,7 @@ def test_covering_grid():
         sp.quantities.total_mass()
 
 
+@requires_module("h5py")
 @requires_file(cyl_2d)
 @requires_file(cyl_3d)
 def test_covering_grid_data_source():
@@ -210,7 +210,6 @@ def test_smoothed_covering_grid():
 def test_arbitrary_grid():
     for ncells in [32, 64]:
         for px in [0.125, 0.25, 0.55519]:
-
             particle_data = {
                 "particle_position_x": np.array([px]),
                 "particle_position_y": np.array([0.5]),
@@ -226,7 +225,7 @@ def test_arbitrary_grid():
                 dims = np.array(dims)
 
                 dds = (RE - LE) / dims
-                volume = ds.quan(np.product(dds), "cm**3")
+                volume = ds.quan(np.prod(dds), "cm**3")
 
                 obj = ds.arbitrary_grid(LE, RE, dims)
                 deposited_mass = obj[("deposit", "all_density")].sum() * volume

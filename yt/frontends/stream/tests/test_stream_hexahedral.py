@@ -1,9 +1,9 @@
 import numpy as np
+from numpy.testing import assert_almost_equal, assert_equal
 
 from yt import SlicePlot
 from yt.frontends.stream.data_structures import hexahedral_connectivity
 from yt.loaders import load_hexahedral_mesh
-from yt.testing import assert_almost_equal, assert_equal
 
 # Field information
 
@@ -53,5 +53,5 @@ def test_stream_hexahedral():
     assert_almost_equal(dd[("index", "dz")].to_ndarray(), 1.0 / Nz)
 
     s = SlicePlot(ds, "x", "random_field")
-    s._setup_plots()
+    s.render()
     s.frb[("stream", "random_field")]

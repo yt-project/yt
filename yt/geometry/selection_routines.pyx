@@ -13,7 +13,6 @@ import numpy as np
 
 cimport cython
 cimport numpy as np
-from cython cimport floating
 from libc.math cimport sqrt
 from libc.stdlib cimport free, malloc
 
@@ -92,7 +91,7 @@ def convert_mask_to_indices(np.ndarray[np.uint8_t, ndim=3, cast=True] mask,
 cdef _mask_fill(np.ndarray[np.float64_t, ndim=1] out,
                 np.int64_t offset,
                 np.ndarray[np.uint8_t, ndim=3, cast=True] mask,
-                np.ndarray[floating, ndim=3] vals):
+                np.ndarray[cython.floating, ndim=3] vals):
     cdef np.int64_t count = 0
     cdef int i, j, k
     for i in range(mask.shape[0]):
