@@ -1555,6 +1555,6 @@ class PhasePlotMPL(ImagePlotMPL):
             shading=self._shading,
         )
 
-        self._set_axes(norm)
+        self._set_axes()
         self.axes.set_xscale(x_scale)
         self.axes.set_yscale(y_scale)
