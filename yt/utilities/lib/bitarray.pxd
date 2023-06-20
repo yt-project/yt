@@ -55,8 +55,9 @@ cdef inline void ba_set_range(np.uint8_t *buf, np.uint64_t start_ind,
     cdef np.uint8_t stop_j = stop_ind & 7
     if buf_start == buf_stop:
         for j in range(start_j, stop_j):
-            ba_set_value(&buf[start_ind >> 3], j, val)
+            ba_set_value(&buf[buf_start], j, val)
         return
+    bitmask = 0
     for j in range(start_j, 8):
         bitmask |= (1 << j)
     if val > 0:

@@ -62,6 +62,14 @@ def test_set_range():
     arr = b.as_bool_array().astype("uint8")
     assert_array_equal(arr, comparison_array)
 
+    # Test when we start and stop in the same byte
+    b = ba.bitarray(127)
+    b.set_range(4, 6, 1)
+    comparison_array = np.zeros(127, dtype="uint8")
+    comparison_array[4:6] = 1
+    arr = b.as_bool_array().astype("uint8")
+    assert_array_equal(arr, comparison_array)
+
     # Test now where we're in the middle of start
     b = ba.bitarray(64)
     b.set_range(33, 36, 1)
@@ -89,6 +97,8 @@ def test_set_range():
     comparison_array[3:9] = 1
     arr = b.as_bool_array().astype("uint8")
     assert_array_equal(arr, comparison_array)
+
+    # Now let's overlay some zeros
     b.set_range(7, 10, 0)
     comparison_array[7:10] = 0
     arr = b.as_bool_array().astype("uint8")
