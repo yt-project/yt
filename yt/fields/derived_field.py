@@ -493,8 +493,13 @@ class FieldValidator:
     Base class for FieldValidator objects. Available subclasses include:
     """
 
-    # note: the above docstring is dynamically modified with a list of child
-    # classes by _set_field_validator_base_docstring() below.
+    def __init_subclass__(cls, **kwargs):
+        # add the new subclass to the list of subclasses in the docstring
+        class_str = f" :class:`{cls.__name__}`"
+        if ":class:" in FieldValidator.__doc__:
+            class_str = "," + class_str
+        FieldValidator.__doc__ += class_str
+
     pass
 
 
@@ -504,9 +509,9 @@ class ValidateParameter(FieldValidator):
 
     Parameters
     ----------
-    parameters: Union[str, Iterable[str]
+    parameters: str, iterable[str]
         a single parameter or list of parameters to require
-    parameter_values: Optional[dict]
+    parameter_values: dict
         If *parameter_values* is supplied, this dict should map from field
         parameter to a value or list of values. It will ensure that the field
         is available for all permutations of the field parameter.
@@ -564,7 +569,7 @@ class ValidateProperty(FieldValidator):
 
     Parameters
     ----------
-    prop: Union[str, Iterable[str]]
+    prop: str, iterable[str]
         the required property or properties to require
     """
 
@@ -586,10 +591,10 @@ class ValidateSpatial(FieldValidator):
 
     Parameters
     ----------
-    ghost_zones: Optional[int]
+    ghost_zones: int
         If supplied, will validate that the number of ghost zones required
         for the field is <= the available ghost zones. Default is 0.
-    fields: Optional str, tuple(str, str), or any iterable of the previous types.
+    fields: Optional str, tuple[str, str], or any iterable of the previous types.
         The field or fields to validate.
 
     """
@@ -625,14 +630,3 @@ class ValidateGridType(FieldValidator):
         if getattr(data, "_type_name", None) == "grid":
             return True
         raise NeedsOriginalGrid()
-
-
-def _set_field_validator_base_docstring():
-    # adds a list of FieldValidator children to the FieldValidator docstring.
-    extra_docstring = []
-    for sc in FieldValidator.__subclasses__():
-        extra_docstring.append(f":class:`{sc.__name__}`")
-    FieldValidator.__doc__ += " , ".join(extra_docstring)
-
-
-_set_field_validator_base_docstring()
