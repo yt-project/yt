@@ -92,6 +92,12 @@ cdef class bitarray:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
+    def set_range(self, np.uint64_t start, np.uint64_t stop, np.uint8_t val):
+        ba_set_range(self.buf, start, stop, val)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def as_bool_array(self):
         r"""Return a copy of this array, as a boolean array.
 
