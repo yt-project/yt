@@ -629,6 +629,15 @@ class GadgetHDF5Dataset(GadgetDataset):
         if "Parameters" in handle:
             hvals.update((str(k), v) for k, v in handle["/Parameters"].attrs.items())
         handle.close()
+
+        # ensure that 1-element arrays are reduced to scalars
+        updated_hvals = {}
+        for hvalname, value in hvals.items():
+            if isinstance(value, np.ndarray) and value.size == 1:
+                mylog.info("Reducing single-element array %s to scalar.", hvalname)
+                updated_hvals[hvalname] = value.item()
+        hvals.update(updated_hvals)
+
         return hvals
 
     def _get_uvals(self):
