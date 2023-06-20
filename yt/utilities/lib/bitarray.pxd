@@ -78,6 +78,13 @@ cdef inline void ba_set_range(np.uint8_t *buf, np.uint64_t start_ind,
     else:
         buf[buf_stop] &= ~bitmask
 
+
+cdef inline np.uint8_t _num_set_bits( np.uint8_t b ):
+    # https://stackoverflow.com/questions/30688465/how-to-check-the-number-of-set-bits-in-an-8-bit-unsigned-char
+    b = b - ((b >> 1) & 0x55)
+    b = (b & 0x33) + ((b >> 2) & 0x33)
+    return (((b + (b >> 4)) & 0x0F) * 0x01)
+
 cdef class bitarray:
     cdef np.uint8_t *buf
     cdef np.uint64_t size
@@ -87,4 +94,4 @@ cdef class bitarray:
     cdef void _set_value(self, np.uint64_t ind, np.uint8_t val)
     cdef np.uint8_t _query_value(self, np.uint64_t ind)
     cdef void _set_range(self, np.uint64_t start, np.uint64_t stop, np.uint8_t val)
-    #cdef int query_range(self, np.uint64_t ind, np.uint64_t count, int *val)
+    cdef np.uint64_t _count(self)

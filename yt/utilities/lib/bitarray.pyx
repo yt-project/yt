@@ -196,3 +196,33 @@ cdef class bitarray:
 
         """
         ba_set_range(self.buf, start, stop, val)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef np.uint64_t _count(self):
+        cdef np.uint64_t count = 0
+        cdef np.uint64_t i
+        for i in range(self.buf_size):
+            count += _num_set_bits(self.buf[i])
+        return count
+
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def count(self):
+        r"""Count the number of values set in the array.
+
+        Parameters
+        ----------
+
+        Examples
+        --------
+
+        >>> arr_in = np.array([True, True, False, True, True, False])
+        >>> a = ba.bitarray(arr = arr_in)
+        >>> a.count()
+
+        """
+        return self._count()

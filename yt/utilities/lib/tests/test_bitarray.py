@@ -26,6 +26,7 @@ def test_inout_bitarray():
     b = ba.bitarray(arr=arr_in)
     arr_out = b.as_bool_array()
     assert_equal(arr_in, arr_out)
+    assert_equal(b.count(), arr_in.sum())
 
     # Let's check we can do something interesting.
     arr_in1 = np.random.random(32**3) > 0.5
@@ -34,6 +35,8 @@ def test_inout_bitarray():
     b2 = ba.bitarray(arr=arr_in2)
     b3 = ba.bitarray(arr=(arr_in1 & arr_in2))
     assert_equal((b1.ibuf & b2.ibuf), b3.ibuf)
+    assert_equal(b1.count(), arr_in1.sum())
+    assert_equal(b2.count(), arr_in2.sum())
 
     b = ba.bitarray(10)
     for i in range(10):
@@ -61,6 +64,7 @@ def test_set_range():
     comparison_array[4:65] = 1
     arr = b.as_bool_array().astype("uint8")
     assert_array_equal(arr, comparison_array)
+    assert_equal(b.count(), comparison_array.sum())
 
     # Test when we start and stop in the same byte
     b = ba.bitarray(127)
@@ -69,6 +73,7 @@ def test_set_range():
     comparison_array[4:6] = 1
     arr = b.as_bool_array().astype("uint8")
     assert_array_equal(arr, comparison_array)
+    assert_equal(b.count(), comparison_array.sum())
 
     # Test now where we're in the middle of start
     b = ba.bitarray(64)
@@ -77,6 +82,7 @@ def test_set_range():
     comparison_array[33:36] = 1
     arr = b.as_bool_array().astype("uint8")
     assert_array_equal(arr, comparison_array)
+    assert_equal(b.count(), comparison_array.sum())
 
     # Now we test when we end on a byte edge, but we have 65 entries
     b = ba.bitarray(65)
@@ -85,6 +91,7 @@ def test_set_range():
     comparison_array[32:64] = 1
     arr = b.as_bool_array().astype("uint8")
     assert_array_equal(arr, comparison_array)
+    assert_equal(b.count(), comparison_array.sum())
 
     # Let's do the inverse
     b = ba.bitarray(127)
@@ -97,6 +104,7 @@ def test_set_range():
     comparison_array[3:9] = 1
     arr = b.as_bool_array().astype("uint8")
     assert_array_equal(arr, comparison_array)
+    assert_equal(b.count(), comparison_array.sum())
 
     # Now let's overlay some zeros
     b.set_range(7, 10, 0)
