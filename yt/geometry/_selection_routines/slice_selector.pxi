@@ -66,6 +66,82 @@ cdef class SliceSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
+    cdef void visit_grid_cells(self, GridVisitorData *data,
+                              grid_visitor_function *func,
+                              np.uint8_t *cached_mask = NULL):
+        # This function accepts a grid visitor function, the data that
+        # corresponds to the current grid being examined (the most important
+        # aspect of which is the .grid attribute, along with index values and
+        # void* pointers to arrays) and a possibly-pre-generated cached mask.
+        # Each cell is visited with the grid visitor function.
+        cdef np.float64_t left_edge[3]
+        cdef np.float64_t right_edge[3]
+        cdef np.float64_t dds[3]
+        cdef int dim[3]
+        cdef int this_level = 0, level, i
+        cdef np.float64_t pos[3]
+        level = data.grid.level
+        if level < self.min_level or level > self.max_level:
+            return
+        if level == self.max_level:
+            this_level = 1
+        cdef np.uint8_t child_masked, selected
+        for i in range(3):
+            left_edge[i] = data.grid.left_edge[i]
+            right_edge[i] = data.grid.right_edge[i]
+            dds[i] = (right_edge[i] - left_edge[i])/data.grid.dims[i]
+            dim[i] = data.grid.dims[i]
+        #
+        # This is the special casing for slices
+        #
+        icoord = <np.uint64_t>(
+            (self.coord - left_edge[self.axis])/dds[self.axis])
+        # clip coordinate to avoid seg fault below if we're
+        # exactly at a grid boundary
+        ind = iclip(icoord, 0, dim[self.axis]-1)
+        with nogil:
+            pos[0] = left_edge[0] + dds[0] * 0.5
+            data.pos[0] = 0
+            for i in range(dim[0]):
+                pos[1] = left_edge[1] + dds[1] * 0.5
+                data.pos[1] = 0
+                for j in range(dim[1]):
+                    pos[2] = left_edge[2] + dds[2] * 0.5
+                    data.pos[2] = 0
+                    for k in range(dim[2]):
+                        # We short-circuit if we have a cache; if we don't, we
+                        # only set selected to true if it's *not* masked by a
+                        # child and it *is* selected.
+                        if cached_mask != NULL:
+                            selected = ba_get_value(cached_mask,
+                                                    data.global_index)
+                        else:
+                            if this_level == 1:
+                                child_masked = 0
+                            else:
+                                child_masked = check_child_masked(data)
+                            if child_masked == 0:
+                                if ((self.axis == 0 and i == ind) or
+                                    (self.axis == 1 and j == ind) or
+                                    (self.axis == 2 and k == ind)):
+                                       selected = 1
+                                else:
+                                    selected = 0
+                                #selected = self.select_cell(pos, dds)
+                            else:
+                                selected = 0
+                        func(data, selected)
+                        data.global_index += 1
+                        pos[2] += dds[2]
+                        data.pos[2] += 1
+                    pos[1] += dds[1]
+                    data.pos[1] += 1
+                pos[0] += dds[0]
+                data.pos[0] += 1
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) noexcept nogil:
         if self.reduced_dimensionality == 1:
             return 1
