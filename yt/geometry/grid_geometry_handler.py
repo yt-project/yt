@@ -354,7 +354,7 @@ class GridIndex(Index, abc.ABC):
         )[0]
 
     def _count_selection(self, dobj, grids=None, fast_index=None):
-        if fast_index is not None:
+        if fast_index is not None and dobj._type_name != "grid":
             return fast_index.count(dobj.selector)
         if grids is None:
             grids = dobj._chunk_info
