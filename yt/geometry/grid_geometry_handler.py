@@ -1,6 +1,7 @@
 import abc
 import weakref
 from collections import defaultdict
+from functools import cached_property
 from typing import Optional, Tuple
 
 import numpy as np
@@ -287,12 +288,12 @@ class GridIndex(Index, abc.ABC):
         if not len(x) == len(y) == len(z):
             raise ValueError("Arrays of indices must be of the same size")
 
-        grid_tree = self._get_grid_tree()
-        pts = MatchPointsToGrids(grid_tree, len(x), x, y, z)
+        pts = MatchPointsToGrids(self.grid_tree, len(x), x, y, z)
         ind = pts.find_points_in_tree()
         return self.grids[ind], ind
 
-    def _get_grid_tree(self):
+    @cached_property
+    def grid_tree(self):
         left_edge = self.ds.arr(np.zeros((self.num_grids, 3)), "code_length")
         right_edge = self.ds.arr(np.zeros((self.num_grids, 3)), "code_length")
         level = np.zeros((self.num_grids), dtype="int64")
@@ -345,7 +346,7 @@ class GridIndex(Index, abc.ABC):
         # if dobj._type_name != "grid":
         #    fast_index = self._get_grid_tree()
         if getattr(dobj, "size", None) is None:
-            dobj.size = self._count_selection(dobj, fast_index=fast_index)
+            dobj.size = self._count_selection(dobj, fast_index=self.grid_tree)
         if getattr(dobj, "shape", None) is None:
             dobj.shape = (dobj.size,)
         dobj._current_chunk = list(
