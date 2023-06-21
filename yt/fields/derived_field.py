@@ -389,6 +389,16 @@ class DerivedField:
             "17": "XVIII",
             "18": "XIX",
             "19": "XX",
+            "20": "XXI",
+            "21": "XXII",
+            "22": "XXIII",
+            "23": "XXIV",
+            "24": "XXV",
+            "25": "XXVI",
+            "26": "XXVII",
+            "27": "XXVIII",
+            "28": "XXIX",
+            "29": "XXX",
         }
 
         # first look for charge to decide if it is an ion

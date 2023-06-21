@@ -113,6 +113,67 @@ def TrilinearlyInterpolate(np.ndarray[np.float64_t, ndim=3] table,
 @cython.cdivision(True)
 @cython.wraparound(False)
 @cython.boundscheck(False)
+def QuadrilinearlyInterpolate(np.ndarray[np.float64_t, ndim=4] table,
+                              np.ndarray[np.float64_t, ndim=1] x_vals,
+                              np.ndarray[np.float64_t, ndim=1] y_vals,
+                              np.ndarray[np.float64_t, ndim=1] z_vals,
+                              np.ndarray[np.float64_t, ndim=1] w_vals,
+                              np.ndarray[np.float64_t, ndim=1] x_bins,
+                              np.ndarray[np.float64_t, ndim=1] y_bins,
+                              np.ndarray[np.float64_t, ndim=1] z_bins,
+                              np.ndarray[np.float64_t, ndim=1] w_bins,
+                              np.ndarray[np.int_t, ndim=1] x_is,
+                              np.ndarray[np.int_t, ndim=1] y_is,
+                              np.ndarray[np.int_t, ndim=1] z_is,
+                              np.ndarray[np.int_t, ndim=1] w_is,
+                              np.ndarray[np.float64_t, ndim=1] output):
+    cdef double x, xp, xm
+    cdef double y, yp, ym
+    cdef double z, zp, zm
+    cdef double w, wp, wm
+    cdef double dx_inv, dy_inv, dz_inv, dw_inv
+    cdef int i, x_i, y_i, z_i, w_i
+    for i in range(x_vals.shape[0]):
+        x_i = x_is[i]
+        y_i = y_is[i]
+        z_i = z_is[i]
+        w_i = w_is[i]
+        x = x_vals[i]
+        y = y_vals[i]
+        z = z_vals[i]
+        w = w_vals[i]
+        dx_inv = 1.0 / (x_bins[x_i+1] - x_bins[x_i])
+        dy_inv = 1.0 / (y_bins[y_i+1] - y_bins[y_i])
+        dz_inv = 1.0 / (z_bins[z_i+1] - z_bins[z_i])
+        dw_inv = 1.0 / (w_bins[w_i+1] - w_bins[w_i])
+        xp = (x - x_bins[x_i]) * dx_inv
+        yp = (y - y_bins[y_i]) * dy_inv
+        zp = (z - z_bins[z_i]) * dz_inv
+        wp = (w - w_bins[w_i]) * dw_inv
+        xm = (x_bins[x_i+1] - x) * dx_inv
+        ym = (y_bins[y_i+1] - y) * dy_inv
+        zm = (z_bins[z_i+1] - z) * dz_inv
+        wm = (w_bins[w_i+1] - w) * dw_inv
+        output[i]  = table[x_i  ,y_i  ,z_i  ,w_i  ] * (xm*ym*zm*wm) \
+                   + table[x_i+1,y_i  ,z_i  ,w_i  ] * (xp*ym*zm*wm) \
+                   + table[x_i  ,y_i+1,z_i  ,w_i  ] * (xm*yp*zm*wm) \
+                   + table[x_i  ,y_i  ,z_i+1,w_i  ] * (xm*ym*zp*wm) \
+                   + table[x_i  ,y_i  ,z_i  ,w_i+1] * (xm*ym*zm*wp) \
+                   + table[x_i+1,y_i  ,z_i  ,w_i+1] * (xp*ym*zm*wp) \
+                   + table[x_i  ,y_i+1,z_i  ,w_i+1] * (xm*yp*zm*wp) \
+                   + table[x_i  ,y_i  ,z_i+1,w_i+1] * (xm*ym*zp*wp) \
+                   + table[x_i+1,y_i  ,z_i+1,w_i  ] * (xp*ym*zp*wm) \
+                   + table[x_i  ,y_i+1,z_i+1,w_i  ] * (xm*yp*zp*wm) \
+                   + table[x_i+1,y_i+1,z_i  ,w_i  ] * (xp*yp*zm*wm) \
+                   + table[x_i+1,y_i  ,z_i+1,w_i+1] * (xp*ym*zp*wp) \
+                   + table[x_i  ,y_i+1,z_i+1,w_i+1] * (xm*yp*zp*wp) \
+                   + table[x_i+1,y_i+1,z_i  ,w_i+1] * (xp*yp*zm*wp) \
+                   + table[x_i+1,y_i+1,z_i+1,w_i  ] * (xp*yp*zp*wm) \
+                   + table[x_i+1,y_i+1,z_i+1,w_i+1] * (xp*yp*zp*wp)
+
+@cython.cdivision(True)
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def ghost_zone_interpolate(int rf,
                            np.ndarray[np.float64_t, ndim=3] input_field,
                            np.ndarray[np.float64_t, ndim=1] input_left,
