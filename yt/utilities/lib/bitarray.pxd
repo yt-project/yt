@@ -98,3 +98,4 @@ cdef class bitarray:
     cdef np.uint64_t _count(self)
     cdef bitarray _logical_and(self, bitarray other, bitarray result = *)
     cdef bitarray _logical_or(self, bitarray other, bitarray result = *)
+    cdef bitarray _logical_xor(self, bitarray other, bitarray result = *)

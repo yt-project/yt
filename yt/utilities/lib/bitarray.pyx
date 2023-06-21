@@ -274,3 +274,22 @@ cdef class bitarray:
 
     def __ior__(self, bitarray other):
         return self.logical_or(other, self)
+
+    cdef bitarray _logical_xor(self, bitarray other, bitarray result = None):
+        if other.size != self.size:
+            raise IndexError
+        if result is None:
+            result = bitarray(self.size)
+        for i in range(self.buf_size):
+            result.buf[i] = other.buf[i] ^ self.buf[i]
+        result.buf[self.buf_size - 1] &= self.final_bitmask
+        return result
+
+    def logical_xor(self, bitarray other, bitarray result = None):
+        return self._logical_xor(other, result)
+
+    def __xor__(self, bitarray other):
+        return self.logical_xor(other)
+
+    def __ixor__(self, bitarray other):
+        return self.logical_xor(other, self)

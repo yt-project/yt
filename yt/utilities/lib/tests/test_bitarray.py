@@ -70,6 +70,26 @@ def test_inout_bitarray():
     assert_equal(b1.count(), b4.count())
     assert_array_equal(b1.as_bool_array(), b4.as_bool_array())
 
+    # Repeat this, but with the logical xor operators
+    b1 = ba.bitarray(arr=arr_in1)
+    b2 = ba.bitarray(arr=arr_in2)
+    b3 = ba.bitarray(arr=(arr_in1 ^ arr_in2))
+    assert_equal((b1.ibuf ^ b2.ibuf), b3.ibuf)
+    assert_equal(b1.count(), arr_in1.sum())
+    assert_equal(b2.count(), arr_in2.sum())
+    # Let's check the logical and operation
+    b4 = b1.logical_xor(b2)
+    assert_equal(b4.count(), b3.count())
+    assert_array_equal(b4.as_bool_array(), b3.as_bool_array())
+
+    b5 = b1 ^ b2
+    assert_equal(b5.count(), b3.count())
+    assert_array_equal(b5.as_bool_array(), b3.as_bool_array())
+
+    b1 ^= b2
+    assert_equal(b1.count(), b4.count())
+    assert_array_equal(b1.as_bool_array(), b4.as_bool_array())
+
     b = ba.bitarray(10)
     for i in range(10):
         b.set_value(i, 2)  # 2 should evaluate to True
