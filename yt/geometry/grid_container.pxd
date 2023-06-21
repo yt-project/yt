@@ -32,6 +32,7 @@ cdef class GridTree:
     cdef int num_root_grids
     cdef int num_leaf_grids
     cdef np.uint64_t total_size
+    cdef int refine_by[3]
     cdef void setup_data(self, GridVisitorData *data)
     cdef void visit_grids(self, GridVisitorData *data,
                           grid_visitor_function *func,

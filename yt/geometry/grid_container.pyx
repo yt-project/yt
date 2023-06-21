@@ -57,11 +57,20 @@ cdef class GridTree:
                   np.ndarray[np.int32_t, ndim=2] dimensions,
                   np.ndarray[np.int64_t, ndim=1] parent_ind,
                   np.ndarray[np.int64_t, ndim=1] level,
-                  np.ndarray[np.int64_t, ndim=1] num_children):
+                  np.ndarray[np.int64_t, ndim=1] num_children,
+                  refine_by = 2):
 
         cdef int i, j, k
         cdef np.ndarray[np.int_t, ndim=1] child_ptr
         self.total_size = dimensions.prod(axis=1).sum()
+        # This doesn't happen all that often, but it is kind of annoying that
+        # we don't have uniform "refine_by-as-a-list" behavior.
+        try:
+            for i, rf in enumerate(refine_by):
+                self.refine_by[i] = rf
+        except TypeError:
+            # Not iterable
+            self.refine_by[0] = self.refine_by[1] = self.refine_by[2] = refine_by
 
         child_ptr = np.zeros(num_grids, dtype='int')
 
@@ -151,7 +160,9 @@ cdef class GridTree:
         data.n_tuples = 0
         data.child_tuples = NULL
         data.array = NULL
-        data.ref_factor = 2 #### FIX THIS
+        cdef int i
+        for i in range(3):
+            data.ref_factor[i] = self.refine_by[i]
 
     cdef void visit_grids(self, GridVisitorData *data,
                           grid_visitor_function *func,

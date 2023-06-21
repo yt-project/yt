@@ -320,6 +320,7 @@ class GridIndex(Index, abc.ABC):
             parent_ind,
             level,
             num_children,
+            self.ds.refine_by,
         )
 
     def convert(self, unit):

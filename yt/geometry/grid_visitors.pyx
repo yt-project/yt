@@ -49,8 +49,8 @@ cdef void setup_tuples(GridVisitorData *data) nogil:
         data.child_tuples[i] = <int *>malloc(sizeof(int) * 6)
         # Now we fill them in
         for j in range(3):
-            si = (c.start_index[j] / data.ref_factor) - g.start_index[j]
-            ei = si + c.dims[j]/data.ref_factor - 1
+            si = (c.start_index[j] / data.ref_factor[j]) - g.start_index[j]
+            ei = si + c.dims[j]/data.ref_factor[j] - 1
             data.child_tuples[i][j*2+0] = iclip(si, 0, g.dims[j] - 1)
             data.child_tuples[i][j*2+1] = iclip(ei, 0, g.dims[j] - 1)
     data.n_tuples = g.num_children

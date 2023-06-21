@@ -50,9 +50,9 @@ cdef struct GridVisitorData:
     int n_tuples
     int **child_tuples # [N_child][6], where 0-1 are x_start, x_end, etc.
     void *array
-    int ref_factor # This may change on a grid-by-grid basis
-                   # It is the number of cells a child grid has per dimension
-                   # in a cell of this grid.
+    int ref_factor[3] # This may change on a grid-by-grid basis
+                      # It is the number of cells a child grid has per dimension
+                      # in a cell of this grid.
 
 cdef void free_tuples(GridVisitorData *data) nogil
 cdef void setup_tuples(GridVisitorData *data) nogil
