@@ -398,7 +398,7 @@ class DerivedField:
             "26": "XXVII",
             "27": "XXVIII",
             "28": "XXIX",
-            "29": "XXX"
+            "29": "XXX",
         }
 
         # first look for charge to decide if it is an ion

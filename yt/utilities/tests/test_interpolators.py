@@ -90,7 +90,12 @@ def test_linear_interpolator_4d():
     fv["w"] += shifts["w"]
     tfi = lin.QuadrilinearFieldInterpolator(
         random_data,
-        (bins + shifts["x"], bins + shifts["y"], bins + shifts["z"], bins + shifts["w"]),
+        (
+            bins + shifts["x"],
+            bins + shifts["y"],
+            bins + shifts["z"],
+            bins + shifts["w"],
+        ),
         "xyzw",
         True,
     )
