@@ -61,6 +61,7 @@ cdef class GridTree:
 
         cdef int i, j, k
         cdef np.ndarray[np.int_t, ndim=1] child_ptr
+        self.total_size = dimensions.prod(axis=1).sum()
 
         child_ptr = np.zeros(num_grids, dtype='int')
 
@@ -95,9 +96,6 @@ cdef class GridTree:
                     raise RuntimeError
                 self.root_grids[k] = self.grids[i]
                 k = k + 1
-
-    def __init__(self, *args, **kwargs):
-        self.mask = None
 
     def __iter__(self):
         yield self
@@ -164,19 +162,15 @@ cdef class GridTree:
         # Because of confusion about mapping of children to parents, we are
         # going to do this the stupid way for now.
         cdef GridTreeNode *grid
-        cdef np.uint8_t *buf = NULL
-        if self.mask is not None:
-            buf = self.mask.buf
         for i in range(self.num_root_grids):
             grid = &self.root_grids[i]
-            self.recursively_visit_grid(data, func, selector, grid, buf)
+            self.recursively_visit_grid(data, func, selector, grid)
         grid_visitors.free_tuples(data)
 
     cdef void recursively_visit_grid(self, GridVisitorData *data,
                                      grid_visitor_function *func,
                                      SelectorObject selector,
-                                     GridTreeNode *grid,
-                                     np.uint8_t *buf = NULL):
+                                     GridTreeNode *grid):
         # Visit this grid and all of its child grids, with a given grid visitor
         # function.  We early terminate if we are not selected by the selector.
         cdef int i
@@ -185,25 +179,17 @@ cdef class GridTree:
             # Note that this does not increment the global_index.
             return
         grid_visitors.setup_tuples(data)
-        selector.visit_grid_cells(data, func, buf)
+        selector.visit_grid_cells(data, func)
         for i in range(grid.num_children):
-            self.recursively_visit_grid(data, func, selector, grid.children[i],
-                                        buf)
+            self.recursively_visit_grid(data, func, selector, grid.children[i])
 
     def count(self, SelectorObject selector):
         # Use the counting grid visitor
         cdef GridVisitorData data
         self.setup_data(&data)
-        cdef np.uint64_t size = 0
-        cdef int i
-        for i in range(self.num_grids):
-            size += (self.grids[i].dims[0] *
-                     self.grids[i].dims[1] *
-                     self.grids[i].dims[2])
-        cdef bitarray mask = bitarray(size)
+        cdef bitarray mask = bitarray(self.total_size)
         data.array = <void*>mask.buf
         self.visit_grids(&data, grid_visitors.mask_cells, selector)
-        self.mask = mask
         size = 0
         self.setup_data(&data)
         data.array = <void*>(&size)
