@@ -495,9 +495,9 @@ class FieldValidator:
 
     def __init_subclass__(cls, **kwargs):
         # add the new subclass to the list of subclasses in the docstring
-        class_str = f" :class:`{cls.__name__}`"
+        class_str = f":class:`{cls.__name__}`"
         if ":class:" in FieldValidator.__doc__:
-            class_str = "," + class_str
+            class_str = ", " + class_str
         FieldValidator.__doc__ += class_str
 
 
