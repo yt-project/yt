@@ -500,8 +500,6 @@ class FieldValidator:
             class_str = "," + class_str
         FieldValidator.__doc__ += class_str
 
-    pass
-
 
 class ValidateParameter(FieldValidator):
     """
