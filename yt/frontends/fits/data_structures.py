@@ -426,9 +426,16 @@ class FITSDataset(Dataset):
         self.magnetic_unit.convert_to_units("gauss")
         self.velocity_unit = self.length_unit / self.time_unit
 
+    @property
+    def filename(self) -> str:
+        if self._input_filename.startswith("InMemory"):
+            return self._input_filename
+        else:
+            return super().filename
+
     @cached_property
     def unique_identifier(self) -> str:
-        if self.parameter_filename.startswith("InMemory"):
+        if self.filename.startswith("InMemory"):
             return str(time.time())
         else:
             return super().unique_identifier
