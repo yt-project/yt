@@ -358,6 +358,7 @@ class GridIndex(Index, abc.ABC):
         if fast_index is not None and dobj._type_name not in (
             "grid",
             "data_collection",
+            "ray",
         ):
             return fast_index.count(dobj.selector)
         if grids is None:
