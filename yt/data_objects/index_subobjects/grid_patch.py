@@ -128,7 +128,7 @@ class AMRGridPatch(YTSelectionContainer):
         id = self.id - self._id_offset
         ds = self.ds
         index = self.index
-        parents = list(always_iterable(self.Parent))
+        parents = list(always_iterable(self.Parent, base_type=(AMRGridPatch,)))
         if len(parents) > 0:
             if not hasattr(parents[0], "dds"):
                 parents[0]._setup_dx()

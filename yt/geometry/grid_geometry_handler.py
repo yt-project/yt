@@ -295,6 +295,9 @@ class GridIndex(Index, abc.ABC):
 
     @cached_property
     def grid_tree(self):
+        # For order-of-import, we import this here
+        from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
+
         left_edge = self.ds.arr(np.zeros((self.num_grids, 3)), "code_length")
         right_edge = self.ds.arr(np.zeros((self.num_grids, 3)), "code_length")
         level = np.zeros((self.num_grids), dtype="int64")
@@ -309,7 +312,7 @@ class GridIndex(Index, abc.ABC):
             left_edge[i, :] = grid.LeftEdge
             right_edge[i, :] = grid.RightEdge
             level[i] = grid.Level
-            parents = list(always_iterable(grid.Parent))
+            parents = list(always_iterable(grid.Parent, base_type=(AMRGridPatch,)))
             if len(parents) == 0 or parents[0] is None:
                 parent_ind.append([-1])
             else:
