@@ -174,6 +174,10 @@ class AMRVACHierarchy(GridIndex):
             g._prepare_grid()
             g._setup_dx()
 
+    @property
+    def grid_tree(self):
+        return None
+
 
 class AMRVACDataset(Dataset):
     _index_class = AMRVACHierarchy
