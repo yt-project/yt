@@ -58,7 +58,7 @@ cdef class GridTree:
                   list parent_ind, # Not an array anymore!
                   np.ndarray[np.int64_t, ndim=1] level,
                   np.ndarray[np.int64_t, ndim=1] num_children,
-                  int refine_by = 2,
+                  refine_by = 2,
                   int min_level = 0):
 
         cdef int i, j, k
