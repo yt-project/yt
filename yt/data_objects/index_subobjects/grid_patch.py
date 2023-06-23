@@ -2,6 +2,7 @@ import weakref
 from typing import List
 
 import numpy as np
+from more_itertools import always_iterable
 
 import yt.geometry.particle_deposit as particle_deposit
 from yt._typing import FieldKey
@@ -127,10 +128,11 @@ class AMRGridPatch(YTSelectionContainer):
         id = self.id - self._id_offset
         ds = self.ds
         index = self.index
-        if self.Parent is not None:
-            if not hasattr(self.Parent, "dds"):
-                self.Parent._setup_dx()
-            self.dds = self.Parent.dds.d / self.ds.refine_by
+        parents = list(always_iterable(self.Parent))
+        if len(parents) > 0:
+            if not hasattr(parents[0], "dds"):
+                parents[0]._setup_dx()
+            self.dds = parents[0].dds.d / self.ds.refine_by
         else:
             LE, RE = (index.grid_left_edge[id, :].d, index.grid_right_edge[id, :].d)
             self.dds = (RE - LE) / self.ActiveDimensions

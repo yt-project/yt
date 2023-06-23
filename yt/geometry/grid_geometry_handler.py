@@ -5,6 +5,7 @@ from functools import cached_property
 from typing import Optional, Tuple
 
 import numpy as np
+from more_itertools import always_iterable
 
 from yt.arraytypes import blankRecordArray
 from yt.config import ytcfg
@@ -297,20 +298,25 @@ class GridIndex(Index, abc.ABC):
         left_edge = self.ds.arr(np.zeros((self.num_grids, 3)), "code_length")
         right_edge = self.ds.arr(np.zeros((self.num_grids, 3)), "code_length")
         level = np.zeros((self.num_grids), dtype="int64")
-        parent_ind = np.zeros((self.num_grids), dtype="int64")
+        parent_ind = []
         num_children = np.zeros((self.num_grids), dtype="int64")
         dimensions = np.zeros((self.num_grids, 3), dtype="int32")
+        # Some things become slightly more complicated because in some
+        # frontends, the parent relationship can be 1:N.  So we need to
+        # construct a list of lists.
 
         for i, grid in enumerate(self.grids):
             left_edge[i, :] = grid.LeftEdge
             right_edge[i, :] = grid.RightEdge
             level[i] = grid.Level
-            if grid.Parent is None:
-                parent_ind[i] = -1
+            parents = list(always_iterable(grid.Parent))
+            if len(parents) == 0 or parents[0] is None:
+                parent_ind.append([-1])
             else:
-                parent_ind[i] = grid.Parent.id - grid.Parent._id_offset
+                parent_ind.append([_.id - _._id_offset for _ in parents])
             num_children[i] = np.int64(len(grid.Children))
             dimensions[i, :] = grid.ActiveDimensions
+        # Now we need to convert the list of parents into an array
 
         return GridTree(
             self.num_grids,
@@ -321,6 +327,7 @@ class GridIndex(Index, abc.ABC):
             level,
             num_children,
             self.ds.refine_by,
+            self.min_level,
         )
 
     def convert(self, unit):

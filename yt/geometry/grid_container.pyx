@@ -55,10 +55,11 @@ cdef class GridTree:
                   np.ndarray[np.float64_t, ndim=2] left_edge,
                   np.ndarray[np.float64_t, ndim=2] right_edge,
                   np.ndarray[np.int32_t, ndim=2] dimensions,
-                  np.ndarray[np.int64_t, ndim=1] parent_ind,
+                  list parent_ind, # Not an array anymore!
                   np.ndarray[np.int64_t, ndim=1] level,
                   np.ndarray[np.int64_t, ndim=1] num_children,
-                  refine_by = 2):
+                  int refine_by = 2,
+                  int min_level = 0):
 
         cdef int i, j, k
         cdef np.ndarray[np.int_t, ndim=1] child_ptr
@@ -87,7 +88,7 @@ cdef class GridTree:
                                             dimensions[i,:],
                                             num_children[i],
                                             level[i], i)
-            if level[i] == 0:
+            if level[i] == min_level:
                 self.num_root_grids += 1
             if num_children[i] == 0:
                 self.num_leaf_grids += 1
@@ -96,15 +97,15 @@ cdef class GridTree:
                 sizeof(GridTreeNode) * self.num_root_grids)
         k = 0
         for i in range(num_grids):
-            j = parent_ind[i]
-            if j >= 0:
-                self.grids[j].children[child_ptr[j]] = &self.grids[i]
-                child_ptr[j] += 1
-            else:
-                if k >= self.num_root_grids:
-                    raise RuntimeError
-                self.root_grids[k] = self.grids[i]
-                k = k + 1
+            for j in parent_ind[i]:
+                if j >= 0:
+                    self.grids[j].children[child_ptr[j]] = &self.grids[i]
+                    child_ptr[j] += 1
+                else:
+                    if k >= self.num_root_grids:
+                        raise RuntimeError(k, self.num_root_grids)
+                    self.root_grids[k] = self.grids[i]
+                    k = k + 1
 
     def __iter__(self):
         yield self
