@@ -1,5 +1,6 @@
 import os
 import weakref
+from functools import cached_property
 
 import numpy as np
 
@@ -167,6 +168,14 @@ class PyneMoabHex8Dataset(Dataset):
             unit_system=unit_system,
         )
         self.storage_filename = storage_filename
+
+    @property
+    def filename(self) -> str:
+        return self._input_filename
+
+    @cached_property
+    def unique_identifier(self) -> str:
+        return self.filename
 
     def _set_code_unit_attributes(self):
         # Almost everything is regarded as dimensionless in MOAB, so these will
