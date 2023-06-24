@@ -133,7 +133,9 @@ class PyneMeshHex8Hierarchy(UnstructuredIndex):
                 )
             )
         vind = np.asarray(vind, dtype=np.int64)
-        vind = vind.reshape(len(vind) // 8, 8)
+        if vind.ndim == 1:
+            vind = vind.reshape(len(vind) // 8, 8)
+        assert vind.ndim == 2 and vind.shape[1] == 8
         self.meshes = [PyneHex8Mesh(0, self.index_filename, vind, coords, self)]
 
     def _detect_output_fields(self):
