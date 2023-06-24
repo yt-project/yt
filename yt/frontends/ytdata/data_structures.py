@@ -425,6 +425,8 @@ class YTGrid(AMRGridPatch):
 
 
 class YTDataHierarchy(GridIndex):
+    min_level = 0
+
     def __init__(self, ds, dataset_type=None):
         self.dataset_type = dataset_type
         self.float_type = "float64"
