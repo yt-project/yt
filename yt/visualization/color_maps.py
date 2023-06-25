@@ -11,8 +11,6 @@ from yt.utilities.logger import ytLogger as mylog
 
 from . import _colormap_data as _cm
 
-yt_colormaps = {}
-
 
 def add_colormap(name, cdict):
     """
@@ -25,19 +23,7 @@ def add_colormap(name, cdict):
         since="4.3",
         stacklevel=3,
     )
-    # Note: this function modifies the global variable 'yt_colormaps'
-    yt_colormaps[name] = LinearSegmentedColormap(name, cdict, 256)
-    mpl.colormaps.register(yt_colormaps[name])
-
-
-def _add_colormap(name, colors):
-    """
-    Adds a colormap to the colormaps available in yt for this session
-    """
-    # Note: this function modifies the global variable 'yt_colormaps'
-    cmap = ListedColormap(colors, name=name, N=256)
-    yt_colormaps[cmap.name] = cmap
-    mpl.colormaps.register(cmap)
+    mpl.colormaps.register(LinearSegmentedColormap(name, cdict, 256))
 
 
 # YTEP-0040 backward compatibility layer
@@ -66,20 +52,19 @@ def register_yt_colormaps_from_cmyt():
     """
 
     for hist_name, alias in _HISTORICAL_ALIASES.items():
-        cmap = mpl.colormaps[alias].copy()
-        cmap.name = hist_name
-        mpl.colormaps.register(cmap)
-        mpl.colormaps.register(cmap.reversed())
+        cmap = mpl.colormaps[alias]
+        cmap_r = mpl.colormaps[f"{alias}_r"]
+
+        mpl.colormaps.register(cmap, name=hist_name)
+        mpl.colormaps.register(cmap_r, name=f"{hist_name}_r")
 
 
 register_yt_colormaps_from_cmyt()
 
 # Add colormaps in _colormap_data.py that weren't defined here
 for k, v in _cm.color_map_luts.items():
-    if k in yt_colormaps:
-        continue
     try:
-        _add_colormap(k, v)
+        mpl.colormaps.register(ListedColormap(v, name=k, N=256))
     except ValueError:
         # expected if another map with identical name was already registered
         mylog.warning("cannot register colormap '%s' (naming collision)", k)

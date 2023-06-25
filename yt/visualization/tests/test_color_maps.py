@@ -61,12 +61,11 @@ class TestColorMaps(unittest.TestCase):
 
 
 def test_cmyt_integration():
-    for name in ["algae", "bds_highcontrast", "kelp", "arbre", "octarine", "kamae"]:
-        cmap = plt.get_cmap(name)
-        assert cmap.name == name
-        name_r = name + "_r"
-        cmap_r = plt.get_cmap(name_r)
-        assert cmap_r.name == name_r
+    from yt.visualization.color_maps import _HISTORICAL_ALIASES
+
+    for hist_name, alias in _HISTORICAL_ALIASES.items():
+        assert plt.get_cmap(hist_name) == plt.get_cmap(alias)
+        assert plt.get_cmap(f"{hist_name}_r") == plt.get_cmap(f"{alias}_r")
 
     for name in ["algae", "kelp", "arbre", "octarine", "pastel"]:
         cmap = plt.get_cmap("cmyt." + name)
