@@ -90,6 +90,8 @@ def load(
     yt.utilities.exceptions.YTAmbiguousDataType
         If the data format matches more than one class of similar specialization levels.
     """
+    from yt.frontends import _all  # type: ignore [attr-defined] # noqa
+
     fn = os.path.expanduser(fn)
 
     if any(wildcard in fn for wildcard in "[]?!*"):
@@ -155,6 +157,7 @@ def load_simulation(fn, simulation_type, find_outputs=False):
     yt.utilities.exceptions.YTSimulationNotIdentified
         If simulation_type is unknown.
     """
+    from yt.frontends import _all  # noqa
 
     fn = str(lookup_on_disk_data(fn))
 
