@@ -31,6 +31,7 @@ class GridIndex(Index, abc.ABC):
         "grid_particle_count",
         "grid_dimensions",
     )
+    min_level = 0  # Will be overridden where appropriate
 
     def _setup_geometry(self):
         mylog.debug("Counting grids.")
