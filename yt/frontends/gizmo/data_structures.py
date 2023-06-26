@@ -82,7 +82,7 @@ class GizmoDataset(GadgetHDF5Dataset):
             only_on_root(mylog.info, "Redshift is not set in Header. Assuming z=0.")
 
         try:
-            # The current version of GIZMO has updated the names of the Omegas
+            # In 1d8479, Nov 2020, public GIZMO updated the names of the Omegas
             # to include an _, added baryons and radiation and added the
             # ComovingIntegrationOn field. ComovingIntegrationOn is always set,
             # but the Omega's are only included if ComovingIntegrationOn is true
@@ -94,7 +94,7 @@ class GizmoDataset(GadgetHDF5Dataset):
                 self.omega_radiation = hvals["Omega_Radiation"]
                 self.hubble_constant = hvals["HubbleParam"]
             else:
-                # Should still support old GIZMO versions too
+                # Should still support GIZMO versions prior to 1d8479 too
                 only_on_root(
                     mylog.info,
                     "ComovingIntegrationOn does not exist, falling back to OmegaLambda",
@@ -110,9 +110,6 @@ class GizmoDataset(GadgetHDF5Dataset):
             self.cosmological_simulation = 0
             # Hubble is set below for Omega Lambda = 0.
 
-        # Since new versions of GIZMO output the ComovingIntegrationOn flag
-        # we will rely on its presence to determine if this is a cosmological
-        # dataset.
         if not self.cosmological_simulation:
             only_on_root(
                 mylog.info,
