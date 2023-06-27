@@ -1096,11 +1096,11 @@ def load_octree(
     -------
 
     >>> import numpy as np
-    >>> oct_mask = np.zeros(25)
+    >>> oct_mask = np.zeros(33) # 5 refined values gives 7 * 4 + 5 octs to mask
     ... oct_mask[[0,  5,  7, 16]] = 8
     >>> octree_mask = np.array(oct_mask, dtype=np.uint8)
     >>> quantities = {}
-    >>> quantities["gas", "density"] = np.random.random((22, 1))
+    >>> quantities["gas", "density"] = np.random.random((29, 1)) # num of false's
     >>> bbox = np.array([[-10.0, 10.0], [-10.0, 10.0], [-10.0, 10.0]])
 
     >>> ds = load_octree(
