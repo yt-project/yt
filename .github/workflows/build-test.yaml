@@ -118,9 +118,11 @@ jobs:
       shell: bash
       env:
         dependencies: ''
+      # see https://github.com/SciTools/cartopy/issues/2199
+      # for why scipy is pinned here (this is meant a temporary measure)
       run: |
         source ./tests/ci_install.sh
-        python -m pip install cartopy scipy
+        python -m pip install cartopy "scipy<1.11"
 
     - name: Run Image Tests
       run: |
