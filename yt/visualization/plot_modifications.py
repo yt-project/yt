@@ -1826,18 +1826,20 @@ class MarkerAnnotateCallback(PlotCallback):
         self.plot_args = {
             "color": "white",
             "s": 50,
-            "transform": None,
             **(plot_args or {}),
             **kwargs,
         }
         self.coord_system = coord_system
+        self.transform = None
 
     def __call__(self, plot):
         x, y = self._sanitize_coord_system(
             plot, self.pos, coord_system=self.coord_system
         )
         x, y = self._sanitize_xy_order(plot, x, y)
-        plot._axes.scatter(x, y, marker=self.marker, **self.plot_args)
+        plot._axes.scatter(
+            x, y, marker=self.marker, transform=self.transform, **self.plot_args
+        )
         self._set_plot_limits(plot)
 
 
