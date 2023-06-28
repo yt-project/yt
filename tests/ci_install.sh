@@ -26,7 +26,7 @@ cp tests/matplotlibrc .
 if [[ "${RUNNER_OS}" == "Windows" ]] && [[ ${dependencies} != "minimal" ]]; then
     # windows_conda_requirements.txt is a survivance of test_requirements.txt
     # keep in sync: pyproject.toml
-    while read requirement; do conda install --yes $requirement; done < tests/windows_conda_requirements.txt
+    conda install --yes --file=tests/windows_conda_requirements.txt
 else
     # upgrading pip to guarantee installing extra dependencies with [full] is supported
     # this is only necessary for some versions of Python 3.8 and 3.9
