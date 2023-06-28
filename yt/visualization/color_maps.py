@@ -48,7 +48,8 @@ def register_yt_colormaps_from_cmyt():
     """
 
     for hist_name, alias in _HISTORICAL_ALIASES.items():
-        cmap = mpl.colormaps[alias].copy()
+        # note that mpl.colormaps.__getitem__ returns *copies*
+        cmap = mpl.colormaps[alias]
         cmap.name = hist_name
         mpl.colormaps.register(cmap)
         mpl.colormaps.register(cmap.reversed())
