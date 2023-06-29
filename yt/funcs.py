@@ -18,12 +18,13 @@ from collections import UserDict
 from copy import deepcopy
 from functools import lru_cache, wraps
 from numbers import Number as numeric_type
-from typing import Any, Callable, Optional, Type
+from typing import Any, Callable, Dict, Optional, Type
 
 import numpy as np
 from more_itertools import always_iterable, collapse, first
 
 from yt._maintenance.deprecation import issue_deprecation_warning
+from yt._version import __version__ as yt_version
 from yt.config import ytcfg
 from yt.units import YTArray, YTQuantity
 from yt.utilities.exceptions import YTFieldNotFound, YTInvalidWidthError
@@ -566,7 +567,7 @@ def get_version_stack():
     import matplotlib
 
     version_info = {}
-    version_info["yt"] = get_yt_version()
+    version_info["yt"] = yt_version
     version_info["numpy"] = np.version.version
     version_info["matplotlib"] = matplotlib.__version__
     return version_info
@@ -1447,3 +1448,25 @@ def validate_moment(moment, weight_field):
             "Weighted projections can only be made of averages "
             "(moment = 1) or standard deviations (moment = 2)!"
         )
+
+
+def setdefault_mpl_metadata(mpl_kwargs: Dict[str, Any], name: str) -> None:
+    """
+    Set a default Software metadata entry for use with Matplotlib outputs.
+    """
+    _, ext = os.path.splitext(name.lower())
+    if ext in (".eps", ".ps", ".svg", ".pdf"):
+        key = "Creator"
+    elif ext == ".png":
+        key = "Software"
+    else:
+        return
+    default_software = (
+        "Matplotlib version{matplotlib}, https://matplotlib.org|NumPy-{numpy}|yt-{yt}"
+    )
+    if "metadata" in mpl_kwargs:
+        mpl_kwargs["metadata"].setdefault(
+            key, default_software.format(**get_version_stack())
+        )
+    else:
+        mpl_kwargs["metadata"] = {key: default_software.format(**get_version_stack())}
