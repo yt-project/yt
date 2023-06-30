@@ -2516,7 +2516,7 @@ class YTSurface(YTSelectionContainer3D):
             ma = color_field_max
             if color_log:
                 ma = np.log10(ma)
-         cs = (cs - mi) / (ma - mi)
+        cs = (cs - mi) / (ma - mi)
         from yt.visualization.image_writer import map_to_colors
 
         cs = map_to_colors(cs, color_map)
