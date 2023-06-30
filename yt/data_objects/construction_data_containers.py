@@ -2437,6 +2437,8 @@ class YTSurface(YTSelectionContainer3D):
         color_field=None,
         color_map=None,
         color_log=True,
+        color_field_max=None,
+        color_field_min=None,
         sample_type="face",
         no_ghost=False,
     ):
@@ -2457,6 +2459,10 @@ class YTSurface(YTSelectionContainer3D):
             Which color map should be applied?
         color_log : bool
             Should the color field be logged before being mapped?
+        color_field_max : float
+            Maximum value of the color field across all surfaces.
+        color_field_min : float
+            Minimum value of the color field across all surfaces.
 
         Examples
         --------
@@ -2481,14 +2487,36 @@ class YTSurface(YTSelectionContainer3D):
             elif sample_type == "vertex" and color_field not in self.vertex_samples:
                 self.get_data(color_field, sample_type, no_ghost=no_ghost)
         self._export_ply(
-            filename, bounds, color_field, color_map, color_log, sample_type
+            filename,
+            bounds,
+            color_field,
+            color_map,
+            color_log,
+            color_field_max,
+            color_field_min,
+            sample_type
         )
 
-    def _color_samples(self, cs, color_log, color_map, arr):
+    def _color_samples(self, cs, color_log, color_map, color_field_max, color_field_min, arr):
         if color_log:
             cs = np.log10(cs)
-        mi, ma = cs.min(), cs.max()
-        cs = (cs - mi) / (ma - mi)
+        if color_field_min is None:
+            cs = [float(field) for field in cs]
+            cs = np.array(cs)
+            mi = cs.min()
+        else:
+            mi = color_field_min
+            if color_log:
+                mi = np.log10(mi)
+        if color_field_max is None:
+            cs = [float(field) for field in cs]
+            cs = np.array(cs)
+            ma = cs.max()
+        else:
+            ma = color_field_max
+            if color_log:
+                ma = np.log10(ma)
+         cs = (cs - mi) / (ma - mi)
         from yt.visualization.image_writer import map_to_colors
 
         cs = map_to_colors(cs, color_map)
@@ -2504,6 +2532,8 @@ class YTSurface(YTSelectionContainer3D):
         color_field=None,
         color_map=None,
         color_log=True,
+        color_field_max=None,
+        color_field_min=None,
         sample_type="face",
     ):
         if color_map is None:
@@ -2555,7 +2585,7 @@ class YTSurface(YTSelectionContainer3D):
             f.write(b"property uchar blue\n")
             v = np.empty(self.vertices.shape[1], dtype=vs)
             cs = self.vertex_samples[color_field]
-            self._color_samples(cs, color_log, color_map, v)
+            self._color_samples(cs, color_log, color_map, color_field_max, color_field_min, v)
         else:
             v = np.empty(self.vertices.shape[1], dtype=vs[:3])
         line = "element face %i\n" % (nv / 3)
@@ -2568,7 +2598,7 @@ class YTSurface(YTSelectionContainer3D):
             # Now we get our samples
             cs = self[color_field]
             arr = np.empty(cs.shape[0], dtype=np.dtype(fs))
-            self._color_samples(cs, color_log, color_map, arr)
+            self._color_samples(cs, color_log, color_map, color_field_max, color_field_min, arr)
         else:
             arr = np.empty(nv // 3, np.dtype(fs[:-3]))
         for i, ax in enumerate("xyz"):
@@ -2599,6 +2629,8 @@ class YTSurface(YTSelectionContainer3D):
         color_field=None,
         color_map=None,
         color_log=True,
+        color_field_max=None,
+        color_field_min=None,
         bounds=None,
         no_ghost=False,
     ):
@@ -2629,6 +2661,10 @@ class YTSurface(YTSelectionContainer3D):
             The name of the color map to use to map the color field
         color_log : bool
             Should the field be logged before being mapped to RGB?
+        color_field_max : float
+            Maximum value of the color field across all surfaces.
+        color_field_min : float
+            Minimum value of the color field across all surfaces.
         bounds : list of tuples
             [ (xmin, xmax), (ymin, ymax), (zmin, zmax) ] within which the model
             will be scaled and centered.  Defaults to the full domain.
@@ -2673,6 +2709,8 @@ class YTSurface(YTSelectionContainer3D):
             color_field,
             color_map,
             color_log,
+            color_field_max,
+            color_field_min,
             sample_type="vertex",
             no_ghost=no_ghost,
         )
