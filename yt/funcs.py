@@ -24,7 +24,6 @@ import numpy as np
 from more_itertools import always_iterable, collapse, first
 
 from yt._maintenance.deprecation import issue_deprecation_warning
-from yt._version import __version__ as yt_version
 from yt.config import ytcfg
 from yt.units import YTArray, YTQuantity
 from yt.utilities.exceptions import YTFieldNotFound, YTInvalidWidthError
@@ -565,6 +564,7 @@ def get_yt_version():
 
 def get_version_stack():
     import matplotlib
+    from yt._version import __version__ as yt_version
 
     version_info = {}
     version_info["yt"] = yt_version
@@ -1450,7 +1450,7 @@ def validate_moment(moment, weight_field):
         )
 
 
-def setdefault_mpl_metadata(mpl_kwargs: Dict[str, Any], name: str) -> None:
+def setdefault_mpl_metadata(save_kwargs: Dict[str, Any], name: str) -> None:
     """
     Set a default Software metadata entry for use with Matplotlib outputs.
     """
@@ -1463,10 +1463,9 @@ def setdefault_mpl_metadata(mpl_kwargs: Dict[str, Any], name: str) -> None:
         return
     default_software = (
         "Matplotlib version{matplotlib}, https://matplotlib.org|NumPy-{numpy}|yt-{yt}"
-    )
-    if "metadata" in mpl_kwargs:
-        mpl_kwargs["metadata"].setdefault(
-            key, default_software.format(**get_version_stack())
-        )
+    ).format(**get_version_stack())
+
+    if "metadata" in save_kwargs:
+        save_kwargs["metadata"].setdefault(key, default_software)
     else:
-        mpl_kwargs["metadata"] = {key: default_software.format(**get_version_stack())}
+        save_kwargs["metadata"] = {key: default_software}
