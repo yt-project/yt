@@ -2494,8 +2494,8 @@ class YTSurface(YTSelectionContainer3D):
             color_map,
             color_log,
             sample_type,
-            color_field_max,
-            color_field_min
+            color_field_max=color_field_max,
+            color_field_min=color_field_min
         )
 
     def _color_samples(self, cs, color_log, color_map, color_field_max, color_field_min, arr):
@@ -2714,8 +2714,8 @@ class YTSurface(YTSelectionContainer3D):
             color_log,
             sample_type="vertex",
             no_ghost=no_ghost,
-            color_field_max,
-            color_field_min,
+            color_field_max=color_field_max,
+            color_field_min=color_field_min,
         )
         ply_file.seek(0)
         # Greater than ten million vertices and we throw an error but dump
