@@ -564,6 +564,7 @@ def get_yt_version():
 
 def get_version_stack():
     import matplotlib
+
     from yt._version import __version__ as yt_version
 
     version_info = {}
