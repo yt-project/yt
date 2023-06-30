@@ -2437,10 +2437,11 @@ class YTSurface(YTSelectionContainer3D):
         color_field=None,
         color_map=None,
         color_log=True,
-        color_field_max=None,
-        color_field_min=None,
         sample_type="face",
         no_ghost=False,
+        *,
+        color_field_max=None,
+        color_field_min=None,
     ):
         r"""This exports the surface to the PLY format, suitable for visualization
         in many different programs (e.g., MeshLab).
@@ -2492,9 +2493,9 @@ class YTSurface(YTSelectionContainer3D):
             color_field,
             color_map,
             color_log,
+            sample_type,
             color_field_max,
-            color_field_min,
-            sample_type
+            color_field_min
         )
 
     def _color_samples(self, cs, color_log, color_map, color_field_max, color_field_min, arr):
@@ -2532,9 +2533,10 @@ class YTSurface(YTSelectionContainer3D):
         color_field=None,
         color_map=None,
         color_log=True,
+        sample_type="face",
+        *,
         color_field_max=None,
         color_field_min=None,
-        sample_type="face",
     ):
         if color_map is None:
             color_map = ytcfg.get("yt", "default_colormap")
@@ -2629,10 +2631,11 @@ class YTSurface(YTSelectionContainer3D):
         color_field=None,
         color_map=None,
         color_log=True,
-        color_field_max=None,
-        color_field_min=None,
         bounds=None,
         no_ghost=False,
+        *,
+        color_field_max=None,
+        color_field_min=None,
     ):
         r"""This exports Surfaces to SketchFab.com, where they can be viewed
         interactively in a web browser.
@@ -2661,13 +2664,13 @@ class YTSurface(YTSelectionContainer3D):
             The name of the color map to use to map the color field
         color_log : bool
             Should the field be logged before being mapped to RGB?
+        bounds : list of tuples
+            [ (xmin, xmax), (ymin, ymax), (zmin, zmax) ] within which the model
+            will be scaled and centered.  Defaults to the full domain.
         color_field_max : float
             Maximum value of the color field across all surfaces.
         color_field_min : float
             Minimum value of the color field across all surfaces.
-        bounds : list of tuples
-            [ (xmin, xmax), (ymin, ymax), (zmin, zmax) ] within which the model
-            will be scaled and centered.  Defaults to the full domain.
 
         Returns
         -------
@@ -2709,10 +2712,10 @@ class YTSurface(YTSelectionContainer3D):
             color_field,
             color_map,
             color_log,
-            color_field_max,
-            color_field_min,
             sample_type="vertex",
             no_ghost=no_ghost,
+            color_field_max,
+            color_field_min,
         )
         ply_file.seek(0)
         # Greater than ten million vertices and we throw an error but dump
