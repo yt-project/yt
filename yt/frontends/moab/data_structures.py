@@ -1,5 +1,6 @@
 import os
 import weakref
+from functools import cached_property
 
 import numpy as np
 
@@ -132,7 +133,9 @@ class PyneMeshHex8Hierarchy(UnstructuredIndex):
                 )
             )
         vind = np.asarray(vind, dtype=np.int64)
-        vind = vind.reshape(len(vind) // 8, 8)
+        if vind.ndim == 1:
+            vind = vind.reshape(len(vind) // 8, 8)
+        assert vind.ndim == 2 and vind.shape[1] == 8
         self.meshes = [PyneHex8Mesh(0, self.index_filename, vind, coords, self)]
 
     def _detect_output_fields(self):
@@ -167,6 +170,14 @@ class PyneMoabHex8Dataset(Dataset):
             unit_system=unit_system,
         )
         self.storage_filename = storage_filename
+
+    @property
+    def filename(self) -> str:
+        return self._input_filename
+
+    @cached_property
+    def unique_identifier(self) -> str:
+        return self.filename
 
     def _set_code_unit_attributes(self):
         # Almost everything is regarded as dimensionless in MOAB, so these will
