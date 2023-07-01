@@ -2495,10 +2495,12 @@ class YTSurface(YTSelectionContainer3D):
             color_log,
             sample_type,
             color_field_max=color_field_max,
-            color_field_min=color_field_min
+            color_field_min=color_field_min,
         )
 
-    def _color_samples(self, cs, color_log, color_map, color_field_max, color_field_min, arr):
+    def _color_samples(
+        self, cs, color_log, color_map, color_field_max, color_field_min, arr
+    ):
         if color_log:
             cs = np.log10(cs)
         if color_field_min is None:
@@ -2587,7 +2589,9 @@ class YTSurface(YTSelectionContainer3D):
             f.write(b"property uchar blue\n")
             v = np.empty(self.vertices.shape[1], dtype=vs)
             cs = self.vertex_samples[color_field]
-            self._color_samples(cs, color_log, color_map, color_field_max, color_field_min, v)
+            self._color_samples(
+                cs, color_log, color_map, color_field_max, color_field_min, v
+            )
         else:
             v = np.empty(self.vertices.shape[1], dtype=vs[:3])
         line = "element face %i\n" % (nv / 3)
@@ -2600,7 +2604,9 @@ class YTSurface(YTSelectionContainer3D):
             # Now we get our samples
             cs = self[color_field]
             arr = np.empty(cs.shape[0], dtype=np.dtype(fs))
-            self._color_samples(cs, color_log, color_map, color_field_max, color_field_min, arr)
+            self._color_samples(
+                cs, color_log, color_map, color_field_max, color_field_min, arr
+            )
         else:
             arr = np.empty(nv // 3, np.dtype(fs[:-3]))
         for i, ax in enumerate("xyz"):
