@@ -2499,7 +2499,14 @@ class YTSurface(YTSelectionContainer3D):
         )
 
     def _color_samples(
-        self, cs, color_log, color_map, color_field_max, color_field_min, arr
+        self,
+        cs,
+        color_log,
+        color_map,
+        arr,
+        *,
+        color_field_max=None,
+        color_field_min=None,
     ):
         if color_log:
             cs = np.log10(cs)
@@ -2590,7 +2597,12 @@ class YTSurface(YTSelectionContainer3D):
             v = np.empty(self.vertices.shape[1], dtype=vs)
             cs = self.vertex_samples[color_field]
             self._color_samples(
-                cs, color_log, color_map, color_field_max, color_field_min, v
+                cs,
+                color_log,
+                color_map,
+                v,
+                color_field_max=color_field_max,
+                color_field_min=color_field_min,
             )
         else:
             v = np.empty(self.vertices.shape[1], dtype=vs[:3])
@@ -2605,7 +2617,12 @@ class YTSurface(YTSelectionContainer3D):
             cs = self[color_field]
             arr = np.empty(cs.shape[0], dtype=np.dtype(fs))
             self._color_samples(
-                cs, color_log, color_map, color_field_max, color_field_min, arr
+                cs,
+                color_log,
+                color_map,
+                arr,
+                color_field_max=color_field_max,
+                color_field_min=color_field_min,
             )
         else:
             arr = np.empty(nv // 3, np.dtype(fs[:-3]))
