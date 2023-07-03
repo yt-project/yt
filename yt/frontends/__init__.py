@@ -47,6 +47,7 @@ def __getattr__(value):
     import importlib
 
     if value == "_all":
+        # recursively import all frontends
         for _ in __all__:
             __getattr__(_)
         return
