@@ -53,6 +53,6 @@ def __getattr__(value):
         return
 
     if value not in __all__:
-        raise AttributeError
+        raise AttributeError(f"yt.frontends has no attribute {value!r}")
 
     return importlib.import_module(f"yt.frontends.{value}.api")
