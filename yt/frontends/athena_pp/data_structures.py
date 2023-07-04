@@ -65,7 +65,7 @@ class AthenaPPHierarchy(GridIndex):
 
     def __init__(self, ds, dataset_type="athena_pp"):
         self.dataset = weakref.proxy(ds)
-        self.grid = AthenaPPStretchedGrid if self.dataset.logarithmic else AthenaPPGrid
+        self.grid = AthenaPPStretchedGrid if self.dataset.nonuniform else AthenaPPGrid
         self.directory = os.path.dirname(self.dataset.filename)
         self.dataset_type = dataset_type
         # for now, the index file is the dataset!
@@ -97,12 +97,8 @@ class AthenaPPHierarchy(GridIndex):
         mesh_block_size = self._handle.attrs["MeshBlockSize"]
 
         for i in range(num_grids):
-            self.grid_left_edge[i] = np.array(
-                [x[i, 0], y[i, 0], z[i, 0]], dtype="float64"
-            )
-            self.grid_right_edge[i] = np.array(
-                [x[i, -1], y[i, -1], z[i, -1]], dtype="float64"
-            )
+            self.grid_left_edge[i] = np.array([x[i, 0], y[i, 0], z[i, 0]])
+            self.grid_right_edge[i] = np.array([x[i, -1], y[i, -1], z[i, -1]])
             self.grid_dimensions[i] = mesh_block_size
         levels = self._handle["Levels"][:]
 
@@ -111,7 +107,7 @@ class AthenaPPHierarchy(GridIndex):
 
         self.grids = np.empty(self.num_grids, dtype="object")
         for i in range(num_grids):
-            if self.dataset.logarithmic:
+            if self.dataset.nonuniform:
                 self.grids[i] = self.grid(i, [dx[i], dy[i], dz[i]], self, levels[i])
             else:
                 self.grids[i] = self.grid(i, self, levels[i])
@@ -155,7 +151,7 @@ class AthenaPPDataset(Dataset):
         xrat = self._handle.attrs["RootGridX1"][2]
         yrat = self._handle.attrs["RootGridX2"][2]
         zrat = self._handle.attrs["RootGridX3"][2]
-        self.logarithmic = xrat != 1.0 or yrat != 1.0 or zrat != 1.0
+        self.nonuniform = xrat != 1.0 or yrat != 1.0 or zrat != 1.0
         self._magnetic_factor = get_magnetic_normalization(magnetic_normalization)
         Dataset.__init__(
             self,
