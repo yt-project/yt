@@ -65,7 +65,7 @@ class AthenaPPHierarchy(GridIndex):
 
     def __init__(self, ds, dataset_type="athena_pp"):
         self.dataset = weakref.proxy(ds)
-        self.grid = AthenaPPStretchedGrid if self.dataset.nonuniform else AthenaPPGrid
+        self.grid = AthenaPPStretchedGrid if self.dataset._nonuniform else AthenaPPGrid
         self.directory = os.path.dirname(self.dataset.filename)
         self.dataset_type = dataset_type
         # for now, the index file is the dataset!
@@ -107,7 +107,7 @@ class AthenaPPHierarchy(GridIndex):
 
         self.grids = np.empty(self.num_grids, dtype="object")
         for i in range(num_grids):
-            if self.dataset.nonuniform:
+            if self.dataset._nonuniform:
                 self.grids[i] = self.grid(i, [dx[i], dy[i], dz[i]], self, levels[i])
             else:
                 self.grids[i] = self.grid(i, self, levels[i])
@@ -151,7 +151,7 @@ class AthenaPPDataset(Dataset):
         xrat = self._handle.attrs["RootGridX1"][2]
         yrat = self._handle.attrs["RootGridX2"][2]
         zrat = self._handle.attrs["RootGridX3"][2]
-        self.nonuniform = xrat != 1.0 or yrat != 1.0 or zrat != 1.0
+        self._nonuniform = xrat != 1.0 or yrat != 1.0 or zrat != 1.0
         self._magnetic_factor = get_magnetic_normalization(magnetic_normalization)
         Dataset.__init__(
             self,
