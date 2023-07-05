@@ -3,7 +3,6 @@ __all__ = [
     "ahf",
     "amrvac",
     "art",
-    "arepo",
     "artio",
     "athena",
     "athena_pp",
@@ -12,13 +11,18 @@ __all__ = [
     "chimera",
     "chombo",
     "cholla",
-    "eagle",
     "enzo_e",
     "enzo",
     "exodus_ii",
     "fits",
     "flash",
     "gadget",
+    # breaking alphabetical order intentionnally here:
+    # arepo and eagle depend on gadget. Importing them first causes
+    # unintended side effects. See
+    # https://github.com/yt-project/yt/issues/4563
+    "arepo",
+    "eagle",
     "gadget_fof",
     "gamer",
     "gdf",
