@@ -1,17 +1,15 @@
 import os
 import weakref
-from itertools import chain, product
 
 import numpy as np
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
-from yt.data_objects.index_subobjects.unstructured_mesh import SemiStructuredMesh
+from yt.data_objects.index_subobjects.stretched_grid import StretchedGrid
 from yt.data_objects.static_output import Dataset
 from yt.fields.magnetic_field import get_magnetic_normalization
-from yt.funcs import get_pbar, mylog
+from yt.funcs import mylog
 from yt.geometry.api import Geometry
 from yt.geometry.grid_geometry_handler import GridIndex
-from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
 from yt.utilities.chemical_formulas import compute_mu
 from yt.utilities.file_handler import HDF5FileHandler
 
@@ -27,117 +25,6 @@ geom_map = {
     "schwarzschild": "spherical",
     "kerr-schild": "spherical",
 }
-
-_cis = np.fromiter(
-    chain.from_iterable(product([0, 1], [0, 1], [0, 1])), dtype=np.int64, count=8 * 3
-)
-_cis.shape = (8, 3)
-
-
-class AthenaPPLogarithmicMesh(SemiStructuredMesh):
-    _index_offset = 0
-
-    def __init__(
-        self,
-        mesh_id,
-        filename,
-        connectivity_indices,
-        connectivity_coords,
-        index,
-        blocks,
-        dims,
-    ):
-        super().__init__(
-            mesh_id, filename, connectivity_indices, connectivity_coords, index
-        )
-        self.mesh_blocks = blocks
-        self.mesh_dims = dims
-
-
-class AthenaPPLogarithmicIndex(UnstructuredIndex):
-    def __init__(self, ds, dataset_type="athena_pp"):
-        self._handle = ds._handle
-        super().__init__(ds, dataset_type)
-        self.index_filename = self.dataset.filename
-        self.directory = os.path.dirname(self.dataset.filename)
-        self.dataset_type = dataset_type
-
-    def _initialize_mesh(self):
-        mylog.debug("Setting up meshes.")
-        num_blocks = self._handle.attrs["NumMeshBlocks"]
-        log_loc = self._handle["LogicalLocations"]
-        levels = self._handle["Levels"]
-        x1f = self._handle["x1f"]
-        x2f = self._handle["x2f"]
-        x3f = self._handle["x3f"]
-        nbx, nby, nbz = tuple(np.max(log_loc, axis=0) + 1)
-        nlevel = self._handle.attrs["MaxLevel"] + 1
-
-        nb = np.array([nbx, nby, nbz], dtype="int64")
-        self.mesh_factors = np.ones(3, dtype="int64") * ((nb > 1).astype("int") + 1)
-
-        block_grid = -np.ones((nbx, nby, nbz, nlevel), dtype="int64")
-        block_grid[log_loc[:, 0], log_loc[:, 1], log_loc[:, 2], levels[:]] = np.arange(
-            num_blocks
-        )
-
-        block_list = np.arange(num_blocks, dtype="int64")
-        bc = []
-        for i in range(num_blocks):
-            if block_list[i] >= 0:
-                ii, jj, kk = log_loc[i]
-                neigh = block_grid[ii : ii + 2, jj : jj + 2, kk : kk + 2, levels[i]]
-                if np.all(neigh > -1):
-                    loc_ids = neigh.transpose().flatten()
-                    bc.append(loc_ids)
-                    block_list[loc_ids] = -1
-                else:
-                    bc.append(np.array(i))
-                    block_list[i] = -1
-
-        num_meshes = len(bc)
-
-        self.meshes = []
-        pbar = get_pbar("Constructing meshes", num_meshes)
-        for i in range(num_meshes):
-            ob = bc[i][0]
-            x = x1f[ob, :]
-            y = x2f[ob, :]
-            z = x3f[ob, :]
-            if nbx > 1:
-                x = np.concatenate([x, x1f[bc[i][1], 1:]])
-            if nby > 1:
-                y = np.concatenate([y, x2f[bc[i][2], 1:]])
-            if nbz > 1:
-                z = np.concatenate([z, x3f[bc[i][4], 1:]])
-            nxm = x.size
-            nym = y.size
-            nzm = z.size
-            coords = np.zeros((nxm, nym, nzm, 3), dtype="float64", order="C")
-            coords[:, :, :, 0] = x[:, None, None]
-            coords[:, :, :, 1] = y[None, :, None]
-            coords[:, :, :, 2] = z[None, None, :]
-            coords.shape = (nxm * nym * nzm, 3)
-            cycle = np.rollaxis(np.indices((nxm - 1, nym - 1, nzm - 1)), 0, 4)
-            cycle.shape = ((nxm - 1) * (nym - 1) * (nzm - 1), 3)
-            off = _cis + cycle[:, np.newaxis]
-            connectivity = ((off[:, :, 0] * nym) + off[:, :, 1]) * nzm + off[:, :, 2]
-            mesh = AthenaPPLogarithmicMesh(
-                i,
-                self.index_filename,
-                connectivity,
-                coords,
-                self,
-                bc[i],
-                np.array([nxm - 1, nym - 1, nzm - 1]),
-            )
-            self.meshes.append(mesh)
-            pbar.update(i + 1)
-        pbar.finish()
-        mylog.debug("Done setting up meshes.")
-
-    def _detect_output_fields(self):
-        self.field_list = [("athena_pp", k) for k in self.ds._field_map]
 
 
 class AthenaPPGrid(AMRGridPatch):
@@ -162,13 +49,23 @@ class AthenaPPGrid(AMRGridPatch):
         self.field_data["dx"], self.field_data["dy"], self.field_data["dz"] = self.dds
 
 
+class AthenaPPStretchedGrid(StretchedGrid):
+    _id_offset = 0
+
+    def __init__(self, id, cell_widths, index, level):
+        super().__init__(id, cell_widths, filename=index.index_filename, index=index)
+        self.Parent = None
+        self.Children = []
+        self.Level = level
+
+
 class AthenaPPHierarchy(GridIndex):
-    grid = AthenaPPGrid
     _dataset_type = "athena_pp"
     _data_file = None
 
     def __init__(self, ds, dataset_type="athena_pp"):
         self.dataset = weakref.proxy(ds)
+        self.grid = AthenaPPStretchedGrid if self.dataset._nonuniform else AthenaPPGrid
         self.directory = os.path.dirname(self.dataset.filename)
         self.dataset_type = dataset_type
         # for now, the index file is the dataset!
@@ -191,18 +88,17 @@ class AthenaPPHierarchy(GridIndex):
 
         # TODO: In an unlikely case this would use too much memory, implement
         #       chunked read along 1 dim
-        x = self._handle["x1f"][:, :]
-        y = self._handle["x2f"][:, :]
-        z = self._handle["x3f"][:, :]
+        x = self._handle["x1f"][:, :].astype("float64")
+        y = self._handle["x2f"][:, :].astype("float64")
+        z = self._handle["x3f"][:, :].astype("float64")
+        dx = np.diff(x, axis=1)
+        dy = np.diff(y, axis=1)
+        dz = np.diff(z, axis=1)
         mesh_block_size = self._handle.attrs["MeshBlockSize"]
 
         for i in range(num_grids):
-            self.grid_left_edge[i] = np.array(
-                [x[i, 0], y[i, 0], z[i, 0]], dtype="float64"
-            )
-            self.grid_right_edge[i] = np.array(
-                [x[i, -1], y[i, -1], z[i, -1]], dtype="float64"
-            )
+            self.grid_left_edge[i] = np.array([x[i, 0], y[i, 0], z[i, 0]])
+            self.grid_right_edge[i] = np.array([x[i, -1], y[i, -1], z[i, -1]])
             self.grid_dimensions[i] = mesh_block_size
         levels = self._handle["Levels"][:]
 
@@ -211,7 +107,10 @@ class AthenaPPHierarchy(GridIndex):
 
         self.grids = np.empty(self.num_grids, dtype="object")
         for i in range(num_grids):
-            self.grids[i] = self.grid(i, self, levels[i])
+            if self.dataset._nonuniform:
+                self.grids[i] = self.grid(i, [dx[i], dy[i], dz[i]], self, levels[i])
+            else:
+                self.grids[i] = self.grid(i, self, levels[i])
 
         if self.dataset.dimensionality <= 2:
             self.grid_right_edge[:, 2] = self.dataset.domain_right_edge[2]
@@ -229,6 +128,7 @@ class AthenaPPHierarchy(GridIndex):
 class AthenaPPDataset(Dataset):
     _field_info_class = AthenaPPFieldInfo
     _dataset_type = "athena_pp"
+    _index_class = AthenaPPHierarchy
 
     def __init__(
         self,
@@ -251,12 +151,7 @@ class AthenaPPDataset(Dataset):
         xrat = self._handle.attrs["RootGridX1"][2]
         yrat = self._handle.attrs["RootGridX2"][2]
         zrat = self._handle.attrs["RootGridX3"][2]
-        if xrat != 1.0 or yrat != 1.0 or zrat != 1.0:
-            self._index_class = AthenaPPLogarithmicIndex
-            self.logarithmic = True
-        else:
-            self._index_class = AthenaPPHierarchy
-            self.logarithmic = False
+        self._nonuniform = xrat != 1.0 or yrat != 1.0 or zrat != 1.0
         self._magnetic_factor = get_magnetic_normalization(magnetic_normalization)
         Dataset.__init__(
             self,

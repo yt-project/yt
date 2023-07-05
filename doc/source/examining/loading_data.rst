@@ -481,10 +481,7 @@ Athena++ Data
 
 Athena++ HDF5 data is supported and cared for by John ZuHone. Uniform-grid, SMR,
 and AMR datasets in cartesian coordinates are fully supported. Support for
-curvilinear coordinates and logarithmic cell sizes exists, but is preliminary.
-For the latter type of dataset, the data will be loaded in as a semi-structured
-mesh dataset. See :ref:`loading-semi-structured-mesh-data` for more details on
-how this works in yt.
+curvilinear coordinates and/or non-constant grid cell sizes exists, but is preliminary.
 
 The default unit system in yt is cgs ("Gaussian") units, but Athena++ data is
 not normally stored in these units, so the code unit system is the default unit
