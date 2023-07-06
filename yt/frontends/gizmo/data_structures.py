@@ -73,13 +73,9 @@ class GizmoDataset(GadgetHDF5Dataset):
 
         self.cosmological_simulation = 1
 
-        try:
-            self.current_redshift = hvals["Redshift"]
-        except KeyError:
-            # Probably not a cosmological dataset, we should just set
-            # z = 0 and let the user know
-            self.current_redshift = 0.0
-            only_on_root(mylog.info, "Redshift is not set in Header. Assuming z=0.")
+        self.current_redshift = hvals.get("Redshift", 0.0)
+        if "Redshift" not in hvals;
+            mylog.info("Redshift is not set in Header. Assuming z=0.")
 
         try:
             # In 1d8479, Nov 2020, public GIZMO updated the names of the Omegas
