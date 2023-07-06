@@ -135,15 +135,7 @@ class GizmoDataset(GadgetHDF5Dataset):
         prefix = os.path.join(self.directory, self.basename.split('.', 1)[0])
 
         if hvals["NumFiles"] > 1:
-            for t in (
-                f"{prefix}.%(num)s{self._suffix}",
-                f"{prefix}.gad.%(num)s{self._suffix}",
-            ):
-                if os.path.isfile(t % {"num": 0}):
-                    self.filename_template = t
-                    break
-            else:
-                raise RuntimeError("Could not determine correct data file template.")
+            self.filename_template = f"{prefix}.%(num)s{self._suffix}"
         else:
             self.filename_template = self.parameter_filename
 
