@@ -3,7 +3,6 @@ import os
 import numpy as np
 
 from yt.frontends.gadget.data_structures import GadgetHDF5Dataset
-from yt.funcs import only_on_root
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py
@@ -74,7 +73,7 @@ class GizmoDataset(GadgetHDF5Dataset):
         self.cosmological_simulation = 1
 
         self.current_redshift = hvals.get("Redshift", 0.0)
-        if "Redshift" not in hvals;
+        if "Redshift" not in hvals:
             mylog.info("Redshift is not set in Header. Assuming z=0.")
 
         try:
@@ -91,8 +90,7 @@ class GizmoDataset(GadgetHDF5Dataset):
                 self.hubble_constant = hvals["HubbleParam"]
             else:
                 # Should still support GIZMO versions prior to 1d8479 too
-                only_on_root(
-                    mylog.info,
+                mylog.info(
                     "ComovingIntegrationOn does not exist, falling back to OmegaLambda",
                 )
                 self.omega_lambda = hvals["OmegaLambda"]
@@ -102,13 +100,12 @@ class GizmoDataset(GadgetHDF5Dataset):
         except KeyError:
             # If these are not set it is definitely not a cosmological dataset.
             self.omega_lambda = 0.0
-            self.omega_matter = 1.0  # Just in case somebody asks for it.
+            self.omega_matter = 0.0  # Just in case somebody asks for it.
             self.cosmological_simulation = 0
             # Hubble is set below for Omega Lambda = 0.
 
         if not self.cosmological_simulation:
-            only_on_root(
-                mylog.info,
+            mylog.info(
                 "ComovingIntegrationOn != 1 or (not found "
                 "and OmegaLambda is 0.0), so we are turning off Cosmology.",
             )
@@ -128,15 +125,14 @@ class GizmoDataset(GadgetHDF5Dataset):
                 omega_lambda=self.omega_lambda,
             )
             self.current_time = cosmo.lookback_time(self.current_redshift, 1e6)
-            only_on_root(
-                mylog.info,
+            mylog.info(
                 "Calculating time from %0.3e to be %0.3e seconds",
                 hvals["Time"],
                 self.current_time,
             )
         self.parameters = hvals
 
-        prefix = os.path.join(ds.directory, ds.basename.split('.', 1)[0])
+        prefix = os.path.join(self.directory, self.basename.split('.', 1)[0])
 
         if hvals["NumFiles"] > 1:
             for t in (
