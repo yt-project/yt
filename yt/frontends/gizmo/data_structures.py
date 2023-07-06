@@ -140,12 +140,7 @@ class GizmoDataset(GadgetHDF5Dataset):
             )
         self.parameters = hvals
 
-        prefix = os.path.abspath(
-            os.path.join(
-                os.path.dirname(self.parameter_filename),
-                os.path.basename(self.parameter_filename).split(".", 1)[0],
-            )
-        )
+        prefix = os.path.join(ds.directory, ds.basename.split('.', 1)[0])
 
         if hvals["NumFiles"] > 1:
             for t in (
