@@ -132,7 +132,7 @@ class GizmoDataset(GadgetHDF5Dataset):
             )
         self.parameters = hvals
 
-        prefix = os.path.join(self.directory, self.basename.split('.', 1)[0])
+        prefix = os.path.join(self.directory, self.basename.split(".", 1)[0])
 
         if hvals["NumFiles"] > 1:
             self.filename_template = f"{prefix}.%(num)s{self._suffix}"
