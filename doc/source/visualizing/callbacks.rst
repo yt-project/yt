@@ -247,14 +247,14 @@ Clump Finder Callback
 Overplot Contours
 ~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_contour(self, field, ncont=5, factor=4, take_log=False,\
+.. function:: annotate_contour(self, field, levels=5, factor=4, take_log=False,\
                                clim=None, plot_args=None, label=False, \
                                text_args=None, data_source=None)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.ContourCallback`.)
 
-   Add contours in ``field`` to the plot.  ``ncont`` governs the number of
+   Add contours in ``field`` to the plot.  ``levels`` governs the number of
    contours generated, ``factor`` governs the number of points used in the
    interpolation, ``take_log`` governs how it is contoured and ``clim`` gives
    the (upper, lower) limits for contouring.
