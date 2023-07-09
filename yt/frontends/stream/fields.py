@@ -1,5 +1,6 @@
 from yt._typing import KnownFieldsT
 from yt.fields.field_info_container import FieldInfoContainer
+from yt.utilities.periodic_table import periodic_table
 
 
 class StreamFieldInfo(FieldInfoContainer):
@@ -89,12 +90,21 @@ class StreamFieldInfo(FieldInfoContainer):
         from yt.fields.magnetic_field import setup_magnetic_field_aliases
         from yt.fields.species_fields import setup_species_fields
 
+        species_names = []
         for field in self.ds.stream_handler.field_units:
             if field[0] in self.ds.particle_types:
                 continue
             units = self.ds.stream_handler.field_units[field]
             if units != "":
                 self.add_output_field(field, sampling_type="cell", units=units)
+                if field[1].endswith("_fraction"):
+                    sp = field[1].rsplit("_fraction")[0]
+                    if sp in periodic_table.elements_by_symbol:
+                        species_names.append(sp)
+                        self.alias(
+                            ("gas", f"{sp}_fraction"), ("stream", f"{sp}_fraction")
+                        )
+        self.species_names = species_names
         setup_magnetic_field_aliases(
             self,
             "stream",
