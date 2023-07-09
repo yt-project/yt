@@ -87,6 +87,7 @@ class StreamFieldInfo(FieldInfoContainer):
 
     def setup_fluid_fields(self):
         from yt.fields.magnetic_field import setup_magnetic_field_aliases
+        from yt.fields.species_fields import setup_species_fields
 
         for field in self.ds.stream_handler.field_units:
             if field[0] in self.ds.particle_types:
@@ -99,6 +100,7 @@ class StreamFieldInfo(FieldInfoContainer):
             "stream",
             [f"magnetic_field_{ax}" for ax in self.ds.coordinates.axis_order],
         )
+        setup_species_fields(self)
 
     def add_output_field(self, name, sampling_type, **kwargs):
         if name in self.ds.stream_handler.field_units:
