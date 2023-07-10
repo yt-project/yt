@@ -105,7 +105,8 @@ class StreamFieldInfo(FieldInfoContainer):
                 self.add_output_field(field, sampling_type="cell", units=units)
                 # Check to see if this could be a species fraction field
                 if field[1].endswith("_fraction"):
-                    parts = field[1].rsplit("_fraction")[0].split("_")
+                    sp = field[1].rsplit("_fraction")[0]
+                    parts = sp.split("_")
                     # parts is now either an element or molecule symbol
                     # by itself:
                     valid = parts[0] in symbols
@@ -114,15 +115,11 @@ class StreamFieldInfo(FieldInfoContainer):
                         # Note that this doesn't catch invalid ionization states
                         valid &= re.match("^[pm](0|[1-9][0-9]*)$", parts[1]) is not None
                     if valid:
-                        # Add the species name to the list if not already
-                        # present
-                        if parts[0] not in species_names:
-                            species_names.append(parts[0])
+                        # Add the species name to the list
+                        species_names.append(sp)
                         # Alias the field
                         self.alias(("gas", field[1]), ("stream", field[1]))
-        self.species_names = sorted(
-            species_names, key=lambda symbol: symbols.index(symbol)
-        )
+        self.species_names = sorted(species_names)
         setup_magnetic_field_aliases(
             self,
             "stream",
