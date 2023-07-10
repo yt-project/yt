@@ -30,11 +30,6 @@ from yt.utilities.exceptions import YTFieldNotFound, YTInvalidWidthError
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _requests as requests
 
-if sys.version_info >= (3, 9):
-    import importlib.resources as importlib_resources
-else:
-    import importlib_resources
-
 # Some functions for handling sequences and other types
 
 
@@ -552,6 +547,10 @@ def get_git_version(path):
 
 
 def get_yt_version():
+    if sys.version_info >= (3, 9):
+        import importlib.resources as importlib_resources
+    else:
+        import importlib_resources
     version = get_git_version(os.path.dirname(importlib_resources.files("yt")))
     if version is None:
         return version
@@ -1003,6 +1002,10 @@ def matplotlib_style_context(style="yt.default", after_reset=False):
     """
     # FUTURE: this function should be deprecated in favour of matplotlib.style.context
     # after support for matplotlib 3.6 and older versions is dropped.
+    if sys.version_info >= (3, 9):
+        import importlib.resources as importlib_resources
+    else:
+        import importlib_resources
     import matplotlib as mpl
     import matplotlib.style
 

@@ -1,3 +1,4 @@
+import importlib.metadata
 import sys
 
 import pytest
@@ -39,7 +40,7 @@ def mock_external_frontend(monkeypatch):
         else:
             return {"yt.frontends": [MockEntryPoint]}
 
-    monkeypatch.setattr(yt.loaders, "entry_points", mock_entry_points)
+    monkeypatch.setattr(importlib.metadata, "entry_points", mock_entry_points)
     assert "ExtDataset" not in output_type_registry
 
     yield

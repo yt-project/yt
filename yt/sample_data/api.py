@@ -16,10 +16,6 @@ from yt.utilities.on_demand_imports import (
     _requests as requests,
 )
 
-if sys.version_info >= (3, 9):
-    import importlib.resources as importlib_resources
-else:
-    import importlib_resources
 
 num_exp = re.compile(r"\d*(\.\d*)?")
 byte_unit_exp = re.compile(r"[KMGT]?B")
@@ -83,6 +79,11 @@ def _parse_byte_size(s: str):
 
 
 def _get_sample_data_registry():
+    if sys.version_info >= (3, 9):
+        import importlib.resources as importlib_resources
+    else:
+        import importlib_resources
+
     return json.loads(
         importlib_resources.files("yt")
         .joinpath("sample_data_registry.json")
