@@ -93,7 +93,7 @@ class StreamFieldInfo(FieldInfoContainer):
         from yt.utilities.periodic_table import periodic_table
 
         # First grab all the element symbols from the periodic table
-        symbols = list(periodic_table.elements_by_symbol.keys())
+        symbols = list(periodic_table.elements_by_symbol)
         # Now add the electron, and some common molecules
         symbols += ["El", "H2", "CO"]
         species_names = []
@@ -111,8 +111,10 @@ class StreamFieldInfo(FieldInfoContainer):
                     # by itself:
                     valid = parts[0] in symbols
                     # or it may also have an ionization state after it
-                    if len(parts) > 1 and parts[0] != "El":
-                        # Note that this doesn't catch invalid ionization states
+                    if valid and len(parts) > 1 and parts[0] != "El":
+                        # Note that this doesn't catch invalid ionization states,
+                        # which would indicate more electron states empty than actually
+                        # exist, but we'll leave that to the user to do correctly.
                         valid &= re.match("^[pm](0|[1-9][0-9]*)$", parts[1]) is not None
                     if valid:
                         # Add the species name to the list
