@@ -16,7 +16,7 @@ class GizmoDataset(GadgetHDF5Dataset):
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
         need_groups = ["Header"]
-        veto_groups = ["FOF", "Group", "Subhalo"]
+        veto_groups = ["Config", "Constants", "FOF", "Group", "Subhalo"]
         valid = True
         valid_fname = filename
         # If passed arg is a directory, look for the .0 file in that dir
