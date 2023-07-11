@@ -93,9 +93,10 @@ class StreamFieldInfo(FieldInfoContainer):
         from yt.utilities.periodic_table import periodic_table
 
         # First grab all the element symbols from the periodic table
+        # (this includes the electron and deuterium)
         symbols = list(periodic_table.elements_by_symbol)
-        # Now add the electron, and some common molecules
-        symbols += ["El", "H2", "CO"]
+        # Now add some common molecules
+        symbols += ["H2", "CO"]
         species_names = []
         for field in self.ds.stream_handler.field_units:
             if field[0] in self.ds.particle_types:
