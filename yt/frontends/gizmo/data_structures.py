@@ -96,7 +96,7 @@ class GizmoDataset(GadgetHDF5Dataset):
                 self.omega_lambda = hvals["OmegaLambda"]
                 self.omega_matter = hvals["Omega0"]
                 self.hubble_constant = hvals["HubbleParam"]
-                self.cosmological_simulation = self.omega_lambda == 0.0
+                self.cosmological_simulation = self.omega_lambda != 0.0
         except KeyError:
             # If these are not set it is definitely not a cosmological dataset.
             self.omega_lambda = 0.0
@@ -110,7 +110,6 @@ class GizmoDataset(GadgetHDF5Dataset):
                 "and OmegaLambda is 0.0), so we are turning off Cosmology.",
             )
             self.hubble_constant = 1.0  # So that scaling comes out correct
-            self.cosmological_simulation = 0
             self.current_redshift = 0.0
             # This may not be correct.
             self.current_time = hvals["Time"]
