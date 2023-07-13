@@ -5,14 +5,15 @@ from yt.testing import assert_allclose_units
 
 
 def test_stream_species():
-    arr = np.random.uniform(size=(32, 32, 32))
+    prng = np.random.default_rng(seed=42)
+    arr = prng.uniform(size=(32, 32, 32))
 
     data = {
         "density": (arr, "g/cm**3"),
-        "H_p0_fraction": (0.37 * np.ones(arr.shape), "dimensionless"),
-        "H_p1_fraction": (0.37 * np.ones(arr.shape), "dimensionless"),
-        "He_fraction": (0.24 * np.ones(arr.shape), "dimensionless"),
-        "CO_fraction": (0.02 * np.ones(arr.shape), "dimensionless"),
+        "H_p0_fraction": (0.37 * np.ones_like(arr), "dimensionless"),
+        "H_p1_fraction": (0.37 * np.ones_like(arr), "dimensionless"),
+        "He_fraction": (0.24 * np.ones_like(arr), "dimensionless"),
+        "CO_fraction": (0.02 * np.ones_like(arr), "dimensionless"),
     }
     bbox = np.array([[-1.5, 1.5], [-1.5, 1.5], [-1.5, 1.5]])
     ds = load_uniform_grid(data, arr.shape, length_unit="Mpc", bbox=bbox, nprocs=64)
