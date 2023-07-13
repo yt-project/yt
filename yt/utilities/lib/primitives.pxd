@@ -37,7 +37,7 @@ cdef np.int64_t ray_bbox_intersect(Ray* ray, const BBox bbox) nogil
 
 cdef np.int64_t ray_triangle_intersect(const void* primitives,
                                        const np.int64_t item,
-                                       Ray* ray) nogil
+                                       Ray* ray) noexcept nogil
 
 cdef void triangle_centroid(const void *primitives,
                             const np.int64_t item,
@@ -72,7 +72,7 @@ cdef RayHitData compute_patch_hit(cython.floating[8][3] verts,
 
 cdef np.int64_t ray_patch_intersect(const void* primitives,
                                     const np.int64_t item,
-                                    Ray* ray) nogil
+                                    Ray* ray) noexcept nogil
 
 cdef void patch_centroid(const void *primitives,
                          const np.int64_t item,
@@ -107,7 +107,7 @@ cdef void tet_patchSurfaceDerivV(const cython.floating[6][3] verts,
 
 cdef np.int64_t ray_tet_patch_intersect(const void* primitives,
                                     const np.int64_t item,
-                                    Ray* ray) nogil
+                                    Ray* ray) noexcept nogil
 
 cdef void tet_patch_centroid(const void *primitives,
                          const np.int64_t item,

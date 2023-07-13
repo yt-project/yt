@@ -60,7 +60,7 @@ cdef np.int64_t ray_bbox_intersect(Ray* ray, const BBox bbox) nogil:
 @cython.cdivision(True)
 cdef np.int64_t ray_triangle_intersect(const void* primitives,
                                        const np.int64_t item,
-                                       Ray* ray) nogil:
+                                       Ray* ray) noexcept nogil:
     '''
 
     This returns an integer flag that indicates whether a triangle is the
@@ -315,7 +315,7 @@ cdef RayHitData compute_patch_hit(cython.floating[8][3] verts,
 @cython.cdivision(True)
 cdef np.int64_t ray_patch_intersect(const void* primitives,
                                     const np.int64_t item,
-                                    Ray* ray) nogil:
+                                    Ray* ray) noexcept nogil:
     '''
 
     This returns an integer flag that indicates whether the given patch is the
@@ -531,7 +531,7 @@ cdef RayHitData compute_tet_patch_hit(cython.floating[6][3] verts,
 @cython.cdivision(True)
 cdef np.int64_t ray_tet_patch_intersect(const void* primitives,
                                     const np.int64_t item,
-                                    Ray* ray) nogil:
+                                    Ray* ray) noexcept nogil:
 
     cdef TetPatch tet_patch = (<TetPatch*> primitives)[item]
 
