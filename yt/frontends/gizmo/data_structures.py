@@ -44,11 +44,13 @@ class GizmoDataset(GadgetHDF5Dataset):
             )
             # From Apr 2021, 7f1f06f, public gizmo includes a header variable
             # GIZMO_version, which is set to the year of the most recent commit
-            # We should prefer this to checking the metallicity, which might 
+            # We should prefer this to checking the metallicity, which might
             # not exist
             if "GIZMO_version" not in fh["/Header"].attrs:
                 dmetal = "/PartType0/Metallicity"
-                if dmetal not in fh or (fh[dmetal].ndim > 1 and fh[dmetal].shape[1] < 11):
+                if dmetal not in fh or (
+                    fh[dmetal].ndim > 1 and fh[dmetal].shape[1] < 11
+                ):
                     valid = False
             fh.close()
         except Exception:
