@@ -81,9 +81,7 @@ class GizmoDataset(GadgetHDF5Dataset):
             # to include an _, added baryons and radiation and added the
             # ComovingIntegrationOn field. ComovingIntegrationOn is always set,
             # but the Omega's are only included if ComovingIntegrationOn is true
-            mylog.debug(
-                "Reading cosmological parameters using post-1d8479 format"
-            )
+            mylog.debug("Reading cosmological parameters using post-1d8479 format")
             self.cosmological_simulation = hvals["ComovingIntegrationOn"]
             if self.cosmological_simulation:
                 self.omega_lambda = hvals["Omega_Lambda"]
@@ -102,9 +100,7 @@ class GizmoDataset(GadgetHDF5Dataset):
             self.cosmological_simulation = self.omega_lambda != 0.0
         else:
             # If these are not set it is definitely not a cosmological dataset.
-            mylog.debug(
-                "No cosmological information found, assuming defaults"
-            )
+            mylog.debug("No cosmological information found, assuming defaults")
             self.omega_lambda = 0.0
             self.omega_matter = 0.0  # Just in case somebody asks for it.
             self.cosmological_simulation = 0
