@@ -76,29 +76,35 @@ class GizmoDataset(GadgetHDF5Dataset):
         if "Redshift" not in hvals:
             mylog.info("Redshift is not set in Header. Assuming z=0.")
 
-        try:
+        if "ComovingIntegrationOn" in hvals:
             # In 1d8479, Nov 2020, public GIZMO updated the names of the Omegas
             # to include an _, added baryons and radiation and added the
             # ComovingIntegrationOn field. ComovingIntegrationOn is always set,
             # but the Omega's are only included if ComovingIntegrationOn is true
-            if "ComovingIntegrationOn" in hvals:
-                self.cosmological_simulation = hvals["ComovingIntegrationOn"]
+            mylog.debug(
+                "Reading cosmological parameters using post-1d8479 format"
+            )
+            self.cosmological_simulation = hvals["ComovingIntegrationOn"]
+            if self.cosmological_simulation:
                 self.omega_lambda = hvals["Omega_Lambda"]
                 self.omega_matter = hvals["Omega_Matter"]
                 self.omega_baryon = hvals["Omega_Baryon"]
                 self.omega_radiation = hvals["Omega_Radiation"]
-                self.hubble_constant = hvals["HubbleParam"]
-            else:
-                # Should still support GIZMO versions prior to 1d8479 too
-                mylog.info(
-                    "ComovingIntegrationOn does not exist, falling back to OmegaLambda",
-                )
-                self.omega_lambda = hvals["OmegaLambda"]
-                self.omega_matter = hvals["Omega0"]
-                self.hubble_constant = hvals["HubbleParam"]
-                self.cosmological_simulation = self.omega_lambda != 0.0
-        except KeyError:
+            self.hubble_constant = hvals["HubbleParam"]
+        elif "OmegaLambda" in hvals:
+            # Should still support GIZMO versions prior to 1d8479 too
+            mylog.info(
+                "ComovingIntegrationOn does not exist, falling back to OmegaLambda",
+            )
+            self.omega_lambda = hvals["OmegaLambda"]
+            self.omega_matter = hvals["Omega0"]
+            self.hubble_constant = hvals["HubbleParam"]
+            self.cosmological_simulation = self.omega_lambda != 0.0
+        else:
             # If these are not set it is definitely not a cosmological dataset.
+            mylog.debug(
+                "No cosmological information found, assuming defaults"
+            )
             self.omega_lambda = 0.0
             self.omega_matter = 0.0  # Just in case somebody asks for it.
             self.cosmological_simulation = 0
