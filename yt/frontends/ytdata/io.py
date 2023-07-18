@@ -228,7 +228,7 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
                         continue
 
                 for field in field_list:
-                    data = f[ptype][field][mask].astype("float64")
+                    data = f[ptype][field][mask].astype("float64", copy=False)
                     data_return[(ptype, field)] = data
 
         return data_return
