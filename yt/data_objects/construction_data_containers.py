@@ -2508,19 +2508,16 @@ class YTSurface(YTSelectionContainer3D):
         color_field_max=None,
         color_field_min=None,
     ):
+        cs = np.asarray(cs)
         if color_log:
             cs = np.log10(cs)
         if color_field_min is None:
-            cs = [float(field) for field in cs]
-            cs = np.array(cs)
             mi = cs.min()
         else:
             mi = color_field_min
             if color_log:
                 mi = np.log10(mi)
         if color_field_max is None:
-            cs = [float(field) for field in cs]
-            cs = np.array(cs)
             ma = cs.max()
         else:
             ma = color_field_max
