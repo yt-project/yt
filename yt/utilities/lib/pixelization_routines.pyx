@@ -992,7 +992,7 @@ cdef class SPHKernelInterpolationTable:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef np.float64_t integrate_q2(self, np.float64_t q2) nogil:
+    cdef np.float64_t integrate_q2(self, np.float64_t q2) noexcept nogil:
         # See equation 30 of the SPLASH paper
         cdef int i
         # Our bounds are -sqrt(R*R - q2) and sqrt(R*R-q2)
@@ -1033,7 +1033,7 @@ cdef class SPHKernelInterpolationTable:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef inline np.float64_t interpolate(self, np.float64_t q2) nogil:
+    cdef inline np.float64_t interpolate(self, np.float64_t q2) noexcept nogil:
         cdef int index
         cdef np.float64_t F_interpolate
         index = <int>((q2 - self.q2_vals[0])*(self.iq2_range))
