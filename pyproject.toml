@@ -12,6 +12,7 @@ requires = [
   "oldest-supported-numpy",
   "ewah-bool-utils>=1.0.2",
 ]
+build-backend = "setuptools.build_meta:__legacy__"
 
 [project]
 name = "yt"
