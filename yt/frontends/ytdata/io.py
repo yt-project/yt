@@ -209,16 +209,14 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
                     )
                     yield ptype, (x, y, z), 0.0
 
-    def _read_particle_fields(self, chunks, ptf, selector):
-        # Now we have all the sizes, and we can allocate
-        chunks = list(chunks)
-        data_files = set()
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
-        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
-            with h5py.File(data_file.filename, mode="r") as f:
-                for ptype, field_list in sorted(ptf.items()):
+    def _read_particle_data_file(self, data_file, ptf, selector):
+        data_return = {}
+
+        with h5py.File(data_file.filename, mode="r") as f:
+            for ptype, field_list in sorted(ptf.items()):
+                if selector is None or getattr(selector, "is_all_data", False):
+                    mask = slice(None, None, None)
+                else:
                     units = _get_position_array_units(ptype, f, "x")
                     x, y, z = (
                         self.ds.arr(_get_position_array(ptype, f, ax), units)
@@ -228,9 +226,12 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
                     del x, y, z
                     if mask is None:
                         continue
-                    for field in field_list:
-                        data = f[ptype][field][mask].astype("float64")
-                        yield (ptype, field), data
+
+                for field in field_list:
+                    data = f[ptype][field][mask].astype("float64", copy=False)
+                    data_return[(ptype, field)] = data
+
+        return data_return
 
     def _count_particles(self, data_file):
         si, ei = data_file.start, data_file.end
