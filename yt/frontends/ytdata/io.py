@@ -197,6 +197,7 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
+            index_mask = slice(data_file.start, data_file.end)
             with h5py.File(data_file.filename, mode="r") as f:
                 for ptype in sorted(ptf):
                     pcount = data_file.total_particles[ptype]
@@ -204,7 +205,10 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
                         continue
                     units = _get_position_array_units(ptype, f, "x")
                     x, y, z = (
-                        self.ds.arr(_get_position_array(ptype, f, ax), units)
+                        self.ds.arr(
+                            _get_position_array(ptype, f, ax, index_mask=index_mask),
+                            units,
+                        )
                         for ax in "xyz"
                     )
                     yield ptype, (x, y, z), 0.0
@@ -213,13 +217,17 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
         data_return = {}
 
         with h5py.File(data_file.filename, mode="r") as f:
+            index_mask = slice(data_file.start, data_file.end)
             for ptype, field_list in sorted(ptf.items()):
                 if selector is None or getattr(selector, "is_all_data", False):
-                    mask = slice(None, None, None)
+                    mask = index_mask
                 else:
                     units = _get_position_array_units(ptype, f, "x")
                     x, y, z = (
-                        self.ds.arr(_get_position_array(ptype, f, ax), units)
+                        self.ds.arr(
+                            _get_position_array(ptype, f, ax, index_mask=index_mask),
+                            units,
+                        )
                         for ax in "xyz"
                     )
                     mask = selector.select_points(x, y, z, 0.0)
@@ -308,12 +316,14 @@ class IOHandlerYTSpatialPlotHDF5(IOHandlerYTDataContainerHDF5):
                         yield (ptype, field), data
 
 
-def _get_position_array(ptype, f, ax):
+def _get_position_array(ptype, f, ax, index_mask=None):
+    if index_mask is None:
+        index_mask = slice(None, None, None)
     if ptype == "grid":
         pos_name = ""
     else:
         pos_name = "particle_position_"
-    return f[ptype][pos_name + ax][()].astype("float64")
+    return f[ptype][pos_name + ax][index_mask].astype("float64")
 
 
 def _get_position_array_units(ptype, f, ax):
