@@ -16,7 +16,8 @@ class IOHandlerAHFHalos(BaseParticleIOHandler):
         # This needs to *yield* a series of tuples of (ptype, (x, y, z), hsml).
         # chunks is a list of chunks, and ptf is a dict where the keys are
         # ptypes and the values are lists of fields.
-        for data_file in self._get_data_files(chunks, ptf):
+        self._validate_particle_ptf(ptf)
+        for data_file in self._sorted_chunk_iterator(chunks):
             pos = data_file._get_particle_positions("halos")
             x, y, z = (pos[:, i] for i in range(3))
             yield "halos", (x, y, z), 0.0
@@ -34,7 +35,8 @@ class IOHandlerAHFHalos(BaseParticleIOHandler):
         # reading ptype, field and applying the selector to the data read in.
         # Selector objects have a .select_points(x,y,z) that returns a mask, so
         # you need to do your masking here.
-        for data_file in self._get_data_files(chunks, ptf):
+        self._validate_particle_ptf(ptf)
+        for data_file in self._sorted_chunk_iterator(chunks):
             si, ei = data_file.start, data_file.end
             cols = []
             for field_list in ptf.values():
@@ -67,15 +69,13 @@ class IOHandlerAHFHalos(BaseParticleIOHandler):
 
     # Helper methods
 
-    def _get_data_files(self, chunks, ptf):
+    @staticmethod
+    def _validate_particle_ptf(ptf):
         # Only support halo reading for now.
         assert len(ptf) == 1
         assert list(ptf.keys())[0] == "halos"
-        # Get data_files
-        chunks = list(chunks)
-        data_files = set()
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
-        data_files = sorted(data_files, key=attrgetter("filename"))
-        yield from data_files
+
+    def _sorted_chunk_iterator(self, chunks):
+        # yield from sorted list of data_files
+        data_files = self._get_data_files(chunks)
+        yield from sorted(data_files, key=attrgetter("filename"))
