@@ -229,7 +229,7 @@ class GridIndex(Index, abc.ABC):
         except Exception:
             pass
         print(
-            "t = {:0.8e} = {:0.8e} s = {:0.8e} years".format(
+            "t = {:0.8e} = {:0.8e} = {:0.8e}".format(
                 self.ds.current_time.in_units("code_time"),
                 self.ds.current_time.in_units("s"),
                 self.ds.current_time.in_units("yr"),
