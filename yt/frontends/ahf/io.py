@@ -16,7 +16,10 @@ class IOHandlerAHFHalos(BaseParticleIOHandler):
         # This needs to *yield* a series of tuples of (ptype, (x, y, z), hsml).
         # chunks is a list of chunks, and ptf is a dict where the keys are
         # ptypes and the values are lists of fields.
-        self._validate_particle_ptf(ptf)
+
+        # Only support halo reading for now.
+        assert len(ptf) == 1
+        assert list(ptf.keys())[0] == "halos"
         for data_file in self._sorted_chunk_iterator(chunks):
             pos = data_file._get_particle_positions("halos")
             x, y, z = (pos[:, i] for i in range(3))
@@ -35,7 +38,9 @@ class IOHandlerAHFHalos(BaseParticleIOHandler):
         # reading ptype, field and applying the selector to the data read in.
         # Selector objects have a .select_points(x,y,z) that returns a mask, so
         # you need to do your masking here.
-        self._validate_particle_ptf(ptf)
+        # Only support halo reading for now.
+        assert len(ptf) == 1
+        assert list(ptf.keys())[0] == "halos"
         for data_file in self._sorted_chunk_iterator(chunks):
             si, ei = data_file.start, data_file.end
             cols = []
@@ -66,14 +71,6 @@ class IOHandlerAHFHalos(BaseParticleIOHandler):
     def _identify_fields(self, data_file):
         fields = [("halos", f) for f in data_file.col_names]
         return fields, {}
-
-    # Helper methods
-
-    @staticmethod
-    def _validate_particle_ptf(ptf):
-        # Only support halo reading for now.
-        assert len(ptf) == 1
-        assert list(ptf.keys())[0] == "halos"
 
     def _sorted_chunk_iterator(self, chunks):
         # yield from sorted list of data_files
