@@ -292,7 +292,7 @@ class SinkParticleFileHandler(ParticleFileHandler):
 
 
 class SinkParticleFileHandlerCsv(ParticleFileHandler):
-    """Handle sink files from a csv file, the format from the sink particule in ramses"""
+    """Handle sink files from a csv file, the format from the sink particle in ramses"""
 
     ptype = "sink_csv"
     fname = "sink_{iout:05d}.csv"
