@@ -75,7 +75,6 @@ cdef class ParticleOctreeContainer(OctreeContainer):
     cdef Oct** oct_list
     #The starting oct index of each domain
     cdef np.int64_t *dom_offsets
-    cdef public int max_level
     #How many particles do we keep before refining
     cdef public int n_ref
 
@@ -1945,7 +1944,6 @@ cdef class ParticleBitmapSelector:
 
 cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
     cdef Oct** oct_list
-    cdef public int max_level
     cdef public int n_ref
     cdef int loaded # Loaded with load_octree?
     cdef np.uint8_t* _ptr_index_base_roots

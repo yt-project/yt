@@ -92,6 +92,7 @@ cdef class OctreeContainer:
         visitor.global_index = -1
         visitor.level = 0
         visitor.nz = visitor.nzones = 1
+        visitor.max_level = 0
         assert(ref_mask.shape[0] / float(visitor.nzones) ==
             <int>(ref_mask.shape[0]/float(visitor.nzones)))
         obj.allocate_domains([ref_mask.shape[0] / visitor.nzones])
@@ -135,6 +136,7 @@ cdef class OctreeContainer:
         if obj.nocts * visitor.nz != ref_mask.size:
             raise KeyError(ref_mask.size, obj.nocts, obj.nz,
                 obj.partial_coverage, visitor.nzones)
+        obj.max_level = visitor.max_level
         return obj
 
     def __dealloc__(self):
