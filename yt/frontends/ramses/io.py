@@ -139,7 +139,7 @@ def _ramses_particle_csv_file_handler(particle, subset, fields, count):
     foffsets = particle.field_offsets
     fname = particle.fname
 
-    for ind, field in enumerate(sorted(fields, key=lambda a: foffsets[a])):
+    for field in sorted(fields, key=lambda a: foffsets[a]):
         ind = foffsets[field]
         dat = pd.read_csv(
             fname, delimiter=",", usecols=[ind], skiprows=2, header=None
