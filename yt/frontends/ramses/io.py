@@ -362,34 +362,31 @@ def _read_part_csv_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
     from yt.utilities.on_demand_imports import _pandas as pd
 
     # Fields name from the default csv RAMSES sink algorithm in the yt default convention
-    mapping_list = [
-        (" # id", "particle_identifier"),
-        ("msink", "particle_mass"),
-        ("x", "particle_position_x"),
-        ("y", "particle_position_y"),
-        ("z", "particle_position_z"),
-        ("vx", "particle_velocity_x"),
-        ("vy", "particle_velocity_y"),
-        ("vz", "particle_velocity_z"),
-        ("lx", "particle_angular_momentum_x"),
-        ("ly", "particle_angular_momentum_y"),
-        ("lz", "particle_angular_momentum_z"),
-        ("tform", "particle_formation_time"),
-        ("acc_Rate", "particle_accretion_Rate"),
-        ("del_mass", "particle_delta_mass"),
-        ("rho_gas", "particle_rho_gas"),
-        ("cs**2", "particle_sound_speed"),
-        ("etherm", "particle_etherm"),
-        ("vx_gas", "particle_velocity_x_gas"),
-        ("vy_gas", "particle_velocity_y_gas"),
-        ("vz_gas", "particle_velocity_z_gas"),
-        ("mbh", "particle_mass_bh"),
-        ("level", "particle_level"),
-        ("rsink_star", "particle_radius_star"),
-    ]
-
-    # Convert to dictionary
-    mapping = dict(mapping_list)
+    mapping = {
+        " # id": "particle_identifier",
+        "msink": "particle_mass",
+        "x": "particle_position_x",
+        "y": "particle_position_y",
+        "z": "particle_position_z",
+        "vx": "particle_velocity_x",
+        "vy": "particle_velocity_y",
+        "vz": "particle_velocity_z",
+        "lx": "particle_angular_momentum_x",
+        "ly": "particle_angular_momentum_y",
+        "lz": "particle_angular_momentum_z",
+        "tform": "particle_formation_time",
+        "acc_Rate": "particle_accretion_Rate",
+        "del_mass": "particle_delta_mass",
+        "rho_gas": "particle_rho_gas",
+        "cs**2": "particle_sound_speed",
+        "etherm": "particle_etherm",
+        "vx_gas": "particle_velocity_x_gas",
+        "vy_gas": "particle_velocity_y_gas",
+        "vz_gas": "particle_velocity_z_gas",
+        "mbh": "particle_mass_bh",
+        "level": "particle_level",
+        "rsink_star": "particle_radius_star",
+    }
 
     dat = pd.read_csv(
         fname, delimiter=","
