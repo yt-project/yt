@@ -300,7 +300,6 @@ class SinkParticleFileHandlerCsv(ParticleFileHandler):
     config_field = "ramses-sink-particles"
     reader = _ramses_particle_csv_file_handler
     attrs = (("nsink", 1, "i"), ("nindsink", 1, "i"))
-    second_read = False
 
     def read_header(self):
         if not self.exists:
