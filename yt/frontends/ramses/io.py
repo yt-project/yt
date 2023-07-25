@@ -131,13 +131,13 @@ def _ramses_particle_csv_file_handler(particle, subset, fields, count):
     count: integer
         The number of elements to count
     """
+    from yt.utilities.on_demand_imports import _pandas as pd
+
     tr = {}
     ds = subset.domain.ds
     current_time = ds.current_time.in_units("code_time").v
     foffsets = particle.field_offsets
     fname = particle.fname
-
-    from yt.utilities.on_demand_imports import _pandas as pd
 
     for ind, field in enumerate(sorted(fields, key=lambda a: foffsets[a])):
         ind = foffsets[field]
