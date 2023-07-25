@@ -131,20 +131,20 @@ def _ramses_particle_csv_file_handler(particle, subset, fields, count):
     count: integer
         The number of elements to count
     """
+    from yt.utilities.on_demand_imports import _pandas as pd
+
     tr = {}
     ds = subset.domain.ds
     current_time = ds.current_time.in_units("code_time").v
     foffsets = particle.field_offsets
     fname = particle.fname
 
-    from yt.utilities.on_demand_imports import _pandas as pd
-
-    for ind, field in enumerate(sorted(fields, key=lambda a: foffsets[a])):
+    for field in sorted(fields, key=lambda a: foffsets[a]):
         ind = foffsets[field]
         dat = pd.read_csv(
             fname, delimiter=",", usecols=[ind], skiprows=2, header=None
         )  # read only selected fields
-        tr[field] = np.array(dat[ind].to_list())
+        tr[field] = dat[ind].to_numpy()
 
         if field[1].startswith("particle_position"):
             np.divide(tr[field], ds["boxlen"], tr[field])
@@ -388,9 +388,8 @@ def _read_part_csv_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
         "rsink_star": "particle_radius_star",
     }
 
-    dat = pd.read_csv(
-        fname, delimiter=","
-    )  # read the all file to get the number of particle
+    # read the all file to get the number of particle
+    dat = pd.read_csv(fname, delimiter=",")
     fields = []
     local_particle_count = len(dat)
 
