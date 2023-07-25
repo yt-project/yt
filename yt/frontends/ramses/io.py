@@ -391,9 +391,8 @@ def _read_part_csv_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
     # Convert to dictionary
     mapping = dict(mapping_list)
 
-    dat = pd.read_csv(
-        fname, delimiter=","
-    )  # read the all file to get the number of particle
+    # read the all file to get the number of particle
+    dat = pd.read_csv(fname, delimiter=",")
     fields = []
     local_particle_count = len(dat)
 
