@@ -14,25 +14,6 @@ import sys
 from pathlib import Path
 
 
-def run_with_capture(*args, **kwargs):
-    sp = subprocess.Popen(
-        *args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **kwargs
-    )
-    out, err = sp.communicate()
-    if out:
-        sys.stdout.write(out.decode("UTF-8"))
-    if err:
-        sys.stderr.write(err.decode("UTF-8"))
-
-    if sp.returncode != 0:
-        retstderr = " ".join(args[0])
-        retstderr += "\n\nTHIS IS THE REAL CAUSE OF THE FAILURE:\n"
-        retstderr += err.decode("UTF-8") + "\n"
-        raise subprocess.CalledProcessError(sp.returncode, retstderr)
-
-    return sp.returncode
-
-
 BLACKLIST = [
     "matplotlib-animation.py",
 ]
