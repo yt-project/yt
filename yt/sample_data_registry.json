@@ -724,6 +724,12 @@
     "load_name": "gizmo_mhd_mwdisk.hdf5",
     "url": "https://yt-project.org/data/gizmo_mhd_mwdisk.tar.gz"
   },
+  "gizmo_zeldovich.tar.gz": {
+    "hash": "5f1a73ead736024ffb6c099f84e834ec927d2818c93d7c775d9ff625adaa7c51",
+    "load_kwargs": {},
+    "load_name": "snapshot_076_wi_gizver.hdf5",
+    "url": "https://yt-project.org/data/gizmo_zeldovich.tar.gz"
+  },
   "grs-50-cube.fits.gz": {
     "hash": "1aff152f616d2626c8515c1493e65f07843d9b5f2ba73b7e4271a2dc6a9e6da7",
     "load_kwargs": {},
