@@ -320,5 +320,3 @@ class SinkParticleFileHandlerCsv(ParticleFileHandler):
         self.field_offsets = field_offsets
         self.field_types = _pfields
 
-    def sec_read(self):
-        pass
