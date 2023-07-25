@@ -866,6 +866,8 @@ class StreamOctreeHandler(OctreeIndex):
             "partial_coverage": self.ds.partial_coverage,
         }
         self.oct_handler = OctreeContainer.load_octree(header)
+        # We do now need to get the maximum level set, as well.
+        self.ds.max_level = self.oct_handler.max_level
 
     def _identify_base_chunk(self, dobj):
         if getattr(dobj, "_chunk_info", None) is None:

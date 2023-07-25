@@ -134,6 +134,7 @@ cdef class LoadOctree(OctVisitor):
     cdef Oct* octs
     cdef np.uint64_t *nocts
     cdef np.uint64_t *nfinest
+    cdef np.uint64_t max_level
 
 cdef class MortonIndexOcts(OctVisitor):
     cdef np.uint8_t[:] level_arr
