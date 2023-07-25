@@ -144,7 +144,7 @@ def _ramses_particle_csv_file_handler(particle, subset, fields, count):
         dat = pd.read_csv(
             fname, delimiter=",", usecols=[ind], skiprows=2, header=None
         )  # read only selected fields
-        tr[field] = np.array(dat[ind].to_list())
+        tr[field] = dat[ind].to_numpy()
 
         if field[1].startswith("particle_position"):
             np.divide(tr[field], ds["boxlen"], tr[field])
