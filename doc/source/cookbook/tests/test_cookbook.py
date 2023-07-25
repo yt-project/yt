@@ -8,10 +8,10 @@ Example:
       $ sed -e '/where/d' -i nose.cfg setup.cfg
       $ nosetests doc/source/cookbook/tests/test_cookbook.py -P -v
 """
-import glob
-import os
 import subprocess
 import sys
+
+from pathlib import Path
 
 
 def run_with_capture(*args, **kwargs):
@@ -33,32 +33,19 @@ def run_with_capture(*args, **kwargs):
     return sp.returncode
 
 
-PARALLEL_TEST = {"rockstar_nest.py": "3"}
 BLACKLIST = [
-    "opengl_ipython.py",
-    "opengl_vr.py",
     "matplotlib-animation.py",
-    "rockstar_nest.py",
 ]
 
 
 def test_recipe():
     """Dummy test grabbing all cookbook's recipes"""
-    for fname in glob.glob("doc/source/cookbook/*.py"):
-        recipe = os.path.basename(fname)
-        if recipe in BLACKLIST:
+    COOKBOOK_DIR = Path("doc", "source", "cookbook")
+    for fname in sorted(COOKBOOK_DIR.glob("*.py")):
+        if fname.name in BLACKLIST:
             continue
-        check_recipe.description = f"Testing recipe: {recipe}"
-        if recipe in PARALLEL_TEST:
-            yield check_recipe, [
-                "mpiexec",
-                "-n",
-                PARALLEL_TEST[recipe],
-                "python",
-                fname,
-            ]
-        else:
-            yield check_recipe, ["python", fname]
+        check_recipe.description = f"Testing recipe: {fname.name}"
+        yield check_recipe, ["python", str(fname)]
 
 
 def check_recipe(cmd):
