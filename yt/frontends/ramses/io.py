@@ -238,7 +238,19 @@ class IOHandlerRAMSES(BaseIOHandler):
                 if pn % ax not in field_list:
                     fields.append((ptype, pn % ax))
 
-            if ptype != "sink_csv":
+            if ptype == "sink_csv":
+                subset = chunks[0].objs[0]
+                rv = self._read_particle_subset(subset, fields)
+                for ptype, field_list in sorted(ptf.items()):
+                    x, y, z = (np.asarray(rv[ptype, pn % ax], "=f8") for ax in "xyz")
+                    mask = selector.select_points(x, y, z, 0.0)
+                    if mask is None:
+                        mask = []
+                    for field in field_list:
+                        data = np.asarray(rv.pop((ptype, field))[mask], "=f8")
+                        yield (ptype, field), data
+
+            else:
                 for chunk in chunks:
                     for subset in chunk.objs:
                         rv = self._read_particle_subset(subset, fields)
@@ -252,18 +264,6 @@ class IOHandlerRAMSES(BaseIOHandler):
                             for field in field_list:
                                 data = np.asarray(rv.pop((ptype, field))[mask], "=f8")
                                 yield (ptype, field), data
-
-            else:
-                subset = chunks[0].objs[0]
-                rv = self._read_particle_subset(subset, fields)
-                for ptype, field_list in sorted(ptf.items()):
-                    x, y, z = (np.asarray(rv[ptype, pn % ax], "=f8") for ax in "xyz")
-                    mask = selector.select_points(x, y, z, 0.0)
-                    if mask is None:
-                        mask = []
-                    for field in field_list:
-                        data = np.asarray(rv.pop((ptype, field))[mask], "=f8")
-                        yield (ptype, field), data
 
     def _read_particle_subset(self, subset, fields):
         """Read the particle files."""
