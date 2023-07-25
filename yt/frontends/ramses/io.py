@@ -139,13 +139,21 @@ def _ramses_particle_csv_file_handler(particle, subset, fields, count):
     foffsets = particle.field_offsets
     fname = particle.fname
 
-    for field in sorted(fields, key=lambda a: foffsets[a]):
-        ind = foffsets[field]
-        dat = pd.read_csv(
-            fname, delimiter=",", usecols=[ind], skiprows=2, header=None
-        )  # read only selected fields
-        tr[field] = dat[ind].to_numpy()
+    list_field_ind = [
+        [field, foffsets[field]] for field in sorted(fields, key=lambda a: foffsets[a])
+    ]
 
+    # read only selected fields
+    dat = pd.read_csv(
+        fname,
+        delimiter=",",
+        usecols=[ind[1] for ind in list_field_ind],
+        skiprows=2,
+        header=None,
+    )
+
+    for field, ind in list_field_ind:
+        tr[field] = dat[ind].to_numpy()
         if field[1].startswith("particle_position"):
             np.divide(tr[field], ds["boxlen"], tr[field])
         if ds.cosmological_simulation and field[1] == "particle_birth_time":
@@ -157,7 +165,6 @@ def _ramses_particle_csv_file_handler(particle, subset, fields, count):
             # arbitrarily set particles with zero conformal_age to zero
             # particle_age. This corresponds to DM particles.
             tr[field][conformal_time == 0] = 0
-
     return tr
 
 
