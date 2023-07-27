@@ -32,7 +32,7 @@ cdef extern from "platform_dep.h" nogil:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef np.int64_t ray_bbox_intersect(Ray* ray, const BBox bbox) nogil:
+cdef np.int64_t ray_bbox_intersect(Ray* ray, const BBox bbox) noexcept nogil:
     '''
 
     This returns an integer flag that indicates whether a ray and a bounding

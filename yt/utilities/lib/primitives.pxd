@@ -33,7 +33,7 @@ cdef struct Triangle:
     np.float64_t p2[3]
     np.int64_t elem_id
 
-cdef np.int64_t ray_bbox_intersect(Ray* ray, const BBox bbox) nogil
+cdef np.int64_t ray_bbox_intersect(Ray* ray, const BBox bbox) noexcept nogil
 
 cdef np.int64_t ray_triangle_intersect(const void* primitives,
                                        const np.int64_t item,
