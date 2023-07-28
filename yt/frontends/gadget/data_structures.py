@@ -376,6 +376,8 @@ class GadgetDataset(SPHDataset):
             # If these are not set it is definitely not a cosmological dataset.
             self.omega_lambda = 0.0
             self.omega_matter = 0.0  # Just in case somebody asks for it.
+            # omega_matter has been changed to 0.0 for consistency with
+            # non-cosmological frontends
             self.cosmological_simulation = 0
             # Hubble is set below for Omega Lambda = 0.
 
