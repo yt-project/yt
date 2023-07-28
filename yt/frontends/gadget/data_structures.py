@@ -409,7 +409,8 @@ class GadgetDataset(SPHDataset):
             )
         self.parameters = hvals
 
-        prefix = os.path.join(self.directory, self.basename.split(".", 1)[0])
+        basename, _, _ = self.basename.partition(".")
+        prefix = os.path.join(self.directory, basename)
 
         if hvals["NumFiles"] > 1:
             for t in (
