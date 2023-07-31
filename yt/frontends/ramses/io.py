@@ -140,7 +140,7 @@ def _ramses_particle_csv_file_handler(particle, subset, fields, count):
     fname = particle.fname
 
     list_field_ind = [
-        [field, foffsets[field]] for field in sorted(fields, key=lambda a: foffsets[a])
+        (field, foffsets[field]) for field in sorted(fields, key=lambda a: foffsets[a])
     ]
 
     # read only selected fields
