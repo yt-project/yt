@@ -122,7 +122,7 @@ def _ramses_particle_csv_file_handler(particle, subset, fields, count):
 
     Parameters
     ----------
-    particle : ``ParticleFileHandler``
+    particle: ``ParticleFileHandler``
         the particle class we want to read
     subset: ``RAMSESDomainSubset``
         A RAMSES domain subset object
