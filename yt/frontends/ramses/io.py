@@ -147,7 +147,7 @@ def _ramses_particle_csv_file_handler(particle, subset, fields, count):
     dat = pd.read_csv(
         fname,
         delimiter=",",
-        usecols=[ind[1] for ind in list_field_ind],
+        usecols=[ind for _field, ind in list_field_ind],
         skiprows=2,
         header=None,
     )
