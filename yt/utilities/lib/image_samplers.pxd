@@ -28,7 +28,7 @@ ctypedef int calculate_extent_function(ImageSampler image,
 ctypedef void generate_vector_info_function(ImageSampler im,
             np.int64_t vi, np.int64_t vj,
             np.float64_t width[2],
-            np.float64_t v_dir[3], np.float64_t v_pos[3]) nogil
+            np.float64_t v_dir[3], np.float64_t v_pos[3]) noexcept nogil
 
 cdef struct ImageAccumulator:
     np.float64_t rgba[Nch]
