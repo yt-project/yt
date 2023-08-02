@@ -22,4 +22,3 @@ class NiftiFieldInfo(FieldInfoContainer):
         # You can use self.alias, self.add_output_field (for on-disk fields)
         # and self.add_field (for derived fields).
         pass
-

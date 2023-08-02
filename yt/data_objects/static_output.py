@@ -52,6 +52,7 @@ from yt.funcs import iter_fields, mylog, set_intersection, setdefaultattr
 from yt.geometry.api import Geometry
 from yt.geometry.coordinates.api import (
     CartesianCoordinateHandler,
+    CartesianSubjectCoordinateHandler,
     CoordinateHandler,
     CylindricalCoordinateHandler,
     GeographicCoordinateHandler,
@@ -828,6 +829,8 @@ class Dataset(abc.ABC):
             self.no_cgs_equiv_length = True
         elif self.geometry is Geometry.SPECTRAL_CUBE:
             cls = SpectralCubeCoordinateHandler
+        elif self.geometry is Geometry.CARTESIAN_SUBJECT:
+            cls = CartesianSubjectCoordinateHandler
         else:
             assert_never(self.geometry)
 

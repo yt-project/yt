@@ -23,7 +23,6 @@ class NiftiIOHandler(BaseIOHandler):
         raise NotImplementedError
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
-
         rv = {field: np.empty(size, dtype="float64") for field in fields}
 
         offset = 0

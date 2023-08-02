@@ -27,7 +27,7 @@ class NotAModule:
             exc.add_note(error_note)
             self.error = exc
         else:
-            # mimic Python 3.11 behaviour:
+            # mimick Python 3.11 behaviour:
             # preserve error message and traceback
             self.error = type(exc)(f"{exc!s}\n{error_note}").with_traceback(
                 exc.__traceback__
@@ -55,7 +55,7 @@ class OnDemand:
 
     def __new__(cls):
         if cls is OnDemand:
-            raise TypeError("The OnDemand base class cannot be instantiated.")
+            raise TypeError("The OnDemand base class cannot be instanciated.")
         else:
             return object.__new__(cls)
 
@@ -83,6 +83,16 @@ def safe_import(func):
 
 
 class netCDF4_imports(OnDemand):
+    def __init__(self):
+        # this ensures the import ordering between netcdf4 and h5py. If h5py is
+        # imported first, can get file lock errors on some systems (including travis-ci)
+        # so we need to do this before initializing h5py_imports()!
+        # similar to this issue https://github.com/pydata/xarray/issues/2560
+        try:
+            import netCDF4  # noqa F401
+        except ImportError:
+            pass
+
     @safe_import
     def Dataset(self):
         from netCDF4 import Dataset
@@ -289,18 +299,6 @@ _scipy = scipy_imports()
 
 
 class h5py_imports(OnDemand):
-    def __init__(self):
-        # this ensures the import ordering between netcdf4 and h5py. If h5py is
-        # imported first, can get file lock errors on some systems (including travis-ci)
-        # so we need to do this before initializing h5py_imports()!
-        # similar to this issue https://github.com/pydata/xarray/issues/2560
-        if find_spec("h5py") is None or find_spec("netCDF4") is None:
-            return
-        try:
-            import netCDF4  # noqa F401
-        except ImportError:
-            pass
-
     @safe_import
     def File(self):
         from h5py import File
@@ -486,12 +484,6 @@ class pandas_imports(OnDemand):
 
         return concat
 
-    @safe_import
-    def read_csv(self):
-        from pandas import read_csv
-
-        return read_csv
-
 
 _pandas = pandas_imports()
 
@@ -538,12 +530,17 @@ class nibabel_imports(OnDemand):
 
         return load
 
-
     @safe_import
     def ImageFileError(self):
         from nibabel import filebasedimages
 
         return filebasedimages.ImageFileError
+
+    @safe_import
+    def apply_affine(self):
+        from nibabel import affines
+
+        return affines.apply_affine
 
 
 _nibabel = nibabel_imports()
