@@ -148,15 +148,6 @@ def pytest_configure(config):
         )
 
     if NUMPY_VERSION >= Version("1.25"):
-        if find_spec("cartopy") is not None and (
-            Version(version("cartopy")) <= Version("0.21.1")
-        ):
-            # https://github.com/SciTools/cartopy/pull/2194
-            config.addinivalue_line(
-                "filterwarnings",
-                "ignore:Conversion of an array with ndim > 0 to a scalar is deprecated"
-                ":DeprecationWarning",
-            )
         if find_spec("h5py") is not None and (
             Version(version("h5py")) < Version("3.9")
         ):
@@ -179,18 +170,6 @@ def pytest_configure(config):
                 " from PyObject:RuntimeWarning"
             ),
         )
-
-    if find_spec("cartopy") is not None:
-        # this warning is triggered from cartopy 0.21.1
-        # see https://github.com/SciTools/cartopy/issues/2113
-        SHAPELY_VERSION = Version(version("shapely"))
-        if SHAPELY_VERSION >= Version("2.0"):
-            config.addinivalue_line(
-                "filterwarnings",
-                (
-                    r"ignore:The 'geom_factory' function is deprecated in Shapely 2\.0:DeprecationWarning"
-                ),
-            )
 
 
 def pytest_collection_modifyitems(config, items):
