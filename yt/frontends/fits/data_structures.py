@@ -460,7 +460,7 @@ class FITSDataset(Dataset):
 
         self.domain_dimensions = np.array(self.dims)[: self.dimensionality]
         if self.dimensionality == 2:
-            self.domain_dimensions = np.append(self.domain_dimensions, [int(1)])
+            self.domain_dimensions = np.append(self.domain_dimensions, [1])
         self._determine_bbox()
 
         # Get the simulation time
