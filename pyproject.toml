@@ -1,4 +1,5 @@
 [build-system]
+# keep in sync with .github/workflows/wheels.yaml
 requires = [
   "setuptools>=61.2",
   "importlib_resources>=1.3;python_version < '3.9'",

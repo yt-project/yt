@@ -83,8 +83,10 @@ jobs:
         python -m pip install check-manifest
     - name: Install build time dependencies
       shell: bash
+
+      # keep in sync with pyproject.toml
       run: |
-        python -m pip install "Cython>=0.29.33,<3.0"
+        python -m pip install "Cython>=3.0,<3.1"
         python -m pip install oldest-supported-numpy
         python -m pip install ewah-bool-utils>=1.0.2
         python -m pip install --upgrade wheel
