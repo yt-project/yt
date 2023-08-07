@@ -40,7 +40,6 @@ elif [[ ${dependencies} == "cartopy" ]]; then
     python -m pip install -e ".[test]"
 elif [[ ${dependencies} == "full" ]]; then
     # test with all optional runtime dependencies
-    python -m pip install 'cartopy>=0.22'
     python -m pip install -e ".[test,full]"
 else
    # test with no special requirements

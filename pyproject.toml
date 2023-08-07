@@ -131,6 +131,7 @@ ytdata = ["yt[HDF5]"]
 # "full" should contain all optional dependencies intended for users (not devs)
 # in particular it should enable support for all frontends
 full = [
+    "cartopy>=0.22.0; python_version >= '3.9'",
     "firefly>=3.2.0",
     "glueviz>=0.13.3",
     "ipython>=2.0.0",
