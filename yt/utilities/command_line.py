@@ -702,7 +702,6 @@ class YTLoadCmd(YTCommand):
             from traitlets.config.loader import Config
         except ImportError:
             from IPython.config.loader import Config
-        import sys
 
         cfg = Config()
         # prepend sys.path with current working directory
