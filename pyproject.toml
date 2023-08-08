@@ -46,7 +46,7 @@ dependencies = [
     "cmyt>=1.1.2",
     "ewah-bool-utils>=1.0.2",
     "ipywidgets>=8.0.0",
-    "matplotlib>=3.5", # keep in sync with tests/windows_conda_requirements.txt
+    "matplotlib>=3.5",
     "more-itertools>=8.4",
     # https://github.com/scipy/oldest-supported-numpy/issues/76#issuecomment-1628865694
     "numpy>=1.17.5,<2.0",
@@ -131,6 +131,7 @@ ytdata = ["yt[HDF5]"]
 # "full" should contain all optional dependencies intended for users (not devs)
 # in particular it should enable support for all frontends
 full = [
+    "cartopy>=0.22.0; python_version >= '3.9'",
     "firefly>=3.2.0",
     "glueviz>=0.13.3",
     "ipython>=2.0.0",
