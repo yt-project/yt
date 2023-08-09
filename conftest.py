@@ -1,5 +1,6 @@
 import os
 import shutil
+import sys
 import tempfile
 from importlib.metadata import version
 from importlib.util import find_spec
@@ -22,7 +23,13 @@ from yt.utilities.answer_testing.testing_utilities import (
 MPL_VERSION = Version(version("matplotlib"))
 NUMPY_VERSION = Version(version("numpy"))
 PILLOW_VERSION = Version(version("pillow"))
-SETUPTOOLS_VERSION = Version(version("setuptools"))
+
+# setuptools does not ship with the standard lib starting in Python 3.12, so we need to
+# be resilient if it's not available at runtime
+if find_spec("setuptools") is not None:
+    SETUPTOOLS_VERSION = Version(version("setuptools"))
+else:
+    SETUPTOOLS_VERSION = None
 
 
 def pytest_addoption(parser):
@@ -105,7 +112,7 @@ def pytest_configure(config):
     ):
         config.addinivalue_line("filterwarnings", value)
 
-    if SETUPTOOLS_VERSION >= Version("67.3.0"):
+    if SETUPTOOLS_VERSION is not None and SETUPTOOLS_VERSION >= Version("67.3.0"):
         # may be triggered by multiple dependencies
         # see https://github.com/glue-viz/glue/issues/2364
         # see https://github.com/matplotlib/matplotlib/issues/25244
@@ -116,7 +123,7 @@ def pytest_configure(config):
             r"is preferred to `pkg_resources\.declare_namespace`\.:DeprecationWarning",
         )
 
-    if SETUPTOOLS_VERSION >= Version("67.5.0"):
+    if SETUPTOOLS_VERSION is not None and SETUPTOOLS_VERSION >= Version("67.5.0"):
         # may be triggered by multiple dependencies
         # see https://github.com/glue-viz/glue/issues/2364
         # see https://github.com/matplotlib/matplotlib/issues/25244
@@ -160,6 +167,14 @@ def pytest_configure(config):
                 r"(80 from C header, got 88|88 from C header, got 96|80 from C header, got 96)"
                 " from PyObject:RuntimeWarning"
             ),
+        )
+
+    if sys.version_info >= (3, 12):
+        # already patched (but not released) upstream:
+        # https://github.com/dateutil/dateutil/pull/1285
+        config.addinivalue_line(
+            "filterwarnings",
+            r"ignore:datetime\.datetime\.utcfromtimestamp\(\) is deprecated:DeprecationWarning",
         )
 
 
