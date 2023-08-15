@@ -1055,6 +1055,10 @@ class PhasePlot(ImagePlotContainer):
                     fig = self.plots[f].figure
                     axes = self.plots[f].axes
                     cax = self.plots[f].cax
+                else:
+                    fig = None
+                    axes = None
+                    cax = None
             else:
                 pnh, cbh = self._get_default_handlers(
                     field=f, default_display_units=self.profile[f].units
