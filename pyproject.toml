@@ -6,7 +6,9 @@ requires = [
 
   # see https://github.com/yt-project/yt/issues/4044
   "Cython>=3.0, <3.1",
-  "oldest-supported-numpy",
+  # TODO: simplify numpy requirement after numpy 1.26.0 final is released
+  "oldest-supported-numpy ; python_version < '3.12.0rc1'",
+  "numpy>=1.26.0b1 ; python_version >= '3.12.0rc1'",
   "ewah-bool-utils>=1.0.2",
 ]
 build-backend = "setuptools.build_meta:__legacy__"
