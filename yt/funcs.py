@@ -1324,9 +1324,8 @@ def parse_center_array(center, ds, axis: Optional[int] = None):
 
     # make sure the return value shares all
     # unit symbols with ds.unit_registry
-    center = ds.arr(center)
     # we rely on unyt to invalidate unit dimensionality here
-    center.convert_to_units("code_length")
+    center = ds.arr(center).in_units("code_length")
 
     if not ds._is_within_domain(center):
         mylog.warning(
