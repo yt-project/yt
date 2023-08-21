@@ -5,8 +5,8 @@ cdef class SelectorObject:
 
     def __cinit__(self, dobj, *args):
         self._hash_initialized = 0
-        cdef np.float64_t [:] DLE
-        cdef np.float64_t [:] DRE
+        cdef const np.float64_t [:] DLE
+        cdef const np.float64_t [:] DRE
         min_level = getattr(dobj, "min_level", None)
         max_level = getattr(dobj, "max_level", None)
         if min_level is None:
@@ -24,8 +24,8 @@ cdef class SelectorObject:
                 self.domain_width[i] = 1.0
                 self.periodicity[i] = False
         else:
-            DLE = _ensure_code(ds.domain_left_edge)
-            DRE = _ensure_code(ds.domain_right_edge)
+            DLE = ds.domain_left_edge
+            DRE = ds.domain_right_edge
             for i in range(3):
                 self.domain_width[i] = DRE[i] - DLE[i]
                 self.domain_center[i] = DLE[i] + 0.5 * self.domain_width[i]

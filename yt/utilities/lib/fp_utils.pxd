@@ -53,6 +53,7 @@ cdef inline np.int64_t i64min(np.int64_t i0, np.int64_t i1) noexcept nogil:
     return i1
 
 cdef inline _ensure_code(arr):
+    return arr
     if hasattr(arr, "units"):
         if "code_length" == str(arr.units):
             return arr

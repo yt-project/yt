@@ -134,23 +134,21 @@ class MutableAttribute:
         self.display_array = display_array
 
     def __get__(self, instance, owner):
-        if not instance:
-            return None
         ret = self.data.get(instance, None)
-        try:
-            ret = ret.copy()
-        except AttributeError:
-            pass
-        if self.display_array and find_spec("ipywidgets") is not None:
-            try:
-                ret._ipython_display_ = functools.partial(_wrap_display_ytarray, ret)
-            # This will error out if the items have yet to be turned into
-            # YTArrays, in which case we just let it go.
-            except AttributeError:
-                pass
         return ret
 
     def __set__(self, instance, value):
+        if self.display_array and find_spec("ipywidgets") is not None:
+            try:
+                value._ipython_display_ = functools.partial(
+                    _wrap_display_ytarray, value
+                )
+            except AttributeError:
+                pass
+        try:
+            value.flags.writeable = False
+        except AttributeError:
+            pass
         self.data[instance] = value
 
 
