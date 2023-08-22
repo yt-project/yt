@@ -142,12 +142,17 @@ class GadgetFieldInfo(SPHFieldInfo):
                 ret = mass / data[(ptype, "particle_mass")]
                 return ret
 
-            def _h_fraction(field, data):
-                mass = 0.0
-                for i in range(n_elem):
-                    mass += data[(ptype, f"MetalMasses_{i:02d}")]
-                ret = mass / data[(ptype, "particle_mass")]
-                return 1.0 - ret
+            if no_He:
+                _h_fraction = None
+
+            else:
+
+                def _h_fraction(field, data):
+                    mass = 0.0
+                    for i in range(n_elem):
+                        mass += data[(ptype, f"MetalMasses_{i:02d}")]
+                    ret = mass / data[(ptype, "particle_mass")]
+                    return 1.0 - ret
 
         else:
             raise KeyError(
@@ -200,25 +205,32 @@ class GadgetFieldInfo(SPHFieldInfo):
             units="",
         )
 
-        # hydrogen fraction and density
-        self.add_field(
-            (ptype, "H_fraction"),
-            sampling_type=sampling_type,
-            function=_h_fraction,
-            units="",
-        )
+        if _h_fraction is None:
+            # no helium, so can't compute hydrogen
+            species_names = elem_names[-1]
 
-        def _h_density(field, data):
-            return data[(ptype, "H_fraction")] * data[(ptype, "density")]
+        else:
+            # hydrogen fraction and density
+            self.add_field(
+                (ptype, "H_fraction"),
+                sampling_type=sampling_type,
+                function=_h_fraction,
+                units="",
+            )
 
-        self.add_field(
-            (ptype, "H_density"),
-            sampling_type=sampling_type,
-            function=_h_density,
-            units=self.ds.unit_system["density"],
-        )
+            def _h_density(field, data):
+                return data[(ptype, "H_fraction")] * data[(ptype, "density")]
 
-        return ["H"] + elem_names[:-1]
+            self.add_field(
+                (ptype, "H_density"),
+                sampling_type=sampling_type,
+                function=_h_density,
+                units=self.ds.unit_system["density"],
+            )
+
+            species_names = ["H"] + elem_names[:-1]
+
+        return species_names
 
     def _check_whitelist_species_fields(self, ptype):
         species_names = []
