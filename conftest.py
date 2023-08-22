@@ -125,12 +125,6 @@ def pytest_configure(config):
             "ignore:pkg_resources is deprecated as an API:DeprecationWarning",
         )
 
-    if MPL_VERSION < Version("3.5.0"):
-        config.addinivalue_line(
-            "filterwarnings",
-            r"ignore:distutils Version classes are deprecated:DeprecationWarning",
-        )
-
     if MPL_VERSION < Version("3.5.2") and PILLOW_VERSION >= Version("9.1"):
         # see https://github.com/matplotlib/matplotlib/pull/22766
         config.addinivalue_line(
@@ -144,7 +138,7 @@ def pytest_configure(config):
             r"Use Palette\.ADAPTIVE instead\.:DeprecationWarning",
         )
 
-    if NUMPY_VERSION < Version("1.19") and MPL_VERSION < Version("3.4"):
+    if NUMPY_VERSION < Version("1.19") and MPL_VERSION < Version("3.6"):
         # This warning is triggered from matplotlib in exactly one test at the time of writing
         # and exclusively on the minimal test env. Upgrading numpy or matplotlib resolves
         # the issue, so we can afford to ignore it.
@@ -152,6 +146,17 @@ def pytest_configure(config):
             "filterwarnings",
             "ignore:invalid value encountered in less_equal:RuntimeWarning",
         )
+
+    if NUMPY_VERSION >= Version("1.25"):
+        if find_spec("h5py") is not None and (
+            Version(version("h5py")) < Version("3.9")
+        ):
+            # https://github.com/h5py/h5py/pull/2242
+            config.addinivalue_line(
+                "filterwarnings",
+                "ignore:`product` is deprecated as of NumPy 1.25.0"
+                ":DeprecationWarning",
+            )
 
     if find_spec("astropy") is not None:
         # at the time of writing, astropy's wheels are behind numpy's latest
@@ -165,18 +170,6 @@ def pytest_configure(config):
                 " from PyObject:RuntimeWarning"
             ),
         )
-
-    if find_spec("cartopy") is not None:
-        # this warning is triggered from cartopy 21.1
-        # see https://github.com/SciTools/cartopy/issues/2113
-        SHAPELY_VERSION = Version(version("shapely"))
-        if SHAPELY_VERSION >= Version("2.0"):
-            config.addinivalue_line(
-                "filterwarnings",
-                (
-                    r"ignore:The 'geom_factory' function is deprecated in Shapely 2\.0:DeprecationWarning"
-                ),
-            )
 
 
 def pytest_collection_modifyitems(config, items):

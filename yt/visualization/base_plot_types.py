@@ -6,21 +6,23 @@ from typing import TYPE_CHECKING, Optional, Tuple, Union
 
 import matplotlib
 import numpy as np
-from matplotlib.colors import LogNorm, Normalize, SymLogNorm
 from matplotlib.ticker import LogFormatterMathtext
-from packaging.version import Version
 
-from yt.funcs import get_interactivity, is_sequence, matplotlib_style_context, mylog
+from yt.funcs import (
+    get_interactivity,
+    is_sequence,
+    matplotlib_style_context,
+    mylog,
+    setdefault_mpl_metadata,
+)
 from yt.visualization._handlers import ColorbarHandler, NormHandler
 
 from ._commons import (
-    MPL_VERSION,
     get_canvas,
-    get_symlog_majorticks,
     validate_image_name,
 )
 
-if MPL_VERSION >= Version("3.8"):
+if matplotlib.__version_info__ >= (3, 8):
     from matplotlib.ticker import SymmetricalLogLocator
 else:
     from ._commons import _MPL38_SymmetricalLogLocator as SymmetricalLogLocator
@@ -164,10 +166,9 @@ class PlotMPL:
 
         if mpl_kwargs is None:
             mpl_kwargs = {}
-        if "papertype" not in mpl_kwargs and MPL_VERSION < Version("3.3.0"):
-            mpl_kwargs["papertype"] = "auto"
 
         name = validate_image_name(name)
+        setdefault_mpl_metadata(mpl_kwargs, name)
 
         try:
             canvas = get_canvas(self.figure, name)
@@ -312,56 +313,9 @@ class ImagePlotMPL(PlotMPL, ABC):
             interpolation="nearest",
             transform=transform,
         )
-        self._set_axes(norm)
+        self._set_axes()
 
-    def _set_axes(self, norm: Normalize) -> None:
-        if MPL_VERSION >= Version("3.5"):
-            self._set_axes_mpl_ge35()
-        else:
-            self._set_axes_mpl_lt35(norm)
-
-    def _set_axes_mpl_lt35(self, norm: Normalize) -> None:
-        # bug-for-bug backward-compatibility for matplotlib older than 3.5
-        if isinstance(norm, SymLogNorm):
-            formatter = LogFormatterMathtext(linthresh=norm.linthresh)
-            self.cb = self.figure.colorbar(self.image, self.cax, format=formatter)
-            self.cb.set_ticks(
-                get_symlog_majorticks(
-                    linthresh=norm.linthresh, vmin=norm.vmin, vmax=norm.vmax
-                )
-            )
-        else:
-            self.cb = self.figure.colorbar(self.image, self.cax)
-        self.cax.tick_params(which="both", axis="y", direction="in")
-
-        fmt_kwargs = {"style": "scientific", "scilimits": (-2, 3), "useMathText": True}
-        self.image.axes.ticklabel_format(**fmt_kwargs)
-        if type(norm) not in (LogNorm, SymLogNorm):
-            try:
-                self.cb.ax.ticklabel_format(**fmt_kwargs)
-            except AttributeError:
-                warnings.warn(
-                    "Failed to format colorbar ticks. "
-                    "This is expected when using the set_norm method "
-                    "with some matplotlib classes (e.g. TwoSlopeNorm) "
-                    "with matplotlib versions older than 3.5\n"
-                    "Please try upgrading matplotlib to a more recent version. "
-                    "If the problem persists, please file a report to "
-                    "https://github.com/yt-project/yt/issues/new",
-                    stacklevel=2,
-                )
-
-        if self.colorbar_handler.draw_minorticks:
-            if not isinstance(norm, SymLogNorm):
-                # no known working method to draw symlog minor ticks
-                # see https://github.com/yt-project/yt/issues/3535
-                self.cax.minorticks_on()
-        else:
-            self.cax.minorticks_off()
-
-        self.image.axes.set_facecolor(self.colorbar_handler.background_color)
-
-    def _set_axes_mpl_ge35(self) -> None:
+    def _set_axes(self) -> None:
         fmt_kwargs = {"style": "scientific", "scilimits": (-2, 3), "useMathText": True}
         self.image.axes.ticklabel_format(**fmt_kwargs)
         self.image.axes.set_facecolor(self.colorbar_handler.background_color)

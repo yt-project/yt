@@ -8,7 +8,12 @@ from yt.funcs import mylog
 from yt.utilities.cython_fortran_utils import FortranFile
 
 from .field_handlers import HandlerMixin
-from .io import _read_part_file_descriptor
+from .io import (
+    _ramses_particle_binary_file_handler,
+    _ramses_particle_csv_file_handler,
+    _read_part_binary_file_descriptor,
+    _read_part_csv_file_descriptor,
+)
 
 PARTICLE_HANDLERS: Set[Type["ParticleFileHandler"]] = set()
 
@@ -101,6 +106,7 @@ class DefaultParticleFileHandler(ParticleFileHandler):
     fname = "part_{iout:05d}.out{icpu:05d}"
     file_descriptor = "part_file_descriptor.txt"
     config_field = "ramses-particles"
+    reader = _ramses_particle_binary_file_handler
 
     attrs = (
         ("ncpu", 1, "i"),
@@ -144,7 +150,7 @@ class DefaultParticleFileHandler(ParticleFileHandler):
         extra_particle_fields = self.ds._extra_particle_fields
 
         if self.has_descriptor:
-            particle_fields = _read_part_file_descriptor(self.file_descriptor)
+            particle_fields = _read_part_binary_file_descriptor(self.file_descriptor)
         else:
             particle_fields = list(self.known_fields)
 
@@ -202,6 +208,7 @@ class SinkParticleFileHandler(ParticleFileHandler):
     fname = "sink_{iout:05d}.out{icpu:05d}"
     file_descriptor = "sink_file_descriptor.txt"
     config_field = "ramses-sink-particles"
+    reader = _ramses_particle_binary_file_handler
 
     attrs = (("nsink", 1, "i"), ("nindsink", 1, "i"))
 
@@ -258,7 +265,7 @@ class SinkParticleFileHandler(ParticleFileHandler):
 
         # Read the fields + add the sink properties
         if self.has_descriptor:
-            fields = _read_part_file_descriptor(self.file_descriptor)
+            fields = _read_part_binary_file_descriptor(self.file_descriptor)
         else:
             fields = list(self.known_fields)
 
@@ -282,3 +289,32 @@ class SinkParticleFileHandler(ParticleFileHandler):
         self.field_offsets = field_offsets
         self.field_types = _pfields
         fd.close()
+
+
+class SinkParticleFileHandlerCsv(ParticleFileHandler):
+    """Handle sink files from a csv file, the format from the sink particle in ramses"""
+
+    ptype = "sink_csv"
+    fname = "sink_{iout:05d}.csv"
+    file_descriptor = None
+    config_field = "ramses-sink-particles"
+    reader = _ramses_particle_csv_file_handler
+    attrs = (("nsink", 1, "i"), ("nindsink", 1, "i"))
+
+    def read_header(self):
+        if not self.exists:
+            self.field_offsets = {}
+            self.field_types = {}
+            self.local_particle_count = 0
+            return
+        field_offsets = {}
+        _pfields = {}
+
+        fields, self.local_particle_count = _read_part_csv_file_descriptor(self.fname)
+
+        for ind, field in enumerate(fields):
+            field_offsets[self.ptype, field] = ind
+            _pfields[self.ptype, field] = "d"
+
+        self.field_offsets = field_offsets
+        self.field_types = _pfields

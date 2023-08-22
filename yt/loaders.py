@@ -5,15 +5,11 @@ This module gathers all user-facing functions with a `load_` prefix.
 import atexit
 import os
 import sys
-import tarfile
 import time
 import types
 import warnings
-from importlib.metadata import entry_points
-from multiprocessing import Pipe, Process
-from multiprocessing.connection import Connection
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union, cast
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union, cast
 from urllib.parse import urlsplit
 
 import numpy as np
@@ -44,6 +40,8 @@ from yt.utilities.object_registries import (
 )
 from yt.utilities.on_demand_imports import _pooch as pooch, _ratarmount as ratarmount
 
+if TYPE_CHECKING:
+    from multiprocessing.connection import Connection
 # --- Loaders for known data formats ---
 
 
@@ -90,6 +88,10 @@ def load(
     yt.utilities.exceptions.YTAmbiguousDataType
         If the data format matches more than one class of similar specialization levels.
     """
+    from importlib.metadata import entry_points
+
+    from yt.frontends import _all  # type: ignore [attr-defined] # noqa
+
     fn = os.path.expanduser(fn)
 
     if any(wildcard in fn for wildcard in "[]?!*"):
@@ -155,6 +157,7 @@ def load_simulation(fn, simulation_type, find_outputs=False):
     yt.utilities.exceptions.YTSimulationNotIdentified
         If simulation_type is unknown.
     """
+    from yt.frontends import _all  # noqa
 
     fn = str(lookup_on_disk_data(fn))
 
@@ -1096,11 +1099,11 @@ def load_octree(
     -------
 
     >>> import numpy as np
-    >>> oct_mask = np.zeros(25)
+    >>> oct_mask = np.zeros(33) # 5 refined values gives 7 * 4 + 5 octs to mask
     ... oct_mask[[0,  5,  7, 16]] = 8
     >>> octree_mask = np.array(oct_mask, dtype=np.uint8)
     >>> quantities = {}
-    >>> quantities["gas", "density"] = np.random.random((22, 1))
+    >>> quantities["gas", "density"] = np.random.random((29, 1)) # num of false's
     >>> bbox = np.array([[-10.0, 10.0], [-10.0, 10.0], [-10.0, 10.0]])
 
     >>> ds = load_octree(
@@ -1503,6 +1506,7 @@ def load_sample(
     - Corresponding sample data live at https://yt-project.org/data
 
     """
+    import tarfile
 
     if fn is None:
         print(
@@ -1516,6 +1520,7 @@ def load_sample(
         _download_sample_data_file,
         _get_test_data_dir_path,
         get_data_registry_table,
+        get_download_cache_dir,
     )
 
     pooch_logger = pooch.utils.get_logger()
@@ -1624,11 +1629,18 @@ def load_sample(
     if load_name not in str(loadable_path):
         loadable_path = loadable_path.joinpath(load_name, specific_file)
 
+    try:
+        # clean cache dir
+        get_download_cache_dir().rmdir()
+    except OSError:
+        # cache dir isn't empty
+        pass
+
     return load(loadable_path, **kwargs)
 
 
 def _mount_helper(
-    archive: str, mountPoint: str, ratarmount_kwa: Dict, conn: Connection
+    archive: str, mountPoint: str, ratarmount_kwa: Dict, conn: "Connection"
 ):
     try:
         fuseOperationsObject = ratarmount.TarMount(
@@ -1689,6 +1701,8 @@ def load_archive(
     - This function requires ratarmount to be installed.
     - This function does not work on Windows system.
     """
+    import tarfile
+    from multiprocessing import Pipe, Process
 
     warnings.warn(
         "The 'load_archive' function is still experimental and may be unstable.",

@@ -35,7 +35,7 @@ cdef struct BVHNode:
 # pointer to function that computes primitive intersection
 ctypedef np.int64_t (*intersect_func_type)(const void* primitives,
                                            const np.int64_t item,
-                                           Ray* ray) nogil
+                                           Ray* ray) noexcept nogil
 
 # pointer to function that computes primitive centroids
 ctypedef void (*centroid_func_type)(const void *primitives,
@@ -67,19 +67,19 @@ cdef class BVH:
     cdef bbox_func_type get_bbox
     cdef intersect_func_type get_intersect
     cdef np.int64_t _partition(self, np.int64_t begin, np.int64_t end,
-                               np.int64_t ax, np.float64_t split) nogil
+                               np.int64_t ax, np.float64_t split) noexcept nogil
     cdef void _set_up_triangles(self,
                                 np.float64_t[:, :] vertices,
-                                np.int64_t[:, :] indices) nogil
+                                np.int64_t[:, :] indices) noexcept nogil
     cdef void _set_up_patches(self,
                               np.float64_t[:, :] vertices,
-                              np.int64_t[:, :] indices) nogil
+                              np.int64_t[:, :] indices) noexcept nogil
     cdef void _set_up_tet_patches(self,
                               np.float64_t[:, :] vertices,
-                              np.int64_t[:, :] indices) nogil
-    cdef void intersect(self, Ray* ray) nogil
+                              np.int64_t[:, :] indices) noexcept nogil
+    cdef void intersect(self, Ray* ray) noexcept nogil
     cdef void _get_node_bbox(self, BVHNode* node,
-                             np.int64_t begin, np.int64_t end) nogil
-    cdef void _recursive_intersect(self, Ray* ray, BVHNode* node) nogil
-    cdef BVHNode* _recursive_build(self, np.int64_t begin, np.int64_t end) nogil
+                             np.int64_t begin, np.int64_t end) noexcept nogil
+    cdef void _recursive_intersect(self, Ray* ray, BVHNode* node) noexcept nogil
+    cdef BVHNode* _recursive_build(self, np.int64_t begin, np.int64_t end) noexcept nogil
     cdef void _recursive_free(self, BVHNode* node) nogil

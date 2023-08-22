@@ -10,7 +10,6 @@ from typing import Any, Dict, Final, List, Literal, Optional, Tuple, Type, Union
 
 import matplotlib
 from matplotlib.colors import LogNorm, Normalize, SymLogNorm
-from matplotlib.font_manager import FontProperties
 from unyt.dimensions import length
 
 from yt._maintenance.deprecation import issue_deprecation_warning
@@ -26,8 +25,8 @@ from yt.visualization._handlers import ColorbarHandler, NormHandler
 from yt.visualization.base_plot_types import PlotMPL
 
 from ._commons import (
-    DEFAULT_FONT_PROPERTIES,
     _get_units_label,
+    get_default_font_properties,
     invalidate_data,
     invalidate_figure,
     invalidate_plot,
@@ -123,6 +122,8 @@ class PlotContainer(abc.ABC):
     _default_font_size = 14.0
 
     def __init__(self, data_source, figure_size=None, fontsize: Optional[float] = None):
+        from matplotlib.font_manager import FontProperties
+
         self.data_source = data_source
         self.ds = data_source.ds
         self.ts = self._initialize_dataset(self.ds)
@@ -133,9 +134,9 @@ class PlotContainer(abc.ABC):
         if fontsize is None:
             fontsize = self.__class__._default_font_size
         if sys.version_info >= (3, 9):
-            font_dict = DEFAULT_FONT_PROPERTIES | {"size": fontsize}
+            font_dict = get_default_font_properties() | {"size": fontsize}
         else:
-            font_dict = {**DEFAULT_FONT_PROPERTIES, "size": fontsize}
+            font_dict = {**get_default_font_properties(), "size": fontsize}
 
         self._font_properties = FontProperties(**font_dict)
         self._font_color = None
@@ -448,6 +449,7 @@ class PlotContainer(abc.ABC):
         ... )
 
         """
+        from matplotlib.font_manager import FontProperties
 
         if font_dict is None:
             font_dict = {}
@@ -457,9 +459,9 @@ class PlotContainer(abc.ABC):
         # this prevents reverting to the matplotlib defaults.
         _default_size = {"size": self.__class__._default_font_size}
         if sys.version_info >= (3, 9):
-            font_dict = DEFAULT_FONT_PROPERTIES | _default_size | font_dict
+            font_dict = get_default_font_properties() | _default_size | font_dict
         else:
-            font_dict = {**DEFAULT_FONT_PROPERTIES, **_default_size, **font_dict}
+            font_dict = {**get_default_font_properties(), **_default_size, **font_dict}
         self._font_properties = FontProperties(**font_dict)
         return self
 

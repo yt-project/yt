@@ -8,10 +8,11 @@ Utilities for images
 import numpy as np
 
 cimport numpy as np
+cimport cython
 
 from yt.utilities.lib.fp_utils cimport iclip
 
-
+@cython.wraparound(False)
 def add_points_to_greyscale_image(
         np.ndarray[np.float64_t, ndim=2] buffer,
         np.ndarray[np.uint8_t,   ndim=2] buffer_mask,
@@ -25,6 +26,12 @@ def add_points_to_greyscale_image(
     for pi in range(npx):
         j = <int> (xs * px[pi])
         i = <int> (ys * py[pi])
+        if (i < 0) or (i >= buffer.shape[0]) or (j < 0) or (j >= buffer.shape[1]):
+            # some particles might intersect the image buffer
+            # but actually be centered out of bounds. Skip those.
+            # see https://github.com/yt-project/yt/issues/4603
+            continue
+
         buffer[i, j] += pv[pi]
         buffer_mask[i, j] = 1
     return

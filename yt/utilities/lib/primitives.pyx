@@ -32,7 +32,7 @@ cdef extern from "platform_dep.h" nogil:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef np.int64_t ray_bbox_intersect(Ray* ray, const BBox bbox) nogil:
+cdef np.int64_t ray_bbox_intersect(Ray* ray, const BBox bbox) noexcept nogil:
     '''
 
     This returns an integer flag that indicates whether a ray and a bounding
@@ -60,7 +60,7 @@ cdef np.int64_t ray_bbox_intersect(Ray* ray, const BBox bbox) nogil:
 @cython.cdivision(True)
 cdef np.int64_t ray_triangle_intersect(const void* primitives,
                                        const np.int64_t item,
-                                       Ray* ray) nogil:
+                                       Ray* ray) noexcept nogil:
     '''
 
     This returns an integer flag that indicates whether a triangle is the
@@ -119,7 +119,7 @@ cdef np.int64_t ray_triangle_intersect(const void* primitives,
 @cython.cdivision(True)
 cdef void triangle_centroid(const void *primitives,
                             const np.int64_t item,
-                            np.float64_t[3] centroid) nogil:
+                            np.float64_t[3] centroid) noexcept nogil:
     '''
 
     This computes the centroid of the input triangle. The triangle used
@@ -139,7 +139,7 @@ cdef void triangle_centroid(const void *primitives,
 @cython.cdivision(True)
 cdef void triangle_bbox(const void *primitives,
                         const np.int64_t item,
-                        BBox* bbox) nogil:
+                        BBox* bbox) noexcept nogil:
     '''
 
     This computes the bounding box of the input triangle. The triangle used
@@ -161,7 +161,7 @@ cdef void triangle_bbox(const void *primitives,
 cdef void patchSurfaceFunc(const cython.floating[8][3] verts,
                            const cython.floating u,
                            const cython.floating v,
-                           cython.floating[3] S) nogil:
+                           cython.floating[3] S) noexcept nogil:
     '''
 
     This function is a parametric representation of the surface of a bi-quadratic
@@ -190,7 +190,7 @@ cdef void patchSurfaceFunc(const cython.floating[8][3] verts,
 cdef void patchSurfaceDerivU(const cython.floating[8][3] verts,
                              const cython.floating u,
                              const cython.floating v,
-                             cython.floating[3] Su) nogil:
+                             cython.floating[3] Su) noexcept nogil:
     '''
 
     This function computes the derivative of the S(u, v) function w.r.t u.
@@ -212,7 +212,7 @@ cdef void patchSurfaceDerivU(const cython.floating[8][3] verts,
 cdef void patchSurfaceDerivV(const cython.floating[8][3] verts,
                              const cython.floating u,
                              const cython.floating v,
-                             cython.floating[3] Sv) nogil:
+                             cython.floating[3] Sv) noexcept nogil:
     '''
 
     This function computes the derivative of the S(u, v) function w.r.t v.
@@ -234,7 +234,7 @@ cdef void patchSurfaceDerivV(const cython.floating[8][3] verts,
 @cython.cdivision(True)
 cdef RayHitData compute_patch_hit(cython.floating[8][3] verts,
                                   cython.floating[3] ray_origin,
-                                  cython.floating[3] ray_direction) nogil:
+                                  cython.floating[3] ray_direction) noexcept nogil:
     """
 
     This function iteratively computes whether the bi-quadratic patch defined by the
@@ -315,7 +315,7 @@ cdef RayHitData compute_patch_hit(cython.floating[8][3] verts,
 @cython.cdivision(True)
 cdef np.int64_t ray_patch_intersect(const void* primitives,
                                     const np.int64_t item,
-                                    Ray* ray) nogil:
+                                    Ray* ray) noexcept nogil:
     '''
 
     This returns an integer flag that indicates whether the given patch is the
@@ -347,7 +347,7 @@ cdef np.int64_t ray_patch_intersect(const void* primitives,
 @cython.cdivision(True)
 cdef void patch_centroid(const void *primitives,
                          const np.int64_t item,
-                         np.float64_t[3] centroid) nogil:
+                         np.float64_t[3] centroid) noexcept nogil:
     '''
 
     This computes the centroid of the input patch. The patch used
@@ -375,7 +375,7 @@ cdef void patch_centroid(const void *primitives,
 @cython.cdivision(True)
 cdef void patch_bbox(const void *primitives,
                     const np.int64_t item,
-                     BBox* bbox) nogil:
+                     BBox* bbox) noexcept nogil:
 
     '''
 
@@ -404,7 +404,7 @@ cdef void patch_bbox(const void *primitives,
 cdef void tet_patchSurfaceFunc(const cython.floating[6][3] verts,
                            const cython.floating u,
                            const cython.floating v,
-                           cython.floating[3] S) nogil:
+                           cython.floating[3] S) noexcept nogil:
 
     cdef int i
     # Computes for canonical triangle coordinates
@@ -422,7 +422,7 @@ cdef void tet_patchSurfaceFunc(const cython.floating[6][3] verts,
 cdef void tet_patchSurfaceDerivU(const cython.floating[6][3] verts,
                              const cython.floating u,
                              const cython.floating v,
-                             cython.floating[3] Su) nogil:
+                             cython.floating[3] Su) noexcept nogil:
     cdef int i
     # Computes for canonical triangle coordinates
     for i in range(3):
@@ -439,7 +439,7 @@ cdef void tet_patchSurfaceDerivU(const cython.floating[6][3] verts,
 cdef void tet_patchSurfaceDerivV(const cython.floating[6][3] verts,
                              const cython.floating u,
                              const cython.floating v,
-                             cython.floating[3] Sv) nogil:
+                             cython.floating[3] Sv) noexcept nogil:
 
     cdef int i
     # Computes for canonical triangle coordinates
@@ -456,7 +456,7 @@ cdef void tet_patchSurfaceDerivV(const cython.floating[6][3] verts,
 @cython.cdivision(True)
 cdef RayHitData compute_tet_patch_hit(cython.floating[6][3] verts,
                                   cython.floating[3] ray_origin,
-                                  cython.floating[3] ray_direction) nogil:
+                                  cython.floating[3] ray_direction) noexcept nogil:
 
     # first we compute the two planes that define the ray.
     cdef cython.floating[3] n, N1, N2
@@ -531,7 +531,7 @@ cdef RayHitData compute_tet_patch_hit(cython.floating[6][3] verts,
 @cython.cdivision(True)
 cdef np.int64_t ray_tet_patch_intersect(const void* primitives,
                                     const np.int64_t item,
-                                    Ray* ray) nogil:
+                                    Ray* ray) noexcept nogil:
 
     cdef TetPatch tet_patch = (<TetPatch*> primitives)[item]
 
@@ -555,7 +555,7 @@ cdef np.int64_t ray_tet_patch_intersect(const void* primitives,
 @cython.cdivision(True)
 cdef void tet_patch_centroid(const void *primitives,
                          const np.int64_t item,
-                         np.float64_t[3] centroid) nogil:
+                         np.float64_t[3] centroid) noexcept nogil:
 
     cdef np.int64_t i, j
     cdef TetPatch tet_patch = (<TetPatch*> primitives)[item]
@@ -576,7 +576,7 @@ cdef void tet_patch_centroid(const void *primitives,
 @cython.cdivision(True)
 cdef void tet_patch_bbox(const void *primitives,
                     const np.int64_t item,
-                     BBox* bbox) nogil:
+                    BBox* bbox) noexcept nogil:
 
     cdef np.int64_t i, j
     cdef TetPatch tet_patch = (<TetPatch*> primitives)[item]

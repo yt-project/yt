@@ -294,6 +294,8 @@ cdef class LoadOctree(OctVisitor):
     cdef void visit(self, Oct* o, np.uint8_t selected):
         cdef int i, ii
         ii = cind(self.ind[0], self.ind[1], self.ind[2])
+        if self.level > self.max_level:
+            self.max_level = self.level
         if self.ref_mask[self.index] == 0:
             # We only want to do this once.  Otherwise we end up with way too many
             # nfinest for our tastes.

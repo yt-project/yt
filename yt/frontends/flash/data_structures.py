@@ -287,11 +287,11 @@ class FLASHDataset(Dataset):
 
     def _parse_parameter_file(self):
         if "file format version" in self._handle:
-            self._flash_version = int(self._handle["file format version"][:])
+            self._flash_version = self._handle["file format version"][:].item()
         elif "sim info" in self._handle:
-            self._flash_version = int(
-                self._handle["sim info"][:]["file format version"]
-            )
+            self._flash_version = self._handle["sim info"][:][
+                "file format version"
+            ].item()
         else:
             raise RuntimeError("Can't figure out FLASH file version.")
         # First we load all of the parameters

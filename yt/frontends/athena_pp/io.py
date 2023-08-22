@@ -14,11 +14,6 @@ def grid_sequences(grids):
         yield seq
 
 
-ii = [0, 1, 0, 1, 0, 1, 0, 1]
-jj = [0, 0, 1, 1, 0, 0, 1, 1]
-kk = [0, 0, 0, 0, 1, 1, 1, 1]
-
-
 class IOHandlerAthenaPP(BaseIOHandler):
     _particle_reader = False
     _dataset_type = "athena_pp"
@@ -56,30 +51,16 @@ class IOHandlerAthenaPP(BaseIOHandler):
                 ds = f[f"/{dname}"]
             ind = 0
             for chunk in chunks:
-                if self.ds.logarithmic:
-                    for mesh in chunk.objs:
-                        nx, ny, nz = mesh.mesh_dims // self.ds.index.mesh_factors
-                        data = np.empty(mesh.mesh_dims, dtype="=f8")
-                        for n, id in enumerate(mesh.mesh_blocks):
-                            data[
-                                ii[n] * nx : (ii[n] + 1) * nx,
-                                jj[n] * ny : (jj[n] + 1) * ny,
-                                kk[n] * nz : (kk[n] + 1) * nz,
-                            ] = ds[fdi, id, :, :, :].transpose()
-                        ind += mesh.select(selector, data, rv[field], ind)  # caches
-                else:
-                    for gs in grid_sequences(chunk.objs):
-                        start = gs[0].id - gs[0]._id_offset
-                        end = gs[-1].id - gs[-1]._id_offset + 1
-                        data = ds[fdi, start:end, :, :, :].transpose()
-                        for i, g in enumerate(gs):
-                            ind += g.select(selector, data[..., i], rv[field], ind)
+                for gs in grid_sequences(chunk.objs):
+                    start = gs[0].id - gs[0]._id_offset
+                    end = gs[-1].id - gs[-1]._id_offset + 1
+                    data = ds[fdi, start:end, :, :, :].transpose()
+                    for i, g in enumerate(gs):
+                        ind += g.select(selector, data[..., i], rv[field], ind)
             last_dname = dname
         return rv
 
     def _read_chunk_data(self, chunk, fields):
-        if self.ds.logarithmic:
-            pass
         f = self._handle
         rv = {}
         for g in chunk.objs:

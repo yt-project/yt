@@ -3,7 +3,8 @@ from collections import OrderedDict
 import yt
 from yt.frontends.gizmo.api import GizmoDataset
 from yt.frontends.gizmo.fields import metal_elements
-from yt.testing import requires_file, requires_module
+from yt.testing import assert_allclose_units, requires_file, requires_module
+from yt.units import Myr
 from yt.utilities.answer_testing.framework import requires_ds, sph_answer
 
 # This maps from field names to weight field names to use for projections
@@ -20,6 +21,8 @@ fields = OrderedDict(
 g64 = "gizmo_64/output/snap_N64L16_135.hdf5"
 gmhd = "gizmo_mhd_mwdisk/gizmo_mhd_mwdisk.hdf5"
 gmhd_bbox = [[-400, 400]] * 3
+zeld_wg = "gizmo_zeldovich/snapshot_076_wi_gizver.hdf5"
+zeld_ng = "gizmo_zeldovich/snapshot_076_no_gizver.hdf5"
 
 
 @requires_module("h5py")
@@ -30,6 +33,32 @@ def test_gizmo_64():
     for test in sph_answer(ds, "snap_N64L16_135", 524288, fields):
         test_gizmo_64.__name__ = test.description
         yield test
+
+
+@requires_module("h5py")
+@requires_file(zeld_wg)
+@requires_file(zeld_ng)
+def test_gizmo_zeldovich():
+    """
+    Test loading a recent gizmo snapshot that doesn't have cooling/metallicity
+
+    The gizmo_zeldovich file has no metallicity field on the gas particles
+    but is a cosmological dataset run using GIZMO_version=2022. There are two
+    versions of the file, with GIZMO_version (_wg) and without GIZMO_version
+    (_ng). Check that both load as gizmo datasets and correctly pull the
+    cosmological variables. This test should get simpler when the file switches
+    to pytest.
+    """
+    for fn in [zeld_wg, zeld_ng]:
+        ds = yt.load(fn)
+        assert isinstance(ds, GizmoDataset)
+
+        assert ds.cosmological_simulation
+        assert ds.omega_matter == 1.0
+        assert ds.omega_lambda == 0.0
+        # current_time is calculated from the cosmology so this checks if that
+        # was calculated correctly
+        assert_allclose_units(ds.current_time, 1672.0678 * Myr)
 
 
 @requires_module("h5py")

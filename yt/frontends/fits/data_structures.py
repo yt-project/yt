@@ -426,9 +426,16 @@ class FITSDataset(Dataset):
         self.magnetic_unit.convert_to_units("gauss")
         self.velocity_unit = self.length_unit / self.time_unit
 
+    @property
+    def filename(self) -> str:
+        if self._input_filename.startswith("InMemory"):
+            return self._input_filename
+        else:
+            return super().filename
+
     @cached_property
     def unique_identifier(self) -> str:
-        if self.parameter_filename.startswith("InMemory"):
+        if self.filename.startswith("InMemory"):
             return str(time.time())
         else:
             return super().unique_identifier
@@ -453,7 +460,7 @@ class FITSDataset(Dataset):
 
         self.domain_dimensions = np.array(self.dims)[: self.dimensionality]
         if self.dimensionality == 2:
-            self.domain_dimensions = np.append(self.domain_dimensions, [int(1)])
+            self.domain_dimensions = np.append(self.domain_dimensions, [1])
         self._determine_bbox()
 
         # Get the simulation time
