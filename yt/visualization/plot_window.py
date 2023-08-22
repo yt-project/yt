@@ -10,6 +10,7 @@ from more_itertools import always_iterable
 from unyt.exceptions import UnitConversionError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
+from yt._typing import AlphaT
 from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
 from yt.funcs import (
@@ -1062,7 +1063,10 @@ class PWViewerMPL(PlotWindow):
 
             extent = [*extentx, *extenty]
 
-            image = self.frb[f]
+            image = self.frb.get_image(f)
+            mask = self.frb.get_mask(f)
+            assert mask is None or mask.dtype == bool
+
             font_size = self._font_properties.get_size()
 
             if f in self.plots.keys():
@@ -1126,6 +1130,7 @@ class PWViewerMPL(PlotWindow):
                 self._transform,
                 norm_handler=pnh,
                 colorbar_handler=cbh,
+                alpha=mask.astype("float64") if mask is not None else None,
             )
 
             axes_unit_labels = self._get_axes_unit_labels(unit_x, unit_y)
@@ -1184,7 +1189,7 @@ class PWViewerMPL(PlotWindow):
             self.plots[f].axes.set_ylabel(labels[1])
 
             # Determine the units of the data
-            units = Unit(self.frb[f].units, registry=self.ds.unit_registry)
+            units = Unit(image.units, registry=self.ds.unit_registry)
             units = units.latex_representation()
 
             if colorbar_label is None:
@@ -2508,6 +2513,7 @@ class WindowPlotMPL(ImagePlotMPL):
         *,
         norm_handler: NormHandler,
         colorbar_handler: ColorbarHandler,
+        alpha: AlphaT = None,
     ):
         self._projection = mpl_proj
         self._transform = mpl_transform
@@ -2539,7 +2545,7 @@ class WindowPlotMPL(ImagePlotMPL):
             colorbar_handler=colorbar_handler,
         )
 
-        self._init_image(data, extent, aspect)
+        self._init_image(data, extent, aspect, alpha=alpha)
 
     def _create_axes(self, axrect):
         self.axes = self.figure.add_axes(axrect, projection=self._projection)

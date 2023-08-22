@@ -33,11 +33,12 @@ def test_no_rotation():
     bounds = [-4, 4, -4, 4, -4, 4]
 
     buf2 = np.zeros(resolution)
+    mask = np.ones_like(buf2, dtype="uint8")
     buf1 = OffAP.off_axis_projection(
         ds, center, normal_vector, width, resolution, ("gas", "density")
     )
     pixelize_sph_kernel_projection(
-        buf2, px, py, hsml, mass, density, quantity_to_smooth, bounds
+        buf2, mask, px, py, hsml, mass, density, quantity_to_smooth, bounds
     )
     assert_almost_equal(buf1.ndarray_view(), buf2)
 
