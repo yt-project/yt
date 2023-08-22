@@ -225,6 +225,17 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
 
     def _generate_fields(self, fields_to_generate):
         index = 0
+
+        def dimensions_compare_equal(a, b, /) -> bool:
+            if a == b:
+                return True
+            try:
+                if (a == 1 and b.is_dimensionless) or (a.is_dimensionless and b == 1):
+                    return True
+            except AttributeError:
+                return False
+            return False
+
         with self._field_lock():
             # At this point, we assume that any fields that are necessary to
             # *generate* a field are in fact already available to us.  Note
@@ -266,7 +277,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
                                 fi.name,
                                 sunits or "dimensionless",
                             )
-                        elif fi.dimensions != dimensions:
+                        elif not dimensions_compare_equal(fi.dimensions, dimensions):
                             raise YTDimensionalityError(fi.dimensions, dimensions)
                         fi.units = sunits
                         fi.dimensions = dimensions
