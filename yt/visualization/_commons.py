@@ -10,11 +10,6 @@ from more_itertools import always_iterable
 
 from yt.config import ytcfg
 
-if sys.version_info >= (3, 9):
-    import importlib.resources as importlib_resources
-else:
-    import importlib_resources
-
 if sys.version_info >= (3, 10):
     pass
 else:
@@ -24,14 +19,26 @@ if TYPE_CHECKING:
     from matplotlib.backend_bases import FigureCanvasBase
 
 
-_yt_style = mpl.rc_params_from_file(
-    importlib_resources.files("yt") / "default.mplstyle", use_default_template=False
-)
-DEFAULT_FONT_PROPERTIES = {
-    "family": _yt_style["font.family"][0],
-    "math_fontfamily": _yt_style["mathtext.fontset"],
-}
-del _yt_style
+_DEFAULT_FONT_PROPERTIES = None
+
+
+def get_default_font_properties():
+    global _DEFAULT_FONT_PROPERTIES
+    if _DEFAULT_FONT_PROPERTIES is None:
+        if sys.version_info >= (3, 9):
+            import importlib.resources as importlib_resources
+        else:
+            import importlib_resources
+        _yt_style = mpl.rc_params_from_file(
+            importlib_resources.files("yt") / "default.mplstyle",
+            use_default_template=False,
+        )
+        _DEFAULT_FONT_PROPERTIES = {
+            "family": _yt_style["font.family"][0],
+            "math_fontfamily": _yt_style["mathtext.fontset"],
+        }
+
+    return _DEFAULT_FONT_PROPERTIES
 
 
 def _get_supported_image_file_formats():

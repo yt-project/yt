@@ -8,7 +8,13 @@ import matplotlib
 import numpy as np
 from matplotlib.ticker import LogFormatterMathtext
 
-from yt.funcs import get_interactivity, is_sequence, matplotlib_style_context, mylog
+from yt.funcs import (
+    get_interactivity,
+    is_sequence,
+    matplotlib_style_context,
+    mylog,
+    setdefault_mpl_metadata,
+)
 from yt.visualization._handlers import ColorbarHandler, NormHandler
 
 from ._commons import (
@@ -162,6 +168,7 @@ class PlotMPL:
             mpl_kwargs = {}
 
         name = validate_image_name(name)
+        setdefault_mpl_metadata(mpl_kwargs, name)
 
         try:
             canvas = get_canvas(self.figure, name)

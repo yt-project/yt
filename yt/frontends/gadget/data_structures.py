@@ -363,24 +363,22 @@ class GadgetDataset(SPHDataset):
         self.domain_dimensions = np.ones(3, "int32")
         self._periodicity = (True, True, True)
 
-        self.cosmological_simulation = 1
+        self.current_redshift = hvals.get("Redshift", 0.0)
+        if "Redshift" not in hvals:
+            mylog.info("Redshift is not set in Header. Assuming z=0.")
 
-        try:
-            self.current_redshift = hvals["Redshift"]
-        except KeyError:
-            # Probably not a cosmological dataset, we should just set
-            # z = 0 and let the user know
-            self.current_redshift = 0.0
-            only_on_root(mylog.info, "Redshift is not set in Header. Assuming z=0.")
-
-        try:
+        if "OmegaLambda" in hvals:
             self.omega_lambda = hvals["OmegaLambda"]
             self.omega_matter = hvals["Omega0"]
             self.hubble_constant = hvals["HubbleParam"]
-        except KeyError:
+            self.cosmological_simulation = self.omega_lambda != 0.0
+        else:
             # If these are not set it is definitely not a cosmological dataset.
             self.omega_lambda = 0.0
-            self.omega_matter = 1.0  # Just in case somebody asks for it.
+            self.omega_matter = 0.0  # Just in case somebody asks for it.
+            # omega_matter has been changed to 0.0 for consistency with
+            # non-cosmological frontends
+            self.cosmological_simulation = 0
             # Hubble is set below for Omega Lambda = 0.
 
         # According to the Gadget manual, OmegaLambda will be zero for
@@ -389,12 +387,9 @@ class GadgetDataset(SPHDataset):
         # which case we may be doing something incorrect here.
         # It may be possible to deduce whether ComovingIntegration is on
         # somehow, but opinions on this vary.
-        if self.omega_lambda == 0.0:
-            only_on_root(
-                mylog.info, "Omega Lambda is 0.0, so we are turning off Cosmology."
-            )
+        if not self.cosmological_simulation:
+            mylog.info("Omega Lambda is 0.0, so we are turning off Cosmology.")
             self.hubble_constant = 1.0  # So that scaling comes out correct
-            self.cosmological_simulation = 0
             self.current_redshift = 0.0
             # This may not be correct.
             self.current_time = hvals["Time"]
@@ -409,20 +404,15 @@ class GadgetDataset(SPHDataset):
                 omega_lambda=self.omega_lambda,
             )
             self.current_time = cosmo.lookback_time(self.current_redshift, 1e6)
-            only_on_root(
-                mylog.info,
+            mylog.info(
                 "Calculating time from %0.3e to be %0.3e seconds",
                 hvals["Time"],
                 self.current_time,
             )
         self.parameters = hvals
 
-        prefix = os.path.abspath(
-            os.path.join(
-                os.path.dirname(self.parameter_filename),
-                os.path.basename(self.parameter_filename).split(".", 1)[0],
-            )
-        )
+        basename, _, _ = self.basename.partition(".")
+        prefix = os.path.join(self.directory, basename)
 
         if hvals["NumFiles"] > 1:
             for t in (

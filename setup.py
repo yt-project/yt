@@ -52,7 +52,7 @@ cythonize_aliases = {
     "EWAH_LIBS": std_libs + [get_ewah_bool_utils_path()],
     "OMP_ARGS": omp_args,
     "FIXED_INTERP": "yt/utilities/lib/fixed_interpolator.cpp",
-    "ARTIO_SOURCE": glob.glob("yt/frontends/artio/artio_headers/*.c"),
+    "ARTIO_SOURCE": sorted(glob.glob("yt/frontends/artio/artio_headers/*.c")),
     "CPP14_FLAG": CPP14_FLAG,
     "CPP11_FLAG": CPP11_FLAG,
 }

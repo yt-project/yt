@@ -294,6 +294,8 @@ class h5py_imports(OnDemand):
         # imported first, can get file lock errors on some systems (including travis-ci)
         # so we need to do this before initializing h5py_imports()!
         # similar to this issue https://github.com/pydata/xarray/issues/2560
+        if find_spec("h5py") is None or find_spec("netCDF4") is None:
+            return
         try:
             import netCDF4  # noqa F401
         except ImportError:
@@ -483,6 +485,12 @@ class pandas_imports(OnDemand):
         from pandas import concat
 
         return concat
+
+    @safe_import
+    def read_csv(self):
+        from pandas import read_csv
+
+        return read_csv
 
 
 _pandas = pandas_imports()

@@ -36,16 +36,11 @@ class IOHandlerAdaptaHOPBinary(BaseParticleIOHandler):
 
     def _read_particle_coords(self, chunks, ptf):
         # This will read chunks and yield the results.
-        chunks = list(chunks)
-        data_files = set()
         # Only support halo reading for now.
         assert len(ptf) == 1
         assert list(ptf.keys())[0] == "halos"
         ptype = "halos"
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
-        for data_file in sorted(data_files, key=attrgetter("filename")):
+        for data_file in self._sorted_chunk_iterator(chunks):
             pcount = (
                 data_file.ds.parameters["nhalos"] + data_file.ds.parameters["nsubs"]
             )
@@ -56,14 +51,10 @@ class IOHandlerAdaptaHOPBinary(BaseParticleIOHandler):
 
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate
-        chunks = list(chunks)
-        data_files = set()
+
         # Only support halo reading for now.
         assert len(ptf) == 1
         assert list(ptf.keys())[0] == "halos"
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
 
         def iterate_over_attributes(attr_list):
             for attr, *_ in attr_list:
@@ -76,7 +67,7 @@ class IOHandlerAdaptaHOPBinary(BaseParticleIOHandler):
 
         attr_pos = partial(_find_attr_position, halo_attributes=halo_attributes)
 
-        for data_file in sorted(data_files, key=attrgetter("filename")):
+        for data_file in self._sorted_chunk_iterator(chunks):
             pcount = (
                 data_file.ds.parameters["nhalos"] + data_file.ds.parameters["nsubs"]
             )
@@ -193,6 +184,10 @@ class IOHandlerAdaptaHOPBinary(BaseParticleIOHandler):
                 fpu.skip(todo.pop(0))
             members = fpu.read_attrs(todo.pop(0))["particle_identities"]
         return members
+
+    def _sorted_chunk_iterator(self, chunks):
+        data_files = self._get_data_files(chunks)
+        yield from sorted(data_files, key=attrgetter("filename"))
 
 
 def _todo_from_attributes(attributes: ATTR_T, halo_attributes: ATTR_T):

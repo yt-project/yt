@@ -33,19 +33,19 @@ cdef struct Triangle:
     np.float64_t p2[3]
     np.int64_t elem_id
 
-cdef np.int64_t ray_bbox_intersect(Ray* ray, const BBox bbox) nogil
+cdef np.int64_t ray_bbox_intersect(Ray* ray, const BBox bbox) noexcept nogil
 
 cdef np.int64_t ray_triangle_intersect(const void* primitives,
                                        const np.int64_t item,
-                                       Ray* ray) nogil
+                                       Ray* ray) noexcept nogil
 
 cdef void triangle_centroid(const void *primitives,
                             const np.int64_t item,
-                            np.float64_t[3] centroid) nogil
+                            np.float64_t[3] centroid) noexcept nogil
 
 cdef void triangle_bbox(const void *primitives,
                         const np.int64_t item,
-                        BBox* bbox) nogil
+                        BBox* bbox) noexcept nogil
 
 cdef struct Patch:
     np.float64_t[8][3] v  # 8 vertices per patch
@@ -54,33 +54,33 @@ cdef struct Patch:
 cdef void patchSurfaceFunc(const cython.floating[8][3] verts,
                            const cython.floating u,
                            const cython.floating v,
-                           cython.floating[3] S) nogil
+                           cython.floating[3] S) noexcept nogil
 
 cdef void patchSurfaceDerivU(const cython.floating[8][3] verts,
                              const cython.floating u,
                              const cython.floating v,
-                             cython.floating[3] Su) nogil
+                             cython.floating[3] Su) noexcept nogil
 
 cdef void patchSurfaceDerivV(const cython.floating[8][3] verts,
                              const cython.floating u,
                              const cython.floating v,
-                             cython.floating[3] Sv) nogil
+                             cython.floating[3] Sv) noexcept nogil
 
 cdef RayHitData compute_patch_hit(cython.floating[8][3] verts,
                                   cython.floating[3] ray_origin,
-                                  cython.floating[3] ray_direction) nogil
+                                  cython.floating[3] ray_direction) noexcept nogil
 
 cdef np.int64_t ray_patch_intersect(const void* primitives,
                                     const np.int64_t item,
-                                    Ray* ray) nogil
+                                    Ray* ray) noexcept nogil
 
 cdef void patch_centroid(const void *primitives,
                          const np.int64_t item,
-                         np.float64_t[3] centroid) nogil
+                         np.float64_t[3] centroid) noexcept nogil
 
 cdef void patch_bbox(const void *primitives,
                      const np.int64_t item,
-                     BBox* bbox) nogil
+                     BBox* bbox) noexcept nogil
 
 cdef struct TetPatch:
     np.float64_t[6][3] v # 6 vertices per patch
@@ -88,31 +88,31 @@ cdef struct TetPatch:
 
 cdef RayHitData compute_tet_patch_hit(cython.floating[6][3] verts,
                                   cython.floating[3] ray_origin,
-                                  cython.floating[3] ray_direction) nogil
+                                  cython.floating[3] ray_direction) noexcept nogil
 
 cdef void tet_patchSurfaceFunc(const cython.floating[6][3] verts,
                            const cython.floating u,
                            const cython.floating v,
-                           cython.floating[3] S) nogil
+                           cython.floating[3] S) noexcept nogil
 
 cdef void tet_patchSurfaceDerivU(const cython.floating[6][3] verts,
                              const cython.floating u,
                              const cython.floating v,
-                             cython.floating[3] Su) nogil
+                             cython.floating[3] Su) noexcept nogil
 
 cdef void tet_patchSurfaceDerivV(const cython.floating[6][3] verts,
                              const cython.floating u,
                              const cython.floating v,
-                             cython.floating[3] Sv) nogil
+                             cython.floating[3] Sv) noexcept nogil
 
 cdef np.int64_t ray_tet_patch_intersect(const void* primitives,
                                     const np.int64_t item,
-                                    Ray* ray) nogil
+                                    Ray* ray) noexcept nogil
 
 cdef void tet_patch_centroid(const void *primitives,
                          const np.int64_t item,
-                         np.float64_t[3] centroid) nogil
+                         np.float64_t[3] centroid) noexcept nogil
 
 cdef void tet_patch_bbox(const void *primitives,
                      const np.int64_t item,
-                     BBox* bbox) nogil
+                     BBox* bbox) noexcept nogil

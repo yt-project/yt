@@ -72,17 +72,13 @@ def convert_ramses_conformal_time_to_physical_age(
     return (tsim - t) * t_scale
 
 
-def _ramses_particle_file_handler(fname, foffsets, data_types, subset, fields, count):
-    """General file handler, called by _read_particle_subset
+def _ramses_particle_binary_file_handler(particle, subset, fields, count):
+    """General file handler for binary file, called by _read_particle_subset
 
     Parameters
     ----------
-    fname : string
-        filename to read from
-    foffsets: dict
-        Offsets in file of the fields
-    data_types: dict
-        Data type of the fields
+    particle : ``ParticleFileHandler``
+        the particle class we want to read
     subset: ``RAMSESDomainSubset``
         A RAMSES domain subset object
     fields: list of tuple
@@ -93,6 +89,9 @@ def _ramses_particle_file_handler(fname, foffsets, data_types, subset, fields, c
     tr = {}
     ds = subset.domain.ds
     current_time = ds.current_time.in_units("code_time").v
+    foffsets = particle.field_offsets
+    fname = particle.fname
+    data_types = particle.field_types
     with FortranFile(fname) as fd:
         # We do *all* conversion into boxlen here.
         # This means that no other conversions need to be applied to convert
@@ -115,6 +114,57 @@ def _ramses_particle_file_handler(fname, foffsets, data_types, subset, fields, c
                 # arbitrarily set particles with zero conformal_age to zero
                 # particle_age. This corresponds to DM particles.
                 tr[field][conformal_time == 0] = 0
+    return tr
+
+
+def _ramses_particle_csv_file_handler(particle, subset, fields, count):
+    """General file handler for csv file, called by _read_particle_subset
+
+    Parameters
+    ----------
+    particle: ``ParticleFileHandler``
+        the particle class we want to read
+    subset: ``RAMSESDomainSubset``
+        A RAMSES domain subset object
+    fields: list of tuple
+        The fields to read
+    count: integer
+        The number of elements to count
+    """
+    from yt.utilities.on_demand_imports import _pandas as pd
+
+    tr = {}
+    ds = subset.domain.ds
+    current_time = ds.current_time.in_units("code_time").v
+    foffsets = particle.field_offsets
+    fname = particle.fname
+
+    list_field_ind = [
+        (field, foffsets[field]) for field in sorted(fields, key=lambda a: foffsets[a])
+    ]
+
+    # read only selected fields
+    dat = pd.read_csv(
+        fname,
+        delimiter=",",
+        usecols=[ind for _field, ind in list_field_ind],
+        skiprows=2,
+        header=None,
+    )
+
+    for field, ind in list_field_ind:
+        tr[field] = dat[ind].to_numpy()
+        if field[1].startswith("particle_position"):
+            np.divide(tr[field], ds["boxlen"], tr[field])
+        if ds.cosmological_simulation and field[1] == "particle_birth_time":
+            conformal_time = tr[field]
+            physical_age = convert_ramses_conformal_time_to_physical_age(
+                ds, conformal_time
+            )
+            tr[field] = current_time - physical_age
+            # arbitrarily set particles with zero conformal_age to zero
+            # particle_age. This corresponds to DM particles.
+            tr[field][conformal_time == 0] = 0
     return tr
 
 
@@ -189,12 +239,14 @@ class IOHandlerRAMSES(BaseIOHandler):
         fields = [
             (ptype, fname) for ptype, field_list in ptf.items() for fname in field_list
         ]
+
         for ptype, field_list in sorted(ptf.items()):
             for ax in "xyz":
                 if pn % ax not in field_list:
                     fields.append((ptype, pn % ax))
-        for chunk in chunks:
-            for subset in chunk.objs:
+
+            if ptype == "sink_csv":
+                subset = chunks[0].objs[0]
                 rv = self._read_particle_subset(subset, fields)
                 for ptype, field_list in sorted(ptf.items()):
                     x, y, z = (np.asarray(rv[ptype, pn % ax], "=f8") for ax in "xyz")
@@ -204,6 +256,21 @@ class IOHandlerRAMSES(BaseIOHandler):
                     for field in field_list:
                         data = np.asarray(rv.pop((ptype, field))[mask], "=f8")
                         yield (ptype, field), data
+
+            else:
+                for chunk in chunks:
+                    for subset in chunk.objs:
+                        rv = self._read_particle_subset(subset, fields)
+                        for ptype, field_list in sorted(ptf.items()):
+                            x, y, z = (
+                                np.asarray(rv[ptype, pn % ax], "=f8") for ax in "xyz"
+                            )
+                            mask = selector.select_points(x, y, z, 0.0)
+                            if mask is None:
+                                mask = []
+                            for field in field_list:
+                                data = np.asarray(rv.pop((ptype, field))[mask], "=f8")
+                                yield (ptype, field), data
 
     def _read_particle_subset(self, subset, fields):
         """Read the particle files."""
@@ -217,7 +284,6 @@ class IOHandlerRAMSES(BaseIOHandler):
             ok = False
             for ph in subset.domain.particle_handlers:
                 if ph.ptype == ptype:
-                    fname = ph.fname
                     foffsets = ph.field_offsets
                     data_types = ph.field_types
                     ok = True
@@ -235,16 +301,12 @@ class IOHandlerRAMSES(BaseIOHandler):
                     ptype, "particle_birth_time"
                 ]
 
-            tr.update(
-                _ramses_particle_file_handler(
-                    fname, foffsets, data_types, subset, subs_fields, count=count
-                )
-            )
+            tr.update(ph.reader(subset, subs_fields, count))
 
         return tr
 
 
-def _read_part_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
+def _read_part_binary_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
     """
     Read a file descriptor and returns the array of the fields found.
     """
@@ -298,6 +360,55 @@ def _read_part_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
             raise YTParticleOutputFormatNotImplemented()
 
     return fields
+
+
+def _read_part_csv_file_descriptor(fname: Union[str, "os.PathLike[str]"]):
+    """
+    Read the file from the csv sink particles output.
+    """
+    from yt.utilities.on_demand_imports import _pandas as pd
+
+    # Fields name from the default csv RAMSES sink algorithm in the yt default convention
+    mapping = {
+        " # id": "particle_identifier",
+        "msink": "particle_mass",
+        "x": "particle_position_x",
+        "y": "particle_position_y",
+        "z": "particle_position_z",
+        "vx": "particle_velocity_x",
+        "vy": "particle_velocity_y",
+        "vz": "particle_velocity_z",
+        "lx": "particle_angular_momentum_x",
+        "ly": "particle_angular_momentum_y",
+        "lz": "particle_angular_momentum_z",
+        "tform": "particle_formation_time",
+        "acc_Rate": "particle_accretion_Rate",
+        "del_mass": "particle_delta_mass",
+        "rho_gas": "particle_rho_gas",
+        "cs**2": "particle_sound_speed",
+        "etherm": "particle_etherm",
+        "vx_gas": "particle_velocity_x_gas",
+        "vy_gas": "particle_velocity_y_gas",
+        "vz_gas": "particle_velocity_z_gas",
+        "mbh": "particle_mass_bh",
+        "level": "particle_level",
+        "rsink_star": "particle_radius_star",
+    }
+
+    # read the all file to get the number of particle
+    dat = pd.read_csv(fname, delimiter=",")
+    fields = []
+    local_particle_count = len(dat)
+
+    for varname in dat.columns:
+        if varname in mapping:
+            varname = mapping[varname]
+        else:
+            varname = f"particle_{varname}"
+
+        fields.append(varname)
+
+    return fields, local_particle_count
 
 
 def _read_fluid_file_descriptor(fname: Union[str, "os.PathLike[str]"], *, prefix: str):
