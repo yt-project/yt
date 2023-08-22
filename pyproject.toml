@@ -6,9 +6,11 @@ requires = [
 
   # see https://github.com/yt-project/yt/issues/4044
   "Cython>=3.0, <3.1",
+
   # TODO: simplify requirement after numpy 1.26.0 final is released
-  "oldest-supported-numpy ; python_version < '3.12.0rc1'",
-  "numpy>=1.26.0b1 ; python_version >= '3.12.0rc1'",
+  "oldest-supported-numpy ; python_version < '3.9'",
+  "numpy>=1.25, <2.0 ; python_version >= '3.9' and python_version < '3.12.0rc1'",
+  "numpy>=1.26.0b1, <2.0; python_version >= '3.12.0rc1'",
 
   # TODO: simplify requirement after ewah-bool-utils 1.1.0 final is released
   "ewah-bool-utils>=1.0.2 ; python_version < '3.12.0rc1'",
@@ -53,6 +55,8 @@ dependencies = [
     "ipywidgets>=8.0.0",
     "matplotlib>=3.5",
     "more-itertools>=8.4",
+    # when Python 3.8 is dropped, keep minimal requirement in sync with NPY_TARGET_VERSION
+    # upper cap should be lifted when build-time requirement is bumped to >=2.0, see
     # https://github.com/scipy/oldest-supported-numpy/issues/76#issuecomment-1628865694
     "numpy>=1.17.5,<2.0",
     "packaging>=20.9",
