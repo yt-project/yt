@@ -102,6 +102,7 @@ cdef class GridTree:
                     self.grids[j].children[child_ptr[j]] = &self.grids[i]
                     child_ptr[j] += 1
                 else:
+                    if level[i] < min_level: continue
                     if k >= self.num_root_grids:
                         raise RuntimeError(k, self.num_root_grids)
                     self.root_grids[k] = self.grids[i]
