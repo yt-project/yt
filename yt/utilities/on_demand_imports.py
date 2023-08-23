@@ -172,8 +172,8 @@ class NotCartopy(NotAModule):
     for cartopy imports.
     """
 
-    def __init__(self, pkg_name):
-        self.pkg_name = pkg_name
+    def __init__(self, pkg_name, exc: Optional[BaseException] = None):
+        super().__init__(pkg_name, exc)
         if any(s in sys.version for s in ("Anaconda", "Continuum")):
             # the conda-based installs of cartopy don't have issues with the
             # GEOS library, so the error message for users with conda can be
