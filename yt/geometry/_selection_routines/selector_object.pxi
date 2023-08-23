@@ -507,7 +507,7 @@ cdef class SelectorObject:
     @cython.cdivision(True)
     cdef void visit_grid_cells(self, GridVisitorData *data,
                               grid_visitor_function *func,
-                              np.uint8_t *cached_mask = NULL):
+                              np.uint8_t *cached_mask = NULL) noexcept nogil:
         # This function accepts a grid visitor function, the data that
         # corresponds to the current grid being examined (the most important
         # aspect of which is the .grid attribute, along with index values and

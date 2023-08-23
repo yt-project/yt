@@ -154,7 +154,7 @@ cdef class GridTree:
             dtn[n] = (f, o)
         return grids_basic.view(dtype=np.dtype(dtn))
 
-    cdef void setup_data(self, GridVisitorData *data):
+    cdef void setup_data(self, GridVisitorData *data) noexcept nogil:
         # Being handed a new GVD object, we initialize it to sane defaults.
         data.index = 0
         data.global_index = 0
@@ -167,7 +167,7 @@ cdef class GridTree:
 
     cdef void visit_grids(self, GridVisitorData *data,
                           grid_visitor_function *func,
-                          SelectorObject selector):
+                          SelectorObject selector) noexcept nogil:
         # This iterates over all root grids, given a selector+data, and then
         # visits each one and its children.
         cdef int i
@@ -182,7 +182,7 @@ cdef class GridTree:
     cdef void recursively_visit_grid(self, GridVisitorData *data,
                                      grid_visitor_function *func,
                                      SelectorObject selector,
-                                     GridTreeNode *grid):
+                                     GridTreeNode *grid) noexcept nogil:
         # Visit this grid and all of its child grids, with a given grid visitor
         # function.  We early terminate if we are not selected by the selector.
         cdef int i

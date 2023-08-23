@@ -33,15 +33,15 @@ cdef class GridTree:
     cdef int num_leaf_grids
     cdef np.uint64_t total_size
     cdef int refine_by[3]
-    cdef void setup_data(self, GridVisitorData *data)
+    cdef void setup_data(self, GridVisitorData *data) noexcept nogil
     cdef void visit_grids(self, GridVisitorData *data,
                           grid_visitor_function *func,
-                          SelectorObject selector)
+                          SelectorObject selector) noexcept nogil
     cdef void recursively_visit_grid(self,
                           GridVisitorData *data,
                           grid_visitor_function *func,
                           SelectorObject selector,
-                          GridTreeNode *grid)
+                          GridTreeNode *grid) noexcept nogil
 
 cdef class MatchPointsToGrids:
 

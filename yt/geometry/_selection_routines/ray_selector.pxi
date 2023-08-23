@@ -80,7 +80,7 @@ cdef class RaySelector(SelectorObject):
     @cython.cdivision(True)
     cdef void visit_grid_cells(self, GridVisitorData *data,
                               grid_visitor_function *func,
-                              np.uint8_t *cached_mask = NULL):
+                              np.uint8_t *cached_mask = NULL) noexcept nogil:
         # AT PRESENT THIS DOES NOT WORK.
         # I am not entirely sure why, which is why I have disallowed
         # using fast index for the ray object for grids.
@@ -89,8 +89,6 @@ cdef class RaySelector(SelectorObject):
         # I am not keen on giving up, but I think it's a suitably short enough
         # use case that it will suffice to use the old-style selection and
         # indexing for it.
-        cdef np.ndarray[np.float64_t, ndim=3] t, dt
-        cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
         cdef int i
         cdef int total = 0
         cdef int this_level = 0
@@ -99,15 +97,14 @@ cdef class RaySelector(SelectorObject):
             return
         if level == self.max_level:
             this_level = 1
-        t = np.zeros((data.grid.dims[0], data.grid.dims[1], data.grid.dims[2]),
-                     dtype="float64")
-        dt = np.zeros((data.grid.dims[0], data.grid.dims[1], data.grid.dims[2]),
-                      dtype="float64") - 1
+        cdef np.uint64_t size = data.grid.dims[0] * data.grid.dims[1] * data.grid.dims[2]
         cdef IntegrationAccumulator *ia
         ia = <IntegrationAccumulator *> malloc(sizeof(IntegrationAccumulator))
         cdef VolumeContainer vc
-        ia.t = <np.float64_t *> t.data
-        ia.dt = <np.float64_t *> dt.data
+        ia.t = <np.float64_t *> malloc(sizeof(np.float64_t) * size)
+        ia.dt = <np.float64_t *> malloc(sizeof(np.float64_t) * size)
+        for i in range(size):
+            ia.dt[i] = -1
         ia.child_mask = NULL
         ia.hits = 0
         for i in range(3):
@@ -115,21 +112,22 @@ cdef class RaySelector(SelectorObject):
             vc.right_edge[i] = data.grid.right_edge[i]
             vc.dds[i] = (vc.right_edge[i] - vc.left_edge[i])/data.grid.dims[i]
             vc.idds[i] = 1.0/vc.dds[i]
-            vc.dims[i] = dt.shape[i]
+            vc.dims[i] = data.grid.dims[i]
         walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> ia)
-        for i in range(dt.shape[0]):
-            for j in range(dt.shape[1]):
-                for k in range(dt.shape[2]):
-                    if this_level == 1:
-                        child_masked = 0
-                    else:
-                        child_masked = check_child_masked(data)
-                    if child_masked == 0 and dt[i, j, k] >= 0:
-                        selected = 1
-                    else:
-                        selected = 0
-                    func(data, selected)
-                    data.global_index += 1
+        # This is now a flat loop, since we're not using numpy arrays
+        for i in range(size):
+            if this_level == 1:
+                child_masked = 0
+            else:
+                child_masked = check_child_masked(data)
+            if child_masked == 0 and ia.dt[i] >= 0:
+                selected = 1
+            else:
+                selected = 0
+            func(data, selected)
+            data.global_index += 1
+        free(ia.t)
+        free(ia.dt)
         free(ia)
 
     @cython.boundscheck(False)
