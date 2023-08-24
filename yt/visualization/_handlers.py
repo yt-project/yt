@@ -1,3 +1,4 @@
+import sys
 import weakref
 from numbers import Real
 from typing import Any, Dict, List, Literal, Optional, Tuple, Type, Union
@@ -11,6 +12,11 @@ from unyt import unyt_quantity
 from yt._typing import Quantity, Unit
 from yt.config import ytcfg
 from yt.funcs import get_brewer_cmap, is_sequence, mylog
+
+if sys.version_info >= (3, 10):
+    from typing import TypeAlias
+else:
+    from typing_extensions import TypeAlias
 
 
 class NormHandler:
@@ -73,7 +79,7 @@ class NormHandler:
         self._linthresh = linthresh
         self.prefer_log = True
 
-        if self.has_norm and self.has_constraints:
+        if self.norm is not None and self.has_constraints:
             raise TypeError(
                 "NormHandler input is malformed. "
                 "A norm cannot be passed along other constraints."
@@ -100,12 +106,8 @@ class NormHandler:
         for name in constraints.keys():
             setattr(self, name, None)
 
-    @property
-    def has_norm(self) -> bool:
-        return self._norm is not None
-
-    def _reset_norm(self):
-        if not self.has_norm:
+    def _reset_norm(self) -> None:
+        if self.norm is None:
             return
         mylog.warning("Dropping norm (%s)", self.norm)
         self._norm = None
@@ -281,7 +283,7 @@ class NormHandler:
             self.norm_type = SymLogNorm
 
     def get_norm(self, data: np.ndarray, *args, **kw) -> Normalize:
-        if self.has_norm:
+        if self.norm is not None:
             return self.norm
 
         dvmin = dvmax = None
@@ -312,6 +314,7 @@ class NormHandler:
             dvmax = 1 * getattr(data, "units", 1)
         kw.setdefault("vmax", dvmax)
 
+        norm_type: Type[Normalize]
         if data.ndim == 3:
             assert data.shape[-1] == 4
             # this is an RGBA array, only linear normalization makes sense here
@@ -395,6 +398,16 @@ class NormHandler:
         return linthresh
 
 
+BackgroundColor: TypeAlias = Union[
+    Tuple[float, float, float, float],
+    # np.ndarray is only runtime-subscribtable since numpy 1.22
+    "np.ndarray[Any, Any]",
+    str,
+    None,
+]
+ColormapInput: TypeAlias = Union[Colormap, str, None]
+
+
 class ColorbarHandler:
     __slots__ = ("_draw_cbar", "_draw_minorticks", "_cmap", "_background_color")
 
@@ -403,14 +416,14 @@ class ColorbarHandler:
         *,
         draw_cbar: bool = True,
         draw_minorticks: bool = True,
-        cmap: Optional[Union[Colormap, str]] = None,
+        cmap: ColormapInput = None,
         background_color: Optional[str] = None,
     ):
         self._draw_cbar = draw_cbar
         self._draw_minorticks = draw_minorticks
         self._cmap: Optional[Colormap] = None
-        self.cmap = cmap
-        self._background_color = background_color
+        self._set_cmap(cmap)
+        self._background_color: BackgroundColor = background_color
 
     @property
     def draw_cbar(self) -> bool:
@@ -441,7 +454,13 @@ class ColorbarHandler:
         return self._cmap or mpl.colormaps[ytcfg.get("yt", "default_colormap")]
 
     @cmap.setter
-    def cmap(self, newval) -> None:
+    def cmap(self, newval: ColormapInput) -> None:
+        self._set_cmap(newval)
+
+    def _set_cmap(self, newval: ColormapInput) -> None:
+        # a separate setter function is better supported by type checkers (mypy)
+        # than relying purely on a property setter to narrow type
+        # from ColormapInput to Colormap
         if isinstance(newval, Colormap) or newval is None:
             self._cmap = newval
         elif isinstance(newval, str):
@@ -456,11 +475,11 @@ class ColorbarHandler:
             )
 
     @property
-    def background_color(self) -> Any:
+    def background_color(self) -> BackgroundColor:
         return self._background_color or "white"
 
     @background_color.setter
-    def background_color(self, newval: Any):
+    def background_color(self, newval: BackgroundColor) -> None:
         # not attempting to constrain types here because
         # down the line it really depends on matplotlib.axes.Axes.set_faceolor
         # which is very type-flexibile

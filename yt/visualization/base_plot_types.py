@@ -2,10 +2,11 @@ import sys
 import warnings
 from abc import ABC
 from io import BytesIO
-from typing import TYPE_CHECKING, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Optional, Tuple, TypedDict, Union
 
 import matplotlib
 import numpy as np
+from matplotlib.scale import SymmetricalLogTransform
 from matplotlib.ticker import LogFormatterMathtext
 
 from yt.funcs import (
@@ -28,8 +29,17 @@ else:
     from ._commons import _MPL38_SymmetricalLogLocator as SymmetricalLogLocator
 
 if TYPE_CHECKING:
+    from typing import Literal
+
+    from matplotlib.axes import Axes
     from matplotlib.axis import Axis
     from matplotlib.figure import Figure
+
+    class FormatKwargs(TypedDict):
+        style: Literal["scientific"]
+        scilimits: Tuple[int, int]
+        useMathText: bool
+
 
 BACKEND_SPECS = {
     "GTK": ["backend_gtk", "FigureCanvasGTK", "FigureManagerGTK"],
@@ -96,11 +106,11 @@ class PlotMPL:
     def __init__(
         self,
         fsize,
-        axrect,
+        axrect: Tuple[float, float, float, float],
         *,
         norm_handler: NormHandler,
         figure: Optional["Figure"] = None,
-        axes: Optional["Axis"] = None,
+        axes: Optional["Axes"] = None,
     ):
         """Initialize PlotMPL class"""
         import matplotlib.figure
@@ -116,7 +126,7 @@ class PlotMPL:
         if axes is None:
             self._create_axes(axrect)
         else:
-            axes.cla()
+            axes.clear()
             axes.set_position(axrect)
             self.axes = axes
         self.interactivity = get_interactivity()
@@ -132,7 +142,7 @@ class PlotMPL:
 
         self.norm_handler = norm_handler
 
-    def _create_axes(self, axrect):
+    def _create_axes(self, axrect: Tuple[float, float, float, float]) -> None:
         self.axes = self.figure.add_axes(axrect)
 
     def _get_canvas_classes(self):
@@ -231,8 +241,8 @@ class ImagePlotMPL(PlotMPL, ABC):
         norm_handler: NormHandler,
         colorbar_handler: ColorbarHandler,
         figure: Optional["Figure"] = None,
-        axes: Optional["Axis"] = None,
-        cax: Optional["Axis"] = None,
+        axes: Optional["Axes"] = None,
+        cax: Optional["Axes"] = None,
     ):
         """Initialize ImagePlotMPL class object"""
         self.colorbar_handler = colorbar_handler
@@ -252,7 +262,7 @@ class ImagePlotMPL(PlotMPL, ABC):
         if cax is None:
             self.cax = self.figure.add_axes(caxrect)
         else:
-            cax.cla()
+            cax.clear()
             cax.set_position(caxrect)
             self.cax = cax
 
@@ -316,13 +326,18 @@ class ImagePlotMPL(PlotMPL, ABC):
         self._set_axes()
 
     def _set_axes(self) -> None:
-        fmt_kwargs = {"style": "scientific", "scilimits": (-2, 3), "useMathText": True}
+        fmt_kwargs: "FormatKwargs" = {
+            "style": "scientific",
+            "scilimits": (-2, 3),
+            "useMathText": True,
+        }
         self.image.axes.ticklabel_format(**fmt_kwargs)
         self.image.axes.set_facecolor(self.colorbar_handler.background_color)
 
         self.cax.tick_params(which="both", direction="in")
         self.cb = self.figure.colorbar(self.image, self.cax)
 
+        cb_axis: "Axis"
         if self.cb.orientation == "vertical":
             cb_axis = self.cb.ax.yaxis
         else:
@@ -331,6 +346,8 @@ class ImagePlotMPL(PlotMPL, ABC):
         cb_scale = cb_axis.get_scale()
         if cb_scale == "symlog":
             trf = cb_axis.get_transform()
+            if not isinstance(trf, SymmetricalLogTransform):
+                raise RuntimeError
             cb_axis.set_major_locator(SymmetricalLogLocator(trf))
             cb_axis.set_major_formatter(
                 LogFormatterMathtext(linthresh=trf.linthresh, base=trf.base)
@@ -343,8 +360,10 @@ class ImagePlotMPL(PlotMPL, ABC):
             # no minor ticks are drawn by default in symlog, as of matplotlib 3.7.1
             # see https://github.com/matplotlib/matplotlib/issues/25994
             trf = cb_axis.get_transform()
+            if not isinstance(trf, SymmetricalLogTransform):
+                raise RuntimeError
             if float(trf.base).is_integer():
-                locator = SymmetricalLogLocator(trf, subs=np.arange(1, trf.base))
+                locator = SymmetricalLogLocator(trf, subs=list(range(1, int(trf.base))))
                 cb_axis.set_minor_locator(locator)
         elif self.colorbar_handler.draw_minorticks:
             self.cb.minorticks_on()
