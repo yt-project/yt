@@ -328,7 +328,7 @@ def parallel_blocking_call(func):
 
 def parallel_root_only_then_broadcast(func):
     """
-    This decorator blocks and calls the funciton on the root processor and then
+    This decorator blocks and calls the function on the root processor and then
     broadcasts the results to the other processors.
     """
 
@@ -337,12 +337,12 @@ def parallel_root_only_then_broadcast(func):
         if not parallel_capable:
             return func(*args, **kwargs)
         comm = _get_comm(args)
-        rv0 = None
         if comm.rank == 0:
             try:
                 rv0 = func(*args, **kwargs)
             except Exception:
                 traceback.print_last()
+                rv0 = None
         rv = comm.mpi_bcast(rv0)
         if not rv:
             raise RuntimeError

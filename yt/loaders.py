@@ -1650,7 +1650,7 @@ def load_sample(
     - Corresponding sample data live at https://yt-project.org/data
 
     """
-    loadable_path = _get_sample_data(fn=fn, progressbar=progressbar, timeout=timeout)
+    loadable_path = _get_sample_data(fn, progressbar=progressbar, timeout=timeout)
     return load(loadable_path, **kwargs)
 
 
