@@ -40,12 +40,12 @@ ctypedef np.int64_t (*intersect_func_type)(const void* primitives,
 # pointer to function that computes primitive centroids
 ctypedef void (*centroid_func_type)(const void *primitives,
                                     const np.int64_t item,
-                                    np.float64_t[3] centroid) nogil
+                                    np.float64_t[3] centroid) noexcept nogil
 
 # pointer to function that computes primitive bounding boxes
 ctypedef void (*bbox_func_type)(const void *primitives,
                                 const np.int64_t item,
-                                BBox* bbox) nogil
+                                BBox* bbox) noexcept nogil
 
 
 cdef class BVH:
@@ -82,4 +82,4 @@ cdef class BVH:
                              np.int64_t begin, np.int64_t end) noexcept nogil
     cdef void _recursive_intersect(self, Ray* ray, BVHNode* node) noexcept nogil
     cdef BVHNode* _recursive_build(self, np.int64_t begin, np.int64_t end) noexcept nogil
-    cdef void _recursive_free(self, BVHNode* node) nogil
+    cdef void _recursive_free(self, BVHNode* node) noexcept nogil
