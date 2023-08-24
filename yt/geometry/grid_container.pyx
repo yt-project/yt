@@ -72,6 +72,10 @@ cdef class GridTree:
         except TypeError:
             # Not iterable
             self.refine_by[0] = self.refine_by[1] = self.refine_by[2] = refine_by
+        if self.refine_by[1] == 0:
+            self.refine_by[1] = self.refine_by[0]
+        if self.refine_by[2] == 0:
+            self.refine_by[2] = self.refine_by[1]
 
         child_ptr = np.zeros(num_grids, dtype='int')
 
