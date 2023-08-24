@@ -117,7 +117,7 @@ cdef inline np.float64_t sph_kernel_dummy(np.float64_t x) noexcept nogil:
 # So in order to mimic a registry functionality,
 # I manually created a function to lookup the kernel functions.
 ctypedef np.float64_t (*kernel_func) (np.float64_t) noexcept nogil
-cdef inline kernel_func get_kernel_func(str kernel_name) nogil:
+cdef inline kernel_func get_kernel_func(str kernel_name) noexcept nogil:
     with gil:
         if kernel_name == 'cubic':
             return sph_kernel_cubic

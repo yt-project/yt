@@ -38,7 +38,7 @@ from .volume_container cimport VolumeContainer
 
 
 cdef extern from "platform_dep.h":
-    long int lrint(double x) nogil
+    long int lrint(double x) noexcept nogil
 
 cdef extern from "limits.h":
     cdef int SHRT_MAX

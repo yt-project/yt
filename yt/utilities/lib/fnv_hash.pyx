@@ -15,7 +15,7 @@ cimport numpy as np
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef np.int64_t c_fnv_hash(unsigned char[:] octets) nogil:
+cdef np.int64_t c_fnv_hash(unsigned char[:] octets) noexcept nogil:
     # https://bitbucket.org/yt_analysis/yt/issues/1052/field-access-tests-fail-under-python3
     # FNV hash cf. http://www.isthe.com/chongo/tech/comp/fnv/index.html
     cdef np.int64_t hash_val = 2166136261
