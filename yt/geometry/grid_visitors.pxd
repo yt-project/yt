@@ -54,12 +54,12 @@ cdef struct GridVisitorData:
                       # It is the number of cells a child grid has per dimension
                       # in a cell of this grid.
 
-cdef void free_tuples(GridVisitorData *data) nogil
-cdef void setup_tuples(GridVisitorData *data) nogil
-cdef np.uint8_t check_child_masked(GridVisitorData *data) nogil
+cdef void free_tuples(GridVisitorData *data) noexcept nogil
+cdef void setup_tuples(GridVisitorData *data) noexcept nogil
+cdef np.uint8_t check_child_masked(GridVisitorData *data) noexcept nogil
 
 ctypedef void grid_visitor_function(GridVisitorData *data,
-                                         np.uint8_t selected) nogil
+                                         np.uint8_t selected) noexcept nogil
 # This is similar in spirit to the way oct visitor functions work.  However,
 # there are a few important differences.  Because the grid objects are expected
 # to be bigger, we don't need to pass them along -- we will not be recursively
