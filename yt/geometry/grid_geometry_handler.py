@@ -297,6 +297,8 @@ class GridIndex(Index, abc.ABC):
     @cached_property
     def grid_tree(self):
         # For order-of-import, we import this here
+        if self.ds.dimensionality < 3:
+            return None
         from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 
         left_edge = self.ds.arr(np.zeros((self.num_grids, 3)), "code_length")
