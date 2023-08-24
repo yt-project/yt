@@ -41,7 +41,8 @@ cdef class GridTree:
                           GridVisitorData *data,
                           grid_visitor_function *func,
                           SelectorObject selector,
-                          GridTreeNode *grid) noexcept nogil
+                          GridTreeNode *grid,
+                          GridTreeNode *parent) noexcept nogil
 
 cdef class MatchPointsToGrids:
 

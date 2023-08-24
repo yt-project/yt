@@ -72,10 +72,6 @@ cdef class GridTree:
         except TypeError:
             # Not iterable
             self.refine_by[0] = self.refine_by[1] = self.refine_by[2] = refine_by
-        if self.refine_by[1] == 0:
-            self.refine_by[1] = self.refine_by[0]
-        if self.refine_by[2] == 0:
-            self.refine_by[2] = self.refine_by[1]
 
         child_ptr = np.zeros(num_grids, dtype='int')
 
@@ -181,13 +177,14 @@ cdef class GridTree:
         cdef GridTreeNode *grid
         for i in range(self.num_root_grids):
             grid = &self.root_grids[i]
-            self.recursively_visit_grid(data, func, selector, grid)
+            self.recursively_visit_grid(data, func, selector, grid, NULL)
         grid_visitors.free_tuples(data)
 
     cdef void recursively_visit_grid(self, GridVisitorData *data,
                                      grid_visitor_function *func,
                                      SelectorObject selector,
-                                     GridTreeNode *grid) noexcept nogil:
+                                     GridTreeNode *grid,
+                                     GridTreeNode *parent) noexcept nogil:
         # Visit this grid and all of its child grids, with a given grid visitor
         # function.  We early terminate if we are not selected by the selector.
         cdef int i
@@ -198,7 +195,7 @@ cdef class GridTree:
         grid_visitors.setup_tuples(data)
         selector.visit_grid_cells(data, func)
         for i in range(grid.num_children):
-            self.recursively_visit_grid(data, func, selector, grid.children[i])
+            self.recursively_visit_grid(data, func, selector, grid.children[i], grid)
 
     def count(self, SelectorObject selector):
         # Use the counting grid visitor
