@@ -1469,8 +1469,10 @@ def _get_sample_data(
 ):
     # this isolates all the filename management and downloading so that it
     # can be restricted to a single process if running in parallel. Returns
-    # the loadable_path, which must then be distributed to all the processes
-    # if running in parallel.
+    # the loadable_path as well as the kwargs dictionary, which is modified
+    # by this function (note that the kwargs are returned explicitly rather than
+    # relying on in-place modification so that the updated kwargs can be
+    # broadcast to other processes during parallel execution).
     import tarfile
 
     if fn is None:
@@ -1534,7 +1536,6 @@ def _get_sample_data(
         )
 
     kwargs = {**specs["load_kwargs"], **kwargs}
-
     save_dir = _get_test_data_dir_path()
 
     data_path = save_dir.joinpath(fn)
@@ -1546,7 +1547,7 @@ def _get_sample_data(
         mylog.info("Sample dataset found in '%s'", data_path)
         if timeout is not None:
             mylog.info("Ignoring the `timeout` keyword argument received.")
-        return data_path
+        return data_path, kwargs
 
     mylog.info("'%s' is not available locally. Looking up online.", fn)
 
@@ -1601,7 +1602,7 @@ def _get_sample_data(
         # cache dir isn't empty
         pass
 
-    return loadable_path
+    return loadable_path, kwargs
 
 
 def load_sample(
@@ -1650,7 +1651,9 @@ def load_sample(
     - Corresponding sample data live at https://yt-project.org/data
 
     """
-    loadable_path = _get_sample_data(fn, progressbar=progressbar, timeout=timeout)
+    loadable_path, kwargs = _get_sample_data(
+        fn, progressbar=progressbar, timeout=timeout, **kwargs
+    )
     return load(loadable_path, **kwargs)
 
 

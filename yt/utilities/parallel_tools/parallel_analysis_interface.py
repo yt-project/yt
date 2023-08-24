@@ -337,16 +337,15 @@ def parallel_root_only_then_broadcast(func):
         if not parallel_capable:
             return func(*args, **kwargs)
         comm = _get_comm(args)
+        rv0 = None
         if comm.rank == 0:
             try:
                 rv0 = func(*args, **kwargs)
             except Exception:
                 traceback.print_last()
-                rv0 = None
         rv = comm.mpi_bcast(rv0)
         if not rv:
             raise RuntimeError
-        rv = comm.mpi_bcast(rv0)
         return rv
 
     return root_only
