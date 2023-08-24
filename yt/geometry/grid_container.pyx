@@ -67,15 +67,11 @@ cdef class GridTree:
         # This doesn't happen all that often, but it is kind of annoying that
         # we don't have uniform "refine_by-as-a-list" behavior.
         try:
-            for i, rf in enumerate(refine_by):
+            for i, rf in enumerate(np.squeeze(refine_by)):
                 self.refine_by[i] = rf
         except TypeError:
             # Not iterable
             self.refine_by[0] = self.refine_by[1] = self.refine_by[2] = refine_by
-        if self.refine_by[1] == 0:
-            self.refine_by[1] = self.refine_by[0]
-        if self.refine_by[2] == 0:
-            self.refine_by[2] = self.refine_by[1]
 
         child_ptr = np.zeros(num_grids, dtype='int')
 
