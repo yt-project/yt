@@ -1535,7 +1535,7 @@ def _get_sample_data(
             "Please report this to https://github.com/yt-project/yt/issues/new"
         )
 
-    kwargs = {**specs["load_kwargs"], **kwargs}
+    load_kwargs = {**specs["load_kwargs"], **kwargs}
     save_dir = _get_test_data_dir_path()
 
     data_path = save_dir.joinpath(fn)
@@ -1547,7 +1547,7 @@ def _get_sample_data(
         mylog.info("Sample dataset found in '%s'", data_path)
         if timeout is not None:
             mylog.info("Ignoring the `timeout` keyword argument received.")
-        return data_path, kwargs
+        return data_path, load_kwargs
 
     mylog.info("'%s' is not available locally. Looking up online.", fn)
 
@@ -1602,7 +1602,7 @@ def _get_sample_data(
         # cache dir isn't empty
         pass
 
-    return loadable_path, kwargs
+    return loadable_path, load_kwargs
 
 
 def load_sample(
@@ -1651,10 +1651,10 @@ def load_sample(
     - Corresponding sample data live at https://yt-project.org/data
 
     """
-    loadable_path, kwargs = _get_sample_data(
+    loadable_path, load_kwargs = _get_sample_data(
         fn, progressbar=progressbar, timeout=timeout, **kwargs
     )
-    return load(loadable_path, **kwargs)
+    return load(loadable_path, **load_kwargs)
 
 
 def _mount_helper(
