@@ -115,14 +115,14 @@ class IOHandlerGAMER(BaseIOHandler):
             for ftype, fname in fields:
                 buf = self._get_grid_field(fname)[g.id : g.id + 8, ...]
                 data[0:ps1, 0:ps1, 0:ps1] = buf[0, :, :, :]
-                data[ps1:ps2, 0:ps1, 0:ps1] = buf[1, :, :, :]
+                data[0:ps1, 0:ps1, ps1:ps2] = buf[1, :, :, :]
                 data[0:ps1, ps1:ps2, 0:ps1] = buf[2, :, :, :]
-                data[0:ps1, 0:ps1, ps1:ps2] = buf[3, :, :, :]
-                data[ps1:ps2, ps1:ps2, 0:ps1] = buf[4, :, :, :]
-                data[0:ps1, ps1:ps2, ps1:ps2] = buf[5, :, :, :]
+                data[ps1:ps2, 0:ps1, 0:ps1] = buf[3, :, :, :]
+                data[0:ps1, ps1:ps2, ps1:ps2] = buf[4, :, :, :]
+                data[ps1:ps2, ps1:ps2, 0:ps1] = buf[5, :, :, :]
                 data[ps1:ps2, 0:ps1, ps1:ps2] = buf[6, :, :, :]
                 data[ps1:ps2, ps1:ps2, ps1:ps2] = buf[7, :, :, :]
-                rv[(ftype, fname)] = data.copy()
+                rv[(ftype, fname)] = data.transpose()
             return rv
 
         for field in fields:
@@ -148,14 +148,14 @@ class IOHandlerGAMER(BaseIOHandler):
                     for i, g in enumerate(gs):
                         pid0 = i * self.pgroup
                         data[0:ps1, 0:ps1, 0:ps1] = buf[pid0 + 0, :, :, :]
-                        data[ps1:ps2, 0:ps1, 0:ps1] = buf[pid0 + 1, :, :, :]
+                        data[0:ps1, 0:ps1, ps1:ps2] = buf[pid0 + 1, :, :, :]
                         data[0:ps1, ps1:ps2, 0:ps1] = buf[pid0 + 2, :, :, :]
-                        data[0:ps1, 0:ps1, ps1:ps2] = buf[pid0 + 3, :, :, :]
-                        data[ps1:ps2, ps1:ps2, 0:ps1] = buf[pid0 + 4, :, :, :]
-                        data[0:ps1, ps1:ps2, ps1:ps2] = buf[pid0 + 5, :, :, :]
+                        data[ps1:ps2, 0:ps1, 0:ps1] = buf[pid0 + 3, :, :, :]
+                        data[0:ps1, ps1:ps2, ps1:ps2] = buf[pid0 + 4, :, :, :]
+                        data[ps1:ps2, ps1:ps2, 0:ps1] = buf[pid0 + 5, :, :, :]
                         data[ps1:ps2, 0:ps1, ps1:ps2] = buf[pid0 + 6, :, :, :]
                         data[ps1:ps2, ps1:ps2, ps1:ps2] = buf[pid0 + 7, :, :, :]
-                        offset += g.select(selector, data, rv[field], offset)
+                        offset += g.select(selector, data.T, rv[field], offset)
 
         return rv
 
