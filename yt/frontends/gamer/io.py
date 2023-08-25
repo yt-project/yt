@@ -133,7 +133,7 @@ class IOHandlerGAMER(BaseIOHandler):
                         data[ps1:ps2, ps1:ps2, 0:ps1] = buf[pid0 + 5, :, :, :]
                         data[ps1:ps2, 0:ps1, ps1:ps2] = buf[pid0 + 6, :, :, :]
                         data[ps1:ps2, ps1:ps2, ps1:ps2] = buf[pid0 + 7, :, :, :]
-                        offset += g.select(selector, data, rv[field], offset)
+                        offset += g.select(selector, data.T, rv[field], offset)
 
         return rv
 
