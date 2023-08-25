@@ -242,7 +242,11 @@ class GDFDataset(Dataset):
             ]
         else:
             self.data_software = "unknown"
-        sp = self._handle["/simulation_parameters"].attrs
+        # We have to turn everything that *is* a scalar into a scalar.
+        sp = dict(self._handle["/simulation_parameters"].attrs)
+        for k, v in sp.items():
+            if getattr(v, "size", None) == 1:
+                sp[k] = v.item(0)
         if self.geometry is None:
             geometry = just_one(sp.get("geometry", 0))
             try:
