@@ -189,6 +189,7 @@ cdef class GridTree:
         # function.  We early terminate if we are not selected by the selector.
         cdef int i
         data.grid = grid
+        data.parent = parent
         if selector.select_bbox(grid.left_edge, grid.right_edge) == 0:
             # Note that this does not increment the global_index.
             return
