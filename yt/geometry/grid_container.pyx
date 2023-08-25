@@ -168,33 +168,43 @@ cdef class GridTree:
 
     cdef void visit_grids(self, GridVisitorData *data,
                           grid_visitor_function *func,
-                          SelectorObject selector) noexcept nogil:
+                          SelectorObject selector):
         # This iterates over all root grids, given a selector+data, and then
         # visits each one and its children.
         cdef int i
-        # Because of confusion about mapping of children to parents, we are
-        # going to do this the stupid way for now.
+        # An issue that arises every so often is what to do
+        # about children that have multiple parents.  We
+        # address that here by ensuring that each grid is only
+        # visited once.  This is a safer solution than
+        # computing the edges of the parent and passing those
+        # down (recursively) because that requires a lot of
+        # additional math *and* arguments between functions.
+        cdef bitarray visited_mask = bitarray(self.num_grids)
         cdef GridTreeNode *grid
         for i in range(self.num_root_grids):
             grid = &self.root_grids[i]
-            self.recursively_visit_grid(data, func, selector, grid)
+            self.recursively_visit_grid(data, func, selector, grid, visited_mask)
         grid_visitors.free_tuples(data)
 
     cdef void recursively_visit_grid(self, GridVisitorData *data,
                                      grid_visitor_function *func,
                                      SelectorObject selector,
-                                     GridTreeNode *grid) noexcept nogil:
+                                     GridTreeNode *grid,
+                                     bitarray visited_mask) noexcept nogil:
         # Visit this grid and all of its child grids, with a given grid visitor
         # function.  We early terminate if we are not selected by the selector.
         cdef int i
         data.grid = grid
+        if visited_mask._query_value(grid.index):
+            return
         if selector.select_bbox(grid.left_edge, grid.right_edge) == 0:
             # Note that this does not increment the global_index.
             return
         grid_visitors.setup_tuples(data)
         selector.visit_grid_cells(data, func)
         for i in range(grid.num_children):
-            self.recursively_visit_grid(data, func, selector, grid.children[i])
+            self.recursively_visit_grid(data, func, selector, grid.children[i], visited_mask)
+        visited_mask._set_value(grid.index, 1)
 
     def count(self, SelectorObject selector):
         # Use the counting grid visitor

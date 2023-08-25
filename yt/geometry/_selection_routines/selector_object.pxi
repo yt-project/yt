@@ -516,8 +516,8 @@ cdef class SelectorObject:
         cdef np.float64_t left_edge[3]
         cdef np.float64_t right_edge[3]
         cdef np.float64_t dds[3]
-        cdef int dim[3]
         cdef int this_level = 0, level, i
+        cdef np.int64_t si[3], ei[3]
         cdef np.float64_t pos[3]
         level = data.grid.level
         if level < self.min_level or level > self.max_level:
@@ -529,17 +529,18 @@ cdef class SelectorObject:
             left_edge[i] = data.grid.left_edge[i]
             right_edge[i] = data.grid.right_edge[i]
             dds[i] = (right_edge[i] - left_edge[i])/data.grid.dims[i]
-            dim[i] = data.grid.dims[i]
+            si[i] = 0
+            ei[i] = data.grid.dims[i]
         with nogil:
-            pos[0] = left_edge[0] + dds[0] * 0.5
-            data.pos[0] = 0
-            for i in range(dim[0]):
-                pos[1] = left_edge[1] + dds[1] * 0.5
-                data.pos[1] = 0
-                for j in range(dim[1]):
-                    pos[2] = left_edge[2] + dds[2] * 0.5
-                    data.pos[2] = 0
-                    for k in range(dim[2]):
+            pos[0] = left_edge[0] + dds[0] * (si[0] + 0.5)
+            data.pos[0] = si[0]
+            for i in range(si[0], ei[0]):
+                pos[1] = left_edge[1] + dds[1] * (si[1] + 0.5)
+                data.pos[1] = si[1]
+                for j in range(si[1], ei[1]):
+                    pos[2] = left_edge[2] + dds[2] * (si[2] + 0.5)
+                    data.pos[2] = si[2]
+                    for k in range(si[2], ei[2]):
                         # We short-circuit if we have a cache; if we don't, we
                         # only set selected to true if it's *not* masked by a
                         # child and it *is* selected.

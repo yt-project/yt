@@ -36,12 +36,13 @@ cdef class GridTree:
     cdef void setup_data(self, GridVisitorData *data) noexcept nogil
     cdef void visit_grids(self, GridVisitorData *data,
                           grid_visitor_function *func,
-                          SelectorObject selector) noexcept nogil
+                          SelectorObject selector)
     cdef void recursively_visit_grid(self,
                           GridVisitorData *data,
                           grid_visitor_function *func,
                           SelectorObject selector,
-                          GridTreeNode *grid) noexcept nogil
+                          GridTreeNode *grid,
+                          bitarray visited_mask) noexcept nogil
 
 cdef class MatchPointsToGrids:
 
