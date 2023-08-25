@@ -44,7 +44,6 @@ cdef struct GridTreeNodePadded:
 
 cdef struct GridVisitorData:
     GridTreeNode *grid
-    GridTreeNode *parent
     np.uint64_t index
     np.uint64_t global_index
     np.int64_t pos[3]       # position in ints

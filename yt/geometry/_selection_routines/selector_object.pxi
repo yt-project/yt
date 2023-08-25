@@ -517,7 +517,7 @@ cdef class SelectorObject:
         cdef np.float64_t right_edge[3]
         cdef np.float64_t dds[3]
         cdef int this_level = 0, level, i
-        cdef np.uint64_t si[3], ei[3]
+        cdef np.int64_t si[3], ei[3]
         cdef np.float64_t pos[3]
         level = data.grid.level
         if level < self.min_level or level > self.max_level:
@@ -531,12 +531,6 @@ cdef class SelectorObject:
             dds[i] = (right_edge[i] - left_edge[i])/data.grid.dims[i]
             si[i] = 0
             ei[i] = data.grid.dims[i]
-        if data.parent != NULL:
-            # We apply a clip here to make sure we're within the parent grid
-            for i in range(3):
-                si[i] = <np.int64_t> (fmax(data.parent.left_edge[i], data.grid.left_edge[i])/dds[i])
-                ei[i] = <np.int64_t> (fmin(data.parent.right_edge[i], data.grid.right_edge[i])/dds[i])
-
         with nogil:
             pos[0] = left_edge[0] + dds[0] * (si[0] + 0.5)
             data.pos[0] = si[0]
