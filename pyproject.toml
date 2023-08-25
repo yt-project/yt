@@ -15,7 +15,7 @@ requires = [
 
 [project]
 name = "yt"
-version = "4.2.1"
+version = "4.2.2"
 description = "An analysis and visualization toolkit for volumetric data"
 authors = [
     { name = "The yt project", email = "yt-dev@python.org" },
