@@ -247,17 +247,29 @@ Clump Finder Callback
 Overplot Contours
 ~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_contour(self, field, levels=5, factor=4, take_log=False,\
-                               clim=None, plot_args=None, label=False, \
-                               text_args=None, data_source=None)
+.. function:: annotate_contour(self, field, levels=5, *, factor=4, take_log=False, \
+                               clim=None, take_log=None, \
+                               data_source=None, label=False, \
+                               text_args=None, **kwargs)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.ContourCallback`.)
 
-   Add contours in ``field`` to the plot.  ``levels`` governs the number of
-   contours generated, ``factor`` governs the number of points used in the
-   interpolation, ``take_log`` governs how it is contoured and ``clim`` gives
-   the (upper, lower) limits for contouring.
+   Add contours in ``field`` to the plot. ``levels`` governs the number of
+   contours generated.
+   ``factor`` governs the number of points used in the interpolation.
+   ``clim`` gives the (upper, lower) limits for contouring.
+   ``take_log`` governs how it is contoured.
+   An alternative ``data_source`` may be supplied.
+
+   Additional keyword arguments are passed down to
+   `matplotlib.axes.Axes.contour <https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.contour.html#matplotlib.axes.Axes.contour>`_
+   Note that ``negative_linestyles`` is set to ``'solid'`` by default.
+
+   Contours can be labelled by passing ``label=True``, in which case
+   it is also possible to customize text labels by supplying a dictionary
+   of additional keyword arguments as ``text_args``.
+   See `matplotlib.axes.Axes.clabel <https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.clabel.html#matplotlib.axes.Axes.clabel>`_
 
 .. python-script::
 

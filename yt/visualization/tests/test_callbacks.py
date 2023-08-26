@@ -710,7 +710,7 @@ def test_contour_callback():
             factor=8,
             take_log=False,
             clim=(0.4, 0.6),
-            plot_args={"linewidths": 2.0},
+            linewidths=2.0,
             label=True,
             text_args={"fontsize": "x-large"},
         )
@@ -724,7 +724,7 @@ def test_contour_callback():
             factor=8,
             take_log=False,
             clim=(0.4, 0.6),
-            plot_args={"linewidths": 2.0},
+            linewidths=2.0,
             label=True,
             text_args={"fontsize": "x-large"},
             data_source=s2,
@@ -741,7 +741,8 @@ def test_contour_callback():
             take_log=False,
             clim=(1.0e-1, 1.0e1),
             label=True,
-            plot_args={"colors": ("c", "w"), "linewidths": 1},
+            colors=("c", "w"),
+            linewidths=1,
             text_args={"fmt": "%1.1f"},
         )
         assert_fname(slc.save(prefix)[0])
