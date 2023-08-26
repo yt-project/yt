@@ -87,6 +87,8 @@ jobs:
       env:
         dependencies: ${{ matrix.dependencies }}
       run: source ./tests/ci_install.sh
+
+    - run: python -m pip list
     - name: Run Unit Tests (pytest)
       if: matrix.test-runner == 'pytest'
       run: pytest --color=yes
@@ -120,6 +122,8 @@ jobs:
         dependencies: 'cartopy'
       run: |
         source ./tests/ci_install.sh
+
+    - run: python -m pip list
 
     - name: Run Image Tests
       run: |
