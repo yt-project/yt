@@ -29,6 +29,12 @@ from cpython.exc cimport PyErr_CheckSignals
 from cython.operator cimport dereference, preincrement
 
 from yt.geometry cimport oct_visitors
+from yt.utilities.lib.ewah_bool_wrap cimport (
+    BoolArrayCollection,
+    BoolArrayCollectionUncompressed as BoolArrayColl,
+    FileBitmasks,
+    SparseUnorderedRefinedBitmaskSet as SparseUnorderedRefinedBitmask,
+)
 from yt.utilities.lib.fnv_hash cimport c_fnv_hash as fnv_hash
 from yt.utilities.lib.fp_utils cimport *
 from yt.utilities.lib.geometry_utils cimport (
@@ -54,15 +60,8 @@ from .selection_routines cimport AlwaysSelector, SelectorObject
 
 from yt.funcs import get_pbar
 
-from ewah_bool_utils.ewah_bool_wrap cimport BoolArrayCollection
-
 import os
 
-from ewah_bool_utils.ewah_bool_wrap cimport (
-    BoolArrayCollectionUncompressed as BoolArrayColl,
-    FileBitmasks,
-    SparseUnorderedRefinedBitmaskSet as SparseUnorderedRefinedBitmask,
-)
 
 
 _bitmask_version = np.uint64(5)
