@@ -21,7 +21,8 @@ from yt.funcs import is_sequence, mylog, validate_width_tuple
 from yt.geometry.api import Geometry
 from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
 from yt.units import dimensions
-from yt.units.yt_array import YTArray, YTQuantity, uhstack  # type: ignore
+from yt.units._numpy_wrapper_functions import uhstack
+from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import (
     YTDataTypeUnsupported,
     YTFieldNotFound,
