@@ -13,14 +13,14 @@ cimport numpy as np
 
 
 cdef inline void ba_set_value(np.uint8_t *buf, np.uint64_t ind,
-                              np.uint8_t val) nogil:
+                              np.uint8_t val) noexcept nogil:
     # This assumes 8 bit buffer
     if val > 0:
         buf[ind >> 3] |= (1 << (ind & 7))
     else:
         buf[ind >> 3] &= ~(1 << (ind & 7))
 
-cdef inline np.uint8_t ba_get_value(np.uint8_t *buf, np.uint64_t ind) nogil:
+cdef inline np.uint8_t ba_get_value(np.uint8_t *buf, np.uint64_t ind) noexcept nogil:
     cdef np.uint8_t rv = (buf[ind >> 3] & (1 << (ind & 7)))
     if rv == 0: return 0
     return 1

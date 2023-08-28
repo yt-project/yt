@@ -697,7 +697,7 @@ cdef np.int64_t separate(
         double value,
         np.int64_t start,
         np.int64_t end
-    ) nogil:
+    ) noexcept nogil:
     """
     This is a simple utility function which takes a selection of particles and
     re-arranges them such that values below `value` are to the left of split and
@@ -783,7 +783,7 @@ cdef np.int64_t select(
         np.float64_t[::1] right_edge,
         np.int64_t start,
         np.int64_t end
-    ) nogil:
+    ) noexcept nogil:
     """
     Re-arrange the input particles such that those outside the bounds of the
     tree occur after the split index and can thus be ignored for the remainder

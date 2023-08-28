@@ -26,7 +26,7 @@ dx = DW / (2**_ORDER_MAX)
 
 
 def test_add_particles_random():
-    np.random.seed(int(0x4D3D3D3))
+    np.random.seed(0x4D3D3D3)
     pos = np.random.normal(0.5, scale=0.05, size=(NPART, 3)) * (DRE - DLE) + DLE
     # Now convert to integers
     for i in range(3):
@@ -308,7 +308,7 @@ def test_bitmap_save_load():
 
 
 def test_bitmap_select():
-    np.random.seed(int(0x4D3D3D3))
+    np.random.seed(0x4D3D3D3)
     dx = 0.1
     for periodic in [False, True]:
         for nfiles in [2, 15, 31, 32, 33]:
@@ -412,7 +412,7 @@ def cell_centers(order, left_edge, right_edge):
 
 
 def fake_decomp_random(npart, nfiles, ifile, DLE, DRE, buff=0.0):
-    np.random.seed(int(0x4D3D3D3) + ifile)
+    np.random.seed(0x4D3D3D3 + ifile)
     nPF = int(npart / nfiles)
     nR = npart % nfiles
     if ifile == 0:
@@ -424,7 +424,7 @@ def fake_decomp_random(npart, nfiles, ifile, DLE, DRE, buff=0.0):
 
 
 def fake_decomp_sliced(npart, nfiles, ifile, DLE, DRE, buff=0.0):
-    np.random.seed(int(0x4D3D3D3) + ifile)
+    np.random.seed(0x4D3D3D3 + ifile)
     DW = DRE - DLE
     div = DW / nfiles
     nPF = int(npart / nfiles)
@@ -461,7 +461,7 @@ def makeall_decomp_hilbert_gaussian(
 ):
     import pickle
 
-    np.random.seed(int(0x4D3D3D3))
+    np.random.seed(0x4D3D3D3)
     DW = DRE - DLE
     if fname_base is None:
         fname_base = f"hilbert{order}_gaussian_np{npart}_nf{nfiles}_"
@@ -530,7 +530,7 @@ def makeall_decomp_hilbert_gaussian(
 def fake_decomp_hilbert_gaussian(
     npart, nfiles, ifile, DLE, DRE, buff=0.0, order=6, verbose=False, fname=None
 ):
-    np.random.seed(int(0x4D3D3D3))
+    np.random.seed(0x4D3D3D3)
     DW = DRE - DLE
     dim_hilbert = 1 << order
     nH = dim_hilbert**3
@@ -568,7 +568,7 @@ def fake_decomp_hilbert_gaussian(
 def fake_decomp_hilbert_uniform(
     npart, nfiles, ifile, DLE, DRE, buff=0.0, order=6, verbose=False
 ):
-    np.random.seed(int(0x4D3D3D3) + ifile)
+    np.random.seed(0x4D3D3D3 + ifile)
     DW = DRE - DLE
     dim_hilbert = 1 << order
     nH = dim_hilbert**3
@@ -609,7 +609,7 @@ def fake_decomp_hilbert_uniform(
 def fake_decomp_morton(
     npart, nfiles, ifile, DLE, DRE, buff=0.0, order=6, verbose=False
 ):
-    np.random.seed(int(0x4D3D3D3) + ifile)
+    np.random.seed(0x4D3D3D3 + ifile)
     DW = DRE - DLE
     dim_morton = 1 << order
     nH = dim_morton**3
@@ -649,7 +649,7 @@ def fake_decomp_morton(
 
 def fake_decomp_grid(npart, nfiles, ifile, DLE, DRE, buff=0.0, verbose=False):
     # TODO: handle 'remainder' particles
-    np.random.seed(int(0x4D3D3D3) + ifile)
+    np.random.seed(0x4D3D3D3 + ifile)
     DW = DRE - DLE
     nYZ = int(np.sqrt(npart / nfiles))
     div = DW / nYZ

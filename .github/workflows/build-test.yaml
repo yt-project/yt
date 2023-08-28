@@ -117,19 +117,17 @@ jobs:
     - name: Install dependencies and yt
       shell: bash
       env:
-        dependencies: ''
-      # see https://github.com/SciTools/cartopy/issues/2199
-      # for why scipy is pinned here (this is meant a temporary measure)
+        dependencies: 'cartopy'
       run: |
         source ./tests/ci_install.sh
-        python -m pip install cartopy "scipy<1.11"
 
     - name: Run Image Tests
       run: |
         pytest --color=yes --mpl -m mpl_image_compare \
                --mpl-generate-summary=html \
                --mpl-results-path=pytest_mpl_results \
-               --mpl-baseline-path=tests/pytest_mpl_baseline
+               --mpl-baseline-path=tests/pytest_mpl_baseline \
+               -rxXs # show extra info on xfailed, xpassed, and skipped tests
 
     - name: Generate new image baseline
       if: failure()

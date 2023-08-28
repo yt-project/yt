@@ -409,6 +409,20 @@ def create_build_ext(lib_exts, cythonize_aliases):
             self.include_dirs.append(numpy.get_include())
             self.include_dirs.append(ewah_bool_utils.get_include())
 
+            define_macros = [
+                ("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION"),
+            ]
+            if sys.version_info >= (3, 9):
+                # keep in sync with runtime requirements (pyproject.toml)
+                define_macros.append(("NPY_TARGET_VERSION", "NPY_1_18_API_VERSION"))
+            else:
+                pass
+
+            if self.define is None:
+                self.define = define_macros
+            else:
+                self.define.extend(define_macros)
+
         def build_extensions(self):
             self.check_extensions_list(self.extensions)
 

@@ -170,7 +170,7 @@ cdef class BVH:
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void _set_up_patches(self, np.float64_t[:, :] vertices,
-                              np.int64_t[:, :] indices) nogil:
+                              np.int64_t[:, :] indices) noexcept nogil:
         cdef Patch* patch
         cdef np.int64_t i, j, k, ind, idim
         cdef np.int64_t offset, prim_index
@@ -196,7 +196,7 @@ cdef class BVH:
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void _set_up_tet_patches(self, np.float64_t[:, :] vertices,
-                              np.int64_t[:, :] indices) nogil:
+                              np.int64_t[:, :] indices) noexcept nogil:
         cdef TetPatch* tet_patch
         cdef np.int64_t i, j, k, ind, idim
         cdef np.int64_t offset, prim_index
@@ -222,7 +222,7 @@ cdef class BVH:
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void _set_up_triangles(self, np.float64_t[:, :] vertices,
-                                np.int64_t[:, :] indices) nogil:
+                                np.int64_t[:, :] indices) noexcept nogil:
         # fill our array of primitives
         cdef np.int64_t offset, tri_index
         cdef np.int64_t v0, v1, v2
@@ -249,7 +249,7 @@ cdef class BVH:
                               tri_index,
                               &(self.bboxes[tri_index]))
 
-    cdef void _recursive_free(self, BVHNode* node) nogil:
+    cdef void _recursive_free(self, BVHNode* node) noexcept nogil:
         if node.end - node.begin > LEAF_SIZE:
             self._recursive_free(node.left)
             self._recursive_free(node.right)
@@ -272,7 +272,7 @@ cdef class BVH:
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef np.int64_t _partition(self, np.int64_t begin, np.int64_t end,
-                               np.int64_t ax, np.float64_t split) nogil:
+                               np.int64_t ax, np.float64_t split) noexcept nogil:
         # this re-orders the primitive array so that all of the primitives
         # to the left of mid have centroids less than or equal to "split"
         # along the direction "ax". All the primitives to the right of mid
@@ -296,7 +296,7 @@ cdef class BVH:
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void _get_node_bbox(self, BVHNode* node,
-                             np.int64_t begin, np.int64_t end) nogil:
+                             np.int64_t begin, np.int64_t end) noexcept nogil:
         cdef np.int64_t i, j
         cdef BBox box = self.bboxes[begin]
         for i in range(begin+1, end):
@@ -310,7 +310,7 @@ cdef class BVH:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void intersect(self, Ray* ray) nogil:
+    cdef void intersect(self, Ray* ray) noexcept nogil:
         self._recursive_intersect(ray, self.root)
 
         if ray.elem_id < 0:
@@ -338,7 +338,7 @@ cdef class BVH:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void _recursive_intersect(self, Ray* ray, BVHNode* node) nogil:
+    cdef void _recursive_intersect(self, Ray* ray, BVHNode* node) noexcept nogil:
 
         # check for bbox intersection:
         if not ray_bbox_intersect(ray, node.bbox):
@@ -358,7 +358,7 @@ cdef class BVH:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef BVHNode* _recursive_build(self, np.int64_t begin, np.int64_t end) nogil:
+    cdef BVHNode* _recursive_build(self, np.int64_t begin, np.int64_t end) noexcept nogil:
         cdef BVHNode *node = <BVHNode* > malloc(sizeof(BVHNode))
         node.begin = begin
         node.end = end
@@ -405,7 +405,7 @@ cdef void cast_rays(np.float64_t* image,
                     const np.float64_t* origins,
                     const np.float64_t* direction,
                     const int N,
-                    BVH bvh) nogil:
+                    BVH bvh) noexcept nogil:
 
     cdef Ray* ray
     cdef int i, j, k
