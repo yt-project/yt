@@ -1,6 +1,6 @@
 import weakref
 from functools import partial
-from typing import TYPE_CHECKING, Dict, List, Optional
+from typing import TYPE_CHECKING, Optional
 
 import numpy as np
 
@@ -109,14 +109,14 @@ class FixedResolutionBuffer:
         antialias=True,
         periodic=False,
         *,
-        filters: Optional[List["FixedResolutionBufferFilter"]] = None,
+        filters: Optional[list["FixedResolutionBufferFilter"]] = None,
     ):
         self.data_source = data_source
         self.ds = data_source.ds
         self.bounds = bounds
         self.buff_size = (int(buff_size[0]), int(buff_size[1]))
         self.antialias = antialias
-        self.data: Dict[str, np.ndarray] = {}
+        self.data: dict[str, np.ndarray] = {}
         self.axis = data_source.axis
         self.periodic = periodic
         self._data_valid = False
@@ -130,7 +130,7 @@ class FixedResolutionBuffer:
             FixedResolutionBufferFilter,
         )
 
-        self._filters: List[FixedResolutionBufferFilter] = (
+        self._filters: list[FixedResolutionBufferFilter] = (
             filters if filters is not None else []
         )
 

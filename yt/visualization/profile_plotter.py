@@ -1,8 +1,9 @@
 import base64
 import builtins
 import os
+from collections.abc import Iterable
 from functools import wraps
-from typing import Any, Dict, Iterable, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 import matplotlib
 import numpy as np
@@ -270,7 +271,7 @@ class ProfilePlot(BaseLinePlot):
         self,
         name: Optional[str] = None,
         suffix: Optional[str] = None,
-        mpl_kwargs: Optional[Dict[str, Any]] = None,
+        mpl_kwargs: Optional[dict[str, Any]] = None,
     ):
         r"""
         Saves a 1d profile plot.
@@ -291,7 +292,7 @@ class ProfilePlot(BaseLinePlot):
         # Mypy is hardly convinced that we have a `profiles` attribute
         # at this stage, so we're lasily going to deactivate it locally
         unique = set(self.plots.values())
-        iters: Iterable[Tuple[Union[int, FieldKey], PlotMPL]]
+        iters: Iterable[tuple[Union[int, FieldKey], PlotMPL]]
         if len(unique) < len(self.plots):
             iters = enumerate(sorted(unique))
         else:

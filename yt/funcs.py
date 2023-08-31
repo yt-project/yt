@@ -18,7 +18,7 @@ from collections import UserDict
 from copy import deepcopy
 from functools import lru_cache, wraps
 from numbers import Number as numeric_type
-from typing import Any, Callable, Dict, Optional, Type
+from typing import Any, Callable, Optional
 
 import numpy as np
 from more_itertools import always_iterable, collapse, first
@@ -547,10 +547,8 @@ def get_git_version(path):
 
 
 def get_yt_version():
-    if sys.version_info >= (3, 9):
-        import importlib.resources as importlib_resources
-    else:
-        import importlib_resources
+    import importlib.resources as importlib_resources
+
     version = get_git_version(os.path.dirname(importlib_resources.files("yt")))
     if version is None:
         return version
@@ -1002,10 +1000,8 @@ def matplotlib_style_context(style="yt.default", after_reset=False):
     """
     # FUTURE: this function should be deprecated in favour of matplotlib.style.context
     # after support for matplotlib 3.6 and older versions is dropped.
-    if sys.version_info >= (3, 9):
-        import importlib.resources as importlib_resources
-    else:
-        import importlib_resources
+    import importlib.resources as importlib_resources
+
     import matplotlib as mpl
     import matplotlib.style
 
@@ -1350,7 +1346,7 @@ def sglob(pattern):
     return sorted(glob.glob(pattern))
 
 
-def dictWithFactory(factory: Callable[[Any], Any]) -> Type:
+def dictWithFactory(factory: Callable[[Any], Any]) -> type:
     """
     Create a dictionary class with a default factory function.
     Contrary to `collections.defaultdict`, the factory takes
@@ -1454,7 +1450,7 @@ def validate_moment(moment, weight_field):
         )
 
 
-def setdefault_mpl_metadata(save_kwargs: Dict[str, Any], name: str) -> None:
+def setdefault_mpl_metadata(save_kwargs: dict[str, Any], name: str) -> None:
     """
     Set a default Software metadata entry for use with Matplotlib outputs.
     """

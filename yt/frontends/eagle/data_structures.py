@@ -1,5 +1,3 @@
-from typing import Type
-
 import numpy as np
 
 import yt.units
@@ -13,7 +11,7 @@ from .fields import EagleNetworkFieldInfo
 
 class EagleDataset(GadgetHDF5Dataset):
     _particle_mass_name = "Mass"
-    _field_info_class: Type[FieldInfoContainer] = OWLSFieldInfo
+    _field_info_class: type[FieldInfoContainer] = OWLSFieldInfo
     _time_readin_ = "Time"
 
     def _parse_parameter_file(self):

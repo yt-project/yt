@@ -1,7 +1,8 @@
 import contextlib
 import inspect
 import re
-from typing import Iterable, Optional, Union
+from collections.abc import Iterable
+from typing import Optional, Union
 
 from more_itertools import always_iterable
 

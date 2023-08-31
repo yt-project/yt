@@ -1,6 +1,5 @@
 import os
 from functools import cached_property
-from typing import Tuple
 
 import numpy as np
 
@@ -289,7 +288,7 @@ class EnzoEDataset(Dataset):
     _index_class = EnzoEHierarchy
     _field_info_class = EnzoEFieldInfo
     _suffix = ".block_list"
-    particle_types: Tuple[str, ...] = ()
+    particle_types: tuple[str, ...] = ()
     particle_types_raw = None
 
     def __init__(

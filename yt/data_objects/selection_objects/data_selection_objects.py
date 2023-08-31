@@ -4,7 +4,6 @@ import sys
 import uuid
 from collections import defaultdict
 from contextlib import contextmanager
-from typing import Tuple
 
 import numpy as np
 from more_itertools import always_iterable
@@ -1398,7 +1397,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         """
         return self.ds.domain_left_edge, self.ds.domain_right_edge
 
-    def get_bbox(self) -> Tuple[unyt_array, unyt_array]:
+    def get_bbox(self) -> tuple[unyt_array, unyt_array]:
         """
         Return the bounding box for this data container.
         """

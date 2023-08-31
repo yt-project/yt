@@ -1,11 +1,10 @@
 import inspect
 from collections import Counter
-from typing import List, Type
 
 from more_itertools import flatten
 
 
-def find_lowest_subclasses(candidates: List[Type]) -> List[Type]:
+def find_lowest_subclasses(candidates: list[type]) -> list[type]:
     """
     This function takes a list of classes, and returns only the ones that are
     are not super classes of any others in the list. i.e. the ones that are at

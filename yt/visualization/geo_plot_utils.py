@@ -1,7 +1,7 @@
 from types import FunctionType
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Optional
 
-valid_transforms: Dict[str, FunctionType] = {}
+valid_transforms: dict[str, FunctionType] = {}
 
 transform_list = [
     "PlateCarree",
@@ -71,8 +71,8 @@ def get_mpl_transform(mpl_proj) -> Optional[FunctionType]:
     # check to see if mpl_proj is a string or tuple, and construct args and
     # kwargs to pass to cartopy function based on that.
     key: Optional[str] = None
-    args: Tuple = ()
-    kwargs: Dict[str, Any] = {}
+    args: tuple = ()
+    kwargs: dict[str, Any] = {}
     if isinstance(mpl_proj, str):
         key = mpl_proj
         instantiated_func = valid_transforms[key](*args, **kwargs)

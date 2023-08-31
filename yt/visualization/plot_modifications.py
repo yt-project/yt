@@ -5,7 +5,7 @@ import warnings
 from abc import ABC, abstractmethod
 from functools import update_wrapper
 from numbers import Integral, Number
-from typing import Any, Dict, Optional, Tuple, Type, Union
+from typing import Any, Optional, Union
 
 import matplotlib
 import numpy as np
@@ -56,10 +56,10 @@ if sys.version_info >= (3, 11):
 else:
     from typing_extensions import assert_never
 
-callback_registry: Dict[str, Type["PlotCallback"]] = {}
+callback_registry: dict[str, type["PlotCallback"]] = {}
 
 
-def _validate_factor_tuple(factor) -> Tuple[int, int]:
+def _validate_factor_tuple(factor) -> tuple[int, int]:
     if (
         is_sequence(factor)
         and len(factor) == 2
@@ -85,8 +85,8 @@ class PlotCallback(ABC):
     # "figure" this is disregarded.  If "force" is included in the tuple, it
     # will *not* check whether or not the coord_system is in axis or figure,
     # and will only look at the geometries.
-    _supported_geometries: Optional[Tuple[str, ...]] = None
-    _incompatible_plot_types: Tuple[str, ...] = ()
+    _supported_geometries: Optional[tuple[str, ...]] = None
+    _incompatible_plot_types: tuple[str, ...] = ()
 
     def __init_subclass__(cls, *args, **kwargs):
         if inspect.isabstract(cls):
@@ -438,7 +438,7 @@ class VelocityCallback(PlotCallback):
 
     def __init__(
         self,
-        factor: Union[Tuple[int, int], int] = 16,
+        factor: Union[tuple[int, int], int] = 16,
         *,
         scale=None,
         scale_units=None,
@@ -581,7 +581,7 @@ class MagFieldCallback(PlotCallback):
 
     def __init__(
         self,
-        factor: Union[Tuple[int, int], int] = 16,
+        factor: Union[tuple[int, int], int] = 16,
         *,
         scale=None,
         scale_units=None,
@@ -695,7 +695,7 @@ class BaseQuiverCallback(PlotCallback, ABC):
         field_y,
         field_c=None,
         *,
-        factor: Union[Tuple[int, int], int] = 16,
+        factor: Union[tuple[int, int], int] = 16,
         scale=None,
         scale_units=None,
         normalize=False,
@@ -786,7 +786,7 @@ class QuiverCallback(BaseQuiverCallback):
     """
 
     _type_name = "quiver"
-    _supported_geometries: Tuple[str, ...] = (
+    _supported_geometries: tuple[str, ...] = (
         "cartesian",
         "spectral_cube",
         "polar",
@@ -800,7 +800,7 @@ class QuiverCallback(BaseQuiverCallback):
         field_y,
         field_c=None,
         *,
-        factor: Union[Tuple[int, int], int] = 16,
+        factor: Union[tuple[int, int], int] = 16,
         scale=None,
         scale_units=None,
         normalize=False,
@@ -904,13 +904,13 @@ class ContourCallback(PlotCallback):
         field: AnyFieldKey,
         levels: int = 5,
         *,
-        factor: Union[Tuple[int, int], int] = 4,
-        clim: Optional[Tuple[float, float]] = None,
+        factor: Union[tuple[int, int], int] = 4,
+        clim: Optional[tuple[float, float]] = None,
         label: bool = False,
         take_log: Optional[bool] = None,
         data_source: Optional[YTDataContainer] = None,
-        plot_args: Optional[Dict[str, Any]] = None,
-        text_args: Optional[Dict[str, Any]] = None,
+        plot_args: Optional[dict[str, Any]] = None,
+        text_args: Optional[dict[str, Any]] = None,
         ncont: Optional[int] = None,  # deprecated
     ) -> None:
         if ncont is not None:
@@ -1016,7 +1016,7 @@ class ContourCallback(PlotCallback):
         if take_log:
             zi = np.log10(zi)
 
-        clim: Optional[Tuple[float, float]]
+        clim: Optional[tuple[float, float]]
         if take_log and self.clim is not None:
             clim = np.log10(self.clim[0]), np.log10(self.clim[1])
         else:
@@ -1285,7 +1285,7 @@ class StreamlineCallback(PlotCallback):
         linewidth_upscaling: float = 1.0,
         color: Optional[Union[_ColorType, FieldKey]] = None,
         color_threshold: Union[float, unyt_quantity] = float("-inf"),
-        factor: Union[Tuple[int, int], int] = 16,
+        factor: Union[tuple[int, int], int] = 16,
         field_color=None,  # deprecated
         display_threshold=None,  # deprecated
         plot_args=None,  # deprecated
@@ -1480,7 +1480,7 @@ class LinePlotCallback(PlotCallback):
     """
 
     _type_name = "line"
-    _supported_geometries: Tuple[str, ...] = (
+    _supported_geometries: tuple[str, ...] = (
         "cartesian",
         "spectral_cube",
         "polar",
@@ -1493,7 +1493,7 @@ class LinePlotCallback(PlotCallback):
         p2,
         *,
         coord_system="data",
-        plot_args: Optional[Dict[str, Any]] = None,
+        plot_args: Optional[dict[str, Any]] = None,
         **kwargs,
     ):
         self.p1 = p1
@@ -1774,7 +1774,7 @@ class ArrowCallback(PlotCallback):
         head_length=0.01,
         starting_pos=None,
         coord_system="data",
-        plot_args: Optional[Dict[str, Any]] = None,  # deprecated
+        plot_args: Optional[dict[str, Any]] = None,  # deprecated
         **kwargs,
     ):
         self.pos = pos
@@ -2135,7 +2135,7 @@ class TextLabelCallback(PlotCallback):
     """
 
     _type_name = "text"
-    _supported_geometries: Tuple[str, ...] = (
+    _supported_geometries: tuple[str, ...] = (
         "cartesian",
         "spectral_cube",
         "polar",

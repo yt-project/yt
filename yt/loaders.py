@@ -9,7 +9,7 @@ import time
 import types
 import warnings
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union, cast
+from typing import TYPE_CHECKING, Any, Optional, Union, cast
 from urllib.parse import urlsplit
 
 import numpy as np
@@ -173,8 +173,8 @@ def load_simulation(fn, simulation_type, find_outputs=False):
 
 
 def _sanitize_axis_order_args(
-    geometry: Union[str, Tuple[str, AxisOrder]], axis_order: Optional[AxisOrder]
-) -> Tuple[str, Optional[AxisOrder]]:
+    geometry: Union[str, tuple[str, AxisOrder]], axis_order: Optional[AxisOrder]
+) -> tuple[str, Optional[AxisOrder]]:
     # this entire function should be removed at the end of its deprecation cycle
     geometry_str: str
     if isinstance(geometry, tuple):
@@ -322,7 +322,7 @@ def load_uniform_grid(
     if number_of_particles > 0:
         particle_types = set_particle_types(data)
         # Used much further below.
-        pdata: Dict[Union[str, FieldKey], Any] = {
+        pdata: dict[Union[str, FieldKey], Any] = {
             "number_of_particles": number_of_particles
         }
         for key in list(data.keys()):
@@ -667,7 +667,7 @@ def load_amr_grids(
 
 
 def load_particles(
-    data: Dict[AnyFieldKey, np.ndarray],
+    data: dict[AnyFieldKey, np.ndarray],
     length_unit=None,
     bbox=None,
     sim_time=None,
@@ -806,7 +806,7 @@ def load_particles(
     field_units, data, _ = process_data(data)
     sfh = StreamDictFieldHandler()
 
-    pdata: Dict[AnyFieldKey, np.ndarray] = {}
+    pdata: dict[AnyFieldKey, np.ndarray] = {}
     for key in data.keys():
         field: FieldKey
         if not isinstance(key, tuple):
@@ -1534,13 +1534,13 @@ def load_sample(
 
     registry_table = get_data_registry_table()
 
-    known_names: List[str] = registry_table.dropna()["filename"].to_list()
+    known_names: list[str] = registry_table.dropna()["filename"].to_list()
     if topdir not in known_names:
         msg = f"'{topdir}' is not an available dataset."
-        lexical_distances: List[Tuple[str, int]] = [
+        lexical_distances: list[tuple[str, int]] = [
             (name, levenshtein_distance(name, topdir)) for name in known_names
         ]
-        suggestions: List[str] = [name for name, dist in lexical_distances if dist < 4]
+        suggestions: list[str] = [name for name, dist in lexical_distances if dist < 4]
         if len(suggestions) == 1:
             msg += f" Did you mean '{suggestions[0]}' ?"
         elif suggestions:
@@ -1640,7 +1640,7 @@ def load_sample(
 
 
 def _mount_helper(
-    archive: str, mountPoint: str, ratarmount_kwa: Dict, conn: "Connection"
+    archive: str, mountPoint: str, ratarmount_kwa: dict, conn: "Connection"
 ):
     try:
         fuseOperationsObject = ratarmount.TarMount(
@@ -1667,7 +1667,7 @@ def _mount_helper(
 def load_archive(
     fn: Union[str, Path],
     path: str,
-    ratarmount_kwa: Optional[Dict] = None,
+    ratarmount_kwa: Optional[dict] = None,
     mount_timeout: float = 1.0,
     *args,
     **kwargs,
@@ -1771,7 +1771,7 @@ def load_archive(
 def load_hdf5_file(
     fn: Union[str, "os.PathLike[str]"],
     root_node: Optional[str] = "/",
-    fields: Optional[List[str]] = None,
+    fields: Optional[list[str]] = None,
     bbox: Optional[np.ndarray] = None,
     nchunks: int = 0,
     dataset_arguments: Optional[dict] = None,

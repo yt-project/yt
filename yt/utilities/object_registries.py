@@ -3,19 +3,18 @@
 
 # type hints are simplified as raw Type (instead of, e.g., Type[Dataset])
 # to workaround circular imports
-from typing import Dict, Type
 
 # subclasses of yt.data_objects.analyzer_objects.AnalysisTask
-analysis_task_registry: Dict[str, Type] = {}
+analysis_task_registry: dict[str, type] = {}
 
 # subclasses of yt.data_objects.data_containers.YTDataContainer
-data_object_registry: Dict[str, Type] = {}
+data_object_registry: dict[str, type] = {}
 
 # suclasses of yt.data_objects.derived_quantity.DerivedQuantity
-derived_quantity_registry: Dict[str, Type] = {}
+derived_quantity_registry: dict[str, type] = {}
 
 # suclasses of yt.data_objects.static_outputs.Dataset
-output_type_registry: Dict[str, Type] = {}
+output_type_registry: dict[str, type] = {}
 
 # subclasses of yt.data_objects.time_series.DatasetSeries
-simulation_time_series_registry: Dict[str, Type] = {}
+simulation_time_series_registry: dict[str, type] = {}

@@ -1,6 +1,5 @@
 # We don't need to import 'exceptions'
 import os.path
-from typing import List
 
 from unyt.exceptions import UnitOperationError
 
@@ -79,7 +78,7 @@ class YTFieldNotFound(YTException):
         self.field = field
         self.ds = ds
 
-    def _get_suggestions(self) -> List[FieldKey]:
+    def _get_suggestions(self) -> list[FieldKey]:
         from yt.funcs import levenshtein_distance
 
         field = self.field

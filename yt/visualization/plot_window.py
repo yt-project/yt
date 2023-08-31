@@ -1,7 +1,7 @@
 import abc
 from collections import defaultdict
 from numbers import Number
-from typing import List, Optional, Type, Union
+from typing import Optional, Union
 
 import matplotlib
 import numpy as np
@@ -852,7 +852,7 @@ class PWViewerMPL(PlotWindow):
     """Viewer using matplotlib as a backend via the WindowPlotMPL."""
 
     _current_field = None
-    _frb_generator: Optional[Type[FixedResolutionBuffer]] = None
+    _frb_generator: Optional[type[FixedResolutionBuffer]] = None
     _plot_type: Optional[str] = None
 
     def __init__(self, *args, **kwargs) -> None:
@@ -870,7 +870,7 @@ class PWViewerMPL(PlotWindow):
         # that it happens no later than instantiation
         from yt.visualization.plot_modifications import PlotCallback
 
-        self._callbacks: List[PlotCallback] = []
+        self._callbacks: list[PlotCallback] = []
 
     @property
     def _data_valid(self) -> bool:
@@ -2251,7 +2251,7 @@ class OffAxisSlicePlot(SlicePlot, PWViewerMPL):
 
 class OffAxisProjectionDummyDataSource:
     _type_name = "proj"
-    _key_fields: List[str] = []
+    _key_fields: list[str] = []
 
     def __init__(
         self,

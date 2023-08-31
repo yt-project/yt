@@ -1,7 +1,7 @@
 import sys
 import weakref
 from numbers import Real
-from typing import Any, Dict, List, Literal, Optional, Tuple, Type, Union
+from typing import Any, Literal, Optional, Union
 
 import matplotlib as mpl
 import numpy as np
@@ -47,7 +47,7 @@ class NormHandler:
         "_norm",
         "prefer_log",
     )
-    _constraint_attrs: List[str] = [
+    _constraint_attrs: list[str] = [
         "vmin",
         "vmax",
         "dynamic_range",
@@ -63,7 +63,7 @@ class NormHandler:
         vmin: Optional[un.unyt_quantity] = None,
         vmax: Optional[un.unyt_quantity] = None,
         dynamic_range: Optional[float] = None,
-        norm_type: Optional[Type[Normalize]] = None,
+        norm_type: Optional[type[Normalize]] = None,
         norm: Optional[Normalize] = None,
         linthresh: Optional[float] = None,
     ):
@@ -85,7 +85,7 @@ class NormHandler:
                 "A norm cannot be passed along other constraints."
             )
 
-    def _get_constraints(self) -> Dict[str, Any]:
+    def _get_constraints(self) -> dict[str, Any]:
         return {
             attr: getattr(self, attr)
             for attr in self.__class__._constraint_attrs
@@ -205,7 +205,7 @@ class NormHandler:
 
     def get_dynamic_range(
         self, dvmin: Optional[float], dvmax: Optional[float]
-    ) -> Tuple[float, float]:
+    ) -> tuple[float, float]:
         if self.dynamic_range is None:
             raise RuntimeError(
                 "Something went terribly wrong in setting up a dynamic range"
@@ -235,11 +235,11 @@ class NormHandler:
             )
 
     @property
-    def norm_type(self) -> Optional[Type[Normalize]]:
+    def norm_type(self) -> Optional[type[Normalize]]:
         return self._norm_type
 
     @norm_type.setter
-    def norm_type(self, newval: Optional[Type[Normalize]]) -> None:
+    def norm_type(self, newval: Optional[type[Normalize]]) -> None:
         if not (
             newval is None
             or (isinstance(newval, type) and issubclass(newval, Normalize))
@@ -314,7 +314,7 @@ class NormHandler:
             dvmax = 1 * getattr(data, "units", 1)
         kw.setdefault("vmax", dvmax)
 
-        norm_type: Type[Normalize]
+        norm_type: type[Normalize]
         if data.ndim == 3:
             assert data.shape[-1] == 4
             # this is an RGBA array, only linear normalization makes sense here
@@ -399,7 +399,7 @@ class NormHandler:
 
 
 BackgroundColor: TypeAlias = Union[
-    Tuple[float, float, float, float],
+    tuple[float, float, float, float],
     # np.ndarray is only runtime-subscribtable since numpy 1.22
     "np.ndarray[Any, Any]",
     str,

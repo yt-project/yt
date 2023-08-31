@@ -2,7 +2,7 @@ import os
 import sys
 import warnings
 from functools import wraps
-from typing import TYPE_CHECKING, Optional, Type, TypeVar
+from typing import TYPE_CHECKING, Optional, TypeVar
 
 import matplotlib as mpl
 from matplotlib.ticker import SymmetricalLogLocator
@@ -25,10 +25,8 @@ _DEFAULT_FONT_PROPERTIES = None
 def get_default_font_properties():
     global _DEFAULT_FONT_PROPERTIES
     if _DEFAULT_FONT_PROPERTIES is None:
-        if sys.version_info >= (3, 9):
-            import importlib.resources as importlib_resources
-        else:
-            import importlib_resources
+        import importlib.resources as importlib_resources
+
         _yt_style = mpl.rc_params_from_file(
             importlib_resources.files("yt") / "default.mplstyle",
             use_default_template=False,
@@ -58,7 +56,7 @@ def _get_supported_canvas_classes():
     )
 
 
-def get_canvas_class(suffix: str) -> Type["FigureCanvasBase"]:
+def get_canvas_class(suffix: str) -> type["FigureCanvasBase"]:
     s = normalize_extension_string(suffix)
     if s not in _get_supported_image_file_formats():
         raise ValueError(f"Unsupported file format '{suffix}'.")

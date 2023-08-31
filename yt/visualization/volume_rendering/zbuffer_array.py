@@ -1,5 +1,3 @@
-from typing import List, Tuple
-
 import numpy as np
 
 
@@ -76,8 +74,8 @@ class ZBuffer:
 
 
 if __name__ == "__main__":
-    shape: Tuple[int, ...] = (64, 64)
-    shapes: List[Tuple[int, ...]] = [(64, 64), (16, 16, 4), (128,), (16, 32)]
+    shape: tuple[int, ...] = (64, 64)
+    shapes: list[tuple[int, ...]] = [(64, 64), (16, 16, 4), (128,), (16, 32)]
     for shape in shapes:
         b1 = ZBuffer(np.random.random(shape), np.ones(shape))
         b2 = ZBuffer(np.random.random(shape), np.zeros(shape))

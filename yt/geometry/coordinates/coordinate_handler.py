@@ -2,7 +2,7 @@ import abc
 import weakref
 from functools import cached_property
 from numbers import Number
-from typing import Optional, Tuple
+from typing import Optional
 
 import numpy as np
 
@@ -36,7 +36,7 @@ def _get_vert_fields(axi, units="code_length"):
     return _vert
 
 
-def _setup_dummy_cartesian_coords_and_widths(registry, axes: Tuple[str]):
+def _setup_dummy_cartesian_coords_and_widths(registry, axes: tuple[str]):
     for ax in axes:
         registry.add_field(
             ("index", f"d{ax}"), sampling_type="cell", function=_unknown_coord
@@ -313,7 +313,7 @@ def cylindrical_to_cartesian(coord, center=(0, 0, 0)):
     return c2
 
 
-def _get_polar_bounds(self: CoordinateHandler, axes: Tuple[str, str]):
+def _get_polar_bounds(self: CoordinateHandler, axes: tuple[str, str]):
     # a small helper function that is needed by two unrelated classes
     ri = self.axis_id[axes[0]]
     pi = self.axis_id[axes[1]]
