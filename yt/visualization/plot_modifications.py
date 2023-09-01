@@ -1054,6 +1054,7 @@ class GridBoundaryCallback(PlotCallback):
         cmap="B-W LINEAR_r",
         edgecolors=None,
         linewidth=1.0,
+        use_max_level_in_cmap=False
     ):
         self.alpha = alpha
         self.min_pix = min_pix
@@ -1073,6 +1074,7 @@ class GridBoundaryCallback(PlotCallback):
         self.linewidth = linewidth
         self.cmap = cmap
         self.edgecolors = edgecolors
+        self.use_max_level_in_cmap = use_max_level_in_cmap
 
     def __call__(self, plot):
         if plot.data.ds.geometry == "cylindrical" and plot.data.ds.dimensionality == 3:
@@ -1135,7 +1137,10 @@ class GridBoundaryCallback(PlotCallback):
                 edgecolors = colorConverter.to_rgba(self.edgecolors, alpha=self.alpha)
             else:  # use colormap if not explicitly overridden by edgecolors
                 if self.cmap is not None:
-                    color_bounds = [0, plot.data.ds.index.max_level]
+                    if self.use_max_level_in_cmap:
+                        color_bounds = [0, max_level]
+                    else:
+                        color_bounds = [0, plot.data.ds.index.max_level]
                     edgecolors = (
                         apply_colormap(
                             levels[visible] * 1.0,
