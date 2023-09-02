@@ -83,16 +83,6 @@ def safe_import(func):
 
 
 class netCDF4_imports(OnDemand):
-    def __init__(self):
-        # this ensures the import ordering between netcdf4 and h5py. If h5py is
-        # imported first, can get file lock errors on some systems (including travis-ci)
-        # so we need to do this before initializing h5py_imports()!
-        # similar to this issue https://github.com/pydata/xarray/issues/2560
-        try:
-            import netCDF4  # noqa F401
-        except ImportError:
-            pass
-
     @safe_import
     def Dataset(self):
         from netCDF4 import Dataset
@@ -299,6 +289,18 @@ _scipy = scipy_imports()
 
 
 class h5py_imports(OnDemand):
+    def __init__(self):
+        # this ensures the import ordering between netcdf4 and h5py. If h5py is
+        # imported first, can get file lock errors on some systems (including travis-ci)
+        # so we need to do this before initializing h5py_imports()!
+        # similar to this issue https://github.com/pydata/xarray/issues/2560
+        if find_spec("h5py") is None or find_spec("netCDF4") is None:
+            return
+        try:
+            import netCDF4  # noqa F401
+        except ImportError:
+            pass
+
     @safe_import
     def File(self):
         from h5py import File
@@ -483,6 +485,12 @@ class pandas_imports(OnDemand):
         from pandas import concat
 
         return concat
+
+    @safe_import
+    def read_csv(self):
+        from pandas import read_csv
+
+        return read_csv
 
 
 _pandas = pandas_imports()
