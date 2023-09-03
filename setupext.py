@@ -414,7 +414,7 @@ def create_build_ext(lib_exts, cythonize_aliases):
             ]
             if sys.version_info >= (3, 9):
                 # keep in sync with runtime requirements (pyproject.toml)
-                define_macros.append(("NPY_TARGET_VERSION", "NPY_1_18_API_VERSION"))
+                define_macros.append(("NPY_TARGET_VERSION", "NPY_1_19_API_VERSION"))
             else:
                 pass
 
