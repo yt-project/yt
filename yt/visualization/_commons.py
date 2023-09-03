@@ -57,7 +57,7 @@ def _get_supported_canvas_classes():
 
 
 def get_canvas_class(suffix: str) -> type["FigureCanvasBase"]:
-    s = normalize_extension_string(suffix)
+    s = suffix.removeprefix(".")
     if s not in _get_supported_image_file_formats():
         raise ValueError(f"Unsupported file format '{suffix}'.")
     for cls in _get_supported_canvas_classes():
@@ -70,15 +70,6 @@ def get_canvas_class(suffix: str) -> type["FigureCanvasBase"]:
     )
 
 
-def normalize_extension_string(s: str) -> str:
-    if sys.version_info < (3, 9):
-        if s.startswith("."):
-            return s[1:]
-        return s
-    else:
-        return s.removeprefix(".")
-
-
 def validate_image_name(filename, suffix: Optional[str] = None) -> str:
     """
     Build a valid image filename with a specified extension (default to png).
@@ -86,10 +77,10 @@ def validate_image_name(filename, suffix: Optional[str] = None) -> str:
     Otherwise, suffix is appended to the filename, replacing any existing extension.
     """
     name, psuffix = os.path.splitext(filename)
-    psuffix = normalize_extension_string(psuffix)
+    psuffix = psuffix.removeprefix(".")
 
     if suffix is not None:
-        suffix = normalize_extension_string(suffix)
+        suffix = suffix.removeprefix(".")
 
     if psuffix in _get_supported_image_file_formats():
         if suffix in _get_supported_image_file_formats() and suffix != psuffix:

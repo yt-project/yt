@@ -17,11 +17,7 @@ import ewah_bool_utils
 from setuptools.command.build_ext import build_ext as _build_ext
 from setuptools.command.sdist import sdist as _sdist
 from setuptools.errors import CompileError, LinkError
-
-if sys.version_info >= (3, 9):
-    import importlib.resources as importlib_resources
-else:
-    import importlib_resources
+import importlib.resources as importlib_resources
 
 log = logging.getLogger("setupext")
 
@@ -205,11 +201,7 @@ def check_CPP14_flags(possible_compile_flags):
     return []
 
 def get_ewah_bool_utils_path():
-    if sys.version_info >= (3, 9):
-        return os.path.abspath(importlib_resources.files("ewah_bool_utils"))
-    else:
-        from pkg_resources import resource_filename
-        return os.path.dirname(os.path.abspath(resource_filename("ewah_bool_utils", "ewah_bool_wrap.pxd")))
+    return os.path.abspath(importlib_resources.files("ewah_bool_utils"))
 
 def check_for_pyembree(std_libs):
     embree_libs = []
@@ -411,12 +403,9 @@ def create_build_ext(lib_exts, cythonize_aliases):
 
             define_macros = [
                 ("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION"),
-            ]
-            if sys.version_info >= (3, 9):
                 # keep in sync with runtime requirements (pyproject.toml)
-                define_macros.append(("NPY_TARGET_VERSION", "NPY_1_19_API_VERSION"))
-            else:
-                pass
+                ("NPY_TARGET_VERSION", "NPY_1_19_API_VERSION"),
+            ]
 
             if self.define is None:
                 self.define = define_macros
