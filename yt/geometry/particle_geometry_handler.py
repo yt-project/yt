@@ -24,9 +24,9 @@ def validate_index_order(index_order):
     else:
         if len(index_order) != 2:
             raise RuntimeError(
-                "Tried to load a dataset with index_order={}, but "
+                f"Tried to load a dataset with index_order={index_order}, but "
                 "index_order\nmust be an integer or a two-element tuple of "
-                "integers.".format(index_order)
+                "integers."
             )
         index_order = tuple(int(o) for o in index_order)
     return index_order

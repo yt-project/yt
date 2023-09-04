@@ -729,10 +729,8 @@ class Dataset(abc.ABC):
                 )
         else:
             raise ValueError(
-                "{} not a recognized format_property. Available "
-                "properties are: {}".format(
-                    format_property, list(available_formats.keys())
-                )
+                f"{format_property} not a recognized format_property. Available "
+                f"properties are: {list(available_formats.keys())}"
             )
 
     def setup_deprecated_fields(self):
