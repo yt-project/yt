@@ -778,7 +778,7 @@ class Dataset(abc.ABC):
             )
             cls = self.geometry  # type: ignore [assignment]
 
-        if type(self.geometry) is str:
+        if type(self.geometry) is str:  # noqa: E721
             issue_deprecation_warning(
                 f"Dataset object {self} has a raw string for its geometry attribute. "
                 "In yt>=4.2, a yt.geometry.geometry_enum.Geometry member is expected instead. "

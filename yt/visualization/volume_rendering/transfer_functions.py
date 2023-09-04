@@ -663,7 +663,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
                 if abs(val) < 1.0e-3 or abs(val) > 1.0e4:
                     if not val == 0.0:
                         e = np.floor(np.log10(abs(val)))
-                        return fr"${val / 10.0**e:.2f}\times 10^{{ {int(e):d} }}$"
+                        return rf"${val / 10.0**e:.2f}\times 10^{{ {int(e):d} }}$"
                     else:
                         return r"$0$"
                 else:

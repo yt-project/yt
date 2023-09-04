@@ -363,7 +363,7 @@ class ProfilePlot(BaseLinePlot):
             img = base64.b64encode(img).decode()
             ret += (
                 r'<img style="max-width:100%;max-height:100%;" '
-                fr'src="data:image/png;base64,{img}"><br>'
+                rf'src="data:image/png;base64,{img}"><br>'
             )
         return ret
 
