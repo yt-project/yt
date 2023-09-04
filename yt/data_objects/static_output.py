@@ -9,15 +9,11 @@ import time
 import warnings
 import weakref
 from collections import defaultdict
+from collections.abc import MutableMapping
 from functools import cached_property
 from importlib.util import find_spec
 from stat import ST_CTIME
-from typing import (
-    Any,
-    Literal,
-    Optional,
-    Union,
-)
+from typing import Any, Literal, Optional, Union
 
 import numpy as np
 import unyt as un
@@ -83,7 +79,6 @@ if sys.version_info >= (3, 11):
 else:
     from typing_extensions import assert_never
 
-from collections.abc import MutableMapping
 
 # We want to support the movie format in the future.
 # When such a thing comes to pass, I'll move all the stuff that is constant up

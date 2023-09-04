@@ -1,4 +1,5 @@
 import abc
+import sys
 from collections import defaultdict
 from numbers import Number
 from typing import Optional, Union
@@ -53,17 +54,15 @@ from .plot_container import (
     invalidate_plot,
 )
 
-import sys  # isort: skip
+if sys.version_info >= (3, 10):
+    pass
+else:
+    from yt._maintenance.backports import zip
 
 if sys.version_info >= (3, 11):
     from typing import assert_never
 else:
     from typing_extensions import assert_never
-
-if sys.version_info >= (3, 10):
-    pass
-else:
-    from yt._maintenance.backports import zip
 
 
 def get_window_parameters(axis, center, width, ds):
