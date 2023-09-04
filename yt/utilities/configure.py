@@ -1,8 +1,8 @@
 import os
 import sys
 import warnings
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 from more_itertools import always_iterable
 

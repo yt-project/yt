@@ -15,10 +15,11 @@ import time
 import traceback
 import urllib
 from collections import UserDict
+from collections.abc import Callable
 from copy import deepcopy
 from functools import lru_cache, wraps
 from numbers import Number as numeric_type
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
 import numpy as np
 from more_itertools import always_iterable, collapse, first
