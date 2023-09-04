@@ -729,10 +729,8 @@ class Dataset(abc.ABC):
                 )
         else:
             raise ValueError(
-                "{} not a recognized format_property. Available "
-                "properties are: {}".format(
-                    format_property, list(available_formats.keys())
-                )
+                f"{format_property} not a recognized format_property. Available "
+                f"properties are: {list(available_formats.keys())}"
             )
 
     def setup_deprecated_fields(self):
@@ -780,7 +778,7 @@ class Dataset(abc.ABC):
             )
             cls = self.geometry  # type: ignore [assignment]
 
-        if type(self.geometry) is str:
+        if type(self.geometry) is str:  # noqa: E721
             issue_deprecation_warning(
                 f"Dataset object {self} has a raw string for its geometry attribute. "
                 "In yt>=4.2, a yt.geometry.geometry_enum.Geometry member is expected instead. "

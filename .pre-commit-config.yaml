@@ -33,13 +33,13 @@ repos:
     - id: black-jupyter
 
 -   repo: https://github.com/adamchainz/blacken-docs
-    rev: 1.15.0
+    rev: 1.16.0
     hooks:
     -   id: blacken-docs
         additional_dependencies: [black==23.1.0]
 
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.0.282
+  rev: v0.0.287
   hooks:
   - id: ruff
     args: [--fix]
