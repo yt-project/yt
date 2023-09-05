@@ -1,5 +1,7 @@
 import glob
 import os
+from functools import cached_property
+from typing import Optional
 
 import numpy as np
 
@@ -15,14 +17,47 @@ from .fields import RockstarFieldInfo
 
 
 class RockstarBinaryFile(HaloCatalogFile):
+    header: dict
+    _position_offset: int
+    _member_offset: int
+    _Npart: np.array
+    _ids_halos: list[int]
+    _file_size: int
+
     def __init__(self, ds, io, filename, file_id, range):
         with open(filename, "rb") as f:
             self.header = fpu.read_cattrs(f, header_dt, "=")
             self._position_offset = f.tell()
+            pcount = self.header["num_halos"]
+
+            halos = np.fromfile(f, dtype=io._halo_dt, count=pcount)
+            self._member_offset = f.tell()
+            self._ids_halos = list(halos["particle_identifier"])
+            self._Npart = halos["num_p"]
+
             f.seek(0, os.SEEK_END)
             self._file_size = f.tell()
 
+        expected_end = self._member_offset + 8 * self._Npart.sum()
+        if expected_end != self._file_size:
+            raise RuntimeError(
+                f"File size {self._file_size} does not match expected size {expected_end}."
+            )
+
         super().__init__(ds, io, filename, file_id, range)
+
+    def _read_member(self, ihalo: int) -> Optional[np.array]:
+        if ihalo not in self._ids_halos:
+            return None
+
+        ind_halo = self._ids_halos.index(ihalo)
+
+        ipos = self._member_offset + 8 * self._Npart[:ind_halo].sum()
+
+        with open(self.filename, "rb") as f:
+            f.seek(ipos, os.SEEK_SET)
+            ids = np.fromfile(f, dtype=np.int64, count=self._Npart[ind_halo])
+            return ids
 
     def _read_particle_positions(self, ptype, f=None):
         """
@@ -48,8 +83,18 @@ class RockstarBinaryFile(HaloCatalogFile):
         return pos
 
 
+class RockstarIndex(ParticleIndex):
+    def get_member(self, ihalo: int):
+        for df in self.data_files:
+            members = df._read_member(ihalo)
+            if members is not None:
+                return members
+
+        raise RuntimeError(f"Could not find halo {ihalo} in any data file.")
+
+
 class RockstarDataset(ParticleDataset):
-    _index_class = ParticleIndex
+    _index_class = RockstarIndex
     _file_class = RockstarBinaryFile
     _field_info_class = RockstarFieldInfo
     _suffix = ".bin"
@@ -122,3 +167,56 @@ class RockstarDataset(ParticleDataset):
             return False
         else:
             return header["magic"] == 18077126535843729616
+
+    def halo(self, halo_id, ptype="DM"):
+        return RockstarHaloContainer(
+            halo_id,
+            ptype,
+            parent_ds=None,
+            halo_ds=self,
+        )
+
+
+class RockstarHaloContainer:
+    def __init__(self, ptype, particle_identifier, parent_ds, halo_ds):
+        # if ptype not in parent_ds.particle_types_raw:
+        #     raise RuntimeError(
+        #         f'Possible halo types are {parent_ds.particle_types_raw}, supplied "{ptype}".'
+        #     )
+
+        self.ds = parent_ds
+        self.halo_ds = halo_ds
+        self.ptype = ptype
+        self.particle_identifier = particle_identifier
+
+    def __repr__(self):
+        return "%s_%s_%09d" % (self.ds, self.ptype, self.particle_identifier)
+
+    def __getitem__(self, key):
+        return self.region[key]
+
+    @cached_property
+    def ihalo(self):
+        halo_id = self.particle_identifier
+        halo_ids = list(self.halo_ds.r["halos", "particle_identifier"].astype(int))
+        ihalo = halo_ids.index(halo_id)
+
+        assert halo_ids[ihalo] == halo_id
+
+        return ihalo
+
+    @property
+    def mass(self):
+        return self.halo_ds.r["halos", "particle_mass"][self.ihalo]
+
+    @property
+    def position(self):
+        return self.halo_ds.r["halos", "particle_position"][self.ihalo]
+
+    @property
+    def velocity(self):
+        return self.halo_ds.r["halos", "particle_velocity"][self.ihalo]
+
+    @property
+    def member_ids(self):
+        return self.halo_ds.index.get_member(self.particle_identifier)
