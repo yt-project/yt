@@ -1,7 +1,7 @@
 import glob
 import os
 from functools import cached_property
-from typing import Optional
+from typing import List, Optional
 
 import numpy as np
 
@@ -21,7 +21,7 @@ class RockstarBinaryFile(HaloCatalogFile):
     _position_offset: int
     _member_offset: int
     _Npart: np.array
-    _ids_halos: list[int]
+    _ids_halos: List[int]
     _file_size: int
 
     def __init__(self, ds, io, filename, file_id, range):
