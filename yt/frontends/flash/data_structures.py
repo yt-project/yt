@@ -1,6 +1,5 @@
 import os
 import weakref
-from typing import Type
 
 import numpy as np
 
@@ -164,7 +163,7 @@ class FLASHHierarchy(GridIndex):
 
 
 class FLASHDataset(Dataset):
-    _index_class: Type[Index] = FLASHHierarchy
+    _index_class: type[Index] = FLASHHierarchy
     _field_info_class = FLASHFieldInfo
     _handle = None
 

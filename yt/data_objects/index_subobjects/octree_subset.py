@@ -1,7 +1,6 @@
 from contextlib import contextmanager
 from functools import cached_property
 from itertools import product, repeat
-from typing import Tuple
 
 import numpy as np
 from unyt import unyt_array
@@ -39,7 +38,7 @@ class OctreeSubset(YTSelectionContainer):
     _num_ghost_zones = 0
     _type_name = "octree_subset"
     _skip_add = True
-    _con_args: Tuple[str, ...] = ("base_region", "domain", "ds")
+    _con_args: tuple[str, ...] = ("base_region", "domain", "ds")
     _domain_offset = 0
     _cell_count = -1
     _block_order = "C"

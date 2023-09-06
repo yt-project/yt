@@ -1,7 +1,7 @@
 import builtins
 import functools
 from collections import OrderedDict
-from typing import List, Optional
+from typing import Optional
 
 import numpy as np
 
@@ -368,7 +368,7 @@ class Scene:
         dpi: int = 100,
         sigma_clip: Optional[float] = None,
         render: bool = True,
-        tf_rect: Optional[List[float]] = None,
+        tf_rect: Optional[list[float]] = None,
     ):
         r"""Saves the most recently rendered image of the Scene to disk,
         including an image of the transfer function and and user-defined

@@ -5,7 +5,6 @@ import warnings
 import weakref
 from collections import defaultdict
 from functools import cached_property
-from typing import Type
 
 import numpy as np
 import numpy.core.defchararray as np_char
@@ -316,7 +315,7 @@ def check_sky_coords(filename, ndim):
 
 class FITSDataset(Dataset):
     _index_class = FITSHierarchy
-    _field_info_class: Type[FieldInfoContainer] = FITSFieldInfo
+    _field_info_class: type[FieldInfoContainer] = FITSFieldInfo
     _dataset_type = "fits"
     _handle = None
 

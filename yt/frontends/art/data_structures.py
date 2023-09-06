@@ -2,7 +2,6 @@ import glob
 import os
 import struct
 import weakref
-from typing import Type
 
 import numpy as np
 
@@ -133,7 +132,7 @@ class ARTIndex(OctreeIndex):
 
 
 class ARTDataset(Dataset):
-    _index_class: Type[Index] = ARTIndex
+    _index_class: type[Index] = ARTIndex
     _field_info_class = ARTFieldInfo
 
     def __init__(

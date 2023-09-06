@@ -1,6 +1,5 @@
 import os
 import struct
-from typing import Type
 
 import numpy as np
 
@@ -210,9 +209,9 @@ class GadgetBinaryIndex(SPHParticleIndex):
 
 
 class GadgetDataset(SPHDataset):
-    _index_class: Type[Index] = GadgetBinaryIndex
-    _file_class: Type[ParticleFile] = GadgetBinaryFile
-    _field_info_class: Type[FieldInfoContainer] = GadgetFieldInfo
+    _index_class: type[Index] = GadgetBinaryIndex
+    _file_class: type[ParticleFile] = GadgetBinaryFile
+    _field_info_class: type[FieldInfoContainer] = GadgetFieldInfo
     _particle_mass_name = "Mass"
     _particle_coordinates_name = "Coordinates"
     _particle_velocity_name = "Velocities"
@@ -565,7 +564,7 @@ class GadgetHDF5File(ParticleFile):
 class GadgetHDF5Dataset(GadgetDataset):
     _file_class = GadgetHDF5File
     _index_class = SPHParticleIndex
-    _field_info_class: Type[FieldInfoContainer] = GadgetFieldInfo
+    _field_info_class: type[FieldInfoContainer] = GadgetFieldInfo
     _particle_mass_name = "Masses"
     _sph_ptypes = ("PartType0",)
     _suffix = ".hdf5"

@@ -2,7 +2,7 @@ import sys
 import warnings
 from abc import ABC
 from io import BytesIO
-from typing import TYPE_CHECKING, Optional, Tuple, TypedDict, Union
+from typing import TYPE_CHECKING, Optional, TypedDict, Union
 
 import matplotlib
 import numpy as np
@@ -37,7 +37,7 @@ if TYPE_CHECKING:
 
     class FormatKwargs(TypedDict):
         style: Literal["scientific"]
-        scilimits: Tuple[int, int]
+        scilimits: tuple[int, int]
         useMathText: bool
 
 
@@ -106,7 +106,7 @@ class PlotMPL:
     def __init__(
         self,
         fsize,
-        axrect: Tuple[float, float, float, float],
+        axrect: tuple[float, float, float, float],
         *,
         norm_handler: NormHandler,
         figure: Optional["Figure"] = None,
@@ -142,7 +142,7 @@ class PlotMPL:
 
         self.norm_handler = norm_handler
 
-    def _create_axes(self, axrect: Tuple[float, float, float, float]) -> None:
+    def _create_axes(self, axrect: tuple[float, float, float, float]) -> None:
         self.axes = self.figure.add_axes(axrect)
 
     def _get_canvas_classes(self):
@@ -267,7 +267,7 @@ class ImagePlotMPL(PlotMPL, ABC):
             self.cax = cax
 
     def _setup_layout_constraints(
-        self, figure_size: Union[Tuple[float, float], float], fontsize: float
+        self, figure_size: Union[tuple[float, float], float], fontsize: float
     ):
         # Setup base layout attributes
         # derived classes need to call this before super().__init__

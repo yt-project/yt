@@ -1,20 +1,12 @@
 import os
-import sys
 from collections import defaultdict
+from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from functools import _make_key, lru_cache
-from typing import DefaultDict, Dict, List
-
-from yt._typing import FieldKey
-
-if sys.version_info >= (3, 9):
-    from collections.abc import Iterator, Mapping
-else:
-    from typing import Iterator, Mapping
 
 import numpy as np
 
-from yt._typing import ParticleCoordinateTuple
+from yt._typing import FieldKey, ParticleCoordinateTuple
 from yt.geometry.selection_routines import GridSelector
 from yt.utilities.on_demand_imports import _h5py as h5py
 
@@ -30,7 +22,7 @@ def _make_io_key(args, *_args, **kwargs):
 
 
 class BaseIOHandler:
-    _vector_fields: Dict[str, int] = {}
+    _vector_fields: dict[str, int] = {}
     _dataset_type: str
     _particle_reader = False
     _cache_on = False
@@ -57,7 +49,7 @@ class BaseIOHandler:
     # We need a function for reading a list of sets
     # and a function for *popping* from a queue all the appropriate sets
     @contextmanager
-    def preload(self, chunk, fields: List[FieldKey], max_size):
+    def preload(self, chunk, fields: list[FieldKey], max_size):
         yield self
 
     def peek(self, grid, field):
@@ -103,7 +95,7 @@ class BaseIOHandler:
         pass
 
     def _read_fluid_selection(
-        self, chunks, selector, fields: List[FieldKey], size
+        self, chunks, selector, fields: list[FieldKey], size
     ) -> Mapping[FieldKey, np.ndarray]:
         # This function has an interesting history.  It previously was mandate
         # to be defined by all of the subclasses.  But, to avoid having to
@@ -132,7 +124,7 @@ class BaseIOHandler:
                 ind[field] += obj.select(selector, data, rv[field], ind[field])
         return rv
 
-    def io_iter(self, chunks, fields: List[FieldKey]):
+    def io_iter(self, chunks, fields: list[FieldKey]):
         raise NotImplementedError(
             "subclassing Dataset.io_iter this is required in order to use the default "
             "implementation of Dataset._read_fluid_selection. "
@@ -158,7 +150,7 @@ class BaseIOHandler:
         return {}
 
     def _read_particle_coords(
-        self, chunks, ptf: DefaultDict[str, List[str]]
+        self, chunks, ptf: defaultdict[str, list[str]]
     ) -> Iterator[ParticleCoordinateTuple]:
         # An iterator that yields particle coordinates for each chunk by particle
         # type. Must be implemented by each frontend. Must yield a tuple of
@@ -172,15 +164,15 @@ class BaseIOHandler:
         raise NotImplementedError
 
     def _read_particle_selection(
-        self, chunks, selector, fields: List[FieldKey]
-    ) -> Dict[FieldKey, np.ndarray]:
-        data: Dict[FieldKey, List[np.ndarray]] = {}
+        self, chunks, selector, fields: list[FieldKey]
+    ) -> dict[FieldKey, np.ndarray]:
+        data: dict[FieldKey, list[np.ndarray]] = {}
 
         # Initialize containers for tracking particle, field information
         # ptf (particle field types) maps particle type to list of on-disk fields to read
         # field_maps stores fields, accounting for field unions
-        ptf: DefaultDict[str, List[str]] = defaultdict(list)
-        field_maps: DefaultDict[FieldKey, List[FieldKey]] = defaultdict(list)
+        ptf: defaultdict[str, list[str]] = defaultdict(list)
+        field_maps: defaultdict[FieldKey, list[FieldKey]] = defaultdict(list)
 
         # We first need a set of masks for each particle type
         chunks = list(chunks)
@@ -204,7 +196,7 @@ class BaseIOHandler:
             for field_f in field_maps[field_r]:
                 data[field_f].append(vals)
 
-        rv: Dict[FieldKey, np.ndarray] = {}  # the return dictionary
+        rv: dict[FieldKey, np.ndarray] = {}  # the return dictionary
         fields = list(data.keys())
         for field_f in fields:
             # We need to ensure the arrays have the right shape if there are no

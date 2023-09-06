@@ -29,10 +29,10 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        # run with oldest support python version
+        # run with oldest supported python version
         # so that we always get compatible versions of
         # core dependencies at type-check time
-        python-version: '3.8'
+        python-version: '3.9'
 
     - name: Build
       run: |

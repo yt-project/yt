@@ -5,7 +5,6 @@ import sys
 import traceback
 from functools import wraps
 from io import StringIO
-from typing import List
 
 import numpy as np
 from more_itertools import always_iterable
@@ -663,7 +662,7 @@ def parallel_ring(objects, generator_func, mutable=False):
 
 
 class CommunicationSystem:
-    communicators: List["Communicator"] = []
+    communicators: list["Communicator"] = []
 
     def __init__(self):
         self.communicators.append(Communicator(None))

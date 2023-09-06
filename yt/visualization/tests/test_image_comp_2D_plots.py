@@ -1,6 +1,5 @@
 # image tests using pytest-mpl
 from itertools import chain
-from typing import Dict
 
 import numpy as np
 import numpy.testing as npt
@@ -161,7 +160,7 @@ class TestProfilePlot:
             [("gas", "density"), ("index", "radius")],
             [("gas", "velocity_magnitude"), ("gas", "mass")],
         ]
-        cls.profiles: Dict[str, ProfilePlot] = {}
+        cls.profiles: dict[str, ProfilePlot] = {}
         for i_reg, reg in enumerate(regions):
             id_prefix = str(i_reg)
             for x_field, y_field in pr_fields:
@@ -240,7 +239,7 @@ class TestPhasePlot:
                 ("gas", "velocity_magnitude"),
             ],
         ]
-        cls.profiles: Dict[str, PhasePlot] = {}
+        cls.profiles: dict[str, PhasePlot] = {}
         for i_reg, reg in enumerate(regions):
             id_prefix = str(i_reg)
             for x_field, y_field, z_field in pr_fields:

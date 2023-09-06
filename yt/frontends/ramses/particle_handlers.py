@@ -1,6 +1,6 @@
 import abc
 import os
-from typing import List, Optional, Set, Tuple, Type
+from typing import Optional
 
 from yt._typing import FieldKey
 from yt.config import ytcfg
@@ -15,7 +15,7 @@ from .io import (
     _read_part_csv_file_descriptor,
 )
 
-PARTICLE_HANDLERS: Set[Type["ParticleFileHandler"]] = set()
+PARTICLE_HANDLERS: set[type["ParticleFileHandler"]] = set()
 
 
 def get_particle_handlers():
@@ -43,9 +43,9 @@ class ParticleFileHandler(abc.ABC, HandlerMixin):
     fname: Optional[str] = None  # The name of the file(s).
     file_descriptor: Optional[str] = None  # The name of the file descriptor (if any)
 
-    attrs: Tuple[Tuple[str, int, str], ...]  # The attributes of the header
+    attrs: tuple[tuple[str, int, str], ...]  # The attributes of the header
     known_fields: Optional[
-        List[FieldKey]
+        list[FieldKey]
     ] = None  # A list of tuple containing the field name and its type
     config_field: Optional[str] = None  # Name of the config section (if any)
 
