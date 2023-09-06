@@ -1,7 +1,7 @@
 import glob
 import os
 from functools import cached_property
-from typing import List, Optional
+from typing import Any, List, Optional
 
 import numpy as np
 
@@ -11,6 +11,7 @@ from yt.funcs import setdefaultattr
 from yt.geometry.particle_geometry_handler import ParticleIndex
 from yt.utilities import fortran_utils as fpu
 from yt.utilities.cosmology import Cosmology
+from yt.utilities.exceptions import YTFieldNotFound
 
 from .definitions import header_dt
 from .fields import RockstarFieldInfo
@@ -20,7 +21,7 @@ class RockstarBinaryFile(HaloCatalogFile):
     header: dict
     _position_offset: int
     _member_offset: int
-    _Npart: np.array
+    _Npart: "np.ndarray[Any, np.dtype[np.int64]]"
     _ids_halos: List[int]
     _file_size: int
 
@@ -46,7 +47,9 @@ class RockstarBinaryFile(HaloCatalogFile):
 
         super().__init__(ds, io, filename, file_id, range)
 
-    def _read_member(self, ihalo: int) -> Optional[np.array]:
+    def _read_member(
+        self, ihalo: int
+    ) -> Optional["np.ndarray[Any, np.dtype[np.int64]]"]:
         if ihalo not in self._ids_halos:
             return None
 
@@ -59,7 +62,7 @@ class RockstarBinaryFile(HaloCatalogFile):
             ids = np.fromfile(f, dtype=np.int64, count=self._Npart[ind_halo])
             return ids
 
-    def _read_particle_positions(self, ptype, f=None):
+    def _read_particle_positions(self, ptype: str, f=None):
         """
         Read all particle positions in this file.
         """
@@ -168,21 +171,21 @@ class RockstarDataset(ParticleDataset):
         else:
             return header["magic"] == 18077126535843729616
 
-    def halo(self, halo_id, ptype="DM"):
+    def halo(self, ptype, particle_identifier):
         return RockstarHaloContainer(
-            halo_id,
             ptype,
+            particle_identifier,
             parent_ds=None,
             halo_ds=self,
         )
 
 
 class RockstarHaloContainer:
-    def __init__(self, ptype, particle_identifier, parent_ds, halo_ds):
-        # if ptype not in parent_ds.particle_types_raw:
-        #     raise RuntimeError(
-        #         f'Possible halo types are {parent_ds.particle_types_raw}, supplied "{ptype}".'
-        #     )
+    def __init__(self, ptype, particle_identifier, *, parent_ds, halo_ds):
+        if ptype not in halo_ds.particle_types_raw:
+            raise RuntimeError(
+                f'Possible halo types are {halo_ds.particle_types_raw}, supplied "{ptype}".'
+            )
 
         self.ds = parent_ds
         self.halo_ds = halo_ds
@@ -190,10 +193,25 @@ class RockstarHaloContainer:
         self.particle_identifier = particle_identifier
 
     def __repr__(self):
-        return "%s_%s_%09d" % (self.ds, self.ptype, self.particle_identifier)
+        return "%s_%s_%09d" % (self.halo_ds, self.ptype, self.particle_identifier)
 
     def __getitem__(self, key):
-        return self.region[key]
+        if isinstance(key, tuple):
+            ptype, field = key
+        else:
+            ptype = self.ptype
+            field = key
+
+        data = {
+            "mass": self.mass,
+            "position": self.position,
+            "velocity": self.velocity,
+            "member_ids": self.member_ids,
+        }
+        if ptype == "halos" and field in data:
+            return data[field]
+
+        raise YTFieldNotFound((ptype, field), dataset=self.ds)
 
     @cached_property
     def ihalo(self):
