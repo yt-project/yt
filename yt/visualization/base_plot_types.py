@@ -2,6 +2,7 @@ import sys
 import warnings
 from abc import ABC
 from io import BytesIO
+from types import FunctionType
 from typing import TYPE_CHECKING, Optional, TypedDict, Union
 
 import matplotlib
@@ -9,12 +10,14 @@ import numpy as np
 from matplotlib.scale import SymmetricalLogTransform
 from matplotlib.ticker import LogFormatterMathtext
 
+from yt._typing import AlphaT
 from yt.funcs import (
     get_interactivity,
     is_sequence,
     matplotlib_style_context,
     mylog,
     setdefault_mpl_metadata,
+    setdefaultattr,
 )
 from yt.visualization._handlers import ColorbarHandler, NormHandler
 
@@ -245,6 +248,10 @@ class ImagePlotMPL(PlotMPL, ABC):
         cax: Optional["Axes"] = None,
     ):
         """Initialize ImagePlotMPL class object"""
+
+        self._transform: Optional[FunctionType]
+        setdefaultattr(self, "_transform", None)
+
         self.colorbar_handler = colorbar_handler
         _missing_layout_specs = [_ is None for _ in (fsize, axrect, caxrect)]
 
@@ -297,7 +304,7 @@ class ImagePlotMPL(PlotMPL, ABC):
         self.cax.set_position(caxrect)
         self.figure.set_size_inches(*size)
 
-    def _init_image(self, data, extent, aspect):
+    def _init_image(self, data, extent, aspect, *, alpha: AlphaT = None):
         """Store output of imshow in image variable"""
 
         norm = self.norm_handler.get_norm(data)
@@ -322,6 +329,7 @@ class ImagePlotMPL(PlotMPL, ABC):
             cmap=self.colorbar_handler.cmap,
             interpolation="nearest",
             transform=transform,
+            alpha=alpha,
         )
         self._set_axes()
 

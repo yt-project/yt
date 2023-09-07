@@ -2,7 +2,7 @@ import abc
 import weakref
 from functools import cached_property
 from numbers import Number
-from typing import Optional
+from typing import Any, Literal, Optional, overload
 
 import numpy as np
 
@@ -146,8 +146,51 @@ class CoordinateHandler(abc.ABC):
         # This should return field definitions for x, y, z, r, theta, phi
         pass
 
+    @overload
+    def pixelize(
+        self,
+        dimension,
+        data_source,
+        field,
+        bounds,
+        size,
+        antialias=True,
+        periodic=True,
+        *,
+        return_mask: Literal[False],
+    ) -> "np.ndarray[Any, np.dtype[np.float64]]":
+        ...
+
+    @overload
+    def pixelize(
+        self,
+        dimension,
+        data_source,
+        field,
+        bounds,
+        size,
+        antialias=True,
+        periodic=True,
+        *,
+        return_mask: Literal[True],
+    ) -> tuple[
+        "np.ndarray[Any, np.dtype[np.float64]]", "np.ndarray[Any, np.dtype[np.bool_]]"
+    ]:
+        ...
+
     @abc.abstractmethod
-    def pixelize(self, dimension, data_source, field, bounds, size, antialias=True):
+    def pixelize(
+        self,
+        dimension,
+        data_source,
+        field,
+        bounds,
+        size,
+        antialias=True,
+        periodic=True,
+        *,
+        return_mask=False,
+    ):
         # This should *actually* be a pixelize call, not just returning the
         # pixelizer
         pass
