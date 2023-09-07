@@ -98,6 +98,24 @@ cdef class ElementSampler:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
+    def check_contains(self, np.float64_t[:,::1] vertices,
+                             np.float64_t[:,::1] positions):
+        cdef np.ndarray[np.float64_t, ndim=2] mapped_coords
+        cdef np.ndarray[np.uint8_t, ndim=1] mask
+        mapped_coords = self.map_reals_to_unit(vertices, positions)
+        mask = np.zeros(mapped_coords.shape[0])
+        cdef double[3] mapped_coord
+        cdef int i, j
+        for i in range(mapped_coords.shape[0]):
+            for j in range(mapped_coords.shape[1]):
+                mapped_coord[j] = mapped_coords[i, j]
+            mask[i] = self.check_inside(mapped_coord)
+        return mask
+
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     cdef int check_mesh_lines(self, double* mapped_coord) nogil:
         pass
 
@@ -129,7 +147,7 @@ cdef class ElementSampler:
         # Now for each position, we map
         for n in range(positions.shape[0]):
             self.map_real_to_unit(mapped_x, &vertices[0,0], &positions[n, 0])
-            for i in range(3):
+            for i in positions.shape[1]:
                 output_coords[n, i] = mapped_x[i]
         return output_coords
 
