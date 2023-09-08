@@ -1,8 +1,7 @@
 import builtins
 import functools
 from collections import OrderedDict
-from typing import List, Optional, Union
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
 
