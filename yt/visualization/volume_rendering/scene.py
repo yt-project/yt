@@ -2,6 +2,7 @@ import builtins
 import functools
 from collections import OrderedDict
 from typing import List, Optional, Union
+from typing import Optional
 
 import numpy as np
 
@@ -345,7 +346,7 @@ class Scene:
             fig = Figure((shape[0] / 100.0, shape[1] / 100.0))
             canvas = get_canvas(fig, fname)
 
-            ax = fig.add_axes([0, 0, 1, 1])
+            ax = fig.add_axes((0, 0, 1, 1))
             ax.set_axis_off()
             out = self._last_render
             if sigma_clip is not None:
@@ -368,7 +369,7 @@ class Scene:
         dpi: int = 100,
         sigma_clip: Optional[float] = None,
         render: bool = True,
-        tf_rect: Optional[List[float]] = None,
+        tf_rect: Optional[list[float]] = None,
         *,
         label_fontsize: Union[float, str] = 10,
     ):

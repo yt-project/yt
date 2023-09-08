@@ -2,20 +2,13 @@ import os
 import sys
 import warnings
 from functools import wraps
-from importlib.metadata import version
-from typing import TYPE_CHECKING, Optional, Type, TypeVar
+from typing import TYPE_CHECKING, Optional, TypeVar
 
 import matplotlib as mpl
-import numpy as np
+from matplotlib.ticker import SymmetricalLogLocator
 from more_itertools import always_iterable
-from packaging.version import Version
 
 from yt.config import ytcfg
-
-if sys.version_info >= (3, 9):
-    import importlib.resources as importlib_resources
-else:
-    import importlib_resources
 
 if sys.version_info >= (3, 10):
     pass
@@ -23,42 +16,48 @@ else:
     from yt._maintenance.backports import zip
 
 if TYPE_CHECKING:
-    from ._mpl_imports import FigureCanvasBase
+    from matplotlib.backend_bases import FigureCanvasBase
 
 
-MPL_VERSION = Version(version("matplotlib"))
+_DEFAULT_FONT_PROPERTIES = None
 
-_yt_style = mpl.rc_params_from_file(
-    importlib_resources.files("yt") / "default.mplstyle", use_default_template=False
-)
-DEFAULT_FONT_PROPERTIES = {"family": _yt_style["font.family"][0]}
 
-if MPL_VERSION >= Version("3.4"):
-    DEFAULT_FONT_PROPERTIES["math_fontfamily"] = _yt_style["mathtext.fontset"]
-del _yt_style
+def get_default_font_properties():
+    global _DEFAULT_FONT_PROPERTIES
+    if _DEFAULT_FONT_PROPERTIES is None:
+        import importlib.resources as importlib_resources
+
+        _yt_style = mpl.rc_params_from_file(
+            importlib_resources.files("yt") / "default.mplstyle",
+            use_default_template=False,
+        )
+        _DEFAULT_FONT_PROPERTIES = {
+            "family": _yt_style["font.family"][0],
+            "math_fontfamily": _yt_style["mathtext.fontset"],
+        }
+
+    return _DEFAULT_FONT_PROPERTIES
 
 
 def _get_supported_image_file_formats():
-    from ._mpl_imports import FigureCanvasBase
+    from matplotlib.backend_bases import FigureCanvasBase
 
     return frozenset(FigureCanvasBase.get_supported_filetypes().keys())
 
 
 def _get_supported_canvas_classes():
-    from ._mpl_imports import (
-        FigureCanvasAgg,
-        FigureCanvasPdf,
-        FigureCanvasPS,
-        FigureCanvasSVG,
-    )
+    from matplotlib.backends.backend_agg import FigureCanvasAgg
+    from matplotlib.backends.backend_pdf import FigureCanvasPdf
+    from matplotlib.backends.backend_ps import FigureCanvasPS
+    from matplotlib.backends.backend_svg import FigureCanvasSVG
 
     return frozenset(
         (FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS, FigureCanvasSVG)
     )
 
 
-def get_canvas_class(suffix: str) -> Type["FigureCanvasBase"]:
-    s = normalize_extension_string(suffix)
+def get_canvas_class(suffix: str) -> type["FigureCanvasBase"]:
+    s = suffix.removeprefix(".")
     if s not in _get_supported_image_file_formats():
         raise ValueError(f"Unsupported file format '{suffix}'.")
     for cls in _get_supported_canvas_classes():
@@ -71,15 +70,6 @@ def get_canvas_class(suffix: str) -> Type["FigureCanvasBase"]:
     )
 
 
-def normalize_extension_string(s: str) -> str:
-    if sys.version_info < (3, 9):
-        if s.startswith("."):
-            return s[1:]
-        return s
-    else:
-        return s.removeprefix(".")
-
-
 def validate_image_name(filename, suffix: Optional[str] = None) -> str:
     """
     Build a valid image filename with a specified extension (default to png).
@@ -87,10 +77,10 @@ def validate_image_name(filename, suffix: Optional[str] = None) -> str:
     Otherwise, suffix is appended to the filename, replacing any existing extension.
     """
     name, psuffix = os.path.splitext(filename)
-    psuffix = normalize_extension_string(psuffix)
+    psuffix = psuffix.removeprefix(".")
 
     if suffix is not None:
-        suffix = normalize_extension_string(suffix)
+        suffix = suffix.removeprefix(".")
 
     if psuffix in _get_supported_image_file_formats():
         if suffix in _get_supported_image_file_formats() and suffix != psuffix:
@@ -229,127 +219,26 @@ def _swap_arg_pair_order(*args):
     return tuple(new_args)
 
 
-def get_log_minorticks(vmin: float, vmax: float) -> np.ndarray:
-    """calculate positions of linear minorticks on a log colorbar
+class _MPL38_SymmetricalLogLocator(SymmetricalLogLocator):
+    # Backporting behaviour from matplotlib 3.8 (in development at the time of writing)
+    # see https://github.com/matplotlib/matplotlib/pull/25970
 
-    Parameters
-    ----------
-    vmin : float
-        the minimum value in the colorbar
-    vmax : float
-        the maximum value in the colorbar
-
-    """
-    expA = np.floor(np.log10(vmin))
-    expB = np.floor(np.log10(vmax))
-    cofA = np.ceil(vmin / 10**expA).astype("int64")
-    cofB = np.floor(vmax / 10**expB).astype("int64")
-    lmticks = np.empty(0)
-    while cofA * 10**expA <= cofB * 10**expB:
-        if expA < expB:
-            lmticks = np.hstack((lmticks, np.linspace(cofA, 9, 10 - cofA) * 10**expA))
-            cofA = 1
-            expA += 1
-        else:
-            lmticks = np.hstack(
-                (lmticks, np.linspace(cofA, cofB, cofB - cofA + 1) * 10**expA)
+    def __init__(self, *args, **kwargs):
+        if mpl.__version_info__ >= (3, 8):
+            raise RuntimeError(
+                "_MPL38_SymmetricalLogLocator is not needed with matplotlib>=3.8"
             )
-            expA += 1
-    return np.array(lmticks)
+        super().__init__(*args, **kwargs)
 
+    def tick_values(self, vmin, vmax):
+        linthresh = self._linthresh
+        if vmax < vmin:
+            vmin, vmax = vmax, vmin
+        if -linthresh <= vmin < vmax <= linthresh:
+            # only the linear range is present
+            return sorted({vmin, 0, vmax})
 
-def get_symlog_minorticks(linthresh: float, vmin: float, vmax: float) -> np.ndarray:
-    """calculate positions of linear minorticks on a symmetric log colorbar
-
-    Parameters
-    ----------
-    linthresh : float
-        the threshold for the linear region
-    vmin : float
-        the minimum value in the colorbar
-    vmax : float
-        the maximum value in the colorbar
-
-    """
-    if vmin > 0:
-        return get_log_minorticks(vmin, vmax)
-    elif vmax < 0 and vmin < 0:
-        return -get_log_minorticks(-vmax, -vmin)
-    elif vmin == 0:
-        return np.hstack((0, get_log_minorticks(linthresh, vmax)))
-    elif vmax == 0:
-        return np.hstack((-get_log_minorticks(linthresh, -vmin)[::-1], 0))
-    else:
-        return np.hstack(
-            (
-                -get_log_minorticks(linthresh, -vmin)[::-1],
-                0,
-                get_log_minorticks(linthresh, vmax),
-            )
-        )
-
-
-def get_symlog_majorticks(linthresh: float, vmin: float, vmax: float) -> np.ndarray:
-    """calculate positions of major ticks on a log colorbar
-
-    Parameters
-    ----------
-    linthresh : float
-        the threshold for the linear region
-    vmin : float
-        the minimum value in the colorbar
-    vmax : float
-        the maximum value in the colorbar
-
-    """
-    if vmin >= 0.0:
-        yticks = [vmin] + list(
-            10
-            ** np.arange(
-                np.rint(np.log10(linthresh)),
-                np.ceil(np.log10(1.1 * vmax)),
-            )
-        )
-    elif vmax <= 0.0:
-        if MPL_VERSION >= Version("3.5.0b"):
-            offset = 0
-        else:
-            offset = 1
-
-        yticks = list(
-            -(
-                10
-                ** np.arange(
-                    np.floor(np.log10(-vmin)),
-                    np.rint(np.log10(linthresh)) - offset,
-                    -1,
-                )
-            )
-        ) + [vmax]
-    else:
-        yticks = (
-            list(
-                -(
-                    10
-                    ** np.arange(
-                        np.floor(np.log10(-vmin)),
-                        np.rint(np.log10(linthresh)) - 1,
-                        -1,
-                    )
-                )
-            )
-            + [0]
-            + list(
-                10
-                ** np.arange(
-                    np.rint(np.log10(linthresh)),
-                    np.ceil(np.log10(1.1 * vmax)),
-                )
-            )
-        )
-    if yticks[-1] > vmax:
-        yticks.pop()
-    return np.array(yticks)
+        return super().tick_values(vmin, vmax)
 
 
 def get_default_from_config(data_source, *, field, keys, defaults):

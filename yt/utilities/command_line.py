@@ -6,7 +6,7 @@ import pprint
 import sys
 import textwrap
 import urllib
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 import numpy as np
 from more_itertools import always_iterable
@@ -25,11 +25,6 @@ from yt.loaders import load
 from yt.utilities.exceptions import YTFieldNotParseable, YTUnidentifiedDataType
 from yt.utilities.metadata import get_metadata
 from yt.visualization.plot_window import ProjectionPlot, SlicePlot
-
-if sys.version_info >= (3, 9):
-    import importlib.resources as importlib_resources
-else:
-    import importlib_resources
 
 # isort: off
 # This needs to be set before importing startup_tasks
@@ -191,8 +186,8 @@ class YTCommandSubtype(type):
 
 
 class YTCommand(metaclass=YTCommandSubtype):
-    args: Tuple[Union[str, Dict[str, Any]], ...] = ()
-    name: Optional[Union[str, List[str]]] = None
+    args: tuple[Union[str, dict[str, Any]], ...] = ()
+    name: Optional[Union[str, list[str]]] = None
     description: str = ""
     aliases = ()
     ndatasets: int = 1
@@ -665,6 +660,8 @@ class YTInstInfoCmd(YTCommand):
         """
 
     def __call__(self, opts):
+        import importlib.resources as importlib_resources
+
         path = os.path.dirname(importlib_resources.files("yt"))
         vstring = _print_installation_information(path)
         if vstring is not None:
@@ -703,7 +700,6 @@ class YTLoadCmd(YTCommand):
             from traitlets.config.loader import Config
         except ImportError:
             from IPython.config.loader import Config
-        import sys
 
         cfg = Config()
         # prepend sys.path with current working directory
@@ -1185,6 +1181,8 @@ class YTUpdateCmd(YTCommand):
         """
 
     def __call__(self, opts):
+        import importlib.resources as importlib_resources
+
         path = os.path.dirname(importlib_resources.files("yt"))
         vstring = _print_installation_information(path)
         if vstring is not None:

@@ -3,7 +3,6 @@ import weakref
 from collections import defaultdict
 from functools import cached_property
 from numbers import Number as numeric_type
-from typing import Tuple, Type
 
 import numpy as np
 
@@ -44,7 +43,7 @@ class SavedDataset(Dataset):
     """
 
     geometry = Geometry.CARTESIAN
-    _con_attrs: Tuple[str, ...] = ()
+    _con_attrs: tuple[str, ...] = ()
 
     def _parse_parameter_file(self):
         self.refine_by = 2
@@ -239,7 +238,7 @@ class YTDataContainerDataset(YTDataset):
 
     _index_class = ParticleIndex
     _file_class = YTDataHDF5File
-    _field_info_class: Type[FieldInfoContainer] = YTDataContainerFieldInfo
+    _field_info_class: type[FieldInfoContainer] = YTDataContainerFieldInfo
     _suffix = ".h5"
     fluid_types = ("grid", "gas", "deposit", "index")
 
@@ -480,12 +479,12 @@ class YTGridHierarchy(YTDataHierarchy):
 class YTGridDataset(YTDataset):
     """Dataset for saved covering grids, arbitrary grids, and FRBs."""
 
-    _index_class: Type[Index] = YTGridHierarchy
+    _index_class: type[Index] = YTGridHierarchy
     _field_info_class = YTGridFieldInfo
     _dataset_type = "ytgridhdf5"
     geometry = Geometry.CARTESIAN
     default_fluid_type = "grid"
-    fluid_types: Tuple[str, ...] = ("grid", "gas", "deposit", "index")
+    fluid_types: tuple[str, ...] = ("grid", "gas", "deposit", "index")
 
     def __init__(self, filename, unit_system="cgs"):
         super().__init__(filename, self._dataset_type, unit_system=unit_system)
@@ -717,7 +716,7 @@ class YTNonspatialDataset(YTGridDataset):
     _dataset_type = "ytnonspatialhdf5"
     geometry = Geometry.CARTESIAN
     default_fluid_type = "data"
-    fluid_types: Tuple[str, ...] = ("data", "gas")
+    fluid_types: tuple[str, ...] = ("data", "gas")
 
     def _parse_parameter_file(self):
         super(YTGridDataset, self)._parse_parameter_file()

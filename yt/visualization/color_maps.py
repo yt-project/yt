@@ -1,35 +1,14 @@
-from copy import deepcopy
-from typing import Optional, Tuple, Union
+from typing import Union
 
 import cmyt  # noqa: F401
 import matplotlib as mpl
 import numpy as np
-from matplotlib.colors import Colormap, LinearSegmentedColormap
-from packaging.version import Version
+from matplotlib.colors import LinearSegmentedColormap
 
 from yt.funcs import get_brewer_cmap
 from yt.utilities.logger import ytLogger as mylog
 
 from . import _colormap_data as _cm
-from ._commons import MPL_VERSION
-
-
-# wrap matplotlib.cm API, use non-deprecated API when available
-def _get_cmap(name: str) -> Colormap:
-    if MPL_VERSION >= Version("3.5"):
-        return mpl.colormaps[name]
-    else:
-        # deprecated API
-        return mpl.cm.get_cmap(name)
-
-
-def _register_cmap(cmap: Colormap, *, name: Optional[str] = None) -> None:
-    if MPL_VERSION >= Version("3.5"):
-        mpl.colormaps.register(cmap, name=name)
-    else:
-        # deprecated API
-        mpl.cm.register_cmap(name=name, cmap=cmap)
-
 
 yt_colormaps = {}
 
@@ -40,7 +19,7 @@ def add_colormap(name, cdict):
     """
     # Note: this function modifies the global variable 'yt_colormaps'
     yt_colormaps[name] = LinearSegmentedColormap(name, cdict, 256)
-    _register_cmap(yt_colormaps[name], name=name)
+    mpl.colormaps.register(yt_colormaps[name])
 
 
 # YTEP-0040 backward compatibility layer
@@ -69,18 +48,11 @@ def register_yt_colormaps_from_cmyt():
     """
 
     for hist_name, alias in _HISTORICAL_ALIASES.items():
-        if MPL_VERSION >= Version("3.4.0"):
-            cmap = _get_cmap(alias).copy()
-        else:
-            cmap = deepcopy(_get_cmap(alias))
+        # note that mpl.colormaps.__getitem__ returns *copies*
+        cmap = mpl.colormaps[alias]
         cmap.name = hist_name
-        try:
-            _register_cmap(cmap=cmap)
-            _register_cmap(cmap=_get_cmap(hist_name).reversed())
-        except ValueError:
-            # Matplotlib 3.4.0 hard-forbids name collisions, but more recent versions
-            # will emit a warning instead, so we emulate this behaviour regardless.
-            mylog.warning("cannot register colormap '%s' (naming collision)", hist_name)
+        mpl.colormaps.register(cmap)
+        mpl.colormaps.register(cmap.reversed())
 
 
 register_yt_colormaps_from_cmyt()
@@ -102,7 +74,7 @@ for k, v in list(_cm.color_map_luts.items()):
         mylog.warning("cannot register colormap '%s' (naming collision)", k)
 
 
-def get_colormap_lut(cmap_id: Union[Tuple[str, str], str]):
+def get_colormap_lut(cmap_id: Union[tuple[str, str], str]):
     # "lut" stands for "lookup table". This function provides a consistent and
     # reusable accessor to a hidden (and by default, uninitialized) attribute
     # (`_lut`) in registered colormaps, from matplotlib or palettable.
@@ -114,7 +86,7 @@ def get_colormap_lut(cmap_id: Union[Tuple[str, str], str]):
     if isinstance(cmap_id, tuple) and len(cmap_id) == 2:
         cmap = get_brewer_cmap(cmap_id)
     elif isinstance(cmap_id, str):
-        cmap = _get_cmap(cmap_id)
+        cmap = mpl.colormaps[cmap_id]
     else:
         raise TypeError(
             "Expected a string or a 2-tuple of strings as a colormap id. "
@@ -201,7 +173,7 @@ def show_colormaps(subset="all", filename=None):
     for i, m in enumerate(maps):
         plt.subplot(1, l, i + 1)
         plt.axis("off")
-        plt.imshow(a, aspect="auto", cmap=_get_cmap(m), origin="lower")
+        plt.imshow(a, aspect="auto", cmap=mpl.colormaps[m], origin="lower")
         plt.title(m, rotation=90, fontsize=10, verticalalignment="bottom")
     if filename is not None:
         plt.savefig(filename, dpi=100, facecolor="gray")

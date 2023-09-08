@@ -1,5 +1,4 @@
 import weakref
-from typing import List
 
 import numpy as np
 
@@ -270,7 +269,7 @@ class AMRGridPatch(YTSelectionContainer):
 
     def get_vertex_centered_data(
         self,
-        fields: List[FieldKey],
+        fields: list[FieldKey],
         smoothed: bool = True,
         no_ghost: bool = False,
     ):

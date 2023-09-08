@@ -1,7 +1,6 @@
 import os
 import re
 import weakref
-from typing import Type
 
 import numpy as np
 
@@ -236,7 +235,7 @@ class ChomboHierarchy(GridIndex):
 
 class ChomboDataset(Dataset):
     _index_class = ChomboHierarchy
-    _field_info_class: Type[FieldInfoContainer] = ChomboFieldInfo
+    _field_info_class: type[FieldInfoContainer] = ChomboFieldInfo
 
     def __init__(
         self,

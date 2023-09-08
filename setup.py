@@ -2,6 +2,7 @@ import glob
 import os
 from collections import defaultdict
 from distutils.ccompiler import get_default_compiler
+from importlib import resources as importlib_resources
 
 from setuptools import Distribution, setup
 
@@ -10,7 +11,6 @@ from setupext import (
     check_for_openmp,
     check_for_pyembree,
     create_build_ext,
-    get_ewah_bool_utils_path,
     install_ccompiler,
 )
 
@@ -49,10 +49,11 @@ cythonize_aliases = {
         "yt/frontends/artio/artio_headers/",
     ],
     "STD_LIBS": std_libs,
-    "EWAH_LIBS": std_libs + [get_ewah_bool_utils_path()],
+    "EWAH_LIBS": std_libs
+    + [os.path.abspath(importlib_resources.files("ewah_bool_utils"))],
     "OMP_ARGS": omp_args,
     "FIXED_INTERP": "yt/utilities/lib/fixed_interpolator.cpp",
-    "ARTIO_SOURCE": glob.glob("yt/frontends/artio/artio_headers/*.c"),
+    "ARTIO_SOURCE": sorted(glob.glob("yt/frontends/artio/artio_headers/*.c")),
     "CPP14_FLAG": CPP14_FLAG,
     "CPP11_FLAG": CPP11_FLAG,
 }

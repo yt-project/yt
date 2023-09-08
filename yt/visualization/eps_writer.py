@@ -597,7 +597,7 @@ class DualEPS:
         For best results, set use_colorbar=False when creating the yt
         image.
         """
-        from ._mpl_imports import FigureCanvasAgg
+        from matplotlib.backends.backend_agg import FigureCanvasAgg
 
         # We need to remove the colorbar (if necessary), remove the
         # axes, and resize the figure to span the entire figure
@@ -1543,15 +1543,15 @@ def multiplot_yt(ncol, nrow, plots, fields=None, **kwargs):
             fields = plots.fields
         if len(fields) < nrow * ncol:
             raise RuntimeError(
-                "Number of plots ({}) is less "
-                "than nrow({}) x ncol({}).".format(len(fields), nrow, ncol)
+                f"Number of plots ({len(fields)}) is less "
+                f"than nrow({nrow}) x ncol({ncol})."
             )
         figure = multiplot(ncol, nrow, yt_plots=plots, fields=fields, **kwargs)
     elif isinstance(plots, list) and isinstance(plots[0], (PlotWindow, PhasePlot)):
         if len(plots) < nrow * ncol:
             raise RuntimeError(
-                "Number of plots ({}) is less "
-                "than nrow({}) x ncol({}).".format(len(fields), nrow, ncol)
+                f"Number of plots ({len(fields)}) is less "
+                f"than nrow({nrow}) x ncol({ncol})."
             )
         figure = multiplot(ncol, nrow, yt_plots=plots, fields=fields, **kwargs)
     else:

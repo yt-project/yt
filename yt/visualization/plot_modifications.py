@@ -5,13 +5,14 @@ import warnings
 from abc import ABC, abstractmethod
 from functools import update_wrapper
 from numbers import Integral, Number
-from typing import Any, Dict, Optional, Tuple, Type, Union
+from typing import Any, Optional, Union
 
 import matplotlib
 import numpy as np
+from unyt import unyt_quantity
 
 from yt._maintenance.deprecation import issue_deprecation_warning
-from yt._typing import AnyFieldKey
+from yt._typing import AnyFieldKey, FieldKey
 from yt.data_objects.data_containers import YTDataContainer
 from yt.data_objects.level_sets.clump_handling import Clump
 from yt.data_objects.selection_objects.cut_region import YTCutRegion
@@ -20,8 +21,14 @@ from yt.funcs import is_sequence, mylog, validate_width_tuple
 from yt.geometry.api import Geometry
 from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
 from yt.units import dimensions
-from yt.units.yt_array import YTArray, YTQuantity, uhstack  # type: ignore
-from yt.utilities.exceptions import YTDataTypeUnsupported, YTUnsupportedPlotCallback
+from yt.units._numpy_wrapper_functions import uhstack
+from yt.units.yt_array import YTArray, YTQuantity
+from yt.utilities.exceptions import (
+    YTDataTypeUnsupported,
+    YTFieldNotFound,
+    YTFieldTypeNotFound,
+    YTUnsupportedPlotCallback,
+)
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
 from yt.utilities.lib.line_integral_convolution import line_integral_convolution_2d
 from yt.utilities.lib.mesh_triangulation import triangulate_indices
@@ -39,15 +46,20 @@ from yt.visualization.base_plot_types import CallbackWrapper
 from yt.visualization.image_writer import apply_colormap
 from yt.visualization.plot_window import PWViewerMPL
 
+if sys.version_info >= (3, 10):
+    from typing import TypeGuard
+else:
+    from typing_extensions import TypeGuard
+
 if sys.version_info >= (3, 11):
     from typing import assert_never
 else:
     from typing_extensions import assert_never
 
-callback_registry: Dict[str, Type["PlotCallback"]] = {}
+callback_registry: dict[str, type["PlotCallback"]] = {}
 
 
-def _validate_factor_tuple(factor) -> Tuple[int, int]:
+def _validate_factor_tuple(factor) -> tuple[int, int]:
     if (
         is_sequence(factor)
         and len(factor) == 2
@@ -73,8 +85,8 @@ class PlotCallback(ABC):
     # "figure" this is disregarded.  If "force" is included in the tuple, it
     # will *not* check whether or not the coord_system is in axis or figure,
     # and will only look at the geometries.
-    _supported_geometries: Optional[Tuple[str, ...]] = None
-    _incompatible_plot_types: Tuple[str, ...] = ()
+    _supported_geometries: Optional[tuple[str, ...]] = None
+    _incompatible_plot_types: tuple[str, ...] = ()
 
     def __init_subclass__(cls, *args, **kwargs):
         if inspect.isabstract(cls):
@@ -426,7 +438,7 @@ class VelocityCallback(PlotCallback):
 
     def __init__(
         self,
-        factor: Union[Tuple[int, int], int] = 16,
+        factor: Union[tuple[int, int], int] = 16,
         *,
         scale=None,
         scale_units=None,
@@ -569,7 +581,7 @@ class MagFieldCallback(PlotCallback):
 
     def __init__(
         self,
-        factor: Union[Tuple[int, int], int] = 16,
+        factor: Union[tuple[int, int], int] = 16,
         *,
         scale=None,
         scale_units=None,
@@ -683,7 +695,7 @@ class BaseQuiverCallback(PlotCallback, ABC):
         field_y,
         field_c=None,
         *,
-        factor: Union[Tuple[int, int], int] = 16,
+        factor: Union[tuple[int, int], int] = 16,
         scale=None,
         scale_units=None,
         normalize=False,
@@ -774,7 +786,7 @@ class QuiverCallback(BaseQuiverCallback):
     """
 
     _type_name = "quiver"
-    _supported_geometries: Tuple[str, ...] = (
+    _supported_geometries: tuple[str, ...] = (
         "cartesian",
         "spectral_cube",
         "polar",
@@ -788,7 +800,7 @@ class QuiverCallback(BaseQuiverCallback):
         field_y,
         field_c=None,
         *,
-        factor: Union[Tuple[int, int], int] = 16,
+        factor: Union[tuple[int, int], int] = 16,
         scale=None,
         scale_units=None,
         normalize=False,
@@ -892,17 +904,15 @@ class ContourCallback(PlotCallback):
         field: AnyFieldKey,
         levels: int = 5,
         *,
-        factor: Union[Tuple[int, int], int] = 4,
-        clim: Optional[Tuple[float, float]] = None,
+        factor: Union[tuple[int, int], int] = 4,
+        clim: Optional[tuple[float, float]] = None,
         label: bool = False,
         take_log: Optional[bool] = None,
         data_source: Optional[YTDataContainer] = None,
-        plot_args: Optional[Dict[str, Any]] = None,
-        text_args: Optional[Dict[str, Any]] = None,
+        plot_args: Optional[dict[str, Any]] = None,
+        text_args: Optional[dict[str, Any]] = None,
         ncont: Optional[int] = None,  # deprecated
     ) -> None:
-        def_plot_args = {"colors": "k", "linestyles": "solid"}
-        def_text_args = {"colors": "w"}
         if ncont is not None:
             issue_deprecation_warning(
                 "The `ncont` keyword argument is deprecated, use `levels` instead.",
@@ -918,13 +928,16 @@ class ContourCallback(PlotCallback):
         self.factor = _validate_factor_tuple(factor)
         self.clim = clim
         self.take_log = take_log
-        if plot_args is None:
-            plot_args = def_plot_args
-        self.plot_args = plot_args
+        self.plot_args = {
+            "colors": "black",
+            "linestyles": "solid",
+            **(plot_args or {}),
+        }
         self.label = label
-        if text_args is None:
-            text_args = def_text_args
-        self.text_args = text_args
+        self.text_args = {
+            "colors": "white",
+            **(text_args or {}),
+        }
         self.data_source = data_source
 
     def __call__(self, plot) -> None:
@@ -1003,7 +1016,7 @@ class ContourCallback(PlotCallback):
         if take_log:
             zi = np.log10(zi)
 
-        clim: Optional[Tuple[float, float]]
+        clim: Optional[tuple[float, float]]
         if take_log and self.clim is not None:
             clim = np.log10(self.clim[0]), np.log10(self.clim[1])
         else:
@@ -1139,7 +1152,7 @@ class GridBoundaryCallback(PlotCallback):
                 edgecolors = colorConverter.to_rgba(self.edgecolors, alpha=self.alpha)
             else:  # use colormap if not explicitly overridden by edgecolors
                 if self.cmap is not None:
-                    color_bounds = [0, plot.data.ds.index.max_level]
+                    color_bounds = [0, max_level]
                     edgecolors = (
                         apply_colormap(
                             levels[visible] * 1.0,
@@ -1205,15 +1218,52 @@ class GridBoundaryCallback(PlotCallback):
                     plot._axes.text(xi, yi, "%d" % block_ids[n], clip_on=True)
 
 
+# when type-checking with MPL >= 3.8, use
+# from matplotlib.typing import ColorType
+_ColorType = Any
+
+
 class StreamlineCallback(PlotCallback):
     """
-    Add streamlines to any plot, using the *field_x* and *field_y*
-    from the associated data, skipping every *factor* datapoints like
-    'quiver'. *density* is the index of the amount of the streamlines.
-    *field_color* is a field to be used to colormap the streamlines.
-    If *display_threshold* is supplied, any streamline segments where
-    *field_color* is less than the threshold will be removed by having
-    their line width set to 0.
+    Plot streamlines using matplotlib.axes.Axes.streamplot
+
+    Arguments
+    ---------
+
+    field_x: field key
+        The "velocity" analoguous field along the horizontal direction.
+    field_y: field key
+        The "velocity" analoguous field along the vertical direction.
+
+    linewidth: float, or field key (default: 1.0)
+        A constant scalar will be passed directly to matplotlib.axes.Axes.streamplot
+        A field key will be first interpreted by yt and produce the adequate 2D array.
+        Data fields are normalized by their maximum value, so the maximal linewidth
+        is 1 by default. See `linewidth_upscaling` for fine tuning.
+        Note that the absolute value is taken in all cases.
+
+    linewidth_upscaling: float (default: 1.0)
+        A constant multiplicative factor applied to linewidth.
+        Final linewidth is obtained as:
+        linewidth_upscaling * abs(linewidth) / max(abs(linewidth))
+
+    color: a color identifier, or a field key (default: matplotlib.rcParams['line.color'])
+        A constant color identifier will be passed directly to matplotlib.axes.Axes.streamplot
+        A field key will be first interpreted by yt and produce the adequate 2D array.
+        See https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.streamplot.html
+        for how to customize color mapping using `cmap` and `norm` arguments.
+
+    color_threshold: float or unyt_quantity (default: -inf)
+        Regions where the field used for color is lower than this threshold will be masked.
+        Only used if color is a field key.
+
+    factor: int, or tuple[int, int] (default: 16)
+        Fields are downed-sampled by this factor with respect to the background image
+        buffer size. A single integer factor will be used for both direction, but a tuple
+        of 2 integers can be passed to set x and y downsampling independently.
+
+    **kwargs: any additional keyword arguments will be passed
+        directly to matplotlib.axes.Axes.streamplot
     """
 
     _type_name = "streamlines"
@@ -1228,22 +1278,56 @@ class StreamlineCallback(PlotCallback):
 
     def __init__(
         self,
-        field_x,
-        field_y,
+        field_x: AnyFieldKey,
+        field_y: AnyFieldKey,
         *,
-        factor: Union[Tuple[int, int], int] = 16,
-        density=1,
-        field_color=None,
-        display_threshold=None,
-        plot_args=None,
+        linewidth: Union[float, AnyFieldKey] = 1.0,
+        linewidth_upscaling: float = 1.0,
+        color: Optional[Union[_ColorType, FieldKey]] = None,
+        color_threshold: Union[float, unyt_quantity] = float("-inf"),
+        factor: Union[tuple[int, int], int] = 16,
+        field_color=None,  # deprecated
+        display_threshold=None,  # deprecated
+        plot_args=None,  # deprecated
         **kwargs,
     ):
         self.field_x = field_x
         self.field_y = field_y
-        self.field_color = field_color
+        if color is not None and field_color is not None:
+            raise TypeError(
+                "`color` and `field_color` keyword arguments "
+                "cannot be set at the same time."
+            )
+        elif field_color is not None:
+            issue_deprecation_warning(
+                "The `field_color` keyword argument is deprecated. "
+                "Use `color` instead.",
+                since="4.3",
+                stacklevel=5,
+            )
+            self._color = field_color
+        else:
+            self._color = color
+
+        if color_threshold is not None and display_threshold is not None:
+            raise TypeError(
+                "`color_threshold` and `display_threshold` keyword arguments "
+                "cannot be set at the same time."
+            )
+        elif display_threshold is not None:
+            issue_deprecation_warning(
+                "The `display_threshold` keyword argument is deprecated. "
+                "Use `color_threshold` instead.",
+                since="4.3",
+                stacklevel=5,
+            )
+            self._color_threshold = display_threshold
+        else:
+            self._color_threshold = color_threshold
+
+        self._linewidth = linewidth
+        self._linewidth_upscaling = linewidth_upscaling
         self.factor = _validate_factor_tuple(factor)
-        self.dens = density
-        self.display_threshold = display_threshold
 
         if plot_args is not None:
             issue_deprecation_warning(
@@ -1258,47 +1342,64 @@ class StreamlineCallback(PlotCallback):
 
         self.plot_args = plot_args
 
-    def __call__(self, plot):
-        bounds = self._physical_bounds(plot)
+    def __call__(self, plot) -> None:
         xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
 
         # We are feeding this size into the pixelizer, where it will properly
         # set it in reverse order
         nx = plot.raw_image_shape[1] // self.factor[0]
         ny = plot.raw_image_shape[0] // self.factor[1]
-        pixX = plot.data.ds.coordinates.pixelize(
-            plot.data.axis, plot.data, self.field_x, bounds, (nx, ny)
-        )
-        pixY = plot.data.ds.coordinates.pixelize(
-            plot.data.axis, plot.data, self.field_y, bounds, (nx, ny)
-        )
-        if self.field_color:
-            field_colors = plot.data.ds.coordinates.pixelize(
-                plot.data.axis, plot.data, self.field_color, bounds, (nx, ny)
+
+        def pixelize(field):
+            retv = plot.data.ds.coordinates.pixelize(
+                plot.data.axis,
+                plot.data,
+                field=field,
+                bounds=self._physical_bounds(plot),
+                size=(nx, ny),
+            )
+            if plot._swap_axes:
+                return retv.transpose()
+            else:
+                return retv
+
+        def is_field_key(val) -> TypeGuard[AnyFieldKey]:
+            if not is_sequence(val):
+                return False
+            try:
+                plot.data._determine_fields(val)
+            except (YTFieldNotFound, YTFieldTypeNotFound):
+                return False
+            else:
+                return True
+
+        pixX = pixelize(self.field_x)
+        pixY = pixelize(self.field_y)
+
+        if isinstance(self._linewidth, (int, float)):
+            linewidth = self._linewidth_upscaling * self._linewidth
+        elif is_field_key(self._linewidth):
+            linewidth = pixelize(self._linewidth)
+            linewidth *= self._linewidth_upscaling / np.abs(linewidth).max()
+        else:
+            raise TypeError(
+                f"annotate_streamlines received linewidth={self._linewidth!r}, "
+                f"with type {type(self._linewidth)}. Expected a float or a field key."
             )
 
-            if self.display_threshold:
-                mask = field_colors > self.display_threshold
-                lwdefault = matplotlib.rcParams["lines.linewidth"]
-
-                if "linewidth" in self.plot_args:
-                    linewidth = self.plot_args["linewidth"]
-                else:
-                    linewidth = lwdefault
-
-                try:
-                    linewidth *= mask
-                    self.plot_args["linewidth"] = linewidth
-                except ValueError as e:
-                    err_msg = (
-                        "Error applying display threshold: linewidth"
-                        + "must have shape ({}, {}) or be scalar"
-                    )
-                    err_msg = err_msg.format(nx, ny)
-                    raise ValueError(err_msg) from e
-
+        if is_field_key(self._color):
+            color = pixelize(self._color)
+            linewidth *= color > self._color_threshold
         else:
-            field_colors = None
+            if (_cmap := self.plot_args.get("cmap")) is not None:
+                warnings.warn(
+                    f"annotate_streamlines received color={self._color!r}, "
+                    "which wasn't recognized as as field key. "
+                    "It is assumed to be a fixed color identifier. "
+                    f"Also received cmap={_cmap!r}, which will be ignored.",
+                    stacklevel=5,
+                )
+            color = self._color
 
         X, Y = (
             np.linspace(xx0, xx1, nx, endpoint=True),
@@ -1307,8 +1408,6 @@ class StreamlineCallback(PlotCallback):
         X, Y, pixX, pixY = self._sanitize_xy_order(plot, X, Y, pixX, pixY)
         if plot._swap_axes:
             # need an additional transpose here for streamline tracing
-            pixX = pixX.transpose()
-            pixY = pixY.transpose()
             X = X.transpose()
             Y = Y.transpose()
         streamplot_args = {
@@ -1316,10 +1415,10 @@ class StreamlineCallback(PlotCallback):
             "y": Y,
             "u": pixX,
             "v": pixY,
-            "density": self.dens,
-            "color": field_colors,
+            "color": color,
+            "linewidth": linewidth,
+            **self.plot_args,
         }
-        streamplot_args.update(self.plot_args)
         plot._axes.streamplot(**streamplot_args)
         self._set_plot_limits(plot, (xx0, xx1, yy0, yy1))
 
@@ -1381,7 +1480,7 @@ class LinePlotCallback(PlotCallback):
     """
 
     _type_name = "line"
-    _supported_geometries: Tuple[str, ...] = (
+    _supported_geometries: tuple[str, ...] = (
         "cartesian",
         "spectral_cube",
         "polar",
@@ -1394,11 +1493,9 @@ class LinePlotCallback(PlotCallback):
         p2,
         *,
         coord_system="data",
-        plot_args: Optional[Dict[str, Any]] = None,
+        plot_args: Optional[dict[str, Any]] = None,
         **kwargs,
     ):
-        def_plot_args = {"color": "white", "linewidth": 2}
-
         self.p1 = p1
         self.p2 = p2
         if plot_args is not None:
@@ -1408,9 +1505,13 @@ class LinePlotCallback(PlotCallback):
                 since="4.1",
                 stacklevel=5,
             )
-            plot_args.update(kwargs)
 
-        self.plot_args = {**def_plot_args, **kwargs}
+        self.plot_args = {
+            "color": "white",
+            "linewidth": 2,
+            **(plot_args or {}),
+            **kwargs,
+        }
         self.coord_system = coord_system
         self.transform = None
 
@@ -1673,10 +1774,9 @@ class ArrowCallback(PlotCallback):
         head_length=0.01,
         starting_pos=None,
         coord_system="data",
-        plot_args: Optional[Dict[str, Any]] = None,  # deprecated
+        plot_args: Optional[dict[str, Any]] = None,  # deprecated
         **kwargs,
     ):
-        def_plot_args = {"color": "white"}
         self.pos = pos
         self.length = length
         self.width = width
@@ -1693,10 +1793,11 @@ class ArrowCallback(PlotCallback):
                 since="4.1",
                 stacklevel=5,
             )
-            plot_args = {**def_plot_args, **plot_args, **kwargs}
-        else:
-            plot_args = def_plot_args
-        self.plot_args = plot_args
+        self.plot_args = {
+            "color": "white",
+            **(plot_args or {}),
+            **kwargs,
+        }
 
     def __call__(self, plot):
         x, y = self._sanitize_coord_system(
@@ -1820,7 +1921,6 @@ class MarkerAnnotateCallback(PlotCallback):
     def __init__(
         self, pos, marker="x", *, coord_system="data", plot_args=None, **kwargs
     ):
-        def_plot_args = {"color": "w", "s": 50}
         self.pos = pos
         self.marker = marker
         if plot_args is not None:
@@ -1830,10 +1930,12 @@ class MarkerAnnotateCallback(PlotCallback):
                 since="4.1",
                 stacklevel=5,
             )
-            plot_args = {**def_plot_args, **plot_args, **kwargs}
-        else:
-            plot_args = {**def_plot_args, **kwargs}
-        self.plot_args = plot_args
+        self.plot_args = {
+            "color": "white",
+            "s": 50,
+            **(plot_args or {}),
+            **kwargs,
+        }
         self.coord_system = coord_system
         self.transform = None
 
@@ -1910,19 +2012,18 @@ class SphereCallback(PlotCallback):
         circle_args=None,
         text_args=None,
     ):
-        def_text_args = {"color": "white"}
-        def_circle_args = {"color": "white"}
         self.center = center
         self.radius = radius
-        if circle_args is None:
-            circle_args = def_circle_args
-        if "fill" not in circle_args:
-            circle_args["fill"] = False
-        self.circle_args = circle_args
+        self.circle_args = {
+            "color": "white",
+            "fill": False,
+            **(circle_args or {}),
+        }
         self.text = text
-        if text_args is None:
-            text_args = def_text_args
-        self.text_args = text_args
+        self.text_args = {
+            "color": "white",
+            **(text_args or {}),
+        }
         self.coord_system = coord_system
         self.transform = None
 
@@ -2034,7 +2135,7 @@ class TextLabelCallback(PlotCallback):
     """
 
     _type_name = "text"
-    _supported_geometries: Tuple[str, ...] = (
+    _supported_geometries: tuple[str, ...] = (
         "cartesian",
         "spectral_cube",
         "polar",
@@ -2050,12 +2151,12 @@ class TextLabelCallback(PlotCallback):
         text_args=None,
         inset_box_args=None,
     ):
-        def_text_args = {"color": "white"}
         self.pos = pos
         self.text = text
-        if text_args is None:
-            text_args = def_text_args
-        self.text_args = text_args
+        self.text_args = {
+            "color": "white",
+            **(text_args or {}),
+        }
         self.inset_box_args = inset_box_args
         self.coord_system = coord_system
         self.transform = None
@@ -2473,7 +2574,13 @@ class TimestampCallback(PlotCallback):
     """
 
     _type_name = "timestamp"
-    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
+    _supported_geometries = (
+        "cartesian",
+        "spectral_cube",
+        "cylindrical",
+        "polar",
+        "spherical",
+    )
 
     def __init__(
         self,
@@ -2492,19 +2599,6 @@ class TimestampCallback(PlotCallback):
         text_args=None,
         inset_box_args=None,
     ):
-        def_text_args = {
-            "color": "white",
-            "horizontalalignment": "center",
-            "verticalalignment": "top",
-        }
-        def_inset_box_args = {
-            "boxstyle": "square,pad=0.3",
-            "facecolor": "black",
-            "linewidth": 3,
-            "edgecolor": "white",
-            "alpha": 0.5,
-        }
-
         # Set position based on corner argument.
         self.pos = (x_pos, y_pos)
         self.corner = corner
@@ -2515,15 +2609,23 @@ class TimestampCallback(PlotCallback):
         self.time_unit = time_unit
         self.coord_system = coord_system
         self.time_offset = time_offset
-        if text_args is None:
-            text_args = def_text_args
-        self.text_args = text_args
-        if inset_box_args is None:
-            inset_box_args = def_inset_box_args
-        self.inset_box_args = inset_box_args
+        self.text_args = {
+            "color": "white",
+            "horizontalalignment": "center",
+            "verticalalignment": "top",
+            **(text_args or {}),
+        }
 
-        # if inset box is not desired, set inset_box_args to {}
-        if not draw_inset_box:
+        if draw_inset_box:
+            self.inset_box_args = {
+                "boxstyle": "square,pad=0.3",
+                "facecolor": "black",
+                "linewidth": 3,
+                "edgecolor": "white",
+                "alpha": 0.5,
+                **(inset_box_args or {}),
+            }
+        else:
             self.inset_box_args = None
 
     def __call__(self, plot):
@@ -2731,16 +2833,6 @@ class ScaleCallback(PlotCallback):
         inset_box_args=None,
         scale_text_format="{scale} {units}",
     ):
-        def_size_bar_args = {"pad": 0.05, "sep": 5, "borderpad": 1, "color": "w"}
-
-        def_inset_box_args = {
-            "facecolor": "black",
-            "linewidth": 3,
-            "edgecolor": "white",
-            "alpha": 0.5,
-            "boxstyle": "square",
-        }
-
         # Set position based on corner argument.
         self.corner = corner
         self.coeff = coeff
@@ -2750,18 +2842,24 @@ class ScaleCallback(PlotCallback):
         self.min_frac = min_frac
         self.coord_system = coord_system
         self.scale_text_format = scale_text_format
-        if size_bar_args is None:
-            self.size_bar_args = def_size_bar_args
-        else:
-            self.size_bar_args = size_bar_args
-        if inset_box_args is None:
-            self.inset_box_args = def_inset_box_args
-        else:
-            self.inset_box_args = inset_box_args
+
+        self.size_bar_args = {
+            "pad": 0.05,
+            "sep": 5,
+            "borderpad": 1,
+            "color": "white",
+            **(size_bar_args or {}),
+        }
+        self.inset_box_args = {
+            "facecolor": "black",
+            "linewidth": 3,
+            "edgecolor": "white",
+            "alpha": 0.5,
+            "boxstyle": "square",
+            **(inset_box_args or {}),
+        }
+        self.text_args = text_args or {}
         self.draw_inset_box = draw_inset_box
-        if text_args is None:
-            text_args = {}
-        self.text_args = text_args
 
     def __call__(self, plot):
         from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
@@ -2915,7 +3013,6 @@ class RayCallback(PlotCallback):
     _supported_geometries = ("cartesian", "spectral_cube", "force")
 
     def __init__(self, ray, *, arrow=False, plot_args=None, **kwargs):
-        def_plot_args = {"color": "white", "linewidth": 2}
         self.ray = ray
         self.arrow = arrow
         if plot_args is not None:
@@ -2925,10 +3022,12 @@ class RayCallback(PlotCallback):
                 since="4.1",
                 stacklevel=5,
             )
-            plot_args = {**def_plot_args, **plot_args, **kwargs}
-        else:
-            plot_args = {**def_plot_args, **kwargs}
-        self.plot_args = plot_args
+        self.plot_args = {
+            "color": "white",
+            "linewidth": 2,
+            **(plot_args or {}),
+            **kwargs,
+        }
 
     def _process_ray(self):
         """

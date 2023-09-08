@@ -274,8 +274,8 @@ class ProfileND(ParallelAnalysisInterface):
                 fname = self.field_map.get(field[1], None)
                 if fname != field:
                     raise KeyError(
-                        "Asked for field '{}' but only have data for "
-                        "fields '{}'".format(field, list(self.field_data.keys()))
+                        f"Asked for field '{field}' but only have data for "
+                        f"fields '{list(self.field_data.keys())}'"
                     )
             elif isinstance(field, DerivedField):
                 fname = self.field_map.get(field.name[1], None)
@@ -1491,7 +1491,10 @@ def create_profile(
             if weight_field is None:
                 temp = temp.cumsum(axis=0)
             else:
-                temp = (temp * temp_weight).cumsum(axis=0) / temp_weight.cumsum(axis=0)
+                # avoid 0-division warnings by nan-masking
+                _denom = temp_weight.cumsum(axis=0)
+                _denom[_denom == 0.0] = np.nan
+                temp = (temp * temp_weight).cumsum(axis=0) / _denom
             if acc < 0:
                 temp = temp[::-1]
                 if weight_field is not None:

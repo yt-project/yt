@@ -27,15 +27,15 @@ from .oct_visitors cimport cind
 
 
 cdef extern from "math.h":
-    double exp(double x) nogil
-    float expf(float x) nogil
-    long double expl(long double x) nogil
-    double floor(double x) nogil
-    double ceil(double x) nogil
-    double fmod(double x, double y) nogil
-    double log2(double x) nogil
-    long int lrint(double x) nogil
-    double fabs(double x) nogil
+    double exp(double x) noexcept nogil
+    float expf(float x) noexcept nogil
+    long double expl(long double x) noexcept nogil
+    double floor(double x) noexcept nogil
+    double ceil(double x) noexcept nogil
+    double fmod(double x, double y) noexcept nogil
+    double log2(double x) noexcept nogil
+    long int lrint(double x) noexcept nogil
+    double fabs(double x) noexcept nogil
 
 # use this as an epsilon test for grids aligned with selector
 # define here to avoid the gil later
@@ -43,10 +43,10 @@ cdef np.float64_t grid_eps = np.finfo(np.float64).eps
 grid_eps = 0.0
 
 cdef inline np.float64_t dot(np.float64_t* v1,
-                             np.float64_t* v2) nogil:
+                             np.float64_t* v2) noexcept nogil:
     return v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2]
 
-cdef inline np.float64_t norm(np.float64_t* v) nogil:
+cdef inline np.float64_t norm(np.float64_t* v) noexcept nogil:
     return sqrt(dot(v, v))
 
 # These routines are separated into a couple different categories:

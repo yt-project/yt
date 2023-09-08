@@ -9,7 +9,7 @@ AdaptaHOP data-file handling function
 
 from functools import partial
 from operator import attrgetter
-from typing import List, Tuple, Union
+from typing import Union
 
 import numpy as np
 
@@ -36,16 +36,11 @@ class IOHandlerAdaptaHOPBinary(BaseParticleIOHandler):
 
     def _read_particle_coords(self, chunks, ptf):
         # This will read chunks and yield the results.
-        chunks = list(chunks)
-        data_files = set()
         # Only support halo reading for now.
         assert len(ptf) == 1
         assert list(ptf.keys())[0] == "halos"
         ptype = "halos"
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
-        for data_file in sorted(data_files, key=attrgetter("filename")):
+        for data_file in self._sorted_chunk_iterator(chunks):
             pcount = (
                 data_file.ds.parameters["nhalos"] + data_file.ds.parameters["nsubs"]
             )
@@ -56,14 +51,10 @@ class IOHandlerAdaptaHOPBinary(BaseParticleIOHandler):
 
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate
-        chunks = list(chunks)
-        data_files = set()
+
         # Only support halo reading for now.
         assert len(ptf) == 1
         assert list(ptf.keys())[0] == "halos"
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
 
         def iterate_over_attributes(attr_list):
             for attr, *_ in attr_list:
@@ -76,7 +67,7 @@ class IOHandlerAdaptaHOPBinary(BaseParticleIOHandler):
 
         attr_pos = partial(_find_attr_position, halo_attributes=halo_attributes)
 
-        for data_file in sorted(data_files, key=attrgetter("filename")):
+        for data_file in self._sorted_chunk_iterator(chunks):
             pcount = (
                 data_file.ds.parameters["nhalos"] + data_file.ds.parameters["nsubs"]
             )
@@ -194,18 +185,22 @@ class IOHandlerAdaptaHOPBinary(BaseParticleIOHandler):
             members = fpu.read_attrs(todo.pop(0))["particle_identities"]
         return members
 
+    def _sorted_chunk_iterator(self, chunks):
+        data_files = self._get_data_files(chunks)
+        yield from sorted(data_files, key=attrgetter("filename"))
+
 
 def _todo_from_attributes(attributes: ATTR_T, halo_attributes: ATTR_T):
     # Helper function to generate a list of read-skip instructions given a list of
     # attributes. This is used to skip fields most of the fields when reading
     # the tree_brick files.
     iskip = 0
-    todo: List[Union[int, List[Tuple[Union[Tuple[str, ...], str], int, str]]]] = []
+    todo: list[Union[int, list[tuple[Union[tuple[str, ...], str], int, str]]]] = []
 
     attributes = tuple(set(attributes))
 
     for i, (attrs, l, k) in enumerate(halo_attributes):
-        attrs_list: Tuple[str, ...]
+        attrs_list: tuple[str, ...]
         if isinstance(attrs, tuple):
             if not all(isinstance(a, str) for a in attrs):
                 raise TypeError(f"Expected a single str or a tuple of str, got {attrs}")

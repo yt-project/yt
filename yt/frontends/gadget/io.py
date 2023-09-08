@@ -1,7 +1,6 @@
 import os
 from collections import defaultdict
 from functools import cached_property
-from typing import Tuple
 
 import numpy as np
 
@@ -38,7 +37,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
     _coord_name = "Coordinates"
 
     @cached_property
-    def var_mass(self) -> Tuple[str, ...]:
+    def var_mass(self) -> tuple[str, ...]:
         vm = []
         for i, v in enumerate(self.ds["Massarr"]):
             if v == 0:
@@ -351,7 +350,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
         super().__init__(ds, *args, **kwargs)
 
     @cached_property
-    def var_mass(self) -> Tuple[str, ...]:
+    def var_mass(self) -> tuple[str, ...]:
         vm = []
         for i, v in enumerate(self.ds["Massarr"]):
             if v == 0:

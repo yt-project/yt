@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Tuple, Union
+from typing import Union
 
 import numpy as np
 
@@ -63,7 +63,7 @@ class FieldDetector(defaultdict):
             ds.domain_left_edge = np.zeros(3, "float64")
             ds.domain_right_edge = np.ones(3, "float64")
             ds.dimensionality = 3
-            ds.force_periodicity()
+            ds.periodicity = (True, True, True)
         self.ds = ds
 
         class fake_index:
@@ -101,7 +101,7 @@ class FieldDetector(defaultdict):
             return arr
         return arr.reshape(self.ActiveDimensions, order="C")
 
-    def __missing__(self, item: Union[Tuple[str, str], str]):
+    def __missing__(self, item: Union[tuple[str, str], str]):
         from yt.fields.derived_field import NullFunc
 
         if not isinstance(item, tuple):
@@ -117,7 +117,7 @@ class FieldDetector(defaultdict):
         # types not getting correctly identified.
         # Note that the *only* way this works is if we also fix our field
         # dependencies during checking.  Bug #627 talks about this.
-        _item: Tuple[str, str] = finfo.name
+        _item: tuple[str, str] = finfo.name
         if finfo is not None and finfo._function is not NullFunc:
             try:
                 for param, param_v in permute_params.items():

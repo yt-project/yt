@@ -131,6 +131,23 @@ class RAMSESFieldInfo(FieldInfoContainer):
         ("particle_metallicity", ("", [], None)),
         ("particle_family", ("", [], None)),
         ("particle_tag", ("", [], None)),
+        # sink field parameters
+        ("particle_mass", ("code_mass", [], None)),
+        ("particle_angular_momentum_x", (ang_mom_units, [], None)),
+        ("particle_angular_momentum_y", (ang_mom_units, [], None)),
+        ("particle_angular_momentum_z", (ang_mom_units, [], None)),
+        ("particle_formation_time", ("code_time", [], None)),
+        ("particle_accretion_Rate", ("code_mass/code_time", [], None)),
+        ("particle_delta_mass", ("code_mass", [], None)),
+        ("particle_rho_gas", (rho_units, [], None)),
+        ("particle_cs**2", (vel_units, [], None)),
+        ("particle_etherm", (ener_units, [], None)),
+        ("particle_velocity_x_gas", (vel_units, [], None)),
+        ("particle_velocity_y_gas", (vel_units, [], None)),
+        ("particle_velocity_z_gas", (vel_units, [], None)),
+        ("particle_mass_bh", ("code_mass", [], None)),
+        ("particle_level", ("", [], None)),
+        ("particle_radius_star", ("code_length", [], None)),
     )
 
     known_sink_fields: KnownFieldsT = (

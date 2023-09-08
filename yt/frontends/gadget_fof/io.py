@@ -21,12 +21,7 @@ class IOHandlerGadgetFOFHDF5(BaseParticleIOHandler):
 
     def _read_particle_coords(self, chunks, ptf):
         # This will read chunks and yield the results.
-        chunks = list(chunks)
-        data_files = set()
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
-        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
+        for data_file in self._sorted_chunk_iterator(chunks):
             with h5py.File(data_file.filename, mode="r") as f:
                 for ptype in sorted(ptf):
                     coords = data_file._get_particle_positions(ptype, f=f)
@@ -71,12 +66,7 @@ class IOHandlerGadgetFOFHDF5(BaseParticleIOHandler):
 
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate
-        chunks = list(chunks)
-        data_files = set()
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
-        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
+        for data_file in self._sorted_chunk_iterator(chunks):
             si, ei = data_file.start, data_file.end
             with h5py.File(data_file.filename, mode="r") as f:
                 for ptype, field_list in sorted(ptf.items()):

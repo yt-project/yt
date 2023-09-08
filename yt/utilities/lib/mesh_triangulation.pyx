@@ -43,7 +43,7 @@ cdef struct TriNode:
     np.int64_t tri[3]
     TriNode* next_node
 
-cdef np.int64_t triangles_are_equal(np.int64_t tri1[3], np.int64_t tri2[3]) nogil:
+cdef np.int64_t triangles_are_equal(np.int64_t tri1[3], np.int64_t tri2[3]) noexcept nogil:
     cdef np.int64_t found
     for i in range(3):
         found = False
@@ -54,7 +54,7 @@ cdef np.int64_t triangles_are_equal(np.int64_t tri1[3], np.int64_t tri2[3]) nogi
             return 0
     return 1
 
-cdef np.uint64_t triangle_hash(np.int64_t tri[3]) nogil:
+cdef np.uint64_t triangle_hash(np.int64_t tri[3]) noexcept nogil:
     # http://stackoverflow.com/questions/1536393/good-hash-function-for-permutations
     cdef np.uint64_t h = 1
     for i in range(3):
@@ -126,7 +126,7 @@ cdef class TriSet:
     cdef TriNode* _allocate_new_node(self,
                                      np.int64_t tri[3],
                                      np.uint64_t key,
-                                     np.int64_t elem) nogil:
+                                     np.int64_t elem) noexcept nogil:
         cdef TriNode* new_node = <TriNode* > malloc(sizeof(TriNode))
         new_node.key = key
         new_node.elem = elem
@@ -138,7 +138,7 @@ cdef class TriSet:
         return new_node
 
     @cython.cdivision(True)
-    cdef void update(self, np.int64_t tri[3], np.int64_t elem) nogil:
+    cdef void update(self, np.int64_t tri[3], np.int64_t elem) noexcept nogil:
         cdef np.uint64_t key = triangle_hash(tri)
         cdef np.uint64_t index = key % TABLE_SIZE
         cdef TriNode *node = self.table[index]

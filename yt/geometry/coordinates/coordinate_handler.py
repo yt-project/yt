@@ -2,7 +2,7 @@ import abc
 import weakref
 from functools import cached_property
 from numbers import Number
-from typing import Optional, Tuple
+from typing import Any, Literal, Optional, overload
 
 import numpy as np
 
@@ -36,7 +36,7 @@ def _get_vert_fields(axi, units="code_length"):
     return _vert
 
 
-def _setup_dummy_cartesian_coords_and_widths(registry, axes: Tuple[str]):
+def _setup_dummy_cartesian_coords_and_widths(registry, axes: tuple[str]):
     for ax in axes:
         registry.add_field(
             ("index", f"d{ax}"), sampling_type="cell", function=_unknown_coord
@@ -146,8 +146,51 @@ class CoordinateHandler(abc.ABC):
         # This should return field definitions for x, y, z, r, theta, phi
         pass
 
+    @overload
+    def pixelize(
+        self,
+        dimension,
+        data_source,
+        field,
+        bounds,
+        size,
+        antialias=True,
+        periodic=True,
+        *,
+        return_mask: Literal[False],
+    ) -> "np.ndarray[Any, np.dtype[np.float64]]":
+        ...
+
+    @overload
+    def pixelize(
+        self,
+        dimension,
+        data_source,
+        field,
+        bounds,
+        size,
+        antialias=True,
+        periodic=True,
+        *,
+        return_mask: Literal[True],
+    ) -> tuple[
+        "np.ndarray[Any, np.dtype[np.float64]]", "np.ndarray[Any, np.dtype[np.bool_]]"
+    ]:
+        ...
+
     @abc.abstractmethod
-    def pixelize(self, dimension, data_source, field, bounds, size, antialias=True):
+    def pixelize(
+        self,
+        dimension,
+        data_source,
+        field,
+        bounds,
+        size,
+        antialias=True,
+        periodic=True,
+        *,
+        return_mask=False,
+    ):
         # This should *actually* be a pixelize call, not just returning the
         # pixelizer
         pass
@@ -313,7 +356,7 @@ def cylindrical_to_cartesian(coord, center=(0, 0, 0)):
     return c2
 
 
-def _get_polar_bounds(self: CoordinateHandler, axes: Tuple[str, str]):
+def _get_polar_bounds(self: CoordinateHandler, axes: tuple[str, str]):
     # a small helper function that is needed by two unrelated classes
     ri = self.axis_id[axes[0]]
     pi = self.axis_id[axes[1]]

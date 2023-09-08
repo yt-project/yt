@@ -30,7 +30,7 @@ from .mesh_samplers cimport sample_hex20, sample_tet10
 @cython.cdivision(True)
 cdef void patchBoundsFunc(Patch* patches,
                           size_t item,
-                          rtcg.RTCBounds* bounds_o) nogil:
+                          rtcg.RTCBounds* bounds_o) noexcept nogil:
 
     cdef Patch patch = patches[item]
 
@@ -64,7 +64,7 @@ cdef void patchBoundsFunc(Patch* patches,
 @cython.cdivision(True)
 cdef void patchIntersectFunc(Patch* patches,
                              rtcr.RTCRay& ray,
-                             size_t item) nogil:
+                             size_t item) noexcept nogil:
 
     cdef Patch patch = patches[item]
 
@@ -93,7 +93,7 @@ cdef void patchIntersectFunc(Patch* patches,
 @cython.cdivision(True)
 cdef void tet_patchBoundsFunc(Tet_Patch* tet_patches,
                           size_t item,
-                          rtcg.RTCBounds* bounds_o) nogil:
+                          rtcg.RTCBounds* bounds_o) noexcept nogil:
 
     cdef Tet_Patch tet_patch = tet_patches[item]
 
@@ -127,7 +127,7 @@ cdef void tet_patchBoundsFunc(Tet_Patch* tet_patches,
 @cython.cdivision(True)
 cdef void tet_patchIntersectFunc(Tet_Patch* tet_patches,
                              rtcr.RTCRay& ray,
-                             size_t item) nogil:
+                             size_t item) noexcept nogil:
 
     cdef Tet_Patch tet_patch = tet_patches[item]
 

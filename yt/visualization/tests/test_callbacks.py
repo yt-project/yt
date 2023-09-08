@@ -141,7 +141,6 @@ def test_timestamp_callback():
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields=("density",), units=("g/cm**3",), geometry="spherical")
         p = ProjectionPlot(ds, "r", ("gas", "density"))
-        assert_raises(YTDataTypeUnsupported, p.annotate_timestamp, coord_system="data")
         p.annotate_timestamp(coord_system="axis")
         assert_fname(p.save(prefix)[0])
 
@@ -914,17 +913,20 @@ def test_streamline_callback():
             p.annotate_streamlines(
                 ("gas", "velocity_x"),
                 ("gas", "velocity_y"),
-                field_color=("stream", "magvel"),
+                color=("stream", "magvel"),
             )
             assert_fname(p.save(prefix)[0])
             check_axis_manipulation(p, prefix)
 
+            # a more thorough example involving many keyword arguments
             p = SlicePlot(ds, ax, ("gas", "density"))
             p.annotate_streamlines(
                 ("gas", "velocity_x"),
                 ("gas", "velocity_y"),
-                field_color=("stream", "magvel"),
-                display_threshold=0.5,
+                linewidth=("gas", "density"),
+                linewidth_upscaling=3,
+                color=("stream", "magvel"),
+                color_threshold=0.5,
                 cmap="viridis",
                 arrowstyle="->",
             )

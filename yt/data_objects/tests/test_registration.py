@@ -5,6 +5,8 @@ from yt.utilities.object_registries import output_type_registry
 
 
 def test_reregistration_warning():
+    from yt.frontends import enzo  # noqa
+
     true_EnzoDataset = output_type_registry["EnzoDataset"]
     try:
         with pytest.warns(

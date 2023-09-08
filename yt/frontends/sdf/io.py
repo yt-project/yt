@@ -15,13 +15,9 @@ class IOHandlerSDF(BaseParticleIOHandler):
         raise NotImplementedError
 
     def _read_particle_coords(self, chunks, ptf):
-        chunks = list(chunks)
-        data_files = set()
         assert len(ptf) == 1
         assert ptf.keys()[0] == "dark_matter"
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
+        data_files = self._get_data_files(chunks)
         assert len(data_files) == 1
         for _data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             yield "dark_matter", (
@@ -31,13 +27,9 @@ class IOHandlerSDF(BaseParticleIOHandler):
             ), 0.0
 
     def _read_particle_fields(self, chunks, ptf, selector):
-        chunks = list(chunks)
-        data_files = set()
         assert len(ptf) == 1
         assert ptf.keys()[0] == "dark_matter"
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
+        data_files = self._get_data_files(chunks)
         assert len(data_files) == 1
         for _data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             for ptype, field_list in sorted(ptf.items()):

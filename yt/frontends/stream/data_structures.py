@@ -6,7 +6,7 @@ from collections import UserDict
 from functools import cached_property
 from itertools import chain, product, repeat
 from numbers import Number as numeric_type
-from typing import Optional, Tuple, Type
+from typing import Optional
 
 import numpy as np
 from more_itertools import always_iterable
@@ -321,7 +321,7 @@ class StreamHierarchy(GridIndex):
 
 
 class StreamDataset(Dataset):
-    _index_class: Type[Index] = StreamHierarchy
+    _index_class: type[Index] = StreamHierarchy
     _field_info_class = StreamFieldInfo
     _dataset_type = "stream"
 
@@ -462,7 +462,7 @@ class StreamDataset(Dataset):
 
 
 class StreamDictFieldHandler(UserDict):
-    _additional_fields: Tuple[FieldKey, ...] = ()
+    _additional_fields: tuple[FieldKey, ...] = ()
 
     @property
     def all_fields(self):
@@ -866,6 +866,8 @@ class StreamOctreeHandler(OctreeIndex):
             "partial_coverage": self.ds.partial_coverage,
         }
         self.oct_handler = OctreeContainer.load_octree(header)
+        # We do now need to get the maximum level set, as well.
+        self.ds.max_level = self.oct_handler.max_level
 
     def _identify_base_chunk(self, dobj):
         if getattr(dobj, "_chunk_info", None) is None:
