@@ -603,7 +603,15 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         ax.set_xlabel("Value")
 
     def vert_cbar(
-        self, resolution, log_scale, ax, label=None, label_fmt=None, *, size=10
+        self,
+        resolution,
+        log_scale,
+        ax,
+        label=None,
+        label_fmt=None,
+        *,
+        label_fontsize=10,
+        size=10,
     ):
         r"""Display an image of the transfer function
 
@@ -684,7 +692,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         ax.set_xlim(0.0, max_alpha)
         ax.get_xaxis().set_ticks([])
         ax.set_ylim(visible[0].item(), visible[-1].item())
-        ax.tick_params(axis="y", colors="white", size=10)
+        ax.tick_params(axis="y", colors="white", labelsize=label_fontsize)
         ax.set_ylabel(label, color="white", size=size * resolution / 512.0)
 
     def sample_colormap(self, v, w, alpha=None, colormap="gist_stern", col_bounds=None):
