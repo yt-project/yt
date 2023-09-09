@@ -76,6 +76,9 @@ class SkeletonDataset(Dataset):
     _index_class = SkeletonHierarchy
     _field_info_class = SkeletonFieldInfo
 
+    # names of additional modules that may be required to load data from disk
+    _load_requirements: list[str] = []
+
     def __init__(
         self,
         filename,
@@ -160,7 +163,7 @@ class SkeletonDataset(Dataset):
         self.cosmological_simulation = 0
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
         # This accepts a filename or a set of arguments and returns True or
         # False depending on if the file is of the type requested.
         #

@@ -48,6 +48,7 @@ class MoabHex8Hierarchy(UnstructuredIndex):
 
 
 class MoabHex8Dataset(Dataset):
+    _load_requirements = ["h5py"]
     _index_class = MoabHex8Hierarchy
     _field_info_class = MoabFieldInfo
     periodicity = (False, False, False)
@@ -96,8 +97,8 @@ class MoabHex8Dataset(Dataset):
         self.cosmological_simulation = 0
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
-        return filename.endswith(".h5m")
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
+        return filename.endswith(".h5m") and not cls._missing_load_requirements()
 
     def __str__(self):
         return self.basename.rsplit(".", 1)[0]
@@ -204,7 +205,7 @@ class PyneMoabHex8Dataset(Dataset):
         self.cosmological_simulation = 0
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
         return False
 
     def __str__(self):

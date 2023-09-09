@@ -5,7 +5,7 @@ from yt.data_objects.static_output import Dataset
 from yt.data_objects.unions import MeshUnion
 from yt.funcs import setdefaultattr
 from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
-from yt.utilities.file_handler import NetCDF4FileHandler, warn_netcdf
+from yt.utilities.file_handler import NetCDF4FileHandler, valid_netcdf_signature
 from yt.utilities.logger import ytLogger as mylog
 
 from .fields import ExodusIIFieldInfo
@@ -46,6 +46,7 @@ class ExodusIIUnstructuredIndex(UnstructuredIndex):
 
 
 class ExodusIIDataset(Dataset):
+    _load_requirements = ["netCDF4"]
     _index_class = ExodusIIUnstructuredIndex
     _field_info_class = ExodusIIFieldInfo
 
@@ -399,8 +400,13 @@ class ExodusIIDataset(Dataset):
         return mi, ma
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
-        warn_netcdf(filename)
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
+        if not valid_netcdf_signature(filename):
+            return False
+
+        if cls._missing_load_requirements():
+            return False
+
         try:
             from netCDF4 import Dataset
 
@@ -410,4 +416,4 @@ class ExodusIIDataset(Dataset):
                 f.variables["connect1"]
             return True
         except Exception:
-            pass
+            return False

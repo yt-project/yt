@@ -314,6 +314,7 @@ def check_sky_coords(filename, ndim):
 
 
 class FITSDataset(Dataset):
+    _load_requirements = ["astropy"]
     _index_class = FITSHierarchy
     _field_info_class: type[FieldInfoContainer] = FITSFieldInfo
     _dataset_type = "fits"
@@ -539,7 +540,10 @@ class FITSDataset(Dataset):
         self.lon_name = "X"
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
+        if cls._missing_load_requirements():
+            return False
+
         try:
             fileh = check_fits_valid(filename)
         except Exception:
@@ -577,6 +581,7 @@ def find_axes(axis_names, prefixes):
 
 
 class YTFITSDataset(FITSDataset):
+    _load_requirements = ["astropy"]
     _field_info_class = YTFITSFieldInfo
 
     def _parse_parameter_file(self):
@@ -641,7 +646,10 @@ class YTFITSDataset(FITSDataset):
         self.domain_right_edge = domain_right_edge
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
+        if cls._missing_load_requirements():
+            return False
+
         try:
             fileh = check_fits_valid(filename)
         except Exception:
@@ -659,6 +667,7 @@ class YTFITSDataset(FITSDataset):
 
 
 class SkyDataFITSDataset(FITSDataset):
+    _load_requirements = ["astropy"]
     _field_info_class = WCSFITSFieldInfo
 
     def _determine_wcs(self):
@@ -718,7 +727,10 @@ class SkyDataFITSDataset(FITSDataset):
             self.unit_registry.add("beam", beam_size, dimensions=dimensions.solid_angle)
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
+        if cls._missing_load_requirements():
+            return False
+
         try:
             return check_sky_coords(filename, ndim=2)
         except Exception:
@@ -745,6 +757,7 @@ class SpectralCubeFITSHierarchy(FITSHierarchy):
 
 
 class SpectralCubeFITSDataset(SkyDataFITSDataset):
+    _load_requirements = ["astropy"]
     _index_class = SpectralCubeFITSHierarchy
 
     def __init__(
@@ -831,7 +844,10 @@ class SpectralCubeFITSDataset(SkyDataFITSDataset):
         return self.arr((pv.v - self._p0) * self._dz + self._z0, self.spec_unit)
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
+        if cls._missing_load_requirements():
+            return False
+
         try:
             return check_sky_coords(filename, ndim=3)
         except Exception:
@@ -864,6 +880,7 @@ class EventsFITSHierarchy(FITSHierarchy):
 
 
 class EventsFITSDataset(SkyDataFITSDataset):
+    _load_requirements = ["astropy"]
     _index_class = EventsFITSHierarchy
 
     def __init__(
@@ -933,7 +950,10 @@ class EventsFITSDataset(SkyDataFITSDataset):
         self.wcs_2d = self.wcs
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
+        if cls._missing_load_requirements():
+            return False
+
         try:
             fileh = check_fits_valid(filename)
         except Exception:

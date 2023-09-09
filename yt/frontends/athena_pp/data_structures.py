@@ -254,13 +254,8 @@ class AthenaPPDataset(Dataset):
         )
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
-        try:
-            if filename.endswith(".athdf"):
-                return True
-        except Exception:
-            pass
-        return False
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
+        return filename.endswith(".athdf")
 
     @property
     def _skip_cache(self):

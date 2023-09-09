@@ -10,6 +10,7 @@ from .fields import EagleNetworkFieldInfo
 
 
 class EagleDataset(GadgetHDF5Dataset):
+    _load_requirements = ["h5py"]
     _particle_mass_name = "Mass"
     _field_info_class: type[FieldInfoContainer] = OWLSFieldInfo
     _time_readin_ = "Time"
@@ -36,7 +37,10 @@ class EagleDataset(GadgetHDF5Dataset):
         self._set_owls_eagle_units()
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
+        if cls._missing_load_requirements():
+            return False
+
         need_groups = [
             "Config",
             "Constants",
@@ -68,12 +72,16 @@ class EagleDataset(GadgetHDF5Dataset):
 
 
 class EagleNetworkDataset(EagleDataset):
+    _load_requirements = ["h5py"]
     _particle_mass_name = "Mass"
     _field_info_class = EagleNetworkFieldInfo
     _time_readin = "Time"
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
+        if cls._missing_load_requirements():
+            return False
+
         try:
             fileh = h5py.File(filename, mode="r")
             if (

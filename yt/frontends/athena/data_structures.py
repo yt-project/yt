@@ -630,7 +630,7 @@ class AthenaDataset(Dataset):
         )
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
         if not filename.endswith(".vtk"):
             return False
 

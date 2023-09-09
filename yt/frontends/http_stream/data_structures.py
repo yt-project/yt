@@ -15,6 +15,7 @@ class HTTPParticleFile(ParticleFile):
 
 
 class HTTPStreamDataset(ParticleDataset):
+    _load_requirements = ["requests"]
     _index_class = ParticleIndex
     _file_class = HTTPParticleFile
     _field_info_class = SPHFieldInfo
@@ -95,11 +96,11 @@ class HTTPStreamDataset(ParticleDataset):
         self.conversion_factors["density"] = density_unit
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
         if not filename.startswith("http://"):
             return False
-        try:
-            return requests.get(filename + "/yt_index.json").status_code == 200
-        except ImportError:
-            # requests is not installed
+
+        if cls._missing_load_requirements():
             return False
+
+        return requests.get(filename + "/yt_index.json").status_code == 200
