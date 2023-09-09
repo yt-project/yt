@@ -325,6 +325,31 @@ def parallel_blocking_call(func):
     return barrierize
 
 
+def parallel_root_only_then_broadcast(func):
+    """
+    This decorator blocks and calls the function on the root processor and then
+    broadcasts the results to the other processors.
+    """
+
+    @wraps(func)
+    def root_only(*args, **kwargs):
+        if not parallel_capable:
+            return func(*args, **kwargs)
+        comm = _get_comm(args)
+        rv0 = None
+        if comm.rank == 0:
+            try:
+                rv0 = func(*args, **kwargs)
+            except Exception:
+                traceback.print_last()
+        rv = comm.mpi_bcast(rv0)
+        if not rv:
+            raise RuntimeError
+        return rv
+
+    return root_only
+
+
 def parallel_root_only(func):
     """
     This decorator blocks and calls the function on the root processor,

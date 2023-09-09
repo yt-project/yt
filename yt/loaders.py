@@ -39,6 +39,9 @@ from yt.utilities.object_registries import (
     simulation_time_series_registry,
 )
 from yt.utilities.on_demand_imports import _pooch as pooch, _ratarmount as ratarmount
+from yt.utilities.parallel_tools.parallel_analysis_interface import (
+    parallel_root_only_then_broadcast,
+)
 
 if TYPE_CHECKING:
     from multiprocessing.connection import Connection
@@ -1460,52 +1463,16 @@ def load_unstructured_mesh(
 
 
 # --- Loader for yt sample datasets ---
-def load_sample(
+@parallel_root_only_then_broadcast
+def _get_sample_data(
     fn: Optional[str] = None, *, progressbar: bool = True, timeout=None, **kwargs
 ):
-    r"""
-    Load sample data with yt.
-
-    This is a simple wrapper around :func:`~yt.loaders.load` to include fetching
-    data with pooch from remote source.
-
-    The data registry table can be retrieved and visualized using
-    :func:`~yt.sample_data.api.get_data_registry_table`.
-    The `filename` column contains usable keys that can be passed
-    as the first positional argument to load_sample.
-    Some data samples contain series of datasets. It may be required to
-    supply the relative path to a specific dataset.
-
-    Parameters
-    ----------
-
-    fn: str
-        The `filename` of the dataset to load, as defined in the data registry
-        table.
-
-    progressbar: bool
-        display a progress bar (tqdm).
-
-    timeout: float or int (optional)
-        Maximal waiting time, in seconds, after which download is aborted.
-        `None` means "no limit". This parameter is directly passed to down to
-        requests.get via pooch.HTTPDownloader
-
-    Notes
-    -----
-
-    - This function is experimental as of yt 4.0.0, do not rely on its exact behaviour.
-    - Any additional keyword argument is passed down to :func:`~yt.loaders.load`.
-    - In case of collision with predefined keyword arguments as set in
-      the data registry, the ones passed to this function take priority.
-    - Datasets with slashes '/' in their names can safely be used even on Windows.
-      On the contrary, paths using backslashes '\' won't work outside of Windows, so
-      it is recommended to favour the UNIX convention ('/') in scripts that are meant
-      to be cross-platform.
-    - This function requires pandas and pooch.
-    - Corresponding sample data live at https://yt-project.org/data
-
-    """
+    # this isolates all the filename management and downloading so that it
+    # can be restricted to a single process if running in parallel. Returns
+    # the loadable_path as well as the kwargs dictionary, which is modified
+    # by this function (note that the kwargs are returned explicitly rather than
+    # relying on in-place modification so that the updated kwargs can be
+    # broadcast to other processes during parallel execution).
     import tarfile
 
     if fn is None:
@@ -1568,8 +1535,7 @@ def load_sample(
             "Please report this to https://github.com/yt-project/yt/issues/new"
         )
 
-    kwargs = {**specs["load_kwargs"], **kwargs}
-
+    load_kwargs = {**specs["load_kwargs"], **kwargs}
     save_dir = _get_test_data_dir_path()
 
     data_path = save_dir.joinpath(fn)
@@ -1581,7 +1547,7 @@ def load_sample(
         mylog.info("Sample dataset found in '%s'", data_path)
         if timeout is not None:
             mylog.info("Ignoring the `timeout` keyword argument received.")
-        return load(data_path, **kwargs)
+        return data_path, load_kwargs
 
     mylog.info("'%s' is not available locally. Looking up online.", fn)
 
@@ -1636,7 +1602,59 @@ def load_sample(
         # cache dir isn't empty
         pass
 
-    return load(loadable_path, **kwargs)
+    return loadable_path, load_kwargs
+
+
+def load_sample(
+    fn: Optional[str] = None, *, progressbar: bool = True, timeout=None, **kwargs
+):
+    r"""
+    Load sample data with yt.
+
+    This is a simple wrapper around :func:`~yt.loaders.load` to include fetching
+    data with pooch from remote source.
+
+    The data registry table can be retrieved and visualized using
+    :func:`~yt.sample_data.api.get_data_registry_table`.
+    The `filename` column contains usable keys that can be passed
+    as the first positional argument to load_sample.
+    Some data samples contain series of datasets. It may be required to
+    supply the relative path to a specific dataset.
+
+    Parameters
+    ----------
+
+    fn: str
+        The `filename` of the dataset to load, as defined in the data registry
+        table.
+
+    progressbar: bool
+        display a progress bar (tqdm).
+
+    timeout: float or int (optional)
+        Maximal waiting time, in seconds, after which download is aborted.
+        `None` means "no limit". This parameter is directly passed to down to
+        requests.get via pooch.HTTPDownloader
+
+    Notes
+    -----
+
+    - This function is experimental as of yt 4.0.0, do not rely on its exact behaviour.
+    - Any additional keyword argument is passed down to :func:`~yt.loaders.load`.
+    - In case of collision with predefined keyword arguments as set in
+      the data registry, the ones passed to this function take priority.
+    - Datasets with slashes '/' in their names can safely be used even on Windows.
+      On the contrary, paths using backslashes '\' won't work outside of Windows, so
+      it is recommended to favour the UNIX convention ('/') in scripts that are meant
+      to be cross-platform.
+    - This function requires pandas and pooch.
+    - Corresponding sample data live at https://yt-project.org/data
+
+    """
+    loadable_path, load_kwargs = _get_sample_data(
+        fn, progressbar=progressbar, timeout=timeout, **kwargs
+    )
+    return load(loadable_path, **load_kwargs)
 
 
 def _mount_helper(
