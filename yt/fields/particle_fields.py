@@ -48,6 +48,7 @@ sph_whitelist_fields = (
     "Al_fraction",
     "Ar_fraction",
     "Ni_fraction",
+    "Ej_fraction",
     "H_density",
     "He_density",
     "C_density",
@@ -63,6 +64,7 @@ sph_whitelist_fields = (
     "Al_density",
     "Ar_density",
     "Ni_density",
+    "Ej_density",
 )
 
 
