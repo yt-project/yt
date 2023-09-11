@@ -189,19 +189,17 @@ full = [
 
 # dev-only extra targets
 doc = [
-    "alabaster",
-    "bottle",
+    "alabaster>=0.7.13",
+    "bottle>=0.12.25",
     "jinja2<3.1.0", # see https://github.com/readthedocs/readthedocs.org/issues/9037
-    "jupyter-client<7.0",
-    "nbconvert==5.6.1",
-    "nose==1.3.7",
+    "jupyter-client>=8.3.1",
+    "nbsphinx>=0.9.3",
+    "nose~=1.3.7; python_version < '3.10'",
     "pytest>=6.1",
     "pyx>=0.15",
-    "runnotebook",
-    "scipy<=1.7.1", # see https://github.com/yt-project/yt/issues/3966 and https://github.com/scipy/scipy/issues/16602
-    "sphinx==3.5.4",
-    "sphinx-bootstrap-theme",
-    "sphinx-rtd-theme",
+    "sphinx>=7.2.5",
+    "sphinx-bootstrap-theme>=0.8.1",
+    "sphinx-rtd-theme>=1.3.0",
 ]
 mapserver = [
     "bottle",
