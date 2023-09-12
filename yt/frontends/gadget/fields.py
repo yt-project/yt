@@ -1,6 +1,7 @@
 from functools import partial
 
 from yt.fields.particle_fields import sph_whitelist_fields
+from yt.frontends.gadget.definitions import elem_names_opts
 from yt.frontends.sph.fields import SPHFieldInfo
 from yt.utilities.periodic_table import periodic_table
 from yt.utilities.physical_constants import kb, mp
@@ -44,7 +45,7 @@ class GadgetFieldInfo(SPHFieldInfo):
         This gets used with the Gadget group0000 format
         as defined in the gadget_field_specs in frontends/gadget/definitions.py
         """
-        metal_names = ["C", "O", "Si", "Fe"]
+        metal_names = elem_names_opts[4]
 
         def _fraction(field, data, i: int):
             return data[(ptype, "FourMetalFractions")][:, i]
@@ -94,7 +95,7 @@ class GadgetFieldInfo(SPHFieldInfo):
                 )
                 return 1.0 - ret
 
-            elem_names = ["He", "C", "Ca", "O", "N", "Ne", "Mg", "S", "Si", "Fe", "Ej"]
+            elem_names = elem_names_opts[11]
 
         elif fname == "MetalMasses":
             n_elem = len(
@@ -104,28 +105,7 @@ class GadgetFieldInfo(SPHFieldInfo):
                     if fd[0] == ptype and fd[1].startswith("MetalMasses")
                 ]
             )
-            elem_names = {
-                7: ["C", "N", "O", "Mg", "Si", "Fe", "Ej"],
-                8: ["He", "C", "O", "Mg", "S", "Si", "Fe", "Ej"],
-                11: ["He", "C", "Ca", "O", "N", "Ne", "Mg", "S", "Si", "Fe", "Ej"],
-                15: [
-                    "He",
-                    "C",
-                    "Ca",
-                    "O",
-                    "N",
-                    "Ne",
-                    "Mg",
-                    "S",
-                    "Si",
-                    "Fe",
-                    "Na",
-                    "Al",
-                    "Ar",
-                    "Ni",
-                    "Ej",
-                ],
-            }[n_elem]
+            elem_names = elem_names_opts[n_elem]
             no_He = "He" not in elem_names
 
             def _fraction(field, data, i: int):
