@@ -103,7 +103,7 @@ cdef class ElementSampler:
         cdef np.ndarray[np.float64_t, ndim=2] mapped_coords
         cdef np.ndarray[np.uint8_t, ndim=1] mask
         mapped_coords = self.map_reals_to_unit(vertices, positions)
-        mask = np.zeros(mapped_coords.shape[0], dtype=np.uint8) 
+        mask = np.zeros(mapped_coords.shape[0], dtype=np.uint8)
         cdef double[3] mapped_coord
         cdef int i, j
         for i in range(mapped_coords.shape[0]):
