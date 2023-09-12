@@ -24,6 +24,7 @@ class SDFFile(ParticleFile):
 
 
 class SDFDataset(ParticleDataset):
+    _load_requirements = ["requests"]
     _index_class = ParticleIndex
     _file_class = SDFFile
     _field_info_class = SDFFieldInfo
@@ -170,14 +171,14 @@ class SDFDataset(ParticleDataset):
         setdefaultattr(self, "mass_unit", self.quan(float(factor), unit))
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
+        if cls._missing_load_requirements():
+            return False
+
         sdf_header = kwargs.get("sdf_header", filename)
         if sdf_header.startswith("http"):
-            try:
-                hreq = requests.get(sdf_header, stream=True)
-            except ImportError:
-                # requests is not installed
-                return False
+            hreq = requests.get(sdf_header, stream=True)
+
             if hreq.status_code != 200:
                 return False
             # Grab a whole 4k page.

@@ -531,11 +531,8 @@ class GadgetDataset(SPHDataset):
         self.magnetic_unit = self.quan(*magnetic_unit)
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
-        if "header_spec" in kwargs:
-            header_spec = kwargs["header_spec"]
-        else:
-            header_spec = "default"
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
+        header_spec = kwargs.get("header_spec", "default")
         # Check to see if passed filename is a directory. If so, use it to get
         # the .0 snapshot file. Make sure there's only one such file, otherwise
         # there's an ambiguity about which file the user wants. Ignore ewah files
@@ -562,6 +559,7 @@ class GadgetHDF5File(ParticleFile):
 
 
 class GadgetHDF5Dataset(GadgetDataset):
+    _load_requirements = ["h5py"]
     _file_class = GadgetHDF5File
     _index_class = SPHParticleIndex
     _field_info_class: type[FieldInfoContainer] = GadgetFieldInfo
@@ -691,7 +689,10 @@ class GadgetHDF5Dataset(GadgetDataset):
         self.specific_energy_unit = self.quan(specific_energy_unit_cgs, "(cm/s)**2")
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
+        if cls._missing_load_requirements():
+            return False
+
         need_groups = ["Header"]
         veto_groups = ["FOF", "Group", "Subhalo"]
         valid = True
@@ -709,7 +710,7 @@ class GadgetHDF5Dataset(GadgetDataset):
             fh = h5py.File(filename, mode="r")
             valid = fh["Header"].attrs["Code"].decode("utf-8") != "SWIFT"
             fh.close()
-        except (OSError, KeyError, ImportError):
+        except (OSError, KeyError):
             pass
 
         return valid

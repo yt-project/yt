@@ -9,6 +9,7 @@ from .fields import OWLSFieldInfo
 
 
 class OWLSDataset(GadgetHDF5Dataset):
+    _load_requirements = ["h5py"]
     _particle_mass_name = "Mass"
     _field_info_class = OWLSFieldInfo
     _time_readin = "Time_GYR"
@@ -30,7 +31,10 @@ class OWLSDataset(GadgetHDF5Dataset):
         self._set_owls_eagle_units()
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
+        if cls._missing_load_requirements():
+            return False
+
         need_groups = ["Constants", "Header", "Parameters", "Units"]
         veto_groups = [
             "SUBFIND",
@@ -71,5 +75,4 @@ class OWLSDataset(GadgetHDF5Dataset):
             fileh.close()
         except Exception:
             valid = False
-            pass
         return valid

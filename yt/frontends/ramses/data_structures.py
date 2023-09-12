@@ -693,6 +693,7 @@ class RAMSESIndex(OctreeIndex):
 
 
 class RAMSESDataset(Dataset):
+    _load_requirements = ["f90nml"]
     _index_class = RAMSESIndex
     _field_info_class = RAMSESFieldInfo
     gamma = 1.4  # This will get replaced on hydro_fn open
@@ -1036,5 +1037,8 @@ class RAMSESDataset(Dataset):
             self.parameters["namelist"] = nml
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
+        if cls._missing_load_requirements():
+            return False
+
         return RAMSESFileSanitizer(filename).is_valid

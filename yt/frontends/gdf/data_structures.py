@@ -148,6 +148,7 @@ class GDFHierarchy(GridIndex):
 
 
 class GDFDataset(Dataset):
+    _load_requirements = ["h5py"]
     _index_class = GDFHierarchy
     _field_info_class = GDFFieldInfo
 
@@ -284,7 +285,10 @@ class GDFDataset(Dataset):
         del self._handle
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
+        if cls._missing_load_requirements():
+            return False
+
         try:
             fileh = h5py.File(filename, mode="r")
             if "gridded_data_format" in fileh:

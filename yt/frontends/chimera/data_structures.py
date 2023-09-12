@@ -195,6 +195,7 @@ class ChimeraUNSIndex(UnstructuredIndex):
 
 
 class ChimeraDataset(Dataset):
+    _load_requirements = ["h5py"]
     _index_class = ChimeraUNSIndex  # ChimeraHierarchy
     _field_info_class = ChimeraFieldInfo
 
@@ -267,17 +268,20 @@ class ChimeraDataset(Dataset):
         self.cosmological_simulation = 0  # Chimera is not a cosmological simulation
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
         # This accepts a filename or a set of arguments and returns True or
         # False depending on if the file is of the type requested.
+        if cls._missing_load_requirements():
+            return False
+
         try:
-            fileh = HDF5FileHandler(args[0])
+            fileh = HDF5FileHandler(filename)
             if (
                 "fluid" in fileh
                 and "agr_c" in fileh["fluid"].keys()
                 and "grav_x_c" in fileh["fluid"].keys()
             ):
                 return True  # Numpy bless
-        except (OSError, ImportError):
+        except OSError:
             pass
         return False

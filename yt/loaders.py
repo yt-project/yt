@@ -45,9 +45,11 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import (
 
 if TYPE_CHECKING:
     from multiprocessing.connection import Connection
+
 # --- Loaders for known data formats ---
 
 
+# FUTURE: embedded warnings need to have their stacklevel decremented when this decorator is removed
 @future_positional_only({0: "fn"}, since="4.2")
 def load(
     fn: Union[str, "os.PathLike[str]"], *args, hint: Optional[str] = None, **kwargs
@@ -95,6 +97,7 @@ def load(
 
     from yt.frontends import _all  # type: ignore [attr-defined] # noqa
 
+    _input_fn = fn
     fn = os.path.expanduser(fn)
 
     if any(wildcard in fn for wildcard in "[]?!*"):
@@ -116,7 +119,7 @@ def load(
     for entrypoint in external_frontends:
         entrypoint.load()
 
-    candidates = []
+    candidates: list[type["Dataset"]] = []
     for cls in output_type_registry.values():
         if cls._is_valid(fn, *args, **kwargs):
             candidates.append(cls)
@@ -129,12 +132,21 @@ def load(
     candidates = find_lowest_subclasses(candidates)
 
     if len(candidates) == 1:
-        return candidates[0](fn, *args, **kwargs)
+        cls = candidates[0]
+        if missing := cls._missing_load_requirements():
+            warnings.warn(
+                f"This dataset appears to be of type {cls.__name__}, "
+                "but the following requirements are currently missing: "
+                f"{', '.join(missing)}\n"
+                "Please verify your installation.",
+                stacklevel=3,
+            )
+        return cls(fn, *args, **kwargs)
 
     if len(candidates) > 1:
-        raise YTAmbiguousDataType(fn, candidates)
+        raise YTAmbiguousDataType(_input_fn, candidates)
 
-    raise YTUnidentifiedDataType(fn, *args, **kwargs)
+    raise YTUnidentifiedDataType(_input_fn, *args, **kwargs)
 
 
 def load_simulation(fn, simulation_type, find_outputs=False):

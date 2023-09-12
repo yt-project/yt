@@ -137,6 +137,7 @@ class GadgetFOFHDF5File(HaloCatalogFile):
 
 
 class GadgetFOFDataset(ParticleDataset):
+    _load_requirements = ["h5py"]
     _index_class = GadgetFOFParticleIndex
     _file_class = GadgetFOFHDF5File
     _field_info_class = GadgetFOFFieldInfo
@@ -291,7 +292,10 @@ class GadgetFOFDataset(ParticleDataset):
         return self.basename.split(".", 1)[0]
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
+        if cls._missing_load_requirements():
+            return False
+
         need_groups = ["Group", "Header", "Subhalo"]
         veto_groups = ["FOF"]
         valid = True
@@ -430,7 +434,7 @@ class GadgetFOFHaloDataset(HaloDataset):
         super().__init__(ds, dataset_type)
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
         # This class is not meant to be instantiated by yt.load()
         return False
 

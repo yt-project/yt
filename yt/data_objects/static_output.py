@@ -161,6 +161,7 @@ def requires_index(attr_name):
 
 
 class Dataset(abc.ABC):
+    _load_requirements: list[str] = []
     default_fluid_type = "gas"
     default_field = ("gas", "density")
     fluid_types: tuple[FieldType, ...] = ("gas", "deposit", "index")
@@ -377,10 +378,17 @@ class Dataset(abc.ABC):
             raise TypeError("force_periodicity expected a boolean.")
         self._force_periodicity = val
 
+    @classmethod
+    def _missing_load_requirements(cls) -> list[str]:
+        # return a list of optional dependencies that are
+        # needed for the present class to function, but currently missing.
+        # returning an empty list means that all requirements are met
+        return [name for name in cls._load_requirements if not find_spec(name)]
+
     # abstract methods require implementation in subclasses
     @classmethod
     @abc.abstractmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
         # A heuristic test to determine if the data format can be interpreted
         # with the present frontend
         return False

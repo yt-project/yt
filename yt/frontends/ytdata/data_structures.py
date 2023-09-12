@@ -236,6 +236,7 @@ class YTDataHDF5File(ParticleFile):
 class YTDataContainerDataset(YTDataset):
     """Dataset for saved geometric data containers."""
 
+    _load_requirements = ["h5py"]
     _index_class = ParticleIndex
     _file_class = YTDataHDF5File
     _field_info_class: type[FieldInfoContainer] = YTDataContainerFieldInfo
@@ -299,9 +300,13 @@ class YTDataContainerDataset(YTDataset):
         return my_obj(*my_args)
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
         if not filename.endswith(".h5"):
             return False
+
+        if cls._missing_load_requirements():
+            return False
+
         with h5py.File(filename, mode="r") as f:
             data_type = parse_h5_attr(f, "data_type")
             cont_type = parse_h5_attr(f, "container_type")
@@ -317,6 +322,8 @@ class YTDataContainerDataset(YTDataset):
 
 class YTDataLightRayDataset(YTDataContainerDataset):
     """Dataset for saved LightRay objects."""
+
+    _load_requirements = ["h5py"]
 
     def _parse_parameter_file(self):
         super()._parse_parameter_file()
@@ -346,9 +353,13 @@ class YTDataLightRayDataset(YTDataContainerDataset):
                 self.light_ray_solution[i][field_name] = self.parameters[field][i]
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
         if not filename.endswith(".h5"):
             return False
+
+        if cls._missing_load_requirements():
+            return False
+
         with h5py.File(filename, mode="r") as f:
             data_type = parse_h5_attr(f, "data_type")
             if data_type in ["yt_light_ray"]:
@@ -359,6 +370,7 @@ class YTDataLightRayDataset(YTDataContainerDataset):
 class YTSpatialPlotDataset(YTDataContainerDataset):
     """Dataset for saved slices and projections."""
 
+    _load_requirements = ["h5py"]
     _field_info_class = YTGridFieldInfo
 
     def __init__(self, *args, **kwargs):
@@ -376,9 +388,13 @@ class YTSpatialPlotDataset(YTDataContainerDataset):
                 self.parameters["weight_field"] = tuple(self.parameters["weight_field"])
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
         if not filename.endswith(".h5"):
             return False
+
+        if cls._missing_load_requirements():
+            return False
+
         with h5py.File(filename, mode="r") as f:
             data_type = parse_h5_attr(f, "data_type")
             cont_type = parse_h5_attr(f, "container_type")
@@ -479,6 +495,7 @@ class YTGridHierarchy(YTDataHierarchy):
 class YTGridDataset(YTDataset):
     """Dataset for saved covering grids, arbitrary grids, and FRBs."""
 
+    _load_requirements = ["h5py"]
     _index_class: type[Index] = YTGridHierarchy
     _field_info_class = YTGridFieldInfo
     _dataset_type = "ytgridhdf5"
@@ -550,9 +567,13 @@ class YTGridDataset(YTDataset):
                 self.field_info.alias(("gas", field), ("grid", field))
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
         if not filename.endswith(".h5"):
             return False
+
+        if cls._missing_load_requirements():
+            return False
+
         with h5py.File(filename, mode="r") as f:
             data_type = parse_h5_attr(f, "data_type")
             cont_type = parse_h5_attr(f, "container_type")
@@ -711,6 +732,7 @@ class YTNonspatialHierarchy(YTDataHierarchy):
 class YTNonspatialDataset(YTGridDataset):
     """Dataset for general array data."""
 
+    _load_requirements = ["h5py"]
     _index_class = YTNonspatialHierarchy
     _field_info_class = YTGridFieldInfo
     _dataset_type = "ytnonspatialhdf5"
@@ -766,9 +788,13 @@ class YTNonspatialDataset(YTGridDataset):
         mylog.warning("Geometric data selection not available for this dataset type.")
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
         if not filename.endswith(".h5"):
             return False
+
+        if cls._missing_load_requirements():
+            return False
+
         with h5py.File(filename, mode="r") as f:
             data_type = parse_h5_attr(f, "data_type")
             if data_type == "yt_array_data":
@@ -779,6 +805,7 @@ class YTNonspatialDataset(YTGridDataset):
 class YTProfileDataset(YTNonspatialDataset):
     """Dataset for saved profile objects."""
 
+    _load_requirements = ["h5py"]
     fluid_types = ("data", "gas", "standard_deviation")
 
     def __init__(self, filename, unit_system="cgs"):
@@ -881,9 +908,13 @@ class YTProfileDataset(YTNonspatialDataset):
         super().print_key_parameters()
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
         if not filename.endswith(".h5"):
             return False
+
+        if cls._missing_load_requirements():
+            return False
+
         with h5py.File(filename, mode="r") as f:
             data_type = parse_h5_attr(f, "data_type")
             if data_type == "yt_profile":
@@ -929,6 +960,8 @@ class YTClumpContainer(TreeContainer):
 class YTClumpTreeDataset(YTNonspatialDataset):
     """Dataset for saved clump-finder data."""
 
+    _load_requirements = ["h5py"]
+
     def __init__(self, filename, unit_system="cgs"):
         super().__init__(filename, unit_system=unit_system)
         self._load_tree()
@@ -956,9 +989,13 @@ class YTClumpTreeDataset(YTNonspatialDataset):
         return [clump for clump in self.tree if clump.children is None]
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
         if not filename.endswith(".h5"):
             return False
+
+        if cls._missing_load_requirements():
+            return False
+
         with h5py.File(filename, mode="r") as f:
             data_type = parse_h5_attr(f, "data_type")
             if data_type is None:
