@@ -161,6 +161,8 @@ class TransferFunction:
         )
 
     def add_filtered_planck(self, wavelength, trans):
+        from yt._maintenance.numpy2_compat import trapezoid
+
         vals = np.zeros(self.x.shape, "float64")
         nu = clight / (wavelength * 1e-8)
         nu = nu[::-1]
@@ -174,10 +176,10 @@ class TransferFunction:
             # transmission
             f = Bnu * trans[::-1]
             # integrate transmission over nu
-            vals[i] = np.trapz(f, nu)
+            vals[i] = trapezoid(f, nu)
 
         # normalize by total transmission over filter
-        self.y = vals / trans.sum()  # /np.trapz(trans[::-1],nu)
+        self.y = vals / trans.sum()
         # self.y = np.clip(np.maximum(vals, self.y), 0.0, 1.0)
 
     def plot(self, filename):

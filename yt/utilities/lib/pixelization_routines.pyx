@@ -1872,8 +1872,8 @@ def rotate_particle_coord(np.float64_t[:] px,
     # another rotation to make the north-vector be the y-axis (i.e., north).
     # Fortunately, total_rotation_matrix = rotation_matrix_1 x rotation_matrix_2
     cdef int num_particles = np.size(px)
-    cdef np.float64_t[:] z_axis = np.array([0., 0., 1.], dtype='float_')
-    cdef np.float64_t[:] y_axis = np.array([0., 1., 0.], dtype='float_')
+    cdef np.float64_t[:] z_axis = np.array([0., 0., 1.], dtype="float64")
+    cdef np.float64_t[:] y_axis = np.array([0., 1., 0.], dtype="float64")
     cdef np.float64_t[:, :] normal_rotation_matrix
     cdef np.float64_t[:] transformed_north_vector
     cdef np.float64_t[:, :] north_rotation_matrix
@@ -1884,9 +1884,9 @@ def rotate_particle_coord(np.float64_t[:] px,
     north_rotation_matrix = get_rotation_matrix(transformed_north_vector, y_axis)
     rotation_matrix = np.matmul(north_rotation_matrix, normal_rotation_matrix)
 
-    cdef np.float64_t[:] px_rotated = np.empty(num_particles, dtype='float_')
-    cdef np.float64_t[:] py_rotated = np.empty(num_particles, dtype='float_')
-    cdef np.float64_t[:] coordinate_matrix = np.empty(3, dtype='float_')
+    cdef np.float64_t[:] px_rotated = np.empty(num_particles, dtype="float64")
+    cdef np.float64_t[:] py_rotated = np.empty(num_particles, dtype="float64")
+    cdef np.float64_t[:] coordinate_matrix = np.empty(3, dtype="float64")
     cdef np.float64_t[:] rotated_coordinates
     cdef np.float64_t[:] rotated_center
     rotated_center = rotation_matmul(
@@ -1977,17 +1977,17 @@ cpdef np.float64_t[:, :] get_rotation_matrix(np.float64_t[:] normal_vector,
     # if the normal vector is identical to the final vector, just return the
     # identity matrix
     if np.isclose(c, 1, rtol=1e-09):
-        return np.identity(3, dtype='float_')
+        return np.identity(3, dtype="float64")
     # if the normal vector is the negative final vector, return the appropriate
     # rotation matrix for flipping your coordinate system.
     if np.isclose(s, 0, rtol=1e-09):
-        return np.array([[0, -1, 0],[-1, 0, 0],[0, 0, -1]], dtype='float_')
+        return np.array([[0, -1, 0],[-1, 0, 0],[0, 0, -1]], dtype="float64")
 
     cdef np.float64_t[:, :] cross_product_matrix = np.array([[0, -1 * v[2], v[1]],
                                                       [v[2], 0, -1 * v[0]],
                                                       [-1 * v[1], v[0], 0]],
-                                                      dtype='float_')
-    return np.linalg.inv(np.identity(3, dtype='float_') + cross_product_matrix
+                                                      dtype="float64")
+    return np.linalg.inv(np.identity(3, dtype="float64") + cross_product_matrix
                          + np.matmul(cross_product_matrix, cross_product_matrix)
                          * 1/(1+c))
 
