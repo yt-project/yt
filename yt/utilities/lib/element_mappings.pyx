@@ -147,7 +147,7 @@ cdef class ElementSampler:
         # Now for each position, we map
         for n in range(positions.shape[0]):
             self.map_real_to_unit(mapped_x, &vertices[0,0], &positions[n, 0])
-            for i in positions.shape[1]:
+            for i in range(positions.shape[1]):
                 output_coords[n, i] = mapped_x[i]
         return output_coords
 
