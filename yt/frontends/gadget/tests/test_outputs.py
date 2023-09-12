@@ -183,9 +183,10 @@ def test_magneticum_camels():
         "Al",
         "Ar",
         "Ni",
+        "Ej",
     ]
-    metl = dd["PartType0", "MetalMasses_14"] / dd["PartType0", "Masses"]
-    heavy_mass = dd["PartType0", "MetalMasses_14"]
+    metl = 0.0
+    heavy_mass = 0.0
     for i, elem in enumerate(elems):
         assert_allclose_units(
             dd["gas", f"{elem}_mass"], dd["PartType0", f"MetalMasses_{i:02d}"]
@@ -193,9 +194,5 @@ def test_magneticum_camels():
         heavy_mass += dd["PartType0", f"MetalMasses_{i:02d}"]
         if i > 0:
             metl += dd["PartType0", f"MetalMasses_{i:02d}"] / dd["PartType0", "Masses"]
-    assert_allclose_units(
-        dd["gas", "Ej_fraction"],
-        dd["PartType0", "MetalMasses_14"] / dd["PartType0", "Masses"],
-    )
     assert_allclose_units(dd["gas", "metallicity"], metl)
     assert_allclose_units(dd["gas", "H_mass"], dd["PartType0", "Masses"] - heavy_mass)

@@ -210,6 +210,20 @@ class GadgetFieldInfo(SPHFieldInfo):
 
             species_names = ["H"] + elem_names[:-1]
 
+        if "Ej" in elem_names:
+
+            def _ej_mass(field, data):
+                return data[(ptype, "Ej_fraction")] * data[(ptype, "particle_mass")]
+
+            self.add_field(
+                (ptype, "Ej_mass"),
+                sampling_type=sampling_type,
+                function=_ej_mass,
+                units=self.ds.unit_system["mass"],
+            )
+            if sampling_type == "local":
+                self.alias(("gas", "Ej_mass"), (ptype, "Ej_mass"))
+
         return species_names
 
     def _check_whitelist_species_fields(self, ptype):
