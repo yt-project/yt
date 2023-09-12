@@ -3227,8 +3227,9 @@ class LineIntegralConvolutionCallback(PlotCallback):
                 "with that of output image (%d, %d)" % (nx, ny)
             )
 
-        kernel = np.sin(np.arange(self.kernellen) * np.pi / self.kernellen)
-        kernel = kernel.astype(np.double)
+        kernel = np.sin(
+            np.arange(self.kernellen, dtype="float64") * np.pi / self.kernellen
+        )
 
         lic_data = line_integral_convolution_2d(vectors, self.texture, kernel)
         lic_data = lic_data / lic_data.max()
@@ -3308,7 +3309,7 @@ class CellEdgesCallback(PlotCallback):
         conv = ColorConverter()
         self.line_width = line_width
         self.alpha = alpha
-        self.color = (np.array(conv.to_rgb(color)) * 255).astype("uint8")
+        self.color = np.array(conv.to_rgb(color), dtype="uint8") * 255
 
     def __call__(self, plot):
         if plot.data.ds.geometry == "cylindrical" and plot.data.ds.dimensionality == 3:

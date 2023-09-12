@@ -16,7 +16,7 @@ class IOHandlerArepoHDF5(IOHandlerGadgetHDF5):
         ind = int(ptype[-1])
         si, ei = data_file.start, data_file.end
         with h5py.File(data_file.filename, mode="r") as f:
-            pcount = f["/Header"].attrs["NumPart_ThisFile"][ind].astype("int")
+            pcount = f["/Header"].attrs["NumPart_ThisFile"][ind].astype("int64")
             pcount = np.clip(pcount - si, 0, ei - si)
             # Arepo cells do not have "smoothing lengths" by definition, so
             # we compute one here by finding the radius of the sphere

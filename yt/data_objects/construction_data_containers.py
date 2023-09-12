@@ -153,7 +153,7 @@ class YTStreamline(YTSelectionContainer1D):
         for mi, (i, pos) in enumerate(zip(pids, self.positions[points_in_grid])):
             if not points_in_grid[i]:
                 continue
-            ci = ((pos - grid.LeftEdge) / grid.dds).astype("int")
+            ci = ((pos - grid.LeftEdge) / grid.dds).astype("int64")
             if grid.child_mask[ci[0], ci[1], ci[2]] == 0:
                 continue
             for j in range(3):
@@ -1581,7 +1581,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
             # How many root cells do we occupy?
             end_index = np.rint(cell_end).astype("int64")
             dims = end_index - start_index + 1
-        return start_index, end_index.astype("int64"), dims.astype("int32")
+        return start_index, end_index, dims.astype("int32")
 
     def _update_level_state(self, level_state):
         ls = level_state

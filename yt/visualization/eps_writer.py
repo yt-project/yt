@@ -639,7 +639,7 @@ class DualEPS:
         _p1.set_facecolor("w")  # set background color
         figure_canvas = FigureCanvasAgg(_p1)
         figure_canvas.draw()
-        size = (_p1.get_size_inches() * _p1.dpi).astype("int")
+        size = (_p1.get_size_inches() * _p1.dpi).astype("int64")
 
         # Account for non-square images after removing the colorbar.
         scale *= 1.0 - 1.0 / (_p1.dpi * self.figsize[0])

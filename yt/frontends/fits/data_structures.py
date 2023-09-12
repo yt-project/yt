@@ -491,7 +491,7 @@ class FITSDataset(Dataset):
         if self.specified_parameters["nprocs"] is None:
             nprocs = np.around(
                 np.prod(self.domain_dimensions) / 32**self.dimensionality
-            ).astype("int")
+            ).astype("int64")
             self.parameters["nprocs"] = max(min(nprocs, 512), 1)
         else:
             self.parameters["nprocs"] = self.specified_parameters["nprocs"]
@@ -730,7 +730,7 @@ class SpectralCubeFITSHierarchy(FITSHierarchy):
         dz = self.ds.quan(1.0, "code_length") * self.ds.spectral_factor
         self.grid_dimensions[:, 2] = np.around(
             float(self.ds.domain_dimensions[2]) / self.num_grids
-        ).astype("int")
+        ).astype("int64")
         self.grid_dimensions[-1, 2] += self.ds.domain_dimensions[2] % self.num_grids
         self.grid_left_edge[0, 2] = self.ds.domain_left_edge[2]
         self.grid_left_edge[1:, 2] = (
@@ -817,7 +817,7 @@ class SpectralCubeFITSDataset(SkyDataFITSDataset):
     def _determine_nprocs(self):
         # If nprocs is None, do some automatic decomposition of the domain
         if self.specified_parameters["nprocs"] is None:
-            nprocs = np.around(self.domain_dimensions[2] / 8).astype("int")
+            nprocs = np.around(self.domain_dimensions[2] / 8).astype("int64")
             self.parameters["nprocs"] = max(min(nprocs, 512), 1)
         else:
             self.parameters["nprocs"] = self.specified_parameters["nprocs"]

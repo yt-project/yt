@@ -233,7 +233,7 @@ class OctreeSubset(YTSelectionContainer):
             positions.shape[0],
             positions.shape[0] ** 0.3333333,
         )
-        pos = positions.to("code_length").value.astype("float64")
+        pos = positions.to_value("code_length").astype("float64", copy=False)
 
         op.process_octree(
             self.oct_handler,

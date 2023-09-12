@@ -56,7 +56,7 @@ class AdaptaHOPDataset(Dataset):
     _field_info_class = AdaptaHOPFieldInfo
 
     # AdaptaHOP internally assumes 1Mpc == 3.0824cm
-    _code_length_to_Mpc = (1.0 * Mpc).to("cm").value / 3.08e24
+    _code_length_to_Mpc = (1.0 * Mpc).to_value("cm") / 3.08e24
     _header_attributes: Optional[ATTR_T] = None
     _halo_attributes: Optional[ATTR_T] = None
 
@@ -165,7 +165,7 @@ class AdaptaHOPDataset(Dataset):
 
         self.domain_left_edge = np.array([0.0, 0.0, 0.0])
         self.domain_right_edge = (
-            self.parent_ds.domain_right_edge.to("Mpc").value * self._code_length_to_Mpc
+            self.parent_ds.domain_right_edge.to_value("Mpc") * self._code_length_to_Mpc
         )
 
         self.parameters.update(params)
@@ -309,7 +309,7 @@ class AdaptaHOPHaloContainer(YTSelectionContainer):
             return ihalo
         else:
             halo_id = self.particle_identifier
-            halo_ids = self.halo_ds.r["halos", "particle_identifier"].astype(int)
+            halo_ids = self.halo_ds.r["halos", "particle_identifier"].astype("int64")
             ihalo = np.searchsorted(halo_ids, halo_id)
 
             assert halo_ids[ihalo] == halo_id
@@ -325,9 +325,9 @@ class AdaptaHOPHaloContainer(YTSelectionContainer):
 
         # Note: convert to physical units to prevent errors when jumping
         # from halo_ds to parent_ds
-        halo_pos = halo_ds.r["halos", "particle_position"][ihalo, :].to("Mpc").value
-        halo_vel = halo_ds.r["halos", "particle_velocity"][ihalo, :].to("km/s").value
-        halo_radius = halo_ds.r["halos", "r"][ihalo].to("Mpc").value
+        halo_pos = halo_ds.r["halos", "particle_position"][ihalo, :].to_value("Mpc")
+        halo_vel = halo_ds.r["halos", "particle_velocity"][ihalo, :].to_value("km/s")
+        halo_radius = halo_ds.r["halos", "r"][ihalo].to_value("Mpc")
 
         members = self.member_ids
         ok = False
@@ -339,7 +339,7 @@ class AdaptaHOPHaloContainer(YTSelectionContainer):
             f *= 1.1
             sph = parent_ds.sphere(center, f * radius)
 
-            part_ids = sph[ptype, "particle_identity"].astype(int)
+            part_ids = sph[ptype, "particle_identity"].astype("int64")
 
             ok = len(np.lib.arraysetops.setdiff1d(members, part_ids)) == 0
 
@@ -348,7 +348,7 @@ class AdaptaHOPHaloContainer(YTSelectionContainer):
 
         # Build subregion that only contains halo particles
         reg = sph.cut_region(
-            ['np.in1d(obj[("io", "particle_identity")].astype(int), members)'],
+            ['np.in1d(obj[("io", "particle_identity")].astype("int64"), members)'],
             locals={"members": members, "np": np},
         )
 

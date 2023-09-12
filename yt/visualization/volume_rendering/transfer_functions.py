@@ -37,7 +37,7 @@ class TransferFunction:
         # Strip units off of x_bounds, if any
         x_bounds = [np.float64(xb) for xb in x_bounds]
         self.x_bounds = x_bounds
-        self.x = np.linspace(x_bounds[0], x_bounds[1], nbins).astype("float64")
+        self.x = np.linspace(x_bounds[0], x_bounds[1], nbins, dtype="float64")
         self.y = np.zeros(nbins, dtype="float64")
         self.grad_field = -1
         self.light_source_v = self.light_source_c = np.zeros(3, "float64")

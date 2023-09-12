@@ -45,7 +45,7 @@ class PannableMapServer:
         bottle.route(f"{route_prefix}/list", "GET")(self.list_fields)
         # This is a double-check, since we do not always mandate this for
         # slices:
-        self.data[self.field] = self.data[self.field].astype("float64")
+        self.data[self.field] = self.data[self.field].astype("float64", copy=False)
         bottle.route(f"{route_prefix}/static/:path", "GET")(self.static)
 
         self.takelog = takelog

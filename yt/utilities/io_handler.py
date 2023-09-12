@@ -204,6 +204,8 @@ class BaseIOHandler:
             total = sum(_.size for _ in data[field_f])
             if total > 0:
                 vals = data.pop(field_f)
+                # note: numpy.concatenate has a dtype argument that would avoid
+                # a copy using .astype(...), available in numpy>=1.20
                 rv[field_f] = np.concatenate(vals, axis=0).astype("float64")
             else:
                 shape = [0]
