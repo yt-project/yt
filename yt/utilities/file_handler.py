@@ -16,7 +16,7 @@ def valid_hdf5_signature(fn: str, /) -> bool:
 
 def warn_h5py(fn):
     issue_deprecation_warning(
-        "warn_h5py is not used within yt any more and is deprecated.", since="4.2.0"
+        "warn_h5py is not used within yt any more and is deprecated.", since="4.3"
     )
     needs_h5py = valid_hdf5_signature(fn)
     if needs_h5py and isinstance(h5py.File, NotAModule):
@@ -95,7 +95,7 @@ def valid_netcdf_signature(fn: str, /) -> bool:
 def valid_netcdf_classic_signature(filename):
     issue_deprecation_warning(
         "valid_netcdf_classic_signature is not used within yt any more and is deprecated.",
-        since="4.2.0",
+        since="4.3",
     )
     signature_v1 = b"CDF\x01"
     signature_v2 = b"CDF\x02"
@@ -110,7 +110,7 @@ def valid_netcdf_classic_signature(filename):
 def warn_netcdf(fn):
     # There are a few variants of the netCDF format.
     issue_deprecation_warning(
-        "warn_netcdf is not used within yt any more and is deprecated.", since="4.2.0"
+        "warn_netcdf is not used within yt any more and is deprecated.", since="4.3"
     )
 
     classic = valid_netcdf_classic_signature(fn)
