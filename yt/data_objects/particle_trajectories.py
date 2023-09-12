@@ -46,7 +46,7 @@ class ParticleTrajectories:
     ... ]
     >>> ds = load(my_fns[0])
     >>> init_sphere = ds.sphere(ds.domain_center, (0.5, "unitary"))
-    >>> indices = init_sphere[("all", "particle_index")].astype("int")
+    >>> indices = init_sphere[("all", "particle_index")].astype("int64")
     >>> ts = DatasetSeries(my_fns)
     >>> trajs = ts.particle_trajectories(indices, fields=fields)
     >>> for t in trajs:
@@ -241,7 +241,7 @@ class ParticleTrajectories:
         grid_fields = [
             field for field in missing_fields if field not in self.particle_fields
         ]
-        step = int(0)
+        step = 0
         fields_str = ", ".join(str(f) for f in missing_fields)
         pbar = get_pbar(
             f"Generating [{fields_str}] fields in trajectories",
@@ -284,8 +284,8 @@ class ParticleTrajectories:
                             pfield[field],
                             self.num_indices,
                             cube[fds[field]],
-                            np.array(grid.LeftEdge).astype(np.float64),
-                            np.array(grid.ActiveDimensions).astype(np.int32),
+                            np.array(grid.LeftEdge, dtype="float64"),
+                            np.array(grid.ActiveDimensions, dtype="int32"),
                             grid.dds[0],
                         )
             sto.result_id = ds.parameter_filename
@@ -337,7 +337,7 @@ class ParticleTrajectories:
         if not np.any(mask):
             print("The particle index %d is not in the list!" % (index))
             raise IndexError
-        fields = [field for field in sorted(self.field_data.keys())]
+        fields = sorted(self.field_data.keys())
         traj = {}
         traj["particle_time"] = self.times
         traj["particle_index"] = index
@@ -362,7 +362,7 @@ class ParticleTrajectories:
         >>> trajs = ParticleTrajectories(my_fns, indices)
         >>> trajs.write_out("orbit_trajectory")
         """
-        fields = [field for field in sorted(self.field_data.keys())]
+        fields = sorted(self.field_data.keys())
         num_fields = len(fields)
         first_str = "# particle_time\t" + "\t".join(fields) + "\n"
         template_str = "%g\t" * num_fields + "%g\n"
@@ -402,6 +402,6 @@ class ParticleTrajectories:
         fid.create_dataset("particle_indices", dtype=np.int64, data=self.indices)
         fid.close()
         self.times.write_hdf5(filename, dataset_name="particle_times")
-        fields = [field for field in sorted(self.field_data.keys())]
+        fields = sorted(self.field_data.keys())
         for field in fields:
             self[field].write_hdf5(filename, dataset_name=f"{field}")

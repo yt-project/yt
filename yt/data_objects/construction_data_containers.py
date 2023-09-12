@@ -153,7 +153,7 @@ class YTStreamline(YTSelectionContainer1D):
         for mi, (i, pos) in enumerate(zip(pids, self.positions[points_in_grid])):
             if not points_in_grid[i]:
                 continue
-            ci = ((pos - grid.LeftEdge) / grid.dds).astype("int")
+            ci = ((pos - grid.LeftEdge) / grid.dds).astype("int64")
             if grid.child_mask[ci[0], ci[1], ci[2]] == 0:
                 continue
             for j in range(3):
@@ -1581,7 +1581,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
             # How many root cells do we occupy?
             end_index = np.rint(cell_end).astype("int64")
             dims = end_index - start_index + 1
-        return start_index, end_index.astype("int64"), dims.astype("int32")
+        return start_index, end_index, dims.astype("int32")
 
     def _update_level_state(self, level_state):
         ls = level_state
@@ -2439,6 +2439,9 @@ class YTSurface(YTSelectionContainer3D):
         color_log=True,
         sample_type="face",
         no_ghost=False,
+        *,
+        color_field_max=None,
+        color_field_min=None,
     ):
         r"""This exports the surface to the PLY format, suitable for visualization
         in many different programs (e.g., MeshLab).
@@ -2457,6 +2460,10 @@ class YTSurface(YTSelectionContainer3D):
             Which color map should be applied?
         color_log : bool
             Should the color field be logged before being mapped?
+        color_field_max : float
+            Maximum value of the color field across all surfaces.
+        color_field_min : float
+            Minimum value of the color field across all surfaces.
 
         Examples
         --------
@@ -2481,13 +2488,41 @@ class YTSurface(YTSelectionContainer3D):
             elif sample_type == "vertex" and color_field not in self.vertex_samples:
                 self.get_data(color_field, sample_type, no_ghost=no_ghost)
         self._export_ply(
-            filename, bounds, color_field, color_map, color_log, sample_type
+            filename,
+            bounds,
+            color_field,
+            color_map,
+            color_log,
+            sample_type,
+            color_field_max=color_field_max,
+            color_field_min=color_field_min,
         )
 
-    def _color_samples(self, cs, color_log, color_map, arr):
+    def _color_samples(
+        self,
+        cs,
+        color_log,
+        color_map,
+        arr,
+        *,
+        color_field_max=None,
+        color_field_min=None,
+    ):
+        cs = np.asarray(cs)
         if color_log:
             cs = np.log10(cs)
-        mi, ma = cs.min(), cs.max()
+        if color_field_min is None:
+            mi = cs.min()
+        else:
+            mi = color_field_min
+            if color_log:
+                mi = np.log10(mi)
+        if color_field_max is None:
+            ma = cs.max()
+        else:
+            ma = color_field_max
+            if color_log:
+                ma = np.log10(ma)
         cs = (cs - mi) / (ma - mi)
         from yt.visualization.image_writer import map_to_colors
 
@@ -2505,6 +2540,9 @@ class YTSurface(YTSelectionContainer3D):
         color_map=None,
         color_log=True,
         sample_type="face",
+        *,
+        color_field_max=None,
+        color_field_min=None,
     ):
         if color_map is None:
             color_map = ytcfg.get("yt", "default_colormap")
@@ -2516,7 +2554,7 @@ class YTSurface(YTSelectionContainer3D):
             DLE = self.ds.domain_left_edge
             DRE = self.ds.domain_right_edge
             bounds = [(DLE[i], DRE[i]) for i in range(3)]
-        elif any([not all([isinstance(be, YTArray) for be in b]) for b in bounds]):
+        elif any(not all(isinstance(be, YTArray) for be in b) for b in bounds):
             bounds = [
                 tuple(
                     be if isinstance(be, YTArray) else self.ds.quan(be, "code_length")
@@ -2555,7 +2593,14 @@ class YTSurface(YTSelectionContainer3D):
             f.write(b"property uchar blue\n")
             v = np.empty(self.vertices.shape[1], dtype=vs)
             cs = self.vertex_samples[color_field]
-            self._color_samples(cs, color_log, color_map, v)
+            self._color_samples(
+                cs,
+                color_log,
+                color_map,
+                v,
+                color_field_max=color_field_max,
+                color_field_min=color_field_min,
+            )
         else:
             v = np.empty(self.vertices.shape[1], dtype=vs[:3])
         line = "element face %i\n" % (nv / 3)
@@ -2568,7 +2613,14 @@ class YTSurface(YTSelectionContainer3D):
             # Now we get our samples
             cs = self[color_field]
             arr = np.empty(cs.shape[0], dtype=np.dtype(fs))
-            self._color_samples(cs, color_log, color_map, arr)
+            self._color_samples(
+                cs,
+                color_log,
+                color_map,
+                arr,
+                color_field_max=color_field_max,
+                color_field_min=color_field_min,
+            )
         else:
             arr = np.empty(nv // 3, np.dtype(fs[:-3]))
         for i, ax in enumerate("xyz"):
@@ -2601,6 +2653,9 @@ class YTSurface(YTSelectionContainer3D):
         color_log=True,
         bounds=None,
         no_ghost=False,
+        *,
+        color_field_max=None,
+        color_field_min=None,
     ):
         r"""This exports Surfaces to SketchFab.com, where they can be viewed
         interactively in a web browser.
@@ -2632,6 +2687,10 @@ class YTSurface(YTSelectionContainer3D):
         bounds : list of tuples
             [ (xmin, xmax), (ymin, ymax), (zmin, zmax) ] within which the model
             will be scaled and centered.  Defaults to the full domain.
+        color_field_max : float
+            Maximum value of the color field across all surfaces.
+        color_field_min : float
+            Minimum value of the color field across all surfaces.
 
         Returns
         -------
@@ -2675,6 +2734,8 @@ class YTSurface(YTSelectionContainer3D):
             color_log,
             sample_type="vertex",
             no_ghost=no_ghost,
+            color_field_max=color_field_max,
+            color_field_min=color_field_min,
         )
         ply_file.seek(0)
         # Greater than ten million vertices and we throw an error but dump

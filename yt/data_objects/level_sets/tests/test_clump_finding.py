@@ -124,12 +124,12 @@ def test_clump_tree_save():
     ds2 = load(fn)
 
     # compare clumps in the tree
-    t1 = [c for c in master_clump]
-    t2 = [c for c in ds2.tree]
+    t1 = list(master_clump)
+    t2 = list(ds2.tree)
     mt1 = ds.arr([c.info["cell_mass"][1] for c in t1])
     mt2 = ds2.arr([c["clump", "cell_mass"] for c in t2])
-    it1 = np.array(np.argsort(mt1).astype(int))
-    it2 = np.array(np.argsort(mt2).astype(int))
+    it1 = np.argsort(mt1).astype("int64")
+    it2 = np.argsort(mt2).astype("int64")
     assert_array_equal(mt1[it1], mt2[it2])
 
     for i1, i2 in zip(it1, it2):
@@ -139,12 +139,12 @@ def test_clump_tree_save():
         assert_array_equal(ct1["all", "particle_mass"], ct2["all", "particle_mass"])
 
     # compare leaf clumps
-    c1 = [c for c in leaf_clumps]
-    c2 = [c for c in ds2.leaves]
+    c1 = list(leaf_clumps)
+    c2 = list(ds2.leaves)
     mc1 = ds.arr([c.info["cell_mass"][1] for c in c1])
     mc2 = ds2.arr([c["clump", "cell_mass"] for c in c2])
-    ic1 = np.array(np.argsort(mc1).astype(int))
-    ic2 = np.array(np.argsort(mc2).astype(int))
+    ic1 = np.argsort(mc1).astype("int64")
+    ic2 = np.argsort(mc2).astype("int64")
     assert_array_equal(mc1[ic1], mc2[ic2])
 
     os.chdir(curdir)

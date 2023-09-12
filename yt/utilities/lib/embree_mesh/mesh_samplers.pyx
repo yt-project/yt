@@ -40,7 +40,7 @@ cdef ElementSampler Tet2Sampler = Tet2Sampler3D()
 @cython.cdivision(True)
 cdef void get_hit_position(double* position,
                            void* userPtr,
-                           rtcr.RTCRay& ray) nogil:
+                           rtcr.RTCRay& ray) noexcept nogil:
     cdef int primID, i
     cdef double[3][3] vertex_positions
     cdef Triangle tri
@@ -72,7 +72,7 @@ cdef void get_hit_position(double* position,
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef void sample_hex(void* userPtr,
-                     rtcr.RTCRay& ray) nogil:
+                     rtcr.RTCRay& ray) noexcept nogil:
     cdef int ray_id, elem_id, i
     cdef double val
     cdef double[8] field_data
@@ -123,7 +123,7 @@ cdef void sample_hex(void* userPtr,
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef void sample_wedge(void* userPtr,
-                       rtcr.RTCRay& ray) nogil:
+                       rtcr.RTCRay& ray) noexcept nogil:
     cdef int ray_id, elem_id, i
     cdef double val
     cdef double[6] field_data
@@ -171,7 +171,7 @@ cdef void sample_wedge(void* userPtr,
 @cython.initializedcheck(False)
 @cython.cdivision(True)
 cdef void sample_hex20(void* userPtr,
-                       rtcr.RTCRay& ray) nogil:
+                       rtcr.RTCRay& ray) noexcept nogil:
     cdef int ray_id, i
     cdef double val
     cdef double[3] position
@@ -206,7 +206,7 @@ cdef void sample_hex20(void* userPtr,
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef void sample_tetra(void* userPtr,
-                       rtcr.RTCRay& ray) nogil:
+                       rtcr.RTCRay& ray) noexcept nogil:
 
     cdef int ray_id, elem_id, i
     cdef double val
@@ -253,7 +253,7 @@ cdef void sample_tetra(void* userPtr,
 @cython.initializedcheck(False)
 @cython.cdivision(True)
 cdef void sample_tet10(void* userPtr,
-                       rtcr.RTCRay& ray) nogil:
+                       rtcr.RTCRay& ray) noexcept nogil:
     cdef int ray_id, i
     cdef double val
     cdef double[3] position

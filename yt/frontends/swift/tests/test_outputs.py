@@ -1,13 +1,9 @@
 import numpy as np
+from numpy.testing import assert_almost_equal
 
 from yt import load
 from yt.frontends.swift.api import SwiftDataset
-from yt.testing import (
-    ParticleSelectionComparison,
-    assert_almost_equal,
-    requires_file,
-    requires_module,
-)
+from yt.testing import ParticleSelectionComparison, requires_file, requires_module
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 keplerian_ring = "KeplerianRing/keplerian_ring_0020.hdf5"

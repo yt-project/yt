@@ -53,14 +53,15 @@ def factorize_number(pieces):
     """Return array consisting of prime, its power and number of different
     decompositions in three dimensions for this prime
     """
-    factors = [factor for factor in decompose_to_primes(pieces)]
+    factors = list(decompose_to_primes(pieces))
     temp = np.bincount(factors)
     return np.array(
         [
             (prime, temp[prime], (temp[prime] + 1) * (temp[prime] + 2) // 2)
             for prime in np.unique(factors)
-        ]
-    ).astype(np.int64)
+        ],
+        dtype="int64",
+    )
 
 
 def get_psize(n_d, pieces):

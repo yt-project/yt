@@ -149,7 +149,7 @@ class OWLSSubfindDataset(ParticleDataset):
         # Set a sane default for cosmological simulations.
         if self._unit_base is None and self.cosmological_simulation == 1:
             only_on_root(mylog.info, "Assuming length units are in Mpc/h (comoving)")
-            self._unit_base = dict(length=(1.0, "Mpccm/h"))
+            self._unit_base = {"length": (1.0, "Mpccm/h")}
         # The other same defaults we will use from the standard Gadget
         # defaults.
         unit_base = self._unit_base or {}

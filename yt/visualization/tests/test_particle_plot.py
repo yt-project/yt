@@ -120,6 +120,27 @@ def test_particle_projection_answers():
 
 
 @requires_ds(g30, big_data=True)
+def test_particle_offaxis_projection_answers():
+    plot_field = ("all", "particle_mass")
+    decimals = 12
+    ds = data_dir_load(g30)
+    attr_name = "set_cmap"
+    attr_args = ((("all", "particle_mass"), "RdBu"), {})
+    L = [1, 1, 1]
+    test = PlotWindowAttributeTest(
+        ds,
+        plot_field,
+        L,
+        attr_name,
+        attr_args,
+        decimals,
+        "ParticleProjectionPlot",
+    )
+    test_particle_offaxis_projection_answers.__name__ = test.description
+    yield test
+
+
+@requires_ds(g30, big_data=True)
 def test_particle_projection_filter():
     """
 
@@ -247,11 +268,11 @@ class TestParticlePhasePlotSave(unittest.TestCase):
         particle_phases[0]._repr_html_()
 
         with mock.patch(
-            "yt.visualization._mpl_imports.FigureCanvasAgg.print_figure"
+            "matplotlib.backends.backend_agg.FigureCanvasAgg.print_figure"
         ), mock.patch(
-            "yt.visualization._mpl_imports.FigureCanvasPdf.print_figure"
+            "matplotlib.backends.backend_pdf.FigureCanvasPdf.print_figure"
         ), mock.patch(
-            "yt.visualization._mpl_imports.FigureCanvasPS.print_figure"
+            "matplotlib.backends.backend_ps.FigureCanvasPS.print_figure"
         ):
             for p in particle_phases:
                 for fname in TEST_FLNMS:
@@ -364,11 +385,11 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
             ]
         particle_projs[0]._repr_html_()
         with mock.patch(
-            "yt.visualization._mpl_imports.FigureCanvasAgg.print_figure"
+            "matplotlib.backends.backend_agg.FigureCanvasAgg.print_figure"
         ), mock.patch(
-            "yt.visualization._mpl_imports.FigureCanvasPdf.print_figure"
+            "matplotlib.backends.backend_pdf.FigureCanvasPdf.print_figure"
         ), mock.patch(
-            "yt.visualization._mpl_imports.FigureCanvasPS.print_figure"
+            "matplotlib.backends.backend_ps.FigureCanvasPS.print_figure"
         ):
             for p in particle_projs:
                 for fname in TEST_FLNMS:
@@ -382,7 +403,7 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
                 test_ds, dim, ("all", "particle_mass"), data_source=ds_region
             )
             with mock.patch(
-                "yt.visualization._mpl_imports.FigureCanvasAgg.print_figure"
+                "matplotlib.backends.backend_agg.FigureCanvasAgg.print_figure"
             ):
                 pplot_ds.save()
 
@@ -394,7 +415,7 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
                     test_ds, dim, ("all", "particle_mass"), center=center
                 )
                 with mock.patch(
-                    "yt.visualization._mpl_imports.FigureCanvasAgg.print_figure"
+                    "matplotlib.backends.backend_agg.FigureCanvasAgg.print_figure"
                 ):
                     pplot_c.save()
 
@@ -406,9 +427,27 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
                     test_ds, dim, ("all", "particle_mass"), weight_field=weight_field
                 )
                 with mock.patch(
-                    "yt.visualization._mpl_imports.FigureCanvasAgg.print_figure"
+                    "matplotlib.backends.backend_agg.FigureCanvasAgg.print_figure"
                 ):
                     pplot_wf.save()
+
+    def test_particle_plot_offaxis(self):
+        test_ds = fake_particle_ds()
+        Ls = [[1, 1, 1], [0, 1, -0.5]]
+        Ns = [None, [1, 1, 1]]
+        for L, N in zip(Ls, Ns):
+            for weight_field in WEIGHT_FIELDS:
+                pplot_off = ParticleProjectionPlot(
+                    test_ds,
+                    L,
+                    ("all", "particle_mass"),
+                    north_vector=N,
+                    weight_field=weight_field,
+                )
+                with mock.patch(
+                    "matplotlib.backends.backend_agg.FigureCanvasAgg.print_figure"
+                ):
+                    pplot_off.save()
 
     def test_creation_with_width(self):
         test_ds = fake_particle_ds()

@@ -1,8 +1,9 @@
 import numpy as np
+from numpy.testing import assert_array_equal, assert_equal
 
 from yt.frontends.enzo_e.api import EnzoEDataset
 from yt.frontends.enzo_e.fields import NODAL_FLAGS
-from yt.testing import assert_array_equal, assert_equal, requires_file, requires_module
+from yt.testing import requires_file, requires_module
 from yt.utilities.answer_testing.framework import (
     FieldValuesTest,
     PixelizedProjectionValuesTest,

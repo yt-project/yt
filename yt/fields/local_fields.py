@@ -1,5 +1,6 @@
+from collections.abc import Callable
 from functools import partial
-from typing import Any, Callable, TypeVar
+from typing import Any, TypeVar
 
 from yt.funcs import is_sequence
 from yt.utilities.logger import ytLogger as mylog

@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Optional
 
 import numpy as np
 
@@ -35,8 +35,8 @@ class OctreeIndex(Index):
             # Get the position of the particles
             pos = data[ptype, "particle_position"]
             Npart = pos.shape[0]
-            ret = np.zeros(Npart)
-            tmp = np.zeros(Npart)
+            ret = np.zeros(Npart, dtype="float64")
+            tmp = np.zeros(Npart, dtype="float64")
 
             if isinstance(data, FieldDetector):
                 return ret
@@ -71,7 +71,7 @@ class OctreeIndex(Index):
                 remaining[remaining] = np.isnan(tmp[:Nremaining])
                 Nremaining = remaining.sum()
 
-            return data.ds.arr(ret.astype(np.float64), units="1")
+            return data.ds.arr(ret, units="1")
 
         def _mesh_sampling_particle_field(field, data):
             """
@@ -123,8 +123,8 @@ class OctreeIndex(Index):
         self,
         icoords: np.ndarray,
         ires: np.ndarray,
-        axes: Optional[Tuple[int, ...]] = None,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+        axes: Optional[tuple[int, ...]] = None,
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Accepts icoords and ires and returns appropriate fcoords and fwidth.
         Mostly useful for cases where we have irregularly spaced or structured

@@ -113,7 +113,7 @@ class IOHandlerRemote(BaseIOHandler):
 
     def _read_data_set(self, grid, field):
         dest = self.proc_map[grid.id]
-        msg = dict(grid_id=grid.id, field=field, op="read")
+        msg = {"grid_id": grid.id, "field": field, "op": "read"}
         mylog.debug("Requesting %s for %s from %s", field, grid, dest)
         if self.ds.field_info[field].sampling_type == "particle":
             data = np.empty(grid.NumberOfParticles, "float64")
@@ -132,7 +132,7 @@ class IOHandlerRemote(BaseIOHandler):
         return self._read_data_set(grid, field)[tuple(sl)]
 
     def terminate(self):
-        msg = dict(op="end")
+        msg = {"op": "end"}
         if self.wg.comm.rank == 0:
             for rank in self.pool["io"].ranks:
                 mylog.debug("Sending termination message to %s", rank)

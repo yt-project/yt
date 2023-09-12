@@ -95,7 +95,10 @@ def pixelize_cartesian(np.float64_t[:,:] buff,
                        int antialias = 1,
                        period = None,
                        int check_period = 1,
-                       np.float64_t line_width = 0.0):
+                       np.float64_t line_width = 0.0,
+                       *,
+                       int return_mask = 0,
+):
     cdef np.float64_t x_min, x_max, y_min, y_max
     cdef np.float64_t period_x = 0.0, period_y = 0.0
     cdef np.float64_t width, height, px_dx, px_dy, ipx_dx, ipx_dy
@@ -110,6 +113,10 @@ def pixelize_cartesian(np.float64_t[:,:] buff,
     cdef int yiter[2]
     cdef np.float64_t xiterv[2]
     cdef np.float64_t yiterv[2]
+
+    cdef np.ndarray[np.uint8_t, ndim=2] mask_arr = np.zeros_like(buff, dtype="uint8")
+    cdef np.uint8_t[:, :] mask = mask_arr
+
     if period is not None:
         period_x = period[0]
         period_y = period[1]
@@ -244,6 +251,7 @@ def pixelize_cartesian(np.float64_t[:,:] buff,
                                 ld_y *= ipx_dy
                                 if ld_x <= line_width or ld_y <= line_width:
                                     buff[i,j] = 1.0
+                                    mask[i,j] = 1
                             elif antialias == 1:
                                 overlap1 = ((fmin(rxpx, xsp+dxsp)
                                            - fmax(lxpx, (xsp-dxsp)))*ipx_dx)
@@ -259,8 +267,13 @@ def pixelize_cartesian(np.float64_t[:,:] buff,
                                 # make sure pixel value is not a NaN before incrementing it
                                 if buff[i,j] != buff[i,j]: buff[i,j] = 0.0
                                 buff[i,j] += (dsp * overlap1) * overlap2
+                                mask[i,j] = 1
                             else:
                                 buff[i,j] = dsp
+                                mask[i,j] = 1
+
+    if return_mask:
+        return mask_arr.astype("bool")
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
@@ -277,7 +290,10 @@ def pixelize_cartesian_nodal(np.float64_t[:,:] buff,
                              bounds,
                              int antialias = 1,
                              period = None,
-                             int check_period = 1):
+                             int check_period = 1,
+                             *,
+                             int return_mask = 0,
+):
     cdef np.float64_t x_min, x_max, y_min, y_max
     cdef np.float64_t period_x = 0.0, period_y = 0.0
     cdef np.float64_t width, height, px_dx, px_dy, ipx_dx, ipx_dy
@@ -360,6 +376,10 @@ def pixelize_cartesian_nodal(np.float64_t[:,:] buff,
     #   So what we want here is to fill an array such that we fill:
     #       first axis : y_min .. y_max
     #       second axis: x_min .. x_max
+
+    cdef np.ndarray[np.uint8_t, ndim=2] mask_arr = np.zeros_like(buff, dtype="uint8")
+    cdef np.uint8_t[:, :] mask = mask_arr
+
     with nogil:
         for p in range(px.shape[0]):
             xiter[1] = yiter[1] = 999
@@ -426,6 +446,10 @@ def pixelize_cartesian_nodal(np.float64_t[:,:] buff,
                             ind = 4*ii + 2*jj + kk
 
                             buff[i,j] = data[p, ind]
+                            mask[i,j] = 1
+
+    if return_mask:
+        return mask_arr.astype("bool")
 
 
 @cython.cdivision(True)
@@ -445,7 +469,10 @@ def pixelize_off_axis_cartesian(
                        np.float64_t[:,:] inv_mat,
                        np.int_t[:] indices,
                        np.float64_t[:] data,
-                       bounds):
+                       bounds,
+                       *,
+                       int return_mask=0,
+):
     cdef np.float64_t x_min, x_max, y_min, y_max
     cdef np.float64_t width, height, px_dx, px_dy, ipx_dx, ipx_dy, md
     cdef int i, j, p, ip
@@ -516,6 +543,9 @@ def pixelize_off_axis_cartesian(
             if mask[i,j] == 0: continue
             buff[i,j] /= mask[i,j]
 
+    if return_mask:
+        return mask!=0
+
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -525,7 +555,10 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
                       np.float64_t[:] theta,
                       np.float64_t[:] dtheta,
                       np.float64_t[:] field,
-                      extents):
+                      extents,
+                      *,
+                      int return_mask=0,
+):
 
     cdef np.float64_t x, y, dx, dy, r0, theta0
     cdef np.float64_t rmin, rmax, tmin, tmax, x0, y0, x1, y1, xp, yp
@@ -544,6 +577,9 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
     imax = np.asarray(theta).argmax()
     tmin = theta[imin] - dtheta[imin]
     tmax = theta[imax] + dtheta[imax]
+
+    cdef np.ndarray[np.uint8_t, ndim=2] mask_arr = np.zeros_like(buff, dtype="uint8")
+    cdef np.uint8_t[:, :] mask = mask_arr
 
     x0, x1, y0, y1 = extents
     dx = (x1 - x0) / buff.shape[0]
@@ -631,8 +667,12 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
                     if prbounds[0] >= rmin and prbounds[1] <= rmax and \
                        ptbounds[0] >= tmin and ptbounds[1] <= tmax:
                         buff[pi, pj] = field[i]
+                        mask[pi, pj] = 1
                 r_i += r_inc
             theta_i += theta_inc
+
+    if return_mask:
+        return mask_arr.astype("bool")
 
 cdef int aitoff_Lambda_btheta_to_xy(np.float64_t Lambda, np.float64_t btheta,
                                np.float64_t *x, np.float64_t *y) except -1:
@@ -653,7 +693,10 @@ def pixelize_aitoff(np.float64_t[:] azimuth,
                     bounds, # this is a 4-tuple
                     input_img = None,
                     np.float64_t azimuth_offset = 0.0,
-                    np.float64_t colatitude_offset = 0.0):
+                    np.float64_t colatitude_offset = 0.0,
+                    *,
+                    int return_mask = 0
+):
     # http://paulbourke.net/geometry/transformationprojection/
     # (Lambda) longitude is -PI to PI (longitude = azimuth - PI)
     # (btheta) latitude is -PI/2 to PI/2 (latitude = PI/2 - colatitude)
@@ -676,6 +719,10 @@ def pixelize_aitoff(np.float64_t[:] azimuth,
         img[:] = np.nan
     else:
         img = input_img
+
+    cdef np.ndarray[np.uint8_t, ndim=2] mask_arr = np.ones_like(img, dtype="uint8")
+    cdef np.uint8_t[:, :] mask = mask_arr
+
     # Okay, here's our strategy.  We compute the bounds in x and y, which will
     # be a rectangle, and then for each x, y position we check to see if it's
     # within our Lambda.  This will cost *more* computations of the
@@ -768,7 +815,12 @@ def pixelize_aitoff(np.float64_t[:] azimuth,
                 if not (btheta_p - dbtheta_p <= btheta0 <= btheta_p + dbtheta_p):
                     continue
                 img[i, j] = field[fi]
-    return img
+                mask[i, j] = 1
+
+    if return_mask:
+        return img, mask_arr.astype("bool")
+    else:
+        return img
 
 
 # This function accepts a set of vertices (for a polyhedron) that are
@@ -839,10 +891,17 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
                           buff_size,
                           np.ndarray[np.float64_t, ndim=2] field,
                           extents,
-                          int index_offset = 0):
+                          int index_offset = 0,
+                          *,
+                          return_mask=False,
+):
     cdef np.ndarray[np.float64_t, ndim=3] img
     img = np.zeros(buff_size, dtype="float64")
     img[:] = np.nan
+
+    cdef np.ndarray[np.uint8_t, ndim=3] mask_arr = np.ones_like(img, dtype="uint8")
+    cdef np.uint8_t[:, :, :] mask = mask_arr
+
     # Two steps:
     #  1. Is image point within the mesh bounding box?
     #  2. Is image point within the mesh element?
@@ -968,9 +1027,13 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
                         else:
                             img[pi, pj, pk] = sampler.sample_at_unit_point(mapped_coord,
                                                                            field_vals)
+                        mask[pi, pj, pk] = 1
     free(vertices)
     free(field_vals)
-    return img
+    if return_mask:
+        return img, mask_arr.astype("bool")
+    else:
+        return img
 
 # used as a cache to avoid repeatedly creating
 # instances of SPHKernelInterpolationTable
@@ -992,7 +1055,7 @@ cdef class SPHKernelInterpolationTable:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef np.float64_t integrate_q2(self, np.float64_t q2) nogil:
+    cdef np.float64_t integrate_q2(self, np.float64_t q2) noexcept nogil:
         # See equation 30 of the SPLASH paper
         cdef int i
         # Our bounds are -sqrt(R*R - q2) and sqrt(R*R-q2)
@@ -1033,7 +1096,7 @@ cdef class SPHKernelInterpolationTable:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef inline np.float64_t interpolate(self, np.float64_t q2) nogil:
+    cdef inline np.float64_t interpolate(self, np.float64_t q2) noexcept nogil:
         cdef int index
         cdef np.float64_t F_interpolate
         index = <int>((q2 - self.q2_vals[0])*(self.iq2_range))
@@ -1057,6 +1120,7 @@ cdef class SPHKernelInterpolationTable:
 @cython.cdivision(True)
 def pixelize_sph_kernel_projection(
         np.float64_t[:, :] buff,
+        np.uint8_t[:, :] mask,
         any_float[:] posx,
         any_float[:] posy,
         any_float[:] hsml,
@@ -1206,6 +1270,7 @@ def pixelize_sph_kernel_projection(
                             # see equation 32 of the SPLASH paper
                             # now we just use the kernel projection
                             local_buff[xi + yi*xsize] +=  prefactor_j * itab.interpolate(q_ij2)
+                            mask[xi, yi] = 1
 
         with gil:
             for xxi in range(xsize):
@@ -1216,6 +1281,8 @@ def pixelize_sph_kernel_projection(
         free(yiterv)
         free(xiter)
         free(yiter)
+
+    return mask
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -1296,7 +1363,10 @@ def interpolate_sph_grid_gather(np.float64_t[:, :, :] buff,
         np.float64_t[:] hsml, np.float64_t[:] pmass, np.float64_t[:] pdens,
         np.float64_t[:] quantity_to_smooth, PyKDTree kdtree,
         int use_normalization=1, kernel_name="cubic", pbar=None,
-        int num_neigh=32):
+        int num_neigh=32,
+        *,
+        int return_mask=0,
+):
     """
     This function takes in the bounds and number of cells in a grid (well,
     actually we implicitly calculate this from the size of buff). Then we can
@@ -1332,6 +1402,9 @@ def interpolate_sph_grid_gather(np.float64_t[:, :, :] buff,
     pbar = get_pbar(title="Interpolating (gather) SPH field",
                     maxval=(buff.shape[0]*buff.shape[1]*buff.shape[2] //
                             10000)*10000)
+
+    cdef np.ndarray[np.uint8_t, ndim=3] mask_arr = np.zeros_like(buff, dtype="uint8")
+    cdef np.uint8_t[:, :, :] mask = mask_arr
 
     prog = 0
     with nogil:
@@ -1374,6 +1447,7 @@ def interpolate_sph_grid_gather(np.float64_t[:, :, :] buff,
 
                         # See equations 6, 9, and 11 of the SPLASH paper
                         buff[i, j, k] += smoothed_quantity_j
+                        mask[i, j, k] = 1
 
                         if use_normalization:
                             buff_den[i, j, k] += prefactor_j * kernel(q_ij)
@@ -1381,12 +1455,16 @@ def interpolate_sph_grid_gather(np.float64_t[:, :, :] buff,
     if use_normalization:
         normalization_3d_utility(buff, buff_den)
 
+    if return_mask:
+        return mask_arr.astype("bool")
+
 @cython.initializedcheck(False)
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
 def pixelize_sph_kernel_slice(
         np.float64_t[:, :] buff,
+        np.uint8_t[:, :] mask,
         np.float64_t[:] posx, np.float64_t[:] posy,
         np.float64_t[:] hsml, np.float64_t[:] pmass,
         np.float64_t[:] pdens,
@@ -1510,6 +1588,7 @@ def pixelize_sph_kernel_slice(
 
                             # see equations 6, 9, and 11 of the SPLASH paper
                             local_buff[xi + yi*xsize] += prefactor_j * kernel(q_ij)
+                            mask[xi, yi] = 1
 
         with gil:
             for xxi in range(xsize):
@@ -1781,31 +1860,20 @@ def pixelize_element_mesh_line(np.ndarray[np.float64_t, ndim=2] coords,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def off_axis_projection_SPH(np.float64_t[:] px,
-                            np.float64_t[:] py,
-                            np.float64_t[:] pz,
-                            np.float64_t[:] particle_masses,
-                            np.float64_t[:] particle_densities,
-                            np.float64_t[:] smoothing_lengths,
-                            bounds,
-                            center,
-                            width,
-                            np.float64_t[:] quantity_to_smooth,
-                            np.float64_t[:, :] projection_array,
-                            normal_vector,
-                            north_vector,
-                            weight_field=None):
-    # Do nothing in event of a 0 normal vector
-    if np.allclose(normal_vector, np.array([0., 0., 0.]), rtol=1e-09):
-        return
-
+def rotate_particle_coord(np.float64_t[:] px,
+                          np.float64_t[:] py,
+                          np.float64_t[:] pz,
+                          center,
+                          width,
+                          normal_vector,
+                          north_vector):
     # We want to do two rotations, one to first rotate our coordinates to have
     # the normal vector be the z-axis (i.e., the viewer's perspective), and then
     # another rotation to make the north-vector be the y-axis (i.e., north).
     # Fortunately, total_rotation_matrix = rotation_matrix_1 x rotation_matrix_2
     cdef int num_particles = np.size(px)
-    cdef np.float64_t[:] z_axis = np.array([0., 0., 1.], dtype='float_')
-    cdef np.float64_t[:] y_axis = np.array([0., 1., 0.], dtype='float_')
+    cdef np.float64_t[:] z_axis = np.array([0., 0., 1.], dtype="float64")
+    cdef np.float64_t[:] y_axis = np.array([0., 1., 0.], dtype="float64")
     cdef np.float64_t[:, :] normal_rotation_matrix
     cdef np.float64_t[:] transformed_north_vector
     cdef np.float64_t[:, :] north_rotation_matrix
@@ -1816,9 +1884,9 @@ def off_axis_projection_SPH(np.float64_t[:] px,
     north_rotation_matrix = get_rotation_matrix(transformed_north_vector, y_axis)
     rotation_matrix = np.matmul(north_rotation_matrix, normal_rotation_matrix)
 
-    cdef np.float64_t[:] px_rotated = np.empty(num_particles, dtype='float_')
-    cdef np.float64_t[:] py_rotated = np.empty(num_particles, dtype='float_')
-    cdef np.float64_t[:] coordinate_matrix = np.empty(3, dtype='float_')
+    cdef np.float64_t[:] px_rotated = np.empty(num_particles, dtype="float64")
+    cdef np.float64_t[:] py_rotated = np.empty(num_particles, dtype="float64")
+    cdef np.float64_t[:] coordinate_matrix = np.empty(3, dtype="float64")
     cdef np.float64_t[:] rotated_coordinates
     cdef np.float64_t[:] rotated_center
     rotated_center = rotation_matmul(
@@ -1839,7 +1907,37 @@ def off_axis_projection_SPH(np.float64_t[:] px,
         px_rotated[i] = rotated_coordinates[0]
         py_rotated[i] = rotated_coordinates[1]
 
+    return px_rotated, py_rotated, rot_bounds_x0, rot_bounds_x1, rot_bounds_y0, rot_bounds_y1
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def off_axis_projection_SPH(np.float64_t[:] px,
+                            np.float64_t[:] py,
+                            np.float64_t[:] pz,
+                            np.float64_t[:] particle_masses,
+                            np.float64_t[:] particle_densities,
+                            np.float64_t[:] smoothing_lengths,
+                            bounds,
+                            center,
+                            width,
+                            np.float64_t[:] quantity_to_smooth,
+                            np.float64_t[:, :] projection_array,
+                            np.uint8_t[:, :] mask,
+                            normal_vector,
+                            north_vector,
+                            weight_field=None):
+    # Do nothing in event of a 0 normal vector
+    if np.allclose(normal_vector, 0.):
+        return
+
+    px_rotated, py_rotated, \
+    rot_bounds_x0, rot_bounds_x1, \
+    rot_bounds_y0, rot_bounds_y1 = rotate_particle_coord(px, py, pz,
+                                                         center, width, normal_vector, north_vector)
+
     pixelize_sph_kernel_projection(projection_array,
+                                   mask,
                                    px_rotated,
                                    py_rotated,
                                    smoothing_lengths,
@@ -1879,17 +1977,17 @@ cpdef np.float64_t[:, :] get_rotation_matrix(np.float64_t[:] normal_vector,
     # if the normal vector is identical to the final vector, just return the
     # identity matrix
     if np.isclose(c, 1, rtol=1e-09):
-        return np.identity(3, dtype='float_')
+        return np.identity(3, dtype="float64")
     # if the normal vector is the negative final vector, return the appropriate
     # rotation matrix for flipping your coordinate system.
     if np.isclose(s, 0, rtol=1e-09):
-        return np.array([[0, -1, 0],[-1, 0, 0],[0, 0, -1]], dtype='float_')
+        return np.array([[0, -1, 0],[-1, 0, 0],[0, 0, -1]], dtype="float64")
 
     cdef np.float64_t[:, :] cross_product_matrix = np.array([[0, -1 * v[2], v[1]],
                                                       [v[2], 0, -1 * v[0]],
                                                       [-1 * v[1], v[0], 0]],
-                                                      dtype='float_')
-    return np.linalg.inv(np.identity(3, dtype='float_') + cross_product_matrix
+                                                      dtype="float64")
+    return np.linalg.inv(np.identity(3, dtype="float64") + cross_product_matrix
                          + np.matmul(cross_product_matrix, cross_product_matrix)
                          * 1/(1+c))
 

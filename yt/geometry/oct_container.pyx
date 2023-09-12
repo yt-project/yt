@@ -92,6 +92,7 @@ cdef class OctreeContainer:
         visitor.global_index = -1
         visitor.level = 0
         visitor.nz = visitor.nzones = 1
+        visitor.max_level = 0
         assert(ref_mask.shape[0] / float(visitor.nzones) ==
             <int>(ref_mask.shape[0]/float(visitor.nzones)))
         obj.allocate_domains([ref_mask.shape[0] / visitor.nzones])
@@ -135,6 +136,7 @@ cdef class OctreeContainer:
         if obj.nocts * visitor.nz != ref_mask.size:
             raise KeyError(ref_mask.size, obj.nocts, obj.nz,
                 obj.partial_coverage, visitor.nzones)
+        obj.max_level = visitor.max_level
         return obj
 
     def __dealloc__(self):
@@ -170,7 +172,7 @@ cdef class OctreeContainer:
                 pos[2] = self.DLE[2] + dds[2]/2.0
                 for k in range(self.nn[2]):
                     if self.root_mesh[i][j][k] == NULL:
-                        raise RuntimeError
+                        raise KeyError(i,j,k)
                     visitor.pos[0] = i
                     visitor.pos[1] = j
                     visitor.pos[2] = k
@@ -184,7 +186,17 @@ cdef class OctreeContainer:
     cdef np.int64_t get_domain_offset(self, int domain_id):
         return 0
 
-    cdef int get_root(self, int ind[3], Oct **o) nogil:
+    def _check_root_mesh(self):
+        cdef count = 0
+        for i in range(self.nn[0]):
+            for j in range(self.nn[1]):
+                for k in range(self.nn[2]):
+                    if self.root_mesh[i][j][k] == NULL:
+                        print("Missing ", i, j, k)
+                        count += 1
+        print("Missing total of %s out of %s" % (count, self.nn[0] * self.nn[1] * self.nn[2]))
+
+    cdef int get_root(self, int ind[3], Oct **o) noexcept nogil:
         cdef int i
         for i in range(3):
             if ind[i] < 0 or ind[i] >= self.nn[i]:
@@ -197,7 +209,7 @@ cdef class OctreeContainer:
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef Oct *get(self, np.float64_t ppos[3], OctInfo *oinfo = NULL,
-                  int max_level = 99) nogil:
+                  int max_level = 99) noexcept nogil:
         #Given a floating point position, retrieve the most
         #refined oct at that time
         cdef int ind32[3]
@@ -566,7 +578,11 @@ cdef class OctreeContainer:
     def add(self, int curdom, int curlevel,
             np.ndarray[np.float64_t, ndim=2] pos,
             int skip_boundary = 1,
-            int count_boundary = 0):
+            int count_boundary = 0,
+            np.ndarray[np.uint64_t, ndim=1, cast=True] levels = None
+            ):
+        # In this function, if we specify curlevel = -1, then we query the
+        # (optional) levels array for the oct level.
         cdef int no, p, i
         cdef int ind[3]
         cdef int nb = 0
@@ -581,6 +597,12 @@ cdef class OctreeContainer:
         cdef int in_boundary = 0
         # How do we bootstrap ourselves?
         for p in range(no):
+            # We allow specifying curlevel = -1 to query from the levels array
+            # instead.
+            if curlevel == -1:
+                this_level = levels[p]
+            else:
+                this_level = curlevel
             #for every oct we're trying to add find the
             #floating point unitary position on this level
             in_boundary = 0
@@ -598,7 +620,7 @@ cdef class OctreeContainer:
             if cur == NULL: raise RuntimeError
             # Now we find the location we want
             # Note that RAMSES I think 1-findiceses levels, but we don't.
-            for _ in range(curlevel):
+            for _ in range(this_level):
                 # At every level, find the cell this oct
                 # lives inside
                 for i in range(3):
@@ -971,7 +993,7 @@ cdef class SparseOctreeContainer(OctreeContainer):
     def save_octree(self):
         raise NotImplementedError
 
-    cdef int get_root(self, int ind[3], Oct **o) nogil:
+    cdef int get_root(self, int ind[3], Oct **o) noexcept nogil:
         o[0] = NULL
         cdef np.int64_t key = self.ipos_to_key(ind)
         cdef OctKey okey
@@ -995,7 +1017,7 @@ cdef class SparseOctreeContainer(OctreeContainer):
             pos[2 - j] = (<np.int64_t>(key & ukey))
             key = key >> 20
 
-    cdef np.int64_t ipos_to_key(self, int pos[3]) nogil:
+    cdef np.int64_t ipos_to_key(self, int pos[3]) noexcept nogil:
         # We (hope) that 20 bits is enough for each index.
         cdef int i
         cdef np.int64_t key = 0

@@ -404,7 +404,7 @@ class WithDensityParticleGenerator(ParticleGenerator):
         all_z = []
 
         pbar = get_pbar("Generating Particles", num_particles)
-        tot_num_accepted = int(0)
+        tot_num_accepted = 0
 
         while num_particles_left > 0:
             m = np.random.uniform(high=1.01 * max_mass, size=num_particles_left)

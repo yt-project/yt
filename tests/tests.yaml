@@ -28,10 +28,8 @@ answer_tests:
     - yt/frontends/athena/tests/test_outputs.py:test_blast
     - yt/frontends/athena/tests/test_outputs.py:test_stripping
 
-  local_athena_pp_007:
-    # disabling disk test for now until we have better support
-    # for this dataset
-    #- yt/frontends/athena_pp/tests/test_outputs.py:test_disk
+  local_athena_pp_008:
+    - yt/frontends/athena_pp/tests/test_outputs.py:test_disk
     - yt/frontends/athena_pp/tests/test_outputs.py:test_AM06
 
   local_chimera_002: #PR 3638
@@ -102,9 +100,10 @@ answer_tests:
     - yt/frontends/owls/tests/test_outputs.py:test_snapshot_033
     - yt/frontends/owls/tests/test_outputs.py:test_OWLS_particlefilter
 
-  local_pw_048:  # PR 4417
+  local_pw_049:  # PR 4440
     - yt/visualization/tests/test_plotwindow.py:test_attributes
     - yt/visualization/tests/test_particle_plot.py:test_particle_projection_answers
+    - yt/visualization/tests/test_particle_plot.py:test_particle_offaxis_projection_answers
     - yt/visualization/tests/test_particle_plot.py:test_particle_projection_filter
     - yt/visualization/tests/test_particle_plot.py:test_particle_phase_answers
     - yt/visualization/tests/test_callbacks.py:test_axis_manipulations
@@ -206,6 +205,7 @@ other_tests:
      - "--ignore-file=test_stream_particles\\.py"
      - "--ignore-file=test_stream_stretched\\.py"
      - "--ignore-file=test_version\\.py"
+     - "--ignore-file=test_gadget_pytest\\.py"
      - "--ignore-file=test_vr_orientation\\.py"
      - "--exclude-test=yt.frontends.gdf.tests.test_outputs.TestGDF"
      - "--exclude-test=yt.frontends.adaptahop.tests.test_outputs"

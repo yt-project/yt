@@ -1,42 +1,52 @@
-from typing import List
-
 import numpy as np
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.data_objects.profiles import create_profile
 from yt.data_objects.static_output import Dataset
-from yt.funcs import fix_axis, iter_fields
+from yt.funcs import fix_axis, iter_fields, mylog
 from yt.units.yt_array import YTArray
+from yt.utilities.orientation import Orientation
 from yt.visualization.fixed_resolution import ParticleImageBuffer
 from yt.visualization.profile_plotter import PhasePlot
 
-from .plot_window import PWViewerMPL, get_axes_unit, get_window_parameters
+from .plot_window import (
+    NormalPlot,
+    PWViewerMPL,
+    get_axes_unit,
+    get_oblique_window_parameters,
+    get_window_parameters,
+)
 
 
-class ParticleAxisAlignedDummyDataSource:
+class ParticleDummyDataSource:
     _type_name = "Particle"
     _dimensionality = 2
     _con_args = ("center", "axis", "width", "fields", "weight_field")
     _tds_attrs = ()
-    _key_fields: List[str] = []
+    _key_fields: list[str] = []
 
     def __init__(
         self,
         center,
         ds,
-        axis,
         width,
         fields,
+        dd,
+        *,
         weight_field=None,
         field_parameters=None,
-        data_source=None,
         deposition="ngp",
         density=False,
     ):
         self.center = center
         self.ds = ds
-        self.axis = axis
         self.width = width
+        self.dd = dd
+
+        if weight_field is not None:
+            weight_field = self._determine_fields(weight_field)[0]
         self.weight_field = weight_field
+
         self.deposition = deposition
         self.density = density
 
@@ -45,23 +55,7 @@ class ParticleAxisAlignedDummyDataSource:
         else:
             self.field_parameters = field_parameters
 
-        LE = center - 0.5 * YTArray(width)
-        RE = center + 0.5 * YTArray(width)
-        for ax in range(3):
-            if not ds.periodicity[ax]:
-                LE[ax] = max(LE[ax], ds.domain_left_edge[ax])
-                RE[ax] = min(RE[ax], ds.domain_right_edge[ax])
-
-        self.dd = ds.region(
-            center,
-            LE,
-            RE,
-            fields,
-            field_parameters=field_parameters,
-            data_source=data_source,
-        )
-
-        fields = self.dd._determine_fields(fields)
+        fields = self._determine_fields(fields)
         self.fields = fields
 
     def _determine_fields(self, *args):
@@ -78,10 +72,112 @@ class ParticleAxisAlignedDummyDataSource:
             return default
 
 
-class ParticleProjectionPlot(PWViewerMPL):
+class ParticleAxisAlignedDummyDataSource(ParticleDummyDataSource):
+    def __init__(
+        self,
+        center,
+        ds,
+        axis,
+        width,
+        fields,
+        *,
+        weight_field=None,
+        field_parameters=None,
+        data_source=None,
+        deposition="ngp",
+        density=False,
+    ):
+        self.axis = axis
+
+        LE = center - 0.5 * YTArray(width)
+        RE = center + 0.5 * YTArray(width)
+        for ax in range(3):
+            if not ds.periodicity[ax]:
+                LE[ax] = max(LE[ax], ds.domain_left_edge[ax])
+                RE[ax] = min(RE[ax], ds.domain_right_edge[ax])
+
+        dd = ds.region(
+            center,
+            LE,
+            RE,
+            fields,
+            field_parameters=field_parameters,
+            data_source=data_source,
+        )
+
+        super().__init__(
+            center,
+            ds,
+            width,
+            fields,
+            dd,
+            weight_field=weight_field,
+            field_parameters=field_parameters,
+            deposition=deposition,
+            density=density,
+        )
+
+
+class ParticleOffAxisDummyDataSource(ParticleDummyDataSource):
+    def __init__(
+        self,
+        center,
+        ds,
+        normal_vector,
+        width,
+        fields,
+        *,
+        weight_field=None,
+        field_parameters=None,
+        data_source=None,
+        deposition="ngp",
+        density=False,
+        north_vector=None,
+    ):
+        self.axis = None  # always true for oblique data objects
+        normal = np.array(normal_vector)
+        normal = normal / np.linalg.norm(normal)
+
+        # If north_vector is None, we set the default here.
+        # This is chosen so that if normal_vector is one of the
+        # cartesian coordinate axes, the projection will match
+        # the corresponding on-axis projection.
+        if north_vector is None:
+            vecs = np.identity(3)
+            t = np.cross(vecs, normal).sum(axis=1)
+            ax = t.argmax()
+            east_vector = np.cross(vecs[ax, :], normal).ravel()
+            north = np.cross(normal, east_vector).ravel()
+        else:
+            north = np.array(north_vector)
+            north = north / np.linalg.norm(north)
+        self.normal_vector = normal
+        self.north_vector = north
+
+        if data_source is None:
+            dd = ds.all_data()
+        else:
+            dd = data_source
+
+        self.orienter = Orientation(normal_vector, north_vector=north_vector)
+
+        super().__init__(
+            center,
+            ds,
+            width,
+            fields,
+            dd,
+            weight_field=weight_field,
+            field_parameters=field_parameters,
+            deposition=deposition,
+            density=density,
+        )
+
+
+class ParticleProjectionPlot(PWViewerMPL, NormalPlot):
     r"""Creates a particle plot from a dataset
 
-    Given a ds object, an axis to slice along, and a field name
+    Given a ds object, a normal to project along, and a field name
     string, this will return a PWViewerMPL object containing
     the plot.
 
@@ -93,9 +189,12 @@ class ParticleProjectionPlot(PWViewerMPL):
     ds : `Dataset`
          This is the dataset object corresponding to the
          simulation output to be plotted.
-    axis : int or one of 'x', 'y', 'z'
-         An int corresponding to the axis to slice along (0=x, 1=y, 2=z)
-         or the axis name itself
+    normal : int, str, or 3-element sequence of floats
+        This specifies the normal vector to the projection.
+        Valid int values are 0, 1 and 2. Corresponding str values depend on the
+        geometry of the dataset and are generally given by `ds.coordinates.axis_order`.
+        E.g. in cartesian they are 'x', 'y' and 'z'.
+        An arbitrary normal vector may be specified as a 3-element sequence of floats.
     fields : string, list or None
          If a string or list, the name of the particle field(s) to be used
          on the colorbar. The color shown will correspond to the sum of the
@@ -142,8 +241,8 @@ class ParticleProjectionPlot(PWViewerMPL):
 
          For example, (10, 'kpc') requests a plot window that is 10 kiloparsecs
          wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a
-         window that is 10 kiloparsecs wide along the x axis and 15
-         kiloparsecs wide along the y axis.  In the other two examples, code
+         window that is 10 kiloparsecs wide along the x-axis and 15
+         kiloparsecs wide along the y-axis. In the other two examples, code
          units are assumed, for example (0.2, 0.3) requests a plot that has an
          x width of 0.2 and a y width of 0.3 in code units.  If units are
          provided the resulting plot axis labels will use the supplied units.
@@ -165,7 +264,7 @@ class ParticleProjectionPlot(PWViewerMPL):
          represented by '-' separated string or a tuple of strings.  In the
          first index the y-location is given by 'lower', 'upper', or 'center'.
          The second index is the x-location, given as 'left', 'right', or
-         'center'.  Finally, the whether the origin is applied in 'domain'
+         'center'.  Finally, whether the origin is applied in 'domain'
          space, plot 'window' space or 'native' simulation coordinate system
          is given. For example, both 'upper-right-domain' and ['upper',
          'right', 'domain'] both place the origin in the upper right hand
@@ -197,8 +296,8 @@ class ParticleProjectionPlot(PWViewerMPL):
         including the margins but not the colorbar.
     aspect : float
          The aspect ratio of the plot.  Set to None for 1.
-    data_source : YTSelectionContainer Object
-         Object to be used for data selection.  Defaults to a region covering
+    data_source : YTSelectionContainer object
+         The object to be used for data selection.  Defaults to a region covering
          the entire simulation.
     deposition : string
         Controls the order of the interpolation of the particles onto the
@@ -208,11 +307,16 @@ class ParticleProjectionPlot(PWViewerMPL):
         If True, the quantity to be projected will be divided by the area of
         the cells, to make a projected density of the quantity. The plot
         name and units will also reflect this. Default: False
+    north_vector : a sequence of floats
+        A vector defining the 'up' direction in off-axis particle projection plots;
+        not used if the plot is on-axis. This option sets the orientation of the
+        projected plane.  If not set, an arbitrary grid-aligned north-vector is
+        chosen.
 
     Examples
     --------
 
-    This will save an image the the file
+    This will save an image to the file
     'galaxy0030_Particle_z_particle_mass.png'
 
     >>> from yt import load
@@ -227,7 +331,7 @@ class ParticleProjectionPlot(PWViewerMPL):
     def __init__(
         self,
         ds,
-        axis,
+        normal=None,
         fields=None,
         color="b",
         center="center",
@@ -243,15 +347,26 @@ class ParticleProjectionPlot(PWViewerMPL):
         data_source=None,
         deposition="ngp",
         density=False,
+        *,
+        north_vector=None,
+        axis=None,
     ):
+        if axis is not None:
+            issue_deprecation_warning(
+                "The 'axis' argument is a deprecated alias for the 'normal' argument. ",
+                stacklevel=3,
+                since="4.2",
+            )
+            normal = axis
+        if normal is None:
+            raise TypeError(
+                "ParticleProjectionPlot() missing 1 required positional argument: 'normal'"
+            )
         # this will handle time series data and controllers
         ts = self._initialize_dataset(ds)
         self.ts = ts
         ds = self.ds = ts[0]
-        axis = fix_axis(axis, ds)
-        (bounds, center, display_center) = get_window_parameters(
-            axis, center, width, ds
-        )
+        normal = self.sanitize_normal_vector(ds, normal)
         if field_parameters is None:
             field_parameters = {}
 
@@ -270,28 +385,67 @@ class ParticleProjectionPlot(PWViewerMPL):
             self._use_cbar = False
             splat_color = color
 
-        depth = ds.coordinates.sanitize_depth(depth)
+        if isinstance(normal, str):
+            axis = fix_axis(normal, ds)
+            (bounds, center, display_center) = get_window_parameters(
+                axis, center, width, ds
+            )
+            x_coord = ds.coordinates.x_axis[axis]
+            y_coord = ds.coordinates.y_axis[axis]
 
-        x_coord = ds.coordinates.x_axis[axis]
-        y_coord = ds.coordinates.y_axis[axis]
+            depth = ds.coordinates.sanitize_depth(depth)
 
-        width = np.zeros_like(center)
-        width[x_coord] = bounds[1] - bounds[0]
-        width[y_coord] = bounds[3] - bounds[2]
-        width[axis] = depth[0].in_units(width[x_coord].units)
+            width = np.zeros_like(center)
+            width[x_coord] = bounds[1] - bounds[0]
+            width[y_coord] = bounds[3] - bounds[2]
+            width[axis] = depth[0].in_units(width[x_coord].units)
 
-        ParticleSource = ParticleAxisAlignedDummyDataSource(
-            center,
-            ds,
-            axis,
-            width,
-            fields,
-            weight_field,
-            field_parameters=field_parameters,
-            data_source=data_source,
-            deposition=deposition,
-            density=density,
-        )
+            ParticleSource = ParticleAxisAlignedDummyDataSource(
+                center,
+                ds,
+                axis,
+                width,
+                fields,
+                weight_field=weight_field,
+                field_parameters=field_parameters,
+                data_source=data_source,
+                deposition=deposition,
+                density=density,
+            )
+
+            oblique = False
+            plt_origin = origin
+            periodic = True
+
+        else:
+            (bounds, center_rot) = get_oblique_window_parameters(
+                normal, center, width, ds, depth=depth
+            )
+
+            width = ds.coordinates.sanitize_width(normal, width, depth)
+
+            ParticleSource = ParticleOffAxisDummyDataSource(
+                center_rot,
+                ds,
+                normal,
+                width,
+                fields,
+                weight_field=weight_field,
+                field_parameters=field_parameters,
+                data_source=None,
+                deposition=deposition,
+                density=density,
+                north_vector=north_vector,
+            )
+
+            oblique = True
+            periodic = False
+            if origin != "center-window":
+                mylog.warning(
+                    "The 'origin' keyword is ignored for off-axis "
+                    "particle projections, it is always 'center-window'"
+                )
+            plt_origin = "center-window"
 
         self.projected = weight_field is None
 
@@ -299,13 +453,15 @@ class ParticleProjectionPlot(PWViewerMPL):
             self,
             ParticleSource,
             bounds,
-            origin=origin,
+            origin=plt_origin,
             fontsize=fontsize,
             fields=fields,
             window_size=window_size,
             aspect=aspect,
             splat_color=splat_color,
             geometry=ds.geometry,
+            periodic=periodic,
+            oblique=oblique,
         )
 
         self.set_axes_unit(axes_unit)

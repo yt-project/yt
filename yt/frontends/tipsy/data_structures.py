@@ -195,18 +195,18 @@ class TipsyDataset(SPHDataset):
             cosm = self._cosmology_parameters or {}
             # In comoving simulations, time stores the scale factor a
             self.scale_factor = hvals["time"]
-            dcosm = dict(
-                current_redshift=(1.0 / self.scale_factor) - 1.0,
-                omega_lambda=self.parameters.get(
+            dcosm = {
+                "current_redshift": (1.0 / self.scale_factor) - 1.0,
+                "omega_lambda": self.parameters.get(
                     "dLambda", cosm.get("omega_lambda", 0.0)
                 ),
-                omega_matter=self.parameters.get(
+                "omega_matter": self.parameters.get(
                     "dOmega0", cosm.get("omega_matter", 0.0)
                 ),
-                hubble_constant=self.parameters.get(
+                "hubble_constant": self.parameters.get(
                     "dHubble0", cosm.get("hubble_constant", 1.0)
                 ),
-            )
+            }
             for param in dcosm.keys():
                 pval = dcosm[param]
                 setattr(self, param, pval)

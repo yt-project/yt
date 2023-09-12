@@ -1,13 +1,8 @@
 import numpy as np
+from numpy.testing import assert_array_equal, assert_equal
 
 from yt.frontends.gadget_fof.api import GadgetFOFDataset
-from yt.testing import (
-    ParticleSelectionComparison,
-    assert_array_equal,
-    assert_equal,
-    requires_file,
-    requires_module,
-)
+from yt.testing import ParticleSelectionComparison, requires_file, requires_module
 from yt.utilities.answer_testing.framework import (
     FieldValuesTest,
     data_dir_load,

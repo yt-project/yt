@@ -1,6 +1,6 @@
 import numpy as np
+from numpy.testing import assert_equal
 
-from yt.testing import assert_equal
 from yt.utilities.answer_testing.framework import AnswerTestingTest
 
 

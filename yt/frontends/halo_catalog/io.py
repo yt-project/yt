@@ -4,7 +4,7 @@ import numpy as np
 
 from yt.frontends.gadget_fof.io import IOHandlerGadgetFOFHaloHDF5
 from yt.funcs import parse_h5_attr
-from yt.units.yt_array import uvstack  # type: ignore
+from yt.units._numpy_wrapper_functions import uvstack
 from yt.utilities.io_handler import BaseParticleIOHandler
 from yt.utilities.on_demand_imports import _h5py as h5py
 
@@ -17,17 +17,12 @@ class IOHandlerYTHaloCatalog(BaseParticleIOHandler):
 
     def _read_particle_coords(self, chunks, ptf):
         # This will read chunks and yield the results.
-        chunks = list(chunks)
-        data_files = set()
         # Only support halo reading for now.
         assert len(ptf) == 1
         assert list(ptf.keys())[0] == "halos"
         ptype = "halos"
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
         pn = "particle_position_%s"
-        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
+        for data_file in self._sorted_chunk_iterator(chunks):
             with h5py.File(data_file.filename, mode="r") as f:
                 units = parse_h5_attr(f[pn % "x"], "units")
                 pos = data_file._get_particle_positions(ptype, f=f)
@@ -46,17 +41,11 @@ class IOHandlerYTHaloCatalog(BaseParticleIOHandler):
             yield "halos", pos
 
     def _read_particle_fields(self, chunks, ptf, selector):
-        # Now we have all the sizes, and we can allocate
-        chunks = list(chunks)
-        data_files = set()
         # Only support halo reading for now.
         assert len(ptf) == 1
         assert list(ptf.keys())[0] == "halos"
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
         pn = "particle_position_%s"
-        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
+        for data_file in self._sorted_chunk_iterator(chunks):
             si, ei = data_file.start, data_file.end
             with h5py.File(data_file.filename, mode="r") as f:
                 for ptype, field_list in sorted(ptf.items()):

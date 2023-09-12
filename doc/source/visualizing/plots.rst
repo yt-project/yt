@@ -652,16 +652,13 @@ simply pass ``all`` as the first argument of the field tuple:
 Additional Notes for Plotting Particle Data
 -------------------------------------------
 
-Below are some important caveats to note when visualizing particle data.
+An important caveat when visualizing particle data is that off-axis slice plotting is
+not available for any particle data. However, axis-aligned slice plots (as described in
+:ref:`slice-plots`) will work.
 
-1. Off axis slice plotting is not available for any particle data.
-   However, axis-aligned slice plots (as described in :ref:`slice-plots`)
-   will work.
-
-2. Off axis projections (as in :ref:`off-axis-projections`) will only work
-   for SPH particles, i.e., particles that have a defined smoothing length.
-
-Two workaround methods are available for plotting non-SPH particles with off-axis
+Since version 4.2.0, off-axis projections ares supported for non-SPH particle data.
+Previous to that, this operation was only supported for SPH particles. Two historical
+workaround methods were available for plotting non-SPH particles with off-axis
 projections.
 
 1. :ref:`smooth-non-sph` - this method involves extracting particle data to be
@@ -2027,7 +2024,25 @@ domain:
    p.set_unit(("all", "particle_mass"), "Msun")
    p.save()
 
-and here is an example of using the ``data_source`` argument to :class:`~yt.visualization.particle_plots.ParticlePhasePlot`
+Using :class:`~yt.visualization.particle_plots.ParticleProjectionPlot`, you can also plot particles
+along an off-axis direction:
+
+.. python-script::
+
+   import yt
+
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
+   L = [1, 1, 1] # normal or "line of sight" vector
+   N = [0, 1, 0] # north or "up" vector
+
+    p = yt.ParticleProjectionPlot(
+        ds, L, [("all", "particle_mass")], width=(0.05, 0.05), depth=0.3, north_vector=N
+    )
+   p.set_unit(("all", "particle_mass"), "Msun")
+   p.save()
+
+Here is an example of using the ``data_source`` argument to :class:`~yt.visualization.particle_plots.ParticlePhasePlot`
 to only consider the particles that lie within a 50 kpc sphere around the domain center:
 
 .. python-script::

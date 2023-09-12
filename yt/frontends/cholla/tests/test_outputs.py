@@ -1,6 +1,8 @@
+from numpy.testing import assert_equal
+
 import yt
 from yt.frontends.cholla.api import ChollaDataset
-from yt.testing import assert_equal, requires_file, requires_module
+from yt.testing import requires_file, requires_module
 from yt.utilities.answer_testing.framework import (
     data_dir_load,
     requires_ds,

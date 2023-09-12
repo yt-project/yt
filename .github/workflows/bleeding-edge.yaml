@@ -15,8 +15,8 @@ on:
     paths:
       - .github/workflows/bleeding-edge.yaml
   schedule:
-    # run this every day at 3 am UTC
-    - cron: '0 3 * * *'
+    # run this every Wednesday at 3 am UTC
+    - cron: 0 3 * * 3
   workflow_dispatch:
 
 jobs:
@@ -50,13 +50,10 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         python -m pip install --upgrade setuptools wheel
-        python -m pip install git+https://github.com/numpy/numpy.git
-        python -m pip install git+https://github.com/matplotlib/matplotlib.git
+        python -m pip install --pre --upgrade --extra-index https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy matplotlib
+        python -m pip install --pre cython ewah-bool-utils
         python -m pip install git+https://github.com/yt-project/unyt.git
-        python -m pip install --pre cython
-        python -m pip install ewah-bool-utils
-        python -m pip install --upgrade --pre pytest
-        python -m pip install PyYAML
+        python -m pip install --pre pytest PyYAML
 
     - name: Build
       # --no-build-isolation is used to guarantee that build time dependencies
@@ -66,5 +63,31 @@ jobs:
         python setup.py build_ext -q -j2
         python -m pip install -e .[test] --no-build-isolation
 
+    - run: python -m pip list
+
     - name: Run Tests
-      run: pytest -vvv --color=yes
+      run: |
+        yt config set --local yt log_level 50  # Disable excessive output
+        pytest -vvv --color=yes
+
+  create-issue:
+    if: ${{ failure() && github.event_name == 'schedule' }}
+    needs: [build]
+    permissions:
+      issues: write
+    runs-on: ubuntu-latest
+    name: Create issue on failure
+
+    steps:
+    - name: Create issue on failure
+      uses: imjohnbo/issue-bot@v3
+      with:
+        title: 'TST: Upcoming dependency test failures'
+        body: |
+          The weekly build with future dependencies has failed. Check the logs
+          https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}
+        labels: 'tests: running tests,'
+        pinned: false
+        close-previous: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

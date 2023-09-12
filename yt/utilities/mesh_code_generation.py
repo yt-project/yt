@@ -5,7 +5,7 @@ from sympy import Matrix, MatrixSymbol, ccode, diff, symarray
 fun_signature = """cdef void %s(double* fx,
                        double* x,
                        double* vertices,
-                       double* phys_x) nogil"""
+                       double* phys_x) noexcept nogil"""
 
 fun_dec_template = fun_signature + " \n"
 fun_def_template = (
@@ -21,7 +21,7 @@ jac_signature_3D = """cdef void %s(double* rcol,
                        double* tcol,
                        double* x,
                        double* vertices,
-                       double* phys_x) nogil"""
+                       double* phys_x) noexcept nogil"""
 
 jac_dec_template_3D = jac_signature_3D + " \n"
 jac_def_template_3D = (
@@ -36,7 +36,7 @@ jac_signature_2D = """cdef void %s(double* rcol,
                        double* scol,
                        double* x,
                        double* vertices,
-                       double* phys_x) nogil"""
+                       double* phys_x) noexcept nogil"""
 jac_dec_template_2D = jac_signature_2D + " \n"
 jac_def_template_2D = (
     """@cython.boundscheck(False)

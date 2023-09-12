@@ -4,7 +4,6 @@ import re
 from collections import namedtuple
 from functools import cached_property
 from stat import ST_CTIME
-from typing import Type
 
 import numpy as np
 
@@ -563,7 +562,7 @@ class BoxlibHierarchy(GridIndex):
         self.field_indexes = {f[1]: i for i, f in enumerate(self.field_list)}
         # There are times when field_list may change.  We copy it here to
         # avoid that possibility.
-        self.field_order = [f for f in self.field_list]
+        self.field_order = list(self.field_list)
 
     def _setup_data_io(self):
         self.io = io_registry[self.dataset_type](self.dataset)
@@ -623,7 +622,7 @@ class BoxlibDataset(Dataset):
     """
 
     _index_class = BoxlibHierarchy
-    _field_info_class: Type[FieldInfoContainer] = BoxlibFieldInfo
+    _field_info_class: type[FieldInfoContainer] = BoxlibFieldInfo
     _output_prefix = None
     _default_cparam_filename = "job_info"
 
@@ -933,7 +932,7 @@ class AMReXHierarchy(BoxlibHierarchy):
 
 
 class AMReXDataset(BoxlibDataset):
-    _index_class: Type[BoxlibHierarchy] = AMReXHierarchy
+    _index_class: type[BoxlibHierarchy] = AMReXHierarchy
     _subtype_keyword = "amrex"
     _default_cparam_filename = "job_info"
 
@@ -959,7 +958,7 @@ class OrionHierarchy(BoxlibHierarchy):
         self.field_indexes = {f[1]: i for i, f in enumerate(self.field_list)}
         # There are times when field_list may change.  We copy it here to
         # avoid that possibility.
-        self.field_order = [f for f in self.field_list]
+        self.field_order = list(self.field_list)
 
         # look for particle fields
         self.particle_filename = None

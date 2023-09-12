@@ -186,8 +186,8 @@ def ds9_region(ds, reg, obj=None, field_parameters=None):
         prefix = ""
 
     def _reg_field(field, data):
-        i = data[prefix + "xyz"[ds.lon_axis]].d.astype("int") - 1
-        j = data[prefix + "xyz"[ds.lat_axis]].d.astype("int") - 1
+        i = data[prefix + "xyz"[ds.lon_axis]].d.astype("int64") - 1
+        j = data[prefix + "xyz"[ds.lat_axis]].d.astype("int64") - 1
         new_mask = mask[i, j]
         ret = np.zeros(data[prefix + "x"].shape)
         ret[new_mask] = 1.0
@@ -276,7 +276,7 @@ class PlotWindowWCS:
         self.pw.save(name=name, mpl_kwargs=mpl_kwargs)
 
     def _repr_html_(self):
-        from yt.visualization._mpl_imports import FigureCanvasAgg
+        from matplotlib.backends.backend_agg import FigureCanvasAgg
 
         ret = ""
         for v in self.plots.values():

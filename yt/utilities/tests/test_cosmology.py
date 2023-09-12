@@ -1,14 +1,9 @@
 import os
 
 import numpy as np
+from numpy.testing import assert_almost_equal, assert_equal
 
-from yt.testing import (
-    assert_almost_equal,
-    assert_equal,
-    assert_rel_equal,
-    requires_file,
-    requires_module,
-)
+from yt.testing import assert_rel_equal, requires_file, requires_module
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.answer_testing.framework import data_dir_load
 from yt.utilities.cosmology import Cosmology

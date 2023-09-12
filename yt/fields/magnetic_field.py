@@ -355,6 +355,6 @@ def setup_magnetic_field_aliases(registry, ds_ftype, ds_fields, ftype="gas"):
                 function=mag_field_from_ax(ax),
                 units=units,
             )
-            sph_ptypes = getattr(registry.ds, "_sph_ptypes", tuple())
+            sph_ptypes = getattr(registry.ds, "_sph_ptypes", ())
             if ds_ftype in sph_ptypes:
                 registry.alias((ftype, f"magnetic_field_{ax}"), (ds_ftype, fname))

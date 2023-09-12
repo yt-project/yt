@@ -1,7 +1,7 @@
 import abc
 import weakref
 from collections import defaultdict
-from typing import Optional, Tuple
+from typing import Optional
 
 import numpy as np
 
@@ -121,7 +121,7 @@ class GridIndex(Index, abc.ABC):
         #   2 = blank
         desc = {"names": ["numgrids", "numcells", "level"], "formats": ["int64"] * 3}
         self.level_stats = blankRecordArray(desc, MAXLEVEL)
-        self.level_stats["level"] = [i for i in range(MAXLEVEL)]
+        self.level_stats["level"] = list(range(MAXLEVEL))
         self.level_stats["numgrids"] = [0 for i in range(MAXLEVEL)]
         self.level_stats["numcells"] = [0 for i in range(MAXLEVEL)]
         for level in range(self.max_level + 1):
@@ -229,7 +229,7 @@ class GridIndex(Index, abc.ABC):
         except Exception:
             pass
         print(
-            "t = {:0.8e} = {:0.8e} s = {:0.8e} years".format(
+            "t = {:0.8e} = {:0.8e} = {:0.8e}".format(
                 self.ds.current_time.in_units("code_time"),
                 self.ds.current_time.in_units("s"),
                 self.ds.current_time.in_units("yr"),
@@ -333,7 +333,7 @@ class GridIndex(Index, abc.ABC):
             gi = dobj.selector.select_grids(
                 self.grid_left_edge, self.grid_right_edge, self.grid_levels
             )
-            if any([g.filename is not None for g in self.grids[gi]]):
+            if any(g.filename is not None for g in self.grids[gi]):
                 _gsort = _grid_sort_mixed
             else:
                 _gsort = _grid_sort_id
@@ -417,9 +417,9 @@ class GridIndex(Index, abc.ABC):
             chunk_ngrids = len(gobjs)
             if chunk_ngrids > 0:
                 nproc = int(ytcfg.get("yt", "internals", "global_parallel_size"))
-                chunking_factor = np.ceil(
-                    self._grid_chunksize * nproc / chunk_ngrids
-                ).astype("int")
+                chunking_factor = np.int64(
+                    np.ceil(self._grid_chunksize * nproc / chunk_ngrids)
+                )
                 size = max(self._grid_chunksize // chunking_factor, 1)
             else:
                 size = self._grid_chunksize
@@ -452,8 +452,8 @@ class GridIndex(Index, abc.ABC):
         self,
         icoords: np.ndarray,
         ires: np.ndarray,
-        axes: Optional[Tuple[int, ...]] = None,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+        axes: Optional[tuple[int, ...]] = None,
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Accepts icoords and ires and returns appropriate fcoords and fwidth.
         Mostly useful for cases where we have irregularly spaced or structured

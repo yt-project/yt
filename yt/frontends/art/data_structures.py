@@ -2,7 +2,6 @@ import glob
 import os
 import struct
 import weakref
-from typing import Type
 
 import numpy as np
 
@@ -79,7 +78,7 @@ class ARTIndex(OctreeIndex):
         self.oct_handler.finalize()
 
     def _detect_output_fields(self):
-        self.particle_field_list = [f for f in particle_fields]
+        self.particle_field_list = list(particle_fields)
         self.field_list = [("art", f) for f in fluid_fields]
         # now generate all of the possible particle fields
         for ptype in self.dataset.particle_types_raw:
@@ -133,7 +132,7 @@ class ARTIndex(OctreeIndex):
 
 
 class ARTDataset(Dataset):
-    _index_class: Type[Index] = ARTIndex
+    _index_class: type[Index] = ARTIndex
     _field_info_class = ARTFieldInfo
 
     def __init__(

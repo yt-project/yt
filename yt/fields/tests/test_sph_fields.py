@@ -11,14 +11,14 @@ snap_33 = "snapshot_033/snap_033.0.hdf5"
 tipsy_gal = "TipsyGalaxy/galaxy.00300"
 FIRE_m12i = "FIRE_M12i_ref11/snapshot_600.hdf5"
 
-iso_kwargs = dict(
-    bounding_box=[[-3, 3], [-3, 3], [-3, 3]],
-    unit_base={
+iso_kwargs = {
+    "bounding_box": [[-3, 3], [-3, 3], [-3, 3]],
+    "unit_base": {
         "UnitLength_in_cm": 5.0e16,
         "UnitMass_in_g": 1.98992e33,
         "UnitVelocity_in_cm_per_s": 46385.190,
     },
-)
+}
 
 load_kwargs = defaultdict(dict)
 load_kwargs.update(

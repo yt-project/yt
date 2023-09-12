@@ -1,7 +1,7 @@
 import sys
 from collections import UserDict
 from collections.abc import Callable
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 from unyt.exceptions import UnitConversionError
 
@@ -48,17 +48,17 @@ class FieldInfoContainer(UserDict):
     fallback = None
     known_other_fields: KnownFieldsT = ()
     known_particle_fields: KnownFieldsT = ()
-    extra_union_fields: Tuple[FieldKey, ...] = ()
+    extra_union_fields: tuple[FieldKey, ...] = ()
 
-    def __init__(self, ds, field_list: List[FieldKey], slice_info=None):
+    def __init__(self, ds, field_list: list[FieldKey], slice_info=None):
         super().__init__()
-        self._show_field_errors: List[Exception] = []
+        self._show_field_errors: list[Exception] = []
         self.ds = ds
         # Now we start setting things up.
         self.field_list = field_list
         self.slice_info = slice_info
-        self.field_aliases: Dict[FieldKey, FieldKey] = {}
-        self.species_names: List[FieldName] = []
+        self.field_aliases: dict[FieldKey, FieldKey] = {}
+        self.species_names: list[FieldName] = []
         self.setup_fluid_aliases()
 
     @property
@@ -66,6 +66,7 @@ class FieldInfoContainer(UserDict):
         issue_deprecation_warning(
             "FieldInfoContainer.curvilinear attribute is deprecated. "
             "Please compare the internal dataset geometry directly to known Geometry enum members instead. ",
+            stacklevel=3,
             since="4.2",
         )
         geometry = self.ds.geometry
@@ -215,8 +216,8 @@ class FieldInfoContainer(UserDict):
         self.alias((ftype, "particle_mass"), (ptype, "particle_mass"))
 
     # Collect the names for all aliases if geometry is curvilinear
-    def get_aliases_gallery(self) -> List[FieldName]:
-        aliases_gallery: List[FieldName] = []
+    def get_aliases_gallery(self) -> list[FieldName]:
+        aliases_gallery: list[FieldName] = []
         known_other_fields = dict(self.known_other_fields)
 
         if self.ds is None:
@@ -228,7 +229,7 @@ class FieldInfoContainer(UserDict):
             or geometry is Geometry.CYLINDRICAL
             or geometry is Geometry.SPHERICAL
         ):
-            aliases: List[FieldName]
+            aliases: list[FieldName]
             for field in sorted(self.field_list):
                 if field[0] in self.ds.particle_types:
                     continue
@@ -266,7 +267,7 @@ class FieldInfoContainer(UserDict):
                 try:
                     node = ytcfg.get("fields", *field).as_dict()
                 except KeyError:
-                    node = dict()
+                    node = {}
 
                 units = node.get("units", "")
                 aliases = node.get("aliases", [])
@@ -451,7 +452,7 @@ class FieldInfoContainer(UserDict):
         alias_name: FieldKey,
         original_name: FieldKey,
         units: Optional[str] = None,
-        deprecate: Optional[Tuple[str, Optional[str]]] = None,
+        deprecate: Optional[tuple[str, Optional[str]]] = None,
     ):
         """
         Alias one field to another field.

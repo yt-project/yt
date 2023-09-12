@@ -5,15 +5,11 @@ This module gathers all user-facing functions with a `load_` prefix.
 import atexit
 import os
 import sys
-import tarfile
 import time
 import types
 import warnings
-from importlib.metadata import entry_points
-from multiprocessing import Pipe, Process
-from multiprocessing.connection import Connection
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union, cast
+from typing import TYPE_CHECKING, Any, Optional, Union, cast
 from urllib.parse import urlsplit
 
 import numpy as np
@@ -43,11 +39,16 @@ from yt.utilities.object_registries import (
     simulation_time_series_registry,
 )
 from yt.utilities.on_demand_imports import _pooch as pooch, _ratarmount as ratarmount
+from yt.utilities.parallel_tools.parallel_analysis_interface import (
+    parallel_root_only_then_broadcast,
+)
 
+if TYPE_CHECKING:
+    from multiprocessing.connection import Connection
 # --- Loaders for known data formats ---
 
 
-@future_positional_only({0: "fn"}, since="4.2.0")
+@future_positional_only({0: "fn"}, since="4.2")
 def load(
     fn: Union[str, "os.PathLike[str]"], *args, hint: Optional[str] = None, **kwargs
 ):
@@ -90,6 +91,10 @@ def load(
     yt.utilities.exceptions.YTAmbiguousDataType
         If the data format matches more than one class of similar specialization levels.
     """
+    from importlib.metadata import entry_points
+
+    from yt.frontends import _all  # type: ignore [attr-defined] # noqa
+
     fn = os.path.expanduser(fn)
 
     if any(wildcard in fn for wildcard in "[]?!*"):
@@ -155,6 +160,7 @@ def load_simulation(fn, simulation_type, find_outputs=False):
     yt.utilities.exceptions.YTSimulationNotIdentified
         If simulation_type is unknown.
     """
+    from yt.frontends import _all  # noqa
 
     fn = str(lookup_on_disk_data(fn))
 
@@ -170,8 +176,8 @@ def load_simulation(fn, simulation_type, find_outputs=False):
 
 
 def _sanitize_axis_order_args(
-    geometry: Union[str, Tuple[str, AxisOrder]], axis_order: Optional[AxisOrder]
-) -> Tuple[str, Optional[AxisOrder]]:
+    geometry: Union[str, tuple[str, AxisOrder]], axis_order: Optional[AxisOrder]
+) -> tuple[str, Optional[AxisOrder]]:
     # this entire function should be removed at the end of its deprecation cycle
     geometry_str: str
     if isinstance(geometry, tuple):
@@ -319,7 +325,7 @@ def load_uniform_grid(
     if number_of_particles > 0:
         particle_types = set_particle_types(data)
         # Used much further below.
-        pdata: Dict[Union[str, FieldKey], Any] = {
+        pdata: dict[Union[str, FieldKey], Any] = {
             "number_of_particles": number_of_particles
         }
         for key in list(data.keys()):
@@ -344,7 +350,7 @@ def load_uniform_grid(
             grid_left_edges, grid_right_edges, shapes, slices = decompose_array(
                 data[key].shape, psize, bbox
             )
-            grid_dimensions = np.array([shape for shape in shapes], dtype="int32")
+            grid_dimensions = np.array(list(shapes), dtype="int32")
             temp[key] = [data[key][slice] for slice in slices]
         for gid in range(nprocs):
             new_data[gid] = {}
@@ -664,7 +670,7 @@ def load_amr_grids(
 
 
 def load_particles(
-    data: Dict[AnyFieldKey, np.ndarray],
+    data: dict[AnyFieldKey, np.ndarray],
     length_unit=None,
     bbox=None,
     sim_time=None,
@@ -803,7 +809,7 @@ def load_particles(
     field_units, data, _ = process_data(data)
     sfh = StreamDictFieldHandler()
 
-    pdata: Dict[AnyFieldKey, np.ndarray] = {}
+    pdata: dict[AnyFieldKey, np.ndarray] = {}
     for key in data.keys():
         field: FieldKey
         if not isinstance(key, tuple):
@@ -1033,6 +1039,7 @@ def load_octree(
     default_species_fields=None,
     *,
     parameters=None,
+    domain_dimensions=None,
     dataset_name: str = "OctreeData",
 ):
     r"""Load an octree mask into yt.
@@ -1084,6 +1091,9 @@ def load_octree(
     parameters: dictionary, optional
         Optional dictionary used to populate the dataset parameters, useful
         for storing dataset metadata.
+    domain_dimensions : 3 elements array-like, optional
+        This is the domain dimensions of the root *mesh*, which can be used to
+        specify (indirectly) the number of root oct nodes.
     dataset_name : string, optional
         Optional string used to assign a name to the dataset. Stream datasets will use
         this value in place of a filename (in image prefixing, etc.)
@@ -1092,11 +1102,11 @@ def load_octree(
     -------
 
     >>> import numpy as np
-    >>> oct_mask = np.zeros(25)
+    >>> oct_mask = np.zeros(33) # 5 refined values gives 7 * 4 + 5 octs to mask
     ... oct_mask[[0,  5,  7, 16]] = 8
     >>> octree_mask = np.array(oct_mask, dtype=np.uint8)
     >>> quantities = {}
-    >>> quantities["gas", "density"] = np.random.random((22, 1))
+    >>> quantities["gas", "density"] = np.random.random((29, 1)) # num of false's
     >>> bbox = np.array([[-10.0, 10.0], [-10.0, 10.0], [-10.0, 10.0]])
 
     >>> ds = load_octree(
@@ -1122,7 +1132,12 @@ def load_octree(
     # for compatibility
     if over_refine_factor is not None:
         nz = 1 << over_refine_factor
-    domain_dimensions = np.array([nz, nz, nz])
+    if domain_dimensions is None:
+        # We assume that if it isn't specified, it defaults to the number of
+        # zones (i.e., a single root oct.)
+        domain_dimensions = np.array([nz, nz, nz])
+    else:
+        domain_dimensions = np.array(domain_dimensions)
     nprocs = 1
     if bbox is None:
         bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]], "float64")
@@ -1448,52 +1463,17 @@ def load_unstructured_mesh(
 
 
 # --- Loader for yt sample datasets ---
-def load_sample(
+@parallel_root_only_then_broadcast
+def _get_sample_data(
     fn: Optional[str] = None, *, progressbar: bool = True, timeout=None, **kwargs
 ):
-    r"""
-    Load sample data with yt.
-
-    This is a simple wrapper around :func:`~yt.loaders.load` to include fetching
-    data with pooch from remote source.
-
-    The data registry table can be retrieved and visualized using
-    :func:`~yt.sample_data.api.get_data_registry_table`.
-    The `filename` column contains usable keys that can be passed
-    as the first positional argument to load_sample.
-    Some data samples contain series of datasets. It may be required to
-    supply the relative path to a specific dataset.
-
-    Parameters
-    ----------
-
-    fn: str
-        The `filename` of the dataset to load, as defined in the data registry
-        table.
-
-    progressbar: bool
-        display a progress bar (tqdm).
-
-    timeout: float or int (optional)
-        Maximal waiting time, in seconds, after which download is aborted.
-        `None` means "no limit". This parameter is directly passed to down to
-        requests.get via pooch.HTTPDownloader
-
-    Notes
-    -----
-
-    - This function is experimental as of yt 4.0.0, do not rely on its exact behaviour.
-    - Any additional keyword argument is passed down to :func:`~yt.loaders.load`.
-    - In case of collision with predefined keyword arguments as set in
-      the data registry, the ones passed to this function take priority.
-    - Datasets with slashes '/' in their names can safely be used even on Windows.
-      On the contrary, paths using backslashes '\' won't work outside of Windows, so
-      it is recommended to favour the UNIX convention ('/') in scripts that are meant
-      to be cross-platform.
-    - This function requires pandas and pooch.
-    - Corresponding sample data live at https://yt-project.org/data
-
-    """
+    # this isolates all the filename management and downloading so that it
+    # can be restricted to a single process if running in parallel. Returns
+    # the loadable_path as well as the kwargs dictionary, which is modified
+    # by this function (note that the kwargs are returned explicitly rather than
+    # relying on in-place modification so that the updated kwargs can be
+    # broadcast to other processes during parallel execution).
+    import tarfile
 
     if fn is None:
         print(
@@ -1507,6 +1487,7 @@ def load_sample(
         _download_sample_data_file,
         _get_test_data_dir_path,
         get_data_registry_table,
+        get_download_cache_dir,
     )
 
     pooch_logger = pooch.utils.get_logger()
@@ -1520,13 +1501,13 @@ def load_sample(
 
     registry_table = get_data_registry_table()
 
-    known_names: List[str] = registry_table.dropna()["filename"].to_list()
+    known_names: list[str] = registry_table.dropna()["filename"].to_list()
     if topdir not in known_names:
         msg = f"'{topdir}' is not an available dataset."
-        lexical_distances: List[Tuple[str, int]] = [
+        lexical_distances: list[tuple[str, int]] = [
             (name, levenshtein_distance(name, topdir)) for name in known_names
         ]
-        suggestions: List[str] = [name for name, dist in lexical_distances if dist < 4]
+        suggestions: list[str] = [name for name, dist in lexical_distances if dist < 4]
         if len(suggestions) == 1:
             msg += f" Did you mean '{suggestions[0]}' ?"
         elif suggestions:
@@ -1554,8 +1535,7 @@ def load_sample(
             "Please report this to https://github.com/yt-project/yt/issues/new"
         )
 
-    kwargs = {**specs["load_kwargs"], **kwargs}
-
+    load_kwargs = {**specs["load_kwargs"], **kwargs}
     save_dir = _get_test_data_dir_path()
 
     data_path = save_dir.joinpath(fn)
@@ -1567,7 +1547,7 @@ def load_sample(
         mylog.info("Sample dataset found in '%s'", data_path)
         if timeout is not None:
             mylog.info("Ignoring the `timeout` keyword argument received.")
-        return load(data_path, **kwargs)
+        return data_path, load_kwargs
 
     mylog.info("'%s' is not available locally. Looking up online.", fn)
 
@@ -1615,11 +1595,70 @@ def load_sample(
     if load_name not in str(loadable_path):
         loadable_path = loadable_path.joinpath(load_name, specific_file)
 
-    return load(loadable_path, **kwargs)
+    try:
+        # clean cache dir
+        get_download_cache_dir().rmdir()
+    except OSError:
+        # cache dir isn't empty
+        pass
+
+    return loadable_path, load_kwargs
+
+
+def load_sample(
+    fn: Optional[str] = None, *, progressbar: bool = True, timeout=None, **kwargs
+):
+    r"""
+    Load sample data with yt.
+
+    This is a simple wrapper around :func:`~yt.loaders.load` to include fetching
+    data with pooch from remote source.
+
+    The data registry table can be retrieved and visualized using
+    :func:`~yt.sample_data.api.get_data_registry_table`.
+    The `filename` column contains usable keys that can be passed
+    as the first positional argument to load_sample.
+    Some data samples contain series of datasets. It may be required to
+    supply the relative path to a specific dataset.
+
+    Parameters
+    ----------
+
+    fn: str
+        The `filename` of the dataset to load, as defined in the data registry
+        table.
+
+    progressbar: bool
+        display a progress bar (tqdm).
+
+    timeout: float or int (optional)
+        Maximal waiting time, in seconds, after which download is aborted.
+        `None` means "no limit". This parameter is directly passed to down to
+        requests.get via pooch.HTTPDownloader
+
+    Notes
+    -----
+
+    - This function is experimental as of yt 4.0.0, do not rely on its exact behaviour.
+    - Any additional keyword argument is passed down to :func:`~yt.loaders.load`.
+    - In case of collision with predefined keyword arguments as set in
+      the data registry, the ones passed to this function take priority.
+    - Datasets with slashes '/' in their names can safely be used even on Windows.
+      On the contrary, paths using backslashes '\' won't work outside of Windows, so
+      it is recommended to favour the UNIX convention ('/') in scripts that are meant
+      to be cross-platform.
+    - This function requires pandas and pooch.
+    - Corresponding sample data live at https://yt-project.org/data
+
+    """
+    loadable_path, load_kwargs = _get_sample_data(
+        fn, progressbar=progressbar, timeout=timeout, **kwargs
+    )
+    return load(loadable_path, **load_kwargs)
 
 
 def _mount_helper(
-    archive: str, mountPoint: str, ratarmount_kwa: Dict, conn: Connection
+    archive: str, mountPoint: str, ratarmount_kwa: dict, conn: "Connection"
 ):
     try:
         fuseOperationsObject = ratarmount.TarMount(
@@ -1646,7 +1685,7 @@ def _mount_helper(
 def load_archive(
     fn: Union[str, Path],
     path: str,
-    ratarmount_kwa: Optional[Dict] = None,
+    ratarmount_kwa: Optional[dict] = None,
     mount_timeout: float = 1.0,
     *args,
     **kwargs,
@@ -1680,6 +1719,8 @@ def load_archive(
     - This function requires ratarmount to be installed.
     - This function does not work on Windows system.
     """
+    import tarfile
+    from multiprocessing import Pipe, Process
 
     warnings.warn(
         "The 'load_archive' function is still experimental and may be unstable.",
@@ -1748,7 +1789,7 @@ def load_archive(
 def load_hdf5_file(
     fn: Union[str, "os.PathLike[str]"],
     root_node: Optional[str] = "/",
-    fields: Optional[List[str]] = None,
+    fields: Optional[list[str]] = None,
     bbox: Optional[np.ndarray] = None,
     nchunks: int = 0,
     dataset_arguments: Optional[dict] = None,

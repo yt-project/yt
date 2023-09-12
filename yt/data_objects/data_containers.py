@@ -2,7 +2,7 @@ import abc
 import weakref
 from collections import defaultdict
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, List, Optional, Tuple
+from typing import TYPE_CHECKING, Optional
 
 import numpy as np
 
@@ -66,14 +66,14 @@ class YTDataContainer(abc.ABC):
 
     _chunk_info = None
     _num_ghost_zones = 0
-    _con_args: Tuple[str, ...] = ()
+    _con_args: tuple[str, ...] = ()
     _skip_add = False
-    _container_fields: Tuple[AnyFieldKey, ...] = ()
-    _tds_attrs: Tuple[str, ...] = ()
-    _tds_fields: Tuple[str, ...] = ()
+    _container_fields: tuple[AnyFieldKey, ...] = ()
+    _tds_attrs: tuple[str, ...] = ()
+    _tds_fields: tuple[str, ...] = ()
     _field_cache = None
     _index = None
-    _key_fields: List[str]
+    _key_fields: list[str]
 
     def __init__(self, ds: Optional["Dataset"], field_parameters) -> None:
         """
@@ -778,6 +778,7 @@ class YTDataContainer(abc.ABC):
             issue_deprecation_warning(
                 "The 'JSONdir' keyword argument is a deprecated alias for 'datadir'."
                 "Please use 'datadir' directly.",
+                stacklevel=3,
                 since="4.1",
             )
             datadir = JSONdir

@@ -75,7 +75,6 @@ cdef class ParticleOctreeContainer(OctreeContainer):
     cdef Oct** oct_list
     #The starting oct index of each domain
     cdef np.int64_t *dom_offsets
-    cdef public int max_level
     #How many particles do we keep before refining
     cdef public int n_ref
 
@@ -484,9 +483,9 @@ cdef class ParticleBitmap:
         hash_data.extend(np.array(self.left_edge).tobytes())
         hash_data.extend(np.array(self.right_edge).tobytes())
         hash_data.extend(np.array(self.periodicity).tobytes())
-        hash_data.extend(self.nfiles.to_bytes(2, "little", signed=False))
-        hash_data.extend(self.index_order1.to_bytes(2, "little", signed=True))
-        hash_data.extend(self.index_order2.to_bytes(2, "little", signed=True))
+        hash_data.extend(self.nfiles.to_bytes(8, "little", signed=False))
+        hash_data.extend(self.index_order1.to_bytes(4, "little", signed=True))
+        hash_data.extend(self.index_order2.to_bytes(4, "little", signed=True))
         self.hash_value = fnv_hash(hash_data)
 
     def _bitmask_logicaland(self, ifile, bcoll, out):
@@ -1945,7 +1944,6 @@ cdef class ParticleBitmapSelector:
 
 cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
     cdef Oct** oct_list
-    cdef public int max_level
     cdef public int n_ref
     cdef int loaded # Loaded with load_octree?
     cdef np.uint8_t* _ptr_index_base_roots

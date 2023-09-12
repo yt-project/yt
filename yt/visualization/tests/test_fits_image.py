@@ -12,6 +12,7 @@ from yt.visualization.fits_image import (
     FITSImageData,
     FITSOffAxisProjection,
     FITSOffAxisSlice,
+    FITSParticleOffAxisProjection,
     FITSParticleProjection,
     FITSProjection,
     FITSSlice,
@@ -221,6 +222,11 @@ def test_fits_image():
     assert pfid["particle_mass"].header["BTYPE"] == "particle_mass"
     assert pfid["particle_mass"].units == "g"
 
+    pofid = FITSParticleOffAxisProjection(ds, [1, 1, 1], ("io", "particle_mass"))
+    assert pofid["particle_mass"].name == "particle_mass"
+    assert pofid["particle_mass"].header["BTYPE"] == "particle_mass"
+    assert pofid["particle_mass"].units == "g"
+
     pdfid = FITSParticleProjection(ds, "x", ("io", "particle_mass"), density=True)
     assert pdfid["particle_mass"].name == "particle_mass"
     assert pdfid["particle_mass"].header["BTYPE"] == "particle_mass"
@@ -282,6 +288,7 @@ def test_fits_image():
         new_fid3,
         pfid,
         pdfid,
+        pofid,
     ):
         fid.close()
 

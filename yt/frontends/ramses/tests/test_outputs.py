@@ -1,19 +1,14 @@
 import os
 
 import numpy as np
+from numpy.testing import assert_equal, assert_raises
 
 import yt
 from yt.config import ytcfg
 from yt.fields.field_detector import FieldDetector
 from yt.frontends.ramses.api import RAMSESDataset
 from yt.frontends.ramses.field_handlers import DETECTED_FIELDS, HydroFieldFileHandler
-from yt.testing import (
-    assert_equal,
-    assert_raises,
-    requires_file,
-    requires_module,
-    units_override_check,
-)
+from yt.testing import requires_file, requires_module, units_override_check
 from yt.utilities.answer_testing.framework import (
     FieldValuesTest,
     PixelizedProjectionValuesTest,

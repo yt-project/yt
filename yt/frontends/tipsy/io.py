@@ -85,12 +85,8 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
         return rv
 
     def _read_particle_coords(self, chunks, ptf):
-        data_files = set()
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
         chunksize = self.ds.index.chunksize
-        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
+        for data_file in self._sorted_chunk_iterator(chunks):
             poff = data_file.field_offsets
             tp = data_file.total_particles
             f = open(data_file.filename, "rb")
@@ -329,7 +325,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
         if None not in (si, ei):
             np.clip(pcount - si, 0, ei - si, out=pcount)
         ptypes = ["Gas", "Stars", "DarkMatter"]
-        npart = {ptype: v for ptype, v in zip(ptypes, pcount)}
+        npart = dict(zip(ptypes, pcount))
         return npart
 
     @classmethod
@@ -419,7 +415,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
             self._aux_fields.remove(afield)
         # Add the auxiliary fields to each ptype we have
         for ptype in self._ptypes:
-            if any([ptype == field[0] for field in self._field_list]):
+            if any(ptype == field[0] for field in self._field_list):
                 self._field_list += [(ptype, afield) for afield in self._aux_fields]
         return self._field_list
 

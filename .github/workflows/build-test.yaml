@@ -33,7 +33,7 @@ jobs:
         test-runner: [pytest]
         include:
           - os: ubuntu-latest
-            python-version: '3.8'
+            python-version: '3.9'
             dependencies: minimal
             tests-type: unit
             test-runner: pytest
@@ -55,6 +55,11 @@ jobs:
             test-runner: nose
 
     runs-on: ${{ matrix.os }}
+
+    concurrency:
+      # auto-cancel any in-progress job *on the same branch*
+      group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.tests-type }}-py${{ matrix.python-version }}-${{ matrix.os }}-${{ matrix.test-runner }}
+      cancel-in-progress: true
 
     steps:
     - name: Set up Python
@@ -82,6 +87,8 @@ jobs:
       env:
         dependencies: ${{ matrix.dependencies }}
       run: source ./tests/ci_install.sh
+
+    - run: python -m pip list
     - name: Run Unit Tests (pytest)
       if: matrix.test-runner == 'pytest'
       run: pytest --color=yes
@@ -112,17 +119,19 @@ jobs:
     - name: Install dependencies and yt
       shell: bash
       env:
-        dependencies: ''
+        dependencies: 'cartopy'
       run: |
         source ./tests/ci_install.sh
-        python -m pip install cartopy scipy
+
+    - run: python -m pip list
 
     - name: Run Image Tests
       run: |
         pytest --color=yes --mpl -m mpl_image_compare \
                --mpl-generate-summary=html \
                --mpl-results-path=pytest_mpl_results \
-               --mpl-baseline-path=tests/pytest_mpl_baseline
+               --mpl-baseline-path=tests/pytest_mpl_baseline \
+               -rxXs # show extra info on xfailed, xpassed, and skipped tests
 
     - name: Generate new image baseline
       if: failure()

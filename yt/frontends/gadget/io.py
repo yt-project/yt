@@ -1,7 +1,6 @@
 import os
 from collections import defaultdict
 from functools import cached_property
-from typing import Tuple
 
 import numpy as np
 
@@ -38,7 +37,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
     _coord_name = "Coordinates"
 
     @cached_property
-    def var_mass(self) -> Tuple[str, ...]:
+    def var_mass(self) -> tuple[str, ...]:
         vm = []
         for i, v in enumerate(self.ds["Massarr"]):
             if v == 0:
@@ -70,7 +69,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
     def _yield_coordinates(self, data_file, needed_ptype=None):
         si, ei = data_file.start, data_file.end
         f = h5py.File(data_file.filename, mode="r")
-        pcount = f["/Header"].attrs["NumPart_ThisFile"][:].astype("int")
+        pcount = f["/Header"].attrs["NumPart_ThisFile"][:].astype("int64")
         np.clip(pcount - si, 0, ei - si, out=pcount)
         pcount = pcount.sum()
         for key in f.keys():
@@ -236,7 +235,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
     def _count_particles(self, data_file):
         si, ei = data_file.start, data_file.end
         f = h5py.File(data_file.filename, mode="r")
-        pcount = f["/Header"].attrs["NumPart_ThisFile"][:].astype("int")
+        pcount = f["/Header"].attrs["NumPart_ThisFile"][:].astype("int64")
         f.close()
         if None not in (si, ei):
             np.clip(pcount - si, 0, ei - si, out=pcount)
@@ -351,7 +350,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
         super().__init__(ds, *args, **kwargs)
 
     @cached_property
-    def var_mass(self) -> Tuple[str, ...]:
+    def var_mass(self) -> tuple[str, ...]:
         vm = []
         for i, v in enumerate(self.ds["Massarr"]):
             if v == 0:

@@ -1,15 +1,16 @@
 import abc
+import sys
 from collections import defaultdict
 from numbers import Number
-from typing import List, Optional, Type, Union
+from typing import Optional, Union
 
 import matplotlib
 import numpy as np
-from matplotlib.colors import Normalize
 from more_itertools import always_iterable
 from unyt.exceptions import UnitConversionError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
+from yt._typing import AlphaT
 from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
 from yt.funcs import (
@@ -54,17 +55,15 @@ from .plot_container import (
     invalidate_plot,
 )
 
-import sys  # isort: skip
+if sys.version_info >= (3, 10):
+    pass
+else:
+    from yt._maintenance.backports import zip
 
 if sys.version_info >= (3, 11):
     from typing import assert_never
 else:
     from typing_extensions import assert_never
-
-if sys.version_info >= (3, 10):
-    pass
-else:
-    from yt._maintenance.backports import zip
 
 
 def get_window_parameters(axis, center, width, ds):
@@ -255,13 +254,9 @@ class PlotWindow(ImagePlotContainer, abc.ABC):
         for field in self.data_source._determine_fields(self.fields):
             finfo = self.data_source.ds._get_field_info(field)
             pnh = self.plots[field].norm_handler
-            if finfo.take_log is False:
-                # take_log can be `None` so we explicitly compare against a boolean
-                pnh.norm_type = Normalize
-            else:
-                # do nothing, the norm handler is responsible for
-                # determining a viable norm, and defaults to LogNorm/SymLogNorm
-                pass
+
+            # take_log can be `None` so we explicitly compare against a boolean
+            pnh.prefer_log = finfo.take_log is not False
 
             # override from user configuration if any
             log, linthresh = get_default_from_config(
@@ -857,7 +852,7 @@ class PWViewerMPL(PlotWindow):
     """Viewer using matplotlib as a backend via the WindowPlotMPL."""
 
     _current_field = None
-    _frb_generator: Optional[Type[FixedResolutionBuffer]] = None
+    _frb_generator: Optional[type[FixedResolutionBuffer]] = None
     _plot_type: Optional[str] = None
 
     def __init__(self, *args, **kwargs) -> None:
@@ -875,7 +870,7 @@ class PWViewerMPL(PlotWindow):
         # that it happens no later than instantiation
         from yt.visualization.plot_modifications import PlotCallback
 
-        self._callbacks: List[PlotCallback] = []
+        self._callbacks: list[PlotCallback] = []
 
     @property
     def _data_valid(self) -> bool:
@@ -1068,7 +1063,10 @@ class PWViewerMPL(PlotWindow):
 
             extent = [*extentx, *extenty]
 
-            image = self.frb[f]
+            image = self.frb.get_image(f)
+            mask = self.frb.get_mask(f)
+            assert mask is None or mask.dtype == bool
+
             font_size = self._font_properties.get_size()
 
             if f in self.plots.keys():
@@ -1132,6 +1130,7 @@ class PWViewerMPL(PlotWindow):
                 self._transform,
                 norm_handler=pnh,
                 colorbar_handler=cbh,
+                alpha=mask.astype("float64") if mask is not None else None,
             )
 
             axes_unit_labels = self._get_axes_unit_labels(unit_x, unit_y)
@@ -1190,7 +1189,7 @@ class PWViewerMPL(PlotWindow):
             self.plots[f].axes.set_ylabel(labels[1])
 
             # Determine the units of the data
-            units = Unit(self.frb[f].units, registry=self.ds.unit_registry)
+            units = Unit(image.units, registry=self.ds.unit_registry)
             units = units.latex_representation()
 
             if colorbar_label is None:
@@ -1242,7 +1241,9 @@ class PWViewerMPL(PlotWindow):
 
     def setup_callbacks(self):
         issue_deprecation_warning(
-            "The PWViewer.setup_callbacks method is a no-op.", since="4.1.0"
+            "The PWViewer.setup_callbacks method is a no-op.",
+            since="4.1",
+            stacklevel=3,
         )
 
     @invalidate_plot
@@ -1396,7 +1397,7 @@ class NormalPlot:
                 )
             return normal
 
-        if isinstance(normal, int):
+        if isinstance(normal, (int, np.integer)):
             if normal not in (0, 1, 2):
                 raise ValueError(
                     f"{normal} is not a valid axis identifier. Expected either 0, 1, or 2."
@@ -1618,7 +1619,7 @@ class ProjectionPlot(NormalPlot):
         This is the dataset object corresponding to the
         simulation output to be plotted.
     normal : int, str, or 3-element sequence of floats
-        This specifies the normal vector to the slice.
+        This specifies the normal vector to the projection.
         Valid int values are 0, 1 and 2. Corresponding str values depend on the
         geometry of the dataset and are generally given by `ds.coordinates.axis_order`.
         E.g. in cartesian they are 'x', 'y' and 'z'.
@@ -2038,7 +2039,8 @@ class AxisAlignedProjectionPlot(ProjectionPlot, PWViewerMPL):
             issue_deprecation_warning(
                 "'mip' method is a deprecated alias for 'max'. "
                 "Please use method='max' directly.",
-                since="4.1.0",
+                since="4.1",
+                stacklevel=3,
             )
             method = "max"
         normal = self.sanitize_normal_vector(ds, normal)
@@ -2253,7 +2255,7 @@ class OffAxisSlicePlot(SlicePlot, PWViewerMPL):
 
 class OffAxisProjectionDummyDataSource:
     _type_name = "proj"
-    _key_fields: List[str] = []
+    _key_fields: list[str] = []
 
     def __init__(
         self,
@@ -2511,6 +2513,7 @@ class WindowPlotMPL(ImagePlotMPL):
         *,
         norm_handler: NormHandler,
         colorbar_handler: ColorbarHandler,
+        alpha: AlphaT = None,
     ):
         self._projection = mpl_proj
         self._transform = mpl_transform
@@ -2542,7 +2545,7 @@ class WindowPlotMPL(ImagePlotMPL):
             colorbar_handler=colorbar_handler,
         )
 
-        self._init_image(data, extent, aspect)
+        self._init_image(data, extent, aspect, alpha=alpha)
 
     def _create_axes(self, axrect):
         self.axes = self.figure.add_axes(axrect, projection=self._projection)

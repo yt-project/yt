@@ -2,7 +2,7 @@ import numpy as np
 
 from yt.funcs import mylog, parse_h5_attr
 from yt.geometry.selection_routines import GridSelector
-from yt.units.yt_array import uvstack  # type: ignore
+from yt.units._numpy_wrapper_functions import uvstack
 from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.on_demand_imports import _h5py as h5py
 
@@ -191,12 +191,8 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
 
     def _read_particle_coords(self, chunks, ptf):
         # This will read chunks and yield the results.
-        chunks = list(chunks)
-        data_files = set()
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
-        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
+        for data_file in self._sorted_chunk_iterator(chunks):
+            index_mask = slice(data_file.start, data_file.end)
             with h5py.File(data_file.filename, mode="r") as f:
                 for ptype in sorted(ptf):
                     pcount = data_file.total_particles[ptype]
@@ -204,33 +200,41 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
                         continue
                     units = _get_position_array_units(ptype, f, "x")
                     x, y, z = (
-                        self.ds.arr(_get_position_array(ptype, f, ax), units)
+                        self.ds.arr(
+                            _get_position_array(ptype, f, ax, index_mask=index_mask),
+                            units,
+                        )
                         for ax in "xyz"
                     )
                     yield ptype, (x, y, z), 0.0
 
-    def _read_particle_fields(self, chunks, ptf, selector):
-        # Now we have all the sizes, and we can allocate
-        chunks = list(chunks)
-        data_files = set()
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
-        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
-            with h5py.File(data_file.filename, mode="r") as f:
-                for ptype, field_list in sorted(ptf.items()):
+    def _read_particle_data_file(self, data_file, ptf, selector):
+        data_return = {}
+
+        with h5py.File(data_file.filename, mode="r") as f:
+            index_mask = slice(data_file.start, data_file.end)
+            for ptype, field_list in sorted(ptf.items()):
+                if selector is None or getattr(selector, "is_all_data", False):
+                    mask = index_mask
+                else:
                     units = _get_position_array_units(ptype, f, "x")
                     x, y, z = (
-                        self.ds.arr(_get_position_array(ptype, f, ax), units)
+                        self.ds.arr(
+                            _get_position_array(ptype, f, ax, index_mask=index_mask),
+                            units,
+                        )
                         for ax in "xyz"
                     )
                     mask = selector.select_points(x, y, z, 0.0)
                     del x, y, z
                     if mask is None:
                         continue
-                    for field in field_list:
-                        data = f[ptype][field][mask].astype("float64")
-                        yield (ptype, field), data
+
+                for field in field_list:
+                    data = f[ptype][field][mask].astype("float64", copy=False)
+                    data_return[(ptype, field)] = data
+
+        return data_return
 
     def _count_particles(self, data_file):
         si, ei = data_file.start, data_file.end
@@ -262,12 +266,7 @@ class IOHandlerYTSpatialPlotHDF5(IOHandlerYTDataContainerHDF5):
 
     def _read_particle_coords(self, chunks, ptf):
         # This will read chunks and yield the results.
-        chunks = list(chunks)
-        data_files = set()
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
-        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
+        for data_file in self._sorted_chunk_iterator(chunks):
             with h5py.File(data_file.filename, mode="r") as f:
                 for ptype in sorted(ptf):
                     pcount = data_file.total_particles[ptype]
@@ -283,12 +282,7 @@ class IOHandlerYTSpatialPlotHDF5(IOHandlerYTDataContainerHDF5):
 
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate
-        chunks = list(chunks)
-        data_files = set()
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
-        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
+        for data_file in self._sorted_chunk_iterator(chunks):
             all_count = self._count_particles(data_file)
             with h5py.File(data_file.filename, mode="r") as f:
                 for ptype, field_list in sorted(ptf.items()):
@@ -307,12 +301,14 @@ class IOHandlerYTSpatialPlotHDF5(IOHandlerYTDataContainerHDF5):
                         yield (ptype, field), data
 
 
-def _get_position_array(ptype, f, ax):
+def _get_position_array(ptype, f, ax, index_mask=None):
+    if index_mask is None:
+        index_mask = slice(None, None, None)
     if ptype == "grid":
         pos_name = ""
     else:
         pos_name = "particle_position_"
-    return f[ptype][pos_name + ax][()].astype("float64")
+    return f[ptype][pos_name + ax][index_mask].astype("float64")
 
 
 def _get_position_array_units(ptype, f, ax):

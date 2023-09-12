@@ -93,22 +93,22 @@ class PlaneParallelLens(Lens):
             ]
         )
 
-        sampler_params = dict(
-            vp_pos=vp_pos,
-            vp_dir=self.box_vectors[2],  # All the same
-            center=self.back_center,
-            bounds=(
+        sampler_params = {
+            "vp_pos": vp_pos,
+            "vp_dir": self.box_vectors[2],  # All the same
+            "center": self.back_center,
+            "bounds": (
                 -camera.width[0] / 2.0,
                 camera.width[0] / 2.0,
                 -camera.width[1] / 2.0,
                 camera.width[1] / 2.0,
             ),
-            x_vec=camera.unit_vectors[0],
-            y_vec=camera.unit_vectors[1],
-            width=np.array(camera.width, dtype="float64"),
-            image=image,
-            lens_type="plane-parallel",
-        )
+            "x_vec": camera.unit_vectors[0],
+            "y_vec": camera.unit_vectors[1],
+            "width": np.array(camera.width, dtype="float64"),
+            "image": image,
+            "lens_type": "plane-parallel",
+        }
         return sampler_params
 
     def set_viewpoint(self, camera):
@@ -220,17 +220,17 @@ class PerspectiveLens(Lens):
 
         image = self.new_image(camera)
 
-        sampler_params = dict(
-            vp_pos=positions,
-            vp_dir=vectors,
-            center=self.back_center,
-            bounds=(0.0, 1.0, 0.0, 1.0),
-            x_vec=uv,
-            y_vec=uv,
-            width=np.zeros(3, dtype="float64"),
-            image=image,
-            lens_type="perspective",
-        )
+        sampler_params = {
+            "vp_pos": positions,
+            "vp_dir": vectors,
+            "center": self.back_center,
+            "bounds": (0.0, 1.0, 0.0, 1.0),
+            "x_vec": uv,
+            "y_vec": uv,
+            "width": np.zeros(3, dtype="float64"),
+            "image": image,
+            "lens_type": "perspective",
+        }
 
         return sampler_params
 
@@ -350,17 +350,17 @@ class StereoPerspectiveLens(Lens):
         vectors_comb.shape = (camera.resolution[0], camera.resolution[1], 3)
         positions_comb.shape = (camera.resolution[0], camera.resolution[1], 3)
 
-        sampler_params = dict(
-            vp_pos=positions_comb,
-            vp_dir=vectors_comb,
-            center=self.back_center,
-            bounds=(0.0, 1.0, 0.0, 1.0),
-            x_vec=uv,
-            y_vec=uv,
-            width=np.zeros(3, dtype="float64"),
-            image=image,
-            lens_type="stereo-perspective",
-        )
+        sampler_params = {
+            "vp_pos": positions_comb,
+            "vp_dir": vectors_comb,
+            "center": self.back_center,
+            "bounds": (0.0, 1.0, 0.0, 1.0),
+            "x_vec": uv,
+            "y_vec": uv,
+            "width": np.zeros(3, dtype="float64"),
+            "image": image,
+            "lens_type": "stereo-perspective",
+        }
 
         return sampler_params
 
@@ -495,10 +495,10 @@ class StereoPerspectiveLens(Lens):
 
         # Transpose into image coords.
         if disparity > 0:
-            px = (res0_h * 0.5 + res0_h / camera.width[0].d * dx).astype("int")
+            px = (res0_h * 0.5 + res0_h / camera.width[0].d * dx).astype("int64")
         else:
-            px = (res0_h * 1.5 + res0_h / camera.width[0].d * dx).astype("int")
-        py = (res[1] * 0.5 + res[1] / camera.width[1].d * dy).astype("int")
+            px = (res0_h * 1.5 + res0_h / camera.width[0].d * dx).astype("int64")
+        py = (res[1] * 0.5 + res[1] / camera.width[1].d * dy).astype("int64")
 
         return px, py, dz
 
@@ -565,17 +565,17 @@ class FisheyeLens(Lens):
         else:
             image = self.new_image(camera)
 
-        sampler_params = dict(
-            vp_pos=positions,
-            vp_dir=vp,
-            center=self.center,
-            bounds=(0.0, 1.0, 0.0, 1.0),
-            x_vec=uv,
-            y_vec=uv,
-            width=np.zeros(3, dtype="float64"),
-            image=image,
-            lens_type="fisheye",
-        )
+        sampler_params = {
+            "vp_pos": positions,
+            "vp_dir": vp,
+            "center": self.center,
+            "bounds": (0.0, 1.0, 0.0, 1.0),
+            "x_vec": uv,
+            "y_vec": uv,
+            "width": np.zeros(3, dtype="float64"),
+            "image": image,
+            "lens_type": "fisheye",
+        }
 
         return sampler_params
 
@@ -622,8 +622,8 @@ class FisheyeLens(Lens):
         px = (px + 1.0) * res[0] / 2.0
         py = (py + 1.0) * res[1] / 2.0
         # px and py should be dimensionless
-        px = np.rint(px).astype("int64")
-        py = np.rint(py).astype("int64")
+        px = np.rint(px, dtype="int64")
+        py = np.rint(py, dtype="int64")
         return px, py, dz
 
 
@@ -689,17 +689,17 @@ class SphericalLens(Lens):
         vectors.shape = (camera.resolution[0], camera.resolution[1], 3)
         positions.shape = (camera.resolution[0], camera.resolution[1], 3)
 
-        sampler_params = dict(
-            vp_pos=positions,
-            vp_dir=vectors,
-            center=self.back_center,
-            bounds=(0.0, 1.0, 0.0, 1.0),
-            x_vec=dummy,
-            y_vec=dummy,
-            width=np.zeros(3, dtype="float64"),
-            image=image,
-            lens_type="spherical",
-        )
+        sampler_params = {
+            "vp_pos": positions,
+            "vp_dir": vectors,
+            "center": self.back_center,
+            "bounds": (0.0, 1.0, 0.0, 1.0),
+            "x_vec": dummy,
+            "y_vec": dummy,
+            "width": np.zeros(3, dtype="float64"),
+            "image": image,
+            "lens_type": "spherical",
+        }
         return sampler_params
 
     def set_viewpoint(self, camera):
@@ -826,17 +826,17 @@ class StereoSphericalLens(Lens):
         vectors_comb.shape = (camera.resolution[0], camera.resolution[1], 3)
         positions_comb.shape = (camera.resolution[0], camera.resolution[1], 3)
 
-        sampler_params = dict(
-            vp_pos=positions_comb,
-            vp_dir=vectors_comb,
-            center=self.back_center,
-            bounds=(0.0, 1.0, 0.0, 1.0),
-            x_vec=dummy,
-            y_vec=dummy,
-            width=np.zeros(3, dtype="float64"),
-            image=image,
-            lens_type="stereo-spherical",
-        )
+        sampler_params = {
+            "vp_pos": positions_comb,
+            "vp_dir": vectors_comb,
+            "center": self.back_center,
+            "bounds": (0.0, 1.0, 0.0, 1.0),
+            "x_vec": dummy,
+            "y_vec": dummy,
+            "width": np.zeros(3, dtype="float64"),
+            "image": image,
+            "lens_type": "stereo-spherical",
+        }
         return sampler_params
 
     def set_viewpoint(self, camera):

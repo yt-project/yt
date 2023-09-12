@@ -274,8 +274,8 @@ class ProfileND(ParallelAnalysisInterface):
                 fname = self.field_map.get(field[1], None)
                 if fname != field:
                     raise KeyError(
-                        "Asked for field '{}' but only have data for "
-                        "fields '{}'".format(field, list(self.field_data.keys()))
+                        f"Asked for field '{field}' but only have data for "
+                        f"fields '{list(self.field_data.keys())}'"
                     )
             elif isinstance(field, DerivedField):
                 fname = self.field_map.get(field.name[1], None)
@@ -1395,7 +1395,7 @@ def create_profile(
 
             if isinstance(field_ex[0], tuple):
                 field_ex = [data_source.ds.quan(*f) for f in field_ex]
-            if any([exi is None for exi in field_ex]):
+            if any(exi is None for exi in field_ex):
                 try:
                     ds_extrema = data_source.quantities.extrema(bin_field)
                 except AttributeError:
@@ -1462,7 +1462,7 @@ def create_profile(
         if mi <= 0 and l:
             raise YTIllDefinedBounds(mi, ma)
         args += [f, n, mi, ma, l]
-    kwargs = dict(weight_field=weight_field)
+    kwargs = {"weight_field": weight_field}
     if cls is ParticleProfile:
         kwargs["deposition"] = deposition
     if override_bins is not None:
@@ -1472,7 +1472,7 @@ def create_profile(
     obj.accumulation = accumulation
     obj.fractional = fractional
     if fields is not None:
-        obj.add_fields([field for field in fields])
+        obj.add_fields(list(fields))
     for field in fields:
         if fractional:
             obj.field_data[field] /= obj.field_data[field].sum()
@@ -1491,7 +1491,10 @@ def create_profile(
             if weight_field is None:
                 temp = temp.cumsum(axis=0)
             else:
-                temp = (temp * temp_weight).cumsum(axis=0) / temp_weight.cumsum(axis=0)
+                # avoid 0-division warnings by nan-masking
+                _denom = temp_weight.cumsum(axis=0)
+                _denom[_denom == 0.0] = np.nan
+                temp = (temp * temp_weight).cumsum(axis=0) / _denom
             if acc < 0:
                 temp = temp[::-1]
                 if weight_field is not None:

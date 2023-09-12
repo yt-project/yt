@@ -662,8 +662,8 @@ class OctreeVolumeSource(VolumeSource):
 
         data = self.data_source
 
-        dx = data["dx"].to("unitary").value[:, None]
-        xyz = np.stack([data[_].to("unitary").value for _ in "x y z".split()], axis=-1)
+        dx = data["dx"].to_value("unitary")[:, None]
+        xyz = np.stack([data[_].to_value("unitary") for _ in "xyz"], axis=-1)
         LE = xyz - dx / 2
         RE = xyz + dx / 2
 
@@ -1439,6 +1439,8 @@ class CoordinateVectorSource(OpaqueSource):
         ignored.
     alpha : float, optional
         The opacity of the vectors.
+    thickness : int, optional
+        The line thickness
 
     Examples
     --------
@@ -1458,7 +1460,7 @@ class CoordinateVectorSource(OpaqueSource):
 
     """
 
-    def __init__(self, colors=None, alpha=1.0):
+    def __init__(self, colors=None, alpha=1.0, *, thickness=1):
         super().__init__()
         # If colors aren't individually set, make black with full opacity
         if colors is None:
@@ -1468,6 +1470,7 @@ class CoordinateVectorSource(OpaqueSource):
             colors[2, 2] = 1.0  # z is blue
             colors[:, 3] = alpha
         self.colors = colors
+        self.thick = thickness
 
     def _validate(self):
         pass
@@ -1551,15 +1554,29 @@ class CoordinateVectorSource(OpaqueSource):
         py = py.astype("int64")
 
         if len(px.shape) == 1:
-            zlines(empty, z, px, py, dz, self.colors.astype("float64"))
+            zlines(
+                empty, z, px, py, dz, self.colors.astype("float64"), thick=self.thick
+            )
         else:
             # For stereo-lens, two sets of pos for each eye are contained
             # in px...pz
             zlines(
-                empty, z, px[0, :], py[0, :], dz[0, :], self.colors.astype("float64")
+                empty,
+                z,
+                px[0, :],
+                py[0, :],
+                dz[0, :],
+                self.colors.astype("float64"),
+                thick=self.thick,
             )
             zlines(
-                empty, z, px[1, :], py[1, :], dz[1, :], self.colors.astype("float64")
+                empty,
+                z,
+                px[1, :],
+                py[1, :],
+                dz[1, :],
+                self.colors.astype("float64"),
+                thick=self.thick,
             )
 
         # Set the new zbuffer

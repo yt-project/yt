@@ -1,6 +1,5 @@
 import pytest
 
-from yt._maintenance.deprecation import VisibleDeprecationWarning
 from yt.data_objects.static_output import Dataset
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.loaders import load, load_simulation
@@ -199,8 +198,7 @@ def catchall_dataset_class():
 
 @pytest.mark.usefixtures("catchall_dataset_class")
 def test_depr_load_keyword(tmp_path):
-    with pytest.raises(
-        VisibleDeprecationWarning,
+    with pytest.deprecated_call(
         match=r"Using the 'fn' argument as keyword \(on position 0\) is deprecated\.",
     ):
         load(fn=tmp_path)

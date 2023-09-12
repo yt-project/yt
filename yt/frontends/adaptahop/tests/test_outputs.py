@@ -23,7 +23,7 @@ brick_new = "output_00080_new_halos/tree_bricks080"
 @pytest.mark.parametrize("brick", [brick_old, brick_new])
 def test_opening(brick):
     ds_parent = data_dir_load(r0)
-    ds = data_dir_load(brick, kwargs=dict(parent_ds=ds_parent))
+    ds = data_dir_load(brick, kwargs={"parent_ds": ds_parent})
 
     ds.index
 
@@ -36,7 +36,7 @@ def test_opening(brick):
 @pytest.mark.parametrize("brick", [brick_old, brick_new])
 def test_field_access(brick):
     ds_parent = data_dir_load(r0)
-    ds = data_dir_load(brick, kwargs=dict(parent_ds=ds_parent))
+    ds = data_dir_load(brick, kwargs={"parent_ds": ds_parent})
 
     skip_list = ("particle_identities", "mesh_id", "radius_profile", "rho_profile")
     fields = [
@@ -57,7 +57,7 @@ def test_field_access(brick):
 @pytest.mark.parametrize("brick", [brick_old, brick_new])
 def test_get_halo(brick):
     ds_parent = data_dir_load(r0)
-    ds = data_dir_load(brick, kwargs=dict(parent_ds=ds_parent))
+    ds = data_dir_load(brick, kwargs={"parent_ds": ds_parent})
 
     halo = ds.halo(1, ptype="io")
 
@@ -68,10 +68,10 @@ def test_get_halo(brick):
     members = np.sort(halo.member_ids)
 
     # Check sphere contains all the members
-    id_sphere = halo.sphere["io", "particle_identity"].astype(int)
+    id_sphere = halo.sphere["io", "particle_identity"].astype("int64")
     assert len(np.lib.arraysetops.setdiff1d(members, id_sphere)) == 0
 
     # Check region contains *only* halo particles
-    id_reg = np.sort(halo["io", "particle_identity"].astype(int))
+    id_reg = np.sort(halo["io", "particle_identity"].astype("int64"))
 
     np.testing.assert_equal(members, id_reg)

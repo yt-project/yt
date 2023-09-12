@@ -1,13 +1,11 @@
 # image tests using pytest-mpl
-import re
-from importlib.metadata import version
 from itertools import chain
-from typing import Dict
 
+import matplotlib as mpl
 import numpy as np
 import numpy.testing as npt
 import pytest
-from packaging.version import Version
+from matplotlib.colors import SymLogNorm
 
 from yt.data_objects.profiles import create_profile
 from yt.loaders import load_uniform_grid
@@ -19,8 +17,6 @@ from yt.visualization.api import (
     ProfilePlot,
     SlicePlot,
 )
-
-MPL_VERSION = Version(version("matplotlib"))
 
 
 def test_sliceplot_set_unit_and_zlim_order():
@@ -74,10 +70,6 @@ def test_inf_and_finite_values_set_zlim():
     return p.plots[field].figure
 
 
-@pytest.mark.skipif(
-    MPL_VERSION < Version("3.5"),
-    reason=f"Correct behaviour requires MPL 3.5 we have {MPL_VERSION}",
-)
 @pytest.mark.mpl_image_compare
 def test_sliceplot_custom_norm():
     from matplotlib.colors import TwoSlopeNorm
@@ -91,32 +83,18 @@ def test_sliceplot_custom_norm():
     return p.plots[field].figure
 
 
-@pytest.mark.skipif(
-    MPL_VERSION >= Version("3.5"),
-    reason=f"Testing a warning that should only happen with MPL < 3.5, we have {MPL_VERSION}",
-)
 @pytest.mark.mpl_image_compare
-def test_sliceplot_custom_norm_warning():
-    from matplotlib.colors import TwoSlopeNorm
-
+def test_sliceplot_custom_norm_symlog_int_base():
     ds = fake_random_ds(16)
-    field = ("gas", "density")
+    add_noise_fields(ds)
+    field = "noise3"
     p = SlicePlot(ds, "z", field)
-    p.set_norm(field, norm=TwoSlopeNorm(vcenter=0, vmin=-0.5, vmax=1))
 
-    with pytest.warns(
-        UserWarning,
-        match=re.escape(
-            "Failed to format colorbar ticks. "
-            "This is expected when using the set_norm method "
-            "with some matplotlib classes (e.g. TwoSlopeNorm) "
-            "with matplotlib versions older than 3.5\n"
-            "Please try upgrading matplotlib to a more recent version. "
-            "If the problem persists, please file a report to "
-            "https://github.com/yt-project/yt/issues/new"
-        ),
-    ):
-        p.render()
+    # using integer base !=10 and >2 to exercise special case
+    # for colorbar minor ticks
+    p.set_norm(field, norm=SymLogNorm(linthresh=0.1, base=5))
+
+    p.render()
     return p.plots[field].figure
 
 
@@ -183,7 +161,7 @@ class TestProfilePlot:
             [("gas", "density"), ("index", "radius")],
             [("gas", "velocity_magnitude"), ("gas", "mass")],
         ]
-        cls.profiles: Dict[str, ProfilePlot] = {}
+        cls.profiles: dict[str, ProfilePlot] = {}
         for i_reg, reg in enumerate(regions):
             id_prefix = str(i_reg)
             for x_field, y_field in pr_fields:
@@ -262,7 +240,7 @@ class TestPhasePlot:
                 ("gas", "velocity_magnitude"),
             ],
         ]
-        cls.profiles: Dict[str, PhasePlot] = {}
+        cls.profiles: dict[str, PhasePlot] = {}
         for i_reg, reg in enumerate(regions):
             id_prefix = str(i_reg)
             for x_field, y_field, z_field in pr_fields:
@@ -356,6 +334,17 @@ class TestSetBackgroundColor:
     def setup_class(cls):
         cls.ds = fake_random_ds(16)
 
+        def some_nans_field(field, data):
+            ret = data[("gas", "density")]
+            ret[::2] *= np.nan
+            return ret
+
+        cls.ds.add_field(
+            name=("gas", "polluted_field"),
+            function=some_nans_field,
+            sampling_type="local",
+        )
+
     @pytest.mark.mpl_image_compare
     def test_sliceplot_set_background_color_linear(self):
         field = ("gas", "density")
@@ -371,6 +360,21 @@ class TestSetBackgroundColor:
         field = ("gas", "density")
         p = SlicePlot(self.ds, "z", field, width=1.5)
         p.set_background_color(field, color="C0")
+
+        p.render()
+        return p.plots[field].figure
+
+    @pytest.mark.mpl_image_compare
+    def test_sliceplot_set_background_color_and_bad_value(self):
+        # see https://github.com/yt-project/yt/issues/4639
+        field = ("gas", "polluted_field")
+        p = SlicePlot(self.ds, "z", field, width=1.5)
+        p.set_background_color(field, color="black")
+
+        # copy the default colormap
+        cmap = mpl.colormaps["cmyt.arbre"]
+        cmap.set_bad("red")
+        p.set_cmap(field, cmap)
 
         p.render()
         return p.plots[field].figure

@@ -13,7 +13,6 @@ from unittest import SkipTest
 
 import matplotlib
 import numpy as np
-import pytest
 from more_itertools import always_iterable
 from numpy.random import RandomState
 from unyt.exceptions import UnitOperationError
@@ -30,6 +29,19 @@ ANSWER_TEST_TAG = "answer_test"
 # Expose assert_true and assert_less_equal from unittest.TestCase
 # this is adopted from nose. Doing this here allows us to avoid importing
 # nose at the top level.
+def _deprecated_assert_func(func):
+    @wraps(func)
+    def retf(*args, **kwargs):
+        issue_deprecation_warning(
+            f"yt.testing.{func.__name__} is deprecated",
+            since="4.2",
+            stacklevel=3,
+        )
+        return func(*args, **kwargs)
+
+    return retf
+
+
 class _Dummy(unittest.TestCase):
     def nop(self):
         pass
@@ -37,8 +49,8 @@ class _Dummy(unittest.TestCase):
 
 _t = _Dummy("nop")
 
-assert_true = _t.assertTrue
-assert_less_equal = _t.assertLessEqual
+assert_true = _deprecated_assert_func(_t.assertTrue)
+assert_less_equal = _deprecated_assert_func(_t.assertLessEqual)
 
 
 def assert_rel_equal(a1, a2, decimals, err_msg="", verbose=True):
@@ -325,9 +337,12 @@ def fake_amr_ds(
         level, left_edge, right_edge, dims = gspec
         left_edge = left_edge * (RE - LE) + LE
         right_edge = right_edge * (RE - LE) + LE
-        gdata = dict(
-            level=level, left_edge=left_edge, right_edge=right_edge, dimensions=dims
-        )
+        gdata = {
+            "level": level,
+            "left_edge": left_edge,
+            "right_edge": right_edge,
+            "dimensions": dims,
+        }
         for f, u in zip(fields, units):
             gdata[f] = (prng.random_sample(dims), u)
         if particles:
@@ -585,7 +600,7 @@ def fake_vr_orientation_test_ds(N=96, scale=1):
         )
         arr[idx] = 0.6
 
-    data = dict(density=(arr, "g/cm**3"))
+    data = {"density": (arr, "g/cm**3")}
     ds = load_uniform_grid(data, arr.shape, bbox=bbox)
     return ds
 
@@ -827,6 +842,10 @@ def expand_keywords(keywords, full=False):
     ...     write_projection(*args, **kwargs)
     """
 
+    issue_deprecation_warning(
+        "yt.testing.expand_keywords is deprecated", since="4.2", stacklevel=3
+    )
+
     # if we want every possible combination of keywords, use iter magic
     if full:
         keys = sorted(keywords)
@@ -853,7 +872,7 @@ def expand_keywords(keywords, full=False):
         # the possible values of the kwargs
 
         # initialize array
-        list_of_kwarg_dicts = np.array([dict() for x in range(num_lists)])
+        list_of_kwarg_dicts = np.array([{} for x in range(num_lists)])
 
         # fill in array
         for i in np.arange(num_lists):
@@ -919,6 +938,9 @@ def requires_module_pytest(*module_names):
 
     So that it can be later renamed to `requires_module`.
     """
+    # note: import pytest here so that it is not a hard requirement for
+    # importing yt.testing see https://github.com/yt-project/yt/issues/4507
+    import pytest
 
     def deco(func):
         missing = [name for name in module_names if find_spec(name) is None]
@@ -1177,7 +1199,8 @@ def run_nose(
         "yt.run_nose (aka yt.testing.run_nose) is deprecated. "
         "Please do not rely on this function as it will be removed "
         "in the process of migrating yt tests from nose to pytest.",
-        since="4.1.0",
+        stacklevel=3,
+        since="4.1",
     )
 
     from yt.utilities.logger import ytLogger as mylog

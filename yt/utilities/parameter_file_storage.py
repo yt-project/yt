@@ -1,4 +1,3 @@
-import csv
 import os.path
 from itertools import islice
 
@@ -99,14 +98,14 @@ class ParameterFileStore:
 
     def _adapt_ds(self, ds):
         """This turns a dataset into a CSV entry."""
-        return dict(
-            bn=ds.basename,
-            fp=ds.directory,
-            tt=ds.current_time,
-            ctid=ds.unique_identifier,
-            class_name=ds.__class__.__name__,
-            last_seen=ds._instantiated,
-        )
+        return {
+            "bn": ds.basename,
+            "fp": ds.directory,
+            "tt": ds.current_time,
+            "ctid": ds.unique_identifier,
+            "class_name": ds.__class__.__name__,
+            "last_seen": ds._instantiated,
+        }
 
     def _convert_ds(self, ds_dict):
         """This turns a CSV entry into a dataset."""
@@ -170,6 +169,8 @@ class ParameterFileStore:
 
     @parallel_simple_proxy
     def _write_out(self):
+        import csv
+
         if self._read_only:
             return
         fn = self._get_db_name()
@@ -187,6 +188,8 @@ class ParameterFileStore:
     @parallel_simple_proxy
     def read_db(self):
         """This will read the storage device from disk."""
+        import csv
+
         f = open(self._get_db_name())
         vals = csv.DictReader(f, _field_names)
         db = {}

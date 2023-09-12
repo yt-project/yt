@@ -7,7 +7,7 @@ CF Radial data structures
 import contextlib
 import os
 import weakref
-from typing import Optional, Tuple
+from typing import Optional
 
 import numpy as np
 from unyt import unyt_array
@@ -89,10 +89,10 @@ class CFRadialDataset(Dataset):
         dataset_type="cf_radial",
         storage_filename=None,
         storage_overwrite: bool = False,
-        grid_shape: Optional[Tuple[int, int, int]] = None,
-        grid_limit_x: Optional[Tuple[float, float]] = None,
-        grid_limit_y: Optional[Tuple[float, float]] = None,
-        grid_limit_z: Optional[Tuple[float, float]] = None,
+        grid_shape: Optional[tuple[int, int, int]] = None,
+        grid_limit_x: Optional[tuple[float, float]] = None,
+        grid_limit_y: Optional[tuple[float, float]] = None,
+        grid_limit_z: Optional[tuple[float, float]] = None,
         units_override=None,
     ):
         """
@@ -204,8 +204,8 @@ class CFRadialDataset(Dataset):
             yield xrds
 
     def _validate_grid_dim(
-        self, radar, dim: str, grid_limit: Optional[Tuple[float, float]] = None
-    ) -> Tuple[float, float]:
+        self, radar, dim: str, grid_limit: Optional[tuple[float, float]] = None
+    ) -> tuple[float, float]:
         if grid_limit is None:
             if dim.lower() == "z":
                 gate_alt = radar.gate_altitude["data"]
@@ -234,8 +234,8 @@ class CFRadialDataset(Dataset):
         return grid_limit
 
     def _validate_grid_shape(
-        self, grid_shape: Optional[Tuple[int, int, int]] = None
-    ) -> Tuple[int, int, int]:
+        self, grid_shape: Optional[tuple[int, int, int]] = None
+    ) -> tuple[int, int, int]:
         if grid_shape is None:
             grid_shape = (100, 100, 100)
             mylog.info(
@@ -248,7 +248,7 @@ class CFRadialDataset(Dataset):
             )
         return grid_shape
 
-    def _round_grid_guess(self, bounds: Tuple[float, float], unit_str: str):
+    def _round_grid_guess(self, bounds: tuple[float, float], unit_str: str):
         # rounds the bounds to the closest 10 km increment that still contains
         # the grid_limit
         for findstr, repstr in self._field_info_class.unit_subs:

@@ -1,7 +1,6 @@
 import os
 import re
 import weakref
-from typing import Type
 
 import numpy as np
 
@@ -103,7 +102,7 @@ class ChomboHierarchy(GridIndex):
 
     def _read_particles(self):
         # only do anything if the dataset contains particles
-        if not any([f[1].startswith("particle_") for f in self.field_list]):
+        if not any(f[1].startswith("particle_") for f in self.field_list):
             return
 
         self.num_particles = 0
@@ -236,7 +235,7 @@ class ChomboHierarchy(GridIndex):
 
 class ChomboDataset(Dataset):
     _index_class = ChomboHierarchy
-    _field_info_class: Type[FieldInfoContainer] = ChomboFieldInfo
+    _field_info_class: type[FieldInfoContainer] = ChomboFieldInfo
 
     def __init__(
         self,

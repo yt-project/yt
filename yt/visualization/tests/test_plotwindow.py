@@ -19,7 +19,6 @@ from yt.testing import (
     assert_allclose_units,
     assert_fname,
     assert_rel_equal,
-    assert_true,
     fake_amr_ds,
     fake_random_ds,
     requires_file,
@@ -275,7 +274,7 @@ class TestSetWidth(unittest.TestCase):
             [self.slc.xlim, self.slc.ylim, self.slc.width],
             [(0.0, 1.0), (0.0, 1.0), (1.0, 1.0)],
         )
-        assert_true(self.slc._axes_unit_names is None)
+        assert self.slc._axes_unit_names is None
 
     def test_set_width_nonequal(self):
         self.slc.set_width((0.5, 0.8))
@@ -284,22 +283,22 @@ class TestSetWidth(unittest.TestCase):
             [(0.25, 0.75), (0.1, 0.9), (0.5, 0.8)],
             15,
         )
-        assert_true(self.slc._axes_unit_names is None)
+        assert self.slc._axes_unit_names is None
 
     def test_twoargs_eq(self):
         self.slc.set_width(0.5, "cm")
         self._assert_05cm()
-        assert_true(self.slc._axes_unit_names == ("cm", "cm"))
+        assert self.slc._axes_unit_names == ("cm", "cm")
 
     def test_tuple_eq(self):
         self.slc.set_width((0.5, "cm"))
         self._assert_05cm()
-        assert_true(self.slc._axes_unit_names == ("cm", "cm"))
+        assert self.slc._axes_unit_names == ("cm", "cm")
 
     def test_tuple_of_tuples_neq(self):
         self.slc.set_width(((0.5, "cm"), (0.75, "cm")))
         self._assert_05_075cm()
-        assert_true(self.slc._axes_unit_names == ("cm", "cm"))
+        assert self.slc._axes_unit_names == ("cm", "cm")
 
 
 class TestPlotWindowSave(unittest.TestCase):
@@ -390,7 +389,7 @@ class TestPlotWindowSave(unittest.TestCase):
             [assert_array_almost_equal(px, x, 14) for px, x in zip(plot.xlim, xlim)]
             [assert_array_almost_equal(py, y, 14) for py, y in zip(plot.ylim, ylim)]
             [assert_array_almost_equal(pw, w, 14) for pw, w in zip(plot.width, pwidth)]
-            assert_true(aun == plot._axes_unit_names)
+            assert aun == plot._axes_unit_names
 
 
 class TestPerFieldConfig(unittest.TestCase):
@@ -482,7 +481,7 @@ def test_on_off_compare():
     den = np.arange(32**3) / 32**2 + 1
     den = den.reshape(32, 32, 32)
     den = np.array(den, dtype=np.float64)
-    data = dict(density=(den, "g/cm**3"))
+    data = {"density": (den, "g/cm**3")}
     bbox = np.array([[-1.5, 1.5], [-1.5, 1.5], [-1.5, 1.5]])
     ds = load_uniform_grid(data, den.shape, length_unit="Mpc", bbox=bbox, nprocs=64)
 

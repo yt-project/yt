@@ -4,7 +4,6 @@ import sys
 import uuid
 from collections import defaultdict
 from contextlib import contextmanager
-from typing import Tuple
 
 import numpy as np
 from more_itertools import always_iterable
@@ -225,6 +224,17 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
 
     def _generate_fields(self, fields_to_generate):
         index = 0
+
+        def dimensions_compare_equal(a, b, /) -> bool:
+            if a == b:
+                return True
+            try:
+                if (a == 1 and b.is_dimensionless) or (a.is_dimensionless and b == 1):
+                    return True
+            except AttributeError:
+                return False
+            return False
+
         with self._field_lock():
             # At this point, we assume that any fields that are necessary to
             # *generate* a field are in fact already available to us.  Note
@@ -262,11 +272,11 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
                         if fi.dimensions is None:
                             mylog.warning(
                                 "Field %s was added without specifying units or dimensions, "
-                                "auto setting units to %s",
+                                "auto setting units to %r",
                                 fi.name,
-                                sunits,
+                                sunits or "dimensionless",
                             )
-                        elif fi.dimensions != dimensions:
+                        elif not dimensions_compare_equal(fi.dimensions, dimensions):
                             raise YTDimensionalityError(fi.dimensions, dimensions)
                         fi.units = sunits
                         fi.dimensions = dimensions
@@ -1387,7 +1397,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         """
         return self.ds.domain_left_edge, self.ds.domain_right_edge
 
-    def get_bbox(self) -> Tuple[unyt_array, unyt_array]:
+    def get_bbox(self) -> tuple[unyt_array, unyt_array]:
         """
         Return the bounding box for this data container.
         """

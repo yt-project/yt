@@ -1,16 +1,11 @@
 from itertools import product
 
 import numpy as np
+from numpy.testing import assert_almost_equal, assert_array_equal, assert_equal
 
 from yt.frontends.open_pmd.data_structures import OpenPMDDataset
 from yt.loaders import load
-from yt.testing import (
-    assert_almost_equal,
-    assert_array_equal,
-    assert_equal,
-    requires_file,
-    requires_module,
-)
+from yt.testing import requires_file, requires_module
 from yt.utilities.answer_testing.framework import data_dir_load
 
 twoD = "example-2d/hdf5/data00000100.h5"

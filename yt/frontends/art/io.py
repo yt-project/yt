@@ -186,7 +186,7 @@ class IOHandlerDarkMatterART(IOHandlerART):
 
     def _identify_fields(self, domain):
         field_list = []
-        self.particle_field_list = [f for f in particle_fields]
+        self.particle_field_list = list(particle_fields)
         for ptype in self.ds.particle_types_raw:
             for pfield in self.particle_field_list:
                 pfn = (ptype, pfield)
@@ -441,9 +441,12 @@ def read_particles(file, Nrow, idxa, idxb, fields):
     num_pages = os.path.getsize(file) // (real_size * words * np_per_page)
     fh = open(file)
     skip, count = idxa, idxb - idxa
-    kwargs = dict(
-        words=words, real_size=real_size, np_per_page=np_per_page, num_pages=num_pages
-    )
+    kwargs = {
+        "words": words,
+        "real_size": real_size,
+        "np_per_page": np_per_page,
+        "num_pages": num_pages,
+    }
     arrs = []
     for field in fields:
         ranges = get_ranges(skip, count, field, **kwargs)
@@ -584,9 +587,11 @@ def find_root(f, a, b, tol=1e-6):
 
 
 def quad(fintegrand, xmin, xmax, n=1e4):
+    from yt._maintenance.numpy2_compat import trapezoid
+
     spacings = np.logspace(np.log10(xmin), np.log10(xmax), num=int(n))
     integrand_arr = fintegrand(spacings)
-    val = np.trapz(integrand_arr, dx=np.diff(spacings))
+    val = trapezoid(integrand_arr, dx=np.diff(spacings))
     return val
 
 
@@ -617,11 +622,7 @@ def a2t(at, Om0=0.27, Oml0=0.73, h=0.700):
     def integrand(x):
         return 1.0 / (x * sqrt(Oml0 + Om0 * x**-3.0))
 
-    # current_time,err = si.quad(integrand,0.0,at,epsabs=1e-6,epsrel=1e-6)
     current_time = quad(integrand, 1e-4, at)
-    # spacings = np.logspace(-5,np.log10(at),num=int(1e5))
-    # integrand_arr = integrand(spacings)
-    # current_time = np.trapz(integrand_arr,dx=np.diff(spacings))
     current_time *= 9.779 / h
     return current_time
 

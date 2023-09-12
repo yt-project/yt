@@ -131,6 +131,23 @@ class RAMSESFieldInfo(FieldInfoContainer):
         ("particle_metallicity", ("", [], None)),
         ("particle_family", ("", [], None)),
         ("particle_tag", ("", [], None)),
+        # sink field parameters
+        ("particle_mass", ("code_mass", [], None)),
+        ("particle_angular_momentum_x", (ang_mom_units, [], None)),
+        ("particle_angular_momentum_y", (ang_mom_units, [], None)),
+        ("particle_angular_momentum_z", (ang_mom_units, [], None)),
+        ("particle_formation_time", ("code_time", [], None)),
+        ("particle_accretion_Rate", ("code_mass/code_time", [], None)),
+        ("particle_delta_mass", ("code_mass", [], None)),
+        ("particle_rho_gas", (rho_units, [], None)),
+        ("particle_cs**2", (vel_units, [], None)),
+        ("particle_etherm", (ener_units, [], None)),
+        ("particle_velocity_x_gas", (vel_units, [], None)),
+        ("particle_velocity_y_gas", (vel_units, [], None)),
+        ("particle_velocity_z_gas", (vel_units, [], None)),
+        ("particle_mass_bh", ("code_mass", [], None)),
+        ("particle_level", ("", [], None)),
+        ("particle_radius_star", ("code_length", [], None)),
     )
 
     known_sink_fields: KnownFieldsT = (
@@ -320,7 +337,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
         def gen_pdens(igroup):
             def _photon_density(field, data):
                 # The photon density depends on the possibly level-dependent conversion factor.
-                ilvl = data["index", "grid_level"].astype(int)
+                ilvl = data["index", "grid_level"].astype("int64")
                 dc = dens_conv[ilvl]
                 rv = data["ramses-rt", f"Photon_density_{igroup + 1}"] * dc
                 return rv
@@ -410,15 +427,17 @@ class RAMSESFieldInfo(FieldInfoContainer):
                     )
                     return
                 if var.size == n1 * n2:
-                    tvals[tname] = dict(
-                        data=var.reshape((n1, n2), order="F"), unit=unit
-                    )
+                    tvals[tname] = {
+                        "data": var.reshape((n1, n2), order="F"),
+                        "unit": unit,
+                    }
                 else:
                     var = var.reshape((n1, n2, var.size // (n1 * n2)), order="F")
                     for i in range(var.shape[-1]):
-                        tvals[_cool_species[i]] = dict(
-                            data=var[:, :, i], unit="1/cm**3"
-                        )
+                        tvals[_cool_species[i]] = {
+                            "data": var[:, :, i],
+                            "unit": "1/cm**3",
+                        }
 
         # Add the mu field first, as it is needed for the number density
         interp = BilinearFieldInterpolator(
