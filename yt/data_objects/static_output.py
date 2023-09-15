@@ -130,7 +130,12 @@ class MutableAttribute:
 
     def __set__(self, instance, value):
         if self.display_array:
-            value._ipython_display_ = functools.partial(_wrap_display_ytarray, value)
+            try:
+                value._ipython_display_ = functools.partial(
+                    _wrap_display_ytarray, value
+                )
+            except AttributeError:
+                pass
         try:
             value.flags.writeable = False
         except AttributeError:
