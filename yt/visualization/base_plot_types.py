@@ -2,7 +2,6 @@ import sys
 import warnings
 from abc import ABC
 from io import BytesIO
-from types import FunctionType
 from typing import TYPE_CHECKING, Optional, TypedDict, Union
 
 import matplotlib
@@ -37,6 +36,7 @@ if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from matplotlib.axis import Axis
     from matplotlib.figure import Figure
+    from matplotlib.transforms import Transform
 
     class FormatKwargs(TypedDict):
         style: Literal["scientific"]
@@ -249,7 +249,7 @@ class ImagePlotMPL(PlotMPL, ABC):
     ):
         """Initialize ImagePlotMPL class object"""
 
-        self._transform: Optional[FunctionType]
+        self._transform: Optional["Transform"]
         setdefaultattr(self, "_transform", None)
 
         self.colorbar_handler = colorbar_handler
