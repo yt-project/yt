@@ -40,19 +40,19 @@ cdef extern from "cosmology.h":
     void cosmology_set_h(CosmologyParameters *c, double value)
     void cosmology_set_DeltaDC(CosmologyParameters *c, double value)
 
-    double abox_from_auni(CosmologyParameters *c, double a) nogil
-    double tcode_from_auni(CosmologyParameters *c, double a) nogil
-    double tphys_from_auni(CosmologyParameters *c, double a) nogil
+    double abox_from_auni(CosmologyParameters *c, double a) noexcept nogil
+    double tcode_from_auni(CosmologyParameters *c, double a) noexcept nogil
+    double tphys_from_auni(CosmologyParameters *c, double a) noexcept nogil
 
-    double auni_from_abox(CosmologyParameters *c, double v) nogil
-    double auni_from_tcode(CosmologyParameters *c, double v) nogil
-    double auni_from_tphys(CosmologyParameters *c, double v) nogil
+    double auni_from_abox(CosmologyParameters *c, double v) noexcept nogil
+    double auni_from_tcode(CosmologyParameters *c, double v) noexcept nogil
+    double auni_from_tphys(CosmologyParameters *c, double v) noexcept nogil
 
-    double abox_from_tcode(CosmologyParameters *c, double tcode) nogil
-    double tcode_from_abox(CosmologyParameters *c, double abox) nogil
+    double abox_from_tcode(CosmologyParameters *c, double tcode) noexcept nogil
+    double tcode_from_abox(CosmologyParameters *c, double abox) noexcept nogil
 
-    double tphys_from_abox(CosmologyParameters *c, double abox) nogil
-    double tphys_from_tcode(CosmologyParameters *c, double tcode) nogil
+    double tphys_from_abox(CosmologyParameters *c, double abox) noexcept nogil
+    double tphys_from_tcode(CosmologyParameters *c, double tcode) noexcept nogil
 
 cdef extern from "artio.h":
     ctypedef struct artio_fileset_handle "artio_fileset" :
@@ -152,8 +152,8 @@ cdef extern from "artio.h":
 
 
 cdef extern from "artio_internal.h":
-    np.int64_t artio_sfc_index( artio_fileset_handle *handle, int coords[3] ) nogil
-    void artio_sfc_coords( artio_fileset_handle *handle, int64_t index, int coords[3] ) nogil
+    np.int64_t artio_sfc_index( artio_fileset_handle *handle, int coords[3] ) noexcept nogil
+    void artio_sfc_coords( artio_fileset_handle *handle, int64_t index, int coords[3] ) noexcept nogil
 
 cdef void check_artio_status(int status, char *fname="[unknown]"):
     if status != ARTIO_SUCCESS:
@@ -1294,7 +1294,7 @@ cdef class ARTIORootMeshContainer:
         free(self.sfc_mask)
 
     @cython.cdivision(True)
-    cdef np.int64_t pos_to_sfc(self, np.float64_t pos[3]) nogil:
+    cdef np.int64_t pos_to_sfc(self, np.float64_t pos[3]) noexcept nogil:
         # Calculate the index
         cdef int coords[3]
         cdef int i
@@ -1305,7 +1305,7 @@ cdef class ARTIORootMeshContainer:
         return sfc
 
     @cython.cdivision(True)
-    cdef void sfc_to_pos(self, np.int64_t sfc, np.float64_t pos[3]) nogil:
+    cdef void sfc_to_pos(self, np.int64_t sfc, np.float64_t pos[3]) noexcept nogil:
         cdef int coords[3]
         cdef int i
         artio_sfc_coords(self.handle, sfc, coords)

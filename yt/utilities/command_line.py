@@ -6,7 +6,7 @@ import pprint
 import sys
 import textwrap
 import urllib
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 import numpy as np
 from more_itertools import always_iterable
@@ -186,8 +186,8 @@ class YTCommandSubtype(type):
 
 
 class YTCommand(metaclass=YTCommandSubtype):
-    args: Tuple[Union[str, Dict[str, Any]], ...] = ()
-    name: Optional[Union[str, List[str]]] = None
+    args: tuple[Union[str, dict[str, Any]], ...] = ()
+    name: Optional[Union[str, list[str]]] = None
     description: str = ""
     aliases = ()
     ndatasets: int = 1
@@ -660,10 +660,8 @@ class YTInstInfoCmd(YTCommand):
         """
 
     def __call__(self, opts):
-        if sys.version_info >= (3, 9):
-            import importlib.resources as importlib_resources
-        else:
-            import importlib_resources
+        import importlib.resources as importlib_resources
+
         path = os.path.dirname(importlib_resources.files("yt"))
         vstring = _print_installation_information(path)
         if vstring is not None:
@@ -1183,10 +1181,8 @@ class YTUpdateCmd(YTCommand):
         """
 
     def __call__(self, opts):
-        if sys.version_info >= (3, 9):
-            import importlib.resources as importlib_resources
-        else:
-            import importlib_resources
+        import importlib.resources as importlib_resources
+
         path = os.path.dirname(importlib_resources.files("yt"))
         vstring = _print_installation_information(path)
         if vstring is not None:

@@ -337,7 +337,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
         def gen_pdens(igroup):
             def _photon_density(field, data):
                 # The photon density depends on the possibly level-dependent conversion factor.
-                ilvl = data["index", "grid_level"].astype(int)
+                ilvl = data["index", "grid_level"].astype("int64")
                 dc = dens_conv[ilvl]
                 rv = data["ramses-rt", f"Photon_density_{igroup + 1}"] * dc
                 return rv

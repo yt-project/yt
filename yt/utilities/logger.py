@@ -1,6 +1,7 @@
 import logging
 import sys
-from typing import Callable, Optional
+from collections.abc import Callable
+from typing import Optional
 
 from yt.utilities.configure import YTConfig, configuration_callbacks
 

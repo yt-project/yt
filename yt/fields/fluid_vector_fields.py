@@ -36,21 +36,21 @@ def setup_fluid_vector_fields(
     sl_center = slice(1, -1, None)
 
     def _baroclinic_vorticity_x(field, data):
-        rho2 = data[ftype, "density"].astype(np.float64) ** 2
+        rho2 = data[ftype, "density"].astype("float64", copy=False) ** 2
         return (
             data[ftype, "pressure_gradient_y"] * data[ftype, "density_gradient_z"]
             - data[ftype, "pressure_gradient_z"] * data[ftype, "density_gradient_z"]
         ) / rho2
 
     def _baroclinic_vorticity_y(field, data):
-        rho2 = data[ftype, "density"].astype(np.float64) ** 2
+        rho2 = data[ftype, "density"].astype("float64", copy=False) ** 2
         return (
             data[ftype, "pressure_gradient_z"] * data[ftype, "density_gradient_x"]
             - data[ftype, "pressure_gradient_x"] * data[ftype, "density_gradient_z"]
         ) / rho2
 
     def _baroclinic_vorticity_z(field, data):
-        rho2 = data[ftype, "density"].astype(np.float64) ** 2
+        rho2 = data[ftype, "density"].astype("float64", copy=False) ** 2
         return (
             data[ftype, "pressure_gradient_x"] * data[ftype, "density_gradient_y"]
             - data[ftype, "pressure_gradient_y"] * data[ftype, "density_gradient_x"]
@@ -260,7 +260,7 @@ def setup_fluid_vector_fields(
     ########################################################################
 
     def _vorticity_radiation_pressure_x(field, data):
-        rho = data[ftype, "density"].astype(np.float64)
+        rho = data[ftype, "density"].astype("float64", copy=False)
         return (
             data[ftype, "radiation_acceleration_y"] * data[ftype, "density_gradient_z"]
             - data[ftype, "radiation_acceleration_z"]
@@ -268,7 +268,7 @@ def setup_fluid_vector_fields(
         ) / rho
 
     def _vorticity_radiation_pressure_y(field, data):
-        rho = data[ftype, "density"].astype(np.float64)
+        rho = data[ftype, "density"].astype("float64", copy=False)
         return (
             data[ftype, "radiation_acceleration_z"] * data[ftype, "density_gradient_x"]
             - data[ftype, "radiation_acceleration_x"]
@@ -276,7 +276,7 @@ def setup_fluid_vector_fields(
         ) / rho
 
     def _vorticity_radiation_pressure_z(field, data):
-        rho = data[ftype, "density"].astype(np.float64)
+        rho = data[ftype, "density"].astype("float64", copy=False)
         return (
             data[ftype, "radiation_acceleration_x"] * data[ftype, "density_gradient_y"]
             - data[ftype, "radiation_acceleration_y"]

@@ -17,11 +17,11 @@ from yt.utilities.lib.fp_utils cimport fabs, fclip, fmax, fmin, iclip, imax, imi
 
 
 cdef extern from "<cmath>" namespace "std":
-    bint isnormal(double x) nogil
+    bint isnormal(double x) noexcept nogil
 
 
 cdef extern from "platform_dep_math.hpp":
-    bint __isnormal(double) nogil
+    bint __isnormal(double) noexcept nogil
 
 
 cdef struct FieldInterpolationTable:

@@ -1,7 +1,7 @@
 import abc
 import glob
 import os
-from typing import List, Optional, Set, Tuple, Type
+from typing import Optional
 
 from yt.config import ytcfg
 from yt.funcs import mylog
@@ -10,7 +10,7 @@ from yt.utilities.cython_fortran_utils import FortranFile
 from .io import _read_fluid_file_descriptor
 from .io_utils import read_offset
 
-FIELD_HANDLERS: Set[Type["FieldFileHandler"]] = set()
+FIELD_HANDLERS: set[type["FieldFileHandler"]] = set()
 
 
 def get_field_handlers():
@@ -144,7 +144,7 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
     ftype: Optional[str] = None  # The name to give to the field type
     fname: Optional[str] = None  # The name of the file(s)
     attrs: Optional[
-        Tuple[Tuple[str, int, str], ...]
+        tuple[tuple[str, int, str], ...]
     ] = None  # The attributes of the header
     known_fields = None  # A list of tuple containing the field name and its type
     config_field: Optional[str] = None  # Name of the config section (if any)
@@ -280,7 +280,7 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
         return self._offset
 
     @classmethod
-    def load_fields_from_yt_config(cls) -> List[str]:
+    def load_fields_from_yt_config(cls) -> list[str]:
         if cls.config_field and ytcfg.has_section(cls.config_field):
             cfg = ytcfg.get(cls.config_field, "fields")
             fields = [_.strip() for _ in cfg if _.strip() != ""]

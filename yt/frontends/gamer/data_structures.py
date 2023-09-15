@@ -202,6 +202,7 @@ class GAMERHierarchy(GridIndex):
 
 
 class GAMERDataset(Dataset):
+    _load_requirements = ["h5py"]
     _index_class = GAMERHierarchy
     _field_info_class = GAMERFieldInfo
     _handle = None
@@ -372,7 +373,10 @@ class GAMERDataset(Dataset):
         self.geometry = Geometry(geometry_parameters[parameters.get("Coordinate", 1)])
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
+        if cls._missing_load_requirements():
+            return False
+
         try:
             # define a unique way to identify GAMER datasets
             f = HDF5FileHandler(filename)

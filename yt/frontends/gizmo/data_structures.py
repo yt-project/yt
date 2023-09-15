@@ -11,10 +11,14 @@ from .fields import GizmoFieldInfo
 
 
 class GizmoDataset(GadgetHDF5Dataset):
+    _load_requirements = ["h5py"]
     _field_info_class = GizmoFieldInfo
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
+        if cls._missing_load_requirements():
+            return False
+
         need_groups = ["Header"]
         veto_groups = ["Config", "Constants", "FOF", "Group", "Subhalo"]
         valid = True
@@ -55,7 +59,6 @@ class GizmoDataset(GadgetHDF5Dataset):
             fh.close()
         except Exception:
             valid = False
-            pass
         return valid
 
     def _set_code_unit_attributes(self):

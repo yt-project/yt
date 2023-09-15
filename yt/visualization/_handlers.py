@@ -1,6 +1,7 @@
+import sys
 import weakref
 from numbers import Real
-from typing import Any, Dict, List, Literal, Optional, Tuple, Type, Union
+from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
 import matplotlib as mpl
 import numpy as np
@@ -11,6 +12,29 @@ from unyt import unyt_quantity
 from yt._typing import Quantity, Unit
 from yt.config import ytcfg
 from yt.funcs import get_brewer_cmap, is_sequence, mylog
+
+if sys.version_info >= (3, 10):
+    from typing import TypeAlias
+else:
+    from typing_extensions import TypeAlias
+
+if TYPE_CHECKING:
+    # RGBColorType, RGBAColorType and ColorType are backported from matplotlib 3.8.0
+    RGBColorType = Union[tuple[float, float, float], str]
+    RGBAColorType = Union[
+        str,  # "none" or "#RRGGBBAA"/"#RGBA" hex strings
+        tuple[float, float, float, float],
+        # 2 tuple (color, alpha) representations, not infinitely recursive
+        # RGBColorType includes the (str, float) tuple, even for RGBA strings
+        tuple[RGBColorType, float],
+        # (4-tuple, float) is odd, but accepted as the outer float overriding A of 4-tuple
+        tuple[tuple[float, float, float, float], float],
+    ]
+
+    ColorType = Union[RGBColorType, RGBAColorType]
+
+    # this type alias is unique to the present module
+    ColormapInput: TypeAlias = Union[Colormap, str, None]
 
 
 class NormHandler:
@@ -41,7 +65,7 @@ class NormHandler:
         "_norm",
         "prefer_log",
     )
-    _constraint_attrs: List[str] = [
+    _constraint_attrs: list[str] = [
         "vmin",
         "vmax",
         "dynamic_range",
@@ -57,7 +81,7 @@ class NormHandler:
         vmin: Optional[un.unyt_quantity] = None,
         vmax: Optional[un.unyt_quantity] = None,
         dynamic_range: Optional[float] = None,
-        norm_type: Optional[Type[Normalize]] = None,
+        norm_type: Optional[type[Normalize]] = None,
         norm: Optional[Normalize] = None,
         linthresh: Optional[float] = None,
     ):
@@ -73,13 +97,13 @@ class NormHandler:
         self._linthresh = linthresh
         self.prefer_log = True
 
-        if self.has_norm and self.has_constraints:
+        if self.norm is not None and self.has_constraints:
             raise TypeError(
                 "NormHandler input is malformed. "
                 "A norm cannot be passed along other constraints."
             )
 
-    def _get_constraints(self) -> Dict[str, Any]:
+    def _get_constraints(self) -> dict[str, Any]:
         return {
             attr: getattr(self, attr)
             for attr in self.__class__._constraint_attrs
@@ -100,12 +124,8 @@ class NormHandler:
         for name in constraints.keys():
             setattr(self, name, None)
 
-    @property
-    def has_norm(self) -> bool:
-        return self._norm is not None
-
-    def _reset_norm(self):
-        if not self.has_norm:
+    def _reset_norm(self) -> None:
+        if self.norm is None:
             return
         mylog.warning("Dropping norm (%s)", self.norm)
         self._norm = None
@@ -203,7 +223,7 @@ class NormHandler:
 
     def get_dynamic_range(
         self, dvmin: Optional[float], dvmax: Optional[float]
-    ) -> Tuple[float, float]:
+    ) -> tuple[float, float]:
         if self.dynamic_range is None:
             raise RuntimeError(
                 "Something went terribly wrong in setting up a dynamic range"
@@ -233,11 +253,11 @@ class NormHandler:
             )
 
     @property
-    def norm_type(self) -> Optional[Type[Normalize]]:
+    def norm_type(self) -> Optional[type[Normalize]]:
         return self._norm_type
 
     @norm_type.setter
-    def norm_type(self, newval: Optional[Type[Normalize]]) -> None:
+    def norm_type(self, newval: Optional[type[Normalize]]) -> None:
         if not (
             newval is None
             or (isinstance(newval, type) and issubclass(newval, Normalize))
@@ -281,7 +301,7 @@ class NormHandler:
             self.norm_type = SymLogNorm
 
     def get_norm(self, data: np.ndarray, *args, **kw) -> Normalize:
-        if self.has_norm:
+        if self.norm is not None:
             return self.norm
 
         dvmin = dvmax = None
@@ -312,6 +332,7 @@ class NormHandler:
             dvmax = 1 * getattr(data, "units", 1)
         kw.setdefault("vmax", dvmax)
 
+        norm_type: type[Normalize]
         if data.ndim == 3:
             assert data.shape[-1] == 4
             # this is an RGBA array, only linear normalization makes sense here
@@ -403,14 +424,14 @@ class ColorbarHandler:
         *,
         draw_cbar: bool = True,
         draw_minorticks: bool = True,
-        cmap: Optional[Union[Colormap, str]] = None,
+        cmap: "ColormapInput" = None,
         background_color: Optional[str] = None,
     ):
         self._draw_cbar = draw_cbar
         self._draw_minorticks = draw_minorticks
         self._cmap: Optional[Colormap] = None
-        self.cmap = cmap
-        self._background_color = background_color
+        self._set_cmap(cmap)
+        self._background_color: Optional["ColorType"] = background_color
 
     @property
     def draw_cbar(self) -> bool:
@@ -441,12 +462,18 @@ class ColorbarHandler:
         return self._cmap or mpl.colormaps[ytcfg.get("yt", "default_colormap")]
 
     @cmap.setter
-    def cmap(self, newval) -> None:
+    def cmap(self, newval: "ColormapInput") -> None:
+        self._set_cmap(newval)
+
+    def _set_cmap(self, newval: "ColormapInput") -> None:
+        # a separate setter function is better supported by type checkers (mypy)
+        # than relying purely on a property setter to narrow type
+        # from ColormapInput to Colormap
         if isinstance(newval, Colormap) or newval is None:
             self._cmap = newval
         elif isinstance(newval, str):
             self._cmap = mpl.colormaps[newval]
-        elif is_sequence(newval):
+        elif is_sequence(newval):  # type: ignore[unreachable]
             # tuple colormaps are from palettable (or brewer2mpl)
             self._cmap = get_brewer_cmap(newval)
         else:
@@ -456,14 +483,11 @@ class ColorbarHandler:
             )
 
     @property
-    def background_color(self) -> Any:
+    def background_color(self) -> "ColorType":
         return self._background_color or "white"
 
     @background_color.setter
-    def background_color(self, newval: Any):
-        # not attempting to constrain types here because
-        # down the line it really depends on matplotlib.axes.Axes.set_faceolor
-        # which is very type-flexibile
+    def background_color(self, newval: Optional["ColorType"]) -> None:
         if newval is None:
             self._background_color = self.cmap(0)
         else:

@@ -1,6 +1,5 @@
 # We don't need to import 'exceptions'
 import os.path
-from typing import List
 
 from unyt.exceptions import UnitOperationError
 
@@ -21,11 +20,29 @@ class YTUnidentifiedDataType(YTException):
         self.kwargs = kwargs
 
     def __str__(self):
+        from yt.utilities.hierarchy_inspection import (
+            get_classes_with_missing_requirements,
+        )
+
         msg = f"Could not determine input format from {self.filename!r}"
         if self.args:
             msg += ", " + (", ".join(f"{a!r}" for a in self.args))
         if self.kwargs:
             msg += ", " + (", ".join(f"{k}={v!r}" for k, v in self.kwargs.items()))
+
+        msg += "\n"
+
+        if len(unusable_classes := get_classes_with_missing_requirements()) > 0:
+            msg += (
+                "The following types could not be thorougly checked against your data because "
+                "their requirements are missing. "
+                "You may want to inspect this list and check your installation:"
+            )
+            for cls, missing in unusable_classes.items():
+                requirements_str = ", ".join(missing)
+                msg += f"\n- {cls.__name__} (requires: {requirements_str})"
+            msg += "\n\n"
+        msg += "Please make sure you are running a sufficiently recent version of yt."
         return msg
 
 
@@ -79,7 +96,7 @@ class YTFieldNotFound(YTException):
         self.field = field
         self.ds = ds
 
-    def _get_suggestions(self) -> List[FieldKey]:
+    def _get_suggestions(self) -> list[FieldKey]:
         from yt.funcs import levenshtein_distance
 
         field = self.field

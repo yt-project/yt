@@ -7,7 +7,12 @@ from itertools import product
 import yt
 from yt.frontends.gadget.api import GadgetDataset, GadgetHDF5Dataset
 from yt.frontends.gadget.testing import fake_gadget_binary
-from yt.testing import ParticleSelectionComparison, requires_file, requires_module
+from yt.testing import (
+    ParticleSelectionComparison,
+    assert_allclose_units,
+    requires_file,
+    requires_module,
+)
 from yt.utilities.answer_testing.framework import data_dir_load, requires_ds, sph_answer
 
 isothermal_h5 = "IsothermalCollapse/snap_505.hdf5"
@@ -18,6 +23,8 @@ keplerian_ring = "KeplerianRing/keplerian_ring_0020.hdf5"
 snap_33 = "snapshot_033/snap_033.0.hdf5"
 snap_33_dir = "snapshot_033/"
 magneticum = "MagneticumCluster/snap_132"
+magneticum_camels = "magneticum_camels/snap_small_086.hdf5"
+
 
 # This maps from field names to weight field names to use for projections
 iso_fields = OrderedDict(
@@ -147,3 +154,45 @@ def test_magneticum():
     for test in sph_answer(ds, "snap_132", 3718111, mag_fields, center="max"):
         test_magneticum.__name__ = test.description
         yield test
+
+
+camels_kwargs = {
+    "bounding_box": [[8126.0, 22126.0], [5140.0, 19140.0], [5500.0, 19500.0]]
+}
+
+
+@requires_module("h5py")
+@requires_file(magneticum_camels)
+def test_magneticum_camels():
+    # In this test, we're only checking the metal fields since this
+    # is a dataset with special metal handling
+    ds = data_dir_load(magneticum_camels, kwargs=camels_kwargs)
+    dd = ds.all_data()
+    elems = [
+        "He",
+        "C",
+        "Ca",
+        "O",
+        "N",
+        "Ne",
+        "Mg",
+        "S",
+        "Si",
+        "Fe",
+        "Na",
+        "Al",
+        "Ar",
+        "Ni",
+        "Ej",
+    ]
+    metl = 0.0
+    heavy_mass = 0.0
+    for i, elem in enumerate(elems):
+        assert_allclose_units(
+            dd["gas", f"{elem}_mass"], dd["PartType0", f"MetalMasses_{i:02d}"]
+        )
+        heavy_mass += dd["PartType0", f"MetalMasses_{i:02d}"]
+        if i > 0:
+            metl += dd["PartType0", f"MetalMasses_{i:02d}"] / dd["PartType0", "Masses"]
+    assert_allclose_units(dd["gas", "metallicity"], metl)
+    assert_allclose_units(dd["gas", "H_mass"], dd["PartType0", "Masses"] - heavy_mass)

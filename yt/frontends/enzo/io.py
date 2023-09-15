@@ -1,5 +1,3 @@
-from typing import Dict
-
 import numpy as np
 
 from yt.geometry.selection_routines import GridSelector
@@ -9,7 +7,7 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 
 _convert_mass = ("particle_mass", "mass")
 
-_particle_position_names: Dict[str, str] = {}
+_particle_position_names: dict[str, str] = {}
 
 
 class IOHandlerPackedHDF5(BaseIOHandler):

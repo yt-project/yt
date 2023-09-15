@@ -1,14 +1,12 @@
-from typing import List
-
 import numpy as np
 
 from yt._typing import DomainDimensions
 
 
 def _validate_cell_widths(
-    cell_widths: List[np.ndarray],
+    cell_widths: list[np.ndarray],
     domain_dimensions: DomainDimensions,
-) -> List[List[np.ndarray]]:
+) -> list[list[np.ndarray]]:
     # check dimensionality
     if (nwids := len(cell_widths)) != (ndims := len(domain_dimensions)):
         raise ValueError(

@@ -269,7 +269,7 @@ cdef class SelectorObject:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef np.float64_t periodic_difference(self, np.float64_t x1, np.float64_t x2, int d) nogil:
+    cdef np.float64_t periodic_difference(self, np.float64_t x1, np.float64_t x2, int d) noexcept nogil:
         # domain_width is already in code units, and we assume what is fed in
         # is too.
         cdef np.float64_t rel = x1 - x2

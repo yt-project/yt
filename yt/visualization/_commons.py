@@ -2,7 +2,7 @@ import os
 import sys
 import warnings
 from functools import wraps
-from typing import TYPE_CHECKING, Optional, Type, TypeVar
+from typing import TYPE_CHECKING, Optional, TypeVar
 
 import matplotlib as mpl
 from matplotlib.ticker import SymmetricalLogLocator
@@ -25,10 +25,8 @@ _DEFAULT_FONT_PROPERTIES = None
 def get_default_font_properties():
     global _DEFAULT_FONT_PROPERTIES
     if _DEFAULT_FONT_PROPERTIES is None:
-        if sys.version_info >= (3, 9):
-            import importlib.resources as importlib_resources
-        else:
-            import importlib_resources
+        import importlib.resources as importlib_resources
+
         _yt_style = mpl.rc_params_from_file(
             importlib_resources.files("yt") / "default.mplstyle",
             use_default_template=False,
@@ -58,8 +56,8 @@ def _get_supported_canvas_classes():
     )
 
 
-def get_canvas_class(suffix: str) -> Type["FigureCanvasBase"]:
-    s = normalize_extension_string(suffix)
+def get_canvas_class(suffix: str) -> type["FigureCanvasBase"]:
+    s = suffix.removeprefix(".")
     if s not in _get_supported_image_file_formats():
         raise ValueError(f"Unsupported file format '{suffix}'.")
     for cls in _get_supported_canvas_classes():
@@ -72,15 +70,6 @@ def get_canvas_class(suffix: str) -> Type["FigureCanvasBase"]:
     )
 
 
-def normalize_extension_string(s: str) -> str:
-    if sys.version_info < (3, 9):
-        if s.startswith("."):
-            return s[1:]
-        return s
-    else:
-        return s.removeprefix(".")
-
-
 def validate_image_name(filename, suffix: Optional[str] = None) -> str:
     """
     Build a valid image filename with a specified extension (default to png).
@@ -88,10 +77,10 @@ def validate_image_name(filename, suffix: Optional[str] = None) -> str:
     Otherwise, suffix is appended to the filename, replacing any existing extension.
     """
     name, psuffix = os.path.splitext(filename)
-    psuffix = normalize_extension_string(psuffix)
+    psuffix = psuffix.removeprefix(".")
 
     if suffix is not None:
-        suffix = normalize_extension_string(suffix)
+        suffix = suffix.removeprefix(".")
 
     if psuffix in _get_supported_image_file_formats():
         if suffix in _get_supported_image_file_formats() and suffix != psuffix:

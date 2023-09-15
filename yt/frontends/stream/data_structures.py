@@ -6,7 +6,7 @@ from collections import UserDict
 from functools import cached_property
 from itertools import chain, product, repeat
 from numbers import Number as numeric_type
-from typing import Optional, Tuple, Type
+from typing import Optional
 
 import numpy as np
 from more_itertools import always_iterable
@@ -321,7 +321,7 @@ class StreamHierarchy(GridIndex):
 
 
 class StreamDataset(Dataset):
-    _index_class: Type[Index] = StreamHierarchy
+    _index_class: type[Index] = StreamHierarchy
     _field_info_class = StreamFieldInfo
     _dataset_type = "stream"
 
@@ -445,7 +445,7 @@ class StreamDataset(Dataset):
             )
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
         return False
 
     @property
@@ -462,7 +462,7 @@ class StreamDataset(Dataset):
 
 
 class StreamDictFieldHandler(UserDict):
-    _additional_fields: Tuple[FieldKey, ...] = ()
+    _additional_fields: tuple[FieldKey, ...] = ()
 
     @property
     def all_fields(self):

@@ -36,7 +36,7 @@ def scale_image(image, mi=None, ma=None):
         mi = image.min()
     if ma is None:
         ma = image.max()
-    image = (np.clip((image - mi) / (ma - mi) * 255, 0, 255)).astype("uint8")
+    image = np.clip((image - mi) / (ma - mi) * 255, 0, 255).astype("uint8")
     return image
 
 

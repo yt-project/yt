@@ -249,7 +249,7 @@ cdef class BVH:
                               tri_index,
                               &(self.bboxes[tri_index]))
 
-    cdef void _recursive_free(self, BVHNode* node) nogil:
+    cdef void _recursive_free(self, BVHNode* node) noexcept nogil:
         if node.end - node.begin > LEAF_SIZE:
             self._recursive_free(node.left)
             self._recursive_free(node.right)

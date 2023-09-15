@@ -79,10 +79,7 @@ def _parse_byte_size(s: str):
 
 
 def _get_sample_data_registry():
-    if sys.version_info >= (3, 9):
-        import importlib.resources as importlib_resources
-    else:
-        import importlib_resources
+    import importlib.resources as importlib_resources
 
     return json.loads(
         importlib_resources.files("yt")

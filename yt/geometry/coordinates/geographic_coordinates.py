@@ -214,18 +214,33 @@ class GeographicCoordinateHandler(CoordinateHandler):
         return surface_height, 1.0
 
     def pixelize(
-        self, dimension, data_source, field, bounds, size, antialias=True, periodic=True
+        self,
+        dimension,
+        data_source,
+        field,
+        bounds,
+        size,
+        antialias=True,
+        periodic=True,
+        *,
+        return_mask=False,
     ):
         if self.axis_name[dimension] in ("latitude", "longitude"):
-            return self._cyl_pixelize(
+            buff, mask = self._cyl_pixelize(
                 data_source, field, bounds, size, antialias, dimension
             )
         elif self.axis_name[dimension] == self.radial_axis:
-            return self._ortho_pixelize(
+            buff, mask = self._ortho_pixelize(
                 data_source, field, bounds, size, antialias, dimension, periodic
             )
         else:
             raise NotImplementedError
+
+        if return_mask:
+            assert mask is None or mask.dtype == bool
+            return buff, mask
+        else:
+            return buff
 
     def pixelize_line(self, field, start_point, end_point, npoints):
         raise NotImplementedError
@@ -246,7 +261,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
         py = data_source["py"]
         pdy = data_source["pdy"]
         buff = np.full((size[1], size[0]), np.nan, dtype="float64")
-        pixelize_cartesian(
+        mask = pixelize_cartesian(
             buff,
             px,
             py,
@@ -258,7 +273,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
             period,
             int(periodic),
         )
-        return buff
+        return buff, mask
 
     def _cyl_pixelize(self, data_source, field, bounds, size, antialias, dimension):
         offset, factor = self._retrieve_radial_offset(data_source)
@@ -278,12 +293,20 @@ class GeographicCoordinateHandler(CoordinateHandler):
             # We should never get here!
             raise NotImplementedError
         buff = np.full((size[1], size[0]), np.nan, dtype="f8")
-        pixelize_cylinder(
-            buff, r, data_source["pdy"], px, pdx, data_source[field], bounds
+        mask = pixelize_cylinder(
+            buff,
+            r,
+            data_source["pdy"],
+            px,
+            pdx,
+            data_source[field],
+            bounds,
+            return_mask=True,
         )
         if do_transpose:
             buff = buff.transpose()
-        return buff
+            mask = mask.transpose()
+        return buff, mask
 
     def convert_from_cartesian(self, coord):
         raise NotImplementedError

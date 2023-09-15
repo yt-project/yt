@@ -662,8 +662,8 @@ class OctreeVolumeSource(VolumeSource):
 
         data = self.data_source
 
-        dx = data["dx"].to("unitary").value[:, None]
-        xyz = np.stack([data[_].to("unitary").value for _ in "x y z".split()], axis=-1)
+        dx = data["dx"].to_value("unitary")[:, None]
+        xyz = np.stack([data[_].to_value("unitary") for _ in "xyz"], axis=-1)
         LE = xyz - dx / 2
         RE = xyz + dx / 2
 
