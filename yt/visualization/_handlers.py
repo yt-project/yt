@@ -1,7 +1,7 @@
 import sys
 import weakref
 from numbers import Real
-from typing import Any, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
 import matplotlib as mpl
 import numpy as np
@@ -17,6 +17,24 @@ if sys.version_info >= (3, 10):
     from typing import TypeAlias
 else:
     from typing_extensions import TypeAlias
+
+if TYPE_CHECKING:
+    # RGBColorType, RGBAColorType and ColorType are backported from matplotlib 3.8.0
+    RGBColorType = Union[tuple[float, float, float], str]
+    RGBAColorType = Union[
+        str,  # "none" or "#RRGGBBAA"/"#RGBA" hex strings
+        tuple[float, float, float, float],
+        # 2 tuple (color, alpha) representations, not infinitely recursive
+        # RGBColorType includes the (str, float) tuple, even for RGBA strings
+        tuple[RGBColorType, float],
+        # (4-tuple, float) is odd, but accepted as the outer float overriding A of 4-tuple
+        tuple[tuple[float, float, float, float], float],
+    ]
+
+    ColorType = Union[RGBColorType, RGBAColorType]
+
+    # this type alias is unique to the present module
+    ColormapInput: TypeAlias = Union[Colormap, str, None]
 
 
 class NormHandler:
@@ -398,16 +416,6 @@ class NormHandler:
         return linthresh
 
 
-BackgroundColor: TypeAlias = Union[
-    tuple[float, float, float, float],
-    # np.ndarray is only runtime-subscribtable since numpy 1.22
-    "np.ndarray[Any, Any]",
-    str,
-    None,
-]
-ColormapInput: TypeAlias = Union[Colormap, str, None]
-
-
 class ColorbarHandler:
     __slots__ = ("_draw_cbar", "_draw_minorticks", "_cmap", "_background_color")
 
@@ -416,14 +424,14 @@ class ColorbarHandler:
         *,
         draw_cbar: bool = True,
         draw_minorticks: bool = True,
-        cmap: ColormapInput = None,
+        cmap: "ColormapInput" = None,
         background_color: Optional[str] = None,
     ):
         self._draw_cbar = draw_cbar
         self._draw_minorticks = draw_minorticks
         self._cmap: Optional[Colormap] = None
         self._set_cmap(cmap)
-        self._background_color: BackgroundColor = background_color
+        self._background_color: Optional["ColorType"] = background_color
 
     @property
     def draw_cbar(self) -> bool:
@@ -454,10 +462,10 @@ class ColorbarHandler:
         return self._cmap or mpl.colormaps[ytcfg.get("yt", "default_colormap")]
 
     @cmap.setter
-    def cmap(self, newval: ColormapInput) -> None:
+    def cmap(self, newval: "ColormapInput") -> None:
         self._set_cmap(newval)
 
-    def _set_cmap(self, newval: ColormapInput) -> None:
+    def _set_cmap(self, newval: "ColormapInput") -> None:
         # a separate setter function is better supported by type checkers (mypy)
         # than relying purely on a property setter to narrow type
         # from ColormapInput to Colormap
@@ -465,7 +473,7 @@ class ColorbarHandler:
             self._cmap = newval
         elif isinstance(newval, str):
             self._cmap = mpl.colormaps[newval]
-        elif is_sequence(newval):
+        elif is_sequence(newval):  # type: ignore[unreachable]
             # tuple colormaps are from palettable (or brewer2mpl)
             self._cmap = get_brewer_cmap(newval)
         else:
@@ -475,14 +483,11 @@ class ColorbarHandler:
             )
 
     @property
-    def background_color(self) -> BackgroundColor:
+    def background_color(self) -> "ColorType":
         return self._background_color or "white"
 
     @background_color.setter
-    def background_color(self, newval: BackgroundColor) -> None:
-        # not attempting to constrain types here because
-        # down the line it really depends on matplotlib.axes.Axes.set_faceolor
-        # which is very type-flexibile
+    def background_color(self, newval: Optional["ColorType"]) -> None:
         if newval is None:
             self._background_color = self.cmap(0)
         else:
