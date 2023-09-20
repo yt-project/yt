@@ -1901,4 +1901,4 @@ def load_hdf5_file(
         data = {_: reader for _ in fields}
         data.update({"left_edge": le, "right_edge": re, "dimensions": s, "level": 0})
         grid_data.append(data)
-    return load_amr_grids(grid_data, shape, **dataset_arguments)
+    return load_amr_grids(grid_data, shape, bbox=bbox, **dataset_arguments)
