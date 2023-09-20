@@ -1,7 +1,6 @@
 import abc
 import json
 import os
-from typing import Tuple
 from uuid import uuid4
 
 import numpy as np
@@ -181,7 +180,7 @@ class MinimalDataset(MinimalRepresentation):
 
 
 class MinimalMappableData(MinimalRepresentation):
-    _attr_list: Tuple[str, ...] = (
+    _attr_list: tuple[str, ...] = (
         "field_data",
         "field",
         "weight_field",

@@ -274,8 +274,8 @@ class ProfileND(ParallelAnalysisInterface):
                 fname = self.field_map.get(field[1], None)
                 if fname != field:
                     raise KeyError(
-                        "Asked for field '{}' but only have data for "
-                        "fields '{}'".format(field, list(self.field_data.keys()))
+                        f"Asked for field '{field}' but only have data for "
+                        f"fields '{list(self.field_data.keys())}'"
                     )
             elif isinstance(field, DerivedField):
                 fname = self.field_map.get(field.name[1], None)

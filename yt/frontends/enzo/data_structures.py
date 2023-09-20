@@ -664,6 +664,7 @@ class EnzoDataset(Dataset):
     Enzo-specific output, set at a fixed time.
     """
 
+    _load_requirements = ["h5py", "libconf"]
     _index_class = EnzoHierarchy
     _field_info_class = EnzoFieldInfo
 
@@ -980,10 +981,10 @@ class EnzoDataset(Dataset):
         setdefaultattr(self, "magnetic_unit", self.quan(magnetic_unit, "gauss"))
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
-        if str(filename).endswith(".hierarchy"):
-            return True
-        return os.path.exists(f"{filename}.hierarchy")
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
+        return filename.endswith(".hierarchy") or os.path.exists(
+            f"{filename}.hierarchy"
+        )
 
     @classmethod
     def _guess_candidates(cls, base, directories, files):
@@ -1061,7 +1062,7 @@ class EnzoDatasetInMemory(EnzoDataset):
         return enzo
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
         return False
 
 

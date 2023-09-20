@@ -198,6 +198,7 @@ def off_axis_projection(
 
         # if weight is None:
         buf = np.zeros((resolution[0], resolution[1]), dtype="float64")
+        mask = np.ones_like(buf, dtype="uint8")
 
         x_min = center[0] - width[0] / 2
         x_max = center[0] + width[0] / 2
@@ -223,6 +224,7 @@ def off_axis_projection(
                     width.to("code_length").d,
                     chunk[item].in_units(ounits),
                     buf,
+                    mask,
                     normal_vector,
                     north,
                 )
@@ -260,6 +262,7 @@ def off_axis_projection(
                     width.to("code_length").d,
                     chunk[item].in_units(ounits),
                     buf,
+                    mask,
                     normal_vector,
                     north,
                     weight_field=chunk[weight].in_units(wounits),
@@ -278,6 +281,7 @@ def off_axis_projection(
                     width.to("code_length").d,
                     chunk[weight].to(wounits),
                     weight_buff,
+                    mask,
                     normal_vector,
                     north,
                 )

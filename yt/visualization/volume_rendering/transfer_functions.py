@@ -37,7 +37,7 @@ class TransferFunction:
         # Strip units off of x_bounds, if any
         x_bounds = [np.float64(xb) for xb in x_bounds]
         self.x_bounds = x_bounds
-        self.x = np.linspace(x_bounds[0], x_bounds[1], nbins).astype("float64")
+        self.x = np.linspace(x_bounds[0], x_bounds[1], nbins, dtype="float64")
         self.y = np.zeros(nbins, dtype="float64")
         self.grad_field = -1
         self.light_source_v = self.light_source_c = np.zeros(3, "float64")
@@ -161,6 +161,8 @@ class TransferFunction:
         )
 
     def add_filtered_planck(self, wavelength, trans):
+        from yt._maintenance.numpy2_compat import trapezoid
+
         vals = np.zeros(self.x.shape, "float64")
         nu = clight / (wavelength * 1e-8)
         nu = nu[::-1]
@@ -174,10 +176,10 @@ class TransferFunction:
             # transmission
             f = Bnu * trans[::-1]
             # integrate transmission over nu
-            vals[i] = np.trapz(f, nu)
+            vals[i] = trapezoid(f, nu)
 
         # normalize by total transmission over filter
-        self.y = vals / trans.sum()  # /np.trapz(trans[::-1],nu)
+        self.y = vals / trans.sum()
         # self.y = np.clip(np.maximum(vals, self.y), 0.0, 1.0)
 
     def plot(self, filename):
@@ -603,7 +605,15 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         ax.set_xlabel("Value")
 
     def vert_cbar(
-        self, resolution, log_scale, ax, label=None, label_fmt=None, *, size=10
+        self,
+        resolution,
+        log_scale,
+        ax,
+        label=None,
+        label_fmt=None,
+        *,
+        label_fontsize=10,
+        size=10,
     ):
         r"""Display an image of the transfer function
 
@@ -663,9 +673,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
                 if abs(val) < 1.0e-3 or abs(val) > 1.0e4:
                     if not val == 0.0:
                         e = np.floor(np.log10(abs(val)))
-                        return r"${:.2f}\times 10^{{ {:d} }}$".format(
-                            val / 10.0**e, int(e)
-                        )
+                        return rf"${val / 10.0**e:.2f}\times 10^{{ {int(e):d} }}$"
                     else:
                         return r"$0$"
                 else:
@@ -686,7 +694,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         ax.set_xlim(0.0, max_alpha)
         ax.get_xaxis().set_ticks([])
         ax.set_ylim(visible[0].item(), visible[-1].item())
-        ax.tick_params(axis="y", colors="white", size=10)
+        ax.tick_params(axis="y", colors="white", labelsize=label_fontsize)
         ax.set_ylabel(label, color="white", size=size * resolution / 512.0)
 
     def sample_colormap(self, v, w, alpha=None, colormap="gist_stern", col_bounds=None):

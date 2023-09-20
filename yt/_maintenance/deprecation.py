@@ -1,7 +1,7 @@
 import warnings
 from functools import wraps
 from types import FunctionType
-from typing import Dict, Optional
+from typing import Optional
 
 
 def issue_deprecation_warning(
@@ -45,7 +45,7 @@ def issue_deprecation_warning(
     warnings.warn(msg, DeprecationWarning, stacklevel=stacklevel)
 
 
-def future_positional_only(positions2names: Dict[int, str], /, **depr_kwargs):
+def future_positional_only(positions2names: dict[int, str], /, **depr_kwargs):
     """Warn users when using a future positional-only argument as keyword.
     Note that positional-only arguments are available from Python 3.8
     See https://www.python.org/dev/peps/pep-0570/

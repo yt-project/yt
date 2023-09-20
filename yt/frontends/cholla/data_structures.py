@@ -62,6 +62,7 @@ class ChollaHierarchy(GridIndex):
 
 
 class ChollaDataset(Dataset):
+    _load_requirements = ["h5py"]
     _index_class = ChollaHierarchy
     _field_info_class = ChollaFieldInfo
 
@@ -144,12 +145,15 @@ class ChollaDataset(Dataset):
         self.geometry = Geometry.CARTESIAN
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
         # This accepts a filename or a set of arguments and returns True or
         # False depending on if the file is of the type requested.
+        if cls._missing_load_requirements():
+            return False
+
         try:
             fileh = h5py.File(filename, mode="r")
-        except (ImportError, OSError):
+        except OSError:
             return False
 
         try:

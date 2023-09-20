@@ -1,5 +1,4 @@
 import abc
-from typing import Tuple
 
 from yt._typing import FieldKey
 
@@ -12,8 +11,8 @@ class DomainContext(abc.ABC):
             type.__init__(cls, name, b, d)
             domain_context_registry[name] = cls
 
-    _known_fluid_fields: Tuple[FieldKey, ...]
-    _known_particle_fields: Tuple[FieldKey, ...]
+    _known_fluid_fields: tuple[FieldKey, ...]
+    _known_particle_fields: tuple[FieldKey, ...]
 
     def __init__(self, ds):
         self.ds = ds

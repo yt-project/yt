@@ -2,11 +2,10 @@ import abc
 import base64
 import builtins
 import os
-import sys
 import warnings
 from collections import defaultdict
 from functools import wraps
-from typing import Any, Dict, Final, List, Literal, Optional, Tuple, Type, Union
+from typing import Any, Final, Literal, Optional, Union
 
 import matplotlib
 from matplotlib.colors import LogNorm, Normalize, SymLogNorm
@@ -114,7 +113,7 @@ class PlotDictionary(defaultdict):
 class PlotContainer(abc.ABC):
     """A container for generic plots"""
 
-    _plot_dict_type: Type[PlotDictionary] = PlotDictionary
+    _plot_dict_type: type[PlotDictionary] = PlotDictionary
     _plot_type: Optional[str] = None
     _plot_valid = False
 
@@ -133,16 +132,13 @@ class PlotContainer(abc.ABC):
 
         if fontsize is None:
             fontsize = self.__class__._default_font_size
-        if sys.version_info >= (3, 9):
-            font_dict = get_default_font_properties() | {"size": fontsize}
-        else:
-            font_dict = {**get_default_font_properties(), "size": fontsize}
+        font_dict = get_default_font_properties() | {"size": fontsize}
 
         self._font_properties = FontProperties(**font_dict)
         self._font_color = None
         self._xlabel = None
         self._ylabel = None
-        self._minorticks: Dict[FieldKey, bool] = {}
+        self._minorticks: dict[FieldKey, bool] = {}
 
     @accepts_all_fields
     @invalidate_plot
@@ -458,10 +454,7 @@ class PlotContainer(abc.ABC):
         # Set default values if the user does not explicitly set them.
         # this prevents reverting to the matplotlib defaults.
         _default_size = {"size": self.__class__._default_font_size}
-        if sys.version_info >= (3, 9):
-            font_dict = get_default_font_properties() | _default_size | font_dict
-        else:
-            font_dict = {**get_default_font_properties(), **_default_size, **font_dict}
+        font_dict = get_default_font_properties() | _default_size | font_dict
         self._font_properties = FontProperties(**font_dict)
         return self
 
@@ -508,9 +501,9 @@ class PlotContainer(abc.ABC):
     @validate_plot
     def save(
         self,
-        name: Optional[Union[str, List[str], Tuple[str, ...]]] = None,
+        name: Optional[Union[str, list[str], tuple[str, ...]]] = None,
         suffix: Optional[str] = None,
-        mpl_kwargs: Optional[Dict[str, Any]] = None,
+        mpl_kwargs: Optional[dict[str, Any]] = None,
     ):
         """saves the plot to disk.
 
@@ -666,7 +659,7 @@ class PlotContainer(abc.ABC):
             img = base64.b64encode(self.plots[field]._repr_png_()).decode()
             ret += (
                 r'<img style="max-width:100%;max-height:100%;" '
-                r'src="data:image/png;base64,{}"><br>'.format(img)
+                rf'src="data:image/png;base64,{img}"><br>'
             )
         return ret
 
@@ -902,7 +895,7 @@ class ImagePlotContainer(PlotContainer, abc.ABC):
 
     def _get_default_handlers(
         self, field, default_display_units: Unit
-    ) -> Tuple[NormHandler, ColorbarHandler]:
+    ) -> tuple[NormHandler, ColorbarHandler]:
         usr_units_str = get_default_from_config(
             self.data_source, field=field, keys="units", defaults=[None]
         )

@@ -1,7 +1,7 @@
 # image tests using pytest-mpl
 from itertools import chain
-from typing import Dict
 
+import matplotlib as mpl
 import numpy as np
 import numpy.testing as npt
 import pytest
@@ -161,7 +161,7 @@ class TestProfilePlot:
             [("gas", "density"), ("index", "radius")],
             [("gas", "velocity_magnitude"), ("gas", "mass")],
         ]
-        cls.profiles: Dict[str, ProfilePlot] = {}
+        cls.profiles: dict[str, ProfilePlot] = {}
         for i_reg, reg in enumerate(regions):
             id_prefix = str(i_reg)
             for x_field, y_field in pr_fields:
@@ -240,7 +240,7 @@ class TestPhasePlot:
                 ("gas", "velocity_magnitude"),
             ],
         ]
-        cls.profiles: Dict[str, PhasePlot] = {}
+        cls.profiles: dict[str, PhasePlot] = {}
         for i_reg, reg in enumerate(regions):
             id_prefix = str(i_reg)
             for x_field, y_field, z_field in pr_fields:
@@ -334,6 +334,17 @@ class TestSetBackgroundColor:
     def setup_class(cls):
         cls.ds = fake_random_ds(16)
 
+        def some_nans_field(field, data):
+            ret = data[("gas", "density")]
+            ret[::2] *= np.nan
+            return ret
+
+        cls.ds.add_field(
+            name=("gas", "polluted_field"),
+            function=some_nans_field,
+            sampling_type="local",
+        )
+
     @pytest.mark.mpl_image_compare
     def test_sliceplot_set_background_color_linear(self):
         field = ("gas", "density")
@@ -349,6 +360,21 @@ class TestSetBackgroundColor:
         field = ("gas", "density")
         p = SlicePlot(self.ds, "z", field, width=1.5)
         p.set_background_color(field, color="C0")
+
+        p.render()
+        return p.plots[field].figure
+
+    @pytest.mark.mpl_image_compare
+    def test_sliceplot_set_background_color_and_bad_value(self):
+        # see https://github.com/yt-project/yt/issues/4639
+        field = ("gas", "polluted_field")
+        p = SlicePlot(self.ds, "z", field, width=1.5)
+        p.set_background_color(field, color="black")
+
+        # copy the default colormap
+        cmap = mpl.colormaps["cmyt.arbre"]
+        cmap.set_bad("red")
+        p.set_cmap(field, cmap)
 
         p.render()
         return p.plots[field].figure

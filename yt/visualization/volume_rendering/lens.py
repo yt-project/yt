@@ -495,10 +495,10 @@ class StereoPerspectiveLens(Lens):
 
         # Transpose into image coords.
         if disparity > 0:
-            px = (res0_h * 0.5 + res0_h / camera.width[0].d * dx).astype("int")
+            px = (res0_h * 0.5 + res0_h / camera.width[0].d * dx).astype("int64")
         else:
-            px = (res0_h * 1.5 + res0_h / camera.width[0].d * dx).astype("int")
-        py = (res[1] * 0.5 + res[1] / camera.width[1].d * dy).astype("int")
+            px = (res0_h * 1.5 + res0_h / camera.width[0].d * dx).astype("int64")
+        py = (res[1] * 0.5 + res[1] / camera.width[1].d * dy).astype("int64")
 
         return px, py, dz
 
@@ -622,8 +622,8 @@ class FisheyeLens(Lens):
         px = (px + 1.0) * res[0] / 2.0
         py = (py + 1.0) * res[1] / 2.0
         # px and py should be dimensionless
-        px = np.rint(px).astype("int64")
-        py = np.rint(py).astype("int64")
+        px = np.rint(px, dtype="int64")
+        py = np.rint(py, dtype="int64")
         return px, py, dz
 
 

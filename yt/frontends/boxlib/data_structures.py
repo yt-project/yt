@@ -4,7 +4,6 @@ import re
 from collections import namedtuple
 from functools import cached_property
 from stat import ST_CTIME
-from typing import Type
 
 import numpy as np
 
@@ -623,7 +622,7 @@ class BoxlibDataset(Dataset):
     """
 
     _index_class = BoxlibHierarchy
-    _field_info_class: Type[FieldInfoContainer] = BoxlibFieldInfo
+    _field_info_class: type[FieldInfoContainer] = BoxlibFieldInfo
     _output_prefix = None
     _default_cparam_filename = "job_info"
 
@@ -933,7 +932,7 @@ class AMReXHierarchy(BoxlibHierarchy):
 
 
 class AMReXDataset(BoxlibDataset):
-    _index_class: Type[BoxlibHierarchy] = AMReXHierarchy
+    _index_class: type[BoxlibHierarchy] = AMReXHierarchy
     _subtype_keyword = "amrex"
     _default_cparam_filename = "job_info"
 
