@@ -136,10 +136,8 @@ class MutableAttribute:
                 )
             except AttributeError:
                 pass
-        try:
-            value.flags.writeable = False
-        except AttributeError:
-            pass
+		if isinstance(value, np.ndarray):
+		    value.flags.writeable = False
         self.data[instance] = value
 
 
