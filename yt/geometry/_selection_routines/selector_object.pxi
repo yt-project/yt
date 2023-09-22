@@ -377,8 +377,8 @@ cdef class SelectorObject:
         total = self.fill_mask_selector_regular_grid(left_edge, right_edge,
                                                      dds, dim, child_mask,
                                                      mask, level)
-        if total == 0: return None
-        return mask.astype("bool")
+        if total == 0: return None, 0
+        return mask.astype("bool"), total
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
