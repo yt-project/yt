@@ -125,8 +125,7 @@ class MutableAttribute:
             self.display_array = False
 
     def __get__(self, instance, owner):
-        ret = self.data.get(instance, None)
-        return ret
+        return self.data.get(instance, None)
 
     def __set__(self, instance, value):
         if self.display_array:
@@ -135,9 +134,11 @@ class MutableAttribute:
                     _wrap_display_ytarray, value
                 )
             except AttributeError:
+                # If they have slots, we can't assign a new item.  So, let's catch
+                # the error!
                 pass
-		if isinstance(value, np.ndarray):
-		    value.flags.writeable = False
+        if isinstance(value, np.ndarray):
+            value.flags.writeable = False
         self.data[instance] = value
 
 
