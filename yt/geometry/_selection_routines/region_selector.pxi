@@ -12,13 +12,13 @@ cdef class RegionSelector(SelectorObject):
         cdef int i
         # We are modifying dobj.left_edge and dobj.right_edge , so here we will
         # do an in-place conversion of those arrays.
-        cdef np.float64_t[:] RE = _ensure_code(dobj.right_edge)
-        cdef np.float64_t[:] LE = _ensure_code(dobj.left_edge)
-        cdef np.float64_t[:] DW = _ensure_code(dobj.ds.domain_width)
-        cdef np.float64_t[:] DLE = _ensure_code(dobj.ds.domain_left_edge)
-        cdef np.float64_t[:] DRE = _ensure_code(dobj.ds.domain_right_edge)
-        le_all = (np.array(LE) == _ensure_code(dobj.ds.domain_left_edge)).all()
-        re_all = (np.array(RE) == _ensure_code(dobj.ds.domain_right_edge)).all()
+        cdef np.float64_t[:] RE = dobj.right_edge.copy()
+        cdef np.float64_t[:] LE = dobj.left_edge.copy()
+        cdef const np.float64_t[:] DW = dobj.ds.domain_width
+        cdef const np.float64_t[:] DLE = dobj.ds.domain_left_edge
+        cdef const np.float64_t[:] DRE = dobj.ds.domain_right_edge
+        le_all = (np.array(LE) == dobj.ds.domain_left_edge).all()
+        re_all = (np.array(RE) == dobj.ds.domain_right_edge).all()
         # If we have a bounding box, then we should *not* revert to all data
         domain_override = getattr(dobj.ds, '_domain_override', False)
         if le_all and re_all and not domain_override:

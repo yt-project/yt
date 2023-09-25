@@ -125,23 +125,20 @@ class MutableAttribute:
             self.display_array = False
 
     def __get__(self, instance, owner):
-        if not instance:
-            return None
-        ret = self.data.get(instance, None)
-        try:
-            ret = ret.copy()
-        except AttributeError:
-            pass
-        if self.display_array:
-            try:
-                ret._ipython_display_ = functools.partial(_wrap_display_ytarray, ret)
-            # This will error out if the items have yet to be turned into
-            # YTArrays, in which case we just let it go.
-            except AttributeError:
-                pass
-        return ret
+        return self.data.get(instance, None)
 
     def __set__(self, instance, value):
+        if self.display_array:
+            try:
+                value._ipython_display_ = functools.partial(
+                    _wrap_display_ytarray, value
+                )
+            except AttributeError:
+                # If they have slots, we can't assign a new item.  So, let's catch
+                # the error!
+                pass
+        if isinstance(value, np.ndarray):
+            value.flags.writeable = False
         self.data[instance] = value
 
 

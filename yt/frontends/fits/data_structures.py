@@ -819,7 +819,7 @@ class SpectralCubeFITSDataset(SkyDataFITSDataset):
             self.domain_right_edge[self.spec_axis]
             - self.domain_left_edge[self.spec_axis]
         )
-        dre = self.domain_right_edge
+        dre = self.domain_right_edge.copy()
         dre[self.spec_axis] = (
             self.domain_left_edge[self.spec_axis] + self.spectral_factor * Dz
         )
