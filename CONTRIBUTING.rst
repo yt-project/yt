@@ -273,10 +273,9 @@ How To Get The Source Code For Editing
 ++++++++++++++++++++++++++++++++++++++
 
 yt is hosted on GitHub, and you can see all of the yt repositories at
-https://github.com/yt-project/.  With the yt installation script you should have a
-copy of git for checking out pieces of code.  Make sure you have followed
-the steps above for bootstrapping your development (to assure you have a
-GitHub account, etc.)
+https://github.com/yt-project/. To fetch and modify source code, make sure you
+have followed the steps above for bootstrapping your development (to assure you
+have a GitHub account, etc.).
 
 In order to modify the source code for yt, we ask that you make a "fork" of the
 main yt repository on GitHub.  A fork is simply an exact copy of the main
@@ -340,25 +339,13 @@ branch.
 Lastly, if you want to use this new downloaded version of your yt repository as
 the *active* version of yt on your computer (i.e. the one which is executed when
 you run yt from the command line or the one that is loaded when you do ``import
-yt``), then you must "activate" it using the following commands from within the
-repository directory.
-
-.. code-block:: bash
-
-   $ python setup.py develop
-
-This will rebuild all C modules as well.
+yt``), then you must "activate" by building yt from source as described in
+:ref:`install-from-source`.
 
 .. _reading-source:
 
 How To Read The Source Code
 +++++++++++++++++++++++++++
-
-If you just want to *look* at the source code, you may already have it on your
-computer.  If you build yt using the install script, the source is available at
-``$YT_DEST/src/yt-git``.  See :ref:`install-from-source` for more details about
-to obtain the yt source code if you did not build yt using the install
-script.
 
 The root directory of the yt git repository contains a number of
 subdirectories with different components of the code.  Most of the yt source
@@ -553,10 +540,8 @@ Here's a more detailed flowchart of how to submit changes.
 
 #. Fork yt on GitHub.  (This step only has to be done once.)  You can do
    this at: https://github.com/yt-project/yt/fork.
-#. If you have used the installation script, the source code for yt can be
-   found in ``$YT_DEST/src/yt-git``.  Alternatively see
-   :ref:`install-from-source` for instructions on how to build yt from the
-   git repository. (Below, in :ref:`reading-source`, we describe how to
+#. Follow :ref:`install-from-source` for instructions on how to build yt
+   from the git repository. (Below, in :ref:`reading-source`, we describe how to
    find items of interest.) If you have already forked the repository then
    you can clone your fork locally::
 
