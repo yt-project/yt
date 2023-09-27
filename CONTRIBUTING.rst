@@ -242,6 +242,7 @@ marked with a label of *new contributor friendly*.  While we try to triage the
 issue tracker regularly to assign appropriate labels to every issue, it may be
 the case that issues not marked as *new contributor friendly* are actually
 suitable for new contributors.
+
 Here are some predefined issue searches that might be useful:
 
 * Unresolved issues `marked "new contributor friendly"
