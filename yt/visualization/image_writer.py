@@ -149,6 +149,9 @@ def write_bitmap(bitmap_array, filename, max_val=None, transpose=False):
             alpha_channel.shape = s1, s2, 1
         if max_val is None:
             max_val = bitmap_array[:, :, :3].max()
+            if max_val == 0.0:
+                # avoid dividing by zero for blank images
+                max_val = 1.0
         bitmap_array = np.clip(bitmap_array[:, :, :3] / max_val, 0.0, 1.0) * 255
         bitmap_array = np.concatenate(
             [bitmap_array.astype("uint8"), alpha_channel], axis=-1
