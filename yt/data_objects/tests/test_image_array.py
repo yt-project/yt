@@ -9,12 +9,20 @@ from numpy.testing import assert_equal
 from yt.data_objects.image_array import ImageArray
 from yt.testing import requires_module
 
+old_settings = None
+
 
 def setup():
+    global old_settings
     from yt.config import ytcfg
 
     ytcfg["yt", "internals", "within_testing"] = True
+    old_settings = np.geterr()
     np.seterr(all="ignore")
+
+
+def teardown():
+    np.seterr(**old_settings)
 
 
 def dummy_image(kstep, nlayers):
