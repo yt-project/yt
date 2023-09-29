@@ -344,10 +344,6 @@ class GridIndex(Index, abc.ABC):
         # These next two lines, when uncommented, turn "on" the fast index.
         # if dobj._type_name != "grid":
         #    fast_index = self._get_grid_tree()
-        if getattr(dobj, "size", None) is None:
-            dobj.size = self._count_selection(dobj, fast_index=fast_index)
-        if getattr(dobj, "shape", None) is None:
-            dobj.shape = (dobj.size,)
         dobj._current_chunk = list(
             self._chunk_all(dobj, cache=False, fast_index=fast_index)
         )[0]
@@ -361,6 +357,10 @@ class GridIndex(Index, abc.ABC):
         return count
 
     def _chunk_all(self, dobj, cache=True, fast_index=None):
+        if getattr(dobj, "size", None) is None:
+            dobj.size = self._count_selection(dobj, fast_index=fast_index)
+        if getattr(dobj, "shape", None) is None:
+            dobj.shape = (dobj.size,)
         gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         fast_index = fast_index or getattr(dobj._current_chunk, "_fast_index", None)
         yield YTDataChunk(dobj, "all", gobjs, dobj.size, cache, fast_index=fast_index)
