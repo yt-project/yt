@@ -440,7 +440,8 @@ class GridIndex(Index, abc.ABC):
                     dobj,
                     "io",
                     grids,
-                    self._count_selection(dobj, grids),
+                    # self._count_selection(dobj, grids),
+                    None,
                     cache=cache,
                     fast_index=fast_index,
                 )
