@@ -1505,7 +1505,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
             tot = ls.current_dims.prod()
             for chunk in ls.data_source.chunks(fields, "io"):
                 chunk[fields[0]]
-                input_fields = [chunk[field] for field in fields]
+                input_fields = [np.atleast_1d(chunk[field]) for field in fields]
                 tot -= fill_region(
                     input_fields,
                     ls.fields,
