@@ -68,10 +68,10 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Checkout repo (bare)
       if: matrix.tests-type != 'answer'
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Checkout repo (with submodules)
       if: matrix.tests-type == 'answer'
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: true
     - name: Set up Conda (windows only)
@@ -112,7 +112,7 @@ jobs:
         python-version: '3.11'
 
     - name: Checkout repo (with submodules)
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: true
 
