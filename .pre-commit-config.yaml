@@ -28,7 +28,7 @@ repos:
     - id: check-yaml
 
 -   repo: https://github.com/psf/black-pre-commit-mirror
-    rev: 23.9.0
+    rev: 23.9.1
     hooks:
     - id: black-jupyter
 
@@ -36,10 +36,10 @@ repos:
     rev: 1.16.0
     hooks:
     -   id: blacken-docs
-        additional_dependencies: [black==23.9.0]
+        additional_dependencies: [black==23.9.1]
 
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.0.287
+  rev: v0.0.292
   hooks:
   - id: ruff
     args: [--fix]
