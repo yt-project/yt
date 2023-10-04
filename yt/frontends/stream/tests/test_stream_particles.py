@@ -218,6 +218,43 @@ def test_load_particles_types():
         assert dd["all", f"particle_position_{ax}"].size == num_tot_particles
 
 
+def test_load_particles_sph_types():
+    num_particles = 10000
+
+    data = {
+        ("gas", "particle_position_x"): np.random.random(size=num_particles),
+        ("gas", "particle_position_y"): np.random.random(size=num_particles),
+        ("gas", "particle_position_z"): np.random.random(size=num_particles),
+        ("gas", "particle_velocity_x"): np.random.random(size=num_particles),
+        ("gas", "particle_velocity_y"): np.random.random(size=num_particles),
+        ("gas", "particle_velocity_z"): np.random.random(size=num_particles),
+        ("gas", "particle_mass"): np.ones(num_particles),
+        ("gas", "density"): np.ones(num_particles),
+        ("gas", "smoothing_length"): np.ones(num_particles),
+        ("dm", "particle_position_x"): np.random.random(size=num_particles),
+        ("dm", "particle_position_y"): np.random.random(size=num_particles),
+        ("dm", "particle_position_z"): np.random.random(size=num_particles),
+        ("dm", "particle_velocity_x"): np.random.random(size=num_particles),
+        ("dm", "particle_velocity_y"): np.random.random(size=num_particles),
+        ("dm", "particle_velocity_z"): np.random.random(size=num_particles),
+        ("dm", "particle_mass"): np.ones(num_particles),
+        ("cr_gas", "particle_position_x"): np.random.random(size=num_particles),
+        ("cr_gas", "particle_position_y"): np.random.random(size=num_particles),
+        ("cr_gas", "particle_position_z"): np.random.random(size=num_particles),
+        ("cr_gas", "particle_velocity_x"): np.random.random(size=num_particles),
+        ("cr_gas", "particle_velocity_y"): np.random.random(size=num_particles),
+        ("cr_gas", "particle_velocity_z"): np.random.random(size=num_particles),
+        ("cr_gas", "particle_mass"): np.ones(num_particles),
+        ("cr_gas", "density"): np.ones(num_particles),
+        ("cr_gas", "smoothing_length"): np.ones(num_particles),
+    }
+
+    ds = load_particles(data)
+
+    assert set(ds.particle_types) == {"gas", "dm", "cr_gas"}
+    assert ds._sph_ptypes == ("gas", "cr_gas")
+
+
 def test_load_particles_with_data_source():
     ds1 = fake_particle_ds()
 
