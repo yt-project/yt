@@ -560,10 +560,12 @@ class StreamParticlesDataset(StreamDataset):
             axis_order=axis_order,
         )
         fields = list(stream_handler.fields["stream_file"].keys())
-        # This is the current method of detecting SPH data.
-        # This should be made more flexible in the future.
-        if ("io", "density") in fields and ("io", "smoothing_length") in fields:
-            self._sph_ptypes = ("io",)
+        sph_ptypes = []
+        for ptype in self.particle_types:
+            if (ptype, "density") in fields and (ptype, "smoothing_length") in fields:
+                sph_ptypes.append(ptype)
+        if len(sph_ptypes) > 0:
+            self._sph_ptypes = tuple(sph_ptypes)
 
     def add_sph_fields(self, n_neighbors=32, kernel="cubic", sph_ptype="io"):
         """Add SPH fields for the specified particle type.
