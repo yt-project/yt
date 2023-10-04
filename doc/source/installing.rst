@@ -51,6 +51,9 @@ provides pre-compiled binaries via PyPI and conda-forge.
 It may be possible to compile existing yt versions under more
 recent Python versions, though this is never guaranteed.
 
+yt also adheres to `SPEC 0 <https://scientific-python.org/specs/spec-0000/>`_ as a soft
+guideline for our support policy of core dependencies (Python, numpy, matplotlib ...).
+
 
 Getting yt
 ----------
