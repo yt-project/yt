@@ -1103,7 +1103,9 @@ class BaseLinePlot(PlotContainer, abc.ABC):
             return self.plots[field]
         axrect = self._get_axrect()
 
-        pnh = NormHandler(self.data_source, display_units=self.data_source[field].units)
+        pnh = NormHandler(
+            self.data_source, display_units=self.data_source.ds.field_info[field].units
+        )
         finfo = self.data_source.ds._get_field_info(field)
         if not finfo.take_log:
             pnh.norm_type = Normalize
