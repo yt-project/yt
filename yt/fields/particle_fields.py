@@ -31,6 +31,8 @@ sph_whitelist_fields = (
     "thermal_energy",
     "smoothing_length",
     "star_formation_rate",
+    "cold_fraction",
+    "hot_temperature",
     "H_fraction",
     "He_fraction",
     "C_fraction",
@@ -46,6 +48,7 @@ sph_whitelist_fields = (
     "Al_fraction",
     "Ar_fraction",
     "Ni_fraction",
+    "Ej_fraction",
     "H_density",
     "He_density",
     "C_density",
@@ -61,6 +64,7 @@ sph_whitelist_fields = (
     "Al_density",
     "Ar_density",
     "Ni_density",
+    "Ej_density",
 )
 
 

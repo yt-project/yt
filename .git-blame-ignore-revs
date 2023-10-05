@@ -44,3 +44,6 @@ ef783151bfd7c6777fa25e9e06f95fe47653b3aa
 
 # apply linting to ipynb files
 ec8bb45ea1603f3862041fa9e8ec274afd9bbbfd
+
+# auto upgrade typing idioms from Python 3.8 to 3.9
+4cfd370a8445abd4620e3853c2c047ee3d649fd7

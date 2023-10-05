@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Union
 
 import numpy as np
 
@@ -25,11 +25,11 @@ header_dt = (
 # Note the final field here, which is a field for min/max format revision in
 # which the field appears.
 
-KNOWN_REVISIONS: List[int] = [0, 1, 2]
+KNOWN_REVISIONS: list[int] = [0, 1, 2]
 
 # using typing.Any here in lieu of numpy.typing.DTypeLike (should be backported for numpy < 1.20)
-HaloDataType = Union[Tuple[str, Any], Tuple[str, Any, Tuple[int, int]]]
-halo_dt: List[HaloDataType] = [
+HaloDataType = Union[tuple[str, Any], tuple[str, Any, tuple[int, int]]]
+halo_dt: list[HaloDataType] = [
     ("particle_identifier", np.int64),
     ("particle_position_x", np.float32),
     ("particle_position_y", np.float32),
@@ -99,8 +99,8 @@ halo_dt: List[HaloDataType] = [
 ]
 
 # using typing.Any here in lieu of numpy.typing.DTypeLike (should be backported for numpy < 1.20)
-halo_dts_tmp: Dict[int, List[HaloDataType]] = {}
-halo_dts: Dict[int, np.dtype] = {}
+halo_dts_tmp: dict[int, list[HaloDataType]] = {}
+halo_dts: dict[int, np.dtype] = {}
 
 for rev in KNOWN_REVISIONS:
     halo_dts_tmp[rev] = []

@@ -1,14 +1,14 @@
 import os
 import sys
 import warnings
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, List
 
 from more_itertools import always_iterable
 
 from yt.utilities.configuration_tree import ConfigLeaf, ConfigNode
 
-configuration_callbacks: List[Callable[["YTConfig"], None]] = []
+configuration_callbacks: list[Callable[["YTConfig"], None]] = []
 
 
 def config_dir():

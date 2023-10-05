@@ -118,13 +118,11 @@ class AHFHalosDataset(Dataset):
         self.current_time = cosmo.lookback_time(param["z"], 1e6).in_units("s")
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
         if not filename.endswith(".parameter"):
             return False
         with open(filename) as f:
-            if f.readlines()[11].startswith("AHF"):
-                return True
-        return False
+            return f.readlines()[11].startswith("AHF")
 
     # Helper methods
 

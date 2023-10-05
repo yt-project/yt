@@ -2,7 +2,7 @@ from functools import reduce
 from operator import mul
 from os import listdir, path
 from re import match
-from typing import List, Optional
+from typing import Optional
 
 import numpy as np
 from packaging.version import Version
@@ -14,7 +14,7 @@ from yt.frontends.open_pmd.fields import OpenPMDFieldInfo
 from yt.frontends.open_pmd.misc import get_component, is_const_component
 from yt.funcs import setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
-from yt.utilities.file_handler import HDF5FileHandler, warn_h5py
+from yt.utilities.file_handler import HDF5FileHandler, valid_hdf5_signature
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py
 
@@ -34,8 +34,8 @@ class OpenPMDGrid(AMRGridPatch):
     __slots__ = ["_level_id"]
     # Every particle species and mesh might have different hdf5-indices and offsets
 
-    ftypes: Optional[List[str]] = []
-    ptypes: Optional[List[str]] = []
+    ftypes: Optional[list[str]] = []
+    ptypes: Optional[list[str]] = []
     findex = 0
     foffset = 0
     pindex = 0
@@ -431,6 +431,7 @@ class OpenPMDDataset(Dataset):
     - particle and mesh positions are *absolute* with respect to the simulation origin.
     """
 
+    _load_requirements = ["h5py"]
     _index_class = OpenPMDHierarchy
     _field_info_class = OpenPMDFieldInfo
 
@@ -601,9 +602,14 @@ class OpenPMDDataset(Dataset):
         self.current_time = f[bp].attrs["time"] * f[bp].attrs["timeUnitSI"]
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
         """Checks whether the supplied file can be read by this frontend."""
-        warn_h5py(filename)
+        if not valid_hdf5_signature(filename):
+            return False
+
+        if cls._missing_load_requirements():
+            return False
+
         try:
             with h5py.File(filename, mode="r") as f:
                 attrs = list(f["/"].attrs.keys())
@@ -618,7 +624,7 @@ class OpenPMDDataset(Dataset):
                     return True
 
                 return False
-        except (OSError, ImportError):
+        except OSError:
             return False
 
 
@@ -656,6 +662,7 @@ class OpenPMDDatasetSeries(DatasetSeries):
 
 
 class OpenPMDGroupBasedDataset(Dataset):
+    _load_requirements = ["h5py"]
     _index_class = OpenPMDHierarchy
     _field_info_class = OpenPMDFieldInfo
 
@@ -665,8 +672,13 @@ class OpenPMDGroupBasedDataset(Dataset):
         return ret
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
-        warn_h5py(filename)
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
+        if not valid_hdf5_signature(filename):
+            return False
+
+        if cls._missing_load_requirements():
+            return False
+
         try:
             with h5py.File(filename, mode="r") as f:
                 attrs = list(f["/"].attrs.keys())
@@ -681,5 +693,5 @@ class OpenPMDGroupBasedDataset(Dataset):
                     return True
 
                 return False
-        except (OSError, ImportError):
+        except OSError:
             return False

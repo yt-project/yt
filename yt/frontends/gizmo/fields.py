@@ -20,7 +20,7 @@ class GizmoFieldInfo(GadgetFieldInfo):
         ("SmoothingLength", ("code_length", ["smoothing_length"], None)),
         ("ElectronAbundance", ("", [], None)),
         ("NeutralHydrogenAbundance", ("", [], None)),
-        ("StarFormationRate", ("Msun / yr", [], None)),
+        ("StarFormationRate", ("Msun / yr", ["star_formation_rate"], None)),
         ("Metallicity", ("code_metallicity", ["metallicity"], None)),
         ("Metallicity_00", ("", ["metallicity"], None)),
         ("Metallicity_01", ("", ["He_metallicity"], None)),

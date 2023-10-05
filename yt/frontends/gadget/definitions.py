@@ -95,3 +95,34 @@ gadget_hdf5_ptypes = (
 )
 
 SNAP_FORMAT_2_OFFSET = 16
+
+"""
+Here we have a dictionary of possible element species defined in Gadget
+datasets, keyed by the number of elements. In some cases, these are mass
+fractions, in others, they are metals--the context for the dataset will
+determine this. The "Ej" key is for the total mass of all elements that
+are not explicitly listed.
+"""
+elem_names_opts = {
+    4: ["C", "O", "Si", "Fe"],
+    7: ["C", "N", "O", "Mg", "Si", "Fe", "Ej"],
+    8: ["He", "C", "O", "Mg", "S", "Si", "Fe", "Ej"],
+    11: ["He", "C", "Ca", "O", "N", "Ne", "Mg", "S", "Si", "Fe", "Ej"],
+    15: [
+        "He",
+        "C",
+        "Ca",
+        "O",
+        "N",
+        "Ne",
+        "Mg",
+        "S",
+        "Si",
+        "Fe",
+        "Na",
+        "Al",
+        "Ar",
+        "Ni",
+        "Ej",
+    ],
+}

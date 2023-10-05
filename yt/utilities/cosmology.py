@@ -138,7 +138,8 @@ class Cosmology:
 
         """
         return (
-            self.hubble_distance() * trapzint(self.inverse_expansion_factor, z_i, z_f)
+            self.hubble_distance()
+            * trapezoid_int(self.inverse_expansion_factor, z_i, z_f)
         ).in_base(self.unit_system)
 
     def comoving_transverse_distance(self, z_i, z_f):
@@ -357,9 +358,9 @@ class Cosmology:
         >>> print(co.lookback_time(0.0, 1.0).in_units("Gyr"))
 
         """
-        return (trapzint(self.age_integrand, z_i, z_f) / self.hubble_constant).in_base(
-            self.unit_system
-        )
+        return (
+            trapezoid_int(self.age_integrand, z_i, z_f) / self.hubble_constant
+        ).in_base(self.unit_system)
 
     def critical_density(self, z):
         r"""
@@ -439,7 +440,7 @@ class Cosmology:
         return ((1 + z) ** 2) * self.inverse_expansion_factor(z)
 
     def path_length(self, z_i, z_f):
-        return trapzint(self.path_length_function, z_i, z_f)
+        return trapezoid_int(self.path_length_function, z_i, z_f)
 
     def t_from_a(self, a):
         """
@@ -627,8 +628,24 @@ class Cosmology:
 
 
 def trapzint(f, a, b, bins=10000):
+    from yt._maintenance.deprecation import issue_deprecation_warning
+
+    issue_deprecation_warning(
+        "yt.utilities.cosmology.trapzint is an alias "
+        "to yt.utilities.cosmology.trapezoid_int, "
+        "and will be removed in a future version. "
+        "Please use yt.utilities.cosmology.trapezoid_int directly.",
+        since="4.3.0",
+        stacklevel=3,
+    )
+    return trapezoid_int(f, a, b, bins)
+
+
+def trapezoid_int(f, a, b, bins=10000):
+    from yt._maintenance.numpy2_compat import trapezoid
+
     zbins = np.logspace(np.log10(a + 1), np.log10(b + 1), bins) - 1
-    return np.trapz(f(zbins[:-1]), x=zbins[:-1], dx=np.diff(zbins))
+    return trapezoid(f(zbins[:-1]), x=zbins[:-1], dx=np.diff(zbins))
 
 
 def trapezoid_cumulative_integral(f, x):

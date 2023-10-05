@@ -13,6 +13,7 @@ class SwiftParticleFile(ParticleFile):
 
 
 class SwiftDataset(SPHDataset):
+    _load_requirements = ["h5py"]
     _index_class = SPHParticleIndex
     _field_info_class = SPHFieldInfo
     _file_class = SwiftParticleFile
@@ -168,19 +169,22 @@ class SwiftDataset(SPHDataset):
         return
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
         """
         Checks to see if the file is a valid output from SWIFT.
         This requires the file to have the Code attribute set in the
         Header dataset to "SWIFT".
         """
+        if cls._missing_load_requirements():
+            return False
+
         valid = True
         # Attempt to open the file, if it's not a hdf5 then this will fail:
         try:
             handle = h5py.File(filename, mode="r")
             valid = handle["Header"].attrs["Code"].decode("utf-8") == "SWIFT"
             handle.close()
-        except (OSError, KeyError, ImportError):
+        except (OSError, KeyError):
             valid = False
 
         return valid

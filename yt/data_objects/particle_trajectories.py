@@ -46,7 +46,7 @@ class ParticleTrajectories:
     ... ]
     >>> ds = load(my_fns[0])
     >>> init_sphere = ds.sphere(ds.domain_center, (0.5, "unitary"))
-    >>> indices = init_sphere[("all", "particle_index")].astype("int")
+    >>> indices = init_sphere[("all", "particle_index")].astype("int64")
     >>> ts = DatasetSeries(my_fns)
     >>> trajs = ts.particle_trajectories(indices, fields=fields)
     >>> for t in trajs:
@@ -284,8 +284,8 @@ class ParticleTrajectories:
                             pfield[field],
                             self.num_indices,
                             cube[fds[field]],
-                            np.array(grid.LeftEdge).astype(np.float64),
-                            np.array(grid.ActiveDimensions).astype(np.int32),
+                            np.array(grid.LeftEdge, dtype="float64"),
+                            np.array(grid.ActiveDimensions, dtype="int32"),
                             grid.dds[0],
                         )
             sto.result_id = ds.parameter_filename
