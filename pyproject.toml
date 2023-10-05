@@ -5,9 +5,7 @@ requires = [
 
   # for the upper pin in Cython
   # see https://github.com/yt-project/yt/issues/4044
-  # TODO: bump minimal Cython version to 3.0.3 when released
-  # see https://github.com/yt-project/yt/issues/4675
-  "Cython>=3.0, <3.1",
+  "Cython>=3.0.3, <3.1",
   "numpy>=1.25, <2.0",
   "ewah-bool-utils>=1.0.2",
 ]
