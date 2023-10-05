@@ -4,6 +4,7 @@ import sys
 import uuid
 from collections import defaultdict
 from contextlib import contextmanager
+from functools import cached_property
 
 import numpy as np
 from more_itertools import always_iterable
@@ -70,7 +71,10 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface, abc.ABC):
                     % (data_source._dimensionality, self._dimensionality)
                 )
             self.field_parameters.update(data_source.field_parameters)
-        self.quantities = DerivedQuantityCollection(self)
+
+    @cached_property
+    def quantities(self):
+        return DerivedQuantityCollection(self)
 
     @property
     def selector(self):

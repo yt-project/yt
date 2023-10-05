@@ -388,7 +388,11 @@ class AMRGridPatch(YTSelectionContainer):
         if self._cache_mask and hash(selector) == self._last_selector_id:
             mask = self._last_mask
         else:
-            mask, count = selector.fill_mask_regular_grid(self)
+            if selector is None or getattr(selector, "is_all_data", False):
+                mask = self.child_mask.copy()
+                count = mask.sum()
+            else:
+                mask, count = selector.fill_mask_regular_grid(self)
             if self._cache_mask:
                 self._last_mask = mask
             self._last_selector_id = hash(selector)
