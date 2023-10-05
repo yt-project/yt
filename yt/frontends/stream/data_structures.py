@@ -564,8 +564,10 @@ class StreamParticlesDataset(StreamDataset):
         for ptype in self.particle_types:
             if (ptype, "density") in fields and (ptype, "smoothing_length") in fields:
                 sph_ptypes.append(ptype)
-        if len(sph_ptypes) > 0:
+        if len(sph_ptypes) == 1:
             self._sph_ptypes = tuple(sph_ptypes)
+        elif len(sph_ptypes) > 1:
+            raise ValueError("Multiple SPH particle types are currently not supported!")
 
     def add_sph_fields(self, n_neighbors=32, kernel="cubic", sph_ptype="io"):
         """Add SPH fields for the specified particle type.

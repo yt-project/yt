@@ -238,21 +238,31 @@ def test_load_particles_sph_types():
         ("dm", "particle_velocity_y"): np.random.random(size=num_particles),
         ("dm", "particle_velocity_z"): np.random.random(size=num_particles),
         ("dm", "particle_mass"): np.ones(num_particles),
-        ("cr_gas", "particle_position_x"): np.random.random(size=num_particles),
-        ("cr_gas", "particle_position_y"): np.random.random(size=num_particles),
-        ("cr_gas", "particle_position_z"): np.random.random(size=num_particles),
-        ("cr_gas", "particle_velocity_x"): np.random.random(size=num_particles),
-        ("cr_gas", "particle_velocity_y"): np.random.random(size=num_particles),
-        ("cr_gas", "particle_velocity_z"): np.random.random(size=num_particles),
-        ("cr_gas", "particle_mass"): np.ones(num_particles),
-        ("cr_gas", "density"): np.ones(num_particles),
-        ("cr_gas", "smoothing_length"): np.ones(num_particles),
     }
 
     ds = load_particles(data)
 
-    assert set(ds.particle_types) == {"gas", "dm", "cr_gas"}
-    assert ds._sph_ptypes == ("gas", "cr_gas")
+    assert set(ds.particle_types) == {"gas", "dm"}
+    assert ds._sph_ptypes == ("gas",)
+
+    data.update(
+        {
+            ("cr_gas", "particle_position_x"): np.random.random(size=num_particles),
+            ("cr_gas", "particle_position_y"): np.random.random(size=num_particles),
+            ("cr_gas", "particle_position_z"): np.random.random(size=num_particles),
+            ("cr_gas", "particle_velocity_x"): np.random.random(size=num_particles),
+            ("cr_gas", "particle_velocity_y"): np.random.random(size=num_particles),
+            ("cr_gas", "particle_velocity_z"): np.random.random(size=num_particles),
+            ("cr_gas", "particle_mass"): np.ones(num_particles),
+            ("cr_gas", "density"): np.ones(num_particles),
+            ("cr_gas", "smoothing_length"): np.ones(num_particles),
+        }
+    )
+
+    with pytest.raises(
+        ValueError, match="Multiple SPH particle types are currently not supported!"
+    ):
+        load_particles(data)
 
 
 def test_load_particles_with_data_source():
