@@ -6,11 +6,13 @@ from yt.testing import amrspace
 from yt.utilities.lib.alt_ray_tracers import _cyl2cart, cylindrical_ray_trace
 
 left_grid = right_grid = amr_levels = center_grid = data = None
+old_settings = None
 
 
 def setup():
     # set up some sample cylindrical grid data, radiating out from center
-    global left_grid, right_grid, amr_levels, center_grid, data
+    global left_grid, right_grid, amr_levels, center_grid, data, old_settings
+    old_settings = np.geterr()
     np.seterr(all="ignore")
     l1, r1, lvl1 = amrspace([0.0, 1.0, 0.0, -1.0, 0.0, 2 * np.pi], levels=(7, 7, 0))
     l2, r2, lvl2 = amrspace([0.0, 1.0, 0.0, 1.0, 0.0, 2 * np.pi], levels=(7, 7, 0))
@@ -19,6 +21,10 @@ def setup():
     amr_levels = np.concatenate([lvl1, lvl2], axis=0)
     center_grid = (left_grid + right_grid) / 2.0
     data = np.cos(np.sqrt(np.sum(center_grid[:, :2] ** 2, axis=1))) ** 2  # cos^2
+
+
+def teardown():
+    np.seterr(**old_settings)
 
 
 point_pairs = np.array(

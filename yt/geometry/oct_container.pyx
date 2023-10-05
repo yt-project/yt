@@ -196,7 +196,7 @@ cdef class OctreeContainer:
                         count += 1
         print("Missing total of %s out of %s" % (count, self.nn[0] * self.nn[1] * self.nn[2]))
 
-    cdef int get_root(self, int ind[3], Oct **o) nogil:
+    cdef int get_root(self, int ind[3], Oct **o) noexcept nogil:
         cdef int i
         for i in range(3):
             if ind[i] < 0 or ind[i] >= self.nn[i]:
@@ -209,7 +209,7 @@ cdef class OctreeContainer:
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef Oct *get(self, np.float64_t ppos[3], OctInfo *oinfo = NULL,
-                  int max_level = 99) nogil:
+                  int max_level = 99) noexcept nogil:
         #Given a floating point position, retrieve the most
         #refined oct at that time
         cdef int ind32[3]
@@ -993,7 +993,7 @@ cdef class SparseOctreeContainer(OctreeContainer):
     def save_octree(self):
         raise NotImplementedError
 
-    cdef int get_root(self, int ind[3], Oct **o) nogil:
+    cdef int get_root(self, int ind[3], Oct **o) noexcept nogil:
         o[0] = NULL
         cdef np.int64_t key = self.ipos_to_key(ind)
         cdef OctKey okey
@@ -1017,7 +1017,7 @@ cdef class SparseOctreeContainer(OctreeContainer):
             pos[2 - j] = (<np.int64_t>(key & ukey))
             key = key >> 20
 
-    cdef np.int64_t ipos_to_key(self, int pos[3]) nogil:
+    cdef np.int64_t ipos_to_key(self, int pos[3]) noexcept nogil:
         # We (hope) that 20 bits is enough for each index.
         cdef int i
         cdef np.int64_t key = 0

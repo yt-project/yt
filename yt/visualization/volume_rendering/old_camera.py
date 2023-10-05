@@ -1,6 +1,5 @@
 import builtins
 from copy import deepcopy
-from typing import List
 
 import numpy as np
 
@@ -185,8 +184,8 @@ class Camera(ParallelAnalysisInterface):
             center = self.ds.arr(center, units="code_length")
         # Ensure that width and center are in the same units
         # Cf. https://bitbucket.org/yt_analysis/yt/issue/1080
-        width.convert_to_units("code_length")
-        center.convert_to_units("code_length")
+        width = width.in_units("code_length")
+        center = center.in_units("code_length")
         self.orienter = Orientation(
             normal_vector, north_vector=north_vector, steady_north=steady_north
         )
@@ -251,8 +250,8 @@ class Camera(ParallelAnalysisInterface):
         dy = np.dot(pos - self.origin, self.orienter.unit_vectors[0])
         dz = np.dot(pos - self.center, self.orienter.unit_vectors[2])
         # Transpose into image coords.
-        py = (res[0] * (dx / self.width[0])).astype("int")
-        px = (res[1] * (dy / self.width[1])).astype("int")
+        py = (res[0] * (dx / self.width[0])).astype("int64")
+        px = (res[1] * (dy / self.width[1])).astype("int64")
         return px, py, dz
 
     def draw_grids(self, im, alpha=0.3, cmap=None, min_level=None, max_level=None):
@@ -1177,7 +1176,7 @@ data_object_registry["camera"] = Camera
 
 
 class InteractiveCamera(Camera):
-    frames: List[ImageArray] = []
+    frames: list[ImageArray] = []
 
     def snapshot(self, fn=None, clip_ratio=None):
         self._pyplot.figure(2)
@@ -1413,8 +1412,8 @@ class PerspectiveCamera(Camera):
         dy = np.dot(pos1 - sight_center, self.orienter.unit_vectors[1])
         dz = np.dot(pos1 - sight_center, self.orienter.unit_vectors[2])
         # Transpose into image coords.
-        px = (res[0] * 0.5 + res[0] / self.width[0] * dx).astype("int")
-        py = (res[1] * 0.5 + res[1] / self.width[1] * dy).astype("int")
+        px = (res[0] * 0.5 + res[0] / self.width[0] * dx).astype("int64")
+        py = (res[1] * 0.5 + res[1] / self.width[1] * dy).astype("int64")
         return px, py, dz
 
     def yaw(self, theta, rot_center):
@@ -1989,7 +1988,7 @@ def plot_allsky_healpix(
     import matplotlib.figure
 
     if rotation is None:
-        rotation = np.eye(3).astype("float64")
+        rotation = np.eye(3, dtype="float64")
 
     img, count = pixelize_healpix(nside, image, resolution, resolution, rotation)
 

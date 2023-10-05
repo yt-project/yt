@@ -40,11 +40,11 @@ Example Notebooks
 
    notebook_tutorial
    custom_colorbar_tickmarks
-   gadget_notebook
-   owls_notebook
+   yt_gadget_analysis
+   yt_gadget_owls_analysis
    ../visualizing/transfer_function_helper
    fits_radio_cubes
    fits_xray_images
-   geographic_projections
-   tipsy_notebook
+   geographic_xforms_and_projections
+   tipsy_and_yt
    ../visualizing/volume_rendering_tutorial

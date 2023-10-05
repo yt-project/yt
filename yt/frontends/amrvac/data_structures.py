@@ -6,7 +6,6 @@ AMRVAC data structures
 """
 import os
 import struct
-import sys
 import warnings
 import weakref
 from pathlib import Path
@@ -25,22 +24,6 @@ from yt.utilities.physical_constants import boltzmann_constant_cgs as kb_cgs
 from .datfile_utils import get_header, get_tree_info
 from .fields import AMRVACFieldInfo
 from .io import read_amrvac_namelist
-
-if sys.version_info < (3, 9):
-    # This is directly taken from the standard library,
-    # but only available from Python 3.9
-    def _is_relative_to(self, *other):
-        """Return True if the path is relative to another path or False."""
-        try:
-            self.relative_to(*other)
-            return True
-        except ValueError:
-            return False
-
-    Path.is_relative_to = _is_relative_to  # type: ignore
-else:
-    # an else block is mandated for pyupgrade to enable auto-cleanup
-    pass
 
 
 def _parse_geometry(geometry_tag: str) -> Geometry:
@@ -281,7 +264,7 @@ class AMRVACDataset(Dataset):
         self.refine_by = 2
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args, **kwargs) -> bool:
         """At load time, check whether data is recognized as AMRVAC formatted."""
         validation = False
         if filename.endswith(".dat"):

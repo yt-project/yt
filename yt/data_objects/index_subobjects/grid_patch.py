@@ -1,5 +1,4 @@
 import weakref
-from typing import List
 
 import numpy as np
 
@@ -270,7 +269,7 @@ class AMRGridPatch(YTSelectionContainer):
 
     def get_vertex_centered_data(
         self,
-        fields: List[FieldKey],
+        fields: list[FieldKey],
         smoothed: bool = True,
         no_ghost: bool = False,
     ):
@@ -389,14 +388,14 @@ class AMRGridPatch(YTSelectionContainer):
         if self._cache_mask and hash(selector) == self._last_selector_id:
             mask = self._last_mask
         else:
-            mask = selector.fill_mask_regular_grid(self)
+            mask, count = selector.fill_mask_regular_grid(self)
             if self._cache_mask:
                 self._last_mask = mask
             self._last_selector_id = hash(selector)
             if mask is None:
                 self._last_count = 0
             else:
-                self._last_count = mask.sum()
+                self._last_count = count
         return mask
 
     def select(self, selector, source, dest, offset):

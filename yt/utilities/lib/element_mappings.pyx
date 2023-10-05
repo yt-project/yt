@@ -98,6 +98,24 @@ cdef class ElementSampler:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
+    def check_contains(self, np.float64_t[:,::1] vertices,
+                             np.float64_t[:,::1] positions):
+        cdef np.ndarray[np.float64_t, ndim=2] mapped_coords
+        cdef np.ndarray[np.uint8_t, ndim=1] mask
+        mapped_coords = self.map_reals_to_unit(vertices, positions)
+        mask = np.zeros(mapped_coords.shape[0], dtype=np.uint8)
+        cdef double[3] mapped_coord
+        cdef int i, j
+        for i in range(mapped_coords.shape[0]):
+            for j in range(mapped_coords.shape[1]):
+                mapped_coord[j] = mapped_coords[i, j]
+            mask[i] = self.check_inside(mapped_coord)
+        return mask
+
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     cdef int check_mesh_lines(self, double* mapped_coord) noexcept nogil:
         pass
 
@@ -115,6 +133,34 @@ cdef class ElementSampler:
         val = self.sample_at_unit_point(mapped_coord, field_values)
         return val
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def map_reals_to_unit(self,
+                          np.float64_t[:,::1] vertices,
+                          np.float64_t[:,::1] positions):
+        cdef double mapped_x[3]
+        cdef int i, n
+        # We have N vertices, which each have three components.
+        cdef np.ndarray[np.float64_t, ndim=2] output_coords
+        output_coords = np.zeros((positions.shape[0], positions.shape[1]), dtype="float64")
+        # Now for each position, we map
+        for n in range(positions.shape[0]):
+            self.map_real_to_unit(mapped_x, &vertices[0,0], &positions[n, 0])
+            for i in range(positions.shape[1]):
+                output_coords[n, i] = mapped_x[i]
+        return output_coords
+
+    def sample_at_real_points(self,
+                              np.float64_t[:,::1] vertices,
+                              np.float64_t[::1] field_values,
+                              np.float64_t[:,::1] positions):
+        cdef np.ndarray[np.float64_t, ndim=1] output_values
+        output_values = np.zeros(positions.shape[0], dtype="float64")
+        for n in range(positions.shape[0]):
+            output_values[n] = self.sample_at_real_point(
+                &vertices[0,0], &field_values[0], &positions[n,0])
+        return output_values
 
 cdef class P1Sampler1D(ElementSampler):
     '''

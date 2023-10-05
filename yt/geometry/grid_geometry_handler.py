@@ -1,7 +1,7 @@
 import abc
 import weakref
 from collections import defaultdict
-from typing import Optional, Tuple
+from typing import Optional
 
 import numpy as np
 
@@ -417,9 +417,9 @@ class GridIndex(Index, abc.ABC):
             chunk_ngrids = len(gobjs)
             if chunk_ngrids > 0:
                 nproc = int(ytcfg.get("yt", "internals", "global_parallel_size"))
-                chunking_factor = np.ceil(
-                    self._grid_chunksize * nproc / chunk_ngrids
-                ).astype("int")
+                chunking_factor = np.int64(
+                    np.ceil(self._grid_chunksize * nproc / chunk_ngrids)
+                )
                 size = max(self._grid_chunksize // chunking_factor, 1)
             else:
                 size = self._grid_chunksize
@@ -452,8 +452,8 @@ class GridIndex(Index, abc.ABC):
         self,
         icoords: np.ndarray,
         ires: np.ndarray,
-        axes: Optional[Tuple[int, ...]] = None,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+        axes: Optional[tuple[int, ...]] = None,
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Accepts icoords and ires and returns appropriate fcoords and fwidth.
         Mostly useful for cases where we have irregularly spaced or structured

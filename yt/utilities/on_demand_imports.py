@@ -1,7 +1,7 @@
 import sys
 from functools import wraps
 from importlib.util import find_spec
-from typing import Optional, Type
+from typing import Optional
 
 
 class NotAModule:
@@ -47,7 +47,7 @@ class NotAModule:
 
 
 class OnDemand:
-    _default_factory: Type[NotAModule] = NotAModule
+    _default_factory: type[NotAModule] = NotAModule
 
     def __init_subclass__(cls):
         if not cls.__name__.endswith("_imports"):
@@ -172,8 +172,8 @@ class NotCartopy(NotAModule):
     for cartopy imports.
     """
 
-    def __init__(self, pkg_name):
-        self.pkg_name = pkg_name
+    def __init__(self, pkg_name, exc: Optional[BaseException] = None):
+        super().__init__(pkg_name, exc)
         if any(s in sys.version for s in ("Anaconda", "Continuum")):
             # the conda-based installs of cartopy don't have issues with the
             # GEOS library, so the error message for users with conda can be

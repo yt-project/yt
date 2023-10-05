@@ -128,7 +128,7 @@ class Tree:
             nre = self.ds.arr(node.get_right_edge(), units="code_length")
             li = np.rint((nle - gle) / dds).astype("int32")
             ri = np.rint((nre - gle) / dds).astype("int32")
-            dims = (ri - li).astype("int32")
+            dims = ri - li
             assert np.all(grid.LeftEdge <= nle)
             assert np.all(grid.RightEdge >= nre)
             assert np.all(dims > 0)
@@ -153,7 +153,7 @@ class Tree:
             nre = self.ds.arr(node.get_right_edge(), units="code_length")
             li = np.rint((nle - gle) / dds).astype("int32")
             ri = np.rint((nre - gle) / dds).astype("int32")
-            dims = (ri - li).astype("int32")
+            dims = ri - li
             cells += np.prod(dims)
         return cells
 
@@ -260,7 +260,7 @@ class AMRKDTree(ParallelAnalysisInterface):
             nre = node.get_right_edge()
             li = np.rint((nle - gle) / dds).astype("int32")
             ri = np.rint((nre - gle) / dds).astype("int32")
-            dims = (ri - li).astype("int32")
+            dims = ri - li
             sl = (slice(li[0], ri[0]), slice(li[1], ri[1]), slice(li[2], ri[2]))
             gi = grid.get_global_startindex() + li
             yield grid, node, (sl, dims, gi)
@@ -328,7 +328,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         nre = node.get_right_edge()
         li = np.rint((nle - gle) / dds).astype("int32")
         ri = np.rint((nre - gle) / dds).astype("int32")
-        dims = (ri - li).astype("int32")
+        dims = ri - li
         assert np.all(grid.LeftEdge <= nle)
         assert np.all(grid.RightEdge >= nre)
 
@@ -352,9 +352,8 @@ class AMRKDTree(ParallelAnalysisInterface):
         if self.data_source.selector is None:
             mask = np.ones(dims, dtype="uint8")
         else:
-            mask = self.data_source.selector.fill_mask_regular_grid(grid)[
-                li[0] : ri[0], li[1] : ri[1], li[2] : ri[2]
-            ].astype("uint8")
+            mask, _ = self.data_source.selector.fill_mask_regular_grid(grid)
+            mask = mask[li[0] : ri[0], li[1] : ri[1], li[2] : ri[2]].astype("uint8")
 
         data = [
             d[li[0] : ri[0] + 1, li[1] : ri[1] + 1, li[2] : ri[2] + 1].copy()

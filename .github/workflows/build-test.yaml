@@ -33,7 +33,7 @@ jobs:
         test-runner: [pytest]
         include:
           - os: ubuntu-latest
-            python-version: '3.8'
+            python-version: '3.9'
             dependencies: minimal
             tests-type: unit
             test-runner: pytest
@@ -68,25 +68,19 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Checkout repo (bare)
       if: matrix.tests-type != 'answer'
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Checkout repo (with submodules)
       if: matrix.tests-type == 'answer'
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: true
-    - name: Set up Conda (windows only)
-      uses: s-weigand/setup-conda@v1
-      if: matrix.os == 'windows-latest'
-      with:
-        update-conda: true
-        conda-channels: conda-forge
-        activate-conda: true
-        python-version: ${{matrix.python-version}}
     - name: Install dependencies and yt
       shell: bash
       env:
         dependencies: ${{ matrix.dependencies }}
       run: source ./tests/ci_install.sh
+
+    - run: python -m pip list
     - name: Run Unit Tests (pytest)
       if: matrix.test-runner == 'pytest'
       run: pytest --color=yes
@@ -110,7 +104,7 @@ jobs:
         python-version: '3.11'
 
     - name: Checkout repo (with submodules)
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: true
 
@@ -120,6 +114,8 @@ jobs:
         dependencies: 'cartopy'
       run: |
         source ./tests/ci_install.sh
+
+    - run: python -m pip list
 
     - name: Run Image Tests
       run: |

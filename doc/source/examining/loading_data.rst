@@ -1595,6 +1595,40 @@ In general, to determine what fields are in your Gadget binary file, it may
 be useful to inspect them with the `g3read <https://github.com/aragagnin/g3read>`_
 code first.
 
+.. _gadget-species-fields:
+
+Gadget Species Fields
+^^^^^^^^^^^^^^^^^^^^^
+
+Gas and star particles in Gadget binary and HDF5 files can have fields
+corresponding to different species fractions or masses. The following field
+definitions are supported, in the sense that they are automatically detected
+and will be used to construct species fractions, densities, and number densities
+after the manner specified in :ref:`species-fields`. For Gadget binary files, the
+following fields (as specified in the ``field_spec`` argument) are supported:
+
+* ``"ElevenMetalMasses"``: 11 mass fields: He, C, Ca, O, N, Ne, Mg, S, Si, Fe, Ej
+* ``"FourMetalFractions"``: 4 fraction fields: C, O, Si, Fe
+
+For Gadget HDF5 files, the fields ``"MetalMasses"`` or ``"Mass Of Metals"`` are
+supported, with the number of species determined by the size of the dataset's
+second dimension in the file. Four different numbers of species in these fields
+are supported, corresponding to the following species:
+
+* 7, corresponding to C, N, O, Mg, Si, Fe, Ej
+* 8, corresponding to He, C, O, Mg, S, Si, Fe, Ej
+* 11, corresponding to He, C, Ca, O, N, Ne, Mg, S, Si, Fe, Ej
+* 15, corresponding to He, C, Ca, O, N, Ne, Mg, S, Si, Fe, Na, Al, Ar, Ni, Ej
+
+Two points should be noted about the above: the "Ej" species corresponds to the
+remaining mass of elements heavier than hydrogen and not enumerated, and in the
+case of 8, 11, and 15 species, hydrogen is assumed to be the remaining mass
+fraction.
+
+Finally, for Gadget HDF5 files, element fields which are of the form
+``"X_fraction"`` are also suppoted, and correspond to the mass fraction of element
+X.
+
 .. _gadget-long-ids:
 
 Long Particle IDs

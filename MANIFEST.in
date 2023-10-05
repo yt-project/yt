@@ -5,7 +5,6 @@ include yt/visualization/mapserver/html/Leaflet.Coordinates-0.1.5.css
 include yt/visualization/mapserver/html/Leaflet.Coordinates-0.1.5.src.js
 include yt/utilities/tests/cosmology_answers.yml
 include yt/utilities/mesh_types.yaml
-exclude scripts/pr_backport.py
 exclude yt/utilities/lib/cykdtree/c_kdtree.cpp
 prune tests
 prune answer-store

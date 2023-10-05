@@ -24,20 +24,22 @@ jobs:
 
     steps:
     - name: Checkout repo
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        # run with oldest support python version
+        # run with oldest supported python version
         # so that we always get compatible versions of
         # core dependencies at type-check time
-        python-version: '3.8'
+        python-version: '3.9'
 
     - name: Build
       run: |
         python3 -m pip install --upgrade pip
         python3 -m pip install -e .[typecheck]
+
+    - run: python -m pip list
 
     - name: Run mypy
       run: mypy yt

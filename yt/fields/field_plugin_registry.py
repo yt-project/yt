@@ -1,7 +1,7 @@
-from typing import Callable, Dict
+from collections.abc import Callable
 
 FunctionName = str
-FieldPluginMap = Dict[FunctionName, Callable]
+FieldPluginMap = dict[FunctionName, Callable]
 field_plugins: FieldPluginMap = {}
 
 

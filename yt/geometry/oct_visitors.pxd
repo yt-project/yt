@@ -140,7 +140,7 @@ cdef class MortonIndexOcts(OctVisitor):
     cdef np.uint8_t[:] level_arr
     cdef np.uint64_t[:] morton_ind
 
-cdef inline int cind(int i, int j, int k) nogil:
+cdef inline int cind(int i, int j, int k) noexcept nogil:
     # THIS ONLY WORKS FOR CHILDREN.  It is not general for zones.
     return (((i*2)+j)*2+k)
 

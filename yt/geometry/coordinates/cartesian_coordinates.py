@@ -161,7 +161,16 @@ class CartesianCoordinateHandler(CoordinateHandler):
         )
 
     def pixelize(
-        self, dimension, data_source, field, bounds, size, antialias=True, periodic=True
+        self,
+        dimension,
+        data_source,
+        field,
+        bounds,
+        size,
+        antialias=True,
+        periodic=True,
+        *,
+        return_mask=False,
     ):
         """
         Method for pixelizing datasets in preparation for
@@ -211,19 +220,33 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 field_data = field_data[:, 0:8]
                 indices = indices[:, 0:8]
 
-            img = pixelize_element_mesh(
-                coords, indices, buff_size, field_data, extents, index_offset=offset
+            buff, mask = pixelize_element_mesh(
+                coords,
+                indices,
+                buff_size,
+                field_data,
+                extents,
+                index_offset=offset,
+                return_mask=True,
             )
 
-            # re-order the array and squeeze out the dummy dim
-            return np.squeeze(np.transpose(img, (yax, xax, ax)))
+            buff = np.squeeze(np.transpose(buff, (yax, xax, ax)))
+            mask = np.squeeze(np.transpose(mask, (yax, xax, ax)))
 
         elif self.axis_id.get(dimension, dimension) is not None:
-            return self._ortho_pixelize(
+            buff, mask = self._ortho_pixelize(
                 data_source, field, bounds, size, antialias, dimension, periodic
             )
         else:
-            return self._oblique_pixelize(data_source, field, bounds, size, antialias)
+            buff, mask = self._oblique_pixelize(
+                data_source, field, bounds, size, antialias
+            )
+
+        if return_mask:
+            assert mask is None or mask.dtype == bool
+            return buff, mask
+        else:
+            return buff
 
     def pixelize_line(self, field, start_point, end_point, npoints):
         """
@@ -314,7 +337,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
         if np.any(finfo.nodal_flag):
             nodal_data = get_nodal_data(data_source, field)
             coord = data_source.coord.d
-            pixelize_cartesian_nodal(
+            mask = pixelize_cartesian_nodal(
                 buff,
                 data_source["px"],
                 data_source["py"],
@@ -328,6 +351,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 int(antialias),
                 period,
                 int(periodic),
+                return_mask=True,
             )
         elif isinstance(data_source.ds, particle_datasets) and is_sph_field:
             ptype = field[0]
@@ -366,11 +390,13 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 )
                 proj_reg.set_field_parameter("axis", data_source.axis)
                 buff = np.zeros(size, dtype="float64")
+                mask_uint8 = np.zeros_like(buff, dtype="uint8")
                 if weight is None:
                     for chunk in proj_reg.chunks([], "io"):
                         data_source._initialize_projected_units([field], chunk)
                         pixelize_sph_kernel_projection(
                             buff,
+                            mask_uint8,
                             chunk[ptype, px_name].to("code_length"),
                             chunk[ptype, py_name].to("code_length"),
                             chunk[ptype, "smoothing_length"].to("code_length"),
@@ -394,12 +420,14 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 else:
                     weight_buff = np.zeros(size, dtype="float64")
                     buff = np.zeros(size, dtype="float64")
+                    mask_uint8 = np.zeros_like(buff, dtype="uint8")
                     wounits = data_source.ds.field_info[weight].output_units
                     for chunk in proj_reg.chunks([], "io"):
                         data_source._initialize_projected_units([field], chunk)
                         data_source._initialize_projected_units([weight], chunk)
                         pixelize_sph_kernel_projection(
                             buff,
+                            mask_uint8,
                             chunk[ptype, px_name].to("code_length"),
                             chunk[ptype, py_name].to("code_length"),
                             chunk[ptype, "smoothing_length"].to("code_length"),
@@ -421,6 +449,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                         data_source._initialize_projected_units([weight], chunk)
                         pixelize_sph_kernel_projection(
                             weight_buff,
+                            mask_uint8,
                             chunk[ptype, px_name].to("code_length"),
                             chunk[ptype, py_name].to("code_length"),
                             chunk[ptype, "smoothing_length"].to("code_length"),
@@ -439,6 +468,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             data_source._initialize_projected_units([weight], chunk)
                             pixelize_sph_kernel_projection(
                                 buff2,
+                                mask_uint8,
                                 chunk[ptype, px_name].to("code_length"),
                                 chunk[ptype, py_name].to("code_length"),
                                 chunk[ptype, "smoothing_length"].to("code_length"),
@@ -452,18 +482,21 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             )
                         normalization_2d_utility(buff2, weight_buff)
                         buff = compute_stddev_image(buff2, buff)
+                mask = mask_uint8.astype("bool")
             elif isinstance(data_source, YTSlice):
                 smoothing_style = getattr(self.ds, "sph_smoothing_style", "scatter")
                 normalize = getattr(self.ds, "use_sph_normalization", True)
 
                 if smoothing_style == "scatter":
                     buff = np.zeros(size, dtype="float64")
+                    mask_uint8 = np.zeros_like(buff, dtype="uint8")
                     if normalize:
                         buff_den = np.zeros(size, dtype="float64")
 
                     for chunk in data_source.chunks([], "io"):
                         pixelize_sph_kernel_slice(
                             buff,
+                            mask_uint8,
                             chunk[ptype, px_name].to("code_length"),
                             chunk[ptype, py_name].to("code_length"),
                             chunk[ptype, "smoothing_length"].to("code_length"),
@@ -477,6 +510,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                         if normalize:
                             pixelize_sph_kernel_slice(
                                 buff_den,
+                                mask_uint8,
                                 chunk[ptype, px_name].to("code_length"),
                                 chunk[ptype, py_name].to("code_length"),
                                 chunk[ptype, "smoothing_length"].to("code_length"),
@@ -490,6 +524,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
                     if normalize:
                         normalization_2d_utility(buff, buff_den)
+
+                    mask = mask_uint8.astype("bool", copy=False)
 
                 if smoothing_style == "gather":
                     # Here we find out which axis are going to be the "x" and
@@ -523,7 +559,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                     all_fields = all_data(self.ds, ptype, fields_to_get, kdtree=True)
 
                     num_neighbors = getattr(self.ds, "num_neighbors", 32)
-                    interpolate_sph_grid_gather(
+                    mask_temp = interpolate_sph_grid_gather(
                         buff_temp,
                         all_fields["particle_position"].to("code_length"),
                         buff_bounds,
@@ -534,31 +570,36 @@ class CartesianCoordinateHandler(CoordinateHandler):
                         self.ds.index.kdtree,
                         num_neigh=num_neighbors,
                         use_normalization=normalize,
+                        return_mask=True,
                     )
 
                     # We swap the axes back so the axis which was sliced over
                     # is the last axis, as this is the "z" axis of the plots.
                     if z != 2:
                         buff_temp = buff_temp.swapaxes(2, z)
+                        mask_temp = mask_temp.swapaxes(2, z)
                         if x == 2:
                             x = z
                         else:
                             y = z
 
                     buff = buff_temp[:, :, 0]
+                    mask = mask_temp[:, :, 0]
 
                     # Then we just transpose if the buffer x and y are
                     # different than the plot x and y
                     if y < x:
                         buff = buff.transpose()
+                        mask = mask.transpose()
             else:
                 raise NotImplementedError(
                     "A pixelization routine has not been implemented for %s "
                     "data objects" % str(type(data_source))
                 )
             buff = buff.transpose()
+            mask = mask.transpose()
         else:
-            pixelize_cartesian(
+            mask = pixelize_cartesian(
                 buff,
                 data_source["px"],
                 data_source["py"],
@@ -569,8 +610,10 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 int(antialias),
                 period,
                 int(periodic),
+                return_mask=True,
             )
-        return buff
+        assert mask is None or mask.dtype == bool
+        return buff, mask
 
     def _oblique_pixelize(self, data_source, field, bounds, size, antialias):
         from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
@@ -580,7 +623,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
         ftype = "index"
         if isinstance(data_source.ds, YTSpatialPlotDataset):
             ftype = "gas"
-        pixelize_off_axis_cartesian(
+        mask = pixelize_off_axis_cartesian(
             buff,
             data_source[ftype, "x"],
             data_source[ftype, "y"],
@@ -596,7 +639,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
             data_source[field],
             bounds,
         )
-        return buff
+        return buff, mask
 
     def convert_from_cartesian(self, coord):
         return coord

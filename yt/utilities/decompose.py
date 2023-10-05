@@ -59,8 +59,9 @@ def factorize_number(pieces):
         [
             (prime, temp[prime], (temp[prime] + 1) * (temp[prime] + 2) // 2)
             for prime in np.unique(factors)
-        ]
-    ).astype(np.int64)
+        ],
+        dtype="int64",
+    )
 
 
 def get_psize(n_d, pieces):

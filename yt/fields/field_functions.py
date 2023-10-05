@@ -1,5 +1,5 @@
+from collections.abc import Callable
 from inspect import signature
-from typing import Callable
 
 import numpy as np
 

@@ -5,7 +5,6 @@ import sys
 import traceback
 from functools import wraps
 from io import StringIO
-from typing import List
 
 import numpy as np
 from more_itertools import always_iterable
@@ -324,6 +323,31 @@ def parallel_blocking_call(func):
         return retval
 
     return barrierize
+
+
+def parallel_root_only_then_broadcast(func):
+    """
+    This decorator blocks and calls the function on the root processor and then
+    broadcasts the results to the other processors.
+    """
+
+    @wraps(func)
+    def root_only(*args, **kwargs):
+        if not parallel_capable:
+            return func(*args, **kwargs)
+        comm = _get_comm(args)
+        rv0 = None
+        if comm.rank == 0:
+            try:
+                rv0 = func(*args, **kwargs)
+            except Exception:
+                traceback.print_last()
+        rv = comm.mpi_bcast(rv0)
+        if not rv:
+            raise RuntimeError
+        return rv
+
+    return root_only
 
 
 def parallel_root_only(func):
@@ -663,7 +687,7 @@ def parallel_ring(objects, generator_func, mutable=False):
 
 
 class CommunicationSystem:
-    communicators: List["Communicator"] = []
+    communicators: list["Communicator"] = []
 
     def __init__(self):
         self.communicators.append(Communicator(None))
