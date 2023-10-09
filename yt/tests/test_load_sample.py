@@ -199,4 +199,4 @@ def test_data_dir_broken():
 
 
 def test_filename_none():
-    assert load_sample(None) is None
+    assert load_sample() is None
