@@ -198,5 +198,7 @@ def test_data_dir_broken():
         load_sample("ToroShockTube")
 
 
-def test_filename_none():
+def test_filename_none(capsys):
     assert load_sample() is None
+    captured = capsys.readouterr()
+    assert "yt.sample_data.api.get_data_registry_table" in captured.err
