@@ -196,3 +196,7 @@ def test_data_dir_broken():
     )
     with pytest.warns(UserWarning, match=msg):
         load_sample("ToroShockTube")
+
+
+def test_filename_none():
+    assert load_sample(None) is None
