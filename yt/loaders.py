@@ -1487,14 +1487,6 @@ def _get_sample_data(
     # broadcast to other processes during parallel execution).
     import tarfile
 
-    if fn is None:
-        print(
-            "One can see which sample datasets are available at: https://yt-project.org/data\n"
-            "or alternatively by running: yt.sample_data.api.get_data_registry_table()",
-            file=sys.stderr,
-        )
-        return None
-
     from yt.sample_data.api import (
         _download_sample_data_file,
         _get_test_data_dir_path,
@@ -1663,6 +1655,15 @@ def load_sample(
     - Corresponding sample data live at https://yt-project.org/data
 
     """
+
+    if fn is None:
+        print(
+            "One can see which sample datasets are available at: https://yt-project.org/data\n"
+            "or alternatively by running: yt.sample_data.api.get_data_registry_table()",
+            file=sys.stderr,
+        )
+        return None
+
     loadable_path, load_kwargs = _get_sample_data(
         fn, progressbar=progressbar, timeout=timeout, **kwargs
     )
