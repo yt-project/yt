@@ -13,7 +13,7 @@ build-backend = "setuptools.build_meta:__legacy__"
 
 [project]
 name = "yt"
-version = "4.3.dev0"
+version = "4.3.0"
 description = "An analysis and visualization toolkit for volumetric data"
 authors = [
     { name = "The yt project", email = "yt-dev@python.org" },
@@ -48,7 +48,7 @@ dependencies = [
     "ipywidgets>=8.0.0",
     "matplotlib>=3.5",
     "more-itertools>=8.4",
-    "numpy>=1.19.3", # keep minimal requirement in sync with NPY_TARGET_VERSION
+    "numpy>=1.19.3, <2", # keep minimal requirement in sync with NPY_TARGET_VERSION
     "packaging>=20.9",
     "pillow>=8.0.0",
     "tomli-w>=0.4.0",
