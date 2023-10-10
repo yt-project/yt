@@ -53,6 +53,15 @@ jobs:
             dependencies: full
             tests-type: answer
             test-runner: nose
+          - os: ubuntu-latest
+            # minimal tests with Python 3.12 and no optional dependencies
+            # TODO: when all optional dependencies are compatibles,
+            # remove this and bump 3.11 -> 3.12 on all arch with 'full' dependencies
+            # see https://github.com/yt-project/yt/issues/4689
+            python-version: '3.12'
+            dependencies: ''
+            tests-type: unit
+            test-runner: pytest
 
     runs-on: ${{ matrix.os }}
 
