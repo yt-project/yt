@@ -2032,7 +2032,8 @@ class SphereCallback(PlotCallback):
 
         if is_sequence(self.radius):
             self.radius = plot.data.ds.quan(self.radius[0], self.radius[1])
-            self.radius = np.float64(self.radius.in_units(plot.xlim[0].units))
+            self.radius = self.radius.in_units(plot.xlim[0].units)
+
         if isinstance(self.radius, YTQuantity):
             if isinstance(self.center, YTArray):
                 units = self.center.units
@@ -2045,16 +2046,18 @@ class SphereCallback(PlotCallback):
         # apply a different transform for a length in the same way
         # you can for a coordinate.
         if self.coord_system == "data" or self.coord_system == "plot":
-            self.radius = self.radius * self._pixel_scale(plot)[0]
+            scaled_radius = self.radius * self._pixel_scale(plot)[0]
         else:
-            self.radius /= (plot.xlim[1] - plot.xlim[0]).v
+            scaled_radius /= plot.xlim[1] - plot.xlim[0]
 
         x, y = self._sanitize_coord_system(
             plot, self.center, coord_system=self.coord_system
         )
 
         x, y = self._sanitize_xy_order(plot, x, y)
-        cir = Circle((x, y), self.radius, transform=self.transform, **self.circle_args)
+        cir = Circle(
+            (x, y), scaled_radius.v, transform=self.transform, **self.circle_args
+        )
 
         plot._axes.add_patch(cir)
         if self.text is not None:
