@@ -32,7 +32,9 @@ Here's a summary for most recent releases
 +------------+------------+----------------+-----------------+
 | yt release | Python 2.7 | Python3 min    | Python3 max     |
 +============+============+================+=================+
-| 4.2.x      | no         | 3.8 (expected) | 3.11 (expected) |
+| 4.3.x      | no         | 3.9            | 3.12 (expected) |
++------------+------------+----------------+-----------------+
+| 4.2.x      | no         | 3.8            | 3.11            |
 +------------+------------+----------------+-----------------+
 | 4.1.x      | no         | 3.7            | 3.11            |
 +------------+------------+----------------+-----------------+
@@ -48,6 +50,9 @@ indicates the newest version for which the yt development team
 provides pre-compiled binaries via PyPI and conda-forge.
 It may be possible to compile existing yt versions under more
 recent Python versions, though this is never guaranteed.
+
+yt also adheres to `SPEC 0 <https://scientific-python.org/specs/spec-0000/>`_ as a soft
+guideline for our support policy of core dependencies (Python, numpy, matplotlib ...).
 
 
 Getting yt
