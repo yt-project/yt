@@ -1810,7 +1810,7 @@ class ArrowCallback(PlotCallback):
         width = self.width * plot_diag
         head_width = self.head_width * plot_diag
         head_length = None
-        if self.head_length:
+        if self.head_length is not None:
             head_length = self.head_length * plot_diag
 
         if self.starting_pos is not None:
