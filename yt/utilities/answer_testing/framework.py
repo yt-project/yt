@@ -11,7 +11,6 @@ import shelve
 import sys
 import tempfile
 import time
-import urllib
 import warnings
 import zlib
 from collections import defaultdict
@@ -207,6 +206,9 @@ class AnswerTestStorage:
 
 class AnswerTestCloudStorage(AnswerTestStorage):
     def get(self, ds_name, default=None):
+        import urllib.error
+        import urllib.request
+
         if self.reference_name is None:
             return default
         if ds_name in self.cache:
