@@ -1806,11 +1806,12 @@ class ArrowCallback(PlotCallback):
         xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
         # normalize all of the kwarg lengths to the plot size
         plot_diag = ((yy1 - yy0) ** 2 + (xx1 - xx0) ** 2) ** (0.5)
-        self.length *= plot_diag
-        self.width *= plot_diag
-        self.head_width *= plot_diag
-        if self.head_length is not None:
-            self.head_length *= plot_diag
+        length = self.length * plot_diag
+        width = self.width * plot_diag
+        head_width = self.head_width * plot_diag
+        head_length = None
+        if self.head_length:
+            head_length = self.head_length * plot_diag
 
         if self.starting_pos is not None:
             start_x, start_y = self._sanitize_coord_system(
@@ -1819,8 +1820,8 @@ class ArrowCallback(PlotCallback):
             dx = x - start_x
             dy = y - start_y
         else:
-            dx = (xx1 - xx0) * 2 ** (0.5) * self.length
-            dy = (yy1 - yy0) * 2 ** (0.5) * self.length
+            dx = (xx1 - xx0) * 2 ** (0.5) * length
+            dy = (yy1 - yy0) * 2 ** (0.5) * length
         # If the arrow is 0 length
         if dx == dy == 0:
             warnings.warn("The arrow has zero length. Not annotating.", stacklevel=2)
@@ -1833,9 +1834,9 @@ class ArrowCallback(PlotCallback):
                 y - dy,
                 dx,
                 dy,
-                width=self.width,
-                head_width=self.head_width,
-                head_length=self.head_length,
+                width=width,
+                head_width=head_width,
+                head_length=head_length,
                 transform=self.transform,
                 length_includes_head=True,
                 **self.plot_args,
@@ -1847,9 +1848,9 @@ class ArrowCallback(PlotCallback):
                     y[i] - dy,
                     dx,
                     dy,
-                    width=self.width,
-                    head_width=self.head_width,
-                    head_length=self.head_length,
+                    width=width,
+                    head_width=head_width,
+                    head_length=head_length,
                     transform=self.transform,
                     length_includes_head=True,
                     **self.plot_args,
@@ -2048,7 +2049,7 @@ class SphereCallback(PlotCallback):
         if self.coord_system == "data" or self.coord_system == "plot":
             scaled_radius = self.radius * self._pixel_scale(plot)[0]
         else:
-            scaled_radius /= plot.xlim[1] - plot.xlim[0]
+            scaled_radius = self.radius / (plot.xlim[1] - plot.xlim[0])
 
         x, y = self._sanitize_coord_system(
             plot, self.center, coord_system=self.coord_system
