@@ -408,17 +408,17 @@ def test_invalidated_annotations():
     # check that annotate_sphere and annotate_arrow succeed on re-running after
     # an operation that invalidates the plot (set_font_size), see
     # https://github.com/yt-project/yt/issues/4698
-    with _cleanup_fname() as prefix:
-        ds = fake_amr_ds(fields=("density",), units=("g/cm**3",))
-        p = SlicePlot(ds, "z", ("gas", "density"))
-        p.annotate_sphere([0.5, 0.5, 0.5], 0.1)
-        p.set_font_size(24)
-        assert_fname(p.save(prefix)[0])
 
-        p = SlicePlot(ds, "z", ("gas", "density"))
-        p.annotate_arrow([0.5, 0.5, 0.5])
-        p.set_font_size(24)
-        assert_fname(p.save(prefix)[0])
+    ds = fake_amr_ds(fields=("density",), units=("g/cm**3",))
+    p = SlicePlot(ds, "z", ("gas", "density"))
+    p.annotate_sphere([0.5, 0.5, 0.5], 0.1)
+    p.set_font_size(24)
+    p.render()
+
+    p = SlicePlot(ds, "z", ("gas", "density"))
+    p.annotate_arrow([0.5, 0.5, 0.5])
+    p.set_font_size(24)
+    p.render()
 
 
 def test_text_callback():
