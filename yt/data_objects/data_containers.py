@@ -1169,6 +1169,7 @@ class YTDataContainer(abc.ABC):
         accumulation=False,
         fractional=False,
         deposition="ngp",
+        *,
         override_bins=None,
     ):
         r"""
