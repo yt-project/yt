@@ -8,6 +8,7 @@ from yt.funcs import mylog
 
 class _LinearInterpolator(abc.ABC):
     _ndim: int
+    _dim_i_type = "int32"
 
     def __init__(self, table, truncate=False, *, store_table=True):
         if store_table:
@@ -49,14 +50,14 @@ class _LinearInterpolator(abc.ABC):
             dim_bins = getattr(self, f"{dim}_bins")
 
             dim_vals = data_object[dim_name].ravel().astype("float64")
-            dim_i = (np.digitize(dim_vals, dim_bins) - 1).astype("int32")
+            dim_i = (np.digitize(dim_vals, dim_bins) - 1).astype(self._dim_i_type)
             if np.any((dim_i == -1) | (dim_i == len(dim_bins) - 1)):
                 if not self.truncate:
                     self._raise_truncation_error(data_object)
                 else:
                     dim_i = np.minimum(np.maximum(dim_i, 0), len(dim_bins) - 2)
-            return_arrays.append(dim_i)
             return_arrays.append(dim_vals)
+            return_arrays.append(dim_i)
 
         return return_arrays
 
@@ -182,6 +183,7 @@ class BilinearFieldInterpolator(_LinearInterpolator):
 
 class TrilinearFieldInterpolator(_LinearInterpolator):
     _ndim = 3
+    _dim_i_type = "int_"
 
     def __init__(
         self, table, boundaries, field_names, truncate=False, *, store_table=True
@@ -267,6 +269,7 @@ class TrilinearFieldInterpolator(_LinearInterpolator):
 
 class QuadrilinearFieldInterpolator(_LinearInterpolator):
     _ndim = 4
+    _dim_i_type = "int_"
 
     def __init__(
         self, table, boundaries, field_names, truncate=False, *, store_table=True
