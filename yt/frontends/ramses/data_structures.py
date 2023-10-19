@@ -693,7 +693,6 @@ class RAMSESIndex(OctreeIndex):
 
 
 class RAMSESDataset(Dataset):
-    _load_requirements = ["f90nml"]
     _index_class = RAMSESIndex
     _field_info_class = RAMSESFieldInfo
     gamma = 1.4  # This will get replaced on hydro_fn open
