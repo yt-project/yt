@@ -105,11 +105,7 @@ class UnilinearFieldInterpolator(_LinearInterpolator):
         super().__init__(table, field_names, truncate=truncate, store_table=store_table)
         self.x_name = field_names
         if isinstance(boundaries, np.ndarray):
-            self._validate_bin_boundaries(
-                [
-                    boundaries,
-                ]
-            )
+            self._validate_bin_boundaries((boundaries,))
             self.x_bins = boundaries
         else:
             x0, x1 = boundaries
