@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 import yt.utilities.linear_interpolators as lin
@@ -154,3 +155,30 @@ def test_get_vertex_centered_data():
     ds = fake_random_ds(16)
     g = ds.index.grids[0]
     g.get_vertex_centered_data([("gas", "density")], no_ghost=True)
+
+
+_lin_interpolators_by_dim = {
+    1: lin.UnilinearFieldInterpolator,
+    2: lin.BilinearFieldInterpolator,
+    3: lin.TrilinearFieldInterpolator,
+    4: lin.QuadrilinearFieldInterpolator,
+}
+
+
+@pytest.mark.parametrize("ndim", list(range(1, 5)))
+def test_table_override(ndim):
+    sz = 8
+
+    random_data = np.random.random((sz,) * ndim)
+    # evenly spaced bins
+
+    field_names = "xyzw"[:ndim]
+    slc = slice(0.0, 1.0, complex(0, sz))
+    fv = dict(zip(field_names, np.mgrid[(slc,) * ndim]))
+    boundaries = (0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0)[: ndim * 2]
+
+    interp_class = _lin_interpolators_by_dim[ndim]
+    tfi = interp_class(random_data, boundaries, field_names, True)
+    assert_array_almost_equal(tfi(fv), random_data)
+    table_2 = random_data * 2
+    assert_array_almost_equal(tfi(fv, table_override=table_2), table_2)

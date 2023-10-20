@@ -10,13 +10,14 @@ class _LinearInterpolator(abc.ABC):
     _ndim: int
     _dim_i_type = "int32"
 
-    def __init__(self, table, truncate=False, *, store_table=True):
+    def __init__(self, table, field_names, truncate=False, *, store_table=True):
         if store_table:
             self.table = table.astype("float64")
         else:
             self.table = None
         self.table_shape = table.shape
         self.truncate = truncate
+        self._field_names = field_names
 
     def _raise_truncation_error(self, data_object):
         mylog.error(
@@ -61,6 +62,13 @@ class _LinearInterpolator(abc.ABC):
 
         return return_arrays
 
+    def _validate_bin_boundaries(self, boundaries):
+        for idim in range(self._ndim):
+            if boundaries[idim].size != self.table_shape[idim]:
+                msg = f"{self._field_names[idim]} bins array not the same length as the data."
+                mylog.error(msg)
+                raise ValueError(msg)
+
 
 class UnilinearFieldInterpolator(_LinearInterpolator):
     _ndim = 1
@@ -94,12 +102,14 @@ class UnilinearFieldInterpolator(_LinearInterpolator):
         field_data = interp(ad)
 
         """
-        super().__init__(table, truncate=truncate, store_table=store_table)
+        super().__init__(table, field_names, truncate=truncate, store_table=store_table)
         self.x_name = field_names
         if isinstance(boundaries, np.ndarray):
-            if boundaries.size != table.shape[0]:
-                mylog.error("Bins array not the same length as the data.")
-                raise ValueError
+            self._validate_bin_boundaries(
+                [
+                    boundaries,
+                ]
+            )
             self.x_bins = boundaries
         else:
             x0, x1 = boundaries
@@ -147,19 +157,14 @@ class BilinearFieldInterpolator(_LinearInterpolator):
         field_data = interp(ad)
 
         """
-        super().__init__(table, truncate=truncate, store_table=store_table)
+        super().__init__(table, field_names, truncate=truncate, store_table=store_table)
         self.x_name, self.y_name = field_names
         if len(boundaries) == 4:
             x0, x1, y0, y1 = boundaries
             self.x_bins = np.linspace(x0, x1, table.shape[0], dtype="float64")
             self.y_bins = np.linspace(y0, y1, table.shape[1], dtype="float64")
         elif len(boundaries) == 2:
-            if boundaries[0].size != table.shape[0]:
-                mylog.error("X bins array not the same length as the data.")
-                raise ValueError
-            if boundaries[1].size != table.shape[1]:
-                mylog.error("Y bins array not the same length as the data.")
-                raise ValueError
+            self._validate_bin_boundaries(boundaries)
             self.x_bins = boundaries[0]
             self.y_bins = boundaries[1]
         else:
@@ -215,7 +220,7 @@ class TrilinearFieldInterpolator(_LinearInterpolator):
         field_data = interp(ad)
 
         """
-        super().__init__(table, truncate=truncate, store_table=store_table)
+        super().__init__(table, field_names, truncate=truncate, store_table=store_table)
         self.x_name, self.y_name, self.z_name = field_names
         if len(boundaries) == 6:
             x0, x1, y0, y1, z0, z1 = boundaries
@@ -223,15 +228,7 @@ class TrilinearFieldInterpolator(_LinearInterpolator):
             self.y_bins = np.linspace(y0, y1, table.shape[1], dtype="float64")
             self.z_bins = np.linspace(z0, z1, table.shape[2], dtype="float64")
         elif len(boundaries) == 3:
-            if boundaries[0].size != table.shape[0]:
-                mylog.error("X bins array not the same length as the data.")
-                raise ValueError
-            if boundaries[1].size != table.shape[1]:
-                mylog.error("Y bins array not the same length as the data.")
-                raise ValueError
-            if boundaries[2].size != table.shape[2]:
-                mylog.error("Z bins array not the same length as the data.")
-                raise ValueError
+            self._validate_bin_boundaries(boundaries)
             self.x_bins = boundaries[0]
             self.y_bins = boundaries[1]
             self.z_bins = boundaries[2]
@@ -300,7 +297,7 @@ class QuadrilinearFieldInterpolator(_LinearInterpolator):
         field_data = interp(ad)
 
         """
-        super().__init__(table, truncate=truncate, store_table=store_table)
+        super().__init__(table, field_names, truncate=truncate, store_table=store_table)
         self.x_name, self.y_name, self.z_name, self.w_name = field_names
         if len(boundaries) == 8:
             x0, x1, y0, y1, z0, z1, w0, w1 = boundaries
@@ -309,18 +306,7 @@ class QuadrilinearFieldInterpolator(_LinearInterpolator):
             self.z_bins = np.linspace(z0, z1, table.shape[2]).astype("float64")
             self.w_bins = np.linspace(w0, w1, table.shape[3]).astype("float64")
         elif len(boundaries) == 4:
-            if boundaries[0].size != table.shape[0]:
-                mylog.error("X bins array not the same length as the data.")
-                raise ValueError
-            if boundaries[1].size != table.shape[1]:
-                mylog.error("Y bins array not the same length as the data.")
-                raise ValueError
-            if boundaries[2].size != table.shape[2]:
-                mylog.error("Z bins array not the same length as the data.")
-                raise ValueError
-            if boundaries[3].size != table.shape[3]:
-                mylog.error("W bins array not the same length as the data.")
-                raise ValueError
+            self._validate_bin_boundaries(boundaries)
             self.x_bins = boundaries[0]
             self.y_bins = boundaries[1]
             self.z_bins = boundaries[2]
