@@ -31,15 +31,15 @@ class _LinearInterpolator(abc.ABC):
         if table_override is None:
             if self.table is None:
                 msg = (
-                    f"You must either store the table used when initializing "
-                    f"{type(self).__name__} (set `store_table=True`) or you must provide a `table_override` when "
+                    f"You must either store the table used when initializing a new "
+                    f"{type(self).__name__} (set `store_table=True`) or you must provide a `table` when "
                     f"calling {type(self).__name__}"
                 )
-                raise RuntimeError(msg)
+                raise ValueError(msg)
             return self.table
 
-        if table_override.shape != self.table.shape:
-            msg = f"The table_override shape, {table_override.shape}, must match the base table shape, {self.table.shape}"
+        if table_override.shape != self.table_shape:
+            msg = f"The table_override shape, {table_override.shape}, must match the base table shape, {self.table_shape}"
             raise ValueError(msg)
 
         return table_override.astype("float64")
@@ -92,15 +92,25 @@ class UnilinearFieldInterpolator(_LinearInterpolator):
             If False, an exception is raised if the input values are
             outside the bounds of the table.  If True, extrapolation is
             performed.
+        store_table: bool
+            If False, only the shape of the input table is stored and
+            a full table must be provided when calling the interpolator.
 
         Examples
         --------
 
-        ad = ds.all_data()
-        table_data = np.random.random(64)
-        interp = UnilinearFieldInterpolator(table_data, (0.0, 1.0), "x",
-                                            truncate=True)
-        field_data = interp(ad)
+        >>> ad = ds.all_data()
+        >>> table_data = np.random.random(64)
+        >>> interp = UnilinearFieldInterpolator(table_data, (0.0, 1.0), "x",
+                                                truncate=True)
+        >>> field_data = interp(ad)
+
+        If you want to re-use the interpolator with table_data of the same shape
+        but different values, you can also supply the `table` keyword argument when
+        calling the interpolator:
+
+        >>> new_table_data = np.random.random(64)
+        >>> field_data = interp(ad, table=new_table_data)
 
         """
         super().__init__(table, field_names, truncate=truncate, store_table=store_table)
@@ -112,8 +122,8 @@ class UnilinearFieldInterpolator(_LinearInterpolator):
             x0, x1 = boundaries
             self.x_bins = np.linspace(x0, x1, table.shape[0], dtype="float64")
 
-    def __call__(self, data_object, *, table_override=None):
-        table = self._validate_table(table_override)
+    def __call__(self, data_object, *, table=None):
+        table = self._validate_table(table)
         orig_shape = data_object[self.x_name].shape
         x_vals, x_i = self._get_digitized_arrays(data_object)
         my_vals = np.zeros(x_vals.shape, dtype="float64")
@@ -142,16 +152,26 @@ class BilinearFieldInterpolator(_LinearInterpolator):
             If False, an exception is raised if the input values are
             outside the bounds of the table.  If True, extrapolation is
             performed.
+        store_table: bool
+            If False, only the shape of the input table is stored and
+            a full table must be provided when calling the interpolator.
 
         Examples
         --------
 
-        ad = ds.all_data()
-        table_data = np.random.random((64, 64))
-        interp = BilinearFieldInterpolator(table_data, (0.0, 1.0, 0.0, 1.0),
-                                           ["x", "y"],
-                                           truncate=True)
-        field_data = interp(ad)
+        >>> ad = ds.all_data()
+        >>> table_data = np.random.random((64, 64))
+        >>> interp = BilinearFieldInterpolator(table_data, (0.0, 1.0, 0.0, 1.0),
+                                              ["x", "y"],
+                                              truncate=True)
+        >>> field_data = interp(ad)
+
+        If you want to re-use the interpolator with table_data of the same shape
+        but different values, you can also supply the `table` keyword argument when
+        calling the interpolator:
+
+        >>> new_table_data = np.random.random((64, 64))
+        >>> field_data = interp(ad, table=new_table_data)
 
         """
         super().__init__(table, field_names, truncate=truncate, store_table=store_table)
@@ -169,8 +189,8 @@ class BilinearFieldInterpolator(_LinearInterpolator):
             )
             raise ValueError
 
-    def __call__(self, data_object, *, table_override=None):
-        table = self._validate_table(table_override)
+    def __call__(self, data_object, *, table=None):
+        table = self._validate_table(table)
 
         orig_shape = data_object[self.x_name].shape
         x_vals, x_i, y_vals, y_i = self._get_digitized_arrays(data_object)
@@ -203,17 +223,27 @@ class TrilinearFieldInterpolator(_LinearInterpolator):
             If False, an exception is raised if the input values are
             outside the bounds of the table.  If True, extrapolation is
             performed.
+        store_table: bool
+            If False, only the shape of the input table is stored and
+            a full table must be provided when calling the interpolator.
 
         Examples
         --------
 
-        ad = ds.all_data()
-        table_data = np.random.random((64, 64, 64))
-        interp = TrilinearFieldInterpolator(table_data,
-                                            (0.0, 1.0, 0.0, 1.0, 0.0, 1.0),
-                                            ["x", "y", "z"],
-                                            truncate=True)
-        field_data = interp(ad)
+        >>> ad = ds.all_data()
+        >>> table_data = np.random.random((64, 64, 64))
+        >>> interp = TrilinearFieldInterpolator(table_data,
+                                               (0.0, 1.0, 0.0, 1.0, 0.0, 1.0),
+                                               ["x", "y", "z"],
+                                               truncate=True)
+        >>> field_data = interp(ad)
+
+        If you want to re-use the interpolator with table_data of the same shape
+        but different values, you can also supply the `table` keyword argument when
+        calling the interpolator:
+
+        >>> new_table_data = np.random.random((64, 64, 64))
+        >>> field_data = interp(ad, table=new_table_data)
 
         """
         super().__init__(table, field_names, truncate=truncate, store_table=store_table)
@@ -233,8 +263,8 @@ class TrilinearFieldInterpolator(_LinearInterpolator):
             )
             raise ValueError
 
-    def __call__(self, data_object, *, table_override=None):
-        table = self._validate_table(table_override)
+    def __call__(self, data_object, *, table=None):
+        table = self._validate_table(table)
 
         orig_shape = data_object[self.x_name].shape
         x_vals, x_i, y_vals, y_i, z_vals, z_i = self._get_digitized_arrays(data_object)
@@ -279,16 +309,26 @@ class QuadrilinearFieldInterpolator(_LinearInterpolator):
             If False, an exception is raised if the input values are
             outside the bounds of the table.  If True, extrapolation is
             performed.
+        store_table: bool
+            If False, only the shape of the input table is stored and
+            a full table must be provided when calling the interpolator.
 
         Examples
         --------
-        ad = ds.all_data()
-        table_data = np.random.random((64, 64, 64, 64))
-        interp = BilinearFieldInterpolator(table_data,
-                                           (0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0),
-                                           ["x", "y", "z", "w"],
-                                           truncate=True)
-        field_data = interp(ad)
+        >>> ad = ds.all_data()
+        >>> table_data = np.random.random((64, 64, 64, 64))
+        >>> interp = QuadrilinearFieldInterpolator(table_data,
+                                                  (0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0),
+                                                  ["x", "y", "z", "w"],
+                                                  truncate=True)
+        >>> field_data = interp(ad)
+
+        If you want to re-use the interpolator with table_data of the same shape
+        but different values, you can also supply the `table` keyword argument when
+        calling the interpolator:
+
+        >>> new_table_data = np.random.random((64, 64, 64, 64))
+        >>> field_data = interp(ad, table=new_table_data)
 
         """
         super().__init__(table, field_names, truncate=truncate, store_table=store_table)
@@ -309,8 +349,8 @@ class QuadrilinearFieldInterpolator(_LinearInterpolator):
             )
             raise ValueError
 
-    def __call__(self, data_object, *, table_override=None):
-        table = self._validate_table(table_override)
+    def __call__(self, data_object, *, table=None):
+        table = self._validate_table(table)
 
         orig_shape = data_object[self.x_name].shape
         x_vals, x_i, y_vals, y_i, z_vals, z_i, w_vals, w_i = self._get_digitized_arrays(

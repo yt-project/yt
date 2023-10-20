@@ -180,7 +180,18 @@ def test_table_override(ndim):
     interpolator = interp_class(random_data, boundaries, field_names, True)
     assert_array_almost_equal(interpolator(fv), random_data)
     table_2 = random_data * 2
-    assert_array_almost_equal(interpolator(fv, table_override=table_2), table_2)
+    assert_array_almost_equal(interpolator(fv, table=table_2), table_2)
+
+    # check that we can do it without storing the initial table
+    interpolator = interp_class(
+        random_data, boundaries, field_names, True, store_table=False
+    )
+    assert_array_almost_equal(interpolator(fv, table=table_2), table_2)
+
+    with pytest.raises(
+        ValueError, match="You must either store the table used when initializing"
+    ):
+        _ = interpolator(fv)
 
 
 @pytest.mark.parametrize("ndim", list(range(1, 5)))
