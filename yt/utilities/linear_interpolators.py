@@ -63,6 +63,7 @@ class _LinearInterpolator(abc.ABC):
         return return_arrays
 
     def _validate_bin_boundaries(self, boundaries):
+        # boundaries: tuple of ndarrays
         for idim in range(self._ndim):
             if boundaries[idim].size != self.table_shape[idim]:
                 msg = f"{self._field_names[idim]} bins array not the same length as the data."
@@ -161,8 +162,7 @@ class BilinearFieldInterpolator(_LinearInterpolator):
             self.y_bins = np.linspace(y0, y1, table.shape[1], dtype="float64")
         elif len(boundaries) == 2:
             self._validate_bin_boundaries(boundaries)
-            self.x_bins = boundaries[0]
-            self.y_bins = boundaries[1]
+            self.x_bins, self.y_bins = boundaries
         else:
             mylog.error(
                 "Boundaries must be given as (x0, x1, y0, y1) or as (x_bins, y_bins)"
@@ -225,9 +225,7 @@ class TrilinearFieldInterpolator(_LinearInterpolator):
             self.z_bins = np.linspace(z0, z1, table.shape[2], dtype="float64")
         elif len(boundaries) == 3:
             self._validate_bin_boundaries(boundaries)
-            self.x_bins = boundaries[0]
-            self.y_bins = boundaries[1]
-            self.z_bins = boundaries[2]
+            self.x_bins, self.y_bins, self.z_bins = boundaries
         else:
             mylog.error(
                 "Boundaries must be given as (x0, x1, y0, y1, z0, z1) "
@@ -303,10 +301,7 @@ class QuadrilinearFieldInterpolator(_LinearInterpolator):
             self.w_bins = np.linspace(w0, w1, table.shape[3]).astype("float64")
         elif len(boundaries) == 4:
             self._validate_bin_boundaries(boundaries)
-            self.x_bins = boundaries[0]
-            self.y_bins = boundaries[1]
-            self.z_bins = boundaries[2]
-            self.w_bins = boundaries[3]
+            self.x_bins, self.y_bins, self.z_bins, self.w_bins = boundaries
         else:
             mylog.error(
                 "Boundaries must be given as (x0, x1, y0, y1, z0, z1, w0, w1) "

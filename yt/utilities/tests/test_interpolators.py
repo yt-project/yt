@@ -170,7 +170,6 @@ def test_table_override(ndim):
     sz = 8
 
     random_data = np.random.random((sz,) * ndim)
-    # evenly spaced bins
 
     field_names = "xyzw"[:ndim]
     slc = slice(0.0, 1.0, complex(0, sz))
@@ -178,7 +177,30 @@ def test_table_override(ndim):
     boundaries = (0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0)[: ndim * 2]
 
     interp_class = _lin_interpolators_by_dim[ndim]
-    tfi = interp_class(random_data, boundaries, field_names, True)
-    assert_array_almost_equal(tfi(fv), random_data)
+    interpolator = interp_class(random_data, boundaries, field_names, True)
+    assert_array_almost_equal(interpolator(fv), random_data)
     table_2 = random_data * 2
-    assert_array_almost_equal(tfi(fv, table_override=table_2), table_2)
+    assert_array_almost_equal(interpolator(fv, table_override=table_2), table_2)
+
+
+@pytest.mark.parametrize("ndim", list(range(1, 5)))
+def test_bin_validation(ndim):
+    interp_class = _lin_interpolators_by_dim[ndim]
+
+    sz = 8
+    random_data = np.random.random((sz,) * ndim)
+    field_names = "xyzw"[:ndim]
+
+    bad_bounds = np.linspace(0.0, 1.0, sz - 1)
+    good_bounds = np.linspace(0.0, 1.0, sz)
+    if ndim == 1:
+        bounds = bad_bounds
+    else:
+        bounds = [
+            good_bounds,
+        ] * ndim
+        bounds[0] = bad_bounds
+        bounds = tuple(bounds)
+
+    with pytest.raises(ValueError, match=f"{field_names[0]} bins array not"):
+        _ = interp_class(random_data, bounds, field_names)
