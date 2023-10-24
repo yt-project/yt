@@ -206,6 +206,8 @@ def test_load_particles_types():
     ds2 = load_particles(data2)
     ds2.index
 
+    # We use set here because we don't care about the order and we just need
+    # the elements to be correct
     assert set(ds2.particle_types) == {"all", "star", "dm", "nbody"}
 
     dd = ds2.all_data()
