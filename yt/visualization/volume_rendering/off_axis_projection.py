@@ -216,7 +216,6 @@ def off_axis_projection(
         ounits = finfo.output_units
         bounds = [x_min, x_max, y_min, y_max, z_min, z_max]
 
-        print(f"depth_set is {depth_set}")
         if weight is None:
             for chunk in data_source.chunks([], "io"):
                 off_axis_projection_SPH(
