@@ -649,6 +649,7 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
             interpolated=dd.interpolated,
             north_vector=dd.north_vector,
             method=dd.method,
+            depth_set=dd.depth_set,
         )
         if self.data_source.moment == 2:
 
